@@ -91,9 +91,91 @@ async function seedSystemConfigs() {
   console.log(`[seed] system_configs upserted: ${entries.length}`);
 }
 
+async function seedPatentMapEntries() {
+  const entries = [
+    {
+      regionCode: '110000',
+      year: 2024,
+      patentCount: 1200,
+      industryBreakdown: [
+        { industryTag: '新能源', count: 320 },
+        { industryTag: '电池', count: 210 },
+        { industryTag: '智能制造', count: 180 },
+      ],
+      topAssignees: [
+        { assigneeName: '某新能源企业', patentCount: 120 },
+        { assigneeName: '某高校技术转移中心', patentCount: 88 },
+      ],
+    },
+    {
+      regionCode: '310000',
+      year: 2024,
+      patentCount: 980,
+      industryBreakdown: [
+        { industryTag: '生物医药', count: 260 },
+        { industryTag: '集成电路', count: 240 },
+        { industryTag: '环保', count: 160 },
+      ],
+      topAssignees: [
+        { assigneeName: '某医药集团', patentCount: 110 },
+        { assigneeName: '某半导体公司', patentCount: 96 },
+      ],
+    },
+    {
+      regionCode: '110000',
+      year: 2025,
+      patentCount: 1350,
+      industryBreakdown: [
+        { industryTag: '新能源', count: 360 },
+        { industryTag: '电池', count: 260 },
+        { industryTag: '人工智能', count: 200 },
+      ],
+      topAssignees: [
+        { assigneeName: '某新能源企业', patentCount: 140 },
+        { assigneeName: '某研究院', patentCount: 92 },
+      ],
+    },
+    {
+      regionCode: '310000',
+      year: 2025,
+      patentCount: 1050,
+      industryBreakdown: [
+        { industryTag: '集成电路', count: 280 },
+        { industryTag: '生物医药', count: 270 },
+        { industryTag: '智能制造', count: 170 },
+      ],
+      topAssignees: [
+        { assigneeName: '某半导体公司', patentCount: 120 },
+        { assigneeName: '某高校技术转移中心', patentCount: 75 },
+      ],
+    },
+  ];
+
+  for (const e of entries) {
+    await prisma.patentMapEntry.upsert({
+      where: { regionCode_year: { regionCode: e.regionCode, year: e.year } },
+      update: {
+        patentCount: e.patentCount,
+        industryBreakdownJson: e.industryBreakdown,
+        topAssigneesJson: e.topAssignees,
+      },
+      create: {
+        regionCode: e.regionCode,
+        year: e.year,
+        patentCount: e.patentCount,
+        industryBreakdownJson: e.industryBreakdown,
+        topAssigneesJson: e.topAssignees,
+      },
+    });
+  }
+
+  console.log(`[seed] patent_map_entries upserted: ${entries.length}`);
+}
+
 async function main() {
   await seedRegions();
   await seedSystemConfigs();
+  await seedPatentMapEntries();
 }
 
 main()
@@ -105,4 +187,3 @@ main()
     await prisma.$disconnect();
     process.exit(1);
   });
-
