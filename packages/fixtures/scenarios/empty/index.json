@@ -1,0 +1,24 @@
+{
+  "GET /search/listings": {
+    "status": 200,
+    "body": {
+      "items": [],
+      "page": { "page": 1, "pageSize": 10, "total": 0 }
+    }
+  },
+  "GET /public/organizations": {
+    "status": 200,
+    "body": {
+      "items": [],
+      "page": { "page": 1, "pageSize": 10, "total": 0 }
+    }
+  },
+  "GET /search/inventors": {
+    "status": 200,
+    "body": {
+      "items": [],
+      "page": { "page": 1, "pageSize": 10, "total": 0 }
+    }
+  }
+}
+

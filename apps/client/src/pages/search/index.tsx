@@ -1,10 +1,58 @@
 import { View, Text } from '@tarojs/components';
 import Taro from '@tarojs/taro';
-import React from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 
+import { apiGet } from '../../lib/api';
 import { requireLogin } from '../../lib/guard';
 
+type PagedListingSummary = {
+  items: Array<{
+    id: string;
+    title: string;
+    tradeMode: 'ASSIGNMENT' | 'LICENSE';
+    priceType: 'FIXED' | 'NEGOTIABLE';
+    priceAmountFen?: number;
+    depositAmountFen: number;
+    auditStatus: 'PENDING' | 'APPROVED' | 'REJECTED';
+    status: 'DRAFT' | 'ACTIVE' | 'OFF_SHELF' | 'SOLD';
+    createdAt: string;
+    patentType?: 'INVENTION' | 'UTILITY_MODEL' | 'DESIGN';
+    applicationNoDisplay?: string;
+    inventorNames?: string[];
+    regionCode?: string;
+    industryTags?: string[];
+  }>;
+  page: { page: number; pageSize: number; total: number };
+};
+
+function fenToYuan(fen?: number): string {
+  if (fen === undefined || fen === null) return '-';
+  return (fen / 100).toFixed(2);
+}
+
 export default function SearchPage() {
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [data, setData] = useState<PagedListingSummary | null>(null);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const d = await apiGet<PagedListingSummary>('/search/listings', { page: 1, pageSize: 10 });
+      setData(d);
+    } catch (e: any) {
+      setError(e?.message || '加载失败');
+      setData(null);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    void load();
+  }, [load]);
+
   return (
     <View className="container">
       <View className="card">
@@ -15,14 +63,73 @@ export default function SearchPage() {
 
       <View style={{ height: '16rpx' }} />
 
-      <View
-        className="card btn-primary"
-        onClick={() => {
-          Taro.navigateTo({ url: '/pages/login/index' });
-        }}
-      >
-        <Text>去登录（演示）</Text>
-      </View>
+      {loading ? (
+        <View className="card">
+          <Text className="muted">加载中…</Text>
+        </View>
+      ) : error ? (
+        <View className="card">
+          <Text style={{ fontWeight: 700 }}>加载失败</Text>
+          <View style={{ height: '8rpx' }} />
+          <Text className="muted">{error}</Text>
+          <View style={{ height: '12rpx' }} />
+          <View className="btn-primary" onClick={load}>
+            <Text>重试</Text>
+          </View>
+        </View>
+      ) : data?.items?.length ? (
+        <View>
+          {data.items.map((it) => (
+            <View
+              key={it.id}
+              className="card"
+              style={{ marginBottom: '16rpx' }}
+              onClick={() => {
+                Taro.navigateTo({ url: `/pages/listing/detail/index?listingId=${it.id}` });
+              }}
+            >
+              <Text style={{ fontWeight: 700 }}>{it.title}</Text>
+              <View style={{ height: '6rpx' }} />
+              <Text className="muted">
+                {it.patentType || '-'} · {it.tradeMode} · {it.priceType}
+              </Text>
+              <View style={{ height: '6rpx' }} />
+              <Text className="muted">
+                价格：{it.priceType === 'NEGOTIABLE' ? '面议' : `¥${fenToYuan(it.priceAmountFen)}`} · 订金：¥
+                {fenToYuan(it.depositAmountFen)}
+              </Text>
+              <View style={{ height: '12rpx' }} />
+              <View
+                className="btn-ghost"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if (!requireLogin()) return;
+                  Taro.showToast({ title: '收藏成功（演示）', icon: 'success' });
+                }}
+              >
+                <Text>收藏（需登录）</Text>
+              </View>
+              <View style={{ height: '10rpx' }} />
+              <View
+                className="btn-primary"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if (!requireLogin()) return;
+                  Taro.showToast({ title: '进入咨询（演示）', icon: 'none' });
+                }}
+              >
+                <Text>咨询（需登录）</Text>
+              </View>
+            </View>
+          ))}
+        </View>
+      ) : (
+        <View className="card">
+          <Text style={{ fontWeight: 700 }}>暂无数据</Text>
+          <View style={{ height: '8rpx' }} />
+          <Text className="muted">可切换 Mock 场景为 happy / empty / error / edge 进行演示。</Text>
+        </View>
+      )}
 
       <View style={{ height: '16rpx' }} />
 
@@ -38,4 +145,3 @@ export default function SearchPage() {
     </View>
   );
 }
-

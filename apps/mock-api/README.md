@@ -1,10 +1,10 @@
 # Mock API（Prism）
 
-启动契约 Mock：
+启动 Mock（fixtures 场景 + Prism fallback）：
 
 - `pnpm dev`
 
 说明：
-- 基于 `docs/api/openapi.yaml` 直接生成响应，适合前后端并行联调与前端骨架演示。
-- 场景化 fixtures（退款失败/回调重放/无数据/权限等）规划见：`docs/engineering/mocking.md`。
-
+- 默认端口：`http://127.0.0.1:4010`
+- 支持场景切换：Header `X-Mock-Scenario: happy|empty|error|edge`
+- fixtures 未命中的接口会转发到 Prism（内部端口 `4011`），保证“契约覆盖度”。

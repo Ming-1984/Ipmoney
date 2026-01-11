@@ -2,7 +2,6 @@
   "name": "mock-api",
   "private": true,
   "scripts": {
-    "dev": "prism mock ../../docs/api/openapi.yaml --port 4010 --cors"
+    "dev": "node src/server.js"
   }
 }
-

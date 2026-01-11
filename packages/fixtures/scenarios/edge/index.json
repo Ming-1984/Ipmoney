@@ -1,0 +1,29 @@
+{
+  "GET /search/listings": {
+    "status": 200,
+    "body": {
+      "items": [
+        {
+          "id": "33333333-3333-3333-3333-333333333333",
+          "title": "外观设计：智能穿戴设备表面纹理",
+          "tradeMode": "ASSIGNMENT",
+          "priceType": "FIXED",
+          "priceAmountFen": 980000,
+          "depositAmountFen": 50000,
+          "auditStatus": "APPROVED",
+          "status": "ACTIVE",
+          "createdAt": "2026-01-08T08:00:00Z",
+          "patentType": "DESIGN",
+          "applicationNoDisplay": "202330000001.9",
+          "inventorNames": [],
+          "regionCode": "110000",
+          "industryTags": [],
+          "featuredLevel": "NONE",
+          "stats": { "viewCount": 0, "favoriteCount": 0, "consultCount": 0 }
+        }
+      ],
+      "page": { "page": 1, "pageSize": 10, "total": 1 }
+    }
+  }
+}
+

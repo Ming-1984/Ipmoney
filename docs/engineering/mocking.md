@@ -22,6 +22,14 @@
 说明：
 - Prism 默认按 schema 生成响应；若需要更贴近业务的响应，优先补充 OpenAPI 的 `example/examples`，或使用 fixtures（见下）。
 
+### 2.1 推荐：fixtures 场景 + Prism fallback（更适合演示/回归）
+
+本仓库提供 `apps/mock-api`：
+
+- 启动：`pnpm mock`（`http://127.0.0.1:4010`）
+- 场景切换：Header `X-Mock-Scenario: happy|empty|error|edge`
+- fixtures 未命中的接口自动转发到 Prism（内部端口 `4011`）
+
 ## 3. 业务 Mock（fixtures：可控、可演示、可回归）
 
 ### 3.1 fixtures 目录建议
@@ -70,4 +78,3 @@ packages/fixtures/
 建议把“演示骨架”纳入固定流程：
 - 用同一套 fixtures 固定输出一组“可验收截图/录屏清单”
 - 甲方演示：只切换场景，无需等后端、无需手工造数据
-

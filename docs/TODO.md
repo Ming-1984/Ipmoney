@@ -274,13 +274,13 @@
   - [x] `pnpm openapi:preview`（默认 `http://127.0.0.1:8080`）
   - [x] `pnpm mock`（Prism：`http://127.0.0.1:4010`）
 - [ ] Mock 驱动并行开发（见 `docs/engineering/mocking.md`）：
-  - [ ] fixtures 场景（happy/empty/error/edge）落地，支持 `X-Mock-Scenario` 一键切换（当前仅建目录）
+  - [x] fixtures 场景（happy/empty/error/edge）落地，支持 `X-Mock-Scenario` 一键切换
   - [ ] 覆盖难场景：退款失败、回调重放、订单非法跳转、无数据、未登录/无权限、审核中/驳回
 - [ ] 前端骨架演示交付物（给甲方，后端未就绪也能演示；见 `docs/engineering/frontend-skeleton.md`）：
   - [ ] 用户端（Taro 小程序 + H5）：
     - [x] 工程骨架 + TabBar + 基础页面（Home/Search/Publish/Messages/Me/Login/Onboarding）
-    - [ ] 接入 Prism Mock（基于 `docs/api/openapi.yaml`）并对齐字段/枚举
-    - [ ] 全量状态机（loading/empty/error/permission/audit）覆盖所有页面
+    - [x] 接入 Mock（`apps/mock-api`：fixtures + Prism fallback）并对齐字段/枚举（Search/List/Detail 已接入）
+    - [ ] 全量状态机（loading/empty/error/permission/audit）覆盖所有页面（目前 Search/Detail 已覆盖）
   - [ ] 后台（React/AntD）：
     - [x] 工程骨架 + Layout + 菜单页骨架
     - [ ] 接入 Prism Mock + 表格/详情页骨架（审核/订单/退款/放款/发票/配置/地图）

@@ -2,6 +2,7 @@ export default defineAppConfig({
   pages: [
     'pages/home/index',
     'pages/search/index',
+    'pages/listing/detail/index',
     'pages/publish/index',
     'pages/messages/index',
     'pages/me/index',
@@ -28,4 +29,3 @@ export default defineAppConfig({
     ]
   }
 });
-

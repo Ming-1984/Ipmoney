@@ -11,8 +11,11 @@
 
 ## Mock（Prism）
 
-- 启动 Mock Server（契约 Mock）：
-  - `npx -y @stoplight/prism-cli mock docs/api/openapi.yaml --port 4010 --cors`
+- 启动 Mock Server（推荐：支持场景切换 + Prism fallback）：
+  - `pnpm mock`（`http://127.0.0.1:4010`）
+
+- 仅启动 Prism（纯契约 Mock）：
+  - `npx -y @stoplight/prism-cli mock docs/api/openapi.yaml --port 4011 --cors`
 
 场景化 fixtures（用于“退款失败/回调重放/无数据/权限”等演示与回归）见：`docs/engineering/mocking.md`。
 

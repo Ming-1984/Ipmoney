@@ -6,6 +6,7 @@ export const STORAGE_KEYS = {
   onboardingDone: 'ipmoney.onboardingDone',
   verificationType: 'ipmoney.verificationType',
   verificationStatus: 'ipmoney.verificationStatus',
+  mockScenario: 'ipmoney.mockScenario',
 };
 
 export type VerificationType =
