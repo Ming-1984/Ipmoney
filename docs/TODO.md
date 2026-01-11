@@ -146,13 +146,13 @@
 
 ### 7.2 数据库与迁移（M1）
 
-- [ ] 落 Prisma schema（对齐 `docs/architecture/er-diagram.mmd`）：orders/listings/patents/files/users/settlements/refunds/cases/system_configs 等
+- [x] 落 Prisma schema（对齐 `docs/architecture/er-diagram.mmd`）：`apps/api/prisma/schema.prisma`
 - [ ] 核心索引：
   - [ ] Search：标题/摘要/权利人等 FTS（P0）
   - [ ] 幂等/回调：`idempotency_keys`、支付回调去重键、退款去重键
   - [ ] 推荐：`view_count/favorite_count/consult_count` + 去重窗口表/缓存键策略
-- [ ] Region 字典与地图数据表：`regions`（含 `industry_tags_json`）、`industry_tags`、`patent_map_entries`（含 regionCode+year 唯一键）
-- [ ] 种子数据：区域字典（省/市层级）、默认系统配置（交易规则/推荐权重）
+- [x] Region 字典与地图数据表：`regions`、`industry_tags`、`patent_map_entries`（含 regionCode+year 唯一键）
+- [x] 种子数据：省级区域字典 + 默认系统配置（交易规则/推荐权重）：`apps/api/prisma/seed.js`
 
 ### 7.3 登录鉴权与用户（M1）
 
@@ -312,5 +312,5 @@
   - [ ] 模块划分（auth/user/patent/listing/order/payment/refund/settlement/file/config）
   - [ ] DB/Redis 连接（Postgres + Redis）+ Prisma 迁移基线
     - [x] Prisma schema 初版（对齐 `docs/architecture/er-diagram.mmd`）：`apps/api/prisma/schema.prisma`
-    - [ ] 生成迁移基线（`pnpm -C apps/api db:migrate`）并写入 `prisma/migrations/*`
+    - [x] 生成迁移基线并写入 `prisma/migrations/*`（已生成 `apps/api/prisma/migrations/20260111185000_init/`；环境具备 DB 后再跑 `pnpm -C apps/api db:migrate` 做落库校验）
   - [ ] 统一错误码与审计日志基线

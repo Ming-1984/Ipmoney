@@ -9,23 +9,24 @@ export class AdminConfigController {
   constructor(private readonly config: ConfigService) {}
 
   @Get('/trade-rules')
-  getTradeRules(): TradeRulesConfig {
-    return this.config.getTradeRules();
+  async getTradeRules(): Promise<TradeRulesConfig> {
+    return await this.config.getTradeRules();
   }
 
   @Put('/trade-rules')
-  updateTradeRules(@Body() body: Omit<TradeRulesConfig, 'version'>): TradeRulesConfig {
-    return this.config.updateTradeRules(body);
+  async updateTradeRules(@Body() body: Omit<TradeRulesConfig, 'version'>): Promise<TradeRulesConfig> {
+    return await this.config.updateTradeRules(body);
   }
 
   @Get('/recommendation')
-  getRecommendation(): RecommendationConfig {
-    return this.config.getRecommendation();
+  async getRecommendation(): Promise<RecommendationConfig> {
+    return await this.config.getRecommendation();
   }
 
   @Put('/recommendation')
-  updateRecommendation(@Body() body: Omit<RecommendationConfig, 'updatedAt'>): RecommendationConfig {
-    return this.config.updateRecommendation(body);
+  async updateRecommendation(
+    @Body() body: Omit<RecommendationConfig, 'updatedAt'>,
+  ): Promise<RecommendationConfig> {
+    return await this.config.updateRecommendation(body);
   }
 }
-

@@ -7,8 +7,7 @@ export class PublicConfigController {
   constructor(private readonly config: ConfigService) {}
 
   @Get('/trade-rules')
-  getTradeRules() {
-    return this.config.getTradeRules();
+  async getTradeRules() {
+    return await this.config.getTradeRules();
   }
 }
-

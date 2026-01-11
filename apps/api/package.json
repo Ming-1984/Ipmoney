@@ -9,8 +9,12 @@
     "prisma:generate": "prisma generate",
     "db:push": "prisma db push",
     "db:migrate": "prisma migrate dev",
+    "db:seed": "prisma db seed",
     "lint": "eslint \"src/**/*.ts\"",
     "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "prisma": {
+    "seed": "node prisma/seed.js"
   },
   "dependencies": {
     "@nestjs/common": "^11.1.11",
