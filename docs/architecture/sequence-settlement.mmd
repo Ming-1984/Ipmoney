@@ -1,0 +1,84 @@
+sequenceDiagram
+  autonumber
+  participant Buyer as 买家（小程序）
+  participant Seller as 卖家（小程序）
+  participant Admin as 客服/运营（后台）
+  participant Finance as 财务（后台）
+  participant GW as API Gateway/BFF
+  participant Case as Case/Workflow Service
+  participant Order as Order Service
+  participant Pay as Payment Service
+  participant WxPay as 微信支付
+  participant Bus as Event Bus
+  participant Settle as Settlement Service
+  participant Notif as Notification Service
+  participant File as File Service
+
+  Note over Buyer,Seller: 线下签署合同（平台跟单/留痕）
+  Admin->>Case: 合同签署确认（orderId, dealAmount, evidence）
+  Case-->>Bus: ContractSignedConfirmed(orderId)
+  Bus-->>Order: ContractSignedConfirmed
+  Order->>Order: 状态机：DEPOSIT_PAID → WAIT_FINAL_PAYMENT
+  Order-->>Bus: OrderStatusChanged(orderId, status=WAIT_FINAL_PAYMENT)
+  Bus-->>Notif: OrderStatusChanged
+  Notif-->>Buyer: 通知：可支付尾款
+
+  Buyer->>GW: 发起尾款支付（orderId）
+  GW->>Pay: createPaymentIntent(orderId, payType=FINAL)
+  Pay->>WxPay: 预下单/获取支付参数
+  WxPay-->>Pay: 支付参数/预支付单号
+  Pay-->>GW: 返回支付参数
+  GW-->>Buyer: 返回支付参数（调起微信收银台）
+  Buyer->>WxPay: 微信支付确认
+  WxPay-->>Pay: 支付结果回调（异步通知）
+  Pay->>Pay: 验签 + 幂等入库
+  Pay-->>Bus: PaymentSucceeded(orderId, payType=FINAL)
+
+  Bus-->>Order: PaymentSucceeded(payType=FINAL)
+  Order->>Order: 状态机：WAIT_FINAL_PAYMENT → FINAL_PAID_ESCROW
+  Order-->>Bus: OrderStatusChanged(orderId, status=FINAL_PAID_ESCROW)
+  Bus-->>Notif: OrderStatusChanged
+  Notif-->>Seller: 通知：尾款已托管，进入权属变更
+
+  Note over Buyer,Seller: 权属变更办理（线下/官方系统），平台跟单
+  Admin->>Case: 变更完成确认（orderId, evidence）
+  Case-->>Bus: TransferCompletedConfirmed(orderId)
+  Bus-->>Order: TransferCompletedConfirmed
+  Order->>Order: 状态机：FINAL_PAID_ESCROW → READY_TO_SETTLE
+  Order-->>Bus: OrderReadyToSettle(orderId)
+
+  Bus-->>Settle: OrderReadyToSettle
+  Settle->>Settle: 计算佣金（卖家承担）+ 生成台账
+  Settle-->>Bus: PayoutRequired(orderId, payee=Seller, amount=成交额-佣金)
+
+  Bus-->>Notif: PayoutRequired
+  Notif-->>Finance: 待办：线下放款并回传凭证
+
+  Note over Finance,Seller: 财务线下转账/打款（P0 默认）
+  Finance->>GW: 确认放款（orderId, payoutRef, evidenceFileId）
+  GW->>Settle: confirmManualPayout(orderId, payoutRef, evidenceFileId)
+  Settle->>Settle: 更新台账（payout_status=SUCCEEDED）
+  Settle-->>Bus: SettlementCompleted(orderId)
+
+  Bus-->>Order: SettlementCompleted
+  Order->>Order: 状态机：READY_TO_SETTLE → COMPLETED
+  Order-->>Bus: OrderStatusChanged(orderId, status=COMPLETED)
+  Bus-->>Notif: SettlementCompleted / OrderStatusChanged
+  Notif-->>Buyer: 通知：交易完成
+  Notif-->>Seller: 通知：已放款（扣除佣金）
+
+  Note over Seller,Finance: 订单完成后，卖家线下申请开票；财务线下开票后在平台上传电子发票（P0：不做邮箱投递）
+  Finance->>GW: 上传电子发票文件（purpose=INVOICE）
+  GW->>File: uploadFile(file, purpose=INVOICE)
+  File-->>GW: invoiceFileId
+  Finance->>GW: 绑定发票到订单（orderId, invoiceFileId, invoiceNo?, issuedAt?）
+  GW->>Order: adminUpsertOrderInvoice(orderId, invoiceFileId, invoiceNo?, issuedAt?)
+  Order->>Order: 校验订单=COMPLETED
+  Order-->>Bus: OrderInvoiceAttached(orderId)
+  Bus-->>Notif: OrderInvoiceAttached
+  Notif-->>Seller: 通知：发票已上传，可下载
+
+  Seller->>GW: 获取订单发票（orderId）
+  GW->>Order: getOrderInvoice(orderId)
+  Order-->>GW: OrderInvoice(invoiceFile.url)
+  GW-->>Seller: 返回发票下载地址

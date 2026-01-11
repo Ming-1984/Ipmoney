@@ -1,0 +1,81 @@
+%%{init: {'theme':'base','themeVariables': {'fontFamily': 'Inter, Microsoft YaHei, sans-serif','lineColor':'#64748B','primaryTextColor':'#0F172A','primaryBorderColor':'#CBD5E1','primaryColor':'#F8FAFC'}}}%%
+flowchart LR
+  %% === Swimlanes（列）===
+  subgraph L_Buyer["买家（微信小程序）"]
+    direction TB
+    B1[发起退款申请<br/>选择原因+补充说明+上传证据]
+    B2[补充证据/申诉（可选）]
+    B3([收到退款结果通知])
+  end
+
+  subgraph L_Seller["卖家（微信小程序）"]
+    direction TB
+    S1[收到退款/争议通知]
+    S2[补充材料/说明（可选）]
+    S3([收到处理结果])
+  end
+
+  subgraph L_CS["客服/运营（PC 后台）"]
+    direction TB
+    C1[审核：订单阶段/证据/规则]
+    C2{是否满足“可退”条件?}
+    C3[审批通过<br/>并记录理由]
+    C4[驳回退款<br/>并说明原因]
+    C5[升级争议工单<br/>（必要时法务占位）]
+  end
+
+  subgraph L_Fin["财务（PC 后台）"]
+    direction TB
+    F1[对账/核验退款单<br/>（必要时）]
+    F2[极端情况：线下补偿/逆向结算<br/>（需审批+留痕）]
+  end
+
+  subgraph L_System["平台系统（后端）"]
+    direction TB
+    P1[创建 refund_request<br/>status=PENDING]
+    P2{自动秒退条件满足?<br/>（30 分钟+未开始跟单）}
+    P3[生成退款支付单<br/>写入审计日志]
+    P4[调用微信退款 API<br/>原路退（订金/尾款）]
+    P5[回调验签+解密 resource<br/>幂等更新退款状态]
+    P6[更新订单状态<br/>REFUNDING → REFUNDED]
+    P7[通知买卖双方/后台待办]
+    P8{是否已进入结算/已放款?}
+    P9[冻结后续放款/标记争议<br/>走人工线下方案]
+  end
+
+  subgraph L_WxPay["微信支付"]
+    direction TB
+    W1[受理退款请求<br/>返回 refund_id]
+    W2[异步通知：退款结果]
+  end
+
+  %% === 入口：买家发起 ===
+  B1 --> P1 --> P2
+  P1 --> P7
+  P7 --> S1
+
+  %% === 分支 A：自动秒退（系统秒退）===
+  P2 -->|是| P3 --> P4 --> W1 --> W2 --> P5 --> P6 --> P7 --> B3
+
+  %% === 分支 B：人工审核（P0 默认）===
+  P2 -->|否| C1 --> C2
+  C2 -->|通过| C3 --> P3
+  C2 -->|驳回| C4 --> P7 --> B3
+  C2 -->|证据不足/争议| C5 --> P7
+  S1 --> S2 --> C1
+  B2 --> C1
+
+  %% === 放款/结算相关边界（极端场景保护）===
+  P3 --> P8
+  P8 -->|否| P4
+  P8 -->|是| P9 --> F1 --> F2 --> P7 --> B3
+
+  %% === 样式 ===
+  classDef decision fill:#FFF7ED,stroke:#FB923C,color:#7C2D12;
+  class P2,C2,P8 decision;
+  style L_Buyer fill:#F8FAFC,stroke:#CBD5E1,stroke-width:1px;
+  style L_Seller fill:#F8FAFC,stroke:#CBD5E1,stroke-width:1px;
+  style L_CS fill:#F8FAFC,stroke:#CBD5E1,stroke-width:1px;
+  style L_Fin fill:#F8FAFC,stroke:#CBD5E1,stroke-width:1px;
+  style L_System fill:#F1F5F9,stroke:#94A3B8,stroke-width:1px;
+  style L_WxPay fill:#ECFDF5,stroke:#86EFAC,stroke-width:1px;

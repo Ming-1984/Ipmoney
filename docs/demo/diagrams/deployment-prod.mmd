@@ -1,0 +1,77 @@
+%%{init: {'theme':'base','themeVariables': {'fontFamily': 'Inter, Microsoft YaHei, sans-serif','lineColor':'#64748B','primaryTextColor':'#0F172A','primaryBorderColor':'#CBD5E1','primaryColor':'#F8FAFC'}}}%%
+flowchart LR
+  %% 生产部署（示例：云上典型拓扑，具体以腾讯云/阿里云/华为云为准）
+
+  subgraph Users["用户侧"]
+    U1[买家/卖家<br/>微信小程序]
+    U2[运营/客服/财务<br/>PC 浏览器]
+  end
+
+  subgraph WeChat["微信侧（外部）"]
+    WLogin[微信登录]
+    WPay[微信支付 v3]
+    WNotify[支付/退款回调]
+  end
+
+  subgraph Public["公网接入"]
+    DNS[DNS/域名解析]
+    CDN[CDN<br/>静态资源加速]
+    WAF[WAF/防护<br/>（可选）]
+    LB[负载均衡/Ingress]
+  end
+
+  subgraph VPC["云上 VPC（私网）"]
+    subgraph App["应用集群（K8s/容器服务）"]
+      API[API 服务<br/>NestJS（P0 模块化单体）]
+      Worker[Async Worker<br/>（队列/重试/对账）]
+    end
+
+    subgraph Data["托管数据服务"]
+      PG[(PostgreSQL)]
+      Redis[(Redis)]
+    end
+
+    subgraph Storage["对象存储"]
+      OSS[(S3/COS/OSS<br/>证据/合同/图片)]
+    end
+
+    subgraph Obs["可观测性/安全"]
+      Log[日志/审计留痕]
+      Mon[监控告警]
+      Secrets[密钥/证书管理<br/>APIv3Key/回调私钥/平台证书]
+    end
+  end
+
+  %% === 前端资源 ===
+  U2 -->|HTTPS| DNS --> CDN
+  CDN -->|HTTPS| WAF --> LB
+
+  %% === 小程序直连后端 ===
+  U1 -->|HTTPS| DNS
+
+  %% === API 流量 ===
+  DNS --> LB --> API
+  API --> PG
+  API --> Redis
+  API --> OSS
+  Worker <-->|队列/定时| Redis
+  Worker --> PG
+  Worker --> OSS
+
+  %% === 微信回调（必须公网可达）===
+  WNotify -->|HTTPS 回调| DNS --> LB --> API
+  API --> WPay
+  API --> WLogin
+
+  %% === 观测/安全 ===
+  API --> Log
+  Worker --> Log
+  API --> Mon
+  Worker --> Mon
+  API --> Secrets
+
+  %% 样式
+  style Users fill:#F8FAFC,stroke:#CBD5E1,stroke-width:1px;
+  style WeChat fill:#ECFDF5,stroke:#86EFAC,stroke-width:1px;
+  style Public fill:#F1F5F9,stroke:#94A3B8,stroke-width:1px;
+  style VPC fill:#F8FAFC,stroke:#CBD5E1,stroke-width:1px;

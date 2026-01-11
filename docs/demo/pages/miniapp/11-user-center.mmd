@@ -1,0 +1,15 @@
+%%{init: {'theme':'base','flowchart': {'htmlLabels': true},'themeVariables': {'fontFamily': 'Inter, Microsoft YaHei, sans-serif','lineColor':'#64748B','primaryTextColor':'#0F172A','primaryBorderColor':'#CBD5E1','primaryColor':'#F8FAFC'}}}%%
+flowchart TB
+  subgraph P["11 我的 User Center（小程序）"]
+    direction TB
+    Pad[" "]:::pad
+    Header["头部信息<br/>• 头像/昵称<br/>• 身份标签（企业/科研院校/政府/协会/技术经理人等）<br/>• 认证状态：审核中/已通过/已驳回<br/>• 账户余额（如有）"]
+    Orders["订单管理面板<br/>• 我买到的：订金/合同/尾款/变更/完成/退款/取消<br/>• 我卖出的：补材料/合同/收尾款/变更/完成"]
+    PublishMgmt["发布管理<br/>• 编辑<br/>• 下架<br/>• 刷新"]
+    Tools["常用工具<br/>• 身份/主体认证入口（提交/查看审核进度）<br/>• 客服中心（电话/在线）<br/>• 发票/电子发票下载（订单完成后）<br/>• 收货/合同寄送地址管理"]
+    Pad --> Header
+    Header --> Orders --> PublishMgmt --> Tools
+  end
+
+  classDef pad fill:transparent,stroke:transparent,color:transparent;
+  linkStyle 0 stroke:transparent,fill:transparent;

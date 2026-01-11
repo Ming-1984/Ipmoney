@@ -1,0 +1,111 @@
+%%{init: {'theme':'base','flowchart': {'htmlLabels': true},'themeVariables': {'fontFamily': 'Inter, Microsoft YaHei, sans-serif','fontSize': '18px','lineColor':'#64748B','primaryTextColor':'#0F172A','primaryBorderColor':'#CBD5E1','primaryColor':'#F8FAFC'}}}%%
+flowchart LR
+  subgraph Clients[客户端]
+    direction LR
+    MP[微信小程序]
+    UserH5[用户 H5（Taro；电脑端可用）]
+    AdminWeb[后台管理 Web]
+  end
+
+  subgraph Edge[边界层]
+    Gateway[API Gateway / BFF]
+  end
+
+  subgraph Services[可拆分微服务（核心域）]
+    direction LR
+
+    subgraph Core[业务服务]
+      direction TB
+      Auth["Auth Service<br/>登录/鉴权/RBAC"]
+      User["User Service<br/>用户资料/认证主体"]
+      Patent["Patent Service<br/>专利主数据/号码规范化"]
+      Listing["Listing Service<br/>上架/下架/定价/材料"]
+      Search["Search/Recommend Service<br/>检索/猜你喜欢/排序"]
+      Order["Order Service<br/>订单状态机/退款规则/发票"]
+      Payment["Payment Service<br/>支付/退款/回调幂等"]
+      Settlement["Settlement Service<br/>佣金/放款/台账"]
+      Case["Case/Workflow Service<br/>跟单工单/里程碑/证据"]
+    end
+
+    subgraph Support[支撑服务]
+      direction TB
+      Audit["Audit Service<br/>内容审核/风控"]
+      Msg["Messaging Service<br/>IM/会话"]
+      File["File Service<br/>上传/下载/水印"]
+      Notif["Notification Service<br/>站内信/短信/模板消息"]
+    end
+  end
+
+  subgraph Data[数据与基础设施]
+    direction LR
+    PG[(PostgreSQL<br/>主库（按域分 schema / 可演进到拆库）)]
+    Redis[(Redis<br/>缓存/限流/任务队列（BullMQ）)]
+    MQ[(Event Bus<br/>Kafka/RabbitMQ（P1）)]
+    ES[(Search Index<br/>ES/OpenSearch（P1）)]
+    OSS[(Object Storage<br/>图片/合同/附件)]
+  end
+
+  subgraph External[第三方]
+    direction LR
+    WxLogin[微信开放平台<br/>登录/消息]
+    WxPay[微信支付]
+    SMS[短信/模板消息]
+    PatentProvider[外部专利数据源<br/>CNIPA/第三方（P1 可选）]
+  end
+
+  MP -->|HTTPS| Gateway
+  UserH5 -->|HTTPS| Gateway
+  AdminWeb -->|HTTPS| Gateway
+
+  Gateway --> Auth
+  Gateway --> User
+  Gateway --> Patent
+  Gateway --> Listing
+  Gateway --> Search
+  Gateway --> Order
+  Gateway --> Payment
+  Gateway --> Settlement
+  Gateway --> Case
+  Gateway --> Audit
+  Gateway --> Msg
+  Gateway --> File
+
+  %% Data
+  Gateway --> Redis
+  Auth --> Redis
+  Search --> Redis
+  Order --> Redis
+
+  Auth --> PG
+  User --> PG
+  Patent --> PG
+  Listing --> PG
+  Search --> PG
+  Order --> PG
+  Payment --> PG
+  Settlement --> PG
+  Case --> PG
+  Audit --> PG
+  Msg --> PG
+
+  %% P0：使用 PG FTS；P1：接入 ES/OpenSearch
+  Search -.-> ES
+  File --> OSS
+
+  %% 事件驱动（典型：支付成功/退款成功/合同签署确认/变更完成/上架变更等）
+  %% P0：用 BullMQ/Outbox 做可靠异步；P1：可升级 Event Bus
+  Listing -.-> MQ
+  Order -.-> MQ
+  Payment -.-> MQ
+  Settlement -.-> MQ
+  Case -.-> MQ
+  Audit -.-> MQ
+  Search -.-> MQ
+  Notif -.-> MQ
+
+  Auth --> WxLogin
+  Payment --> WxPay
+  Notif --> SMS
+
+  %% P0：不接外部专利数据源；P1 可通过适配层/任务刷新接入
+  PatentProvider -.-> Patent

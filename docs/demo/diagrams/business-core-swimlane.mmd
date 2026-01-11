@@ -1,0 +1,105 @@
+%%{init: {'theme':'base','themeVariables': {'fontFamily': 'Inter, Microsoft YaHei, sans-serif','lineColor':'#64748B','primaryTextColor':'#0F172A','primaryBorderColor':'#CBD5E1','primaryColor':'#F8FAFC'}}}%%
+flowchart LR
+  %% === Swimlanes（列）===
+  subgraph L_Buyer["买家（微信小程序）"]
+    direction TB
+    B0([开始])
+    B1[搜索/筛选]
+    B2[查看详情/在线咨询]
+    B3[下单并支付订金]
+    B4{30 分钟内<br/>且客服未开始跟单?}
+    B5[申请退款（系统秒退）]
+    B6[客服跟单/线下推进]
+    B7[合同签署确认后<br/>支付尾款（托管）]
+    B8[等待权属变更完成]
+    B9([交易完成])
+  end
+
+  subgraph L_Seller["卖家（微信小程序）"]
+    direction TB
+    S0([开始])
+    S1[发布上架草稿<br/>填写交易信息+上传材料]
+    S2[提交审核]
+    S3[按客服清单补材料/澄清权属]
+    S4[线下签署合同<br/>（转让/许可）]
+    S5[配合办理变更/备案<br/>提交进展材料]
+    S6([收到放款/完成])
+  end
+
+  subgraph L_CS["客服/运营（PC 后台）"]
+    direction TB
+    C1[上架审核/风控校验]
+    C2[订金后派单/接单]
+    C3[开始跟单<br/>发起材料清单/尽调留痕]
+    C4[合同签署确认<br/>录入成交价+证据]
+    C5[变更完成确认<br/>上传证据]
+  end
+
+  subgraph L_Fin["财务（PC 后台）"]
+    direction TB
+    F1[对账/核验资金入账]
+    F2[线下人工放款（P0）<br/>回填流水号+凭证]
+    F3[结算归档/报表]
+  end
+
+  subgraph L_System["平台系统（后端）"]
+    direction TB
+    P1[号码规范化/去重<br/>生成 application_no_norm]
+    P2[创建 Listing/Order<br/>初始化状态机]
+    P3[生成支付意图<br/>（Idempotency-Key）]
+    P4[回调验签+幂等入库<br/>支付/退款均统一入口]
+    P5[状态机流转/通知<br/>派单/解锁/风控留痕]
+    P6[自动退款规则判断<br/>（30 分钟窗口）]
+    P7[合同确认后解锁尾款<br/>计算 final_amount]
+    P8[尾款托管到账<br/>进入权属变更阶段]
+    P9[变更完成→生成结算台账<br/>计算佣金（卖家承担）]
+    P10[放款完成→订单完成<br/>审计日志/对账闭环]
+  end
+
+  subgraph L_WxPay["微信支付"]
+    direction TB
+    W1[JSAPI 支付<br/>订金/尾款]
+    W2[异步通知<br/>支付结果]
+    W3[原路退款<br/>订金/尾款]
+    W4[异步通知<br/>退款结果]
+  end
+
+  %% === 主链路（上架）===
+  S0 --> S1 --> P1
+  S2 --> C1
+  C1 -->|通过| P2
+  C1 -->|驳回| S1
+
+  %% === 主链路（订金）===
+  B0 --> B1 --> B2 --> P2
+  P2 --> B3 --> P3 --> W1
+  W2 --> P4 --> P5
+  P5 -->|订金支付成功| C2
+  P5 -->|订金支付成功| B4
+
+  %% === 订金自动退款窗口（P0 默认 30 分钟）===
+  B4 -->|是| B5 --> P6 --> W3
+  W4 --> P4
+  B4 -->|否| B6
+
+  %% === 跟单/合同/尾款（合同线下签，尾款线上托管）===
+  C2 --> C3
+  C3 --> B6
+  C3 --> S3 --> S4 --> C4
+  C4 --> P7 --> P5 --> B7 --> P3 --> W1
+  W2 --> P4 --> P8 --> P5 --> B8
+
+  %% === 变更/结算/放款（P0：财务人工放款回传凭证）===
+  B8 --> S5 --> C5
+  C5 --> P9 --> P5 --> F1 --> F2 --> P10 --> B9
+  P10 --> S6
+
+  %% === 样式 ===
+  classDef decision fill:#FFF7ED,stroke:#FB923C,color:#7C2D12;
+  class B4 decision;
+  style L_Buyer fill:#F8FAFC,stroke:#CBD5E1,stroke-width:1px;
+  style L_Seller fill:#F8FAFC,stroke:#CBD5E1,stroke-width:1px;
+  style L_CS fill:#F8FAFC,stroke:#CBD5E1,stroke-width:1px;
+  style L_Fin fill:#F8FAFC,stroke:#CBD5E1,stroke-width:1px;
+  style L_System fill:#F1F5F9,stroke:#94A3B8,stroke-width:1px;
+  style L_WxPay fill:#ECFDF5,stroke:#86EFAC,stroke-width:1px;

@@ -1,0 +1,18 @@
+%%{init: {'theme':'base','flowchart': {'htmlLabels': true},'themeVariables': {'fontFamily': 'Inter, Microsoft YaHei, sans-serif','lineColor':'#64748B','primaryTextColor':'#0F172A','primaryBorderColor':'#CBD5E1','primaryColor':'#F8FAFC'}}}%%
+flowchart TB
+  subgraph P["03 区域产业专利地图（小程序）"]
+    direction TB
+    Pad[" "]:::pad
+    Filter["顶部筛选<br/>• 年份（2024/2025...）<br/>• 省份/区域"]
+    Map["地图可视化<br/>• 颜色深浅=专利数量<br/>• 点击区域弹出浮窗（核心数据）"]
+    Charts["产业图表<br/>• 饼图/柱状图<br/>• 产业占比/分布"]
+    TopList["重点机构（企业/高校）Top10<br/>• 点击进入机构主页/聚合页"]
+    Pad --> Filter
+    Filter --> Map --> Charts --> TopList
+  end
+
+  DataNote["数据来源（P0）<br/>• 后台手动录入/Excel 导入<br/>• 前端仅负责可视化展示"]
+  DataNote -.-> P
+
+  classDef pad fill:transparent,stroke:transparent,color:transparent;
+  linkStyle 0 stroke:transparent,fill:transparent;

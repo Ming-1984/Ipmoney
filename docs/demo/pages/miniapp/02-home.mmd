@@ -1,0 +1,29 @@
+%%{init: {'theme':'base','flowchart': {'htmlLabels': true},'themeVariables': {'fontFamily': 'Inter, Microsoft YaHei, sans-serif','lineColor':'#64748B','primaryTextColor':'#0F172A','primaryBorderColor':'#CBD5E1','primaryColor':'#F8FAFC'}}}%%
+flowchart TB
+  subgraph P["02 首页 Home（小程序）"]
+    direction TB
+    Pad[" "]:::pad
+    TopBar["顶部：搜索 + 地区选择（LBS）<br/>• 搜索：专利号/关键词/企业/发明人<br/>• 地区：授权定位/手动选择（同城/同省优先）"]
+    Banner["Banner 轮播<br/>• 活动/政策/专题<br/>• 后台可配置"]
+    Grid["快捷入口 Grid<br/>• 专利交易/产学研需求/成果展示<br/>• 发布/专利地图/专利评估/我的客服"]
+    Marquee["数据快报 Marquee<br/>• 成交播报/新增数量"]
+    Orgs["入驻机构展示（新增）<br/>• 企业/科研院校（审核通过后展示）<br/>• Logo/名称滑动列表；更多→机构列表"]
+    Tabs["Tab 瀑布流<br/>• 推荐/猜你喜欢（默认：智能推荐 + 地域特色）<br/>• 精选交易（带价）<br/>• 最新需求"]
+    Pad --> TopBar
+    TopBar --> Banner --> Grid --> Marquee --> Orgs --> Tabs
+  end
+
+  SearchResult["进入：信息展示/搜索结果页"]
+  Detail["进入：详情页"]
+  Publish["进入：发布页"]
+  Map["进入：专利地图页"]
+  CS["进入：聊天/咨询页"]
+
+  TopBar --> SearchResult
+  Tabs --> Detail
+  Grid --> Publish
+  Grid --> Map
+  Grid --> CS
+
+  classDef pad fill:transparent,stroke:transparent,color:transparent;
+  linkStyle 0 stroke:transparent,fill:transparent;

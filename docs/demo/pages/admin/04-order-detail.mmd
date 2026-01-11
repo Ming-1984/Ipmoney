@@ -1,0 +1,16 @@
+%%{init: {'theme':'base','flowchart': {'htmlLabels': true},'themeVariables': {'fontFamily': 'Inter, Microsoft YaHei, sans-serif','lineColor':'#64748B','primaryTextColor':'#0F172A','primaryBorderColor':'#CBD5E1','primaryColor':'#F8FAFC'}}}%%
+flowchart TB
+  subgraph P["04 交易订单管理：订单详情/跟单工单（PC 后台）"]
+    direction TB
+    Pad[" "]:::pad
+    Overview["订单概览<br/>• 基本信息/买卖双方<br/>• 当前状态<br/>• 订金/尾款/成交价<br/>• 证据附件入口"]
+    Milestones["里程碑记录（客服）<br/>• 合同签署（录入成交价+证据）→ 解锁尾款<br/>• 变更提交/补正（可选）<br/>• 变更完成确认（证据）→ 进入结算"]
+    Refund["退款/争议处理<br/>• 查看退款申请<br/>• 审批通过/驳回（留痕）<br/>• 争议工单占位（可升级法务）"]
+    Settlement["结算与放款（财务）<br/>• 生成结算台账（佣金卖家承担）<br/>• P0：人工放款回传凭证/流水号<br/>• 订单完成归档"]
+    Audit["审计留痕<br/>• 状态变更/审批/放款/配置修改<br/>• who/what/when/before/after"]
+    Pad --> Overview
+    Overview --> Milestones --> Refund --> Settlement --> Audit
+  end
+
+  classDef pad fill:transparent,stroke:transparent,color:transparent;
+  linkStyle 0 stroke:transparent,fill:transparent;

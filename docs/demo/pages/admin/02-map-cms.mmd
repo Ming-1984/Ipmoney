@@ -1,0 +1,16 @@
+%%{init: {'theme':'base','flowchart': {'htmlLabels': true},'themeVariables': {'fontFamily': 'Inter, Microsoft YaHei, sans-serif','lineColor':'#64748B','primaryTextColor':'#0F172A','primaryBorderColor':'#CBD5E1','primaryColor':'#F8FAFC'}}}%%
+flowchart TB
+  subgraph P["02 专利地图数据管理 Map Data CMS（PC 后台）"]
+    direction TB
+    Pad[" "]:::pad
+    Region["区域管理<br/>• 添加/编辑省份/城市节点<br/>• 维护层级关系（adcode）"]
+    IndustryTags["地域产业标签（新增）<br/>• 省/市维护特色产业标签（用于推荐/搜索加权）"]
+    Featured["特色产业专利标记（新增）<br/>• 选择信息（listing）<br/>• 标记：省级/市级 + 生效区域 + 置顶优先级/有效期"]
+    Entry["数据录入（按区域+年份）<br/>• 年份<br/>• 专利总量<br/>• 产业分布（类目:数量）<br/>• 重点企业名单及专利数"]
+    Import["Excel 导入<br/>• 模板下载<br/>• 批量导入生成地图数据"]
+    Pad --> Region
+    Region --> IndustryTags --> Featured --> Entry --> Import
+  end
+
+  classDef pad fill:transparent,stroke:transparent,color:transparent;
+  linkStyle 0 stroke:transparent,fill:transparent;

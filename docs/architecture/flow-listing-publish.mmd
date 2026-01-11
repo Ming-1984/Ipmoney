@@ -1,0 +1,36 @@
+%%{init: {'theme':'base','flowchart': {'htmlLabels': true},'themeVariables': {'fontFamily': 'Inter, Microsoft YaHei, sans-serif','lineColor':'#64748B','primaryTextColor':'#0F172A','primaryBorderColor':'#CBD5E1','primaryColor':'#F8FAFC'}}}%%
+flowchart TB
+  %% 发布/审核/上架（P0）
+
+  Seller(["卖家<br/>小程序/H5（电脑端）"])
+  Admin(["运营审核<br/>PC 后台"])
+
+  subgraph Platform[平台服务]
+    Listing["Listing Service<br/>草稿/提交/上架/下架"]
+    Patent["Patent Service<br/>号码规范化/专利主数据"]
+    File["File Service<br/>材料/图片上传"]
+    Audit["Audit Service<br/>审核/风控"]
+    Search["Search Service<br/>索引更新"]
+  end
+
+  Seller -->|创建草稿| Listing
+  Seller -->|输入专利号/申请号/公开号| Patent
+  Patent -->|返回规范化结果（application_no_norm 等）| Listing
+
+  Seller -->|上传图片/权属材料| File
+  File -->|返回 fileId/url| Listing
+
+  Seller -->|提交审核| Listing
+  Listing -->|创建审核任务| Audit
+  Audit -->|运营审核| Admin
+
+  Admin -->|通过| Audit
+  Admin -->|驳回（原因）| Audit
+
+  Audit -->|审核通过（audit_status=APPROVED）| Listing
+  Audit -->|审核驳回（audit_status=REJECTED）| Listing
+
+  Listing -->|上架（status=ACTIVE）| Search
+  Search -->|更新检索索引| Search
+
+  Listing -->|驳回原因回传| Seller

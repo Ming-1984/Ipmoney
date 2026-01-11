@@ -1,0 +1,3998 @@
+openapi: 3.0.3
+info:
+  title: Ipmoney API
+  version: 0.1.0
+  license:
+    name: Proprietary
+    url: https://ipmoney.com
+  description: |
+    Ipmoney 专利交易平台（小程序 + 用户 H5 + 后台）对外 API（P0）。
+
+    业务约束（P0）：
+    - 标的范围：仅 CN 专利（数据以用户上传/后台录入为准）
+    - 资金路径：订金与尾款均线上支付并托管
+    - 合同签署：线下签署完成后由客服/运营确认里程碑解锁尾款支付
+    - 佣金：卖家承担；放款时从卖家应收中扣除
+servers:
+  - url: https://api.ipmoney.com/v1
+tags:
+  - name: Auth
+    description: 登录、短信验证码与 token
+  - name: Users
+    description: 用户资料与认证主体
+  - name: Organizations
+    description: 机构展示（企业/科研院校等）
+  - name: Config
+    description: 交易规则与推荐配置
+  - name: Files
+    description: 文件上传、下载与鉴权
+  - name: Patents
+    description: 专利主数据与号码规范化
+  - name: Search
+    description: 检索、排序与猜你喜欢
+  - name: Listings
+    description: 上架商品（卖家）与收藏/咨询
+  - name: Orders
+    description: 订单创建、查询与状态机
+  - name: Payments
+    description: 支付意图、回调与幂等
+  - name: Refunds
+    description: 退款申请与审批
+  - name: Cases
+    description: 跟单工单与里程碑
+  - name: Invoices
+    description: 订单电子发票下载
+  - name: Messaging
+    description: 会话与消息（咨询/聊天）
+  - name: Regions
+    description: 行政区划与地域产业标签
+  - name: PatentMap
+    description: 专利地图数据查询
+  - name: Admin
+    description: 后台管理（审核/配置/财务/地图 CMS）
+security:
+  - BearerAuth: []
+paths:
+  /auth/wechat/mp-login:
+    post:
+      tags: [Auth]
+      summary: 微信小程序登录（code → token）
+      operationId: authWechatMpLogin
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [code]
+              properties:
+                code:
+                  type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthTokenResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+
+  /auth/sms/send:
+    post:
+      tags: [Auth]
+      summary: 发送短信验证码
+      operationId: authSmsSend
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [phone, purpose]
+              properties:
+                phone:
+                  $ref: "#/components/schemas/PhoneNumber"
+                purpose:
+                  $ref: "#/components/schemas/SmsPurpose"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [cooldownSeconds]
+                properties:
+                  cooldownSeconds:
+                    type: integer
+                    minimum: 0
+        "400":
+          $ref: "#/components/responses/BadRequest"
+
+  /auth/sms/verify:
+    post:
+      tags: [Auth]
+      summary: 短信验证码登录
+      operationId: authSmsVerify
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [phone, code]
+              properties:
+                phone:
+                  $ref: "#/components/schemas/PhoneNumber"
+                code:
+                  type: string
+                  minLength: 4
+                  maxLength: 8
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthTokenResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+  /me:
+    get:
+      tags: [Users]
+      summary: 获取我的资料
+      operationId: getMe
+      security:
+        - BearerAuth: []
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserProfile"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+    patch:
+      tags: [Users]
+      summary: 更新我的资料
+      operationId: updateMe
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                nickname:
+                  type: string
+                  maxLength: 50
+                avatarUrl:
+                  type: string
+                  format: uri
+                regionCode:
+                  type: string
+                  description: 用于地域推荐；小程序定位/手动选择后可更新
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserProfile"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /me/verification:
+    get:
+      tags: [Users]
+      summary: 获取我的认证信息
+      operationId: getMyVerification
+      security:
+        - BearerAuth: []
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserVerification"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+    post:
+      tags: [Users]
+      summary: 提交认证
+      operationId: submitMyVerification
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UserVerificationSubmitRequest"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserVerification"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "409":
+          $ref: "#/components/responses/Conflict"
+
+  /me/favorites:
+    get:
+      tags: [Listings]
+      summary: 我的收藏列表
+      operationId: listMyFavoriteListings
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/Page"
+        - $ref: "#/components/parameters/PageSize"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PagedListingSummary"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /me/recommendations/listings:
+    get:
+      tags: [Search]
+      summary: 猜你喜欢（个性化推荐）
+      operationId: getMyRecommendedListings
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/RegionCode"
+        - $ref: "#/components/parameters/Page"
+        - $ref: "#/components/parameters/PageSize"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PagedListingSummary"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /files:
+    post:
+      tags: [Files]
+      summary: 上传文件
+      operationId: uploadFile
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file]
+              properties:
+                file:
+                  type: string
+                  format: binary
+                purpose:
+                  $ref: "#/components/schemas/FilePurpose"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FileObject"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /patents/normalize:
+    post:
+      tags: [Patents]
+      summary: 专利号码解析与规范化
+      operationId: normalizePatentNumber
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PatentNormalizeRequest"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PatentNormalizeResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+
+  /patents/{patentId}:
+    get:
+      tags: [Patents]
+      summary: 获取专利主数据
+      operationId: getPatentById
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/PatentId"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Patent"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /public/config/trade-rules:
+    get:
+      tags: [Config]
+      summary: 获取交易规则配置（前台展示用）
+      operationId: getPublicTradeRulesConfig
+      security: []
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TradeRulesConfig"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+
+  /public/listings/{listingId}:
+    get:
+      tags: [Listings]
+      summary: 获取上架详情（公开）
+      operationId: getPublicListingById
+      security: []
+      parameters:
+        - $ref: "#/components/parameters/ListingId"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ListingPublic"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /public/organizations:
+    get:
+      tags: [Organizations]
+      summary: 获取入驻机构列表（企业/科研院校等）
+      operationId: listPublicOrganizations
+      security: []
+      parameters:
+        - $ref: "#/components/parameters/Q"
+        - $ref: "#/components/parameters/OrganizationTypes"
+        - $ref: "#/components/parameters/RegionCode"
+        - $ref: "#/components/parameters/Page"
+        - $ref: "#/components/parameters/PageSize"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PagedOrganizationSummary"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+
+  /public/organizations/{orgUserId}:
+    get:
+      tags: [Organizations]
+      summary: 获取机构详情（公开）
+      operationId: getPublicOrganizationById
+      security: []
+      parameters:
+        - $ref: "#/components/parameters/OrgUserId"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OrganizationSummary"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /regions:
+    get:
+      tags: [Regions]
+      summary: 获取行政区划树（用于筛选/地图）
+      operationId: listRegions
+      security: []
+      parameters:
+        - name: level
+          in: query
+          required: false
+          schema:
+            $ref: "#/components/schemas/RegionLevel"
+        - name: parentCode
+          in: query
+          required: false
+          schema:
+            type: string
+            pattern: "^[0-9]{6}$"
+          description: 父级行政区划 adcode（6 位字符串）
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/RegionNode"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+
+  /patent-map/years:
+    get:
+      tags: [PatentMap]
+      summary: 获取地图可用年份列表
+      operationId: listPatentMapYears
+      security: []
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: integer
+        "400":
+          $ref: "#/components/responses/BadRequest"
+
+  /patent-map/summary:
+    get:
+      tags: [PatentMap]
+      summary: 获取地图热力数据（按区域聚合）
+      operationId: getPatentMapSummary
+      security: []
+      parameters:
+        - name: year
+          in: query
+          required: true
+          schema:
+            type: integer
+        - name: level
+          in: query
+          required: true
+          schema:
+            $ref: "#/components/schemas/RegionLevel"
+        - name: parentCode
+          in: query
+          required: false
+          schema:
+            type: string
+          description: 父级行政区划码/adcode（如按 CITY 聚合时传省级 code）
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/PatentMapSummaryItem"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+
+  /patent-map/regions/{regionCode}:
+    get:
+      tags: [PatentMap]
+      summary: 获取某区域地图详情（产业分布/重点企业）
+      operationId: getPatentMapRegionDetail
+      security: []
+      parameters:
+        - $ref: "#/components/parameters/RegionCodePath"
+        - name: year
+          in: query
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PatentMapRegionDetail"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /search/listings:
+    get:
+      tags: [Search]
+      summary: 专利交易检索
+      operationId: searchListings
+      security: []
+      parameters:
+        - $ref: "#/components/parameters/Q"
+        - $ref: "#/components/parameters/PatentType"
+        - $ref: "#/components/parameters/Inventor"
+        - $ref: "#/components/parameters/SellerUserId"
+        - $ref: "#/components/parameters/TradeMode"
+        - $ref: "#/components/parameters/PriceType"
+        - $ref: "#/components/parameters/PriceMin"
+        - $ref: "#/components/parameters/PriceMax"
+        - $ref: "#/components/parameters/DepositMin"
+        - $ref: "#/components/parameters/DepositMax"
+        - $ref: "#/components/parameters/RegionCode"
+        - $ref: "#/components/parameters/IndustryTags"
+        - $ref: "#/components/parameters/Ipc"
+        - $ref: "#/components/parameters/Loc"
+        - $ref: "#/components/parameters/LegalStatus"
+        - $ref: "#/components/parameters/SortBy"
+        - $ref: "#/components/parameters/Page"
+        - $ref: "#/components/parameters/PageSize"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PagedListingSummary"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+
+  /search/inventors:
+    get:
+      tags: [Search]
+      summary: 发明人排行榜（按平台内上传专利统计）
+      operationId: searchInventorRankings
+      security: []
+      parameters:
+        - $ref: "#/components/parameters/Q"
+        - $ref: "#/components/parameters/RegionCode"
+        - $ref: "#/components/parameters/PatentType"
+        - $ref: "#/components/parameters/Page"
+        - $ref: "#/components/parameters/PageSize"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PagedInventorRanking"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+
+  /listings:
+    post:
+      tags: [Listings]
+      summary: 创建上架草稿（卖家）
+      operationId: createListing
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ListingCreateRequest"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Listing"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+    get:
+      tags: [Listings]
+      summary: 我的上架列表（卖家）
+      operationId: listMyListings
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/ListingStatus"
+        - $ref: "#/components/parameters/AuditStatus"
+        - $ref: "#/components/parameters/Page"
+        - $ref: "#/components/parameters/PageSize"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PagedListing"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /listings/{listingId}:
+    get:
+      tags: [Listings]
+      summary: 获取上架详情（卖家/已登录）
+      operationId: getListingById
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/ListingId"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Listing"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+    patch:
+      tags: [Listings]
+      summary: 更新上架草稿（卖家）
+      operationId: updateListing
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/ListingId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ListingUpdateRequest"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Listing"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /listings/{listingId}/favorites:
+    post:
+      tags: [Listings]
+      summary: 收藏
+      operationId: favoriteListing
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/ListingId"
+        - $ref: "#/components/parameters/IdempotencyKey"
+      responses:
+        "204":
+          description: No Content
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+    delete:
+      tags: [Listings]
+      summary: 取消收藏
+      operationId: unfavoriteListing
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/ListingId"
+        - $ref: "#/components/parameters/IdempotencyKey"
+      responses:
+        "204":
+          description: No Content
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+
+  /listings/{listingId}/consultations:
+    post:
+      tags: [Listings]
+      summary: 记录咨询热度事件（用于推荐）
+      operationId: createListingConsultation
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/ListingId"
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                channel:
+                  type: string
+                  enum: [WECHAT_CS, PHONE, FORM]
+      responses:
+        "204":
+          description: No Content
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+
+  /listings/{listingId}/submit:
+    post:
+      tags: [Listings]
+      summary: 提交审核（卖家）
+      operationId: submitListing
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/ListingId"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Listing"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /listings/{listingId}/off-shelf:
+    post:
+      tags: [Listings]
+      summary: 下架（卖家）
+      operationId: offShelfListing
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/ListingId"
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                reason:
+                  type: string
+                  maxLength: 200
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Listing"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /orders:
+    post:
+      tags: [Orders]
+      summary: 创建订单（买家）
+      operationId: createOrder
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [listingId]
+              properties:
+                listingId:
+                  $ref: "#/components/schemas/Uuid"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Order"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+    get:
+      tags: [Orders]
+      summary: 我的订单列表（买家/卖家）
+      operationId: listMyOrders
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: asRole
+          in: query
+          required: true
+          schema:
+            $ref: "#/components/schemas/OrderListRole"
+        - $ref: "#/components/parameters/OrderStatus"
+        - $ref: "#/components/parameters/Page"
+        - $ref: "#/components/parameters/PageSize"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PagedOrder"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /orders/{orderId}:
+    get:
+      tags: [Orders]
+      summary: 获取订单详情
+      operationId: getOrderById
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/OrderId"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Order"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /orders/{orderId}/payment-intents:
+    post:
+      tags: [Payments]
+      summary: 创建支付意图（订金/尾款）
+      operationId: createPaymentIntent
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/OrderId"
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [payType]
+              properties:
+                payType:
+                  $ref: "#/components/schemas/PayType"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PaymentIntentResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "409":
+          $ref: "#/components/responses/Conflict"
+
+  /orders/{orderId}/refund-requests:
+    post:
+      tags: [Refunds]
+      summary: 发起退款申请
+      operationId: createRefundRequest
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/OrderId"
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RefundRequestCreate"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RefundRequest"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+    get:
+      tags: [Refunds]
+      summary: 查询退款申请列表
+      operationId: listRefundRequestsByOrder
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/OrderId"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/RefundRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /orders/{orderId}/case:
+    get:
+      tags: [Cases]
+      summary: 获取订单跟单工单与里程碑
+      operationId: getOrderCase
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/OrderId"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CaseWithMilestones"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /orders/{orderId}/invoice:
+    get:
+      tags: [Invoices]
+      summary: 获取订单电子发票（订单完成后）
+      operationId: getOrderInvoice
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/OrderId"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OrderInvoice"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /webhooks/wechatpay/notify:
+    post:
+      tags: [Payments]
+      summary: 微信支付回调（内部接口）
+      operationId: wechatPayNotify
+      security: []
+      description: |-
+        微信支付 v3 回调统一入口（支付/退款）：服务端必须执行 **验签 + 解密 resource**，并做幂等处理（避免重复通知导致重复入账/重复退款）。
+        参考：微信支付 v3 文档中的回调 HTTP Header（Wechatpay-*）与回调报文 resource 解密流程。
+      parameters:
+        - $ref: "#/components/parameters/WechatpayTimestamp"
+        - $ref: "#/components/parameters/WechatpayNonce"
+        - $ref: "#/components/parameters/WechatpaySignature"
+        - $ref: "#/components/parameters/WechatpaySerial"
+        - $ref: "#/components/parameters/WechatpaySignatureType"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: true
+      responses:
+        "204":
+          description: No Content
+        "400":
+          $ref: "#/components/responses/BadRequest"
+
+  /me/conversations:
+    get:
+      tags: [Messaging]
+      summary: 获取我的会话列表
+      operationId: listMyConversations
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/Page"
+        - $ref: "#/components/parameters/PageSize"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PagedConversationSummary"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /listings/{listingId}/conversations:
+    post:
+      tags: [Messaging]
+      summary: 创建/获取与该上架相关的会话（咨询）
+      operationId: upsertListingConversation
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/ListingId"
+        - $ref: "#/components/parameters/IdempotencyKey"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Conversation"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+
+  /conversations/{conversationId}/messages:
+    get:
+      tags: [Messaging]
+      summary: 获取会话消息列表
+      operationId: listConversationMessages
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/ConversationId"
+        - name: cursor
+          in: query
+          required: false
+          schema:
+            type: string
+          description: 游标分页（为空表示从最新开始）
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 50
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PagedConversationMessage"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+    post:
+      tags: [Messaging]
+      summary: 发送消息（文本/图片/文件）
+      operationId: sendConversationMessage
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/ConversationId"
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ConversationMessageSendRequest"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ConversationMessage"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+
+  /conversations/{conversationId}/read:
+    post:
+      tags: [Messaging]
+      summary: 标记会话已读
+      operationId: markConversationRead
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/ConversationId"
+        - $ref: "#/components/parameters/IdempotencyKey"
+      responses:
+        "204":
+          description: No Content
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+
+  /admin/regions:
+    get:
+      tags: [Admin, Regions]
+      summary: 区域管理：查询区域列表
+      operationId: adminListRegions
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: level
+          in: query
+          required: false
+          schema:
+            $ref: "#/components/schemas/RegionLevel"
+        - name: parentCode
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: q
+          in: query
+          required: false
+          schema:
+            type: string
+          description: 名称/拼音模糊搜索
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/RegionNode"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+    post:
+      tags: [Admin, Regions]
+      summary: 区域管理：新增区域节点
+      operationId: adminCreateRegion
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RegionCreateRequest"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RegionNode"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "409":
+          $ref: "#/components/responses/Conflict"
+
+  /admin/regions/{regionCode}:
+    patch:
+      tags: [Admin, Regions]
+      summary: 区域管理：更新区域节点
+      operationId: adminUpdateRegion
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/RegionCodePath"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RegionUpdateRequest"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RegionNode"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+
+  /admin/regions/{regionCode}/industry-tags:
+    put:
+      tags: [Admin, Regions]
+      summary: 区域管理：设置区域特色产业标签
+      operationId: adminSetRegionIndustryTags
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/RegionCodePath"
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [industryTags]
+              properties:
+                industryTags:
+                  type: array
+                  items:
+                    type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RegionNode"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+
+  /admin/industry-tags:
+    get:
+      tags: [Admin, Regions]
+      summary: 获取可用产业标签列表
+      operationId: adminListIndustryTags
+      security:
+        - BearerAuth: []
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/IndustryTag"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+    post:
+      tags: [Admin, Regions]
+      summary: 新增产业标签
+      operationId: adminCreateIndustryTag
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/IndustryTagCreateRequest"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/IndustryTag"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "409":
+          $ref: "#/components/responses/Conflict"
+
+  /admin/patent-map/regions/{regionCode}/years/{year}:
+    get:
+      tags: [Admin, PatentMap]
+      summary: 查看区域+年份地图数据
+      operationId: adminGetPatentMapEntry
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/RegionCodePath"
+        - $ref: "#/components/parameters/YearPath"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PatentMapEntry"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+    put:
+      tags: [Admin, PatentMap]
+      summary: 录入/更新区域+年份地图数据
+      operationId: adminUpsertPatentMapEntry
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/RegionCodePath"
+        - $ref: "#/components/parameters/YearPath"
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PatentMapEntryUpsertRequest"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PatentMapEntry"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+
+  /admin/patent-map/import:
+    post:
+      tags: [Admin, PatentMap]
+      summary: Excel 导入地图数据
+      operationId: adminImportPatentMapExcel
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file]
+              properties:
+                file:
+                  type: string
+                  format: binary
+                dryRun:
+                  type: boolean
+                  default: false
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PatentMapImportResult"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+
+  /admin/config/trade-rules:
+    get:
+      tags: [Admin, Config]
+      summary: 获取交易规则配置（后台）
+      operationId: adminGetTradeRulesConfig
+      security:
+        - BearerAuth: []
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TradeRulesConfig"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+    put:
+      tags: [Admin, Config]
+      summary: 更新交易规则配置（后台）
+      operationId: adminUpdateTradeRulesConfig
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TradeRulesConfigUpdateRequest"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TradeRulesConfig"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+
+  /admin/config/recommendation:
+    get:
+      tags: [Admin, Config]
+      summary: 获取推荐配置（后台）
+      operationId: adminGetRecommendationConfig
+      security:
+        - BearerAuth: []
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RecommendationConfig"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+    put:
+      tags: [Admin, Config]
+      summary: 更新推荐配置（后台）
+      operationId: adminUpdateRecommendationConfig
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RecommendationConfigUpdateRequest"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RecommendationConfig"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+
+  /admin/listings:
+    get:
+      tags: [Admin]
+      summary: 上架审核列表
+      operationId: adminListListingsForAudit
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/AuditStatus"
+        - $ref: "#/components/parameters/ListingStatus"
+        - $ref: "#/components/parameters/Page"
+        - $ref: "#/components/parameters/PageSize"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PagedListing"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+
+  /admin/listings/{listingId}/approve:
+    post:
+      tags: [Admin]
+      summary: 上架审核通过
+      operationId: adminApproveListing
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/ListingId"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Listing"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+
+  /admin/listings/{listingId}/reject:
+    post:
+      tags: [Admin]
+      summary: 上架审核驳回
+      operationId: adminRejectListing
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/ListingId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [reason]
+              properties:
+                reason:
+                  type: string
+                  minLength: 1
+                  maxLength: 500
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Listing"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+
+  /admin/listings/{listingId}/featured:
+    put:
+      tags: [Admin]
+      summary: 标记省/市级特色产业专利（置顶/加权）
+      operationId: adminSetListingFeatured
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/ListingId"
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ListingFeaturedUpdateRequest"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Listing"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+
+  /admin/user-verifications:
+    get:
+      tags: [Admin]
+      summary: 认证审核列表
+      operationId: adminListUserVerifications
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: q
+          in: query
+          required: false
+          schema:
+            type: string
+          description: 按主体名称/手机号模糊搜索
+        - name: type
+          in: query
+          required: false
+          schema:
+            $ref: "#/components/schemas/VerificationType"
+        - name: status
+          in: query
+          required: false
+          schema:
+            $ref: "#/components/schemas/VerificationStatus"
+        - $ref: "#/components/parameters/Page"
+        - $ref: "#/components/parameters/PageSize"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PagedUserVerification"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+
+  /admin/user-verifications/{verificationId}/approve:
+    post:
+      tags: [Admin]
+      summary: 认证通过
+      operationId: adminApproveUserVerification
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/VerificationId"
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                comment:
+                  type: string
+                  maxLength: 500
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserVerification"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /admin/user-verifications/{verificationId}/reject:
+    post:
+      tags: [Admin]
+      summary: 认证驳回
+      operationId: adminRejectUserVerification
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/VerificationId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [reason]
+              properties:
+                reason:
+                  type: string
+                  minLength: 1
+                  maxLength: 500
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserVerification"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /admin/orders/{orderId}/milestones/contract-signed:
+    post:
+      tags: [Admin]
+      summary: 合同签署确认（解锁尾款支付）
+      operationId: adminConfirmContractSigned
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/OrderId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [dealAmountFen]
+              properties:
+                dealAmountFen:
+                  $ref: "#/components/schemas/MoneyFen"
+                evidenceFileId:
+                  $ref: "#/components/schemas/Uuid"
+                signedAt:
+                  type: string
+                  format: date-time
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Order"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+
+  /admin/orders/{orderId}/milestones/transfer-completed:
+    post:
+      tags: [Admin]
+      summary: 变更完成确认（触发结算放款）
+      operationId: adminConfirmTransferCompleted
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/OrderId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                evidenceFileId:
+                  $ref: "#/components/schemas/Uuid"
+                completedAt:
+                  type: string
+                  format: date-time
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Order"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+
+  /admin/orders/{orderId}/settlement:
+    get:
+      tags: [Admin]
+      summary: 查看结算台账
+      operationId: adminGetOrderSettlement
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/OrderId"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Settlement"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /admin/orders/{orderId}/payouts/manual:
+    post:
+      tags: [Admin]
+      summary: 财务人工放款确认（P0 默认）
+      operationId: adminConfirmManualPayout
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/OrderId"
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ManualPayoutConfirmRequest"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Settlement"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+
+  /admin/orders/{orderId}/invoice:
+    put:
+      tags: [Admin]
+      summary: 上传/替换订单电子发票（财务）
+      operationId: adminUpsertOrderInvoice
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/OrderId"
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/OrderInvoiceUpsertRequest"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OrderInvoice"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+    delete:
+      tags: [Admin]
+      summary: 删除订单电子发票（财务）
+      operationId: adminDeleteOrderInvoice
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/OrderId"
+        - $ref: "#/components/parameters/IdempotencyKey"
+      responses:
+        "204":
+          description: No Content
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+
+  /admin/refund-requests/{refundRequestId}/approve:
+    post:
+      tags: [Admin]
+      summary: 退款审批通过
+      operationId: adminApproveRefundRequest
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/RefundRequestId"
+        - $ref: "#/components/parameters/IdempotencyKey"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RefundRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+
+  /admin/refund-requests/{refundRequestId}/reject:
+    post:
+      tags: [Admin]
+      summary: 退款审批驳回
+      operationId: adminRejectRefundRequest
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/RefundRequestId"
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [reason]
+              properties:
+                reason:
+                  type: string
+                  minLength: 1
+                  maxLength: 500
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RefundRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  responses:
+    BadRequest:
+      description: Bad Request
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+    Unauthorized:
+      description: Unauthorized
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+    Forbidden:
+      description: Forbidden
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+    NotFound:
+      description: Not Found
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+    Conflict:
+      description: Conflict
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+  parameters:
+    Q:
+      name: q
+      in: query
+      required: false
+      schema:
+        type: string
+      description: 关键词（标题/摘要/权利人/发明人/机构名称等）
+    PatentType:
+      name: patentType
+      in: query
+      required: false
+      schema:
+        $ref: "#/components/schemas/PatentType"
+    TradeMode:
+      name: tradeMode
+      in: query
+      required: false
+      schema:
+        $ref: "#/components/schemas/TradeMode"
+    PriceType:
+      name: priceType
+      in: query
+      required: false
+      schema:
+        $ref: "#/components/schemas/PriceType"
+    PriceMin:
+      name: priceMinFen
+      in: query
+      required: false
+      schema:
+        $ref: "#/components/schemas/MoneyFen"
+    PriceMax:
+      name: priceMaxFen
+      in: query
+      required: false
+      schema:
+        $ref: "#/components/schemas/MoneyFen"
+    DepositMin:
+      name: depositMinFen
+      in: query
+      required: false
+      schema:
+        $ref: "#/components/schemas/MoneyFen"
+    DepositMax:
+      name: depositMaxFen
+      in: query
+      required: false
+      schema:
+        $ref: "#/components/schemas/MoneyFen"
+    RegionCode:
+      name: regionCode
+      in: query
+      required: false
+      schema:
+        type: string
+        pattern: "^[0-9]{6}$"
+        example: "110000"
+      description: 行政区划 adcode（6 位字符串）
+
+    OrganizationTypes:
+      name: types
+      in: query
+      required: false
+      schema:
+        type: array
+        items:
+          $ref: "#/components/schemas/VerificationType"
+      style: form
+      explode: true
+      description: 机构类型过滤（默认仅展示已审核通过的企业/科研院校）
+
+    Inventor:
+      name: inventor
+      in: query
+      required: false
+      schema:
+        type: string
+      description: 发明人姓名（精确/模糊匹配，取决于实现；用于聚合其相关专利）
+
+    SellerUserId:
+      name: sellerUserId
+      in: query
+      required: false
+      schema:
+        $ref: "#/components/schemas/Uuid"
+      description: 卖家/机构 userId（用于机构聚合页筛选）
+    IndustryTags:
+      name: industryTags
+      in: query
+      required: false
+      schema:
+        type: array
+        items:
+          type: string
+      style: form
+      explode: true
+      description: 产业标签过滤（可多选）
+    Ipc:
+      name: ipc
+      in: query
+      required: false
+      schema:
+        type: string
+      description: IPC 分类号（前缀匹配，如 H04L）
+    Loc:
+      name: loc
+      in: query
+      required: false
+      schema:
+        type: string
+      description: Locarno 分类号（如 14-02）
+    LegalStatus:
+      name: legalStatus
+      in: query
+      required: false
+      schema:
+        $ref: "#/components/schemas/LegalStatus"
+    SortBy:
+      name: sortBy
+      in: query
+      required: false
+      schema:
+        $ref: "#/components/schemas/SortBy"
+    Page:
+      name: page
+      in: query
+      required: false
+      schema:
+        type: integer
+        minimum: 1
+        default: 1
+    PageSize:
+      name: pageSize
+      in: query
+      required: false
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 100
+        default: 20
+    ListingStatus:
+      name: status
+      in: query
+      required: false
+      schema:
+        $ref: "#/components/schemas/ListingStatus"
+    AuditStatus:
+      name: auditStatus
+      in: query
+      required: false
+      schema:
+        $ref: "#/components/schemas/AuditStatus"
+    OrderStatus:
+      name: status
+      in: query
+      required: false
+      schema:
+        $ref: "#/components/schemas/OrderStatus"
+
+    IdempotencyKey:
+      name: Idempotency-Key
+      in: header
+      required: false
+      schema:
+        type: string
+        maxLength: 64
+      description: 幂等键（建议用于支付/退款/放款等有副作用的接口；同一幂等键的重复请求应返回同一结果）
+
+    WechatpayTimestamp:
+      name: Wechatpay-Timestamp
+      in: header
+      required: true
+      schema:
+        type: string
+      description: 微信支付回调验签字段（v3）：时间戳字符串
+    WechatpayNonce:
+      name: Wechatpay-Nonce
+      in: header
+      required: true
+      schema:
+        type: string
+      description: 微信支付回调验签字段（v3）：随机串
+    WechatpaySignature:
+      name: Wechatpay-Signature
+      in: header
+      required: true
+      schema:
+        type: string
+      description: 微信支付回调验签字段（v3）：签名
+    WechatpaySerial:
+      name: Wechatpay-Serial
+      in: header
+      required: true
+      schema:
+        type: string
+      description: 微信支付回调验签字段（v3）：平台证书序列号
+    WechatpaySignatureType:
+      name: Wechatpay-Signature-Type
+      in: header
+      required: false
+      schema:
+        type: string
+      description: 微信支付回调验签字段（v3）：签名类型（如 WECHATPAY2-SHA256-RSA2048）
+
+    ListingId:
+      name: listingId
+      in: path
+      required: true
+      schema:
+        $ref: "#/components/schemas/Uuid"
+
+    OrgUserId:
+      name: orgUserId
+      in: path
+      required: true
+      schema:
+        $ref: "#/components/schemas/Uuid"
+
+    ConversationId:
+      name: conversationId
+      in: path
+      required: true
+      schema:
+        $ref: "#/components/schemas/Uuid"
+
+    RegionCodePath:
+      name: regionCode
+      in: path
+      required: true
+      schema:
+        type: string
+      description: 行政区划码/adcode
+
+    YearPath:
+      name: year
+      in: path
+      required: true
+      schema:
+        type: integer
+    OrderId:
+      name: orderId
+      in: path
+      required: true
+      schema:
+        $ref: "#/components/schemas/Uuid"
+    RefundRequestId:
+      name: refundRequestId
+      in: path
+      required: true
+      schema:
+        $ref: "#/components/schemas/Uuid"
+    PatentId:
+      name: patentId
+      in: path
+      required: true
+      schema:
+        $ref: "#/components/schemas/Uuid"
+    VerificationId:
+      name: verificationId
+      in: path
+      required: true
+      schema:
+        $ref: "#/components/schemas/Uuid"
+  schemas:
+    Uuid:
+      type: string
+      format: uuid
+    PhoneNumber:
+      type: string
+      example: "13800138000"
+    MoneyFen:
+      type: integer
+      format: int64
+      minimum: 0
+      description: 金额（人民币分）
+
+    ErrorResponse:
+      type: object
+      required: [code, message]
+      properties:
+        code:
+          type: string
+        message:
+          type: string
+        details:
+          type: object
+          additionalProperties: true
+
+    SmsPurpose:
+      type: string
+      enum: [LOGIN, BIND_PHONE]
+
+    UserRole:
+      type: string
+      enum: [buyer, seller, cs, admin]
+
+    VerificationType:
+      type: string
+      enum: [PERSON, COMPANY, ACADEMY, GOVERNMENT, ASSOCIATION, TECH_MANAGER]
+
+    VerificationStatus:
+      type: string
+      enum: [PENDING, APPROVED, REJECTED]
+
+    FilePurpose:
+      type: string
+      enum:
+        - AVATAR
+        - ORG_LOGO
+        - IDENTITY
+        - BUSINESS_LICENSE
+        - ORG_CERTIFICATE
+        - PROFESSIONAL_CERTIFICATE
+        - PATENT_PROOF
+        - CONTRACT_EVIDENCE
+        - INVOICE
+        - OTHER
+
+    UserProfile:
+      type: object
+      required: [id, phone, role, createdAt]
+      properties:
+        id:
+          $ref: "#/components/schemas/Uuid"
+        phone:
+          $ref: "#/components/schemas/PhoneNumber"
+        nickname:
+          type: string
+        avatarUrl:
+          type: string
+          format: uri
+        role:
+          $ref: "#/components/schemas/UserRole"
+        verificationStatus:
+          $ref: "#/components/schemas/VerificationStatus"
+        verificationType:
+          $ref: "#/components/schemas/VerificationType"
+          nullable: true
+          description: 用户选择的身份类型（未选择/未提交时为空）
+        regionCode:
+          type: string
+          description: 用户当前地区（用于地域推荐；可由小程序定位/手动选择后更新）
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    AuthTokenResponse:
+      type: object
+      required: [accessToken, expiresInSeconds, user]
+      properties:
+        accessToken:
+          type: string
+        refreshToken:
+          type: string
+        expiresInSeconds:
+          type: integer
+          minimum: 1
+        user:
+          $ref: "#/components/schemas/UserProfile"
+
+    UserVerification:
+      type: object
+      required: [id, userId, type, status, submittedAt]
+      properties:
+        id:
+          $ref: "#/components/schemas/Uuid"
+        userId:
+          $ref: "#/components/schemas/Uuid"
+        type:
+          $ref: "#/components/schemas/VerificationType"
+        status:
+          $ref: "#/components/schemas/VerificationStatus"
+        displayName:
+          type: string
+        unifiedSocialCreditCodeMasked:
+          type: string
+          description: 企业/机构统一社会信用代码（脱敏）
+        contactName:
+          type: string
+        contactPhoneMasked:
+          type: string
+        idNumberMasked:
+          type: string
+          description: 个人身份证号/技术经理人证件号（脱敏）
+        regionCode:
+          type: string
+          description: 主体所在地区（用于展示/地域推荐）
+        intro:
+          type: string
+          description: 主体简介（用于机构展示）
+        logoFileId:
+          $ref: "#/components/schemas/Uuid"
+        logoUrl:
+          type: string
+          format: uri
+        evidenceFileIds:
+          type: array
+          items:
+            $ref: "#/components/schemas/Uuid"
+        submittedAt:
+          type: string
+          format: date-time
+        reviewedAt:
+          type: string
+          format: date-time
+        reviewComment:
+          type: string
+
+    UserVerificationSubmitRequest:
+      oneOf:
+        - $ref: "#/components/schemas/UserVerificationSubmitPersonRequest"
+        - $ref: "#/components/schemas/UserVerificationSubmitOrganizationRequest"
+        - $ref: "#/components/schemas/UserVerificationSubmitTechManagerRequest"
+      discriminator:
+        propertyName: type
+        mapping:
+          PERSON: "#/components/schemas/UserVerificationSubmitPersonRequest"
+          COMPANY: "#/components/schemas/UserVerificationSubmitOrganizationRequest"
+          ACADEMY: "#/components/schemas/UserVerificationSubmitOrganizationRequest"
+          GOVERNMENT: "#/components/schemas/UserVerificationSubmitOrganizationRequest"
+          ASSOCIATION: "#/components/schemas/UserVerificationSubmitOrganizationRequest"
+          TECH_MANAGER: "#/components/schemas/UserVerificationSubmitTechManagerRequest"
+
+    UserVerificationSubmitPersonRequest:
+      type: object
+      required: [type, displayName]
+      properties:
+        type:
+          type: string
+          enum: [PERSON]
+        displayName:
+          type: string
+          minLength: 1
+          maxLength: 200
+          description: 个人展示名称（可默认取昵称）
+        idNumber:
+          type: string
+          description: 可选；如采集则后台存储需加密
+
+    UserVerificationSubmitOrganizationRequest:
+      type: object
+      required: [type, displayName, evidenceFileIds]
+      properties:
+        type:
+          type: string
+          enum: [COMPANY, ACADEMY, GOVERNMENT, ASSOCIATION]
+        displayName:
+          type: string
+          minLength: 1
+          maxLength: 200
+          description: 主体名称（企业/科研院校/政府/协会）
+        unifiedSocialCreditCode:
+          type: string
+          description: 统一社会信用代码（后台需加密/脱敏展示）
+        contactName:
+          type: string
+        contactPhone:
+          $ref: "#/components/schemas/PhoneNumber"
+        regionCode:
+          type: string
+        intro:
+          type: string
+          maxLength: 2000
+        logoFileId:
+          $ref: "#/components/schemas/Uuid"
+        evidenceFileIds:
+          type: array
+          minItems: 1
+          items:
+            $ref: "#/components/schemas/Uuid"
+
+    UserVerificationSubmitTechManagerRequest:
+      type: object
+      required: [type, displayName, evidenceFileIds]
+      properties:
+        type:
+          type: string
+          enum: [TECH_MANAGER]
+        displayName:
+          type: string
+          minLength: 1
+          maxLength: 200
+          description: 技术经理人/经纪人展示名称
+        idNumber:
+          type: string
+          description: 可选；如采集则后台存储需加密
+        contactPhone:
+          $ref: "#/components/schemas/PhoneNumber"
+        regionCode:
+          type: string
+        intro:
+          type: string
+          maxLength: 2000
+        evidenceFileIds:
+          type: array
+          minItems: 1
+          items:
+            $ref: "#/components/schemas/Uuid"
+
+    FileObject:
+      type: object
+      required: [id, url, mimeType, sizeBytes, createdAt]
+      properties:
+        id:
+          $ref: "#/components/schemas/Uuid"
+        url:
+          type: string
+          format: uri
+        mimeType:
+          type: string
+        sizeBytes:
+          type: integer
+          format: int64
+        createdAt:
+          type: string
+          format: date-time
+
+    Jurisdiction:
+      type: string
+      enum: [CN]
+
+    PatentType:
+      type: string
+      enum: [INVENTION, UTILITY_MODEL, DESIGN]
+
+    PatentNumberInputType:
+      type: string
+      enum: [APPLICATION_NO, PATENT_NO, PUBLICATION_NO]
+
+    PatentNormalizeRequest:
+      type: object
+      required: [raw]
+      properties:
+        raw:
+          type: string
+
+    PatentNormalizeResponse:
+      type: object
+      required: [jurisdiction, inputType]
+      properties:
+        jurisdiction:
+          $ref: "#/components/schemas/Jurisdiction"
+        inputType:
+          $ref: "#/components/schemas/PatentNumberInputType"
+        applicationNoNorm:
+          type: string
+          example: "2023113409720"
+        applicationNoDisplay:
+          type: string
+          example: "202311340972.0"
+        publicationNoNorm:
+          type: string
+          example: "CN116123456A"
+        kindCode:
+          type: string
+          example: "A"
+        guessedPatentType:
+          $ref: "#/components/schemas/PatentType"
+        warnings:
+          type: array
+          items:
+            type: string
+
+    LegalStatus:
+      type: string
+      enum: [PENDING, GRANTED, EXPIRED, INVALIDATED, UNKNOWN]
+
+    Patent:
+      type: object
+      required: [id, jurisdiction, applicationNoNorm, patentType, title, createdAt]
+      properties:
+        id:
+          $ref: "#/components/schemas/Uuid"
+        jurisdiction:
+          $ref: "#/components/schemas/Jurisdiction"
+        applicationNoNorm:
+          type: string
+        applicationNoDisplay:
+          type: string
+        patentType:
+          $ref: "#/components/schemas/PatentType"
+        title:
+          type: string
+        abstract:
+          type: string
+        inventorNames:
+          type: array
+          items:
+            type: string
+        assigneeNames:
+          type: array
+          items:
+            type: string
+        applicantNames:
+          type: array
+          items:
+            type: string
+        filingDate:
+          type: string
+          format: date
+        publicationDate:
+          type: string
+          format: date
+        grantDate:
+          type: string
+          format: date
+        legalStatus:
+          $ref: "#/components/schemas/LegalStatus"
+        sourcePrimary:
+          type: string
+          enum: [USER, ADMIN, PROVIDER]
+        sourceUpdatedAt:
+          type: string
+          format: date-time
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    TradeMode:
+      type: string
+      enum: [ASSIGNMENT, LICENSE]
+
+    LicenseMode:
+      type: string
+      enum: [EXCLUSIVE, SOLE, NON_EXCLUSIVE]
+
+    PriceType:
+      type: string
+      enum: [FIXED, NEGOTIABLE]
+
+    AuditStatus:
+      type: string
+      enum: [PENDING, APPROVED, REJECTED]
+
+    ListingStatus:
+      type: string
+      enum: [DRAFT, ACTIVE, OFF_SHELF, SOLD]
+
+    SortBy:
+      type: string
+      enum: [RECOMMENDED, NEWEST, PRICE_ASC, PRICE_DESC, POPULAR, INVENTOR_RANK]
+
+    FeaturedLevel:
+      type: string
+      enum: [NONE, CITY, PROVINCE]
+
+    ListingStats:
+      type: object
+      required: [viewCount, favoriteCount, consultCount]
+      properties:
+        viewCount:
+          type: integer
+          format: int64
+          minimum: 0
+        favoriteCount:
+          type: integer
+          format: int64
+          minimum: 0
+        consultCount:
+          type: integer
+          format: int64
+          minimum: 0
+
+    ListingMedia:
+      type: object
+      required: [fileId, type, sort]
+      properties:
+        fileId:
+          $ref: "#/components/schemas/Uuid"
+        type:
+          type: string
+          enum: [IMAGE, FILE]
+        sort:
+          type: integer
+          minimum: 0
+
+    ListingSummary:
+      type: object
+      required: [id, title, tradeMode, priceType, depositAmountFen, auditStatus, status, createdAt]
+      properties:
+        id:
+          $ref: "#/components/schemas/Uuid"
+        patentId:
+          $ref: "#/components/schemas/Uuid"
+        applicationNoDisplay:
+          type: string
+        patentType:
+          $ref: "#/components/schemas/PatentType"
+        title:
+          type: string
+        inventorNames:
+          type: array
+          items:
+            type: string
+          description: 发明人列表（用于展示/发明人榜跳转；P0 可选返回）
+        tradeMode:
+          $ref: "#/components/schemas/TradeMode"
+        licenseMode:
+          $ref: "#/components/schemas/LicenseMode"
+        priceType:
+          $ref: "#/components/schemas/PriceType"
+        priceAmountFen:
+          $ref: "#/components/schemas/MoneyFen"
+        depositAmountFen:
+          $ref: "#/components/schemas/MoneyFen"
+        regionCode:
+          type: string
+        industryTags:
+          type: array
+          items:
+            type: string
+        featuredLevel:
+          $ref: "#/components/schemas/FeaturedLevel"
+        featuredRegionCode:
+          type: string
+          description: 省/市级特色产业专利的生效区域（adcode）
+        featuredRank:
+          type: integer
+          minimum: 0
+          description: 特色置顶优先级（数值越小越靠前）
+        featuredUntil:
+          type: string
+          format: date-time
+          description: 特色置顶过期时间（为空表示长期）
+        stats:
+          $ref: "#/components/schemas/ListingStats"
+        recommendationScore:
+          type: number
+          format: double
+          description: 智能推荐得分（仅在 sortBy=RECOMMENDED 或猜你喜欢接口中返回）
+        inventorRankScore:
+          type: number
+          format: double
+          description: 发明人影响力得分（仅在 sortBy=INVENTOR_RANK 时返回）
+        auditStatus:
+          $ref: "#/components/schemas/AuditStatus"
+        status:
+          $ref: "#/components/schemas/ListingStatus"
+        coverUrl:
+          type: string
+          format: uri
+        createdAt:
+          type: string
+          format: date-time
+
+    Listing:
+      allOf:
+        - $ref: "#/components/schemas/ListingSummary"
+        - type: object
+          properties:
+            sellerUserId:
+              $ref: "#/components/schemas/Uuid"
+            summary:
+              type: string
+            ipcCodes:
+              type: array
+              items:
+                type: string
+            locCodes:
+              type: array
+              items:
+                type: string
+            media:
+              type: array
+              items:
+                $ref: "#/components/schemas/ListingMedia"
+            proofFileIds:
+              type: array
+              items:
+                $ref: "#/components/schemas/Uuid"
+
+    ListingPublic:
+      allOf:
+        - $ref: "#/components/schemas/ListingSummary"
+        - type: object
+          properties:
+            seller:
+              $ref: "#/components/schemas/UserBrief"
+            summary:
+              type: string
+            ipcCodes:
+              type: array
+              items:
+                type: string
+            locCodes:
+              type: array
+              items:
+                type: string
+            media:
+              type: array
+              items:
+                $ref: "#/components/schemas/ListingMedia"
+
+    ListingCreateRequest:
+      type: object
+      required: [patentNumberRaw, tradeMode, priceType]
+      properties:
+        patentNumberRaw:
+          type: string
+        patentType:
+          $ref: "#/components/schemas/PatentType"
+          description: 若无法自动识别则必填
+        title:
+          type: string
+          maxLength: 200
+        inventorNames:
+          type: array
+          items:
+            type: string
+          description: 发明人（用于发明人榜；P0 建议填写）
+        assigneeNames:
+          type: array
+          items:
+            type: string
+          description: 权利人/专利权人（用于检索与展示；P0 建议填写）
+        applicantNames:
+          type: array
+          items:
+            type: string
+          description: 申请人（可选）
+        summary:
+          type: string
+          maxLength: 2000
+        tradeMode:
+          $ref: "#/components/schemas/TradeMode"
+        licenseMode:
+          $ref: "#/components/schemas/LicenseMode"
+        priceType:
+          $ref: "#/components/schemas/PriceType"
+        priceAmountFen:
+          $ref: "#/components/schemas/MoneyFen"
+          description: FIXED 时必填
+        depositAmountFen:
+          $ref: "#/components/schemas/MoneyFen"
+          description: 可选；若不填则按平台订金策略计算
+        regionCode:
+          type: string
+        industryTags:
+          type: array
+          items:
+            type: string
+        ipcCodes:
+          type: array
+          items:
+            type: string
+        locCodes:
+          type: array
+          items:
+            type: string
+        media:
+          type: array
+          items:
+            $ref: "#/components/schemas/ListingMedia"
+        proofFileIds:
+          type: array
+          items:
+            $ref: "#/components/schemas/Uuid"
+
+    ListingUpdateRequest:
+      type: object
+      properties:
+        title:
+          type: string
+          maxLength: 200
+        inventorNames:
+          type: array
+          items:
+            type: string
+        assigneeNames:
+          type: array
+          items:
+            type: string
+        applicantNames:
+          type: array
+          items:
+            type: string
+        summary:
+          type: string
+          maxLength: 2000
+        tradeMode:
+          $ref: "#/components/schemas/TradeMode"
+        licenseMode:
+          $ref: "#/components/schemas/LicenseMode"
+        priceType:
+          $ref: "#/components/schemas/PriceType"
+        priceAmountFen:
+          $ref: "#/components/schemas/MoneyFen"
+        depositAmountFen:
+          $ref: "#/components/schemas/MoneyFen"
+        regionCode:
+          type: string
+        industryTags:
+          type: array
+          items:
+            type: string
+        ipcCodes:
+          type: array
+          items:
+            type: string
+        locCodes:
+          type: array
+          items:
+            type: string
+        media:
+          type: array
+          items:
+            $ref: "#/components/schemas/ListingMedia"
+        proofFileIds:
+          type: array
+          items:
+            $ref: "#/components/schemas/Uuid"
+
+    ListingFeaturedUpdateRequest:
+      type: object
+      required: [featuredLevel]
+      properties:
+        featuredLevel:
+          $ref: "#/components/schemas/FeaturedLevel"
+        featuredRegionCode:
+          type: string
+          description: 省/市级生效区域 adcode（featuredLevel != NONE 时必填）
+        featuredRank:
+          type: integer
+          minimum: 0
+          description: 特色置顶优先级（数值越小越靠前）
+        featuredUntil:
+          type: string
+          format: date-time
+          description: 过期时间（为空表示长期）
+
+    PageMeta:
+      type: object
+      required: [page, pageSize, total]
+      properties:
+        page:
+          type: integer
+          minimum: 1
+        pageSize:
+          type: integer
+          minimum: 1
+        total:
+          type: integer
+          minimum: 0
+
+    PagedListingSummary:
+      type: object
+      required: [items, page]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/ListingSummary"
+        page:
+          $ref: "#/components/schemas/PageMeta"
+
+    PagedListing:
+      type: object
+      required: [items, page]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/Listing"
+        page:
+          $ref: "#/components/schemas/PageMeta"
+
+    OrganizationStats:
+      type: object
+      required: [listingCount, patentCount]
+      properties:
+        listingCount:
+          type: integer
+          minimum: 0
+        patentCount:
+          type: integer
+          minimum: 0
+
+    OrganizationSummary:
+      type: object
+      required: [userId, displayName, verificationType, verificationStatus]
+      properties:
+        userId:
+          $ref: "#/components/schemas/Uuid"
+        displayName:
+          type: string
+        verificationType:
+          $ref: "#/components/schemas/VerificationType"
+        verificationStatus:
+          $ref: "#/components/schemas/VerificationStatus"
+        regionCode:
+          type: string
+        logoUrl:
+          type: string
+          format: uri
+        intro:
+          type: string
+        stats:
+          $ref: "#/components/schemas/OrganizationStats"
+        verifiedAt:
+          type: string
+          format: date-time
+
+    PagedOrganizationSummary:
+      type: object
+      required: [items, page]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/OrganizationSummary"
+        page:
+          $ref: "#/components/schemas/PageMeta"
+
+    InventorRankingItem:
+      type: object
+      required: [inventorName, patentCount, listingCount]
+      properties:
+        inventorName:
+          type: string
+        patentCount:
+          type: integer
+          minimum: 0
+          description: 该发明人在平台内上传专利中的去重数量（按 patentId）
+        listingCount:
+          type: integer
+          minimum: 0
+          description: 关联到的上架数量（可用于参考）
+
+    PagedInventorRanking:
+      type: object
+      required: [items, page]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/InventorRankingItem"
+        page:
+          $ref: "#/components/schemas/PageMeta"
+
+    OrderStatus:
+      type: string
+      enum:
+        - DEPOSIT_PENDING
+        - DEPOSIT_PAID
+        - WAIT_FINAL_PAYMENT
+        - FINAL_PAID_ESCROW
+        - READY_TO_SETTLE
+        - COMPLETED
+        - CANCELLED
+        - REFUNDING
+        - REFUNDED
+
+    OrderListRole:
+      type: string
+      enum: [BUYER, SELLER]
+
+    Order:
+      type: object
+      required: [id, listingId, buyerUserId, status, depositAmountFen, createdAt]
+      properties:
+        id:
+          $ref: "#/components/schemas/Uuid"
+        listingId:
+          $ref: "#/components/schemas/Uuid"
+        patentId:
+          $ref: "#/components/schemas/Uuid"
+        buyerUserId:
+          $ref: "#/components/schemas/Uuid"
+        sellerUserId:
+          $ref: "#/components/schemas/Uuid"
+        assignedCsUserId:
+          $ref: "#/components/schemas/Uuid"
+        status:
+          $ref: "#/components/schemas/OrderStatus"
+        dealAmountFen:
+          $ref: "#/components/schemas/MoneyFen"
+          description: 合同签署确认后写入（成交总价）
+        depositAmountFen:
+          $ref: "#/components/schemas/MoneyFen"
+        finalAmountFen:
+          $ref: "#/components/schemas/MoneyFen"
+          description: 合同签署确认后写入（尾款金额）
+        commissionAmountFen:
+          $ref: "#/components/schemas/MoneyFen"
+          description: 结算时写入（卖家承担）
+        invoice:
+          $ref: "#/components/schemas/OrderInvoice"
+          description: 订单电子发票（仅订单完成后可能存在）
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    PayType:
+      type: string
+      enum: [DEPOSIT, FINAL]
+
+    PaymentIntentResponse:
+      type: object
+      required: [paymentId, payType, channel, amountFen, wechatPayParams]
+      properties:
+        paymentId:
+          $ref: "#/components/schemas/Uuid"
+        payType:
+          $ref: "#/components/schemas/PayType"
+        channel:
+          type: string
+          enum: [WECHAT]
+        amountFen:
+          $ref: "#/components/schemas/MoneyFen"
+        wechatPayParams:
+          type: object
+          required: [timeStamp, nonceStr, package, signType, paySign]
+          properties:
+            timeStamp:
+              type: string
+            nonceStr:
+              type: string
+            package:
+              type: string
+            signType:
+              type: string
+            paySign:
+              type: string
+ 
+    PayoutMethod:
+      type: string
+      enum: [MANUAL, WECHAT]
+ 
+    PayoutStatus:
+      type: string
+      enum: [PENDING, SUCCEEDED, FAILED]
+ 
+    Settlement:
+      type: object
+      required:
+        - id
+        - orderId
+        - grossAmountFen
+        - commissionAmountFen
+        - payoutAmountFen
+        - payoutMethod
+        - payoutStatus
+        - createdAt
+      properties:
+        id:
+          $ref: "#/components/schemas/Uuid"
+        orderId:
+          $ref: "#/components/schemas/Uuid"
+        grossAmountFen:
+          $ref: "#/components/schemas/MoneyFen"
+        commissionAmountFen:
+          $ref: "#/components/schemas/MoneyFen"
+        payoutAmountFen:
+          $ref: "#/components/schemas/MoneyFen"
+        payoutMethod:
+          $ref: "#/components/schemas/PayoutMethod"
+        payoutStatus:
+          $ref: "#/components/schemas/PayoutStatus"
+        payoutRef:
+          type: string
+          maxLength: 100
+        payoutEvidenceFileId:
+          $ref: "#/components/schemas/Uuid"
+        payoutAt:
+          type: string
+          format: date-time
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    OrderInvoiceUpsertRequest:
+      type: object
+      required: [invoiceFileId]
+      properties:
+        invoiceFileId:
+          $ref: "#/components/schemas/Uuid"
+        invoiceNo:
+          type: string
+          maxLength: 50
+        issuedAt:
+          type: string
+          format: date-time
+
+    OrderInvoice:
+      type: object
+      required: [orderId, invoiceFile]
+      properties:
+        orderId:
+          $ref: "#/components/schemas/Uuid"
+        amountFen:
+          $ref: "#/components/schemas/MoneyFen"
+          description: 订单服务费/佣金金额（开票金额）
+        itemName:
+          type: string
+          description: 发票项目名称/服务内容（默认：居间服务费）
+        invoiceNo:
+          type: string
+        issuedAt:
+          type: string
+          format: date-time
+        invoiceFile:
+          $ref: "#/components/schemas/FileObject"
+        attachedAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+ 
+    ManualPayoutConfirmRequest:
+      type: object
+      required: [payoutEvidenceFileId]
+      properties:
+        payoutRef:
+          type: string
+          maxLength: 100
+        payoutEvidenceFileId:
+          $ref: "#/components/schemas/Uuid"
+        payoutAt:
+          type: string
+          format: date-time
+        remark:
+          type: string
+          maxLength: 500
+ 
+    PagedOrder:
+      type: object
+      required: [items, page]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/Order"
+        page:
+          $ref: "#/components/schemas/PageMeta"
+
+    RefundRequestStatus:
+      type: string
+      enum: [PENDING, APPROVED, REJECTED, REFUNDING, REFUNDED]
+
+    RefundReasonCode:
+      type: string
+      enum: [BUYER_CHANGED_MIND, SELLER_MISSING_MATERIALS, MUTUAL_AGREEMENT, RISK_CONTROL, OTHER]
+
+    RefundRequestCreate:
+      type: object
+      required: [reasonCode]
+      properties:
+        reasonCode:
+          $ref: "#/components/schemas/RefundReasonCode"
+        reasonText:
+          type: string
+          maxLength: 500
+        evidenceFileIds:
+          type: array
+          items:
+            $ref: "#/components/schemas/Uuid"
+
+    RefundRequest:
+      type: object
+      required: [id, orderId, status, createdAt]
+      properties:
+        id:
+          $ref: "#/components/schemas/Uuid"
+        orderId:
+          $ref: "#/components/schemas/Uuid"
+        reasonCode:
+          $ref: "#/components/schemas/RefundReasonCode"
+        reasonText:
+          type: string
+        status:
+          $ref: "#/components/schemas/RefundRequestStatus"
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    CaseType:
+      type: string
+      enum: [FOLLOWUP, REFUND, DISPUTE]
+
+    CaseStatus:
+      type: string
+      enum: [OPEN, IN_PROGRESS, CLOSED]
+
+    MilestoneName:
+      type: string
+      enum: [CONTRACT_SIGNED, TRANSFER_SUBMITTED, TRANSFER_COMPLETED]
+
+    MilestoneStatus:
+      type: string
+      enum: [PENDING, DONE]
+
+    Milestone:
+      type: object
+      required: [name, status]
+      properties:
+        name:
+          $ref: "#/components/schemas/MilestoneName"
+        status:
+          $ref: "#/components/schemas/MilestoneStatus"
+        evidenceFileId:
+          $ref: "#/components/schemas/Uuid"
+        occurredAt:
+          type: string
+          format: date-time
+
+    CaseWithMilestones:
+      type: object
+      required: [caseId, orderId, type, status, milestones]
+      properties:
+        caseId:
+          $ref: "#/components/schemas/Uuid"
+        orderId:
+          $ref: "#/components/schemas/Uuid"
+        type:
+          $ref: "#/components/schemas/CaseType"
+        status:
+          $ref: "#/components/schemas/CaseStatus"
+        csUserId:
+          $ref: "#/components/schemas/Uuid"
+        milestones:
+          type: array
+          items:
+            $ref: "#/components/schemas/Milestone"
+
+    PagedUserVerification:
+      type: object
+      required: [items, page]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/UserVerification"
+        page:
+          $ref: "#/components/schemas/PageMeta"
+
+    PayoutCondition:
+      type: string
+      enum: [TRANSFER_COMPLETED_CONFIRMED]
+
+    TradeRulesConfig:
+      type: object
+      required:
+        - version
+        - depositRate
+        - depositMinFen
+        - depositMaxFen
+        - depositFixedForNegotiableFen
+        - autoRefundWindowMinutes
+        - sellerMaterialDeadlineBusinessDays
+        - contractSignedDeadlineBusinessDays
+        - transferCompletedSlaDays
+        - commissionRate
+        - commissionMinFen
+        - commissionMaxFen
+        - payoutCondition
+        - payoutMethodDefault
+        - autoPayoutOnTimeout
+      properties:
+        version:
+          type: integer
+          minimum: 1
+        depositRate:
+          type: number
+          format: double
+          minimum: 0
+          maximum: 1
+          example: 0.05
+        depositMinFen:
+          $ref: "#/components/schemas/MoneyFen"
+        depositMaxFen:
+          $ref: "#/components/schemas/MoneyFen"
+        depositFixedForNegotiableFen:
+          $ref: "#/components/schemas/MoneyFen"
+        autoRefundWindowMinutes:
+          type: integer
+          minimum: 0
+          example: 30
+        sellerMaterialDeadlineBusinessDays:
+          type: integer
+          minimum: 1
+          example: 3
+        contractSignedDeadlineBusinessDays:
+          type: integer
+          minimum: 1
+          example: 10
+        transferCompletedSlaDays:
+          type: integer
+          minimum: 1
+          example: 90
+        commissionRate:
+          type: number
+          format: double
+          minimum: 0
+          maximum: 1
+          example: 0.05
+        commissionMinFen:
+          $ref: "#/components/schemas/MoneyFen"
+        commissionMaxFen:
+          $ref: "#/components/schemas/MoneyFen"
+        payoutCondition:
+          $ref: "#/components/schemas/PayoutCondition"
+        payoutMethodDefault:
+          $ref: "#/components/schemas/PayoutMethod"
+        autoPayoutOnTimeout:
+          type: boolean
+          example: false
+
+    RecommendationWeights:
+      type: object
+      required: [time, view, favorite, consult, region, user]
+      example:
+        time: 1
+        view: 1
+        favorite: 2
+        consult: 3
+        region: 2
+        user: 1
+      properties:
+        time:
+          type: number
+          format: double
+          minimum: 0
+        view:
+          type: number
+          format: double
+          minimum: 0
+        favorite:
+          type: number
+          format: double
+          minimum: 0
+        consult:
+          type: number
+          format: double
+          minimum: 0
+        region:
+          type: number
+          format: double
+          minimum: 0
+        user:
+          type: number
+          format: double
+          minimum: 0
+
+    RecommendationFeaturedBoost:
+      type: object
+      required: [province, city]
+      example:
+        province: 2
+        city: 3
+      properties:
+        province:
+          type: number
+          format: double
+          minimum: 0
+        city:
+          type: number
+          format: double
+          minimum: 0
+
+    RecommendationConfig:
+      type: object
+      required: [enabled, timeDecayHalfLifeHours, weights, featuredBoost, dedupeWindowHours]
+      properties:
+        enabled:
+          type: boolean
+        timeDecayHalfLifeHours:
+          type: integer
+          minimum: 1
+          example: 72
+        dedupeWindowHours:
+          type: integer
+          minimum: 0
+          example: 24
+        weights:
+          $ref: "#/components/schemas/RecommendationWeights"
+        featuredBoost:
+          $ref: "#/components/schemas/RecommendationFeaturedBoost"
+        updatedAt:
+          type: string
+          format: date-time
+
+    RecommendationConfigUpdateRequest:
+      type: object
+      required: [enabled, timeDecayHalfLifeHours, weights, featuredBoost, dedupeWindowHours]
+      properties:
+        enabled:
+          type: boolean
+        timeDecayHalfLifeHours:
+          type: integer
+          minimum: 1
+        dedupeWindowHours:
+          type: integer
+          minimum: 0
+        weights:
+          $ref: "#/components/schemas/RecommendationWeights"
+        featuredBoost:
+          $ref: "#/components/schemas/RecommendationFeaturedBoost"
+        updatedAt:
+          type: string
+          format: date-time
+
+    TradeRulesConfigUpdateRequest:
+      type: object
+      required:
+        - depositRate
+        - depositMinFen
+        - depositMaxFen
+        - depositFixedForNegotiableFen
+        - autoRefundWindowMinutes
+        - sellerMaterialDeadlineBusinessDays
+        - contractSignedDeadlineBusinessDays
+        - transferCompletedSlaDays
+        - commissionRate
+        - commissionMinFen
+        - commissionMaxFen
+        - payoutCondition
+        - payoutMethodDefault
+        - autoPayoutOnTimeout
+      properties:
+        depositRate:
+          type: number
+          format: double
+          minimum: 0
+          maximum: 1
+        depositMinFen:
+          $ref: "#/components/schemas/MoneyFen"
+        depositMaxFen:
+          $ref: "#/components/schemas/MoneyFen"
+        depositFixedForNegotiableFen:
+          $ref: "#/components/schemas/MoneyFen"
+        autoRefundWindowMinutes:
+          type: integer
+          minimum: 0
+        sellerMaterialDeadlineBusinessDays:
+          type: integer
+          minimum: 1
+        contractSignedDeadlineBusinessDays:
+          type: integer
+          minimum: 1
+        transferCompletedSlaDays:
+          type: integer
+          minimum: 1
+        commissionRate:
+          type: number
+          format: double
+          minimum: 0
+          maximum: 1
+        commissionMinFen:
+          $ref: "#/components/schemas/MoneyFen"
+        commissionMaxFen:
+          $ref: "#/components/schemas/MoneyFen"
+        payoutCondition:
+          $ref: "#/components/schemas/PayoutCondition"
+        payoutMethodDefault:
+          $ref: "#/components/schemas/PayoutMethod"
+        autoPayoutOnTimeout:
+          type: boolean
+
+    RegionLevel:
+      type: string
+      enum: [PROVINCE, CITY, DISTRICT]
+      description: 行政区划层级（P0 地图主要用 PROVINCE/CITY）
+
+    RegionNode:
+      type: object
+      required: [code, name, level]
+      properties:
+        code:
+          type: string
+          pattern: "^[0-9]{6}$"
+          description: 行政区划 adcode（6 位字符串）
+          example: "110000"
+        name:
+          type: string
+        level:
+          $ref: "#/components/schemas/RegionLevel"
+        parentCode:
+          type: string
+          pattern: "^[0-9]{6}$"
+          nullable: true
+        centerLat:
+          type: number
+          format: double
+          nullable: true
+        centerLng:
+          type: number
+          format: double
+          nullable: true
+        industryTags:
+          type: array
+          items:
+            type: string
+          description: 区域特色产业标签（用于推荐/搜索加权）
+        updatedAt:
+          type: string
+          format: date-time
+
+    RegionCreateRequest:
+      type: object
+      required: [code, name, level]
+      properties:
+        code:
+          type: string
+          pattern: "^[0-9]{6}$"
+        name:
+          type: string
+        level:
+          $ref: "#/components/schemas/RegionLevel"
+        parentCode:
+          type: string
+          pattern: "^[0-9]{6}$"
+          nullable: true
+        centerLat:
+          type: number
+          format: double
+          nullable: true
+        centerLng:
+          type: number
+          format: double
+          nullable: true
+
+    RegionUpdateRequest:
+      type: object
+      properties:
+        name:
+          type: string
+        level:
+          $ref: "#/components/schemas/RegionLevel"
+        parentCode:
+          type: string
+          pattern: "^[0-9]{6}$"
+          nullable: true
+        centerLat:
+          type: number
+          format: double
+          nullable: true
+        centerLng:
+          type: number
+          format: double
+          nullable: true
+
+    IndustryTag:
+      type: object
+      required: [id, name]
+      properties:
+        id:
+          $ref: "#/components/schemas/Uuid"
+        name:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    IndustryTagCreateRequest:
+      type: object
+      required: [name]
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 50
+
+    PatentMapIndustryCount:
+      type: object
+      required: [industryTag, count]
+      properties:
+        industryTag:
+          type: string
+        count:
+          type: integer
+          minimum: 0
+
+    PatentMapTopAssignee:
+      type: object
+      required: [name, patentCount]
+      properties:
+        name:
+          type: string
+        patentCount:
+          type: integer
+          minimum: 0
+
+    PatentMapSummaryItem:
+      type: object
+      required: [regionCode, regionName, patentCount]
+      properties:
+        regionCode:
+          type: string
+        regionName:
+          type: string
+        patentCount:
+          type: integer
+          minimum: 0
+
+    PatentMapRegionDetail:
+      type: object
+      required: [regionCode, regionName, year, patentCount, industryBreakdown, topAssignees]
+      properties:
+        regionCode:
+          type: string
+        regionName:
+          type: string
+        year:
+          type: integer
+        patentCount:
+          type: integer
+          minimum: 0
+        industryBreakdown:
+          type: array
+          items:
+            $ref: "#/components/schemas/PatentMapIndustryCount"
+        topAssignees:
+          type: array
+          items:
+            $ref: "#/components/schemas/PatentMapTopAssignee"
+        updatedAt:
+          type: string
+          format: date-time
+
+    PatentMapEntry:
+      type: object
+      required: [regionCode, year, patentCount, industryBreakdown, topAssignees]
+      properties:
+        regionCode:
+          type: string
+        year:
+          type: integer
+        patentCount:
+          type: integer
+          minimum: 0
+        industryBreakdown:
+          type: array
+          items:
+            $ref: "#/components/schemas/PatentMapIndustryCount"
+        topAssignees:
+          type: array
+          items:
+            $ref: "#/components/schemas/PatentMapTopAssignee"
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    PatentMapEntryUpsertRequest:
+      type: object
+      required: [patentCount]
+      properties:
+        patentCount:
+          type: integer
+          minimum: 0
+        industryBreakdown:
+          type: array
+          items:
+            $ref: "#/components/schemas/PatentMapIndustryCount"
+        topAssignees:
+          type: array
+          items:
+            $ref: "#/components/schemas/PatentMapTopAssignee"
+
+    PatentMapImportError:
+      type: object
+      required: [rowNumber, message]
+      properties:
+        rowNumber:
+          type: integer
+          minimum: 1
+        message:
+          type: string
+
+    PatentMapImportResult:
+      type: object
+      required: [dryRun, importedCount, updatedCount, errors]
+      properties:
+        dryRun:
+          type: boolean
+        importedCount:
+          type: integer
+          minimum: 0
+        updatedCount:
+          type: integer
+          minimum: 0
+        errors:
+          type: array
+          items:
+            $ref: "#/components/schemas/PatentMapImportError"
+
+    UserBrief:
+      type: object
+      required: [id]
+      properties:
+        id:
+          $ref: "#/components/schemas/Uuid"
+        nickname:
+          type: string
+        avatarUrl:
+          type: string
+          format: uri
+        role:
+          $ref: "#/components/schemas/UserRole"
+        verificationStatus:
+          $ref: "#/components/schemas/VerificationStatus"
+        verificationType:
+          $ref: "#/components/schemas/VerificationType"
+          nullable: true
+
+    Conversation:
+      type: object
+      required: [id, listingId, buyerUserId, sellerUserId, createdAt, updatedAt]
+      properties:
+        id:
+          $ref: "#/components/schemas/Uuid"
+        listingId:
+          $ref: "#/components/schemas/Uuid"
+        listingTitle:
+          type: string
+        orderId:
+          $ref: "#/components/schemas/Uuid"
+          nullable: true
+        buyerUserId:
+          $ref: "#/components/schemas/Uuid"
+        sellerUserId:
+          $ref: "#/components/schemas/Uuid"
+        lastMessageAt:
+          type: string
+          format: date-time
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    ConversationSummary:
+      type: object
+      required: [id, listingId, listingTitle, lastMessageAt, unreadCount, counterpart]
+      properties:
+        id:
+          $ref: "#/components/schemas/Uuid"
+        listingId:
+          $ref: "#/components/schemas/Uuid"
+        listingTitle:
+          type: string
+        lastMessagePreview:
+          type: string
+        lastMessageAt:
+          type: string
+          format: date-time
+        unreadCount:
+          type: integer
+          minimum: 0
+        counterpart:
+          $ref: "#/components/schemas/UserBrief"
+
+    PagedConversationSummary:
+      type: object
+      required: [items, page]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/ConversationSummary"
+        page:
+          $ref: "#/components/schemas/PageMeta"
+
+    ConversationMessageType:
+      type: string
+      enum: [TEXT, IMAGE, FILE, SYSTEM]
+
+    ConversationMessage:
+      type: object
+      required: [id, conversationId, senderUserId, type, createdAt]
+      properties:
+        id:
+          $ref: "#/components/schemas/Uuid"
+        conversationId:
+          $ref: "#/components/schemas/Uuid"
+        senderUserId:
+          $ref: "#/components/schemas/Uuid"
+        type:
+          $ref: "#/components/schemas/ConversationMessageType"
+        text:
+          type: string
+        fileId:
+          $ref: "#/components/schemas/Uuid"
+          nullable: true
+        fileUrl:
+          type: string
+          format: uri
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+
+    ConversationMessageSendRequest:
+      type: object
+      required: [type]
+      properties:
+        type:
+          $ref: "#/components/schemas/ConversationMessageType"
+        text:
+          type: string
+          description: type=TEXT 时必填
+        fileId:
+          $ref: "#/components/schemas/Uuid"
+          description: type=IMAGE/FILE 时必填
+
+    PagedConversationMessage:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/ConversationMessage"
+        nextCursor:
+          type: string
+          nullable: true

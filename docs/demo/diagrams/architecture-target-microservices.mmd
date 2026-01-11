@@ -1,0 +1,117 @@
+%%{init: {'theme':'base','themeVariables': {'fontFamily': 'Inter, Microsoft YaHei, sans-serif','lineColor':'#64748B','primaryTextColor':'#0F172A','primaryBorderColor':'#CBD5E1','primaryColor':'#F8FAFC'}}}%%
+flowchart LR
+  %% 目标：可拆分微服务（长期演进）。P0 先模块化单体交付（见 architecture-p0-logical.mmd）。
+
+  subgraph Clients["客户端"]
+    MP[微信小程序]
+    AdminWeb[PC 后台 Web]
+    UserH5[用户 H5（Taro；电脑端可用）]
+  end
+
+  subgraph Edge["边界层"]
+    GW[API Gateway / BFF<br/>统一鉴权/限流/聚合]
+  end
+
+  subgraph Core["核心域服务（可独立扩缩）"]
+    Auth[Auth Service<br/>登录/鉴权/RBAC]
+    User[User Service<br/>用户资料/认证主体]
+    Patent[Patent Service<br/>主数据/号码规范化]
+    Listing[Listing Service<br/>上架/材料/审核状态]
+    Search[Search Service<br/>检索/聚合/索引]
+    Order[Order Service<br/>订单状态机/退款规则]
+    Payment[Payment Service<br/>支付/退款/回调幂等]
+    Case[Case Service<br/>跟单工单/里程碑/证据]
+    Settlement[Settlement Service<br/>佣金/放款/台账]
+    File[File Service<br/>上传/鉴权下载/水印]
+    Notif[Notification Service<br/>站内信/短信/模板消息]
+    Risk[Risk/Audit Service<br/>内容审核/风控/审计]
+  end
+
+  subgraph Infra["基础设施"]
+    Bus[(Event Bus<br/>Kafka/RabbitMQ)]
+    Redis[(Redis<br/>缓存/限流)]
+    ES[(Search Index<br/>ES/OpenSearch)]
+    OSS[(Object Storage<br/>证据/合同/图片)]
+  end
+
+  subgraph Data["独立数据（按域独立库）"]
+    AuthDB[(auth-db)]
+    UserDB[(user-db)]
+    PatentDB[(patent-db)]
+    ListingDB[(listing-db)]
+    OrderDB[(order-db)]
+    PaymentDB[(payment-db)]
+    CaseDB[(case-db)]
+    SettlementDB[(settlement-db)]
+    RiskDB[(risk-db)]
+  end
+
+  subgraph External["第三方/外部系统"]
+    WxLogin[微信开放平台]
+    WxPay[微信支付 v3]
+    SMS[短信服务商]
+    PatentProvider[专利数据源<br/>CNIPA/第三方（P1）]
+  end
+
+  %% === Client -> Gateway ===
+  MP -->|HTTPS| GW
+  AdminWeb -->|HTTPS| GW
+  UserH5 -->|HTTPS| GW
+
+  %% === Gateway -> Services ===
+  GW --> Auth
+  GW --> User
+  GW --> Patent
+  GW --> Listing
+  GW --> Search
+  GW --> Order
+  GW --> Payment
+  GW --> Case
+  GW --> Settlement
+  GW --> File
+  GW --> Notif
+  GW --> Risk
+  GW --> Redis
+
+  %% === Datastores ===
+  Auth --> AuthDB
+  User --> UserDB
+  Patent --> PatentDB
+  Listing --> ListingDB
+  Order --> OrderDB
+  Payment --> PaymentDB
+  Case --> CaseDB
+  Settlement --> SettlementDB
+  Risk --> RiskDB
+
+  %% === Search indexing ===
+  Search --> ES
+  Patent --> ES
+  Listing --> ES
+
+  %% === Files ===
+  File --> OSS
+
+  %% === Event driven ===
+  Listing <--> Bus
+  Order <--> Bus
+  Payment <--> Bus
+  Case <--> Bus
+  Settlement <--> Bus
+  Risk <--> Bus
+  Search <--> Bus
+  Notif <--> Bus
+
+  %% === External integrations ===
+  Auth --> WxLogin
+  Payment --> WxPay
+  Notif --> SMS
+  PatentProvider -.->|适配层/任务刷新| Patent
+
+  %% 样式
+  style Clients fill:#F8FAFC,stroke:#CBD5E1,stroke-width:1px;
+  style Edge fill:#F1F5F9,stroke:#94A3B8,stroke-width:1px;
+  style Core fill:#F8FAFC,stroke:#CBD5E1,stroke-width:1px;
+  style Infra fill:#F8FAFC,stroke:#CBD5E1,stroke-width:1px;
+  style Data fill:#F8FAFC,stroke:#CBD5E1,stroke-width:1px;
+  style External fill:#ECFDF5,stroke:#86EFAC,stroke-width:1px;

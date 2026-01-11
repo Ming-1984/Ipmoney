@@ -1,0 +1,14 @@
+%%{init: {'theme':'base','flowchart': {'htmlLabels': true},'themeVariables': {'fontFamily': 'Inter, Microsoft YaHei, sans-serif','lineColor':'#64748B','primaryTextColor':'#0F172A','primaryBorderColor':'#CBD5E1','primaryColor':'#F8FAFC'}}}%%
+flowchart TB
+  subgraph P["01 工作台 / 数据看板（PC 后台）"]
+    direction TB
+    Pad[" "]:::pad
+    KPIs["核心数据<br/>• 今日新增用户<br/>• 今日发布信息数<br/>• 今日订单数<br/>• 今日流水（订金/尾款）<br/>• 待结算金额<br/>• 已结算佣金"]
+    Todos["待办提醒<br/>• 待审核发布 X 条<br/>• 待审核认证 X 条<br/>• 新增待介入交易 X 单"]
+    Shortcuts["快捷入口<br/>• 订单/工单<br/>• 内容审核<br/>• 认证审核<br/>• 财务对账/放款<br/>• 系统设置"]
+    Pad --> KPIs
+    KPIs --> Todos --> Shortcuts
+  end
+
+  classDef pad fill:transparent,stroke:transparent,color:transparent;
+  linkStyle 0 stroke:transparent,fill:transparent;

@@ -1,0 +1,25 @@
+%%{init: {'theme':'base','themeVariables': {'fontFamily': 'Inter, Microsoft YaHei, sans-serif','lineColor':'#64748B','primaryTextColor':'#0F172A','primaryBorderColor':'#CBD5E1','primaryColor':'#F8FAFC'}}}%%
+stateDiagram-v2
+  %% 订单状态机（P0）
+
+  [*] --> DEPOSIT_PENDING: createOrder
+
+  DEPOSIT_PENDING --> DEPOSIT_PAID: depositPaymentSucceeded
+  DEPOSIT_PENDING --> CANCELLED: buyerCancel / unpaidTimeout
+
+  DEPOSIT_PAID --> WAIT_FINAL_PAYMENT: contractSignedConfirmed
+  DEPOSIT_PAID --> REFUNDING: refundApproved<br/>(自动/人工)
+
+  WAIT_FINAL_PAYMENT --> FINAL_PAID_ESCROW: finalPaymentSucceeded
+  WAIT_FINAL_PAYMENT --> REFUNDING: refundApproved<br/>(合同未签/异常)
+
+  FINAL_PAID_ESCROW --> READY_TO_SETTLE: transferCompletedConfirmed
+  FINAL_PAID_ESCROW --> REFUNDING: refundApproved<br/>(极端情形/争议裁定)
+
+  READY_TO_SETTLE --> COMPLETED: settlementCompleted
+
+  REFUNDING --> REFUNDED: refundSucceeded
+
+  CANCELLED --> [*]
+  REFUNDED --> [*]
+  COMPLETED --> [*]

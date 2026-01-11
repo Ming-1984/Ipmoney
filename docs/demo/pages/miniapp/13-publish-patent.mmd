@@ -1,0 +1,16 @@
+%%{init: {'theme':'base','flowchart': {'htmlLabels': true},'themeVariables': {'fontFamily': 'Inter, Microsoft YaHei, sans-serif','lineColor':'#64748B','primaryTextColor':'#0F172A','primaryBorderColor':'#CBD5E1','primaryColor':'#F8FAFC'}}}%%
+flowchart TB
+  subgraph P["13 专利交易发布/编辑（小程序）"]
+    direction TB
+    Pad[" "]:::pad
+    Basic["基础信息<br/>• 输入专利号/申请号/公开号（粘贴识别）<br/>• 自动回填：名称/类型/分类号/申请日/发明人等（以平台内已录入数据为准）<br/>• 手工确认/修正"]
+    Ownership["权属信息<br/>• 当前权利人/申请人/发明人<br/>• 权属证明材料上传（证书/链路合同等）<br/>• 质押/许可现状声明"]
+    Trade["交易信息<br/>• 交易方式：转让/许可（独占/排他/普通）<br/>• 标价/面议<br/>• 订金金额（按配置规则）<br/>• 可谈空间/可交付清单/预计周期"]
+    Risk["风险提示<br/>• 平台撮合<br/>• 以合同及登记结果为准"]
+    Submit["提交审核<br/>• 进入待审核池<br/>• 通过=上架<br/>• 驳回=原因+可修改再提交"]
+    Pad --> Basic
+    Basic --> Ownership --> Trade --> Risk --> Submit
+  end
+
+  classDef pad fill:transparent,stroke:transparent,color:transparent;
+  linkStyle 0 stroke:transparent,fill:transparent;

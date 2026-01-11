@@ -1,0 +1,13 @@
+%%{init: {'theme':'base','flowchart': {'htmlLabels': true},'themeVariables': {'fontFamily': 'Inter, Microsoft YaHei, sans-serif','lineColor':'#64748B','primaryTextColor':'#0F172A','primaryBorderColor':'#CBD5E1','primaryColor':'#F8FAFC'}}}%%
+flowchart TB
+  subgraph P["08 订金支付成功页（小程序）"]
+    direction TB
+    Pad[" "]:::pad
+    Tip["提示语<br/>• 订金支付成功<br/>• 客服 15 分钟内联系<br/>• 线下签约后可付尾款"]
+    Actions["按钮<br/>• 查看订单<br/>• 联系客服"]
+    Pad --> Tip
+    Tip --> Actions
+  end
+
+  classDef pad fill:transparent,stroke:transparent,color:transparent;
+  linkStyle 0 stroke:transparent,fill:transparent;

@@ -1,0 +1,15 @@
+%%{init: {'theme':'base','flowchart': {'htmlLabels': true},'themeVariables': {'fontFamily': 'Inter, Microsoft YaHei, sans-serif','lineColor':'#64748B','primaryTextColor':'#0F172A','primaryBorderColor':'#CBD5E1','primaryColor':'#F8FAFC'}}}%%
+flowchart TB
+  subgraph P["07 订金支付页（小程序）"]
+    direction TB
+    Pad[" "]:::pad
+    Summary["订单摘要<br/>• 专利名称<br/>• 订金金额"]
+    Agreement["协议勾选<br/>• 专利交易居间服务协议"]
+    PayMethod["支付方式<br/>• 微信支付（JSAPI）"]
+    PayBtn["按钮<br/>• 立即支付订金"]
+    Pad --> Summary
+    Summary --> Agreement --> PayMethod --> PayBtn
+  end
+
+  classDef pad fill:transparent,stroke:transparent,color:transparent;
+  linkStyle 0 stroke:transparent,fill:transparent;

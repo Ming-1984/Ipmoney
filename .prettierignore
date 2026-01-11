@@ -1,0 +1,12 @@
+**/node_modules/**
+**/dist/**
+**/build/**
+**/.turbo/**
+**/.taro/**
+**/.next/**
+**/coverage/**
+**/.DS_Store
+**/*.log
+docs/**/rendered/**
+docs/demo/rendered/miniapp.zip
+

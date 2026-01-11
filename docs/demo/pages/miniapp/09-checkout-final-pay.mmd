@@ -1,0 +1,15 @@
+%%{init: {'theme':'base','flowchart': {'htmlLabels': true},'themeVariables': {'fontFamily': 'Inter, Microsoft YaHei, sans-serif','lineColor':'#64748B','primaryTextColor':'#0F172A','primaryBorderColor':'#CBD5E1','primaryColor':'#F8FAFC'}}}%%
+flowchart TB
+  subgraph P["09 尾款支付页（合同确认后解锁）（小程序）"]
+    direction TB
+    Pad[" "]:::pad
+    Summary["订单摘要<br/>• 专利名称<br/>• 成交价<br/>• 已付订金<br/>• 待付尾款"]
+    Contract["合同签署确认信息<br/>• 确认时间/人员<br/>• 证据材料（可选查看）"]
+    PayMethod["支付方式<br/>• 微信支付（JSAPI）"]
+    PayBtn["按钮<br/>• 支付尾款（托管）"]
+    Pad --> Summary
+    Summary --> Contract --> PayMethod --> PayBtn
+  end
+
+  classDef pad fill:transparent,stroke:transparent,color:transparent;
+  linkStyle 0 stroke:transparent,fill:transparent;

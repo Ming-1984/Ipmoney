@@ -1,0 +1,361 @@
+erDiagram
+  USERS {
+    uuid id PK
+    string phone
+    string nickname
+    string role "buyer/seller/admin/cs"
+    string region_code
+    datetime created_at
+    datetime updated_at
+  }
+
+  REGIONS {
+    string code PK
+    string name
+    string level "PROVINCE/CITY/DISTRICT"
+    string parent_code
+    float center_lat
+    float center_lng
+    string industry_tags_json "json"
+    datetime updated_at
+  }
+
+  INDUSTRY_TAGS {
+    uuid id PK
+    string name "unique"
+    datetime created_at
+    datetime updated_at
+  }
+
+  USER_VERIFICATIONS {
+    uuid id PK
+    uuid user_id FK
+    string type "PERSON/COMPANY/ACADEMY/GOVERNMENT/ASSOCIATION/TECH_MANAGER"
+    string status "PENDING/APPROVED/REJECTED"
+    string display_name
+    string unified_social_credit_code_enc
+    string contact_name
+    string contact_phone
+    string region_code
+    string intro
+    uuid logo_file_id FK
+    string evidence_file_ids_json "json"
+    datetime submitted_at
+    datetime reviewed_at
+    uuid reviewed_by FK
+    string review_comment
+    datetime created_at
+    datetime updated_at
+  }
+
+  PATENTS {
+    uuid id PK
+    string jurisdiction "CN"
+    string application_no_norm
+    string application_no_display
+    string patent_type "INVENTION/UTILITY_MODEL/DESIGN"
+    string title
+    string abstract
+    date filing_date
+    date publication_date
+    date grant_date
+    string legal_status
+    string source_primary "USER/ADMIN/PROVIDER"
+    datetime source_updated_at
+    datetime created_at
+    datetime updated_at
+  }
+
+  PATENT_IDENTIFIERS {
+    uuid id PK
+    uuid patent_id FK
+    string id_type "APPLICATION/PATENT/PUBLICATION"
+    string id_value_norm
+    string kind_code
+    date date_ref
+  }
+
+  PATENT_CLASSIFICATIONS {
+    uuid id PK
+    uuid patent_id FK
+    string system "IPC/LOC/CPC"
+    string code
+    boolean is_main
+  }
+
+  PATENT_PARTIES {
+    uuid id PK
+    uuid patent_id FK
+    string role "APPLICANT/INVENTOR/ASSIGNEE"
+    string name
+    string country_code
+  }
+
+  FILES {
+    uuid id PK
+    string url
+    string mime_type
+    int size_bytes
+    string owner_scope "LISTING/CASE/REFUND_REQUEST/INVOICE/USER/USER_VERIFICATION/MESSAGE"
+    uuid owner_id
+    datetime created_at
+  }
+
+  LISTINGS {
+    uuid id PK
+    uuid seller_user_id FK
+    uuid patent_id FK
+    string title
+    string summary
+    string trade_mode "ASSIGNMENT/LICENSE"
+    string license_mode "EXCLUSIVE/SOLE/NON_EXCLUSIVE"
+    string price_type "FIXED/NEGOTIABLE"
+    int price_amount
+    int deposit_amount
+    string region_code
+    string industry_tags_json "json"
+    string featured_level "NONE/CITY/PROVINCE"
+    string featured_region_code
+    int featured_rank
+    datetime featured_until
+    string audit_status "PENDING/APPROVED/REJECTED"
+    string status "DRAFT/ACTIVE/OFF_SHELF/SOLD"
+    datetime created_at
+    datetime updated_at
+  }
+
+  LISTING_MEDIA {
+    uuid id PK
+    uuid listing_id FK
+    uuid file_id FK
+    string type "IMAGE/FILE"
+    int sort
+  }
+
+  LISTING_AUDIT_LOGS {
+    uuid id PK
+    uuid listing_id FK
+    uuid reviewer_id FK
+    string action "APPROVE/REJECT"
+    string reason
+    datetime created_at
+  }
+
+  LISTING_STATS {
+    uuid listing_id PK
+    int view_count
+    int favorite_count
+    int consult_count
+    datetime updated_at
+  }
+
+  LISTING_FAVORITES {
+    uuid id PK
+    uuid listing_id FK
+    uuid user_id FK
+    datetime created_at
+  }
+
+  LISTING_CONSULT_EVENTS {
+    uuid id PK
+    uuid listing_id FK
+    uuid user_id FK
+    string channel "WECHAT_CS/PHONE/FORM"
+    datetime created_at
+  }
+
+  USER_TAG_SCORES {
+    uuid id PK
+    uuid user_id FK
+    string tag
+    int score
+    datetime updated_at
+  }
+
+  ORDERS {
+    uuid id PK
+    uuid listing_id FK
+    uuid buyer_user_id FK
+    uuid assigned_cs_user_id FK
+    string status
+    int deal_amount
+    int deposit_amount
+    int final_amount
+    int commission_amount
+    string invoice_no
+    uuid invoice_file_id FK
+    datetime invoice_issued_at
+    datetime created_at
+    datetime updated_at
+  }
+
+  CONVERSATIONS {
+    uuid id PK
+    uuid listing_id FK
+    uuid order_id FK
+    uuid buyer_user_id FK
+    uuid seller_user_id FK
+    datetime last_message_at
+    datetime created_at
+    datetime updated_at
+  }
+
+  CONVERSATION_PARTICIPANTS {
+    uuid id PK
+    uuid conversation_id FK
+    uuid user_id FK
+    datetime last_read_at
+    datetime updated_at
+  }
+
+  CONVERSATION_MESSAGES {
+    uuid id PK
+    uuid conversation_id FK
+    uuid sender_user_id FK
+    string type "TEXT/IMAGE/FILE/SYSTEM"
+    string text
+    uuid file_id FK
+    datetime created_at
+  }
+
+  PAYMENTS {
+    uuid id PK
+    uuid order_id FK
+    string pay_type "DEPOSIT/FINAL/REFUND/PAYOUT"
+    string channel "WECHAT"
+    string trade_no
+    int amount
+    string status
+    datetime paid_at
+    datetime created_at
+  }
+
+  REFUND_REQUESTS {
+    uuid id PK
+    uuid order_id FK
+    string reason_code
+    string reason_text
+    string status "PENDING/APPROVED/REJECTED/REFUNDING/REFUNDED"
+    datetime created_at
+    datetime updated_at
+  }
+
+  CS_CASES {
+    uuid id PK
+    uuid order_id FK
+    uuid cs_user_id FK
+    string type "FOLLOWUP/REFUND/DISPUTE"
+    string status
+    datetime created_at
+    datetime updated_at
+  }
+
+  CS_MILESTONES {
+    uuid id PK
+    uuid case_id FK
+    string name "CONTRACT_SIGNED/TRANSFER_SUBMITTED/TRANSFER_COMPLETED"
+    string status
+    uuid evidence_file_id FK
+    datetime created_at
+  }
+
+  SETTLEMENTS {
+    uuid id PK
+    uuid order_id FK
+    int gross_amount
+    int commission_amount
+    int payout_amount
+    string payout_method "MANUAL/WECHAT/..."
+    string payout_status "PENDING/SUCCEEDED/FAILED"
+    string payout_ref
+    uuid payout_evidence_file_id FK
+    datetime payout_at
+    string status
+    datetime created_at
+    datetime updated_at
+  }
+
+  PATENT_MAP_ENTRIES {
+    uuid id PK
+    string region_code FK
+    int year
+    int patent_count
+    string industry_breakdown_json "json"
+    string top_assignees_json "json"
+    datetime created_at
+    datetime updated_at
+  }
+
+  SYSTEM_CONFIGS {
+    uuid id PK
+    string key "unique"
+    string value_type "INT/DECIMAL/STRING/JSON/BOOL"
+    string value
+    string scope "GLOBAL/TENANT"
+    int version
+    uuid updated_by FK
+    datetime created_at
+    datetime updated_at
+  }
+
+  AUDIT_LOGS {
+    uuid id PK
+    uuid actor_user_id FK
+    string action
+    string target_type "LISTING/ORDER/REFUND_REQUEST/SYSTEM_CONFIG/..."
+    uuid target_id
+    string before_json "json"
+    string after_json "json"
+    string request_id
+    string ip
+    string user_agent
+    datetime created_at
+  }
+
+  USERS ||--o{ USER_VERIFICATIONS : verifies
+  REGIONS ||--o{ USERS : located_in
+  USERS ||--o{ LISTINGS : publishes
+  USERS ||--o{ ORDERS : places
+
+  PATENTS ||--o{ PATENT_IDENTIFIERS : has
+  PATENTS ||--o{ PATENT_CLASSIFICATIONS : has
+  PATENTS ||--o{ PATENT_PARTIES : has
+  PATENTS ||--o{ LISTINGS : referenced_by
+
+  LISTINGS ||--o{ LISTING_MEDIA : has
+  LISTINGS ||--o{ LISTING_AUDIT_LOGS : audited
+  LISTINGS ||--o{ ORDERS : generates
+  LISTINGS ||--|| LISTING_STATS : stats
+  LISTINGS ||--o{ LISTING_FAVORITES : favored
+  LISTINGS ||--o{ LISTING_CONSULT_EVENTS : consulted
+  REGIONS ||--o{ LISTINGS : located_in
+  LISTINGS ||--o{ CONVERSATIONS : discussed_in
+
+  FILES ||--o{ LISTING_MEDIA : stored_as
+  FILES ||--o{ CONVERSATION_MESSAGES : attached
+
+  ORDERS ||--o{ PAYMENTS : has
+  ORDERS ||--o{ REFUND_REQUESTS : has
+  ORDERS ||--o{ CS_CASES : tracked_by
+  ORDERS ||--|| SETTLEMENTS : settles
+  ORDERS ||--o{ CONVERSATIONS : links
+
+  USERS ||--o{ SYSTEM_CONFIGS : updates
+  USERS ||--o{ AUDIT_LOGS : audits
+  USERS ||--o{ LISTING_FAVORITES : favorites
+  USERS ||--o{ LISTING_CONSULT_EVENTS : consults
+  USERS ||--o{ USER_TAG_SCORES : prefers
+  USERS ||--o{ CONVERSATION_PARTICIPANTS : participates
+  USERS ||--o{ CONVERSATION_MESSAGES : sends
+
+  CS_CASES ||--o{ CS_MILESTONES : contains
+  REFUND_REQUESTS ||--o{ FILES : evidence
+  USER_VERIFICATIONS ||--o{ FILES : evidence
+  USER_VERIFICATIONS ||--o| FILES : logo
+  FILES ||--o{ CS_MILESTONES : evidence
+  FILES ||--o{ SETTLEMENTS : payout_evidence
+  ORDERS ||--o| FILES : invoice_file
+
+  CONVERSATIONS ||--o{ CONVERSATION_PARTICIPANTS : has
+  CONVERSATIONS ||--o{ CONVERSATION_MESSAGES : contains
+  PATENT_MAP_ENTRIES }o--|| REGIONS : for_region

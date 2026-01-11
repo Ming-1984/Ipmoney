@@ -1,0 +1,86 @@
+%%{init: {'theme':'base','themeVariables': {'fontFamily': 'Inter, Microsoft YaHei, sans-serif','lineColor':'#64748B','primaryTextColor':'#0F172A','primaryBorderColor':'#CBD5E1','primaryColor':'#F8FAFC'}}}%%
+flowchart LR
+  %% P0：模块化单体（按域分层），目录/依赖保持可拆分微服务的边界
+
+  subgraph Clients["客户端"]
+    MP[微信小程序<br/>买家/卖家]
+    AdminWeb[PC Web 后台<br/>运营/客服/财务]
+    UserH5[用户 H5<br/>（Taro；电脑端可用）]
+  end
+
+  subgraph Edge["接入层"]
+    CDN[CDN/静态资源托管<br/>（AdminWeb/UserWeb）]
+    GW[API Gateway / BFF<br/>统一鉴权/限流/聚合]
+  end
+
+  subgraph Backend["后端（P0：模块化单体，可拆分）"]
+    API[NestJS API<br/>（模块化单体）]
+    subgraph Modules["业务模块（按域划分）"]
+      direction TB
+      MAuth[Auth/RBAC]
+      MUser[User/Verification]
+      MPatent[Patent/Normalize]
+      MListing[Listing/Audit]
+      MSearch[Search<br/>（PG FTS）]
+      MOrder[Order<br/>（状态机/退款规则）]
+      MPay[Payment/Refund<br/>（微信支付 v3）]
+      MCase[Case/Workflow<br/>（里程碑/证据）]
+      MSettle[Settlement/Payout<br/>（P0：人工放款）]
+      MFile[File<br/>（上传/鉴权下载）]
+      MNotif[Notification<br/>（短信/模板消息）]
+      MAudit[AuditLog<br/>（关键操作留痕）]
+    end
+    Worker[异步 Worker<br/>（BullMQ/任务重试）]
+  end
+
+  subgraph Data["数据与存储（P0 共库）"]
+    PG[(PostgreSQL<br/>交易数据/审计/Outbox)]
+    Redis[(Redis<br/>缓存/限流/队列)]
+    OSS[(对象存储 S3/COS<br/>证据/合同/图片)]
+  end
+
+  subgraph External["第三方能力"]
+    WxLogin[微信开放平台<br/>登录]
+    WxPay[微信支付 v3<br/>订金/尾款/退款]
+    SMS[短信服务商]
+  end
+
+  subgraph Obs["可观测性与安全"]
+    Log[集中日志<br/>traceId/requestId]
+    Metrics[监控告警<br/>SLA/错误率/回调失败]
+    Secrets[密钥/证书管理<br/>APIv3Key/证书/回调私钥]
+  end
+
+  %% === 访问链路 ===
+  AdminWeb --> CDN -->|HTTPS| GW
+  UserH5 --> CDN -->|HTTPS| GW
+  MP -->|HTTPS| GW
+  GW --> API
+
+  %% === 模块化单体内部边界（示意）===
+  API --- Modules
+  API --> Redis
+  API --> PG
+  API --> OSS
+  Worker <-->|队列任务| Redis
+  Worker --> PG
+  Worker --> OSS
+
+  %% === 第三方调用 ===
+  API --> WxLogin
+  API --> WxPay
+  API --> SMS
+
+  %% === 观测/安全 ===
+  API --> Log
+  API --> Metrics
+  API --> Secrets
+  Worker --> Log
+
+  %% 样式
+  style Clients fill:#F8FAFC,stroke:#CBD5E1,stroke-width:1px;
+  style Edge fill:#F1F5F9,stroke:#94A3B8,stroke-width:1px;
+  style Backend fill:#F8FAFC,stroke:#CBD5E1,stroke-width:1px;
+  style Data fill:#F8FAFC,stroke:#CBD5E1,stroke-width:1px;
+  style External fill:#ECFDF5,stroke:#86EFAC,stroke-width:1px;
+  style Obs fill:#FEFCE8,stroke:#FDE047,stroke-width:1px;

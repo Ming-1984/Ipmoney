@@ -1,0 +1,16 @@
+node_modules
+dist
+build
+.turbo
+.taro
+.next
+coverage
+.env
+.env.*
+!.env.example
+*.log
+.DS_Store
+
+# Docs rendered artifacts
+# Rendered diagrams/images are part of deliverables, keep them tracked.
+# Ignore only local export/temp outputs if needed.

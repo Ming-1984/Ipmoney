@@ -1,0 +1,33 @@
+%%{init: {'theme':'base','flowchart': {'htmlLabels': true},'themeVariables': {'fontFamily': 'Inter, Microsoft YaHei, sans-serif','lineColor':'#64748B','primaryTextColor':'#0F172A','primaryBorderColor':'#CBD5E1','primaryColor':'#F8FAFC'}}}%%
+flowchart TB
+  Buyer([买家/需求方])
+  Seller([卖家/供给方])
+  CS([平台客服])
+  Ops([平台运营/审核/财务])
+
+  MP["微信小程序<br/>（买家/卖家）"]
+  H5["用户 H5<br/>（Taro；电脑端可用）"]
+  Admin["PC Web 后台<br/>（运营/客服/财务）"]
+
+  System["Ipmoney 专利交易平台<br/>订金+尾款托管 / 客服介入 / 线下签约 / 线上结算"]
+
+  Wx([微信开放平台<br/>登录/消息])
+  WxPay([微信支付])
+  SMS([短信/模板消息服务])
+  OSS([对象存储<br/>图片/合同/附件])
+
+  Buyer --> MP
+  Buyer --> H5
+  Seller --> MP
+  Seller --> H5
+  CS --> Admin
+  Ops --> Admin
+
+  MP --> System
+  H5 --> System
+  Admin --> System
+
+  System --> Wx
+  System --> WxPay
+  System --> SMS
+  System --> OSS

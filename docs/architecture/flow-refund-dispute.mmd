@@ -1,0 +1,47 @@
+%%{init: {'theme':'base','flowchart': {'htmlLabels': true},'themeVariables': {'fontFamily': 'Inter, Microsoft YaHei, sans-serif','lineColor':'#64748B','primaryTextColor':'#0F172A','primaryBorderColor':'#CBD5E1','primaryColor':'#F8FAFC'}}}%%
+flowchart TB
+  %% 退款/争议（P0）
+
+  Buyer([买家])
+  CS([客服/运营])
+  WxPay([微信支付])
+
+  subgraph Platform[平台服务]
+    Order["Order Service<br/>退款规则判定"]
+    Case["Case/Workflow Service<br/>退款/争议工单"]
+    Payment["Payment Service<br/>退款/回调幂等"]
+    Notif[Notification Service]
+  end
+
+  Buyer -->|提交退款申请（reason/evidence）| Order
+  Order -->|创建 refund_request| Order
+
+  Order --> Decision{是否满足自动可退？}
+
+  Decision -->|是（如 30 分钟内且未开始线下处理）| AutoApproved[自动通过]
+  Decision -->|否| ManualCase[转人工审核]
+
+  AutoApproved -->|RefundApproved| Payment
+
+  ManualCase -->|创建退款工单| Case
+  Case -->|分配处理人| CS
+  CS -->|收集证据/判定| Case
+  Case --> ManualDecision{审核结论}
+  ManualDecision -->|驳回| Reject[退款驳回]
+  ManualDecision -->|通过| Approve[退款通过]
+
+  Reject -->|通知买家（原因）| Notif
+
+  Approve -->|RefundApproved| Payment
+
+  Payment -->|发起原路退款| WxPay
+  WxPay -->|退款回调| Payment
+  Payment -->|RefundSucceeded| Order
+  Order -->|订单状态 REFUNDING→REFUNDED| Order
+  Order -->|通知结果| Notif
+
+  %% 争议：合同已签/权属争议等
+  Buyer -->|合同已签后提出退款/争议| Case
+  Case -->|争议工单/证据归档| CS
+  CS -->|裁定：退/不退/部分退| Case
+  Case -->|如裁定退款| Payment

@@ -1,0 +1,15 @@
+%%{init: {'theme':'base','flowchart': {'htmlLabels': true},'themeVariables': {'fontFamily': 'Inter, Microsoft YaHei, sans-serif','lineColor':'#64748B','primaryTextColor':'#0F172A','primaryBorderColor':'#CBD5E1','primaryColor':'#F8FAFC'}}}%%
+flowchart TB
+  subgraph P["07 财务管理 Finance（PC 后台）"]
+    direction TB
+    Pad[" "]:::pad
+    Ledger["资金流水<br/>• 订金/尾款入账<br/>• 退款<br/>• 放款<br/>• 佣金入账<br/>• 支付平台单号/对账字段"]
+    Settlement["结算与放款<br/>• 结算台账（gross/commission/payout）<br/>• P0：人工放款确认（凭证/流水号）<br/>• 失败重试/备注（可选）"]
+    Invoices["发票管理（新增）<br/>• 已完成订单列表（发票：已上传/未上传）<br/>• 线下开票后上传/替换电子发票文件（PDF/图片）<br/>• 填写发票号码/开票日期（可选）<br/>• 通知卖家下载 + 审计留痕"]
+    Reports["报表导出<br/>• 月度成交额/佣金收入<br/>• 退款率/放款成功率"]
+    Pad --> Ledger
+    Ledger --> Settlement --> Invoices --> Reports
+  end
+
+  classDef pad fill:transparent,stroke:transparent,color:transparent;
+  linkStyle 0 stroke:transparent,fill:transparent;

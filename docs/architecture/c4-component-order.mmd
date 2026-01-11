@@ -1,0 +1,43 @@
+%%{init: {'theme':'base','flowchart': {'htmlLabels': true},'themeVariables': {'fontFamily': 'Inter, Microsoft YaHei, sans-serif','lineColor':'#64748B','primaryTextColor':'#0F172A','primaryBorderColor':'#CBD5E1','primaryColor':'#F8FAFC'}}}%%
+flowchart TB
+  subgraph OS[Order Service（订单域容器）]
+    API["Order API<br/>REST/gRPC"]
+    App["Order Application Service<br/>用例编排"]
+    Domain["Order Domain<br/>状态机/校验"]
+    Refund["Refund Policy Engine<br/>退款规则判定"]
+    Repo["Repositories<br/>Order/Refund/Outbox"]
+    Outbox["Outbox Publisher<br/>事件可靠投递"]
+    Consumer["Event Consumer<br/>订阅支付/里程碑事件"]
+  end
+
+  DB[(order-db)]
+  Bus[(Event Bus)]
+
+  subgraph Ext[外部依赖服务]
+    Pay[Payment Service]
+    Case[Case/Workflow Service]
+    Settle[Settlement Service]
+    Notif[Notification Service]
+  end
+
+  API --> App
+  App --> Domain
+  App --> Refund
+  App --> Repo
+  Domain --> Repo
+  Refund --> Repo
+  Repo --> DB
+
+  App --> Outbox
+  Outbox --> DB
+  Outbox --> Bus
+
+  Bus --> Consumer
+  Consumer --> Domain
+
+  App <--> Pay
+  Case --> Bus
+  Pay --> Bus
+  Domain --> Bus
+  Bus --> Settle
+  Bus --> Notif

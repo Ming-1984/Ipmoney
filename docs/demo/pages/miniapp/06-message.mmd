@@ -1,0 +1,17 @@
+%%{init: {'theme':'base','flowchart': {'htmlLabels': true},'themeVariables': {'fontFamily': 'Inter, Microsoft YaHei, sans-serif','lineColor':'#64748B','primaryTextColor':'#0F172A','primaryBorderColor':'#CBD5E1','primaryColor':'#F8FAFC'}}}%%
+flowchart TB
+  subgraph P["06 聊天与咨询（小程序）"]
+    direction TB
+    Pad[" "]:::pad
+    List["消息列表<br/>• 所有会话<br/>• 未读数/最近消息"]
+    Chat["聊天窗口<br/>• 文本/图片/文件<br/>•（按小程序能力与合规裁剪）"]
+    Floating["顶部悬浮卡片<br/>• 当前专利/需求摘要<br/>• 快捷回到详情/订单"]
+    Safety["系统安全提示<br/>• 禁止私下转账<br/>• 风险提醒"]
+    Pad --> List
+    List --> Chat
+    Floating -.-> Chat
+    Safety -.-> Chat
+  end
+
+  classDef pad fill:transparent,stroke:transparent,color:transparent;
+  linkStyle 0 stroke:transparent,fill:transparent;

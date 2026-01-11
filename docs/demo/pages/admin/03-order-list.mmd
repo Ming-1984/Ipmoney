@@ -1,0 +1,14 @@
+%%{init: {'theme':'base','flowchart': {'htmlLabels': true},'themeVariables': {'fontFamily': 'Inter, Microsoft YaHei, sans-serif','lineColor':'#64748B','primaryTextColor':'#0F172A','primaryBorderColor':'#CBD5E1','primaryColor':'#F8FAFC'}}}%%
+flowchart TB
+  subgraph P["03 交易订单管理：订单列表（PC 后台）"]
+    direction TB
+    Pad[" "]:::pad
+    Filters["筛选/检索<br/>• 订单号/专利名/买卖方<br/>• 状态（按状态机）<br/>• 时间范围<br/>• 跟单客服"]
+    Table["列表字段<br/>• 订单号<br/>• 专利名<br/>• 买家/卖家<br/>• 交易金额（合同确认后）<br/>• 当前状态<br/>• 跟单客服"]
+    Actions["操作<br/>• 查看详情<br/>• 分配/变更客服（已付订金阶段）<br/>• 导出（可选）"]
+    Pad --> Filters
+    Filters --> Table --> Actions
+  end
+
+  classDef pad fill:transparent,stroke:transparent,color:transparent;
+  linkStyle 0 stroke:transparent,fill:transparent;

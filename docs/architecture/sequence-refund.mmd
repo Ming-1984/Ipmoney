@@ -1,0 +1,46 @@
+sequenceDiagram
+  autonumber
+  participant Buyer as 买家（小程序）
+  participant GW as API Gateway/BFF
+  participant Order as Order Service
+  participant Case as Case/Workflow Service
+  participant CS as 客服/运营（后台）
+  participant Pay as Payment Service
+  participant WxPay as 微信支付
+  participant Bus as Event Bus
+  participant Notif as Notification Service
+
+  Buyer->>GW: 发起退款申请（orderId, reason, evidence）
+  GW->>Order: createRefundRequest(orderId, reason, evidence)
+  Order->>Order: 按退款规则（7.1）判定：AUTO 或 MANUAL
+
+  alt 自动可退（系统秒退）
+    Order-->>Bus: RefundApproved(orderId, refundType=AUTO)
+  else 需要人工审核
+    Order->>Case: createRefundCase(orderId, reason, evidence)
+    Case-->>CS: 待办：退款工单审核
+    CS->>Case: 审核通过/驳回
+    Case-->>Order: refundDecision(orderId, APPROVED/REJECTED)
+    alt 审核驳回
+      Order-->>Bus: RefundRejected(orderId)
+      Bus-->>Notif: RefundRejected
+      Notif-->>Buyer: 通知：退款驳回（原因）
+      Note over Buyer,Order: 流程结束
+    else 审核通过
+      Order-->>Bus: RefundApproved(orderId, refundType=MANUAL)
+    end
+  end
+
+  Bus-->>Pay: RefundApproved
+  Pay->>WxPay: 发起原路退款
+  WxPay-->>Pay: 退款结果回调（异步通知）
+  Pay->>Pay: 验签 + 幂等入库
+  Pay-->>Bus: RefundSucceeded(orderId)
+
+  Bus-->>Order: RefundSucceeded
+  Order->>Order: 订单状态机流转：REFUNDING → REFUNDED
+  Order-->>Bus: OrderStatusChanged(orderId, status=REFUNDED)
+
+  Bus-->>Notif: RefundSucceeded / OrderStatusChanged
+  Notif-->>Buyer: 通知：退款完成
+

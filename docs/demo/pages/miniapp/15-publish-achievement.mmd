@@ -1,0 +1,13 @@
+%%{init: {'theme':'base','flowchart': {'htmlLabels': true},'themeVariables': {'fontFamily': 'Inter, Microsoft YaHei, sans-serif','lineColor':'#64748B','primaryTextColor':'#0F172A','primaryBorderColor':'#CBD5E1','primaryColor':'#F8FAFC'}}}%%
+flowchart TB
+  subgraph P["15 成果展示发布/编辑（小程序）"]
+    direction TB
+    Pad[" "]:::pad
+    Fields["字段<br/>• 成果标题<br/>• 图片/视频<br/>• 应用场景<br/>• 成熟度<br/>• 所属单位<br/>• 可合作方式"]
+    Submit["提交审核<br/>• 待审核<br/>• 通过=上架<br/>• 驳回=原因+可修改再提交"]
+    Pad --> Fields
+    Fields --> Submit
+  end
+
+  classDef pad fill:transparent,stroke:transparent,color:transparent;
+  linkStyle 0 stroke:transparent,fill:transparent;

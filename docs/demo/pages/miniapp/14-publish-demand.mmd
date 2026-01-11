@@ -1,0 +1,13 @@
+%%{init: {'theme':'base','flowchart': {'htmlLabels': true},'themeVariables': {'fontFamily': 'Inter, Microsoft YaHei, sans-serif','lineColor':'#64748B','primaryTextColor':'#0F172A','primaryBorderColor':'#CBD5E1','primaryColor':'#F8FAFC'}}}%%
+flowchart TB
+  subgraph P["14 产学研需求发布/编辑（小程序）"]
+    direction TB
+    Pad[" "]:::pad
+    Fields["字段<br/>• 需求标题<br/>• 技术领域/关键词<br/>• 预算范围<br/>• 合作方式（转让/许可/入股等）<br/>• 期望地区/行业<br/>• 联系人（脱敏展示）"]
+    Submit["提交审核<br/>• 待审核<br/>• 通过=上架<br/>• 驳回=原因+可修改再提交"]
+    Pad --> Fields
+    Fields --> Submit
+  end
+
+  classDef pad fill:transparent,stroke:transparent,color:transparent;
+  linkStyle 0 stroke:transparent,fill:transparent;

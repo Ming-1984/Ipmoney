@@ -1,0 +1,11 @@
+{
+  "miniprogramRoot": "./dist",
+  "projectname": "ipmoney-client",
+  "description": "Ipmoney 用户端（小程序 + H5）",
+  "appid": "",
+  "setting": {
+    "urlCheck": true
+  },
+  "compileType": "miniprogram"
+}
+

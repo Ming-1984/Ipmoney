@@ -1,0 +1,39 @@
+sequenceDiagram
+  autonumber
+  participant Buyer as 买家（小程序）
+  participant GW as API Gateway/BFF
+  participant Order as Order Service
+  participant Pay as Payment Service
+  participant WxPay as 微信支付
+  participant Bus as Event Bus
+  participant Case as Case/Workflow Service
+  participant Notif as Notification Service
+
+  Buyer->>GW: 创建订单（listingId）
+  GW->>Order: createOrder(listingId)
+  Order-->>GW: orderId + depositAmount + status=DEPOSIT_PENDING
+  GW-->>Buyer: 返回订单信息
+
+  Buyer->>GW: 发起订金支付（orderId）
+  GW->>Pay: createPaymentIntent(orderId, payType=DEPOSIT)
+  Pay->>WxPay: 预下单/获取支付参数
+  WxPay-->>Pay: 支付参数/预支付单号
+  Pay-->>GW: 返回支付参数
+  GW-->>Buyer: 返回支付参数（调起微信收银台）
+
+  Buyer->>WxPay: 微信支付确认
+  WxPay-->>Pay: 支付结果回调（异步通知）
+  Pay->>Pay: 验签 + 幂等入库
+  Pay-->>Bus: PaymentSucceeded(orderId, payType=DEPOSIT)
+
+  Bus-->>Order: PaymentSucceeded
+  Order->>Order: 订单状态机流转：DEPOSIT_PENDING → DEPOSIT_PAID
+  Order-->>Bus: OrderStatusChanged(orderId, status=DEPOSIT_PAID)
+
+  Bus-->>Case: PaymentSucceeded
+  Case->>Case: 创建跟单工单 + 分配客服
+  Case-->>Bus: CaseAssigned(orderId, csUserId)
+
+  Bus-->>Notif: OrderStatusChanged / CaseAssigned
+  Notif->>Notif: 发送模板消息/站内信（买家/卖家）
+

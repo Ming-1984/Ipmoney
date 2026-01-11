@@ -1,0 +1,87 @@
+%%{init: {'theme':'base','themeVariables': {'fontFamily': 'Inter, Microsoft YaHei, sans-serif','lineColor':'#64748B','primaryTextColor':'#0F172A','primaryBorderColor':'#CBD5E1','primaryColor':'#F8FAFC'}}}%%
+flowchart LR
+  %% 关键数据流/资金流与安全边界（P0）
+
+  subgraph Client["客户端"]
+    MP[微信小程序]
+    Admin[PC 后台 Web]
+  end
+
+  subgraph Backend["平台后端"]
+    API[API（NestJS）]
+    Auth[鉴权/JWT/RBAC]
+    Pay[支付/退款模块]
+    File[文件上传/鉴权下载]
+    Audit[审计日志/风控留痕]
+  end
+
+  subgraph Storage["存储"]
+    PG[(PostgreSQL<br/>订单/支付/退款/结算/审计)]
+    OSS[(对象存储<br/>证据/合同/图片)]
+    Redis[(Redis<br/>限流/幂等键/队列)]
+  end
+
+  subgraph ThirdParty["第三方"]
+    WxLogin[微信登录]
+    WxPay[微信支付 v3]
+    SMS[短信服务商]
+  end
+
+  subgraph Finance["财务侧（P0）"]
+    Bank[线下对公/企业网银转账]
+    Evidence[放款凭证/流水号回传]
+  end
+
+  %% === 登录/鉴权（PII）===
+  MP -->|code/openid（最小化）| API
+  API --> WxLogin
+  API --> Auth
+  Auth -->|签发 JWT| MP
+  Auth --> PG
+  Auth --> Audit
+
+  %% === 资料/证据上传（商业秘密/个人信息）===
+  MP -->|证据/材料上传| File -->|预签名/直传| OSS
+  Admin -->|下载查看（鉴权）| File
+  File --> PG
+  File --> Audit
+
+  %% === 推荐/热度（P0）===
+  MP -->|浏览详情/收藏/咨询事件<br/>Idempotency-Key（可选）| API --> Redis
+  API -->|落库：listing_stats / favorites / consult_events| PG
+  API --> Audit
+
+  %% === 支付订金/尾款（资金）===
+  MP -->|createPaymentIntent<br/>Idempotency-Key| Pay --> Redis
+  Pay --> WxPay
+  WxPay -->|支付回调（Wechatpay-* Header）| API
+  API -->|验签+解密 resource| Pay --> PG
+  Pay --> Audit
+
+  %% === 退款（原路退）===
+  MP -->|发起退款申请<br/>Idempotency-Key| API --> PG
+  Admin -->|审批通过/驳回| API
+  API --> Pay --> WxPay
+  WxPay -->|退款回调（Wechatpay-* Header）| API --> Pay --> PG
+  Pay --> Audit
+
+  %% === 放款（P0：人工）===
+  Bank -->|线下打款给卖家| Bank
+  Evidence -->|后台录入凭证/流水号| Admin --> API --> PG
+  API --> Audit
+
+  %% === 通知 ===
+  API --> SMS
+
+  %% === 安全控制（提示）===
+  NotePII["PII/证件/合同：\n- 最小化采集\n- 加密存储（字段级）\n- 访问鉴权+水印（可选）\n- 审计日志可追溯"]
+  NotePay["支付回调：\n- 必须验签\n- resource 解密\n- 幂等处理\n- 对账留痕"]
+  NotePII -.-> API
+  NotePay -.-> Pay
+
+  %% 样式
+  style Client fill:#F8FAFC,stroke:#CBD5E1,stroke-width:1px;
+  style Backend fill:#F1F5F9,stroke:#94A3B8,stroke-width:1px;
+  style Storage fill:#F8FAFC,stroke:#CBD5E1,stroke-width:1px;
+  style ThirdParty fill:#ECFDF5,stroke:#86EFAC,stroke-width:1px;
+  style Finance fill:#FEFCE8,stroke:#FDE047,stroke-width:1px;

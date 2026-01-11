@@ -1,0 +1,70 @@
+%%{init: {'theme':'base','flowchart': {'htmlLabels': true},'themeVariables': {'fontFamily': 'Inter, Microsoft YaHei, sans-serif','lineColor':'#64748B','primaryTextColor':'#0F172A','primaryBorderColor':'#CBD5E1','primaryColor':'#F8FAFC'}}}%%
+flowchart LR
+  %% 主链路：搜索→订金→线下签约→尾款→变更→结算放款（P0）
+
+  Buyer(["买家<br/>小程序/H5（电脑端）"])
+  Seller(["卖家<br/>小程序/H5（电脑端）"])
+  CS(["客服/运营<br/>PC 后台"])
+  Finance(["财务<br/>PC 后台"])
+  WxPay([微信支付])
+
+  subgraph Platform[平台服务]
+    Search["Search Service<br/>检索"]
+    Listing["Listing Service<br/>上架商品"]
+    Order["Order Service<br/>订单状态机"]
+    Case["Case/Workflow Service<br/>跟单工单/里程碑"]
+    Payment["Payment Service<br/>支付/退款/回调"]
+    Settlement["Settlement Service<br/>佣金/放款/台账"]
+    Notif["Notification Service<br/>模板消息/站内信"]
+    File["File Service<br/>上传/下载"]
+  end
+
+  Buyer -->|搜索/筛选| Search
+  Search -->|返回列表| Buyer
+  Buyer -->|查看详情| Listing
+  Listing -->|返回商品详情| Buyer
+
+  Buyer -->|创建订单| Order
+  Buyer -->|支付订金（小程序）| Payment
+  Payment -->|JSAPI 下单| WxPay
+  WxPay -->|支付回调| Payment
+  Payment -->|支付成功事件| Order
+  Order -->|状态=DEPOSIT_PAID| Case
+  Case -->|分配客服| CS
+  Notif -->|通知买家/卖家| Buyer
+  Notif -->|通知买家/卖家| Seller
+
+  CS -->|线下跟单：材料核验/尽调清单| Seller
+  CS -->|线下跟单：签署合同| Buyer
+
+  CS -->|后台确认：合同已签署+成交价| Case
+  Case -->|ContractSignedConfirmed| Order
+  Order -->|状态=WAIT_FINAL_PAYMENT| Notif
+  Notif -->|解锁尾款支付通知| Buyer
+
+  Buyer -->|支付尾款（托管；小程序）| Payment
+  Payment -->|JSAPI 下单| WxPay
+  WxPay -->|支付回调| Payment
+  Payment -->|支付成功事件| Order
+  Order -->|状态=FINAL_PAID_ESCROW| Case
+
+  CS -->|线下办理权属变更/备案| Seller
+  CS -->|线下办理权属变更/备案| Buyer
+  CS -->|后台确认：变更完成| Case
+  Case -->|TransferCompletedConfirmed| Order
+  Order -->|OrderReadyToSettle| Settlement
+
+  Settlement -->|计算佣金（卖家承担）| Settlement
+  Settlement -->|生成待放款台账| Finance
+  Finance -->|线下转账/打款（P0 默认）并回传凭证| Settlement
+  Settlement -->|SettlementCompleted| Order
+  Order -->|状态=COMPLETED| Notif
+  Notif -->|通知交易完成| Buyer
+  Notif -->|通知已放款（扣佣金）| Seller
+
+  Seller -->|订单完成后线下申请开票| Finance
+  Finance -->|线下开票后上传电子发票| File
+  Finance -->|绑定发票到订单（仅 COMPLETED）| Order
+  Order -->|通知发票已上传| Notif
+  Notif -->|通知：可下载电子发票| Seller
+  Seller -->|下载电子发票| File

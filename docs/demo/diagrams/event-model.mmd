@@ -1,0 +1,80 @@
+%%{init: {'theme':'base','themeVariables': {'fontFamily': 'Inter, Microsoft YaHei, sans-serif','lineColor':'#64748B','primaryTextColor':'#0F172A','primaryBorderColor':'#CBD5E1','primaryColor':'#F8FAFC'}}}%%
+flowchart LR
+  %% 事件模型（P0 可用 Outbox+Worker/Redis 队列实现；P1 可上 Kafka/RabbitMQ）
+
+  subgraph Producers["事件产生方（域）"]
+    Listing[Listing]
+    Order[Order]
+    Payment[Payment]
+    Case[Case/Workflow]
+    Settlement[Settlement]
+    Risk[Audit/Risk]
+  end
+
+  subgraph Bus["事件分发"]
+    Outbox[(Outbox Table<br/>Postgres)]
+    Dispatcher[Event Dispatcher<br/>（Worker）]
+    EventBus[(Event Bus<br/>P0: Redis/BullMQ<br/>P1: Kafka/RabbitMQ)]
+  end
+
+  subgraph Consumers["事件消费方"]
+    Search[Search/Index<br/>（含推荐排序）]
+    Notif[Notification]
+    AuditLog[AuditLog]
+    Reconcile[Reconciliation/Reports]
+  end
+
+  %% === Domain Events（示例）===
+  E1[ListingApproved]
+  E2[OrderCreated]
+  E3[PaymentSucceeded<br/>DEPOSIT/FINAL]
+  E4[AutoRefundTriggered]
+  E5[RefundSucceeded]
+  E6[ContractSignedConfirmed]
+  E7[TransferCompletedConfirmed]
+  E8[OrderReadyToSettle]
+  E9[PayoutRequired]
+  E10[ManualPayoutConfirmed]
+  E11[SettlementCompleted]
+  E12[ListingViewed]
+  E13[ListingFavorited]
+  E14[ListingConsulted]
+
+  %% === Produce -> Outbox ===
+  Listing --> E1 --> Outbox
+  Order --> E2 --> Outbox
+  Payment --> E3 --> Outbox
+  Payment --> E5 --> Outbox
+  Order --> E4 --> Outbox
+  Case --> E6 --> Outbox
+  Case --> E7 --> Outbox
+  Order --> E8 --> Outbox
+  Settlement --> E9 --> Outbox
+  Settlement --> E10 --> Outbox
+  Settlement --> E11 --> Outbox
+  Listing --> E12 --> Outbox
+  Listing --> E13 --> Outbox
+  Listing --> E14 --> Outbox
+  Risk --> Outbox
+
+  %% === Dispatch ===
+  Outbox --> Dispatcher --> EventBus
+
+  %% === Consume ===
+  EventBus --> Search
+  EventBus --> Notif
+  EventBus --> AuditLog
+  EventBus --> Reconcile
+
+  %% === 关键工程约束（提示）===
+  CIdem["幂等：\n- 回调幂等\n- 事件幂等\n- Outbox 去重"]
+  CRetry["重试：\n- 指数退避\n- 死信/告警"]
+  COrder["顺序：\n- 同一订单按 key 保序（可选）"]
+  CIdem -.-> Dispatcher
+  CRetry -.-> Dispatcher
+  COrder -.-> EventBus
+
+  %% 样式
+  style Producers fill:#F8FAFC,stroke:#CBD5E1,stroke-width:1px;
+  style Bus fill:#F1F5F9,stroke:#94A3B8,stroke-width:1px;
+  style Consumers fill:#F8FAFC,stroke:#CBD5E1,stroke-width:1px;

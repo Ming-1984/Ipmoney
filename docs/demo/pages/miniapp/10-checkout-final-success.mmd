@@ -1,0 +1,13 @@
+%%{init: {'theme':'base','flowchart': {'htmlLabels': true},'themeVariables': {'fontFamily': 'Inter, Microsoft YaHei, sans-serif','lineColor':'#64748B','primaryTextColor':'#0F172A','primaryBorderColor':'#CBD5E1','primaryColor':'#F8FAFC'}}}%%
+flowchart TB
+  subgraph P["10 尾款支付成功页（小程序）"]
+    direction TB
+    Pad[" "]:::pad
+    Tip["提示语<br/>• 尾款支付成功，资金平台托管<br/>• 变更完成后结算并放款给卖家"]
+    Actions["按钮<br/>• 查看进度<br/>• 联系跟单客服"]
+    Pad --> Tip
+    Tip --> Actions
+  end
+
+  classDef pad fill:transparent,stroke:transparent,color:transparent;
+  linkStyle 0 stroke:transparent,fill:transparent;

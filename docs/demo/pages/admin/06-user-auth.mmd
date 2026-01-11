@@ -1,0 +1,15 @@
+%%{init: {'theme':'base','flowchart': {'htmlLabels': true},'themeVariables': {'fontFamily': 'Inter, Microsoft YaHei, sans-serif','lineColor':'#64748B','primaryTextColor':'#0F172A','primaryBorderColor':'#CBD5E1','primaryColor':'#F8FAFC'}}}%%
+flowchart TB
+  subgraph P["06 用户与认证管理 User & Auth（PC 后台）"]
+    direction TB
+    Pad[" "]:::pad
+    Users["用户列表<br/>• 搜索/筛选<br/>• 封禁/解封<br/>• 基本资料查看（脱敏）"]
+    VerifList["认证审核列表<br/>• 个人/企业/科研院校/政府/协会/技术经理人<br/>• 状态：待审/通过/驳回"]
+    VerifDetail["认证详情<br/>• 查看提交信息与上传材料（营业执照/主体证明/资质证明等）<br/>• 核对一致性<br/>• 通过/驳回（理由）"]
+    Badge["前台展示<br/>• 通过后展示认证标签（企业/科研院校/政府/协会/技术经理人）<br/>• 企业/科研院校：进入“机构展示”目录（可配置开关）"]
+    Pad --> Users
+    Users --> VerifList --> VerifDetail --> Badge
+  end
+
+  classDef pad fill:transparent,stroke:transparent,color:transparent;
+  linkStyle 0 stroke:transparent,fill:transparent;

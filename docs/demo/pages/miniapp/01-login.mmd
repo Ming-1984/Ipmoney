@@ -1,0 +1,17 @@
+%%{init: {'theme':'base','flowchart': {'htmlLabels': true},'themeVariables': {'fontFamily': 'Inter, Microsoft YaHei, sans-serif','lineColor':'#64748B','primaryTextColor':'#0F172A','primaryBorderColor':'#CBD5E1','primaryColor':'#F8FAFC'}}}%%
+flowchart TB
+  subgraph P["01 登录/注册与角色引导（小程序）"]
+    direction TB
+    Pad[" "]:::pad
+    H["Header<br/>• 品牌/Logo<br/>• 合规提示入口"]
+    L["登录<br/>• 手机号一键登录<br/>• 验证码登录"]
+    A["协议勾选<br/>• 用户协议<br/>• 隐私政策"]
+    R["首次登录：身份选择<br/>• 个人<br/>• 企业<br/>• 科研院校<br/>• 政府<br/>• 行业协会/学会<br/>• 技术经理人"]
+    K["身份/主体认证流程<br/>• 个人：授权信息→注册成功（无需审核）<br/>• 其他：填信息+上传材料→提交审核→审核通过后解锁发布/交易"]
+    N["进入首页/新手引导"]
+    Pad --> H
+    H --> L --> A --> R --> K --> N
+  end
+
+  classDef pad fill:transparent,stroke:transparent,color:transparent;
+  linkStyle 0 stroke:transparent,fill:transparent;
