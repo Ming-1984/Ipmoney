@@ -311,4 +311,6 @@
   - [x] NestJS 工程骨架 + `/health`
   - [ ] 模块划分（auth/user/patent/listing/order/payment/refund/settlement/file/config）
   - [ ] DB/Redis 连接（Postgres + Redis）+ Prisma 迁移基线
+    - [x] Prisma schema 初版（对齐 `docs/architecture/er-diagram.mmd`）：`apps/api/prisma/schema.prisma`
+    - [ ] 生成迁移基线（`pnpm -C apps/api db:migrate`）并写入 `prisma/migrations/*`
   - [ ] 统一错误码与审计日志基线

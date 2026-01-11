@@ -80,7 +80,11 @@ function startPrism() {
     '--cors',
   ];
 
-  const child = spawn(PNPM_CMD, args, {
+  // On Windows, `spawn()` can't execute `.cmd` directly; it must go through `cmd.exe`.
+  const command = process.platform === 'win32' ? 'cmd.exe' : PNPM_CMD;
+  const commandArgs = process.platform === 'win32' ? ['/d', '/s', '/c', PNPM_CMD, ...args] : args;
+
+  const child = spawn(command, commandArgs, {
     cwd: path.resolve(__dirname, '..'),
     stdio: 'inherit',
     windowsHide: true,

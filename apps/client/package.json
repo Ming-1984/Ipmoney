@@ -21,6 +21,7 @@
     "react-dom": "^18.3.1"
   },
   "devDependencies": {
+    "@pmmmwh/react-refresh-webpack-plugin": "^0.5.11",
     "@tarojs/cli": "4.1.9",
     "@tarojs/plugin-framework-react": "4.1.9",
     "@tarojs/plugin-platform-h5": "4.1.9",

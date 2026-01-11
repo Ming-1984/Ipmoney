@@ -1,0 +1,710 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  buyer
+  seller
+  cs
+  admin
+}
+
+enum RegionLevel {
+  PROVINCE
+  CITY
+  DISTRICT
+}
+
+enum VerificationType {
+  PERSON
+  COMPANY
+  ACADEMY
+  GOVERNMENT
+  ASSOCIATION
+  TECH_MANAGER
+}
+
+enum VerificationStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum PatentType {
+  INVENTION
+  UTILITY_MODEL
+  DESIGN
+}
+
+enum PatentSourcePrimary {
+  USER
+  ADMIN
+  PROVIDER
+}
+
+enum PatentIdentifierType {
+  APPLICATION
+  PATENT
+  PUBLICATION
+}
+
+enum ClassificationSystem {
+  IPC
+  LOC
+  CPC
+}
+
+enum PatentPartyRole {
+  APPLICANT
+  INVENTOR
+  ASSIGNEE
+}
+
+enum FileOwnerScope {
+  LISTING
+  CASE
+  REFUND_REQUEST
+  INVOICE
+  USER
+  USER_VERIFICATION
+  MESSAGE
+}
+
+enum ListingTradeMode {
+  ASSIGNMENT
+  LICENSE
+}
+
+enum LicenseMode {
+  EXCLUSIVE
+  SOLE
+  NON_EXCLUSIVE
+}
+
+enum PriceType {
+  FIXED
+  NEGOTIABLE
+}
+
+enum AuditStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum ListingStatus {
+  DRAFT
+  ACTIVE
+  OFF_SHELF
+  SOLD
+}
+
+enum FeaturedLevel {
+  NONE
+  CITY
+  PROVINCE
+}
+
+enum ListingMediaType {
+  IMAGE
+  FILE
+}
+
+enum ListingAuditAction {
+  APPROVE
+  REJECT
+}
+
+enum ConsultChannel {
+  WECHAT_CS
+  PHONE
+  FORM
+}
+
+enum ConversationMessageType {
+  TEXT
+  IMAGE
+  FILE
+  SYSTEM
+}
+
+enum PaymentType {
+  DEPOSIT
+  FINAL
+  REFUND
+  PAYOUT
+}
+
+enum PaymentChannel {
+  WECHAT
+}
+
+enum RefundStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  REFUNDING
+  REFUNDED
+}
+
+enum CaseType {
+  FOLLOWUP
+  REFUND
+  DISPUTE
+}
+
+enum MilestoneName {
+  CONTRACT_SIGNED
+  TRANSFER_SUBMITTED
+  TRANSFER_COMPLETED
+}
+
+enum SettlementPayoutMethod {
+  MANUAL
+  WECHAT
+}
+
+enum SettlementPayoutStatus {
+  PENDING
+  SUCCEEDED
+  FAILED
+}
+
+enum SystemConfigValueType {
+  INT
+  DECIMAL
+  STRING
+  JSON
+  BOOL
+}
+
+enum SystemConfigScope {
+  GLOBAL
+  TENANT
+}
+
+model User {
+  id         String   @id @default(uuid()) @db.Uuid
+  phone      String   @unique
+  nickname   String?
+  role       UserRole
+  regionCode String?  @map("region_code")
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  region Region? @relation(fields: [regionCode], references: [code])
+
+  verifications         UserVerification[] @relation("UserVerification_User")
+  reviewedVerifications UserVerification[] @relation("UserVerification_Reviewer")
+
+  listings       Listing[] @relation("Listing_Seller")
+  orders         Order[]   @relation("Order_Buyer")
+  assignedOrders Order[]   @relation("Order_AssignedCs")
+
+  listingAuditLogs     ListingAuditLog[]     @relation("ListingAuditLog_Reviewer")
+  listingFavorites     ListingFavorite[]
+  listingConsultEvents ListingConsultEvent[]
+  userTagScores        UserTagScore[]
+
+  conversationsAsBuyer     Conversation[]            @relation("Conversation_Buyer")
+  conversationsAsSeller    Conversation[]            @relation("Conversation_Seller")
+  conversationParticipants ConversationParticipant[]
+  sentMessages             ConversationMessage[]     @relation("ConversationMessage_Sender")
+
+  csCases              CsCase[]       @relation("CsCase_Cs")
+  systemConfigsUpdated SystemConfig[] @relation("SystemConfig_UpdatedBy")
+  auditLogs            AuditLog[]     @relation("AuditLog_Actor")
+
+  @@map("users")
+}
+
+model Region {
+  code             String      @id
+  name             String
+  level            RegionLevel
+  parentCode       String?     @map("parent_code")
+  centerLat        Float?      @map("center_lat")
+  centerLng        Float?      @map("center_lng")
+  industryTagsJson Json?       @map("industry_tags_json")
+  updatedAt        DateTime    @updatedAt @map("updated_at")
+
+  parent   Region?  @relation("Region_Parent", fields: [parentCode], references: [code])
+  children Region[] @relation("Region_Parent")
+
+  users            User[]
+  listings         Listing[]
+  verifications    UserVerification[]
+  patentMapEntries PatentMapEntry[]
+
+  @@map("regions")
+}
+
+model IndustryTag {
+  id        String   @id @default(uuid()) @db.Uuid
+  name      String   @unique
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("industry_tags")
+}
+
+model UserVerification {
+  id                         String             @id @default(uuid()) @db.Uuid
+  userId                     String             @map("user_id") @db.Uuid
+  verificationType           VerificationType   @map("type")
+  verificationStatus         VerificationStatus @map("status")
+  displayName                String             @map("display_name")
+  unifiedSocialCreditCodeEnc String?            @map("unified_social_credit_code_enc")
+  contactName                String?            @map("contact_name")
+  contactPhone               String?            @map("contact_phone")
+  regionCode                 String?            @map("region_code")
+  intro                      String?
+  logoFileId                 String?            @map("logo_file_id") @db.Uuid
+  evidenceFileIdsJson        Json?              @map("evidence_file_ids_json")
+  submittedAt                DateTime           @map("submitted_at")
+  reviewedAt                 DateTime?          @map("reviewed_at")
+  reviewedById               String?            @map("reviewed_by") @db.Uuid
+  reviewComment              String?            @map("review_comment")
+  createdAt                  DateTime           @default(now()) @map("created_at")
+  updatedAt                  DateTime           @updatedAt @map("updated_at")
+
+  user       User    @relation("UserVerification_User", fields: [userId], references: [id])
+  reviewedBy User?   @relation("UserVerification_Reviewer", fields: [reviewedById], references: [id])
+  logoFile   File?   @relation("UserVerification_LogoFile", fields: [logoFileId], references: [id])
+  region     Region? @relation(fields: [regionCode], references: [code])
+
+  @@index([userId, verificationStatus])
+  @@map("user_verifications")
+}
+
+model Patent {
+  id                   String              @id @default(uuid()) @db.Uuid
+  jurisdiction         String              @default("CN")
+  applicationNoNorm    String              @unique @map("application_no_norm")
+  applicationNoDisplay String?             @map("application_no_display")
+  patentType           PatentType          @map("patent_type")
+  title                String
+  abstract             String?
+  filingDate           DateTime?           @map("filing_date") @db.Date
+  publicationDate      DateTime?           @map("publication_date") @db.Date
+  grantDate            DateTime?           @map("grant_date") @db.Date
+  legalStatus          String?             @map("legal_status")
+  sourcePrimary        PatentSourcePrimary @default(USER) @map("source_primary")
+  sourceUpdatedAt      DateTime?           @map("source_updated_at")
+  createdAt            DateTime            @default(now()) @map("created_at")
+  updatedAt            DateTime            @updatedAt @map("updated_at")
+
+  identifiers     PatentIdentifier[]
+  classifications PatentClassification[]
+  parties         PatentParty[]
+  listings        Listing[]
+
+  @@map("patents")
+}
+
+model PatentIdentifier {
+  id          String               @id @default(uuid()) @db.Uuid
+  patentId    String               @map("patent_id") @db.Uuid
+  idType      PatentIdentifierType @map("id_type")
+  idValueNorm String               @map("id_value_norm")
+  kindCode    String?              @map("kind_code")
+  dateRef     DateTime?            @map("date_ref") @db.Date
+
+  patent Patent @relation(fields: [patentId], references: [id])
+
+  @@unique([idType, idValueNorm])
+  @@map("patent_identifiers")
+}
+
+model PatentClassification {
+  id       String               @id @default(uuid()) @db.Uuid
+  patentId String               @map("patent_id") @db.Uuid
+  system   ClassificationSystem
+  code     String
+  isMain   Boolean              @default(false) @map("is_main")
+
+  patent Patent @relation(fields: [patentId], references: [id])
+
+  @@unique([patentId, system, code])
+  @@map("patent_classifications")
+}
+
+model PatentParty {
+  id          String          @id @default(uuid()) @db.Uuid
+  patentId    String          @map("patent_id") @db.Uuid
+  role        PatentPartyRole
+  name        String
+  countryCode String?         @map("country_code")
+
+  patent Patent @relation(fields: [patentId], references: [id])
+
+  @@index([patentId, role])
+  @@map("patent_parties")
+}
+
+model File {
+  id         String         @id @default(uuid()) @db.Uuid
+  url        String
+  mimeType   String         @map("mime_type")
+  sizeBytes  Int            @map("size_bytes")
+  ownerScope FileOwnerScope @map("owner_scope")
+  ownerId    String         @map("owner_id") @db.Uuid
+  createdAt  DateTime       @default(now()) @map("created_at")
+
+  listingMedia       ListingMedia[]
+  messageAttachments ConversationMessage[]
+  milestoneEvidence  CsMilestone[]
+  settlementEvidence Settlement[]
+  invoiceOrders      Order[]
+  verificationLogos  UserVerification[]    @relation("UserVerification_LogoFile")
+
+  @@index([ownerScope, ownerId])
+  @@map("files")
+}
+
+model Listing {
+  id                 String           @id @default(uuid()) @db.Uuid
+  sellerUserId       String           @map("seller_user_id") @db.Uuid
+  patentId           String           @map("patent_id") @db.Uuid
+  title              String
+  summary            String?
+  tradeMode          ListingTradeMode @map("trade_mode")
+  licenseMode        LicenseMode?     @map("license_mode")
+  priceType          PriceType        @map("price_type")
+  priceAmount        Int?             @map("price_amount")
+  depositAmount      Int              @map("deposit_amount")
+  regionCode         String?          @map("region_code")
+  industryTagsJson   Json?            @map("industry_tags_json")
+  featuredLevel      FeaturedLevel    @default(NONE) @map("featured_level")
+  featuredRegionCode String?          @map("featured_region_code")
+  featuredRank       Int?             @map("featured_rank")
+  featuredUntil      DateTime?        @map("featured_until")
+  auditStatus        AuditStatus      @default(PENDING) @map("audit_status")
+  status             ListingStatus    @default(DRAFT)
+  createdAt          DateTime         @default(now()) @map("created_at")
+  updatedAt          DateTime         @updatedAt @map("updated_at")
+
+  seller User    @relation("Listing_Seller", fields: [sellerUserId], references: [id])
+  patent Patent  @relation(fields: [patentId], references: [id])
+  region Region? @relation(fields: [regionCode], references: [code])
+
+  media         ListingMedia[]
+  auditLogs     ListingAuditLog[]
+  stats         ListingStats?
+  favorites     ListingFavorite[]
+  consultEvents ListingConsultEvent[]
+  orders        Order[]
+  conversations Conversation[]
+
+  @@index([auditStatus, status])
+  @@index([regionCode])
+  @@map("listings")
+}
+
+model ListingMedia {
+  id        String           @id @default(uuid()) @db.Uuid
+  listingId String           @map("listing_id") @db.Uuid
+  fileId    String           @map("file_id") @db.Uuid
+  type      ListingMediaType
+  sort      Int              @default(0)
+
+  listing Listing @relation(fields: [listingId], references: [id])
+  file    File    @relation(fields: [fileId], references: [id])
+
+  @@index([listingId, sort])
+  @@map("listing_media")
+}
+
+model ListingAuditLog {
+  id         String             @id @default(uuid()) @db.Uuid
+  listingId  String             @map("listing_id") @db.Uuid
+  reviewerId String             @map("reviewer_id") @db.Uuid
+  action     ListingAuditAction
+  reason     String?
+  createdAt  DateTime           @default(now()) @map("created_at")
+
+  listing  Listing @relation(fields: [listingId], references: [id])
+  reviewer User    @relation("ListingAuditLog_Reviewer", fields: [reviewerId], references: [id])
+
+  @@index([listingId, createdAt])
+  @@map("listing_audit_logs")
+}
+
+model ListingStats {
+  listingId     String   @id @map("listing_id") @db.Uuid
+  viewCount     Int      @default(0) @map("view_count")
+  favoriteCount Int      @default(0) @map("favorite_count")
+  consultCount  Int      @default(0) @map("consult_count")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  listing Listing @relation(fields: [listingId], references: [id])
+
+  @@map("listing_stats")
+}
+
+model ListingFavorite {
+  id        String   @id @default(uuid()) @db.Uuid
+  listingId String   @map("listing_id") @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at")
+
+  listing Listing @relation(fields: [listingId], references: [id])
+  user    User    @relation(fields: [userId], references: [id])
+
+  @@unique([listingId, userId])
+  @@map("listing_favorites")
+}
+
+model ListingConsultEvent {
+  id        String         @id @default(uuid()) @db.Uuid
+  listingId String         @map("listing_id") @db.Uuid
+  userId    String         @map("user_id") @db.Uuid
+  channel   ConsultChannel
+  createdAt DateTime       @default(now()) @map("created_at")
+
+  listing Listing @relation(fields: [listingId], references: [id])
+  user    User    @relation(fields: [userId], references: [id])
+
+  @@index([listingId, createdAt])
+  @@map("listing_consult_events")
+}
+
+model UserTagScore {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  tag       String
+  score     Int      @default(0)
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@unique([userId, tag])
+  @@map("user_tag_scores")
+}
+
+model Order {
+  id               String    @id @default(uuid()) @db.Uuid
+  listingId        String    @map("listing_id") @db.Uuid
+  buyerUserId      String    @map("buyer_user_id") @db.Uuid
+  assignedCsUserId String?   @map("assigned_cs_user_id") @db.Uuid
+  status           String
+  dealAmount       Int?      @map("deal_amount")
+  depositAmount    Int       @map("deposit_amount")
+  finalAmount      Int?      @map("final_amount")
+  commissionAmount Int?      @map("commission_amount")
+  invoiceNo        String?   @map("invoice_no")
+  invoiceFileId    String?   @map("invoice_file_id") @db.Uuid
+  invoiceIssuedAt  DateTime? @map("invoice_issued_at")
+  createdAt        DateTime  @default(now()) @map("created_at")
+  updatedAt        DateTime  @updatedAt @map("updated_at")
+
+  listing     Listing @relation(fields: [listingId], references: [id])
+  buyer       User    @relation("Order_Buyer", fields: [buyerUserId], references: [id])
+  assignedCs  User?   @relation("Order_AssignedCs", fields: [assignedCsUserId], references: [id])
+  invoiceFile File?   @relation(fields: [invoiceFileId], references: [id])
+
+  payments       Payment[]
+  refundRequests RefundRequest[]
+  csCases        CsCase[]
+  settlement     Settlement?
+  conversations  Conversation[]
+
+  @@index([status, createdAt])
+  @@map("orders")
+}
+
+model Conversation {
+  id            String    @id @default(uuid()) @db.Uuid
+  listingId     String    @map("listing_id") @db.Uuid
+  orderId       String?   @map("order_id") @db.Uuid
+  buyerUserId   String    @map("buyer_user_id") @db.Uuid
+  sellerUserId  String    @map("seller_user_id") @db.Uuid
+  lastMessageAt DateTime? @map("last_message_at")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+
+  listing Listing @relation(fields: [listingId], references: [id])
+  order   Order?  @relation(fields: [orderId], references: [id])
+  buyer   User    @relation("Conversation_Buyer", fields: [buyerUserId], references: [id])
+  seller  User    @relation("Conversation_Seller", fields: [sellerUserId], references: [id])
+
+  participants ConversationParticipant[]
+  messages     ConversationMessage[]
+
+  @@index([listingId, updatedAt])
+  @@map("conversations")
+}
+
+model ConversationParticipant {
+  id             String    @id @default(uuid()) @db.Uuid
+  conversationId String    @map("conversation_id") @db.Uuid
+  userId         String    @map("user_id") @db.Uuid
+  lastReadAt     DateTime? @map("last_read_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+
+  conversation Conversation @relation(fields: [conversationId], references: [id])
+  user         User         @relation(fields: [userId], references: [id])
+
+  @@unique([conversationId, userId])
+  @@map("conversation_participants")
+}
+
+model ConversationMessage {
+  id             String                  @id @default(uuid()) @db.Uuid
+  conversationId String                  @map("conversation_id") @db.Uuid
+  senderUserId   String                  @map("sender_user_id") @db.Uuid
+  type           ConversationMessageType
+  text           String?
+  fileId         String?                 @map("file_id") @db.Uuid
+  createdAt      DateTime                @default(now()) @map("created_at")
+
+  conversation Conversation @relation(fields: [conversationId], references: [id])
+  sender       User         @relation("ConversationMessage_Sender", fields: [senderUserId], references: [id])
+  file         File?        @relation(fields: [fileId], references: [id])
+
+  @@index([conversationId, createdAt])
+  @@map("conversation_messages")
+}
+
+model Payment {
+  id        String         @id @default(uuid()) @db.Uuid
+  orderId   String         @map("order_id") @db.Uuid
+  payType   PaymentType    @map("pay_type")
+  channel   PaymentChannel @default(WECHAT)
+  tradeNo   String         @map("trade_no")
+  amount    Int
+  status    String
+  paidAt    DateTime?      @map("paid_at")
+  createdAt DateTime       @default(now()) @map("created_at")
+
+  order Order @relation(fields: [orderId], references: [id])
+
+  @@index([orderId, payType])
+  @@map("payments")
+}
+
+model RefundRequest {
+  id         String       @id @default(uuid()) @db.Uuid
+  orderId    String       @map("order_id") @db.Uuid
+  reasonCode String       @map("reason_code")
+  reasonText String?      @map("reason_text")
+  status     RefundStatus @default(PENDING)
+  createdAt  DateTime     @default(now()) @map("created_at")
+  updatedAt  DateTime     @updatedAt @map("updated_at")
+
+  order Order @relation(fields: [orderId], references: [id])
+
+  @@index([orderId, status])
+  @@map("refund_requests")
+}
+
+model CsCase {
+  id        String   @id @default(uuid()) @db.Uuid
+  orderId   String   @map("order_id") @db.Uuid
+  csUserId  String   @map("cs_user_id") @db.Uuid
+  type      CaseType
+  status    String
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  order  Order @relation(fields: [orderId], references: [id])
+  csUser User  @relation("CsCase_Cs", fields: [csUserId], references: [id])
+
+  milestones CsMilestone[]
+
+  @@index([orderId, type])
+  @@map("cs_cases")
+}
+
+model CsMilestone {
+  id             String        @id @default(uuid()) @db.Uuid
+  caseId         String        @map("case_id") @db.Uuid
+  name           MilestoneName
+  status         String
+  evidenceFileId String?       @map("evidence_file_id") @db.Uuid
+  createdAt      DateTime      @default(now()) @map("created_at")
+
+  case         CsCase @relation(fields: [caseId], references: [id])
+  evidenceFile File?  @relation(fields: [evidenceFileId], references: [id])
+
+  @@index([caseId, name])
+  @@map("cs_milestones")
+}
+
+model Settlement {
+  id                   String                 @id @default(uuid()) @db.Uuid
+  orderId              String                 @unique @map("order_id") @db.Uuid
+  grossAmount          Int                    @map("gross_amount")
+  commissionAmount     Int                    @map("commission_amount")
+  payoutAmount         Int                    @map("payout_amount")
+  payoutMethod         SettlementPayoutMethod @map("payout_method")
+  payoutStatus         SettlementPayoutStatus @map("payout_status")
+  payoutRef            String?                @map("payout_ref")
+  payoutEvidenceFileId String?                @map("payout_evidence_file_id") @db.Uuid
+  payoutAt             DateTime?              @map("payout_at")
+  status               String
+  createdAt            DateTime               @default(now()) @map("created_at")
+  updatedAt            DateTime               @updatedAt @map("updated_at")
+
+  order              Order @relation(fields: [orderId], references: [id])
+  payoutEvidenceFile File? @relation(fields: [payoutEvidenceFileId], references: [id])
+
+  @@index([payoutStatus])
+  @@map("settlements")
+}
+
+model PatentMapEntry {
+  id                    String   @id @default(uuid()) @db.Uuid
+  regionCode            String   @map("region_code")
+  year                  Int
+  patentCount           Int      @map("patent_count")
+  industryBreakdownJson Json?    @map("industry_breakdown_json")
+  topAssigneesJson      Json?    @map("top_assignees_json")
+  createdAt             DateTime @default(now()) @map("created_at")
+  updatedAt             DateTime @updatedAt @map("updated_at")
+
+  region Region @relation(fields: [regionCode], references: [code])
+
+  @@unique([regionCode, year])
+  @@map("patent_map_entries")
+}
+
+model SystemConfig {
+  id          String                @id @default(uuid()) @db.Uuid
+  key         String                @unique
+  valueType   SystemConfigValueType @map("value_type")
+  value       String
+  scope       SystemConfigScope
+  version     Int                   @default(1)
+  updatedById String?               @map("updated_by") @db.Uuid
+  createdAt   DateTime              @default(now()) @map("created_at")
+  updatedAt   DateTime              @updatedAt @map("updated_at")
+
+  updatedBy User? @relation("SystemConfig_UpdatedBy", fields: [updatedById], references: [id])
+
+  @@map("system_configs")
+}
+
+model AuditLog {
+  id          String   @id @default(uuid()) @db.Uuid
+  actorUserId String   @map("actor_user_id") @db.Uuid
+  action      String
+  targetType  String   @map("target_type")
+  targetId    String   @map("target_id") @db.Uuid
+  beforeJson  Json?    @map("before_json")
+  afterJson   Json?    @map("after_json")
+  requestId   String?  @map("request_id")
+  ip          String?
+  userAgent   String?  @map("user_agent")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  actor User @relation("AuditLog_Actor", fields: [actorUserId], references: [id])
+
+  @@index([targetType, targetId])
+  @@map("audit_logs")
+}

@@ -5,6 +5,7 @@ build
 .taro
 .next
 coverage
+.swc
 .env
 .env.*
 !.env.example
