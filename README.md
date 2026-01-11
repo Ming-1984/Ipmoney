@@ -18,9 +18,12 @@ pnpm dev
 ```
 
 默认端口：
-- Mock（Prism）：`http://127.0.0.1:4010`
+- Mock（fixtures + Prism fallback）：`http://127.0.0.1:4010`
 - 用户端 H5（Taro）：`http://127.0.0.1:5173`
 - 后台（Vite）：`http://127.0.0.1:5174`
+
+Mock 场景切换（演示/回归）：
+- Header：`X-Mock-Scenario: happy|empty|error|edge`
 
 ## OpenAPI
 
@@ -37,4 +40,3 @@ docker compose up -d
 
 - Mock/fixtures 的规划见：`docs/engineering/mocking.md`
 - 甲方演示材料见：`docs/demo/README.md`
-

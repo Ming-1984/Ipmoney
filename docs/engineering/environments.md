@@ -8,6 +8,11 @@
 - `PORT`：API 监听端口
 - `BASE_URL`：对外服务域名（拼接回调 URL、文件访问 URL 等）
 
+## 前端（本地联调）
+
+- `TARO_APP_API_BASE_URL`：用户端（Taro）API Base URL（默认 `http://127.0.0.1:4010`）
+- `VITE_API_BASE_URL`：后台（Vite）API Base URL（默认 `http://127.0.0.1:4010`）
+
 ## 数据库/缓存
 
 - `DATABASE_URL`：PostgreSQL 连接串
