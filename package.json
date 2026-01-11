@@ -8,6 +8,8 @@
   "scripts": {
     "dev": "turbo run dev --parallel --filter=mock-api --filter=client --filter=admin-web",
     "dev:all": "turbo run dev --parallel",
+    "dev:infra": "docker compose up -d",
+    "dev:api": "docker compose up -d && pnpm -C apps/api dev",
     "build": "turbo run build",
     "lint": "turbo run lint",
     "typecheck": "turbo run typecheck",

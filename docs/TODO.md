@@ -139,7 +139,7 @@
 
 - [x] 初始化 Monorepo（pnpm workspace）：`apps/api` + `apps/admin-web` + `apps/client` + `apps/mock-api` + `packages/fixtures`（`packages/shared` 后续需要再抽）
 - [x] 统一 TypeScript/ESLint/Prettier 配置；约定版本（Node LTS、pnpm）与目录规范（见 `docs/engineering/repo-structure.md`）
-- [ ] 本地一键启动：`docker-compose`（Postgres + Redis + MinIO）+ `apps/api`（热更新）
+- [x] 本地一键启动：`docker-compose`（Postgres + Redis + MinIO）+ `apps/api`（热更新，`pnpm dev:api`）
 - [ ] OpenAPI 驱动：生成 client SDK/类型（或在 `packages/shared` 维护 DTO 与枚举，和 `docs/api/openapi.yaml` 对齐）
 - [x] Mock 驱动并行开发：基于 `docs/api/openapi.yaml` 启动 mock（Prism/fixtures），并提供“场景切换”（退款失败/回调重放/无数据等）
 - [x] CI（可选）：lint + typecheck + OpenAPI lint（见 `.github/workflows/ci.yml`）
