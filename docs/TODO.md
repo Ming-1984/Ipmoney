@@ -269,10 +269,14 @@
   - [x] Prettier（根配置）
   - [ ] ESLint（待补齐：统一规则 + 提交前校验）
 - [x] 按 `docs/engineering/repo-structure.md` 落地工程目录（`apps/*`、`packages/*`）+ 一键本地依赖（`docker-compose.yml`）
+- [ ] Git 仓库与 GitHub（协作/CI）：
+  - [x] 本地 git 初始化并完成初始提交
+  - [x] GitHub 配置文件（Actions CI / Dependabot / PR Template）
+  - [ ] 添加 GitHub remote 并 push（需要 repo URL / 权限）
 - [x] OpenAPI 工具链落地（契约先行）：
   - [x] `pnpm openapi:lint`
   - [x] `pnpm openapi:preview`（默认 `http://127.0.0.1:8080`）
-  - [x] `pnpm mock`（Prism：`http://127.0.0.1:4010`）
+  - [x] `pnpm mock`（fixtures + Prism fallback：`http://127.0.0.1:4010`）
 - [ ] Mock 驱动并行开发（见 `docs/engineering/mocking.md`）：
   - [x] fixtures 场景（happy/empty/error/edge）落地，支持 `X-Mock-Scenario` 一键切换
   - [ ] 覆盖难场景：退款失败、回调重放、订单非法跳转、无数据、未登录/无权限、审核中/驳回
