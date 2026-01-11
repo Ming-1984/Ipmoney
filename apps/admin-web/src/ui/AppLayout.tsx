@@ -87,6 +87,9 @@ export function AppLayout() {
                   { value: 'empty', label: 'empty' },
                   { value: 'error', label: 'error' },
                   { value: 'edge', label: 'edge' },
+                  { value: 'payment_callback_replay', label: 'payment_callback_replay' },
+                  { value: 'refund_failed', label: 'refund_failed' },
+                  { value: 'order_conflict', label: 'order_conflict' },
                 ]}
                 onChange={(v) => {
                   setScenario(v);

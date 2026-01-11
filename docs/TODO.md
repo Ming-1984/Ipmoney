@@ -280,15 +280,21 @@
 - [ ] Mock 驱动并行开发（见 `docs/engineering/mocking.md`）：
   - [x] fixtures 场景（happy/empty/error/edge）落地，支持 `X-Mock-Scenario` 一键切换
   - [ ] 覆盖难场景：退款失败、回调重放、订单非法跳转、无数据、未登录/无权限、审核中/驳回
+    - [x] 回调重放/幂等冲突（`payment_callback_replay`：支付意图 409）
+    - [x] 退款失败（`refund_failed`：退款审批通过 409）
+    - [x] 状态机冲突（`order_conflict`：里程碑确认 409）
 - [ ] 前端骨架演示交付物（给甲方，后端未就绪也能演示；见 `docs/engineering/frontend-skeleton.md`）：
   - [ ] 用户端（Taro 小程序 + H5）：
     - [x] 工程骨架 + TabBar + 基础页面（Home/Search/Publish/Messages/Me/Login/Onboarding）
     - [x] 接入 Mock（`apps/mock-api`：fixtures + Prism fallback）并对齐字段/枚举（Search/List/Detail 已接入）
-    - [ ] 全量状态机（loading/empty/error/permission/audit）覆盖所有页面（目前 Search/Detail 已覆盖）
+    - [x] 订金支付演示链路（创建订单 → 创建支付意图 → 成功页）
+    - [ ] 全量状态机（loading/empty/error/permission/audit）覆盖所有页面（目前 Search/Detail/订金支付 已覆盖）
   - [ ] 后台（React/AntD）：
     - [x] 工程骨架 + Layout + 菜单页骨架
     - [ ] 接入 Mock + 表格/详情页骨架（审核/订单/退款/放款/发票/配置/地图）
       - [x] 认证审核列表（`/admin/user-verifications`）+ 通过/驳回（演示）
+      - [x] 订单管理：里程碑确认（合同确认/变更完成）（演示）
+      - [x] 退款管理：按订单查看退款单 + 审批通过/驳回（演示）
   - [x] 视觉规范落地：橙色主题 +「专利变金豆矿」点缀（`docs/engineering/design-system.md`）
   - [ ] 演示脚本：固定 fixtures + 一键启动（Mock + 前端）+ 截图/录屏清单
 - [ ] 后端骨架（便于并行）：

@@ -3,6 +3,8 @@ export default defineAppConfig({
     'pages/home/index',
     'pages/search/index',
     'pages/listing/detail/index',
+    'pages/checkout/deposit-pay/index',
+    'pages/checkout/deposit-success/index',
     'pages/publish/index',
     'pages/messages/index',
     'pages/me/index',

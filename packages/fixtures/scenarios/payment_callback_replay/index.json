@@ -1,0 +1,10 @@
+{
+  "POST /orders/:orderId/payment-intents": {
+    "status": 409,
+    "body": {
+      "code": "CONFLICT",
+      "message": "重复创建支付意图（回调重放/幂等冲突演示）"
+    }
+  }
+}
+

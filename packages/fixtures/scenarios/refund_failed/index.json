@@ -1,0 +1,10 @@
+{
+  "POST /admin/refund-requests/:refundRequestId/approve": {
+    "status": 409,
+    "body": {
+      "code": "CONFLICT",
+      "message": "退款失败（演示：微信退款接口失败/回调异常）"
+    }
+  }
+}
+

@@ -27,7 +27,7 @@
 本仓库提供 `apps/mock-api`：
 
 - 启动：`pnpm mock`（`http://127.0.0.1:4010`）
-- 场景切换：Header `X-Mock-Scenario: happy|empty|error|edge`
+- 场景切换：Header `X-Mock-Scenario: happy|empty|error|edge|payment_callback_replay`
 - fixtures 未命中的接口自动转发到 Prism（内部端口 `4011`）
 
 ## 3. 业务 Mock（fixtures：可控、可演示、可回归）
@@ -49,7 +49,7 @@ packages/fixtures/
 
 为覆盖“真实环境难构造”的情况，建议统一“场景开关”：
 
-- Header：`X-Mock-Scenario: refund_failed` / `payment_callback_replay` / `empty_search` …
+- Header：`X-Mock-Scenario: refund_failed` / `payment_callback_replay` / `empty` / `error` / `edge` …
 - 或 Query：`?__scenario=refund_failed`
 
 前端骨架与演示时，只需切换场景即可展示：

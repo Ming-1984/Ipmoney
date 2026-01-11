@@ -243,4 +243,139 @@
       "reviewComment": "材料不完整（演示）"
     }
   }
+  ,
+  "POST /orders": {
+    "status": 201,
+    "body": {
+      "id": "dddddddd-dddd-dddd-dddd-dddddddddddd",
+      "listingId": "11111111-1111-1111-1111-111111111111",
+      "patentId": "eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee",
+      "buyerUserId": "99999999-9999-9999-9999-999999999999",
+      "sellerUserId": "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
+      "status": "DEPOSIT_PENDING",
+      "depositAmountFen": 200000,
+      "createdAt": "2026-01-11T00:00:00Z",
+      "updatedAt": "2026-01-11T00:00:00Z"
+    }
+  },
+  "GET /orders": {
+    "status": 200,
+    "body": {
+      "items": [
+        {
+          "id": "dddddddd-dddd-dddd-dddd-dddddddddddd",
+          "listingId": "11111111-1111-1111-1111-111111111111",
+          "patentId": "eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee",
+          "buyerUserId": "99999999-9999-9999-9999-999999999999",
+          "sellerUserId": "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
+          "status": "DEPOSIT_PENDING",
+          "depositAmountFen": 200000,
+          "createdAt": "2026-01-11T00:00:00Z",
+          "updatedAt": "2026-01-11T00:00:00Z"
+        }
+      ],
+      "page": { "page": 1, "pageSize": 10, "total": 1 }
+    }
+  },
+  "GET /orders/:orderId": {
+    "status": 200,
+    "body": {
+      "id": "dddddddd-dddd-dddd-dddd-dddddddddddd",
+      "listingId": "11111111-1111-1111-1111-111111111111",
+      "patentId": "eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee",
+      "buyerUserId": "99999999-9999-9999-9999-999999999999",
+      "sellerUserId": "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
+      "status": "DEPOSIT_PENDING",
+      "depositAmountFen": 200000,
+      "createdAt": "2026-01-11T00:00:00Z",
+      "updatedAt": "2026-01-11T00:00:00Z"
+    }
+  },
+  "POST /orders/:orderId/payment-intents": {
+    "status": 200,
+    "body": {
+      "paymentId": "f0f0f0f0-0000-0000-0000-000000000000",
+      "payType": "DEPOSIT",
+      "channel": "WECHAT",
+      "amountFen": 200000,
+      "wechatPayParams": {
+        "timeStamp": "1700000000",
+        "nonceStr": "demo-nonce",
+        "package": "prepay_id=demo",
+        "signType": "RSA",
+        "paySign": "demo-sign"
+      }
+    }
+  }
+  ,
+  "POST /admin/orders/:orderId/milestones/contract-signed": {
+    "status": 200,
+    "body": {
+      "id": "dddddddd-dddd-dddd-dddd-dddddddddddd",
+      "listingId": "11111111-1111-1111-1111-111111111111",
+      "patentId": "eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee",
+      "buyerUserId": "99999999-9999-9999-9999-999999999999",
+      "sellerUserId": "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
+      "status": "WAIT_FINAL_PAYMENT",
+      "dealAmountFen": 28800000,
+      "depositAmountFen": 200000,
+      "finalAmountFen": 28600000,
+      "createdAt": "2026-01-11T00:00:00Z",
+      "updatedAt": "2026-01-11T00:10:00Z"
+    }
+  },
+  "POST /admin/orders/:orderId/milestones/transfer-completed": {
+    "status": 200,
+    "body": {
+      "id": "dddddddd-dddd-dddd-dddd-dddddddddddd",
+      "listingId": "11111111-1111-1111-1111-111111111111",
+      "patentId": "eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee",
+      "buyerUserId": "99999999-9999-9999-9999-999999999999",
+      "sellerUserId": "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
+      "status": "READY_TO_SETTLE",
+      "dealAmountFen": 28800000,
+      "depositAmountFen": 200000,
+      "finalAmountFen": 28600000,
+      "createdAt": "2026-01-11T00:00:00Z",
+      "updatedAt": "2026-01-11T00:30:00Z"
+    }
+  },
+  "GET /orders/:orderId/refund-requests": {
+    "status": 200,
+    "body": [
+      {
+        "id": "r0r0r0r0-0000-0000-0000-000000000000",
+        "orderId": "dddddddd-dddd-dddd-dddd-dddddddddddd",
+        "reasonCode": "BUYER_CHANGED_MIND",
+        "reasonText": "想换其它专利（演示）",
+        "status": "PENDING",
+        "createdAt": "2026-01-11T00:05:00Z",
+        "updatedAt": "2026-01-11T00:05:00Z"
+      }
+    ]
+  },
+  "POST /admin/refund-requests/:refundRequestId/approve": {
+    "status": 200,
+    "body": {
+      "id": "r0r0r0r0-0000-0000-0000-000000000000",
+      "orderId": "dddddddd-dddd-dddd-dddd-dddddddddddd",
+      "reasonCode": "BUYER_CHANGED_MIND",
+      "reasonText": "想换其它专利（演示）",
+      "status": "APPROVED",
+      "createdAt": "2026-01-11T00:05:00Z",
+      "updatedAt": "2026-01-11T00:06:00Z"
+    }
+  },
+  "POST /admin/refund-requests/:refundRequestId/reject": {
+    "status": 200,
+    "body": {
+      "id": "r0r0r0r0-0000-0000-0000-000000000000",
+      "orderId": "dddddddd-dddd-dddd-dddd-dddddddddddd",
+      "reasonCode": "BUYER_CHANGED_MIND",
+      "reasonText": "想换其它专利（演示）",
+      "status": "REJECTED",
+      "createdAt": "2026-01-11T00:05:00Z",
+      "updatedAt": "2026-01-11T00:06:00Z"
+    }
+  }
 }

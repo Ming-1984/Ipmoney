@@ -2,7 +2,9 @@ import { createBrowserRouter } from 'react-router-dom';
 
 import { AppLayout } from './ui/AppLayout';
 import { LoginPage } from './views/LoginPage';
+import { OrdersPage } from './views/OrdersPage';
 import { PlaceholderPage } from './views/PlaceholderPage';
+import { RefundsPage } from './views/RefundsPage';
 import { VerificationsPage } from './views/VerificationsPage';
 
 export const router = createBrowserRouter([
@@ -17,8 +19,8 @@ export const router = createBrowserRouter([
       { index: true, element: <PlaceholderPage title="仪表盘" /> },
       { path: 'verifications', element: <VerificationsPage /> },
       { path: 'listings', element: <PlaceholderPage title="上架审核" /> },
-      { path: 'orders', element: <PlaceholderPage title="订单管理" /> },
-      { path: 'refunds', element: <PlaceholderPage title="退款管理" /> },
+      { path: 'orders', element: <OrdersPage /> },
+      { path: 'refunds', element: <RefundsPage /> },
       { path: 'settlements', element: <PlaceholderPage title="放款/结算" /> },
       { path: 'invoices', element: <PlaceholderPage title="发票管理" /> },
       { path: 'config', element: <PlaceholderPage title="交易/推荐配置" /> },

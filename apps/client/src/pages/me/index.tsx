@@ -98,6 +98,36 @@ export default function MePage() {
         >
           <Text>edge（边界数据）</Text>
         </View>
+        <View style={{ height: '10rpx' }} />
+        <View
+          className="btn-ghost"
+          onClick={() => {
+            Taro.setStorageSync(STORAGE_KEYS.mockScenario, 'payment_callback_replay');
+            Taro.showToast({ title: '已切换：payment_callback_replay', icon: 'success' });
+          }}
+        >
+          <Text>payment_callback_replay（幂等冲突）</Text>
+        </View>
+        <View style={{ height: '10rpx' }} />
+        <View
+          className="btn-ghost"
+          onClick={() => {
+            Taro.setStorageSync(STORAGE_KEYS.mockScenario, 'refund_failed');
+            Taro.showToast({ title: '已切换：refund_failed', icon: 'success' });
+          }}
+        >
+          <Text>refund_failed（退款失败）</Text>
+        </View>
+        <View style={{ height: '10rpx' }} />
+        <View
+          className="btn-ghost"
+          onClick={() => {
+            Taro.setStorageSync(STORAGE_KEYS.mockScenario, 'order_conflict');
+            Taro.showToast({ title: '已切换：order_conflict', icon: 'success' });
+          }}
+        >
+          <Text>order_conflict（状态机冲突）</Text>
+        </View>
       </View>
     </View>
   );

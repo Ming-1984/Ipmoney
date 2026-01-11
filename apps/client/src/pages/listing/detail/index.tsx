@@ -102,7 +102,7 @@ export default function ListingDetailPage() {
             className="card btn-primary"
             onClick={() => {
               if (!requireLogin()) return;
-              Taro.showToast({ title: '支付订金（演示）', icon: 'none' });
+              Taro.navigateTo({ url: `/pages/checkout/deposit-pay/index?listingId=${listingId}` });
             }}
           >
             <Text>支付订金（需登录）</Text>
@@ -128,4 +128,3 @@ export default function ListingDetailPage() {
     </View>
   );
 }
-

@@ -1,0 +1,11 @@
+{
+  "POST /admin/orders/:orderId/milestones/contract-signed": {
+    "status": 409,
+    "body": { "code": "CONFLICT", "message": "订单状态不允许合同确认（演示）" }
+  },
+  "POST /admin/orders/:orderId/milestones/transfer-completed": {
+    "status": 409,
+    "body": { "code": "CONFLICT", "message": "订单状态不允许变更完成确认（演示）" }
+  }
+}
+
