@@ -1,13 +1,16 @@
 import { AppstoreOutlined, FileDoneOutlined, GiftOutlined, SettingOutlined } from '@ant-design/icons';
-import { Layout, Menu, Typography } from 'antd';
+import { Layout, Menu, Select, Space, Typography } from 'antd';
 import React, { useMemo, useState } from 'react';
 import { Link, Outlet, useLocation } from 'react-router-dom';
+
+import { getMockScenario, setMockScenario } from '../lib/api';
 
 const { Header, Sider, Content } = Layout;
 
 export function AppLayout() {
   const location = useLocation();
   const [collapsed, setCollapsed] = useState(false);
+  const [scenario, setScenario] = useState(getMockScenario());
 
   const selectedKeys = useMemo(() => {
     const path = location.pathname.replace(/^\//, '');
@@ -71,7 +74,27 @@ export function AppLayout() {
       </Sider>
       <Layout>
         <Header style={{ background: '#fff', padding: '0 16px' }}>
-          <Typography.Text type="secondary">P0 骨架演示（Mock 驱动）</Typography.Text>
+          <Space size={16}>
+            <Typography.Text type="secondary">P0 骨架演示（Mock 驱动）</Typography.Text>
+            <Space size={8}>
+              <Typography.Text type="secondary">场景</Typography.Text>
+              <Select
+                size="small"
+                value={scenario}
+                style={{ width: 140 }}
+                options={[
+                  { value: 'happy', label: 'happy' },
+                  { value: 'empty', label: 'empty' },
+                  { value: 'error', label: 'error' },
+                  { value: 'edge', label: 'edge' },
+                ]}
+                onChange={(v) => {
+                  setScenario(v);
+                  setMockScenario(v);
+                }}
+              />
+            </Space>
+          </Space>
         </Header>
         <Content style={{ padding: 16 }}>
           <Outlet />
@@ -80,4 +103,3 @@ export function AppLayout() {
     </Layout>
   );
 }
-

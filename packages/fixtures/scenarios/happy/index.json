@@ -177,5 +177,70 @@
       "updatedAt": "2026-01-10T00:00:00Z"
     }
   }
+  ,
+  "GET /admin/user-verifications": {
+    "status": 200,
+    "body": {
+      "items": [
+        {
+          "id": "c0a80101-0000-0000-0000-000000000001",
+          "userId": "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb",
+          "type": "COMPANY",
+          "status": "PENDING",
+          "displayName": "某智能制造企业",
+          "unifiedSocialCreditCodeMasked": "91************1234",
+          "contactName": "赵经理",
+          "contactPhoneMasked": "138****8000",
+          "regionCode": "110000",
+          "submittedAt": "2026-01-10T12:00:00Z"
+        },
+        {
+          "id": "c0a80101-0000-0000-0000-000000000002",
+          "userId": "cccccccc-cccc-cccc-cccc-cccccccccccc",
+          "type": "ACADEMY",
+          "status": "APPROVED",
+          "displayName": "某高校技术转移中心",
+          "contactName": "王老师",
+          "contactPhoneMasked": "139****9000",
+          "regionCode": "310000",
+          "submittedAt": "2026-01-08T09:00:00Z",
+          "reviewedAt": "2026-01-09T09:30:00Z"
+        }
+      ],
+      "page": { "page": 1, "pageSize": 10, "total": 2 }
+    }
+  },
+  "POST /admin/user-verifications/:verificationId/approve": {
+    "status": 200,
+    "body": {
+      "id": "c0a80101-0000-0000-0000-000000000001",
+      "userId": "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb",
+      "type": "COMPANY",
+      "status": "APPROVED",
+      "displayName": "某智能制造企业",
+      "unifiedSocialCreditCodeMasked": "91************1234",
+      "contactName": "赵经理",
+      "contactPhoneMasked": "138****8000",
+      "regionCode": "110000",
+      "submittedAt": "2026-01-10T12:00:00Z",
+      "reviewedAt": "2026-01-11T00:00:00Z"
+    }
+  },
+  "POST /admin/user-verifications/:verificationId/reject": {
+    "status": 200,
+    "body": {
+      "id": "c0a80101-0000-0000-0000-000000000001",
+      "userId": "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb",
+      "type": "COMPANY",
+      "status": "REJECTED",
+      "displayName": "某智能制造企业",
+      "unifiedSocialCreditCodeMasked": "91************1234",
+      "contactName": "赵经理",
+      "contactPhoneMasked": "138****8000",
+      "regionCode": "110000",
+      "submittedAt": "2026-01-10T12:00:00Z",
+      "reviewedAt": "2026-01-11T00:00:00Z",
+      "reviewComment": "材料不完整（演示）"
+    }
+  }
 }
-

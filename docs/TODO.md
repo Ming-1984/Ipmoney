@@ -283,7 +283,8 @@
     - [ ] 全量状态机（loading/empty/error/permission/audit）覆盖所有页面（目前 Search/Detail 已覆盖）
   - [ ] 后台（React/AntD）：
     - [x] 工程骨架 + Layout + 菜单页骨架
-    - [ ] 接入 Prism Mock + 表格/详情页骨架（审核/订单/退款/放款/发票/配置/地图）
+    - [ ] 接入 Mock + 表格/详情页骨架（审核/订单/退款/放款/发票/配置/地图）
+      - [x] 认证审核列表（`/admin/user-verifications`）+ 通过/驳回（演示）
   - [x] 视觉规范落地：橙色主题 +「专利变金豆矿」点缀（`docs/engineering/design-system.md`）
   - [ ] 演示脚本：固定 fixtures + 一键启动（Mock + 前端）+ 截图/录屏清单
 - [ ] 后端骨架（便于并行）：

@@ -3,6 +3,7 @@ import { createBrowserRouter } from 'react-router-dom';
 import { AppLayout } from './ui/AppLayout';
 import { LoginPage } from './views/LoginPage';
 import { PlaceholderPage } from './views/PlaceholderPage';
+import { VerificationsPage } from './views/VerificationsPage';
 
 export const router = createBrowserRouter([
   {
@@ -14,7 +15,7 @@ export const router = createBrowserRouter([
     element: <AppLayout />,
     children: [
       { index: true, element: <PlaceholderPage title="仪表盘" /> },
-      { path: 'verifications', element: <PlaceholderPage title="认证审核" /> },
+      { path: 'verifications', element: <VerificationsPage /> },
       { path: 'listings', element: <PlaceholderPage title="上架审核" /> },
       { path: 'orders', element: <PlaceholderPage title="订单管理" /> },
       { path: 'refunds', element: <PlaceholderPage title="退款管理" /> },
@@ -25,4 +26,3 @@ export const router = createBrowserRouter([
     ],
   },
 ]);
-
