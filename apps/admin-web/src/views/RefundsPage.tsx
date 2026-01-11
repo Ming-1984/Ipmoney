@@ -97,7 +97,10 @@ export function RefundsPage() {
                       disabled={disabled}
                       onClick={async () => {
                         try {
-                          await apiPost<RefundRequest>(`/admin/refund-requests/${r.id}/approve`, {});
+                          await apiPost<RefundRequest>(
+                            `/admin/refund-requests/${r.id}/approve`,
+                            {},
+                          );
                           message.success('已通过');
                           void load();
                         } catch (e: any) {
@@ -134,4 +137,3 @@ export function RefundsPage() {
     </Card>
   );
 }
-

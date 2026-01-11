@@ -6,6 +6,7 @@
 
 - 一页定位与关键规则：`docs/demo/platform-onepager.md`
 - 演示顺序（建议话术顺序）：`docs/demo/presentation-order.md`
+- 演示运行手册（一键启动 + 场景切换 + 演示顺序）：`docs/demo/runbook.md`
 - 高端图表（代码生成，Mermaid）：`docs/demo/diagrams/`
   - 业务主链路泳道：`docs/demo/diagrams/business-core-swimlane.mmd`
   - 退款/争议泳道：`docs/demo/diagrams/business-refund-dispute-swimlane.mmd`
@@ -24,5 +25,6 @@
 - 一键导出（架构图 + 演示图，PNG/PDF/SVG）：`powershell -ExecutionPolicy Bypass -File scripts/render-diagrams.ps1`
 
 输出目录：
+
 - 工程图：`docs/architecture/rendered/`
 - 演示图：`docs/demo/rendered/`

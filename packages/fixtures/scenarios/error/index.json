@@ -10,5 +10,109 @@
   "GET /admin/user-verifications": {
     "status": 403,
     "body": { "code": "FORBIDDEN", "message": "无权限（演示）" }
+  },
+  "GET /admin/listings": {
+    "status": 500,
+    "body": { "code": "INTERNAL_ERROR", "message": "上架审核服务异常（演示）" }
+  },
+  "GET /orders": {
+    "status": 500,
+    "body": { "code": "INTERNAL_ERROR", "message": "订单服务异常（演示）" }
+  },
+  "GET /orders/:orderId/refund-requests": {
+    "status": 500,
+    "body": { "code": "INTERNAL_ERROR", "message": "退款查询异常（演示）" }
+  },
+  "GET /admin/config/trade-rules": {
+    "status": 500,
+    "body": { "code": "INTERNAL_ERROR", "message": "配置服务异常（演示）" }
+  },
+  "PUT /admin/config/trade-rules": {
+    "status": 500,
+    "body": { "code": "INTERNAL_ERROR", "message": "保存失败（演示）" }
+  },
+  "GET /admin/config/recommendation": {
+    "status": 500,
+    "body": { "code": "INTERNAL_ERROR", "message": "推荐配置加载失败（演示）" }
+  },
+  "PUT /admin/config/recommendation": {
+    "status": 500,
+    "body": { "code": "INTERNAL_ERROR", "message": "保存失败（演示）" }
+  },
+  "POST /files": {
+    "status": 500,
+    "body": { "code": "INTERNAL_ERROR", "message": "文件上传失败（演示）" }
+  },
+  "GET /admin/orders/:orderId/settlement": {
+    "status": 500,
+    "body": { "code": "INTERNAL_ERROR", "message": "结算台账服务异常（演示）" }
+  },
+  "POST /admin/orders/:orderId/payouts/manual": {
+    "status": 500,
+    "body": { "code": "INTERNAL_ERROR", "message": "放款确认失败（演示）" }
+  },
+  "GET /orders/:orderId/invoice": {
+    "status": 500,
+    "body": { "code": "INTERNAL_ERROR", "message": "发票服务异常（演示）" }
+  },
+  "PUT /admin/orders/:orderId/invoice": {
+    "status": 500,
+    "body": { "code": "INTERNAL_ERROR", "message": "保存发票失败（演示）" }
+  },
+  "DELETE /admin/orders/:orderId/invoice": {
+    "status": 500,
+    "body": { "code": "INTERNAL_ERROR", "message": "删除发票失败（演示）" }
+  },
+  "GET /admin/patent-map/regions/:regionCode/years/:year": {
+    "status": 500,
+    "body": { "code": "INTERNAL_ERROR", "message": "地图数据服务异常（演示）" }
+  },
+  "PUT /admin/patent-map/regions/:regionCode/years/:year": {
+    "status": 500,
+    "body": { "code": "INTERNAL_ERROR", "message": "地图数据保存失败（演示）" }
+  },
+  "GET /me/recommendations/listings": {
+    "status": 500,
+    "body": { "code": "INTERNAL_ERROR", "message": "推荐服务异常（演示）" }
+  },
+  "GET /me/conversations": {
+    "status": 500,
+    "body": { "code": "INTERNAL_ERROR", "message": "会话列表加载失败（演示）" }
+  },
+  "POST /listings/:listingId/conversations": {
+    "status": 500,
+    "body": { "code": "INTERNAL_ERROR", "message": "创建会话失败（演示）" }
+  },
+  "GET /conversations/:conversationId/messages": {
+    "status": 500,
+    "body": { "code": "INTERNAL_ERROR", "message": "消息加载失败（演示）" }
+  },
+  "POST /conversations/:conversationId/messages": {
+    "status": 500,
+    "body": { "code": "INTERNAL_ERROR", "message": "发送失败（演示）" }
+  },
+  "POST /conversations/:conversationId/read": {
+    "status": 500,
+    "body": { "code": "INTERNAL_ERROR", "message": "已读标记失败（演示）" }
+  },
+  "POST /patents/normalize": {
+    "status": 500,
+    "body": { "code": "INTERNAL_ERROR", "message": "号码解析服务异常（演示）" }
+  },
+  "GET /patent-map/years": {
+    "status": 500,
+    "body": { "code": "INTERNAL_ERROR", "message": "地图年份加载失败（演示）" }
+  },
+  "GET /patent-map/summary": {
+    "status": 500,
+    "body": { "code": "INTERNAL_ERROR", "message": "地图数据加载失败（演示）" }
+  },
+  "GET /search/inventors": {
+    "status": 500,
+    "body": { "code": "INTERNAL_ERROR", "message": "发明人榜服务异常（演示）" }
+  },
+  "GET /public/organizations": {
+    "status": 500,
+    "body": { "code": "INTERNAL_ERROR", "message": "机构列表服务异常（演示）" }
   }
 }

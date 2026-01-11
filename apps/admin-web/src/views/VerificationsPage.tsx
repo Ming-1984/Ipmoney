@@ -3,7 +3,13 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 
 import { apiGet, apiPost } from '../lib/api';
 
-type VerificationType = 'PERSON' | 'COMPANY' | 'ACADEMY' | 'GOVERNMENT' | 'ASSOCIATION' | 'TECH_MANAGER';
+type VerificationType =
+  | 'PERSON'
+  | 'COMPANY'
+  | 'ACADEMY'
+  | 'GOVERNMENT'
+  | 'ASSOCIATION'
+  | 'TECH_MANAGER';
 type VerificationStatus = 'PENDING' | 'APPROVED' | 'REJECTED';
 
 type UserVerification = {
@@ -38,7 +44,10 @@ export function VerificationsPage() {
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const d = await apiGet<PagedUserVerification>('/admin/user-verifications', { page: 1, pageSize: 10 });
+      const d = await apiGet<PagedUserVerification>('/admin/user-verifications', {
+        page: 1,
+        pageSize: 10,
+      });
       setData(d);
     } catch (e: any) {
       message.error(e?.message || '加载失败');
@@ -93,9 +102,12 @@ export function VerificationsPage() {
                       disabled={disabled}
                       onClick={async () => {
                         try {
-                          await apiPost<UserVerification>(`/admin/user-verifications/${r.id}/approve`, {
-                            comment: '通过（演示）',
-                          });
+                          await apiPost<UserVerification>(
+                            `/admin/user-verifications/${r.id}/approve`,
+                            {
+                              comment: '通过（演示）',
+                            },
+                          );
                           message.success('已通过');
                           void load();
                         } catch (e: any) {
@@ -110,9 +122,12 @@ export function VerificationsPage() {
                       disabled={disabled}
                       onClick={async () => {
                         try {
-                          await apiPost<UserVerification>(`/admin/user-verifications/${r.id}/reject`, {
-                            reason: '材料不完整（演示）',
-                          });
+                          await apiPost<UserVerification>(
+                            `/admin/user-verifications/${r.id}/reject`,
+                            {
+                              reason: '材料不完整（演示）',
+                            },
+                          );
                           message.success('已驳回');
                           void load();
                         } catch (e: any) {
@@ -134,4 +149,3 @@ export function VerificationsPage() {
     </Card>
   );
 }
-

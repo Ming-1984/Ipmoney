@@ -2,8 +2,9 @@ import { View, Text } from '@tarojs/components';
 import Taro, { useRouter } from '@tarojs/taro';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 
-import { apiGet } from '../../../lib/api';
+import { apiGet, apiPost } from '../../../lib/api';
 import { requireLogin } from '../../../lib/guard';
+import { ErrorCard, LoadingCard } from '../../../ui/StateCards';
 
 type ListingPublic = {
   id: string;
@@ -22,6 +23,8 @@ type ListingPublic = {
   seller?: { id: string; nickname?: string };
   stats?: { viewCount: number; favoriteCount: number; consultCount: number };
 };
+
+type Conversation = { id: string };
 
 function fenToYuan(fen?: number): string {
   if (fen === undefined || fen === null) return '-';
@@ -55,22 +58,26 @@ export default function ListingDetailPage() {
     void load();
   }, [load]);
 
+  const startConsult = useCallback(async () => {
+    if (!requireLogin()) return;
+    try {
+      const conv = await apiPost<Conversation>(
+        `/listings/${listingId}/conversations`,
+        {},
+        { idempotencyKey: `demo-consult-${listingId}` },
+      );
+      Taro.navigateTo({ url: `/pages/messages/chat/index?conversationId=${conv.id}` });
+    } catch (e: any) {
+      Taro.showToast({ title: e?.message || '进入咨询失败', icon: 'none' });
+    }
+  }, [listingId]);
+
   return (
     <View className="container">
       {loading ? (
-        <View className="card">
-          <Text className="muted">加载中…</Text>
-        </View>
+        <LoadingCard />
       ) : error ? (
-        <View className="card">
-          <Text style={{ fontWeight: 700 }}>加载失败</Text>
-          <View style={{ height: '8rpx' }} />
-          <Text className="muted">{error}</Text>
-          <View style={{ height: '12rpx' }} />
-          <View className="btn-primary" onClick={load}>
-            <Text>重试</Text>
-          </View>
-        </View>
+        <ErrorCard message={error} onRetry={load} />
       ) : data ? (
         <View>
           <View className="card">
@@ -81,7 +88,9 @@ export default function ListingDetailPage() {
             </Text>
             <View style={{ height: '6rpx' }} />
             <Text className="muted">
-              价格：{data.priceType === 'NEGOTIABLE' ? '面议' : `¥${fenToYuan(data.priceAmountFen)}`} · 订金：¥
+              价格：
+              {data.priceType === 'NEGOTIABLE' ? '面议' : `¥${fenToYuan(data.priceAmountFen)}`} ·
+              订金：¥
               {fenToYuan(data.depositAmountFen)}
             </Text>
             <View style={{ height: '8rpx' }} />
@@ -113,8 +122,7 @@ export default function ListingDetailPage() {
           <View
             className="card btn-ghost"
             onClick={() => {
-              if (!requireLogin()) return;
-              Taro.showToast({ title: '进入咨询（演示）', icon: 'none' });
+              void startConsult();
             }}
           >
             <Text>咨询（需登录）</Text>

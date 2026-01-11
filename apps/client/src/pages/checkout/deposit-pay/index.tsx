@@ -106,7 +106,9 @@ export default function DepositPayPage() {
             <View style={{ height: '10rpx' }} />
             <Text className="muted">
               订金：¥{fenToYuan(listing.depositAmountFen)} · 价格：
-              {listing.priceType === 'NEGOTIABLE' ? '面议' : `¥${fenToYuan(listing.priceAmountFen)}`}
+              {listing.priceType === 'NEGOTIABLE'
+                ? '面议'
+                : `¥${fenToYuan(listing.priceAmountFen)}`}
             </Text>
           </View>
 
@@ -116,13 +118,17 @@ export default function DepositPayPage() {
             <Text style={{ fontWeight: 700 }}>说明（演示）</Text>
             <View style={{ height: '8rpx' }} />
             <Text className="muted">
-              本页会调用：创建订单 → 创建支付意图（订金）。H5 不做真实微信支付，仅用于展示对接流程与异常场景。
+              本页会调用：创建订单 → 创建支付意图（订金）。H5
+              不做真实微信支付，仅用于展示对接流程与异常场景。
             </Text>
           </View>
 
           <View style={{ height: '16rpx' }} />
 
-          <View className={`card ${paying ? '' : 'btn-primary'}`} onClick={paying ? undefined : onPay}>
+          <View
+            className={`card ${paying ? '' : 'btn-primary'}`}
+            onClick={paying ? undefined : onPay}
+          >
             <Text>{paying ? '处理中…' : '生成支付意图（订金）'}</Text>
           </View>
 
@@ -145,4 +151,3 @@ export default function DepositPayPage() {
     </View>
   );
 }
-

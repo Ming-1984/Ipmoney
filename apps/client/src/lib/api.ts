@@ -9,7 +9,10 @@ function getScenario(): string {
   return Taro.getStorageSync(STORAGE_KEYS.mockScenario) || 'happy';
 }
 
-export async function apiGet<TResponse>(path: string, params?: Record<string, any>): Promise<TResponse> {
+export async function apiGet<TResponse>(
+  path: string,
+  params?: Record<string, any>,
+): Promise<TResponse> {
   const res = await Taro.request({
     url: `${API_BASE_URL}${path}`,
     method: 'GET',

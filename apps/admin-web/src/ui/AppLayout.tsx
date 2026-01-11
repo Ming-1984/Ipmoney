@@ -1,4 +1,9 @@
-import { AppstoreOutlined, FileDoneOutlined, GiftOutlined, SettingOutlined } from '@ant-design/icons';
+import {
+  AppstoreOutlined,
+  FileDoneOutlined,
+  GiftOutlined,
+  SettingOutlined,
+} from '@ant-design/icons';
 import { Layout, Menu, Select, Space, Typography } from 'antd';
 import React, { useMemo, useState } from 'react';
 import { Link, Outlet, useLocation } from 'react-router-dom';

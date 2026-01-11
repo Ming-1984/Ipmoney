@@ -18,10 +18,10 @@ export default function HomePage() {
       <View
         className="card btn-ghost"
         onClick={() => {
-          Taro.switchTab({ url: '/pages/search/index' });
+          Taro.navigateTo({ url: '/pages/feeds/index' });
         }}
       >
-        <Text>去检索（游客可用）</Text>
+        <Text>去信息流（猜你喜欢）</Text>
       </View>
 
       <View style={{ height: '16rpx' }} />
@@ -37,8 +37,40 @@ export default function HomePage() {
         >
           <Text>首次进入：选择身份注册</Text>
         </View>
+
+        <View style={{ height: '12rpx' }} />
+
+        <View
+          className="btn-ghost"
+          onClick={() => {
+            Taro.navigateTo({ url: '/pages/patent-map/index' });
+          }}
+        >
+          <Text>区域产业专利地图</Text>
+        </View>
+
+        <View style={{ height: '12rpx' }} />
+
+        <View
+          className="btn-ghost"
+          onClick={() => {
+            Taro.switchTab({ url: '/pages/search/index' });
+          }}
+        >
+          <Text>去检索（游客可用）</Text>
+        </View>
+
+        <View style={{ height: '12rpx' }} />
+
+        <View
+          className="btn-ghost"
+          onClick={() => {
+            Taro.navigateTo({ url: '/pages/inventors/index' });
+          }}
+        >
+          <Text>发明人榜（公开）</Text>
+        </View>
       </View>
     </View>
   );
 }
-

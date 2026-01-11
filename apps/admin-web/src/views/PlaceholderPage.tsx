@@ -13,4 +13,3 @@ export function PlaceholderPage(props: { title: string }) {
     </Card>
   );
 }
-

@@ -2,8 +2,9 @@ import { View, Text } from '@tarojs/components';
 import Taro from '@tarojs/taro';
 import React, { useCallback, useEffect, useState } from 'react';
 
-import { apiGet } from '../../lib/api';
+import { apiGet, apiPost } from '../../lib/api';
 import { requireLogin } from '../../lib/guard';
+import { EmptyCard, ErrorCard, LoadingCard } from '../../ui/StateCards';
 
 type PagedListingSummary = {
   items: Array<{
@@ -24,6 +25,8 @@ type PagedListingSummary = {
   }>;
   page: { page: number; pageSize: number; total: number };
 };
+
+type Conversation = { id: string };
 
 function fenToYuan(fen?: number): string {
   if (fen === undefined || fen === null) return '-';
@@ -49,6 +52,20 @@ export default function SearchPage() {
     }
   }, []);
 
+  const startConsult = useCallback(async (listingId: string) => {
+    if (!requireLogin()) return;
+    try {
+      const conv = await apiPost<Conversation>(
+        `/listings/${listingId}/conversations`,
+        {},
+        { idempotencyKey: `demo-consult-${listingId}` },
+      );
+      Taro.navigateTo({ url: `/pages/messages/chat/index?conversationId=${conv.id}` });
+    } catch (e: any) {
+      Taro.showToast({ title: e?.message || '进入咨询失败', icon: 'none' });
+    }
+  }, []);
+
   useEffect(() => {
     void load();
   }, [load]);
@@ -63,20 +80,32 @@ export default function SearchPage() {
 
       <View style={{ height: '16rpx' }} />
 
+      <View
+        className="card btn-ghost"
+        onClick={() => {
+          Taro.navigateTo({ url: '/pages/inventors/index' });
+        }}
+      >
+        <Text>发明人榜</Text>
+      </View>
+
+      <View style={{ height: '12rpx' }} />
+
+      <View
+        className="card btn-ghost"
+        onClick={() => {
+          Taro.navigateTo({ url: '/pages/patent-map/index' });
+        }}
+      >
+        <Text>专利地图</Text>
+      </View>
+
+      <View style={{ height: '16rpx' }} />
+
       {loading ? (
-        <View className="card">
-          <Text className="muted">加载中…</Text>
-        </View>
+        <LoadingCard />
       ) : error ? (
-        <View className="card">
-          <Text style={{ fontWeight: 700 }}>加载失败</Text>
-          <View style={{ height: '8rpx' }} />
-          <Text className="muted">{error}</Text>
-          <View style={{ height: '12rpx' }} />
-          <View className="btn-primary" onClick={load}>
-            <Text>重试</Text>
-          </View>
-        </View>
+        <ErrorCard message={error} onRetry={load} />
       ) : data?.items?.length ? (
         <View>
           {data.items.map((it) => (
@@ -95,7 +124,8 @@ export default function SearchPage() {
               </Text>
               <View style={{ height: '6rpx' }} />
               <Text className="muted">
-                价格：{it.priceType === 'NEGOTIABLE' ? '面议' : `¥${fenToYuan(it.priceAmountFen)}`} · 订金：¥
+                价格：{it.priceType === 'NEGOTIABLE' ? '面议' : `¥${fenToYuan(it.priceAmountFen)}`}{' '}
+                · 订金：¥
                 {fenToYuan(it.depositAmountFen)}
               </Text>
               <View style={{ height: '12rpx' }} />
@@ -114,8 +144,7 @@ export default function SearchPage() {
                 className="btn-primary"
                 onClick={(e) => {
                   e.stopPropagation();
-                  if (!requireLogin()) return;
-                  Taro.showToast({ title: '进入咨询（演示）', icon: 'none' });
+                  void startConsult(it.id);
                 }}
               >
                 <Text>咨询（需登录）</Text>
@@ -124,11 +153,11 @@ export default function SearchPage() {
           ))}
         </View>
       ) : (
-        <View className="card">
-          <Text style={{ fontWeight: 700 }}>暂无数据</Text>
-          <View style={{ height: '8rpx' }} />
-          <Text className="muted">可切换 Mock 场景为 happy / empty / error / edge 进行演示。</Text>
-        </View>
+        <EmptyCard
+          message="可切换 Mock 场景为 happy / empty / error / edge 进行演示。"
+          actionText="刷新"
+          onAction={load}
+        />
       )}
 
       <View style={{ height: '16rpx' }} />

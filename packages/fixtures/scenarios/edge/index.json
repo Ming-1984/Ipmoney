@@ -24,6 +24,25 @@
       ],
       "page": { "page": 1, "pageSize": 10, "total": 1 }
     }
+  },
+  "GET /public/listings/33333333-3333-3333-3333-333333333333": {
+    "status": 200,
+    "body": {
+      "id": "33333333-3333-3333-3333-333333333333",
+      "title": "外观设计：智能穿戴设备表面纹理",
+      "tradeMode": "ASSIGNMENT",
+      "priceType": "FIXED",
+      "priceAmountFen": 980000,
+      "depositAmountFen": 50000,
+      "auditStatus": "APPROVED",
+      "status": "ACTIVE",
+      "createdAt": "2026-01-08T08:00:00Z",
+      "patentType": "DESIGN",
+      "applicationNoDisplay": "202330000001.9",
+      "inventorNames": [],
+      "summary": "外观设计通常不展示“发明人”，用于演示缺失字段与 UI 兼容。",
+      "seller": { "id": "cccccccc-cccc-cccc-cccc-cccccccccccc", "nickname": "某工业设计工作室" },
+      "stats": { "viewCount": 0, "favoriteCount": 0, "consultCount": 0 }
+    }
   }
 }
-

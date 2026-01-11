@@ -24,4 +24,3 @@ export function ensureOnboarding(): boolean {
   }
   return true;
 }
-

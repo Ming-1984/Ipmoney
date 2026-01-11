@@ -116,9 +116,12 @@ export function OrdersPage() {
                   <Button
                     onClick={async () => {
                       try {
-                        await apiPost<Order>(`/admin/orders/${r.id}/milestones/transfer-completed`, {
-                          completedAt: new Date().toISOString(),
-                        });
+                        await apiPost<Order>(
+                          `/admin/orders/${r.id}/milestones/transfer-completed`,
+                          {
+                            completedAt: new Date().toISOString(),
+                          },
+                        );
                         message.success('变更完成确认成功');
                         void load();
                       } catch (e: any) {
@@ -139,4 +142,3 @@ export function OrdersPage() {
     </Card>
   );
 }
-

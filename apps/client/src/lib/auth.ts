@@ -38,4 +38,3 @@ export function getVerificationStatus(): VerificationStatus | null {
 export function setVerificationStatus(status: VerificationStatus) {
   Taro.setStorageSync(STORAGE_KEYS.verificationStatus, status);
 }
-

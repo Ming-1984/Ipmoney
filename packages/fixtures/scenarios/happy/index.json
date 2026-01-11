@@ -12,8 +12,8 @@
       "contractSignedDeadlineBusinessDays": 10,
       "transferCompletedSlaDays": 90,
       "commissionRate": 0.05,
-      "commissionMinFen": 0,
-      "commissionMaxFen": 500000,
+      "commissionMinFen": 100000,
+      "commissionMaxFen": 5000000,
       "payoutCondition": "TRANSFER_COMPLETED_CONFIRMED",
       "payoutMethodDefault": "MANUAL",
       "autoPayoutOnTimeout": false
@@ -376,6 +376,390 @@
       "status": "REJECTED",
       "createdAt": "2026-01-11T00:05:00Z",
       "updatedAt": "2026-01-11T00:06:00Z"
+    }
+  }
+  ,
+  "GET /admin/listings": {
+    "status": 200,
+    "body": {
+      "items": [
+        {
+          "id": "44444444-4444-4444-4444-444444444444",
+          "patentId": "eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee",
+          "applicationNoDisplay": "202311340972.0",
+          "patentType": "INVENTION",
+          "title": "一种用于锂电池热管理的散热结构（待审核）",
+          "inventorNames": ["张三", "李四"],
+          "tradeMode": "ASSIGNMENT",
+          "priceType": "FIXED",
+          "priceAmountFen": 28800000,
+          "depositAmountFen": 200000,
+          "regionCode": "110000",
+          "industryTags": ["新能源", "电池"],
+          "auditStatus": "PENDING",
+          "status": "ACTIVE",
+          "createdAt": "2026-01-11T01:00:00Z",
+          "sellerUserId": "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"
+        }
+      ],
+      "page": { "page": 1, "pageSize": 10, "total": 1 }
+    }
+  },
+  "POST /admin/listings/:listingId/approve": {
+    "status": 200,
+    "body": {
+      "id": "44444444-4444-4444-4444-444444444444",
+      "patentId": "eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee",
+      "applicationNoDisplay": "202311340972.0",
+      "patentType": "INVENTION",
+      "title": "一种用于锂电池热管理的散热结构（已通过）",
+      "inventorNames": ["张三", "李四"],
+      "tradeMode": "ASSIGNMENT",
+      "priceType": "FIXED",
+      "priceAmountFen": 28800000,
+      "depositAmountFen": 200000,
+      "regionCode": "110000",
+      "industryTags": ["新能源", "电池"],
+      "auditStatus": "APPROVED",
+      "status": "ACTIVE",
+      "createdAt": "2026-01-11T01:00:00Z",
+      "sellerUserId": "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"
+    }
+  },
+  "POST /admin/listings/:listingId/reject": {
+    "status": 200,
+    "body": {
+      "id": "44444444-4444-4444-4444-444444444444",
+      "patentId": "eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee",
+      "applicationNoDisplay": "202311340972.0",
+      "patentType": "INVENTION",
+      "title": "一种用于锂电池热管理的散热结构（已驳回）",
+      "inventorNames": ["张三", "李四"],
+      "tradeMode": "ASSIGNMENT",
+      "priceType": "FIXED",
+      "priceAmountFen": 28800000,
+      "depositAmountFen": 200000,
+      "regionCode": "110000",
+      "industryTags": ["新能源", "电池"],
+      "auditStatus": "REJECTED",
+      "status": "ACTIVE",
+      "createdAt": "2026-01-11T01:00:00Z",
+      "sellerUserId": "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"
+    }
+  },
+  "GET /admin/config/trade-rules": {
+    "status": 200,
+    "body": {
+      "version": 1,
+      "depositRate": 0.05,
+      "depositMinFen": 10000,
+      "depositMaxFen": 500000,
+      "depositFixedForNegotiableFen": 20000,
+      "autoRefundWindowMinutes": 30,
+      "sellerMaterialDeadlineBusinessDays": 3,
+      "contractSignedDeadlineBusinessDays": 10,
+      "transferCompletedSlaDays": 90,
+      "commissionRate": 0.05,
+      "commissionMinFen": 100000,
+      "commissionMaxFen": 5000000,
+      "payoutCondition": "TRANSFER_COMPLETED_CONFIRMED",
+      "payoutMethodDefault": "MANUAL",
+      "autoPayoutOnTimeout": false
+    }
+  },
+  "PUT /admin/config/trade-rules": {
+    "status": 200,
+    "body": {
+      "version": 2,
+      "depositRate": 0.05,
+      "depositMinFen": 10000,
+      "depositMaxFen": 500000,
+      "depositFixedForNegotiableFen": 20000,
+      "autoRefundWindowMinutes": 30,
+      "sellerMaterialDeadlineBusinessDays": 3,
+      "contractSignedDeadlineBusinessDays": 10,
+      "transferCompletedSlaDays": 90,
+      "commissionRate": 0.05,
+      "commissionMinFen": 100000,
+      "commissionMaxFen": 5000000,
+      "payoutCondition": "TRANSFER_COMPLETED_CONFIRMED",
+      "payoutMethodDefault": "MANUAL",
+      "autoPayoutOnTimeout": false
+    }
+  },
+  "GET /admin/config/recommendation": {
+    "status": 200,
+    "body": {
+      "enabled": true,
+      "timeDecayHalfLifeHours": 72,
+      "dedupeWindowHours": 24,
+      "weights": { "time": 1, "view": 1, "favorite": 2, "consult": 3, "region": 2, "user": 1 },
+      "featuredBoost": { "province": 2, "city": 3 },
+      "updatedAt": "2026-01-11T00:00:00Z"
+    }
+  },
+  "PUT /admin/config/recommendation": {
+    "status": 200,
+    "body": {
+      "enabled": true,
+      "timeDecayHalfLifeHours": 72,
+      "dedupeWindowHours": 24,
+      "weights": { "time": 1, "view": 1, "favorite": 2, "consult": 3, "region": 2, "user": 1 },
+      "featuredBoost": { "province": 2, "city": 3 },
+      "updatedAt": "2026-01-11T00:01:00Z"
+    }
+  },
+  "POST /files": {
+    "status": 201,
+    "body": {
+      "id": "f0f0f0f0-0000-0000-0000-000000000000",
+      "url": "https://example.com/files/demo.pdf",
+      "mimeType": "application/pdf",
+      "sizeBytes": 123456,
+      "createdAt": "2026-01-11T12:00:00Z"
+    }
+  },
+  "GET /admin/orders/dddddddd-dddd-dddd-dddd-dddddddddddd/settlement": {
+    "status": 200,
+    "body": {
+      "id": "55555555-5555-5555-5555-555555555555",
+      "orderId": "dddddddd-dddd-dddd-dddd-dddddddddddd",
+      "grossAmountFen": 28800000,
+      "commissionAmountFen": 1440000,
+      "payoutAmountFen": 27360000,
+      "payoutMethod": "MANUAL",
+      "payoutStatus": "PENDING",
+      "createdAt": "2026-01-11T12:00:00Z",
+      "updatedAt": "2026-01-11T12:00:00Z"
+    }
+  },
+  "POST /admin/orders/dddddddd-dddd-dddd-dddd-dddddddddddd/payouts/manual": {
+    "status": 200,
+    "body": {
+      "id": "55555555-5555-5555-5555-555555555555",
+      "orderId": "dddddddd-dddd-dddd-dddd-dddddddddddd",
+      "grossAmountFen": 28800000,
+      "commissionAmountFen": 1440000,
+      "payoutAmountFen": 27360000,
+      "payoutMethod": "MANUAL",
+      "payoutStatus": "SUCCEEDED",
+      "payoutRef": "manual-transfer-20260111",
+      "payoutEvidenceFileId": "f0f0f0f0-0000-0000-0000-000000000000",
+      "payoutAt": "2026-01-11T12:10:00Z",
+      "createdAt": "2026-01-11T12:00:00Z",
+      "updatedAt": "2026-01-11T12:10:00Z"
+    }
+  },
+  "GET /orders/dddddddd-dddd-dddd-dddd-dddddddddddd/invoice": {
+    "status": 200,
+    "body": {
+      "orderId": "dddddddd-dddd-dddd-dddd-dddddddddddd",
+      "amountFen": 1440000,
+      "itemName": "居间服务费",
+      "invoiceNo": "E-20260111-0001",
+      "issuedAt": "2026-01-11T12:20:00Z",
+      "invoiceFile": {
+        "id": "f0f0f0f0-0000-0000-0000-000000000000",
+        "url": "https://example.com/files/invoice-demo.pdf",
+        "mimeType": "application/pdf",
+        "sizeBytes": 234567,
+        "createdAt": "2026-01-11T12:21:00Z"
+      },
+      "attachedAt": "2026-01-11T12:22:00Z",
+      "updatedAt": "2026-01-11T12:22:00Z"
+    }
+  },
+  "PUT /admin/orders/dddddddd-dddd-dddd-dddd-dddddddddddd/invoice": {
+    "status": 200,
+    "body": {
+      "orderId": "dddddddd-dddd-dddd-dddd-dddddddddddd",
+      "amountFen": 1440000,
+      "itemName": "居间服务费",
+      "invoiceNo": "E-20260111-0001",
+      "issuedAt": "2026-01-11T12:20:00Z",
+      "invoiceFile": {
+        "id": "f0f0f0f0-0000-0000-0000-000000000000",
+        "url": "https://example.com/files/invoice-demo.pdf",
+        "mimeType": "application/pdf",
+        "sizeBytes": 234567,
+        "createdAt": "2026-01-11T12:21:00Z"
+      },
+      "attachedAt": "2026-01-11T12:22:00Z",
+      "updatedAt": "2026-01-11T12:22:00Z"
+    }
+  },
+  "DELETE /admin/orders/dddddddd-dddd-dddd-dddd-dddddddddddd/invoice": {
+    "status": 204
+  },
+  "GET /admin/patent-map/regions/110000/years/2025": {
+    "status": 200,
+    "body": {
+      "regionCode": "110000",
+      "year": 2025,
+      "patentCount": 1200,
+      "industryBreakdown": [
+        { "industryTag": "新能源", "patentCount": 480 },
+        { "industryTag": "智能制造", "patentCount": 320 },
+        { "industryTag": "新材料", "patentCount": 160 }
+      ],
+      "topAssignees": [
+        { "assigneeName": "某新能源企业", "patentCount": 120 },
+        { "assigneeName": "某高校技术转移中心", "patentCount": 98 }
+      ],
+      "createdAt": "2026-01-01T00:00:00Z",
+      "updatedAt": "2026-01-11T00:00:00Z"
+    }
+  },
+  "PUT /admin/patent-map/regions/110000/years/2025": {
+    "status": 200,
+    "body": {
+      "regionCode": "110000",
+      "year": 2025,
+      "patentCount": 1200,
+      "industryBreakdown": [
+        { "industryTag": "新能源", "patentCount": 480 },
+        { "industryTag": "智能制造", "patentCount": 320 },
+        { "industryTag": "新材料", "patentCount": 160 }
+      ],
+      "topAssignees": [
+        { "assigneeName": "某新能源企业", "patentCount": 120 },
+        { "assigneeName": "某高校技术转移中心", "patentCount": 98 }
+      ],
+      "createdAt": "2026-01-01T00:00:00Z",
+      "updatedAt": "2026-01-11T00:01:00Z"
+    }
+  },
+  "GET /me/recommendations/listings": {
+    "status": 200,
+    "body": {
+      "items": [
+        {
+          "id": "11111111-1111-1111-1111-111111111111",
+          "title": "一种用于锂电池热管理的散热结构",
+          "tradeMode": "ASSIGNMENT",
+          "priceType": "FIXED",
+          "priceAmountFen": 28800000,
+          "depositAmountFen": 200000,
+          "auditStatus": "APPROVED",
+          "status": "ACTIVE",
+          "createdAt": "2026-01-10T10:00:00Z",
+          "patentType": "INVENTION",
+          "applicationNoDisplay": "202311340972.0",
+          "inventorNames": ["张三", "李四"],
+          "regionCode": "110000",
+          "industryTags": ["新能源", "电池"],
+          "featuredLevel": "PROVINCE",
+          "featuredRegionCode": "110000",
+          "featuredRank": 1,
+          "stats": { "viewCount": 320, "favoriteCount": 18, "consultCount": 6 },
+          "recommendationScore": 0.92
+        },
+        {
+          "id": "22222222-2222-2222-2222-222222222222",
+          "title": "一种便携式智能水质检测装置",
+          "tradeMode": "LICENSE",
+          "licenseMode": "NON_EXCLUSIVE",
+          "priceType": "NEGOTIABLE",
+          "depositAmountFen": 100000,
+          "auditStatus": "APPROVED",
+          "status": "ACTIVE",
+          "createdAt": "2026-01-09T09:00:00Z",
+          "patentType": "UTILITY_MODEL",
+          "applicationNoDisplay": "202321234567.8",
+          "inventorNames": ["王五"],
+          "regionCode": "310000",
+          "industryTags": ["环保", "传感器"],
+          "featuredLevel": "CITY",
+          "featuredRegionCode": "310000",
+          "featuredRank": 3,
+          "stats": { "viewCount": 210, "favoriteCount": 9, "consultCount": 3 },
+          "recommendationScore": 0.71
+        }
+      ],
+      "page": { "page": 1, "pageSize": 10, "total": 2 }
+    }
+  },
+  "GET /me/conversations": {
+    "status": 200,
+    "body": {
+      "items": [
+        {
+          "id": "c0c0c0c0-0000-0000-0000-000000000000",
+          "listingId": "11111111-1111-1111-1111-111111111111",
+          "listingTitle": "一种用于锂电池热管理的散热结构",
+          "lastMessagePreview": "您好，我们想了解权属材料与变更周期。",
+          "lastMessageAt": "2026-01-11T09:00:00Z",
+          "unreadCount": 1,
+          "counterpart": {
+            "id": "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
+            "nickname": "某新能源企业",
+            "avatarUrl": "https://example.com/avatar-seller.png"
+          }
+        }
+      ],
+      "page": { "page": 1, "pageSize": 20, "total": 1 }
+    }
+  },
+  "POST /listings/:listingId/conversations": {
+    "status": 200,
+    "body": {
+      "id": "c0c0c0c0-0000-0000-0000-000000000000",
+      "listingId": "11111111-1111-1111-1111-111111111111",
+      "listingTitle": "一种用于锂电池热管理的散热结构",
+      "orderId": null,
+      "buyerUserId": "99999999-9999-9999-9999-999999999999",
+      "sellerUserId": "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
+      "lastMessageAt": "2026-01-11T09:00:00Z",
+      "createdAt": "2026-01-11T08:59:00Z",
+      "updatedAt": "2026-01-11T09:00:00Z"
+    }
+  },
+  "GET /conversations/:conversationId/messages": {
+    "status": 200,
+    "body": {
+      "items": [
+        {
+          "id": "m0000000-0000-0000-0000-000000000001",
+          "conversationId": "c0c0c0c0-0000-0000-0000-000000000000",
+          "senderUserId": "99999999-9999-9999-9999-999999999999",
+          "type": "TEXT",
+          "text": "您好，我们想了解权属材料与变更周期。",
+          "createdAt": "2026-01-11T08:59:30Z"
+        },
+        {
+          "id": "m0000000-0000-0000-0000-000000000002",
+          "conversationId": "c0c0c0c0-0000-0000-0000-000000000000",
+          "senderUserId": "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
+          "type": "TEXT",
+          "text": "可以，材料齐全后我们会配合办理，平台客服会跟单。",
+          "createdAt": "2026-01-11T09:00:00Z"
+        }
+      ],
+      "nextCursor": null
+    }
+  },
+  "POST /conversations/:conversationId/messages": {
+    "status": 201,
+    "body": {
+      "id": "m0000000-0000-0000-0000-000000000003",
+      "conversationId": "c0c0c0c0-0000-0000-0000-000000000000",
+      "senderUserId": "99999999-9999-9999-9999-999999999999",
+      "type": "TEXT",
+      "text": "收到，谢谢（演示）",
+      "createdAt": "2026-01-11T09:01:00Z"
+    }
+  },
+  "POST /conversations/:conversationId/read": {
+    "status": 204
+  },
+  "POST /patents/normalize": {
+    "status": 200,
+    "body": {
+      "jurisdiction": "CN",
+      "inputType": "APPLICATION_NO",
+      "applicationNoNorm": "2023113409720",
+      "applicationNoDisplay": "202311340972.0",
+      "patentType": "INVENTION"
     }
   }
 }

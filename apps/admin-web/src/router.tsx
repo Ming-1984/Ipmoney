@@ -2,9 +2,14 @@ import { createBrowserRouter } from 'react-router-dom';
 
 import { AppLayout } from './ui/AppLayout';
 import { LoginPage } from './views/LoginPage';
+import { ListingsAuditPage } from './views/ListingsAuditPage';
+import { ConfigPage } from './views/ConfigPage';
+import { InvoicesPage } from './views/InvoicesPage';
 import { OrdersPage } from './views/OrdersPage';
+import { PatentMapPage } from './views/PatentMapPage';
 import { PlaceholderPage } from './views/PlaceholderPage';
 import { RefundsPage } from './views/RefundsPage';
+import { SettlementsPage } from './views/SettlementsPage';
 import { VerificationsPage } from './views/VerificationsPage';
 
 export const router = createBrowserRouter([
@@ -18,13 +23,13 @@ export const router = createBrowserRouter([
     children: [
       { index: true, element: <PlaceholderPage title="仪表盘" /> },
       { path: 'verifications', element: <VerificationsPage /> },
-      { path: 'listings', element: <PlaceholderPage title="上架审核" /> },
+      { path: 'listings', element: <ListingsAuditPage /> },
       { path: 'orders', element: <OrdersPage /> },
       { path: 'refunds', element: <RefundsPage /> },
-      { path: 'settlements', element: <PlaceholderPage title="放款/结算" /> },
-      { path: 'invoices', element: <PlaceholderPage title="发票管理" /> },
-      { path: 'config', element: <PlaceholderPage title="交易/推荐配置" /> },
-      { path: 'patent-map', element: <PlaceholderPage title="专利地图 CMS" /> }
+      { path: 'settlements', element: <SettlementsPage /> },
+      { path: 'invoices', element: <InvoicesPage /> },
+      { path: 'config', element: <ConfigPage /> },
+      { path: 'patent-map', element: <PatentMapPage /> },
     ],
   },
 ]);

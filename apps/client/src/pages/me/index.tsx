@@ -1,12 +1,34 @@
 import { View, Text } from '@tarojs/components';
 import Taro from '@tarojs/taro';
-import React, { useMemo } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 
 import { STORAGE_KEYS } from '../../constants';
-import { getToken, getVerificationStatus, getVerificationType } from '../../lib/auth';
+import {
+  clearToken,
+  getToken,
+  getVerificationStatus,
+  getVerificationType,
+  isOnboardingDone,
+} from '../../lib/auth';
+import { apiGet } from '../../lib/api';
+import { ErrorCard, LoadingCard } from '../../ui/StateCards';
+
+type Me = {
+  id: string;
+  phone?: string;
+  nickname?: string;
+  avatarUrl?: string;
+  role?: string;
+  verificationStatus?: string;
+  verificationType?: string;
+  regionCode?: string;
+  createdAt?: string;
+  updatedAt?: string;
+};
 
 export default function MePage() {
   const token = getToken();
+  const onboardingDone = isOnboardingDone();
   const verification = useMemo(() => {
     return {
       type: getVerificationType(),
@@ -14,9 +36,30 @@ export default function MePage() {
     };
   }, []);
 
-  const scenario = useMemo(() => {
-    return Taro.getStorageSync(STORAGE_KEYS.mockScenario) || 'happy';
-  }, []);
+  const [meLoading, setMeLoading] = useState(false);
+  const [meError, setMeError] = useState<string | null>(null);
+  const [me, setMe] = useState<Me | null>(null);
+
+  const scenario = useMemo(() => Taro.getStorageSync(STORAGE_KEYS.mockScenario) || 'happy', []);
+
+  const loadMe = useCallback(async () => {
+    if (!token) return;
+    setMeLoading(true);
+    setMeError(null);
+    try {
+      const d = await apiGet<Me>('/me');
+      setMe(d);
+    } catch (e: any) {
+      setMeError(e?.message || '加载失败');
+      setMe(null);
+    } finally {
+      setMeLoading(false);
+    }
+  }, [token]);
+
+  useEffect(() => {
+    void loadMe();
+  }, [loadMe]);
 
   return (
     <View className="container">
@@ -28,6 +71,8 @@ export default function MePage() {
         <Text className="muted">
           身份：{verification.type ?? '-'} / 状态：{verification.status ?? '-'}
         </Text>
+        <View style={{ height: '4rpx' }} />
+        <Text className="muted">首次进入完成：{onboardingDone ? '是' : '否'}</Text>
         <View style={{ height: '4rpx' }} />
         <Text className="muted">Mock 场景：{scenario}</Text>
       </View>
@@ -44,13 +89,62 @@ export default function MePage() {
           <Text>登录/注册</Text>
         </View>
       ) : (
-        <View
-          className="card btn-ghost"
-          onClick={() => {
-            Taro.navigateTo({ url: '/pages/onboarding/choose-identity/index' });
-          }}
-        >
-          <Text>身份/认证（首次进入必选）</Text>
+        <View>
+          {meLoading ? <LoadingCard text="加载我的资料…" /> : null}
+          {meError ? <ErrorCard message={meError} onRetry={loadMe} /> : null}
+          {me && !meLoading && !meError ? (
+            <View className="card">
+              <Text style={{ fontWeight: 700 }}>{me.nickname || '演示用户'}</Text>
+              <View style={{ height: '6rpx' }} />
+              <Text className="muted">地区：{me.regionCode || '-'}</Text>
+            </View>
+          ) : null}
+
+          <View style={{ height: '12rpx' }} />
+
+          <View
+            className="card btn-ghost"
+            onClick={() => {
+              Taro.navigateTo({ url: '/pages/onboarding/choose-identity/index' });
+            }}
+          >
+            <Text>身份/认证（首次进入必选）</Text>
+          </View>
+
+          <View style={{ height: '12rpx' }} />
+
+          <View
+            className="card btn-ghost"
+            onClick={() => {
+              Taro.switchTab({ url: '/pages/messages/index' });
+            }}
+          >
+            <Text>我的咨询/消息</Text>
+          </View>
+
+          <View style={{ height: '12rpx' }} />
+
+          <View
+            className="card btn-ghost"
+            onClick={() => {
+              Taro.navigateTo({ url: '/pages/organizations/index' });
+            }}
+          >
+            <Text>机构展示</Text>
+          </View>
+
+          <View style={{ height: '12rpx' }} />
+
+          <View
+            className="card btn-ghost"
+            onClick={() => {
+              clearToken();
+              Taro.showToast({ title: '已退出登录', icon: 'success' });
+              setTimeout(() => Taro.reLaunch({ url: '/pages/home/index' }), 200);
+            }}
+          >
+            <Text>退出登录</Text>
+          </View>
         </View>
       )}
 

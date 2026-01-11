@@ -9,11 +9,11 @@
   - [x] C4（Context/Container/Component）+ 关键时序图 + ER 图 + 业务流程图（BPMN/Flowchart）齐全且一致
   - [x] OpenAPI 覆盖 P0 主链路且字段/枚举与 ER/状态机一致
   - [x] **演示级图表包**：业务泳道逻辑图 + P0/目标架构 + 部署图 + 资金/数据流安全边界（代码生成，可导出 PNG/PDF）
-- [ ] **M0.5：前端骨架演示（Mock 驱动，不等后端）**
-  - [ ] 用户端（小程序 + H5）：页面骨架 + 交互/状态机（loading/empty/error/权限/审核中/不可操作原因提示）完成
-  - [ ] 后台（Admin Web）：关键页面骨架完成（认证审核/上架审核/订单/退款/放款/发票/地图 CMS）
-  - [ ] OpenAPI Mock 可运行：可切换“正常/失败/重放/无数据”等场景；fixtures 可复用做截图与演示
-  - [ ] 视觉规范落地：主色橙色（寓意成功），「专利变金豆矿」视觉点缀（见 `docs/engineering/design-system.md`）
+- [x] **M0.5：前端骨架演示（Mock 驱动，不等后端）**
+  - [x] 用户端（小程序 + H5）：页面骨架 + 交互/状态机（loading/empty/error/权限/审核中/不可操作原因提示）完成
+  - [x] 后台（Admin Web）：关键页面骨架完成（认证审核/上架审核/订单/退款/放款/发票/地图 CMS）
+  - [x] OpenAPI Mock 可运行：可切换“正常/失败/重放/无数据”等场景；fixtures 可复用做截图与演示
+  - [x] 视觉规范落地：主色橙色（寓意成功），「专利变金豆矿」视觉点缀（见 `docs/engineering/design-system.md`）
 - [ ] **M1：可联调 API Mock / 服务骨架**
 - [ ] **M2：P0 主链路可跑通（订金→合同确认→尾款→变更完成→结算放款）**
 - [ ] **M3：上线前合规/风控/对账齐套**
@@ -76,11 +76,12 @@
   - [x] 金额统一 `*_Fen`（分），时间统一 ISO8601
   - [x] 状态枚举与 PRD/时序/ER 完全一致
 - [x] 增加幂等与对账字段规范（支付/退款/放款）：
-  - [x] `Idempotency-Key`（建议）与回调验签 Header（Wechatpay-*）说明（占位）
+  - [x] `Idempotency-Key`（建议）与回调验签 Header（Wechatpay-\*）说明（占位）
 
 ## 5. 架构图与业务流程图（给甲方演示用）
 
 现有文件：
+
 - `docs/architecture/c4-context.mmd`
 - `docs/architecture/c4-container.mmd`
 - `docs/architecture/c4-component-order.mmd`
@@ -89,6 +90,7 @@
 - `docs/architecture/sequence-settlement.mmd`
 
 需补齐/优化：
+
 - [x] C4-Container：把“P0 不接外部数据源”明确标注（P1 可选适配层）
 - [x] 增加 **业务流程图**（建议新增文件，便于演示）：
   - [x] `docs/architecture/flow-listing-publish.mmd`（发布→审核→上架）
@@ -98,6 +100,7 @@
 - [x] 如甲方需要“微服务可拆分”说明：补一页拆分策略（按域/按流量/按合规）
 
 演示增强（更“高端/可讲故事”，仍保持与工程一致）：
+
 - [x] 业务主链路泳道逻辑图（含关键决策/超时/可退不可退分支）：`docs/demo/diagrams/business-core-swimlane.mmd`
 - [x] 退款/争议泳道逻辑图（自动秒退/人工审核/证据/对账）：`docs/demo/diagrams/business-refund-dispute-swimlane.mmd`
 - [x] P0 逻辑架构（模块化单体，可拆分微服务）：`docs/demo/diagrams/architecture-p0-logical.mmd`
@@ -109,6 +112,7 @@
 ## 6. 技术工程选型（写成可执行配置）
 
 新增文件（建议）：
+
 - [x] `docs/engineering/tech-stack.md`（选型与理由：后端/DB/缓存/搜索/对象存储/消息队列/支付/部署）
 - [x] `docs/engineering/environments.md`（dev/test/prod 环境变量清单与密钥管理）
 - [x] `docs/engineering/repo-structure.md`（代码组织：模块化单体→可拆分微服务）
@@ -116,6 +120,7 @@
 - [x] `docs/engineering/design-system.md`（前端橙色主题 + 金豆矿理念：组件/状态/文案规范）
 
 必须定稿项：
+
 - [x] 后端语言/框架（Node.js + NestJS + TypeScript）
 - [x] 数据库（PostgreSQL）与 ORM/迁移方案（P0：Prisma）
 - [x] 小程序技术栈（Taro + React + TypeScript）
@@ -132,12 +137,12 @@
 
 ### 7.1 仓库与工程化（M1）
 
-- [ ] 初始化 Monorepo（建议 pnpm workspace）：`apps/api` + `apps/admin-web` + `apps/client`（Taro：小程序+H5）+ `packages/shared`
-- [ ] 统一 TypeScript/ESLint/Prettier 配置；约定版本（Node LTS、pnpm）与目录规范（见 `docs/engineering/repo-structure.md`）
+- [x] 初始化 Monorepo（pnpm workspace）：`apps/api` + `apps/admin-web` + `apps/client` + `apps/mock-api` + `packages/fixtures`（`packages/shared` 后续需要再抽）
+- [x] 统一 TypeScript/ESLint/Prettier 配置；约定版本（Node LTS、pnpm）与目录规范（见 `docs/engineering/repo-structure.md`）
 - [ ] 本地一键启动：`docker-compose`（Postgres + Redis + MinIO）+ `apps/api`（热更新）
 - [ ] OpenAPI 驱动：生成 client SDK/类型（或在 `packages/shared` 维护 DTO 与枚举，和 `docs/api/openapi.yaml` 对齐）
-- [ ] Mock 驱动并行开发：基于 `docs/api/openapi.yaml` 启动 mock（Prism/fixtures），并提供“场景切换”（退款失败/回调重放/无数据等）
-- [ ] CI（可选）：lint + typecheck + OpenAPI lint（`npx -y @redocly/cli lint docs/api/openapi.yaml`）
+- [x] Mock 驱动并行开发：基于 `docs/api/openapi.yaml` 启动 mock（Prism/fixtures），并提供“场景切换”（退款失败/回调重放/无数据等）
+- [x] CI（可选）：lint + typecheck + OpenAPI lint（见 `.github/workflows/ci.yml`）
 
 ### 7.2 数据库与迁移（M1）
 
@@ -262,41 +267,46 @@
 
 ## 10. 开发开工前置（M0.5/M1，建议按顺序做）
 
-- [ ] 工程化约定一次定稿：
+- [x] 工程化约定一次定稿：
   - [x] Node 版本约定（`.nvmrc`）
   - [x] 包管理器（pnpm，Corepack）
   - [x] Monorepo（pnpm workspace + Turborepo）
   - [x] Prettier（根配置）
-  - [ ] ESLint（待补齐：统一规则 + 提交前校验）
+  - [x] ESLint（统一规则 + `pnpm lint` 校验）
 - [x] 按 `docs/engineering/repo-structure.md` 落地工程目录（`apps/*`、`packages/*`）+ 一键本地依赖（`docker-compose.yml`）
-- [ ] Git 仓库与 GitHub（协作/CI）：
+- [x] Git 仓库与 GitHub（协作/CI）：
   - [x] 本地 git 初始化并完成初始提交
   - [x] GitHub 配置文件（Actions CI / Dependabot / PR Template）
-  - [ ] 添加 GitHub remote 并 push（需要 repo URL / 权限）
+  - [x] 添加 GitHub remote 并 push（已连接仓库并推送）
 - [x] OpenAPI 工具链落地（契约先行）：
   - [x] `pnpm openapi:lint`
   - [x] `pnpm openapi:preview`（默认 `http://127.0.0.1:8080`）
   - [x] `pnpm mock`（fixtures + Prism fallback：`http://127.0.0.1:4010`）
-- [ ] Mock 驱动并行开发（见 `docs/engineering/mocking.md`）：
+- [x] Mock 驱动并行开发（见 `docs/engineering/mocking.md`）：
   - [x] fixtures 场景（happy/empty/error/edge）落地，支持 `X-Mock-Scenario` 一键切换
-  - [ ] 覆盖难场景：退款失败、回调重放、订单非法跳转、无数据、未登录/无权限、审核中/驳回
+  - [x] 覆盖难场景：退款失败、回调重放、订单非法跳转、无数据、未登录/无权限、审核中/驳回
     - [x] 回调重放/幂等冲突（`payment_callback_replay`：支付意图 409）
     - [x] 退款失败（`refund_failed`：退款审批通过 409）
     - [x] 状态机冲突（`order_conflict`：里程碑确认 409）
-- [ ] 前端骨架演示交付物（给甲方，后端未就绪也能演示；见 `docs/engineering/frontend-skeleton.md`）：
-  - [ ] 用户端（Taro 小程序 + H5）：
+- [x] 前端骨架演示交付物（给甲方，后端未就绪也能演示；见 `docs/engineering/frontend-skeleton.md`）：
+  - [x] 用户端（Taro 小程序 + H5）：
     - [x] 工程骨架 + TabBar + 基础页面（Home/Search/Publish/Messages/Me/Login/Onboarding）
     - [x] 接入 Mock（`apps/mock-api`：fixtures + Prism fallback）并对齐字段/枚举（Search/List/Detail 已接入）
     - [x] 订金支付演示链路（创建订单 → 创建支付意图 → 成功页）
-    - [ ] 全量状态机（loading/empty/error/permission/audit）覆盖所有页面（目前 Search/Detail/订金支付 已覆盖）
-  - [ ] 后台（React/AntD）：
+    - [x] 全量状态机（loading/empty/error/permission/audit）覆盖所有页面（含信息流/地图/发明人榜/机构展示/会话）
+  - [x] 后台（React/AntD）：
     - [x] 工程骨架 + Layout + 菜单页骨架
-    - [ ] 接入 Mock + 表格/详情页骨架（审核/订单/退款/放款/发票/配置/地图）
+    - [x] 接入 Mock + 表格/详情页骨架（审核/订单/退款/放款/发票/配置/地图）
       - [x] 认证审核列表（`/admin/user-verifications`）+ 通过/驳回（演示）
+      - [x] 上架审核列表（`/admin/listings`）+ 通过/驳回（演示）
       - [x] 订单管理：里程碑确认（合同确认/变更完成）（演示）
       - [x] 退款管理：按订单查看退款单 + 审批通过/驳回（演示）
+      - [x] 交易/推荐配置（`/admin/config/*`）+ 保存（演示）
+      - [x] 放款/结算（`/admin/orders/*/settlement` + `/payouts/manual`）+ 上传凭证（演示）
+      - [x] 发票管理（`/admin/orders/*/invoice`）+ 上传/删除（演示）
+      - [x] 专利地图 CMS（`/admin/patent-map/*`）+ 录入/更新（演示）
   - [x] 视觉规范落地：橙色主题 +「专利变金豆矿」点缀（`docs/engineering/design-system.md`）
-  - [ ] 演示脚本：固定 fixtures + 一键启动（Mock + 前端）+ 截图/录屏清单
+  - [x] 演示脚本：固定 fixtures + 一键启动（Mock + 前端）+ 截图/录屏清单（`scripts/demo.ps1` + `docs/demo/runbook.md`）
 - [ ] 后端骨架（便于并行）：
   - [x] NestJS 工程骨架 + `/health`
   - [ ] 模块划分（auth/user/patent/listing/order/payment/refund/settlement/file/config）

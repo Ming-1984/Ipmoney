@@ -26,5 +26,112 @@
       "items": [],
       "page": { "page": 1, "pageSize": 10, "total": 0 }
     }
+  },
+  "GET /admin/listings": {
+    "status": 200,
+    "body": {
+      "items": [],
+      "page": { "page": 1, "pageSize": 10, "total": 0 }
+    }
+  },
+  "GET /orders": {
+    "status": 200,
+    "body": {
+      "items": [],
+      "page": { "page": 1, "pageSize": 10, "total": 0 }
+    }
+  },
+  "GET /orders/:orderId/refund-requests": {
+    "status": 200,
+    "body": []
+  },
+  "GET /admin/config/trade-rules": {
+    "status": 200,
+    "body": {
+      "version": 1,
+      "depositRate": 0.05,
+      "depositMinFen": 10000,
+      "depositMaxFen": 500000,
+      "depositFixedForNegotiableFen": 20000,
+      "autoRefundWindowMinutes": 30,
+      "sellerMaterialDeadlineBusinessDays": 3,
+      "contractSignedDeadlineBusinessDays": 10,
+      "transferCompletedSlaDays": 90,
+      "commissionRate": 0.05,
+      "commissionMinFen": 100000,
+      "commissionMaxFen": 5000000,
+      "payoutCondition": "TRANSFER_COMPLETED_CONFIRMED",
+      "payoutMethodDefault": "MANUAL",
+      "autoPayoutOnTimeout": false
+    }
+  },
+  "PUT /admin/config/trade-rules": {
+    "status": 200,
+    "body": {
+      "version": 2,
+      "depositRate": 0.05,
+      "depositMinFen": 10000,
+      "depositMaxFen": 500000,
+      "depositFixedForNegotiableFen": 20000,
+      "autoRefundWindowMinutes": 30,
+      "sellerMaterialDeadlineBusinessDays": 3,
+      "contractSignedDeadlineBusinessDays": 10,
+      "transferCompletedSlaDays": 90,
+      "commissionRate": 0.05,
+      "commissionMinFen": 100000,
+      "commissionMaxFen": 5000000,
+      "payoutCondition": "TRANSFER_COMPLETED_CONFIRMED",
+      "payoutMethodDefault": "MANUAL",
+      "autoPayoutOnTimeout": false
+    }
+  },
+  "GET /admin/config/recommendation": {
+    "status": 200,
+    "body": {
+      "enabled": true,
+      "timeDecayHalfLifeHours": 72,
+      "dedupeWindowHours": 24,
+      "weights": { "time": 1, "view": 1, "favorite": 2, "consult": 3, "region": 2, "user": 1 },
+      "featuredBoost": { "province": 2, "city": 3 },
+      "updatedAt": "2026-01-11T00:00:00Z"
+    }
+  },
+  "PUT /admin/config/recommendation": {
+    "status": 200,
+    "body": {
+      "enabled": true,
+      "timeDecayHalfLifeHours": 72,
+      "dedupeWindowHours": 24,
+      "weights": { "time": 1, "view": 1, "favorite": 2, "consult": 3, "region": 2, "user": 1 },
+      "featuredBoost": { "province": 2, "city": 3 },
+      "updatedAt": "2026-01-11T00:01:00Z"
+    }
+  },
+  "GET /admin/orders/:orderId/settlement": { "status": 404 },
+  "GET /orders/:orderId/invoice": { "status": 404 },
+  "GET /admin/patent-map/regions/:regionCode/years/:year": { "status": 404 },
+  "GET /patent-map/years": { "status": 200, "body": [] },
+  "GET /patent-map/summary": { "status": 200, "body": [] },
+  "GET /me/recommendations/listings": {
+    "status": 200,
+    "body": { "items": [], "page": { "page": 1, "pageSize": 10, "total": 0 } }
+  },
+  "GET /me/conversations": {
+    "status": 200,
+    "body": { "items": [], "page": { "page": 1, "pageSize": 20, "total": 0 } }
+  },
+  "GET /conversations/:conversationId/messages": {
+    "status": 200,
+    "body": { "items": [], "nextCursor": null }
+  },
+  "POST /patents/normalize": {
+    "status": 200,
+    "body": {
+      "jurisdiction": "CN",
+      "inputType": "APPLICATION_NO",
+      "applicationNoNorm": "2023113409720",
+      "applicationNoDisplay": "202311340972.0",
+      "patentType": "INVENTION"
+    }
   }
 }

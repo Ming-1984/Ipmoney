@@ -1,12 +1,22 @@
 export default defineAppConfig({
   pages: [
     'pages/home/index',
+    'pages/patent-map/index',
+    'pages/feeds/index',
     'pages/search/index',
+    'pages/inventors/index',
+    'pages/organizations/index',
     'pages/listing/detail/index',
     'pages/checkout/deposit-pay/index',
     'pages/checkout/deposit-success/index',
+    'pages/checkout/final-pay/index',
+    'pages/checkout/final-success/index',
     'pages/publish/index',
+    'pages/publish/patent/index',
+    'pages/publish/demand/index',
+    'pages/publish/achievement/index',
     'pages/messages/index',
+    'pages/messages/chat/index',
     'pages/me/index',
     'pages/login/index',
     'pages/onboarding/choose-identity/index',
@@ -27,7 +37,7 @@ export default defineAppConfig({
       { pagePath: 'pages/search/index', text: '检索' },
       { pagePath: 'pages/publish/index', text: '发布' },
       { pagePath: 'pages/messages/index', text: '消息' },
-      { pagePath: 'pages/me/index', text: '我的' }
-    ]
-  }
+      { pagePath: 'pages/me/index', text: '我的' },
+    ],
+  },
 });
