@@ -172,7 +172,42 @@ async function seedPatentMapEntries() {
   console.log(`[seed] patent_map_entries upserted: ${entries.length}`);
 }
 
+async function seedUsers() {
+  const users = [
+    {
+      id: '99999999-9999-9999-9999-999999999999',
+      phone: '13800138000',
+      role: 'buyer',
+      nickname: '演示用户',
+      regionCode: '110000',
+    },
+    {
+      id: '00000000-0000-0000-0000-000000000001',
+      phone: '13900000000',
+      role: 'admin',
+      nickname: '管理员',
+      regionCode: '110000',
+    },
+  ];
+
+  for (const u of users) {
+    await prisma.user.upsert({
+      where: { id: u.id },
+      update: {
+        phone: u.phone,
+        role: u.role,
+        nickname: u.nickname,
+        regionCode: u.regionCode,
+      },
+      create: u,
+    });
+  }
+
+  console.log(`[seed] users upserted: ${users.length}`);
+}
+
 async function main() {
+  await seedUsers();
   await seedRegions();
   await seedSystemConfigs();
   await seedPatentMapEntries();
