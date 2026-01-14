@@ -3,7 +3,9 @@ import Taro, { useRouter } from '@tarojs/taro';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 
 import { apiGet, apiPost } from '../../../lib/api';
-import { requireLogin } from '../../../lib/guard';
+import { ensureApproved } from '../../../lib/guard';
+import { StickyBar } from '../../../ui/layout';
+import { Button } from '../../../ui/nutui';
 import { ErrorCard, LoadingCard } from '../../../ui/StateCards';
 
 type Order = {
@@ -63,7 +65,7 @@ export default function FinalPayPage() {
   }, [load]);
 
   const onPay = useCallback(async () => {
-    if (!requireLogin()) return;
+    if (!ensureApproved()) return;
     if (!orderId) return;
     setPaying(true);
     try {
@@ -87,7 +89,7 @@ export default function FinalPayPage() {
       <View className="container">
         <ErrorCard
           title="参数缺失"
-          message="缺少 orderId（演示）"
+          message="缺少 orderId"
           onRetry={() => Taro.navigateBack()}
         />
       </View>
@@ -95,7 +97,7 @@ export default function FinalPayPage() {
   }
 
   return (
-    <View className="container">
+    <View className="container has-sticky">
       {loading ? (
         <LoadingCard />
       ) : error ? (
@@ -103,7 +105,7 @@ export default function FinalPayPage() {
       ) : order ? (
         <View>
           <View className="card">
-            <Text style={{ fontSize: '34rpx', fontWeight: 800 }}>尾款支付（演示）</Text>
+            <Text className="text-title">尾款支付</Text>
             <View style={{ height: '8rpx' }} />
             <Text className="muted">订单号：{order.id}</Text>
             <View style={{ height: '6rpx' }} />
@@ -113,7 +115,7 @@ export default function FinalPayPage() {
           <View style={{ height: '16rpx' }} />
 
           <View className="card">
-            <Text style={{ fontWeight: 700 }}>金额信息</Text>
+            <Text className="text-card-title">金额信息</Text>
             <View style={{ height: '8rpx' }} />
             <Text className="muted">订金：¥{fenToYuan(order.depositAmountFen)}</Text>
             <View style={{ height: '4rpx' }} />
@@ -128,25 +130,30 @@ export default function FinalPayPage() {
 
           <View style={{ height: '16rpx' }} />
 
-          <View
-            className={`card ${paying ? '' : 'btn-primary'}`}
-            onClick={paying ? undefined : onPay}
-          >
-            <Text>{paying ? '处理中…' : '生成支付意图（尾款）'}</Text>
-          </View>
-
-          <View style={{ height: '12rpx' }} />
-
           <View className="card">
             <Text className="muted">
-              说明：P0 尾款仅小程序发起；H5
-              端可展示“去小程序支付”（二维码/链接）。本页为演示链路占位。
+              说明：尾款支付建议在小程序内完成；电脑端/H5 可展示“去小程序支付”（二维码/链接）。
             </Text>
           </View>
         </View>
       ) : (
-        <ErrorCard title="无数据" message="订单不存在或不可见（演示）" />
+        <ErrorCard title="无数据" message="订单不存在或不可见" />
       )}
+
+      {order && !loading && !error ? (
+        <StickyBar>
+          <View className="flex-1">
+            <Button variant="ghost" onClick={() => Taro.navigateBack()}>
+              返回
+            </Button>
+          </View>
+          <View style={{ flex: 2, minWidth: 0 }}>
+            <Button variant="primary" loading={paying} disabled={paying} onClick={onPay}>
+              {paying ? '处理中…' : `支付尾款${order.finalAmountFen ? ` ¥${fenToYuan(order.finalAmountFen)}` : ''}`}
+            </Button>
+          </View>
+        </StickyBar>
+      ) : null}
     </View>
   );
 }

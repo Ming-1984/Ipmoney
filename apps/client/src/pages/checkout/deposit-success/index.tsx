@@ -2,7 +2,11 @@ import { View, Text } from '@tarojs/components';
 import Taro, { useRouter } from '@tarojs/taro';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 
+import { getToken } from '../../../lib/auth';
 import { apiGet } from '../../../lib/api';
+import { Button, Step, Steps } from '../../../ui/nutui';
+import { PageHeader, Spacer } from '../../../ui/layout';
+import { ErrorCard, LoadingCard, PermissionCard } from '../../../ui/StateCards';
 
 type Order = { id: string; status: string; depositAmountFen: number; createdAt: string };
 
@@ -15,12 +19,20 @@ export default function DepositSuccessPage() {
   const router = useRouter();
   const orderId = useMemo(() => router?.params?.orderId || '', [router?.params?.orderId]);
   const paymentId = useMemo(() => router?.params?.paymentId || '', [router?.params?.paymentId]);
+  const token = getToken();
+
+  if (!orderId) {
+    return (
+      <View className="container">
+        <ErrorCard title="参数缺失" message="缺少 orderId" onRetry={() => Taro.navigateBack()} />
+      </View>
+    );
+  }
 
   const [loading, setLoading] = useState(true);
   const [order, setOrder] = useState<Order | null>(null);
 
   const load = useCallback(async () => {
-    if (!orderId) return;
     setLoading(true);
     try {
       const d = await apiGet<Order>(`/orders/${orderId}`);
@@ -33,59 +45,86 @@ export default function DepositSuccessPage() {
   }, [orderId]);
 
   useEffect(() => {
+    if (!token) return;
     void load();
-  }, [load]);
+  }, [load, token]);
 
   return (
     <View className="container">
-      <View className="card">
-        <Text style={{ fontSize: '34rpx', fontWeight: 800 }}>订金支付成功（演示）</Text>
-        <View style={{ height: '8rpx' }} />
-        <Text className="muted">支付单号：{paymentId || '-'}</Text>
-      </View>
+      <PageHeader title="订金支付成功" subtitle={`支付单号：${paymentId || '-'}`} />
+      <Spacer />
 
-      <View style={{ height: '16rpx' }} />
-
-      {loading ? (
-        <View className="card">
-          <Text className="muted">加载订单中…</Text>
-        </View>
+      {!token ? (
+        <PermissionCard
+          title="需要登录"
+          message="登录后查看订单信息。"
+          actionText="去登录"
+          onAction={() => Taro.navigateTo({ url: '/pages/login/index' })}
+        />
+      ) : loading ? (
+        <LoadingCard text="加载订单中…" />
       ) : order ? (
         <View className="card">
-          <Text style={{ fontWeight: 700 }}>订单信息</Text>
+          <Text className="text-card-title">订单信息</Text>
           <View style={{ height: '8rpx' }} />
           <Text className="muted">订单号：{order.id}</Text>
           <View style={{ height: '4rpx' }} />
           <Text className="muted">状态：{order.status}</Text>
           <View style={{ height: '4rpx' }} />
-          <Text className="muted">订金：¥{fenToYuan(order.depositAmountFen)}</Text>
+          <Text className="muted">
+            订金：
+            <Text className="text-strong" style={{ color: 'var(--c-primary)' }}>
+              {`¥${fenToYuan(order.depositAmountFen)}`}
+            </Text>
+          </Text>
         </View>
       ) : (
         <View className="card">
-          <Text className="muted">订单信息暂不可用（演示）</Text>
+          <Text className="muted">订单信息暂不可用</Text>
         </View>
       )}
 
-      <View style={{ height: '16rpx' }} />
+      <Spacer />
 
-      <View
-        className="card btn-primary"
-        onClick={() => {
-          Taro.switchTab({ url: '/pages/messages/index' });
-        }}
-      >
-        <Text>进入咨询/跟单（演示）</Text>
+      <View className="card">
+        <Text className="text-card-title">下一步</Text>
+        <View style={{ height: '10rpx' }} />
+        <Steps direction="vertical" value={1} type="text">
+          {[
+            '平台开始跟单与材料核验',
+            '双方线下签署合同（转让/许可）',
+            '后台确认合同后解锁尾款支付',
+            '权属变更完成（证据归档）',
+            '财务确认后放款/结算',
+          ].map((t, idx) => (
+            <Step key={t} value={idx + 1} title={t} />
+          ))}
+        </Steps>
       </View>
 
-      <View style={{ height: '12rpx' }} />
+      <Spacer />
 
-      <View
-        className="card btn-ghost"
-        onClick={() => {
-          Taro.switchTab({ url: '/pages/home/index' });
-        }}
-      >
-        <Text>返回首页</Text>
+      <View className="card">
+        <Button
+          onClick={() => {
+            Taro.switchTab({ url: '/pages/messages/index' });
+          }}
+        >
+          进入咨询/跟单
+        </Button>
+      </View>
+
+      <Spacer size={12} />
+
+      <View className="card">
+        <Button
+          variant="ghost"
+          onClick={() => {
+            Taro.switchTab({ url: '/pages/home/index' });
+          }}
+        >
+          返回首页
+        </Button>
       </View>
     </View>
   );

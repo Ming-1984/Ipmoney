@@ -2,65 +2,47 @@ import { View, Text } from '@tarojs/components';
 import Taro from '@tarojs/taro';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 
+import type { components } from '@ipmoney/api-types';
+
 import { getToken } from '../../lib/auth';
 import { apiGet, apiPost } from '../../lib/api';
-import { requireLogin } from '../../lib/guard';
-import { EmptyCard, ErrorCard, LoadingCard } from '../../ui/StateCards';
+import { favorite, getFavoriteListingIds, syncFavorites, unfavorite } from '../../lib/favorites';
+import { ensureApproved } from '../../lib/guard';
+import { PageHeader, Spacer, Surface } from '../../ui/layout';
+import { Button, Segmented } from '../../ui/nutui';
+import { ListingCard } from '../../ui/ListingCard';
+import { ListingListSkeleton } from '../../ui/ListingSkeleton';
+import { EmptyCard, ErrorCard } from '../../ui/StateCards';
 
-type ListingSummary = {
-  id: string;
-  title: string;
-  tradeMode: 'ASSIGNMENT' | 'LICENSE';
-  priceType: 'FIXED' | 'NEGOTIABLE';
-  priceAmountFen?: number;
-  depositAmountFen: number;
-  auditStatus: 'PENDING' | 'APPROVED' | 'REJECTED';
-  status: 'DRAFT' | 'ACTIVE' | 'OFF_SHELF' | 'SOLD';
-  createdAt: string;
-  patentType?: 'INVENTION' | 'UTILITY_MODEL' | 'DESIGN';
-  applicationNoDisplay?: string;
-  inventorNames?: string[];
-  regionCode?: string;
-  industryTags?: string[];
-  featuredLevel?: 'NONE' | 'PROVINCE' | 'CITY';
-  featuredRegionCode?: string;
-  featuredRank?: number;
-  stats?: { viewCount: number; favoriteCount: number; consultCount: number };
-  recommendationScore?: number;
-};
-
-type PagedListingSummary = {
-  items: ListingSummary[];
-  page: { page: number; pageSize: number; total: number };
-};
+type PagedListingSummary = components['schemas']['PagedListingSummary'];
+type ListingSummary = components['schemas']['ListingSummary'];
 
 type Conversation = { id: string };
-
-function fenToYuan(fen?: number): string {
-  if (fen === undefined || fen === null) return '-';
-  return (fen / 100).toFixed(2);
-}
+type FeedMode = 'RECOMMENDED' | 'NEWEST' | 'POPULAR';
 
 export default function FeedsPage() {
+  const [mode, setMode] = useState<FeedMode>('RECOMMENDED');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [data, setData] = useState<PagedListingSummary | null>(null);
+  const [favoriteIds, setFavoriteIds] = useState<Set<string>>(() => new Set(getFavoriteListingIds()));
 
   const load = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
       const token = getToken();
-      const d = token
-        ? await apiGet<PagedListingSummary>('/me/recommendations/listings', {
-            page: 1,
-            pageSize: 10,
-          })
-        : await apiGet<PagedListingSummary>('/search/listings', {
-            sortBy: 'RECOMMENDED',
-            page: 1,
-            pageSize: 10,
-          });
+      const d =
+        token && mode === 'RECOMMENDED'
+          ? await apiGet<PagedListingSummary>('/me/recommendations/listings', {
+              page: 1,
+              pageSize: 10,
+            })
+          : await apiGet<PagedListingSummary>('/search/listings', {
+              sortBy: mode,
+              page: 1,
+              pageSize: 10,
+            });
       setData(d);
     } catch (e: any) {
       setError(e?.message || '加载失败');
@@ -68,16 +50,28 @@ export default function FeedsPage() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [mode]);
 
   useEffect(() => {
     void load();
   }, [load]);
 
+  useEffect(() => {
+    if (!getToken()) return;
+    syncFavorites()
+      .then((ids) => setFavoriteIds(new Set(ids)))
+      .catch(() => {});
+  }, []);
+
   const items = useMemo(() => data?.items || [], [data?.items]);
 
   const startConsult = useCallback(async (listingId: string) => {
-    if (!requireLogin()) return;
+    if (!ensureApproved()) return;
+    try {
+      await apiPost<void>(`/listings/${listingId}/consultations`, { channel: 'FORM' }, { idempotencyKey: `c-${listingId}` });
+    } catch (_) {
+      // ignore: heat event
+    }
     try {
       const conv = await apiPost<Conversation>(
         `/listings/${listingId}/conversations`,
@@ -90,103 +84,107 @@ export default function FeedsPage() {
     }
   }, []);
 
+  const toggleFavorite = useCallback(
+    async (listingId: string) => {
+      if (!ensureApproved()) return;
+      const isFav = favoriteIds.has(listingId);
+      try {
+        if (isFav) {
+          await unfavorite(listingId);
+          setFavoriteIds((prev) => {
+            const next = new Set(prev);
+            next.delete(listingId);
+            return next;
+          });
+          Taro.showToast({ title: '已取消收藏', icon: 'success' });
+          return;
+        }
+        await favorite(listingId);
+        setFavoriteIds((prev) => new Set(prev).add(listingId));
+        Taro.showToast({ title: '已收藏', icon: 'success' });
+      } catch (e: any) {
+        Taro.showToast({ title: e?.message || '操作失败', icon: 'none' });
+      }
+    },
+    [favoriteIds],
+  );
+
   return (
     <View className="container">
+      <PageHeader title="信息流" subtitle="多维度权重推荐：发布时间、点击量、收藏与咨询热度（后台可调）。" />
+      <Spacer />
+
       <View className="card">
-        <Text style={{ fontSize: '34rpx', fontWeight: 700 }}>信息流（猜你喜欢）</Text>
-        <View style={{ height: '8rpx' }} />
-        <Text className="muted">登录用户：个性化推荐；游客：默认推荐排序。</Text>
-      </View>
+        <Text className="text-card-title">切换</Text>
+        <View style={{ height: '10rpx' }} />
+        <Segmented
+          value={mode}
+          options={[
+            { label: '推荐', value: 'RECOMMENDED' },
+            { label: '最新', value: 'NEWEST' },
+            { label: '热度', value: 'POPULAR' },
+          ]}
+          onChange={(value) => setMode(value as FeedMode)}
+        />
 
-      <View style={{ height: '16rpx' }} />
+        <View style={{ height: '10rpx' }} />
+        <View className="row" style={{ gap: '12rpx' }}>
+          <View style={{ flex: 1 }}>
+            <Button
+              variant="ghost"
+              onClick={() => {
+                Taro.navigateTo({ url: '/pages/inventors/index' });
+              }}
+            >
+              发明人榜
+            </Button>
+          </View>
+          <View style={{ flex: 1 }}>
+            <Button
+              variant="ghost"
+              onClick={() => {
+                Taro.navigateTo({ url: '/pages/organizations/index' });
+              }}
+            >
+              机构展示
+            </Button>
+          </View>
+        </View>
 
-      <View
-        className="card btn-ghost"
-        onClick={() => {
-          Taro.navigateTo({ url: '/pages/inventors/index' });
-        }}
-      >
-        <Text>查看发明人榜</Text>
-      </View>
-
-      <View style={{ height: '12rpx' }} />
-
-      <View
-        className="card btn-ghost"
-        onClick={() => {
-          Taro.navigateTo({ url: '/pages/organizations/index' });
-        }}
-      >
-        <Text>查看机构展示</Text>
+        <View style={{ height: '12rpx' }} />
+        <Button variant="ghost" onClick={load}>
+          刷新当前信息流
+        </Button>
       </View>
 
       <View style={{ height: '16rpx' }} />
 
       {loading ? (
-        <LoadingCard />
+        <ListingListSkeleton />
       ) : error ? (
         <ErrorCard message={error} onRetry={load} />
       ) : items.length ? (
-        <View>
-          {items.map((it) => (
-            <View
+        <Surface padding="none" className="listing-list">
+          {items.map((it: ListingSummary) => (
+            <ListingCard
               key={it.id}
-              className="card"
-              style={{ marginBottom: '16rpx' }}
+              item={it}
+              favorited={favoriteIds.has(it.id)}
               onClick={() => {
                 Taro.navigateTo({ url: `/pages/listing/detail/index?listingId=${it.id}` });
               }}
-            >
-              <Text style={{ fontWeight: 700 }}>{it.title}</Text>
-              <View style={{ height: '6rpx' }} />
-              <Text className="muted">
-                {it.patentType || '-'} · {it.tradeMode} · {it.priceType}
-                {it.featuredLevel && it.featuredLevel !== 'NONE'
-                  ? ` · 特色：${it.featuredLevel}`
-                  : ''}
-              </Text>
-              <View style={{ height: '6rpx' }} />
-              <Text className="muted">
-                价格：{it.priceType === 'NEGOTIABLE' ? '面议' : `¥${fenToYuan(it.priceAmountFen)}`}{' '}
-                · 订金：¥
-                {fenToYuan(it.depositAmountFen)}
-              </Text>
-              <View style={{ height: '6rpx' }} />
-              <Text className="muted">
-                热度：浏览 {it.stats?.viewCount ?? 0} / 收藏 {it.stats?.favoriteCount ?? 0} / 咨询{' '}
-                {it.stats?.consultCount ?? 0} · 推荐分 {it.recommendationScore ?? '-'}
-              </Text>
-
-              <View style={{ height: '12rpx' }} />
-
-              <View
-                className="btn-ghost"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  if (!requireLogin()) return;
-                  Taro.showToast({ title: '收藏成功（演示）', icon: 'success' });
-                }}
-              >
-                <Text>收藏（需登录）</Text>
-              </View>
-
-              <View style={{ height: '10rpx' }} />
-
-              <View
-                className="btn-primary"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  void startConsult(it.id);
-                }}
-              >
-                <Text>咨询（需登录）</Text>
-              </View>
-            </View>
+              onFavorite={() => {
+                void toggleFavorite(it.id);
+              }}
+              onConsult={() => {
+                void startConsult(it.id);
+              }}
+            />
           ))}
-        </View>
+        </Surface>
       ) : (
         <EmptyCard
-          message="可切换 Mock 场景为 happy/empty/error/edge 进行演示。"
+          message="暂无推荐内容，稍后再试或返回检索查看更多。"
           actionText="刷新"
           onAction={load}
         />

@@ -2,6 +2,8 @@ import { Button, Card, Space, Table, Tag, Typography, message } from 'antd';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 
 import { apiGet, apiPost } from '../lib/api';
+import { RequestErrorAlert, AuditHint } from '../ui/RequestState';
+import { confirmAction } from '../ui/confirm';
 
 type VerificationType =
   | 'PERSON'
@@ -39,10 +41,12 @@ function statusTag(status: VerificationStatus) {
 
 export function VerificationsPage() {
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [data, setData] = useState<PagedUserVerification | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
+    setError(null);
     try {
       const d = await apiGet<PagedUserVerification>('/admin/user-verifications', {
         page: 1,
@@ -50,7 +54,9 @@ export function VerificationsPage() {
       });
       setData(d);
     } catch (e: any) {
-      message.error(e?.message || '加载失败');
+      const msg = e?.message || '加载失败';
+      setError(msg);
+      message.error(msg);
       setData(null);
     } finally {
       setLoading(false);
@@ -75,6 +81,8 @@ export function VerificationsPage() {
           </Typography.Paragraph>
         </div>
 
+        {error ? <RequestErrorAlert error={error} onRetry={load} /> : <AuditHint text="通过/驳回将影响小程序端机构展示；建议二次确认并记录原因。" />}
+
         <Table<UserVerification>
           rowKey="id"
           loading={loading}
@@ -97,15 +105,21 @@ export function VerificationsPage() {
                 const disabled = r.status !== 'PENDING';
                 return (
                   <Space>
-                    <Button
-                      type="primary"
-                      disabled={disabled}
-                      onClick={async () => {
-                        try {
-                          await apiPost<UserVerification>(
-                            `/admin/user-verifications/${r.id}/approve`,
-                            {
-                              comment: '通过（演示）',
+                     <Button
+                       type="primary"
+                       disabled={disabled}
+                       onClick={async () => {
+                         const ok = await confirmAction({
+                           title: '确认通过该认证？',
+                           content: '通过后，该主体可在小程序端展示；该操作应记录审计留痕。',
+                           okText: '通过',
+                         });
+                         if (!ok) return;
+                         try {
+                           await apiPost<UserVerification>(
+                             `/admin/user-verifications/${r.id}/approve`,
+                             {
+                               comment: '通过（演示）',
                             },
                           );
                           message.success('已通过');
@@ -117,15 +131,22 @@ export function VerificationsPage() {
                     >
                       通过
                     </Button>
-                    <Button
-                      danger
-                      disabled={disabled}
-                      onClick={async () => {
-                        try {
-                          await apiPost<UserVerification>(
-                            `/admin/user-verifications/${r.id}/reject`,
-                            {
-                              reason: '材料不完整（演示）',
+                     <Button
+                       danger
+                       disabled={disabled}
+                       onClick={async () => {
+                         const ok = await confirmAction({
+                           title: '确认驳回该认证？',
+                           content: '驳回后该主体无法在小程序端展示；建议填写原因并留痕。',
+                           okText: '驳回',
+                           danger: true,
+                         });
+                         if (!ok) return;
+                         try {
+                           await apiPost<UserVerification>(
+                             `/admin/user-verifications/${r.id}/reject`,
+                             {
+                               reason: '材料不完整（演示）',
                             },
                           );
                           message.success('已驳回');

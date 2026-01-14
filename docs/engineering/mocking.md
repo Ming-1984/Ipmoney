@@ -30,6 +30,17 @@
 - 场景切换：Header `X-Mock-Scenario: happy|empty|error|edge|payment_callback_replay`
 - fixtures 未命中的接口自动转发到 Prism（内部端口 `4011`）
 
+### 2.2 （可选）逐模块替换到真实 API（开发网关）
+
+当后端开始逐模块落地真实实现时，可让前端继续请求 `mock-api(4010)`，由 `mock-api` 选择性把部分路由转发到真实 API：
+
+- 配置：
+  - `UPSTREAM_API_BASE_URL`：真实 API Base URL（可带 `/v1`）
+  - `UPSTREAM_PATH_PREFIXES`：需要走真实 API 的路由前缀（逗号分隔，如 `/files,/patents`）
+- 覆盖（调试用）：
+  - Header `X-Mock-Source: auto|fixture|upstream`
+  - 或 Query `?__source=auto|fixture|upstream`
+
 ## 3. 业务 Mock（fixtures：可控、可演示、可回归）
 
 ### 3.1 fixtures 目录建议

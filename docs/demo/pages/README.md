@@ -7,6 +7,18 @@
 - 批量导出脚本：`scripts/render-diagrams.ps1`
 - 小程序 01-15 合成单图（便于快速评审）：`docs/demo/rendered/miniapp-pages-01-15.png`（生成脚本：`scripts/merge-miniapp-pages.py`）
 
+## 产品 UI 截图（可选，但更利于甲方感知）
+
+> 说明：本目录的 `.mmd` 是“功能图/范围图”，不等于真实 UI。若需要“真实 UI 截图包”，建议按下列清单截图并统一放到 `docs/demo/rendered/ui/`（自行创建目录）。
+
+- 建议截图规范：
+  - 建议先用 `scripts/demo.ps1 -EnableMockTools`，可在「我的」页切换 `happy/empty/error/...` 场景，方便补齐空态/异常态截图
+  - 文件命名示例：`client-home.png`、`client-search.png`、`client-detail.png`、`admin-orders.png`（按“端 + 页面”命名）
+  - H5 规范入口：Tab 页用 `/#/pages/home/index`、`/#/pages/search/index`、`/#/pages/publish/index`、`/#/pages/messages/index`、`/#/pages/me/index`（避免截图时出现路由白屏）
+
+- 用户端（小程序/H5）：首页、信息流、检索（含筛选/排序）、详情页、订金支付/成功页、消息列表/会话页、发布入口/专利发布表单、我的、登录/身份选择/资料提交
+- 管理后台（PC Web）：登录、仪表盘、认证审核、上架审核、订单（跟单里程碑）、退款、放款/结算、发票上传、交易/推荐配置、专利地图 CMS
+
 ## 小程序（买家/卖家）
 
 - 登录/注册与角色引导：`docs/demo/pages/miniapp/01-login.mmd`

@@ -2,6 +2,8 @@ import { Button, Card, Input, Space, Table, Tag, Typography, message } from 'ant
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 
 import { apiGet, apiPost } from '../lib/api';
+import { AuditHint, RequestErrorAlert } from '../ui/RequestState';
+import { confirmAction } from '../ui/confirm';
 
 type RefundRequestStatus = 'PENDING' | 'APPROVED' | 'REJECTED' | 'REFUNDING' | 'REFUNDED';
 
@@ -26,16 +28,20 @@ function statusTag(status: RefundRequestStatus) {
 export function RefundsPage() {
   const [orderId, setOrderId] = useState('dddddddd-dddd-dddd-dddd-dddddddddddd');
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [data, setData] = useState<RefundRequest[] | null>(null);
 
   const load = useCallback(async () => {
     if (!orderId) return;
     setLoading(true);
+    setError(null);
     try {
       const d = await apiGet<RefundRequest[]>(`/orders/${orderId}/refund-requests`);
       setData(d);
     } catch (e: any) {
-      message.error(e?.message || '加载失败');
+      const msg = e?.message || '加载失败';
+      setError(msg);
+      message.error(msg);
       setData(null);
     } finally {
       setLoading(false);
@@ -70,6 +76,12 @@ export function RefundsPage() {
           <Button onClick={load}>加载</Button>
         </Space>
 
+        {error ? (
+          <RequestErrorAlert error={error} onRetry={load} />
+        ) : (
+          <AuditHint text="退款审批涉及资金出入账；建议二次确认并归档证据材料（聊天记录/合同/快递单等）。" />
+        )}
+
         <Table<RefundRequest>
           rowKey="id"
           loading={loading}
@@ -96,6 +108,12 @@ export function RefundsPage() {
                       type="primary"
                       disabled={disabled}
                       onClick={async () => {
+                        const ok = await confirmAction({
+                          title: '确认通过退款？',
+                          content: '通过后将触发退款（可能失败并提示）；该操作应记录审计留痕。',
+                          okText: '通过退款',
+                        });
+                        if (!ok) return;
                         try {
                           await apiPost<RefundRequest>(
                             `/admin/refund-requests/${r.id}/approve`,
@@ -114,6 +132,13 @@ export function RefundsPage() {
                       danger
                       disabled={disabled}
                       onClick={async () => {
+                        const ok = await confirmAction({
+                          title: '确认驳回退款？',
+                          content: '驳回后订单将继续推进；建议填写原因并留痕。',
+                          okText: '驳回退款',
+                          danger: true,
+                        });
+                        if (!ok) return;
                         try {
                           await apiPost<RefundRequest>(`/admin/refund-requests/${r.id}/reject`, {
                             reason: '不符合退款条件（演示）',

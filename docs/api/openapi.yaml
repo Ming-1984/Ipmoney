@@ -2614,10 +2614,19 @@ components:
         publicationNoNorm:
           type: string
           example: "CN116123456A"
+        publicationNoDisplay:
+          type: string
+          example: "CN116123456A"
+        patentNoNorm:
+          type: string
+          example: "ZL2023113409720"
+        patentNoDisplay:
+          type: string
+          example: "ZL202311340972.0"
         kindCode:
           type: string
           example: "A"
-        guessedPatentType:
+        patentType:
           $ref: "#/components/schemas/PatentType"
         warnings:
           type: array

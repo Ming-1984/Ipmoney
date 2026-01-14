@@ -2,6 +2,8 @@ import { Button, Card, Descriptions, Input, Space, Typography, Upload, message }
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 
 import { apiDelete, apiGet, apiPut, apiUploadFile, type FileObject } from '../lib/api';
+import { AuditHint, RequestErrorAlert } from '../ui/RequestState';
+import { confirmAction } from '../ui/confirm';
 
 type OrderInvoice = {
   orderId: string;
@@ -22,6 +24,7 @@ function fenToYuan(fen?: number): string {
 export function InvoicesPage() {
   const [orderId, setOrderId] = useState('dddddddd-dddd-dddd-dddd-dddddddddddd');
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [invoice, setInvoice] = useState<OrderInvoice | null>(null);
   const [notFound, setNotFound] = useState(false);
 
@@ -33,6 +36,7 @@ export function InvoicesPage() {
     if (!orderId) return;
     setLoading(true);
     setNotFound(false);
+    setError(null);
     try {
       const d = await apiGet<OrderInvoice>(`/orders/${orderId}/invoice`);
       setInvoice(d);
@@ -48,7 +52,9 @@ export function InvoicesPage() {
         setIssuedAt('');
         setInvoiceFile(null);
       } else {
-        message.error(e?.message || '加载失败');
+        const errMsg = e?.message || '加载失败';
+        setError(errMsg);
+        message.error(errMsg);
         setInvoice(null);
       }
     } finally {
@@ -88,6 +94,12 @@ export function InvoicesPage() {
             加载发票
           </Button>
         </Space>
+
+        {error ? (
+          <RequestErrorAlert error={error} onRetry={load} />
+        ) : (
+          <AuditHint text="P0：线下人工开票后回平台上传；上传/删除需留痕，便于对账与审计。" />
+        )}
 
         {invoice ? (
           <Descriptions bordered size="small" column={2}>
@@ -165,6 +177,12 @@ export function InvoicesPage() {
                     message.warning('请先上传发票文件');
                     return;
                   }
+                  const ok = await confirmAction({
+                    title: '确认保存发票？',
+                    content: '该操作会把发票文件关联到订单，并记录更新留痕。',
+                    okText: '保存',
+                  });
+                  if (!ok) return;
                   try {
                     const next = await apiPut<OrderInvoice>(
                       `/admin/orders/${orderId}/invoice`,
@@ -191,6 +209,13 @@ export function InvoicesPage() {
                 danger
                 disabled={!invoice}
                 onClick={async () => {
+                  const ok = await confirmAction({
+                    title: '确认删除发票？',
+                    content: '删除后订单将不再展示发票附件；该操作应记录审计留痕。',
+                    okText: '删除',
+                    danger: true,
+                  });
+                  if (!ok) return;
                   try {
                     await apiDelete(`/admin/orders/${orderId}/invoice`, {
                       idempotencyKey: `demo-invoice-del-${orderId}`,

@@ -1,10 +1,18 @@
-import { Button, Card, Input, InputNumber, Select, Space, Typography, message } from 'antd';
+import { Button, Card, Input, InputNumber, Select, Space, Switch, Table, Typography, message } from 'antd';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 
-import { apiGet, apiPut } from '../lib/api';
+import { apiGet, apiPostForm, apiPut } from '../lib/api';
 
-type PatentMapIndustryCount = { industryTag: string; patentCount: number };
-type PatentMapTopAssignee = { assigneeName: string; patentCount: number };
+type PatentMapIndustryCount = { industryTag: string; count: number };
+type PatentMapTopAssignee = { name: string; patentCount: number };
+
+type PatentMapImportError = { rowNumber: number; message: string };
+type PatentMapImportResult = {
+  dryRun: boolean;
+  importedCount: number;
+  updatedCount: number;
+  errors: PatentMapImportError[];
+};
 
 type PatentMapEntry = {
   regionCode: string;
@@ -31,6 +39,11 @@ export function PatentMapPage() {
 
   const [loading, setLoading] = useState(false);
   const [entry, setEntry] = useState<PatentMapEntry | null>(null);
+
+  const [importDryRun, setImportDryRun] = useState(false);
+  const [importing, setImporting] = useState(false);
+  const [importFile, setImportFile] = useState<File | null>(null);
+  const [importResult, setImportResult] = useState<PatentMapImportResult | null>(null);
 
   const [patentCount, setPatentCount] = useState<number>(0);
   const [industryJson, setIndustryJson] = useState('');
@@ -120,6 +133,85 @@ export function PatentMapPage() {
           </Button>
         </Space>
 
+        <Card size="small" style={{ background: '#fff' }}>
+          <Space direction="vertical" size={12} style={{ width: '100%' }}>
+            <Typography.Text strong>Excel 导入（可选）</Typography.Text>
+            <Typography.Text type="secondary">
+              支持批量导入/更新区域年份数据；可先勾选 dryRun 做预检。
+            </Typography.Text>
+
+            <Space wrap>
+              <input
+                type="file"
+                accept=".xlsx,.xls"
+                onChange={(e) => setImportFile(e.target.files?.[0] || null)}
+              />
+              <Space>
+                <Typography.Text type="secondary">dryRun</Typography.Text>
+                <Switch checked={importDryRun} onChange={setImportDryRun} />
+              </Space>
+              <Button
+                type="primary"
+                loading={importing}
+                disabled={!importFile || importing}
+                onClick={async () => {
+                  if (!importFile) {
+                    message.error('请选择 Excel 文件');
+                    return;
+                  }
+                  setImporting(true);
+                  try {
+                    const form = new FormData();
+                    form.append('file', importFile);
+                    form.append('dryRun', importDryRun ? 'true' : 'false');
+                    const r = await apiPostForm<PatentMapImportResult>('/admin/patent-map/import', form, {
+                      idempotencyKey: `demo-import-${Date.now()}`,
+                    });
+                    setImportResult(r);
+                    if (r.errors?.length) {
+                      message.warning(`导入完成（含 ${r.errors.length} 条错误）`);
+                    } else {
+                      message.success(importDryRun ? '预检通过' : '导入成功');
+                    }
+                    void loadYears();
+                  } catch (e: any) {
+                    message.error(e?.message || '导入失败');
+                  } finally {
+                    setImporting(false);
+                  }
+                }}
+              >
+                {importDryRun ? '预检' : '导入'}
+              </Button>
+            </Space>
+
+            {importResult ? (
+              <Card size="small">
+                <Space direction="vertical" size={10} style={{ width: '100%' }}>
+                  <Typography.Text>
+                    结果：dryRun={String(importResult.dryRun)}；新增 {importResult.importedCount}，更新{' '}
+                    {importResult.updatedCount}
+                  </Typography.Text>
+                  {importResult.errors?.length ? (
+                    <Table<PatentMapImportError>
+                      size="small"
+                      rowKey={(r) => `${r.rowNumber}-${r.message}`}
+                      dataSource={importResult.errors}
+                      pagination={false}
+                      columns={[
+                        { title: 'row', dataIndex: 'rowNumber', width: 80 },
+                        { title: 'message', dataIndex: 'message' },
+                      ]}
+                    />
+                  ) : (
+                    <Typography.Text type="secondary">无错误</Typography.Text>
+                  )}
+                </Space>
+              </Card>
+            ) : null}
+          </Space>
+        </Card>
+
         <Card size="small" style={{ background: '#fff7ed' }}>
           <Space direction="vertical" size={12} style={{ width: '100%' }}>
             <Typography.Text strong>录入/更新（regionCode + year）</Typography.Text>
@@ -158,7 +250,7 @@ export function PatentMapPage() {
             </Space>
 
             <Typography.Text type="secondary">
-              产业分布（JSON 数组，每项：{`{ industryTag, patentCount }`})
+              产业分布（JSON 数组，每项：{`{ industryTag, count }`})
             </Typography.Text>
             <Input.TextArea
               value={industryJson}
@@ -167,7 +259,7 @@ export function PatentMapPage() {
             />
 
             <Typography.Text type="secondary">
-              重点单位（JSON 数组，每项：{`{ assigneeName, patentCount }`})
+              重点单位（JSON 数组，每项：{`{ name, patentCount }`})
             </Typography.Text>
             <Input.TextArea
               value={assigneesJson}

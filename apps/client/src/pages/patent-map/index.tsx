@@ -3,6 +3,8 @@ import Taro from '@tarojs/taro';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 
 import { apiGet } from '../../lib/api';
+import { PageHeader, Spacer } from '../../ui/layout';
+import { Segmented } from '../../ui/nutui';
 import { ErrorCard, LoadingCard } from '../../ui/StateCards';
 
 type PatentMapSummaryItem = { regionCode: string; regionName: string; patentCount: number };
@@ -61,41 +63,25 @@ export default function PatentMapPage() {
 
   return (
     <View className="container">
-      <View className="card">
-        <Text style={{ fontSize: '34rpx', fontWeight: 700 }}>区域产业专利地图</Text>
-        <View style={{ height: '8rpx' }} />
-        <Text className="muted">目标：展示各区域专利数量，支持按年份切换（P0 演示）。</Text>
-      </View>
-
-      <View style={{ height: '16rpx' }} />
+      <PageHeader title="区域产业专利地图" subtitle="展示各区域专利数量，支持按年份切换。" />
+      <Spacer />
 
       {loadingYears ? (
         <LoadingCard text="加载年份…" />
       ) : years.length ? (
         <View className="card">
-          <Text style={{ fontWeight: 700 }}>年份：{selectedYearLabel}</Text>
+          <Text className="text-card-title">年份：{selectedYearLabel}</Text>
           <View style={{ height: '12rpx' }} />
-          <View style={{ display: 'flex', flexWrap: 'wrap', gap: '12rpx' }}>
-            {years.map((y) => (
-              <View
-                key={y}
-                className="btn-ghost"
-                style={{
-                  borderColor: y === year ? '#ff7a00' : '#ff7a00',
-                  background: y === year ? '#ff7a00' : 'transparent',
-                  color: y === year ? '#fff' : '#ff7a00',
-                }}
-                onClick={() => setYear(y)}
-              >
-                <Text>{y}</Text>
-              </View>
-            ))}
-          </View>
+          <Segmented
+            value={year ?? ''}
+            options={years.map((y) => ({ label: String(y), value: y }))}
+            onChange={(v) => setYear(Number(v))}
+          />
         </View>
       ) : (
         <ErrorCard
           title="暂无年份"
-          message={error || '请切换 Mock 场景或稍后再试'}
+          message={error || '请稍后再试'}
           onRetry={loadYears}
         />
       )}
@@ -114,10 +100,13 @@ export default function PatentMapPage() {
               className="card"
               style={{ marginBottom: '16rpx' }}
               onClick={() => {
-                Taro.showToast({ title: `进入区域详情：${it.regionName}（演示）`, icon: 'none' });
+                if (!year) return;
+                Taro.navigateTo({
+                  url: `/pages/patent-map/region-detail/index?regionCode=${it.regionCode}&year=${year}`,
+                });
               }}
             >
-              <Text style={{ fontWeight: 700 }}>{it.regionName}</Text>
+              <Text className="text-card-title">{it.regionName}</Text>
               <View style={{ height: '6rpx' }} />
               <Text className="muted">专利数量：{it.patentCount}</Text>
               <View style={{ height: '12rpx' }} />
@@ -127,9 +116,9 @@ export default function PatentMapPage() {
         </View>
       ) : (
         <View className="card">
-          <Text style={{ fontWeight: 700 }}>暂无数据</Text>
+          <Text className="text-card-title">暂无数据</Text>
           <View style={{ height: '8rpx' }} />
-          <Text className="muted">可在后台录入区域专利数量后展示（P0：数据由后台维护）。</Text>
+          <Text className="muted">区域专利数量由后台维护，用于展示分布与统计。</Text>
         </View>
       )}
     </View>

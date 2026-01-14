@@ -13,14 +13,20 @@
     "build:weapp": "taro build --type weapp"
   },
   "dependencies": {
+    "@nutui/icons-react-taro": "3.0.2-cpp.3.beta.3",
+    "@nutui/nutui-react-taro": "3.0.19-cpp.23",
     "@tarojs/components": "4.1.9",
     "@tarojs/react": "4.1.9",
     "@tarojs/runtime": "4.1.9",
+    "@tarojs/shared": "4.1.9",
     "@tarojs/taro": "4.1.9",
     "react": "^18.3.1",
     "react-dom": "^18.3.1"
   },
   "devDependencies": {
+    "@babel/core": "^7.28.5",
+    "@babel/preset-react": "^7.28.5",
+    "@ipmoney/api-types": "workspace:^",
     "@pmmmwh/react-refresh-webpack-plugin": "^0.5.11",
     "@tarojs/cli": "4.1.9",
     "@tarojs/plugin-framework-react": "4.1.9",
@@ -29,6 +35,7 @@
     "@tarojs/webpack5-runner": "4.1.9",
     "@types/react": "^18.3.18",
     "@types/react-dom": "^18.3.5",
+    "babel-preset-taro": "4.1.9",
     "less": "^4.2.1",
     "typescript": "^5.7.3",
     "webpack": "5.91.0"

@@ -2,6 +2,8 @@ import { Button, Card, Descriptions, Input, Space, Typography, Upload, message }
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 
 import { apiGet, apiPost, apiUploadFile, type FileObject } from '../lib/api';
+import { AuditHint, RequestErrorAlert } from '../ui/RequestState';
+import { confirmAction } from '../ui/confirm';
 
 type Settlement = {
   id: string;
@@ -26,6 +28,7 @@ function fenToYuan(fen?: number): string {
 export function SettlementsPage() {
   const [orderId, setOrderId] = useState('dddddddd-dddd-dddd-dddd-dddddddddddd');
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [settlement, setSettlement] = useState<Settlement | null>(null);
 
   const [payoutEvidenceFile, setPayoutEvidenceFile] = useState<FileObject | null>(null);
@@ -35,6 +38,7 @@ export function SettlementsPage() {
   const load = useCallback(async () => {
     if (!orderId) return;
     setLoading(true);
+    setError(null);
     try {
       const d = await apiGet<Settlement>(`/admin/orders/${orderId}/settlement`);
       setSettlement(d);
@@ -44,7 +48,9 @@ export function SettlementsPage() {
         setSettlement(null);
         message.info('暂无结算台账（演示）');
       } else {
-        message.error(e?.message || '加载失败');
+        const errMsg = e?.message || '加载失败';
+        setError(errMsg);
+        message.error(errMsg);
         setSettlement(null);
       }
     } finally {
@@ -85,6 +91,12 @@ export function SettlementsPage() {
             加载结算台账
           </Button>
         </Space>
+
+        {error ? (
+          <RequestErrorAlert error={error} onRetry={load} />
+        ) : (
+          <AuditHint text="放款确认涉及资金出账；P0 为财务线下打款后回平台确认并上传凭证，建议二次确认并留痕。" />
+        )}
 
         {settlement ? (
           <Descriptions bordered size="small" column={2}>
@@ -164,6 +176,12 @@ export function SettlementsPage() {
                     message.warning('请先上传放款凭证');
                     return;
                   }
+                  const ok = await confirmAction({
+                    title: '确认已线下放款？',
+                    content: '该操作将记录凭证文件与放款信息；请确保已核验订单状态与放款凭证。',
+                    okText: '确认放款',
+                  });
+                  if (!ok) return;
                   try {
                     const next = await apiPost<Settlement>(
                       `/admin/orders/${orderId}/payouts/manual`,

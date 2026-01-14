@@ -3,7 +3,10 @@ import Taro, { useRouter } from '@tarojs/taro';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 
 import { apiGet, apiPost } from '../../../lib/api';
-import { requireLogin } from '../../../lib/guard';
+import { ensureApproved } from '../../../lib/guard';
+import { PageHeader, StickyBar } from '../../../ui/layout';
+import { Button } from '../../../ui/nutui';
+import { EmptyCard, ErrorCard, LoadingCard } from '../../../ui/StateCards';
 
 type ListingPublic = {
   id: string;
@@ -37,13 +40,20 @@ export default function DepositPayPage() {
   const router = useRouter();
   const listingId = useMemo(() => router?.params?.listingId || '', [router?.params?.listingId]);
 
+  if (!listingId) {
+    return (
+      <View className="container">
+        <ErrorCard title="参数缺失" message="缺少 listingId" onRetry={() => Taro.navigateBack()} />
+      </View>
+    );
+  }
+
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [listing, setListing] = useState<ListingPublic | null>(null);
   const [paying, setPaying] = useState(false);
 
   const load = useCallback(async () => {
-    if (!listingId) return;
     setLoading(true);
     setError(null);
     try {
@@ -62,7 +72,7 @@ export default function DepositPayPage() {
   }, [load]);
 
   const onPay = useCallback(async () => {
-    if (!requireLogin()) return;
+    if (!ensureApproved()) return;
     if (!listingId) return;
     setPaying(true);
     try {
@@ -84,70 +94,64 @@ export default function DepositPayPage() {
   }, [listingId]);
 
   return (
-    <View className="container">
+    <View className="container has-sticky">
+      <PageHeader title="支付订金" subtitle="订金用于锁定交易并启动跟单流程。" />
+
+      <View style={{ height: '16rpx' }} />
+
       {loading ? (
-        <View className="card">
-          <Text className="muted">加载中…</Text>
-        </View>
+        <LoadingCard text="加载交易信息…" />
       ) : error ? (
-        <View className="card">
-          <Text style={{ fontWeight: 700 }}>加载失败</Text>
-          <View style={{ height: '8rpx' }} />
-          <Text className="muted">{error}</Text>
-          <View style={{ height: '12rpx' }} />
-          <View className="btn-primary" onClick={load}>
-            <Text>重试</Text>
-          </View>
-        </View>
+        <ErrorCard message={error} onRetry={load} />
       ) : listing ? (
         <View>
           <View className="card">
-            <Text style={{ fontSize: '34rpx', fontWeight: 800 }}>{listing.title}</Text>
+            <Text className="muted">交易摘要</Text>
+            <View style={{ height: '8rpx' }} />
+            <Text className="text-title clamp-2">{listing.title}</Text>
             <View style={{ height: '10rpx' }} />
             <Text className="muted">
-              订金：¥{fenToYuan(listing.depositAmountFen)} · 价格：
-              {listing.priceType === 'NEGOTIABLE'
-                ? '面议'
-                : `¥${fenToYuan(listing.priceAmountFen)}`}
+              订金：
+              <Text className="text-strong" style={{ color: 'var(--c-primary)' }}>
+                ¥{fenToYuan(listing.depositAmountFen)}
+              </Text>
+              {'  '}· 价格：
+              <Text className="text-strong" style={{ color: 'var(--c-primary)' }}>
+                {listing.priceType === 'NEGOTIABLE' ? '面议' : `¥${fenToYuan(listing.priceAmountFen)}`}
+              </Text>
             </Text>
           </View>
 
           <View style={{ height: '16rpx' }} />
 
           <View className="card">
-            <Text style={{ fontWeight: 700 }}>说明（演示）</Text>
+            <Text className="text-card-title">订金说明</Text>
             <View style={{ height: '8rpx' }} />
             <Text className="muted">
-              本页会调用：创建订单 → 创建支付意图（订金）。H5
-              不做真实微信支付，仅用于展示对接流程与异常场景。
+              订金支付后平台将启动合同/材料核验与权属变更等流程。退款与争议处理以平台规则与人工审核为准。
             </Text>
           </View>
 
           <View style={{ height: '16rpx' }} />
-
-          <View
-            className={`card ${paying ? '' : 'btn-primary'}`}
-            onClick={paying ? undefined : onPay}
-          >
-            <Text>{paying ? '处理中…' : '生成支付意图（订金）'}</Text>
-          </View>
-
-          <View style={{ height: '16rpx' }} />
-
-          <View
-            className="card btn-ghost"
-            onClick={() => {
-              Taro.showToast({ title: '切换场景：在「我的」页设置 Mock 场景', icon: 'none' });
-            }}
-          >
-            <Text>如何演示“幂等冲突/重放”？</Text>
-          </View>
         </View>
       ) : (
-        <View className="card">
-          <Text className="muted">无数据</Text>
-        </View>
+        <EmptyCard title="无数据" message="该专利不存在或不可见。" actionText="返回" onAction={() => Taro.navigateBack()} />
       )}
+
+      {listing && !loading && !error ? (
+        <StickyBar>
+          <View className="flex-1">
+            <Button variant="ghost" onClick={() => Taro.navigateBack()}>
+              返回
+            </Button>
+          </View>
+          <View style={{ flex: 2, minWidth: 0 }}>
+            <Button variant="primary" loading={paying} disabled={paying} onClick={onPay}>
+              {paying ? '处理中…' : `支付订金 ¥${fenToYuan(listing.depositAmountFen)}`}
+            </Button>
+          </View>
+        </StickyBar>
+      ) : null}
     </View>
   );
 }

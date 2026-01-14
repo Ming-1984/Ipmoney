@@ -1,17 +1,26 @@
 import { View, Text } from '@tarojs/components';
-import Taro from '@tarojs/taro';
+import Taro, { useDidShow } from '@tarojs/taro';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 
-import { STORAGE_KEYS } from '../../constants';
+import type { components } from '@ipmoney/api-types';
+
+import { ENABLE_MOCK_TOOLS, STORAGE_KEYS } from '../../constants';
 import {
   clearToken,
+  clearVerificationStatus,
+  clearVerificationType,
   getToken,
   getVerificationStatus,
   getVerificationType,
   isOnboardingDone,
+  setOnboardingDone,
+  setVerificationStatus,
+  setVerificationType,
 } from '../../lib/auth';
 import { apiGet } from '../../lib/api';
 import { ErrorCard, LoadingCard } from '../../ui/StateCards';
+import { CellRow, PageHeader, Spacer, Surface } from '../../ui/layout';
+import { Button, CellGroup } from '../../ui/nutui';
 
 type Me = {
   id: string;
@@ -26,24 +35,60 @@ type Me = {
   updatedAt?: string;
 };
 
+type UserVerification = components['schemas']['UserVerification'];
+
+function verificationTypeLabel(t?: string | null): string {
+  if (!t) return '-';
+  if (t === 'PERSON') return '个人';
+  if (t === 'COMPANY') return '企业';
+  if (t === 'ACADEMY') return '科研院校';
+  if (t === 'GOVERNMENT') return '政府';
+  if (t === 'ASSOCIATION') return '行业协会/学会';
+  if (t === 'TECH_MANAGER') return '技术经理人';
+  return t;
+}
+
+function verificationStatusLabel(s?: string | null): string {
+  if (!s) return '-';
+  if (s === 'PENDING') return '审核中';
+  if (s === 'APPROVED') return '已通过';
+  if (s === 'REJECTED') return '已驳回';
+  return s;
+}
+
+function verificationStatusTagClass(s?: string | null): string {
+  if (!s) return 'tag';
+  if (s === 'PENDING') return 'tag tag-warning';
+  if (s === 'APPROVED') return 'tag tag-success';
+  if (s === 'REJECTED') return 'tag tag-danger';
+  return 'tag';
+}
+
 export default function MePage() {
-  const token = getToken();
-  const onboardingDone = isOnboardingDone();
-  const verification = useMemo(() => {
-    return {
-      type: getVerificationType(),
-      status: getVerificationStatus(),
-    };
-  }, []);
+  const [auth, setAuth] = useState(() => ({
+    token: getToken(),
+    onboardingDone: isOnboardingDone(),
+    verificationType: getVerificationType(),
+    verificationStatus: getVerificationStatus(),
+  }));
+
+  useDidShow(() => {
+    setAuth({
+      token: getToken(),
+      onboardingDone: isOnboardingDone(),
+      verificationType: getVerificationType(),
+      verificationStatus: getVerificationStatus(),
+    });
+  });
 
   const [meLoading, setMeLoading] = useState(false);
   const [meError, setMeError] = useState<string | null>(null);
   const [me, setMe] = useState<Me | null>(null);
 
-  const scenario = useMemo(() => Taro.getStorageSync(STORAGE_KEYS.mockScenario) || 'happy', []);
+  const [scenario, setScenario] = useState(() => Taro.getStorageSync(STORAGE_KEYS.mockScenario) || 'happy');
 
   const loadMe = useCallback(async () => {
-    if (!token) return;
+    if (!auth.token) return;
     setMeLoading(true);
     setMeError(null);
     try {
@@ -55,174 +100,250 @@ export default function MePage() {
     } finally {
       setMeLoading(false);
     }
-  }, [token]);
+  }, [auth.token]);
+
+  const syncVerification = useCallback(async () => {
+    if (!auth.token) return;
+    try {
+      const v = await apiGet<UserVerification>('/me/verification');
+      if (v?.type) setVerificationType(v.type);
+      if (v?.status) setVerificationStatus(v.status);
+      setOnboardingDone(true);
+    } catch (e: any) {
+      const msg = String(e?.message || '');
+      if (msg.includes('404')) {
+        clearVerificationType();
+        clearVerificationStatus();
+        setOnboardingDone(false);
+      }
+    } finally {
+      setAuth({
+        token: getToken(),
+        onboardingDone: isOnboardingDone(),
+        verificationType: getVerificationType(),
+        verificationStatus: getVerificationStatus(),
+      });
+    }
+  }, [auth.token]);
 
   useEffect(() => {
+    if (!auth.token) {
+      setMe(null);
+      return;
+    }
     void loadMe();
-  }, [loadMe]);
+  }, [auth.token, loadMe]);
+
+  useEffect(() => {
+    if (!auth.token) return;
+    void syncVerification();
+  }, [auth.token, syncVerification]);
+
+  const verification = useMemo(() => {
+    return { type: auth.verificationType, status: auth.verificationStatus };
+  }, [auth.verificationStatus, auth.verificationType]);
 
   return (
     <View className="container">
-      <View className="card">
-        <Text style={{ fontSize: '34rpx', fontWeight: 700 }}>我的</Text>
-        <View style={{ height: '8rpx' }} />
-        <Text className="muted">登录态：{token ? '已登录（演示 token）' : '未登录'}</Text>
-        <View style={{ height: '4rpx' }} />
-        <Text className="muted">
-          身份：{verification.type ?? '-'} / 状态：{verification.status ?? '-'}
-        </Text>
-        <View style={{ height: '4rpx' }} />
-        <Text className="muted">首次进入完成：{onboardingDone ? '是' : '否'}</Text>
-        <View style={{ height: '4rpx' }} />
-        <Text className="muted">Mock 场景：{scenario}</Text>
-      </View>
+      <PageHeader variant="hero" title="我的" subtitle="管理身份与常用功能" right={<View className="brand-mark" />} />
+      <Spacer />
 
-      <View style={{ height: '16rpx' }} />
-
-      {!token ? (
-        <View
-          className="card btn-primary"
-          onClick={() => {
-            Taro.navigateTo({ url: '/pages/login/index' });
-          }}
-        >
-          <Text>登录/注册</Text>
-        </View>
+      {!auth.token ? (
+        <Surface>
+          <Text className="text-card-title">未登录</Text>
+          <View style={{ height: '8rpx' }} />
+          <Text className="muted">登录并审核通过后，可进行收藏/咨询/下单/支付。</Text>
+          <View style={{ height: '14rpx' }} />
+          <Button
+            onClick={() => {
+              Taro.navigateTo({ url: '/pages/login/index' });
+            }}
+          >
+            微信授权登录
+          </Button>
+        </Surface>
       ) : (
         <View>
           {meLoading ? <LoadingCard text="加载我的资料…" /> : null}
           {meError ? <ErrorCard message={meError} onRetry={loadMe} /> : null}
           {me && !meLoading && !meError ? (
-            <View className="card">
-              <Text style={{ fontWeight: 700 }}>{me.nickname || '演示用户'}</Text>
+            <Surface>
+              <View className="row-between">
+                <View>
+                  <Text className="text-card-title">{me.nickname || '用户'}</Text>
+                  <View style={{ height: '6rpx' }} />
+                  <Text className="muted">{me.phone || '手机号未展示'}</Text>
+                </View>
+                <View style={{ display: 'flex', flexDirection: 'row', alignItems: 'center' }}>
+                  {verification.status ? (
+                    <View style={{ marginRight: '8rpx' }}>
+                      <Text className={verificationStatusTagClass(verification.status)}>
+                        {verificationStatusLabel(verification.status)}
+                      </Text>
+                    </View>
+                  ) : null}
+                  <Text className="tag tag-gold">{verificationTypeLabel(verification.type)}</Text>
+                </View>
+              </View>
+              <View style={{ height: '6rpx' }} />
+              <Text className="muted">
+                认证：{verificationStatusLabel(verification.status)} · 首次进入完成：
+                {auth.onboardingDone ? '是' : '否'}
+              </Text>
               <View style={{ height: '6rpx' }} />
               <Text className="muted">地区：{me.regionCode || '-'}</Text>
-            </View>
+              <View style={{ height: '12rpx' }} />
+              <View className="row" style={{ gap: '12rpx' }}>
+                <View style={{ flex: 1 }}>
+                  <Button
+                    variant="ghost"
+                    size="small"
+                    onClick={() => {
+                      Taro.navigateTo({ url: '/pages/profile/edit/index' });
+                    }}
+                  >
+                    资料设置
+                  </Button>
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Button
+                    variant="ghost"
+                    size="small"
+                    onClick={() => {
+                      void syncVerification();
+                    }}
+                  >
+                    刷新认证
+                  </Button>
+                </View>
+              </View>
+            </Surface>
           ) : null}
 
           <View style={{ height: '12rpx' }} />
 
-          <View
-            className="card btn-ghost"
-            onClick={() => {
-              Taro.navigateTo({ url: '/pages/onboarding/choose-identity/index' });
-            }}
-          >
-            <Text>身份/认证（首次进入必选）</Text>
-          </View>
+          <Surface padding="none">
+            <CellGroup divider>
+              <CellRow
+                clickable
+                title={<Text className="text-strong">我的订单</Text>}
+                description={<Text className="muted">查看订金/尾款/退款进度</Text>}
+                onClick={() => {
+                  Taro.navigateTo({ url: '/pages/orders/index' });
+                }}
+              />
+              <CellRow
+                clickable
+                title={<Text className="text-strong">我的收藏</Text>}
+                description={<Text className="muted">已收藏的专利上架</Text>}
+                onClick={() => {
+                  Taro.navigateTo({ url: '/pages/favorites/index' });
+                }}
+              />
+              <CellRow
+                clickable
+                title={<Text className="text-strong">我的上架</Text>}
+                description={<Text className="muted">卖家管理草稿/上架/下架</Text>}
+                onClick={() => {
+                  Taro.navigateTo({ url: '/pages/my-listings/index' });
+                }}
+              />
+              <CellRow
+                clickable
+                title={<Text className="text-strong">身份/认证</Text>}
+                description={<Text className="muted">首次进入必选，企业/院校通过后可展示</Text>}
+                onClick={() => {
+                  Taro.navigateTo({ url: '/pages/onboarding/choose-identity/index' });
+                }}
+              />
+              <CellRow
+                clickable
+                title={<Text className="text-strong">咨询/消息</Text>}
+                description={<Text className="muted">查看会话与跟单</Text>}
+                onClick={() => {
+                  Taro.switchTab({ url: '/pages/messages/index' });
+                }}
+              />
+              <CellRow
+                clickable
+                title={<Text className="text-strong">机构展示</Text>}
+                description={<Text className="muted">企业/科研院校入驻展示</Text>}
+                onClick={() => {
+                  Taro.navigateTo({ url: '/pages/organizations/index' });
+                }}
+              />
+              <CellRow
+                clickable
+                title={<Text className="text-strong">交易规则</Text>}
+                description={<Text className="muted">订金/佣金/退款窗口等</Text>}
+                onClick={() => {
+                  Taro.navigateTo({ url: '/pages/trade-rules/index' });
+                }}
+              />
+              <CellRow
+                clickable
+                title={<Text className="text-strong">资料设置</Text>}
+                description={<Text className="muted">昵称/地区等</Text>}
+                isLast
+                onClick={() => {
+                  Taro.navigateTo({ url: '/pages/profile/edit/index' });
+                }}
+              />
+            </CellGroup>
+          </Surface>
 
           <View style={{ height: '12rpx' }} />
 
-          <View
-            className="card btn-ghost"
-            onClick={() => {
-              Taro.switchTab({ url: '/pages/messages/index' });
-            }}
-          >
-            <Text>我的咨询/消息</Text>
-          </View>
-
-          <View style={{ height: '12rpx' }} />
-
-          <View
-            className="card btn-ghost"
-            onClick={() => {
-              Taro.navigateTo({ url: '/pages/organizations/index' });
-            }}
-          >
-            <Text>机构展示</Text>
-          </View>
-
-          <View style={{ height: '12rpx' }} />
-
-          <View
-            className="card btn-ghost"
-            onClick={() => {
-              clearToken();
-              Taro.showToast({ title: '已退出登录', icon: 'success' });
-              setTimeout(() => Taro.reLaunch({ url: '/pages/home/index' }), 200);
-            }}
-          >
-            <Text>退出登录</Text>
-          </View>
+          <Surface>
+            <Button
+              variant="ghost"
+              onClick={() => {
+                clearToken();
+                Taro.showToast({ title: '已退出登录', icon: 'success' });
+                setTimeout(() => Taro.reLaunch({ url: '/pages/home/index' }), 200);
+              }}
+            >
+              退出登录
+            </Button>
+          </Surface>
         </View>
       )}
 
-      <View style={{ height: '16rpx' }} />
-
-      <View className="card">
-        <Text style={{ fontWeight: 700 }}>演示：切换 Mock 场景</Text>
-        <View style={{ height: '10rpx' }} />
-        <View
-          className="btn-ghost"
-          onClick={() => {
-            Taro.setStorageSync(STORAGE_KEYS.mockScenario, 'happy');
-            Taro.showToast({ title: '已切换：happy', icon: 'success' });
-          }}
-        >
-          <Text>happy（默认）</Text>
-        </View>
-        <View style={{ height: '10rpx' }} />
-        <View
-          className="btn-ghost"
-          onClick={() => {
-            Taro.setStorageSync(STORAGE_KEYS.mockScenario, 'empty');
-            Taro.showToast({ title: '已切换：empty', icon: 'success' });
-          }}
-        >
-          <Text>empty（空数据）</Text>
-        </View>
-        <View style={{ height: '10rpx' }} />
-        <View
-          className="btn-ghost"
-          onClick={() => {
-            Taro.setStorageSync(STORAGE_KEYS.mockScenario, 'error');
-            Taro.showToast({ title: '已切换：error', icon: 'success' });
-          }}
-        >
-          <Text>error（服务异常）</Text>
-        </View>
-        <View style={{ height: '10rpx' }} />
-        <View
-          className="btn-ghost"
-          onClick={() => {
-            Taro.setStorageSync(STORAGE_KEYS.mockScenario, 'edge');
-            Taro.showToast({ title: '已切换：edge', icon: 'success' });
-          }}
-        >
-          <Text>edge（边界数据）</Text>
-        </View>
-        <View style={{ height: '10rpx' }} />
-        <View
-          className="btn-ghost"
-          onClick={() => {
-            Taro.setStorageSync(STORAGE_KEYS.mockScenario, 'payment_callback_replay');
-            Taro.showToast({ title: '已切换：payment_callback_replay', icon: 'success' });
-          }}
-        >
-          <Text>payment_callback_replay（幂等冲突）</Text>
-        </View>
-        <View style={{ height: '10rpx' }} />
-        <View
-          className="btn-ghost"
-          onClick={() => {
-            Taro.setStorageSync(STORAGE_KEYS.mockScenario, 'refund_failed');
-            Taro.showToast({ title: '已切换：refund_failed', icon: 'success' });
-          }}
-        >
-          <Text>refund_failed（退款失败）</Text>
-        </View>
-        <View style={{ height: '10rpx' }} />
-        <View
-          className="btn-ghost"
-          onClick={() => {
-            Taro.setStorageSync(STORAGE_KEYS.mockScenario, 'order_conflict');
-            Taro.showToast({ title: '已切换：order_conflict', icon: 'success' });
-          }}
-        >
-          <Text>order_conflict（状态机冲突）</Text>
-        </View>
-      </View>
+      {ENABLE_MOCK_TOOLS ? (
+        <>
+          <View style={{ height: '16rpx' }} />
+          <Surface>
+            <Text className="text-card-title">调试：场景</Text>
+            <View style={{ height: '8rpx' }} />
+            <Text className="muted">当前：{scenario}</Text>
+            <View style={{ height: '12rpx' }} />
+            <View className="chip-row">
+              {[
+                ['happy', 'happy'],
+                ['empty', 'empty'],
+                ['error', 'error'],
+                ['edge', 'edge'],
+                ['payment_callback_replay', 'pay-replay'],
+                ['refund_failed', 'refund-failed'],
+                ['order_conflict', 'order-conflict'],
+              ].map(([value, label]) => (
+                <View key={value} style={{ marginRight: '12rpx', marginBottom: '12rpx' }}>
+                  <View
+                    className={`chip ${scenario === value ? 'chip-active' : ''}`}
+                    onClick={() => {
+                      Taro.setStorageSync(STORAGE_KEYS.mockScenario, value);
+                      setScenario(value);
+                      Taro.showToast({ title: `已切换：${value}`, icon: 'success' });
+                    }}
+                  >
+                    <Text>{label}</Text>
+                  </View>
+                </View>
+              ))}
+            </View>
+          </Surface>
+        </>
+      ) : null}
     </View>
   );
 }

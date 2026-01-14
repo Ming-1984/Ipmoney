@@ -1,8 +1,10 @@
-import { View, Text, Input } from '@tarojs/components';
+import { View, Text, Image } from '@tarojs/components';
 import Taro from '@tarojs/taro';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 
 import { apiGet } from '../../lib/api';
+import { PageHeader, Spacer } from '../../ui/layout';
+import { SearchEntry } from '../../ui/SearchEntry';
 import { EmptyCard, ErrorCard, LoadingCard } from '../../ui/StateCards';
 
 type OrganizationSummary = {
@@ -22,7 +24,17 @@ type PagedOrganizationSummary = {
   page: { page: number; pageSize: number; total: number };
 };
 
+function verificationTypeLabel(t: OrganizationSummary['verificationType']): string {
+  if (t === 'COMPANY') return '企业';
+  if (t === 'ACADEMY') return '科研院校';
+  if (t === 'GOVERNMENT') return '政府';
+  if (t === 'ASSOCIATION') return '行业协会/学会';
+  if (t === 'TECH_MANAGER') return '技术经理人';
+  return t;
+}
+
 export default function OrganizationsPage() {
+  const [qInput, setQInput] = useState('');
   const [q, setQ] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -50,26 +62,28 @@ export default function OrganizationsPage() {
     void load();
   }, [load]);
 
-  const items = useMemo(() => data?.items || [], [data?.items]);
+  const items = useMemo(() => (data?.items || []).filter((x) => x.verificationStatus === 'APPROVED'), [data?.items]);
 
   return (
     <View className="container">
-      <View className="card">
-        <Text style={{ fontSize: '34rpx', fontWeight: 700 }}>机构展示</Text>
-        <View style={{ height: '8rpx' }} />
-        <Text className="muted">企业/科研院校等审核通过后，对外展示（P0 演示）。</Text>
-      </View>
-
-      <View style={{ height: '16rpx' }} />
+      <PageHeader title="机构展示" subtitle="企业/科研院校等审核通过后，对外展示。" />
+      <Spacer />
 
       <View className="card">
-        <Text style={{ fontWeight: 700 }}>搜索机构</Text>
-        <View style={{ height: '8rpx' }} />
-        <Input value={q} onInput={(e) => setQ(e.detail.value)} placeholder="名称关键词（可选）" />
+        <Text className="text-card-title">搜索机构</Text>
         <View style={{ height: '12rpx' }} />
-        <View className="btn-primary" onClick={load}>
-          <Text>查询</Text>
-        </View>
+        <SearchEntry
+          value={qInput}
+          placeholder="名称关键词（可选）"
+          actionText="查询"
+          onChange={(value) => {
+            setQInput(value);
+            if (!value) setQ('');
+          }}
+          onSearch={(value) => {
+            setQ((value || '').trim());
+          }}
+        />
       </View>
 
       <View style={{ height: '16rpx' }} />
@@ -86,20 +100,36 @@ export default function OrganizationsPage() {
               className="card"
               style={{ marginBottom: '16rpx' }}
               onClick={() => {
-                Taro.showToast({ title: `机构详情：${it.displayName}（演示）`, icon: 'none' });
+                Taro.navigateTo({ url: `/pages/organizations/detail/index?orgUserId=${it.userId}` });
               }}
             >
-              <Text style={{ fontWeight: 700 }}>{it.displayName}</Text>
-              <View style={{ height: '6rpx' }} />
-              <Text className="muted">
-                类型：{it.verificationType} · 地区：{it.regionCode || '-'}
-              </Text>
-              <View style={{ height: '6rpx' }} />
-              <Text className="muted">
-                上架数：{it.stats?.listingCount ?? 0} · 专利数：{it.stats?.patentCount ?? 0}
-              </Text>
-              <View style={{ height: '8rpx' }} />
-              <Text className="muted">{it.intro || '（暂无简介）'}</Text>
+              <View className="row">
+                <View className="avatar">
+                  {it.logoUrl ? (
+                    <Image className="avatar-img" src={it.logoUrl} mode="aspectFill" />
+                  ) : (
+                    <Text className="text-strong" style={{ color: 'var(--c-primary)' }}>
+                      {it.displayName.slice(0, 1)}
+                    </Text>
+                  )}
+                </View>
+                <View style={{ width: '14rpx' }} />
+                <View style={{ flex: 1 }}>
+                  <View className="row-between">
+                    <Text className="ellipsis text-strong">
+                      {it.displayName}
+                    </Text>
+                    <Text className="tag tag-gold">{verificationTypeLabel(it.verificationType)}</Text>
+                  </View>
+                  <View style={{ height: '6rpx' }} />
+                  <Text className="muted">
+                    地区：{it.regionCode || '-'} · 上架 {it.stats?.listingCount ?? 0} · 专利{' '}
+                    {it.stats?.patentCount ?? 0}
+                  </Text>
+                  <View style={{ height: '8rpx' }} />
+                  <Text className="muted">{it.intro || '暂无简介'}</Text>
+                </View>
+              </View>
             </View>
           ))}
         </View>

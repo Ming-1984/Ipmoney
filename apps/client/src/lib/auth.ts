@@ -12,6 +12,10 @@ export function setToken(token: string) {
 
 export function clearToken() {
   Taro.removeStorageSync(STORAGE_KEYS.token);
+  Taro.removeStorageSync(STORAGE_KEYS.onboardingDone);
+  Taro.removeStorageSync(STORAGE_KEYS.verificationType);
+  Taro.removeStorageSync(STORAGE_KEYS.verificationStatus);
+  Taro.removeStorageSync(STORAGE_KEYS.favoriteListingIds);
 }
 
 export function isOnboardingDone(): boolean {
@@ -31,10 +35,18 @@ export function setVerificationType(t: VerificationType) {
   Taro.setStorageSync(STORAGE_KEYS.verificationType, t);
 }
 
+export function clearVerificationType() {
+  Taro.removeStorageSync(STORAGE_KEYS.verificationType);
+}
+
 export function getVerificationStatus(): VerificationStatus | null {
   return Taro.getStorageSync(STORAGE_KEYS.verificationStatus) || null;
 }
 
 export function setVerificationStatus(status: VerificationStatus) {
   Taro.setStorageSync(STORAGE_KEYS.verificationStatus, status);
+}
+
+export function clearVerificationStatus() {
+  Taro.removeStorageSync(STORAGE_KEYS.verificationStatus);
 }

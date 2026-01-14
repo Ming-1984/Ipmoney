@@ -1,6 +1,20 @@
 {
   "$schema": "https://turbo.build/schema.json",
   "ui": "tui",
+  "globalPassThroughEnv": [
+    "ADMIN_WEB_PORT",
+    "CLIENT_H5_PORT",
+    "HOST",
+    "MOCK_API_PORT",
+    "MOCK_API_PRISM_PORT",
+    "TARO_APP_API_BASE_URL",
+    "TARO_APP_ENABLE_MOCK_TOOLS",
+    "UPSTREAM_API_BASE_URL",
+    "UPSTREAM_FALLBACK_STATUSES",
+    "UPSTREAM_PATH_PREFIXES",
+    "VITE_API_BASE_URL",
+    "VITE_ENABLE_MOCK_TOOLS"
+  ],
   "tasks": {
     "dev": {
       "cache": false,
@@ -21,4 +35,3 @@
     }
   }
 }
-

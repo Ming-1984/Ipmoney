@@ -2,6 +2,8 @@ import { Button, Card, Form, Input, Typography } from 'antd';
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 
+import logoPng from '../assets/brand/logo.png';
+
 export function LoginPage() {
   const navigate = useNavigate();
 
@@ -13,15 +15,23 @@ export function LoginPage() {
         alignItems: 'center',
         justifyContent: 'center',
         padding: 16,
-        background: '#FFF7ED',
+        background: 'var(--ipm-bg)',
       }}
     >
       <Card style={{ width: 420 }}>
-        <Typography.Title level={3} style={{ marginTop: 0 }}>
-          Ipmoney 管理后台
-        </Typography.Title>
+        <div style={{ display: 'flex', gap: 12, alignItems: 'center', marginBottom: 8 }}>
+          <div className="ipm-logo-mark" aria-hidden="true">
+            <img src={logoPng} alt="" />
+          </div>
+          <div>
+            <Typography.Title level={3} style={{ marginTop: 0, marginBottom: 0 }}>
+              Ipmoney 管理后台
+            </Typography.Title>
+            <Typography.Text type="secondary">Ipmoney · P0 演示骨架</Typography.Text>
+          </div>
+        </div>
         <Typography.Paragraph type="secondary">
-          P0 演示骨架：登录逻辑后续对接 JWT + RBAC。
+          登录逻辑后续对接 JWT + RBAC；当前为演示占位。
         </Typography.Paragraph>
         <Form
           layout="vertical"

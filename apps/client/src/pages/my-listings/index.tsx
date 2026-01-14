@@ -1,0 +1,206 @@
+import { View, Text } from '@tarojs/components';
+import Taro from '@tarojs/taro';
+import React, { useCallback, useMemo, useState } from 'react';
+
+import type { components } from '@ipmoney/api-types';
+
+import { apiGet, apiPost } from '../../lib/api';
+import { ensureApproved, goLogin, goOnboarding, usePageAccess } from '../../lib/guard';
+import { Button, Segmented } from '../../ui/nutui';
+import { AuditPendingCard, EmptyCard, ErrorCard, LoadingCard, PermissionCard } from '../../ui/StateCards';
+import { PageHeader, Spacer, Surface } from '../../ui/layout';
+
+type PagedListing = components['schemas']['PagedListing'];
+type Listing = components['schemas']['Listing'];
+type ListingStatus = components['schemas']['ListingStatus'];
+type AuditStatus = components['schemas']['AuditStatus'];
+
+function auditStatusLabel(s: AuditStatus): string {
+  if (s === 'APPROVED') return '已通过';
+  if (s === 'REJECTED') return '已驳回';
+  return '审核中';
+}
+
+function listingStatusLabel(s: ListingStatus): string {
+  if (s === 'DRAFT') return '草稿';
+  if (s === 'ACTIVE') return '已上架';
+  if (s === 'OFF_SHELF') return '已下架';
+  if (s === 'SOLD') return '已成交';
+  return String(s);
+}
+
+export default function MyListingsPage() {
+  const [status, setStatus] = useState<ListingStatus | ''>('');
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [data, setData] = useState<PagedListing | null>(null);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const d = await apiGet<PagedListing>('/listings', {
+        page: 1,
+        pageSize: 20,
+        ...(status ? { status } : {}),
+      });
+      setData(d);
+    } catch (e: any) {
+      setError(e?.message || '加载失败');
+      setData(null);
+    } finally {
+      setLoading(false);
+    }
+  }, [status]);
+
+  const access = usePageAccess('approved-required', (a) => {
+    if (a.state === 'ok') {
+      void load();
+      return;
+    }
+    setLoading(false);
+    setError(null);
+    setData(null);
+  });
+
+  const items = useMemo(() => data?.items || [], [data?.items]);
+
+  const goCreate = useCallback(() => {
+    if (!ensureApproved()) return;
+    Taro.navigateTo({ url: '/pages/publish/patent/index' });
+  }, []);
+
+  if (access.state === 'need-login') {
+    return (
+      <View className="container">
+        <PageHeader title="我的上架" subtitle="卖家查看/编辑/下架自己的专利上架信息" />
+        <Spacer />
+        <PermissionCard title="需要登录" message="登录后才能查看上架信息。" actionText="去登录" onAction={goLogin} />
+      </View>
+    );
+  }
+  if (access.state === 'need-onboarding') {
+    return (
+      <View className="container">
+        <PageHeader title="我的上架" subtitle="卖家查看/编辑/下架自己的专利上架信息" />
+        <Spacer />
+        <PermissionCard title="需要选择身份" message="完成身份选择后才能继续。" actionText="去选择" onAction={goOnboarding} />
+      </View>
+    );
+  }
+  if (access.state === 'audit-pending') {
+    return (
+      <View className="container">
+        <PageHeader title="我的上架" subtitle="卖家查看/编辑/下架自己的专利上架信息" />
+        <Spacer />
+        <AuditPendingCard title="资料审核中" message="审核通过后才能发布与管理上架信息。" actionText="查看进度" onAction={goOnboarding} />
+      </View>
+    );
+  }
+  if (access.state === 'audit-rejected') {
+    return (
+      <View className="container">
+        <PageHeader title="我的上架" subtitle="卖家查看/编辑/下架自己的专利上架信息" />
+        <Spacer />
+        <AuditPendingCard title="资料已驳回" message="请重新提交资料，审核通过后才能继续。" actionText="重新提交" onAction={goOnboarding} />
+      </View>
+    );
+  }
+  if (access.state === 'audit-required') {
+    return (
+      <View className="container">
+        <PageHeader title="我的上架" subtitle="卖家查看/编辑/下架自己的专利上架信息" />
+        <Spacer />
+        <AuditPendingCard title="需要认证" message="完成认证并审核通过后才能继续。" actionText="去认证" onAction={goOnboarding} />
+      </View>
+    );
+  }
+
+  return (
+    <View className="container">
+      <PageHeader title="我的上架" subtitle="卖家查看/编辑/下架自己的专利上架信息" />
+      <Spacer />
+
+      <Surface>
+        <Text className="text-strong">状态筛选</Text>
+        <View style={{ height: '10rpx' }} />
+        <Segmented
+          value={status}
+          options={[
+            { label: '全部', value: '' },
+            { label: '草稿', value: 'DRAFT' },
+            { label: '上架', value: 'ACTIVE' },
+            { label: '下架', value: 'OFF_SHELF' },
+            { label: '成交', value: 'SOLD' },
+          ]}
+          onChange={(v) => setStatus(String(v) as ListingStatus | '')}
+        />
+        <View style={{ height: '12rpx' }} />
+        <Button variant="primary" onClick={goCreate}>
+          发布新的专利上架
+        </Button>
+      </Surface>
+
+      <View style={{ height: '16rpx' }} />
+
+      {loading ? (
+        <LoadingCard />
+      ) : error ? (
+        <ErrorCard message={error} onRetry={load} />
+      ) : items.length ? (
+        <View>
+          {items.map((it: Listing) => (
+            <Surface key={it.id} style={{ marginBottom: '16rpx' }}>
+              <Text className="text-title clamp-2">{it.title || '未命名专利'}</Text>
+              <View style={{ height: '8rpx' }} />
+              <View className="row" style={{ gap: '12rpx', flexWrap: 'wrap' }}>
+                <Text className="tag">{listingStatusLabel(it.status)}</Text>
+                <Text className={`tag ${it.auditStatus === 'APPROVED' ? 'tag-success' : it.auditStatus === 'REJECTED' ? 'tag-danger' : 'tag-warning'}`}>
+                  {auditStatusLabel(it.auditStatus)}
+                </Text>
+                {it.applicationNoDisplay ? <Text className="tag">{it.applicationNoDisplay}</Text> : null}
+              </View>
+              <View style={{ height: '12rpx' }} />
+              <View className="row" style={{ gap: '12rpx' }}>
+                <View style={{ flex: 1 }}>
+                  <Button
+                    variant="ghost"
+                    onClick={() => {
+                      Taro.navigateTo({ url: `/pages/publish/patent/index?listingId=${it.id}` });
+                    }}
+                  >
+                    编辑/查看
+                  </Button>
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Button
+                    variant="danger"
+                    fill="outline"
+                    disabled={it.status !== 'ACTIVE'}
+                    onClick={async () => {
+                      try {
+                        await apiPost<Listing>(
+                          `/listings/${it.id}/off-shelf`,
+                          { reason: '卖家下架' },
+                          { idempotencyKey: `off-${it.id}` },
+                        );
+                        Taro.showToast({ title: '已下架', icon: 'success' });
+                        void load();
+                      } catch (e: any) {
+                        Taro.showToast({ title: e?.message || '操作失败', icon: 'none' });
+                      }
+                    }}
+                  >
+                    下架
+                  </Button>
+                </View>
+              </View>
+            </Surface>
+          ))}
+        </View>
+      ) : (
+        <EmptyCard message="暂无上架记录" actionText="刷新" onAction={load} />
+      )}
+    </View>
+  );
+}

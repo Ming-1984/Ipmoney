@@ -15,6 +15,7 @@ apps/
   client/           # 用户端（Taro：编译小程序 + H5）
   mock-api/         # （可选但推荐）OpenAPI Mock Server（Prism）+ fixtures 场景切换
 packages/
+  api-types/         # OpenAPI 生成的 TypeScript 类型（单一契约来源）
   shared/           # DTO/枚举/校验规则/工具函数（与 OpenAPI 对齐）
   api-client/       # OpenAPI TS client + 数据源适配（real/mock；前端只替换数据源）
   fixtures/         # 可复用 fixtures（happy/empty/error/edge；用于演示与回归）

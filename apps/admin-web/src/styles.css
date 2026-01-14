@@ -1,0 +1,79 @@
+:root {
+  --ipm-primary: #ff6a00;
+  --ipm-gold: #ffc54d;
+  --ipm-bg: #fff3e6;
+  --ipm-text: #0f172a;
+  --ipm-muted: #475569;
+  --ipm-border: #e2e8f0;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--ipm-bg);
+  color: var(--ipm-text);
+}
+
+.ipm-app-header {
+  background: rgba(255, 255, 255, 0.92) !important;
+  border-bottom: 1px solid var(--ipm-border);
+  backdrop-filter: blur(8px);
+}
+
+.ipm-header-inner {
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.ipm-content {
+  padding: 16px;
+}
+
+.ipm-content-inner {
+  max-width: 1280px;
+  margin: 0 auto;
+}
+
+.ipm-logo {
+  height: 56px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0 16px;
+}
+
+.ipm-logo-mark {
+  width: 28px;
+  height: 28px;
+  border-radius: 999px;
+  background: linear-gradient(135deg, var(--ipm-primary), var(--ipm-gold));
+  box-shadow: 0 10px 22px rgba(255, 122, 0, 0.24);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.ipm-logo-mark > img {
+  width: 18px;
+  height: 18px;
+  object-fit: contain;
+}
+
+.ipm-logo-text {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.1;
+}
+
+.ipm-logo-subtitle {
+  font-size: 12px;
+  opacity: 0.85;
+}

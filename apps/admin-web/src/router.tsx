@@ -1,13 +1,14 @@
 import { createBrowserRouter } from 'react-router-dom';
 
 import { AppLayout } from './ui/AppLayout';
+import { DashboardPage } from './views/DashboardPage';
 import { LoginPage } from './views/LoginPage';
 import { ListingsAuditPage } from './views/ListingsAuditPage';
 import { ConfigPage } from './views/ConfigPage';
 import { InvoicesPage } from './views/InvoicesPage';
 import { OrdersPage } from './views/OrdersPage';
 import { PatentMapPage } from './views/PatentMapPage';
-import { PlaceholderPage } from './views/PlaceholderPage';
+import { RegionsPage } from './views/RegionsPage';
 import { RefundsPage } from './views/RefundsPage';
 import { SettlementsPage } from './views/SettlementsPage';
 import { VerificationsPage } from './views/VerificationsPage';
@@ -21,7 +22,7 @@ export const router = createBrowserRouter([
     path: '/',
     element: <AppLayout />,
     children: [
-      { index: true, element: <PlaceholderPage title="仪表盘" /> },
+      { index: true, element: <DashboardPage /> },
       { path: 'verifications', element: <VerificationsPage /> },
       { path: 'listings', element: <ListingsAuditPage /> },
       { path: 'orders', element: <OrdersPage /> },
@@ -29,6 +30,7 @@ export const router = createBrowserRouter([
       { path: 'settlements', element: <SettlementsPage /> },
       { path: 'invoices', element: <InvoicesPage /> },
       { path: 'config', element: <ConfigPage /> },
+      { path: 'regions', element: <RegionsPage /> },
       { path: 'patent-map', element: <PatentMapPage /> },
     ],
   },

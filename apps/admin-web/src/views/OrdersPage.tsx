@@ -2,6 +2,8 @@ import { Button, Card, Space, Table, Typography, message } from 'antd';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 
 import { apiGet, apiPost } from '../lib/api';
+import { AuditHint, RequestErrorAlert } from '../ui/RequestState';
+import { confirmAction } from '../ui/confirm';
 
 type OrderStatus =
   | 'DEPOSIT_PENDING'
@@ -39,15 +41,19 @@ function fenToYuan(fen?: number): string {
 
 export function OrdersPage() {
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [data, setData] = useState<PagedOrder | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
+    setError(null);
     try {
       const d = await apiGet<PagedOrder>('/orders', { asRole: 'BUYER', page: 1, pageSize: 10 });
       setData(d);
     } catch (e: any) {
-      message.error(e?.message || '加载失败');
+      const msg = e?.message || '加载失败';
+      setError(msg);
+      message.error(msg);
       setData(null);
     } finally {
       setLoading(false);
@@ -71,6 +77,12 @@ export function OrdersPage() {
             用于演示里程碑确认与状态机冲突（切换 `order_conflict` 场景可触发 409）。
           </Typography.Paragraph>
         </div>
+
+        {error ? (
+          <RequestErrorAlert error={error} onRetry={load} />
+        ) : (
+          <AuditHint text="合同确认/变更完成将影响订单状态与放款条件；建议二次确认并归档证据材料。" />
+        )}
 
         <Table<Order>
           rowKey="id"
@@ -99,6 +111,12 @@ export function OrdersPage() {
                   <Button
                     type="primary"
                     onClick={async () => {
+                      const ok = await confirmAction({
+                        title: '确认合同已签署？',
+                        content: '确认后将推进订单里程碑（可能触发状态机冲突 409）；该操作应记录审计留痕。',
+                        okText: '确认合同',
+                      });
+                      if (!ok) return;
                       try {
                         await apiPost<Order>(`/admin/orders/${r.id}/milestones/contract-signed`, {
                           dealAmountFen: 28800000,
@@ -115,6 +133,12 @@ export function OrdersPage() {
                   </Button>
                   <Button
                     onClick={async () => {
+                      const ok = await confirmAction({
+                        title: '确认权属变更已完成？',
+                        content: '确认后订单将进入可放款/结算阶段；请确保已核验变更完成凭证并留痕。',
+                        okText: '确认变更完成',
+                      });
+                      if (!ok) return;
                       try {
                         await apiPost<Order>(
                           `/admin/orders/${r.id}/milestones/transfer-completed`,
