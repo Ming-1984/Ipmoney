@@ -83,7 +83,7 @@ export function DashboardPage() {
           仪表盘
         </Typography.Title>
         <Typography.Paragraph type="secondary" style={{ marginBottom: 0 }}>
-          演示：关键指标 + 快捷入口；数据来自 Mock fixtures（随场景切换）。
+          关键指标与快捷入口汇总。
         </Typography.Paragraph>
       </Card>
 
@@ -101,10 +101,10 @@ export function DashboardPage() {
         <Col xs={24} lg={16}>
           <Card loading={loading}>
             <Typography.Title level={4} style={{ marginTop: 0 }}>
-              资金与履约（P0 口径）
+              资金与履约
             </Typography.Title>
             <Typography.Paragraph type="secondary">
-              订金/尾款均在平台托管；合同线下签署后由运营确认里程碑；放款以“变更完成确认”为准（P0 默认人工放款回传凭证）。
+              订金/尾款均在平台托管；合同线下签署后由运营确认里程碑；放款以“变更完成确认”为准，建议上传凭证留痕。
             </Typography.Paragraph>
             <Typography.Paragraph type="secondary" style={{ marginBottom: 0 }}>
               地图专利总量（示例）：{patentMapTotal ?? '-'}
@@ -145,4 +145,3 @@ export function DashboardPage() {
     </Space>
   );
 }
-

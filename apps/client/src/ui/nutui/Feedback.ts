@@ -1,3 +1,4 @@
+import Taro from '@tarojs/taro';
 import { Dialog, Toast } from '@nutui/nutui-react-taro';
 
 import { OVERLAY_IDS } from './AppOverlays';
@@ -16,6 +17,20 @@ export function confirm(options: {
   confirmText?: string;
   cancelText?: string;
 }): Promise<boolean> {
+  const env = typeof Taro.getEnv === 'function' ? Taro.getEnv() : process.env.TARO_ENV;
+  const envText = typeof env === 'string' ? env.toLowerCase() : '';
+  const isWeapp = env === Taro.ENV_TYPE.WEAPP || envText === 'weapp';
+  if (isWeapp) {
+    return Taro.showModal({
+      title: options.title,
+      content: options.content,
+      confirmText: options.confirmText ?? '确定',
+      cancelText: options.cancelText ?? '取消',
+      showCancel: true,
+    })
+      .then((res) => Boolean(res.confirm))
+      .catch(() => false);
+  }
   return new Promise((resolve) => {
     let resolved = false;
     const done = (value: boolean) => {

@@ -69,6 +69,13 @@ packages/fixtures/
 - 订单状态不允许跳转的错误提示
 - 无数据/无权限/审核中等状态页
 
+### 3.3 fixtures ID 约束（UUID）
+
+前端路由参数（如 `listingId`/`demandId`/`achievementId`/`orderId`/`conversationId`/`patentId`）会做严格 UUID 校验；因此 fixtures / demo 脚本中的占位 ID（如 `aaaaaaaa-aaaa-...`、`11111111-1111-...`）会被判定为“链接无效”。
+
+- 约束：fixtures 中所有 `Uuid` 字段建议使用合法 UUID v4（version=4 + variant=8/9/a/b）。
+- 工具：`node scripts/fixture-uuids.mjs --check`（仅检查）、`node scripts/fixture-uuids.mjs --write`（批量修复）。
+
 ## 4. 难场景覆盖清单（P0 必做）
 
 - **搜索/列表**：空结果、分页末页、过滤条件无效、排序枚举异常

@@ -10,27 +10,27 @@ import './styles.css';
 
 const theme: ThemeConfig = {
   token: {
-    colorPrimary: '#FF6A00',
-    colorInfo: '#FF6A00',
+    colorPrimary: 'var(--ipm-primary)',
+    colorInfo: 'var(--ipm-primary)',
     borderRadius: 12,
-    colorBgLayout: '#FFF3E6',
-    colorBgContainer: 'rgba(255,255,255,0.92)',
-    colorBgElevated: 'rgba(255,255,255,0.98)',
-    colorSuccess: '#16a34a',
-    colorWarning: '#f59e0b',
-    colorError: '#dc2626',
-    boxShadowSecondary: '0 18px 40px rgba(15,23,42,0.08)',
+    colorBgLayout: 'var(--ipm-bg)',
+    colorBgContainer: 'var(--ipm-bg-container)',
+    colorBgElevated: 'var(--ipm-bg-elevated)',
+    colorSuccess: 'var(--ipm-success)',
+    colorWarning: 'var(--ipm-warning)',
+    colorError: 'var(--ipm-error)',
+    boxShadowSecondary: 'var(--ipm-shadow-secondary)',
   },
   components: {
     Layout: {
-      headerBg: 'rgba(255,255,255,0.92)',
-      bodyBg: '#FFF3E6',
+      headerBg: 'var(--ipm-bg-container)',
+      bodyBg: 'var(--ipm-bg)',
     },
     Card: {
       borderRadiusLG: 14,
     },
     Menu: {
-      darkItemSelectedBg: '#FF6A00',
+      darkItemSelectedBg: 'var(--ipm-primary)',
     },
     Button: {
       borderRadius: 999,

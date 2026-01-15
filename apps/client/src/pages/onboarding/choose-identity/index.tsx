@@ -8,16 +8,26 @@ import { setOnboardingDone, setVerificationStatus, setVerificationType } from '.
 import { apiPost } from '../../../lib/api';
 import { requireLogin } from '../../../lib/guard';
 import type { VerificationType } from '../../../constants';
-import { PageHeader, Spacer } from '../../../ui/layout';
+import { CellRow, IconBadge, PageHeader, Spacer, Surface, TipBanner } from '../../../ui/layout';
+import { CellGroup, toast } from '../../../ui/nutui';
 
-const TYPES: Array<{ type: VerificationType; title: string; desc: string; icon: string; tag: string; bg: string }> = [
+const TYPES: Array<{
+  type: VerificationType;
+  title: string;
+  desc: string;
+  icon: string;
+  tag: string;
+  badge: React.ComponentProps<typeof IconBadge>['variant'];
+  tagTone?: 'gold';
+}> = [
   {
     type: 'PERSON',
     title: '个人',
     desc: '授权信息后直接完成注册',
     icon: '人',
     tag: '秒通过',
-    bg: 'linear-gradient(135deg, #FF6A00, #FFC54D)',
+    badge: 'brand',
+    tagTone: 'gold',
   },
   {
     type: 'COMPANY',
@@ -25,7 +35,7 @@ const TYPES: Array<{ type: VerificationType; title: string; desc: string; icon: 
     desc: '提交资料 → 审核通过后入驻展示',
     icon: '企',
     tag: '需审核',
-    bg: 'linear-gradient(135deg, #2563EB, #22D3EE)',
+    badge: 'blue',
   },
   {
     type: 'ACADEMY',
@@ -33,7 +43,7 @@ const TYPES: Array<{ type: VerificationType; title: string; desc: string; icon: 
     desc: '提交资料 → 审核通过后入驻展示',
     icon: '校',
     tag: '需审核',
-    bg: 'linear-gradient(135deg, #16A34A, #34D399)',
+    badge: 'green',
   },
   {
     type: 'GOVERNMENT',
@@ -41,7 +51,7 @@ const TYPES: Array<{ type: VerificationType; title: string; desc: string; icon: 
     desc: '提交资料 → 后台审核',
     icon: '政',
     tag: '需审核',
-    bg: 'linear-gradient(135deg, #0EA5E9, #A78BFA)',
+    badge: 'purple',
   },
   {
     type: 'ASSOCIATION',
@@ -49,7 +59,7 @@ const TYPES: Array<{ type: VerificationType; title: string; desc: string; icon: 
     desc: '提交资料 → 后台审核',
     icon: '协',
     tag: '需审核',
-    bg: 'linear-gradient(135deg, #7C3AED, #FB7185)',
+    badge: 'purple',
   },
   {
     type: 'TECH_MANAGER',
@@ -57,7 +67,7 @@ const TYPES: Array<{ type: VerificationType; title: string; desc: string; icon: 
     desc: '提交资质 → 后台审核',
     icon: '技',
     tag: '需审核',
-    bg: 'linear-gradient(135deg, #111827, #64748B)',
+    badge: 'slate',
   },
 ];
 
@@ -67,66 +77,69 @@ export default function ChooseIdentityPage() {
       <PageHeader title="首次进入：选择身份" subtitle="个人可直接完成注册；机构/技术经理人需提交资料并等待审核。" />
       <Spacer />
 
-      <View className="card home-grid" style={{ padding: 0, overflow: 'hidden' }}>
-        {TYPES.map((t, idx) => (
-          <View
-            key={t.type}
-            className={`home-grid-item ${idx % 2 === 0 ? 'home-grid-item-br' : ''} ${idx < 4 ? 'home-grid-item-bb' : ''}`}
-            onClick={() => {
-              if (!requireLogin()) return;
-              setVerificationType(t.type);
-              if (t.type === 'PERSON') {
-                (async () => {
-                  try {
-                    const res = await apiPost<components['schemas']['UserVerification']>('/me/verification', {
-                      type: 'PERSON',
-                      displayName: '个人用户',
-                    });
-                    setVerificationStatus(res.status);
-                    setOnboardingDone(true);
-                    Taro.showToast({ title: '注册成功', icon: 'success' });
-                    setTimeout(() => {
-                      const pages = Taro.getCurrentPages();
-                      if (pages.length > 1) {
-                        Taro.navigateBack();
-                        return;
-                      }
-                      Taro.switchTab({ url: '/pages/home/index' });
-                    }, 200);
-                  } catch (e: any) {
-                    Taro.showToast({ title: e?.message || '提交失败', icon: 'none' });
-                  }
-                })();
-                return;
+      <Surface padding="none">
+        <CellGroup divider>
+          {TYPES.map((t, idx) => (
+            <CellRow
+              key={t.type}
+              title={
+                <View className="row" style={{ gap: '12rpx', alignItems: 'center' }}>
+                  <IconBadge variant={t.badge} size="md">
+                    <Text className="text-strong" style={{ color: '#fff' }}>
+                      {t.icon}
+                    </Text>
+                  </IconBadge>
+
+                  <View className="min-w-0" style={{ flex: 1 }}>
+                    <View className="row" style={{ gap: '12rpx', alignItems: 'center' }}>
+                      <Text className="text-strong clamp-1">{t.title}</Text>
+                      <Text className={`tag ${t.tagTone === 'gold' ? 'tag-gold' : ''}`}>{t.tag}</Text>
+                    </View>
+                    <View style={{ height: '4rpx' }} />
+                    <Text className="text-caption break-word">{t.desc}</Text>
+                  </View>
+                </View>
               }
-              Taro.navigateTo({ url: '/pages/onboarding/verification-form/index' });
-            }}
-          >
-            <View className="home-grid-icon" style={{ background: t.bg }}>
-              <Text className="text-strong" style={{ color: '#fff' }}>
-                {t.icon}
-              </Text>
-            </View>
-            <View style={{ height: '10rpx' }} />
-            <View className="row-between" style={{ gap: '12rpx' }}>
-              <Text className="text-card-title clamp-1 flex-1">{t.title}</Text>
-              <Text className={`tag ${t.type === 'PERSON' ? 'tag-gold' : ''}`}>{t.tag}</Text>
-            </View>
-            <View style={{ height: '6rpx' }} />
-            <Text className="text-caption break-word clamp-2">{t.desc}</Text>
-          </View>
-        ))}
-      </View>
+              onClick={() => {
+                if (!requireLogin()) return;
+                setVerificationType(t.type);
+                if (t.type === 'PERSON') {
+                  (async () => {
+                    try {
+                      const res = await apiPost<components['schemas']['UserVerification']>('/me/verification', {
+                        type: 'PERSON',
+                        displayName: '个人用户',
+                      });
+                      setVerificationStatus(res.status);
+                      setOnboardingDone(true);
+                      toast('注册成功', { icon: 'success' });
+                      setTimeout(() => {
+                        const pages = Taro.getCurrentPages();
+                        if (pages.length > 1) {
+                          Taro.navigateBack();
+                          return;
+                        }
+                        Taro.switchTab({ url: '/pages/home/index' });
+                      }, 200);
+                    } catch (e: any) {
+                      toast(e?.message || '提交失败');
+                    }
+                  })();
+                  return;
+                }
+                Taro.navigateTo({ url: '/pages/onboarding/verification-form/index' });
+              }}
+              isLast={idx === TYPES.length - 1}
+            />
+          ))}
+        </CellGroup>
+      </Surface>
 
-      <Spacer />
+      <Spacer size={12} />
 
-      <View className="card">
-        <Text className="text-card-title">提示</Text>
-        <View style={{ height: '8rpx' }} />
-        <Text className="muted">
-          企业/科研院校审核通过后，会在「机构展示」中对外展示。可在「我的 → 身份/认证」查看审核进度。
-        </Text>
-      </View>
+      <TipBanner tone="info" title="提示">
+        企业/科研院校审核通过后，会在「机构展示」中对外展示。可在「我的 → 身份/认证」查看审核进度。
+      </TipBanner>
     </View>
   );
 }

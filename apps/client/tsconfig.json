@@ -2,8 +2,8 @@
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
     "jsx": "react-jsx",
+    "allowArbitraryExtensions": true,
     "types": ["@tarojs/taro", "@tarojs/components"]
   },
   "include": ["src", "config"]
 }
-

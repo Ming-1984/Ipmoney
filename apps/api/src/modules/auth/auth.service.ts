@@ -10,7 +10,7 @@ export type AuthTokenResponseDto = {
   expiresInSeconds: number;
   user: {
     id: string;
-    phone: string;
+    phone?: string;
     nickname?: string;
     avatarUrl?: string;
     role: string;
@@ -44,8 +44,9 @@ export class AuthService {
   private toUserProfile(user: User): AuthTokenResponseDto['user'] {
     return {
       id: user.id,
-      phone: user.phone,
+      phone: user.phone ?? undefined,
       nickname: user.nickname ?? undefined,
+      avatarUrl: user.avatarUrl ?? undefined,
       role: user.role,
       regionCode: user.regionCode ?? undefined,
       createdAt: user.createdAt.toISOString(),
@@ -101,4 +102,3 @@ export class AuthService {
     };
   }
 }
-

@@ -32,7 +32,7 @@
 - Hover：`#FF7A00`
 - Active：`#E85A00`
 - 金色点缀 `Gold`：`#FFC54D`
-- 页面浅底：`#FFF3E6`（更偏“金豆矿”暖色）
+- 页面浅底：`#FFF3E6`（更偏“点金台”暖色）
 - 文本主色：`#0F172A`
 - 次级文字：`#475569`
 - 边框：`#E2E8F0`
@@ -53,8 +53,9 @@
 
 > 统一由 `apps/client/src/app.scss` 的 token + 工具类驱动，页面避免写死 `fontSize/fontWeight`；字号梯度参考微信设计指南常用字号（22/17/15/14/12pt）。
 
-- 字号梯度（rpx）：`text-display(44)` / `text-hero(34)` / `text-title(30)` / `text-card-title(28)` / `text-body(28)` / `text-caption(24)`
-- 字号梯度（rpx）：`text-display(40)` / `text-hero(32)` / `text-title(28)` / `text-card-title(26)` / `text-body(26)` / `text-caption(24)`
+- 字号基线（对齐 WeUI）：主字号 `34rpx≈17px`；次级 `28rpx≈14px`；说明/最小可读 `24rpx≈12px`
+- 最小可读字号：用户可见文本不低于 `24rpx≈12px`（caption）；Tag/Badge/Chat meta/列表 meta 等统一使用 `24rpx` 或 `28rpx`
+- 字号梯度（rpx）：`text-display(44)` / `text-hero(40)` / `text-title(36)` / `text-card-title(34)` / `text-body(34)` / `text-subtitle(28)` / `text-caption(24)`
 - 字重梯度：`800/700/700/600/400/400`（尽量少用 900，避免“粗笨/老年感”）
 - 行高：标题 `1.2–1.25`；正文 `1.5–1.6`
 - 文本工具类：`break-word`、`clamp-1/2`、`flex-1/min-w-0`（解决窄屏换行、标题竖排、挤压问题）

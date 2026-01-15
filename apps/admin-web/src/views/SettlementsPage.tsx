@@ -2,8 +2,9 @@ import { Button, Card, Descriptions, Input, Space, Typography, Upload, message }
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 
 import { apiGet, apiPost, apiUploadFile, type FileObject } from '../lib/api';
+import { fenToYuan, formatTimeSmart } from '../lib/format';
 import { AuditHint, RequestErrorAlert } from '../ui/RequestState';
-import { confirmAction } from '../ui/confirm';
+import { confirmActionWithReason } from '../ui/confirm';
 
 type Settlement = {
   id: string;
@@ -20,15 +21,10 @@ type Settlement = {
   updatedAt?: string;
 };
 
-function fenToYuan(fen?: number): string {
-  if (fen === undefined || fen === null) return '-';
-  return (fen / 100).toFixed(2);
-}
-
 export function SettlementsPage() {
-  const [orderId, setOrderId] = useState('dddddddd-dddd-dddd-dddd-dddddddddddd');
+  const [orderId, setOrderId] = useState('e9032d03-9b23-40ba-84a3-ac681f21c41b');
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<unknown | null>(null);
   const [settlement, setSettlement] = useState<Settlement | null>(null);
 
   const [payoutEvidenceFile, setPayoutEvidenceFile] = useState<FileObject | null>(null);
@@ -46,11 +42,10 @@ export function SettlementsPage() {
       const msg = String(e?.message || '');
       if (msg.includes('404')) {
         setSettlement(null);
-        message.info('暂无结算台账（演示）');
+        message.info('暂无结算台账');
       } else {
-        const errMsg = e?.message || '加载失败';
-        setError(errMsg);
-        message.error(errMsg);
+        setError(e);
+        message.error(e?.message || '加载失败');
         setSettlement(null);
       }
     } finally {
@@ -73,10 +68,10 @@ export function SettlementsPage() {
       <Space direction="vertical" size={16} style={{ width: '100%' }}>
         <div>
           <Typography.Title level={3} style={{ marginTop: 0 }}>
-            放款/结算（演示）
+            放款/结算
           </Typography.Title>
           <Typography.Paragraph type="secondary" style={{ marginBottom: 0 }}>
-            P0 默认：财务线下打款，平台内确认并上传凭证留痕。
+            财务线下打款，平台内确认并上传凭证留痕。
           </Typography.Paragraph>
         </div>
 
@@ -95,7 +90,7 @@ export function SettlementsPage() {
         {error ? (
           <RequestErrorAlert error={error} onRetry={load} />
         ) : (
-          <AuditHint text="放款确认涉及资金出账；P0 为财务线下打款后回平台确认并上传凭证，建议二次确认并留痕。" />
+          <AuditHint text="放款确认涉及资金出账；建议二次确认并上传凭证留痕。" />
         )}
 
         {settlement ? (
@@ -119,17 +114,17 @@ export function SettlementsPage() {
             <Descriptions.Item label="放款流水号/备注">
               {settlement.payoutRef || '-'}
             </Descriptions.Item>
-            <Descriptions.Item label="放款时间">{settlement.payoutAt || '-'}</Descriptions.Item>
+            <Descriptions.Item label="放款时间">{formatTimeSmart(settlement.payoutAt)}</Descriptions.Item>
           </Descriptions>
         ) : (
           <Typography.Text type="secondary">
-            暂无台账数据（可切换 Mock 场景或输入演示订单号）。
+            暂无台账数据，请输入订单号后加载。
           </Typography.Text>
         )}
 
         <Card size="small" style={{ background: '#fff7ed' }}>
           <Space direction="vertical" size={12} style={{ width: '100%' }}>
-            <Typography.Text strong>财务人工放款确认（P0）</Typography.Text>
+            <Typography.Text strong>财务放款确认</Typography.Text>
 
             <Space wrap>
               <Upload
@@ -176,20 +171,24 @@ export function SettlementsPage() {
                     message.warning('请先上传放款凭证');
                     return;
                   }
-                  const ok = await confirmAction({
+                  const { ok, reason } = await confirmActionWithReason({
                     title: '确认已线下放款？',
                     content: '该操作将记录凭证文件与放款信息；请确保已核验订单状态与放款凭证。',
                     okText: '确认放款',
+                    defaultReason: remark || '',
+                    reasonLabel: '放款备注/依据（建议填写）',
+                    reasonHint: '建议写明：放款凭证要点、核验项与操作人信息；便于后续对账与争议处理。',
                   });
                   if (!ok) return;
                   try {
+                    const finalRemark = (remark || reason || '').trim() || undefined;
                     const next = await apiPost<Settlement>(
                       `/admin/orders/${orderId}/payouts/manual`,
                       {
                         payoutEvidenceFileId: payoutEvidenceFile.id,
                         payoutRef: payoutRef || undefined,
                         payoutAt: new Date().toISOString(),
-                        remark: remark || undefined,
+                        remark: finalRemark,
                       },
                       { idempotencyKey: `demo-payout-${orderId}` },
                     );
@@ -205,7 +204,7 @@ export function SettlementsPage() {
             </Space>
 
             <Typography.Text type="secondary">
-              提示：放款条件固定为“变更完成确认后”才允许放款（P0 默认，避免争议）。
+              提示：放款条件固定为“变更完成确认后”才允许放款，避免争议。
             </Typography.Text>
           </Space>
         </Card>

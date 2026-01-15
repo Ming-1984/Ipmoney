@@ -11,7 +11,7 @@ DEFAULT_PAGE_BASENAMES = [
     "01-login",
     "02-home",
     "03-patent-map",
-    "04-feeds",
+    "04-search",
     "05-detail",
     "06-message",
     "07-checkout-deposit-pay",

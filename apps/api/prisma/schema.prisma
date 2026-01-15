@@ -190,8 +190,10 @@ enum SystemConfigScope {
 
 model User {
   id         String   @id @default(uuid()) @db.Uuid
-  phone      String   @unique
+  phone      String?  @unique
   nickname   String?
+  avatarUrl  String?  @map("avatar_url")
+  wechatOpenid String? @unique @map("wechat_openid")
   role       UserRole
   regionCode String?  @map("region_code")
   createdAt  DateTime @default(now()) @map("created_at")

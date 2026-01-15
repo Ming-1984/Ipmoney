@@ -2,8 +2,9 @@ import { Button, Card, Descriptions, Input, Space, Typography, Upload, message }
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 
 import { apiDelete, apiGet, apiPut, apiUploadFile, type FileObject } from '../lib/api';
+import { fenToYuan, formatTimeSmart } from '../lib/format';
 import { AuditHint, RequestErrorAlert } from '../ui/RequestState';
-import { confirmAction } from '../ui/confirm';
+import { confirmActionWithReason } from '../ui/confirm';
 
 type OrderInvoice = {
   orderId: string;
@@ -16,15 +17,10 @@ type OrderInvoice = {
   updatedAt?: string;
 };
 
-function fenToYuan(fen?: number): string {
-  if (fen === undefined || fen === null) return '-';
-  return (fen / 100).toFixed(2);
-}
-
 export function InvoicesPage() {
-  const [orderId, setOrderId] = useState('dddddddd-dddd-dddd-dddd-dddddddddddd');
+  const [orderId, setOrderId] = useState('e9032d03-9b23-40ba-84a3-ac681f21c41b');
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<unknown | null>(null);
   const [invoice, setInvoice] = useState<OrderInvoice | null>(null);
   const [notFound, setNotFound] = useState(false);
 
@@ -53,7 +49,7 @@ export function InvoicesPage() {
         setInvoiceFile(null);
       } else {
         const errMsg = e?.message || '加载失败';
-        setError(errMsg);
+        setError(e);
         message.error(errMsg);
         setInvoice(null);
       }
@@ -76,10 +72,10 @@ export function InvoicesPage() {
       <Space direction="vertical" size={16} style={{ width: '100%' }}>
         <div>
           <Typography.Title level={3} style={{ marginTop: 0 }}>
-            发票管理（演示）
+            发票管理
           </Typography.Title>
           <Typography.Paragraph type="secondary" style={{ marginBottom: 0 }}>
-            P0：交易完成后线下人工开票；平台内仅做“上传/替换/删除 + 下载”。
+            交易完成后线下人工开票；平台内仅做“上传/替换/删除 + 下载”。
           </Typography.Paragraph>
         </div>
 
@@ -98,7 +94,7 @@ export function InvoicesPage() {
         {error ? (
           <RequestErrorAlert error={error} onRetry={load} />
         ) : (
-          <AuditHint text="P0：线下人工开票后回平台上传；上传/删除需留痕，便于对账与审计。" />
+          <AuditHint text="线下人工开票后回平台上传；上传/删除需留痕，便于对账与审计。" />
         )}
 
         {invoice ? (
@@ -109,7 +105,7 @@ export function InvoicesPage() {
               {invoice.itemName || '居间服务费'}
             </Descriptions.Item>
             <Descriptions.Item label="发票号">{invoice.invoiceNo || '-'}</Descriptions.Item>
-            <Descriptions.Item label="开票时间">{invoice.issuedAt || '-'}</Descriptions.Item>
+            <Descriptions.Item label="开票时间">{formatTimeSmart(invoice.issuedAt)}</Descriptions.Item>
             <Descriptions.Item label="附件文件ID">{invoice.invoiceFile?.id}</Descriptions.Item>
             <Descriptions.Item label="附件URL" span={2}>
               <a href={invoice.invoiceFile?.url} target="_blank" rel="noreferrer">
@@ -118,10 +114,10 @@ export function InvoicesPage() {
             </Descriptions.Item>
           </Descriptions>
         ) : notFound ? (
-          <Typography.Text type="secondary">该订单暂无发票（演示：可上传）。</Typography.Text>
+          <Typography.Text type="secondary">该订单暂无发票，可上传后关联订单。</Typography.Text>
         ) : (
           <Typography.Text type="secondary">
-            暂无数据（可输入演示订单号或切换 Mock 场景）。
+            暂无数据，请输入订单号后加载。
           </Typography.Text>
         )}
 
@@ -177,10 +173,12 @@ export function InvoicesPage() {
                     message.warning('请先上传发票文件');
                     return;
                   }
-                  const ok = await confirmAction({
+                  const { ok } = await confirmActionWithReason({
                     title: '确认保存发票？',
                     content: '该操作会把发票文件关联到订单，并记录更新留痕。',
                     okText: '保存',
+                    reasonLabel: '原因/备注（建议填写）',
+                    reasonPlaceholder: '例：线下开票完成；替换发票附件；信息补充等。',
                   });
                   if (!ok) return;
                   try {
@@ -209,11 +207,14 @@ export function InvoicesPage() {
                 danger
                 disabled={!invoice}
                 onClick={async () => {
-                  const ok = await confirmAction({
+                  const { ok } = await confirmActionWithReason({
                     title: '确认删除发票？',
                     content: '删除后订单将不再展示发票附件；该操作应记录审计留痕。',
                     okText: '删除',
                     danger: true,
+                    reasonLabel: '原因/备注（必填）',
+                    reasonPlaceholder: '例：上传错误；需要替换；订单取消等。',
+                    reasonRequired: true,
                   });
                   if (!ok) return;
                   try {

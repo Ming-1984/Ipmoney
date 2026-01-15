@@ -1,18 +1,17 @@
-# 前端设计系统（橙色主题 +「专利变金豆矿」理念）
+﻿# 前端设计系统（橙色主题 +「专利点金台」理念）
 
-> 目标：在小程序/H5/后台形成一致的品牌识别；同时把“成功/成交”与“价值挖掘（金豆矿）”做成**克制、专业**的视觉语言。
+> 目标：在小程序/H5/后台形成一致的品牌识别；同时把“成功/成交”与“价值点金（点金台）”做成**克制、专业**的视觉语言。
 
 ## 1. 品牌理念（对外可讲）
 
 - **主色：橙色**——寓意成功、收获、成交，适合交易平台的“行动号召”场景（按钮/高亮/关键数据）。
-- **平台隐喻：「专利变金豆矿」**——把专利价值转化为可交易、可量化的收益；视觉用“金豆/矿脉/挖掘”做轻量点缀，避免过度拟物或低俗化。
+- **平台隐喻：「专利点金台」**——把专利价值转化为可交易、可量化的收益；视觉用“点金火花/金光纹理/炼金线条”做轻量点缀，避免过度拟物或低俗化。
 
 ## 1.1 Logo（资源与使用）
 
-- 源文件：仓库根目录 `Ipmoney_logo.png`
 - 多端资源路径：
-  - 用户端（Taro）：`apps/client/src/assets/brand/logo.png`
-  - 后台（Admin Web）：`apps/admin-web/src/assets/brand/logo.png`
+  - 用户端（Taro）：`apps/client/src/assets/brand/logo.gif`
+  - 后台（Admin Web）：`apps/admin-web/src/assets/brand/logo.gif`
 - TabBar 图标（小程序可用 PNG）：`apps/client/src/assets/tabbar/*`（生成脚本：`scripts/generate-tabbar-icons.ps1`）
 
 ## 2. 色彩（建议 Token）
@@ -58,3 +57,4 @@
 
 - **Admin（React + Ant Design）**：用 AntD 主题 token 设置 `colorPrimary=#FF6A00`；重要操作页（退款/放款/配置）强化审计提示与二次确认。
 - **用户端（Taro 小程序 + H5）**：优先选成熟 UI 组件库（降低开发成本），以 CSS 变量/主题变量统一橙色主色；H5 与小程序保持同构布局与交互。
+

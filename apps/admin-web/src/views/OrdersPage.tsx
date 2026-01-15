@@ -2,8 +2,10 @@ import { Button, Card, Space, Table, Typography, message } from 'antd';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 
 import { apiGet, apiPost } from '../lib/api';
+import { fenToYuan, formatTimeSmart } from '../lib/format';
+import { orderStatusLabel } from '../lib/labels';
 import { AuditHint, RequestErrorAlert } from '../ui/RequestState';
-import { confirmAction } from '../ui/confirm';
+import { confirmActionWithReason } from '../ui/confirm';
 
 type OrderStatus =
   | 'DEPOSIT_PENDING'
@@ -34,14 +36,9 @@ type PagedOrder = {
   page: { page: number; pageSize: number; total: number };
 };
 
-function fenToYuan(fen?: number): string {
-  if (fen === undefined || fen === null) return '-';
-  return (fen / 100).toFixed(2);
-}
-
 export function OrdersPage() {
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<unknown | null>(null);
   const [data, setData] = useState<PagedOrder | null>(null);
 
   const load = useCallback(async () => {
@@ -51,9 +48,8 @@ export function OrdersPage() {
       const d = await apiGet<PagedOrder>('/orders', { asRole: 'BUYER', page: 1, pageSize: 10 });
       setData(d);
     } catch (e: any) {
-      const msg = e?.message || '加载失败';
-      setError(msg);
-      message.error(msg);
+      setError(e);
+      message.error(e?.message || '加载失败');
       setData(null);
     } finally {
       setLoading(false);
@@ -71,10 +67,10 @@ export function OrdersPage() {
       <Space direction="vertical" size={16} style={{ width: '100%' }}>
         <div>
           <Typography.Title level={3} style={{ marginTop: 0 }}>
-            订单管理（演示）
+            订单管理
           </Typography.Title>
           <Typography.Paragraph type="secondary" style={{ marginBottom: 0 }}>
-            用于演示里程碑确认与状态机冲突（切换 `order_conflict` 场景可触发 409）。
+            用于处理订单状态流转、里程碑确认与履约信息归档。
           </Typography.Paragraph>
         </div>
 
@@ -91,7 +87,7 @@ export function OrdersPage() {
           pagination={false}
           columns={[
             { title: '订单号', dataIndex: 'id' },
-            { title: '状态', dataIndex: 'status' },
+            { title: '状态', dataIndex: 'status', render: (v) => orderStatusLabel(v) },
             {
               title: '订金',
               dataIndex: 'depositAmountFen',
@@ -102,7 +98,7 @@ export function OrdersPage() {
               dataIndex: 'dealAmountFen',
               render: (v) => (v ? `¥${fenToYuan(v)}` : '-'),
             },
-            { title: '创建时间', dataIndex: 'createdAt' },
+            { title: '创建时间', dataIndex: 'createdAt', render: (v) => formatTimeSmart(v) },
             {
               title: '操作',
               key: 'actions',
@@ -111,10 +107,13 @@ export function OrdersPage() {
                   <Button
                     type="primary"
                     onClick={async () => {
-                      const ok = await confirmAction({
+                      const { ok } = await confirmActionWithReason({
                         title: '确认合同已签署？',
                         content: '确认后将推进订单里程碑（可能触发状态机冲突 409）；该操作应记录审计留痕。',
                         okText: '确认合同',
+                        defaultReason: '合同已签署',
+                        reasonLabel: '备注/依据（建议填写）',
+                        reasonHint: '建议填写：合同编号/签署方/签署时间/证据归档位置等。',
                       });
                       if (!ok) return;
                       try {
@@ -133,10 +132,13 @@ export function OrdersPage() {
                   </Button>
                   <Button
                     onClick={async () => {
-                      const ok = await confirmAction({
+                      const { ok } = await confirmActionWithReason({
                         title: '确认权属变更已完成？',
                         content: '确认后订单将进入可放款/结算阶段；请确保已核验变更完成凭证并留痕。',
                         okText: '确认变更完成',
+                        defaultReason: '权属变更已完成',
+                        reasonLabel: '备注/依据（建议填写）',
+                        reasonHint: '建议填写：变更完成凭证/登记号/核验渠道与时间等。',
                       });
                       if (!ok) return;
                       try {

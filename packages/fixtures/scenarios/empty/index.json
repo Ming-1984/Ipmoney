@@ -124,6 +124,87 @@
     "status": 200,
     "body": { "items": [], "nextCursor": null }
   },
+  "GET /public/listings/:listingId/comments": {
+    "status": 200,
+    "body": { "items": [], "page": { "page": 1, "pageSize": 20, "total": 0 } }
+  },
+  "GET /public/demands/:demandId/comments": {
+    "status": 200,
+    "body": { "items": [], "page": { "page": 1, "pageSize": 20, "total": 0 } }
+  },
+  "GET /public/achievements/:achievementId/comments": {
+    "status": 200,
+    "body": { "items": [], "page": { "page": 1, "pageSize": 20, "total": 0 } }
+  },
+  "POST /listings/:listingId/comments": {
+    "status": 201,
+    "body": {
+      "id": "40000000-0000-4000-8000-000000000002",
+      "contentType": "LISTING",
+      "contentId": "7a490e63-8173-41e7-b4f0-0d0bb5ce7d20",
+      "parentCommentId": null,
+      "status": "VISIBLE",
+      "user": { "id": "c776f954-77a5-49d9-b778-77a1120d1be9", "nickname": "演示用户", "avatarUrl": "", "role": "buyer" },
+      "text": "空场景留言（演示）",
+      "createdAt": "2026-01-11T09:10:00Z"
+    }
+  },
+  "POST /demands/:demandId/comments": {
+    "status": 201,
+    "body": {
+      "id": "50000000-0000-4000-8000-000000000002",
+      "contentType": "DEMAND",
+      "contentId": "81875741-fede-4d3c-adf9-9c8774964f50",
+      "parentCommentId": null,
+      "status": "VISIBLE",
+      "user": { "id": "c776f954-77a5-49d9-b778-77a1120d1be9", "nickname": "演示用户", "avatarUrl": "", "role": "buyer" },
+      "text": "空场景留言（演示）",
+      "createdAt": "2026-01-11T10:10:00Z"
+    }
+  },
+  "POST /achievements/:achievementId/comments": {
+    "status": 201,
+    "body": {
+      "id": "60000000-0000-4000-8000-000000000002",
+      "contentType": "ACHIEVEMENT",
+      "contentId": "7595bfdb-044d-4580-99bf-537a07c2577c",
+      "parentCommentId": null,
+      "status": "VISIBLE",
+      "user": { "id": "c776f954-77a5-49d9-b778-77a1120d1be9", "nickname": "演示用户", "avatarUrl": "", "role": "buyer" },
+      "text": "空场景留言（演示）",
+      "createdAt": "2026-01-11T11:10:00Z"
+    }
+  },
+  "PATCH /comments/:commentId": {
+    "status": 200,
+    "body": {
+      "id": "40000000-0000-4000-8000-000000000002",
+      "contentType": "LISTING",
+      "contentId": "7a490e63-8173-41e7-b4f0-0d0bb5ce7d20",
+      "parentCommentId": null,
+      "status": "VISIBLE",
+      "user": { "id": "c776f954-77a5-49d9-b778-77a1120d1be9", "nickname": "演示用户", "avatarUrl": "", "role": "buyer" },
+      "text": "已编辑（演示）",
+      "createdAt": "2026-01-11T09:10:00Z",
+      "updatedAt": "2026-01-11T09:12:00Z"
+    }
+  },
+  "DELETE /comments/:commentId": { "status": 204 },
+  "GET /admin/comments": { "status": 200, "body": { "items": [], "page": { "page": 1, "pageSize": 20, "total": 0 } } },
+  "PATCH /admin/comments/:commentId": {
+    "status": 200,
+    "body": {
+      "id": "70000000-0000-4000-8000-000000000001",
+      "contentType": "LISTING",
+      "contentId": "7a490e63-8173-41e7-b4f0-0d0bb5ce7d20",
+      "parentCommentId": null,
+      "status": "HIDDEN",
+      "user": { "id": "c776f954-77a5-49d9-b778-77a1120d1be9", "nickname": "演示用户", "avatarUrl": "", "role": "buyer" },
+      "text": "后台留言管理（演示）",
+      "createdAt": "2026-01-11T09:00:00Z",
+      "updatedAt": "2026-01-11T09:20:00Z"
+    }
+  },
   "POST /patents/normalize": {
     "status": 200,
     "body": {

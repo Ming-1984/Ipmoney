@@ -114,5 +114,45 @@
   "GET /public/organizations": {
     "status": 500,
     "body": { "code": "INTERNAL_ERROR", "message": "机构列表服务异常（演示）" }
+  },
+  "GET /public/listings/:listingId/comments": {
+    "status": 500,
+    "body": { "code": "INTERNAL_ERROR", "message": "留言服务异常（演示）" }
+  },
+  "GET /public/demands/:demandId/comments": {
+    "status": 500,
+    "body": { "code": "INTERNAL_ERROR", "message": "留言服务异常（演示）" }
+  },
+  "GET /public/achievements/:achievementId/comments": {
+    "status": 500,
+    "body": { "code": "INTERNAL_ERROR", "message": "留言服务异常（演示）" }
+  },
+  "POST /listings/:listingId/comments": {
+    "status": 500,
+    "body": { "code": "INTERNAL_ERROR", "message": "留言服务异常（演示）" }
+  },
+  "POST /demands/:demandId/comments": {
+    "status": 500,
+    "body": { "code": "INTERNAL_ERROR", "message": "留言服务异常（演示）" }
+  },
+  "POST /achievements/:achievementId/comments": {
+    "status": 500,
+    "body": { "code": "INTERNAL_ERROR", "message": "留言服务异常（演示）" }
+  },
+  "PATCH /comments/:commentId": {
+    "status": 500,
+    "body": { "code": "INTERNAL_ERROR", "message": "留言服务异常（演示）" }
+  },
+  "DELETE /comments/:commentId": {
+    "status": 500,
+    "body": { "code": "INTERNAL_ERROR", "message": "留言服务异常（演示）" }
+  },
+  "GET /admin/comments": {
+    "status": 500,
+    "body": { "code": "INTERNAL_ERROR", "message": "留言管理服务异常（演示）" }
+  },
+  "PATCH /admin/comments/:commentId": {
+    "status": 500,
+    "body": { "code": "INTERNAL_ERROR", "message": "留言管理服务异常（演示）" }
   }
 }

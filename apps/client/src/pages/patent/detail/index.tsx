@@ -1,26 +1,47 @@
 import { View, Text } from '@tarojs/components';
-import Taro, { useRouter } from '@tarojs/taro';
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import Taro from '@tarojs/taro';
+import React, { useCallback, useEffect, useState } from 'react';
 
 import type { components } from '@ipmoney/api-types';
 
 import { apiGet } from '../../../lib/api';
-import { PageHeader, Spacer, Surface } from '../../../ui/layout';
-import { EmptyCard, ErrorCard, LoadingCard } from '../../../ui/StateCards';
+import { formatTimeSmart } from '../../../lib/format';
+import { patentTypeLabel } from '../../../lib/labels';
+import { safeNavigateBack } from '../../../lib/navigation';
+import { useRouteUuidParam } from '../../../lib/routeParams';
+import { CellRow, PageHeader, SectionHeader, Spacer, Surface, TipBanner } from '../../../ui/layout';
+import { Button, CellGroup, Space, Tag, toast } from '../../../ui/nutui';
+import { EmptyCard, ErrorCard, LoadingCard, MissingParamCard } from '../../../ui/StateCards';
 
 type Patent = components['schemas']['Patent'];
 
-function patentTypeLabel(t?: Patent['patentType']): string {
-  if (!t) return '-';
-  if (t === 'INVENTION') return '发明';
-  if (t === 'UTILITY_MODEL') return '实用新型';
-  if (t === 'DESIGN') return '外观设计';
-  return String(t);
+function legalStatusLabel(status?: Patent['legalStatus']): string {
+  if (!status) return '未知';
+  if (status === 'PENDING') return '审查中';
+  if (status === 'GRANTED') return '已授权';
+  if (status === 'EXPIRED') return '已失效';
+  if (status === 'INVALIDATED') return '已无效';
+  return '未知';
+}
+
+function legalStatusTagType(status?: Patent['legalStatus']): React.ComponentProps<typeof Tag>['type'] {
+  if (!status) return 'default';
+  if (status === 'GRANTED') return 'success';
+  if (status === 'PENDING') return 'warning';
+  if (status === 'EXPIRED' || status === 'INVALIDATED') return 'danger';
+  return 'default';
+}
+
+function sourcePrimaryLabel(source?: Patent['sourcePrimary']): string {
+  if (!source) return '未知';
+  if (source === 'USER') return '用户上传';
+  if (source === 'ADMIN') return '平台维护';
+  if (source === 'PROVIDER') return '第三方数据源';
+  return '未知';
 }
 
 export default function PatentDetailPage() {
-  const router = useRouter();
-  const patentId = useMemo(() => router?.params?.patentId || '', [router?.params?.patentId]);
+  const patentId = useRouteUuidParam('patentId') || '';
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -41,6 +62,15 @@ export default function PatentDetailPage() {
     }
   }, [patentId]);
 
+  const copyText = useCallback(async (text: string) => {
+    try {
+      await Taro.setClipboardData({ data: text });
+      toast('已复制', { icon: 'success' });
+    } catch (_) {
+      toast('复制失败', { icon: 'fail' });
+    }
+  }, []);
+
   useEffect(() => {
     void load();
   }, [load]);
@@ -48,14 +78,14 @@ export default function PatentDetailPage() {
   if (!patentId) {
     return (
       <View className="container">
-        <ErrorCard title="参数缺失" message="缺少 patentId" onRetry={() => Taro.navigateBack()} />
+        <MissingParamCard onAction={() => void safeNavigateBack()} />
       </View>
     );
   }
 
   return (
     <View className="container">
-      <PageHeader title="专利详情" subtitle="用于展示专利主数据、法律状态与关键摘要信息" />
+      <PageHeader title="专利详情" subtitle="展示专利主数据与法律状态信息。" />
       <Spacer />
 
       {loading ? (
@@ -64,51 +94,86 @@ export default function PatentDetailPage() {
         <ErrorCard message={error} onRetry={load} />
       ) : data ? (
         <View>
-          <Surface>
-            <View className="row-between" style={{ gap: '12rpx' }}>
-              <Text className="text-title clamp-2">{data.title}</Text>
-              <Text className="tag tag-gold">{patentTypeLabel(data.patentType)}</Text>
+          <Surface className="detail-meta-card">
+            <Text className="text-title clamp-2">{data.title || '未命名专利'}</Text>
+            <Spacer size={8} />
+            <Space wrap align="center">
+              <Tag type="primary" plain round>
+                类型：{patentTypeLabel(data.patentType)}
+              </Tag>
+              <Tag type={legalStatusTagType(data.legalStatus)} plain round>
+                状态：{legalStatusLabel(data.legalStatus)}
+              </Tag>
+            </Space>
+            <Spacer size={10} />
+            <View className="row-between" style={{ gap: '12rpx', alignItems: 'center' }}>
+              <Text className="muted ellipsis" style={{ flex: 1, minWidth: 0 }}>
+                申请号：{data.applicationNoDisplay || data.applicationNoNorm || '-'}
+              </Text>
+              {data.applicationNoDisplay || data.applicationNoNorm ? (
+                <Button
+                  block={false}
+                  size="small"
+                  variant="ghost"
+                  onClick={() => void copyText((data.applicationNoDisplay || data.applicationNoNorm) as string)}
+                >
+                  复制
+                </Button>
+              ) : null}
             </View>
-            <View style={{ height: '10rpx' }} />
-            <Text className="muted">申请号：{data.applicationNoDisplay || data.applicationNoNorm}</Text>
-            <View style={{ height: '6rpx' }} />
-            <Text className="muted">法律状态：{data.legalStatus || 'UNKNOWN'}</Text>
           </Surface>
 
-          <View style={{ height: '16rpx' }} />
+          <Spacer size={12} />
 
           <Surface>
-            <Text className="text-card-title">摘要</Text>
-            <View style={{ height: '8rpx' }} />
-            <Text className="muted">{data.abstract || '（暂无）'}</Text>
+            <SectionHeader title="摘要" density="compact" />
+            <Text className="muted break-word">{data.abstract || '暂无摘要'}</Text>
           </Surface>
 
-          <View style={{ height: '16rpx' }} />
+          <Spacer size={12} />
 
-          <Surface>
-            <Text className="text-card-title">主体信息</Text>
-            <View style={{ height: '10rpx' }} />
-            <Text className="muted">发明人：{data.inventorNames?.length ? data.inventorNames.join(' / ') : '（暂无）'}</Text>
-            <View style={{ height: '6rpx' }} />
-            <Text className="muted">专利权人：{data.assigneeNames?.length ? data.assigneeNames.join(' / ') : '（暂无）'}</Text>
-            <View style={{ height: '6rpx' }} />
-            <Text className="muted">申请人：{data.applicantNames?.length ? data.applicantNames.join(' / ') : '（暂无）'}</Text>
+          <Surface padding="none">
+            <CellGroup divider>
+              <CellRow
+                arrow={false}
+                title={<Text className="text-strong">发明人</Text>}
+                description={<Text className="muted break-word">{data.inventorNames?.length ? data.inventorNames.join(' / ') : '暂无'}</Text>}
+              />
+              <CellRow
+                arrow={false}
+                title={<Text className="text-strong">专利权人</Text>}
+                description={<Text className="muted break-word">{data.assigneeNames?.length ? data.assigneeNames.join(' / ') : '暂无'}</Text>}
+              />
+              <CellRow
+                arrow={false}
+                title={<Text className="text-strong">申请人</Text>}
+                description={<Text className="muted break-word">{data.applicantNames?.length ? data.applicantNames.join(' / ') : '暂无'}</Text>}
+                isLast
+              />
+            </CellGroup>
           </Surface>
 
-          <View style={{ height: '16rpx' }} />
+          <Spacer size={12} />
 
-          <Surface>
-            <Text className="text-card-title">时间</Text>
-            <View style={{ height: '10rpx' }} />
-            <Text className="muted">申请日：{data.filingDate || '-'}</Text>
-            <View style={{ height: '6rpx' }} />
-            <Text className="muted">公开日：{data.publicationDate || '-'}</Text>
-            <View style={{ height: '6rpx' }} />
-            <Text className="muted">授权日：{data.grantDate || '-'}</Text>
+          <Surface padding="none">
+            <CellGroup divider>
+              <CellRow arrow={false} title={<Text className="text-strong">申请日</Text>} extra={<Text className="muted">{data.filingDate || '-'}</Text>} />
+              <CellRow arrow={false} title={<Text className="text-strong">公开日</Text>} extra={<Text className="muted">{data.publicationDate || '-'}</Text>} />
+              <CellRow arrow={false} title={<Text className="text-strong">授权日</Text>} extra={<Text className="muted">{data.grantDate || '-'}</Text>} isLast />
+            </CellGroup>
           </Surface>
+
+          {data.sourcePrimary || data.sourceUpdatedAt ? (
+            <>
+              <Spacer size={12} />
+              <TipBanner tone="info" title="数据来源">
+                {`来源：${sourcePrimaryLabel(data.sourcePrimary)}${data.sourceUpdatedAt ? ` · 更新：${formatTimeSmart(data.sourceUpdatedAt)}` : ''}`}
+              </TipBanner>
+            </>
+          ) : null}
         </View>
       ) : (
-        <EmptyCard message="无数据" actionText="返回" onAction={() => Taro.navigateBack()} />
+        <EmptyCard message="无数据" actionText="返回" onAction={() => void safeNavigateBack()} />
       )}
     </View>
   );

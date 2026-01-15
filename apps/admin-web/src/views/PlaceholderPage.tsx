@@ -8,7 +8,7 @@ export function PlaceholderPage(props: { title: string }) {
         {props.title}
       </Typography.Title>
       <Typography.Paragraph type="secondary" style={{ marginBottom: 0 }}>
-        骨架页：后续接入 OpenAPI Mock/真接口与业务表格组件。
+        页面建设中：后续接入业务表格与接口数据。
       </Typography.Paragraph>
     </Card>
   );

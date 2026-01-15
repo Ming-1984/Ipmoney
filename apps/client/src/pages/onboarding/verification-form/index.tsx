@@ -2,13 +2,17 @@ import { View, Text } from '@tarojs/components';
 import Taro from '@tarojs/taro';
 import React, { useCallback, useMemo, useState } from 'react';
 
+import type { components } from '@ipmoney/api-types';
+
 import { API_BASE_URL, STORAGE_KEYS } from '../../../constants';
 import { getToken, getVerificationType, setOnboardingDone, setVerificationStatus } from '../../../lib/auth';
 import { apiPost } from '../../../lib/api';
 import { requireLogin } from '../../../lib/guard';
-import { PageHeader, Spacer } from '../../../ui/layout';
-import { Button, Input, TextArea } from '../../../ui/nutui';
+import { PageHeader, SectionHeader, Spacer, Surface, TipBanner } from '../../../ui/layout';
+import { Button, Input, TextArea, confirm, toast } from '../../../ui/nutui';
 import { ErrorCard } from '../../../ui/StateCards';
+
+type FileObject = components['schemas']['FileObject'];
 
 function isOrgType(type: string | null): boolean {
   return type === 'COMPANY' || type === 'ACADEMY' || type === 'GOVERNMENT' || type === 'ASSOCIATION';
@@ -35,7 +39,7 @@ export default function VerificationFormPage() {
   const [intro, setIntro] = useState('');
 
   const [uploading, setUploading] = useState(false);
-  const [evidenceFileIds, setEvidenceFileIds] = useState<string[]>([]);
+  const [evidenceFiles, setEvidenceFiles] = useState<FileObject[]>([]);
 
   const uploadEvidence = useCallback(async () => {
     if (uploading) return;
@@ -58,42 +62,44 @@ export default function VerificationFormPage() {
         },
       });
 
-      const json = JSON.parse(String(uploadRes.data || '{}')) as { id?: string };
+      const json = JSON.parse(String(uploadRes.data || '{}')) as Partial<FileObject>;
       if (!json.id) throw new Error('上传失败');
-      setEvidenceFileIds((prev) => [...prev, json.id as string]);
-      Taro.showToast({ title: '已上传', icon: 'success' });
+      setEvidenceFiles((prev) => [...prev, json as FileObject]);
+      toast('已上传', { icon: 'success' });
     } catch (e: any) {
       if (e?.errMsg?.includes('cancel')) return;
-      Taro.showToast({ title: e?.message || '上传失败', icon: 'none' });
+      toast(e?.message || '上传失败');
     } finally {
       setUploading(false);
     }
   }, [uploading]);
 
-  const removeEvidence = useCallback((id: string) => {
-    setEvidenceFileIds((prev) => prev.filter((x) => x !== id));
+  const removeEvidence = useCallback(async (f: FileObject) => {
+    const ok = await confirm({ title: '移除材料', content: '确定移除该材料？', confirmText: '移除', cancelText: '取消' });
+    if (!ok) return;
+    setEvidenceFiles((prev) => prev.filter((x) => x.id !== f.id));
   }, []);
 
   const submit = useCallback(async () => {
     if (!requireLogin()) return;
 
     if (!type) {
-      Taro.showToast({ title: '请先选择身份', icon: 'none' });
+      toast('请先选择身份');
       return;
     }
 
     if (!displayName.trim()) {
-      Taro.showToast({ title: '请填写名称', icon: 'none' });
+      toast('请填写名称');
       return;
     }
 
     if (!contactPhone.trim()) {
-      Taro.showToast({ title: '请填写联系电话', icon: 'none' });
+      toast('请填写联系电话');
       return;
     }
 
-    if (!evidenceFileIds.length) {
-      Taro.showToast({ title: '请上传证明材料', icon: 'none' });
+    if (!evidenceFiles.length) {
+      toast('请上传证明材料');
       return;
     }
 
@@ -101,7 +107,7 @@ export default function VerificationFormPage() {
       const payload: any = {
         type,
         displayName: displayName.trim(),
-        evidenceFileIds,
+        evidenceFileIds: evidenceFiles.map((it) => it.id),
         ...(contactPhone.trim() ? { contactPhone: contactPhone.trim() } : {}),
         ...(regionCode.trim() ? { regionCode: regionCode.trim() } : {}),
         ...(intro.trim() ? { intro: intro.trim() } : {}),
@@ -111,14 +117,14 @@ export default function VerificationFormPage() {
       const res = await apiPost<any>('/me/verification', payload, { idempotencyKey: `ver-${type}` });
       setVerificationStatus(res?.status || 'PENDING');
       setOnboardingDone(true);
-      Taro.showToast({ title: '已提交，等待审核', icon: 'success' });
+      toast('已提交，等待审核', { icon: 'success' });
       setTimeout(() => {
         Taro.switchTab({ url: '/pages/me/index' });
       }, 200);
     } catch (e: any) {
-      Taro.showToast({ title: e?.message || '提交失败', icon: 'none' });
+      toast(e?.message || '提交失败');
     }
-  }, [contactName, contactPhone, creditCode, displayName, evidenceFileIds, intro, regionCode, type]);
+  }, [contactName, contactPhone, creditCode, displayName, evidenceFiles, intro, regionCode, type]);
 
   if (!type) {
     return (
@@ -133,36 +139,36 @@ export default function VerificationFormPage() {
       <PageHeader title="资料提交" subtitle={`当前身份：${typeLabel(type)}`} />
       <Spacer />
 
-      <View className="card">
-        <Text className="text-card-title">基础信息</Text>
-        <View style={{ height: '12rpx' }} />
+      <Surface>
+        <SectionHeader title="基础信息" subtitle="用于审核与后续展示（审核通过后）。" density="compact" />
+        <Spacer size={10} />
 
         <Text className="muted">主体/展示名称</Text>
-        <View style={{ height: '8rpx' }} />
+        <Spacer size={6} />
         <Input value={displayName} onChange={setDisplayName} placeholder="请输入名称" clearable />
 
         {isOrgType(type) ? (
           <>
-            <View style={{ height: '12rpx' }} />
+            <Spacer size={10} />
             <Text className="muted">统一社会信用代码（可选）</Text>
-            <View style={{ height: '8rpx' }} />
+            <Spacer size={6} />
             <Input value={creditCode} onChange={setCreditCode} placeholder="如有可填写" clearable />
 
-            <View style={{ height: '12rpx' }} />
+            <Spacer size={10} />
             <Text className="muted">联系人（可选）</Text>
-            <View style={{ height: '8rpx' }} />
+            <Spacer size={6} />
             <Input value={contactName} onChange={setContactName} placeholder="联系人姓名" clearable />
           </>
         ) : null}
 
-        <View style={{ height: '12rpx' }} />
+        <Spacer size={10} />
         <Text className="muted">联系电话</Text>
-        <View style={{ height: '8rpx' }} />
+        <Spacer size={6} />
         <Input value={contactPhone} onChange={setContactPhone} placeholder="用于审核与跟进" type="digit" clearable />
 
-        <View style={{ height: '12rpx' }} />
+        <Spacer size={10} />
         <Text className="muted">所在地区（可选）</Text>
-        <View style={{ height: '8rpx' }} />
+        <Spacer size={6} />
         <View className="row" style={{ gap: '12rpx', alignItems: 'center' }}>
           <View className="flex-1">
             <Input value={regionCode} onChange={setRegionCode} placeholder="省/市/区（可后续完善）" clearable />
@@ -187,42 +193,60 @@ export default function VerificationFormPage() {
           </View>
         </View>
 
-        <View style={{ height: '12rpx' }} />
+        <Spacer size={10} />
         <Text className="muted">简介（可选）</Text>
-        <View style={{ height: '8rpx' }} />
+        <Spacer size={6} />
         <TextArea value={intro} onChange={setIntro} placeholder="一句话介绍，便于对外展示（审核通过后）" maxLength={2000} />
-      </View>
+      </Surface>
 
       <Spacer />
 
-      <View className="card">
+      <Surface>
         <View className="row-between">
-          <Text className="text-card-title">证明材料</Text>
-          <Text className="tag tag-gold">{evidenceFileIds.length ? `${evidenceFileIds.length} 个` : '必传'}</Text>
+          <SectionHeader title="证明材料" subtitle="营业执照/单位证明/资格证等（示例：图片上传）。" density="compact" />
+          <Text className={`tag ${evidenceFiles.length ? 'tag-success' : 'tag-danger'}`}>
+            {evidenceFiles.length ? `${evidenceFiles.length} 份` : '必传'}
+          </Text>
         </View>
-        <View style={{ height: '8rpx' }} />
-        <Text className="muted">营业执照/单位证明/资格证等（示例：图片上传）。</Text>
-        <View style={{ height: '12rpx' }} />
+
+        <Spacer size={10} />
 
         <Button variant="ghost" loading={uploading} disabled={uploading} onClick={uploadEvidence}>
           {uploading ? '上传中…' : '上传材料'}
         </Button>
 
-        {evidenceFileIds.length ? (
+        {evidenceFiles.length ? (
           <>
-            <View style={{ height: '12rpx' }} />
-            {evidenceFileIds.map((id) => (
-              <View key={id} className="list-item">
-                <Text className="muted ellipsis" style={{ flex: 1 }}>
-                  {id}
-                </Text>
+            <Spacer size={10} />
+            {evidenceFiles.map((f, idx) => (
+              <View
+                key={f.id}
+                className="list-item"
+                onClick={() => {
+                  if (!f.url) return;
+                  if (String(f.mimeType || '').startsWith('image/')) {
+                    void Taro.previewImage({ urls: [String(f.url)] });
+                    return;
+                  }
+                  void Taro.setClipboardData({ data: String(f.url) });
+                  toast('链接已复制', { icon: 'success' });
+                }}
+              >
+                <View className="min-w-0" style={{ flex: 1 }}>
+                  <Text className="text-strong">{`材料 ${idx + 1}`}</Text>
+                  <View style={{ height: '4rpx' }} />
+                  <Text className="text-caption clamp-1">
+                    {f.mimeType ? String(f.mimeType) : '文件'} {typeof f.sizeBytes === 'number' ? `· ${(f.sizeBytes / 1024).toFixed(0)}KB` : ''}
+                  </Text>
+                </View>
                 <View style={{ width: '168rpx' }}>
                   <Button
                     variant="danger"
                     fill="outline"
                     size="small"
-                    onClick={() => {
-                      removeEvidence(id);
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      void removeEvidence(f);
                     }}
                   >
                     移除
@@ -232,19 +256,19 @@ export default function VerificationFormPage() {
             ))}
           </>
         ) : null}
-      </View>
+      </Surface>
 
       <Spacer />
 
-      <View className="card">
-        <Text className="muted">提交后进入“审核中”，平台会在后台完成审核并通知结果。</Text>
-      </View>
+      <TipBanner tone="info" title="提交后会发生什么？">
+        提交后进入“审核中”，平台会在后台完成审核并通知结果。审核未通过不可交易。
+      </TipBanner>
 
       <Spacer />
 
-      <View className="card">
+      <Surface>
         <Button onClick={submit}>提交并进入审核中</Button>
-      </View>
+      </Surface>
     </View>
   );
 }

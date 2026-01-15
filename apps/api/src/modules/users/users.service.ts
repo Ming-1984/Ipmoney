@@ -27,7 +27,7 @@ function maskPhone(value: string) {
 
 export type UserProfileDto = {
   id: string;
-  phone: string;
+  phone?: string;
   nickname?: string;
   avatarUrl?: string;
   role: string;
@@ -103,8 +103,9 @@ export class UsersService {
 
     return {
       id: user.id,
-      phone: user.phone,
+      phone: user.phone ?? undefined,
       nickname: user.nickname ?? undefined,
+      avatarUrl: user.avatarUrl ?? undefined,
       role: user.role,
       verificationStatus: v?.verificationStatus ?? 'PENDING',
       verificationType: v?.verificationType ?? null,
@@ -118,7 +119,8 @@ export class UsersService {
     userId: string,
     patch: { nickname?: string; avatarUrl?: string; regionCode?: string },
   ): Promise<UserProfileDto> {
-    void patch.avatarUrl;
+    const avatarUrl =
+      patch.avatarUrl === undefined ? undefined : String(patch.avatarUrl || '').trim() ? String(patch.avatarUrl).trim() : null;
     if (patch.nickname !== undefined && String(patch.nickname).length > 50) {
       throw new BadRequestException({ code: 'BAD_REQUEST', message: 'nickname 过长' });
     }
@@ -128,6 +130,7 @@ export class UsersService {
         where: { id: userId },
         data: {
           nickname: patch.nickname !== undefined ? String(patch.nickname) : undefined,
+          avatarUrl,
           regionCode: patch.regionCode !== undefined ? String(patch.regionCode) : undefined,
         },
       });
@@ -295,4 +298,3 @@ export class UsersService {
     return userId;
   }
 }
-

@@ -16,7 +16,7 @@
   - 文件命名示例：`client-home.png`、`client-search.png`、`client-detail.png`、`admin-orders.png`（按“端 + 页面”命名）
   - H5 规范入口：Tab 页用 `/#/pages/home/index`、`/#/pages/search/index`、`/#/pages/publish/index`、`/#/pages/messages/index`、`/#/pages/me/index`（避免截图时出现路由白屏）
 
-- 用户端（小程序/H5）：首页、信息流、检索（含筛选/排序）、详情页、订金支付/成功页、消息列表/会话页、发布入口/专利发布表单、我的、登录/身份选择/资料提交
+- 用户端（小程序/H5）：首页、最新专利推荐区、检索（含筛选/排序）、详情页、订金支付/成功页、消息列表/会话页、发布入口/专利发布表单、我的、登录/身份选择/资料提交
 - 管理后台（PC Web）：登录、仪表盘、认证审核、上架审核、订单（跟单里程碑）、退款、放款/结算、发票上传、交易/推荐配置、专利地图 CMS
 
 ## 小程序（买家/卖家）
@@ -24,7 +24,7 @@
 - 登录/注册与角色引导：`docs/demo/pages/miniapp/01-login.mmd`
 - 首页：`docs/demo/pages/miniapp/02-home.mmd`
 - 区域产业专利地图：`docs/demo/pages/miniapp/03-patent-map.mmd`
-- 信息展示/搜索结果：`docs/demo/pages/miniapp/04-feeds.mmd`
+- 搜索结果：`docs/demo/pages/miniapp/04-search.mmd`
 - 详情页：`docs/demo/pages/miniapp/05-detail.mmd`
 - 聊天与咨询：`docs/demo/pages/miniapp/06-message.mmd`
 - 订金支付页：`docs/demo/pages/miniapp/07-checkout-deposit-pay.mmd`

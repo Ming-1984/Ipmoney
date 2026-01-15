@@ -9,17 +9,19 @@ flowchart TB
     Price["价格区域<br/>• 订金金额<br/>• 预估总价/标价或面议"]
     Stats["热度与推荐（新增）<br/>• 浏览/收藏/咨询计数<br/>• 地域徽标：同城/同省、特色产业（省/市级）<br/>• 为什么推荐（可选）"]
     Seller["卖家信息<br/>• 头像/昵称<br/>• 认证标识（企业/科研院校/政府/协会/技术经理人等）"]
+    Comments["留言区（新增）<br/>• 公开留言列表<br/>• 互动回复（楼中楼一层）<br/>? 编辑/删除（本人）<br/>? 后台隐藏/恢复/删除"]
     Actions["底部操作栏<br/>• 收藏<br/>• 在线咨询<br/>• 立即支付订金"]
 
     TitleB["B. 需求/成果详情（无支付）"]:::section
     Content["图文详情<br/>• 详细描述<br/>• 图片/视频（如有）"]
+    Comments2["留言区（新增）<br/>• 公开留言列表<br/>• 互动回复（楼中楼一层）<br/>? 编辑/删除（本人）<br/>? 后台隐藏/恢复/删除"]
     Actions2["底部操作栏<br/>• 收藏<br/>• 在线咨询"]
 
     Pad --> TitleA
     TitleA --> Info
-    Info --> Price --> Stats --> Seller --> Actions
+    Info --> Price --> Stats --> Seller --> Comments --> Actions
 
-    TitleB --> Content --> Actions2
+    TitleB --> Content --> Comments2 --> Actions2
   end
 
   Msg["跳转：聊天/咨询页"]

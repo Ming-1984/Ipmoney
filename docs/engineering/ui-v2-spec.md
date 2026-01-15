@@ -57,6 +57,28 @@
 > - Client：继续以 `--c-primary` 等为实现层变量，但必须补齐“语义层映射表”（见本节末）。  
 > - Admin：AntD token 与语义 token 统一映射（例如 `token.colorPrimary` 对应 `color.brand.primary`）。
 
+**页面背景（Client｜WeApp + H5）**
+
+目标：保留“上半屏浅橙渐变”（A），叠加“点金火花/矿脉感”轻纹理（C），并允许少量页面选择 `plain` 变体。
+
+- 语义色（实现层映射见 `docs/engineering/token-mapping.md`）：
+  - `color.bg.page`：页面底色（浅暖）
+  - `color.bg.page-strong`：页面强调底（更偏橙，用于渐变上半屏）
+  - `color.bg.surface`：内容容器底（白底）
+  - `color.bg.surface-elevated`：弹层/浮层底（玻璃态/overlay）
+- 背景合成 token（实现层允许用 CSS 变量承载 `background-image` 值）：
+  - `bg.page.gradient`：默认页面渐变（上半屏）
+  - `bg.page.texture`：默认轻纹理（必须低对比度、低透明度，不影响可读性）
+  - `bg.page`：最终背景（`texture` 叠在 `gradient` 之上）
+- 页面背景变体（Page Background Variant）：
+  - `default`：`bg.page`（gradient + texture）
+  - `plain`：仅 `color.bg.page`（适用于 Chat/地图等沉浸内容页）
+  - `strong`（P1）：更强调的 `page-strong`，仍需克制（避免“活动页观感”）
+- 多端落地规则：
+  - WeApp：以 `page {}` 为主；`window.backgroundColor` 必须与 `color.bg.page` 一致，避免下拉回弹露底色。
+  - H5：同时覆盖 `:root/body/.taro_page`，避免滚动/固定层露白；不允许依赖 overlay DOM 顺序（参见 UI-STD-P0-006）。
+  - 例外：允许按页选择背景变体，但必须用统一 API（class/封装组件），禁止散落硬编码。
+
 ### 3.2 排版（Typography Token）
 
 > 现状：Client 已有 `text-display/text-hero/text-title/text-subtitle/text-caption` 等 class（`apps/client/src/app.scss`）。  
@@ -68,6 +90,7 @@
 - `font.size.hero`（页头 hero）
 - `font.size.title`（页面标题/卡片标题）
 - `font.size.body`（正文）
+- `font.size.subtitle`（次级说明/元信息）
 - `font.size.caption`（说明/辅助）
 
 **字重**
@@ -80,6 +103,28 @@
 
 - `font.line.tight`（1.12–1.25）
 - `font.line.normal`（1.5–1.6）
+
+**Client 推荐数值（对齐 WeUI）**
+
+- `font.size.display = 44rpx`
+- `font.size.hero = 40rpx`
+- `font.size.title = 36rpx`
+- `font.size.body = 34rpx`（主字号）
+- `font.size.subtitle = 28rpx`（次级说明/元信息）
+- `font.size.caption = 24rpx`（说明；用户可见文本最小字号）
+- 禁止用户可见文本 < `24rpx`（例如 `22rpx`/`20rpx` 这类微小字号）
+
+**H5 字号一致性（微信内）**
+
+- 禁用自动字体调整：`text-size-adjust: 100%`（实现：`apps/client/src/app.scss`）
+- Root clamp：`baseFontSize=20, minRootSize=18, maxRootSize=22`（实现：`apps/client/config/index.ts`）
+- 不要在 `html/:root` 手写 `font-size`（避免与 rpx→rem 转换脚本叠加）
+
+**交互尺寸基线（对齐 WeUI）**
+
+- 最小热区：`88rpx≈44px`
+- 主按钮高：`96rpx≈48px`
+- Cell padding：`32rpx≈16px`
 
 **规定**
 
@@ -161,6 +206,9 @@
 
 - 每页最多 1 个主标题；副标题最多 2 行。
 - 右侧动作最多 1 个（更多动作进入二级菜单/Popup）。
+- WeApp（微信小程序）：默认使用原生导航栏（`navigationStyle: default`），页面内不再渲染自定义顶栏，避免“两个顶部栏/两个返回按钮”。如确需自定义右侧动作，再按页启用 `navigationStyle: custom`。
+- H5：使用 NutUI `NavBar` 作为顶栏，默认展示 `Back + Title (+ Right)`；不展示动图 Logo/副标题。
+- 首页：品牌区使用圆形动图 Logo + 统一副标题「专利点金台」（替换旧文案「专利变金豆矿」）。
 
 ### 4.2 Card / Surface（容器）
 
@@ -172,6 +220,7 @@
 **规则**
 
 - 同屏容器圆角一致；避免 Card/Surface 混用导致“圆角不齐”。
+- 默认提供轻边框 + 柔和阴影的层级（来自 token：`color.border.default` + `shadow.sm`），避免容器“平铺”。
 
 ### 4.3 Button（按钮）
 
@@ -193,6 +242,17 @@
 - `Chip`：交互筛选项（可选中）
 
 规则：Tag 不可点击（除非明确设计）；Chip 可点击且必须有选中态/禁用态。
+
+尺寸规范（P0）：
+
+- Tag 字号与页面正文对齐，默认 `font.size.base`（通过 `--nutui-tag-font-size` 统一）
+- Tag 高度使用内容自适应（`--nutui-tag-height: auto`），padding 使用 `space-1/space-2`
+- 圆角统一 `--nutui-tag-round-border-radius`，避免默认 2px 过小
+
+字段展示建议（P0）：
+
+- 短字段/状态：用 Tag
+- 长文本/说明：用 `CellRow`/`description`，不要塞进 Tag
 
 ### 4.5 列表组件（ListingCard / ListItem）
 
@@ -220,6 +280,53 @@
 
 > 注：Client 已有统一出口（`AppOverlays + Feedback`），规范要求“所有确认/提示必须走统一出口”。
 
+### 4.8 Sort / Category / Filter（排序/分类/筛选）
+
+> 目标：全站“排序/分类/筛选”交互与样式一致，且参数严格对齐 OpenAPI（避免页面各自实现导致发散）。
+
+**成熟组件优先**
+
+- Client：NutUI Taro（`Segmented`/`Popup`/`CellGroup`/`Input`/`InputNumber` 等）+ 自研适配层（`apps/client/src/ui/nutui/*`）
+- Admin：Ant Design（`Table`/`Form`/`Select`/`DatePicker` 等），避免自研表格筛选 UI
+
+**统一控件形态（Client）**
+
+- `CategoryControl`（分类）：
+  - 顶部主分类（如：专利/需求/成果/机构）：用 `Tabs(activeType="line")`，风格对齐微信小程序（下划线指示器 + 单行）。
+  - 小范围切换（如：买家/卖家；我的列表状态）：≤3 个选项可用 `Segmented`；>3 个选项用可滚动 `Tabs(activeType="line")` 或移入筛选弹层。
+- `SortControl`（排序）：
+  - 默认展示 3 个短标签：`推荐 / 最新 / 热度`（顺序固定），用 `Tabs(activeType="line")`。
+  - 本轮不提供 `发明人` 排序；如后续需要更多排序项，进入 `SortSheet`（P1）。
+  - 不同内容类型分别对齐对应枚举：专利交易用 `SortBy`；需求/成果用 `ContentSortBy`。
+- `SortSheet`（更多排序｜P1）：用底部 `Popup`（sheet）展示完整排序枚举（含“价格升/降”等扩展项），点击即应用并关闭。
+- `FilterTrigger`（筛选入口）：统一用 `Button variant="ghost"` + 文案 `筛选`；建议展示“已选数量”（如 `筛选·3`），与 `FilterSummary` 一致
+
+**统一筛选弹层（Client）**
+
+- 形态：底部 `Popup`（sheet），标题为“筛选”，支持 `onClose`/`onOverlayClick`
+- 必备动作：`重置`（ghost）+ `应用`（primary），顺序固定（左重置/右应用）
+- Draft 与 Applied：
+  - 打开弹层：Draft=Applied 的快照
+  - 关闭弹层：不改变 Applied（丢弃 Draft）
+  - 点击“应用”：Applied=Draft（并触发 reload）
+  - 点击“重置”：Draft 还原为“默认值”（不自动应用，需再点“应用”）
+- 字段形态：
+  - 枚举/多选：优先 `Chip`（选中态/禁用态统一）
+  - 文本：`Input`（IPC/LOC/关键词等）
+  - 金额范围：输入单位为“元”，内部转换为“分”（`MoneyFen`）；需校验 `min<=max`
+  - 地区：统一走 `pages/region-picker/index`（CellRow 入口 + 回填展示），避免各页自己实现地区树
+- “更多筛选”：同一弹层内用分组/折叠承载（不另起页面、不用纯文案占位），逐步披露不常用字段
+
+**筛选结果可见性**
+
+- Tool 区必须给出“当前筛选是否生效”的反馈：未生效显示“未设置筛选”，生效时至少展示 1–3 个摘要 Chip（超出折叠为 `+N`）
+- 必须支持“一键清空”（重置并应用）或“重置→应用”两步，且文案一致
+
+**数据与并发**
+
+- 请求参数必须走 `cleanParams()`（禁止 `undefined/null/''` 进入 query）
+- 切换排序/筛选/分类触发 reload；P1：快速切换时丢弃过期请求结果（避免回跳旧结果）
+
 ## 5. 页面模板（Client）
 
 > 目标：页面只做业务编排，骨架由模板保证一致。
@@ -236,6 +343,25 @@
 
 - 页面可 public，但“动作”可能需要登录/审核（用 Permission/Audit 作为动作级拦截，不强制全页拦截）。
 
+必备插槽（P0）：
+
+- 顶部区块：标题 + 一句解释（可选品牌点缀/徽标）
+- 核心功能区：搜索/入口/列表之一（同屏信息层级清晰）
+- 反馈：点击/加载/错误/空态都有可见反馈（至少提示下一步）
+
+禁用项（P0）：
+
+- 同屏出现多个 `primary` CTA（最多 1 个主动作）
+- 同屏多个“强元素”（大渐变/重阴影/高饱和块）堆叠
+
+补充：Messages 会话列表（Tab 消息）视觉规范（P0）：
+
+- 结构：`PageHeader` + `PullToRefresh` + `Surface` + `CellGroup`
+- 列表行：优先 NutUI `Cell/CellRow` + `Avatar/Tag/Badge` 组合；标题/摘要最多两行
+- 容器层级：列表容器使用轻边框 + 柔和阴影；行点击有轻微按压反馈
+- 时间/未读：时间使用 `font.size.caption`；`unreadCount > 0` 才显示 `Badge`
+- 颜色：背景默认 `bg.page`；列表容器 `color.bg.surface`；分隔/文字均用语义 token，禁硬编码
+
 ### 模板 B：List + Filter（Feeds / Favorites / Orders / MyListings 等）
 
 结构：
@@ -248,6 +374,17 @@
 
 - 必须覆盖 loading/error/empty
 
+必备插槽（P0）：
+
+- `PageHeader`（非 Tab 页自动显示返回）
+- 工具区：排序（Segmented）+ 筛选入口（FilterSheet）+ 已选摘要（FilterSummary）
+- 内容区：列表行组件（Surface + 行点击态）
+
+禁用项（P0）：
+
+- 页面内散落多个筛选弹层（必须收敛到统一 FilterSheet）
+- 列表项不可点/缺少 active 态
+
 ### 模板 C：Detail + Sticky CTA（Listing/Order/Patent/Org Detail）
 
 结构：
@@ -258,6 +395,21 @@
 状态：
 
 - 缺参必须兜底（ErrorCard + 返回）
+
+必备插槽（P0）：
+
+- `PageHeader` + 关键字段区块（MetaPills/标签）
+- `StickyBar`：最多 3 个按钮，但只有 1 个 primary（其余为 ghost/secondary）
+
+视觉规范（P0）：
+
+- 关键字段标签（MetaPills/Tag）字号不低于 `font.size.s`；通过 `--nutui-tag-font-size/--nutui-tag-height` 统一，避免“过小标签”
+- 字段值（CellRow description/extra）字号不低于 `font.size.body`；必要时用 `text-strong/muted` 拉开层级
+
+禁用项（P0）：
+
+- 吸底出现多个 primary（容易产生误操作）
+- 关键规则/风险提示只用大段文字堆叠（必须结构化为要点）
 
 ### 模板 D：Form / Wizard（Publish Patent / Onboarding / Profile）
 
@@ -272,12 +424,29 @@
 - 提交态必须防重复（loading + disable + toast）
 - 校验错误必须可解释（优先 inline，必要时 toast）
 
+必备插槽（P0）：
+
+- 顶部：`PageHeader(hero)`（标题 + 一句说明）
+- 表单区：分段卡片（字段分组清晰，错误可解释）
+- 吸底：提交按钮（StickyBar）
+
+禁用项（P0）：
+
+- 多处重复提交入口（保持单一主提交）
+- 用技术字段名/内部 ID 作为用户可见文案
+
 ### 模板 E：Payment Flow（Deposit/Final Pay + Success）
 
 结构：
 
 - 清晰的“金额摘要 + 规则说明 + CTA”
 - H5/PC 端策略：提示“去小程序支付”或展示二维码（P1）
+
+必备插槽（P0）：
+
+- 金额摘要（订金/尾款/总额）与订单状态提示
+- 规则说明（托管/退款/放款条件）可扫读
+- 成功页：明确下一步（查看订单/继续办理/返回首页）
 
 ### 模板 F：Chat（Messages Chat）
 
@@ -289,12 +458,30 @@
 
 - permission/audit 必须优先渲染（不可让输入框在无权限时可用）
 
+必备插槽（P0）：
+
+- Header + 消息列表 + 吸底输入条（与 safe-area 对齐）
+- 失败可重试（发送失败/加载失败）
+
+视觉规范（P0）：
+
+- 背景：Chat 使用 `plain` 变体（无纹理），页面底色为 `color.bg.page`，避免渐变/纹理干扰阅读。
+- 气泡：对方气泡使用 `color.bg.surface` + `color.border.default` + `shadow.sm`；己方气泡使用 `color.action.primary.bg`（可用品牌渐变），文字使用 `color.text.inverse`。
+- 气泡排版：最大宽度 70–78%；内边距使用 `space-2/space-3`；圆角用 `radius.lg`，收/发气泡底角略有区分以形成尾感。
+- 系统消息：胶囊式提示，字号为 `font.size.caption`，不做大块色面。
+- 吸底输入条：背景 `color.bg.page`，上边框 `color.border.divider`；按钮统一用 NutUI `Button`，输入框优先复用 NutUI `Input`（需保留小程序 `confirm/send` 行为）；视觉上输入框/按钮圆角一致、同高度。
+
 ### 模板 G：Policy/Rules（Trade Rules）
 
 结构：
 
 - PageHeader + 分节卡片
 - 内容必须可扫读（标题/要点/例外）
+
+必备插槽（P0）：
+
+- 分节标题（SectionHeader）+ 要点列表（MetaPills/列表）
+- 关键例外与争议处理路径明确（用户看得懂下一步）
 
 ## 6. 页面状态机（统一口径）
 

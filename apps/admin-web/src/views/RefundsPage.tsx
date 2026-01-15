@@ -2,8 +2,9 @@ import { Button, Card, Input, Space, Table, Tag, Typography, message } from 'ant
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 
 import { apiGet, apiPost } from '../lib/api';
+import { formatTimeSmart } from '../lib/format';
 import { AuditHint, RequestErrorAlert } from '../ui/RequestState';
-import { confirmAction } from '../ui/confirm';
+import { confirmActionWithReason } from '../ui/confirm';
 
 type RefundRequestStatus = 'PENDING' | 'APPROVED' | 'REJECTED' | 'REFUNDING' | 'REFUNDED';
 
@@ -26,9 +27,9 @@ function statusTag(status: RefundRequestStatus) {
 }
 
 export function RefundsPage() {
-  const [orderId, setOrderId] = useState('dddddddd-dddd-dddd-dddd-dddddddddddd');
+  const [orderId, setOrderId] = useState('e9032d03-9b23-40ba-84a3-ac681f21c41b');
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<unknown | null>(null);
   const [data, setData] = useState<RefundRequest[] | null>(null);
 
   const load = useCallback(async () => {
@@ -40,7 +41,7 @@ export function RefundsPage() {
       setData(d);
     } catch (e: any) {
       const msg = e?.message || '加载失败';
-      setError(msg);
+      setError(e);
       message.error(msg);
       setData(null);
     } finally {
@@ -59,10 +60,10 @@ export function RefundsPage() {
       <Space direction="vertical" size={16} style={{ width: '100%' }}>
         <div>
           <Typography.Title level={3} style={{ marginTop: 0 }}>
-            退款管理（演示）
+            退款管理
           </Typography.Title>
           <Typography.Paragraph type="secondary" style={{ marginBottom: 0 }}>
-            切换 `refund_failed` 场景可演示“退款审批通过失败”的提示。
+            用于处理退款申请与争议材料归档。
           </Typography.Paragraph>
         </div>
 
@@ -96,7 +97,7 @@ export function RefundsPage() {
               render: (_, r) => statusTag(r.status),
             },
             { title: '原因', dataIndex: 'reasonText' },
-            { title: '创建时间', dataIndex: 'createdAt' },
+            { title: '创建时间', dataIndex: 'createdAt', render: (v) => formatTimeSmart(v) },
             {
               title: '操作',
               key: 'actions',
@@ -108,10 +109,13 @@ export function RefundsPage() {
                       type="primary"
                       disabled={disabled}
                       onClick={async () => {
-                        const ok = await confirmAction({
+                        const { ok } = await confirmActionWithReason({
                           title: '确认通过退款？',
                           content: '通过后将触发退款（可能失败并提示）；该操作应记录审计留痕。',
                           okText: '通过退款',
+                          defaultReason: '同意退款',
+                          reasonLabel: '审批备注（建议填写）',
+                          reasonHint: '建议写明依据：时间窗/材料缺失/违约责任等；并确认已归档证据材料。',
                         });
                         if (!ok) return;
                         try {
@@ -132,16 +136,19 @@ export function RefundsPage() {
                       danger
                       disabled={disabled}
                       onClick={async () => {
-                        const ok = await confirmAction({
+                        const { ok, reason } = await confirmActionWithReason({
                           title: '确认驳回退款？',
-                          content: '驳回后订单将继续推进；建议填写原因并留痕。',
+                          content: '驳回后订单将继续推进；驳回原因将用于审计与争议处理。',
                           okText: '驳回退款',
                           danger: true,
+                          reasonLabel: '驳回原因',
+                          reasonPlaceholder: '例：不满足可退条件；已提供尽调材料；买家单方违约等。',
+                          reasonRequired: true,
                         });
                         if (!ok) return;
                         try {
                           await apiPost<RefundRequest>(`/admin/refund-requests/${r.id}/reject`, {
-                            reason: '不符合退款条件（演示）',
+                            reason: reason || '不符合退款条件',
                           });
                           message.success('已驳回');
                           void load();

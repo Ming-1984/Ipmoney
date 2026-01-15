@@ -2,6 +2,9 @@ import { Button, Card, Input, InputNumber, Modal, Select, Space, Table, Tabs, Ty
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 
 import { apiGet, apiPatch, apiPost, apiPut } from '../lib/api';
+import { formatTimeSmart } from '../lib/format';
+import { confirmActionWithReason } from '../ui/confirm';
+import { modalBodyScrollStyle } from '../ui/modalStyles';
 import { RequestErrorAlert } from '../ui/RequestState';
 
 type RegionLevel = 'PROVINCE' | 'CITY' | 'DISTRICT';
@@ -77,6 +80,15 @@ export function RegionsPage() {
           message.error('请输入名称');
           return;
         }
+        const { ok } = await confirmActionWithReason({
+          title: '确认新增产业标签？',
+          content: `将新增标签「${name}」。该操作会影响搜索/推荐的标签枚举与运营配置。`,
+          okText: '创建',
+          reasonLabel: '变更原因（必填）',
+          reasonPlaceholder: '例：新增某地区特色产业；补齐现有标签体系；运营活动需要等。',
+          reasonRequired: true,
+        });
+        if (!ok) return;
         try {
           await apiPost<IndustryTag>('/admin/industry-tags', { name });
           message.success('已创建');
@@ -168,9 +180,27 @@ export function RegionsPage() {
           message.error('区域 code 必须为 6 位数字（adcode）');
           return;
         }
+        const { ok } = await confirmActionWithReason({
+          title: '确认创建区域？',
+          content: `将创建区域：${code}（${payload.name}，${levelLabel(payload.level)}）。该操作会影响地图/筛选与运营配置。`,
+          okText: '创建',
+          reasonLabel: '变更原因（必填）',
+          reasonPlaceholder: '例：补齐区域数据；调整中心点坐标；新增区县层级等。',
+          reasonRequired: true,
+        });
+        if (!ok) return;
         await apiPost<RegionNode>('/admin/regions', { code, ...payload });
         message.success('已创建');
       } else {
+        const { ok } = await confirmActionWithReason({
+          title: '确认更新区域？',
+          content: `将更新区域：${regionForm.code}（${payload.name}，${levelLabel(payload.level)}）。该操作会影响地图/筛选与运营配置。`,
+          okText: '更新',
+          reasonLabel: '变更原因（必填）',
+          reasonPlaceholder: '例：修正名称/层级/中心点坐标；调整父级关系等。',
+          reasonRequired: true,
+        });
+        if (!ok) return;
         await apiPatch<RegionNode>(`/admin/regions/${regionForm.code}`, payload);
         message.success('已更新');
       }
@@ -194,6 +224,15 @@ export function RegionsPage() {
   const saveTags = useCallback(async () => {
     if (!tagsRegionCode) return;
     try {
+      const { ok } = await confirmActionWithReason({
+        title: '确认保存产业标签配置？',
+        content: `将更新区域 ${tagsRegionCode} 的产业标签（共 ${tagsSelected.length} 个）。该操作会影响地域特色推荐与搜索加权。`,
+        okText: '保存',
+        reasonLabel: '变更原因（必填）',
+        reasonPlaceholder: '例：标记省/市级特色产业；运营置顶策略调整；数据口径修正等。',
+        reasonRequired: true,
+      });
+      if (!ok) return;
       await apiPut<RegionNode>(
         `/admin/regions/${tagsRegionCode}/industry-tags`,
         { industryTags: tagsSelected },
@@ -297,6 +336,7 @@ export function RegionsPage() {
                     title={regionModalMode === 'create' ? '新增区域' : '编辑区域'}
                     okText="保存"
                     cancelText="取消"
+                    bodyStyle={modalBodyScrollStyle}
                     onCancel={() => setRegionModalOpen(false)}
                     onOk={() => void submitRegion()}
                   >
@@ -348,6 +388,7 @@ export function RegionsPage() {
                     title={`设置产业标签：${tagsRegionCode}`}
                     okText="保存"
                     cancelText="取消"
+                    bodyStyle={modalBodyScrollStyle}
                     onCancel={() => setTagsModalOpen(false)}
                     onOk={() => void saveTags()}
                   >
@@ -390,7 +431,7 @@ export function RegionsPage() {
                     columns={[
                       { title: 'name', dataIndex: 'name' },
                       { title: 'id', dataIndex: 'id', width: 260 },
-                      { title: 'createdAt', dataIndex: 'createdAt', width: 200 },
+                      { title: 'createdAt', dataIndex: 'createdAt', width: 200, render: (v) => formatTimeSmart(v) },
                     ]}
                   />
                 </Space>
@@ -402,4 +443,3 @@ export function RegionsPage() {
     </Card>
   );
 }
-

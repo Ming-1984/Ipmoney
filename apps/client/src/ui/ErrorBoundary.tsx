@@ -27,8 +27,8 @@ export class ErrorBoundary extends React.Component<Props, State> {
           <View style={{ height: '8rpx' }} />
           <Text className="text-subtitle">请刷新页面；若仍复现，把错误信息发我用于排查。</Text>
           <View style={{ height: '12rpx' }} />
-          <View className="card" style={{ background: '#fff', borderRadius: '16rpx', padding: '16rpx' }}>
-            <Text style={{ fontFamily: 'monospace', fontSize: '22rpx', color: '#991b1b' }}>
+          <View className="surface surface-pad-sm">
+            <Text style={{ fontFamily: 'monospace', fontSize: 'var(--nutui-font-size-xs)', color: 'var(--c-danger)' }}>
               {String(error?.message || error)}
             </Text>
           </View>

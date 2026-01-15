@@ -1,12 +1,16 @@
 import { View, Text } from '@tarojs/components';
-import Taro, { useRouter } from '@tarojs/taro';
+import Taro from '@tarojs/taro';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 
 import { apiGet, apiPost } from '../../../lib/api';
 import { ensureApproved } from '../../../lib/guard';
-import { StickyBar } from '../../../ui/layout';
-import { Button } from '../../../ui/nutui';
-import { ErrorCard, LoadingCard } from '../../../ui/StateCards';
+import { fenToYuan } from '../../../lib/money';
+import { safeNavigateBack } from '../../../lib/navigation';
+import { useRouteUuidParam } from '../../../lib/routeParams';
+import { PageHeader, Spacer, StickyBar } from '../../../ui/layout';
+import { Button, toast } from '../../../ui/nutui';
+import { ErrorCard, LoadingCard, MissingParamCard } from '../../../ui/StateCards';
+import { MiniProgramPayGuide } from '../components/MiniProgramPayGuide';
 
 type Order = {
   id: string;
@@ -31,14 +35,10 @@ type PaymentIntentResponse = {
   };
 };
 
-function fenToYuan(fen?: number): string {
-  if (fen === undefined || fen === null) return '-';
-  return (fen / 100).toFixed(2);
-}
-
 export default function FinalPayPage() {
-  const router = useRouter();
-  const orderId = useMemo(() => router?.params?.orderId || '', [router?.params?.orderId]);
+  const orderId = useRouteUuidParam('orderId') || '';
+  const env = useMemo(() => Taro.getEnv(), []);
+  const isH5 = env === Taro.ENV_TYPE.WEB;
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -67,53 +67,51 @@ export default function FinalPayPage() {
   const onPay = useCallback(async () => {
     if (!ensureApproved()) return;
     if (!orderId) return;
+    if (isH5) {
+      toast('H5 端不发起支付，请到小程序完成支付');
+      return;
+    }
     setPaying(true);
     try {
       const intent = await apiPost<PaymentIntentResponse>(
         `/orders/${orderId}/payment-intents`,
         { payType: 'FINAL' },
-        { idempotencyKey: `demo-final-${orderId}` },
+        { idempotencyKey: `pay-final-${orderId}` },
       );
       Taro.navigateTo({
         url: `/pages/checkout/final-success/index?orderId=${orderId}&paymentId=${intent.paymentId}`,
       });
     } catch (e: any) {
-      Taro.showToast({ title: e?.message || '支付失败', icon: 'none' });
+      toast(e?.message || '支付失败');
     } finally {
       setPaying(false);
     }
-  }, [orderId]);
+  }, [isH5, orderId]);
 
   if (!orderId) {
     return (
       <View className="container">
-        <ErrorCard
-          title="参数缺失"
-          message="缺少 orderId"
-          onRetry={() => Taro.navigateBack()}
-        />
+        <PageHeader title="尾款支付" />
+        <Spacer />
+        <MissingParamCard onAction={() => void safeNavigateBack()} />
       </View>
     );
   }
 
   return (
     <View className="container has-sticky">
+      <PageHeader
+        title="尾款支付"
+        subtitle={order ? `订单号：${order.id} · 状态：${order.status}` : `订单号：${orderId.slice(0, 8)}…`}
+      />
+      <Spacer />
+
       {loading ? (
         <LoadingCard />
       ) : error ? (
         <ErrorCard message={error} onRetry={load} />
       ) : order ? (
         <View>
-          <View className="card">
-            <Text className="text-title">尾款支付</Text>
-            <View style={{ height: '8rpx' }} />
-            <Text className="muted">订单号：{order.id}</Text>
-            <View style={{ height: '6rpx' }} />
-            <Text className="muted">状态：{order.status}</Text>
-          </View>
-
-          <View style={{ height: '16rpx' }} />
-
           <View className="card">
             <Text className="text-card-title">金额信息</Text>
             <View style={{ height: '8rpx' }} />
@@ -135,12 +133,22 @@ export default function FinalPayPage() {
               说明：尾款支付建议在小程序内完成；电脑端/H5 可展示“去小程序支付”（二维码/链接）。
             </Text>
           </View>
+
+          {isH5 ? (
+            <>
+              <View style={{ height: '16rpx' }} />
+              <MiniProgramPayGuide
+                miniProgramPath={`pages/checkout/final-pay/index?orderId=${orderId}`}
+                description="H5 端不发起支付。微信内可一键跳转小程序；微信外/桌面可复制链接或扫码在微信打开。"
+              />
+            </>
+          ) : null}
         </View>
       ) : (
         <ErrorCard title="无数据" message="订单不存在或不可见" />
       )}
 
-      {order && !loading && !error ? (
+      {order && !loading && !error && !isH5 ? (
         <StickyBar>
           <View className="flex-1">
             <Button variant="ghost" onClick={() => Taro.navigateBack()}>

@@ -13,7 +13,12 @@ export const STORAGE_KEYS = {
   verificationType: 'ipmoney.verificationType',
   verificationStatus: 'ipmoney.verificationStatus',
   favoriteListingIds: 'ipmoney.favoriteListingIds',
+  favoriteDemandIds: 'ipmoney.favoriteDemandIds',
+  favoriteAchievementIds: 'ipmoney.favoriteAchievementIds',
+  regionPickerResult: 'ipmoney.regionPickerResult',
+  regionNameMap: 'ipmoney.regionNameMap',
   mockScenario: 'ipmoney.mockScenario',
+  searchPrefill: 'ipmoney.searchPrefill',
 };
 
 export type VerificationType =

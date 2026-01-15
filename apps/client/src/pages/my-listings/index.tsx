@@ -1,12 +1,14 @@
 import { View, Text } from '@tarojs/components';
 import Taro from '@tarojs/taro';
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 
 import type { components } from '@ipmoney/api-types';
 
 import { apiGet, apiPost } from '../../lib/api';
 import { ensureApproved, goLogin, goOnboarding, usePageAccess } from '../../lib/guard';
-import { Button, Segmented } from '../../ui/nutui';
+import { auditStatusLabel, auditStatusTagClass, listingStatusLabel } from '../../lib/labels';
+import { CategoryControl } from '../../ui/filters';
+import { Button, toast } from '../../ui/nutui';
 import { AuditPendingCard, EmptyCard, ErrorCard, LoadingCard, PermissionCard } from '../../ui/StateCards';
 import { PageHeader, Spacer, Surface } from '../../ui/layout';
 
@@ -15,22 +17,9 @@ type Listing = components['schemas']['Listing'];
 type ListingStatus = components['schemas']['ListingStatus'];
 type AuditStatus = components['schemas']['AuditStatus'];
 
-function auditStatusLabel(s: AuditStatus): string {
-  if (s === 'APPROVED') return '已通过';
-  if (s === 'REJECTED') return '已驳回';
-  return '审核中';
-}
-
-function listingStatusLabel(s: ListingStatus): string {
-  if (s === 'DRAFT') return '草稿';
-  if (s === 'ACTIVE') return '已上架';
-  if (s === 'OFF_SHELF') return '已下架';
-  if (s === 'SOLD') return '已成交';
-  return String(s);
-}
-
 export default function MyListingsPage() {
   const [status, setStatus] = useState<ListingStatus | ''>('');
+  const [auditStatusFilter, setAuditStatusFilter] = useState<AuditStatus | ''>('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [data, setData] = useState<PagedListing | null>(null);
@@ -43,6 +32,7 @@ export default function MyListingsPage() {
         page: 1,
         pageSize: 20,
         ...(status ? { status } : {}),
+        ...(auditStatusFilter ? { auditStatus: auditStatusFilter } : {}),
       });
       setData(d);
     } catch (e: any) {
@@ -51,7 +41,7 @@ export default function MyListingsPage() {
     } finally {
       setLoading(false);
     }
-  }, [status]);
+  }, [auditStatusFilter, status]);
 
   const access = usePageAccess('approved-required', (a) => {
     if (a.state === 'ok') {
@@ -63,6 +53,11 @@ export default function MyListingsPage() {
     setData(null);
   });
 
+  useEffect(() => {
+    if (access.state !== 'ok') return;
+    void load();
+  }, [access.state, load]);
+
   const items = useMemo(() => data?.items || [], [data?.items]);
 
   const goCreate = useCallback(() => {
@@ -73,7 +68,7 @@ export default function MyListingsPage() {
   if (access.state === 'need-login') {
     return (
       <View className="container">
-        <PageHeader title="我的上架" subtitle="卖家查看/编辑/下架自己的专利上架信息" />
+        <PageHeader title="我的专利上架" subtitle="卖家查看/编辑/下架自己的专利上架信息" />
         <Spacer />
         <PermissionCard title="需要登录" message="登录后才能查看上架信息。" actionText="去登录" onAction={goLogin} />
       </View>
@@ -82,7 +77,7 @@ export default function MyListingsPage() {
   if (access.state === 'need-onboarding') {
     return (
       <View className="container">
-        <PageHeader title="我的上架" subtitle="卖家查看/编辑/下架自己的专利上架信息" />
+        <PageHeader title="我的专利上架" subtitle="卖家查看/编辑/下架自己的专利上架信息" />
         <Spacer />
         <PermissionCard title="需要选择身份" message="完成身份选择后才能继续。" actionText="去选择" onAction={goOnboarding} />
       </View>
@@ -91,7 +86,7 @@ export default function MyListingsPage() {
   if (access.state === 'audit-pending') {
     return (
       <View className="container">
-        <PageHeader title="我的上架" subtitle="卖家查看/编辑/下架自己的专利上架信息" />
+        <PageHeader title="我的专利上架" subtitle="卖家查看/编辑/下架自己的专利上架信息" />
         <Spacer />
         <AuditPendingCard title="资料审核中" message="审核通过后才能发布与管理上架信息。" actionText="查看进度" onAction={goOnboarding} />
       </View>
@@ -100,7 +95,7 @@ export default function MyListingsPage() {
   if (access.state === 'audit-rejected') {
     return (
       <View className="container">
-        <PageHeader title="我的上架" subtitle="卖家查看/编辑/下架自己的专利上架信息" />
+        <PageHeader title="我的专利上架" subtitle="卖家查看/编辑/下架自己的专利上架信息" />
         <Spacer />
         <AuditPendingCard title="资料已驳回" message="请重新提交资料，审核通过后才能继续。" actionText="重新提交" onAction={goOnboarding} />
       </View>
@@ -109,7 +104,7 @@ export default function MyListingsPage() {
   if (access.state === 'audit-required') {
     return (
       <View className="container">
-        <PageHeader title="我的上架" subtitle="卖家查看/编辑/下架自己的专利上架信息" />
+        <PageHeader title="我的专利上架" subtitle="卖家查看/编辑/下架自己的专利上架信息" />
         <Spacer />
         <AuditPendingCard title="需要认证" message="完成认证并审核通过后才能继续。" actionText="去认证" onAction={goOnboarding} />
       </View>
@@ -118,13 +113,13 @@ export default function MyListingsPage() {
 
   return (
     <View className="container">
-      <PageHeader title="我的上架" subtitle="卖家查看/编辑/下架自己的专利上架信息" />
+      <PageHeader title="我的专利上架" subtitle="卖家查看/编辑/下架自己的专利上架信息" />
       <Spacer />
 
       <Surface>
         <Text className="text-strong">状态筛选</Text>
         <View style={{ height: '10rpx' }} />
-        <Segmented
+        <CategoryControl
           value={status}
           options={[
             { label: '全部', value: '' },
@@ -133,7 +128,21 @@ export default function MyListingsPage() {
             { label: '下架', value: 'OFF_SHELF' },
             { label: '成交', value: 'SOLD' },
           ]}
-          onChange={(v) => setStatus(String(v) as ListingStatus | '')}
+          onChange={(v) => setStatus(v as ListingStatus | '')}
+        />
+
+        <View style={{ height: '14rpx' }} />
+        <Text className="text-strong">审核筛选</Text>
+        <View style={{ height: '10rpx' }} />
+        <CategoryControl
+          value={auditStatusFilter}
+          options={[
+            { label: '全部', value: '' },
+            { label: '审核中', value: 'PENDING' },
+            { label: '已通过', value: 'APPROVED' },
+            { label: '已驳回', value: 'REJECTED' },
+          ]}
+          onChange={(v) => setAuditStatusFilter(v as AuditStatus | '')}
         />
         <View style={{ height: '12rpx' }} />
         <Button variant="primary" onClick={goCreate}>
@@ -155,9 +164,7 @@ export default function MyListingsPage() {
               <View style={{ height: '8rpx' }} />
               <View className="row" style={{ gap: '12rpx', flexWrap: 'wrap' }}>
                 <Text className="tag">{listingStatusLabel(it.status)}</Text>
-                <Text className={`tag ${it.auditStatus === 'APPROVED' ? 'tag-success' : it.auditStatus === 'REJECTED' ? 'tag-danger' : 'tag-warning'}`}>
-                  {auditStatusLabel(it.auditStatus)}
-                </Text>
+                <Text className={auditStatusTagClass(it.auditStatus)}>{auditStatusLabel(it.auditStatus)}</Text>
                 {it.applicationNoDisplay ? <Text className="tag">{it.applicationNoDisplay}</Text> : null}
               </View>
               <View style={{ height: '12rpx' }} />
@@ -184,10 +191,10 @@ export default function MyListingsPage() {
                           { reason: '卖家下架' },
                           { idempotencyKey: `off-${it.id}` },
                         );
-                        Taro.showToast({ title: '已下架', icon: 'success' });
+                        toast('已下架', { icon: 'success' });
                         void load();
                       } catch (e: any) {
-                        Taro.showToast({ title: e?.message || '操作失败', icon: 'none' });
+                        toast(e?.message || '操作失败');
                       }
                     }}
                   >

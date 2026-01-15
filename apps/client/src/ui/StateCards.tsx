@@ -2,18 +2,19 @@ import { View, Text } from '@tarojs/components';
 import React from 'react';
 
 import { Button } from './nutui';
+import { STATE_COPY } from './copy';
+import { StateIllustration } from './layout/StateIllustration';
 
 export function LoadingCard(props: { text?: string }) {
-  const text = props.text || '加载中…';
+  const text = props.text || STATE_COPY.loading.title;
   return (
     <View className="card card-state">
-      <View className="row">
-        <View className="brand-mark brand-mark-sm" />
-        <View style={{ width: '12rpx' }} />
-        <View style={{ flex: 1 }}>
+      <View className="row" style={{ gap: '16rpx', alignItems: 'flex-start' }}>
+        <StateIllustration kind="loading" size="md" />
+        <View className="min-w-0" style={{ flex: 1 }}>
           <Text className="text-card-title">{text}</Text>
           <View style={{ height: '6rpx' }} />
-          <Text className="text-caption">正在挖掘数据金豆矿脉…</Text>
+          <Text className="text-caption">{STATE_COPY.loading.subtitle}</Text>
         </View>
       </View>
       <View style={{ height: '14rpx' }} />
@@ -25,14 +26,19 @@ export function LoadingCard(props: { text?: string }) {
 export function ErrorCard(props: { title?: string; message?: string; onRetry?: () => void }) {
   return (
     <View className="card card-state">
-      <Text className="text-title">{props.title || '加载失败'}</Text>
-      <View style={{ height: '8rpx' }} />
-      <Text className="text-subtitle">{props.message || '请稍后重试'}</Text>
+      <View className="row" style={{ gap: '16rpx', alignItems: 'flex-start' }}>
+        <StateIllustration kind="error" size="md" />
+        <View className="min-w-0" style={{ flex: 1 }}>
+          <Text className="text-title">{props.title || STATE_COPY.error.title}</Text>
+          <View style={{ height: '8rpx' }} />
+          <Text className="text-subtitle">{props.message || STATE_COPY.error.message}</Text>
+        </View>
+      </View>
       {props.onRetry ? (
         <>
           <View style={{ height: '12rpx' }} />
           <Button variant="ghost" onClick={props.onRetry}>
-            重试
+            {STATE_COPY.error.retryText}
           </Button>
         </>
       ) : null}
@@ -48,13 +54,14 @@ export function EmptyCard(props: {
 }) {
   return (
     <View className="card card-state">
-      <Text className="text-title">{props.title || '暂无数据'}</Text>
-      {props.message ? (
-        <>
+      <View className="row" style={{ gap: '16rpx', alignItems: 'flex-start' }}>
+        <StateIllustration kind="empty" size="md" />
+        <View className="min-w-0" style={{ flex: 1 }}>
+          <Text className="text-title">{props.title || STATE_COPY.empty.title}</Text>
           <View style={{ height: '8rpx' }} />
-          <Text className="text-subtitle">{props.message}</Text>
-        </>
-      ) : null}
+          <Text className="text-subtitle">{props.message || STATE_COPY.empty.message}</Text>
+        </View>
+      </View>
       {props.actionText && props.onAction ? (
         <>
           <View style={{ height: '12rpx' }} />
@@ -68,9 +75,14 @@ export function EmptyCard(props: {
 export function PermissionCard(props: { title?: string; message?: string; actionText?: string; onAction?: () => void }) {
   return (
     <View className="card card-state">
-      <Text className="text-title">{props.title || '需要登录'}</Text>
-      <View style={{ height: '8rpx' }} />
-      <Text className="text-subtitle">{props.message || '该操作需要登录后才能继续。'}</Text>
+      <View className="row" style={{ gap: '16rpx', alignItems: 'flex-start' }}>
+        <StateIllustration kind="permission" size="md" />
+        <View className="min-w-0" style={{ flex: 1 }}>
+          <Text className="text-title">{props.title || STATE_COPY.permission.needLogin.title}</Text>
+          <View style={{ height: '8rpx' }} />
+          <Text className="text-subtitle">{props.message || STATE_COPY.permission.needLogin.message}</Text>
+        </View>
+      </View>
       {props.actionText && props.onAction ? (
         <>
           <View style={{ height: '12rpx' }} />
@@ -84,14 +96,42 @@ export function PermissionCard(props: { title?: string; message?: string; action
 export function AuditPendingCard(props: { title?: string; message?: string; actionText?: string; onAction?: () => void }) {
   return (
     <View className="card card-state">
-      <Text className="text-title">{props.title || '资料审核中'}</Text>
-      <View style={{ height: '8rpx' }} />
-      <Text className="text-subtitle">{props.message || '审核通过后将解锁发布能力。'}</Text>
+      <View className="row" style={{ gap: '16rpx', alignItems: 'flex-start' }}>
+        <StateIllustration kind="audit" size="md" />
+        <View className="min-w-0" style={{ flex: 1 }}>
+          <Text className="text-title">{props.title || STATE_COPY.permission.auditPending.title}</Text>
+          <View style={{ height: '8rpx' }} />
+          <Text className="text-subtitle">{props.message || STATE_COPY.permission.auditPending.message}</Text>
+        </View>
+      </View>
       {props.actionText && props.onAction ? (
         <>
           <View style={{ height: '12rpx' }} />
           <Button variant="ghost" onClick={props.onAction}>
             {props.actionText}
+          </Button>
+        </>
+      ) : null}
+    </View>
+  );
+}
+
+export function MissingParamCard(props: { title?: string; message?: string; actionText?: string; onAction?: () => void }) {
+  return (
+    <View className="card card-state">
+      <View className="row" style={{ gap: '16rpx', alignItems: 'flex-start' }}>
+        <StateIllustration kind="missing" size="md" />
+        <View className="min-w-0" style={{ flex: 1 }}>
+          <Text className="text-title">{props.title || STATE_COPY.missing.title}</Text>
+          <View style={{ height: '8rpx' }} />
+          <Text className="text-subtitle">{props.message || STATE_COPY.missing.message}</Text>
+        </View>
+      </View>
+      {props.onAction ? (
+        <>
+          <View style={{ height: '12rpx' }} />
+          <Button variant="ghost" onClick={props.onAction}>
+            {props.actionText || STATE_COPY.missing.actionText}
           </Button>
         </>
       ) : null}

@@ -8,8 +8,11 @@ import { API_BASE_URL, STORAGE_KEYS } from '../../../constants';
 import { getToken } from '../../../lib/auth';
 import { apiGet, apiPatch, apiPost } from '../../../lib/api';
 import { ensureApproved, requireLogin } from '../../../lib/guard';
+import { auditStatusLabel, listingStatusLabel, patentTypeLabel } from '../../../lib/labels';
+import { fenToYuan } from '../../../lib/money';
+import { IndustryTagsPicker } from '../../../ui/filters';
 import { PageHeader, Spacer, StickyBar } from '../../../ui/layout';
-import { Button, Input, TextArea, confirm } from '../../../ui/nutui';
+import { Button, Input, TextArea, confirm, toast } from '../../../ui/nutui';
 
 type PatentType = components['schemas']['PatentType'];
 type TradeMode = components['schemas']['TradeMode'];
@@ -23,6 +26,8 @@ type Patent = components['schemas']['Patent'];
 type Listing = components['schemas']['Listing'];
 type ListingCreateRequest = components['schemas']['ListingCreateRequest'];
 type ListingUpdateRequest = components['schemas']['ListingUpdateRequest'];
+type FileObject = components['schemas']['FileObject'];
+type UploadedFile = Pick<FileObject, 'id'> & Partial<Omit<FileObject, 'id'>>;
 
 function splitList(input: string): string[] {
   return (input || '')
@@ -42,32 +47,6 @@ function parseMoneyFen(input: string): number | null {
   const fen = Number(b);
   if (!Number.isFinite(yuan) || !Number.isFinite(fen)) return null;
   return yuan * 100 + fen;
-}
-
-function fenToYuan(fen?: number | null): string {
-  if (fen === undefined || fen === null) return '';
-  return (fen / 100).toFixed(2);
-}
-
-function patentTypeLabel(t: PatentType): string {
-  if (t === 'INVENTION') return '发明';
-  if (t === 'UTILITY_MODEL') return '实用新型';
-  if (t === 'DESIGN') return '外观设计';
-  return String(t);
-}
-
-function auditStatusLabel(t: AuditStatus): string {
-  if (t === 'APPROVED') return '已通过';
-  if (t === 'REJECTED') return '已驳回';
-  return '审核中';
-}
-
-function listingStatusLabel(t: ListingStatus): string {
-  if (t === 'DRAFT') return '草稿';
-  if (t === 'ACTIVE') return '已上架';
-  if (t === 'OFF_SHELF') return '已下架';
-  if (t === 'SOLD') return '已成交';
-  return String(t);
 }
 
 export default function PublishPatentPage() {
@@ -97,12 +76,12 @@ export default function PublishPatentPage() {
   const [depositYuan, setDepositYuan] = useState('');
 
   const [regionCode, setRegionCode] = useState('');
-  const [industryTagsInput, setIndustryTagsInput] = useState('');
+  const [industryTags, setIndustryTags] = useState<string[]>([]);
   const [ipcCodesInput, setIpcCodesInput] = useState('');
   const [locCodesInput, setLocCodesInput] = useState('');
 
   const [uploading, setUploading] = useState(false);
-  const [proofFileIds, setProofFileIds] = useState<string[]>([]);
+  const [proofFiles, setProofFiles] = useState<UploadedFile[]>([]);
 
   const [saving, setSaving] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -110,7 +89,6 @@ export default function PublishPatentPage() {
   const inventorNames = useMemo(() => splitList(inventorNamesInput), [inventorNamesInput]);
   const assigneeNames = useMemo(() => splitList(assigneeNamesInput), [assigneeNamesInput]);
   const applicantNames = useMemo(() => splitList(applicantNamesInput), [applicantNamesInput]);
-  const industryTags = useMemo(() => splitList(industryTagsInput), [industryTagsInput]);
   const ipcCodes = useMemo(() => splitList(ipcCodesInput), [ipcCodesInput]);
   const locCodes = useMemo(() => splitList(locCodesInput), [locCodesInput]);
 
@@ -118,7 +96,7 @@ export default function PublishPatentPage() {
     if (normalizing) return;
     const raw = patentNumberRaw.trim();
     if (!raw) {
-      Taro.showToast({ title: '请输入专利号/申请号', icon: 'none' });
+      toast('请输入专利号/申请号');
       return;
     }
 
@@ -127,10 +105,10 @@ export default function PublishPatentPage() {
       const r = await apiPost<PatentNormalizeResponse>('/patents/normalize', { raw });
       setNormalizeResult(r);
       if (r.patentType && !patentType) setPatentType(r.patentType);
-      Taro.showToast({ title: '解析成功', icon: 'success' });
+      toast('解析成功', { icon: 'success' });
     } catch (e: any) {
       setNormalizeResult(null);
-      Taro.showToast({ title: e?.message || '解析失败', icon: 'none' });
+      toast(e?.message || '解析失败');
     } finally {
       setNormalizing(false);
     }
@@ -159,20 +137,22 @@ export default function PublishPatentPage() {
         },
       });
 
-      const json = JSON.parse(String(uploadRes.data || '{}')) as { id?: string };
+      const json = JSON.parse(String(uploadRes.data || '{}')) as Partial<FileObject>;
       if (!json.id) throw new Error('上传失败');
-      setProofFileIds((prev) => [...prev, json.id as string]);
-      Taro.showToast({ title: '已上传', icon: 'success' });
+      setProofFiles((prev) => [...prev, json as UploadedFile]);
+      toast('已上传', { icon: 'success' });
     } catch (e: any) {
       if (e?.errMsg?.includes('cancel')) return;
-      Taro.showToast({ title: e?.message || '上传失败', icon: 'none' });
+      toast(e?.message || '上传失败');
     } finally {
       setUploading(false);
     }
   }, [uploading]);
 
-  const removeProof = useCallback((id: string) => {
-    setProofFileIds((prev) => prev.filter((x) => x !== id));
+  const removeProof = useCallback(async (f: UploadedFile) => {
+    const ok = await confirm({ title: '移除材料', content: '确定移除该材料？', confirmText: '移除', cancelText: '取消' });
+    if (!ok) return;
+    setProofFiles((prev) => prev.filter((x) => x.id !== f.id));
   }, []);
 
   useEffect(() => {
@@ -197,14 +177,14 @@ export default function PublishPatentPage() {
         setTradeMode((d.tradeMode || '') as TradeMode | '');
         setLicenseMode((d.licenseMode || '') as LicenseMode | '');
         setPriceType((d.priceType || '') as PriceType | '');
-        setPriceYuan(d.priceAmountFen !== undefined && d.priceAmountFen !== null ? fenToYuan(d.priceAmountFen) : '');
-        setDepositYuan(d.depositAmountFen !== undefined && d.depositAmountFen !== null ? fenToYuan(d.depositAmountFen) : '');
+        setPriceYuan(d.priceAmountFen !== undefined && d.priceAmountFen !== null ? fenToYuan(d.priceAmountFen, { empty: '' }) : '');
+        setDepositYuan(d.depositAmountFen !== undefined && d.depositAmountFen !== null ? fenToYuan(d.depositAmountFen, { empty: '' }) : '');
 
         setRegionCode(d.regionCode || '');
-        setIndustryTagsInput((d.industryTags || []).join(', '));
+        setIndustryTags(Array.isArray(d.industryTags) ? d.industryTags : []);
         setIpcCodesInput((d.ipcCodes || []).join(', '));
         setLocCodesInput((d.locCodes || []).join(', '));
-        setProofFileIds((d.proofFileIds || []) as unknown as string[]);
+        setProofFiles(((d.proofFileIds || []) as unknown as string[]).map((id) => ({ id: String(id) })));
 
         if (d.patentId) {
           try {
@@ -216,7 +196,7 @@ export default function PublishPatentPage() {
           }
         }
       } catch (e: any) {
-        Taro.showToast({ title: e?.message || '加载草稿失败', icon: 'none' });
+        toast(e?.message || '加载草稿失败');
       }
     })();
   }, [ensureApproved, initialListingId, listingId]);
@@ -225,40 +205,40 @@ export default function PublishPatentPage() {
     (mode: 'save' | 'submit'): ListingCreateRequest | null => {
       const raw = patentNumberRaw.trim();
       if (!raw) {
-        Taro.showToast({ title: '请输入专利号/申请号', icon: 'none' });
+        toast('请输入专利号/申请号');
         return null;
       }
       if (!patentType) {
-        Taro.showToast({ title: '请选择专利类型', icon: 'none' });
+        toast('请选择专利类型');
         return null;
       }
       if (!tradeMode) {
-        Taro.showToast({ title: '请选择交易方式', icon: 'none' });
+        toast('请选择交易方式');
         return null;
       }
       if (tradeMode === 'LICENSE' && !licenseMode) {
-        Taro.showToast({ title: '请选择许可方式', icon: 'none' });
+        toast('请选择许可方式');
         return null;
       }
       if (!priceType) {
-        Taro.showToast({ title: '请选择价格类型', icon: 'none' });
+        toast('请选择价格类型');
         return null;
       }
 
       const priceAmountFen = priceType === 'FIXED' ? parseMoneyFen(priceYuan) : null;
       if (priceType === 'FIXED' && priceAmountFen === null) {
-        Taro.showToast({ title: '请填写一口价（元）', icon: 'none' });
+        toast('请填写一口价（元）');
         return null;
       }
 
       const depositAmountFen = parseMoneyFen(depositYuan);
       if (depositYuan.trim() && depositAmountFen === null) {
-        Taro.showToast({ title: '订金金额格式不正确', icon: 'none' });
+        toast('订金金额格式不正确');
         return null;
       }
 
-      if (mode === 'submit' && !proofFileIds.length) {
-        Taro.showToast({ title: '请上传权属材料/证明', icon: 'none' });
+      if (mode === 'submit' && !proofFiles.length) {
+        toast('请上传权属材料/证明');
         return null;
       }
 
@@ -279,7 +259,7 @@ export default function PublishPatentPage() {
         ...(industryTags.length ? { industryTags } : {}),
         ...(ipcCodes.length ? { ipcCodes } : {}),
         ...(locCodes.length ? { locCodes } : {}),
-        ...(proofFileIds.length ? { proofFileIds } : {}),
+        ...(proofFiles.length ? { proofFileIds: proofFiles.map((f) => f.id) } : {}),
       };
       return req;
     },
@@ -296,7 +276,7 @@ export default function PublishPatentPage() {
       patentType,
       priceType,
       priceYuan,
-      proofFileIds,
+      proofFiles,
       regionCode,
       summary,
       title,
@@ -308,32 +288,32 @@ export default function PublishPatentPage() {
     (mode: 'save' | 'submit'): ListingUpdateRequest | null => {
       if (!listingId) return null;
       if (!tradeMode) {
-        Taro.showToast({ title: '请选择交易方式', icon: 'none' });
+        toast('请选择交易方式');
         return null;
       }
       if (tradeMode === 'LICENSE' && !licenseMode) {
-        Taro.showToast({ title: '请选择许可方式', icon: 'none' });
+        toast('请选择许可方式');
         return null;
       }
       if (!priceType) {
-        Taro.showToast({ title: '请选择价格类型', icon: 'none' });
+        toast('请选择价格类型');
         return null;
       }
 
       const priceAmountFen = priceType === 'FIXED' ? parseMoneyFen(priceYuan) : null;
       if (priceType === 'FIXED' && priceAmountFen === null) {
-        Taro.showToast({ title: '请填写一口价（元）', icon: 'none' });
+        toast('请填写一口价（元）');
         return null;
       }
 
       const depositAmountFen = parseMoneyFen(depositYuan);
       if (depositYuan.trim() && depositAmountFen === null) {
-        Taro.showToast({ title: '订金金额格式不正确', icon: 'none' });
+        toast('订金金额格式不正确');
         return null;
       }
 
-      if (mode === 'submit' && !proofFileIds.length) {
-        Taro.showToast({ title: '请上传权属材料/证明', icon: 'none' });
+      if (mode === 'submit' && !proofFiles.length) {
+        toast('请上传权属材料/证明');
         return null;
       }
 
@@ -352,7 +332,7 @@ export default function PublishPatentPage() {
         ...(industryTags.length ? { industryTags } : {}),
         ...(ipcCodes.length ? { ipcCodes } : {}),
         ...(locCodes.length ? { locCodes } : {}),
-        ...(proofFileIds.length ? { proofFileIds } : {}),
+        ...(proofFiles.length ? { proofFileIds: proofFiles.map((f) => f.id) } : {}),
       };
       return req;
     },
@@ -368,7 +348,7 @@ export default function PublishPatentPage() {
       locCodes,
       priceType,
       priceYuan,
-      proofFileIds,
+      proofFiles,
       regionCode,
       summary,
       title,
@@ -395,9 +375,9 @@ export default function PublishPatentPage() {
       setAuditStatus(res.auditStatus);
       setListingStatus(res.status);
       setSubmitted(false);
-      Taro.showToast({ title: '草稿已保存', icon: 'success' });
+      toast('草稿已保存', { icon: 'success' });
     } catch (e: any) {
-      Taro.showToast({ title: e?.message || '保存失败', icon: 'none' });
+      toast(e?.message || '保存失败');
     } finally {
       setSaving(false);
     }
@@ -438,9 +418,9 @@ export default function PublishPatentPage() {
       setAuditStatus(res.auditStatus);
       setListingStatus(res.status);
       setSubmitted(true);
-      Taro.showToast({ title: '已提交审核', icon: 'success' });
+      toast('已提交审核', { icon: 'success' });
     } catch (e: any) {
-      Taro.showToast({ title: e?.message || '提交失败', icon: 'none' });
+      toast(e?.message || '提交失败');
     } finally {
       setSubmitting(false);
     }
@@ -448,11 +428,7 @@ export default function PublishPatentPage() {
 
   return (
     <View className="container has-sticky">
-      <PageHeader
-        variant="hero"
-        title="发布：专利交易"
-        subtitle="先填写专利与交易信息，再上传权属材料并提交审核。"
-      />
+      <PageHeader title="发布：专利交易" />
       <Spacer />
 
       {submitted ? (
@@ -461,7 +437,7 @@ export default function PublishPatentPage() {
             <Text className="text-title">已提交审核</Text>
             <View style={{ height: '8rpx' }} />
             <Text className="muted">
-              审核通过后将展示在检索/信息流；合同线下签署后再回到平台支付尾款，变更完成后再放款给卖家。
+              审核通过后将展示在检索/最新专利；合同线下签署后再回到平台支付尾款，变更完成后再放款给卖家。
             </Text>
             <View style={{ height: '10rpx' }} />
             <Text className="muted">草稿 ID：{listingId || '-'}</Text>
@@ -652,11 +628,11 @@ export default function PublishPatentPage() {
         <Text className="text-section">3) 地域与标签（可选）</Text>
         <View style={{ height: '12rpx' }} />
 
-        <Text className="muted">地域编码（省/市，例：110000）</Text>
+        <Text className="muted">所在地区（可选）</Text>
         <View style={{ height: '8rpx' }} />
         <View className="row" style={{ gap: '12rpx', alignItems: 'center' }}>
           <View className="flex-1">
-            <Input value={regionCode} onChange={setRegionCode} placeholder="输入地区编码（可选），也可点右侧选择" clearable />
+            <Input value={regionCode} onChange={setRegionCode} placeholder="省/市/区（可后续完善）" clearable />
           </View>
           <View style={{ width: '180rpx' }}>
             <Button
@@ -679,9 +655,9 @@ export default function PublishPatentPage() {
         </View>
 
         <View style={{ height: '12rpx' }} />
-        <Text className="muted">产业标签（多个用逗号分隔；用于猜你喜欢/地域特色推荐）</Text>
+        <Text className="muted">产业标签（多选；数据源：公共产业标签库）</Text>
         <View style={{ height: '8rpx' }} />
-        <Input value={industryTagsInput} onChange={setIndustryTagsInput} placeholder="例：新能源, 电池" clearable />
+        <IndustryTagsPicker value={industryTags} max={8} onChange={setIndustryTags} />
 
         <View style={{ height: '12rpx' }} />
         <Text className="muted">IPC 分类号（可选，多个用逗号分隔）</Text>
@@ -699,8 +675,8 @@ export default function PublishPatentPage() {
       <View className="card">
         <View className="row-between">
           <Text className="text-section">4) 权属材料（提交审核必填）</Text>
-          <Text className={`tag ${proofFileIds.length ? 'tag-success' : 'tag-danger'}`}>
-            {proofFileIds.length ? `${proofFileIds.length} 份` : '待上传'}
+          <Text className={`tag ${proofFiles.length ? 'tag-success' : 'tag-danger'}`}>
+            {proofFiles.length ? `${proofFiles.length} 份` : '待上传'}
           </Text>
         </View>
         <View style={{ height: '8rpx' }} />
@@ -711,16 +687,41 @@ export default function PublishPatentPage() {
           {uploading ? '上传中…' : '上传材料'}
         </Button>
 
-        {proofFileIds.length ? (
+        {proofFiles.length ? (
           <>
             <View style={{ height: '12rpx' }} />
-            {proofFileIds.map((id) => (
-              <View key={id} className="list-item">
-                <Text className="muted ellipsis" style={{ flex: 1 }}>
-                  {id}
-                </Text>
+            {proofFiles.map((f, idx) => (
+              <View
+                key={f.id}
+                className="list-item"
+                onClick={() => {
+                  if (!f.url) return;
+                  if (String(f.mimeType || '').startsWith('image/')) {
+                    void Taro.previewImage({ urls: [String(f.url)] });
+                    return;
+                  }
+                  void Taro.setClipboardData({ data: String(f.url) });
+                  toast('链接已复制', { icon: 'success' });
+                }}
+              >
+                <View className="min-w-0" style={{ flex: 1 }}>
+                  <Text className="muted">{`材料 ${idx + 1}`}</Text>
+                  <View style={{ height: '4rpx' }} />
+                  <Text className="text-caption clamp-1">
+                    {f.url ? '点击预览/复制链接' : '已上传'} {f.mimeType ? `· ${String(f.mimeType)}` : ''}{' '}
+                    {typeof f.sizeBytes === 'number' ? `· ${(f.sizeBytes / 1024).toFixed(0)}KB` : ''}
+                  </Text>
+                </View>
                 <View style={{ width: '168rpx' }}>
-                  <Button variant="danger" fill="outline" size="small" onClick={() => removeProof(id)}>
+                  <Button
+                    variant="danger"
+                    fill="outline"
+                    size="small"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      void removeProof(f);
+                    }}
+                  >
                     移除
                   </Button>
                 </View>

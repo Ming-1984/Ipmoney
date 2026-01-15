@@ -17,7 +17,8 @@
     "openapi:lint": "redocly lint docs/api/openapi.yaml",
     "openapi:preview": "redocly preview-docs docs/api/openapi.yaml --port 8080",
     "openapi:types": "openapi-typescript docs/api/openapi.yaml -o packages/api-types/index.d.ts",
-    "mock": "pnpm -C apps/mock-api dev"
+    "mock": "pnpm -C apps/mock-api dev",
+    "scan:banned-words": "node scripts/scan-banned-words.mjs"
   },
   "devDependencies": {
     "@redocly/cli": "^1.34.0",

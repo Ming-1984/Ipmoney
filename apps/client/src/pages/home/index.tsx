@@ -1,10 +1,13 @@
-import { View, Text, Image } from '@tarojs/components';
+import { View, Text, Image, Swiper, SwiperItem } from '@tarojs/components';
 import Taro from '@tarojs/taro';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 
 import type { components } from '@ipmoney/api-types';
 
-import logoPng from '../../assets/brand/logo.png';
+import logoGif from '../../assets/brand/logo.gif';
+import promoCertificateGif from '../../assets/home/promo-certificate.gif';
+import promoFreePublishImg from '../../assets/home/promo-free-publish.jpg';
+import { STORAGE_KEYS } from '../../constants';
 import { getToken } from '../../lib/auth';
 import { apiGet, apiPost } from '../../lib/api';
 import { favorite, getFavoriteListingIds, syncFavorites, unfavorite } from '../../lib/favorites';
@@ -14,7 +17,8 @@ import { ListingCard } from '../../ui/ListingCard';
 import { ListingListSkeleton } from '../../ui/ListingSkeleton';
 import { SearchEntry } from '../../ui/SearchEntry';
 import { EmptyCard, ErrorCard } from '../../ui/StateCards';
-import { Surface } from '../../ui/layout';
+import { IconBadge, SectionHeader, Surface } from '../../ui/layout';
+import { toast } from '../../ui/nutui';
 
 type PagedListingSummary = components['schemas']['PagedListingSummary'];
 type ListingSummary = components['schemas']['ListingSummary'];
@@ -26,13 +30,14 @@ export default function HomePage() {
   const [error, setError] = useState<string | null>(null);
   const [data, setData] = useState<PagedListingSummary | null>(null);
   const [favoriteIds, setFavoriteIds] = useState<Set<string>>(() => new Set(getFavoriteListingIds()));
+  const [searchValue, setSearchValue] = useState('');
 
   const load = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
       const d = await apiGet<PagedListingSummary>('/search/listings', {
-        sortBy: 'RECOMMENDED',
+        sortBy: 'NEWEST',
         page: 1,
         pageSize: 3,
       });
@@ -73,7 +78,7 @@ export default function HomePage() {
       );
       Taro.navigateTo({ url: `/pages/messages/chat/index?conversationId=${conv.id}` });
     } catch (e: any) {
-      Taro.showToast({ title: e?.message || '进入咨询失败', icon: 'none' });
+      toast(e?.message || '进入咨询失败');
     }
   }, []);
 
@@ -89,21 +94,32 @@ export default function HomePage() {
             next.delete(listingId);
             return next;
           });
-          Taro.showToast({ title: '已取消收藏', icon: 'success' });
+          toast('已取消收藏', { icon: 'success' });
           return;
         }
         await favorite(listingId);
         setFavoriteIds((prev) => new Set(prev).add(listingId));
-        Taro.showToast({ title: '已收藏', icon: 'success' });
+        toast('已收藏', { icon: 'success' });
       } catch (e: any) {
-        Taro.showToast({ title: e?.message || '操作失败', icon: 'none' });
+        toast(e?.message || '操作失败');
       }
     },
     [favoriteIds],
   );
 
-  const goSearch = useCallback(() => Taro.switchTab({ url: '/pages/search/index' }), []);
-  const goFeeds = useCallback(() => Taro.navigateTo({ url: '/pages/feeds/index' }), []);
+  const goSearch = useCallback((value?: string) => {
+    const keyword = typeof value === 'string' ? value.trim() : '';
+    if (!keyword) {
+      if (typeof value === 'string') {
+        toast('请输入关键词');
+        return;
+      }
+      Taro.switchTab({ url: '/pages/search/index' });
+      return;
+    }
+    Taro.setStorageSync(STORAGE_KEYS.searchPrefill, { q: keyword, tab: 'LISTING' });
+    Taro.switchTab({ url: '/pages/search/index' });
+  }, []);
   const goMap = useCallback(() => Taro.navigateTo({ url: '/pages/patent-map/index' }), []);
   const goInventors = useCallback(() => Taro.navigateTo({ url: '/pages/inventors/index' }), []);
   const goOrganizations = useCallback(() => Taro.navigateTo({ url: '/pages/organizations/index' }), []);
@@ -111,96 +127,101 @@ export default function HomePage() {
   return (
     <View className="container">
       <Surface className="home-brand" padding="md">
-        <View className="row-between">
+        <View className="row" style={{ gap: '18rpx', alignItems: 'flex-start' }}>
+          <View className="home-brand-badge">
+            <Image className="home-brand-logo" src={logoGif} mode="aspectFit" />
+          </View>
           <View className="min-w-0" style={{ flex: 1 }}>
             <Text className="text-display" style={{ color: 'var(--c-primary)' }}>
               Ipmoney
             </Text>
             <View style={{ height: '6rpx' }} />
-            <Text className="text-subtitle break-word">专利变金豆矿，让价值更可见、更可交易</Text>
-          </View>
-          <View className="home-brand-badge">
-            <Image className="home-brand-logo" src={logoPng} mode="aspectFit" />
+            <Text className="text-subtitle break-word">专利点金台</Text>
           </View>
         </View>
         <View style={{ height: '10rpx' }} />
-        <Text className="text-caption">发明 / 实用新型 / 外观设计 · 转让 / 许可</Text>
+        <Text className="text-caption">让价值更可见、更可交易 · 发明/实用新型/外观设计 · 转让/许可</Text>
       </Surface>
 
       <View style={{ height: '20rpx' }} />
 
       <SearchEntry
-        value=""
+        value={searchValue}
         placeholder="搜索专利号 / 标题 / 发明人…"
         actionText="检索"
-        readOnly
-        onPress={goSearch}
-        onSearch={() => goSearch()}
+        onChange={setSearchValue}
+        onSearch={goSearch}
       />
 
-      <View style={{ height: '20rpx' }} />
+      <View style={{ height: '28rpx' }} />
 
-      <Surface padding="none" className="home-grid">
-        {[
-          {
-            key: 'feeds',
-            title: '猜你喜欢',
-            icon: 'feeds' as const,
-            bg: 'linear-gradient(135deg, #FF6A00, #FFC54D)',
-            onClick: goFeeds,
-          },
-          {
-            key: 'inventors',
-            title: '发明人榜',
-            icon: 'inventors' as const,
-            bg: 'linear-gradient(135deg, #7C3AED, #FB7185)',
-            onClick: goInventors,
-          },
-          {
-            key: 'map',
-            title: '专利地图',
-            icon: 'map' as const,
-            bg: 'linear-gradient(135deg, #2563EB, #22D3EE)',
-            onClick: goMap,
-          },
-          {
-            key: 'orgs',
-            title: '机构展示',
-            icon: 'organizations' as const,
-            bg: 'linear-gradient(135deg, #16A34A, #34D399)',
-            onClick: goOrganizations,
-          },
-        ].map((it) => (
-          <View key={it.key} className="home-grid-item" onClick={it.onClick}>
-            <View className="home-grid-icon" style={{ background: it.bg }}>
-              <AppIcon name={it.icon} size={20} color="#fff" />
+      <Surface padding="none" className="home-grid-surface">
+        <View className="home-grid">
+          {[
+            {
+              key: 'sleeping',
+              title: '沉睡专利',
+              icon: 'feeds' as const,
+              badge: 'brand' as const,
+              onClick: goSearch,
+            },
+            {
+              key: 'inventors',
+              title: '发明人榜',
+              icon: 'inventors' as const,
+              badge: 'purple' as const,
+              onClick: goInventors,
+            },
+            {
+              key: 'map',
+              title: '专利地图',
+              icon: 'map' as const,
+              badge: 'blue' as const,
+              onClick: goMap,
+            },
+            {
+              key: 'orgs',
+              title: '机构展示',
+              icon: 'organizations' as const,
+              badge: 'green' as const,
+              onClick: goOrganizations,
+            },
+          ].map((it) => (
+            <View key={it.key} className="home-grid-item" onClick={it.onClick}>
+              <View className="home-grid-item-inner">
+                <IconBadge variant={it.badge} size="md">
+                  <AppIcon name={it.icon} size={30} color="#fff" />
+                </IconBadge>
+                <Text className="home-grid-label">{it.title}</Text>
+              </View>
             </View>
-            <View style={{ height: '6rpx' }} />
-            <Text className="text-card-title">{it.title}</Text>
-          </View>
-        ))}
+          ))}
+        </View>
       </Surface>
+
+      <View style={{ height: '28rpx' }} />
+
+      <Swiper
+        className="home-promo-swiper"
+        indicatorDots
+        autoplay={false}
+        circular
+      >
+        <SwiperItem>
+          <View className="home-promo-strip">
+            <Image className="home-promo-strip-gif" src={promoCertificateGif} mode="aspectFill" />
+          </View>
+        </SwiperItem>
+        <SwiperItem>
+          <View className="home-promo-strip">
+            <Image className="home-promo-strip-gif" src={promoFreePublishImg} mode="aspectFill" />
+          </View>
+        </SwiperItem>
+      </Swiper>
 
       <View style={{ height: '24rpx' }} />
 
-      <View className="home-section">
-        <View className="row-between">
-          <View className="row" style={{ gap: '12rpx' }}>
-            <View className="home-section-accent" />
-            <Text className="text-title">热门推荐</Text>
-          </View>
-          <View className="row" style={{ gap: '12rpx' }}>
-            <Text className="tag tag-gold">实时</Text>
-            <Text className="home-section-more" onClick={goFeeds}>
-              更多 &gt;
-            </Text>
-          </View>
-        </View>
-        <View style={{ height: '8rpx' }} />
-        <Text className="text-caption">
-          推荐分由发布时间、浏览、收藏与咨询等实时计算；收藏/咨询/下单需登录且审核通过。
-        </Text>
-      </View>
+      <SectionHeader title="最新专利" />
 
       <View style={{ height: '12rpx' }} />
 
@@ -228,7 +249,7 @@ export default function HomePage() {
           ))}
         </Surface>
       ) : (
-        <EmptyCard message="暂无推荐内容" actionText="刷新" onAction={load} />
+        <EmptyCard message="暂无最新专利" actionText="刷新" onAction={load} />
       )}
     </View>
   );

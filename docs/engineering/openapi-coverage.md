@@ -4,9 +4,9 @@
 
 ## 1. 汇总
 
-- OpenAPI operations：73
-- 前端已使用（Client）：44
-- 前端已使用（Admin）：34
+- OpenAPI operations：114
+- 前端已使用（Client）：77
+- 前端已使用（Admin）：42
 - fixtures 场景数：7
 
 ## 2. 关键差异（需要人工确认/回填）
@@ -19,10 +19,18 @@
 
 | operationId | method | path | Client | Admin | happy | empty | error | edge | order_conflict | payment_callback_replay | refund_failed |
 |---|---|---|---|---|---|---|---|---|---|---|---|
+| unfavoriteAchievement | DELETE | /achievements/:param/favorites | ✓ |  | ✓ |  |  |  |  |  |  |
 | adminDeleteOrderInvoice | DELETE | /admin/orders/:param/invoice |  | ✓ | ✓ |  | ✓ |  |  |  |  |
+| deleteComment | DELETE | /comments/:param | ✓ |  | ✓ | ✓ | ✓ | ✓ |  |  |  |
+| unfavoriteDemand | DELETE | /demands/:param/favorites | ✓ |  | ✓ |  |  |  |  |  |  |
 | unfavoriteListing | DELETE | /listings/:param/favorites | ✓ |  | ✓ |  |  |  |  |  |  |
+| listMyAchievements | GET | /achievements | ✓ |  | ✓ |  |  |  |  |  |  |
+| getAchievementById | GET | /achievements/:param | ✓ |  | ✓ |  |  |  |  |  |  |
+| adminListAchievementsForAudit | GET | /admin/achievements |  | ✓ | ✓ |  |  |  |  |  |  |
+| adminListComments | GET | /admin/comments |  | ✓ | ✓ | ✓ | ✓ | ✓ |  |  |  |
 | adminGetRecommendationConfig | GET | /admin/config/recommendation |  | ✓ | ✓ | ✓ | ✓ |  |  |  |  |
 | adminGetTradeRulesConfig | GET | /admin/config/trade-rules |  | ✓ | ✓ | ✓ | ✓ |  |  |  |  |
+| adminListDemandsForAudit | GET | /admin/demands |  | ✓ | ✓ |  |  |  |  |  |  |
 | adminListIndustryTags | GET | /admin/industry-tags |  | ✓ | ✓ |  |  |  |  |  |  |
 | adminListListingsForAudit | GET | /admin/listings |  | ✓ | ✓ | ✓ | ✓ |  |  |  |  |
 | adminGetOrderSettlement | GET | /admin/orders/:param/settlement |  | ✓ | ✓ | ✓ | ✓ |  |  |  |  |
@@ -30,11 +38,15 @@
 | adminListRegions | GET | /admin/regions |  | ✓ | ✓ |  |  |  |  |  |  |
 | adminListUserVerifications | GET | /admin/user-verifications |  | ✓ | ✓ | ✓ | ✓ |  |  |  |  |
 | listConversationMessages | GET | /conversations/:param/messages | ✓ |  | ✓ | ✓ | ✓ |  |  |  |  |
+| listMyDemands | GET | /demands | ✓ |  | ✓ |  |  |  |  |  |  |
+| getDemandById | GET | /demands/:param | ✓ |  | ✓ |  |  |  |  |  |  |
 | listMyListings | GET | /listings | ✓ |  | ✓ |  |  |  |  |  |  |
 | getListingById | GET | /listings/:param | ✓ |  | ✓ |  |  |  |  |  |  |
 | getMe | GET | /me | ✓ |  | ✓ |  | ✓ |  |  |  |  |
 | listMyConversations | GET | /me/conversations | ✓ |  | ✓ | ✓ | ✓ |  |  |  |  |
 | listMyFavoriteListings | GET | /me/favorites | ✓ |  | ✓ |  |  |  |  |  |  |
+| listMyFavoriteAchievements | GET | /me/favorites/achievements | ✓ |  | ✓ |  |  |  |  |  |  |
+| listMyFavoriteDemands | GET | /me/favorites/demands | ✓ |  | ✓ |  |  |  |  |  |  |
 | getMyRecommendedListings | GET | /me/recommendations/listings | ✓ |  | ✓ | ✓ | ✓ |  |  |  |  |
 | getMyVerification | GET | /me/verification | ✓ |  | ✓ |  |  |  |  |  |  |
 | listMyOrders | GET | /orders | ✓ | ✓ | ✓ | ✓ | ✓ |  |  |  |  |
@@ -46,16 +58,38 @@
 | getPatentMapSummary | GET | /patent-map/summary | ✓ | ✓ | ✓ | ✓ | ✓ |  |  |  |  |
 | listPatentMapYears | GET | /patent-map/years | ✓ | ✓ | ✓ | ✓ | ✓ |  |  |  |  |
 | getPatentById | GET | /patents/:param | ✓ |  | ✓ |  |  |  |  |  |  |
+| getPublicAchievementById | GET | /public/achievements/:param | ✓ |  | ✓ |  |  |  |  |  |  |
+| listPublicAchievementComments | GET | /public/achievements/:param/comments | ✓ |  | ✓ | ✓ | ✓ |  |  |  |  |
 | getPublicTradeRulesConfig | GET | /public/config/trade-rules | ✓ |  | ✓ |  |  |  |  |  |  |
+| getPublicDemandById | GET | /public/demands/:param | ✓ |  | ✓ |  |  |  |  |  |  |
+| listPublicDemandComments | GET | /public/demands/:param/comments | ✓ |  | ✓ | ✓ | ✓ |  |  |  |  |
+| listPublicIndustryTags | GET | /public/industry-tags | ✓ |  | ✓ |  |  |  |  |  |  |
 | getPublicListingById | GET | /public/listings/:param | ✓ |  | ✓ |  |  | ✓ |  |  |  |
+| listPublicListingComments | GET | /public/listings/:param/comments | ✓ |  | ✓ | ✓ | ✓ | ✓ |  |  |  |
 | listPublicOrganizations | GET | /public/organizations | ✓ |  | ✓ | ✓ | ✓ |  |  |  |  |
 | getPublicOrganizationById | GET | /public/organizations/:param | ✓ |  | ✓ |  |  |  |  |  |  |
 | listRegions | GET | /regions | ✓ |  | ✓ |  |  |  |  |  |  |
+| searchAchievements | GET | /search/achievements | ✓ |  | ✓ |  |  |  |  |  |  |
+| searchDemands | GET | /search/demands | ✓ |  | ✓ |  |  |  |  |  |  |
 | searchInventorRankings | GET | /search/inventors | ✓ |  | ✓ | ✓ | ✓ |  |  |  |  |
 | searchListings | GET | /search/listings | ✓ |  | ✓ | ✓ | ✓ | ✓ |  |  |  |
+| updateAchievement | PATCH | /achievements/:param | ✓ |  | ✓ |  |  |  |  |  |  |
+| adminUpdateComment | PATCH | /admin/comments/:param |  | ✓ | ✓ | ✓ | ✓ | ✓ |  |  |  |
 | adminUpdateRegion | PATCH | /admin/regions/:param |  | ✓ | ✓ |  |  |  |  |  |  |
+| updateComment | PATCH | /comments/:param | ✓ |  | ✓ | ✓ | ✓ | ✓ |  |  |  |
+| updateDemand | PATCH | /demands/:param | ✓ |  | ✓ |  |  |  |  |  |  |
 | updateListing | PATCH | /listings/:param | ✓ |  | ✓ |  |  |  |  |  |  |
 | updateMe | PATCH | /me | ✓ |  | ✓ |  |  |  |  |  |  |
+| createAchievement | POST | /achievements | ✓ |  | ✓ |  |  |  |  |  |  |
+| createAchievementComment | POST | /achievements/:param/comments | ✓ |  | ✓ | ✓ | ✓ |  |  |  |  |
+| upsertAchievementConversation | POST | /achievements/:param/conversations | ✓ |  | ✓ |  |  |  |  |  |  |
+| favoriteAchievement | POST | /achievements/:param/favorites | ✓ |  | ✓ |  |  |  |  |  |  |
+| offShelfAchievement | POST | /achievements/:param/off-shelf | ✓ |  | ✓ |  |  |  |  |  |  |
+| submitAchievement | POST | /achievements/:param/submit | ✓ |  | ✓ |  |  |  |  |  |  |
+| adminApproveAchievement | POST | /admin/achievements/:param/approve |  | ✓ | ✓ |  |  |  |  |  |  |
+| adminRejectAchievement | POST | /admin/achievements/:param/reject |  | ✓ | ✓ |  |  |  |  |  |  |
+| adminApproveDemand | POST | /admin/demands/:param/approve |  | ✓ | ✓ |  |  |  |  |  |  |
+| adminRejectDemand | POST | /admin/demands/:param/reject |  | ✓ | ✓ |  |  |  |  |  |  |
 | adminCreateIndustryTag | POST | /admin/industry-tags |  | ✓ | ✓ |  |  |  |  |  |  |
 | adminApproveListing | POST | /admin/listings/:param/approve |  | ✓ | ✓ |  |  |  |  |  |  |
 | adminRejectListing | POST | /admin/listings/:param/reject |  | ✓ | ✓ |  |  |  |  |  |  |
@@ -73,8 +107,15 @@
 | authWechatMpLogin | POST | /auth/wechat/mp-login | ✓ |  | ✓ |  |  |  |  |  |  |
 | sendConversationMessage | POST | /conversations/:param/messages | ✓ |  | ✓ |  | ✓ |  |  |  |  |
 | markConversationRead | POST | /conversations/:param/read | ✓ |  | ✓ |  | ✓ |  |  |  |  |
+| createDemand | POST | /demands | ✓ |  | ✓ |  |  |  |  |  |  |
+| createDemandComment | POST | /demands/:param/comments | ✓ |  | ✓ | ✓ | ✓ |  |  |  |  |
+| upsertDemandConversation | POST | /demands/:param/conversations | ✓ |  | ✓ |  |  |  |  |  |  |
+| favoriteDemand | POST | /demands/:param/favorites | ✓ |  | ✓ |  |  |  |  |  |  |
+| offShelfDemand | POST | /demands/:param/off-shelf | ✓ |  | ✓ |  |  |  |  |  |  |
+| submitDemand | POST | /demands/:param/submit | ✓ |  | ✓ |  |  |  |  |  |  |
 | uploadFile | POST | /files | ✓ | ✓ | ✓ |  | ✓ |  |  |  |  |
 | createListing | POST | /listings | ✓ |  | ✓ |  |  |  |  |  |  |
+| createListingComment | POST | /listings/:param/comments | ✓ |  | ✓ | ✓ | ✓ | ✓ |  |  |  |
 | createListingConsultation | POST | /listings/:param/consultations | ✓ |  | ✓ |  |  |  |  |  |  |
 | upsertListingConversation | POST | /listings/:param/conversations | ✓ |  | ✓ |  | ✓ |  |  |  |  |
 | favoriteListing | POST | /listings/:param/favorites | ✓ |  | ✓ |  |  |  |  |  |  |

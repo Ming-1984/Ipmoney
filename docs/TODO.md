@@ -13,7 +13,7 @@
   - [x] 用户端（小程序 + H5）：页面骨架 + 交互/状态机（loading/empty/error/权限/审核中/不可操作原因提示）完成
   - [x] 后台（Admin Web）：关键页面骨架完成（认证审核/上架审核/订单/退款/放款/发票/地图 CMS）
   - [x] OpenAPI Mock 可运行：可切换“正常/失败/重放/无数据”等场景；fixtures 可复用做截图与演示
-  - [x] 视觉规范落地：主色橙色（寓意成功），「专利变金豆矿」视觉点缀（见 `docs/engineering/design-system.md`）
+  - [x] 视觉规范落地：主色橙色（寓意成功），「专利点金台」视觉点缀（见 `docs/engineering/design-system.md`）
 - [ ] **M1：可联调 API Mock / 服务骨架**
 - [ ] **M2：P0 主链路可跑通（订金→合同确认→尾款→变更完成→结算放款）**
 - [ ] **M3：上线前合规/风控/对账齐套**
@@ -143,6 +143,7 @@
 - [x] 本地一键启动：`docker-compose`（Postgres + Redis + MinIO）+ `apps/api`（热更新，`pnpm dev:api`）
 - [x] OpenAPI 驱动：生成类型（`pnpm openapi:types` → `packages/api-types/index.d.ts`，与 `docs/api/openapi.yaml` 对齐）
 - [x] Mock 驱动并行开发：基于 `docs/api/openapi.yaml` 启动 mock（Prism/fixtures），并提供“场景切换”（退款失败/回调重放/无数据等）
+- [x] fixtures UUID quality: use valid UUIDs in fixtures/demo data (keep strict route param validation); run `node scripts/fixture-uuids.mjs --check|--write`
 - [x] CI（可选）：lint + typecheck + OpenAPI lint（见 `.github/workflows/ci.yml`）
 
 ### 7.2 数据库与迁移（M1）
@@ -158,6 +159,17 @@
 ### 7.3 登录鉴权与用户（M1）
 
 - [ ] 微信小程序登录：`/auth/wechat/mp-login`（code→openid/session→token）
+  - [ ] P0（最快可跑）：未配置 `WX_MP_APPID/WX_MP_SECRET` 时允许 demo 模式（仅本地/演示，返回 demo user + `demo-token`）
+  - [ ] P1（真实接入）：配置 `WX_MP_APPID/WX_MP_SECRET` 后，服务端调用微信 `code2Session`（`/sns/jscode2session`）换取 `openid/session_key`，按 `openid` 映射用户并签发平台 token
+- [ ] 用户资料（头像/昵称）（P0）：小程序端“用户点击触发”采集并落库
+  - [ ] 头像：`chooseAvatar` → `POST /files`（`purpose=AVATAR`）→ `PATCH /me { avatarUrl }`
+  - [ ] 昵称：`<input type="nickname">` → `PATCH /me { nickname }`
+  - [ ] 后端/DB：`User.avatarUrl` 落库；`PATCH /me` 不再忽略 `avatarUrl`；`GET /me` 返回 `avatarUrl`
+  - [ ] 前端 UI：我的页头部用 NutUI `Avatar/Cell/Tag` 统一展示（头像/昵称/认证状态）
+- [ ] （可选，P1）手机号绑定（微信能力）
+  - [ ] 小程序：`<button open-type="getPhoneNumber">` 拿到 `code`（动态令牌）
+  - [ ] 服务端：调用 `phonenumber.getPhoneNumber` 换取手机号并绑定到用户
+  - [ ] 依赖决策：维持 `User.phone` 必填（则绑定手机号必须在微信登录链路早期完成）或改为可空（先 openid 建用户，后续补手机号）
 - [ ] H5 登录（电脑端）：短信验证码登录 `/auth/sms/send` + `/auth/sms/verify`
 - [ ] JWT + RBAC（后台角色：运营/客服/财务/管理员；前台用户：买家/卖家）
 - [ ] 身份/主体认证：首次登录必须选择身份（个人/企业/科研院校/政府/协会/技术经理人）
@@ -188,7 +200,7 @@
 - [ ] 事件采集：浏览/收藏/咨询（去重窗口：同用户/设备 24h 记 1 次）
 - [ ] 推荐公式与权重：后台可配置（`/admin/config/recommendation`），变更即时生效
 - [ ] 区域特色置顶：后台标记 listing 为省/市级特色（`/admin/listings/{listingId}/featured`）
-- [ ] “猜你喜欢”：`/me/recommendations/listings`（登录用户）+ 游客默认用 `/search/listings?sortBy=RECOMMENDED`
+- [ ] “沉睡专利（入口）”：`/me/recommendations/listings`（登录用户）+ 游客默认用 `/search/listings?sortBy=RECOMMENDED`
 
 ### 7.8 专利地图（M2）
 
@@ -209,6 +221,8 @@
 - [ ] 订金支付：创建订单→生成支付意图→微信支付回调验签解密→入账→状态推进（见 `docs/architecture/sequence-deposit-payment.mmd`）
 - [ ] 合同签署确认：后台里程碑确认写入成交价并解锁尾款（对齐 PRD 与 OpenAPI）
 - [ ] 尾款支付：仅小程序发起；电脑端 H5 展示“去小程序支付”（二维码/链接）
+- [x] 前端已落实：H5 不发起支付，微信内 openTag 跳小程序；微信外/桌面二维码+复制链接（订金/尾款页）
+- [x] 前端已落实：订单详情 WAIT_FINAL_PAYMENT 展示“支付尾款”入口
 - [ ] 支付幂等：Idempotency-Key + 回调重放防护；支付/退款对账表（最小）
 
 ### 7.11 退款与争议（M2/M3）
@@ -294,7 +308,7 @@
     - [x] 工程骨架 + TabBar + 基础页面（Home/Search/Publish/Messages/Me/Login/Onboarding）
     - [x] 接入 Mock（`apps/mock-api`：fixtures + Prism fallback）并对齐字段/枚举（Search/List/Detail 已接入）
     - [x] 订金支付演示链路（创建订单 → 创建支付意图 → 成功页）
-    - [x] 全量状态机（loading/empty/error/permission/audit）覆盖所有页面（含信息流/地图/发明人榜/机构展示/会话）
+    - [x] 全量状态机（loading/empty/error/permission/audit）覆盖所有页面（含搜索/地图/发明人榜/机构展示/会话）
   - [x] 后台（React/AntD）：
     - [x] 工程骨架 + Layout + 菜单页骨架
     - [x] 接入 Mock + 表格/详情页骨架（审核/订单/退款/放款/发票/配置/地图）
@@ -306,7 +320,7 @@
       - [x] 放款/结算（`/admin/orders/*/settlement` + `/payouts/manual`）+ 上传凭证（演示）
       - [x] 发票管理（`/admin/orders/*/invoice`）+ 上传/删除（演示）
       - [x] 专利地图 CMS（`/admin/patent-map/*`）+ 录入/更新（演示）
-  - [x] 视觉规范落地：橙色主题 +「专利变金豆矿」点缀（`docs/engineering/design-system.md`）
+  - [x] 视觉规范落地：橙色主题 +「专利点金台」点缀（`docs/engineering/design-system.md`）
   - [x] 演示脚本：固定 fixtures + 一键启动（Mock + 前端）+ 截图/录屏清单（`scripts/demo.ps1` + `docs/demo/runbook.md`）
   - [x] 修复 Turbo `envMode=strict` 导致动态端口不生效（`turbo.json` 的 `globalPassThroughEnv`）
   - [x] 用户端默认路由兼容误访问 `/#/pages`（自动跳转到 `/#/pages/home/index`）
@@ -327,18 +341,18 @@
 
 ### 11.1 视觉资源（先定稿再铺开）
 
-- [x] 确认品牌 Logo：仓库根目录 `Ipmoney_logo.png`
+- [x] 确认品牌 Logo（动图）：`apps/client/src/assets/brand/logo.gif`
 - [x] 落地 Logo 到多端资源目录：
-  - [x] 用户端（Taro）：`apps/client/src/assets/brand/logo.png`
-  - [x] 后台（Admin Web）：`apps/admin-web/src/assets/brand/logo.png`
+  - [x] 用户端（Taro）：`apps/client/src/assets/brand/logo.gif`
+  - [x] 后台（Admin Web）：`apps/admin-web/src/assets/brand/logo.gif`
 - [x] TabBar 图标（灰/橙两套，5 组共 10 张 PNG，小程序可用）：
   - [x] `home/search/publish/messages/me` + `*-active`
   - [x] 路径：`apps/client/src/assets/tabbar/*`
 
 ### 11.2 用户端（小程序 + H5 同构）UI 优化（优先展示给甲方）
 
-- [x] 首页（Home）：品牌头图（Logo +「专利变金豆矿」）+ 关键入口卡片更“像产品”
-- [x] 信息流（Feeds）：卡片密度/留白/标签体系统一；支持推荐/最新/热度切换
+- [x] 首页（Home）：品牌头图（Logo +「专利点金台」）+ 关键入口卡片更“像产品”
+- [x] 沉睡专利入口（跳转搜索）：入口文案与跳转策略统一（跳转搜索）
 - [x] 检索（Search）：筛选区（专利类型/交易方式/价格类型/地域）+ 排序（推荐/热度/发明人影响力）
 - [x] 列表卡片（ListingCard）：价格/订金/标签/按钮样式统一；空态/错误态更友好
 - [x] 详情页（Listing Detail）：首屏信息结构（标题/类型/价格/订金/卖家/权属材料）+ CTA（咨询/下单）
@@ -399,20 +413,26 @@
   - [x] 轻量图标体系：优先用 NutUI Icons（避免新增大量 png）
   - [x] 运行时错误兜底：全局 ErrorBoundary（页面渲染异常可直接显示错误信息便于排查）
 
+
+- [x] 12.3.1.1 顶部栏品牌化补齐：全站统一顶部栏组件（左侧 Logo；非 Tab `Back + Logo`；标题/副标题排布一致）
 - [x] 12.3.2 首页（对外第一屏，优先“像产品”）
   - [x] 搜索入口：用组件库 SearchBar/输入交互统一（回车/清空）
-  - [x] 快捷入口：栅格卡片统一（信息流/检索/地图/发明人榜/机构展示）
+  - [x] 快捷入口：栅格卡片统一（沉睡专利/检索/地图/发明人榜/机构展示）
   - [x] 推荐区：展示“推荐分/热度/地域特色”标签；按钮与卡片密度统一
   - [x] 游客态文案：明确“可看/需登录且审核通过”（收藏/咨询/下单/支付）
 
-- [x] 12.3.3 信息流（猜你喜欢）
+
+- [x] 12.3.2.1 首页快捷入口按钮优化：沉睡专利/发明人榜/专利地图/机构展示（排版 + 尺寸；优先 NutUI `Grid` 收口）
+- [x] 12.3.2.2 Home 副标题：`专利变金豆矿` → `专利点金台`
+- [x] 12.3.3 沉睡专利入口（跳转搜索）
   - [x] Segmented：推荐/最新/热度（组件库）
   - [x] 卡片：地域特色置顶、行业标签、推荐分/热度表达更清晰
   - [x] 刷新：刷新按钮 + 首屏 Skeleton（P0）（下拉刷新 P1）
 
 - [x] 12.3.4 检索（核心页面）
   - [x] 搜索条：SearchBar + 回车搜索 + 清空
-  - [x] 筛选：Popup（P0：类型/交易/价格；P1：地域/标签/IPC/LOC/法律状态）
+  - [x] 筛选：Popup（基础：类型/交易/价格）
+- [x] Filters: finish "more filters" per ui-v2-filter-mapping.md (LISTING: deposit/ipc/loc/legalStatus + public industry tags; DEMAND/ACHIEVEMENT: public industry tags).
   - [x] 排序：推荐/热度/最新/发明人影响力（组件库 Segmented）
   - [x] 结果列表：统一 ListingCard（价格/订金/标签/按钮）；空态引导更友好
 
@@ -545,6 +565,7 @@
   - [x] `pnpm openapi:lint` 通过
   - [x] `pnpm -C apps/client typecheck && pnpm -C apps/client build:h5 && pnpm -C apps/client build:weapp` 通过
   - [x] `pnpm -C apps/admin-web typecheck && pnpm -C apps/admin-web build` 通过
+  - [x] Demand/Achievement module plan: see `docs/todo-demand-achievement.md`
 
 ### 14.1 接口 × 页面“未对齐项”收口（按演示/验收优先级）
 
@@ -560,3 +581,21 @@
 - [x] 后台地区/行业标签管理（运营配置）：对接 `/admin/regions`、`/admin/industry-tags`、`PUT /admin/regions/{regionCode}/industry-tags`（确认 P0 需要与否；不做则在矩阵标 P1）
 - [x] 后台专利地图 Excel 导入：对接 `POST /admin/patent-map/import`（确认 P0 需要与否；不做则在矩阵标 P1，并从文档/页面移除“已实现”的描述）
 - [x] 收口校验：重新运行 `node scripts/audit-coverage.mjs`，同步更新 `docs/engineering/openapi-coverage.md` 与 `docs/engineering/traceability-matrix.md`
+
+## UI v2 polish (client)
+
+- [x] Messages: PullToRefresh + conversation cell polish
+- [x] Chat: ScrollView + message types + history pagination + send retry
+- [x] Details: Patent/Demand/Achievement consistent meta + media section reuse
+- [x] Details v2.2: 留言区（公开列表 + 互动回复 + 编辑/删除）- Listing/Demand/Achievement 详情页底部
+- [x] Admin v2.2: 留言管理（列表/搜索/筛选 + 隐藏/恢复/删除）
+- [x] Details v2.2: Demand/Achievement 顶部信息区重排（Tag/Space/Avatar；行业/地区/时间/热度更可扫读）
+- [x] Messages v2.1: conversation list UI refresh (NutUI Avatar/Badge/Tag/Cell; WeChat-like density)
+- [x] Details v2.1: VIDEO playback polish (fixtures URL not example.com + MediaList Video onError fallback)
+- [x] Listing Detail v2.1: top “category/tags” section refactor (Tag/Space; avoid MetaPills overload)
+- [x] Listing Detail v2.3: seller + stats area uses NutUI Avatar/Tag/Space (avoid MetaPills mixing)
+- [x] Patent Detail v2.3: hero uses NutUI Tag/Space + copy applicationNo
+- [x] Org Detail v2.4: hero uses NutUI Avatar/Tag/Space (remove MetaPills)
+- [x] Patent Map Region Detail v2.4: hero uses NutUI Tag/Space (remove MetaPills)
+- [x] Trade Rules v2.4: metrics use NutUI Tag/Space (remove MetaPills)
+- [x] Payment Success v2.4: order summary uses NutUI Tag/Space (remove MetaPills)

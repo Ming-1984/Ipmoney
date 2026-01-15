@@ -5,37 +5,11 @@ import type { components } from '@ipmoney/api-types';
 
 import { Heart, HeartFill } from '@nutui/icons-react-taro';
 
+import { featuredLevelLabel, patentTypeLabel, priceTypeLabel, tradeModeLabel } from '../lib/labels';
+import { fenToYuan } from '../lib/money';
 import { Button } from './nutui';
 
 type ListingSummary = components['schemas']['ListingSummary'];
-
-function fenToYuan(fen?: number): string {
-  if (fen === undefined || fen === null) return '-';
-  return (fen / 100).toFixed(2);
-}
-
-function patentTypeLabel(t?: ListingSummary['patentType']): string {
-  if (!t) return '-';
-  if (t === 'INVENTION') return '发明';
-  if (t === 'UTILITY_MODEL') return '实用新型';
-  if (t === 'DESIGN') return '外观设计';
-  return String(t);
-}
-
-function tradeModeLabel(t: ListingSummary['tradeMode']): string {
-  return t === 'ASSIGNMENT' ? '转让' : '许可';
-}
-
-function priceTypeLabel(t: ListingSummary['priceType']): string {
-  return t === 'NEGOTIABLE' ? '面议' : '一口价';
-}
-
-function featuredLabel(level?: ListingSummary['featuredLevel']): string | null {
-  if (!level || level === 'NONE') return null;
-  if (level === 'PROVINCE') return '省级特色';
-  if (level === 'CITY') return '市级特色';
-  return String(level);
-}
 
 export function ListingCard(props: {
   item: ListingSummary;
@@ -45,7 +19,7 @@ export function ListingCard(props: {
   favorited?: boolean;
 }) {
   const it = props.item;
-  const featured = featuredLabel(it.featuredLevel);
+  const featured = it.featuredLevel && it.featuredLevel !== 'NONE' ? featuredLevelLabel(it.featuredLevel) : null;
   const title = it.title || '未命名专利';
   const favorited = Boolean(props.favorited);
   const industry = it.industryTags?.length ? it.industryTags.slice(0, 2).join(' / ') : '';

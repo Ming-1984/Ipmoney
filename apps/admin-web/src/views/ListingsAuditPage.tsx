@@ -2,8 +2,11 @@ import { Button, Card, Input, InputNumber, Modal, Select, Space, Table, Tag, Typ
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 
 import { apiGet, apiPost, apiPut } from '../lib/api';
+import { fenToYuan, formatTimeSmart } from '../lib/format';
+import { auditStatusLabel, featuredLevelLabel, listingStatusLabel, tradeModeLabel } from '../lib/labels';
 import { AuditHint, RequestErrorAlert } from '../ui/RequestState';
-import { confirmAction } from '../ui/confirm';
+import { confirmActionWithReason } from '../ui/confirm';
+import { modalBodyScrollStyle } from '../ui/modalStyles';
 
 type AuditStatus = 'PENDING' | 'APPROVED' | 'REJECTED';
 type ListingStatus = 'DRAFT' | 'ACTIVE' | 'OFF_SHELF' | 'SOLD';
@@ -32,22 +35,27 @@ type PagedListing = {
   page: { page: number; pageSize: number; total: number };
 };
 
-function fenToYuan(fen?: number): string {
-  if (fen === undefined || fen === null) return '-';
-  return (fen / 100).toFixed(2);
+function auditTag(status: AuditStatus) {
+  if (status === 'APPROVED') return <Tag color="green">{auditStatusLabel(status)}</Tag>;
+  if (status === 'REJECTED') return <Tag color="red">{auditStatusLabel(status)}</Tag>;
+  return <Tag color="orange">{auditStatusLabel(status)}</Tag>;
 }
 
-function featuredLevelLabel(level?: FeaturedLevel): string {
-  if (!level || level === 'NONE') return '无';
-  if (level === 'PROVINCE') return '省级';
-  if (level === 'CITY') return '市级';
-  return String(level);
+function listingTag(status: ListingStatus) {
+  if (status === 'ACTIVE') return <Tag color="green">{listingStatusLabel(status)}</Tag>;
+  if (status === 'OFF_SHELF') return <Tag>{listingStatusLabel(status)}</Tag>;
+  if (status === 'SOLD') return <Tag color="blue">{listingStatusLabel(status)}</Tag>;
+  return <Tag>{listingStatusLabel(status)}</Tag>;
 }
 
 export function ListingsAuditPage() {
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<unknown | null>(null);
   const [data, setData] = useState<PagedListing | null>(null);
+  const [q, setQ] = useState('');
+  const [regionCode, setRegionCode] = useState('');
+  const [auditStatus, setAuditStatus] = useState<AuditStatus | ''>('PENDING');
+  const [status, setStatus] = useState<ListingStatus | ''>('');
   const [featureModalOpen, setFeatureModalOpen] = useState(false);
   const [featureSaving, setFeatureSaving] = useState(false);
   const [featureTarget, setFeatureTarget] = useState<Listing | null>(null);
@@ -61,20 +69,22 @@ export function ListingsAuditPage() {
     setError(null);
     try {
       const d = await apiGet<PagedListing>('/admin/listings', {
-        auditStatus: 'PENDING',
+        q: q.trim() || undefined,
+        regionCode: regionCode.trim() || undefined,
+        auditStatus: auditStatus || undefined,
+        status: status || undefined,
         page: 1,
         pageSize: 10,
       });
       setData(d);
     } catch (e: any) {
-      const msg = e?.message || '加载失败';
-      setError(msg);
-      message.error(msg);
+      setError(e);
+      message.error(e?.message || '加载失败');
       setData(null);
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [auditStatus, q, regionCode, status]);
 
   useEffect(() => {
     void load();
@@ -87,14 +97,60 @@ export function ListingsAuditPage() {
       <Space direction="vertical" size={16} style={{ width: '100%' }}>
         <div>
           <Typography.Title level={3} style={{ marginTop: 0 }}>
-            上架审核（演示）
+            上架审核
           </Typography.Title>
           <Typography.Paragraph type="secondary" style={{ marginBottom: 0 }}>
-            演示审核通过/驳回与留痕（原因输入）。
+            审核通过后对外展示；驳回需填写原因并留痕。
           </Typography.Paragraph>
         </div>
 
         {error ? <RequestErrorAlert error={error} onRetry={load} /> : <AuditHint text="审核通过后才会在小程序端对外展示；驳回请填写原因并留痕。" />}
+
+        <Space wrap size={12}>
+          <Input
+            value={q}
+            style={{ width: 220 }}
+            placeholder="关键词（标题/申请号/发明人等）"
+            allowClear
+            onChange={(e) => setQ(e.target.value)}
+            onPressEnter={() => void load()}
+          />
+          <Input
+            value={regionCode}
+            style={{ width: 180 }}
+            placeholder="地区编码（6 位 adcode）"
+            allowClear
+            inputMode="numeric"
+            onChange={(e) => setRegionCode(e.target.value)}
+            onPressEnter={() => void load()}
+          />
+          <Select
+            value={auditStatus}
+            style={{ width: 160 }}
+            placeholder="审核状态"
+            onChange={(v) => setAuditStatus((v as AuditStatus) || '')}
+            options={[
+              { value: '', label: '全部审核状态' },
+              { value: 'PENDING', label: '待审核' },
+              { value: 'APPROVED', label: '已通过' },
+              { value: 'REJECTED', label: '已驳回' },
+            ]}
+          />
+          <Select
+            value={status}
+            style={{ width: 160 }}
+            placeholder="上架状态"
+            onChange={(v) => setStatus((v as ListingStatus) || '')}
+            options={[
+              { value: '', label: '全部上架状态' },
+              { value: 'DRAFT', label: '草稿' },
+              { value: 'ACTIVE', label: '上架中' },
+              { value: 'OFF_SHELF', label: '已下架' },
+              { value: 'SOLD', label: '已售出' },
+            ]}
+          />
+          <Button onClick={load}>查询</Button>
+        </Space>
 
         <Table<Listing>
           rowKey="id"
@@ -103,7 +159,7 @@ export function ListingsAuditPage() {
           pagination={false}
           columns={[
             { title: '标题', dataIndex: 'title' },
-            { title: '类型', dataIndex: 'tradeMode' },
+            { title: '类型', dataIndex: 'tradeMode', render: (v) => tradeModeLabel(v) },
             {
               title: '价格',
               key: 'price',
@@ -128,9 +184,9 @@ export function ListingsAuditPage() {
                 );
               },
             },
-            { title: '状态', dataIndex: 'status' },
-            { title: '审核状态', dataIndex: 'auditStatus' },
-            { title: '创建时间', dataIndex: 'createdAt' },
+            { title: '状态', dataIndex: 'status', render: (_, r) => listingTag(r.status) },
+            { title: '审核状态', dataIndex: 'auditStatus', render: (_, r) => auditTag(r.auditStatus) },
+            { title: '创建时间', dataIndex: 'createdAt', render: (v) => formatTimeSmart(v) },
             {
               title: '操作',
               key: 'actions',
@@ -142,10 +198,13 @@ export function ListingsAuditPage() {
                       type="primary"
                       disabled={disabled}
                       onClick={async () => {
-                        const ok = await confirmAction({
+                        const { ok } = await confirmActionWithReason({
                           title: '确认通过该上架？',
                           content: '通过后将对外展示；该操作应记录审计留痕。',
                           okText: '通过',
+                          defaultReason: '通过',
+                          reasonLabel: '审批备注（建议填写）',
+                          reasonHint: '建议写明核验点：权属材料、价格/订金合理性、是否重复上架等。',
                         });
                         if (!ok) return;
                         try {
@@ -163,29 +222,18 @@ export function ListingsAuditPage() {
                       danger
                       disabled={disabled}
                       onClick={async () => {
-                        const reason = await new Promise<string | null>((resolve) => {
-                          let value = '';
-                          Modal.confirm({
-                            title: '驳回原因',
-                            content: (
-                              <textarea
-                                style={{ width: '100%', minHeight: 96 }}
-                                placeholder="请输入驳回原因（演示）"
-                                onChange={(e) => {
-                                  value = e.target.value;
-                                }}
-                              />
-                            ),
-                            okText: '驳回',
-                            cancelText: '取消',
-                            okButtonProps: { danger: true },
-                            onOk: () => resolve(value || '不符合规范（演示）'),
-                            onCancel: () => resolve(null),
-                          });
+                        const { ok, reason } = await confirmActionWithReason({
+                          title: '确认驳回该上架？',
+                          content: '驳回原因会对卖家可见，请尽量写清楚需要补充/修改的内容。',
+                          okText: '驳回',
+                          danger: true,
+                          reasonLabel: '驳回原因',
+                          reasonPlaceholder: '例：权属证明不完整；申请号/权利人信息缺失；价格明显异常；涉嫌重复/冒用等。',
+                          reasonRequired: true,
                         });
-                        if (!reason) return;
+                        if (!ok) return;
                         try {
-                          await apiPost(`/admin/listings/${r.id}/reject`, { reason });
+                          await apiPost(`/admin/listings/${r.id}/reject`, { reason: reason || '不符合规范' });
                           message.success('已驳回');
                           void load();
                         } catch (e: any) {
@@ -224,6 +272,7 @@ export function ListingsAuditPage() {
         okText="保存"
         cancelText="取消"
         confirmLoading={featureSaving}
+        bodyStyle={modalBodyScrollStyle}
         onCancel={() => setFeatureModalOpen(false)}
         onOk={async () => {
           if (!featureTarget) return;

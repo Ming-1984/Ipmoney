@@ -2,6 +2,8 @@
 
 > 目标：把“页面现状”映射到 `UI Spec v2` 的模板/状态/Token/文案规范上，输出可执行的改造清单（P0/P1/P2）。  
 > 本文只做规划，不改代码。
+>
+> 补充：筛选/排序/分类的参数对齐表见 `docs/engineering/ui-v2-filter-mapping.md`（OpenAPI ↔ UI 逐项对齐）。
 
 ## 0. 读法
 
@@ -52,9 +54,16 @@
 - 背景：Taro H5 曾出现 overlay 影响 `.taro_page` 渲染（白屏/内容隐藏）
 - 规则：新增弹层/portal 必须通过“路由 DOM 结构”验收用例
 
+
+### UI-STD-P0-007 顶部栏品牌化（Client）
+
+- 目标：WeApp 使用原生导航栏（避免双顶栏/双返回且符合平台规范）；H5 顶栏统一为 `Back + Title (+ Right)`，首页使用品牌区。
+- 规则：WeApp 默认 `navigationStyle: default`，页面内不渲染自定义顶栏；如确需自定义右侧动作，仅对该页启用 `navigationStyle: custom` 并补齐 safe-area/返回策略验收。
+- 验收：微信开发者工具逐页走查（含深链/无历史栈场景），无“两个顶部栏/两个返回按钮”；标题不挤压、不断行异常；返回行为一致且可回到首页/上一级。
+
 ## 2. Client 页面清单（apps/client）
 
-> 页面来源：`apps/client/src/app.config.ts` 的 pages 数组（共 31 个）。
+> 页面来源：`apps/client/src/app.config.ts` 的 pages 数组（共 34 个）。
 
 ### 2.1 页面总览表（模板 + 访问策略）
 
@@ -65,7 +74,6 @@
 | `pages/publish/index` | A Tab Landing | login-required（页面级已做引导） | 发布：approved-required | 权限/审核分支已覆盖；文案含 P0/演示需清理 |
 | `pages/messages/index` | A Tab Landing | login-required（页面级分支） | 进入会话：approved-required | 分支较完整；空态/引导文案需统一 |
 | `pages/me/index` | A Tab Landing | public | 退出/调试：login-required（调试 dev-only） | 调试区已有开关；文案与按钮规范需统一 |
-| `pages/feeds/index` | B List + Filter | public | 收藏/咨询：approved-required | 状态覆盖较完整；间距与文案需收敛 |
 | `pages/favorites/index` | B List | approved-required（页面级） | 取消收藏：approved-required | 需核对 permission/audit 覆盖口径与空态引导 |
 | `pages/orders/index` | B List | approved-required | 支付/退款：approved-required | 文案/时间/金额格式需统一；列表密度可优化 |
 | `pages/my-listings/index` | B List | approved-required | 编辑/下架：approved-required | 标题/状态标签规范化；空态引导需统一 |
@@ -76,7 +84,7 @@
 | `pages/listing/detail/index` | C Detail + Sticky CTA | public | 收藏/咨询/订金：approved-required | 缺 PageHeader（可接受但需模板标准）；吸底按钮需统一主次 |
 | `pages/patent/detail/index` | C Detail | public | N/A | 状态覆盖完整；文案与信息层级需统一 |
 | `pages/organizations/detail/index` | C Detail | public | N/A | PageHeader 副标题含 P0；信息布局需标准化 |
-| `pages/orders/detail/index` | C Detail | approved-required | 操作：approved-required | 状态覆盖较全；时间/金额/步骤展示需标准化 |
+| `pages/orders/detail/index` | C Detail | approved-required | 操作：approved-required | 状态覆盖较全；已补 WAIT_FINAL_PAYMENT→支付尾款入口；时间/金额/步骤展示需标准化 |
 | `pages/profile/edit/index` | D Form | login-required（建议） | 保存：login-required | 表单校验/错误展示需规范化 |
 | `pages/onboarding/choose-identity/index` | D Wizard | login-required | 提交资料：login-required | 视觉渐变硬编码；步骤说明与文案需 v2 统一 |
 | `pages/onboarding/verification-form/index` | D Wizard Form | login-required | 提交：login-required | 表单分段/校验/上传规范需固化 |
@@ -85,9 +93,9 @@
 | `pages/publish/patent/index` | D Form + Sticky | approved-required | 保存/提交：approved-required | 已较完整；硬编码样式/文案含 P0；上传/校验标准化 |
 | `pages/publish/demand/index` | D（占位） | approved-required | N/A | 需要补齐页面状态机与表单契约 |
 | `pages/publish/achievement/index` | D（占位） | approved-required | N/A | 同上 |
-| `pages/checkout/deposit-pay/index` | E Payment | approved-required | 支付：approved-required | 建议加统一 PageHeader/说明模板；H5 支付策略定义 |
+| `pages/checkout/deposit-pay/index` | E Payment | approved-required | 支付：approved-required | 已补 H5 支付引导（微信内 openTag；微信外/桌面 QR+复制链接）；H5 不发起支付 |
 | `pages/checkout/deposit-success/index` | E Payment Result | approved-required | 继续：approved-required | 需要统一“成功页”模板与下一步 CTA |
-| `pages/checkout/final-pay/index` | E Payment | approved-required | 支付：approved-required | 缺 PageHeader；说明文案与 CTA 需统一 |
+| `pages/checkout/final-pay/index` | E Payment | approved-required | 支付：approved-required | 已补 PageHeader；已补 H5 支付引导（微信内 openTag；微信外/桌面 QR+复制链接）；说明文案与 CTA 仍需统一 |
 | `pages/checkout/final-success/index` | E Payment Result | approved-required | 查看订单：approved-required | 成功页模板统一 |
 | `pages/trade-rules/index` | G Policy | public | N/A | 结构 OK；文案/排版需“可扫读”强化 |
 | `pages/messages/chat/index` | F Chat | approved-required（页面级） | 发送消息：approved-required | 模板较完整；时间展示/滚动体验需标准化 |

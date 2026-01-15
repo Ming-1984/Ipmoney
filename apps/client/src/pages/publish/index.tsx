@@ -2,67 +2,28 @@ import { View, Text } from '@tarojs/components';
 import Taro from '@tarojs/taro';
 import React from 'react';
 
-import { getToken, getVerificationStatus, isOnboardingDone } from '../../lib/auth';
-import { Button, CellGroup } from '../../ui/nutui';
+import { usePageAccess } from '../../lib/guard';
+import { AccessGate } from '../../ui/PageState';
+import { CellGroup } from '../../ui/nutui';
 import { CellRow, PageHeader, Spacer, Surface } from '../../ui/layout';
-import { AuditPendingCard } from '../../ui/StateCards';
 
 export default function PublishPage() {
-  const token = getToken();
-  const onboardingDone = isOnboardingDone();
-  const verificationStatus = getVerificationStatus();
+  const access = usePageAccess('approved-required');
 
-  return (
-    <View className="container">
-      <PageHeader
-        variant="hero"
-        title="发布"
-        subtitle="发布前需完成登录与身份选择；非个人需后台审核通过。"
-      />
+    return (
+      <View className="container">
+      <PageHeader title="发布" />
       <Spacer />
 
-      {!token ? (
-        <Surface>
-          <Button
-            onClick={() => {
-              Taro.navigateTo({ url: '/pages/login/index' });
-            }}
-          >
-            登录后发布
-          </Button>
-        </Surface>
-      ) : !onboardingDone ? (
-        <Surface>
-          <Button
-            onClick={() => {
-              Taro.navigateTo({ url: '/pages/onboarding/choose-identity/index' });
-            }}
-          >
-            首次进入：选择身份
-          </Button>
-        </Surface>
-      ) : verificationStatus !== 'APPROVED' ? (
-        <View>
-          <AuditPendingCard
-            title={verificationStatus === 'REJECTED' ? '资料已驳回' : '资料审核中'}
-            message={
-              verificationStatus === 'REJECTED'
-                ? '请重新提交资料，审核通过后才能发布。'
-                : '审核通过后才能发布。'
-            }
-          />
-          <Spacer size={12} />
-          <Surface>
-            <Button
-              variant="ghost"
-              onClick={() => {
-                Taro.navigateTo({ url: '/pages/onboarding/choose-identity/index' });
-              }}
-            >
-              {verificationStatus === 'REJECTED' ? '重新提交资料' : '查看认证进度'}
-            </Button>
-          </Surface>
-        </View>
+      {access.state !== 'ok' ? (
+        <AccessGate
+          access={access}
+          loginMessage="登录后才能发布内容。"
+          onboardingMessage="首次进入请先选择身份。"
+          pendingMessage="资料审核中，通过后才能发布内容。"
+          rejectedMessage="资料已驳回，请重新提交后再发布。"
+          auditRequiredMessage="完成认证并审核通过后才能发布内容。"
+        />
       ) : (
         <View>
           <Surface padding="none">
@@ -78,7 +39,7 @@ export default function PublishPage() {
               <CellRow
                 clickable
                 title={<Text className="text-strong">发布产学研需求</Text>}
-                description={<Text className="muted">需求对接与供需撮合（建设中）</Text>}
+                description={<Text className="muted">发布后进入审核；通过后可被检索与咨询</Text>}
                 onClick={() => {
                   Taro.navigateTo({ url: '/pages/publish/demand/index' });
                 }}
@@ -86,7 +47,7 @@ export default function PublishPage() {
               <CellRow
                 clickable
                 title={<Text className="text-strong">发布成果展示</Text>}
-                description={<Text className="muted">成果信息展示与咨询入口（建设中）</Text>}
+                description={<Text className="muted">支持图片/视频/附件；通过后对外展示</Text>}
                 isLast
                 onClick={() => {
                   Taro.navigateTo({ url: '/pages/publish/achievement/index' });
@@ -97,8 +58,40 @@ export default function PublishPage() {
 
           <Spacer size={12} />
 
+          <Surface padding="none">
+            <CellGroup divider>
+              <CellRow
+                clickable
+                title={<Text className="text-strong">管理专利上架</Text>}
+                description={<Text className="muted">查看/编辑/下架自己的专利上架信息</Text>}
+                onClick={() => {
+                  Taro.navigateTo({ url: '/pages/my-listings/index' });
+                }}
+              />
+              <CellRow
+                clickable
+                title={<Text className="text-strong">管理我的需求</Text>}
+                description={<Text className="muted">查看/编辑/下架自己的产学研需求</Text>}
+                onClick={() => {
+                  Taro.navigateTo({ url: '/pages/my-demands/index' });
+                }}
+              />
+              <CellRow
+                clickable
+                title={<Text className="text-strong">管理我的成果</Text>}
+                description={<Text className="muted">查看/编辑/下架自己的成果展示</Text>}
+                isLast
+                onClick={() => {
+                  Taro.navigateTo({ url: '/pages/my-achievements/index' });
+                }}
+              />
+            </CellGroup>
+          </Surface>
+
+          <Spacer size={12} />
+
           <Surface>
-            <Text className="muted">发布后将进入后台审核；审核通过后对外展示。</Text>
+            <Text className="muted">发布后将进入平台审核；审核通过后对外展示。</Text>
           </Surface>
         </View>
       )}

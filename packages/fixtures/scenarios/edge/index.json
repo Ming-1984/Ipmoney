@@ -4,7 +4,7 @@
     "body": {
       "items": [
         {
-          "id": "33333333-3333-3333-3333-333333333333",
+          "id": "7d9ba983-130e-42ee-b109-fb1b20d02a8a",
           "title": "外观设计：智能穿戴设备表面纹理",
           "tradeMode": "ASSIGNMENT",
           "priceType": "FIXED",
@@ -25,10 +25,10 @@
       "page": { "page": 1, "pageSize": 10, "total": 1 }
     }
   },
-  "GET /public/listings/33333333-3333-3333-3333-333333333333": {
+  "GET /public/listings/7d9ba983-130e-42ee-b109-fb1b20d02a8a": {
     "status": 200,
     "body": {
-      "id": "33333333-3333-3333-3333-333333333333",
+      "id": "7d9ba983-130e-42ee-b109-fb1b20d02a8a",
       "title": "外观设计：智能穿戴设备表面纹理",
       "tradeMode": "ASSIGNMENT",
       "priceType": "FIXED",
@@ -41,8 +41,72 @@
       "applicationNoDisplay": "202330000001.9",
       "inventorNames": [],
       "summary": "外观设计通常不展示“发明人”，用于演示缺失字段与 UI 兼容。",
-      "seller": { "id": "cccccccc-cccc-cccc-cccc-cccccccccccc", "nickname": "某工业设计工作室" },
+      "seller": { "id": "2b4821bb-cf89-4fc1-bdf0-db43f2c59aca", "nickname": "某工业设计工作室" },
       "stats": { "viewCount": 0, "favoriteCount": 0, "consultCount": 0 }
+    }
+  },
+  "GET /public/listings/:listingId/comments": {
+    "status": 200,
+    "body": {
+      "items": [
+        {
+          "root": {
+            "id": "35f8ef63-c164-407f-86e9-c23cc9691be1",
+            "contentType": "LISTING",
+            "contentId": "7d9ba983-130e-42ee-b109-fb1b20d02a8a",
+            "parentCommentId": null,
+            "status": "VISIBLE",
+            "user": { "id": "c776f954-77a5-49d9-b778-77a1120d1be9", "nickname": "EdgeUser", "avatarUrl": "", "role": "buyer" },
+            "text": "Edge text: 1) very very very long... (repeat) very very very long... very very very long...\\n2) contains newline\\n3) contains symbols: <>&\"' and emoji 😀",
+            "createdAt": "2026-01-11T09:00:00Z"
+          },
+          "replies": []
+        }
+      ],
+      "page": { "page": 1, "pageSize": 20, "total": 1 }
+    }
+  },
+  "POST /listings/:listingId/comments": {
+    "status": 201,
+    "body": {
+      "id": "40000000-0000-4000-8000-000000000003",
+      "contentType": "LISTING",
+      "contentId": "7d9ba983-130e-42ee-b109-fb1b20d02a8a",
+      "parentCommentId": null,
+      "status": "VISIBLE",
+      "user": { "id": "c776f954-77a5-49d9-b778-77a1120d1be9", "nickname": "EdgeUser", "avatarUrl": "", "role": "buyer" },
+      "text": "Edge create comment (demo)",
+      "createdAt": "2026-01-11T09:10:00Z"
+    }
+  },
+  "PATCH /comments/:commentId": {
+    "status": 200,
+    "body": {
+      "id": "40000000-0000-4000-8000-000000000003",
+      "contentType": "LISTING",
+      "contentId": "7d9ba983-130e-42ee-b109-fb1b20d02a8a",
+      "parentCommentId": null,
+      "status": "VISIBLE",
+      "user": { "id": "c776f954-77a5-49d9-b778-77a1120d1be9", "nickname": "EdgeUser", "avatarUrl": "", "role": "buyer" },
+      "text": "Edge edited (demo)",
+      "createdAt": "2026-01-11T09:10:00Z",
+      "updatedAt": "2026-01-11T09:12:00Z"
+    }
+  },
+  "DELETE /comments/:commentId": { "status": 204 },
+  "GET /admin/comments": { "status": 200, "body": { "items": [], "page": { "page": 1, "pageSize": 20, "total": 0 } } },
+  "PATCH /admin/comments/:commentId": {
+    "status": 200,
+    "body": {
+      "id": "35f8ef63-c164-407f-86e9-c23cc9691be1",
+      "contentType": "LISTING",
+      "contentId": "7d9ba983-130e-42ee-b109-fb1b20d02a8a",
+      "parentCommentId": null,
+      "status": "HIDDEN",
+      "user": { "id": "c776f954-77a5-49d9-b778-77a1120d1be9", "nickname": "EdgeUser", "avatarUrl": "", "role": "buyer" },
+      "text": "Edge text (moderated)",
+      "createdAt": "2026-01-11T09:00:00Z",
+      "updatedAt": "2026-01-11T09:20:00Z"
     }
   }
 }

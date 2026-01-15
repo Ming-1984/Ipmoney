@@ -13,7 +13,14 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** 微信小程序登录（code → token） */
+        /**
+         * 微信小程序登录（code → token）
+         * @description 小程序端通过 `wx.login` 获取 `code` 后调用本接口。
+         *
+         *     说明：
+         *     - 服务端应使用微信 `code2Session`（`/sns/jscode2session`）换取 `openid/session_key`，并按 `openid` 做用户映射后签发平台 `accessToken`。
+         *     - `wx.login` 不返回头像/昵称：头像/昵称建议走 `chooseAvatar + input type="nickname"`，并通过 `POST /files` + `PATCH /me` 落库。
+         */
         post: operations["authWechatMpLogin"];
         delete?: never;
         options?: never;
@@ -108,6 +115,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/me/favorites/demands": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 我的需求收藏列表 */
+        get: operations["listMyFavoriteDemands"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/me/favorites/achievements": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 我的成果收藏列表 */
+        get: operations["listMyFavoriteAchievements"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/me/recommendations/listings": {
         parameters: {
             query?: never;
@@ -134,7 +175,15 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** 上传文件 */
+        /**
+         * 上传文件
+         * @description 用于上传头像/认证材料/合同等文件。
+         *
+         *     小程序头像建议：
+         *     1) `purpose=AVATAR`
+         *     2) 上传成功拿到 `url`
+         *     3) `PATCH /me { avatarUrl: url }`
+         */
         post: operations["uploadFile"];
         delete?: never;
         options?: never;
@@ -210,6 +259,91 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/public/listings/{listingId}/comments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 获取上架留言列表（公开） */
+        get: operations["listPublicListingComments"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/public/demands/{demandId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 获取需求详情（公开） */
+        get: operations["getPublicDemandById"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/public/demands/{demandId}/comments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 获取需求留言列表（公开） */
+        get: operations["listPublicDemandComments"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/public/achievements/{achievementId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 获取成果详情（公开） */
+        get: operations["getPublicAchievementById"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/public/achievements/{achievementId}/comments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 获取成果留言列表（公开） */
+        get: operations["listPublicAchievementComments"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/public/organizations": {
         parameters: {
             query?: never;
@@ -219,6 +353,23 @@ export interface paths {
         };
         /** 获取入驻机构列表（企业/科研院校等） */
         get: operations["listPublicOrganizations"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/public/industry-tags": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 获取产业标签列表（用于筛选） */
+        get: operations["listPublicIndustryTags"];
         put?: never;
         post?: never;
         delete?: never;
@@ -251,7 +402,12 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** 获取行政区划树（用于筛选/地图） */
+        /**
+         * 获取行政区划树（用于筛选/地图）
+         * @description 用于地区筛选与地图定位。
+         *
+         *     小程序「专利地图」P0（最快落地）会用 `level=PROVINCE` 获取各省份的 `centerLat/centerLng` 作为地图 marker 坐标。
+         */
         get: operations["listRegions"];
         put?: never;
         post?: never;
@@ -285,7 +441,15 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** 获取地图热力数据（按区域聚合） */
+        /**
+         * 获取地图热力数据（按区域聚合）
+         * @description 返回某一年、某层级（省/市/区）的专利数量统计。
+         *
+         *     小程序「专利地图」P0（最快落地）典型用法：
+         *     1) `GET /patent-map/years` 获取年份；
+         *     2) `GET /patent-map/summary?year=YYYY&level=PROVINCE` 获取省级专利数量；
+         *     3) `GET /regions?level=PROVINCE` 获取省级中心点坐标，前端在真实地图上以 marker 展示。
+         */
         get: operations["getPatentMapSummary"];
         put?: never;
         post?: never;
@@ -321,6 +485,40 @@ export interface paths {
         };
         /** 专利交易检索 */
         get: operations["searchListings"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/search/demands": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 产学研需求检索 */
+        get: operations["searchDemands"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/search/achievements": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 成果展示检索 */
+        get: operations["searchAchievements"];
         put?: never;
         post?: never;
         delete?: never;
@@ -417,6 +615,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/listings/{listingId}/comments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 创建上架留言/回复 */
+        post: operations["createListingComment"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/listings/{listingId}/submit": {
         parameters: {
             query?: never;
@@ -445,6 +660,234 @@ export interface paths {
         put?: never;
         /** 下架（卖家） */
         post: operations["offShelfListing"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/demands": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 我的需求列表（发布方） */
+        get: operations["listMyDemands"];
+        put?: never;
+        /** 创建需求草稿（发布方） */
+        post: operations["createDemand"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/demands/{demandId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 获取需求详情（发布方/已登录） */
+        get: operations["getDemandById"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** 更新需求草稿（发布方） */
+        patch: operations["updateDemand"];
+        trace?: never;
+    };
+    "/demands/{demandId}/favorites": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 收藏需求 */
+        post: operations["favoriteDemand"];
+        /** 取消收藏需求 */
+        delete: operations["unfavoriteDemand"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/demands/{demandId}/comments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 创建需求留言/回复 */
+        post: operations["createDemandComment"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/demands/{demandId}/submit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 提交审核（发布方） */
+        post: operations["submitDemand"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/demands/{demandId}/off-shelf": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 下架（发布方） */
+        post: operations["offShelfDemand"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/achievements": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 我的成果列表（发布方） */
+        get: operations["listMyAchievements"];
+        put?: never;
+        /** 创建成果草稿（发布方） */
+        post: operations["createAchievement"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/achievements/{achievementId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 获取成果详情（发布方/已登录） */
+        get: operations["getAchievementById"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** 更新成果草稿（发布方） */
+        patch: operations["updateAchievement"];
+        trace?: never;
+    };
+    "/achievements/{achievementId}/favorites": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 收藏成果 */
+        post: operations["favoriteAchievement"];
+        /** 取消收藏成果 */
+        delete: operations["unfavoriteAchievement"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/achievements/{achievementId}/comments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 创建成果留言/回复 */
+        post: operations["createAchievementComment"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/comments/{commentId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** 删除留言 */
+        delete: operations["deleteComment"];
+        options?: never;
+        head?: never;
+        /** 编辑留言 */
+        patch: operations["updateComment"];
+        trace?: never;
+    };
+    "/achievements/{achievementId}/submit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 提交审核（发布方） */
+        post: operations["submitAchievement"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/achievements/{achievementId}/off-shelf": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 下架（发布方） */
+        post: operations["offShelfAchievement"];
         delete?: never;
         options?: never;
         head?: never;
@@ -604,6 +1047,40 @@ export interface paths {
         put?: never;
         /** 创建/获取与该上架相关的会话（咨询） */
         post: operations["upsertListingConversation"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/demands/{demandId}/conversations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 创建/获取与该需求相关的会话（咨询） */
+        post: operations["upsertDemandConversation"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/achievements/{achievementId}/conversations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 创建/获取与该成果相关的会话（咨询） */
+        post: operations["upsertAchievementConversation"];
         delete?: never;
         options?: never;
         head?: never;
@@ -854,6 +1331,142 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/admin/demands": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 需求审核列表 */
+        get: operations["adminListDemandsForAudit"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/demands/{demandId}/approve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 需求审核通过 */
+        post: operations["adminApproveDemand"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/demands/{demandId}/reject": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 需求审核驳回 */
+        post: operations["adminRejectDemand"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/achievements": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 成果审核列表 */
+        get: operations["adminListAchievementsForAudit"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/achievements/{achievementId}/approve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 成果审核通过 */
+        post: operations["adminApproveAchievement"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/achievements/{achievementId}/reject": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 成果审核驳回 */
+        post: operations["adminRejectAchievement"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/comments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 留言管理列表 */
+        get: operations["adminListComments"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/comments/{commentId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** 更新留言状态（隐藏/恢复/删除） */
+        patch: operations["adminUpdateComment"];
+        trace?: never;
+    };
     "/admin/user-verifications": {
         parameters: {
             query?: never;
@@ -1057,7 +1670,8 @@ export interface components {
         FilePurpose: "AVATAR" | "ORG_LOGO" | "IDENTITY" | "BUSINESS_LICENSE" | "ORG_CERTIFICATE" | "PROFESSIONAL_CERTIFICATE" | "PATENT_PROOF" | "CONTRACT_EVIDENCE" | "INVOICE" | "OTHER";
         UserProfile: {
             id: components["schemas"]["Uuid"];
-            phone: components["schemas"]["PhoneNumber"];
+            /** @description 手机号（可选；未绑定手机号的微信用户可能为空） */
+            phone?: components["schemas"]["PhoneNumber"];
             nickname?: string;
             /** Format: uri */
             avatarUrl?: string;
@@ -1237,6 +1851,8 @@ export interface components {
             favoriteCount: number;
             /** Format: int64 */
             consultCount: number;
+            /** Format: int64 */
+            commentCount?: number;
         };
         ListingMedia: {
             fileId: components["schemas"]["Uuid"];
@@ -1370,6 +1986,172 @@ export interface components {
         PagedListing: {
             items: components["schemas"]["Listing"][];
             page: components["schemas"]["PageMeta"];
+        };
+        /** @enum {string} */
+        ContentStatus: "DRAFT" | "ACTIVE" | "OFF_SHELF";
+        /** @enum {string} */
+        ContentSortBy: "RECOMMENDED" | "NEWEST" | "POPULAR";
+        /** @enum {string} */
+        CooperationMode: "TRANSFER" | "LICENSE" | "EQUITY" | "JOINT_DEV" | "COMMISSIONED_DEV" | "OTHER";
+        /** @enum {string} */
+        AchievementMaturity: "CONCEPT" | "PROTOTYPE" | "PILOT" | "MASS_PRODUCTION" | "COMMERCIALIZED" | "OTHER";
+        /** @enum {string} */
+        DeliveryPeriod: "WITHIN_1_MONTH" | "MONTH_1_3" | "MONTH_3_6" | "OVER_6_MONTHS" | "OTHER";
+        ContentMedia: {
+            fileId: components["schemas"]["Uuid"];
+            /** @enum {string} */
+            type: "IMAGE" | "VIDEO" | "FILE";
+            sort: number;
+            /** Format: uri */
+            readonly url?: string;
+            readonly mimeType?: string;
+            /** Format: int64 */
+            readonly sizeBytes?: number;
+            readonly fileName?: string;
+        };
+        DemandSummary: {
+            id: components["schemas"]["Uuid"];
+            title: string;
+            summary?: string;
+            budgetType?: components["schemas"]["PriceType"];
+            budgetMinFen?: components["schemas"]["MoneyFen"];
+            budgetMaxFen?: components["schemas"]["MoneyFen"];
+            cooperationModes?: components["schemas"]["CooperationMode"][];
+            regionCode?: string;
+            industryTags?: string[];
+            keywords?: string[];
+            deliveryPeriod?: components["schemas"]["DeliveryPeriod"];
+            publisher: components["schemas"]["OrganizationSummary"];
+            stats?: components["schemas"]["ListingStats"];
+            auditStatus: components["schemas"]["AuditStatus"];
+            status: components["schemas"]["ContentStatus"];
+            /** Format: uri */
+            coverUrl?: string;
+            /** Format: date-time */
+            createdAt: string;
+        };
+        Demand: components["schemas"]["DemandSummary"] & {
+            publisherUserId?: components["schemas"]["Uuid"];
+            description?: string;
+            keywords?: string[];
+            deliveryPeriod?: components["schemas"]["DeliveryPeriod"];
+            contactName?: string;
+            contactTitle?: string;
+            contactPhoneMasked?: string;
+            coverFileId?: components["schemas"]["Uuid"];
+            media?: components["schemas"]["ContentMedia"][];
+            /** Format: date-time */
+            updatedAt?: string;
+        };
+        DemandPublic: components["schemas"]["DemandSummary"] & {
+            description?: string;
+            media?: components["schemas"]["ContentMedia"][];
+        };
+        PagedDemandSummary: {
+            items: components["schemas"]["DemandSummary"][];
+            page: components["schemas"]["PageMeta"];
+        };
+        PagedDemand: {
+            items: components["schemas"]["Demand"][];
+            page: components["schemas"]["PageMeta"];
+        };
+        DemandCreateRequest: {
+            title: string;
+            description?: string;
+            summary?: string;
+            keywords?: string[];
+            deliveryPeriod?: components["schemas"]["DeliveryPeriod"];
+            budgetType?: components["schemas"]["PriceType"];
+            budgetMinFen?: components["schemas"]["MoneyFen"];
+            budgetMaxFen?: components["schemas"]["MoneyFen"];
+            cooperationModes?: components["schemas"]["CooperationMode"][];
+            contactName?: string;
+            contactTitle?: string;
+            contactPhoneMasked?: string;
+            regionCode?: string;
+            industryTags?: string[];
+            coverFileId?: components["schemas"]["Uuid"];
+            media?: components["schemas"]["ContentMedia"][];
+        };
+        DemandUpdateRequest: {
+            title?: string;
+            description?: string;
+            summary?: string;
+            keywords?: string[];
+            deliveryPeriod?: components["schemas"]["DeliveryPeriod"];
+            budgetType?: components["schemas"]["PriceType"];
+            budgetMinFen?: components["schemas"]["MoneyFen"];
+            budgetMaxFen?: components["schemas"]["MoneyFen"];
+            cooperationModes?: components["schemas"]["CooperationMode"][];
+            contactName?: string;
+            contactTitle?: string;
+            contactPhoneMasked?: string;
+            regionCode?: string;
+            industryTags?: string[];
+            coverFileId?: components["schemas"]["Uuid"];
+            media?: components["schemas"]["ContentMedia"][];
+        };
+        AchievementSummary: {
+            id: components["schemas"]["Uuid"];
+            title: string;
+            summary?: string;
+            maturity?: components["schemas"]["AchievementMaturity"];
+            cooperationModes?: components["schemas"]["CooperationMode"][];
+            regionCode?: string;
+            industryTags?: string[];
+            keywords?: string[];
+            publisher: components["schemas"]["OrganizationSummary"];
+            stats?: components["schemas"]["ListingStats"];
+            auditStatus: components["schemas"]["AuditStatus"];
+            status: components["schemas"]["ContentStatus"];
+            /** Format: uri */
+            coverUrl?: string;
+            /** Format: date-time */
+            createdAt: string;
+        };
+        Achievement: components["schemas"]["AchievementSummary"] & {
+            publisherUserId?: components["schemas"]["Uuid"];
+            description?: string;
+            coverFileId?: components["schemas"]["Uuid"];
+            media?: components["schemas"]["ContentMedia"][];
+            /** Format: date-time */
+            updatedAt?: string;
+        };
+        AchievementPublic: components["schemas"]["AchievementSummary"] & {
+            description?: string;
+            media?: components["schemas"]["ContentMedia"][];
+        };
+        PagedAchievementSummary: {
+            items: components["schemas"]["AchievementSummary"][];
+            page: components["schemas"]["PageMeta"];
+        };
+        PagedAchievement: {
+            items: components["schemas"]["Achievement"][];
+            page: components["schemas"]["PageMeta"];
+        };
+        AchievementCreateRequest: {
+            title: string;
+            description?: string;
+            summary?: string;
+            keywords?: string[];
+            maturity?: components["schemas"]["AchievementMaturity"];
+            cooperationModes?: components["schemas"]["CooperationMode"][];
+            regionCode?: string;
+            industryTags?: string[];
+            coverFileId?: components["schemas"]["Uuid"];
+            media?: components["schemas"]["ContentMedia"][];
+        };
+        AchievementUpdateRequest: {
+            title?: string;
+            description?: string;
+            summary?: string;
+            keywords?: string[];
+            maturity?: components["schemas"]["AchievementMaturity"];
+            cooperationModes?: components["schemas"]["CooperationMode"][];
+            regionCode?: string;
+            industryTags?: string[];
+            coverFileId?: components["schemas"]["Uuid"];
+            media?: components["schemas"]["ContentMedia"][];
         };
         OrganizationStats: {
             listingCount: number;
@@ -1662,12 +2444,25 @@ export interface components {
              * @example 110000
              */
             code: string;
+            /**
+             * @description 行政区划名称
+             * @example 北京市
+             */
             name: string;
             level: components["schemas"]["RegionLevel"];
+            /** @description 父级行政区划 adcode（6 位字符串）；省级为 null */
             parentCode?: string | null;
-            /** Format: double */
+            /**
+             * Format: double
+             * @description 地图中心点纬度（用于地图 marker；建议使用 GCJ-02 坐标系；可为空）
+             * @example 39.9042
+             */
             centerLat?: number | null;
-            /** Format: double */
+            /**
+             * Format: double
+             * @description 地图中心点经度（用于地图 marker；建议使用 GCJ-02 坐标系；可为空）
+             * @example 116.4074
+             */
             centerLng?: number | null;
             /** @description 区域特色产业标签（用于推荐/搜索加权） */
             industryTags?: string[];
@@ -1713,8 +2508,20 @@ export interface components {
             patentCount: number;
         };
         PatentMapSummaryItem: {
+            /**
+             * @description 行政区划 adcode（6 位字符串）
+             * @example 110000
+             */
             regionCode: string;
+            /**
+             * @description 行政区划名称快照（用于直接展示）
+             * @example 北京市
+             */
             regionName: string;
+            /**
+             * @description 该区域该年份的专利数量（按 `level/parentCode` 聚合口径）
+             * @example 1234
+             */
             patentCount: number;
         };
         PatentMapRegionDetail: {
@@ -1762,9 +2569,57 @@ export interface components {
             verificationStatus?: components["schemas"]["VerificationStatus"];
             verificationType?: components["schemas"]["VerificationType"];
         };
+        /** @enum {string} */
+        CommentContentType: "LISTING" | "DEMAND" | "ACHIEVEMENT";
+        /** @enum {string} */
+        CommentStatus: "VISIBLE" | "HIDDEN" | "DELETED";
+        Comment: {
+            id: components["schemas"]["Uuid"];
+            contentType: components["schemas"]["CommentContentType"];
+            contentId: components["schemas"]["Uuid"];
+            /** @description 为空表示根留言；非空表示回复某条留言 */
+            parentCommentId?: components["schemas"]["Uuid"];
+            status?: components["schemas"]["CommentStatus"];
+            user: components["schemas"]["UserBrief"];
+            text: string;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+        };
+        CommentThread: {
+            root: components["schemas"]["Comment"];
+            replies: components["schemas"]["Comment"][];
+        };
+        PagedCommentThread: {
+            items: components["schemas"]["CommentThread"][];
+            page: components["schemas"]["PageMeta"];
+        };
+        CommentCreateRequest: {
+            text: string;
+            /** @description 回复目标留言 ID（为空表示发起新留言） */
+            parentCommentId?: components["schemas"]["Uuid"];
+        };
+        CommentUpdateRequest: {
+            text: string;
+        };
+        AdminCommentUpdateRequest: {
+            status: components["schemas"]["CommentStatus"];
+        };
+        PagedComment: {
+            items: components["schemas"]["Comment"][];
+            page: components["schemas"]["PageMeta"];
+        };
+        /** @enum {string} */
+        ConversationContentType: "LISTING" | "DEMAND" | "ACHIEVEMENT";
         Conversation: {
             id: components["schemas"]["Uuid"];
-            listingId: components["schemas"]["Uuid"];
+            contentType: components["schemas"]["ConversationContentType"];
+            contentId: components["schemas"]["Uuid"];
+            contentTitle?: string;
+            /** @deprecated */
+            listingId?: components["schemas"]["Uuid"];
+            /** @deprecated */
             listingTitle?: string;
             orderId?: components["schemas"]["Uuid"];
             buyerUserId: components["schemas"]["Uuid"];
@@ -1778,8 +2633,13 @@ export interface components {
         };
         ConversationSummary: {
             id: components["schemas"]["Uuid"];
-            listingId: components["schemas"]["Uuid"];
-            listingTitle: string;
+            contentType: components["schemas"]["ConversationContentType"];
+            contentId: components["schemas"]["Uuid"];
+            contentTitle: string;
+            /** @deprecated */
+            listingId?: components["schemas"]["Uuid"];
+            /** @deprecated */
+            listingTitle?: string;
             lastMessagePreview?: string;
             /** Format: date-time */
             lastMessageAt: string;
@@ -1871,6 +2731,9 @@ export interface components {
         PriceType: components["schemas"]["PriceType"];
         PriceMin: components["schemas"]["MoneyFen"];
         PriceMax: components["schemas"]["MoneyFen"];
+        BudgetType: components["schemas"]["PriceType"];
+        BudgetMin: components["schemas"]["MoneyFen"];
+        BudgetMax: components["schemas"]["MoneyFen"];
         DepositMin: components["schemas"]["MoneyFen"];
         DepositMax: components["schemas"]["MoneyFen"];
         /** @description 行政区划 adcode（6 位字符串） */
@@ -1889,6 +2752,17 @@ export interface components {
         Loc: string;
         LegalStatus: components["schemas"]["LegalStatus"];
         SortBy: components["schemas"]["SortBy"];
+        ContentSortBy: components["schemas"]["ContentSortBy"];
+        /** @description 合作方式过滤（可多选） */
+        CooperationModes: components["schemas"]["CooperationMode"][];
+        AchievementMaturity: components["schemas"]["AchievementMaturity"];
+        ContentStatus: components["schemas"]["ContentStatus"];
+        /** @description 留言所属内容类型过滤 */
+        CommentContentType: components["schemas"]["CommentContentType"];
+        /** @description 留言所属内容 ID 过滤 */
+        CommentContentId: components["schemas"]["Uuid"];
+        /** @description 留言状态过滤（后台管理） */
+        CommentStatus: components["schemas"]["CommentStatus"];
         Page: number;
         PageSize: number;
         ListingStatus: components["schemas"]["ListingStatus"];
@@ -1907,6 +2781,9 @@ export interface components {
         /** @description 微信支付回调验签字段（v3）：签名类型（如 WECHATPAY2-SHA256-RSA2048） */
         WechatpaySignatureType: string;
         ListingId: components["schemas"]["Uuid"];
+        DemandId: components["schemas"]["Uuid"];
+        AchievementId: components["schemas"]["Uuid"];
+        CommentId: components["schemas"]["Uuid"];
         OrgUserId: components["schemas"]["Uuid"];
         ConversationId: components["schemas"]["Uuid"];
         /** @description 行政区划码/adcode */
@@ -2039,8 +2916,12 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": {
+                    /** @description 昵称；小程序端建议使用 `<input type="nickname">` 采集 */
                     nickname?: string;
-                    /** Format: uri */
+                    /**
+                     * Format: uri
+                     * @description 头像 URL；建议先 `POST /files` 上传（`purpose=AVATAR`）再写入
+                     */
                     avatarUrl?: string;
                     /** @description 用于地域推荐；小程序定位/手动选择后可更新 */
                     regionCode?: string;
@@ -2128,6 +3009,54 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["PagedListingSummary"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+        };
+    };
+    listMyFavoriteDemands: {
+        parameters: {
+            query?: {
+                page?: components["parameters"]["Page"];
+                pageSize?: components["parameters"]["PageSize"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PagedDemandSummary"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+        };
+    };
+    listMyFavoriteAchievements: {
+        parameters: {
+            query?: {
+                page?: components["parameters"]["Page"];
+                pageSize?: components["parameters"]["PageSize"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PagedAchievementSummary"];
                 };
             };
             401: components["responses"]["Unauthorized"];
@@ -2282,6 +3211,133 @@ export interface operations {
             404: components["responses"]["NotFound"];
         };
     };
+    listPublicListingComments: {
+        parameters: {
+            query?: {
+                page?: components["parameters"]["Page"];
+                pageSize?: components["parameters"]["PageSize"];
+            };
+            header?: never;
+            path: {
+                listingId: components["parameters"]["ListingId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PagedCommentThread"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    getPublicDemandById: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                demandId: components["parameters"]["DemandId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DemandPublic"];
+                };
+            };
+            404: components["responses"]["NotFound"];
+        };
+    };
+    listPublicDemandComments: {
+        parameters: {
+            query?: {
+                page?: components["parameters"]["Page"];
+                pageSize?: components["parameters"]["PageSize"];
+            };
+            header?: never;
+            path: {
+                demandId: components["parameters"]["DemandId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PagedCommentThread"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    getPublicAchievementById: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                achievementId: components["parameters"]["AchievementId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AchievementPublic"];
+                };
+            };
+            404: components["responses"]["NotFound"];
+        };
+    };
+    listPublicAchievementComments: {
+        parameters: {
+            query?: {
+                page?: components["parameters"]["Page"];
+                pageSize?: components["parameters"]["PageSize"];
+            };
+            header?: never;
+            path: {
+                achievementId: components["parameters"]["AchievementId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PagedCommentThread"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            404: components["responses"]["NotFound"];
+        };
+    };
     listPublicOrganizations: {
         parameters: {
             query?: {
@@ -2307,6 +3363,27 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["PagedOrganizationSummary"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+        };
+    };
+    listPublicIndustryTags: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["IndustryTag"][];
                 };
             };
             400: components["responses"]["BadRequest"];
@@ -2476,6 +3553,76 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["PagedListingSummary"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+        };
+    };
+    searchDemands: {
+        parameters: {
+            query?: {
+                /** @description 关键词（标题/摘要/权利人/发明人/机构名称等） */
+                q?: components["parameters"]["Q"];
+                /** @description 行政区划 adcode（6 位字符串） */
+                regionCode?: components["parameters"]["RegionCode"];
+                /** @description 产业标签过滤（可多选） */
+                industryTags?: components["parameters"]["IndustryTags"];
+                /** @description 合作方式过滤（可多选） */
+                cooperationModes?: components["parameters"]["CooperationModes"];
+                budgetType?: components["parameters"]["BudgetType"];
+                budgetMinFen?: components["parameters"]["BudgetMin"];
+                budgetMaxFen?: components["parameters"]["BudgetMax"];
+                sortBy?: components["parameters"]["ContentSortBy"];
+                page?: components["parameters"]["Page"];
+                pageSize?: components["parameters"]["PageSize"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PagedDemandSummary"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+        };
+    };
+    searchAchievements: {
+        parameters: {
+            query?: {
+                /** @description 关键词（标题/摘要/权利人/发明人/机构名称等） */
+                q?: components["parameters"]["Q"];
+                /** @description 行政区划 adcode（6 位字符串） */
+                regionCode?: components["parameters"]["RegionCode"];
+                /** @description 产业标签过滤（可多选） */
+                industryTags?: components["parameters"]["IndustryTags"];
+                /** @description 合作方式过滤（可多选） */
+                cooperationModes?: components["parameters"]["CooperationModes"];
+                maturity?: components["parameters"]["AchievementMaturity"];
+                sortBy?: components["parameters"]["ContentSortBy"];
+                page?: components["parameters"]["Page"];
+                pageSize?: components["parameters"]["PageSize"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PagedAchievementSummary"];
                 };
             };
             400: components["responses"]["BadRequest"];
@@ -2703,6 +3850,39 @@ export interface operations {
             409: components["responses"]["Conflict"];
         };
     };
+    createListingComment: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description 幂等键（建议用于支付/退款/放款等有副作用的接口；同一幂等键的重复请求应返回同一结果） */
+                "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
+            };
+            path: {
+                listingId: components["parameters"]["ListingId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CommentCreateRequest"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Comment"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+        };
+    };
     submitListing: {
         parameters: {
             query?: never;
@@ -2752,6 +3932,563 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Listing"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    listMyDemands: {
+        parameters: {
+            query?: {
+                status?: components["parameters"]["ContentStatus"];
+                auditStatus?: components["parameters"]["AuditStatus"];
+                page?: components["parameters"]["Page"];
+                pageSize?: components["parameters"]["PageSize"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PagedDemand"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+        };
+    };
+    createDemand: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DemandCreateRequest"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Demand"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+        };
+    };
+    getDemandById: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                demandId: components["parameters"]["DemandId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Demand"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    updateDemand: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                demandId: components["parameters"]["DemandId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DemandUpdateRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Demand"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    favoriteDemand: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description 幂等键（建议用于支付/退款/放款等有副作用的接口；同一幂等键的重复请求应返回同一结果） */
+                "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
+            };
+            path: {
+                demandId: components["parameters"]["DemandId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            401: components["responses"]["Unauthorized"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+        };
+    };
+    unfavoriteDemand: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description 幂等键（建议用于支付/退款/放款等有副作用的接口；同一幂等键的重复请求应返回同一结果） */
+                "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
+            };
+            path: {
+                demandId: components["parameters"]["DemandId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            401: components["responses"]["Unauthorized"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+        };
+    };
+    createDemandComment: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description 幂等键（建议用于支付/退款/放款等有副作用的接口；同一幂等键的重复请求应返回同一结果） */
+                "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
+            };
+            path: {
+                demandId: components["parameters"]["DemandId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CommentCreateRequest"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Comment"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+        };
+    };
+    submitDemand: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                demandId: components["parameters"]["DemandId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Demand"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    offShelfDemand: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                demandId: components["parameters"]["DemandId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": {
+                    reason?: string;
+                };
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Demand"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    listMyAchievements: {
+        parameters: {
+            query?: {
+                status?: components["parameters"]["ContentStatus"];
+                auditStatus?: components["parameters"]["AuditStatus"];
+                page?: components["parameters"]["Page"];
+                pageSize?: components["parameters"]["PageSize"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PagedAchievement"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+        };
+    };
+    createAchievement: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AchievementCreateRequest"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Achievement"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+        };
+    };
+    getAchievementById: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                achievementId: components["parameters"]["AchievementId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Achievement"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    updateAchievement: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                achievementId: components["parameters"]["AchievementId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AchievementUpdateRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Achievement"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    favoriteAchievement: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description 幂等键（建议用于支付/退款/放款等有副作用的接口；同一幂等键的重复请求应返回同一结果） */
+                "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
+            };
+            path: {
+                achievementId: components["parameters"]["AchievementId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            401: components["responses"]["Unauthorized"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+        };
+    };
+    unfavoriteAchievement: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description 幂等键（建议用于支付/退款/放款等有副作用的接口；同一幂等键的重复请求应返回同一结果） */
+                "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
+            };
+            path: {
+                achievementId: components["parameters"]["AchievementId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            401: components["responses"]["Unauthorized"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+        };
+    };
+    createAchievementComment: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description 幂等键（建议用于支付/退款/放款等有副作用的接口；同一幂等键的重复请求应返回同一结果） */
+                "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
+            };
+            path: {
+                achievementId: components["parameters"]["AchievementId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CommentCreateRequest"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Comment"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+        };
+    };
+    deleteComment: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description 幂等键（建议用于支付/退款/放款等有副作用的接口；同一幂等键的重复请求应返回同一结果） */
+                "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
+            };
+            path: {
+                commentId: components["parameters"]["CommentId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+        };
+    };
+    updateComment: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description 幂等键（建议用于支付/退款/放款等有副作用的接口；同一幂等键的重复请求应返回同一结果） */
+                "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
+            };
+            path: {
+                commentId: components["parameters"]["CommentId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CommentUpdateRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Comment"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+        };
+    };
+    submitAchievement: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                achievementId: components["parameters"]["AchievementId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Achievement"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    offShelfAchievement: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                achievementId: components["parameters"]["AchievementId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": {
+                    reason?: string;
+                };
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Achievement"];
                 };
             };
             401: components["responses"]["Unauthorized"];
@@ -3047,6 +4784,62 @@ export interface operations {
             };
             path: {
                 listingId: components["parameters"]["ListingId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Conversation"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+        };
+    };
+    upsertDemandConversation: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description 幂等键（建议用于支付/退款/放款等有副作用的接口；同一幂等键的重复请求应返回同一结果） */
+                "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
+            };
+            path: {
+                demandId: components["parameters"]["DemandId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Conversation"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+        };
+    };
+    upsertAchievementConversation: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description 幂等键（建议用于支付/退款/放款等有副作用的接口；同一幂等键的重复请求应返回同一结果） */
+                "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
+            };
+            path: {
+                achievementId: components["parameters"]["AchievementId"];
             };
             cookie?: never;
         };
@@ -3523,6 +5316,10 @@ export interface operations {
     adminListListingsForAudit: {
         parameters: {
             query?: {
+                /** @description 关键词（标题/摘要/权利人/发明人/机构名称等） */
+                q?: components["parameters"]["Q"];
+                /** @description 行政区划 adcode（6 位字符串） */
+                regionCode?: components["parameters"]["RegionCode"];
                 auditStatus?: components["parameters"]["AuditStatus"];
                 status?: components["parameters"]["ListingStatus"];
                 page?: components["parameters"]["Page"];
@@ -3630,6 +5427,248 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Listing"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+        };
+    };
+    adminListDemandsForAudit: {
+        parameters: {
+            query?: {
+                /** @description 关键词（标题/摘要/权利人/发明人/机构名称等） */
+                q?: components["parameters"]["Q"];
+                /** @description 行政区划 adcode（6 位字符串） */
+                regionCode?: components["parameters"]["RegionCode"];
+                auditStatus?: components["parameters"]["AuditStatus"];
+                status?: components["parameters"]["ContentStatus"];
+                page?: components["parameters"]["Page"];
+                pageSize?: components["parameters"]["PageSize"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PagedDemand"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+        };
+    };
+    adminApproveDemand: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                demandId: components["parameters"]["DemandId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Demand"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+        };
+    };
+    adminRejectDemand: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                demandId: components["parameters"]["DemandId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    reason: string;
+                };
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Demand"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+        };
+    };
+    adminListAchievementsForAudit: {
+        parameters: {
+            query?: {
+                /** @description 关键词（标题/摘要/权利人/发明人/机构名称等） */
+                q?: components["parameters"]["Q"];
+                /** @description 行政区划 adcode（6 位字符串） */
+                regionCode?: components["parameters"]["RegionCode"];
+                auditStatus?: components["parameters"]["AuditStatus"];
+                status?: components["parameters"]["ContentStatus"];
+                page?: components["parameters"]["Page"];
+                pageSize?: components["parameters"]["PageSize"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PagedAchievement"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+        };
+    };
+    adminApproveAchievement: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                achievementId: components["parameters"]["AchievementId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Achievement"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+        };
+    };
+    adminRejectAchievement: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                achievementId: components["parameters"]["AchievementId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    reason: string;
+                };
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Achievement"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+        };
+    };
+    adminListComments: {
+        parameters: {
+            query?: {
+                /** @description 关键词（标题/摘要/权利人/发明人/机构名称等） */
+                q?: components["parameters"]["Q"];
+                /** @description 留言所属内容类型过滤 */
+                contentType?: components["parameters"]["CommentContentType"];
+                /** @description 留言所属内容 ID 过滤 */
+                contentId?: components["parameters"]["CommentContentId"];
+                /** @description 留言状态过滤（后台管理） */
+                status?: components["parameters"]["CommentStatus"];
+                page?: components["parameters"]["Page"];
+                pageSize?: components["parameters"]["PageSize"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PagedComment"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+        };
+    };
+    adminUpdateComment: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                commentId: components["parameters"]["CommentId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AdminCommentUpdateRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Comment"];
                 };
             };
             400: components["responses"]["BadRequest"];

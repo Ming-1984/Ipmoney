@@ -4,7 +4,7 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 
 import type { components } from '@ipmoney/api-types';
 
-import { ENABLE_MOCK_TOOLS, STORAGE_KEYS } from '../../constants';
+import { APP_MODE, ENABLE_MOCK_TOOLS, STORAGE_KEYS } from '../../constants';
 import {
   clearToken,
   clearVerificationStatus,
@@ -20,7 +20,7 @@ import {
 import { apiGet } from '../../lib/api';
 import { ErrorCard, LoadingCard } from '../../ui/StateCards';
 import { CellRow, PageHeader, Spacer, Surface } from '../../ui/layout';
-import { Button, CellGroup } from '../../ui/nutui';
+import { Avatar, Button, CellGroup, Tag, toast } from '../../ui/nutui';
 
 type Me = {
   id: string;
@@ -56,12 +56,11 @@ function verificationStatusLabel(s?: string | null): string {
   return s;
 }
 
-function verificationStatusTagClass(s?: string | null): string {
-  if (!s) return 'tag';
-  if (s === 'PENDING') return 'tag tag-warning';
-  if (s === 'APPROVED') return 'tag tag-success';
-  if (s === 'REJECTED') return 'tag tag-danger';
-  return 'tag';
+function verificationStatusTagType(s?: string | null): 'default' | 'primary' | 'info' | 'success' | 'warning' | 'danger' {
+  if (s === 'APPROVED') return 'success';
+  if (s === 'REJECTED') return 'danger';
+  if (s === 'PENDING') return 'warning';
+  return 'default';
 }
 
 export default function MePage() {
@@ -145,7 +144,7 @@ export default function MePage() {
 
   return (
     <View className="container">
-      <PageHeader variant="hero" title="我的" subtitle="管理身份与常用功能" right={<View className="brand-mark" />} />
+      <PageHeader title="我的" />
       <Spacer />
 
       {!auth.token ? (
@@ -168,53 +167,58 @@ export default function MePage() {
           {meError ? <ErrorCard message={meError} onRetry={loadMe} /> : null}
           {me && !meLoading && !meError ? (
             <Surface>
-              <View className="row-between">
-                <View>
-                  <Text className="text-card-title">{me.nickname || '用户'}</Text>
-                  <View style={{ height: '6rpx' }} />
-                  <Text className="muted">{me.phone || '手机号未展示'}</Text>
-                </View>
-                <View style={{ display: 'flex', flexDirection: 'row', alignItems: 'center' }}>
-                  {verification.status ? (
-                    <View style={{ marginRight: '8rpx' }}>
-                      <Text className={verificationStatusTagClass(verification.status)}>
-                        {verificationStatusLabel(verification.status)}
-                      </Text>
+              <View className="row" style={{ gap: '14rpx' }}>
+                <Avatar
+                  size="64"
+                  src={me.avatarUrl || ''}
+                  icon={<Text className="text-strong">{(me.nickname || '用').slice(0, 1)}</Text>}
+                />
+                <View style={{ flex: 1, minWidth: 0 }}>
+                  <View className="row-between" style={{ gap: '12rpx' }}>
+                    <View style={{ flex: 1, minWidth: 0 }}>
+                      <Text className="text-card-title">{me.nickname || '未设置昵称'}</Text>
+                      <View style={{ height: '6rpx' }} />
+                      <Text className="muted">{me.phone || '未绑定手机号'}</Text>
                     </View>
-                  ) : null}
-                  <Text className="tag tag-gold">{verificationTypeLabel(verification.type)}</Text>
-                </View>
-              </View>
-              <View style={{ height: '6rpx' }} />
-              <Text className="muted">
-                认证：{verificationStatusLabel(verification.status)} · 首次进入完成：
-                {auth.onboardingDone ? '是' : '否'}
-              </Text>
-              <View style={{ height: '6rpx' }} />
-              <Text className="muted">地区：{me.regionCode || '-'}</Text>
-              <View style={{ height: '12rpx' }} />
-              <View className="row" style={{ gap: '12rpx' }}>
-                <View style={{ flex: 1 }}>
-                  <Button
-                    variant="ghost"
-                    size="small"
-                    onClick={() => {
-                      Taro.navigateTo({ url: '/pages/profile/edit/index' });
-                    }}
-                  >
-                    资料设置
-                  </Button>
-                </View>
-                <View style={{ flex: 1 }}>
-                  <Button
-                    variant="ghost"
-                    size="small"
-                    onClick={() => {
-                      void syncVerification();
-                    }}
-                  >
-                    刷新认证
-                  </Button>
+                    <View className="row" style={{ gap: '8rpx', flexShrink: 0 }}>
+                      {verification.status ? (
+                        <Tag type={verificationStatusTagType(verification.status)} plain round>
+                          {verificationStatusLabel(verification.status)}
+                        </Tag>
+                      ) : null}
+                      <Tag type="primary" plain round>
+                        {verificationTypeLabel(verification.type)}
+                      </Tag>
+                    </View>
+                  </View>
+                  <View style={{ height: '6rpx' }} />
+                  <Text className="muted">地区：{me.regionCode || '未设置'}</Text>
+
+                  <View style={{ height: '12rpx' }} />
+                  <View className="row" style={{ gap: '12rpx' }}>
+                    <View style={{ flex: 1 }}>
+                      <Button
+                        variant="ghost"
+                        size="small"
+                        onClick={() => {
+                          Taro.navigateTo({ url: '/pages/profile/edit/index' });
+                        }}
+                      >
+                        {!me.avatarUrl || !me.nickname ? '完善资料' : '资料设置'}
+                      </Button>
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <Button
+                        variant="ghost"
+                        size="small"
+                        onClick={() => {
+                          void syncVerification();
+                        }}
+                      >
+                        刷新认证
+                      </Button>
+                    </View>
+                  </View>
                 </View>
               </View>
             </Surface>
@@ -235,17 +239,33 @@ export default function MePage() {
               <CellRow
                 clickable
                 title={<Text className="text-strong">我的收藏</Text>}
-                description={<Text className="muted">已收藏的专利上架</Text>}
+                description={<Text className="muted">已收藏的专利/需求/成果</Text>}
                 onClick={() => {
                   Taro.navigateTo({ url: '/pages/favorites/index' });
                 }}
               />
               <CellRow
                 clickable
-                title={<Text className="text-strong">我的上架</Text>}
+                title={<Text className="text-strong">我的专利上架</Text>}
                 description={<Text className="muted">卖家管理草稿/上架/下架</Text>}
                 onClick={() => {
                   Taro.navigateTo({ url: '/pages/my-listings/index' });
+                }}
+              />
+              <CellRow
+                clickable
+                title={<Text className="text-strong">我的需求</Text>}
+                description={<Text className="muted">发布方管理草稿/审核/下架</Text>}
+                onClick={() => {
+                  Taro.navigateTo({ url: '/pages/my-demands/index' });
+                }}
+              />
+              <CellRow
+                clickable
+                title={<Text className="text-strong">我的成果</Text>}
+                description={<Text className="muted">发布方管理草稿/审核/下架</Text>}
+                onClick={() => {
+                  Taro.navigateTo({ url: '/pages/my-achievements/index' });
                 }}
               />
               <CellRow
@@ -299,7 +319,7 @@ export default function MePage() {
               variant="ghost"
               onClick={() => {
                 clearToken();
-                Taro.showToast({ title: '已退出登录', icon: 'success' });
+                toast('已退出登录', { icon: 'success' });
                 setTimeout(() => Taro.reLaunch({ url: '/pages/home/index' }), 200);
               }}
             >
@@ -309,11 +329,11 @@ export default function MePage() {
         </View>
       )}
 
-      {ENABLE_MOCK_TOOLS ? (
+      {ENABLE_MOCK_TOOLS && APP_MODE === 'development' ? (
         <>
           <View style={{ height: '16rpx' }} />
           <Surface>
-            <Text className="text-card-title">调试：场景</Text>
+            <Text className="text-card-title">开发工具：场景</Text>
             <View style={{ height: '8rpx' }} />
             <Text className="muted">当前：{scenario}</Text>
             <View style={{ height: '12rpx' }} />
@@ -333,7 +353,7 @@ export default function MePage() {
                     onClick={() => {
                       Taro.setStorageSync(STORAGE_KEYS.mockScenario, value);
                       setScenario(value);
-                      Taro.showToast({ title: `已切换：${value}`, icon: 'success' });
+                      toast(`已切换：${value}`, { icon: 'success' });
                     }}
                   >
                     <Text>{label}</Text>

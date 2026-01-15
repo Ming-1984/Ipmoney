@@ -1,0 +1,19 @@
+%%{init: {'theme':'base','flowchart': {'htmlLabels': true},'themeVariables': {'fontFamily': 'Inter, Microsoft YaHei, sans-serif','lineColor':'#64748B','primaryTextColor':'#0F172A','primaryBorderColor':'#CBD5E1','primaryColor':'#F8FAFC'}}}%%
+flowchart TB
+  subgraph P["04 搜索结果（小程序）"]
+    direction TB
+    Pad[" "]:::pad
+    Tabs["分类 Tab<br/>• 专利交易<br/>• 产学研需求<br/>• 成果展示<br/>• 机构展示（企业/科研院校）"]
+    SearchBar["页内搜索（可选）<br/>• 承接首页全局搜索<br/>• 支持：专利号/关键词/企业/发明人"]
+    Filters["筛选区（专利交易）<br/>• 专利类型（发明/实用新型/外观）<br/>• 发明人（可选）<br/>• 行业/分类号（IPC/LOC）<br/>• 法律状态<br/>• 价格区间/订金区间<br/>• 发布时间/地区"]
+    SortBar["排序（新增）<br/>• 默认：推荐<br/>• 可切换：最新/热门/价格升序/价格降序/发明人影响力"]
+    List["列表 Card<br/>• 徽标：同城/同省、特色产业（省/市级）<br/>• 热度：浏览/收藏/咨询（用于推荐）<br/>• 操作：收藏/咨询<br/>• 专利：名称/状态/价格或面议/缩略图<br/>• 需求：标题/预算/合作方式<br/>• 成果：图片/领域/所属单位<br/>• 机构：Logo/名称/地区/标签/上架数（企业/科研院校）"]
+    Pad --> Tabs
+    Tabs --> SearchBar --> Filters --> SortBar --> List
+  end
+
+  Detail["进入：详情页"]
+  List --> Detail
+
+  classDef pad fill:transparent,stroke:transparent,color:transparent;
+  linkStyle 0 stroke:transparent,fill:transparent;

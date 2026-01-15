@@ -6,6 +6,8 @@ import prodConfig from './prod';
 export default ((merge, env) => {
   const isDev = env.mode === 'development';
   const apiBaseUrl = process.env.TARO_APP_API_BASE_URL ?? 'http://127.0.0.1:4010';
+  const taroEnv = process.env.TARO_ENV;
+  const outputRoot = taroEnv ? `dist/${taroEnv}` : 'dist';
 
   const enableMockToolsEnv = process.env.TARO_APP_ENABLE_MOCK_TOOLS;
   const enableMockTools = enableMockToolsEnv === '1' || enableMockToolsEnv === 'true';
@@ -18,7 +20,7 @@ export default ((merge, env) => {
       750: 1,
     },
     sourceRoot: 'src',
-    outputRoot: 'dist',
+    outputRoot,
     plugins: ['@tarojs/plugin-framework-react'],
     defineConstants: {
       __API_BASE_URL__: JSON.stringify(apiBaseUrl),
@@ -33,10 +35,22 @@ export default ((merge, env) => {
         enable: false,
       },
     },
+    csso: {
+      enable: false,
+    },
     mini: {},
     h5: {
       router: {
         mode: 'hash',
+      },
+      postcss: {
+        pxtransform: {
+          config: {
+            baseFontSize: 20,
+            minRootSize: 18,
+            maxRootSize: 22,
+          },
+        },
       },
     },
   };

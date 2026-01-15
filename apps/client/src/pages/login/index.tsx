@@ -14,8 +14,8 @@ import {
   setVerificationType,
 } from '../../lib/auth';
 import { apiPost } from '../../lib/api';
-import { PageHeader, Spacer } from '../../ui/layout';
-import { Button, Input } from '../../ui/nutui';
+import { PageHeader, SectionHeader, Spacer, Surface, TipBanner } from '../../ui/layout';
+import { Button, Input, toast } from '../../ui/nutui';
 
 type AuthTokenResponse = components['schemas']['AuthTokenResponse'];
 type VerificationStatus = components['schemas']['VerificationStatus'];
@@ -42,6 +42,8 @@ export default function LoginPage() {
 
     const vt = (auth.user?.verificationType || null) as VerificationType | null;
     const vs = (auth.user?.verificationStatus || null) as VerificationStatus | null;
+    const nickname = String(auth.user?.nickname || '').trim();
+    const avatarUrl = String(auth.user?.avatarUrl || '').trim();
 
     if (vt) setVerificationType(vt);
     else clearVerificationType();
@@ -51,21 +53,33 @@ export default function LoginPage() {
 
     setOnboardingDone(Boolean(vt) || isOnboardingDone());
 
-    Taro.showToast({ title: '登录成功', icon: 'success' });
+    const needProfile = canWechatLogin && (!nickname || !avatarUrl);
+
+    toast('登录成功', { icon: 'success' });
     setTimeout(() => {
-      if (!vt) {
-        Taro.redirectTo({ url: '/pages/onboarding/choose-identity/index' });
+      const pages = Taro.getCurrentPages();
+      const canGoBack = pages.length > 1;
+
+      const nextType = !vt ? 'redirectTo' : canGoBack ? 'navigateBack' : 'switchTab';
+      const nextUrl = !vt ? '/pages/onboarding/choose-identity/index' : '/pages/home/index';
+
+      if (needProfile) {
+        const qs = `from=login&nextType=${nextType}${nextUrl ? `&nextUrl=${encodeURIComponent(nextUrl)}` : ''}`;
+        Taro.redirectTo({ url: `/pages/profile/edit/index?${qs}` });
         return;
       }
 
-      const pages = Taro.getCurrentPages();
-      if (pages.length > 1) {
+      if (nextType === 'redirectTo') {
+        Taro.redirectTo({ url: nextUrl });
+        return;
+      }
+      if (nextType === 'navigateBack') {
         Taro.navigateBack();
         return;
       }
-      Taro.switchTab({ url: '/pages/home/index' });
+      Taro.switchTab({ url: nextUrl });
     }, 200);
-  }, []);
+  }, [canWechatLogin]);
 
   const wechatLogin = useCallback(async () => {
     if (busy) return;
@@ -82,7 +96,7 @@ export default function LoginPage() {
       const auth = await apiPost<AuthTokenResponse>('/auth/wechat/mp-login', { code });
       afterLogin(auth);
     } catch (e: any) {
-      Taro.showToast({ title: e?.message || '登录失败', icon: 'none' });
+      toast(e?.message || '登录失败');
     } finally {
       setBusy(false);
     }
@@ -92,16 +106,16 @@ export default function LoginPage() {
     if (busy) return;
     const p = phone.trim();
     if (!p) {
-      Taro.showToast({ title: '请输入手机号', icon: 'none' });
+      toast('请输入手机号');
       return;
     }
     setBusy(true);
     try {
       const res = await apiPost<{ cooldownSeconds: number }>('/auth/sms/send', { phone: p, purpose: 'LOGIN' });
       setCooldown(Number(res?.cooldownSeconds || 60));
-      Taro.showToast({ title: '验证码已发送', icon: 'success' });
+      toast('验证码已发送', { icon: 'success' });
     } catch (e: any) {
-      Taro.showToast({ title: e?.message || '发送失败', icon: 'none' });
+      toast(e?.message || '发送失败');
     } finally {
       setBusy(false);
     }
@@ -112,11 +126,11 @@ export default function LoginPage() {
     const p = phone.trim();
     const c = smsCode.trim();
     if (!p) {
-      Taro.showToast({ title: '请输入手机号', icon: 'none' });
+      toast('请输入手机号');
       return;
     }
     if (!c) {
-      Taro.showToast({ title: '请输入验证码', icon: 'none' });
+      toast('请输入验证码');
       return;
     }
     setBusy(true);
@@ -124,7 +138,7 @@ export default function LoginPage() {
       const auth = await apiPost<AuthTokenResponse>('/auth/sms/verify', { phone: p, code: c });
       afterLogin(auth);
     } catch (e: any) {
-      Taro.showToast({ title: e?.message || '登录失败', icon: 'none' });
+      toast(e?.message || '登录失败');
     } finally {
       setBusy(false);
     }
@@ -132,50 +146,51 @@ export default function LoginPage() {
 
   return (
     <View className="container">
-      <PageHeader title="登录" subtitle="登录后可收藏、咨询与交易；首次进入需选择身份，部分主体需资料审核。" />
+      <PageHeader title="登录" subtitle="登录后可收藏、咨询与交易；部分主体需资料审核通过后才能交易。" />
       <Spacer />
 
-      <View className="card">
-        <Text className="text-card-title">微信登录</Text>
-        <View style={{ height: '10rpx' }} />
-        <Text className="muted">{canWechatLogin ? '小程序内可一键微信授权登录' : 'H5 端用于预览，可先快速登录体验流程'}</Text>
-        <View style={{ height: '12rpx' }} />
-        <Button loading={busy} disabled={busy} onClick={() => void wechatLogin()}>
-          {canWechatLogin ? '微信授权登录' : '快速登录（预览）'}
-        </Button>
-      </View>
+      <TipBanner tone="info" title="提示">
+        游客可浏览列表与详情；收藏/咨询/下单/支付需登录；交易需审核通过。小程序内支持微信一键登录，电脑端可使用短信登录。
+      </TipBanner>
 
-      <View style={{ height: '16rpx' }} />
+      {canWechatLogin ? (
+        <>
+          <Spacer size={12} />
+          <Surface>
+            <SectionHeader title="微信登录" subtitle="小程序内支持一键授权登录" density="compact" />
+            <Spacer size={8} />
+            <Button loading={busy} disabled={busy} onClick={() => void wechatLogin()}>
+              微信一键登录
+            </Button>
+          </Surface>
+        </>
+      ) : null}
 
-      <View className="card">
-        <Text className="text-card-title">短信登录</Text>
-        <View style={{ height: '10rpx' }} />
-        <Text className="muted">用于 H5 端登录；如收不到验证码，请检查手机号或稍后重试。</Text>
-        <View style={{ height: '12rpx' }} />
+      <Spacer size={12} />
+
+      <Surface>
+        <SectionHeader title="短信登录" subtitle="用于电脑端/浏览器登录" density="compact" />
+        <Spacer size={10} />
 
         <Text className="muted">手机号</Text>
-        <View style={{ height: '8rpx' }} />
+        <Spacer size={6} />
         <Input value={phone} onChange={setPhone} placeholder="请输入手机号" type="digit" clearable />
 
-        <View style={{ height: '12rpx' }} />
-        <View className="row" style={{ gap: '12rpx', alignItems: 'center' }}>
-          <View className="flex-1">
-            <Button variant="ghost" loading={busy} disabled={busy || cooldown > 0} onClick={() => void sendSms()}>
-              {cooldown > 0 ? `重新发送(${cooldown}s)` : '发送验证码'}
-            </Button>
-          </View>
-        </View>
+        <Spacer size={10} />
+        <Button variant="ghost" loading={busy} disabled={busy || cooldown > 0} onClick={() => void sendSms()}>
+          {cooldown > 0 ? `重新发送(${cooldown}s)` : '发送验证码'}
+        </Button>
 
-        <View style={{ height: '12rpx' }} />
+        <Spacer size={10} />
         <Text className="muted">验证码</Text>
-        <View style={{ height: '8rpx' }} />
+        <Spacer size={6} />
         <Input value={smsCode} onChange={setSmsCode} placeholder="输入短信验证码" type="digit" clearable />
 
-        <View style={{ height: '12rpx' }} />
+        <Spacer size={12} />
         <Button loading={busy} disabled={busy} onClick={() => void verifySms()}>
-          短信验证码登录
+          登录
         </Button>
-      </View>
+      </Surface>
     </View>
   );
 }

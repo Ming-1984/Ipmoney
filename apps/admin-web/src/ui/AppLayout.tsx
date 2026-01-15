@@ -3,6 +3,9 @@ import {
   EnvironmentOutlined,
   FileDoneOutlined,
   GiftOutlined,
+  MessageOutlined,
+  TrophyOutlined,
+  BulbOutlined,
   SettingOutlined,
 } from '@ant-design/icons';
 import { Layout, Menu, Select, Space, Typography } from 'antd';
@@ -10,7 +13,7 @@ import React, { useMemo, useState } from 'react';
 import { Link, Outlet, useLocation } from 'react-router-dom';
 
 import { getMockScenario, setMockScenario } from '../lib/api';
-import logoPng from '../assets/brand/logo.png';
+import logoGif from '../assets/brand/logo.gif';
 
 const { Header, Sider, Content } = Layout;
 
@@ -33,7 +36,7 @@ export function AppLayout() {
       <Sider collapsible collapsed={collapsed} onCollapse={setCollapsed} width={240}>
         <div className="ipm-logo">
           <div className="ipm-logo-mark" aria-hidden="true">
-            <img src={logoPng} alt="" />
+            <img src={logoGif} alt="" />
           </div>
           <div className="ipm-logo-text">
             <span style={{ color: '#fff', fontWeight: 800 }}>Ipmoney 后台</span>
@@ -61,6 +64,21 @@ export function AppLayout() {
               key: 'listings',
               icon: <GiftOutlined />,
               label: <Link to="/listings">上架审核</Link>,
+            },
+            {
+              key: 'demands',
+              icon: <BulbOutlined />,
+              label: <Link to="/demands">需求审核</Link>,
+            },
+            {
+              key: 'achievements',
+              icon: <TrophyOutlined />,
+              label: <Link to="/achievements">成果审核</Link>,
+            },
+            {
+              key: 'comments',
+              icon: <MessageOutlined />,
+              label: <Link to="/comments">留言管理</Link>,
             },
             {
               key: 'orders',

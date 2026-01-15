@@ -1,7 +1,8 @@
-import { Button, Card, Input, InputNumber, Select, Space, Switch, Table, Typography, message } from 'antd';
+import { Button, Card, Cascader, Input, InputNumber, Select, Space, Switch, Table, Typography, message } from 'antd';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 
 import { apiGet, apiPostForm, apiPut } from '../lib/api';
+import { confirmActionWithReason } from '../ui/confirm';
 
 type PatentMapIndustryCount = { industryTag: string; count: number };
 type PatentMapTopAssignee = { name: string; patentCount: number };
@@ -24,6 +25,31 @@ type PatentMapEntry = {
   updatedAt?: string;
 };
 
+type RegionLevel = 'PROVINCE' | 'CITY' | 'DISTRICT';
+
+type RegionNode = {
+  code: string;
+  name: string;
+  level: RegionLevel;
+  parentCode?: string | null;
+  centerLat?: number | null;
+  centerLng?: number | null;
+};
+
+type RegionOption = RegionNode & {
+  value: string;
+  label: string;
+  isLeaf?: boolean;
+  children?: RegionOption[];
+  loading?: boolean;
+};
+
+const NEXT_REGION_LEVEL: Record<RegionLevel, RegionLevel | null> = {
+  PROVINCE: 'CITY',
+  CITY: 'DISTRICT',
+  DISTRICT: null,
+};
+
 function safeParseJsonArray<T>(text: string): T[] | undefined {
   const v = text.trim();
   if (!v) return undefined;
@@ -35,10 +61,14 @@ function safeParseJsonArray<T>(text: string): T[] | undefined {
 export function PatentMapPage() {
   const [years, setYears] = useState<number[]>([]);
   const [regionCode, setRegionCode] = useState('110000');
+  const [regionPath, setRegionPath] = useState<string[]>(['110000']);
   const [year, setYear] = useState<number>(2025);
 
   const [loading, setLoading] = useState(false);
   const [entry, setEntry] = useState<PatentMapEntry | null>(null);
+
+  const [regionOptions, setRegionOptions] = useState<RegionOption[]>([]);
+  const [regionsLoading, setRegionsLoading] = useState(false);
 
   const [importDryRun, setImportDryRun] = useState(false);
   const [importing, setImporting] = useState(false);
@@ -63,6 +93,62 @@ export function PatentMapPage() {
     void loadYears();
   }, [loadYears]);
 
+  const toRegionOption = useCallback(
+    (node: RegionNode): RegionOption => ({
+      ...node,
+      value: node.code,
+      label: `${node.name} (${node.code})`,
+      isLeaf: node.level === 'DISTRICT',
+    }),
+    [],
+  );
+
+  const loadRootRegions = useCallback(async () => {
+    setRegionsLoading(true);
+    try {
+      const d = await apiGet<RegionNode[]>('/admin/regions', { level: 'PROVINCE' });
+      const next = Array.isArray(d) ? d.map(toRegionOption) : [];
+      setRegionOptions(next);
+    } catch (e: any) {
+      message.error(e?.message || '加载地区失败');
+      setRegionOptions([]);
+    } finally {
+      setRegionsLoading(false);
+    }
+  }, [toRegionOption]);
+
+  useEffect(() => {
+    void loadRootRegions();
+  }, [loadRootRegions]);
+
+  const loadRegionChildren = useCallback(
+    async (selectedOptions: RegionOption[]) => {
+      const target = selectedOptions[selectedOptions.length - 1];
+      if (!target) return;
+      target.loading = true;
+      setRegionOptions((prev) => [...prev]);
+      try {
+        const nextLevel = NEXT_REGION_LEVEL[target.level];
+        if (!nextLevel) {
+          target.isLeaf = true;
+          return;
+        }
+        const d = await apiGet<RegionNode[]>('/admin/regions', {
+          level: nextLevel,
+          parentCode: target.code,
+        });
+        const next = Array.isArray(d) ? d.map(toRegionOption) : [];
+        target.children = next;
+      } catch (e: any) {
+        message.error(e?.message || '加载下级地区失败');
+      } finally {
+        target.loading = false;
+        setRegionOptions((prev) => [...prev]);
+      }
+    },
+    [toRegionOption],
+  );
+
   const loadEntry = useCallback(async () => {
     if (!regionCode || !year) return;
     setLoading(true);
@@ -81,7 +167,7 @@ export function PatentMapPage() {
         setPatentCount(0);
         setIndustryJson('[]');
         setAssigneesJson('[]');
-        message.info('暂无数据：可直接录入并保存（演示）');
+        message.info('暂无数据，可直接录入并保存。');
       } else {
         message.error(e?.message || '加载失败');
       }
@@ -101,19 +187,27 @@ export function PatentMapPage() {
       <Space direction="vertical" size={16} style={{ width: '100%' }}>
         <div>
           <Typography.Title level={3} style={{ marginTop: 0 }}>
-            专利地图 CMS（演示）
+            专利地图管理
           </Typography.Title>
           <Typography.Paragraph type="secondary" style={{ marginBottom: 0 }}>
-            P0 数据来源：用户上传/后台录入；本页用于录入区域专利数量与产业/重点单位结构。
+            数据来源：用户上传/后台录入；用于维护区域专利数量与产业/重点单位结构。
           </Typography.Paragraph>
         </div>
 
         <Space wrap>
-          <Input
-            value={regionCode}
-            onChange={(e) => setRegionCode(e.target.value)}
-            style={{ width: 180 }}
-            placeholder="地区编码（6 位）"
+          <Cascader
+            value={regionPath}
+            options={regionOptions}
+            changeOnSelect
+            loadData={loadRegionChildren}
+            placeholder="选择地区"
+            style={{ width: 280 }}
+            disabled={regionsLoading}
+            onChange={(value) => {
+              const next = (value || []).map((v) => String(v));
+              setRegionPath(next);
+              setRegionCode(next[next.length - 1] || '');
+            }}
           />
           <Select
             value={year}
@@ -159,6 +253,18 @@ export function PatentMapPage() {
                     message.error('请选择 Excel 文件');
                     return;
                   }
+                  const { ok } = await confirmActionWithReason({
+                    title: importDryRun ? '确认执行预检？' : '确认导入 Excel？',
+                    content: importDryRun
+                      ? '将按 Excel 内容进行预检（不落库）；用于提前发现格式/数据问题。'
+                      : '将按 Excel 内容批量导入/更新地图数据（会影响小程序地图展示）。',
+                    okText: importDryRun ? '预检' : '导入',
+                    danger: !importDryRun,
+                    reasonLabel: '变更原因（必填）',
+                    reasonPlaceholder: '例：批量更新某年数据；修正统计口径；补齐缺失区域等。',
+                    reasonRequired: true,
+                  });
+                  if (!ok) return;
                   setImporting(true);
                   try {
                     const form = new FormData();
@@ -227,6 +333,15 @@ export function PatentMapPage() {
                 type="primary"
                 disabled={!canSave}
                 onClick={async () => {
+                  const { ok } = await confirmActionWithReason({
+                    title: '确认保存地图数据？',
+                    content: `将更新 regionCode=${regionCode}, year=${year} 的专利数量与结构数据。该操作会影响小程序地图展示。`,
+                    okText: '保存',
+                    reasonLabel: '变更原因（必填）',
+                    reasonPlaceholder: '例：补录缺失；修正统计；按用户上传数据更新等。',
+                    reasonRequired: true,
+                  });
+                  if (!ok) return;
                   try {
                     const payload = {
                       patentCount,

@@ -1,57 +1,36 @@
-import { View, Text } from '@tarojs/components';
-import Taro, { useRouter } from '@tarojs/taro';
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { View, Text, Image } from '@tarojs/components';
+import Taro from '@tarojs/taro';
+import React, { useCallback, useEffect, useState } from 'react';
 
 import type { components } from '@ipmoney/api-types';
+
+import { Heart, HeartFill } from '@nutui/icons-react-taro';
 
 import { apiGet, apiPost } from '../../../lib/api';
 import { getToken } from '../../../lib/auth';
 import { favorite, isFavorited, syncFavorites, unfavorite } from '../../../lib/favorites';
 import { ensureApproved } from '../../../lib/guard';
-import { StickyBar, Surface } from '../../../ui/layout';
-import { Button } from '../../../ui/nutui';
-import { ErrorCard, LoadingCard } from '../../../ui/StateCards';
+import { featuredLevelLabel, patentTypeLabel, priceTypeLabel, tradeModeLabel, verificationTypeLabel } from '../../../lib/labels';
+import { fenToYuan } from '../../../lib/money';
+import { safeNavigateBack } from '../../../lib/navigation';
+import { regionDisplayName } from '../../../lib/regions';
+import { useRouteUuidParam } from '../../../lib/routeParams';
+import { CommentsSection } from '../../../ui/CommentsSection';
+import { CellRow, PageHeader, SectionHeader, Spacer, StickyBar, Surface, TipBanner } from '../../../ui/layout';
+import { Avatar, Button, CellGroup, Space, Tag, toast } from '../../../ui/nutui';
+import { EmptyCard, ErrorCard, LoadingCard, MissingParamCard } from '../../../ui/StateCards';
 
 type ListingPublic = components['schemas']['ListingPublic'];
 
 type Conversation = { id: string };
 
-function fenToYuan(fen?: number): string {
-  if (fen === undefined || fen === null) return '-';
-  return (fen / 100).toFixed(2);
-}
-
-function patentTypeLabel(t?: ListingPublic['patentType']): string {
-  if (!t) return '-';
-  if (t === 'INVENTION') return '发明';
-  if (t === 'UTILITY_MODEL') return '实用新型';
-  if (t === 'DESIGN') return '外观设计';
-  return String(t);
-}
-
-function tradeModeLabel(t: ListingPublic['tradeMode']): string {
-  return t === 'ASSIGNMENT' ? '转让' : '许可';
-}
-
-function priceTypeLabel(t: ListingPublic['priceType']): string {
-  return t === 'NEGOTIABLE' ? '面议' : '一口价';
-}
-
-function featuredLabel(level?: ListingPublic['featuredLevel']): string | null {
-  if (!level || level === 'NONE') return null;
-  if (level === 'PROVINCE') return '省级特色';
-  if (level === 'CITY') return '市级特色';
-  return String(level);
-}
-
 export default function ListingDetailPage() {
-  const router = useRouter();
-  const listingId = useMemo(() => router?.params?.listingId || '', [router?.params?.listingId]);
+  const listingId = useRouteUuidParam('listingId');
 
   if (!listingId) {
     return (
       <View className="container">
-        <ErrorCard title="参数缺失" message="缺少 listingId" onRetry={() => Taro.navigateBack()} />
+        <MissingParamCard onAction={() => void safeNavigateBack()} />
       </View>
     );
   }
@@ -106,11 +85,11 @@ export default function ListingDetailPage() {
       const conv = await apiPost<Conversation>(
         `/listings/${listingId}/conversations`,
         {},
-        { idempotencyKey: `demo-consult-${listingId}` },
+        { idempotencyKey: `conv-${listingId}` },
       );
       Taro.navigateTo({ url: `/pages/messages/chat/index?conversationId=${conv.id}` });
     } catch (e: any) {
-      Taro.showToast({ title: e?.message || '进入咨询失败', icon: 'none' });
+      toast(e?.message || '进入咨询失败');
     }
   }, [listingId]);
 
@@ -120,142 +99,240 @@ export default function ListingDetailPage() {
       if (favoritedState) {
         await unfavorite(listingId);
         setFavoritedState(false);
-        Taro.showToast({ title: '已取消收藏', icon: 'success' });
+        toast('已取消收藏', { icon: 'success' });
         return;
       }
       await favorite(listingId);
       setFavoritedState(true);
-      Taro.showToast({ title: '已收藏', icon: 'success' });
+      toast('已收藏', { icon: 'success' });
     } catch (e: any) {
-      Taro.showToast({ title: e?.message || '操作失败', icon: 'none' });
+      toast(e?.message || '操作失败');
     }
   }, [favoritedState, listingId]);
 
   return (
     <View className="container has-sticky">
+      <PageHeader title="专利详情" subtitle="订金与尾款均在平台托管；权属变更完成后放款。" />
+      <Spacer />
+
       {loading ? (
         <LoadingCard />
       ) : error ? (
         <ErrorCard message={error} onRetry={load} />
       ) : data ? (
         <View>
-          <Surface className="card-header">
-            <Text className="text-title clamp-2">{data.title}</Text>
-            <View style={{ height: '8rpx' }} />
-            <View style={{ display: 'flex', flexDirection: 'row', flexWrap: 'wrap' }}>
-              {data.patentType ? (
-                <View style={{ marginRight: '8rpx', marginBottom: '8rpx' }}>
-                  <Text className="tag tag-gold">{patentTypeLabel(data.patentType)}</Text>
-                </View>
+          {data.coverUrl ? (
+            <Surface padding="none" className="listing-detail-cover">
+              <Image className="listing-detail-cover-img" src={data.coverUrl} mode="aspectFill" />
+            </Surface>
+          ) : null}
+
+          <Spacer size={12} />
+
+          <Surface>
+            <Text className="text-title clamp-2">{data.title || '未命名专利'}</Text>
+            <Spacer size={8} />
+
+            <Space wrap align="center">
+              <Tag type="primary" plain round>
+                类型：{data.patentType ? patentTypeLabel(data.patentType) : '-'}
+              </Tag>
+              <Tag type="default" plain round>
+                交易：{tradeModeLabel(data.tradeMode)}
+              </Tag>
+              <Tag type="default" plain round>
+                价格：{priceTypeLabel(data.priceType)}
+              </Tag>
+              {data.featuredLevel && data.featuredLevel !== 'NONE' ? (
+                <Tag type="primary" plain round>
+                  特色：{featuredLevelLabel(data.featuredLevel)}
+                </Tag>
               ) : null}
-              <View style={{ marginRight: '8rpx', marginBottom: '8rpx' }}>
-                <Text className="tag">{tradeModeLabel(data.tradeMode)}</Text>
+            </Space>
+
+            {data.regionCode || data.industryTags?.length ? (
+              <>
+                <Spacer size={8} />
+                <Space wrap align="center">
+                  {data.regionCode ? (
+                    <Tag type="default" plain round>
+                      地区：{regionDisplayName(data.regionCode)}
+                    </Tag>
+                  ) : null}
+                  {data.industryTags?.slice(0, 4).map((t) => (
+                    <Tag key={t} type="default" plain round>
+                      {t}
+                    </Tag>
+                  ))}
+                </Space>
+              </>
+            ) : null}
+
+            {data.recommendationScore !== undefined && data.recommendationScore !== null ? (
+              <>
+                <Spacer size={8} />
+                <Space wrap align="center">
+                  <Tag type="success" plain round>
+                    推荐分：{String(Math.round(data.recommendationScore * 100) / 100)}
+                  </Tag>
+                  {data.inventorRankScore !== undefined && data.inventorRankScore !== null ? (
+                    <Tag type="success" plain round>
+                      发明人影响力：{String(Math.round(data.inventorRankScore * 100) / 100)}
+                    </Tag>
+                  ) : null}
+                </Space>
+              </>
+            ) : data.inventorRankScore !== undefined && data.inventorRankScore !== null ? (
+              <>
+                <Spacer size={8} />
+                <Space wrap align="center">
+                  <Tag type="success" plain round>
+                    发明人影响力：{String(Math.round(data.inventorRankScore * 100) / 100)}
+                  </Tag>
+                </Space>
+              </>
+            ) : null}
+
+            <Spacer size={12} />
+
+            <View className="listing-detail-price-row">
+              <View className="listing-detail-price-col">
+                <Text className="text-caption">价格</Text>
+                <Text className="text-hero listing-detail-price-main">
+                  {data.priceType === 'NEGOTIABLE' ? '面议' : `¥${fenToYuan(data.priceAmountFen)}`}
+                </Text>
               </View>
-              <View style={{ marginRight: '8rpx', marginBottom: '8rpx' }}>
-                <Text className="tag">{priceTypeLabel(data.priceType)}</Text>
+              <View className="listing-detail-price-col">
+                <Text className="text-caption">订金</Text>
+                <Text className="text-title listing-detail-deposit-main">¥{fenToYuan(data.depositAmountFen)}</Text>
               </View>
-              {featuredLabel(data.featuredLevel) ? (
-                <View style={{ marginRight: '8rpx', marginBottom: '8rpx' }}>
-                  <Text className="tag tag-gold">{featuredLabel(data.featuredLevel)}</Text>
-                </View>
+            </View>
+
+            <Spacer size={10} />
+
+            <View className="row" style={{ gap: '12rpx', alignItems: 'center' }}>
+              <Avatar size="32" src={data.seller?.avatarUrl || ''} background="rgba(15, 23, 42, 0.06)" color="var(--c-muted)">
+                {(data.seller?.nickname || 'U').slice(0, 1)}
+              </Avatar>
+              <Text className="text-strong ellipsis" style={{ flex: 1, minWidth: 0 }}>
+                {data.seller?.nickname || '-'}
+              </Text>
+              {data.seller?.verificationType ? (
+                <Tag type="default" plain round>
+                  {verificationTypeLabel(data.seller.verificationType)}
+                </Tag>
               ) : null}
             </View>
-            <Text className="muted">
-              价格：
-              <Text className="text-strong" style={{ color: 'var(--c-primary)' }}>
-                {data.priceType === 'NEGOTIABLE' ? '面议' : `¥${fenToYuan(data.priceAmountFen)}`}
-              </Text>
-              {'  '}· 订金：
-              <Text className="text-strong" style={{ color: 'var(--c-primary)' }}>
-                ¥{fenToYuan(data.depositAmountFen)}
-              </Text>
-            </Text>
-            <View style={{ height: '8rpx' }} />
-            <Text className="muted">卖家：{data.seller?.nickname || '-'}</Text>
-            <View style={{ height: '6rpx' }} />
-            <Text className="muted">
-              热度：浏览 {data.stats?.viewCount ?? 0} / 收藏 {data.stats?.favoriteCount ?? 0} / 咨询{' '}
-              {data.stats?.consultCount ?? 0}
-            </Text>
+
+            <Spacer size={8} />
+
+            <Space wrap align="center">
+              <Tag type="default" plain round>
+                浏览 {data.stats?.viewCount ?? 0}
+              </Tag>
+              <Tag type="default" plain round>
+                收藏 {data.stats?.favoriteCount ?? 0}
+              </Tag>
+              <Tag type="default" plain round>
+                咨询 {data.stats?.consultCount ?? 0}
+              </Tag>
+            </Space>
           </Surface>
 
-          <View style={{ height: '16rpx' }} />
+          <Spacer size={12} />
 
           <Surface>
-            <Text className="text-card-title">摘要</Text>
-            <View style={{ height: '8rpx' }} />
-            <Text className="muted">{data.summary || '（暂无）'}</Text>
+            <SectionHeader title="摘要" density="compact" />
+            <Text className="muted break-word">{data.summary || '暂无摘要'}</Text>
           </Surface>
 
-          <View style={{ height: '16rpx' }} />
+          <Spacer size={12} />
 
-          <Surface>
-            <Text className="text-card-title">专利信息</Text>
-            <View style={{ height: '8rpx' }} />
-            <Text className="muted">申请号：{data.applicationNoDisplay || '-'}</Text>
-            <View style={{ height: '6rpx' }} />
-            <Text className="muted">
-              发明人：{data.inventorNames?.length ? data.inventorNames.join(' / ') : '（暂无）'}
-            </Text>
-            <View style={{ height: '6rpx' }} />
-            <Text className="muted">IPC：{data.ipcCodes?.length ? data.ipcCodes.join('；') : '（暂无）'}</Text>
-            <View style={{ height: '6rpx' }} />
-            <Text className="muted">Locarno：{data.locCodes?.length ? data.locCodes.join('；') : '（暂无）'}</Text>
-            {data.patentId ? (
-              <>
-                <View style={{ height: '12rpx' }} />
-                <Button
-                  variant="ghost"
-                  size="small"
+          <Surface padding="none">
+            <CellGroup divider>
+              <CellRow
+                arrow={false}
+                title={<Text className="text-strong">申请号</Text>}
+                description={<Text className="muted break-word">{data.applicationNoDisplay || '-'}</Text>}
+              />
+              <CellRow
+                arrow={false}
+                title={<Text className="text-strong">发明人</Text>}
+                description={
+                  <Text className="muted break-word">
+                    {data.inventorNames?.length ? data.inventorNames.join(' / ') : '暂无'}
+                  </Text>
+                }
+              />
+              <CellRow
+                arrow={false}
+                title={<Text className="text-strong">IPC</Text>}
+                description={<Text className="muted break-word">{data.ipcCodes?.length ? data.ipcCodes.join('；') : '暂无'}</Text>}
+              />
+              <CellRow
+                arrow={false}
+                title={<Text className="text-strong">Locarno</Text>}
+                description={<Text className="muted break-word">{data.locCodes?.length ? data.locCodes.join('；') : '暂无'}</Text>}
+              />
+              {data.patentId ? (
+                <CellRow
+                  clickable
+                  title={<Text className="text-strong">查看专利详情</Text>}
+                  description={<Text className="muted">法律状态、权利人、引用、同族等</Text>}
+                  isLast
                   onClick={() => {
                     Taro.navigateTo({ url: `/pages/patent/detail/index?patentId=${data.patentId}` });
                   }}
-                >
-                  查看专利详情
-                </Button>
-              </>
-            ) : null}
+                />
+              ) : (
+                <CellRow
+                  arrow={false}
+                  title={<Text className="text-strong">专利详情</Text>}
+                  description={<Text className="muted">暂无关联专利详情</Text>}
+                  isLast
+                />
+              )}
+            </CellGroup>
           </Surface>
 
-          <View style={{ height: '16rpx' }} />
+          <Spacer size={12} />
 
-          <Surface>
-            <Text className="text-card-title">关键说明</Text>
-            <View style={{ height: '8rpx' }} />
-            <Text className="muted">合同线下签署；尾款在平台支付；权属变更完成后再放款（默认）。</Text>
-            <View style={{ height: '12rpx' }} />
-            <Button
-              variant="ghost"
-              size="small"
-              onClick={() => {
-                Taro.navigateTo({ url: '/pages/trade-rules/index' });
-              }}
-            >
-              查看交易规则
-            </Button>
-          </Surface>
+          <TipBanner
+            tone="warning"
+            title="交易说明"
+            actionText="交易规则"
+            onAction={() => {
+              Taro.navigateTo({ url: '/pages/trade-rules/index' });
+            }}
+          >
+            合同线下签署；尾款在平台支付；权属变更完成后再放款（默认）。收藏/咨询/下单需登录且审核通过。
+          </TipBanner>
+
+          <Spacer size={12} />
+          <CommentsSection contentType="LISTING" contentId={listingId} />
         </View>
       ) : (
-        <Surface>
-          <Text className="muted">无数据</Text>
-        </Surface>
+        <EmptyCard title="暂无数据" message="该专利可能已下架或暂不可访问。" actionText="返回" onAction={() => void safeNavigateBack()} />
       )}
 
       {data ? (
         <StickyBar>
-          <View className="flex-1">
+          <View className="listing-detail-sticky-secondary">
             <Button
-              variant={favoritedState ? 'primary' : 'ghost'}
+              variant="ghost"
+              size="small"
               onClick={() => {
                 void toggleFavorite();
               }}
             >
-              {favoritedState ? '已收藏' : '收藏'}
+              <View className="row" style={{ gap: '8rpx', alignItems: 'center' }}>
+                {favoritedState ? <HeartFill size={14} color="var(--c-primary)" /> : <Heart size={14} color="var(--c-muted)" />}
+                <Text>{favoritedState ? '已收藏' : '收藏'}</Text>
+              </View>
             </Button>
-          </View>
-          <View className="flex-1">
             <Button
               variant="ghost"
+              size="small"
               onClick={() => {
                 void startConsult();
               }}
@@ -263,6 +340,7 @@ export default function ListingDetailPage() {
               咨询
             </Button>
           </View>
+
           <View className="flex-1">
             <Button
               variant="primary"
@@ -271,7 +349,7 @@ export default function ListingDetailPage() {
                 Taro.navigateTo({ url: `/pages/checkout/deposit-pay/index?listingId=${listingId}` });
               }}
             >
-              {`支付订金 ¥${fenToYuan(data.depositAmountFen)}`}
+              {`付订金 ¥${fenToYuan(data.depositAmountFen)}`}
             </Button>
           </View>
         </StickyBar>

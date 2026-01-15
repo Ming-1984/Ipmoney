@@ -2,6 +2,8 @@
 
 > 对照目标：`docs/engineering/ui-v2-spec.md`  
 > 说明：本文件是“逐页任务拆解 + 验收口径”，不做任何代码改动。
+>
+> 补充：筛选/排序/分类的参数对齐表见 `docs/engineering/ui-v2-filter-mapping.md`（OpenAPI ↔ UI 逐项对齐）。
 
 ## 0. 先修的硬风险（P0，影响全局体验）
 
@@ -87,13 +89,15 @@ v2 规范要求：
 - P1（建议）
   - 发布入口卡片：为 Demand/Achievement 补齐“占位状态”规范（见对应页面）
 
+  - PullToRefresh (NutUI) for conversation list; keep manual refresh button for desktop/H5
 #### Messages（`pages/messages/index`）
 
 - 模板：A（Tab Landing + 会话列表）
 - 页面策略：login-required；进入会话 = approved-required
 - P0（必须）
-  - 空态文案去“演示”字样；空态必须给“怎么产生会话”的可行动引导（去详情页咨询/去信息流）
+  - 空态文案去“演示”字样；空态必须给“怎么产生会话”的可行动引导（去详情页咨询/去搜索）
   - 会话列表 cell 的密度/头像/时间展示统一（配合时间格式化）
+  - 会话列表优先用 NutUI 现成组件收口：`Avatar` + `Badge` + `Tag` + `Cell`（更像微信，减少自绘样式）
 - P1（建议）
   - 刷新策略：下拉刷新/进入页面自动刷新节流（避免频繁请求）
 
@@ -108,16 +112,6 @@ v2 规范要求：
   - “认证状态”展示标准化：APPROVED/PENDING/REJECTED 的解释文案与下一步动作一致
 
 ### 1.2 非 Tab：列表与详情
-
-#### Feeds（`pages/feeds/index`）
-
-- 模板：B（List + Filter）
-- 页面策略：public；动作（收藏/咨询）= approved-required
-- P0（必须）
-  - PageHeader 副标题过长：限制行数与层级（可拆成“帮助说明”折叠区）
-  - “切换/刷新”区域：按钮密度与主次（ghost）统一，避免与主 CTA 冲突
-- P1（建议）
-  - 列表分页/下拉刷新策略（当前只 page=1）
 
 #### Inventors（`pages/inventors/index`）
 
@@ -154,6 +148,7 @@ v2 规范要求：
 - 模板：C（Detail）
 - 页面策略：public
 - P0（必须）
+  - 顶部信息区收口：用 NutUI `Tag`/`Space` 展示 年份/专利数/更新时间（避免 MetaPills 与自绘 tag 混排）
   - 详情分块（产业分布/重点单位）统一 list-item 视觉与空态文案（“（暂无）”统一为 v2 空态样式）
 - P1（建议）
   - 增加“返回/切换年份”一致的顶部操作区（避免用户迷路）
@@ -165,6 +160,7 @@ v2 规范要求：
 - P0（必须）
   - PageHeader 副标题去 P0 字样；说明文案缩短并可扫读
   - 详情信息布局统一：头像/名称/标签/统计信息的对齐与断行规则
+  - 顶部信息区收口：用 NutUI `Avatar` + `Tag` + `Space` 展示 机构类型/地区/上架数/专利数（避免 MetaPills 与自绘 tag 混排）
 - P1（建议）
   - 增加“联系/咨询”入口（如果产品需要），并统一权限策略
 
@@ -174,20 +170,54 @@ v2 规范要求：
 - 页面策略：public；动作（收藏/咨询/订金）= approved-required
 - P0（必须）
   - 详情首屏信息层级固化：标题/类型/价格/订金/卖家/热度的展示顺序与密度
+  - 首屏「分类/标签」区分层级：关键标签（类型/交易/价格类型/特色）+ 次要标签（地区/行业）；用 NutUI `Tag`/`Space` 收口，避免 MetaPills 堆满一屏
+  - 卖家信息用 NutUI `Avatar` + `Tag`（认证类型），热度（浏览/收藏/咨询）也用 `Tag` 统一（避免首屏 MetaPills/自绘混用）
   - StickyBar：三按钮主次规则统一（最多 1 个 primary；其余 ghost）
   - 缺参兜底已存在，但文案需统一术语（参数缺失 → 返回）
 - P1（建议）
   - 价格/订金/统计/时间统一格式化（金额两位小数、时间可读）
 
+#### Demand Detail (`pages/demand/detail/index`)
+
+- Template: C (Detail + Sticky CTA)
+- Page policy: public; actions (favorite/consult) = approved-required
+- P0 (must)
+  - Detail hero: cover/title/meta density aligned with Listing Detail
+  - ?????coverUrl ??/??????????? IMAGE ????????????
+  - 顶部信息区用成熟组件收口：NutUI `Tag`/`Space`（预算/合作方式/行业/地区/发布时间/热度）；发布方用 `Avatar` + 认证类型 label
+  - Meta formatting: createdAt uses formatTimeSmart; region/time/stats are scannable
+  - Media section: reuse shared MediaSection (IMAGE/VIDEO/FILE) with preview + copy link
+  - VIDEO 兜底：播放失败不应白屏/抛异常；增加 `onError` toast + 复制链接；fixtures 里的视频 URL 不用 `example.com`（可改为可播放示例，如 MDN `cc0-videos/flower.mp4`）
+  - Reduce inline styles: prefer shared components (Surface/SectionHeader/Spacer)
+- P1 (suggest)
+  - Long text UX: expand/collapse for description when too long
+
+#### Achievement Detail (`pages/achievement/detail/index`)
+
+- Template: C (Detail + Sticky CTA)
+- Page policy: public; actions (favorite/consult) = approved-required
+- P0 (must)
+  - Detail hero: cover/title/meta density aligned with Listing Detail
+  - ?????coverUrl ??/??????????? IMAGE ????????????
+  - 顶部信息区用成熟组件收口：NutUI `Tag`/`Space`（成熟度/合作方式/行业/地区/发布时间/热度）；发布方用 `Avatar` + 认证类型 label
+  - Meta formatting: createdAt uses formatTimeSmart; region/time/stats are scannable
+  - Media section: reuse shared MediaSection (IMAGE/VIDEO/FILE) with preview + copy link
+  - VIDEO 兜底：播放失败不应白屏/抛异常；增加 `onError` toast + 复制链接；fixtures 里的视频 URL 不用 `example.com`（可改为可播放示例，如 MDN `cc0-videos/flower.mp4`）
+  - Reduce inline styles: prefer shared components (Surface/SectionHeader/Spacer)
+- P1 (suggest)
+  - Add share entry if product needs it
+
 #### Patent Detail（`pages/patent/detail/index`）
 
-- 模板：C（Detail）
-- 页面策略：public
-- P0（必须）
-  - PageHeader 副标题去 P0 字样
-  - “法律状态 UNKNOWN”等枚举展示需提供用户可解释文案或映射 label
-- P1（建议）
-  - 关键信息（申请号/摘要/主体/时间）排版密度优化，减少冗余分隔
+- Template: C (Detail)
+- Page policy: public
+- P0 (must)
+  - Map legalStatus to readable label + tone (avoid showing UNKNOWN/raw enum)
+  - Key info uses consistent blocks (MetaPills/SectionHeader) and avoids redundant separators
+  - Dates are formatted consistently (no raw ISO)
+  - 顶部信息区收口：用 NutUI `Tag`/`Space` 展示 类型/法律状态/申请号，并提供“复制申请号”动作（避免信息散落）
+- P1 (suggest)
+  - Add quick actions (copy applicationNo, share) if product needs
 
 #### Trade Rules（`pages/trade-rules/index`）
 
@@ -196,6 +226,7 @@ v2 规范要求：
 - P0（必须）
   - PageHeader 副标题去 P0 字样
   - 规则页必须“可扫读”：分节标题 + 要点列表 + 关键数字强调（避免长段落）
+  - 关键数字/参数展示用 NutUI `Tag`/`Space` 收口（避免 MetaPills 与自绘 tag 混排）
 - P1（建议）
   - 增加“示例/FAQ”折叠区（减少误解与客服成本）
 
@@ -207,7 +238,7 @@ v2 规范要求：
 - 页面策略：approved-required（页面级）
 - P0（必须）
   - 修复 RISK-P0-01：未通过审核时不能卡 Loading，必须显示 Audit/Permission 状态并给跳转
-  - 空态引导：无收藏时给“去搜索/去信息流”入口（不只刷新）
+  - 空态引导：无收藏时给“去搜索”入口（不只刷新）
 - P1（建议）
   - 支持分页与批量操作（如需要）
 
@@ -350,6 +381,7 @@ v2 规范要求：
 - P0（必须）
   - 成功页模板统一：信息摘要、下一步 Steps、主 CTA（进入消息/订单）
   - PermissionCard 之外补齐 AuditPending（避免“已登录但未审核”的尴尬状态）
+  - “订单摘要”用 NutUI `Tag`/`Space` 收口（避免 MetaPills 与业务 Tag 混排）
 - P1（建议）
   - 订单详情跳转入口（如果产品需要）
 
@@ -357,13 +389,18 @@ v2 规范要求：
 
 #### Chat（`pages/messages/chat/index`）
 
-- 模板：F（Chat）
-- 页面策略：approved-required（页面级）
-- P0（必须）
-  - createdAt 时间展示格式化（不要直接 ISO 字符串）
-  - 消息发送失败的 UI 反馈统一（撤回 optimistic、toast 文案规范）
-- P1（建议）
-  - 上拉加载历史、已读/未读、图片/文件消息展示（产品确认后）
+- Template: F (Chat)
+- Page policy: approved-required (page-level)
+- P0 (must)
+  - createdAt uses formatTimeSmart (no raw ISO strings)
+  - ScrollView message list + auto scroll to latest; keep input fixed with safe-area padding
+  - Render message types: TEXT/IMAGE/FILE/SYSTEM (image preview, file copy link)
+  - Cursor pagination for history (pull-to-refresh / load more) without jumping scroll position
+  - Sending state: optimistic bubble -> replace with server message; failure keeps bubble with retry
+- P1 (suggest)
+  - Unread divider / day grouping
+  - Attachment upload (image/file)
+  - Read receipt (if backend supports)
 
 ## 2. Admin（apps/admin-web）逐页任务拆解（规划级）
 

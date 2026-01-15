@@ -1,10 +1,19 @@
 :root {
   --ipm-primary: #ff6a00;
+  --ipm-primary-hover: #ff7a00;
+  --ipm-primary-active: #e85a00;
   --ipm-gold: #ffc54d;
   --ipm-bg: #fff3e6;
+  --ipm-bg-strong: #ffe3cc;
   --ipm-text: #0f172a;
   --ipm-muted: #475569;
   --ipm-border: #e2e8f0;
+  --ipm-success: #16a34a;
+  --ipm-warning: #f59e0b;
+  --ipm-error: #dc2626;
+  --ipm-bg-container: rgba(255, 255, 255, 0.92);
+  --ipm-bg-elevated: rgba(255, 255, 255, 0.98);
+  --ipm-shadow-secondary: 0 18px 40px rgba(15, 23, 42, 0.08);
 }
 
 html,

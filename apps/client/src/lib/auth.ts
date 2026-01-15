@@ -16,6 +16,8 @@ export function clearToken() {
   Taro.removeStorageSync(STORAGE_KEYS.verificationType);
   Taro.removeStorageSync(STORAGE_KEYS.verificationStatus);
   Taro.removeStorageSync(STORAGE_KEYS.favoriteListingIds);
+  Taro.removeStorageSync(STORAGE_KEYS.favoriteDemandIds);
+  Taro.removeStorageSync(STORAGE_KEYS.favoriteAchievementIds);
 }
 
 export function isOnboardingDone(): boolean {

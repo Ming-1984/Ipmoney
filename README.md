@@ -24,6 +24,7 @@ powershell -ExecutionPolicy Bypass -File scripts/demo.ps1
 
 若端口被占用，`scripts/demo.ps1` 会自动选择可用端口并输出实际地址（以脚本输出为准）。
 如需手动启动（固定端口，适合端口未占用时）：`pnpm dev`。
+如需一键清理旧的本地 dev 进程（占用端口导致启动失败时）：`powershell -ExecutionPolicy Bypass -File scripts/clean-dev.ps1`。
 
 Mock 场景切换（演示/回归）：
 - Header：`X-Mock-Scenario: happy|empty|error|edge`

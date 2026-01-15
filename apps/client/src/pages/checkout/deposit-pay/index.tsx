@@ -1,12 +1,16 @@
 import { View, Text } from '@tarojs/components';
-import Taro, { useRouter } from '@tarojs/taro';
+import Taro from '@tarojs/taro';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 
 import { apiGet, apiPost } from '../../../lib/api';
 import { ensureApproved } from '../../../lib/guard';
+import { fenToYuan } from '../../../lib/money';
+import { safeNavigateBack } from '../../../lib/navigation';
+import { useRouteUuidParam } from '../../../lib/routeParams';
 import { PageHeader, StickyBar } from '../../../ui/layout';
-import { Button } from '../../../ui/nutui';
-import { EmptyCard, ErrorCard, LoadingCard } from '../../../ui/StateCards';
+import { Button, toast } from '../../../ui/nutui';
+import { EmptyCard, ErrorCard, LoadingCard, MissingParamCard } from '../../../ui/StateCards';
+import { MiniProgramPayGuide } from '../components/MiniProgramPayGuide';
 
 type ListingPublic = {
   id: string;
@@ -30,20 +34,15 @@ type PaymentIntentResponse = {
     paySign: string;
   };
 };
-
-function fenToYuan(fen?: number): string {
-  if (fen === undefined || fen === null) return '-';
-  return (fen / 100).toFixed(2);
-}
-
 export default function DepositPayPage() {
-  const router = useRouter();
-  const listingId = useMemo(() => router?.params?.listingId || '', [router?.params?.listingId]);
+  const listingId = useRouteUuidParam('listingId') || '';
+  const env = useMemo(() => Taro.getEnv(), []);
+  const isH5 = env === Taro.ENV_TYPE.WEB;
 
   if (!listingId) {
     return (
       <View className="container">
-        <ErrorCard title="参数缺失" message="缺少 listingId" onRetry={() => Taro.navigateBack()} />
+        <MissingParamCard onAction={() => void safeNavigateBack()} />
       </View>
     );
   }
@@ -74,24 +73,28 @@ export default function DepositPayPage() {
   const onPay = useCallback(async () => {
     if (!ensureApproved()) return;
     if (!listingId) return;
+    if (isH5) {
+      toast('H5 端不发起支付，请到小程序完成支付');
+      return;
+    }
     setPaying(true);
     try {
       const order = await apiPost<Order>('/orders', { listingId });
       const intent = await apiPost<PaymentIntentResponse>(
         `/orders/${order.id}/payment-intents`,
         { payType: 'DEPOSIT' },
-        { idempotencyKey: `demo-deposit-${order.id}` },
+        { idempotencyKey: `pay-deposit-${order.id}` },
       );
 
       Taro.navigateTo({
         url: `/pages/checkout/deposit-success/index?orderId=${order.id}&paymentId=${intent.paymentId}`,
       });
     } catch (e: any) {
-      Taro.showToast({ title: e?.message || '支付失败', icon: 'none' });
+      toast(e?.message || '支付失败');
     } finally {
       setPaying(false);
     }
-  }, [listingId]);
+  }, [isH5, listingId]);
 
   return (
     <View className="container has-sticky">
@@ -133,12 +136,22 @@ export default function DepositPayPage() {
           </View>
 
           <View style={{ height: '16rpx' }} />
+
+          {isH5 ? (
+            <>
+              <MiniProgramPayGuide
+                miniProgramPath={`pages/checkout/deposit-pay/index?listingId=${listingId}`}
+                description="H5 端不发起支付。微信内可一键跳转小程序；微信外/桌面可复制链接或扫码在微信打开。"
+              />
+              <View style={{ height: '16rpx' }} />
+            </>
+          ) : null}
         </View>
       ) : (
         <EmptyCard title="无数据" message="该专利不存在或不可见。" actionText="返回" onAction={() => Taro.navigateBack()} />
       )}
 
-      {listing && !loading && !error ? (
+      {listing && !loading && !error && !isH5 ? (
         <StickyBar>
           <View className="flex-1">
             <Button variant="ghost" onClick={() => Taro.navigateBack()}>

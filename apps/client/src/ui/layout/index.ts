@@ -1,7 +1,13 @@
 export { Card } from './Card';
 export { CellRow } from './CellRow';
+export { IconBadge } from './IconBadge';
+export { MetaPills } from './MetaPills';
 export { PageHeader } from './PageHeader';
+export { PopupSheet } from './PopupSheet';
+export { SectionHeader } from './SectionHeader';
 export { Spacer } from './Spacer';
+export { StateIllustration } from './StateIllustration';
 export { Surface } from './Surface';
 export { StickyBar } from './StickyBar';
+export { TipBanner } from './TipBanner';
 export { Toolbar } from './Toolbar';

@@ -32,6 +32,10 @@ tags:
     description: 检索、排序与猜你喜欢
   - name: Listings
     description: 上架商品（卖家）与收藏/咨询
+  - name: Demands
+    description: 产学研需求（发布/审核/展示/咨询）
+  - name: Achievements
+    description: 成果展示（发布/审核/展示/咨询）
   - name: Orders
     description: 订单创建、查询与状态机
   - name: Payments
@@ -44,6 +48,8 @@ tags:
     description: 订单电子发票下载
   - name: Messaging
     description: 会话与消息（咨询/聊天）
+  - name: Comments
+    description: 详情页留言与互动回复
   - name: Regions
     description: 行政区划与地域产业标签
   - name: PatentMap
@@ -57,6 +63,12 @@ paths:
     post:
       tags: [Auth]
       summary: 微信小程序登录（code → token）
+      description: |
+        小程序端通过 `wx.login` 获取 `code` 后调用本接口。
+
+        说明：
+        - 服务端应使用微信 `code2Session`（`/sns/jscode2session`）换取 `openid/session_key`，并按 `openid` 做用户映射后签发平台 `accessToken`。
+        - `wx.login` 不返回头像/昵称：头像/昵称建议走 `chooseAvatar + input type="nickname"`，并通过 `POST /files` + `PATCH /me` 落库。
       operationId: authWechatMpLogin
       security: []
       requestBody:
@@ -173,9 +185,11 @@ paths:
                 nickname:
                   type: string
                   maxLength: 50
+                  description: 昵称；小程序端建议使用 `<input type="nickname">` 采集
                 avatarUrl:
                   type: string
                   format: uri
+                  description: 头像 URL；建议先 `POST /files` 上传（`purpose=AVATAR`）再写入
                 regionCode:
                   type: string
                   description: 用于地域推荐；小程序定位/手动选择后可更新
@@ -253,6 +267,46 @@ paths:
         "401":
           $ref: "#/components/responses/Unauthorized"
 
+  /me/favorites/demands:
+    get:
+      tags: [Demands]
+      summary: 我的需求收藏列表
+      operationId: listMyFavoriteDemands
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/Page"
+        - $ref: "#/components/parameters/PageSize"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PagedDemandSummary"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /me/favorites/achievements:
+    get:
+      tags: [Achievements]
+      summary: 我的成果收藏列表
+      operationId: listMyFavoriteAchievements
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/Page"
+        - $ref: "#/components/parameters/PageSize"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PagedAchievementSummary"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
   /me/recommendations/listings:
     get:
       tags: [Search]
@@ -278,6 +332,13 @@ paths:
     post:
       tags: [Files]
       summary: 上传文件
+      description: |
+        用于上传头像/认证材料/合同等文件。
+
+        小程序头像建议：
+        1) `purpose=AVATAR`
+        2) 上传成功拿到 `url`
+        3) `PATCH /me { avatarUrl: url }`
       operationId: uploadFile
       security:
         - BearerAuth: []
@@ -383,6 +444,108 @@ paths:
         "404":
           $ref: "#/components/responses/NotFound"
 
+  /public/listings/{listingId}/comments:
+    get:
+      tags: [Comments]
+      summary: 获取上架留言列表（公开）
+      operationId: listPublicListingComments
+      security: []
+      parameters:
+        - $ref: "#/components/parameters/ListingId"
+        - $ref: "#/components/parameters/Page"
+        - $ref: "#/components/parameters/PageSize"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PagedCommentThread"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /public/demands/{demandId}:
+    get:
+      tags: [Demands]
+      summary: 获取需求详情（公开）
+      operationId: getPublicDemandById
+      security: []
+      parameters:
+        - $ref: "#/components/parameters/DemandId"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DemandPublic"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /public/demands/{demandId}/comments:
+    get:
+      tags: [Comments]
+      summary: 获取需求留言列表（公开）
+      operationId: listPublicDemandComments
+      security: []
+      parameters:
+        - $ref: "#/components/parameters/DemandId"
+        - $ref: "#/components/parameters/Page"
+        - $ref: "#/components/parameters/PageSize"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PagedCommentThread"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /public/achievements/{achievementId}:
+    get:
+      tags: [Achievements]
+      summary: 获取成果详情（公开）
+      operationId: getPublicAchievementById
+      security: []
+      parameters:
+        - $ref: "#/components/parameters/AchievementId"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AchievementPublic"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /public/achievements/{achievementId}/comments:
+    get:
+      tags: [Comments]
+      summary: 获取成果留言列表（公开）
+      operationId: listPublicAchievementComments
+      security: []
+      parameters:
+        - $ref: "#/components/parameters/AchievementId"
+        - $ref: "#/components/parameters/Page"
+        - $ref: "#/components/parameters/PageSize"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PagedCommentThread"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
   /public/organizations:
     get:
       tags: [Organizations]
@@ -402,6 +565,24 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/PagedOrganizationSummary"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+
+  /public/industry-tags:
+    get:
+      tags: [Regions]
+      summary: 获取产业标签列表（用于筛选）
+      operationId: listPublicIndustryTags
+      security: []
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/IndustryTag"
         "400":
           $ref: "#/components/responses/BadRequest"
 
@@ -427,6 +608,10 @@ paths:
     get:
       tags: [Regions]
       summary: 获取行政区划树（用于筛选/地图）
+      description: |-
+        用于地区筛选与地图定位。
+
+        小程序「专利地图」P0（最快落地）会用 `level=PROVINCE` 获取各省份的 `centerLat/centerLng` 作为地图 marker 坐标。
       operationId: listRegions
       security: []
       parameters:
@@ -476,6 +661,13 @@ paths:
     get:
       tags: [PatentMap]
       summary: 获取地图热力数据（按区域聚合）
+      description: |-
+        返回某一年、某层级（省/市/区）的专利数量统计。
+
+        小程序「专利地图」P0（最快落地）典型用法：
+        1) `GET /patent-map/years` 获取年份；
+        2) `GET /patent-map/summary?year=YYYY&level=PROVINCE` 获取省级专利数量；
+        3) `GET /regions?level=PROVINCE` 获取省级中心点坐标，前端在真实地图上以 marker 展示。
       operationId: getPatentMapSummary
       security: []
       parameters:
@@ -564,6 +756,58 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/PagedListingSummary"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+
+  /search/demands:
+    get:
+      tags: [Search]
+      summary: 产学研需求检索
+      operationId: searchDemands
+      security: []
+      parameters:
+        - $ref: "#/components/parameters/Q"
+        - $ref: "#/components/parameters/RegionCode"
+        - $ref: "#/components/parameters/IndustryTags"
+        - $ref: "#/components/parameters/CooperationModes"
+        - $ref: "#/components/parameters/BudgetType"
+        - $ref: "#/components/parameters/BudgetMin"
+        - $ref: "#/components/parameters/BudgetMax"
+        - $ref: "#/components/parameters/ContentSortBy"
+        - $ref: "#/components/parameters/Page"
+        - $ref: "#/components/parameters/PageSize"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PagedDemandSummary"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+
+  /search/achievements:
+    get:
+      tags: [Search]
+      summary: 成果展示检索
+      operationId: searchAchievements
+      security: []
+      parameters:
+        - $ref: "#/components/parameters/Q"
+        - $ref: "#/components/parameters/RegionCode"
+        - $ref: "#/components/parameters/IndustryTags"
+        - $ref: "#/components/parameters/CooperationModes"
+        - $ref: "#/components/parameters/AchievementMaturity"
+        - $ref: "#/components/parameters/ContentSortBy"
+        - $ref: "#/components/parameters/Page"
+        - $ref: "#/components/parameters/PageSize"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PagedAchievementSummary"
         "400":
           $ref: "#/components/responses/BadRequest"
 
@@ -756,6 +1000,38 @@ paths:
         "409":
           $ref: "#/components/responses/Conflict"
 
+  /listings/{listingId}/comments:
+    post:
+      tags: [Comments]
+      summary: 创建上架留言/回复
+      operationId: createListingComment
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/ListingId"
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CommentCreateRequest"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Comment"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+
   /listings/{listingId}/submit:
     post:
       tags: [Listings]
@@ -805,6 +1081,506 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Listing"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /demands:
+    post:
+      tags: [Demands]
+      summary: 创建需求草稿（发布方）
+      operationId: createDemand
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DemandCreateRequest"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Demand"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+    get:
+      tags: [Demands]
+      summary: 我的需求列表（发布方）
+      operationId: listMyDemands
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/ContentStatus"
+        - $ref: "#/components/parameters/AuditStatus"
+        - $ref: "#/components/parameters/Page"
+        - $ref: "#/components/parameters/PageSize"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PagedDemand"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /demands/{demandId}:
+    get:
+      tags: [Demands]
+      summary: 获取需求详情（发布方/已登录）
+      operationId: getDemandById
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/DemandId"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Demand"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+    patch:
+      tags: [Demands]
+      summary: 更新需求草稿（发布方）
+      operationId: updateDemand
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/DemandId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DemandUpdateRequest"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Demand"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /demands/{demandId}/favorites:
+    post:
+      tags: [Demands]
+      summary: 收藏需求
+      operationId: favoriteDemand
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/DemandId"
+        - $ref: "#/components/parameters/IdempotencyKey"
+      responses:
+        "204":
+          description: No Content
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+    delete:
+      tags: [Demands]
+      summary: 取消收藏需求
+      operationId: unfavoriteDemand
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/DemandId"
+        - $ref: "#/components/parameters/IdempotencyKey"
+      responses:
+        "204":
+          description: No Content
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+
+  /demands/{demandId}/comments:
+    post:
+      tags: [Comments]
+      summary: 创建需求留言/回复
+      operationId: createDemandComment
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/DemandId"
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CommentCreateRequest"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Comment"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+
+  /demands/{demandId}/submit:
+    post:
+      tags: [Demands]
+      summary: 提交审核（发布方）
+      operationId: submitDemand
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/DemandId"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Demand"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /demands/{demandId}/off-shelf:
+    post:
+      tags: [Demands]
+      summary: 下架（发布方）
+      operationId: offShelfDemand
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/DemandId"
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                reason:
+                  type: string
+                  maxLength: 200
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Demand"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /achievements:
+    post:
+      tags: [Achievements]
+      summary: 创建成果草稿（发布方）
+      operationId: createAchievement
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AchievementCreateRequest"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Achievement"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+    get:
+      tags: [Achievements]
+      summary: 我的成果列表（发布方）
+      operationId: listMyAchievements
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/ContentStatus"
+        - $ref: "#/components/parameters/AuditStatus"
+        - $ref: "#/components/parameters/Page"
+        - $ref: "#/components/parameters/PageSize"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PagedAchievement"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /achievements/{achievementId}:
+    get:
+      tags: [Achievements]
+      summary: 获取成果详情（发布方/已登录）
+      operationId: getAchievementById
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/AchievementId"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Achievement"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+    patch:
+      tags: [Achievements]
+      summary: 更新成果草稿（发布方）
+      operationId: updateAchievement
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/AchievementId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AchievementUpdateRequest"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Achievement"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /achievements/{achievementId}/favorites:
+    post:
+      tags: [Achievements]
+      summary: 收藏成果
+      operationId: favoriteAchievement
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/AchievementId"
+        - $ref: "#/components/parameters/IdempotencyKey"
+      responses:
+        "204":
+          description: No Content
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+    delete:
+      tags: [Achievements]
+      summary: 取消收藏成果
+      operationId: unfavoriteAchievement
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/AchievementId"
+        - $ref: "#/components/parameters/IdempotencyKey"
+      responses:
+        "204":
+          description: No Content
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+
+  /achievements/{achievementId}/comments:
+    post:
+      tags: [Comments]
+      summary: 创建成果留言/回复
+      operationId: createAchievementComment
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/AchievementId"
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CommentCreateRequest"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Comment"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+
+  /comments/{commentId}:
+    patch:
+      tags: [Comments]
+      summary: 编辑留言
+      operationId: updateComment
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/CommentId"
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CommentUpdateRequest"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Comment"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+    delete:
+      tags: [Comments]
+      summary: 删除留言
+      operationId: deleteComment
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/CommentId"
+        - $ref: "#/components/parameters/IdempotencyKey"
+      responses:
+        "204":
+          description: No Content
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+
+  /achievements/{achievementId}/submit:
+    post:
+      tags: [Achievements]
+      summary: 提交审核（发布方）
+      operationId: submitAchievement
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/AchievementId"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Achievement"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /achievements/{achievementId}/off-shelf:
+    post:
+      tags: [Achievements]
+      summary: 下架（发布方）
+      operationId: offShelfAchievement
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/AchievementId"
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                reason:
+                  type: string
+                  maxLength: 200
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Achievement"
         "401":
           $ref: "#/components/responses/Unauthorized"
         "403":
@@ -1076,6 +1852,54 @@ paths:
         - BearerAuth: []
       parameters:
         - $ref: "#/components/parameters/ListingId"
+        - $ref: "#/components/parameters/IdempotencyKey"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Conversation"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+
+  /demands/{demandId}/conversations:
+    post:
+      tags: [Messaging]
+      summary: 创建/获取与该需求相关的会话（咨询）
+      operationId: upsertDemandConversation
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/DemandId"
+        - $ref: "#/components/parameters/IdempotencyKey"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Conversation"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+
+  /achievements/{achievementId}/conversations:
+    post:
+      tags: [Messaging]
+      summary: 创建/获取与该成果相关的会话（咨询）
+      operationId: upsertAchievementConversation
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/AchievementId"
         - $ref: "#/components/parameters/IdempotencyKey"
       responses:
         "200":
@@ -1550,6 +2374,8 @@ paths:
       security:
         - BearerAuth: []
       parameters:
+        - $ref: "#/components/parameters/Q"
+        - $ref: "#/components/parameters/RegionCode"
         - $ref: "#/components/parameters/AuditStatus"
         - $ref: "#/components/parameters/ListingStatus"
         - $ref: "#/components/parameters/Page"
@@ -1651,6 +2477,241 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Listing"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+
+  /admin/demands:
+    get:
+      tags: [Admin]
+      summary: 需求审核列表
+      operationId: adminListDemandsForAudit
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/Q"
+        - $ref: "#/components/parameters/RegionCode"
+        - $ref: "#/components/parameters/AuditStatus"
+        - $ref: "#/components/parameters/ContentStatus"
+        - $ref: "#/components/parameters/Page"
+        - $ref: "#/components/parameters/PageSize"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PagedDemand"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+
+  /admin/demands/{demandId}/approve:
+    post:
+      tags: [Admin]
+      summary: 需求审核通过
+      operationId: adminApproveDemand
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/DemandId"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Demand"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+
+  /admin/demands/{demandId}/reject:
+    post:
+      tags: [Admin]
+      summary: 需求审核驳回
+      operationId: adminRejectDemand
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/DemandId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [reason]
+              properties:
+                reason:
+                  type: string
+                  minLength: 1
+                  maxLength: 500
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Demand"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+
+  /admin/achievements:
+    get:
+      tags: [Admin]
+      summary: 成果审核列表
+      operationId: adminListAchievementsForAudit
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/Q"
+        - $ref: "#/components/parameters/RegionCode"
+        - $ref: "#/components/parameters/AuditStatus"
+        - $ref: "#/components/parameters/ContentStatus"
+        - $ref: "#/components/parameters/Page"
+        - $ref: "#/components/parameters/PageSize"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PagedAchievement"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+
+  /admin/achievements/{achievementId}/approve:
+    post:
+      tags: [Admin]
+      summary: 成果审核通过
+      operationId: adminApproveAchievement
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/AchievementId"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Achievement"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+
+  /admin/achievements/{achievementId}/reject:
+    post:
+      tags: [Admin]
+      summary: 成果审核驳回
+      operationId: adminRejectAchievement
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/AchievementId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [reason]
+              properties:
+                reason:
+                  type: string
+                  minLength: 1
+                  maxLength: 500
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Achievement"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+
+  /admin/comments:
+    get:
+      tags: [Admin]
+      summary: 留言管理列表
+      operationId: adminListComments
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/Q"
+        - $ref: "#/components/parameters/CommentContentType"
+        - $ref: "#/components/parameters/CommentContentId"
+        - $ref: "#/components/parameters/CommentStatus"
+        - $ref: "#/components/parameters/Page"
+        - $ref: "#/components/parameters/PageSize"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PagedComment"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+
+  /admin/comments/{commentId}:
+    patch:
+      tags: [Admin]
+      summary: 更新留言状态（隐藏/恢复/删除）
+      operationId: adminUpdateComment
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/CommentId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AdminCommentUpdateRequest"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Comment"
         "400":
           $ref: "#/components/responses/BadRequest"
         "401":
@@ -2095,6 +3156,24 @@ components:
       required: false
       schema:
         $ref: "#/components/schemas/MoneyFen"
+    BudgetType:
+      name: budgetType
+      in: query
+      required: false
+      schema:
+        $ref: "#/components/schemas/PriceType"
+    BudgetMin:
+      name: budgetMinFen
+      in: query
+      required: false
+      schema:
+        $ref: "#/components/schemas/MoneyFen"
+    BudgetMax:
+      name: budgetMaxFen
+      in: query
+      required: false
+      schema:
+        $ref: "#/components/schemas/MoneyFen"
     DepositMin:
       name: depositMinFen
       in: query
@@ -2181,6 +3260,60 @@ components:
       required: false
       schema:
         $ref: "#/components/schemas/SortBy"
+    ContentSortBy:
+      name: sortBy
+      in: query
+      required: false
+      schema:
+        $ref: "#/components/schemas/ContentSortBy"
+    CooperationModes:
+      name: cooperationModes
+      in: query
+      required: false
+      schema:
+        type: array
+        items:
+          $ref: "#/components/schemas/CooperationMode"
+      style: form
+      explode: true
+      description: 合作方式过滤（可多选）
+    AchievementMaturity:
+      name: maturity
+      in: query
+      required: false
+      schema:
+        $ref: "#/components/schemas/AchievementMaturity"
+    ContentStatus:
+      name: status
+      in: query
+      required: false
+      schema:
+        $ref: "#/components/schemas/ContentStatus"
+
+    CommentContentType:
+      name: contentType
+      in: query
+      required: false
+      schema:
+        $ref: "#/components/schemas/CommentContentType"
+      description: 留言所属内容类型过滤
+
+    CommentContentId:
+      name: contentId
+      in: query
+      required: false
+      schema:
+        $ref: "#/components/schemas/Uuid"
+      description: 留言所属内容 ID 过滤
+
+    CommentStatus:
+      name: status
+      in: query
+      required: false
+      schema:
+        $ref: "#/components/schemas/CommentStatus"
+      description: 留言状态过滤（后台管理）
+
     Page:
       name: page
       in: query
@@ -2264,6 +3397,27 @@ components:
 
     ListingId:
       name: listingId
+      in: path
+      required: true
+      schema:
+        $ref: "#/components/schemas/Uuid"
+
+    DemandId:
+      name: demandId
+      in: path
+      required: true
+      schema:
+        $ref: "#/components/schemas/Uuid"
+
+    AchievementId:
+      name: achievementId
+      in: path
+      required: true
+      schema:
+        $ref: "#/components/schemas/Uuid"
+
+    CommentId:
+      name: commentId
       in: path
       required: true
       schema:
@@ -2378,12 +3532,14 @@ components:
 
     UserProfile:
       type: object
-      required: [id, phone, role, createdAt]
+      required: [id, role, createdAt]
       properties:
         id:
           $ref: "#/components/schemas/Uuid"
         phone:
           $ref: "#/components/schemas/PhoneNumber"
+          nullable: true
+          description: 手机号（可选；未绑定手机号的微信用户可能为空）
         nickname:
           type: string
         avatarUrl:
@@ -2735,6 +3891,10 @@ components:
           type: integer
           format: int64
           minimum: 0
+        commentCount:
+          type: integer
+          format: int64
+          minimum: 0
 
     ListingMedia:
       type: object
@@ -3038,6 +4198,462 @@ components:
             $ref: "#/components/schemas/Listing"
         page:
           $ref: "#/components/schemas/PageMeta"
+
+    ContentStatus:
+      type: string
+      enum: [DRAFT, ACTIVE, OFF_SHELF]
+
+    ContentSortBy:
+      type: string
+      enum: [RECOMMENDED, NEWEST, POPULAR]
+
+    CooperationMode:
+      type: string
+      enum: [TRANSFER, LICENSE, EQUITY, JOINT_DEV, COMMISSIONED_DEV, OTHER]
+
+    AchievementMaturity:
+      type: string
+      enum: [CONCEPT, PROTOTYPE, PILOT, MASS_PRODUCTION, COMMERCIALIZED, OTHER]
+
+    DeliveryPeriod:
+      type: string
+      enum: [WITHIN_1_MONTH, MONTH_1_3, MONTH_3_6, OVER_6_MONTHS, OTHER]
+
+    ContentMedia:
+      type: object
+      required: [fileId, type, sort]
+      properties:
+        fileId:
+          $ref: "#/components/schemas/Uuid"
+        type:
+          type: string
+          enum: [IMAGE, VIDEO, FILE]
+        sort:
+          type: integer
+          minimum: 0
+        url:
+          type: string
+          format: uri
+          readOnly: true
+        mimeType:
+          type: string
+          readOnly: true
+        sizeBytes:
+          type: integer
+          format: int64
+          readOnly: true
+        fileName:
+          type: string
+          readOnly: true
+
+    DemandSummary:
+      type: object
+      required: [id, title, publisher, auditStatus, status, createdAt]
+      properties:
+        id:
+          $ref: "#/components/schemas/Uuid"
+        title:
+          type: string
+          maxLength: 200
+        summary:
+          type: string
+          maxLength: 2000
+        budgetType:
+          $ref: "#/components/schemas/PriceType"
+        budgetMinFen:
+          $ref: "#/components/schemas/MoneyFen"
+        budgetMaxFen:
+          $ref: "#/components/schemas/MoneyFen"
+        cooperationModes:
+          type: array
+          items:
+            $ref: "#/components/schemas/CooperationMode"
+        regionCode:
+          type: string
+        industryTags:
+          type: array
+          items:
+            type: string
+        keywords:
+          type: array
+          maxItems: 30
+          items:
+            type: string
+            maxLength: 50
+        deliveryPeriod:
+          $ref: "#/components/schemas/DeliveryPeriod"
+        publisher:
+          $ref: "#/components/schemas/OrganizationSummary"
+        stats:
+          $ref: "#/components/schemas/ListingStats"
+        auditStatus:
+          $ref: "#/components/schemas/AuditStatus"
+        status:
+          $ref: "#/components/schemas/ContentStatus"
+        coverUrl:
+          type: string
+          format: uri
+        createdAt:
+          type: string
+          format: date-time
+
+    Demand:
+      allOf:
+        - $ref: "#/components/schemas/DemandSummary"
+        - type: object
+          properties:
+            publisherUserId:
+              $ref: "#/components/schemas/Uuid"
+            description:
+              type: string
+              maxLength: 2000
+            keywords:
+              type: array
+              maxItems: 30
+              items:
+                type: string
+                maxLength: 50
+            deliveryPeriod:
+              $ref: "#/components/schemas/DeliveryPeriod"
+            contactName:
+              type: string
+              maxLength: 50
+            contactTitle:
+              type: string
+              maxLength: 100
+            contactPhoneMasked:
+              type: string
+              maxLength: 30
+            coverFileId:
+              $ref: "#/components/schemas/Uuid"
+              nullable: true
+            media:
+              type: array
+              items:
+                $ref: "#/components/schemas/ContentMedia"
+            updatedAt:
+              type: string
+              format: date-time
+
+    DemandPublic:
+      allOf:
+        - $ref: "#/components/schemas/DemandSummary"
+        - type: object
+          properties:
+            description:
+              type: string
+              maxLength: 2000
+            media:
+              type: array
+              items:
+                $ref: "#/components/schemas/ContentMedia"
+
+    PagedDemandSummary:
+      type: object
+      required: [items, page]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/DemandSummary"
+        page:
+          $ref: "#/components/schemas/PageMeta"
+
+    PagedDemand:
+      type: object
+      required: [items, page]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/Demand"
+        page:
+          $ref: "#/components/schemas/PageMeta"
+
+    DemandCreateRequest:
+      type: object
+      required: [title]
+      properties:
+        title:
+          type: string
+          maxLength: 200
+        description:
+          type: string
+          maxLength: 2000
+        summary:
+          type: string
+          maxLength: 2000
+        keywords:
+          type: array
+          maxItems: 30
+          items:
+            type: string
+            maxLength: 50
+        deliveryPeriod:
+          $ref: "#/components/schemas/DeliveryPeriod"
+        budgetType:
+          $ref: "#/components/schemas/PriceType"
+        budgetMinFen:
+          $ref: "#/components/schemas/MoneyFen"
+        budgetMaxFen:
+          $ref: "#/components/schemas/MoneyFen"
+        cooperationModes:
+          type: array
+          items:
+            $ref: "#/components/schemas/CooperationMode"
+        contactName:
+          type: string
+          maxLength: 50
+        contactTitle:
+          type: string
+          maxLength: 100
+        contactPhoneMasked:
+          type: string
+          maxLength: 30
+        regionCode:
+          type: string
+        industryTags:
+          type: array
+          items:
+            type: string
+        coverFileId:
+          $ref: "#/components/schemas/Uuid"
+          nullable: true
+        media:
+          type: array
+          items:
+            $ref: "#/components/schemas/ContentMedia"
+
+    DemandUpdateRequest:
+      type: object
+      properties:
+        title:
+          type: string
+          maxLength: 200
+        description:
+          type: string
+          maxLength: 2000
+        summary:
+          type: string
+          maxLength: 2000
+        keywords:
+          type: array
+          maxItems: 30
+          items:
+            type: string
+            maxLength: 50
+        deliveryPeriod:
+          $ref: "#/components/schemas/DeliveryPeriod"
+        budgetType:
+          $ref: "#/components/schemas/PriceType"
+        budgetMinFen:
+          $ref: "#/components/schemas/MoneyFen"
+        budgetMaxFen:
+          $ref: "#/components/schemas/MoneyFen"
+        cooperationModes:
+          type: array
+          items:
+            $ref: "#/components/schemas/CooperationMode"
+        contactName:
+          type: string
+          maxLength: 50
+        contactTitle:
+          type: string
+          maxLength: 100
+        contactPhoneMasked:
+          type: string
+          maxLength: 30
+        regionCode:
+          type: string
+        industryTags:
+          type: array
+          items:
+            type: string
+        coverFileId:
+          $ref: "#/components/schemas/Uuid"
+          nullable: true
+        media:
+          type: array
+          items:
+            $ref: "#/components/schemas/ContentMedia"
+
+    AchievementSummary:
+      type: object
+      required: [id, title, publisher, auditStatus, status, createdAt]
+      properties:
+        id:
+          $ref: "#/components/schemas/Uuid"
+        title:
+          type: string
+          maxLength: 200
+        summary:
+          type: string
+          maxLength: 2000
+        maturity:
+          $ref: "#/components/schemas/AchievementMaturity"
+        cooperationModes:
+          type: array
+          items:
+            $ref: "#/components/schemas/CooperationMode"
+        regionCode:
+          type: string
+        industryTags:
+          type: array
+          items:
+            type: string
+        keywords:
+          type: array
+          maxItems: 30
+          items:
+            type: string
+            maxLength: 50
+        publisher:
+          $ref: "#/components/schemas/OrganizationSummary"
+        stats:
+          $ref: "#/components/schemas/ListingStats"
+        auditStatus:
+          $ref: "#/components/schemas/AuditStatus"
+        status:
+          $ref: "#/components/schemas/ContentStatus"
+        coverUrl:
+          type: string
+          format: uri
+        createdAt:
+          type: string
+          format: date-time
+
+    Achievement:
+      allOf:
+        - $ref: "#/components/schemas/AchievementSummary"
+        - type: object
+          properties:
+            publisherUserId:
+              $ref: "#/components/schemas/Uuid"
+            description:
+              type: string
+              maxLength: 5000
+            coverFileId:
+              $ref: "#/components/schemas/Uuid"
+              nullable: true
+            media:
+              type: array
+              items:
+                $ref: "#/components/schemas/ContentMedia"
+            updatedAt:
+              type: string
+              format: date-time
+
+    AchievementPublic:
+      allOf:
+        - $ref: "#/components/schemas/AchievementSummary"
+        - type: object
+          properties:
+            description:
+              type: string
+              maxLength: 5000
+            media:
+              type: array
+              items:
+                $ref: "#/components/schemas/ContentMedia"
+
+    PagedAchievementSummary:
+      type: object
+      required: [items, page]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/AchievementSummary"
+        page:
+          $ref: "#/components/schemas/PageMeta"
+
+    PagedAchievement:
+      type: object
+      required: [items, page]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/Achievement"
+        page:
+          $ref: "#/components/schemas/PageMeta"
+
+    AchievementCreateRequest:
+      type: object
+      required: [title]
+      properties:
+        title:
+          type: string
+          maxLength: 200
+        description:
+          type: string
+          maxLength: 5000
+        summary:
+          type: string
+          maxLength: 2000
+        keywords:
+          type: array
+          maxItems: 30
+          items:
+            type: string
+            maxLength: 50
+        maturity:
+          $ref: "#/components/schemas/AchievementMaturity"
+        cooperationModes:
+          type: array
+          items:
+            $ref: "#/components/schemas/CooperationMode"
+        regionCode:
+          type: string
+        industryTags:
+          type: array
+          items:
+            type: string
+        coverFileId:
+          $ref: "#/components/schemas/Uuid"
+          nullable: true
+        media:
+          type: array
+          items:
+            $ref: "#/components/schemas/ContentMedia"
+
+    AchievementUpdateRequest:
+      type: object
+      properties:
+        title:
+          type: string
+          maxLength: 200
+        description:
+          type: string
+          maxLength: 5000
+        summary:
+          type: string
+          maxLength: 2000
+        keywords:
+          type: array
+          maxItems: 30
+          items:
+            type: string
+            maxLength: 50
+        maturity:
+          $ref: "#/components/schemas/AchievementMaturity"
+        cooperationModes:
+          type: array
+          items:
+            $ref: "#/components/schemas/CooperationMode"
+        regionCode:
+          type: string
+        industryTags:
+          type: array
+          items:
+            type: string
+        coverFileId:
+          $ref: "#/components/schemas/Uuid"
+          nullable: true
+        media:
+          type: array
+          items:
+            $ref: "#/components/schemas/ContentMedia"
 
     OrganizationStats:
       type: object
@@ -3657,20 +5273,27 @@ components:
           example: "110000"
         name:
           type: string
+          description: 行政区划名称
+          example: 北京市
         level:
           $ref: "#/components/schemas/RegionLevel"
         parentCode:
           type: string
           pattern: "^[0-9]{6}$"
           nullable: true
+          description: 父级行政区划 adcode（6 位字符串）；省级为 null
         centerLat:
           type: number
           format: double
           nullable: true
+          description: 地图中心点纬度（用于地图 marker；建议使用 GCJ-02 坐标系；可为空）
+          example: 39.9042
         centerLng:
           type: number
           format: double
           nullable: true
+          description: 地图中心点经度（用于地图 marker；建议使用 GCJ-02 坐标系；可为空）
+          example: 116.4074
         industryTags:
           type: array
           items:
@@ -3774,11 +5397,18 @@ components:
       properties:
         regionCode:
           type: string
+          pattern: "^[0-9]{6}$"
+          description: 行政区划 adcode（6 位字符串）
+          example: "110000"
         regionName:
           type: string
+          description: 行政区划名称快照（用于直接展示）
+          example: 北京市
         patentCount:
           type: integer
           minimum: 0
+          description: 该区域该年份的专利数量（按 `level/parentCode` 聚合口径）
+          example: 1234
 
     PatentMapRegionDetail:
       type: object
@@ -3893,16 +5523,129 @@ components:
           $ref: "#/components/schemas/VerificationType"
           nullable: true
 
-    Conversation:
+    CommentContentType:
+      type: string
+      enum: [LISTING, DEMAND, ACHIEVEMENT]
+
+    CommentStatus:
+      type: string
+      enum: [VISIBLE, HIDDEN, DELETED]
+
+    Comment:
       type: object
-      required: [id, listingId, buyerUserId, sellerUserId, createdAt, updatedAt]
+      required: [id, contentType, contentId, user, text, createdAt]
       properties:
         id:
           $ref: "#/components/schemas/Uuid"
+        contentType:
+          $ref: "#/components/schemas/CommentContentType"
+        contentId:
+          $ref: "#/components/schemas/Uuid"
+        parentCommentId:
+          $ref: "#/components/schemas/Uuid"
+          nullable: true
+          description: 为空表示根留言；非空表示回复某条留言
+        status:
+          $ref: "#/components/schemas/CommentStatus"
+        user:
+          $ref: "#/components/schemas/UserBrief"
+        text:
+          type: string
+          minLength: 1
+          maxLength: 1000
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+          nullable: true
+
+    CommentThread:
+      type: object
+      required: [root, replies]
+      properties:
+        root:
+          $ref: "#/components/schemas/Comment"
+        replies:
+          type: array
+          items:
+            $ref: "#/components/schemas/Comment"
+
+    PagedCommentThread:
+      type: object
+      required: [items, page]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/CommentThread"
+        page:
+          $ref: "#/components/schemas/PageMeta"
+
+    CommentCreateRequest:
+      type: object
+      required: [text]
+      properties:
+        text:
+          type: string
+          minLength: 1
+          maxLength: 1000
+        parentCommentId:
+          $ref: "#/components/schemas/Uuid"
+          nullable: true
+          description: 回复目标留言 ID（为空表示发起新留言）
+
+    CommentUpdateRequest:
+      type: object
+      required: [text]
+      properties:
+        text:
+          type: string
+          minLength: 1
+          maxLength: 1000
+
+    AdminCommentUpdateRequest:
+      type: object
+      required: [status]
+      properties:
+        status:
+          $ref: "#/components/schemas/CommentStatus"
+
+    PagedComment:
+      type: object
+      required: [items, page]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/Comment"
+        page:
+          $ref: "#/components/schemas/PageMeta"
+
+    ConversationContentType:
+      type: string
+      enum: [LISTING, DEMAND, ACHIEVEMENT]
+
+    Conversation:
+      type: object
+      required: [id, contentType, contentId, buyerUserId, sellerUserId, createdAt, updatedAt]
+      properties:
+        id:
+          $ref: "#/components/schemas/Uuid"
+        contentType:
+          $ref: "#/components/schemas/ConversationContentType"
+        contentId:
+          $ref: "#/components/schemas/Uuid"
+        contentTitle:
+          type: string
         listingId:
           $ref: "#/components/schemas/Uuid"
+          nullable: true
+          deprecated: true
         listingTitle:
           type: string
+          deprecated: true
         orderId:
           $ref: "#/components/schemas/Uuid"
           nullable: true
@@ -3922,14 +5665,23 @@ components:
 
     ConversationSummary:
       type: object
-      required: [id, listingId, listingTitle, lastMessageAt, unreadCount, counterpart]
+      required: [id, contentType, contentId, contentTitle, lastMessageAt, unreadCount, counterpart]
       properties:
         id:
           $ref: "#/components/schemas/Uuid"
+        contentType:
+          $ref: "#/components/schemas/ConversationContentType"
+        contentId:
+          $ref: "#/components/schemas/Uuid"
+        contentTitle:
+          type: string
         listingId:
           $ref: "#/components/schemas/Uuid"
+          nullable: true
+          deprecated: true
         listingTitle:
           type: string
+          deprecated: true
         lastMessagePreview:
           type: string
         lastMessageAt:

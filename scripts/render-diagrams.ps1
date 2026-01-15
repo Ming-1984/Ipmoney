@@ -50,7 +50,7 @@ $demoInputs = @(
   "docs/demo/pages/miniapp/01-login.mmd",
   "docs/demo/pages/miniapp/02-home.mmd",
   "docs/demo/pages/miniapp/03-patent-map.mmd",
-  "docs/demo/pages/miniapp/04-feeds.mmd",
+  "docs/demo/pages/miniapp/04-search.mmd",
   "docs/demo/pages/miniapp/05-detail.mmd",
   "docs/demo/pages/miniapp/06-message.mmd",
   "docs/demo/pages/miniapp/07-checkout-deposit-pay.mmd",

@@ -51,9 +51,12 @@ function Try-StopRepoNodeOnPort([int]$Port) {
     try { Stop-Process -Id $processId -Force -ErrorAction Stop } catch {}
   }
 
-  Start-Sleep -Milliseconds 250
-  $after = @(Get-NetTCPConnection -State Listen -LocalPort $Port -ErrorAction SilentlyContinue)
-  return $after.Count -eq 0
+  for ($i = 0; $i -lt 20; $i++) {
+    Start-Sleep -Milliseconds 150
+    $after = @(Get-NetTCPConnection -State Listen -LocalPort $Port -ErrorAction SilentlyContinue)
+    if ($after.Count -eq 0) { return $true }
+  }
+  return $false
 }
 
 function Test-LocalPortInUse([int]$Port) {

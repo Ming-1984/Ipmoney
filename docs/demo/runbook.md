@@ -1,4 +1,4 @@
-# 甲方演示运行手册（P0 骨架 + Mock 驱动）
+﻿# 甲方演示运行手册（P0 骨架 + Mock 驱动）
 
 ## 1. 一键启动
 
@@ -22,6 +22,25 @@
   - OpenAPI（可选）：`http://127.0.0.1:8080`
 - 若端口被占用：`scripts/demo.ps1` 会自动寻找可用端口，并在控制台输出实际地址（以输出为准）
 
+## 1.1 小程序预览（微信开发者工具）
+
+> 注意：本仓库用户端使用 Taro，微信开发者工具需要打开 **编译产物**（`dist/weapp`），不是直接打开 `apps/client/src`。
+
+1. 先启动 Mock API / 后端（任选其一）
+   - 推荐演示：`powershell -ExecutionPolicy Bypass -File scripts/demo.ps1`（默认 Mock API 端口 `4010`）
+2. 构建小程序（生成 `apps/client/dist/weapp/app.json`）
+   - 单次构建：`pnpm -C apps/client build:weapp`
+   - 持续监听（推荐开发）：`pnpm -C apps/client dev:weapp`
+3. 微信开发者工具导入项目（推荐打开目录：`apps`）
+   - 选择目录：仓库的 `apps` 目录（即 `./apps`）
+   - 原因：`apps/project.config.json` 已配置 `miniprogramRoot=./client/dist/weapp`
+4. 常见报错快速定位
+   - `app.json: 在项目根目录未找到 app.json`：说明你还没执行第 2 步（未生成 `dist/weapp`），或打开了错误目录
+   - `request 合法域名校验出错 http://127.0.0.1:4010 ...`：在开发者工具「详情 → 本地设置」勾选“不校验合法域名…”，并确认 `project.config.json` 里 `setting.urlCheck=false`
+5. 真实微信登录（P1）需要的额外配置
+   - 服务端需要 `WX_MP_APPID/WX_MP_SECRET` 才能调用 `code2Session`
+   - 微信开发者工具需使用对应 AppID（否则拿到的 `code` 无法在服务端换取 openid）
+
 ## 2. 场景切换（最省时间的“难场景覆盖”）
 
 > 默认隐藏「场景切换」入口（更接近生产展示）。如需演示/调试：启动时加 `-EnableMockTools`（或手动设置环境变量 `TARO_APP_ENABLE_MOCK_TOOLS=1`、`VITE_ENABLE_MOCK_TOOLS=1`）。
@@ -44,10 +63,10 @@
 
 ### A. 用户端（H5/小程序同构）
 
-1. 首页：`专利变金豆矿` → 进入信息流/地图/检索
-2. 信息流（猜你喜欢）：展示推荐分、热度、地域特色置顶字段（演示）
+1. 首页：`专利点金台` → 搜索/地图/发明人榜（沉睡专利入口直达搜索）
+2. 最新专利：展示最新发布的专利卡片（首页推荐区）
 3. 检索：游客可看列表/详情；收藏/咨询/下单需登录且审核通过
-4. 发明人榜：按平台内上传专利统计
+4. 发明人榜：按平台内上传专利统计（从首页入口进入；检索页不再提供入口）
 5. 详情页：进入咨询（会话）/支付订金
 6. 订金支付链路：创建订单 → 创建支付意图 → 成功页（演示）
 7. 咨询/消息：会话列表 → 进入会话 → 发送/刷新（非实时，P0）

@@ -2,6 +2,7 @@ import React from 'react';
 
 import type { PageAccessState } from '../lib/guard';
 import { goLogin, goOnboarding } from '../lib/guard';
+import { STATE_COPY } from './copy';
 import { AuditPendingCard, EmptyCard, ErrorCard, LoadingCard, PermissionCard } from './StateCards';
 
 export function AccessGate(props: {
@@ -16,14 +17,21 @@ export function AccessGate(props: {
   if (access.state === 'ok') return null;
 
   if (access.state === 'need-login') {
-    return <PermissionCard title="需要登录" message={props.loginMessage || '登录后才能继续。'} actionText="去登录" onAction={goLogin} />;
+    return (
+      <PermissionCard
+        title={STATE_COPY.permission.needLogin.title}
+        message={props.loginMessage || STATE_COPY.permission.needLogin.message}
+        actionText={STATE_COPY.permission.needLogin.actionText}
+        onAction={goLogin}
+      />
+    );
   }
   if (access.state === 'need-onboarding') {
     return (
       <PermissionCard
-        title="需要选择身份"
-        message={props.onboardingMessage || '完成身份选择后才能继续。'}
-        actionText="去选择"
+        title={STATE_COPY.permission.needOnboarding.title}
+        message={props.onboardingMessage || STATE_COPY.permission.needOnboarding.message}
+        actionText={STATE_COPY.permission.needOnboarding.actionText}
         onAction={goOnboarding}
       />
     );
@@ -31,9 +39,9 @@ export function AccessGate(props: {
   if (access.state === 'audit-pending') {
     return (
       <AuditPendingCard
-        title="资料审核中"
-        message={props.pendingMessage || '审核通过后才能继续。'}
-        actionText="查看进度"
+        title={STATE_COPY.permission.auditPending.title}
+        message={props.pendingMessage || STATE_COPY.permission.auditPending.message}
+        actionText={STATE_COPY.permission.auditPending.actionText}
         onAction={goOnboarding}
       />
     );
@@ -41,18 +49,18 @@ export function AccessGate(props: {
   if (access.state === 'audit-rejected') {
     return (
       <AuditPendingCard
-        title="资料已驳回"
-        message={props.rejectedMessage || '请重新提交资料，审核通过后才能继续。'}
-        actionText="重新提交"
+        title={STATE_COPY.permission.auditRejected.title}
+        message={props.rejectedMessage || STATE_COPY.permission.auditRejected.message}
+        actionText={STATE_COPY.permission.auditRejected.actionText}
         onAction={goOnboarding}
       />
     );
   }
   return (
     <AuditPendingCard
-      title="需要认证"
-      message={props.auditRequiredMessage || '完成认证并审核通过后才能继续。'}
-      actionText="去认证"
+      title={STATE_COPY.permission.auditRequired.title}
+      message={props.auditRequiredMessage || STATE_COPY.permission.auditRequired.message}
+      actionText={STATE_COPY.permission.auditRequired.actionText}
       onAction={goOnboarding}
     />
   );

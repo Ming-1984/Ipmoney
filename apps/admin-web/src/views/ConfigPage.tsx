@@ -2,6 +2,8 @@ import { Button, Card, Form, InputNumber, Space, Switch, Typography, message } f
 import React, { useCallback, useEffect, useState } from 'react';
 
 import { apiGet, apiPut } from '../lib/api';
+import { fenToYuanNumber, yuanToFen } from '../lib/format';
+import { confirmActionWithReason } from '../ui/confirm';
 
 type TradeRulesConfig = {
   version: number;
@@ -37,16 +39,6 @@ type RecommendationConfig = {
   updatedAt?: string;
 };
 
-function fenToYuan(fen?: number): number {
-  if (fen === undefined || fen === null) return 0;
-  return fen / 100;
-}
-
-function yuanToFen(yuan?: number): number {
-  if (yuan === undefined || yuan === null) return 0;
-  return Math.round(yuan * 100);
-}
-
 export function ConfigPage() {
   const [loading, setLoading] = useState(false);
   const [tradeForm] = Form.useForm();
@@ -58,11 +50,11 @@ export function ConfigPage() {
       const trade = await apiGet<TradeRulesConfig>('/admin/config/trade-rules');
       tradeForm.setFieldsValue({
         ...trade,
-        depositMinYuan: fenToYuan(trade.depositMinFen),
-        depositMaxYuan: fenToYuan(trade.depositMaxFen),
-        depositFixedForNegotiableYuan: fenToYuan(trade.depositFixedForNegotiableFen),
-        commissionMinYuan: fenToYuan(trade.commissionMinFen),
-        commissionMaxYuan: fenToYuan(trade.commissionMaxFen),
+        depositMinYuan: fenToYuanNumber(trade.depositMinFen),
+        depositMaxYuan: fenToYuanNumber(trade.depositMaxFen),
+        depositFixedForNegotiableYuan: fenToYuanNumber(trade.depositFixedForNegotiableFen),
+        commissionMinYuan: fenToYuanNumber(trade.commissionMinFen),
+        commissionMaxYuan: fenToYuanNumber(trade.commissionMaxFen),
       });
 
       const rec = await apiGet<RecommendationConfig>('/admin/config/recommendation');
@@ -85,7 +77,7 @@ export function ConfigPage() {
           交易规则配置
         </Typography.Title>
         <Typography.Paragraph type="secondary">
-          P0 默认：卖家承担佣金；尾款在线上托管支付；放款默认人工。
+          默认：卖家承担佣金；尾款在线上托管支付；放款默认人工确认。
         </Typography.Paragraph>
 
         <Form form={tradeForm} layout="vertical">
@@ -163,6 +155,15 @@ export function ConfigPage() {
             type="primary"
             onClick={async () => {
               const v = tradeForm.getFieldsValue(true);
+              const { ok } = await confirmActionWithReason({
+                title: '确认保存交易规则？',
+                content: '该操作会影响订金/佣金/退款窗口等关键参数；建议填写变更原因并留痕。',
+                okText: '保存',
+                reasonLabel: '变更原因（必填）',
+                reasonPlaceholder: '例：按合同口径调整订金比例；运营阶段策略变更；法务要求等。',
+                reasonRequired: true,
+              });
+              if (!ok) return;
               const payload = {
                 depositRate: v.depositRate,
                 depositMinFen: yuanToFen(v.depositMinYuan),
@@ -198,7 +199,7 @@ export function ConfigPage() {
           推荐配置（猜你喜欢）
         </Typography.Title>
         <Typography.Paragraph type="secondary">
-          权重仅用于演示；后续按运营策略/数据效果再调优。
+          权重可按运营策略/数据效果调整。
         </Typography.Paragraph>
 
         <Form form={recForm} layout="vertical">
@@ -246,6 +247,15 @@ export function ConfigPage() {
             type="primary"
             onClick={async () => {
               const v = recForm.getFieldsValue(true);
+              const { ok } = await confirmActionWithReason({
+                title: '确认保存推荐配置？',
+                content: '该操作会影响首页/搜索的推荐排序；建议填写变更原因并留痕。',
+                okText: '保存',
+                reasonLabel: '变更原因（必填）',
+                reasonPlaceholder: '例：提高地域权重；降低时间衰减；活动期调权等。',
+                reasonRequired: true,
+              });
+              if (!ok) return;
               try {
                 await apiPut<RecommendationConfig>('/admin/config/recommendation', v);
                 message.success('已保存');

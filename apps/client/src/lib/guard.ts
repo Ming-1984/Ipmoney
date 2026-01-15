@@ -2,8 +2,10 @@ import Taro, { useDidShow } from '@tarojs/taro';
 import { useState } from 'react';
 
 import { getToken, getVerificationStatus, isOnboardingDone } from './auth';
+import { toast } from '../ui/nutui';
 
 export type PageAccessPolicy = 'public' | 'login-required' | 'approved-required';
+export type ActionAccessPolicy = PageAccessPolicy;
 export type PageAccessState =
   | { state: 'ok' }
   | { state: 'need-login' }
@@ -77,13 +79,19 @@ export function ensureApproved(): boolean {
   const status = getVerificationStatus();
   if (status === 'APPROVED') return true;
   if (status === 'PENDING') {
-    Taro.showToast({ title: '资料审核中，暂不可操作', icon: 'none' });
+    toast('资料审核中，暂不可操作');
     return false;
   }
   if (status === 'REJECTED') {
-    Taro.showToast({ title: '资料已驳回，请重新提交', icon: 'none' });
+    toast('资料已驳回，请重新提交');
     return false;
   }
-  Taro.showToast({ title: '请先完成认证', icon: 'none' });
+  toast('请先完成认证');
   return false;
+}
+
+export function ensureActionAccess(policy: ActionAccessPolicy): boolean {
+  if (policy === 'public') return true;
+  if (policy === 'login-required') return ensureOnboarding();
+  return ensureApproved();
 }
