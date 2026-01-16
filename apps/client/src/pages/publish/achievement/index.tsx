@@ -8,7 +8,7 @@ import { API_BASE_URL, STORAGE_KEYS } from '../../../constants';
 import { getToken } from '../../../lib/auth';
 import { apiGet, apiPatch, apiPost } from '../../../lib/api';
 import { ensureApproved, requireLogin } from '../../../lib/guard';
-import { auditStatusLabel, contentStatusLabel } from '../../../lib/labels';
+import { auditStatusLabel, contentStatusLabel, verificationTypeLabel } from '../../../lib/labels';
 import { IndustryTagsPicker, TagInput } from '../../../ui/filters';
 import { PageHeader, Spacer, StickyBar, Surface } from '../../../ui/layout';
 import { Button, Input, TextArea, confirm, toast } from '../../../ui/nutui';
@@ -21,6 +21,8 @@ type AuditStatus = components['schemas']['AuditStatus'];
 type ContentStatus = components['schemas']['ContentStatus'];
 type ContentMedia = components['schemas']['ContentMedia'];
 type AchievementMaturity = components['schemas']['AchievementMaturity'];
+type UserVerification = components['schemas']['UserVerification'];
+type VerificationType = components['schemas']['VerificationType'];
 
 type UploadFileRes = components['schemas']['FileObject'] & { fileName?: string };
 
@@ -97,6 +99,8 @@ export default function PublishAchievementPage() {
   const [keywords, setKeywords] = useState<string[]>([]);
   const [maturity, setMaturity] = useState<AchievementMaturity | ''>('');
   const [cooperationModes, setCooperationModes] = useState<CooperationMode[]>([]);
+  const [publisherName, setPublisherName] = useState('');
+  const [publisherType, setPublisherType] = useState<VerificationType | ''>('');
 
   const [regionCode, setRegionCode] = useState('');
   const [industryTags, setIndustryTags] = useState<string[]>([]);
@@ -130,6 +134,8 @@ export default function PublishAchievementPage() {
         setCooperationModes((d.cooperationModes || []) as CooperationMode[]);
         setRegionCode(d.regionCode || '');
         setIndustryTags(Array.isArray(d.industryTags) ? d.industryTags : []);
+        if (d.publisher?.displayName) setPublisherName(d.publisher.displayName);
+        if (d.publisher?.verificationType) setPublisherType(d.publisher.verificationType as VerificationType);
 
         setCoverFileId(d.coverFileId ?? null);
         setCoverUrl(d.coverUrl || null);
@@ -141,6 +147,22 @@ export default function PublishAchievementPage() {
   }, [achievementId, initialAchievementId]);
 
   const canEdit = auditStatus !== 'PENDING';
+
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      if (!requireLogin()) return;
+      try {
+        const v = await apiGet<UserVerification>('/me/verification');
+        if (!mounted) return;
+        if (v?.displayName) setPublisherName((prev) => prev || v.displayName || '');
+        if (v?.type) setPublisherType((prev) => prev || (v.type as VerificationType));
+      } catch (_) {}
+    })();
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
   const toggleMode = useCallback((mode: CooperationMode) => {
     setCooperationModes((prev) => {
@@ -483,6 +505,18 @@ export default function PublishAchievementPage() {
         <Text className="text-card-title">基础信息</Text>
         <View style={{ height: '12rpx' }} />
 
+        <Text className="muted">所属单位*</Text>
+        <View style={{ height: '8rpx' }} />
+        <View className="row-between" style={{ gap: '12rpx', alignItems: 'center' }}>
+          <Text className="text-strong">
+            {publisherName || (publisherType ? verificationTypeLabel(publisherType) : '未获取认证主体')}
+          </Text>
+          {publisherType ? <Text className="tag tag-gold">{verificationTypeLabel(publisherType)}</Text> : null}
+        </View>
+        <View style={{ height: '6rpx' }} />
+        <Text className="muted">由认证信息自动带出，不可手动修改。</Text>
+
+        <View style={{ height: '12rpx' }} />
         <Text className="muted">标题*</Text>
         <View style={{ height: '8rpx' }} />
         <Input value={title} onChange={setTitle} placeholder="例如：储能材料成果转化" maxLength={200} clearable disabled={!canEdit} />

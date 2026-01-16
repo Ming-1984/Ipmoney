@@ -79,3 +79,14 @@ Mock fixtures key 约定：
 ### 3.1 OpenAPI 已有但前端暂未消费（需确认 P0/P1）
 
 > 见 `docs/engineering/openapi-coverage.md`：Demand/Achievement 新增 operations 目前尚未被前端消费（属计划内差异）；支付回调为后端内部接口，前端不调用。
+
+### 3.2 P1 预留能力（AI/托管/告警/平台内容）
+
+| 页面/能力 | 需求/说明（PRD） | 前端入口 | OpenAPI（operationId / method path） | Mock 覆盖 | 状态 |
+|---|---|---|---|---|---|
+| 智能体语音检索 | 自然语言/语音 → 结构化检索条件；H5 提示去小程序 | `apps/client/src/pages/home/index.tsx`<br/>`apps/client/src/pages/search/index.tsx` | `createAiAgentQuery` `POST /ai/agent/query` | - | P1 |
+| AI 解析卡片 + 评分 | 专利/需求/成果详情展示 AI 解析并评分纠错 | `apps/client/src/pages/listing/detail/index.tsx`<br/>`apps/client/src/pages/demand/detail/index.tsx`<br/>`apps/client/src/pages/achievement/detail/index.tsx` | `createAiParseFeedback` `POST /ai/parse-results/{parseResultId}/feedback` | - | P1 |
+| 平台自有内容 CMS | 后台管理平台自有专利/需求/成果 | `apps/admin-web/src/views/PlaceholderPage.tsx`（待补） | `adminCreatePatent` `POST /admin/patents`；`adminCreateListing` `POST /admin/listings`；`adminCreateDemand` `POST /admin/demands`；`adminCreateAchievement` `POST /admin/achievements` | - | P1 |
+| AI 解析复核池 | 低评分/低置信度进入后台复核池 | `apps/admin-web/src/views/PlaceholderPage.tsx`（待补） | `adminListAiParseResults` `GET /admin/ai/parse-results` | - | P1 |
+| 专利托管任务 | 年费日程 + 托管任务指派 | `apps/admin-web/src/views/PlaceholderPage.tsx`（待补） | `adminListPatentMaintenanceSchedules` `GET /admin/patent-maintenance/schedules`；`adminListPatentMaintenanceTasks` `GET /admin/patent-maintenance/tasks` | - | P1 |
+| 告警中心 | 短信/邮件/站内告警，支持确认 | `apps/admin-web/src/views/PlaceholderPage.tsx`（待补） | `adminListAlertEvents` `GET /admin/alerts`；`adminAcknowledgeAlertEvent` `POST /admin/alerts/{alertId}/ack` | - | P1 |

@@ -56,6 +56,12 @@ tags:
     description: 专利地图数据查询
   - name: Admin
     description: 后台管理（审核/配置/财务/地图 CMS）
+  - name: AI
+    description: 智能体/语音/解析/评分（P1）
+  - name: Maintenance
+    description: 专利年费托管与工单（P1）
+  - name: Alerts
+    description: 告警与通知（P1）
 security:
   - BearerAuth: []
 paths:
@@ -832,6 +838,63 @@ paths:
                 $ref: "#/components/schemas/PagedInventorRanking"
         "400":
           $ref: "#/components/responses/BadRequest"
+
+  /ai/agent/query:
+    post:
+      tags: [AI]
+      summary: 智能体语义检索（P1）
+      description: |
+        支持文本/语音输入，输出结构化检索条件与匹配理由。
+        小程序支持语音输入；H5 仅提示去小程序使用语音搜索。
+      operationId: createAiAgentQuery
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AiAgentQueryRequest"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AiAgentQueryResult"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+
+  /ai/parse-results/{parseResultId}/feedback:
+    post:
+      tags: [AI]
+      summary: AI 解析评价/纠错反馈（P1）
+      operationId: createAiParseFeedback
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/ParseResultId"
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AiParseFeedbackRequest"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AiParseFeedback"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
 
   /listings:
     post:
@@ -2366,10 +2429,553 @@ paths:
         "403":
           $ref: "#/components/responses/Forbidden"
 
+  /admin/config/ai:
+    get:
+      tags: [Admin, Config, AI]
+      summary: 获取 AI 配置（后台，P1）
+      operationId: adminGetAiConfig
+      security:
+        - BearerAuth: []
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AiConfig"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+    put:
+      tags: [Admin, Config, AI]
+      summary: 更新 AI 配置（后台，P1）
+      operationId: adminUpdateAiConfig
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AiConfigUpdateRequest"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AiConfig"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+
+  /admin/config/alerts:
+    get:
+      tags: [Admin, Config, Alerts]
+      summary: 获取告警配置（后台，P1）
+      operationId: adminGetAlertConfig
+      security:
+        - BearerAuth: []
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AlertConfig"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+    put:
+      tags: [Admin, Config, Alerts]
+      summary: 更新告警配置（后台，P1）
+      operationId: adminUpdateAlertConfig
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AlertConfigUpdateRequest"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AlertConfig"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+
+  /admin/ai/parse-results:
+    get:
+      tags: [Admin, AI]
+      summary: AI 解析复核列表（P1）
+      operationId: adminListAiParseResults
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/AiContentType"
+        - $ref: "#/components/parameters/AiParseStatus"
+        - $ref: "#/components/parameters/Page"
+        - $ref: "#/components/parameters/PageSize"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PagedAiParseResult"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+
+  /admin/ai/parse-results/{parseResultId}:
+    get:
+      tags: [Admin, AI]
+      summary: 获取 AI 解析详情（P1）
+      operationId: adminGetAiParseResult
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/ParseResultId"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AiParseResult"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+    patch:
+      tags: [Admin, AI]
+      summary: 更新 AI 解析结果（P1）
+      operationId: adminUpdateAiParseResult
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/ParseResultId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AiParseResultUpdateRequest"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AiParseResult"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /admin/patents:
+    get:
+      tags: [Admin, Patents]
+      summary: 专利库列表（后台，P1）
+      operationId: adminListPatents
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/Q"
+        - $ref: "#/components/parameters/PatentType"
+        - $ref: "#/components/parameters/LegalStatus"
+        - $ref: "#/components/parameters/Page"
+        - $ref: "#/components/parameters/PageSize"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PagedPatent"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+    post:
+      tags: [Admin, Patents]
+      summary: 新建专利主数据（后台，P1）
+      operationId: adminCreatePatent
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PatentCreateRequest"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Patent"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+
+  /admin/patents/{patentId}:
+    get:
+      tags: [Admin, Patents]
+      summary: 获取专利主数据（后台，P1）
+      operationId: adminGetPatentById
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/PatentId"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Patent"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+    patch:
+      tags: [Admin, Patents]
+      summary: 更新专利主数据（后台，P1）
+      operationId: adminUpdatePatent
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/PatentId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PatentUpdateRequest"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Patent"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /admin/patent-maintenance/schedules:
+    get:
+      tags: [Admin, Maintenance]
+      summary: 年费日程列表（后台，P1）
+      operationId: adminListPatentMaintenanceSchedules
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: patentId
+          in: query
+          required: false
+          schema:
+            $ref: "#/components/schemas/Uuid"
+        - $ref: "#/components/parameters/MaintenanceStatus"
+        - name: dueFrom
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date
+        - name: dueTo
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date
+        - $ref: "#/components/parameters/Page"
+        - $ref: "#/components/parameters/PageSize"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PagedPatentMaintenanceSchedule"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+    post:
+      tags: [Admin, Maintenance]
+      summary: 创建年费日程（后台，P1）
+      operationId: adminCreatePatentMaintenanceSchedule
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PatentMaintenanceScheduleCreateRequest"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PatentMaintenanceSchedule"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+
+  /admin/patent-maintenance/schedules/{scheduleId}:
+    get:
+      tags: [Admin, Maintenance]
+      summary: 获取年费日程详情（后台，P1）
+      operationId: adminGetPatentMaintenanceSchedule
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/MaintenanceScheduleId"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PatentMaintenanceSchedule"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+    patch:
+      tags: [Admin, Maintenance]
+      summary: 更新年费日程（后台，P1）
+      operationId: adminUpdatePatentMaintenanceSchedule
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/MaintenanceScheduleId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PatentMaintenanceScheduleUpdateRequest"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PatentMaintenanceSchedule"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /admin/patent-maintenance/tasks:
+    get:
+      tags: [Admin, Maintenance]
+      summary: 托管任务列表（后台，P1）
+      operationId: adminListPatentMaintenanceTasks
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: scheduleId
+          in: query
+          required: false
+          schema:
+            $ref: "#/components/schemas/Uuid"
+        - name: assignedCsUserId
+          in: query
+          required: false
+          schema:
+            $ref: "#/components/schemas/Uuid"
+        - $ref: "#/components/parameters/MaintenanceTaskStatus"
+        - $ref: "#/components/parameters/Page"
+        - $ref: "#/components/parameters/PageSize"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PagedPatentMaintenanceTask"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+    post:
+      tags: [Admin, Maintenance]
+      summary: 创建托管任务（后台，P1）
+      operationId: adminCreatePatentMaintenanceTask
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PatentMaintenanceTaskCreateRequest"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PatentMaintenanceTask"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+
+  /admin/patent-maintenance/tasks/{taskId}:
+    patch:
+      tags: [Admin, Maintenance]
+      summary: 更新托管任务（后台，P1）
+      operationId: adminUpdatePatentMaintenanceTask
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/MaintenanceTaskId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PatentMaintenanceTaskUpdateRequest"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PatentMaintenanceTask"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /admin/alerts:
+    get:
+      tags: [Admin, Alerts]
+      summary: 告警事件列表（后台，P1）
+      operationId: adminListAlertEvents
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/AlertStatus"
+        - $ref: "#/components/parameters/AlertSeverity"
+        - $ref: "#/components/parameters/AlertChannel"
+        - $ref: "#/components/parameters/AlertTargetType"
+        - name: type
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: targetId
+          in: query
+          required: false
+          schema:
+            $ref: "#/components/schemas/Uuid"
+        - name: triggeredFrom
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date-time
+        - name: triggeredTo
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date-time
+        - $ref: "#/components/parameters/Page"
+        - $ref: "#/components/parameters/PageSize"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PagedAlertEvent"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+
+  /admin/alerts/{alertId}/ack:
+    post:
+      tags: [Admin, Alerts]
+      summary: 告警确认（后台，P1）
+      operationId: adminAcknowledgeAlertEvent
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/AlertId"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AlertEvent"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
   /admin/listings:
     get:
       tags: [Admin]
-      summary: 上架审核列表
+      summary: 上架审核/平台内容列表
       operationId: adminListListingsForAudit
       security:
         - BearerAuth: []
@@ -2378,6 +2984,7 @@ paths:
         - $ref: "#/components/parameters/RegionCode"
         - $ref: "#/components/parameters/AuditStatus"
         - $ref: "#/components/parameters/ListingStatus"
+        - $ref: "#/components/parameters/ContentSource"
         - $ref: "#/components/parameters/Page"
         - $ref: "#/components/parameters/PageSize"
       responses:
@@ -2391,6 +2998,141 @@ paths:
           $ref: "#/components/responses/Unauthorized"
         "403":
           $ref: "#/components/responses/Forbidden"
+    post:
+      tags: [Admin]
+      summary: 创建平台自有上架（P1）
+      operationId: adminCreateListing
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AdminListingCreateRequest"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Listing"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+
+  /admin/listings/{listingId}:
+    get:
+      tags: [Admin]
+      summary: 获取上架详情（后台，P1）
+      operationId: adminGetListingById
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/ListingId"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Listing"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+    patch:
+      tags: [Admin]
+      summary: 更新平台自有上架（后台，P1）
+      operationId: adminUpdateListing
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/ListingId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AdminListingUpdateRequest"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Listing"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /admin/listings/{listingId}/publish:
+    post:
+      tags: [Admin]
+      summary: 发布上架（后台，P1）
+      operationId: adminPublishListing
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/ListingId"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Listing"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+
+  /admin/listings/{listingId}/off-shelf:
+    post:
+      tags: [Admin]
+      summary: 下架（后台，P1）
+      operationId: adminOffShelfListing
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/ListingId"
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                reason:
+                  type: string
+                  maxLength: 200
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Listing"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
 
   /admin/listings/{listingId}/approve:
     post:
@@ -2491,7 +3233,7 @@ paths:
   /admin/demands:
     get:
       tags: [Admin]
-      summary: 需求审核列表
+      summary: 需求审核/平台内容列表
       operationId: adminListDemandsForAudit
       security:
         - BearerAuth: []
@@ -2500,6 +3242,7 @@ paths:
         - $ref: "#/components/parameters/RegionCode"
         - $ref: "#/components/parameters/AuditStatus"
         - $ref: "#/components/parameters/ContentStatus"
+        - $ref: "#/components/parameters/ContentSource"
         - $ref: "#/components/parameters/Page"
         - $ref: "#/components/parameters/PageSize"
       responses:
@@ -2513,6 +3256,141 @@ paths:
           $ref: "#/components/responses/Unauthorized"
         "403":
           $ref: "#/components/responses/Forbidden"
+    post:
+      tags: [Admin]
+      summary: 创建平台自有需求（P1）
+      operationId: adminCreateDemand
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AdminDemandCreateRequest"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Demand"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+
+  /admin/demands/{demandId}:
+    get:
+      tags: [Admin]
+      summary: 获取需求详情（后台，P1）
+      operationId: adminGetDemandById
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/DemandId"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Demand"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+    patch:
+      tags: [Admin]
+      summary: 更新平台自有需求（后台，P1）
+      operationId: adminUpdateDemand
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/DemandId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AdminDemandUpdateRequest"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Demand"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /admin/demands/{demandId}/publish:
+    post:
+      tags: [Admin]
+      summary: 发布需求（后台，P1）
+      operationId: adminPublishDemand
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/DemandId"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Demand"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+
+  /admin/demands/{demandId}/off-shelf:
+    post:
+      tags: [Admin]
+      summary: 下架需求（后台，P1）
+      operationId: adminOffShelfDemand
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/DemandId"
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                reason:
+                  type: string
+                  maxLength: 200
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Demand"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
 
   /admin/demands/{demandId}/approve:
     post:
@@ -2579,7 +3457,7 @@ paths:
   /admin/achievements:
     get:
       tags: [Admin]
-      summary: 成果审核列表
+      summary: 成果审核/平台内容列表
       operationId: adminListAchievementsForAudit
       security:
         - BearerAuth: []
@@ -2588,6 +3466,7 @@ paths:
         - $ref: "#/components/parameters/RegionCode"
         - $ref: "#/components/parameters/AuditStatus"
         - $ref: "#/components/parameters/ContentStatus"
+        - $ref: "#/components/parameters/ContentSource"
         - $ref: "#/components/parameters/Page"
         - $ref: "#/components/parameters/PageSize"
       responses:
@@ -2601,6 +3480,141 @@ paths:
           $ref: "#/components/responses/Unauthorized"
         "403":
           $ref: "#/components/responses/Forbidden"
+    post:
+      tags: [Admin]
+      summary: 创建平台自有成果（P1）
+      operationId: adminCreateAchievement
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AdminAchievementCreateRequest"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Achievement"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+
+  /admin/achievements/{achievementId}:
+    get:
+      tags: [Admin]
+      summary: 获取成果详情（后台，P1）
+      operationId: adminGetAchievementById
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/AchievementId"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Achievement"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+    patch:
+      tags: [Admin]
+      summary: 更新平台自有成果（后台，P1）
+      operationId: adminUpdateAchievement
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/AchievementId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AdminAchievementUpdateRequest"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Achievement"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /admin/achievements/{achievementId}/publish:
+    post:
+      tags: [Admin]
+      summary: 发布成果（后台，P1）
+      operationId: adminPublishAchievement
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/AchievementId"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Achievement"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+
+  /admin/achievements/{achievementId}/off-shelf:
+    post:
+      tags: [Admin]
+      summary: 下架成果（后台，P1）
+      operationId: adminOffShelfAchievement
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/AchievementId"
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                reason:
+                  type: string
+                  maxLength: 200
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Achievement"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
 
   /admin/achievements/{achievementId}/approve:
     post:
@@ -3290,6 +4304,106 @@ components:
       schema:
         $ref: "#/components/schemas/ContentStatus"
 
+    ContentSource:
+      name: source
+      in: query
+      required: false
+      schema:
+        $ref: "#/components/schemas/ContentSource"
+      description: 内容来源过滤
+
+    AiContentType:
+      name: contentType
+      in: query
+      required: false
+      schema:
+        $ref: "#/components/schemas/AiContentType"
+      description: AI 内容类型过滤
+
+    AiParseStatus:
+      name: status
+      in: query
+      required: false
+      schema:
+        $ref: "#/components/schemas/AiParseStatus"
+      description: AI 解析状态过滤
+
+    MaintenanceStatus:
+      name: status
+      in: query
+      required: false
+      schema:
+        $ref: "#/components/schemas/PatentMaintenanceStatus"
+      description: 年费日程状态过滤
+
+    MaintenanceTaskStatus:
+      name: status
+      in: query
+      required: false
+      schema:
+        $ref: "#/components/schemas/PatentMaintenanceTaskStatus"
+      description: 托管任务状态过滤
+
+    AlertStatus:
+      name: status
+      in: query
+      required: false
+      schema:
+        $ref: "#/components/schemas/AlertStatus"
+      description: 告警状态过滤
+
+    AlertSeverity:
+      name: severity
+      in: query
+      required: false
+      schema:
+        $ref: "#/components/schemas/AlertSeverity"
+      description: 告警级别过滤
+
+    AlertChannel:
+      name: channel
+      in: query
+      required: false
+      schema:
+        $ref: "#/components/schemas/AlertChannel"
+      description: 告警渠道过滤
+
+    AlertTargetType:
+      name: targetType
+      in: query
+      required: false
+      schema:
+        $ref: "#/components/schemas/AlertTargetType"
+      description: 告警目标类型过滤
+
+    ParseResultId:
+      name: parseResultId
+      in: path
+      required: true
+      schema:
+        $ref: "#/components/schemas/Uuid"
+
+    MaintenanceScheduleId:
+      name: scheduleId
+      in: path
+      required: true
+      schema:
+        $ref: "#/components/schemas/Uuid"
+
+    MaintenanceTaskId:
+      name: taskId
+      in: path
+      required: true
+      schema:
+        $ref: "#/components/schemas/Uuid"
+
+    AlertId:
+      name: alertId
+      in: path
+      required: true
+      schema:
+        $ref: "#/components/schemas/Uuid"
+
     CommentContentType:
       name: contentType
       in: query
@@ -3863,6 +4977,10 @@ components:
       type: string
       enum: [PENDING, APPROVED, REJECTED]
 
+    ContentSource:
+      type: string
+      enum: [USER, PLATFORM, ADMIN]
+
     ListingStatus:
       type: string
       enum: [DRAFT, ACTIVE, OFF_SHELF, SOLD]
@@ -3917,6 +5035,8 @@ components:
           $ref: "#/components/schemas/Uuid"
         patentId:
           $ref: "#/components/schemas/Uuid"
+        source:
+          $ref: "#/components/schemas/ContentSource"
         applicationNoDisplay:
           type: string
         patentType:
@@ -3999,6 +5119,9 @@ components:
               type: array
               items:
                 $ref: "#/components/schemas/ListingMedia"
+            aiParse:
+              $ref: "#/components/schemas/AiParseResult"
+              nullable: true
             proofFileIds:
               type: array
               items:
@@ -4025,6 +5148,9 @@ components:
               type: array
               items:
                 $ref: "#/components/schemas/ListingMedia"
+            aiParse:
+              $ref: "#/components/schemas/AiParseResult"
+              nullable: true
 
     ListingCreateRequest:
       type: object
@@ -4252,6 +5378,8 @@ components:
       properties:
         id:
           $ref: "#/components/schemas/Uuid"
+        source:
+          $ref: "#/components/schemas/ContentSource"
         title:
           type: string
           maxLength: 200
@@ -4331,6 +5459,9 @@ components:
               type: array
               items:
                 $ref: "#/components/schemas/ContentMedia"
+            aiParse:
+              $ref: "#/components/schemas/AiParseResult"
+              nullable: true
             updatedAt:
               type: string
               format: date-time
@@ -4347,6 +5478,9 @@ components:
               type: array
               items:
                 $ref: "#/components/schemas/ContentMedia"
+            aiParse:
+              $ref: "#/components/schemas/AiParseResult"
+              nullable: true
 
     PagedDemandSummary:
       type: object
@@ -4483,6 +5617,8 @@ components:
       properties:
         id:
           $ref: "#/components/schemas/Uuid"
+        source:
+          $ref: "#/components/schemas/ContentSource"
         title:
           type: string
           maxLength: 200
@@ -4539,6 +5675,9 @@ components:
               type: array
               items:
                 $ref: "#/components/schemas/ContentMedia"
+            aiParse:
+              $ref: "#/components/schemas/AiParseResult"
+              nullable: true
             updatedAt:
               type: string
               format: date-time
@@ -4555,6 +5694,9 @@ components:
               type: array
               items:
                 $ref: "#/components/schemas/ContentMedia"
+            aiParse:
+              $ref: "#/components/schemas/AiParseResult"
+              nullable: true
 
     PagedAchievementSummary:
       type: object
@@ -5757,3 +6899,727 @@ components:
         nextCursor:
           type: string
           nullable: true
+
+    AiAgentInputType:
+      type: string
+      enum: [TEXT, VOICE]
+
+    AiContentScope:
+      type: string
+      enum: [LISTING, DEMAND, ACHIEVEMENT, ALL]
+
+    AiContentType:
+      type: string
+      enum: [LISTING, DEMAND, ACHIEVEMENT]
+
+    AiParseStatus:
+      type: string
+      enum: [ACTIVE, REVIEW_REQUIRED, REPLACED]
+
+    AiParseFeedbackActorType:
+      type: string
+      enum: [USER, ADMIN]
+
+    AiAgentQueryRequest:
+      type: object
+      required: [inputType]
+      properties:
+        inputType:
+          $ref: "#/components/schemas/AiAgentInputType"
+        inputText:
+          type: string
+          maxLength: 2000
+        audioFileId:
+          $ref: "#/components/schemas/Uuid"
+          nullable: true
+        contentScope:
+          $ref: "#/components/schemas/AiContentScope"
+        regionCode:
+          type: string
+        industryTags:
+          type: array
+          items:
+            type: string
+        extraContext:
+          type: object
+          additionalProperties: true
+
+    AiSearchFilters:
+      type: object
+      properties:
+        q:
+          type: string
+        patentType:
+          $ref: "#/components/schemas/PatentType"
+        tradeMode:
+          $ref: "#/components/schemas/TradeMode"
+        priceType:
+          $ref: "#/components/schemas/PriceType"
+        priceMinFen:
+          $ref: "#/components/schemas/MoneyFen"
+        priceMaxFen:
+          $ref: "#/components/schemas/MoneyFen"
+        depositMinFen:
+          $ref: "#/components/schemas/MoneyFen"
+        depositMaxFen:
+          $ref: "#/components/schemas/MoneyFen"
+        regionCode:
+          type: string
+        industryTags:
+          type: array
+          items:
+            type: string
+        cooperationModes:
+          type: array
+          items:
+            $ref: "#/components/schemas/CooperationMode"
+        budgetType:
+          $ref: "#/components/schemas/PriceType"
+        budgetMinFen:
+          $ref: "#/components/schemas/MoneyFen"
+        budgetMaxFen:
+          $ref: "#/components/schemas/MoneyFen"
+        maturity:
+          $ref: "#/components/schemas/AchievementMaturity"
+
+    AiAgentParsedQuery:
+      type: object
+      properties:
+        contentType:
+          $ref: "#/components/schemas/AiContentType"
+        keywords:
+          type: array
+          items:
+            type: string
+        applicationScenario:
+          type: string
+        filters:
+          $ref: "#/components/schemas/AiSearchFilters"
+
+    AiAgentMatchSummary:
+      type: object
+      required: [contentType, contentId, title]
+      properties:
+        contentType:
+          $ref: "#/components/schemas/AiContentType"
+        contentId:
+          $ref: "#/components/schemas/Uuid"
+        title:
+          type: string
+        reason:
+          type: string
+        score:
+          type: number
+          format: double
+
+    AiAgentQueryResult:
+      type: object
+      required: [queryId, parsedQuery]
+      properties:
+        queryId:
+          $ref: "#/components/schemas/Uuid"
+        recognizedText:
+          type: string
+        normalizedText:
+          type: string
+        contentScope:
+          $ref: "#/components/schemas/AiContentScope"
+        parsedQuery:
+          $ref: "#/components/schemas/AiAgentParsedQuery"
+        matchSummary:
+          type: string
+        topMatches:
+          type: array
+          items:
+            $ref: "#/components/schemas/AiAgentMatchSummary"
+        confidence:
+          type: number
+          format: double
+        createdAt:
+          type: string
+          format: date-time
+
+    AiParseResult:
+      type: object
+      required: [id, contentType, contentId, status, confidence, createdAt]
+      properties:
+        id:
+          $ref: "#/components/schemas/Uuid"
+        contentType:
+          $ref: "#/components/schemas/AiContentType"
+        contentId:
+          $ref: "#/components/schemas/Uuid"
+        summaryPlain:
+          type: string
+        featuresPlain:
+          type: string
+        keywords:
+          type: array
+          items:
+            type: string
+        confidence:
+          type: number
+          format: double
+        modelVersion:
+          type: string
+        status:
+          $ref: "#/components/schemas/AiParseStatus"
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    AiParseFeedback:
+      type: object
+      required: [id, parseResultId, actorType, score, createdAt]
+      properties:
+        id:
+          $ref: "#/components/schemas/Uuid"
+        parseResultId:
+          $ref: "#/components/schemas/Uuid"
+        actorUserId:
+          $ref: "#/components/schemas/Uuid"
+        actorType:
+          $ref: "#/components/schemas/AiParseFeedbackActorType"
+        score:
+          type: integer
+          minimum: 1
+          maximum: 5
+        reasonTags:
+          type: array
+          items:
+            type: string
+        comment:
+          type: string
+          maxLength: 500
+        createdAt:
+          type: string
+          format: date-time
+
+    AiParseFeedbackRequest:
+      type: object
+      required: [score]
+      properties:
+        score:
+          type: integer
+          minimum: 1
+          maximum: 5
+        reasonTags:
+          type: array
+          items:
+            type: string
+        comment:
+          type: string
+          maxLength: 500
+
+    AiParseResultUpdateRequest:
+      type: object
+      properties:
+        summaryPlain:
+          type: string
+        featuresPlain:
+          type: string
+        keywords:
+          type: array
+          items:
+            type: string
+        status:
+          $ref: "#/components/schemas/AiParseStatus"
+        note:
+          type: string
+          maxLength: 500
+
+    PagedAiParseResult:
+      type: object
+      required: [items, page]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/AiParseResult"
+        page:
+          $ref: "#/components/schemas/PageMeta"
+
+    AiConfig:
+      type: object
+      required: [enabled]
+      properties:
+        enabled:
+          type: boolean
+        voiceEnabled:
+          type: boolean
+        asrProvider:
+          type: string
+        llmProvider:
+          type: string
+        hotwords:
+          type: array
+          items:
+            type: string
+        agentModelVersion:
+          type: string
+        parseModelVersion:
+          type: string
+        confidenceThreshold:
+          type: number
+          format: double
+        reviewThreshold:
+          type: number
+          format: double
+        maxInputSeconds:
+          type: integer
+          minimum: 1
+
+    AiConfigUpdateRequest:
+      type: object
+      properties:
+        enabled:
+          type: boolean
+        voiceEnabled:
+          type: boolean
+        asrProvider:
+          type: string
+        llmProvider:
+          type: string
+        hotwords:
+          type: array
+          items:
+            type: string
+        agentModelVersion:
+          type: string
+        parseModelVersion:
+          type: string
+        confidenceThreshold:
+          type: number
+          format: double
+        reviewThreshold:
+          type: number
+          format: double
+        maxInputSeconds:
+          type: integer
+          minimum: 1
+
+    AlertSeverity:
+      type: string
+      enum: [LOW, MEDIUM, HIGH]
+
+    AlertChannel:
+      type: string
+      enum: [SMS, EMAIL, IN_APP]
+
+    AlertStatus:
+      type: string
+      enum: [PENDING, SENT, ACKED, SUPPRESSED]
+
+    AlertTargetType:
+      type: string
+      enum: [PATENT, ORDER, LISTING, DEMAND, ACHIEVEMENT, AI_PARSE, IMPORT, PAYMENT, REFUND, SYSTEM]
+
+    AlertRule:
+      type: object
+      required: [type, severity, channels, enabled]
+      properties:
+        type:
+          type: string
+        severity:
+          $ref: "#/components/schemas/AlertSeverity"
+        channels:
+          type: array
+          items:
+            $ref: "#/components/schemas/AlertChannel"
+        enabled:
+          type: boolean
+        threshold:
+          type: number
+          format: double
+        cooldownMinutes:
+          type: integer
+          minimum: 0
+
+    AlertConfig:
+      type: object
+      required: [enabled, rules]
+      properties:
+        enabled:
+          type: boolean
+        defaultChannels:
+          type: array
+          items:
+            $ref: "#/components/schemas/AlertChannel"
+        rules:
+          type: array
+          items:
+            $ref: "#/components/schemas/AlertRule"
+
+    AlertConfigUpdateRequest:
+      type: object
+      properties:
+        enabled:
+          type: boolean
+        defaultChannels:
+          type: array
+          items:
+            $ref: "#/components/schemas/AlertChannel"
+        rules:
+          type: array
+          items:
+            $ref: "#/components/schemas/AlertRule"
+
+    AlertEvent:
+      type: object
+      required: [id, type, severity, channel, status, triggeredAt]
+      properties:
+        id:
+          $ref: "#/components/schemas/Uuid"
+        type:
+          type: string
+        severity:
+          $ref: "#/components/schemas/AlertSeverity"
+        channel:
+          $ref: "#/components/schemas/AlertChannel"
+        status:
+          $ref: "#/components/schemas/AlertStatus"
+        targetType:
+          $ref: "#/components/schemas/AlertTargetType"
+        targetId:
+          $ref: "#/components/schemas/Uuid"
+          nullable: true
+        message:
+          type: string
+        triggeredAt:
+          type: string
+          format: date-time
+        sentAt:
+          type: string
+          format: date-time
+          nullable: true
+
+    PagedAlertEvent:
+      type: object
+      required: [items, page]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/AlertEvent"
+        page:
+          $ref: "#/components/schemas/PageMeta"
+
+    PatentMaintenanceStatus:
+      type: string
+      enum: [DUE, PAID, OVERDUE, WAIVED]
+
+    PatentMaintenanceTaskStatus:
+      type: string
+      enum: [OPEN, IN_PROGRESS, DONE, CANCELLED]
+
+    PatentMaintenanceSchedule:
+      type: object
+      required: [id, patentId, yearNo, dueDate, status, createdAt]
+      properties:
+        id:
+          $ref: "#/components/schemas/Uuid"
+        patentId:
+          $ref: "#/components/schemas/Uuid"
+        yearNo:
+          type: integer
+          minimum: 1
+        dueDate:
+          type: string
+          format: date
+        gracePeriodEnd:
+          type: string
+          format: date
+          nullable: true
+        status:
+          $ref: "#/components/schemas/PatentMaintenanceStatus"
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    PatentMaintenanceScheduleCreateRequest:
+      type: object
+      required: [patentId, yearNo, dueDate]
+      properties:
+        patentId:
+          $ref: "#/components/schemas/Uuid"
+        yearNo:
+          type: integer
+          minimum: 1
+        dueDate:
+          type: string
+          format: date
+        gracePeriodEnd:
+          type: string
+          format: date
+        status:
+          $ref: "#/components/schemas/PatentMaintenanceStatus"
+
+    PatentMaintenanceScheduleUpdateRequest:
+      type: object
+      properties:
+        dueDate:
+          type: string
+          format: date
+        gracePeriodEnd:
+          type: string
+          format: date
+        status:
+          $ref: "#/components/schemas/PatentMaintenanceStatus"
+
+    PatentMaintenanceTask:
+      type: object
+      required: [id, scheduleId, status, createdAt]
+      properties:
+        id:
+          $ref: "#/components/schemas/Uuid"
+        scheduleId:
+          $ref: "#/components/schemas/Uuid"
+        assignedCsUserId:
+          $ref: "#/components/schemas/Uuid"
+          nullable: true
+        status:
+          $ref: "#/components/schemas/PatentMaintenanceTaskStatus"
+        note:
+          type: string
+        evidenceFileId:
+          $ref: "#/components/schemas/Uuid"
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    PatentMaintenanceTaskCreateRequest:
+      type: object
+      required: [scheduleId]
+      properties:
+        scheduleId:
+          $ref: "#/components/schemas/Uuid"
+        assignedCsUserId:
+          $ref: "#/components/schemas/Uuid"
+        note:
+          type: string
+
+    PatentMaintenanceTaskUpdateRequest:
+      type: object
+      properties:
+        assignedCsUserId:
+          $ref: "#/components/schemas/Uuid"
+        status:
+          $ref: "#/components/schemas/PatentMaintenanceTaskStatus"
+        note:
+          type: string
+        evidenceFileId:
+          $ref: "#/components/schemas/Uuid"
+
+    PagedPatentMaintenanceSchedule:
+      type: object
+      required: [items, page]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/PatentMaintenanceSchedule"
+        page:
+          $ref: "#/components/schemas/PageMeta"
+
+    PagedPatentMaintenanceTask:
+      type: object
+      required: [items, page]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/PatentMaintenanceTask"
+        page:
+          $ref: "#/components/schemas/PageMeta"
+
+    PatentCreateRequest:
+      type: object
+      required: [applicationNoNorm, patentType, title]
+      properties:
+        jurisdiction:
+          $ref: "#/components/schemas/Jurisdiction"
+        applicationNoNorm:
+          type: string
+        applicationNoDisplay:
+          type: string
+        patentType:
+          $ref: "#/components/schemas/PatentType"
+        title:
+          type: string
+        abstract:
+          type: string
+        inventorNames:
+          type: array
+          items:
+            type: string
+        assigneeNames:
+          type: array
+          items:
+            type: string
+        applicantNames:
+          type: array
+          items:
+            type: string
+        filingDate:
+          type: string
+          format: date
+        publicationDate:
+          type: string
+          format: date
+        grantDate:
+          type: string
+          format: date
+        legalStatus:
+          $ref: "#/components/schemas/LegalStatus"
+        sourcePrimary:
+          type: string
+          enum: [USER, ADMIN, PROVIDER]
+        sourceUpdatedAt:
+          type: string
+          format: date-time
+
+    PatentUpdateRequest:
+      type: object
+      properties:
+        applicationNoDisplay:
+          type: string
+        patentType:
+          $ref: "#/components/schemas/PatentType"
+        title:
+          type: string
+        abstract:
+          type: string
+        inventorNames:
+          type: array
+          items:
+            type: string
+        assigneeNames:
+          type: array
+          items:
+            type: string
+        applicantNames:
+          type: array
+          items:
+            type: string
+        filingDate:
+          type: string
+          format: date
+        publicationDate:
+          type: string
+          format: date
+        grantDate:
+          type: string
+          format: date
+        legalStatus:
+          $ref: "#/components/schemas/LegalStatus"
+        sourcePrimary:
+          type: string
+          enum: [USER, ADMIN, PROVIDER]
+        sourceUpdatedAt:
+          type: string
+          format: date-time
+
+    PagedPatent:
+      type: object
+      required: [items, page]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/Patent"
+        page:
+          $ref: "#/components/schemas/PageMeta"
+
+    AdminListingCreateRequest:
+      allOf:
+        - $ref: "#/components/schemas/ListingCreateRequest"
+        - type: object
+          properties:
+            source:
+              $ref: "#/components/schemas/ContentSource"
+            sellerUserId:
+              $ref: "#/components/schemas/Uuid"
+            auditStatus:
+              $ref: "#/components/schemas/AuditStatus"
+            status:
+              $ref: "#/components/schemas/ListingStatus"
+
+    AdminListingUpdateRequest:
+      allOf:
+        - $ref: "#/components/schemas/ListingUpdateRequest"
+        - type: object
+          properties:
+            source:
+              $ref: "#/components/schemas/ContentSource"
+            sellerUserId:
+              $ref: "#/components/schemas/Uuid"
+            auditStatus:
+              $ref: "#/components/schemas/AuditStatus"
+            status:
+              $ref: "#/components/schemas/ListingStatus"
+
+    AdminDemandCreateRequest:
+      allOf:
+        - $ref: "#/components/schemas/DemandCreateRequest"
+        - type: object
+          properties:
+            source:
+              $ref: "#/components/schemas/ContentSource"
+            publisherUserId:
+              $ref: "#/components/schemas/Uuid"
+            auditStatus:
+              $ref: "#/components/schemas/AuditStatus"
+            status:
+              $ref: "#/components/schemas/ContentStatus"
+
+    AdminDemandUpdateRequest:
+      allOf:
+        - $ref: "#/components/schemas/DemandUpdateRequest"
+        - type: object
+          properties:
+            source:
+              $ref: "#/components/schemas/ContentSource"
+            publisherUserId:
+              $ref: "#/components/schemas/Uuid"
+            auditStatus:
+              $ref: "#/components/schemas/AuditStatus"
+            status:
+              $ref: "#/components/schemas/ContentStatus"
+
+    AdminAchievementCreateRequest:
+      allOf:
+        - $ref: "#/components/schemas/AchievementCreateRequest"
+        - type: object
+          properties:
+            source:
+              $ref: "#/components/schemas/ContentSource"
+            publisherUserId:
+              $ref: "#/components/schemas/Uuid"
+            auditStatus:
+              $ref: "#/components/schemas/AuditStatus"
+            status:
+              $ref: "#/components/schemas/ContentStatus"
+
+    AdminAchievementUpdateRequest:
+      allOf:
+        - $ref: "#/components/schemas/AchievementUpdateRequest"
+        - type: object
+          properties:
+            source:
+              $ref: "#/components/schemas/ContentSource"
+            publisherUserId:
+              $ref: "#/components/schemas/Uuid"
+            auditStatus:
+              $ref: "#/components/schemas/AuditStatus"
+            status:
+              $ref: "#/components/schemas/ContentStatus"

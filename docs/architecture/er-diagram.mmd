@@ -96,7 +96,7 @@ erDiagram
     string url
     string mime_type
     int size_bytes
-    string owner_scope "LISTING/CASE/REFUND_REQUEST/INVOICE/USER/USER_VERIFICATION/MESSAGE"
+    string owner_scope "LISTING/DEMAND/ACHIEVEMENT/CASE/REFUND_REQUEST/INVOICE/USER/USER_VERIFICATION/MESSAGE/AI_PARSE/MAINTENANCE_TASK"
     uuid owner_id
     datetime created_at
   }
@@ -107,6 +107,7 @@ erDiagram
     uuid patent_id FK
     string title
     string summary
+    string source "USER/PLATFORM/ADMIN"
     string trade_mode "ASSIGNMENT/LICENSE"
     string license_mode "EXCLUSIVE/SOLE/NON_EXCLUSIVE"
     string price_type "FIXED/NEGOTIABLE"
@@ -122,6 +123,70 @@ erDiagram
     string status "DRAFT/ACTIVE/OFF_SHELF/SOLD"
     datetime created_at
     datetime updated_at
+  }
+
+  DEMANDS {
+    uuid id PK
+    uuid publisher_user_id FK
+    string title
+    string summary
+    string cooperation_modes_json "json"
+    string budget_type "FIXED/NEGOTIABLE"
+    int budget_min
+    int budget_max
+    string region_code
+    string industry_tags_json "json"
+    string audit_status "PENDING/APPROVED/REJECTED"
+    string status "DRAFT/ACTIVE/OFF_SHELF"
+    string source "USER/PLATFORM/ADMIN"
+    datetime created_at
+    datetime updated_at
+  }
+
+  DEMAND_MEDIA {
+    uuid id PK
+    uuid demand_id FK
+    uuid file_id FK
+    string type "IMAGE/VIDEO/FILE"
+    int sort
+  }
+
+  DEMAND_FAVORITES {
+    uuid id PK
+    uuid demand_id FK
+    uuid user_id FK
+    datetime created_at
+  }
+
+  ACHIEVEMENTS {
+    uuid id PK
+    uuid publisher_user_id FK
+    string title
+    string summary
+    string maturity "CONCEPT/PROTOTYPE/PILOT/MASS_PRODUCTION/COMMERCIALIZED/OTHER"
+    string cooperation_modes_json "json"
+    string region_code
+    string industry_tags_json "json"
+    string audit_status "PENDING/APPROVED/REJECTED"
+    string status "DRAFT/ACTIVE/OFF_SHELF"
+    string source "USER/PLATFORM/ADMIN"
+    datetime created_at
+    datetime updated_at
+  }
+
+  ACHIEVEMENT_MEDIA {
+    uuid id PK
+    uuid achievement_id FK
+    uuid file_id FK
+    string type "IMAGE/VIDEO/FILE"
+    int sort
+  }
+
+  ACHIEVEMENT_FAVORITES {
+    uuid id PK
+    uuid achievement_id FK
+    uuid user_id FK
+    datetime created_at
   }
 
   LISTING_MEDIA {
@@ -191,7 +256,8 @@ erDiagram
 
   CONVERSATIONS {
     uuid id PK
-    uuid listing_id FK
+    string content_type "LISTING/DEMAND/ACHIEVEMENT"
+    uuid content_id FK
     uuid order_id FK
     uuid buyer_user_id FK
     uuid seller_user_id FK
@@ -275,6 +341,65 @@ erDiagram
     datetime updated_at
   }
 
+  AI_PARSE_RESULTS {
+    uuid id PK
+    string content_type "LISTING/DEMAND/ACHIEVEMENT"
+    uuid content_id FK
+    string summary_plain
+    string features_plain
+    string keywords_json "json"
+    float confidence
+    string model_version
+    string status "ACTIVE/REVIEW_REQUIRED/REPLACED"
+    datetime created_at
+    datetime updated_at
+  }
+
+  AI_PARSE_FEEDBACK {
+    uuid id PK
+    uuid parse_result_id FK
+    uuid actor_user_id FK
+    string actor_type "USER/ADMIN"
+    int score
+    string reason_tags_json "json"
+    string comment
+    datetime created_at
+  }
+
+  PATENT_MAINTENANCE_SCHEDULES {
+    uuid id PK
+    uuid patent_id FK
+    int year_no
+    date due_date
+    date grace_period_end
+    string status "DUE/PAID/OVERDUE/WAIVED"
+    datetime created_at
+    datetime updated_at
+  }
+
+  PATENT_MAINTENANCE_TASKS {
+    uuid id PK
+    uuid schedule_id FK
+    uuid assigned_cs_user_id FK
+    string status "OPEN/IN_PROGRESS/DONE/CANCELLED"
+    string note
+    uuid evidence_file_id FK
+    datetime created_at
+    datetime updated_at
+  }
+
+  ALERT_EVENTS {
+    uuid id PK
+    string type
+    string severity "LOW/MEDIUM/HIGH"
+    string channel "SMS/EMAIL/IN_APP"
+    string status "PENDING/SENT/ACKED/SUPPRESSED"
+    string target_type "PATENT/ORDER/CONTENT/AI_PARSE/IMPORT/..."
+    uuid target_id
+    datetime triggered_at
+    datetime sent_at
+  }
+
   PATENT_MAP_ENTRIES {
     uuid id PK
     string region_code FK
@@ -315,12 +440,26 @@ erDiagram
   USERS ||--o{ USER_VERIFICATIONS : verifies
   REGIONS ||--o{ USERS : located_in
   USERS ||--o{ LISTINGS : publishes
+  USERS ||--o{ DEMANDS : publishes
+  USERS ||--o{ ACHIEVEMENTS : publishes
   USERS ||--o{ ORDERS : places
+  USERS ||--o{ LISTING_FAVORITES : favorites
+  USERS ||--o{ DEMAND_FAVORITES : favorites
+  USERS ||--o{ ACHIEVEMENT_FAVORITES : favorites
+  USERS ||--o{ LISTING_CONSULT_EVENTS : consults
+  USERS ||--o{ USER_TAG_SCORES : prefers
+  USERS ||--o{ CONVERSATION_PARTICIPANTS : participates
+  USERS ||--o{ CONVERSATION_MESSAGES : sends
+  USERS ||--o{ SYSTEM_CONFIGS : updates
+  USERS ||--o{ AUDIT_LOGS : audits
+  USERS ||--o{ AI_PARSE_FEEDBACK : reviews
+  USERS ||--o{ PATENT_MAINTENANCE_TASKS : assigned
 
   PATENTS ||--o{ PATENT_IDENTIFIERS : has
   PATENTS ||--o{ PATENT_CLASSIFICATIONS : has
   PATENTS ||--o{ PATENT_PARTIES : has
   PATENTS ||--o{ LISTINGS : referenced_by
+  PATENTS ||--o{ PATENT_MAINTENANCE_SCHEDULES : schedules
 
   LISTINGS ||--o{ LISTING_MEDIA : has
   LISTINGS ||--o{ LISTING_AUDIT_LOGS : audited
@@ -329,10 +468,38 @@ erDiagram
   LISTINGS ||--o{ LISTING_FAVORITES : favored
   LISTINGS ||--o{ LISTING_CONSULT_EVENTS : consulted
   REGIONS ||--o{ LISTINGS : located_in
+
+  DEMANDS ||--o{ DEMAND_MEDIA : has
+  DEMANDS ||--o{ DEMAND_FAVORITES : favored
+  REGIONS ||--o{ DEMANDS : located_in
+
+  ACHIEVEMENTS ||--o{ ACHIEVEMENT_MEDIA : has
+  ACHIEVEMENTS ||--o{ ACHIEVEMENT_FAVORITES : favored
+  REGIONS ||--o{ ACHIEVEMENTS : located_in
+
+  %% Polymorphic links via content_type/content_id
   LISTINGS ||--o{ CONVERSATIONS : discussed_in
+  DEMANDS ||--o{ CONVERSATIONS : discussed_in
+  ACHIEVEMENTS ||--o{ CONVERSATIONS : discussed_in
+
+  AI_PARSE_RESULTS ||--o{ AI_PARSE_FEEDBACK : feedback
+  LISTINGS ||--o{ AI_PARSE_RESULTS : parsed
+  DEMANDS ||--o{ AI_PARSE_RESULTS : parsed
+  ACHIEVEMENTS ||--o{ AI_PARSE_RESULTS : parsed
+
+  PATENT_MAINTENANCE_SCHEDULES ||--o{ PATENT_MAINTENANCE_TASKS : tasks
 
   FILES ||--o{ LISTING_MEDIA : stored_as
+  FILES ||--o{ DEMAND_MEDIA : stored_as
+  FILES ||--o{ ACHIEVEMENT_MEDIA : stored_as
   FILES ||--o{ CONVERSATION_MESSAGES : attached
+  FILES ||--o{ CS_MILESTONES : evidence
+  FILES ||--o{ SETTLEMENTS : payout_evidence
+  FILES ||--o{ PATENT_MAINTENANCE_TASKS : evidence
+  ORDERS ||--o| FILES : invoice_file
+  REFUND_REQUESTS ||--o{ FILES : evidence
+  USER_VERIFICATIONS ||--o{ FILES : evidence
+  USER_VERIFICATIONS ||--o| FILES : logo
 
   ORDERS ||--o{ PAYMENTS : has
   ORDERS ||--o{ REFUND_REQUESTS : has
@@ -340,21 +507,7 @@ erDiagram
   ORDERS ||--|| SETTLEMENTS : settles
   ORDERS ||--o{ CONVERSATIONS : links
 
-  USERS ||--o{ SYSTEM_CONFIGS : updates
-  USERS ||--o{ AUDIT_LOGS : audits
-  USERS ||--o{ LISTING_FAVORITES : favorites
-  USERS ||--o{ LISTING_CONSULT_EVENTS : consults
-  USERS ||--o{ USER_TAG_SCORES : prefers
-  USERS ||--o{ CONVERSATION_PARTICIPANTS : participates
-  USERS ||--o{ CONVERSATION_MESSAGES : sends
-
   CS_CASES ||--o{ CS_MILESTONES : contains
-  REFUND_REQUESTS ||--o{ FILES : evidence
-  USER_VERIFICATIONS ||--o{ FILES : evidence
-  USER_VERIFICATIONS ||--o| FILES : logo
-  FILES ||--o{ CS_MILESTONES : evidence
-  FILES ||--o{ SETTLEMENTS : payout_evidence
-  ORDERS ||--o| FILES : invoice_file
 
   CONVERSATIONS ||--o{ CONVERSATION_PARTICIPANTS : has
   CONVERSATIONS ||--o{ CONVERSATION_MESSAGES : contains

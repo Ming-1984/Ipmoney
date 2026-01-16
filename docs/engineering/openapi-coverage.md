@@ -4,15 +4,53 @@
 
 ## 1. 汇总
 
-- OpenAPI operations：114
-- 前端已使用（Client）：77
+- OpenAPI operations：151
+- 前端已使用（Client）：76
 - 前端已使用（Admin）：42
 - fixtures 场景数：7
 
 ## 2. 关键差异（需要人工确认/回填）
 
 - 前端使用但 OpenAPI 未定义：0
-- OpenAPI 定义但前端未使用：0
+- OpenAPI 定义但前端未使用：38
+  - GET /admin/achievements/:param
+  - GET /admin/ai/parse-results
+  - GET /admin/ai/parse-results/:param
+  - GET /admin/alerts
+  - GET /admin/config/ai
+  - GET /admin/config/alerts
+  - GET /admin/demands/:param
+  - GET /admin/listings/:param
+  - GET /admin/patent-maintenance/schedules
+  - GET /admin/patent-maintenance/schedules/:param
+  - GET /admin/patent-maintenance/tasks
+  - GET /admin/patents
+  - GET /admin/patents/:param
+  - GET /me/recommendations/listings
+  - PATCH /admin/achievements/:param
+  - PATCH /admin/ai/parse-results/:param
+  - PATCH /admin/demands/:param
+  - PATCH /admin/listings/:param
+  - PATCH /admin/patent-maintenance/schedules/:param
+  - PATCH /admin/patent-maintenance/tasks/:param
+  - PATCH /admin/patents/:param
+  - POST /admin/achievements
+  - POST /admin/achievements/:param/off-shelf
+  - POST /admin/achievements/:param/publish
+  - POST /admin/alerts/:param/ack
+  - POST /admin/demands
+  - POST /admin/demands/:param/off-shelf
+  - POST /admin/demands/:param/publish
+  - POST /admin/listings
+  - POST /admin/listings/:param/off-shelf
+  - POST /admin/listings/:param/publish
+  - POST /admin/patent-maintenance/schedules
+  - POST /admin/patent-maintenance/tasks
+  - POST /admin/patents
+  - POST /ai/agent/query
+  - POST /ai/parse-results/:param/feedback
+  - PUT /admin/config/ai
+  - PUT /admin/config/alerts
 - 前端已使用但 happy fixtures 未覆盖（会回落到 Prism）：0
 
 ## 3. 覆盖明细（按 operation）
@@ -27,14 +65,27 @@
 | listMyAchievements | GET | /achievements | ✓ |  | ✓ |  |  |  |  |  |  |
 | getAchievementById | GET | /achievements/:param | ✓ |  | ✓ |  |  |  |  |  |  |
 | adminListAchievementsForAudit | GET | /admin/achievements |  | ✓ | ✓ |  |  |  |  |  |  |
+| adminGetAchievementById | GET | /admin/achievements/:param |  |  |  |  |  |  |  |  |  |
+| adminListAiParseResults | GET | /admin/ai/parse-results |  |  |  |  |  |  |  |  |  |
+| adminGetAiParseResult | GET | /admin/ai/parse-results/:param |  |  |  |  |  |  |  |  |  |
+| adminListAlertEvents | GET | /admin/alerts |  |  |  |  |  |  |  |  |  |
 | adminListComments | GET | /admin/comments |  | ✓ | ✓ | ✓ | ✓ | ✓ |  |  |  |
+| adminGetAiConfig | GET | /admin/config/ai |  |  |  |  |  |  |  |  |  |
+| adminGetAlertConfig | GET | /admin/config/alerts |  |  |  |  |  |  |  |  |  |
 | adminGetRecommendationConfig | GET | /admin/config/recommendation |  | ✓ | ✓ | ✓ | ✓ |  |  |  |  |
 | adminGetTradeRulesConfig | GET | /admin/config/trade-rules |  | ✓ | ✓ | ✓ | ✓ |  |  |  |  |
 | adminListDemandsForAudit | GET | /admin/demands |  | ✓ | ✓ |  |  |  |  |  |  |
+| adminGetDemandById | GET | /admin/demands/:param |  |  |  |  |  |  |  |  |  |
 | adminListIndustryTags | GET | /admin/industry-tags |  | ✓ | ✓ |  |  |  |  |  |  |
 | adminListListingsForAudit | GET | /admin/listings |  | ✓ | ✓ | ✓ | ✓ |  |  |  |  |
+| adminGetListingById | GET | /admin/listings/:param |  |  |  |  |  |  |  |  |  |
 | adminGetOrderSettlement | GET | /admin/orders/:param/settlement |  | ✓ | ✓ | ✓ | ✓ |  |  |  |  |
+| adminListPatentMaintenanceSchedules | GET | /admin/patent-maintenance/schedules |  |  |  |  |  |  |  |  |  |
+| adminGetPatentMaintenanceSchedule | GET | /admin/patent-maintenance/schedules/:param |  |  |  |  |  |  |  |  |  |
+| adminListPatentMaintenanceTasks | GET | /admin/patent-maintenance/tasks |  |  |  |  |  |  |  |  |  |
 | adminGetPatentMapEntry | GET | /admin/patent-map/regions/:param/years/:param |  | ✓ | ✓ | ✓ | ✓ |  |  |  |  |
+| adminListPatents | GET | /admin/patents |  |  |  |  |  |  |  |  |  |
+| adminGetPatentById | GET | /admin/patents/:param |  |  |  |  |  |  |  |  |  |
 | adminListRegions | GET | /admin/regions |  | ✓ | ✓ |  |  |  |  |  |  |
 | adminListUserVerifications | GET | /admin/user-verifications |  | ✓ | ✓ | ✓ | ✓ |  |  |  |  |
 | listConversationMessages | GET | /conversations/:param/messages | ✓ |  | ✓ | ✓ | ✓ |  |  |  |  |
@@ -47,7 +98,7 @@
 | listMyFavoriteListings | GET | /me/favorites | ✓ |  | ✓ |  |  |  |  |  |  |
 | listMyFavoriteAchievements | GET | /me/favorites/achievements | ✓ |  | ✓ |  |  |  |  |  |  |
 | listMyFavoriteDemands | GET | /me/favorites/demands | ✓ |  | ✓ |  |  |  |  |  |  |
-| getMyRecommendedListings | GET | /me/recommendations/listings | ✓ |  | ✓ | ✓ | ✓ |  |  |  |  |
+| getMyRecommendedListings | GET | /me/recommendations/listings |  |  | ✓ | ✓ | ✓ |  |  |  |  |
 | getMyVerification | GET | /me/verification | ✓ |  | ✓ |  |  |  |  |  |  |
 | listMyOrders | GET | /orders | ✓ | ✓ | ✓ | ✓ | ✓ |  |  |  |  |
 | getOrderById | GET | /orders/:param | ✓ |  | ✓ |  |  |  |  |  |  |
@@ -74,7 +125,14 @@
 | searchInventorRankings | GET | /search/inventors | ✓ |  | ✓ | ✓ | ✓ |  |  |  |  |
 | searchListings | GET | /search/listings | ✓ |  | ✓ | ✓ | ✓ | ✓ |  |  |  |
 | updateAchievement | PATCH | /achievements/:param | ✓ |  | ✓ |  |  |  |  |  |  |
+| adminUpdateAchievement | PATCH | /admin/achievements/:param |  |  |  |  |  |  |  |  |  |
+| adminUpdateAiParseResult | PATCH | /admin/ai/parse-results/:param |  |  |  |  |  |  |  |  |  |
 | adminUpdateComment | PATCH | /admin/comments/:param |  | ✓ | ✓ | ✓ | ✓ | ✓ |  |  |  |
+| adminUpdateDemand | PATCH | /admin/demands/:param |  |  |  |  |  |  |  |  |  |
+| adminUpdateListing | PATCH | /admin/listings/:param |  |  |  |  |  |  |  |  |  |
+| adminUpdatePatentMaintenanceSchedule | PATCH | /admin/patent-maintenance/schedules/:param |  |  |  |  |  |  |  |  |  |
+| adminUpdatePatentMaintenanceTask | PATCH | /admin/patent-maintenance/tasks/:param |  |  |  |  |  |  |  |  |  |
+| adminUpdatePatent | PATCH | /admin/patents/:param |  |  |  |  |  |  |  |  |  |
 | adminUpdateRegion | PATCH | /admin/regions/:param |  | ✓ | ✓ |  |  |  |  |  |  |
 | updateComment | PATCH | /comments/:param | ✓ |  | ✓ | ✓ | ✓ | ✓ |  |  |  |
 | updateDemand | PATCH | /demands/:param | ✓ |  | ✓ |  |  |  |  |  |  |
@@ -86,22 +144,37 @@
 | favoriteAchievement | POST | /achievements/:param/favorites | ✓ |  | ✓ |  |  |  |  |  |  |
 | offShelfAchievement | POST | /achievements/:param/off-shelf | ✓ |  | ✓ |  |  |  |  |  |  |
 | submitAchievement | POST | /achievements/:param/submit | ✓ |  | ✓ |  |  |  |  |  |  |
+| adminCreateAchievement | POST | /admin/achievements |  |  |  |  |  |  |  |  |  |
 | adminApproveAchievement | POST | /admin/achievements/:param/approve |  | ✓ | ✓ |  |  |  |  |  |  |
+| adminOffShelfAchievement | POST | /admin/achievements/:param/off-shelf |  |  |  |  |  |  |  |  |  |
+| adminPublishAchievement | POST | /admin/achievements/:param/publish |  |  |  |  |  |  |  |  |  |
 | adminRejectAchievement | POST | /admin/achievements/:param/reject |  | ✓ | ✓ |  |  |  |  |  |  |
+| adminAcknowledgeAlertEvent | POST | /admin/alerts/:param/ack |  |  |  |  |  |  |  |  |  |
+| adminCreateDemand | POST | /admin/demands |  |  |  |  |  |  |  |  |  |
 | adminApproveDemand | POST | /admin/demands/:param/approve |  | ✓ | ✓ |  |  |  |  |  |  |
+| adminOffShelfDemand | POST | /admin/demands/:param/off-shelf |  |  |  |  |  |  |  |  |  |
+| adminPublishDemand | POST | /admin/demands/:param/publish |  |  |  |  |  |  |  |  |  |
 | adminRejectDemand | POST | /admin/demands/:param/reject |  | ✓ | ✓ |  |  |  |  |  |  |
 | adminCreateIndustryTag | POST | /admin/industry-tags |  | ✓ | ✓ |  |  |  |  |  |  |
+| adminCreateListing | POST | /admin/listings |  |  |  |  |  |  |  |  |  |
 | adminApproveListing | POST | /admin/listings/:param/approve |  | ✓ | ✓ |  |  |  |  |  |  |
+| adminOffShelfListing | POST | /admin/listings/:param/off-shelf |  |  |  |  |  |  |  |  |  |
+| adminPublishListing | POST | /admin/listings/:param/publish |  |  |  |  |  |  |  |  |  |
 | adminRejectListing | POST | /admin/listings/:param/reject |  | ✓ | ✓ |  |  |  |  |  |  |
 | adminConfirmContractSigned | POST | /admin/orders/:param/milestones/contract-signed |  | ✓ | ✓ |  |  |  | ✓ |  |  |
 | adminConfirmTransferCompleted | POST | /admin/orders/:param/milestones/transfer-completed |  | ✓ | ✓ |  |  |  | ✓ |  |  |
 | adminConfirmManualPayout | POST | /admin/orders/:param/payouts/manual |  | ✓ | ✓ |  | ✓ |  |  |  |  |
+| adminCreatePatentMaintenanceSchedule | POST | /admin/patent-maintenance/schedules |  |  |  |  |  |  |  |  |  |
+| adminCreatePatentMaintenanceTask | POST | /admin/patent-maintenance/tasks |  |  |  |  |  |  |  |  |  |
 | adminImportPatentMapExcel | POST | /admin/patent-map/import |  | ✓ | ✓ |  |  |  |  |  |  |
+| adminCreatePatent | POST | /admin/patents |  |  |  |  |  |  |  |  |  |
 | adminApproveRefundRequest | POST | /admin/refund-requests/:param/approve |  | ✓ | ✓ |  |  |  |  |  | ✓ |
 | adminRejectRefundRequest | POST | /admin/refund-requests/:param/reject |  | ✓ | ✓ |  |  |  |  |  |  |
 | adminCreateRegion | POST | /admin/regions |  | ✓ | ✓ |  |  |  |  |  |  |
 | adminApproveUserVerification | POST | /admin/user-verifications/:param/approve |  | ✓ | ✓ |  |  |  |  |  |  |
 | adminRejectUserVerification | POST | /admin/user-verifications/:param/reject |  | ✓ | ✓ |  |  |  |  |  |  |
+| createAiAgentQuery | POST | /ai/agent/query |  |  |  |  |  |  |  |  |  |
+| createAiParseFeedback | POST | /ai/parse-results/:param/feedback |  |  |  |  |  |  |  |  |  |
 | authSmsSend | POST | /auth/sms/send | ✓ |  | ✓ |  |  |  |  |  |  |
 | authSmsVerify | POST | /auth/sms/verify | ✓ |  | ✓ |  |  |  |  |  |  |
 | authWechatMpLogin | POST | /auth/wechat/mp-login | ✓ |  | ✓ |  |  |  |  |  |  |
@@ -127,6 +200,8 @@
 | createRefundRequest | POST | /orders/:param/refund-requests | ✓ |  | ✓ |  |  |  |  |  |  |
 | normalizePatentNumber | POST | /patents/normalize | ✓ |  | ✓ | ✓ | ✓ |  |  |  |  |
 | wechatPayNotify | POST | /webhooks/wechatpay/notify |  |  |  |  |  |  |  |  |  |
+| adminUpdateAiConfig | PUT | /admin/config/ai |  |  |  |  |  |  |  |  |  |
+| adminUpdateAlertConfig | PUT | /admin/config/alerts |  |  |  |  |  |  |  |  |  |
 | adminUpdateRecommendationConfig | PUT | /admin/config/recommendation |  | ✓ | ✓ | ✓ | ✓ |  |  |  |  |
 | adminUpdateTradeRulesConfig | PUT | /admin/config/trade-rules |  | ✓ | ✓ | ✓ | ✓ |  |  |  |  |
 | adminSetListingFeatured | PUT | /admin/listings/:param/featured |  | ✓ | ✓ |  |  |  |  |  |  |

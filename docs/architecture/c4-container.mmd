@@ -25,6 +25,7 @@ flowchart LR
       Payment["Payment Service<br/>支付/退款/回调幂等"]
       Settlement["Settlement Service<br/>佣金/放款/台账"]
       Case["Case/Workflow Service<br/>跟单工单/里程碑/证据"]
+      Maintenance["Maintenance Service<br/>年费日程/托管工单（P1）"]
     end
 
     subgraph Support[支撑服务]
@@ -33,6 +34,10 @@ flowchart LR
       Msg["Messaging Service<br/>IM/会话"]
       File["File Service<br/>上传/下载/水印"]
       Notif["Notification Service<br/>站内信/短信/模板消息"]
+      AiAgent["AI Agent Service<br/>语音/意图解析/匹配（P1）"]
+      AiParse["AI Parsing Service<br/>内容解析/评分闭环（P1）"]
+      Alert["Alerting Service<br/>告警规则/升级（P1）"]
+      Analytics["Analytics Service<br/>统计/报表/告警触发（P1）"]
     end
   end
 
@@ -50,6 +55,8 @@ flowchart LR
     WxLogin[微信开放平台<br/>登录/消息]
     WxPay[微信支付]
     SMS[短信/模板消息]
+    Email[邮件服务]
+    AiProvider[AI/ASR/LLM 提供方]
     PatentProvider[外部专利数据源<br/>CNIPA/第三方（P1 可选）]
   end
 
@@ -66,15 +73,21 @@ flowchart LR
   Gateway --> Payment
   Gateway --> Settlement
   Gateway --> Case
+  Gateway --> Maintenance
   Gateway --> Audit
   Gateway --> Msg
   Gateway --> File
+  Gateway --> AiAgent
+  Gateway --> AiParse
+  Gateway --> Alert
+  Gateway --> Analytics
 
   %% Data
   Gateway --> Redis
   Auth --> Redis
   Search --> Redis
   Order --> Redis
+  AiAgent --> Redis
 
   Auth --> PG
   User --> PG
@@ -85,8 +98,13 @@ flowchart LR
   Payment --> PG
   Settlement --> PG
   Case --> PG
+  Maintenance --> PG
   Audit --> PG
   Msg --> PG
+  AiAgent --> PG
+  AiParse --> PG
+  Alert --> PG
+  Analytics --> PG
 
   %% P0：使用 PG FTS；P1：接入 ES/OpenSearch
   Search -.-> ES
@@ -102,10 +120,17 @@ flowchart LR
   Audit -.-> MQ
   Search -.-> MQ
   Notif -.-> MQ
+  Maintenance -.-> MQ
+  Alert -.-> MQ
+  Analytics -.-> MQ
 
   Auth --> WxLogin
   Payment --> WxPay
   Notif --> SMS
+  Notif --> Email
+  AiAgent --> AiProvider
+  AiParse --> AiProvider
+  Alert --> Notif
 
   %% P0：不接外部专利数据源；P1 可通过适配层/任务刷新接入
   PatentProvider -.-> Patent
