@@ -51,3 +51,8 @@
 建议统一场景开关：
 - Header：`X-Mock-Scenario: happy | empty_search | refund_failed | payment_callback_replay | audit_pending | unauthorized`
 
+## 7. P1 预留（先占位，不做实现）
+
+- **用户端（小程序优先）：** Home/Search 增加智能体入口（语音/文本）；H5 显示“去小程序体验语音搜索”提示。
+- **详情页：** 专利/需求/成果详情预留 AI 解析卡片 + 评分/纠错入口。
+- **后台：** 预留 AI 解析复核池、平台内容 CMS、专利托管任务看板、告警中心、数据地图扩展（技术经理人/科学家）。

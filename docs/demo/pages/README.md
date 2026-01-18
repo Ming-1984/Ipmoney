@@ -47,3 +47,7 @@
 - 用户与认证管理：`docs/demo/pages/admin/06-user-auth.mmd`
 - 财务管理：`docs/demo/pages/admin/07-finance.mmd`
 - 系统设置：`docs/demo/pages/admin/08-system-settings.mmd`
+- 平台内容库管理（P1）：`docs/demo/pages/admin/09-platform-cms.mmd`
+- AI 解析复核池（P1）：`docs/demo/pages/admin/10-ai-parse-review.mmd`
+- 专利托管任务看板（P1）：`docs/demo/pages/admin/11-maintenance.mmd`
+- 告警中心（P1）：`docs/demo/pages/admin/12-alert-center.mmd`

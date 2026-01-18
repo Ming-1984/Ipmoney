@@ -130,10 +130,17 @@ erDiagram
     uuid publisher_user_id FK
     string title
     string summary
+    string description
+    string keywords_json "json"
+    string delivery_period
     string cooperation_modes_json "json"
     string budget_type "FIXED/NEGOTIABLE"
     int budget_min
     int budget_max
+    string contact_name
+    string contact_title
+    string contact_phone_masked
+    uuid cover_file_id FK
     string region_code
     string industry_tags_json "json"
     string audit_status "PENDING/APPROVED/REJECTED"
@@ -158,13 +165,25 @@ erDiagram
     datetime created_at
   }
 
+  DEMAND_STATS {
+    uuid demand_id PK
+    int view_count
+    int favorite_count
+    int consult_count
+    int comment_count
+    datetime updated_at
+  }
+
   ACHIEVEMENTS {
     uuid id PK
     uuid publisher_user_id FK
     string title
     string summary
+    string description
+    string keywords_json "json"
     string maturity "CONCEPT/PROTOTYPE/PILOT/MASS_PRODUCTION/COMMERCIALIZED/OTHER"
     string cooperation_modes_json "json"
+    uuid cover_file_id FK
     string region_code
     string industry_tags_json "json"
     string audit_status "PENDING/APPROVED/REJECTED"
@@ -189,6 +208,15 @@ erDiagram
     datetime created_at
   }
 
+  ACHIEVEMENT_STATS {
+    uuid achievement_id PK
+    int view_count
+    int favorite_count
+    int consult_count
+    int comment_count
+    datetime updated_at
+  }
+
   LISTING_MEDIA {
     uuid id PK
     uuid listing_id FK
@@ -211,6 +239,7 @@ erDiagram
     int view_count
     int favorite_count
     int consult_count
+    int comment_count
     datetime updated_at
   }
 
@@ -282,6 +311,18 @@ erDiagram
     string text
     uuid file_id FK
     datetime created_at
+  }
+
+  COMMENTS {
+    uuid id PK
+    string content_type "LISTING/DEMAND/ACHIEVEMENT"
+    uuid content_id FK
+    uuid parent_comment_id FK
+    uuid user_id FK
+    string status "VISIBLE/HIDDEN/DELETED"
+    string text
+    datetime created_at
+    datetime updated_at
   }
 
   PAYMENTS {
@@ -394,7 +435,7 @@ erDiagram
     string severity "LOW/MEDIUM/HIGH"
     string channel "SMS/EMAIL/IN_APP"
     string status "PENDING/SENT/ACKED/SUPPRESSED"
-    string target_type "PATENT/ORDER/CONTENT/AI_PARSE/IMPORT/..."
+    string target_type "PATENT/ORDER/LISTING/DEMAND/ACHIEVEMENT/AI_PARSE/IMPORT/PAYMENT/REFUND/SYSTEM"
     uuid target_id
     datetime triggered_at
     datetime sent_at
@@ -471,16 +512,21 @@ erDiagram
 
   DEMANDS ||--o{ DEMAND_MEDIA : has
   DEMANDS ||--o{ DEMAND_FAVORITES : favored
+  DEMANDS ||--|| DEMAND_STATS : stats
   REGIONS ||--o{ DEMANDS : located_in
 
   ACHIEVEMENTS ||--o{ ACHIEVEMENT_MEDIA : has
   ACHIEVEMENTS ||--o{ ACHIEVEMENT_FAVORITES : favored
+  ACHIEVEMENTS ||--|| ACHIEVEMENT_STATS : stats
   REGIONS ||--o{ ACHIEVEMENTS : located_in
 
   %% Polymorphic links via content_type/content_id
   LISTINGS ||--o{ CONVERSATIONS : discussed_in
   DEMANDS ||--o{ CONVERSATIONS : discussed_in
   ACHIEVEMENTS ||--o{ CONVERSATIONS : discussed_in
+  LISTINGS ||--o{ COMMENTS : commented_in
+  DEMANDS ||--o{ COMMENTS : commented_in
+  ACHIEVEMENTS ||--o{ COMMENTS : commented_in
 
   AI_PARSE_RESULTS ||--o{ AI_PARSE_FEEDBACK : feedback
   LISTINGS ||--o{ AI_PARSE_RESULTS : parsed
@@ -500,6 +546,8 @@ erDiagram
   REFUND_REQUESTS ||--o{ FILES : evidence
   USER_VERIFICATIONS ||--o{ FILES : evidence
   USER_VERIFICATIONS ||--o| FILES : logo
+  DEMANDS ||--o| FILES : cover
+  ACHIEVEMENTS ||--o| FILES : cover
 
   ORDERS ||--o{ PAYMENTS : has
   ORDERS ||--o{ REFUND_REQUESTS : has
@@ -509,6 +557,8 @@ erDiagram
 
   CS_CASES ||--o{ CS_MILESTONES : contains
 
+  USERS ||--o{ COMMENTS : writes
+  COMMENTS ||--o{ COMMENTS : replies
   CONVERSATIONS ||--o{ CONVERSATION_PARTICIPANTS : has
   CONVERSATIONS ||--o{ CONVERSATION_MESSAGES : contains
   PATENT_MAP_ENTRIES }o--|| REGIONS : for_region

@@ -197,6 +197,11 @@
 - [ ] Admin：专利托管任务看板（年费日程/托管任务）
 - [ ] Admin：告警中心（列表/筛选/确认）
 
+### 2.5 数据地图扩展 UI（P1）
+
+- [ ] 小程序：地图类型切换入口（专利地图/技术经理人地图/科学家地图；艺术作品暂不做）
+- [ ] 后台 Map CMS：支持多地图类型的数据录入/导入与筛选（P1 占位）
+
 ## 3. P0 页面接入（在 1.x 公共能力就绪后批量推进）
 
 > 本阶段不再“各页自由发挥”，而是按模板批量接入并走统一验收。
@@ -214,6 +219,7 @@
 - [x] `pages/search/index`：分类 Tab 扩展：专利交易｜产学研需求｜成果展示｜机构（进入搜索主链路，对齐 `Ipmoney.md` 4）
 - [x] `pages/search/index`: Demands/Achievements filters + sort fully aligned (incl. industryTags from GET /public/industry-tags).
 - [x] `pages/search/index`: Listing advanced filters (deposit/ipc/loc/legalStatus + industryTags from GET /public/industry-tags) and sort PRICE_ASC/DESC; keep FilterSheet/ChipGroup/FilterSummary aligned with ui-v2-filter-mapping.md.
+- [x] `pages/search/index`: 多样 happy 数据下复核筛选摘要/标签展示（预算面议、成熟度、合作方式、产业标签），异常则修正文案或显示逻辑。
 - [x] `pages/publish/index`：去禁用词 + 权限/审核分支统一
 - [x] `pages/messages/index`：空态去禁用词 + 会话列表密度/时间格式化
 - [x] `pages/messages/index`: PullToRefresh + conversation cell polish (avatar/title/preview/unread)

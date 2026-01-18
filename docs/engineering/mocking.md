@@ -69,12 +69,25 @@ packages/fixtures/
 - 订单状态不允许跳转的错误提示
 - 无数据/无权限/审核中等状态页
 
+### 3.2.1 搜索筛选演示数据（Best Practice）
+- happy 场景应提供可对比的数据组合（至少 3 条），覆盖筛选维度：地区、产业标签、合作方式、预算类型/区间、成果成熟度。
+- 需求/成果/机构/专利交易各至少 2 个不同组合，便于验证筛选/排序与 FilterSummary 文案。
+
 ### 3.3 fixtures ID 约束（UUID）
 
 前端路由参数（如 `listingId`/`demandId`/`achievementId`/`orderId`/`conversationId`/`patentId`）会做严格 UUID 校验；因此 fixtures / demo 脚本中的占位 ID（如 `aaaaaaaa-aaaa-...`、`11111111-1111-...`）会被判定为“链接无效”。
 
 - 约束：fixtures 中所有 `Uuid` 字段建议使用合法 UUID v4（version=4 + variant=8/9/a/b）。
 - 工具：`node scripts/fixture-uuids.mjs --check`（仅检查）、`node scripts/fixture-uuids.mjs --write`（批量修复）。
+
+### 3.4 P1 fixtures 预留计划（AI/托管/告警/平台内容）
+
+- **AI 智能体**：`POST /ai/agent/query` 返回结构化检索条件 + 匹配卡片（含低置信度样例）。
+- **AI 解析**：`/admin/ai/parse-results` 低分/低置信度列表 + 详情；`POST /ai/parse-results/{id}/feedback` 评分样例。
+- **平台内容 CMS**：`/admin/patents|demands|achievements` 列表/创建（`source=PLATFORM/ADMIN`）。
+- **专利托管**：`/admin/patent-maintenance/schedules`（到期/逾期/已处理）、`/tasks`（工单流转）。
+- **告警中心**：`/admin/alerts`（渠道/严重级别/确认状态）+ ack 操作。
+- **数据地图扩展**：地图类型切换（专利/技术经理人/科学家）返回结构预留（P1 占位）。
 
 ## 4. 难场景覆盖清单（P0 必做）
 

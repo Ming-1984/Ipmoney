@@ -85,6 +85,15 @@ function maturityLabelShort(m?: AchievementMaturity | ''): string | null {
   return '其他';
 }
 
+function cooperationModeLabel(mode: CooperationMode): string {
+  if (mode === 'TRANSFER') return '转让';
+  if (mode === 'LICENSE') return '许可';
+  if (mode === 'EQUITY') return '股权合作';
+  if (mode === 'JOINT_DEV') return '联合开发';
+  if (mode === 'COMMISSIONED_DEV') return '委托开发';
+  return '其他';
+}
+
 function legalStatusLabelShort(s?: LegalStatus | ''): string | null {
   if (!s) return null;
   if (s === 'PENDING') return '审中';
@@ -1084,6 +1093,23 @@ export default function SearchPage() {
                   <Text className="tag tag-gold">{demandBudgetLabel(it)}</Text>
                   {it.publisher?.displayName ? <Text className="tag">{it.publisher.displayName}</Text> : null}
                 </View>
+                {it.cooperationModes?.length || it.industryTags?.length ? (
+                  <>
+                    <View style={{ height: '6rpx' }} />
+                    <View className="row" style={{ gap: '10rpx', flexWrap: 'wrap' }}>
+                      {it.cooperationModes?.slice(0, 2).map((m) => (
+                        <Text key={`${it.id}-co-${m}`} className="tag">
+                          {cooperationModeLabel(m)}
+                        </Text>
+                      ))}
+                      {it.industryTags?.slice(0, 2).map((t) => (
+                        <Text key={`${it.id}-tag-${t}`} className="tag">
+                          {t}
+                        </Text>
+                      ))}
+                    </View>
+                  </>
+                ) : null}
                 {it.summary ? (
                   <>
                     <View style={{ height: '10rpx' }} />
@@ -1113,6 +1139,23 @@ export default function SearchPage() {
                   <Text className="tag tag-gold">{maturityLabel(it.maturity)}</Text>
                   {it.publisher?.displayName ? <Text className="tag">{it.publisher.displayName}</Text> : null}
                 </View>
+                {it.cooperationModes?.length || it.industryTags?.length ? (
+                  <>
+                    <View style={{ height: '6rpx' }} />
+                    <View className="row" style={{ gap: '10rpx', flexWrap: 'wrap' }}>
+                      {it.cooperationModes?.slice(0, 2).map((m) => (
+                        <Text key={`${it.id}-co-${m}`} className="tag">
+                          {cooperationModeLabel(m)}
+                        </Text>
+                      ))}
+                      {it.industryTags?.slice(0, 2).map((t) => (
+                        <Text key={`${it.id}-tag-${t}`} className="tag">
+                          {t}
+                        </Text>
+                      ))}
+                    </View>
+                  </>
+                ) : null}
                 {it.summary ? (
                   <>
                     <View style={{ height: '10rpx' }} />

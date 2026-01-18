@@ -8,8 +8,8 @@
 
 # 产学研需求 & 成果展示（从占位到可用）
 
-> 现状：`apps/client/src/pages/publish/demand` 与 `apps/client/src/pages/publish/achievement` 仅支持标题文本提交；缺少字段、附件、草稿、审核态与可展示闭环。  
-> 目标：在不破坏现有专利交易主链路的前提下，补齐“需求/成果”的**发布 → 审核 → 展示 → 咨询**闭环，并对齐 UI v2 规范与可用性/无障碍要求。
+> 现状：前端已补齐“需求/成果”的发布、审核态、详情与咨询闭环；OpenAPI/ER/fixtures 已对齐。  
+> 目标：在不破坏现有专利交易主链路的前提下，持续完善“需求/成果”的**发布 → 审核 → 展示 → 咨询**闭环，并对齐 UI v2 规范与可用性/无障碍要求。
 
 ## 0. 标准与依据（已联网确认）
 
@@ -78,7 +78,7 @@
 
 ## 3. OpenAPI & 数据模型（先定契约，再做前后端）
 
-> 当前 OpenAPI/Prisma 仅覆盖 `Listing`（专利交易）；需求/成果需新增模型与接口。
+> OpenAPI/ER/fixtures 已补齐；后端 Prisma/服务实现仍需按契约落地。
 
 ### 3.1 OpenAPI（建议最小闭环）
 
@@ -112,7 +112,8 @@
 
 ### 3.2 Prisma（建议）
 
-- [ ] 新增 `Demand` / `Achievement`（字段含：title/summary/regionCode/industryTags/media/attachments/auditStatus/status/createdAt/updatedAt）
+- [x] ER 已补齐 `Demand` / `Achievement` / `Media` / `Favorites` 等表（见 `docs/architecture/er-diagram.mmd`）
+- [ ] Prisma schema 与迁移：新增 `Demand` / `Achievement`（字段含：title/summary/regionCode/industryTags/media/attachments/auditStatus/status/createdAt/updatedAt）
 - [ ] 与 `files` 的关联策略二选一：
   - [ ] 扩展 `FileOwnerScope`：增加 `DEMAND`/`ACHIEVEMENT`（ownerId=对应实体 id）
   - [ ] 或保持 `OTHER`，通过 `FilePurpose` 扩展用途（但 ownerScope 建议仍能区分）
@@ -123,6 +124,7 @@
 
 - [x] OpenAPI 增加后，同步补齐 `docs/engineering/openapi-coverage.md` 与 `docs/engineering/traceability-matrix.md`
 - [x] fixtures：happy/empty/error/edge；并支持 `X-Mock-Scenario` 切换
+- [x] Search happy fixtures：需求/成果补充多条差异化样本（预算类型/区间、合作方式、成熟度、地区、产业标签），用于筛选对比演示
 
 ## 4. Client（小程序/H5）
 
@@ -155,3 +157,8 @@
 - [x] 搜索主链路：Search Tab 支持分类切换（专利交易｜产学研需求｜成果展示｜机构），且每类均可检索/进入详情
 - [x] 详情闭环：需求/成果详情页公开可见；收藏/咨询动作需登录且审核通过；咨询创建会话后进入 Chat
 - [x] 任意非 Tab 页都有可见返回路径；H5 深链打开也能回到首页/上一页（不依赖浏览器按钮）
+
+## 7. P1 扩展（AI/平台内容）
+
+- [ ] AI 解析卡片与评分闭环（专利/需求/成果详情页展示与反馈）
+- [ ] 平台自有内容 CMS（后台创建/编辑/发布/下架需求与成果，source=PLATFORM/ADMIN）

@@ -7,6 +7,14 @@
     "status": 500,
     "body": { "code": "INTERNAL_ERROR", "message": "检索服务异常（演示）" }
   },
+  "GET /search/demands": {
+    "status": 500,
+    "body": { "code": "INTERNAL_ERROR", "message": "检索服务异常（演示）" }
+  },
+  "GET /search/achievements": {
+    "status": 500,
+    "body": { "code": "INTERNAL_ERROR", "message": "检索服务异常（演示）" }
+  },
   "GET /admin/user-verifications": {
     "status": 403,
     "body": { "code": "FORBIDDEN", "message": "无权限（演示）" }

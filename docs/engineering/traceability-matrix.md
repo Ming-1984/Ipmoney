@@ -22,7 +22,7 @@ Mock fixtures key 约定：
 |---|---|---|---|---|---|
 | 首页推荐 + 快捷入口 | 游客可看；收藏/咨询/下单需登录且审核通过；推荐权重可调 | `apps/client/src/pages/home/index.tsx` | `searchListings` `GET /search/listings`；`upsertListingConversation` `POST /listings/{listingId}/conversations` | `GET /search/listings`；`POST /listings/:listingId/conversations` | P0 已实现 |
 | 检索（筛选/排序 + 分类切换） | 进入搜索主链路：专利交易｜产学研需求｜成果展示｜机构；游客可看；关键动作需登录且审核通过 | `apps/client/src/pages/search/index.tsx` | `searchListings` `GET /search/listings`；`searchDemands` `GET /search/demands`；`searchAchievements` `GET /search/achievements`；`listPublicOrganizations` `GET /public/organizations` | `GET /search/listings`；`GET /search/demands`；`GET /search/achievements`；`GET /public/organizations` | P0 已实现 |
-| 检索（更多筛选对齐） | Search 主链路更多筛选（地区/预算/合作方式/成熟度/机构类型/产业标签等）统一 `FilterSheet`；参数见 `docs/engineering/ui-v2-filter-mapping.md` | `apps/client/src/pages/search/index.tsx` | 同上（仅增加 query 参数） | 同上（补齐更多筛选场景 fixtures） | P0 待实现 |
+| 检索（更多筛选对齐） | Search 主链路更多筛选（地区/预算/合作方式/成熟度/机构类型/产业标签等）统一 `FilterSheet`；参数见 `docs/engineering/ui-v2-filter-mapping.md` | `apps/client/src/pages/search/index.tsx` | 同上（仅增加 query 参数） | 同上（补齐更多筛选场景 fixtures） | P0 已实现 |
 | 详情页（公开可见） | 展示专利信息；咨询/支付订金（需审核通过） | `apps/client/src/pages/listing/detail/index.tsx` | `getPublicListingById` `GET /public/listings/{listingId}`；`upsertListingConversation` `POST /listings/{listingId}/conversations` | `GET /public/listings/:listingId`；`POST /listings/:listingId/conversations` | P0 已实现 |
 | 需求详情页（公开可见） | 展示需求详情；咨询需登录且审核通过（站内 IM） | `apps/client/src/pages/demand/detail/index.tsx` | `getPublicDemandById` `GET /public/demands/{demandId}`；`upsertDemandConversation` `POST /demands/{demandId}/conversations` | `GET /public/demands/:demandId`；`POST /demands/:demandId/conversations` | P0 已实现 |
 | 成果详情页（公开可见） | 展示成果详情；咨询需登录且审核通过（站内 IM） | `apps/client/src/pages/achievement/detail/index.tsx` | `getPublicAchievementById` `GET /public/achievements/{achievementId}`；`upsertAchievementConversation` `POST /achievements/{achievementId}/conversations` | `GET /public/achievements/:achievementId`；`POST /achievements/:achievementId/conversations` | P0 已实现 |
@@ -90,3 +90,5 @@ Mock fixtures key 约定：
 | AI 解析复核池 | 低评分/低置信度进入后台复核池 | `apps/admin-web/src/views/PlaceholderPage.tsx`（待补） | `adminListAiParseResults` `GET /admin/ai/parse-results` | - | P1 |
 | 专利托管任务 | 年费日程 + 托管任务指派 | `apps/admin-web/src/views/PlaceholderPage.tsx`（待补） | `adminListPatentMaintenanceSchedules` `GET /admin/patent-maintenance/schedules`；`adminListPatentMaintenanceTasks` `GET /admin/patent-maintenance/tasks` | - | P1 |
 | 告警中心 | 短信/邮件/站内告警，支持确认 | `apps/admin-web/src/views/PlaceholderPage.tsx`（待补） | `adminListAlertEvents` `GET /admin/alerts`；`adminAcknowledgeAlertEvent` `POST /admin/alerts/{alertId}/ack` | - | P1 |
+| 数据地图扩展 | 技术经理人/科学家地图（艺术作品暂不做） | `apps/client/src/pages/patent-map/index.tsx` | - | - | P1 |
+| 大数据分析中心 | 交易库/成果库/产学研库指标看板与导出 | `apps/admin-web/src/views/PlaceholderPage.tsx`（待补） | - | - | P1 |

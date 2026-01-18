@@ -9,6 +9,8 @@ flowchart LR
     Case[Case/Workflow]
     Settlement[Settlement]
     Risk[Audit/Risk]
+    AiParse[AI Parsing]
+    Maintenance[Maintenance]
   end
 
   subgraph Bus["事件分发"]
@@ -22,6 +24,8 @@ flowchart LR
     Notif[Notification]
     AuditLog[AuditLog]
     Reconcile[Reconciliation/Reports]
+    Alerting[Alerting]
+    Analytics[Analytics/Reports]
   end
 
   %% === Domain Events（示例）===
@@ -39,6 +43,8 @@ flowchart LR
   E12[ListingViewed]
   E13[ListingFavorited]
   E14[ListingConsulted]
+  E15[MaintenanceDue]
+  E16[AiParseLowConfidence]
 
   %% === Produce -> Outbox ===
   Listing --> E1 --> Outbox
@@ -55,6 +61,8 @@ flowchart LR
   Listing --> E12 --> Outbox
   Listing --> E13 --> Outbox
   Listing --> E14 --> Outbox
+  Maintenance --> E15 --> Outbox
+  AiParse --> E16 --> Outbox
   Risk --> Outbox
 
   %% === Dispatch ===
@@ -65,6 +73,8 @@ flowchart LR
   EventBus --> Notif
   EventBus --> AuditLog
   EventBus --> Reconcile
+  EventBus --> Alerting
+  EventBus --> Analytics
 
   %% === 关键工程约束（提示）===
   CIdem["幂等：\n- 回调幂等\n- 事件幂等\n- Outbox 去重"]

@@ -1,0 +1,14 @@
+%%{init: {'theme':'base','flowchart': {'htmlLabels': true},'themeVariables': {'fontFamily': 'Inter, Microsoft YaHei, sans-serif','lineColor':'#64748B','primaryTextColor':'#0F172A','primaryBorderColor':'#CBD5E1','primaryColor':'#F8FAFC'}}}%%
+flowchart TB
+  subgraph P["11 专利托管任务看板（年费日程）（PC 后台·P1）"]
+    direction TB
+    Pad[" "]:::pad
+    Schedules["年费日程<br/>? 专利号/年费年度/到期日/状态"]
+    Tasks["托管工单<br/>? 指派客服/状态<br/>? 回填处理结果/凭证"]
+    Rules["提醒策略<br/>? 到期前/逾期提醒<br/>? 触发告警"]
+    Pad --> Schedules
+    Schedules --> Tasks --> Rules
+  end
+
+  classDef pad fill:transparent,stroke:transparent,color:transparent;
+  linkStyle 0 stroke:transparent,fill:transparent;

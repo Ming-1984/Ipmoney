@@ -278,6 +278,15 @@
   - [ ] 触发条件：年费到期、AI 复核积压、导入失败、支付回调异常、审核积压
   - [ ] 告警确认/抑制/升级规则
 
+### 7.17 数据地图 + 大数据分析（P1）
+
+- [ ] 数据地图扩展：技术经理人地图、科学家地图（P0 先做专利地图）
+  - [ ] 专利地图类型细分：发明/实用新型/外观设计（艺术作品暂不做）
+  - [ ] 前台地图切换入口 + 后台 Map CMS 复用（数据结构与流程对齐）
+- [ ] 大数据分析：交易库/成果库/产学研库
+  - [ ] 指标与看板：成交额/转化率/需求匹配/活跃度
+  - [ ] 数据口径与导出：按时间/区域/行业
+
 ## 8. 演示材料（给甲方）
 
 - [x] 一页“平台定位 & 主链路”说明（图 + 关键规则）：`docs/demo/platform-onepager.md`
@@ -345,7 +354,7 @@
   - [x] 用户端默认路由兼容误访问 `/#/pages`（自动跳转到 `/#/pages/home/index`）
 - [ ] 后端骨架（便于并行）：
   - [x] NestJS 工程骨架 + `/health`
-  - [ ] 模块划分（已落地：auth/users/regions/patent-map/config；待落地：patents/files/listings/search/orders/payments/refunds/cases/settlement/messaging）
+  - [ ] 模块划分（已落地：auth/users/regions/patent-map/config；待落地：patents/files/listings/demands/achievements/comments/search/orders/payments/refunds/cases/settlement/messaging；P1 预留：ai/maintenance/alerts/analytics/admin-cms）
   - [ ] DB/Redis 连接（Postgres + Redis）+ Prisma 迁移基线
     - [x] Prisma schema 初版（对齐 `docs/architecture/er-diagram.mmd`）：`apps/api/prisma/schema.prisma`
     - [x] 生成迁移基线并写入 `prisma/migrations/*`（已生成 `apps/api/prisma/migrations/20260111185000_init/`；环境具备 DB 后再跑 `pnpm -C apps/api db:migrate` 做落库校验）
@@ -454,6 +463,9 @@
 - [x] Filters: finish "more filters" per ui-v2-filter-mapping.md (LISTING: deposit/ipc/loc/legalStatus + public industry tags; DEMAND/ACHIEVEMENT: public industry tags).
   - [x] 排序：推荐/热度/最新/发明人影响力（组件库 Segmented）
   - [x] 结果列表：统一 ListingCard（价格/订金/标签/按钮）；空态引导更友好
+- [x] 12.3.4.x 搜索筛选演示数据（最佳实践）
+  - [x] happy fixtures 扩展：需求/成果各 ≥3 条差异化样本（预算面议/固定区间、合作方式、成熟度、地区、产业标签），用于默认筛选对比演示
+  - [x] Search UI 复核：在多样数据下核验筛选摘要/标签展示（预算/成熟度/合作方式/产业标签），异常则修正文案或显示逻辑
 
 - [x] 12.3.5 详情页（转化）
   - [x] 首屏结构：价格/订金/卖家/热度/标签（密度与层级优化）

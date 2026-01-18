@@ -24,6 +24,11 @@ flowchart LR
     Settlement[Settlement Service<br/>佣金/放款/台账]
     File[File Service<br/>上传/鉴权下载/水印]
     Notif[Notification Service<br/>站内信/短信/模板消息]
+    AiAgent[AI Agent Service<br/>语音/意图解析/匹配（P1）]
+    AiParse[AI Parsing Service<br/>内容解析/评分闭环（P1）]
+    Maintenance[Maintenance Service<br/>年费日程/托管任务（P1）]
+    Alert[Alerting Service<br/>告警规则/升级（P1）]
+    Analytics[Analytics Service<br/>统计/报表/告警触发（P1）]
     Risk[Risk/Audit Service<br/>内容审核/风控/审计]
   end
 
@@ -43,6 +48,10 @@ flowchart LR
     PaymentDB[(payment-db)]
     CaseDB[(case-db)]
     SettlementDB[(settlement-db)]
+    AiDB[(ai-db)]
+    MaintenanceDB[(maintenance-db)]
+    AlertDB[(alert-db)]
+    AnalyticsDB[(analytics-db<br/>交易库/成果库/产学研库)]
     RiskDB[(risk-db)]
   end
 
@@ -50,6 +59,8 @@ flowchart LR
     WxLogin[微信开放平台]
     WxPay[微信支付 v3]
     SMS[短信服务商]
+    Email[邮件服务]
+    AiProvider[AI/ASR/LLM 提供方]
     PatentProvider[专利数据源<br/>CNIPA/第三方（P1）]
   end
 
@@ -70,6 +81,11 @@ flowchart LR
   GW --> Settlement
   GW --> File
   GW --> Notif
+  GW --> AiAgent
+  GW --> AiParse
+  GW --> Maintenance
+  GW --> Alert
+  GW --> Analytics
   GW --> Risk
   GW --> Redis
 
@@ -82,6 +98,11 @@ flowchart LR
   Payment --> PaymentDB
   Case --> CaseDB
   Settlement --> SettlementDB
+  AiAgent --> AiDB
+  AiParse --> AiDB
+  Maintenance --> MaintenanceDB
+  Alert --> AlertDB
+  Analytics --> AnalyticsDB
   Risk --> RiskDB
 
   %% === Search indexing ===
@@ -101,11 +122,20 @@ flowchart LR
   Risk <--> Bus
   Search <--> Bus
   Notif <--> Bus
+  AiAgent <--> Bus
+  AiParse <--> Bus
+  Maintenance <--> Bus
+  Alert <--> Bus
+  Analytics <--> Bus
 
   %% === External integrations ===
   Auth --> WxLogin
   Payment --> WxPay
   Notif --> SMS
+  Notif --> Email
+  AiAgent --> AiProvider
+  AiParse --> AiProvider
+  Alert --> Notif
   PatentProvider -.->|适配层/任务刷新| Patent
 
   %% 样式

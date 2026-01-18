@@ -1,0 +1,14 @@
+%%{init: {'theme':'base','flowchart': {'htmlLabels': true},'themeVariables': {'fontFamily': 'Inter, Microsoft YaHei, sans-serif','lineColor':'#64748B','primaryTextColor':'#0F172A','primaryBorderColor':'#CBD5E1','primaryColor':'#F8FAFC'}}}%%
+flowchart TB
+  subgraph P["10 AI 解析复核池（PC 后台·P1）"]
+    direction TB
+    Pad[" "]:::pad
+    List["待复核列表<br/>? 低分/低置信度/投诉<br/>? 类型筛选：专利/需求/成果"]
+    Detail["解析详情<br/>? 原文 + 解析字段<br/>? 置信度/模型版本"]
+    Actions["操作<br/>? 编辑/替换解析结果<br/>? 标记通过/需复核"]
+    Pad --> List
+    List --> Detail --> Actions
+  end
+
+  classDef pad fill:transparent,stroke:transparent,color:transparent;
+  linkStyle 0 stroke:transparent,fill:transparent;

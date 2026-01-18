@@ -25,6 +25,130 @@
       "page": { "page": 1, "pageSize": 10, "total": 1 }
     }
   },
+  "GET /search/demands": {
+    "status": 200,
+    "body": {
+      "items": [
+        {
+          "id": "2f6f0b6f-0a6c-4f27-9a3d-6f217f6e3f1a",
+          "title": "可降解包装材料工艺放大合作需求",
+          "summary": "预算面议，寻求联合开发与工艺验证。",
+          "budgetType": "NEGOTIABLE",
+          "cooperationModes": ["JOINT_DEV", "COMMISSIONED_DEV"],
+          "regionCode": "320000",
+          "industryTags": ["新材料", "环保"],
+          "keywords": ["可降解", "工艺放大", "环保包装"],
+          "deliveryPeriod": "MONTH_6_12",
+          "publisher": {
+            "userId": "9d8b113b-5152-4a69-9bb4-65d0192c1c2a",
+            "displayName": "某环保材料企业",
+            "verificationType": "COMPANY",
+            "verificationStatus": "APPROVED",
+            "regionCode": "320000",
+            "logoUrl": "https://example.com/org-env.png",
+            "intro": "专注可降解材料产业化。",
+            "stats": { "listingCount": 5, "patentCount": 42 },
+            "verifiedAt": "2026-01-06T00:00:00Z"
+          },
+          "stats": { "viewCount": 12, "favoriteCount": 1, "consultCount": 0 },
+          "auditStatus": "APPROVED",
+          "status": "ACTIVE",
+          "coverUrl": "https://example.com/media/demand-cover-edge-1.jpg",
+          "createdAt": "2026-01-07T08:30:00Z"
+        },
+        {
+          "id": "5b4c8ad2-3a0f-4e16-a2ef-6d9f7cbd0d4e",
+          "title": "传感器封装可靠性提升技术需求",
+          "summary": "预算30-80万，寻找许可或转让方案。",
+          "budgetType": "FIXED",
+          "budgetMinFen": 3000000,
+          "budgetMaxFen": 8000000,
+          "cooperationModes": ["TRANSFER", "LICENSE"],
+          "regionCode": "440000",
+          "industryTags": ["传感器", "智能制造"],
+          "keywords": ["封装", "可靠性", "高温"],
+          "deliveryPeriod": "MONTH_3_6",
+          "publisher": {
+            "userId": "1d46c0fb-9f69-4b26-9df1-872baf4e87a2",
+            "displayName": "某制造业研究院",
+            "verificationType": "ACADEMY",
+            "verificationStatus": "APPROVED",
+            "regionCode": "440000",
+            "logoUrl": "https://example.com/org-sensor.png",
+            "intro": "面向制造业可靠性评估与封装工艺。",
+            "stats": { "listingCount": 3, "patentCount": 90 },
+            "verifiedAt": "2026-01-04T00:00:00Z"
+          },
+          "stats": { "viewCount": 58, "favoriteCount": 2, "consultCount": 1 },
+          "auditStatus": "APPROVED",
+          "status": "ACTIVE",
+          "coverUrl": "https://example.com/media/demand-cover-edge-2.jpg",
+          "createdAt": "2026-01-05T09:10:00Z"
+        }
+      ],
+      "page": { "page": 1, "pageSize": 10, "total": 2 }
+    }
+  },
+  "GET /search/achievements": {
+    "status": 200,
+    "body": {
+      "items": [
+        {
+          "id": "7f0b6d31-9e15-4b5f-90f7-602ae5a1a2c3",
+          "title": "高密度电池管理系统算法",
+          "summary": "原型完成，寻求技术转让/许可。",
+          "maturity": "PROTOTYPE",
+          "cooperationModes": ["TRANSFER", "LICENSE"],
+          "regionCode": "310000",
+          "industryTags": ["新能源", "电池"],
+          "keywords": ["BMS", "安全", "算法"],
+          "publisher": {
+            "userId": "b1b2b3b4-0c5d-4c9c-9a1b-2d3e4f5a6b7c",
+            "displayName": "某电池企业",
+            "verificationType": "COMPANY",
+            "verificationStatus": "APPROVED",
+            "regionCode": "310000",
+            "logoUrl": "https://example.com/org-bms.png",
+            "intro": "专注储能与电池系统。",
+            "stats": { "listingCount": 18, "patentCount": 210 },
+            "verifiedAt": "2026-01-03T00:00:00Z"
+          },
+          "stats": { "viewCount": 46, "favoriteCount": 3, "consultCount": 1 },
+          "auditStatus": "APPROVED",
+          "status": "ACTIVE",
+          "coverUrl": "https://example.com/media/achievement-cover-edge-1.jpg",
+          "createdAt": "2026-01-06T07:20:00Z"
+        },
+        {
+          "id": "c8a24a6d-3f7b-4d7f-9e3a-1f2b3c4d5e6f",
+          "title": "生物医药靶点筛选平台",
+          "summary": "已商业化，开放股权合作与联合开发。",
+          "maturity": "COMMERCIALIZED",
+          "cooperationModes": ["EQUITY", "JOINT_DEV"],
+          "regionCode": "110000",
+          "industryTags": ["生物医药"],
+          "keywords": ["靶点筛选", "平台化", "商业化"],
+          "publisher": {
+            "userId": "6f5e4d3c-2b1a-4e5f-8a9b-0c1d2e3f4a5b",
+            "displayName": "某生物医药企业",
+            "verificationType": "COMPANY",
+            "verificationStatus": "APPROVED",
+            "regionCode": "110000",
+            "logoUrl": "https://example.com/org-bio.png",
+            "intro": "提供靶点发现与验证平台化服务。",
+            "stats": { "listingCount": 9, "patentCount": 75 },
+            "verifiedAt": "2026-01-02T00:00:00Z"
+          },
+          "stats": { "viewCount": 102, "favoriteCount": 9, "consultCount": 5 },
+          "auditStatus": "APPROVED",
+          "status": "ACTIVE",
+          "coverUrl": "https://example.com/media/achievement-cover-edge-2.jpg",
+          "createdAt": "2026-01-04T06:10:00Z"
+        }
+      ],
+      "page": { "page": 1, "pageSize": 10, "total": 2 }
+    }
+  },
   "GET /public/listings/7d9ba983-130e-42ee-b109-fb1b20d02a8a": {
     "status": 200,
     "body": {

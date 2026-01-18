@@ -1,0 +1,14 @@
+%%{init: {'theme':'base','flowchart': {'htmlLabels': true},'themeVariables': {'fontFamily': 'Inter, Microsoft YaHei, sans-serif','lineColor':'#64748B','primaryTextColor':'#0F172A','primaryBorderColor':'#CBD5E1','primaryColor':'#F8FAFC'}}}%%
+flowchart TB
+  subgraph P["12 告警中心 Alert Center（PC 后台·P1）"]
+    direction TB
+    Pad[" "]:::pad
+    List["告警列表<br/>? 类型/严重级别/渠道/状态"]
+    Detail["告警详情<br/>? 关联目标/触发条件<br/>? 最近发送/去重信息"]
+    Actions["操作<br/>? 确认/抑制/升级"]
+    Pad --> List
+    List --> Detail --> Actions
+  end
+
+  classDef pad fill:transparent,stroke:transparent,color:transparent;
+  linkStyle 0 stroke:transparent,fill:transparent;

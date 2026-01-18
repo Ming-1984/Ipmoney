@@ -6,6 +6,20 @@
       "page": { "page": 1, "pageSize": 10, "total": 0 }
     }
   },
+  "GET /search/demands": {
+    "status": 200,
+    "body": {
+      "items": [],
+      "page": { "page": 1, "pageSize": 10, "total": 0 }
+    }
+  },
+  "GET /search/achievements": {
+    "status": 200,
+    "body": {
+      "items": [],
+      "page": { "page": 1, "pageSize": 10, "total": 0 }
+    }
+  },
   "GET /public/organizations": {
     "status": 200,
     "body": {

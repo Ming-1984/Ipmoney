@@ -71,7 +71,11 @@ $demoInputs = @(
   "docs/demo/pages/admin/05-content-audit.mmd",
   "docs/demo/pages/admin/06-user-auth.mmd",
   "docs/demo/pages/admin/07-finance.mmd",
-  "docs/demo/pages/admin/08-system-settings.mmd"
+  "docs/demo/pages/admin/08-system-settings.mmd",
+  "docs/demo/pages/admin/09-platform-cms.mmd",
+  "docs/demo/pages/admin/10-ai-parse-review.mmd",
+  "docs/demo/pages/admin/11-maintenance.mmd",
+  "docs/demo/pages/admin/12-alert-center.mmd"
 )
 
 function RenderDiagram([string]$diagramPath, [string]$outDir) {
