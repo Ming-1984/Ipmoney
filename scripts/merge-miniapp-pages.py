@@ -23,6 +23,8 @@ DEFAULT_PAGE_BASENAMES = [
     "13-publish-patent",
     "14-publish-demand",
     "15-publish-achievement",
+    "16-publish-artwork",
+    "17-tech-managers",
 ]
 
 
@@ -157,7 +159,7 @@ def _resize(im: Image.Image, scale: float) -> Image.Image:
 
 def main() -> None:
     parser = argparse.ArgumentParser(
-        description="Merge miniapp page PNGs (01-15) into a single image for review.",
+        description="Merge miniapp page PNGs (01-17) into a single image for review.",
     )
     parser.add_argument(
         "--input-dir",
@@ -166,8 +168,8 @@ def main() -> None:
     )
     parser.add_argument(
         "--output",
-        default="docs/demo/rendered/miniapp-pages-01-15.png",
-        help="Output image path (default: docs/demo/rendered/miniapp-pages-01-15.png).",
+        default="docs/demo/rendered/miniapp-pages-01-17.png",
+        help="Output image path (default: docs/demo/rendered/miniapp-pages-01-17.png).",
     )
     parser.add_argument(
         "--mode",

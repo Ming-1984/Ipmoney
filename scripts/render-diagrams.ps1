@@ -45,6 +45,7 @@ $demoInputs = @(
   "docs/demo/diagrams/deployment-prod.mmd",
   "docs/demo/diagrams/dataflow-money-pii-security.mmd",
   "docs/demo/diagrams/event-model.mmd",
+  "docs/demo/diagrams/requirements-phase-summary.mmd",
 
   # Miniapp pages (from Ipmoney.md)
   "docs/demo/pages/miniapp/01-login.mmd",
@@ -62,6 +63,8 @@ $demoInputs = @(
   "docs/demo/pages/miniapp/13-publish-patent.mmd",
   "docs/demo/pages/miniapp/14-publish-demand.mmd",
   "docs/demo/pages/miniapp/15-publish-achievement.mmd",
+  "docs/demo/pages/miniapp/16-publish-artwork.mmd",
+  "docs/demo/pages/miniapp/17-tech-managers.mmd",
 
   # Admin pages (from Ipmoney.md)
   "docs/demo/pages/admin/01-dashboard.mmd",

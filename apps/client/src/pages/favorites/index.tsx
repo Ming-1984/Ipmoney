@@ -6,15 +6,18 @@ import type { components } from '@ipmoney/api-types';
 
 import {
   listFavoriteAchievements,
+  listFavoriteArtworks,
   listFavoriteDemands,
   listFavorites,
   unfavorite,
   unfavoriteAchievement,
+  unfavoriteArtwork,
   unfavoriteDemand,
 } from '../../lib/favorites';
 import { apiPost } from '../../lib/api';
 import { ensureApproved, usePageAccess } from '../../lib/guard';
 import { CategoryControl } from '../../ui/filters';
+import { ArtworkCard } from '../../ui/ArtworkCard';
 import { ListingCard } from '../../ui/ListingCard';
 import { PageState } from '../../ui/PageState';
 import { PageHeader, Spacer, Surface } from '../../ui/layout';
@@ -26,10 +29,12 @@ type PagedDemandSummary = components['schemas']['PagedDemandSummary'];
 type DemandSummary = components['schemas']['DemandSummary'];
 type PagedAchievementSummary = components['schemas']['PagedAchievementSummary'];
 type AchievementSummary = components['schemas']['AchievementSummary'];
+type PagedArtworkSummary = components['schemas']['PagedArtworkSummary'];
+type ArtworkSummary = components['schemas']['ArtworkSummary'];
 
 type Conversation = { id: string };
 
-type FavoriteTab = 'LISTING' | 'DEMAND' | 'ACHIEVEMENT';
+type FavoriteTab = 'LISTING' | 'DEMAND' | 'ACHIEVEMENT' | 'ARTWORK';
 
 export default function FavoritesPage() {
   const [tab, setTab] = useState<FavoriteTab>('LISTING');
@@ -38,6 +43,7 @@ export default function FavoritesPage() {
   const [listingData, setListingData] = useState<PagedListingSummary | null>(null);
   const [demandData, setDemandData] = useState<PagedDemandSummary | null>(null);
   const [achievementData, setAchievementData] = useState<PagedAchievementSummary | null>(null);
+  const [artworkData, setArtworkData] = useState<PagedArtworkSummary | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -53,13 +59,19 @@ export default function FavoritesPage() {
         setDemandData(d);
         return;
       }
-      const d = await listFavoriteAchievements(1, 20);
-      setAchievementData(d);
+      if (tab === 'ACHIEVEMENT') {
+        const d = await listFavoriteAchievements(1, 20);
+        setAchievementData(d);
+        return;
+      }
+      const d = await listFavoriteArtworks(1, 20);
+      setArtworkData(d);
     } catch (e: any) {
       setError(e?.message || '加载失败');
       setListingData(null);
       setDemandData(null);
       setAchievementData(null);
+      setArtworkData(null);
     } finally {
       setLoading(false);
     }
@@ -75,6 +87,7 @@ export default function FavoritesPage() {
     setListingData(null);
     setDemandData(null);
     setAchievementData(null);
+    setArtworkData(null);
   });
 
   useEffect(() => {
@@ -85,6 +98,7 @@ export default function FavoritesPage() {
   const listingItems = useMemo(() => listingData?.items || [], [listingData?.items]);
   const demandItems = useMemo(() => demandData?.items || [], [demandData?.items]);
   const achievementItems = useMemo(() => achievementData?.items || [], [achievementData?.items]);
+  const artworkItems = useMemo(() => artworkData?.items || [], [artworkData?.items]);
 
   const startConsult = useCallback(async (listingId: string) => {
     if (!ensureApproved()) return;
@@ -98,6 +112,20 @@ export default function FavoritesPage() {
         `/listings/${listingId}/conversations`,
         {},
         { idempotencyKey: `conv-${listingId}` },
+      );
+      Taro.navigateTo({ url: `/pages/messages/chat/index?conversationId=${conv.id}` });
+    } catch (e: any) {
+      toast(e?.message || '进入咨询失败');
+    }
+  }, []);
+
+  const startArtworkConsult = useCallback(async (artworkId: string) => {
+    if (!ensureApproved()) return;
+    try {
+      const conv = await apiPost<Conversation>(
+        `/artworks/${artworkId}/conversations`,
+        {},
+        { idempotencyKey: `conv-artwork-${artworkId}` },
       );
       Taro.navigateTo({ url: `/pages/messages/chat/index?conversationId=${conv.id}` });
     } catch (e: any) {
@@ -119,6 +147,7 @@ export default function FavoritesPage() {
             { label: '专利', value: 'LISTING' },
             { label: '需求', value: 'DEMAND' },
             { label: '成果', value: 'ACHIEVEMENT' },
+            { label: '书画', value: 'ARTWORK' },
           ]}
           onChange={(v) => {
             setTab(v as FavoriteTab);
@@ -140,7 +169,9 @@ export default function FavoritesPage() {
             ? listingItems.length === 0
             : tab === 'DEMAND'
               ? demandItems.length === 0
-              : achievementItems.length === 0)
+              : tab === 'ACHIEVEMENT'
+                ? achievementItems.length === 0
+                : artworkItems.length === 0)
         }
         emptyMessage="暂无收藏"
         emptyActionText="刷新"
@@ -213,7 +244,7 @@ export default function FavoritesPage() {
               </Surface>
             ))}
           </View>
-        ) : (
+        ) : tab === 'ACHIEVEMENT' ? (
           <View>
             {achievementItems.map((it: AchievementSummary) => (
               <Surface key={it.id} style={{ marginBottom: '16rpx' }}>
@@ -254,6 +285,32 @@ export default function FavoritesPage() {
               </Surface>
             ))}
           </View>
+        ) : (
+          <Surface padding="none" className="listing-list">
+            {artworkItems.map((it: ArtworkSummary) => (
+              <ArtworkCard
+                key={it.id}
+                item={it}
+                favorited
+                onClick={() => {
+                  Taro.navigateTo({ url: `/pages/artwork/detail/index?artworkId=${it.id}` });
+                }}
+                onFavorite={async () => {
+                  if (!ensureApproved()) return;
+                  try {
+                    await unfavoriteArtwork(it.id);
+                    toast('已取消收藏', { icon: 'success' });
+                    void load();
+                  } catch (e: any) {
+                    toast(e?.message || '操作失败');
+                  }
+                }}
+                onConsult={() => {
+                  void startArtworkConsult(it.id);
+                }}
+              />
+            ))}
+          </Surface>
         )}
       </PageState>
     </View>

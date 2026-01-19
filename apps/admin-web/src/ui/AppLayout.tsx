@@ -4,6 +4,8 @@ import {
   FileDoneOutlined,
   GiftOutlined,
   MessageOutlined,
+  PictureOutlined,
+  TeamOutlined,
   TrophyOutlined,
   BulbOutlined,
   SettingOutlined,
@@ -74,6 +76,16 @@ export function AppLayout() {
               key: 'achievements',
               icon: <TrophyOutlined />,
               label: <Link to="/achievements">成果审核</Link>,
+            },
+            {
+              key: 'artworks',
+              icon: <PictureOutlined />,
+              label: <Link to="/artworks">书画审核</Link>,
+            },
+            {
+              key: 'tech-managers',
+              icon: <TeamOutlined />,
+              label: <Link to="/tech-managers">技术经理人</Link>,
             },
             {
               key: 'comments',

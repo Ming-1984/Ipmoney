@@ -4,19 +4,20 @@
 
 ## 1. 汇总
 
-- OpenAPI operations：151
-- 前端已使用（Client）：76
-- 前端已使用（Admin）：42
+- OpenAPI operations：178
+- 前端已使用（Client）：93
+- 前端已使用（Admin）：47
 - fixtures 场景数：7
 
 ## 2. 关键差异（需要人工确认/回填）
 
 - 前端使用但 OpenAPI 未定义：0
-- OpenAPI 定义但前端未使用：38
+- OpenAPI 定义但前端未使用：43
   - GET /admin/achievements/:param
   - GET /admin/ai/parse-results
   - GET /admin/ai/parse-results/:param
   - GET /admin/alerts
+  - GET /admin/artworks/:param
   - GET /admin/config/ai
   - GET /admin/config/alerts
   - GET /admin/demands/:param
@@ -29,6 +30,7 @@
   - GET /me/recommendations/listings
   - PATCH /admin/achievements/:param
   - PATCH /admin/ai/parse-results/:param
+  - PATCH /admin/artworks/:param
   - PATCH /admin/demands/:param
   - PATCH /admin/listings/:param
   - PATCH /admin/patent-maintenance/schedules/:param
@@ -38,6 +40,9 @@
   - POST /admin/achievements/:param/off-shelf
   - POST /admin/achievements/:param/publish
   - POST /admin/alerts/:param/ack
+  - POST /admin/artworks
+  - POST /admin/artworks/:param/off-shelf
+  - POST /admin/artworks/:param/publish
   - POST /admin/demands
   - POST /admin/demands/:param/off-shelf
   - POST /admin/demands/:param/publish
@@ -59,6 +64,7 @@
 |---|---|---|---|---|---|---|---|---|---|---|---|
 | unfavoriteAchievement | DELETE | /achievements/:param/favorites | ✓ |  | ✓ |  |  |  |  |  |  |
 | adminDeleteOrderInvoice | DELETE | /admin/orders/:param/invoice |  | ✓ | ✓ |  | ✓ |  |  |  |  |
+| unfavoriteArtwork | DELETE | /artworks/:param/favorites | ✓ |  | ✓ |  |  |  |  |  |  |
 | deleteComment | DELETE | /comments/:param | ✓ |  | ✓ | ✓ | ✓ | ✓ |  |  |  |
 | unfavoriteDemand | DELETE | /demands/:param/favorites | ✓ |  | ✓ |  |  |  |  |  |  |
 | unfavoriteListing | DELETE | /listings/:param/favorites | ✓ |  | ✓ |  |  |  |  |  |  |
@@ -69,6 +75,8 @@
 | adminListAiParseResults | GET | /admin/ai/parse-results |  |  |  |  |  |  |  |  |  |
 | adminGetAiParseResult | GET | /admin/ai/parse-results/:param |  |  |  |  |  |  |  |  |  |
 | adminListAlertEvents | GET | /admin/alerts |  |  |  |  |  |  |  |  |  |
+| adminListArtworksForAudit | GET | /admin/artworks |  | ✓ | ✓ | ✓ | ✓ | ✓ |  |  |  |
+| adminGetArtworkById | GET | /admin/artworks/:param |  |  |  |  |  |  |  |  |  |
 | adminListComments | GET | /admin/comments |  | ✓ | ✓ | ✓ | ✓ | ✓ |  |  |  |
 | adminGetAiConfig | GET | /admin/config/ai |  |  |  |  |  |  |  |  |  |
 | adminGetAlertConfig | GET | /admin/config/alerts |  |  |  |  |  |  |  |  |  |
@@ -87,7 +95,10 @@
 | adminListPatents | GET | /admin/patents |  |  |  |  |  |  |  |  |  |
 | adminGetPatentById | GET | /admin/patents/:param |  |  |  |  |  |  |  |  |  |
 | adminListRegions | GET | /admin/regions |  | ✓ | ✓ |  |  |  |  |  |  |
+| adminListTechManagers | GET | /admin/tech-managers |  | ✓ | ✓ | ✓ | ✓ | ✓ |  |  |  |
 | adminListUserVerifications | GET | /admin/user-verifications |  | ✓ | ✓ | ✓ | ✓ |  |  |  |  |
+| listMyArtworks | GET | /artworks | ✓ |  | ✓ |  |  |  |  |  |  |
+| getArtworkById | GET | /artworks/:param | ✓ |  | ✓ |  |  |  |  |  |  |
 | listConversationMessages | GET | /conversations/:param/messages | ✓ |  | ✓ | ✓ | ✓ |  |  |  |  |
 | listMyDemands | GET | /demands | ✓ |  | ✓ |  |  |  |  |  |  |
 | getDemandById | GET | /demands/:param | ✓ |  | ✓ |  |  |  |  |  |  |
@@ -97,6 +108,7 @@
 | listMyConversations | GET | /me/conversations | ✓ |  | ✓ | ✓ | ✓ |  |  |  |  |
 | listMyFavoriteListings | GET | /me/favorites | ✓ |  | ✓ |  |  |  |  |  |  |
 | listMyFavoriteAchievements | GET | /me/favorites/achievements | ✓ |  | ✓ |  |  |  |  |  |  |
+| listMyFavoriteArtworks | GET | /me/favorites/artworks | ✓ |  | ✓ |  |  |  |  |  |  |
 | listMyFavoriteDemands | GET | /me/favorites/demands | ✓ |  | ✓ |  |  |  |  |  |  |
 | getMyRecommendedListings | GET | /me/recommendations/listings |  |  | ✓ | ✓ | ✓ |  |  |  |  |
 | getMyVerification | GET | /me/verification | ✓ |  | ✓ |  |  |  |  |  |  |
@@ -111,6 +123,8 @@
 | getPatentById | GET | /patents/:param | ✓ |  | ✓ |  |  |  |  |  |  |
 | getPublicAchievementById | GET | /public/achievements/:param | ✓ |  | ✓ |  |  |  |  |  |  |
 | listPublicAchievementComments | GET | /public/achievements/:param/comments | ✓ |  | ✓ | ✓ | ✓ |  |  |  |  |
+| getPublicArtworkById | GET | /public/artworks/:param | ✓ |  | ✓ |  |  |  |  |  |  |
+| listPublicArtworkComments | GET | /public/artworks/:param/comments | ✓ |  | ✓ | ✓ | ✓ | ✓ |  |  |  |
 | getPublicTradeRulesConfig | GET | /public/config/trade-rules | ✓ |  | ✓ |  |  |  |  |  |  |
 | getPublicDemandById | GET | /public/demands/:param | ✓ |  | ✓ |  |  |  |  |  |  |
 | listPublicDemandComments | GET | /public/demands/:param/comments | ✓ |  | ✓ | ✓ | ✓ |  |  |  |  |
@@ -119,14 +133,18 @@
 | listPublicListingComments | GET | /public/listings/:param/comments | ✓ |  | ✓ | ✓ | ✓ | ✓ |  |  |  |
 | listPublicOrganizations | GET | /public/organizations | ✓ |  | ✓ | ✓ | ✓ |  |  |  |  |
 | getPublicOrganizationById | GET | /public/organizations/:param | ✓ |  | ✓ |  |  |  |  |  |  |
+| getPublicTechManagerById | GET | /public/tech-managers/:param | ✓ |  | ✓ |  |  |  |  |  |  |
 | listRegions | GET | /regions | ✓ |  | ✓ |  |  |  |  |  |  |
-| searchAchievements | GET | /search/achievements | ✓ |  | ✓ |  |  |  |  |  |  |
-| searchDemands | GET | /search/demands | ✓ |  | ✓ |  |  |  |  |  |  |
+| searchAchievements | GET | /search/achievements | ✓ |  | ✓ | ✓ | ✓ | ✓ |  |  |  |
+| searchArtworks | GET | /search/artworks | ✓ |  | ✓ | ✓ | ✓ | ✓ |  |  |  |
+| searchDemands | GET | /search/demands | ✓ |  | ✓ | ✓ | ✓ | ✓ |  |  |  |
 | searchInventorRankings | GET | /search/inventors | ✓ |  | ✓ | ✓ | ✓ |  |  |  |  |
 | searchListings | GET | /search/listings | ✓ |  | ✓ | ✓ | ✓ | ✓ |  |  |  |
+| searchTechManagers | GET | /search/tech-managers | ✓ |  | ✓ | ✓ | ✓ | ✓ |  |  |  |
 | updateAchievement | PATCH | /achievements/:param | ✓ |  | ✓ |  |  |  |  |  |  |
 | adminUpdateAchievement | PATCH | /admin/achievements/:param |  |  |  |  |  |  |  |  |  |
 | adminUpdateAiParseResult | PATCH | /admin/ai/parse-results/:param |  |  |  |  |  |  |  |  |  |
+| adminUpdateArtwork | PATCH | /admin/artworks/:param |  |  |  |  |  |  |  |  |  |
 | adminUpdateComment | PATCH | /admin/comments/:param |  | ✓ | ✓ | ✓ | ✓ | ✓ |  |  |  |
 | adminUpdateDemand | PATCH | /admin/demands/:param |  |  |  |  |  |  |  |  |  |
 | adminUpdateListing | PATCH | /admin/listings/:param |  |  |  |  |  |  |  |  |  |
@@ -134,6 +152,8 @@
 | adminUpdatePatentMaintenanceTask | PATCH | /admin/patent-maintenance/tasks/:param |  |  |  |  |  |  |  |  |  |
 | adminUpdatePatent | PATCH | /admin/patents/:param |  |  |  |  |  |  |  |  |  |
 | adminUpdateRegion | PATCH | /admin/regions/:param |  | ✓ | ✓ |  |  |  |  |  |  |
+| adminUpdateTechManager | PATCH | /admin/tech-managers/:param |  | ✓ | ✓ |  |  |  |  |  |  |
+| updateArtwork | PATCH | /artworks/:param | ✓ |  | ✓ |  |  |  |  |  |  |
 | updateComment | PATCH | /comments/:param | ✓ |  | ✓ | ✓ | ✓ | ✓ |  |  |  |
 | updateDemand | PATCH | /demands/:param | ✓ |  | ✓ |  |  |  |  |  |  |
 | updateListing | PATCH | /listings/:param | ✓ |  | ✓ |  |  |  |  |  |  |
@@ -150,6 +170,11 @@
 | adminPublishAchievement | POST | /admin/achievements/:param/publish |  |  |  |  |  |  |  |  |  |
 | adminRejectAchievement | POST | /admin/achievements/:param/reject |  | ✓ | ✓ |  |  |  |  |  |  |
 | adminAcknowledgeAlertEvent | POST | /admin/alerts/:param/ack |  |  |  |  |  |  |  |  |  |
+| adminCreateArtwork | POST | /admin/artworks |  |  |  |  |  |  |  |  |  |
+| adminApproveArtwork | POST | /admin/artworks/:param/approve |  | ✓ | ✓ |  |  |  |  |  |  |
+| adminOffShelfArtwork | POST | /admin/artworks/:param/off-shelf |  |  |  |  |  |  |  |  |  |
+| adminPublishArtwork | POST | /admin/artworks/:param/publish |  |  |  |  |  |  |  |  |  |
+| adminRejectArtwork | POST | /admin/artworks/:param/reject |  | ✓ | ✓ |  |  |  |  |  |  |
 | adminCreateDemand | POST | /admin/demands |  |  |  |  |  |  |  |  |  |
 | adminApproveDemand | POST | /admin/demands/:param/approve |  | ✓ | ✓ |  |  |  |  |  |  |
 | adminOffShelfDemand | POST | /admin/demands/:param/off-shelf |  |  |  |  |  |  |  |  |  |
@@ -175,6 +200,12 @@
 | adminRejectUserVerification | POST | /admin/user-verifications/:param/reject |  | ✓ | ✓ |  |  |  |  |  |  |
 | createAiAgentQuery | POST | /ai/agent/query |  |  |  |  |  |  |  |  |  |
 | createAiParseFeedback | POST | /ai/parse-results/:param/feedback |  |  |  |  |  |  |  |  |  |
+| createArtwork | POST | /artworks | ✓ |  | ✓ |  |  |  |  |  |  |
+| createArtworkComment | POST | /artworks/:param/comments | ✓ |  | ✓ | ✓ | ✓ | ✓ |  |  |  |
+| upsertArtworkConversation | POST | /artworks/:param/conversations | ✓ |  | ✓ |  | ✓ |  |  |  |  |
+| favoriteArtwork | POST | /artworks/:param/favorites | ✓ |  | ✓ |  |  |  |  |  |  |
+| offShelfArtwork | POST | /artworks/:param/off-shelf | ✓ |  | ✓ |  |  |  |  |  |  |
+| submitArtwork | POST | /artworks/:param/submit | ✓ |  | ✓ |  |  |  |  |  |  |
 | authSmsSend | POST | /auth/sms/send | ✓ |  | ✓ |  |  |  |  |  |  |
 | authSmsVerify | POST | /auth/sms/verify | ✓ |  | ✓ |  |  |  |  |  |  |
 | authWechatMpLogin | POST | /auth/wechat/mp-login | ✓ |  | ✓ |  |  |  |  |  |  |
@@ -199,6 +230,7 @@
 | createPaymentIntent | POST | /orders/:param/payment-intents | ✓ |  | ✓ |  |  |  |  | ✓ |  |
 | createRefundRequest | POST | /orders/:param/refund-requests | ✓ |  | ✓ |  |  |  |  |  |  |
 | normalizePatentNumber | POST | /patents/normalize | ✓ |  | ✓ | ✓ | ✓ |  |  |  |  |
+| upsertTechManagerConversation | POST | /tech-managers/:param/conversations | ✓ |  | ✓ |  | ✓ |  |  |  |  |
 | wechatPayNotify | POST | /webhooks/wechatpay/notify |  |  |  |  |  |  |  |  |  |
 | adminUpdateAiConfig | PUT | /admin/config/ai |  |  |  |  |  |  |  |  |  |
 | adminUpdateAlertConfig | PUT | /admin/config/alerts |  |  |  |  |  |  |  |  |  |

@@ -8,10 +8,14 @@ type OrderStatus = components['schemas']['OrderStatus'];
 type AuditStatus = components['schemas']['AuditStatus'];
 type ContentStatus = components['schemas']['ContentStatus'];
 type ListingStatus = components['schemas']['ListingStatus'];
+type ArtworkStatus = components['schemas']['ArtworkStatus'];
 type FeaturedLevel = components['schemas']['FeaturedLevel'];
 type VerificationType = components['schemas']['VerificationType'];
 type VerificationStatus = components['schemas']['VerificationStatus'];
 type DeliveryPeriod = components['schemas']['DeliveryPeriod'];
+type ArtworkCategory = components['schemas']['ArtworkCategory'];
+type CalligraphyScript = components['schemas']['CalligraphyScript'];
+type PaintingGenre = components['schemas']['PaintingGenre'];
 
 export function patentTypeLabel(t?: PatentType | null, options?: { empty?: string }): string {
   const empty = options?.empty ?? '-';
@@ -32,6 +36,35 @@ export function priceTypeLabel(t?: PriceType | null, options?: { empty?: string 
   const empty = options?.empty ?? '-';
   if (!t) return empty;
   return t === 'NEGOTIABLE' ? '面议' : '一口价';
+}
+
+export function artworkCategoryLabel(t?: ArtworkCategory | null, options?: { empty?: string }): string {
+  const empty = options?.empty ?? '-';
+  if (!t) return empty;
+  if (t === 'CALLIGRAPHY') return '书法';
+  if (t === 'PAINTING') return '绘画';
+  return String(t);
+}
+
+export function calligraphyScriptLabel(t?: CalligraphyScript | null, options?: { empty?: string }): string {
+  const empty = options?.empty ?? '-';
+  if (!t) return empty;
+  if (t === 'KAISHU') return '楷书';
+  if (t === 'XINGSHU') return '行书';
+  if (t === 'CAOSHU') return '草书';
+  if (t === 'LISHU') return '隶书';
+  if (t === 'ZHUANSHU') return '篆书';
+  return String(t);
+}
+
+export function paintingGenreLabel(t?: PaintingGenre | null, options?: { empty?: string }): string {
+  const empty = options?.empty ?? '-';
+  if (!t) return empty;
+  if (t === 'FIGURE') return '人物';
+  if (t === 'LANDSCAPE') return '山水';
+  if (t === 'BIRD_FLOWER') return '花鸟';
+  if (t === 'OTHER') return '其他';
+  return String(t);
 }
 
 export function licenseModeLabel(t?: LicenseMode | null, options?: { empty?: string }): string {
@@ -83,6 +116,16 @@ export function contentStatusLabel(status: ContentStatus): string {
 }
 
 export function listingStatusLabel(status: ListingStatus): string {
+  if (status === 'DRAFT') return '草稿';
+  if (status === 'ACTIVE') return '已上架';
+  if (status === 'OFF_SHELF') return '已下架';
+  if (status === 'SOLD') return '已成交';
+  return String(status);
+}
+
+export function artworkStatusLabel(status?: ArtworkStatus | null, options?: { empty?: string }): string {
+  const empty = options?.empty ?? '-';
+  if (!status) return empty;
   if (status === 'DRAFT') return '草稿';
   if (status === 'ACTIVE') return '已上架';
   if (status === 'OFF_SHELF') return '已下架';

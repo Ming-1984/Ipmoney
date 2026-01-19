@@ -5,6 +5,7 @@ import { DashboardPage } from './views/DashboardPage';
 import { DemandsAuditPage } from './views/DemandsAuditPage';
 import { LoginPage } from './views/LoginPage';
 import { AchievementsAuditPage } from './views/AchievementsAuditPage';
+import { ArtworksAuditPage } from './views/ArtworksAuditPage';
 import { CommentsPage } from './views/CommentsPage';
 import { ListingsAuditPage } from './views/ListingsAuditPage';
 import { ConfigPage } from './views/ConfigPage';
@@ -14,6 +15,7 @@ import { PatentMapPage } from './views/PatentMapPage';
 import { RegionsPage } from './views/RegionsPage';
 import { RefundsPage } from './views/RefundsPage';
 import { SettlementsPage } from './views/SettlementsPage';
+import { TechManagersPage } from './views/TechManagersPage';
 import { VerificationsPage } from './views/VerificationsPage';
 
 export const router = createBrowserRouter([
@@ -30,6 +32,8 @@ export const router = createBrowserRouter([
       { path: 'listings', element: <ListingsAuditPage /> },
       { path: 'demands', element: <DemandsAuditPage /> },
       { path: 'achievements', element: <AchievementsAuditPage /> },
+      { path: 'artworks', element: <ArtworksAuditPage /> },
+      { path: 'tech-managers', element: <TechManagersPage /> },
       { path: 'orders', element: <OrdersPage /> },
       { path: 'refunds', element: <RefundsPage /> },
       { path: 'settlements', element: <SettlementsPage /> },

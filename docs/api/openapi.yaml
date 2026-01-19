@@ -36,6 +36,10 @@ tags:
     description: 产学研需求（发布/审核/展示/咨询）
   - name: Achievements
     description: 成果展示（发布/审核/展示/咨询）
+  - name: Artworks
+    description: 书画专区（发布/审核/展示/咨询）
+  - name: TechManagers
+    description: 技术经理人栏目（检索/展示/咨询）
   - name: Orders
     description: 订单创建、查询与状态机
   - name: Payments
@@ -313,6 +317,26 @@ paths:
         "401":
           $ref: "#/components/responses/Unauthorized"
 
+  /me/favorites/artworks:
+    get:
+      tags: [Artworks]
+      summary: 我的书画收藏列表
+      operationId: listMyFavoriteArtworks
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/Page"
+        - $ref: "#/components/parameters/PageSize"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PagedArtworkSummary"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
   /me/recommendations/listings:
     get:
       tags: [Search]
@@ -549,6 +573,64 @@ paths:
                 $ref: "#/components/schemas/PagedCommentThread"
         "400":
           $ref: "#/components/responses/BadRequest"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /public/artworks/{artworkId}:
+    get:
+      tags: [Artworks]
+      summary: 获取书画作品详情（公开）
+      operationId: getPublicArtworkById
+      security: []
+      parameters:
+        - $ref: "#/components/parameters/ArtworkId"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ArtworkPublic"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /public/artworks/{artworkId}/comments:
+    get:
+      tags: [Comments]
+      summary: 获取书画留言列表（公开）
+      operationId: listPublicArtworkComments
+      security: []
+      parameters:
+        - $ref: "#/components/parameters/ArtworkId"
+        - $ref: "#/components/parameters/Page"
+        - $ref: "#/components/parameters/PageSize"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PagedCommentThread"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /public/tech-managers/{techManagerId}:
+    get:
+      tags: [TechManagers]
+      summary: 获取技术经理人详情（公开）
+      operationId: getPublicTechManagerById
+      security: []
+      parameters:
+        - $ref: "#/components/parameters/TechManagerId"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TechManagerPublic"
         "404":
           $ref: "#/components/responses/NotFound"
 
@@ -814,6 +896,61 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/PagedAchievementSummary"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+
+  /search/artworks:
+    get:
+      tags: [Search]
+      summary: 书画专区检索
+      operationId: searchArtworks
+      security: []
+      parameters:
+        - $ref: "#/components/parameters/Q"
+        - $ref: "#/components/parameters/ArtworkCategory"
+        - $ref: "#/components/parameters/CalligraphyScript"
+        - $ref: "#/components/parameters/PaintingGenre"
+        - $ref: "#/components/parameters/Creator"
+        - $ref: "#/components/parameters/CreationYearStart"
+        - $ref: "#/components/parameters/CreationYearEnd"
+        - $ref: "#/components/parameters/PriceType"
+        - $ref: "#/components/parameters/PriceMin"
+        - $ref: "#/components/parameters/PriceMax"
+        - $ref: "#/components/parameters/DepositMin"
+        - $ref: "#/components/parameters/DepositMax"
+        - $ref: "#/components/parameters/RegionCode"
+        - $ref: "#/components/parameters/ArtworkSortBy"
+        - $ref: "#/components/parameters/Page"
+        - $ref: "#/components/parameters/PageSize"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PagedArtworkSummary"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+
+  /search/tech-managers:
+    get:
+      tags: [Search, TechManagers]
+      summary: 技术经理人检索
+      operationId: searchTechManagers
+      security: []
+      parameters:
+        - $ref: "#/components/parameters/Q"
+        - $ref: "#/components/parameters/RegionCode"
+        - $ref: "#/components/parameters/TechManagerSortBy"
+        - $ref: "#/components/parameters/Page"
+        - $ref: "#/components/parameters/PageSize"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PagedTechManagerSummary"
         "400":
           $ref: "#/components/responses/BadRequest"
 
@@ -1651,6 +1788,229 @@ paths:
         "404":
           $ref: "#/components/responses/NotFound"
 
+  /artworks:
+    post:
+      tags: [Artworks]
+      summary: 创建书画草稿（发布方）
+      operationId: createArtwork
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ArtworkCreateRequest"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Artwork"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+    get:
+      tags: [Artworks]
+      summary: 我的书画列表（发布方）
+      operationId: listMyArtworks
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/ArtworkStatus"
+        - $ref: "#/components/parameters/AuditStatus"
+        - $ref: "#/components/parameters/Page"
+        - $ref: "#/components/parameters/PageSize"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PagedArtwork"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /artworks/{artworkId}:
+    get:
+      tags: [Artworks]
+      summary: 获取书画详情（发布方/已登录）
+      operationId: getArtworkById
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/ArtworkId"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Artwork"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+    patch:
+      tags: [Artworks]
+      summary: 更新书画草稿（发布方）
+      operationId: updateArtwork
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/ArtworkId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ArtworkUpdateRequest"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Artwork"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /artworks/{artworkId}/favorites:
+    post:
+      tags: [Artworks]
+      summary: 收藏书画作品
+      operationId: favoriteArtwork
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/ArtworkId"
+        - $ref: "#/components/parameters/IdempotencyKey"
+      responses:
+        "204":
+          description: No Content
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+    delete:
+      tags: [Artworks]
+      summary: 取消收藏书画作品
+      operationId: unfavoriteArtwork
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/ArtworkId"
+        - $ref: "#/components/parameters/IdempotencyKey"
+      responses:
+        "204":
+          description: No Content
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+
+  /artworks/{artworkId}/comments:
+    post:
+      tags: [Comments]
+      summary: 创建书画留言/回复
+      operationId: createArtworkComment
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/ArtworkId"
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CommentCreateRequest"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Comment"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+
+  /artworks/{artworkId}/submit:
+    post:
+      tags: [Artworks]
+      summary: 提交审核（发布方）
+      operationId: submitArtwork
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/ArtworkId"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Artwork"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /artworks/{artworkId}/off-shelf:
+    post:
+      tags: [Artworks]
+      summary: 下架（发布方）
+      operationId: offShelfArtwork
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/ArtworkId"
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                reason:
+                  type: string
+                  maxLength: 200
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Artwork"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
   /orders:
     post:
       tags: [Orders]
@@ -1664,9 +2024,13 @@ paths:
           application/json:
             schema:
               type: object
-              required: [listingId]
+              oneOf:
+                - required: [listingId]
+                - required: [artworkId]
               properties:
                 listingId:
+                  $ref: "#/components/schemas/Uuid"
+                artworkId:
                   $ref: "#/components/schemas/Uuid"
       responses:
         "201":
@@ -1963,6 +2327,54 @@ paths:
         - BearerAuth: []
       parameters:
         - $ref: "#/components/parameters/AchievementId"
+        - $ref: "#/components/parameters/IdempotencyKey"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Conversation"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+
+  /artworks/{artworkId}/conversations:
+    post:
+      tags: [Messaging]
+      summary: 创建/获取与该书画相关的会话（咨询）
+      operationId: upsertArtworkConversation
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/ArtworkId"
+        - $ref: "#/components/parameters/IdempotencyKey"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Conversation"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+
+  /tech-managers/{techManagerId}/conversations:
+    post:
+      tags: [Messaging, TechManagers]
+      summary: 创建/获取与该技术经理人相关的会话（咨询）
+      operationId: upsertTechManagerConversation
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/TechManagerId"
         - $ref: "#/components/parameters/IdempotencyKey"
       responses:
         "200":
@@ -3675,6 +4087,284 @@ paths:
           $ref: "#/components/responses/Forbidden"
         "404":
           $ref: "#/components/responses/NotFound"
+
+  /admin/artworks:
+    get:
+      tags: [Admin]
+      summary: 书画审核/平台内容列表
+      operationId: adminListArtworksForAudit
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/Q"
+        - $ref: "#/components/parameters/RegionCode"
+        - $ref: "#/components/parameters/AuditStatus"
+        - $ref: "#/components/parameters/ArtworkStatus"
+        - $ref: "#/components/parameters/ContentSource"
+        - $ref: "#/components/parameters/Page"
+        - $ref: "#/components/parameters/PageSize"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PagedArtwork"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+    post:
+      tags: [Admin]
+      summary: 创建平台自有书画（P1）
+      operationId: adminCreateArtwork
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AdminArtworkCreateRequest"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Artwork"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+
+  /admin/artworks/{artworkId}:
+    get:
+      tags: [Admin]
+      summary: 获取书画详情（后台，P1）
+      operationId: adminGetArtworkById
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/ArtworkId"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Artwork"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+    patch:
+      tags: [Admin]
+      summary: 更新平台自有书画（后台，P1）
+      operationId: adminUpdateArtwork
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/ArtworkId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AdminArtworkUpdateRequest"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Artwork"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /admin/artworks/{artworkId}/publish:
+    post:
+      tags: [Admin]
+      summary: 发布书画（后台，P1）
+      operationId: adminPublishArtwork
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/ArtworkId"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Artwork"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+
+  /admin/artworks/{artworkId}/off-shelf:
+    post:
+      tags: [Admin]
+      summary: 下架书画（后台，P1）
+      operationId: adminOffShelfArtwork
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/ArtworkId"
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                reason:
+                  type: string
+                  maxLength: 200
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Artwork"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /admin/artworks/{artworkId}/approve:
+    post:
+      tags: [Admin]
+      summary: 书画审核通过
+      operationId: adminApproveArtwork
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/ArtworkId"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Artwork"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+
+  /admin/artworks/{artworkId}/reject:
+    post:
+      tags: [Admin]
+      summary: 书画审核驳回
+      operationId: adminRejectArtwork
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/ArtworkId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [reason]
+              properties:
+                reason:
+                  type: string
+                  minLength: 1
+                  maxLength: 500
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Artwork"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /admin/tech-managers:
+    get:
+      tags: [Admin, TechManagers]
+      summary: 技术经理人管理列表
+      operationId: adminListTechManagers
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/Q"
+        - $ref: "#/components/parameters/RegionCode"
+        - $ref: "#/components/parameters/VerificationStatus"
+        - $ref: "#/components/parameters/Page"
+        - $ref: "#/components/parameters/PageSize"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PagedTechManagerSummary"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+
+  /admin/tech-managers/{techManagerId}:
+    patch:
+      tags: [Admin, TechManagers]
+      summary: 更新技术经理人展示信息
+      operationId: adminUpdateTechManager
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/TechManagerId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TechManagerUpdateRequest"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TechManagerPublic"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
         "409":
           $ref: "#/components/responses/Conflict"
 
@@ -4210,6 +4900,54 @@ components:
         example: "110000"
       description: 行政区划 adcode（6 位字符串）
 
+    ArtworkCategory:
+      name: category
+      in: query
+      required: false
+      schema:
+        $ref: "#/components/schemas/ArtworkCategory"
+      description: 书画类别（书法/绘画）
+
+    CalligraphyScript:
+      name: calligraphyScript
+      in: query
+      required: false
+      schema:
+        $ref: "#/components/schemas/CalligraphyScript"
+
+    PaintingGenre:
+      name: paintingGenre
+      in: query
+      required: false
+      schema:
+        $ref: "#/components/schemas/PaintingGenre"
+
+    Creator:
+      name: creator
+      in: query
+      required: false
+      schema:
+        type: string
+      description: 作者/创作者
+
+    CreationYearStart:
+      name: creationYearStart
+      in: query
+      required: false
+      schema:
+        type: integer
+        minimum: 0
+      description: 创作年份起
+
+    CreationYearEnd:
+      name: creationYearEnd
+      in: query
+      required: false
+      schema:
+        type: integer
+        minimum: 0
+      description: 创作年份止
+
     OrganizationTypes:
       name: types
       in: query
@@ -4280,6 +5018,18 @@ components:
       required: false
       schema:
         $ref: "#/components/schemas/ContentSortBy"
+    ArtworkSortBy:
+      name: sortBy
+      in: query
+      required: false
+      schema:
+        $ref: "#/components/schemas/ArtworkSortBy"
+    TechManagerSortBy:
+      name: sortBy
+      in: query
+      required: false
+      schema:
+        $ref: "#/components/schemas/TechManagerSortBy"
     CooperationModes:
       name: cooperationModes
       in: query
@@ -4303,6 +5053,12 @@ components:
       required: false
       schema:
         $ref: "#/components/schemas/ContentStatus"
+    ArtworkStatus:
+      name: status
+      in: query
+      required: false
+      schema:
+        $ref: "#/components/schemas/ArtworkStatus"
 
     ContentSource:
       name: source
@@ -4311,6 +5067,14 @@ components:
       schema:
         $ref: "#/components/schemas/ContentSource"
       description: 内容来源过滤
+
+    VerificationStatus:
+      name: verificationStatus
+      in: query
+      required: false
+      schema:
+        $ref: "#/components/schemas/VerificationStatus"
+      description: 认证状态过滤
 
     AiContentType:
       name: contentType
@@ -4530,6 +5294,20 @@ components:
       schema:
         $ref: "#/components/schemas/Uuid"
 
+    ArtworkId:
+      name: artworkId
+      in: path
+      required: true
+      schema:
+        $ref: "#/components/schemas/Uuid"
+
+    TechManagerId:
+      name: techManagerId
+      in: path
+      required: true
+      schema:
+        $ref: "#/components/schemas/Uuid"
+
     CommentId:
       name: commentId
       in: path
@@ -4721,6 +5499,11 @@ components:
         intro:
           type: string
           description: 主体简介（用于机构展示）
+        serviceTags:
+          type: array
+          items:
+            type: string
+          description: 技术经理人服务标签（仅 TECH_MANAGER）
         logoFileId:
           $ref: "#/components/schemas/Uuid"
         logoUrl:
@@ -4824,6 +5607,11 @@ components:
         intro:
           type: string
           maxLength: 2000
+        serviceTags:
+          type: array
+          items:
+            type: string
+            maxLength: 50
         evidenceFileIds:
           type: array
           minItems: 1
@@ -5333,6 +6121,30 @@ components:
       type: string
       enum: [RECOMMENDED, NEWEST, POPULAR]
 
+    ArtworkSortBy:
+      type: string
+      enum: [RECOMMENDED, NEWEST, POPULAR, PRICE_ASC, PRICE_DESC]
+
+    TechManagerSortBy:
+      type: string
+      enum: [RECOMMENDED, NEWEST, POPULAR]
+
+    ArtworkCategory:
+      type: string
+      enum: [CALLIGRAPHY, PAINTING]
+
+    CalligraphyScript:
+      type: string
+      enum: [KAISHU, XINGSHU, CAOSHU, LISHU, ZHUANSHU]
+
+    PaintingGenre:
+      type: string
+      enum: [FIGURE, LANDSCAPE, BIRD_FLOWER, OTHER]
+
+    ArtworkStatus:
+      type: string
+      enum: [DRAFT, ACTIVE, OFF_SHELF, SOLD]
+
     CooperationMode:
       type: string
       enum: [TRANSFER, LICENSE, EQUITY, JOINT_DEV, COMMISSIONED_DEV, OTHER]
@@ -5797,6 +6609,237 @@ components:
           items:
             $ref: "#/components/schemas/ContentMedia"
 
+    ArtworkSummary:
+      type: object
+      required: [id, title, category, creatorName, priceType, depositAmountFen, auditStatus, status, createdAt]
+      properties:
+        id:
+          $ref: "#/components/schemas/Uuid"
+        source:
+          $ref: "#/components/schemas/ContentSource"
+        title:
+          type: string
+          maxLength: 200
+        category:
+          $ref: "#/components/schemas/ArtworkCategory"
+        calligraphyScript:
+          $ref: "#/components/schemas/CalligraphyScript"
+        paintingGenre:
+          $ref: "#/components/schemas/PaintingGenre"
+        creatorName:
+          type: string
+          maxLength: 200
+        creationDate:
+          type: string
+          format: date
+        creationYear:
+          type: integer
+          minimum: 0
+        certificateNo:
+          type: string
+          maxLength: 100
+        priceType:
+          $ref: "#/components/schemas/PriceType"
+        priceAmountFen:
+          $ref: "#/components/schemas/MoneyFen"
+        depositAmountFen:
+          $ref: "#/components/schemas/MoneyFen"
+        regionCode:
+          type: string
+        material:
+          type: string
+          maxLength: 200
+        size:
+          type: string
+          maxLength: 100
+        coverUrl:
+          type: string
+          format: uri
+        stats:
+          $ref: "#/components/schemas/ListingStats"
+        auditStatus:
+          $ref: "#/components/schemas/AuditStatus"
+        status:
+          $ref: "#/components/schemas/ArtworkStatus"
+        createdAt:
+          type: string
+          format: date-time
+
+    Artwork:
+      allOf:
+        - $ref: "#/components/schemas/ArtworkSummary"
+        - type: object
+          properties:
+            sellerUserId:
+              $ref: "#/components/schemas/Uuid"
+            description:
+              type: string
+              maxLength: 5000
+            certificateFileIds:
+              type: array
+              items:
+                $ref: "#/components/schemas/Uuid"
+            coverFileId:
+              $ref: "#/components/schemas/Uuid"
+              nullable: true
+            media:
+              type: array
+              items:
+                $ref: "#/components/schemas/ContentMedia"
+            aiParse:
+              $ref: "#/components/schemas/AiParseResult"
+              nullable: true
+            updatedAt:
+              type: string
+              format: date-time
+
+    ArtworkPublic:
+      allOf:
+        - $ref: "#/components/schemas/ArtworkSummary"
+        - type: object
+          properties:
+            seller:
+              $ref: "#/components/schemas/UserBrief"
+            description:
+              type: string
+              maxLength: 5000
+            media:
+              type: array
+              items:
+                $ref: "#/components/schemas/ContentMedia"
+            aiParse:
+              $ref: "#/components/schemas/AiParseResult"
+              nullable: true
+
+    PagedArtworkSummary:
+      type: object
+      required: [items, page]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/ArtworkSummary"
+        page:
+          $ref: "#/components/schemas/PageMeta"
+
+    PagedArtwork:
+      type: object
+      required: [items, page]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/Artwork"
+        page:
+          $ref: "#/components/schemas/PageMeta"
+
+    ArtworkCreateRequest:
+      type: object
+      required: [title, category, creatorName, priceType]
+      properties:
+        title:
+          type: string
+          maxLength: 200
+        category:
+          $ref: "#/components/schemas/ArtworkCategory"
+        calligraphyScript:
+          $ref: "#/components/schemas/CalligraphyScript"
+        paintingGenre:
+          $ref: "#/components/schemas/PaintingGenre"
+        creatorName:
+          type: string
+          maxLength: 200
+        creationDate:
+          type: string
+          format: date
+        creationYear:
+          type: integer
+          minimum: 0
+        certificateNo:
+          type: string
+          maxLength: 100
+        certificateFileIds:
+          type: array
+          items:
+            $ref: "#/components/schemas/Uuid"
+        description:
+          type: string
+          maxLength: 5000
+        priceType:
+          $ref: "#/components/schemas/PriceType"
+        priceAmountFen:
+          $ref: "#/components/schemas/MoneyFen"
+        depositAmountFen:
+          $ref: "#/components/schemas/MoneyFen"
+        regionCode:
+          type: string
+        material:
+          type: string
+          maxLength: 200
+        size:
+          type: string
+          maxLength: 100
+        coverFileId:
+          $ref: "#/components/schemas/Uuid"
+          nullable: true
+        media:
+          type: array
+          items:
+            $ref: "#/components/schemas/ContentMedia"
+
+    ArtworkUpdateRequest:
+      type: object
+      properties:
+        title:
+          type: string
+          maxLength: 200
+        category:
+          $ref: "#/components/schemas/ArtworkCategory"
+        calligraphyScript:
+          $ref: "#/components/schemas/CalligraphyScript"
+        paintingGenre:
+          $ref: "#/components/schemas/PaintingGenre"
+        creatorName:
+          type: string
+          maxLength: 200
+        creationDate:
+          type: string
+          format: date
+        creationYear:
+          type: integer
+          minimum: 0
+        certificateNo:
+          type: string
+          maxLength: 100
+        certificateFileIds:
+          type: array
+          items:
+            $ref: "#/components/schemas/Uuid"
+        description:
+          type: string
+          maxLength: 5000
+        priceType:
+          $ref: "#/components/schemas/PriceType"
+        priceAmountFen:
+          $ref: "#/components/schemas/MoneyFen"
+        depositAmountFen:
+          $ref: "#/components/schemas/MoneyFen"
+        regionCode:
+          type: string
+        material:
+          type: string
+          maxLength: 200
+        size:
+          type: string
+          maxLength: 100
+        coverFileId:
+          $ref: "#/components/schemas/Uuid"
+          nullable: true
+        media:
+          type: array
+          items:
+            $ref: "#/components/schemas/ContentMedia"
+
     OrganizationStats:
       type: object
       required: [listingCount, patentCount]
@@ -5844,6 +6887,92 @@ components:
         page:
           $ref: "#/components/schemas/PageMeta"
 
+    TechManagerStats:
+      type: object
+      properties:
+        consultCount:
+          type: integer
+          minimum: 0
+        dealCount:
+          type: integer
+          minimum: 0
+        ratingScore:
+          type: number
+          format: double
+          minimum: 0
+          maximum: 5
+        ratingCount:
+          type: integer
+          minimum: 0
+
+    TechManagerSummary:
+      type: object
+      required: [userId, displayName, verificationType, verificationStatus]
+      properties:
+        userId:
+          $ref: "#/components/schemas/Uuid"
+        displayName:
+          type: string
+        verificationType:
+          $ref: "#/components/schemas/VerificationType"
+        verificationStatus:
+          $ref: "#/components/schemas/VerificationStatus"
+        regionCode:
+          type: string
+        avatarUrl:
+          type: string
+          format: uri
+        intro:
+          type: string
+        serviceTags:
+          type: array
+          items:
+            type: string
+        stats:
+          $ref: "#/components/schemas/TechManagerStats"
+        verifiedAt:
+          type: string
+          format: date-time
+
+    TechManagerPublic:
+      allOf:
+        - $ref: "#/components/schemas/TechManagerSummary"
+        - type: object
+          properties:
+            evidenceFileIds:
+              type: array
+              items:
+                $ref: "#/components/schemas/Uuid"
+
+    PagedTechManagerSummary:
+      type: object
+      required: [items, page]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/TechManagerSummary"
+        page:
+          $ref: "#/components/schemas/PageMeta"
+
+    TechManagerUpdateRequest:
+      type: object
+      properties:
+        intro:
+          type: string
+          maxLength: 2000
+        serviceTags:
+          type: array
+          items:
+            type: string
+            maxLength: 50
+        featuredRank:
+          type: integer
+          minimum: 0
+        featuredUntil:
+          type: string
+          format: date-time
+
     InventorRankingItem:
       type: object
       required: [inventorName, patentCount, listingCount]
@@ -5889,12 +7018,16 @@ components:
 
     Order:
       type: object
-      required: [id, listingId, buyerUserId, status, depositAmountFen, createdAt]
+      required: [id, buyerUserId, status, depositAmountFen, createdAt]
       properties:
         id:
           $ref: "#/components/schemas/Uuid"
         listingId:
           $ref: "#/components/schemas/Uuid"
+          nullable: true
+        artworkId:
+          $ref: "#/components/schemas/Uuid"
+          nullable: true
         patentId:
           $ref: "#/components/schemas/Uuid"
         buyerUserId:
@@ -6667,7 +7800,7 @@ components:
 
     CommentContentType:
       type: string
-      enum: [LISTING, DEMAND, ACHIEVEMENT]
+      enum: [LISTING, DEMAND, ACHIEVEMENT, ARTWORK]
 
     CommentStatus:
       type: string
@@ -6767,7 +7900,7 @@ components:
 
     ConversationContentType:
       type: string
-      enum: [LISTING, DEMAND, ACHIEVEMENT]
+      enum: [LISTING, DEMAND, ACHIEVEMENT, ARTWORK, TECH_MANAGER]
 
     Conversation:
       type: object
@@ -6906,11 +8039,11 @@ components:
 
     AiContentScope:
       type: string
-      enum: [LISTING, DEMAND, ACHIEVEMENT, ALL]
+      enum: [LISTING, DEMAND, ACHIEVEMENT, ARTWORK, ALL]
 
     AiContentType:
       type: string
-      enum: [LISTING, DEMAND, ACHIEVEMENT]
+      enum: [LISTING, DEMAND, ACHIEVEMENT, ARTWORK]
 
     AiParseStatus:
       type: string
@@ -6981,6 +8114,20 @@ components:
           $ref: "#/components/schemas/MoneyFen"
         maturity:
           $ref: "#/components/schemas/AchievementMaturity"
+        category:
+          $ref: "#/components/schemas/ArtworkCategory"
+        calligraphyScript:
+          $ref: "#/components/schemas/CalligraphyScript"
+        paintingGenre:
+          $ref: "#/components/schemas/PaintingGenre"
+        creator:
+          type: string
+        creationYearStart:
+          type: integer
+          minimum: 0
+        creationYearEnd:
+          type: integer
+          minimum: 0
 
     AiAgentParsedQuery:
       type: object
@@ -7215,7 +8362,7 @@ components:
 
     AlertTargetType:
       type: string
-      enum: [PATENT, ORDER, LISTING, DEMAND, ACHIEVEMENT, AI_PARSE, IMPORT, PAYMENT, REFUND, SYSTEM]
+      enum: [PATENT, ORDER, LISTING, DEMAND, ACHIEVEMENT, ARTWORK, AI_PARSE, IMPORT, PAYMENT, REFUND, SYSTEM]
 
     AlertRule:
       type: object
@@ -7623,3 +8770,31 @@ components:
               $ref: "#/components/schemas/AuditStatus"
             status:
               $ref: "#/components/schemas/ContentStatus"
+
+    AdminArtworkCreateRequest:
+      allOf:
+        - $ref: "#/components/schemas/ArtworkCreateRequest"
+        - type: object
+          properties:
+            source:
+              $ref: "#/components/schemas/ContentSource"
+            sellerUserId:
+              $ref: "#/components/schemas/Uuid"
+            auditStatus:
+              $ref: "#/components/schemas/AuditStatus"
+            status:
+              $ref: "#/components/schemas/ArtworkStatus"
+
+    AdminArtworkUpdateRequest:
+      allOf:
+        - $ref: "#/components/schemas/ArtworkUpdateRequest"
+        - type: object
+          properties:
+            source:
+              $ref: "#/components/schemas/ContentSource"
+            sellerUserId:
+              $ref: "#/components/schemas/Uuid"
+            auditStatus:
+              $ref: "#/components/schemas/AuditStatus"
+            status:
+              $ref: "#/components/schemas/ArtworkStatus"

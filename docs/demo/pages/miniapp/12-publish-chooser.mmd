@@ -5,7 +5,7 @@ flowchart TB
     direction TB
     Pad[" "]:::pad
     Gate["发布前校验<br/>• 已登录<br/>• 已完成实名认证/主体认证（必要时强制）"]
-    Types["发布类型<br/>• 专利交易（商品）<br/>• 产学研需求<br/>• 成果展示"]
+    Types["发布类型<br/>• 专利交易（商品）<br/>• 书画专区（作品交易）<br/>• 产学研需求<br/>• 成果展示"]
     Actions["动作<br/>• 保存草稿<br/>• 提交审核"]
     Pad --> Gate
     Gate --> Types --> Actions
@@ -13,9 +13,11 @@ flowchart TB
   Entry1 --> P
   ToPatent["进入：专利交易发布表单"]
   ToDemand["进入：需求发布表单"]
+  ToArtwork["进入：书画专区发布表单"]
   ToAchievement["进入：成果展示发布表单"]
   Types --> ToPatent
   Types --> ToDemand
+  Types --> ToArtwork
   Types --> ToAchievement
 
   classDef pad fill:transparent,stroke:transparent,color:transparent;

@@ -5,7 +5,7 @@
 导出位置：
 - PNG/PDF：`docs/demo/rendered/`（文件名与 `.mmd` 的 baseName 一致）
 - 批量导出脚本：`scripts/render-diagrams.ps1`
-- 小程序 01-15 合成单图（便于快速评审）：`docs/demo/rendered/miniapp-pages-01-15.png`（生成脚本：`scripts/merge-miniapp-pages.py`）
+- 小程序 01-17 合成单图（便于快速评审）：`docs/demo/rendered/miniapp-pages-01-17.png`（生成脚本：`scripts/merge-miniapp-pages.py`）
 
 ## 产品 UI 截图（可选，但更利于甲方感知）
 
@@ -36,6 +36,8 @@
 - 专利交易发布：`docs/demo/pages/miniapp/13-publish-patent.mmd`
 - 产学研需求发布：`docs/demo/pages/miniapp/14-publish-demand.mmd`
 - 成果展示发布：`docs/demo/pages/miniapp/15-publish-achievement.mmd`
+- 书画专区发布：`docs/demo/pages/miniapp/16-publish-artwork.mmd`
+- 技术经理人栏目：`docs/demo/pages/miniapp/17-tech-managers.mmd`
 
 ## 管理后台（PC Web）
 

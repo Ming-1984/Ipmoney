@@ -3,12 +3,12 @@ flowchart TB
   subgraph P["02 首页 Home（小程序）"]
     direction TB
     Pad[" "]:::pad
-    TopBar["顶部：搜索 + 地区选择（LBS）<br/>• 搜索：专利号/关键词/企业/发明人<br/>• 地区：授权定位/手动选择（同城/同省优先）"]
+    TopBar["顶部：搜索 + 地区选择（LBS）<br/>• 搜索：专利号/关键词/企业/发明人/书画作品<br/>• 地区：授权定位/手动选择（同城/同省优先）"]
     Banner["Banner 轮播<br/>• 活动/政策/专题<br/>• 后台可配置"]
-    Grid["快捷入口 Grid<br/>• 沉睡专利（直达搜索）<br/>• 发明人榜/专利地图/机构展示"]
+    Grid["快捷入口 Grid<br/>• 沉睡专利（直达搜索）<br/>• 书画专区/技术经理人<br/>• 发明人榜/专利地图/机构展示"]
     Marquee["数据快报 Marquee<br/>• 成交播报/新增数量"]
     Orgs["入驻机构展示（新增）<br/>• 企业/科研院校（审核通过后展示）<br/>• Logo/名称滑动列表；更多→机构列表"]
-    Tabs["最新专利推荐区<br/>• 默认：最新专利展示<br/>• 点击卡片进入详情"]
+    Tabs["最新推荐区<br/>• 专利/书画作品推荐<br/>• 点击卡片进入详情"]
     Pad --> TopBar
     TopBar --> Banner --> Grid --> Marquee --> Orgs --> Tabs
   end

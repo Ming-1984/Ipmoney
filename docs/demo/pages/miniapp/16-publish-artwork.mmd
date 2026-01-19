@@ -1,0 +1,16 @@
+%%{init: {'theme':'base','flowchart': {'htmlLabels': true},'themeVariables': {'fontFamily': 'Inter, Microsoft YaHei, sans-serif','lineColor':'#64748B','primaryTextColor':'#0F172A','primaryBorderColor':'#CBD5E1','primaryColor':'#F8FAFC'}}}%%
+flowchart TB
+  subgraph P["16 书画专区发布/编辑（小程序）"]
+    direction TB
+    Pad[" "]:::pad
+    Basic["基础信息<br/>• 作品名称/作者/创作日期<br/>• 类别（书法/绘画）/书体/题材<br/>• 尺寸/材质/地区"]
+    Ownership["权属信息<br/>• 著作权登记证书编号<br/>• 权属材料/证书附件上传"]
+    Media["展示素材<br/>• 作品图片（≥1）<br/>• 可选视频/附件"]
+    Trade["交易信息<br/>• 标价/面议<br/>• 订金金额（按配置规则）"]
+    Submit["提交审核<br/>• 进入待审核池<br/>• 通过=上架<br/>• 驳回=原因+可修改再提交"]
+    Pad --> Basic
+    Basic --> Ownership --> Media --> Trade --> Submit
+  end
+
+  classDef pad fill:transparent,stroke:transparent,color:transparent;
+  linkStyle 0 stroke:transparent,fill:transparent;

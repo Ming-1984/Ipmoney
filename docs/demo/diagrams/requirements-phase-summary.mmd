@@ -1,0 +1,29 @@
+%%{init: {'theme':'base','themeVariables': {'fontFamily': 'Inter, Microsoft YaHei, sans-serif','lineColor':'#64748B','primaryTextColor':'#0F172A','primaryBorderColor':'#CBD5E1','primaryColor':'#F8FAFC'}, 'flowchart': {'nodeSpacing': 24, 'rankSpacing': 38}}}%%
+flowchart TB
+  Title["新增规划（分二期）"]
+
+  subgraph Phase1["阶段一：基础能力"]
+    direction TB
+    P1A["小程序优先<br/>H5 引导至小程序"]
+    P1B["书画专区交易<br/>发布/展示/订金+尾款"]
+    P1C["技术经理人栏目<br/>检索/详情/在线咨询"]
+    P1D["平台自有内容库<br/>后台管理：专利/需求/成果/书画"]
+    P1E["数据地图基础<br/>专利地图（发明/实用/外观）<br/>书画成果地图"]
+    P1F["需求/成果产出与评价<br/>后台与用户评分"]
+    P1A --> P1B --> P1C --> P1D --> P1E --> P1F
+  end
+
+  subgraph Phase2["阶段二：AI + 监控/托管"]
+    direction TB
+    P2A["语音智能体检索"]
+    P2B["智能匹配模型<br/>关键词拆解/场景分析"]
+    P2C["内容智能解析<br/>专利/书画/需求/成果"]
+    P2D["专利托管服务<br/>年费日程/客服提醒<br/>线下手动托管"]
+    P2E["监控与告警中心<br/>短信/邮件/站内提醒<br/>触发条件按最佳实践"]
+    P2F["扩展地图与大数据分析<br/>技术经理人/科学家地图<br/>交易库/成果库/产学研库"]
+    P2A --> P2B --> P2C --> P2D --> P2E --> P2F
+  end
+
+  Title --> Phase1
+  Title --> Phase2
+  linkStyle 0,1,2,3,4,5,6,7,8,9,10,11 stroke-width:0px;

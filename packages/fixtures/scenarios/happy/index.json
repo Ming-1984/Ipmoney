@@ -35,16 +35,28 @@
           "createdAt": "2026-01-10T10:00:00Z",
           "patentType": "INVENTION",
           "applicationNoDisplay": "202311340972.0",
-          "inventorNames": ["张三", "李四"],
+          "inventorNames": [
+            "张三",
+            "李四"
+          ],
           "regionCode": "110000",
-          "industryTags": ["新能源", "电池"],
-          "ipcCodes": ["H01M 10/60"],
+          "industryTags": [
+            "新能源",
+            "电池"
+          ],
+          "ipcCodes": [
+            "H01M 10/60"
+          ],
           "locCodes": [],
           "legalStatus": "GRANTED",
           "featuredLevel": "PROVINCE",
           "featuredRegionCode": "110000",
           "featuredRank": 1,
-          "stats": { "viewCount": 320, "favoriteCount": 18, "consultCount": 6 },
+          "stats": {
+            "viewCount": 320,
+            "favoriteCount": 18,
+            "consultCount": 6
+          },
           "recommendationScore": 0.92
         },
         {
@@ -59,20 +71,37 @@
           "createdAt": "2026-01-09T09:00:00Z",
           "patentType": "UTILITY_MODEL",
           "applicationNoDisplay": "202321234567.8",
-          "inventorNames": ["王五"],
+          "inventorNames": [
+            "王五"
+          ],
           "regionCode": "310000",
-          "industryTags": ["环保", "传感器"],
-          "ipcCodes": ["G01N 33/00"],
-          "locCodes": ["14-02"],
+          "industryTags": [
+            "环保",
+            "传感器"
+          ],
+          "ipcCodes": [
+            "G01N 33/00"
+          ],
+          "locCodes": [
+            "14-02"
+          ],
           "legalStatus": "PENDING",
           "featuredLevel": "CITY",
           "featuredRegionCode": "310000",
           "featuredRank": 3,
-          "stats": { "viewCount": 210, "favoriteCount": 9, "consultCount": 3 },
+          "stats": {
+            "viewCount": 210,
+            "favoriteCount": 9,
+            "consultCount": 3
+          },
           "recommendationScore": 0.71
         }
       ],
-      "page": { "page": 1, "pageSize": 10, "total": 2 }
+      "page": {
+        "page": 1,
+        "pageSize": 10,
+        "total": 2
+      }
     }
   },
   "GET /public/listings/7a490e63-8173-41e7-b4f0-0d0bb5ce7d20": {
@@ -89,13 +118,23 @@
       "createdAt": "2026-01-10T10:00:00Z",
       "patentType": "INVENTION",
       "applicationNoDisplay": "202311340972.0",
-      "inventorNames": ["张三", "李四"],
+      "inventorNames": [
+        "张三",
+        "李四"
+      ],
       "regionCode": "110000",
-      "industryTags": ["新能源", "电池"],
+      "industryTags": [
+        "新能源",
+        "电池"
+      ],
       "featuredLevel": "PROVINCE",
       "featuredRegionCode": "110000",
       "featuredRank": 1,
-      "stats": { "viewCount": 320, "favoriteCount": 18, "consultCount": 6 },
+      "stats": {
+        "viewCount": 320,
+        "favoriteCount": 18,
+        "consultCount": 6
+      },
       "seller": {
         "id": "c5b6438a-f3a7-4590-a484-0f2a2991c613",
         "nickname": "某新能源企业",
@@ -104,7 +143,9 @@
         "verificationType": "COMPANY"
       },
       "summary": "适用于动力电池包散热与温控，具备结构简单、散热效率高等优点。",
-      "ipcCodes": ["H01M 10/60"],
+      "ipcCodes": [
+        "H01M 10/60"
+      ],
       "locCodes": [],
       "media": []
     }
@@ -123,13 +164,22 @@
       "createdAt": "2026-01-09T09:00:00Z",
       "patentType": "UTILITY_MODEL",
       "applicationNoDisplay": "202321234567.8",
-      "inventorNames": ["王五"],
+      "inventorNames": [
+        "王五"
+      ],
       "regionCode": "310000",
-      "industryTags": ["环保", "传感器"],
+      "industryTags": [
+        "环保",
+        "传感器"
+      ],
       "featuredLevel": "CITY",
       "featuredRegionCode": "310000",
       "featuredRank": 3,
-      "stats": { "viewCount": 210, "favoriteCount": 9, "consultCount": 3 },
+      "stats": {
+        "viewCount": 210,
+        "favoriteCount": 9,
+        "consultCount": 3
+      },
       "recommendationScore": 0.71,
       "seller": {
         "id": "72f8697a-b950-406c-bc4f-2484a32cbb78",
@@ -139,7 +189,9 @@
         "verificationType": "ACADEMY"
       },
       "summary": "面向现场快速检测的便携式水质监测装置，可接入多种传感器并支持移动端数据展示。",
-      "ipcCodes": ["G01N 33/18"],
+      "ipcCodes": [
+        "G01N 33/18"
+      ],
       "locCodes": [],
       "media": []
     }
@@ -158,11 +210,21 @@
       "createdAt": "2026-01-11T01:00:00Z",
       "patentType": "INVENTION",
       "applicationNoDisplay": "202311340972.0",
-      "inventorNames": ["张三", "李四"],
+      "inventorNames": [
+        "张三",
+        "李四"
+      ],
       "regionCode": "110000",
-      "industryTags": ["新能源", "电池"],
+      "industryTags": [
+        "新能源",
+        "电池"
+      ],
       "featuredLevel": "NONE",
-      "stats": { "viewCount": 12, "favoriteCount": 1, "consultCount": 0 },
+      "stats": {
+        "viewCount": 12,
+        "favoriteCount": 1,
+        "consultCount": 0
+      },
       "recommendationScore": 0.66,
       "seller": {
         "id": "c5b6438a-f3a7-4590-a484-0f2a2991c613",
@@ -172,7 +234,9 @@
         "verificationType": "COMPANY"
       },
       "summary": "演示：卖家发布后由后台审核通过的专利交易信息。",
-      "ipcCodes": ["H01M 10/60"],
+      "ipcCodes": [
+        "H01M 10/60"
+      ],
       "locCodes": [],
       "media": []
     }
@@ -191,13 +255,23 @@
       "createdAt": "2026-01-10T10:00:00Z",
       "patentType": "INVENTION",
       "applicationNoDisplay": "202311340972.0",
-      "inventorNames": ["张三", "李四"],
+      "inventorNames": [
+        "张三",
+        "李四"
+      ],
       "regionCode": "110000",
-      "industryTags": ["新能源", "电池"],
+      "industryTags": [
+        "新能源",
+        "电池"
+      ],
       "featuredLevel": "PROVINCE",
       "featuredRegionCode": "110000",
       "featuredRank": 1,
-      "stats": { "viewCount": 320, "favoriteCount": 18, "consultCount": 6 },
+      "stats": {
+        "viewCount": 320,
+        "favoriteCount": 18,
+        "consultCount": 6
+      },
       "seller": {
         "id": "c5b6438a-f3a7-4590-a484-0f2a2991c613",
         "nickname": "某新能源企业",
@@ -206,7 +280,9 @@
         "verificationType": "COMPANY"
       },
       "summary": "适用于动力电池包散热与温控，具备结构简单、散热效率高等优点。",
-      "ipcCodes": ["H01M 10/60"],
+      "ipcCodes": [
+        "H01M 10/60"
+      ],
       "locCodes": [],
       "media": []
     }
@@ -254,18 +330,38 @@
           ]
         }
       ],
-      "page": { "page": 1, "pageSize": 20, "total": 1 }
+      "page": {
+        "page": 1,
+        "pageSize": 20,
+        "total": 1
+      }
     }
   },
   "GET /search/inventors": {
     "status": 200,
     "body": {
       "items": [
-        { "inventorName": "张三", "patentCount": 12, "listingCount": 5 },
-        { "inventorName": "李四", "patentCount": 9, "listingCount": 3 },
-        { "inventorName": "王五", "patentCount": 7, "listingCount": 2 }
+        {
+          "inventorName": "张三",
+          "patentCount": 12,
+          "listingCount": 5
+        },
+        {
+          "inventorName": "李四",
+          "patentCount": 9,
+          "listingCount": 3
+        },
+        {
+          "inventorName": "王五",
+          "patentCount": 7,
+          "listingCount": 2
+        }
       ],
-      "page": { "page": 1, "pageSize": 10, "total": 3 }
+      "page": {
+        "page": 1,
+        "pageSize": 10,
+        "total": 3
+      }
     }
   },
   "GET /public/organizations": {
@@ -280,7 +376,10 @@
           "regionCode": "110000",
           "logoUrl": "https://example.com/logo-1.png",
           "intro": "聚焦新能源与储能技术转化。",
-          "stats": { "listingCount": 12, "patentCount": 58 },
+          "stats": {
+            "listingCount": 12,
+            "patentCount": 58
+          },
           "verifiedAt": "2026-01-01T00:00:00Z"
         },
         {
@@ -291,43 +390,130 @@
           "regionCode": "310000",
           "logoUrl": "https://example.com/logo-2.png",
           "intro": "面向产学研合作的成果转化服务。",
-          "stats": { "listingCount": 8, "patentCount": 132 },
+          "stats": {
+            "listingCount": 8,
+            "patentCount": 132
+          },
           "verifiedAt": "2026-01-02T00:00:00Z"
         }
       ],
-      "page": { "page": 1, "pageSize": 10, "total": 2 }
+      "page": {
+        "page": 1,
+        "pageSize": 10,
+        "total": 2
+      }
     }
   },
   "GET /public/industry-tags": {
     "status": 200,
     "body": [
-      { "id": "0e72a4b2-9b25-4c45-9f66-6c0c4a8c2db1", "name": "新能源", "createdAt": "2026-01-01T00:00:00Z", "updatedAt": "2026-01-01T00:00:00Z" },
-      { "id": "7cf4f3ce-9a7e-4d8c-95d2-9cbef6d1d61e", "name": "电池", "createdAt": "2026-01-01T00:00:00Z", "updatedAt": "2026-01-01T00:00:00Z" },
-      { "id": "65b9a01e-7f5a-4d3f-a14e-21c0f8d2e5a3", "name": "储能", "createdAt": "2026-01-01T00:00:00Z", "updatedAt": "2026-01-01T00:00:00Z" },
-      { "id": "3b4d8b2b-0a6b-4df0-9f0a-9b9f6f2b1e8a", "name": "新材料", "createdAt": "2026-01-01T00:00:00Z", "updatedAt": "2026-01-01T00:00:00Z" },
-      { "id": "d2f9a6c1-4b3a-4cc0-9b51-61caa1a1d7c7", "name": "环保", "createdAt": "2026-01-01T00:00:00Z", "updatedAt": "2026-01-01T00:00:00Z" },
-      { "id": "cd5c0b8c-90ab-4c0a-8a3f-2b6d0f3b1a7d", "name": "传感器", "createdAt": "2026-01-01T00:00:00Z", "updatedAt": "2026-01-01T00:00:00Z" },
-      { "id": "8f6b9a2a-1d2e-4e9f-8c6d-2c1a9f0b7e6d", "name": "智能制造", "createdAt": "2026-01-01T00:00:00Z", "updatedAt": "2026-01-01T00:00:00Z" },
-      { "id": "d1b3a7c8-1c2d-4e5f-9a0b-2c3d4e5f6a7b", "name": "集成电路", "createdAt": "2026-01-01T00:00:00Z", "updatedAt": "2026-01-01T00:00:00Z" },
-      { "id": "a7b6c5d4-e3f2-4a1b-8c9d-0e1f2a3b4c5d", "name": "生物医药", "createdAt": "2026-01-01T00:00:00Z", "updatedAt": "2026-01-01T00:00:00Z" }
+      {
+        "id": "0e72a4b2-9b25-4c45-9f66-6c0c4a8c2db1",
+        "name": "新能源",
+        "createdAt": "2026-01-01T00:00:00Z",
+        "updatedAt": "2026-01-01T00:00:00Z"
+      },
+      {
+        "id": "7cf4f3ce-9a7e-4d8c-95d2-9cbef6d1d61e",
+        "name": "电池",
+        "createdAt": "2026-01-01T00:00:00Z",
+        "updatedAt": "2026-01-01T00:00:00Z"
+      },
+      {
+        "id": "65b9a01e-7f5a-4d3f-a14e-21c0f8d2e5a3",
+        "name": "储能",
+        "createdAt": "2026-01-01T00:00:00Z",
+        "updatedAt": "2026-01-01T00:00:00Z"
+      },
+      {
+        "id": "3b4d8b2b-0a6b-4df0-9f0a-9b9f6f2b1e8a",
+        "name": "新材料",
+        "createdAt": "2026-01-01T00:00:00Z",
+        "updatedAt": "2026-01-01T00:00:00Z"
+      },
+      {
+        "id": "d2f9a6c1-4b3a-4cc0-9b51-61caa1a1d7c7",
+        "name": "环保",
+        "createdAt": "2026-01-01T00:00:00Z",
+        "updatedAt": "2026-01-01T00:00:00Z"
+      },
+      {
+        "id": "cd5c0b8c-90ab-4c0a-8a3f-2b6d0f3b1a7d",
+        "name": "传感器",
+        "createdAt": "2026-01-01T00:00:00Z",
+        "updatedAt": "2026-01-01T00:00:00Z"
+      },
+      {
+        "id": "8f6b9a2a-1d2e-4e9f-8c6d-2c1a9f0b7e6d",
+        "name": "智能制造",
+        "createdAt": "2026-01-01T00:00:00Z",
+        "updatedAt": "2026-01-01T00:00:00Z"
+      },
+      {
+        "id": "d1b3a7c8-1c2d-4e5f-9a0b-2c3d4e5f6a7b",
+        "name": "集成电路",
+        "createdAt": "2026-01-01T00:00:00Z",
+        "updatedAt": "2026-01-01T00:00:00Z"
+      },
+      {
+        "id": "a7b6c5d4-e3f2-4a1b-8c9d-0e1f2a3b4c5d",
+        "name": "生物医药",
+        "createdAt": "2026-01-01T00:00:00Z",
+        "updatedAt": "2026-01-01T00:00:00Z"
+      }
     ]
   },
   "GET /regions": {
     "status": 200,
     "body": [
-      { "code": "110000", "name": "北京市", "level": "PROVINCE", "parentCode": null, "centerLat": 39.9042, "centerLng": 116.4074, "industryTags": ["新能源", "智能制造"], "updatedAt": "2026-01-01T00:00:00Z" },
-      { "code": "310000", "name": "上海市", "level": "PROVINCE", "parentCode": null, "centerLat": 31.2304, "centerLng": 121.4737, "industryTags": ["生物医药", "集成电路"], "updatedAt": "2026-01-01T00:00:00Z" }
+      {
+        "code": "110000",
+        "name": "北京市",
+        "level": "PROVINCE",
+        "parentCode": null,
+        "centerLat": 39.9042,
+        "centerLng": 116.4074,
+        "industryTags": [
+          "新能源",
+          "智能制造"
+        ],
+        "updatedAt": "2026-01-01T00:00:00Z"
+      },
+      {
+        "code": "310000",
+        "name": "上海市",
+        "level": "PROVINCE",
+        "parentCode": null,
+        "centerLat": 31.2304,
+        "centerLng": 121.4737,
+        "industryTags": [
+          "生物医药",
+          "集成电路"
+        ],
+        "updatedAt": "2026-01-01T00:00:00Z"
+      }
     ]
   },
   "GET /patent-map/years": {
     "status": 200,
-    "body": [2024, 2025]
+    "body": [
+      2024,
+      2025
+    ]
   },
   "GET /patent-map/summary": {
     "status": 200,
     "body": [
-      { "regionCode": "110000", "regionName": "北京市", "patentCount": 1200 },
-      { "regionCode": "310000", "regionName": "上海市", "patentCount": 980 }
+      {
+        "regionCode": "110000",
+        "regionName": "北京市",
+        "patentCount": 1200
+      },
+      {
+        "regionCode": "310000",
+        "regionName": "上海市",
+        "patentCount": 980
+      }
     ]
   },
   "GET /me": {
@@ -342,8 +528,7 @@
       "createdAt": "2026-01-01T00:00:00Z",
       "updatedAt": "2026-01-10T00:00:00Z"
     }
-  }
-  ,
+  },
   "GET /admin/user-verifications": {
     "status": 200,
     "body": {
@@ -373,7 +558,11 @@
           "reviewedAt": "2026-01-09T09:30:00Z"
         }
       ],
-      "page": { "page": 1, "pageSize": 10, "total": 2 }
+      "page": {
+        "page": 1,
+        "pageSize": 10,
+        "total": 2
+      }
     }
   },
   "POST /admin/user-verifications/:verificationId/approve": {
@@ -408,8 +597,7 @@
       "reviewedAt": "2026-01-11T00:00:00Z",
       "reviewComment": "材料不完整（演示）"
     }
-  }
-  ,
+  },
   "POST /orders": {
     "status": 201,
     "body": {
@@ -440,7 +628,11 @@
           "updatedAt": "2026-01-11T00:00:00Z"
         }
       ],
-      "page": { "page": 1, "pageSize": 10, "total": 1 }
+      "page": {
+        "page": 1,
+        "pageSize": 10,
+        "total": 1
+      }
     }
   },
   "GET /orders/:orderId": {
@@ -472,8 +664,7 @@
         "paySign": "demo-sign"
       }
     }
-  }
-  ,
+  },
   "POST /admin/orders/:orderId/milestones/contract-signed": {
     "status": 200,
     "body": {
@@ -543,8 +734,7 @@
       "createdAt": "2026-01-11T00:05:00Z",
       "updatedAt": "2026-01-11T00:06:00Z"
     }
-  }
-  ,
+  },
   "GET /admin/listings": {
     "status": 200,
     "body": {
@@ -555,20 +745,30 @@
           "applicationNoDisplay": "202311340972.0",
           "patentType": "INVENTION",
           "title": "一种用于锂电池热管理的散热结构（待审核）",
-          "inventorNames": ["张三", "李四"],
+          "inventorNames": [
+            "张三",
+            "李四"
+          ],
           "tradeMode": "ASSIGNMENT",
           "priceType": "FIXED",
           "priceAmountFen": 28800000,
           "depositAmountFen": 200000,
           "regionCode": "110000",
-          "industryTags": ["新能源", "电池"],
+          "industryTags": [
+            "新能源",
+            "电池"
+          ],
           "auditStatus": "PENDING",
           "status": "ACTIVE",
           "createdAt": "2026-01-11T01:00:00Z",
           "sellerUserId": "c5b6438a-f3a7-4590-a484-0f2a2991c613"
         }
       ],
-      "page": { "page": 1, "pageSize": 10, "total": 1 }
+      "page": {
+        "page": 1,
+        "pageSize": 10,
+        "total": 1
+      }
     }
   },
   "POST /admin/listings/:listingId/approve": {
@@ -579,13 +779,19 @@
       "applicationNoDisplay": "202311340972.0",
       "patentType": "INVENTION",
       "title": "一种用于锂电池热管理的散热结构（已通过）",
-      "inventorNames": ["张三", "李四"],
+      "inventorNames": [
+        "张三",
+        "李四"
+      ],
       "tradeMode": "ASSIGNMENT",
       "priceType": "FIXED",
       "priceAmountFen": 28800000,
       "depositAmountFen": 200000,
       "regionCode": "110000",
-      "industryTags": ["新能源", "电池"],
+      "industryTags": [
+        "新能源",
+        "电池"
+      ],
       "auditStatus": "APPROVED",
       "status": "ACTIVE",
       "createdAt": "2026-01-11T01:00:00Z",
@@ -600,13 +806,19 @@
       "applicationNoDisplay": "202311340972.0",
       "patentType": "INVENTION",
       "title": "一种用于锂电池热管理的散热结构（已驳回）",
-      "inventorNames": ["张三", "李四"],
+      "inventorNames": [
+        "张三",
+        "李四"
+      ],
       "tradeMode": "ASSIGNMENT",
       "priceType": "FIXED",
       "priceAmountFen": 28800000,
       "depositAmountFen": 200000,
       "regionCode": "110000",
-      "industryTags": ["新能源", "电池"],
+      "industryTags": [
+        "新能源",
+        "电池"
+      ],
       "auditStatus": "REJECTED",
       "status": "ACTIVE",
       "createdAt": "2026-01-11T01:00:00Z",
@@ -659,8 +871,18 @@
       "enabled": true,
       "timeDecayHalfLifeHours": 72,
       "dedupeWindowHours": 24,
-      "weights": { "time": 1, "view": 1, "favorite": 2, "consult": 3, "region": 2, "user": 1 },
-      "featuredBoost": { "province": 2, "city": 3 },
+      "weights": {
+        "time": 1,
+        "view": 1,
+        "favorite": 2,
+        "consult": 3,
+        "region": 2,
+        "user": 1
+      },
+      "featuredBoost": {
+        "province": 2,
+        "city": 3
+      },
       "updatedAt": "2026-01-11T00:00:00Z"
     }
   },
@@ -670,8 +892,18 @@
       "enabled": true,
       "timeDecayHalfLifeHours": 72,
       "dedupeWindowHours": 24,
-      "weights": { "time": 1, "view": 1, "favorite": 2, "consult": 3, "region": 2, "user": 1 },
-      "featuredBoost": { "province": 2, "city": 3 },
+      "weights": {
+        "time": 1,
+        "view": 1,
+        "favorite": 2,
+        "consult": 3,
+        "region": 2,
+        "user": 1
+      },
+      "featuredBoost": {
+        "province": 2,
+        "city": 3
+      },
       "updatedAt": "2026-01-11T00:01:00Z"
     }
   },
@@ -764,13 +996,28 @@
       "year": 2025,
       "patentCount": 1200,
       "industryBreakdown": [
-        { "industryTag": "新能源", "count": 480 },
-        { "industryTag": "智能制造", "count": 320 },
-        { "industryTag": "新材料", "count": 160 }
+        {
+          "industryTag": "新能源",
+          "count": 480
+        },
+        {
+          "industryTag": "智能制造",
+          "count": 320
+        },
+        {
+          "industryTag": "新材料",
+          "count": 160
+        }
       ],
       "topAssignees": [
-        { "name": "某新能源企业", "patentCount": 120 },
-        { "name": "某高校技术转移中心", "patentCount": 98 }
+        {
+          "name": "某新能源企业",
+          "patentCount": 120
+        },
+        {
+          "name": "某高校技术转移中心",
+          "patentCount": 98
+        }
       ],
       "createdAt": "2026-01-01T00:00:00Z",
       "updatedAt": "2026-01-11T00:00:00Z"
@@ -783,13 +1030,28 @@
       "year": 2025,
       "patentCount": 1200,
       "industryBreakdown": [
-        { "industryTag": "新能源", "count": 480 },
-        { "industryTag": "智能制造", "count": 320 },
-        { "industryTag": "新材料", "count": 160 }
+        {
+          "industryTag": "新能源",
+          "count": 480
+        },
+        {
+          "industryTag": "智能制造",
+          "count": 320
+        },
+        {
+          "industryTag": "新材料",
+          "count": 160
+        }
       ],
       "topAssignees": [
-        { "name": "某新能源企业", "patentCount": 120 },
-        { "name": "某高校技术转移中心", "patentCount": 98 }
+        {
+          "name": "某新能源企业",
+          "patentCount": 120
+        },
+        {
+          "name": "某高校技术转移中心",
+          "patentCount": 98
+        }
       ],
       "createdAt": "2026-01-01T00:00:00Z",
       "updatedAt": "2026-01-11T00:01:00Z"
@@ -811,13 +1073,23 @@
           "createdAt": "2026-01-10T10:00:00Z",
           "patentType": "INVENTION",
           "applicationNoDisplay": "202311340972.0",
-          "inventorNames": ["张三", "李四"],
+          "inventorNames": [
+            "张三",
+            "李四"
+          ],
           "regionCode": "110000",
-          "industryTags": ["新能源", "电池"],
+          "industryTags": [
+            "新能源",
+            "电池"
+          ],
           "featuredLevel": "PROVINCE",
           "featuredRegionCode": "110000",
           "featuredRank": 1,
-          "stats": { "viewCount": 320, "favoriteCount": 18, "consultCount": 6 },
+          "stats": {
+            "viewCount": 320,
+            "favoriteCount": 18,
+            "consultCount": 6
+          },
           "recommendationScore": 0.92
         },
         {
@@ -832,17 +1104,30 @@
           "createdAt": "2026-01-09T09:00:00Z",
           "patentType": "UTILITY_MODEL",
           "applicationNoDisplay": "202321234567.8",
-          "inventorNames": ["王五"],
+          "inventorNames": [
+            "王五"
+          ],
           "regionCode": "310000",
-          "industryTags": ["环保", "传感器"],
+          "industryTags": [
+            "环保",
+            "传感器"
+          ],
           "featuredLevel": "CITY",
           "featuredRegionCode": "310000",
           "featuredRank": 3,
-          "stats": { "viewCount": 210, "favoriteCount": 9, "consultCount": 3 },
+          "stats": {
+            "viewCount": 210,
+            "favoriteCount": 9,
+            "consultCount": 3
+          },
           "recommendationScore": 0.71
         }
       ],
-      "page": { "page": 1, "pageSize": 10, "total": 2 }
+      "page": {
+        "page": 1,
+        "pageSize": 10,
+        "total": 2
+      }
     }
   },
   "GET /me/conversations": {
@@ -866,7 +1151,11 @@
           }
         }
       ],
-      "page": { "page": 1, "pageSize": 20, "total": 1 }
+      "page": {
+        "page": 1,
+        "pageSize": 20,
+        "total": 1
+      }
     }
   },
   "POST /listings/:listingId/conversations": {
@@ -942,7 +1231,10 @@
       "applicationNoDisplay": "202311340972.0",
       "patentType": "INVENTION",
       "title": "一种用于锂电池热管理的散热结构（待审核）",
-      "inventorNames": ["张三", "李四"],
+      "inventorNames": [
+        "张三",
+        "李四"
+      ],
       "tradeMode": "ASSIGNMENT",
       "priceType": "FIXED",
       "priceAmountFen": 28800000,
@@ -951,14 +1243,25 @@
       "status": "DRAFT",
       "createdAt": "2026-01-11T01:00:00Z",
       "regionCode": "110000",
-      "industryTags": ["新能源", "电池"],
-      "stats": { "viewCount": 0, "favoriteCount": 0, "consultCount": 0 },
+      "industryTags": [
+        "新能源",
+        "电池"
+      ],
+      "stats": {
+        "viewCount": 0,
+        "favoriteCount": 0,
+        "consultCount": 0
+      },
       "sellerUserId": "c776f954-77a5-49d9-b778-77a1120d1be9",
       "summary": "演示：由卖家上传的专利交易信息，提交审核后对外展示。",
-      "ipcCodes": ["H01M 10/60"],
+      "ipcCodes": [
+        "H01M 10/60"
+      ],
       "locCodes": [],
       "media": [],
-      "proofFileIds": ["4bb85502-99c2-4abf-b802-b6eb5563ca66"]
+      "proofFileIds": [
+        "4bb85502-99c2-4abf-b802-b6eb5563ca66"
+      ]
     }
   },
   "PATCH /listings/:listingId": {
@@ -969,7 +1272,10 @@
       "applicationNoDisplay": "202311340972.0",
       "patentType": "INVENTION",
       "title": "一种用于锂电池热管理的散热结构（待审核）",
-      "inventorNames": ["张三", "李四"],
+      "inventorNames": [
+        "张三",
+        "李四"
+      ],
       "tradeMode": "ASSIGNMENT",
       "priceType": "FIXED",
       "priceAmountFen": 28800000,
@@ -978,14 +1284,25 @@
       "status": "DRAFT",
       "createdAt": "2026-01-11T01:00:00Z",
       "regionCode": "110000",
-      "industryTags": ["新能源", "电池"],
-      "stats": { "viewCount": 0, "favoriteCount": 0, "consultCount": 0 },
+      "industryTags": [
+        "新能源",
+        "电池"
+      ],
+      "stats": {
+        "viewCount": 0,
+        "favoriteCount": 0,
+        "consultCount": 0
+      },
       "sellerUserId": "c776f954-77a5-49d9-b778-77a1120d1be9",
       "summary": "演示：由卖家上传的专利交易信息，提交审核后对外展示。",
-      "ipcCodes": ["H01M 10/60"],
+      "ipcCodes": [
+        "H01M 10/60"
+      ],
       "locCodes": [],
       "media": [],
-      "proofFileIds": ["4bb85502-99c2-4abf-b802-b6eb5563ca66"]
+      "proofFileIds": [
+        "4bb85502-99c2-4abf-b802-b6eb5563ca66"
+      ]
     }
   },
   "POST /listings/:listingId/submit": {
@@ -996,7 +1313,10 @@
       "applicationNoDisplay": "202311340972.0",
       "patentType": "INVENTION",
       "title": "一种用于锂电池热管理的散热结构（待审核）",
-      "inventorNames": ["张三", "李四"],
+      "inventorNames": [
+        "张三",
+        "李四"
+      ],
       "tradeMode": "ASSIGNMENT",
       "priceType": "FIXED",
       "priceAmountFen": 28800000,
@@ -1005,14 +1325,25 @@
       "status": "ACTIVE",
       "createdAt": "2026-01-11T01:00:00Z",
       "regionCode": "110000",
-      "industryTags": ["新能源", "电池"],
-      "stats": { "viewCount": 0, "favoriteCount": 0, "consultCount": 0 },
+      "industryTags": [
+        "新能源",
+        "电池"
+      ],
+      "stats": {
+        "viewCount": 0,
+        "favoriteCount": 0,
+        "consultCount": 0
+      },
       "sellerUserId": "c776f954-77a5-49d9-b778-77a1120d1be9",
       "summary": "演示：由卖家上传的专利交易信息，提交审核后对外展示。",
-      "ipcCodes": ["H01M 10/60"],
+      "ipcCodes": [
+        "H01M 10/60"
+      ],
       "locCodes": [],
       "media": [],
-      "proofFileIds": ["4bb85502-99c2-4abf-b802-b6eb5563ca66"]
+      "proofFileIds": [
+        "4bb85502-99c2-4abf-b802-b6eb5563ca66"
+      ]
     }
   },
   "GET /public/organizations/:orgUserId": {
@@ -1025,7 +1356,10 @@
       "regionCode": "110000",
       "logoUrl": "https://example.com/logo-1.png",
       "intro": "聚焦新能源与储能技术转化。",
-      "stats": { "listingCount": 12, "patentCount": 58 },
+      "stats": {
+        "listingCount": 12,
+        "patentCount": 58
+      },
       "verifiedAt": "2026-01-01T00:00:00Z"
     }
   },
@@ -1037,13 +1371,28 @@
       "year": 2025,
       "patentCount": 1200,
       "industryBreakdown": [
-        { "industryTag": "新能源", "count": 480 },
-        { "industryTag": "智能制造", "count": 320 },
-        { "industryTag": "新材料", "count": 160 }
+        {
+          "industryTag": "新能源",
+          "count": 480
+        },
+        {
+          "industryTag": "智能制造",
+          "count": 320
+        },
+        {
+          "industryTag": "新材料",
+          "count": 160
+        }
       ],
       "topAssignees": [
-        { "name": "某新能源企业", "patentCount": 120 },
-        { "name": "某高校技术转移中心", "patentCount": 98 }
+        {
+          "name": "某新能源企业",
+          "patentCount": 120
+        },
+        {
+          "name": "某高校技术转移中心",
+          "patentCount": 98
+        }
       ],
       "updatedAt": "2026-01-11T00:00:00Z"
     }
@@ -1058,9 +1407,16 @@
       "patentType": "INVENTION",
       "title": "一种用于锂电池热管理的散热结构",
       "abstract": "适用于动力电池包散热与温控，具备结构简单、散热效率高等优点（演示）。",
-      "inventorNames": ["张三", "李四"],
-      "assigneeNames": ["某新能源企业"],
-      "applicantNames": ["某新能源企业"],
+      "inventorNames": [
+        "张三",
+        "李四"
+      ],
+      "assigneeNames": [
+        "某新能源企业"
+      ],
+      "applicantNames": [
+        "某新能源企业"
+      ],
       "filingDate": "2023-10-20",
       "publicationDate": "2024-05-01",
       "legalStatus": "PENDING",
@@ -1087,7 +1443,12 @@
       }
     }
   },
-  "POST /auth/sms/send": { "status": 200, "body": { "cooldownSeconds": 60 } },
+  "POST /auth/sms/send": {
+    "status": 200,
+    "body": {
+      "cooldownSeconds": 60
+    }
+  },
   "POST /auth/sms/verify": {
     "status": 200,
     "body": {
@@ -1105,7 +1466,9 @@
       }
     }
   },
-  "GET /me/verification": { "status": 404 },
+  "GET /me/verification": {
+    "status": 404
+  },
   "POST /me/verification": {
     "status": 201,
     "body": {
@@ -1135,10 +1498,16 @@
     "status": 200,
     "body": {
       "items": [],
-      "page": { "page": 1, "pageSize": 10, "total": 0 }
+      "page": {
+        "page": 1,
+        "pageSize": 10,
+        "total": 0
+      }
     }
   },
-  "POST /listings/:listingId/consultations": { "status": 204 },
+  "POST /listings/:listingId/consultations": {
+    "status": 204
+  },
   "POST /listings/:listingId/comments": {
     "status": 201,
     "body": {
@@ -1180,9 +1549,15 @@
       "updatedAt": "2026-01-11T09:12:00Z"
     }
   },
-  "DELETE /comments/:commentId": { "status": 204 },
-  "POST /listings/:listingId/favorites": { "status": 204 },
-  "DELETE /listings/:listingId/favorites": { "status": 204 },
+  "DELETE /comments/:commentId": {
+    "status": 204
+  },
+  "POST /listings/:listingId/favorites": {
+    "status": 204
+  },
+  "DELETE /listings/:listingId/favorites": {
+    "status": 204
+  },
   "GET /listings": {
     "status": 200,
     "body": {
@@ -1193,7 +1568,10 @@
           "applicationNoDisplay": "202311340972.0",
           "patentType": "INVENTION",
           "title": "一种用于锂电池热管理的散热结构（待审核）",
-          "inventorNames": ["张三", "李四"],
+          "inventorNames": [
+            "张三",
+            "李四"
+          ],
           "tradeMode": "ASSIGNMENT",
           "priceType": "FIXED",
           "priceAmountFen": 28800000,
@@ -1202,10 +1580,17 @@
           "status": "DRAFT",
           "createdAt": "2026-01-11T01:00:00Z",
           "regionCode": "110000",
-          "industryTags": ["新能源", "电池"]
+          "industryTags": [
+            "新能源",
+            "电池"
+          ]
         }
       ],
-      "page": { "page": 1, "pageSize": 10, "total": 1 }
+      "page": {
+        "page": 1,
+        "pageSize": 10,
+        "total": 1
+      }
     }
   },
   "GET /listings/:listingId": {
@@ -1216,7 +1601,10 @@
       "applicationNoDisplay": "202311340972.0",
       "patentType": "INVENTION",
       "title": "一种用于锂电池热管理的散热结构（待审核）",
-      "inventorNames": ["张三", "李四"],
+      "inventorNames": [
+        "张三",
+        "李四"
+      ],
       "tradeMode": "ASSIGNMENT",
       "priceType": "FIXED",
       "priceAmountFen": 28800000,
@@ -1225,12 +1613,19 @@
       "status": "DRAFT",
       "createdAt": "2026-01-11T01:00:00Z",
       "regionCode": "110000",
-      "industryTags": ["新能源", "电池"],
+      "industryTags": [
+        "新能源",
+        "电池"
+      ],
       "summary": "演示：由卖家上传的专利交易信息，提交审核后对外展示。",
-      "ipcCodes": ["H01M 10/60"],
+      "ipcCodes": [
+        "H01M 10/60"
+      ],
       "locCodes": [],
       "media": [],
-      "proofFileIds": ["4bb85502-99c2-4abf-b802-b6eb5563ca66"]
+      "proofFileIds": [
+        "4bb85502-99c2-4abf-b802-b6eb5563ca66"
+      ]
     }
   },
   "POST /listings/:listingId/off-shelf": {
@@ -1241,7 +1636,10 @@
       "applicationNoDisplay": "202311340972.0",
       "patentType": "INVENTION",
       "title": "一种用于锂电池热管理的散热结构（已下架）",
-      "inventorNames": ["张三", "李四"],
+      "inventorNames": [
+        "张三",
+        "李四"
+      ],
       "tradeMode": "ASSIGNMENT",
       "priceType": "FIXED",
       "priceAmountFen": 28800000,
@@ -1250,7 +1648,10 @@
       "status": "OFF_SHELF",
       "createdAt": "2026-01-11T01:00:00Z",
       "regionCode": "110000",
-      "industryTags": ["新能源", "电池"]
+      "industryTags": [
+        "新能源",
+        "电池"
+      ]
     }
   },
   "GET /orders/:orderId/case": {
@@ -1262,9 +1663,19 @@
       "status": "IN_PROGRESS",
       "csUserId": "c5b6438a-f3a7-4590-a484-0f2a2991c613",
       "milestones": [
-        { "name": "CONTRACT_SIGNED", "status": "DONE", "occurredAt": "2026-01-11T00:20:00Z" },
-        { "name": "TRANSFER_SUBMITTED", "status": "PENDING" },
-        { "name": "TRANSFER_COMPLETED", "status": "PENDING" }
+        {
+          "name": "CONTRACT_SIGNED",
+          "status": "DONE",
+          "occurredAt": "2026-01-11T00:20:00Z"
+        },
+        {
+          "name": "TRANSFER_SUBMITTED",
+          "status": "PENDING"
+        },
+        {
+          "name": "TRANSFER_COMPLETED",
+          "status": "PENDING"
+        }
       ]
     }
   },
@@ -1283,22 +1694,117 @@
   "GET /admin/industry-tags": {
     "status": 200,
     "body": [
-      { "id": "db6327b8-065f-4ed2-946d-b1720284a934", "name": "新能源", "createdAt": "2026-01-01T00:00:00Z", "updatedAt": "2026-01-01T00:00:00Z" },
-      { "id": "ff6f56d5-2490-4b46-a940-754f1552b021", "name": "智能制造", "createdAt": "2026-01-01T00:00:00Z", "updatedAt": "2026-01-01T00:00:00Z" }
+      {
+        "id": "db6327b8-065f-4ed2-946d-b1720284a934",
+        "name": "新能源",
+        "createdAt": "2026-01-01T00:00:00Z",
+        "updatedAt": "2026-01-01T00:00:00Z"
+      },
+      {
+        "id": "ff6f56d5-2490-4b46-a940-754f1552b021",
+        "name": "智能制造",
+        "createdAt": "2026-01-01T00:00:00Z",
+        "updatedAt": "2026-01-01T00:00:00Z"
+      }
     ]
   },
-  "POST /admin/industry-tags": { "status": 201, "body": { "id": "13b60787-d308-43fc-8496-f22c1739c791", "name": "新标签", "createdAt": "2026-01-11T10:20:00Z", "updatedAt": "2026-01-11T10:20:00Z" } },
+  "POST /admin/industry-tags": {
+    "status": 201,
+    "body": {
+      "id": "13b60787-d308-43fc-8496-f22c1739c791",
+      "name": "新标签",
+      "createdAt": "2026-01-11T10:20:00Z",
+      "updatedAt": "2026-01-11T10:20:00Z"
+    }
+  },
   "GET /admin/regions": {
     "status": 200,
     "body": [
-      { "code": "110000", "name": "北京市", "level": "PROVINCE", "parentCode": null, "centerLat": 39.9042, "centerLng": 116.4074, "industryTags": ["新能源", "智能制造"], "updatedAt": "2026-01-01T00:00:00Z" },
-      { "code": "110100", "name": "北京市辖区", "level": "CITY", "parentCode": "110000", "centerLat": 39.9042, "centerLng": 116.4074, "industryTags": ["新能源"], "updatedAt": "2026-01-01T00:00:00Z" },
-      { "code": "310000", "name": "上海市", "level": "PROVINCE", "parentCode": null, "centerLat": 31.2304, "centerLng": 121.4737, "industryTags": ["生物医药", "集成电路"], "updatedAt": "2026-01-01T00:00:00Z" }
+      {
+        "code": "110000",
+        "name": "北京市",
+        "level": "PROVINCE",
+        "parentCode": null,
+        "centerLat": 39.9042,
+        "centerLng": 116.4074,
+        "industryTags": [
+          "新能源",
+          "智能制造"
+        ],
+        "updatedAt": "2026-01-01T00:00:00Z"
+      },
+      {
+        "code": "110100",
+        "name": "北京市辖区",
+        "level": "CITY",
+        "parentCode": "110000",
+        "centerLat": 39.9042,
+        "centerLng": 116.4074,
+        "industryTags": [
+          "新能源"
+        ],
+        "updatedAt": "2026-01-01T00:00:00Z"
+      },
+      {
+        "code": "310000",
+        "name": "上海市",
+        "level": "PROVINCE",
+        "parentCode": null,
+        "centerLat": 31.2304,
+        "centerLng": 121.4737,
+        "industryTags": [
+          "生物医药",
+          "集成电路"
+        ],
+        "updatedAt": "2026-01-01T00:00:00Z"
+      }
     ]
   },
-  "POST /admin/regions": { "status": 201, "body": { "code": "440000", "name": "广东省", "level": "PROVINCE", "parentCode": null, "centerLat": 23.1291, "centerLng": 113.2644, "industryTags": [], "updatedAt": "2026-01-11T10:30:00Z" } },
-  "PATCH /admin/regions/:regionCode": { "status": 200, "body": { "code": "110000", "name": "北京市", "level": "PROVINCE", "parentCode": null, "centerLat": 39.9042, "centerLng": 116.4074, "industryTags": ["新能源", "智能制造"], "updatedAt": "2026-01-11T10:31:00Z" } },
-  "PUT /admin/regions/:regionCode/industry-tags": { "status": 200, "body": { "code": "110000", "name": "北京市", "level": "PROVINCE", "parentCode": null, "centerLat": 39.9042, "centerLng": 116.4074, "industryTags": ["新能源", "智能制造"], "updatedAt": "2026-01-11T10:32:00Z" } },
+  "POST /admin/regions": {
+    "status": 201,
+    "body": {
+      "code": "440000",
+      "name": "广东省",
+      "level": "PROVINCE",
+      "parentCode": null,
+      "centerLat": 23.1291,
+      "centerLng": 113.2644,
+      "industryTags": [],
+      "updatedAt": "2026-01-11T10:30:00Z"
+    }
+  },
+  "PATCH /admin/regions/:regionCode": {
+    "status": 200,
+    "body": {
+      "code": "110000",
+      "name": "北京市",
+      "level": "PROVINCE",
+      "parentCode": null,
+      "centerLat": 39.9042,
+      "centerLng": 116.4074,
+      "industryTags": [
+        "新能源",
+        "智能制造"
+      ],
+      "updatedAt": "2026-01-11T10:31:00Z"
+    }
+  },
+  "PUT /admin/regions/:regionCode/industry-tags": {
+    "status": 200,
+    "body": {
+      "code": "110000",
+      "name": "北京市",
+      "level": "PROVINCE",
+      "parentCode": null,
+      "centerLat": 39.9042,
+      "centerLng": 116.4074,
+      "industryTags": [
+        "新能源",
+        "智能制造"
+      ],
+      "updatedAt": "2026-01-11T10:32:00Z"
+    }
+  },
   "PUT /admin/listings/:listingId/featured": {
     "status": 200,
     "body": {
@@ -1307,13 +1813,19 @@
       "applicationNoDisplay": "202311340972.0",
       "patentType": "INVENTION",
       "title": "一种用于锂电池热管理的散热结构（待审核）",
-      "inventorNames": ["张三", "李四"],
+      "inventorNames": [
+        "张三",
+        "李四"
+      ],
       "tradeMode": "ASSIGNMENT",
       "priceType": "FIXED",
       "priceAmountFen": 28800000,
       "depositAmountFen": 200000,
       "regionCode": "110000",
-      "industryTags": ["新能源", "电池"],
+      "industryTags": [
+        "新能源",
+        "电池"
+      ],
       "featuredLevel": "PROVINCE",
       "featuredRegionCode": "110000",
       "featuredRank": 1,
@@ -1334,10 +1846,20 @@
           "budgetType": "FIXED",
           "budgetMinFen": 5000000,
           "budgetMaxFen": 15000000,
-          "cooperationModes": ["LICENSE", "JOINT_DEV"],
+          "cooperationModes": [
+            "LICENSE",
+            "JOINT_DEV"
+          ],
           "regionCode": "310000",
-          "industryTags": ["新能源", "电池"],
-          "keywords": ["热管理", "绝缘材料", "新能源车"],
+          "industryTags": [
+            "新能源",
+            "电池"
+          ],
+          "keywords": [
+            "热管理",
+            "绝缘材料",
+            "新能源车"
+          ],
           "deliveryPeriod": "MONTH_3_6",
           "publisher": {
             "userId": "72f8697a-b950-406c-bc4f-2484a32cbb78",
@@ -1347,10 +1869,17 @@
             "regionCode": "310000",
             "logoUrl": "https://example.com/org-academy.png",
             "intro": "聚焦新能源与新材料成果转化。",
-            "stats": { "listingCount": 12, "patentCount": 356 },
+            "stats": {
+              "listingCount": 12,
+              "patentCount": 356
+            },
             "verifiedAt": "2026-01-09T00:00:00Z"
           },
-          "stats": { "viewCount": 120, "favoriteCount": 8, "consultCount": 4 },
+          "stats": {
+            "viewCount": 120,
+            "favoriteCount": 8,
+            "consultCount": 4
+          },
           "auditStatus": "APPROVED",
           "status": "ACTIVE",
           "coverUrl": "https://example.com/media/demand-cover-1.jpg",
@@ -1361,10 +1890,20 @@
           "title": "可降解医用包装材料合作需求",
           "summary": "预算面议，寻求可降解材料配方与工艺验证，倾向联合开发/股权合作。",
           "budgetType": "NEGOTIABLE",
-          "cooperationModes": ["EQUITY", "JOINT_DEV"],
+          "cooperationModes": [
+            "EQUITY",
+            "JOINT_DEV"
+          ],
           "regionCode": "110000",
-          "industryTags": ["生物医药", "新材料"],
-          "keywords": ["可降解", "医用包装", "工艺验证"],
+          "industryTags": [
+            "生物医药",
+            "新材料"
+          ],
+          "keywords": [
+            "可降解",
+            "医用包装",
+            "工艺验证"
+          ],
           "deliveryPeriod": "OVER_6_MONTHS",
           "publisher": {
             "userId": "01a9954e-a047-4fa2-a6e4-ffdc79a40591",
@@ -1374,10 +1913,17 @@
             "regionCode": "110000",
             "logoUrl": "https://example.com/org-bio.png",
             "intro": "面向生物医药材料与器械产业化。",
-            "stats": { "listingCount": 6, "patentCount": 54 },
+            "stats": {
+              "listingCount": 6,
+              "patentCount": 54
+            },
             "verifiedAt": "2026-01-06T00:00:00Z"
           },
-          "stats": { "viewCount": 64, "favoriteCount": 5, "consultCount": 1 },
+          "stats": {
+            "viewCount": 64,
+            "favoriteCount": 5,
+            "consultCount": 1
+          },
           "auditStatus": "APPROVED",
           "status": "ACTIVE",
           "coverUrl": "https://example.com/media/demand-cover-2.jpg",
@@ -1390,10 +1936,20 @@
           "budgetType": "FIXED",
           "budgetMinFen": 3000000,
           "budgetMaxFen": 8000000,
-          "cooperationModes": ["TRANSFER", "LICENSE"],
+          "cooperationModes": [
+            "TRANSFER",
+            "LICENSE"
+          ],
           "regionCode": "310000",
-          "industryTags": ["传感器", "智能制造"],
-          "keywords": ["封装", "可靠性", "高温"],
+          "industryTags": [
+            "传感器",
+            "智能制造"
+          ],
+          "keywords": [
+            "封装",
+            "可靠性",
+            "高温"
+          ],
           "deliveryPeriod": "MONTH_1_3",
           "publisher": {
             "userId": "bd08c0e4-9ca5-499b-8cbe-743e10657431",
@@ -1403,17 +1959,28 @@
             "regionCode": "310000",
             "logoUrl": "https://example.com/org-sensor.png",
             "intro": "聚焦传感器封装与可靠性测试。",
-            "stats": { "listingCount": 3, "patentCount": 90 },
+            "stats": {
+              "listingCount": 3,
+              "patentCount": 90
+            },
             "verifiedAt": "2026-01-04T00:00:00Z"
           },
-          "stats": { "viewCount": 58, "favoriteCount": 2, "consultCount": 1 },
+          "stats": {
+            "viewCount": 58,
+            "favoriteCount": 2,
+            "consultCount": 1
+          },
           "auditStatus": "APPROVED",
           "status": "ACTIVE",
           "coverUrl": "https://example.com/media/demand-cover-3.jpg",
           "createdAt": "2026-01-08T07:50:00Z"
         }
       ],
-      "page": { "page": 1, "pageSize": 10, "total": 3 }
+      "page": {
+        "page": 1,
+        "pageSize": 10,
+        "total": 3
+      }
     }
   },
   "GET /search/achievements": {
@@ -1425,10 +1992,20 @@
           "title": "高安全储能电解质材料成果",
           "summary": "已完成中试，具备量产条件，寻求产业化合作。",
           "maturity": "PILOT",
-          "cooperationModes": ["EQUITY", "JOINT_DEV"],
+          "cooperationModes": [
+            "EQUITY",
+            "JOINT_DEV"
+          ],
           "regionCode": "110000",
-          "industryTags": ["新材料", "储能"],
-          "keywords": ["电解质", "高安全", "储能"],
+          "industryTags": [
+            "新材料",
+            "储能"
+          ],
+          "keywords": [
+            "电解质",
+            "高安全",
+            "储能"
+          ],
           "publisher": {
             "userId": "c5b6438a-f3a7-4590-a484-0f2a2991c613",
             "displayName": "某新能源企业",
@@ -1437,10 +2014,17 @@
             "regionCode": "110000",
             "logoUrl": "https://example.com/org-company.png",
             "intro": "专注储能材料与系统集成。",
-            "stats": { "listingCount": 24, "patentCount": 128 },
+            "stats": {
+              "listingCount": 24,
+              "patentCount": 128
+            },
             "verifiedAt": "2026-01-05T00:00:00Z"
           },
-          "stats": { "viewCount": 86, "favoriteCount": 5, "consultCount": 2 },
+          "stats": {
+            "viewCount": 86,
+            "favoriteCount": 5,
+            "consultCount": 2
+          },
           "auditStatus": "APPROVED",
           "status": "ACTIVE",
           "coverUrl": "https://example.com/media/achievement-cover-1.jpg",
@@ -1451,10 +2035,20 @@
           "title": "高密度电池管理系统算法",
           "summary": "原型完成，寻求技术转让/许可。",
           "maturity": "PROTOTYPE",
-          "cooperationModes": ["TRANSFER", "LICENSE"],
+          "cooperationModes": [
+            "TRANSFER",
+            "LICENSE"
+          ],
           "regionCode": "310000",
-          "industryTags": ["新能源", "电池"],
-          "keywords": ["BMS", "安全", "算法"],
+          "industryTags": [
+            "新能源",
+            "电池"
+          ],
+          "keywords": [
+            "BMS",
+            "安全",
+            "算法"
+          ],
           "publisher": {
             "userId": "b5f28235-689f-48f1-93ec-b9fd1f7fe8ab",
             "displayName": "某电池企业",
@@ -1463,10 +2057,17 @@
             "regionCode": "310000",
             "logoUrl": "https://example.com/org-bms.png",
             "intro": "专注电池管理系统与储能技术。",
-            "stats": { "listingCount": 18, "patentCount": 210 },
+            "stats": {
+              "listingCount": 18,
+              "patentCount": 210
+            },
             "verifiedAt": "2026-01-03T00:00:00Z"
           },
-          "stats": { "viewCount": 46, "favoriteCount": 3, "consultCount": 1 },
+          "stats": {
+            "viewCount": 46,
+            "favoriteCount": 3,
+            "consultCount": 1
+          },
           "auditStatus": "APPROVED",
           "status": "ACTIVE",
           "coverUrl": "https://example.com/media/achievement-cover-2.jpg",
@@ -1477,10 +2078,19 @@
           "title": "生物医药靶点筛选平台",
           "summary": "已产业化，开放股权合作与联合开发。",
           "maturity": "COMMERCIALIZED",
-          "cooperationModes": ["EQUITY", "JOINT_DEV"],
+          "cooperationModes": [
+            "EQUITY",
+            "JOINT_DEV"
+          ],
           "regionCode": "110000",
-          "industryTags": ["生物医药"],
-          "keywords": ["靶点筛选", "平台化", "商业化"],
+          "industryTags": [
+            "生物医药"
+          ],
+          "keywords": [
+            "靶点筛选",
+            "平台化",
+            "商业化"
+          ],
           "publisher": {
             "userId": "5e046f25-ccc8-495e-a9af-b54b2bd697cd",
             "displayName": "某生物医药企业",
@@ -1489,17 +2099,28 @@
             "regionCode": "110000",
             "logoUrl": "https://example.com/org-bio.png",
             "intro": "提供靶点发现与验证平台化服务。",
-            "stats": { "listingCount": 9, "patentCount": 75 },
+            "stats": {
+              "listingCount": 9,
+              "patentCount": 75
+            },
             "verifiedAt": "2026-01-02T00:00:00Z"
           },
-          "stats": { "viewCount": 102, "favoriteCount": 9, "consultCount": 5 },
+          "stats": {
+            "viewCount": 102,
+            "favoriteCount": 9,
+            "consultCount": 5
+          },
           "auditStatus": "APPROVED",
           "status": "ACTIVE",
           "coverUrl": "https://example.com/media/achievement-cover-3.jpg",
           "createdAt": "2026-01-07T06:10:00Z"
         }
       ],
-      "page": { "page": 1, "pageSize": 10, "total": 3 }
+      "page": {
+        "page": 1,
+        "pageSize": 10,
+        "total": 3
+      }
     }
   },
   "GET /public/demands/:demandId": {
@@ -1511,10 +2132,20 @@
       "budgetType": "FIXED",
       "budgetMinFen": 5000000,
       "budgetMaxFen": 15000000,
-      "cooperationModes": ["LICENSE", "JOINT_DEV"],
+      "cooperationModes": [
+        "LICENSE",
+        "JOINT_DEV"
+      ],
       "regionCode": "310000",
-      "industryTags": ["新能源", "电池"],
-      "keywords": ["热管理", "绝缘材料", "新能源车"],
+      "industryTags": [
+        "新能源",
+        "电池"
+      ],
+      "keywords": [
+        "热管理",
+        "绝缘材料",
+        "新能源车"
+      ],
       "deliveryPeriod": "MONTH_3_6",
       "publisher": {
         "userId": "72f8697a-b950-406c-bc4f-2484a32cbb78",
@@ -1524,10 +2155,17 @@
         "regionCode": "310000",
         "logoUrl": "https://example.com/org-academy.png",
         "intro": "聚焦新能源与新材料成果转化。",
-        "stats": { "listingCount": 12, "patentCount": 356 },
+        "stats": {
+          "listingCount": 12,
+          "patentCount": 356
+        },
         "verifiedAt": "2026-01-09T00:00:00Z"
       },
-      "stats": { "viewCount": 120, "favoriteCount": 8, "consultCount": 4 },
+      "stats": {
+        "viewCount": 120,
+        "favoriteCount": 8,
+        "consultCount": 4
+      },
       "auditStatus": "APPROVED",
       "status": "ACTIVE",
       "coverUrl": "https://example.com/media/demand-cover-1.jpg",
@@ -1607,7 +2245,11 @@
           ]
         }
       ],
-      "page": { "page": 1, "pageSize": 20, "total": 1 }
+      "page": {
+        "page": 1,
+        "pageSize": 20,
+        "total": 1
+      }
     }
   },
   "GET /public/achievements/:achievementId": {
@@ -1617,10 +2259,20 @@
       "title": "高安全储能电解质材料成果",
       "summary": "已完成中试，具备量产条件，寻求产业化合作。",
       "maturity": "PILOT",
-      "cooperationModes": ["EQUITY", "JOINT_DEV"],
+      "cooperationModes": [
+        "EQUITY",
+        "JOINT_DEV"
+      ],
       "regionCode": "110000",
-      "industryTags": ["新材料", "储能"],
-      "keywords": ["电解质", "高安全", "储能"],
+      "industryTags": [
+        "新材料",
+        "储能"
+      ],
+      "keywords": [
+        "电解质",
+        "高安全",
+        "储能"
+      ],
       "publisher": {
         "userId": "c5b6438a-f3a7-4590-a484-0f2a2991c613",
         "displayName": "某新能源企业",
@@ -1629,10 +2281,17 @@
         "regionCode": "110000",
         "logoUrl": "https://example.com/org-company.png",
         "intro": "专注储能材料与系统集成。",
-        "stats": { "listingCount": 24, "patentCount": 128 },
+        "stats": {
+          "listingCount": 24,
+          "patentCount": 128
+        },
         "verifiedAt": "2026-01-05T00:00:00Z"
       },
-      "stats": { "viewCount": 86, "favoriteCount": 5, "consultCount": 2 },
+      "stats": {
+        "viewCount": 86,
+        "favoriteCount": 5,
+        "consultCount": 2
+      },
       "auditStatus": "APPROVED",
       "status": "ACTIVE",
       "coverUrl": "https://example.com/media/achievement-cover-1.jpg",
@@ -1685,7 +2344,11 @@
           "replies": []
         }
       ],
-      "page": { "page": 1, "pageSize": 20, "total": 1 }
+      "page": {
+        "page": 1,
+        "pageSize": 20,
+        "total": 1
+      }
     }
   },
   "POST /demands": {
@@ -1712,7 +2375,11 @@
         "verificationType": "PERSON",
         "verificationStatus": "APPROVED"
       },
-      "stats": { "viewCount": 0, "favoriteCount": 0, "consultCount": 0 },
+      "stats": {
+        "viewCount": 0,
+        "favoriteCount": 0,
+        "consultCount": 0
+      },
       "auditStatus": "PENDING",
       "status": "DRAFT",
       "coverUrl": "",
@@ -1723,7 +2390,17 @@
       "media": []
     }
   },
-  "GET /demands": { "status": 200, "body": { "items": [], "page": { "page": 1, "pageSize": 20, "total": 0 } } },
+  "GET /demands": {
+    "status": 200,
+    "body": {
+      "items": [],
+      "page": {
+        "page": 1,
+        "pageSize": 20,
+        "total": 0
+      }
+    }
+  },
   "GET /demands/:demandId": {
     "status": 200,
     "body": {
@@ -1748,7 +2425,11 @@
         "verificationType": "PERSON",
         "verificationStatus": "APPROVED"
       },
-      "stats": { "viewCount": 0, "favoriteCount": 0, "consultCount": 0 },
+      "stats": {
+        "viewCount": 0,
+        "favoriteCount": 0,
+        "consultCount": 0
+      },
       "auditStatus": "PENDING",
       "status": "DRAFT",
       "coverUrl": "",
@@ -1783,7 +2464,11 @@
         "verificationType": "PERSON",
         "verificationStatus": "APPROVED"
       },
-      "stats": { "viewCount": 0, "favoriteCount": 0, "consultCount": 0 },
+      "stats": {
+        "viewCount": 0,
+        "favoriteCount": 0,
+        "consultCount": 0
+      },
       "auditStatus": "PENDING",
       "status": "DRAFT",
       "coverUrl": "",
@@ -1806,7 +2491,11 @@
         "verificationType": "PERSON",
         "verificationStatus": "APPROVED"
       },
-      "stats": { "viewCount": 0, "favoriteCount": 0, "consultCount": 0 },
+      "stats": {
+        "viewCount": 0,
+        "favoriteCount": 0,
+        "consultCount": 0
+      },
       "auditStatus": "PENDING",
       "status": "DRAFT",
       "createdAt": "2026-01-11T01:00:00Z",
@@ -1835,17 +2524,27 @@
       "id": "81875741-fede-4d3c-adf9-9c8774964f50",
       "title": "寻求电池热管理材料的许可/联合开发（已下架）",
       "summary": "面向新能源车电池包，寻求高导热绝缘材料与结构方案，期望半年内完成样机验证。",
-      "keywords": ["热管理", "绝缘材料", "新能源车"],
+      "keywords": [
+        "热管理",
+        "绝缘材料",
+        "新能源车"
+      ],
       "deliveryPeriod": "MONTH_3_6",
       "budgetType": "FIXED",
       "budgetMinFen": 5000000,
       "budgetMaxFen": 15000000,
-      "cooperationModes": ["LICENSE", "JOINT_DEV"],
+      "cooperationModes": [
+        "LICENSE",
+        "JOINT_DEV"
+      ],
       "contactName": "李老师",
       "contactTitle": "技术转移负责人",
       "contactPhoneMasked": "138****8899",
       "regionCode": "310000",
-      "industryTags": ["新能源", "电池"],
+      "industryTags": [
+        "新能源",
+        "电池"
+      ],
       "publisherUserId": "72f8697a-b950-406c-bc4f-2484a32cbb78",
       "publisher": {
         "userId": "72f8697a-b950-406c-bc4f-2484a32cbb78",
@@ -1853,7 +2552,11 @@
         "verificationType": "ACADEMY",
         "verificationStatus": "APPROVED"
       },
-      "stats": { "viewCount": 120, "favoriteCount": 8, "consultCount": 4 },
+      "stats": {
+        "viewCount": 120,
+        "favoriteCount": 8,
+        "consultCount": 4
+      },
       "auditStatus": "APPROVED",
       "status": "OFF_SHELF",
       "coverUrl": "https://example.com/media/demand-cover-1.jpg",
@@ -1884,9 +2587,23 @@
       "createdAt": "2026-01-11T10:10:00Z"
     }
   },
-  "POST /demands/:demandId/favorites": { "status": 204 },
-  "DELETE /demands/:demandId/favorites": { "status": 204 },
-  "GET /me/favorites/demands": { "status": 200, "body": { "items": [], "page": { "page": 1, "pageSize": 20, "total": 0 } } },
+  "POST /demands/:demandId/favorites": {
+    "status": 204
+  },
+  "DELETE /demands/:demandId/favorites": {
+    "status": 204
+  },
+  "GET /me/favorites/demands": {
+    "status": 200,
+    "body": {
+      "items": [],
+      "page": {
+        "page": 1,
+        "pageSize": 20,
+        "total": 0
+      }
+    }
+  },
   "POST /demands/:demandId/conversations": {
     "status": 200,
     "body": {
@@ -1920,7 +2637,11 @@
         "verificationType": "PERSON",
         "verificationStatus": "APPROVED"
       },
-      "stats": { "viewCount": 0, "favoriteCount": 0, "consultCount": 0 },
+      "stats": {
+        "viewCount": 0,
+        "favoriteCount": 0,
+        "consultCount": 0
+      },
       "auditStatus": "PENDING",
       "status": "DRAFT",
       "coverUrl": "",
@@ -1931,7 +2652,17 @@
       "media": []
     }
   },
-  "GET /achievements": { "status": 200, "body": { "items": [], "page": { "page": 1, "pageSize": 20, "total": 0 } } },
+  "GET /achievements": {
+    "status": 200,
+    "body": {
+      "items": [],
+      "page": {
+        "page": 1,
+        "pageSize": 20,
+        "total": 0
+      }
+    }
+  },
   "GET /achievements/:achievementId": {
     "status": 200,
     "body": {
@@ -1950,7 +2681,11 @@
         "verificationType": "PERSON",
         "verificationStatus": "APPROVED"
       },
-      "stats": { "viewCount": 0, "favoriteCount": 0, "consultCount": 0 },
+      "stats": {
+        "viewCount": 0,
+        "favoriteCount": 0,
+        "consultCount": 0
+      },
       "auditStatus": "PENDING",
       "status": "DRAFT",
       "coverUrl": "",
@@ -1978,7 +2713,11 @@
         "verificationType": "PERSON",
         "verificationStatus": "APPROVED"
       },
-      "stats": { "viewCount": 0, "favoriteCount": 0, "consultCount": 0 },
+      "stats": {
+        "viewCount": 0,
+        "favoriteCount": 0,
+        "consultCount": 0
+      },
       "auditStatus": "PENDING",
       "status": "DRAFT",
       "coverUrl": "",
@@ -2001,7 +2740,11 @@
         "verificationType": "PERSON",
         "verificationStatus": "APPROVED"
       },
-      "stats": { "viewCount": 0, "favoriteCount": 0, "consultCount": 0 },
+      "stats": {
+        "viewCount": 0,
+        "favoriteCount": 0,
+        "consultCount": 0
+      },
       "auditStatus": "PENDING",
       "status": "DRAFT",
       "createdAt": "2026-01-11T01:00:00Z",
@@ -2024,11 +2767,21 @@
       "id": "7595bfdb-044d-4580-99bf-537a07c2577c",
       "title": "高安全储能电解质材料成果（已下架）",
       "summary": "已完成中试，具备量产条件，寻求产业化合作。",
-      "keywords": ["电解质", "高安全", "储能"],
+      "keywords": [
+        "电解质",
+        "高安全",
+        "储能"
+      ],
       "maturity": "PILOT",
-      "cooperationModes": ["EQUITY", "JOINT_DEV"],
+      "cooperationModes": [
+        "EQUITY",
+        "JOINT_DEV"
+      ],
       "regionCode": "110000",
-      "industryTags": ["新材料", "储能"],
+      "industryTags": [
+        "新材料",
+        "储能"
+      ],
       "publisherUserId": "c5b6438a-f3a7-4590-a484-0f2a2991c613",
       "publisher": {
         "userId": "c5b6438a-f3a7-4590-a484-0f2a2991c613",
@@ -2036,7 +2789,11 @@
         "verificationType": "COMPANY",
         "verificationStatus": "APPROVED"
       },
-      "stats": { "viewCount": 86, "favoriteCount": 5, "consultCount": 2 },
+      "stats": {
+        "viewCount": 86,
+        "favoriteCount": 5,
+        "consultCount": 2
+      },
       "auditStatus": "APPROVED",
       "status": "OFF_SHELF",
       "coverUrl": "https://example.com/media/achievement-cover-1.jpg",
@@ -2067,9 +2824,23 @@
       "createdAt": "2026-01-11T11:10:00Z"
     }
   },
-  "POST /achievements/:achievementId/favorites": { "status": 204 },
-  "DELETE /achievements/:achievementId/favorites": { "status": 204 },
-  "GET /me/favorites/achievements": { "status": 200, "body": { "items": [], "page": { "page": 1, "pageSize": 20, "total": 0 } } },
+  "POST /achievements/:achievementId/favorites": {
+    "status": 204
+  },
+  "DELETE /achievements/:achievementId/favorites": {
+    "status": 204
+  },
+  "GET /me/favorites/achievements": {
+    "status": 200,
+    "body": {
+      "items": [],
+      "page": {
+        "page": 1,
+        "pageSize": 20,
+        "total": 0
+      }
+    }
+  },
   "POST /achievements/:achievementId/conversations": {
     "status": 200,
     "body": {
@@ -2085,24 +2856,44 @@
       "updatedAt": "2026-01-11T09:20:00Z"
     }
   },
-  "GET /admin/demands": { "status": 200, "body": { "items": [], "page": { "page": 1, "pageSize": 20, "total": 0 } } },
+  "GET /admin/demands": {
+    "status": 200,
+    "body": {
+      "items": [],
+      "page": {
+        "page": 1,
+        "pageSize": 20,
+        "total": 0
+      }
+    }
+  },
   "POST /admin/demands/:demandId/approve": {
     "status": 200,
     "body": {
       "id": "81875741-fede-4d3c-adf9-9c8774964f50",
       "title": "寻求电池热管理材料的许可/联合开发",
       "summary": "面向新能源车电池包，寻求高导热绝缘材料与结构方案，期望半年内完成样机验证。",
-      "keywords": ["热管理", "绝缘材料", "新能源车"],
+      "keywords": [
+        "热管理",
+        "绝缘材料",
+        "新能源车"
+      ],
       "deliveryPeriod": "MONTH_3_6",
       "budgetType": "FIXED",
       "budgetMinFen": 5000000,
       "budgetMaxFen": 15000000,
-      "cooperationModes": ["LICENSE", "JOINT_DEV"],
+      "cooperationModes": [
+        "LICENSE",
+        "JOINT_DEV"
+      ],
       "contactName": "李老师",
       "contactTitle": "技术转移负责人",
       "contactPhoneMasked": "138****8899",
       "regionCode": "310000",
-      "industryTags": ["新能源", "电池"],
+      "industryTags": [
+        "新能源",
+        "电池"
+      ],
       "publisherUserId": "72f8697a-b950-406c-bc4f-2484a32cbb78",
       "publisher": {
         "userId": "72f8697a-b950-406c-bc4f-2484a32cbb78",
@@ -2110,7 +2901,11 @@
         "verificationType": "ACADEMY",
         "verificationStatus": "APPROVED"
       },
-      "stats": { "viewCount": 120, "favoriteCount": 8, "consultCount": 4 },
+      "stats": {
+        "viewCount": 120,
+        "favoriteCount": 8,
+        "consultCount": 4
+      },
       "auditStatus": "APPROVED",
       "status": "ACTIVE",
       "coverUrl": "https://example.com/media/demand-cover-1.jpg",
@@ -2133,7 +2928,11 @@
         "verificationType": "PERSON",
         "verificationStatus": "APPROVED"
       },
-      "stats": { "viewCount": 0, "favoriteCount": 0, "consultCount": 0 },
+      "stats": {
+        "viewCount": 0,
+        "favoriteCount": 0,
+        "consultCount": 0
+      },
       "auditStatus": "REJECTED",
       "status": "DRAFT",
       "createdAt": "2026-01-11T01:00:00Z",
@@ -2156,18 +2955,38 @@
       "media": []
     }
   },
-  "GET /admin/achievements": { "status": 200, "body": { "items": [], "page": { "page": 1, "pageSize": 20, "total": 0 } } },
+  "GET /admin/achievements": {
+    "status": 200,
+    "body": {
+      "items": [],
+      "page": {
+        "page": 1,
+        "pageSize": 20,
+        "total": 0
+      }
+    }
+  },
   "POST /admin/achievements/:achievementId/approve": {
     "status": 200,
     "body": {
       "id": "7595bfdb-044d-4580-99bf-537a07c2577c",
       "title": "高安全储能电解质材料成果",
       "summary": "已完成中试，具备量产条件，寻求产业化合作。",
-      "keywords": ["电解质", "高安全", "储能"],
+      "keywords": [
+        "电解质",
+        "高安全",
+        "储能"
+      ],
       "maturity": "PILOT",
-      "cooperationModes": ["EQUITY", "JOINT_DEV"],
+      "cooperationModes": [
+        "EQUITY",
+        "JOINT_DEV"
+      ],
       "regionCode": "110000",
-      "industryTags": ["新材料", "储能"],
+      "industryTags": [
+        "新材料",
+        "储能"
+      ],
       "publisherUserId": "c5b6438a-f3a7-4590-a484-0f2a2991c613",
       "publisher": {
         "userId": "c5b6438a-f3a7-4590-a484-0f2a2991c613",
@@ -2175,7 +2994,11 @@
         "verificationType": "COMPANY",
         "verificationStatus": "APPROVED"
       },
-      "stats": { "viewCount": 86, "favoriteCount": 5, "consultCount": 2 },
+      "stats": {
+        "viewCount": 86,
+        "favoriteCount": 5,
+        "consultCount": 2
+      },
       "auditStatus": "APPROVED",
       "status": "ACTIVE",
       "coverUrl": "https://example.com/media/achievement-cover-1.jpg",
@@ -2198,7 +3021,11 @@
         "verificationType": "PERSON",
         "verificationStatus": "APPROVED"
       },
-      "stats": { "viewCount": 0, "favoriteCount": 0, "consultCount": 0 },
+      "stats": {
+        "viewCount": 0,
+        "favoriteCount": 0,
+        "consultCount": 0
+      },
       "auditStatus": "REJECTED",
       "status": "DRAFT",
       "createdAt": "2026-01-11T01:00:00Z",
@@ -2237,7 +3064,11 @@
           "createdAt": "2026-01-11T09:00:00Z"
         }
       ],
-      "page": { "page": 1, "pageSize": 20, "total": 1 }
+      "page": {
+        "page": 1,
+        "pageSize": 20,
+        "total": 1
+      }
     }
   },
   "PATCH /admin/comments/:commentId": {
@@ -2261,6 +3092,834 @@
       "updatedAt": "2026-01-11T09:20:00Z"
     }
   },
-  "POST /admin/patent-map/import": { "status": 200, "body": { "dryRun": false, "importedCount": 1, "updatedCount": 1, "errors": [] } }
+  "POST /admin/patent-map/import": {
+    "status": 200,
+    "body": {
+      "dryRun": false,
+      "importedCount": 1,
+      "updatedCount": 1,
+      "errors": []
+    }
+  },
+  "GET /search/artworks": {
+    "status": 200,
+    "body": {
+      "items": [
+        {
+          "id": "3d0b9c7a-1a9f-4b4d-9f6a-3a62b8f6d6e1",
+          "title": "?????",
+          "category": "PAINTING",
+          "paintingGenre": "LANDSCAPE",
+          "creatorName": "??",
+          "creationYear": 1998,
+          "priceType": "FIXED",
+          "priceAmountFen": 18800000,
+          "depositAmountFen": 200000,
+          "regionCode": "510000",
+          "coverUrl": "https://example.com/media/artwork-1.jpg",
+          "auditStatus": "APPROVED",
+          "status": "ACTIVE",
+          "createdAt": "2026-01-10T10:00:00Z",
+          "stats": {
+            "viewCount": 56,
+            "favoriteCount": 7,
+            "consultCount": 2
+          }
+        },
+        {
+          "id": "8c1b2f2e-4c6f-4ff2-8a9c-7b2e5e3df0b2",
+          "title": "?????????",
+          "category": "CALLIGRAPHY",
+          "calligraphyScript": "XINGSHU",
+          "creatorName": "??",
+          "creationYear": 2008,
+          "priceType": "NEGOTIABLE",
+          "depositAmountFen": 120000,
+          "regionCode": "110000",
+          "coverUrl": "https://example.com/media/artwork-2.jpg",
+          "auditStatus": "APPROVED",
+          "status": "ACTIVE",
+          "createdAt": "2026-01-09T09:00:00Z",
+          "stats": {
+            "viewCount": 32,
+            "favoriteCount": 4,
+            "consultCount": 1
+          }
+        }
+      ],
+      "page": {
+        "page": 1,
+        "pageSize": 10,
+        "total": 2
+      }
+    }
+  },
+  "GET /public/artworks/3d0b9c7a-1a9f-4b4d-9f6a-3a62b8f6d6e1": {
+    "status": 200,
+    "body": {
+      "id": "3d0b9c7a-1a9f-4b4d-9f6a-3a62b8f6d6e1",
+      "title": "?????",
+      "category": "PAINTING",
+      "paintingGenre": "LANDSCAPE",
+      "creatorName": "??",
+      "creationYear": 1998,
+      "priceType": "FIXED",
+      "priceAmountFen": 18800000,
+      "depositAmountFen": 200000,
+      "regionCode": "510000",
+      "coverUrl": "https://example.com/media/artwork-1.jpg",
+      "auditStatus": "APPROVED",
+      "status": "ACTIVE",
+      "createdAt": "2026-01-10T10:00:00Z",
+      "stats": {
+        "viewCount": 56,
+        "favoriteCount": 7,
+        "consultCount": 2
+      },
+      "seller": {
+        "id": "72f8697a-b950-406c-bc4f-2484a32cbb78",
+        "nickname": "?????",
+        "avatarUrl": "",
+        "role": "seller",
+        "verificationStatus": "APPROVED",
+        "verificationType": "ASSOCIATION"
+      },
+      "description": "???????????????????",
+      "certificateNo": "????-2023-F-0123456",
+      "media": [
+        {
+          "fileId": "6b5b98b2-4aab-4a75-8f2b-0dd2c56d49f4",
+          "type": "IMAGE",
+          "sort": 1,
+          "url": "https://example.com/media/artwork-1.jpg",
+          "mimeType": "image/jpeg",
+          "sizeBytes": 245678,
+          "fileName": "artwork-1.jpg"
+        }
+      ]
+    }
+  },
+  "GET /public/artworks/:artworkId": {
+    "status": 200,
+    "body": {
+      "id": "3d0b9c7a-1a9f-4b4d-9f6a-3a62b8f6d6e1",
+      "title": "?????",
+      "category": "PAINTING",
+      "paintingGenre": "LANDSCAPE",
+      "creatorName": "??",
+      "creationYear": 1998,
+      "priceType": "FIXED",
+      "priceAmountFen": 18800000,
+      "depositAmountFen": 200000,
+      "regionCode": "510000",
+      "coverUrl": "https://example.com/media/artwork-1.jpg",
+      "auditStatus": "APPROVED",
+      "status": "ACTIVE",
+      "createdAt": "2026-01-10T10:00:00Z",
+      "stats": {
+        "viewCount": 56,
+        "favoriteCount": 7,
+        "consultCount": 2
+      },
+      "seller": {
+        "id": "72f8697a-b950-406c-bc4f-2484a32cbb78",
+        "nickname": "?????",
+        "avatarUrl": "",
+        "role": "seller",
+        "verificationStatus": "APPROVED",
+        "verificationType": "ASSOCIATION"
+      },
+      "description": "???????????????????",
+      "certificateNo": "????-2023-F-0123456",
+      "media": [
+        {
+          "fileId": "6b5b98b2-4aab-4a75-8f2b-0dd2c56d49f4",
+          "type": "IMAGE",
+          "sort": 1,
+          "url": "https://example.com/media/artwork-1.jpg",
+          "mimeType": "image/jpeg",
+          "sizeBytes": 245678,
+          "fileName": "artwork-1.jpg"
+        }
+      ]
+    }
+  },
+  "GET /public/artworks/3d0b9c7a-1a9f-4b4d-9f6a-3a62b8f6d6e1/comments": {
+    "status": 200,
+    "body": {
+      "items": [
+        {
+          "root": {
+            "id": "4f1e58a8-1ec7-4b4b-8bc7-3d3f5b49f2f1",
+            "contentType": "ARTWORK",
+            "contentId": "3d0b9c7a-1a9f-4b4d-9f6a-3a62b8f6d6e1",
+            "parentCommentId": null,
+            "status": "VISIBLE",
+            "user": {
+              "id": "c776f954-77a5-49d9-b778-77a1120d1be9",
+              "nickname": "????",
+              "avatarUrl": "",
+              "role": "buyer",
+              "verificationStatus": "APPROVED",
+              "verificationType": "PERSON"
+            },
+            "text": "?????????????????",
+            "createdAt": "2026-01-11T09:00:00Z"
+          },
+          "replies": []
+        }
+      ],
+      "page": {
+        "page": 1,
+        "pageSize": 20,
+        "total": 1
+      }
+    }
+  },
+  "GET /public/artworks/:artworkId/comments": {
+    "status": 200,
+    "body": {
+      "items": [
+        {
+          "root": {
+            "id": "4f1e58a8-1ec7-4b4b-8bc7-3d3f5b49f2f1",
+            "contentType": "ARTWORK",
+            "contentId": "3d0b9c7a-1a9f-4b4d-9f6a-3a62b8f6d6e1",
+            "parentCommentId": null,
+            "status": "VISIBLE",
+            "user": {
+              "id": "c776f954-77a5-49d9-b778-77a1120d1be9",
+              "nickname": "????",
+              "avatarUrl": "",
+              "role": "buyer",
+              "verificationStatus": "APPROVED",
+              "verificationType": "PERSON"
+            },
+            "text": "?????????????????",
+            "createdAt": "2026-01-11T09:00:00Z"
+          },
+          "replies": []
+        }
+      ],
+      "page": {
+        "page": 1,
+        "pageSize": 20,
+        "total": 1
+      }
+    }
+  },
+  "POST /artworks/:artworkId/comments": {
+    "status": 201,
+    "body": {
+      "id": "9d18c6d7-7c0b-4ed5-87c2-2f4d21b8b51f",
+      "contentType": "ARTWORK",
+      "contentId": "3d0b9c7a-1a9f-4b4d-9f6a-3a62b8f6d6e1",
+      "parentCommentId": null,
+      "status": "VISIBLE",
+      "user": {
+        "id": "c776f954-77a5-49d9-b778-77a1120d1be9",
+        "nickname": "????",
+        "avatarUrl": "",
+        "role": "buyer",
+        "verificationStatus": "APPROVED",
+        "verificationType": "PERSON"
+      },
+      "text": "?????????",
+      "createdAt": "2026-01-11T10:20:00Z"
+    }
+  },
+  "POST /artworks/:artworkId/favorites": {
+    "status": 204
+  },
+  "DELETE /artworks/:artworkId/favorites": {
+    "status": 204
+  },
+  "POST /artworks/:artworkId/conversations": {
+    "status": 200,
+    "body": {
+      "id": "4ce3f5b0-9f5d-4c4f-8b8b-2c2c5f8d9f8a",
+      "contentType": "ARTWORK",
+      "contentId": "3d0b9c7a-1a9f-4b4d-9f6a-3a62b8f6d6e1",
+      "contentTitle": "?????",
+      "orderId": null,
+      "buyerUserId": "c776f954-77a5-49d9-b778-77a1120d1be9",
+      "sellerUserId": "72f8697a-b950-406c-bc4f-2484a32cbb78",
+      "lastMessageAt": "2026-01-11T09:30:00Z",
+      "createdAt": "2026-01-11T09:30:00Z",
+      "updatedAt": "2026-01-11T09:30:00Z"
+    }
+  },
+  "GET /search/tech-managers": {
+    "status": 200,
+    "body": {
+      "items": [
+        {
+          "userId": "0e8a1c2e-7f4b-4e8d-9f2a-3c6d8b9f1a22",
+          "displayName": "???",
+          "verificationType": "TECH_MANAGER",
+          "verificationStatus": "APPROVED",
+          "regionCode": "310000",
+          "avatarUrl": "https://example.com/avatar-tech-1.png",
+          "intro": "????????????????",
+          "serviceTags": [
+            "????",
+            "????",
+            "????"
+          ],
+          "stats": {
+            "consultCount": 26,
+            "dealCount": 6,
+            "ratingScore": 4.8,
+            "ratingCount": 12
+          },
+          "verifiedAt": "2026-01-01T00:00:00Z"
+        }
+      ],
+      "page": {
+        "page": 1,
+        "pageSize": 10,
+        "total": 1
+      }
+    }
+  },
+  "GET /public/tech-managers/:techManagerId": {
+    "status": 200,
+    "body": {
+      "userId": "0e8a1c2e-7f4b-4e8d-9f2a-3c6d8b9f1a22",
+      "displayName": "???",
+      "verificationType": "TECH_MANAGER",
+      "verificationStatus": "APPROVED",
+      "regionCode": "310000",
+      "avatarUrl": "https://example.com/avatar-tech-1.png",
+      "intro": "????????????????",
+      "serviceTags": [
+        "????",
+        "????",
+        "????"
+      ],
+      "stats": {
+        "consultCount": 26,
+        "dealCount": 6,
+        "ratingScore": 4.8,
+        "ratingCount": 12
+      },
+      "verifiedAt": "2026-01-01T00:00:00Z",
+      "evidenceFileIds": [
+        "b742ea7f-7e4a-4f9d-9b3f-9f3e3a6b2c5d"
+      ]
+    }
+  },
+  "POST /tech-managers/:techManagerId/conversations": {
+    "status": 200,
+    "body": {
+      "id": "4f9c47f9-7e84-4c1a-9b43-2b0a94607c9f",
+      "contentType": "TECH_MANAGER",
+      "contentId": "0e8a1c2e-7f4b-4e8d-9f2a-3c6d8b9f1a22",
+      "contentTitle": "???",
+      "orderId": null,
+      "buyerUserId": "c776f954-77a5-49d9-b778-77a1120d1be9",
+      "sellerUserId": "0e8a1c2e-7f4b-4e8d-9f2a-3c6d8b9f1a22",
+      "lastMessageAt": "2026-01-11T09:40:00Z",
+      "createdAt": "2026-01-11T09:40:00Z",
+      "updatedAt": "2026-01-11T09:40:00Z"
+    }
+  },
+  "GET /artworks": {
+    "status": 200,
+    "body": {
+      "items": [
+        {
+          "id": "3d0b9c7a-1a9f-4b4d-9f6a-3a62b8f6d6e1",
+          "title": "?????",
+          "category": "PAINTING",
+          "paintingGenre": "LANDSCAPE",
+          "creatorName": "??",
+          "creationYear": 1998,
+          "priceType": "FIXED",
+          "priceAmountFen": 18800000,
+          "depositAmountFen": 200000,
+          "regionCode": "510000",
+          "coverUrl": "https://example.com/media/artwork-1.jpg",
+          "auditStatus": "APPROVED",
+          "status": "ACTIVE",
+          "createdAt": "2026-01-10T10:00:00Z",
+          "stats": {
+            "viewCount": 56,
+            "favoriteCount": 7,
+            "consultCount": 2
+          },
+          "sellerUserId": "72f8697a-b950-406c-bc4f-2484a32cbb78",
+          "description": "???????????????????",
+          "certificateNo": "????-2023-F-0123456",
+          "certificateFileIds": [
+            "1d7b45b5-2e4a-4f91-93e3-9c5bcb0df1a1"
+          ],
+          "coverFileId": null,
+          "media": [
+            {
+              "fileId": "6b5b98b2-4aab-4a75-8f2b-0dd2c56d49f4",
+              "type": "IMAGE",
+              "sort": 1,
+              "url": "https://example.com/media/artwork-1.jpg",
+              "mimeType": "image/jpeg",
+              "sizeBytes": 245678,
+              "fileName": "artwork-1.jpg"
+            }
+          ],
+          "updatedAt": "2026-01-10T12:00:00Z"
+        }
+      ],
+      "page": {
+        "page": 1,
+        "pageSize": 10,
+        "total": 1
+      }
+    }
+  },
+  "GET /artworks/:artworkId": {
+    "status": 200,
+    "body": {
+      "id": "3d0b9c7a-1a9f-4b4d-9f6a-3a62b8f6d6e1",
+      "title": "?????",
+      "category": "PAINTING",
+      "paintingGenre": "LANDSCAPE",
+      "creatorName": "??",
+      "creationYear": 1998,
+      "priceType": "FIXED",
+      "priceAmountFen": 18800000,
+      "depositAmountFen": 200000,
+      "regionCode": "510000",
+      "coverUrl": "https://example.com/media/artwork-1.jpg",
+      "auditStatus": "APPROVED",
+      "status": "ACTIVE",
+      "createdAt": "2026-01-10T10:00:00Z",
+      "stats": {
+        "viewCount": 56,
+        "favoriteCount": 7,
+        "consultCount": 2
+      },
+      "sellerUserId": "72f8697a-b950-406c-bc4f-2484a32cbb78",
+      "description": "???????????????????",
+      "certificateNo": "????-2023-F-0123456",
+      "certificateFileIds": [
+        "1d7b45b5-2e4a-4f91-93e3-9c5bcb0df1a1"
+      ],
+      "coverFileId": null,
+      "media": [
+        {
+          "fileId": "6b5b98b2-4aab-4a75-8f2b-0dd2c56d49f4",
+          "type": "IMAGE",
+          "sort": 1,
+          "url": "https://example.com/media/artwork-1.jpg",
+          "mimeType": "image/jpeg",
+          "sizeBytes": 245678,
+          "fileName": "artwork-1.jpg"
+        }
+      ],
+      "updatedAt": "2026-01-10T12:00:00Z"
+    }
+  },
+  "POST /artworks": {
+    "status": 201,
+    "body": {
+      "id": "3d0b9c7a-1a9f-4b4d-9f6a-3a62b8f6d6e1",
+      "title": "?????",
+      "category": "PAINTING",
+      "paintingGenre": "LANDSCAPE",
+      "creatorName": "??",
+      "creationYear": 1998,
+      "priceType": "FIXED",
+      "priceAmountFen": 18800000,
+      "depositAmountFen": 200000,
+      "regionCode": "510000",
+      "coverUrl": "https://example.com/media/artwork-1.jpg",
+      "auditStatus": "PENDING",
+      "status": "DRAFT",
+      "createdAt": "2026-01-10T10:00:00Z",
+      "stats": {
+        "viewCount": 56,
+        "favoriteCount": 7,
+        "consultCount": 2
+      },
+      "sellerUserId": "72f8697a-b950-406c-bc4f-2484a32cbb78",
+      "description": "???????????????????",
+      "certificateNo": "????-2023-F-0123456",
+      "certificateFileIds": [
+        "1d7b45b5-2e4a-4f91-93e3-9c5bcb0df1a1"
+      ],
+      "coverFileId": null,
+      "media": [
+        {
+          "fileId": "6b5b98b2-4aab-4a75-8f2b-0dd2c56d49f4",
+          "type": "IMAGE",
+          "sort": 1,
+          "url": "https://example.com/media/artwork-1.jpg",
+          "mimeType": "image/jpeg",
+          "sizeBytes": 245678,
+          "fileName": "artwork-1.jpg"
+        }
+      ],
+      "updatedAt": "2026-01-10T12:00:00Z"
+    }
+  },
+  "PATCH /artworks/:artworkId": {
+    "status": 200,
+    "body": {
+      "id": "3d0b9c7a-1a9f-4b4d-9f6a-3a62b8f6d6e1",
+      "title": "?????",
+      "category": "PAINTING",
+      "paintingGenre": "LANDSCAPE",
+      "creatorName": "??",
+      "creationYear": 1998,
+      "priceType": "FIXED",
+      "priceAmountFen": 18800000,
+      "depositAmountFen": 200000,
+      "regionCode": "510000",
+      "coverUrl": "https://example.com/media/artwork-1.jpg",
+      "auditStatus": "APPROVED",
+      "status": "ACTIVE",
+      "createdAt": "2026-01-10T10:00:00Z",
+      "stats": {
+        "viewCount": 56,
+        "favoriteCount": 7,
+        "consultCount": 2
+      },
+      "sellerUserId": "72f8697a-b950-406c-bc4f-2484a32cbb78",
+      "description": "???????????????????",
+      "certificateNo": "????-2023-F-0123456",
+      "certificateFileIds": [
+        "1d7b45b5-2e4a-4f91-93e3-9c5bcb0df1a1"
+      ],
+      "coverFileId": null,
+      "media": [
+        {
+          "fileId": "6b5b98b2-4aab-4a75-8f2b-0dd2c56d49f4",
+          "type": "IMAGE",
+          "sort": 1,
+          "url": "https://example.com/media/artwork-1.jpg",
+          "mimeType": "image/jpeg",
+          "sizeBytes": 245678,
+          "fileName": "artwork-1.jpg"
+        }
+      ],
+      "updatedAt": "2026-01-10T12:00:00Z"
+    }
+  },
+  "POST /artworks/:artworkId/submit": {
+    "status": 200,
+    "body": {
+      "id": "3d0b9c7a-1a9f-4b4d-9f6a-3a62b8f6d6e1",
+      "title": "?????",
+      "category": "PAINTING",
+      "paintingGenre": "LANDSCAPE",
+      "creatorName": "??",
+      "creationYear": 1998,
+      "priceType": "FIXED",
+      "priceAmountFen": 18800000,
+      "depositAmountFen": 200000,
+      "regionCode": "510000",
+      "coverUrl": "https://example.com/media/artwork-1.jpg",
+      "auditStatus": "PENDING",
+      "status": "ACTIVE",
+      "createdAt": "2026-01-10T10:00:00Z",
+      "stats": {
+        "viewCount": 56,
+        "favoriteCount": 7,
+        "consultCount": 2
+      },
+      "sellerUserId": "72f8697a-b950-406c-bc4f-2484a32cbb78",
+      "description": "???????????????????",
+      "certificateNo": "????-2023-F-0123456",
+      "certificateFileIds": [
+        "1d7b45b5-2e4a-4f91-93e3-9c5bcb0df1a1"
+      ],
+      "coverFileId": null,
+      "media": [
+        {
+          "fileId": "6b5b98b2-4aab-4a75-8f2b-0dd2c56d49f4",
+          "type": "IMAGE",
+          "sort": 1,
+          "url": "https://example.com/media/artwork-1.jpg",
+          "mimeType": "image/jpeg",
+          "sizeBytes": 245678,
+          "fileName": "artwork-1.jpg"
+        }
+      ],
+      "updatedAt": "2026-01-10T12:00:00Z"
+    }
+  },
+  "POST /artworks/:artworkId/off-shelf": {
+    "status": 200,
+    "body": {
+      "id": "3d0b9c7a-1a9f-4b4d-9f6a-3a62b8f6d6e1",
+      "title": "?????",
+      "category": "PAINTING",
+      "paintingGenre": "LANDSCAPE",
+      "creatorName": "??",
+      "creationYear": 1998,
+      "priceType": "FIXED",
+      "priceAmountFen": 18800000,
+      "depositAmountFen": 200000,
+      "regionCode": "510000",
+      "coverUrl": "https://example.com/media/artwork-1.jpg",
+      "auditStatus": "APPROVED",
+      "status": "OFF_SHELF",
+      "createdAt": "2026-01-10T10:00:00Z",
+      "stats": {
+        "viewCount": 56,
+        "favoriteCount": 7,
+        "consultCount": 2
+      },
+      "sellerUserId": "72f8697a-b950-406c-bc4f-2484a32cbb78",
+      "description": "???????????????????",
+      "certificateNo": "????-2023-F-0123456",
+      "certificateFileIds": [
+        "1d7b45b5-2e4a-4f91-93e3-9c5bcb0df1a1"
+      ],
+      "coverFileId": null,
+      "media": [
+        {
+          "fileId": "6b5b98b2-4aab-4a75-8f2b-0dd2c56d49f4",
+          "type": "IMAGE",
+          "sort": 1,
+          "url": "https://example.com/media/artwork-1.jpg",
+          "mimeType": "image/jpeg",
+          "sizeBytes": 245678,
+          "fileName": "artwork-1.jpg"
+        }
+      ],
+      "updatedAt": "2026-01-10T12:00:00Z"
+    }
+  },
+  "GET /me/favorites/artworks": {
+    "status": 200,
+    "body": {
+      "items": [
+        {
+          "id": "3d0b9c7a-1a9f-4b4d-9f6a-3a62b8f6d6e1",
+          "title": "?????",
+          "category": "PAINTING",
+          "paintingGenre": "LANDSCAPE",
+          "creatorName": "??",
+          "creationYear": 1998,
+          "priceType": "FIXED",
+          "priceAmountFen": 18800000,
+          "depositAmountFen": 200000,
+          "regionCode": "510000",
+          "coverUrl": "https://example.com/media/artwork-1.jpg",
+          "auditStatus": "APPROVED",
+          "status": "ACTIVE",
+          "createdAt": "2026-01-10T10:00:00Z",
+          "stats": {
+            "viewCount": 56,
+            "favoriteCount": 7,
+            "consultCount": 2
+          }
+        }
+      ],
+      "page": {
+        "page": 1,
+        "pageSize": 10,
+        "total": 1
+      }
+    }
+  },
+  "GET /admin/artworks": {
+    "status": 200,
+    "body": {
+      "items": [
+        {
+          "id": "3d0b9c7a-1a9f-4b4d-9f6a-3a62b8f6d6e1",
+          "title": "?????",
+          "category": "PAINTING",
+          "paintingGenre": "LANDSCAPE",
+          "creatorName": "??",
+          "creationYear": 1998,
+          "priceType": "FIXED",
+          "priceAmountFen": 18800000,
+          "depositAmountFen": 200000,
+          "regionCode": "510000",
+          "coverUrl": "https://example.com/media/artwork-1.jpg",
+          "auditStatus": "APPROVED",
+          "status": "ACTIVE",
+          "createdAt": "2026-01-10T10:00:00Z",
+          "stats": {
+            "viewCount": 56,
+            "favoriteCount": 7,
+            "consultCount": 2
+          },
+          "sellerUserId": "72f8697a-b950-406c-bc4f-2484a32cbb78",
+          "description": "???????????????????",
+          "certificateNo": "????-2023-F-0123456",
+          "certificateFileIds": [
+            "1d7b45b5-2e4a-4f91-93e3-9c5bcb0df1a1"
+          ],
+          "coverFileId": null,
+          "media": [
+            {
+              "fileId": "6b5b98b2-4aab-4a75-8f2b-0dd2c56d49f4",
+              "type": "IMAGE",
+              "sort": 1,
+              "url": "https://example.com/media/artwork-1.jpg",
+              "mimeType": "image/jpeg",
+              "sizeBytes": 245678,
+              "fileName": "artwork-1.jpg"
+            }
+          ],
+          "updatedAt": "2026-01-10T12:00:00Z"
+        }
+      ],
+      "page": {
+        "page": 1,
+        "pageSize": 10,
+        "total": 1
+      }
+    }
+  },
+  "POST /admin/artworks/:artworkId/approve": {
+    "status": 200,
+    "body": {
+      "id": "3d0b9c7a-1a9f-4b4d-9f6a-3a62b8f6d6e1",
+      "title": "?????",
+      "category": "PAINTING",
+      "paintingGenre": "LANDSCAPE",
+      "creatorName": "??",
+      "creationYear": 1998,
+      "priceType": "FIXED",
+      "priceAmountFen": 18800000,
+      "depositAmountFen": 200000,
+      "regionCode": "510000",
+      "coverUrl": "https://example.com/media/artwork-1.jpg",
+      "auditStatus": "APPROVED",
+      "status": "ACTIVE",
+      "createdAt": "2026-01-10T10:00:00Z",
+      "stats": {
+        "viewCount": 56,
+        "favoriteCount": 7,
+        "consultCount": 2
+      },
+      "sellerUserId": "72f8697a-b950-406c-bc4f-2484a32cbb78",
+      "description": "???????????????????",
+      "certificateNo": "????-2023-F-0123456",
+      "certificateFileIds": [
+        "1d7b45b5-2e4a-4f91-93e3-9c5bcb0df1a1"
+      ],
+      "coverFileId": null,
+      "media": [
+        {
+          "fileId": "6b5b98b2-4aab-4a75-8f2b-0dd2c56d49f4",
+          "type": "IMAGE",
+          "sort": 1,
+          "url": "https://example.com/media/artwork-1.jpg",
+          "mimeType": "image/jpeg",
+          "sizeBytes": 245678,
+          "fileName": "artwork-1.jpg"
+        }
+      ],
+      "updatedAt": "2026-01-10T12:00:00Z"
+    }
+  },
+  "POST /admin/artworks/:artworkId/reject": {
+    "status": 200,
+    "body": {
+      "id": "3d0b9c7a-1a9f-4b4d-9f6a-3a62b8f6d6e1",
+      "title": "?????",
+      "category": "PAINTING",
+      "paintingGenre": "LANDSCAPE",
+      "creatorName": "??",
+      "creationYear": 1998,
+      "priceType": "FIXED",
+      "priceAmountFen": 18800000,
+      "depositAmountFen": 200000,
+      "regionCode": "510000",
+      "coverUrl": "https://example.com/media/artwork-1.jpg",
+      "auditStatus": "REJECTED",
+      "status": "ACTIVE",
+      "createdAt": "2026-01-10T10:00:00Z",
+      "stats": {
+        "viewCount": 56,
+        "favoriteCount": 7,
+        "consultCount": 2
+      },
+      "sellerUserId": "72f8697a-b950-406c-bc4f-2484a32cbb78",
+      "description": "???????????????????",
+      "certificateNo": "????-2023-F-0123456",
+      "certificateFileIds": [
+        "1d7b45b5-2e4a-4f91-93e3-9c5bcb0df1a1"
+      ],
+      "coverFileId": null,
+      "media": [
+        {
+          "fileId": "6b5b98b2-4aab-4a75-8f2b-0dd2c56d49f4",
+          "type": "IMAGE",
+          "sort": 1,
+          "url": "https://example.com/media/artwork-1.jpg",
+          "mimeType": "image/jpeg",
+          "sizeBytes": 245678,
+          "fileName": "artwork-1.jpg"
+        }
+      ],
+      "updatedAt": "2026-01-10T12:00:00Z"
+    }
+  },
+  "GET /admin/tech-managers": {
+    "status": 200,
+    "body": {
+      "items": [
+        {
+          "userId": "0e8a1c2e-7f4b-4e8d-9f2a-3c6d8b9f1a22",
+          "displayName": "???",
+          "verificationType": "TECH_MANAGER",
+          "verificationStatus": "APPROVED",
+          "regionCode": "310000",
+          "avatarUrl": "https://example.com/avatar-tech-1.png",
+          "intro": "????????????????",
+          "serviceTags": [
+            "????",
+            "????",
+            "????"
+          ],
+          "stats": {
+            "consultCount": 26,
+            "dealCount": 6,
+            "ratingScore": 4.8,
+            "ratingCount": 12
+          },
+          "verifiedAt": "2026-01-01T00:00:00Z"
+        }
+      ],
+      "page": {
+        "page": 1,
+        "pageSize": 10,
+        "total": 1
+      }
+    }
+  },
+  "PATCH /admin/tech-managers/:techManagerId": {
+    "status": 200,
+    "body": {
+      "userId": "0e8a1c2e-7f4b-4e8d-9f2a-3c6d8b9f1a22",
+      "displayName": "???",
+      "verificationType": "TECH_MANAGER",
+      "verificationStatus": "APPROVED",
+      "regionCode": "310000",
+      "avatarUrl": "https://example.com/avatar-tech-1.png",
+      "intro": "????????????????",
+      "serviceTags": [
+        "????",
+        "????",
+        "????"
+      ],
+      "stats": {
+        "consultCount": 26,
+        "dealCount": 6,
+        "ratingScore": 4.8,
+        "ratingCount": 12
+      },
+      "verifiedAt": "2026-01-01T00:00:00Z",
+      "evidenceFileIds": [
+        "b742ea7f-7e4a-4f9d-9b3f-9f3e3a6b2c5d"
+      ]
+    }
+  }
 }
-

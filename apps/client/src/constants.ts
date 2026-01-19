@@ -15,6 +15,7 @@ export const STORAGE_KEYS = {
   favoriteListingIds: 'ipmoney.favoriteListingIds',
   favoriteDemandIds: 'ipmoney.favoriteDemandIds',
   favoriteAchievementIds: 'ipmoney.favoriteAchievementIds',
+  favoriteArtworkIds: 'ipmoney.favoriteArtworkIds',
   regionPickerResult: 'ipmoney.regionPickerResult',
   regionNameMap: 'ipmoney.regionNameMap',
   mockScenario: 'ipmoney.mockScenario',

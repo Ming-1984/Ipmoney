@@ -149,6 +149,69 @@
       "page": { "page": 1, "pageSize": 10, "total": 2 }
     }
   },
+  "GET /search/artworks": {
+    "status": 200,
+    "body": {
+      "items": [
+        {
+          "id": "9c7e0f73-2a2c-4bd6-8a8b-8e4d2c4b4f11",
+          "title": "草书条幅（边界示例）",
+          "category": "CALLIGRAPHY",
+          "calligraphyScript": "CAOSHU",
+          "creatorName": "匿名",
+          "creationYear": 0,
+          "priceType": "NEGOTIABLE",
+          "priceAmountFen": 0,
+          "depositAmountFen": 0,
+          "auditStatus": "APPROVED",
+          "status": "ACTIVE",
+          "createdAt": "2026-01-05T08:00:00Z",
+          "stats": { "viewCount": 0, "favoriteCount": 0, "consultCount": 0 }
+        },
+        {
+          "id": "5b2b9d3e-7d3d-4f3c-9e7f-1e9c2c1d2e3f",
+          "title": "水墨山水长卷（超长标题用于截断展示测试）",
+          "category": "PAINTING",
+          "paintingGenre": "LANDSCAPE",
+          "creatorName": "测试作者",
+          "creationYear": 2023,
+          "priceType": "FIXED",
+          "priceAmountFen": 120000,
+          "depositAmountFen": 1000,
+          "regionCode": "320000",
+          "auditStatus": "APPROVED",
+          "status": "ACTIVE",
+          "createdAt": "2026-01-06T10:30:00Z",
+          "stats": { "viewCount": 999, "favoriteCount": 0, "consultCount": 0 }
+        }
+      ],
+      "page": { "page": 1, "pageSize": 10, "total": 2 }
+    }
+  },
+  "GET /search/tech-managers": {
+    "status": 200,
+    "body": {
+      "items": [
+        {
+          "userId": "6a8a27cc-9e92-4b53-8a6b-2b0f2acb5a39",
+          "displayName": "技术经理人A",
+          "verificationType": "TECH_MANAGER",
+          "verificationStatus": "APPROVED",
+          "regionCode": "110000",
+          "serviceTags": []
+        },
+        {
+          "userId": "6f2ac1b7-7f1d-4b96-9c55-7f9f3e4a2b1c",
+          "displayName": "技术经理人（案例）",
+          "verificationType": "TECH_MANAGER",
+          "verificationStatus": "REJECTED",
+          "intro": "极端场景：已驳回但仍出现在列表，用于测试状态显示。",
+          "serviceTags": ["评估", "撮合"]
+        }
+      ],
+      "page": { "page": 1, "pageSize": 10, "total": 2 }
+    }
+  },
   "GET /public/listings/7d9ba983-130e-42ee-b109-fb1b20d02a8a": {
     "status": 200,
     "body": {
@@ -190,6 +253,27 @@
       "page": { "page": 1, "pageSize": 20, "total": 1 }
     }
   },
+  "GET /public/artworks/:artworkId/comments": {
+    "status": 200,
+    "body": {
+      "items": [
+        {
+          "root": {
+            "id": "a5e1c911-76e6-4e4b-9d8a-3b3f8e4c0a90",
+            "contentType": "ARTWORK",
+            "contentId": "9c7e0f73-2a2c-4bd6-8a8b-8e4d2c4b4f11",
+            "parentCommentId": null,
+            "status": "VISIBLE",
+            "user": { "id": "c776f954-77a5-49d9-b778-77a1120d1be9", "nickname": "EdgeUser", "avatarUrl": "", "role": "buyer" },
+            "text": "书画留言边界：含空格与换行\\n第二行继续展示。",
+            "createdAt": "2026-01-11T10:00:00Z"
+          },
+          "replies": []
+        }
+      ],
+      "page": { "page": 1, "pageSize": 20, "total": 1 }
+    }
+  },
   "POST /listings/:listingId/comments": {
     "status": 201,
     "body": {
@@ -201,6 +285,19 @@
       "user": { "id": "c776f954-77a5-49d9-b778-77a1120d1be9", "nickname": "EdgeUser", "avatarUrl": "", "role": "buyer" },
       "text": "Edge create comment (demo)",
       "createdAt": "2026-01-11T09:10:00Z"
+    }
+  },
+  "POST /artworks/:artworkId/comments": {
+    "status": 201,
+    "body": {
+      "id": "80000000-0000-4000-8000-000000000003",
+      "contentType": "ARTWORK",
+      "contentId": "9c7e0f73-2a2c-4bd6-8a8b-8e4d2c4b4f11",
+      "parentCommentId": null,
+      "status": "VISIBLE",
+      "user": { "id": "c776f954-77a5-49d9-b778-77a1120d1be9", "nickname": "EdgeUser", "avatarUrl": "", "role": "buyer" },
+      "text": "Edge create artwork comment (demo)",
+      "createdAt": "2026-01-11T10:05:00Z"
     }
   },
   "PATCH /comments/:commentId": {
@@ -231,6 +328,56 @@
       "text": "Edge text (moderated)",
       "createdAt": "2026-01-11T09:00:00Z",
       "updatedAt": "2026-01-11T09:20:00Z"
+    }
+  },
+  "GET /admin/artworks": {
+    "status": 200,
+    "body": {
+      "items": [
+        {
+          "id": "9c7e0f73-2a2c-4bd6-8a8b-8e4d2c4b4f11",
+          "title": "草书条幅（边界示例）",
+          "category": "CALLIGRAPHY",
+          "calligraphyScript": "CAOSHU",
+          "creatorName": "匿名",
+          "priceType": "NEGOTIABLE",
+          "priceAmountFen": 0,
+          "depositAmountFen": 0,
+          "auditStatus": "PENDING",
+          "status": "DRAFT",
+          "createdAt": "2026-01-05T08:00:00Z",
+          "certificateNo": "TEST-NO-EDGE-001",
+          "certificateFileIds": ["a0123456-7890-4abc-8def-0123456789ab"],
+          "media": [
+            {
+              "fileId": "b1123456-7890-4abc-8def-0123456789ab",
+              "type": "IMAGE",
+              "sort": 0,
+              "url": "https://example.com/media/artwork-edge-1.jpg"
+            }
+          ]
+        }
+      ],
+      "page": { "page": 1, "pageSize": 10, "total": 1 }
+    }
+  },
+  "GET /admin/tech-managers": {
+    "status": 200,
+    "body": {
+      "items": [
+        {
+          "userId": "6a8a27cc-9e92-4b53-8a6b-2b0f2acb5a39",
+          "displayName": "技术经理人A",
+          "verificationType": "TECH_MANAGER",
+          "verificationStatus": "APPROVED",
+          "regionCode": "110000",
+          "intro": "边界示例：简介为空时展示默认文案。",
+          "serviceTags": ["项目评估", "知识产权"],
+          "featuredRank": 0,
+          "featuredUntil": "2026-12-31T00:00:00Z"
+        }
+      ],
+      "page": { "page": 1, "pageSize": 10, "total": 1 }
     }
   }
 }

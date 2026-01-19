@@ -1,0 +1,16 @@
+%%{init: {'theme':'base','flowchart': {'htmlLabels': true},'themeVariables': {'fontFamily': 'Inter, Microsoft YaHei, sans-serif','lineColor':'#64748B','primaryTextColor':'#0F172A','primaryBorderColor':'#CBD5E1','primaryColor':'#F8FAFC'}}}%%
+flowchart TB
+  subgraph P["17 技术经理人栏目（小程序）"]
+    direction TB
+    Pad[" "]:::pad
+    SearchBar["搜索框<br/>• 关键词：姓名/机构/擅长领域"]
+    Filters["筛选区<br/>• 地区<br/>• 服务标签（可选）"]
+    SortBar["排序<br/>• 推荐/最新/热门"]
+    List["列表 Card<br/>• 头像/姓名/认证标识<br/>• 擅长领域与服务标签<br/>• 所在地区/咨询量/成交量"]
+    Action["操作<br/>• 点击进入详情<br/>• 在线咨询"]
+    Pad --> SearchBar
+    SearchBar --> Filters --> SortBar --> List --> Action
+  end
+
+  classDef pad fill:transparent,stroke:transparent,color:transparent;
+  linkStyle 0 stroke:transparent,fill:transparent;

@@ -19,6 +19,8 @@ function contentTypeLabel(t?: ConversationContentType | null): string {
   if (t === 'LISTING') return '专利';
   if (t === 'DEMAND') return '需求';
   if (t === 'ACHIEVEMENT') return '成果';
+  if (t === 'ARTWORK') return '书画';
+  if (t === 'TECH_MANAGER') return '技术经理人';
   return String(t);
 }
 
