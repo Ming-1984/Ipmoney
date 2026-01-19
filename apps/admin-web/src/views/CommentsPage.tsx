@@ -7,7 +7,7 @@ import { RequestErrorAlert } from '../ui/RequestState';
 import { confirmAction } from '../ui/confirm';
 
 type CommentStatus = 'VISIBLE' | 'HIDDEN' | 'DELETED';
-type CommentContentType = 'LISTING' | 'DEMAND' | 'ACHIEVEMENT';
+type CommentContentType = 'LISTING' | 'DEMAND' | 'ACHIEVEMENT' | 'ARTWORK';
 
 type Comment = {
   id: string;
@@ -37,6 +37,7 @@ function contentTypeLabel(type?: CommentContentType | null): string {
   if (!type) return '-';
   if (type === 'LISTING') return '专利';
   if (type === 'DEMAND') return '需求';
+  if (type === 'ARTWORK') return '书画';
   return '成果';
 }
 
@@ -141,6 +142,7 @@ export function CommentsPage() {
               { value: 'LISTING', label: '专利' },
               { value: 'DEMAND', label: '需求' },
               { value: 'ACHIEVEMENT', label: '成果' },
+              { value: 'ARTWORK', label: '书画' },
             ]}
           />
           <Input

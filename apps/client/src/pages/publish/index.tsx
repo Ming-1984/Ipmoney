@@ -38,6 +38,14 @@ export default function PublishPage() {
               />
               <CellRow
                 clickable
+                title={<Text className="text-strong">发布书画专区</Text>}
+                description={<Text className="muted">书画作品交易，支持订金+尾款</Text>}
+                onClick={() => {
+                  Taro.navigateTo({ url: '/pages/publish/artwork/index' });
+                }}
+              />
+              <CellRow
+                clickable
                 title={<Text className="text-strong">发布产学研需求</Text>}
                 description={<Text className="muted">发布后进入审核；通过后可被检索与咨询</Text>}
                 onClick={() => {
@@ -80,9 +88,17 @@ export default function PublishPage() {
                 clickable
                 title={<Text className="text-strong">管理我的成果</Text>}
                 description={<Text className="muted">查看/编辑/下架自己的成果展示</Text>}
-                isLast
                 onClick={() => {
                   Taro.navigateTo({ url: '/pages/my-achievements/index' });
+                }}
+              />
+              <CellRow
+                clickable
+                title={<Text className="text-strong">管理我的书画</Text>}
+                description={<Text className="muted">查看/编辑/下架自己的书画作品</Text>}
+                isLast
+                onClick={() => {
+                  Taro.navigateTo({ url: '/pages/my-artworks/index' });
                 }}
               />
             </CellGroup>
@@ -91,7 +107,7 @@ export default function PublishPage() {
           <Spacer size={12} />
 
           <Surface>
-            <Text className="muted">发布后将进入平台审核；审核通过后对外展示。</Text>
+            <Text className="muted">发布后将进入平台审核；审核通过后对外展示（专利/书画/需求/成果）。</Text>
           </Surface>
         </View>
       )}

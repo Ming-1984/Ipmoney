@@ -149,6 +149,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/me/favorites/artworks": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 我的书画收藏列表 */
+        get: operations["listMyFavoriteArtworks"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/me/recommendations/listings": {
         parameters: {
             query?: never;
@@ -344,6 +361,57 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/public/artworks/{artworkId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 获取书画作品详情（公开） */
+        get: operations["getPublicArtworkById"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/public/artworks/{artworkId}/comments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 获取书画留言列表（公开） */
+        get: operations["listPublicArtworkComments"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/public/tech-managers/{techManagerId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 获取技术经理人详情（公开） */
+        get: operations["getPublicTechManagerById"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/public/organizations": {
         parameters: {
             query?: never;
@@ -527,6 +595,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/search/artworks": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 书画专区检索 */
+        get: operations["searchArtworks"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/search/tech-managers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 技术经理人检索 */
+        get: operations["searchTechManagers"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/search/inventors": {
         parameters: {
             query?: never;
@@ -538,6 +640,44 @@ export interface paths {
         get: operations["searchInventorRankings"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/ai/agent/query": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * 智能体语义检索（P1）
+         * @description 支持文本/语音输入，输出结构化检索条件与匹配理由。
+         *     小程序支持语音输入；H5 仅提示去小程序使用语音搜索。
+         */
+        post: operations["createAiAgentQuery"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/ai/parse-results/{parseResultId}/feedback": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** AI 解析评价/纠错反馈（P1） */
+        post: operations["createAiParseFeedback"];
         delete?: never;
         options?: never;
         head?: never;
@@ -894,6 +1034,111 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/artworks": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 我的书画列表（发布方） */
+        get: operations["listMyArtworks"];
+        put?: never;
+        /** 创建书画草稿（发布方） */
+        post: operations["createArtwork"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/artworks/{artworkId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 获取书画详情（发布方/已登录） */
+        get: operations["getArtworkById"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** 更新书画草稿（发布方） */
+        patch: operations["updateArtwork"];
+        trace?: never;
+    };
+    "/artworks/{artworkId}/favorites": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 收藏书画作品 */
+        post: operations["favoriteArtwork"];
+        /** 取消收藏书画作品 */
+        delete: operations["unfavoriteArtwork"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/artworks/{artworkId}/comments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 创建书画留言/回复 */
+        post: operations["createArtworkComment"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/artworks/{artworkId}/submit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 提交审核（发布方） */
+        post: operations["submitArtwork"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/artworks/{artworkId}/off-shelf": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 下架（发布方） */
+        post: operations["offShelfArtwork"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/orders": {
         parameters: {
             query?: never;
@@ -1087,6 +1332,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/artworks/{artworkId}/conversations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 创建/获取与该书画相关的会话（咨询） */
+        post: operations["upsertArtworkConversation"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/tech-managers/{techManagerId}/conversations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 创建/获取与该技术经理人相关的会话（咨询） */
+        post: operations["upsertTechManagerConversation"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/conversations/{conversationId}/messages": {
         parameters: {
             query?: never;
@@ -1263,6 +1542,218 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/admin/config/ai": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 获取 AI 配置（后台，P1） */
+        get: operations["adminGetAiConfig"];
+        /** 更新 AI 配置（后台，P1） */
+        put: operations["adminUpdateAiConfig"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/config/alerts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 获取告警配置（后台，P1） */
+        get: operations["adminGetAlertConfig"];
+        /** 更新告警配置（后台，P1） */
+        put: operations["adminUpdateAlertConfig"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/ai/parse-results": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** AI 解析复核列表（P1） */
+        get: operations["adminListAiParseResults"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/ai/parse-results/{parseResultId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 获取 AI 解析详情（P1） */
+        get: operations["adminGetAiParseResult"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** 更新 AI 解析结果（P1） */
+        patch: operations["adminUpdateAiParseResult"];
+        trace?: never;
+    };
+    "/admin/patents": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 专利库列表（后台，P1） */
+        get: operations["adminListPatents"];
+        put?: never;
+        /** 新建专利主数据（后台，P1） */
+        post: operations["adminCreatePatent"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/patents/{patentId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 获取专利主数据（后台，P1） */
+        get: operations["adminGetPatentById"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** 更新专利主数据（后台，P1） */
+        patch: operations["adminUpdatePatent"];
+        trace?: never;
+    };
+    "/admin/patent-maintenance/schedules": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 年费日程列表（后台，P1） */
+        get: operations["adminListPatentMaintenanceSchedules"];
+        put?: never;
+        /** 创建年费日程（后台，P1） */
+        post: operations["adminCreatePatentMaintenanceSchedule"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/patent-maintenance/schedules/{scheduleId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 获取年费日程详情（后台，P1） */
+        get: operations["adminGetPatentMaintenanceSchedule"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** 更新年费日程（后台，P1） */
+        patch: operations["adminUpdatePatentMaintenanceSchedule"];
+        trace?: never;
+    };
+    "/admin/patent-maintenance/tasks": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 托管任务列表（后台，P1） */
+        get: operations["adminListPatentMaintenanceTasks"];
+        put?: never;
+        /** 创建托管任务（后台，P1） */
+        post: operations["adminCreatePatentMaintenanceTask"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/patent-maintenance/tasks/{taskId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** 更新托管任务（后台，P1） */
+        patch: operations["adminUpdatePatentMaintenanceTask"];
+        trace?: never;
+    };
+    "/admin/alerts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 告警事件列表（后台，P1） */
+        get: operations["adminListAlertEvents"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/alerts/{alertId}/ack": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 告警确认（后台，P1） */
+        post: operations["adminAcknowledgeAlertEvent"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/admin/listings": {
         parameters: {
             query?: never;
@@ -1270,10 +1761,63 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** 上架审核列表 */
+        /** 上架审核/平台内容列表 */
         get: operations["adminListListingsForAudit"];
         put?: never;
+        /** 创建平台自有上架（P1） */
+        post: operations["adminCreateListing"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/listings/{listingId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 获取上架详情（后台，P1） */
+        get: operations["adminGetListingById"];
+        put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** 更新平台自有上架（后台，P1） */
+        patch: operations["adminUpdateListing"];
+        trace?: never;
+    };
+    "/admin/listings/{listingId}/publish": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 发布上架（后台，P1） */
+        post: operations["adminPublishListing"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/listings/{listingId}/off-shelf": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 下架（后台，P1） */
+        post: operations["adminOffShelfListing"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1338,10 +1882,63 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** 需求审核列表 */
+        /** 需求审核/平台内容列表 */
         get: operations["adminListDemandsForAudit"];
         put?: never;
+        /** 创建平台自有需求（P1） */
+        post: operations["adminCreateDemand"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/demands/{demandId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 获取需求详情（后台，P1） */
+        get: operations["adminGetDemandById"];
+        put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** 更新平台自有需求（后台，P1） */
+        patch: operations["adminUpdateDemand"];
+        trace?: never;
+    };
+    "/admin/demands/{demandId}/publish": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 发布需求（后台，P1） */
+        post: operations["adminPublishDemand"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/demands/{demandId}/off-shelf": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 下架需求（后台，P1） */
+        post: operations["adminOffShelfDemand"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1389,10 +1986,63 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** 成果审核列表 */
+        /** 成果审核/平台内容列表 */
         get: operations["adminListAchievementsForAudit"];
         put?: never;
+        /** 创建平台自有成果（P1） */
+        post: operations["adminCreateAchievement"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/achievements/{achievementId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 获取成果详情（后台，P1） */
+        get: operations["adminGetAchievementById"];
+        put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** 更新平台自有成果（后台，P1） */
+        patch: operations["adminUpdateAchievement"];
+        trace?: never;
+    };
+    "/admin/achievements/{achievementId}/publish": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 发布成果（后台，P1） */
+        post: operations["adminPublishAchievement"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/achievements/{achievementId}/off-shelf": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 下架成果（后台，P1） */
+        post: operations["adminOffShelfAchievement"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1431,6 +2081,144 @@ export interface paths {
         options?: never;
         head?: never;
         patch?: never;
+        trace?: never;
+    };
+    "/admin/artworks": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 书画审核/平台内容列表 */
+        get: operations["adminListArtworksForAudit"];
+        put?: never;
+        /** 创建平台自有书画（P1） */
+        post: operations["adminCreateArtwork"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/artworks/{artworkId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 获取书画详情（后台，P1） */
+        get: operations["adminGetArtworkById"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** 更新平台自有书画（后台，P1） */
+        patch: operations["adminUpdateArtwork"];
+        trace?: never;
+    };
+    "/admin/artworks/{artworkId}/publish": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 发布书画（后台，P1） */
+        post: operations["adminPublishArtwork"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/artworks/{artworkId}/off-shelf": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 下架书画（后台，P1） */
+        post: operations["adminOffShelfArtwork"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/artworks/{artworkId}/approve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 书画审核通过 */
+        post: operations["adminApproveArtwork"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/artworks/{artworkId}/reject": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 书画审核驳回 */
+        post: operations["adminRejectArtwork"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/tech-managers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 技术经理人管理列表 */
+        get: operations["adminListTechManagers"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/tech-managers/{techManagerId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** 更新技术经理人展示信息 */
+        patch: operations["adminUpdateTechManager"];
         trace?: never;
     };
     "/admin/comments": {
@@ -1708,6 +2496,8 @@ export interface components {
             regionCode?: string;
             /** @description 主体简介（用于机构展示） */
             intro?: string;
+            /** @description 技术经理人服务标签（仅 TECH_MANAGER） */
+            serviceTags?: string[];
             logoFileId?: components["schemas"]["Uuid"];
             /** Format: uri */
             logoUrl?: string;
@@ -1760,6 +2550,7 @@ export interface components {
             contactPhone?: components["schemas"]["PhoneNumber"];
             regionCode?: string;
             intro?: string;
+            serviceTags?: string[];
             evidenceFileIds: components["schemas"]["Uuid"][];
         };
         FileObject: {
@@ -1839,6 +2630,8 @@ export interface components {
         /** @enum {string} */
         AuditStatus: "PENDING" | "APPROVED" | "REJECTED";
         /** @enum {string} */
+        ContentSource: "USER" | "PLATFORM" | "ADMIN";
+        /** @enum {string} */
         ListingStatus: "DRAFT" | "ACTIVE" | "OFF_SHELF" | "SOLD";
         /** @enum {string} */
         SortBy: "RECOMMENDED" | "NEWEST" | "PRICE_ASC" | "PRICE_DESC" | "POPULAR" | "INVENTOR_RANK";
@@ -1863,6 +2656,7 @@ export interface components {
         ListingSummary: {
             id: components["schemas"]["Uuid"];
             patentId?: components["schemas"]["Uuid"];
+            source?: components["schemas"]["ContentSource"];
             applicationNoDisplay?: string;
             patentType?: components["schemas"]["PatentType"];
             title: string;
@@ -1909,6 +2703,7 @@ export interface components {
             ipcCodes?: string[];
             locCodes?: string[];
             media?: components["schemas"]["ListingMedia"][];
+            aiParse?: components["schemas"]["AiParseResult"];
             proofFileIds?: components["schemas"]["Uuid"][];
         };
         ListingPublic: components["schemas"]["ListingSummary"] & {
@@ -1917,6 +2712,7 @@ export interface components {
             ipcCodes?: string[];
             locCodes?: string[];
             media?: components["schemas"]["ListingMedia"][];
+            aiParse?: components["schemas"]["AiParseResult"];
         };
         ListingCreateRequest: {
             patentNumberRaw: string;
@@ -1992,6 +2788,18 @@ export interface components {
         /** @enum {string} */
         ContentSortBy: "RECOMMENDED" | "NEWEST" | "POPULAR";
         /** @enum {string} */
+        ArtworkSortBy: "RECOMMENDED" | "NEWEST" | "POPULAR" | "PRICE_ASC" | "PRICE_DESC";
+        /** @enum {string} */
+        TechManagerSortBy: "RECOMMENDED" | "NEWEST" | "POPULAR";
+        /** @enum {string} */
+        ArtworkCategory: "CALLIGRAPHY" | "PAINTING";
+        /** @enum {string} */
+        CalligraphyScript: "KAISHU" | "XINGSHU" | "CAOSHU" | "LISHU" | "ZHUANSHU";
+        /** @enum {string} */
+        PaintingGenre: "FIGURE" | "LANDSCAPE" | "BIRD_FLOWER" | "OTHER";
+        /** @enum {string} */
+        ArtworkStatus: "DRAFT" | "ACTIVE" | "OFF_SHELF" | "SOLD";
+        /** @enum {string} */
         CooperationMode: "TRANSFER" | "LICENSE" | "EQUITY" | "JOINT_DEV" | "COMMISSIONED_DEV" | "OTHER";
         /** @enum {string} */
         AchievementMaturity: "CONCEPT" | "PROTOTYPE" | "PILOT" | "MASS_PRODUCTION" | "COMMERCIALIZED" | "OTHER";
@@ -2011,6 +2819,7 @@ export interface components {
         };
         DemandSummary: {
             id: components["schemas"]["Uuid"];
+            source?: components["schemas"]["ContentSource"];
             title: string;
             summary?: string;
             budgetType?: components["schemas"]["PriceType"];
@@ -2040,12 +2849,14 @@ export interface components {
             contactPhoneMasked?: string;
             coverFileId?: components["schemas"]["Uuid"];
             media?: components["schemas"]["ContentMedia"][];
+            aiParse?: components["schemas"]["AiParseResult"];
             /** Format: date-time */
             updatedAt?: string;
         };
         DemandPublic: components["schemas"]["DemandSummary"] & {
             description?: string;
             media?: components["schemas"]["ContentMedia"][];
+            aiParse?: components["schemas"]["AiParseResult"];
         };
         PagedDemandSummary: {
             items: components["schemas"]["DemandSummary"][];
@@ -2093,6 +2904,7 @@ export interface components {
         };
         AchievementSummary: {
             id: components["schemas"]["Uuid"];
+            source?: components["schemas"]["ContentSource"];
             title: string;
             summary?: string;
             maturity?: components["schemas"]["AchievementMaturity"];
@@ -2114,12 +2926,14 @@ export interface components {
             description?: string;
             coverFileId?: components["schemas"]["Uuid"];
             media?: components["schemas"]["ContentMedia"][];
+            aiParse?: components["schemas"]["AiParseResult"];
             /** Format: date-time */
             updatedAt?: string;
         };
         AchievementPublic: components["schemas"]["AchievementSummary"] & {
             description?: string;
             media?: components["schemas"]["ContentMedia"][];
+            aiParse?: components["schemas"]["AiParseResult"];
         };
         PagedAchievementSummary: {
             items: components["schemas"]["AchievementSummary"][];
@@ -2153,6 +2967,98 @@ export interface components {
             coverFileId?: components["schemas"]["Uuid"];
             media?: components["schemas"]["ContentMedia"][];
         };
+        ArtworkSummary: {
+            id: components["schemas"]["Uuid"];
+            source?: components["schemas"]["ContentSource"];
+            title: string;
+            category: components["schemas"]["ArtworkCategory"];
+            calligraphyScript?: components["schemas"]["CalligraphyScript"];
+            paintingGenre?: components["schemas"]["PaintingGenre"];
+            creatorName: string;
+            /** Format: date */
+            creationDate?: string;
+            creationYear?: number;
+            certificateNo?: string;
+            priceType: components["schemas"]["PriceType"];
+            priceAmountFen?: components["schemas"]["MoneyFen"];
+            depositAmountFen: components["schemas"]["MoneyFen"];
+            regionCode?: string;
+            material?: string;
+            size?: string;
+            /** Format: uri */
+            coverUrl?: string;
+            stats?: components["schemas"]["ListingStats"];
+            auditStatus: components["schemas"]["AuditStatus"];
+            status: components["schemas"]["ArtworkStatus"];
+            /** Format: date-time */
+            createdAt: string;
+        };
+        Artwork: components["schemas"]["ArtworkSummary"] & {
+            sellerUserId?: components["schemas"]["Uuid"];
+            description?: string;
+            certificateFileIds?: components["schemas"]["Uuid"][];
+            coverFileId?: components["schemas"]["Uuid"];
+            media?: components["schemas"]["ContentMedia"][];
+            aiParse?: components["schemas"]["AiParseResult"];
+            /** Format: date-time */
+            updatedAt?: string;
+        };
+        ArtworkPublic: components["schemas"]["ArtworkSummary"] & {
+            seller?: components["schemas"]["UserBrief"];
+            description?: string;
+            media?: components["schemas"]["ContentMedia"][];
+            aiParse?: components["schemas"]["AiParseResult"];
+        };
+        PagedArtworkSummary: {
+            items: components["schemas"]["ArtworkSummary"][];
+            page: components["schemas"]["PageMeta"];
+        };
+        PagedArtwork: {
+            items: components["schemas"]["Artwork"][];
+            page: components["schemas"]["PageMeta"];
+        };
+        ArtworkCreateRequest: {
+            title: string;
+            category: components["schemas"]["ArtworkCategory"];
+            calligraphyScript?: components["schemas"]["CalligraphyScript"];
+            paintingGenre?: components["schemas"]["PaintingGenre"];
+            creatorName: string;
+            /** Format: date */
+            creationDate?: string;
+            creationYear?: number;
+            certificateNo?: string;
+            certificateFileIds?: components["schemas"]["Uuid"][];
+            description?: string;
+            priceType: components["schemas"]["PriceType"];
+            priceAmountFen?: components["schemas"]["MoneyFen"];
+            depositAmountFen?: components["schemas"]["MoneyFen"];
+            regionCode?: string;
+            material?: string;
+            size?: string;
+            coverFileId?: components["schemas"]["Uuid"];
+            media?: components["schemas"]["ContentMedia"][];
+        };
+        ArtworkUpdateRequest: {
+            title?: string;
+            category?: components["schemas"]["ArtworkCategory"];
+            calligraphyScript?: components["schemas"]["CalligraphyScript"];
+            paintingGenre?: components["schemas"]["PaintingGenre"];
+            creatorName?: string;
+            /** Format: date */
+            creationDate?: string;
+            creationYear?: number;
+            certificateNo?: string;
+            certificateFileIds?: components["schemas"]["Uuid"][];
+            description?: string;
+            priceType?: components["schemas"]["PriceType"];
+            priceAmountFen?: components["schemas"]["MoneyFen"];
+            depositAmountFen?: components["schemas"]["MoneyFen"];
+            regionCode?: string;
+            material?: string;
+            size?: string;
+            coverFileId?: components["schemas"]["Uuid"];
+            media?: components["schemas"]["ContentMedia"][];
+        };
         OrganizationStats: {
             listingCount: number;
             patentCount: number;
@@ -2174,6 +3080,41 @@ export interface components {
             items: components["schemas"]["OrganizationSummary"][];
             page: components["schemas"]["PageMeta"];
         };
+        TechManagerStats: {
+            consultCount?: number;
+            dealCount?: number;
+            /** Format: double */
+            ratingScore?: number;
+            ratingCount?: number;
+        };
+        TechManagerSummary: {
+            userId: components["schemas"]["Uuid"];
+            displayName: string;
+            verificationType: components["schemas"]["VerificationType"];
+            verificationStatus: components["schemas"]["VerificationStatus"];
+            regionCode?: string;
+            /** Format: uri */
+            avatarUrl?: string;
+            intro?: string;
+            serviceTags?: string[];
+            stats?: components["schemas"]["TechManagerStats"];
+            /** Format: date-time */
+            verifiedAt?: string;
+        };
+        TechManagerPublic: components["schemas"]["TechManagerSummary"] & {
+            evidenceFileIds?: components["schemas"]["Uuid"][];
+        };
+        PagedTechManagerSummary: {
+            items: components["schemas"]["TechManagerSummary"][];
+            page: components["schemas"]["PageMeta"];
+        };
+        TechManagerUpdateRequest: {
+            intro?: string;
+            serviceTags?: string[];
+            featuredRank?: number;
+            /** Format: date-time */
+            featuredUntil?: string;
+        };
         InventorRankingItem: {
             inventorName: string;
             /** @description 该发明人在平台内上传专利中的去重数量（按 patentId） */
@@ -2191,7 +3132,8 @@ export interface components {
         OrderListRole: "BUYER" | "SELLER";
         Order: {
             id: components["schemas"]["Uuid"];
-            listingId: components["schemas"]["Uuid"];
+            listingId?: components["schemas"]["Uuid"];
+            artworkId?: components["schemas"]["Uuid"];
             patentId?: components["schemas"]["Uuid"];
             buyerUserId: components["schemas"]["Uuid"];
             sellerUserId?: components["schemas"]["Uuid"];
@@ -2570,7 +3512,7 @@ export interface components {
             verificationType?: components["schemas"]["VerificationType"];
         };
         /** @enum {string} */
-        CommentContentType: "LISTING" | "DEMAND" | "ACHIEVEMENT";
+        CommentContentType: "LISTING" | "DEMAND" | "ACHIEVEMENT" | "ARTWORK";
         /** @enum {string} */
         CommentStatus: "VISIBLE" | "HIDDEN" | "DELETED";
         Comment: {
@@ -2611,7 +3553,7 @@ export interface components {
             page: components["schemas"]["PageMeta"];
         };
         /** @enum {string} */
-        ConversationContentType: "LISTING" | "DEMAND" | "ACHIEVEMENT";
+        ConversationContentType: "LISTING" | "DEMAND" | "ACHIEVEMENT" | "ARTWORK" | "TECH_MANAGER";
         Conversation: {
             id: components["schemas"]["Uuid"];
             contentType: components["schemas"]["ConversationContentType"];
@@ -2674,6 +3616,352 @@ export interface components {
         PagedConversationMessage: {
             items: components["schemas"]["ConversationMessage"][];
             nextCursor?: string | null;
+        };
+        /** @enum {string} */
+        AiAgentInputType: "TEXT" | "VOICE";
+        /** @enum {string} */
+        AiContentScope: "LISTING" | "DEMAND" | "ACHIEVEMENT" | "ARTWORK" | "ALL";
+        /** @enum {string} */
+        AiContentType: "LISTING" | "DEMAND" | "ACHIEVEMENT" | "ARTWORK";
+        /** @enum {string} */
+        AiParseStatus: "ACTIVE" | "REVIEW_REQUIRED" | "REPLACED";
+        /** @enum {string} */
+        AiParseFeedbackActorType: "USER" | "ADMIN";
+        AiAgentQueryRequest: {
+            inputType: components["schemas"]["AiAgentInputType"];
+            inputText?: string;
+            audioFileId?: components["schemas"]["Uuid"];
+            contentScope?: components["schemas"]["AiContentScope"];
+            regionCode?: string;
+            industryTags?: string[];
+            extraContext?: {
+                [key: string]: unknown;
+            };
+        };
+        AiSearchFilters: {
+            q?: string;
+            patentType?: components["schemas"]["PatentType"];
+            tradeMode?: components["schemas"]["TradeMode"];
+            priceType?: components["schemas"]["PriceType"];
+            priceMinFen?: components["schemas"]["MoneyFen"];
+            priceMaxFen?: components["schemas"]["MoneyFen"];
+            depositMinFen?: components["schemas"]["MoneyFen"];
+            depositMaxFen?: components["schemas"]["MoneyFen"];
+            regionCode?: string;
+            industryTags?: string[];
+            cooperationModes?: components["schemas"]["CooperationMode"][];
+            budgetType?: components["schemas"]["PriceType"];
+            budgetMinFen?: components["schemas"]["MoneyFen"];
+            budgetMaxFen?: components["schemas"]["MoneyFen"];
+            maturity?: components["schemas"]["AchievementMaturity"];
+            category?: components["schemas"]["ArtworkCategory"];
+            calligraphyScript?: components["schemas"]["CalligraphyScript"];
+            paintingGenre?: components["schemas"]["PaintingGenre"];
+            creator?: string;
+            creationYearStart?: number;
+            creationYearEnd?: number;
+        };
+        AiAgentParsedQuery: {
+            contentType?: components["schemas"]["AiContentType"];
+            keywords?: string[];
+            applicationScenario?: string;
+            filters?: components["schemas"]["AiSearchFilters"];
+        };
+        AiAgentMatchSummary: {
+            contentType: components["schemas"]["AiContentType"];
+            contentId: components["schemas"]["Uuid"];
+            title: string;
+            reason?: string;
+            /** Format: double */
+            score?: number;
+        };
+        AiAgentQueryResult: {
+            queryId: components["schemas"]["Uuid"];
+            recognizedText?: string;
+            normalizedText?: string;
+            contentScope?: components["schemas"]["AiContentScope"];
+            parsedQuery: components["schemas"]["AiAgentParsedQuery"];
+            matchSummary?: string;
+            topMatches?: components["schemas"]["AiAgentMatchSummary"][];
+            /** Format: double */
+            confidence?: number;
+            /** Format: date-time */
+            createdAt?: string;
+        };
+        AiParseResult: {
+            id: components["schemas"]["Uuid"];
+            contentType: components["schemas"]["AiContentType"];
+            contentId: components["schemas"]["Uuid"];
+            summaryPlain?: string;
+            featuresPlain?: string;
+            keywords?: string[];
+            /** Format: double */
+            confidence: number;
+            modelVersion?: string;
+            status: components["schemas"]["AiParseStatus"];
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            updatedAt?: string;
+        };
+        AiParseFeedback: {
+            id: components["schemas"]["Uuid"];
+            parseResultId: components["schemas"]["Uuid"];
+            actorUserId?: components["schemas"]["Uuid"];
+            actorType: components["schemas"]["AiParseFeedbackActorType"];
+            score: number;
+            reasonTags?: string[];
+            comment?: string;
+            /** Format: date-time */
+            createdAt: string;
+        };
+        AiParseFeedbackRequest: {
+            score: number;
+            reasonTags?: string[];
+            comment?: string;
+        };
+        AiParseResultUpdateRequest: {
+            summaryPlain?: string;
+            featuresPlain?: string;
+            keywords?: string[];
+            status?: components["schemas"]["AiParseStatus"];
+            note?: string;
+        };
+        PagedAiParseResult: {
+            items: components["schemas"]["AiParseResult"][];
+            page: components["schemas"]["PageMeta"];
+        };
+        AiConfig: {
+            enabled: boolean;
+            voiceEnabled?: boolean;
+            asrProvider?: string;
+            llmProvider?: string;
+            hotwords?: string[];
+            agentModelVersion?: string;
+            parseModelVersion?: string;
+            /** Format: double */
+            confidenceThreshold?: number;
+            /** Format: double */
+            reviewThreshold?: number;
+            maxInputSeconds?: number;
+        };
+        AiConfigUpdateRequest: {
+            enabled?: boolean;
+            voiceEnabled?: boolean;
+            asrProvider?: string;
+            llmProvider?: string;
+            hotwords?: string[];
+            agentModelVersion?: string;
+            parseModelVersion?: string;
+            /** Format: double */
+            confidenceThreshold?: number;
+            /** Format: double */
+            reviewThreshold?: number;
+            maxInputSeconds?: number;
+        };
+        /** @enum {string} */
+        AlertSeverity: "LOW" | "MEDIUM" | "HIGH";
+        /** @enum {string} */
+        AlertChannel: "SMS" | "EMAIL" | "IN_APP";
+        /** @enum {string} */
+        AlertStatus: "PENDING" | "SENT" | "ACKED" | "SUPPRESSED";
+        /** @enum {string} */
+        AlertTargetType: "PATENT" | "ORDER" | "LISTING" | "DEMAND" | "ACHIEVEMENT" | "ARTWORK" | "AI_PARSE" | "IMPORT" | "PAYMENT" | "REFUND" | "SYSTEM";
+        AlertRule: {
+            type: string;
+            severity: components["schemas"]["AlertSeverity"];
+            channels: components["schemas"]["AlertChannel"][];
+            enabled: boolean;
+            /** Format: double */
+            threshold?: number;
+            cooldownMinutes?: number;
+        };
+        AlertConfig: {
+            enabled: boolean;
+            defaultChannels?: components["schemas"]["AlertChannel"][];
+            rules: components["schemas"]["AlertRule"][];
+        };
+        AlertConfigUpdateRequest: {
+            enabled?: boolean;
+            defaultChannels?: components["schemas"]["AlertChannel"][];
+            rules?: components["schemas"]["AlertRule"][];
+        };
+        AlertEvent: {
+            id: components["schemas"]["Uuid"];
+            type: string;
+            severity: components["schemas"]["AlertSeverity"];
+            channel: components["schemas"]["AlertChannel"];
+            status: components["schemas"]["AlertStatus"];
+            targetType?: components["schemas"]["AlertTargetType"];
+            targetId?: components["schemas"]["Uuid"];
+            message?: string;
+            /** Format: date-time */
+            triggeredAt: string;
+            /** Format: date-time */
+            sentAt?: string | null;
+        };
+        PagedAlertEvent: {
+            items: components["schemas"]["AlertEvent"][];
+            page: components["schemas"]["PageMeta"];
+        };
+        /** @enum {string} */
+        PatentMaintenanceStatus: "DUE" | "PAID" | "OVERDUE" | "WAIVED";
+        /** @enum {string} */
+        PatentMaintenanceTaskStatus: "OPEN" | "IN_PROGRESS" | "DONE" | "CANCELLED";
+        PatentMaintenanceSchedule: {
+            id: components["schemas"]["Uuid"];
+            patentId: components["schemas"]["Uuid"];
+            yearNo: number;
+            /** Format: date */
+            dueDate: string;
+            /** Format: date */
+            gracePeriodEnd?: string | null;
+            status: components["schemas"]["PatentMaintenanceStatus"];
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            updatedAt?: string;
+        };
+        PatentMaintenanceScheduleCreateRequest: {
+            patentId: components["schemas"]["Uuid"];
+            yearNo: number;
+            /** Format: date */
+            dueDate: string;
+            /** Format: date */
+            gracePeriodEnd?: string;
+            status?: components["schemas"]["PatentMaintenanceStatus"];
+        };
+        PatentMaintenanceScheduleUpdateRequest: {
+            /** Format: date */
+            dueDate?: string;
+            /** Format: date */
+            gracePeriodEnd?: string;
+            status?: components["schemas"]["PatentMaintenanceStatus"];
+        };
+        PatentMaintenanceTask: {
+            id: components["schemas"]["Uuid"];
+            scheduleId: components["schemas"]["Uuid"];
+            assignedCsUserId?: components["schemas"]["Uuid"];
+            status: components["schemas"]["PatentMaintenanceTaskStatus"];
+            note?: string;
+            evidenceFileId?: components["schemas"]["Uuid"];
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            updatedAt?: string;
+        };
+        PatentMaintenanceTaskCreateRequest: {
+            scheduleId: components["schemas"]["Uuid"];
+            assignedCsUserId?: components["schemas"]["Uuid"];
+            note?: string;
+        };
+        PatentMaintenanceTaskUpdateRequest: {
+            assignedCsUserId?: components["schemas"]["Uuid"];
+            status?: components["schemas"]["PatentMaintenanceTaskStatus"];
+            note?: string;
+            evidenceFileId?: components["schemas"]["Uuid"];
+        };
+        PagedPatentMaintenanceSchedule: {
+            items: components["schemas"]["PatentMaintenanceSchedule"][];
+            page: components["schemas"]["PageMeta"];
+        };
+        PagedPatentMaintenanceTask: {
+            items: components["schemas"]["PatentMaintenanceTask"][];
+            page: components["schemas"]["PageMeta"];
+        };
+        PatentCreateRequest: {
+            jurisdiction?: components["schemas"]["Jurisdiction"];
+            applicationNoNorm: string;
+            applicationNoDisplay?: string;
+            patentType: components["schemas"]["PatentType"];
+            title: string;
+            abstract?: string;
+            inventorNames?: string[];
+            assigneeNames?: string[];
+            applicantNames?: string[];
+            /** Format: date */
+            filingDate?: string;
+            /** Format: date */
+            publicationDate?: string;
+            /** Format: date */
+            grantDate?: string;
+            legalStatus?: components["schemas"]["LegalStatus"];
+            /** @enum {string} */
+            sourcePrimary?: "USER" | "ADMIN" | "PROVIDER";
+            /** Format: date-time */
+            sourceUpdatedAt?: string;
+        };
+        PatentUpdateRequest: {
+            applicationNoDisplay?: string;
+            patentType?: components["schemas"]["PatentType"];
+            title?: string;
+            abstract?: string;
+            inventorNames?: string[];
+            assigneeNames?: string[];
+            applicantNames?: string[];
+            /** Format: date */
+            filingDate?: string;
+            /** Format: date */
+            publicationDate?: string;
+            /** Format: date */
+            grantDate?: string;
+            legalStatus?: components["schemas"]["LegalStatus"];
+            /** @enum {string} */
+            sourcePrimary?: "USER" | "ADMIN" | "PROVIDER";
+            /** Format: date-time */
+            sourceUpdatedAt?: string;
+        };
+        PagedPatent: {
+            items: components["schemas"]["Patent"][];
+            page: components["schemas"]["PageMeta"];
+        };
+        AdminListingCreateRequest: components["schemas"]["ListingCreateRequest"] & {
+            source?: components["schemas"]["ContentSource"];
+            sellerUserId?: components["schemas"]["Uuid"];
+            auditStatus?: components["schemas"]["AuditStatus"];
+            status?: components["schemas"]["ListingStatus"];
+        };
+        AdminListingUpdateRequest: components["schemas"]["ListingUpdateRequest"] & {
+            source?: components["schemas"]["ContentSource"];
+            sellerUserId?: components["schemas"]["Uuid"];
+            auditStatus?: components["schemas"]["AuditStatus"];
+            status?: components["schemas"]["ListingStatus"];
+        };
+        AdminDemandCreateRequest: components["schemas"]["DemandCreateRequest"] & {
+            source?: components["schemas"]["ContentSource"];
+            publisherUserId?: components["schemas"]["Uuid"];
+            auditStatus?: components["schemas"]["AuditStatus"];
+            status?: components["schemas"]["ContentStatus"];
+        };
+        AdminDemandUpdateRequest: components["schemas"]["DemandUpdateRequest"] & {
+            source?: components["schemas"]["ContentSource"];
+            publisherUserId?: components["schemas"]["Uuid"];
+            auditStatus?: components["schemas"]["AuditStatus"];
+            status?: components["schemas"]["ContentStatus"];
+        };
+        AdminAchievementCreateRequest: components["schemas"]["AchievementCreateRequest"] & {
+            source?: components["schemas"]["ContentSource"];
+            publisherUserId?: components["schemas"]["Uuid"];
+            auditStatus?: components["schemas"]["AuditStatus"];
+            status?: components["schemas"]["ContentStatus"];
+        };
+        AdminAchievementUpdateRequest: components["schemas"]["AchievementUpdateRequest"] & {
+            source?: components["schemas"]["ContentSource"];
+            publisherUserId?: components["schemas"]["Uuid"];
+            auditStatus?: components["schemas"]["AuditStatus"];
+            status?: components["schemas"]["ContentStatus"];
+        };
+        AdminArtworkCreateRequest: components["schemas"]["ArtworkCreateRequest"] & {
+            source?: components["schemas"]["ContentSource"];
+            sellerUserId?: components["schemas"]["Uuid"];
+            auditStatus?: components["schemas"]["AuditStatus"];
+            status?: components["schemas"]["ArtworkStatus"];
+        };
+        AdminArtworkUpdateRequest: components["schemas"]["ArtworkUpdateRequest"] & {
+            source?: components["schemas"]["ContentSource"];
+            sellerUserId?: components["schemas"]["Uuid"];
+            auditStatus?: components["schemas"]["AuditStatus"];
+            status?: components["schemas"]["ArtworkStatus"];
         };
     };
     responses: {
@@ -2738,6 +4026,16 @@ export interface components {
         DepositMax: components["schemas"]["MoneyFen"];
         /** @description 行政区划 adcode（6 位字符串） */
         RegionCode: string;
+        /** @description 书画类别（书法/绘画） */
+        ArtworkCategory: components["schemas"]["ArtworkCategory"];
+        CalligraphyScript: components["schemas"]["CalligraphyScript"];
+        PaintingGenre: components["schemas"]["PaintingGenre"];
+        /** @description 作者/创作者 */
+        Creator: string;
+        /** @description 创作年份起 */
+        CreationYearStart: number;
+        /** @description 创作年份止 */
+        CreationYearEnd: number;
         /** @description 机构类型过滤（默认仅展示已审核通过的企业/科研院校） */
         OrganizationTypes: components["schemas"]["VerificationType"][];
         /** @description 发明人姓名（精确/模糊匹配，取决于实现；用于聚合其相关专利） */
@@ -2753,10 +4051,37 @@ export interface components {
         LegalStatus: components["schemas"]["LegalStatus"];
         SortBy: components["schemas"]["SortBy"];
         ContentSortBy: components["schemas"]["ContentSortBy"];
+        ArtworkSortBy: components["schemas"]["ArtworkSortBy"];
+        TechManagerSortBy: components["schemas"]["TechManagerSortBy"];
         /** @description 合作方式过滤（可多选） */
         CooperationModes: components["schemas"]["CooperationMode"][];
         AchievementMaturity: components["schemas"]["AchievementMaturity"];
         ContentStatus: components["schemas"]["ContentStatus"];
+        ArtworkStatus: components["schemas"]["ArtworkStatus"];
+        /** @description 内容来源过滤 */
+        ContentSource: components["schemas"]["ContentSource"];
+        /** @description 认证状态过滤 */
+        VerificationStatus: components["schemas"]["VerificationStatus"];
+        /** @description AI 内容类型过滤 */
+        AiContentType: components["schemas"]["AiContentType"];
+        /** @description AI 解析状态过滤 */
+        AiParseStatus: components["schemas"]["AiParseStatus"];
+        /** @description 年费日程状态过滤 */
+        MaintenanceStatus: components["schemas"]["PatentMaintenanceStatus"];
+        /** @description 托管任务状态过滤 */
+        MaintenanceTaskStatus: components["schemas"]["PatentMaintenanceTaskStatus"];
+        /** @description 告警状态过滤 */
+        AlertStatus: components["schemas"]["AlertStatus"];
+        /** @description 告警级别过滤 */
+        AlertSeverity: components["schemas"]["AlertSeverity"];
+        /** @description 告警渠道过滤 */
+        AlertChannel: components["schemas"]["AlertChannel"];
+        /** @description 告警目标类型过滤 */
+        AlertTargetType: components["schemas"]["AlertTargetType"];
+        ParseResultId: components["schemas"]["Uuid"];
+        MaintenanceScheduleId: components["schemas"]["Uuid"];
+        MaintenanceTaskId: components["schemas"]["Uuid"];
+        AlertId: components["schemas"]["Uuid"];
         /** @description 留言所属内容类型过滤 */
         CommentContentType: components["schemas"]["CommentContentType"];
         /** @description 留言所属内容 ID 过滤 */
@@ -2783,6 +4108,8 @@ export interface components {
         ListingId: components["schemas"]["Uuid"];
         DemandId: components["schemas"]["Uuid"];
         AchievementId: components["schemas"]["Uuid"];
+        ArtworkId: components["schemas"]["Uuid"];
+        TechManagerId: components["schemas"]["Uuid"];
         CommentId: components["schemas"]["Uuid"];
         OrgUserId: components["schemas"]["Uuid"];
         ConversationId: components["schemas"]["Uuid"];
@@ -3062,6 +4389,30 @@ export interface operations {
             401: components["responses"]["Unauthorized"];
         };
     };
+    listMyFavoriteArtworks: {
+        parameters: {
+            query?: {
+                page?: components["parameters"]["Page"];
+                pageSize?: components["parameters"]["PageSize"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PagedArtworkSummary"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+        };
+    };
     getMyRecommendedListings: {
         parameters: {
             query?: {
@@ -3335,6 +4686,79 @@ export interface operations {
                 };
             };
             400: components["responses"]["BadRequest"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    getPublicArtworkById: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                artworkId: components["parameters"]["ArtworkId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ArtworkPublic"];
+                };
+            };
+            404: components["responses"]["NotFound"];
+        };
+    };
+    listPublicArtworkComments: {
+        parameters: {
+            query?: {
+                page?: components["parameters"]["Page"];
+                pageSize?: components["parameters"]["PageSize"];
+            };
+            header?: never;
+            path: {
+                artworkId: components["parameters"]["ArtworkId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PagedCommentThread"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    getPublicTechManagerById: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                techManagerId: components["parameters"]["TechManagerId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TechManagerPublic"];
+                };
+            };
             404: components["responses"]["NotFound"];
         };
     };
@@ -3628,6 +5052,79 @@ export interface operations {
             400: components["responses"]["BadRequest"];
         };
     };
+    searchArtworks: {
+        parameters: {
+            query?: {
+                /** @description 关键词（标题/摘要/权利人/发明人/机构名称等） */
+                q?: components["parameters"]["Q"];
+                /** @description 书画类别（书法/绘画） */
+                category?: components["parameters"]["ArtworkCategory"];
+                calligraphyScript?: components["parameters"]["CalligraphyScript"];
+                paintingGenre?: components["parameters"]["PaintingGenre"];
+                /** @description 作者/创作者 */
+                creator?: components["parameters"]["Creator"];
+                /** @description 创作年份起 */
+                creationYearStart?: components["parameters"]["CreationYearStart"];
+                /** @description 创作年份止 */
+                creationYearEnd?: components["parameters"]["CreationYearEnd"];
+                priceType?: components["parameters"]["PriceType"];
+                priceMinFen?: components["parameters"]["PriceMin"];
+                priceMaxFen?: components["parameters"]["PriceMax"];
+                depositMinFen?: components["parameters"]["DepositMin"];
+                depositMaxFen?: components["parameters"]["DepositMax"];
+                /** @description 行政区划 adcode（6 位字符串） */
+                regionCode?: components["parameters"]["RegionCode"];
+                sortBy?: components["parameters"]["ArtworkSortBy"];
+                page?: components["parameters"]["Page"];
+                pageSize?: components["parameters"]["PageSize"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PagedArtworkSummary"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+        };
+    };
+    searchTechManagers: {
+        parameters: {
+            query?: {
+                /** @description 关键词（标题/摘要/权利人/发明人/机构名称等） */
+                q?: components["parameters"]["Q"];
+                /** @description 行政区划 adcode（6 位字符串） */
+                regionCode?: components["parameters"]["RegionCode"];
+                sortBy?: components["parameters"]["TechManagerSortBy"];
+                page?: components["parameters"]["Page"];
+                pageSize?: components["parameters"]["PageSize"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PagedTechManagerSummary"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+        };
+    };
     searchInventorRankings: {
         parameters: {
             query?: {
@@ -3655,6 +5152,64 @@ export interface operations {
                 };
             };
             400: components["responses"]["BadRequest"];
+        };
+    };
+    createAiAgentQuery: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AiAgentQueryRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AiAgentQueryResult"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+        };
+    };
+    createAiParseFeedback: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description 幂等键（建议用于支付/退款/放款等有副作用的接口；同一幂等键的重复请求应返回同一结果） */
+                "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
+            };
+            path: {
+                parseResultId: components["parameters"]["ParseResultId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AiParseFeedbackRequest"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AiParseFeedback"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
         };
     };
     listMyListings: {
@@ -4496,6 +6051,254 @@ export interface operations {
             404: components["responses"]["NotFound"];
         };
     };
+    listMyArtworks: {
+        parameters: {
+            query?: {
+                status?: components["parameters"]["ArtworkStatus"];
+                auditStatus?: components["parameters"]["AuditStatus"];
+                page?: components["parameters"]["Page"];
+                pageSize?: components["parameters"]["PageSize"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PagedArtwork"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+        };
+    };
+    createArtwork: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ArtworkCreateRequest"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Artwork"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+        };
+    };
+    getArtworkById: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                artworkId: components["parameters"]["ArtworkId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Artwork"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    updateArtwork: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                artworkId: components["parameters"]["ArtworkId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ArtworkUpdateRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Artwork"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    favoriteArtwork: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description 幂等键（建议用于支付/退款/放款等有副作用的接口；同一幂等键的重复请求应返回同一结果） */
+                "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
+            };
+            path: {
+                artworkId: components["parameters"]["ArtworkId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            401: components["responses"]["Unauthorized"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+        };
+    };
+    unfavoriteArtwork: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description 幂等键（建议用于支付/退款/放款等有副作用的接口；同一幂等键的重复请求应返回同一结果） */
+                "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
+            };
+            path: {
+                artworkId: components["parameters"]["ArtworkId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            401: components["responses"]["Unauthorized"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+        };
+    };
+    createArtworkComment: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description 幂等键（建议用于支付/退款/放款等有副作用的接口；同一幂等键的重复请求应返回同一结果） */
+                "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
+            };
+            path: {
+                artworkId: components["parameters"]["ArtworkId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CommentCreateRequest"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Comment"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+        };
+    };
+    submitArtwork: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                artworkId: components["parameters"]["ArtworkId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Artwork"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    offShelfArtwork: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                artworkId: components["parameters"]["ArtworkId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": {
+                    reason?: string;
+                };
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Artwork"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
     listMyOrders: {
         parameters: {
             query: {
@@ -4532,8 +6335,9 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": {
-                    listingId: components["schemas"]["Uuid"];
-                };
+                    listingId?: components["schemas"]["Uuid"];
+                    artworkId?: components["schemas"]["Uuid"];
+                } & (unknown | unknown);
             };
         };
         responses: {
@@ -4840,6 +6644,62 @@ export interface operations {
             };
             path: {
                 achievementId: components["parameters"]["AchievementId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Conversation"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+        };
+    };
+    upsertArtworkConversation: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description 幂等键（建议用于支付/退款/放款等有副作用的接口；同一幂等键的重复请求应返回同一结果） */
+                "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
+            };
+            path: {
+                artworkId: components["parameters"]["ArtworkId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Conversation"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+        };
+    };
+    upsertTechManagerConversation: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description 幂等键（建议用于支付/退款/放款等有副作用的接口；同一幂等键的重复请求应返回同一结果） */
+                "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
+            };
+            path: {
+                techManagerId: components["parameters"]["TechManagerId"];
             };
             cookie?: never;
         };
@@ -5313,6 +7173,559 @@ export interface operations {
             403: components["responses"]["Forbidden"];
         };
     };
+    adminGetAiConfig: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AiConfig"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+        };
+    };
+    adminUpdateAiConfig: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AiConfigUpdateRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AiConfig"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+        };
+    };
+    adminGetAlertConfig: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AlertConfig"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+        };
+    };
+    adminUpdateAlertConfig: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AlertConfigUpdateRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AlertConfig"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+        };
+    };
+    adminListAiParseResults: {
+        parameters: {
+            query?: {
+                /** @description AI 内容类型过滤 */
+                contentType?: components["parameters"]["AiContentType"];
+                /** @description AI 解析状态过滤 */
+                status?: components["parameters"]["AiParseStatus"];
+                page?: components["parameters"]["Page"];
+                pageSize?: components["parameters"]["PageSize"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PagedAiParseResult"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+        };
+    };
+    adminGetAiParseResult: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                parseResultId: components["parameters"]["ParseResultId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AiParseResult"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    adminUpdateAiParseResult: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                parseResultId: components["parameters"]["ParseResultId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AiParseResultUpdateRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AiParseResult"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    adminListPatents: {
+        parameters: {
+            query?: {
+                /** @description 关键词（标题/摘要/权利人/发明人/机构名称等） */
+                q?: components["parameters"]["Q"];
+                patentType?: components["parameters"]["PatentType"];
+                legalStatus?: components["parameters"]["LegalStatus"];
+                page?: components["parameters"]["Page"];
+                pageSize?: components["parameters"]["PageSize"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PagedPatent"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+        };
+    };
+    adminCreatePatent: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PatentCreateRequest"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Patent"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+        };
+    };
+    adminGetPatentById: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                patentId: components["parameters"]["PatentId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Patent"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    adminUpdatePatent: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                patentId: components["parameters"]["PatentId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PatentUpdateRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Patent"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    adminListPatentMaintenanceSchedules: {
+        parameters: {
+            query?: {
+                patentId?: components["schemas"]["Uuid"];
+                /** @description 年费日程状态过滤 */
+                status?: components["parameters"]["MaintenanceStatus"];
+                dueFrom?: string;
+                dueTo?: string;
+                page?: components["parameters"]["Page"];
+                pageSize?: components["parameters"]["PageSize"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PagedPatentMaintenanceSchedule"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+        };
+    };
+    adminCreatePatentMaintenanceSchedule: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PatentMaintenanceScheduleCreateRequest"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PatentMaintenanceSchedule"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+        };
+    };
+    adminGetPatentMaintenanceSchedule: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                scheduleId: components["parameters"]["MaintenanceScheduleId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PatentMaintenanceSchedule"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    adminUpdatePatentMaintenanceSchedule: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                scheduleId: components["parameters"]["MaintenanceScheduleId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PatentMaintenanceScheduleUpdateRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PatentMaintenanceSchedule"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    adminListPatentMaintenanceTasks: {
+        parameters: {
+            query?: {
+                scheduleId?: components["schemas"]["Uuid"];
+                assignedCsUserId?: components["schemas"]["Uuid"];
+                /** @description 托管任务状态过滤 */
+                status?: components["parameters"]["MaintenanceTaskStatus"];
+                page?: components["parameters"]["Page"];
+                pageSize?: components["parameters"]["PageSize"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PagedPatentMaintenanceTask"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+        };
+    };
+    adminCreatePatentMaintenanceTask: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PatentMaintenanceTaskCreateRequest"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PatentMaintenanceTask"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+        };
+    };
+    adminUpdatePatentMaintenanceTask: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                taskId: components["parameters"]["MaintenanceTaskId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PatentMaintenanceTaskUpdateRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PatentMaintenanceTask"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    adminListAlertEvents: {
+        parameters: {
+            query?: {
+                /** @description 告警状态过滤 */
+                status?: components["parameters"]["AlertStatus"];
+                /** @description 告警级别过滤 */
+                severity?: components["parameters"]["AlertSeverity"];
+                /** @description 告警渠道过滤 */
+                channel?: components["parameters"]["AlertChannel"];
+                /** @description 告警目标类型过滤 */
+                targetType?: components["parameters"]["AlertTargetType"];
+                type?: string;
+                targetId?: components["schemas"]["Uuid"];
+                triggeredFrom?: string;
+                triggeredTo?: string;
+                page?: components["parameters"]["Page"];
+                pageSize?: components["parameters"]["PageSize"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PagedAlertEvent"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+        };
+    };
+    adminAcknowledgeAlertEvent: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                alertId: components["parameters"]["AlertId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AlertEvent"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
     adminListListingsForAudit: {
         parameters: {
             query?: {
@@ -5322,6 +7735,8 @@ export interface operations {
                 regionCode?: components["parameters"]["RegionCode"];
                 auditStatus?: components["parameters"]["AuditStatus"];
                 status?: components["parameters"]["ListingStatus"];
+                /** @description 内容来源过滤 */
+                source?: components["parameters"]["ContentSource"];
                 page?: components["parameters"]["Page"];
                 pageSize?: components["parameters"]["PageSize"];
             };
@@ -5342,6 +7757,145 @@ export interface operations {
             };
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
+        };
+    };
+    adminCreateListing: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AdminListingCreateRequest"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Listing"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+        };
+    };
+    adminGetListingById: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                listingId: components["parameters"]["ListingId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Listing"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    adminUpdateListing: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                listingId: components["parameters"]["ListingId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AdminListingUpdateRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Listing"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    adminPublishListing: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                listingId: components["parameters"]["ListingId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Listing"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+        };
+    };
+    adminOffShelfListing: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                listingId: components["parameters"]["ListingId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": {
+                    reason?: string;
+                };
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Listing"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
         };
     };
     adminApproveListing: {
@@ -5445,6 +7999,8 @@ export interface operations {
                 regionCode?: components["parameters"]["RegionCode"];
                 auditStatus?: components["parameters"]["AuditStatus"];
                 status?: components["parameters"]["ContentStatus"];
+                /** @description 内容来源过滤 */
+                source?: components["parameters"]["ContentSource"];
                 page?: components["parameters"]["Page"];
                 pageSize?: components["parameters"]["PageSize"];
             };
@@ -5465,6 +8021,145 @@ export interface operations {
             };
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
+        };
+    };
+    adminCreateDemand: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AdminDemandCreateRequest"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Demand"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+        };
+    };
+    adminGetDemandById: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                demandId: components["parameters"]["DemandId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Demand"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    adminUpdateDemand: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                demandId: components["parameters"]["DemandId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AdminDemandUpdateRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Demand"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    adminPublishDemand: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                demandId: components["parameters"]["DemandId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Demand"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+        };
+    };
+    adminOffShelfDemand: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                demandId: components["parameters"]["DemandId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": {
+                    reason?: string;
+                };
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Demand"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
         };
     };
     adminApproveDemand: {
@@ -5534,6 +8229,8 @@ export interface operations {
                 regionCode?: components["parameters"]["RegionCode"];
                 auditStatus?: components["parameters"]["AuditStatus"];
                 status?: components["parameters"]["ContentStatus"];
+                /** @description 内容来源过滤 */
+                source?: components["parameters"]["ContentSource"];
                 page?: components["parameters"]["Page"];
                 pageSize?: components["parameters"]["PageSize"];
             };
@@ -5554,6 +8251,145 @@ export interface operations {
             };
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
+        };
+    };
+    adminCreateAchievement: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AdminAchievementCreateRequest"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Achievement"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+        };
+    };
+    adminGetAchievementById: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                achievementId: components["parameters"]["AchievementId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Achievement"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    adminUpdateAchievement: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                achievementId: components["parameters"]["AchievementId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AdminAchievementUpdateRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Achievement"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    adminPublishAchievement: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                achievementId: components["parameters"]["AchievementId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Achievement"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+        };
+    };
+    adminOffShelfAchievement: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                achievementId: components["parameters"]["AchievementId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": {
+                    reason?: string;
+                };
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Achievement"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
         };
     };
     adminApproveAchievement: {
@@ -5608,6 +8444,296 @@ export interface operations {
                     "application/json": components["schemas"]["Achievement"];
                 };
             };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    adminListArtworksForAudit: {
+        parameters: {
+            query?: {
+                /** @description 关键词（标题/摘要/权利人/发明人/机构名称等） */
+                q?: components["parameters"]["Q"];
+                /** @description 行政区划 adcode（6 位字符串） */
+                regionCode?: components["parameters"]["RegionCode"];
+                auditStatus?: components["parameters"]["AuditStatus"];
+                status?: components["parameters"]["ArtworkStatus"];
+                /** @description 内容来源过滤 */
+                source?: components["parameters"]["ContentSource"];
+                page?: components["parameters"]["Page"];
+                pageSize?: components["parameters"]["PageSize"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PagedArtwork"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+        };
+    };
+    adminCreateArtwork: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AdminArtworkCreateRequest"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Artwork"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+        };
+    };
+    adminGetArtworkById: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                artworkId: components["parameters"]["ArtworkId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Artwork"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    adminUpdateArtwork: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                artworkId: components["parameters"]["ArtworkId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AdminArtworkUpdateRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Artwork"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    adminPublishArtwork: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                artworkId: components["parameters"]["ArtworkId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Artwork"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+        };
+    };
+    adminOffShelfArtwork: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                artworkId: components["parameters"]["ArtworkId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": {
+                    reason?: string;
+                };
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Artwork"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    adminApproveArtwork: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                artworkId: components["parameters"]["ArtworkId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Artwork"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+        };
+    };
+    adminRejectArtwork: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                artworkId: components["parameters"]["ArtworkId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    reason: string;
+                };
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Artwork"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    adminListTechManagers: {
+        parameters: {
+            query?: {
+                /** @description 关键词（标题/摘要/权利人/发明人/机构名称等） */
+                q?: components["parameters"]["Q"];
+                /** @description 行政区划 adcode（6 位字符串） */
+                regionCode?: components["parameters"]["RegionCode"];
+                /** @description 认证状态过滤 */
+                verificationStatus?: components["parameters"]["VerificationStatus"];
+                page?: components["parameters"]["Page"];
+                pageSize?: components["parameters"]["PageSize"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PagedTechManagerSummary"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+        };
+    };
+    adminUpdateTechManager: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                techManagerId: components["parameters"]["TechManagerId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TechManagerUpdateRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TechManagerPublic"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];

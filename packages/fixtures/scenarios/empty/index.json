@@ -20,6 +20,20 @@
       "page": { "page": 1, "pageSize": 10, "total": 0 }
     }
   },
+  "GET /search/artworks": {
+    "status": 200,
+    "body": {
+      "items": [],
+      "page": { "page": 1, "pageSize": 10, "total": 0 }
+    }
+  },
+  "GET /search/tech-managers": {
+    "status": 200,
+    "body": {
+      "items": [],
+      "page": { "page": 1, "pageSize": 10, "total": 0 }
+    }
+  },
   "GET /public/organizations": {
     "status": 200,
     "body": {
@@ -42,6 +56,20 @@
     }
   },
   "GET /admin/listings": {
+    "status": 200,
+    "body": {
+      "items": [],
+      "page": { "page": 1, "pageSize": 10, "total": 0 }
+    }
+  },
+  "GET /admin/artworks": {
+    "status": 200,
+    "body": {
+      "items": [],
+      "page": { "page": 1, "pageSize": 10, "total": 0 }
+    }
+  },
+  "GET /admin/tech-managers": {
     "status": 200,
     "body": {
       "items": [],
@@ -150,6 +178,10 @@
     "status": 200,
     "body": { "items": [], "page": { "page": 1, "pageSize": 20, "total": 0 } }
   },
+  "GET /public/artworks/:artworkId/comments": {
+    "status": 200,
+    "body": { "items": [], "page": { "page": 1, "pageSize": 20, "total": 0 } }
+  },
   "POST /listings/:listingId/comments": {
     "status": 201,
     "body": {
@@ -187,6 +219,19 @@
       "user": { "id": "c776f954-77a5-49d9-b778-77a1120d1be9", "nickname": "演示用户", "avatarUrl": "", "role": "buyer" },
       "text": "空场景留言（演示）",
       "createdAt": "2026-01-11T11:10:00Z"
+    }
+  },
+  "POST /artworks/:artworkId/comments": {
+    "status": 201,
+    "body": {
+      "id": "80000000-0000-4000-8000-000000000002",
+      "contentType": "ARTWORK",
+      "contentId": "3d0b9c7a-1a9f-4b4d-9f6a-3a62b8f6d6e1",
+      "parentCommentId": null,
+      "status": "VISIBLE",
+      "user": { "id": "c776f954-77a5-49d9-b778-77a1120d1be9", "nickname": "演示用户", "avatarUrl": "", "role": "buyer" },
+      "text": "空场景留言（演示）",
+      "createdAt": "2026-01-11T11:30:00Z"
     }
   },
   "PATCH /comments/:commentId": {

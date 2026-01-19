@@ -2,13 +2,15 @@ import React from 'react';
 
 import { Location, Star, Store, User } from '@nutui/icons-react-taro';
 
-export type AppIconName = 'feeds' | 'inventors' | 'map' | 'organizations';
+export type AppIconName = 'feeds' | 'inventors' | 'map' | 'organizations' | 'artworks' | 'tech-managers';
 
 const ICONS: Record<AppIconName, React.ComponentType<{ size?: string | number; color?: string }>> = {
   feeds: Star,
   inventors: User,
   map: Location,
   organizations: Store,
+  artworks: Star,
+  'tech-managers': User,
 };
 
 export function AppIcon(props: { name: AppIconName; size?: number; color?: string }) {

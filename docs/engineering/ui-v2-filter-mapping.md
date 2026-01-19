@@ -59,6 +59,22 @@
 | 机构类型（多选） | Chip（多选） | `types[]` | `VerificationType[]` | P0 | 注意 query 参数名为 `types`（不是 `organizationTypes`） |
 | 地区 | CellRow → `pages/region-picker/index` | `regionCode` | `string(6)` | P0 |  |
 
+### 1.5 书画专区（`GET /search/artworks`）
+
+| UI 字段 | 组件形态（推荐） | OpenAPI query | 类型 | 优先级 | 备注 |
+|---|---|---|---|---|---|
+| 关键词 | SearchEntry | `q` | `string` | P0 | 作品名称/作者/证书编号等 |
+| 排序 | SortControl（Tabs line；SortSheet P1） | `sortBy` | `ArtworkSortBy` | P0 | Tabs：`RECOMMENDED/NEWEST/POPULAR`；更多（SortSheet｜P1）：`PRICE_ASC/PRICE_DESC` |
+| 类别 | Chip（单选） | `category` | `ArtworkCategory` | P0 | `CALLIGRAPHY/PAINTING` |
+| 书体 | Chip（单选） | `calligraphyScript` | `CalligraphyScript` | P0 | 仅当 `category=CALLIGRAPHY` 可见 |
+| 题材 | Chip（单选） | `paintingGenre` | `PaintingGenre` | P0 | 仅当 `category=PAINTING` 可见 |
+| 作者 | Input | `creator` | `string` | P0 |  |
+| 创作年份 | RangeInput | `creationYearStart`/`creationYearEnd` | `number` | P0 | 例如 1990-2024 |
+| 价格类型 | Chip（单选） | `priceType` | `PriceType` | P0 | `FIXED/NEGOTIABLE` |
+| 价格区间（元） | RangeInput | `priceMinFen`/`priceMaxFen` | `MoneyFen` | P0 | UI 输入元 → 转分；校验 `min<=max` |
+| 订金区间（元） | RangeInput | `depositMinFen`/`depositMaxFen` | `MoneyFen` | P0 | 与价格区间同校验规则 |
+| 地区 | CellRow → `pages/region-picker/index` | `regionCode` | `string(6)` | P0 | 发布地区 |
+
 ## 2. 榜单/展示类列表页（非 Search Tab）
 
 ### 2.1 发明人榜（`pages/inventors/index` → `GET /search/inventors`）
@@ -72,6 +88,14 @@
 ### 2.2 机构展示（`pages/organizations/index` → `GET /public/organizations`）
 
 > 与 Search-机构一致；本页的筛选/排序控件应复用同一套 FilterSheet/Chip/CellRow 规范（见 `docs/engineering/ui-v2-spec.md` 的 4.8）。
+
+### 2.3 技术经理人栏目（`pages/tech-managers/index` → `GET /search/tech-managers`）
+
+| UI 字段 | 组件形态（推荐） | OpenAPI query | 类型 | 优先级 | 备注 |
+|---|---|---|---|---|---|
+| 关键词 | SearchEntry | `q` | `string` | P0 | 姓名/机构/擅长领域 |
+| 排序 | SortControl（Tabs line） | `sortBy` | `TechManagerSortBy` | P0 | `RECOMMENDED/NEWEST/POPULAR` |
+| 地区 | FilterSheet（CellRow） | `regionCode` | `string(6)` | P0 |  |
 
 ## 3. “我的”类列表（卖家/发布方）
 
@@ -96,6 +120,13 @@
 | 状态 | CategoryControl（Tabs line） | `status` | `ContentStatus` | P0 | `DRAFT/ACTIVE/OFF_SHELF` |
 | 审核状态 | FilterSheet（Chip） | `auditStatus` | `AuditStatus` | P0 | `PENDING/APPROVED/REJECTED` |
 
+### 3.4 我的书画（`pages/my-artworks/index` → `GET /artworks`）
+
+| UI 字段 | 组件形态（推荐） | OpenAPI query | 类型 | 优先级 | 备注 |
+|---|---|---|---|---|---|
+| 状态 | CategoryControl（Tabs line） | `status` | `ArtworkStatus` | P0 | `DRAFT/ACTIVE/OFF_SHELF/SOLD` |
+| 审核状态 | FilterSheet（Chip） | `auditStatus` | `AuditStatus` | P0 | `PENDING/APPROVED/REJECTED` |
+
 ## 4. 订单列表（`pages/orders/index` → `GET /orders`）
 
 | UI 字段 | 组件形态（推荐） | OpenAPI query | 类型 | 优先级 | 备注 |
@@ -112,6 +143,7 @@
 - 专利上架审核（`GET /admin/listings`）：`auditStatus` + `status`（已支持）
 - 需求审核（`GET /admin/demands`）：`auditStatus` + `status`（已支持）
 - 成果审核（`GET /admin/achievements`）：`auditStatus` + `status`（已支持）
+- 书画审核（`GET /admin/artworks`）：`auditStatus` + `status`（新增）
 
 ### 5.2 关键词/地区等筛选（本轮需要）
 

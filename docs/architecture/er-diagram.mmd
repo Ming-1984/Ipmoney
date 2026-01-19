@@ -96,7 +96,7 @@ erDiagram
     string url
     string mime_type
     int size_bytes
-    string owner_scope "LISTING/DEMAND/ACHIEVEMENT/CASE/REFUND_REQUEST/INVOICE/USER/USER_VERIFICATION/MESSAGE/AI_PARSE/MAINTENANCE_TASK"
+    string owner_scope "LISTING/DEMAND/ACHIEVEMENT/ARTWORK/CASE/REFUND_REQUEST/INVOICE/USER/USER_VERIFICATION/MESSAGE/AI_PARSE/MAINTENANCE_TASK"
     uuid owner_id
     datetime created_at
   }
@@ -217,6 +217,56 @@ erDiagram
     datetime updated_at
   }
 
+  ARTWORKS {
+    uuid id PK
+    uuid seller_user_id FK
+    string title
+    string description
+    string category "CALLIGRAPHY/PAINTING"
+    string calligraphy_script
+    string painting_genre
+    string creator_name
+    date creation_date
+    int creation_year
+    string certificate_no
+    string price_type "FIXED/NEGOTIABLE"
+    int price_amount
+    int deposit_amount
+    string region_code
+    string material
+    string size
+    uuid cover_file_id FK
+    string audit_status "PENDING/APPROVED/REJECTED"
+    string status "DRAFT/ACTIVE/OFF_SHELF/SOLD"
+    string source "USER/PLATFORM/ADMIN"
+    datetime created_at
+    datetime updated_at
+  }
+
+  ARTWORK_MEDIA {
+    uuid id PK
+    uuid artwork_id FK
+    uuid file_id FK
+    string type "IMAGE/VIDEO/FILE"
+    int sort
+  }
+
+  ARTWORK_FAVORITES {
+    uuid id PK
+    uuid artwork_id FK
+    uuid user_id FK
+    datetime created_at
+  }
+
+  ARTWORK_STATS {
+    uuid artwork_id PK
+    int view_count
+    int favorite_count
+    int consult_count
+    int comment_count
+    datetime updated_at
+  }
+
   LISTING_MEDIA {
     uuid id PK
     uuid listing_id FK
@@ -258,6 +308,14 @@ erDiagram
     datetime created_at
   }
 
+  ARTWORK_CONSULT_EVENTS {
+    uuid id PK
+    uuid artwork_id FK
+    uuid user_id FK
+    string channel "WECHAT_CS/PHONE/FORM"
+    datetime created_at
+  }
+
   USER_TAG_SCORES {
     uuid id PK
     uuid user_id FK
@@ -269,6 +327,7 @@ erDiagram
   ORDERS {
     uuid id PK
     uuid listing_id FK
+    uuid artwork_id FK
     uuid buyer_user_id FK
     uuid assigned_cs_user_id FK
     string status
@@ -285,7 +344,7 @@ erDiagram
 
   CONVERSATIONS {
     uuid id PK
-    string content_type "LISTING/DEMAND/ACHIEVEMENT"
+    string content_type "LISTING/DEMAND/ACHIEVEMENT/ARTWORK/TECH_MANAGER"
     uuid content_id FK
     uuid order_id FK
     uuid buyer_user_id FK
@@ -315,7 +374,7 @@ erDiagram
 
   COMMENTS {
     uuid id PK
-    string content_type "LISTING/DEMAND/ACHIEVEMENT"
+    string content_type "LISTING/DEMAND/ACHIEVEMENT/ARTWORK"
     uuid content_id FK
     uuid parent_comment_id FK
     uuid user_id FK
@@ -384,7 +443,7 @@ erDiagram
 
   AI_PARSE_RESULTS {
     uuid id PK
-    string content_type "LISTING/DEMAND/ACHIEVEMENT"
+    string content_type "LISTING/DEMAND/ACHIEVEMENT/ARTWORK"
     uuid content_id FK
     string summary_plain
     string features_plain
@@ -435,7 +494,7 @@ erDiagram
     string severity "LOW/MEDIUM/HIGH"
     string channel "SMS/EMAIL/IN_APP"
     string status "PENDING/SENT/ACKED/SUPPRESSED"
-    string target_type "PATENT/ORDER/LISTING/DEMAND/ACHIEVEMENT/AI_PARSE/IMPORT/PAYMENT/REFUND/SYSTEM"
+    string target_type "PATENT/ORDER/LISTING/DEMAND/ACHIEVEMENT/ARTWORK/AI_PARSE/IMPORT/PAYMENT/REFUND/SYSTEM"
     uuid target_id
     datetime triggered_at
     datetime sent_at
@@ -483,11 +542,14 @@ erDiagram
   USERS ||--o{ LISTINGS : publishes
   USERS ||--o{ DEMANDS : publishes
   USERS ||--o{ ACHIEVEMENTS : publishes
+  USERS ||--o{ ARTWORKS : publishes
   USERS ||--o{ ORDERS : places
   USERS ||--o{ LISTING_FAVORITES : favorites
   USERS ||--o{ DEMAND_FAVORITES : favorites
   USERS ||--o{ ACHIEVEMENT_FAVORITES : favorites
+  USERS ||--o{ ARTWORK_FAVORITES : favorites
   USERS ||--o{ LISTING_CONSULT_EVENTS : consults
+  USERS ||--o{ ARTWORK_CONSULT_EVENTS : consults
   USERS ||--o{ USER_TAG_SCORES : prefers
   USERS ||--o{ CONVERSATION_PARTICIPANTS : participates
   USERS ||--o{ CONVERSATION_MESSAGES : sends
@@ -510,6 +572,8 @@ erDiagram
   LISTINGS ||--o{ LISTING_CONSULT_EVENTS : consulted
   REGIONS ||--o{ LISTINGS : located_in
 
+  ARTWORKS ||--o{ ORDERS : generates
+
   DEMANDS ||--o{ DEMAND_MEDIA : has
   DEMANDS ||--o{ DEMAND_FAVORITES : favored
   DEMANDS ||--|| DEMAND_STATS : stats
@@ -520,24 +584,34 @@ erDiagram
   ACHIEVEMENTS ||--|| ACHIEVEMENT_STATS : stats
   REGIONS ||--o{ ACHIEVEMENTS : located_in
 
+  ARTWORKS ||--o{ ARTWORK_MEDIA : has
+  ARTWORKS ||--o{ ARTWORK_FAVORITES : favored
+  ARTWORKS ||--|| ARTWORK_STATS : stats
+  ARTWORKS ||--o{ ARTWORK_CONSULT_EVENTS : consulted
+  REGIONS ||--o{ ARTWORKS : located_in
+
   %% Polymorphic links via content_type/content_id
   LISTINGS ||--o{ CONVERSATIONS : discussed_in
   DEMANDS ||--o{ CONVERSATIONS : discussed_in
   ACHIEVEMENTS ||--o{ CONVERSATIONS : discussed_in
+  ARTWORKS ||--o{ CONVERSATIONS : discussed_in
   LISTINGS ||--o{ COMMENTS : commented_in
   DEMANDS ||--o{ COMMENTS : commented_in
   ACHIEVEMENTS ||--o{ COMMENTS : commented_in
+  ARTWORKS ||--o{ COMMENTS : commented_in
 
   AI_PARSE_RESULTS ||--o{ AI_PARSE_FEEDBACK : feedback
   LISTINGS ||--o{ AI_PARSE_RESULTS : parsed
   DEMANDS ||--o{ AI_PARSE_RESULTS : parsed
   ACHIEVEMENTS ||--o{ AI_PARSE_RESULTS : parsed
+  ARTWORKS ||--o{ AI_PARSE_RESULTS : parsed
 
   PATENT_MAINTENANCE_SCHEDULES ||--o{ PATENT_MAINTENANCE_TASKS : tasks
 
   FILES ||--o{ LISTING_MEDIA : stored_as
   FILES ||--o{ DEMAND_MEDIA : stored_as
   FILES ||--o{ ACHIEVEMENT_MEDIA : stored_as
+  FILES ||--o{ ARTWORK_MEDIA : stored_as
   FILES ||--o{ CONVERSATION_MESSAGES : attached
   FILES ||--o{ CS_MILESTONES : evidence
   FILES ||--o{ SETTLEMENTS : payout_evidence
@@ -548,6 +622,7 @@ erDiagram
   USER_VERIFICATIONS ||--o| FILES : logo
   DEMANDS ||--o| FILES : cover
   ACHIEVEMENTS ||--o| FILES : cover
+  ARTWORKS ||--o| FILES : cover
 
   ORDERS ||--o{ PAYMENTS : has
   ORDERS ||--o{ REFUND_REQUESTS : has

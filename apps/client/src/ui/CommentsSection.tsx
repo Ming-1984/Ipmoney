@@ -77,7 +77,9 @@ export function CommentsSection(props: { contentType: CommentContentType; conten
             ? await apiGet<PagedCommentThread>(`/public/listings/${contentId}/comments`, params)
             : contentType === 'DEMAND'
               ? await apiGet<PagedCommentThread>(`/public/demands/${contentId}/comments`, params)
-              : await apiGet<PagedCommentThread>(`/public/achievements/${contentId}/comments`, params);
+              : contentType === 'ARTWORK'
+                ? await apiGet<PagedCommentThread>(`/public/artworks/${contentId}/comments`, params)
+                : await apiGet<PagedCommentThread>(`/public/achievements/${contentId}/comments`, params);
         setPageMeta(d.page);
         setThreads((prev) => (page === 1 ? d.items : [...prev, ...d.items]));
       } catch (e: any) {
@@ -182,6 +184,10 @@ export function CommentsSection(props: { contentType: CommentContentType; conten
           });
         } else if (contentType === 'DEMAND') {
           await apiPost<Comment>(`/demands/${contentId}/comments`, payload, {
+            idempotencyKey: `comment-${contentId}-${Date.now()}`,
+          });
+        } else if (contentType === 'ARTWORK') {
+          await apiPost<Comment>(`/artworks/${contentId}/comments`, payload, {
             idempotencyKey: `comment-${contentId}-${Date.now()}`,
           });
         } else {

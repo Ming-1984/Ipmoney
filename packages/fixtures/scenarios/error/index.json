@@ -15,6 +15,14 @@
     "status": 500,
     "body": { "code": "INTERNAL_ERROR", "message": "检索服务异常（演示）" }
   },
+  "GET /search/artworks": {
+    "status": 500,
+    "body": { "code": "INTERNAL_ERROR", "message": "书画检索服务异常（演示）" }
+  },
+  "GET /search/tech-managers": {
+    "status": 500,
+    "body": { "code": "INTERNAL_ERROR", "message": "技术经理人检索异常（演示）" }
+  },
   "GET /admin/user-verifications": {
     "status": 403,
     "body": { "code": "FORBIDDEN", "message": "无权限（演示）" }
@@ -22,6 +30,14 @@
   "GET /admin/listings": {
     "status": 500,
     "body": { "code": "INTERNAL_ERROR", "message": "上架审核服务异常（演示）" }
+  },
+  "GET /admin/artworks": {
+    "status": 500,
+    "body": { "code": "INTERNAL_ERROR", "message": "书画审核服务异常（演示）" }
+  },
+  "GET /admin/tech-managers": {
+    "status": 500,
+    "body": { "code": "INTERNAL_ERROR", "message": "技术经理人列表加载失败（演示）" }
   },
   "GET /orders": {
     "status": 500,
@@ -91,6 +107,14 @@
     "status": 500,
     "body": { "code": "INTERNAL_ERROR", "message": "创建会话失败（演示）" }
   },
+  "POST /artworks/:artworkId/conversations": {
+    "status": 500,
+    "body": { "code": "INTERNAL_ERROR", "message": "书画咨询失败（演示）" }
+  },
+  "POST /tech-managers/:techManagerId/conversations": {
+    "status": 500,
+    "body": { "code": "INTERNAL_ERROR", "message": "技术经理人咨询失败（演示）" }
+  },
   "GET /conversations/:conversationId/messages": {
     "status": 500,
     "body": { "code": "INTERNAL_ERROR", "message": "消息加载失败（演示）" }
@@ -135,6 +159,10 @@
     "status": 500,
     "body": { "code": "INTERNAL_ERROR", "message": "留言服务异常（演示）" }
   },
+  "GET /public/artworks/:artworkId/comments": {
+    "status": 500,
+    "body": { "code": "INTERNAL_ERROR", "message": "留言服务异常（演示）" }
+  },
   "POST /listings/:listingId/comments": {
     "status": 500,
     "body": { "code": "INTERNAL_ERROR", "message": "留言服务异常（演示）" }
@@ -144,6 +172,10 @@
     "body": { "code": "INTERNAL_ERROR", "message": "留言服务异常（演示）" }
   },
   "POST /achievements/:achievementId/comments": {
+    "status": 500,
+    "body": { "code": "INTERNAL_ERROR", "message": "留言服务异常（演示）" }
+  },
+  "POST /artworks/:artworkId/comments": {
     "status": 500,
     "body": { "code": "INTERNAL_ERROR", "message": "留言服务异常（演示）" }
   },

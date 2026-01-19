@@ -239,7 +239,7 @@ export default function MePage() {
               <CellRow
                 clickable
                 title={<Text className="text-strong">我的收藏</Text>}
-                description={<Text className="muted">已收藏的专利/需求/成果</Text>}
+                description={<Text className="muted">已收藏的专利/需求/成果/书画</Text>}
                 onClick={() => {
                   Taro.navigateTo({ url: '/pages/favorites/index' });
                 }}
@@ -266,6 +266,14 @@ export default function MePage() {
                 description={<Text className="muted">发布方管理草稿/审核/下架</Text>}
                 onClick={() => {
                   Taro.navigateTo({ url: '/pages/my-achievements/index' });
+                }}
+              />
+              <CellRow
+                clickable
+                title={<Text className="text-strong">我的书画</Text>}
+                description={<Text className="muted">发布方管理草稿/审核/下架</Text>}
+                onClick={() => {
+                  Taro.navigateTo({ url: '/pages/my-artworks/index' });
                 }}
               />
               <CellRow

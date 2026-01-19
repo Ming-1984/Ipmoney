@@ -4,6 +4,7 @@
 > 规范基准：`docs/engineering/ui-v2-spec.md`  
 > 页面审计：`docs/engineering/ui-v2-page-audit.md`、`docs/engineering/ui-v2-page-by-page.md`  
 > 验收口径：`docs/engineering/ui-v2-qa-checklist.md`
+> 适用范围：仅 UI/体验交付；业务/后端规划见 `docs/TODO.md`，需求/成果专项见 `docs/todo-demand-achievement.md`。
 
 ## 0. 待你确认（确认后才开始写代码）
 
@@ -188,7 +189,7 @@
 - [ ] ≥768px 布局规则（**居中手机宽度**、固定层对齐、避免字体随屏幕放大；双列/宽屏响应式作为 P2 可选）
 - [ ] A11y 基线（触控热区、对比度、focus-visible、键盘回车）
 
-### 2.4 AI/智能体与告警相关 UI（Client + Admin）
+### 2.4 阶段二：AI/智能体与告警相关 UI（Client + Admin）
 
 - [ ] Home/Search：智能体入口（小程序）；H5 显示“去小程序体验语音搜索”
 - [ ] Detail：AI 解析卡片（专利/需求/成果）+ 评分/纠错入口
@@ -197,9 +198,9 @@
 - [ ] Admin：专利托管任务看板（年费日程/托管任务）
 - [ ] Admin：告警中心（列表/筛选/确认）
 
-### 2.5 数据地图扩展 UI（P1）
+### 2.5 阶段二：数据地图扩展 UI（P1）
 
-- [ ] 小程序：地图类型切换入口（专利地图/技术经理人地图/科学家地图；艺术作品暂不做）
+- [ ] 小程序：地图类型切换入口（专利地图/书画成果地图/技术经理人地图/科学家地图）
 - [ ] 后台 Map CMS：支持多地图类型的数据录入/导入与筛选（P1 占位）
 
 ## 3. P0 页面接入（在 1.x 公共能力就绪后批量推进）
@@ -216,7 +217,7 @@
 - [x] `pages/home/index`：推荐区标题改为最新专利，移除副标题与右侧更多入口
 - [x] `pages/home/index`：入口沉睡专利点击跳转搜索；移除首页对信息流/猜你喜欢入口曝光
 - [x] `pages/search/index`：筛选 Popup 交互标准化 + 参数清洗接入
-- [x] `pages/search/index`：分类 Tab 扩展：专利交易｜产学研需求｜成果展示｜机构（进入搜索主链路，对齐 `Ipmoney.md` 4）
+- [x] `pages/search/index`：分类 Tab 扩展：专利交易｜产学研需求｜成果展示｜书画专区｜机构（进入搜索主链路，对齐 `Ipmoney.md` 4）
 - [x] `pages/search/index`: Demands/Achievements filters + sort fully aligned (incl. industryTags from GET /public/industry-tags).
 - [x] `pages/search/index`: Listing advanced filters (deposit/ipc/loc/legalStatus + industryTags from GET /public/industry-tags) and sort PRICE_ASC/DESC; keep FilterSheet/ChipGroup/FilterSummary aligned with ui-v2-filter-mapping.md.
 - [x] `pages/search/index`: 多样 happy 数据下复核筛选摘要/标签展示（预算面议、成熟度、合作方式、产业标签），异常则修正文案或显示逻辑。
@@ -237,12 +238,14 @@
 - [x] `pages/my-listings/index`：修复“审核未通过卡 Loading”+ 状态标签语义统一
 - [x] `pages/my-demands/index`：我的需求列表（状态筛选/编辑/下架）
 - [x] `pages/my-achievements/index`：我的成果列表（状态筛选/编辑/下架）
+- [x] `pages/my-artworks/index`：我的书画列表（状态筛选/编辑/下架）
 - [x] `pages/my-listings/index`：补齐“审核状态筛选”（对齐 `GET /listings?auditStatus=`）
 - [x] `pages/my-demands/index`：补齐“审核状态筛选”（对齐 `GET /demands?auditStatus=`）
 - [x] `pages/my-achievements/index`：补齐“审核状态筛选”（对齐 `GET /achievements?auditStatus=`）
 - [x] `pages/inventors/index`：修复 `q=undefined`（参数清洗）
 - [x] `pages/inventors/index`：搜索交互统一（对齐 SearchEntry/清空/回车行为）
 - [x] `pages/inventors/index`: Filters UI refactor to shared FilterSheet/ChipGroup + FilterSummary (regionCode + patentType; align GET /search/inventors).
+- [x] `pages/tech-managers/index`：技术经理人栏目列表（筛选/排序/咨询入口；对齐 `GET /search/tech-managers`）
 - [x] `pages/organizations/index`：修复 `q=undefined`（参数清洗）
 - [x] `pages/organizations/index`：卡片信息密度规范化
 - [x] `pages/organizations/index`: Filters UI refactor to shared FilterSheet/ChipGroup + FilterSummary (regionCode + types; align GET /public/organizations).
@@ -255,6 +258,7 @@
 - [x] `pages/listing/detail/index`: v2.3 顶部卖家/热度信息收口（NutUI `Avatar/Tag/Space`；避免 MetaPills 混用）
 - [x] `pages/demand/detail/index`：需求详情页（公开可见；咨询走 IM；对齐 `UI-STD-P0-009` 返回策略 + 状态机）
 - [x] `pages/achievement/detail/index`：成果详情页（公开可见；支持图/视频/附件；咨询走 IM；对齐 `UI-STD-P0-009` 返回策略 + 状态机）
+- [x] `pages/artwork/detail/index`：书画详情页（公开可见；咨询/订金入口；对齐 `UI-STD-P0-009` 返回策略 + 状态机）
 - [x] `pages/demand/detail/index`: v2.2 顶部信息区重排（封面/标题/预算/合作方式/行业/地区/发布时间/热度/发布方）优先用 NutUI `Tag/Space/Avatar`
 - [x] `pages/achievement/detail/index`: v2.2 顶部信息区重排（封面/标题/成熟度/合作方式/行业/地区/发布时间/热度/发布方）优先用 NutUI `Tag/Space/Avatar`
 - [x] `ui/MediaList.tsx`: VIDEO 播放失败兜底（`onError` toast + 复制链接/提示）
@@ -282,6 +286,7 @@
 - [x] `pages/publish/patent/index`：去禁用词 + 上传/确认/提交态统一 + 长表单防丢（P1）
 - [x] `pages/publish/demand/index`：需求发布页完整实现（草稿/提交审核/审核中锁定/下架；支持多媒体）
 - [x] `pages/publish/achievement/index`：成果发布页完整实现（草稿/提交审核/审核中锁定/下架；支持多媒体）
+- [x] `pages/publish/artwork/index`：书画发布页（作品信息/证书/图片/订金；草稿/提交审核/审核中锁定/下架）
 
 ### 3.5 模板 E（Payment）接入
 
@@ -314,3 +319,5 @@
 - [x] 危险操作统一二次确认（含原因输入/审计提示）：认证审核、上架审核、订单里程碑、退款、放款、配置变更
 - [x] 错误提示统一：可重试 + debug 可展开（与 `RequestErrorAlert` 规范对齐）
 - [x] 内容审核范围扩展：支持“需求/成果”审核（接口对齐 OpenAPI：`GET /admin/demands`、`GET /admin/achievements` + approve/reject）
+- [x] 内容审核范围扩展：支持“书画”审核（接口对齐 OpenAPI：`GET /admin/artworks` + approve/reject）
+- [x] 技术经理人栏目管理（列表/推荐/服务标签维护，占位页即可）

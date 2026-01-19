@@ -123,6 +123,11 @@ export default function HomePage() {
   const goMap = useCallback(() => Taro.navigateTo({ url: '/pages/patent-map/index' }), []);
   const goInventors = useCallback(() => Taro.navigateTo({ url: '/pages/inventors/index' }), []);
   const goOrganizations = useCallback(() => Taro.navigateTo({ url: '/pages/organizations/index' }), []);
+  const goArtworks = useCallback(() => {
+    Taro.setStorageSync(STORAGE_KEYS.searchPrefill, { tab: 'ARTWORK' });
+    Taro.switchTab({ url: '/pages/search/index' });
+  }, []);
+  const goTechManagers = useCallback(() => Taro.navigateTo({ url: '/pages/tech-managers/index' }), []);
 
   return (
     <View className="container">
@@ -147,7 +152,7 @@ export default function HomePage() {
 
       <SearchEntry
         value={searchValue}
-        placeholder="搜索专利号 / 标题 / 发明人…"
+        placeholder="搜索专利号 / 标题 / 发明人 / 书画作品"
         actionText="检索"
         onChange={setSearchValue}
         onSearch={goSearch}
@@ -164,6 +169,20 @@ export default function HomePage() {
               icon: 'feeds' as const,
               badge: 'brand' as const,
               onClick: goSearch,
+            },
+            {
+              key: 'artworks',
+              title: '书画专区',
+              icon: 'artworks' as const,
+              badge: 'gold' as const,
+              onClick: goArtworks,
+            },
+            {
+              key: 'tech-managers',
+              title: '技术经理人',
+              icon: 'tech-managers' as const,
+              badge: 'purple' as const,
+              onClick: goTechManagers,
             },
             {
               key: 'inventors',

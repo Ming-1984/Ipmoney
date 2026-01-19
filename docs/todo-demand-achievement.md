@@ -1,12 +1,6 @@
-# Demand & Achievement TODO
-#
-# This file tracks the planned work to upgrade the Demand (industry-university-research requirements)
-# and Achievement (results showcase) features from placeholders to production-ready flows.
-# Chinese details start below.
+# 产学研需求与成果展示 TODO（专项）
 
----
-
-# 产学研需求 & 成果展示（从占位到可用）
+> 定位：本文件仅覆盖“需求/成果”模块的规划与验收口径；总规划见 `docs/TODO.md`，UI 规范与页面清单见 `docs/ui-v2-todo.md`。
 
 > 现状：前端已补齐“需求/成果”的发布、审核态、详情与咨询闭环；OpenAPI/ER/fixtures 已对齐。  
 > 目标：在不破坏现有专利交易主链路的前提下，持续完善“需求/成果”的**发布 → 审核 → 展示 → 咨询**闭环，并对齐 UI v2 规范与可用性/无障碍要求。
@@ -23,10 +17,8 @@
 
 > 以下均已与你对齐；后续实现与验收口径默认按这些结论执行。
 
-- [x] Industry tags: use public source (GET /public/industry-tags) across Publish/Search/Filters (no free-text as the primary path).
-
-
-- [x] 信息架构：**进入搜索主链路（Search Tab）**，Search 提供分类切换：专利交易｜产学研需求｜成果展示｜机构
+- [x] 行业标签：统一走公开来源（`GET /public/industry-tags`），发布/搜索/筛选不再以自由输入为主路径
+- [x] 信息架构：**进入搜索主链路（Search Tab）**，Search 提供分类切换：专利交易｜产学研需求｜成果展示｜书画专区｜机构
 - [x] 权责/可见性：与专利交易一致（公开可浏览；关键动作需登录且审核通过；发布者需审核通过）
 - [x] 发布状态机：与专利交易一致（草稿→提交审核→通过上架；驳回可编辑后再提交；支持下架）
 - [x] 附件能力：支持图片/文件/视频；可选封面图（视频建议配封面图）
@@ -83,7 +75,7 @@
 ### 3.1 OpenAPI（建议最小闭环）
 
 - [x] 已补齐到 `docs/api/openapi.yaml`（仅契约；未实现）
-- [ ] `Demands`
+- [x] `Demands`（契约已补齐）
   - [x] `GET /search/demands`（公开检索列表）
   - [x] `GET /public/demands/{demandId}`（公开详情）
   - [x] `POST|DELETE /demands/{demandId}/favorites`（收藏/取消收藏）
@@ -96,7 +88,7 @@
   - [x] `POST /demands/{demandId}/off-shelf`（下架）
   - [x] `POST /demands/{demandId}/conversations`（站内咨询：IM 会话）
   - [x] `/admin/demands` + `/{demandId}/approve|reject`（后台审核：对齐专利）
-- [ ] `Achievements`（同结构）
+- [x] `Achievements`（契约已补齐）
   - [x] `GET /search/achievements`（公开检索列表）
   - [x] `GET /public/achievements/{achievementId}`（公开详情）
   - [x] `POST|DELETE /achievements/{achievementId}/favorites`（收藏/取消收藏）
@@ -136,7 +128,7 @@
 
 ### 4.2 展示页（列表 + 详情）
 
-- [x] Search 增加分类切换：专利交易｜产学研需求｜成果展示｜机构
+- [x] Search 增加分类切换：专利交易｜产学研需求｜成果展示｜书画专区｜机构
   - [x] 专利交易：沿用 `GET /search/listings`
   - [x] 需求：新增 `GET /search/demands`（公开检索列表 + 排序）
   - [x] 成果：新增 `GET /search/achievements`（公开检索列表 + 排序）
@@ -154,11 +146,11 @@
 
 - [x] 需求发布：至少支持“标题 + 描述 +（≥1 附件）”提交；必填未填不可提交；提交后进入审核中态并可返回
 - [x] 成果发布：至少支持“标题 + 简介 +（≥1 图片）”提交；支持预览与删除；提交后同样进入审核态
-- [x] 搜索主链路：Search Tab 支持分类切换（专利交易｜产学研需求｜成果展示｜机构），且每类均可检索/进入详情
+- [x] 搜索主链路：Search Tab 支持分类切换（专利交易｜产学研需求｜成果展示｜书画专区｜机构），且每类均可检索/进入详情
 - [x] 详情闭环：需求/成果详情页公开可见；收藏/咨询动作需登录且审核通过；咨询创建会话后进入 Chat
 - [x] 任意非 Tab 页都有可见返回路径；H5 深链打开也能回到首页/上一页（不依赖浏览器按钮）
 
-## 7. P1 扩展（AI/平台内容）
+## 7. 扩展（阶段二/阶段一 P1）
 
-- [ ] AI 解析卡片与评分闭环（专利/需求/成果详情页展示与反馈）
-- [ ] 平台自有内容 CMS（后台创建/编辑/发布/下架需求与成果，source=PLATFORM/ADMIN）
+- [ ] AI 解析卡片与评分闭环（专利/需求/成果详情页展示与反馈，阶段二）
+- [ ] 平台自有内容 CMS（后台创建/编辑/发布/下架需求与成果，source=PLATFORM/ADMIN，阶段一 P1）

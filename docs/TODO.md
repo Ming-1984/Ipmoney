@@ -2,6 +2,13 @@
 
 > 目标：支持 **微信小程序 + 用户 H5（电脑端可用） + PC Web 管理后台**；在正式开发前，先把 PRD / 架构图 / 业务流程图 / ER / OpenAPI 做到“可签字、可联调、可交付演示”。
 
+文档索引与阶段说明：
+- 总规划：`docs/TODO.md`（本文件）
+- 需求/成果专项：`docs/todo-demand-achievement.md`
+- UI/体验专项：`docs/ui-v2-todo.md`
+- 阶段一（P0/P1）：基础交易链路、书画专区、技术经理人、平台自有内容 CMS、地图基础
+- 阶段二（P2）：AI/智能解析、托管/告警、大数据分析、扩展地图
+
 ## 0. 里程碑与验收口径
 
 - [ ] **M0：文档签字版（对甲方演示用）**（文档已齐，待甲方确认/签字）
@@ -55,6 +62,10 @@
   - [x] `system_configs`（key/value/类型/生效范围/版本/审计）
 - [x] 补齐“审计/风控/证据链”最小表（用于争议/退款/审核留痕）
   - [x] 操作日志（who/what/when/before/after）
+- [x] 扩展书画专区与技术经理人模型
+  - [x] `artworks`/`artwork_media`/`artwork_favorites`/`artwork_stats` 表
+  - [x] `comments`/`conversations` 增加 `ARTWORK/TECH_MANAGER` 类型
+  - [x] `orders` 支持 `artworkId` 或 `contentType+contentId` 指向书画订单
 - [x] 输出 P0 目标数据库选型与索引策略（Postgres/MySQL 其一）
 
 ## 4. OpenAPI 覆盖度与一致性审计
@@ -70,6 +81,8 @@
   - [x] Settlement：查看结算台账、财务人工放款确认（P0 默认）
   - [x] Refund：买家发起退款、后台审批、微信退款回调
   - [x] Invoices：订单完成后财务上传/替换电子发票（平台内下载）
+  - [x] Artwork：书画检索/详情/发布/审核/收藏/咨询（对齐订金+尾款）
+  - [x] TechManager：技术经理人检索/详情/咨询
 - [x] 补齐“认证审核”闭环接口（后台 approve/reject）
 - [x] 补齐“系统配置读取/修改”接口（前台展示订金/佣金/退款规则；后台配置）
 - [x] 统一命名与币种单位：
@@ -194,6 +207,13 @@
 - [ ] 检索：`/search/listings`（游客可用）+ 过滤（类型/地区/标签/IPC/LOC/法律状态/价格/订金）+ 排序（推荐/最新/热门/价格）
 - [ ] 详情（公开）：`/public/listings/{listingId}`（不返回权属材料等敏感附件）
 - [ ] 详情（卖家/已登录）：`/listings/{listingId}`（返回可编辑/敏感字段）
+- [ ] 书画专区上架/审核/检索：`/artworks`、`/search/artworks`、`/admin/artworks`（字段含作者/创作日期/证书编号/订金；前端/Mock 已覆盖，后端待落地）
+- [ ] 技术经理人栏目：`/search/tech-managers`、`/public/tech-managers/{id}`、`/admin/tech-managers`（前端/Mock 已覆盖，后端待落地）
+
+### 7.6A 平台自有内容 CMS（阶段一 P1）
+
+- [ ] 后台创建/编辑/发布/下架（source=PLATFORM/ADMIN）
+- [ ] 站内与对外展示一致
 
 ### 7.7 智能推荐与地域特色（M2）
 
@@ -250,6 +270,7 @@
   - [ ] 登录后：收藏、咨询/聊天、下单、订单进度
   - [ ] 支付：小程序内完成；H5 仅引导回小程序
   - [ ] UI/交互：橙色主题 + 金豆矿视觉点缀；全量状态（loading/empty/error/权限/审核中）可演示
+  - [x] 新增：书画专区（搜索/详情/发布/我的）与技术经理人栏目（列表/详情/咨询）
 - [ ] Admin Web（React/AntD）：审核、订单、退款、里程碑、放款、发票、配置、地图 CMS
   - [ ] UI/交互：橙色主题；权限态与审计提示清晰
 
@@ -259,7 +280,7 @@
 - [ ] 域名与回调：支付回调域名、业务域名、下载域名白名单
 - [ ] 安全基线：限流、敏感字段脱敏、审计日志、管理员操作二次确认（关键按钮）
 
-### 7.16 AI/语音智能体 + 智能解析 + 托管告警（P1）
+### 7.16 阶段二：AI/语音智能体 + 智能解析 + 托管告警
 
 - [ ] 智能体/语音检索（小程序优先；H5 提示去小程序）
   - [ ] 语音转写（ASR）+ 文本确认 + 结构化检索条件输出
@@ -268,9 +289,6 @@
   - [ ] 解析输出（场景/通俗特征/关键词）
   - [ ] 用户/后台评分与纠错（低分/低置信度进入复核池）
   - [ ] 解析结果版本与回写
-- [ ] 平台自有内容 CMS（专利/需求/成果）
-  - [ ] 后台创建/编辑/发布/下架（source=PLATFORM/ADMIN）
-  - [ ] 站内与对外展示一致
 - [ ] 专利托管（年费提醒 + 线下服务）
   - [ ] 年费日程表与托管任务
   - [ ] 触发告警 → 客服跟进 → 线下托管记录回写
@@ -278,10 +296,10 @@
   - [ ] 触发条件：年费到期、AI 复核积压、导入失败、支付回调异常、审核积压
   - [ ] 告警确认/抑制/升级规则
 
-### 7.17 数据地图 + 大数据分析（P1）
+### 7.17 阶段二：数据地图 + 大数据分析
 
 - [ ] 数据地图扩展：技术经理人地图、科学家地图（P0 先做专利地图）
-  - [ ] 专利地图类型细分：发明/实用新型/外观设计（艺术作品暂不做）
+- [ ] 专利地图类型细分：发明/实用新型/外观设计；书画成果地图（P1 预留）
   - [ ] 前台地图切换入口 + 后台 Map CMS 复用（数据结构与流程对齐）
 - [ ] 大数据分析：交易库/成果库/产学研库
   - [ ] 指标与看板：成交额/转化率/需求匹配/活跃度
@@ -297,7 +315,7 @@
 - [x] 甲方演示“话术脚本/FAQ”（资金托管、合同线下、放款条件、风险提示）：`docs/demo/faq.md`
 - [x] 发票与税务说明（展示口径，需财务/法务确认）：`docs/legal/invoice-tax.md`
 - [x] PRD 每页功能图（小程序/后台）与导出：`docs/demo/pages/README.md`
-- [x] 小程序 01-15 页面图合成单图：`docs/demo/rendered/miniapp-pages-01-15.png`
+- [x] 小程序 01-17 页面图合成单图：`docs/demo/rendered/miniapp-pages-01-17.png`
 
 ## 9. 前期准备完整性检查（签字前最后一遍）
 
@@ -613,20 +631,6 @@
 - [x] 后台专利地图 Excel 导入：对接 `POST /admin/patent-map/import`（确认 P0 需要与否；不做则在矩阵标 P1，并从文档/页面移除“已实现”的描述）
 - [x] 收口校验：重新运行 `node scripts/audit-coverage.mjs`，同步更新 `docs/engineering/openapi-coverage.md` 与 `docs/engineering/traceability-matrix.md`
 
-## UI v2 polish (client)
+## UI v2 polish（Client）
 
-- [x] Messages: PullToRefresh + conversation cell polish
-- [x] Chat: ScrollView + message types + history pagination + send retry
-- [x] Details: Patent/Demand/Achievement consistent meta + media section reuse
-- [x] Details v2.2: 留言区（公开列表 + 互动回复 + 编辑/删除）- Listing/Demand/Achievement 详情页底部
-- [x] Admin v2.2: 留言管理（列表/搜索/筛选 + 隐藏/恢复/删除）
-- [x] Details v2.2: Demand/Achievement 顶部信息区重排（Tag/Space/Avatar；行业/地区/时间/热度更可扫读）
-- [x] Messages v2.1: conversation list UI refresh (NutUI Avatar/Badge/Tag/Cell; WeChat-like density)
-- [x] Details v2.1: VIDEO playback polish (fixtures URL not example.com + MediaList Video onError fallback)
-- [x] Listing Detail v2.1: top “category/tags” section refactor (Tag/Space; avoid MetaPills overload)
-- [x] Listing Detail v2.3: seller + stats area uses NutUI Avatar/Tag/Space (avoid MetaPills mixing)
-- [x] Patent Detail v2.3: hero uses NutUI Tag/Space + copy applicationNo
-- [x] Org Detail v2.4: hero uses NutUI Avatar/Tag/Space (remove MetaPills)
-- [x] Patent Map Region Detail v2.4: hero uses NutUI Tag/Space (remove MetaPills)
-- [x] Trade Rules v2.4: metrics use NutUI Tag/Space (remove MetaPills)
-- [x] Payment Success v2.4: order summary uses NutUI Tag/Space (remove MetaPills)
+- 详见 `docs/ui-v2-todo.md`（本处不再重复展开）
