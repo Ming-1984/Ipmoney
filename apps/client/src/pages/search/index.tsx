@@ -666,11 +666,11 @@ export default function SearchPage() {
   }, [orgFilters]);
 
   return (
-    <View className="container">
+    <View className="container search-v3">
       <PageHeader title="检索" />
       <Spacer />
 
-      <Surface>
+      <Surface className="search-hero glass-surface">
         <Text className="text-strong">分类</Text>
         <View style={{ height: '10rpx' }} />
         <CategoryControl

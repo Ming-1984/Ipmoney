@@ -143,12 +143,12 @@ export default function MePage() {
   }, [auth.verificationStatus, auth.verificationType]);
 
   return (
-    <View className="container">
+    <View className="container me-v3">
       <PageHeader title="我的" />
       <Spacer />
 
       {!auth.token ? (
-        <Surface>
+        <Surface className="glass-surface me-profile-card">
           <Text className="text-card-title">未登录</Text>
           <View style={{ height: '8rpx' }} />
           <Text className="muted">登录并审核通过后，可进行收藏/咨询/下单/支付。</Text>
@@ -166,67 +166,58 @@ export default function MePage() {
           {meLoading ? <LoadingCard text="加载我的资料…" /> : null}
           {meError ? <ErrorCard message={meError} onRetry={loadMe} /> : null}
           {me && !meLoading && !meError ? (
-            <Surface>
-              <View className="row" style={{ gap: '14rpx' }}>
+            <Surface className="glass-surface me-profile-card">
+              <View className="me-profile-header">
                 <Avatar
-                  size="64"
+                  size="72"
                   src={me.avatarUrl || ''}
                   icon={<Text className="text-strong">{(me.nickname || '用').slice(0, 1)}</Text>}
                 />
-                <View style={{ flex: 1, minWidth: 0 }}>
-                  <View className="row-between" style={{ gap: '12rpx' }}>
-                    <View style={{ flex: 1, minWidth: 0 }}>
-                      <Text className="text-card-title">{me.nickname || '未设置昵称'}</Text>
-                      <View style={{ height: '6rpx' }} />
-                      <Text className="muted">{me.phone || '未绑定手机号'}</Text>
-                    </View>
-                    <View className="row" style={{ gap: '8rpx', flexShrink: 0 }}>
-                      {verification.status ? (
-                        <Tag type={verificationStatusTagType(verification.status)} plain round>
-                          {verificationStatusLabel(verification.status)}
-                        </Tag>
-                      ) : null}
-                      <Tag type="primary" plain round>
-                        {verificationTypeLabel(verification.type)}
-                      </Tag>
-                    </View>
-                  </View>
-                  <View style={{ height: '6rpx' }} />
+                <View className="me-profile-meta">
+                  <Text className="text-card-title">{me.nickname || '未设置昵称'}</Text>
+                  <Text className="muted">{me.phone || '未绑定手机号'}</Text>
                   <Text className="muted">地区：{me.regionCode || '未设置'}</Text>
-
-                  <View style={{ height: '12rpx' }} />
-                  <View className="row" style={{ gap: '12rpx' }}>
-                    <View style={{ flex: 1 }}>
-                      <Button
-                        variant="ghost"
-                        size="small"
-                        onClick={() => {
-                          Taro.navigateTo({ url: '/pages/profile/edit/index' });
-                        }}
-                      >
-                        {!me.avatarUrl || !me.nickname ? '完善资料' : '资料设置'}
-                      </Button>
-                    </View>
-                    <View style={{ flex: 1 }}>
-                      <Button
-                        variant="ghost"
-                        size="small"
-                        onClick={() => {
-                          void syncVerification();
-                        }}
-                      >
-                        刷新认证
-                      </Button>
-                    </View>
-                  </View>
                 </View>
+                <View className="me-profile-tags">
+                  {verification.status ? (
+                    <Tag type={verificationStatusTagType(verification.status)} plain round>
+                      {verificationStatusLabel(verification.status)}
+                    </Tag>
+                  ) : null}
+                  <Tag type="primary" plain round>
+                    {verificationTypeLabel(verification.type)}
+                  </Tag>
+                </View>
+              </View>
+
+              <View className="me-profile-actions">
+                <Button
+                  variant="ghost"
+                  size="small"
+                  block
+                  onClick={() => {
+                    Taro.navigateTo({ url: '/pages/profile/edit/index' });
+                  }}
+                >
+                  {!me.avatarUrl || !me.nickname ? '完善资料' : '资料设置'}
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="small"
+                  block
+                  onClick={() => {
+                    void syncVerification();
+                  }}
+                >
+                  刷新认证
+                </Button>
               </View>
             </Surface>
           ) : null}
 
           <View style={{ height: '12rpx' }} />
 
-          <Surface padding="none">
+          <Surface padding="none" className="glass-surface me-list-card">
             <CellGroup divider>
               <CellRow
                 clickable
@@ -322,7 +313,7 @@ export default function MePage() {
 
           <View style={{ height: '12rpx' }} />
 
-          <Surface>
+          <Surface className="glass-surface me-list-card">
             <Button
               variant="ghost"
               onClick={() => {

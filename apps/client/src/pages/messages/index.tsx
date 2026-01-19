@@ -77,7 +77,7 @@ export default function MessagesPage() {
   const items = useMemo(() => data?.items || [], [data?.items]);
 
   return (
-    <View className="container messages-page">
+    <View className="container messages-page messages-v3">
       <PageHeader
         title="咨询/消息"
         subtitle="用于咨询与跟单沟通（证据留痕）。"
@@ -104,7 +104,7 @@ export default function MessagesPage() {
         onEmptyAction={load}
       >
         <PullToRefresh type="primary" disabled={refreshing} onRefresh={refresh}>
-          <Surface padding="none">
+          <Surface padding="none" className="glass-surface messages-list">
             <CellGroup divider>
               {items.map((c, idx) => (
                 <CellRow
