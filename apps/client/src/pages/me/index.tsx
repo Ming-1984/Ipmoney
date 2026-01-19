@@ -4,8 +4,6 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 
 import type { components } from '@ipmoney/api-types';
 
-import { ArrowRight } from '@nutui/icons-react-taro';
-
 import { APP_MODE, ENABLE_MOCK_TOOLS, STORAGE_KEYS } from '../../constants';
 import {
   clearToken,
@@ -22,6 +20,7 @@ import {
 import { apiGet } from '../../lib/api';
 import { ErrorCard, LoadingCard } from '../../ui/StateCards';
 import { Surface } from '../../ui/layout';
+import { AppIcon } from '../../ui/Icon';
 import { Avatar, Button, Tag, toast } from '../../ui/nutui';
 
 type Me = {
@@ -144,12 +143,12 @@ export default function MePage() {
     return { type: auth.verificationType, status: auth.verificationStatus };
   }, [auth.verificationStatus, auth.verificationType]);
 
-  const menuItems = useMemo(
+  const serviceItems = useMemo(
     () => [
       {
         key: 'orders',
         title: '我的订单',
-        desc: '查看订金/尾款/退款进度',
+        desc: '订金/尾款/退款进度',
         onClick: () => {
           Taro.navigateTo({ url: '/pages/orders/index' });
         },
@@ -157,7 +156,7 @@ export default function MePage() {
       {
         key: 'favorites',
         title: '我的收藏',
-        desc: '已收藏的专利/需求/成果/书画',
+        desc: '专利/需求/成果/书画',
         onClick: () => {
           Taro.navigateTo({ url: '/pages/favorites/index' });
         },
@@ -165,7 +164,7 @@ export default function MePage() {
       {
         key: 'listings',
         title: '我的专利上架',
-        desc: '卖家管理草稿/上架/下架',
+        desc: '管理草稿/上架/下架',
         onClick: () => {
           Taro.navigateTo({ url: '/pages/my-listings/index' });
         },
@@ -173,7 +172,7 @@ export default function MePage() {
       {
         key: 'demands',
         title: '我的需求',
-        desc: '发布方管理草稿/审核/下架',
+        desc: '发布与管理需求',
         onClick: () => {
           Taro.navigateTo({ url: '/pages/my-demands/index' });
         },
@@ -181,7 +180,7 @@ export default function MePage() {
       {
         key: 'achievements',
         title: '我的成果',
-        desc: '发布方管理草稿/审核/下架',
+        desc: '发布与管理成果',
         onClick: () => {
           Taro.navigateTo({ url: '/pages/my-achievements/index' });
         },
@@ -189,15 +188,21 @@ export default function MePage() {
       {
         key: 'artworks',
         title: '我的书画',
-        desc: '发布方管理草稿/审核/下架',
+        desc: '发布与管理作品',
         onClick: () => {
           Taro.navigateTo({ url: '/pages/my-artworks/index' });
         },
       },
+    ],
+    [],
+  );
+
+  const extraItems = useMemo(
+    () => [
       {
         key: 'identity',
         title: '身份/认证',
-        desc: '首次进入必选，企业/院校通过后可展示',
+        desc: '企业/院校/个人认证',
         onClick: () => {
           Taro.navigateTo({ url: '/pages/onboarding/choose-identity/index' });
         },
@@ -318,33 +323,31 @@ export default function MePage() {
             </Surface>
           ) : null}
 
-          <Surface className="me-quick-card" padding="md">
-            <View className="me-quick-text">
-              <Text className="me-quick-title">订单快捷入口</Text>
-              <Text className="me-quick-desc">查看订金/尾款/退款进度</Text>
+          <Surface className="me-grid-card" padding="md">
+            <Text className="me-grid-title">服务功能</Text>
+            <View className="me-feature-grid">
+              {serviceItems.map((item) => (
+                <View key={item.key} className="me-feature" onClick={item.onClick}>
+                  <View className="me-feature-icon">
+                    <AppIcon name="patent-achievement" size={36} />
+                  </View>
+                  <Text className="me-feature-title">{item.title}</Text>
+                  <Text className="me-feature-desc">{item.desc}</Text>
+                </View>
+              ))}
             </View>
-            <Button
-              size="small"
-              onClick={() => {
-                Taro.navigateTo({ url: '/pages/orders/index' });
-              }}
-            >
-              查看订单
-            </Button>
           </Surface>
 
-          <Surface className="me-actions-card" padding="md">
-            <View className="me-actions-list">
-              {menuItems.map((item) => (
-                <View key={item.key} className="me-action" onClick={item.onClick}>
-                  <View className="me-action-left">
-                    <View className="me-action-icon" />
-                    <View className="me-action-text">
-                      <Text className="me-action-title">{item.title}</Text>
-                      <Text className="me-action-desc">{item.desc}</Text>
-                    </View>
+          <Surface className="me-grid-card" padding="md">
+            <Text className="me-grid-title">更多功能</Text>
+            <View className="me-feature-grid">
+              {extraItems.map((item) => (
+                <View key={item.key} className="me-feature" onClick={item.onClick}>
+                  <View className="me-feature-icon">
+                    <AppIcon name="patent-map" size={36} />
                   </View>
-                  <ArrowRight size={14} color="var(--c-muted)" />
+                  <Text className="me-feature-title">{item.title}</Text>
+                  <Text className="me-feature-desc">{item.desc}</Text>
                 </View>
               ))}
             </View>

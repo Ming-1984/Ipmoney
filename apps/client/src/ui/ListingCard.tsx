@@ -38,7 +38,7 @@ export function ListingCard(props: {
             props.onFavorite();
           }}
         >
-          {favorited ? <HeartFill size={14} color="var(--c-primary)" /> : <Heart size={14} color="var(--c-muted)" />}
+          {favorited ? <HeartFill size={14} color="#e31b23" /> : <Heart size={14} color="var(--c-muted)" />}
         </View>
       </View>
 

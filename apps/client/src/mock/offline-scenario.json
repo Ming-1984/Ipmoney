@@ -3107,16 +3107,16 @@
       "items": [
         {
           "id": "3d0b9c7a-1a9f-4b4d-9f6a-3a62b8f6d6e1",
-          "title": "?????",
+          "title": "留白",
           "category": "PAINTING",
           "paintingGenre": "LANDSCAPE",
-          "creatorName": "??",
+          "creatorName": "吴冠中",
           "creationYear": 1998,
-          "priceType": "FIXED",
-          "priceAmountFen": 18800000,
+          "priceType": "NEGOTIABLE",
+          "priceAmountFen": null,
           "depositAmountFen": 200000,
           "regionCode": "510000",
-          "coverUrl": "https://example.com/media/artwork-1.jpg",
+          "coverUrl": "/assets/artworks/artwork-1.jpg",
           "auditStatus": "APPROVED",
           "status": "ACTIVE",
           "createdAt": "2026-01-10T10:00:00Z",
@@ -3124,19 +3124,25 @@
             "viewCount": 56,
             "favoriteCount": 7,
             "consultCount": 2
-          }
+          },
+          "media": [
+            {
+              "url": "/assets/artworks/artwork-1.jpg",
+              "type": "IMAGE"
+            }
+          ]
         },
         {
           "id": "8c1b2f2e-4c6f-4ff2-8a9c-7b2e5e3df0b2",
-          "title": "?????????",
+          "title": "瑞鹤图",
           "category": "CALLIGRAPHY",
           "calligraphyScript": "XINGSHU",
-          "creatorName": "??",
+          "creatorName": "宋徽宗",
           "creationYear": 2008,
-          "priceType": "NEGOTIABLE",
+          "priceType": "FIXED",
           "depositAmountFen": 120000,
           "regionCode": "110000",
-          "coverUrl": "https://example.com/media/artwork-2.jpg",
+          "coverUrl": "/assets/artworks/artwork-2.jpg",
           "auditStatus": "APPROVED",
           "status": "ACTIVE",
           "createdAt": "2026-01-09T09:00:00Z",
@@ -3144,7 +3150,14 @@
             "viewCount": 32,
             "favoriteCount": 4,
             "consultCount": 1
-          }
+          },
+          "priceAmountFen": 18800000,
+          "media": [
+            {
+              "url": "/assets/artworks/artwork-2.jpg",
+              "type": "IMAGE"
+            }
+          ]
         }
       ],
       "page": {
@@ -3167,7 +3180,7 @@
       "priceAmountFen": 18800000,
       "depositAmountFen": 200000,
       "regionCode": "510000",
-      "coverUrl": "https://example.com/media/artwork-1.jpg",
+      "coverUrl": "/assets/artworks/artwork-1.jpg",
       "auditStatus": "APPROVED",
       "status": "ACTIVE",
       "createdAt": "2026-01-10T10:00:00Z",
@@ -3191,7 +3204,7 @@
           "fileId": "6b5b98b2-4aab-4a75-8f2b-0dd2c56d49f4",
           "type": "IMAGE",
           "sort": 1,
-          "url": "https://example.com/media/artwork-1.jpg",
+          "url": "/assets/artworks/artwork-1.jpg",
           "mimeType": "image/jpeg",
           "sizeBytes": 245678,
           "fileName": "artwork-1.jpg"
@@ -3212,7 +3225,7 @@
       "priceAmountFen": 18800000,
       "depositAmountFen": 200000,
       "regionCode": "510000",
-      "coverUrl": "https://example.com/media/artwork-1.jpg",
+      "coverUrl": "/assets/artworks/artwork-1.jpg",
       "auditStatus": "APPROVED",
       "status": "ACTIVE",
       "createdAt": "2026-01-10T10:00:00Z",
@@ -3236,7 +3249,7 @@
           "fileId": "6b5b98b2-4aab-4a75-8f2b-0dd2c56d49f4",
           "type": "IMAGE",
           "sort": 1,
-          "url": "https://example.com/media/artwork-1.jpg",
+          "url": "/assets/artworks/artwork-1.jpg",
           "mimeType": "image/jpeg",
           "sizeBytes": 245678,
           "fileName": "artwork-1.jpg"
@@ -3439,7 +3452,7 @@
           "priceAmountFen": 18800000,
           "depositAmountFen": 200000,
           "regionCode": "510000",
-          "coverUrl": "https://example.com/media/artwork-1.jpg",
+          "coverUrl": "/assets/artworks/artwork-1.jpg",
           "auditStatus": "APPROVED",
           "status": "ACTIVE",
           "createdAt": "2026-01-10T10:00:00Z",
@@ -3460,7 +3473,7 @@
               "fileId": "6b5b98b2-4aab-4a75-8f2b-0dd2c56d49f4",
               "type": "IMAGE",
               "sort": 1,
-              "url": "https://example.com/media/artwork-1.jpg",
+              "url": "/assets/artworks/artwork-1.jpg",
               "mimeType": "image/jpeg",
               "sizeBytes": 245678,
               "fileName": "artwork-1.jpg"
@@ -3489,7 +3502,7 @@
       "priceAmountFen": 18800000,
       "depositAmountFen": 200000,
       "regionCode": "510000",
-      "coverUrl": "https://example.com/media/artwork-1.jpg",
+      "coverUrl": "/assets/artworks/artwork-1.jpg",
       "auditStatus": "APPROVED",
       "status": "ACTIVE",
       "createdAt": "2026-01-10T10:00:00Z",
@@ -3510,7 +3523,7 @@
           "fileId": "6b5b98b2-4aab-4a75-8f2b-0dd2c56d49f4",
           "type": "IMAGE",
           "sort": 1,
-          "url": "https://example.com/media/artwork-1.jpg",
+          "url": "/assets/artworks/artwork-1.jpg",
           "mimeType": "image/jpeg",
           "sizeBytes": 245678,
           "fileName": "artwork-1.jpg"
@@ -3532,7 +3545,7 @@
       "priceAmountFen": 18800000,
       "depositAmountFen": 200000,
       "regionCode": "510000",
-      "coverUrl": "https://example.com/media/artwork-1.jpg",
+      "coverUrl": "/assets/artworks/artwork-1.jpg",
       "auditStatus": "PENDING",
       "status": "DRAFT",
       "createdAt": "2026-01-10T10:00:00Z",
@@ -3553,7 +3566,7 @@
           "fileId": "6b5b98b2-4aab-4a75-8f2b-0dd2c56d49f4",
           "type": "IMAGE",
           "sort": 1,
-          "url": "https://example.com/media/artwork-1.jpg",
+          "url": "/assets/artworks/artwork-1.jpg",
           "mimeType": "image/jpeg",
           "sizeBytes": 245678,
           "fileName": "artwork-1.jpg"
@@ -3575,7 +3588,7 @@
       "priceAmountFen": 18800000,
       "depositAmountFen": 200000,
       "regionCode": "510000",
-      "coverUrl": "https://example.com/media/artwork-1.jpg",
+      "coverUrl": "/assets/artworks/artwork-1.jpg",
       "auditStatus": "APPROVED",
       "status": "ACTIVE",
       "createdAt": "2026-01-10T10:00:00Z",
@@ -3596,7 +3609,7 @@
           "fileId": "6b5b98b2-4aab-4a75-8f2b-0dd2c56d49f4",
           "type": "IMAGE",
           "sort": 1,
-          "url": "https://example.com/media/artwork-1.jpg",
+          "url": "/assets/artworks/artwork-1.jpg",
           "mimeType": "image/jpeg",
           "sizeBytes": 245678,
           "fileName": "artwork-1.jpg"
@@ -3618,7 +3631,7 @@
       "priceAmountFen": 18800000,
       "depositAmountFen": 200000,
       "regionCode": "510000",
-      "coverUrl": "https://example.com/media/artwork-1.jpg",
+      "coverUrl": "/assets/artworks/artwork-1.jpg",
       "auditStatus": "PENDING",
       "status": "ACTIVE",
       "createdAt": "2026-01-10T10:00:00Z",
@@ -3639,7 +3652,7 @@
           "fileId": "6b5b98b2-4aab-4a75-8f2b-0dd2c56d49f4",
           "type": "IMAGE",
           "sort": 1,
-          "url": "https://example.com/media/artwork-1.jpg",
+          "url": "/assets/artworks/artwork-1.jpg",
           "mimeType": "image/jpeg",
           "sizeBytes": 245678,
           "fileName": "artwork-1.jpg"
@@ -3661,7 +3674,7 @@
       "priceAmountFen": 18800000,
       "depositAmountFen": 200000,
       "regionCode": "510000",
-      "coverUrl": "https://example.com/media/artwork-1.jpg",
+      "coverUrl": "/assets/artworks/artwork-1.jpg",
       "auditStatus": "APPROVED",
       "status": "OFF_SHELF",
       "createdAt": "2026-01-10T10:00:00Z",
@@ -3682,7 +3695,7 @@
           "fileId": "6b5b98b2-4aab-4a75-8f2b-0dd2c56d49f4",
           "type": "IMAGE",
           "sort": 1,
-          "url": "https://example.com/media/artwork-1.jpg",
+          "url": "/assets/artworks/artwork-1.jpg",
           "mimeType": "image/jpeg",
           "sizeBytes": 245678,
           "fileName": "artwork-1.jpg"
@@ -3706,7 +3719,7 @@
           "priceAmountFen": 18800000,
           "depositAmountFen": 200000,
           "regionCode": "510000",
-          "coverUrl": "https://example.com/media/artwork-1.jpg",
+          "coverUrl": "/assets/artworks/artwork-1.jpg",
           "auditStatus": "APPROVED",
           "status": "ACTIVE",
           "createdAt": "2026-01-10T10:00:00Z",
@@ -3739,7 +3752,7 @@
           "priceAmountFen": 18800000,
           "depositAmountFen": 200000,
           "regionCode": "510000",
-          "coverUrl": "https://example.com/media/artwork-1.jpg",
+          "coverUrl": "/assets/artworks/artwork-1.jpg",
           "auditStatus": "APPROVED",
           "status": "ACTIVE",
           "createdAt": "2026-01-10T10:00:00Z",
@@ -3760,7 +3773,7 @@
               "fileId": "6b5b98b2-4aab-4a75-8f2b-0dd2c56d49f4",
               "type": "IMAGE",
               "sort": 1,
-              "url": "https://example.com/media/artwork-1.jpg",
+              "url": "/assets/artworks/artwork-1.jpg",
               "mimeType": "image/jpeg",
               "sizeBytes": 245678,
               "fileName": "artwork-1.jpg"
@@ -3789,7 +3802,7 @@
       "priceAmountFen": 18800000,
       "depositAmountFen": 200000,
       "regionCode": "510000",
-      "coverUrl": "https://example.com/media/artwork-1.jpg",
+      "coverUrl": "/assets/artworks/artwork-1.jpg",
       "auditStatus": "APPROVED",
       "status": "ACTIVE",
       "createdAt": "2026-01-10T10:00:00Z",
@@ -3810,7 +3823,7 @@
           "fileId": "6b5b98b2-4aab-4a75-8f2b-0dd2c56d49f4",
           "type": "IMAGE",
           "sort": 1,
-          "url": "https://example.com/media/artwork-1.jpg",
+          "url": "/assets/artworks/artwork-1.jpg",
           "mimeType": "image/jpeg",
           "sizeBytes": 245678,
           "fileName": "artwork-1.jpg"
@@ -3832,7 +3845,7 @@
       "priceAmountFen": 18800000,
       "depositAmountFen": 200000,
       "regionCode": "510000",
-      "coverUrl": "https://example.com/media/artwork-1.jpg",
+      "coverUrl": "/assets/artworks/artwork-1.jpg",
       "auditStatus": "REJECTED",
       "status": "ACTIVE",
       "createdAt": "2026-01-10T10:00:00Z",
@@ -3853,7 +3866,7 @@
           "fileId": "6b5b98b2-4aab-4a75-8f2b-0dd2c56d49f4",
           "type": "IMAGE",
           "sort": 1,
-          "url": "https://example.com/media/artwork-1.jpg",
+          "url": "/assets/artworks/artwork-1.jpg",
           "mimeType": "image/jpeg",
           "sizeBytes": 245678,
           "fileName": "artwork-1.jpg"

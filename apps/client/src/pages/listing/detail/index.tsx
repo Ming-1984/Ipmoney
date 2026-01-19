@@ -326,7 +326,7 @@ export default function ListingDetailPage() {
               }}
             >
               <View className="row" style={{ gap: '8rpx', alignItems: 'center' }}>
-                {favoritedState ? <HeartFill size={14} color="var(--c-primary)" /> : <Heart size={14} color="var(--c-muted)" />}
+                {favoritedState ? <HeartFill size={14} color="#e31b23" /> : <Heart size={14} color="var(--c-muted)" />}
                 <Text>{favoritedState ? '已收藏' : '收藏'}</Text>
               </View>
             </Button>

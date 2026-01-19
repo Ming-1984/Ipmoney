@@ -1,4 +1,4 @@
-import { View, Text } from '@tarojs/components';
+﻿import { View, Text, Image } from '@tarojs/components';
 import React from 'react';
 
 import type { components } from '@ipmoney/api-types';
@@ -9,7 +9,23 @@ import { artworkCategoryLabel, calligraphyScriptLabel, paintingGenreLabel, price
 import { fenToYuan } from '../lib/money';
 import { Button } from './nutui';
 
+import artwork1 from '../assets/artworks/artwork-1.jpg';
+import artwork2 from '../assets/artworks/artwork-2.jpg';
+
 type ArtworkSummary = components['schemas']['ArtworkSummary'];
+
+const LOCAL_ARTWORKS: Record<string, string> = {
+  '/assets/artworks/artwork-1.jpg': artwork1,
+  'assets/artworks/artwork-1.jpg': artwork1,
+  '/assets/artworks/artwork-2.jpg': artwork2,
+  'assets/artworks/artwork-2.jpg': artwork2,
+};
+
+function resolveCover(url?: string | null, media?: { url?: string | null }[]): string {
+  const raw = url || media?.[0]?.url || '';
+  if (!raw) return '';
+  return LOCAL_ARTWORKS[raw] || raw;
+}
 
 export function ArtworkCard(props: {
   item: ArtworkSummary;
@@ -19,7 +35,8 @@ export function ArtworkCard(props: {
   favorited?: boolean;
 }) {
   const it = props.item;
-  const title = it.title || '未命名书画';
+  const title = it.title || '未命名作品';
+  const cover = resolveCover(it.coverUrl, it.media as any);
   const category = artworkCategoryLabel(it.category, { empty: '' });
   const script = it.calligraphyScript ? calligraphyScriptLabel(it.calligraphyScript, { empty: '' }) : '';
   const genre = it.paintingGenre ? paintingGenreLabel(it.paintingGenre, { empty: '' }) : '';
@@ -28,64 +45,70 @@ export function ArtworkCard(props: {
   const priceLabel = it.priceType === 'NEGOTIABLE' ? '面议' : fenToYuan(it.priceAmountFen);
   const depositLabel = it.depositAmountFen !== undefined ? fenToYuan(it.depositAmountFen) : '-';
   const favorited = Boolean(props.favorited);
+  const priceTypeText = priceTypeLabel(it.priceType);
 
   return (
-    <View className="listing-item" onClick={props.onClick}>
-      <View className="listing-item-head">
-        <View className="listing-item-head-main">
-          <Text className="listing-item-title clamp-2">{title}</Text>
-          {category ? <Text className="tag tag-gold">{category}</Text> : null}
-        </View>
+    <View className="artwork-item" onClick={props.onClick}>
+      <View className="artwork-cover-wrap">
+        {cover ? <Image className="artwork-cover" src={cover} mode="aspectFill" /> : <View className="artwork-cover placeholder" />}
         {props.onFavorite ? (
           <View
-            className="listing-item-fav"
+            className="artwork-fav"
             onClick={(e) => {
               e.stopPropagation();
               props.onFavorite?.();
             }}
           >
-            {favorited ? <HeartFill size={14} color="var(--c-primary)" /> : <Heart size={14} color="var(--c-muted)" />}
+            {favorited ? <HeartFill size={16} color="#e31b23" /> : <Heart size={16} color="var(--c-muted)" />}
           </View>
         ) : null}
       </View>
 
-      <View className="listing-item-tags">
-        {script ? <Text className="tag">{script}</Text> : null}
-        {genre ? <Text className="tag">{genre}</Text> : null}
-        {creator ? <Text className="tag">{creator}</Text> : null}
-        {year ? <Text className="tag">{year}</Text> : null}
-        <Text className="tag">{priceTypeLabel(it.priceType)}</Text>
-      </View>
+      <View className="artwork-info">
+        <View className="artwork-title-row">
+          <Text className="artwork-title clamp-1">{title}</Text>
+          <View className="artwork-tags-inline">
+            {category ? <Text className="pill pill-strong">{category}</Text> : null}
+            {genre ? <Text className="pill">{genre}</Text> : null}
+            {script ? <Text className="pill">{script}</Text> : null}
+            {creator ? <Text className="pill">{creator}</Text> : null}
+            {year ? <Text className="pill">{year}</Text> : null}
+          </View>
+        </View>
 
-      {it.certificateNo ? (
-        <Text className="muted listing-item-meta clamp-1">证书编号：{it.certificateNo}</Text>
-      ) : null}
-
-      <View className="listing-item-bottom">
-        <View className="listing-item-bottom-main">
+        <View className="artwork-meta">
           <Text className="muted listing-item-price clamp-1">
-            ¥
+            ￥
             <Text className="text-strong" style={{ color: 'var(--c-primary)' }}>
               {priceLabel}
             </Text>
-            {'  '}· 订金 ¥
-            <Text className="text-strong" style={{ color: 'var(--c-primary)' }}>
-              {depositLabel}
-            </Text>
+            {priceTypeText === '面议' ? null : (
+              <>
+                {'  '}· 订金 ￥
+                <Text className="text-strong" style={{ color: 'var(--c-primary)' }}>
+                  {depositLabel}
+                </Text>
+              </>
+            )}
           </Text>
         </View>
-        {props.onConsult ? (
-          <Button
-            variant="primary"
-            size="small"
-            onClick={(e) => {
-              e.stopPropagation();
-              props.onConsult?.();
-            }}
-          >
-            咨询
-          </Button>
-        ) : null}
+
+        {it.certificateNo ? <Text className="muted listing-item-meta clamp-1">证书：{it.certificateNo}</Text> : null}
+
+        <View className="artwork-actions">
+          {props.onConsult ? (
+            <Button
+              variant="primary"
+              size="small"
+              onClick={(e) => {
+                e.stopPropagation();
+                props.onConsult?.();
+              }}
+            >
+              咨询
+            </Button>
+          ) : null}
+        </View>
       </View>
     </View>
   );
