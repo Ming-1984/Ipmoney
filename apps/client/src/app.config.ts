@@ -53,10 +53,10 @@ export default defineAppConfig({
     backgroundColor: '#ffffff',
     list: [
       {
-        pagePath: 'pages/home/index',
-        text: '首页',
-        iconPath: 'assets/tabbar/home.png',
-        selectedIconPath: 'assets/tabbar/home-active.png',
+        pagePath: 'pages/tech-managers/index',
+        text: '咨询',
+        iconPath: 'assets/tabbar/messages.png',
+        selectedIconPath: 'assets/tabbar/messages-active.png',
       },
       {
         pagePath: 'pages/search/index',
@@ -65,10 +65,10 @@ export default defineAppConfig({
         selectedIconPath: 'assets/tabbar/search-active.png',
       },
       {
-        pagePath: 'pages/publish/index',
-        text: '发布',
-        iconPath: 'assets/tabbar/publish.png',
-        selectedIconPath: 'assets/tabbar/publish-active.png',
+        pagePath: 'pages/home/index',
+        text: '首页',
+        iconPath: 'assets/tabbar/home.png',
+        selectedIconPath: 'assets/tabbar/home-active.png',
       },
       {
         pagePath: 'pages/messages/index',

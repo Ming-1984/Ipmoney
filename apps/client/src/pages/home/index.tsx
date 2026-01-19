@@ -15,7 +15,6 @@ import { ensureApproved } from '../../lib/guard';
 import { AppIcon } from '../../ui/Icon';
 import { ListingCard } from '../../ui/ListingCard';
 import { ListingListSkeleton } from '../../ui/ListingSkeleton';
-import { SearchEntry } from '../../ui/SearchEntry';
 import { EmptyCard, ErrorCard } from '../../ui/StateCards';
 import { IconBadge, SectionHeader, Surface } from '../../ui/layout';
 import { Button, toast } from '../../ui/nutui';
@@ -58,7 +57,6 @@ export default function HomePage() {
   const [data, setData] = useState<PagedListingSummary | null>(null);
   const [demandData, setDemandData] = useState<PagedDemandSummary | null>(null);
   const [favoriteIds, setFavoriteIds] = useState<Set<string>>(() => new Set(getFavoriteListingIds()));
-  const [searchValue, setSearchValue] = useState('');
 
   const load = useCallback(async (targetHall: Hall) => {
     setLoading(true);
@@ -184,7 +182,7 @@ export default function HomePage() {
     Taro.switchTab({ url: '/pages/search/index' });
   }, []);
   const goPublish = useCallback(() => {
-    Taro.switchTab({ url: '/pages/publish/index' });
+    Taro.navigateTo({ url: '/pages/publish/index' });
   }, []);
 
   return (
@@ -218,16 +216,6 @@ export default function HomePage() {
             </View>
           ))}
         </View>
-      </View>
-
-      <View className="home-search-wrap">
-        <SearchEntry
-          value={searchValue}
-          placeholder="搜索专利号 / 标题 / 发明人 / 需求关键词"
-          actionText="检索"
-          onChange={setSearchValue}
-          onSearch={goSearch}
-        />
       </View>
 
       <View className="home-cta-row">

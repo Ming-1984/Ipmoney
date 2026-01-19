@@ -8,8 +8,8 @@ import { apiGet } from '../../lib/api';
 import { usePageAccess } from '../../lib/guard';
 import { formatTimeSmart } from '../../lib/format';
 import { PageState } from '../../ui/PageState';
-import { CellRow, PageHeader, Spacer, Surface } from '../../ui/layout';
-import { Avatar, Badge, Button, CellGroup, PullToRefresh, Tag } from '../../ui/nutui';
+import { Surface } from '../../ui/layout';
+import { Avatar, Button, PullToRefresh } from '../../ui/nutui';
 
 type ConversationContentType = components['schemas']['ConversationContentType'];
 type PagedConversationSummary = components['schemas']['PagedConversationSummary'];
@@ -25,6 +25,7 @@ function contentTypeLabel(t?: ConversationContentType | null): string {
 }
 
 export default function MessagesPage() {
+  const [tab, setTab] = useState<'chat' | 'notice'>('chat');
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -77,83 +78,90 @@ export default function MessagesPage() {
   const items = useMemo(() => data?.items || [], [data?.items]);
 
   return (
-    <View className="container messages-page messages-v3">
-      <PageHeader
-        title="咨询/消息"
-        subtitle="用于咨询与跟单沟通（证据留痕）。"
-        right={
-          access.state === 'ok' ? (
-            <Button variant="ghost" size="small" loading={refreshing} onClick={refresh}>
-              刷新
-            </Button>
-          ) : null
-        }
-      />
-      <Spacer />
+    <View className="container messages-page messages-v4">
+      <View className="messages-header">
+        <Text className="text-hero">消息中心</Text>
+        {access.state === 'ok' ? (
+          <Button variant="ghost" size="small" loading={refreshing} onClick={refresh}>
+            刷新
+          </Button>
+        ) : null}
+      </View>
 
-      <PageState
-        access={access}
-        loading={loading}
-        loadingText="加载会话…"
-        error={error}
-        empty={!items.length}
-        emptyTitle="暂无会话"
-        emptyMessage="从详情页点击“咨询”即可创建会话。"
-        emptyActionText="刷新"
-        onRetry={load}
-        onEmptyAction={load}
-      >
-        <PullToRefresh type="primary" disabled={refreshing} onRefresh={refresh}>
-          <Surface padding="none" className="glass-surface messages-list">
-            <CellGroup divider>
+      <View className="messages-tabs glass-surface">
+        {[
+          { key: 'chat', label: '私聊消息' },
+          { key: 'notice', label: '系统通知' },
+        ].map((it) => (
+          <View
+            key={it.key}
+            className={`messages-tab ${tab === it.key ? 'is-active' : ''}`}
+            onClick={() => setTab(it.key as 'chat' | 'notice')}
+          >
+            <Text>{it.label}</Text>
+            {tab === it.key ? <View className="messages-tab-underline" /> : null}
+          </View>
+        ))}
+      </View>
+
+      {tab === 'chat' ? (
+        <PageState
+          access={access}
+          loading={loading}
+          loadingText="加载会话…"
+          error={error}
+          empty={!items.length}
+          emptyTitle="暂无会话"
+          emptyMessage="从详情页点击“咨询”即可创建会话。"
+          emptyActionText="刷新"
+          onRetry={load}
+          onEmptyAction={load}
+        >
+          <PullToRefresh type="primary" disabled={refreshing} onRefresh={refresh}>
+            <Surface padding="md" className="glass-surface messages-list">
               {items.map((c, idx) => (
-                <CellRow
+                <View
                   key={c.id}
-                  clickable
-                  arrow={false}
-                  className="conversation-cell"
-                  title={
-                    <View className="conversation-row">
-                      <Avatar
-                        className="conversation-avatar"
-                        size="40"
-                        src={c.counterpart?.avatarUrl || ''}
-                        background="var(--c-soft)"
-                        color="var(--c-primary)"
-                      >
-                        {(c.counterpart?.nickname || 'U').slice(0, 1).toUpperCase()}
-                      </Avatar>
-                      <View className="conversation-body">
-                        <View className="conversation-title-row">
-                          <Tag className="conversation-tag" type="primary" plain round>
-                            {contentTypeLabel(c.contentType)}
-                          </Tag>
-                          <Text className="ellipsis text-strong conversation-title">
-                            {c.contentTitle || c.listingTitle || '（未命名）'}
-                          </Text>
-                        </View>
-                        <Text className="muted ellipsis conversation-preview">
-                          {c.lastMessagePreview || '暂无消息'}
-                        </Text>
-                      </View>
-                    </View>
-                  }
-                  extra={
-                    <View className="conversation-extra">
-                      <Text className="conversation-time">{formatTimeSmart(c.lastMessageAt)}</Text>
-                      {c.unreadCount ? <Badge value={c.unreadCount} max={99} /> : null}
-                    </View>
-                  }
-                  isLast={idx === items.length - 1}
+                  className={`message-item ${idx === items.length - 1 ? 'is-last' : ''}`}
                   onClick={() => {
                     Taro.navigateTo({ url: `/pages/messages/chat/index?conversationId=${c.id}` });
                   }}
-                />
+                >
+                  <View className="message-avatar">
+                    <Avatar size="48" src={c.counterpart?.avatarUrl || ''} background="var(--c-soft)" color="var(--c-primary)">
+                      {(c.counterpart?.nickname || 'U').slice(0, 1).toUpperCase()}
+                    </Avatar>
+                    {c.unreadCount ? (
+                      <View className="message-unread">
+                        <Text className="message-unread-text">{c.unreadCount > 99 ? '99+' : c.unreadCount}</Text>
+                      </View>
+                    ) : null}
+                  </View>
+                  <View className="message-body">
+                    <View className="message-title-row">
+                      <Text className="message-title ellipsis">{c.counterpart?.nickname || '对方'}</Text>
+                      <Text className="message-time">{formatTimeSmart(c.lastMessageAt)}</Text>
+                    </View>
+                    <View className="message-meta-row">
+                      <Text className="message-tag">{contentTypeLabel(c.contentType)}</Text>
+                      <Text className="message-content ellipsis">
+                        {c.contentTitle || c.listingTitle || c.lastMessagePreview || '暂无消息'}
+                      </Text>
+                    </View>
+                  </View>
+                </View>
               ))}
-            </CellGroup>
-          </Surface>
-        </PullToRefresh>
-      </PageState>
+            </Surface>
+          </PullToRefresh>
+        </PageState>
+      ) : (
+        <Surface className="glass-surface messages-list" padding="md">
+          <View className="notice-empty">
+            <Text className="text-card-title">暂无系统通知</Text>
+            <Text className="muted text-caption">重要更新会在此展示</Text>
+          </View>
+        </Surface>
+      )}
     </View>
   );
 }
