@@ -2,7 +2,7 @@ import React from 'react';
 
 import { Image } from '@tarojs/components';
 
-import sleepPatent from '../assets/icons/app/sleep-patent.png';
+import sleepPatent from '../assets/icons/app/sleep-patent-moon.png';
 import inventorRank from '../assets/icons/app/inventor-rank.png';
 import patentMap from '../assets/icons/app/patent-map.png';
 import patentAchievement from '../assets/icons/app/patent-achievement.png';

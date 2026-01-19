@@ -723,6 +723,7 @@ export default function SearchPage() {
               <Text className="muted text-caption">
                 {listingMoreSortLabel || (tab === 'LISTING' ? sortByLabel(sortBy) : '推荐')}
               </Text>
+              <Text className="arrow" />
             </View>
             <View
               className="search-toolbar-btn"
@@ -736,6 +737,7 @@ export default function SearchPage() {
             >
               <Text className="text-strong">筛选</Text>
               <Text className="muted text-caption">更多条件</Text>
+              <Text className="arrow" />
             </View>
           </View>
           {selectedSummary.length ? (

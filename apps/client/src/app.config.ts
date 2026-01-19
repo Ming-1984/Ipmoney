@@ -41,15 +41,15 @@ export default defineAppConfig({
     'pages/region-picker/index',
   ],
   window: {
-    backgroundColor: '#FFF5EE',
+    backgroundColor: '#f7f3ec',
     backgroundTextStyle: 'light',
-    navigationBarBackgroundColor: '#FF6A00',
+    navigationBarBackgroundColor: '#c89b3c',
     navigationBarTitleText: 'Ipmoney',
     navigationBarTextStyle: 'white',
   },
   tabBar: {
     color: '#475569',
-    selectedColor: '#FF6A00',
+    selectedColor: '#c89b3c',
     backgroundColor: '#ffffff',
     list: [
       {

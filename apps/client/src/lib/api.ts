@@ -1,6 +1,7 @@
 import Taro from '@tarojs/taro';
 
-import { API_BASE_URL, STORAGE_KEYS } from '../constants';
+import { API_BASE_URL, ENABLE_MOCK_TOOLS, STORAGE_KEYS } from '../constants';
+import { getOfflineMock } from './offline';
 import { getToken } from './auth';
 
 export type ApiErrorShape = { code?: string; message?: string };
@@ -88,10 +89,20 @@ function getScenario(): string {
   return Taro.getStorageSync(STORAGE_KEYS.mockScenario) || 'happy';
 }
 
+const SHOULD_USE_OFFLINE_MOCK = ENABLE_MOCK_TOOLS || API_BASE_URL.includes('127.0.0.1') || API_BASE_URL.includes('localhost');
+
+function maybeOffline<T>(method: string, path: string): T | null {
+  if (!SHOULD_USE_OFFLINE_MOCK) return null;
+  return getOfflineMock<T>(method, path);
+}
+
 export async function apiGet<TResponse>(
   path: string,
   params?: Record<string, any>,
 ): Promise<TResponse> {
+  const offline = maybeOffline<TResponse>('GET', path);
+  if (offline) return offline;
+
   let res: Taro.request.SuccessCallbackResult<any>;
   try {
     res = await Taro.request({
@@ -119,6 +130,9 @@ export async function apiPost<TResponse>(
   body?: any,
   opts?: { idempotencyKey?: string },
 ): Promise<TResponse> {
+  const offline = maybeOffline<TResponse>('POST', path);
+  if (offline) return offline;
+
   let res: Taro.request.SuccessCallbackResult<any>;
   try {
     res = await Taro.request({
@@ -148,6 +162,9 @@ export async function apiPatch<TResponse>(
   body?: any,
   opts?: { idempotencyKey?: string },
 ): Promise<TResponse> {
+  const offline = maybeOffline<TResponse>('PATCH', path);
+  if (offline) return offline;
+
   let res: Taro.request.SuccessCallbackResult<any>;
   try {
     res = await Taro.request({
@@ -176,6 +193,9 @@ export async function apiDelete(
   path: string,
   opts?: { idempotencyKey?: string },
 ): Promise<void> {
+  const offline = maybeOffline('DELETE', path);
+  if (offline !== null) return;
+
   let res: Taro.request.SuccessCallbackResult<any>;
   try {
     res = await Taro.request({

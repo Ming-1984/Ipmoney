@@ -274,19 +274,23 @@ export default function MePage() {
                   />
                 </View>
                 <View className="me-hero-meta">
-                  <Text className="me-hero-title">{me.nickname || '未设置昵称'}</Text>
+                  <View className="me-hero-title-row">
+                    <Text className="me-hero-title">{me.nickname || '未设置昵称'}</Text>
+                    <View className="me-hero-badges">
+                      {verification.type ? (
+                        <View className="me-badge me-badge-outline">
+                          <Text>{verificationTypeLabel(verification.type)}</Text>
+                        </View>
+                      ) : null}
+                      {verification.status ? (
+                        <View className={`me-badge me-badge-${verification.status?.toLowerCase() || 'default'}`}>
+                          <Text>{verificationStatusLabel(verification.status)}</Text>
+                        </View>
+                      ) : null}
+                    </View>
+                  </View>
                   <Text className="me-hero-subtitle">{me.phone || '未绑定手机号'}</Text>
                   <Text className="me-hero-subtitle">地区：{me.regionCode || '未设置'}</Text>
-                  <View className="me-hero-tags">
-                    {verification.status ? (
-                      <Tag type={verificationStatusTagType(verification.status)} plain round>
-                        {verificationStatusLabel(verification.status)}
-                      </Tag>
-                    ) : null}
-                    <Tag type="primary" plain round>
-                      {verificationTypeLabel(verification.type)}
-                    </Tag>
-                  </View>
                 </View>
               </View>
 
