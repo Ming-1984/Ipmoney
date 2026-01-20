@@ -1,4 +1,4 @@
-import { View, Text } from '@tarojs/components';
+﻿import { View, Text } from '@tarojs/components';
 import React from 'react';
 
 import type { components } from '@ipmoney/api-types';
@@ -10,6 +10,7 @@ import { fenToYuan } from '../lib/money';
 import { Button } from './nutui';
 
 type ListingSummary = components['schemas']['ListingSummary'];
+type TagTone = 'blue' | 'green' | 'slate';
 
 export function ListingCard(props: {
   item: ListingSummary;
@@ -23,6 +24,20 @@ export function ListingCard(props: {
   const title = it.title || '未命名专利';
   const favorited = Boolean(props.favorited);
   const industry = it.industryTags?.length ? it.industryTags.slice(0, 2).join(' / ') : '';
+  const tags: { label: string; tone: TagTone }[] = [];
+
+  if (it.patentType) {
+    tags.push({ label: patentTypeLabel(it.patentType), tone: 'blue' });
+  }
+  if (it.tradeMode) {
+    tags.push({ label: tradeModeLabel(it.tradeMode), tone: 'green' });
+  }
+  if (it.priceType) {
+    tags.push({ label: priceTypeLabel(it.priceType), tone: 'slate' });
+  }
+
+  const visibleTags = tags.slice(0, 3);
+  const overflowCount = tags.length - visibleTags.length;
 
   return (
     <View className="listing-item" onClick={props.onClick}>
@@ -38,14 +53,17 @@ export function ListingCard(props: {
             props.onFavorite();
           }}
         >
-          {favorited ? <HeartFill size={14} color="var(--c-primary)" /> : <Heart size={14} color="var(--c-muted)" />}
+          {favorited ? <HeartFill size={14} color="#e31b23" /> : <Heart size={14} color="var(--c-muted)" />}
         </View>
       </View>
 
       <View className="listing-item-tags">
-        {it.patentType ? <Text className="tag tag-gold">{patentTypeLabel(it.patentType)}</Text> : null}
-        <Text className="tag">{tradeModeLabel(it.tradeMode)}</Text>
-        <Text className="tag">{priceTypeLabel(it.priceType)}</Text>
+        {visibleTags.map((tag, idx) => (
+          <Text key={idx} className={`listing-tag listing-tag--${tag.tone}`}>
+            {tag.label}
+          </Text>
+        ))}
+        {overflowCount > 0 ? <Text className="listing-tag listing-tag--slate">+{overflowCount}</Text> : null}
       </View>
 
       {industry ? <Text className="muted listing-item-meta clamp-1">行业：{industry}</Text> : null}
@@ -65,8 +83,10 @@ export function ListingCard(props: {
         </View>
 
         <Button
-          variant="primary"
-          size="small"
+          variant="default"
+          size="mini"
+          block={false}
+          className="consult-btn"
           onClick={(e) => {
             e.stopPropagation();
             props.onConsult();

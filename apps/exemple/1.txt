@@ -1,0 +1,413 @@
+import React, { useState } from 'react';
+// 模拟 Taro 组件环境，以便在当前预览环境中正常运行，
+// 在实际 Taro 项目中请保留 import { View, Text, ScrollView, Video, Input } from '@tarojs/components';
+const View = (props) => <div {...props} />;
+const Text = (props) => <span {...props} />;
+const Video = (props) => <video {...props} />;
+const ScrollView = (props) => <div style={{ overflowY: 'auto', height: '100vh' }} {...props} />;
+const Input = (props) => <input {...props} />;
+
+import { 
+  Search, 
+  User, 
+  Home, 
+  ChevronRight, 
+  Star, 
+  Moon, 
+  Trophy, 
+  Map, 
+  Building2, 
+  Sparkles, 
+  MessageSquare, 
+  Headset, 
+  Lightbulb,
+  Palette,
+  BadgeCheck,
+  PhoneCall,
+  Briefcase,
+  Clock,
+  Award,
+  CreditCard,
+  Package,
+  RotateCcw,
+  FileText,
+  Heart,
+  ShieldCheck,
+  Settings,
+  UserCheck,
+  PenLine,
+  Trash2,
+  Bell,
+  CheckCircle2,
+  ChevronDown,
+  SlidersHorizontal,
+  LifeBuoy
+} from 'lucide-react';
+
+// --- 全局模拟数据 ---
+const PATENTS_DATA = [
+  { id: 1, title: '一种高强度航空铝合金制备方法', type: '发明专利', price: '￥150,000', industry: '新材料' },
+  { id: 2, title: '智能无人机避障感知系统', type: '实用新型', price: '￥88,000', industry: '人工智能' },
+];
+
+const REQUIREMENTS_DATA = [
+  { id: 101, title: '寻求低功耗蓝牙5.0连接优化方案', type: '技术寻访', price: '￥50,000', industry: '物联网' },
+  { id: 102, title: '急需耐高温陶瓷密封材料授权', type: '许可需求', price: '面议', industry: '高端制造' },
+];
+
+const SEARCH_RESULTS_DATA = [
+  { id: 1, title: '一种基于深度学习的图像特征提取方法', patentNo: 'CN112233445A', ipc: 'G06K 9/62', tag: '高校' },
+  { id: 2, title: '高灵敏度柔性薄膜压力传感器及其制备工艺', patentNo: 'CN998877665B', ipc: 'H01L 21/02', tag: '高校' },
+  { id: 3, title: '新型环保型生物降解聚酯复合材料配方', patentNo: 'CN554433221A', ipc: 'C08L 67/02', tag: '高校' },
+  { id: 4, title: '智能电网负荷动态预测与优化控制系统', patentNo: 'CN667788991B', ipc: 'H02J 3/00', tag: '高校' },
+];
+
+const EXPERTS_DATA = [
+  { id: 1, name: '陈锦华', level: '高级经理人', score: '4.9', skill: '材料科学、成果转化评估' },
+  { id: 2, name: '李若冰', level: '中级经理人', score: '5.0', skill: '知产法务、侵权判定' },
+  { id: 3, name: '王启智', level: '资深顾问', score: '4.8', skill: '技术转移、商务洽谈' },
+  { id: 4, name: '沈梦云', level: '规划师', score: '4.9', skill: '海外布局、专利池构建' },
+  { id: 5, name: '周道乾', level: '高级经理人', score: '4.7', skill: '精通审查、预审指导' },
+];
+
+const AGENCIES_DATA = [
+  { id: 101, name: '点金智产代理公司', level: '5A机构', score: '5.0', skill: '全链条知产服务、国际申报' },
+  { id: 102, name: '创新者转化中心', level: '示范基地', score: '4.9', skill: '技术交易、投融资对接' },
+];
+
+const CHAT_MESSAGES = [
+  { id: 1, name: '陈锦华', lastMsg: '关于您的专利评估报告已经整理好了。', time: '10:24', unread: 1 },
+  { id: 2, name: '创新者转化中心', lastMsg: '您发布的项目有新的投资意向。', time: '昨天', unread: 0 },
+  { id: 3, name: '李若冰律师', lastMsg: '好的，下午两点开始视频会议。', time: '星期五', unread: 2 },
+];
+
+const SYSTEM_NOTICES = [
+  { id: 101, title: '实名认证审核通过', desc: '您的个人实名认证已审核通过。', time: '1小时前', unread: true },
+  { id: 102, title: '系统升级公告', desc: '平台将于本周六凌晨进行例行维护。', time: '昨天', unread: false },
+];
+
+const App = () => {
+  const [activeTab, setActiveTab] = useState('home'); 
+  const [homeHall, setHomeHall] = useState('patent'); 
+  const [consultSubTab, setConsultSubTab] = useState('manager'); 
+  const [msgSubTab, setMsgSubTab] = useState('chat'); 
+  
+  const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+
+  // 1. 渲染首页 (恢复推送列表)
+  const renderHome = () => (
+    <View className="pb-24">
+      <View className="px-4 pt-6 pb-2 bg-white sticky top-0 z-10">
+        <View className="relative overflow-hidden bg-gradient-to-br from-orange-50/80 via-white to-white rounded-[40px] p-6 shadow-[0_20px_50px_rgba(255,145,0,0.05)] border border-orange-50/50">
+          <View className="absolute top-0 right-0 w-32 h-32 bg-orange-200/20 blur-3xl -mr-10 -mt-10 rounded-full"></View>
+          <View className="relative z-10 flex justify-between items-end">
+            <View className="flex flex-col">
+              <View className="flex flex-row items-center gap-2 mb-1">
+                <View className="w-1.5 h-6 bg-orange-500 rounded-full"></View>
+                <Text className="text-3xl font-black tracking-tight text-gray-900 leading-none">IP<Text className="text-orange-600">MONEY</Text></Text>
+              </View>
+              <View className="flex flex-row items-center gap-2 ml-3">
+                <Text className="text-[11px] font-bold text-gray-400 tracking-[0.4em] uppercase">专利点金台</Text>
+                <Sparkles size={10} className="text-orange-400 opacity-60" />
+              </View>
+            </View>
+            <View className="relative">
+              <Video
+                src={`/artifacts/${appId}/public/data/ffae5f74c129b5658e626d2705a7063d.mp4`}
+                className="w-14 h-14 rounded-full object-cover border-[3px] border-white shadow-2xl relative z-10"
+                autoPlay loop muted playsInline
+              />
+              <View className="absolute -bottom-0.5 -right-0.5 w-4.5 h-4.5 bg-white rounded-full z-20 flex items-center justify-center shadow-sm">
+                <View className="w-2.5 h-2.5 bg-orange-500 rounded-full animate-pulse"></View>
+              </View>
+            </View>
+          </View>
+        </View>
+      </View>
+
+      <View className="px-4 mt-4 mb-4 flex justify-center">
+        <View className="bg-gray-100/50 p-1 rounded-2xl flex flex-row items-center w-64 shadow-inner border border-gray-100/50">
+          <View onClick={() => setHomeHall('patent')} className={`flex-1 py-2 text-xs font-bold rounded-xl transition-all text-center cursor-pointer ${homeHall === 'patent' ? 'bg-white text-orange-600 shadow-sm' : 'text-gray-400'}`}>专利厅</View>
+          <View onClick={() => setHomeHall('requirement')} className={`flex-1 py-2 text-xs font-bold rounded-xl transition-all text-center cursor-pointer ${homeHall === 'requirement' ? 'bg-white text-orange-600 shadow-sm' : 'text-gray-400'}`}>需求厅</View>
+        </View>
+      </View>
+
+      <View className="px-5 py-2 flex flex-row gap-4 relative">
+        <View className="relative flex-1 h-28 cursor-pointer active:scale-[0.96] transition-all duration-200">
+          <View className="absolute inset-x-0 bottom-[-6px] h-full bg-orange-800/20 rounded-[28px] blur-md"></View>
+          <View className="absolute inset-x-0 bottom-[-3px] h-full bg-orange-700 rounded-[28px]"></View>
+          <View className="absolute inset-0 bg-gradient-to-b from-yellow-300 via-orange-500 to-orange-600 rounded-[28px] shadow-[inset_0_2px_4px_rgba(255,255,255,0.7)]"></View>
+          <View className="absolute inset-[3px] bg-gradient-to-br from-white/40 via-white/5 to-transparent rounded-[25px] pointer-events-none"></View>
+          <View className="relative h-full flex flex-col items-center justify-center pt-2 text-center">
+             <View className="w-full flex justify-center mb-1"><Lightbulb size={28} className="text-white drop-shadow-[0_3px_6px_rgba(0,0,0,0.3)] fill-yellow-100" /></View>
+             <Text className="text-base font-black text-white tracking-widest">{homeHall === 'patent' ? '发专利' : '发需求'}</Text>
+             <Text className="text-[9px] font-bold text-orange-100/80 uppercase mt-0.5">Publish</Text>
+          </View>
+        </View>
+        <View className="relative flex-1 h-28 cursor-pointer active:scale-[0.96] transition-all duration-200">
+          <View className="absolute inset-x-0 bottom-[-6px] h-full bg-yellow-800/20 rounded-[28px] blur-lg"></View>
+          <View className="absolute inset-x-0 bottom-[-3px] h-full bg-yellow-700 rounded-[28px]"></View>
+          <View className="absolute inset-0 bg-gradient-to-b from-yellow-400 via-yellow-500 to-yellow-600 rounded-[28px] shadow-[inset_0_2px_4px_rgba(255,255,255,0.7)]"></View>
+          <View className="absolute inset-[3px] bg-gradient-to-br from-white/40 via-white/5 to-transparent rounded-[25px] pointer-events-none"></View>
+          <View className="relative h-full flex flex-col items-center justify-center pt-2 text-center">
+             <View className="w-full flex justify-center mb-1"><Search size={28} className="text-white drop-shadow-[0_3px_6px_rgba(0,0,0,0.3)]" /></View>
+             <Text className="text-base font-black text-white tracking-widest">{homeHall === 'patent' ? '找专利' : '找需求'}</Text>
+             <Text className="text-[9px] font-bold text-yellow-100/80 uppercase mt-0.5">Discover</Text>
+          </View>
+        </View>
+      </View>
+
+      <View className="grid grid-cols-5 gap-2 px-3 py-8 text-center">
+        {[
+          { Icon: Moon, label: '沉睡专利' },
+          { Icon: Trophy, label: '发明人榜' },
+          { Icon: Map, label: '专利地图' },
+          { Icon: Award, label: '专利成果' },
+          { Icon: Palette, label: '书画专区' },
+        ].map((item, idx) => (
+          <View key={idx} className="flex flex-col items-center gap-2">
+            <View className="w-11 h-11 bg-orange-50 rounded-2xl flex items-center justify-center shadow-sm">
+              <item.Icon size={20} className="text-orange-500" />
+            </View>
+            <Text className="text-[10px] font-bold text-gray-700 whitespace-nowrap">{item.label}</Text>
+          </View>
+        ))}
+      </View>
+
+      <View className="px-4 mt-2">
+        <View className="flex flex-row justify-between items-end mb-4 px-2">
+          <Text className="text-lg font-bold text-gray-800">{homeHall === 'patent' ? '精选专利推荐' : '热门需求广场'}</Text>
+          <Text className="text-xs text-orange-600 font-medium">查看更多</Text>
+        </View>
+        <View className="space-y-4 pb-12 px-2">
+          {(homeHall === 'patent' ? PATENTS_DATA : REQUIREMENTS_DATA).map(item => (
+            <View key={item.id} className="bg-white rounded-[32px] p-6 border border-gray-100 shadow-sm mb-4 active:scale-[0.98] transition-all">
+              <View className="flex flex-row justify-between items-start mb-2">
+                <Text className="text-[10px] px-2.5 py-1 bg-gray-100 text-gray-500 rounded-lg font-bold uppercase tracking-tight">{item.industry}</Text>
+                <Star size={18} className="text-gray-200" />
+              </View>
+              <Text className="font-bold text-gray-800 text-base mb-2 block truncate">{item.title}</Text>
+              <View className="flex flex-row items-center gap-2 mb-4">
+                <Text className="text-xs text-orange-600 border border-orange-200 px-2.5 py-1 rounded-full font-medium">{item.type}</Text>
+                <Text className="text-xs text-green-600 border border-green-200 px-2.5 py-1 rounded-full font-bold">已核验</Text>
+              </View>
+              <View className="flex flex-row justify-between items-center border-t border-gray-50 border-solid pt-4">
+                <Text className="text-orange-600 font-black text-xl">{item.price}</Text>
+                <View className="bg-gray-900 text-white text-[10px] px-5 py-2.5 rounded-2xl font-bold shadow-md active:bg-orange-600">
+                  {homeHall === 'patent' ? '详情' : '响应'}
+                </View>
+              </View>
+            </View>
+          ))}
+        </View>
+      </View>
+    </View>
+  );
+
+  // 2. 渲染咨询页 (恢复技术经理人/服务机构模版)
+  const renderConsult = () => {
+    const dataList = consultSubTab === 'manager' ? EXPERTS_DATA : AGENCIES_DATA;
+    return (
+      <View className="pb-32 bg-white min-h-screen text-center">
+        <View className="px-6 pt-14 pb-2"><Text className="text-2xl font-black text-gray-900 block tracking-tight">专家咨询</Text></View>
+        <View className="flex flex-row items-center justify-center border-b border-gray-50 mt-6 px-6">
+          <View className="w-[70%] flex flex-row justify-between">
+            <View onClick={() => setConsultSubTab('manager')} className="pb-3 relative flex-1 flex justify-center cursor-pointer">
+              <Text className={`text-sm font-bold ${consultSubTab === 'manager' ? 'text-gray-900' : 'text-gray-400'}`}>技术经理人</Text>
+              {consultSubTab === 'manager' && <View className="absolute bottom-0 left-[-6px] right-[-6px] h-0.5 bg-orange-500 rounded-full"></View>}
+            </View>
+            <View onClick={() => setConsultSubTab('agency')} className="pb-3 relative flex-1 flex justify-center cursor-pointer">
+              <Text className={`text-sm font-bold ${consultSubTab === 'agency' ? 'text-gray-900' : 'text-gray-400'}`}>服务机构</Text>
+              {consultSubTab === 'agency' && <View className="absolute bottom-0 left-[-6px] right-[-6px] h-0.5 bg-orange-500 rounded-full"></View>}
+            </View>
+          </View>
+        </View>
+        <View className="divide-y divide-gray-50 px-8 mt-4 text-left">
+          {dataList.map(item => (
+            <View key={item.id} className="px-2 py-6 flex flex-row items-center gap-5 active:bg-gray-50 transition-colors">
+              <View className="w-11 h-11 bg-gray-100 rounded-full flex-shrink-0 flex items-center justify-center">
+                <User size={18} className="text-gray-300" />
+              </View>
+              <View className="flex-1 min-w-0">
+                <View className="flex flex-row items-center gap-2 flex-wrap">
+                  <Text className="text-[15px] font-bold text-gray-900">{item.name}</Text>
+                  <View className="bg-gray-100 px-1.5 py-0.5 rounded text-[8px] text-gray-400 font-bold">{item.level}</View>
+                  <View className="flex flex-row items-center">
+                    <Star size={9} className="text-orange-500 fill-orange-500" />
+                    <Text className="text-[10px] font-bold text-orange-600 ml-0.5">{item.score}</Text>
+                  </View>
+                </View>
+                <Text className="text-[10px] text-gray-400 mt-1 block truncate font-medium">{item.skill}</Text>
+              </View>
+              <View className="bg-orange-500 px-4 py-1.5 rounded-lg shadow-sm active:opacity-80 flex-shrink-0">
+                <Text className="text-[10px] font-black text-white">咨询</Text>
+              </View>
+            </View>
+          ))}
+        </View>
+      </View>
+    );
+  };
+
+  // 3. 渲染检索页面 (保持搜索结果列表布局)
+  const renderSearch = () => (
+    <View className="pb-32 bg-white min-h-screen">
+      <View className="px-8 pt-14 pb-4">
+        <View className="bg-gray-50 rounded-2xl px-5 py-4 flex flex-row items-center border border-gray-100 shadow-inner active:border-orange-200">
+          <Search size={20} className="text-gray-400 mr-3" />
+          <Input defaultValue="深度学习" className="text-sm bg-transparent flex-1 text-gray-800 font-bold outline-none" />
+        </View>
+      </View>
+      <View className="flex flex-row justify-between px-8 py-3 border-b border-gray-50 bg-white">
+        {['综合', '价格', '时间'].map(item => (
+          <View key={item} className="flex flex-row items-center gap-1 cursor-pointer">
+            <Text className="text-xs font-bold text-gray-500">{item}</Text>
+            <ChevronDown size={14} className="text-gray-300" />
+          </View>
+        ))}
+        <View className="flex flex-row items-center gap-1 cursor-pointer"><Text className="text-xs font-bold text-gray-500">筛选</Text><SlidersHorizontal size={14} className="text-gray-300" /></View>
+      </View>
+      <View className="bg-blue-50/60 py-2.5 px-10"><Text className="text-[11px] text-blue-400 font-bold tracking-wide">已为您筛选出 {SEARCH_RESULTS_DATA.length} 条结果</Text></View>
+      <View className="divide-y divide-gray-50 px-8">
+        {SEARCH_RESULTS_DATA.map(item => (
+          <View key={item.id} className="py-6 flex flex-col gap-3 active:bg-gray-50 transition-colors cursor-pointer">
+            <Text className="text-[15px] font-black text-gray-900 leading-snug">{item.title}</Text>
+            <View className="flex flex-row items-center gap-3 flex-wrap">
+              <Text className="text-[11px] text-gray-400 font-bold">{item.patentNo}</Text>
+              <View className="w-[1px] h-2.5 bg-gray-100" />
+              <Text className="text-[11px] text-gray-400 font-bold">{item.ipc}</Text>
+              <View className="w-[1px] h-2.5 bg-gray-100" />
+              <View className="bg-gray-50 px-1.5 py-0.5 rounded text-[10px] text-gray-400 font-bold">{item.tag}</View>
+            </View>
+            <View className="flex flex-row justify-between items-center mt-1">
+              <Text className="text-base font-black text-red-500">面议</Text>
+              <View className="border border-blue-500 rounded-full px-5 py-1.5 active:bg-blue-50 transition-all cursor-pointer">
+                <Text className="text-[11px] font-black text-blue-500">联系卖家</Text>
+              </View>
+            </View>
+          </View>
+        ))}
+      </View>
+    </View>
+  );
+
+  // 4. 渲染消息页面 (恢复消息举例)
+  const renderMessages = () => (
+    <View className="pb-32 bg-white min-h-screen">
+      <View className="px-6 pt-14 pb-2 text-center"><Text className="text-2xl font-black text-gray-900 block tracking-tight">消息中心</Text></View>
+      <View className="flex flex-row items-center justify-center border-b border-gray-50 mt-6 px-6">
+        <View className="w-[70%] flex flex-row justify-between">
+          <View onClick={() => setMsgSubTab('chat')} className="pb-3 relative flex-1 flex justify-center cursor-pointer">
+            <Text className={`text-sm font-bold ${msgSubTab === 'chat' ? 'text-gray-900' : 'text-gray-400'}`}>私聊消息</Text>
+            {msgSubTab === 'chat' && <View className="absolute bottom-0 left-[-4px] right-[-4px] h-0.5 bg-orange-500 rounded-full" />}
+          </View>
+          <View onClick={() => setMsgSubTab('notice')} className="pb-3 relative flex-1 flex justify-center cursor-pointer">
+            <Text className={`text-sm font-bold ${msgSubTab === 'notice' ? 'text-gray-900' : 'text-gray-400'}`}>系统通知</Text>
+            {msgSubTab === 'notice' && <View className="absolute bottom-0 left-[-4px] right-[-4px] h-0.5 bg-orange-500 rounded-full" />}
+          </View>
+        </View>
+      </View>
+      <View className="px-8 mt-4 divide-y divide-gray-50">
+        {msgSubTab === 'chat' ? (
+          CHAT_MESSAGES.map(item => (
+            <View key={item.id} className="py-6 flex flex-row items-center gap-5 active:bg-gray-50 cursor-pointer transition-colors">
+              <View className="w-12 h-12 bg-gray-100 rounded-full flex-shrink-0 flex items-center justify-center relative">
+                <User size={22} className="text-gray-300" />
+                {item.unread > 0 && <View className="absolute -top-0.5 -right-0.5 bg-orange-500 min-w-[16px] h-4 rounded-full flex items-center justify-center px-1 border-2 border-white shadow-sm"><Text className="text-white text-[8px] font-black">{item.unread}</Text></View>}
+              </View>
+              <View className="flex-1 min-w-0">
+                <View className="flex flex-row justify-between items-center mb-1"><Text className="text-base font-bold text-gray-900">{item.name}</Text><Text className="text-[10px] text-gray-300 font-medium">{item.time}</Text></View>
+                <Text className="text-xs text-gray-400 truncate opacity-90">{item.lastMsg}</Text>
+              </View>
+            </View>
+          ))
+        ) : (
+          SYSTEM_NOTICES.map(item => (
+            <View key={item.id} className="py-6 flex flex-row items-start gap-5 active:bg-gray-50 cursor-pointer">
+              <View className="w-11 h-11 bg-orange-50 rounded-2xl flex-shrink-0 flex items-center justify-center"><Bell size={20} className="text-orange-500" /></View>
+              <View className="flex-1 min-w-0">
+                <View className="flex flex-row justify-between items-center mb-1"><View className="flex flex-row items-center gap-2"><Text className="text-[15px] font-bold text-gray-900">{item.title}</Text>{item.unread && <View className="w-1.5 h-1.5 bg-orange-500 rounded-full" />}</View><Text className="text-[10px] text-gray-300 font-medium">{item.time}</Text></View>
+                <Text className="text-xs text-gray-400 opacity-80 leading-relaxed">{item.desc}</Text>
+              </View>
+            </View>
+          ))
+        )}
+      </View>
+    </View>
+  );
+
+  // 5. 渲染“我的”页面 (恢复完整信息显示)
+  const renderUser = () => (
+    <View className="pb-32 bg-white min-h-screen">
+      <View className="pt-20 pb-10 flex flex-col items-center justify-center border-b border-gray-50/50 text-center">
+        <View className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center shadow-inner mb-4 mx-auto"><User size={36} className="text-gray-300" strokeWidth={1.5} /></View>
+        <View className="flex flex-col items-center">
+          <Text className="text-xl font-black text-gray-900 tracking-tight">点击登录/注册</Text>
+          <Text className="text-[10px] text-gray-400 font-bold mt-1 tracking-widest uppercase">Welcome to IP Money</Text>
+        </View>
+      </View>
+      <View className="px-8 py-8">
+        <View className="bg-white rounded-[32px] p-6 shadow-[0_10px_30px_rgba(0,0,0,0.02)] border border-gray-50/50 flex flex-row justify-between items-center text-center">
+          {[{ Icon: CreditCard, label: '待付款' }, { Icon: Package, label: '待收货' }, { Icon: PenLine, label: '待签约' }, { Icon: RotateCcw, label: '售后/退款' }].map((item, idx) => (
+            <View key={idx} className="flex flex-col items-center gap-2 active:scale-90 transition-transform cursor-pointer">
+              <View className="text-gray-900 opacity-80"><item.Icon size={22} /></View>
+              <Text className="text-[10px] font-bold text-gray-500">{item.label}</Text>
+            </View>
+          ))}
+        </View>
+      </View>
+      <View className="px-8 mt-2 space-y-1">
+        {[{ Icon: FileText, label: '我的发布' }, { Icon: Heart, label: '我的收藏' }, { Icon: UserCheck, label: '实名认证' }, { Icon: Award, label: '专家入驻' }, { Icon: MessageSquare, label: '意见反馈' }, { Icon: Settings, label: '系统设置' }].map((item, idx) => (
+          <View key={idx} className="py-5 flex flex-row items-center justify-between active:bg-gray-50 transition-colors cursor-pointer px-2 rounded-xl">
+            <View className="flex flex-row items-center gap-4">
+              <View className="text-orange-500"><item.Icon size={18} /></View>
+              <Text className="text-[15px] font-bold text-gray-800">{item.label}</Text>
+            </View>
+            <ChevronRight size={18} className="text-gray-200" />
+          </View>
+        ))}
+      </View>
+    </View>
+  );
+
+  return (
+    <ScrollView className="min-h-screen bg-white font-sans text-gray-900 max-w-md mx-auto relative overflow-hidden shadow-2xl">
+      {activeTab === 'home' && renderHome()}
+      {activeTab === 'consult' && renderConsult()}
+      {activeTab === 'search' && renderSearch()}
+      {activeTab === 'messages' && renderMessages()}
+      {activeTab === 'user' && renderUser()}
+
+      {/* 底部导航栏 */}
+      <View className="fixed bottom-0 left-0 right-0 max-w-md mx-auto bg-white/98 backdrop-blur-2xl border-t border-gray-100 px-4 pb-8 pt-2 flex flex-row justify-between items-end z-50 shadow-[0_-15px_40px_rgba(0,0,0,0.02)]">
+        <View onClick={() => setActiveTab('consult')} className={`flex-1 flex flex-col items-center cursor-pointer transition-colors ${activeTab === 'consult' ? 'text-orange-600' : 'text-gray-400'}`}>
+          <Headset size={22} className={activeTab === 'consult' ? 'drop-shadow-[0_2px_4px_rgba(234,88,12,0.2)]' : ''} />
+          <Text className="text-[10px] font-black mt-1">咨询</Text>
+        </View>
+        <View onClick={() => setActiveTab('search')} className={`flex-1 flex flex-col items-center cursor-pointer transition-colors ${activeTab === 'search' ? 'text-orange-600' : 'text-gray-400'}`}>
+          <Search size={22} className={activeTab === 'search' ? 'drop-shadow-[0_2px_4px_rgba(234,88,12,0.2)]' : ''} />
+          <Text className="text-[10px] font-black mt-1">检索</Text>
+        </View>
+        <View className="flex-1 flex flex-col items-center">
+          <View onClick={() => setActiveTab('home')} className={`w-14 h-14 rounded-[22px] flex items-center justify-center shadow-xl transition-all relative -top-3 cursor-pointer active:scale-90 ${activeTab === 'home' ? 'bg-orange-500 shadow-orange-200' : 'bg-gray-900 shadow-gray-200'}`}>
+            <Home size={24} className="text-white" strokeWidth={2.5} />
+          </View>
+          <Text className={`text-[10px] font-black ${activeTab === 'home' ? 'text-orange-600' : 'text-gray-400'}`}>首页</Text>
+        </View>
+        <View onClick={() => setActiveTab('messages')} className={`flex-1 flex flex-col items-center cursor-pointer transition-colors ${activeTab === 'messages' ? 'text-orange-600' : 'text-gray-400'}`}>
+          <View className="relative">
+            <MessageSquare size={22} className={activeTab === 'messages' ? 'drop-shadow-[0_2px_4px_rgba(234,88,12,0.2)]' : ''} />
+            {activeTab !== 'messages' && <View className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-orange-500 rounded-full border-2 border-white" />}
+          </View>
+          <Text className="text-[10px] font-black mt-1">消息</Text>
+        </View>
+        <View onClick={() => setActiveTab('user')} className={`flex-1 flex flex-col items-center cursor-pointer transition-colors ${activeTab === 'user' ? 'text-orange-600' : 'text-gray-400'}`}>
+          <User size={22} className={activeTab === 'user' ? 'drop-shadow-[0_2px_4px_rgba(234,88,12,0.2)]' : ''} />
+          <Text className="text-[10px] font-black mt-1">我的</Text>
+        </View>
+      </View>
+    </ScrollView>
+  );
+};
+
+export default App;

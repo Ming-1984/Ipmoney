@@ -41,22 +41,22 @@ export default defineAppConfig({
     'pages/region-picker/index',
   ],
   window: {
-    backgroundColor: '#FFF5EE',
+    backgroundColor: '#f7f3ec',
     backgroundTextStyle: 'light',
-    navigationBarBackgroundColor: '#FF6A00',
+    navigationBarBackgroundColor: '#c89b3c',
     navigationBarTitleText: 'Ipmoney',
     navigationBarTextStyle: 'white',
   },
   tabBar: {
     color: '#475569',
-    selectedColor: '#FF6A00',
+    selectedColor: '#c89b3c',
     backgroundColor: '#ffffff',
     list: [
       {
-        pagePath: 'pages/home/index',
-        text: '首页',
-        iconPath: 'assets/tabbar/home.png',
-        selectedIconPath: 'assets/tabbar/home-active.png',
+        pagePath: 'pages/tech-managers/index',
+        text: '咨询',
+        iconPath: 'assets/tabbar/messages.png',
+        selectedIconPath: 'assets/tabbar/messages-active.png',
       },
       {
         pagePath: 'pages/search/index',
@@ -65,10 +65,10 @@ export default defineAppConfig({
         selectedIconPath: 'assets/tabbar/search-active.png',
       },
       {
-        pagePath: 'pages/publish/index',
-        text: '发布',
-        iconPath: 'assets/tabbar/publish.png',
-        selectedIconPath: 'assets/tabbar/publish-active.png',
+        pagePath: 'pages/home/index',
+        text: '首页',
+        iconPath: 'assets/tabbar/home.png',
+        selectedIconPath: 'assets/tabbar/home-active.png',
       },
       {
         pagePath: 'pages/messages/index',

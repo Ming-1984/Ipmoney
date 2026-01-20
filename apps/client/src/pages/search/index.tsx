@@ -34,8 +34,8 @@ import { ListingCard } from '../../ui/ListingCard';
 import { ListingListSkeleton } from '../../ui/ListingSkeleton';
 import { SearchEntry } from '../../ui/SearchEntry';
 import { EmptyCard, ErrorCard, LoadingCard } from '../../ui/StateCards';
-import { CategoryControl, ChipGroup, FilterSheet, FilterSummary, IndustryTagsPicker, RangeInput, SortControl, SortSheet } from '../../ui/filters';
-import { CellRow, PageHeader, Spacer, Surface, Toolbar } from '../../ui/layout';
+import { CategoryControl, ChipGroup, FilterSheet, IndustryTagsPicker, RangeInput, SortControl, SortSheet } from '../../ui/filters';
+import { CellRow, Surface } from '../../ui/layout';
 import { Button, CellGroup, Input, toast } from '../../ui/nutui';
 
 type Tab = 'LISTING' | 'DEMAND' | 'ACHIEVEMENT' | 'ARTWORK' | 'ORG';
@@ -586,6 +586,13 @@ export default function SearchPage() {
 
   const listingSortTabValue: SortBy = sortBy === 'PRICE_ASC' || sortBy === 'PRICE_DESC' ? 'RECOMMENDED' : sortBy;
   const listingMoreSortLabel = sortBy === 'PRICE_ASC' ? '价格升序' : sortBy === 'PRICE_DESC' ? '价格降序' : null;
+  const sortByLabel = useCallback((v: SortBy) => {
+    if (v === 'NEWEST') return '最新';
+    if (v === 'POPULAR') return '热度';
+    if (v === 'PRICE_ASC') return '价格升序';
+    if (v === 'PRICE_DESC') return '价格降序';
+    return '推荐';
+  }, []);
   const artworkSortTabValue: ArtworkSortBy =
     artworkSortBy === 'PRICE_ASC' || artworkSortBy === 'PRICE_DESC' ? 'RECOMMENDED' : artworkSortBy;
   const artworkMoreSortLabel = artworkSortBy === 'PRICE_ASC' ? '价格升序' : artworkSortBy === 'PRICE_DESC' ? '价格降序' : null;
@@ -665,14 +672,17 @@ export default function SearchPage() {
     return out.filter(Boolean);
   }, [orgFilters]);
 
-  return (
-    <View className="container">
-      <PageHeader title="检索" />
-      <Spacer />
+  const selectedSummary = useMemo(() => {
+    if (tab === 'LISTING') return listingFilterLabels;
+    if (tab === 'DEMAND') return demandFilterLabels;
+    if (tab === 'ACHIEVEMENT') return achievementFilterLabels;
+    if (tab === 'ARTWORK') return artworkFilterLabels;
+    return orgFilterLabels;
+  }, [tab, listingFilterLabels, demandFilterLabels, achievementFilterLabels, artworkFilterLabels, orgFilterLabels]);
 
-      <Surface>
-        <Text className="text-strong">分类</Text>
-        <View style={{ height: '10rpx' }} />
+  return (
+    <View className="container search-v4">
+      <Surface className="search-hero glass-surface">
         <CategoryControl
           className="tabs-control-compact"
           value={tab}
@@ -686,7 +696,7 @@ export default function SearchPage() {
           onChange={(v) => setTab(v as Tab)}
         />
 
-        <View style={{ height: '14rpx' }} />
+        <View style={{ height: '12rpx' }} />
 
         <SearchEntry
           value={qInput}
@@ -701,184 +711,57 @@ export default function SearchPage() {
           }}
         />
 
-        {tab === 'LISTING' ? (
-          <>
-            <View style={{ height: '16rpx' }} />
-            <View className="row-between" style={{ gap: '12rpx' }}>
+        <View className="search-toolbar-row search-toolbar-compact">
+          <View className="search-toolbar-left">
+            <View
+              className="search-toolbar-btn"
+              onClick={() => {
+                if (tab === 'LISTING') setSortSheetOpen(true);
+              }}
+            >
               <Text className="text-strong">排序</Text>
-              <Button
-                variant="ghost"
-                block={false}
-                size="mini"
+              <Text className="muted text-caption">
+                {listingMoreSortLabel || (tab === 'LISTING' ? sortByLabel(sortBy) : '推荐')}
+              </Text>
+              <Text className="arrow" />
+            </View>
+            <View
+              className="search-toolbar-btn"
+              onClick={() => {
+                if (tab === 'LISTING') openFilters();
+                if (tab === 'DEMAND') setDemandFiltersOpen(true);
+                if (tab === 'ACHIEVEMENT') setAchievementFiltersOpen(true);
+                if (tab === 'ARTWORK') setArtworkFiltersOpen(true);
+                if (tab === 'ORG') setOrgFiltersOpen(true);
+              }}
+            >
+              <Text className="text-strong">筛选</Text>
+              <Text className="muted text-caption">更多条件</Text>
+              <Text className="arrow" />
+            </View>
+          </View>
+          {selectedSummary.length ? (
+            <View className="search-selected-scroll">
+              {selectedSummary.map((txt, idx) => (
+                <View key={`${txt}-${idx}`} className="pill">
+                  <Text>{txt}</Text>
+                </View>
+              ))}
+              <View
+                className="pill pill-strong"
                 onClick={() => {
-                  setSortSheetOpen(true);
+                  if (tab === 'LISTING') setListingFilters(LISTING_FILTER_DEFAULT);
+                  if (tab === 'DEMAND') setDemandFilters(DEMAND_FILTER_DEFAULT);
+                  if (tab === 'ACHIEVEMENT') setAchievementFilters(ACHIEVEMENT_FILTER_DEFAULT);
+                  if (tab === 'ARTWORK') setArtworkFilters(ARTWORK_FILTER_DEFAULT);
+                  if (tab === 'ORG') setOrgFilters(ORG_FILTER_DEFAULT);
                 }}
               >
-                {listingMoreSortLabel ? `更多·${listingMoreSortLabel}` : '更多'}
-              </Button>
-            </View>
-            <View style={{ height: '8rpx' }} />
-            <SortControl
-              className="tabs-control-compact"
-              value={listingSortTabValue}
-              options={[
-                { label: '推荐', value: 'RECOMMENDED' },
-                { label: '最新', value: 'NEWEST' },
-                { label: '热度', value: 'POPULAR' },
-              ]}
-              onChange={(value) => setSortBy(value as SortBy)}
-            />
-
-            <View style={{ height: '12rpx' }} />
-
-            <Toolbar
-              left={<Text className="text-strong">筛选</Text>}
-              right={
-                <Button variant="ghost" block={false} size="mini" onClick={openFilters}>
-                  筛选
-                </Button>
-              }
-            />
-            <View style={{ height: '10rpx' }} />
-            <FilterSummary labels={listingFilterLabels} emptyText="未设置筛选" />
-
-            <View style={{ height: '6rpx' }} />
-            <View className="row" style={{ gap: '12rpx' }}>
-              <View style={{ flex: 1 }}>
-                <Button variant="ghost" size="mini" onClick={() => void load()}>
-                  刷新
-                </Button>
-              </View>
-              <View style={{ flex: 1 }}>
-                <Button variant="ghost" size="mini" onClick={clearAll}>
-                  清空
-                </Button>
+                <Text>清空</Text>
               </View>
             </View>
-          </>
-        ) : tab === 'ARTWORK' ? (
-          <>
-            <View style={{ height: '16rpx' }} />
-            <View className="row-between" style={{ gap: '12rpx' }}>
-              <Text className="text-strong">排序</Text>
-              <Button
-                variant="ghost"
-                block={false}
-                size="mini"
-                onClick={() => {
-                  setArtworkSortSheetOpen(true);
-                }}
-              >
-                {artworkMoreSortLabel ? `更多·${artworkMoreSortLabel}` : '更多'}
-              </Button>
-            </View>
-            <View style={{ height: '8rpx' }} />
-            <SortControl
-              className="tabs-control-compact"
-              value={artworkSortTabValue}
-              options={[
-                { label: '推荐', value: 'RECOMMENDED' },
-                { label: '最新', value: 'NEWEST' },
-                { label: '热度', value: 'POPULAR' },
-              ]}
-              onChange={(value) => setArtworkSortBy(value as ArtworkSortBy)}
-            />
-
-            <View style={{ height: '12rpx' }} />
-
-            <Toolbar
-              left={<Text className="text-strong">筛选</Text>}
-              right={
-                <Button variant="ghost" block={false} size="mini" onClick={openFilters}>
-                  筛选
-                </Button>
-              }
-            />
-            <View style={{ height: '10rpx' }} />
-            <FilterSummary labels={artworkFilterLabels} emptyText="未设置筛选" />
-
-            <View style={{ height: '6rpx' }} />
-            <View className="row" style={{ gap: '12rpx' }}>
-              <View style={{ flex: 1 }}>
-                <Button variant="ghost" size="mini" onClick={() => void load()}>
-                  刷新
-                </Button>
-              </View>
-              <View style={{ flex: 1 }}>
-                <Button variant="ghost" size="mini" onClick={clearAll}>
-                  清空
-                </Button>
-              </View>
-            </View>
-          </>
-        ) : tab === 'DEMAND' || tab === 'ACHIEVEMENT' ? (
-          <>
-            <View style={{ height: '16rpx' }} />
-            <Text className="text-strong">排序</Text>
-            <View style={{ height: '10rpx' }} />
-            <SortControl
-              className="tabs-control-compact"
-              value={contentSortBy}
-              options={[
-                { label: '推荐', value: 'RECOMMENDED' },
-                { label: '最新', value: 'NEWEST' },
-                { label: '热度', value: 'POPULAR' },
-              ]}
-              onChange={(value) => setContentSortBy(value as ContentSortBy)}
-            />
-            <View style={{ height: '12rpx' }} />
-            <Toolbar
-              left={<Text className="text-strong">筛选</Text>}
-              right={
-                <Button variant="ghost" block={false} size="mini" onClick={openFilters}>
-                  筛选
-                </Button>
-              }
-            />
-            <View style={{ height: '10rpx' }} />
-            <FilterSummary labels={tab === 'DEMAND' ? demandFilterLabels : achievementFilterLabels} emptyText="未设置筛选" />
-            <View style={{ height: '6rpx' }} />
-            <View className="row" style={{ gap: '12rpx' }}>
-              <View style={{ flex: 1 }}>
-                <Button variant="ghost" size="mini" onClick={() => void load()}>
-                  刷新
-                </Button>
-              </View>
-              <View style={{ flex: 1 }}>
-                <Button variant="ghost" size="mini" onClick={clearAll}>
-                  清空
-                </Button>
-              </View>
-            </View>
-          </>
-        ) : (
-          <>
-            <View style={{ height: '12rpx' }} />
-            <Toolbar
-              left={<Text className="text-strong">筛选</Text>}
-              right={
-                <Button variant="ghost" block={false} size="mini" onClick={openFilters}>
-                  筛选
-                </Button>
-              }
-            />
-            <View style={{ height: '10rpx' }} />
-            <FilterSummary labels={orgFilterLabels} emptyText="未设置筛选" />
-            <View style={{ height: '6rpx' }} />
-            <View className="row" style={{ gap: '12rpx' }}>
-              <View style={{ flex: 1 }}>
-                <Button variant="ghost" size="mini" onClick={() => void load()}>
-                  刷新
-                </Button>
-              </View>
-              <View style={{ flex: 1 }}>
-                <Button variant="ghost" size="mini" onClick={clearAll}>
-                  清空
-                </Button>
-              </View>
-            </View>
-          </>
-        )}
+          ) : null}
+        </View>
       </Surface>
 
       {tab === 'LISTING' ? (
@@ -1490,7 +1373,7 @@ export default function SearchPage() {
         <ErrorCard message={error} onRetry={load} />
       ) : tab === 'LISTING' ? (
         listingItems.length ? (
-          <Surface padding="none" className="listing-list">
+          <View className="search-card-list">
             {listingItems.map((it: ListingSummary) => (
               <ListingCard
                 key={it.id}
@@ -1507,7 +1390,7 @@ export default function SearchPage() {
                 }}
               />
             ))}
-          </Surface>
+          </View>
         ) : (
           <EmptyCard message="暂无符合条件的结果，尝试调整关键词或筛选条件。" actionText="刷新" onAction={load} />
         )
@@ -1516,29 +1399,29 @@ export default function SearchPage() {
           <View>
             {demandItems.map((it: DemandSummary) => (
               <Surface
+                className="search-card"
                 key={it.id}
-                style={{ marginBottom: '16rpx' }}
                 onClick={() => {
                   Taro.navigateTo({ url: `/pages/demand/detail/index?demandId=${it.id}` });
                 }}
               >
-                <Text className="text-title clamp-2">{it.title || '未命名需求'}</Text>
-                <View style={{ height: '8rpx' }} />
-                <View className="row" style={{ gap: '12rpx', flexWrap: 'wrap' }}>
-                  <Text className="tag tag-gold">{demandBudgetLabel(it)}</Text>
-                  {it.publisher?.displayName ? <Text className="tag">{it.publisher.displayName}</Text> : null}
+                <Text className="search-card-title clamp-2">{it.title || '未命名需求'}</Text>
+                <View style={{ height: '10rpx' }} />
+                <View className="search-card-meta">
+                  <Text className="pill pill-strong">{demandBudgetLabel(it)}</Text>
+                  {it.publisher?.displayName ? <Text className="pill">{it.publisher.displayName}</Text> : null}
                 </View>
                 {it.cooperationModes?.length || it.industryTags?.length ? (
                   <>
-                    <View style={{ height: '6rpx' }} />
-                    <View className="row" style={{ gap: '10rpx', flexWrap: 'wrap' }}>
+                    <View style={{ height: '8rpx' }} />
+                    <View className="search-card-meta">
                       {it.cooperationModes?.slice(0, 2).map((m) => (
-                        <Text key={`${it.id}-co-${m}`} className="tag">
+                        <Text key={`${it.id}-co-${m}`} className="pill">
                           {cooperationModeLabel(m)}
                         </Text>
                       ))}
                       {it.industryTags?.slice(0, 2).map((t) => (
-                        <Text key={`${it.id}-tag-${t}`} className="tag">
+                        <Text key={`${it.id}-tag-${t}`} className="pill">
                           {t}
                         </Text>
                       ))}
@@ -1547,8 +1430,8 @@ export default function SearchPage() {
                 ) : null}
                 {it.summary ? (
                   <>
-                    <View style={{ height: '10rpx' }} />
-                    <Text className="muted clamp-2">{it.summary}</Text>
+                    <View style={{ height: '12rpx' }} />
+                    <Text className="muted search-card-desc clamp-2">{it.summary}</Text>
                   </>
                 ) : null}
               </Surface>
@@ -1562,29 +1445,29 @@ export default function SearchPage() {
           <View>
             {achievementItems.map((it: AchievementSummary) => (
               <Surface
+                className="search-card"
                 key={it.id}
-                style={{ marginBottom: '16rpx' }}
                 onClick={() => {
                   Taro.navigateTo({ url: `/pages/achievement/detail/index?achievementId=${it.id}` });
                 }}
               >
-                <Text className="text-title clamp-2">{it.title || '未命名成果'}</Text>
-                <View style={{ height: '8rpx' }} />
-                <View className="row" style={{ gap: '12rpx', flexWrap: 'wrap' }}>
-                  <Text className="tag tag-gold">{maturityLabel(it.maturity)}</Text>
-                  {it.publisher?.displayName ? <Text className="tag">{it.publisher.displayName}</Text> : null}
+                <Text className="search-card-title clamp-2">{it.title || '未命名成果'}</Text>
+                <View style={{ height: '10rpx' }} />
+                <View className="search-card-meta">
+                  <Text className="pill pill-strong">{maturityLabel(it.maturity)}</Text>
+                  {it.publisher?.displayName ? <Text className="pill">{it.publisher.displayName}</Text> : null}
                 </View>
                 {it.cooperationModes?.length || it.industryTags?.length ? (
                   <>
-                    <View style={{ height: '6rpx' }} />
-                    <View className="row" style={{ gap: '10rpx', flexWrap: 'wrap' }}>
+                    <View style={{ height: '8rpx' }} />
+                    <View className="search-card-meta">
                       {it.cooperationModes?.slice(0, 2).map((m) => (
-                        <Text key={`${it.id}-co-${m}`} className="tag">
+                        <Text key={`${it.id}-co-${m}`} className="pill">
                           {cooperationModeLabel(m)}
                         </Text>
                       ))}
                       {it.industryTags?.slice(0, 2).map((t) => (
-                        <Text key={`${it.id}-tag-${t}`} className="tag">
+                        <Text key={`${it.id}-tag-${t}`} className="pill">
                           {t}
                         </Text>
                       ))}
@@ -1593,8 +1476,8 @@ export default function SearchPage() {
                 ) : null}
                 {it.summary ? (
                   <>
-                    <View style={{ height: '10rpx' }} />
-                    <Text className="muted clamp-2">{it.summary}</Text>
+                    <View style={{ height: '12rpx' }} />
+                    <Text className="muted search-card-desc clamp-2">{it.summary}</Text>
                   </>
                 ) : null}
               </Surface>

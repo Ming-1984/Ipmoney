@@ -1,9 +1,9 @@
 import Taro from '@tarojs/taro';
 
 const TAB_PAGE_PATHS = [
-  '/pages/home/index',
+  '/pages/tech-managers/index',
   '/pages/search/index',
-  '/pages/publish/index',
+  '/pages/home/index',
   '/pages/messages/index',
   '/pages/me/index',
 ] as const;
@@ -49,4 +49,3 @@ export async function safeNavigateBack(options?: { fallbackUrl?: string }) {
 
   await Taro.reLaunch({ url: fallbackUrl });
 }
-

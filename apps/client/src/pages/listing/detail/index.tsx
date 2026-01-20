@@ -16,8 +16,8 @@ import { safeNavigateBack } from '../../../lib/navigation';
 import { regionDisplayName } from '../../../lib/regions';
 import { useRouteUuidParam } from '../../../lib/routeParams';
 import { CommentsSection } from '../../../ui/CommentsSection';
-import { CellRow, PageHeader, SectionHeader, Spacer, StickyBar, Surface, TipBanner } from '../../../ui/layout';
-import { Avatar, Button, CellGroup, Space, Tag, toast } from '../../../ui/nutui';
+import { PageHeader, SectionHeader, Spacer, StickyBar, Surface, TipBanner } from '../../../ui/layout';
+import { Avatar, Button, toast } from '../../../ui/nutui';
 import { EmptyCard, ErrorCard, LoadingCard, MissingParamCard } from '../../../ui/StateCards';
 
 type ListingPublic = components['schemas']['ListingPublic'];
@@ -129,71 +129,25 @@ export default function ListingDetailPage() {
 
           <Spacer size={12} />
 
-          <Surface>
+          <Surface className="listing-detail-block">
             <Text className="text-title clamp-2">{data.title || '未命名专利'}</Text>
-            <Spacer size={8} />
+            <Spacer size={6} />
 
-            <Space wrap align="center">
-              <Tag type="primary" plain round>
-                类型：{data.patentType ? patentTypeLabel(data.patentType) : '-'}
-              </Tag>
-              <Tag type="default" plain round>
-                交易：{tradeModeLabel(data.tradeMode)}
-              </Tag>
-              <Tag type="default" plain round>
-                价格：{priceTypeLabel(data.priceType)}
-              </Tag>
-              {data.featuredLevel && data.featuredLevel !== 'NONE' ? (
-                <Tag type="primary" plain round>
-                  特色：{featuredLevelLabel(data.featuredLevel)}
-                </Tag>
-              ) : null}
-            </Space>
+            <Text className="listing-detail-meta-text">
+              类型：{data.patentType ? patentTypeLabel(data.patentType) : '-'} · 交易：{tradeModeLabel(data.tradeMode)} · 价格：
+              {priceTypeLabel(data.priceType)}
+            </Text>
 
-            {data.regionCode || data.industryTags?.length ? (
+            {(data.industryTags?.length || data.regionCode) && (
               <>
-                <Spacer size={8} />
-                <Space wrap align="center">
-                  {data.regionCode ? (
-                    <Tag type="default" plain round>
-                      地区：{regionDisplayName(data.regionCode)}
-                    </Tag>
-                  ) : null}
-                  {data.industryTags?.slice(0, 4).map((t) => (
-                    <Tag key={t} type="default" plain round>
-                      {t}
-                    </Tag>
-                  ))}
-                </Space>
+                <Spacer size={6} />
+            <Text className="listing-detail-subinfo">
+              行业：{data.industryTags?.length ? data.industryTags.slice(0, 2).join(' / ') : '-'} · 地区：{regionDisplayName(data.regionCode)}
+            </Text>
               </>
-            ) : null}
+            )}
 
-            {data.recommendationScore !== undefined && data.recommendationScore !== null ? (
-              <>
-                <Spacer size={8} />
-                <Space wrap align="center">
-                  <Tag type="success" plain round>
-                    推荐分：{String(Math.round(data.recommendationScore * 100) / 100)}
-                  </Tag>
-                  {data.inventorRankScore !== undefined && data.inventorRankScore !== null ? (
-                    <Tag type="success" plain round>
-                      发明人影响力：{String(Math.round(data.inventorRankScore * 100) / 100)}
-                    </Tag>
-                  ) : null}
-                </Space>
-              </>
-            ) : data.inventorRankScore !== undefined && data.inventorRankScore !== null ? (
-              <>
-                <Spacer size={8} />
-                <Space wrap align="center">
-                  <Tag type="success" plain round>
-                    发明人影响力：{String(Math.round(data.inventorRankScore * 100) / 100)}
-                  </Tag>
-                </Space>
-              </>
-            ) : null}
-
-            <Spacer size={12} />
+            <Spacer size={10} />
 
             <View className="listing-detail-price-row">
               <View className="listing-detail-price-col">
@@ -218,81 +172,70 @@ export default function ListingDetailPage() {
                 {data.seller?.nickname || '-'}
               </Text>
               {data.seller?.verificationType ? (
-                <Tag type="default" plain round>
-                  {verificationTypeLabel(data.seller.verificationType)}
-                </Tag>
+                <Text className="listing-detail-labelchip">{verificationTypeLabel(data.seller.verificationType)}</Text>
               ) : null}
             </View>
 
             <Spacer size={8} />
 
-            <Space wrap align="center">
-              <Tag type="default" plain round>
-                浏览 {data.stats?.viewCount ?? 0}
-              </Tag>
-              <Tag type="default" plain round>
-                收藏 {data.stats?.favoriteCount ?? 0}
-              </Tag>
-              <Tag type="default" plain round>
-                咨询 {data.stats?.consultCount ?? 0}
-              </Tag>
-            </Space>
+            <Text className="listing-detail-stats-text">
+              浏览 {data.stats?.viewCount ?? 0} · 收藏 {data.stats?.favoriteCount ?? 0} · 咨询 {data.stats?.consultCount ?? 0}
+              {data.featuredLevel && data.featuredLevel !== 'NONE' ? ` · 特色：${featuredLevelLabel(data.featuredLevel)}` : ''}
+              {data.recommendationScore !== undefined && data.recommendationScore !== null
+                ? ` · 推荐分：${String(Math.round(data.recommendationScore * 100) / 100)}`
+                : ''}
+            </Text>
           </Surface>
 
           <Spacer size={12} />
 
-          <Surface>
+          <Surface className="listing-detail-block">
             <SectionHeader title="摘要" density="compact" />
             <Text className="muted break-word">{data.summary || '暂无摘要'}</Text>
           </Surface>
 
           <Spacer size={12} />
 
-          <Surface padding="none">
-            <CellGroup divider>
-              <CellRow
-                arrow={false}
-                title={<Text className="text-strong">申请号</Text>}
-                description={<Text className="muted break-word">{data.applicationNoDisplay || '-'}</Text>}
-              />
-              <CellRow
-                arrow={false}
-                title={<Text className="text-strong">发明人</Text>}
-                description={
-                  <Text className="muted break-word">
-                    {data.inventorNames?.length ? data.inventorNames.join(' / ') : '暂无'}
-                  </Text>
-                }
-              />
-              <CellRow
-                arrow={false}
-                title={<Text className="text-strong">IPC</Text>}
-                description={<Text className="muted break-word">{data.ipcCodes?.length ? data.ipcCodes.join('；') : '暂无'}</Text>}
-              />
-              <CellRow
-                arrow={false}
-                title={<Text className="text-strong">Locarno</Text>}
-                description={<Text className="muted break-word">{data.locCodes?.length ? data.locCodes.join('；') : '暂无'}</Text>}
-              />
-              {data.patentId ? (
-                <CellRow
-                  clickable
-                  title={<Text className="text-strong">查看专利详情</Text>}
-                  description={<Text className="muted">法律状态、权利人、引用、同族等</Text>}
-                  isLast
-                  onClick={() => {
-                    Taro.navigateTo({ url: `/pages/patent/detail/index?patentId=${data.patentId}` });
-                  }}
-                />
-              ) : (
-                <CellRow
-                  arrow={false}
-                  title={<Text className="text-strong">专利详情</Text>}
-                  description={<Text className="muted">暂无关联专利详情</Text>}
-                  isLast
-                />
-              )}
-            </CellGroup>
+          <Surface className="listing-detail-block listing-detail-info">
+            <Text className="listing-detail-info-title">专利信息</Text>
+            <View className="listing-detail-grid">
+              {[
+                { label: '专利号', value: data.applicationNoDisplay || '-' },
+                { label: '申请日', value: data.applicationDate || '-' },
+                { label: '交易方式', value: tradeModeLabel(data.tradeMode) },
+                { label: '价格类型', value: priceTypeLabel(data.priceType) },
+                { label: '行业', value: data.industryTags?.length ? data.industryTags.join(' / ') : '-' },
+                { label: '地区', value: regionDisplayName(data.regionCode) },
+                { label: 'IPC 分类', value: data.ipcCodes?.length ? data.ipcCodes.join('；') : '-', full: true },
+              ].map((item) => (
+                <View key={item.label} className={`listing-detail-grid-item ${item.full ? 'is-full' : ''}`}>
+                  <Text className="listing-detail-label">{item.label}</Text>
+                  <Text className="listing-detail-value break-word">{item.value}</Text>
+                </View>
+              ))}
+            </View>
+          </Surface>
+
+          <Spacer size={12} />
+
+          <Surface className="listing-detail-block listing-detail-info">
+            <Text className="listing-detail-info-title">详细信息</Text>
+            {[
+              { label: '发明人', value: data.inventorNames?.length ? data.inventorNames.join(' / ') : '暂无' },
+              { label: 'Locarno', value: data.locCodes?.length ? data.locCodes.join('；') : '暂无' },
+              data.patentId
+                ? {
+                    label: '专利详情',
+                    value: '法律状态、权利人、引用、同族等',
+                    link: () => Taro.navigateTo({ url: `/pages/patent/detail/index?patentId=${data.patentId}` }),
+                  }
+                : { label: '专利详情', value: '暂无关联专利详情' },
+            ].map((item) => (
+              <View key={item.label} className="listing-detail-rowline" onClick={item.link}>
+                <Text className="listing-detail-label">{item.label}</Text>
+                <Text className={`listing-detail-value ${item.link ? 'listing-detail-link' : ''} break-word`}>{item.value}</Text>
+              </View>
+            ))}
           </Surface>
 
           <Spacer size={12} />
@@ -319,19 +262,19 @@ export default function ListingDetailPage() {
         <StickyBar>
           <View className="listing-detail-sticky-secondary">
             <Button
-              variant="ghost"
+              variant="default"
               size="small"
               onClick={() => {
                 void toggleFavorite();
               }}
             >
               <View className="row" style={{ gap: '8rpx', alignItems: 'center' }}>
-                {favoritedState ? <HeartFill size={14} color="var(--c-primary)" /> : <Heart size={14} color="var(--c-muted)" />}
+                {favoritedState ? <HeartFill size={14} color="#e31b23" /> : <Heart size={14} color="var(--c-muted)" />}
                 <Text>{favoritedState ? '已收藏' : '收藏'}</Text>
               </View>
             </Button>
             <Button
-              variant="ghost"
+              variant="default"
               size="small"
               onClick={() => {
                 void startConsult();

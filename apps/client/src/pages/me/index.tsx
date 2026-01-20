@@ -19,8 +19,9 @@ import {
 } from '../../lib/auth';
 import { apiGet } from '../../lib/api';
 import { ErrorCard, LoadingCard } from '../../ui/StateCards';
-import { CellRow, PageHeader, Spacer, Surface } from '../../ui/layout';
-import { Avatar, Button, CellGroup, Tag, toast } from '../../ui/nutui';
+import { Surface } from '../../ui/layout';
+import { AppIcon } from '../../ui/Icon';
+import { Avatar, Button, Tag, toast } from '../../ui/nutui';
 
 type Me = {
   id: string;
@@ -142,17 +143,119 @@ export default function MePage() {
     return { type: auth.verificationType, status: auth.verificationStatus };
   }, [auth.verificationStatus, auth.verificationType]);
 
+  const serviceItems = useMemo(
+    () => [
+      {
+        key: 'orders',
+        title: '我的订单',
+        desc: '订金/尾款/退款进度',
+        onClick: () => {
+          Taro.navigateTo({ url: '/pages/orders/index' });
+        },
+      },
+      {
+        key: 'favorites',
+        title: '我的收藏',
+        desc: '专利/需求/成果/书画',
+        onClick: () => {
+          Taro.navigateTo({ url: '/pages/favorites/index' });
+        },
+      },
+      {
+        key: 'listings',
+        title: '我的专利上架',
+        desc: '管理草稿/上架/下架',
+        onClick: () => {
+          Taro.navigateTo({ url: '/pages/my-listings/index' });
+        },
+      },
+      {
+        key: 'demands',
+        title: '我的需求',
+        desc: '发布与管理需求',
+        onClick: () => {
+          Taro.navigateTo({ url: '/pages/my-demands/index' });
+        },
+      },
+      {
+        key: 'achievements',
+        title: '我的成果',
+        desc: '发布与管理成果',
+        onClick: () => {
+          Taro.navigateTo({ url: '/pages/my-achievements/index' });
+        },
+      },
+      {
+        key: 'artworks',
+        title: '我的书画',
+        desc: '发布与管理作品',
+        onClick: () => {
+          Taro.navigateTo({ url: '/pages/my-artworks/index' });
+        },
+      },
+    ],
+    [],
+  );
+
+  const extraItems = useMemo(
+    () => [
+      {
+        key: 'identity',
+        title: '身份/认证',
+        desc: '企业/院校/个人认证',
+        onClick: () => {
+          Taro.navigateTo({ url: '/pages/onboarding/choose-identity/index' });
+        },
+      },
+      {
+        key: 'messages',
+        title: '咨询/消息',
+        desc: '查看会话与跟单',
+        onClick: () => {
+          Taro.switchTab({ url: '/pages/messages/index' });
+        },
+      },
+      {
+        key: 'organizations',
+        title: '机构展示',
+        desc: '企业/科研院校入驻展示',
+        onClick: () => {
+          Taro.navigateTo({ url: '/pages/organizations/index' });
+        },
+      },
+      {
+        key: 'rules',
+        title: '交易规则',
+        desc: '订金/佣金/退款窗口等',
+        onClick: () => {
+          Taro.navigateTo({ url: '/pages/trade-rules/index' });
+        },
+      },
+      {
+        key: 'profile',
+        title: '资料设置',
+        desc: '昵称/地区等',
+        onClick: () => {
+          Taro.navigateTo({ url: '/pages/profile/edit/index' });
+        },
+      },
+    ],
+    [],
+  );
+
   return (
-    <View className="container">
-      <PageHeader title="我的" />
-      <Spacer />
+    <View className="container me-v4">
+      <View className="me-header">
+        <View>
+          <Text className="me-eyebrow">PROFILE</Text>
+          <Text className="text-hero">我的</Text>
+        </View>
+      </View>
 
       {!auth.token ? (
-        <Surface>
-          <Text className="text-card-title">未登录</Text>
-          <View style={{ height: '8rpx' }} />
-          <Text className="muted">登录并审核通过后，可进行收藏/咨询/下单/支付。</Text>
-          <View style={{ height: '14rpx' }} />
+        <Surface className="me-hero-card me-auth-card">
+          <Text className="me-hero-title">未登录</Text>
+          <Text className="me-hero-subtitle">登录并审核通过后，可进行收藏/咨询/下单/支付。</Text>
           <Button
             onClick={() => {
               Taro.navigateTo({ url: '/pages/login/index' });
@@ -162,167 +265,95 @@ export default function MePage() {
           </Button>
         </Surface>
       ) : (
-        <View>
+        <>
           {meLoading ? <LoadingCard text="加载我的资料…" /> : null}
           {meError ? <ErrorCard message={meError} onRetry={loadMe} /> : null}
           {me && !meLoading && !meError ? (
-            <Surface>
-              <View className="row" style={{ gap: '14rpx' }}>
-                <Avatar
-                  size="64"
-                  src={me.avatarUrl || ''}
-                  icon={<Text className="text-strong">{(me.nickname || '用').slice(0, 1)}</Text>}
-                />
-                <View style={{ flex: 1, minWidth: 0 }}>
-                  <View className="row-between" style={{ gap: '12rpx' }}>
-                    <View style={{ flex: 1, minWidth: 0 }}>
-                      <Text className="text-card-title">{me.nickname || '未设置昵称'}</Text>
-                      <View style={{ height: '6rpx' }} />
-                      <Text className="muted">{me.phone || '未绑定手机号'}</Text>
-                    </View>
-                    <View className="row" style={{ gap: '8rpx', flexShrink: 0 }}>
-                      {verification.status ? (
-                        <Tag type={verificationStatusTagType(verification.status)} plain round>
-                          {verificationStatusLabel(verification.status)}
-                        </Tag>
-                      ) : null}
-                      <Tag type="primary" plain round>
-                        {verificationTypeLabel(verification.type)}
-                      </Tag>
-                    </View>
-                  </View>
-                  <View style={{ height: '6rpx' }} />
-                  <Text className="muted">地区：{me.regionCode || '未设置'}</Text>
-
-                  <View style={{ height: '12rpx' }} />
-                  <View className="row" style={{ gap: '12rpx' }}>
-                    <View style={{ flex: 1 }}>
-                      <Button
-                        variant="ghost"
-                        size="small"
-                        onClick={() => {
-                          Taro.navigateTo({ url: '/pages/profile/edit/index' });
-                        }}
-                      >
-                        {!me.avatarUrl || !me.nickname ? '完善资料' : '资料设置'}
-                      </Button>
-                    </View>
-                    <View style={{ flex: 1 }}>
-                      <Button
-                        variant="ghost"
-                        size="small"
-                        onClick={() => {
-                          void syncVerification();
-                        }}
-                      >
-                        刷新认证
-                      </Button>
-                    </View>
-                  </View>
+            <Surface className="me-hero-card">
+              <View className="me-hero">
+                <View className="me-avatar">
+                  <Avatar
+                    size="88"
+                    src={me.avatarUrl || ''}
+                    icon={<Text className="text-strong">{(me.nickname || '用').slice(0, 1)}</Text>}
+                  />
                 </View>
+                <View className="me-hero-meta">
+                  <View className="me-hero-title-row">
+                    <Text className="me-hero-title">{me.nickname || '未设置昵称'}</Text>
+                    <View className="me-hero-badges">
+                      {verification.type ? (
+                        <View className="me-badge me-badge-outline">
+                          <Text>{verificationTypeLabel(verification.type)}</Text>
+                        </View>
+                      ) : null}
+                      {verification.status ? (
+                        <View className={`me-badge me-badge-${verification.status?.toLowerCase() || 'default'}`}>
+                          <Text>{verificationStatusLabel(verification.status)}</Text>
+                        </View>
+                      ) : null}
+                    </View>
+                  </View>
+                  <Text className="me-hero-subtitle">{me.phone || '未绑定手机号'}</Text>
+                  <Text className="me-hero-subtitle">地区：{me.regionCode || '未设置'}</Text>
+                </View>
+              </View>
+
+              <View className="me-hero-actions">
+                <Button
+                  size="small"
+                  block
+                  onClick={() => {
+                    Taro.navigateTo({ url: '/pages/profile/edit/index' });
+                  }}
+                >
+                  {!me.avatarUrl || !me.nickname ? '完善资料' : '资料设置'}
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="small"
+                  block
+                  onClick={() => {
+                    void syncVerification();
+                  }}
+                >
+                  刷新认证
+                </Button>
               </View>
             </Surface>
           ) : null}
 
-          <View style={{ height: '12rpx' }} />
-
-          <Surface padding="none">
-            <CellGroup divider>
-              <CellRow
-                clickable
-                title={<Text className="text-strong">我的订单</Text>}
-                description={<Text className="muted">查看订金/尾款/退款进度</Text>}
-                onClick={() => {
-                  Taro.navigateTo({ url: '/pages/orders/index' });
-                }}
-              />
-              <CellRow
-                clickable
-                title={<Text className="text-strong">我的收藏</Text>}
-                description={<Text className="muted">已收藏的专利/需求/成果/书画</Text>}
-                onClick={() => {
-                  Taro.navigateTo({ url: '/pages/favorites/index' });
-                }}
-              />
-              <CellRow
-                clickable
-                title={<Text className="text-strong">我的专利上架</Text>}
-                description={<Text className="muted">卖家管理草稿/上架/下架</Text>}
-                onClick={() => {
-                  Taro.navigateTo({ url: '/pages/my-listings/index' });
-                }}
-              />
-              <CellRow
-                clickable
-                title={<Text className="text-strong">我的需求</Text>}
-                description={<Text className="muted">发布方管理草稿/审核/下架</Text>}
-                onClick={() => {
-                  Taro.navigateTo({ url: '/pages/my-demands/index' });
-                }}
-              />
-              <CellRow
-                clickable
-                title={<Text className="text-strong">我的成果</Text>}
-                description={<Text className="muted">发布方管理草稿/审核/下架</Text>}
-                onClick={() => {
-                  Taro.navigateTo({ url: '/pages/my-achievements/index' });
-                }}
-              />
-              <CellRow
-                clickable
-                title={<Text className="text-strong">我的书画</Text>}
-                description={<Text className="muted">发布方管理草稿/审核/下架</Text>}
-                onClick={() => {
-                  Taro.navigateTo({ url: '/pages/my-artworks/index' });
-                }}
-              />
-              <CellRow
-                clickable
-                title={<Text className="text-strong">身份/认证</Text>}
-                description={<Text className="muted">首次进入必选，企业/院校通过后可展示</Text>}
-                onClick={() => {
-                  Taro.navigateTo({ url: '/pages/onboarding/choose-identity/index' });
-                }}
-              />
-              <CellRow
-                clickable
-                title={<Text className="text-strong">咨询/消息</Text>}
-                description={<Text className="muted">查看会话与跟单</Text>}
-                onClick={() => {
-                  Taro.switchTab({ url: '/pages/messages/index' });
-                }}
-              />
-              <CellRow
-                clickable
-                title={<Text className="text-strong">机构展示</Text>}
-                description={<Text className="muted">企业/科研院校入驻展示</Text>}
-                onClick={() => {
-                  Taro.navigateTo({ url: '/pages/organizations/index' });
-                }}
-              />
-              <CellRow
-                clickable
-                title={<Text className="text-strong">交易规则</Text>}
-                description={<Text className="muted">订金/佣金/退款窗口等</Text>}
-                onClick={() => {
-                  Taro.navigateTo({ url: '/pages/trade-rules/index' });
-                }}
-              />
-              <CellRow
-                clickable
-                title={<Text className="text-strong">资料设置</Text>}
-                description={<Text className="muted">昵称/地区等</Text>}
-                isLast
-                onClick={() => {
-                  Taro.navigateTo({ url: '/pages/profile/edit/index' });
-                }}
-              />
-            </CellGroup>
+          <Surface className="me-grid-card" padding="md">
+            <Text className="me-grid-title">服务功能</Text>
+            <View className="me-feature-grid">
+              {serviceItems.map((item) => (
+                <View key={item.key} className="me-feature" onClick={item.onClick}>
+                  <View className="me-feature-icon">
+                    <AppIcon name="patent-achievement" size={36} />
+                  </View>
+                  <Text className="me-feature-title">{item.title}</Text>
+                  <Text className="me-feature-desc">{item.desc}</Text>
+                </View>
+              ))}
+            </View>
           </Surface>
 
-          <View style={{ height: '12rpx' }} />
+          <Surface className="me-grid-card" padding="md">
+            <Text className="me-grid-title">更多功能</Text>
+            <View className="me-feature-grid">
+              {extraItems.map((item) => (
+                <View key={item.key} className="me-feature" onClick={item.onClick}>
+                  <View className="me-feature-icon">
+                    <AppIcon name="patent-map" size={36} />
+                  </View>
+                  <Text className="me-feature-title">{item.title}</Text>
+                  <Text className="me-feature-desc">{item.desc}</Text>
+                </View>
+              ))}
+            </View>
+          </Surface>
 
-          <Surface>
+          <Surface className="me-logout-card" padding="md">
             <Button
               variant="ghost"
               onClick={() => {
@@ -334,44 +365,43 @@ export default function MePage() {
               退出登录
             </Button>
           </Surface>
-        </View>
+        </>
       )}
 
       {ENABLE_MOCK_TOOLS && APP_MODE === 'development' ? (
-        <>
-          <View style={{ height: '16rpx' }} />
-          <Surface>
-            <Text className="text-card-title">开发工具：场景</Text>
-            <View style={{ height: '8rpx' }} />
-            <Text className="muted">当前：{scenario}</Text>
-            <View style={{ height: '12rpx' }} />
-            <View className="chip-row">
-              {[
-                ['happy', 'happy'],
-                ['empty', 'empty'],
-                ['error', 'error'],
-                ['edge', 'edge'],
-                ['payment_callback_replay', 'pay-replay'],
-                ['refund_failed', 'refund-failed'],
-                ['order_conflict', 'order-conflict'],
-              ].map(([value, label]) => (
-                <View key={value} style={{ marginRight: '12rpx', marginBottom: '12rpx' }}>
-                  <View
-                    className={`chip ${scenario === value ? 'chip-active' : ''}`}
-                    onClick={() => {
-                      Taro.setStorageSync(STORAGE_KEYS.mockScenario, value);
-                      setScenario(value);
-                      toast(`已切换：${value}`, { icon: 'success' });
-                    }}
-                  >
-                    <Text>{label}</Text>
-                  </View>
+        <Surface className="me-devtools-card">
+          <Text className="text-card-title">开发工具：场景</Text>
+          <View style={{ height: '8rpx' }} />
+          <Text className="muted">当前：{scenario}</Text>
+          <View style={{ height: '12rpx' }} />
+          <View className="chip-row">
+            {[
+              ['happy', 'happy'],
+              ['empty', 'empty'],
+              ['error', 'error'],
+              ['edge', 'edge'],
+              ['payment_callback_replay', 'pay-replay'],
+              ['refund_failed', 'refund-failed'],
+              ['order_conflict', 'order-conflict'],
+            ].map(([value, label]) => (
+              <View key={value} style={{ marginRight: '12rpx', marginBottom: '12rpx' }}>
+                <View
+                  className={`chip ${scenario === value ? 'chip-active' : ''}`}
+                  onClick={() => {
+                    Taro.setStorageSync(STORAGE_KEYS.mockScenario, value);
+                    setScenario(value);
+                    toast(`已切换：${value}`, { icon: 'success' });
+                  }}
+                >
+                  <Text>{label}</Text>
                 </View>
-              ))}
-            </View>
-          </Surface>
-        </>
+              </View>
+            ))}
+          </View>
+        </Surface>
       ) : null}
     </View>
   );
 }
+
+
