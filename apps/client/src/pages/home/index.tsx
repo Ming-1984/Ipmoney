@@ -28,6 +28,14 @@ type DemandSummary = components['schemas']['DemandSummary'];
 type Hall = 'patent' | 'demand';
 
 type Conversation = { id: string };
+type TagTone = 'blue' | 'green' | 'slate';
+
+function formatBudgetFen(fen?: number | null): string {
+  if (fen === undefined || fen === null) return '-';
+  const yuan = Math.round(Number(fen) / 100);
+  if (!Number.isFinite(yuan)) return '-';
+  return new Intl.NumberFormat('zh-CN').format(yuan);
+}
 
 function demandBudgetLabel(it: Pick<DemandSummary, 'budgetType' | 'budgetMinFen' | 'budgetMaxFen'>): string {
   const type = it.budgetType;
@@ -35,9 +43,9 @@ function demandBudgetLabel(it: Pick<DemandSummary, 'budgetType' | 'budgetMinFen'
   if (type === 'NEGOTIABLE') return '预算：面议';
   const min = it.budgetMinFen;
   const max = it.budgetMaxFen;
-  if (min !== undefined && max !== undefined) return `预算：￥${fenToYuan(min)}–￥${fenToYuan(max)}`;
-  if (min !== undefined) return `预算：≥￥${fenToYuan(min)}`;
-  if (max !== undefined) return `预算：≤￥${fenToYuan(max)}`;
+  if (min !== undefined && max !== undefined) return `预算：¥${formatBudgetFen(min)} - ¥${formatBudgetFen(max)}`;
+  if (min !== undefined) return `预算：≥¥${formatBudgetFen(min)}`;
+  if (max !== undefined) return `预算：≤¥${formatBudgetFen(max)}`;
   return '预算：固定';
 }
 
@@ -346,43 +354,50 @@ export default function HomePage() {
             >
               <Text className="text-title clamp-2">{it.title || '未命名需求'}</Text>
               <View style={{ height: '8rpx' }} />
-              <View className="row" style={{ gap: '10rpx', flexWrap: 'wrap' }}>
-                <Text className="tag tag-gold">{demandBudgetLabel(it)}</Text>
-                <Text className="tag">{priceTypeLabel(it.budgetType || 'NEGOTIABLE')}</Text>
-                {it.publisher?.displayName ? <Text className="tag">{it.publisher.displayName}</Text> : null}
-              </View>
-              {it.cooperationModes?.length || it.industryTags?.length ? (
-                <>
-                  <View style={{ height: '6rpx' }} />
-                  <View className="row" style={{ gap: '10rpx', flexWrap: 'wrap' }}>
-                    {it.cooperationModes?.slice(0, 2).map((m) => (
-                      <Text key={`${it.id}-co-${m}`} className="tag">
-                        {cooperationModeLabel(m)}
+              {(() => {
+                const tags: { label: string; tone: TagTone }[] = [];
+                const budget = demandBudgetLabel(it);
+                if (budget) tags.push({ label: budget, tone: 'slate' });
+                tags.push({ label: priceTypeLabel(it.budgetType || 'NEGOTIABLE'), tone: 'blue' });
+                if (it.cooperationModes?.length) {
+                  tags.push({ label: cooperationModeLabel(it.cooperationModes[0]), tone: 'green' });
+                }
+                if (it.industryTags?.length) {
+                  tags.push({ label: it.industryTags[0], tone: 'slate' });
+                }
+                const visibleTags = tags.slice(0, 3);
+                const overflowCount = tags.length - visibleTags.length;
+                return (
+                  <View className="row" style={{ gap: '6rpx', flexWrap: 'wrap' }}>
+                    {visibleTags.map((tag, idx) => (
+                      <Text key={`${it.id}-tag-${idx}`} className={`listing-tag listing-tag--${tag.tone}`}>
+                        {tag.label}
                       </Text>
                     ))}
-                    {it.industryTags?.slice(0, 2).map((t) => (
-                      <Text key={`${it.id}-tag-${t}`} className="tag">
-                        {t}
-                      </Text>
-                    ))}
+                    {overflowCount > 0 ? <Text className="listing-tag listing-tag--slate">+{overflowCount}</Text> : null}
                   </View>
-                </>
-              ) : null}
+                );
+              })()}
               {it.summary ? (
                 <>
                   <View style={{ height: '10rpx' }} />
                   <Text className="muted clamp-2">{it.summary}</Text>
                 </>
               ) : null}
-              <View style={{ height: '12rpx' }} />
-              <Button
-                type="primary"
-                variant="primary"
-                block
-                onClick={() => Taro.navigateTo({ url: `/pages/demand/detail/index?demandId=${it.id}` })}
-              >
-                详情
-              </Button>
+              <View className="home-demand-footer">
+                <Button
+                  variant="default"
+                  size="mini"
+                  block={false}
+                  className="consult-btn"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    Taro.navigateTo({ url: `/pages/demand/detail/index?demandId=${it.id}` });
+                  }}
+                >
+                  详情
+                </Button>
+              </View>
             </Surface>
           ))}
         </View>

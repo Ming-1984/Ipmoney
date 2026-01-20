@@ -13,6 +13,7 @@ import artwork1 from '../assets/artworks/artwork-1.jpg';
 import artwork2 from '../assets/artworks/artwork-2.jpg';
 
 type ArtworkSummary = components['schemas']['ArtworkSummary'];
+type TagTone = 'blue' | 'green' | 'slate';
 
 const LOCAL_ARTWORKS: Record<string, string> = {
   '/assets/artworks/artwork-1.jpg': artwork1,
@@ -46,11 +47,21 @@ export function ArtworkCard(props: {
   const depositLabel = it.depositAmountFen !== undefined ? fenToYuan(it.depositAmountFen) : '-';
   const favorited = Boolean(props.favorited);
   const priceTypeText = priceTypeLabel(it.priceType);
+  const tags: { label: string; tone: TagTone }[] = [];
+
+  if (category) tags.push({ label: category, tone: 'blue' });
+  if (genre) tags.push({ label: genre, tone: 'green' });
+  if (script) tags.push({ label: script, tone: 'slate' });
+  if (creator) tags.push({ label: creator, tone: 'slate' });
+  if (year) tags.push({ label: year, tone: 'slate' });
+
+  const visibleTags = tags.slice(0, 3);
+  const overflowCount = tags.length - visibleTags.length;
 
   return (
     <View className="artwork-item" onClick={props.onClick}>
       <View className="artwork-cover-wrap">
-        {cover ? <Image className="artwork-cover" src={cover} mode="aspectFill" /> : <View className="artwork-cover placeholder" />}
+        {cover ? <Image className="artwork-cover" src={cover} mode="widthFix" /> : <View className="artwork-cover placeholder" />}
         {props.onFavorite ? (
           <View
             className="artwork-fav"
@@ -68,38 +79,40 @@ export function ArtworkCard(props: {
         <View className="artwork-title-row">
           <Text className="artwork-title clamp-1">{title}</Text>
           <View className="artwork-tags-inline">
-            {category ? <Text className="pill pill-strong">{category}</Text> : null}
-            {genre ? <Text className="pill">{genre}</Text> : null}
-            {script ? <Text className="pill">{script}</Text> : null}
-            {creator ? <Text className="pill">{creator}</Text> : null}
-            {year ? <Text className="pill">{year}</Text> : null}
+            {visibleTags.map((tag, idx) => (
+              <Text key={idx} className={`listing-tag listing-tag--${tag.tone}`}>
+                {tag.label}
+              </Text>
+            ))}
+            {overflowCount > 0 ? <Text className="listing-tag listing-tag--slate">+{overflowCount}</Text> : null}
           </View>
         </View>
 
-        <View className="artwork-meta">
-          <Text className="muted listing-item-price clamp-1">
-            ￥
-            <Text className="text-strong" style={{ color: 'var(--c-primary)' }}>
-              {priceLabel}
+        <View className="artwork-bottom">
+          <View className="artwork-meta">
+            <Text className="muted listing-item-price clamp-1">
+              ￥
+              <Text className="text-strong" style={{ color: 'var(--c-text)' }}>
+                {priceLabel}
+              </Text>
+              {priceTypeText === '面议' ? null : (
+                <>
+                  {'  '}· 订金 ￥
+                  <Text className="text-strong" style={{ color: 'var(--c-muted)' }}>
+                    {depositLabel}
+                  </Text>
+                </>
+              )}
             </Text>
-            {priceTypeText === '面议' ? null : (
-              <>
-                {'  '}· 订金 ￥
-                <Text className="text-strong" style={{ color: 'var(--c-primary)' }}>
-                  {depositLabel}
-                </Text>
-              </>
-            )}
-          </Text>
-        </View>
+            {it.certificateNo ? <Text className="muted listing-item-meta clamp-1">证书：{it.certificateNo}</Text> : null}
+          </View>
 
-        {it.certificateNo ? <Text className="muted listing-item-meta clamp-1">证书：{it.certificateNo}</Text> : null}
-
-        <View className="artwork-actions">
           {props.onConsult ? (
             <Button
-              variant="primary"
-              size="small"
+              variant="default"
+              size="mini"
+              block={false}
+              className="consult-btn"
               onClick={(e) => {
                 e.stopPropagation();
                 props.onConsult?.();
