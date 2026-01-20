@@ -26,6 +26,9 @@ page {
   --c-success-soft: rgba(22, 163, 74, 0.1);
   --c-warning-soft: rgba(245, 158, 11, 0.1);
   --c-danger-soft: rgba(220, 38, 38, 0.1);
+  --c-info: #2d7cff;
+  --c-info-soft: rgba(45, 124, 255, 0.12);
+  --c-info-border: rgba(45, 124, 255, 0.28);
   --c-gold-soft: rgba(213, 164, 74, 0.16);
 
   --nutui-color-primary: var(--c-primary);
@@ -1585,8 +1588,8 @@ scroll-view {
   display: flex;
   flex-direction: row;
   flex-wrap: wrap;
-  gap: 8rpx;
-  margin-top: 12rpx;
+  gap: 6rpx;
+  margin-top: 10rpx;
 }
 
 .listing-item-meta {
@@ -1615,6 +1618,53 @@ scroll-view {
 .listing-item-bottom-main {
   flex: 1;
   min-width: 0;
+}
+
+.listing-tag {
+  display: inline-flex;
+  align-items: center;
+  height: 48rpx;
+  padding: 0 14rpx;
+  border-radius: 12rpx;
+  font-size: 24rpx;
+  line-height: 1.2;
+  font-weight: 700;
+  background: var(--c-info-soft);
+  border: 1rpx solid var(--c-info-border);
+  color: #12459c;
+}
+
+.listing-tag--green {
+  background: var(--c-success-soft);
+  border-color: rgba(22, 163, 74, 0.26);
+  color: #0f5132;
+}
+
+.listing-tag--slate {
+  background: rgba(15, 23, 42, 0.05);
+  border-color: rgba(15, 23, 42, 0.12);
+  color: #0f172a;
+}
+
+.consult-btn.nut-button {
+  height: 72rpx;
+  min-height: 72rpx;
+  padding: 0 28rpx;
+  border-radius: 12rpx;
+  background: #111111;
+  border: 1rpx solid #111111;
+  color: #ffffff;
+  box-shadow: none;
+}
+
+.consult-btn .nut-button__text {
+  color: #ffffff;
+  font-weight: 800;
+}
+
+.consult-btn.nut-button:active {
+  background: #0c0c0c;
+  border-color: #0c0c0c;
 }
 
 .artwork-item {
