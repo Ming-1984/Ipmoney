@@ -1410,7 +1410,7 @@ scroll-view {
   display: flex;
   align-items: flex-end;
   justify-content: space-between;
-  gap: 24rpx;
+  gap: 16rpx;
 }
 
 .listing-detail-price-col {
@@ -1420,7 +1420,7 @@ scroll-view {
 
 .listing-detail-price-main,
 .listing-detail-deposit-main {
-  color: var(--c-primary);
+  color: var(--c-text);
 }
 
 .listing-detail-sticky-secondary {
@@ -1428,6 +1428,14 @@ scroll-view {
   align-items: center;
   gap: 12rpx;
   flex-shrink: 0;
+}
+
+.listing-detail-block {
+  background: #ffffff;
+  border: 1rpx solid var(--c-divider);
+  box-shadow: none;
+  border-radius: var(--radius-lg);
+  padding: 12rpx;
 }
 
 .comment-composer {
@@ -1879,9 +1887,9 @@ scroll-view {
   padding: var(--space-2) var(--space-3);
   border-radius: var(--radius-lg);
   border-bottom-left-radius: var(--radius-md);
-  background: var(--c-card);
+  background: var(--c-neutral-soft);
   border: 1rpx solid var(--c-divider);
-  box-shadow: var(--shadow-sm);
+  box-shadow: none;
   color: var(--c-text);
   line-height: 1.5;
   word-break: break-word;
@@ -1890,10 +1898,10 @@ scroll-view {
 .chat-bubble-me {
   border-bottom-left-radius: var(--radius-lg);
   border-bottom-right-radius: var(--radius-md);
-  background: linear-gradient(135deg, var(--c-primary), var(--c-gold));
-  border: 1rpx solid transparent;
-  box-shadow: var(--shadow-md);
-  color: var(--c-card);
+  background: rgba(15, 23, 42, 0.04);
+  border: 1rpx solid var(--c-divider);
+  box-shadow: var(--shadow-sm);
+  color: var(--c-text);
 }
 
 .chat-meta {
@@ -1918,6 +1926,148 @@ scroll-view {
 .chat-meta-action-me {
   color: var(--c-card);
   opacity: 0.9;
+}
+
+.listing-detail-meta-text {
+  font-size: var(--nutui-font-size-xs);
+  color: var(--c-muted);
+  line-height: 1.4;
+}
+
+.listing-detail-subinfo {
+  font-size: var(--nutui-font-size-xs);
+  line-height: 1.4;
+  color: var(--c-muted);
+  margin-top: 4rpx;
+}
+
+.listing-detail-stats-text {
+  font-size: var(--nutui-font-size-xs);
+  color: var(--c-muted);
+  line-height: 1.4;
+}
+
+.listing-detail-labelchip {
+  display: inline-flex;
+  align-items: center;
+  padding: 6rpx 10rpx;
+  border: 1rpx solid var(--c-divider);
+  border-radius: 8rpx;
+  font-size: var(--nutui-font-size-xs);
+  color: var(--c-muted);
+}
+
+.listing-detail-info {
+  display: flex;
+  flex-direction: column;
+  gap: 8rpx;
+}
+
+.listing-detail-info-title {
+  font-size: var(--nutui-font-size-xs);
+  color: var(--c-muted);
+}
+
+.listing-detail-block {
+  background: #ffffff;
+}
+
+.listing-detail-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8rpx 12rpx;
+}
+
+.listing-detail-grid-item.is-full {
+  grid-column: span 2;
+}
+
+.listing-detail-label {
+  font-size: var(--nutui-font-size-xs);
+  color: var(--c-muted);
+}
+
+.listing-detail-value {
+  font-size: var(--nutui-font-size-base);
+  color: var(--c-text);
+  margin-top: 4rpx;
+}
+
+.listing-detail-rowline {
+  display: flex;
+  flex-direction: column;
+  gap: 4rpx;
+  padding: 8rpx 0;
+  border-bottom: 1rpx solid var(--c-divider);
+}
+
+.listing-detail-rowline:last-child {
+  border-bottom: none;
+}
+
+.listing-detail-link {
+  color: var(--c-primary);
+}
+
+.tech-manager-card .nut-cell__title {
+  width: 100%;
+}
+
+.tech-manager-card__title-row {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-2);
+}
+
+.tech-manager-card__body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6rpx;
+}
+
+.tech-manager-card__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-1);
+  flex-wrap: wrap;
+}
+
+.tech-manager-card__name {
+  font-weight: 700;
+  font-size: var(--nutui-font-size-base);
+  color: var(--c-text);
+  flex: 1;
+  min-width: 0;
+}
+
+.tech-manager-card__badge {
+  --nutui-tag-font-size: 24rpx;
+  --nutui-tag-padding: 8rpx 12rpx;
+  --nutui-tag-height: auto;
+  --nutui-tag-round-border-radius: 24rpx;
+}
+
+.tech-manager-card__meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8rpx 12rpx;
+  font-size: var(--nutui-font-size-s);
+  color: var(--c-muted);
+}
+
+.tech-manager-card__meta-item {
+  line-height: 1.4;
+}
+
+.tech-manager-card__tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6rpx 10rpx;
+  color: var(--c-muted);
+  font-size: var(--nutui-font-size-s);
 }
 
 .chat-meta-me {

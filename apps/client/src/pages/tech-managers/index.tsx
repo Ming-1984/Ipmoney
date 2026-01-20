@@ -143,29 +143,30 @@ export default function TechManagersPage() {
             {items.map((it: TechManagerSummary, idx) => (
               <CellRow
                 key={it.userId}
+                className="tech-manager-card"
                 clickable
                 title={
-                  <View className="row" style={{ gap: '12rpx' }}>
+                  <View className="tech-manager-card__title-row">
                     <Avatar size="40" src={it.avatarUrl || ''} background="var(--c-soft)" color="var(--c-primary)">
                       {(it.displayName || 'T').slice(0, 1)}
                     </Avatar>
-                    <View style={{ flex: 1, minWidth: 0 }}>
-                      <View className="row-between" style={{ gap: '12rpx' }}>
-                        <Text className="ellipsis text-strong">{it.displayName}</Text>
-                        <Tag type="primary" plain round>
+                    <View className="tech-manager-card__body">
+                      <View className="tech-manager-card__header">
+                        <Text className="tech-manager-card__name ellipsis">{it.displayName}</Text>
+                        <Tag className="tech-manager-card__badge" type="primary" plain round>
                           {verificationTypeLabel(it.verificationType)}
                         </Tag>
                       </View>
-                      <View style={{ height: '6rpx' }} />
-                      <Text className="muted ellipsis">
-                        地区：{regionDisplayName(it.regionCode)} · 咨询 {it.stats?.consultCount ?? 0} · 成交 {it.stats?.dealCount ?? 0} · 评分{' '}
-                        {it.stats?.ratingScore ?? '-'}
-                      </Text>
+                      <View className="tech-manager-card__meta">
+                        <Text className="tech-manager-card__meta-item">地区：{regionDisplayName(it.regionCode)}</Text>
+                        <Text className="tech-manager-card__meta-item">咨询 {it.stats?.consultCount ?? 0}</Text>
+                        <Text className="tech-manager-card__meta-item">成交 {it.stats?.dealCount ?? 0}</Text>
+                        <Text className="tech-manager-card__meta-item">评分 {it.stats?.ratingScore ?? '-'}</Text>
+                      </View>
                       {it.serviceTags?.length ? (
-                        <>
-                          <View style={{ height: '6rpx' }} />
+                        <View className="tech-manager-card__tags">
                           <Text className="muted clamp-1">擅长：{it.serviceTags.slice(0, 4).join(' / ')}</Text>
-                        </>
+                        </View>
                       ) : null}
                     </View>
                   </View>
