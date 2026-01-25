@@ -21,7 +21,7 @@
     "scan:banned-words": "node scripts/scan-banned-words.mjs"
   },
   "devDependencies": {
-    "@redocly/cli": "^1.34.0",
+    "@redocly/cli": "^2.14.5",
     "@stoplight/prism-cli": "^5.14.1",
     "@typescript-eslint/eslint-plugin": "^8.22.0",
     "@typescript-eslint/parser": "^8.22.0",
