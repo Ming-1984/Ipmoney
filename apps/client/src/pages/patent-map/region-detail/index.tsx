@@ -1,5 +1,6 @@
 import { View, Text } from '@tarojs/components';
 import React, { useCallback, useEffect, useState } from 'react';
+import './index.scss';
 
 import type { components } from '@ipmoney/api-types';
 

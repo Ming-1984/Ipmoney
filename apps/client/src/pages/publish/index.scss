@@ -1,0 +1,262 @@
+﻿.publish-page {
+  padding-top: 16rpx;
+  background: #f5f6f8;
+  min-height: 100vh;
+}
+
+.publish-header {
+  position: sticky;
+  top: 0;
+  z-index: 6;
+  padding: 16rpx 0;
+  background: var(--bg-page-plain);
+  backdrop-filter: blur(10px);
+  box-shadow: 0 10rpx 24rpx rgba(15, 23, 42, 0.08);
+  margin-bottom: var(--space-3);
+}
+
+.publish-title {
+  font-size: 44rpx;
+  font-weight: 700;
+  color: var(--c-text);
+}
+
+.publish-subtitle {
+  margin-top: 8rpx;
+  font-size: 24rpx;
+  color: var(--c-muted);
+}
+
+.publish-auth-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-3);
+  border-radius: var(--radius-lg);
+  background: var(--c-info-soft);
+  border: 1rpx solid var(--c-info-border);
+  margin-bottom: var(--space-3);
+}
+
+.publish-auth-left {
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+}
+
+.publish-auth-icon {
+  width: 36rpx;
+  height: 36rpx;
+}
+
+.publish-auth-text {
+  font-size: 26rpx;
+  color: #1d4ed8;
+  font-weight: 600;
+}
+
+.publish-auth-badge {
+  font-size: 22rpx;
+  color: #1d4ed8;
+  background: #ffffff;
+  padding: 4rpx 14rpx;
+  border-radius: 999rpx;
+  border: 1rpx solid var(--c-info-border);
+}
+
+.publish-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-3);
+}
+
+.publish-card {
+  background: var(--c-card);
+  border: 1rpx solid var(--c-card-border);
+  border-radius: 28rpx;
+  padding: var(--space-4);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16rpx;
+  text-align: center;
+  box-shadow: var(--shadow-sm);
+}
+
+.publish-card-icon {
+  width: 112rpx;
+  height: 112rpx;
+  border-radius: 999rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.publish-card-icon-img {
+  width: 56rpx;
+  height: 56rpx;
+}
+
+.publish-card-text {
+  display: flex;
+  flex-direction: column;
+  gap: 8rpx;
+}
+
+.publish-card-title {
+  font-size: 30rpx;
+  font-weight: 600;
+  color: var(--c-text);
+}
+
+.publish-card-desc {
+  font-size: 24rpx;
+  color: var(--c-muted);
+}
+
+.publish-draft-card {
+  margin-top: var(--space-3);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.publish-draft-left {
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+}
+
+.publish-draft-icon {
+  width: 72rpx;
+  height: 72rpx;
+  border-radius: 20rpx;
+  background: var(--c-neutral-soft);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.publish-draft-icon-img {
+  width: 36rpx;
+  height: 36rpx;
+}
+
+.publish-draft-title {
+  font-size: 28rpx;
+  font-weight: 600;
+  color: var(--c-text);
+}
+
+.publish-draft-desc {
+  margin-top: 6rpx;
+  font-size: 22rpx;
+  color: var(--c-muted);
+}
+
+.publish-draft-arrow {
+  font-size: 40rpx;
+  color: rgba(27, 27, 27, 0.2);
+}
+
+.publish-draft-right {
+  display: flex;
+  align-items: center;
+  gap: 10rpx;
+}
+
+.publish-draft-badge {
+  min-width: 44rpx;
+  height: 44rpx;
+  padding: 0 12rpx;
+  border-radius: 999rpx;
+  background: rgba(15, 23, 42, 0.06);
+  color: var(--c-muted);
+  font-size: 22rpx;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.publish-draft-badge.is-active {
+  background: rgba(255, 102, 0, 0.14);
+  color: var(--c-primary);
+  border: 1rpx solid rgba(255, 102, 0, 0.24);
+}
+
+.publish-manage-card {
+  margin-top: var(--space-3);
+}
+
+.publish-section-header {
+  margin-bottom: var(--space-3);
+}
+
+.publish-section-title {
+  font-size: 28rpx;
+  font-weight: 600;
+  color: var(--c-text);
+}
+
+.publish-manage-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8rpx;
+}
+
+.publish-manage-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10rpx;
+}
+
+.publish-manage-icon {
+  width: 72rpx;
+  height: 72rpx;
+  border-radius: 20rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.publish-manage-icon-img {
+  width: 36rpx;
+  height: 36rpx;
+}
+
+.publish-manage-title {
+  font-size: 22rpx;
+  color: var(--c-text);
+  text-align: center;
+}
+
+.publish-footnote {
+  margin-top: var(--space-4);
+  font-size: 22rpx;
+  line-height: 1.6;
+  color: var(--c-muted);
+  text-align: center;
+  padding: 0 12rpx;
+}
+
+.tone-orange {
+  background: rgba(255, 102, 0, 0.12);
+  color: #ff6600;
+}
+
+.tone-purple {
+  background: rgba(147, 51, 234, 0.12);
+  color: #7c3aed;
+}
+
+.tone-blue {
+  background: rgba(37, 99, 235, 0.12);
+  color: #2563eb;
+}
+
+.tone-green {
+  background: rgba(22, 163, 74, 0.12);
+  color: #16a34a;
+}

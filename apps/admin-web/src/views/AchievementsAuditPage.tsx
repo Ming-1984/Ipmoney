@@ -39,11 +39,10 @@ function maturityLabel(m?: AchievementMaturity | null): string {
 }
 
 function cooperationModeLabel(mode: CooperationMode): string {
-  if (mode === 'TRANSFER') return '转让';
-  if (mode === 'LICENSE') return '许可';
-  if (mode === 'EQUITY') return '股权合作';
-  if (mode === 'JOINT_DEV') return '联合开发';
+  if (mode === 'TRANSFER') return '专利转让';
+  if (mode === 'TECH_CONSULTING') return '技术咨询';
   if (mode === 'COMMISSIONED_DEV') return '委托开发';
+  if (mode === 'PLATFORM_CO_BUILD') return '平台共建';
   return '其他';
 }
 

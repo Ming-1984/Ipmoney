@@ -1,6 +1,7 @@
 import { View, Text } from '@tarojs/components';
 import Taro from '@tarojs/taro';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import './index.scss';
 
 import type { components } from '@ipmoney/api-types';
 
@@ -9,9 +10,10 @@ import { goLogin, goOnboarding, usePageAccess } from '../../lib/guard';
 import { formatTimeSmart } from '../../lib/format';
 import { orderStatusLabel, orderStatusTagClass } from '../../lib/labels';
 import { fenToYuan } from '../../lib/money';
+import { useRouteStringParam } from '../../lib/routeParams';
 import type { ChipOption } from '../../ui/filters';
-import { ChipGroup, FilterSheet, FilterSummary } from '../../ui/filters';
-import { Button, Segmented } from '../../ui/nutui';
+import { ChipGroup, FilterSheet } from '../../ui/filters';
+import { Segmented } from '../../ui/nutui';
 import { AuditPendingCard, EmptyCard, ErrorCard, LoadingCard, PermissionCard } from '../../ui/StateCards';
 import { PageHeader, Spacer, Surface } from '../../ui/layout';
 
@@ -36,12 +38,32 @@ const ORDER_STATUS_OPTIONS: ChipOption<OrderStatusFilter>[] = [
 ];
 
 export default function OrdersPage() {
-  const [asRole, setAsRole] = useState<OrderListRole>('BUYER');
-  const [status, setStatus] = useState<OrderStatusFilter>('');
+  const routeRole = useRouteStringParam('role');
+  const routeStatus = useRouteStringParam('status');
+  const normalizeRole = useCallback((value?: string | null): OrderListRole => {
+    if (value === 'SELLER') return 'SELLER';
+    return 'BUYER';
+  }, []);
+  const normalizeStatus = useCallback((value?: string | null): OrderStatusFilter => {
+    if (!value) return '';
+    if (ORDER_STATUS_OPTIONS.some((opt) => opt.value === value)) return value as OrderStatus;
+    return '';
+  }, []);
+
+  const [asRole, setAsRole] = useState<OrderListRole>(() => normalizeRole(routeRole));
+  const [status, setStatus] = useState<OrderStatusFilter>(() => normalizeStatus(routeStatus));
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [data, setData] = useState<PagedOrder | null>(null);
+
+  useEffect(() => {
+    if (routeRole) setAsRole(normalizeRole(routeRole));
+  }, [normalizeRole, routeRole]);
+
+  useEffect(() => {
+    if (routeStatus !== null) setStatus(normalizeStatus(routeStatus));
+  }, [normalizeStatus, routeStatus]);
 
   const statusFilterLabels = useMemo(() => {
     if (!status) return [];
@@ -140,14 +162,28 @@ export default function OrdersPage() {
         />
 
         <View style={{ height: '14rpx' }} />
-        <View className="row-between" style={{ gap: '12rpx' }}>
-          <Text className="text-strong">订单状态</Text>
-          <Button variant="ghost" block={false} size="small" onClick={() => setFiltersOpen(true)}>
-            筛选
-          </Button>
+        <View className="search-sort-row">
+          <View className="search-sort-options">
+            <Text className="search-sort-option is-active">综合排序</Text>
+          </View>
+          <View className="search-filter-btn" onClick={() => setFiltersOpen(true)}>
+            <Text>筛选</Text>
+          </View>
         </View>
-        <View style={{ height: '10rpx' }} />
-        <FilterSummary labels={statusFilterLabels} emptyText="全部状态" max={2} />
+        {statusFilterLabels.length ? (
+          <View className="search-toolbar-row search-toolbar-compact">
+            <View className="search-selected-scroll">
+              {statusFilterLabels.map((txt, idx) => (
+                <View key={`${txt}-${idx}`} className="pill">
+                  <Text>{txt}</Text>
+                </View>
+              ))}
+              <View className="pill pill-strong" onClick={() => setStatus('')}>
+                <Text>清空</Text>
+              </View>
+            </View>
+          </View>
+        ) : null}
       </Surface>
 
       <View style={{ height: '16rpx' }} />

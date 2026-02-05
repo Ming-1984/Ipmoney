@@ -1,0 +1,31 @@
+.settings-page {
+  min-height: 100vh;
+}
+
+.settings-card {
+  border-radius: 24rpx;
+  background: var(--c-card);
+  box-shadow: var(--shadow-sm);
+  padding: 24rpx;
+  display: flex;
+  flex-direction: column;
+  gap: 16rpx;
+}
+
+.feedback-title {
+  font-size: 28rpx;
+  font-weight: 600;
+  color: var(--c-text);
+}
+
+.feedback-input,
+.feedback-textarea {
+  width: 100%;
+}
+
+
+.settings-tip-text {
+  font-size: 22rpx;
+  color: var(--c-muted);
+  line-height: 1.4;
+}

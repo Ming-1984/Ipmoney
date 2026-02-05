@@ -4,12 +4,12 @@ flowchart TB
     direction TB
     Pad[" "]:::pad
     SearchBar["搜索框<br/>• 关键词：姓名/机构/擅长领域"]
-    Filters["筛选区<br/>• 地区<br/>• 服务标签（可选）"]
-    SortBar["排序<br/>• 推荐/最新/热门"]
-    List["列表 Card<br/>• 头像/姓名/认证标识<br/>• 擅长领域与服务标签<br/>• 所在地区/咨询量/成交量"]
+    Toolbar["排序/筛选（小箭头，贴边）<br/>• 排序：推荐/最新/热度<br/>• 筛选：地区"]
+    List["列表（大卡片圆角）<br/>• 头像/姓名/评分<br/>• 从业时长<br/>• 简介（可选）/右侧“咨询”按钮"]
     Action["操作<br/>• 点击进入详情<br/>• 在线咨询"]
+    Detail["详情页（经理人详情）<br/>• 头像/姓名/等级/机构<br/>• 从业年限/综合评分<br/>• 擅长领域/个人简介/荣誉称号<br/>• 立即咨询按钮"]
     Pad --> SearchBar
-    SearchBar --> Filters --> SortBar --> List --> Action
+    SearchBar --> Toolbar --> List --> Action --> Detail
   end
 
   classDef pad fill:transparent,stroke:transparent,color:transparent;

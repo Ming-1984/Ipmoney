@@ -1,0 +1,89 @@
+.contracts-page {
+  padding: 0 24rpx 32rpx;
+}
+
+.contract-tabs {
+  display: flex;
+  gap: 12rpx;
+  margin: 6rpx 0 18rpx;
+  background: #ffffff;
+  border-radius: 16rpx;
+  padding: 8rpx;
+}
+
+.contract-tab {
+  flex: 1;
+  text-align: center;
+  padding: 12rpx 0;
+  color: #94a3b8;
+  font-size: 28rpx;
+  font-weight: 500;
+  position: relative;
+}
+
+.contract-tab.is-active {
+  color: #f97316;
+}
+
+.contract-tab-underline {
+  position: absolute;
+  left: 30%;
+  bottom: 4rpx;
+  width: 40%;
+  height: 4rpx;
+  border-radius: 999rpx;
+  background: #f97316;
+}
+
+.contract-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16rpx;
+}
+
+.contract-card {
+  border-radius: 16rpx;
+  padding: 20rpx 22rpx;
+  background: #ffffff;
+}
+
+.contract-status {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4rpx 12rpx;
+  border-radius: 999rpx;
+  font-size: 22rpx;
+  background: rgba(148, 163, 184, 0.2);
+  color: #64748b;
+}
+
+.contract-status.is-wait {
+  background: rgba(249, 115, 22, 0.12);
+  color: #f97316;
+}
+
+.contract-status.is-confirm {
+  background: rgba(14, 165, 233, 0.12);
+  color: #0ea5e9;
+}
+
+.contract-status.is-available {
+  background: rgba(16, 185, 129, 0.12);
+  color: #10b981;
+}
+
+.contract-meta {
+  margin-top: 8rpx;
+  display: flex;
+  flex-direction: column;
+  gap: 6rpx;
+}
+
+.contract-actions {
+  margin-top: 12rpx;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12rpx;
+  justify-content: flex-end;
+}

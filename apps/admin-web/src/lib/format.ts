@@ -3,7 +3,7 @@ export function fenToYuan(fen?: number | null, options?: { empty?: string }): st
   if (fen === undefined || fen === null) return empty;
   const n = Number(fen);
   if (!Number.isFinite(n)) return empty;
-  return (n / 100).toFixed(2);
+  return String(Math.round(n / 100));
 }
 
 export function fenToYuanNumber(fen?: number | null, options?: { empty?: number }): number {

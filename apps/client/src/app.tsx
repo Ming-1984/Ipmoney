@@ -7,6 +7,7 @@ import { useLaunch } from '@tarojs/taro';
 import { ErrorBoundary } from './ui/ErrorBoundary';
 import { AppOverlays, OVERLAY_IDS } from './ui/nutui';
 import { installH5DomGuard } from './lib/h5DomGuard';
+import { ensureRegionNamesReady } from './lib/regions';
 
 if (process.env.TARO_ENV === 'weapp') {
   configureNutuiIcons({ tag: 'view' });
@@ -14,6 +15,7 @@ if (process.env.TARO_ENV === 'weapp') {
 
 export default function App(props: { children: ReactNode }) {
   useLaunch(() => {
+    void ensureRegionNamesReady();
     if (process.env.TARO_ENV !== 'h5') return;
     if (typeof window === 'undefined') return;
     const hash = window.location.hash || '';

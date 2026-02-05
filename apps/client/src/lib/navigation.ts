@@ -1,9 +1,9 @@
 import Taro from '@tarojs/taro';
 
 const TAB_PAGE_PATHS = [
-  '/pages/tech-managers/index',
-  '/pages/search/index',
   '/pages/home/index',
+  '/pages/tech-managers/index',
+  '/pages/publish/index',
   '/pages/messages/index',
   '/pages/me/index',
 ] as const;

@@ -1,6 +1,7 @@
 import { View, Text, Button as WxButton } from '@tarojs/components';
 import Taro from '@tarojs/taro';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import './index.scss';
 
 import type { components } from '@ipmoney/api-types';
 
@@ -8,6 +9,7 @@ import { API_BASE_URL } from '../../../constants';
 import { getToken } from '../../../lib/auth';
 import { apiGet, apiPatch } from '../../../lib/api';
 import { requireLogin } from '../../../lib/guard';
+import { regionDisplayName } from '../../../lib/regions';
 import { CellRow, PageHeader, SectionHeader, Spacer, Surface, TipBanner } from '../../../ui/layout';
 import { Avatar, Button, CellGroup, Input, toast } from '../../../ui/nutui';
 import { ErrorCard, LoadingCard } from '../../../ui/StateCards';
@@ -180,8 +182,13 @@ export default function ProfileEditPage() {
     }
   }, [avatarUrl, goNext, isOnboarding, nickname, regionCode]);
 
+  const regionText = useMemo(
+    () => regionDisplayName(regionCode, regionName, '用于地区推荐与展示'),
+    [regionCode, regionName],
+  );
+
   return (
-    <View className="container">
+    <View className="container profile-edit-page">
       <PageHeader title="资料设置" subtitle="更新头像/昵称/地区，用于展示与地域推荐" />
       <Spacer />
 
@@ -206,7 +213,7 @@ export default function ProfileEditPage() {
 
             <Text className="muted">头像（建议）</Text>
             <Spacer size={6} />
-            <View className="row" style={{ gap: '12rpx', flexWrap: 'wrap' }}>
+            <View className="row profile-avatar-actions" style={{ gap: '12rpx', flexWrap: 'wrap' }}>
               <Avatar
                 size="64"
                 src={avatarUrl}
@@ -214,10 +221,17 @@ export default function ProfileEditPage() {
               />
               {isWeapp ? (
                 <>
-                  <WxButton className="btn-ghost" openType="chooseAvatar" onChooseAvatar={onChooseAvatar}>
+                  <WxButton
+                    className="btn-ghost profile-avatar-btn profile-avatar-btn-primary"
+                    openType="chooseAvatar"
+                    onChooseAvatar={onChooseAvatar}
+                  >
                     选择头像
                   </WxButton>
-                  <WxButton className="btn-ghost" onClick={() => void chooseAvatarFromAlbum()}>
+                  <WxButton
+                    className="btn-ghost profile-avatar-btn profile-avatar-btn-secondary"
+                    onClick={() => void chooseAvatarFromAlbum()}
+                  >
                     从相册选择
                   </WxButton>
                 </>
@@ -243,7 +257,7 @@ export default function ProfileEditPage() {
             <CellGroup divider>
               <CellRow
                 title={<Text className="text-strong">地区（可选）</Text>}
-                description={<Text className="muted">{regionName || regionCode || '用于地域推荐与展示'}</Text>}
+                description={<Text className="muted">{regionText}</Text>}
                 onClick={() => {
                   Taro.navigateTo({
                     url: '/pages/region-picker/index',

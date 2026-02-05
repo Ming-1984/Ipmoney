@@ -2,6 +2,7 @@ import { View, Text, Image, Video } from '@tarojs/components';
 import Taro from '@tarojs/taro';
 import React, { useCallback } from 'react';
 
+import { resolveLocalAsset, resolveLocalAssetList } from '../lib/localAssets';
 import { Button, toast } from './nutui';
 
 export type MediaKind = 'IMAGE' | 'VIDEO' | 'FILE';
@@ -28,29 +29,36 @@ function fileNameFromUrl(url?: string | null): string {
   }
 }
 
+function isHttpUrl(url?: string | null): boolean {
+  return Boolean(url && /^https?:\/\//.test(url));
+}
+
 export function MediaList(props: { media: MediaItem[]; coverUrl?: string | null }) {
   const media = props.media || [];
   const coverUrl = props.coverUrl ?? null;
+  const imageUrls = resolveLocalAssetList(
+    media.filter((item) => item.type === 'IMAGE' && item.url).map((item) => item.url as string),
+  );
 
   const copyLink = useCallback(async (url: string) => {
     try {
       await Taro.setClipboardData({ data: url });
-      toast('链接已复制', { icon: 'success' });
+      toast('Link copied', { icon: 'success' });
     } catch (_) {
-      toast('复制失败', { icon: 'fail' });
+      toast('Copy failed', { icon: 'fail' });
     }
   }, []);
 
-  const previewImage = useCallback(async (url: string) => {
+  const previewImage = useCallback(async (url: string, urls: string[]) => {
     try {
-      await Taro.previewImage({ urls: [url] });
+      await Taro.previewImage({ urls, current: url });
     } catch (_) {}
   }, []);
 
   const onVideoError = useCallback((e: any) => {
     // Avoid hard crashes/white screens when media URLs are invalid (e.g. fixtures).
     const err = e?.detail?.errMsg || e?.detail?.msg;
-    toast(err ? `视频加载失败：${String(err)}` : '视频加载失败', { icon: 'fail' });
+    toast(err ? `Copy link?${String(err)}` : 'Copy link', { icon: 'fail' });
   }, []);
 
   if (!media.length) return null;
@@ -59,18 +67,20 @@ export function MediaList(props: { media: MediaItem[]; coverUrl?: string | null 
     <View className="media-list">
       {media.map((m, idx) => {
         const url = m.url || '';
+        const resolvedUrl = resolveLocalAsset(url);
         const key = `${m.fileId || 'media'}-${idx}`;
 
-        if (m.type === 'IMAGE' && url) {
+        if (m.type === 'IMAGE' && resolvedUrl) {
           return (
             <View key={key} className="media-item">
-              <Image className="media-thumb" src={url} mode="aspectFill" onClick={() => void previewImage(url)} />
+              <Image className="media-thumb" src={resolvedUrl} mode="aspectFill" onClick={() => void previewImage(resolvedUrl, imageUrls)} />
             </View>
           );
         }
 
         if (m.type === 'VIDEO' && url) {
           const name = m.fileName || fileNameFromUrl(url);
+          const poster = isHttpUrl(coverUrl) ? coverUrl || undefined : undefined;
           return (
             <View key={key} className="media-item">
               <Video
@@ -78,7 +88,7 @@ export function MediaList(props: { media: MediaItem[]; coverUrl?: string | null 
                 src={url}
                 controls
                 autoplay={false}
-                poster={coverUrl || undefined}
+                poster={poster}
                 onError={onVideoError}
               />
               <View className="row-between" style={{ gap: '12rpx', marginTop: '10rpx' }}>

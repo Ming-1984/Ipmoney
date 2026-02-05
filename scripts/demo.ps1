@@ -116,6 +116,14 @@ $env:ADMIN_WEB_PORT = "$adminPort"
 $env:TARO_APP_ENABLE_MOCK_TOOLS = if ($EnableMockTools) { "1" } else { "0" }
 $env:VITE_ENABLE_MOCK_TOOLS = if ($EnableMockTools) { "1" } else { "0" }
 
+# Sync MiniProgram build env to current mock port (for devtools build/run outside this script).
+$clientEnvPath = Join-Path $repoRoot "apps/client/.env.local"
+$clientEnvLines = @(
+  "TARO_APP_API_BASE_URL=http://127.0.0.1:$mockPort",
+  "TARO_APP_ENABLE_MOCK_TOOLS=$($env:TARO_APP_ENABLE_MOCK_TOOLS)"
+)
+Set-Content -Path $clientEnvPath -Value ($clientEnvLines -join "`n") -Encoding UTF8
+
 $psExe = (Get-Command powershell).Source
 
 if ($OpenApiPreview) {

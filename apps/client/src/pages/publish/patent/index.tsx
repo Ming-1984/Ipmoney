@@ -1,6 +1,7 @@
-import { View, Text } from '@tarojs/components';
+﻿import { View, Text } from '@tarojs/components';
 import Taro, { useRouter } from '@tarojs/taro';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import './index.scss';
 
 import type { components } from '@ipmoney/api-types';
 
@@ -11,8 +12,8 @@ import { ensureApproved, requireLogin } from '../../../lib/guard';
 import { auditStatusLabel, listingStatusLabel, patentTypeLabel } from '../../../lib/labels';
 import { fenToYuan } from '../../../lib/money';
 import { IndustryTagsPicker } from '../../../ui/filters';
-import { PageHeader, Spacer, StickyBar } from '../../../ui/layout';
-import { Button, Input, TextArea, confirm, toast } from '../../../ui/nutui';
+import { PageHeader, PopupSheet, StickyBar, Surface } from '../../../ui/layout';
+import { Button, Cell, Input, Popup, TextArea, confirm, toast } from '../../../ui/nutui';
 
 type PatentType = components['schemas']['PatentType'];
 type TradeMode = components['schemas']['TradeMode'];
@@ -21,13 +22,57 @@ type PriceType = components['schemas']['PriceType'];
 type AuditStatus = components['schemas']['AuditStatus'];
 type ListingStatus = components['schemas']['ListingStatus'];
 
-type PatentNormalizeResponse = components['schemas']['PatentNormalizeResponse'];
 type Patent = components['schemas']['Patent'];
 type Listing = components['schemas']['Listing'];
 type ListingCreateRequest = components['schemas']['ListingCreateRequest'];
 type ListingUpdateRequest = components['schemas']['ListingUpdateRequest'];
 type FileObject = components['schemas']['FileObject'];
 type UploadedFile = Pick<FileObject, 'id'> & Partial<Omit<FileObject, 'id'>>;
+
+type PickerKey = 'patentType' | 'tradeMode' | 'licenseMode' | 'priceType';
+type PickerOption = { value: string; label: string };
+type PickerConfig = { title: string; value: string; options: PickerOption[] };
+
+const PATENT_TYPE_OPTIONS: Array<{ value: PatentType; label: string }> = [
+  { value: 'INVENTION', label: '发明' },
+  { value: 'UTILITY_MODEL', label: '实用新型' },
+  { value: 'DESIGN', label: '外观设计' },
+];
+
+const TRADE_MODE_OPTIONS: Array<{ value: TradeMode; label: string }> = [
+  { value: 'ASSIGNMENT', label: '转让' },
+  { value: 'LICENSE', label: '许可' },
+];
+
+const LICENSE_MODE_OPTIONS: Array<{ value: LicenseMode; label: string }> = [
+  { value: 'EXCLUSIVE', label: '独占许可' },
+  { value: 'SOLE', label: '排他许可' },
+  { value: 'NON_EXCLUSIVE', label: '普通许可' },
+];
+
+const PRICE_TYPE_OPTIONS: Array<{ value: PriceType; label: string }> = [
+  { value: 'FIXED', label: '一口价' },
+  { value: 'NEGOTIABLE', label: '面议' },
+];
+
+function tradeModeLabel(value: TradeMode): string {
+  if (value === 'ASSIGNMENT') return '转让';
+  if (value === 'LICENSE') return '许可';
+  return String(value);
+}
+
+function licenseModeLabel(value: LicenseMode): string {
+  if (value === 'EXCLUSIVE') return '独占许可';
+  if (value === 'SOLE') return '排他许可';
+  if (value === 'NON_EXCLUSIVE') return '普通许可';
+  return String(value);
+}
+
+function priceTypeLabel(value: PriceType): string {
+  if (value === 'FIXED') return '一口价';
+  if (value === 'NEGOTIABLE') return '面议';
+  return String(value);
+}
 
 function splitList(input: string): string[] {
   return (input || '')
@@ -49,6 +94,36 @@ function parseMoneyFen(input: string): number | null {
   return yuan * 100 + fen;
 }
 
+function mergePlaceholderClass(extra?: string): string {
+  return extra ? `publish-placeholder ${extra}` : 'publish-placeholder';
+}
+
+function mergePlaceholderStyle(extra?: string): string {
+  const base = 'font-size:20rpx;color:#c0c4cc;';
+  if (!extra) return base;
+  return `${base}${extra}`;
+}
+
+function PublishInput(props: React.ComponentProps<typeof Input>) {
+  return (
+    <Input
+      {...props}
+      placeholderClass={mergePlaceholderClass(props.placeholderClass)}
+      placeholderStyle={mergePlaceholderStyle(props.placeholderStyle)}
+    />
+  );
+}
+
+function PublishTextArea(props: React.ComponentProps<typeof TextArea>) {
+  return (
+    <TextArea
+      {...props}
+      placeholderClass={mergePlaceholderClass(props.placeholderClass)}
+      placeholderStyle={mergePlaceholderStyle(props.placeholderStyle)}
+    />
+  );
+}
+
 export default function PublishPatentPage() {
   const router = useRouter();
   const initialListingId = useMemo(() => String(router?.params?.listingId || ''), [router?.params?.listingId]);
@@ -59,8 +134,6 @@ export default function PublishPatentPage() {
   const [submitted, setSubmitted] = useState(false);
 
   const [patentNumberRaw, setPatentNumberRaw] = useState('');
-  const [normalizeResult, setNormalizeResult] = useState<PatentNormalizeResponse | null>(null);
-  const [normalizing, setNormalizing] = useState(false);
 
   const [patentType, setPatentType] = useState<PatentType | ''>('');
   const [title, setTitle] = useState('');
@@ -85,34 +158,13 @@ export default function PublishPatentPage() {
 
   const [saving, setSaving] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [pickerOpen, setPickerOpen] = useState<PickerKey | null>(null);
 
   const inventorNames = useMemo(() => splitList(inventorNamesInput), [inventorNamesInput]);
   const assigneeNames = useMemo(() => splitList(assigneeNamesInput), [assigneeNamesInput]);
   const applicantNames = useMemo(() => splitList(applicantNamesInput), [applicantNamesInput]);
   const ipcCodes = useMemo(() => splitList(ipcCodesInput), [ipcCodesInput]);
   const locCodes = useMemo(() => splitList(locCodesInput), [locCodesInput]);
-
-  const normalize = useCallback(async () => {
-    if (normalizing) return;
-    const raw = patentNumberRaw.trim();
-    if (!raw) {
-      toast('请输入专利号/申请号');
-      return;
-    }
-
-    setNormalizing(true);
-    try {
-      const r = await apiPost<PatentNormalizeResponse>('/patents/normalize', { raw });
-      setNormalizeResult(r);
-      if (r.patentType && !patentType) setPatentType(r.patentType);
-      toast('解析成功', { icon: 'success' });
-    } catch (e: any) {
-      setNormalizeResult(null);
-      toast(e?.message || '解析失败');
-    } finally {
-      setNormalizing(false);
-    }
-  }, [normalizing, patentNumberRaw, patentType]);
 
   const uploadProof = useCallback(async () => {
     if (uploading) return;
@@ -426,294 +478,277 @@ export default function PublishPatentPage() {
     }
   }, [buildUpdate, listingId, saving, submitting, validateAndBuildCreate]);
 
+  const pickerConfig = useMemo<PickerConfig | null>(() => {
+    if (!pickerOpen) return null;
+    if (pickerOpen === 'patentType') {
+      return {
+        title: '专利类型',
+        value: patentType || '',
+        options: PATENT_TYPE_OPTIONS as PickerOption[],
+      };
+    }
+    if (pickerOpen === 'tradeMode') {
+      return {
+        title: '交易方式',
+        value: tradeMode || '',
+        options: TRADE_MODE_OPTIONS as PickerOption[],
+      };
+    }
+    if (pickerOpen === 'licenseMode') {
+      return {
+        title: '许可方式',
+        value: licenseMode || '',
+        options: LICENSE_MODE_OPTIONS as PickerOption[],
+      };
+    }
+    if (pickerOpen === 'priceType') {
+      return {
+        title: '价格类型',
+        value: priceType || '',
+        options: PRICE_TYPE_OPTIONS as PickerOption[],
+      };
+    }
+    return null;
+  }, [licenseMode, patentType, pickerOpen, priceType, tradeMode]);
+
+  const onPickOption = useCallback(
+    (value: string) => {
+      if (!pickerOpen) return;
+      if (pickerOpen === 'patentType') {
+        setPatentType(value as PatentType);
+      } else if (pickerOpen === 'tradeMode') {
+        setTradeMode(value as TradeMode);
+        if (value !== 'LICENSE') setLicenseMode('');
+      } else if (pickerOpen === 'licenseMode') {
+        setLicenseMode(value as LicenseMode);
+      } else if (pickerOpen === 'priceType') {
+        setPriceType(value as PriceType);
+        if (value !== 'FIXED') setPriceYuan('');
+      }
+      setPickerOpen(null);
+    },
+    [pickerOpen],
+  );
+
   return (
-    <View className="container has-sticky">
-      <PageHeader title="发布：专利交易" />
-      <Spacer />
+    <View className="container has-sticky publish-patent-page">
+      <PageHeader title="发布专利" brand={false} />
+      <View className="publish-form">
+        {submitted ? (
+          <Surface className="publish-card publish-status-card" padding="none">
+            <Text className="publish-section-title">已提交审核</Text>
+            <Text className="form-hint">资料已提交，审核通过后将自动上架，请留意消息通知。</Text>
+            <Text className="form-hint">上架 ID：{listingId || '-'}</Text>
+          </Surface>
+        ) : null}
 
-      {submitted ? (
-        <>
-          <View className="card card-state">
-            <Text className="text-title">已提交审核</Text>
-            <View style={{ height: '8rpx' }} />
-            <Text className="muted">
-              审核通过后将展示在检索/最新专利；合同线下签署后再回到平台支付尾款，变更完成后再放款给卖家。
-            </Text>
-            <View style={{ height: '10rpx' }} />
-            <Text className="muted">草稿 ID：{listingId || '-'}</Text>
+        <Surface className="publish-card" padding="none">
+          <Text className="publish-section-title">专利信息</Text>
+
+          <View className="form-field">
+            <Text className="form-label">专利号/申请号/公开号 *</Text>
+            <PublishInput
+              className="publish-input"
+              value={patentNumberRaw}
+              onChange={setPatentNumberRaw}
+              placeholder="例如 202311340972.0 / CN2023xxxxxx.x"
+              clearable
+              disabled={Boolean(listingId)}
+            />
+            {listingId ? <Text className="form-hint">专利号已锁定，如需修改请新建发布。</Text> : null}
           </View>
-          <Spacer />
-        </>
-      ) : null}
 
-      <View className="card">
-        <View className="row-between">
-          <Text className="text-section">1) 专利信息</Text>
-          {normalizeResult?.patentType ? (
-            <Text className="tag tag-gold">已识别：{patentTypeLabel(normalizeResult.patentType)}</Text>
+          <View className="form-field">
+            <Text className="form-label">专利标题</Text>
+            <PublishInput
+              className="publish-input"
+              value={title}
+              onChange={setTitle}
+              placeholder="例如：锂离子电池冷却系统"
+              clearable
+            />
+          </View>
+
+          <View className="form-row form-row-split">
+            <View className="form-col">
+              <Text className="form-label">专利类型 *</Text>
+              <View className="form-select" onClick={() => setPickerOpen('patentType')}>
+                <Text
+                  className={patentType ? 'form-select-value' : 'form-select-placeholder'}
+                  style={patentType ? undefined : { fontSize: '20rpx', color: '#9ca3af' }}
+                >
+                  {patentType ? patentTypeLabel(patentType) : '请选择'}
+                </Text>
+                <Text className="form-select-arrow">▾</Text>
+              </View>
+            </View>
+            <View className="form-col">
+              <Text className="form-label">交易方式 *</Text>
+              <View className="form-select" onClick={() => setPickerOpen('tradeMode')}>
+                <Text
+                  className={tradeMode ? 'form-select-value' : 'form-select-placeholder'}
+                  style={tradeMode ? undefined : { fontSize: '20rpx', color: '#9ca3af' }}
+                >
+                  {tradeMode ? tradeModeLabel(tradeMode as TradeMode) : '请选择'}
+                </Text>
+                <Text className="form-select-arrow">▾</Text>
+              </View>
+            </View>
+          </View>
+
+          {tradeMode === 'LICENSE' ? (
+            <View className="form-field">
+              <Text className="form-label">许可方式 *</Text>
+              <View className="form-select" onClick={() => setPickerOpen('licenseMode')}>
+                <Text
+                  className={licenseMode ? 'form-select-value' : 'form-select-placeholder'}
+                  style={licenseMode ? undefined : { fontSize: '20rpx', color: '#9ca3af' }}
+                >
+                  {licenseMode ? licenseModeLabel(licenseMode as LicenseMode) : '请选择'}
+                </Text>
+                <Text className="form-select-arrow">▾</Text>
+              </View>
+            </View>
           ) : null}
-        </View>
-        <View style={{ height: '12rpx' }} />
 
-        <Text className="muted">专利号 / 申请号（必填）</Text>
-        <View style={{ height: '8rpx' }} />
-        <Input
-          value={patentNumberRaw}
-          onChange={setPatentNumberRaw}
-          placeholder="例：202311340972.0 / CN2023xxxxxx.x"
-          clearable
-          disabled={Boolean(listingId)}
-        />
-        {listingId ? (
-          <>
-            <View style={{ height: '8rpx' }} />
-            <Text className="muted">已生成草稿后专利号不可修改；如需修改请返回重新发布。</Text>
-          </>
-        ) : null}
+          <View className="form-field">
+            <Text className="form-label">发明人</Text>
+            <PublishInput
+              className="publish-input"
+              value={inventorNamesInput}
+              onChange={setInventorNamesInput}
+              placeholder="多个用逗号分隔"
+              clearable
+            />
+          </View>
 
-        <View style={{ height: '12rpx' }} />
-        <Button variant="ghost" loading={normalizing} disabled={normalizing} onClick={() => void normalize()}>
-          {normalizing ? '解析中…' : '解析与规范化'}
-        </Button>
+          <View className="form-field">
+            <Text className="form-label">权利人/专利权人</Text>
+            <PublishInput
+              className="publish-input"
+              value={assigneeNamesInput}
+              onChange={setAssigneeNamesInput}
+              placeholder="多个用逗号分隔"
+              clearable
+            />
+          </View>
 
-        {normalizeResult ? (
-          <>
-            <View style={{ height: '12rpx' }} />
-            <View className="card" style={{ background: '#fff', borderRadius: '16rpx', padding: '16rpx' }}>
-              <Text className="muted">输入类型：{normalizeResult.inputType}</Text>
-              <View style={{ height: '4rpx' }} />
-              <Text className="muted">申请号：{normalizeResult.applicationNoDisplay || '-'}</Text>
-              <View style={{ height: '4rpx' }} />
-              <Text className="muted">公开(公告)号：{normalizeResult.publicationNoDisplay || '-'}</Text>
-              <View style={{ height: '4rpx' }} />
-              <Text className="muted">专利号：{normalizeResult.patentNoDisplay || '-'}</Text>
+          <View className="form-field">
+            <Text className="form-label">申请人</Text>
+            <PublishInput
+              className="publish-input"
+              value={applicantNamesInput}
+              onChange={setApplicantNamesInput}
+              placeholder="多个用逗号分隔"
+              clearable
+            />
+          </View>
+
+          <View className="form-field">
+            <Text className="form-label">摘要/卖点</Text>
+            <PublishTextArea
+              className="publish-textarea"
+              value={summary}
+              onChange={setSummary}
+              placeholder="填写摘要/技术亮点/应用场景"
+              maxLength={2000}
+            />
+          </View>
+
+          <View className="form-row form-row-split">
+            <View className="form-col">
+              <Text className="form-label">IPC 分类号</Text>
+              <PublishInput
+                className="publish-input"
+                value={ipcCodesInput}
+                onChange={setIpcCodesInput}
+                placeholder="例如 H01M 10/60"
+                clearable
+              />
             </View>
-          </>
-        ) : null}
+            <View className="form-col">
+              <Text className="form-label">LOC 分类号</Text>
+              <PublishInput
+                className="publish-input"
+                value={locCodesInput}
+                onChange={setLocCodesInput}
+                placeholder="例如 12-08"
+                clearable
+              />
+            </View>
+          </View>
 
-        <View style={{ height: '12rpx' }} />
-        <Text className="muted">专利类型（必填）</Text>
-        <View style={{ height: '10rpx' }} />
-        <View className="chip-row">
-          {([
-            ['INVENTION', '发明'],
-            ['UTILITY_MODEL', '实用新型'],
-            ['DESIGN', '外观设计'],
-          ] as const).map(([value, label]) => (
-            <View key={`pt-${value}`} style={{ marginRight: '12rpx', marginBottom: '12rpx' }}>
-              <View className={`chip ${patentType === value ? 'chip-active' : ''}`} onClick={() => setPatentType(value)}>
-                <Text>{label}</Text>
+          <View className="form-field">
+            <Text className="form-label">所在地区</Text>
+            <View className="form-row">
+              <View className="form-flex">
+                <PublishInput
+                  className="publish-input"
+                  value={regionCode}
+                  onChange={setRegionCode}
+                  placeholder="省/市/区"
+                  clearable
+                />
               </View>
-            </View>
-          ))}
-        </View>
-
-        <View style={{ height: '12rpx' }} />
-        <Text className="muted">标题（可选）</Text>
-        <View style={{ height: '8rpx' }} />
-        <Input value={title} onChange={setTitle} placeholder="建议填写，提升展示与转化" clearable />
-
-        <View style={{ height: '12rpx' }} />
-        <Text className="muted">发明人（建议填写，用于发明人榜；多个用逗号分隔）</Text>
-        <View style={{ height: '8rpx' }} />
-        <Input value={inventorNamesInput} onChange={setInventorNamesInput} placeholder="例：张三, 李四" clearable />
-
-        <View style={{ height: '12rpx' }} />
-        <Text className="muted">专利权人/权利人（建议填写，多个用逗号分隔）</Text>
-        <View style={{ height: '8rpx' }} />
-        <Input value={assigneeNamesInput} onChange={setAssigneeNamesInput} placeholder="例：某某科技有限公司" clearable />
-
-        <View style={{ height: '12rpx' }} />
-        <Text className="muted">申请人（可选，多个用逗号分隔）</Text>
-        <View style={{ height: '8rpx' }} />
-        <Input value={applicantNamesInput} onChange={setApplicantNamesInput} placeholder="例：某某大学" clearable />
-
-        <View style={{ height: '12rpx' }} />
-        <Text className="muted">摘要/亮点（可选）</Text>
-        <View style={{ height: '8rpx' }} />
-        <TextArea value={summary} onChange={setSummary} placeholder="一句话说明价值点/应用场景/优势" maxLength={2000} />
-      </View>
-
-      <Spacer />
-
-      <View className="card">
-        <Text className="text-section">2) 交易与价格</Text>
-        <View style={{ height: '12rpx' }} />
-
-        <Text className="muted">交易方式（必填）</Text>
-        <View style={{ height: '10rpx' }} />
-        <View className="chip-row">
-          {([
-            ['ASSIGNMENT', '转让'],
-            ['LICENSE', '许可'],
-          ] as const).map(([value, label]) => (
-            <View key={`tm-${value}`} style={{ marginRight: '12rpx', marginBottom: '12rpx' }}>
-              <View
-                className={`chip ${tradeMode === value ? 'chip-active' : ''}`}
+              <Button
+                className="form-inline-btn"
+                variant="ghost"
+                size="small"
                 onClick={() => {
-                  setTradeMode(value);
-                  if (value !== 'LICENSE') setLicenseMode('');
+                  Taro.navigateTo({
+                    url: '/pages/region-picker/index',
+                    success: (res) => {
+                      res.eventChannel.on('regionSelected', (v: any) => {
+                        if (v?.code) setRegionCode(String(v.code));
+                      });
+                    },
+                  });
                 }}
               >
-                <Text>{label}</Text>
-              </View>
+                选择
+              </Button>
             </View>
-          ))}
-        </View>
+          </View>
 
-        {tradeMode === 'LICENSE' ? (
-          <>
-            <View style={{ height: '6rpx' }} />
-            <Text className="muted">许可方式（必填）</Text>
-            <View style={{ height: '10rpx' }} />
-            <View className="chip-row">
-              {([
-                ['EXCLUSIVE', '独占'],
-                ['SOLE', '排他'],
-                ['NON_EXCLUSIVE', '普通'],
-              ] as const).map(([value, label]) => (
-                <View key={`lm-${value}`} style={{ marginRight: '12rpx', marginBottom: '12rpx' }}>
-                  <View className={`chip ${licenseMode === value ? 'chip-active' : ''}`} onClick={() => setLicenseMode(value)}>
-                    <Text>{label}</Text>
+          <View className="form-field">
+            <Text className="form-label">行业标签</Text>
+            <IndustryTagsPicker value={industryTags} max={8} onChange={setIndustryTags} />
+          </View>
+
+          <Text className="publish-section-subtitle">权属证明材料 *</Text>
+          <Text className="form-hint">上传专利证书/权属证明/授权链路等材料，至少 1 份</Text>
+
+          <View className="upload-box" onClick={uploadProof}>
+            <Text className="upload-title">{uploading ? '上传中' : '上传权属材料'}</Text>
+            <Text className="upload-subtitle">图片/附件</Text>
+          </View>
+
+          {proofFiles.length ? (
+            <View className="upload-list">
+              {proofFiles.map((f, idx) => (
+                <View
+                  key={f.id}
+                  className="upload-item"
+                  onClick={() => {
+                    if (!f.url) return;
+                    if (String(f.mimeType || '').startsWith('image/')) {
+                      void Taro.previewImage({ urls: [String(f.url)] });
+                      return;
+                    }
+                    void Taro.setClipboardData({ data: String(f.url) });
+                    toast('链接已复制', { icon: 'success' });
+                  }}
+                >
+                  <View className="upload-item-info">
+                    <Text className="upload-item-title">材料 {idx + 1}</Text>
+                    <Text className="upload-item-desc">
+                      {f.url ? '可预览/复制' : '已上传'}
+                      {f.mimeType ? ` · ${String(f.mimeType)}` : ''}
+                      {typeof f.sizeBytes === 'number' ? ` · ${(f.sizeBytes / 1024).toFixed(0)}KB` : ''}
+                    </Text>
                   </View>
-                </View>
-              ))}
-            </View>
-          </>
-        ) : null}
-
-        <View style={{ height: '12rpx' }} />
-        <Text className="muted">价格类型（必填）</Text>
-        <View style={{ height: '10rpx' }} />
-        <View className="chip-row">
-          {([
-            ['NEGOTIABLE', '面议'],
-            ['FIXED', '一口价'],
-          ] as const).map(([value, label]) => (
-            <View key={`pr-${value}`} style={{ marginRight: '12rpx', marginBottom: '12rpx' }}>
-              <View
-                className={`chip ${priceType === value ? 'chip-active' : ''}`}
-                onClick={() => {
-                  setPriceType(value);
-                  if (value !== 'FIXED') setPriceYuan('');
-                }}
-              >
-                <Text>{label}</Text>
-              </View>
-            </View>
-          ))}
-        </View>
-
-        {priceType === 'FIXED' ? (
-          <>
-            <View style={{ height: '12rpx' }} />
-            <Text className="muted">一口价（元，必填）</Text>
-            <View style={{ height: '8rpx' }} />
-            <Input value={priceYuan} onChange={setPriceYuan} placeholder="例：288000" type="digit" clearable />
-          </>
-        ) : null}
-
-        <View style={{ height: '12rpx' }} />
-        <Text className="muted">订金（元，可选；不填则按平台策略计算）</Text>
-        <View style={{ height: '8rpx' }} />
-        <Input value={depositYuan} onChange={setDepositYuan} placeholder="例：2000" type="digit" clearable />
-
-        <View style={{ height: '12rpx' }} />
-        <Text className="muted">佣金：卖家承担；尾款在平台内支付。</Text>
-      </View>
-
-      <Spacer />
-
-      <View className="card">
-        <Text className="text-section">3) 地域与标签（可选）</Text>
-        <View style={{ height: '12rpx' }} />
-
-        <Text className="muted">所在地区（可选）</Text>
-        <View style={{ height: '8rpx' }} />
-        <View className="row" style={{ gap: '12rpx', alignItems: 'center' }}>
-          <View className="flex-1">
-            <Input value={regionCode} onChange={setRegionCode} placeholder="省/市/区（可后续完善）" clearable />
-          </View>
-          <View style={{ width: '180rpx' }}>
-            <Button
-              variant="ghost"
-              size="small"
-              onClick={() => {
-                Taro.navigateTo({
-                  url: '/pages/region-picker/index',
-                  success: (res) => {
-                    res.eventChannel.on('regionSelected', (v: any) => {
-                      if (v?.code) setRegionCode(String(v.code));
-                    });
-                  },
-                });
-              }}
-            >
-              选择
-            </Button>
-          </View>
-        </View>
-
-        <View style={{ height: '12rpx' }} />
-        <Text className="muted">产业标签（多选；数据源：公共产业标签库）</Text>
-        <View style={{ height: '8rpx' }} />
-        <IndustryTagsPicker value={industryTags} max={8} onChange={setIndustryTags} />
-
-        <View style={{ height: '12rpx' }} />
-        <Text className="muted">IPC 分类号（可选，多个用逗号分隔）</Text>
-        <View style={{ height: '8rpx' }} />
-        <Input value={ipcCodesInput} onChange={setIpcCodesInput} placeholder="例：H01M 10/60" clearable />
-
-        <View style={{ height: '12rpx' }} />
-        <Text className="muted">LOC 外观分类号（可选，多个用逗号分隔）</Text>
-        <View style={{ height: '8rpx' }} />
-        <Input value={locCodesInput} onChange={setLocCodesInput} placeholder="例：12-08" clearable />
-      </View>
-
-      <Spacer />
-
-      <View className="card">
-        <View className="row-between">
-          <Text className="text-section">4) 权属材料（提交审核必填）</Text>
-          <Text className={`tag ${proofFiles.length ? 'tag-success' : 'tag-danger'}`}>
-            {proofFiles.length ? `${proofFiles.length} 份` : '待上传'}
-          </Text>
-        </View>
-        <View style={{ height: '8rpx' }} />
-        <Text className="muted">示例：证书/主体证明/转让链路/质押或许可现状声明等。</Text>
-        <View style={{ height: '12rpx' }} />
-
-        <Button variant="ghost" loading={uploading} disabled={uploading} onClick={uploadProof}>
-          {uploading ? '上传中…' : '上传材料'}
-        </Button>
-
-        {proofFiles.length ? (
-          <>
-            <View style={{ height: '12rpx' }} />
-            {proofFiles.map((f, idx) => (
-              <View
-                key={f.id}
-                className="list-item"
-                onClick={() => {
-                  if (!f.url) return;
-                  if (String(f.mimeType || '').startsWith('image/')) {
-                    void Taro.previewImage({ urls: [String(f.url)] });
-                    return;
-                  }
-                  void Taro.setClipboardData({ data: String(f.url) });
-                  toast('链接已复制', { icon: 'success' });
-                }}
-              >
-                <View className="min-w-0" style={{ flex: 1 }}>
-                  <Text className="muted">{`材料 ${idx + 1}`}</Text>
-                  <View style={{ height: '4rpx' }} />
-                  <Text className="text-caption clamp-1">
-                    {f.url ? '点击预览/复制链接' : '已上传'} {f.mimeType ? `· ${String(f.mimeType)}` : ''}{' '}
-                    {typeof f.sizeBytes === 'number' ? `· ${(f.sizeBytes / 1024).toFixed(0)}KB` : ''}
-                  </Text>
-                </View>
-                <View style={{ width: '168rpx' }}>
                   <Button
+                    className="upload-item-remove"
                     variant="danger"
                     fill="outline"
                     size="small"
@@ -722,53 +757,139 @@ export default function PublishPatentPage() {
                       void removeProof(f);
                     }}
                   >
-                    移除
+                    删除
                   </Button>
                 </View>
-              </View>
-            ))}
-          </>
-        ) : null}
-      </View>
+              ))}
+            </View>
+          ) : null}
+        </Surface>
 
-      <Spacer />
+        <Surface className="publish-card" padding="none">
+          <Text className="publish-section-title">价格设置</Text>
 
-      <View className="card">
-        <Text className="muted">
-          当前状态：
-          {listingId
-            ? `${listingStatus ? listingStatusLabel(listingStatus) : '草稿'} / ${auditStatus ? auditStatusLabel(auditStatus) : '未提交审核'}`
-            : '未创建草稿'}
-        </Text>
+          <View className="form-field">
+            <Text className="form-label">价格类型 *</Text>
+            <View className="form-select" onClick={() => setPickerOpen('priceType')}>
+              <Text
+                className={priceType ? 'form-select-value' : 'form-select-placeholder'}
+                style={priceType ? undefined : { fontSize: '20rpx', color: '#9ca3af' }}
+              >
+                {priceType ? priceTypeLabel(priceType as PriceType) : '请选择'}
+              </Text>
+              <Text className="form-select-arrow">▾</Text>
+            </View>
+          </View>
+
+          {priceType === 'FIXED' ? (
+            <View className="form-field">
+              <Text className="form-label">标价（元）*</Text>
+              <PublishInput
+                className="publish-input"
+                value={priceYuan}
+                onChange={setPriceYuan}
+                placeholder="例如 288000"
+                type="digit"
+                clearable
+              />
+            </View>
+          ) : null}
+
+          <View className="form-field">
+            <Text className="form-label">订金（元）</Text>
+            <PublishInput
+              className="publish-input"
+              value={depositYuan}
+              onChange={setDepositYuan}
+              placeholder="例如 2000"
+              type="digit"
+              clearable
+            />
+            <Text className="form-hint">订金用于锁定买家意向</Text>
+          </View>
+        </Surface>
+
+        <Surface className="publish-card publish-status-card" padding="none">
+          <Text className="form-hint">
+            当前状态：
+            {listingId
+              ? `${listingStatus ? listingStatusLabel(listingStatus) : '草稿'} / ${
+                  auditStatus ? auditStatusLabel(auditStatus) : '待审核'
+                }`
+              : '未保存'}
+          </Text>
+        </Surface>
       </View>
 
       <StickyBar>
         {submitted ? (
           <>
             <View style={{ flex: 1 }}>
-              <Button variant="ghost" onClick={() => Taro.switchTab({ url: '/pages/home/index' })}>
+              <Button
+                className="publish-action-btn publish-action-ghost"
+                variant="ghost"
+                onClick={() => Taro.switchTab({ url: '/pages/home/index' })}
+              >
                 返回首页
               </Button>
             </View>
             <View style={{ flex: 1 }}>
-              <Button onClick={() => Taro.switchTab({ url: '/pages/me/index' })}>去个人中心</Button>
+              <Button className="publish-action-btn publish-action-primary" onClick={() => Taro.switchTab({ url: '/pages/me/index' })}>
+                个人中心
+              </Button>
             </View>
           </>
         ) : (
           <>
             <View style={{ flex: 1 }}>
-              <Button variant="ghost" loading={saving} disabled={saving || submitting} onClick={() => void saveDraft()}>
+              <Button
+                className="publish-action-btn publish-action-ghost"
+                variant="ghost"
+                loading={saving}
+                disabled={saving || submitting}
+                onClick={() => void saveDraft()}
+              >
                 保存草稿
               </Button>
             </View>
             <View style={{ flex: 1 }}>
-              <Button loading={submitting} disabled={saving || submitting} onClick={() => void submitForAudit()}>
+              <Button
+                className="publish-action-btn publish-action-primary"
+                loading={submitting}
+                disabled={saving || submitting}
+                onClick={() => void submitForAudit()}
+              >
                 提交审核
               </Button>
             </View>
           </>
         )}
       </StickyBar>
+
+      {pickerConfig ? (
+        <Popup
+          visible={Boolean(pickerConfig)}
+          position="bottom"
+          round
+          closeable
+          title={pickerConfig.title}
+          onClose={() => setPickerOpen(null)}
+          onOverlayClick={() => setPickerOpen(null)}
+        >
+          <PopupSheet scrollable={false} bodyClassName="publish-picker-sheet">
+            <View className="publish-picker-options">
+              {pickerConfig.options.map((option) => (
+                <Cell
+                  key={String(option.value)}
+                  title={option.label}
+                  className={pickerConfig.value === option.value ? 'publish-picker-active' : ''}
+                  onClick={() => onPickOption(String(option.value))}
+                />
+              ))}
+            </View>
+          </PopupSheet>
+        </Popup>
+      ) : null}
     </View>
   );
 }

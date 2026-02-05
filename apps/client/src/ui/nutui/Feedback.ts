@@ -3,9 +3,22 @@ import { Dialog, Toast } from '@nutui/nutui-react-taro';
 
 import { OVERLAY_IDS } from './AppOverlays';
 
-export function toast(content: string, options?: { duration?: number; icon?: 'success' | 'fail' | 'loading' | 'warn' }) {
+function normalizeToastContent(content: unknown): string {
+  if (typeof content === 'string') return content;
+  if (content == null) return '';
+  if (Array.isArray(content)) return content.map((item) => normalizeToastContent(item)).filter(Boolean).join(' ');
+  if (content instanceof Error) return content.message || '操作失败';
+  try {
+    return JSON.stringify(content);
+  } catch {
+    return String(content);
+  }
+}
+
+export function toast(content: unknown, options?: { duration?: number; icon?: 'success' | 'fail' | 'loading' | 'warn' }) {
+  const safeContent = normalizeToastContent(content);
   Toast.show(OVERLAY_IDS.toast, {
-    content,
+    content: safeContent,
     duration: options?.duration ?? 2,
     icon: options?.icon,
   });

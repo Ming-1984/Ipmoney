@@ -1,21 +1,28 @@
-import { View, Text } from '@tarojs/components';
+﻿import { View, Text, Image } from '@tarojs/components';
 import Taro from '@tarojs/taro';
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import './index.scss';
 
 import type { components } from '@ipmoney/api-types';
 
 import { apiGet, apiPost } from '../../../lib/api';
 import { ensureApproved } from '../../../lib/guard';
-import { verificationTypeLabel } from '../../../lib/labels';
 import { safeNavigateBack } from '../../../lib/navigation';
-import { regionDisplayName } from '../../../lib/regions';
 import { useRouteUuidParam } from '../../../lib/routeParams';
-import { PageHeader, SectionHeader, Spacer, StickyBar, Surface, TipBanner } from '../../../ui/layout';
-import { Avatar, Button, Space, Tag, toast } from '../../../ui/nutui';
+import { toast } from '../../../ui/nutui';
 import { EmptyCard, ErrorCard, LoadingCard, MissingParamCard } from '../../../ui/StateCards';
 
 type TechManagerPublic = components['schemas']['TechManagerPublic'];
 type Conversation = { id: string };
+
+type DetailMeta = {
+  ratingText: string;
+  levelLabel: string;
+  experienceYears: string | number;
+  orgName: string;
+  expertiseText: string;
+  honorTitles: string[];
+};
 
 export default function TechManagerDetailPage() {
   const techManagerId = useRouteUuidParam('techManagerId') || '';
@@ -65,99 +72,132 @@ export default function TechManagerDetailPage() {
     );
   }
 
-  return (
-    <View className="container has-sticky">
-      <PageHeader title="技术经理人详情" subtitle="可在线咨询对接，交易过程全程留痕" />
-      <Spacer />
+  const avatar = useMemo(() => {
+    if (!data?.avatarUrl) return '';
+    return data.avatarUrl.includes('example.com') ? '' : data.avatarUrl;
+  }, [data?.avatarUrl]);
 
+  const meta: DetailMeta = useMemo(() => {
+    const ratingScore = data?.stats?.ratingScore;
+    const ratingText =
+      typeof ratingScore === 'number' && !Number.isNaN(ratingScore) ? ratingScore.toFixed(1) : '-';
+    const levelLabel =
+      typeof ratingScore === 'number'
+        ? ratingScore >= 4.9
+          ? '高级'
+          : ratingScore >= 4.6
+          ? '中级'
+          : '初级'
+        : '认证';
+    const orgName =
+      (data as any)?.organizationName || (data as any)?.companyName || (data as any)?.organization || '';
+    const expertiseText =
+      (data as any)?.expertiseSummary ||
+      (data?.serviceTags?.length ? data.serviceTags.join('、') : '') ||
+      '暂无';
+    const honorTitles = ((data as any)?.honorTitles as string[]) || [];
+    let experienceYears: string | number = '-';
+    if (data?.verifiedAt) {
+      const verifiedDate = new Date(data.verifiedAt);
+      if (!Number.isNaN(verifiedDate.getTime())) {
+        const diffYears = Math.floor((Date.now() - verifiedDate.getTime()) / (365.25 * 24 * 60 * 60 * 1000));
+        experienceYears = Math.max(1, diffYears);
+      }
+    }
+
+    return { ratingText, levelLabel, experienceYears, orgName, expertiseText, honorTitles };
+  }, [data]);
+
+  return (
+    <View className="container consult-detail-page">
       {loading ? (
         <LoadingCard />
       ) : error ? (
         <ErrorCard message={error} onRetry={load} />
       ) : data ? (
         <View>
-          <Surface>
-            <View className="row" style={{ gap: '14rpx', alignItems: 'center' }}>
-              <Avatar size="56" src={data.avatarUrl || ''} background="var(--c-soft)" color="var(--c-primary)">
-                {(data.displayName || 'T').slice(0, 1)}
-              </Avatar>
-              <View style={{ flex: 1, minWidth: 0 }}>
-                <Text className="text-title clamp-2">{data.displayName || '-'}</Text>
-                <Spacer size={8} />
-                <Space wrap align="center">
-                  <Tag type="primary" plain round>
-                    {verificationTypeLabel(data.verificationType)}
-                  </Tag>
-                  <Tag type="default" plain round>
-                    地区：{regionDisplayName(data.regionCode)}
-                  </Tag>
-                  <Tag type="default" plain round>
-                    咨询 {data.stats?.consultCount ?? 0}
-                  </Tag>
-                  <Tag type="default" plain round>
-                    成交 {data.stats?.dealCount ?? 0}
-                  </Tag>
-                  <Tag type="default" plain round>
-                    评分 {data.stats?.ratingScore ?? '-'}
-                  </Tag>
-                </Space>
+          <View className="consult-detail-hero">
+            <View className="consult-detail-hero-card">
+              <View className="consult-detail-avatar">
+                {avatar ? (
+                  <Image src={avatar} mode="aspectFill" className="consult-detail-avatar-img" />
+                ) : (
+                  <Text className="consult-detail-avatar-text">{(data.displayName || 'T').slice(0, 1)}</Text>
+                )}
+              </View>
+              <View className="consult-detail-meta">
+                <View className="consult-detail-name-row">
+                  <Text className="consult-detail-name">{data.displayName || '-'}</Text>
+                  {meta.levelLabel ? <Text className="consult-detail-level-badge">{meta.levelLabel}</Text> : null}
+                </View>
+                <Text className="consult-detail-org">{meta.orgName || '机构信息待补充'}</Text>
               </View>
             </View>
-          </Surface>
+          </View>
 
-          <Spacer size={12} />
+          <View className="consult-detail-stats-card">
+            <View className="consult-detail-stat">
+              <Text className="consult-detail-stat-num">
+                {typeof meta.experienceYears === 'number' ? `${meta.experienceYears}年` : meta.experienceYears}
+              </Text>
+              <Text className="consult-detail-stat-label">从业年限</Text>
+            </View>
+            <View className="consult-detail-stat-divider" />
+            <View className="consult-detail-stat">
+              <Text className="consult-detail-stat-num is-accent">
+                {meta.ratingText === '-' ? '-' : `${meta.ratingText}分`}
+              </Text>
+              <Text className="consult-detail-stat-label">综合评分</Text>
+            </View>
+          </View>
 
-          <Surface>
-            <SectionHeader title="擅长领域" density="compact" />
-            {data.serviceTags?.length ? (
-              <View className="row" style={{ gap: '10rpx', flexWrap: 'wrap' }}>
-                {data.serviceTags.map((t) => (
-                  <Text key={t} className="tag">
-                    {t}
+          <View className="consult-detail-section">
+            <View className="consult-detail-section-head">
+              <View className="consult-detail-section-bar" />
+              <Text className="consult-detail-section-title">擅长领域</Text>
+            </View>
+            <Text className="consult-detail-section-text consult-detail-section-accent">{meta.expertiseText}</Text>
+          </View>
+
+          <View className="consult-detail-section">
+            <View className="consult-detail-section-head">
+              <View className="consult-detail-section-bar" />
+              <Text className="consult-detail-section-title">个人简介</Text>
+            </View>
+            <Text className="consult-detail-section-text">{data.intro || '暂无简介'}</Text>
+          </View>
+
+          <View className="consult-detail-section">
+            <View className="consult-detail-section-head">
+              <View className="consult-detail-section-bar" />
+              <Text className="consult-detail-section-title">荣誉称号</Text>
+            </View>
+            {meta.honorTitles.length ? (
+              <View className="consult-detail-honors">
+                {meta.honorTitles.map((title) => (
+                  <Text key={title} className="consult-detail-honor">
+                    {title}
                   </Text>
                 ))}
               </View>
             ) : (
-              <Text className="muted">暂无标签</Text>
+              <Text className="consult-detail-section-text">暂无荣誉</Text>
             )}
-          </Surface>
+          </View>
 
-          <Spacer size={12} />
-
-          <Surface>
-            <SectionHeader title="简介" density="compact" />
-            <Text className="muted break-word">{data.intro || '暂无简介'}</Text>
-          </Surface>
-
-          <Spacer size={12} />
-
-          <TipBanner tone="info" title="说明">
-            技术经理人信息由本人提交并经平台审核后展示；如需修改或下架，请联系平台客服。
-          </TipBanner>
+          <View className="consult-detail-cta-wrap">
+            <View className="consult-detail-cta" onClick={() => void startConsult()}>
+              立即咨询
+            </View>
+          </View>
         </View>
       ) : (
         <EmptyCard message="暂无数据" actionText="返回" onAction={() => void safeNavigateBack()} />
       )}
-
-      {data ? (
-        <StickyBar>
-          <View className="flex-1">
-            <Button variant="ghost" onClick={() => Taro.navigateBack()}>
-              返回
-            </Button>
-          </View>
-          <View className="flex-1">
-            <Button
-              variant="primary"
-              onClick={() => {
-                void startConsult();
-              }}
-            >
-              咨询
-            </Button>
-          </View>
-        </StickyBar>
-      ) : null}
     </View>
   );
 }
+
+
+
+

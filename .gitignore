@@ -15,3 +15,5 @@ coverage
 # Docs rendered artifacts
 # Rendered diagrams/images are part of deliverables, keep them tracked.
 # Ignore only local export/temp outputs if needed.
+# Local IPC classification source files (CNIPA/WIPO)
+docs/ipc/

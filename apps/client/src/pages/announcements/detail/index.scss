@@ -1,0 +1,126 @@
+.announcement-detail-page {
+  padding-bottom: 24rpx;
+}
+
+.announcement-detail-card {
+  border-radius: 20rpx;
+  padding: 22rpx;
+  background: #ffffff;
+}
+
+.announcement-detail-title {
+  font-size: 32rpx;
+  font-weight: 700;
+  color: #111827;
+  line-height: 1.4;
+}
+
+.announcement-detail-meta {
+  margin-top: 10rpx;
+  display: flex;
+  flex-direction: column;
+  gap: 6rpx;
+  font-size: 24rpx;
+  color: #64748b;
+}
+
+.announcement-detail-tags {
+  margin-top: 12rpx;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8rpx;
+}
+
+.announcement-detail-content {
+  margin-top: 12rpx;
+  display: flex;
+  flex-direction: column;
+  gap: 10rpx;
+}
+
+.announcement-detail-paragraph {
+  font-size: 26rpx;
+  color: #475569;
+  line-height: 1.6;
+}
+
+.announcement-detail-empty {
+  margin-top: 12rpx;
+  font-size: 24rpx;
+  color: #94a3b8;
+}
+
+.announcement-detail-source {
+  margin-top: 16rpx;
+  padding: 14rpx 16rpx;
+  border-radius: 16rpx;
+  background: #f8fafc;
+  border: 1rpx solid rgba(15, 23, 42, 0.08);
+  display: flex;
+  flex-direction: column;
+  gap: 8rpx;
+}
+
+.announcement-detail-source-label {
+  font-size: 22rpx;
+  color: #94a3b8;
+}
+
+.announcement-detail-source-url {
+  font-size: 24rpx;
+  color: #0f172a;
+  word-break: break-all;
+}
+
+.announcement-detail-source-btn {
+  align-self: flex-start;
+}
+
+.announcement-detail-related {
+  margin-top: 16rpx;
+  border-radius: 20rpx;
+  padding: 18rpx 20rpx;
+  background: #ffffff;
+}
+
+.announcement-detail-related-title {
+  font-size: 28rpx;
+  font-weight: 700;
+  color: #111827;
+}
+
+.announcement-detail-related-list {
+  margin-top: 12rpx;
+  display: flex;
+  flex-direction: column;
+  gap: 10rpx;
+}
+
+.announcement-detail-related-item {
+  padding: 12rpx 0;
+  border-bottom: 1rpx solid rgba(15, 23, 42, 0.06);
+}
+
+.announcement-detail-related-item:last-child {
+  border-bottom: none;
+}
+
+.announcement-detail-related-name {
+  font-size: 26rpx;
+  font-weight: 600;
+  color: #111827;
+  line-height: 1.4;
+}
+
+.announcement-detail-related-no {
+  margin-top: 4rpx;
+  font-size: 22rpx;
+  color: #94a3b8;
+}
+
+.announcement-detail-time {
+  margin-top: 12rpx;
+  font-size: 22rpx;
+  color: #94a3b8;
+  text-align: center;
+}

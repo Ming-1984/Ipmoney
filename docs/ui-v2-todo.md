@@ -1,4 +1,4 @@
-# UI v2 落地 TODO（体系优先 A｜待你确认后再实施）
+﻿# UI v2 落地 TODO（体系优先 A｜待你确认后再实施）
 
 > 本 TODO 负责把“最高标准 UI 规划”落到**可执行、可验收、可排期**的任务列表。  
 > 规范基准：`docs/engineering/ui-v2-spec.md`  
@@ -143,8 +143,8 @@
   - [x] `FilterSummary`：工具区展示已选筛选摘要（1–3 个 + `+N`）
 - [x] Client：分类/排序控件收口（P0｜对齐小程序观感）
   - [x] `CategoryControl`：主分类优先 Tabs(line)，小范围切换可用 Segmented；>3 可滚动；统一字号/高度/active 线条
-  - [x] `SortControl`：统一 Tabs(line)（推荐/最新/热度/发明人），顺序固定；切换即重载并回到第 1 页
-  - [x] `SortSheet`：更多排序项（如价格升/降等）进入 Popup(sheet)，点选即应用并关闭
+  - [x] `SortControl`：统一 Tabs(line)（推荐/最新），顺序固定；切换即重载并回到第 1 页
+  - [x] `SortSheet`：更多排序项（价格升序/价格降序）进入 Popup(sheet)，点选即应用并关闭
   - [x] 验收：Search/Feeds/Favorites/Orders/My* 等页面的分类/排序控件样式一致（像微信小程序），且参数严格对齐 `ui-v2-filter-mapping.md`
 - [x] Admin：表格筛选/排序统一（P0）
   - [x] 统一审核列表筛选区：`auditStatus/status`（AntD `Select`/`Tabs`/`Table` filters）
@@ -212,15 +212,21 @@
 - [x] `pages/home/index`：接入 token/文案/动作级权限态（收藏/咨询/下单）
 - [x] `pages/home/index`：快捷入口从 2×2 改为 **4 个一排**（更像微信服务栅格）；图标与文字整体缩小一档（保留 ≥44px 热区）
 - [x] `pages/home/index`：快捷入口不保留副标题（只保留标题；副标题移到二级页/详情说明）
-- [x] `pages/home/index`：优化 4 个入口按钮（沉睡专利/发明人榜/专利地图/机构展示）的排版与尺寸（优先用 NutUI `Grid` 收口样式）
+- [ ] `pages/home/index`：快捷入口调整（移除“沉睡专利/全部分类”，保留发明人榜/技术经理人/专利地图/书画专区/产学研需求/成果转化）
+- [ ] `pages/home/index`：新增公告滚动条（最新公告标题 + 右侧“全部”入口）
+- [ ] `pages/home/index`：新增“特色专区”2×2 卡片 + 标题右侧“更多”
+- [ ] `pages/home/index`：特色专区入口跳转（沉睡/高新退役/开放许可直达搜索；产业集群先到集群选择页）
+- [ ] `pages/home/index`：特色专区视觉风格与现有卡片/字体/间距/圆角保持一致（不引入新视觉语言）
 - [x] `pages/home/index`：品牌副标题文案统一为 `专利点金台`（替换旧文案）
 - [x] `pages/home/index`：推荐区标题改为最新专利，移除副标题与右侧更多入口
-- [x] `pages/home/index`：入口沉睡专利点击跳转搜索；移除首页对信息流/猜你喜欢入口曝光
+- [ ] `pages/home/index`：特色专区“更多”跳转搜索（LISTING）
 - [x] `pages/search/index`：筛选 Popup 交互标准化 + 参数清洗接入
 - [x] `pages/search/index`：分类 Tab 扩展：专利交易｜产学研需求｜成果展示｜书画专区｜机构（进入搜索主链路，对齐 `Ipmoney.md` 4）
+- [x] `pages/search/index`：书画专区结果卡片左右布局精简（仅作者/年份 + 价格/订金；隐藏标签与浏览/收藏）
 - [x] `pages/search/index`: Demands/Achievements filters + sort fully aligned (incl. industryTags from GET /public/industry-tags).
 - [x] `pages/search/index`: Listing advanced filters (deposit/ipc/loc/legalStatus + industryTags from GET /public/industry-tags) and sort PRICE_ASC/DESC; keep FilterSheet/ChipGroup/FilterSummary aligned with ui-v2-filter-mapping.md.
 - [x] `pages/search/index`: 多样 happy 数据下复核筛选摘要/标签展示（预算面议、成熟度、合作方式、产业标签），异常则修正文案或显示逻辑。
+- [x] `pages/search/index`：搜索条下新增排序 Chip 行（综合推荐/价格升序/价格降序/最新发布），结果卡片与背景色调对齐目标设计
 - [x] `pages/publish/index`：去禁用词 + 权限/审核分支统一
 - [x] `pages/messages/index`：空态去禁用词 + 会话列表密度/时间格式化
 - [x] `pages/messages/index`: PullToRefresh + conversation cell polish (avatar/title/preview/unread)
@@ -250,6 +256,9 @@
 - [x] `pages/organizations/index`：卡片信息密度规范化
 - [x] `pages/organizations/index`: Filters UI refactor to shared FilterSheet/ChipGroup + FilterSummary (regionCode + types; align GET /public/organizations).
 - [x] `pages/patent-map/index`：空态去禁用词 + 年份切换交互统一
+- [ ] `pages/cluster-picker/index`：产业集群选择页（集群卡片 + 高校/科研机构区块 + 专利数量/优势领域标签）
+- [ ] `pages/announcements/index`：公告列表（标题/发布单位/发布日期/期次/标签）
+- [ ] `pages/cluster-picker/index`/`pages/announcements/*`：沿用现有设计系统（卡片圆角/阴影/字体层级/间距）
 
 ### 3.3 模板 C（Detail）接入
 
@@ -259,6 +268,7 @@
 - [x] `pages/demand/detail/index`：需求详情页（公开可见；咨询走 IM；对齐 `UI-STD-P0-009` 返回策略 + 状态机）
 - [x] `pages/achievement/detail/index`：成果详情页（公开可见；支持图/视频/附件；咨询走 IM；对齐 `UI-STD-P0-009` 返回策略 + 状态机）
 - [x] `pages/artwork/detail/index`：书画详情页（公开可见；咨询/订金入口；对齐 `UI-STD-P0-009` 返回策略 + 状态机）
+- [x] `pages/artwork/detail/index`：信息区新增「著作权登记证书编号」展示（如有）
 - [x] `pages/demand/detail/index`: v2.2 顶部信息区重排（封面/标题/预算/合作方式/行业/地区/发布时间/热度/发布方）优先用 NutUI `Tag/Space/Avatar`
 - [x] `pages/achievement/detail/index`: v2.2 顶部信息区重排（封面/标题/成熟度/合作方式/行业/地区/发布时间/热度/发布方）优先用 NutUI `Tag/Space/Avatar`
 - [x] `ui/MediaList.tsx`: VIDEO 播放失败兜底（`onError` toast + 复制链接/提示）
@@ -269,12 +279,18 @@
 - [x] `pages/patent/detail/index`: layout polish (MetaPills/SectionHeader) + legalStatus mapping
 - [x] `pages/patent/detail/index`: v2.3 顶部信息区收口（NutUI `Tag/Space` + “复制申请号”）
 - [x] `pages/patent/detail/index`/`pages/demand/detail/index`/`pages/achievement/detail/index`: 顶部信息栏标签尺寸对齐整体字号（NutUI Tag size token override）
+- [x] `pages/patent/detail/index`：将摘要/信息/评论等原子页内容合并为单页展示（不再跳转）
+- [x] `pages/listing/detail/info/index`：移除“关联专利/点击查看专利详情”，挂牌详情页内嵌专利详情模块（摘要/附图/专利信息/权利人/说明书统计）
+- [x] `pages/listing/detail/*`：概览=挂牌信息+专利信息+时间信息；摘要=技术摘要+附图；信息=权利人信息+说明书统计
 - [x] `pages/demand/detail/index`: UI polish (MetaPills/time formatting) + MediaSection reuse
 - [x] `pages/achievement/detail/index`: UI polish (MetaPills/time formatting) + MediaSection reuse
 - [x] `pages/organizations/detail/index`：去禁用词 + 详情布局规范化
 - [x] `pages/patent-map/region-detail/index`：分块空态规范化 + 缺参兜底口径
+- [ ] `pages/announcements/detail/index`：公告详情（标题/发布单位/发布日期/期次/正文；无附件）
 - [x] `pages/organizations/detail/index`: v2.4 顶部信息区收口（NutUI `Avatar/Tag/Space`；地区/统计可扫读；移除 MetaPills）
 - [x] `pages/patent-map/region-detail/index`: v2.4 顶部信息区收口（NutUI `Tag/Space`；年份/专利数/更新时间；移除 MetaPills）
+- [ ] `pages/*/detail/index`：详情页对齐“专利大王”风格（顶部信息紧凑 + Sticky Tab + 字段清单式排版 + 底部工具栏 share/pdf/收藏；不调整内容，仅调整排版/交互）
+- [x] `pages/tech-managers/detail/index`：经理人详情改为大卡片圆角 + 从业年限/综合评分 + 擅长领域/个人简介/荣誉称号 + 单一“立即咨询”按钮
 
 ### 3.4 模板 D（Form/Wizard）接入
 
@@ -307,6 +323,7 @@
 - [x] `pages/messages/chat/index`: v2.1 UI polish：头像用 NutUI `Avatar`；气泡/时间条密度与配色更接近微信
 - [x] `pages/messages/chat/index`: 背景/气泡/系统消息视觉对齐 v2 规范，统一语义 token，去硬编码
 - [x] `pages/messages/chat/index`: 吸底输入条背景/分割线使用 `color.bg.page` + `color.border.divider`，H5/WeApp 一致
+- [x] `pages/messages/chat/index`: v2.6 咨询聊天重构（自定义顶部栏/安全提示/咨询卡片/输入栏）
 
 ### 3.7 模板 G（Policy）接入
 

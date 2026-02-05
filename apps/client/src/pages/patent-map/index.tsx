@@ -1,6 +1,7 @@
 import { Map as TaroMap, View, Text } from '@tarojs/components';
 import Taro from '@tarojs/taro';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import './index.scss';
 
 import type { components } from '@ipmoney/api-types';
 

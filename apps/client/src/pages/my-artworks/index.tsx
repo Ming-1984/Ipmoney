@@ -1,16 +1,18 @@
-import { View, Text } from '@tarojs/components';
+﻿import { View, Text, Image } from '@tarojs/components';
 import Taro from '@tarojs/taro';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import './index.scss';
 
 import type { components } from '@ipmoney/api-types';
 
 import { apiGet, apiPost } from '../../lib/api';
 import { ensureApproved, goLogin, goOnboarding, usePageAccess } from '../../lib/guard';
-import { artworkStatusLabel, auditStatusLabel, auditStatusTagClass } from '../../lib/labels';
+import { artworkStatusLabel, auditStatusLabel, auditStatusTagClass, priceTypeLabel } from '../../lib/labels';
 import { CategoryControl } from '../../ui/filters';
 import { Button, toast } from '../../ui/nutui';
 import { AuditPendingCard, EmptyCard, ErrorCard, LoadingCard, PermissionCard } from '../../ui/StateCards';
 import { PageHeader, Spacer, Surface } from '../../ui/layout';
+import iconPalette from '../../assets/icons/icon-palette-orange.svg';
 
 type PagedArtwork = components['schemas']['PagedArtwork'];
 type Artwork = components['schemas']['Artwork'];
@@ -70,7 +72,7 @@ export default function MyArtworksPage() {
       <View className="container">
         <PageHeader title="我的书画" subtitle="发布方查看/编辑/下架自己的书画作品" />
         <Spacer />
-        <PermissionCard title="需要登录" message="登录后才能查看书画作品" actionText="去登录" onAction={goLogin} />
+        <PermissionCard title="需要登录" message="登录后才能查看作品。" actionText="去登录" onAction={goLogin} />
       </View>
     );
   }
@@ -79,7 +81,7 @@ export default function MyArtworksPage() {
       <View className="container">
         <PageHeader title="我的书画" subtitle="发布方查看/编辑/下架自己的书画作品" />
         <Spacer />
-        <PermissionCard title="需要选择身份" message="完成身份选择后才能继续" actionText="去选择" onAction={goOnboarding} />
+        <PermissionCard title="需要选择身份" message="完成身份选择后才能继续。" actionText="去选择" onAction={goOnboarding} />
       </View>
     );
   }
@@ -88,7 +90,7 @@ export default function MyArtworksPage() {
       <View className="container">
         <PageHeader title="我的书画" subtitle="发布方查看/编辑/下架自己的书画作品" />
         <Spacer />
-        <AuditPendingCard title="资料审核中" message="审核通过后才能发布与管理书画作品" actionText="查看进度" onAction={goOnboarding} />
+        <AuditPendingCard title="资料审核中" message="审核通过后才能发布与管理书画作品。" actionText="查看进度" onAction={goOnboarding} />
       </View>
     );
   }
@@ -97,7 +99,7 @@ export default function MyArtworksPage() {
       <View className="container">
         <PageHeader title="我的书画" subtitle="发布方查看/编辑/下架自己的书画作品" />
         <Spacer />
-        <AuditPendingCard title="资料已驳回" message="请重新提交资料，审核通过后才能继续" actionText="重新提交" onAction={goOnboarding} />
+        <AuditPendingCard title="资料已驳回" message="请重新提交资料，审核通过后才能继续。" actionText="重新提交" onAction={goOnboarding} />
       </View>
     );
   }
@@ -106,7 +108,7 @@ export default function MyArtworksPage() {
       <View className="container">
         <PageHeader title="我的书画" subtitle="发布方查看/编辑/下架自己的书画作品" />
         <Spacer />
-        <AuditPendingCard title="需要认证" message="完成认证并审核通过后才能继续" actionText="去认证" onAction={goOnboarding} />
+        <AuditPendingCard title="需要认证" message="完成认证并审核通过后才能继续。" actionText="去认证" onAction={goOnboarding} />
       </View>
     );
   }
@@ -157,19 +159,31 @@ export default function MyArtworksPage() {
       ) : error ? (
         <ErrorCard message={error} onRetry={load} />
       ) : items.length ? (
-        <View>
+        <View className="card-list">
           {items.map((it: Artwork) => (
-            <Surface key={it.id} style={{ marginBottom: '16rpx' }}>
-              <Text className="text-title clamp-2">{it.title || '未命名书画'}</Text>
-              <View style={{ height: '8rpx' }} />
-              <View className="row" style={{ gap: '12rpx', flexWrap: 'wrap' }}>
-                <Text className="tag">{artworkStatusLabel(it.status)}</Text>
-                <Text className={auditStatusTagClass(it.auditStatus)}>{auditStatusLabel(it.auditStatus)}</Text>
-                {it.creatorName ? <Text className="tag">{it.creatorName}</Text> : null}
+            <View key={it.id} className="list-card">
+              <View className="list-card-thumb artwork-thumb">
+                {it.coverUrl ? (
+                  <Image className="artwork-thumb-img" src={it.coverUrl} mode="aspectFill" />
+                ) : (
+                  <Image className="list-card-thumb-img" src={iconPalette} svg mode="aspectFit" />
+                )}
               </View>
-              <View style={{ height: '12rpx' }} />
-              <View className="row" style={{ gap: '12rpx' }}>
-                <View style={{ flex: 1 }}>
+              <View className="list-card-body">
+                <View className="list-card-head">
+                  <View className="list-card-head-main">
+                    <Text className="list-card-title clamp-2">{it.title || '未命名书画'}</Text>
+                    <View className="list-card-tags">
+                      <Text className="tag">{artworkStatusLabel(it.status)}</Text>
+                      <Text className={auditStatusTagClass(it.auditStatus)}>{auditStatusLabel(it.auditStatus)}</Text>
+                      {it.creatorName ? <Text className="tag">{it.creatorName}</Text> : null}
+                    </View>
+                  </View>
+                </View>
+
+                {it.priceType ? <Text className="list-card-meta">报价：{priceTypeLabel(it.priceType)}</Text> : null}
+
+                <View className="list-card-actions">
                   <Button
                     variant="ghost"
                     onClick={() => {
@@ -178,8 +192,6 @@ export default function MyArtworksPage() {
                   >
                     编辑/查看
                   </Button>
-                </View>
-                <View style={{ flex: 1 }}>
                   <Button
                     variant="danger"
                     fill="outline"
@@ -198,7 +210,7 @@ export default function MyArtworksPage() {
                   </Button>
                 </View>
               </View>
-            </Surface>
+            </View>
           ))}
         </View>
       ) : (
@@ -207,3 +219,4 @@ export default function MyArtworksPage() {
     </View>
   );
 }
+

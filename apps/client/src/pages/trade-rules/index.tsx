@@ -1,12 +1,13 @@
 import { View, Text } from '@tarojs/components';
 import React, { useCallback, useEffect, useState } from 'react';
+import './index.scss';
 
 import type { components } from '@ipmoney/api-types';
 
 import { apiGet } from '../../lib/api';
 import { fenToYuan } from '../../lib/money';
 import { PageHeader, SectionHeader, Spacer, Surface, TipBanner } from '../../ui/layout';
-import { Space, Tag } from '../../ui/nutui';
+import { Tag } from '../../ui/nutui';
 import { ErrorCard, LoadingCard } from '../../ui/StateCards';
 
 type TradeRulesConfig = components['schemas']['TradeRulesConfig'];
@@ -14,8 +15,13 @@ type PayoutCondition = components['schemas']['PayoutCondition'];
 type PayoutMethod = components['schemas']['PayoutMethod'];
 
 function percent(v?: number): string {
-  if (v === undefined || v === null) return '-';
+  if (v === undefined || v === null) return '—';
   return `${(v * 100).toFixed(2)}%`;
+}
+
+function yuan(v?: number): string {
+  if (v === undefined || v === null) return '—';
+  return `¥${fenToYuan(v)}`;
 }
 
 function payoutConditionLabel(v?: PayoutCondition): string {
@@ -66,7 +72,7 @@ export default function TradeRulesPage() {
       ) : data ? (
         <View>
           <TipBanner tone="info" title="规则摘要">
-            订金按成交价比例计算（含上下限）；佣金由卖家承担；尾款平台托管，默认“权属变更完成确认”后放款。
+            订金按成交价比例计算（含上/下限）；佣金由卖家承担；尾款由平台托管，默认在“权属变更完成确认”后放款。
           </TipBanner>
 
           <Spacer size={12} />
@@ -79,22 +85,22 @@ export default function TradeRulesPage() {
               </Tag>
             </View>
             <Spacer size={8} />
-            <Space wrap align="center">
-              <Tag type="primary" plain round>
-                比例：{percent(data.depositRate)}
-              </Tag>
-              <Tag type="primary" plain round>
-                下限：¥{fenToYuan(data.depositMinFen)}
-              </Tag>
-              <Tag type="primary" plain round>
-                上限：¥{fenToYuan(data.depositMaxFen)}
-              </Tag>
-              <Tag type="default" plain round>
-                面议订金：¥{fenToYuan(data.depositFixedForNegotiableFen)}
-              </Tag>
-            </Space>
+            <View className="list-item">
+              <Text className="muted">订金比例</Text>
+              <Text className="text-strong">{percent(data.depositRate)}</Text>
+            </View>
+            <View className="list-item">
+              <Text className="muted">订金区间</Text>
+              <Text className="text-strong">{`${yuan(data.depositMinFen)} - ${yuan(data.depositMaxFen)}`}</Text>
+            </View>
+            <View className="list-item">
+              <Text className="muted">面议订金</Text>
+              <Text className="text-strong">{yuan(data.depositFixedForNegotiableFen)}</Text>
+            </View>
             <Spacer size={8} />
-            <Text className="text-caption break-word">订金金额 = 成交价 × 比例，并遵守上下限；面议按固定订金收取。</Text>
+            <Text className="text-caption break-word">
+              订金金额 = 成交价 × 比例，并遵守上/下限；面议按固定订金收取。
+            </Text>
           </Surface>
 
           <Spacer size={12} />
@@ -102,52 +108,49 @@ export default function TradeRulesPage() {
           <Surface>
             <SectionHeader title="退款窗口" subtitle="用于“系统秒退”的时间范围" density="compact" />
             <Spacer size={8} />
-            <Space wrap align="center">
-              <Tag type="primary" plain round>
-                时间窗：{data.autoRefundWindowMinutes} 分钟
-              </Tag>
-            </Space>
+            <View className="list-item">
+              <Text className="muted">时间窗口</Text>
+              <Text className="text-strong">{data.autoRefundWindowMinutes} 分钟</Text>
+            </View>
           </Surface>
 
           <Spacer size={12} />
 
           <Surface>
             <View className="row-between">
-              <SectionHeader title="佣金" subtitle="卖家承担；随结算扣除" density="compact" />
+              <SectionHeader title="佣金" subtitle="卖家承担，随结算扣除" density="compact" />
               <Tag type="success" plain round>
                 卖家承担
               </Tag>
             </View>
             <Spacer size={8} />
-            <Space wrap align="center">
-              <Tag type="primary" plain round>
-                比例：{percent(data.commissionRate)}
-              </Tag>
-              <Tag type="primary" plain round>
-                下限：¥{fenToYuan(data.commissionMinFen)}
-              </Tag>
-              <Tag type="primary" plain round>
-                上限：¥{fenToYuan(data.commissionMaxFen)}
-              </Tag>
-            </Space>
+            <View className="list-item">
+              <Text className="muted">佣金比例</Text>
+              <Text className="text-strong">{percent(data.commissionRate)}</Text>
+            </View>
+            <View className="list-item">
+              <Text className="muted">佣金区间</Text>
+              <Text className="text-strong">{`${yuan(data.commissionMinFen)} - ${yuan(data.commissionMaxFen)}`}</Text>
+            </View>
           </Surface>
 
           <Spacer size={12} />
 
           <Surface>
-            <SectionHeader title="里程碑与放款" subtitle="关键节点会作为证据归档" density="compact" />
+            <SectionHeader title="里程碑与放款" subtitle="关键节点作为凭证归档" density="compact" />
             <Spacer size={8} />
-            <Space wrap align="center">
-              <Tag type="primary" plain round>
-                补材料：{data.sellerMaterialDeadlineBusinessDays} 工作日
-              </Tag>
-              <Tag type="primary" plain round>
-                签合同：{data.contractSignedDeadlineBusinessDays} 工作日
-              </Tag>
-              <Tag type="primary" plain round>
-                变更 SLA：{data.transferCompletedSlaDays} 天
-              </Tag>
-            </Space>
+            <View className="list-item">
+              <Text className="muted">补材料期限</Text>
+              <Text className="text-strong">{data.sellerMaterialDeadlineBusinessDays} 个工作日</Text>
+            </View>
+            <View className="list-item">
+              <Text className="muted">签合同期限</Text>
+              <Text className="text-strong">{data.contractSignedDeadlineBusinessDays} 个工作日</Text>
+            </View>
+            <View className="list-item">
+              <Text className="muted">权属变更 SLA</Text>
+              <Text className="text-strong">{data.transferCompletedSlaDays} 天</Text>
+            </View>
             <Spacer size={8} />
             <View className="list-item">
               <Text className="muted">放款条件</Text>

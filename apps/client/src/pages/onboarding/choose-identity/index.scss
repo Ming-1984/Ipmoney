@@ -1,0 +1,116 @@
+.identity-page {
+  background: #ffffff;
+  min-height: 100vh;
+}
+
+.identity-header {
+  padding: 24rpx 24rpx 8rpx;
+}
+
+.identity-title {
+  font-size: 34rpx;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.identity-subtitle {
+  margin-top: 8rpx;
+  font-size: 22rpx;
+  line-height: 1.5;
+  color: #6b7280;
+}
+
+.identity-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18rpx;
+  padding: 16rpx 20rpx;
+}
+
+.identity-card {
+  background: #ffffff;
+  border-radius: 22rpx;
+  border: 1rpx solid rgba(148, 163, 184, 0.2);
+  padding: 22rpx 12rpx 18rpx;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8rpx;
+  text-align: center;
+  box-shadow: 0 10rpx 20rpx rgba(15, 23, 42, 0.04);
+}
+
+.identity-icon {
+  width: 72rpx;
+  height: 72rpx;
+  border-radius: 999rpx;
+  background: rgba(148, 163, 184, 0.12);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.identity-icon-text {
+  font-size: 30rpx;
+  font-weight: 700;
+  color: #475569;
+}
+
+.identity-icon-brand {
+  background: rgba(255, 122, 51, 0.14);
+}
+
+.identity-icon-blue {
+  background: rgba(37, 99, 235, 0.14);
+}
+
+.identity-icon-green {
+  background: rgba(34, 197, 94, 0.14);
+}
+
+.identity-icon-purple {
+  background: rgba(139, 92, 246, 0.14);
+}
+
+.identity-icon-slate {
+  background: rgba(100, 116, 139, 0.14);
+}
+
+.identity-card-title {
+  font-size: 26rpx;
+  font-weight: 700;
+  color: #0f172a;
+  max-width: 100%;
+  white-space: nowrap;
+}
+
+.identity-card-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8rpx;
+  max-width: 100%;
+}
+
+.identity-card-badge {
+  font-size: 20rpx;
+  color: #6b7280;
+  padding: 2rpx 10rpx;
+  border-radius: 999rpx;
+  background: #f1f5f9;
+}
+
+.identity-card-badge.is-gold {
+  background: rgba(255, 193, 7, 0.18);
+  color: #b45309;
+}
+
+.identity-card-desc {
+  font-size: 20rpx;
+  color: #94a3b8;
+  line-height: 1.4;
+}
+
+.identity-tip {
+  margin: 0 20rpx 20rpx;
+}

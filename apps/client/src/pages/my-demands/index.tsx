@@ -1,6 +1,7 @@
-import { View, Text } from '@tarojs/components';
+﻿import { View, Text, Image } from '@tarojs/components';
 import Taro from '@tarojs/taro';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import './index.scss';
 
 import type { components } from '@ipmoney/api-types';
 
@@ -8,15 +9,30 @@ import { apiGet, apiPost } from '../../lib/api';
 import { ensureApproved, goLogin, goOnboarding, usePageAccess } from '../../lib/guard';
 import { auditStatusLabel, auditStatusTagClass, contentStatusLabel } from '../../lib/labels';
 import { regionDisplayName } from '../../lib/regions';
+import { fenToYuan } from '../../lib/money';
 import { CategoryControl } from '../../ui/filters';
 import { PageHeader, Spacer, Surface } from '../../ui/layout';
 import { AuditPendingCard, EmptyCard, ErrorCard, LoadingCard, PermissionCard } from '../../ui/StateCards';
 import { Button, toast } from '../../ui/nutui';
+import iconBriefcase from '../../assets/icons/icon-briefcase-indigo.svg';
 
 type PagedDemand = components['schemas']['PagedDemand'];
 type Demand = components['schemas']['Demand'];
 type ContentStatus = components['schemas']['ContentStatus'];
 type AuditStatus = components['schemas']['AuditStatus'];
+type PriceType = components['schemas']['PriceType'];
+
+function budgetLabel(it: Pick<Demand, 'budgetType' | 'budgetMinFen' | 'budgetMaxFen'>): string {
+  const type = it.budgetType as PriceType | undefined;
+  if (!type) return '预算：-';
+  if (type === 'NEGOTIABLE') return '预算：面议';
+  const min = it.budgetMinFen;
+  const max = it.budgetMaxFen;
+  if (min !== undefined && max !== undefined) return `预算：￥${fenToYuan(min)}-￥${fenToYuan(max)}`;
+  if (min !== undefined) return `预算：≥￥${fenToYuan(min)}`;
+  if (max !== undefined) return `预算：≤￥${fenToYuan(max)}`;
+  return '预算：固定';
+}
 
 export default function MyDemandsPage() {
   const [status, setStatus] = useState<ContentStatus | ''>('');
@@ -157,25 +173,28 @@ export default function MyDemandsPage() {
       ) : error ? (
         <ErrorCard message={error} onRetry={load} />
       ) : items.length ? (
-        <View>
+        <View className="card-list">
           {items.map((it: Demand) => (
-            <Surface key={it.id} style={{ marginBottom: '16rpx' }}>
-                <Text className="text-title clamp-2">{it.title || '未命名需求'}</Text>
-              <View style={{ height: '8rpx' }} />
-              <View className="row" style={{ gap: '12rpx', flexWrap: 'wrap' }}>
-                <Text className="tag">{contentStatusLabel(it.status)}</Text>
-                <Text className={auditStatusTagClass(it.auditStatus)}>{auditStatusLabel(it.auditStatus)}</Text>
-                {it.regionCode ? <Text className="tag">{regionDisplayName(it.regionCode)}</Text> : null}
+            <View key={it.id} className="list-card">
+              <View className="list-card-thumb thumb-tone-blue">
+                <Image className="list-card-thumb-img" src={iconBriefcase} svg mode="aspectFit" />
               </View>
-              {it.summary ? (
-                <>
-                  <View style={{ height: '10rpx' }} />
-                  <Text className="muted clamp-2">{it.summary}</Text>
-                </>
-              ) : null}
-              <View style={{ height: '12rpx' }} />
-              <View className="row" style={{ gap: '12rpx' }}>
-                <View style={{ flex: 1 }}>
+              <View className="list-card-body">
+                <View className="list-card-head">
+                  <View className="list-card-head-main">
+                    <Text className="list-card-title clamp-2">{it.title || '未命名需求'}</Text>
+                    <View className="list-card-tags">
+                      <Text className="tag">{contentStatusLabel(it.status)}</Text>
+                      <Text className={auditStatusTagClass(it.auditStatus)}>{auditStatusLabel(it.auditStatus)}</Text>
+                      {it.regionCode ? <Text className="tag">{regionDisplayName(it.regionCode)}</Text> : null}
+                    </View>
+                  </View>
+                </View>
+
+                <Text className="list-card-meta">{budgetLabel(it)}</Text>
+                {it.summary ? <Text className="list-card-desc clamp-2">{it.summary}</Text> : null}
+
+                <View className="list-card-actions">
                   <Button
                     variant="ghost"
                     onClick={() => {
@@ -184,15 +203,17 @@ export default function MyDemandsPage() {
                   >
                     编辑/查看
                   </Button>
-                </View>
-                <View style={{ flex: 1 }}>
                   <Button
                     variant="danger"
                     fill="outline"
                     disabled={it.status !== 'ACTIVE'}
                     onClick={async () => {
                       try {
-                        await apiPost<Demand>(`/demands/${it.id}/off-shelf`, { reason: '发布方下架' }, { idempotencyKey: `off-demand-${it.id}` });
+                        await apiPost<Demand>(
+                          `/demands/${it.id}/off-shelf`,
+                          { reason: '发布方下架' },
+                          { idempotencyKey: `off-demand-${it.id}` },
+                        );
                         toast('已下架', { icon: 'success' });
                         void load();
                       } catch (e: any) {
@@ -204,7 +225,7 @@ export default function MyDemandsPage() {
                   </Button>
                 </View>
               </View>
-            </Surface>
+            </View>
           ))}
         </View>
       ) : (
@@ -213,3 +234,4 @@ export default function MyDemandsPage() {
     </View>
   );
 }
+

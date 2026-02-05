@@ -1,6 +1,7 @@
 import { View, Text } from '@tarojs/components';
 import Taro from '@tarojs/taro';
-import React from 'react';
+import React, { useEffect } from 'react';
+import './index.scss';
 
 import type { components } from '@ipmoney/api-types';
 
@@ -8,8 +9,8 @@ import { setOnboardingDone, setVerificationStatus, setVerificationType } from '.
 import { apiPost } from '../../../lib/api';
 import { requireLogin } from '../../../lib/guard';
 import type { VerificationType } from '../../../constants';
-import { CellRow, IconBadge, PageHeader, Spacer, Surface, TipBanner } from '../../../ui/layout';
-import { CellGroup, toast } from '../../../ui/nutui';
+import { Spacer, TipBanner } from '../../../ui/layout';
+import { toast } from '../../../ui/nutui';
 
 const TYPES: Array<{
   type: VerificationType;
@@ -72,72 +73,71 @@ const TYPES: Array<{
 ];
 
 export default function ChooseIdentityPage() {
+  useEffect(() => {
+    try {
+      Taro.setNavigationBarTitle({ title: '选择身份' });
+    } catch {
+      // ignore
+    }
+  }, []);
+
   return (
-    <View className="container">
-      <PageHeader title="首次进入：选择身份" subtitle="个人可直接完成注册；机构/技术经理人需提交资料并等待审核。" />
-      <Spacer />
+    <View className="container identity-page">
+      <View className="identity-header">
+        <Text className="identity-title">选择你的身份</Text>
+        <Text className="identity-subtitle">个人可直接完成注册；机构/技术经理人需提交资料并等待审核。</Text>
+      </View>
 
-      <Surface padding="none">
-        <CellGroup divider>
-          {TYPES.map((t, idx) => (
-            <CellRow
-              key={t.type}
-              title={
-                <View className="row" style={{ gap: '12rpx', alignItems: 'center' }}>
-                  <IconBadge variant={t.badge} size="md">
-                    <Text className="text-strong" style={{ color: '#fff' }}>
-                      {t.icon}
-                    </Text>
-                  </IconBadge>
-
-                  <View className="min-w-0" style={{ flex: 1 }}>
-                    <View className="row" style={{ gap: '12rpx', alignItems: 'center' }}>
-                      <Text className="text-strong clamp-1">{t.title}</Text>
-                      <Text className={`tag ${t.tagTone === 'gold' ? 'tag-gold' : ''}`}>{t.tag}</Text>
-                    </View>
-                    <View style={{ height: '4rpx' }} />
-                    <Text className="text-caption break-word">{t.desc}</Text>
-                  </View>
-                </View>
+      <View className="identity-grid">
+        {TYPES.map((t) => (
+          <View
+            key={t.type}
+            className="identity-card"
+            onClick={() => {
+              if (!requireLogin()) return;
+              setVerificationType(t.type);
+              if (t.type === 'PERSON') {
+                (async () => {
+                  try {
+                    const res = await apiPost<components['schemas']['UserVerification']>('/me/verification', {
+                      type: 'PERSON',
+                      displayName: '个人用户',
+                    });
+                    setVerificationStatus(res.status);
+                    setOnboardingDone(true);
+                    toast('注册成功', { icon: 'success' });
+                    setTimeout(() => {
+                      const pages = Taro.getCurrentPages();
+                      if (pages.length > 1) {
+                        Taro.navigateBack();
+                        return;
+                      }
+                      Taro.switchTab({ url: '/pages/home/index' });
+                    }, 200);
+                  } catch (e: any) {
+                    toast(e?.message || '提交失败');
+                  }
+                })();
+                return;
               }
-              onClick={() => {
-                if (!requireLogin()) return;
-                setVerificationType(t.type);
-                if (t.type === 'PERSON') {
-                  (async () => {
-                    try {
-                      const res = await apiPost<components['schemas']['UserVerification']>('/me/verification', {
-                        type: 'PERSON',
-                        displayName: '个人用户',
-                      });
-                      setVerificationStatus(res.status);
-                      setOnboardingDone(true);
-                      toast('注册成功', { icon: 'success' });
-                      setTimeout(() => {
-                        const pages = Taro.getCurrentPages();
-                        if (pages.length > 1) {
-                          Taro.navigateBack();
-                          return;
-                        }
-                        Taro.switchTab({ url: '/pages/home/index' });
-                      }, 200);
-                    } catch (e: any) {
-                      toast(e?.message || '提交失败');
-                    }
-                  })();
-                  return;
-                }
-                Taro.navigateTo({ url: '/pages/onboarding/verification-form/index' });
-              }}
-              isLast={idx === TYPES.length - 1}
-            />
-          ))}
-        </CellGroup>
-      </Surface>
+              Taro.navigateTo({ url: '/pages/onboarding/verification-form/index' });
+            }}
+          >
+            <View className={`identity-icon identity-icon-${t.badge}`}>
+              <Text className="identity-icon-text">{t.icon}</Text>
+            </View>
+            <View className="identity-card-title-row">
+              <Text className="identity-card-title">{t.title}</Text>
+              <Text className={`identity-card-badge ${t.tagTone === 'gold' ? 'is-gold' : ''}`}>{t.tag}</Text>
+            </View>
+            <Text className="identity-card-desc">{t.desc}</Text>
+          </View>
+        ))}
+      </View>
 
       <Spacer size={12} />
 
-      <TipBanner tone="info" title="提示">
+      <TipBanner tone="info" title="提示" className="identity-tip">
         企业/科研院校审核通过后，会在「机构展示」中对外展示。可在「我的 → 身份/认证」查看审核进度。
       </TipBanner>
     </View>

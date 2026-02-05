@@ -1,4 +1,4 @@
-# 架构与流程图（Mermaid）
+﻿# 架构与流程图（Mermaid）
 
 本目录下的 `.mmd` 文件均为 Mermaid 图（C4 / 时序 / ER / 业务流程）。
 
@@ -32,3 +32,7 @@
 
 说明：
 - 第一次运行 `@mermaid-js/mermaid-cli` 可能会下载 Chromium，耗时较长属正常现象。
+
+
+## 新增
+- `flow-user-center.mmd`：用户中心（我的）导航与分区流程图

@@ -1,0 +1,28 @@
+.legal-page {
+  min-height: 100vh;
+}
+
+.legal-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16rpx;
+}
+
+.legal-card {
+  padding: 20rpx 24rpx;
+  border-radius: 20rpx;
+  background: var(--c-card);
+  box-shadow: var(--shadow-sm);
+}
+
+.legal-title {
+  font-size: 28rpx;
+  font-weight: 600;
+  color: var(--c-text);
+}
+
+.legal-body {
+  margin-top: 8rpx;
+  font-size: 24rpx;
+  color: var(--c-muted);
+}

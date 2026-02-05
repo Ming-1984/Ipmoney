@@ -829,6 +829,8 @@ paths:
         - $ref: "#/components/parameters/PriceMax"
         - $ref: "#/components/parameters/DepositMin"
         - $ref: "#/components/parameters/DepositMax"
+        - $ref: "#/components/parameters/TransferCountMin"
+        - $ref: "#/components/parameters/TransferCountMax"
         - $ref: "#/components/parameters/RegionCode"
         - $ref: "#/components/parameters/IndustryTags"
         - $ref: "#/components/parameters/Ipc"
@@ -4890,6 +4892,20 @@ components:
       required: false
       schema:
         $ref: "#/components/schemas/MoneyFen"
+    TransferCountMin:
+      name: transferCountMin
+      in: query
+      required: false
+      schema:
+        type: integer
+        minimum: 0
+    TransferCountMax:
+      name: transferCountMax
+      in: query
+      required: false
+      schema:
+        type: integer
+        minimum: 0
     RegionCode:
       name: regionCode
       in: query
@@ -5404,6 +5420,10 @@ components:
       type: string
       enum: [PERSON, COMPANY, ACADEMY, GOVERNMENT, ASSOCIATION, TECH_MANAGER]
 
+    SupplyType:
+      type: string
+      enum: [UNIVERSITY, UNIVERSITY_985, UNIVERSITY_211, RESEARCH_INSTITUTE, OTHER]
+
     VerificationStatus:
       type: string
       enum: [PENDING, APPROVED, REJECTED]
@@ -5444,6 +5464,10 @@ components:
         verificationType:
           $ref: "#/components/schemas/VerificationType"
           nullable: true
+        orgCategory:
+          $ref: "#/components/schemas/SupplyType"
+        orgCategory:
+          $ref: "#/components/schemas/SupplyType"
           description: 用户选择的身份类型（未选择/未提交时为空）
         regionCode:
           type: string
@@ -5707,12 +5731,34 @@ components:
           type: string
         applicationNoDisplay:
           type: string
+        patentNoDisplay:
+          type: string
+        publicationNoDisplay:
+          type: string
+        grantPublicationNoDisplay:
+          type: string
         patentType:
           $ref: "#/components/schemas/PatentType"
         title:
           type: string
         abstract:
           type: string
+        caseStatus:
+          type: string
+        mainIpcCode:
+          type: string
+        claimCount:
+          type: integer
+          minimum: 0
+        specPageCount:
+          type: integer
+          minimum: 0
+        specWordCount:
+          type: integer
+          minimum: 0
+        specFigureCount:
+          type: integer
+          minimum: 0
         inventorNames:
           type: array
           items:
@@ -5742,12 +5788,52 @@ components:
         sourceUpdatedAt:
           type: string
           format: date-time
+        media:
+          type: array
+          items:
+            $ref: "#/components/schemas/PatentMedia"
+        tradeSnapshot:
+          $ref: "#/components/schemas/PatentTradeSnapshot"
         createdAt:
           type: string
           format: date-time
         updatedAt:
           type: string
           format: date-time
+
+    PatentMedia:
+      type: object
+      required: [fileId, type, sort]
+      properties:
+        fileId:
+          $ref: "#/components/schemas/Uuid"
+        url:
+          type: string
+          format: uri
+        type:
+          type: string
+          enum: [COVER, SPEC_FIGURE]
+        sort:
+          type: integer
+          minimum: 0
+
+    PatentTradeSnapshot:
+      type: object
+      properties:
+        listingId:
+          $ref: "#/components/schemas/Uuid"
+        priceType:
+          $ref: "#/components/schemas/PriceType"
+        priceAmountFen:
+          type: integer
+          minimum: 0
+        depositAmountFen:
+          type: integer
+          minimum: 0
+        seller:
+          $ref: "#/components/schemas/UserBrief"
+        supplyType:
+          $ref: "#/components/schemas/SupplyType"
 
     TradeMode:
       type: string
@@ -5775,7 +5861,7 @@ components:
 
     SortBy:
       type: string
-      enum: [RECOMMENDED, NEWEST, PRICE_ASC, PRICE_DESC, POPULAR, INVENTOR_RANK]
+      enum: [RECOMMENDED, NEWEST, PRICE_ASC, PRICE_DESC]
 
     FeaturedLevel:
       type: string
@@ -5867,14 +5953,14 @@ components:
           description: 特色置顶过期时间（为空表示长期）
         stats:
           $ref: "#/components/schemas/ListingStats"
+        transferCount:
+          type: integer
+          minimum: 0
+          description: 转让次数（0 表示沉睡专利）
         recommendationScore:
           type: number
           format: double
           description: 智能推荐得分（仅在 sortBy=RECOMMENDED 或猜你喜欢接口中返回）
-        inventorRankScore:
-          type: number
-          format: double
-          description: 发明人影响力得分（仅在 sortBy=INVENTOR_RANK 时返回）
         auditStatus:
           $ref: "#/components/schemas/AuditStatus"
         status:
@@ -6119,15 +6205,15 @@ components:
 
     ContentSortBy:
       type: string
-      enum: [RECOMMENDED, NEWEST, POPULAR]
+      enum: [RECOMMENDED, NEWEST]
 
     ArtworkSortBy:
       type: string
-      enum: [RECOMMENDED, NEWEST, POPULAR, PRICE_ASC, PRICE_DESC]
+      enum: [RECOMMENDED, NEWEST, PRICE_ASC, PRICE_DESC]
 
     TechManagerSortBy:
       type: string
-      enum: [RECOMMENDED, NEWEST, POPULAR]
+      enum: [RECOMMENDED, NEWEST]
 
     ArtworkCategory:
       type: string
@@ -6147,7 +6233,7 @@ components:
 
     CooperationMode:
       type: string
-      enum: [TRANSFER, LICENSE, EQUITY, JOINT_DEV, COMMISSIONED_DEV, OTHER]
+      enum: [TRANSFER, TECH_CONSULTING, COMMISSIONED_DEV, PLATFORM_CO_BUILD]
 
     AchievementMaturity:
       type: string
@@ -6863,6 +6949,8 @@ components:
           $ref: "#/components/schemas/VerificationType"
         verificationStatus:
           $ref: "#/components/schemas/VerificationStatus"
+        orgCategory:
+          $ref: "#/components/schemas/SupplyType"
         regionCode:
           type: string
         logoUrl:
@@ -7797,6 +7885,8 @@ components:
         verificationType:
           $ref: "#/components/schemas/VerificationType"
           nullable: true
+        orgCategory:
+          $ref: "#/components/schemas/SupplyType"
 
     CommentContentType:
       type: string

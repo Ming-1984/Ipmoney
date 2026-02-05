@@ -1,47 +1,44 @@
-import { View, Text } from '@tarojs/components';
+﻿import { View, Text, Image } from '@tarojs/components';
 import Taro from '@tarojs/taro';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import './index.scss';
 
 import type { components } from '@ipmoney/api-types';
 
 import { apiGet } from '../../lib/api';
-import { verificationTypeLabel } from '../../lib/labels';
 import { regionDisplayName } from '../../lib/regions';
 import { SearchEntry } from '../../ui/SearchEntry';
-import { FilterSheet, FilterSummary, SortControl } from '../../ui/filters';
-import { PageHeader, SectionHeader, Spacer, Surface, CellRow } from '../../ui/layout';
-import { Avatar, Button, CellGroup, Tag } from '../../ui/nutui';
 import { EmptyCard, ErrorCard, LoadingCard } from '../../ui/StateCards';
 
-type TechManagerSortBy = components['schemas']['TechManagerSortBy'];
+type ConsultTab = 'TECH' | 'ORG';
+
 type PagedTechManagerSummary = components['schemas']['PagedTechManagerSummary'];
 type TechManagerSummary = components['schemas']['TechManagerSummary'];
 
-type TechManagerFilters = {
-  regionCode?: string;
-  regionName?: string;
-};
-
-const FILTER_DEFAULT: TechManagerFilters = {};
+type OrganizationSummary = components['schemas']['OrganizationSummary'];
+type PagedOrganizationSummary = components['schemas']['PagedOrganizationSummary'];
 
 export default function TechManagersPage() {
-  const [qInput, setQInput] = useState('');
-  const [q, setQ] = useState('');
-  const [sortBy, setSortBy] = useState<TechManagerSortBy>('RECOMMENDED');
-  const [filters, setFilters] = useState<TechManagerFilters>(FILTER_DEFAULT);
-  const [filtersOpen, setFiltersOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState<ConsultTab>('TECH');
+
+  const [techQInput, setTechQInput] = useState('');
+  const [techQ, setTechQ] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [data, setData] = useState<PagedTechManagerSummary | null>(null);
 
-  const load = useCallback(async () => {
+  const [orgQInput, setOrgQInput] = useState('');
+  const [orgQ, setOrgQ] = useState('');
+  const [orgLoading, setOrgLoading] = useState(true);
+  const [orgError, setOrgError] = useState<string | null>(null);
+  const [orgData, setOrgData] = useState<PagedOrganizationSummary | null>(null);
+
+  const loadTech = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
       const d = await apiGet<PagedTechManagerSummary>('/search/tech-managers', {
-        q: q || undefined,
-        regionCode: filters.regionCode || undefined,
-        sortBy,
+        q: techQ || undefined,
         page: 1,
         pageSize: 20,
       });
@@ -52,181 +49,194 @@ export default function TechManagersPage() {
     } finally {
       setLoading(false);
     }
-  }, [filters.regionCode, q, sortBy]);
+  }, [techQ]);
+
+  const loadOrg = useCallback(async () => {
+    setOrgLoading(true);
+    setOrgError(null);
+    try {
+      const d = await apiGet<PagedOrganizationSummary>('/public/organizations', {
+        q: orgQ || undefined,
+        page: 1,
+        pageSize: 20,
+      });
+      setOrgData(d);
+    } catch (e: any) {
+      setOrgError(e?.message || '加载失败');
+      setOrgData(null);
+    } finally {
+      setOrgLoading(false);
+    }
+  }, [orgQ]);
 
   useEffect(() => {
-    void load();
-  }, [load]);
+    if (activeTab !== 'TECH') return;
+    void loadTech();
+  }, [activeTab, loadTech]);
 
-  const openFilters = useCallback(() => setFiltersOpen(true), []);
+  useEffect(() => {
+    if (activeTab !== 'ORG') return;
+    void loadOrg();
+  }, [activeTab, loadOrg]);
 
-  const openRegionPicker = useCallback((onPicked: (payload: { code: string; name: string }) => void) => {
-    try {
-      Taro.navigateTo({
-        url: '/pages/region-picker/index',
-        events: {
-          regionSelected: (payload: any) => {
-            const code = String(payload?.code || '').trim();
-            if (!code) return;
-            const name = String(payload?.name || code).trim();
-            onPicked({ code, name });
-          },
-        },
-      } as any);
-    } catch {
-      // ignore
-    }
-  }, []);
-
-  const filterLabels = useMemo(() => {
-    const out: string[] = [];
-    if (filters.regionName || filters.regionCode) out.push(filters.regionName || filters.regionCode || '');
-    return out.filter(Boolean);
-  }, [filters.regionCode, filters.regionName]);
-
-  const items = useMemo(() => data?.items || [], [data?.items]);
+  const techItems = useMemo(() => data?.items || [], [data?.items]);
+  const orgItems = useMemo(
+    () => (orgData?.items || []).filter((x) => x.verificationStatus === 'APPROVED'),
+    [orgData?.items],
+  );
 
   return (
-    <View className="container">
-      <PageHeader title="技术经理人" subtitle="撮合对接与咨询服务，支持在线咨询与跟单" />
-      <Spacer />
+    <View className="container consult-page">
+      <View className="consult-tabs">
+        {[
+          { id: 'TECH', label: '技术经理人' },
+          { id: 'ORG', label: '机构' },
+        ].map((tab) => (
+          <View
+            key={tab.id}
+            className={`consult-tab ${activeTab === tab.id ? 'is-active' : ''}`}
+            onClick={() => setActiveTab(tab.id as ConsultTab)}
+          >
+            <Text>{tab.label}</Text>
+            {activeTab === tab.id ? <View className="consult-tab-underline" /> : null}
+          </View>
+        ))}
+      </View>
 
-      <Surface padding="sm">
-        <SectionHeader title="搜索" accent="none" density="compact" />
-        <SearchEntry
-          value={qInput}
-          placeholder="输入姓名/机构/擅长领域"
-          actionText="查询"
-          onChange={(value) => {
-            setQInput(value);
-            if (!value) setQ('');
-          }}
-          onSearch={(value) => {
-            setQ((value || '').trim());
-          }}
-        />
+      {activeTab === 'TECH' ? (
+        <>
+          <View className="consult-search">
+            <SearchEntry
+              value={techQInput}
+              placeholder="搜索专家姓名、领域或机构"
+              actionText="查询"
+              onChange={(value) => {
+                setTechQInput(value);
+                if (!value) setTechQ('');
+              }}
+              onSearch={(value) => {
+                setTechQ((value || '').trim());
+              }}
+            />
+          </View>
 
-        <View style={{ height: '12rpx' }} />
-        <Text className="text-strong">排序</Text>
-        <View style={{ height: '10rpx' }} />
-        <SortControl
-          className="tabs-control-compact"
-          value={sortBy}
-          options={[
-            { label: '推荐', value: 'RECOMMENDED' },
-            { label: '最新', value: 'NEWEST' },
-            { label: '热度', value: 'POPULAR' },
-          ]}
-          onChange={(value) => setSortBy(value as TechManagerSortBy)}
-        />
-
-        <View style={{ height: '12rpx' }} />
-        <View className="row-between" style={{ gap: '12rpx' }}>
-          <Text className="text-strong">筛选</Text>
-          <Button variant="ghost" block={false} size="small" onClick={openFilters}>
-            筛选
-          </Button>
-        </View>
-        <View style={{ height: '10rpx' }} />
-        <FilterSummary labels={filterLabels} emptyText="未设置筛选" />
-      </Surface>
-
-      <View style={{ height: '16rpx' }} />
-
-      {loading ? (
-        <LoadingCard />
-      ) : error ? (
-        <ErrorCard message={error} onRetry={load} />
-      ) : items.length ? (
-        <Surface padding="none">
-          <CellGroup divider>
-            {items.map((it: TechManagerSummary, idx) => (
-              <CellRow
-                key={it.userId}
-                className="tech-manager-card"
-                clickable
-                title={
-                  <View className="tech-manager-card__title-row">
-                    <Avatar size="40" src={it.avatarUrl || ''} background="var(--c-soft)" color="var(--c-primary)">
-                      {(it.displayName || 'T').slice(0, 1)}
-                    </Avatar>
-                    <View className="tech-manager-card__body">
-                      <View className="tech-manager-card__header">
-                        <Text className="tech-manager-card__name ellipsis">{it.displayName}</Text>
-                        <Tag className="tech-manager-card__badge" type="primary" plain round>
-                          {verificationTypeLabel(it.verificationType)}
-                        </Tag>
-                      </View>
-                      <View className="tech-manager-card__meta">
-                        <Text className="tech-manager-card__meta-item">地区：{regionDisplayName(it.regionCode)}</Text>
-                        <Text className="tech-manager-card__meta-item">咨询 {it.stats?.consultCount ?? 0}</Text>
-                        <Text className="tech-manager-card__meta-item">成交 {it.stats?.dealCount ?? 0}</Text>
-                        <Text className="tech-manager-card__meta-item">评分 {it.stats?.ratingScore ?? '-'}</Text>
-                      </View>
-                      {it.serviceTags?.length ? (
-                        <View className="tech-manager-card__tags">
-                          <Text className="muted clamp-1">擅长：{it.serviceTags.slice(0, 4).join(' / ')}</Text>
-                        </View>
-                      ) : null}
-                    </View>
-                  </View>
-                }
-                isLast={idx === items.length - 1}
-                onClick={() => {
-                  Taro.navigateTo({ url: `/pages/tech-managers/detail/index?techManagerId=${it.userId}` });
-                }}
-              />
-            ))}
-          </CellGroup>
-        </Surface>
-      ) : (
-        <EmptyCard message="暂无技术经理人" actionText="刷新" onAction={load} />
-      )}
-
-      <FilterSheet<TechManagerFilters>
-        open={filtersOpen}
-        title="筛选（技术经理人）"
-        value={filters}
-        defaultValue={FILTER_DEFAULT}
-        onClose={() => setFiltersOpen(false)}
-        onApply={(next) => setFilters(next)}
-      >
-        {({ draft, setDraft }) => (
-          <Surface>
-            <Text className="text-strong">地区</Text>
-            <View style={{ height: '10rpx' }} />
-            <Surface padding="none">
-              <CellGroup divider>
-                <CellRow
-                  clickable
-                  title="地区"
-                  description="用于地域推荐/检索过滤"
-                  extra={<Text className="muted">{draft.regionName || '不限'}</Text>}
-                  isLast
-                  onClick={() =>
-                    openRegionPicker(({ code, name }) => {
-                      setDraft((prev) => ({ ...prev, regionCode: code, regionName: name }));
-                    })
+          {loading ? (
+            <LoadingCard />
+          ) : error ? (
+            <ErrorCard message={error} onRetry={loadTech} />
+          ) : techItems.length ? (
+            <View className="consult-list">
+              {techItems.map((it: TechManagerSummary) => {
+                const avatar = it.avatarUrl && !it.avatarUrl.includes('example.com') ? it.avatarUrl : '';
+                const ratingScore = it.stats?.ratingScore;
+                const ratingText =
+                  typeof ratingScore === 'number' && !Number.isNaN(ratingScore) ? ratingScore.toFixed(1) : '';
+                let experienceYears: number | null = null;
+                if (it.verifiedAt) {
+                  const verifiedDate = new Date(it.verifiedAt);
+                  if (!Number.isNaN(verifiedDate.getTime())) {
+                    const diffYears = Math.floor((Date.now() - verifiedDate.getTime()) / (365.25 * 24 * 60 * 60 * 1000));
+                    experienceYears = Math.max(1, diffYears);
                   }
-                />
-              </CellGroup>
-            </Surface>
-            {draft.regionCode ? (
-              <>
-                <View style={{ height: '10rpx' }} />
-                <Button
-                  variant="ghost"
-                  size="small"
-                  block={false}
-                  onClick={() => setDraft((prev) => ({ ...prev, regionCode: undefined, regionName: undefined }))}
-                >
-                  清除地区
-                </Button>
-              </>
-            ) : null}
-          </Surface>
-        )}
-      </FilterSheet>
+                }
+                return (
+                  <View
+                    key={it.userId}
+                    className="consult-card"
+                    onClick={() => {
+                      Taro.navigateTo({ url: `/pages/tech-managers/detail/index?techManagerId=${it.userId}` });
+                    }}
+                  >
+                    <View className="consult-card-main">
+                      <View className="consult-avatar">
+                        {avatar ? (
+                          <Image src={avatar} mode="aspectFill" className="consult-avatar-img" />
+                        ) : (
+                          <Text className="consult-avatar-text">{(it.displayName || 'T').slice(0, 1)}</Text>
+                        )}
+                      </View>
+                      <View className="consult-info">
+                        <View className="consult-name-row">
+                          <Text className="consult-name">{it.displayName || '-'}</Text>
+                        </View>
+                        <View className="consult-meta-row">
+                          {experienceYears ? <Text className="consult-meta">从业 {experienceYears} 年</Text> : null}
+                          {ratingText ? <Text className="consult-meta consult-rating">{ratingText}分</Text> : null}
+                        </View>
+                        {it.intro ? <Text className="consult-intro clamp-1">{it.intro}</Text> : null}
+                      </View>
+                    </View>
+                    <View className="consult-action">咨询</View>
+                  </View>
+                );
+              })}
+            </View>
+          ) : (
+            <EmptyCard message="暂无专家" actionText="刷新" onAction={loadTech} />
+          )}
+        </>
+      ) : (
+        <>
+          <View className="consult-search">
+            <SearchEntry
+              value={orgQInput}
+              placeholder="搜索机构名称/关键词"
+              actionText="查询"
+              onChange={(value) => {
+                setOrgQInput(value);
+                if (!value) setOrgQ('');
+              }}
+              onSearch={(value) => {
+                setOrgQ((value || '').trim());
+              }}
+            />
+          </View>
+
+          {orgLoading ? (
+            <LoadingCard />
+          ) : orgError ? (
+            <ErrorCard message={orgError} onRetry={loadOrg} />
+          ) : orgItems.length ? (
+            <View className="consult-list">
+              {orgItems.map((it: OrganizationSummary) => {
+                const logo = it.logoUrl && !it.logoUrl.includes('example.com') ? it.logoUrl : '';
+                const location = it.regionCode ? regionDisplayName(it.regionCode) : '';
+                return (
+                  <View
+                    key={it.userId}
+                    className="consult-card"
+                    onClick={() => {
+                      Taro.navigateTo({ url: `/pages/organizations/detail/index?orgUserId=${it.userId}` });
+                    }}
+                  >
+                    <View className="consult-card-main">
+                      <View className="consult-avatar">
+                        {logo ? (
+                          <Image src={logo} mode="aspectFill" className="consult-avatar-img" />
+                        ) : (
+                          <Text className="consult-avatar-text">{(it.displayName || '机').slice(0, 1)}</Text>
+                        )}
+                      </View>
+                      <View className="consult-info">
+                        <View className="consult-name-row">
+                          <Text className="consult-name">{it.displayName || '-'}</Text>
+                        </View>
+                        <View className="consult-meta-row">
+                          {location ? <Text className="consult-meta">{location}</Text> : null}
+                        </View>
+                        {it.intro ? <Text className="consult-intro clamp-1">{it.intro}</Text> : null}
+                      </View>
+                    </View>
+                    <View className="consult-action">咨询</View>
+                  </View>
+                );
+              })}
+            </View>
+          ) : (
+            <EmptyCard message="暂无机构" actionText="刷新" onAction={loadOrg} />
+          )}
+        </>
+      )}
     </View>
   );
 }

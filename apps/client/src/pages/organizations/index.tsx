@@ -1,14 +1,17 @@
 import { View, Text, Image } from '@tarojs/components';
 import Taro from '@tarojs/taro';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import './index.scss';
 
 import { apiGet } from '../../lib/api';
+import { regionDisplayName } from '../../lib/regions';
 import type { ChipOption } from '../../ui/filters';
-import { CellRow, PageHeader, SectionHeader, Spacer, Surface } from '../../ui/layout';
+import { PageHeader, SectionHeader, Spacer, Surface } from '../../ui/layout';
 import { SearchEntry } from '../../ui/SearchEntry';
-import { ChipGroup, FilterSheet, FilterSummary } from '../../ui/filters';
-import { Button, CellGroup } from '../../ui/nutui';
+import { ChipGroup, FilterSheet } from '../../ui/filters';
+import { Button } from '../../ui/nutui';
 import { EmptyCard, ErrorCard, LoadingCard } from '../../ui/StateCards';
+import iconMap from '../../assets/icons/icon-map-green.svg';
 
 type OrganizationSummary = {
   userId: string;
@@ -138,14 +141,28 @@ export default function OrganizationsPage() {
         />
 
         <View style={{ height: '12rpx' }} />
-        <View className="row-between" style={{ gap: '12rpx' }}>
-          <Text className="text-strong">筛选</Text>
-          <Button variant="ghost" block={false} size="small" onClick={openFilters}>
-            筛选
-          </Button>
+        <View className="search-sort-row">
+          <View className="search-sort-options">
+            <Text className="search-sort-option is-active">综合排序</Text>
+          </View>
+          <View className="search-filter-btn" onClick={openFilters}>
+            <Text>筛选</Text>
+          </View>
         </View>
-        <View style={{ height: '10rpx' }} />
-        <FilterSummary labels={filterLabels} emptyText="未设置筛选" />
+        {filterLabels.length ? (
+          <View className="search-toolbar-row search-toolbar-compact">
+            <View className="search-selected-scroll">
+              {filterLabels.map((txt, idx) => (
+                <View key={`${txt}-${idx}`} className="pill">
+                  <Text>{txt}</Text>
+                </View>
+              ))}
+              <View className="pill pill-strong" onClick={() => setFilters(ORG_FILTER_DEFAULT)}>
+                <Text>清空</Text>
+              </View>
+            </View>
+          </View>
+        ) : null}
       </Surface>
 
       <View style={{ height: '16rpx' }} />
@@ -155,49 +172,51 @@ export default function OrganizationsPage() {
       ) : error ? (
         <ErrorCard message={error} onRetry={load} />
       ) : items.length ? (
-        <Surface padding="none">
-          <CellGroup divider>
-            {items.map((it, idx) => (
-              <CellRow
+        <View className="search-card-list">
+          {items.map((it) => {
+            const logo = it.logoUrl && !it.logoUrl.includes('example.com') ? it.logoUrl : '';
+            const location = it.regionCode ? regionDisplayName(it.regionCode) : '';
+            return (
+              <View
                 key={it.userId}
-                clickable
-                title={
-                  <View className="row" style={{ gap: '12rpx' }}>
-                    <View className="avatar">
-                      {it.logoUrl ? (
-                        <Image className="avatar-img" src={it.logoUrl} mode="aspectFill" />
-                      ) : (
-                        <Text className="text-strong" style={{ color: 'var(--c-primary)' }}>
-                          {it.displayName.slice(0, 1)}
-                        </Text>
-                      )}
-                    </View>
-                    <View style={{ flex: 1, minWidth: 0 }}>
-                      <View className="row-between" style={{ gap: '12rpx' }}>
-                        <Text className="ellipsis text-strong">{it.displayName}</Text>
-                        <Text className="tag tag-gold">{verificationTypeLabel(it.verificationType)}</Text>
-                      </View>
-                      <View style={{ height: '6rpx' }} />
-                      <Text className="muted ellipsis">
-                        地区：{it.regionCode || '-'} · 上架 {it.stats?.listingCount ?? 0} · 专利 {it.stats?.patentCount ?? 0}
-                      </Text>
-                      {it.intro ? (
-                        <>
-                          <View style={{ height: '6rpx' }} />
-                          <Text className="muted clamp-2">{it.intro}</Text>
-                        </>
-                      ) : null}
-                    </View>
-                  </View>
-                }
-                isLast={idx === items.length - 1}
+                className="list-card org-card"
                 onClick={() => {
                   Taro.navigateTo({ url: `/pages/organizations/detail/index?orgUserId=${it.userId}` });
                 }}
-              />
-            ))}
-          </CellGroup>
-        </Surface>
+              >
+                <View className="list-card-thumb org-thumb">
+                  {logo ? (
+                    <Image className="org-thumb-img" src={logo} mode="aspectFill" />
+                  ) : (
+                    <Image className="list-card-thumb-img" src={iconMap} svg mode="aspectFit" />
+                  )}
+                </View>
+                <View className="list-card-body">
+                  <View className="list-card-head">
+                    <View className="list-card-head-main">
+                      <Text className="list-card-title clamp-1">{it.displayName}</Text>
+                      <View className="list-card-tags">
+                        <Text className="tag tag-gold">{verificationTypeLabel(it.verificationType)}</Text>
+                        {location ? <Text className="tag">{location}</Text> : null}
+                      </View>
+                    </View>
+                  </View>
+                  <View className="org-stats">
+                    <View className="org-stat">
+                      <Text className="org-stat-num">{it.stats?.listingCount ?? 0}</Text>
+                      <Text className="org-stat-label">上架</Text>
+                    </View>
+                    <View className="org-stat">
+                      <Text className="org-stat-num">{it.stats?.patentCount ?? 0}</Text>
+                      <Text className="org-stat-label">专利</Text>
+                    </View>
+                  </View>
+                  {it.intro ? <Text className="list-card-desc clamp-2">{it.intro}</Text> : null}
+                </View>
+              </View>
+            );
+          })}
+        </View>
       ) : (
         <EmptyCard
           message="暂无机构数据（可能尚未有审核通过的企业/科研院校）。"

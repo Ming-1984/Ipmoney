@@ -1,6 +1,7 @@
 import { Picker, Text, View } from '@tarojs/components';
 import Taro from '@tarojs/taro';
 import React, { useCallback, useMemo, useState } from 'react';
+import './index.scss';
 
 import { STORAGE_KEYS } from '../../constants';
 import { cacheRegionNames } from '../../lib/regions';

@@ -13,7 +13,8 @@ export class ErrorBoundary extends React.Component<Props, State> {
 
   componentDidCatch(error: Error, info: React.ErrorInfo) {
     // eslint-disable-next-line no-console
-    console.error('[client] render error', error, info);
+    const stack = info?.componentStack || '';
+    console.error('[client] render error', error, stack ? `\n${stack}` : info);
   }
 
   render() {

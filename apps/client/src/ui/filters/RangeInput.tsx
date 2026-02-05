@@ -26,6 +26,7 @@ export function RangeInput(props: {
   unit?: string;
 }) {
   const unit = props.unit ?? '元';
+  const placeholderStyle = 'font-size:20rpx;color:#c0c4cc;';
 
   const [minText, setMinText] = useState(() => fenToYuanText(props.minFen));
   const [maxText, setMaxText] = useState(() => fenToYuanText(props.maxFen));
@@ -60,6 +61,7 @@ export function RangeInput(props: {
             type="digit"
             value={minText}
             placeholder={props.placeholderMin ?? `最小${unit}`}
+            placeholderStyle={placeholderStyle}
             disabled={props.disabled}
             onInput={(e) => {
               const next = e.detail.value;
@@ -75,6 +77,7 @@ export function RangeInput(props: {
             type="digit"
             value={maxText}
             placeholder={props.placeholderMax ?? `最大${unit}`}
+            placeholderStyle={placeholderStyle}
             disabled={props.disabled}
             onInput={(e) => {
               const next = e.detail.value;
@@ -88,4 +91,3 @@ export function RangeInput(props: {
     </View>
   );
 }
-

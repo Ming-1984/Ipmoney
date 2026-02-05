@@ -1,10 +1,12 @@
 import { View, Text, Image } from '@tarojs/components';
 import Taro from '@tarojs/taro';
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
+
+import './index.scss';
 
 import type { components } from '@ipmoney/api-types';
 
-import { Heart, HeartFill } from '@nutui/icons-react-taro';
+import { Heart, HeartFill, Share2 } from '@nutui/icons-react-taro';
 
 import { apiGet, apiPost } from '../../../lib/api';
 import { getToken } from '../../../lib/auth';
@@ -16,8 +18,8 @@ import { safeNavigateBack } from '../../../lib/navigation';
 import { regionDisplayName } from '../../../lib/regions';
 import { useRouteUuidParam } from '../../../lib/routeParams';
 import { CommentsSection } from '../../../ui/CommentsSection';
-import { PageHeader, SectionHeader, Spacer, StickyBar, Surface, TipBanner } from '../../../ui/layout';
-import { Button, Space, Tag, toast } from '../../../ui/nutui';
+import { PageHeader, Spacer, StickyBar, Surface, TipBanner } from '../../../ui/layout';
+import { Button, toast } from '../../../ui/nutui';
 import { EmptyCard, ErrorCard, LoadingCard, MissingParamCard } from '../../../ui/StateCards';
 
 type ArtworkPublic = components['schemas']['ArtworkPublic'];
@@ -38,6 +40,7 @@ export default function ArtworkDetailPage() {
   const [error, setError] = useState<string | null>(null);
   const [data, setData] = useState<ArtworkPublic | null>(null);
   const [favoritedState, setFavoritedState] = useState(false);
+  const [activeTab, setActiveTab] = useState('artwork-overview');
 
   useEffect(() => {
     setFavoritedState(isArtworkFavorited(artworkId));
@@ -99,9 +102,24 @@ export default function ArtworkDetailPage() {
     }
   }, [artworkId, favoritedState]);
 
+  const tabs = useMemo(
+    () => [
+      { id: 'artwork-overview', label: '概览' },
+      { id: 'artwork-info', label: '信息' },
+      { id: 'artwork-detail', label: '介绍' },
+      { id: 'artwork-comments', label: '评论' },
+    ],
+    [],
+  );
+
+  const scrollToTab = useCallback((id: string) => {
+    setActiveTab(id);
+    Taro.pageScrollTo({ selector: `#${id}`, duration: 300 });
+  }, []);
+
   return (
-    <View className="container has-sticky">
-      <PageHeader title="书画详情" subtitle="订金与尾款平台托管，权属变更完成后再放款" />
+    <View className="container detail-page-compact has-sticky">
+      <PageHeader weapp back title="书画详情" subtitle="订金与尾款平台托管，权属变更完成后再放款" />
       <Spacer />
 
       {loading ? (
@@ -118,59 +136,101 @@ export default function ArtworkDetailPage() {
 
           <Spacer size={12} />
 
-          <Surface>
-            <Text className="text-title clamp-2">{data.title || '未命名书画'}</Text>
+          <Surface className="detail-compact-header" id="artwork-overview">
+            <Text className="detail-compact-title clamp-2">{data.title || '未命名书画'}</Text>
             <Spacer size={8} />
 
-            <Space wrap align="center">
-              <Tag type="primary" plain round>
-                类别：{artworkCategoryLabel(data.category)}
-              </Tag>
+            <View className="detail-compact-tags">
+              <Text className="detail-compact-tag detail-compact-tag-strong">类别：{artworkCategoryLabel(data.category)}</Text>
               {data.calligraphyScript ? (
-                <Tag type="default" plain round>
-                  书体：{calligraphyScriptLabel(data.calligraphyScript)}
-                </Tag>
+                <Text className="detail-compact-tag">书体：{calligraphyScriptLabel(data.calligraphyScript)}</Text>
               ) : null}
-              {data.paintingGenre ? (
-                <Tag type="default" plain round>
-                  题材：{paintingGenreLabel(data.paintingGenre)}
-                </Tag>
-              ) : null}
-              <Tag type="default" plain round>
-                报价：{priceTypeLabel(data.priceType)}
-              </Tag>
-            </Space>
+              {data.paintingGenre ? <Text className="detail-compact-tag">题材：{paintingGenreLabel(data.paintingGenre)}</Text> : null}
+              <Text className="detail-compact-tag">报价：{priceTypeLabel(data.priceType)}</Text>
+            </View>
 
             <Spacer size={10} />
-            <Text className="muted">
-              订金：<Text className="text-strong" style={{ color: 'var(--c-primary)' }}>￥{fenToYuan(data.depositAmountFen)}</Text>
-              {'  '}· 价格：
-              <Text className="text-strong" style={{ color: 'var(--c-primary)' }}>
-                {data.priceType === 'NEGOTIABLE' ? '面议' : `￥${fenToYuan(data.priceAmountFen)}`}
-              </Text>
+            <View className="detail-compact-price">
+              ￥{data.depositAmountFen != null ? fenToYuan(data.depositAmountFen) : '-'}
+              <Text className="detail-compact-price-sub">订金</Text>
+            </View>
+            <Text className="detail-compact-subline">
+              价格：
+              {data.priceType === 'NEGOTIABLE'
+                ? '面议'
+                : data.priceAmountFen != null
+                  ? `￥${fenToYuan(data.priceAmountFen)}`
+                  : '-'}
             </Text>
           </Surface>
 
+          <View className="detail-tabs">
+            <View className="detail-tabs-scroll">
+              {tabs.map((tab) => (
+                <Text
+                  key={tab.id}
+                  className={`detail-tab ${activeTab === tab.id ? 'is-active' : ''}`}
+                  onClick={() => scrollToTab(tab.id)}
+                >
+                  {tab.label}
+                </Text>
+              ))}
+            </View>
+          </View>
+
           <Spacer size={12} />
 
-          <Surface>
-            <SectionHeader title="作品信息" density="compact" />
-            <Space wrap align="center">
-              {data.creatorName ? <Tag type="default" plain round>作者：{data.creatorName}</Tag> : null}
-              {data.creationYear ? <Tag type="default" plain round>年份：{data.creationYear}</Tag> : null}
-              {data.regionCode ? <Tag type="default" plain round>地区：{regionDisplayName(data.regionCode)}</Tag> : null}
-              {data.material ? <Tag type="default" plain round>材质：{data.material}</Tag> : null}
-              {data.size ? <Tag type="default" plain round>尺寸：{data.size}</Tag> : null}
-              {data.certificateNo ? <Tag type="default" plain round>证书：{data.certificateNo}</Tag> : null}
-            </Space>
-          </Surface>
+          <View id="artwork-info" className="detail-section-card">
+            <View className="detail-field-list">
+              {data.creatorName ? (
+                <View className="detail-field-row">
+                  <Text className="detail-field-label">作者</Text>
+                  <Text className="detail-field-value">{data.creatorName}</Text>
+                </View>
+              ) : null}
+              {data.creationYear ? (
+                <View className="detail-field-row">
+                  <Text className="detail-field-label">年份</Text>
+                  <Text className="detail-field-value">{data.creationYear}</Text>
+                </View>
+              ) : null}
+              {data.regionCode ? (
+                <View className="detail-field-row">
+                  <Text className="detail-field-label">地区</Text>
+                  <Text className="detail-field-value">{regionDisplayName(data.regionCode)}</Text>
+                </View>
+              ) : null}
+              {data.material ? (
+                <View className="detail-field-row">
+                  <Text className="detail-field-label">材质</Text>
+                  <Text className="detail-field-value">{data.material}</Text>
+                </View>
+              ) : null}
+              {data.size ? (
+                <View className="detail-field-row">
+                  <Text className="detail-field-label">尺寸</Text>
+                  <Text className="detail-field-value">{data.size}</Text>
+                </View>
+              ) : null}
+              {data.certificateNo ? (
+                <View className="detail-field-row">
+                  <Text className="detail-field-label">著作权登记证书编号</Text>
+                  <Text className="detail-field-value">{data.certificateNo}</Text>
+                </View>
+              ) : null}
+            </View>
+          </View>
 
           <Spacer size={12} />
 
-          <Surface>
-            <SectionHeader title="作品介绍" density="compact" />
-            <Text className="muted break-word">{data.description || '暂无介绍'}</Text>
-          </Surface>
+          <View id="artwork-detail" className="detail-section-card">
+            <View className="detail-field-list">
+              <View className="detail-field-row">
+                <Text className="detail-field-label">介绍</Text>
+                <Text className="detail-field-value break-word">{data.description || '暂无介绍'}</Text>
+              </View>
+            </View>
+          </View>
 
           <Spacer size={12} />
 
@@ -186,7 +246,32 @@ export default function ArtworkDetailPage() {
           </TipBanner>
 
           <Spacer size={12} />
-          <CommentsSection contentType="ARTWORK" contentId={artworkId} />
+          <View className="detail-bottom-tools">
+            <View className="detail-tool-row">
+              <View
+                className="detail-tool"
+                onClick={() => {
+                  toast('分享功能开发中', { icon: 'fail' });
+                }}
+              >
+                <View className="detail-tool-icon">
+                  <Share2 size={16} />
+                </View>
+                <Text>分享</Text>
+              </View>
+              <View className={`detail-tool ${favoritedState ? 'is-active' : ''}`} onClick={() => void toggleFavorite()}>
+                <View className="detail-tool-icon">
+                  {favoritedState ? <HeartFill size={16} color="#ff4d4f" /> : <Heart size={16} />}
+                </View>
+                <Text>{favoritedState ? '已收藏' : '收藏'}</Text>
+              </View>
+            </View>
+          </View>
+
+          <Spacer size={12} />
+          <View id="artwork-comments">
+            <CommentsSection contentType="ARTWORK" contentId={artworkId} />
+          </View>
         </View>
       ) : (
         <EmptyCard title="暂无数据" message="该书画可能已下架或暂不可访问。" actionText="返回" onAction={() => void safeNavigateBack()} />
@@ -226,7 +311,7 @@ export default function ArtworkDetailPage() {
                 Taro.navigateTo({ url: `/pages/checkout/deposit-pay/index?artworkId=${artworkId}` });
               }}
             >
-              {`付订金 ￥${fenToYuan(data.depositAmountFen)}`}
+              {`付订金 ￥${data.depositAmountFen != null ? fenToYuan(data.depositAmountFen) : '-'}`}
             </Button>
           </View>
         </StickyBar>
@@ -234,3 +319,5 @@ export default function ArtworkDetailPage() {
     </View>
   );
 }
+
+

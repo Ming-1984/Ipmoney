@@ -1,0 +1,58 @@
+.settings-page {
+  min-height: 100vh;
+}
+
+.settings-card {
+  padding: 24rpx;
+  border-radius: 24rpx;
+  background: var(--c-card);
+  box-shadow: var(--shadow-sm);
+}
+
+.settings-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20rpx;
+}
+
+.settings-meta {
+  flex: 1;
+  min-width: 0;
+}
+
+.settings-title {
+  font-size: 28rpx;
+  color: var(--c-text);
+  font-weight: 600;
+}
+
+.settings-desc {
+  margin-top: 6rpx;
+  font-size: 22rpx;
+  color: var(--c-muted);
+}
+
+.settings-divider {
+  height: 1rpx;
+  background: var(--c-divider);
+  margin: 20rpx 0;
+}
+
+.settings-tip {
+  padding: 20rpx 24rpx;
+  border-radius: 20rpx;
+  background: rgba(255, 255, 255, 0.8);
+  box-shadow: var(--shadow-sm);
+}
+
+.settings-tip-text {
+  font-size: 22rpx;
+  color: var(--c-muted);
+}
+
+.settings-tip-link {
+  margin-top: 8rpx;
+  font-size: 24rpx;
+  color: var(--c-primary);
+}

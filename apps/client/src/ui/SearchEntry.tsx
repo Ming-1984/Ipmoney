@@ -1,4 +1,4 @@
-import { View, Text, Input } from '@tarojs/components';
+﻿import { View, Text, Input } from '@tarojs/components';
 import React, { useCallback } from 'react';
 
 import { Close, Search } from '@nutui/icons-react-taro';
@@ -16,14 +16,16 @@ export function SearchEntry(props: {
   const actionText = props.actionText ?? '搜索';
   const clearable = props.clearable ?? true;
   const readOnly = Boolean(props.readOnly);
+  const canSearch = readOnly || Boolean(props.value.trim());
 
   const onSearch = useCallback(() => {
+    if (!canSearch) return;
     if (readOnly) {
       props.onPress?.();
       return;
     }
     props.onSearch(props.value);
-  }, [props, readOnly]);
+  }, [canSearch, props, readOnly]);
 
   return (
     <View
@@ -61,16 +63,15 @@ export function SearchEntry(props: {
       </View>
 
       <View
-        className="search-entry-btn"
+        className={`search-entry-btn ${canSearch ? 'is-active' : 'is-disabled'}`}
         onClick={(e) => {
           e.stopPropagation();
+          if (!canSearch) return;
           onSearch();
         }}
       >
-        <Search size={14} color="#fff" />
         <Text>{actionText}</Text>
       </View>
     </View>
   );
 }
-

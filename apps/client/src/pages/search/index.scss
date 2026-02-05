@@ -1,0 +1,160 @@
+.search-filter-popup .nut-popup {
+  background: #ffffff;
+  border-radius: 0;
+}
+
+.search-filter-sheet {
+  background: #ffffff;
+}
+
+.search-filter-body {
+  padding: 24rpx;
+}
+
+.search-filter-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: 16rpx;
+  border-bottom: 1rpx solid #eef0f2;
+  margin-bottom: 16rpx;
+}
+
+.search-filter-title {
+  display: flex;
+  align-items: center;
+  gap: 10rpx;
+  font-size: 28rpx;
+  font-weight: 600;
+  color: #111827;
+}
+
+.search-filter-accent {
+  width: 6rpx;
+  height: 22rpx;
+  border-radius: 6rpx;
+  background: #ff7a18;
+}
+
+.search-filter-close {
+  font-size: 28rpx;
+  color: #c0c4cc;
+  padding: 6rpx 10rpx;
+}
+
+.search-filter-content {
+  display: flex;
+  flex-direction: column;
+  gap: 20rpx;
+}
+
+.search-filter-section {
+  display: flex;
+  flex-direction: column;
+  gap: 12rpx;
+}
+
+.search-filter-section-title {
+  display: flex;
+  align-items: center;
+  gap: 10rpx;
+  font-size: 24rpx;
+  font-weight: 600;
+  color: #111827;
+}
+
+.search-filter-section-accent {
+  width: 6rpx;
+  height: 18rpx;
+  border-radius: 6rpx;
+  background: #ff7a18;
+}
+
+.search-filter-section-body {
+  display: flex;
+  flex-direction: column;
+  gap: 12rpx;
+}
+
+.search-filter-sheet .chip {
+  background: #ffffff;
+  border: 1rpx solid #e5e7eb;
+  color: #6b7280;
+  min-height: 60rpx;
+  padding: 0 18rpx;
+}
+
+.search-filter-sheet .chip-active {
+  background: rgba(255, 122, 24, 0.08);
+  border-color: #ff7a18;
+  color: #ff7a18;
+}
+
+.search-filter-sheet .chip:active {
+  background: rgba(255, 122, 24, 0.12);
+}
+
+.search-filter-sheet .range-input-input {
+  background: #f6f7f9;
+  border-color: #e5e7eb;
+  border-radius: 12rpx;
+  min-height: 64rpx;
+  font-size: 24rpx;
+}
+
+.search-filter-input {
+  border: 1rpx solid #e5e7eb;
+  border-radius: 12rpx;
+  background: #f6f7f9;
+}
+
+.search-filter-input .nut-input-inner {
+  padding: 16rpx 18rpx;
+  font-size: 24rpx;
+}
+
+.search-filter-card {
+  border: 1rpx solid #e5e7eb;
+  border-radius: 12rpx;
+  background: #ffffff;
+  overflow: hidden;
+}
+
+.search-filter-clear {
+  margin-top: 8rpx;
+  border-radius: 999rpx;
+}
+
+.search-filter-picker {
+  border-radius: 999rpx;
+  background: #f6f7f9;
+  border: 1rpx solid #e5e7eb;
+  color: #6b7280;
+}
+
+.search-filter-actions {
+  padding: 16rpx 24rpx;
+  border-top: 1rpx solid #eef0f2;
+  background: #ffffff;
+}
+
+.search-filter-footer {
+  display: flex;
+  gap: 16rpx;
+}
+
+.search-filter-reset {
+  border-radius: 16rpx;
+  border: 1rpx solid #e5e7eb;
+  background: #f8fafc;
+  color: #6b7280;
+  height: 72rpx;
+}
+
+.search-filter-apply {
+  border-radius: 16rpx;
+  background: #ff7a18;
+  color: #ffffff;
+  height: 72rpx;
+  border: none;
+}

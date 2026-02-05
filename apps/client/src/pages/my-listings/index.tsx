@@ -1,6 +1,7 @@
-import { View, Text } from '@tarojs/components';
+﻿import { View, Text, Image } from '@tarojs/components';
 import Taro from '@tarojs/taro';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import './index.scss';
 
 import type { components } from '@ipmoney/api-types';
 
@@ -11,6 +12,7 @@ import { CategoryControl } from '../../ui/filters';
 import { Button, toast } from '../../ui/nutui';
 import { AuditPendingCard, EmptyCard, ErrorCard, LoadingCard, PermissionCard } from '../../ui/StateCards';
 import { PageHeader, Spacer, Surface } from '../../ui/layout';
+import iconShield from '../../assets/icons/icon-shield-orange.svg';
 
 type PagedListing = components['schemas']['PagedListing'];
 type Listing = components['schemas']['Listing'];
@@ -157,19 +159,24 @@ export default function MyListingsPage() {
       ) : error ? (
         <ErrorCard message={error} onRetry={load} />
       ) : items.length ? (
-        <View>
+        <View className="card-list">
           {items.map((it: Listing) => (
-            <Surface key={it.id} style={{ marginBottom: '16rpx' }}>
-              <Text className="text-title clamp-2">{it.title || '未命名专利'}</Text>
-              <View style={{ height: '8rpx' }} />
-              <View className="row" style={{ gap: '12rpx', flexWrap: 'wrap' }}>
-                <Text className="tag">{listingStatusLabel(it.status)}</Text>
-                <Text className={auditStatusTagClass(it.auditStatus)}>{auditStatusLabel(it.auditStatus)}</Text>
-                {it.applicationNoDisplay ? <Text className="tag">{it.applicationNoDisplay}</Text> : null}
+            <View key={it.id} className="list-card">
+              <View className="list-card-thumb thumb-tone-teal">
+                <Image className="list-card-thumb-img" src={iconShield} svg mode="aspectFit" />
               </View>
-              <View style={{ height: '12rpx' }} />
-              <View className="row" style={{ gap: '12rpx' }}>
-                <View style={{ flex: 1 }}>
+              <View className="list-card-body">
+                <View className="list-card-head">
+                  <View className="list-card-head-main">
+                    <Text className="list-card-title clamp-2">{it.title || '未命名专利'}</Text>
+                    <View className="list-card-tags">
+                      <Text className="tag">{listingStatusLabel(it.status)}</Text>
+                      <Text className={auditStatusTagClass(it.auditStatus)}>{auditStatusLabel(it.auditStatus)}</Text>
+                      {it.applicationNoDisplay ? <Text className="tag">{it.applicationNoDisplay}</Text> : null}
+                    </View>
+                  </View>
+                </View>
+                <View className="list-card-actions">
                   <Button
                     variant="ghost"
                     onClick={() => {
@@ -178,8 +185,6 @@ export default function MyListingsPage() {
                   >
                     编辑/查看
                   </Button>
-                </View>
-                <View style={{ flex: 1 }}>
                   <Button
                     variant="danger"
                     fill="outline"
@@ -202,7 +207,7 @@ export default function MyListingsPage() {
                   </Button>
                 </View>
               </View>
-            </Surface>
+            </View>
           ))}
         </View>
       ) : (
@@ -211,3 +216,4 @@ export default function MyListingsPage() {
     </View>
   );
 }
+

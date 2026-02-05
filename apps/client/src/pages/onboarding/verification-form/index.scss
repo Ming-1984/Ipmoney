@@ -1,0 +1,98 @@
+.verification-page {
+  background: #f5f6f8;
+  min-height: 100vh;
+}
+
+.verification-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12rpx;
+}
+
+.verification-card {
+  background: #ffffff;
+  border: 1rpx solid #eef0f2;
+  border-radius: 16rpx;
+  padding: 20rpx 24rpx;
+  box-shadow: none;
+}
+
+.form-field {
+  margin-top: 12rpx;
+}
+
+.form-label {
+  font-size: 24rpx;
+  font-weight: 600;
+  color: #111827;
+  margin-bottom: 8rpx;
+  display: block;
+}
+
+.form-hint {
+  font-size: 20rpx;
+  color: #9ca3af;
+  margin-top: 6rpx;
+  display: block;
+}
+
+.form-row {
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+}
+
+.form-col {
+  flex: 1;
+  min-width: 0;
+}
+
+.verification-page .nut-input,
+.verification-page .nut-textarea {
+  border: 1rpx solid #e5e7eb;
+  border-radius: 12rpx;
+  background: #f6f7f9;
+  min-height: 80rpx;
+}
+
+.verification-page .nut-input-inner {
+  padding: 16rpx 18rpx;
+  font-size: 22rpx;
+  line-height: 1.4;
+}
+
+.verification-page .nut-input input::placeholder,
+.verification-page .nut-textarea textarea::placeholder {
+  font-size: 20rpx;
+  color: #c0c4cc;
+}
+
+.verification-placeholder {
+  font-size: 20rpx;
+  color: #c0c4cc;
+}
+
+.verification-page .nut-textarea {
+  padding: 16rpx 18rpx;
+  min-height: 180rpx;
+  background: #f6f7f9;
+}
+
+.verification-page .nut-textarea textarea {
+  font-size: 22rpx;
+  line-height: 1.4;
+}
+
+.verification-logo-preview {
+  margin-top: 12rpx;
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+}
+
+.verification-logo {
+  width: 96rpx;
+  height: 96rpx;
+  border-radius: 16rpx;
+  background: #f3f4f6;
+}

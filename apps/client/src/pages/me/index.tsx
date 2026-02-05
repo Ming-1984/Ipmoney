@@ -1,6 +1,7 @@
-import { View, Text } from '@tarojs/components';
+﻿import { View, Text, Image } from '@tarojs/components';
 import Taro, { useDidShow } from '@tarojs/taro';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import './index.scss';
 
 import type { components } from '@ipmoney/api-types';
 
@@ -18,10 +19,21 @@ import {
   setVerificationType,
 } from '../../lib/auth';
 import { apiGet } from '../../lib/api';
+import { regionDisplayName } from '../../lib/regions';
 import { ErrorCard, LoadingCard } from '../../ui/StateCards';
 import { Surface } from '../../ui/layout';
-import { AppIcon } from '../../ui/Icon';
-import { Avatar, Button, Tag, toast } from '../../ui/nutui';
+import { Avatar, Button, PullToRefresh, toast } from '../../ui/nutui';
+
+import iconShield from '../../assets/icons/icon-shield-orange.svg';
+import iconAward from '../../assets/icons/icon-award-teal.svg';
+import iconPalette from '../../assets/icons/icon-palette-orange.svg';
+import iconTrending from '../../assets/icons/icon-trending-red.svg';
+import iconActivity from '../../assets/icons/icon-activity-blue.svg';
+import iconMap from '../../assets/icons/icon-map-green.svg';
+import iconCategory from '../../assets/icons/icon-category-gray.svg';
+import iconMore from '../../assets/icons/icon-more-gray.svg';
+import iconUser from '../../assets/icons/icon-user-purple.svg';
+import iconBriefcase from '../../assets/icons/icon-briefcase-indigo.svg';
 
 type Me = {
   id: string;
@@ -37,6 +49,10 @@ type Me = {
 };
 
 type UserVerification = components['schemas']['UserVerification'];
+
+type IconItem = { key: string; label: string; icon: string; onClick: () => void };
+
+type ToolItem = { key: string; label: string; icon: string; value?: string; onClick: () => void };
 
 function verificationTypeLabel(t?: string | null): string {
   if (!t) return '-';
@@ -55,13 +71,6 @@ function verificationStatusLabel(s?: string | null): string {
   if (s === 'APPROVED') return '已通过';
   if (s === 'REJECTED') return '已驳回';
   return s;
-}
-
-function verificationStatusTagType(s?: string | null): 'default' | 'primary' | 'info' | 'success' | 'warning' | 'danger' {
-  if (s === 'APPROVED') return 'success';
-  if (s === 'REJECTED') return 'danger';
-  if (s === 'PENDING') return 'warning';
-  return 'default';
 }
 
 export default function MePage() {
@@ -84,6 +93,8 @@ export default function MePage() {
   const [meLoading, setMeLoading] = useState(false);
   const [meError, setMeError] = useState<string | null>(null);
   const [me, setMe] = useState<Me | null>(null);
+  const [orderTab, setOrderTab] = useState<'buyer' | 'seller'>('buyer');
+  const [refreshing, setRefreshing] = useState(false);
 
   const [scenario, setScenario] = useState(() => Taro.getStorageSync(STORAGE_KEYS.mockScenario) || 'happy');
 
@@ -126,6 +137,17 @@ export default function MePage() {
     }
   }, [auth.token]);
 
+  const refresh = useCallback(async () => {
+    if (!auth.token) return;
+    if (refreshing) return;
+    setRefreshing(true);
+    try {
+      await Promise.all([loadMe(), syncVerification()]);
+    } finally {
+      setRefreshing(false);
+    }
+  }, [auth.token, loadMe, refreshing, syncVerification]);
+
   useEffect(() => {
     if (!auth.token) {
       setMe(null);
@@ -143,119 +165,183 @@ export default function MePage() {
     return { type: auth.verificationType, status: auth.verificationStatus };
   }, [auth.verificationStatus, auth.verificationType]);
 
-  const serviceItems = useMemo(
+  const buildOrderUrl = useCallback((role: 'BUYER' | 'SELLER', status?: string) => {
+    const base = `/pages/orders/index?role=${role}`;
+    return status ? `${base}&status=${status}` : base;
+  }, []);
+
+  const buyerOrders = useMemo<IconItem[]>(
+    () => [
+      { key: 'deposit', label: '待付订金', icon: iconAward, onClick: () => Taro.navigateTo({ url: buildOrderUrl('BUYER', 'DEPOSIT_PENDING') }) },
+      { key: 'contract', label: '待签合同', icon: iconCategory, onClick: () => Taro.navigateTo({ url: buildOrderUrl('BUYER', 'DEPOSIT_PAID') }) },
+      { key: 'final', label: '待付尾款', icon: iconActivity, onClick: () => Taro.navigateTo({ url: buildOrderUrl('BUYER', 'WAIT_FINAL_PAYMENT') }) },
+      { key: 'change', label: '变更中', icon: iconTrending, onClick: () => Taro.navigateTo({ url: buildOrderUrl('BUYER', 'FINAL_PAID_ESCROW') }) },
+      { key: 'done', label: '已完成', icon: iconShield, onClick: () => Taro.navigateTo({ url: buildOrderUrl('BUYER', 'COMPLETED') }) },
+      { key: 'refund', label: '退款/售后', icon: iconMore, onClick: () => Taro.navigateTo({ url: buildOrderUrl('BUYER', 'REFUNDING') }) },
+      { key: 'cancel', label: '已取消', icon: iconUser, onClick: () => Taro.navigateTo({ url: buildOrderUrl('BUYER', 'CANCELLED') }) },
+    ],
+    [buildOrderUrl],
+  );
+
+  const sellerOrders = useMemo<IconItem[]>(
+    () => [
+      { key: 'material', label: '补材料', icon: iconBriefcase, onClick: () => Taro.navigateTo({ url: buildOrderUrl('SELLER', 'DEPOSIT_PAID') }) },
+      { key: 'contract', label: '待签合同', icon: iconCategory, onClick: () => Taro.navigateTo({ url: buildOrderUrl('SELLER', 'DEPOSIT_PAID') }) },
+      { key: 'final', label: '待收尾款', icon: iconActivity, onClick: () => Taro.navigateTo({ url: buildOrderUrl('SELLER', 'WAIT_FINAL_PAYMENT') }) },
+      { key: 'change', label: '变更中', icon: iconTrending, onClick: () => Taro.navigateTo({ url: buildOrderUrl('SELLER', 'FINAL_PAID_ESCROW') }) },
+      { key: 'done', label: '已完成', icon: iconShield, onClick: () => Taro.navigateTo({ url: buildOrderUrl('SELLER', 'COMPLETED') }) },
+    ],
+    [buildOrderUrl],
+  );
+
+  const publishItems = useMemo<IconItem[]>(
+    () => [
+      { key: 'listings', label: '我的专利', icon: iconAward, onClick: () => Taro.navigateTo({ url: '/pages/my-listings/index' }) },
+      { key: 'artworks', label: '我的书画', icon: iconPalette, onClick: () => Taro.navigateTo({ url: '/pages/my-artworks/index' }) },
+      { key: 'demands', label: '技术需求', icon: iconTrending, onClick: () => Taro.navigateTo({ url: '/pages/my-demands/index' }) },
+      { key: 'achievements', label: '成果案例', icon: iconActivity, onClick: () => Taro.navigateTo({ url: '/pages/my-achievements/index' }) },
+    ],
+    [],
+  );
+
+  const favoriteItems = useMemo<ToolItem[]>(
     () => [
       {
-        key: 'orders',
-        title: '我的订单',
-        desc: '订金/尾款/退款进度',
-        onClick: () => {
-          Taro.navigateTo({ url: '/pages/orders/index' });
-        },
-      },
-      {
         key: 'favorites',
-        title: '我的收藏',
-        desc: '专利/需求/成果/书画',
-        onClick: () => {
-          Taro.navigateTo({ url: '/pages/favorites/index' });
-        },
-      },
-      {
-        key: 'listings',
-        title: '我的专利上架',
-        desc: '管理草稿/上架/下架',
-        onClick: () => {
-          Taro.navigateTo({ url: '/pages/my-listings/index' });
-        },
-      },
-      {
-        key: 'demands',
-        title: '我的需求',
-        desc: '发布与管理需求',
-        onClick: () => {
-          Taro.navigateTo({ url: '/pages/my-demands/index' });
-        },
-      },
-      {
-        key: 'achievements',
-        title: '我的成果',
-        desc: '发布与管理成果',
-        onClick: () => {
-          Taro.navigateTo({ url: '/pages/my-achievements/index' });
-        },
-      },
-      {
-        key: 'artworks',
-        title: '我的书画',
-        desc: '发布与管理作品',
-        onClick: () => {
-          Taro.navigateTo({ url: '/pages/my-artworks/index' });
-        },
+        label: '我的收藏',
+        icon: iconAward,
+        onClick: () => Taro.navigateTo({ url: '/pages/favorites/index' }),
       },
     ],
     [],
   );
 
-  const extraItems = useMemo(
+  const serviceItems = useMemo<ToolItem[]>(
+    () => [
+      {
+        key: 'notice',
+        label: '通知',
+        icon: iconTrending,
+        onClick: () => Taro.navigateTo({ url: '/pages/notifications/index' }),
+      },
+      {
+        key: 'notify',
+        label: '通知设置',
+        icon: iconActivity,
+        onClick: () => Taro.navigateTo({ url: '/pages/settings/notifications/index' }),
+      },
+      {
+        key: 'invoice',
+        label: '发票管理中心',
+        icon: iconCategory,
+        onClick: () => Taro.navigateTo({ url: '/pages/invoices/index' }),
+      },
+      {
+        key: 'contract-center',
+        label: '合同中心',
+        icon: iconBriefcase,
+        onClick: () => Taro.navigateTo({ url: '/pages/contracts/index' }),
+      },
+    ],
+    [],
+  );
+
+  const accountItems = useMemo<ToolItem[]>(
     () => [
       {
         key: 'identity',
-        title: '身份/认证',
-        desc: '企业/院校/个人认证',
-        onClick: () => {
-          Taro.navigateTo({ url: '/pages/onboarding/choose-identity/index' });
-        },
-      },
-      {
-        key: 'messages',
-        title: '咨询/消息',
-        desc: '查看会话与跟单',
-        onClick: () => {
-          Taro.switchTab({ url: '/pages/messages/index' });
-        },
-      },
-      {
-        key: 'organizations',
-        title: '机构展示',
-        desc: '企业/科研院校入驻展示',
-        onClick: () => {
-          Taro.navigateTo({ url: '/pages/organizations/index' });
-        },
-      },
-      {
-        key: 'rules',
-        title: '交易规则',
-        desc: '订金/佣金/退款窗口等',
-        onClick: () => {
-          Taro.navigateTo({ url: '/pages/trade-rules/index' });
-        },
+        label: '身份/认证',
+        value: verificationStatusLabel(verification.status),
+        icon: iconShield,
+        onClick: () => Taro.navigateTo({ url: '/pages/onboarding/choose-identity/index' }),
       },
       {
         key: 'profile',
-        title: '资料设置',
-        desc: '昵称/地区等',
-        onClick: () => {
-          Taro.navigateTo({ url: '/pages/profile/edit/index' });
-        },
+        label: '资料设置',
+        icon: iconUser,
+        onClick: () => Taro.navigateTo({ url: '/pages/profile/edit/index' }),
+      },
+      {
+        key: 'security',
+        label: '账号安全',
+        icon: iconBriefcase,
+        onClick: () => Taro.navigateTo({ url: '/pages/settings/security/index' }),
+      },
+      {
+        key: 'about',
+        label: '关于与合规',
+        icon: iconMore,
+        onClick: () => Taro.navigateTo({ url: '/pages/about/index' }),
+      },
+      {
+        key: 'help',
+        label: '帮助与反馈',
+        icon: iconMap,
+        onClick: () => Taro.navigateTo({ url: '/pages/support/index' }),
+      },
+      {
+        key: 'rules',
+        label: '交易规则',
+        icon: iconCategory,
+        onClick: () => Taro.navigateTo({ url: '/pages/trade-rules/index' }),
       },
     ],
-    [],
+    [verification.status],
   );
 
+  const displayName = me?.nickname || '未设置昵称';
+  const displayPhone = me?.phone || '未绑定手机号';
+  const rawRegion = regionDisplayName(me?.regionCode);
+  const displayRegion = rawRegion && rawRegion !== me?.regionCode && !/^\d+$/.test(rawRegion) ? rawRegion : '';
+  const displayRegionText = displayRegion || '未设置';
+  const orderItems = orderTab === 'buyer' ? buyerOrders : sellerOrders;
+
   return (
-    <View className="container me-v4">
+    <PullToRefresh type="primary" disabled={refreshing} onRefresh={refresh}>
+      <View className="container me-page">
       <View className="me-header">
-        <View>
-          <Text className="me-eyebrow">PROFILE</Text>
-          <Text className="text-hero">我的</Text>
+        <View className="me-header-row">
+          <View className="me-avatar-wrap">
+            {auth.token && me ? (
+              <Avatar
+                size="72"
+                src={me.avatarUrl || ''}
+                icon={<Text className="me-avatar-text">{displayName.slice(0, 1)}</Text>}
+              />
+            ) : (
+              <View className="me-avatar-placeholder">
+                <Image className="me-avatar-icon" src={iconUser} svg mode="aspectFit" />
+              </View>
+            )}
+          </View>
+          <View className="me-header-meta">
+            <View className="me-name-row">
+              <Text className="me-name">{auth.token ? displayName : '未登录'}</Text>
+              {verification.type ? <View className="me-tag me-tag-outline">{verificationTypeLabel(verification.type)}</View> : null}
+              {verification.status ? (
+                <View className="me-tag me-tag-status">{verificationStatusLabel(verification.status)}</View>
+              ) : null}
+            </View>
+            {auth.token ? (
+              <View className="me-info-row">
+                <Text className="me-subtitle me-info-item">{displayPhone}</Text>
+                <Text className="me-info-dot">·</Text>
+                <Text className="me-subtitle me-info-item">地区：{displayRegionText}</Text>
+              </View>
+            ) : (
+              <View className="me-status-row">
+                <Text className="me-subtitle">登录后可进行咨询、下单和支付</Text>
+              </View>
+            )}
+          </View>
         </View>
+
       </View>
 
       {!auth.token ? (
-        <Surface className="me-hero-card me-auth-card">
-          <Text className="me-hero-title">未登录</Text>
-          <Text className="me-hero-subtitle">登录并审核通过后，可进行收藏/咨询/下单/支付。</Text>
+        <Surface className="me-login-card" padding="md">
+          <Text className="me-login-title">请先登录</Text>
+          <Text className="me-login-desc">登录并审核通过后，可进行收藏、咨询、下单与支付。</Text>
           <Button
             onClick={() => {
               Taro.navigateTo({ url: '/pages/login/index' });
@@ -268,90 +354,117 @@ export default function MePage() {
         <>
           {meLoading ? <LoadingCard text="加载我的资料…" /> : null}
           {meError ? <ErrorCard message={meError} onRetry={loadMe} /> : null}
-          {me && !meLoading && !meError ? (
-            <Surface className="me-hero-card">
-              <View className="me-hero">
-                <View className="me-avatar">
-                  <Avatar
-                    size="88"
-                    src={me.avatarUrl || ''}
-                    icon={<Text className="text-strong">{(me.nickname || '用').slice(0, 1)}</Text>}
-                  />
+
+          <View className="me-order-card">
+            <View className="me-order-tabs">
+              <View
+                className={`me-order-tab ${orderTab === 'buyer' ? 'active' : ''}`}
+                onClick={() => setOrderTab('buyer')}
+              >
+                <Text>我买到的</Text>
+                {orderTab === 'buyer' ? <View className="me-order-indicator" /> : null}
+              </View>
+              <View
+                className={`me-order-tab ${orderTab === 'seller' ? 'active' : ''}`}
+                onClick={() => setOrderTab('seller')}
+              >
+                <Text>我卖出的</Text>
+                {orderTab === 'seller' ? <View className="me-order-indicator" /> : null}
+              </View>
+            </View>
+            <View className="me-order-grid">
+              {orderItems.map((item) => (
+                <View key={item.key} className="me-order-item" onClick={item.onClick}>
+                  <View className="me-order-icon">
+                    <Image className="me-order-icon-img" src={item.icon} svg mode="aspectFit" />
+                  </View>
+                  <Text className="me-order-label">{item.label}</Text>
                 </View>
-                <View className="me-hero-meta">
-                  <View className="me-hero-title-row">
-                    <Text className="me-hero-title">{me.nickname || '未设置昵称'}</Text>
-                    <View className="me-hero-badges">
-                      {verification.type ? (
-                        <View className="me-badge me-badge-outline">
-                          <Text>{verificationTypeLabel(verification.type)}</Text>
-                        </View>
-                      ) : null}
-                      {verification.status ? (
-                        <View className={`me-badge me-badge-${verification.status?.toLowerCase() || 'default'}`}>
-                          <Text>{verificationStatusLabel(verification.status)}</Text>
-                        </View>
-                      ) : null}
+              ))}
+            </View>
+          </View>
+
+          <View className="me-section-card">
+            <View className="me-section-header">
+              <Text className="me-section-title">发布管理</Text>
+            </View>
+            <View className="me-publish-grid">
+              {publishItems.map((item) => (
+                <View key={item.key} className="me-publish-item" onClick={item.onClick}>
+                  <View className="me-publish-icon">
+                    <Image className="me-publish-icon-img" src={item.icon} svg mode="aspectFit" />
+                  </View>
+                  <Text className="me-publish-label">{item.label}</Text>
+                </View>
+              ))}
+            </View>
+          </View>
+
+          <View className="me-section-card">
+            <View className="me-section-header">
+              <Text className="me-section-title">我的收藏</Text>
+            </View>
+            <View className="me-tools-list">
+              {favoriteItems.map((item) => (
+                <View key={item.key} className="me-tool-item" onClick={item.onClick}>
+                  <View className="me-tool-left">
+                    <View className="me-tool-icon">
+                      <Image className="me-tool-icon-img" src={item.icon} svg mode="aspectFit" />
                     </View>
+                    <Text className="me-tool-title">{item.label}</Text>
                   </View>
-                  <Text className="me-hero-subtitle">{me.phone || '未绑定手机号'}</Text>
-                  <Text className="me-hero-subtitle">地区：{me.regionCode || '未设置'}</Text>
+                  <View className="me-tool-right">
+                    {item.value ? <Text className="me-tool-value">{item.value}</Text> : null}
+                    <Text className="me-tool-arrow">›</Text>
+                  </View>
                 </View>
-              </View>
+              ))}
+            </View>
+          </View>
 
-              <View className="me-hero-actions">
-                <Button
-                  size="small"
-                  block
-                  onClick={() => {
-                    Taro.navigateTo({ url: '/pages/profile/edit/index' });
-                  }}
-                >
-                  {!me.avatarUrl || !me.nickname ? '完善资料' : '资料设置'}
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="small"
-                  block
-                  onClick={() => {
-                    void syncVerification();
-                  }}
-                >
-                  刷新认证
-                </Button>
-              </View>
-            </Surface>
-          ) : null}
-
-          <Surface className="me-grid-card" padding="md">
-            <Text className="me-grid-title">服务功能</Text>
-            <View className="me-feature-grid">
+          <View className="me-section-card">
+            <View className="me-section-header">
+              <Text className="me-section-title">消息与服务</Text>
+            </View>
+            <View className="me-tools-list">
               {serviceItems.map((item) => (
-                <View key={item.key} className="me-feature" onClick={item.onClick}>
-                  <View className="me-feature-icon">
-                    <AppIcon name="patent-achievement" size={36} />
+                <View key={item.key} className="me-tool-item" onClick={item.onClick}>
+                  <View className="me-tool-left">
+                    <View className="me-tool-icon">
+                      <Image className="me-tool-icon-img" src={item.icon} svg mode="aspectFit" />
+                    </View>
+                    <Text className="me-tool-title">{item.label}</Text>
                   </View>
-                  <Text className="me-feature-title">{item.title}</Text>
-                  <Text className="me-feature-desc">{item.desc}</Text>
+                  <View className="me-tool-right">
+                    {item.value ? <Text className="me-tool-value">{item.value}</Text> : null}
+                    <Text className="me-tool-arrow">›</Text>
+                  </View>
                 </View>
               ))}
             </View>
-          </Surface>
+          </View>
 
-          <Surface className="me-grid-card" padding="md">
-            <Text className="me-grid-title">更多功能</Text>
-            <View className="me-feature-grid">
-              {extraItems.map((item) => (
-                <View key={item.key} className="me-feature" onClick={item.onClick}>
-                  <View className="me-feature-icon">
-                    <AppIcon name="patent-map" size={36} />
+          <View className="me-section-card">
+            <View className="me-section-header">
+              <Text className="me-section-title">账号与合规</Text>
+            </View>
+            <View className="me-tools-list">
+              {accountItems.map((item) => (
+                <View key={item.key} className="me-tool-item" onClick={item.onClick}>
+                  <View className="me-tool-left">
+                    <View className="me-tool-icon">
+                      <Image className="me-tool-icon-img" src={item.icon} svg mode="aspectFit" />
+                    </View>
+                    <Text className="me-tool-title">{item.label}</Text>
                   </View>
-                  <Text className="me-feature-title">{item.title}</Text>
-                  <Text className="me-feature-desc">{item.desc}</Text>
+                  <View className="me-tool-right">
+                    {item.value ? <Text className="me-tool-value">{item.value}</Text> : null}
+                    <Text className="me-tool-arrow">›</Text>
+                  </View>
                 </View>
               ))}
             </View>
-          </Surface>
+          </View>
 
           <Surface className="me-logout-card" padding="md">
             <Button
@@ -369,7 +482,7 @@ export default function MePage() {
       )}
 
       {ENABLE_MOCK_TOOLS && APP_MODE === 'development' ? (
-        <Surface className="me-devtools-card">
+        <Surface className="me-devtools-card" padding="md">
           <Text className="text-card-title">开发工具：场景</Text>
           <View style={{ height: '8rpx' }} />
           <Text className="muted">当前：{scenario}</Text>
@@ -400,8 +513,7 @@ export default function MePage() {
           </View>
         </Surface>
       ) : null}
-    </View>
+      </View>
+    </PullToRefresh>
   );
 }
-
-

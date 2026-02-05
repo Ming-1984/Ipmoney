@@ -26,6 +26,7 @@
         {
           "id": "7a490e63-8173-41e7-b4f0-0d0bb5ce7d20",
           "title": "一种用于锂电池热管理的散热结构",
+          "coverUrl": "https://picsum.photos/seed/listing-7a49/800/500",
           "tradeMode": "ASSIGNMENT",
           "priceType": "FIXED",
           "priceAmountFen": 28800000,
@@ -57,11 +58,13 @@
             "favoriteCount": 18,
             "consultCount": 6
           },
-          "recommendationScore": 0.92
+          "recommendationScore": 0.92,
+          "listingTopic": "HIGH_TECH_RETIRED"
         },
         {
           "id": "b038cc8b-1123-4c9b-9fc7-e17304cd2e1e",
           "title": "一种便携式智能水质检测装置",
+          "coverUrl": "https://picsum.photos/seed/listing-b038/800/500",
           "tradeMode": "LICENSE",
           "licenseMode": "NON_EXCLUSIVE",
           "priceType": "NEGOTIABLE",
@@ -94,7 +97,9 @@
             "favoriteCount": 9,
             "consultCount": 3
           },
-          "recommendationScore": 0.71
+          "recommendationScore": 0.71,
+          "listingTopic": "CLUSTER_FEATURED",
+          "clusterId": "4c96e0e3-3c71-4514-8c87-fa1a30e5b88f"
         }
       ],
       "page": {
@@ -109,6 +114,7 @@
     "body": {
       "id": "7a490e63-8173-41e7-b4f0-0d0bb5ce7d20",
       "title": "一种用于锂电池热管理的散热结构",
+      "coverUrl": "https://picsum.photos/seed/listing-7a49/800/500",
       "tradeMode": "ASSIGNMENT",
       "priceType": "FIXED",
       "priceAmountFen": 28800000,
@@ -135,6 +141,7 @@
         "favoriteCount": 18,
         "consultCount": 6
       },
+      "listingTopic": "HIGH_TECH_RETIRED",
       "seller": {
         "id": "c5b6438a-f3a7-4590-a484-0f2a2991c613",
         "nickname": "某新能源企业",
@@ -155,6 +162,7 @@
     "body": {
       "id": "b038cc8b-1123-4c9b-9fc7-e17304cd2e1e",
       "title": "一种便携式智能水质检测装置",
+      "coverUrl": "https://picsum.photos/seed/listing-b038/800/500",
       "tradeMode": "LICENSE",
       "licenseMode": "NON_EXCLUSIVE",
       "priceType": "NEGOTIABLE",
@@ -181,6 +189,8 @@
         "consultCount": 3
       },
       "recommendationScore": 0.71,
+      "listingTopic": "CLUSTER_FEATURED",
+      "clusterId": "4c96e0e3-3c71-4514-8c87-fa1a30e5b88f",
       "seller": {
         "id": "72f8697a-b950-406c-bc4f-2484a32cbb78",
         "nickname": "某高校技术转移中心",
@@ -201,6 +211,7 @@
     "body": {
       "id": "51453904-f628-4c46-afa5-bac68cedb9f9",
       "title": "一种用于锂电池热管理的散热结构（已通过）",
+      "coverUrl": "https://picsum.photos/seed/listing-5145/800/500",
       "tradeMode": "ASSIGNMENT",
       "priceType": "FIXED",
       "priceAmountFen": 28800000,
@@ -246,6 +257,7 @@
     "body": {
       "id": "7a490e63-8173-41e7-b4f0-0d0bb5ce7d20",
       "title": "一种用于锂电池热管理的散热结构",
+      "coverUrl": "https://picsum.photos/seed/listing-generic/800/500",
       "tradeMode": "ASSIGNMENT",
       "priceType": "FIXED",
       "priceAmountFen": 28800000,
@@ -272,6 +284,7 @@
         "favoriteCount": 18,
         "consultCount": 6
       },
+      "listingTopic": "HIGH_TECH_RETIRED",
       "seller": {
         "id": "c5b6438a-f3a7-4590-a484-0f2a2991c613",
         "nickname": "某新能源企业",
@@ -344,17 +357,57 @@
         {
           "inventorName": "张三",
           "patentCount": 12,
-          "listingCount": 5
+          "listingCount": 5,
+          "location": "北京",
+          "typeLabel": "发明专利",
+          "tags": [
+            "电子信息",
+            "高校"
+          ]
         },
         {
           "inventorName": "李四",
           "patentCount": 9,
-          "listingCount": 3
+          "listingCount": 3,
+          "location": "深圳",
+          "typeLabel": "发明专利",
+          "tags": [
+            "生物医药",
+            "企业"
+          ]
         },
         {
           "inventorName": "王五",
           "patentCount": 7,
-          "listingCount": 2
+          "listingCount": 2,
+          "location": "上海",
+          "typeLabel": "实用新型",
+          "tags": [
+            "高端装备",
+            "科研院所"
+          ]
+        },
+        {
+          "inventorName": "刘洋",
+          "patentCount": 5,
+          "listingCount": 2,
+          "location": "杭州",
+          "typeLabel": "发明专利",
+          "tags": [
+            "新材料",
+            "高校"
+          ]
+        },
+        {
+          "inventorName": "陈静",
+          "patentCount": 4,
+          "listingCount": 1,
+          "location": "武汉",
+          "typeLabel": "外观设计",
+          "tags": [
+            "文创",
+            "个人"
+          ]
         }
       ],
       "page": {
@@ -374,7 +427,7 @@
           "verificationType": "COMPANY",
           "verificationStatus": "APPROVED",
           "regionCode": "110000",
-          "logoUrl": "https://example.com/logo-1.png",
+          "logoUrl": "",
           "intro": "聚焦新能源与储能技术转化。",
           "stats": {
             "listingCount": 12,
@@ -388,7 +441,7 @@
           "verificationType": "ACADEMY",
           "verificationStatus": "APPROVED",
           "regionCode": "310000",
-          "logoUrl": "https://example.com/logo-2.png",
+          "logoUrl": "",
           "intro": "面向产学研合作的成果转化服务。",
           "stats": {
             "listingCount": 8,
@@ -463,6 +516,329 @@
       }
     ]
   },
+  "GET /public/announcements": {
+    "status": 200,
+    "body": {
+      "items": [
+        {
+          "id": "8c8b6d24-53e2-48ef-8609-d42ef6327973",
+          "title": "关于发布2025年专利开放许可项目清单的通知",
+          "publisherName": "潜江市市场监督管理局",
+          "publishedAt": "2025-10-16T00:00:00Z",
+          "issueNo": "202510",
+          "tags": [
+            "开放许可",
+            "项目清单"
+          ],
+          "summary": "发布2025年专利开放许可项目清单，面向社会公告。"
+        },
+        {
+          "id": "1c8dabbf-a9d2-4015-8cb1-d2e74a873a35",
+          "title": "浙江安防职业技术学院专利转让交易公示——一种基于大数据服务的智慧安防系统",
+          "publisherName": "浙江安防职业技术学院",
+          "publishedAt": "2024-07-04T00:00:00Z",
+          "issueNo": "202407",
+          "tags": [
+            "转让公示"
+          ],
+          "summary": "拟转让专利信息公示，面向社会征集异议。"
+        },
+        {
+          "id": "a3d41364-9ea6-4294-b5c9-6b4bc9951ebd",
+          "title": "陆冬赵燕专利转让公示",
+          "publisherName": "南京工业职业技术大学 科技处",
+          "publishedAt": "2023-12-21T00:00:00Z",
+          "issueNo": "202312",
+          "tags": [
+            "转让公示"
+          ],
+          "summary": "学校拟许可专利清单公示。"
+        },
+        {
+          "id": "b7dcf6d7-783b-487c-9363-702cd027db28",
+          "title": "关于“基于改进的LSTM-seq2seq模型的河流突发水污染事故水质预测方法”等4件专利转让的公示",
+          "publisherName": "中国地质大学（武汉）",
+          "publishedAt": "2023-11-24T00:00:00Z",
+          "issueNo": "202311",
+          "tags": [
+            "转让公示"
+          ],
+          "summary": "拟转让4件发明专利，按规定进行公示。"
+        }
+      ],
+      "page": {
+        "page": 1,
+        "pageSize": 10,
+        "total": 4
+      }
+    }
+  },
+  "GET /public/announcements/8c8b6d24-53e2-48ef-8609-d42ef6327973": {
+    "status": 200,
+    "body": {
+      "id": "8c8b6d24-53e2-48ef-8609-d42ef6327973",
+      "title": "关于发布2025年专利开放许可项目清单的通知",
+      "publisherName": "潜江市市场监督管理局",
+      "publishedAt": "2025-10-16T00:00:00Z",
+      "issueNo": "202510",
+      "tags": [
+        "开放许可",
+        "项目清单"
+      ],
+      "content": "发布2025年专利开放许可项目清单，面向社会公告并接受咨询。",
+      "sourceUrl": "https://www.hbqj.gov.cn/sscjgj/xwzx/gsgg/202510/t20251016_5791400.html",
+      "relatedPatents": []
+    }
+  },
+  "GET /public/announcements/1c8dabbf-a9d2-4015-8cb1-d2e74a873a35": {
+    "status": 200,
+    "body": {
+      "id": "1c8dabbf-a9d2-4015-8cb1-d2e74a873a35",
+      "title": "浙江安防职业技术学院专利转让交易公示——一种基于大数据服务的智慧安防系统",
+      "publisherName": "浙江安防职业技术学院",
+      "publishedAt": "2024-07-04T00:00:00Z",
+      "issueNo": "202407",
+      "tags": [
+        "转让公示"
+      ],
+      "content": "拟转让专利信息公示，公示期内接受实名反馈。",
+      "sourceUrl": "https://www.zjcst.edu.cn/wap/Art/Art_302/Art_302_15565.html",
+      "relatedPatents": [
+        {
+          "name": "一种基于大数据服务的智慧安防系统",
+          "patentNo": "ZL202011092908.1"
+        }
+      ]
+    }
+  },
+  "GET /public/announcements/a3d41364-9ea6-4294-b5c9-6b4bc9951ebd": {
+    "status": 200,
+    "body": {
+      "id": "a3d41364-9ea6-4294-b5c9-6b4bc9951ebd",
+      "title": "陆冬赵燕专利转让公示",
+      "publisherName": "南京工业职业技术大学 科技处",
+      "publishedAt": "2023-12-21T00:00:00Z",
+      "issueNo": "202312",
+      "tags": [
+        "转让公示"
+      ],
+      "content": "学校拟许可专利清单公示，公示期内接受异议。",
+      "sourceUrl": "https://kjc.niit.edu.cn/e3/10/c1361a58128/page.htm",
+      "relatedPatents": [
+        {
+          "name": "一种制冷设备用安装支架",
+          "patentNo": "ZL202022968285.1"
+        },
+        {
+          "name": "一种水温传感器运输用的保护装置",
+          "patentNo": "ZL202020058853.1"
+        }
+      ]
+    }
+  },
+  "GET /public/announcements/b7dcf6d7-783b-487c-9363-702cd027db28": {
+    "status": 200,
+    "body": {
+      "id": "b7dcf6d7-783b-487c-9363-702cd027db28",
+      "title": "关于“基于改进的LSTM-seq2seq模型的河流突发水污染事故水质预测方法”等4件专利转让的公示",
+      "publisherName": "中国地质大学（武汉）",
+      "publishedAt": "2023-11-24T00:00:00Z",
+      "issueNo": "202311",
+      "tags": [
+        "转让公示"
+      ],
+      "content": "拟转让4件发明专利，按管理办法公示并接受意见。",
+      "sourceUrl": "https://tto.cug.edu.cn/info/1020/6920.htm",
+      "relatedPatents": [
+        {
+          "name": "基于改进的LSTM-seq2seq模型的河流突发水污染事故水质预测方法",
+          "patentNo": "ZL202011600080.6"
+        },
+        {
+          "name": "一种基于深度学习的水下地形数据识别和服务方法及系统",
+          "patentNo": "ZL202010854722.9"
+        },
+        {
+          "name": "基于物理模型的河网区水质断面污染贡献率核算方法",
+          "patentNo": "ZL202010325955.X"
+        },
+        {
+          "name": "一种尾矿库溃坝模拟系统和方法",
+          "patentNo": "ZL202010469262.8"
+        }
+      ]
+    }
+  },
+  "GET /public/announcements/:announcementId": {
+    "status": 200,
+    "body": {
+      "id": "8c8b6d24-53e2-48ef-8609-d42ef6327973",
+      "title": "关于发布2025年专利开放许可项目清单的通知",
+      "publisherName": "潜江市市场监督管理局",
+      "publishedAt": "2025-10-16T00:00:00Z",
+      "issueNo": "202510",
+      "tags": [
+        "开放许可",
+        "项目清单"
+      ],
+      "content": "发布2025年专利开放许可项目清单，面向社会公告并接受咨询。",
+      "sourceUrl": "https://www.hbqj.gov.cn/sscjgj/xwzx/gsgg/202510/t20251016_5791400.html",
+      "relatedPatents": []
+    }
+  },
+  "GET /public/patent-clusters": {
+    "status": 200,
+    "body": {
+      "featuredInstitutions": [
+        {
+          "id": "89af78b5-f0ce-4f54-ad1b-61b579a9eb17",
+          "name": "广东工业大学",
+          "regionName": "广东·广州",
+          "tags": [
+            "高校",
+            "技术转移"
+          ],
+          "patentCount": 3120,
+          "listingCount": 86,
+          "logoUrl": ""
+        },
+        {
+          "id": "63ba8b6e-c8f5-4c05-a89b-67b4879b5c62",
+          "name": "佛山科学技术学院",
+          "regionName": "广东·佛山",
+          "tags": [
+            "高校",
+            "成果转化"
+          ],
+          "patentCount": 1240,
+          "listingCount": 42,
+          "logoUrl": ""
+        },
+        {
+          "id": "2ba959ae-7ef6-45bc-ab9f-217544629a22",
+          "name": "中国地质大学（武汉）",
+          "regionName": "湖北·武汉",
+          "tags": [
+            "高校",
+            "科研院所"
+          ],
+          "patentCount": 2560,
+          "listingCount": 73,
+          "logoUrl": ""
+        }
+      ],
+      "items": [
+        {
+          "id": "8ceb0b1a-f686-4ef3-bbca-7af3f32b0d51",
+          "name": "佛山·南海氢能产业集群",
+          "regionName": "广东·佛山·南海",
+          "industryTags": [
+            "氢能",
+            "燃料电池",
+            "新能源装备"
+          ],
+          "summary": "聚焦氢能与燃料电池，覆盖制氢、储运与装备应用链条。",
+          "patentCount": 1860,
+          "listingCount": 128,
+          "institutionCount": 12,
+          "updatedAt": "2026-01-15T00:00:00Z"
+        },
+        {
+          "id": "4c96e0e3-3c71-4514-8c87-fa1a30e5b88f",
+          "name": "如东海上风电装备产业集群",
+          "regionName": "江苏·南通·如东",
+          "industryTags": [
+            "海上风电",
+            "装备制造",
+            "新能源"
+          ],
+          "summary": "面向海上风电装备制造与配套服务的产业集群。",
+          "patentCount": 1420,
+          "listingCount": 95,
+          "institutionCount": 9,
+          "updatedAt": "2026-01-15T00:00:00Z"
+        },
+        {
+          "id": "2701d8b7-561c-4dfb-a68d-3b4c7f76d3c9",
+          "name": "成德绵自凉航空航天产业集群",
+          "regionName": "四川",
+          "industryTags": [
+            "航空航天",
+            "高端装备",
+            "新材料"
+          ],
+          "summary": "覆盖航空航天装备与配套材料的区域协同集群。",
+          "patentCount": 2100,
+          "listingCount": 140,
+          "institutionCount": 18,
+          "updatedAt": "2026-01-15T00:00:00Z"
+        },
+        {
+          "id": "0cd8a221-51ec-44e9-830d-dba96c1efa2e",
+          "name": "青烟威船舶与海洋工程装备产业集群",
+          "regionName": "山东·青岛/烟台/威海",
+          "industryTags": [
+            "船舶制造",
+            "海工装备",
+            "海洋工程"
+          ],
+          "summary": "面向船舶与海洋工程装备的跨市集群协同。",
+          "patentCount": 1980,
+          "listingCount": 122,
+          "institutionCount": 15,
+          "updatedAt": "2026-01-15T00:00:00Z"
+        },
+        {
+          "id": "aef573fa-d3b4-4799-99cf-2a776764697f",
+          "name": "洛阳现代农机装备产业集群",
+          "regionName": "河南·洛阳",
+          "industryTags": [
+            "农机装备",
+            "智能制造",
+            "现代农业"
+          ],
+          "summary": "围绕现代农机装备制造与应用的产业集群。",
+          "patentCount": 1320,
+          "listingCount": 76,
+          "institutionCount": 7,
+          "updatedAt": "2026-01-15T00:00:00Z"
+        }
+      ],
+      "page": {
+        "page": 1,
+        "pageSize": 10,
+        "total": 5
+      }
+    }
+  },
+  "GET /public/patent-clusters/:clusterId": {
+    "status": 200,
+    "body": {
+      "id": "8ceb0b1a-f686-4ef3-bbca-7af3f32b0d51",
+      "name": "佛山·南海氢能产业集群",
+      "regionName": "广东·佛山·南海",
+      "industryTags": [
+        "氢能",
+        "燃料电池",
+        "新能源装备"
+      ],
+      "summary": "聚焦氢能与燃料电池，覆盖制氢、储运与装备应用链条。",
+      "patentCount": 1860,
+      "listingCount": 128,
+      "institutionCount": 12,
+      "featuredInstitutions": [
+        {
+          "id": "89af78b5-f0ce-4f54-ad1b-61b579a9eb17",
+          "name": "广东工业大学"
+        },
+        {
+          "id": "63ba8b6e-c8f5-4c05-a89b-67b4879b5c62",
+          "name": "佛山科学技术学院"
+        }
+      ],
+      "updatedAt": "2026-01-15T00:00:00Z"
+    }
+  },
   "GET /regions": {
     "status": 200,
     "body": [
@@ -490,6 +866,56 @@
           "生物医药",
           "集成电路"
         ],
+        "updatedAt": "2026-01-01T00:00:00Z"
+      },
+      {
+        "code": "320000",
+        "name": "江苏省",
+        "level": "PROVINCE",
+        "parentCode": null,
+        "centerLat": 32.0603,
+        "centerLng": 118.7969,
+        "industryTags": [],
+        "updatedAt": "2026-01-01T00:00:00Z"
+      },
+      {
+        "code": "330000",
+        "name": "浙江省",
+        "level": "PROVINCE",
+        "parentCode": null,
+        "centerLat": 30.2741,
+        "centerLng": 120.1551,
+        "industryTags": [],
+        "updatedAt": "2026-01-01T00:00:00Z"
+      },
+      {
+        "code": "370000",
+        "name": "山东省",
+        "level": "PROVINCE",
+        "parentCode": null,
+        "centerLat": 36.6683,
+        "centerLng": 117.0204,
+        "industryTags": [],
+        "updatedAt": "2026-01-01T00:00:00Z"
+      },
+      {
+        "code": "440000",
+        "name": "广东省",
+        "level": "PROVINCE",
+        "parentCode": null,
+        "centerLat": 23.1291,
+        "centerLng": 113.2644,
+        "industryTags": [],
+        "updatedAt": "2026-01-01T00:00:00Z"
+      },
+      {
+        "code": "460000",
+        "name": "海南省",
+        "level": "PROVINCE",
+        "parentCode": null,
+        "centerLat": 20.044,
+        "centerLng": 110.1999,
+        "industryTags": [],
         "updatedAt": "2026-01-01T00:00:00Z"
       }
     ]
@@ -635,6 +1061,130 @@
       }
     }
   },
+  "GET /invoices": {
+    "status": 200,
+    "body": {
+      "items": [
+        {
+          "id": "a1111111-1111-4111-8111-111111111111",
+          "listingId": "7a490e63-8173-41e7-b4f0-0d0bb5ce7d20",
+          "patentId": "965f9831-2c44-48e8-8b7a-cd7ab40ff7ec",
+          "listingTitle": "一种用于锂电池热管理的散热结构",
+          "applicationNoDisplay": "202311340972.0",
+          "buyerUserId": "c776f954-77a5-49d9-b778-77a1120d1be9",
+          "sellerUserId": "c5b6438a-f3a7-4590-a484-0f2a2991c613",
+          "status": "FINAL_PAID_ESCROW",
+          "depositAmountFen": 200000,
+          "dealAmountFen": 28800000,
+          "finalAmountFen": 28600000,
+          "createdAt": "2026-01-12T08:00:00Z",
+          "updatedAt": "2026-01-12T09:00:00Z",
+          "invoiceStatus": "WAIT_APPLY",
+          "amountFen": 1440000,
+          "itemName": "居间服务费"
+        },
+        {
+          "id": "b2222222-2222-4222-8222-222222222222",
+          "listingId": "b038cc8b-1123-4c9b-9fc7-e17304cd2e1e",
+          "patentId": "7bb5b4d1-6d25-4b5f-8ed5-7f1a9a8c6c40",
+          "listingTitle": "一种便携式智能水质检测装置",
+          "applicationNoDisplay": "202321234567.8",
+          "buyerUserId": "c776f954-77a5-49d9-b778-77a1120d1be9",
+          "sellerUserId": "c5b6438a-f3a7-4590-a484-0f2a2991c613",
+          "status": "READY_TO_SETTLE",
+          "depositAmountFen": 100000,
+          "dealAmountFen": 18800000,
+          "finalAmountFen": 18700000,
+          "createdAt": "2026-01-13T08:00:00Z",
+          "updatedAt": "2026-01-13T09:00:00Z",
+          "invoiceStatus": "APPLYING",
+          "amountFen": 940000,
+          "itemName": "居间服务费",
+          "requestedAt": "2026-01-13T10:00:00Z"
+        },
+        {
+          "id": "c3333333-3333-4333-8333-333333333333",
+          "listingId": "51453904-f628-4c46-afa5-bac68cedb9f9",
+          "patentId": "1cf5a412-3c1f-4c0a-9d36-3f62c7e12d90",
+          "listingTitle": "一种用于锂电池热管理的散热结构（已通过）",
+          "applicationNoDisplay": "202311340972.0",
+          "buyerUserId": "c776f954-77a5-49d9-b778-77a1120d1be9",
+          "sellerUserId": "c5b6438a-f3a7-4590-a484-0f2a2991c613",
+          "status": "COMPLETED",
+          "depositAmountFen": 200000,
+          "dealAmountFen": 28800000,
+          "finalAmountFen": 28600000,
+          "createdAt": "2026-01-14T08:00:00Z",
+          "updatedAt": "2026-01-14T09:00:00Z",
+          "invoiceStatus": "ISSUED",
+          "amountFen": 1440000,
+          "itemName": "居间服务费",
+          "invoiceNo": "E-20260114-0001",
+          "issuedAt": "2026-01-14T12:00:00Z",
+          "invoiceFileUrl": "https://example.com/invoices/E-20260114-0001.pdf"
+        }
+      ],
+      "page": {
+        "page": 1,
+        "pageSize": 20,
+        "total": 3
+      }
+    }
+  },
+  "GET /orders/a1111111-1111-4111-8111-111111111111": {
+    "status": 200,
+    "body": {
+      "id": "a1111111-1111-4111-8111-111111111111",
+      "listingId": "7a490e63-8173-41e7-b4f0-0d0bb5ce7d20",
+      "patentId": "965f9831-2c44-48e8-8b7a-cd7ab40ff7ec",
+      "listingTitle": "一种用于锂电池热管理的散热结构",
+      "applicationNoDisplay": "202311340972.0",
+      "buyerUserId": "c776f954-77a5-49d9-b778-77a1120d1be9",
+      "sellerUserId": "c5b6438a-f3a7-4590-a484-0f2a2991c613",
+      "status": "FINAL_PAID_ESCROW",
+      "depositAmountFen": 200000,
+      "dealAmountFen": 28800000,
+      "finalAmountFen": 28600000,
+      "createdAt": "2026-01-12T08:00:00Z",
+      "updatedAt": "2026-01-12T09:00:00Z"
+    }
+  },
+  "GET /orders/b2222222-2222-4222-8222-222222222222": {
+    "status": 200,
+    "body": {
+      "id": "b2222222-2222-4222-8222-222222222222",
+      "listingId": "b038cc8b-1123-4c9b-9fc7-e17304cd2e1e",
+      "patentId": "7bb5b4d1-6d25-4b5f-8ed5-7f1a9a8c6c40",
+      "listingTitle": "一种便携式智能水质检测装置",
+      "applicationNoDisplay": "202321234567.8",
+      "buyerUserId": "c776f954-77a5-49d9-b778-77a1120d1be9",
+      "sellerUserId": "c5b6438a-f3a7-4590-a484-0f2a2991c613",
+      "status": "READY_TO_SETTLE",
+      "depositAmountFen": 100000,
+      "dealAmountFen": 18800000,
+      "finalAmountFen": 18700000,
+      "createdAt": "2026-01-13T08:00:00Z",
+      "updatedAt": "2026-01-13T09:00:00Z"
+    }
+  },
+  "GET /orders/c3333333-3333-4333-8333-333333333333": {
+    "status": 200,
+    "body": {
+      "id": "c3333333-3333-4333-8333-333333333333",
+      "listingId": "51453904-f628-4c46-afa5-bac68cedb9f9",
+      "patentId": "1cf5a412-3c1f-4c0a-9d36-3f62c7e12d90",
+      "listingTitle": "一种用于锂电池热管理的散热结构（已通过）",
+      "applicationNoDisplay": "202311340972.0",
+      "buyerUserId": "c776f954-77a5-49d9-b778-77a1120d1be9",
+      "sellerUserId": "c5b6438a-f3a7-4590-a484-0f2a2991c613",
+      "status": "COMPLETED",
+      "depositAmountFen": 200000,
+      "dealAmountFen": 28800000,
+      "finalAmountFen": 28600000,
+      "createdAt": "2026-01-14T08:00:00Z",
+      "updatedAt": "2026-01-14T09:00:00Z"
+    }
+  },
   "GET /orders/:orderId": {
     "status": 200,
     "body": {
@@ -663,6 +1213,14 @@
         "signType": "RSA",
         "paySign": "demo-sign"
       }
+    }
+  },
+  "POST /orders/:orderId/invoice-requests": {
+    "status": 201,
+    "body": {
+      "orderId": "b2222222-2222-4222-8222-222222222222",
+      "status": "APPLYING",
+      "requestedAt": "2026-01-13T10:00:00Z"
     }
   },
   "POST /admin/orders/:orderId/milestones/contract-signed": {
@@ -745,6 +1303,7 @@
           "applicationNoDisplay": "202311340972.0",
           "patentType": "INVENTION",
           "title": "一种用于锂电池热管理的散热结构（待审核）",
+          "coverUrl": "https://picsum.photos/seed/listing-5145/800/500",
           "inventorNames": [
             "张三",
             "李四"
@@ -911,7 +1470,7 @@
     "status": 201,
     "body": {
       "id": "4bb85502-99c2-4abf-b802-b6eb5563ca66",
-      "url": "https://example.com/files/demo.pdf",
+      "url": "",
       "mimeType": "application/pdf",
       "sizeBytes": 123456,
       "createdAt": "2026-01-11T12:00:00Z"
@@ -958,13 +1517,55 @@
       "issuedAt": "2026-01-11T12:20:00Z",
       "invoiceFile": {
         "id": "4bb85502-99c2-4abf-b802-b6eb5563ca66",
-        "url": "https://example.com/files/invoice-demo.pdf",
+        "url": "",
         "mimeType": "application/pdf",
         "sizeBytes": 234567,
         "createdAt": "2026-01-11T12:21:00Z"
       },
       "attachedAt": "2026-01-11T12:22:00Z",
       "updatedAt": "2026-01-11T12:22:00Z"
+    }
+  },
+  "GET /orders/c3333333-3333-4333-8333-333333333333/invoice": {
+    "status": 200,
+    "body": {
+      "orderId": "c3333333-3333-4333-8333-333333333333",
+      "amountFen": 1440000,
+      "itemName": "居间服务费",
+      "invoiceNo": "E-20260114-0001",
+      "issuedAt": "2026-01-14T12:00:00Z",
+      "invoiceFile": {
+        "id": "4bb85502-99c2-4abf-b802-b6eb5563ca66",
+        "url": "https://example.com/invoices/E-20260114-0001.pdf",
+        "mimeType": "application/pdf",
+        "sizeBytes": 234567,
+        "createdAt": "2026-01-14T12:01:00Z"
+      },
+      "attachedAt": "2026-01-14T12:02:00Z",
+      "updatedAt": "2026-01-14T12:02:00Z"
+    }
+  },
+  "GET /orders/:orderId/invoice": {
+    "status": 200,
+    "body": null
+  },
+  "POST /admin/orders/:orderId/invoice": {
+    "status": 200,
+    "body": {
+      "orderId": "c3333333-3333-4333-8333-333333333333",
+      "amountFen": 1440000,
+      "itemName": "居间服务费",
+      "invoiceNo": "E-20260114-0001",
+      "issuedAt": "2026-01-14T12:00:00Z",
+      "invoiceFile": {
+        "id": "4bb85502-99c2-4abf-b802-b6eb5563ca66",
+        "url": "https://example.com/invoices/E-20260114-0001.pdf",
+        "mimeType": "application/pdf",
+        "sizeBytes": 234567,
+        "createdAt": "2026-01-14T12:01:00Z"
+      },
+      "attachedAt": "2026-01-14T12:02:00Z",
+      "updatedAt": "2026-01-14T12:02:00Z"
     }
   },
   "PUT /admin/orders/e9032d03-9b23-40ba-84a3-ac681f21c41b/invoice": {
@@ -977,7 +1578,7 @@
       "issuedAt": "2026-01-11T12:20:00Z",
       "invoiceFile": {
         "id": "4bb85502-99c2-4abf-b802-b6eb5563ca66",
-        "url": "https://example.com/files/invoice-demo.pdf",
+        "url": "",
         "mimeType": "application/pdf",
         "sizeBytes": 234567,
         "createdAt": "2026-01-11T12:21:00Z"
@@ -1135,18 +1736,52 @@
     "body": {
       "items": [
         {
+          "id": "9d3efb09-2f69-4d5c-9a8c-1247d7f6b001",
+          "contentType": "LISTING",
+          "contentId": "7a490e63-8173-41e7-b4f0-0d0bb5ce7d20",
+          "contentTitle": "一种用于锂电池热管理的散热结构",
+          "listingId": "7a490e63-8173-41e7-b4f0-0d0bb5ce7d20",
+          "listingTitle": "一种用于锂电池热管理的散热结构",
+          "lastMessagePreview": "您的专利（…）审核已通过",
+          "lastMessageAt": "2026-02-02T10:30:00",
+          "unreadCount": 2,
+          "counterpart": {
+            "id": "00000000-0000-0000-0000-000000000001",
+            "nickname": "平台客服助手",
+            "role": "cs",
+            "avatarUrl": ""
+          }
+        },
+        {
+          "id": "9d3efb09-2f69-4d5c-9a8c-1247d7f6b002",
+          "contentType": "LISTING",
+          "contentId": "7a490e63-8173-41e7-b4f0-0d0bb5ce7d20",
+          "contentTitle": "一种用于锂电池热管理的散热结构",
+          "listingId": "7a490e63-8173-41e7-b4f0-0d0bb5ce7d20",
+          "listingTitle": "一种用于锂电池热管理的散热结构",
+          "lastMessagePreview": "订单 #8829301 订金已支付，请关注",
+          "lastMessageAt": "2026-02-01T18:00:00",
+          "unreadCount": 0,
+          "counterpart": {
+            "id": "00000000-0000-0000-0000-000000000002",
+            "nickname": "交易通知",
+            "role": "admin",
+            "avatarUrl": ""
+          }
+        },
+        {
           "id": "127a267b-d5f8-4b39-acf8-855dff7258b0",
           "contentType": "LISTING",
           "contentId": "7a490e63-8173-41e7-b4f0-0d0bb5ce7d20",
           "contentTitle": "一种用于锂电池热管理的散热结构",
           "listingId": "7a490e63-8173-41e7-b4f0-0d0bb5ce7d20",
           "listingTitle": "一种用于锂电池热管理的散热结构",
-          "lastMessagePreview": "您好，我们想了解权属材料与变更周期。",
-          "lastMessageAt": "2026-01-11T09:00:00Z",
-          "unreadCount": 1,
+          "lastMessagePreview": "关于这个书画的价格，还能再优惠吗？",
+          "lastMessageAt": "2026-01-31T09:30:00",
+          "unreadCount": 0,
           "counterpart": {
             "id": "c5b6438a-f3a7-4590-a484-0f2a2991c613",
-            "nickname": "某新能源企业",
+            "nickname": "王经理（中科研院）",
             "avatarUrl": ""
           }
         }
@@ -1154,7 +1789,7 @@
       "page": {
         "page": 1,
         "pageSize": 20,
-        "total": 1
+        "total": 3
       }
     }
   },
@@ -1194,6 +1829,16 @@
           "type": "TEXT",
           "text": "可以，材料齐全后我们会配合办理，平台客服会跟单。",
           "createdAt": "2026-01-11T09:00:00Z"
+        },
+        {
+          "id": "m0000000-0000-0000-0000-000000000004",
+          "conversationId": "127a267b-d5f8-4b39-acf8-855dff7258b0",
+          "senderUserId": "c5b6438a-f3a7-4590-a484-0f2a2991c613",
+          "type": "REFERENCE",
+          "referenceType": "MATERIAL",
+          "referenceTitle": "权属证明材料（示例）",
+          "referenceNote": "来自专利发布材料",
+          "createdAt": "2026-01-11T09:00:30Z"
         }
       ],
       "nextCursor": null
@@ -1231,6 +1876,7 @@
       "applicationNoDisplay": "202311340972.0",
       "patentType": "INVENTION",
       "title": "一种用于锂电池热管理的散热结构（待审核）",
+      "coverUrl": "https://picsum.photos/seed/listing-5145/800/500",
       "inventorNames": [
         "张三",
         "李四"
@@ -1354,7 +2000,7 @@
       "verificationType": "COMPANY",
       "verificationStatus": "APPROVED",
       "regionCode": "110000",
-      "logoUrl": "https://example.com/logo-1.png",
+      "logoUrl": "",
       "intro": "聚焦新能源与储能技术转化。",
       "stats": {
         "listingCount": 12,
@@ -1404,9 +2050,18 @@
       "jurisdiction": "CN",
       "applicationNoNorm": "2023113409720",
       "applicationNoDisplay": "202311340972.0",
+      "patentNoDisplay": "ZL202311340972.0",
+      "publicationNoDisplay": "CN116168409A",
+      "grantPublicationNoDisplay": "CN116168409B",
       "patentType": "INVENTION",
       "title": "一种用于锂电池热管理的散热结构",
       "abstract": "适用于动力电池包散热与温控，具备结构简单、散热效率高等优点（演示）。",
+      "caseStatus": "专利权维持",
+      "mainIpcCode": "G06V30/42",
+      "claimCount": 24,
+      "specPageCount": 18,
+      "specWordCount": 12000,
+      "specFigureCount": 6,
       "inventorNames": [
         "张三",
         "李四"
@@ -1419,9 +2074,49 @@
       ],
       "filingDate": "2023-10-20",
       "publicationDate": "2024-05-01",
+      "grantDate": "2025-07-21",
       "legalStatus": "PENDING",
       "sourcePrimary": "USER",
       "sourceUpdatedAt": "2026-01-10T00:00:00Z",
+      "media": [
+        {
+          "fileId": "b91e5c40-7c5c-4b87-ae7a-9a8fdf3f5d2a",
+          "type": "COVER",
+          "sort": 0,
+          "url": "https://picsum.photos/seed/patent-cover/800/500"
+        },
+        {
+          "fileId": "3a2f9a4d-1b6f-4c1b-9cc0-7c3c6c7a1e21",
+          "type": "SPEC_FIGURE",
+          "sort": 1,
+          "url": "https://picsum.photos/seed/patent-fig-1/800/600"
+        },
+        {
+          "fileId": "3fb9e2f5-9a12-4e73-99c9-5b3b993b2a2e",
+          "type": "SPEC_FIGURE",
+          "sort": 2,
+          "url": "https://picsum.photos/seed/patent-fig-2/800/600"
+        },
+        {
+          "fileId": "c43153c3-6f85-4bd8-9f83-24b3f4f6b9fd",
+          "type": "SPEC_FIGURE",
+          "sort": 3,
+          "url": "https://picsum.photos/seed/patent-fig-3/800/600"
+        }
+      ],
+      "tradeSnapshot": {
+        "listingId": "1f4d128c-9b7f-4f5f-9a42-2c7f2b1c1f88",
+        "priceType": "FIXED",
+        "priceAmountFen": 6800000,
+        "depositAmountFen": 200000,
+        "supplyType": "UNIVERSITY_985",
+        "seller": {
+          "nickname": "某高校技术转移中心",
+          "avatarUrl": "",
+          "verificationType": "ACADEMY",
+          "orgCategory": "UNIVERSITY_985"
+        }
+      },
       "createdAt": "2026-01-01T00:00:00Z",
       "updatedAt": "2026-01-10T00:00:00Z"
     }
@@ -1841,14 +2536,14 @@
       "items": [
         {
           "id": "81875741-fede-4d3c-adf9-9c8774964f50",
-          "title": "寻求电池热管理材料的许可/联合开发",
+          "title": "寻求电池热管理材料的技术咨询/平台共建",
           "summary": "面向新能源车电池包，寻求高导热绝缘材料与结构方案，期望半年内完成样机验证。",
           "budgetType": "FIXED",
           "budgetMinFen": 5000000,
           "budgetMaxFen": 15000000,
           "cooperationModes": [
-            "LICENSE",
-            "JOINT_DEV"
+            "TECH_CONSULTING",
+            "PLATFORM_CO_BUILD"
           ],
           "regionCode": "310000",
           "industryTags": [
@@ -1867,7 +2562,7 @@
             "verificationType": "ACADEMY",
             "verificationStatus": "APPROVED",
             "regionCode": "310000",
-            "logoUrl": "https://example.com/org-academy.png",
+            "logoUrl": "",
             "intro": "聚焦新能源与新材料成果转化。",
             "stats": {
               "listingCount": 12,
@@ -1882,17 +2577,17 @@
           },
           "auditStatus": "APPROVED",
           "status": "ACTIVE",
-          "coverUrl": "https://example.com/media/demand-cover-1.jpg",
+          "coverUrl": "https://picsum.photos/seed/demand-8187/800/500",
           "createdAt": "2026-01-10T08:00:00Z"
         },
         {
           "id": "b6896923-5714-4ed9-9973-c307c5b687a6",
           "title": "可降解医用包装材料合作需求",
-          "summary": "预算面议，寻求可降解材料配方与工艺验证，倾向联合开发/股权合作。",
+          "summary": "预算面议，寻求可降解材料配方与工艺验证，倾向平台共建/委托开发。",
           "budgetType": "NEGOTIABLE",
           "cooperationModes": [
-            "EQUITY",
-            "JOINT_DEV"
+            "PLATFORM_CO_BUILD",
+            "TRANSFER"
           ],
           "regionCode": "110000",
           "industryTags": [
@@ -1911,7 +2606,7 @@
             "verificationType": "COMPANY",
             "verificationStatus": "APPROVED",
             "regionCode": "110000",
-            "logoUrl": "https://example.com/org-bio.png",
+            "logoUrl": "",
             "intro": "面向生物医药材料与器械产业化。",
             "stats": {
               "listingCount": 6,
@@ -1926,7 +2621,7 @@
           },
           "auditStatus": "APPROVED",
           "status": "ACTIVE",
-          "coverUrl": "https://example.com/media/demand-cover-2.jpg",
+          "coverUrl": "https://picsum.photos/seed/demand-b689/800/500",
           "createdAt": "2026-01-09T09:30:00Z"
         },
         {
@@ -1938,7 +2633,7 @@
           "budgetMaxFen": 8000000,
           "cooperationModes": [
             "TRANSFER",
-            "LICENSE"
+            "TECH_CONSULTING"
           ],
           "regionCode": "310000",
           "industryTags": [
@@ -1957,7 +2652,7 @@
             "verificationType": "ACADEMY",
             "verificationStatus": "APPROVED",
             "regionCode": "310000",
-            "logoUrl": "https://example.com/org-sensor.png",
+            "logoUrl": "",
             "intro": "聚焦传感器封装与可靠性测试。",
             "stats": {
               "listingCount": 3,
@@ -1972,7 +2667,7 @@
           },
           "auditStatus": "APPROVED",
           "status": "ACTIVE",
-          "coverUrl": "https://example.com/media/demand-cover-3.jpg",
+          "coverUrl": "https://picsum.photos/seed/demand-a3a4/800/500",
           "createdAt": "2026-01-08T07:50:00Z"
         }
       ],
@@ -1989,55 +2684,56 @@
       "items": [
         {
           "id": "7595bfdb-044d-4580-99bf-537a07c2577c",
-          "title": "高安全储能电解质材料成果",
-          "summary": "已完成中试，具备量产条件，寻求产业化合作。",
+          "title": "粮食作物规模化制繁种智能化技术与装备研发",
+          "summary": "项目围绕粮食作物规模化制繁种场景，研发智能化制繁种技术与装备，覆盖播种、管理、收获与数据管理等关键环节，提升规模化生产的效率与标准化水平。\n\n项目在海南三亚、东方等地开展示范与推广，采取“边研发、边推广”的推进方式，在企业与基地开展应用验证，促进成果快速落地。\n\n当前成果已形成示范应用基础，可进一步与产业主体协作，推进持续推广与应用。",
           "maturity": "PILOT",
           "cooperationModes": [
-            "EQUITY",
-            "JOINT_DEV"
+            "PLATFORM_CO_BUILD",
+            "COMMISSIONED_DEV"
           ],
-          "regionCode": "110000",
+          "regionCode": "460000",
           "industryTags": [
-            "新材料",
-            "储能"
+            "现代农业",
+            "智能农机",
+            "种业"
           ],
           "keywords": [
-            "电解质",
-            "高安全",
-            "储能"
+            "制繁种",
+            "智能化",
+            "装备"
           ],
           "publisher": {
-            "userId": "c5b6438a-f3a7-4590-a484-0f2a2991c613",
-            "displayName": "某新能源企业",
-            "verificationType": "COMPANY",
+            "userId": "8b5c1e49-2c34-4f2a-9a4e-21c95f1421b8",
+            "displayName": "海南大学",
+            "verificationType": "ACADEMY",
             "verificationStatus": "APPROVED",
-            "regionCode": "110000",
-            "logoUrl": "https://example.com/org-company.png",
-            "intro": "专注储能材料与系统集成。",
+            "regionCode": "460000",
+            "logoUrl": "",
+            "intro": "高校科研机构，面向农业智能装备与成果转化。",
             "stats": {
-              "listingCount": 24,
-              "patentCount": 128
+              "listingCount": 12,
+              "patentCount": 68
             },
-            "verifiedAt": "2026-01-05T00:00:00Z"
+            "verifiedAt": "2025-04-11T00:00:00Z"
           },
           "stats": {
-            "viewCount": 86,
-            "favoriteCount": 5,
-            "consultCount": 2
+            "viewCount": 96,
+            "favoriteCount": 8,
+            "consultCount": 3
           },
           "auditStatus": "APPROVED",
           "status": "ACTIVE",
-          "coverUrl": "https://example.com/media/achievement-cover-1.jpg",
-          "createdAt": "2026-01-09T06:30:00Z"
+          "coverUrl": "/assets/achievements/achievement-hainu-1.jpg",
+          "createdAt": "2025-04-11T02:30:00Z"
         },
         {
           "id": "8f068f15-2d07-43a5-bdd0-b05c9bb94b83",
           "title": "高密度电池管理系统算法",
-          "summary": "原型完成，寻求技术转让/许可。",
+          "summary": "原型完成，寻求专利转让/技术咨询。",
           "maturity": "PROTOTYPE",
           "cooperationModes": [
             "TRANSFER",
-            "LICENSE"
+            "TECH_CONSULTING"
           ],
           "regionCode": "310000",
           "industryTags": [
@@ -2055,7 +2751,7 @@
             "verificationType": "COMPANY",
             "verificationStatus": "APPROVED",
             "regionCode": "310000",
-            "logoUrl": "https://example.com/org-bms.png",
+            "logoUrl": "",
             "intro": "专注电池管理系统与储能技术。",
             "stats": {
               "listingCount": 18,
@@ -2070,17 +2766,17 @@
           },
           "auditStatus": "APPROVED",
           "status": "ACTIVE",
-          "coverUrl": "https://example.com/media/achievement-cover-2.jpg",
+          "coverUrl": "/assets/achievements/achievement-hainu-2.jpg",
           "createdAt": "2026-01-08T06:10:00Z"
         },
         {
           "id": "91a8993b-ffbb-4b52-9e8d-b8db278f4601",
           "title": "生物医药靶点筛选平台",
-          "summary": "已产业化，开放股权合作与联合开发。",
+          "summary": "已产业化，开放平台共建与委托开发。",
           "maturity": "COMMERCIALIZED",
           "cooperationModes": [
-            "EQUITY",
-            "JOINT_DEV"
+            "PLATFORM_CO_BUILD",
+            "TRANSFER"
           ],
           "regionCode": "110000",
           "industryTags": [
@@ -2097,7 +2793,7 @@
             "verificationType": "COMPANY",
             "verificationStatus": "APPROVED",
             "regionCode": "110000",
-            "logoUrl": "https://example.com/org-bio.png",
+            "logoUrl": "",
             "intro": "提供靶点发现与验证平台化服务。",
             "stats": {
               "listingCount": 9,
@@ -2112,7 +2808,7 @@
           },
           "auditStatus": "APPROVED",
           "status": "ACTIVE",
-          "coverUrl": "https://example.com/media/achievement-cover-3.jpg",
+          "coverUrl": "/assets/achievements/achievement-hainu-3.jpg",
           "createdAt": "2026-01-07T06:10:00Z"
         }
       ],
@@ -2127,14 +2823,14 @@
     "status": 200,
     "body": {
       "id": "81875741-fede-4d3c-adf9-9c8774964f50",
-      "title": "寻求电池热管理材料的许可/联合开发",
+      "title": "寻求电池热管理材料的技术咨询/平台共建",
       "summary": "面向新能源车电池包，寻求高导热绝缘材料与结构方案，期望半年内完成样机验证。",
       "budgetType": "FIXED",
       "budgetMinFen": 5000000,
       "budgetMaxFen": 15000000,
       "cooperationModes": [
-        "LICENSE",
-        "JOINT_DEV"
+        "TECH_CONSULTING",
+        "PLATFORM_CO_BUILD"
       ],
       "regionCode": "310000",
       "industryTags": [
@@ -2153,7 +2849,7 @@
         "verificationType": "ACADEMY",
         "verificationStatus": "APPROVED",
         "regionCode": "310000",
-        "logoUrl": "https://example.com/org-academy.png",
+        "logoUrl": "",
         "intro": "聚焦新能源与新材料成果转化。",
         "stats": {
           "listingCount": 12,
@@ -2168,15 +2864,15 @@
       },
       "auditStatus": "APPROVED",
       "status": "ACTIVE",
-      "coverUrl": "https://example.com/media/demand-cover-1.jpg",
+      "coverUrl": "",
       "createdAt": "2026-01-10T08:00:00Z",
-      "description": "希望对接具备热管理材料/结构方案的团队，重点关注：高导热、阻燃、耐老化与可量产性。可接受许可或联合开发模式。",
+      "description": "希望对接具备热管理材料/结构方案的团队，重点关注：高导热、阻燃、耐老化与可量产性。可接受技术咨询或平台共建模式。",
       "media": [
         {
           "fileId": "1ec58127-88e0-46f1-ad9c-bc81782badcf",
           "type": "IMAGE",
           "sort": 0,
-          "url": "https://example.com/media/demand-1-1.jpg",
+          "url": "",
           "mimeType": "image/jpeg",
           "sizeBytes": 234567,
           "fileName": "demand-1-1.jpg"
@@ -2194,7 +2890,7 @@
           "fileId": "d5e4bcf1-ce2a-4d82-983f-6daa1411e921",
           "type": "FILE",
           "sort": 2,
-          "url": "https://example.com/files/demand-brief.pdf",
+          "url": "",
           "mimeType": "application/pdf",
           "sizeBytes": 1234567,
           "fileName": "需求简要说明.pdf"
@@ -2234,7 +2930,7 @@
               "user": {
                 "id": "72f8697a-b950-406c-bc4f-2484a32cbb78",
                 "nickname": "某高校技术转移中心",
-                "avatarUrl": "https://example.com/org-academy.png",
+                "avatarUrl": "",
                 "role": "seller",
                 "verificationStatus": "APPROVED",
                 "verificationType": "ACADEMY"
@@ -2256,65 +2952,75 @@
     "status": 200,
     "body": {
       "id": "7595bfdb-044d-4580-99bf-537a07c2577c",
-      "title": "高安全储能电解质材料成果",
-      "summary": "已完成中试，具备量产条件，寻求产业化合作。",
+      "title": "粮食作物规模化制繁种智能化技术与装备研发",
+      "summary": "项目围绕粮食作物规模化制繁种场景，研发智能化制繁种技术与装备，覆盖播种、管理、收获与数据管理等关键环节，提升规模化生产的效率与标准化水平。\n\n项目在海南三亚、东方等地开展示范与推广，采取“边研发、边推广”的推进方式，在企业与基地开展应用验证，促进成果快速落地。\n\n当前成果已形成示范应用基础，可进一步与产业主体协作，推进持续推广与应用。",
       "maturity": "PILOT",
       "cooperationModes": [
-        "EQUITY",
-        "JOINT_DEV"
+        "PLATFORM_CO_BUILD",
+        "COMMISSIONED_DEV"
       ],
-      "regionCode": "110000",
+      "regionCode": "460000",
       "industryTags": [
-        "新材料",
-        "储能"
+        "现代农业",
+        "智能农机",
+        "种业"
       ],
       "keywords": [
-        "电解质",
-        "高安全",
-        "储能"
+        "制繁种",
+        "智能化",
+        "装备"
       ],
       "publisher": {
-        "userId": "c5b6438a-f3a7-4590-a484-0f2a2991c613",
-        "displayName": "某新能源企业",
-        "verificationType": "COMPANY",
+        "userId": "8b5c1e49-2c34-4f2a-9a4e-21c95f1421b8",
+        "displayName": "海南大学",
+        "verificationType": "ACADEMY",
         "verificationStatus": "APPROVED",
-        "regionCode": "110000",
-        "logoUrl": "https://example.com/org-company.png",
-        "intro": "专注储能材料与系统集成。",
+        "regionCode": "460000",
+        "logoUrl": "",
+        "intro": "高校科研机构，面向农业智能装备与成果转化。",
         "stats": {
-          "listingCount": 24,
-          "patentCount": 128
+          "listingCount": 12,
+          "patentCount": 68
         },
-        "verifiedAt": "2026-01-05T00:00:00Z"
+        "verifiedAt": "2025-04-11T00:00:00Z"
       },
       "stats": {
-        "viewCount": 86,
-        "favoriteCount": 5,
-        "consultCount": 2
+        "viewCount": 96,
+        "favoriteCount": 8,
+        "consultCount": 3
       },
       "auditStatus": "APPROVED",
       "status": "ACTIVE",
-      "coverUrl": "https://example.com/media/achievement-cover-1.jpg",
-      "createdAt": "2026-01-09T06:30:00Z",
-      "description": "材料具备高离子电导与优良界面稳定性，适用于高安全储能系统；可提供样品与测试报告。",
+      "coverUrl": "/assets/achievements/achievement-hainu-1.jpg",
+      "createdAt": "2025-04-11T02:30:00Z",
+      "description": "围绕粮食作物规模化制繁种需求，形成智能化技术与装备一体化方案，支持制繁种关键环节的流程优化与数据化管理。\n\n通过示范推广与现场验证，设备与流程在三亚、东方等地完成应用测试，具备继续扩展推广与合作落地的条件。",
       "media": [
         {
-          "fileId": "17d08521-c176-4532-b167-c6a4ee53b4b2",
+          "fileId": "1e21f2c7-2a71-4b54-9d57-70f2bde8bfa3",
           "type": "IMAGE",
           "sort": 0,
-          "url": "https://example.com/media/achievement-1-1.jpg",
+          "url": "/assets/achievements/achievement-hainu-1.jpg",
           "mimeType": "image/jpeg",
-          "sizeBytes": 345678,
-          "fileName": "achievement-1-1.jpg"
+          "sizeBytes": 281632,
+          "fileName": "achievement-hainu-1.jpg"
         },
         {
-          "fileId": "72d7f18a-3adc-425c-9496-2acb3d2bd1a0",
-          "type": "VIDEO",
+          "fileId": "2a35e6a6-9fe0-4b8f-9f84-9d7d13f2f963",
+          "type": "IMAGE",
           "sort": 1,
-          "url": "https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4",
-          "mimeType": "video/mp4",
-          "sizeBytes": 34567890,
-          "fileName": "achievement-1.mp4"
+          "url": "/assets/achievements/achievement-hainu-2.jpg",
+          "mimeType": "image/jpeg",
+          "sizeBytes": 974871,
+          "fileName": "achievement-hainu-2.jpg"
+        },
+        {
+          "fileId": "a94b4d33-2d8d-4ee0-8f3e-27b46b1f3a56",
+          "type": "IMAGE",
+          "sort": 2,
+          "url": "/assets/achievements/achievement-hainu-3.jpg",
+          "mimeType": "image/jpeg",
+          "sizeBytes": 769259,
+          "fileName": "achievement-hainu-3.jpg"
         }
       ]
     }
@@ -2341,7 +3047,25 @@
             "text": "这项成果是否有第三方测试报告/样品可提供？",
             "createdAt": "2026-01-11T11:00:00Z"
           },
-          "replies": []
+          "replies": [
+            {
+              "id": "30000000-0000-4000-8000-000000000002",
+              "contentType": "ACHIEVEMENT",
+              "contentId": "7595bfdb-044d-4580-99bf-537a07c2577c",
+              "parentCommentId": "30000000-0000-4000-8000-000000000001",
+              "status": "VISIBLE",
+              "user": {
+                "id": "d17626d2-0d24-4e1b-9b18-46ff1a7e92a1",
+                "nickname": "成果发布者",
+                "avatarUrl": "",
+                "role": "seller",
+                "verificationStatus": "APPROVED",
+                "verificationType": "ORG"
+              },
+              "text": "您好，年费已缴纳至2026年。转让后可提供为期3个月的免费技术咨询服务。",
+              "createdAt": "2026-01-11T11:10:00Z"
+            }
+          ]
         }
       ],
       "page": {
@@ -2522,7 +3246,7 @@
     "status": 200,
     "body": {
       "id": "81875741-fede-4d3c-adf9-9c8774964f50",
-      "title": "寻求电池热管理材料的许可/联合开发（已下架）",
+      "title": "寻求电池热管理材料的技术咨询/平台共建（已下架）",
       "summary": "面向新能源车电池包，寻求高导热绝缘材料与结构方案，期望半年内完成样机验证。",
       "keywords": [
         "热管理",
@@ -2534,8 +3258,8 @@
       "budgetMinFen": 5000000,
       "budgetMaxFen": 15000000,
       "cooperationModes": [
-        "LICENSE",
-        "JOINT_DEV"
+        "TECH_CONSULTING",
+        "PLATFORM_CO_BUILD"
       ],
       "contactName": "李老师",
       "contactTitle": "技术转移负责人",
@@ -2559,10 +3283,10 @@
       },
       "auditStatus": "APPROVED",
       "status": "OFF_SHELF",
-      "coverUrl": "https://example.com/media/demand-cover-1.jpg",
+      "coverUrl": "",
       "createdAt": "2026-01-10T08:00:00Z",
       "updatedAt": "2026-01-11T02:00:00Z",
-      "description": "希望对接具备热管理材料/结构方案的团队，重点关注：高导热、阻燃、耐老化与可量产性。可接受许可或联合开发模式。",
+      "description": "希望对接具备热管理材料/结构方案的团队，重点关注：高导热、阻燃、耐老化与可量产性。可接受技术咨询或平台共建模式。",
       "coverFileId": null,
       "media": []
     }
@@ -2610,7 +3334,7 @@
       "id": "f31c7f88-ce33-4950-89b7-b75468ac433c",
       "contentType": "DEMAND",
       "contentId": "81875741-fede-4d3c-adf9-9c8774964f50",
-      "contentTitle": "寻求电池热管理材料的许可/联合开发",
+      "contentTitle": "寻求电池热管理材料的技术咨询/平台共建",
       "orderId": null,
       "buyerUserId": "c776f954-77a5-49d9-b778-77a1120d1be9",
       "sellerUserId": "72f8697a-b950-406c-bc4f-2484a32cbb78",
@@ -2765,43 +3489,80 @@
     "status": 200,
     "body": {
       "id": "7595bfdb-044d-4580-99bf-537a07c2577c",
-      "title": "高安全储能电解质材料成果（已下架）",
-      "summary": "已完成中试，具备量产条件，寻求产业化合作。",
+      "title": "粮食作物规模化制繁种智能化技术与装备研发",
+      "summary": "项目围绕粮食作物规模化制繁种场景，研发智能化制繁种技术与装备，覆盖播种、管理、收获与数据管理等关键环节，提升规模化生产的效率与标准化水平。\n\n项目在海南三亚、东方等地开展示范与推广，采取“边研发、边推广”的推进方式，在企业与基地开展应用验证，促进成果快速落地。\n\n当前成果已形成示范应用基础，可进一步与产业主体协作，推进持续推广与应用。",
       "keywords": [
-        "电解质",
-        "高安全",
-        "储能"
+        "制繁种",
+        "智能化",
+        "装备"
       ],
       "maturity": "PILOT",
       "cooperationModes": [
-        "EQUITY",
-        "JOINT_DEV"
+        "PLATFORM_CO_BUILD",
+        "COMMISSIONED_DEV"
       ],
-      "regionCode": "110000",
+      "regionCode": "460000",
       "industryTags": [
-        "新材料",
-        "储能"
+        "现代农业",
+        "智能农机",
+        "种业"
       ],
-      "publisherUserId": "c5b6438a-f3a7-4590-a484-0f2a2991c613",
+      "publisherUserId": "8b5c1e49-2c34-4f2a-9a4e-21c95f1421b8",
       "publisher": {
-        "userId": "c5b6438a-f3a7-4590-a484-0f2a2991c613",
-        "displayName": "某新能源企业",
-        "verificationType": "COMPANY",
-        "verificationStatus": "APPROVED"
+        "userId": "8b5c1e49-2c34-4f2a-9a4e-21c95f1421b8",
+        "displayName": "海南大学",
+        "verificationType": "ACADEMY",
+        "verificationStatus": "APPROVED",
+        "regionCode": "460000",
+        "logoUrl": "",
+        "intro": "高校科研机构，面向农业智能装备与成果转化。",
+        "stats": {
+          "listingCount": 12,
+          "patentCount": 68
+        },
+        "verifiedAt": "2025-04-11T00:00:00Z"
       },
       "stats": {
-        "viewCount": 86,
-        "favoriteCount": 5,
-        "consultCount": 2
+        "viewCount": 96,
+        "favoriteCount": 8,
+        "consultCount": 3
       },
       "auditStatus": "APPROVED",
       "status": "OFF_SHELF",
-      "coverUrl": "https://example.com/media/achievement-cover-1.jpg",
-      "createdAt": "2026-01-09T06:30:00Z",
+      "coverUrl": "/assets/achievements/achievement-hainu-1.jpg",
+      "createdAt": "2025-04-11T02:30:00Z",
       "updatedAt": "2026-01-11T02:00:00Z",
-      "description": "材料具备高离子电导与优良界面稳定性，适用于高安全储能系统；可提供样品与测试报告。",
+      "description": "围绕粮食作物规模化制繁种需求，形成智能化技术与装备一体化方案，支持制繁种关键环节的流程优化与数据化管理。\n\n通过示范推广与现场验证，设备与流程在三亚、东方等地完成应用测试，具备继续扩展推广与合作落地的条件。",
       "coverFileId": null,
-      "media": []
+      "media": [
+        {
+          "fileId": "1e21f2c7-2a71-4b54-9d57-70f2bde8bfa3",
+          "type": "IMAGE",
+          "sort": 0,
+          "url": "/assets/achievements/achievement-hainu-1.jpg",
+          "mimeType": "image/jpeg",
+          "sizeBytes": 281632,
+          "fileName": "achievement-hainu-1.jpg"
+        },
+        {
+          "fileId": "2a35e6a6-9fe0-4b8f-9f84-9d7d13f2f963",
+          "type": "IMAGE",
+          "sort": 1,
+          "url": "/assets/achievements/achievement-hainu-2.jpg",
+          "mimeType": "image/jpeg",
+          "sizeBytes": 974871,
+          "fileName": "achievement-hainu-2.jpg"
+        },
+        {
+          "fileId": "a94b4d33-2d8d-4ee0-8f3e-27b46b1f3a56",
+          "type": "IMAGE",
+          "sort": 2,
+          "url": "/assets/achievements/achievement-hainu-3.jpg",
+          "mimeType": "image/jpeg",
+          "sizeBytes": 769259,
+          "fileName": "achievement-hainu-3.jpg"
+        }
+      ]
     }
   },
   "POST /achievements/:achievementId/comments": {
@@ -2871,7 +3632,7 @@
     "status": 200,
     "body": {
       "id": "81875741-fede-4d3c-adf9-9c8774964f50",
-      "title": "寻求电池热管理材料的许可/联合开发",
+      "title": "寻求电池热管理材料的技术咨询/平台共建",
       "summary": "面向新能源车电池包，寻求高导热绝缘材料与结构方案，期望半年内完成样机验证。",
       "keywords": [
         "热管理",
@@ -2883,8 +3644,8 @@
       "budgetMinFen": 5000000,
       "budgetMaxFen": 15000000,
       "cooperationModes": [
-        "LICENSE",
-        "JOINT_DEV"
+        "TECH_CONSULTING",
+        "PLATFORM_CO_BUILD"
       ],
       "contactName": "李老师",
       "contactTitle": "技术转移负责人",
@@ -2908,10 +3669,10 @@
       },
       "auditStatus": "APPROVED",
       "status": "ACTIVE",
-      "coverUrl": "https://example.com/media/demand-cover-1.jpg",
+      "coverUrl": "",
       "createdAt": "2026-01-10T08:00:00Z",
       "updatedAt": "2026-01-11T02:10:00Z",
-      "description": "希望对接具备热管理材料/结构方案的团队，重点关注：高导热、阻燃、耐老化与可量产性。可接受许可或联合开发模式。",
+      "description": "希望对接具备热管理材料/结构方案的团队，重点关注：高导热、阻燃、耐老化与可量产性。可接受技术咨询或平台共建模式。",
       "coverFileId": null,
       "media": []
     }
@@ -2970,43 +3731,80 @@
     "status": 200,
     "body": {
       "id": "7595bfdb-044d-4580-99bf-537a07c2577c",
-      "title": "高安全储能电解质材料成果",
-      "summary": "已完成中试，具备量产条件，寻求产业化合作。",
+      "title": "粮食作物规模化制繁种智能化技术与装备研发",
+      "summary": "项目围绕粮食作物规模化制繁种场景，研发智能化制繁种技术与装备，覆盖播种、管理、收获与数据管理等关键环节，提升规模化生产的效率与标准化水平。\n\n项目在海南三亚、东方等地开展示范与推广，采取“边研发、边推广”的推进方式，在企业与基地开展应用验证，促进成果快速落地。\n\n当前成果已形成示范应用基础，可进一步与产业主体协作，推进持续推广与应用。",
       "keywords": [
-        "电解质",
-        "高安全",
-        "储能"
+        "制繁种",
+        "智能化",
+        "装备"
       ],
       "maturity": "PILOT",
       "cooperationModes": [
-        "EQUITY",
-        "JOINT_DEV"
+        "PLATFORM_CO_BUILD",
+        "COMMISSIONED_DEV"
       ],
-      "regionCode": "110000",
+      "regionCode": "460000",
       "industryTags": [
-        "新材料",
-        "储能"
+        "现代农业",
+        "智能农机",
+        "种业"
       ],
-      "publisherUserId": "c5b6438a-f3a7-4590-a484-0f2a2991c613",
+      "publisherUserId": "8b5c1e49-2c34-4f2a-9a4e-21c95f1421b8",
       "publisher": {
-        "userId": "c5b6438a-f3a7-4590-a484-0f2a2991c613",
-        "displayName": "某新能源企业",
-        "verificationType": "COMPANY",
-        "verificationStatus": "APPROVED"
+        "userId": "8b5c1e49-2c34-4f2a-9a4e-21c95f1421b8",
+        "displayName": "海南大学",
+        "verificationType": "ACADEMY",
+        "verificationStatus": "APPROVED",
+        "regionCode": "460000",
+        "logoUrl": "",
+        "intro": "高校科研机构，面向农业智能装备与成果转化。",
+        "stats": {
+          "listingCount": 12,
+          "patentCount": 68
+        },
+        "verifiedAt": "2025-04-11T00:00:00Z"
       },
       "stats": {
-        "viewCount": 86,
-        "favoriteCount": 5,
-        "consultCount": 2
+        "viewCount": 96,
+        "favoriteCount": 8,
+        "consultCount": 3
       },
       "auditStatus": "APPROVED",
       "status": "ACTIVE",
-      "coverUrl": "https://example.com/media/achievement-cover-1.jpg",
-      "createdAt": "2026-01-09T06:30:00Z",
+      "coverUrl": "/assets/achievements/achievement-hainu-1.jpg",
+      "createdAt": "2025-04-11T02:30:00Z",
       "updatedAt": "2026-01-11T02:10:00Z",
-      "description": "材料具备高离子电导与优良界面稳定性，适用于高安全储能系统；可提供样品与测试报告。",
+      "description": "围绕粮食作物规模化制繁种需求，形成智能化技术与装备一体化方案，支持制繁种关键环节的流程优化与数据化管理。\n\n通过示范推广与现场验证，设备与流程在三亚、东方等地完成应用测试，具备继续扩展推广与合作落地的条件。",
       "coverFileId": null,
-      "media": []
+      "media": [
+        {
+          "fileId": "1e21f2c7-2a71-4b54-9d57-70f2bde8bfa3",
+          "type": "IMAGE",
+          "sort": 0,
+          "url": "/assets/achievements/achievement-hainu-1.jpg",
+          "mimeType": "image/jpeg",
+          "sizeBytes": 281632,
+          "fileName": "achievement-hainu-1.jpg"
+        },
+        {
+          "fileId": "2a35e6a6-9fe0-4b8f-9f84-9d7d13f2f963",
+          "type": "IMAGE",
+          "sort": 1,
+          "url": "/assets/achievements/achievement-hainu-2.jpg",
+          "mimeType": "image/jpeg",
+          "sizeBytes": 974871,
+          "fileName": "achievement-hainu-2.jpg"
+        },
+        {
+          "fileId": "a94b4d33-2d8d-4ee0-8f3e-27b46b1f3a56",
+          "type": "IMAGE",
+          "sort": 2,
+          "url": "/assets/achievements/achievement-hainu-3.jpg",
+          "mimeType": "image/jpeg",
+          "sizeBytes": 769259,
+          "fileName": "achievement-hainu-3.jpg"
+        }
+      ]
     }
   },
   "POST /admin/achievements/:achievementId/reject": {
@@ -3116,7 +3914,7 @@
           "priceAmountFen": 18800000,
           "depositAmountFen": 200000,
           "regionCode": "510000",
-          "coverUrl": "https://example.com/media/artwork-1.jpg",
+          "coverUrl": "",
           "auditStatus": "APPROVED",
           "status": "ACTIVE",
           "createdAt": "2026-01-10T10:00:00Z",
@@ -3128,7 +3926,7 @@
         },
         {
           "id": "8c1b2f2e-4c6f-4ff2-8a9c-7b2e5e3df0b2",
-          "title": "?????????",
+          "title": "?????????????",
           "category": "CALLIGRAPHY",
           "calligraphyScript": "XINGSHU",
           "creatorName": "??",
@@ -3136,7 +3934,7 @@
           "priceType": "NEGOTIABLE",
           "depositAmountFen": 120000,
           "regionCode": "110000",
-          "coverUrl": "https://example.com/media/artwork-2.jpg",
+          "coverUrl": "",
           "auditStatus": "APPROVED",
           "status": "ACTIVE",
           "createdAt": "2026-01-09T09:00:00Z",
@@ -3167,7 +3965,7 @@
       "priceAmountFen": 18800000,
       "depositAmountFen": 200000,
       "regionCode": "510000",
-      "coverUrl": "https://example.com/media/artwork-1.jpg",
+      "coverUrl": "",
       "auditStatus": "APPROVED",
       "status": "ACTIVE",
       "createdAt": "2026-01-10T10:00:00Z",
@@ -3184,14 +3982,14 @@
         "verificationStatus": "APPROVED",
         "verificationType": "ASSOCIATION"
       },
-      "description": "???????????????????",
+      "description": "?????????????????????????????",
       "certificateNo": "????-2023-F-0123456",
       "media": [
         {
           "fileId": "6b5b98b2-4aab-4a75-8f2b-0dd2c56d49f4",
           "type": "IMAGE",
           "sort": 1,
-          "url": "https://example.com/media/artwork-1.jpg",
+          "url": "",
           "mimeType": "image/jpeg",
           "sizeBytes": 245678,
           "fileName": "artwork-1.jpg"
@@ -3212,7 +4010,7 @@
       "priceAmountFen": 18800000,
       "depositAmountFen": 200000,
       "regionCode": "510000",
-      "coverUrl": "https://example.com/media/artwork-1.jpg",
+      "coverUrl": "",
       "auditStatus": "APPROVED",
       "status": "ACTIVE",
       "createdAt": "2026-01-10T10:00:00Z",
@@ -3229,14 +4027,14 @@
         "verificationStatus": "APPROVED",
         "verificationType": "ASSOCIATION"
       },
-      "description": "???????????????????",
+      "description": "?????????????????????????????",
       "certificateNo": "????-2023-F-0123456",
       "media": [
         {
           "fileId": "6b5b98b2-4aab-4a75-8f2b-0dd2c56d49f4",
           "type": "IMAGE",
           "sort": 1,
-          "url": "https://example.com/media/artwork-1.jpg",
+          "url": "",
           "mimeType": "image/jpeg",
           "sizeBytes": 245678,
           "fileName": "artwork-1.jpg"
@@ -3263,7 +4061,7 @@
               "verificationStatus": "APPROVED",
               "verificationType": "PERSON"
             },
-            "text": "?????????????????",
+            "text": "???????????????????????????",
             "createdAt": "2026-01-11T09:00:00Z"
           },
           "replies": []
@@ -3295,7 +4093,7 @@
               "verificationStatus": "APPROVED",
               "verificationType": "PERSON"
             },
-            "text": "?????????????????",
+            "text": "???????????????????????????",
             "createdAt": "2026-01-11T09:00:00Z"
           },
           "replies": []
@@ -3324,7 +4122,7 @@
         "verificationStatus": "APPROVED",
         "verificationType": "PERSON"
       },
-      "text": "?????????",
+      "text": "?????????????",
       "createdAt": "2026-01-11T10:20:00Z"
     }
   },
@@ -3359,8 +4157,8 @@
           "verificationType": "TECH_MANAGER",
           "verificationStatus": "APPROVED",
           "regionCode": "310000",
-          "avatarUrl": "https://example.com/avatar-tech-1.png",
-          "intro": "????????????????",
+          "avatarUrl": "",
+          "intro": "????????????????????????",
           "serviceTags": [
             "????",
             "????",
@@ -3390,8 +4188,8 @@
       "verificationType": "TECH_MANAGER",
       "verificationStatus": "APPROVED",
       "regionCode": "310000",
-      "avatarUrl": "https://example.com/avatar-tech-1.png",
-      "intro": "????????????????",
+      "avatarUrl": "",
+      "intro": "????????????????????????",
       "serviceTags": [
         "????",
         "????",
@@ -3439,7 +4237,7 @@
           "priceAmountFen": 18800000,
           "depositAmountFen": 200000,
           "regionCode": "510000",
-          "coverUrl": "https://example.com/media/artwork-1.jpg",
+          "coverUrl": "",
           "auditStatus": "APPROVED",
           "status": "ACTIVE",
           "createdAt": "2026-01-10T10:00:00Z",
@@ -3449,7 +4247,7 @@
             "consultCount": 2
           },
           "sellerUserId": "72f8697a-b950-406c-bc4f-2484a32cbb78",
-          "description": "???????????????????",
+          "description": "?????????????????????????????",
           "certificateNo": "????-2023-F-0123456",
           "certificateFileIds": [
             "1d7b45b5-2e4a-4f91-93e3-9c5bcb0df1a1"
@@ -3460,7 +4258,7 @@
               "fileId": "6b5b98b2-4aab-4a75-8f2b-0dd2c56d49f4",
               "type": "IMAGE",
               "sort": 1,
-              "url": "https://example.com/media/artwork-1.jpg",
+              "url": "",
               "mimeType": "image/jpeg",
               "sizeBytes": 245678,
               "fileName": "artwork-1.jpg"
@@ -3489,7 +4287,7 @@
       "priceAmountFen": 18800000,
       "depositAmountFen": 200000,
       "regionCode": "510000",
-      "coverUrl": "https://example.com/media/artwork-1.jpg",
+      "coverUrl": "",
       "auditStatus": "APPROVED",
       "status": "ACTIVE",
       "createdAt": "2026-01-10T10:00:00Z",
@@ -3499,7 +4297,7 @@
         "consultCount": 2
       },
       "sellerUserId": "72f8697a-b950-406c-bc4f-2484a32cbb78",
-      "description": "???????????????????",
+      "description": "?????????????????????????????",
       "certificateNo": "????-2023-F-0123456",
       "certificateFileIds": [
         "1d7b45b5-2e4a-4f91-93e3-9c5bcb0df1a1"
@@ -3510,7 +4308,7 @@
           "fileId": "6b5b98b2-4aab-4a75-8f2b-0dd2c56d49f4",
           "type": "IMAGE",
           "sort": 1,
-          "url": "https://example.com/media/artwork-1.jpg",
+          "url": "",
           "mimeType": "image/jpeg",
           "sizeBytes": 245678,
           "fileName": "artwork-1.jpg"
@@ -3532,7 +4330,7 @@
       "priceAmountFen": 18800000,
       "depositAmountFen": 200000,
       "regionCode": "510000",
-      "coverUrl": "https://example.com/media/artwork-1.jpg",
+      "coverUrl": "",
       "auditStatus": "PENDING",
       "status": "DRAFT",
       "createdAt": "2026-01-10T10:00:00Z",
@@ -3542,7 +4340,7 @@
         "consultCount": 2
       },
       "sellerUserId": "72f8697a-b950-406c-bc4f-2484a32cbb78",
-      "description": "???????????????????",
+      "description": "?????????????????????????????",
       "certificateNo": "????-2023-F-0123456",
       "certificateFileIds": [
         "1d7b45b5-2e4a-4f91-93e3-9c5bcb0df1a1"
@@ -3553,7 +4351,7 @@
           "fileId": "6b5b98b2-4aab-4a75-8f2b-0dd2c56d49f4",
           "type": "IMAGE",
           "sort": 1,
-          "url": "https://example.com/media/artwork-1.jpg",
+          "url": "",
           "mimeType": "image/jpeg",
           "sizeBytes": 245678,
           "fileName": "artwork-1.jpg"
@@ -3575,7 +4373,7 @@
       "priceAmountFen": 18800000,
       "depositAmountFen": 200000,
       "regionCode": "510000",
-      "coverUrl": "https://example.com/media/artwork-1.jpg",
+      "coverUrl": "",
       "auditStatus": "APPROVED",
       "status": "ACTIVE",
       "createdAt": "2026-01-10T10:00:00Z",
@@ -3585,7 +4383,7 @@
         "consultCount": 2
       },
       "sellerUserId": "72f8697a-b950-406c-bc4f-2484a32cbb78",
-      "description": "???????????????????",
+      "description": "?????????????????????????????",
       "certificateNo": "????-2023-F-0123456",
       "certificateFileIds": [
         "1d7b45b5-2e4a-4f91-93e3-9c5bcb0df1a1"
@@ -3596,7 +4394,7 @@
           "fileId": "6b5b98b2-4aab-4a75-8f2b-0dd2c56d49f4",
           "type": "IMAGE",
           "sort": 1,
-          "url": "https://example.com/media/artwork-1.jpg",
+          "url": "",
           "mimeType": "image/jpeg",
           "sizeBytes": 245678,
           "fileName": "artwork-1.jpg"
@@ -3618,7 +4416,7 @@
       "priceAmountFen": 18800000,
       "depositAmountFen": 200000,
       "regionCode": "510000",
-      "coverUrl": "https://example.com/media/artwork-1.jpg",
+      "coverUrl": "",
       "auditStatus": "PENDING",
       "status": "ACTIVE",
       "createdAt": "2026-01-10T10:00:00Z",
@@ -3628,7 +4426,7 @@
         "consultCount": 2
       },
       "sellerUserId": "72f8697a-b950-406c-bc4f-2484a32cbb78",
-      "description": "???????????????????",
+      "description": "?????????????????????????????",
       "certificateNo": "????-2023-F-0123456",
       "certificateFileIds": [
         "1d7b45b5-2e4a-4f91-93e3-9c5bcb0df1a1"
@@ -3639,7 +4437,7 @@
           "fileId": "6b5b98b2-4aab-4a75-8f2b-0dd2c56d49f4",
           "type": "IMAGE",
           "sort": 1,
-          "url": "https://example.com/media/artwork-1.jpg",
+          "url": "",
           "mimeType": "image/jpeg",
           "sizeBytes": 245678,
           "fileName": "artwork-1.jpg"
@@ -3661,7 +4459,7 @@
       "priceAmountFen": 18800000,
       "depositAmountFen": 200000,
       "regionCode": "510000",
-      "coverUrl": "https://example.com/media/artwork-1.jpg",
+      "coverUrl": "",
       "auditStatus": "APPROVED",
       "status": "OFF_SHELF",
       "createdAt": "2026-01-10T10:00:00Z",
@@ -3671,7 +4469,7 @@
         "consultCount": 2
       },
       "sellerUserId": "72f8697a-b950-406c-bc4f-2484a32cbb78",
-      "description": "???????????????????",
+      "description": "?????????????????????????????",
       "certificateNo": "????-2023-F-0123456",
       "certificateFileIds": [
         "1d7b45b5-2e4a-4f91-93e3-9c5bcb0df1a1"
@@ -3682,7 +4480,7 @@
           "fileId": "6b5b98b2-4aab-4a75-8f2b-0dd2c56d49f4",
           "type": "IMAGE",
           "sort": 1,
-          "url": "https://example.com/media/artwork-1.jpg",
+          "url": "",
           "mimeType": "image/jpeg",
           "sizeBytes": 245678,
           "fileName": "artwork-1.jpg"
@@ -3697,16 +4495,16 @@
       "items": [
         {
           "id": "3d0b9c7a-1a9f-4b4d-9f6a-3a62b8f6d6e1",
-          "title": "?????",
+          "title": "山水清韵",
           "category": "PAINTING",
           "paintingGenre": "LANDSCAPE",
-          "creatorName": "??",
+          "creatorName": "赵云川",
           "creationYear": 1998,
           "priceType": "FIXED",
           "priceAmountFen": 18800000,
           "depositAmountFen": 200000,
           "regionCode": "510000",
-          "coverUrl": "https://example.com/media/artwork-1.jpg",
+          "coverUrl": "/assets/artworks/artwork-1.jpg",
           "auditStatus": "APPROVED",
           "status": "ACTIVE",
           "createdAt": "2026-01-10T10:00:00Z",
@@ -3714,13 +4512,46 @@
             "viewCount": 56,
             "favoriteCount": 7,
             "consultCount": 2
-          }
+          },
+          "media": [
+            {
+              "url": "/assets/artworks/artwork-1.jpg",
+              "type": "IMAGE"
+            }
+          ]
+        },
+        {
+          "id": "8c1b2f2e-4c6f-4ff2-8a9c-7b2e5e3df0b2",
+          "title": "瑞鹤图",
+          "category": "CALLIGRAPHY",
+          "calligraphyScript": "XINGSHU",
+          "creatorName": "宋徽宗",
+          "creationYear": 2008,
+          "priceType": "FIXED",
+          "priceAmountFen": 18800000,
+          "depositAmountFen": 120000,
+          "regionCode": "110000",
+          "coverUrl": "/assets/artworks/artwork-2.jpg",
+          "auditStatus": "APPROVED",
+          "status": "ACTIVE",
+          "createdAt": "2026-01-09T09:00:00Z",
+          "stats": {
+            "viewCount": 32,
+            "favoriteCount": 4,
+            "consultCount": 1
+          },
+          "media": [
+            {
+              "url": "/assets/artworks/artwork-2.jpg",
+              "type": "IMAGE"
+            }
+          ]
         }
       ],
       "page": {
         "page": 1,
         "pageSize": 10,
-        "total": 1
+        "total": 2
       }
     }
   },
@@ -3739,7 +4570,7 @@
           "priceAmountFen": 18800000,
           "depositAmountFen": 200000,
           "regionCode": "510000",
-          "coverUrl": "https://example.com/media/artwork-1.jpg",
+          "coverUrl": "",
           "auditStatus": "APPROVED",
           "status": "ACTIVE",
           "createdAt": "2026-01-10T10:00:00Z",
@@ -3749,7 +4580,7 @@
             "consultCount": 2
           },
           "sellerUserId": "72f8697a-b950-406c-bc4f-2484a32cbb78",
-          "description": "???????????????????",
+          "description": "?????????????????????????????",
           "certificateNo": "????-2023-F-0123456",
           "certificateFileIds": [
             "1d7b45b5-2e4a-4f91-93e3-9c5bcb0df1a1"
@@ -3760,7 +4591,7 @@
               "fileId": "6b5b98b2-4aab-4a75-8f2b-0dd2c56d49f4",
               "type": "IMAGE",
               "sort": 1,
-              "url": "https://example.com/media/artwork-1.jpg",
+              "url": "",
               "mimeType": "image/jpeg",
               "sizeBytes": 245678,
               "fileName": "artwork-1.jpg"
@@ -3789,7 +4620,7 @@
       "priceAmountFen": 18800000,
       "depositAmountFen": 200000,
       "regionCode": "510000",
-      "coverUrl": "https://example.com/media/artwork-1.jpg",
+      "coverUrl": "",
       "auditStatus": "APPROVED",
       "status": "ACTIVE",
       "createdAt": "2026-01-10T10:00:00Z",
@@ -3799,7 +4630,7 @@
         "consultCount": 2
       },
       "sellerUserId": "72f8697a-b950-406c-bc4f-2484a32cbb78",
-      "description": "???????????????????",
+      "description": "?????????????????????????????",
       "certificateNo": "????-2023-F-0123456",
       "certificateFileIds": [
         "1d7b45b5-2e4a-4f91-93e3-9c5bcb0df1a1"
@@ -3810,7 +4641,7 @@
           "fileId": "6b5b98b2-4aab-4a75-8f2b-0dd2c56d49f4",
           "type": "IMAGE",
           "sort": 1,
-          "url": "https://example.com/media/artwork-1.jpg",
+          "url": "",
           "mimeType": "image/jpeg",
           "sizeBytes": 245678,
           "fileName": "artwork-1.jpg"
@@ -3832,7 +4663,7 @@
       "priceAmountFen": 18800000,
       "depositAmountFen": 200000,
       "regionCode": "510000",
-      "coverUrl": "https://example.com/media/artwork-1.jpg",
+      "coverUrl": "",
       "auditStatus": "REJECTED",
       "status": "ACTIVE",
       "createdAt": "2026-01-10T10:00:00Z",
@@ -3842,7 +4673,7 @@
         "consultCount": 2
       },
       "sellerUserId": "72f8697a-b950-406c-bc4f-2484a32cbb78",
-      "description": "???????????????????",
+      "description": "?????????????????????????????",
       "certificateNo": "????-2023-F-0123456",
       "certificateFileIds": [
         "1d7b45b5-2e4a-4f91-93e3-9c5bcb0df1a1"
@@ -3853,7 +4684,7 @@
           "fileId": "6b5b98b2-4aab-4a75-8f2b-0dd2c56d49f4",
           "type": "IMAGE",
           "sort": 1,
-          "url": "https://example.com/media/artwork-1.jpg",
+          "url": "",
           "mimeType": "image/jpeg",
           "sizeBytes": 245678,
           "fileName": "artwork-1.jpg"
@@ -3872,8 +4703,8 @@
           "verificationType": "TECH_MANAGER",
           "verificationStatus": "APPROVED",
           "regionCode": "310000",
-          "avatarUrl": "https://example.com/avatar-tech-1.png",
-          "intro": "????????????????",
+          "avatarUrl": "",
+          "intro": "????????????????????????",
           "serviceTags": [
             "????",
             "????",
@@ -3903,8 +4734,8 @@
       "verificationType": "TECH_MANAGER",
       "verificationStatus": "APPROVED",
       "regionCode": "310000",
-      "avatarUrl": "https://example.com/avatar-tech-1.png",
-      "intro": "????????????????",
+      "avatarUrl": "",
+      "intro": "????????????????????????",
       "serviceTags": [
         "????",
         "????",
@@ -3920,6 +4751,64 @@
       "evidenceFileIds": [
         "b742ea7f-7e4a-4f9d-9b3f-9f3e3a6b2c5d"
       ]
+    }
+  },
+  "GET /contracts": {
+    "status": 200,
+    "body": {
+      "items": [
+        {
+          "id": "6d20c0af-9bb1-4a9c-85ae-0a5e5b0f8b01",
+          "orderId": "b9f8f7c4-9a21-4f3e-8b7d-8ef9d2c4e001",
+          "listingTitle": "一种用于锂电池热管理的散热结构",
+          "counterpartName": "蓝海新能源",
+          "status": "WAIT_UPLOAD",
+          "createdAt": "2026-01-12T08:00:00Z",
+          "watermarkOwner": "发布方"
+        },
+        {
+          "id": "6d20c0af-9bb1-4a9c-85ae-0a5e5b0f8b02",
+          "orderId": "b9f8f7c4-9a21-4f3e-8b7d-8ef9d2c4e002",
+          "listingTitle": "水质检测装置",
+          "counterpartName": "华北工研院",
+          "status": "WAIT_CONFIRM",
+          "createdAt": "2026-01-10T08:00:00Z",
+          "uploadedAt": "2026-01-11T09:30:00Z",
+          "fileUrl": "https://example.com/contracts/contract-0002.pdf",
+          "watermarkOwner": "发布方"
+        },
+        {
+          "id": "6d20c0af-9bb1-4a9c-85ae-0a5e5b0f8b03",
+          "orderId": "b9f8f7c4-9a21-4f3e-8b7d-8ef9d2c4e003",
+          "listingTitle": "工业废气净化系统",
+          "counterpartName": "南方环保集团",
+          "status": "AVAILABLE",
+          "createdAt": "2026-01-05T08:00:00Z",
+          "uploadedAt": "2026-01-06T10:00:00Z",
+          "signedAt": "2026-01-07T12:00:00Z",
+          "fileUrl": "https://example.com/contracts/contract-0003.pdf",
+          "watermarkOwner": "发布方"
+        }
+      ],
+      "page": {
+        "page": 1,
+        "pageSize": 20,
+        "total": 3
+      }
+    }
+  },
+  "POST /contracts/:contractId/upload": {
+    "status": 200,
+    "body": {
+      "id": "6d20c0af-9bb1-4a9c-85ae-0a5e5b0f8b01",
+      "orderId": "b9f8f7c4-9a21-4f3e-8b7d-8ef9d2c4e001",
+      "listingTitle": "一种用于锂电池热管理的散热结构",
+      "counterpartName": "蓝海新能源",
+      "status": "WAIT_CONFIRM",
+      "createdAt": "2026-01-12T08:00:00Z",
+      "uploadedAt": "2026-01-12T10:00:00Z",
+      "fileUrl": "https://example.com/contracts/contract-0001.pdf",
+      "watermarkOwner": "发布方"
     }
   }
 }

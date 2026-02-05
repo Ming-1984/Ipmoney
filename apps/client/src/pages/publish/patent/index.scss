@@ -1,0 +1,280 @@
+.publish-patent-page {
+  background: #f5f6f8;
+  min-height: 100vh;
+}
+
+.publish-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12rpx;
+  margin-top: 8rpx;
+}
+
+.publish-card {
+  background: #ffffff;
+  border: 1rpx solid #eef0f2;
+  border-radius: 16rpx;
+  padding: 20rpx 24rpx;
+  box-shadow: none;
+}
+
+.publish-status-card {
+  background: #ffffff;
+}
+
+.publish-section-title {
+  font-size: 26rpx;
+  font-weight: 600;
+  color: #111827;
+  margin-bottom: 8rpx;
+}
+
+.publish-section-subtitle {
+  margin-top: 16rpx;
+  font-size: 24rpx;
+  font-weight: 600;
+  color: #111827;
+}
+
+.form-field {
+  margin-top: 12rpx;
+}
+
+.form-label {
+  font-size: 24rpx;
+  font-weight: 600;
+  color: #111827;
+  margin-bottom: 8rpx;
+  display: block;
+}
+
+.form-hint {
+  font-size: 20rpx;
+  color: #9ca3af;
+  margin-top: 8rpx;
+  display: block;
+}
+
+.form-row {
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+}
+
+.form-row-split {
+  margin-top: 12rpx;
+}
+
+.form-col,
+.form-flex {
+  flex: 1;
+  min-width: 0;
+}
+
+.publish-input,
+.publish-textarea {
+  width: 100%;
+}
+
+.publish-patent-page .nut-input,
+.publish-patent-page .nut-textarea {
+  border: 1rpx solid #e5e7eb;
+  border-radius: 12rpx;
+  background: #f6f7f9;
+  min-height: 80rpx;
+}
+
+.publish-patent-page .nut-input-inner {
+  padding: 16rpx 18rpx;
+  font-size: 22rpx;
+  line-height: 1.4;
+}
+
+.publish-patent-page .nut-input input::placeholder,
+.publish-patent-page .nut-textarea textarea::placeholder {
+  font-size: 20rpx;
+  color: #c0c4cc;
+}
+
+.publish-patent-page .publish-placeholder {
+  font-size: 20rpx;
+  color: #c0c4cc;
+}
+
+.publish-placeholder {
+  font-size: 20rpx;
+  color: #c0c4cc;
+}
+
+.publish-patent-page .nut-textarea {
+  padding: 16rpx 18rpx;
+  min-height: 180rpx;
+  background: #f6f7f9;
+}
+
+.publish-patent-page .nut-textarea textarea {
+  font-size: 22rpx;
+  line-height: 1.4;
+}
+
+.form-select {
+  border: 1rpx solid #e5e7eb;
+  border-radius: 12rpx;
+  padding: 16rpx 18rpx;
+  background: #f6f7f9;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 80rpx;
+}
+
+.form-select-value {
+  font-size: 22rpx;
+  color: #111827;
+}
+
+.form-select-placeholder {
+  font-size: 20rpx;
+  color: #9ca3af;
+}
+
+.form-select-arrow {
+  font-size: 20rpx;
+  color: #c0c4cc;
+}
+
+.form-inline-btn {
+  height: 80rpx;
+  padding: 0 16rpx;
+  border-radius: 12rpx;
+  border: 1rpx solid #e5e7eb;
+  color: #6b7280;
+  background: #ffffff;
+}
+
+.form-inline-btn-primary {
+  border-color: #ff7a18;
+  color: #ff7a18;
+}
+
+.form-result {
+  margin-top: 12rpx;
+  padding: 12rpx 16rpx;
+  border-radius: 12rpx;
+  background: #f9fafb;
+  border: 1rpx solid #eef2f7;
+  display: flex;
+  flex-direction: column;
+  gap: 6rpx;
+}
+
+.form-result-text {
+  font-size: 20rpx;
+  color: #6b7280;
+}
+
+.upload-box {
+  margin-top: 12rpx;
+  border: 2rpx dashed #d9dde3;
+  border-radius: 12rpx;
+  padding: 20rpx;
+  text-align: center;
+  background: #f8fafc;
+}
+
+.upload-title {
+  font-size: 24rpx;
+  color: #6b7280;
+  font-weight: 500;
+}
+
+.upload-subtitle {
+  margin-top: 6rpx;
+  font-size: 20rpx;
+  color: #9ca3af;
+}
+
+.publish-patent-page .sticky-bar {
+  background: #ffffff;
+  border-top: 1rpx solid #eef0f2;
+}
+
+.publish-patent-page .sticky-actions {
+  padding: 12rpx 20rpx;
+  gap: 12rpx;
+}
+
+.publish-action-btn {
+  height: 72rpx;
+  border-radius: 16rpx;
+  font-weight: 600;
+}
+
+.publish-action-primary {
+  background: #ff7a18;
+  color: #ffffff;
+  border: none;
+}
+
+.publish-action-ghost {
+  background: #ffffff;
+  color: #ff7a18;
+  border: 1rpx solid #ff7a18;
+}
+
+.publish-patent-page .tag,
+.publish-patent-page .chip {
+  border-radius: 8rpx;
+}
+
+.upload-list {
+  margin-top: 12rpx;
+  display: flex;
+  flex-direction: column;
+  gap: 10rpx;
+}
+
+.upload-item {
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+  padding: 12rpx;
+  border: 1rpx solid #eef2f7;
+  border-radius: 12rpx;
+  background: #ffffff;
+}
+
+.upload-item-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4rpx;
+}
+
+.upload-item-title {
+  font-size: 22rpx;
+  color: #111827;
+}
+
+.upload-item-desc {
+  font-size: 20rpx;
+  color: #9ca3af;
+}
+
+.upload-item-remove {
+  min-width: 96rpx;
+}
+
+.publish-picker-sheet {
+  padding-top: 8rpx;
+}
+
+.publish-picker-options .nut-cell {
+  padding: 20rpx 24rpx;
+}
+
+.publish-picker-active {
+  color: #f97316;
+  font-weight: 600;
+}

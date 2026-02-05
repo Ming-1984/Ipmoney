@@ -1,6 +1,7 @@
 import { View, Text, Image, Video } from '@tarojs/components';
 import Taro, { useRouter } from '@tarojs/taro';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import './index.scss';
 
 import type { components } from '@ipmoney/api-types';
 
@@ -12,6 +13,10 @@ import { auditStatusLabel, contentStatusLabel, verificationTypeLabel } from '../
 import { IndustryTagsPicker, TagInput } from '../../../ui/filters';
 import { PageHeader, Spacer, StickyBar, Surface } from '../../../ui/layout';
 import { Button, Input, TextArea, confirm, toast } from '../../../ui/nutui';
+
+function resolveVideoPoster(url?: string | null): string | undefined {
+  return url && /^https?:\/\//.test(url) ? url : undefined;
+}
 
 type Achievement = components['schemas']['Achievement'];
 type AchievementCreateRequest = components['schemas']['AchievementCreateRequest'];
@@ -35,13 +40,41 @@ const MAX_IMAGE_BYTES = 10 * 1024 * 1024;
 const MAX_VIDEO_BYTES = 100 * 1024 * 1024;
 const MAX_FILE_BYTES = 20 * 1024 * 1024;
 
+function mergePlaceholderClass(extra?: string): string {
+  return extra ? `publish-placeholder ${extra}` : 'publish-placeholder';
+}
+
+function mergePlaceholderStyle(extra?: string): string {
+  const base = 'font-size:20rpx;color:#c0c4cc;';
+  if (!extra) return base;
+  return `${base}${extra}`;
+}
+
+function PublishInput(props: React.ComponentProps<typeof Input>) {
+  return (
+    <Input
+      {...props}
+      placeholderClass={mergePlaceholderClass(props.placeholderClass)}
+      placeholderStyle={mergePlaceholderStyle(props.placeholderStyle)}
+    />
+  );
+}
+
+function PublishTextArea(props: React.ComponentProps<typeof TextArea>) {
+  return (
+    <TextArea
+      {...props}
+      placeholderClass={mergePlaceholderClass(props.placeholderClass)}
+      placeholderStyle={mergePlaceholderStyle(props.placeholderStyle)}
+    />
+  );
+}
+
 const COOPERATION_MODES: Array<{ mode: CooperationMode; label: string }> = [
-  { mode: 'LICENSE', label: '许可' },
-  { mode: 'TRANSFER', label: '转让' },
-  { mode: 'JOINT_DEV', label: '联合开发' },
+  { mode: 'TRANSFER', label: '专利转让' },
+  { mode: 'TECH_CONSULTING', label: '技术咨询' },
   { mode: 'COMMISSIONED_DEV', label: '委托开发' },
-  { mode: 'EQUITY', label: '股权合作' },
-  { mode: 'OTHER', label: '其他' },
+  { mode: 'PLATFORM_CO_BUILD', label: '平台共建' },
 ];
 
 const MATURITY_OPTIONS: Array<{ value: AchievementMaturity; label: string }> = [
@@ -477,8 +510,8 @@ export default function PublishAchievementPage() {
   }, [achievementId, offShelving]);
 
   return (
-    <View className="container has-sticky">
-      <PageHeader back fallbackUrl="/pages/publish/index" title="发布：成果展示" />
+    <View className="container has-sticky publish-achievement-page">
+      <PageHeader back fallbackUrl="/pages/publish/index" title="发布：成果展示" brand={false} />
       <Spacer />
 
       <Surface>
@@ -505,7 +538,7 @@ export default function PublishAchievementPage() {
         <Text className="text-card-title">基础信息</Text>
         <View style={{ height: '12rpx' }} />
 
-        <Text className="muted">所属单位*</Text>
+        <Text className="form-label">所属单位*</Text>
         <View style={{ height: '8rpx' }} />
         <View className="row-between" style={{ gap: '12rpx', alignItems: 'center' }}>
           <Text className="text-strong">
@@ -517,24 +550,24 @@ export default function PublishAchievementPage() {
         <Text className="muted">由认证信息自动带出，不可手动修改。</Text>
 
         <View style={{ height: '12rpx' }} />
-        <Text className="muted">标题*</Text>
+        <Text className="form-label">标题*</Text>
         <View style={{ height: '8rpx' }} />
-        <Input value={title} onChange={setTitle} placeholder="例如：储能材料成果转化" maxLength={200} clearable disabled={!canEdit} />
+        <PublishInput value={title} onChange={setTitle} placeholder="例如：储能材料成果转化" maxLength={200} clearable disabled={!canEdit} />
 
         <View style={{ height: '12rpx' }} />
-        <Text className="muted">简介*</Text>
+        <Text className="form-label">简介*</Text>
         <View style={{ height: '8rpx' }} />
-        <TextArea value={summary} onChange={setSummary} placeholder="应用场景/亮点/指标（建议 200 字以内）" maxLength={2000} disabled={!canEdit} />
+        <PublishTextArea value={summary} onChange={setSummary} placeholder="应用场景/亮点/指标（建议 200 字以内）" maxLength={2000} disabled={!canEdit} />
 
         <View style={{ height: '12rpx' }} />
-        <Text className="muted">关键词（可选）</Text>
+        <Text className="form-label">关键词（可选）</Text>
         <View style={{ height: '8rpx' }} />
         <TagInput value={keywords} onChange={setKeywords} max={30} disabled={!canEdit} placeholder="输入关键词后点击添加" />
 
         <View style={{ height: '12rpx' }} />
-        <Text className="muted">详情（可选）</Text>
+        <Text className="form-label">详情（可选）</Text>
         <View style={{ height: '8rpx' }} />
-        <TextArea value={description} onChange={setDescription} placeholder="更多说明、参数、检测报告摘要等…" maxLength={5000} disabled={!canEdit} />
+        <PublishTextArea value={description} onChange={setDescription} placeholder="更多说明、参数、检测报告摘要等…" maxLength={5000} disabled={!canEdit} />
       </Surface>
 
       <View style={{ height: '16rpx' }} />
@@ -543,7 +576,7 @@ export default function PublishAchievementPage() {
         <Text className="text-card-title">成熟度与合作</Text>
         <View style={{ height: '12rpx' }} />
 
-        <Text className="muted">成熟度（可选）</Text>
+        <Text className="form-label">成熟度（可选）</Text>
         <View style={{ height: '8rpx' }} />
         <View className="chip-row">
           {MATURITY_OPTIONS.map((it) => (
@@ -570,7 +603,7 @@ export default function PublishAchievementPage() {
         </View>
 
         <View style={{ height: '12rpx' }} />
-        <Text className="muted">合作方式（可多选）</Text>
+        <Text className="form-label">合作方式（可多选）</Text>
         <View style={{ height: '8rpx' }} />
         <View className="chip-row">
           {COOPERATION_MODES.map((it) => (
@@ -594,12 +627,12 @@ export default function PublishAchievementPage() {
         <Text className="text-card-title">地区与标签</Text>
         <View style={{ height: '12rpx' }} />
 
-        <Text className="muted">地区（可选）</Text>
+        <Text className="form-label">地区（可选）</Text>
         <View style={{ height: '8rpx' }} />
-        <Input value={regionCode} onChange={setRegionCode} placeholder="例如：310000" clearable disabled={!canEdit} />
+        <PublishInput value={regionCode} onChange={setRegionCode} placeholder="例如：310000" clearable disabled={!canEdit} />
 
         <View style={{ height: '12rpx' }} />
-        <Text className="muted">产业标签（可选；数据源：公共产业标签库）</Text>
+        <Text className="form-label">产业标签（可选；数据源：公共产业标签库）</Text>
         <View style={{ height: '8rpx' }} />
         <IndustryTagsPicker value={industryTags} max={8} onChange={setIndustryTags} disabled={!canEdit} />
       </Surface>
@@ -610,7 +643,7 @@ export default function PublishAchievementPage() {
         <Text className="text-card-title">封面与附件</Text>
         <View style={{ height: '12rpx' }} />
 
-        <Text className="muted">封面图（可选；包含视频时建议设置）</Text>
+        <Text className="form-label">封面图（可选；包含视频时建议设置）</Text>
         <View style={{ height: '10rpx' }} />
         {coverUrl ? <Image src={coverUrl} mode="aspectFill" style={{ width: '100%', height: '320rpx', borderRadius: '20rpx' }} /> : null}
         <View style={{ height: '10rpx' }} />
@@ -628,7 +661,7 @@ export default function PublishAchievementPage() {
         </View>
 
         <View style={{ height: '14rpx' }} />
-        <Text className="muted">附件/媒体（至少 1 张图片，可选视频/文件）</Text>
+        <Text className="form-label">附件/媒体（至少 1 张图片，可选视频/文件）</Text>
         <View style={{ height: '10rpx' }} />
         <View className="row" style={{ gap: '12rpx', flexWrap: 'wrap' }}>
           <Button block={false} size="small" variant="ghost" disabled={!canEdit || uploading} onClick={() => void addImage()}>
@@ -660,7 +693,7 @@ export default function PublishAchievementPage() {
                     src={(m as any).url as string}
                     controls
                     autoplay={false}
-                    poster={coverUrl || undefined}
+                    poster={resolveVideoPoster(coverUrl)}
                     style={{ width: '100%', height: '320rpx', borderRadius: '20rpx' }}
                   />
                 ) : m.type === 'FILE' && (m as any).url ? (

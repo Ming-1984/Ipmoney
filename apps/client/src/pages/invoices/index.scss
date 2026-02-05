@@ -1,0 +1,89 @@
+﻿.invoices-page {
+  padding: 0 24rpx 32rpx;
+}
+
+.invoice-tabs {
+  display: flex;
+  gap: 12rpx;
+  margin: 6rpx 0 18rpx;
+  background: #ffffff;
+  border-radius: 16rpx;
+  padding: 8rpx;
+}
+
+.invoice-tab {
+  flex: 1;
+  text-align: center;
+  padding: 12rpx 0;
+  color: #94a3b8;
+  font-size: 28rpx;
+  font-weight: 500;
+  position: relative;
+}
+
+.invoice-tab.is-active {
+  color: #f97316;
+}
+
+.invoice-tab-underline {
+  position: absolute;
+  left: 30%;
+  bottom: 4rpx;
+  width: 40%;
+  height: 4rpx;
+  border-radius: 999rpx;
+  background: #f97316;
+}
+
+.invoice-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16rpx;
+}
+
+.invoice-card {
+  border-radius: 16rpx;
+  padding: 20rpx 22rpx;
+  background: #ffffff;
+}
+
+.invoice-status {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4rpx 12rpx;
+  border-radius: 999rpx;
+  font-size: 22rpx;
+  background: rgba(148, 163, 184, 0.2);
+  color: #64748b;
+}
+
+.invoice-status.is-wait {
+  background: rgba(249, 115, 22, 0.12);
+  color: #f97316;
+}
+
+.invoice-status.is-applying {
+  background: rgba(14, 165, 233, 0.12);
+  color: #0ea5e9;
+}
+
+.invoice-status.is-issued {
+  background: rgba(16, 185, 129, 0.12);
+  color: #10b981;
+}
+
+.invoice-meta {
+  margin-top: 8rpx;
+  display: flex;
+  flex-direction: column;
+  gap: 6rpx;
+}
+
+.invoice-actions {
+  margin-top: 12rpx;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12rpx;
+  justify-content: flex-end;
+}

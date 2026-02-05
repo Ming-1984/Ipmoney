@@ -1,3 +1,3 @@
 export default definePageConfig({
-  navigationBarTitleText: '技术经理人',
+  navigationBarTitleText: '咨询',
 });

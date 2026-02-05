@@ -1,13 +1,14 @@
-import { View, Text } from '@tarojs/components';
+﻿import { View, Text } from '@tarojs/components';
 import Taro from '@tarojs/taro';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import './index.scss';
 
 import { apiGet, apiPost } from '../../../lib/api';
 import { ensureApproved } from '../../../lib/guard';
 import { fenToYuan } from '../../../lib/money';
 import { safeNavigateBack } from '../../../lib/navigation';
 import { useRouteUuidParam } from '../../../lib/routeParams';
-import { PageHeader, Spacer, StickyBar } from '../../../ui/layout';
+import { PageHeader, Spacer, StickyBar, Surface } from '../../../ui/layout';
 import { Button, toast } from '../../../ui/nutui';
 import { ErrorCard, LoadingCard, MissingParamCard } from '../../../ui/StateCards';
 import { MiniProgramPayGuide } from '../components/MiniProgramPayGuide';
@@ -91,7 +92,7 @@ export default function FinalPayPage() {
   if (!orderId) {
     return (
       <View className="container">
-        <PageHeader title="尾款支付" />
+        <PageHeader title="支付尾款" />
         <Spacer />
         <MissingParamCard onAction={() => void safeNavigateBack()} />
       </View>
@@ -99,11 +100,8 @@ export default function FinalPayPage() {
   }
 
   return (
-    <View className="container has-sticky">
-      <PageHeader
-        title="尾款支付"
-        subtitle={order ? `订单号：${order.id} · 状态：${order.status}` : `订单号：${orderId.slice(0, 8)}…`}
-      />
+    <View className="container has-sticky pay-page">
+      <PageHeader title="支付尾款" subtitle={order ? `订单号：${order.id}` : `订单号：${orderId.slice(0, 8)}…`} />
       <Spacer />
 
       {loading ? (
@@ -112,31 +110,36 @@ export default function FinalPayPage() {
         <ErrorCard message={error} onRetry={load} />
       ) : order ? (
         <View>
-          <View className="card">
-            <Text className="text-card-title">金额信息</Text>
-            <View style={{ height: '8rpx' }} />
-            <Text className="muted">订金：¥{fenToYuan(order.depositAmountFen)}</Text>
-            <View style={{ height: '4rpx' }} />
-            <Text className="muted">
-              成交价：{order.dealAmountFen ? `¥${fenToYuan(order.dealAmountFen)}` : '（待确认）'}
-            </Text>
-            <View style={{ height: '4rpx' }} />
-            <Text className="muted">
-              尾款：{order.finalAmountFen ? `¥${fenToYuan(order.finalAmountFen)}` : '（待确认）'}
-            </Text>
-          </View>
+          <Surface className="pay-card" padding="md">
+            <Text className="pay-section-title">金额信息</Text>
+            <View className="pay-row">
+              <Text className="pay-row-label">成交总价</Text>
+              <Text className="pay-row-value">{order.dealAmountFen ? `¥${fenToYuan(order.dealAmountFen)}` : '待确认'}</Text>
+            </View>
+            <View className="pay-row">
+              <Text className="pay-row-label">已付订金</Text>
+              <Text className="pay-row-value">- ¥{fenToYuan(order.depositAmountFen)}</Text>
+            </View>
+            <View className="pay-row pay-row-strong">
+              <Text className="pay-row-label">应付尾款</Text>
+              <Text className="pay-row-value">
+                {order.finalAmountFen ? `¥${fenToYuan(order.finalAmountFen)}` : '待确认'}
+              </Text>
+            </View>
+          </Surface>
 
-          <View style={{ height: '16rpx' }} />
+          <Spacer size={12} />
 
-          <View className="card">
-            <Text className="muted">
-              说明：尾款支付建议在小程序内完成；电脑端/H5 可展示“去小程序支付”（二维码/链接）。
+          <Surface className="pay-card" padding="md">
+            <Text className="pay-section-title">支付说明</Text>
+            <Text className="pay-note">
+              尾款支付后资金进入平台托管账户，待权属变更完成并确认无误后进行结算。
             </Text>
-          </View>
+          </Surface>
 
           {isH5 ? (
             <>
-              <View style={{ height: '16rpx' }} />
+              <Spacer size={12} />
               <MiniProgramPayGuide
                 miniProgramPath={`pages/checkout/final-pay/index?orderId=${orderId}`}
                 description="H5 端不发起支付。微信内可一键跳转小程序；微信外/桌面可复制链接或扫码在微信打开。"
@@ -145,7 +148,7 @@ export default function FinalPayPage() {
           ) : null}
         </View>
       ) : (
-        <ErrorCard title="无数据" message="订单不存在或不可见" />
+        <ErrorCard title="无数据" message="订单不存在或不可见。" />
       )}
 
       {order && !loading && !error && !isH5 ? (

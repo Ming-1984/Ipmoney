@@ -1,409 +1,397 @@
-import { View, Text, Image, Swiper, SwiperItem } from '@tarojs/components';
+﻿import { View, Text, Image, Swiper, SwiperItem, Input } from '@tarojs/components';
 import Taro from '@tarojs/taro';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import './index.scss';
 
 import type { components } from '@ipmoney/api-types';
 
 import logoGif from '../../assets/brand/logo.gif';
 import promoCertificateGif from '../../assets/home/promo-certificate.gif';
-import promoFreePublishImg from '../../assets/home/promo-free-publish.jpg';
+import iconSearch from '../../assets/icons/icon-search-gray.svg';
+import iconActivity from '../../assets/icons/icon-activity-blue.svg';
+import iconTrending from '../../assets/icons/icon-trending-red.svg';
+import iconUser from '../../assets/icons/icon-user-purple.svg';
+import iconMap from '../../assets/icons/icon-map-green.svg';
+import iconPalette from '../../assets/icons/icon-palette-orange.svg';
+import iconBriefcase from '../../assets/icons/icon-briefcase-indigo.svg';
+import iconAward from '../../assets/icons/icon-award-teal.svg';
+import iconShield from '../../assets/icons/icon-shield-orange.svg';
 import { STORAGE_KEYS } from '../../constants';
 import { getToken } from '../../lib/auth';
-import { apiGet, apiPost } from '../../lib/api';
-import { favorite, getFavoriteListingIds, syncFavorites, unfavorite } from '../../lib/favorites';
-import { ensureApproved } from '../../lib/guard';
-import { AppIcon } from '../../ui/Icon';
-import { ListingCard } from '../../ui/ListingCard';
-import { ListingListSkeleton } from '../../ui/ListingSkeleton';
+import { apiGet } from '../../lib/api';
+import { syncFavorites } from '../../lib/favorites';
 import { EmptyCard, ErrorCard } from '../../ui/StateCards';
-import { IconBadge, SectionHeader, Surface } from '../../ui/layout';
-import { Button, toast } from '../../ui/nutui';
-import { priceTypeLabel } from '../../lib/labels';
-import { fenToYuan } from '../../lib/money';
+import { toast } from '../../ui/nutui';
+import { ListingCard } from '../../ui/ListingCard';
 
 type PagedListingSummary = components['schemas']['PagedListingSummary'];
 type ListingSummary = components['schemas']['ListingSummary'];
-type PagedDemandSummary = components['schemas']['PagedDemandSummary'];
-type DemandSummary = components['schemas']['DemandSummary'];
-type Hall = 'patent' | 'demand';
 
-type Conversation = { id: string };
-type TagTone = 'blue' | 'green' | 'slate';
+type QuickEntry = {
+  key: string;
+  label: string;
+  icon: string;
+  iconBg: string;
+  onClick: () => void;
+};
 
-function formatBudgetFen(fen?: number | null): string {
-  if (fen === undefined || fen === null) return '-';
-  const yuan = Math.round(Number(fen) / 100);
-  if (!Number.isFinite(yuan)) return '-';
-  return new Intl.NumberFormat('zh-CN').format(yuan);
-}
+type AnnouncementSummary = {
+  id: string;
+  title: string;
+  publisherName?: string;
+  publishedAt?: string;
+  issueNo?: string;
+  tags?: string[];
+  summary?: string;
+};
 
-function demandBudgetLabel(it: Pick<DemandSummary, 'budgetType' | 'budgetMinFen' | 'budgetMaxFen'>): string {
-  const type = it.budgetType;
-  if (!type) return '预算：-';
-  if (type === 'NEGOTIABLE') return '预算：面议';
-  const min = it.budgetMinFen;
-  const max = it.budgetMaxFen;
-  if (min !== undefined && max !== undefined) return `预算：¥${formatBudgetFen(min)} - ¥${formatBudgetFen(max)}`;
-  if (min !== undefined) return `预算：≥¥${formatBudgetFen(min)}`;
-  if (max !== undefined) return `预算：≤¥${formatBudgetFen(max)}`;
-  return '预算：固定';
-}
+type PagedAnnouncements = {
+  items: AnnouncementSummary[];
+  page?: { page: number; pageSize: number; total: number };
+};
 
-function cooperationModeLabel(mode: components['schemas']['CooperationMode']): string {
-  if (mode === 'TRANSFER') return '转让';
-  if (mode === 'LICENSE') return '许可';
-  if (mode === 'EQUITY') return '股权合作';
-  if (mode === 'JOINT_DEV') return '联合开发';
-  if (mode === 'COMMISSIONED_DEV') return '委托开发';
-  return '其他';
+type PatentZoneEntry = {
+  key: string;
+  title: string;
+  desc: string;
+  icon: string;
+  tone: string;
+  onClick: () => void;
+};
+
+function formatDate(value?: string): string {
+  if (!value) return '-';
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return String(value);
+  const yyyy = d.getFullYear();
+  const mm = String(d.getMonth() + 1).padStart(2, '0');
+  const dd = String(d.getDate()).padStart(2, '0');
+  return `${yyyy}-${mm}-${dd}`;
 }
 
 export default function HomePage() {
-  const [hall, setHall] = useState<Hall>('patent');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [data, setData] = useState<PagedListingSummary | null>(null);
-  const [demandData, setDemandData] = useState<PagedDemandSummary | null>(null);
-  const [favoriteIds, setFavoriteIds] = useState<Set<string>>(() => new Set(getFavoriteListingIds()));
+  const [keyword, setKeyword] = useState('');
+  const [announcementLoading, setAnnouncementLoading] = useState(true);
+  const [announcementError, setAnnouncementError] = useState<string | null>(null);
+  const [announcements, setAnnouncements] = useState<PagedAnnouncements | null>(null);
 
-  const load = useCallback(async (targetHall: Hall) => {
+  const statusBarHeight = useMemo(() => {
+    if (process.env.TARO_ENV !== 'weapp') return 0;
+    try {
+      return Taro.getSystemInfoSync().statusBarHeight || 0;
+    } catch {
+      return 0;
+    }
+  }, []);
+
+  const heroStyle = useMemo(() => {
+    if (process.env.TARO_ENV !== 'weapp') return undefined;
+    const top = statusBarHeight ? statusBarHeight + 8 : 8;
+    return { paddingTop: `${top}px` };
+  }, [statusBarHeight]);
+
+  const load = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      if (targetHall === 'patent') {
-        const d = await apiGet<PagedListingSummary>('/search/listings', {
-          sortBy: 'NEWEST',
-          page: 1,
-          pageSize: 3,
-        });
-        setData(d);
-      } else {
-        const d = await apiGet<PagedDemandSummary>('/search/demands', {
-          sortBy: 'NEWEST',
-          page: 1,
-          pageSize: 3,
-        });
-        setDemandData(d);
-      }
+      const d = await apiGet<PagedListingSummary>('/search/listings', {
+        sortBy: 'NEWEST',
+        page: 1,
+        pageSize: 5,
+      });
+      setData(d);
     } catch (e: any) {
       setError(e?.message || '加载失败');
-      if (targetHall === 'patent') {
-        setData(null);
-      } else {
-        setDemandData(null);
-      }
+      setData(null);
     } finally {
       setLoading(false);
     }
   }, []);
 
   useEffect(() => {
-    void load(hall);
-  }, [hall, load]);
+    void load();
+  }, [load]);
 
   useEffect(() => {
     if (!getToken()) return;
-    syncFavorites()
-      .then((ids) => setFavoriteIds(new Set(ids)))
-      .catch(() => {});
+    syncFavorites().catch(() => {});
   }, []);
 
-  const listingItems = useMemo(() => data?.items || [], [data?.items]);
-  const demandItems = useMemo(() => demandData?.items || [], [demandData?.items]);
-
-  const startConsult = useCallback(async (listingId: string) => {
-    if (!ensureApproved()) return;
+  const loadAnnouncements = useCallback(async () => {
+    setAnnouncementLoading(true);
+    setAnnouncementError(null);
     try {
-      await apiPost<void>(`/listings/${listingId}/consultations`, { channel: 'FORM' }, { idempotencyKey: `c-${listingId}` });
-    } catch (_) {
-      // ignore: heat event
-    }
-    try {
-      const conv = await apiPost<Conversation>(
-        `/listings/${listingId}/conversations`,
-        {},
-        { idempotencyKey: `demo-consult-${listingId}` },
-      );
-      Taro.navigateTo({ url: `/pages/messages/chat/index?conversationId=${conv.id}` });
+      const d = await apiGet<PagedAnnouncements>('/public/announcements', { page: 1, pageSize: 6 });
+      setAnnouncements(d);
     } catch (e: any) {
-      toast(e?.message || '进入咨询失败');
+      setAnnouncements(null);
+      setAnnouncementError(e?.message || '加载失败');
+    } finally {
+      setAnnouncementLoading(false);
     }
   }, []);
 
-  const toggleFavorite = useCallback(
-    async (listingId: string) => {
-      if (!ensureApproved()) return;
-      const isFav = favoriteIds.has(listingId);
-      try {
-        if (isFav) {
-          await unfavorite(listingId);
-          setFavoriteIds((prev) => {
-            const next = new Set(prev);
-            next.delete(listingId);
-            return next;
-          });
-          toast('已取消收藏', { icon: 'success' });
-          return;
-        }
-        await favorite(listingId);
-        setFavoriteIds((prev) => new Set(prev).add(listingId));
-        toast('已收藏', { icon: 'success' });
-      } catch (e: any) {
-        toast(e?.message || '操作失败');
-      }
-    },
-    [favoriteIds],
-  );
+  useEffect(() => {
+    void loadAnnouncements();
+  }, [loadAnnouncements]);
 
-  const goSearch = useCallback(
-    (value?: string) => {
-      const keyword = typeof value === 'string' ? value.trim() : '';
-      if (!keyword) {
-        if (typeof value === 'string') {
-          toast('请输入关键词');
-          return;
-        }
-        Taro.switchTab({ url: '/pages/search/index' });
-        return;
-      }
-      Taro.setStorageSync(STORAGE_KEYS.searchPrefill, { q: keyword, tab: hall === 'patent' ? 'LISTING' : 'DEMAND' });
-      Taro.switchTab({ url: '/pages/search/index' });
-    },
-    [hall],
-  );
+  const items = useMemo(() => data?.items || [], [data?.items]);
+  const announcementItems = useMemo(() => announcements?.items || [], [announcements?.items]);
+
+  const goSearch = useCallback((value?: string) => {
+    const q = typeof value === 'string' ? value.trim() : '';
+    if (typeof value === 'string' && !q) {
+      toast('请输入关键词');
+      return;
+    }
+    if (q) {
+      Taro.setStorageSync(STORAGE_KEYS.searchPrefill, { q, tab: 'LISTING' });
+    }
+    Taro.navigateTo({ url: '/pages/search/index' });
+  }, []);
+
   const goMap = useCallback(() => Taro.navigateTo({ url: '/pages/patent-map/index' }), []);
   const goInventors = useCallback(() => Taro.navigateTo({ url: '/pages/inventors/index' }), []);
   const goArtworks = useCallback(() => {
-    Taro.setStorageSync(STORAGE_KEYS.searchPrefill, { tab: 'ARTWORK' });
-    Taro.switchTab({ url: '/pages/search/index' });
+    Taro.setStorageSync(STORAGE_KEYS.searchPrefill, { tab: 'ARTWORK', reset: true });
+    Taro.navigateTo({ url: '/pages/search/index' });
   }, []);
   const goAchievements = useCallback(() => {
-    Taro.setStorageSync(STORAGE_KEYS.searchPrefill, { tab: 'ACHIEVEMENT' });
-    Taro.switchTab({ url: '/pages/search/index' });
+    Taro.setStorageSync(STORAGE_KEYS.searchPrefill, { tab: 'ACHIEVEMENT', reset: true });
+    Taro.navigateTo({ url: '/pages/search/index' });
   }, []);
   const goPatentExplore = useCallback(() => {
-    Taro.setStorageSync(STORAGE_KEYS.searchPrefill, { tab: 'LISTING' });
-    Taro.switchTab({ url: '/pages/search/index' });
+    Taro.setStorageSync(STORAGE_KEYS.searchPrefill, { tab: 'LISTING', reset: true });
+    Taro.navigateTo({ url: '/pages/search/index' });
   }, []);
   const goDemandSearch = useCallback(() => {
-    Taro.setStorageSync(STORAGE_KEYS.searchPrefill, { tab: 'DEMAND' });
-    Taro.switchTab({ url: '/pages/search/index' });
+    Taro.setStorageSync(STORAGE_KEYS.searchPrefill, { tab: 'DEMAND', reset: true });
+    Taro.navigateTo({ url: '/pages/search/index' });
   }, []);
-  const goPublish = useCallback(() => {
-    Taro.navigateTo({ url: '/pages/publish/index' });
+  const goTechManagers = useCallback(() => Taro.switchTab({ url: '/pages/tech-managers/index' }), []);
+  const goAnnouncements = useCallback(() => Taro.navigateTo({ url: '/pages/announcements/index' }), []);
+  const goAnnouncementDetail = useCallback((id: string) => {
+    Taro.navigateTo({ url: `/pages/announcements/detail/index?announcementId=${id}` });
   }, []);
+  const goClusterPicker = useCallback(() => Taro.navigateTo({ url: '/pages/cluster-picker/index' }), []);
+  const goSleepingPatent = useCallback(() => {
+    Taro.setStorageSync(STORAGE_KEYS.searchPrefill, {
+      tab: 'LISTING',
+      transferCountMin: 0,
+      transferCountMax: 0,
+      reset: true,
+    });
+    Taro.navigateTo({ url: '/pages/search/index' });
+  }, []);
+  const goHighTechRetired = useCallback(() => {
+    Taro.setStorageSync(STORAGE_KEYS.searchPrefill, {
+      tab: 'LISTING',
+      listingTopic: 'HIGH_TECH_RETIRED',
+      reset: true,
+    });
+    Taro.navigateTo({ url: '/pages/search/index' });
+  }, []);
+  const goOpenLicense = useCallback(() => {
+    Taro.setStorageSync(STORAGE_KEYS.searchPrefill, {
+      tab: 'LISTING',
+      tradeMode: 'LICENSE',
+      reset: true,
+    });
+    Taro.navigateTo({ url: '/pages/search/index' });
+  }, []);
+
+  const quickEntries: QuickEntry[] = useMemo(
+    () => [
+      { key: 'inventor', label: '发明人榜', icon: iconTrending, iconBg: 'bg-red', onClick: goInventors },
+      { key: 'manager', label: '技术经理人', icon: iconUser, iconBg: 'bg-purple', onClick: goTechManagers },
+      { key: 'map', label: '专利地图', icon: iconMap, iconBg: 'bg-green', onClick: goMap },
+      { key: 'art', label: '书画专区', icon: iconPalette, iconBg: 'bg-orange', onClick: goArtworks },
+      { key: 'demand', label: '产学研需求', icon: iconBriefcase, iconBg: 'bg-indigo', onClick: goDemandSearch },
+      { key: 'achievement', label: '成果转化', icon: iconAward, iconBg: 'bg-teal', onClick: goAchievements },
+    ],
+    [goAchievements, goArtworks, goDemandSearch, goInventors, goMap, goTechManagers],
+  );
+
+  const patentZoneEntries: PatentZoneEntry[] = useMemo(
+    () => [
+      {
+        key: 'sleeping',
+        title: '沉睡专利',
+        desc: '转让次数为 0 的专利',
+        icon: iconActivity,
+        tone: 'tone-blue',
+        onClick: goSleepingPatent,
+      },
+      {
+        key: 'high-tech-retired',
+        title: '高新退役',
+        desc: '审核通过的优质专利',
+        icon: iconShield,
+        tone: 'tone-orange',
+        onClick: goHighTechRetired,
+      },
+      {
+        key: 'cluster',
+        title: '产业集群',
+        desc: '按集群标签聚合展示',
+        icon: iconMap,
+        tone: 'tone-green',
+        onClick: goClusterPicker,
+      },
+      {
+        key: 'open-license',
+        title: '开放许可',
+        desc: '交易方式为许可',
+        icon: iconAward,
+        tone: 'tone-teal',
+        onClick: goOpenLicense,
+      },
+    ],
+    [goClusterPicker, goHighTechRetired, goOpenLicense, goSleepingPatent],
+  );
 
   return (
-    <View className="container home-v3">
-      <View className="home-hero">
-        <View className="home-hero-glow" />
-        <View className="home-hero-header">
+    <View className="home-page">
+      <View className="home-hero" style={heroStyle}>
+        <View className="home-hero-top">
           <View className="home-hero-brand">
-            <Image className="home-hero-logo" src={logoGif} mode="aspectFit" />
-            <View className="home-hero-brand-text">
-              <Text className="home-hero-title">
-                IP<Text style={{ color: 'var(--c-primary)' }}>MONEY</Text>
-              </Text>
-              <Text className="home-hero-subtitle">专利点金台</Text>
+            <View className="home-hero-logo">
+              <Image src={logoGif} mode="aspectFit" className="home-hero-logo-img" />
+            </View>
+            <View className="home-hero-text">
+              <Text className="home-hero-title">IPMONEY</Text>
+              <Text className="home-hero-subtitle">专利 & 书画交易</Text>
             </View>
           </View>
-          <View className="home-hero-pill" />
         </View>
 
-        <View className="home-segmented">
-          {[
-            { key: 'patent', label: '专利厅' },
-            { key: 'demand', label: '需求厅' },
-          ].map((it) => (
-            <View
-              key={it.key}
-              className={`home-segmented-item ${hall === it.key ? 'is-active' : ''}`}
-              onClick={() => setHall(it.key as Hall)}
-            >
-              {it.label}
-            </View>
-          ))}
-        </View>
-      </View>
-
-      <View className="home-cta-row">
-        <View className="home-cta-card publish" onClick={goPublish}>
-          <View className="home-cta-icon">
-            <AppIcon name="patent-achievement" size={44} />
-          </View>
-          <View className="home-cta-text">
-            <Text className="home-cta-title">{hall === 'patent' ? '发专利' : '发需求'}</Text>
-            <Text className="home-cta-sub">Publish</Text>
-          </View>
-        </View>
-        <View className="home-cta-card discover" onClick={hall === 'patent' ? goSearch : goDemandSearch}>
-          <View className="home-cta-icon">
-            <AppIcon name="patent-map" size={44} />
-          </View>
-          <View className="home-cta-text">
-            <Text className="home-cta-title">{hall === 'patent' ? '找专利' : '找需求'}</Text>
-            <Text className="home-cta-sub">Discover</Text>
+        <View className="home-search">
+          <Image src={iconSearch} svg mode="aspectFit" className="home-search-icon" />
+          <Input
+            className="home-search-input"
+            value={keyword}
+            onInput={(e) => setKeyword(e.detail.value)}
+            onFocus={() => goSearch()}
+            onConfirm={() => goSearch(keyword)}
+            placeholder="搜索专利、书画、专家…"
+            placeholderClass="home-search-placeholder"
+          />
+          <View className="home-search-btn" onClick={() => goSearch(keyword)}>
+            <Text>搜索</Text>
           </View>
         </View>
       </View>
 
-      <Surface padding="none" className="home-feature-surface">
-        <View className="home-feature-grid">
-          {[
-            {
-              key: 'sleeping',
-              title: '沉睡专利',
-              icon: 'sleep-patent' as const,
-              badge: 'brand' as const,
-              onClick: goPatentExplore,
-            },
-            {
-              key: 'inventors',
-              title: '发明人榜',
-              icon: 'inventor-rank' as const,
-              badge: 'brand' as const,
-              onClick: goInventors,
-            },
-            {
-              key: 'map',
-              title: '专利地图',
-              icon: 'patent-map' as const,
-              badge: 'brand' as const,
-              onClick: goMap,
-            },
-            {
-              key: 'achievement',
-              title: '专利成果',
-              icon: 'patent-achievement' as const,
-              badge: 'brand' as const,
-              onClick: goAchievements,
-            },
-            {
-              key: 'artworks',
-              title: '书画专区',
-              icon: 'painting-zone' as const,
-              badge: 'brand' as const,
-              onClick: goArtworks,
-            },
-          ].map((it) => (
-            <View key={it.key} className="home-feature-item" onClick={it.onClick}>
-              <View className="home-feature-chip">
-                <IconBadge variant={it.badge} size="md">
-                  <AppIcon name={it.icon} size={36} />
-                </IconBadge>
-              </View>
-              <Text className="home-feature-label">{it.title}</Text>
+      <View className="home-quick">
+        {quickEntries.map((entry) => (
+          <View key={entry.key} className="home-quick-item" onClick={entry.onClick}>
+            <View className={`home-quick-icon ${entry.iconBg}`}>
+              <Image src={entry.icon} svg mode="aspectFit" className="home-quick-icon-img" />
             </View>
-          ))}
-        </View>
-      </Surface>
+            <Text className="home-quick-label">{entry.label}</Text>
+          </View>
+        ))}
+      </View>
 
-      <View className="home-media-card">
-        <Swiper className="home-promo-swiper" indicatorDots autoplay={false} circular>
+      <View className="home-section home-marquee-section">
+        <View className="home-section-header">
+          <View className="home-section-title-wrap">
+            <View className="home-section-accent" />
+            <Text className="home-section-title">公告</Text>
+          </View>
+          <Text className="home-section-more" onClick={goAnnouncements}>
+            全部
+          </Text>
+        </View>
+        <View className="home-marquee-card">
+          {announcementLoading ? (
+            <Text className="home-marquee-placeholder">加载中…</Text>
+          ) : announcementError ? (
+            <Text className="home-marquee-placeholder">{announcementError}</Text>
+          ) : announcementItems.length ? (
+            <Swiper className="home-marquee-swiper" autoplay circular vertical interval={4000}>
+              {announcementItems.slice(0, 6).map((item) => (
+                <SwiperItem key={item.id}>
+                  <View className="home-marquee-item" onClick={() => goAnnouncementDetail(item.id)}>
+                    <View className="home-marquee-tag">
+                      <Text>公告</Text>
+                    </View>
+                    <Text className="home-marquee-title clamp-1">{item.title}</Text>
+                    <Text className="home-marquee-date">{formatDate(item.publishedAt)}</Text>
+                  </View>
+                </SwiperItem>
+              ))}
+            </Swiper>
+          ) : (
+            <Text className="home-marquee-placeholder">暂无公告</Text>
+          )}
+        </View>
+      </View>
+
+      <View className="home-banner">
+        <Swiper className="home-banner-swiper" indicatorDots autoplay={false} circular>
           <SwiperItem>
-            <View className="home-promo-strip">
-              <Image className="home-promo-strip-gif" src={promoCertificateGif} mode="aspectFill" />
-            </View>
-          </SwiperItem>
-          <SwiperItem>
-            <View className="home-promo-strip">
-              <Image className="home-promo-strip-gif" src={promoFreePublishImg} mode="aspectFill" />
+            <View className="home-banner-item">
+              <Image src={promoCertificateGif} mode="aspectFill" className="home-banner-img" />
             </View>
           </SwiperItem>
         </Swiper>
       </View>
 
-      <SectionHeader title={hall === 'patent' ? '精选专利推荐' : '热门需求广场'} />
+      <View className="home-section">
+        <View className="home-section-header">
+          <View className="home-section-title-wrap">
+            <View className="home-section-accent" />
+            <Text className="home-section-title">特色专区</Text>
+          </View>
+          <Text className="home-section-more" onClick={goPatentExplore}>
+            更多
+          </Text>
+        </View>
+        <View className="home-zone-grid">
+          {patentZoneEntries.map((entry) => (
+            <View key={entry.key} className="home-zone-card" onClick={entry.onClick}>
+              <View className={`home-zone-icon ${entry.tone}`}>
+                <Image src={entry.icon} svg mode="aspectFit" className="home-zone-icon-img" />
+              </View>
+              <Text className="home-zone-title">{entry.title}</Text>
+              <Text className="home-zone-desc">{entry.desc}</Text>
+            </View>
+          ))}
+        </View>
+      </View>
 
-      {loading ? (
-        <ListingListSkeleton count={3} />
-      ) : error ? (
-        <ErrorCard message={error} onRetry={() => load(hall)} />
-      ) : hall === 'patent' ? (
-        listingItems.length ? (
-          <Surface padding="none" className="listing-list">
-            {listingItems.map((it: ListingSummary) => (
+      <View className="home-section">
+        <View className="home-section-header">
+          <Text className="home-section-title">最新专利</Text>
+        </View>
+
+        {loading ? (
+          <View className="home-loading">加载中…</View>
+        ) : error ? (
+          <ErrorCard message={error} onRetry={load} />
+        ) : !items.length ? (
+          <EmptyCard message="暂无推荐内容" actionText="刷新" onAction={load} />
+        ) : (
+          <View className="search-card-list">
+            {items.map((it: ListingSummary) => (
               <ListingCard
                 key={it.id}
                 item={it}
-                favorited={favoriteIds.has(it.id)}
+                favorited={false}
                 onClick={() => {
                   Taro.navigateTo({ url: `/pages/listing/detail/index?listingId=${it.id}` });
                 }}
-                onFavorite={() => {
-                  void toggleFavorite(it.id);
-                }}
-                onConsult={() => {
-                  void startConsult(it.id);
-                }}
+                onFavorite={() => {}}
+                onConsult={() => {}}
               />
             ))}
-          </Surface>
-        ) : (
-          <EmptyCard message="暂无最新专利" actionText="刷新" onAction={() => load(hall)} />
-        )
-      ) : demandItems.length ? (
-        <View>
-          {demandItems.map((it: DemandSummary) => (
-            <Surface
-              key={it.id}
-              className="home-demand-card"
-              onClick={() => {
-                Taro.navigateTo({ url: `/pages/demand/detail/index?demandId=${it.id}` });
-              }}
-            >
-              <Text className="text-title clamp-2">{it.title || '未命名需求'}</Text>
-              <View style={{ height: '8rpx' }} />
-              {(() => {
-                const tags: { label: string; tone: TagTone }[] = [];
-                const budget = demandBudgetLabel(it);
-                if (budget) tags.push({ label: budget, tone: 'slate' });
-                tags.push({ label: priceTypeLabel(it.budgetType || 'NEGOTIABLE'), tone: 'blue' });
-                if (it.cooperationModes?.length) {
-                  tags.push({ label: cooperationModeLabel(it.cooperationModes[0]), tone: 'green' });
-                }
-                if (it.industryTags?.length) {
-                  tags.push({ label: it.industryTags[0], tone: 'slate' });
-                }
-                const visibleTags = tags.slice(0, 3);
-                const overflowCount = tags.length - visibleTags.length;
-                return (
-                  <View className="row" style={{ gap: '6rpx', flexWrap: 'wrap' }}>
-                    {visibleTags.map((tag, idx) => (
-                      <Text key={`${it.id}-tag-${idx}`} className={`listing-tag listing-tag--${tag.tone}`}>
-                        {tag.label}
-                      </Text>
-                    ))}
-                    {overflowCount > 0 ? <Text className="listing-tag listing-tag--slate">+{overflowCount}</Text> : null}
-                  </View>
-                );
-              })()}
-              {it.summary ? (
-                <>
-                  <View style={{ height: '10rpx' }} />
-                  <Text className="muted clamp-2">{it.summary}</Text>
-                </>
-              ) : null}
-              <View className="home-demand-footer">
-                <Button
-                  variant="default"
-                  size="mini"
-                  block={false}
-                  className="consult-btn"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    Taro.navigateTo({ url: `/pages/demand/detail/index?demandId=${it.id}` });
-                  }}
-                >
-                  详情
-                </Button>
-              </View>
-            </Surface>
-          ))}
-        </View>
-      ) : (
-        <EmptyCard message="暂无最新需求" actionText="刷新" onAction={() => load(hall)} />
-      )}
+          </View>
+        )}
+      </View>
     </View>
   );
 }

@@ -2800,7 +2800,7 @@ export interface components {
         /** @enum {string} */
         ArtworkStatus: "DRAFT" | "ACTIVE" | "OFF_SHELF" | "SOLD";
         /** @enum {string} */
-        CooperationMode: "TRANSFER" | "LICENSE" | "EQUITY" | "JOINT_DEV" | "COMMISSIONED_DEV" | "OTHER";
+        CooperationMode: "TRANSFER" | "TECH_CONSULTING" | "COMMISSIONED_DEV" | "PLATFORM_CO_BUILD";
         /** @enum {string} */
         AchievementMaturity: "CONCEPT" | "PROTOTYPE" | "PILOT" | "MASS_PRODUCTION" | "COMMERCIALIZED" | "OTHER";
         /** @enum {string} */

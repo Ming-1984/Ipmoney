@@ -1,3 +1,4 @@
 export default definePageConfig({
-  navigationBarTitleText: '消息',
+  navigationBarTitleText: '\u6d88\u606f',
+  navigationStyle: 'custom',
 });

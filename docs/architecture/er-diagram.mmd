@@ -27,10 +27,50 @@ erDiagram
     datetime updated_at
   }
 
+  PATENT_CLUSTERS {
+    uuid id PK
+    string name
+    string region_code FK
+    string summary
+    string highlight_tags_json "json"
+    int patent_count_cached
+    uuid cover_file_id FK
+    string status "ACTIVE/INACTIVE"
+    datetime created_at
+    datetime updated_at
+  }
+
+  CLUSTER_INSTITUTIONS {
+    uuid id PK
+    uuid cluster_id FK
+    string name
+    string category "UNIVERSITY/RESEARCH/INSTITUTE/COMPANY/OTHER"
+    int sort
+    datetime created_at
+    datetime updated_at
+  }
+
+  ANNOUNCEMENTS {
+    uuid id PK
+    string type "PATENT"
+    string title
+    string subtitle
+    string period "YYYYMM"
+    string publisher_name
+    uuid publisher_user_id FK
+    string status "DRAFT/PUBLISHED/ARCHIVED"
+    datetime publish_at
+    string content
+    datetime created_at
+    datetime updated_at
+  }
+
+
   USER_VERIFICATIONS {
     uuid id PK
     uuid user_id FK
     string type "PERSON/COMPANY/ACADEMY/GOVERNMENT/ASSOCIATION/TECH_MANAGER"
+    string org_category "UNIVERSITY/UNIVERSITY_985/UNIVERSITY_211/RESEARCH_INSTITUTE/OTHER"
     string status "PENDING/APPROVED/REJECTED"
     string display_name
     string unified_social_credit_code_enc
@@ -53,9 +93,18 @@ erDiagram
     string jurisdiction "CN"
     string application_no_norm
     string application_no_display
+    string patent_no_display
+    string publication_no_display
+    string grant_publication_no_display
     string patent_type "INVENTION/UTILITY_MODEL/DESIGN"
     string title
     string abstract
+    string case_status
+    string main_ipc_code
+    int claim_count
+    int spec_page_count
+    int spec_word_count
+    int spec_figure_count
     date filing_date
     date publication_date
     date grant_date
@@ -91,12 +140,20 @@ erDiagram
     string country_code
   }
 
+  PATENT_MEDIA {
+    uuid id PK
+    uuid patent_id FK
+    uuid file_id FK
+    string type "COVER/SPEC_FIGURE"
+    int sort
+  }
+
   FILES {
     uuid id PK
     string url
     string mime_type
     int size_bytes
-    string owner_scope "LISTING/DEMAND/ACHIEVEMENT/ARTWORK/CASE/REFUND_REQUEST/INVOICE/USER/USER_VERIFICATION/MESSAGE/AI_PARSE/MAINTENANCE_TASK"
+    string owner_scope "LISTING/DEMAND/ACHIEVEMENT/ARTWORK/CASE/REFUND_REQUEST/INVOICE/USER/USER_VERIFICATION/MESSAGE/AI_PARSE/MAINTENANCE_TASK/PATENT_CLUSTER"
     uuid owner_id
     datetime created_at
   }
@@ -115,6 +172,8 @@ erDiagram
     int deposit_amount
     string region_code
     string industry_tags_json "json"
+    string listing_topics_json "json"
+    uuid cluster_id FK
     string featured_level "NONE/CITY/PROVINCE"
     string featured_region_code
     int featured_rank
@@ -200,6 +259,8 @@ erDiagram
     string type "IMAGE/VIDEO/FILE"
     int sort
   }
+
+  %% 成果详情媒体展示：封面使用 cover_file_id；更多图片来自 ACHIEVEMENT_MEDIA(type=IMAGE)，前端以图集展示并可单图预览
 
   ACHIEVEMENT_FAVORITES {
     uuid id PK
@@ -366,8 +427,9 @@ erDiagram
     uuid id PK
     uuid conversation_id FK
     uuid sender_user_id FK
-    string type "TEXT/IMAGE/FILE/SYSTEM"
+    string type "TEXT/EMOJI/REFERENCE/SYSTEM"
     string text
+    string reference_type "MATERIAL/CONTRACT"
     uuid file_id FK
     datetime created_at
   }
@@ -539,6 +601,7 @@ erDiagram
 
   USERS ||--o{ USER_VERIFICATIONS : verifies
   REGIONS ||--o{ USERS : located_in
+  REGIONS ||--o{ PATENT_CLUSTERS : located_in
   USERS ||--o{ LISTINGS : publishes
   USERS ||--o{ DEMANDS : publishes
   USERS ||--o{ ACHIEVEMENTS : publishes
@@ -557,10 +620,12 @@ erDiagram
   USERS ||--o{ AUDIT_LOGS : audits
   USERS ||--o{ AI_PARSE_FEEDBACK : reviews
   USERS ||--o{ PATENT_MAINTENANCE_TASKS : assigned
+  USERS ||--o{ ANNOUNCEMENTS : publishes
 
   PATENTS ||--o{ PATENT_IDENTIFIERS : has
   PATENTS ||--o{ PATENT_CLASSIFICATIONS : has
   PATENTS ||--o{ PATENT_PARTIES : has
+  PATENTS ||--o{ PATENT_MEDIA : has
   PATENTS ||--o{ LISTINGS : referenced_by
   PATENTS ||--o{ PATENT_MAINTENANCE_SCHEDULES : schedules
 
@@ -571,6 +636,7 @@ erDiagram
   LISTINGS ||--o{ LISTING_FAVORITES : favored
   LISTINGS ||--o{ LISTING_CONSULT_EVENTS : consulted
   REGIONS ||--o{ LISTINGS : located_in
+  PATENT_CLUSTERS ||--o{ LISTINGS : clusters
 
   ARTWORKS ||--o{ ORDERS : generates
 
@@ -612,6 +678,7 @@ erDiagram
   FILES ||--o{ DEMAND_MEDIA : stored_as
   FILES ||--o{ ACHIEVEMENT_MEDIA : stored_as
   FILES ||--o{ ARTWORK_MEDIA : stored_as
+  FILES ||--o{ PATENT_MEDIA : stored_as
   FILES ||--o{ CONVERSATION_MESSAGES : attached
   FILES ||--o{ CS_MILESTONES : evidence
   FILES ||--o{ SETTLEMENTS : payout_evidence
@@ -623,6 +690,7 @@ erDiagram
   DEMANDS ||--o| FILES : cover
   ACHIEVEMENTS ||--o| FILES : cover
   ARTWORKS ||--o| FILES : cover
+  PATENT_CLUSTERS ||--o| FILES : cover
 
   ORDERS ||--o{ PAYMENTS : has
   ORDERS ||--o{ REFUND_REQUESTS : has
@@ -637,3 +705,4 @@ erDiagram
   CONVERSATIONS ||--o{ CONVERSATION_PARTICIPANTS : has
   CONVERSATIONS ||--o{ CONVERSATION_MESSAGES : contains
   PATENT_MAP_ENTRIES }o--|| REGIONS : for_region
+  PATENT_CLUSTERS ||--o{ CLUSTER_INSTITUTIONS : includes

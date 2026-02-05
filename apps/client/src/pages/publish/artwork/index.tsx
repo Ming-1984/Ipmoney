@@ -1,6 +1,7 @@
 ﻿import { View, Text, Image, Video } from '@tarojs/components';
 import Taro, { useRouter } from '@tarojs/taro';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import './index.scss';
 
 import type { components } from '@ipmoney/api-types';
 
@@ -12,6 +13,10 @@ import { auditStatusLabel, artworkStatusLabel, verificationTypeLabel } from '../
 import { fenToYuan } from '../../../lib/money';
 import { PageHeader, Spacer, StickyBar, Surface } from '../../../ui/layout';
 import { Button, Input, TextArea, confirm, toast } from '../../../ui/nutui';
+
+function resolveVideoPoster(url?: string | null): string | undefined {
+  return url && /^https?:\/\//.test(url) ? url : undefined;
+}
 
 type Artwork = components['schemas']['Artwork'];
 type ArtworkCreateRequest = components['schemas']['ArtworkCreateRequest'];
@@ -76,6 +81,36 @@ function parseMoneyFen(input: string): number | null {
   const fen = Number(b);
   if (!Number.isFinite(yuan) || !Number.isFinite(fen)) return null;
   return yuan * 100 + fen;
+}
+
+function mergePlaceholderClass(extra?: string): string {
+  return extra ? `publish-placeholder ${extra}` : 'publish-placeholder';
+}
+
+function mergePlaceholderStyle(extra?: string): string {
+  const base = 'font-size:20rpx;color:#c0c4cc;';
+  if (!extra) return base;
+  return `${base}${extra}`;
+}
+
+function PublishInput(props: React.ComponentProps<typeof Input>) {
+  return (
+    <Input
+      {...props}
+      placeholderClass={mergePlaceholderClass(props.placeholderClass)}
+      placeholderStyle={mergePlaceholderStyle(props.placeholderStyle)}
+    />
+  );
+}
+
+function PublishTextArea(props: React.ComponentProps<typeof TextArea>) {
+  return (
+    <TextArea
+      {...props}
+      placeholderClass={mergePlaceholderClass(props.placeholderClass)}
+      placeholderStyle={mergePlaceholderStyle(props.placeholderStyle)}
+    />
+  );
 }
 
 function parseYear(input: string): number | null {
@@ -656,8 +691,8 @@ export default function PublishArtworkPage() {
   }, [artworkId, offShelving]);
 
   return (
-    <View className="container has-sticky">
-      <PageHeader back fallbackUrl="/pages/publish/index" title="发布：书画专区" />
+    <View className="container has-sticky publish-artwork-page">
+      <PageHeader back fallbackUrl="/pages/publish/index" title="发布：书画专区" brand={false} />
       <Spacer />
 
       <Surface>
@@ -688,7 +723,7 @@ export default function PublishArtworkPage() {
         <Text className="text-card-title">基础信息</Text>
         <View style={{ height: '12rpx' }} />
 
-        <Text className="muted">所属主体</Text>
+        <Text className="form-label">所属主体</Text>
         <View style={{ height: '8rpx' }} />
         <View className="row-between" style={{ gap: '12rpx', alignItems: 'center' }}>
           <Text className="text-strong">
@@ -700,12 +735,12 @@ export default function PublishArtworkPage() {
         <Text className="muted">由认证信息自动带出，不可手动修改。</Text>
 
         <View style={{ height: '12rpx' }} />
-        <Text className="muted">作品名称*</Text>
+        <Text className="form-label">作品名称*</Text>
         <View style={{ height: '8rpx' }} />
-        <Input value={title} onChange={setTitle} placeholder="例：山水四屏" maxLength={200} clearable disabled={!canEdit} />
+        <PublishInput value={title} onChange={setTitle} placeholder="例：山水四屏" maxLength={200} clearable disabled={!canEdit} />
 
         <View style={{ height: '12rpx' }} />
-        <Text className="muted">作品类别*</Text>
+        <Text className="form-label">作品类别*</Text>
         <View style={{ height: '8rpx' }} />
         <View className="chip-row">
           {CATEGORY_OPTIONS.map((it) => (
@@ -738,7 +773,7 @@ export default function PublishArtworkPage() {
         {category === 'CALLIGRAPHY' ? (
           <>
             <View style={{ height: '12rpx' }} />
-            <Text className="muted">书体</Text>
+            <Text className="form-label">书体</Text>
             <View style={{ height: '8rpx' }} />
             <View className="chip-row">
               {CALLIGRAPHY_OPTIONS.map((it) => (
@@ -769,7 +804,7 @@ export default function PublishArtworkPage() {
         {category === 'PAINTING' ? (
           <>
             <View style={{ height: '12rpx' }} />
-            <Text className="muted">题材</Text>
+            <Text className="form-label">题材</Text>
             <View style={{ height: '8rpx' }} />
             <View className="chip-row">
               {PAINTING_OPTIONS.map((it) => (
@@ -798,19 +833,19 @@ export default function PublishArtworkPage() {
         ) : null}
 
         <View style={{ height: '12rpx' }} />
-        <Text className="muted">创作者*</Text>
+        <Text className="form-label">创作者*</Text>
         <View style={{ height: '8rpx' }} />
-        <Input value={creatorName} onChange={setCreatorName} placeholder="例：张三" maxLength={200} clearable disabled={!canEdit} />
+        <PublishInput value={creatorName} onChange={setCreatorName} placeholder="例：张三" maxLength={200} clearable disabled={!canEdit} />
 
         <View style={{ height: '12rpx' }} />
-        <Text className="muted">创作日期（可选）</Text>
+        <Text className="form-label">创作日期（可选）</Text>
         <View style={{ height: '8rpx' }} />
-        <Input value={creationDate} onChange={setCreationDate} placeholder="YYYY-MM-DD" maxLength={20} clearable disabled={!canEdit} />
+        <PublishInput value={creationDate} onChange={setCreationDate} placeholder="YYYY-MM-DD" maxLength={20} clearable disabled={!canEdit} />
 
         <View style={{ height: '12rpx' }} />
-        <Text className="muted">创作年份（可选）</Text>
+        <Text className="form-label">创作年份（可选）</Text>
         <View style={{ height: '8rpx' }} />
-        <Input value={creationYear} onChange={setCreationYear} placeholder="例：2008" type="number" maxLength={4} clearable disabled={!canEdit} />
+        <PublishInput value={creationYear} onChange={setCreationYear} placeholder="例：2008" type="number" maxLength={4} clearable disabled={!canEdit} />
       </Surface>
 
       <View style={{ height: '16rpx' }} />
@@ -819,7 +854,7 @@ export default function PublishArtworkPage() {
         <Text className="text-card-title">价格与交易</Text>
         <View style={{ height: '12rpx' }} />
 
-        <Text className="muted">报价方式*</Text>
+        <Text className="form-label">报价方式*</Text>
         <View style={{ height: '8rpx' }} />
         <View className="chip-row">
           {PRICE_TYPE_OPTIONS.map((it) => (
@@ -850,16 +885,16 @@ export default function PublishArtworkPage() {
         {priceType === 'FIXED' ? (
           <>
             <View style={{ height: '12rpx' }} />
-            <Text className="muted">一口价（元）</Text>
+            <Text className="form-label">一口价（元）</Text>
             <View style={{ height: '8rpx' }} />
-            <Input value={priceYuan} onChange={setPriceYuan} placeholder="例：288000" type="digit" clearable disabled={!canEdit} />
+            <PublishInput value={priceYuan} onChange={setPriceYuan} placeholder="例：288000" type="digit" clearable disabled={!canEdit} />
           </>
         ) : null}
 
         <View style={{ height: '12rpx' }} />
-        <Text className="muted">订金（元）</Text>
+        <Text className="form-label">订金（元）</Text>
         <View style={{ height: '8rpx' }} />
-        <Input value={depositYuan} onChange={setDepositYuan} placeholder="例：2000" type="digit" clearable disabled={!canEdit} />
+        <PublishInput value={depositYuan} onChange={setDepositYuan} placeholder="例：2000" type="digit" clearable disabled={!canEdit} />
         <View style={{ height: '6rpx' }} />
         <Text className="text-caption muted">订金与尾款平台托管，权属确认完成后放款。</Text>
       </Surface>
@@ -870,9 +905,9 @@ export default function PublishArtworkPage() {
         <Text className="text-card-title">证书与补充信息</Text>
         <View style={{ height: '12rpx' }} />
 
-        <Text className="muted">著作权登记证书编号（可选）</Text>
+        <Text className="form-label">著作权登记证书编号（可选）</Text>
         <View style={{ height: '8rpx' }} />
-        <Input
+        <PublishInput
           value={certificateNo}
           onChange={setCertificateNo}
           placeholder="例：国作登字-2023-F-0123456"
@@ -883,7 +918,7 @@ export default function PublishArtworkPage() {
 
         <View style={{ height: '12rpx' }} />
         <View className="row-between">
-          <Text className="muted">证书材料（建议上传）</Text>
+          <Text className="form-label">证书材料（建议上传）</Text>
           <Text className={`tag ${certificateFiles.length ? 'tag-success' : 'tag-warning'}`}>
             {certificateFiles.length ? `${certificateFiles.length} 份` : '未上传'}
           </Text>
@@ -937,21 +972,21 @@ export default function PublishArtworkPage() {
         ) : null}
 
         <View style={{ height: '12rpx' }} />
-        <Text className="muted">材质（可选）</Text>
+        <Text className="form-label">材质（可选）</Text>
         <View style={{ height: '8rpx' }} />
-        <Input value={material} onChange={setMaterial} placeholder="例：宣纸/绢本" maxLength={200} clearable disabled={!canEdit} />
+        <PublishInput value={material} onChange={setMaterial} placeholder="例：宣纸/绢本" maxLength={200} clearable disabled={!canEdit} />
 
         <View style={{ height: '12rpx' }} />
-        <Text className="muted">尺寸（可选）</Text>
+        <Text className="form-label">尺寸（可选）</Text>
         <View style={{ height: '8rpx' }} />
-        <Input value={size} onChange={setSize} placeholder="例：138×69 cm" maxLength={100} clearable disabled={!canEdit} />
+        <PublishInput value={size} onChange={setSize} placeholder="例：138×69 cm" maxLength={100} clearable disabled={!canEdit} />
 
         <View style={{ height: '12rpx' }} />
-        <Text className="muted">所在地区（可选）</Text>
+        <Text className="form-label">所在地区（可选）</Text>
         <View style={{ height: '8rpx' }} />
         <View className="row" style={{ gap: '12rpx', alignItems: 'center' }}>
           <View className="flex-1">
-            <Input value={regionCode} onChange={setRegionCode} placeholder="例：110000" clearable disabled={!canEdit} />
+            <PublishInput value={regionCode} onChange={setRegionCode} placeholder="例：110000" clearable disabled={!canEdit} />
           </View>
           <View style={{ width: '180rpx' }}>
             <Button variant="ghost" size="small" disabled={!canEdit} onClick={() => openRegionPicker()}>
@@ -966,7 +1001,7 @@ export default function PublishArtworkPage() {
       <Surface>
         <Text className="text-card-title">作品介绍</Text>
         <View style={{ height: '12rpx' }} />
-        <TextArea
+        <PublishTextArea
           value={description}
           onChange={setDescription}
           placeholder="作品风格、题材、创作背景等（5000字以内）"
@@ -981,7 +1016,7 @@ export default function PublishArtworkPage() {
         <Text className="text-card-title">封面与作品图片</Text>
         <View style={{ height: '12rpx' }} />
 
-        <Text className="muted">封面图（可选，推荐）</Text>
+        <Text className="form-label">封面图（可选，推荐）</Text>
         <View style={{ height: '10rpx' }} />
         {coverUrl ? (
           <Image src={coverUrl} mode="aspectFill" style={{ width: '100%', height: '320rpx', borderRadius: '20rpx' }} />
@@ -1001,7 +1036,7 @@ export default function PublishArtworkPage() {
         </View>
 
         <View style={{ height: '14rpx' }} />
-        <Text className="muted">作品图片/视频/文件（建议至少上传 1 张作品图片）</Text>
+        <Text className="form-label">作品图片/视频/文件（建议至少上传 1 张作品图片）</Text>
         <View style={{ height: '10rpx' }} />
         <View className="row" style={{ gap: '12rpx', flexWrap: 'wrap' }}>
           <Button block={false} size="small" variant="ghost" disabled={!canEdit || uploading} onClick={() => void addImage()}>
@@ -1037,7 +1072,7 @@ export default function PublishArtworkPage() {
                     src={(m as any).url as string}
                     controls
                     autoplay={false}
-                    poster={coverUrl || undefined}
+                    poster={resolveVideoPoster(coverUrl)}
                     style={{ width: '100%', height: '320rpx', borderRadius: '20rpx' }}
                   />
                 ) : m.type === 'FILE' && (m as any).url ? (

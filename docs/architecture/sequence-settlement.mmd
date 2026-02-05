@@ -67,7 +67,22 @@ sequenceDiagram
   Notif-->>Buyer: 通知：交易完成
   Notif-->>Seller: 通知：已放款（扣除佣金）
 
-  Note over Seller,Finance: 订单完成后，卖家线下申请开票；财务线下开票后在平台上传电子发票（P0：不做邮箱投递）
+  Note over Buyer,Seller: 订单完成后，买家/卖家在发票中心提交开票申请（平台内流转）
+  Buyer->>GW: 提交开票申请（orderId, 抬头/税号等）
+  GW->>Order: createInvoiceRequest(orderId, payload)
+  Order->>Order: 校验订单=COMPLETED，写入申请状态(APPLYING)
+  Order-->>Bus: InvoiceRequestCreated(orderId)
+  Bus-->>Notif: InvoiceRequestCreated
+  Notif-->>Finance: 待办：审核开票申请
+
+  Finance->>GW: 审核开票申请（通过/退回）
+  GW->>Order: updateInvoiceRequestStatus(orderId, status=APPROVED/REJECTED)
+  Order-->>Bus: InvoiceRequestReviewed(orderId)
+  Bus-->>Notif: InvoiceRequestReviewed
+  Notif-->>Buyer: 通知：开票进度/退回补充
+  Notif-->>Seller: 通知：开票进度/退回补充
+
+  Note over Seller,Finance: 审核通过后线下开票；平台内上传电子发票（P0：不做邮箱投递）
   Finance->>GW: 上传电子发票文件（purpose=INVOICE）
   GW->>File: uploadFile(file, purpose=INVOICE)
   File-->>GW: invoiceFileId
@@ -81,4 +96,4 @@ sequenceDiagram
   Seller->>GW: 获取订单发票（orderId）
   GW->>Order: getOrderInvoice(orderId)
   Order-->>GW: OrderInvoice(invoiceFile.url)
-  GW-->>Seller: 返回发票下载地址
+  GW-->>Seller: 返回发票下载地址（小程序内直接下载）

@@ -1,5 +1,6 @@
-import { View, Text } from '@tarojs/components';
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+﻿import { View, Text } from '@tarojs/components';
+import Taro from '@tarojs/taro';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import type { components } from '@ipmoney/api-types';
 
@@ -7,7 +8,7 @@ import { apiDelete, apiGet, apiPatch, apiPost } from '../lib/api';
 import { getToken } from '../lib/auth';
 import { formatTimeSmart } from '../lib/format';
 import { ensureApproved } from '../lib/guard';
-import { SectionHeader, Spacer, Surface } from './layout';
+import { SectionHeader, Spacer, Surface, type SectionHeaderAccent } from './layout';
 import { Avatar, Button, Empty, Space, Tag, TextArea, confirm, toast } from './nutui';
 
 type CommentContentType = components['schemas']['CommentContentType'];
@@ -17,6 +18,16 @@ type Comment = components['schemas']['Comment'];
 type PagedCommentThread = components['schemas']['PagedCommentThread'];
 type PageMeta = components['schemas']['PageMeta'];
 type Me = components['schemas']['Me'];
+
+type CommentsSectionProps = {
+  contentType: CommentContentType;
+  contentId: string;
+  title?: string;
+  accent?: SectionHeaderAccent;
+  showHeader?: boolean;
+  className?: string;
+  variant?: 'default' | 'achievement';
+};
 
 type ComposerState =
   | { mode: 'new' }
@@ -38,17 +49,21 @@ function displayUserInitial(user?: Comment['user']): string {
   return name ? name.slice(0, 1) : 'U';
 }
 
-export function CommentsSection(props: { contentType: CommentContentType; contentId: string }) {
-  const { contentType, contentId } = props;
+export function CommentsSection(props: CommentsSectionProps) {
+  const { contentType, contentId, title = '留言', accent = 'primary', showHeader = true, className, variant = 'default' } = props;
   const [threads, setThreads] = useState<CommentThread[]>([]);
   const [pageMeta, setPageMeta] = useState<PageMeta | null>(null);
   const [loading, setLoading] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [composerFocus, setComposerFocus] = useState(false);
   const [composer, setComposer] = useState<ComposerState>({ mode: 'new' });
   const [composerText, setComposerText] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [currentUser, setCurrentUser] = useState<Me | null>(null);
+  const longPressRef = useRef(false);
+  const composerId = 'comment-composer';
 
   const commentById = useMemo(() => {
     const map = new Map<string, Comment>();
@@ -98,17 +113,25 @@ export function CommentsSection(props: { contentType: CommentContentType; conten
     setPageMeta(null);
     setComposer({ mode: 'new' });
     setComposerText('');
+    setComposerFocus(false);
     void loadPage(1);
   }, [loadPage]);
 
   useEffect(() => {
     if (!getToken()) {
       setCurrentUserId(null);
+      setCurrentUser(null);
       return;
     }
     apiGet<Me>('/me')
-      .then((d) => setCurrentUserId(d.id))
-      .catch(() => setCurrentUserId(null));
+      .then((d) => {
+        setCurrentUserId(d.id);
+        setCurrentUser(d);
+      })
+      .catch(() => {
+        setCurrentUserId(null);
+        setCurrentUser(null);
+      });
   }, [contentId, contentType]);
 
   const total = pageMeta?.total ?? threads.length;
@@ -118,10 +141,23 @@ export function CommentsSection(props: { contentType: CommentContentType; conten
   const resetComposer = useCallback(() => {
     setComposer({ mode: 'new' });
     setComposerText('');
+    setComposerFocus(false);
+  }, []);
+
+  const focusComposer = useCallback(() => {
+    try {
+      Taro.pageScrollTo({ selector: `#${composerId}`, duration: 250 });
+    } catch (_) {
+      try {
+        Taro.pageScrollTo({ scrollTop: 999999, duration: 250 });
+      } catch (_) {}
+    }
+    setComposerFocus(false);
+    setTimeout(() => setComposerFocus(true), 200);
   }, []);
 
   const startReply = useCallback(
-    (comment: Comment) => {
+    (comment: Comment, focus = true) => {
       if (!ensureApproved()) return;
       if (normalizeStatus(comment.status) !== 'VISIBLE') {
         toast('该留言暂不可回复');
@@ -129,12 +165,13 @@ export function CommentsSection(props: { contentType: CommentContentType; conten
       }
       setComposer({ mode: 'reply', targetId: comment.id, targetName: displayUserName(comment.user) });
       setComposerText('');
+      if (focus) focusComposer();
     },
-    [],
+    [focusComposer],
   );
 
   const startEdit = useCallback(
-    (comment: Comment) => {
+    (comment: Comment, focus = true) => {
       if (!ensureApproved()) return;
       if (!currentUserId || comment.user?.id !== currentUserId) {
         toast('只能编辑自己的留言');
@@ -146,8 +183,9 @@ export function CommentsSection(props: { contentType: CommentContentType; conten
       }
       setComposer({ mode: 'edit', targetId: comment.id, targetName: displayUserName(comment.user) });
       setComposerText(comment.text || '');
+      if (focus) focusComposer();
     },
-    [currentUserId],
+    [currentUserId, focusComposer],
   );
 
   const submit = useCallback(async () => {
@@ -231,41 +269,139 @@ export function CommentsSection(props: { contentType: CommentContentType; conten
     [currentUserId, loadPage],
   );
 
-  const composerLabel =
-    composer.mode === 'reply'
-      ? `回复 ${composer.targetName}`
-      : composer.mode === 'edit'
-        ? '编辑留言'
-        : '';
+  const handleLongPress = useCallback(
+    async (comment: Comment) => {
+      if (!ensureApproved()) return;
+      longPressRef.current = true;
+      const status = normalizeStatus(comment.status);
+      const isOwner = currentUserId && comment.user?.id === currentUserId;
+      const isMock = typeof comment.id === 'string' && comment.id.startsWith('mock-');
+      const canReply = status === 'VISIBLE' && !isMock;
+      const canEdit = Boolean(isOwner && status === 'VISIBLE' && !isMock);
+      const canDelete = Boolean(isOwner && status !== 'DELETED' && !isMock);
+      const items: string[] = [];
+      const actions: Array<'reply' | 'edit' | 'delete'> = [];
+      if (canReply) {
+        items.push('回复');
+        actions.push('reply');
+      }
+      if (canEdit) {
+        items.push('编辑');
+        actions.push('edit');
+      }
+      if (canDelete) {
+        items.push('删除');
+        actions.push('delete');
+      }
+      if (!items.length) return;
+      try {
+        const res = await Taro.showActionSheet({ itemList: items });
+        const action = actions[res.tapIndex];
+        if (action === 'reply') startReply(comment);
+        if (action === 'edit') startEdit(comment);
+        if (action === 'delete') void removeComment(comment);
+      } catch (_) {
+        // ignore cancel
+      } finally {
+        setTimeout(() => {
+          longPressRef.current = false;
+        }, 400);
+      }
+    },
+    [currentUserId, removeComment, startEdit, startReply],
+  );
 
   const composerPlaceholder =
     composer.mode === 'reply'
       ? `回复 ${composer.targetName}`
       : composer.mode === 'edit'
         ? '编辑留言内容'
-        : '写下你的留言，帮助大家更快了解…';
+        : '写下你的留言，共同讨论';
+  const submitEnabled = composerText.trim().length > 0 && !submitting;
+  const handleComposerBlur = useCallback(() => {
+    setTimeout(() => setComposerFocus(false), 120);
+  }, []);
 
   const renderComment = (comment: Comment, options?: { isReply?: boolean; rootId?: string }) => {
     const status = normalizeStatus(comment.status);
-    const isOwner = currentUserId && comment.user?.id === currentUserId;
     const isVisible = status === 'VISIBLE';
-    const canReply = isVisible;
-    const canEdit = Boolean(isOwner && isVisible);
-    const canDelete = Boolean(isOwner && status !== 'DELETED');
+    const isMock = typeof comment.id === 'string' && comment.id.startsWith('mock-');
+    const canReply = isVisible && !isMock;
     const edited = Boolean(comment.updatedAt && comment.updatedAt !== comment.createdAt);
     const replyToName =
       options?.isReply && comment.parentCommentId
         ? displayUserName(commentById.get(comment.parentCommentId)?.user)
         : null;
+    const isAchievementReply = variant === 'achievement' && options?.isReply;
+    const replyPrefix = isAchievementReply ? '作者回复：' : replyToName ? `回复 ${replyToName}：` : null;
+
+    if (variant === 'achievement') {
+      return (
+        <View
+          className={`comment-item comment-item-achievement ${options?.isReply ? 'comment-reply-item' : ''}`}
+          onClick={(e) => {
+            e.stopPropagation?.();
+            if (longPressRef.current) {
+              longPressRef.current = false;
+              return;
+            }
+            if (canReply) startReply(comment);
+          }}
+          onLongPress={() => void handleLongPress(comment)}
+        >
+          {isAchievementReply ? (
+            <View className="comment-reply-block">
+              <Text className="comment-text break-word">
+                {replyPrefix ? <Text className="comment-reply-prefix">{replyPrefix}</Text> : null}
+                {comment.text || ''}
+              </Text>
+            </View>
+          ) : (
+            <View className="comment-main-block">
+              <View className="comment-main-top">
+                <View className="comment-main-left">
+                  <Avatar size="36" src={comment.user?.avatarUrl || ''} background="rgba(15, 23, 42, 0.06)" color="var(--c-muted)">
+                    {displayUserInitial(comment.user)}
+                  </Avatar>
+                  <View className="comment-main-meta">
+                    <View className="comment-main-name">
+                      <Text className="comment-name">{displayUserName(comment.user)}</Text>
+                      <Text className="comment-role-tag">技术经理人</Text>
+                    </View>
+                    <Text className="comment-time muted">{formatTimeSmart(comment.createdAt)}</Text>
+                  </View>
+                </View>
+              </View>
+              <View className={`comment-bubble ${status === 'VISIBLE' ? '' : 'comment-text-muted'} comment-bubble-achievement`}>
+                <Text className="comment-text break-word">{comment.text || ''}</Text>
+              </View>
+            </View>
+          )}
+        </View>
+      );
+    }
 
     return (
-      <View className={`comment-item ${options?.isReply ? 'comment-reply-item' : ''}`}>
+      <View
+        className={`comment-item ${options?.isReply ? 'comment-reply-item' : ''}`}
+        onClick={(e) => {
+          e.stopPropagation?.();
+          if (longPressRef.current) {
+            longPressRef.current = false;
+            return;
+          }
+          if (canReply) startReply(comment);
+        }}
+        onLongPress={() => void handleLongPress(comment)}
+      >
         <Avatar size="32" src={comment.user?.avatarUrl || ''} background="rgba(15, 23, 42, 0.06)" color="var(--c-muted)">
           {displayUserInitial(comment.user)}
         </Avatar>
         <View className="comment-body">
           <View className="row-between">
-            <Text className="text-strong">{displayUserName(comment.user)}</Text>
+            <View className="comment-user-meta">
+              <Text className="text-strong">{displayUserName(comment.user)}</Text>
+            </View>
             <Space size={6} align="center">
               {edited ? (
                 <Tag type="default" plain round>
@@ -286,26 +422,11 @@ export function CommentsSection(props: { contentType: CommentContentType; conten
             </Space>
           </View>
           <Spacer size={4} />
-          <Text className={`comment-text break-word ${status === 'VISIBLE' ? '' : 'comment-text-muted'}`}>
-            {replyToName ? <Text className="comment-reply-prefix">回复 {replyToName}：</Text> : null}
-            {comment.text || ''}
-          </Text>
-          <View className="comment-actions">
-            {canReply ? (
-              <Button variant="ghost" size="mini" block={false} onClick={() => startReply(comment)}>
-                回复
-              </Button>
-            ) : null}
-            {canEdit ? (
-              <Button variant="ghost" size="mini" block={false} onClick={() => startEdit(comment)}>
-                编辑
-              </Button>
-            ) : null}
-            {canDelete ? (
-              <Button variant="danger" size="mini" block={false} onClick={() => void removeComment(comment)}>
-                删除
-              </Button>
-            ) : null}
+          <View className={`comment-bubble ${status === 'VISIBLE' ? '' : 'comment-text-muted'}`}>
+            <Text className="comment-text break-word">
+              {replyPrefix ? <Text className="comment-reply-prefix">{replyPrefix}</Text> : null}
+              {comment.text || ''}
+            </Text>
           </View>
         </View>
       </View>
@@ -313,26 +434,45 @@ export function CommentsSection(props: { contentType: CommentContentType; conten
   };
 
   return (
-    <Surface>
-      <SectionHeader title={`留言${total ? `（${total}）` : ''}`} density="compact" />
-      <View className="comment-composer">
-        {composerLabel ? (
-          <View className="comment-composer-mode">
-            <Tag type="default" plain round>
-              {composerLabel}
-            </Tag>
-            <Button variant="ghost" size="mini" block={false} onClick={resetComposer}>
-              取消
+    <Surface className={`${className || ''} ${variant === 'achievement' ? 'comment-surface-achievement' : ''}`}>
+      {showHeader ? <SectionHeader title={`${title}${total ? `（${total}）` : ''}`} density="compact" accent={accent} /> : null}
+      <View className="comment-composer" id={composerId}>
+        {!composerFocus ? (
+          <View className="comment-composer-inline">
+            <Avatar size="32" src={currentUser?.avatarUrl || ''} background="rgba(15, 23, 42, 0.06)" color="var(--c-muted)">
+              {displayUserInitial(currentUser)}
+            </Avatar>
+            <View className="comment-composer-placeholder" onClick={focusComposer}>
+              <Text className="comment-composer-placeholder-text">{composerPlaceholder}</Text>
+            </View>
+          </View>
+        ) : null}
+
+        {composerFocus ? (
+          <View className="comment-composer-floating">
+            <TextArea
+              className="comment-composer-floating-input"
+              value={composerText}
+              onChange={setComposerText}
+              placeholder={composerPlaceholder}
+              maxLength={1000}
+              focus={composerFocus}
+              onBlur={handleComposerBlur}
+            />
+            <Button
+              variant={submitEnabled ? 'primary' : 'default'}
+              size="small"
+              block={false}
+              disabled={!submitEnabled}
+              loading={submitting}
+              onClick={() => void submit()}
+            >
+              {composer.mode === 'edit' ? '保存' : '发布'}
             </Button>
           </View>
         ) : null}
-        <TextArea value={composerText} onChange={setComposerText} placeholder={composerPlaceholder} maxLength={1000} />
-        <View className="comment-composer-actions">
-          <Text className="comment-composer-hint">公开可见，登录且审核通过可留言/回复</Text>
-          <Button variant="primary" size="small" block={false} loading={submitting} onClick={() => void submit()}>
-            {composer.mode === 'edit' ? '保存' : '发布'}
-          </Button>
-        </View>
+
+        <Text className="comment-composer-hint">公开可见，登录且审核通过可留言/回复</Text>
       </View>
 
       <Spacer size={12} />
@@ -340,7 +480,7 @@ export function CommentsSection(props: { contentType: CommentContentType; conten
       <View className="comment-list">
         {loading ? (
           <View className="comment-state">
-            <Text className="muted">加载中…</Text>
+            <Text className="muted">加载中...</Text>
           </View>
         ) : error ? (
           <View className="comment-state">

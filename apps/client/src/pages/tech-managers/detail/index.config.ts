@@ -1,3 +1,3 @@
-export default definePageConfig({
-  navigationBarTitleText: '详情',
+﻿export default definePageConfig({
+  navigationBarTitleText: '\u54a8\u8be2',
 });

@@ -1,13 +1,15 @@
-import { View, Text } from '@tarojs/components';
+﻿import { View, Text } from '@tarojs/components';
 import Taro from '@tarojs/taro';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
+
+import './index.scss';
 
 import { apiGet, apiPost } from '../../../lib/api';
 import { ensureApproved } from '../../../lib/guard';
 import { fenToYuan } from '../../../lib/money';
 import { safeNavigateBack } from '../../../lib/navigation';
 import { useRouteUuidParam } from '../../../lib/routeParams';
-import { PageHeader, StickyBar } from '../../../ui/layout';
+import { PageHeader, Spacer, StickyBar, Surface } from '../../../ui/layout';
 import { Button, toast } from '../../../ui/nutui';
 import { EmptyCard, ErrorCard, LoadingCard, MissingParamCard } from '../../../ui/StateCards';
 import { MiniProgramPayGuide } from '../components/MiniProgramPayGuide';
@@ -21,6 +23,7 @@ type PayTarget = {
 };
 
 type Order = { id: string; status: string; depositAmountFen: number; createdAt: string };
+
 type PaymentIntentResponse = {
   paymentId: string;
   payType: 'DEPOSIT' | 'FINAL';
@@ -34,6 +37,7 @@ type PaymentIntentResponse = {
     paySign: string;
   };
 };
+
 export default function DepositPayPage() {
   const listingId = useRouteUuidParam('listingId') || '';
   const artworkId = useRouteUuidParam('artworkId') || '';
@@ -100,10 +104,9 @@ export default function DepositPayPage() {
   }, [artworkId, isH5, listingId]);
 
   return (
-    <View className="container has-sticky">
-      <PageHeader title="支付订金" subtitle="订金用于锁定交易并启动跟单流程。" />
-
-      <View style={{ height: '16rpx' }} />
+    <View className="container has-sticky pay-page">
+      <PageHeader title="支付订金" subtitle="订金用于锁定交易并启动跟单流程" />
+      <Spacer size={12} />
 
       {loading ? (
         <LoadingCard text="加载交易信息…" />
@@ -111,42 +114,42 @@ export default function DepositPayPage() {
         <ErrorCard message={error} onRetry={load} />
       ) : target ? (
         <View>
-          <View className="card">
-            <Text className="muted">交易摘要</Text>
-            <View style={{ height: '8rpx' }} />
-            <Text className="text-title clamp-2">{target.title}</Text>
-            <View style={{ height: '10rpx' }} />
-            <Text className="muted">
-              订金：
-              <Text className="text-strong" style={{ color: 'var(--c-primary)' }}>
-                ¥{fenToYuan(target.depositAmountFen)}
-              </Text>
-              {'  '}· 价格：
-              <Text className="text-strong" style={{ color: 'var(--c-primary)' }}>
+          <Surface className="pay-card pay-summary-card" padding="md">
+            <Text className="pay-section-title">交易摘要</Text>
+            <Text className="pay-summary-title clamp-2">{target.title || '未命名内容'}</Text>
+            <View className="pay-summary-tags">
+              <Text className="pay-chip">{target.priceType === 'NEGOTIABLE' ? '面议' : '明码标价'}</Text>
+              <Text className="pay-chip">订金支付</Text>
+            </View>
+            <View className="pay-divider" />
+            <View className="pay-row">
+              <Text className="pay-row-label">商品总价</Text>
+              <Text className="pay-row-value">
                 {target.priceType === 'NEGOTIABLE' ? '面议' : `¥${fenToYuan(target.priceAmountFen)}`}
               </Text>
+            </View>
+            <View className="pay-row pay-row-strong">
+              <Text className="pay-row-label">应付订金</Text>
+              <Text className="pay-row-value">¥{fenToYuan(target.depositAmountFen)}</Text>
+            </View>
+          </Surface>
+
+          <Spacer size={12} />
+
+          <Surface className="pay-card" padding="md">
+            <Text className="pay-section-title">订金说明</Text>
+            <Text className="pay-note">
+              订金支付后平台将启动合同/材料核验与权属变更流程。退款与争议处理以平台规则与人工审核为准。
             </Text>
-          </View>
-
-          <View style={{ height: '16rpx' }} />
-
-          <View className="card">
-            <Text className="text-card-title">订金说明</Text>
-            <View style={{ height: '8rpx' }} />
-            <Text className="muted">
-              订金支付后平台将启动合同/材料核验与权属变更等流程。退款与争议处理以平台规则与人工审核为准。
-            </Text>
-          </View>
-
-          <View style={{ height: '16rpx' }} />
+          </Surface>
 
           {isH5 ? (
             <>
+              <Spacer size={12} />
               <MiniProgramPayGuide
                 miniProgramPath={`pages/checkout/deposit-pay/index?${listingId ? `listingId=${listingId}` : `artworkId=${artworkId}`}`}
                 description="H5 端不发起支付。微信内可一键跳转小程序；微信外/桌面可复制链接或扫码在微信打开。"
               />
-              <View style={{ height: '16rpx' }} />
             </>
           ) : null}
         </View>

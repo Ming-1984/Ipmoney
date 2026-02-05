@@ -1,52 +1,29 @@
-import { View, Text, Image } from '@tarojs/components';
+﻿import { View, Text, Image } from '@tarojs/components';
 import Taro from '@tarojs/taro';
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
+import './index.scss';
 
 import type { components } from '@ipmoney/api-types';
 
-import coverPlaceholder from '../../../assets/home/promo-free-publish.jpg';
+import { Heart, HeartFill, Share2 } from '@nutui/icons-react-taro';
 import { apiGet, apiPost } from '../../../lib/api';
 import { getToken } from '../../../lib/auth';
 import { favoriteDemand, isDemandFavorited, syncFavoriteDemands, unfavoriteDemand } from '../../../lib/favorites';
 import { formatTimeSmart } from '../../../lib/format';
 import { ensureApproved } from '../../../lib/guard';
-import { deliveryPeriodLabel, verificationTypeLabel } from '../../../lib/labels';
-import { fenToYuan } from '../../../lib/money';
+import { verificationTypeLabel } from '../../../lib/labels';
+import { resolveLocalAsset } from '../../../lib/localAssets';
 import { safeNavigateBack } from '../../../lib/navigation';
 import { regionDisplayName } from '../../../lib/regions';
 import { useRouteUuidParam } from '../../../lib/routeParams';
-import { CommentsSection } from '../../../ui/CommentsSection';
-import { MediaList } from '../../../ui/MediaList';
 import { PageHeader, SectionHeader, Spacer, StickyBar, Surface } from '../../../ui/layout';
-import { Avatar, Button, Space, Tag, toast } from '../../../ui/nutui';
+import { Avatar, Button, toast } from '../../../ui/nutui';
 import { EmptyCard, ErrorCard, LoadingCard, MissingParamCard } from '../../../ui/StateCards';
+import { DemandMetaCard, useDemandTabs } from './shared';
 
 type DemandPublic = components['schemas']['DemandPublic'];
-type CooperationMode = components['schemas']['CooperationMode'];
-type PriceType = components['schemas']['PriceType'];
 
 type Conversation = { id: string };
-
-function cooperationModeLabel(mode: CooperationMode): string {
-  if (mode === 'TRANSFER') return '转让';
-  if (mode === 'LICENSE') return '许可';
-  if (mode === 'EQUITY') return '股权合作';
-  if (mode === 'JOINT_DEV') return '联合开发';
-  if (mode === 'COMMISSIONED_DEV') return '委托开发';
-  return '其他';
-}
-
-function budgetLabel(it: Pick<DemandPublic, 'budgetType' | 'budgetMinFen' | 'budgetMaxFen'>): string {
-  const type = it.budgetType as PriceType | undefined;
-  if (!type) return '预算：-';
-  if (type === 'NEGOTIABLE') return '预算：面议';
-  const min = it.budgetMinFen;
-  const max = it.budgetMaxFen;
-  if (min !== undefined && max !== undefined) return `预算：¥${fenToYuan(min)}–¥${fenToYuan(max)}`;
-  if (min !== undefined) return `预算：≥¥${fenToYuan(min)}`;
-  if (max !== undefined) return `预算：≤¥${fenToYuan(max)}`;
-  return '预算：固定';
-}
 
 export default function DemandDetailPage() {
   const demandId = useRouteUuidParam('demandId') || '';
@@ -56,7 +33,7 @@ export default function DemandDetailPage() {
   const [data, setData] = useState<DemandPublic | null>(null);
   const [consulting, setConsulting] = useState(false);
   const [favoritedState, setFavoritedState] = useState(false);
-  const [coverError, setCoverError] = useState(false);
+  const activeTab = 'overview';
 
   const load = useCallback(async () => {
     if (!demandId) return;
@@ -122,16 +99,10 @@ export default function DemandDetailPage() {
     }
   }, [demandId, favoritedState]);
 
-  const media = useMemo(() => data?.media ?? [], [data?.media]);
-  const coverFallback = useMemo(() => {
-    const image = media.find((item) => item.type === 'IMAGE' && item.url)?.url;
-    return image || coverPlaceholder;
-  }, [media]);
-  const coverSrc = data ? (coverError ? coverFallback : data.coverUrl || coverFallback) : null;
+  const { tabs, goToTab } = useDemandTabs(activeTab, demandId);
+  const coverUrl = resolveLocalAsset(data?.coverUrl || null);
+  const hasCover = Boolean(coverUrl);
 
-  useEffect(() => {
-    setCoverError(false);
-  }, [data?.coverUrl, coverFallback]);
 
   if (!demandId) {
     return (
@@ -142,8 +113,8 @@ export default function DemandDetailPage() {
   }
 
   return (
-    <View className="container has-sticky">
-      <PageHeader back title="需求详情" subtitle="公开可见；咨询需登录且审核通过。" />
+    <View className="container detail-page-compact has-sticky">
+      <PageHeader weapp back title="需求详情" subtitle="公开可见；咨询需登录且审核通过。" />
       <Spacer />
 
       {loading ? (
@@ -152,134 +123,115 @@ export default function DemandDetailPage() {
         <ErrorCard message={error} onRetry={load} />
       ) : data ? (
         <View>
-          {coverSrc ? (
+          <DemandMetaCard data={data} />
+
+          {hasCover ? (
             <>
               <Surface padding="none" className="listing-detail-cover">
-                <Image
-                  className="listing-detail-cover-img"
-                  src={coverSrc}
-                  mode="aspectFill"
-                  onError={() => setCoverError(true)}
-                />
+                <Image className="listing-detail-cover-img" src={coverUrl} mode="aspectFill" />
               </Surface>
               <Spacer size={12} />
             </>
           ) : null}
 
-          <Surface className="detail-meta-card">
-            <Text className="text-title clamp-2">{data.title || '未命名需求'}</Text>
-            <Spacer size={8} />
-
-            <Space wrap align="center">
-              <Tag type="primary" plain round>
-                {budgetLabel(data)}
-              </Tag>
-              {data.cooperationModes?.slice(0, 4).map((m) => (
-                <Tag key={m} type="default" plain round>
-                  {cooperationModeLabel(m)}
-                </Tag>
+          <View className="detail-tabs">
+            <View className="detail-tabs-scroll">
+              {tabs.map((tab) => (
+                <Text
+                  key={tab.id}
+                  className={`detail-tab ${activeTab === tab.id ? 'is-active' : ''}`}
+                  onClick={() => goToTab(tab.id)}
+                >
+                  {tab.label}
+                </Text>
               ))}
-              {data.deliveryPeriod ? (
-                <Tag type="default" plain round>
-                  交付：{deliveryPeriodLabel(data.deliveryPeriod, { empty: '-' })}
-                </Tag>
-              ) : null}
-            </Space>
-
-            {data.industryTags?.length ? (
-              <>
-                <Spacer size={8} />
-                <Space wrap align="center">
-                  {data.industryTags.slice(0, 4).map((t) => (
-                    <Tag key={t} type="default" plain round>
-                      {t}
-                    </Tag>
-                  ))}
-                </Space>
-              </>
-            ) : null}
-
-            {data.keywords?.length ? (
-              <>
-                <Spacer size={8} />
-                <Space wrap align="center">
-                  {data.keywords.slice(0, 6).map((t) => (
-                    <Tag key={t} type="default" plain round>
-                      {t}
-                    </Tag>
-                  ))}
-                </Space>
-              </>
-            ) : null}
-
-            <Spacer size={10} />
-
-            <Space wrap align="center">
-              <Tag type="default" plain round>
-                地区：{regionDisplayName(data.regionCode)}
-              </Tag>
-              <Tag type="default" plain round>
-                发布：{formatTimeSmart(data.createdAt)}
-              </Tag>
-              {data.stats ? (
-                <>
-                  <Tag type="default" plain round>
-                    浏览 {data.stats.viewCount ?? 0}
-                  </Tag>
-                  <Tag type="default" plain round>
-                    收藏 {data.stats.favoriteCount ?? 0}
-                  </Tag>
-                  <Tag type="default" plain round>
-                    咨询 {data.stats.consultCount ?? 0}
-                  </Tag>
-                </>
-              ) : null}
-            </Space>
-
-            <Spacer size={12} />
-
-            <View className="row" style={{ gap: '12rpx', alignItems: 'center' }}>
-              <Avatar size="32" src={data.publisher?.logoUrl || ''} background="rgba(15, 23, 42, 0.06)" color="var(--c-muted)">
-                {(data.publisher?.displayName || 'U').slice(0, 1)}
-              </Avatar>
-              <Text className="text-strong ellipsis" style={{ flex: 1, minWidth: 0 }}>
-                {data.publisher?.displayName || '-'}
-              </Text>
-              {data.publisher?.verificationType ? (
-                <Tag type="default" plain round>
-                  {verificationTypeLabel(data.publisher.verificationType)}
-                </Tag>
-              ) : null}
             </View>
-          </Surface>
+          </View>
 
-          <Spacer size={16} />
+          <Spacer size={12} />
 
-          <Surface>
-            <SectionHeader title="摘要" density="compact" />
-            <Text className="muted break-word">{data.summary || '（暂无）'}</Text>
-          </Surface>
+          <View className="patent-card-stack">
+            <SectionHeader title="发布方信息" density="compact" />
+            <Surface className="detail-section-card patent-provider-card">
+              {data.publisher ? (
+                <View className="patent-provider-row">
+                  <Avatar
+                    size="44"
+                    src={data.publisher.logoUrl || ''}
+                    background="rgba(15, 23, 42, 0.06)"
+                    color="var(--c-muted)"
+                  >
+                    {(data.publisher.displayName || '发').slice(0, 1)}
+                  </Avatar>
+                  <View className="patent-provider-meta">
+                    <Text className="patent-provider-name">{data.publisher.displayName || '-'}</Text>
+                    <View className="patent-provider-tags">
+                      {data.publisher.verificationType ? (
+                        <Text className="patent-provider-tag">{verificationTypeLabel(data.publisher.verificationType)}</Text>
+                      ) : null}
+                      {data.publisher.regionCode ? (
+                        <Text className="patent-provider-tag">{regionDisplayName(data.publisher.regionCode)}</Text>
+                      ) : null}
+                    </View>
+                  </View>
+                  <Button
+                    block={false}
+                    size="small"
+                    variant="ghost"
+                    onClick={() => {
+                      toast('主页功能开发中', { icon: 'fail' });
+                    }}
+                  >
+                    主页
+                  </Button>
+                </View>
+              ) : (
+                <Text className="muted">暂无发布方信息</Text>
+              )}
+            </Surface>
+          </View>
 
-          <Spacer size={16} />
+          <Spacer size={12} />
 
-          <Surface>
-            <SectionHeader title="详情" density="compact" />
-            <Text className="muted break-word">{data.description || '（暂无）'}</Text>
-          </Surface>
+          <View className="patent-card-stack">
+            <SectionHeader title="时间信息" density="compact" />
+            <View className="detail-field-list">
+              <View className="detail-field-row">
+                <Text className="detail-field-label">发布时间</Text>
+                <Text className="detail-field-value is-muted">{formatTimeSmart(data.createdAt)}</Text>
+              </View>
+              <View className="detail-field-row">
+                <Text className="detail-field-label">更新时间</Text>
+                <Text className="detail-field-value is-muted">
+                  {(data as any)?.updatedAt ? formatTimeSmart((data as any).updatedAt) : '-'}
+                </Text>
+              </View>
+            </View>
+          </View>
 
-          {media.length ? (
-            <>
-              <Spacer size={16} />
-              <Surface>
-                <SectionHeader title="附件/媒体" density="compact" />
-                <Spacer size={8} />
-                <MediaList media={media} coverUrl={coverSrc} />
-              </Surface>
-            </>
-          ) : null}
+          <Spacer size={12} />
 
-          <Spacer size={16} />
-          <CommentsSection contentType="DEMAND" contentId={demandId} />
+          <View className="detail-bottom-tools">
+            <View className="detail-tool-row">
+              <View
+                className="detail-tool"
+                onClick={() => {
+                  toast('分享功能开发中', { icon: 'fail' });
+                }}
+              >
+                <View className="detail-tool-icon">
+                  <Share2 size={16} />
+                </View>
+                <Text>分享</Text>
+              </View>
+              <View className={`detail-tool ${favoritedState ? 'is-active' : ''}`} onClick={() => void toggleFavorite()}>
+                <View className="detail-tool-icon">
+                  {favoritedState ? <HeartFill size={16} color="#ff4d4f" /> : <Heart size={16} />}
+                </View>
+                <Text>{favoritedState ? '已收藏' : '收藏'}</Text>
+              </View>
+            </View>
+          </View>
         </View>
       ) : (
         <EmptyCard title="无数据" message="该需求不存在或不可见。" actionText="返回" onAction={() => Taro.navigateBack()} />
@@ -287,14 +239,12 @@ export default function DemandDetailPage() {
 
       {!loading && !error && data ? (
         <StickyBar>
-          <View className="flex-1">
-            <Button variant={favoritedState ? 'primary' : 'ghost'} onClick={() => void toggleFavorite()}>
+          <View className="detail-sticky-buttons">
+            <Button variant={favoritedState ? 'primary' : 'default'} onClick={() => void toggleFavorite()}>
               {favoritedState ? '已收藏' : '收藏'}
             </Button>
-          </View>
-          <View className="flex-1">
             <Button variant="primary" loading={consulting} disabled={consulting} onClick={() => void startConsult()}>
-              {consulting ? '进入中…' : '咨询'}
+              {consulting ? '进入中...' : '咨询'}
             </Button>
           </View>
         </StickyBar>
@@ -302,3 +252,4 @@ export default function DemandDetailPage() {
     </View>
   );
 }
+

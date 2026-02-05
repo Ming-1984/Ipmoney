@@ -16,15 +16,16 @@
 | UI 字段 | 组件形态（推荐） | OpenAPI query | 类型 | 优先级 | 备注 |
 |---|---|---|---|---|---|
 | 关键词 | SearchEntry | `q` | `string` | P0 | 标题/号/发明人等综合检索（以实现为准） |
-| 排序 | SortControl（Tabs line；SortSheet P1） | `sortBy` | `SortBy` | P0 | Tabs：`RECOMMENDED/NEWEST/POPULAR`；更多（SortSheet｜P1）：`PRICE_ASC/PRICE_DESC`；不提供 `INVENTOR_RANK` |
+| 排序 | 搜索条下排序 Chip 行（综合推荐/价格升序/价格降序/最新发布） | `sortBy` | `SortBy` | P0 | `RECOMMENDED/PRICE_ASC/PRICE_DESC/NEWEST` |
 | 专利类型 | Chip（单选） | `patentType` | `PatentType` | P0 | `INVENTION/UTILITY_MODEL/DESIGN` |
 | 交易方式 | Chip（单选） | `tradeMode` | `TradeMode` | P0 | `ASSIGNMENT/LICENSE` |
 | 价格类型 | Chip（单选） | `priceType` | `PriceType` | P0 | `FIXED/NEGOTIABLE` |
 | 价格区间（元） | RangeInput | `priceMinFen`/`priceMaxFen` | `MoneyFen` | P0 | UI 输入元 → 转分；校验 `min<=max` |
 | 订金区间（元） | RangeInput | `depositMinFen`/`depositMaxFen` | `MoneyFen` | P0 | 与价格区间同校验规则 |
+| 转让次数区间 | RangeInput | `transferCountMin`/`transferCountMax` | `number` | P0 | `min<=max` |
 | 地区 | CellRow → `pages/region-picker/index` | `regionCode` | `string(6)` | P0 | adcode（6 位） |
 | 产业标签（多选） | Chip（多选） | `industryTags[]` | `string[]` | P0 | 数据源：`GET /public/industry-tags`（选择 name 并作为 query 传入） |
-| IPC | Input | `ipc` | `string` | P0 | 前缀匹配（如 `H04L`） |
+| IPC | 选择器（类级） | `ipc` | `string` | P0 | 仅可选择类级（如 `A01`），前缀匹配 |
 | LOC | Input | `loc` | `string` | P0 | 如 `14-02` |
 | 法律状态 | Chip（单选） | `legalStatus` | `LegalStatus` | P0 | `PENDING/GRANTED/EXPIRED/INVALIDATED/UNKNOWN` |
 
@@ -33,9 +34,9 @@
 | UI 字段 | 组件形态（推荐） | OpenAPI query | 类型 | 优先级 | 备注 |
 |---|---|---|---|---|---|
 | 关键词 | SearchEntry | `q` | `string` | P0 | 标题/简介等 |
-| 排序 | SortControl（Tabs line） | `sortBy` | `ContentSortBy` | P0 | `RECOMMENDED/NEWEST/POPULAR` |
+| 排序 | SortControl（Tabs line） | `sortBy` | `ContentSortBy` | P0 | `RECOMMENDED/NEWEST` |
 | 地区 | CellRow → `pages/region-picker/index` | `regionCode` | `string(6)` | P0 |  |
-| 合作方式（多选） | Chip（多选） | `cooperationModes[]` | `CooperationMode[]` | P0 | `TRANSFER/LICENSE/EQUITY/JOINT_DEV/COMMISSIONED_DEV/OTHER` |
+| 合作方式（多选） | Chip（多选） | `cooperationModes[]` | `CooperationMode[]` | P0 | `TRANSFER/TECH_CONSULTING/COMMISSIONED_DEV/PLATFORM_CO_BUILD` |
 | 预算类型 | Chip（单选） | `budgetType` | `PriceType` | P0 | `FIXED/NEGOTIABLE` |
 | 预算区间（元） | RangeInput | `budgetMinFen`/`budgetMaxFen` | `MoneyFen` | P0 | `budgetType=NEGOTIABLE` 时区间可隐藏或禁用 |
 | 产业标签（多选） | Chip（多选） | `industryTags[]` | `string[]` | P0 | 数据源同“专利交易” |
@@ -45,7 +46,7 @@
 | UI 字段 | 组件形态（推荐） | OpenAPI query | 类型 | 优先级 | 备注 |
 |---|---|---|---|---|---|
 | 关键词 | SearchEntry | `q` | `string` | P0 | 标题/简介等 |
-| 排序 | SortControl（Tabs line） | `sortBy` | `ContentSortBy` | P0 | `RECOMMENDED/NEWEST/POPULAR` |
+| 排序 | SortControl（Tabs line） | `sortBy` | `ContentSortBy` | P0 | `RECOMMENDED/NEWEST` |
 | 地区 | CellRow → `pages/region-picker/index` | `regionCode` | `string(6)` | P0 |  |
 | 合作方式（多选） | Chip（多选） | `cooperationModes[]` | `CooperationMode[]` | P0 | 同需求 |
 | 成熟度 | Chip（单选） | `maturity` | `AchievementMaturity` | P0 | `CONCEPT/PROTOTYPE/PILOT/MASS_PRODUCTION/COMMERCIALIZED/OTHER` |
@@ -64,16 +65,11 @@
 | UI 字段 | 组件形态（推荐） | OpenAPI query | 类型 | 优先级 | 备注 |
 |---|---|---|---|---|---|
 | 关键词 | SearchEntry | `q` | `string` | P0 | 作品名称/作者/证书编号等 |
-| 排序 | SortControl（Tabs line；SortSheet P1） | `sortBy` | `ArtworkSortBy` | P0 | Tabs：`RECOMMENDED/NEWEST/POPULAR`；更多（SortSheet｜P1）：`PRICE_ASC/PRICE_DESC` |
+| 排序 | SortSheet | `sortBy` | `ArtworkSortBy` | P0 | API 排序：`RECOMMENDED/PRICE_ASC/PRICE_DESC`；订金/年份排序为前端本地排序（不传 `sortBy`） |
 | 类别 | Chip（单选） | `category` | `ArtworkCategory` | P0 | `CALLIGRAPHY/PAINTING` |
-| 书体 | Chip（单选） | `calligraphyScript` | `CalligraphyScript` | P0 | 仅当 `category=CALLIGRAPHY` 可见 |
-| 题材 | Chip（单选） | `paintingGenre` | `PaintingGenre` | P0 | 仅当 `category=PAINTING` 可见 |
-| 作者 | Input | `creator` | `string` | P0 |  |
-| 创作年份 | RangeInput | `creationYearStart`/`creationYearEnd` | `number` | P0 | 例如 1990-2024 |
+| 创作年份 | 起始/结束年份下拉 | `creationYearStart`/`creationYearEnd` | `number` | P0 | 年份上限来自已上传作品；结束年份需 ≥ 起始年份 |
 | 价格类型 | Chip（单选） | `priceType` | `PriceType` | P0 | `FIXED/NEGOTIABLE` |
-| 价格区间（元） | RangeInput | `priceMinFen`/`priceMaxFen` | `MoneyFen` | P0 | UI 输入元 → 转分；校验 `min<=max` |
-| 订金区间（元） | RangeInput | `depositMinFen`/`depositMaxFen` | `MoneyFen` | P0 | 与价格区间同校验规则 |
-| 地区 | CellRow → `pages/region-picker/index` | `regionCode` | `string(6)` | P0 | 发布地区 |
+| 价格区间（元） | Chip（单选） | `priceMinFen`/`priceMaxFen` | `MoneyFen` | P0 | 档位：0-5000 / 5000-10000 / 10000+ / 面议（面议时仅传 `priceType=NEGOTIABLE`） |
 
 ## 2. 榜单/展示类列表页（非 Search Tab）
 
@@ -94,7 +90,7 @@
 | UI 字段 | 组件形态（推荐） | OpenAPI query | 类型 | 优先级 | 备注 |
 |---|---|---|---|---|---|
 | 关键词 | SearchEntry | `q` | `string` | P0 | 姓名/机构/擅长领域 |
-| 排序 | SortControl（Tabs line） | `sortBy` | `TechManagerSortBy` | P0 | `RECOMMENDED/NEWEST/POPULAR` |
+| 排序 | SortControl（Tabs line） | `sortBy` | `TechManagerSortBy` | P0 | `RECOMMENDED/NEWEST` |
 | 地区 | FilterSheet（CellRow） | `regionCode` | `string(6)` | P0 |  |
 
 ## 3. “我的”类列表（卖家/发布方）

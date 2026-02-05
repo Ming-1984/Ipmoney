@@ -1,5 +1,6 @@
 export default definePageConfig({
-  navigationBarTitleText: '咨询',
-  backgroundColor: '#F8FAFC',
+  navigationStyle: 'custom',
+  navigationBarTitleText: '',
+  backgroundColor: '#F2F3F5',
   backgroundTextStyle: 'dark',
 });

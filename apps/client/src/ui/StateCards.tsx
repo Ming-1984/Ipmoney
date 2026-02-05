@@ -52,6 +52,7 @@ export function EmptyCard(props: {
   actionText?: string;
   onAction?: () => void;
 }) {
+  const actionText = props.actionText && props.actionText !== STATE_COPY.empty.actionText ? props.actionText : undefined;
   return (
     <View className="card card-state">
       <View className="row" style={{ gap: '16rpx', alignItems: 'flex-start' }}>
@@ -62,10 +63,10 @@ export function EmptyCard(props: {
           <Text className="text-subtitle">{props.message || STATE_COPY.empty.message}</Text>
         </View>
       </View>
-      {props.actionText && props.onAction ? (
+      {actionText && props.onAction ? (
         <>
           <View style={{ height: '12rpx' }} />
-          <Button onClick={props.onAction}>{props.actionText}</Button>
+          <Button onClick={props.onAction}>{actionText}</Button>
         </>
       ) : null}
     </View>

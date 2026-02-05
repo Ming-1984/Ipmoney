@@ -1,6 +1,7 @@
-import { View, Text } from '@tarojs/components';
+﻿import { View, Text } from '@tarojs/components';
 import Taro from '@tarojs/taro';
 import React, { useCallback, useEffect, useState } from 'react';
+import './index.scss';
 
 import type { components } from '@ipmoney/api-types';
 
@@ -10,8 +11,8 @@ import { orderStatusLabel } from '../../../lib/labels';
 import { fenToYuan } from '../../../lib/money';
 import { safeNavigateBack } from '../../../lib/navigation';
 import { useRouteUuidParam } from '../../../lib/routeParams';
-import { Button, Step, Steps, Space, Tag } from '../../../ui/nutui';
-import { PageHeader, SectionHeader, Spacer, StickyBar, Surface, TipBanner } from '../../../ui/layout';
+import { Button } from '../../../ui/nutui';
+import { PageHeader, Spacer, Surface } from '../../../ui/layout';
 import { LoadingCard, MissingParamCard, PermissionCard } from '../../../ui/StateCards';
 
 type Order = components['schemas']['Order'];
@@ -50,8 +51,8 @@ export default function FinalSuccessPage() {
   }, [load, token]);
 
   return (
-    <View className="container has-sticky">
-      <PageHeader title="尾款支付成功" subtitle={`支付单号：${paymentId || '-'}`} />
+    <View className="container pay-page pay-result-page">
+      <PageHeader title="支付结果" />
       <Spacer />
 
       {!token ? (
@@ -64,64 +65,62 @@ export default function FinalSuccessPage() {
       ) : loading ? (
         <LoadingCard text="加载订单中…" />
       ) : (
-        <View>
-          <TipBanner tone="success" title="支付成功">
-            尾款已托管，后续将推进权属变更与结算。
-          </TipBanner>
+        <View className="pay-result">
+          <View className="pay-result-icon">✓</View>
+          <Text className="pay-result-title">尾款支付成功</Text>
+          <Text className="pay-result-subtitle">支付单号：{paymentId || '-'}</Text>
 
-          <Spacer size={12} />
+          {order ? (
+            <Surface className="pay-result-card" padding="md">
+              <Text className="pay-section-title">订单摘要</Text>
+              <View className="pay-summary-list">
+                <View className="pay-summary-item">
+                  <Text className="pay-summary-label">订单号</Text>
+                  <Text className="pay-summary-value">{order.id}</Text>
+                </View>
+                <View className="pay-summary-item">
+                  <Text className="pay-summary-label">状态</Text>
+                  <Text className="pay-summary-value">{order.status ? orderStatusLabel(order.status) : '未知'}</Text>
+                </View>
+                <View className="pay-summary-item">
+                  <Text className="pay-summary-label">订金</Text>
+                  <Text className="pay-summary-value">¥{fenToYuan(order.depositAmountFen)}</Text>
+                </View>
+                <View className="pay-summary-item">
+                  <Text className="pay-summary-label">尾款</Text>
+                  <Text className="pay-summary-value">{order.finalAmountFen ? `¥${fenToYuan(order.finalAmountFen)}` : '待确认'}</Text>
+                </View>
+              </View>
+            </Surface>
+          ) : null}
 
-          <Surface>
-            <SectionHeader title="订单摘要" density="compact" />
-            <Spacer size={8} />
-            <Space wrap align="center">
-              <Tag type="default" plain round style={{ maxWidth: '100%' }}>
-                <Text className="clamp-1">订单：{order?.id || '-'}</Text>
-              </Tag>
-              <Tag type="primary" plain round>
-                状态：{order?.status ? orderStatusLabel(order.status) : '未知'}
-              </Tag>
-              <Tag type="primary" plain round>
-                订金：{order?.depositAmountFen !== undefined ? `¥${fenToYuan(order.depositAmountFen)}` : '-'}
-              </Tag>
-              <Tag type="primary" plain round>
-                尾款：{order?.finalAmountFen ? `¥${fenToYuan(order.finalAmountFen)}` : '待确认'}
-              </Tag>
-            </Space>
+          <Surface className="pay-result-card" padding="md">
+            <View className="pay-result-bullets">
+              <View className="pay-result-bullet">
+                <View className="pay-result-dot" />
+                <Text>资金已进入平台托管账户，将推进权属变更与结算。</Text>
+              </View>
+              <View className="pay-result-bullet">
+                <View className="pay-result-dot" />
+                <Text>可在消息中与客服/对方沟通并留痕，减少争议。</Text>
+              </View>
+            </View>
           </Surface>
 
-          <Spacer size={12} />
-
-          <Surface>
-            <View className="row-between">
-              <SectionHeader title="下一步" subtitle="建议在平台内沟通并留痕，减少争议。" density="compact" />
-              <Text className="tag tag-gold">流程</Text>
-            </View>
-            <Spacer size={8} />
-            <Steps direction="vertical" value={1} type="text">
-              {['提交/跟进权属变更', '变更完成后平台确认放款/结算', '可在消息中与客服/对方沟通并留痕'].map((t, idx) => (
-                <Step key={t} value={idx + 1} title={t} />
-              ))}
-            </Steps>
-          </Surface>
-
-          <StickyBar>
-            <View style={{ flex: 1 }}>
-              <Button variant="ghost" onClick={() => Taro.switchTab({ url: '/pages/messages/index' })}>
-                进入消息
-              </Button>
-            </View>
-            <View style={{ flex: 1 }}>
-              <Button
-                onClick={() => {
-                  if (!orderId) return;
-                  Taro.navigateTo({ url: `/pages/orders/detail/index?orderId=${orderId}` });
-                }}
-              >
-                查看订单
-              </Button>
-            </View>
-          </StickyBar>
+          <View className="pay-result-actions">
+            <Button
+              variant="default"
+              onClick={() => {
+                if (!orderId) return;
+                Taro.navigateTo({ url: `/pages/orders/detail/index?orderId=${orderId}` });
+              }}
+            >
+              查看订单
+            </Button>
+            <Button variant="primary" onClick={() => Taro.switchTab({ url: '/pages/messages/index' })}>
+              进入消息
+            </Button>
+          </View>
         </View>
       )}
     </View>

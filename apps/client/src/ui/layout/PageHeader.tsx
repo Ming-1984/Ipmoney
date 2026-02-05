@@ -32,10 +32,12 @@ export function PageHeader(props: {
   subtitle?: React.ReactNode;
   right?: React.ReactNode;
   variant?: PageHeaderVariant;
+  weapp?: boolean;
 }) {
   const variant = props.variant ?? 'header';
 
   const isWeapp = process.env.TARO_ENV === 'weapp';
+  const renderInWeapp = Boolean(props.weapp);
 
   const currentUrlPath = useMemo(() => getCurrentUrlPath(), []);
   const isTabPage = useMemo(() => (currentUrlPath ? isTabPageUrl(currentUrlPath) : false), [currentUrlPath]);
@@ -54,15 +56,29 @@ export function PageHeader(props: {
 
   // WeApp uses the native navigation bar. Rendering a custom NavBar causes a duplicated top bar/back button.
   useEffect(() => {
-    if (!isWeapp) return;
+    if (!isWeapp || renderInWeapp) return;
     if (typeof props.title !== 'string' && typeof props.title !== 'number') return;
     Taro.setNavigationBarTitle({ title: String(props.title) });
-  }, [isWeapp, props.title]);
+  }, [isWeapp, props.title, renderInWeapp]);
 
-  if (isWeapp) return null;
+  const statusBarHeight = useMemo(() => {
+    if (!isWeapp || !renderInWeapp) return 0;
+    try {
+      return Taro.getSystemInfoSync().statusBarHeight || 0;
+    } catch {
+      return 0;
+    }
+  }, [isWeapp, renderInWeapp]);
+
+  const weappStyle = useMemo(() => {
+    if (!isWeapp || !renderInWeapp) return undefined;
+    return { paddingTop: `${statusBarHeight}px`, background: 'rgba(255, 255, 255, 0.96)' };
+  }, [isWeapp, renderInWeapp, statusBarHeight]);
+
+  if (isWeapp && !renderInWeapp) return null;
 
   return (
-    <View className={variant === 'hero' ? 'page-navbar page-navbar-hero' : 'page-navbar'}>
+    <View className={variant === 'hero' ? 'page-navbar page-navbar-hero' : 'page-navbar'} style={weappStyle}>
       <NavBar
         title={
           typeof props.title === 'string' || typeof props.title === 'number' ? (

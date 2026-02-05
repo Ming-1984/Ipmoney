@@ -233,6 +233,8 @@ const prismProcess = startPrism();
 
 const dynamicState = {
   orderStatusOverride: new Map(),
+  orderPatchById: new Map(),
+  invoiceByOrderId: new Map(),
   approvedListingById: new Map(),
   demandById: new Map(),
   achievementById: new Map(),
@@ -386,6 +388,51 @@ function patchAchievementSummary(summary) {
 function seedUserIdFromFixtures() {
   const me = pickFixtureResponse({ method: 'GET', pathname: '/me', scenario: 'happy' });
   return me?.body?.id || '99999999-9999-9999-9999-999999999999';
+}
+
+function getOrderFixtureById(orderId) {
+  if (!orderId) return null;
+  const base = pickFixtureResponse({ method: 'GET', pathname: `/orders/${orderId}`, scenario: 'happy' });
+  if (base && base.body && typeof base.body === 'object') {
+    return { ...base.body, id: orderId };
+  }
+  return null;
+}
+
+function applyOrderOverrides(order) {
+  if (!order || typeof order !== 'object') return order;
+  const patch = dynamicState.orderPatchById.get(order.id);
+  const overrideStatus = dynamicState.orderStatusOverride.get(order.id);
+  const updated = { ...order, ...(patch || {}) };
+  if (overrideStatus) updated.status = overrideStatus;
+  if (overrideStatus || patch) updated.updatedAt = new Date().toISOString();
+  return updated;
+}
+
+function estimateInvoiceAmount(order) {
+  if (!order || typeof order !== 'object') return 0;
+  const deal = Number(order.dealAmountFen || 0);
+  if (deal) return Math.round(deal * 0.05);
+  const finalAmount = Number(order.finalAmountFen || 0);
+  if (finalAmount) return Math.round(finalAmount * 0.05);
+  return 0;
+}
+
+function resolveInvoiceState(orderId, order) {
+  const existing = dynamicState.invoiceByOrderId.get(orderId);
+  if (existing) return existing;
+
+  const fixture = pickFixtureResponse({ method: 'GET', pathname: `/orders/${orderId}/invoice`, scenario: 'happy' });
+  if (fixture && fixture.body && typeof fixture.body === 'object') {
+    return { status: 'ISSUED', invoice: fixture.body };
+  }
+
+  return {
+    status: 'WAIT_APPLY',
+    invoice: null,
+    requestedAt: null,
+    amountFen: estimateInvoiceAmount(order),
+  };
 }
 
 function findListingSummaryById(listingId) {
@@ -870,7 +917,7 @@ function maybeSendDynamic(req, res, { method, url, scenario, requestBody }) {
     const mimeType = 'application/octet-stream';
     const file = {
       id,
-      url: `https://example.com/files/${id}`,
+      url: '',
       mimeType,
       sizeBytes: 0,
       createdAt,
@@ -894,12 +941,118 @@ function maybeSendDynamic(req, res, { method, url, scenario, requestBody }) {
     return true;
   }
 
+  if (method.toUpperCase() === 'GET' && pathname === '/orders') {
+    const base = pickFixtureResponse({ method: 'GET', pathname: '/orders', scenario: 'happy' });
+    if (!base || base.status >= 400 || !base.body) return false;
+    const asRole = String(url.searchParams.get('asRole') || '').trim().toUpperCase();
+    const statusFilter = String(url.searchParams.get('status') || '').trim();
+    const page = Math.max(1, Number(url.searchParams.get('page') || 1));
+    const pageSize = Math.max(1, Math.min(100, Number(url.searchParams.get('pageSize') || 20)));
+
+    const userId = seedUserIdFromFixtures();
+    let items = Array.isArray(base.body.items) ? base.body.items.map((it) => applyOrderOverrides(it)) : [];
+    if (asRole === 'BUYER') items = items.filter((it) => it.buyerUserId === userId);
+    if (asRole === 'SELLER') items = items.filter((it) => it.sellerUserId === userId);
+    if (statusFilter) items = items.filter((it) => it.status === statusFilter);
+
+    const start = Math.max(0, (page - 1) * pageSize);
+    const paged = items.slice(start, start + pageSize);
+    sendFixture(res, { status: 200, body: { items: paged, page: { page, pageSize, total: items.length } } });
+    return true;
+  }
+
+  if (method.toUpperCase() === 'GET' && pathname === '/invoices') {
+    const statusFilter = String(url.searchParams.get('status') || '').trim();
+    const page = Math.max(1, Number(url.searchParams.get('page') || 1));
+    const pageSize = Math.max(1, Math.min(100, Number(url.searchParams.get('pageSize') || 20)));
+
+    const base = pickFixtureResponse({ method: 'GET', pathname: '/orders', scenario: 'happy' });
+    const baseItems = Array.isArray(base?.body?.items) ? base.body.items : [];
+    const items = baseItems.map((order) => applyOrderOverrides(order));
+    const mapped = items.map((order) => {
+      const state = resolveInvoiceState(order.id, order);
+      const invoice = state?.invoice;
+      const amountFen = invoice?.amountFen ?? state?.amountFen ?? estimateInvoiceAmount(order);
+      return {
+        ...order,
+        invoiceStatus: state?.status || 'WAIT_APPLY',
+        amountFen,
+        itemName: invoice?.itemName || '居间服务费',
+        invoiceNo: invoice?.invoiceNo || null,
+        issuedAt: invoice?.issuedAt || null,
+        invoiceFileUrl: invoice?.invoiceFile?.url || null,
+        requestedAt: state?.requestedAt || null,
+      };
+    });
+
+    const filtered = statusFilter ? mapped.filter((it) => it.invoiceStatus === statusFilter) : mapped;
+    const start = Math.max(0, (page - 1) * pageSize);
+    const paged = filtered.slice(start, start + pageSize);
+    sendFixture(res, { status: 200, body: { items: paged, page: { page, pageSize, total: filtered.length } } });
+    return true;
+  }
+
+  const invoiceRequestMatch = pathname.match(/^\/orders\/([^/]+)\/invoice-requests$/);
+  if (method.toUpperCase() === 'POST' && invoiceRequestMatch) {
+    const orderId = invoiceRequestMatch[1];
+    const orderBase = applyOrderOverrides(getOrderFixtureById(orderId) || { id: orderId });
+    const now = new Date().toISOString();
+    dynamicState.invoiceByOrderId.set(orderId, {
+      status: 'APPLYING',
+      requestedAt: now,
+      amountFen: estimateInvoiceAmount(orderBase),
+    });
+    sendFixture(res, { status: 201, body: { orderId, status: 'APPLYING', requestedAt: now } });
+    return true;
+  }
+
+  const adminInvoiceMatch = pathname.match(/^\/admin\/orders\/([^/]+)\/invoice$/);
+  if (method.toUpperCase() === 'POST' && adminInvoiceMatch) {
+    const orderId = adminInvoiceMatch[1];
+    const orderBase = applyOrderOverrides(getOrderFixtureById(orderId) || { id: orderId });
+    const now = new Date().toISOString();
+    const fileId = requestBody?.invoiceFileId || randomUUID();
+    const file =
+      dynamicState.filesById.get(fileId) || {
+        id: fileId,
+        url: '',
+        mimeType: 'application/pdf',
+        sizeBytes: 234567,
+        createdAt: now,
+        fileName: 'invoice.pdf',
+      };
+    dynamicState.filesById.set(fileId, file);
+
+    const invoiceNo =
+      requestBody?.invoiceNo ||
+      `E-${new Date(now).toISOString().slice(0, 10).replace(/-/g, '')}-0001`;
+    const invoice = {
+      orderId,
+      amountFen: estimateInvoiceAmount(orderBase),
+      itemName: '居间服务费',
+      invoiceNo,
+      issuedAt: requestBody?.issuedAt || now,
+      invoiceFile: file,
+      attachedAt: now,
+      updatedAt: now,
+    };
+
+    const prev = dynamicState.invoiceByOrderId.get(orderId);
+    dynamicState.invoiceByOrderId.set(orderId, {
+      status: 'ISSUED',
+      invoice,
+      requestedAt: prev?.requestedAt || now,
+    });
+    sendFixture(res, { status: 200, body: invoice });
+    return true;
+  }
+
   if (method.toUpperCase() === 'POST' && pathname === '/demands') {
     const now = new Date().toISOString();
     const id = randomUUID();
     const publisher = getPublisherSummaryForCurrentUser();
     const coverFileId = requestBody?.coverFileId ?? null;
-    const coverUrl = coverFileId ? dynamicState.filesById.get(coverFileId)?.url || `https://example.com/files/${coverFileId}` : '';
+    const coverUrl = coverFileId ? dynamicState.filesById.get(coverFileId)?.url || '' : '';
 
     const demand = {
       id,
@@ -998,7 +1151,7 @@ function maybeSendDynamic(req, res, { method, url, scenario, requestBody }) {
     };
 
     const coverFileId = Object.prototype.hasOwnProperty.call(requestBody || {}, 'coverFileId') ? requestBody.coverFileId : base.coverFileId;
-    const coverUrl = coverFileId ? dynamicState.filesById.get(coverFileId)?.url || `https://example.com/files/${coverFileId}` : base.coverUrl || '';
+    const coverUrl = coverFileId ? dynamicState.filesById.get(coverFileId)?.url || '' : base.coverUrl || '';
 
     const updated = {
       ...base,
@@ -1040,7 +1193,7 @@ function maybeSendDynamic(req, res, { method, url, scenario, requestBody }) {
     const id = randomUUID();
     const publisher = getPublisherSummaryForCurrentUser();
     const coverFileId = requestBody?.coverFileId ?? null;
-    const coverUrl = coverFileId ? dynamicState.filesById.get(coverFileId)?.url || `https://example.com/files/${coverFileId}` : '';
+    const coverUrl = coverFileId ? dynamicState.filesById.get(coverFileId)?.url || '' : '';
 
     const achievement = {
       id,
@@ -1127,7 +1280,7 @@ function maybeSendDynamic(req, res, { method, url, scenario, requestBody }) {
     };
 
     const coverFileId = Object.prototype.hasOwnProperty.call(requestBody || {}, 'coverFileId') ? requestBody.coverFileId : base.coverFileId;
-    const coverUrl = coverFileId ? dynamicState.filesById.get(coverFileId)?.url || `https://example.com/files/${coverFileId}` : base.coverUrl || '';
+    const coverUrl = coverFileId ? dynamicState.filesById.get(coverFileId)?.url || '' : base.coverUrl || '';
 
     const updated = {
       ...base,
@@ -2225,19 +2378,29 @@ function maybeSendDynamic(req, res, { method, url, scenario, requestBody }) {
     return true;
   }
 
+  const orderInvoiceMatch = pathname.match(/^\/orders\/([^/]+)\/invoice$/);
+  if (method.toUpperCase() === 'GET' && orderInvoiceMatch) {
+    const orderId = orderInvoiceMatch[1];
+    const orderBase = applyOrderOverrides(getOrderFixtureById(orderId) || { id: orderId });
+    const state = resolveInvoiceState(orderId, orderBase);
+    if (state?.status === 'ISSUED' && state.invoice) {
+      sendFixture(res, { status: 200, body: state.invoice });
+      return true;
+    }
+    sendFixture(res, { status: 200, body: null });
+    return true;
+  }
+
   const orderMatch = pathname.match(/^\/orders\/([^/]+)$/);
   if (method.toUpperCase() === 'GET' && orderMatch) {
     const orderId = orderMatch[1];
+    const patch = dynamicState.orderPatchById.get(orderId);
     const override = dynamicState.orderStatusOverride.get(orderId);
-    if (!override) return false;
+    if (!override && !patch) return false;
 
-    const base = pickFixtureResponse({ method: 'GET', pathname: '/orders/:orderId', scenario: 'happy' });
-    if (!base || base.status >= 400 || !base.body) return false;
-
-    sendFixture(res, {
-      status: 200,
-      body: { ...base.body, id: orderId, status: override, updatedAt: new Date().toISOString() },
-    });
+    const base = getOrderFixtureById(orderId);
+    if (!base) return false;
+    sendFixture(res, { status: 200, body: applyOrderOverrides(base) });
     return true;
   }
 
@@ -2510,14 +2673,93 @@ function maybeUpdateDynamicState({ method, pathname, scenario, requestBody, fixt
     return;
   }
 
+  const contractSignedMatch = pathname.match(/^\/admin\/orders\/([^/]+)\/milestones\/contract-signed$/);
+  if (method.toUpperCase() === 'POST' && contractSignedMatch) {
+    const orderId = contractSignedMatch[1];
+    const patch = dynamicState.orderPatchById.get(orderId) || {};
+    const payload = fixture?.body && typeof fixture.body === 'object' ? fixture.body : {};
+    dynamicState.orderStatusOverride.set(orderId, 'WAIT_FINAL_PAYMENT');
+    dynamicState.orderPatchById.set(orderId, {
+      ...patch,
+      dealAmountFen: payload.dealAmountFen ?? patch.dealAmountFen,
+      depositAmountFen: payload.depositAmountFen ?? patch.depositAmountFen,
+      finalAmountFen: payload.finalAmountFen ?? patch.finalAmountFen,
+      updatedAt: new Date().toISOString(),
+    });
+    return;
+  }
+
+  const transferCompletedMatch = pathname.match(/^\/admin\/orders\/([^/]+)\/milestones\/transfer-completed$/);
+  if (method.toUpperCase() === 'POST' && transferCompletedMatch) {
+    const orderId = transferCompletedMatch[1];
+    const patch = dynamicState.orderPatchById.get(orderId) || {};
+    dynamicState.orderStatusOverride.set(orderId, 'READY_TO_SETTLE');
+    dynamicState.orderPatchById.set(orderId, { ...patch, updatedAt: new Date().toISOString() });
+    return;
+  }
+
+  const payoutMatch = pathname.match(/^\/admin\/orders\/([^/]+)\/payouts\/manual$/);
+  if (method.toUpperCase() === 'POST' && payoutMatch) {
+    const orderId = payoutMatch[1];
+    const patch = dynamicState.orderPatchById.get(orderId) || {};
+    dynamicState.orderStatusOverride.set(orderId, 'COMPLETED');
+    dynamicState.orderPatchById.set(orderId, { ...patch, updatedAt: new Date().toISOString() });
+    return;
+  }
+
+  const adminInvoiceUpsertMatch = pathname.match(/^\/admin\/orders\/([^/]+)\/invoice$/);
+  if (method.toUpperCase() === 'PUT' && adminInvoiceUpsertMatch) {
+    const orderId = adminInvoiceUpsertMatch[1];
+    const orderBase = applyOrderOverrides(getOrderFixtureById(orderId) || { id: orderId });
+    const now = new Date().toISOString();
+    const fileId = requestBody?.invoiceFileId || randomUUID();
+    const file =
+      dynamicState.filesById.get(fileId) || {
+        id: fileId,
+        url: '',
+        mimeType: 'application/pdf',
+        sizeBytes: 234567,
+        createdAt: now,
+        fileName: 'invoice.pdf',
+      };
+    dynamicState.filesById.set(fileId, file);
+
+    const invoiceNo =
+      requestBody?.invoiceNo ||
+      `E-${new Date(now).toISOString().slice(0, 10).replace(/-/g, '')}-0001`;
+    const invoice = {
+      orderId,
+      amountFen: estimateInvoiceAmount(orderBase),
+      itemName: '居间服务费',
+      invoiceNo,
+      issuedAt: requestBody?.issuedAt || now,
+      invoiceFile: file,
+      attachedAt: now,
+      updatedAt: now,
+    };
+
+    const prev = dynamicState.invoiceByOrderId.get(orderId);
+    dynamicState.invoiceByOrderId.set(orderId, {
+      status: 'ISSUED',
+      invoice,
+      requestedAt: prev?.requestedAt || now,
+    });
+    if (fixture) fixture.body = invoice;
+    return;
+  }
+
   const payMatch = pathname.match(/^\/orders\/([^/]+)\/payment-intents$/);
   if (method.toUpperCase() === 'POST' && payMatch) {
     const orderId = payMatch[1];
     const payType = requestBody?.payType;
     if (payType === 'DEPOSIT') {
       dynamicState.orderStatusOverride.set(orderId, 'DEPOSIT_PAID');
+      const patch = dynamicState.orderPatchById.get(orderId) || {};
+      dynamicState.orderPatchById.set(orderId, { ...patch, updatedAt: new Date().toISOString() });
     } else if (payType === 'FINAL') {
       dynamicState.orderStatusOverride.set(orderId, 'FINAL_PAID_ESCROW');
+      const patch = dynamicState.orderPatchById.get(orderId) || {};
+      dynamicState.orderPatchById.set(orderId, { ...patch, updatedAt: new Date().toISOString() });
     }
     return;
   }

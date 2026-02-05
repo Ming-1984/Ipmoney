@@ -1,4 +1,4 @@
-{
+﻿{
   "GET /search/listings": {
     "status": 200,
     "body": {
@@ -6,6 +6,7 @@
         {
           "id": "7d9ba983-130e-42ee-b109-fb1b20d02a8a",
           "title": "外观设计：智能穿戴设备表面纹理",
+          "coverUrl": "https://picsum.photos/seed/listing-7d9b/800/500",
           "tradeMode": "ASSIGNMENT",
           "priceType": "FIXED",
           "priceAmountFen": 980000,
@@ -19,11 +20,64 @@
           "regionCode": "110000",
           "industryTags": [],
           "featuredLevel": "NONE",
-          "stats": { "viewCount": 0, "favoriteCount": 0, "consultCount": 0 }
+          "stats": {
+            "viewCount": 0,
+            "favoriteCount": 0,
+            "consultCount": 0
+          }
         }
       ],
-      "page": { "page": 1, "pageSize": 10, "total": 1 }
+      "page": {
+        "page": 1,
+        "pageSize": 10,
+        "total": 1
+      }
     }
+  },
+  "GET /regions": {
+    "status": 200,
+    "body": [
+      {
+        "code": "110000",
+        "name": "北京市",
+        "level": "PROVINCE",
+        "parentCode": null,
+        "centerLat": 39.9042,
+        "centerLng": 116.4074,
+        "industryTags": [],
+        "updatedAt": "2026-01-01T00:00:00Z"
+      },
+      {
+        "code": "310000",
+        "name": "上海市",
+        "level": "PROVINCE",
+        "parentCode": null,
+        "centerLat": 31.2304,
+        "centerLng": 121.4737,
+        "industryTags": [],
+        "updatedAt": "2026-01-01T00:00:00Z"
+      },
+      {
+        "code": "320000",
+        "name": "江苏省",
+        "level": "PROVINCE",
+        "parentCode": null,
+        "centerLat": 32.0603,
+        "centerLng": 118.7969,
+        "industryTags": [],
+        "updatedAt": "2026-01-01T00:00:00Z"
+      },
+      {
+        "code": "440000",
+        "name": "广东省",
+        "level": "PROVINCE",
+        "parentCode": null,
+        "centerLat": 23.1291,
+        "centerLng": 113.2644,
+        "industryTags": [],
+        "updatedAt": "2026-01-01T00:00:00Z"
+      }
+    ]
   },
   "GET /search/demands": {
     "status": 200,
@@ -32,12 +86,22 @@
         {
           "id": "2f6f0b6f-0a6c-4f27-9a3d-6f217f6e3f1a",
           "title": "可降解包装材料工艺放大合作需求",
-          "summary": "预算面议，寻求联合开发与工艺验证。",
+          "summary": "预算面议，寻求委托开发与工艺验证。",
           "budgetType": "NEGOTIABLE",
-          "cooperationModes": ["JOINT_DEV", "COMMISSIONED_DEV"],
+          "cooperationModes": [
+            "PLATFORM_CO_BUILD",
+            "COMMISSIONED_DEV"
+          ],
           "regionCode": "320000",
-          "industryTags": ["新材料", "环保"],
-          "keywords": ["可降解", "工艺放大", "环保包装"],
+          "industryTags": [
+            "新材料",
+            "环保"
+          ],
+          "keywords": [
+            "可降解",
+            "工艺放大",
+            "环保包装"
+          ],
           "deliveryPeriod": "MONTH_6_12",
           "publisher": {
             "userId": "9d8b113b-5152-4a69-9bb4-65d0192c1c2a",
@@ -45,15 +109,22 @@
             "verificationType": "COMPANY",
             "verificationStatus": "APPROVED",
             "regionCode": "320000",
-            "logoUrl": "https://example.com/org-env.png",
+            "logoUrl": "",
             "intro": "专注可降解材料产业化。",
-            "stats": { "listingCount": 5, "patentCount": 42 },
+            "stats": {
+              "listingCount": 5,
+              "patentCount": 42
+            },
             "verifiedAt": "2026-01-06T00:00:00Z"
           },
-          "stats": { "viewCount": 12, "favoriteCount": 1, "consultCount": 0 },
+          "stats": {
+            "viewCount": 12,
+            "favoriteCount": 1,
+            "consultCount": 0
+          },
           "auditStatus": "APPROVED",
           "status": "ACTIVE",
-          "coverUrl": "https://example.com/media/demand-cover-edge-1.jpg",
+          "coverUrl": "https://picsum.photos/seed/demand-2f6f/800/500",
           "createdAt": "2026-01-07T08:30:00Z"
         },
         {
@@ -63,10 +134,20 @@
           "budgetType": "FIXED",
           "budgetMinFen": 3000000,
           "budgetMaxFen": 8000000,
-          "cooperationModes": ["TRANSFER", "LICENSE"],
+          "cooperationModes": [
+            "TRANSFER",
+            "TECH_CONSULTING"
+          ],
           "regionCode": "440000",
-          "industryTags": ["传感器", "智能制造"],
-          "keywords": ["封装", "可靠性", "高温"],
+          "industryTags": [
+            "传感器",
+            "智能制造"
+          ],
+          "keywords": [
+            "封装",
+            "可靠性",
+            "高温"
+          ],
           "deliveryPeriod": "MONTH_3_6",
           "publisher": {
             "userId": "1d46c0fb-9f69-4b26-9df1-872baf4e87a2",
@@ -74,19 +155,30 @@
             "verificationType": "ACADEMY",
             "verificationStatus": "APPROVED",
             "regionCode": "440000",
-            "logoUrl": "https://example.com/org-sensor.png",
+            "logoUrl": "",
             "intro": "面向制造业可靠性评估与封装工艺。",
-            "stats": { "listingCount": 3, "patentCount": 90 },
+            "stats": {
+              "listingCount": 3,
+              "patentCount": 90
+            },
             "verifiedAt": "2026-01-04T00:00:00Z"
           },
-          "stats": { "viewCount": 58, "favoriteCount": 2, "consultCount": 1 },
+          "stats": {
+            "viewCount": 58,
+            "favoriteCount": 2,
+            "consultCount": 1
+          },
           "auditStatus": "APPROVED",
           "status": "ACTIVE",
-          "coverUrl": "https://example.com/media/demand-cover-edge-2.jpg",
+          "coverUrl": "https://picsum.photos/seed/demand-5b4c/800/500",
           "createdAt": "2026-01-05T09:10:00Z"
         }
       ],
-      "page": { "page": 1, "pageSize": 10, "total": 2 }
+      "page": {
+        "page": 1,
+        "pageSize": 10,
+        "total": 2
+      }
     }
   },
   "GET /search/achievements": {
@@ -96,57 +188,94 @@
         {
           "id": "7f0b6d31-9e15-4b5f-90f7-602ae5a1a2c3",
           "title": "高密度电池管理系统算法",
-          "summary": "原型完成，寻求技术转让/许可。",
+          "summary": "原型完成，寻求专利转让/技术咨询。",
           "maturity": "PROTOTYPE",
-          "cooperationModes": ["TRANSFER", "LICENSE"],
+          "cooperationModes": [
+            "TRANSFER",
+            "TECH_CONSULTING"
+          ],
           "regionCode": "310000",
-          "industryTags": ["新能源", "电池"],
-          "keywords": ["BMS", "安全", "算法"],
+          "industryTags": [
+            "新能源",
+            "电池"
+          ],
+          "keywords": [
+            "BMS",
+            "安全",
+            "算法"
+          ],
           "publisher": {
             "userId": "b1b2b3b4-0c5d-4c9c-9a1b-2d3e4f5a6b7c",
             "displayName": "某电池企业",
             "verificationType": "COMPANY",
             "verificationStatus": "APPROVED",
             "regionCode": "310000",
-            "logoUrl": "https://example.com/org-bms.png",
+            "logoUrl": "",
             "intro": "专注储能与电池系统。",
-            "stats": { "listingCount": 18, "patentCount": 210 },
+            "stats": {
+              "listingCount": 18,
+              "patentCount": 210
+            },
             "verifiedAt": "2026-01-03T00:00:00Z"
           },
-          "stats": { "viewCount": 46, "favoriteCount": 3, "consultCount": 1 },
+          "stats": {
+            "viewCount": 46,
+            "favoriteCount": 3,
+            "consultCount": 1
+          },
           "auditStatus": "APPROVED",
           "status": "ACTIVE",
-          "coverUrl": "https://example.com/media/achievement-cover-edge-1.jpg",
+          "coverUrl": "https://picsum.photos/seed/ach-7f0b/800/500",
           "createdAt": "2026-01-06T07:20:00Z"
         },
         {
           "id": "c8a24a6d-3f7b-4d7f-9e3a-1f2b3c4d5e6f",
           "title": "生物医药靶点筛选平台",
-          "summary": "已商业化，开放股权合作与联合开发。",
+          "summary": "已商业化，开放平台共建与委托开发。",
           "maturity": "COMMERCIALIZED",
-          "cooperationModes": ["EQUITY", "JOINT_DEV"],
+          "cooperationModes": [
+            "PLATFORM_CO_BUILD",
+            "TRANSFER"
+          ],
           "regionCode": "110000",
-          "industryTags": ["生物医药"],
-          "keywords": ["靶点筛选", "平台化", "商业化"],
+          "industryTags": [
+            "生物医药"
+          ],
+          "keywords": [
+            "靶点筛选",
+            "平台化",
+            "商业化"
+          ],
           "publisher": {
             "userId": "6f5e4d3c-2b1a-4e5f-8a9b-0c1d2e3f4a5b",
             "displayName": "某生物医药企业",
             "verificationType": "COMPANY",
             "verificationStatus": "APPROVED",
             "regionCode": "110000",
-            "logoUrl": "https://example.com/org-bio.png",
+            "logoUrl": "",
             "intro": "提供靶点发现与验证平台化服务。",
-            "stats": { "listingCount": 9, "patentCount": 75 },
+            "stats": {
+              "listingCount": 9,
+              "patentCount": 75
+            },
             "verifiedAt": "2026-01-02T00:00:00Z"
           },
-          "stats": { "viewCount": 102, "favoriteCount": 9, "consultCount": 5 },
+          "stats": {
+            "viewCount": 102,
+            "favoriteCount": 9,
+            "consultCount": 5
+          },
           "auditStatus": "APPROVED",
           "status": "ACTIVE",
-          "coverUrl": "https://example.com/media/achievement-cover-edge-2.jpg",
+          "coverUrl": "https://picsum.photos/seed/ach-c8a2/800/500",
           "createdAt": "2026-01-04T06:10:00Z"
         }
       ],
-      "page": { "page": 1, "pageSize": 10, "total": 2 }
+      "page": {
+        "page": 1,
+        "pageSize": 10,
+        "total": 2
+      }
     }
   },
   "GET /search/artworks": {
@@ -166,7 +295,11 @@
           "auditStatus": "APPROVED",
           "status": "ACTIVE",
           "createdAt": "2026-01-05T08:00:00Z",
-          "stats": { "viewCount": 0, "favoriteCount": 0, "consultCount": 0 }
+          "stats": {
+            "viewCount": 0,
+            "favoriteCount": 0,
+            "consultCount": 0
+          }
         },
         {
           "id": "5b2b9d3e-7d3d-4f3c-9e7f-1e9c2c1d2e3f",
@@ -182,10 +315,18 @@
           "auditStatus": "APPROVED",
           "status": "ACTIVE",
           "createdAt": "2026-01-06T10:30:00Z",
-          "stats": { "viewCount": 999, "favoriteCount": 0, "consultCount": 0 }
+          "stats": {
+            "viewCount": 999,
+            "favoriteCount": 0,
+            "consultCount": 0
+          }
         }
       ],
-      "page": { "page": 1, "pageSize": 10, "total": 2 }
+      "page": {
+        "page": 1,
+        "pageSize": 10,
+        "total": 2
+      }
     }
   },
   "GET /search/tech-managers": {
@@ -206,10 +347,17 @@
           "verificationType": "TECH_MANAGER",
           "verificationStatus": "REJECTED",
           "intro": "极端场景：已驳回但仍出现在列表，用于测试状态显示。",
-          "serviceTags": ["评估", "撮合"]
+          "serviceTags": [
+            "评估",
+            "撮合"
+          ]
         }
       ],
-      "page": { "page": 1, "pageSize": 10, "total": 2 }
+      "page": {
+        "page": 1,
+        "pageSize": 10,
+        "total": 2
+      }
     }
   },
   "GET /public/listings/7d9ba983-130e-42ee-b109-fb1b20d02a8a": {
@@ -217,6 +365,7 @@
     "body": {
       "id": "7d9ba983-130e-42ee-b109-fb1b20d02a8a",
       "title": "外观设计：智能穿戴设备表面纹理",
+      "coverUrl": "https://picsum.photos/seed/listing-7d9b/800/500",
       "tradeMode": "ASSIGNMENT",
       "priceType": "FIXED",
       "priceAmountFen": 980000,
@@ -228,8 +377,15 @@
       "applicationNoDisplay": "202330000001.9",
       "inventorNames": [],
       "summary": "外观设计通常不展示“发明人”，用于演示缺失字段与 UI 兼容。",
-      "seller": { "id": "2b4821bb-cf89-4fc1-bdf0-db43f2c59aca", "nickname": "某工业设计工作室" },
-      "stats": { "viewCount": 0, "favoriteCount": 0, "consultCount": 0 }
+      "seller": {
+        "id": "2b4821bb-cf89-4fc1-bdf0-db43f2c59aca",
+        "nickname": "某工业设计工作室"
+      },
+      "stats": {
+        "viewCount": 0,
+        "favoriteCount": 0,
+        "consultCount": 0
+      }
     }
   },
   "GET /public/listings/:listingId/comments": {
@@ -243,14 +399,23 @@
             "contentId": "7d9ba983-130e-42ee-b109-fb1b20d02a8a",
             "parentCommentId": null,
             "status": "VISIBLE",
-            "user": { "id": "c776f954-77a5-49d9-b778-77a1120d1be9", "nickname": "EdgeUser", "avatarUrl": "", "role": "buyer" },
+            "user": {
+              "id": "c776f954-77a5-49d9-b778-77a1120d1be9",
+              "nickname": "EdgeUser",
+              "avatarUrl": "",
+              "role": "buyer"
+            },
             "text": "Edge text: 1) very very very long... (repeat) very very very long... very very very long...\\n2) contains newline\\n3) contains symbols: <>&\"' and emoji 😀",
             "createdAt": "2026-01-11T09:00:00Z"
           },
           "replies": []
         }
       ],
-      "page": { "page": 1, "pageSize": 20, "total": 1 }
+      "page": {
+        "page": 1,
+        "pageSize": 20,
+        "total": 1
+      }
     }
   },
   "GET /public/artworks/:artworkId/comments": {
@@ -264,14 +429,23 @@
             "contentId": "9c7e0f73-2a2c-4bd6-8a8b-8e4d2c4b4f11",
             "parentCommentId": null,
             "status": "VISIBLE",
-            "user": { "id": "c776f954-77a5-49d9-b778-77a1120d1be9", "nickname": "EdgeUser", "avatarUrl": "", "role": "buyer" },
+            "user": {
+              "id": "c776f954-77a5-49d9-b778-77a1120d1be9",
+              "nickname": "EdgeUser",
+              "avatarUrl": "",
+              "role": "buyer"
+            },
             "text": "书画留言边界：含空格与换行\\n第二行继续展示。",
             "createdAt": "2026-01-11T10:00:00Z"
           },
           "replies": []
         }
       ],
-      "page": { "page": 1, "pageSize": 20, "total": 1 }
+      "page": {
+        "page": 1,
+        "pageSize": 20,
+        "total": 1
+      }
     }
   },
   "POST /listings/:listingId/comments": {
@@ -282,7 +456,12 @@
       "contentId": "7d9ba983-130e-42ee-b109-fb1b20d02a8a",
       "parentCommentId": null,
       "status": "VISIBLE",
-      "user": { "id": "c776f954-77a5-49d9-b778-77a1120d1be9", "nickname": "EdgeUser", "avatarUrl": "", "role": "buyer" },
+      "user": {
+        "id": "c776f954-77a5-49d9-b778-77a1120d1be9",
+        "nickname": "EdgeUser",
+        "avatarUrl": "",
+        "role": "buyer"
+      },
       "text": "Edge create comment (demo)",
       "createdAt": "2026-01-11T09:10:00Z"
     }
@@ -295,7 +474,12 @@
       "contentId": "9c7e0f73-2a2c-4bd6-8a8b-8e4d2c4b4f11",
       "parentCommentId": null,
       "status": "VISIBLE",
-      "user": { "id": "c776f954-77a5-49d9-b778-77a1120d1be9", "nickname": "EdgeUser", "avatarUrl": "", "role": "buyer" },
+      "user": {
+        "id": "c776f954-77a5-49d9-b778-77a1120d1be9",
+        "nickname": "EdgeUser",
+        "avatarUrl": "",
+        "role": "buyer"
+      },
       "text": "Edge create artwork comment (demo)",
       "createdAt": "2026-01-11T10:05:00Z"
     }
@@ -308,14 +492,31 @@
       "contentId": "7d9ba983-130e-42ee-b109-fb1b20d02a8a",
       "parentCommentId": null,
       "status": "VISIBLE",
-      "user": { "id": "c776f954-77a5-49d9-b778-77a1120d1be9", "nickname": "EdgeUser", "avatarUrl": "", "role": "buyer" },
+      "user": {
+        "id": "c776f954-77a5-49d9-b778-77a1120d1be9",
+        "nickname": "EdgeUser",
+        "avatarUrl": "",
+        "role": "buyer"
+      },
       "text": "Edge edited (demo)",
       "createdAt": "2026-01-11T09:10:00Z",
       "updatedAt": "2026-01-11T09:12:00Z"
     }
   },
-  "DELETE /comments/:commentId": { "status": 204 },
-  "GET /admin/comments": { "status": 200, "body": { "items": [], "page": { "page": 1, "pageSize": 20, "total": 0 } } },
+  "DELETE /comments/:commentId": {
+    "status": 204
+  },
+  "GET /admin/comments": {
+    "status": 200,
+    "body": {
+      "items": [],
+      "page": {
+        "page": 1,
+        "pageSize": 20,
+        "total": 0
+      }
+    }
+  },
   "PATCH /admin/comments/:commentId": {
     "status": 200,
     "body": {
@@ -324,7 +525,12 @@
       "contentId": "7d9ba983-130e-42ee-b109-fb1b20d02a8a",
       "parentCommentId": null,
       "status": "HIDDEN",
-      "user": { "id": "c776f954-77a5-49d9-b778-77a1120d1be9", "nickname": "EdgeUser", "avatarUrl": "", "role": "buyer" },
+      "user": {
+        "id": "c776f954-77a5-49d9-b778-77a1120d1be9",
+        "nickname": "EdgeUser",
+        "avatarUrl": "",
+        "role": "buyer"
+      },
       "text": "Edge text (moderated)",
       "createdAt": "2026-01-11T09:00:00Z",
       "updatedAt": "2026-01-11T09:20:00Z"
@@ -347,18 +553,24 @@
           "status": "DRAFT",
           "createdAt": "2026-01-05T08:00:00Z",
           "certificateNo": "TEST-NO-EDGE-001",
-          "certificateFileIds": ["a0123456-7890-4abc-8def-0123456789ab"],
+          "certificateFileIds": [
+            "a0123456-7890-4abc-8def-0123456789ab"
+          ],
           "media": [
             {
               "fileId": "b1123456-7890-4abc-8def-0123456789ab",
               "type": "IMAGE",
               "sort": 0,
-              "url": "https://example.com/media/artwork-edge-1.jpg"
+              "url": ""
             }
           ]
         }
       ],
-      "page": { "page": 1, "pageSize": 10, "total": 1 }
+      "page": {
+        "page": 1,
+        "pageSize": 10,
+        "total": 1
+      }
     }
   },
   "GET /admin/tech-managers": {
@@ -372,12 +584,19 @@
           "verificationStatus": "APPROVED",
           "regionCode": "110000",
           "intro": "边界示例：简介为空时展示默认文案。",
-          "serviceTags": ["项目评估", "知识产权"],
+          "serviceTags": [
+            "项目评估",
+            "知识产权"
+          ],
           "featuredRank": 0,
           "featuredUntil": "2026-12-31T00:00:00Z"
         }
       ],
-      "page": { "page": 1, "pageSize": 10, "total": 1 }
+      "page": {
+        "page": 1,
+        "pageSize": 10,
+        "total": 1
+      }
     }
   }
 }

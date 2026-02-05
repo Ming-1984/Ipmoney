@@ -1,0 +1,58 @@
+.announcements-page {
+  padding-bottom: 24rpx;
+}
+
+.announcement-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16rpx;
+}
+
+.announcement-card {
+  border-radius: 20rpx;
+  padding: 20rpx 22rpx;
+  background: #ffffff;
+}
+
+.announcement-card-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12rpx;
+}
+
+.announcement-card-title {
+  font-size: 30rpx;
+  font-weight: 700;
+  color: #111827;
+  line-height: 1.4;
+}
+
+.announcement-card-meta {
+  margin-top: 8rpx;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12rpx;
+  font-size: 22rpx;
+  color: #94a3b8;
+}
+
+.announcement-card-tags {
+  margin-top: 10rpx;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8rpx;
+}
+
+.announcement-card-summary {
+  margin-top: 10rpx;
+  font-size: 24rpx;
+  color: #64748b;
+  line-height: 1.5;
+}
+
+.announcement-card-time {
+  margin-top: 8rpx;
+  font-size: 22rpx;
+  color: #94a3b8;
+}

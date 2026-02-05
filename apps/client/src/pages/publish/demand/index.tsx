@@ -1,6 +1,7 @@
 import { View, Text, Image } from '@tarojs/components';
 import Taro, { useRouter } from '@tarojs/taro';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import './index.scss';
 
 import type { components } from '@ipmoney/api-types';
 
@@ -47,13 +48,41 @@ function parseMoneyFen(input: string): number | undefined {
   return yuan * 100 + fen;
 }
 
+function mergePlaceholderClass(extra?: string): string {
+  return extra ? `publish-placeholder ${extra}` : 'publish-placeholder';
+}
+
+function mergePlaceholderStyle(extra?: string): string {
+  const base = 'font-size:20rpx;color:#c0c4cc;';
+  if (!extra) return base;
+  return `${base}${extra}`;
+}
+
+function PublishInput(props: React.ComponentProps<typeof Input>) {
+  return (
+    <Input
+      {...props}
+      placeholderClass={mergePlaceholderClass(props.placeholderClass)}
+      placeholderStyle={mergePlaceholderStyle(props.placeholderStyle)}
+    />
+  );
+}
+
+function PublishTextArea(props: React.ComponentProps<typeof TextArea>) {
+  return (
+    <TextArea
+      {...props}
+      placeholderClass={mergePlaceholderClass(props.placeholderClass)}
+      placeholderStyle={mergePlaceholderStyle(props.placeholderStyle)}
+    />
+  );
+}
+
 const COOPERATION_MODES: Array<{ mode: CooperationMode; label: string }> = [
-  { mode: 'LICENSE', label: '许可' },
-  { mode: 'TRANSFER', label: '转让' },
-  { mode: 'JOINT_DEV', label: '联合开发' },
+  { mode: 'TRANSFER', label: '专利转让' },
+  { mode: 'TECH_CONSULTING', label: '技术咨询' },
   { mode: 'COMMISSIONED_DEV', label: '委托开发' },
-  { mode: 'EQUITY', label: '股权合作' },
-  { mode: 'OTHER', label: '其他' },
+  { mode: 'PLATFORM_CO_BUILD', label: '平台共建' },
 ];
 
 const DELIVERY_PERIODS: Array<{ value: DeliveryPeriod; label: string }> = [
@@ -502,8 +531,8 @@ export default function PublishDemandPage() {
   const canEdit = auditStatus !== 'PENDING';
 
   return (
-    <View className="container has-sticky">
-      <PageHeader back fallbackUrl="/pages/publish/index" title="发布：产学研需求" />
+    <View className="container has-sticky publish-demand-page">
+      <PageHeader back fallbackUrl="/pages/publish/index" title="发布：产学研需求" brand={false} />
       <Spacer />
 
       <Surface>
@@ -530,22 +559,22 @@ export default function PublishDemandPage() {
         <Text className="text-card-title">基础信息</Text>
         <View style={{ height: '12rpx' }} />
 
-        <Text className="muted">标题*</Text>
+        <Text className="form-label">标题*</Text>
         <View style={{ height: '8rpx' }} />
-        <Input value={title} onChange={setTitle} placeholder="例如：寻求电池热管理相关专利许可" maxLength={200} clearable disabled={!canEdit} />
+        <PublishInput value={title} onChange={setTitle} placeholder="例如：寻求电池热管理相关专利许可" maxLength={200} clearable disabled={!canEdit} />
 
         <View style={{ height: '12rpx' }} />
-        <Text className="muted">摘要（可选）</Text>
+        <Text className="form-label">摘要（可选）</Text>
         <View style={{ height: '8rpx' }} />
-        <TextArea value={summary} onChange={setSummary} placeholder="一句话描述需求重点（建议 200 字以内）" maxLength={2000} disabled={!canEdit} />
+        <PublishTextArea value={summary} onChange={setSummary} placeholder="一句话描述需求重点（建议 200 字以内）" maxLength={2000} disabled={!canEdit} />
 
         <View style={{ height: '12rpx' }} />
-        <Text className="muted">需求详情*</Text>
+        <Text className="form-label">需求详情*</Text>
         <View style={{ height: '8rpx' }} />
-        <TextArea value={description} onChange={setDescription} placeholder="背景/痛点/期望方案/指标…" maxLength={2000} disabled={!canEdit} />
+        <PublishTextArea value={description} onChange={setDescription} placeholder="背景/痛点/期望方案/指标…" maxLength={2000} disabled={!canEdit} />
 
         <View style={{ height: '12rpx' }} />
-        <Text className="muted">技术领域/关键词*</Text>
+        <Text className="form-label">技术领域/关键词*</Text>
         <View style={{ height: '8rpx' }} />
         <TagInput value={keywords} onChange={setKeywords} max={30} disabled={!canEdit} placeholder="输入关键词后点击添加" />
       </Surface>
@@ -556,7 +585,7 @@ export default function PublishDemandPage() {
         <Text className="text-card-title">预算与合作</Text>
         <View style={{ height: '12rpx' }} />
 
-        <Text className="muted">预算类型</Text>
+        <Text className="form-label">预算类型</Text>
         <View style={{ height: '8rpx' }} />
         <View className="row" style={{ gap: '12rpx' }}>
           {[
@@ -579,21 +608,21 @@ export default function PublishDemandPage() {
         {budgetType === 'FIXED' ? (
           <>
             <View style={{ height: '12rpx' }} />
-            <Text className="muted">预算范围（元）</Text>
+            <Text className="form-label">预算范围（元）</Text>
             <View style={{ height: '8rpx' }} />
             <View className="row" style={{ gap: '12rpx' }}>
               <View style={{ flex: 1 }}>
-                <Input value={budgetMinYuan} onChange={setBudgetMinYuan} placeholder="最小值" clearable disabled={!canEdit} />
+                <PublishInput value={budgetMinYuan} onChange={setBudgetMinYuan} placeholder="最小值" clearable disabled={!canEdit} />
               </View>
               <View style={{ flex: 1 }}>
-                <Input value={budgetMaxYuan} onChange={setBudgetMaxYuan} placeholder="最大值" clearable disabled={!canEdit} />
+                <PublishInput value={budgetMaxYuan} onChange={setBudgetMaxYuan} placeholder="最大值" clearable disabled={!canEdit} />
               </View>
             </View>
           </>
         ) : null}
 
         <View style={{ height: '12rpx' }} />
-        <Text className="muted">合作方式（可多选）</Text>
+        <Text className="form-label">合作方式（可多选）</Text>
         <View style={{ height: '8rpx' }} />
         <View className="chip-row">
           {COOPERATION_MODES.map((it) => (
@@ -611,7 +640,7 @@ export default function PublishDemandPage() {
         </View>
 
         <View style={{ height: '12rpx' }} />
-        <Text className="muted">交付周期（可选）</Text>
+        <Text className="form-label">交付周期（可选）</Text>
         <View style={{ height: '8rpx' }} />
         <View className="chip-row">
           {DELIVERY_PERIODS.map((it) => (
@@ -644,12 +673,12 @@ export default function PublishDemandPage() {
         <Text className="text-card-title">地区与标签</Text>
         <View style={{ height: '12rpx' }} />
 
-        <Text className="muted">地区（可选）</Text>
+        <Text className="form-label">地区（可选）</Text>
         <View style={{ height: '8rpx' }} />
-        <Input value={regionCode} onChange={setRegionCode} placeholder="例如：310000" clearable disabled={!canEdit} />
+        <PublishInput value={regionCode} onChange={setRegionCode} placeholder="例如：310000" clearable disabled={!canEdit} />
 
         <View style={{ height: '12rpx' }} />
-        <Text className="muted">产业标签（可选；数据源：公共产业标签库）</Text>
+        <Text className="form-label">产业标签（可选；数据源：公共产业标签库）</Text>
         <View style={{ height: '8rpx' }} />
         <IndustryTagsPicker value={industryTags} max={8} onChange={setIndustryTags} disabled={!canEdit} />
       </Surface>
@@ -660,19 +689,19 @@ export default function PublishDemandPage() {
         <Text className="text-card-title">联系人信息</Text>
         <View style={{ height: '12rpx' }} />
 
-        <Text className="muted">联系人称呼（可选）</Text>
+        <Text className="form-label">联系人称呼（可选）</Text>
         <View style={{ height: '8rpx' }} />
-        <Input value={contactName} onChange={setContactName} placeholder="例如：李老师" maxLength={50} clearable disabled={!canEdit} />
+        <PublishInput value={contactName} onChange={setContactName} placeholder="例如：李老师" maxLength={50} clearable disabled={!canEdit} />
 
         <View style={{ height: '12rpx' }} />
-        <Text className="muted">职务/部门（可选）</Text>
+        <Text className="form-label">职务/部门（可选）</Text>
         <View style={{ height: '8rpx' }} />
-        <Input value={contactTitle} onChange={setContactTitle} placeholder="例如：技术转移负责人" maxLength={100} clearable disabled={!canEdit} />
+        <PublishInput value={contactTitle} onChange={setContactTitle} placeholder="例如：技术转移负责人" maxLength={100} clearable disabled={!canEdit} />
 
         <View style={{ height: '12rpx' }} />
-        <Text className="muted">联系方式（脱敏，可选）</Text>
+        <Text className="form-label">联系方式（脱敏，可选）</Text>
         <View style={{ height: '8rpx' }} />
-        <Input
+        <PublishInput
           value={contactPhoneMasked}
           onChange={setContactPhoneMasked}
           placeholder="例如：138****8899"
@@ -688,7 +717,7 @@ export default function PublishDemandPage() {
         <Text className="text-card-title">封面与附件</Text>
         <View style={{ height: '12rpx' }} />
 
-        <Text className="muted">封面图（可选；包含视频时建议设置）</Text>
+        <Text className="form-label">封面图（可选；包含视频时建议设置）</Text>
         <View style={{ height: '10rpx' }} />
         {coverUrl ? <Image src={coverUrl} mode="aspectFill" style={{ width: '100%', height: '320rpx', borderRadius: '20rpx' }} /> : null}
         <View style={{ height: '10rpx' }} />
@@ -706,7 +735,7 @@ export default function PublishDemandPage() {
         </View>
 
         <View style={{ height: '14rpx' }} />
-        <Text className="muted">附件/媒体（图片/视频/文件）</Text>
+        <Text className="form-label">附件/媒体（图片/视频/文件）</Text>
         <View style={{ height: '10rpx' }} />
         <View className="row" style={{ gap: '12rpx', flexWrap: 'wrap' }}>
           <Button block={false} size="small" variant="ghost" disabled={!canEdit || uploading} onClick={() => void addImage()}>
