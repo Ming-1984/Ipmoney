@@ -33,6 +33,7 @@ flowchart LR
       Audit["Audit Service<br/>内容审核/风控"]
       Msg["Messaging Service<br/>IM/会话"]
       File["File Service<br/>上传/下载/水印"]
+      Content["Content Service<br/>公告/专题/产业集群"]
       Notif["Notification Service<br/>站内信/短信/模板消息"]
       AiAgent["AI Agent Service<br/>语音/意图解析/匹配（P1）"]
       AiParse["AI Parsing Service<br/>内容解析/评分闭环（P1）"]
@@ -77,6 +78,7 @@ flowchart LR
   Gateway --> Audit
   Gateway --> Msg
   Gateway --> File
+  Gateway --> Content
   Gateway --> AiAgent
   Gateway --> AiParse
   Gateway --> Alert
@@ -101,6 +103,7 @@ flowchart LR
   Maintenance --> PG
   Audit --> PG
   Msg --> PG
+  Content --> PG
   AiAgent --> PG
   AiParse --> PG
   Alert --> PG

@@ -56,11 +56,13 @@ erDiagram
     string title
     string subtitle
     string period "YYYYMM"
+    string tags_json "json"
     string publisher_name
     uuid publisher_user_id FK
     string status "DRAFT/PUBLISHED/ARCHIVED"
     datetime publish_at
     string content
+    string source_url
     datetime created_at
     datetime updated_at
   }
@@ -170,9 +172,10 @@ erDiagram
     string price_type "FIXED/NEGOTIABLE"
     int price_amount
     int deposit_amount
+    int transfer_count "0=沉睡专利"
     string region_code
     string industry_tags_json "json"
-    string listing_topics_json "json"
+    string listing_topics_json "json: HIGH_TECH_RETIRED/CLUSTER_FEATURED（沉睡专利由 transfer_count=0 判定）"
     uuid cluster_id FK
     string featured_level "NONE/CITY/PROVINCE"
     string featured_region_code
@@ -427,7 +430,7 @@ erDiagram
     uuid id PK
     uuid conversation_id FK
     uuid sender_user_id FK
-    string type "TEXT/EMOJI/REFERENCE/SYSTEM"
+    string type "TEXT/EMOJI/SYSTEM"
     string text
     string reference_type "MATERIAL/CONTRACT"
     uuid file_id FK

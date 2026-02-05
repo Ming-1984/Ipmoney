@@ -7,6 +7,9 @@ from typing import Iterable
 
 from PIL import Image, ImageChops, ImageColor
 
+# Allow very large rendered diagrams to be normalized without PIL bomb warnings.
+Image.MAX_IMAGE_PIXELS = None
+
 
 def _iter_images(paths: Iterable[Path]) -> list[Path]:
     out: list[Path] = []

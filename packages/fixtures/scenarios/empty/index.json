@@ -1,4 +1,4 @@
-{
+﻿{
   "GET /search/listings": {
     "status": 200,
     "body": {
@@ -92,9 +92,9 @@
     "body": {
       "version": 1,
       "depositRate": 0.05,
-      "depositMinFen": 10000,
-      "depositMaxFen": 500000,
-      "depositFixedForNegotiableFen": 20000,
+      "depositMinFen": 100000,
+      "depositMaxFen": 2000000,
+      "depositFixedForNegotiableFen": 200000,
       "autoRefundWindowMinutes": 30,
       "sellerMaterialDeadlineBusinessDays": 3,
       "contractSignedDeadlineBusinessDays": 10,
@@ -112,9 +112,9 @@
     "body": {
       "version": 2,
       "depositRate": 0.05,
-      "depositMinFen": 10000,
-      "depositMaxFen": 500000,
-      "depositFixedForNegotiableFen": 20000,
+      "depositMinFen": 100000,
+      "depositMaxFen": 2000000,
+      "depositFixedForNegotiableFen": 200000,
       "autoRefundWindowMinutes": 30,
       "sellerMaterialDeadlineBusinessDays": 3,
       "contractSignedDeadlineBusinessDays": 10,
@@ -275,3 +275,4 @@
     }
   }
 }
+

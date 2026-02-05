@@ -318,7 +318,7 @@
 - [x] `pages/messages/chat/index`: ScrollView message list + auto scroll to latest
 - [x] `pages/messages/chat/index`: createdAt time formatting via `formatTimeSmart()`
 - [x] `pages/messages/chat/index`: cursor pagination (load history) + PullToRefresh/load-more UX
-- [x] `pages/messages/chat/index`: render message types (TEXT/IMAGE/FILE/SYSTEM) with preview/copy
+- [x] `pages/messages/chat/index`: render message types (TEXT/EMOJI/SYSTEM) text-only
 - [x] `pages/messages/chat/index`: sending state (sending/failed) + retry without losing draft
 - [x] `pages/messages/chat/index`: v2.1 UI polish：头像用 NutUI `Avatar`；气泡/时间条密度与配色更接近微信
 - [x] `pages/messages/chat/index`: 背景/气泡/系统消息视觉对齐 v2 规范，统一语义 token，去硬编码

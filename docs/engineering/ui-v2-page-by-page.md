@@ -261,12 +261,12 @@ v2 瑙勮寖瑕佹眰锛?
 - P0 (must)
   - createdAt uses formatTimeSmart (no raw ISO strings)
   - ScrollView message list + auto scroll to latest; keep input fixed with safe-area padding
-  - Render message types: TEXT/IMAGE/FILE/SYSTEM (image preview, file copy link)
+  - Render message types: TEXT/EMOJI/SYSTEM (emoji in text; no image/file)
   - Cursor pagination for history (pull-to-refresh / load more) without jumping scroll position
   - Sending state: optimistic bubble -> replace with server message; failure keeps bubble with retry
 - P1 (suggest)
   - Unread divider / day grouping
-  - Attachment upload (image/file)
+  - Emoji picker panel (optional)
   - Read receipt (if backend supports)
 
 ## 2. Admin锛坅pps/admin-web锛夐€愰〉浠诲姟鎷嗚В锛堣鍒掔骇锛?

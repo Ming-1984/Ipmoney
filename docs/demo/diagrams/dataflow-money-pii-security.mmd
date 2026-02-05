@@ -51,6 +51,10 @@ flowchart LR
   API -->|落库：listing_stats / favorites / consult_events| PG
   API --> Audit
 
+  %% === 转化漏斗（P0）===
+  MP -->|搜索/咨询/订金支付/成交事件| API --> Analytics
+  API -->|落库：search_events / consult_events / payment_events / order_events| PG
+
   %% === 支付订金/尾款（资金）===
   MP -->|createPaymentIntent<br/>Idempotency-Key| Pay --> Redis
   Pay --> WxPay

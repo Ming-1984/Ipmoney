@@ -2428,7 +2428,7 @@ paths:
           $ref: "#/components/responses/NotFound"
     post:
       tags: [Messaging]
-      summary: 发送消息（文本/图片/文件）
+      summary: 发送消息（文本/表情）
       operationId: sendConversationMessage
       security:
         - BearerAuth: []
@@ -8071,7 +8071,8 @@ components:
 
     ConversationMessageType:
       type: string
-      enum: [TEXT, IMAGE, FILE, SYSTEM]
+      description: 客户端仅允许发送 TEXT/EMOJI；SYSTEM 为系统消息
+      enum: [TEXT, EMOJI, SYSTEM]
 
     ConversationMessage:
       type: object
@@ -8087,29 +8088,31 @@ components:
           $ref: "#/components/schemas/ConversationMessageType"
         text:
           type: string
+          description: 文本/表情内容
         fileId:
           $ref: "#/components/schemas/Uuid"
           nullable: true
+          deprecated: true
+          description: P1 预留（附件消息未开放）
         fileUrl:
           type: string
           format: uri
           nullable: true
+          deprecated: true
+          description: P1 预留（附件消息未开放）
         createdAt:
           type: string
           format: date-time
 
     ConversationMessageSendRequest:
       type: object
-      required: [type]
+      required: [type, text]
       properties:
         type:
           $ref: "#/components/schemas/ConversationMessageType"
         text:
           type: string
-          description: type=TEXT 时必填
-        fileId:
-          $ref: "#/components/schemas/Uuid"
-          description: type=IMAGE/FILE 时必填
+          description: type=TEXT/EMOJI 时必填
 
     PagedConversationMessage:
       type: object
