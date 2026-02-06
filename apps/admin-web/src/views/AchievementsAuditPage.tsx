@@ -369,6 +369,15 @@ export function AchievementsAuditPage() {
                   </div>
                 ) : null}
               </div>
+
+              <Divider />
+
+              <div>
+                <Typography.Text strong>审核记录</Typography.Text>
+                <Typography.Paragraph type="secondary" style={{ marginTop: 8 }}>
+                  驳回原因/审计日志可在此展示（需后端支持）。
+                </Typography.Paragraph>
+              </div>
             </Space>
           ) : null}
         </Drawer>

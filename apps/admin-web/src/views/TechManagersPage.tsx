@@ -1,4 +1,4 @@
-import { Button, Card, Drawer, Input, InputNumber, Select, Space, Table, Tag, Typography, message } from 'antd';
+import { Button, Card, Descriptions, Drawer, Input, InputNumber, Select, Space, Table, Tag, Typography, message } from 'antd';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 
 import type { components } from '@ipmoney/api-types';

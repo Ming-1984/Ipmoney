@@ -1,1 +1,22 @@
-/* Empty on purpose: ensures the page emits a wxss file in miniapp builds. */
+.message-title-left {
+  display: flex;
+  align-items: center;
+  gap: 8rpx;
+}
+
+.message-tag {
+  padding: 2rpx 8rpx;
+  border-radius: 999rpx;
+  font-size: 20rpx;
+  line-height: 1.2;
+}
+
+.message-tag--cs {
+  color: #ff7a00;
+  background: #fff4e6;
+}
+
+.message-tag--trade {
+  color: #2563eb;
+  background: #e0f2fe;
+}

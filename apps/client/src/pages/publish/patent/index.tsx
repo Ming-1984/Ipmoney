@@ -82,6 +82,70 @@ function splitList(input: string): string[] {
     .slice(0, 30);
 }
 
+const EXTRA_SUMMARY_MARKER = '【补充信息】';
+
+function buildExtraSummary(input: {
+  deliverables: string;
+  expectedCycle: string;
+  negotiableSpace: string;
+  pledgeStatus: string;
+}): string {
+  const parts: string[] = [];
+  if (input.deliverables.trim()) parts.push(`可交付资料：${input.deliverables.trim()}`);
+  if (input.expectedCycle.trim()) parts.push(`预计周期：${input.expectedCycle.trim()}`);
+  if (input.negotiableSpace.trim()) parts.push(`可谈空间：${input.negotiableSpace.trim()}`);
+  if (input.pledgeStatus.trim()) parts.push(`质押/许可现状：${input.pledgeStatus.trim()}`);
+  if (!parts.length) return '';
+  return `${EXTRA_SUMMARY_MARKER}\n${parts.join('\n')}`.trim();
+}
+
+function mergeSummary(
+  base: string,
+  input: {
+    deliverables: string;
+    expectedCycle: string;
+    negotiableSpace: string;
+    pledgeStatus: string;
+  },
+): string {
+  const baseText = (base || '').trim();
+  const extra = buildExtraSummary(input);
+  if (!extra) return baseText;
+  if (!baseText) return extra;
+  return `${baseText}\n\n${extra}`.trim();
+}
+
+function extractExtraSummary(raw: string): {
+  base: string;
+  deliverables: string;
+  expectedCycle: string;
+  negotiableSpace: string;
+  pledgeStatus: string;
+} {
+  const text = String(raw || '');
+  const idx = text.indexOf(EXTRA_SUMMARY_MARKER);
+  if (idx === -1) {
+    return { base: text, deliverables: '', expectedCycle: '', negotiableSpace: '', pledgeStatus: '' };
+  }
+  const base = text.slice(0, idx).trimEnd();
+  const extraBlock = text.slice(idx + EXTRA_SUMMARY_MARKER.length).trim();
+  const extras = { deliverables: '', expectedCycle: '', negotiableSpace: '', pledgeStatus: '' };
+  extraBlock
+    .split('\n')
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .forEach((line) => {
+      const [keyRaw, ...rest] = line.split(/[:：]/);
+      const value = rest.join(':').trim();
+      const key = keyRaw.trim();
+      if (key.includes('可交付资料')) extras.deliverables = value;
+      if (key.includes('预计周期')) extras.expectedCycle = value;
+      if (key.includes('可谈空间')) extras.negotiableSpace = value;
+      if (key.includes('质押')) extras.pledgeStatus = value;
+    });
+  return { base, ...extras };
+}
+
 function parseMoneyFen(input: string): number | null {
   const s = (input || '').trim().replace(/,/g, '');
   if (!s) return null;
@@ -141,6 +205,10 @@ export default function PublishPatentPage() {
   const [assigneeNamesInput, setAssigneeNamesInput] = useState('');
   const [applicantNamesInput, setApplicantNamesInput] = useState('');
   const [summary, setSummary] = useState('');
+  const [deliverables, setDeliverables] = useState('');
+  const [expectedCycle, setExpectedCycle] = useState('');
+  const [negotiableSpace, setNegotiableSpace] = useState('');
+  const [pledgeStatus, setPledgeStatus] = useState('');
 
   const [tradeMode, setTradeMode] = useState<TradeMode | ''>('');
   const [licenseMode, setLicenseMode] = useState<LicenseMode | ''>('');
@@ -224,7 +292,14 @@ export default function PublishPatentPage() {
         setPatentType((d.patentType || '') as PatentType | '');
         setTitle(d.title || '');
         setInventorNamesInput((d.inventorNames || []).join(', '));
-        setSummary(d.summary || '');
+        {
+          const parsed = extractExtraSummary(d.summary || '');
+          setSummary(parsed.base || '');
+          setDeliverables(parsed.deliverables || '');
+          setExpectedCycle(parsed.expectedCycle || '');
+          setNegotiableSpace(parsed.negotiableSpace || '');
+          setPledgeStatus(parsed.pledgeStatus || '');
+        }
 
         setTradeMode((d.tradeMode || '') as TradeMode | '');
         setLicenseMode((d.licenseMode || '') as LicenseMode | '');
@@ -294,6 +369,13 @@ export default function PublishPatentPage() {
         return null;
       }
 
+      const summaryValue = mergeSummary(summary, {
+        deliverables,
+        expectedCycle,
+        negotiableSpace,
+        pledgeStatus,
+      });
+
       const req: ListingCreateRequest = {
         patentNumberRaw: raw,
         patentType,
@@ -303,7 +385,7 @@ export default function PublishPatentPage() {
         ...(priceType === 'FIXED' ? { priceAmountFen: priceAmountFen as number } : {}),
         ...(depositAmountFen !== null ? { depositAmountFen } : {}),
         ...(title.trim() ? { title: title.trim() } : {}),
-        ...(summary.trim() ? { summary: summary.trim() } : {}),
+        ...(summaryValue ? { summary: summaryValue } : {}),
         ...(inventorNames.length ? { inventorNames } : {}),
         ...(assigneeNames.length ? { assigneeNames } : {}),
         ...(applicantNames.length ? { applicantNames } : {}),
@@ -318,14 +400,18 @@ export default function PublishPatentPage() {
     [
       applicantNames,
       assigneeNames,
+      deliverables,
       depositYuan,
+      expectedCycle,
       inventorNames,
       industryTags,
       ipcCodes,
       licenseMode,
       locCodes,
+      negotiableSpace,
       patentNumberRaw,
       patentType,
+      pledgeStatus,
       priceType,
       priceYuan,
       proofFiles,
@@ -369,6 +455,13 @@ export default function PublishPatentPage() {
         return null;
       }
 
+      const summaryValue = mergeSummary(summary, {
+        deliverables,
+        expectedCycle,
+        negotiableSpace,
+        pledgeStatus,
+      });
+
       const req: ListingUpdateRequest = {
         tradeMode,
         priceType,
@@ -376,7 +469,7 @@ export default function PublishPatentPage() {
         ...(priceType === 'FIXED' ? { priceAmountFen: priceAmountFen as number } : {}),
         ...(depositAmountFen !== null ? { depositAmountFen } : {}),
         ...(title.trim() ? { title: title.trim() } : {}),
-        ...(summary.trim() ? { summary: summary.trim() } : {}),
+        ...(summaryValue ? { summary: summaryValue } : {}),
         ...(inventorNames.length ? { inventorNames } : {}),
         ...(assigneeNames.length ? { assigneeNames } : {}),
         ...(applicantNames.length ? { applicantNames } : {}),
@@ -391,13 +484,17 @@ export default function PublishPatentPage() {
     [
       applicantNames,
       assigneeNames,
+      deliverables,
       depositYuan,
+      expectedCycle,
       inventorNames,
       industryTags,
       ipcCodes,
       licenseMode,
       listingId,
       locCodes,
+      negotiableSpace,
+      pledgeStatus,
       priceType,
       priceYuan,
       proofFiles,
@@ -652,6 +749,50 @@ export default function PublishPatentPage() {
               onChange={setSummary}
               placeholder="填写摘要/技术亮点/应用场景"
               maxLength={2000}
+            />
+          </View>
+
+          <View className="form-field">
+            <Text className="form-label">可交付资料清单</Text>
+            <PublishTextArea
+              className="publish-textarea"
+              value={deliverables}
+              onChange={setDeliverables}
+              placeholder="例如：专利证书、权属证明、技术交底书等"
+              maxLength={1000}
+            />
+          </View>
+
+          <View className="form-field">
+            <Text className="form-label">预计周期</Text>
+            <PublishInput
+              className="publish-input"
+              value={expectedCycle}
+              onChange={setExpectedCycle}
+              placeholder="例如：1-2个月 / 45天"
+              clearable
+            />
+          </View>
+
+          <View className="form-field">
+            <Text className="form-label">可谈空间</Text>
+            <PublishInput
+              className="publish-input"
+              value={negotiableSpace}
+              onChange={setNegotiableSpace}
+              placeholder="例如：价格可议 / 可协商交易条款"
+              clearable
+            />
+          </View>
+
+          <View className="form-field">
+            <Text className="form-label">质押/许可现状声明</Text>
+            <PublishTextArea
+              className="publish-textarea"
+              value={pledgeStatus}
+              onChange={setPledgeStatus}
+              placeholder="例如：未质押；无在许可；或说明已有许可情况"
+              maxLength={500}
             />
           </View>
 

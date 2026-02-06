@@ -1,1 +1,43 @@
-/* Empty on purpose: ensures the page emits a wxss file in miniapp builds. */
+.artwork-seller-row {
+  display: flex;
+  gap: 16rpx;
+  align-items: center;
+}
+
+.artwork-seller-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 8rpx;
+}
+
+.artwork-seller-name {
+  font-weight: 600;
+}
+
+.artwork-seller-tags {
+  display: flex;
+  gap: 8rpx;
+  flex-wrap: wrap;
+}
+
+.detail-file-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10rpx;
+  width: 100%;
+}
+
+.detail-file-item {
+  padding: 12rpx;
+  border: 1px solid #e5e7eb;
+  border-radius: 12rpx;
+}
+
+.detail-file-name {
+  font-weight: 600;
+}
+
+.detail-file-meta {
+  font-size: 22rpx;
+  color: #6b7280;
+}

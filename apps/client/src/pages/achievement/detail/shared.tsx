@@ -1,6 +1,5 @@
 ﻿import { View, Text } from '@tarojs/components';
-import Taro from '@tarojs/taro';
-import React, { useCallback, useMemo } from 'react';
+import React from 'react';
 
 import type { components } from '@ipmoney/api-types';
 
@@ -19,36 +18,6 @@ export function maturityStageLabel(m?: AchievementMaturity): string {
   if (m === 'MASS_PRODUCTION') return '量产';
   if (m === 'COMMERCIALIZED') return '已产业化';
   return '其他';
-}
-
-export function buildAchievementTabUrl(tabId: string, achievementId: string): string {
-  const basePath = '/pages/achievement/detail';
-  if (tabId === 'summary') return `${basePath}/summary/index?achievementId=${achievementId}`;
-  if (tabId === 'info') return `${basePath}/info/index?achievementId=${achievementId}`;
-  if (tabId === 'comments') return `${basePath}/comments/index?achievementId=${achievementId}`;
-  return `${basePath}/index?achievementId=${achievementId}`;
-}
-
-export function useAchievementTabs(activeTab: string, achievementId: string) {
-  const tabs = useMemo(
-    () => [
-      { id: 'overview', label: '概览' },
-      { id: 'summary', label: '摘要' },
-      { id: 'info', label: '信息' },
-      { id: 'comments', label: '评论' },
-    ],
-    [],
-  );
-
-  const goToTab = useCallback(
-    (id: string) => {
-      if (!achievementId || id === activeTab) return;
-      Taro.redirectTo({ url: buildAchievementTabUrl(id, achievementId) });
-    },
-    [achievementId, activeTab],
-  );
-
-  return { tabs, goToTab };
 }
 
 export function AchievementMetaCard(props: { data: AchievementPublic }) {

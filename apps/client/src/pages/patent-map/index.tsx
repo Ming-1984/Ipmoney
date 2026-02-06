@@ -129,7 +129,7 @@ export default function PatentMapPage() {
           borderRadius: 6,
           bgColor: '#f97316',
           padding: 6,
-          textAlign: 'center',
+            textAlign: 'center' as const,
         },
       })),
     [markerItems],
@@ -179,6 +179,7 @@ export default function PatentMapPage() {
                 scale={MAP_DEFAULT.scale}
                 markers={markers}
                 showLocation={false}
+                onError={() => {}}
                 onMarkerTap={(e) => {
                   const markerId = Number(e?.detail?.markerId);
                   if (!Number.isFinite(markerId)) return;

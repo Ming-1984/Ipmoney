@@ -16,12 +16,21 @@ import { fenToYuan } from '../../../lib/money';
 import { safeNavigateBack } from '../../../lib/navigation';
 import { regionDisplayName } from '../../../lib/regions';
 import { useRouteUuidParam } from '../../../lib/routeParams';
+import { CommentsSection } from '../../../ui/CommentsSection';
 import { SectionHeader, StickyBar, Surface } from '../../../ui/layout';
+import { MediaList } from '../../../ui/MediaList';
 import { Avatar, Button, toast } from '../../../ui/nutui';
 import { EmptyCard, ErrorCard, LoadingCard, MissingParamCard } from '../../../ui/StateCards';
 
 type ListingPublic = components['schemas']['ListingPublic'];
 type Patent = components['schemas']['Patent'];
+
+type PatentMediaItem = {
+  url?: string | null;
+  type?: string | null;
+  sort?: number | null;
+  fileId?: string | null;
+};
 
 type Conversation = { id: string };
 
@@ -48,14 +57,6 @@ function remainingYears(filingDate?: string | null, patentType?: Patent['patentT
   return `${years} 年`;
 }
 
-function buildTabUrl(tabId: string, listingId: string): string {
-  const basePath = '/pages/listing/detail';
-  if (tabId === 'summary') return `${basePath}/summary/index?listingId=${listingId}`;
-  if (tabId === 'info') return `${basePath}/info/index?listingId=${listingId}`;
-  if (tabId === 'comments') return `${basePath}/comments/index?listingId=${listingId}`;
-  return `${basePath}/index?listingId=${listingId}`;
-}
-
 export default function ListingDetailPage() {
   const listingId = useRouteUuidParam('listingId');
   const [loading, setLoading] = useState(true);
@@ -65,7 +66,7 @@ export default function ListingDetailPage() {
   const [patentError, setPatentError] = useState<string | null>(null);
   const [patentData, setPatentData] = useState<Patent | null>(null);
   const [favoritedState, setFavoritedState] = useState(false);
-  const activeTab = 'overview';
+  const [activeTab, setActiveTab] = useState('overview');
 
   const statusBarHeight = useMemo(() => {
     try {
@@ -87,13 +88,10 @@ export default function ListingDetailPage() {
     [],
   );
 
-  const goToTab = useCallback(
-    (id: string) => {
-      if (!listingId || id === activeTab) return;
-      Taro.redirectTo({ url: buildTabUrl(id, listingId) });
-    },
-    [listingId, activeTab],
-  );
+  const scrollToTab = useCallback((id: string) => {
+    setActiveTab(id);
+    Taro.pageScrollTo({ selector: `#listing-${id}`, duration: 300 });
+  }, []);
 
   useEffect(() => {
     if (!listingId) return;
@@ -211,6 +209,17 @@ export default function ListingDetailPage() {
     (data as any)?.transferCount ??
     (data as any)?.transferTimes ??
     ((data as any)?.stats as { transferCount?: number } | undefined)?.transferCount;
+  const mediaList = ((patentData as any)?.media ?? []) as PatentMediaItem[];
+  const coverUrl = mediaList.find((item) => item?.type === 'COVER' && item?.url)?.url ?? null;
+  const specFigures = mediaList
+    .filter((item) => item?.type === 'SPEC_FIGURE' && item?.url)
+    .sort((a, b) => (a?.sort ?? 0) - (b?.sort ?? 0));
+  const specMedia = specFigures.map((item) => ({
+    type: 'IMAGE' as const,
+    url: item.url || undefined,
+    fileId: item.fileId || undefined,
+  }));
+  const hasMedia = Boolean(coverUrl || specMedia.length);
 
   return (
     <View className="detail-page detail-page-compact has-sticky">
@@ -294,7 +303,7 @@ export default function ListingDetailPage() {
                   <Text
                     key={tab.id}
                     className={`detail-tab ${activeTab === tab.id ? 'is-active' : ''}`}
-                    onClick={() => goToTab(tab.id)}
+                    onClick={() => scrollToTab(tab.id)}
                   >
                     {tab.label}
                   </Text>
@@ -341,6 +350,31 @@ export default function ListingDetailPage() {
                 ))}
               </View>
             </View>
+
+            <Surface className="detail-section listing-detail-block" id="listing-summary">
+              <SectionHeader title="摘要" density="compact" />
+              {patentLoading ? (
+                <Text className="muted">专利摘要加载中...</Text>
+              ) : patentError ? (
+                <Text className="muted">{patentError}</Text>
+              ) : (
+                <Text className="muted break-word">{patentData?.abstract || data.summary || '暂无摘要'}</Text>
+              )}
+            </Surface>
+
+            {hasMedia ? (
+              <View className="detail-section" id="listing-media">
+                <SectionHeader title="说明书附图" density="compact" />
+                <Surface className="detail-section-card">
+                  {coverUrl ? (
+                    <View className="listing-detail-cover">
+                      <Image className="listing-detail-cover-img" src={coverUrl} mode="aspectFill" />
+                    </View>
+                  ) : null}
+                  {specMedia.length ? <MediaList media={specMedia} coverUrl={coverUrl} /> : <Text className="muted">暂无附图</Text>}
+                </Surface>
+              </View>
+            ) : null}
 
             {data.patentId ? (
               patentLoading ? (
@@ -392,7 +426,7 @@ export default function ListingDetailPage() {
                     <View className="detail-field-list">
                       <View className="detail-field-row">
                         <Text className="detail-field-label">申请日</Text>
-                        <Text className="detail-field-value break-word">{patentData.filingDate || data.applicationDate || '-'}</Text>
+                        <Text className="detail-field-value break-word">{patentData.filingDate || '-'}</Text>
                       </View>
                       <View className="detail-field-row">
                         <Text className="detail-field-label">公开日</Text>
@@ -405,7 +439,7 @@ export default function ListingDetailPage() {
                       <View className="detail-field-row">
                         <Text className="detail-field-label">剩余年限</Text>
                         <Text className="detail-field-value break-word">
-                          {remainingYears(patentData.filingDate || data.applicationDate, patentData.patentType)}
+                          {remainingYears(patentData.filingDate, patentData.patentType)}
                         </Text>
                       </View>
                     </View>
@@ -417,6 +451,10 @@ export default function ListingDetailPage() {
                 </Surface>
               )
             ) : null}
+
+            <View className="detail-section listing-detail-block" id="listing-comments">
+              <CommentsSection contentType="LISTING" contentId={listingId} />
+            </View>
 
             <View className="detail-bottom-tools">
               <View className="detail-tool-row">
@@ -484,6 +522,4 @@ export default function ListingDetailPage() {
     </View>
   );
 }
-
-
 

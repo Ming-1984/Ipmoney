@@ -219,6 +219,12 @@ export default function MePage() {
   const serviceItems = useMemo<ToolItem[]>(
     () => [
       {
+        key: 'support',
+        label: '客服中心',
+        icon: iconShield,
+        onClick: () => Taro.navigateTo({ url: '/pages/support/index' }),
+      },
+      {
         key: 'notice',
         label: '通知',
         icon: iconTrending,
@@ -241,6 +247,12 @@ export default function MePage() {
         label: '合同中心',
         icon: iconBriefcase,
         onClick: () => Taro.navigateTo({ url: '/pages/contracts/index' }),
+      },
+      {
+        key: 'address',
+        label: '地址管理',
+        icon: iconMap,
+        onClick: () => Taro.navigateTo({ url: '/pages/addresses/index' }),
       },
     ],
     [],

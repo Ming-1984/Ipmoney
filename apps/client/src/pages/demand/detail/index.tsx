@@ -1,6 +1,6 @@
 ﻿import { View, Text, Image } from '@tarojs/components';
 import Taro from '@tarojs/taro';
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import './index.scss';
 
 import type { components } from '@ipmoney/api-types';
@@ -11,15 +11,17 @@ import { getToken } from '../../../lib/auth';
 import { favoriteDemand, isDemandFavorited, syncFavoriteDemands, unfavoriteDemand } from '../../../lib/favorites';
 import { formatTimeSmart } from '../../../lib/format';
 import { ensureApproved } from '../../../lib/guard';
-import { verificationTypeLabel } from '../../../lib/labels';
+import { deliveryPeriodLabel, verificationTypeLabel } from '../../../lib/labels';
 import { resolveLocalAsset } from '../../../lib/localAssets';
 import { safeNavigateBack } from '../../../lib/navigation';
 import { regionDisplayName } from '../../../lib/regions';
 import { useRouteUuidParam } from '../../../lib/routeParams';
+import { CommentsSection } from '../../../ui/CommentsSection';
+import { MediaList } from '../../../ui/MediaList';
 import { PageHeader, SectionHeader, Spacer, StickyBar, Surface } from '../../../ui/layout';
 import { Avatar, Button, toast } from '../../../ui/nutui';
 import { EmptyCard, ErrorCard, LoadingCard, MissingParamCard } from '../../../ui/StateCards';
-import { DemandMetaCard, useDemandTabs } from './shared';
+import { budgetValue, cooperationModeLabel, DemandMetaCard } from './shared';
 
 type DemandPublic = components['schemas']['DemandPublic'];
 
@@ -33,7 +35,7 @@ export default function DemandDetailPage() {
   const [data, setData] = useState<DemandPublic | null>(null);
   const [consulting, setConsulting] = useState(false);
   const [favoritedState, setFavoritedState] = useState(false);
-  const activeTab = 'overview';
+  const [activeTab, setActiveTab] = useState('overview');
 
   const load = useCallback(async () => {
     if (!demandId) return;
@@ -99,9 +101,29 @@ export default function DemandDetailPage() {
     }
   }, [demandId, favoritedState]);
 
-  const { tabs, goToTab } = useDemandTabs(activeTab, demandId);
+  const tabs = useMemo(
+    () => [
+      { id: 'overview', label: '概览' },
+      { id: 'summary', label: '摘要' },
+      { id: 'info', label: '信息' },
+      { id: 'comments', label: '评论' },
+    ],
+    [],
+  );
+  const scrollToTab = useCallback((id: string) => {
+    setActiveTab(id);
+    Taro.pageScrollTo({ selector: `#demand-${id}`, duration: 300 });
+  }, []);
+
   const coverUrl = resolveLocalAsset(data?.coverUrl || null);
   const hasCover = Boolean(coverUrl);
+  const media = useMemo(() => data?.media ?? [], [data?.media]);
+  const coverUrlRaw = data?.coverUrl || null;
+  const mediaList = useMemo(() => {
+    const list = media.filter((item) => item.url);
+    if (!coverUrlRaw) return list;
+    return list.filter((item) => item.url !== coverUrlRaw);
+  }, [media, coverUrlRaw]);
 
 
   if (!demandId) {
@@ -140,7 +162,7 @@ export default function DemandDetailPage() {
                 <Text
                   key={tab.id}
                   className={`detail-tab ${activeTab === tab.id ? 'is-active' : ''}`}
-                  onClick={() => goToTab(tab.id)}
+                  onClick={() => scrollToTab(tab.id)}
                 >
                   {tab.label}
                 </Text>
@@ -150,7 +172,25 @@ export default function DemandDetailPage() {
 
           <Spacer size={12} />
 
+          <View className="patent-card-stack" id="demand-summary">
+            <SectionHeader title="需求摘要" density="compact" />
+            <Surface className="detail-section-card">
+              <Text className="patent-summary-text">{data.summary || '暂无摘要'}</Text>
+            </Surface>
+          </View>
+
+          <Spacer size={12} />
+
           <View className="patent-card-stack">
+            <SectionHeader title="需求详情" density="compact" />
+            <Surface className="detail-section-card">
+              <Text className="patent-summary-text">{data.description || '暂无详情'}</Text>
+            </Surface>
+          </View>
+
+          <Spacer size={12} />
+
+          <View className="patent-card-stack" id="demand-info">
             <SectionHeader title="发布方信息" density="compact" />
             <Surface className="detail-section-card patent-provider-card">
               {data.publisher ? (
@@ -211,6 +251,59 @@ export default function DemandDetailPage() {
 
           <Spacer size={12} />
 
+          <View className="patent-card-stack">
+            <SectionHeader title="需求信息" density="compact" />
+            <View className="detail-field-list">
+              <View className="detail-field-row">
+                <Text className="detail-field-label">预算</Text>
+                <Text className="detail-field-value">{budgetValue(data)}</Text>
+              </View>
+              <View className="detail-field-row">
+                <Text className="detail-field-label">合作方式</Text>
+                <Text className="detail-field-value break-word">
+                  {data.cooperationModes?.length ? data.cooperationModes.map(cooperationModeLabel).join(' / ') : '-'}
+                </Text>
+              </View>
+              <View className="detail-field-row">
+                <Text className="detail-field-label">交付周期</Text>
+                <Text className="detail-field-value">{deliveryPeriodLabel(data.deliveryPeriod, { empty: '-' })}</Text>
+              </View>
+              <View className="detail-field-row">
+                <Text className="detail-field-label">地区</Text>
+                <Text className="detail-field-value">{regionDisplayName(data.regionCode)}</Text>
+              </View>
+              <View className="detail-field-row">
+                <Text className="detail-field-label">行业标签</Text>
+                <Text className="detail-field-value break-word">
+                  {data.industryTags?.length ? data.industryTags.join(' / ') : '-'}
+                </Text>
+              </View>
+              <View className="detail-field-row">
+                <Text className="detail-field-label">关键词</Text>
+                <Text className="detail-field-value break-word">
+                  {data.keywords?.length ? data.keywords.join(' / ') : '-'}
+                </Text>
+              </View>
+            </View>
+          </View>
+
+          <Spacer size={12} />
+
+          <View className="patent-card-stack">
+            <SectionHeader title="附件" density="compact" />
+            <View className="detail-section-card">
+              {mediaList.length ? <MediaList media={mediaList} coverUrl={coverUrl} /> : <Text className="muted">暂无附件</Text>}
+            </View>
+          </View>
+
+          <Spacer size={12} />
+
+          <View className="patent-card-stack" id="demand-comments">
+            <CommentsSection contentType="DEMAND" contentId={demandId} />
+          </View>
+
+          <Spacer size={12} />
+
           <View className="detail-bottom-tools">
             <View className="detail-tool-row">
               <View
@@ -252,4 +345,3 @@ export default function DemandDetailPage() {
     </View>
   );
 }
-

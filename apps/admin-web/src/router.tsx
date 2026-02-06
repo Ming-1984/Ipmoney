@@ -11,6 +11,7 @@ import { ListingsAuditPage } from './views/ListingsAuditPage';
 import { ConfigPage } from './views/ConfigPage';
 import { InvoicesPage } from './views/InvoicesPage';
 import { OrdersPage } from './views/OrdersPage';
+import { OrderDetailPage } from './views/OrderDetailPage';
 import { PatentMapPage } from './views/PatentMapPage';
 import { RegionsPage } from './views/RegionsPage';
 import { RefundsPage } from './views/RefundsPage';
@@ -35,6 +36,7 @@ export const router = createBrowserRouter([
       { path: 'artworks', element: <ArtworksAuditPage /> },
       { path: 'tech-managers', element: <TechManagersPage /> },
       { path: 'orders', element: <OrdersPage /> },
+      { path: 'orders/:orderId', element: <OrderDetailPage /> },
       { path: 'refunds', element: <RefundsPage /> },
       { path: 'settlements', element: <SettlementsPage /> },
       { path: 'invoices', element: <InvoicesPage /> },

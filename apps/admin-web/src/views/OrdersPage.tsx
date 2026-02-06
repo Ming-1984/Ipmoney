@@ -1,5 +1,6 @@
 import { Button, Card, Space, Table, Typography, message } from 'antd';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 
 import { apiGet, apiPost } from '../lib/api';
 import { fenToYuan, formatTimeSmart } from '../lib/format';
@@ -37,6 +38,7 @@ type PagedOrder = {
 };
 
 export function OrdersPage() {
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<unknown | null>(null);
   const [data, setData] = useState<PagedOrder | null>(null);
@@ -104,6 +106,7 @@ export function OrdersPage() {
               key: 'actions',
               render: (_, r) => (
                 <Space>
+                  <Button onClick={() => navigate(`/orders/${r.id}`)}>详情</Button>
                   <Button
                     type="primary"
                     onClick={async () => {

@@ -246,7 +246,9 @@ export default function PatentDetailInfoPage() {
                         {supplyTypeLabel((tradeSnapshot as any)?.supplyType || (tradeSnapshot as any)?.seller?.orgCategory)}
                       </Text>
                       {tradeSnapshot?.seller?.verificationType ? (
-                        <Text className="patent-provider-tag">{verificationTypeLabel(tradeSnapshot.seller.verificationType)}</Text>
+                        <Text className="patent-provider-tag">
+                          {verificationTypeLabel(tradeSnapshot.seller.verificationType as any)}
+                        </Text>
                       ) : null}
                     </View>
                   </View>
@@ -407,7 +409,7 @@ export default function PatentDetailInfoPage() {
                     <Text className="detail-field-value">
                       {(tradeSnapshot as any)?.seller?.nickname || '-'}
                       {(tradeSnapshot as any)?.seller?.verificationType
-                        ? `（${verificationTypeLabel((tradeSnapshot as any).seller.verificationType)}）`
+                        ? `（${verificationTypeLabel((tradeSnapshot as any).seller.verificationType as any)}）`
                         : ''}
                     </Text>
                   </View>

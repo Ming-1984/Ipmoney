@@ -1,4 +1,4 @@
-import { Button, Card, Descriptions, Drawer, Image, Input, Select, Space, Table, Tag, Typography, message } from 'antd';
+import { Button, Card, Descriptions, Divider, Drawer, Image, Input, Select, Space, Table, Tag, Typography, message } from 'antd';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 
 import type { components } from '@ipmoney/api-types';
@@ -345,6 +345,15 @@ export function ArtworksAuditPage() {
                   </Space>
                 </div>
               ) : null}
+            </div>
+
+            <Divider />
+
+            <div>
+              <Typography.Text strong>审核记录</Typography.Text>
+              <Typography.Paragraph type="secondary" style={{ marginTop: 8 }}>
+                驳回原因/审计日志可在此展示（需后端支持）。
+              </Typography.Paragraph>
             </div>
           </Space>
         ) : null}

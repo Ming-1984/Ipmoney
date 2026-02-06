@@ -1,4 +1,4 @@
-import { Button, Card, Input, InputNumber, Modal, Select, Space, Table, Tag, Typography, message } from 'antd';
+import { Button, Card, Descriptions, Divider, Drawer, Input, InputNumber, Modal, Select, Space, Table, Tag, Typography, message } from 'antd';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 
 import { apiGet, apiPost, apiPut } from '../lib/api';
@@ -63,6 +63,10 @@ export function ListingsAuditPage() {
   const [featureRegionCode, setFeatureRegionCode] = useState('');
   const [featureRank, setFeatureRank] = useState<number>(0);
   const [featureUntilIso, setFeatureUntilIso] = useState<string | null>(null);
+  const [detailOpen, setDetailOpen] = useState(false);
+  const [detailLoading, setDetailLoading] = useState(false);
+  const [detailError, setDetailError] = useState<string | null>(null);
+  const [detail, setDetail] = useState<Listing | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -91,6 +95,21 @@ export function ListingsAuditPage() {
   }, [load]);
 
   const rows = useMemo(() => data?.items || [], [data?.items]);
+
+  const openDetail = useCallback(async (row: Listing) => {
+    setDetailOpen(true);
+    setDetailLoading(true);
+    setDetailError(null);
+    setDetail(row);
+    try {
+      const d = await apiGet<Listing>(`/admin/listings/${row.id}`);
+      setDetail(d);
+    } catch (e: any) {
+      setDetailError(e?.message || '加载失败');
+    } finally {
+      setDetailLoading(false);
+    }
+  }, []);
 
   return (
     <Card>
@@ -194,6 +213,7 @@ export function ListingsAuditPage() {
                 const disabled = r.auditStatus !== 'PENDING';
                 return (
                   <Space>
+                    <Button onClick={() => void openDetail(r)}>详情</Button>
                     <Button
                       type="primary"
                       disabled={disabled}
@@ -265,6 +285,51 @@ export function ListingsAuditPage() {
 
         <Button onClick={load}>刷新</Button>
       </Space>
+
+      <Drawer
+        title="上架详情"
+        open={detailOpen}
+        onClose={() => setDetailOpen(false)}
+        width={520}
+        destroyOnClose
+      >
+        {detailError ? (
+          <Typography.Text type="danger">{detailError}</Typography.Text>
+        ) : (
+          <Space direction="vertical" size={12} style={{ width: '100%' }}>
+            {detailLoading ? <Typography.Text type="secondary">加载中...</Typography.Text> : null}
+            <Descriptions size="small" column={1} bordered>
+              <Descriptions.Item label="上架ID">{detail?.id || '-'}</Descriptions.Item>
+              <Descriptions.Item label="标题">{detail?.title || '-'}</Descriptions.Item>
+              <Descriptions.Item label="类型">{detail?.tradeMode ? tradeModeLabel(detail.tradeMode) : '-'}</Descriptions.Item>
+              <Descriptions.Item label="价格">
+                {detail?.priceType === 'NEGOTIABLE'
+                  ? '面议'
+                  : detail?.priceAmountFen
+                    ? `¥${fenToYuan(detail.priceAmountFen)}（固定）`
+                    : '-'}
+              </Descriptions.Item>
+              <Descriptions.Item label="订金">
+                {detail?.depositAmountFen != null ? `¥${fenToYuan(detail.depositAmountFen)}` : '-'}
+              </Descriptions.Item>
+              <Descriptions.Item label="地区">{detail?.regionCode || '-'}</Descriptions.Item>
+              <Descriptions.Item label="状态">{detail ? listingTag(detail.status) : '-'}</Descriptions.Item>
+              <Descriptions.Item label="审核状态">{detail ? auditTag(detail.auditStatus) : '-'}</Descriptions.Item>
+              <Descriptions.Item label="创建时间">{detail?.createdAt ? formatTimeSmart(detail.createdAt) : '-'}</Descriptions.Item>
+            </Descriptions>
+
+            <Divider />
+            <Typography.Text strong>材料/附件</Typography.Text>
+            <Typography.Text type="secondary">
+              暂无材料列表；后续可接入后端接口展示权属材料/附件。
+            </Typography.Text>
+
+            <Divider />
+            <Typography.Text strong>审核记录</Typography.Text>
+            <Typography.Text type="secondary">驳回原因/审计日志可在此展示。</Typography.Text>
+          </Space>
+        )}
+      </Drawer>
 
       <Modal
         open={featureModalOpen}

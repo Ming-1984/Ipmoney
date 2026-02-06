@@ -15,6 +15,8 @@ type ListingSummaryExtra = ListingSummary & {
   seller?: components['schemas']['UserBrief'];
   transferCount?: number;
   transferTimes?: number;
+  listingTopic?: 'HIGH_TECH_RETIRED' | 'CLUSTER_FEATURED' | '';
+  clusterName?: string;
 };
 
 export function ListingCard(props: {
@@ -38,11 +40,22 @@ export function ListingCard(props: {
   const transferCount =
     (extra.transferCount ?? extra.transferTimes ?? (extra.stats as { transferCount?: number } | undefined)?.transferCount) || 0;
   const tags: { label: string; tone: 'green' | 'slate' }[] = [];
+  const specialTags: { label: string; tone: 'green' | 'slate' }[] = [];
+  if (transferCount === 0) specialTags.push({ label: '沉睡专利', tone: 'green' });
+  if (extra.listingTopic === 'HIGH_TECH_RETIRED') specialTags.push({ label: '高新退役', tone: 'green' });
+  if (
+    extra.listingTopic === 'CLUSTER_FEATURED' ||
+    (it.featuredLevel && it.featuredLevel !== 'NONE') ||
+    Boolean(it.featuredRegionCode)
+  ) {
+    const clusterLabel = extra.clusterName ? `产业集群·${extra.clusterName}` : '产业集群';
+    specialTags.push({ label: clusterLabel, tone: 'green' });
+  }
   if (it.patentType) tags.push({ label: patentTypeLabel(it.patentType, { empty: '' }), tone: 'slate' });
   if (it.tradeMode) tags.push({ label: tradeModeLabel(it.tradeMode, { empty: '' }), tone: 'green' });
   if (region) tags.push({ label: region, tone: 'slate' });
   it.industryTags?.slice(0, 2).forEach((tag) => tags.push({ label: tag, tone: 'slate' }));
-  const visibleTags = tags.slice(0, 3);
+  const visibleTags = [...specialTags, ...tags].slice(0, 3);
 
   return (
     <View className="list-card listing-item listing-item--compact" onClick={props.onClick}>

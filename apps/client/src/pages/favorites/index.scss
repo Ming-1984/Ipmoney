@@ -1,1 +1,11 @@
-/* Empty on purpose: ensures the page emits a wxss file in miniapp builds. */
+.artwork-favorite-item {
+  display: flex;
+  flex-direction: column;
+  gap: 12rpx;
+}
+
+.artwork-favorite-actions {
+  display: flex;
+  gap: 12rpx;
+  padding: 0 12rpx 12rpx;
+}

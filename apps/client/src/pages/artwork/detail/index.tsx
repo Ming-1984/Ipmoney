@@ -12,17 +12,25 @@ import { apiGet, apiPost } from '../../../lib/api';
 import { getToken } from '../../../lib/auth';
 import { favoriteArtwork, isArtworkFavorited, syncFavoriteArtworks, unfavoriteArtwork } from '../../../lib/favorites';
 import { ensureApproved } from '../../../lib/guard';
-import { artworkCategoryLabel, calligraphyScriptLabel, paintingGenreLabel, priceTypeLabel } from '../../../lib/labels';
+import {
+  artworkCategoryLabel,
+  calligraphyScriptLabel,
+  paintingGenreLabel,
+  priceTypeLabel,
+  verificationStatusLabel,
+  verificationTypeLabel,
+} from '../../../lib/labels';
 import { fenToYuan } from '../../../lib/money';
 import { safeNavigateBack } from '../../../lib/navigation';
 import { regionDisplayName } from '../../../lib/regions';
 import { useRouteUuidParam } from '../../../lib/routeParams';
 import { CommentsSection } from '../../../ui/CommentsSection';
 import { PageHeader, Spacer, StickyBar, Surface, TipBanner } from '../../../ui/layout';
-import { Button, toast } from '../../../ui/nutui';
+import { Avatar, Button, toast } from '../../../ui/nutui';
 import { EmptyCard, ErrorCard, LoadingCard, MissingParamCard } from '../../../ui/StateCards';
 
 type ArtworkPublic = components['schemas']['ArtworkPublic'];
+type ContentMedia = components['schemas']['ContentMedia'];
 type Conversation = { id: string };
 
 export default function ArtworkDetailPage() {
@@ -41,6 +49,10 @@ export default function ArtworkDetailPage() {
   const [data, setData] = useState<ArtworkPublic | null>(null);
   const [favoritedState, setFavoritedState] = useState(false);
   const [activeTab, setActiveTab] = useState('artwork-overview');
+  const certificateMedia = useMemo(
+    () => ((data?.media || []) as ContentMedia[]).filter((m) => m.type === 'FILE'),
+    [data?.media],
+  );
 
   useEffect(() => {
     setFavoritedState(isArtworkFavorited(artworkId));
@@ -117,6 +129,17 @@ export default function ArtworkDetailPage() {
     Taro.pageScrollTo({ selector: `#${id}`, duration: 300 });
   }, []);
 
+  const openMedia = useCallback((m: ContentMedia) => {
+    const url = m.url || '';
+    if (!url) return;
+    if (String(m.mimeType || '').startsWith('image/')) {
+      void Taro.previewImage({ urls: [url] });
+      return;
+    }
+    void Taro.setClipboardData({ data: url });
+    toast('链接已复制', { icon: 'success' });
+  }, []);
+
   return (
     <View className="container detail-page-compact has-sticky">
       <PageHeader weapp back title="书画详情" subtitle="订金与尾款平台托管，权属变更完成后再放款" />
@@ -180,6 +203,39 @@ export default function ArtworkDetailPage() {
 
           <Spacer size={12} />
 
+          {data.seller ? (
+            <>
+              <View className="detail-section-card">
+                <View className="artwork-seller-row">
+                  <Avatar
+                    size="56"
+                    src={data.seller.avatarUrl || ''}
+                    background="var(--c-soft)"
+                    color="var(--c-primary)"
+                  >
+                    {(data.seller.nickname || '卖家').slice(0, 1)}
+                  </Avatar>
+                  <View className="artwork-seller-meta">
+                    <Text className="artwork-seller-name">{data.seller.nickname || '卖家'}</Text>
+                    <View className="artwork-seller-tags">
+                      {data.seller.verificationType ? (
+                        <Text className="detail-compact-tag">
+                          {verificationTypeLabel(data.seller.verificationType, { empty: '-' })}
+                        </Text>
+                      ) : null}
+                      {data.seller.verificationStatus ? (
+                        <Text className="detail-compact-tag">
+                          {verificationStatusLabel(data.seller.verificationStatus, { empty: '-' })}
+                        </Text>
+                      ) : null}
+                    </View>
+                  </View>
+                </View>
+              </View>
+              <Spacer size={12} />
+            </>
+          ) : null}
+
           <View id="artwork-info" className="detail-section-card">
             <View className="detail-field-list">
               {data.creatorName ? (
@@ -218,6 +274,21 @@ export default function ArtworkDetailPage() {
                   <Text className="detail-field-value">{data.certificateNo}</Text>
                 </View>
               ) : null}
+              <View className="detail-field-row detail-field-row--column">
+                <Text className="detail-field-label">权属材料</Text>
+                {certificateMedia.length ? (
+                  <View className="detail-file-list">
+                    {certificateMedia.map((m, idx) => (
+                      <View key={`${m.fileId}-${idx}`} className="detail-file-item" onClick={() => openMedia(m)}>
+                        <Text className="detail-file-name">{m.fileName || `材料 ${idx + 1}`}</Text>
+                        <Text className="detail-file-meta">{m.mimeType || '文件'}</Text>
+                      </View>
+                    ))}
+                  </View>
+                ) : (
+                  <Text className="detail-field-value muted">暂无权属材料</Text>
+                )}
+              </View>
             </View>
           </View>
 
@@ -319,5 +390,4 @@ export default function ArtworkDetailPage() {
     </View>
   );
 }
-
 

@@ -8,16 +8,7 @@ import type { components } from '@ipmoney/api-types';
 import { STORAGE_KEYS } from '../../constants';
 import { getToken } from '../../lib/auth';
 import { apiGet, apiPost } from '../../lib/api';
-import {
-  favorite,
-  favoriteArtwork,
-  getFavoriteArtworkIds,
-  getFavoriteListingIds,
-  syncFavoriteArtworks,
-  syncFavorites,
-  unfavorite,
-  unfavoriteArtwork,
-} from '../../lib/favorites';
+import { favorite, getFavoriteListingIds, syncFavorites, unfavorite } from '../../lib/favorites';
 import { ensureApproved } from '../../lib/guard';
 import {
   artworkCategoryLabel,
@@ -379,7 +370,6 @@ export default function SearchPage() {
   const [artworkData, setArtworkData] = useState<PagedArtworkSummary | null>(null);
 
   const [favoriteIds, setFavoriteIds] = useState<Set<string>>(() => new Set(getFavoriteListingIds()));
-  const [favoriteArtworkIds, setFavoriteArtworkIds] = useState<Set<string>>(() => new Set(getFavoriteArtworkIds()));
 
   const resetStateForTab = useCallback((nextTab: Tab) => {
     if (nextTab === 'LISTING') {
@@ -564,9 +554,6 @@ export default function SearchPage() {
     syncFavorites()
       .then((ids) => setFavoriteIds(new Set(ids)))
       .catch(() => {});
-    syncFavoriteArtworks()
-      .then((ids) => setFavoriteArtworkIds(new Set(ids)))
-      .catch(() => {});
   }, []);
 
   const startListingConsult = useCallback(async (listingId: string) => {
@@ -578,20 +565,6 @@ export default function SearchPage() {
     }
     try {
       const conv = await apiPost<Conversation>(`/listings/${listingId}/conversations`, {}, { idempotencyKey: `conv-${listingId}` });
-      Taro.navigateTo({ url: `/pages/messages/chat/index?conversationId=${conv.id}` });
-    } catch (e: any) {
-      toast(e?.message || '进入咨询失败');
-    }
-  }, []);
-
-  const startArtworkConsult = useCallback(async (artworkId: string) => {
-    if (!ensureApproved()) return;
-    try {
-      const conv = await apiPost<Conversation>(
-        `/artworks/${artworkId}/conversations`,
-        {},
-        { idempotencyKey: `conv-artwork-${artworkId}` },
-      );
       Taro.navigateTo({ url: `/pages/messages/chat/index?conversationId=${conv.id}` });
     } catch (e: any) {
       toast(e?.message || '进入咨询失败');
@@ -635,31 +608,6 @@ export default function SearchPage() {
       }
     },
     [favoriteIds],
-  );
-
-  const toggleArtworkFavorite = useCallback(
-    async (artworkId: string) => {
-      if (!ensureApproved()) return;
-      const isFav = favoriteArtworkIds.has(artworkId);
-      try {
-        if (isFav) {
-          await unfavoriteArtwork(artworkId);
-          setFavoriteArtworkIds((prev) => {
-            const next = new Set(prev);
-            next.delete(artworkId);
-            return next;
-          });
-          toast('已取消收藏', { icon: 'success' });
-          return;
-        }
-        await favoriteArtwork(artworkId);
-        setFavoriteArtworkIds((prev) => new Set(prev).add(artworkId));
-        toast('已收藏', { icon: 'success' });
-      } catch (e: any) {
-        toast(e?.message || '操作失败');
-      }
-    },
-    [favoriteArtworkIds],
   );
 
   const openFilters = useCallback(() => setFiltersOpen(true), []);
@@ -919,8 +867,7 @@ export default function SearchPage() {
             <View
               className="search-filter-btn"
               onClick={() => {
-                if (tab === 'DEMAND') setDemandFiltersOpen(true);
-                if (tab === 'ACHIEVEMENT') setAchievementFiltersOpen(true);
+                openFilters();
               }}
             >
               <Text>筛选</Text>
@@ -1316,7 +1263,7 @@ export default function SearchPage() {
         loading ? (
           <ListingListSkeleton />
         ) : error ? (
-          <ErrorCard message={error} actionText="刷新" onAction={load} />
+          <ErrorCard message={error} onRetry={load} />
         ) : listingItems.length ? (
           <View className="search-card-list listing-card-list">
             {listingItems.map((it: ListingSummary) => (
@@ -1343,7 +1290,7 @@ export default function SearchPage() {
         demandItems.length ? (
           <View className="search-card-list">
             {demandItems.map((it: DemandSummary) => {
-              const location = it.regionName || (it.regionCode ? regionNameByCode(it.regionCode) || '' : '');
+              const location = it.regionCode ? regionNameByCode(it.regionCode) || '' : '';
               const publisher = it.publisher?.displayName || '';
               const budgetValue = demandBudgetValue(it);
               const primaryTag = it.cooperationModes?.[0]
@@ -1392,7 +1339,7 @@ export default function SearchPage() {
             {achievementItems.map((it: AchievementSummary) => {
               const cover = resolveLocalAsset(it.coverUrl || '');
               const publisher = it.publisher?.displayName || '';
-              const location = it.regionName || (it.regionCode ? regionNameByCode(it.regionCode) || '' : '');
+            const location = it.regionCode ? regionNameByCode(it.regionCode) || '' : '';
               const maturityText = maturityLabelShort(it.maturity || '');
               const tags: { label: string; tone: 'green' | 'slate' }[] = [];
               it.cooperationModes?.slice(0, 2).forEach((m) => tags.push({ label: cooperationModeLabel(m), tone: 'green' }));
@@ -1453,22 +1400,15 @@ export default function SearchPage() {
         loading ? (
           <LoadingCard />
         ) : error ? (
-          <ErrorCard message={error} actionText="刷新" onAction={load} />
+          <ErrorCard message={error} onRetry={load} />
         ) : artworkItems.length ? (
           <Surface padding="none" className="listing-list">
             {artworkItems.map((it: ArtworkSummary) => (
               <ArtworkCard
                 key={it.id}
                 item={it}
-                favorited={favoriteArtworkIds.has(it.id)}
                 onClick={() => {
                   Taro.navigateTo({ url: `/pages/artwork/detail/index?artworkId=${it.id}` });
-                }}
-                onFavorite={() => {
-                  void toggleArtworkFavorite(it.id);
-                }}
-                onConsult={() => {
-                  void startArtworkConsult(it.id);
                 }}
               />
             ))}
@@ -1482,7 +1422,3 @@ export default function SearchPage() {
     </View>
   );
 }
-
-
-
-

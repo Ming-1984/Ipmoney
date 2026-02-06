@@ -1,6 +1,5 @@
 ﻿import { View, Text } from '@tarojs/components';
-import Taro from '@tarojs/taro';
-import React, { useCallback, useMemo } from 'react';
+import React from 'react';
 
 import type { components } from '@ipmoney/api-types';
 
@@ -44,36 +43,6 @@ export function budgetValue(it: Pick<DemandPublic, 'budgetType' | 'budgetMinFen'
   if (min !== undefined) return `≥￥${fenToYuan(min)}`;
   if (max !== undefined) return `≤￥${fenToYuan(max)}`;
   return '固定';
-}
-
-export function buildDemandTabUrl(tabId: string, demandId: string): string {
-  const basePath = '/pages/demand/detail';
-  if (tabId === 'summary') return `${basePath}/summary/index?demandId=${demandId}`;
-  if (tabId === 'info') return `${basePath}/info/index?demandId=${demandId}`;
-  if (tabId === 'comments') return `${basePath}/comments/index?demandId=${demandId}`;
-  return `${basePath}/index?demandId=${demandId}`;
-}
-
-export function useDemandTabs(activeTab: string, demandId: string) {
-  const tabs = useMemo(
-    () => [
-      { id: 'overview', label: '概览' },
-      { id: 'summary', label: '摘要' },
-      { id: 'info', label: '信息' },
-      { id: 'comments', label: '评论' },
-    ],
-    [],
-  );
-
-  const goToTab = useCallback(
-    (id: string) => {
-      if (!demandId || id === activeTab) return;
-      Taro.redirectTo({ url: buildDemandTabUrl(id, demandId) });
-    },
-    [demandId, activeTab],
-  );
-
-  return { tabs, goToTab };
 }
 
 export function DemandMetaCard(props: { data: DemandPublic }) {

@@ -12,13 +12,15 @@ import type { VerificationType } from '../../../constants';
 import { Spacer, TipBanner } from '../../../ui/layout';
 import { toast } from '../../../ui/nutui';
 
+type BadgeVariant = 'brand' | 'blue' | 'green' | 'purple' | 'slate';
+
 const TYPES: Array<{
   type: VerificationType;
   title: string;
   desc: string;
   icon: string;
   tag: string;
-  badge: React.ComponentProps<typeof IconBadge>['variant'];
+  badge: BadgeVariant;
   tagTone?: 'gold';
 }> = [
   {

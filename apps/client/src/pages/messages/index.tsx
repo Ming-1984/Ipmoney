@@ -365,6 +365,11 @@ export default function MessagesPage() {
                   <View className="message-title-row-new">
                     <View className="message-title-left">
                       <Text className="message-title-new ellipsis">{c._displayName}</Text>
+                      {c._category !== 'user' ? (
+                        <Text className={`message-tag message-tag--${c._category}`}>
+                          {c._category === 'cs' ? '官方' : '系统'}
+                        </Text>
+                      ) : null}
                     </View>
                     <Text className="message-time-new">{formatTimeSmart(c.lastMessageAt)}</Text>
                   </View>

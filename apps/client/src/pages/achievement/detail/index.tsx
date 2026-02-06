@@ -1,6 +1,6 @@
 ﻿import { View, Text, Image } from '@tarojs/components';
 import Taro from '@tarojs/taro';
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 
 import './index.scss';
 
@@ -17,10 +17,12 @@ import { verificationTypeLabel } from '../../../lib/labels';
 import { safeNavigateBack } from '../../../lib/navigation';
 import { regionDisplayName } from '../../../lib/regions';
 import { useRouteUuidParam } from '../../../lib/routeParams';
+import { CommentsSection } from '../../../ui/CommentsSection';
+import { MediaList } from '../../../ui/MediaList';
 import { PageHeader, SectionHeader, Spacer, StickyBar, Surface } from '../../../ui/layout';
 import { Avatar, Button, toast } from '../../../ui/nutui';
 import { EmptyCard, ErrorCard, LoadingCard, MissingParamCard } from '../../../ui/StateCards';
-import { AchievementMetaCard, useAchievementTabs } from './shared';
+import { AchievementMetaCard, maturityStageLabel } from './shared';
 
 type AchievementPublic = components['schemas']['AchievementPublic'];
 
@@ -34,7 +36,7 @@ export default function AchievementDetailPage() {
   const [data, setData] = useState<AchievementPublic | null>(null);
   const [consulting, setConsulting] = useState(false);
   const [favoritedState, setFavoritedState] = useState(false);
-  const activeTab = 'overview';
+  const [activeTab, setActiveTab] = useState('overview');
 
   const load = useCallback(async () => {
     if (!achievementId) return;
@@ -100,9 +102,29 @@ export default function AchievementDetailPage() {
     }
   }, [achievementId, favoritedState]);
 
-  const { tabs, goToTab } = useAchievementTabs(activeTab, achievementId);
+  const tabs = useMemo(
+    () => [
+      { id: 'overview', label: '概览' },
+      { id: 'summary', label: '摘要' },
+      { id: 'info', label: '信息' },
+      { id: 'comments', label: '评论' },
+    ],
+    [],
+  );
+  const scrollToTab = useCallback((id: string) => {
+    setActiveTab(id);
+    Taro.pageScrollTo({ selector: `#achievement-${id}`, duration: 300 });
+  }, []);
+
   const coverUrl = resolveLocalAsset(data?.coverUrl || null);
   const hasCover = Boolean(coverUrl);
+  const media = useMemo(() => data?.media ?? [], [data?.media]);
+  const coverUrlRaw = data?.coverUrl || null;
+  const mediaList = useMemo(() => {
+    const list = media.filter((item) => item.url);
+    if (!coverUrlRaw) return list;
+    return list.filter((item) => item.url !== coverUrlRaw);
+  }, [media, coverUrlRaw]);
 
 
   if (!achievementId) {
@@ -141,7 +163,7 @@ export default function AchievementDetailPage() {
                 <Text
                   key={tab.id}
                   className={`detail-tab ${activeTab === tab.id ? 'is-active' : ''}`}
-                  onClick={() => goToTab(tab.id)}
+                  onClick={() => scrollToTab(tab.id)}
                 >
                   {tab.label}
                 </Text>
@@ -151,7 +173,25 @@ export default function AchievementDetailPage() {
 
           <Spacer size={12} />
 
+          <View className="patent-card-stack" id="achievement-summary">
+            <SectionHeader title="成果摘要" density="compact" />
+            <Surface className="detail-section-card">
+              <Text className="patent-summary-text">{data.summary || '暂无摘要'}</Text>
+            </Surface>
+          </View>
+
+          <Spacer size={12} />
+
           <View className="patent-card-stack">
+            <SectionHeader title="成果详情" density="compact" />
+            <Surface className="detail-section-card">
+              <Text className="patent-summary-text">{data.description || '暂无详情'}</Text>
+            </Surface>
+          </View>
+
+          <Spacer size={12} />
+
+          <View className="patent-card-stack" id="achievement-info">
             <SectionHeader title="发布方信息" density="compact" />
             <Surface className="detail-section-card patent-provider-card">
               {data.publisher ? (
@@ -213,6 +253,49 @@ export default function AchievementDetailPage() {
 
           <Spacer size={12} />
 
+          <View className="patent-card-stack">
+            <SectionHeader title="成果信息" density="compact" />
+            <View className="detail-field-list">
+              <View className="detail-field-row">
+                <Text className="detail-field-label">应用阶段</Text>
+                <Text className="detail-field-value">{maturityStageLabel(data.maturity)}</Text>
+              </View>
+              <View className="detail-field-row">
+                <Text className="detail-field-label">行业标签</Text>
+                <Text className="detail-field-value break-word">
+                  {data.industryTags?.length ? data.industryTags.join(' / ') : '-'}
+                </Text>
+              </View>
+              <View className="detail-field-row">
+                <Text className="detail-field-label">关键词</Text>
+                <Text className="detail-field-value break-word">
+                  {data.keywords?.length ? data.keywords.join(' / ') : '-'}
+                </Text>
+              </View>
+              <View className="detail-field-row">
+                <Text className="detail-field-label">地区</Text>
+                <Text className="detail-field-value">{regionDisplayName(data.regionCode)}</Text>
+              </View>
+            </View>
+          </View>
+
+          <Spacer size={12} />
+
+          <View className="patent-card-stack">
+            <SectionHeader title="附件" density="compact" />
+            <View className="detail-section-card">
+              {mediaList.length ? <MediaList media={mediaList} coverUrl={coverUrl} /> : <Text className="muted">暂无附件</Text>}
+            </View>
+          </View>
+
+          <Spacer size={12} />
+
+          <View className="patent-card-stack" id="achievement-comments">
+            <CommentsSection contentType="ACHIEVEMENT" contentId={achievementId} />
+          </View>
+
+          <Spacer size={12} />
+
           <View className="detail-bottom-tools">
             <View className="detail-tool-row">
               <View
@@ -254,4 +337,3 @@ export default function AchievementDetailPage() {
     </View>
   );
 }
-

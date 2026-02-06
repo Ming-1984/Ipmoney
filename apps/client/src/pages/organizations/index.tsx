@@ -6,10 +6,10 @@ import './index.scss';
 import { apiGet } from '../../lib/api';
 import { regionDisplayName } from '../../lib/regions';
 import type { ChipOption } from '../../ui/filters';
-import { PageHeader, SectionHeader, Spacer, Surface } from '../../ui/layout';
+import { CellRow, PageHeader, SectionHeader, Spacer, Surface } from '../../ui/layout';
 import { SearchEntry } from '../../ui/SearchEntry';
 import { ChipGroup, FilterSheet } from '../../ui/filters';
-import { Button } from '../../ui/nutui';
+import { Button, CellGroup } from '../../ui/nutui';
 import { EmptyCard, ErrorCard, LoadingCard } from '../../ui/StateCards';
 import iconMap from '../../assets/icons/icon-map-green.svg';
 

@@ -8,8 +8,9 @@ import { apiDelete, apiGet, apiPatch, apiPost } from '../lib/api';
 import { getToken } from '../lib/auth';
 import { formatTimeSmart } from '../lib/format';
 import { ensureApproved } from '../lib/guard';
-import { SectionHeader, Spacer, Surface, type SectionHeaderAccent } from './layout';
-import { Avatar, Button, Empty, Space, Tag, TextArea, confirm, toast } from './nutui';
+import { SectionHeader, Spacer, Surface } from './layout';
+import type { SectionHeaderAccent } from './layout/SectionHeader';
+import { Avatar, Button, Empty, Tag, TextArea, confirm, toast } from './nutui';
 
 type CommentContentType = components['schemas']['CommentContentType'];
 type CommentStatus = components['schemas']['CommentStatus'];
@@ -17,7 +18,7 @@ type CommentThread = components['schemas']['CommentThread'];
 type Comment = components['schemas']['Comment'];
 type PagedCommentThread = components['schemas']['PagedCommentThread'];
 type PageMeta = components['schemas']['PageMeta'];
-type Me = components['schemas']['Me'];
+type Me = components['schemas']['UserProfile'];
 
 type CommentsSectionProps = {
   contentType: CommentContentType;
@@ -402,7 +403,7 @@ export function CommentsSection(props: CommentsSectionProps) {
             <View className="comment-user-meta">
               <Text className="text-strong">{displayUserName(comment.user)}</Text>
             </View>
-            <Space size={6} align="center">
+            <View className="row" style={{ gap: '6rpx', alignItems: 'center' }}>
               {edited ? (
                 <Tag type="default" plain round>
                   已编辑
@@ -419,7 +420,7 @@ export function CommentsSection(props: CommentsSectionProps) {
                 </Tag>
               ) : null}
               <Text className="text-caption muted">{formatTimeSmart(comment.createdAt)}</Text>
-            </Space>
+            </View>
           </View>
           <Spacer size={4} />
           <View className={`comment-bubble ${status === 'VISIBLE' ? '' : 'comment-text-muted'}`}>
@@ -440,7 +441,7 @@ export function CommentsSection(props: CommentsSectionProps) {
         {!composerFocus ? (
           <View className="comment-composer-inline">
             <Avatar size="32" src={currentUser?.avatarUrl || ''} background="rgba(15, 23, 42, 0.06)" color="var(--c-muted)">
-              {displayUserInitial(currentUser)}
+              {displayUserInitial(currentUser || undefined)}
             </Avatar>
             <View className="comment-composer-placeholder" onClick={focusComposer}>
               <Text className="comment-composer-placeholder-text">{composerPlaceholder}</Text>

@@ -25,7 +25,7 @@ import { ArtworkCard } from '../../ui/ArtworkCard';
 import { ListingCard } from '../../ui/ListingCard';
 import { PageState } from '../../ui/PageState';
 import { PageHeader, Spacer, Surface } from '../../ui/layout';
-import { toast } from '../../ui/nutui';
+import { Button, toast } from '../../ui/nutui';
 import iconAward from '../../assets/icons/icon-award-teal.svg';
 
 type PagedListingSummary = components['schemas']['PagedListingSummary'];
@@ -207,7 +207,7 @@ export default function FavoritesPage() {
       return (
         <View className="search-card-list">
           {demandItems.map((it: DemandSummary) => {
-            const location = it.regionName || (it.regionCode ? regionNameByCode(it.regionCode) || '' : '');
+            const location = it.regionCode ? regionNameByCode(it.regionCode) || '' : '';
             const publisher = it.publisher?.displayName || '';
             const budgetValue = demandBudgetValue(it);
             const primaryTag = it.cooperationModes?.[0]
@@ -263,7 +263,7 @@ export default function FavoritesPage() {
           {achievementItems.map((it: AchievementSummary) => {
             const cover = resolveLocalAsset(it.coverUrl || '');
             const publisher = it.publisher?.displayName || '';
-            const location = it.regionName || (it.regionCode ? regionNameByCode(it.regionCode) || '' : '');
+            const location = it.regionCode ? regionNameByCode(it.regionCode) || '' : '';
             const maturityText = maturityLabelShort(it.maturity || '');
             const tags: { label: string; tone: 'green' | 'slate' }[] = [];
             it.cooperationModes?.slice(0, 2).forEach((m) => tags.push({ label: cooperationModeLabel(m), tone: 'green' }));
@@ -336,27 +336,35 @@ export default function FavoritesPage() {
     return (
       <Surface padding="none" className="listing-list">
         {artworkItems.map((it: ArtworkSummary) => (
-          <ArtworkCard
-            key={it.id}
-            item={it}
-            favorited
-            onClick={() => {
-              Taro.navigateTo({ url: `/pages/artwork/detail/index?artworkId=${it.id}` });
-            }}
-            onFavorite={async () => {
-              if (!ensureApproved()) return;
-              try {
-                await unfavoriteArtwork(it.id);
-                toast('已取消收藏', { icon: 'success' });
-                void load();
-              } catch (e: any) {
-                toast(e?.message || '操作失败');
-              }
-            }}
-            onConsult={() => {
-              void startArtworkConsult(it.id);
-            }}
-          />
+          <View key={it.id} className="artwork-favorite-item">
+            <ArtworkCard
+              item={it}
+              onClick={() => {
+                Taro.navigateTo({ url: `/pages/artwork/detail/index?artworkId=${it.id}` });
+              }}
+            />
+            <View className="artwork-favorite-actions">
+              <Button
+                size="small"
+                variant="ghost"
+                onClick={async () => {
+                  if (!ensureApproved()) return;
+                  try {
+                    await unfavoriteArtwork(it.id);
+                    toast('已取消收藏', { icon: 'success' });
+                    void load();
+                  } catch (e: any) {
+                    toast(e?.message || '操作失败');
+                  }
+                }}
+              >
+                取消收藏
+              </Button>
+              <Button size="small" variant="primary" onClick={() => void startArtworkConsult(it.id)}>
+                咨询
+              </Button>
+            </View>
+          </View>
         ))}
       </Surface>
     );

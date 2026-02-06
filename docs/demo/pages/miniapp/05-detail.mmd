@@ -3,6 +3,7 @@ flowchart TB
   subgraph P["05 详情页（小程序）"]
     direction TB
     Pad[" "]:::pad
+    Note["说明：详情页采用单页滚动 + Sticky Tab，不拆多路由"]:::section
 
     TitleA["A. 专利交易详情（可支付订金）"]:::section
     Media["???<br/>? ???<br/>? ???????????"]
@@ -25,7 +26,7 @@ flowchart TB
     Comments2["留言区（新增）<br/>• 公开留言列表<br/>• 互动回复（楼中楼一层）<br/>• 编辑/删除（本人）<br/>• 后台隐藏/恢复/删除"]
     Actions2["底部操作栏<br/>• 收藏<br/>• 在线咨询"]
 
-    Pad --> TitleA
+    Pad --> Note --> TitleA
     TitleA --> Media --> Info --> Spec --> Price --> Stats --> Seller --> Comments --> Actions
 
     TitleB --> ArtInfo --> ArtCert --> ArtPrice --> ArtActions
