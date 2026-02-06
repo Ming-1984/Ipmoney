@@ -1,5 +1,6 @@
 import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 
+import { addAuditLog } from '../audit-store';
 import { createArtwork, getArtwork, listArtworks, seedIfEmpty, updateArtwork } from '../content-store';
 
 type Paged<T> = { items: T[]; page: { page: number; pageSize: number; total: number } };
@@ -10,7 +11,7 @@ export class ArtworksService {
     if (!req?.auth?.userId) throw new ForbiddenException({ code: 'FORBIDDEN', message: '无权限' });
   }
 
-  private ensureAdmin(req: any) {
+  ensureAdmin(req: any) {
     if (!req?.auth?.isAdmin) throw new ForbiddenException({ code: 'FORBIDDEN', message: '无权限' });
   }
 
@@ -103,13 +104,18 @@ export class ArtworksService {
     this.ensureAdmin(req);
     const item = getArtwork(artworkId);
     if (!item) throw new NotFoundException({ code: 'NOT_FOUND', message: '作品不存在' });
-    return updateArtwork(artworkId, { auditStatus: 'APPROVED', status: item.status === 'DRAFT' ? 'ACTIVE' : item.status });
+    addAuditLog('ARTWORK', artworkId, 'APPROVE', undefined, req?.auth?.userId || undefined);
+    return updateArtwork(artworkId, {
+      auditStatus: 'APPROVED',
+      status: item.status === 'DRAFT' ? 'ACTIVE' : item.status,
+    });
   }
 
   adminReject(req: any, artworkId: string, _body: any) {
     this.ensureAdmin(req);
     const item = getArtwork(artworkId);
     if (!item) throw new NotFoundException({ code: 'NOT_FOUND', message: '作品不存在' });
+    addAuditLog('ARTWORK', artworkId, 'REJECT', _body?.reason, req?.auth?.userId || undefined);
     return updateArtwork(artworkId, { auditStatus: 'REJECTED' });
   }
 }

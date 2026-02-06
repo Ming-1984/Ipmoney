@@ -7,8 +7,9 @@ flowchart TB
     VerifList["认证审核列表<br/>• 个人/企业/科研院校/政府/协会/技术经理人<br/>• 状态：待审/通过/驳回"]
     VerifDetail["认证详情<br/>• 查看提交信息与上传材料（营业执照/主体证明/资质证明等）<br/>• 核对一致性<br/>• 通过/驳回（理由）"]
     Badge["前台展示<br/>• 通过后展示认证标签（企业/科研院校/政府/协会/技术经理人）<br/>• 企业/科研院校：进入“机构展示”目录（可配置开关）"]
+    Audit["审计日志<br/>• 审核操作留痕（who/when/what）<br/>• 驳回原因记录"]
     Pad --> Users
-    Users --> VerifList --> VerifDetail --> Badge
+    Users --> VerifList --> VerifDetail --> Badge --> Audit
   end
 
   classDef pad fill:transparent,stroke:transparent,color:transparent;

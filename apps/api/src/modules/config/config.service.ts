@@ -30,8 +30,48 @@ export type RecommendationConfig = {
   updatedAt: string;
 };
 
+export type BannerConfig = {
+  items: {
+    id: string;
+    title: string;
+    imageUrl: string;
+    linkUrl?: string;
+    enabled: boolean;
+    order: number;
+  }[];
+};
+
+export type CustomerServiceConfig = {
+  phone: string;
+  defaultReply: string;
+  assignStrategy: 'AUTO' | 'MANUAL';
+};
+
+export type TaxonomyConfig = {
+  industries: string[];
+  ipcMappings: string[];
+  locMappings: string[];
+  artworkCategories: string[];
+  calligraphyStyles: string[];
+  paintingThemes: string[];
+  artworkMaterials: string[];
+};
+
+export type SensitiveWordsConfig = {
+  words: string[];
+};
+
+export type HotSearchConfig = {
+  keywords: string[];
+};
+
 const KEY_TRADE_RULES = 'trade_rules';
 const KEY_RECOMMENDATION = 'recommendation_config';
+const KEY_BANNER = 'banner_config';
+const KEY_CS = 'customer_service_config';
+const KEY_TAXONOMY = 'taxonomy_config';
+const KEY_SENSITIVE = 'sensitive_words_config';
+const KEY_HOT_SEARCH = 'hot_search_config';
 
 const DEFAULT_TRADE_RULES: TradeRulesConfig = {
   version: 1,
@@ -59,6 +99,53 @@ function buildDefaultRecommendation(): RecommendationConfig {
     weights: { time: 1, view: 1, favorite: 2, consult: 3, region: 2, user: 1 },
     featuredBoost: { province: 2, city: 3 },
     updatedAt: new Date().toISOString(),
+  };
+}
+
+function buildDefaultBanner(): BannerConfig {
+  return {
+    items: [
+      {
+        id: 'banner-1',
+        title: '平台活动',
+        imageUrl: 'https://example.com/banner-1.png',
+        linkUrl: '',
+        enabled: true,
+        order: 1,
+      },
+    ],
+  };
+}
+
+function buildDefaultCustomerService(): CustomerServiceConfig {
+  return {
+    phone: '400-000-0000',
+    defaultReply: '您好，已收到您的咨询，客服将在 15 分钟内联系您。',
+    assignStrategy: 'AUTO',
+  };
+}
+
+function buildDefaultTaxonomy(): TaxonomyConfig {
+  return {
+    industries: ['新材料', '智能制造', '生物医药'],
+    ipcMappings: ['A01', 'B65', 'G06'],
+    locMappings: ['01', '02', '19'],
+    artworkCategories: ['书法', '绘画'],
+    calligraphyStyles: ['楷书', '行书', '草书', '隶书', '篆书'],
+    paintingThemes: ['人物画', '山水画', '花鸟画'],
+    artworkMaterials: ['宣纸', '绢本', '纸本'],
+  };
+}
+
+function buildDefaultSensitiveWords(): SensitiveWordsConfig {
+  return {
+    words: ['敏感词示例', '违规词示例'],
+  };
+}
+
+function buildDefaultHotSearch(): HotSearchConfig {
+  return {
+    keywords: ['转让专利', '高新退役', '产业集群'],
   };
 }
 
@@ -142,5 +229,130 @@ export class ConfigService {
     });
 
     return { ...payload, updatedAt: updated.updatedAt.toISOString() };
+  }
+
+  async getBanner(): Promise<BannerConfig> {
+    const fallback = buildDefaultBanner();
+    const row = await this.ensureJsonConfig(KEY_BANNER, fallback);
+    try {
+      const parsed = JSON.parse(row.value) as Partial<BannerConfig>;
+      return { ...fallback, ...parsed };
+    } catch {
+      return fallback;
+    }
+  }
+
+  async updateBanner(next: BannerConfig): Promise<BannerConfig> {
+    const row = await this.ensureJsonConfig(KEY_BANNER, buildDefaultBanner());
+    await this.prisma.systemConfig.update({
+      where: { key: KEY_BANNER },
+      data: {
+        valueType: SystemConfigValueType.JSON,
+        scope: SystemConfigScope.GLOBAL,
+        value: JSON.stringify(next),
+        version: row.version + 1,
+      },
+    });
+    return next;
+  }
+
+  async getCustomerService(): Promise<CustomerServiceConfig> {
+    const fallback = buildDefaultCustomerService();
+    const row = await this.ensureJsonConfig(KEY_CS, fallback);
+    try {
+      const parsed = JSON.parse(row.value) as Partial<CustomerServiceConfig>;
+      return { ...fallback, ...parsed };
+    } catch {
+      return fallback;
+    }
+  }
+
+  async updateCustomerService(next: CustomerServiceConfig): Promise<CustomerServiceConfig> {
+    const row = await this.ensureJsonConfig(KEY_CS, buildDefaultCustomerService());
+    await this.prisma.systemConfig.update({
+      where: { key: KEY_CS },
+      data: {
+        valueType: SystemConfigValueType.JSON,
+        scope: SystemConfigScope.GLOBAL,
+        value: JSON.stringify(next),
+        version: row.version + 1,
+      },
+    });
+    return next;
+  }
+
+  async getTaxonomy(): Promise<TaxonomyConfig> {
+    const fallback = buildDefaultTaxonomy();
+    const row = await this.ensureJsonConfig(KEY_TAXONOMY, fallback);
+    try {
+      const parsed = JSON.parse(row.value) as Partial<TaxonomyConfig>;
+      return { ...fallback, ...parsed };
+    } catch {
+      return fallback;
+    }
+  }
+
+  async updateTaxonomy(next: TaxonomyConfig): Promise<TaxonomyConfig> {
+    const row = await this.ensureJsonConfig(KEY_TAXONOMY, buildDefaultTaxonomy());
+    await this.prisma.systemConfig.update({
+      where: { key: KEY_TAXONOMY },
+      data: {
+        valueType: SystemConfigValueType.JSON,
+        scope: SystemConfigScope.GLOBAL,
+        value: JSON.stringify(next),
+        version: row.version + 1,
+      },
+    });
+    return next;
+  }
+
+  async getSensitiveWords(): Promise<SensitiveWordsConfig> {
+    const fallback = buildDefaultSensitiveWords();
+    const row = await this.ensureJsonConfig(KEY_SENSITIVE, fallback);
+    try {
+      const parsed = JSON.parse(row.value) as Partial<SensitiveWordsConfig>;
+      return { ...fallback, ...parsed };
+    } catch {
+      return fallback;
+    }
+  }
+
+  async updateSensitiveWords(next: SensitiveWordsConfig): Promise<SensitiveWordsConfig> {
+    const row = await this.ensureJsonConfig(KEY_SENSITIVE, buildDefaultSensitiveWords());
+    await this.prisma.systemConfig.update({
+      where: { key: KEY_SENSITIVE },
+      data: {
+        valueType: SystemConfigValueType.JSON,
+        scope: SystemConfigScope.GLOBAL,
+        value: JSON.stringify(next),
+        version: row.version + 1,
+      },
+    });
+    return next;
+  }
+
+  async getHotSearch(): Promise<HotSearchConfig> {
+    const fallback = buildDefaultHotSearch();
+    const row = await this.ensureJsonConfig(KEY_HOT_SEARCH, fallback);
+    try {
+      const parsed = JSON.parse(row.value) as Partial<HotSearchConfig>;
+      return { ...fallback, ...parsed };
+    } catch {
+      return fallback;
+    }
+  }
+
+  async updateHotSearch(next: HotSearchConfig): Promise<HotSearchConfig> {
+    const row = await this.ensureJsonConfig(KEY_HOT_SEARCH, buildDefaultHotSearch());
+    await this.prisma.systemConfig.update({
+      where: { key: KEY_HOT_SEARCH },
+      data: {
+        valueType: SystemConfigValueType.JSON,
+        scope: SystemConfigScope.GLOBAL,
+        value: JSON.stringify(next),
+        version: row.version + 1,
+      },
+    });
+    return next;
   }
 }

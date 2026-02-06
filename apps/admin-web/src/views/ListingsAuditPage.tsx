@@ -30,6 +30,22 @@ type Listing = {
   featuredUntil?: string | null;
 };
 
+type AuditMaterial = {
+  id: string;
+  name: string;
+  url?: string;
+  kind?: string;
+  uploadedAt?: string;
+};
+
+type AuditLog = {
+  id: string;
+  action: string;
+  reason?: string;
+  operatorName?: string;
+  createdAt?: string;
+};
+
 type PagedListing = {
   items: Listing[];
   page: { page: number; pageSize: number; total: number };
@@ -67,6 +83,8 @@ export function ListingsAuditPage() {
   const [detailLoading, setDetailLoading] = useState(false);
   const [detailError, setDetailError] = useState<string | null>(null);
   const [detail, setDetail] = useState<Listing | null>(null);
+  const [materials, setMaterials] = useState<AuditMaterial[]>([]);
+  const [auditLogs, setAuditLogs] = useState<AuditLog[]>([]);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -102,8 +120,14 @@ export function ListingsAuditPage() {
     setDetailError(null);
     setDetail(row);
     try {
-      const d = await apiGet<Listing>(`/admin/listings/${row.id}`);
+      const [d, m, logs] = await Promise.all([
+        apiGet<Listing>(`/admin/listings/${row.id}`),
+        apiGet<{ items: AuditMaterial[] }>(`/admin/listings/${row.id}/materials`),
+        apiGet<{ items: AuditLog[] }>(`/admin/listings/${row.id}/audit-logs`),
+      ]);
       setDetail(d);
+      setMaterials(m.items || []);
+      setAuditLogs(logs.items || []);
     } catch (e: any) {
       setDetailError(e?.message || '加载失败');
     } finally {
@@ -320,13 +344,47 @@ export function ListingsAuditPage() {
 
             <Divider />
             <Typography.Text strong>材料/附件</Typography.Text>
-            <Typography.Text type="secondary">
-              暂无材料列表；后续可接入后端接口展示权属材料/附件。
-            </Typography.Text>
+            {materials.length ? (
+              <Space direction="vertical" size={8} style={{ width: '100%' }}>
+                {materials.map((m) => (
+                  <Card key={m.id} size="small">
+                    <Space direction="vertical" size={4}>
+                      <Typography.Text>{m.name}</Typography.Text>
+                      <Typography.Text type="secondary">
+                        {m.kind || '-'} · {m.uploadedAt ? formatTimeSmart(m.uploadedAt) : '-'}
+                      </Typography.Text>
+                      {m.url ? (
+                        <a href={m.url} target="_blank" rel="noreferrer">
+                          查看附件
+                        </a>
+                      ) : null}
+                    </Space>
+                  </Card>
+                ))}
+              </Space>
+            ) : (
+              <Typography.Text type="secondary">暂无材料。</Typography.Text>
+            )}
 
             <Divider />
             <Typography.Text strong>审核记录</Typography.Text>
-            <Typography.Text type="secondary">驳回原因/审计日志可在此展示。</Typography.Text>
+            {auditLogs.length ? (
+              <Space direction="vertical" size={8} style={{ width: '100%' }}>
+                {auditLogs.map((log) => (
+                  <Card key={log.id} size="small">
+                    <Space direction="vertical" size={4}>
+                      <Typography.Text>{log.action}</Typography.Text>
+                      {log.reason ? <Typography.Text>{log.reason}</Typography.Text> : null}
+                      <Typography.Text type="secondary">
+                        {log.operatorName || '管理员'} · {log.createdAt ? formatTimeSmart(log.createdAt) : '-'}
+                      </Typography.Text>
+                    </Space>
+                  </Card>
+                ))}
+              </Space>
+            ) : (
+              <Typography.Text type="secondary">暂无审核记录。</Typography.Text>
+            )}
           </Space>
         )}
       </Drawer>

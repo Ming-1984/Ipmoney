@@ -21,6 +21,20 @@ type PagedArtwork = components['schemas']['PagedArtwork'];
 type AuditStatus = components['schemas']['AuditStatus'];
 type ArtworkStatus = components['schemas']['ArtworkStatus'];
 type PriceType = components['schemas']['PriceType'];
+type AuditMaterial = {
+  id: string;
+  name: string;
+  url?: string;
+  kind?: string;
+  uploadedAt?: string;
+};
+type AuditLog = {
+  id: string;
+  action: string;
+  reason?: string;
+  operatorName?: string;
+  createdAt?: string;
+};
 
 function auditTag(status: AuditStatus) {
   if (status === 'APPROVED') return <Tag color="green">{auditStatusLabel(status)}</Tag>;
@@ -51,6 +65,8 @@ export function ArtworksAuditPage() {
   const [status, setStatus] = useState<ArtworkStatus | ''>('');
   const [detailOpen, setDetailOpen] = useState(false);
   const [active, setActive] = useState<Artwork | null>(null);
+  const [materials, setMaterials] = useState<AuditMaterial[]>([]);
+  const [auditLogs, setAuditLogs] = useState<AuditLog[]>([]);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -173,9 +189,19 @@ export function ArtworksAuditPage() {
                 return (
                   <Space>
                     <Button
-                      onClick={() => {
+                      onClick={async () => {
                         setActive(r);
                         setDetailOpen(true);
+                        try {
+                          const [m, logs] = await Promise.all([
+                            apiGet<{ items: AuditMaterial[] }>(`/admin/artworks/${r.id}/materials`),
+                            apiGet<{ items: AuditLog[] }>(`/admin/artworks/${r.id}/audit-logs`),
+                          ]);
+                          setMaterials(m.items || []);
+                          setAuditLogs(logs.items || []);
+                        } catch (e: any) {
+                          message.error(e?.message || '加载材料/审核记录失败');
+                        }
                       }}
                     >
                       详情
@@ -350,10 +376,51 @@ export function ArtworksAuditPage() {
             <Divider />
 
             <div>
+              <Typography.Text strong>材料/附件</Typography.Text>
+              {materials.length ? (
+                <Space direction="vertical" size={8} style={{ width: '100%', marginTop: 8 }}>
+                  {materials.map((m) => (
+                    <Card key={m.id} size="small">
+                      <Space direction="vertical" size={4}>
+                        <Typography.Text>{m.name}</Typography.Text>
+                        <Typography.Text type="secondary">
+                          {m.kind || '-'} · {m.uploadedAt ? formatTimeSmart(m.uploadedAt) : '-'}
+                        </Typography.Text>
+                        {m.url ? (
+                          <a href={m.url} target="_blank" rel="noreferrer">
+                            查看附件
+                          </a>
+                        ) : null}
+                      </Space>
+                    </Card>
+                  ))}
+                </Space>
+              ) : (
+                <Typography.Text type="secondary">暂无材料。</Typography.Text>
+              )}
+            </div>
+
+            <Divider />
+
+            <div>
               <Typography.Text strong>审核记录</Typography.Text>
-              <Typography.Paragraph type="secondary" style={{ marginTop: 8 }}>
-                驳回原因/审计日志可在此展示（需后端支持）。
-              </Typography.Paragraph>
+              {auditLogs.length ? (
+                <Space direction="vertical" size={8} style={{ width: '100%', marginTop: 8 }}>
+                  {auditLogs.map((log) => (
+                    <Card key={log.id} size="small">
+                      <Space direction="vertical" size={4}>
+                        <Typography.Text>{log.action}</Typography.Text>
+                        {log.reason ? <Typography.Text>{log.reason}</Typography.Text> : null}
+                        <Typography.Text type="secondary">
+                          {log.operatorName || '管理员'} · {log.createdAt ? formatTimeSmart(log.createdAt) : '-'}
+                        </Typography.Text>
+                      </Space>
+                    </Card>
+                  ))}
+                </Space>
+              ) : (
+                <Typography.Text type="secondary">暂无审核记录。</Typography.Text>
+              )}
             </div>
           </Space>
         ) : null}

@@ -1,6 +1,7 @@
 import { Body, Controller, Get, Param, Patch, Post, Query, Req, UseGuards } from '@nestjs/common';
 
 import { BearerAuthGuard } from '../../common/guards/bearer-auth.guard';
+import { getAuditLogs, getAuditMaterials } from '../audit-store';
 import { ArtworksService } from './artworks.service';
 
 @Controller()
@@ -57,6 +58,20 @@ export class ArtworksController {
   @Get('/admin/artworks')
   async listAdmin(@Req() req: any, @Query() query: any) {
     return await this.artworks.listAdmin(req, query);
+  }
+
+  @UseGuards(BearerAuthGuard)
+  @Get('/admin/artworks/:artworkId/materials')
+  async getMaterials(@Req() req: any, @Param('artworkId') artworkId: string) {
+    this.artworks.ensureAdmin(req);
+    return { items: getAuditMaterials('ARTWORK', artworkId) };
+  }
+
+  @UseGuards(BearerAuthGuard)
+  @Get('/admin/artworks/:artworkId/audit-logs')
+  async getAuditLogs(@Req() req: any, @Param('artworkId') artworkId: string) {
+    this.artworks.ensureAdmin(req);
+    return { items: getAuditLogs('ARTWORK', artworkId) };
   }
 
   @UseGuards(BearerAuthGuard)

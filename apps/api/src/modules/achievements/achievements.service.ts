@@ -1,5 +1,6 @@
 import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 
+import { addAuditLog } from '../audit-store';
 import { createAchievement, getAchievement, listAchievements, seedIfEmpty, updateAchievement } from '../content-store';
 
 type Paged<T> = { items: T[]; page: { page: number; pageSize: number; total: number } };
@@ -10,7 +11,7 @@ export class AchievementsService {
     if (!req?.auth?.userId) throw new ForbiddenException({ code: 'FORBIDDEN', message: '无权限' });
   }
 
-  private ensureAdmin(req: any) {
+  ensureAdmin(req: any) {
     if (!req?.auth?.isAdmin) throw new ForbiddenException({ code: 'FORBIDDEN', message: '无权限' });
   }
 
@@ -103,13 +104,18 @@ export class AchievementsService {
     this.ensureAdmin(req);
     const item = getAchievement(achievementId);
     if (!item) throw new NotFoundException({ code: 'NOT_FOUND', message: '成果不存在' });
-    return updateAchievement(achievementId, { auditStatus: 'APPROVED', status: item.status === 'DRAFT' ? 'ACTIVE' : item.status });
+    addAuditLog('ACHIEVEMENT', achievementId, 'APPROVE', undefined, req?.auth?.userId || undefined);
+    return updateAchievement(achievementId, {
+      auditStatus: 'APPROVED',
+      status: item.status === 'DRAFT' ? 'ACTIVE' : item.status,
+    });
   }
 
   adminReject(req: any, achievementId: string, _body: any) {
     this.ensureAdmin(req);
     const item = getAchievement(achievementId);
     if (!item) throw new NotFoundException({ code: 'NOT_FOUND', message: '成果不存在' });
+    addAuditLog('ACHIEVEMENT', achievementId, 'REJECT', _body?.reason, req?.auth?.userId || undefined);
     return updateAchievement(achievementId, { auditStatus: 'REJECTED' });
   }
 }

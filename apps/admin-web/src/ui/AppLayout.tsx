@@ -9,6 +9,9 @@ import {
   TrophyOutlined,
   BulbOutlined,
   SettingOutlined,
+  FileTextOutlined,
+  LockOutlined,
+  SolutionOutlined,
 } from '@ant-design/icons';
 import { Layout, Menu, Select, Space, Typography } from 'antd';
 import React, { useMemo, useState } from 'react';
@@ -97,6 +100,11 @@ export function AppLayout() {
               label: <Link to="/orders">订单管理</Link>,
             },
             {
+              key: 'cases',
+              icon: <SolutionOutlined />,
+              label: <Link to="/cases">工单/争议</Link>,
+            },
+            {
               key: 'refunds',
               label: <Link to="/refunds">退款管理</Link>,
             },
@@ -107,6 +115,11 @@ export function AppLayout() {
             {
               key: 'invoices',
               label: <Link to="/invoices">发票管理</Link>,
+            },
+            {
+              key: 'reports',
+              icon: <FileTextOutlined />,
+              label: <Link to="/reports">报表导出</Link>,
             },
             {
               key: 'config',
@@ -121,6 +134,11 @@ export function AppLayout() {
             {
               key: 'patent-map',
               label: <Link to="/patent-map">专利地图 CMS</Link>,
+            },
+            {
+              key: 'rbac',
+              icon: <LockOutlined />,
+              label: <Link to="/rbac">账号权限</Link>,
             },
           ]}
         />

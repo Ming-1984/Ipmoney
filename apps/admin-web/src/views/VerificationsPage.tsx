@@ -1,4 +1,4 @@
-import { Button, Card, Space, Table, Tag, Typography, message } from 'antd';
+import { Button, Card, Descriptions, Divider, Drawer, Space, Table, Tag, Typography, message } from 'antd';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 
 import { apiGet, apiPost } from '../lib/api';
@@ -35,6 +35,22 @@ type PagedUserVerification = {
   page: { page: number; pageSize: number; total: number };
 };
 
+type AuditMaterial = {
+  id: string;
+  name: string;
+  url?: string;
+  kind?: string;
+  uploadedAt?: string;
+};
+
+type AuditLog = {
+  id: string;
+  action: string;
+  reason?: string;
+  operatorName?: string;
+  createdAt?: string;
+};
+
 function statusTag(status: VerificationStatus) {
   if (status === 'APPROVED') return <Tag color="green">已通过</Tag>;
   if (status === 'REJECTED') return <Tag color="red">已驳回</Tag>;
@@ -45,6 +61,10 @@ export function VerificationsPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<unknown | null>(null);
   const [data, setData] = useState<PagedUserVerification | null>(null);
+  const [detailOpen, setDetailOpen] = useState(false);
+  const [active, setActive] = useState<UserVerification | null>(null);
+  const [materials, setMaterials] = useState<AuditMaterial[]>([]);
+  const [auditLogs, setAuditLogs] = useState<AuditLog[]>([]);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -106,6 +126,24 @@ export function VerificationsPage() {
                 const disabled = r.status !== 'PENDING';
                 return (
                   <Space>
+                    <Button
+                      onClick={async () => {
+                        setActive(r);
+                        setDetailOpen(true);
+                        try {
+                          const [m, logs] = await Promise.all([
+                            apiGet<{ items: AuditMaterial[] }>(`/admin/user-verifications/${r.id}/materials`),
+                            apiGet<{ items: AuditLog[] }>(`/admin/user-verifications/${r.id}/audit-logs`),
+                          ]);
+                          setMaterials(m.items || []);
+                          setAuditLogs(logs.items || []);
+                        } catch (e: any) {
+                          message.error(e?.message || '加载材料/审核记录失败');
+                        }
+                      }}
+                    >
+                      详情
+                    </Button>
                      <Button
                        type="primary"
                        disabled={disabled}
@@ -174,6 +212,77 @@ export function VerificationsPage() {
 
         <Button onClick={load}>刷新</Button>
       </Space>
+
+      <Drawer
+        title={active?.displayName ? `认证详情：${active.displayName}` : '认证详情'}
+        open={detailOpen}
+        onClose={() => setDetailOpen(false)}
+        width={560}
+        destroyOnClose
+      >
+        {active ? (
+          <Space direction="vertical" size={16} style={{ width: '100%' }}>
+            <Descriptions size="small" column={1} bordered>
+              <Descriptions.Item label="认证ID">{active.id}</Descriptions.Item>
+              <Descriptions.Item label="主体名称">{active.displayName || '-'}</Descriptions.Item>
+              <Descriptions.Item label="类型">{verificationTypeLabel(active.type)}</Descriptions.Item>
+              <Descriptions.Item label="状态">{statusTag(active.status)}</Descriptions.Item>
+              <Descriptions.Item label="地区">{active.regionCode || '-'}</Descriptions.Item>
+              <Descriptions.Item label="提交时间">{formatTimeSmart(active.submittedAt)}</Descriptions.Item>
+              <Descriptions.Item label="审核时间">
+                {active.reviewedAt ? formatTimeSmart(active.reviewedAt) : '-'}
+              </Descriptions.Item>
+              <Descriptions.Item label="审核备注">{active.reviewComment || '-'}</Descriptions.Item>
+            </Descriptions>
+
+            <Divider />
+
+            <Typography.Text strong>材料/附件</Typography.Text>
+            {materials.length ? (
+              <Space direction="vertical" size={8} style={{ width: '100%', marginTop: 8 }}>
+                {materials.map((m) => (
+                  <Card key={m.id} size="small">
+                    <Space direction="vertical" size={4}>
+                      <Typography.Text>{m.name}</Typography.Text>
+                      <Typography.Text type="secondary">
+                        {m.kind || '-'} · {m.uploadedAt ? formatTimeSmart(m.uploadedAt) : '-'}
+                      </Typography.Text>
+                      {m.url ? (
+                        <a href={m.url} target="_blank" rel="noreferrer">
+                          查看附件
+                        </a>
+                      ) : null}
+                    </Space>
+                  </Card>
+                ))}
+              </Space>
+            ) : (
+              <Typography.Text type="secondary">暂无材料。</Typography.Text>
+            )}
+
+            <Divider />
+
+            <Typography.Text strong>审核记录</Typography.Text>
+            {auditLogs.length ? (
+              <Space direction="vertical" size={8} style={{ width: '100%', marginTop: 8 }}>
+                {auditLogs.map((log) => (
+                  <Card key={log.id} size="small">
+                    <Space direction="vertical" size={4}>
+                      <Typography.Text>{log.action}</Typography.Text>
+                      {log.reason ? <Typography.Text>{log.reason}</Typography.Text> : null}
+                      <Typography.Text type="secondary">
+                        {log.operatorName || '管理员'} · {log.createdAt ? formatTimeSmart(log.createdAt) : '-'}
+                      </Typography.Text>
+                    </Space>
+                  </Card>
+                ))}
+              </Space>
+            ) : (
+              <Typography.Text type="secondary">暂无审核记录。</Typography.Text>
+            )}
+          </Space>
+        ) : null}
+      </Drawer>
     </Card>
   );
 }

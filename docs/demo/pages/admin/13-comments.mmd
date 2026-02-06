@@ -1,0 +1,14 @@
+﻿%%{init: {'theme':'base','flowchart': {'htmlLabels': true},'themeVariables': {'fontFamily': 'Inter, Microsoft YaHei, sans-serif','lineColor':'#64748B','primaryTextColor':'#0F172A','primaryBorderColor':'#CBD5E1','primaryColor':'#F8FAFC'}}}%%
+flowchart TB
+  subgraph P["13 留言管理（PC 后台）"]
+    direction TB
+    Pad[" "]:::pad
+    List["留言列表<br/>• 关键词检索（内容/用户）<br/>• 状态：正常/已隐藏/已删除<br/>• 关联页面（专利/需求/成果/书画）"]
+    Detail["留言详情<br/>• 内容/用户/时间<br/>• 关联对象与上下文"]
+    Actions["操作<br/>• 隐藏/恢复<br/>• 删除（需二次确认）<br/>• 操作原因与审计留痕"]
+    Pad --> List
+    List --> Detail --> Actions
+  end
+
+  classDef pad fill:transparent,stroke:transparent,color:transparent;
+  linkStyle 0 stroke:transparent,fill:transparent;

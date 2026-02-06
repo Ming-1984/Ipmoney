@@ -1,0 +1,15 @@
+﻿%%{init: {'theme':'base','flowchart': {'htmlLabels': true},'themeVariables': {'fontFamily': 'Inter, Microsoft YaHei, sans-serif','lineColor':'#64748B','primaryTextColor':'#0F172A','primaryBorderColor':'#CBD5E1','primaryColor':'#F8FAFC'}}}%%
+flowchart TB
+  subgraph P["15 账号与权限（RBAC）（PC 后台）"]
+    direction TB
+    Pad[" "]:::pad
+    Roles["角色管理<br/>• 运营/客服/财务/管理员<br/>• 权限点配置（矩阵）"]
+    Users["账号管理<br/>• 账号列表/状态<br/>• 绑定角色与权限"]
+    Permissions["权限点列表<br/>• 读取/审核/配置/财务/报表等"]
+    Audit["审计日志<br/>• 登录/关键操作留痕<br/>• 导出（可选）"]
+    Pad --> Roles
+    Roles --> Users --> Permissions --> Audit
+  end
+
+  classDef pad fill:transparent,stroke:transparent,color:transparent;
+  linkStyle 0 stroke:transparent,fill:transparent;

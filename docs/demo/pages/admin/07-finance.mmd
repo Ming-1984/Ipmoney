@@ -7,8 +7,9 @@ flowchart TB
     Settlement["结算与放款<br/>• 结算台账（gross/commission/payout）<br/>• P0：人工放款确认（凭证/流水号）<br/>• 失败重试/备注（可选）"]
     Invoices["发票管理（新增）<br/>• 已完成订单列表（发票：已上传/未上传）<br/>• 线下开票后上传/替换电子发票文件（PDF/图片）<br/>• 填写发票号码/开票日期（可选）<br/>• 通知卖家下载 + 审计留痕"]
     Reports["报表导出<br/>• 月度成交额/佣金收入<br/>• 退款率/放款成功率"]
+    Audit["审计留痕<br/>• 退款/放款/发票操作记录"]
     Pad --> Ledger
-    Ledger --> Settlement --> Invoices --> Reports
+    Ledger --> Settlement --> Invoices --> Reports --> Audit
   end
 
   classDef pad fill:transparent,stroke:transparent,color:transparent;

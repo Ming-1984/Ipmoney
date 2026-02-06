@@ -2,6 +2,7 @@ import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/commo
 import { AuditStatus, FeaturedLevel, ListingStatus } from '@prisma/client';
 
 import { PrismaService } from '../../common/prisma/prisma.service';
+import { addAuditLog } from '../audit-store';
 
 type ListingAdminDto = {
   id: string;
@@ -138,6 +139,7 @@ export class ListingsService {
         },
       });
     }
+    addAuditLog('LISTING', listingId, 'APPROVE', reason, reviewerId || undefined);
     return this.toAdminDto(it);
   }
 
@@ -156,6 +158,7 @@ export class ListingsService {
         },
       });
     }
+    addAuditLog('LISTING', listingId, 'REJECT', reason, reviewerId || undefined);
     return this.toAdminDto(it);
   }
 
