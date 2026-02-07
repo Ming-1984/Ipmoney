@@ -39,6 +39,8 @@ export function ListingCard(props: {
   const hasStats = viewCount !== undefined || favoriteCount !== undefined;
   const transferCount =
     (extra.transferCount ?? extra.transferTimes ?? (extra.stats as { transferCount?: number } | undefined)?.transferCount) || 0;
+  const transferBadgeText = transferCount === 0 ? '沉睡专利' : `转让 ${transferCount} 次`;
+  const transferBadgeClass = `listing-thumb-badge ${transferCount === 0 ? 'listing-thumb-badge--sleep' : ''}`.trim();
   const tags: { label: string; tone: 'green' | 'slate' }[] = [];
   const specialTags: { label: string; tone: 'green' | 'slate' }[] = [];
   if (transferCount === 0) specialTags.push({ label: '沉睡专利', tone: 'green' });
@@ -65,8 +67,8 @@ export function ListingCard(props: {
         ) : (
           <Image className="list-card-thumb-img" src={iconAward} svg mode="aspectFit" />
         )}
-        <View className="listing-thumb-badge">
-          <Text>转让 {transferCount} 次</Text>
+        <View className={transferBadgeClass}>
+          <Text>{transferBadgeText}</Text>
         </View>
       </View>
       <View className="list-card-body listing-body--compact">

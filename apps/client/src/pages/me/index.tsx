@@ -1,6 +1,6 @@
 ﻿import { View, Text, Image } from '@tarojs/components';
 import Taro, { useDidShow } from '@tarojs/taro';
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import './index.scss';
 
 import type { components } from '@ipmoney/api-types';
@@ -15,14 +15,17 @@ import {
   getVerificationType,
   isOnboardingDone,
   setOnboardingDone,
+  setToken,
   setVerificationStatus,
   setVerificationType,
 } from '../../lib/auth';
-import { apiGet } from '../../lib/api';
+import { apiGet, apiPost } from '../../lib/api';
 import { regionDisplayName } from '../../lib/regions';
 import { ErrorCard, LoadingCard } from '../../ui/StateCards';
+import { WechatPhoneBindPopup } from '../../ui/WechatPhoneBindPopup';
 import { Surface } from '../../ui/layout';
-import { Avatar, Button, PullToRefresh, toast } from '../../ui/nutui';
+import { Avatar, Button, Input, PullToRefresh, toast } from '../../ui/nutui';
+import fortuneGod from '../../assets/illustrations/fortune-god.svg';
 
 import iconShield from '../../assets/icons/icon-shield-orange.svg';
 import iconAward from '../../assets/icons/icon-award-teal.svg';
@@ -49,6 +52,9 @@ type Me = {
 };
 
 type UserVerification = components['schemas']['UserVerification'];
+type AuthTokenResponse = components['schemas']['AuthTokenResponse'];
+type VerificationStatus = components['schemas']['VerificationStatus'];
+type VerificationType = components['schemas']['VerificationType'];
 
 type IconItem = { key: string; label: string; icon: string; onClick: () => void };
 
@@ -74,6 +80,8 @@ function verificationStatusLabel(s?: string | null): string {
 }
 
 export default function MePage() {
+  const env = useMemo(() => Taro.getEnv(), []);
+  const canWechatLogin = env === Taro.ENV_TYPE.WEAPP;
   const [auth, setAuth] = useState(() => ({
     token: getToken(),
     onboardingDone: isOnboardingDone(),
@@ -95,8 +103,22 @@ export default function MePage() {
   const [me, setMe] = useState<Me | null>(null);
   const [orderTab, setOrderTab] = useState<'buyer' | 'seller'>('buyer');
   const [refreshing, setRefreshing] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [showSms, setShowSms] = useState(false);
+  const [phone, setPhone] = useState('');
+  const [smsCode, setSmsCode] = useState('');
+  const [cooldown, setCooldown] = useState(0);
+  const [phoneBindOpen, setPhoneBindOpen] = useState(false);
+  const [phoneBindBusy, setPhoneBindBusy] = useState(false);
+  const postLoginNextRef = useRef<null | (() => void)>(null);
 
   const [scenario, setScenario] = useState(() => Taro.getStorageSync(STORAGE_KEYS.mockScenario) || 'happy');
+
+  useEffect(() => {
+    if (cooldown <= 0) return;
+    const t = setTimeout(() => setCooldown((v) => Math.max(0, v - 1)), 1000);
+    return () => clearTimeout(t);
+  }, [cooldown]);
 
   const loadMe = useCallback(async () => {
     if (!auth.token) return;
@@ -160,6 +182,124 @@ export default function MePage() {
     if (!auth.token) return;
     void syncVerification();
   }, [auth.token, syncVerification]);
+
+  const afterLogin = useCallback(
+    (authToken: AuthTokenResponse, opts?: { fromWechat?: boolean }) => {
+      const token = authToken.accessToken || 'demo-token';
+      setToken(token);
+
+      const vt = (authToken.user?.verificationType || null) as VerificationType | null;
+      const vs = (authToken.user?.verificationStatus || null) as VerificationStatus | null;
+      const phoneFromAuth = String(authToken.user?.phone || '').trim();
+
+      if (vt) setVerificationType(vt);
+      else clearVerificationType();
+
+      if (vs) setVerificationStatus(vs);
+      else clearVerificationStatus();
+
+      const onboardingDone = Boolean(vt) || isOnboardingDone();
+      setOnboardingDone(onboardingDone);
+      setAuth({
+        token,
+        onboardingDone,
+        verificationType: vt,
+        verificationStatus: vs,
+      });
+
+      toast('登录成功', { icon: 'success' });
+
+      const goNext = () => {
+        const pages = Taro.getCurrentPages();
+        const canGoBack = pages.length > 1;
+
+        const nextUrl = !vt ? '/pages/onboarding/choose-identity/index' : '/pages/home/index';
+
+        if (!vt) {
+          Taro.redirectTo({ url: nextUrl });
+          return;
+        }
+        if (canGoBack) {
+          Taro.navigateBack();
+          return;
+        }
+        Taro.switchTab({ url: nextUrl });
+      };
+
+      const shouldPromptPhone = Boolean(opts?.fromWechat) && canWechatLogin && !phoneFromAuth;
+      if (shouldPromptPhone) {
+        postLoginNextRef.current = () => setTimeout(goNext, 200);
+        setPhoneBindOpen(true);
+        return;
+      }
+
+      setTimeout(goNext, 200);
+    },
+    [canWechatLogin],
+  );
+
+  const wechatLogin = useCallback(async () => {
+    if (busy) return;
+    setBusy(true);
+    try {
+      let code = 'demo-code';
+      try {
+        const res = await Taro.login();
+        if (res?.code) code = res.code;
+      } catch (_) {
+        // non-weapp env: fallback to demo code
+      }
+
+      const authToken = await apiPost<AuthTokenResponse>('/auth/wechat/mp-login', { code });
+      afterLogin(authToken, { fromWechat: true });
+    } catch (e: any) {
+      toast(e?.message || '登录失败');
+    } finally {
+      setBusy(false);
+    }
+  }, [afterLogin, busy]);
+
+  const sendSms = useCallback(async () => {
+    if (busy) return;
+    const p = phone.trim();
+    if (!p) {
+      toast('请输入手机号');
+      return;
+    }
+    setBusy(true);
+    try {
+      const res = await apiPost<{ cooldownSeconds: number }>('/auth/sms/send', { phone: p, purpose: 'LOGIN' });
+      setCooldown(Number(res?.cooldownSeconds || 60));
+      toast('验证码已发送', { icon: 'success' });
+    } catch (e: any) {
+      toast(e?.message || '发送失败');
+    } finally {
+      setBusy(false);
+    }
+  }, [busy, phone]);
+
+  const verifySms = useCallback(async () => {
+    if (busy) return;
+    const p = phone.trim();
+    const c = smsCode.trim();
+    if (!p) {
+      toast('请输入手机号');
+      return;
+    }
+    if (!c) {
+      toast('请输入验证码');
+      return;
+    }
+    setBusy(true);
+    try {
+      const authToken = await apiPost<AuthTokenResponse>('/auth/sms/verify', { phone: p, code: c });
+      afterLogin(authToken);
+    } catch (e: any) {
+      toast(e?.message || '登录失败');
+    } finally {
+      setBusy(false);
+    }
+  }, [afterLogin, busy, phone, smsCode]);
 
   const verification = useMemo(() => {
     return { type: auth.verificationType, status: auth.verificationStatus };
@@ -308,6 +448,81 @@ export default function MePage() {
   const displayRegionText = displayRegion || '未设置';
   const orderItems = orderTab === 'buyer' ? buyerOrders : sellerOrders;
 
+  if (!auth.token) {
+    return (
+      <View className="container me-page me-page-locked page-locked">
+        <View className="me-login-wrap">
+          <Image className="me-login-ill" src={fortuneGod} svg mode="aspectFit" />
+          <Text className="me-login-title">登录解锁专利点金台</Text>
+          <View className={`me-login-actions ${showSms ? 'is-expanded' : ''}`}>
+            <Button
+              className="me-login-btn me-login-btn-phone"
+              variant="default"
+              onClick={() => setShowSms((v) => !v)}
+            >
+              手机号登录
+            </Button>
+            {canWechatLogin ? (
+              <Button
+                className="me-login-btn me-login-btn-wechat"
+                variant="default"
+                loading={busy}
+                disabled={busy}
+                onClick={() => void wechatLogin()}
+              >
+                微信登录
+              </Button>
+            ) : null}
+          </View>
+          {showSms ? (
+            <View className="me-login-panel">
+              <View className="me-login-field">
+                <Text className="me-login-label">手机号</Text>
+                <View className="me-login-input">
+                  <Input value={phone} onChange={setPhone} placeholder="请输入手机号" type="digit" clearable />
+                </View>
+              </View>
+
+              <View style={{ height: '10rpx' }} />
+              <Button
+                className="me-login-send"
+                variant="default"
+                loading={busy}
+                disabled={busy || cooldown > 0}
+                onClick={() => void sendSms()}
+              >
+                {cooldown > 0 ? `重新发送(${cooldown}s)` : '发送验证码'}
+              </Button>
+
+              <View style={{ height: '12rpx' }} />
+              <View className="me-login-field">
+                <Text className="me-login-label">验证码</Text>
+                <View className="me-login-input">
+                  <Input value={smsCode} onChange={setSmsCode} placeholder="请输入短信验证码" type="digit" clearable />
+                </View>
+              </View>
+
+              <View style={{ height: '12rpx' }} />
+              <Button className="me-login-submit" loading={busy} disabled={busy} onClick={() => void verifySms()}>
+                登录
+              </Button>
+            </View>
+          ) : null}
+          <View className="me-login-agreement">
+            <Text className="me-login-agreement-text">登录即同意</Text>
+            <Text className="me-login-agreement-link" onClick={() => Taro.navigateTo({ url: '/pages/legal/terms/index' })}>
+              《用户协议》
+            </Text>
+            <Text className="me-login-agreement-text">和</Text>
+            <Text className="me-login-agreement-link" onClick={() => Taro.navigateTo({ url: '/pages/legal/privacy/index' })}>
+              《隐私政策》
+            </Text>
+          </View>
+        </View>
+      </View>
+    );
+  }
+
   return (
     <PullToRefresh type="primary" disabled={refreshing} onRefresh={refresh}>
       <View className="container me-page">
@@ -350,22 +565,9 @@ export default function MePage() {
 
       </View>
 
-      {!auth.token ? (
-        <Surface className="me-login-card" padding="md">
-          <Text className="me-login-title">请先登录</Text>
-          <Text className="me-login-desc">登录并审核通过后，可进行收藏、咨询、下单与支付。</Text>
-          <Button
-            onClick={() => {
-              Taro.navigateTo({ url: '/pages/login/index' });
-            }}
-          >
-            微信授权登录
-          </Button>
-        </Surface>
-      ) : (
-        <>
-          {meLoading ? <LoadingCard text="加载我的资料…" /> : null}
-          {meError ? <ErrorCard message={meError} onRetry={loadMe} /> : null}
+      <>
+        {meLoading ? <LoadingCard text="加载我的资料…" /> : null}
+        {meError ? <ErrorCard message={meError} onRetry={loadMe} /> : null}
 
           <View className="me-order-card">
             <View className="me-order-tabs">
@@ -490,8 +692,7 @@ export default function MePage() {
               退出登录
             </Button>
           </Surface>
-        </>
-      )}
+      </>
 
       {ENABLE_MOCK_TOOLS && APP_MODE === 'development' ? (
         <Surface className="me-devtools-card" padding="md">
@@ -525,6 +726,33 @@ export default function MePage() {
           </View>
         </Surface>
       ) : null}
+
+      <WechatPhoneBindPopup
+        visible={phoneBindOpen}
+        loading={phoneBindBusy}
+        onSkip={() => {
+          setPhoneBindOpen(false);
+          const next = postLoginNextRef.current;
+          postLoginNextRef.current = null;
+          next?.();
+        }}
+        onRequestBind={async (phoneCode) => {
+          if (phoneBindBusy) return;
+          setPhoneBindBusy(true);
+          try {
+            await apiPost('/auth/wechat/phone-bind', { phoneCode });
+            toast('手机号绑定成功', { icon: 'success' });
+            setPhoneBindOpen(false);
+            const next = postLoginNextRef.current;
+            postLoginNextRef.current = null;
+            next?.();
+          } catch (e: any) {
+            toast(e?.message || '绑定失败');
+          } finally {
+            setPhoneBindBusy(false);
+          }
+        }}
+      />
       </View>
     </PullToRefresh>
   );

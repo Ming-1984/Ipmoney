@@ -1,0 +1,39 @@
+sequenceDiagram
+  autonumber
+  participant U as 用户（小程序）
+  participant MP as 小程序
+  participant Wx as 微信开放平台
+  participant GW as API Gateway/BFF
+  participant Auth as Auth Service
+
+  U->>MP: 点击“微信一键登录”
+  MP->>Wx: wx.login 获取 code
+  MP->>GW: POST /auth/wechat/mp-login { code }
+  GW->>Auth: wechatMpLogin(code)
+  Auth-->>GW: AuthTokenResponse（phone 可能为空）
+  GW-->>MP: 登录成功（token + user）
+
+  alt user.phone 为空
+    MP-->>U: 弹窗提示“授权手机号”（可跳过）
+    alt 用户点击“一键授权手机号”
+      U->>MP: 触发 getPhoneNumber
+      MP->>Wx: getPhoneNumber 获取 phoneCode
+      MP->>GW: POST /auth/wechat/phone-bind { phoneCode }
+      GW->>Auth: wechatPhoneBind(userId, phoneCode)
+      Auth-->>GW: { phone }
+      GW-->>MP: OK
+      MP-->>U: 绑定成功提示
+    else 用户点击“暂不授权”/拒绝授权
+      MP-->>U: 提示可稍后在资料设置绑定
+    end
+  end
+
+  MP->>MP: 跳转身份选择页
+  U->>MP: 选择身份（个人/机构等）
+  alt 个人
+    MP->>GW: POST /me/verification { type=PERSON, ... }
+    GW-->>MP: 注册成功
+  else 机构/技术经理人
+    MP-->>U: 进入资料提交页并等待审核
+  end
+

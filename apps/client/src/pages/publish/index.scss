@@ -3,6 +3,17 @@
   background: #f5f6f8;
   min-height: 100vh;
 }
+.publish-page-locked {
+  background: #ffffff;
+  padding: 0;
+}
+
+.publish-page-locked .page-locked {
+  min-height: 100vh;
+  padding: 88rpx 0 0;
+  padding-bottom: calc(var(--page-padding) + env(safe-area-inset-bottom));
+  background: #ffffff;
+}
 
 .publish-header {
   position: sticky;
@@ -240,6 +251,28 @@
   text-align: center;
   padding: 0 12rpx;
 }
+.publish-locked {
+  min-height: calc(100vh - 220rpx - env(safe-area-inset-bottom));
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14rpx;
+  padding: 24rpx 32rpx 32rpx;
+  text-align: center;
+}
+
+.publish-locked-ill {
+  width: 260rpx;
+  height: 260rpx;
+}
+
+.publish-locked-text {
+  font-size: 28rpx;
+  font-weight: 600;
+  color: #1f2937;
+}
+
 
 .tone-orange {
   background: rgba(255, 102, 0, 0.12);

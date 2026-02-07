@@ -5,6 +5,149 @@
   min-height: 100vh;
 }
 
+.me-page-locked {
+  background: #ffffff;
+  padding-top: 88rpx;
+}
+
+.me-page .login-unlock-state {
+  min-height: calc(100vh - env(safe-area-inset-bottom));
+}
+
+.me-login-wrap {
+  min-height: calc(100vh - 88rpx - env(safe-area-inset-bottom));
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16rpx;
+  padding: 24rpx 32rpx 32rpx;
+  text-align: center;
+}
+
+.me-login-ill {
+  width: 260rpx;
+  height: 260rpx;
+}
+
+.me-login-title {
+  font-size: 30rpx;
+  font-weight: 700;
+  color: #111827;
+}
+
+.me-login-actions {
+  width: min(560rpx, 92%);
+  display: flex;
+  flex-direction: column;
+  gap: 14rpx;
+}
+
+.me-login-btn {
+  height: 88rpx;
+  font-size: 30rpx;
+  font-weight: 700;
+  border-radius: 16rpx;
+  box-shadow: none;
+}
+
+.me-login-btn .nut-button__text {
+  background: transparent;
+  color: inherit;
+}
+
+.me-login-actions.is-expanded .me-login-btn-phone {
+  display: none;
+}
+
+.me-login-btn-phone {
+  background: #ffffff;
+  color: #111827;
+  border: 1rpx solid #e5e7eb;
+}
+
+.me-login-btn-wechat {
+  background: #22c55e;
+  color: #ffffff;
+}
+
+.me-login-panel {
+  width: min(560rpx, 92%);
+  padding: 16rpx 16rpx 20rpx;
+  border-radius: 18rpx;
+  background: #f7f8fa;
+  text-align: left;
+}
+
+.me-login-field {
+  display: flex;
+  flex-direction: column;
+  gap: 8rpx;
+}
+
+.me-login-label {
+  font-size: 24rpx;
+  font-weight: 600;
+  color: #111827;
+}
+
+.me-login-input .nut-input {
+  border: 1rpx solid #e5e7eb;
+  border-radius: 12rpx;
+  background: #ffffff;
+  min-height: 80rpx;
+}
+
+.me-login-input .nut-input-inner {
+  padding: 16rpx 18rpx;
+  font-size: 22rpx;
+  line-height: 1.4;
+}
+
+.me-login-input .nut-input input::placeholder {
+  font-size: 20rpx;
+  color: #c0c4cc;
+}
+
+.me-login-submit {
+  height: 80rpx;
+  font-size: 28rpx;
+  font-weight: 700;
+}
+
+.me-login-send {
+  height: 76rpx;
+  font-size: 26rpx;
+  font-weight: 600;
+  background: #ffffff;
+  color: #111827;
+  border: 1rpx solid #e5e7eb;
+}
+
+.me-login-send .nut-button__text {
+  background: transparent;
+  color: inherit;
+}
+
+.me-login-agreement {
+  margin-top: 6rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  font-size: 22rpx;
+  color: #9aa0a6;
+}
+
+.me-login-agreement-text {
+  margin: 0 4rpx;
+}
+
+.me-login-agreement-link {
+  color: #ff7a00;
+  margin: 0 4rpx;
+}
+
 .me-header {
   padding: 72rpx var(--page-padding) 96rpx;
   background: linear-gradient(135deg, #1a1c2e, #2d3250);

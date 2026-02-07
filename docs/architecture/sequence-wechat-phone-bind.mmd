@@ -1,0 +1,22 @@
+sequenceDiagram
+  autonumber
+  participant U as 用户（小程序）
+  participant MP as 小程序
+  participant GW as API Gateway/BFF
+  participant Auth as Auth Service
+  participant Wx as 微信开放平台
+
+  U->>MP: 点击“授权手机号”按钮
+  MP->>Wx: getPhoneNumber 获取 phoneCode
+  MP->>GW: POST /auth/wechat/phone-bind { phoneCode }
+  GW->>Auth: bindPhoneByWechat(phoneCode, userId)
+  Auth->>Wx: phonenumber.getPhoneNumber(phoneCode)
+  Wx-->>Auth: phoneNumber
+  Auth->>Auth: 绑定手机号并回写用户资料
+  Auth-->>GW: 绑定成功（phoneMasked）
+  GW-->>MP: success
+  MP-->>U: 展示绑定成功
+
+  alt 用户拒绝/授权失败
+    MP-->>U: 提示可改用短信验证码绑定/稍后再说
+  end

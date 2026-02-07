@@ -8,8 +8,50 @@
   border-radius: 16rpx;
 }
 
-.profile-avatar-actions {
+.profile-hint {
+  padding: 0 12rpx 16rpx;
+}
+
+.profile-hint-title {
+  font-size: 26rpx;
+  font-weight: 700;
+  color: #111827;
+}
+
+.profile-hint-desc {
+  margin-top: 6rpx;
+  font-size: 22rpx;
+  color: #9aa0a6;
+  line-height: 1.5;
+}
+
+.profile-card {
+  overflow: hidden;
+}
+
+.profile-card-section {
+  padding: 20rpx 18rpx 8rpx;
+}
+
+.profile-label {
+  font-size: 24rpx;
+  color: #6b7280;
+}
+
+.profile-avatar-block {
+  margin-top: 10rpx;
+  display: flex;
+  flex-direction: column;
   align-items: center;
+  gap: 12rpx;
+}
+
+.profile-avatar-actions {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12rpx;
+  flex-wrap: wrap;
 }
 
 .profile-avatar-btn {
@@ -31,4 +73,38 @@
   background: #ffffff;
   border-color: #e5e7eb;
   color: #6b7280;
+}
+
+.profile-field {
+  margin-top: 14rpx;
+  display: flex;
+  flex-direction: column;
+  gap: 8rpx;
+}
+
+.profile-actions {
+  margin-top: 16rpx;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10rpx;
+}
+
+.profile-primary-btn {
+  width: min(560rpx, 92%);
+  height: 88rpx;
+  font-size: 30rpx;
+  font-weight: 700;
+}
+
+.profile-skip {
+  font-size: 24rpx;
+  color: #6b7280;
+}
+
+.profile-phone {
+  margin-top: 14rpx;
+  font-size: 22rpx;
+  color: #9aa0a6;
+  text-align: center;
 }

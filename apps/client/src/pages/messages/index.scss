@@ -20,3 +20,25 @@
   color: #2563eb;
   background: #e0f2fe;
 }
+
+.messages-locked {
+  min-height: calc(100vh - 220rpx - env(safe-area-inset-bottom));
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14rpx;
+  padding: 24rpx 32rpx 32rpx;
+}
+
+.messages-locked-ill {
+  width: 260rpx;
+  height: 260rpx;
+}
+
+.messages-locked-text {
+  font-size: 28rpx;
+  font-weight: 600;
+  color: #1f2937;
+  text-align: center;
+}

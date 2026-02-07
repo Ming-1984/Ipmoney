@@ -17,12 +17,12 @@ import { verificationTypeLabel } from '../../../lib/labels';
 import { safeNavigateBack } from '../../../lib/navigation';
 import { regionDisplayName } from '../../../lib/regions';
 import { useRouteUuidParam } from '../../../lib/routeParams';
-import { CommentsSection } from '../../../ui/CommentsSection';
 import { MediaList } from '../../../ui/MediaList';
 import { PageHeader, SectionHeader, Spacer, StickyBar, Surface } from '../../../ui/layout';
 import { Avatar, Button, toast } from '../../../ui/nutui';
 import { EmptyCard, ErrorCard, LoadingCard, MissingParamCard } from '../../../ui/StateCards';
 import { AchievementMetaCard, maturityStageLabel } from './shared';
+import AchievementComments from './comments';
 
 type AchievementPublic = components['schemas']['AchievementPublic'];
 
@@ -291,7 +291,7 @@ export default function AchievementDetailPage() {
           <Spacer size={12} />
 
           <View className="patent-card-stack" id="achievement-comments">
-            <CommentsSection contentType="ACHIEVEMENT" contentId={achievementId} />
+            <AchievementComments contentId={achievementId} />
           </View>
 
           <Spacer size={12} />

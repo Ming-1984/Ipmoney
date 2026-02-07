@@ -88,7 +88,7 @@ export class AuthService {
       update: {},
       create: {
         id: '99999999-9999-9999-9999-999999999999',
-        phone: '13800138000',
+        phone: null,
         role: 'buyer',
         nickname: '演示用户',
         regionCode: '110000',
@@ -100,5 +100,33 @@ export class AuthService {
       expiresInSeconds: Number(process.env.JWT_EXPIRES_IN_SECONDS || 7200),
       user: this.toUserProfile(demoUser),
     };
+  }
+
+  async wechatPhoneBind(userId: string, phoneCode: string): Promise<{ phone: string }> {
+    const uid = String(userId || '').trim();
+    if (!uid) {
+      throw new BadRequestException({ code: 'UNAUTHORIZED', message: 'Unauthorized' });
+    }
+
+    const pc = String(phoneCode || '').trim();
+    if (!pc) {
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: 'phoneCode is required' });
+    }
+
+    // P0 演示：暂不接入微信真实换号能力（phonenumber.getPhoneNumber）。
+    // 这里用一组候选手机号模拟绑定，并尽量避免 unique 冲突。
+    const candidates = Array.from({ length: 10 }).map((_, idx) => `1380013800${idx}`);
+    let selected = candidates[0];
+
+    for (const cand of candidates) {
+      const exists = await this.prisma.user.findUnique({ where: { phone: cand } });
+      if (!exists || exists.id === uid) {
+        selected = cand;
+        break;
+      }
+    }
+
+    const updated = await this.prisma.user.update({ where: { id: uid }, data: { phone: selected } });
+    return { phone: updated.phone || selected };
   }
 }

@@ -7,15 +7,24 @@ import type { components } from '@ipmoney/api-types';
 
 import logoGif from '../../assets/brand/logo.gif';
 import promoCertificateGif from '../../assets/home/promo-certificate.gif';
+
+// Feature zone background images (poster cards in "特色专区")
+import bgZoneSleeping from '../../assets/home/zones/zone-sleeping.jpg';
+import bgZoneHighTechRetired from '../../assets/home/zones/zone-high-tech-retired.jpg';
+import bgZoneCluster from '../../assets/home/zones/zone-cluster.jpg';
+import bgZoneOpenLicense from '../../assets/home/zones/zone-open-license.jpg';
 import iconSearch from '../../assets/icons/icon-search-gray.svg';
 import iconActivity from '../../assets/icons/icon-activity-blue.svg';
-import iconTrending from '../../assets/icons/icon-trending-red.svg';
-import iconUser from '../../assets/icons/icon-user-purple.svg';
 import iconMap from '../../assets/icons/icon-map-green.svg';
-import iconPalette from '../../assets/icons/icon-palette-orange.svg';
-import iconBriefcase from '../../assets/icons/icon-briefcase-indigo.svg';
 import iconAward from '../../assets/icons/icon-award-teal.svg';
 import iconShield from '../../assets/icons/icon-shield-orange.svg';
+
+// Home quick entry icons (provided by you in repo root, copied into assets)
+import homeIconInventors from '../../assets/icons/home/home-inventors.svg';
+import homeIconPatentMap from '../../assets/icons/home/home-patent-map.svg';
+import homeIconArtZone from '../../assets/icons/home/home-art-zone.svg';
+import homeIconDemand from '../../assets/icons/home/home-demand.svg';
+import homeIconAchievement from '../../assets/icons/home/home-achievement.svg';
 import { STORAGE_KEYS } from '../../constants';
 import { getToken } from '../../lib/auth';
 import { apiGet } from '../../lib/api';
@@ -31,7 +40,6 @@ type QuickEntry = {
   key: string;
   label: string;
   icon: string;
-  iconBg: string;
   onClick: () => void;
 };
 
@@ -55,6 +63,7 @@ type PatentZoneEntry = {
   title: string;
   desc: string;
   icon: string;
+  bgImage: string;
   tone: string;
   onClick: () => void;
 };
@@ -173,9 +182,6 @@ export default function HomePage() {
   }, []);
   const goTechManagers = useCallback(() => Taro.switchTab({ url: '/pages/tech-managers/index' }), []);
   const goAnnouncements = useCallback(() => Taro.navigateTo({ url: '/pages/announcements/index' }), []);
-  const goAnnouncementDetail = useCallback((id: string) => {
-    Taro.navigateTo({ url: `/pages/announcements/detail/index?announcementId=${id}` });
-  }, []);
   const goClusterPicker = useCallback(() => Taro.navigateTo({ url: '/pages/cluster-picker/index' }), []);
   const goSleepingPatent = useCallback(() => {
     Taro.setStorageSync(STORAGE_KEYS.searchPrefill, {
@@ -205,14 +211,13 @@ export default function HomePage() {
 
   const quickEntries: QuickEntry[] = useMemo(
     () => [
-      { key: 'inventor', label: '发明人榜', icon: iconTrending, iconBg: 'bg-red', onClick: goInventors },
-      { key: 'manager', label: '技术经理人', icon: iconUser, iconBg: 'bg-purple', onClick: goTechManagers },
-      { key: 'map', label: '专利地图', icon: iconMap, iconBg: 'bg-green', onClick: goMap },
-      { key: 'art', label: '书画专区', icon: iconPalette, iconBg: 'bg-orange', onClick: goArtworks },
-      { key: 'demand', label: '产学研需求', icon: iconBriefcase, iconBg: 'bg-indigo', onClick: goDemandSearch },
-      { key: 'achievement', label: '成果转化', icon: iconAward, iconBg: 'bg-teal', onClick: goAchievements },
+      { key: 'inventor', label: '发明人榜', icon: homeIconInventors, onClick: goInventors },
+      { key: 'map', label: '专利地图', icon: homeIconPatentMap, onClick: goMap },
+      { key: 'art', label: '书画专区', icon: homeIconArtZone, onClick: goArtworks },
+      { key: 'demand', label: '产学研需求', icon: homeIconDemand, onClick: goDemandSearch },
+      { key: 'achievement', label: '成果转化', icon: homeIconAchievement, onClick: goAchievements },
     ],
-    [goAchievements, goArtworks, goDemandSearch, goInventors, goMap, goTechManagers],
+    [goAchievements, goArtworks, goDemandSearch, goInventors, goMap],
   );
 
   const patentZoneEntries: PatentZoneEntry[] = useMemo(
@@ -222,6 +227,7 @@ export default function HomePage() {
         title: '沉睡专利',
         desc: '转让次数为 0 的专利',
         icon: iconActivity,
+        bgImage: bgZoneSleeping,
         tone: 'tone-blue',
         onClick: goSleepingPatent,
       },
@@ -230,6 +236,7 @@ export default function HomePage() {
         title: '高新退役',
         desc: '审核通过的优质专利',
         icon: iconShield,
+        bgImage: bgZoneHighTechRetired,
         tone: 'tone-orange',
         onClick: goHighTechRetired,
       },
@@ -238,6 +245,7 @@ export default function HomePage() {
         title: '产业集群',
         desc: '按集群标签聚合展示',
         icon: iconMap,
+        bgImage: bgZoneCluster,
         tone: 'tone-green',
         onClick: goClusterPicker,
       },
@@ -246,6 +254,7 @@ export default function HomePage() {
         title: '开放许可',
         desc: '交易方式为许可',
         icon: iconAward,
+        bgImage: bgZoneOpenLicense,
         tone: 'tone-teal',
         onClick: goOpenLicense,
       },
@@ -288,7 +297,7 @@ export default function HomePage() {
       <View className="home-quick">
         {quickEntries.map((entry) => (
           <View key={entry.key} className="home-quick-item" onClick={entry.onClick}>
-            <View className={`home-quick-icon ${entry.iconBg}`}>
+            <View className="home-quick-icon">
               <Image src={entry.icon} svg mode="aspectFit" className="home-quick-icon-img" />
             </View>
             <Text className="home-quick-label">{entry.label}</Text>
@@ -297,15 +306,6 @@ export default function HomePage() {
       </View>
 
       <View className="home-section home-marquee-section">
-        <View className="home-section-header">
-          <View className="home-section-title-wrap">
-            <View className="home-section-accent" />
-            <Text className="home-section-title">公告</Text>
-          </View>
-          <Text className="home-section-more" onClick={goAnnouncements}>
-            全部
-          </Text>
-        </View>
         <View className="home-marquee-card">
           {announcementLoading ? (
             <Text className="home-marquee-placeholder">加载中…</Text>
@@ -313,9 +313,9 @@ export default function HomePage() {
             <Text className="home-marquee-placeholder">{announcementError}</Text>
           ) : announcementItems.length ? (
             <Swiper className="home-marquee-swiper" autoplay circular vertical interval={4000}>
-              {announcementItems.slice(0, 6).map((item) => (
+              {announcementItems.slice(0, 3).map((item) => (
                 <SwiperItem key={item.id}>
-                  <View className="home-marquee-item" onClick={() => goAnnouncementDetail(item.id)}>
+                  <View className="home-marquee-item" onClick={goAnnouncements}>
                     <View className="home-marquee-tag">
                       <Text>公告</Text>
                     </View>
@@ -332,13 +332,9 @@ export default function HomePage() {
       </View>
 
       <View className="home-banner">
-        <Swiper className="home-banner-swiper" indicatorDots autoplay={false} circular>
-          <SwiperItem>
-            <View className="home-banner-item">
-              <Image src={promoCertificateGif} mode="aspectFill" className="home-banner-img" />
-            </View>
-          </SwiperItem>
-        </Swiper>
+        <View className="home-banner-item">
+          <Image src={promoCertificateGif} mode="aspectFill" className="home-banner-img" />
+        </View>
       </View>
 
       <View className="home-section">
@@ -353,12 +349,14 @@ export default function HomePage() {
         </View>
         <View className="home-zone-grid">
           {patentZoneEntries.map((entry) => (
-            <View key={entry.key} className="home-zone-card" onClick={entry.onClick}>
-              <View className={`home-zone-icon ${entry.tone}`}>
-                <Image src={entry.icon} svg mode="aspectFit" className="home-zone-icon-img" />
+            <View key={entry.key} className={`home-zone-card ${entry.tone}`} onClick={entry.onClick}>
+              <Image src={entry.bgImage} mode="aspectFill" className="home-zone-bg" />
+              <View className="home-zone-scrim" />
+
+              <View className="home-zone-content">
+                <Text className="home-zone-title">{entry.title}</Text>
+                <Text className="home-zone-desc">{entry.desc}</Text>
               </View>
-              <Text className="home-zone-title">{entry.title}</Text>
-              <Text className="home-zone-desc">{entry.desc}</Text>
             </View>
           ))}
         </View>
@@ -366,7 +364,10 @@ export default function HomePage() {
 
       <View className="home-section">
         <View className="home-section-header">
-          <Text className="home-section-title">最新专利</Text>
+          <View className="home-section-title-wrap">
+            <View className="home-section-accent" />
+            <Text className="home-section-title">最新专利</Text>
+          </View>
         </View>
 
         {loading ? (

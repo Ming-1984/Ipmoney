@@ -1,5 +1,6 @@
-import { Body, Controller, Post } from '@nestjs/common';
+import { Body, Controller, Post, Req, UseGuards } from '@nestjs/common';
 
+import { BearerAuthGuard } from '../../common/guards/bearer-auth.guard';
 import { AuthService } from './auth.service';
 
 @Controller('/auth')
@@ -9,6 +10,12 @@ export class AuthController {
   @Post('/wechat/mp-login')
   async wechatMpLogin(@Body() body: { code: string }) {
     return await this.auth.wechatMpLogin(body?.code);
+  }
+
+  @Post('/wechat/phone-bind')
+  @UseGuards(BearerAuthGuard)
+  async wechatPhoneBind(@Req() req: any, @Body() body: { phoneCode: string }) {
+    return await this.auth.wechatPhoneBind(req?.auth?.userId, body?.phoneCode);
   }
 
   @Post('/sms/send')
@@ -21,4 +28,3 @@ export class AuthController {
     return await this.auth.smsVerifyLogin(body?.phone, body?.code);
   }
 }
-

@@ -12,11 +12,12 @@ import iconBellWhite from '../../assets/icons/icon-bell-white.svg';
 import { apiGet, apiPost } from '../../lib/api';
 import { usePageAccess } from '../../lib/guard';
 import { formatTimeSmart } from '../../lib/format';
-import { PageState } from '../../ui/PageState';
+import { AccessGate, PageState } from '../../ui/PageState';
 import { SearchEntry } from '../../ui/SearchEntry';
 import { PopupSheet } from '../../ui/layout';
 import { Avatar, Cell, PullToRefresh, Popup, confirm, toast } from '../../ui/nutui';
 import { NOTIFICATIONS } from '../notifications/data';
+import emptyMessagesIcon from '../../assets/illustrations/empty-messages.svg';
 
 type PagedConversationSummary = components['schemas']['PagedConversationSummary'];
 type ConversationSummary = components['schemas']['ConversationSummary'];
@@ -85,9 +86,56 @@ export default function MessagesPage() {
     setLoading(false);
   });
 
-  const items = useMemo(() => data?.items || [], [data?.items]);
   const trimmedSearch = searchValue.trim().toLowerCase();
   const showSearch = searchOpen || Boolean(trimmedSearch);
+
+  const header = (
+    <View className="messages-header-new">
+      <Text className="messages-title">消息</Text>
+      {access.state === 'ok' ? (
+        <View className="messages-header-actions">
+          <Image
+            src={iconSearch}
+            svg
+            mode="aspectFit"
+            className="messages-action-icon"
+            onClick={() => {
+              if (searchOpen && !trimmedSearch) {
+                setSearchOpen(false);
+                return;
+              }
+              setSearchOpen(true);
+            }}
+          />
+          <Image
+            src={iconMore}
+            svg
+            mode="aspectFit"
+            className="messages-action-icon"
+            onClick={() => setMoreOpen(true)}
+          />
+        </View>
+      ) : null}
+    </View>
+  );
+
+  if (access.state !== 'ok') {
+    return (
+      <View className="container messages-page messages-new page-locked">
+        {header}
+        {access.state === 'need-login' ? (
+          <View className="messages-locked">
+            <Image className="messages-locked-ill" src={emptyMessagesIcon} svg mode="aspectFit" />
+            <Text className="messages-locked-text">登录解锁点金消息</Text>
+          </View>
+        ) : (
+          <AccessGate access={access} />
+        )}
+      </View>
+    );
+  }
+
+  const items = useMemo(() => data?.items || [], [data?.items]);
 
   const getConversationCategory = useCallback((c: ConversationSummary): ConversationCategory => {
     const role = c.counterpart?.role || '';
@@ -248,31 +296,7 @@ export default function MessagesPage() {
 
   return (
     <View className="container messages-page messages-new">
-      <View className="messages-header-new">
-        <Text className="messages-title">消息</Text>
-        <View className="messages-header-actions">
-          <Image
-            src={iconSearch}
-            svg
-            mode="aspectFit"
-            className="messages-action-icon"
-            onClick={() => {
-              if (searchOpen && !trimmedSearch) {
-                setSearchOpen(false);
-                return;
-              }
-              setSearchOpen(true);
-            }}
-          />
-          <Image
-            src={iconMore}
-            svg
-            mode="aspectFit"
-            className="messages-action-icon"
-            onClick={() => setMoreOpen(true)}
-          />
-        </View>
-      </View>
+      {header}
 
       {showSearch ? (
         <View className="messages-search-row">

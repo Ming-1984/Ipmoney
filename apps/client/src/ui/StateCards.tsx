@@ -1,9 +1,10 @@
-import { View, Text } from '@tarojs/components';
+import { View, Text, Image } from '@tarojs/components';
 import React from 'react';
 
 import { Button } from './nutui';
 import { STATE_COPY } from './copy';
 import { StateIllustration } from './layout/StateIllustration';
+import fortuneGod from '../assets/illustrations/fortune-god.svg';
 
 export function LoadingCard(props: { text?: string }) {
   const text = props.text || STATE_COPY.loading.title;
@@ -89,6 +90,24 @@ export function PermissionCard(props: { title?: string; message?: string; action
           <View style={{ height: '12rpx' }} />
           <Button onClick={props.onAction}>{props.actionText}</Button>
         </>
+      ) : null}
+    </View>
+  );
+}
+
+export function LoginUnlockCard(props: { onAction?: () => void; message?: string }) {
+  return (
+    <View className="login-unlock-state">
+      <View className="login-unlock-center">
+        <Image className="login-unlock-ill" src={fortuneGod} svg mode="aspectFit" />
+        <Text className="login-unlock-text">{props.message || '登录解锁专利点金台'}</Text>
+      </View>
+      {props.onAction ? (
+        <View className="login-unlock-actions">
+          <Button className="login-unlock-btn" onClick={props.onAction}>
+            立即登录
+          </Button>
+        </View>
       ) : null}
     </View>
   );

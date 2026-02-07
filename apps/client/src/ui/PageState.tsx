@@ -3,7 +3,7 @@ import React from 'react';
 import type { PageAccessState } from '../lib/guard';
 import { goLogin, goOnboarding } from '../lib/guard';
 import { STATE_COPY } from './copy';
-import { AuditPendingCard, EmptyCard, ErrorCard, LoadingCard, PermissionCard } from './StateCards';
+import { AuditPendingCard, EmptyCard, ErrorCard, LoadingCard, LoginUnlockCard, PermissionCard } from './StateCards';
 
 export function AccessGate(props: {
   access: PageAccessState;
@@ -17,14 +17,8 @@ export function AccessGate(props: {
   if (access.state === 'ok') return null;
 
   if (access.state === 'need-login') {
-    return (
-      <PermissionCard
-        title={STATE_COPY.permission.needLogin.title}
-        message={props.loginMessage || STATE_COPY.permission.needLogin.message}
-        actionText={STATE_COPY.permission.needLogin.actionText}
-        onAction={goLogin}
-      />
-    );
+    // Unify "need-login" UX across the app (ignore per-page overrides).
+    return <LoginUnlockCard onAction={goLogin} />;
   }
   if (access.state === 'need-onboarding') {
     return (

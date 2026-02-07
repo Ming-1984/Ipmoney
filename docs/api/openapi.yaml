@@ -101,6 +101,45 @@ paths:
         "400":
           $ref: "#/components/responses/BadRequest"
 
+  /auth/wechat/phone-bind:
+    post:
+      tags: [Auth]
+      summary: WeChat phone bind (Mini Program)
+      description: |
+        Mini Program obtains `phoneCode` from `open-type="getPhoneNumber"` and calls this API to bind the phone.
+
+        Notes:
+        - Requires BearerAuth.
+        - Real implementation should call WeChat `phonenumber.getPhoneNumber` and persist the phone to the user profile.
+      operationId: authWechatPhoneBind
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [phoneCode]
+              properties:
+                phoneCode:
+                  type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [phone]
+                properties:
+                  phone:
+                    $ref: "#/components/schemas/PhoneNumber"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
   /auth/sms/send:
     post:
       tags: [Auth]

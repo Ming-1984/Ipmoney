@@ -210,16 +210,15 @@
 ### 3.1 模板 A（Tab 页）接入
 
 - [x] `pages/home/index`：接入 token/文案/动作级权限态（收藏/咨询/下单）
-- [x] `pages/home/index`：快捷入口从 2×2 改为 **4 个一排**（更像微信服务栅格）；图标与文字整体缩小一档（保留 ≥44px 热区）
 - [x] `pages/home/index`：快捷入口不保留副标题（只保留标题；副标题移到二级页/详情说明）
-- [ ] `pages/home/index`：快捷入口调整（移除“沉睡专利/全部分类”，保留发明人榜/技术经理人/专利地图/书画专区/产学研需求/成果转化）
-- [ ] `pages/home/index`：新增公告滚动条（最新公告标题 + 右侧“全部”入口）
-- [ ] `pages/home/index`：新增“特色专区”2×2 卡片 + 标题右侧“更多”
-- [ ] `pages/home/index`：特色专区入口跳转（沉睡/高新退役/开放许可直达搜索；产业集群先到集群选择页）
-- [ ] `pages/home/index`：特色专区视觉风格与现有卡片/字体/间距/圆角保持一致（不引入新视觉语言）
+- [x] `pages/home/index`：快捷入口调整为 **5 个一排**：发明人榜/专利地图/书画专区/产学研需求/成果转化；移除“技术经理人”（由 TabBar「咨询」承载）
+- [x] `pages/home/index`：公告滚动条（无标题/无“全部”按钮）：默认仅展示最新 3 条；点击任意公告进入公告列表页（更多）
+- [x] `pages/home/index`：新增“特色专区”2×2 海报卡片（本地图片背景 + 渐变遮罩）+ 标题右侧“更多”
+- [x] `pages/home/index`：特色专区入口跳转（沉睡/高新退役/开放许可直达搜索；产业集群先到集群选择页）
+- [x] `pages/home/index`：特色专区视觉升级为“运营海报卡”：本地海报背景 + 统一遮罩；仍保持圆角/阴影/字号节奏一致
 - [x] `pages/home/index`：品牌副标题文案统一为 `专利点金台`（替换旧文案）
 - [x] `pages/home/index`：推荐区标题改为最新专利，移除副标题与右侧更多入口
-- [ ] `pages/home/index`：特色专区“更多”跳转搜索（LISTING）
+- [x] `pages/home/index`：特色专区“更多”跳转搜索（LISTING）
 - [x] `pages/search/index`：筛选 Popup 交互标准化 + 参数清洗接入
 - [x] `pages/search/index`：分类 Tab 扩展：专利交易｜产学研需求｜成果展示｜书画专区｜机构（进入搜索主链路，对齐 `Ipmoney.md` 4）
 - [x] `pages/search/index`：书画专区结果卡片左右布局精简（仅作者/年份 + 价格/订金；隐藏标签与浏览/收藏）
@@ -256,8 +255,8 @@
 - [x] `pages/organizations/index`：卡片信息密度规范化
 - [x] `pages/organizations/index`: Filters UI refactor to shared FilterSheet/ChipGroup + FilterSummary (regionCode + types; align GET /public/organizations).
 - [x] `pages/patent-map/index`：空态去禁用词 + 年份切换交互统一
-- [ ] `pages/cluster-picker/index`：产业集群选择页（集群卡片 + 高校/科研机构区块 + 专利数量/优势领域标签）
-- [ ] `pages/announcements/index`：公告列表（标题/发布单位/发布日期/期次/标签）
+- [x] `pages/cluster-picker/index`：产业集群选择页（集群卡片 + 高校/科研机构区块 + 专利数量/优势领域标签）
+- [x] `pages/announcements/index`：公告列表（标题/发布单位/发布日期/期次/标签）
 - [ ] `pages/cluster-picker/index`/`pages/announcements/*`：沿用现有设计系统（卡片圆角/阴影/字体层级/间距）
 
 ### 3.3 模板 C（Detail）接入

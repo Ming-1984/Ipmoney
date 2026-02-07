@@ -2690,13 +2690,19 @@
       "expiresInSeconds": 3600,
       "user": {
         "id": "c776f954-77a5-49d9-b778-77a1120d1be9",
-        "phone": "13800138000",
+        "phone": null,
         "nickname": "演示用户",
         "avatarUrl": "",
         "role": "buyer",
         "regionCode": "110000",
         "createdAt": "2026-01-01T00:00:00Z"
       }
+    }
+  },
+  "POST /auth/wechat/phone-bind": {
+    "status": 200,
+    "body": {
+      "phone": "13800138000"
     }
   },
   "POST /auth/sms/send": {

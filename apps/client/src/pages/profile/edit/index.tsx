@@ -10,7 +10,7 @@ import { getToken } from '../../../lib/auth';
 import { apiGet, apiPatch } from '../../../lib/api';
 import { requireLogin } from '../../../lib/guard';
 import { regionDisplayName } from '../../../lib/regions';
-import { CellRow, PageHeader, SectionHeader, Spacer, Surface, TipBanner } from '../../../ui/layout';
+import { CellRow, PageHeader, Spacer, Surface } from '../../../ui/layout';
 import { Avatar, Button, CellGroup, Input, toast } from '../../../ui/nutui';
 import { ErrorCard, LoadingCard } from '../../../ui/StateCards';
 
@@ -199,61 +199,54 @@ export default function ProfileEditPage() {
       ) : (
         <View>
           {isOnboarding ? (
-            <>
-              <TipBanner tone="info" title="建议完善资料">
+            <View className="profile-hint">
+              <Text className="profile-hint-title">建议完善资料</Text>
+              <Text className="profile-hint-desc">
                 为了便于咨询与交易沟通，建议完善头像与昵称（也可稍后在“我的-资料设置”修改）。
-              </TipBanner>
-              <Spacer size={12} />
-            </>
+              </Text>
+            </View>
           ) : null}
 
-          <Surface>
-            <SectionHeader title="基本信息" density="compact" />
-            <Spacer size={10} />
+          <Surface padding="none" className="profile-card">
+            <View className="profile-card-section">
+              <Text className="profile-label">头像（建议）</Text>
+              <View className="profile-avatar-block">
+                <Avatar
+                  size="72"
+                  src={avatarUrl}
+                  icon={<Text className="text-strong">{(nickname.trim() || me?.nickname || '用').slice(0, 1)}</Text>}
+                />
+                {isWeapp ? (
+                  <View className="profile-avatar-actions">
+                    <WxButton
+                      className="btn-ghost profile-avatar-btn profile-avatar-btn-primary"
+                      openType="chooseAvatar"
+                      onChooseAvatar={onChooseAvatar}
+                    >
+                      选择头像
+                    </WxButton>
+                    <WxButton
+                      className="btn-ghost profile-avatar-btn profile-avatar-btn-secondary"
+                      onClick={() => void chooseAvatarFromAlbum()}
+                    >
+                      从相册选择
+                    </WxButton>
+                  </View>
+                ) : null}
+              </View>
 
-            <Text className="muted">头像（建议）</Text>
-            <Spacer size={6} />
-            <View className="row profile-avatar-actions" style={{ gap: '12rpx', flexWrap: 'wrap' }}>
-              <Avatar
-                size="64"
-                src={avatarUrl}
-                icon={<Text className="text-strong">{(nickname.trim() || me?.nickname || '用').slice(0, 1)}</Text>}
-              />
-              {isWeapp ? (
-                <>
-                  <WxButton
-                    className="btn-ghost profile-avatar-btn profile-avatar-btn-primary"
-                    openType="chooseAvatar"
-                    onChooseAvatar={onChooseAvatar}
-                  >
-                    选择头像
-                  </WxButton>
-                  <WxButton
-                    className="btn-ghost profile-avatar-btn profile-avatar-btn-secondary"
-                    onClick={() => void chooseAvatarFromAlbum()}
-                  >
-                    从相册选择
-                  </WxButton>
-                </>
-              ) : null}
+              <View className="profile-field">
+                <Text className="profile-label">昵称（可选）</Text>
+                <Input
+                  value={nickname}
+                  onChange={setNickname}
+                  placeholder="设置昵称（可选）"
+                  clearable
+                  type={isWeapp ? 'nickname' : undefined}
+                />
+              </View>
             </View>
 
-            <Spacer size={12} />
-
-            <Text className="muted">昵称（可选）</Text>
-            <Spacer size={6} />
-            <Input
-              value={nickname}
-              onChange={setNickname}
-              placeholder="设置昵称（可选）"
-              clearable
-              type={isWeapp ? 'nickname' : undefined}
-            />
-          </Surface>
-
-          <Spacer size={12} />
-
-          <Surface padding="none">
             <CellGroup divider>
               <CellRow
                 title={<Text className="text-strong">地区（可选）</Text>}
@@ -274,31 +267,18 @@ export default function ProfileEditPage() {
             </CellGroup>
           </Surface>
 
-          <Spacer size={12} />
+          <View className="profile-actions">
+            <Button className="profile-primary-btn" onClick={() => void save()}>
+              保存
+            </Button>
+            {isOnboarding ? (
+              <Text className="profile-skip" onClick={goNext}>
+                稍后完善
+              </Text>
+            ) : null}
+          </View>
 
-          <Surface>
-            <View className="row" style={{ gap: '12rpx' }}>
-              {isOnboarding ? (
-                <View style={{ flex: 1 }}>
-                  <Button variant="ghost" onClick={goNext}>
-                    稍后完善
-                  </Button>
-                </View>
-              ) : null}
-              <View style={{ flex: 1 }}>
-                <Button onClick={() => void save()}>保存</Button>
-              </View>
-            </View>
-          </Surface>
-
-          {me?.phone ? (
-            <>
-              <Spacer size={12} />
-              <Surface>
-                <Text className="muted">手机号：{me.phone}</Text>
-              </Surface>
-            </>
-          ) : null}
+          {me?.phone ? <Text className="profile-phone">手机号：{me.phone}</Text> : null}
         </View>
       )}
     </View>

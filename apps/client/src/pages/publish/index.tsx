@@ -13,6 +13,7 @@ import iconCategory from '../../assets/icons/icon-category-gray.svg';
 import { usePageAccess } from '../../lib/guard';
 import { AccessGate } from '../../ui/PageState';
 import { Surface } from '../../ui/layout';
+import publishLockedArt from '../../assets/illustrations/publish-locked.png';
 
 type PublishCard = {
   key: string;
@@ -126,23 +127,25 @@ export default function PublishPage() {
   const draftLabel = draftCount ? `未完成 ${draftCount} 条` : '暂无未完成';
 
   return (
-    <View className="container publish-page">
-      <View className="publish-header">
-        <Text className="publish-title">发布中心</Text>
-        <Text className="publish-subtitle">选择您要发布的类型</Text>
-      </View>
-
+    <View className={`container publish-page ${access.state !== 'ok' ? 'publish-page-locked' : ''}`}>
       {access.state !== 'ok' ? (
-        <AccessGate
-          access={access}
-          loginMessage="登录后才能发布内容。"
-          onboardingMessage="首次进入请先选择身份。"
-          pendingMessage="资料审核中，通过后才能发布内容。"
-          rejectedMessage="资料已驳回，请重新提交后再发布。"
-          auditRequiredMessage="完成认证并审核通过后才能发布内容。"
-        />
+        <View className="page-locked">
+          {access.state === 'need-login' ? (
+            <View className="publish-locked">
+              <Image className="publish-locked-ill" src={publishLockedArt} mode="aspectFit" />
+              <Text className="publish-locked-text">登录IPMONEY，发布专利赚金豆！</Text>
+            </View>
+          ) : (
+            <AccessGate access={access} />
+          )}
+        </View>
       ) : (
         <View>
+          <View className="publish-header">
+            <Text className="publish-title">发布中心</Text>
+            <Text className="publish-subtitle">选择您要发布的类型</Text>
+          </View>
+
           <View className="publish-auth-banner">
             <View className="publish-auth-left">
               <Image className="publish-auth-icon" src={iconShield} svg mode="aspectFit" />

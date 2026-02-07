@@ -1,6 +1,6 @@
 ﻿import { View, Text, Image } from '@tarojs/components';
 import Taro from '@tarojs/taro';
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import './index.scss';
 
 import type { components } from '@ipmoney/api-types';
@@ -16,8 +16,9 @@ import {
 } from '../../lib/auth';
 import { apiPost } from '../../lib/api';
 import { PageHeader, Spacer, Surface } from '../../ui/layout';
+import { WechatPhoneBindPopup } from '../../ui/WechatPhoneBindPopup';
 import { Button, Input, toast } from '../../ui/nutui';
-import logoGif from '../../assets/brand/logo.gif';
+import fortuneGod from '../../assets/illustrations/fortune-god.svg';
 
 type AuthTokenResponse = components['schemas']['AuthTokenResponse'];
 type VerificationStatus = components['schemas']['VerificationStatus'];
@@ -31,6 +32,9 @@ export default function LoginPage() {
 
   const [activeTab, setActiveTab] = useState<LoginTab>(canWechatLogin ? 'wechat' : 'sms');
   const [busy, setBusy] = useState(false);
+  const [phoneBindOpen, setPhoneBindOpen] = useState(false);
+  const [phoneBindBusy, setPhoneBindBusy] = useState(false);
+  const postLoginNextRef = useRef<null | (() => void)>(null);
 
   const [phone, setPhone] = useState('');
   const [smsCode, setSmsCode] = useState('');
@@ -49,13 +53,12 @@ export default function LoginPage() {
   }, [cooldown]);
 
   const afterLogin = useCallback(
-    (auth: AuthTokenResponse) => {
+    (auth: AuthTokenResponse, opts?: { fromWechat?: boolean }) => {
       setToken(auth.accessToken || 'demo-token');
 
       const vt = (auth.user?.verificationType || null) as VerificationType | null;
       const vs = (auth.user?.verificationStatus || null) as VerificationStatus | null;
-      const nickname = String(auth.user?.nickname || '').trim();
-      const avatarUrl = String(auth.user?.avatarUrl || '').trim();
+      const phoneFromAuth = String(auth.user?.phone || '').trim();
 
       if (vt) setVerificationType(vt);
       else clearVerificationType();
@@ -65,32 +68,33 @@ export default function LoginPage() {
 
       setOnboardingDone(Boolean(vt) || isOnboardingDone());
 
-      const needProfile = canWechatLogin && (!nickname || !avatarUrl);
-
       toast('登录成功', { icon: 'success' });
-      setTimeout(() => {
+
+      const goNext = () => {
         const pages = Taro.getCurrentPages();
         const canGoBack = pages.length > 1;
 
-        const nextType = !vt ? 'redirectTo' : canGoBack ? 'navigateBack' : 'switchTab';
         const nextUrl = !vt ? '/pages/onboarding/choose-identity/index' : '/pages/home/index';
 
-        if (needProfile) {
-          const qs = `from=login&nextType=${nextType}${nextUrl ? `&nextUrl=${encodeURIComponent(nextUrl)}` : ''}`;
-          Taro.redirectTo({ url: `/pages/profile/edit/index?${qs}` });
-          return;
-        }
-
-        if (nextType === 'redirectTo') {
+        if (!vt) {
           Taro.redirectTo({ url: nextUrl });
           return;
         }
-        if (nextType === 'navigateBack') {
+        if (canGoBack) {
           Taro.navigateBack();
           return;
         }
         Taro.switchTab({ url: nextUrl });
-      }, 200);
+      };
+
+      const shouldPromptPhone = Boolean(opts?.fromWechat) && canWechatLogin && !phoneFromAuth;
+      if (shouldPromptPhone) {
+        postLoginNextRef.current = () => setTimeout(goNext, 200);
+        setPhoneBindOpen(true);
+        return;
+      }
+
+      setTimeout(goNext, 200);
     },
     [canWechatLogin],
   );
@@ -108,7 +112,7 @@ export default function LoginPage() {
       }
 
       const auth = await apiPost<AuthTokenResponse>('/auth/wechat/mp-login', { code });
-      afterLogin(auth);
+      afterLogin(auth, { fromWechat: true });
     } catch (e: any) {
       toast(e?.message || '登录失败');
     } finally {
@@ -163,15 +167,8 @@ export default function LoginPage() {
       <PageHeader title="登录" subtitle="欢迎回来" />
       <View className="login-hero">
         <View className="login-hero-bg" />
-        <View className="login-brand">
-          <View className="login-brand-logo">
-            <Image src={logoGif} mode="aspectFit" className="login-brand-logo-img" />
-          </View>
-          <View>
-            <Text className="login-brand-title">IPMONEY</Text>
-            <Text className="login-brand-subtitle">专利点金台</Text>
-          </View>
-        </View>
+        <Image className="login-hero-ill" src={fortuneGod} svg mode="aspectFit" />
+        <Text className="login-hero-title">登录解锁专利点金台</Text>
         <Text className="login-hero-desc">登录后可收藏、咨询、下单；主体需审核通过后可交易。</Text>
       </View>
 
@@ -251,6 +248,33 @@ export default function LoginPage() {
           </Text>
         </View>
       </Surface>
+
+      <WechatPhoneBindPopup
+        visible={phoneBindOpen}
+        loading={phoneBindBusy}
+        onSkip={() => {
+          setPhoneBindOpen(false);
+          const next = postLoginNextRef.current;
+          postLoginNextRef.current = null;
+          next?.();
+        }}
+        onRequestBind={async (phoneCode) => {
+          if (phoneBindBusy) return;
+          setPhoneBindBusy(true);
+          try {
+            await apiPost('/auth/wechat/phone-bind', { phoneCode });
+            toast('手机号绑定成功', { icon: 'success' });
+            setPhoneBindOpen(false);
+            const next = postLoginNextRef.current;
+            postLoginNextRef.current = null;
+            next?.();
+          } catch (e: any) {
+            toast(e?.message || '绑定失败');
+          } finally {
+            setPhoneBindBusy(false);
+          }
+        }}
+      />
     </View>
   );
 }

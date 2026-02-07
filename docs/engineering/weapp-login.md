@@ -9,10 +9,12 @@
 - 在微信小程序环境完成登录，并能在“我的”页顶部稳定展示头像 + 昵称（缺省有兜底）。
 - 头像/昵称支持用户主动授权/填写后写入服务端（`/files` + `PATCH /me`），再次进入可回显。
 - 登录链路与微信官方能力对齐（`wx.login` + “用户点击触发的资料补全”）。
+- 微信登录成功后，先弹窗提示“授权手机号”（`getPhoneNumber`，可跳过），再进入身份选择（个人/机构等）。
 
 ## 微信侧能力与限制（官方口径）
 
 - 登录：`wx.login` 获取 `code`，交给服务端换取登录态（`code2Session`）。
+- 手机号：按钮 `open-type="getPhoneNumber"`（用户点击触发，得到动态 `code`，供服务端换取手机号并绑定）。
 - 头像：推荐按钮 `open-type="chooseAvatar"`（用户点击触发，拿到临时头像文件路径）。
 - 昵称：推荐 `<input type="nickname">`（用户输入/系统联想）。
 - 备注：`wx.login` 不返回头像/昵称；头像/昵称必须走“用户主动操作”的链路。
@@ -28,17 +30,20 @@
 
 - 小程序登录页：`apps/client/src/pages/login/index.tsx`
   - 已调用 `Taro.login()` 获取 `code` 并请求 `POST /auth/wechat/mp-login`。
+  - 微信登录成功后：若 `user.phone` 为空，会弹出“授权手机号”弹窗；授权/跳过后进入身份选择页。
   - 目前后端为“演示用户”占位，不会调用微信 `code2Session`。
 - 我的页头部：`apps/client/src/pages/me/index.tsx`
   - 当前仅展示昵称/手机号/认证标签；未展示头像；昵称来源为 `/me`。
 - 后端登录：`apps/api/src/modules/auth/auth.service.ts`
   - `wechatMpLogin` 目前仅校验 `code` 非空，然后返回 `demo-token` + 演示用户。
+- 后端手机号绑定：`POST /auth/wechat/phone-bind`
+  - P0 为演示实现：暂不接微信 `phonenumber.getPhoneNumber`，仅模拟写入手机号（避免 unique 冲突）。
 - 后端资料更新：`apps/api/src/modules/users/users.service.ts`
-  - `PATCH /me` 的 `avatarUrl` 当前被忽略（`void patch.avatarUrl;`），不会落库。
+  - `PATCH /me` 支持更新 `nickname/avatarUrl/regionCode` 并可回显。
 - 数据库：`apps/api/prisma/schema.prisma`
-  - `User` 目前缺少 `avatarUrl`/`wechatOpenid` 等字段。
+  - `User` 已包含 `avatarUrl/wechatOpenid/phone` 等字段（手机号允许为空）。
 
-## 推荐实现（P0：不引入新接口，复用现有 OpenAPI）
+## 推荐实现（P0：小程序优先，先跑通演示）
 
 ### A. 登录（先跑通，不强依赖外接）
 
@@ -50,6 +55,17 @@ P0 允许两种模式共存（便于最快落地与后续升级）：
 
 - Demo 模式（默认）：未配置 `WX_MP_APPID/WX_MP_SECRET` 时，继续返回 demo 用户（仅本地/演示）。
 - Real 模式（可切换）：配置 `WX_MP_APPID/WX_MP_SECRET` 后，服务端走 `code2Session` → openid 映射用户。
+
+### A2. 登录后手机号授权绑定（P0：弹窗，可跳过）
+
+目标：把“绑定手机号”放在身份选择之前做一次轻提示，提升咨询/交易触达率；允许用户跳过。
+
+1. 微信登录成功后，若 `user.phone` 为空：
+   - 弹窗展示“授权手机号”（按钮 `open-type="getPhoneNumber"`）+ “暂不授权”。
+2. 用户授权成功：
+   - 小程序拿到 `phoneCode` → 调用 `POST /auth/wechat/phone-bind { phoneCode }` 绑定手机号。
+3. 授权失败/拒绝/点击暂不授权：
+   - 直接进入身份选择页；后续可在资料设置继续绑定。
 
 ### B. 头像/昵称资料补全（微信合规、最快）
 

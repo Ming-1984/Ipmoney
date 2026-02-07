@@ -4,26 +4,29 @@ flowchart TB
     direction TB
     Pad[" "]:::pad
     TopBar["顶部：搜索 + 地区选择（LBS）<br/>• 搜索：专利号/关键词/企业/发明人/书画作品<br/>• 地区：授权定位/手动选择（同城/同省优先）"]
-    Banner["Banner 轮播<br/>• 活动/政策/专题<br/>• 后台可配置"]
-    Grid["快捷入口 Grid<br/>• 沉睡专利（直达搜索）<br/>• 书画专区/技术经理人<br/>• 发明人榜/专利地图/机构展示"]
-    Marquee["数据快报 Marquee<br/>• 成交播报/新增数量"]
-    Orgs["入驻机构展示（新增）<br/>• 企业/科研院校（审核通过后展示）<br/>• Logo/名称滑动列表；更多→机构列表"]
-    Tabs["最新推荐区<br/>• 专利/书画作品推荐<br/>• 点击卡片进入详情"]
+    Grid["快捷入口（5 个一排）<br/>• 发明人榜/专利地图/书画专区/产学研需求/成果转化<br/>• 图标无纯色底（仅保留图标）"]
+    Marquee["公告条（滚动）<br/>• 默认展示最新 3 条<br/>• 点击任意公告进入公告列表页"]
+    Banner["Banner（单张）<br/>• 当前仅展示 1 张（无切换圆点）<br/>• 活动/政策/专题"]
+    Zones["特色专区（2×2 海报卡）<br/>• 沉睡专利/高新退役/产业集群/开放许可<br/>• 使用本地图片作为背景"]
+    Latest["最新专利（列表）<br/>• 复用 ListingCard<br/>• 点击进入挂牌详情"]
     Pad --> TopBar
-    TopBar --> Banner --> Grid --> Marquee --> Orgs --> Tabs
+    TopBar --> Grid --> Marquee --> Banner --> Zones --> Latest
   end
 
   SearchResult["进入：搜索页"]
-  Detail["进入：详情页"]
-  Publish["进入：发布页"]
+  Detail["进入：挂牌详情页"]
+  Announcements["进入：公告列表页"]
   Map["进入：专利地图页"]
-  CS["进入：聊天/咨询页"]
+  Inventors["进入：发明人榜页"]
+  ClusterPicker["进入：产业集群选择页"]
 
   TopBar --> SearchResult
-  Tabs --> Detail
-  Grid --> Publish
   Grid --> Map
-  Grid --> CS
+  Grid --> Inventors
+  Marquee --> Announcements
+  Zones --> SearchResult
+  Zones --> ClusterPicker
+  Latest --> Detail
 
   classDef pad fill:transparent,stroke:transparent,color:transparent;
   linkStyle 0 stroke:transparent,fill:transparent;

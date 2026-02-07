@@ -36,3 +36,5 @@
 
 ## 新增
 - `flow-user-center.mmd`：用户中心（我的）导航与分区流程图
+- `sequence-wechat-phone-bind.mmd`：微信手机号授权绑定时序
+- `sequence-wechat-login-onboarding.mmd`：微信登录 → 手机号授权弹窗 → 身份选择时序
