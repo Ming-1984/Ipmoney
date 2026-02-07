@@ -1,5 +1,6 @@
 import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 
+import { addAuditLog } from '../audit-store';
 import { createDemand, getDemand, listDemands, seedIfEmpty, updateDemand } from '../content-store';
 
 type Paged<T> = { items: T[]; page: { page: number; pageSize: number; total: number } };
@@ -10,7 +11,7 @@ export class DemandsService {
     if (!req?.auth?.userId) throw new ForbiddenException({ code: 'FORBIDDEN', message: '无权限' });
   }
 
-  private ensureAdmin(req: any) {
+  ensureAdmin(req: any) {
     if (!req?.auth?.isAdmin) throw new ForbiddenException({ code: 'FORBIDDEN', message: '无权限' });
   }
 
@@ -103,13 +104,18 @@ export class DemandsService {
     this.ensureAdmin(req);
     const item = getDemand(demandId);
     if (!item) throw new NotFoundException({ code: 'NOT_FOUND', message: '需求不存在' });
-    return updateDemand(demandId, { auditStatus: 'APPROVED', status: item.status === 'DRAFT' ? 'ACTIVE' : item.status });
+    addAuditLog('DEMAND', demandId, 'APPROVE', undefined, req?.auth?.userId || undefined);
+    return updateDemand(demandId, {
+      auditStatus: 'APPROVED',
+      status: item.status === 'DRAFT' ? 'ACTIVE' : item.status,
+    });
   }
 
   adminReject(req: any, demandId: string, _body: any) {
     this.ensureAdmin(req);
     const item = getDemand(demandId);
     if (!item) throw new NotFoundException({ code: 'NOT_FOUND', message: '需求不存在' });
+    addAuditLog('DEMAND', demandId, 'REJECT', _body?.reason, req?.auth?.userId || undefined);
     return updateDemand(demandId, { auditStatus: 'REJECTED' });
   }
 }

@@ -50,9 +50,9 @@
 - 统一 `ErrorCard` 使用 `onRetry`，修复搜索页错误态；类型检查通过。  
 - 移除专利详情多路由子页面（summary/info/comments）路由配置，保持单页滚动结构。  
 - 新增后台“订单详情/里程碑”页面并接入路由与入口。  
-- 新增上架审核“详情”抽屉入口，占位展示材料与审核记录。  
+- 新增上架审核“详情”抽屉入口，并接入材料/审计日志占位接口。  
 - 新增后端 listings 模块：后台列表/详情/通过/驳回/特色置顶。  
-- 需求/成果/书画审核详情页补齐“材料/审计日志”区块占位。  
+- 需求/成果/书画审核详情页接入材料/审计日志占位接口并展示。  
 - 新增后端 orders 模块：订单创建/列表/详情、支付意图、里程碑、退款、发票、结算/放款。  
 - 新增后端 conversations 模块：会话列表、消息收发、已读；补齐挂牌咨询埋点。  
 - 新增后端 comments 模块：公开评论列表与新增/编辑/删除。  
@@ -61,6 +61,12 @@
 - 新增后端 announcements/notifications/contracts/organizations/tech-managers/inventors 模块。  
 - 补齐 listings 前台/发布接口（创建/更新/提交/下架/公开详情/搜索/我的列表）。  
 - 新增后端 addresses 模块与认证审核接口（/me/verification、/admin/user-verifications）。  
+- 新增后台工单/争议、报表导出、账号权限页面与路由。  
+- 新增后端 cases/rbac/reports 模块（占位接口）。  
+- 新增后台配置中心：Banner/客服设置/类目字典/敏感词/热门搜索（占位接口）。  
+- 工单详情支持证据上传与 SLA 截止设置（占位）。  
+- RBAC 接入权限校验与审计日志（占位）。  
+- 配置中心接入权限校验与审计日志（占位）。  
 
 ## 5. 全面检查结论（对齐 & 后端准备度）
 
@@ -88,20 +94,20 @@
 - **详情页结构：已对齐**（专利/需求/成果均为单页滚动 + Sticky Tab）。
 
 ### 6.2 管理后台（admin-web）对齐结果
-- **已覆盖：** 仪表盘、用户认证、内容审核（专利/需求/成果/书画）、订单列表（含退款/结算/发票）、订单详情/里程碑、地图数据、系统配置、技术经理人、评论管理。
+- **已覆盖：** 仪表盘、用户认证、内容审核（专利/需求/成果/书画）、订单列表（含退款/结算/发票）、订单详情/里程碑、地图数据、系统配置（含 Banner/客服/类目/敏感词/热门搜索占位）、技术经理人、评论管理、工单/争议、报表导出、账号权限（RBAC）。
 - **缺失/偏差（P0）：**
-  - **内容审核材料/审计日志**仍缺后端支撑，仅提供详情入口占位。
+  - **内容审核材料/审计日志**已接入占位接口，仍需真实落库与权限/文件流转。
 - **P1 预留（缺失合理）：** 平台内容库、AI 解析复核、托管监控、告警中心。
 
 ### 6.3 后端（API）对齐结果
-- **已覆盖模块：** auth、users、regions、patents、patent-map、files、config、listings、orders、conversations、comments、favorites、demands、achievements、artworks、announcements、notifications、contracts、organizations、tech-managers、inventors、addresses、verification（用户/后台审核）。
+- **已覆盖模块：** auth、users、regions、patents、patent-map、files、config（含 Banner/客服/类目/敏感词/热门搜索占位）、listings、orders、conversations、comments、favorites、demands、achievements、artworks、announcements、notifications、contracts、organizations、tech-managers、inventors、addresses、verification（用户/后台审核）、cases、rbac、reports。
 - **注意：** 当前部分模块为“内存/占位实现”（非持久化），用于前后端联调与流程对齐；后续需按数据库模型补齐持久化。
 - **仍缺后端能力：** 通知中心真实数据来源、合同/发票真实文件上传与权限控制（当前为占位）。
 
 ### 6.4 结论（是否“全面对齐”）
 - **前端：P0 页面已对齐骨架与需求。**
-- **后台：P0 关键页面基本对齐，材料/审计日志待后端支持。**
-- **后端：P0 接口已补齐（部分为内存/占位），可进入后端正式开发与持久化落库阶段，但仍需补齐地址/资料设置/认证审核与文件流转。**
+- **后台：P0 关键页面基本对齐，材料/审计日志已接入占位接口，仍需后端落库与权限/文件流转。**
+- **后端：P0 接口已补齐（部分为内存/占位），可进入后端正式开发与持久化落库阶段，但仍需补齐文件流转/审计/权限等。**
 
 ## 7. TODO 执行清单（继续对齐）
 

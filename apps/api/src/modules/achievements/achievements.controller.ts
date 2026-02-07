@@ -1,6 +1,7 @@
 import { Body, Controller, Get, Param, Patch, Post, Query, Req, UseGuards } from '@nestjs/common';
 
 import { BearerAuthGuard } from '../../common/guards/bearer-auth.guard';
+import { getAuditLogs, getAuditMaterials } from '../audit-store';
 import { AchievementsService } from './achievements.service';
 
 @Controller()
@@ -57,6 +58,20 @@ export class AchievementsController {
   @Get('/admin/achievements')
   async listAdmin(@Req() req: any, @Query() query: any) {
     return await this.achievements.listAdmin(req, query);
+  }
+
+  @UseGuards(BearerAuthGuard)
+  @Get('/admin/achievements/:achievementId/materials')
+  async getMaterials(@Req() req: any, @Param('achievementId') achievementId: string) {
+    this.achievements.ensureAdmin(req);
+    return { items: getAuditMaterials('ACHIEVEMENT', achievementId) };
+  }
+
+  @UseGuards(BearerAuthGuard)
+  @Get('/admin/achievements/:achievementId/audit-logs')
+  async getAuditLogs(@Req() req: any, @Param('achievementId') achievementId: string) {
+    this.achievements.ensureAdmin(req);
+    return { items: getAuditLogs('ACHIEVEMENT', achievementId) };
   }
 
   @UseGuards(BearerAuthGuard)

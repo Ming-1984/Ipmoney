@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 
 import { PrismaModule } from './common/prisma/prisma.module';
+import { AuditLogService } from './common/audit-log.service';
 import { HealthController } from './health.controller';
 import { AuthModule } from './modules/auth/auth.module';
 import { ConfigModule } from './modules/config/config.module';
@@ -24,6 +25,9 @@ import { OrganizationsModule } from './modules/organizations/organizations.modul
 import { TechManagersModule } from './modules/tech-managers/tech-managers.module';
 import { InventorsModule } from './modules/inventors/inventors.module';
 import { AddressesModule } from './modules/addresses/addresses.module';
+import { CasesModule } from './modules/cases/cases.module';
+import { RbacModule } from './modules/rbac/rbac.module';
+import { ReportsModule } from './modules/reports/reports.module';
 
 @Module({
   imports: [
@@ -50,7 +54,11 @@ import { AddressesModule } from './modules/addresses/addresses.module';
     TechManagersModule,
     InventorsModule,
     AddressesModule,
+    CasesModule,
+    RbacModule,
+    ReportsModule,
   ],
   controllers: [HealthController],
+  providers: [AuditLogService],
 })
 export class AppModule {}

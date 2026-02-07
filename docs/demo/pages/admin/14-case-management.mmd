@@ -1,0 +1,15 @@
+﻿%%{init: {'theme':'base','flowchart': {'htmlLabels': true},'themeVariables': {'fontFamily': 'Inter, Microsoft YaHei, sans-serif','lineColor':'#64748B','primaryTextColor':'#0F172A','primaryBorderColor':'#CBD5E1','primaryColor':'#F8FAFC'}}}%%
+flowchart TB
+  subgraph P["14 客服工单/争议处理（PC 后台）"]
+    direction TB
+    Pad[" "]:::pad
+    List["工单列表<br/>• 类型：订单跟单/退款争议/审核补材料<br/>• 状态：新建/处理中/待补材料/已完成/已关闭<br/>• 关联订单/用户/客服"]
+    Detail["工单详情<br/>• 基本信息/关联订单<br/>• 责任人（客服）与分配记录<br/>• 进展时间线/备注"]
+    Evidence["证据与附件<br/>• 合同/聊天记录/回执/凭证<br/>• 上传/下载权限控制"]
+    Actions["操作<br/>• 分配/转派客服<br/>• 状态流转与超时提醒<br/>• 结论归档（可升级法务）"]
+    Pad --> List
+    List --> Detail --> Evidence --> Actions
+  end
+
+  classDef pad fill:transparent,stroke:transparent,color:transparent;
+  linkStyle 0 stroke:transparent,fill:transparent;

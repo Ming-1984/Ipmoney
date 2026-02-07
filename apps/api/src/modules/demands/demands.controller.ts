@@ -1,6 +1,7 @@
 import { Body, Controller, Get, Param, Patch, Post, Query, Req, UseGuards } from '@nestjs/common';
 
 import { BearerAuthGuard } from '../../common/guards/bearer-auth.guard';
+import { getAuditLogs, getAuditMaterials } from '../audit-store';
 import { DemandsService } from './demands.service';
 
 @Controller()
@@ -57,6 +58,20 @@ export class DemandsController {
   @Get('/admin/demands')
   async listAdmin(@Req() req: any, @Query() query: any) {
     return await this.demands.listAdmin(req, query);
+  }
+
+  @UseGuards(BearerAuthGuard)
+  @Get('/admin/demands/:demandId/materials')
+  async getMaterials(@Req() req: any, @Param('demandId') demandId: string) {
+    this.demands.ensureAdmin(req);
+    return { items: getAuditMaterials('DEMAND', demandId) };
+  }
+
+  @UseGuards(BearerAuthGuard)
+  @Get('/admin/demands/:demandId/audit-logs')
+  async getAuditLogs(@Req() req: any, @Param('demandId') demandId: string) {
+    this.demands.ensureAdmin(req);
+    return { items: getAuditLogs('DEMAND', demandId) };
   }
 
   @UseGuards(BearerAuthGuard)

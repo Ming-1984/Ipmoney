@@ -1,4 +1,4 @@
-import { Button, Card, Form, InputNumber, Space, Switch, Typography, message } from 'antd';
+import { Button, Card, Form, Input, InputNumber, Select, Space, Switch, Typography, message } from 'antd';
 import React, { useCallback, useEffect, useState } from 'react';
 
 import { apiGet, apiPut } from '../lib/api';
@@ -39,10 +39,65 @@ type RecommendationConfig = {
   updatedAt?: string;
 };
 
+type BannerConfig = {
+  items: {
+    id: string;
+    title: string;
+    imageUrl: string;
+    linkUrl?: string;
+    enabled: boolean;
+    order: number;
+  }[];
+};
+
+type CustomerServiceConfig = {
+  phone: string;
+  defaultReply: string;
+  assignStrategy: 'AUTO' | 'MANUAL';
+};
+
+type TaxonomyConfig = {
+  industries: string[];
+  ipcMappings: string[];
+  locMappings: string[];
+  artworkCategories: string[];
+  calligraphyStyles: string[];
+  paintingThemes: string[];
+  artworkMaterials: string[];
+};
+
+type SensitiveWordsConfig = {
+  words: string[];
+};
+
+type HotSearchConfig = {
+  keywords: string[];
+};
+
+function toList(value: string) {
+  return value
+    .split(/[,，\n]/)
+    .map((v) => v.trim())
+    .filter(Boolean);
+}
+
 export function ConfigPage() {
   const [loading, setLoading] = useState(false);
   const [tradeForm] = Form.useForm();
   const [recForm] = Form.useForm();
+  const [bannerJson, setBannerJson] = useState('');
+  const [csPhone, setCsPhone] = useState('');
+  const [csDefaultReply, setCsDefaultReply] = useState('');
+  const [csAssignStrategy, setCsAssignStrategy] = useState<CustomerServiceConfig['assignStrategy']>('AUTO');
+  const [taxonomyIndustries, setTaxonomyIndustries] = useState('');
+  const [taxonomyIpc, setTaxonomyIpc] = useState('');
+  const [taxonomyLoc, setTaxonomyLoc] = useState('');
+  const [taxonomyArtworkCategories, setTaxonomyArtworkCategories] = useState('');
+  const [taxonomyCalligraphyStyles, setTaxonomyCalligraphyStyles] = useState('');
+  const [taxonomyPaintingThemes, setTaxonomyPaintingThemes] = useState('');
+  const [taxonomyArtworkMaterials, setTaxonomyArtworkMaterials] = useState('');
+  const [sensitiveWords, setSensitiveWords] = useState('');
+  const [hotSearchKeywords, setHotSearchKeywords] = useState('');
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -59,6 +114,28 @@ export function ConfigPage() {
 
       const rec = await apiGet<RecommendationConfig>('/admin/config/recommendation');
       recForm.setFieldsValue(rec);
+
+      const [banner, cs, taxonomy, sensitive, hotSearch] = await Promise.all([
+        apiGet<BannerConfig>('/admin/config/banner'),
+        apiGet<CustomerServiceConfig>('/admin/config/customer-service'),
+        apiGet<TaxonomyConfig>('/admin/config/taxonomy'),
+        apiGet<SensitiveWordsConfig>('/admin/config/sensitive-words'),
+        apiGet<HotSearchConfig>('/admin/config/hot-search'),
+      ]);
+
+      setBannerJson(JSON.stringify(banner, null, 2));
+      setCsPhone(cs.phone || '');
+      setCsDefaultReply(cs.defaultReply || '');
+      setCsAssignStrategy(cs.assignStrategy || 'AUTO');
+      setTaxonomyIndustries((taxonomy.industries || []).join('，'));
+      setTaxonomyIpc((taxonomy.ipcMappings || []).join('，'));
+      setTaxonomyLoc((taxonomy.locMappings || []).join('，'));
+      setTaxonomyArtworkCategories((taxonomy.artworkCategories || []).join('，'));
+      setTaxonomyCalligraphyStyles((taxonomy.calligraphyStyles || []).join('，'));
+      setTaxonomyPaintingThemes((taxonomy.paintingThemes || []).join('，'));
+      setTaxonomyArtworkMaterials((taxonomy.artworkMaterials || []).join('，'));
+      setSensitiveWords((sensitive.words || []).join('，'));
+      setHotSearchKeywords((hotSearch.keywords || []).join('，'));
     } catch (e: any) {
       message.error(e?.message || '加载失败');
     } finally {
@@ -192,6 +269,255 @@ export function ConfigPage() {
             保存交易规则
           </Button>
         </Form>
+      </Card>
+
+      <Card loading={loading}>
+        <Typography.Title level={3} style={{ marginTop: 0 }}>
+          Banner 配置
+        </Typography.Title>
+        <Typography.Paragraph type="secondary">
+          维护首页轮播图（建议 JSON 编辑；保存前请确保格式正确）。
+        </Typography.Paragraph>
+        <Input.TextArea
+          value={bannerJson}
+          onChange={(e) => setBannerJson(e.target.value)}
+          rows={8}
+        />
+        <Space style={{ marginTop: 12 }}>
+          <Button
+            type="primary"
+            onClick={async () => {
+              const { ok, reason } = await confirmActionWithReason({
+                title: '确认保存 Banner 配置？',
+                content: '保存后将影响首页轮播图展示。',
+                okText: '保存',
+                reasonLabel: '变更原因（建议填写）',
+              });
+              if (!ok) return;
+              try {
+                const payload = JSON.parse(bannerJson) as BannerConfig;
+                await apiPut<BannerConfig>('/admin/config/banner', payload);
+                message.success('已保存');
+                void load();
+              } catch (e: any) {
+                message.error(e?.message || '保存失败，检查 JSON 格式');
+              }
+            }}
+          >
+            保存 Banner
+          </Button>
+        </Space>
+      </Card>
+
+      <Card loading={loading}>
+        <Typography.Title level={3} style={{ marginTop: 0 }}>
+          客服设置
+        </Typography.Title>
+        <Space wrap size={16}>
+          <Input
+            value={csPhone}
+            onChange={(e) => setCsPhone(e.target.value)}
+            style={{ width: 220 }}
+            placeholder="客服电话"
+          />
+          <Select
+            value={csAssignStrategy}
+            style={{ width: 180 }}
+            options={[
+              { value: 'AUTO', label: '自动分配' },
+              { value: 'MANUAL', label: '手动分配' },
+            ]}
+            onChange={(v) => setCsAssignStrategy(v as CustomerServiceConfig['assignStrategy'])}
+          />
+        </Space>
+        <Input.TextArea
+          value={csDefaultReply}
+          onChange={(e) => setCsDefaultReply(e.target.value)}
+          rows={3}
+          style={{ marginTop: 12 }}
+          placeholder="默认自动回复语"
+        />
+        <Space style={{ marginTop: 12 }}>
+          <Button
+            type="primary"
+            onClick={async () => {
+              const { ok, reason } = await confirmActionWithReason({
+                title: '确认保存客服设置？',
+                content: '保存后将影响前端客服展示与默认回复。',
+                okText: '保存',
+                reasonLabel: '变更原因（建议填写）',
+              });
+              if (!ok) return;
+              try {
+                await apiPut<CustomerServiceConfig>('/admin/config/customer-service', {
+                  phone: csPhone,
+                  defaultReply: csDefaultReply,
+                  assignStrategy: csAssignStrategy,
+                });
+                message.success('已保存');
+              } catch (e: any) {
+                message.error(e?.message || '保存失败');
+              }
+            }}
+          >
+            保存客服设置
+          </Button>
+        </Space>
+      </Card>
+
+      <Card loading={loading}>
+        <Typography.Title level={3} style={{ marginTop: 0 }}>
+          类目与标签
+        </Typography.Title>
+        <Typography.Paragraph type="secondary">
+          使用逗号或换行分隔；保存后用于筛选与展示。
+        </Typography.Paragraph>
+        <Space direction="vertical" size={12} style={{ width: '100%' }}>
+          <Input.TextArea
+            value={taxonomyIndustries}
+            onChange={(e) => setTaxonomyIndustries(e.target.value)}
+            rows={2}
+            placeholder="行业领域"
+          />
+          <Input.TextArea
+            value={taxonomyIpc}
+            onChange={(e) => setTaxonomyIpc(e.target.value)}
+            rows={2}
+            placeholder="IPC 分类映射"
+          />
+          <Input.TextArea
+            value={taxonomyLoc}
+            onChange={(e) => setTaxonomyLoc(e.target.value)}
+            rows={2}
+            placeholder="LOC 分类映射"
+          />
+          <Input.TextArea
+            value={taxonomyArtworkCategories}
+            onChange={(e) => setTaxonomyArtworkCategories(e.target.value)}
+            rows={2}
+            placeholder="书画类别"
+          />
+          <Input.TextArea
+            value={taxonomyCalligraphyStyles}
+            onChange={(e) => setTaxonomyCalligraphyStyles(e.target.value)}
+            rows={2}
+            placeholder="书法书体"
+          />
+          <Input.TextArea
+            value={taxonomyPaintingThemes}
+            onChange={(e) => setTaxonomyPaintingThemes(e.target.value)}
+            rows={2}
+            placeholder="国画题材"
+          />
+          <Input.TextArea
+            value={taxonomyArtworkMaterials}
+            onChange={(e) => setTaxonomyArtworkMaterials(e.target.value)}
+            rows={2}
+            placeholder="材质字典"
+          />
+        </Space>
+        <Space style={{ marginTop: 12 }}>
+          <Button
+            type="primary"
+            onClick={async () => {
+              const { ok, reason } = await confirmActionWithReason({
+                title: '确认保存类目与标签？',
+                content: '保存后将影响发布与筛选选项。',
+                okText: '保存',
+                reasonLabel: '变更原因（建议填写）',
+              });
+              if (!ok) return;
+              try {
+                await apiPut<TaxonomyConfig>('/admin/config/taxonomy', {
+                  industries: toList(taxonomyIndustries),
+                  ipcMappings: toList(taxonomyIpc),
+                  locMappings: toList(taxonomyLoc),
+                  artworkCategories: toList(taxonomyArtworkCategories),
+                  calligraphyStyles: toList(taxonomyCalligraphyStyles),
+                  paintingThemes: toList(taxonomyPaintingThemes),
+                  artworkMaterials: toList(taxonomyArtworkMaterials),
+                });
+                message.success('已保存');
+              } catch (e: any) {
+                message.error(e?.message || '保存失败');
+              }
+            }}
+          >
+            保存类目与标签
+          </Button>
+        </Space>
+      </Card>
+
+      <Card loading={loading}>
+        <Typography.Title level={3} style={{ marginTop: 0 }}>
+          敏感词库
+        </Typography.Title>
+        <Input.TextArea
+          value={sensitiveWords}
+          onChange={(e) => setSensitiveWords(e.target.value)}
+          rows={3}
+          placeholder="敏感词（逗号或换行分隔）"
+        />
+        <Space style={{ marginTop: 12 }}>
+          <Button
+            type="primary"
+            onClick={async () => {
+              const { ok, reason } = await confirmActionWithReason({
+                title: '确认保存敏感词？',
+                content: '保存后将用于审核与过滤。',
+                okText: '保存',
+                reasonLabel: '变更原因（建议填写）',
+              });
+              if (!ok) return;
+              try {
+                await apiPut<SensitiveWordsConfig>('/admin/config/sensitive-words', {
+                  words: toList(sensitiveWords),
+                });
+                message.success('已保存');
+              } catch (e: any) {
+                message.error(e?.message || '保存失败');
+              }
+            }}
+          >
+            保存敏感词
+          </Button>
+        </Space>
+      </Card>
+
+      <Card loading={loading}>
+        <Typography.Title level={3} style={{ marginTop: 0 }}>
+          热门搜索词
+        </Typography.Title>
+        <Input.TextArea
+          value={hotSearchKeywords}
+          onChange={(e) => setHotSearchKeywords(e.target.value)}
+          rows={3}
+          placeholder="热门搜索词（逗号或换行分隔）"
+        />
+        <Space style={{ marginTop: 12 }}>
+          <Button
+            type="primary"
+            onClick={async () => {
+              const { ok, reason } = await confirmActionWithReason({
+                title: '确认保存热门搜索词？',
+                content: '保存后将用于前端搜索推荐。',
+                okText: '保存',
+                reasonLabel: '变更原因（建议填写）',
+              });
+              if (!ok) return;
+              try {
+                await apiPut<HotSearchConfig>('/admin/config/hot-search', {
+                  keywords: toList(hotSearchKeywords),
+                });
+                message.success('已保存');
+              } catch (e: any) {
+                message.error(e?.message || '保存失败');
+              }
+            }}
+          >
+            保存热门搜索词
+          </Button>
+        </Space>
       </Card>
 
       <Card loading={loading}>

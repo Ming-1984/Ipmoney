@@ -8,6 +8,7 @@ import {
 import { Prisma } from '@prisma/client';
 
 import { PrismaService } from '../../common/prisma/prisma.service';
+import { addAuditLog } from '../audit-store';
 
 const DEMO_USER_ID = '99999999-9999-9999-9999-999999999999';
 
@@ -272,6 +273,7 @@ export class UsersService {
       },
       include: { logoFile: true },
     });
+    addAuditLog('VERIFICATION', id, 'APPROVE', comment);
     return this.toUserVerificationDto(updated);
   }
 
@@ -289,6 +291,7 @@ export class UsersService {
       },
       include: { logoFile: true },
     });
+    addAuditLog('VERIFICATION', id, 'REJECT', r);
     return this.toUserVerificationDto(updated);
   }
 

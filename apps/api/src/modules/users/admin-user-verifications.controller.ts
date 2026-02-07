@@ -1,6 +1,7 @@
 import { Body, Controller, Get, Param, Post, Query, UseGuards } from '@nestjs/common';
 
 import { BearerAuthGuard } from '../../common/guards/bearer-auth.guard';
+import { getAuditLogs, getAuditMaterials } from '../audit-store';
 import { UsersService } from './users.service';
 
 @UseGuards(BearerAuthGuard)
@@ -34,5 +35,14 @@ export class AdminUserVerificationsController {
   async reject(@Param('verificationId') verificationId: string, @Body() body: { reason: string }) {
     return await this.users.adminRejectVerification(verificationId, body?.reason);
   }
-}
 
+  @Get('/:verificationId/materials')
+  async materials(@Param('verificationId') verificationId: string) {
+    return { items: getAuditMaterials('VERIFICATION', verificationId) };
+  }
+
+  @Get('/:verificationId/audit-logs')
+  async auditLogs(@Param('verificationId') verificationId: string) {
+    return { items: getAuditLogs('VERIFICATION', verificationId) };
+  }
+}
