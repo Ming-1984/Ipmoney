@@ -85,11 +85,11 @@ export default function RegionPickerPage() {
   }, [pathCodes, pathNames, pickerLevel, selectedCode, selectedName]);
 
   return (
-    <View className="container">
+    <View className="container region-picker-page">
       <PageHeader title="选择地区" subtitle="使用系统区域库进行省/市/区分级选择" />
       <Spacer />
 
-      <Surface>
+      <Surface className="region-picker-card">
         <Text className="text-strong">选择层级</Text>
         <View style={{ height: '10rpx' }} />
         <Segmented value={pickerLevel} options={LEVEL_OPTIONS} onChange={(v) => handleLevelChange(v as PickerLevel)} />
@@ -98,17 +98,17 @@ export default function RegionPickerPage() {
       <View style={{ height: '12rpx' }} />
 
       <Picker mode="region" level={pickerLevel} value={pathNames} onChange={handleChange}>
-        <Surface>
-          <Text className="muted">当前选择：{selectedPathLabel}</Text>
+        <Surface className="region-picker-card">
+          <Text className="muted region-picker-current">当前选择：{selectedPathLabel}</Text>
           <View style={{ height: '6rpx' }} />
-          <Text className="muted">点击此处选择地区</Text>
+          <Text className="muted region-picker-tip">点击此处选择地区</Text>
         </Surface>
       </Picker>
 
       <View style={{ height: '16rpx' }} />
 
-      <Surface>
-        <Button onClick={confirmPick} disabled={!selectedCode}>
+      <Surface className="region-picker-actions">
+        <Button className="region-picker-confirm" onClick={confirmPick} disabled={!selectedCode}>
           确认选择
         </Button>
       </Surface>

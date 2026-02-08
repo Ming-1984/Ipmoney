@@ -91,17 +91,20 @@ function getScenario(): string {
 
 const SHOULD_USE_OFFLINE_MOCK = ENABLE_MOCK_TOOLS || API_BASE_URL.includes('127.0.0.1') || API_BASE_URL.includes('localhost');
 
-function maybeOffline<T>(method: string, path: string): T | null {
+function maybeOffline(method: string, path: string, body?: any) {
   if (!SHOULD_USE_OFFLINE_MOCK) return null;
-  return getOfflineMock<T>(method, path);
+  return getOfflineMock(method, path, body);
 }
 
 export async function apiGet<TResponse>(
   path: string,
   params?: Record<string, any>,
 ): Promise<TResponse> {
-  const offline = maybeOffline<TResponse>('GET', path);
-  if (offline) return offline;
+  const offline = maybeOffline('GET', path, params);
+  if (offline !== null) {
+    if (offline.status >= 200 && offline.status < 300) return offline.body as TResponse;
+    throw normalizeHttpError(offline.status, offline.body);
+  }
 
   let res: Taro.request.SuccessCallbackResult<any>;
   try {
@@ -130,8 +133,11 @@ export async function apiPost<TResponse>(
   body?: any,
   opts?: { idempotencyKey?: string },
 ): Promise<TResponse> {
-  const offline = maybeOffline<TResponse>('POST', path);
-  if (offline) return offline;
+  const offline = maybeOffline('POST', path, body);
+  if (offline !== null) {
+    if (offline.status >= 200 && offline.status < 300) return offline.body as TResponse;
+    throw normalizeHttpError(offline.status, offline.body);
+  }
 
   let res: Taro.request.SuccessCallbackResult<any>;
   try {
@@ -162,8 +168,11 @@ export async function apiPatch<TResponse>(
   body?: any,
   opts?: { idempotencyKey?: string },
 ): Promise<TResponse> {
-  const offline = maybeOffline<TResponse>('PATCH', path);
-  if (offline) return offline;
+  const offline = maybeOffline('PATCH', path, body);
+  if (offline !== null) {
+    if (offline.status >= 200 && offline.status < 300) return offline.body as TResponse;
+    throw normalizeHttpError(offline.status, offline.body);
+  }
 
   let res: Taro.request.SuccessCallbackResult<any>;
   try {
@@ -194,7 +203,10 @@ export async function apiDelete(
   opts?: { idempotencyKey?: string },
 ): Promise<void> {
   const offline = maybeOffline('DELETE', path);
-  if (offline !== null) return;
+  if (offline !== null) {
+    if (offline.status >= 200 && offline.status < 300) return;
+    throw normalizeHttpError(offline.status, offline.body);
+  }
 
   let res: Taro.request.SuccessCallbackResult<any>;
   try {

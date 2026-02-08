@@ -102,7 +102,7 @@ export default function FinalSuccessPage() {
               </View>
               <View className="pay-result-bullet">
                 <View className="pay-result-dot" />
-                <Text>可在消息中与客服/对方沟通并留痕，减少争议。</Text>
+                <Text>可在消息中与对方沟通并留痕；如需客服协助可电话联系。</Text>
               </View>
             </View>
           </Surface>

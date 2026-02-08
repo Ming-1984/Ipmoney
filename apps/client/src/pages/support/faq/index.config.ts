@@ -1,4 +1,4 @@
-export default definePageConfig({
-  navigationBarTitleText: '常见问题',
+锘縠xport default definePageConfig({
+  navigationBarTitleText: '甯歌闂',
   navigationStyle: 'custom',
 });

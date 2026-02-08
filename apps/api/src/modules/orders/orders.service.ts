@@ -250,9 +250,25 @@ export class OrdersService {
     const pageSize = Math.min(50, Math.max(1, Number(query?.pageSize || 20)));
     const asRole = String(query?.asRole || 'BUYER').toUpperCase() as OrderListRole;
     const status = String(query?.status || '').trim();
+    const statusGroup = String(query?.statusGroup || '').trim();
 
     const where: any = {};
-    if (status) where.status = status;
+    if (status) {
+      where.status = status;
+    } else if (statusGroup) {
+      const g = statusGroup.toUpperCase();
+      const inStatuses =
+        g === 'PAYMENT_PENDING'
+          ? ['DEPOSIT_PENDING', 'WAIT_FINAL_PAYMENT']
+          : g === 'IN_PROGRESS'
+            ? ['DEPOSIT_PAID', 'FINAL_PAID_ESCROW', 'READY_TO_SETTLE']
+            : g === 'REFUND'
+              ? ['REFUNDING', 'REFUNDED']
+              : g === 'DONE'
+                ? ['COMPLETED', 'CANCELLED']
+                : [];
+      if (inStatuses.length) where.status = { in: inStatuses };
+    }
 
     if (asRole === 'SELLER') {
       where.listing = { sellerUserId: req.auth.userId };

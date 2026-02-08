@@ -1,4 +1,5 @@
 ﻿import { View, Text } from '@tarojs/components';
+import { Image } from '@tarojs/components';
 import Taro from '@tarojs/taro';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
@@ -11,6 +12,7 @@ import { ensureApproved } from '../lib/guard';
 import { SectionHeader, Spacer, Surface } from './layout';
 import type { SectionHeaderAccent } from './layout/SectionHeader';
 import { Avatar, Button, Empty, Tag, TextArea, confirm, toast } from './nutui';
+import emptyComments from '../assets/illustrations/empty-comments.svg';
 
 type CommentContentType = components['schemas']['CommentContentType'];
 type CommentStatus = components['schemas']['CommentStatus'];
@@ -509,7 +511,11 @@ export function CommentsSection(props: CommentsSectionProps) {
             );
           })
         ) : (
-          <Empty description="暂无留言" />
+          <Empty
+            image={<Image className="state-empty-ill" src={emptyComments} svg mode="aspectFit" />}
+            title="暂无评价"
+            description="还没有人评价，快来写下第一条。"
+          />
         )}
       </View>
 

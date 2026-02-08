@@ -55,4 +55,8 @@
 
 
 ## 辅助页面（纳入交付）
-- 通知中心：pages/notifications/index、pages/notifications/detail/index`n- 设置页：pages/settings/notifications/index、pages/settings/security/index`n- 合规与法律：pages/about/index、pages/legal/privacy/index、pages/legal/terms/index、pages/legal/privacy-guide/index`n- 帮助与反馈：pages/support/index、pages/support/faq/index`n- 筛选工具：pages/ipc-picker/index、pages/cluster-picker/index`n
+- 通知中心：`pages/notifications/index`、`pages/notifications/detail/index`
+- 设置页：`pages/settings/notifications/index`
+- 合规与法律：`pages/about/index`、`pages/legal/privacy/index`、`pages/legal/terms/index`、`pages/legal/privacy-guide/index`
+- 帮助与反馈：`pages/support/index`、`pages/support/faq/index`、`pages/support/faq/detail/index`、`pages/support/contact/index`
+- 筛选工具：`pages/ipc-picker/index`、`pages/cluster-picker/index`

@@ -19,6 +19,14 @@
       "autoPayoutOnTimeout": false
     }
   },
+  "GET /public/config/customer-service": {
+    "status": 200,
+    "body": {
+      "phone": "400-000-0000",
+      "defaultReply": "您好，已收到您的咨询，客服将在 15 分钟内联系您。",
+      "assignStrategy": "AUTO"
+    }
+  },
   "GET /search/listings": {
     "status": 200,
     "body": {

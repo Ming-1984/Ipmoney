@@ -1,0 +1,39 @@
+.faq-detail-page {
+  min-height: 100vh;
+}
+
+.faq-detail-card {
+  border-radius: 24rpx;
+  background: var(--c-card);
+  box-shadow: var(--shadow-sm);
+  padding: 24rpx;
+}
+
+.faq-detail-q {
+  font-size: 30rpx;
+  font-weight: 700;
+  color: var(--c-text);
+  line-height: 1.35;
+}
+
+.faq-detail-meta {
+  margin-top: 10rpx;
+  font-size: 22rpx;
+  color: var(--c-muted);
+}
+
+.faq-detail-a {
+  margin-top: 14rpx;
+  font-size: 26rpx;
+  color: var(--c-text);
+  line-height: 1.55;
+  white-space: pre-wrap;
+}
+
+.faq-detail-actions {
+  border-radius: 24rpx;
+  background: var(--c-card);
+  box-shadow: var(--shadow-sm);
+  padding: 12rpx 12rpx;
+}
+

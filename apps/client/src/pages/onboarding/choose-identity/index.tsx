@@ -5,7 +5,7 @@ import './index.scss';
 
 import type { components } from '@ipmoney/api-types';
 
-import { setOnboardingDone, setVerificationStatus, setVerificationType } from '../../../lib/auth';
+import { setVerificationType } from '../../../lib/auth';
 import { apiPost } from '../../../lib/api';
 import { requireLogin } from '../../../lib/guard';
 import type { VerificationType } from '../../../constants';
@@ -97,31 +97,16 @@ export default function ChooseIdentityPage() {
             className="identity-card"
             onClick={() => {
               if (!requireLogin()) return;
-              setVerificationType(t.type);
               if (t.type === 'PERSON') {
-                (async () => {
-                  try {
-                    const res = await apiPost<components['schemas']['UserVerification']>('/me/verification', {
-                      type: 'PERSON',
-                      displayName: '个人用户',
-                    });
-                    setVerificationStatus(res.status);
-                    setOnboardingDone(true);
-                    toast('注册成功', { icon: 'success' });
-                    setTimeout(() => {
-                      const pages = Taro.getCurrentPages();
-                      if (pages.length > 1) {
-                        Taro.navigateBack();
-                        return;
-                      }
-                      Taro.switchTab({ url: '/pages/home/index' });
-                    }, 200);
-                  } catch (e: any) {
-                    toast(e?.message || '提交失败');
-                  }
-                })();
+                setVerificationType('PERSON');
+                Taro.navigateTo({
+                  url: `/pages/profile/edit/index?from=login&verifyType=PERSON&nextType=switchTab&nextUrl=${encodeURIComponent(
+                    '/pages/me/index',
+                  )}`,
+                });
                 return;
               }
+              setVerificationType(t.type);
               Taro.navigateTo({ url: '/pages/onboarding/verification-form/index' });
             }}
           >

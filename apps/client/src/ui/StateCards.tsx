@@ -52,18 +52,28 @@ export function EmptyCard(props: {
   message?: string;
   actionText?: string;
   onAction?: () => void;
+  image?: string;
 }) {
   const actionText = props.actionText && props.actionText !== STATE_COPY.empty.actionText ? props.actionText : undefined;
   return (
-    <View className="card card-state">
-      <View className="row" style={{ gap: '16rpx', alignItems: 'flex-start' }}>
-        <StateIllustration kind="empty" size="md" />
-        <View className="min-w-0" style={{ flex: 1 }}>
+    <View className={`card card-state ${props.image ? 'card-state-empty' : ''}`}>
+      {props.image ? (
+        <View className="state-empty-hero">
+          <Image className="state-empty-ill" src={props.image} svg mode="aspectFit" />
           <Text className="text-title">{props.title || STATE_COPY.empty.title}</Text>
           <View style={{ height: '8rpx' }} />
           <Text className="text-subtitle">{props.message || STATE_COPY.empty.message}</Text>
         </View>
-      </View>
+      ) : (
+        <View className="row" style={{ gap: '16rpx', alignItems: 'flex-start' }}>
+          <StateIllustration kind="empty" size="md" />
+          <View className="min-w-0" style={{ flex: 1 }}>
+            <Text className="text-title">{props.title || STATE_COPY.empty.title}</Text>
+            <View style={{ height: '8rpx' }} />
+            <Text className="text-subtitle">{props.message || STATE_COPY.empty.message}</Text>
+          </View>
+        </View>
+      )}
       {actionText && props.onAction ? (
         <>
           <View style={{ height: '12rpx' }} />

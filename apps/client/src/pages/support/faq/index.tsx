@@ -1,30 +1,75 @@
-import { View, Text } from '@tarojs/components';
-import React from 'react';
+ï»¿import { View, Text } from '@tarojs/components';
+import Taro from '@tarojs/taro';
+import React, { useMemo, useState } from 'react';
 import './index.scss';
 
+import { FAQS } from './data';
 import { PageHeader, Spacer, Surface } from '../../../ui/layout';
-
-const FAQS = [
-  { q: 'ÎªÊ²Ã´ºÏÍ¬ÒªÏßÏÂÇ©£¿', a: 'Æ½Ì¨²ÉÓÃÏßÏÂºÏÍ¬ + ÏßÉÏ×Ê½ğÍĞ¹Ü£¬½µµÍµç×ÓÇ©ÓëÉí·İºËÑé³É±¾¡£' },
-  { q: '¶©½ğÄÜÍËÂğ£¿', a: '¶©½ğÖ§¸¶ºó 30 ·ÖÖÓÄÚÇÒ¿Í·şÎ´½éÈë¿ÉÎŞÀíÓÉÍË¶©½ğ£»½øÈë¸úµ¥ºó°´¹æÔò´¦Àí¡£' },
-  { q: 'Î²¿îÊ²Ã´Ê±ºòÄÜÖ§¸¶£¿', a: 'ºóÌ¨È·ÈÏºÏÍ¬Ç©Êğºó½âËøÎ²¿îÖ§¸¶Èë¿Ú¡£' },
-  { q: '·¢Æ±ÔõÃ´¿ª£¿', a: '¶©µ¥Íê³ÉºóÆ½Ì¨¿ÉÎª·şÎñ·Ñ¿ª¾ßµç×Ó·¢Æ±£¬Æ½Ì¨ÄÚÏÂÔØ¡£' },
-];
+import { Cell, Input } from '../../../ui/nutui';
 
 export default function SupportFaqPage() {
+  const [q, setQ] = useState('');
+
+  const trimmed = q.trim();
+  const filtered = useMemo(() => {
+    if (!trimmed) return FAQS;
+    const t = trimmed.toLowerCase();
+    return FAQS.filter((it) => {
+      const hay = `${it.q} ${it.category} ${(it.keywords || []).join(' ')}`.toLowerCase();
+      return hay.includes(t);
+    });
+  }, [trimmed]);
+
+  const grouped = useMemo(() => {
+    const map = new Map<string, typeof filtered>();
+    for (const it of filtered) {
+      const arr = map.get(it.category) || [];
+      arr.push(it);
+      map.set(it.category, arr);
+    }
+    return Array.from(map.entries());
+  }, [filtered]);
+
   return (
     <View className="container settings-page">
-      <PageHeader weapp back title="³£¼ûÎÊÌâ" subtitle="½»Ò×Óë¹æÔòËµÃ÷" />
+      <PageHeader weapp back title="å¸¸è§é—®é¢˜" subtitle="é—®é¢˜è§£ç­”ä¸è§„åˆ™è¯´æ˜" />
       <Spacer />
 
-      <View className="faq-list">
-        {FAQS.map((item, idx) => (
-          <Surface key={`${item.q}-${idx}`} className="faq-card">
-            <Text className="faq-q">Q£º{item.q}</Text>
-            <Text className="faq-a">A£º{item.a}</Text>
-          </Surface>
-        ))}
-      </View>
+      <Surface className="faq-search-card">
+        <Input value={q} onChange={setQ} placeholder="æœç´¢é—®é¢˜" clearable />
+      </Surface>
+
+      <Spacer size={12} />
+
+      {grouped.length ? (
+        grouped.map(([category, items]) => (
+          <View key={category}>
+            <Text className="faq-section-title">{category}</Text>
+            <Spacer size={8} />
+            <Surface className="settings-card">
+              {items.map((it) => (
+                <Cell
+                  key={it.id}
+                  title={it.q}
+                  extra="æŸ¥çœ‹"
+                  onClick={() => Taro.navigateTo({ url: `/pages/support/faq/detail/index?id=${encodeURIComponent(it.id)}` })}
+                />
+              ))}
+            </Surface>
+            <Spacer size={12} />
+          </View>
+        ))
+      ) : (
+        <Surface className="faq-empty">
+          <Text className="faq-empty-title">æœªæ‰¾åˆ°ç›¸å…³é—®é¢˜</Text>
+          <Text className="faq-empty-sub">æ¢ä¸ªå…³é”®è¯è¯•è¯•ï¼Œæˆ–è¿”å›è”ç³»å®¢æœã€‚</Text>
+        </Surface>
+      )}
+
+      <Surface className="faq-bottom-card">
+        <Cell title="äº¤æ˜“è§„åˆ™" extra="æŸ¥çœ‹" onClick={() => Taro.navigateTo({ url: '/pages/trade-rules/index' })} />
+        <Cell title="è”ç³»å®¢æœ" extra="ç”µè¯" onClick={() => Taro.navigateTo({ url: '/pages/support/contact/index' })} />
+      </Surface>
     </View>
   );
 }
