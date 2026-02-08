@@ -1,13 +1,15 @@
 import { Body, Controller, Get, Param, Post, Query, Req, UseGuards } from '@nestjs/common';
 
 import { BearerAuthGuard } from '../../common/guards/bearer-auth.guard';
+import { VerifiedUserGuard } from '../../common/guards/verified-user.guard';
+import { requirePermission } from '../../common/permissions';
 import { OrdersService } from './orders.service';
 
 @Controller()
 export class OrdersController {
   constructor(private readonly orders: OrdersService) {}
 
-  @UseGuards(BearerAuthGuard)
+  @UseGuards(BearerAuthGuard, VerifiedUserGuard)
   @Post('/orders')
   async createOrder(@Req() req: any, @Body() body: { listingId?: string; artworkId?: string }) {
     return await this.orders.createOrder(req, body || {});
@@ -25,7 +27,7 @@ export class OrdersController {
     return await this.orders.getOrderDetail(req, orderId);
   }
 
-  @UseGuards(BearerAuthGuard)
+  @UseGuards(BearerAuthGuard, VerifiedUserGuard)
   @Post('/orders/:orderId/payment-intents')
   async createPaymentIntent(
     @Req() req: any,
@@ -74,36 +76,60 @@ export class OrdersController {
   @UseGuards(BearerAuthGuard)
   @Get('/admin/orders/:orderId')
   async getAdminOrder(@Req() req: any, @Param('orderId') orderId: string) {
+    requirePermission(req, 'order.read');
     return await this.orders.getAdminOrderDetail(req, orderId);
   }
 
   @UseGuards(BearerAuthGuard)
   @Post('/admin/orders/:orderId/milestones/contract-signed')
   async adminContractSigned(@Req() req: any, @Param('orderId') orderId: string, @Body() body: any) {
+    requirePermission(req, 'milestone.contractSigned.confirm');
     return await this.orders.adminContractSigned(req, orderId, body || {});
   }
 
   @UseGuards(BearerAuthGuard)
   @Post('/admin/orders/:orderId/milestones/transfer-completed')
   async adminTransferCompleted(@Req() req: any, @Param('orderId') orderId: string, @Body() body: any) {
+    requirePermission(req, 'milestone.transferCompleted.confirm');
     return await this.orders.adminTransferCompleted(req, orderId, body || {});
   }
 
   @UseGuards(BearerAuthGuard)
   @Get('/admin/orders/:orderId/settlement')
   async getSettlement(@Req() req: any, @Param('orderId') orderId: string) {
+    requirePermission(req, 'settlement.read');
     return await this.orders.getSettlement(req, orderId);
   }
 
   @UseGuards(BearerAuthGuard)
   @Post('/admin/orders/:orderId/payouts/manual')
   async adminManualPayout(@Req() req: any, @Param('orderId') orderId: string, @Body() body: any) {
+    requirePermission(req, 'payout.manual.confirm');
     return await this.orders.adminManualPayout(req, orderId, body || {});
   }
 
   @UseGuards(BearerAuthGuard)
   @Post('/admin/orders/:orderId/invoice')
   async adminIssueInvoice(@Req() req: any, @Param('orderId') orderId: string, @Body() body: any) {
+    requirePermission(req, 'invoice.manage');
     return await this.orders.adminIssueInvoice(req, orderId, body || {});
+  }
+
+  @UseGuards(BearerAuthGuard)
+  @Post('/admin/refund-requests/:refundRequestId/approve')
+  async adminApproveRefund(@Req() req: any, @Param('refundRequestId') refundRequestId: string) {
+    requirePermission(req, 'refund.approve');
+    return await this.orders.adminApproveRefundRequest(req, refundRequestId);
+  }
+
+  @UseGuards(BearerAuthGuard)
+  @Post('/admin/refund-requests/:refundRequestId/reject')
+  async adminRejectRefund(
+    @Req() req: any,
+    @Param('refundRequestId') refundRequestId: string,
+    @Body() body: { reason?: string },
+  ) {
+    requirePermission(req, 'refund.reject');
+    return await this.orders.adminRejectRefundRequest(req, refundRequestId, body || {});
   }
 }

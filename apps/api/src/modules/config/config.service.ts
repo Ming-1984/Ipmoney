@@ -1,5 +1,19 @@
 import { Injectable } from '@nestjs/common';
-import { SystemConfigScope, SystemConfigValueType } from '@prisma/client';
+const SystemConfigScope = {
+  GLOBAL: 'GLOBAL',
+  REGION: 'REGION',
+  USER: 'USER',
+} as const;
+
+const SystemConfigValueType = {
+  STRING: 'STRING',
+  NUMBER: 'NUMBER',
+  BOOLEAN: 'BOOLEAN',
+  JSON: 'JSON',
+} as const;
+
+type SystemConfigScope = (typeof SystemConfigScope)[keyof typeof SystemConfigScope];
+type SystemConfigValueType = (typeof SystemConfigValueType)[keyof typeof SystemConfigValueType];
 
 import { PrismaService } from '../../common/prisma/prisma.service';
 
@@ -107,7 +121,7 @@ function buildDefaultBanner(): BannerConfig {
     items: [
       {
         id: 'banner-1',
-        title: '平台活动',
+        title: 'Platform Campaign',
         imageUrl: 'https://example.com/banner-1.png',
         linkUrl: '',
         enabled: true,
@@ -120,32 +134,32 @@ function buildDefaultBanner(): BannerConfig {
 function buildDefaultCustomerService(): CustomerServiceConfig {
   return {
     phone: '400-000-0000',
-    defaultReply: '您好，已收到您的咨询，客服将在 15 分钟内联系您。',
+    defaultReply: 'Hello, we have received your request. Customer service will contact you within 15 minutes.',
     assignStrategy: 'AUTO',
   };
 }
 
 function buildDefaultTaxonomy(): TaxonomyConfig {
   return {
-    industries: ['新材料', '智能制造', '生物医药'],
+    industries: ['New Materials', 'Smart Manufacturing', 'Biomedicine'],
     ipcMappings: ['A01', 'B65', 'G06'],
     locMappings: ['01', '02', '19'],
-    artworkCategories: ['书法', '绘画'],
-    calligraphyStyles: ['楷书', '行书', '草书', '隶书', '篆书'],
-    paintingThemes: ['人物画', '山水画', '花鸟画'],
-    artworkMaterials: ['宣纸', '绢本', '纸本'],
+    artworkCategories: ['Calligraphy', 'Painting'],
+    calligraphyStyles: ['Regular Script', 'Running Script', 'Cursive Script', 'Clerical Script', 'Seal Script'],
+    paintingThemes: ['Figure Painting', 'Landscape Painting', 'Bird-and-Flower Painting'],
+    artworkMaterials: ['Xuan Paper', 'Silk', 'Paper'],
   };
 }
 
 function buildDefaultSensitiveWords(): SensitiveWordsConfig {
   return {
-    words: ['敏感词示例', '违规词示例'],
+    words: ['SensitiveWordExample', 'ProhibitedWordExample'],
   };
 }
 
 function buildDefaultHotSearch(): HotSearchConfig {
   return {
-    keywords: ['转让专利', '高新退役', '产业集群'],
+    keywords: ['Patent Transfer', 'High-Tech Retired', 'Industry Cluster'],
   };
 }
 

@@ -1,5 +1,4 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
-import { PatentPartyRole } from '@prisma/client';
 
 import { PrismaService } from '../../common/prisma/prisma.service';
 
@@ -24,6 +23,9 @@ type PatentDto = {
   jurisdiction: 'CN';
   applicationNoNorm: string;
   applicationNoDisplay?: string;
+  publicationNoDisplay?: string;
+  patentNoDisplay?: string;
+  grantPublicationNoDisplay?: string;
   patentType: 'INVENTION' | 'UTILITY_MODEL' | 'DESIGN';
   title: string;
   abstract?: string;
@@ -36,36 +38,48 @@ type PatentDto = {
   legalStatus?: 'PENDING' | 'GRANTED' | 'EXPIRED' | 'INVALIDATED' | 'UNKNOWN';
   sourcePrimary?: 'USER' | 'ADMIN' | 'PROVIDER';
   sourceUpdatedAt?: string;
+  transferCount?: number;
   createdAt: string;
   updatedAt: string;
 };
 
 type LegalStatusDto = NonNullable<PatentDto['legalStatus']>;
 
+const PATENT_PARTY_ROLE = {
+  INVENTOR: 'INVENTOR',
+  ASSIGNEE: 'ASSIGNEE',
+  APPLICANT: 'APPLICANT',
+} as const;
+
+type PatentParty = {
+  role: string;
+  name: string;
+};
+
 function toHalfWidth(input: string): string {
-  let out = '';
-  for (const ch of input) {
-    const code = ch.charCodeAt(0);
-    if (code === 0x3000) {
-      out += ' ';
+  let outputText = '';
+  for (const character of input) {
+    const charCode = character.charCodeAt(0);
+    if (charCode === 0x3000) {
+      outputText += ' ';
       continue;
     }
-    if (code >= 0xff01 && code <= 0xff5e) {
-      out += String.fromCharCode(code - 0xfee0);
+    if (charCode >= 0xff01 && charCode <= 0xff5e) {
+      outputText += String.fromCharCode(charCode - 0xfee0);
       continue;
     }
-    out += ch;
+    outputText += character;
   }
-  return out;
+  return outputText;
 }
 
 function cleanRaw(raw: string): string {
-  let s = toHalfWidth(String(raw || '')).trim();
-  s = s.toUpperCase();
-  s = s.replace(/(专利申请号|专利号|申请号|公开号|公告号|公开\(公告\)号)/g, '');
-  s = s.replace(/[:：]/g, '');
-  s = s.replace(/[\s\-_，,、；;（）()【】\[\]]/g, '');
-  return s;
+  let cleanedValue = toHalfWidth(String(raw || '')).trim();
+  cleanedValue = cleanedValue.toUpperCase();
+  cleanedValue = cleanedValue.replace(/(专利申请号|专利号|申请号|公开号|公告号|公开\(公告\)号)/g, '');
+  cleanedValue = cleanedValue.replace(/[:：]/g, '');
+  cleanedValue = cleanedValue.replace(/[\s\-_，,、；;（）()【】\[\]]/g, '');
+  return cleanedValue;
 }
 
 function digitToPatentType(typeDigit: string): 'INVENTION' | 'UTILITY_MODEL' | 'DESIGN' | null {
@@ -76,17 +90,17 @@ function digitToPatentType(typeDigit: string): 'INVENTION' | 'UTILITY_MODEL' | '
 }
 
 function kindToPatentType(kind: string): 'INVENTION' | 'UTILITY_MODEL' | 'DESIGN' | null {
-  const k = String(kind || '').toUpperCase();
-  if (k.startsWith('U')) return 'UTILITY_MODEL';
-  if (k.startsWith('S')) return 'DESIGN';
-  if (k.startsWith('A') || k.startsWith('B')) return 'INVENTION';
+  const normalizedKind = String(kind || '').toUpperCase();
+  if (normalizedKind.startsWith('U')) return 'UTILITY_MODEL';
+  if (normalizedKind.startsWith('S')) return 'DESIGN';
+  if (normalizedKind.startsWith('A') || normalizedKind.startsWith('B')) return 'INVENTION';
   return null;
 }
 
 function toApplicationDisplay(normDigits: string): string {
-  const d = String(normDigits || '').replace(/\D/g, '');
-  if (d.length < 2) return d;
-  return `${d.slice(0, -1)}.${d.slice(-1)}`;
+  const digitsOnly = String(normDigits || '').replace(/\D/g, '');
+  if (digitsOnly.length < 2) return digitsOnly;
+  return `${digitsOnly.slice(0, -1)}.${digitsOnly.slice(-1)}`;
 }
 
 @Injectable()
@@ -94,24 +108,30 @@ export class PatentsService {
   constructor(private readonly prisma: PrismaService) {}
 
   normalizeNumber(raw?: string): PatentNormalizeResponseDto {
-    const cleaned = cleanRaw(String(raw || ''));
-    if (!cleaned) throw new BadRequestException({ code: 'BAD_REQUEST', message: 'raw 不能为空' });
+    const cleanedInput = cleanRaw(String(raw || ''));
+    if (!cleanedInput) throw new BadRequestException({ code: 'BAD_REQUEST', message: 'raw 不能为空' });
 
     const warnings: string[] = [];
 
-    const isPatentNo = cleaned.startsWith('ZL') || cleaned.startsWith('CNZL');
-    const withoutPrefix = cleaned.replace(/^CN/, '').replace(/^ZL/, '');
-    const digits = withoutPrefix.replace(/\./g, '');
+    const isPatentNo = cleanedInput.startsWith('ZL') || cleanedInput.startsWith('CNZL');
+    const withoutPrefix = cleanedInput.replace(/^CN/, '').replace(/^ZL/, '');
+    const cleanedDigits = withoutPrefix.replace(/\./g, '');
 
-    if (/^(19\d{2}|20\d{2})[123]\d{7}\d$/.test(digits) || /^\d{2}[123]\d{5}\d$/.test(digits)) {
-      const typeDigit = digits.startsWith('19') || digits.startsWith('20') ? digits.slice(4, 5) : digits.slice(2, 3);
-      const patentType = digitToPatentType(typeDigit);
+    if (
+      /^(19\d{2}|20\d{2})[123]\d{7}\d$/.test(cleanedDigits) ||
+      /^\d{2}[123]\d{5}\d$/.test(cleanedDigits)
+    ) {
+      const patentTypeDigit =
+        cleanedDigits.startsWith('19') || cleanedDigits.startsWith('20')
+          ? cleanedDigits.slice(4, 5)
+          : cleanedDigits.slice(2, 3);
+      const patentType = digitToPatentType(patentTypeDigit);
       if (!patentType) warnings.push('无法从号码类型位推断专利类型');
 
-      const applicationNoNorm = digits;
-      const applicationNoDisplay = toApplicationDisplay(digits);
+      const applicationNoNorm = cleanedDigits;
+      const applicationNoDisplay = toApplicationDisplay(cleanedDigits);
 
-      const out: PatentNormalizeResponseDto = {
+      const normalizeResult: PatentNormalizeResponseDto = {
         jurisdiction: 'CN',
         inputType: isPatentNo ? 'PATENT_NO' : 'APPLICATION_NO',
         applicationNoNorm,
@@ -121,18 +141,18 @@ export class PatentsService {
       };
 
       if (isPatentNo) {
-        out.patentNoNorm = `ZL${applicationNoNorm}`;
-        out.patentNoDisplay = `ZL${applicationNoDisplay}`;
+        normalizeResult.patentNoNorm = `ZL${applicationNoNorm}`;
+        normalizeResult.patentNoDisplay = `ZL${applicationNoDisplay}`;
       }
 
-      return out;
+      return normalizeResult;
     }
 
-    const pubMatch = cleaned.match(/^(?:CN)?(\d{7,9})([A-Z]\d?)$/);
-    if (pubMatch) {
-      const number = pubMatch[1];
-      const kindCode = pubMatch[2];
-      const publicationNoNorm = `CN${number}${kindCode}`;
+    const publicationMatch = cleanedInput.match(/^(?:CN)?(\d{7,9})([A-Z]\d?)$/);
+    if (publicationMatch) {
+      const publicationNumber = publicationMatch[1];
+      const kindCode = publicationMatch[2];
+      const publicationNoNorm = `CN${publicationNumber}${kindCode}`;
       const patentType = kindToPatentType(kindCode);
       if (!patentType) warnings.push('无法从文献种类代码推断专利类型（以数据源为准）');
       return {
@@ -150,43 +170,55 @@ export class PatentsService {
   }
 
   async getPatentById(patentId: string): Promise<PatentDto> {
-    const p = await this.prisma.patent.findUnique({
+    const patentRecord = await this.prisma.patent.findUnique({
       where: { id: String(patentId) },
       include: { parties: true },
     });
-    if (!p) throw new NotFoundException({ code: 'NOT_FOUND', message: '专利不存在' });
+    if (!patentRecord) throw new NotFoundException({ code: 'NOT_FOUND', message: '专利不存在' });
 
-    const inventorNames = p.parties.filter((x) => x.role === PatentPartyRole.INVENTOR).map((x) => x.name);
-    const assigneeNames = p.parties.filter((x) => x.role === PatentPartyRole.ASSIGNEE).map((x) => x.name);
-    const applicantNames = p.parties.filter((x) => x.role === PatentPartyRole.APPLICANT).map((x) => x.name);
+    const parties = (patentRecord.parties ?? []) as PatentParty[];
+    const inventorNames = parties
+      .filter((party: PatentParty) => party.role === PATENT_PARTY_ROLE.INVENTOR)
+      .map((party: PatentParty) => party.name);
+    const assigneeNames = parties
+      .filter((party: PatentParty) => party.role === PATENT_PARTY_ROLE.ASSIGNEE)
+      .map((party: PatentParty) => party.name);
+    const applicantNames = parties
+      .filter((party: PatentParty) => party.role === PATENT_PARTY_ROLE.APPLICANT)
+      .map((party: PatentParty) => party.name);
 
-    const toDate = (d?: Date | null) => (d ? d.toISOString().slice(0, 10) : undefined);
-    const toDateTime = (d?: Date | null) => (d ? d.toISOString() : undefined);
-    const legal = p.legalStatus ? String(p.legalStatus).toUpperCase() : '';
+    const toDate = (dateValue?: Date | null) => (dateValue ? dateValue.toISOString().slice(0, 10) : undefined);
+    const toDateTime = (dateValue?: Date | null) => (dateValue ? dateValue.toISOString() : undefined);
+    const legal = patentRecord.legalStatus ? String(patentRecord.legalStatus).toUpperCase() : '';
     const legalStatus =
       legal && ['PENDING', 'GRANTED', 'EXPIRED', 'INVALIDATED', 'UNKNOWN'].includes(legal)
         ? (legal as LegalStatusDto)
         : undefined;
 
+    const patentAny = patentRecord as any;
     return {
-      id: p.id,
+      id: patentRecord.id,
       jurisdiction: 'CN',
-      applicationNoNorm: p.applicationNoNorm,
-      applicationNoDisplay: p.applicationNoDisplay ?? undefined,
-      patentType: p.patentType,
-      title: p.title,
-      abstract: p.abstract ?? undefined,
+      applicationNoNorm: patentRecord.applicationNoNorm,
+      applicationNoDisplay: patentRecord.applicationNoDisplay ?? undefined,
+      publicationNoDisplay: patentAny.publicationNoDisplay ?? undefined,
+      patentNoDisplay: patentAny.patentNoDisplay ?? undefined,
+      grantPublicationNoDisplay: patentAny.grantPublicationNoDisplay ?? undefined,
+      patentType: patentRecord.patentType,
+      title: patentRecord.title,
+      abstract: patentRecord.abstract ?? undefined,
       inventorNames: inventorNames.length ? inventorNames : undefined,
       assigneeNames: assigneeNames.length ? assigneeNames : undefined,
       applicantNames: applicantNames.length ? applicantNames : undefined,
-      filingDate: toDate(p.filingDate),
-      publicationDate: toDate(p.publicationDate),
-      grantDate: toDate(p.grantDate),
+      filingDate: toDate(patentRecord.filingDate),
+      publicationDate: toDate(patentRecord.publicationDate),
+      grantDate: toDate(patentRecord.grantDate),
       legalStatus,
-      sourcePrimary: p.sourcePrimary,
-      sourceUpdatedAt: toDateTime(p.sourceUpdatedAt),
-      createdAt: p.createdAt.toISOString(),
-      updatedAt: p.updatedAt.toISOString(),
+      sourcePrimary: patentRecord.sourcePrimary,
+      sourceUpdatedAt: toDateTime(patentRecord.sourceUpdatedAt),
+      transferCount: typeof patentAny.transferCount === 'number' ? patentAny.transferCount : undefined,
+      createdAt: patentRecord.createdAt.toISOString(),
+      updatedAt: patentRecord.updatedAt.toISOString(),
     };
   }
 }

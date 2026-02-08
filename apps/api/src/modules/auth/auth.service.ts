@@ -1,5 +1,14 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
-import type { User } from '@prisma/client';
+type User = {
+  id: string;
+  phone?: string | null;
+  nickname?: string | null;
+  avatarUrl?: string | null;
+  role: string;
+  regionCode?: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+};
 
 import { PrismaService } from '../../common/prisma/prisma.service';
 
@@ -28,9 +37,9 @@ export class AuthService {
 
   private assertPhone(phone: string) {
     const p = String(phone || '').trim();
-    if (!p) throw new BadRequestException({ code: 'BAD_REQUEST', message: 'phone 不能为空' });
+    if (!p) throw new BadRequestException({ code: 'BAD_REQUEST', message: 'phone is required' });
     if (!PHONE_RE.test(p)) {
-      throw new BadRequestException({ code: 'BAD_REQUEST', message: 'phone 格式不正确' });
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: 'invalid phone format' });
     }
     return p;
   }
@@ -41,13 +50,20 @@ export class AuthService {
     return { cooldownSeconds: 60 };
   }
 
-  private toUserProfile(user: User): AuthTokenResponseDto['user'] {
+  private async toUserProfile(user: User): Promise<AuthTokenResponseDto['user']> {
+    const verification = await this.prisma.userVerification.findFirst({
+      where: { userId: user.id },
+      orderBy: { submittedAt: 'desc' },
+    });
+
     return {
       id: user.id,
       phone: user.phone ?? undefined,
       nickname: user.nickname ?? undefined,
       avatarUrl: user.avatarUrl ?? undefined,
       role: user.role,
+      verificationStatus: verification?.verificationStatus ?? undefined,
+      verificationType: verification?.verificationType ?? undefined,
       regionCode: user.regionCode ?? undefined,
       createdAt: user.createdAt.toISOString(),
       updatedAt: user.updatedAt.toISOString(),
@@ -58,7 +74,7 @@ export class AuthService {
     const p = this.assertPhone(phone);
     const c = String(code || '').trim();
     if (c.length < 4 || c.length > 8) {
-      throw new BadRequestException({ code: 'BAD_REQUEST', message: 'code 格式不正确' });
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: 'invalid code format' });
     }
 
     const user =
@@ -67,22 +83,22 @@ export class AuthService {
         data: {
           phone: p,
           role: 'buyer',
-          nickname: '新用户',
+          nickname: 'New User',
         },
       }));
 
     return {
       accessToken: user.id,
       expiresInSeconds: Number(process.env.JWT_EXPIRES_IN_SECONDS || 7200),
-      user: this.toUserProfile(user),
+      user: await this.toUserProfile(user),
     };
   }
 
   async wechatMpLogin(code: string): Promise<AuthTokenResponseDto> {
     const c = String(code || '').trim();
-    if (!c) throw new BadRequestException({ code: 'BAD_REQUEST', message: 'code 不能为空' });
+    if (!c) throw new BadRequestException({ code: 'BAD_REQUEST', message: 'code is required' });
 
-    // P0：先用演示用户占位；真实实现需要 code→openid 并做用户映射/绑手机。
+    // P0: demo user placeholder; real implementation should map code to openid and bind phone.
     const demoUser = await this.prisma.user.upsert({
       where: { id: '99999999-9999-9999-9999-999999999999' },
       update: {},
@@ -90,7 +106,7 @@ export class AuthService {
         id: '99999999-9999-9999-9999-999999999999',
         phone: null,
         role: 'buyer',
-        nickname: '演示用户',
+        nickname: 'Demo User',
         regionCode: '110000',
       },
     });
@@ -98,7 +114,7 @@ export class AuthService {
     return {
       accessToken: 'demo-token',
       expiresInSeconds: Number(process.env.JWT_EXPIRES_IN_SECONDS || 7200),
-      user: this.toUserProfile(demoUser),
+      user: await this.toUserProfile(demoUser),
     };
   }
 
@@ -113,8 +129,8 @@ export class AuthService {
       throw new BadRequestException({ code: 'BAD_REQUEST', message: 'phoneCode is required' });
     }
 
-    // P0 演示：暂不接入微信真实换号能力（phonenumber.getPhoneNumber）。
-    // 这里用一组候选手机号模拟绑定，并尽量避免 unique 冲突。
+    // P0 demo: skip real WeChat phone number binding (phonenumber.getPhoneNumber).
+    // Use a candidate list to simulate binding and avoid unique conflicts.
     const candidates = Array.from({ length: 10 }).map((_, idx) => `1380013800${idx}`);
     let selected = candidates[0];
 

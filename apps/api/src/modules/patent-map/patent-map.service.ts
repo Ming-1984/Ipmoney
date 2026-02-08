@@ -1,5 +1,6 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
-import { Prisma } from '@prisma/client';
+
+type InputJsonValue = any;
 
 import { PrismaService } from '../../common/prisma/prisma.service';
 
@@ -43,24 +44,24 @@ export class PatentMapService {
 
   private assertRegionCode(code: string) {
     if (!REGION_CODE_RE.test(code)) {
-      throw new BadRequestException({ code: 'BAD_REQUEST', message: 'regionCode 必须为 6 位数字字符串' });
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: 'regionCode must be 6 digits' });
     }
   }
 
   private assertRegionLevel(level: string) {
     if (!REGION_LEVELS.has(level)) {
-      throw new BadRequestException({ code: 'BAD_REQUEST', message: 'level 必须为 PROVINCE/CITY/DISTRICT 之一' });
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: 'level must be PROVINCE/CITY/DISTRICT' });
     }
   }
 
   private asIndustryBreakdown(value: unknown): PatentMapIndustryCountDto[] {
     if (!Array.isArray(value)) return [];
     return value
-      .map((it) => {
-        if (!it || typeof it !== 'object') return null;
-        const obj = it as any;
-        const industryTag = String(obj.industryTag ?? '').trim();
-        const count = Number(obj.count ?? 0);
+      .map((rawItem: any) => {
+        if (!rawItem || typeof rawItem !== 'object') return null;
+        const rawObject = rawItem as any;
+        const industryTag = String(rawObject.industryTag ?? '').trim();
+        const count = Number(rawObject.count ?? 0);
         if (!industryTag || !Number.isFinite(count) || count < 0) return null;
         return { industryTag, count };
       })
@@ -70,28 +71,28 @@ export class PatentMapService {
   private asTopAssignees(value: unknown): PatentMapTopAssigneeDto[] {
     if (!Array.isArray(value)) return [];
     return value
-      .map((it) => {
-        if (!it || typeof it !== 'object') return null;
-        const obj = it as any;
-        const assigneeName = String(obj.assigneeName ?? '').trim();
-        const patentCount = Number(obj.patentCount ?? 0);
+      .map((rawItem: any) => {
+        if (!rawItem || typeof rawItem !== 'object') return null;
+        const rawObject = rawItem as any;
+        const assigneeName = String(rawObject.assigneeName ?? '').trim();
+        const patentCount = Number(rawObject.patentCount ?? 0);
         if (!assigneeName || !Number.isFinite(patentCount) || patentCount < 0) return null;
         return { assigneeName, patentCount };
       })
       .filter(Boolean) as PatentMapTopAssigneeDto[];
   }
 
-  private toEntryDto(row: any): PatentMapEntryDto {
-    const industryBreakdown = this.asIndustryBreakdown(row.industryBreakdownJson);
-    const topAssignees = this.asTopAssignees(row.topAssigneesJson);
+  private toEntryDto(entryRow: any): PatentMapEntryDto {
+    const industryBreakdown = this.asIndustryBreakdown(entryRow.industryBreakdownJson);
+    const topAssignees = this.asTopAssignees(entryRow.topAssigneesJson);
     return {
-      regionCode: row.regionCode,
-      year: row.year,
-      patentCount: row.patentCount,
+      regionCode: entryRow.regionCode,
+      year: entryRow.year,
+      patentCount: entryRow.patentCount,
       industryBreakdown,
       topAssignees,
-      createdAt: row.createdAt.toISOString(),
-      updatedAt: row.updatedAt.toISOString(),
+      createdAt: entryRow.createdAt.toISOString(),
+      updatedAt: entryRow.updatedAt.toISOString(),
     };
   }
 
@@ -101,14 +102,14 @@ export class PatentMapService {
       select: { year: true },
     });
     return rows
-      .map((r) => r.year)
-      .filter((y) => Number.isFinite(y))
-      .sort((a, b) => a - b);
+      .map((row: any) => row.year)
+      .filter((year: any) => Number.isFinite(year))
+      .sort((leftYear: number, rightYear: number) => leftYear - rightYear);
   }
 
   async getSummary(params: { year: number; level: string; parentCode?: string }): Promise<PatentMapSummaryItemDto[]> {
     if (!Number.isFinite(params.year)) {
-      throw new BadRequestException({ code: 'BAD_REQUEST', message: 'year 必填且为整数' });
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: 'year is required and must be an integer' });
     }
     this.assertRegionLevel(params.level);
     if (params.parentCode) this.assertRegionCode(params.parentCode);
@@ -121,34 +122,34 @@ export class PatentMapService {
       orderBy: { code: 'asc' },
     });
 
-    const codes = regions.map((r) => r.code);
+    const codes = regions.map((region: any) => region.code);
     const entries = codes.length
       ? await this.prisma.patentMapEntry.findMany({
           where: { year: params.year, regionCode: { in: codes } },
         })
       : [];
-    const map = new Map(entries.map((e) => [e.regionCode, e.patentCount]));
+    const entryCountByRegionCode = new Map(entries.map((entry: any) => [entry.regionCode, entry.patentCount]));
 
-    return regions.map((r) => ({
-      regionCode: r.code,
-      regionName: r.name,
-      patentCount: map.get(r.code) ?? 0,
+    return regions.map((region: any) => ({
+      regionCode: region.code,
+      regionName: region.name,
+      patentCount: entryCountByRegionCode.get(region.code) ?? 0,
     }));
   }
 
   async getRegionDetail(regionCode: string, year: number): Promise<PatentMapRegionDetailDto> {
     this.assertRegionCode(regionCode);
     if (!Number.isFinite(year)) {
-      throw new BadRequestException({ code: 'BAD_REQUEST', message: 'year 必填且为整数' });
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: 'year is required and must be an integer' });
     }
 
     const region = await this.prisma.region.findUnique({ where: { code: regionCode } });
-    if (!region) throw new NotFoundException({ code: 'NOT_FOUND', message: '区域不存在' });
+    if (!region) throw new NotFoundException({ code: 'NOT_FOUND', message: 'region not found' });
 
     const entry = await this.prisma.patentMapEntry.findUnique({
       where: { regionCode_year: { regionCode, year } },
     });
-    if (!entry) throw new NotFoundException({ code: 'NOT_FOUND', message: '该区域该年份暂无数据' });
+    if (!entry) throw new NotFoundException({ code: 'NOT_FOUND', message: 'no data for this region/year' });
 
     const industryBreakdown = this.asIndustryBreakdown(entry.industryBreakdownJson);
     const topAssignees = this.asTopAssignees(entry.topAssigneesJson);
@@ -167,13 +168,13 @@ export class PatentMapService {
   async adminGetEntry(regionCode: string, year: number): Promise<PatentMapEntryDto> {
     this.assertRegionCode(regionCode);
     if (!Number.isFinite(year)) {
-      throw new BadRequestException({ code: 'BAD_REQUEST', message: 'year 必填且为整数' });
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: 'year is required and must be an integer' });
     }
 
     const entry = await this.prisma.patentMapEntry.findUnique({
       where: { regionCode_year: { regionCode, year } },
     });
-    if (!entry) throw new NotFoundException({ code: 'NOT_FOUND', message: '未找到地图数据' });
+    if (!entry) throw new NotFoundException({ code: 'NOT_FOUND', message: 'patent map entry not found' });
     return this.toEntryDto(entry);
   }
 
@@ -184,14 +185,14 @@ export class PatentMapService {
   ): Promise<PatentMapEntryDto> {
     this.assertRegionCode(regionCode);
     if (!Number.isFinite(year)) {
-      throw new BadRequestException({ code: 'BAD_REQUEST', message: 'year 必填且为整数' });
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: 'year is required and must be an integer' });
     }
     if (!body || !Number.isFinite(body.patentCount) || body.patentCount < 0) {
-      throw new BadRequestException({ code: 'BAD_REQUEST', message: 'patentCount 必填且 >= 0' });
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: 'patentCount must be >= 0' });
     }
 
     const region = await this.prisma.region.findUnique({ where: { code: regionCode } });
-    if (!region) throw new NotFoundException({ code: 'NOT_FOUND', message: '区域不存在' });
+    if (!region) throw new NotFoundException({ code: 'NOT_FOUND', message: 'region not found' });
 
     const industryBreakdown = Array.isArray(body.industryBreakdown) ? body.industryBreakdown : [];
     const topAssignees = Array.isArray(body.topAssignees) ? body.topAssignees : [];
@@ -202,13 +203,13 @@ export class PatentMapService {
         regionCode,
         year,
         patentCount: body.patentCount,
-        industryBreakdownJson: industryBreakdown as Prisma.InputJsonValue,
-        topAssigneesJson: topAssignees as Prisma.InputJsonValue,
+        industryBreakdownJson: industryBreakdown as InputJsonValue,
+        topAssigneesJson: topAssignees as InputJsonValue,
       },
       update: {
         patentCount: body.patentCount,
-        industryBreakdownJson: industryBreakdown as Prisma.InputJsonValue,
-        topAssigneesJson: topAssignees as Prisma.InputJsonValue,
+        industryBreakdownJson: industryBreakdown as InputJsonValue,
+        topAssigneesJson: topAssignees as InputJsonValue,
       },
     });
 

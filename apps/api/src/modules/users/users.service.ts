@@ -5,25 +5,27 @@ import {
   NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
-import { Prisma } from '@prisma/client';
 
+import { AuditLogService } from '../../common/audit-log.service';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { addAuditLog } from '../audit-store';
 
 const DEMO_USER_ID = '99999999-9999-9999-9999-999999999999';
 
+type UserVerificationWhereInput = any;
+
 function maskKeepStartEnd(value: string, start: number, end: number) {
-  const s = String(value || '');
-  if (!s) return '';
-  if (s.length <= start + end) return s[0] + '*'.repeat(Math.max(0, s.length - 1));
-  return s.slice(0, start) + '*'.repeat(s.length - start - end) + s.slice(s.length - end);
+  const rawValue = String(value || '');
+  if (!rawValue) return '';
+  if (rawValue.length <= start + end) return rawValue[0] + '*'.repeat(Math.max(0, rawValue.length - 1));
+  return rawValue.slice(0, start) + '*'.repeat(rawValue.length - start - end) + rawValue.slice(rawValue.length - end);
 }
 
 function maskPhone(value: string) {
-  const s = String(value || '');
-  if (!s) return '';
-  if (s.length <= 7) return maskKeepStartEnd(s, 1, 1);
-  return maskKeepStartEnd(s, 3, 4);
+  const rawPhone = String(value || '');
+  if (!rawPhone) return '';
+  if (rawPhone.length <= 7) return maskKeepStartEnd(rawPhone, 1, 1);
+  return maskKeepStartEnd(rawPhone, 3, 4);
 }
 
 export type UserProfileDto = {
@@ -74,10 +76,10 @@ export type UserVerificationSubmitRequestDto = {
 
 @Injectable()
 export class UsersService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService, private readonly audit: AuditLogService) {}
 
   async getUserProfileById(userId: string): Promise<UserProfileDto> {
-    const user =
+    const userRecord =
       (await this.prisma.user.findUnique({ where: { id: userId } })) ||
       (userId === DEMO_USER_ID
         ? await this.prisma.user.upsert({
@@ -87,32 +89,32 @@ export class UsersService {
               id: DEMO_USER_ID,
               phone: '13800138000',
               role: 'buyer',
-              nickname: '演示用户',
+              nickname: 'Demo User',
               regionCode: '110000',
             },
           })
         : null);
 
-    if (!user) {
-      throw new UnauthorizedException({ code: 'UNAUTHORIZED', message: '登录已失效' });
+    if (!userRecord) {
+      throw new UnauthorizedException({ code: 'UNAUTHORIZED', message: 'login required' });
     }
 
-    const v = await this.prisma.userVerification.findFirst({
-      where: { userId: user.id },
+    const latestVerification = await this.prisma.userVerification.findFirst({
+      where: { userId: userRecord.id },
       orderBy: { submittedAt: 'desc' },
     });
 
     return {
-      id: user.id,
-      phone: user.phone ?? undefined,
-      nickname: user.nickname ?? undefined,
-      avatarUrl: user.avatarUrl ?? undefined,
-      role: user.role,
-      verificationStatus: v?.verificationStatus ?? 'PENDING',
-      verificationType: v?.verificationType ?? null,
-      regionCode: user.regionCode ?? undefined,
-      createdAt: user.createdAt.toISOString(),
-      updatedAt: user.updatedAt.toISOString(),
+      id: userRecord.id,
+      phone: userRecord.phone ?? undefined,
+      nickname: userRecord.nickname ?? undefined,
+      avatarUrl: userRecord.avatarUrl ?? undefined,
+      role: userRecord.role,
+      verificationStatus: latestVerification?.verificationStatus ?? 'PENDING',
+      verificationType: latestVerification?.verificationType ?? null,
+      regionCode: userRecord.regionCode ?? undefined,
+      createdAt: userRecord.createdAt.toISOString(),
+      updatedAt: userRecord.updatedAt.toISOString(),
     };
   }
 
@@ -121,9 +123,13 @@ export class UsersService {
     patch: { nickname?: string; avatarUrl?: string; regionCode?: string },
   ): Promise<UserProfileDto> {
     const avatarUrl =
-      patch.avatarUrl === undefined ? undefined : String(patch.avatarUrl || '').trim() ? String(patch.avatarUrl).trim() : null;
+      patch.avatarUrl === undefined
+        ? undefined
+        : String(patch.avatarUrl || '').trim()
+        ? String(patch.avatarUrl).trim()
+        : null;
     if (patch.nickname !== undefined && String(patch.nickname).length > 50) {
-      throw new BadRequestException({ code: 'BAD_REQUEST', message: 'nickname 过长' });
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: 'nickname is too long' });
     }
 
     try {
@@ -135,63 +141,63 @@ export class UsersService {
           regionCode: patch.regionCode !== undefined ? String(patch.regionCode) : undefined,
         },
       });
-    } catch (err: any) {
-      if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2025') {
-        throw new UnauthorizedException({ code: 'UNAUTHORIZED', message: '登录已失效' });
+    } catch (error: any) {
+      if (error?.code === 'P2025') {
+        throw new UnauthorizedException({ code: 'UNAUTHORIZED', message: 'login required' });
       }
-      throw err;
+      throw error;
     }
 
     return await this.getUserProfileById(userId);
   }
 
   async getMyVerification(userId: string): Promise<UserVerificationDto> {
-    const v = await this.prisma.userVerification.findFirst({
+    const verificationRecord = await this.prisma.userVerification.findFirst({
       where: { userId },
       orderBy: { submittedAt: 'desc' },
       include: { logoFile: true },
     });
-    if (!v) throw new NotFoundException({ code: 'NOT_FOUND', message: '未提交认证' });
-    return this.toUserVerificationDto(v);
+    if (!verificationRecord) throw new NotFoundException({ code: 'NOT_FOUND', message: 'verification not submitted' });
+    return this.toUserVerificationDto(verificationRecord);
   }
 
-  private toUserVerificationDto(v: any): UserVerificationDto {
-    const evidenceFileIds = Array.isArray(v.evidenceFileIdsJson)
-      ? v.evidenceFileIdsJson.filter((x: any) => typeof x === 'string')
+  private toUserVerificationDto(verificationRecord: any): UserVerificationDto {
+    const evidenceFileIds = Array.isArray(verificationRecord.evidenceFileIdsJson)
+      ? verificationRecord.evidenceFileIdsJson.filter((fileId: any) => typeof fileId === 'string')
       : [];
 
     return {
-      id: v.id,
-      userId: v.userId,
-      type: v.verificationType,
-      status: v.verificationStatus,
-      displayName: v.displayName ?? undefined,
-      unifiedSocialCreditCodeMasked: v.unifiedSocialCreditCodeEnc
-        ? maskKeepStartEnd(String(v.unifiedSocialCreditCodeEnc), 2, 4)
+      id: verificationRecord.id,
+      userId: verificationRecord.userId,
+      type: verificationRecord.verificationType,
+      status: verificationRecord.verificationStatus,
+      displayName: verificationRecord.displayName ?? undefined,
+      unifiedSocialCreditCodeMasked: verificationRecord.unifiedSocialCreditCodeEnc
+        ? maskKeepStartEnd(String(verificationRecord.unifiedSocialCreditCodeEnc), 2, 4)
         : undefined,
-      contactName: v.contactName ?? undefined,
-      contactPhoneMasked: v.contactPhone ? maskPhone(String(v.contactPhone)) : undefined,
-      regionCode: v.regionCode ?? undefined,
-      intro: v.intro ?? undefined,
-      logoFileId: v.logoFileId ?? undefined,
-      logoUrl: v.logoFile?.url ?? undefined,
+      contactName: verificationRecord.contactName ?? undefined,
+      contactPhoneMasked: verificationRecord.contactPhone ? maskPhone(String(verificationRecord.contactPhone)) : undefined,
+      regionCode: verificationRecord.regionCode ?? undefined,
+      intro: verificationRecord.intro ?? undefined,
+      logoFileId: verificationRecord.logoFileId ?? undefined,
+      logoUrl: verificationRecord.logoFile?.url ?? undefined,
       evidenceFileIds,
-      submittedAt: v.submittedAt.toISOString(),
-      reviewedAt: v.reviewedAt ? v.reviewedAt.toISOString() : undefined,
-      reviewComment: v.reviewComment ?? undefined,
+      submittedAt: verificationRecord.submittedAt.toISOString(),
+      reviewedAt: verificationRecord.reviewedAt ? verificationRecord.reviewedAt.toISOString() : undefined,
+      reviewComment: verificationRecord.reviewComment ?? undefined,
     };
   }
 
   async submitMyVerification(userId: string, input: UserVerificationSubmitRequestDto): Promise<UserVerificationDto> {
-    const type = String(input?.type || '').trim() as UserVerificationSubmitRequestDto['type'];
+    const verificationType = String(input?.type || '').trim() as UserVerificationSubmitRequestDto['type'];
     const displayName = String(input?.displayName || '').trim();
-    if (!type) throw new BadRequestException({ code: 'BAD_REQUEST', message: 'type 不能为空' });
-    if (!displayName) throw new BadRequestException({ code: 'BAD_REQUEST', message: 'displayName 不能为空' });
+    if (!verificationType) throw new BadRequestException({ code: 'BAD_REQUEST', message: 'type must not be empty' });
+    if (!displayName) throw new BadRequestException({ code: 'BAD_REQUEST', message: 'displayName must not be empty' });
 
     const evidenceFileIds = Array.isArray(input.evidenceFileIds) ? input.evidenceFileIds : [];
-    const needEvidence = type !== 'PERSON';
-    if (needEvidence && evidenceFileIds.length < 1) {
-      throw new BadRequestException({ code: 'BAD_REQUEST', message: 'evidenceFileIds 至少 1 个' });
+    const needsEvidence = verificationType !== 'PERSON';
+    if (needsEvidence && evidenceFileIds.length < 1) {
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: 'evidenceFileIds requires at least 1 item' });
     }
 
     const existing = await this.prisma.userVerification.findFirst({
@@ -199,15 +205,15 @@ export class UsersService {
       orderBy: { submittedAt: 'desc' },
     });
     if (existing) {
-      throw new ConflictException({ code: 'CONFLICT', message: '已提交认证，待审核或已通过' });
+      throw new ConflictException({ code: 'CONFLICT', message: 'verification already submitted' });
     }
 
     const now = new Date();
-    const autoApprove = type === 'PERSON';
+    const autoApprove = verificationType === 'PERSON';
     const created = await this.prisma.userVerification.create({
       data: {
         userId,
-        verificationType: type as any,
+        verificationType: verificationType as any,
         verificationStatus: autoApprove ? 'APPROVED' : 'PENDING',
         displayName,
         unifiedSocialCreditCodeEnc: input.unifiedSocialCreditCode ? String(input.unifiedSocialCreditCode) : null,
@@ -219,7 +225,7 @@ export class UsersService {
         evidenceFileIdsJson: evidenceFileIds,
         submittedAt: now,
         reviewedAt: autoApprove ? now : null,
-        reviewComment: autoApprove ? '个人免审自动通过' : null,
+        reviewComment: autoApprove ? 'auto approved for personal verification' : null,
       },
       include: { logoFile: true },
     });
@@ -238,12 +244,12 @@ export class UsersService {
     const pageSize = Math.min(50, Math.max(1, Number(params.pageSize || 10)));
     const skip = (page - 1) * pageSize;
 
-    const where: Prisma.UserVerificationWhereInput = {};
+    const where: UserVerificationWhereInput = {};
     if (params.type) where.verificationType = params.type as any;
     if (params.status) where.verificationStatus = params.status as any;
     if (params.q && params.q.trim()) {
-      const q = params.q.trim();
-      where.OR = [{ displayName: { contains: q } }, { user: { phone: { contains: q } } }];
+      const searchText = params.q.trim();
+      where.OR = [{ displayName: { contains: searchText } }, { user: { phone: { contains: searchText } } }];
     }
 
     const [total, items] = await Promise.all([
@@ -258,46 +264,66 @@ export class UsersService {
     ]);
 
     return {
-      items: items.map((it) => this.toUserVerificationDto(it)),
+      items: items.map((verificationRecord: any) => this.toUserVerificationDto(verificationRecord)),
       page: { page, pageSize, total },
     };
   }
 
-  async adminApproveVerification(id: string, comment?: string) {
+  async adminApproveVerification(id: string, comment: string | undefined, reviewerId: string) {
+    const data: any = {
+      verificationStatus: 'APPROVED',
+      reviewedAt: new Date(),
+      reviewComment: comment ? String(comment).slice(0, 500) : null,
+    };
+    if (reviewerId) data.reviewedById = reviewerId;
+
     const updated = await this.prisma.userVerification.update({
       where: { id },
-      data: {
-        verificationStatus: 'APPROVED',
-        reviewedAt: new Date(),
-        reviewComment: comment ? String(comment).slice(0, 500) : null,
-      },
+      data,
       include: { logoFile: true },
     });
     addAuditLog('VERIFICATION', id, 'APPROVE', comment);
+    await this.audit.log({
+      actorUserId: reviewerId || updated.userId,
+      action: 'VERIFICATION_APPROVE',
+      targetType: 'USER_VERIFICATION',
+      targetId: id,
+      afterJson: { status: 'APPROVED', comment },
+    });
     return this.toUserVerificationDto(updated);
   }
 
-  async adminRejectVerification(id: string, reason: string) {
-    const r = String(reason || '').trim();
-    if (!r) throw new BadRequestException({ code: 'BAD_REQUEST', message: 'reason 不能为空' });
-    if (r.length > 500) throw new BadRequestException({ code: 'BAD_REQUEST', message: 'reason 过长' });
+  async adminRejectVerification(id: string, reason: string, reviewerId: string) {
+    const trimmedReason = String(reason || '').trim();
+    if (!trimmedReason) throw new BadRequestException({ code: 'BAD_REQUEST', message: 'reason must not be empty' });
+    if (trimmedReason.length > 500) throw new BadRequestException({ code: 'BAD_REQUEST', message: 'reason is too long' });
+
+    const data: any = {
+      verificationStatus: 'REJECTED',
+      reviewedAt: new Date(),
+      reviewComment: trimmedReason,
+    };
+    if (reviewerId) data.reviewedById = reviewerId;
 
     const updated = await this.prisma.userVerification.update({
       where: { id },
-      data: {
-        verificationStatus: 'REJECTED',
-        reviewedAt: new Date(),
-        reviewComment: r,
-      },
+      data,
       include: { logoFile: true },
     });
-    addAuditLog('VERIFICATION', id, 'REJECT', r);
+    addAuditLog('VERIFICATION', id, 'REJECT', trimmedReason);
+    await this.audit.log({
+      actorUserId: reviewerId || updated.userId,
+      action: 'VERIFICATION_REJECT',
+      targetType: 'USER_VERIFICATION',
+      targetId: id,
+      afterJson: { status: 'REJECTED', reason: trimmedReason },
+    });
     return this.toUserVerificationDto(updated);
   }
 
-  getUserIdFromReq(req: any): string {
-    const userId = req?.auth?.userId ? String(req.auth.userId) : null;
-    if (!userId) throw new UnauthorizedException({ code: 'UNAUTHORIZED', message: '未登录' });
+  getUserIdFromReq(request: any): string {
+    const userId = request?.auth?.userId ? String(request.auth.userId) : null;
+    if (!userId) throw new UnauthorizedException({ code: 'UNAUTHORIZED', message: 'login required' });
     return userId;
   }
 }

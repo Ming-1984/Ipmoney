@@ -2,9 +2,46 @@
 
 export const ADMIN_ROLE_PERMISSIONS: Record<AdminRoleName, string[]> = {
   admin: ['*'],
-  operator: ['verification.read', 'verification.review', 'listing.read', 'listing.audit', 'order.read', 'report.read', 'config.manage'],
-  cs: ['order.read', 'case.manage', 'milestone.contractSigned.confirm', 'milestone.transferCompleted.confirm'],
-  finance: ['settlement.read', 'payout.manual.confirm', 'invoice.manage', 'report.read', 'report.export'],
+  operator: [
+    'verification.read',
+    'verification.review',
+    'listing.read',
+    'listing.audit',
+    'order.read',
+    'case.manage',
+    'refund.read',
+    'refund.approve',
+    'refund.reject',
+    'settlement.read',
+    'config.manage',
+    'report.read',
+    'report.export',
+    'auditLog.read',
+  ],
+  cs: [
+    'verification.read',
+    'listing.read',
+    'order.read',
+    'case.manage',
+    'milestone.contractSigned.confirm',
+    'milestone.transferCompleted.confirm',
+    'refund.read',
+    'settlement.read',
+    'auditLog.read',
+  ],
+  finance: [
+    'verification.read',
+    'order.read',
+    'refund.read',
+    'refund.approve',
+    'refund.reject',
+    'settlement.read',
+    'payout.manual.confirm',
+    'invoice.manage',
+    'report.read',
+    'report.export',
+    'auditLog.read',
+  ],
 };
 
 export function resolvePermissions(roleNames: AdminRoleName[]) {
@@ -12,6 +49,26 @@ export function resolvePermissions(roleNames: AdminRoleName[]) {
   roleNames.forEach((r) => {
     (ADMIN_ROLE_PERMISSIONS[r] || []).forEach((p) => out.add(p));
   });
+  return out;
+}
+
+export function resolvePermissionsFromRoleIds(
+  roleIds: string[],
+  roles: Array<{ id: string; permissionIds?: string[] | null }>,
+) {
+  const out = new Set<string>();
+  const roleMap = new Map<string, string[]>();
+  roles.forEach((role) => {
+    if (role?.id) {
+      roleMap.set(role.id, Array.isArray(role.permissionIds) ? role.permissionIds : []);
+    }
+  });
+
+  roleIds.forEach((id) => {
+    const perms = roleMap.get(id) || [];
+    perms.forEach((p) => out.add(p));
+  });
+
   return out;
 }
 

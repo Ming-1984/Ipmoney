@@ -1,7 +1,10 @@
-﻿import { ForbiddenException, NotFoundException, Injectable } from '@nestjs/common';
+import { ForbiddenException, NotFoundException, Injectable } from '@nestjs/common';
+import { randomUUID } from 'crypto';
+
 import { AuditLogService } from '../../common/audit-log.service';
 import { requirePermission } from '../../common/permissions';
-import { randomUUID } from 'crypto';
+import { PrismaService } from '../../common/prisma/prisma.service';
+import { RBAC_CONFIG_KEY, SYSTEM_ROLE_IDS, buildDefaultRbacConfig, type RbacConfig } from '../../common/rbac';
 
 type Permission = {
   id: string;
@@ -24,171 +27,237 @@ type UserRole = {
   roleIds: string[];
 };
 
+const SYSTEM_CONFIG_SCOPE = {
+  GLOBAL: 'GLOBAL',
+} as const;
+
+const SYSTEM_CONFIG_VALUE_TYPE = {
+  JSON: 'JSON',
+} as const;
+
 const PERMISSIONS: Permission[] = [
-  { id: 'verification.read', name: '认证查看', description: '查看认证信息' },
-  { id: 'verification.review', name: '认证审核', description: '通过/驳回认证' },
-  { id: 'listing.read', name: '上架查看', description: '查看上架信息' },
-  { id: 'listing.audit', name: '上架审核', description: '审核上架内容' },
-  { id: 'order.read', name: '订单查看', description: '查看订单信息' },
-  { id: 'case.manage', name: '工单管理', description: '创建/分配/跟进工单' },
-  { id: 'milestone.contractSigned.confirm', name: '合同确认', description: '确认合同签署' },
-  { id: 'milestone.transferCompleted.confirm', name: '变更完成确认', description: '确认权属变更完成' },
-  { id: 'refund.read', name: '退款查看', description: '查看退款请求' },
-  { id: 'refund.approve', name: '退款审批', description: '审批退款请求' },
-  { id: 'refund.reject', name: '退款驳回', description: '驳回退款请求' },
-  { id: 'settlement.read', name: '结算查看', description: '查看结算台账' },
-  { id: 'payout.manual.confirm', name: '放款确认', description: '人工确认放款' },
-  { id: 'invoice.manage', name: '发票管理', description: '上传/替换/删除发票' },
-  { id: 'config.manage', name: '系统配置', description: '修改系统配置' },
-  { id: 'report.read', name: '报表查看', description: '查看报表' },
-  { id: 'report.export', name: '报表导出', description: '导出报表' },
-  { id: 'rbac.manage', name: '账号权限', description: '管理账号与角色权限' },
-  { id: 'auditLog.read', name: '审计日志', description: '查看审计日志' },
-];
-
-const ROLES: Role[] = [
+  { id: 'verification.read', name: 'Verification Read', description: 'View verification details' },
+  { id: 'verification.review', name: 'Verification Review', description: 'Approve or reject verification' },
+  { id: 'listing.read', name: 'Listing Read', description: 'View listing details' },
+  { id: 'listing.audit', name: 'Listing Audit', description: 'Audit listing content' },
+  { id: 'order.read', name: 'Order Read', description: 'View order details' },
+  { id: 'case.manage', name: 'Case Manage', description: 'Create, assign, and track cases' },
   {
-    id: 'role-operator',
-    name: '运营',
-    description: '内容审核与配置',
-    permissionIds: ['verification.read', 'verification.review', 'listing.read', 'listing.audit', 'order.read', 'report.read'],
-    updatedAt: new Date().toISOString(),
+    id: 'milestone.contractSigned.confirm',
+    name: 'Contract Signed Confirm',
+    description: 'Confirm contract signing',
   },
   {
-    id: 'role-cs',
-    name: '客服',
-    description: '跟单与工单处理',
-    permissionIds: ['order.read', 'case.manage', 'milestone.contractSigned.confirm', 'milestone.transferCompleted.confirm'],
-    updatedAt: new Date().toISOString(),
+    id: 'milestone.transferCompleted.confirm',
+    name: 'Transfer Completed Confirm',
+    description: 'Confirm ownership transfer completion',
   },
-  {
-    id: 'role-finance',
-    name: '财务',
-    description: '结算与发票',
-    permissionIds: ['settlement.read', 'payout.manual.confirm', 'invoice.manage', 'report.read', 'report.export'],
-    updatedAt: new Date().toISOString(),
-  },
-  {
-    id: 'role-admin',
-    name: '管理员',
-    description: '全权限',
-    permissionIds: PERMISSIONS.map((p) => p.id),
-    updatedAt: new Date().toISOString(),
-  },
-];
-
-const USERS: UserRole[] = [
-  { id: 'admin-001', name: '管理员-张', email: 'admin@ipmoney.test', roleIds: ['role-admin'] },
-  { id: 'op-001', name: '运营-周', email: 'op@ipmoney.test', roleIds: ['role-operator'] },
-  { id: 'cs-001', name: '客服-王', email: 'cs@ipmoney.test', roleIds: ['role-cs'] },
-  { id: 'finance-001', name: '财务-李', email: 'finance@ipmoney.test', roleIds: ['role-finance'] },
+  { id: 'refund.read', name: 'Refund Read', description: 'View refund requests' },
+  { id: 'refund.approve', name: 'Refund Approve', description: 'Approve refund requests' },
+  { id: 'refund.reject', name: 'Refund Reject', description: 'Reject refund requests' },
+  { id: 'settlement.read', name: 'Settlement Read', description: 'View settlement statements' },
+  { id: 'payout.manual.confirm', name: 'Payout Manual Confirm', description: 'Manually confirm payout' },
+  { id: 'invoice.manage', name: 'Invoice Manage', description: 'Upload, replace, or remove invoices' },
+  { id: 'config.manage', name: 'Config Manage', description: 'Manage system configuration' },
+  { id: 'report.read', name: 'Report Read', description: 'View reports' },
+  { id: 'report.export', name: 'Report Export', description: 'Export reports' },
+  { id: 'rbac.manage', name: 'RBAC Manage', description: 'Manage users and roles' },
+  { id: 'auditLog.read', name: 'Audit Log Read', description: 'View audit logs' },
 ];
 
 @Injectable()
 export class RbacService {
-  constructor(private readonly audit: AuditLogService) {}
-  private ensureAuth(req: any) {
-    if (!req?.auth?.userId) throw new ForbiddenException({ code: 'FORBIDDEN', message: '无权限' });
+  constructor(private readonly audit: AuditLogService, private readonly prisma: PrismaService) {}
+  private ensureAuth(request: any) {
+    if (!request?.auth?.userId) throw new ForbiddenException({ code: 'FORBIDDEN', message: '无权限' });
   }
 
-  listRoles(req: any) {
-    this.ensureAuth(req);
-    requirePermission(req, 'rbac.manage');
-    return { items: ROLES };
+  private async loadConfig(): Promise<RbacConfig> {
+    const configRow = await this.prisma.systemConfig.findUnique({ where: { key: RBAC_CONFIG_KEY } });
+    if (!configRow) {
+      const defaultConfig = buildDefaultRbacConfig();
+      await this.prisma.systemConfig.create({
+        data: {
+          key: RBAC_CONFIG_KEY,
+          valueType: SYSTEM_CONFIG_VALUE_TYPE.JSON,
+          scope: SYSTEM_CONFIG_SCOPE.GLOBAL,
+          value: JSON.stringify(defaultConfig),
+          version: 1,
+        },
+      });
+      return defaultConfig;
+    }
+
+    try {
+      const parsedConfig = JSON.parse(configRow.value) as RbacConfig;
+      const roleList =
+        Array.isArray(parsedConfig?.roles) && parsedConfig.roles.length
+          ? parsedConfig.roles
+          : buildDefaultRbacConfig().roles;
+      const userRoleMap =
+        parsedConfig?.userRoles && typeof parsedConfig.userRoles === 'object' ? parsedConfig.userRoles : {};
+      return { roles: roleList, userRoles: userRoleMap };
+    } catch {
+      return buildDefaultRbacConfig();
+    }
   }
 
-  createRole(req: any, body: any) {
-    this.ensureAuth(req);
-    requirePermission(req, 'rbac.manage');
-    const role: Role = {
+  private async saveConfig(nextConfig: RbacConfig) {
+    const configRow = await this.prisma.systemConfig.findUnique({ where: { key: RBAC_CONFIG_KEY } });
+    if (!configRow) {
+      await this.prisma.systemConfig.create({
+        data: {
+          key: RBAC_CONFIG_KEY,
+          valueType: SYSTEM_CONFIG_VALUE_TYPE.JSON,
+          scope: SYSTEM_CONFIG_SCOPE.GLOBAL,
+          value: JSON.stringify(nextConfig),
+          version: 1,
+        },
+      });
+      return;
+    }
+    await this.prisma.systemConfig.update({
+      where: { key: RBAC_CONFIG_KEY },
+      data: {
+        valueType: SYSTEM_CONFIG_VALUE_TYPE.JSON,
+        scope: SYSTEM_CONFIG_SCOPE.GLOBAL,
+        value: JSON.stringify(nextConfig),
+        version: configRow.version + 1,
+      },
+    });
+  }
+
+  async listRoles(request: any) {
+    this.ensureAuth(request);
+    requirePermission(request, 'rbac.manage');
+    const config = await this.loadConfig();
+    return { items: config.roles };
+  }
+
+  async createRole(request: any, payload: any) {
+    this.ensureAuth(request);
+    requirePermission(request, 'rbac.manage');
+    const config = await this.loadConfig();
+    const newRole: Role = {
       id: randomUUID(),
-      name: String(body?.name || '未命名角色'),
-      description: body?.description,
-      permissionIds: Array.isArray(body?.permissionIds) ? body.permissionIds : [],
+      name: String(payload?.name || '未命名角色'),
+      description: payload?.description,
+      permissionIds: Array.isArray(payload?.permissionIds) ? payload.permissionIds : [],
       updatedAt: new Date().toISOString(),
     };
-    ROLES.unshift(role);
+    config.roles.unshift(newRole);
+    await this.saveConfig(config);
     void this.audit.log({
-      actorUserId: req.auth.userId,
+      actorUserId: request.auth.userId,
       action: 'RBAC_ROLE_CREATE',
       targetType: 'RBAC_ROLE',
-      targetId: role.id,
-      afterJson: role,
+      targetId: newRole.id,
+      afterJson: newRole,
     });
-    return role;
+    return newRole;
   }
 
-  updateRole(req: any, roleId: string, body: any) {
-    this.ensureAuth(req);
-    requirePermission(req, 'rbac.manage');
-    const role = ROLES.find((r) => r.id === roleId);
-    if (!role) throw new NotFoundException({ code: 'NOT_FOUND', message: '角色不存在' });
-    const before = { ...role };
-    if (body?.name) role.name = body.name;
-    if (body?.description !== undefined) role.description = body.description;
-    if (Array.isArray(body?.permissionIds)) role.permissionIds = body.permissionIds;
-    role.updatedAt = new Date().toISOString();
+  async updateRole(request: any, roleId: string, payload: any) {
+    this.ensureAuth(request);
+    requirePermission(request, 'rbac.manage');
+    const config = await this.loadConfig();
+    const targetRole = config.roles.find((roleItem: Role) => roleItem.id === roleId);
+    if (!targetRole) throw new NotFoundException({ code: 'NOT_FOUND', message: '角色不存在' });
+    const beforeSnapshot = { ...targetRole };
+    if (payload?.name) targetRole.name = payload.name;
+    if (payload?.description !== undefined) targetRole.description = payload.description;
+    if (Array.isArray(payload?.permissionIds)) targetRole.permissionIds = payload.permissionIds;
+    targetRole.updatedAt = new Date().toISOString();
+    await this.saveConfig(config);
     void this.audit.log({
-      actorUserId: req.auth.userId,
+      actorUserId: request.auth.userId,
       action: 'RBAC_ROLE_UPDATE',
       targetType: 'RBAC_ROLE',
-      targetId: role.id,
-      beforeJson: before,
-      afterJson: role,
+      targetId: targetRole.id,
+      beforeJson: beforeSnapshot,
+      afterJson: targetRole,
     });
-    return role;
+    return targetRole;
   }
 
-  deleteRole(req: any, roleId: string) {
-    this.ensureAuth(req);
-    requirePermission(req, 'rbac.manage');
-    const idx = ROLES.findIndex((r) => r.id === roleId);
-    if (idx < 0) throw new NotFoundException({ code: 'NOT_FOUND', message: '角色不存在' });
-    const [removed] = ROLES.splice(idx, 1);
-    USERS.forEach((u) => {
-      u.roleIds = u.roleIds.filter((id) => id !== roleId);
-    });
+  async deleteRole(request: any, roleId: string) {
+    this.ensureAuth(request);
+    requirePermission(request, 'rbac.manage');
+    const config = await this.loadConfig();
+    const roleIndex = config.roles.findIndex((roleItem: Role) => roleItem.id === roleId);
+    if (roleIndex < 0) throw new NotFoundException({ code: 'NOT_FOUND', message: '角色不存在' });
+    const [removedRole] = config.roles.splice(roleIndex, 1);
+    if (config.userRoles) {
+      Object.keys(config.userRoles).forEach((userId) => {
+        config.userRoles![userId] = config.userRoles![userId].filter(
+          (assignedRoleId) => assignedRoleId !== roleId,
+        );
+      });
+    }
+    await this.saveConfig(config);
     void this.audit.log({
-      actorUserId: req.auth.userId,
+      actorUserId: request.auth.userId,
       action: 'RBAC_ROLE_DELETE',
       targetType: 'RBAC_ROLE',
       targetId: roleId,
-      beforeJson: removed,
+      beforeJson: removedRole,
     });
     return { ok: true };
   }
 
-  listPermissions(req: any) {
-    this.ensureAuth(req);
-    requirePermission(req, 'rbac.manage');
+  async listPermissions(request: any) {
+    this.ensureAuth(request);
+    requirePermission(request, 'rbac.manage');
     return { items: PERMISSIONS };
   }
 
-  listUsers(req: any) {
-    this.ensureAuth(req);
-    requirePermission(req, 'rbac.manage');
-    const items = USERS.map((u) => ({
-      ...u,
-      roleNames: u.roleIds.map((id) => ROLES.find((r) => r.id === id)?.name).filter(Boolean),
-    }));
+  async listUsers(request: any) {
+    this.ensureAuth(request);
+    requirePermission(request, 'rbac.manage');
+    const config = await this.loadConfig();
+    const userRecords = await this.prisma.user.findMany({ orderBy: { createdAt: 'desc' } });
+    const items: UserRole[] = userRecords.map((userRecord: any) => {
+      const assignedRoleIds = config.userRoles?.[userRecord.id] ?? [];
+      let effectiveRoleIds = assignedRoleIds;
+      if (!effectiveRoleIds.length) {
+        const fallbackRoleId = SYSTEM_ROLE_IDS[userRecord.role as keyof typeof SYSTEM_ROLE_IDS];
+        effectiveRoleIds = fallbackRoleId ? [fallbackRoleId] : [];
+      }
+      return {
+        id: userRecord.id,
+        name: userRecord.nickname || userRecord.phone || userRecord.id,
+        email: userRecord.phone || undefined,
+        roleIds: effectiveRoleIds,
+      };
+    });
     return { items };
   }
 
-  updateUserRoles(req: any, userId: string, body: any) {
-    this.ensureAuth(req);
-    requirePermission(req, 'rbac.manage');
-    const user = USERS.find((u) => u.id === userId);
-    if (!user) throw new NotFoundException({ code: 'NOT_FOUND', message: '账号不存在' });
-    const before = { ...user };
-    if (Array.isArray(body?.roleIds)) user.roleIds = body.roleIds;
+  async updateUserRoles(request: any, userId: string, payload: any) {
+    this.ensureAuth(request);
+    requirePermission(request, 'rbac.manage');
+    const userRecord = await this.prisma.user.findUnique({ where: { id: userId } });
+    if (!userRecord) throw new NotFoundException({ code: 'NOT_FOUND', message: '账号不存在' });
+    const config = await this.loadConfig();
+    const beforeSnapshot = { id: userRecord.id, roleIds: config.userRoles?.[userId] ?? [] };
+    if (Array.isArray(payload?.roleIds)) {
+      config.userRoles = config.userRoles || {};
+      config.userRoles[userId] = payload.roleIds;
+      await this.saveConfig(config);
+    }
     void this.audit.log({
-      actorUserId: req.auth.userId,
+      actorUserId: request.auth.userId,
       action: 'RBAC_USER_UPDATE',
       targetType: 'RBAC_USER',
-      targetId: user.id,
-      beforeJson: before,
-      afterJson: user,
+      targetId: userId,
+      beforeJson: beforeSnapshot,
+      afterJson: { id: userId, roleIds: config.userRoles?.[userId] ?? [] },
     });
-    return user;
+    return {
+      id: userRecord.id,
+      name: userRecord.nickname || userRecord.phone || userRecord.id,
+      email: userRecord.phone || undefined,
+      roleIds: config.userRoles?.[userId] ?? [],
+    };
   }
 }

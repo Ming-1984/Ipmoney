@@ -1,6 +1,7 @@
-import { Body, Controller, Get, Param, Post, Query, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Param, Post, Query, Req, UseGuards } from '@nestjs/common';
 
 import { BearerAuthGuard } from '../../common/guards/bearer-auth.guard';
+import { requirePermission } from '../../common/permissions';
 import { getAuditLogs, getAuditMaterials } from '../audit-store';
 import { UsersService } from './users.service';
 
@@ -11,12 +12,14 @@ export class AdminUserVerificationsController {
 
   @Get()
   async list(
+    @Req() req: any,
     @Query('q') q?: string,
     @Query('type') type?: string,
     @Query('status') status?: string,
     @Query('page') page?: string,
     @Query('pageSize') pageSize?: string,
   ) {
+    requirePermission(req, 'verification.read');
     return await this.users.adminListUserVerifications({
       q: q || undefined,
       type: type || undefined,
@@ -27,22 +30,26 @@ export class AdminUserVerificationsController {
   }
 
   @Post('/:verificationId/approve')
-  async approve(@Param('verificationId') verificationId: string, @Body() body?: { comment?: string }) {
-    return await this.users.adminApproveVerification(verificationId, body?.comment);
+  async approve(@Req() req: any, @Param('verificationId') verificationId: string, @Body() body?: { comment?: string }) {
+    requirePermission(req, 'verification.review');
+    return await this.users.adminApproveVerification(verificationId, body?.comment, req?.auth?.userId || '');
   }
 
   @Post('/:verificationId/reject')
-  async reject(@Param('verificationId') verificationId: string, @Body() body: { reason: string }) {
-    return await this.users.adminRejectVerification(verificationId, body?.reason);
+  async reject(@Req() req: any, @Param('verificationId') verificationId: string, @Body() body: { reason: string }) {
+    requirePermission(req, 'verification.review');
+    return await this.users.adminRejectVerification(verificationId, body?.reason, req?.auth?.userId || '');
   }
 
   @Get('/:verificationId/materials')
-  async materials(@Param('verificationId') verificationId: string) {
+  async materials(@Req() req: any, @Param('verificationId') verificationId: string) {
+    requirePermission(req, 'verification.read');
     return { items: getAuditMaterials('VERIFICATION', verificationId) };
   }
 
   @Get('/:verificationId/audit-logs')
-  async auditLogs(@Param('verificationId') verificationId: string) {
+  async auditLogs(@Req() req: any, @Param('verificationId') verificationId: string) {
+    requirePermission(req, 'auditLog.read');
     return { items: getAuditLogs('VERIFICATION', verificationId) };
   }
 }

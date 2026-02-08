@@ -11,6 +11,8 @@ enum UserRole {
   buyer
   seller
   cs
+  operator
+  finance
   admin
 }
 
@@ -45,6 +47,12 @@ enum PatentSourcePrimary {
   USER
   ADMIN
   PROVIDER
+}
+
+enum ContentSource {
+  USER
+  PLATFORM
+  ADMIN
 }
 
 enum PatentIdentifierType {
@@ -287,7 +295,7 @@ model UserVerification {
 model Patent {
   id                   String              @id @default(uuid()) @db.Uuid
   jurisdiction         String              @default("CN")
-  applicationNoNorm    String              @unique @map("application_no_norm")
+  applicationNoNorm    String              @map("application_no_norm")
   applicationNoDisplay String?             @map("application_no_display")
   patentType           PatentType          @map("patent_type")
   title                String
@@ -296,6 +304,11 @@ model Patent {
   publicationDate      DateTime?           @map("publication_date") @db.Date
   grantDate            DateTime?           @map("grant_date") @db.Date
   legalStatus          String?             @map("legal_status")
+  legalStatusRaw       String?             @map("legal_status_raw")
+  publicationNoDisplay String?             @map("publication_no_display")
+  patentNoDisplay      String?             @map("patent_no_display")
+  grantPublicationNoDisplay String?        @map("grant_publication_no_display")
+  transferCount        Int                 @default(0) @map("transfer_count")
   sourcePrimary        PatentSourcePrimary @default(USER) @map("source_primary")
   sourceUpdatedAt      DateTime?           @map("source_updated_at")
   createdAt            DateTime            @default(now()) @map("created_at")
@@ -305,7 +318,10 @@ model Patent {
   classifications PatentClassification[]
   parties         PatentParty[]
   listings        Listing[]
+  legalEvents    PatentLegalEvent[]
 
+  @@unique([jurisdiction, applicationNoNorm])
+  @@index([jurisdiction, applicationNoNorm])
   @@map("patents")
 }
 
@@ -320,6 +336,7 @@ model PatentIdentifier {
   patent Patent @relation(fields: [patentId], references: [id])
 
   @@unique([idType, idValueNorm])
+  @@unique([idValueNorm])
   @@map("patent_identifiers")
 }
 
@@ -349,9 +366,26 @@ model PatentParty {
   @@map("patent_parties")
 }
 
+model PatentLegalEvent {
+  id          String   @id @default(uuid()) @db.Uuid
+  patentId    String   @map("patent_id") @db.Uuid
+  eventDate   DateTime @map("event_date") @db.Date
+  eventCode   String   @map("event_code")
+  eventTextRaw String  @map("event_text_raw")
+  source      String
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  patent Patent @relation(fields: [patentId], references: [id])
+
+  @@index([patentId, eventDate])
+  @@map("patent_legal_events")
+}
+
+
 model File {
   id         String         @id @default(uuid()) @db.Uuid
   url        String
+  fileName   String?        @map("file_name")
   mimeType   String         @map("mime_type")
   sizeBytes  Int            @map("size_bytes")
   ownerScope FileOwnerScope @map("owner_scope")
@@ -372,7 +406,8 @@ model File {
 model Listing {
   id                 String           @id @default(uuid()) @db.Uuid
   sellerUserId       String           @map("seller_user_id") @db.Uuid
-  patentId           String           @map("patent_id") @db.Uuid
+  source             ContentSource    @default(USER) @map("source")
+  patentId           String?          @map("patent_id") @db.Uuid
   title              String
   summary            String?
   tradeMode          ListingTradeMode @map("trade_mode")
@@ -382,6 +417,9 @@ model Listing {
   depositAmount      Int              @map("deposit_amount")
   regionCode         String?          @map("region_code")
   industryTagsJson   Json?            @map("industry_tags_json")
+  listingTopicsJson  Json?            @map("listing_topics_json")
+  proofFileIdsJson   Json?            @map("proof_file_ids_json")
+  clusterId          String?          @map("cluster_id")
   featuredLevel      FeaturedLevel    @default(NONE) @map("featured_level")
   featuredRegionCode String?          @map("featured_region_code")
   featuredRank       Int?             @map("featured_rank")
@@ -391,9 +429,9 @@ model Listing {
   createdAt          DateTime         @default(now()) @map("created_at")
   updatedAt          DateTime         @updatedAt @map("updated_at")
 
-  seller User    @relation("Listing_Seller", fields: [sellerUserId], references: [id])
-  patent Patent  @relation(fields: [patentId], references: [id])
-  region Region? @relation(fields: [regionCode], references: [code])
+  seller User     @relation("Listing_Seller", fields: [sellerUserId], references: [id])
+  patent Patent?  @relation(fields: [patentId], references: [id])
+  region Region?  @relation(fields: [regionCode], references: [code])
 
   media         ListingMedia[]
   auditLogs     ListingAuditLog[]
@@ -404,6 +442,7 @@ model Listing {
   conversations Conversation[]
 
   @@index([auditStatus, status])
+  @@index([status, auditStatus, createdAt])
   @@index([regionCode])
   @@map("listings")
 }

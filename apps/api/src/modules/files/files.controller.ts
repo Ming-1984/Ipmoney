@@ -1,7 +1,22 @@
-import { BadRequestException, Controller, Post, Req, UnauthorizedException, UploadedFile, UseGuards, UseInterceptors } from '@nestjs/common';
+import {
+  BadRequestException,
+  Controller,
+  ForbiddenException,
+  Get,
+  NotFoundException,
+  Param,
+  Post,
+  Req,
+  Res,
+  StreamableFile,
+  UnauthorizedException,
+  UploadedFile,
+  UseGuards,
+  UseInterceptors,
+} from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
-import { mkdirSync } from 'node:fs';
+import { createReadStream, existsSync, mkdirSync } from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
 
@@ -49,5 +64,32 @@ export class FilesController {
       sizeBytes: file.size,
       baseUrl,
     });
+  }
+
+  @Get('/files/:fileId')
+  async downloadFile(@Req() req: any, @Param('fileId') fileId: string, @Res({ passthrough: true }) res: any) {
+    const userId = req?.auth?.userId ? String(req.auth.userId) : null;
+    if (!userId) throw new UnauthorizedException({ code: 'UNAUTHORIZED', message: 'unauthorized' });
+
+    const file = await this.files.getFileById(String(fileId || ''));
+    if (!file) throw new NotFoundException({ code: 'NOT_FOUND', message: 'file not found' });
+
+    const isAdmin = !!req?.auth?.isAdmin;
+    if (!isAdmin && String(file.ownerId || '') !== userId) {
+      throw new ForbiddenException({ code: 'FORBIDDEN', message: 'forbidden' });
+    }
+
+    const rawName = String(file.fileName || '').trim();
+    const urlPath = String(file.url || '').split('?')[0];
+    const fallbackName = path.basename(urlPath);
+    const safeName = path.basename(rawName || fallbackName);
+    if (!safeName) throw new NotFoundException({ code: 'NOT_FOUND', message: 'file not found' });
+
+    const filePath = path.resolve(UPLOAD_DIR, safeName);
+    if (!existsSync(filePath)) throw new NotFoundException({ code: 'NOT_FOUND', message: 'file not found' });
+
+    res.setHeader('Content-Type', file.mimeType || 'application/octet-stream');
+    res.setHeader('Content-Disposition', `inline; filename=\"${safeName}\"`);
+    return new StreamableFile(createReadStream(filePath));
   }
 }

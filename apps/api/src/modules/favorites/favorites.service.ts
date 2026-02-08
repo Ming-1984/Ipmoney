@@ -32,7 +32,22 @@ export class FavoritesService {
       this.prisma.listingFavorite.count({ where: { userId: req.auth.userId } }),
     ]);
 
-    const mapped = items.map((fav) => {
+    const mapped = items.map((fav: {
+      listing: {
+        id: string;
+        title: string;
+        patent?: { patentType?: string | null } | null;
+        tradeMode: string;
+        priceType: string;
+        priceAmount?: number | null;
+        depositAmount: number;
+        regionCode?: string | null;
+        industryTagsJson?: string[] | null;
+        featuredLevel?: string | null;
+        featuredRegionCode?: string | null;
+        stats?: any;
+      };
+    }) => {
       const listing = fav.listing;
       return {
         id: listing.id,

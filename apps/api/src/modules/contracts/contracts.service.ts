@@ -44,7 +44,7 @@ export class ContractsService {
       orderBy: { createdAt: 'desc' },
     });
 
-    const items: ContractItem[] = orders.map((order) => {
+    const items: ContractItem[] = orders.map((order: { id: string; createdAt: Date; listing?: { title?: string | null } | null }) => {
       const id = `contract-${order.id}`;
       const cached = CONTRACT_STATE.get(id);
       if (cached) return cached;

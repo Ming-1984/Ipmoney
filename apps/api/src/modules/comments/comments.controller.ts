@@ -1,6 +1,7 @@
 import { Body, Controller, Delete, Get, Param, Patch, Post, Query, Req, UseGuards } from '@nestjs/common';
 
 import { BearerAuthGuard } from '../../common/guards/bearer-auth.guard';
+import { VerifiedUserGuard } from '../../common/guards/verified-user.guard';
 import { CommentsService } from './comments.service';
 
 @Controller()
@@ -27,37 +28,37 @@ export class CommentsController {
     return await this.comments.listThreads('ARTWORK', artworkId, query);
   }
 
-  @UseGuards(BearerAuthGuard)
+  @UseGuards(BearerAuthGuard, VerifiedUserGuard)
   @Post('/listings/:listingId/comments')
   async createListingComment(@Req() req: any, @Param('listingId') listingId: string, @Body() body: any) {
     return await this.comments.createComment(req, 'LISTING', listingId, body || {});
   }
 
-  @UseGuards(BearerAuthGuard)
+  @UseGuards(BearerAuthGuard, VerifiedUserGuard)
   @Post('/demands/:demandId/comments')
   async createDemandComment(@Req() req: any, @Param('demandId') demandId: string, @Body() body: any) {
     return await this.comments.createComment(req, 'DEMAND', demandId, body || {});
   }
 
-  @UseGuards(BearerAuthGuard)
+  @UseGuards(BearerAuthGuard, VerifiedUserGuard)
   @Post('/achievements/:achievementId/comments')
   async createAchievementComment(@Req() req: any, @Param('achievementId') achievementId: string, @Body() body: any) {
     return await this.comments.createComment(req, 'ACHIEVEMENT', achievementId, body || {});
   }
 
-  @UseGuards(BearerAuthGuard)
+  @UseGuards(BearerAuthGuard, VerifiedUserGuard)
   @Post('/artworks/:artworkId/comments')
   async createArtworkComment(@Req() req: any, @Param('artworkId') artworkId: string, @Body() body: any) {
     return await this.comments.createComment(req, 'ARTWORK', artworkId, body || {});
   }
 
-  @UseGuards(BearerAuthGuard)
+  @UseGuards(BearerAuthGuard, VerifiedUserGuard)
   @Patch('/comments/:commentId')
   async editComment(@Req() req: any, @Param('commentId') commentId: string, @Body() body: any) {
     return await this.comments.editComment(req, commentId, body || {});
   }
 
-  @UseGuards(BearerAuthGuard)
+  @UseGuards(BearerAuthGuard, VerifiedUserGuard)
   @Delete('/comments/:commentId')
   async deleteComment(@Req() req: any, @Param('commentId') commentId: string) {
     return await this.comments.deleteComment(req, commentId);

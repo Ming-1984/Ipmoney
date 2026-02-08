@@ -1,6 +1,7 @@
 import { Body, Controller, ForbiddenException, Get, Param, Patch, Post, Req, UseGuards } from '@nestjs/common';
 
 import { BearerAuthGuard } from '../../common/guards/bearer-auth.guard';
+import { requirePermission } from '../../common/permissions';
 import { UsersService } from './users.service';
 
 @UseGuards(BearerAuthGuard)
@@ -35,6 +36,7 @@ export class UsersController {
   @Get('/admin/user-verifications')
   async adminList(@Req() req: any, @Body() _body: any) {
     if (!req?.auth?.isAdmin) throw new ForbiddenException({ code: 'FORBIDDEN', message: '无权限' });
+    requirePermission(req, 'verification.read');
     return await this.users.adminListUserVerifications({
       q: String(req?.query?.q || ''),
       type: String(req?.query?.type || ''),
@@ -47,12 +49,14 @@ export class UsersController {
   @Post('/admin/user-verifications/:id/approve')
   async adminApprove(@Req() req: any, @Param('id') id: string, @Body() body: any) {
     if (!req?.auth?.isAdmin) throw new ForbiddenException({ code: 'FORBIDDEN', message: '无权限' });
-    return await this.users.adminApproveVerification(id, body?.comment);
+    requirePermission(req, 'verification.review');
+    return await this.users.adminApproveVerification(id, body?.comment, req?.auth?.userId || '');
   }
 
   @Post('/admin/user-verifications/:id/reject')
   async adminReject(@Req() req: any, @Param('id') id: string, @Body() body: any) {
     if (!req?.auth?.isAdmin) throw new ForbiddenException({ code: 'FORBIDDEN', message: '无权限' });
-    return await this.users.adminRejectVerification(id, body?.reason || '');
+    requirePermission(req, 'verification.review');
+    return await this.users.adminRejectVerification(id, body?.reason || '', req?.auth?.userId || '');
   }
 }

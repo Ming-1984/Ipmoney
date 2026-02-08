@@ -1,5 +1,5 @@
 import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
-import { ConversationMessageType } from '@prisma/client';
+type ConversationMessageType = 'TEXT' | 'IMAGE' | 'FILE';
 import { randomUUID } from 'crypto';
 
 import { PrismaService } from '../../common/prisma/prisma.service';
@@ -89,7 +89,16 @@ export class ConversationsService {
       }),
     ]);
 
-    const mapped = items.map((it) => {
+    const mapped = items.map((it: {
+      id: string;
+      listingId?: string | null;
+      buyerUserId: string;
+      sellerUserId: string;
+      lastMessageAt?: Date | null;
+      listing?: { title?: string | null } | null;
+      buyer?: { id: string; nickname?: string | null; avatarUrl?: string | null; role?: string | null } | null;
+      seller?: { id: string; nickname?: string | null; avatarUrl?: string | null; role?: string | null } | null;
+    }) => {
       const counterpart = it.buyerUserId === req.auth.userId ? it.seller : it.buyer;
       return {
         id: it.id,
@@ -166,7 +175,7 @@ export class ConversationsService {
     this.ensureAuth(req);
     if (VIRTUAL_CONVERSATIONS.has(conversationId)) {
       const list = VIRTUAL_MESSAGES.get(conversationId) || [];
-      return { items: list.map((m) => ({ ...m, type: 'TEXT' })), nextCursor: null };
+      return { items: list.map((m: VirtualMessage) => ({ ...m, type: 'TEXT' })), nextCursor: null };
     }
     const conv = await this.prisma.conversation.findUnique({ where: { id: conversationId } });
     if (!conv) throw new NotFoundException({ code: 'NOT_FOUND', message: '会话不存在' });
@@ -178,7 +187,7 @@ export class ConversationsService {
       orderBy: { createdAt: 'asc' },
     });
     return {
-      items: messages.map((m) => ({
+      items: messages.map((m: { id: string; conversationId: string; senderUserId: string; type: ConversationMessageType; text?: string | null; createdAt: Date }) => ({
         id: m.id,
         conversationId: m.conversationId,
         senderUserId: m.senderUserId,

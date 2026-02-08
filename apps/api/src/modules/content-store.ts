@@ -2,10 +2,12 @@ import { randomUUID } from 'crypto';
 
 type ContentStatus = 'DRAFT' | 'ACTIVE' | 'OFF_SHELF';
 type AuditStatus = 'PENDING' | 'APPROVED' | 'REJECTED';
+type ContentSource = 'USER' | 'ADMIN' | 'PLATFORM';
 
 type BaseContent = {
   id: string;
   ownerId: string;
+  source: ContentSource;
   title: string;
   summary?: string | null;
   description?: string | null;
@@ -64,18 +66,37 @@ function nowIso() {
   return new Date().toISOString();
 }
 
+function normalizeStatus(value?: any): ContentStatus {
+  const s = String(value || '').trim().toUpperCase();
+  return s === 'ACTIVE' || s === 'OFF_SHELF' || s === 'DRAFT' ? (s as ContentStatus) : 'DRAFT';
+}
+
+function normalizeAuditStatus(value?: any): AuditStatus {
+  const s = String(value || '').trim().toUpperCase();
+  return s === 'APPROVED' || s === 'REJECTED' || s === 'PENDING' ? (s as AuditStatus) : 'PENDING';
+}
+
+function normalizeSource(value?: any): ContentSource {
+  const s = String(value || '').trim().toUpperCase();
+  return s === 'ADMIN' || s === 'PLATFORM' || s === 'USER' ? (s as ContentSource) : 'USER';
+}
+
 function baseFromInput(ownerId: string, data: any): BaseContent {
   const now = nowIso();
+  const status = normalizeStatus(data?.status);
+  const auditStatus = normalizeAuditStatus(data?.auditStatus);
+  const source = normalizeSource(data?.source);
   return {
     id: randomUUID(),
     ownerId,
+    source,
     title: String(data?.title || data?.name || '未命名'),
     summary: data?.summary ?? null,
     description: data?.description ?? data?.detail ?? null,
     coverUrl: data?.coverUrl ?? null,
     regionCode: data?.regionCode ?? null,
-    status: 'DRAFT',
-    auditStatus: 'PENDING',
+    status: status,
+    auditStatus: auditStatus,
     createdAt: now,
     updatedAt: now,
   };
@@ -114,7 +135,11 @@ export function createDemand(ownerId: string, data: any): DemandContent {
 export function updateDemand(id: string, data: any): DemandContent | null {
   const item = DEMANDS.get(id);
   if (!item) return null;
-  Object.assign(item, data);
+  const patch: any = { ...data };
+  if (data?.status !== undefined) patch.status = normalizeStatus(data.status);
+  if (data?.auditStatus !== undefined) patch.auditStatus = normalizeAuditStatus(data.auditStatus);
+  if (data?.source !== undefined) patch.source = normalizeSource(data.source);
+  Object.assign(item, patch);
   item.updatedAt = nowIso();
   DEMANDS.set(id, item);
   return item;
@@ -137,7 +162,11 @@ export function createAchievement(ownerId: string, data: any): AchievementConten
 export function updateAchievement(id: string, data: any): AchievementContent | null {
   const item = ACHIEVEMENTS.get(id);
   if (!item) return null;
-  Object.assign(item, data);
+  const patch: any = { ...data };
+  if (data?.status !== undefined) patch.status = normalizeStatus(data.status);
+  if (data?.auditStatus !== undefined) patch.auditStatus = normalizeAuditStatus(data.auditStatus);
+  if (data?.source !== undefined) patch.source = normalizeSource(data.source);
+  Object.assign(item, patch);
   item.updatedAt = nowIso();
   ACHIEVEMENTS.set(id, item);
   return item;
@@ -169,7 +198,11 @@ export function createArtwork(ownerId: string, data: any): ArtworkContent {
 export function updateArtwork(id: string, data: any): ArtworkContent | null {
   const item = ARTWORKS.get(id);
   if (!item) return null;
-  Object.assign(item, data);
+  const patch: any = { ...data };
+  if (data?.status !== undefined) patch.status = normalizeStatus(data.status);
+  if (data?.auditStatus !== undefined) patch.auditStatus = normalizeAuditStatus(data.auditStatus);
+  if (data?.source !== undefined) patch.source = normalizeSource(data.source);
+  Object.assign(item, patch);
   item.updatedAt = nowIso();
   ARTWORKS.set(id, item);
   return item;

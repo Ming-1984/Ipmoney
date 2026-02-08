@@ -1,11 +1,27 @@
 import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
-import type { IndustryTag, Region } from '@prisma/client';
-import { Prisma } from '@prisma/client';
 
 import { PrismaService } from '../../common/prisma/prisma.service';
 
 const REGION_CODE_RE = /^[0-9]{6}$/;
 const REGION_LEVELS = new Set(['PROVINCE', 'CITY', 'DISTRICT']);
+
+type RegionRecord = {
+  code: string;
+  name: string;
+  level: 'PROVINCE' | 'CITY' | 'DISTRICT';
+  parentCode?: string | null;
+  centerLat?: number | null;
+  centerLng?: number | null;
+  industryTagsJson?: unknown;
+  updatedAt: Date;
+};
+
+type IndustryTagRecord = {
+  id?: string;
+  name: string;
+};
+
+type RegionWhereInput = any;
 
 export type RegionNodeDto = {
   code: string;
@@ -33,7 +49,7 @@ export type RegionUpdateRequestDto = Partial<Omit<RegionCreateRequestDto, 'code'
 export class RegionsService {
   constructor(private readonly prisma: PrismaService) {}
 
-  private toRegionNode(region: Region): RegionNodeDto {
+  private toRegionNode(region: RegionRecord): RegionNodeDto {
     const industryTags = Array.isArray(region.industryTagsJson) ? (region.industryTagsJson as any[]) : [];
     return {
       code: region.code,
@@ -42,14 +58,14 @@ export class RegionsService {
       parentCode: region.parentCode ?? null,
       centerLat: region.centerLat ?? null,
       centerLng: region.centerLng ?? null,
-      industryTags: industryTags.filter((t) => typeof t === 'string'),
+      industryTags: industryTags.filter((tag: unknown) => typeof tag === 'string') as string[],
       updatedAt: region.updatedAt.toISOString(),
     };
   }
 
   private assertRegionCode(code: string, fieldName: string) {
     if (!REGION_CODE_RE.test(code)) {
-      throw new BadRequestException({ code: 'BAD_REQUEST', message: `${fieldName} 必须为 6 位数字字符串` });
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: `${fieldName} must be 6 digits` });
     }
   }
 
@@ -57,13 +73,13 @@ export class RegionsService {
     if (!REGION_LEVELS.has(level)) {
       throw new BadRequestException({
         code: 'BAD_REQUEST',
-        message: `${fieldName} 必须为 PROVINCE/CITY/DISTRICT 之一`,
+        message: `${fieldName} must be one of PROVINCE/CITY/DISTRICT`,
       });
     }
   }
 
   async listRegions(params: { level?: string; parentCode?: string | null; q?: string }): Promise<RegionNodeDto[]> {
-    const where: Prisma.RegionWhereInput = {};
+    const where: RegionWhereInput = {};
 
     if (params.level) {
       this.assertRegionLevel(params.level, 'level');
@@ -85,16 +101,16 @@ export class RegionsService {
       where,
       orderBy: [{ level: 'asc' }, { code: 'asc' }],
     });
-    return regions.map((r) => this.toRegionNode(r));
+    return regions.map((regionRecord: RegionRecord) => this.toRegionNode(regionRecord));
   }
 
   async createRegion(input: RegionCreateRequestDto): Promise<RegionNodeDto> {
     this.assertRegionCode(input.code, 'code');
     if (!input.name || !String(input.name).trim()) {
-      throw new BadRequestException({ code: 'BAD_REQUEST', message: 'name 不能为空' });
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: 'name must not be empty' });
     }
     if (!input.level) {
-      throw new BadRequestException({ code: 'BAD_REQUEST', message: 'level 不能为空' });
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: 'level must not be empty' });
     }
     this.assertRegionLevel(input.level, 'level');
 
@@ -112,12 +128,12 @@ export class RegionsService {
           industryTagsJson: [],
         },
       });
-      return this.toRegionNode(region);
-    } catch (err: any) {
-      if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2002') {
-        throw new ConflictException({ code: 'CONFLICT', message: '区域 code 已存在' });
+      return this.toRegionNode(region as RegionRecord);
+    } catch (error: any) {
+      if (error?.code === 'P2002') {
+        throw new ConflictException({ code: 'CONFLICT', message: 'region code already exists' });
       }
-      throw err;
+      throw error;
     }
   }
 
@@ -127,7 +143,7 @@ export class RegionsService {
     if (patch.level) this.assertRegionLevel(patch.level, 'level');
     if (patch.parentCode) this.assertRegionCode(patch.parentCode, 'parentCode');
     if (patch.name !== undefined && !String(patch.name).trim()) {
-      throw new BadRequestException({ code: 'BAD_REQUEST', message: 'name 不能为空' });
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: 'name must not be empty' });
     }
 
     try {
@@ -141,57 +157,57 @@ export class RegionsService {
           centerLng: patch.centerLng === undefined ? undefined : patch.centerLng ?? null,
         },
       });
-      return this.toRegionNode(region);
-    } catch (err: any) {
-      if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2025') {
-        throw new NotFoundException({ code: 'NOT_FOUND', message: '区域不存在' });
+      return this.toRegionNode(region as RegionRecord);
+    } catch (error: any) {
+      if (error?.code === 'P2025') {
+        throw new NotFoundException({ code: 'NOT_FOUND', message: 'region not found' });
       }
-      throw err;
+      throw error;
     }
   }
 
   async setRegionIndustryTags(code: string, tags: string[]): Promise<RegionNodeDto> {
     this.assertRegionCode(code, 'regionCode');
     if (!Array.isArray(tags)) {
-      throw new BadRequestException({ code: 'BAD_REQUEST', message: 'industryTags 必须为数组' });
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: 'industryTags must be an array' });
     }
 
-    const normalized = tags.map((t) => String(t).trim()).filter((t) => t.length > 0);
+    const normalizedTags = tags.map((tag: string) => String(tag).trim()).filter((tag: string) => tag.length > 0);
 
     try {
       const region = await this.prisma.region.update({
         where: { code },
-        data: { industryTagsJson: normalized },
+        data: { industryTagsJson: normalizedTags },
       });
-      return this.toRegionNode(region);
-    } catch (err: any) {
-      if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2025') {
-        throw new NotFoundException({ code: 'NOT_FOUND', message: '区域不存在' });
+      return this.toRegionNode(region as RegionRecord);
+    } catch (error: any) {
+      if (error?.code === 'P2025') {
+        throw new NotFoundException({ code: 'NOT_FOUND', message: 'region not found' });
       }
-      throw err;
+      throw error;
     }
   }
 
-  async listIndustryTags(): Promise<IndustryTag[]> {
+  async listIndustryTags(): Promise<IndustryTagRecord[]> {
     return this.prisma.industryTag.findMany({ orderBy: { name: 'asc' } });
   }
 
-  async createIndustryTag(name: string): Promise<IndustryTag> {
-    const trimmed = String(name || '').trim();
-    if (!trimmed) {
-      throw new BadRequestException({ code: 'BAD_REQUEST', message: 'name 不能为空' });
+  async createIndustryTag(name: string): Promise<IndustryTagRecord> {
+    const trimmedName = String(name || '').trim();
+    if (!trimmedName) {
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: 'name must not be empty' });
     }
-    if (trimmed.length > 50) {
-      throw new BadRequestException({ code: 'BAD_REQUEST', message: 'name 过长' });
+    if (trimmedName.length > 50) {
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: 'name is too long' });
     }
 
     try {
-      return await this.prisma.industryTag.create({ data: { name: trimmed } });
-    } catch (err: any) {
-      if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2002') {
-        throw new ConflictException({ code: 'CONFLICT', message: '标签已存在' });
+      return await this.prisma.industryTag.create({ data: { name: trimmedName } });
+    } catch (error: any) {
+      if (error?.code === 'P2002') {
+        throw new ConflictException({ code: 'CONFLICT', message: 'industry tag already exists' });
       }
-      throw err;
+      throw error;
     }
   }
 }
