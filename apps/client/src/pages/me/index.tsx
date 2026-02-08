@@ -27,16 +27,7 @@ import { Surface } from '../../ui/layout';
 import { Avatar, Button, Input, PullToRefresh, toast } from '../../ui/nutui';
 import fortuneGod from '../../assets/illustrations/fortune-god.svg';
 
-import iconShield from '../../assets/icons/icon-shield-orange.svg';
-import iconAward from '../../assets/icons/icon-award-teal.svg';
-import iconPalette from '../../assets/icons/icon-palette-orange.svg';
-import iconTrending from '../../assets/icons/icon-trending-red.svg';
-import iconActivity from '../../assets/icons/icon-activity-blue.svg';
-import iconMap from '../../assets/icons/icon-map-green.svg';
-import iconCategory from '../../assets/icons/icon-category-gray.svg';
-import iconMore from '../../assets/icons/icon-more-gray.svg';
 import iconUser from '../../assets/icons/icon-user-purple.svg';
-import iconBriefcase from '../../assets/icons/icon-briefcase-indigo.svg';
 import iconPublishPatent from '../../assets/icons/icon-publish-patent.svg';
 import iconPublishArtwork from '../../assets/icons/icon-publish-artwork.svg';
 import iconPublishDemand from '../../assets/icons/icon-publish-demand.svg';
@@ -46,6 +37,13 @@ import iconOrderSeller from '../../assets/icons/icon-order-seller.svg';
 import iconContractCenter from '../../assets/icons/icon-contract-center.svg';
 import iconInvoiceCenter from '../../assets/icons/icon-invoice-center.svg';
 import iconNotification from '../../assets/icons/icon-notification.svg';
+import iconMeFavorites from '../../assets/icons/icon-me-favorites.svg';
+import iconMeCsCenter from '../../assets/icons/icon-me-cs-center.svg';
+import iconMeAddress from '../../assets/icons/icon-me-address.svg';
+import iconMeIdentity from '../../assets/icons/icon-me-identity.svg';
+import iconMeProfile from '../../assets/icons/icon-me-profile.svg';
+import iconMeAbout from '../../assets/icons/icon-me-about.svg';
+import iconMeTradeRules from '../../assets/icons/icon-me-trade-rules.svg';
 
 type Me = {
   id: string;
@@ -346,7 +344,7 @@ export default function MePage() {
       {
         key: 'favorites',
         label: '我的收藏',
-        icon: iconAward,
+        icon: iconMeFavorites,
         onClick: () => Taro.navigateTo({ url: '/pages/favorites/index' }),
       },
     ],
@@ -358,7 +356,7 @@ export default function MePage() {
       {
         key: 'support',
         label: '客服中心',
-        icon: iconShield,
+        icon: iconMeCsCenter,
         onClick: () => Taro.navigateTo({ url: '/pages/support/index' }),
       },
       {
@@ -370,7 +368,7 @@ export default function MePage() {
       {
         key: 'address',
         label: '地址管理',
-        icon: iconMap,
+        icon: iconMeAddress,
         onClick: () => Taro.navigateTo({ url: '/pages/addresses/index' }),
       },
     ],
@@ -383,25 +381,25 @@ export default function MePage() {
         key: 'identity',
         label: '身份/认证',
         value: verificationStatusLabel(verification.status),
-        icon: iconShield,
+        icon: iconMeIdentity,
         onClick: () => Taro.navigateTo({ url: '/pages/onboarding/choose-identity/index' }),
       },
       {
         key: 'profile',
         label: '资料设置',
-        icon: iconUser,
+        icon: iconMeProfile,
         onClick: () => Taro.navigateTo({ url: '/pages/profile/edit/index' }),
       },
       {
         key: 'about',
         label: '关于与合规',
-        icon: iconMore,
+        icon: iconMeAbout,
         onClick: () => Taro.navigateTo({ url: '/pages/about/index' }),
       },
       {
         key: 'rules',
         label: '交易规则',
-        icon: iconCategory,
+        icon: iconMeTradeRules,
         onClick: () => Taro.navigateTo({ url: '/pages/trade-rules/index' }),
       },
     ],
