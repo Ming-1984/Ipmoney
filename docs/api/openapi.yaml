@@ -757,6 +757,25 @@ paths:
         "400":
           $ref: "#/components/responses/BadRequest"
 
+  /public/patent-clusters:
+    get:
+      tags: [Search]
+      summary: List patent clusters for the cluster picker
+      operationId: listPatentClusters
+      security: []
+      parameters:
+        - $ref: "#/components/parameters/Page"
+        - $ref: "#/components/parameters/PageSize"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PagedPatentClusters"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+
   /public/organizations/{orgUserId}:
     get:
       tags: [Organizations]
@@ -6766,6 +6785,89 @@ components:
           type: string
           format: date-time
           description: 过期时间（为空表示长期）
+
+    PatentClusterSummary:
+      type: object
+      required: [id, name]
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        regionName:
+          type: string
+          nullable: true
+        industryTags:
+          type: array
+          nullable: true
+          items:
+            type: string
+        summary:
+          type: string
+          nullable: true
+        patentCount:
+          type: integer
+          minimum: 0
+          nullable: true
+        listingCount:
+          type: integer
+          minimum: 0
+          nullable: true
+        institutionCount:
+          type: integer
+          minimum: 0
+          nullable: true
+        updatedAt:
+          type: string
+          format: date-time
+          nullable: true
+        coverUrl:
+          type: string
+          nullable: true
+
+    PatentClusterInstitutionSummary:
+      type: object
+      required: [id, name]
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        regionName:
+          type: string
+          nullable: true
+        tags:
+          type: array
+          nullable: true
+          items:
+            type: string
+        patentCount:
+          type: integer
+          minimum: 0
+          nullable: true
+        listingCount:
+          type: integer
+          minimum: 0
+          nullable: true
+        logoUrl:
+          type: string
+          nullable: true
+
+    PagedPatentClusters:
+      type: object
+      required: [items, page]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/PatentClusterSummary"
+        featuredInstitutions:
+          type: array
+          nullable: true
+          items:
+            $ref: "#/components/schemas/PatentClusterInstitutionSummary"
+        page:
+          $ref: "#/components/schemas/PageMeta"
 
     PageMeta:
       type: object

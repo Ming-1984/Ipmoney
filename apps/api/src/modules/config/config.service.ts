@@ -61,6 +61,35 @@ export type CustomerServiceConfig = {
   assignStrategy: 'AUTO' | 'MANUAL';
 };
 
+export type PatentClusterSummary = {
+  id: string;
+  name: string;
+  regionName?: string;
+  industryTags?: string[];
+  summary?: string;
+  patentCount?: number;
+  listingCount?: number;
+  institutionCount?: number;
+  updatedAt?: string;
+  coverUrl?: string;
+};
+
+export type PatentClusterInstitutionSummary = {
+  id: string;
+  name: string;
+  regionName?: string;
+  tags?: string[];
+  patentCount?: number;
+  listingCount?: number;
+  logoUrl?: string;
+};
+
+export type PatentClustersConfig = {
+  items: PatentClusterSummary[];
+  featuredInstitutions?: PatentClusterInstitutionSummary[];
+  updatedAt?: string;
+};
+
 export type TaxonomyConfig = {
   industries: string[];
   ipcMappings: string[];
@@ -83,6 +112,7 @@ const KEY_TRADE_RULES = 'trade_rules';
 const KEY_RECOMMENDATION = 'recommendation_config';
 const KEY_BANNER = 'banner_config';
 const KEY_CS = 'customer_service_config';
+const KEY_PATENT_CLUSTERS = 'patent_clusters_config';
 const KEY_TAXONOMY = 'taxonomy_config';
 const KEY_SENSITIVE = 'sensitive_words_config';
 const KEY_HOT_SEARCH = 'hot_search_config';
@@ -136,6 +166,84 @@ function buildDefaultCustomerService(): CustomerServiceConfig {
     phone: '400-000-0000',
     defaultReply: 'Hello, we have received your request. Customer service will contact you within 15 minutes.',
     assignStrategy: 'AUTO',
+  };
+}
+
+function buildDefaultPatentClusters(): PatentClustersConfig {
+  return {
+    items: [
+      {
+        id: 'CLUSTER_SMART_MANUFACTURING',
+        name: 'Smart Manufacturing',
+        regionName: 'Yangtze River Delta',
+        industryTags: ['Robotics', 'Industrial IoT', 'Automation'],
+        summary: 'High-value patents in robotics and industrial automation.',
+        patentCount: 1280,
+        listingCount: 36,
+        institutionCount: 12,
+        updatedAt: new Date().toISOString(),
+      },
+      {
+        id: 'CLUSTER_BIOMED',
+        name: 'Biomedicine',
+        regionName: 'Greater Bay Area',
+        industryTags: ['Medical Devices', 'Bio-Pharma', 'Diagnostics'],
+        summary: 'Clinical and biomedical patents with active licensing.',
+        patentCount: 980,
+        listingCount: 28,
+        institutionCount: 9,
+        updatedAt: new Date().toISOString(),
+      },
+      {
+        id: 'CLUSTER_NEW_MATERIALS',
+        name: 'New Materials',
+        regionName: 'Central China',
+        industryTags: ['Advanced Materials', 'Battery', 'Chemistry'],
+        summary: 'Materials science patents focused on energy and manufacturing.',
+        patentCount: 760,
+        listingCount: 21,
+        institutionCount: 7,
+        updatedAt: new Date().toISOString(),
+      },
+      {
+        id: 'CLUSTER_GREEN_ENERGY',
+        name: 'Green Energy',
+        regionName: 'North China',
+        industryTags: ['Energy Storage', 'Solar', 'Grid'],
+        summary: 'Renewable energy and grid modernization patents.',
+        patentCount: 640,
+        listingCount: 18,
+        institutionCount: 6,
+        updatedAt: new Date().toISOString(),
+      },
+    ],
+    featuredInstitutions: [
+      {
+        id: 'INSTITUTE_001',
+        name: 'Horizon Tech University',
+        regionName: 'Hubei',
+        tags: ['Robotics', 'AI'],
+        patentCount: 320,
+        listingCount: 10,
+      },
+      {
+        id: 'INSTITUTE_002',
+        name: 'River Delta Research Institute',
+        regionName: 'Jiangsu',
+        tags: ['Biomedicine', 'Diagnostics'],
+        patentCount: 240,
+        listingCount: 7,
+      },
+      {
+        id: 'INSTITUTE_003',
+        name: 'Green Energy Lab',
+        regionName: 'Beijing',
+        tags: ['Energy Storage'],
+        patentCount: 180,
+        listingCount: 4,
+      },
+    ],
+    updatedAt: new Date().toISOString(),
   };
 }
 
@@ -278,6 +386,23 @@ export class ConfigService {
       return { ...fallback, ...parsed };
     } catch {
       return fallback;
+    }
+  }
+
+  async getPatentClusters(): Promise<PatentClustersConfig> {
+    const fallback = buildDefaultPatentClusters();
+    const row = await this.ensureJsonConfig(KEY_PATENT_CLUSTERS, fallback);
+    try {
+      const parsed = JSON.parse(row.value) as Partial<PatentClustersConfig>;
+      return {
+        ...fallback,
+        ...parsed,
+        items: parsed.items ?? fallback.items,
+        featuredInstitutions: parsed.featuredInstitutions ?? fallback.featuredInstitutions,
+        updatedAt: parsed.updatedAt || row.updatedAt.toISOString(),
+      };
+    } catch {
+      return { ...fallback, updatedAt: row.updatedAt.toISOString() };
     }
   }
 
