@@ -38,6 +38,6 @@
     "babel-preset-taro": "4.1.9",
     "less": "^4.2.1",
     "typescript": "^5.7.3",
-    "webpack": "5.91.0"
+    "webpack": "5.104.1"
   }
 }
