@@ -1,6 +1,6 @@
 import { Controller, Get } from '@nestjs/common';
 
-import { ConfigService } from './config.service';
+import { ConfigService, type CustomerServiceConfig } from './config.service';
 
 @Controller('/public/config')
 export class PublicConfigController {
@@ -9,5 +9,10 @@ export class PublicConfigController {
   @Get('/trade-rules')
   async getTradeRules() {
     return await this.config.getTradeRules();
+  }
+
+  @Get('/customer-service')
+  async getCustomerService(): Promise<CustomerServiceConfig> {
+    return await this.config.getCustomerService();
   }
 }

@@ -68,6 +68,7 @@ export function PageState(props: {
   emptyTitle?: string;
   emptyMessage?: string;
   emptyActionText?: string;
+  emptyImage?: string;
   onRetry?: () => void;
   onEmptyAction?: () => void;
   loadingText?: string;
@@ -78,7 +79,15 @@ export function PageState(props: {
   if (props.loading) return <LoadingCard text={props.loadingText} />;
   if (props.error) return <ErrorCard message={props.error} onRetry={props.onRetry} />;
   if (props.empty) {
-    return <EmptyCard title={props.emptyTitle} message={props.emptyMessage} actionText={props.emptyActionText} onAction={props.onEmptyAction} />;
+    return (
+      <EmptyCard
+        title={props.emptyTitle}
+        message={props.emptyMessage}
+        actionText={props.emptyActionText}
+        onAction={props.onEmptyAction}
+        image={props.emptyImage}
+      />
+    );
   }
   return <>{props.children}</>;
 }

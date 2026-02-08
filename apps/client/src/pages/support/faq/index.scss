@@ -2,27 +2,53 @@
   min-height: 100vh;
 }
 
-.faq-list {
-  display: flex;
-  flex-direction: column;
-  gap: 16rpx;
-}
-
-.faq-card {
-  padding: 20rpx 24rpx;
-  border-radius: 20rpx;
+.settings-card {
+  border-radius: 24rpx;
   background: var(--c-card);
   box-shadow: var(--shadow-sm);
+  padding: 12rpx 12rpx;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
 }
 
-.faq-q {
+.faq-search-card {
+  border-radius: 24rpx;
+  background: var(--c-card);
+  box-shadow: var(--shadow-sm);
+  padding: 16rpx 20rpx;
+}
+
+.faq-section-title {
+  font-size: 26rpx;
+  font-weight: 600;
+  color: var(--c-text);
+  padding: 0 6rpx;
+}
+
+.faq-empty {
+  border-radius: 24rpx;
+  background: var(--c-card);
+  box-shadow: var(--shadow-sm);
+  padding: 28rpx 24rpx;
+}
+
+.faq-empty-title {
   font-size: 26rpx;
   font-weight: 600;
   color: var(--c-text);
 }
 
-.faq-a {
+.faq-empty-sub {
   margin-top: 8rpx;
   font-size: 24rpx;
   color: var(--c-muted);
+}
+
+.faq-bottom-card {
+  margin-top: 12rpx;
+  border-radius: 24rpx;
+  background: var(--c-card);
+  box-shadow: var(--shadow-sm);
+  padding: 12rpx 12rpx;
 }

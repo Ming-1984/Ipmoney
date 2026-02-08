@@ -6,6 +6,7 @@ import './index.scss';
 import type { components } from '@ipmoney/api-types';
 
 import plusIcon from '../../../assets/icons/icon-plus-gray.svg';
+import emptyChat from '../../../assets/illustrations/empty-chat.svg';
 import { API_BASE_URL, ENABLE_MOCK_TOOLS } from '../../../constants';
 import { getToken, getVerificationStatus, isOnboardingDone } from '../../../lib/auth';
 import { apiGet, apiPost } from '../../../lib/api';
@@ -667,7 +668,7 @@ export default function ChatPage() {
           </ScrollView>
         </PullToRefresh>
       ) : (
-        <EmptyCard title="暂无消息" message="可发送一条消息开始沟通。" />
+        <EmptyCard title="暂无会话消息" message="可发送一条消息开始沟通。" image={emptyChat} />
       )}
 
       {canChat ? (

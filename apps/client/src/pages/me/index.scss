@@ -342,16 +342,16 @@
 .me-order-icon {
   width: 64rpx;
   height: 64rpx;
-  border-radius: 999rpx;
-  background: var(--c-neutral-soft);
+  border-radius: 0;
+  background: transparent;
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
 .me-order-icon-img {
-  width: 32rpx;
-  height: 32rpx;
+  width: 64rpx;
+  height: 64rpx;
 }
 
 .me-order-label {
@@ -394,16 +394,16 @@
 .me-publish-icon {
   width: 72rpx;
   height: 72rpx;
-  border-radius: 20rpx;
-  background: var(--c-neutral-soft);
+  border-radius: 0;
+  background: transparent;
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
 .me-publish-icon-img {
-  width: 36rpx;
-  height: 36rpx;
+  width: 72rpx;
+  height: 72rpx;
 }
 
 .me-publish-label {
@@ -434,16 +434,16 @@
 .me-tool-icon {
   width: 56rpx;
   height: 56rpx;
-  border-radius: 16rpx;
-  background: var(--c-neutral-soft);
+  border-radius: 0;
+  background: transparent;
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
 .me-tool-icon-img {
-  width: 28rpx;
-  height: 28rpx;
+  width: 56rpx;
+  height: 56rpx;
 }
 
 .me-tool-title {

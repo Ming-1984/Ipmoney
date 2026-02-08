@@ -1,17 +1,19 @@
-import { View, Text, Button as WxButton } from '@tarojs/components';
+import { Picker, View, Text } from '@tarojs/components';
 import Taro from '@tarojs/taro';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import './index.scss';
 
 import type { components } from '@ipmoney/api-types';
 
+import { Photograph } from '@nutui/icons-react-taro';
+
 import { API_BASE_URL } from '../../../constants';
-import { getToken } from '../../../lib/auth';
-import { apiGet, apiPatch } from '../../../lib/api';
+import { getToken, setOnboardingDone, setVerificationStatus, setVerificationType } from '../../../lib/auth';
+import { apiGet, apiPatch, apiPost } from '../../../lib/api';
 import { requireLogin } from '../../../lib/guard';
-import { regionDisplayName } from '../../../lib/regions';
-import { CellRow, PageHeader, Spacer, Surface } from '../../../ui/layout';
-import { Avatar, Button, CellGroup, Input, toast } from '../../../ui/nutui';
+import { cacheRegionNames, regionDisplayName } from '../../../lib/regions';
+import { PageHeader, Spacer, Surface } from '../../../ui/layout';
+import { Avatar, Button, Input, toast } from '../../../ui/nutui';
 import { ErrorCard, LoadingCard } from '../../../ui/StateCards';
 
 type UserProfile = components['schemas']['UserProfile'];
@@ -25,6 +27,7 @@ export default function ProfileEditPage() {
   const from = String((params as any)?.from || '');
   const nextType = String((params as any)?.nextType || '');
   const nextUrl = ((params as any)?.nextUrl ? decodeURIComponent(String((params as any)?.nextUrl)) : '') || '';
+  const verifyType = String((params as any)?.verifyType || '').trim();
   const isOnboarding = from === 'login';
 
   const goNext = useCallback(() => {
@@ -51,6 +54,23 @@ export default function ProfileEditPage() {
   const [nickname, setNickname] = useState('');
   const [regionCode, setRegionCode] = useState('');
   const [regionName, setRegionName] = useState('');
+
+  const skip = useCallback(async () => {
+    // Onboarding entry: allow skipping profile completion.
+    // For PERSON flow we still complete the "identity registration" so user won't get stuck.
+    if (verifyType === 'PERSON') {
+      try {
+        const displayName = nickname.trim() || me?.nickname || '个人用户';
+        const res = await apiPost<any>('/me/verification', { type: 'PERSON', displayName });
+        setVerificationType('PERSON');
+        setVerificationStatus(res?.status || 'APPROVED');
+        setOnboardingDone(true);
+      } catch {
+        // If mock/backend rejects, still allow leaving the page.
+      }
+    }
+    goNext();
+  }, [goNext, me?.nickname, nickname, verifyType]);
 
   const load = useCallback(async () => {
     if (!requireLogin()) return;
@@ -115,26 +135,9 @@ export default function ProfileEditPage() {
     return true;
   }, []);
 
-  const onChooseAvatar = useCallback(
-    async (e: any) => {
-      const tempPath = String(e?.detail?.avatarUrl || '').trim();
-      if (!tempPath) {
-        const errMsg = String(e?.detail?.errMsg || '').toLowerCase();
-        if (errMsg.includes('no permission')) {
-          toast('未授权头像权限，可改用“从相册选择”。');
-        } else if (errMsg) {
-          toast('选择头像失败，请重试');
-        }
-        return;
-      }
-      await uploadAvatarFromPath(tempPath);
-    },
-    [uploadAvatarFromPath],
-  );
-
   const chooseAvatarFromAlbum = useCallback(async () => {
     try {
-      const res = await Taro.chooseImage({ count: 1, sizeType: ['compressed'], sourceType: ['album', 'camera'] });
+      const res = await Taro.chooseImage({ count: 1, sizeType: ['compressed'], sourceType: ['album'] });
       const tempPath = String(res?.tempFilePaths?.[0] || res?.tempFiles?.[0]?.path || '').trim();
       if (!tempPath) {
         toast('未选择图片');
@@ -152,16 +155,19 @@ export default function ProfileEditPage() {
     if (!requireLogin()) return;
     const nick = nickname.trim();
     const avatar = avatarUrl.trim();
+    const region = regionCode.trim();
 
-    if (isOnboarding) {
-      if (!avatar) {
-        toast('请先选择头像');
-        return;
-      }
-      if (!nick) {
-        toast('请先设置昵称');
-        return;
-      }
+    if (!avatar) {
+      toast('请先选择头像');
+      return;
+    }
+    if (!nick) {
+      toast('请先设置昵称');
+      return;
+    }
+    if (!region) {
+      toast('请选择地区');
+      return;
     }
 
     if (nick && nick.length > 50) {
@@ -170,21 +176,54 @@ export default function ProfileEditPage() {
     }
     try {
       const d = await apiPatch<UserProfile>('/me', {
-        ...(nick ? { nickname: nick } : {}),
-        ...(avatar ? { avatarUrl: avatar } : {}),
-        ...(regionCode.trim() ? { regionCode: regionCode.trim() } : {}),
+        nickname: nick,
+        avatarUrl: avatar,
+        regionCode: region,
       });
       setMe(d);
-      toast('已保存', { icon: 'success' });
+
+      if (verifyType === 'PERSON') {
+        const res = await apiPost<any>('/me/verification', { type: 'PERSON', displayName: nick });
+        setVerificationType('PERSON');
+        setVerificationStatus(res?.status || 'APPROVED');
+        setOnboardingDone(true);
+        toast('注册成功', { icon: 'success' });
+      } else {
+        toast('已保存', { icon: 'success' });
+      }
+
       setTimeout(() => goNext(), 200);
     } catch (e: any) {
       toast(e?.message || '保存失败');
     }
-  }, [avatarUrl, goNext, isOnboarding, nickname, regionCode]);
+  }, [avatarUrl, goNext, nickname, regionCode, verifyType]);
 
   const regionText = useMemo(
-    () => regionDisplayName(regionCode, regionName, '用于地区推荐与展示'),
+    () => regionDisplayName(regionCode, regionName, ''),
     [regionCode, regionName],
+  );
+
+  const handleRegionPick = useCallback(
+    (e: any) => {
+      const names = Array.isArray(e?.detail?.value) ? e.detail.value : [];
+      const codes = Array.isArray(e?.detail?.code) ? e.detail.code : [];
+      const normalizedNames = names.map((name: any) => String(name || '').trim()).filter(Boolean);
+      const normalizedCodes = codes.map((code: any) => String(code || '').trim()).filter(Boolean);
+
+      const code = normalizedCodes[normalizedCodes.length - 1] || '';
+      const name = normalizedNames[normalizedNames.length - 1] || '';
+      if (code) setRegionCode(code);
+      if (name) setRegionName(name);
+
+      // Keep region name map fresh for other places that render by code.
+      cacheRegionNames(
+        normalizedCodes.map((c: string, idx: number) => ({
+          code: c,
+          name: normalizedNames[idx] || '',
+        })),
+      );
+    },
+    [setRegionCode, setRegionName],
   );
 
   return (
@@ -200,71 +239,92 @@ export default function ProfileEditPage() {
         <View>
           {isOnboarding ? (
             <View className="profile-hint">
-              <Text className="profile-hint-title">建议完善资料</Text>
+              <Text className="profile-hint-title">完善资料</Text>
               <Text className="profile-hint-desc">
-                为了便于咨询与交易沟通，建议完善头像与昵称（也可稍后在“我的-资料设置”修改）。
+                为了便于咨询与交易沟通，请完善头像、昵称与地区。
               </Text>
             </View>
           ) : null}
 
           <Surface padding="none" className="profile-card">
-            <View className="profile-card-section">
-              <Text className="profile-label">头像（建议）</Text>
-              <View className="profile-avatar-block">
-                <Avatar
-                  size="72"
-                  src={avatarUrl}
-                  icon={<Text className="text-strong">{(nickname.trim() || me?.nickname || '用').slice(0, 1)}</Text>}
-                />
-                {isWeapp ? (
-                  <View className="profile-avatar-actions">
-                    <WxButton
-                      className="btn-ghost profile-avatar-btn profile-avatar-btn-primary"
-                      openType="chooseAvatar"
-                      onChooseAvatar={onChooseAvatar}
-                    >
-                      选择头像
-                    </WxButton>
-                    <WxButton
-                      className="btn-ghost profile-avatar-btn profile-avatar-btn-secondary"
-                      onClick={() => void chooseAvatarFromAlbum()}
-                    >
-                      从相册选择
-                    </WxButton>
+            <View className="profile-card-section profile-form">
+              <View className="form-field">
+                <Text className="form-label">头像</Text>
+                <View className="profile-avatar-row">
+                  <View
+                    className="profile-avatar-picker"
+                    onClick={() => {
+                      if (!isWeapp) return;
+                      void chooseAvatarFromAlbum();
+                    }}
+                  >
+                    <Avatar
+                      size="96"
+                      src={avatarUrl}
+                      icon={<Text className="text-strong">{(nickname.trim() || me?.nickname || '用').slice(0, 1)}</Text>}
+                    />
+                    {isWeapp ? (
+                      <View
+                        className="profile-avatar-camera"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          void chooseAvatarFromAlbum();
+                        }}
+                      >
+                        <Photograph size={18} color="#fff" />
+                      </View>
+                    ) : null}
                   </View>
-                ) : null}
+                </View>
               </View>
 
-              <View className="profile-field">
-                <Text className="profile-label">昵称（可选）</Text>
+              <View className="form-field">
+                <Text className="form-label">昵称</Text>
                 <Input
                   value={nickname}
                   onChange={setNickname}
-                  placeholder="设置昵称（可选）"
+                  placeholder="请输入昵称"
                   clearable
                   type={isWeapp ? 'nickname' : undefined}
+                  placeholderClass="profile-placeholder"
+                  placeholderStyle="font-size:20rpx;color:#c0c4cc;"
                 />
               </View>
-            </View>
 
-            <CellGroup divider>
-              <CellRow
-                title={<Text className="text-strong">地区（可选）</Text>}
-                description={<Text className="muted">{regionText}</Text>}
-                onClick={() => {
-                  Taro.navigateTo({
-                    url: '/pages/region-picker/index',
-                    success: (res) => {
-                      res.eventChannel.on('regionSelected', (v: any) => {
-                        if (v?.code) setRegionCode(String(v.code));
-                        if (v?.name) setRegionName(String(v.name));
+              <View className="form-field">
+                <Text className="form-label">地区</Text>
+                {isWeapp ? (
+                  <Picker mode="region" level="region" onChange={handleRegionPick}>
+                    <View className="form-select">
+                      <Text className={regionCode.trim() ? 'form-select-value' : 'form-select-placeholder'}>
+                        {regionCode.trim() ? regionText : '请选择'}
+                      </Text>
+                      <Text className="form-select-arrow">›</Text>
+                    </View>
+                  </Picker>
+                ) : (
+                  <View
+                    className="form-select"
+                    onClick={() => {
+                      Taro.navigateTo({
+                        url: '/pages/region-picker/index',
+                        success: (res) => {
+                          res.eventChannel.on('regionSelected', (v: any) => {
+                            if (v?.code) setRegionCode(String(v.code));
+                            if (v?.name) setRegionName(String(v.name));
+                          });
+                        },
                       });
-                    },
-                  });
-                }}
-                isLast
-              />
-            </CellGroup>
+                    }}
+                  >
+                    <Text className={regionCode.trim() ? 'form-select-value' : 'form-select-placeholder'}>
+                      {regionCode.trim() ? regionText : '请选择'}
+                    </Text>
+                    <Text className="form-select-arrow">›</Text>
+                  </View>
+                )}
+              </View>
+            </View>
           </Surface>
 
           <View className="profile-actions">
@@ -272,7 +332,7 @@ export default function ProfileEditPage() {
               保存
             </Button>
             {isOnboarding ? (
-              <Text className="profile-skip" onClick={goNext}>
+              <Text className="profile-skip" onClick={() => void skip()}>
                 稍后完善
               </Text>
             ) : null}

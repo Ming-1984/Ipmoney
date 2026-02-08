@@ -127,8 +127,9 @@
 
 | UI 字段 | 组件形态（推荐） | OpenAPI query | 类型 | 优先级 | 备注 |
 |---|---|---|---|---|---|
-| 身份视角 | CategoryControl（Segmented） | `asRole` | `OrderListRole` | P0 | `BUYER/SELLER`（必填） |
-| 订单状态 | FilterSheet（Chip） | `status` | `OrderStatus` | P0 | 可按“进行中/已完成/退款”等分组展示 |
+| 入口角色 | 由“我的 → 订单管理”入口决定（非列表页内切换） | `asRole` | `OrderListRole` | P0 | `BUYER/SELLER`（必填）；小程序侧 URL 使用 `role`，请求映射为 `asRole` |
+| 状态聚合 Tab | CategoryControl（Tabs line，可滚动） | `statusGroup` | `OrderStatusGroup` | P0 | Tab：`全部/待付款/进行中/退款售后/已结束`；用于减少“每个状态一个入口”的冗余 |
+| 精确状态（兼容） | URL 参数/高级筛选（不作为主入口） | `status` | `OrderStatus` | P0 | 兼容旧链接 `status=...` 精确筛选；`status` 优先级高于 `statusGroup` |
 
 ## 5. Admin 表格页筛选（`apps/admin-web`）
 

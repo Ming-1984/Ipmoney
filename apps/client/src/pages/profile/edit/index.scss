@@ -1,5 +1,6 @@
 .profile-edit-page {
-  background: #f7f8fa;
+  background: #f5f6f8;
+  min-height: 100vh;
 }
 
 .profile-edit-page .surface {
@@ -30,56 +31,124 @@
 }
 
 .profile-card-section {
-  padding: 20rpx 18rpx 8rpx;
+  padding: 20rpx 24rpx;
 }
 
-.profile-label {
-  font-size: 24rpx;
-  color: #6b7280;
-}
-
-.profile-avatar-block {
-  margin-top: 10rpx;
+.profile-form {
   display: flex;
   flex-direction: column;
-  align-items: center;
   gap: 12rpx;
 }
 
-.profile-avatar-actions {
+.form-field {
+  margin-top: 12rpx;
+}
+
+.form-label {
+  font-size: 24rpx;
+  font-weight: 600;
+  color: #111827;
+  margin-bottom: 8rpx;
+  display: block;
+}
+
+.form-hint {
+  font-size: 20rpx;
+  color: #9ca3af;
+  margin-top: 8rpx;
+  display: block;
+}
+
+.profile-avatar-picker {
+  margin-top: 8rpx;
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.profile-avatar-row {
+  display: flex;
+  justify-content: center;
+}
+
+.profile-avatar-camera {
+  position: absolute;
+  right: -4rpx;
+  bottom: -4rpx;
+  width: 52rpx;
+  height: 52rpx;
+  border-radius: 26rpx;
+  background: #ff7a18;
+  border: 2rpx solid #ffffff;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 12rpx;
-  flex-wrap: wrap;
+  box-shadow: 0 6rpx 14rpx rgba(15, 23, 42, 0.14);
+  box-sizing: border-box;
 }
 
-.profile-avatar-btn {
-  min-height: 56rpx;
-  padding: 10rpx 18rpx;
+.form-select {
+  border: 1rpx solid #e5e7eb;
   border-radius: 12rpx;
-  font-size: 24rpx;
-  font-weight: 600;
-  box-shadow: none;
-}
-
-.profile-avatar-btn-primary {
-  background: rgba(255, 122, 0, 0.1);
-  border-color: #ff7a00;
-  color: #ff7a00;
-}
-
-.profile-avatar-btn-secondary {
-  background: #ffffff;
-  border-color: #e5e7eb;
-  color: #6b7280;
-}
-
-.profile-field {
-  margin-top: 14rpx;
+  padding: 16rpx 18rpx;
+  background: #f6f7f9;
   display: flex;
-  flex-direction: column;
-  gap: 8rpx;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 80rpx;
+}
+
+.form-select-value {
+  font-size: 22rpx;
+  color: #111827;
+}
+
+.form-select-placeholder {
+  font-size: 20rpx;
+  color: #9ca3af;
+}
+
+.form-select-arrow {
+  font-size: 20rpx;
+  color: #c0c4cc;
+}
+
+.profile-edit-page .nut-input {
+  border: 1rpx solid #e5e7eb;
+  border-radius: 12rpx;
+  background: #f6f7f9;
+  min-height: 80rpx;
+  font-size: 22rpx;
+}
+
+.profile-edit-page .nut-input-inner {
+  padding: 16rpx 18rpx;
+  font-size: 20rpx;
+  line-height: 1.4;
+}
+
+.profile-edit-page .nut-input-native {
+  font-size: 22rpx;
+}
+
+.profile-edit-page .nut-input-inner input {
+  font-size: 22rpx;
+}
+
+.profile-edit-page .nut-input-native .weui-input {
+  font-size: 22rpx;
+}
+
+.profile-edit-page .nut-input-native .weui-input::placeholder,
+.profile-edit-page .nut-input-placeholder {
+  font-size: 20rpx;
+  color: #c0c4cc;
+}
+
+.profile-edit-page .nut-input input::placeholder {
+  font-size: 20rpx;
+  color: #c0c4cc;
 }
 
 .profile-actions {

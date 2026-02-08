@@ -16,7 +16,7 @@
 - 首页/搜索/地图/详情页（专利/需求/成果/书画单页滚动 + Sticky Tab）
 - 发布链路（专利/需求/成果/书画）
 - 消息/聊天/通知/公告
-- 订单/订金/尾款/退款/发票/合同中心
+- 订单/订金/尾款/退款/发票/合同中心（订单列表已改为聚合 Tab：全部/待付款/进行中/退款售后/已结束；角色由入口决定；API 支持 `statusGroup`）
 - 我的/收藏/设置/法律/帮助/工具页（IPC/产业集群）
 - 技术经理人/机构展示/发明人榜
 - 地址管理入口与页面
@@ -33,13 +33,13 @@
 ### 1.3 后端（api）已实现接口（P0）
 - auth/users/regions/patents/patent-map/files/config
 - listings（后台审核/特色置顶 + 前台创建/更新/提交/下架/公开/搜索/我的）
-- orders（创建/列表/详情/支付意图/里程碑/退款/发票/结算放款）
+- orders（创建/列表/详情/支付意图/里程碑/退款/发票/结算放款；列表支持 `statusGroup` 聚合筛选，兼容 `status` 精确筛选优先）
 - conversations/messages（会话/消息/已读）
 - comments（公开列表/新增/编辑/删除）
 - favorites（收藏/取消收藏/收藏列表）
 - demands/achievements/artworks（发布/编辑/提交/下架/公开详情/搜索/后台审核）
 - announcements/notifications（公开公告/通知）
-- contracts（合同中心列表/上传占位）
+- contracts（合同中心列表/上传演示：仅卖家可上传合同 PDF；生产需补齐文件权限/落库/审计）
 - organizations/tech-managers/inventors（机构/技术经理人/发明人榜）
 - addresses（地址管理）
 - verification（/me/verification 提交 + /admin/user-verifications 审核）

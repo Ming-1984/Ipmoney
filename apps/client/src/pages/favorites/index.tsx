@@ -27,6 +27,7 @@ import { PageState } from '../../ui/PageState';
 import { PageHeader, Spacer, Surface } from '../../ui/layout';
 import { Button, toast } from '../../ui/nutui';
 import iconAward from '../../assets/icons/icon-award-teal.svg';
+import emptyFavorites from '../../assets/illustrations/empty-favorites.svg';
 
 type PagedListingSummary = components['schemas']['PagedListingSummary'];
 type ListingSummary = components['schemas']['ListingSummary'];
@@ -410,8 +411,10 @@ export default function FavoritesPage() {
                 ? achievementItems.length === 0
                 : artworkItems.length === 0)
         }
-        emptyMessage="暂无收藏"
+        emptyTitle="暂无收藏"
+        emptyMessage="看到心仪内容，点“收藏”先占位。"
         emptyActionText="刷新"
+        emptyImage={emptyFavorites}
         onEmptyAction={load}
       >
         {renderContent()}

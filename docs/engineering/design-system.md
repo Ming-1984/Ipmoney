@@ -54,6 +54,14 @@
 - **permission**：未登录/无权限/未认证 → 引导登录/提交认证/联系管理员
 - **audit**：审核中/驳回（带原因）/通过（展示身份标签与机构入口）
 
+空态插画映射（Client 小程序/H5）：
+- 评论区：`empty-comments.svg`（标题：暂无评价）
+- 订单列表：`empty-orders.svg`（标题：暂无订单）
+- 收藏列表：`empty-favorites.svg`（标题：暂无收藏）
+- 发票中心：`empty-invoices.svg`（标题：暂无发票）
+- 消息列表：`empty-messages.svg`（标题：暂无消息）
+- 会话详情：`empty-chat.svg`（标题：暂无会话消息）
+
 ## 5. 多端落地建议
 
 - **Admin（React + Ant Design）**：用 AntD 主题 token 设置 `colorPrimary=#FF6A00`；重要操作页（退款/放款/配置）强化审计提示与二次确认。

@@ -1,0 +1,22 @@
+flowchart TD
+  %% Contract & Invoice upload flows (P0 demo aligned with current implementation).
+
+  subgraph Contract["合同上传（仅卖家，PDF）"]
+    A[卖家进入合同中心<br/>我的 → 合同中心] --> B[合同列表<br/>GET /contracts]
+    B -->|待上传| C[上传合同（PDF）]
+    C --> F1[选择 PDF（小程序 chooseMessageFile）]
+    F1 --> F2[POST /files<br/>purpose=CONTRACT_EVIDENCE]
+    F2 --> F3[拿到 file.id]
+    F3 --> F4[POST /contracts/{contractId}/upload<br/>{ contractFileId }]
+    F4 --> S1[合同状态：待确认（WAIT_CONFIRM）]
+    S1 --> Buyer[买家进入合同中心查看<br/>（仅查阅/确认能力后续可扩展）]
+  end
+
+  subgraph Invoice["发票上传（仅财务/管理员，PDF）"]
+    I1[用户发起开票申请（演示）<br/>POST /orders/{orderId}/invoice-requests] --> I2[发票状态：申请中（APPLYING）]
+    I3[财务上传发票 PDF] --> I4[POST /files<br/>purpose=INVOICE]
+    I4 --> I5[PUT /admin/orders/{orderId}/invoice<br/>{ invoiceFileId, invoiceNo?, issuedAt? }]
+    I5 --> I6[发票状态：可下载（ISSUED）]
+    I6 --> I7[用户端查看/下载<br/>GET /orders/{orderId}/invoice 或 GET /invoices]
+  end
+

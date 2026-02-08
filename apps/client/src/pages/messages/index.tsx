@@ -291,7 +291,7 @@ export default function MessagesPage() {
     toast('已删除会话', { icon: 'success' });
   }, [filteredItems, consultItems, trimmedSearch]);
 
-  const emptyTitle = '暂无咨询会话';
+  const emptyTitle = '暂无消息';
   const emptyMessage = '从详情页点击“咨询”即可创建会话。';
 
   return (
@@ -335,6 +335,7 @@ export default function MessagesPage() {
         emptyTitle={trimmedSearch ? '未找到会话' : emptyTitle}
         emptyMessage={trimmedSearch ? '换个关键词试试。' : emptyMessage}
         emptyActionText={trimmedSearch ? '清空搜索' : '刷新'}
+        emptyImage={emptyMessagesIcon}
         onRetry={load}
         onEmptyAction={trimmedSearch ? clearSearch : load}
       >

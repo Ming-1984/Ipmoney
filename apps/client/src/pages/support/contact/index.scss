@@ -1,0 +1,20 @@
+.settings-page {
+  min-height: 100vh;
+}
+
+.settings-card {
+  border-radius: 24rpx;
+  background: var(--c-card);
+  box-shadow: var(--shadow-sm);
+  padding: 24rpx;
+  display: flex;
+  flex-direction: column;
+  gap: 16rpx;
+}
+
+.cs-hint {
+  font-size: 22rpx;
+  color: var(--c-muted);
+  line-height: 1.4;
+}
+

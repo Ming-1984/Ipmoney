@@ -51,8 +51,8 @@ export const NOTIFICATIONS: NotificationItem[] = [
     summary: '已为您更新专利材料清单。',
     time: '2026-02-02T11:05:00+08:00',
     source: '客服助手',
-    content: ['已为您更新专利材料清单，请根据清单补充材料后提交。', '如有疑问可继续留言。'],
-    related: { label: '提交补充材料', url: '/pages/messages/chat/index?conversationId=cs-20260202' },
+    content: ['已为您更新专利材料清单，请根据清单补充材料后提交。', '如有疑问请电话联系客服。'],
+    related: { label: '电话联系客服', url: '/pages/support/contact/index' },
   },
   {
     id: 'cs-20260201-01',
@@ -61,8 +61,8 @@ export const NOTIFICATIONS: NotificationItem[] = [
     summary: '客服已受理您的问题，将在 24 小时内回复。',
     time: '2026-02-01T09:20:00+08:00',
     source: '客服中心',
-    content: ['您的问题已提交成功，客服将在 24 小时内回复。请留意后续通知。'],
-    related: { label: '查看客服会话', url: '/pages/messages/chat/index?conversationId=cs-20260201' },
+    content: ['您的问题已提交成功，客服将在 24 小时内回复。紧急问题请电话联系客服。'],
+    related: { label: '电话联系客服', url: '/pages/support/contact/index' },
   },
 ];
 

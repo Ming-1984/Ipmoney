@@ -495,6 +495,22 @@ paths:
         "400":
           $ref: "#/components/responses/BadRequest"
 
+  /public/config/customer-service:
+    get:
+      tags: [Config]
+      summary: 获取客服配置（前台展示用）
+      operationId: getPublicCustomerServiceConfig
+      security: []
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CustomerServiceConfig"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+
   /public/listings/{listingId}:
     get:
       tags: [Listings]
@@ -2101,6 +2117,7 @@ paths:
           schema:
             $ref: "#/components/schemas/OrderListRole"
         - $ref: "#/components/parameters/OrderStatus"
+        - $ref: "#/components/parameters/OrderStatusGroup"
         - $ref: "#/components/parameters/Page"
         - $ref: "#/components/parameters/PageSize"
       responses:
@@ -2262,6 +2279,59 @@ paths:
           $ref: "#/components/responses/Unauthorized"
         "404":
           $ref: "#/components/responses/NotFound"
+
+  /orders/{orderId}/invoice-requests:
+    post:
+      tags: [Invoices]
+      summary: 发起开票申请（演示）
+      description: |
+        P0 口径：平台支持“财务线下开票 + 后台上传发票 PDF + 用户下载”。
+        当前实现为演示用途，保留申请入口以便对齐前端流程与后续扩展。
+      operationId: requestOrderInvoice
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/OrderId"
+        - $ref: "#/components/parameters/IdempotencyKey"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InvoiceRequestResult"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /invoices:
+    get:
+      tags: [Invoices]
+      summary: 发票管理中心列表（演示）
+      operationId: listMyInvoices
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: status
+          in: query
+          required: false
+          schema:
+            $ref: "#/components/schemas/InvoiceStatus"
+          description: 发票状态筛选
+        - $ref: "#/components/parameters/Page"
+        - $ref: "#/components/parameters/PageSize"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PagedInvoiceItem"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
 
   /webhooks/wechatpay/notify:
     post:
@@ -2810,6 +2880,122 @@ paths:
                 $ref: "#/components/schemas/TradeRulesConfig"
         "401":
           $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+
+  /admin/config/customer-service:
+    get:
+      tags: [Admin, Config]
+      summary: 获取客服配置（后台）
+      operationId: adminGetCustomerServiceConfig
+      security:
+        - BearerAuth: []
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CustomerServiceConfig"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+    put:
+      tags: [Admin, Config]
+      summary: 更新客服配置（后台）
+      operationId: adminUpdateCustomerServiceConfig
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CustomerServiceConfigUpdateRequest"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CustomerServiceConfig"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /contracts:
+    get:
+      tags: [Contracts]
+      summary: 合同中心列表
+      description: |
+        合同文件仅支持 PDF。
+        - 仅卖家可上传合同（`POST /contracts/{contractId}/upload`）
+        - 买家可查阅并确认（确认能力 P1；P0 以“待确认/可查阅”状态演示为准）
+      operationId: listContracts
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: status
+          in: query
+          required: false
+          schema:
+            $ref: "#/components/schemas/ContractStatus"
+          description: 合同状态筛选
+        - $ref: "#/components/parameters/Page"
+        - $ref: "#/components/parameters/PageSize"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PagedContract"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /contracts/{contractId}/upload:
+    post:
+      tags: [Contracts]
+      summary: 卖家上传合同（PDF）
+      description: |
+        流程：
+        1) `POST /files` 上传 PDF（`purpose=CONTRACT_EVIDENCE`）
+        2) 拿到 `file.id`
+        3) 调用本接口把 `contractFileId` 关联到合同记录
+      operationId: uploadContractPdf
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: contractId
+          in: path
+          required: true
+          schema:
+            type: string
+          description: 合同 ID（当前实现为 `contract-{orderId}`）
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ContractUploadRequest"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ContractItem"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
         "403":
           $ref: "#/components/responses/Forbidden"
     put:
@@ -5283,6 +5469,14 @@ components:
       schema:
         $ref: "#/components/schemas/OrderStatus"
 
+    OrderStatusGroup:
+      name: statusGroup
+      in: query
+      required: false
+      description: "订单状态分组筛选（用于“全部/待付款/进行中/退款/售后/已结束”等聚合 Tab）"
+      schema:
+        $ref: "#/components/schemas/OrderStatusGroup"
+
     IdempotencyKey:
       name: Idempotency-Key
       in: header
@@ -5480,6 +5674,127 @@ components:
         - CONTRACT_EVIDENCE
         - INVOICE
         - OTHER
+
+    ContractStatus:
+      type: string
+      enum: [WAIT_UPLOAD, WAIT_CONFIRM, AVAILABLE]
+      description: 合同中心状态（卖家上传 PDF → 买家确认 → 可查阅）
+
+    ContractUploadRequest:
+      type: object
+      description: |
+        合同上传请求（仅卖家可调用）。
+        `contractFileId` 建议来自 `POST /files`（`purpose=CONTRACT_EVIDENCE`），且仅允许 PDF。
+      properties:
+        contractFileId:
+          $ref: "#/components/schemas/Uuid"
+
+    ContractItem:
+      type: object
+      required: [id, orderId, status, createdAt]
+      properties:
+        id:
+          type: string
+          description: 合同 ID（当前实现为 `contract-{orderId}`）
+        orderId:
+          $ref: "#/components/schemas/Uuid"
+        listingTitle:
+          type: string
+          nullable: true
+        counterpartName:
+          type: string
+          nullable: true
+        status:
+          $ref: "#/components/schemas/ContractStatus"
+        createdAt:
+          type: string
+          format: date-time
+        uploadedAt:
+          type: string
+          format: date-time
+          nullable: true
+        signedAt:
+          type: string
+          format: date-time
+          nullable: true
+        fileUrl:
+          type: string
+          format: uri
+          nullable: true
+          description: 合同 PDF URL（演示用；生产建议关联 FileObject）
+        watermarkOwner:
+          type: string
+          nullable: true
+          description: 水印/归属标识（演示用）
+        canUpload:
+          type: boolean
+          description: 是否允许上传（仅卖家为 true）
+
+    PagedContract:
+      type: object
+      required: [items, page]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/ContractItem"
+        page:
+          $ref: "#/components/schemas/PageMeta"
+
+    InvoiceStatus:
+      type: string
+      enum: [WAIT_APPLY, APPLYING, ISSUED]
+      description: 发票状态（演示；真实生产需按财务流程细化）
+
+    InvoiceRequestResult:
+      type: object
+      required: [orderId, status]
+      properties:
+        orderId:
+          $ref: "#/components/schemas/Uuid"
+        status:
+          $ref: "#/components/schemas/InvoiceStatus"
+
+    InvoiceItem:
+      allOf:
+        - $ref: "#/components/schemas/Order"
+        - type: object
+          required: [invoiceStatus]
+          properties:
+            invoiceStatus:
+              $ref: "#/components/schemas/InvoiceStatus"
+            amountFen:
+              $ref: "#/components/schemas/MoneyFen"
+              nullable: true
+            itemName:
+              type: string
+              nullable: true
+            invoiceNo:
+              type: string
+              nullable: true
+            issuedAt:
+              type: string
+              format: date-time
+              nullable: true
+            invoiceFileUrl:
+              type: string
+              format: uri
+              nullable: true
+            requestedAt:
+              type: string
+              format: date-time
+              nullable: true
+
+    PagedInvoiceItem:
+      type: object
+      required: [items, page]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/InvoiceItem"
+        page:
+          $ref: "#/components/schemas/PageMeta"
 
     UserProfile:
       type: object
@@ -7139,6 +7454,15 @@ components:
         - REFUNDING
         - REFUNDED
 
+    OrderStatusGroup:
+      type: string
+      description: 订单状态分组（用于列表页聚合 Tab 筛选）
+      enum:
+        - PAYMENT_PENDING
+        - IN_PROGRESS
+        - REFUND
+        - DONE
+
     OrderListRole:
       type: string
       enum: [BUYER, SELLER]
@@ -7658,6 +7982,36 @@ components:
           $ref: "#/components/schemas/PayoutMethod"
         autoPayoutOnTimeout:
           type: boolean
+
+    CustomerServiceAssignStrategy:
+      type: string
+      enum: [AUTO, MANUAL]
+      description: 客服分配策略（演示用；真实生产可接入更复杂的分配/排班）
+
+    CustomerServiceConfig:
+      type: object
+      required: [phone, defaultReply, assignStrategy]
+      description: 客服配置（前台展示/后台配置）
+      properties:
+        phone:
+          type: string
+          example: "400-000-0000"
+        defaultReply:
+          type: string
+          example: "您好，已收到您的咨询，客服将在 15 分钟内联系您。"
+        assignStrategy:
+          $ref: "#/components/schemas/CustomerServiceAssignStrategy"
+
+    CustomerServiceConfigUpdateRequest:
+      type: object
+      required: [phone, defaultReply, assignStrategy]
+      properties:
+        phone:
+          type: string
+        defaultReply:
+          type: string
+        assignStrategy:
+          $ref: "#/components/schemas/CustomerServiceAssignStrategy"
 
     RegionLevel:
       type: string

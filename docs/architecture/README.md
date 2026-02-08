@@ -36,5 +36,8 @@
 
 ## 新增
 - `flow-user-center.mmd`：用户中心（我的）导航与分区流程图
+- `flow-order-list-tabs.mmd`：订单列表 Tab（聚合筛选）与 statusGroup 映射
+- `flow-support.mmd`：客服中心（帮助与反馈）FAQ/电话客服流程
+- `flow-contract-invoice-upload.mmd`：合同/发票上传流程（卖家/财务权限）
 - `sequence-wechat-phone-bind.mmd`：微信手机号授权绑定时序
 - `sequence-wechat-login-onboarding.mmd`：微信登录 → 手机号授权弹窗 → 身份选择时序

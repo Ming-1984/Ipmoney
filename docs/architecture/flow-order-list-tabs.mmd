@@ -1,0 +1,37 @@
+flowchart TD
+  %% Order list filtering: keep backend statuses detailed, but UI shows aggregated tabs.
+
+  U[用户进入订单列表页<br/>/pages/orders/index?role=BUYER|SELLER] --> R{入口角色 role}
+  R -->|BUYER| B[买家订单列表]
+  R -->|SELLER| S[卖家订单列表]
+
+  B --> T[顶部 Tab：全部 / 待付款 / 进行中 / 退款售后 / 已结束]
+  S --> T
+
+  %% Backward compatible: legacy deep links can still pass exact status.
+  U --> LEG[兼容旧链接：/pages/orders/index?role=...&status=...]
+  LEG --> QLEG[GET /orders?asRole=...&status=...]
+
+  T -->|全部| Q0[GET /orders?asRole=...]
+  T -->|待付款| Q1[GET /orders?asRole=...&statusGroup=PAYMENT_PENDING]
+  T -->|进行中| Q2[GET /orders?asRole=...&statusGroup=IN_PROGRESS]
+  T -->|退款售后| Q3[GET /orders?asRole=...&statusGroup=REFUND]
+  T -->|已结束| Q4[GET /orders?asRole=...&statusGroup=DONE]
+
+  subgraph API[服务端过滤（示意）]
+    Q0 --> W0[不加状态过滤]
+    Q1 --> W1[status IN (DEPOSIT_PENDING, WAIT_FINAL_PAYMENT)]
+    Q2 --> W2[status IN (DEPOSIT_PAID, FINAL_PAID_ESCROW, READY_TO_SETTLE)]
+    Q3 --> W3[status IN (REFUNDING, REFUNDED)]
+    Q4 --> W4[status IN (COMPLETED, CANCELLED)]
+    QLEG --> WLEG[status = ...（精确筛选优先）]
+  end
+
+  W0 --> L[返回 PagedOrder]
+  W1 --> L
+  W2 --> L
+  W3 --> L
+  W4 --> L
+  WLEG --> L
+
+  L --> UI[列表渲染：每条订单显示真实 status 文案<br/>（不精简后端状态）]

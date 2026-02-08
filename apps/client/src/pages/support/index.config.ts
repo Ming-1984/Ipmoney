@@ -1,4 +1,4 @@
-export default definePageConfig({
-  navigationBarTitleText: '°ïÖúÓë·´À¡',
+ï»¿export default definePageConfig({
+  navigationBarTitleText: 'å¸®åŠ©ä¸åé¦ˆ',
   navigationStyle: 'custom',
 });

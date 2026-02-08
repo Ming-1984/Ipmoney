@@ -575,6 +575,13 @@
 
 - Loading：`正在加载…`
 - Empty：`暂无数据` + `刷新` / `去搜索` / `去发布`
+- 空态插画（小程序/H5）：
+  - 评论区：暂无评价（`empty-comments.svg`）
+  - 订单列表：暂无订单（`empty-orders.svg`）
+  - 收藏列表：暂无收藏（`empty-favorites.svg`）
+  - 发票中心：暂无发票（`empty-invoices.svg`）
+  - 消息列表：暂无消息（`empty-messages.svg`）
+  - 会话详情：暂无会话消息（`empty-chat.svg`）
 - Error：`加载失败，请稍后重试` + `重试`
 - Permission：`需要登录后继续` + `去登录`
 - Audit：`资料审核中` / `已驳回，请重新提交`

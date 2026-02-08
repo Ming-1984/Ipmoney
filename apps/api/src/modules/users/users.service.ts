@@ -195,11 +195,12 @@ export class UsersService {
     }
 
     const existing = await this.prisma.userVerification.findFirst({
-      where: { userId, verificationStatus: { in: ['PENDING', 'APPROVED'] } },
+      // Allow "upgrade" submissions after an approved record; block only when there's an in-progress review.
+      where: { userId, verificationStatus: { in: ['PENDING'] } },
       orderBy: { submittedAt: 'desc' },
     });
     if (existing) {
-      throw new ConflictException({ code: 'CONFLICT', message: '已提交认证，待审核或已通过' });
+      throw new ConflictException({ code: 'CONFLICT', message: '已提交认证，等待审核中' });
     }
 
     const now = new Date();

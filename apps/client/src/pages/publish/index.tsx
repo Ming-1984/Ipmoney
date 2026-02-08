@@ -3,10 +3,10 @@ import Taro from '@tarojs/taro';
 import React, { useMemo } from 'react';
 import './index.scss';
 
-import iconAward from '../../assets/icons/icon-award-teal.svg';
-import iconPalette from '../../assets/icons/icon-palette-orange.svg';
-import iconTrending from '../../assets/icons/icon-trending-red.svg';
-import iconActivity from '../../assets/icons/icon-activity-blue.svg';
+import iconPublishPatent from '../../assets/icons/icon-publish-patent.svg';
+import iconPublishArtwork from '../../assets/icons/icon-publish-artwork.svg';
+import iconPublishDemand from '../../assets/icons/icon-publish-demand.svg';
+import iconPublishAchievement from '../../assets/icons/icon-publish-achievement.svg';
 import iconShield from '../../assets/icons/icon-shield-orange.svg';
 import iconCategory from '../../assets/icons/icon-category-gray.svg';
 
@@ -41,7 +41,7 @@ export default function PublishPage() {
         key: 'patent',
         title: '发布专利交易',
         desc: '发明/实用/外观',
-        icon: iconAward,
+        icon: iconPublishPatent,
         tone: 'tone-orange',
         onClick: () => {
           Taro.navigateTo({ url: '/pages/publish/patent/index' });
@@ -51,7 +51,7 @@ export default function PublishPage() {
         key: 'artwork',
         title: '发布书画专区',
         desc: '艺术作品交易',
-        icon: iconPalette,
+        icon: iconPublishArtwork,
         tone: 'tone-purple',
         onClick: () => {
           Taro.navigateTo({ url: '/pages/publish/artwork/index' });
@@ -61,7 +61,7 @@ export default function PublishPage() {
         key: 'demand',
         title: '发布产学研需求',
         desc: '技术/人才/资金',
-        icon: iconTrending,
+        icon: iconPublishDemand,
         tone: 'tone-blue',
         onClick: () => {
           Taro.navigateTo({ url: '/pages/publish/demand/index' });
@@ -71,7 +71,7 @@ export default function PublishPage() {
         key: 'achievement',
         title: '发布成果展示',
         desc: '案例/转化成果',
-        icon: iconActivity,
+        icon: iconPublishAchievement,
         tone: 'tone-green',
         onClick: () => {
           Taro.navigateTo({ url: '/pages/publish/achievement/index' });
@@ -86,7 +86,7 @@ export default function PublishPage() {
       {
         key: 'listings',
         title: '我的专利',
-        icon: iconAward,
+        icon: iconPublishPatent,
         tone: 'tone-blue',
         onClick: () => {
           Taro.navigateTo({ url: '/pages/my-listings/index' });
@@ -95,7 +95,7 @@ export default function PublishPage() {
       {
         key: 'artworks',
         title: '我的书画',
-        icon: iconPalette,
+        icon: iconPublishArtwork,
         tone: 'tone-purple',
         onClick: () => {
           Taro.navigateTo({ url: '/pages/my-artworks/index' });
@@ -104,7 +104,7 @@ export default function PublishPage() {
       {
         key: 'demands',
         title: '技术需求',
-        icon: iconTrending,
+        icon: iconPublishDemand,
         tone: 'tone-orange',
         onClick: () => {
           Taro.navigateTo({ url: '/pages/my-demands/index' });
@@ -113,7 +113,7 @@ export default function PublishPage() {
       {
         key: 'achievements',
         title: '成果案例',
-        icon: iconActivity,
+        icon: iconPublishAchievement,
         tone: 'tone-green',
         onClick: () => {
           Taro.navigateTo({ url: '/pages/my-achievements/index' });
@@ -156,14 +156,12 @@ export default function PublishPage() {
 
           <View className="publish-grid">
             {publishItems.map((item) => (
-              <View key={item.key} className="publish-card" onClick={item.onClick}>
-                <View className={`publish-card-icon ${item.tone}`}>
-                  <Image className="publish-card-icon-img" src={item.icon} svg mode="aspectFit" />
-                </View>
-                <View className="publish-card-text">
+              <View key={item.key} className={`publish-card publish-card--wide ${item.tone}`} onClick={item.onClick}>
+                <View className="publish-card-left">
                   <Text className="publish-card-title">{item.title}</Text>
                   <Text className="publish-card-desc">{item.desc}</Text>
                 </View>
+                <Image className="publish-card-deco" src={item.icon} svg mode="aspectFit" />
               </View>
             ))}
           </View>

@@ -26,14 +26,14 @@ export default function SupportPage() {
       <Spacer />
 
       <TipBanner tone="info" title="服务提示">
-        客服工作时间：工作日 09:00-18:00，非工作时间可留言，将尽快处理。
+        客服工作时间：工作日 09:00-18:00，非工作时间可提交意见反馈，我们将尽快处理。
       </TipBanner>
 
       <Spacer size={12} />
 
       <Surface className="settings-card">
         <Cell title="常见问题" extra="查看" onClick={() => Taro.navigateTo({ url: '/pages/support/faq/index' })} />
-        <Cell title="联系客服" extra="在线" onClick={() => Taro.switchTab({ url: '/pages/messages/index' })} />
+        <Cell title="联系客服" extra="电话" onClick={() => Taro.navigateTo({ url: '/pages/support/contact/index' })} />
         <Cell title="交易规则" extra="查看" onClick={() => Taro.navigateTo({ url: '/pages/trade-rules/index' })} />
       </Surface>
 

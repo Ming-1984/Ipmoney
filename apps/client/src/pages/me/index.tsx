@@ -37,6 +37,15 @@ import iconCategory from '../../assets/icons/icon-category-gray.svg';
 import iconMore from '../../assets/icons/icon-more-gray.svg';
 import iconUser from '../../assets/icons/icon-user-purple.svg';
 import iconBriefcase from '../../assets/icons/icon-briefcase-indigo.svg';
+import iconPublishPatent from '../../assets/icons/icon-publish-patent.svg';
+import iconPublishArtwork from '../../assets/icons/icon-publish-artwork.svg';
+import iconPublishDemand from '../../assets/icons/icon-publish-demand.svg';
+import iconPublishAchievement from '../../assets/icons/icon-publish-achievement.svg';
+import iconOrderBuyer from '../../assets/icons/icon-order-buyer.svg';
+import iconOrderSeller from '../../assets/icons/icon-order-seller.svg';
+import iconContractCenter from '../../assets/icons/icon-contract-center.svg';
+import iconInvoiceCenter from '../../assets/icons/icon-invoice-center.svg';
+import iconNotification from '../../assets/icons/icon-notification.svg';
 
 type Me = {
   id: string;
@@ -101,7 +110,7 @@ export default function MePage() {
   const [meLoading, setMeLoading] = useState(false);
   const [meError, setMeError] = useState<string | null>(null);
   const [me, setMe] = useState<Me | null>(null);
-  const [orderTab, setOrderTab] = useState<'buyer' | 'seller'>('buyer');
+  const [orderTab, setOrderTab] = useState<'orders' | 'publish'>('orders');
   const [refreshing, setRefreshing] = useState(false);
   const [busy, setBusy] = useState(false);
   const [showSms, setShowSms] = useState(false);
@@ -305,41 +314,29 @@ export default function MePage() {
     return { type: auth.verificationType, status: auth.verificationStatus };
   }, [auth.verificationStatus, auth.verificationType]);
 
-  const buildOrderUrl = useCallback((role: 'BUYER' | 'SELLER', status?: string) => {
+  const buildOrderUrl = useCallback((role: 'BUYER' | 'SELLER', opts?: { tab?: string; status?: string }) => {
     const base = `/pages/orders/index?role=${role}`;
-    return status ? `${base}&status=${status}` : base;
+    if (opts?.status) return `${base}&status=${encodeURIComponent(opts.status)}`;
+    if (opts?.tab) return `${base}&tab=${encodeURIComponent(opts.tab)}`;
+    return base;
   }, []);
 
-  const buyerOrders = useMemo<IconItem[]>(
+  const orderManageItems = useMemo<IconItem[]>(
     () => [
-      { key: 'deposit', label: '待付订金', icon: iconAward, onClick: () => Taro.navigateTo({ url: buildOrderUrl('BUYER', 'DEPOSIT_PENDING') }) },
-      { key: 'contract', label: '待签合同', icon: iconCategory, onClick: () => Taro.navigateTo({ url: buildOrderUrl('BUYER', 'DEPOSIT_PAID') }) },
-      { key: 'final', label: '待付尾款', icon: iconActivity, onClick: () => Taro.navigateTo({ url: buildOrderUrl('BUYER', 'WAIT_FINAL_PAYMENT') }) },
-      { key: 'change', label: '变更中', icon: iconTrending, onClick: () => Taro.navigateTo({ url: buildOrderUrl('BUYER', 'FINAL_PAID_ESCROW') }) },
-      { key: 'done', label: '已完成', icon: iconShield, onClick: () => Taro.navigateTo({ url: buildOrderUrl('BUYER', 'COMPLETED') }) },
-      { key: 'refund', label: '退款/售后', icon: iconMore, onClick: () => Taro.navigateTo({ url: buildOrderUrl('BUYER', 'REFUNDING') }) },
-      { key: 'cancel', label: '已取消', icon: iconUser, onClick: () => Taro.navigateTo({ url: buildOrderUrl('BUYER', 'CANCELLED') }) },
-    ],
-    [buildOrderUrl],
-  );
-
-  const sellerOrders = useMemo<IconItem[]>(
-    () => [
-      { key: 'material', label: '补材料', icon: iconBriefcase, onClick: () => Taro.navigateTo({ url: buildOrderUrl('SELLER', 'DEPOSIT_PAID') }) },
-      { key: 'contract', label: '待签合同', icon: iconCategory, onClick: () => Taro.navigateTo({ url: buildOrderUrl('SELLER', 'DEPOSIT_PAID') }) },
-      { key: 'final', label: '待收尾款', icon: iconActivity, onClick: () => Taro.navigateTo({ url: buildOrderUrl('SELLER', 'WAIT_FINAL_PAYMENT') }) },
-      { key: 'change', label: '变更中', icon: iconTrending, onClick: () => Taro.navigateTo({ url: buildOrderUrl('SELLER', 'FINAL_PAID_ESCROW') }) },
-      { key: 'done', label: '已完成', icon: iconShield, onClick: () => Taro.navigateTo({ url: buildOrderUrl('SELLER', 'COMPLETED') }) },
+      { key: 'buyer', label: '买家订单', icon: iconOrderBuyer, onClick: () => Taro.navigateTo({ url: buildOrderUrl('BUYER') }) },
+      { key: 'seller', label: '卖家订单', icon: iconOrderSeller, onClick: () => Taro.navigateTo({ url: buildOrderUrl('SELLER') }) },
+      { key: 'contract', label: '合同中心', icon: iconContractCenter, onClick: () => Taro.navigateTo({ url: '/pages/contracts/index' }) },
+      { key: 'invoice', label: '发票管理', icon: iconInvoiceCenter, onClick: () => Taro.navigateTo({ url: '/pages/invoices/index' }) },
     ],
     [buildOrderUrl],
   );
 
   const publishItems = useMemo<IconItem[]>(
     () => [
-      { key: 'listings', label: '我的专利', icon: iconAward, onClick: () => Taro.navigateTo({ url: '/pages/my-listings/index' }) },
-      { key: 'artworks', label: '我的书画', icon: iconPalette, onClick: () => Taro.navigateTo({ url: '/pages/my-artworks/index' }) },
-      { key: 'demands', label: '技术需求', icon: iconTrending, onClick: () => Taro.navigateTo({ url: '/pages/my-demands/index' }) },
-      { key: 'achievements', label: '成果案例', icon: iconActivity, onClick: () => Taro.navigateTo({ url: '/pages/my-achievements/index' }) },
+      { key: 'listings', label: '我的专利', icon: iconPublishPatent, onClick: () => Taro.navigateTo({ url: '/pages/my-listings/index' }) },
+      { key: 'artworks', label: '我的书画', icon: iconPublishArtwork, onClick: () => Taro.navigateTo({ url: '/pages/my-artworks/index' }) },
+      { key: 'demands', label: '技术需求', icon: iconPublishDemand, onClick: () => Taro.navigateTo({ url: '/pages/my-demands/index' }) },
+      { key: 'achievements', label: '成果案例', icon: iconPublishAchievement, onClick: () => Taro.navigateTo({ url: '/pages/my-achievements/index' }) },
     ],
     [],
   );
@@ -367,26 +364,8 @@ export default function MePage() {
       {
         key: 'notice',
         label: '通知',
-        icon: iconTrending,
+        icon: iconNotification,
         onClick: () => Taro.navigateTo({ url: '/pages/notifications/index' }),
-      },
-      {
-        key: 'notify',
-        label: '通知设置',
-        icon: iconActivity,
-        onClick: () => Taro.navigateTo({ url: '/pages/settings/notifications/index' }),
-      },
-      {
-        key: 'invoice',
-        label: '发票管理中心',
-        icon: iconCategory,
-        onClick: () => Taro.navigateTo({ url: '/pages/invoices/index' }),
-      },
-      {
-        key: 'contract-center',
-        label: '合同中心',
-        icon: iconBriefcase,
-        onClick: () => Taro.navigateTo({ url: '/pages/contracts/index' }),
       },
       {
         key: 'address',
@@ -414,22 +393,10 @@ export default function MePage() {
         onClick: () => Taro.navigateTo({ url: '/pages/profile/edit/index' }),
       },
       {
-        key: 'security',
-        label: '账号安全',
-        icon: iconBriefcase,
-        onClick: () => Taro.navigateTo({ url: '/pages/settings/security/index' }),
-      },
-      {
         key: 'about',
         label: '关于与合规',
         icon: iconMore,
         onClick: () => Taro.navigateTo({ url: '/pages/about/index' }),
-      },
-      {
-        key: 'help',
-        label: '帮助与反馈',
-        icon: iconMap,
-        onClick: () => Taro.navigateTo({ url: '/pages/support/index' }),
       },
       {
         key: 'rules',
@@ -446,7 +413,7 @@ export default function MePage() {
   const rawRegion = regionDisplayName(me?.regionCode);
   const displayRegion = rawRegion && rawRegion !== me?.regionCode && !/^\d+$/.test(rawRegion) ? rawRegion : '';
   const displayRegionText = displayRegion || '未设置';
-  const orderItems = orderTab === 'buyer' ? buyerOrders : sellerOrders;
+  const orderItems = orderTab === 'orders' ? orderManageItems : publishItems;
 
   if (!auth.token) {
     return (
@@ -572,18 +539,18 @@ export default function MePage() {
           <View className="me-order-card">
             <View className="me-order-tabs">
               <View
-                className={`me-order-tab ${orderTab === 'buyer' ? 'active' : ''}`}
-                onClick={() => setOrderTab('buyer')}
+                className={`me-order-tab ${orderTab === 'orders' ? 'active' : ''}`}
+                onClick={() => setOrderTab('orders')}
               >
-                <Text>我买到的</Text>
-                {orderTab === 'buyer' ? <View className="me-order-indicator" /> : null}
+                <Text>订单管理</Text>
+                {orderTab === 'orders' ? <View className="me-order-indicator" /> : null}
               </View>
               <View
-                className={`me-order-tab ${orderTab === 'seller' ? 'active' : ''}`}
-                onClick={() => setOrderTab('seller')}
+                className={`me-order-tab ${orderTab === 'publish' ? 'active' : ''}`}
+                onClick={() => setOrderTab('publish')}
               >
-                <Text>我卖出的</Text>
-                {orderTab === 'seller' ? <View className="me-order-indicator" /> : null}
+                <Text>发布管理</Text>
+                {orderTab === 'publish' ? <View className="me-order-indicator" /> : null}
               </View>
             </View>
             <View className="me-order-grid">
@@ -593,22 +560,6 @@ export default function MePage() {
                     <Image className="me-order-icon-img" src={item.icon} svg mode="aspectFit" />
                   </View>
                   <Text className="me-order-label">{item.label}</Text>
-                </View>
-              ))}
-            </View>
-          </View>
-
-          <View className="me-section-card">
-            <View className="me-section-header">
-              <Text className="me-section-title">发布管理</Text>
-            </View>
-            <View className="me-publish-grid">
-              {publishItems.map((item) => (
-                <View key={item.key} className="me-publish-item" onClick={item.onClick}>
-                  <View className="me-publish-icon">
-                    <Image className="me-publish-icon-img" src={item.icon} svg mode="aspectFit" />
-                  </View>
-                  <Text className="me-publish-label">{item.label}</Text>
                 </View>
               ))}
             </View>

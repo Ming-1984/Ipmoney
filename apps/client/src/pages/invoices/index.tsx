@@ -13,6 +13,7 @@ import { useRouteStringParam } from '../../lib/routeParams';
 import { PageState } from '../../ui/PageState';
 import { PageHeader, Spacer, Surface } from '../../ui/layout';
 import { Button, toast } from '../../ui/nutui';
+import emptyInvoices from '../../assets/illustrations/empty-invoices.svg';
 
 type Order = components['schemas']['Order'];
 
@@ -167,7 +168,8 @@ export default function InvoiceCenterPage() {
         error={error}
         empty={!loading && !error && items.length === 0}
         emptyTitle="暂无发票"
-        emptyMessage="当前分类下暂无发票记录"
+        emptyMessage="当前分类下暂无发票记录。"
+        emptyImage={emptyInvoices}
         onRetry={load}
       >
         <View className="invoice-list">

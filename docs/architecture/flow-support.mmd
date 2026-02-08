@@ -1,0 +1,18 @@
+flowchart TD
+  %% Support flow: FAQ + phone-only customer service (no online chat in Messages for now).
+
+  Entry[用户进入客服中心<br/>我的 → 客服中心] --> Support[帮助与反馈页<br/>/pages/support/index]
+
+  Support -->|常见问题| FaqList[常见问题列表<br/>/pages/support/faq/index]
+  Support -->|联系客服（电话）| Contact[联系客服页<br/>/pages/support/contact/index]
+  Support -->|交易规则| Rules[交易规则<br/>/pages/trade-rules/index]
+  Support -->|意见反馈| Feedback[填写意见反馈表单（前端提交）]
+
+  FaqList -->|点某个问题| FaqDetail[问题详情<br/>/pages/support/faq/detail/index?id=...]
+  FaqDetail -->|联系客服| Contact
+  FaqDetail -->|查看交易规则| Rules
+
+  Contact -->|读取客服配置| ApiConfig[GET /public/config/customer-service]
+  ApiConfig --> Phone[展示客服热线 phone]
+  Phone --> Call[Taro.makePhoneCall(phone)]
+

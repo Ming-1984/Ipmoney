@@ -113,7 +113,7 @@ export default function DepositSuccessPage() {
             >
               查看订单
             </Button>
-            <Button variant="primary" onClick={() => Taro.switchTab({ url: '/pages/messages/index' })}>
+            <Button variant="primary" onClick={() => Taro.navigateTo({ url: '/pages/support/contact/index' })}>
               联系客服
             </Button>
           </View>
