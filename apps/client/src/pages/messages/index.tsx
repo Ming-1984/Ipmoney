@@ -16,11 +16,11 @@ import { AccessGate, PageState } from '../../ui/PageState';
 import { SearchEntry } from '../../ui/SearchEntry';
 import { PopupSheet } from '../../ui/layout';
 import { Avatar, Cell, PullToRefresh, Popup, confirm, toast } from '../../ui/nutui';
-import { NOTIFICATIONS } from '../notifications/data';
 import emptyMessagesIcon from '../../assets/illustrations/empty-messages.svg';
 
 type PagedConversationSummary = components['schemas']['PagedConversationSummary'];
 type ConversationSummary = components['schemas']['ConversationSummary'];
+type PagedNotification = components['schemas']['PagedNotification'];
 
 type ConversationCategory = 'cs' | 'trade' | 'user';
 
@@ -37,10 +37,20 @@ export default function MessagesPage() {
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [data, setData] = useState<PagedConversationSummary | null>(null);
+  const [latestNoticeTime, setLatestNoticeTime] = useState('');
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchValue, setSearchValue] = useState('');
   const [moreOpen, setMoreOpen] = useState(false);
   const [manageOpen, setManageOpen] = useState(false);
+
+  const loadNotifications = useCallback(async () => {
+    try {
+      const d = await apiGet<PagedNotification>('/notifications', { page: 1, pageSize: 1 });
+      setLatestNoticeTime((d?.items || [])[0]?.time || '');
+    } catch (_) {
+      setLatestNoticeTime('');
+    }
+  }, []);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -57,6 +67,7 @@ export default function MessagesPage() {
     } finally {
       setLoading(false);
     }
+    void loadNotifications();
   }, []);
 
   const refresh = useCallback(async () => {
@@ -74,7 +85,8 @@ export default function MessagesPage() {
     } finally {
       setRefreshing(false);
     }
-  }, [refreshing]);
+    void loadNotifications();
+  }, [refreshing, loadNotifications]);
 
   const access = usePageAccess('approved-required', (next) => {
     if (next.state === 'ok') {
@@ -170,14 +182,6 @@ export default function MessagesPage() {
       };
     });
   }, [items, getConversationCategory, getConversationDisplayName]);
-
-  const latestNoticeTime = useMemo(() => {
-    if (!NOTIFICATIONS.length) return '';
-    const latest = NOTIFICATIONS.reduce((prev, next) =>
-      new Date(prev.time).getTime() >= new Date(next.time).getTime() ? prev : next,
-    );
-    return latest.time;
-  }, []);
 
   const consultItems = useMemo(() => {
     return viewItems.filter((c) => c._category === 'user');

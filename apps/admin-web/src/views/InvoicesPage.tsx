@@ -40,8 +40,8 @@ export function InvoicesPage() {
       setIssuedAt(d.issuedAt || '');
       setInvoiceFile(null);
     } catch (e: any) {
-      const msg = String(e?.message || '');
-      if (msg.includes('404')) {
+      const status = Number(e?.status || 0);
+      if (status === 404) {
         setInvoice(null);
         setNotFound(true);
         setInvoiceNo('');

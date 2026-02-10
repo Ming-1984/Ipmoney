@@ -50,6 +50,7 @@
 - [x] 补齐“异常/边界场景”清单（对账/争议/退款并发/重复支付/回调重放）
 - [x] 补齐“权限矩阵”到可实现粒度（后台 RBAC：运营/客服/财务/管理员）
 - [x] 补齐“合规提示文案与用户协议清单”（展示用 + 未来法务版占位）
+- [x] 补齐 NFR/合规基线（性能/可用性/安全/可观测性，见 6.x）
 - [x] 补齐“发票与税务说明”与开票规则（订单完成后财务线下开票并上传电子发票，平台内下载）：`docs/legal/invoice-tax.md`
 
 ## 3. 数据模型（ER）与落库设计
@@ -86,6 +87,7 @@
   - [x] TechManager：技术经理人检索/详情/咨询
 - [x] 补齐“认证审核”闭环接口（后台 approve/reject）
 - [x] 补齐“系统配置读取/修改”接口（前台展示订金/佣金/退款规则；后台配置）
+- [x] 补齐专利发布补充字段结构化（可交付清单/预计周期/可谈空间/质押现状）
 - [x] 统一命名与币种单位：
   - [x] 金额统一 `*_Fen`（分），时间统一 ISO8601
   - [x] 状态枚举与 PRD/时序/ER 完全一致
@@ -210,8 +212,8 @@
   - [x] 前端检索页：搜索条下新增排序 Chip 行（综合推荐/价格升序/价格降序/最新发布），结果卡片与背景色调对齐目标设计
 - [ ] 详情（公开）：`/public/listings/{listingId}`（不返回权属材料等敏感附件）
 - [ ] 详情（卖家/已登录）：`/listings/{listingId}`（返回可编辑/敏感字段）
-- [ ] 书画专区上架/审核/检索：`/artworks`、`/search/artworks`、`/admin/artworks`（字段含作者/创作日期/证书编号/订金；前端/Mock 已覆盖，后端待落地）
-- [ ] 技术经理人栏目：`/search/tech-managers`、`/public/tech-managers/{id}`、`/admin/tech-managers`（前端/Mock 已覆盖，后端待落地）
+- [x] 书画专区上架/审核/检索：`/artworks`、`/search/artworks`、`/admin/artworks`（字段含作者/创作日期/证书编号/订金；前端/Mock 已覆盖，后端已落地）
+- [x] 技术经理人栏目：`/search/tech-managers`、`/public/tech-managers/{id}`、`/admin/tech-managers`（前端/Mock 已覆盖，后端已落地）
 
 ### 7.6A 平台自有内容 CMS（阶段一 P1）
 
@@ -227,15 +229,15 @@
 
 ### 7.8 专利地图（M2）
 
-- [ ] Region CMS：区域维护、区域产业标签维护（`/admin/regions*`、`/admin/industry-tags`）
-- [ ] 地图数据录入：区域+年份数据（`/admin/patent-map/regions/{regionCode}/years/{year}`）
-- [ ] Excel 导入：`/admin/patent-map/import`
-- [ ] 前台查询：`/patent-map/years`、`/patent-map/summary`、`/patent-map/regions/{regionCode}`（游客可用）
+- [x] Region CMS：区域维护、区域产业标签维护（`/admin/regions*`、`/admin/industry-tags`）
+- [x] 地图数据录入：区域+年份数据（`/admin/patent-map/regions/{regionCode}/years/{year}`）
+- [x] Excel 导入：`/admin/patent-map/import`
+- [x] 前台查询：`/patent-map/years`、`/patent-map/summary`、`/patent-map/regions/{regionCode}`（游客可用）
 
 ### 7.9 咨询/聊天（M2）
 
-- [ ] 会话：`/listings/{listingId}/conversations`（创建/获取）+ `/me/conversations`（列表）
-- [ ] 消息：拉取/发送/已读（`/conversations/{conversationId}/messages`、`/conversations/{conversationId}/read`）
+- [x] 会话：`/listings/{listingId}/conversations`（创建/获取）+ `/me/conversations`（列表）
+- [x] 消息：拉取/发送/已读（`/conversations/{conversationId}/messages`、`/conversations/{conversationId}/read`）
 - [ ] 传输形态（选最低成本）：HTTP 轮询/长轮询（P0）；如需更顺滑可加 WebSocket（P1）
 
 ### 7.10 订单状态机与支付（M2）
@@ -243,7 +245,7 @@
 - [ ] 订单状态机：对齐 `docs/architecture/state-order.mmd`；关键状态变更必须落审计
 - [ ] 订金支付：创建订单→生成支付意图→微信支付回调验签解密→入账→状态推进（见 `docs/architecture/sequence-deposit-payment.mmd`）
 - [ ] 合同签署确认：后台里程碑确认写入成交价并解锁尾款（对齐 PRD 与 OpenAPI）
-- [ ] 尾款支付：仅小程序发起；电脑端 H5 展示“去小程序支付”（二维码/链接）
+- [x] 尾款支付：仅小程序发起；电脑端 H5 展示“去小程序支付”（二维码/链接）
 - [x] 前端已落实：H5 不发起支付，微信内 openTag 跳小程序；微信外/桌面二维码+复制链接（订金/尾款页）
 - [x] 前端已落实：订单详情 WAIT_FINAL_PAYMENT 展示“支付尾款”入口
 - [ ] 支付幂等：Idempotency-Key + 回调重放防护；支付/退款对账表（最小）
@@ -263,7 +265,7 @@
 ### 7.13 发票（M3）
 
 - [ ] 口径：订单完成后线下人工开票→后台上传电子发票文件→订单页下载（不做邮箱投递）
-- [ ] 接口：`/admin/orders/{orderId}/invoice` 上传/替换 + `/orders/{orderId}/invoice` 下载
+- [x] 接口：`/admin/orders/{orderId}/invoice` 上传/替换 + `/orders/{orderId}/invoice` 下载
 
 ### 7.14 前端交付（小程序 + H5 + 后台）
 
@@ -271,7 +273,7 @@
   - [ ] 首次登录：身份选择注册（个人直过；其他提交审核）
   - [ ] 游客：搜索/列表/详情（公开）
   - [ ] 登录后：收藏、咨询/聊天、下单、订单进度
-  - [ ] 支付：小程序内完成；H5 仅引导回小程序
+  - [x] 支付：小程序内完成；H5 仅引导回小程序
   - [ ] UI/交互：橙色主题 + 金豆矿视觉点缀；全量状态（loading/empty/error/权限/审核中）可演示
   - [x] 新增：书画专区（搜索/详情/发布/我的）与技术经理人栏目（列表/详情/咨询）
 - [ ] Admin Web（React/AntD）：审核、订单、退款、里程碑、放款、发票、配置、地图 CMS
@@ -613,8 +615,9 @@
   - OpenAPI：operationId + 路由 + 核心字段/枚举
   - 前端：页面入口/组件/状态机分支（loading/empty/error/permission/audit）
   - Mock：fixtures 是否覆盖（happy/empty/error/edge）
-- [x] 逐项标注：`P0 已实现` / `P0 占位（待后端）` / `P1` / `不做`
-- [x] 拉齐差异并回填：缺接口/缺字段/缺枚举/缺页面/缺状态机分支
+  - [x] Happy fixtures 补齐前端已用接口（配置/RBAC/工单/审计材料/公告等），openapi-coverage 缺口为 0
+  - [x] 逐项标注：`P0 已实现` / `P0 占位（待后端）` / `P1` / `不做`
+  - [x] 拉齐差异并回填：缺接口/缺字段/缺枚举/缺页面/缺状态机分支
 - [x] 输出“遗漏清单”（按影响排序）：直接影响甲方演示/验收的优先修复，其余进入 P1
 - [x] 校验命令与门槛（通过才算“可开工”）：
   - [x] `pnpm openapi:lint` 通过
@@ -640,3 +643,22 @@
 ## UI v2 polish（Client）
 
 - 详见 `docs/ui-v2-todo.md`（本处不再重复展开）
+
+## Update Log (2026-02-09)
+- [x] Backend: announcements and notifications persisted to Prisma models and services.
+- [x] Backend: addresses persisted to Prisma models and services.
+- [x] Backend: comments persisted to Prisma models and services (incl. admin moderation).
+- [x] Client: address list wired to `/me/addresses` with default toggle.
+
+## Update Log (2026-02-10)
+- [x] Backend: demands/achievements/artworks persisted to Prisma models and services (media/favorites/stats included).
+- [x] Backend: demand/achievement/artwork favorites now DB-backed.
+- [x] Backend: normalized array fields (deliverables/industryTags/listingTopics/keywords/etc.) and defaulted stats counts to align OpenAPI responses.
+- [x] Backend: conversations now use contentType/contentId across listing/demand/achievement/artwork/tech-manager; message type supports EMOJI.
+- [x] Backend: inventor rankings now computed from patents/listings (no in-memory directory).
+- [x] Backend: contracts persisted to Prisma (status/file link retained; list/upload now DB-backed).
+- [x] Backend: file download permissions now allow contract/invoice/approved public content media access.
+- [x] Backend: audit materials/logs now backed by files + audit_logs (submit/approve/reject recorded).
+- [x] Backend: order invoices now support admin upsert/delete with invoiceFile, list/get return file URL and status uses invoiceFileId.
+- [x] Backend: tech-managers moved to DB-backed profile table; organizations stats now derived from listings/patents.
+- [x] Notifications: content/verification audit events now emit notifications; client reads /notifications API.

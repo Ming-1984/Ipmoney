@@ -1,10 +1,5 @@
 import { Injectable } from '@nestjs/common';
-const FileOwnerScope = {
-  USER: 'USER',
-  PLATFORM: 'PLATFORM',
-} as const;
-
-type FileOwnerScope = (typeof FileOwnerScope)[keyof typeof FileOwnerScope];
+import { FileOwnerScope } from '@prisma/client';
 import { mkdirSync } from 'node:fs';
 import path from 'node:path';
 
@@ -63,5 +58,77 @@ export class FilesService {
   async getFileById(fileId: string) {
     if (!fileId) return null;
     return await this.prisma.file.findUnique({ where: { id: fileId } });
+  }
+
+  async canAccessFile(fileId: string, userId: string, isAdmin: boolean) {
+    if (!fileId || !userId) return false;
+    if (isAdmin) return true;
+
+    const file = await this.prisma.file.findUnique({ where: { id: fileId } });
+    if (!file) return false;
+    if (String(file.ownerId || '') === String(userId)) return true;
+
+    const [contractHit, invoiceHit] = await Promise.all([
+      this.prisma.contract.findFirst({
+        where: {
+          contractFileId: fileId,
+          order: { OR: [{ buyerUserId: userId }, { listing: { sellerUserId: userId } }] },
+        },
+        select: { orderId: true },
+      }),
+      this.prisma.order.findFirst({
+        where: {
+          invoiceFileId: fileId,
+          OR: [{ buyerUserId: userId }, { listing: { sellerUserId: userId } }],
+        },
+        select: { id: true },
+      }),
+    ]);
+
+    if (contractHit || invoiceHit) return true;
+
+    const [listingHit, demandHit, achievementHit, artworkHit, orgLogoHit] = await Promise.all([
+      this.prisma.listing.findFirst({
+        where: {
+          auditStatus: 'APPROVED',
+          status: { in: ['ACTIVE', 'SOLD'] },
+          media: { some: { fileId } },
+        },
+        select: { id: true },
+      }),
+      this.prisma.demand.findFirst({
+        where: {
+          auditStatus: 'APPROVED',
+          status: 'ACTIVE',
+          OR: [{ coverFileId: fileId }, { media: { some: { fileId } } }],
+        },
+        select: { id: true },
+      }),
+      this.prisma.achievement.findFirst({
+        where: {
+          auditStatus: 'APPROVED',
+          status: 'ACTIVE',
+          OR: [{ coverFileId: fileId }, { media: { some: { fileId } } }],
+        },
+        select: { id: true },
+      }),
+      this.prisma.artwork.findFirst({
+        where: {
+          auditStatus: 'APPROVED',
+          status: { in: ['ACTIVE', 'SOLD'] },
+          OR: [{ coverFileId: fileId }, { media: { some: { fileId } } }],
+        },
+        select: { id: true },
+      }),
+      this.prisma.userVerification.findFirst({
+        where: {
+          logoFileId: fileId,
+          verificationStatus: 'APPROVED',
+        },
+        select: { id: true },
+      }),
+    ]);
+
+    return !!(listingHit || demandHit || achievementHit || artworkHit || orgLogoHit);
   }
 }

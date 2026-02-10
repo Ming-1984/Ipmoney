@@ -75,7 +75,8 @@ export class FilesController {
     if (!file) throw new NotFoundException({ code: 'NOT_FOUND', message: 'file not found' });
 
     const isAdmin = !!req?.auth?.isAdmin;
-    if (!isAdmin && String(file.ownerId || '') !== userId) {
+    const canAccess = await this.files.canAccessFile(file.id, userId, isAdmin);
+    if (!canAccess) {
       throw new ForbiddenException({ code: 'FORBIDDEN', message: 'forbidden' });
     }
 

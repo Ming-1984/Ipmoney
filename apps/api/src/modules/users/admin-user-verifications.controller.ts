@@ -1,14 +1,17 @@
 import { Body, Controller, Get, Param, Post, Query, Req, UseGuards } from '@nestjs/common';
 
 import { BearerAuthGuard } from '../../common/guards/bearer-auth.guard';
+import { ContentAuditService } from '../../common/content-audit.service';
 import { requirePermission } from '../../common/permissions';
-import { getAuditLogs, getAuditMaterials } from '../audit-store';
 import { UsersService } from './users.service';
 
 @UseGuards(BearerAuthGuard)
 @Controller('/admin/user-verifications')
 export class AdminUserVerificationsController {
-  constructor(private readonly users: UsersService) {}
+  constructor(
+    private readonly users: UsersService,
+    private readonly contentAudit: ContentAuditService,
+  ) {}
 
   @Get()
   async list(
@@ -44,12 +47,12 @@ export class AdminUserVerificationsController {
   @Get('/:verificationId/materials')
   async materials(@Req() req: any, @Param('verificationId') verificationId: string) {
     requirePermission(req, 'verification.read');
-    return { items: getAuditMaterials('VERIFICATION', verificationId) };
+    return await this.contentAudit.listMaterials('VERIFICATION', verificationId);
   }
 
   @Get('/:verificationId/audit-logs')
   async auditLogs(@Req() req: any, @Param('verificationId') verificationId: string) {
     requirePermission(req, 'auditLog.read');
-    return { items: getAuditLogs('VERIFICATION', verificationId) };
+    return await this.contentAudit.listLogs('VERIFICATION', verificationId);
   }
 }

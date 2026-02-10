@@ -1,25 +1,41 @@
-import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
-type ConversationMessageType = 'TEXT' | 'IMAGE' | 'FILE';
-import { randomUUID } from 'crypto';
+﻿import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 
 import { PrismaService } from '../../common/prisma/prisma.service';
 
+type ConversationContentType = 'LISTING' | 'DEMAND' | 'ACHIEVEMENT' | 'ARTWORK' | 'TECH_MANAGER';
+type ConversationMessageType = 'TEXT' | 'EMOJI' | 'IMAGE' | 'FILE' | 'SYSTEM';
+
+type ConversationDto = {
+  id: string;
+  contentType: ConversationContentType;
+  contentId: string;
+  contentTitle?: string | null;
+  listingId?: string | null;
+  listingTitle?: string | null;
+  orderId?: string | null;
+  buyerUserId: string;
+  sellerUserId: string;
+  lastMessageAt?: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
 type ConversationSummary = {
   id: string;
+  contentType: ConversationContentType;
+  contentId: string;
+  contentTitle: string;
   listingId?: string | null;
-  contentType?: string | null;
-  contentId?: string | null;
   listingTitle?: string | null;
-  contentTitle?: string | null;
   lastMessagePreview?: string | null;
-  lastMessageAt?: string | null;
-  unreadCount?: number | null;
-  counterpart?: {
-    id?: string;
+  lastMessageAt: string;
+  unreadCount: number;
+  counterpart: {
+    id: string;
     nickname?: string | null;
     avatarUrl?: string | null;
     role?: string | null;
-  } | null;
+  };
 };
 
 type PagedConversationSummary = {
@@ -31,33 +47,12 @@ type ConversationMessageDto = {
   id: string;
   conversationId: string;
   senderUserId: string;
-  type: ConversationMessageType | 'TEXT';
+  type: ConversationMessageType;
   text?: string | null;
   createdAt: string;
 };
 
 type PagedConversationMessage = { items: ConversationMessageDto[]; nextCursor?: string | null };
-
-type VirtualConversation = {
-  id: string;
-  userId: string;
-  contentType: string;
-  contentId: string;
-  createdAt: string;
-  lastMessageAt?: string | null;
-  lastMessagePreview?: string | null;
-};
-
-type VirtualMessage = {
-  id: string;
-  conversationId: string;
-  senderUserId: string;
-  text: string;
-  createdAt: string;
-};
-
-const VIRTUAL_CONVERSATIONS = new Map<string, VirtualConversation>();
-const VIRTUAL_MESSAGES = new Map<string, VirtualMessage[]>();
 
 @Injectable()
 export class ConversationsService {
@@ -65,8 +60,103 @@ export class ConversationsService {
 
   private ensureAuth(req: any) {
     if (!req?.auth?.userId) {
-      throw new ForbiddenException({ code: 'FORBIDDEN', message: '无权限' });
+      throw new ForbiddenException({ code: 'FORBIDDEN', message: 'forbidden' });
     }
+  }
+
+  private toConversationDto(conv: any, contentTitle?: string | null, listingTitle?: string | null): ConversationDto {
+    return {
+      id: conv.id,
+      contentType: conv.contentType as ConversationContentType,
+      contentId: conv.contentId,
+      contentTitle: contentTitle ?? null,
+      listingId: conv.listingId ?? null,
+      listingTitle: listingTitle ?? null,
+      orderId: conv.orderId ?? null,
+      buyerUserId: conv.buyerUserId,
+      sellerUserId: conv.sellerUserId,
+      lastMessageAt: conv.lastMessageAt ? conv.lastMessageAt.toISOString() : null,
+      createdAt: conv.createdAt.toISOString(),
+      updatedAt: conv.updatedAt.toISOString(),
+    };
+  }
+
+  private async resolveContentMeta(contentType: ConversationContentType, contentId: string) {
+    if (contentType === 'LISTING') {
+      const listing = await this.prisma.listing.findUnique({ where: { id: contentId } });
+      if (!listing) throw new NotFoundException({ code: 'NOT_FOUND', message: 'listing not found' });
+      return {
+        sellerUserId: listing.sellerUserId,
+        contentTitle: listing.title ?? 'Consultation',
+        listingId: listing.id,
+        listingTitle: listing.title ?? null,
+      };
+    }
+
+    if (contentType === 'DEMAND') {
+      const demand = await this.prisma.demand.findUnique({ where: { id: contentId } });
+      if (!demand) throw new NotFoundException({ code: 'NOT_FOUND', message: 'demand not found' });
+      return {
+        sellerUserId: demand.publisherUserId,
+        contentTitle: demand.title ?? 'Consultation',
+      };
+    }
+
+    if (contentType === 'ACHIEVEMENT') {
+      const achievement = await this.prisma.achievement.findUnique({ where: { id: contentId } });
+      if (!achievement) throw new NotFoundException({ code: 'NOT_FOUND', message: 'achievement not found' });
+      return {
+        sellerUserId: achievement.publisherUserId,
+        contentTitle: achievement.title ?? 'Consultation',
+      };
+    }
+
+    if (contentType === 'ARTWORK') {
+      const artwork = await this.prisma.artwork.findUnique({ where: { id: contentId } });
+      if (!artwork) throw new NotFoundException({ code: 'NOT_FOUND', message: 'artwork not found' });
+      return {
+        sellerUserId: artwork.sellerUserId,
+        contentTitle: artwork.title ?? 'Consultation',
+      };
+    }
+
+    const verification = await this.prisma.userVerification.findFirst({
+      where: {
+        userId: contentId,
+        verificationType: 'TECH_MANAGER',
+        verificationStatus: 'APPROVED',
+      },
+      include: { user: true },
+    });
+    if (!verification) throw new NotFoundException({ code: 'NOT_FOUND', message: 'tech manager not found' });
+    return {
+      sellerUserId: verification.userId,
+      contentTitle: verification.displayName ?? verification.user?.nickname ?? 'Tech Manager',
+    };
+  }
+
+  private async upsertConversation(req: any, contentType: ConversationContentType, contentId: string) {
+    this.ensureAuth(req);
+    const buyerUserId = req.auth.userId;
+    const { sellerUserId, contentTitle, listingId, listingTitle } = await this.resolveContentMeta(contentType, contentId);
+
+    let conversation = await this.prisma.conversation.findFirst({
+      where: { contentType, contentId, buyerUserId, sellerUserId },
+    });
+
+    if (!conversation) {
+      conversation = await this.prisma.conversation.create({
+        data: {
+          contentType,
+          contentId,
+          listingId: listingId ?? null,
+          buyerUserId,
+          sellerUserId,
+        },
+      });
+    }
+
+    return this.toConversationDto(conversation, contentTitle, listingTitle);
   }
 
   async listMine(req: any, query: any): Promise<PagedConversationSummary> {
@@ -89,109 +179,138 @@ export class ConversationsService {
       }),
     ]);
 
-    const mapped = items.map((it: {
-      id: string;
-      listingId?: string | null;
-      buyerUserId: string;
-      sellerUserId: string;
-      lastMessageAt?: Date | null;
-      listing?: { title?: string | null } | null;
-      buyer?: { id: string; nickname?: string | null; avatarUrl?: string | null; role?: string | null } | null;
-      seller?: { id: string; nickname?: string | null; avatarUrl?: string | null; role?: string | null } | null;
-    }) => {
+    const demandIds = new Set<string>();
+    const achievementIds = new Set<string>();
+    const artworkIds = new Set<string>();
+    const techManagerIds = new Set<string>();
+
+    for (const it of items as any[]) {
+      const type = (it.contentType || 'LISTING') as ConversationContentType;
+      const id = String(it.contentId || it.listingId || '');
+      if (!id) continue;
+      if (type === 'DEMAND') demandIds.add(id);
+      if (type === 'ACHIEVEMENT') achievementIds.add(id);
+      if (type === 'ARTWORK') artworkIds.add(id);
+      if (type === 'TECH_MANAGER') techManagerIds.add(id);
+    }
+
+    const [demands, achievements, artworks, techManagers] = await Promise.all([
+      demandIds.size
+        ? this.prisma.demand.findMany({
+            where: { id: { in: Array.from(demandIds) } },
+            select: { id: true, title: true },
+          })
+        : Promise.resolve([]),
+      achievementIds.size
+        ? this.prisma.achievement.findMany({
+            where: { id: { in: Array.from(achievementIds) } },
+            select: { id: true, title: true },
+          })
+        : Promise.resolve([]),
+      artworkIds.size
+        ? this.prisma.artwork.findMany({
+            where: { id: { in: Array.from(artworkIds) } },
+            select: { id: true, title: true },
+          })
+        : Promise.resolve([]),
+      techManagerIds.size
+        ? this.prisma.userVerification.findMany({
+            where: {
+              userId: { in: Array.from(techManagerIds) },
+              verificationType: 'TECH_MANAGER',
+              verificationStatus: 'APPROVED',
+            },
+            include: { user: true },
+          })
+        : Promise.resolve([]),
+    ]);
+
+    const demandMap = new Map(demands.map((item: any) => [item.id, item.title]));
+    const achievementMap = new Map(achievements.map((item: any) => [item.id, item.title]));
+    const artworkMap = new Map(artworks.map((item: any) => [item.id, item.title]));
+    const techManagerMap = new Map(
+      techManagers.map((item: any) => [item.userId, item.displayName ?? item.user?.nickname ?? 'Tech Manager']),
+    );
+
+    const mapped = items.map((it: any) => {
+      const contentType = (it.contentType || 'LISTING') as ConversationContentType;
+      const contentId = String(it.contentId || it.listingId || '');
+      const contentTitle =
+        contentType === 'LISTING'
+          ? it.listing?.title ?? 'Consultation'
+          : contentType === 'DEMAND'
+            ? demandMap.get(contentId) ?? 'Consultation'
+            : contentType === 'ACHIEVEMENT'
+              ? achievementMap.get(contentId) ?? 'Consultation'
+              : contentType === 'ARTWORK'
+                ? artworkMap.get(contentId) ?? 'Consultation'
+                : techManagerMap.get(contentId) ?? 'Consultation';
+
       const counterpart = it.buyerUserId === req.auth.userId ? it.seller : it.buyer;
+      const counterpartId = counterpart?.id ?? (it.buyerUserId === req.auth.userId ? it.sellerUserId : it.buyerUserId);
+      const lastMessageAt = (it.lastMessageAt || it.updatedAt || it.createdAt) as Date;
       return {
         id: it.id,
-        listingId: it.listingId,
-        contentType: 'LISTING',
-        contentId: it.listingId,
-        listingTitle: it.listing?.title ?? null,
-        contentTitle: it.listing?.title ?? null,
+        contentType,
+        contentId,
+        contentTitle,
+        listingId: contentType === 'LISTING' ? (it.listingId ?? null) : null,
+        listingTitle: contentType === 'LISTING' ? (it.listing?.title ?? null) : null,
         lastMessagePreview: null,
-        lastMessageAt: it.lastMessageAt ? it.lastMessageAt.toISOString() : null,
+        lastMessageAt: lastMessageAt.toISOString(),
         unreadCount: 0,
-        counterpart: counterpart
-          ? { id: counterpart.id, nickname: counterpart.nickname, avatarUrl: counterpart.avatarUrl, role: counterpart.role }
-          : null,
+        counterpart: {
+          id: counterpartId,
+          nickname: counterpart?.nickname ?? 'User',
+          avatarUrl: counterpart?.avatarUrl ?? null,
+          role: counterpart?.role ?? null,
+        },
       } satisfies ConversationSummary;
     });
 
-    const virtual = [...VIRTUAL_CONVERSATIONS.values()].filter((c) => c.userId === req.auth.userId);
-    const virtualSummaries: ConversationSummary[] = virtual.map((c) => ({
-      id: c.id,
-      contentType: c.contentType,
-      contentId: c.contentId,
-      contentTitle: '咨询内容',
-      lastMessagePreview: c.lastMessagePreview ?? null,
-      lastMessageAt: c.lastMessageAt ?? null,
-      unreadCount: 0,
-      counterpart: { nickname: '平台客服', role: 'cs', avatarUrl: null },
-    }));
-
     return {
-      items: [...mapped, ...virtualSummaries],
-      page: { page, pageSize, total: total + virtualSummaries.length },
-    } as PagedConversationSummary;
+      items: mapped,
+      page: { page, pageSize, total },
+    };
   }
 
   async createListingConversation(req: any, listingId: string) {
-    this.ensureAuth(req);
-    const listing = await this.prisma.listing.findUnique({ where: { id: listingId } });
-    if (!listing) throw new NotFoundException({ code: 'NOT_FOUND', message: '挂牌不存在' });
-
-    const buyerUserId = req.auth.userId;
-    const sellerUserId = listing.sellerUserId;
-
-    let conv = await this.prisma.conversation.findFirst({
-      where: { listingId, buyerUserId, sellerUserId },
-    });
-    if (!conv) {
-      conv = await this.prisma.conversation.create({
-        data: {
-          listingId,
-          buyerUserId,
-          sellerUserId,
-        },
-      });
-    }
-    return { id: conv.id };
+    return await this.upsertConversation(req, 'LISTING', listingId);
   }
 
-  async createVirtualConversation(req: any, contentType: string, contentId: string) {
-    this.ensureAuth(req);
-    const id = randomUUID();
-    VIRTUAL_CONVERSATIONS.set(id, {
-      id,
-      userId: req.auth.userId,
-      contentType,
-      contentId,
-      createdAt: new Date().toISOString(),
-    });
-    VIRTUAL_MESSAGES.set(id, []);
-    return { id };
+  async createDemandConversation(req: any, demandId: string) {
+    return await this.upsertConversation(req, 'DEMAND', demandId);
+  }
+
+  async createAchievementConversation(req: any, achievementId: string) {
+    return await this.upsertConversation(req, 'ACHIEVEMENT', achievementId);
+  }
+
+  async createArtworkConversation(req: any, artworkId: string) {
+    return await this.upsertConversation(req, 'ARTWORK', artworkId);
+  }
+
+  async createTechManagerConversation(req: any, techManagerId: string) {
+    return await this.upsertConversation(req, 'TECH_MANAGER', techManagerId);
   }
 
   async listMessages(req: any, conversationId: string, _query: any): Promise<PagedConversationMessage> {
     this.ensureAuth(req);
-    if (VIRTUAL_CONVERSATIONS.has(conversationId)) {
-      const list = VIRTUAL_MESSAGES.get(conversationId) || [];
-      return { items: list.map((m: VirtualMessage) => ({ ...m, type: 'TEXT' })), nextCursor: null };
-    }
     const conv = await this.prisma.conversation.findUnique({ where: { id: conversationId } });
-    if (!conv) throw new NotFoundException({ code: 'NOT_FOUND', message: '会话不存在' });
+    if (!conv) throw new NotFoundException({ code: 'NOT_FOUND', message: 'conversation not found' });
     if (conv.buyerUserId !== req.auth.userId && conv.sellerUserId !== req.auth.userId) {
-      throw new ForbiddenException({ code: 'FORBIDDEN', message: '无权限' });
+      throw new ForbiddenException({ code: 'FORBIDDEN', message: 'forbidden' });
     }
     const messages = await this.prisma.conversationMessage.findMany({
       where: { conversationId },
       orderBy: { createdAt: 'asc' },
     });
     return {
-      items: messages.map((m: { id: string; conversationId: string; senderUserId: string; type: ConversationMessageType; text?: string | null; createdAt: Date }) => ({
+      items: messages.map((m) => ({
         id: m.id,
         conversationId: m.conversationId,
         senderUserId: m.senderUserId,
-        type: m.type,
+        type: m.type as ConversationMessageType,
         text: m.text ?? undefined,
         createdAt: m.createdAt.toISOString(),
       })),
@@ -201,50 +320,38 @@ export class ConversationsService {
 
   async sendMessage(req: any, conversationId: string, body: any) {
     this.ensureAuth(req);
-    const text = String(body?.text || '').trim();
-    if (!text) throw new ForbiddenException({ code: 'BAD_REQUEST', message: '消息不能为空' });
-
-    if (VIRTUAL_CONVERSATIONS.has(conversationId)) {
-      const msg: VirtualMessage = {
-        id: randomUUID(),
-        conversationId,
-        senderUserId: req.auth.userId,
-        text,
-        createdAt: new Date().toISOString(),
-      };
-      const list = VIRTUAL_MESSAGES.get(conversationId) || [];
-      list.push(msg);
-      VIRTUAL_MESSAGES.set(conversationId, list);
-      const conv = VIRTUAL_CONVERSATIONS.get(conversationId);
-      if (conv) {
-        conv.lastMessagePreview = text;
-        conv.lastMessageAt = msg.createdAt;
-      }
-      return msg;
+    const type = String(body?.type || 'TEXT').trim().toUpperCase();
+    if (type !== 'TEXT' && type !== 'EMOJI') {
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: 'invalid message type' });
     }
+    const text = String(body?.text || '').trim();
+    if (!text) throw new BadRequestException({ code: 'BAD_REQUEST', message: 'text is required' });
 
     const conv = await this.prisma.conversation.findUnique({ where: { id: conversationId } });
-    if (!conv) throw new NotFoundException({ code: 'NOT_FOUND', message: '会话不存在' });
+    if (!conv) throw new NotFoundException({ code: 'NOT_FOUND', message: 'conversation not found' });
     if (conv.buyerUserId !== req.auth.userId && conv.sellerUserId !== req.auth.userId) {
-      throw new ForbiddenException({ code: 'FORBIDDEN', message: '无权限' });
+      throw new ForbiddenException({ code: 'FORBIDDEN', message: 'forbidden' });
     }
+
     const msg = await this.prisma.conversationMessage.create({
       data: {
         conversationId,
         senderUserId: req.auth.userId,
-        type: 'TEXT',
+        type: type as ConversationMessageType,
         text,
       },
     });
+
     await this.prisma.conversation.update({
       where: { id: conversationId },
       data: { lastMessageAt: msg.createdAt },
     });
+
     return {
       id: msg.id,
       conversationId: msg.conversationId,
       senderUserId: msg.senderUserId,
-      type: msg.type,
+      type: msg.type as ConversationMessageType,
       text: msg.text,
       createdAt: msg.createdAt.toISOString(),
     };
@@ -252,9 +359,6 @@ export class ConversationsService {
 
   async markRead(req: any, conversationId: string) {
     this.ensureAuth(req);
-    if (VIRTUAL_CONVERSATIONS.has(conversationId)) {
-      return { ok: true };
-    }
     const participant = await this.prisma.conversationParticipant.findFirst({
       where: { conversationId, userId: req.auth.userId },
     });

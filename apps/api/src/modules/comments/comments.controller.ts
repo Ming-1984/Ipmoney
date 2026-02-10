@@ -63,4 +63,16 @@ export class CommentsController {
   async deleteComment(@Req() req: any, @Param('commentId') commentId: string) {
     return await this.comments.deleteComment(req, commentId);
   }
+
+  @UseGuards(BearerAuthGuard)
+  @Get('/admin/comments')
+  async adminList(@Req() req: any, @Query() query: any) {
+    return await this.comments.adminList(req, query);
+  }
+
+  @UseGuards(BearerAuthGuard)
+  @Patch('/admin/comments/:commentId')
+  async adminUpdate(@Req() req: any, @Param('commentId') commentId: string, @Body() body: any) {
+    return await this.comments.adminUpdate(req, commentId, body || {});
+  }
 }

@@ -71,7 +71,7 @@
             "transferCount": 2
           },
           "recommendationScore": 0.95,
-          "listingTopic": "HIGH_TECH_RETIRED"
+          "listingTopics": ["HIGH_TECH_RETIRED"]
         },
         {
           "id": "b038cc8b-1123-4c9b-9fc7-e17304cd2e1e",
@@ -114,7 +114,7 @@
             "transferCount": 1
           },
           "recommendationScore": 0.87,
-          "listingTopic": "CLUSTER_FEATURED",
+          "listingTopics": ["CLUSTER_FEATURED"],
           "clusterId": "8ceb0b1a-f686-4ef3-bbca-7af3f32b0d51"
         },
         {
@@ -278,7 +278,7 @@
         "consultCount": 6,
         "transferCount": 2
       },
-      "listingTopic": "HIGH_TECH_RETIRED",
+      "listingTopics": ["HIGH_TECH_RETIRED"],
       "seller": {
         "id": "c5b6438a-f3a7-4590-a484-0f2a2991c613",
         "nickname": "烟台海洋经济研究所",
@@ -332,7 +332,7 @@
         "consultCount": 3,
         "transferCount": 1
       },
-      "listingTopic": "CLUSTER_FEATURED",
+      "listingTopics": ["CLUSTER_FEATURED"],
       "clusterId": "8ceb0b1a-f686-4ef3-bbca-7af3f32b0d51",
       "seller": {
         "id": "72f8697a-b950-406c-bc4f-2484a32cbb78",
@@ -581,7 +581,7 @@
         "consultCount": 6,
         "transferCount": 2
       },
-      "listingTopic": "HIGH_TECH_RETIRED",
+      "listingTopics": ["HIGH_TECH_RETIRED"],
       "seller": {
         "id": "c5b6438a-f3a7-4590-a484-0f2a2991c613",
         "nickname": "烟台海洋经济研究所",
@@ -2762,6 +2762,56 @@
       "regionCode": "110000",
       "createdAt": "2026-01-01T00:00:00Z",
       "updatedAt": "2026-01-11T10:01:00Z"
+    }
+  },
+  "GET /me/addresses": {
+    "status": 200,
+    "body": [
+      {
+        "id": "f1e5d462-6f1c-4c1f-8c3b-2c98efc2c101",
+        "userId": "c776f954-77a5-49d9-b778-77a1120d1be9",
+        "name": "演示收货人",
+        "phone": "13800138000",
+        "regionCode": "110000",
+        "addressLine": "北京市海淀区中关村南大街 1 号",
+        "isDefault": true,
+        "createdAt": "2026-01-15T09:00:00Z",
+        "updatedAt": "2026-01-15T09:00:00Z"
+      }
+    ]
+  },
+  "POST /me/addresses": {
+    "status": 201,
+    "body": {
+      "id": "8a3e7c6a-3f1a-47ff-9f7c-8fd2b4f4d4b9",
+      "userId": "c776f954-77a5-49d9-b778-77a1120d1be9",
+      "name": "新增收货人",
+      "phone": "13800138000",
+      "regionCode": "310000",
+      "addressLine": "上海市浦东新区世纪大道 88 号",
+      "isDefault": false,
+      "createdAt": "2026-01-15T10:00:00Z",
+      "updatedAt": "2026-01-15T10:00:00Z"
+    }
+  },
+  "PATCH /me/addresses/:addressId": {
+    "status": 200,
+    "body": {
+      "id": "f1e5d462-6f1c-4c1f-8c3b-2c98efc2c101",
+      "userId": "c776f954-77a5-49d9-b778-77a1120d1be9",
+      "name": "演示收货人",
+      "phone": "13800138000",
+      "regionCode": "110000",
+      "addressLine": "北京市海淀区中关村南大街 1 号",
+      "isDefault": true,
+      "createdAt": "2026-01-15T09:00:00Z",
+      "updatedAt": "2026-01-15T12:00:00Z"
+    }
+  },
+  "DELETE /me/addresses/:addressId": {
+    "status": 200,
+    "body": {
+      "ok": true
     }
   },
   "GET /me/favorites": {
@@ -5505,6 +5555,45 @@
       "uploadedAt": "2026-01-12T10:00:00Z",
       "fileUrl": "https://example.com/contracts/contract-0001.pdf",
       "watermarkOwner": "发布方"
+    }
+  },
+  "GET /notifications": {
+    "status": 200,
+    "body": {
+      "items": [
+        {
+          "id": "6b9a2f1e-45f7-4c2f-9e9f-63b2b87b2a01",
+          "kind": "system",
+          "title": "需求审核通过",
+          "summary": "《锂电池热管理需求》已通过审核，可在平台展示。",
+          "source": "平台审核",
+          "time": "2026-02-10T08:30:00Z"
+        },
+        {
+          "id": "a6f2c31b-0aa9-4fe1-8f04-33bfb6a3c9b8",
+          "kind": "cs",
+          "title": "客服回复",
+          "summary": "客服已回复您的咨询，请查看详情。",
+          "source": "客服中心",
+          "time": "2026-02-09T14:10:00Z"
+        }
+      ],
+      "page": {
+        "page": 1,
+        "pageSize": 20,
+        "total": 2
+      }
+    }
+  },
+  "GET /notifications/:notificationId": {
+    "status": 200,
+    "body": {
+      "id": "6b9a2f1e-45f7-4c2f-9e9f-63b2b87b2a01",
+      "kind": "system",
+      "title": "需求审核通过",
+      "summary": "《锂电池热管理需求》已通过审核，可在平台展示。",
+      "source": "平台审核",
+      "time": "2026-02-10T08:30:00Z"
     }
   }
 }

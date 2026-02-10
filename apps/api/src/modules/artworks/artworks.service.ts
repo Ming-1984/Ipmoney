@@ -1,29 +1,130 @@
 import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import { ArtworkCategory, CalligraphyScript, PaintingGenre, Prisma } from '@prisma/client';
 
 import { AuditLogService } from '../../common/audit-log.service';
 import { PrismaService } from '../../common/prisma/prisma.service';
-import { addAuditLog } from '../audit-store';
-import { createArtwork, getArtwork, listArtworks, seedIfEmpty, updateArtwork } from '../content-store';
+import { mapContentMedia, mapStats, normalizeMediaInput, normalizeStringArray } from '../content-utils';
+import { NotificationsService } from '../notifications/notifications.service';
 
 type Paged<T> = { items: T[]; page: { page: number; pageSize: number; total: number } };
+
+type ArtworkRecord = {
+  id: string;
+  sellerUserId: string;
+  source?: string | null;
+  title: string;
+  description?: string | null;
+  category: string;
+  calligraphyScript?: string | null;
+  paintingGenre?: string | null;
+  creatorName: string;
+  creationDate?: Date | null;
+  creationYear?: number | null;
+  certificateNo?: string | null;
+  certificateFileIdsJson?: unknown;
+  priceType: string;
+  priceAmountFen?: number | null;
+  depositAmountFen: number;
+  regionCode?: string | null;
+  material?: string | null;
+  size?: string | null;
+  coverFileId?: string | null;
+  auditStatus: string;
+  status: string;
+  createdAt: Date;
+  updatedAt: Date;
+  coverFile?: { url?: string | null } | null;
+  media?: Array<{ fileId: string; type: string; sort: number; file?: any }>;
+  stats?: { viewCount?: number; favoriteCount?: number; consultCount?: number; commentCount?: number } | null;
+  seller?: { id: string; nickname?: string | null; avatarUrl?: string | null; role?: string | null } | null;
+};
+
 @Injectable()
 export class ArtworksService {
-  constructor(private readonly audit: AuditLogService, private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly audit: AuditLogService,
+    private readonly notifications: NotificationsService,
+  ) {}
+
   private ensureAuth(req: any) {
-    if (!req?.auth?.userId) throw new ForbiddenException({ code: 'FORBIDDEN', message: '无权限' });
+    if (!req?.auth?.userId) throw new ForbiddenException({ code: 'FORBIDDEN', message: '鏃犳潈闄?' });
   }
 
   ensureAdmin(req: any) {
-    if (!req?.auth?.isAdmin) throw new ForbiddenException({ code: 'FORBIDDEN', message: '无权限' });
+    if (!req?.auth?.isAdmin) throw new ForbiddenException({ code: 'FORBIDDEN', message: '鏃犳潈闄?' });
+  }
+
+  private normalizeContentSource(value: unknown): 'USER' | 'ADMIN' | 'PLATFORM' | undefined {
+    const source = String(value || '').trim().toUpperCase();
+    if (source === 'USER' || source === 'ADMIN' || source === 'PLATFORM') return source as 'USER' | 'ADMIN' | 'PLATFORM';
+    return undefined;
+  }
+
+  private normalizeAuditStatus(value: unknown): 'PENDING' | 'APPROVED' | 'REJECTED' | undefined {
+    const status = String(value || '').trim().toUpperCase();
+    if (status === 'PENDING' || status === 'APPROVED' || status === 'REJECTED') {
+      return status as 'PENDING' | 'APPROVED' | 'REJECTED';
+    }
+    return undefined;
+  }
+
+  private normalizeArtworkStatus(value: unknown): 'DRAFT' | 'ACTIVE' | 'OFF_SHELF' | 'SOLD' | undefined {
+    const status = String(value || '').trim().toUpperCase();
+    if (status === 'DRAFT' || status === 'ACTIVE' || status === 'OFF_SHELF' || status === 'SOLD') {
+      return status as 'DRAFT' | 'ACTIVE' | 'OFF_SHELF' | 'SOLD';
+    }
+    return undefined;
+  }
+
+  private normalizePriceType(value: unknown): 'FIXED' | 'NEGOTIABLE' | undefined {
+    const v = String(value || '').trim().toUpperCase();
+    if (v === 'FIXED' || v === 'NEGOTIABLE') return v as 'FIXED' | 'NEGOTIABLE';
+    return undefined;
+  }
+
+  private normalizeCategory(value: unknown): ArtworkCategory | undefined {
+    const v = String(value || '').trim().toUpperCase();
+    if (v === 'CALLIGRAPHY' || v === 'PAINTING') return v as ArtworkCategory;
+    return undefined;
+  }
+
+  private normalizeCalligraphyScript(value: unknown): CalligraphyScript | undefined {
+    const v = String(value || '').trim().toUpperCase();
+    const allowed = ['KAISHU', 'XINGSHU', 'CAOSHU', 'LISHU', 'ZHUANSHU'];
+    return allowed.includes(v) ? (v as CalligraphyScript) : undefined;
+  }
+
+  private normalizePaintingGenre(value: unknown): PaintingGenre | undefined {
+    const v = String(value || '').trim().toUpperCase();
+    const allowed = ['FIGURE', 'LANDSCAPE', 'BIRD_FLOWER', 'OTHER'];
+    return allowed.includes(v) ? (v as PaintingGenre) : undefined;
+  }
+
+  private parseOptionalInt(value: unknown, fieldName: string, min = 0): number | undefined {
+    if (value === undefined || value === null || String(value).trim() === '') return undefined;
+    const num = Number(value);
+    if (!Number.isFinite(num) || num < min) {
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: `${fieldName} is invalid` });
+    }
+    return Math.floor(num);
+  }
+
+  private parseOptionalDate(value: unknown, fieldName: string) {
+    if (value === undefined || value === null || String(value).trim() === '') return undefined;
+    const date = new Date(String(value));
+    if (Number.isNaN(date.getTime())) {
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: `${fieldName} is invalid` });
+    }
+    return new Date(date.toISOString().slice(0, 10));
   }
 
   private normalizeFileIds(input: unknown): string[] {
-    if (!input) return [];
-    if (Array.isArray(input)) {
-      return input.map((v) => String(v || '').trim()).filter((v) => v.length > 0);
-    }
-    const text = String(input || '').trim();
-    return text ? [text] : [];
+    return Array.from(new Set(normalizeStringArray(input).map((v) => String(v || '').trim()).filter((v) => v.length > 0)));
+  }
+
+  private asArray(value: unknown): string[] {
+    return Array.isArray(value) ? (value as string[]) : [];
   }
 
   private async assertOwnedFiles(userId: string, fileIds: string[], label: string) {
@@ -38,13 +139,13 @@ export class ArtworksService {
     }
   }
 
-  private validateArtworkForSubmit(item: any) {
+  private validateArtworkForSubmit(item: ArtworkRecord) {
     const errors: string[] = [];
     if (!item?.title) errors.push('title');
     if (!item?.creatorName) errors.push('creatorName');
     if (!item?.certificateNo) errors.push('certificateNo');
     if (!item?.creationDate && !item?.creationYear) errors.push('creationDate');
-    if (!item?.summary && !item?.description) errors.push('summary');
+    if (!item?.description) errors.push('description');
     const media = Array.isArray(item?.media) ? item.media : [];
     if (media.length === 0) errors.push('media');
     if (errors.length > 0) {
@@ -52,217 +153,582 @@ export class ArtworksService {
     }
   }
 
-  listMine(req: any, query: any): Paged<any> {
+  private buildArtworkDto(item: ArtworkRecord) {
+    const creationDate = item.creationDate ? item.creationDate.toISOString().slice(0, 10) : null;
+    return {
+      id: item.id,
+      source: item.source ?? 'USER',
+      title: item.title,
+      category: item.category,
+      calligraphyScript: item.calligraphyScript ?? null,
+      paintingGenre: item.paintingGenre ?? null,
+      creatorName: item.creatorName,
+      creationDate,
+      creationYear: item.creationYear ?? null,
+      certificateNo: item.certificateNo ?? null,
+      priceType: item.priceType,
+      priceAmountFen: item.priceAmountFen ?? null,
+      depositAmountFen: item.depositAmountFen ?? 0,
+      regionCode: item.regionCode ?? null,
+      material: item.material ?? null,
+      size: item.size ?? null,
+      coverUrl: item.coverFile?.url ?? null,
+      stats: mapStats(item.stats),
+      auditStatus: item.auditStatus,
+      status: item.status,
+      createdAt: item.createdAt.toISOString(),
+      updatedAt: item.updatedAt.toISOString(),
+      sellerUserId: item.sellerUserId,
+      description: item.description ?? null,
+      certificateFileIds: this.asArray(item.certificateFileIdsJson),
+      coverFileId: item.coverFileId ?? null,
+      media: mapContentMedia(item.media ?? []),
+      aiParse: null,
+    };
+  }
+
+  private toPublic(item: ArtworkRecord) {
+    const dto = this.buildArtworkDto(item);
+    const { sellerUserId, certificateNo, certificateFileIds, coverFileId, ...rest } = dto;
+    return {
+      ...rest,
+      seller: item.seller
+        ? {
+            id: item.seller.id,
+            nickname: item.seller.nickname ?? null,
+            avatarUrl: item.seller.avatarUrl ?? null,
+            role: item.seller.role ?? null,
+          }
+        : null,
+    };
+  }
+
+  private async fetchArtwork(artworkId: string, includeSeller = false) {
+    return await this.prisma.artwork.findUnique({
+      where: { id: artworkId },
+      include: {
+        coverFile: true,
+        media: { include: { file: true } },
+        stats: true,
+        seller: includeSeller,
+      },
+    });
+  }
+
+  async listMine(req: any, query: any): Promise<Paged<any>> {
     this.ensureAuth(req);
-    seedIfEmpty();
     const page = Math.max(1, Number(query?.page || 1));
     const pageSize = Math.min(50, Math.max(1, Number(query?.pageSize || 20)));
-    const items = listArtworks().filter((d) => d.ownerId === req.auth.userId);
-    const slice = items.slice((page - 1) * pageSize, page * pageSize);
-    return { items: slice, page: { page, pageSize, total: items.length } };
+    const status = this.normalizeArtworkStatus(query?.status);
+    const auditStatus = this.normalizeAuditStatus(query?.auditStatus);
+
+    const where: any = { sellerUserId: req.auth.userId };
+    if (status) where.status = status;
+    if (auditStatus) where.auditStatus = auditStatus;
+
+    const [items, total] = await Promise.all([
+      this.prisma.artwork.findMany({
+        where,
+        include: { coverFile: true, media: { include: { file: true } }, stats: true },
+        orderBy: { createdAt: 'desc' },
+        skip: (page - 1) * pageSize,
+        take: pageSize,
+      }),
+      this.prisma.artwork.count({ where }),
+    ]);
+
+    return {
+      items: items.map((item) => this.buildArtworkDto(item as ArtworkRecord)),
+      page: { page, pageSize, total },
+    };
   }
 
-  getMine(req: any, artworkId: string) {
+  async getMine(req: any, artworkId: string) {
     this.ensureAuth(req);
-    const item = getArtwork(artworkId);
-    if (!item || item.ownerId !== req.auth.userId) {
-      throw new NotFoundException({ code: 'NOT_FOUND', message: '作品不存在' });
+    const item = await this.fetchArtwork(artworkId);
+    if (!item || item.sellerUserId !== req.auth.userId) {
+      throw new NotFoundException({ code: 'NOT_FOUND', message: '浣滃搧涓嶅瓨鍦?' });
     }
-    return item;
+    return this.buildArtworkDto(item as ArtworkRecord);
   }
 
-  create(req: any, body: any) {
+  async create(req: any, body: any) {
     this.ensureAuth(req);
-    const payload = { ...(body || {}), source: 'USER', status: undefined, auditStatus: undefined };
-    return createArtwork(req.auth.userId, payload);
+    const title = String(body?.title || '').trim();
+    const category = this.normalizeCategory(body?.category);
+    const creatorName = String(body?.creatorName || '').trim();
+    const priceType = this.normalizePriceType(body?.priceType);
+
+    if (!title) throw new BadRequestException({ code: 'BAD_REQUEST', message: 'title is required' });
+    if (!category) throw new BadRequestException({ code: 'BAD_REQUEST', message: 'category is required' });
+    if (!creatorName) throw new BadRequestException({ code: 'BAD_REQUEST', message: 'creatorName is required' });
+    if (!priceType) throw new BadRequestException({ code: 'BAD_REQUEST', message: 'priceType is required' });
+
+    const calligraphyScript = this.normalizeCalligraphyScript(body?.calligraphyScript);
+    const paintingGenre = this.normalizePaintingGenre(body?.paintingGenre);
+    const creationDate = this.parseOptionalDate(body?.creationDate, 'creationDate');
+    const creationYear = this.parseOptionalInt(body?.creationYear, 'creationYear', 0);
+    const priceAmountFen = this.parseOptionalInt(body?.priceAmountFen, 'priceAmountFen', 0);
+    const depositAmountFen = this.parseOptionalInt(body?.depositAmountFen, 'depositAmountFen', 0);
+    const certificateFileIds = this.normalizeFileIds(body?.certificateFileIds);
+    const mediaInput = normalizeMediaInput(body?.media);
+
+    const created = await this.prisma.$transaction(async (tx) => {
+      const artwork = await tx.artwork.create({
+        data: {
+          sellerUserId: req.auth.userId,
+          source: 'USER',
+          title,
+          description: body?.description ?? null,
+          category,
+          calligraphyScript: calligraphyScript ?? null,
+          paintingGenre: paintingGenre ?? null,
+          creatorName,
+          creationDate: creationDate ?? null,
+          creationYear: creationYear ?? null,
+          certificateNo: body?.certificateNo ? String(body.certificateNo) : null,
+          certificateFileIdsJson: certificateFileIds.length > 0 ? certificateFileIds : Prisma.DbNull,
+          priceType,
+          priceAmountFen: priceAmountFen ?? null,
+          depositAmountFen: depositAmountFen ?? 0,
+          regionCode: body?.regionCode ? String(body.regionCode) : null,
+          material: body?.material ? String(body.material) : null,
+          size: body?.size ? String(body.size) : null,
+          coverFileId: body?.coverFileId ? String(body.coverFileId) : null,
+        },
+      });
+
+      if (mediaInput.length > 0) {
+        await tx.artworkMedia.createMany({
+          data: mediaInput.map((item) => ({
+            artworkId: artwork.id,
+            fileId: item.fileId,
+            type: item.type as any,
+            sort: item.sort,
+          })),
+        });
+      }
+      return artwork.id;
+    });
+
+    const item = await this.fetchArtwork(created);
+    if (!item) throw new NotFoundException({ code: 'NOT_FOUND', message: 'artwork not found' });
+    return this.buildArtworkDto(item as ArtworkRecord);
   }
 
-  update(req: any, artworkId: string, body: any) {
+  async update(req: any, artworkId: string, body: any) {
     this.ensureAuth(req);
-    const item = getArtwork(artworkId);
-    if (!item || item.ownerId !== req.auth.userId) {
-      throw new NotFoundException({ code: 'NOT_FOUND', message: '作品不存在' });
+    const item = await this.fetchArtwork(artworkId);
+    if (!item || item.sellerUserId !== req.auth.userId) {
+      throw new NotFoundException({ code: 'NOT_FOUND', message: '浣滃搧涓嶅瓨鍦?' });
     }
-    const payload: any = { ...(body || {}) };
-    delete payload.source;
-    delete payload.status;
-    delete payload.auditStatus;
-    delete payload.ownerId;
-    delete payload.publisherUserId;
-    return updateArtwork(artworkId, payload);
+
+    const hasCertificateFileIds = Object.prototype.hasOwnProperty.call(body || {}, 'certificateFileIds');
+    const hasCoverFileId = Object.prototype.hasOwnProperty.call(body || {}, 'coverFileId');
+    const hasMedia = Object.prototype.hasOwnProperty.call(body || {}, 'media');
+
+    const category = body?.category !== undefined ? this.normalizeCategory(body?.category) : undefined;
+    const calligraphyScript = body?.calligraphyScript !== undefined ? this.normalizeCalligraphyScript(body?.calligraphyScript) : undefined;
+    const paintingGenre = body?.paintingGenre !== undefined ? this.normalizePaintingGenre(body?.paintingGenre) : undefined;
+    const creationDate = body?.creationDate !== undefined ? this.parseOptionalDate(body?.creationDate, 'creationDate') : undefined;
+    const creationYear = body?.creationYear !== undefined ? this.parseOptionalInt(body?.creationYear, 'creationYear', 0) : undefined;
+    const priceType = body?.priceType !== undefined ? this.normalizePriceType(body?.priceType) : undefined;
+    const priceAmountFen = body?.priceAmountFen !== undefined ? this.parseOptionalInt(body?.priceAmountFen, 'priceAmountFen', 0) : undefined;
+    const depositAmountFen = body?.depositAmountFen !== undefined ? this.parseOptionalInt(body?.depositAmountFen, 'depositAmountFen', 0) : undefined;
+    const certificateFileIds = hasCertificateFileIds ? this.normalizeFileIds(body?.certificateFileIds) : undefined;
+    const mediaInput = hasMedia ? normalizeMediaInput(body?.media) : [];
+
+    await this.prisma.$transaction(async (tx) => {
+      await tx.artwork.update({
+        where: { id: artworkId },
+        data: {
+          title: body?.title ?? undefined,
+          description: body?.description ?? undefined,
+          category: category ?? undefined,
+          calligraphyScript: calligraphyScript ?? null,
+          paintingGenre: paintingGenre ?? null,
+          creatorName: body?.creatorName ?? undefined,
+          creationDate: creationDate ?? null,
+          creationYear: creationYear ?? null,
+          certificateNo: body?.certificateNo ?? undefined,
+          certificateFileIdsJson: hasCertificateFileIds
+            ? certificateFileIds && certificateFileIds.length > 0
+              ? certificateFileIds
+              : Prisma.DbNull
+            : undefined,
+          priceType: priceType ?? undefined,
+          priceAmountFen: priceAmountFen ?? null,
+          depositAmountFen: depositAmountFen ?? undefined,
+          regionCode: body?.regionCode ?? undefined,
+          material: body?.material ?? undefined,
+          size: body?.size ?? undefined,
+          coverFileId: hasCoverFileId ? (body?.coverFileId ? String(body.coverFileId) : null) : undefined,
+        },
+      });
+
+      if (hasMedia) {
+        await tx.artworkMedia.deleteMany({ where: { artworkId } });
+        if (mediaInput.length > 0) {
+          await tx.artworkMedia.createMany({
+            data: mediaInput.map((media) => ({
+              artworkId,
+              fileId: media.fileId,
+              type: media.type as any,
+              sort: media.sort,
+            })),
+          });
+        }
+      }
+    });
+
+    const updated = await this.fetchArtwork(artworkId);
+    if (!updated) throw new NotFoundException({ code: 'NOT_FOUND', message: 'artwork not found' });
+    return this.buildArtworkDto(updated as ArtworkRecord);
   }
 
   async submit(req: any, artworkId: string) {
     this.ensureAuth(req);
-    const item = getArtwork(artworkId);
-    if (!item || item.ownerId !== req.auth.userId) {
-      throw new NotFoundException({ code: 'NOT_FOUND', message: '作品不存在' });
+    const item = await this.fetchArtwork(artworkId);
+    if (!item || item.sellerUserId !== req.auth.userId) {
+      throw new NotFoundException({ code: 'NOT_FOUND', message: '浣滃搧涓嶅瓨鍦?' });
     }
-    this.validateArtworkForSubmit(item);
-    const certificateFileIds = this.normalizeFileIds(item?.certificateFileIds);
+    this.validateArtworkForSubmit(item as ArtworkRecord);
+    const certificateFileIds = this.normalizeFileIds((item as ArtworkRecord).certificateFileIdsJson);
     await this.assertOwnedFiles(req.auth.userId, certificateFileIds, 'certificateFileIds');
-    return updateArtwork(artworkId, { status: 'ACTIVE', auditStatus: 'PENDING' });
+    const updated = await this.prisma.artwork.update({
+      where: { id: artworkId },
+      data: { status: 'ACTIVE', auditStatus: 'PENDING' },
+    });
+    void this.audit.log({
+      actorUserId: req.auth.userId,
+      action: 'ARTWORK_SUBMIT',
+      targetType: 'ARTWORK',
+      targetId: artworkId,
+      afterJson: { auditStatus: 'PENDING' },
+    });
+    return this.buildArtworkDto(updated as ArtworkRecord);
   }
 
-  offShelf(req: any, artworkId: string, _body: any) {
+  async offShelf(req: any, artworkId: string, _body: any) {
     this.ensureAuth(req);
-    const item = getArtwork(artworkId);
-    if (!item || item.ownerId !== req.auth.userId) {
-      throw new NotFoundException({ code: 'NOT_FOUND', message: '作品不存在' });
+    const item = await this.prisma.artwork.findUnique({ where: { id: artworkId } });
+    if (!item || item.sellerUserId !== req.auth.userId) {
+      throw new NotFoundException({ code: 'NOT_FOUND', message: '浣滃搧涓嶅瓨鍦?' });
     }
-    return updateArtwork(artworkId, { status: 'OFF_SHELF' });
+    const updated = await this.prisma.artwork.update({
+      where: { id: artworkId },
+      data: { status: 'OFF_SHELF' },
+    });
+    return this.buildArtworkDto(updated as ArtworkRecord);
   }
 
-  search(query: any): Paged<any> {
-    seedIfEmpty();
+  async search(query: any): Promise<Paged<any>> {
     const page = Math.max(1, Number(query?.page || 1));
     const pageSize = Math.min(50, Math.max(1, Number(query?.pageSize || 20)));
     const q = String(query?.q || '').trim();
-    const category = String(query?.category || query?.artworkCategory || '').trim().toUpperCase();
-    const calligraphyScript = String(query?.calligraphyScript || '').trim().toUpperCase();
-    const paintingGenre = String(query?.paintingGenre || '').trim().toUpperCase();
+    const category = this.normalizeCategory(query?.category || query?.artworkCategory);
+    const calligraphyScript = this.normalizeCalligraphyScript(query?.calligraphyScript);
+    const paintingGenre = this.normalizePaintingGenre(query?.paintingGenre);
     const creator = String(query?.creator || query?.creatorName || '').trim();
-    const priceType = String(query?.priceType || '').trim().toUpperCase();
+    const priceType = this.normalizePriceType(query?.priceType);
     const regionCode = String(query?.regionCode || '').trim();
     const sortBy = String(query?.sortBy || 'NEWEST').trim().toUpperCase();
 
-    const parseNumber = (value: any) => {
-      if (value === undefined || value === null || String(value).trim() === '') return undefined;
-      const num = Number(value);
-      return Number.isFinite(num) ? num : undefined;
-    };
+    const creationYearStart = this.parseOptionalInt(query?.creationYearStart, 'creationYearStart', 0);
+    const creationYearEnd = this.parseOptionalInt(query?.creationYearEnd, 'creationYearEnd', 0);
+    const priceMin = this.parseOptionalInt(query?.priceMin, 'priceMin', 0);
+    const priceMax = this.parseOptionalInt(query?.priceMax, 'priceMax', 0);
+    const depositMin = this.parseOptionalInt(query?.depositMin, 'depositMin', 0);
+    const depositMax = this.parseOptionalInt(query?.depositMax, 'depositMax', 0);
 
-    const creationYearStart = parseNumber(query?.creationYearStart);
-    const creationYearEnd = parseNumber(query?.creationYearEnd);
-    const priceMin = parseNumber(query?.priceMin);
-    const priceMax = parseNumber(query?.priceMax);
-    const depositMin = parseNumber(query?.depositMin);
-    const depositMax = parseNumber(query?.depositMax);
+    const where: any = { status: 'ACTIVE', auditStatus: 'APPROVED' };
+    if (category) where.category = category;
+    if (calligraphyScript) where.calligraphyScript = calligraphyScript;
+    if (paintingGenre) where.paintingGenre = paintingGenre;
+    if (creator) where.creatorName = { contains: creator, mode: 'insensitive' };
+    if (regionCode) where.regionCode = regionCode;
+    if (priceType) where.priceType = priceType;
 
-    const items = listArtworks().filter((d) => d.status === 'ACTIVE' && d.auditStatus === 'APPROVED');
-    const filtered = items.filter((d) => {
-      if (q) {
-        const qLower = q.toLowerCase();
-        const title = String(d.title || '').toLowerCase();
-        const summary = String(d.summary || '').toLowerCase();
-        const creatorName = String(d.creatorName || '').toLowerCase();
-        if (!title.includes(qLower) && !summary.includes(qLower) && !creatorName.includes(qLower)) return false;
-      }
-      if (category && String(d.category || '').toUpperCase() !== category) return false;
-      if (calligraphyScript && String(d.calligraphyScript || '').toUpperCase() !== calligraphyScript) return false;
-      if (paintingGenre && String(d.paintingGenre || '').toUpperCase() !== paintingGenre) return false;
-      if (creator) {
-        const creatorName = String(d.creatorName || '').toLowerCase();
-        if (!creatorName.includes(creator.toLowerCase())) return false;
-      }
-      if (regionCode && String(d.regionCode || '') !== regionCode) return false;
-      if (priceType && String(d.priceType || '').toUpperCase() !== priceType) return false;
-      if (priceMin !== undefined || priceMax !== undefined) {
-        const price = typeof d.priceAmountFen === 'number' ? d.priceAmountFen : undefined;
-        if (price === undefined) return false;
-        if (priceMin !== undefined && price < priceMin) return false;
-        if (priceMax !== undefined && price > priceMax) return false;
-      }
-      if (depositMin !== undefined || depositMax !== undefined) {
-        const deposit = typeof d.depositAmountFen === 'number' ? d.depositAmountFen : undefined;
-        if (deposit === undefined) return false;
-        if (depositMin !== undefined && deposit < depositMin) return false;
-        if (depositMax !== undefined && deposit > depositMax) return false;
-      }
-      if (creationYearStart !== undefined || creationYearEnd !== undefined) {
-        const yearText = String(d.creationYear || '').trim();
-        const yearFallback = String(d.creationDate || '').slice(0, 4);
-        const yearValue = Number(yearText || yearFallback);
-        if (!Number.isFinite(yearValue)) return false;
-        if (creationYearStart !== undefined && yearValue < creationYearStart) return false;
-        if (creationYearEnd !== undefined && yearValue > creationYearEnd) return false;
-      }
-      return true;
-    });
-
-    const priceValue = (d: any) => (typeof d.priceAmountFen === 'number' ? d.priceAmountFen : Number.MAX_SAFE_INTEGER);
-    const sorted = filtered.slice();
-    if (sortBy === 'PRICE_ASC') {
-      sorted.sort((a, b) => priceValue(a) - priceValue(b));
-    } else if (sortBy === 'PRICE_DESC') {
-      sorted.sort((a, b) => priceValue(b) - priceValue(a));
-    } else {
-      sorted.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    if (priceMin !== undefined) {
+      where.priceAmountFen = { gte: priceMin };
+    }
+    if (priceMax !== undefined) {
+      where.priceAmountFen = { ...(where.priceAmountFen || {}), lte: priceMax };
+    }
+    if (depositMin !== undefined) {
+      where.depositAmountFen = { gte: depositMin };
+    }
+    if (depositMax !== undefined) {
+      where.depositAmountFen = { ...(where.depositAmountFen || {}), lte: depositMax };
     }
 
-    const slice = sorted.slice((page - 1) * pageSize, page * pageSize).map((item) => this.toPublic(item));
-    return { items: slice, page: { page, pageSize, total: filtered.length } };
+    const andFilters: any[] = [];
+    if (creationYearStart !== undefined || creationYearEnd !== undefined) {
+      const yearRange: any = {};
+      if (creationYearStart !== undefined) yearRange.gte = creationYearStart;
+      if (creationYearEnd !== undefined) yearRange.lte = creationYearEnd;
+
+      const dateRange: any = {};
+      if (creationYearStart !== undefined) dateRange.gte = new Date(`${creationYearStart}-01-01`);
+      if (creationYearEnd !== undefined) dateRange.lte = new Date(`${creationYearEnd}-12-31`);
+
+      andFilters.push({
+        OR: [{ creationYear: yearRange }, { creationYear: null, creationDate: dateRange }],
+      });
+    }
+    if (q) {
+      andFilters.push({
+        OR: [
+          { title: { contains: q, mode: 'insensitive' } },
+          { description: { contains: q, mode: 'insensitive' } },
+          { creatorName: { contains: q, mode: 'insensitive' } },
+        ],
+      });
+    }
+    if (andFilters.length > 0) where.AND = andFilters;
+
+    const orderBy: any =
+      sortBy === 'PRICE_ASC'
+        ? { priceAmountFen: 'asc' }
+        : sortBy === 'PRICE_DESC'
+          ? { priceAmountFen: 'desc' }
+          : { createdAt: 'desc' };
+
+    const [items, total] = await Promise.all([
+      this.prisma.artwork.findMany({
+        where,
+        include: { coverFile: true, stats: true },
+        orderBy,
+        skip: (page - 1) * pageSize,
+        take: pageSize,
+      }),
+      this.prisma.artwork.count({ where }),
+    ]);
+
+    return {
+      items: items.map((item) => this.buildArtworkDto(item as ArtworkRecord)),
+      page: { page, pageSize, total },
+    };
   }
 
-  getPublic(artworkId: string) {
-    seedIfEmpty();
-    const item = getArtwork(artworkId);
-    if (!item) throw new NotFoundException({ code: 'NOT_FOUND', message: '作品不存在' });
-    return this.toPublic(item);
+  async getPublic(artworkId: string) {
+    const item = await this.fetchArtwork(artworkId, true);
+    if (!item) throw new NotFoundException({ code: 'NOT_FOUND', message: '浣滃搧涓嶅瓨鍦?' });
+    return this.toPublic(item as ArtworkRecord);
   }
 
-  listAdmin(req: any, query: any): Paged<any> {
+  async listAdmin(req: any, query: any): Promise<Paged<any>> {
     this.ensureAdmin(req);
-    seedIfEmpty();
     const page = Math.max(1, Number(query?.page || 1));
     const pageSize = Math.min(50, Math.max(1, Number(query?.pageSize || 20)));
-    const auditStatus = String(query?.auditStatus || '').trim();
-    const status = String(query?.status || '').trim();
+    const auditStatus = this.normalizeAuditStatus(query?.auditStatus);
+    const status = this.normalizeArtworkStatus(query?.status);
     const q = String(query?.q || '').trim();
-    const source = String(query?.source || '').trim().toUpperCase();
-    let items = listArtworks();
-    if (auditStatus) items = items.filter((d) => d.auditStatus === auditStatus);
-    if (status) items = items.filter((d) => d.status === status);
-    if (q) items = items.filter((d) => d.title.includes(q));
-    if (source) items = items.filter((d) => String(d.source || '').toUpperCase() === source);
-    const slice = items.slice((page - 1) * pageSize, page * pageSize);
-    return { items: slice, page: { page, pageSize, total: items.length } };
+    const source = this.normalizeContentSource(query?.source);
+
+    const where: any = {};
+    if (auditStatus) where.auditStatus = auditStatus;
+    if (status) where.status = status;
+    if (source) where.source = source;
+    if (q) where.title = { contains: q, mode: 'insensitive' };
+
+    const [items, total] = await Promise.all([
+      this.prisma.artwork.findMany({
+        where,
+        include: { coverFile: true, media: { include: { file: true } }, stats: true },
+        orderBy: { createdAt: 'desc' },
+        skip: (page - 1) * pageSize,
+        take: pageSize,
+      }),
+      this.prisma.artwork.count({ where }),
+    ]);
+
+    return {
+      items: items.map((item) => this.buildArtworkDto(item as ArtworkRecord)),
+      page: { page, pageSize, total },
+    };
   }
 
-  adminCreate(req: any, body: any) {
+  async adminCreate(req: any, body: any) {
     this.ensureAdmin(req);
-    const sourceInput = String(body?.source || '').trim().toUpperCase();
-    const source = ['USER', 'ADMIN', 'PLATFORM'].includes(sourceInput) ? sourceInput : 'ADMIN';
-    const ownerId = String(body?.publisherUserId || body?.ownerId || req?.auth?.userId || '').trim();
-    const payload = { ...(body || {}), source };
-    return createArtwork(ownerId || req.auth.userId, payload);
-  }
+    const title = String(body?.title || '').trim();
+    const category = this.normalizeCategory(body?.category);
+    const creatorName = String(body?.creatorName || '').trim();
+    const priceType = this.normalizePriceType(body?.priceType);
 
-  adminGetById(req: any, artworkId: string) {
-    this.ensureAdmin(req);
-    const item = getArtwork(artworkId);
+    if (!title) throw new BadRequestException({ code: 'BAD_REQUEST', message: 'title is required' });
+    if (!category) throw new BadRequestException({ code: 'BAD_REQUEST', message: 'category is required' });
+    if (!creatorName) throw new BadRequestException({ code: 'BAD_REQUEST', message: 'creatorName is required' });
+    if (!priceType) throw new BadRequestException({ code: 'BAD_REQUEST', message: 'priceType is required' });
+
+    const sourceInput = this.normalizeContentSource(body?.source) ?? 'ADMIN';
+    const ownerId = String(body?.sellerUserId || body?.publisherUserId || body?.ownerId || req?.auth?.userId || '').trim();
+    const calligraphyScript = this.normalizeCalligraphyScript(body?.calligraphyScript);
+    const paintingGenre = this.normalizePaintingGenre(body?.paintingGenre);
+    const creationDate = this.parseOptionalDate(body?.creationDate, 'creationDate');
+    const creationYear = this.parseOptionalInt(body?.creationYear, 'creationYear', 0);
+    const priceAmountFen = this.parseOptionalInt(body?.priceAmountFen, 'priceAmountFen', 0);
+    const depositAmountFen = this.parseOptionalInt(body?.depositAmountFen, 'depositAmountFen', 0);
+    const certificateFileIds = this.normalizeFileIds(body?.certificateFileIds);
+    const mediaInput = normalizeMediaInput(body?.media);
+
+    const created = await this.prisma.$transaction(async (tx) => {
+      const artwork = await tx.artwork.create({
+        data: {
+          sellerUserId: ownerId || req.auth.userId,
+          source: sourceInput,
+          title,
+          description: body?.description ?? null,
+          category,
+          calligraphyScript: calligraphyScript ?? null,
+          paintingGenre: paintingGenre ?? null,
+          creatorName,
+          creationDate: creationDate ?? null,
+          creationYear: creationYear ?? null,
+          certificateNo: body?.certificateNo ? String(body.certificateNo) : null,
+          certificateFileIdsJson: certificateFileIds.length > 0 ? certificateFileIds : Prisma.DbNull,
+          priceType,
+          priceAmountFen: priceAmountFen ?? null,
+          depositAmountFen: depositAmountFen ?? 0,
+          regionCode: body?.regionCode ? String(body.regionCode) : null,
+          material: body?.material ? String(body.material) : null,
+          size: body?.size ? String(body.size) : null,
+          coverFileId: body?.coverFileId ? String(body.coverFileId) : null,
+          auditStatus: this.normalizeAuditStatus(body?.auditStatus) ?? 'PENDING',
+          status: this.normalizeArtworkStatus(body?.status) ?? 'DRAFT',
+        },
+      });
+
+      if (mediaInput.length > 0) {
+        await tx.artworkMedia.createMany({
+          data: mediaInput.map((item) => ({
+            artworkId: artwork.id,
+            fileId: item.fileId,
+            type: item.type as any,
+            sort: item.sort,
+          })),
+        });
+      }
+      return artwork.id;
+    });
+
+    const item = await this.fetchArtwork(created);
     if (!item) throw new NotFoundException({ code: 'NOT_FOUND', message: 'artwork not found' });
-    return item;
+    return this.buildArtworkDto(item as ArtworkRecord);
   }
 
-  adminUpdate(req: any, artworkId: string, body: any) {
+  async adminGetById(req: any, artworkId: string) {
     this.ensureAdmin(req);
-    const item = getArtwork(artworkId);
+    const item = await this.fetchArtwork(artworkId);
     if (!item) throw new NotFoundException({ code: 'NOT_FOUND', message: 'artwork not found' });
-    const payload = { ...(body || {}) };
-    if (body?.publisherUserId) payload.ownerId = body.publisherUserId;
-    return updateArtwork(artworkId, payload);
+    return this.buildArtworkDto(item as ArtworkRecord);
   }
 
-  adminPublish(req: any, artworkId: string) {
+  async adminUpdate(req: any, artworkId: string, body: any) {
     this.ensureAdmin(req);
-    const item = getArtwork(artworkId);
+    const item = await this.fetchArtwork(artworkId);
     if (!item) throw new NotFoundException({ code: 'NOT_FOUND', message: 'artwork not found' });
-    return updateArtwork(artworkId, { status: 'ACTIVE', auditStatus: 'APPROVED' });
+
+    const hasCertificateFileIds = Object.prototype.hasOwnProperty.call(body || {}, 'certificateFileIds');
+    const hasCoverFileId = Object.prototype.hasOwnProperty.call(body || {}, 'coverFileId');
+    const hasMedia = Object.prototype.hasOwnProperty.call(body || {}, 'media');
+
+    const category = body?.category !== undefined ? this.normalizeCategory(body?.category) : undefined;
+    const calligraphyScript = body?.calligraphyScript !== undefined ? this.normalizeCalligraphyScript(body?.calligraphyScript) : undefined;
+    const paintingGenre = body?.paintingGenre !== undefined ? this.normalizePaintingGenre(body?.paintingGenre) : undefined;
+    const creationDate = body?.creationDate !== undefined ? this.parseOptionalDate(body?.creationDate, 'creationDate') : undefined;
+    const creationYear = body?.creationYear !== undefined ? this.parseOptionalInt(body?.creationYear, 'creationYear', 0) : undefined;
+    const priceType = body?.priceType !== undefined ? this.normalizePriceType(body?.priceType) : undefined;
+    const priceAmountFen = body?.priceAmountFen !== undefined ? this.parseOptionalInt(body?.priceAmountFen, 'priceAmountFen', 0) : undefined;
+    const depositAmountFen = body?.depositAmountFen !== undefined ? this.parseOptionalInt(body?.depositAmountFen, 'depositAmountFen', 0) : undefined;
+    const certificateFileIds = hasCertificateFileIds ? this.normalizeFileIds(body?.certificateFileIds) : undefined;
+    const mediaInput = hasMedia ? normalizeMediaInput(body?.media) : [];
+    const sellerUserId = body?.sellerUserId
+      ? String(body.sellerUserId)
+      : body?.publisherUserId
+        ? String(body.publisherUserId)
+        : body?.ownerId
+          ? String(body.ownerId)
+          : undefined;
+
+    await this.prisma.$transaction(async (tx) => {
+      await tx.artwork.update({
+        where: { id: artworkId },
+        data: {
+          sellerUserId: sellerUserId ?? undefined,
+          source: body?.source !== undefined ? this.normalizeContentSource(body?.source) ?? item.source : undefined,
+          title: body?.title ?? undefined,
+          description: body?.description ?? undefined,
+          category: category ?? undefined,
+          calligraphyScript: calligraphyScript ?? null,
+          paintingGenre: paintingGenre ?? null,
+          creatorName: body?.creatorName ?? undefined,
+          creationDate: creationDate ?? null,
+          creationYear: creationYear ?? null,
+          certificateNo: body?.certificateNo ?? undefined,
+          certificateFileIdsJson: hasCertificateFileIds
+            ? certificateFileIds && certificateFileIds.length > 0
+              ? certificateFileIds
+              : Prisma.DbNull
+            : undefined,
+          priceType: priceType ?? undefined,
+          priceAmountFen: priceAmountFen ?? null,
+          depositAmountFen: depositAmountFen ?? undefined,
+          regionCode: body?.regionCode ?? undefined,
+          material: body?.material ?? undefined,
+          size: body?.size ?? undefined,
+          coverFileId: hasCoverFileId ? (body?.coverFileId ? String(body.coverFileId) : null) : undefined,
+          auditStatus: body?.auditStatus !== undefined ? this.normalizeAuditStatus(body?.auditStatus) ?? item.auditStatus : undefined,
+          status: body?.status !== undefined ? this.normalizeArtworkStatus(body?.status) ?? item.status : undefined,
+        },
+      });
+
+      if (hasMedia) {
+        await tx.artworkMedia.deleteMany({ where: { artworkId } });
+        if (mediaInput.length > 0) {
+          await tx.artworkMedia.createMany({
+            data: mediaInput.map((media) => ({
+              artworkId,
+              fileId: media.fileId,
+              type: media.type as any,
+              sort: media.sort,
+            })),
+          });
+        }
+      }
+    });
+
+    const updated = await this.fetchArtwork(artworkId);
+    if (!updated) throw new NotFoundException({ code: 'NOT_FOUND', message: 'artwork not found' });
+    return this.buildArtworkDto(updated as ArtworkRecord);
   }
 
-  adminOffShelf(req: any, artworkId: string) {
+  async adminPublish(req: any, artworkId: string) {
     this.ensureAdmin(req);
-    const item = getArtwork(artworkId);
+    const item = await this.prisma.artwork.findUnique({ where: { id: artworkId } });
     if (!item) throw new NotFoundException({ code: 'NOT_FOUND', message: 'artwork not found' });
-    return updateArtwork(artworkId, { status: 'OFF_SHELF' });
+    const updated = await this.prisma.artwork.update({
+      where: { id: artworkId },
+      data: { status: 'ACTIVE', auditStatus: 'APPROVED' },
+    });
+    return this.buildArtworkDto(updated as ArtworkRecord);
   }
 
-  adminApprove(req: any, artworkId: string) {
+  async adminOffShelf(req: any, artworkId: string) {
     this.ensureAdmin(req);
-    const item = getArtwork(artworkId);
-    if (!item) throw new NotFoundException({ code: 'NOT_FOUND', message: '作品不存在' });
-    addAuditLog('ARTWORK', artworkId, 'APPROVE', undefined, req?.auth?.userId || undefined);
+    const item = await this.prisma.artwork.findUnique({ where: { id: artworkId } });
+    if (!item) throw new NotFoundException({ code: 'NOT_FOUND', message: 'artwork not found' });
+    const updated = await this.prisma.artwork.update({
+      where: { id: artworkId },
+      data: { status: 'OFF_SHELF' },
+    });
+    return this.buildArtworkDto(updated as ArtworkRecord);
+  }
+
+  async adminApprove(req: any, artworkId: string) {
+    this.ensureAdmin(req);
+    const item = await this.prisma.artwork.findUnique({ where: { id: artworkId } });
+    if (!item) throw new NotFoundException({ code: 'NOT_FOUND', message: '浣滃搧涓嶅瓨鍦?' });
     void this.audit.log({
       actorUserId: req.auth.userId,
       action: 'ARTWORK_APPROVE',
@@ -270,29 +736,43 @@ export class ArtworksService {
       targetId: artworkId,
       afterJson: { auditStatus: 'APPROVED' },
     });
-    return updateArtwork(artworkId, {
-      auditStatus: 'APPROVED',
-      status: item.status === 'DRAFT' ? 'ACTIVE' : item.status,
+    const updated = await this.prisma.artwork.update({
+      where: { id: artworkId },
+      data: {
+        auditStatus: 'APPROVED',
+        status: item.status === 'DRAFT' ? 'ACTIVE' : item.status,
+      },
     });
+    await this.notifications.create({
+      userId: updated.sellerUserId,
+      title: '书画审核通过',
+      summary: `《${updated.title || '书画作品'}》已通过审核，可在平台展示。`,
+      source: '平台审核',
+    });
+    return this.buildArtworkDto(updated as ArtworkRecord);
   }
 
-  adminReject(req: any, artworkId: string, _body: any) {
+  async adminReject(req: any, artworkId: string, body: any) {
     this.ensureAdmin(req);
-    const item = getArtwork(artworkId);
-    if (!item) throw new NotFoundException({ code: 'NOT_FOUND', message: '作品不存在' });
-    addAuditLog('ARTWORK', artworkId, 'REJECT', _body?.reason, req?.auth?.userId || undefined);
+    const item = await this.prisma.artwork.findUnique({ where: { id: artworkId } });
+    if (!item) throw new NotFoundException({ code: 'NOT_FOUND', message: '浣滃搧涓嶅瓨鍦?' });
     void this.audit.log({
       actorUserId: req.auth.userId,
       action: 'ARTWORK_REJECT',
       targetType: 'ARTWORK',
       targetId: artworkId,
-      afterJson: { auditStatus: 'REJECTED', reason: _body?.reason },
+      afterJson: { auditStatus: 'REJECTED', reason: body?.reason },
     });
-    return updateArtwork(artworkId, { auditStatus: 'REJECTED' });
-  }
-
-  private toPublic(item: any) {
-    const { certificateNo, certificateFileIds, ...rest } = item || {};
-    return rest;
+    const updated = await this.prisma.artwork.update({
+      where: { id: artworkId },
+      data: { auditStatus: 'REJECTED' },
+    });
+    await this.notifications.create({
+      userId: updated.sellerUserId,
+      title: '书画审核驳回',
+      summary: `《${updated.title || '书画作品'}》审核未通过${body?.reason ? `，原因：${body.reason}` : '，请修改后重新提交'}。`,
+      source: '平台审核',
+    });
+    return this.buildArtworkDto(updated as ArtworkRecord);
   }
 }

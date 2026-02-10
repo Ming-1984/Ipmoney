@@ -52,6 +52,8 @@ tags:
     description: 订单电子发票下载
   - name: Messaging
     description: 会话与消息（咨询/聊天）
+  - name: Notifications
+    description: 通知中心（系统/客服）
   - name: Comments
     description: 详情页留言与互动回复
   - name: Regions
@@ -296,6 +298,96 @@ paths:
         "409":
           $ref: "#/components/responses/Conflict"
 
+  /me/addresses:
+    get:
+      tags: [Users]
+      summary: 我的地址列表
+      operationId: listMyAddresses
+      security:
+        - BearerAuth: []
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Address"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+    post:
+      tags: [Users]
+      summary: 新增地址
+      operationId: createMyAddress
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AddressCreateRequest"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Address"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /me/addresses/{addressId}:
+    patch:
+      tags: [Users]
+      summary: 更新地址
+      operationId: updateMyAddress
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/AddressId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AddressUpdateRequest"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Address"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+    delete:
+      tags: [Users]
+      summary: 删除地址
+      operationId: deleteMyAddress
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/AddressId"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OkResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
   /me/favorites:
     get:
       tags: [Listings]
@@ -396,6 +488,47 @@ paths:
                 $ref: "#/components/schemas/PagedListingSummary"
         "401":
           $ref: "#/components/responses/Unauthorized"
+
+  /notifications:
+    get:
+      tags: [Notifications]
+      summary: 通知列表
+      operationId: listMyNotifications
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/Page"
+        - $ref: "#/components/parameters/PageSize"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PagedNotification"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /notifications/{notificationId}:
+    get:
+      tags: [Notifications]
+      summary: 通知详情
+      operationId: getNotificationById
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/NotificationId"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Notification"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
 
   /files:
     post:
@@ -2943,6 +3076,31 @@ paths:
           $ref: "#/components/responses/Unauthorized"
         "403":
           $ref: "#/components/responses/Forbidden"
+    put:
+      tags: [Admin, Config]
+      summary: 更新交易规则配置（后台）
+      operationId: adminUpdateTradeRulesConfig
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TradeRulesConfigUpdateRequest"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TradeRulesConfig"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
 
   /admin/config/customer-service:
     get:
@@ -3057,33 +3215,6 @@ paths:
           $ref: "#/components/responses/Forbidden"
         "404":
           $ref: "#/components/responses/NotFound"
-        "403":
-          $ref: "#/components/responses/Forbidden"
-    put:
-      tags: [Admin, Config]
-      summary: 更新交易规则配置（后台）
-      operationId: adminUpdateTradeRulesConfig
-      security:
-        - BearerAuth: []
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/TradeRulesConfigUpdateRequest"
-      responses:
-        "200":
-          description: OK
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/TradeRulesConfig"
-        "400":
-          $ref: "#/components/responses/BadRequest"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "403":
-          $ref: "#/components/responses/Forbidden"
 
   /admin/config/recommendation:
     get:
@@ -4956,6 +5087,38 @@ paths:
           $ref: "#/components/responses/Conflict"
 
   /admin/orders/{orderId}/invoice:
+    post:
+      tags: [Admin]
+      summary: Issue order invoice (admin demo)
+      operationId: adminIssueOrderInvoice
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/OrderId"
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OrderInvoiceIssueResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
     put:
       tags: [Admin]
       summary: 上传/替换订单电子发票（财务）
@@ -5072,6 +5235,931 @@ paths:
           $ref: "#/components/responses/NotFound"
         "409":
           $ref: "#/components/responses/Conflict"
+
+  /public/announcements:
+    get:
+      tags: [Users]
+      summary: List public announcements
+      operationId: listPublicAnnouncements
+      security: []
+      parameters:
+        - $ref: "#/components/parameters/Page"
+        - $ref: "#/components/parameters/PageSize"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PagedAnnouncement"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+
+  /public/announcements/{announcementId}:
+    get:
+      tags: [Users]
+      summary: Get public announcement by id
+      operationId: getPublicAnnouncementById
+      security: []
+      parameters:
+        - $ref: "#/components/parameters/AnnouncementId"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Announcement"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /admin/orders/{orderId}:
+    get:
+      tags: [Admin]
+      summary: Get order detail (admin)
+      operationId: adminGetOrderById
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/OrderId"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Order"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /admin/cases:
+    get:
+      tags: [Admin, Cases]
+      summary: List cases
+      operationId: adminListCases
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: q
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: status
+          in: query
+          required: false
+          schema:
+            $ref: "#/components/schemas/CaseStatus"
+        - name: type
+          in: query
+          required: false
+          schema:
+            $ref: "#/components/schemas/CaseType"
+        - $ref: "#/components/parameters/Page"
+        - $ref: "#/components/parameters/PageSize"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PagedCase"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+
+  /admin/cases/{caseId}:
+    get:
+      tags: [Admin, Cases]
+      summary: Get case detail
+      operationId: adminGetCaseById
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/CaseId"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CaseRecord"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /admin/cases/{caseId}/assign:
+    post:
+      tags: [Admin, Cases]
+      summary: Assign case
+      operationId: adminAssignCase
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/CaseId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [assigneeId]
+              properties:
+                assigneeId:
+                  type: string
+                reason:
+                  type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CaseRecord"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /admin/cases/{caseId}/status:
+    post:
+      tags: [Admin, Cases]
+      summary: Update case status
+      operationId: adminUpdateCaseStatus
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/CaseId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [status]
+              properties:
+                status:
+                  $ref: "#/components/schemas/CaseStatus"
+                remark:
+                  type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CaseRecord"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /admin/cases/{caseId}/notes:
+    post:
+      tags: [Admin, Cases]
+      summary: Add case note
+      operationId: adminAddCaseNote
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/CaseId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [note]
+              properties:
+                note:
+                  type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CaseRecord"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /admin/cases/{caseId}/evidence:
+    post:
+      tags: [Admin, Cases]
+      summary: Add case evidence
+      operationId: adminAddCaseEvidence
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/CaseId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [fileId]
+              properties:
+                fileId:
+                  $ref: "#/components/schemas/Uuid"
+                fileName:
+                  type: string
+                url:
+                  type: string
+                  format: uri
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CaseRecord"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /admin/cases/{caseId}/sla:
+    post:
+      tags: [Admin, Cases]
+      summary: Update case SLA
+      operationId: adminUpdateCaseSla
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/CaseId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [dueAt]
+              properties:
+                dueAt:
+                  type: string
+                  format: date-time
+                reason:
+                  type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CaseRecord"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /admin/listings/{listingId}/materials:
+    get:
+      tags: [Admin]
+      summary: Get listing audit materials
+      operationId: adminGetListingMaterials
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/ListingId"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuditMaterialList"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /admin/listings/{listingId}/audit-logs:
+    get:
+      tags: [Admin]
+      summary: Get listing audit logs
+      operationId: adminGetListingAuditLogs
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/ListingId"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuditLogList"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /admin/demands/{demandId}/materials:
+    get:
+      tags: [Admin]
+      summary: Get demand audit materials
+      operationId: adminGetDemandMaterials
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/DemandId"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuditMaterialList"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /admin/demands/{demandId}/audit-logs:
+    get:
+      tags: [Admin]
+      summary: Get demand audit logs
+      operationId: adminGetDemandAuditLogs
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/DemandId"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuditLogList"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /admin/achievements/{achievementId}/materials:
+    get:
+      tags: [Admin]
+      summary: Get achievement audit materials
+      operationId: adminGetAchievementMaterials
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/AchievementId"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuditMaterialList"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /admin/achievements/{achievementId}/audit-logs:
+    get:
+      tags: [Admin]
+      summary: Get achievement audit logs
+      operationId: adminGetAchievementAuditLogs
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/AchievementId"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuditLogList"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /admin/artworks/{artworkId}/materials:
+    get:
+      tags: [Admin]
+      summary: Get artwork audit materials
+      operationId: adminGetArtworkMaterials
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/ArtworkId"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuditMaterialList"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /admin/artworks/{artworkId}/audit-logs:
+    get:
+      tags: [Admin]
+      summary: Get artwork audit logs
+      operationId: adminGetArtworkAuditLogs
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/ArtworkId"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuditLogList"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /admin/user-verifications/{verificationId}/materials:
+    get:
+      tags: [Admin]
+      summary: Get verification audit materials
+      operationId: adminGetVerificationMaterials
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/VerificationId"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuditMaterialList"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /admin/user-verifications/{verificationId}/audit-logs:
+    get:
+      tags: [Admin]
+      summary: Get verification audit logs
+      operationId: adminGetVerificationAuditLogs
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/VerificationId"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuditLogList"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /admin/config/banner:
+    get:
+      tags: [Admin, Config]
+      summary: Get banner config (admin)
+      operationId: adminGetBannerConfig
+      security:
+        - BearerAuth: []
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BannerConfig"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+    put:
+      tags: [Admin, Config]
+      summary: Update banner config (admin)
+      operationId: adminUpdateBannerConfig
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BannerConfig"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BannerConfig"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+
+  /admin/config/taxonomy:
+    get:
+      tags: [Admin, Config]
+      summary: Get taxonomy config (admin)
+      operationId: adminGetTaxonomyConfig
+      security:
+        - BearerAuth: []
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TaxonomyConfig"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+    put:
+      tags: [Admin, Config]
+      summary: Update taxonomy config (admin)
+      operationId: adminUpdateTaxonomyConfig
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TaxonomyConfig"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TaxonomyConfig"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+
+  /admin/config/sensitive-words:
+    get:
+      tags: [Admin, Config]
+      summary: Get sensitive words config (admin)
+      operationId: adminGetSensitiveWordsConfig
+      security:
+        - BearerAuth: []
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SensitiveWordsConfig"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+    put:
+      tags: [Admin, Config]
+      summary: Update sensitive words config (admin)
+      operationId: adminUpdateSensitiveWordsConfig
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SensitiveWordsConfig"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SensitiveWordsConfig"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+
+  /admin/config/hot-search:
+    get:
+      tags: [Admin, Config]
+      summary: Get hot search config (admin)
+      operationId: adminGetHotSearchConfig
+      security:
+        - BearerAuth: []
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HotSearchConfig"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+    put:
+      tags: [Admin, Config]
+      summary: Update hot search config (admin)
+      operationId: adminUpdateHotSearchConfig
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/HotSearchConfig"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HotSearchConfig"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+
+  /admin/rbac/permissions:
+    get:
+      tags: [Admin]
+      summary: List RBAC permissions
+      operationId: adminListRbacPermissions
+      security:
+        - BearerAuth: []
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RbacPermissionList"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+
+  /admin/rbac/roles:
+    get:
+      tags: [Admin]
+      summary: List RBAC roles
+      operationId: adminListRbacRoles
+      security:
+        - BearerAuth: []
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RbacRoleList"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+    post:
+      tags: [Admin]
+      summary: Create RBAC role
+      operationId: adminCreateRbacRole
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RbacRoleCreateRequest"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RbacRole"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+
+  /admin/rbac/roles/{roleId}:
+    patch:
+      tags: [Admin]
+      summary: Update RBAC role
+      operationId: adminUpdateRbacRole
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/RoleId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RbacRoleUpdateRequest"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RbacRole"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+    delete:
+      tags: [Admin]
+      summary: Delete RBAC role
+      operationId: adminDeleteRbacRole
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/RoleId"
+        - $ref: "#/components/parameters/IdempotencyKey"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OkResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /admin/rbac/users:
+    get:
+      tags: [Admin]
+      summary: List RBAC users
+      operationId: adminListRbacUsers
+      security:
+        - BearerAuth: []
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RbacUserList"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+
+  /admin/rbac/users/{userId}:
+    patch:
+      tags: [Admin]
+      summary: Update RBAC user roles
+      operationId: adminUpdateRbacUserRoles
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/UserId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RbacUserRoleUpdateRequest"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RbacUser"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /admin/reports/finance/summary:
+    get:
+      tags: [Admin]
+      summary: Get finance report summary
+      operationId: adminGetFinanceReportSummary
+      security:
+        - BearerAuth: []
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FinanceReportSummary"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+
+  /admin/reports/finance/export:
+    post:
+      tags: [Admin]
+      summary: Export finance report
+      operationId: adminExportFinanceReport
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FinanceReportExportResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
 
 components:
   securitySchemes:
@@ -5795,6 +6883,42 @@ components:
       required: true
       schema:
         $ref: "#/components/schemas/Uuid"
+    CaseId:
+      name: caseId
+      in: path
+      required: true
+      schema:
+        $ref: "#/components/schemas/Uuid"
+    AnnouncementId:
+      name: announcementId
+      in: path
+      required: true
+      schema:
+        $ref: "#/components/schemas/Uuid"
+    AddressId:
+      name: addressId
+      in: path
+      required: true
+      schema:
+        $ref: "#/components/schemas/Uuid"
+    NotificationId:
+      name: notificationId
+      in: path
+      required: true
+      schema:
+        $ref: "#/components/schemas/Uuid"
+    RoleId:
+      name: roleId
+      in: path
+      required: true
+      schema:
+        $ref: "#/components/schemas/Uuid"
+    UserId:
+      name: userId
+      in: path
+      required: true
+      schema:
+        $ref: "#/components/schemas/Uuid"
   schemas:
     Uuid:
       type: string
@@ -5999,8 +7123,6 @@ components:
           nullable: true
         orgCategory:
           $ref: "#/components/schemas/SupplyType"
-        orgCategory:
-          $ref: "#/components/schemas/SupplyType"
           description: 用户选择的身份类型（未选择/未提交时为空）
         regionCode:
           type: string
@@ -6011,6 +7133,60 @@ components:
         updatedAt:
           type: string
           format: date-time
+
+    Address:
+      type: object
+      required: [id, userId, name, phone, addressLine, isDefault, createdAt, updatedAt]
+      properties:
+        id:
+          $ref: "#/components/schemas/Uuid"
+        userId:
+          $ref: "#/components/schemas/Uuid"
+        name:
+          type: string
+        phone:
+          $ref: "#/components/schemas/PhoneNumber"
+        regionCode:
+          type: string
+          nullable: true
+        addressLine:
+          type: string
+        isDefault:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    AddressCreateRequest:
+      type: object
+      properties:
+        name:
+          type: string
+        phone:
+          $ref: "#/components/schemas/PhoneNumber"
+        regionCode:
+          type: string
+        addressLine:
+          type: string
+        isDefault:
+          type: boolean
+
+    AddressUpdateRequest:
+      type: object
+      properties:
+        name:
+          type: string
+        phone:
+          $ref: "#/components/schemas/PhoneNumber"
+        regionCode:
+          type: string
+        addressLine:
+          type: string
+        isDefault:
+          type: boolean
 
     AuthTokenResponse:
       type: object
@@ -6402,6 +7578,14 @@ components:
       type: string
       enum: [NONE, CITY, PROVINCE]
 
+    PledgeStatus:
+      type: string
+      enum: [NONE, PLEDGED, UNKNOWN]
+
+    ExistingLicenseStatus:
+      type: string
+      enum: [NONE, EXCLUSIVE, SOLE, NON_EXCLUSIVE, UNKNOWN]
+
     ListingStats:
       type: object
       required: [viewCount, favoriteCount, consultCount]
@@ -6557,6 +7741,34 @@ components:
               $ref: "#/components/schemas/Uuid"
             summary:
               type: string
+            deliverables:
+              type: array
+              items:
+                type: string
+              description: 可交付资料清单（示例：源文件/权属材料/技术文档）
+            expectedCompletionDays:
+              type: integer
+              minimum: 1
+              description: 预计周期（天）
+            negotiableRangeFen:
+              $ref: "#/components/schemas/MoneyFen"
+              description: 可谈空间（金额上限，单位分；与 negotiableRangePercent 二选一）
+            negotiableRangePercent:
+              type: number
+              format: double
+              minimum: 0
+              maximum: 100
+              description: 可谈空间（比例上限 0-100；与 negotiableRangeFen 二选一）
+            negotiableNote:
+              type: string
+              description: 可谈空间补充说明
+            pledgeStatus:
+              $ref: "#/components/schemas/PledgeStatus"
+            existingLicenseStatus:
+              $ref: "#/components/schemas/ExistingLicenseStatus"
+            encumbranceNote:
+              type: string
+              description: 质押/许可现状补充说明
             ipcCodes:
               type: array
               items:
@@ -6586,6 +7798,34 @@ components:
               $ref: "#/components/schemas/UserBrief"
             summary:
               type: string
+            deliverables:
+              type: array
+              items:
+                type: string
+              description: 可交付资料清单（示例：源文件/权属材料/技术文档）
+            expectedCompletionDays:
+              type: integer
+              minimum: 1
+              description: 预计周期（天）
+            negotiableRangeFen:
+              $ref: "#/components/schemas/MoneyFen"
+              description: 可谈空间（金额上限，单位分；与 negotiableRangePercent 二选一）
+            negotiableRangePercent:
+              type: number
+              format: double
+              minimum: 0
+              maximum: 100
+              description: 可谈空间（比例上限 0-100；与 negotiableRangeFen 二选一）
+            negotiableNote:
+              type: string
+              description: 可谈空间补充说明
+            pledgeStatus:
+              $ref: "#/components/schemas/PledgeStatus"
+            existingLicenseStatus:
+              $ref: "#/components/schemas/ExistingLicenseStatus"
+            encumbranceNote:
+              type: string
+              description: 质押/许可现状补充说明
             ipcCodes:
               type: array
               items:
@@ -6649,6 +7889,34 @@ components:
         summary:
           type: string
           maxLength: 2000
+        deliverables:
+          type: array
+          items:
+            type: string
+          description: 可交付资料清单（示例：源文件/权属材料/技术文档）
+        expectedCompletionDays:
+          type: integer
+          minimum: 1
+          description: 预计周期（天）
+        negotiableRangeFen:
+          $ref: "#/components/schemas/MoneyFen"
+          description: 可谈空间（金额上限，单位分；与 negotiableRangePercent 二选一）
+        negotiableRangePercent:
+          type: number
+          format: double
+          minimum: 0
+          maximum: 100
+          description: 可谈空间（比例上限 0-100；与 negotiableRangeFen 二选一）
+        negotiableNote:
+          type: string
+          description: 可谈空间补充说明
+        pledgeStatus:
+          $ref: "#/components/schemas/PledgeStatus"
+        existingLicenseStatus:
+          $ref: "#/components/schemas/ExistingLicenseStatus"
+        encumbranceNote:
+          type: string
+          description: 质押/许可现状补充说明
         tradeMode:
           $ref: "#/components/schemas/TradeMode"
         licenseMode:
@@ -6729,6 +7997,34 @@ components:
         summary:
           type: string
           maxLength: 2000
+        deliverables:
+          type: array
+          items:
+            type: string
+          description: 可交付资料清单（示例：源文件/权属材料/技术文档）
+        expectedCompletionDays:
+          type: integer
+          minimum: 1
+          description: 预计周期（天）
+        negotiableRangeFen:
+          $ref: "#/components/schemas/MoneyFen"
+          description: 可谈空间（金额上限，单位分；与 negotiableRangePercent 二选一）
+        negotiableRangePercent:
+          type: number
+          format: double
+          minimum: 0
+          maximum: 100
+          description: 可谈空间（比例上限 0-100；与 negotiableRangeFen 二选一）
+        negotiableNote:
+          type: string
+          description: 可谈空间补充说明
+        pledgeStatus:
+          $ref: "#/components/schemas/PledgeStatus"
+        existingLicenseStatus:
+          $ref: "#/components/schemas/ExistingLicenseStatus"
+        encumbranceNote:
+          type: string
+          description: 质押/许可现状补充说明
         tradeMode:
           $ref: "#/components/schemas/TradeMode"
         licenseMode:
@@ -9647,3 +10943,483 @@ components:
               $ref: "#/components/schemas/AuditStatus"
             status:
               $ref: "#/components/schemas/ArtworkStatus"
+
+    AuditMaterial:
+      type: object
+      required: [id, name, uploadedAt]
+      properties:
+        id:
+          $ref: "#/components/schemas/Uuid"
+        name:
+          type: string
+        url:
+          type: string
+          format: uri
+        kind:
+          type: string
+        uploadedAt:
+          type: string
+          format: date-time
+
+    AuditLog:
+      type: object
+      required: [id, action, createdAt]
+      properties:
+        id:
+          $ref: "#/components/schemas/Uuid"
+        action:
+          type: string
+        reason:
+          type: string
+        operatorId:
+          $ref: "#/components/schemas/Uuid"
+        operatorName:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+
+    AuditMaterialList:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/AuditMaterial"
+
+    AuditLogList:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/AuditLog"
+
+    Announcement:
+      type: object
+      required: [id, title, createdAt]
+      properties:
+        id:
+          $ref: "#/components/schemas/Uuid"
+        title:
+          type: string
+        summary:
+          type: string
+          nullable: true
+        content:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+        publishedAt:
+          type: string
+          format: date-time
+          nullable: true
+
+    PagedAnnouncement:
+      type: object
+      required: [items, page]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/Announcement"
+        page:
+          $ref: "#/components/schemas/PageMeta"
+
+    NotificationKind:
+      type: string
+      enum: [system, cs]
+
+    Notification:
+      type: object
+      required: [id, kind, title, summary, source, time]
+      properties:
+        id:
+          $ref: "#/components/schemas/Uuid"
+        kind:
+          $ref: "#/components/schemas/NotificationKind"
+        title:
+          type: string
+        summary:
+          type: string
+        source:
+          type: string
+        time:
+          type: string
+          format: date-time
+
+    PagedNotification:
+      type: object
+      required: [items, page]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/Notification"
+        page:
+          $ref: "#/components/schemas/PageMeta"
+
+    BannerItem:
+      type: object
+      required: [id, title, imageUrl, enabled, order]
+      properties:
+        id:
+          type: string
+        title:
+          type: string
+        imageUrl:
+          type: string
+          format: uri
+        linkUrl:
+          type: string
+          format: uri
+        enabled:
+          type: boolean
+        order:
+          type: integer
+
+    BannerConfig:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/BannerItem"
+
+    TaxonomyConfig:
+      type: object
+      required:
+        - industries
+        - ipcMappings
+        - locMappings
+        - artworkCategories
+        - calligraphyStyles
+        - paintingThemes
+        - artworkMaterials
+      properties:
+        industries:
+          type: array
+          items:
+            type: string
+        ipcMappings:
+          type: array
+          items:
+            type: string
+        locMappings:
+          type: array
+          items:
+            type: string
+        artworkCategories:
+          type: array
+          items:
+            type: string
+        calligraphyStyles:
+          type: array
+          items:
+            type: string
+        paintingThemes:
+          type: array
+          items:
+            type: string
+        artworkMaterials:
+          type: array
+          items:
+            type: string
+
+    SensitiveWordsConfig:
+      type: object
+      required: [words]
+      properties:
+        words:
+          type: array
+          items:
+            type: string
+
+    HotSearchConfig:
+      type: object
+      required: [keywords]
+      properties:
+        keywords:
+          type: array
+          items:
+            type: string
+
+    FinanceReportRange:
+      type: object
+      required: [start, end]
+      properties:
+        start:
+          type: string
+          format: date-time
+        end:
+          type: string
+          format: date-time
+
+    FinanceReportSummary:
+      type: object
+      required:
+        - range
+        - dealAmountFen
+        - commissionAmountFen
+        - refundRate
+        - payoutSuccessRate
+        - ordersTotal
+      properties:
+        range:
+          $ref: "#/components/schemas/FinanceReportRange"
+        dealAmountFen:
+          $ref: "#/components/schemas/MoneyFen"
+        commissionAmountFen:
+          $ref: "#/components/schemas/MoneyFen"
+        refundRate:
+          type: number
+          format: double
+          minimum: 0
+          maximum: 1
+        payoutSuccessRate:
+          type: number
+          format: double
+          minimum: 0
+          maximum: 1
+        ordersTotal:
+          type: integer
+          minimum: 0
+
+    FinanceReportExportResponse:
+      type: object
+      required: [exportUrl]
+      properties:
+        exportUrl:
+          type: string
+
+    RbacPermission:
+      type: object
+      required: [id, name]
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+
+    RbacRole:
+      type: object
+      required: [id, name, permissionIds]
+      properties:
+        id:
+          $ref: "#/components/schemas/Uuid"
+        name:
+          type: string
+        description:
+          type: string
+        permissionIds:
+          type: array
+          items:
+            type: string
+        updatedAt:
+          type: string
+          format: date-time
+
+    RbacUser:
+      type: object
+      required: [id, name, roleIds]
+      properties:
+        id:
+          $ref: "#/components/schemas/Uuid"
+        name:
+          type: string
+        email:
+          type: string
+        roleIds:
+          type: array
+          items:
+            type: string
+
+    RbacPermissionList:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/RbacPermission"
+
+    RbacRoleList:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/RbacRole"
+
+    RbacUserList:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/RbacUser"
+
+    RbacRoleCreateRequest:
+      type: object
+      required: [name]
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        permissionIds:
+          type: array
+          items:
+            type: string
+        reason:
+          type: string
+
+    RbacRoleUpdateRequest:
+      type: object
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        permissionIds:
+          type: array
+          items:
+            type: string
+        reason:
+          type: string
+
+    RbacUserRoleUpdateRequest:
+      type: object
+      required: [roleIds]
+      properties:
+        roleIds:
+          type: array
+          items:
+            type: string
+        reason:
+          type: string
+
+    OkResponse:
+      type: object
+      required: [ok]
+      properties:
+        ok:
+          type: boolean
+
+    CaseSlaStatus:
+      type: string
+      enum: [ON_TIME, OVERDUE]
+
+    CasePriority:
+      type: string
+      enum: [LOW, MEDIUM, HIGH]
+
+    CaseNote:
+      type: object
+      required: [id, authorId, authorName, content, createdAt]
+      properties:
+        id:
+          $ref: "#/components/schemas/Uuid"
+        authorId:
+          type: string
+        authorName:
+          type: string
+        content:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+
+    CaseEvidence:
+      type: object
+      required: [id, name]
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        url:
+          type: string
+          format: uri
+
+    CaseRecord:
+      type: object
+      required: [id, title, type, status, createdAt, notes]
+      properties:
+        id:
+          $ref: "#/components/schemas/Uuid"
+        title:
+          type: string
+        type:
+          $ref: "#/components/schemas/CaseType"
+        status:
+          $ref: "#/components/schemas/CaseStatus"
+        orderId:
+          $ref: "#/components/schemas/Uuid"
+          nullable: true
+        requesterName:
+          type: string
+          nullable: true
+        assigneeId:
+          type: string
+          nullable: true
+        assigneeName:
+          type: string
+          nullable: true
+        priority:
+          $ref: "#/components/schemas/CasePriority"
+          nullable: true
+        description:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+          nullable: true
+        notes:
+          type: array
+          items:
+            $ref: "#/components/schemas/CaseNote"
+        evidenceFiles:
+          type: array
+          items:
+            $ref: "#/components/schemas/CaseEvidence"
+        dueAt:
+          type: string
+          format: date-time
+          nullable: true
+        slaStatus:
+          $ref: "#/components/schemas/CaseSlaStatus"
+          nullable: true
+
+    PagedCase:
+      type: object
+      required: [items, page]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/CaseRecord"
+        page:
+          $ref: "#/components/schemas/PageMeta"
+
+    OrderInvoiceIssueResponse:
+      type: object
+      required: [orderId, invoiceNo]
+      properties:
+        orderId:
+          $ref: "#/components/schemas/Uuid"
+        invoiceNo:
+          type: string

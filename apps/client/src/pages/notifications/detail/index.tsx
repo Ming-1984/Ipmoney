@@ -1,26 +1,72 @@
 import { View, Text } from '@tarojs/components';
 import Taro from '@tarojs/taro';
-import React, { useMemo } from 'react';
+import React, { useCallback, useState } from 'react';
 import './index.scss';
 
-import { formatTimeSmart } from '../../../lib/format';
-import { useRouteStringParam } from '../../../lib/routeParams';
-import { PageHeader, Spacer, Surface } from '../../../ui/layout';
-import { Button } from '../../../ui/nutui';
+import type { components } from '@ipmoney/api-types';
 
-import { getNotificationById } from '../data';
+import { apiGet } from '../../../lib/api';
+import { formatTimeSmart } from '../../../lib/format';
+import { usePageAccess } from '../../../lib/guard';
+import { useRouteStringParam } from '../../../lib/routeParams';
+import { PageState } from '../../../ui/PageState';
+import { PageHeader, Spacer, Surface } from '../../../ui/layout';
+
+type NotificationItem = components['schemas']['Notification'];
 
 export default function NotificationDetailPage() {
   const id = useRouteStringParam('id');
-  const item = useMemo(() => getNotificationById(id), [id]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [item, setItem] = useState<NotificationItem | null>(null);
+
+  const load = useCallback(async () => {
+    if (!id) {
+      setError('通知不存在');
+      setItem(null);
+      setLoading(false);
+      return;
+    }
+    setLoading(true);
+    setError(null);
+    try {
+      const data = await apiGet<NotificationItem>(`/notifications/${id}`);
+      setItem(data);
+    } catch (e: any) {
+      setError(e?.message || '加载失败');
+      setItem(null);
+    } finally {
+      setLoading(false);
+    }
+  }, [id]);
+
+  const access = usePageAccess('login-required', (next) => {
+    if (next.state === 'ok') {
+      void load();
+      return;
+    }
+    setItem(null);
+    setLoading(false);
+    setError(null);
+  });
 
   return (
     <View className="container notification-detail-page">
       <PageHeader weapp back title="通知详情" subtitle="系统与客服消息" />
       <Spacer />
 
-      {item ? (
-        <>
+      <PageState
+        access={access}
+        loading={loading}
+        error={error}
+        empty={!loading && !error && !item}
+        emptyTitle="未找到对应通知"
+        emptyMessage="通知可能已被清理或不存在。"
+        emptyActionText="返回"
+        onEmptyAction={() => Taro.navigateBack()}
+        onRetry={load}
+      >
+        {item ? (
           <Surface className="notification-detail-card" padding="none">
             <View className="notification-detail-header">
               <View className={`notification-detail-tag ${item.kind === 'system' ? 'is-system' : 'is-cs'}`}>
@@ -31,43 +77,11 @@ export default function NotificationDetailPage() {
             <Text className="notification-detail-title">{item.title}</Text>
             <Text className="notification-detail-source">来源：{item.source}</Text>
             <View className="notification-detail-content">
-              {item.content.map((line, idx) => (
-                <Text key={`${item.id}-${idx}`} className="notification-detail-paragraph">
-                  {line}
-                </Text>
-              ))}
+              <Text className="notification-detail-paragraph">{item.summary || '暂无详情'}</Text>
             </View>
           </Surface>
-
-          {item.related ? (
-            <Surface
-              className="notification-detail-related"
-              padding="none"
-              onClick={() => {
-                Taro.navigateTo({ url: item.related?.url || '/pages/home/index' });
-              }}
-            >
-              <View className="notification-related-left">
-                <Text className="notification-related-title">{item.related.label}</Text>
-                <Text className="notification-related-desc">点击进入对应页面查看详情</Text>
-              </View>
-              <Text className="notification-related-link">查看</Text>
-            </Surface>
-          ) : null}
-        </>
-      ) : (
-        <Surface className="notification-detail-empty" padding="none">
-          <Text className="notification-detail-empty-title">未找到对应通知</Text>
-          <Text className="notification-detail-empty-desc">通知可能已被清理或不存在。</Text>
-          <Button
-            className="notification-detail-empty-btn"
-            type="primary"
-            onClick={() => Taro.navigateBack()}
-          >
-            返回
-          </Button>
-        </Surface>
-      )}
+        ) : null}
+      </PageState>
     </View>
   );
 }

@@ -21,6 +21,7 @@
     'pages/contracts/index',
     'pages/invoices/index',
     'pages/addresses/index',
+    'pages/addresses/edit/index',
     'pages/checkout/deposit-pay/index',
     'pages/checkout/deposit-success/index',
     'pages/checkout/final-pay/index',

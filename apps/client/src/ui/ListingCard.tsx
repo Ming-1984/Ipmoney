@@ -9,13 +9,15 @@ import { regionDisplayName } from '../lib/regions';
 import iconAward from '../assets/icons/icon-award-teal.svg';
 
 type ListingSummary = components['schemas']['ListingSummary'];
+type ListingTopic = 'HIGH_TECH_RETIRED' | 'CLUSTER_FEATURED';
 type ListingSummaryExtra = ListingSummary & {
   ipcCodes?: string[];
   publisher?: components['schemas']['OrganizationSummary'];
   seller?: components['schemas']['UserBrief'];
   transferCount?: number;
   transferTimes?: number;
-  listingTopic?: 'HIGH_TECH_RETIRED' | 'CLUSTER_FEATURED' | '';
+  listingTopic?: ListingTopic | '';
+  listingTopics?: ListingTopic[];
   clusterName?: string;
 };
 
@@ -44,9 +46,14 @@ export function ListingCard(props: {
   const tags: { label: string; tone: 'green' | 'slate' }[] = [];
   const specialTags: { label: string; tone: 'green' | 'slate' }[] = [];
   if (transferCount === 0) specialTags.push({ label: '沉睡专利', tone: 'green' });
-  if (extra.listingTopic === 'HIGH_TECH_RETIRED') specialTags.push({ label: '高新退役', tone: 'green' });
+  const listingTopics = Array.isArray(extra.listingTopics)
+    ? extra.listingTopics
+    : extra.listingTopic
+      ? [extra.listingTopic]
+      : [];
+  if (listingTopics.includes('HIGH_TECH_RETIRED')) specialTags.push({ label: '高新退役', tone: 'green' });
   if (
-    extra.listingTopic === 'CLUSTER_FEATURED' ||
+    listingTopics.includes('CLUSTER_FEATURED') ||
     (it.featuredLevel && it.featuredLevel !== 'NONE') ||
     Boolean(it.featuredRegionCode)
   ) {

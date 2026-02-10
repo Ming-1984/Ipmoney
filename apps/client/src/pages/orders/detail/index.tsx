@@ -141,8 +141,14 @@ export default function OrderDetailPage() {
       const inv = await apiGet<OrderInvoice>(`/orders/${orderId}/invoice`);
       setInvoice(inv);
     } catch (e: any) {
-      setInvoiceError(e?.message || '加载失败');
-      setInvoice(null);
+      const statusCode = Number(e?.statusCode || 0);
+      if (statusCode === 404) {
+        setInvoice(null);
+        setInvoiceError(null);
+      } else {
+        setInvoiceError(e?.message || '加载失败');
+        setInvoice(null);
+      }
     } finally {
       setInvoiceLoading(false);
     }

@@ -331,7 +331,6 @@ const LISTING_SORT_OPTIONS: ChipOption<SortBy>[] = [
 const CONTENT_SORT_OPTIONS: ChipOption<ContentSortBy>[] = [
   { value: 'RECOMMENDED', label: '推荐' },
   { value: 'NEWEST', label: '最新' },
-  { value: 'POPULAR', label: '热度' },
 ];
 
 
@@ -339,7 +338,6 @@ type ArtworkSortOptionValue = ArtworkSortByLocal | 'MORE';
 const ARTWORK_SORT_OPTIONS: { value: ArtworkSortOptionValue; label: string }[] = [
   { value: 'RECOMMENDED', label: '推荐' },
   { value: 'NEWEST', label: '最新' },
-  { value: 'POPULAR', label: '热度' },
   { value: 'MORE', label: '更多' },
 ];
 

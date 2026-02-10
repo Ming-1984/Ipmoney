@@ -1,24 +1,8 @@
 import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 
 import { AuditLogService } from '../../common/audit-log.service';
 import { PrismaService } from '../../common/prisma/prisma.service';
-
-type TechManagerOverride = {
-  intro?: string;
-  serviceTags?: string[];
-  featuredRank?: number;
-  featuredUntil?: string;
-};
-
-const OVERRIDE_KEY = 'tech_manager_overrides';
-
-const SYSTEM_CONFIG_SCOPE = {
-  GLOBAL: 'GLOBAL',
-} as const;
-
-const SYSTEM_CONFIG_VALUE_TYPE = {
-  JSON: 'JSON',
-} as const;
 
 const VERIFICATION_STATUS = {
   APPROVED: 'APPROVED',
@@ -38,64 +22,31 @@ export class TechManagersService {
     if (!request?.auth?.isAdmin) throw new ForbiddenException({ code: 'FORBIDDEN', message: 'permission denied' });
   }
 
-  private async loadOverrides(): Promise<Record<string, TechManagerOverride>> {
-    const configRow = await this.prisma.systemConfig.findUnique({ where: { key: OVERRIDE_KEY } });
-    if (!configRow) {
-      await this.prisma.systemConfig.create({
-        data: {
-          key: OVERRIDE_KEY,
-          valueType: SYSTEM_CONFIG_VALUE_TYPE.JSON,
-          scope: SYSTEM_CONFIG_SCOPE.GLOBAL,
-          value: JSON.stringify({}),
-          version: 1,
-        },
-      });
-      return {};
+  private normalizeStringArray(value: any): string[] {
+    if (!value) return [];
+    if (Array.isArray(value)) {
+      return value.map((item) => String(item).trim()).filter(Boolean);
     }
-    try {
-      const parsed = JSON.parse(configRow.value);
-      if (parsed && typeof parsed === 'object') return parsed as Record<string, TechManagerOverride>;
-    } catch {
-      // ignore
-    }
-    return {};
+    return [];
   }
 
-  private async saveOverrides(nextOverrides: Record<string, TechManagerOverride>) {
-    const configRow = await this.prisma.systemConfig.findUnique({ where: { key: OVERRIDE_KEY } });
-    if (!configRow) {
-      await this.prisma.systemConfig.create({
-        data: {
-          key: OVERRIDE_KEY,
-          valueType: SYSTEM_CONFIG_VALUE_TYPE.JSON,
-          scope: SYSTEM_CONFIG_SCOPE.GLOBAL,
-          value: JSON.stringify(nextOverrides),
-          version: 1,
-        },
-      });
-      return;
-    }
-    await this.prisma.systemConfig.update({
-      where: { key: OVERRIDE_KEY },
-      data: {
-        valueType: SYSTEM_CONFIG_VALUE_TYPE.JSON,
-        scope: SYSTEM_CONFIG_SCOPE.GLOBAL,
-        value: JSON.stringify(nextOverrides),
-        version: configRow.version + 1,
-      },
-    });
-  }
-
-  private toSummary(verificationRecord: any, override?: TechManagerOverride) {
+  private toSummary(verificationRecord: any, profile?: any) {
+    const serviceTags = this.normalizeStringArray(profile?.serviceTagsJson);
     return {
       userId: verificationRecord.userId,
       displayName: verificationRecord.displayName,
       verificationType: verificationRecord.verificationType,
       verificationStatus: verificationRecord.verificationStatus,
       regionCode: verificationRecord.regionCode ?? verificationRecord.user?.regionCode ?? undefined,
-      intro: override?.intro ?? verificationRecord.intro ?? undefined,
-      serviceTags: override?.serviceTags ?? undefined,
-      stats: undefined,
+      avatarUrl: verificationRecord.user?.avatarUrl ?? undefined,
+      intro: profile?.intro ?? verificationRecord.intro ?? undefined,
+      serviceTags: serviceTags.length ? serviceTags : undefined,
+      stats: {
+        consultCount: profile?.consultCount ?? 0,
+        dealCount: profile?.dealCount ?? 0,
+        ratingScore: typeof profile?.ratingScore === 'number' ? profile.ratingScore : 0,
+        ratingCount: profile?.ratingCount ?? 0,
+      },
       verifiedAt: verificationRecord.reviewedAt ? verificationRecord.reviewedAt.toISOString() : undefined,
     };
   }
@@ -123,22 +74,31 @@ export class TechManagersService {
   async search(query: any) {
     const page = Math.max(1, Number(query?.page || 1));
     const pageSize = Math.min(50, Math.max(1, Number(query?.pageSize || 20)));
+    const sortBy = String(query?.sortBy || 'RECOMMENDED').trim().toUpperCase();
     const where = this.buildWhere(query, true);
+    const orderBy: Prisma.UserVerificationOrderByWithRelationInput[] =
+      sortBy === 'NEWEST'
+        ? [{ reviewedAt: 'desc' }]
+        : [
+            { user: { techManagerProfile: { featuredRank: { sort: 'asc', nulls: 'last' } } } },
+            { reviewedAt: 'desc' },
+          ];
 
-    const [items, total, overrides] = await Promise.all([
+    const [items, total] = await Promise.all([
       this.prisma.userVerification.findMany({
         where,
-        include: { user: true },
-        orderBy: { reviewedAt: 'desc' },
+        include: { user: { include: { techManagerProfile: true } } },
+        orderBy,
         skip: (page - 1) * pageSize,
         take: pageSize,
       }),
       this.prisma.userVerification.count({ where }),
-      this.loadOverrides(),
     ]);
 
     return {
-      items: items.map((verificationRecord: any) => this.toSummary(verificationRecord, overrides[verificationRecord.userId])),
+      items: items.map((verificationRecord: any) =>
+        this.toSummary(verificationRecord, verificationRecord.user?.techManagerProfile),
+      ),
       page: { page, pageSize, total },
     };
   }
@@ -150,12 +110,11 @@ export class TechManagersService {
         verificationType: VERIFICATION_TYPE.TECH_MANAGER,
         verificationStatus: VERIFICATION_STATUS.APPROVED,
       },
-      include: { user: true },
+      include: { user: { include: { techManagerProfile: true } } },
     });
     if (!verification) throw new NotFoundException({ code: 'NOT_FOUND', message: 'tech manager not found' });
 
-    const overrides = await this.loadOverrides();
-    const summary = this.toSummary(verification, overrides[verification.userId]);
+    const summary = this.toSummary(verification, verification.user?.techManagerProfile);
     const evidenceFileIds = Array.isArray(verification.evidenceFileIdsJson)
       ? verification.evidenceFileIdsJson.filter((fileId: any) => typeof fileId === 'string')
       : [];
@@ -168,20 +127,21 @@ export class TechManagersService {
     const pageSize = Math.min(50, Math.max(1, Number(query?.pageSize || 20)));
     const where = this.buildWhere(query, false);
 
-    const [items, total, overrides] = await Promise.all([
+    const [items, total] = await Promise.all([
       this.prisma.userVerification.findMany({
         where,
-        include: { user: true },
+        include: { user: { include: { techManagerProfile: true } } },
         orderBy: { submittedAt: 'desc' },
         skip: (page - 1) * pageSize,
         take: pageSize,
       }),
       this.prisma.userVerification.count({ where }),
-      this.loadOverrides(),
     ]);
 
     return {
-      items: items.map((verificationRecord: any) => this.toSummary(verificationRecord, overrides[verificationRecord.userId])),
+      items: items.map((verificationRecord: any) =>
+        this.toSummary(verificationRecord, verificationRecord.user?.techManagerProfile),
+      ),
       page: { page, pageSize, total },
     };
   }
@@ -194,6 +154,12 @@ export class TechManagersService {
     });
     if (!verification) throw new NotFoundException({ code: 'NOT_FOUND', message: 'tech manager not found' });
 
+    const updates: any = {};
+    if (body?.intro !== undefined) updates.intro = String(body.intro);
+    if (Array.isArray(body?.serviceTags)) updates.serviceTagsJson = body.serviceTags;
+    if (body?.featuredRank !== undefined) updates.featuredRank = Number(body.featuredRank);
+    if (body?.featuredUntil) updates.featuredUntil = new Date(String(body.featuredUntil));
+
     let updatedVerification = verification;
     if (body?.intro !== undefined) {
       updatedVerification = await this.prisma.userVerification.update({
@@ -203,24 +169,20 @@ export class TechManagersService {
       });
     }
 
-    const overrides = await this.loadOverrides();
-    overrides[techManagerId] = {
-      ...(overrides[techManagerId] || {}),
-      ...(Array.isArray(body?.serviceTags) ? { serviceTags: body.serviceTags } : {}),
-      ...(body?.featuredRank !== undefined ? { featuredRank: Number(body.featuredRank) } : {}),
-      ...(body?.featuredUntil ? { featuredUntil: String(body.featuredUntil) } : {}),
-      ...(body?.intro !== undefined ? { intro: String(body.intro) } : {}),
-    };
-    await this.saveOverrides(overrides);
+    const profile = await this.prisma.techManagerProfile.upsert({
+      where: { userId: techManagerId },
+      create: { userId: techManagerId, ...updates },
+      update: updates,
+    });
 
     await this.audit.log({
       actorUserId: request.auth.userId,
       action: 'TECH_MANAGER_UPDATE',
       targetType: 'TECH_MANAGER',
       targetId: verification.id,
-      afterJson: overrides[techManagerId],
+      afterJson: updates,
     });
 
-    return this.toSummary(updatedVerification, overrides[techManagerId]);
+    return this.toSummary(updatedVerification, profile);
   }
 }

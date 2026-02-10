@@ -2,13 +2,16 @@ import { Body, Controller, Get, Param, Patch, Post, Query, Req, UseGuards } from
 
 import { BearerAuthGuard } from '../../common/guards/bearer-auth.guard';
 import { VerifiedUserGuard } from '../../common/guards/verified-user.guard';
+import { ContentAuditService } from '../../common/content-audit.service';
 import { requirePermission } from '../../common/permissions';
-import { getAuditLogs, getAuditMaterials } from '../audit-store';
 import { AchievementsService } from './achievements.service';
 
 @Controller()
 export class AchievementsController {
-  constructor(private readonly achievements: AchievementsService) {}
+  constructor(
+    private readonly achievements: AchievementsService,
+    private readonly contentAudit: ContentAuditService,
+  ) {}
 
   @UseGuards(BearerAuthGuard)
   @Get('/achievements')
@@ -103,7 +106,7 @@ export class AchievementsController {
   async getMaterials(@Req() req: any, @Param('achievementId') achievementId: string) {
     this.achievements.ensureAdmin(req);
     requirePermission(req, 'listing.read');
-    return { items: getAuditMaterials('ACHIEVEMENT', achievementId) };
+    return await this.contentAudit.listMaterials('ACHIEVEMENT', achievementId);
   }
 
   @UseGuards(BearerAuthGuard)
@@ -111,7 +114,7 @@ export class AchievementsController {
   async getAuditLogs(@Req() req: any, @Param('achievementId') achievementId: string) {
     this.achievements.ensureAdmin(req);
     requirePermission(req, 'auditLog.read');
-    return { items: getAuditLogs('ACHIEVEMENT', achievementId) };
+    return await this.contentAudit.listLogs('ACHIEVEMENT', achievementId);
   }
 
   @UseGuards(BearerAuthGuard)

@@ -105,12 +105,12 @@
 ### 3.2 Prisma（建议）
 
 - [x] ER 已补齐 `Demand` / `Achievement` / `Media` / `Favorites` 等表（见 `docs/architecture/er-diagram.mmd`）
-- [ ] Prisma schema 与迁移：新增 `Demand` / `Achievement`（字段含：title/summary/regionCode/industryTags/media/attachments/auditStatus/status/createdAt/updatedAt）
+  - [x] Prisma schema 与迁移：新增 `Demand` / `Achievement`（字段含：title/summary/regionCode/industryTags/media/attachments/auditStatus/status/createdAt/updatedAt）
 - [ ] 与 `files` 的关联策略二选一：
   - [ ] 扩展 `FileOwnerScope`：增加 `DEMAND`/`ACHIEVEMENT`（ownerId=对应实体 id）
   - [ ] 或保持 `OTHER`，通过 `FilePurpose` 扩展用途（但 ownerScope 建议仍能区分）
-- [ ] 审核日志：复用现有审计体系（类似 `ListingAuditLog`），或抽象为通用 `ContentAuditLog`（P1）
-- [ ] 站内咨询（IM）对齐：`Conversation` 从“只支持 listingId”扩展为 `contentType + contentId`（LISTING/DEMAND/ACHIEVEMENT），并让 `GET /me/conversations` 能混合返回三类会话（前端按 contentType 渲染顶部卡片）
+- [x] 审核日志：复用通用 `audit_logs`（按 targetType/targetId 聚合），端到端已落地
+  - [x] 站内咨询（IM）对齐：`Conversation` 从“只支持 listingId”扩展为 `contentType + contentId`（LISTING/DEMAND/ACHIEVEMENT），并让 `GET /me/conversations` 能混合返回三类会话（前端按 contentType 渲染顶部卡片）
 
 ### 3.3 Mock/fixtures（演示与回归）
 

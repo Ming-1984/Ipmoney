@@ -2,13 +2,16 @@ import { Body, Controller, Get, Param, Patch, Post, Query, Req, UseGuards } from
 
 import { BearerAuthGuard } from '../../common/guards/bearer-auth.guard';
 import { VerifiedUserGuard } from '../../common/guards/verified-user.guard';
+import { ContentAuditService } from '../../common/content-audit.service';
 import { requirePermission } from '../../common/permissions';
-import { getAuditLogs, getAuditMaterials } from '../audit-store';
 import { ArtworksService } from './artworks.service';
 
 @Controller()
 export class ArtworksController {
-  constructor(private readonly artworks: ArtworksService) {}
+  constructor(
+    private readonly artworks: ArtworksService,
+    private readonly contentAudit: ContentAuditService,
+  ) {}
 
   @UseGuards(BearerAuthGuard)
   @Get('/artworks')
@@ -103,7 +106,7 @@ export class ArtworksController {
   async getMaterials(@Req() req: any, @Param('artworkId') artworkId: string) {
     this.artworks.ensureAdmin(req);
     requirePermission(req, 'listing.read');
-    return { items: getAuditMaterials('ARTWORK', artworkId) };
+    return await this.contentAudit.listMaterials('ARTWORK', artworkId);
   }
 
   @UseGuards(BearerAuthGuard)
@@ -111,7 +114,7 @@ export class ArtworksController {
   async getAuditLogs(@Req() req: any, @Param('artworkId') artworkId: string) {
     this.artworks.ensureAdmin(req);
     requirePermission(req, 'auditLog.read');
-    return { items: getAuditLogs('ARTWORK', artworkId) };
+    return await this.contentAudit.listLogs('ARTWORK', artworkId);
   }
 
   @UseGuards(BearerAuthGuard)

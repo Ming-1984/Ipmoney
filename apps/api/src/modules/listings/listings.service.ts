@@ -1,18 +1,30 @@
 import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 
 type AuditStatus = 'PENDING' | 'APPROVED' | 'REJECTED';
 type ListingStatus = 'DRAFT' | 'ACTIVE' | 'OFF_SHELF' | 'SOLD';
 type FeaturedLevel = 'NONE' | 'CITY' | 'PROVINCE';
 type ContentSource = 'USER' | 'PLATFORM' | 'ADMIN';
+type PledgeStatus = 'NONE' | 'PLEDGED' | 'UNKNOWN';
+type ExistingLicenseStatus = 'NONE' | 'EXCLUSIVE' | 'SOLE' | 'NON_EXCLUSIVE' | 'UNKNOWN';
 
 import { AuditLogService } from '../../common/audit-log.service';
 import { PrismaService } from '../../common/prisma/prisma.service';
-import { addAuditLog } from '../audit-store';
+import { NotificationsService } from '../notifications/notifications.service';
+import { mapStats } from '../content-utils';
 
 type ListingAdminDto = {
   id: string;
   source?: ContentSource;
-  proofFileIds?: string[] | null;
+  proofFileIds?: string[];
+  deliverables?: string[];
+  expectedCompletionDays?: number | null;
+  negotiableRangeFen?: number | null;
+  negotiableRangePercent?: number | null;
+  negotiableNote?: string | null;
+  pledgeStatus?: PledgeStatus | null;
+  existingLicenseStatus?: ExistingLicenseStatus | null;
+  encumbranceNote?: string | null;
   title: string;
   auditStatus: AuditStatus;
   status: ListingStatus;
@@ -37,7 +49,11 @@ type PagedListingAdmin = {
 
 @Injectable()
 export class ListingsService {
-  constructor(private readonly prisma: PrismaService, private readonly audit: AuditLogService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly audit: AuditLogService,
+    private readonly notifications: NotificationsService,
+  ) {}
 
   ensureAdmin(req: any) {
     if (!req?.auth?.isAdmin) {
@@ -81,6 +97,40 @@ export class ListingsService {
     );
   }
 
+  private normalizePledgeStatus(value: unknown): PledgeStatus | undefined {
+    const v = String(value || '').trim().toUpperCase();
+    if (!v) return undefined;
+    if (v === 'NONE' || v === 'PLEDGED' || v === 'UNKNOWN') return v as PledgeStatus;
+    return undefined;
+  }
+
+  private normalizeExistingLicenseStatus(value: unknown): ExistingLicenseStatus | undefined {
+    const v = String(value || '').trim().toUpperCase();
+    if (!v) return undefined;
+    if (v === 'NONE' || v === 'EXCLUSIVE' || v === 'SOLE' || v === 'NON_EXCLUSIVE' || v === 'UNKNOWN') {
+      return v as ExistingLicenseStatus;
+    }
+    return undefined;
+  }
+
+  private parseOptionalInt(value: unknown, fieldName: string, min?: number): number | undefined {
+    if (value === undefined || value === null || String(value).trim() === '') return undefined;
+    const num = Number(value);
+    if (!Number.isFinite(num) || !Number.isInteger(num) || (min !== undefined && num < min)) {
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: `${fieldName} is invalid` });
+    }
+    return num;
+  }
+
+  private parseOptionalFloat(value: unknown, fieldName: string, min?: number, max?: number): number | undefined {
+    if (value === undefined || value === null || String(value).trim() === '') return undefined;
+    const num = Number(value);
+    if (!Number.isFinite(num) || (min !== undefined && num < min) || (max !== undefined && num > max)) {
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: `${fieldName} is invalid` });
+    }
+    return num;
+  }
+
   private async assertOwnedFiles(userId: string, fileIds: string[], label: string) {
     if (!fileIds || fileIds.length === 0) {
       throw new BadRequestException({ code: 'BAD_REQUEST', message: `${label} is required` });
@@ -100,7 +150,15 @@ export class ListingsService {
     return {
       id: it.id,
       source: it.source ?? 'USER',
-      proofFileIds: it.proofFileIdsJson ?? null,
+      proofFileIds: this.normalizeStringArray(it.proofFileIdsJson),
+      deliverables: this.normalizeStringArray(it.deliverablesJson),
+      expectedCompletionDays: it.expectedCompletionDays ?? null,
+      negotiableRangeFen: it.negotiableRangeFen ?? null,
+      negotiableRangePercent: it.negotiableRangePercent ?? null,
+      negotiableNote: it.negotiableNote ?? null,
+      pledgeStatus: it.pledgeStatus ?? null,
+      existingLicenseStatus: it.existingLicenseStatus ?? null,
+      encumbranceNote: it.encumbranceNote ?? null,
       title: it.title,
       auditStatus: it.auditStatus,
       status: it.status,
@@ -465,15 +523,15 @@ export class ListingsService {
       patentTypeDefinitionSource: patentTypeMeta?.source ?? null,
       patentTermYears: patentTypeMeta?.termYears ?? null,
       transferCount: patent?.transferCount ?? 0,
-      inventorNames: inventorNames.length ? inventorNames : null,
-      assigneeNames: assigneeNames.length ? assigneeNames : null,
-      applicantNames: applicantNames.length ? applicantNames : null,
+      inventorNames,
+      assigneeNames,
+      applicantNames,
       filingDate: toDate(patent?.filingDate),
       publicationDate: toDate(patent?.publicationDate),
       grantDate: toDate(patent?.grantDate),
       legalStatus,
-      ipcCodes: ipcCodes.length ? ipcCodes : null,
-      locCodes: locCodes.length ? locCodes : null,
+      ipcCodes,
+      locCodes,
     };
   }
 
@@ -494,6 +552,14 @@ export class ListingsService {
       transferCount: meta.transferCount,
       recommendationScore: null,
       title: it.title,
+      deliverables: this.normalizeStringArray(it.deliverablesJson),
+      expectedCompletionDays: it.expectedCompletionDays ?? null,
+      negotiableRangeFen: it.negotiableRangeFen ?? null,
+      negotiableRangePercent: it.negotiableRangePercent ?? null,
+      negotiableNote: it.negotiableNote ?? null,
+      pledgeStatus: it.pledgeStatus ?? null,
+      existingLicenseStatus: it.existingLicenseStatus ?? null,
+      encumbranceNote: it.encumbranceNote ?? null,
       inventorNames: meta.inventorNames,
       assigneeNames: meta.assigneeNames,
       applicantNames: meta.applicantNames,
@@ -507,8 +573,8 @@ export class ListingsService {
       priceAmountFen: it.priceAmount ?? null,
       depositAmountFen: it.depositAmount,
       regionCode: it.regionCode ?? null,
-      industryTags: it.industryTagsJson ?? null,
-      listingTopics: it.listingTopicsJson ?? null,
+      industryTags: this.normalizeStringArray(it.industryTagsJson),
+      listingTopics: this.normalizeStringArray(it.listingTopicsJson),
       clusterId: it.clusterId ?? null,
       ipcCodes: meta.ipcCodes,
       locCodes: meta.locCodes,
@@ -519,7 +585,7 @@ export class ListingsService {
       coverUrl: null,
       createdAt: it.createdAt.toISOString(),
       updatedAt: it.updatedAt.toISOString(),
-      stats: it.stats ?? null,
+      stats: mapStats(it.stats),
     };
   }
   async listAdmin(query: any): Promise<PagedListingAdmin> {
@@ -585,6 +651,17 @@ export class ListingsService {
       .map((v: any) => String(v || '').trim().toUpperCase())
       .filter((v: any) => v.length > 0);
     const proofFileIds = this.normalizeFileIds(body?.proofFileIds);
+    const deliverables = this.normalizeStringArray(body?.deliverables);
+    const expectedCompletionDays = this.parseOptionalInt(body?.expectedCompletionDays, 'expectedCompletionDays', 1);
+    const negotiableRangeFen = this.parseOptionalInt(body?.negotiableRangeFen, 'negotiableRangeFen', 0);
+    const negotiableRangePercent = this.parseOptionalFloat(body?.negotiableRangePercent, 'negotiableRangePercent', 0, 100);
+    if (negotiableRangeFen !== undefined && negotiableRangePercent !== undefined) {
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: 'negotiableRange is invalid' });
+    }
+    const negotiableNote = body?.negotiableNote ? String(body?.negotiableNote) : null;
+    const pledgeStatus = this.normalizePledgeStatus(body?.pledgeStatus);
+    const existingLicenseStatus = this.normalizeExistingLicenseStatus(body?.existingLicenseStatus);
+    const encumbranceNote = body?.encumbranceNote ? String(body?.encumbranceNote) : null;
     const auditStatus = this.normalizeAuditStatus(body?.auditStatus) ?? 'PENDING';
     const status = this.normalizeListingStatus(body?.status) ?? 'DRAFT';
     const listing = await this.prisma.listing.create({
@@ -599,10 +676,18 @@ export class ListingsService {
         priceType: body?.priceType || 'NEGOTIABLE',
         priceAmount: body?.priceAmountFen ?? null,
         depositAmount: depositAmountFen,
+        deliverablesJson: deliverables.length > 0 ? deliverables : Prisma.DbNull,
+        expectedCompletionDays: expectedCompletionDays ?? null,
+        negotiableRangeFen: negotiableRangeFen ?? null,
+        negotiableRangePercent: negotiableRangePercent ?? null,
+        negotiableNote,
+        pledgeStatus: pledgeStatus ?? null,
+        existingLicenseStatus: existingLicenseStatus ?? null,
+        encumbranceNote,
         regionCode: body?.regionCode || null,
-        industryTagsJson: body?.industryTags || null,
-        listingTopicsJson: listingTopics.length > 0 ? listingTopics : null,
-        proofFileIdsJson: proofFileIds.length > 0 ? proofFileIds : null,
+        industryTagsJson: body?.industryTags ?? Prisma.DbNull,
+        listingTopicsJson: listingTopics.length > 0 ? listingTopics : Prisma.DbNull,
+        proofFileIdsJson: proofFileIds.length > 0 ? proofFileIds : Prisma.DbNull,
         clusterId: body?.clusterId || null,
         auditStatus,
         status,
@@ -630,6 +715,25 @@ export class ListingsService {
       : undefined;
     const hasProofFileIds = body?.proofFileIds !== undefined;
     const proofFileIds = hasProofFileIds ? this.normalizeFileIds(body?.proofFileIds) : undefined;
+    const hasDeliverables = Object.prototype.hasOwnProperty.call(body || {}, 'deliverables');
+    const deliverables = hasDeliverables ? this.normalizeStringArray(body?.deliverables) : undefined;
+    const hasExpectedCompletionDays = Object.prototype.hasOwnProperty.call(body || {}, 'expectedCompletionDays');
+    const expectedCompletionDays = hasExpectedCompletionDays ? this.parseOptionalInt(body?.expectedCompletionDays, 'expectedCompletionDays', 1) : undefined;
+    const hasNegotiableRangeFen = Object.prototype.hasOwnProperty.call(body || {}, 'negotiableRangeFen');
+    const hasNegotiableRangePercent = Object.prototype.hasOwnProperty.call(body || {}, 'negotiableRangePercent');
+    const negotiableRangeFen = hasNegotiableRangeFen ? this.parseOptionalInt(body?.negotiableRangeFen, 'negotiableRangeFen', 0) : undefined;
+    const negotiableRangePercent = hasNegotiableRangePercent ? this.parseOptionalFloat(body?.negotiableRangePercent, 'negotiableRangePercent', 0, 100) : undefined;
+    if (negotiableRangeFen !== undefined && negotiableRangePercent !== undefined) {
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: 'negotiableRange is invalid' });
+    }
+    const hasNegotiableNote = Object.prototype.hasOwnProperty.call(body || {}, 'negotiableNote');
+    const negotiableNote = hasNegotiableNote ? (body?.negotiableNote ? String(body?.negotiableNote) : null) : undefined;
+    const hasPledgeStatus = Object.prototype.hasOwnProperty.call(body || {}, 'pledgeStatus');
+    const pledgeStatus = hasPledgeStatus ? this.normalizePledgeStatus(body?.pledgeStatus) : undefined;
+    const hasExistingLicenseStatus = Object.prototype.hasOwnProperty.call(body || {}, 'existingLicenseStatus');
+    const existingLicenseStatus = hasExistingLicenseStatus ? this.normalizeExistingLicenseStatus(body?.existingLicenseStatus) : undefined;
+    const hasEncumbranceNote = Object.prototype.hasOwnProperty.call(body || {}, 'encumbranceNote');
+    const encumbranceNote = hasEncumbranceNote ? (body?.encumbranceNote ? String(body?.encumbranceNote) : null) : undefined;
     const hasClusterId = Object.prototype.hasOwnProperty.call(body || {}, 'clusterId');
     const source = this.normalizeContentSource(body?.source);
     const auditStatus = this.normalizeAuditStatus(body?.auditStatus);
@@ -648,10 +752,18 @@ export class ListingsService {
         priceType: body?.priceType ?? listing.priceType,
         priceAmount: body?.priceAmountFen ?? listing.priceAmount,
         depositAmount: body?.depositAmountFen ?? listing.depositAmount,
+        deliverablesJson: hasDeliverables ? (deliverables && deliverables.length > 0 ? deliverables : Prisma.DbNull) : undefined,
+        expectedCompletionDays: hasExpectedCompletionDays ? (expectedCompletionDays ?? null) : listing.expectedCompletionDays,
+        negotiableRangeFen: hasNegotiableRangeFen ? (negotiableRangeFen ?? null) : listing.negotiableRangeFen,
+        negotiableRangePercent: hasNegotiableRangePercent ? (negotiableRangePercent ?? null) : listing.negotiableRangePercent,
+        negotiableNote: hasNegotiableNote ? negotiableNote : listing.negotiableNote,
+        pledgeStatus: hasPledgeStatus ? pledgeStatus ?? null : listing.pledgeStatus,
+        existingLicenseStatus: hasExistingLicenseStatus ? existingLicenseStatus ?? null : listing.existingLicenseStatus,
+        encumbranceNote: hasEncumbranceNote ? encumbranceNote : listing.encumbranceNote,
         regionCode: body?.regionCode ?? listing.regionCode,
-        industryTagsJson: body?.industryTags ?? listing.industryTagsJson,
-        listingTopicsJson: hasListingTopics ? (listingTopics && listingTopics.length > 0 ? listingTopics : null) : listing.listingTopicsJson,
-        proofFileIdsJson: hasProofFileIds ? (proofFileIds && proofFileIds.length > 0 ? proofFileIds : null) : listing.proofFileIdsJson,
+        industryTagsJson: body?.industryTags !== undefined ? body?.industryTags ?? Prisma.DbNull : undefined,
+        listingTopicsJson: hasListingTopics ? (listingTopics && listingTopics.length > 0 ? listingTopics : Prisma.DbNull) : undefined,
+        proofFileIdsJson: hasProofFileIds ? (proofFileIds && proofFileIds.length > 0 ? proofFileIds : Prisma.DbNull) : undefined,
         clusterId: hasClusterId ? body?.clusterId : listing.clusterId,
         auditStatus: auditStatus ?? listing.auditStatus,
         status: status ?? listing.status,
@@ -711,7 +823,6 @@ export class ListingsService {
         },
       });
     }
-    addAuditLog('LISTING', listingId, 'APPROVE', reason, reviewerId || undefined);
     if (reviewerId) {
       await this.audit.log({
         actorUserId: reviewerId,
@@ -721,6 +832,12 @@ export class ListingsService {
         afterJson: { auditStatus: 'APPROVED', reason },
       });
     }
+    await this.notifications.create({
+      userId: it.sellerUserId,
+      title: '上架审核通过',
+      summary: `《${it.title || '专利'}》已通过审核，可在平台展示。`,
+      source: '平台审核',
+    });
     return this.toAdminDto(it);
   }
 
@@ -739,7 +856,6 @@ export class ListingsService {
         },
       });
     }
-    addAuditLog('LISTING', listingId, 'REJECT', reason, reviewerId || undefined);
     if (reviewerId) {
       await this.audit.log({
         actorUserId: reviewerId,
@@ -749,6 +865,12 @@ export class ListingsService {
         afterJson: { auditStatus: 'REJECTED', reason },
       });
     }
+    await this.notifications.create({
+      userId: it.sellerUserId,
+      title: '上架审核驳回',
+      summary: `《${it.title || '专利'}》审核未通过${reason ? `，原因：${reason}` : '，请修改后重新提交'}。`,
+      source: '平台审核',
+    });
     return this.toAdminDto(it);
   }
 
@@ -804,6 +926,14 @@ export class ListingsService {
           priceType: it.priceType,
           priceAmountFen: it.priceAmount ?? null,
           depositAmountFen: it.depositAmount,
+          deliverables: this.normalizeStringArray(it.deliverablesJson),
+          expectedCompletionDays: it.expectedCompletionDays ?? null,
+          negotiableRangeFen: it.negotiableRangeFen ?? null,
+          negotiableRangePercent: it.negotiableRangePercent ?? null,
+          negotiableNote: it.negotiableNote ?? null,
+          pledgeStatus: it.pledgeStatus ?? null,
+          existingLicenseStatus: it.existingLicenseStatus ?? null,
+          encumbranceNote: it.encumbranceNote ?? null,
           status: it.status,
           auditStatus: it.auditStatus,
           applicationNoDisplay: meta.applicationNoDisplay,
@@ -825,8 +955,8 @@ export class ListingsService {
           ipcCodes: meta.ipcCodes,
           locCodes: meta.locCodes,
           regionCode: it.regionCode ?? null,
-          listingTopics: it.listingTopicsJson ?? null,
-          proofFileIds: it.proofFileIdsJson ?? null,
+          listingTopics: this.normalizeStringArray(it.listingTopicsJson),
+          proofFileIds: this.normalizeStringArray(it.proofFileIdsJson),
           clusterId: it.clusterId ?? null,
           createdAt: it.createdAt.toISOString(),
           updatedAt: it.updatedAt.toISOString(),
@@ -854,6 +984,14 @@ export class ListingsService {
       priceType: it.priceType,
       priceAmountFen: it.priceAmount ?? null,
       depositAmountFen: it.depositAmount,
+      deliverables: this.normalizeStringArray(it.deliverablesJson),
+      expectedCompletionDays: it.expectedCompletionDays ?? null,
+      negotiableRangeFen: it.negotiableRangeFen ?? null,
+      negotiableRangePercent: it.negotiableRangePercent ?? null,
+      negotiableNote: it.negotiableNote ?? null,
+      pledgeStatus: it.pledgeStatus ?? null,
+      existingLicenseStatus: it.existingLicenseStatus ?? null,
+      encumbranceNote: it.encumbranceNote ?? null,
       status: it.status,
       auditStatus: it.auditStatus,
       applicationNoDisplay: meta.applicationNoDisplay,
@@ -875,9 +1013,9 @@ export class ListingsService {
       ipcCodes: meta.ipcCodes,
       locCodes: meta.locCodes,
       regionCode: it.regionCode ?? null,
-      listingTopics: it.listingTopicsJson ?? null,
+      listingTopics: this.normalizeStringArray(it.listingTopicsJson),
       clusterId: it.clusterId ?? null,
-      proofFileIds: it.proofFileIdsJson ?? null,
+      proofFileIds: this.normalizeStringArray(it.proofFileIdsJson),
       summary: it.summary ?? null,
       createdAt: it.createdAt.toISOString(),
       updatedAt: it.updatedAt.toISOString(),
@@ -903,6 +1041,17 @@ export class ListingsService {
       .map((v: any) => String(v || '').trim().toUpperCase())
       .filter((v: any) => v.length > 0);
     const proofFileIds = this.normalizeFileIds(body?.proofFileIds);
+    const deliverables = this.normalizeStringArray(body?.deliverables);
+    const expectedCompletionDays = this.parseOptionalInt(body?.expectedCompletionDays, 'expectedCompletionDays', 1);
+    const negotiableRangeFen = this.parseOptionalInt(body?.negotiableRangeFen, 'negotiableRangeFen', 0);
+    const negotiableRangePercent = this.parseOptionalFloat(body?.negotiableRangePercent, 'negotiableRangePercent', 0, 100);
+    if (negotiableRangeFen !== undefined && negotiableRangePercent !== undefined) {
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: 'negotiableRange is invalid' });
+    }
+    const negotiableNote = body?.negotiableNote ? String(body?.negotiableNote) : null;
+    const pledgeStatus = this.normalizePledgeStatus(body?.pledgeStatus);
+    const existingLicenseStatus = this.normalizeExistingLicenseStatus(body?.existingLicenseStatus);
+    const encumbranceNote = body?.encumbranceNote ? String(body?.encumbranceNote) : null;
     const listing = await this.prisma.listing.create({
       data: {
         sellerUserId: req.auth.userId,
@@ -915,10 +1064,18 @@ export class ListingsService {
         priceType: body?.priceType || 'NEGOTIABLE',
         priceAmount: body?.priceAmountFen ?? null,
         depositAmount: depositAmountFen,
+        deliverablesJson: deliverables.length > 0 ? deliverables : Prisma.DbNull,
+        expectedCompletionDays: expectedCompletionDays ?? null,
+        negotiableRangeFen: negotiableRangeFen ?? null,
+        negotiableRangePercent: negotiableRangePercent ?? null,
+        negotiableNote,
+        pledgeStatus: pledgeStatus ?? null,
+        existingLicenseStatus: existingLicenseStatus ?? null,
+        encumbranceNote,
         regionCode: body?.regionCode || null,
-        industryTagsJson: body?.industryTags || null,
-        listingTopicsJson: listingTopics.length > 0 ? listingTopics : null,
-        proofFileIdsJson: proofFileIds.length > 0 ? proofFileIds : null,
+        industryTagsJson: body?.industryTags ?? Prisma.DbNull,
+        listingTopicsJson: listingTopics.length > 0 ? listingTopics : Prisma.DbNull,
+        proofFileIdsJson: proofFileIds.length > 0 ? proofFileIds : Prisma.DbNull,
         clusterId: body?.clusterId || null,
       },
     });
@@ -946,6 +1103,25 @@ export class ListingsService {
       : undefined;
     const hasProofFileIds = body?.proofFileIds !== undefined;
     const proofFileIds = hasProofFileIds ? this.normalizeFileIds(body?.proofFileIds) : undefined;
+    const hasDeliverables = Object.prototype.hasOwnProperty.call(body || {}, 'deliverables');
+    const deliverables = hasDeliverables ? this.normalizeStringArray(body?.deliverables) : undefined;
+    const hasExpectedCompletionDays = Object.prototype.hasOwnProperty.call(body || {}, 'expectedCompletionDays');
+    const expectedCompletionDays = hasExpectedCompletionDays ? this.parseOptionalInt(body?.expectedCompletionDays, 'expectedCompletionDays', 1) : undefined;
+    const hasNegotiableRangeFen = Object.prototype.hasOwnProperty.call(body || {}, 'negotiableRangeFen');
+    const hasNegotiableRangePercent = Object.prototype.hasOwnProperty.call(body || {}, 'negotiableRangePercent');
+    const negotiableRangeFen = hasNegotiableRangeFen ? this.parseOptionalInt(body?.negotiableRangeFen, 'negotiableRangeFen', 0) : undefined;
+    const negotiableRangePercent = hasNegotiableRangePercent ? this.parseOptionalFloat(body?.negotiableRangePercent, 'negotiableRangePercent', 0, 100) : undefined;
+    if (negotiableRangeFen !== undefined && negotiableRangePercent !== undefined) {
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: 'negotiableRange is invalid' });
+    }
+    const hasNegotiableNote = Object.prototype.hasOwnProperty.call(body || {}, 'negotiableNote');
+    const negotiableNote = hasNegotiableNote ? (body?.negotiableNote ? String(body?.negotiableNote) : null) : undefined;
+    const hasPledgeStatus = Object.prototype.hasOwnProperty.call(body || {}, 'pledgeStatus');
+    const pledgeStatus = hasPledgeStatus ? this.normalizePledgeStatus(body?.pledgeStatus) : undefined;
+    const hasExistingLicenseStatus = Object.prototype.hasOwnProperty.call(body || {}, 'existingLicenseStatus');
+    const existingLicenseStatus = hasExistingLicenseStatus ? this.normalizeExistingLicenseStatus(body?.existingLicenseStatus) : undefined;
+    const hasEncumbranceNote = Object.prototype.hasOwnProperty.call(body || {}, 'encumbranceNote');
+    const encumbranceNote = hasEncumbranceNote ? (body?.encumbranceNote ? String(body?.encumbranceNote) : null) : undefined;
     const hasClusterId = Object.prototype.hasOwnProperty.call(body || {}, 'clusterId');
     const updated = await this.prisma.listing.update({
       where: { id: listingId },
@@ -958,10 +1134,18 @@ export class ListingsService {
         priceType: body?.priceType ?? listing.priceType,
         priceAmount: body?.priceAmountFen ?? listing.priceAmount,
         depositAmount: body?.depositAmountFen ?? listing.depositAmount,
+        deliverablesJson: hasDeliverables ? (deliverables && deliverables.length > 0 ? deliverables : Prisma.DbNull) : undefined,
+        expectedCompletionDays: hasExpectedCompletionDays ? (expectedCompletionDays ?? null) : listing.expectedCompletionDays,
+        negotiableRangeFen: hasNegotiableRangeFen ? (negotiableRangeFen ?? null) : listing.negotiableRangeFen,
+        negotiableRangePercent: hasNegotiableRangePercent ? (negotiableRangePercent ?? null) : listing.negotiableRangePercent,
+        negotiableNote: hasNegotiableNote ? negotiableNote : listing.negotiableNote,
+        pledgeStatus: hasPledgeStatus ? pledgeStatus ?? null : listing.pledgeStatus,
+        existingLicenseStatus: hasExistingLicenseStatus ? existingLicenseStatus ?? null : listing.existingLicenseStatus,
+        encumbranceNote: hasEncumbranceNote ? encumbranceNote : listing.encumbranceNote,
         regionCode: body?.regionCode ?? listing.regionCode,
-        industryTagsJson: body?.industryTags ?? listing.industryTagsJson,
-        listingTopicsJson: hasListingTopics ? (listingTopics && listingTopics.length > 0 ? listingTopics : null) : listing.listingTopicsJson,
-        proofFileIdsJson: hasProofFileIds ? (proofFileIds && proofFileIds.length > 0 ? proofFileIds : null) : listing.proofFileIdsJson,
+        industryTagsJson: body?.industryTags !== undefined ? body?.industryTags ?? Prisma.DbNull : undefined,
+        listingTopicsJson: hasListingTopics ? (listingTopics && listingTopics.length > 0 ? listingTopics : Prisma.DbNull) : undefined,
+        proofFileIdsJson: hasProofFileIds ? (proofFileIds && proofFileIds.length > 0 ? proofFileIds : Prisma.DbNull) : undefined,
         clusterId: hasClusterId ? body?.clusterId : listing.clusterId,
       },
     });
@@ -991,6 +1175,13 @@ export class ListingsService {
     const updated = await this.prisma.listing.update({
       where: { id: listingId },
       data: { auditStatus: 'PENDING', status: 'ACTIVE' },
+    });
+    void this.audit.log({
+      actorUserId: req.auth.userId,
+      action: 'LISTING_SUBMIT',
+      targetType: 'LISTING',
+      targetId: listingId,
+      afterJson: { auditStatus: 'PENDING' },
     });
     return this.toAdminDto(updated);
   }
@@ -1254,14 +1445,22 @@ export class ListingsService {
       locCodes: meta.locCodes,
       title: it.title,
       summary: it.summary ?? null,
+      deliverables: this.normalizeStringArray(it.deliverablesJson),
+      expectedCompletionDays: it.expectedCompletionDays ?? null,
+      negotiableRangeFen: it.negotiableRangeFen ?? null,
+      negotiableRangePercent: it.negotiableRangePercent ?? null,
+      negotiableNote: it.negotiableNote ?? null,
+      pledgeStatus: it.pledgeStatus ?? null,
+      existingLicenseStatus: it.existingLicenseStatus ?? null,
+      encumbranceNote: it.encumbranceNote ?? null,
       tradeMode: it.tradeMode,
       licenseMode: it.licenseMode,
       priceType: it.priceType,
       priceAmountFen: it.priceAmount ?? null,
       depositAmountFen: it.depositAmount,
       regionCode: it.regionCode ?? null,
-      industryTags: it.industryTagsJson ?? null,
-      listingTopics: it.listingTopicsJson ?? null,
+      industryTags: this.normalizeStringArray(it.industryTagsJson),
+      listingTopics: this.normalizeStringArray(it.listingTopicsJson),
       clusterId: it.clusterId ?? null,
       featuredLevel: it.featuredLevel,
       featuredRegionCode: it.featuredRegionCode ?? null,
@@ -1271,7 +1470,7 @@ export class ListingsService {
       coverUrl: null,
       createdAt: it.createdAt.toISOString(),
       updatedAt: it.updatedAt.toISOString(),
-      stats: it.stats ?? null,
+      stats: mapStats(it.stats),
       seller: it.seller
         ? {
             id: it.seller.id,
@@ -1297,4 +1496,3 @@ export class ListingsService {
     return { ok: true };
   }
 }
-

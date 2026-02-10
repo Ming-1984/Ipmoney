@@ -90,6 +90,20 @@ erDiagram
     datetime updated_at
   }
 
+  TECH_MANAGER_PROFILES {
+    uuid user_id PK
+    string intro
+    string service_tags_json "json"
+    int featured_rank
+    datetime featured_until
+    int consult_count
+    int deal_count
+    double rating_score
+    int rating_count
+    datetime created_at
+    datetime updated_at
+  }
+
   PATENTS {
     uuid id PK
     string jurisdiction "CN"
@@ -172,6 +186,14 @@ erDiagram
     string price_type "FIXED/NEGOTIABLE"
     int price_amount
     int deposit_amount
+    string deliverables_json "json: string[]"
+    int expected_completion_days
+    int negotiable_range_fen
+    float negotiable_range_percent
+    string negotiable_note
+    string pledge_status "NONE/PLEDGED/UNKNOWN"
+    string existing_license_status "NONE/EXCLUSIVE/SOLE/NON_EXCLUSIVE/UNKNOWN"
+    string encumbrance_note
     int transfer_count "0=沉睡专利"
     string region_code
     string industry_tags_json "json"
@@ -406,6 +428,18 @@ erDiagram
     datetime updated_at
   }
 
+  CONTRACTS {
+    uuid order_id PK
+    string status "WAIT_UPLOAD/WAIT_CONFIRM/AVAILABLE"
+    uuid contract_file_id FK
+    string file_url
+    datetime uploaded_at
+    datetime signed_at
+    string watermark_owner
+    datetime created_at
+    datetime updated_at
+  }
+
   CONVERSATIONS {
     uuid id PK
     string content_type "LISTING/DEMAND/ACHIEVEMENT/ARTWORK/TECH_MANAGER"
@@ -603,6 +637,7 @@ erDiagram
   }
 
   USERS ||--o{ USER_VERIFICATIONS : verifies
+  USERS ||--|| TECH_MANAGER_PROFILES : profiles
   REGIONS ||--o{ USERS : located_in
   REGIONS ||--o{ PATENT_CLUSTERS : located_in
   USERS ||--o{ LISTINGS : publishes
@@ -683,6 +718,7 @@ erDiagram
   FILES ||--o{ ARTWORK_MEDIA : stored_as
   FILES ||--o{ PATENT_MEDIA : stored_as
   FILES ||--o{ CONVERSATION_MESSAGES : attached
+  FILES ||--o{ CONTRACTS : contract_file
   FILES ||--o{ CS_MILESTONES : evidence
   FILES ||--o{ SETTLEMENTS : payout_evidence
   FILES ||--o{ PATENT_MAINTENANCE_TASKS : evidence
@@ -700,6 +736,7 @@ erDiagram
   ORDERS ||--o{ CS_CASES : tracked_by
   ORDERS ||--|| SETTLEMENTS : settles
   ORDERS ||--o{ CONVERSATIONS : links
+  ORDERS ||--o| CONTRACTS : has
 
   CS_CASES ||--o{ CS_MILESTONES : contains
 

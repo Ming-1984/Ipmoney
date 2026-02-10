@@ -18,7 +18,8 @@ function ensureDir(dirPath) {
 }
 
 function readUtf8(filePath) {
-  return fs.readFileSync(filePath, 'utf8');
+  const raw = fs.readFileSync(filePath, 'utf8');
+  return raw.replace(/^\uFEFF/, '');
 }
 
 function listFilesRecursive(dirPath, { exts, ignoreDirs }) {

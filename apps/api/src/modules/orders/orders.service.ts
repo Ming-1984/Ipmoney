@@ -1,4 +1,5 @@
 import { BadRequestException, ConflictException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import { MilestoneName, Prisma } from '@prisma/client';
 
 const AuditStatus = {
   PENDING: 'PENDING',
@@ -73,10 +74,24 @@ type RefundRequestDto = {
   updatedAt?: string;
 };
 
+type FileObjectDto = {
+  id: string;
+  url: string;
+  fileName?: string | null;
+  mimeType: string;
+  sizeBytes: number;
+  createdAt: string;
+};
+
 type OrderInvoiceDto = {
+  orderId: string;
+  amountFen: number;
+  itemName: string;
   invoiceNo?: string | null;
   issuedAt?: string | null;
-  invoiceFileUrl?: string | null;
+  invoiceFile: FileObjectDto;
+  attachedAt?: string | null;
+  updatedAt?: string | null;
 };
 
 type InvoiceStatus = 'WAIT_APPLY' | 'APPLYING' | 'ISSUED';
@@ -135,15 +150,15 @@ export class OrdersService {
   private async ensureCaseMilestones(caseId: string) {
     const existing = await this.prisma.csMilestone.findMany({ where: { caseId } });
     const existingNames = new Set(existing.map((m: any) => m.name));
-    const data = [];
+    const data: Prisma.CsMilestoneCreateManyInput[] = [];
     if (!existingNames.has('CONTRACT_SIGNED')) {
-      data.push({ caseId, name: 'CONTRACT_SIGNED', status: 'PENDING' });
+      data.push({ caseId, name: MilestoneName.CONTRACT_SIGNED, status: 'PENDING' });
     }
     if (!existingNames.has('TRANSFER_SUBMITTED')) {
-      data.push({ caseId, name: 'TRANSFER_SUBMITTED', status: 'PENDING' });
+      data.push({ caseId, name: MilestoneName.TRANSFER_SUBMITTED, status: 'PENDING' });
     }
     if (!existingNames.has('TRANSFER_COMPLETED')) {
-      data.push({ caseId, name: 'TRANSFER_COMPLETED', status: 'PENDING' });
+      data.push({ caseId, name: MilestoneName.TRANSFER_COMPLETED, status: 'PENDING' });
     }
     if (data.length > 0) {
       await this.prisma.csMilestone.createMany({ data });
@@ -198,6 +213,36 @@ export class OrdersService {
 
   private computeFinalAmount(dealAmount: number, depositAmount: number) {
     return Math.max(0, dealAmount - depositAmount);
+  }
+
+  private toFileObject(file: any): FileObjectDto {
+    return {
+      id: file.id,
+      url: file.url,
+      fileName: file.fileName ?? null,
+      mimeType: file.mimeType,
+      sizeBytes: file.sizeBytes,
+      createdAt: file.createdAt.toISOString(),
+    };
+  }
+
+  private async buildOrderInvoice(order: any, invoiceFile: any): Promise<OrderInvoiceDto> {
+    const rules = await this.config.getTradeRules();
+    const settlement = this.computeSettlementAmounts(
+      { dealAmount: order.dealAmount, depositAmount: order.depositAmount, finalAmount: order.finalAmount },
+      rules,
+    );
+    const amountFen = order.commissionAmount ?? settlement.commissionAmount;
+    return {
+      orderId: order.id,
+      amountFen,
+      itemName: '居间服务费',
+      invoiceNo: order.invoiceNo ?? undefined,
+      issuedAt: order.invoiceIssuedAt ? order.invoiceIssuedAt.toISOString() : undefined,
+      invoiceFile: this.toFileObject(invoiceFile),
+      attachedAt: invoiceFile?.createdAt ? invoiceFile.createdAt.toISOString() : undefined,
+      updatedAt: order.updatedAt ? order.updatedAt.toISOString() : undefined,
+    };
   }
 
   private toOrderDto(order: any, listing?: any, patent?: any): OrderDto {
@@ -467,13 +512,18 @@ export class OrdersService {
 
   async getOrderInvoice(req: any, orderId: string): Promise<OrderInvoiceDto> {
     this.ensureAuth(req);
-    const order = await this.prisma.order.findUnique({ where: { id: orderId } });
+    const order = await this.prisma.order.findUnique({
+      where: { id: orderId },
+      include: { listing: true, invoiceFile: true },
+    });
     if (!order) throw new NotFoundException({ code: 'NOT_FOUND', message: 'order not found' });
-    return {
-      invoiceNo: order.invoiceNo ?? undefined,
-      issuedAt: order.invoiceIssuedAt ? order.invoiceIssuedAt.toISOString() : undefined,
-      invoiceFileUrl: null,
-    };
+    if (order.buyerUserId !== req.auth.userId && order.listing?.sellerUserId !== req.auth.userId && !req.auth.isAdmin) {
+      throw new ForbiddenException({ code: 'FORBIDDEN', message: 'forbidden' });
+    }
+    if (!order.invoiceFileId || !order.invoiceFile) {
+      throw new NotFoundException({ code: 'NOT_FOUND', message: 'invoice not available' });
+    }
+    return await this.buildOrderInvoice(order, order.invoiceFile);
   }
 
   async requestInvoice(req: any, orderId: string) {
@@ -504,7 +554,7 @@ export class OrdersService {
     const [items, total] = await Promise.all([
       this.prisma.order.findMany({
         where,
-        include: { listing: { include: { patent: true } } },
+        include: { listing: { include: { patent: true } }, invoiceFile: true },
         orderBy: { createdAt: 'desc' },
         skip: (page - 1) * pageSize,
         take: pageSize,
@@ -512,19 +562,24 @@ export class OrdersService {
       this.prisma.order.count({ where }),
     ]);
 
+    const rules = await this.config.getTradeRules();
     const mapped: InvoiceItem[] = items.map((it: any) => {
       const base = this.toOrderDto(it, it.listing, it.listing?.patent);
+      const settlement = this.computeSettlementAmounts(
+        { dealAmount: it.dealAmount, depositAmount: it.depositAmount, finalAmount: it.finalAmount },
+        rules,
+      );
       let invoiceStatus: InvoiceStatus = 'WAIT_APPLY';
-      if (it.invoiceIssuedAt) invoiceStatus = 'ISSUED';
+      if (it.invoiceFileId) invoiceStatus = 'ISSUED';
       else if (it.invoiceNo) invoiceStatus = 'APPLYING';
       return {
         ...base,
         invoiceStatus,
-        amountFen: it.dealAmount ?? it.depositAmount ?? 0,
-        itemName: it.listing?.title ?? null,
+        amountFen: it.commissionAmount ?? settlement.commissionAmount,
+        itemName: '居间服务费',
         invoiceNo: it.invoiceNo ?? null,
         issuedAt: it.invoiceIssuedAt ? it.invoiceIssuedAt.toISOString() : null,
-        invoiceFileUrl: null,
+        invoiceFileUrl: it.invoiceFile?.url ?? null,
         requestedAt: it.invoiceNo ? it.updatedAt.toISOString() : null,
       };
     });
@@ -692,5 +747,58 @@ export class OrdersService {
       afterJson: { invoiceNo: order.invoiceNo, invoiceIssuedAt: order.invoiceIssuedAt },
     });
     return { orderId: order.id, invoiceNo: order.invoiceNo };
+  }
+
+  async adminUpsertOrderInvoice(req: any, orderId: string, body: any): Promise<OrderInvoiceDto> {
+    this.ensureAdmin(req);
+    const invoiceFileId = String(body?.invoiceFileId || '').trim();
+    if (!invoiceFileId) {
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: 'invoiceFileId is required' });
+    }
+
+    const [order, file] = await Promise.all([
+      this.prisma.order.findUnique({ where: { id: orderId } }),
+      this.prisma.file.findUnique({ where: { id: invoiceFileId } }),
+    ]);
+    if (!order) throw new NotFoundException({ code: 'NOT_FOUND', message: 'order not found' });
+    if (!file) throw new BadRequestException({ code: 'BAD_REQUEST', message: 'invoice file not found' });
+
+    const invoiceNo = body?.invoiceNo ? String(body.invoiceNo).trim() : order.invoiceNo || `INV-${Date.now()}`;
+    const issuedAt = body?.issuedAt ? new Date(String(body.issuedAt)) : order.invoiceIssuedAt || new Date();
+
+    const updated = await this.prisma.order.update({
+      where: { id: orderId },
+      data: { invoiceFileId, invoiceNo, invoiceIssuedAt: issuedAt },
+      include: { invoiceFile: true },
+    });
+
+    await this.audit.log({
+      actorUserId: req.auth.userId,
+      action: 'INVOICE_UPSERT',
+      targetType: 'ORDER',
+      targetId: updated.id,
+      afterJson: { invoiceFileId, invoiceNo, invoiceIssuedAt: issuedAt },
+    });
+
+    return await this.buildOrderInvoice(updated, updated.invoiceFile ?? file);
+  }
+
+  async adminDeleteOrderInvoice(req: any, orderId: string) {
+    this.ensureAdmin(req);
+    const order = await this.prisma.order.findUnique({ where: { id: orderId } });
+    if (!order) throw new NotFoundException({ code: 'NOT_FOUND', message: 'order not found' });
+
+    await this.prisma.order.update({
+      where: { id: orderId },
+      data: { invoiceFileId: null, invoiceIssuedAt: null, invoiceNo: null },
+    });
+
+    await this.audit.log({
+      actorUserId: req.auth.userId,
+      action: 'INVOICE_DELETE',
+      targetType: 'ORDER',
+      targetId: orderId,
+      afterJson: { invoiceFileId: null },
+    });
   }
 }

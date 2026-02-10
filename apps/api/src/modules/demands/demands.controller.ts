@@ -2,13 +2,16 @@ import { Body, Controller, Get, Param, Patch, Post, Query, Req, UseGuards } from
 
 import { BearerAuthGuard } from '../../common/guards/bearer-auth.guard';
 import { VerifiedUserGuard } from '../../common/guards/verified-user.guard';
+import { ContentAuditService } from '../../common/content-audit.service';
 import { requirePermission } from '../../common/permissions';
-import { getAuditLogs, getAuditMaterials } from '../audit-store';
 import { DemandsService } from './demands.service';
 
 @Controller()
 export class DemandsController {
-  constructor(private readonly demands: DemandsService) {}
+  constructor(
+    private readonly demands: DemandsService,
+    private readonly contentAudit: ContentAuditService,
+  ) {}
 
   @UseGuards(BearerAuthGuard)
   @Get('/demands')
@@ -103,7 +106,7 @@ export class DemandsController {
   async getMaterials(@Req() req: any, @Param('demandId') demandId: string) {
     this.demands.ensureAdmin(req);
     requirePermission(req, 'listing.read');
-    return { items: getAuditMaterials('DEMAND', demandId) };
+    return await this.contentAudit.listMaterials('DEMAND', demandId);
   }
 
   @UseGuards(BearerAuthGuard)
@@ -111,7 +114,7 @@ export class DemandsController {
   async getAuditLogs(@Req() req: any, @Param('demandId') demandId: string) {
     this.demands.ensureAdmin(req);
     requirePermission(req, 'auditLog.read');
-    return { items: getAuditLogs('DEMAND', demandId) };
+    return await this.contentAudit.listLogs('DEMAND', demandId);
   }
 
   @UseGuards(BearerAuthGuard)

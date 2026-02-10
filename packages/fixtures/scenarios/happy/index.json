@@ -31,6 +31,18 @@
           "priceType": "FIXED",
           "priceAmountFen": 28800000,
           "depositAmountFen": 200000,
+          "deliverables": [
+            "专利证书扫描件",
+            "权属证明材料",
+            "技术交底文件"
+          ],
+          "expectedCompletionDays": 60,
+          "negotiableRangeFen": null,
+          "negotiableRangePercent": null,
+          "negotiableNote": null,
+          "pledgeStatus": "NONE",
+          "existingLicenseStatus": "NONE",
+          "encumbranceNote": null,
           "auditStatus": "APPROVED",
           "status": "ACTIVE",
           "createdAt": "2026-01-10T10:00:00Z",
@@ -59,7 +71,9 @@
             "consultCount": 6
           },
           "recommendationScore": 0.92,
-          "listingTopic": "HIGH_TECH_RETIRED"
+          "listingTopics": [
+            "HIGH_TECH_RETIRED"
+          ]
         },
         {
           "id": "b038cc8b-1123-4c9b-9fc7-e17304cd2e1e",
@@ -69,6 +83,17 @@
           "licenseMode": "NON_EXCLUSIVE",
           "priceType": "NEGOTIABLE",
           "depositAmountFen": 100000,
+          "deliverables": [
+            "授权使用说明",
+            "技术支持清单"
+          ],
+          "expectedCompletionDays": 30,
+          "negotiableRangeFen": null,
+          "negotiableRangePercent": 10,
+          "negotiableNote": "可在合理区间内协商",
+          "pledgeStatus": "UNKNOWN",
+          "existingLicenseStatus": "NON_EXCLUSIVE",
+          "encumbranceNote": "已有非独占许可，可继续授权",
           "auditStatus": "APPROVED",
           "status": "ACTIVE",
           "createdAt": "2026-01-09T09:00:00Z",
@@ -98,7 +123,9 @@
             "consultCount": 3
           },
           "recommendationScore": 0.71,
-          "listingTopic": "CLUSTER_FEATURED",
+          "listingTopics": [
+            "CLUSTER_FEATURED"
+          ],
           "clusterId": "4c96e0e3-3c71-4514-8c87-fa1a30e5b88f"
         }
       ],
@@ -141,7 +168,9 @@
         "favoriteCount": 18,
         "consultCount": 6
       },
-      "listingTopic": "HIGH_TECH_RETIRED",
+      "listingTopics": [
+        "HIGH_TECH_RETIRED"
+      ],
       "seller": {
         "id": "c5b6438a-f3a7-4590-a484-0f2a2991c613",
         "nickname": "某新能源企业",
@@ -150,6 +179,18 @@
         "verificationType": "COMPANY"
       },
       "summary": "适用于动力电池包散热与温控，具备结构简单、散热效率高等优点。",
+      "deliverables": [
+        "专利证书扫描件",
+        "权属证明材料",
+        "技术交底文件"
+      ],
+      "expectedCompletionDays": 60,
+      "negotiableRangeFen": null,
+      "negotiableRangePercent": null,
+      "negotiableNote": null,
+      "pledgeStatus": "NONE",
+      "existingLicenseStatus": "NONE",
+      "encumbranceNote": null,
       "ipcCodes": [
         "H01M 10/60"
       ],
@@ -189,7 +230,9 @@
         "consultCount": 3
       },
       "recommendationScore": 0.71,
-      "listingTopic": "CLUSTER_FEATURED",
+      "listingTopics": [
+        "CLUSTER_FEATURED"
+      ],
       "clusterId": "4c96e0e3-3c71-4514-8c87-fa1a30e5b88f",
       "seller": {
         "id": "72f8697a-b950-406c-bc4f-2484a32cbb78",
@@ -199,6 +242,17 @@
         "verificationType": "ACADEMY"
       },
       "summary": "面向现场快速检测的便携式水质监测装置，可接入多种传感器并支持移动端数据展示。",
+      "deliverables": [
+        "授权使用说明",
+        "技术支持清单"
+      ],
+      "expectedCompletionDays": 30,
+      "negotiableRangeFen": null,
+      "negotiableRangePercent": 10,
+      "negotiableNote": "可在合理区间内协商",
+      "pledgeStatus": "UNKNOWN",
+      "existingLicenseStatus": "NON_EXCLUSIVE",
+      "encumbranceNote": "已有非独占许可，可继续授权",
       "ipcCodes": [
         "G01N 33/18"
       ],
@@ -237,6 +291,9 @@
         "consultCount": 0
       },
       "recommendationScore": 0.66,
+      "listingTopics": [
+        "HIGH_TECH_RETIRED"
+      ],
       "seller": {
         "id": "c5b6438a-f3a7-4590-a484-0f2a2991c613",
         "nickname": "某新能源企业",
@@ -245,6 +302,18 @@
         "verificationType": "COMPANY"
       },
       "summary": "演示：卖家发布后由后台审核通过的专利交易信息。",
+      "deliverables": [
+        "专利证书扫描件",
+        "权属证明材料",
+        "技术交底文件"
+      ],
+      "expectedCompletionDays": 60,
+      "negotiableRangeFen": null,
+      "negotiableRangePercent": null,
+      "negotiableNote": null,
+      "pledgeStatus": "NONE",
+      "existingLicenseStatus": "NONE",
+      "encumbranceNote": null,
       "ipcCodes": [
         "H01M 10/60"
       ],
@@ -284,7 +353,9 @@
         "favoriteCount": 18,
         "consultCount": 6
       },
-      "listingTopic": "HIGH_TECH_RETIRED",
+      "listingTopics": [
+        "HIGH_TECH_RETIRED"
+      ],
       "seller": {
         "id": "c5b6438a-f3a7-4590-a484-0f2a2991c613",
         "nickname": "某新能源企业",
@@ -293,6 +364,18 @@
         "verificationType": "COMPANY"
       },
       "summary": "适用于动力电池包散热与温控，具备结构简单、散热效率高等优点。",
+      "deliverables": [
+        "专利证书扫描件",
+        "权属证明材料",
+        "技术交底文件"
+      ],
+      "expectedCompletionDays": 60,
+      "negotiableRangeFen": null,
+      "negotiableRangePercent": null,
+      "negotiableNote": null,
+      "pledgeStatus": "NONE",
+      "existingLicenseStatus": "NONE",
+      "encumbranceNote": null,
       "ipcCodes": [
         "H01M 10/60"
       ],
@@ -1312,10 +1395,25 @@
           "priceType": "FIXED",
           "priceAmountFen": 28800000,
           "depositAmountFen": 200000,
+          "deliverables": [
+            "专利证书扫描件",
+            "权属证明材料",
+            "技术交底文件"
+          ],
+          "expectedCompletionDays": 60,
+          "negotiableRangeFen": null,
+          "negotiableRangePercent": null,
+          "negotiableNote": null,
+          "pledgeStatus": "NONE",
+          "existingLicenseStatus": "NONE",
+          "encumbranceNote": null,
           "regionCode": "110000",
           "industryTags": [
             "新能源",
             "电池"
+          ],
+          "listingTopics": [
+            "HIGH_TECH_RETIRED"
           ],
           "auditStatus": "PENDING",
           "status": "ACTIVE",
@@ -1346,10 +1444,25 @@
       "priceType": "FIXED",
       "priceAmountFen": 28800000,
       "depositAmountFen": 200000,
+      "deliverables": [
+        "专利证书扫描件",
+        "权属证明材料",
+        "技术交底文件"
+      ],
+      "expectedCompletionDays": 60,
+      "negotiableRangeFen": null,
+      "negotiableRangePercent": null,
+      "negotiableNote": null,
+      "pledgeStatus": "NONE",
+      "existingLicenseStatus": "NONE",
+      "encumbranceNote": null,
       "regionCode": "110000",
       "industryTags": [
         "新能源",
         "电池"
+      ],
+      "listingTopics": [
+        "HIGH_TECH_RETIRED"
       ],
       "auditStatus": "APPROVED",
       "status": "ACTIVE",
@@ -1373,10 +1486,25 @@
       "priceType": "FIXED",
       "priceAmountFen": 28800000,
       "depositAmountFen": 200000,
+      "deliverables": [
+        "专利证书扫描件",
+        "权属证明材料",
+        "技术交底文件"
+      ],
+      "expectedCompletionDays": 60,
+      "negotiableRangeFen": null,
+      "negotiableRangePercent": null,
+      "negotiableNote": null,
+      "pledgeStatus": "NONE",
+      "existingLicenseStatus": "NONE",
+      "encumbranceNote": null,
       "regionCode": "110000",
       "industryTags": [
         "新能源",
         "电池"
+      ],
+      "listingTopics": [
+        "HIGH_TECH_RETIRED"
       ],
       "auditStatus": "REJECTED",
       "status": "ACTIVE",
@@ -1669,6 +1797,18 @@
           "priceType": "FIXED",
           "priceAmountFen": 28800000,
           "depositAmountFen": 200000,
+          "deliverables": [
+            "专利证书扫描件",
+            "权属证明材料",
+            "技术交底文件"
+          ],
+          "expectedCompletionDays": 60,
+          "negotiableRangeFen": null,
+          "negotiableRangePercent": null,
+          "negotiableNote": null,
+          "pledgeStatus": "NONE",
+          "existingLicenseStatus": "NONE",
+          "encumbranceNote": null,
           "auditStatus": "APPROVED",
           "status": "ACTIVE",
           "createdAt": "2026-01-10T10:00:00Z",
@@ -1682,6 +1822,9 @@
           "industryTags": [
             "新能源",
             "电池"
+          ],
+          "listingTopics": [
+            "HIGH_TECH_RETIRED"
           ],
           "featuredLevel": "PROVINCE",
           "featuredRegionCode": "110000",
@@ -1700,6 +1843,17 @@
           "licenseMode": "NON_EXCLUSIVE",
           "priceType": "NEGOTIABLE",
           "depositAmountFen": 100000,
+          "deliverables": [
+            "授权使用说明",
+            "技术支持清单"
+          ],
+          "expectedCompletionDays": 30,
+          "negotiableRangeFen": null,
+          "negotiableRangePercent": 10,
+          "negotiableNote": "可在合理区间内协商",
+          "pledgeStatus": "UNKNOWN",
+          "existingLicenseStatus": "NON_EXCLUSIVE",
+          "encumbranceNote": "已有非独占许可，可继续授权",
           "auditStatus": "APPROVED",
           "status": "ACTIVE",
           "createdAt": "2026-01-09T09:00:00Z",
@@ -1712,6 +1866,9 @@
           "industryTags": [
             "环保",
             "传感器"
+          ],
+          "listingTopics": [
+            "CLUSTER_FEATURED"
           ],
           "featuredLevel": "CITY",
           "featuredRegionCode": "310000",
@@ -1885,6 +2042,18 @@
       "priceType": "FIXED",
       "priceAmountFen": 28800000,
       "depositAmountFen": 200000,
+      "deliverables": [
+        "专利证书扫描件",
+        "权属证明材料",
+        "技术交底文件"
+      ],
+      "expectedCompletionDays": 60,
+      "negotiableRangeFen": null,
+      "negotiableRangePercent": null,
+      "negotiableNote": null,
+      "pledgeStatus": "NONE",
+      "existingLicenseStatus": "NONE",
+      "encumbranceNote": null,
       "auditStatus": "PENDING",
       "status": "DRAFT",
       "createdAt": "2026-01-11T01:00:00Z",
@@ -1892,6 +2061,9 @@
       "industryTags": [
         "新能源",
         "电池"
+      ],
+      "listingTopics": [
+        "HIGH_TECH_RETIRED"
       ],
       "stats": {
         "viewCount": 0,
@@ -1926,6 +2098,18 @@
       "priceType": "FIXED",
       "priceAmountFen": 28800000,
       "depositAmountFen": 200000,
+      "deliverables": [
+        "专利证书扫描件",
+        "权属证明材料",
+        "技术交底文件"
+      ],
+      "expectedCompletionDays": 60,
+      "negotiableRangeFen": null,
+      "negotiableRangePercent": null,
+      "negotiableNote": null,
+      "pledgeStatus": "NONE",
+      "existingLicenseStatus": "NONE",
+      "encumbranceNote": null,
       "auditStatus": "PENDING",
       "status": "DRAFT",
       "createdAt": "2026-01-11T01:00:00Z",
@@ -1933,6 +2117,9 @@
       "industryTags": [
         "新能源",
         "电池"
+      ],
+      "listingTopics": [
+        "HIGH_TECH_RETIRED"
       ],
       "stats": {
         "viewCount": 0,
@@ -1967,6 +2154,18 @@
       "priceType": "FIXED",
       "priceAmountFen": 28800000,
       "depositAmountFen": 200000,
+      "deliverables": [
+        "专利证书扫描件",
+        "权属证明材料",
+        "技术交底文件"
+      ],
+      "expectedCompletionDays": 60,
+      "negotiableRangeFen": null,
+      "negotiableRangePercent": null,
+      "negotiableNote": null,
+      "pledgeStatus": "NONE",
+      "existingLicenseStatus": "NONE",
+      "encumbranceNote": null,
       "auditStatus": "PENDING",
       "status": "ACTIVE",
       "createdAt": "2026-01-11T01:00:00Z",
@@ -1974,6 +2173,9 @@
       "industryTags": [
         "新能源",
         "电池"
+      ],
+      "listingTopics": [
+        "HIGH_TECH_RETIRED"
       ],
       "stats": {
         "viewCount": 0,
@@ -2189,6 +2391,56 @@
       "updatedAt": "2026-01-11T10:01:00Z"
     }
   },
+  "GET /me/addresses": {
+    "status": 200,
+    "body": [
+      {
+        "id": "f1e5d462-6f1c-4c1f-8c3b-2c98efc2c101",
+        "userId": "c776f954-77a5-49d9-b778-77a1120d1be9",
+        "name": "演示收货人",
+        "phone": "13800138000",
+        "regionCode": "110000",
+        "addressLine": "北京市海淀区中关村南大街 1 号",
+        "isDefault": true,
+        "createdAt": "2026-01-15T09:00:00Z",
+        "updatedAt": "2026-01-15T09:00:00Z"
+      }
+    ]
+  },
+  "POST /me/addresses": {
+    "status": 201,
+    "body": {
+      "id": "8a3e7c6a-3f1a-47ff-9f7c-8fd2b4f4d4b9",
+      "userId": "c776f954-77a5-49d9-b778-77a1120d1be9",
+      "name": "新增收货人",
+      "phone": "13800138000",
+      "regionCode": "310000",
+      "addressLine": "上海市浦东新区世纪大道 88 号",
+      "isDefault": false,
+      "createdAt": "2026-01-15T10:00:00Z",
+      "updatedAt": "2026-01-15T10:00:00Z"
+    }
+  },
+  "PATCH /me/addresses/:addressId": {
+    "status": 200,
+    "body": {
+      "id": "f1e5d462-6f1c-4c1f-8c3b-2c98efc2c101",
+      "userId": "c776f954-77a5-49d9-b778-77a1120d1be9",
+      "name": "演示收货人",
+      "phone": "13800138000",
+      "regionCode": "110000",
+      "addressLine": "北京市海淀区中关村南大街 1 号",
+      "isDefault": true,
+      "createdAt": "2026-01-15T09:00:00Z",
+      "updatedAt": "2026-01-15T12:00:00Z"
+    }
+  },
+  "DELETE /me/addresses/:addressId": {
+    "status": 200,
+    "body": {
+      "ok": true
+    }
+  },
   "GET /me/favorites": {
     "status": 200,
     "body": {
@@ -2271,6 +2523,18 @@
           "priceType": "FIXED",
           "priceAmountFen": 28800000,
           "depositAmountFen": 200000,
+          "deliverables": [
+            "专利证书扫描件",
+            "权属证明材料",
+            "技术交底文件"
+          ],
+          "expectedCompletionDays": 60,
+          "negotiableRangeFen": null,
+          "negotiableRangePercent": null,
+          "negotiableNote": null,
+          "pledgeStatus": "NONE",
+          "existingLicenseStatus": "NONE",
+          "encumbranceNote": null,
           "auditStatus": "PENDING",
           "status": "DRAFT",
           "createdAt": "2026-01-11T01:00:00Z",
@@ -2278,6 +2542,9 @@
           "industryTags": [
             "新能源",
             "电池"
+          ],
+          "listingTopics": [
+            "HIGH_TECH_RETIRED"
           ]
         }
       ],
@@ -2312,7 +2579,22 @@
         "新能源",
         "电池"
       ],
+      "listingTopics": [
+        "HIGH_TECH_RETIRED"
+      ],
       "summary": "演示：由卖家上传的专利交易信息，提交审核后对外展示。",
+      "deliverables": [
+        "专利证书扫描件",
+        "权属证明材料",
+        "技术交底文件"
+      ],
+      "expectedCompletionDays": 60,
+      "negotiableRangeFen": null,
+      "negotiableRangePercent": null,
+      "negotiableNote": null,
+      "pledgeStatus": "NONE",
+      "existingLicenseStatus": "NONE",
+      "encumbranceNote": null,
       "ipcCodes": [
         "H01M 10/60"
       ],
@@ -2339,6 +2621,18 @@
       "priceType": "FIXED",
       "priceAmountFen": 28800000,
       "depositAmountFen": 200000,
+      "deliverables": [
+        "专利证书扫描件",
+        "权属证明材料",
+        "技术交底文件"
+      ],
+      "expectedCompletionDays": 60,
+      "negotiableRangeFen": null,
+      "negotiableRangePercent": null,
+      "negotiableNote": null,
+      "pledgeStatus": "NONE",
+      "existingLicenseStatus": "NONE",
+      "encumbranceNote": null,
       "auditStatus": "APPROVED",
       "status": "OFF_SHELF",
       "createdAt": "2026-01-11T01:00:00Z",
@@ -2346,6 +2640,9 @@
       "industryTags": [
         "新能源",
         "电池"
+      ],
+      "listingTopics": [
+        "HIGH_TECH_RETIRED"
       ]
     }
   },
@@ -2516,10 +2813,25 @@
       "priceType": "FIXED",
       "priceAmountFen": 28800000,
       "depositAmountFen": 200000,
+      "deliverables": [
+        "专利证书扫描件",
+        "权属证明材料",
+        "技术交底文件"
+      ],
+      "expectedCompletionDays": 60,
+      "negotiableRangeFen": null,
+      "negotiableRangePercent": null,
+      "negotiableNote": null,
+      "pledgeStatus": "NONE",
+      "existingLicenseStatus": "NONE",
+      "encumbranceNote": null,
       "regionCode": "110000",
       "industryTags": [
         "新能源",
         "电池"
+      ],
+      "listingTopics": [
+        "HIGH_TECH_RETIRED"
       ],
       "featuredLevel": "PROVINCE",
       "featuredRegionCode": "110000",
@@ -4810,6 +5122,800 @@
       "fileUrl": "https://example.com/contracts/contract-0001.pdf",
       "watermarkOwner": "发布方"
     }
+  },
+  "GET /public/config/customer-service": {
+    "status": 200,
+    "body": {
+      "phone": "400-000-0000",
+      "defaultReply": "Hello, we have received your request. Customer service will contact you within 15 minutes.",
+      "assignStrategy": "AUTO"
+    }
+  },
+  "GET /admin/config/customer-service": {
+    "status": 200,
+    "body": {
+      "phone": "400-000-0000",
+      "defaultReply": "Hello, we have received your request. Customer service will contact you within 15 minutes.",
+      "assignStrategy": "AUTO"
+    }
+  },
+  "PUT /admin/config/customer-service": {
+    "status": 200,
+    "body": {
+      "phone": "400-000-0000",
+      "defaultReply": "Hello, we have received your request. Customer service will contact you within 15 minutes.",
+      "assignStrategy": "AUTO"
+    }
+  },
+  "GET /admin/config/banner": {
+    "status": 200,
+    "body": {
+      "items": [
+        {
+          "id": "banner-1",
+          "title": "Platform Campaign",
+          "imageUrl": "https://example.com/banner-1.png",
+          "linkUrl": "https://ipmoney.com",
+          "enabled": true,
+          "order": 1
+        }
+      ]
+    }
+  },
+  "PUT /admin/config/banner": {
+    "status": 200,
+    "body": {
+      "items": [
+        {
+          "id": "banner-1",
+          "title": "Platform Campaign",
+          "imageUrl": "https://example.com/banner-1.png",
+          "linkUrl": "https://ipmoney.com",
+          "enabled": true,
+          "order": 1
+        }
+      ]
+    }
+  },
+  "GET /admin/config/taxonomy": {
+    "status": 200,
+    "body": {
+      "industries": [
+        "New Materials",
+        "Smart Manufacturing",
+        "Biomedicine"
+      ],
+      "ipcMappings": [
+        "A01",
+        "B65",
+        "G06"
+      ],
+      "locMappings": [
+        "01",
+        "02",
+        "19"
+      ],
+      "artworkCategories": [
+        "Calligraphy",
+        "Painting"
+      ],
+      "calligraphyStyles": [
+        "Regular Script",
+        "Running Script"
+      ],
+      "paintingThemes": [
+        "Landscape",
+        "Flower-and-bird"
+      ],
+      "artworkMaterials": [
+        "Xuan Paper",
+        "Silk"
+      ]
+    }
+  },
+  "PUT /admin/config/taxonomy": {
+    "status": 200,
+    "body": {
+      "industries": [
+        "New Materials",
+        "Smart Manufacturing",
+        "Biomedicine"
+      ],
+      "ipcMappings": [
+        "A01",
+        "B65",
+        "G06"
+      ],
+      "locMappings": [
+        "01",
+        "02",
+        "19"
+      ],
+      "artworkCategories": [
+        "Calligraphy",
+        "Painting"
+      ],
+      "calligraphyStyles": [
+        "Regular Script",
+        "Running Script"
+      ],
+      "paintingThemes": [
+        "Landscape",
+        "Flower-and-bird"
+      ],
+      "artworkMaterials": [
+        "Xuan Paper",
+        "Silk"
+      ]
+    }
+  },
+  "GET /admin/config/sensitive-words": {
+    "status": 200,
+    "body": {
+      "words": [
+        "SensitiveWordExample",
+        "ProhibitedWordExample"
+      ]
+    }
+  },
+  "PUT /admin/config/sensitive-words": {
+    "status": 200,
+    "body": {
+      "words": [
+        "SensitiveWordExample",
+        "ProhibitedWordExample"
+      ]
+    }
+  },
+  "GET /admin/config/hot-search": {
+    "status": 200,
+    "body": {
+      "keywords": [
+        "Patent Transfer",
+        "High-Tech Retired",
+        "Industry Cluster"
+      ]
+    }
+  },
+  "PUT /admin/config/hot-search": {
+    "status": 200,
+    "body": {
+      "keywords": [
+        "Patent Transfer",
+        "High-Tech Retired",
+        "Industry Cluster"
+      ]
+    }
+  },
+  "GET /admin/rbac/permissions": {
+    "status": 200,
+    "body": {
+      "items": [
+        {
+          "id": "listing.read",
+          "name": "Listing Read",
+          "description": "View listing details"
+        },
+        {
+          "id": "listing.audit",
+          "name": "Listing Audit",
+          "description": "Audit listing content"
+        },
+        {
+          "id": "rbac.manage",
+          "name": "RBAC Manage",
+          "description": "Manage users and roles"
+        }
+      ]
+    }
+  },
+  "GET /admin/rbac/roles": {
+    "status": 200,
+    "body": {
+      "items": [
+        {
+          "id": "9b9c23f1-cc4d-4bb7-9d1f-775f2db6f01e",
+          "name": "Admin",
+          "description": "Full access",
+          "permissionIds": [
+            "rbac.manage",
+            "config.manage",
+            "report.read",
+            "listing.read",
+            "listing.audit"
+          ],
+          "updatedAt": "2026-01-10T10:00:00Z"
+        }
+      ]
+    }
+  },
+  "POST /admin/rbac/roles": {
+    "status": 200,
+    "body": {
+      "id": "5a4d5f2b-2e44-4d7f-b38f-6a8b9b9c0d12",
+      "name": "Ops",
+      "description": "Operations role",
+      "permissionIds": [
+        "listing.read",
+        "listing.audit",
+        "report.read"
+      ],
+      "updatedAt": "2026-01-12T09:00:00Z"
+    }
+  },
+  "DELETE /admin/rbac/roles/:roleId": {
+    "status": 200,
+    "body": {
+      "ok": true
+    }
+  },
+  "GET /admin/rbac/users": {
+    "status": 200,
+    "body": {
+      "items": [
+        {
+          "id": "72f8697a-b950-406c-bc4f-2484a32cbb78",
+          "name": "Ops User",
+          "email": "13800000000",
+          "roleIds": [
+            "9b9c23f1-cc4d-4bb7-9d1f-775f2db6f01e"
+          ]
+        },
+        {
+          "id": "c776f954-77a5-49d9-b778-77a1120d1be9",
+          "name": "Finance User",
+          "email": "13900000000",
+          "roleIds": [
+            "5a4d5f2b-2e44-4d7f-b38f-6a8b9b9c0d12"
+          ]
+        }
+      ]
+    }
+  },
+  "PATCH /admin/rbac/users/:userId": {
+    "status": 200,
+    "body": {
+      "id": "72f8697a-b950-406c-bc4f-2484a32cbb78",
+      "name": "Ops User",
+      "email": "13800000000",
+      "roleIds": [
+        "5a4d5f2b-2e44-4d7f-b38f-6a8b9b9c0d12",
+        "9b9c23f1-cc4d-4bb7-9d1f-775f2db6f01e"
+      ]
+    }
+  },
+  "GET /admin/reports/finance/summary": {
+    "status": 200,
+    "body": {
+      "range": {
+        "start": "2026-01-01T00:00:00Z",
+        "end": "2026-01-31T23:59:59Z"
+      },
+      "dealAmountFen": 28800000,
+      "commissionAmountFen": 2880000,
+      "refundRate": 0.03,
+      "payoutSuccessRate": 0.97,
+      "ordersTotal": 32
+    }
+  },
+  "POST /admin/reports/finance/export": {
+    "status": 200,
+    "body": {
+      "exportUrl": "/exports/finance-report-demo.csv"
+    }
+  },
+  "GET /admin/orders/:orderId": {
+    "status": 200,
+    "body": {
+      "id": "e9032d03-9b23-40ba-84a3-ac681f21c41b",
+      "listingId": "7a490e63-8173-41e7-b4f0-0d0bb5ce7d20",
+      "patentId": "965f9831-2c44-48e8-8b7a-cd7ab40ff7ec",
+      "buyerUserId": "c776f954-77a5-49d9-b778-77a1120d1be9",
+      "sellerUserId": "c5b6438a-f3a7-4590-a484-0f2a2991c613",
+      "status": "DEPOSIT_PENDING",
+      "depositAmountFen": 200000,
+      "createdAt": "2026-01-11T00:00:00Z",
+      "updatedAt": "2026-01-11T00:00:00Z"
+    }
+  },
+  "GET /admin/listings/:listingId": {
+    "status": 200,
+    "body": {
+      "id": "51453904-f628-4c46-afa5-bac68cedb9f9",
+      "patentId": "965f9831-2c44-48e8-8b7a-cd7ab40ff7ec",
+      "applicationNoDisplay": "202311340972.0",
+      "patentType": "INVENTION",
+      "title": "一种用于锂电池热管理的散热结构（待审核）",
+      "coverUrl": "https://picsum.photos/seed/listing-5145/800/500",
+      "inventorNames": [
+        "张三",
+        "李四"
+      ],
+      "tradeMode": "ASSIGNMENT",
+      "priceType": "FIXED",
+      "priceAmountFen": 28800000,
+      "depositAmountFen": 200000,
+      "deliverables": [
+        "专利证书扫描件",
+        "权属证明材料",
+        "技术交底文件"
+      ],
+      "expectedCompletionDays": 60,
+      "negotiableRangeFen": null,
+      "negotiableRangePercent": null,
+      "negotiableNote": null,
+      "pledgeStatus": "NONE",
+      "existingLicenseStatus": "NONE",
+      "encumbranceNote": null,
+      "regionCode": "110000",
+      "industryTags": [
+        "新能源",
+        "电池"
+      ],
+      "listingTopics": [
+        "HIGH_TECH_RETIRED"
+      ],
+      "auditStatus": "PENDING",
+      "status": "ACTIVE",
+      "createdAt": "2026-01-11T01:00:00Z",
+      "sellerUserId": "c5b6438a-f3a7-4590-a484-0f2a2991c613"
+    }
+  },
+  "GET /admin/listings/:listingId/materials": {
+    "status": 200,
+    "body": {
+      "items": [
+        {
+          "id": "b7d1a2e5-3c1a-4a9a-90f6-7e4df38c3b11",
+          "name": "Ownership proof",
+          "url": "https://example.com/materials/listing-ownership.pdf",
+          "kind": "OWNERSHIP",
+          "uploadedAt": "2026-01-11T08:00:00Z"
+        }
+      ]
+    }
+  },
+  "GET /admin/listings/:listingId/audit-logs": {
+    "status": 200,
+    "body": {
+      "items": [
+        {
+          "id": "c9c1d4aa-7db1-4a1b-9e7d-9ac3a9ad1111",
+          "action": "SUBMIT",
+          "reason": "Submitted for review",
+          "operatorName": "System",
+          "createdAt": "2026-01-11T08:30:00Z"
+        }
+      ]
+    }
+  },
+  "GET /admin/demands/:demandId/materials": {
+    "status": 200,
+    "body": {
+      "items": [
+        {
+          "id": "b7d1a2e5-3c1a-4a9a-90f6-7e4df38c3b12",
+          "name": "Requirement brief",
+          "url": "https://example.com/materials/demand-brief.pdf",
+          "kind": "REQUIREMENT",
+          "uploadedAt": "2026-01-11T09:00:00Z"
+        }
+      ]
+    }
+  },
+  "GET /admin/demands/:demandId/audit-logs": {
+    "status": 200,
+    "body": {
+      "items": [
+        {
+          "id": "c9c1d4aa-7db1-4a1b-9e7d-9ac3a9ad1112",
+          "action": "SUBMIT",
+          "reason": "Submitted for review",
+          "operatorName": "System",
+          "createdAt": "2026-01-11T09:30:00Z"
+        }
+      ]
+    }
+  },
+  "GET /admin/achievements/:achievementId/materials": {
+    "status": 200,
+    "body": {
+      "items": [
+        {
+          "id": "b7d1a2e5-3c1a-4a9a-90f6-7e4df38c3b13",
+          "name": "Ownership evidence",
+          "url": "https://example.com/materials/achievement-ownership.pdf",
+          "kind": "OWNERSHIP",
+          "uploadedAt": "2026-01-11T10:00:00Z"
+        }
+      ]
+    }
+  },
+  "GET /admin/achievements/:achievementId/audit-logs": {
+    "status": 200,
+    "body": {
+      "items": [
+        {
+          "id": "c9c1d4aa-7db1-4a1b-9e7d-9ac3a9ad1113",
+          "action": "SUBMIT",
+          "reason": "Submitted for review",
+          "operatorName": "System",
+          "createdAt": "2026-01-11T10:30:00Z"
+        }
+      ]
+    }
+  },
+  "GET /admin/artworks/:artworkId/materials": {
+    "status": 200,
+    "body": {
+      "items": [
+        {
+          "id": "b7d1a2e5-3c1a-4a9a-90f6-7e4df38c3b14",
+          "name": "Artwork ownership",
+          "url": "https://example.com/materials/artwork-ownership.pdf",
+          "kind": "OWNERSHIP",
+          "uploadedAt": "2026-01-11T11:00:00Z"
+        }
+      ]
+    }
+  },
+  "GET /admin/artworks/:artworkId/audit-logs": {
+    "status": 200,
+    "body": {
+      "items": [
+        {
+          "id": "c9c1d4aa-7db1-4a1b-9e7d-9ac3a9ad1114",
+          "action": "SUBMIT",
+          "reason": "Submitted for review",
+          "operatorName": "System",
+          "createdAt": "2026-01-11T11:30:00Z"
+        }
+      ]
+    }
+  },
+  "GET /admin/user-verifications/:verificationId/materials": {
+    "status": 200,
+    "body": {
+      "items": [
+        {
+          "id": "b7d1a2e5-3c1a-4a9a-90f6-7e4df38c3b15",
+          "name": "Verification evidence",
+          "url": "https://example.com/materials/verification-evidence.pdf",
+          "kind": "VERIFICATION",
+          "uploadedAt": "2026-01-11T12:00:00Z"
+        }
+      ]
+    }
+  },
+  "GET /admin/user-verifications/:verificationId/audit-logs": {
+    "status": 200,
+    "body": {
+      "items": [
+        {
+          "id": "c9c1d4aa-7db1-4a1b-9e7d-9ac3a9ad1115",
+          "action": "SUBMIT",
+          "reason": "Submitted for review",
+          "operatorName": "System",
+          "createdAt": "2026-01-11T12:30:00Z"
+        }
+      ]
+    }
+  },
+  "GET /admin/cases": {
+    "status": 200,
+    "body": {
+      "items": [
+        {
+          "id": "b0d0e6a7-2ab9-4a32-b3c2-2bba4d24d2de",
+          "title": "Buyer requested refund after deposit",
+          "type": "REFUND",
+          "status": "IN_PROGRESS",
+          "orderId": "e9032d03-9b23-40ba-84a3-ac681f21c41b",
+          "requesterName": "Buyer A",
+          "assigneeId": "cs-001",
+          "assigneeName": "Support-Wang",
+          "priority": "HIGH",
+          "description": "Buyer claims materials are incomplete.",
+          "createdAt": "2026-01-11T08:00:00Z",
+          "updatedAt": "2026-01-11T12:00:00Z",
+          "notes": [
+            {
+              "id": "3e241b5c-9d5c-4d42-95f6-7225a7b2b522",
+              "authorId": "admin-001",
+              "authorName": "Admin",
+              "content": "Contacted buyer, waiting for evidence.",
+              "createdAt": "2026-01-11T10:00:00Z"
+            }
+          ],
+          "evidenceFiles": [
+            {
+              "id": "9a9d97b4-9bf5-4ba9-81ce-7e34c5f3f3be",
+              "name": "evidence.pdf",
+              "url": "https://example.com/evidence/evidence.pdf"
+            }
+          ],
+          "dueAt": "2026-01-15T00:00:00Z",
+          "slaStatus": "ON_TIME"
+        },
+        {
+          "id": "2f3b66b1-3f1f-4b6d-9c3c-6a2b3c4d5e6f",
+          "title": "Audit material missing",
+          "type": "AUDIT_MATERIAL",
+          "status": "WAITING_MATERIAL",
+          "orderId": null,
+          "requesterName": "Ops",
+          "assigneeId": "cs-002",
+          "assigneeName": "Support-Li",
+          "priority": "MEDIUM",
+          "description": "Listing requires ownership proof.",
+          "createdAt": "2026-01-10T08:00:00Z",
+          "updatedAt": "2026-01-10T12:00:00Z",
+          "notes": [],
+          "evidenceFiles": [],
+          "dueAt": "2026-01-13T00:00:00Z",
+          "slaStatus": "ON_TIME"
+        }
+      ],
+      "page": {
+        "page": 1,
+        "pageSize": 20,
+        "total": 2
+      }
+    }
+  },
+  "GET /admin/cases/:caseId": {
+    "status": 200,
+    "body": {
+      "id": "b0d0e6a7-2ab9-4a32-b3c2-2bba4d24d2de",
+      "title": "Buyer requested refund after deposit",
+      "type": "REFUND",
+      "status": "IN_PROGRESS",
+      "orderId": "e9032d03-9b23-40ba-84a3-ac681f21c41b",
+      "requesterName": "Buyer A",
+      "assigneeId": "cs-001",
+      "assigneeName": "Support-Wang",
+      "priority": "HIGH",
+      "description": "Buyer claims materials are incomplete.",
+      "createdAt": "2026-01-11T08:00:00Z",
+      "updatedAt": "2026-01-11T12:00:00Z",
+      "notes": [
+        {
+          "id": "3e241b5c-9d5c-4d42-95f6-7225a7b2b522",
+          "authorId": "admin-001",
+          "authorName": "Admin",
+          "content": "Contacted buyer, waiting for evidence.",
+          "createdAt": "2026-01-11T10:00:00Z"
+        }
+      ],
+      "evidenceFiles": [
+        {
+          "id": "9a9d97b4-9bf5-4ba9-81ce-7e34c5f3f3be",
+          "name": "evidence.pdf",
+          "url": "https://example.com/evidence/evidence.pdf"
+        }
+      ],
+      "dueAt": "2026-01-15T00:00:00Z",
+      "slaStatus": "ON_TIME"
+    }
+  },
+  "POST /admin/cases/:caseId/assign": {
+    "status": 200,
+    "body": {
+      "id": "b0d0e6a7-2ab9-4a32-b3c2-2bba4d24d2de",
+      "title": "Buyer requested refund after deposit",
+      "type": "REFUND",
+      "status": "IN_PROGRESS",
+      "orderId": "e9032d03-9b23-40ba-84a3-ac681f21c41b",
+      "requesterName": "Buyer A",
+      "assigneeId": "cs-001",
+      "assigneeName": "Support-Wang",
+      "priority": "HIGH",
+      "description": "Buyer claims materials are incomplete.",
+      "createdAt": "2026-01-11T08:00:00Z",
+      "updatedAt": "2026-01-11T12:00:00Z",
+      "notes": [
+        {
+          "id": "3e241b5c-9d5c-4d42-95f6-7225a7b2b522",
+          "authorId": "admin-001",
+          "authorName": "Admin",
+          "content": "Contacted buyer, waiting for evidence.",
+          "createdAt": "2026-01-11T10:00:00Z"
+        }
+      ],
+      "evidenceFiles": [
+        {
+          "id": "9a9d97b4-9bf5-4ba9-81ce-7e34c5f3f3be",
+          "name": "evidence.pdf",
+          "url": "https://example.com/evidence/evidence.pdf"
+        }
+      ],
+      "dueAt": "2026-01-15T00:00:00Z",
+      "slaStatus": "ON_TIME"
+    }
+  },
+  "POST /admin/cases/:caseId/evidence": {
+    "status": 200,
+    "body": {
+      "id": "b0d0e6a7-2ab9-4a32-b3c2-2bba4d24d2de",
+      "title": "Buyer requested refund after deposit",
+      "type": "REFUND",
+      "status": "IN_PROGRESS",
+      "orderId": "e9032d03-9b23-40ba-84a3-ac681f21c41b",
+      "requesterName": "Buyer A",
+      "assigneeId": "cs-001",
+      "assigneeName": "Support-Wang",
+      "priority": "HIGH",
+      "description": "Buyer claims materials are incomplete.",
+      "createdAt": "2026-01-11T08:00:00Z",
+      "updatedAt": "2026-01-11T12:00:00Z",
+      "notes": [
+        {
+          "id": "3e241b5c-9d5c-4d42-95f6-7225a7b2b522",
+          "authorId": "admin-001",
+          "authorName": "Admin",
+          "content": "Contacted buyer, waiting for evidence.",
+          "createdAt": "2026-01-11T10:00:00Z"
+        }
+      ],
+      "evidenceFiles": [
+        {
+          "id": "9a9d97b4-9bf5-4ba9-81ce-7e34c5f3f3be",
+          "name": "evidence.pdf",
+          "url": "https://example.com/evidence/evidence.pdf"
+        }
+      ],
+      "dueAt": "2026-01-15T00:00:00Z",
+      "slaStatus": "ON_TIME"
+    }
+  },
+  "POST /admin/cases/:caseId/notes": {
+    "status": 200,
+    "body": {
+      "id": "b0d0e6a7-2ab9-4a32-b3c2-2bba4d24d2de",
+      "title": "Buyer requested refund after deposit",
+      "type": "REFUND",
+      "status": "IN_PROGRESS",
+      "orderId": "e9032d03-9b23-40ba-84a3-ac681f21c41b",
+      "requesterName": "Buyer A",
+      "assigneeId": "cs-001",
+      "assigneeName": "Support-Wang",
+      "priority": "HIGH",
+      "description": "Buyer claims materials are incomplete.",
+      "createdAt": "2026-01-11T08:00:00Z",
+      "updatedAt": "2026-01-11T12:00:00Z",
+      "notes": [
+        {
+          "id": "3e241b5c-9d5c-4d42-95f6-7225a7b2b522",
+          "authorId": "admin-001",
+          "authorName": "Admin",
+          "content": "Contacted buyer, waiting for evidence.",
+          "createdAt": "2026-01-11T10:00:00Z"
+        }
+      ],
+      "evidenceFiles": [
+        {
+          "id": "9a9d97b4-9bf5-4ba9-81ce-7e34c5f3f3be",
+          "name": "evidence.pdf",
+          "url": "https://example.com/evidence/evidence.pdf"
+        }
+      ],
+      "dueAt": "2026-01-15T00:00:00Z",
+      "slaStatus": "ON_TIME"
+    }
+  },
+  "POST /admin/cases/:caseId/sla": {
+    "status": 200,
+    "body": {
+      "id": "b0d0e6a7-2ab9-4a32-b3c2-2bba4d24d2de",
+      "title": "Buyer requested refund after deposit",
+      "type": "REFUND",
+      "status": "IN_PROGRESS",
+      "orderId": "e9032d03-9b23-40ba-84a3-ac681f21c41b",
+      "requesterName": "Buyer A",
+      "assigneeId": "cs-001",
+      "assigneeName": "Support-Wang",
+      "priority": "HIGH",
+      "description": "Buyer claims materials are incomplete.",
+      "createdAt": "2026-01-11T08:00:00Z",
+      "updatedAt": "2026-01-11T12:00:00Z",
+      "notes": [
+        {
+          "id": "3e241b5c-9d5c-4d42-95f6-7225a7b2b522",
+          "authorId": "admin-001",
+          "authorName": "Admin",
+          "content": "Contacted buyer, waiting for evidence.",
+          "createdAt": "2026-01-11T10:00:00Z"
+        }
+      ],
+      "evidenceFiles": [
+        {
+          "id": "9a9d97b4-9bf5-4ba9-81ce-7e34c5f3f3be",
+          "name": "evidence.pdf",
+          "url": "https://example.com/evidence/evidence.pdf"
+        }
+      ],
+      "dueAt": "2026-01-15T00:00:00Z",
+      "slaStatus": "ON_TIME"
+    }
+  },
+  "POST /admin/cases/:caseId/status": {
+    "status": 200,
+    "body": {
+      "id": "b0d0e6a7-2ab9-4a32-b3c2-2bba4d24d2de",
+      "title": "Buyer requested refund after deposit",
+      "type": "REFUND",
+      "status": "IN_PROGRESS",
+      "orderId": "e9032d03-9b23-40ba-84a3-ac681f21c41b",
+      "requesterName": "Buyer A",
+      "assigneeId": "cs-001",
+      "assigneeName": "Support-Wang",
+      "priority": "HIGH",
+      "description": "Buyer claims materials are incomplete.",
+      "createdAt": "2026-01-11T08:00:00Z",
+      "updatedAt": "2026-01-11T12:00:00Z",
+      "notes": [
+        {
+          "id": "3e241b5c-9d5c-4d42-95f6-7225a7b2b522",
+          "authorId": "admin-001",
+          "authorName": "Admin",
+          "content": "Contacted buyer, waiting for evidence.",
+          "createdAt": "2026-01-11T10:00:00Z"
+        }
+      ],
+      "evidenceFiles": [
+        {
+          "id": "9a9d97b4-9bf5-4ba9-81ce-7e34c5f3f3be",
+          "name": "evidence.pdf",
+          "url": "https://example.com/evidence/evidence.pdf"
+        }
+      ],
+      "dueAt": "2026-01-15T00:00:00Z",
+      "slaStatus": "ON_TIME"
+    }
+  },
+  "POST /auth/wechat/phone-bind": {
+    "status": 200,
+    "body": {
+      "phone": "13800000000"
+    }
+  },
+  "GET /notifications": {
+    "status": 200,
+    "body": {
+      "items": [
+        {
+          "id": "6b9a2f1e-45f7-4c2f-9e9f-63b2b87b2a01",
+          "kind": "system",
+          "title": "需求审核通过",
+          "summary": "《锂电池热管理需求》已通过审核，可在平台展示。",
+          "source": "平台审核",
+          "time": "2026-02-10T08:30:00Z"
+        },
+        {
+          "id": "a6f2c31b-0aa9-4fe1-8f04-33bfb6a3c9b8",
+          "kind": "cs",
+          "title": "客服回复",
+          "summary": "客服已回复您的咨询，请查看详情。",
+          "source": "客服中心",
+          "time": "2026-02-09T14:10:00Z"
+        }
+      ],
+      "page": {
+        "page": 1,
+        "pageSize": 20,
+        "total": 2
+      }
+    }
+  },
+  "GET /notifications/:notificationId": {
+    "status": 200,
+    "body": {
+      "id": "6b9a2f1e-45f7-4c2f-9e9f-63b2b87b2a01",
+      "kind": "system",
+      "title": "需求审核通过",
+      "summary": "《锂电池热管理需求》已通过审核，可在平台展示。",
+      "source": "平台审核",
+      "time": "2026-02-10T08:30:00Z"
+    }
   }
 }
-

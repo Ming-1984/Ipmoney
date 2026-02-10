@@ -6,8 +6,8 @@
 - 对齐对象：`apps/client`（小程序/H5）、`apps/admin-web`、`apps/api`
 - 结论（当前）：
   - 前端 P0 页面已对齐骨架与需求；少量交互仍为占位/轻交互。
-  - 后台 P0 页面基本对齐；审核材料/审计日志仍缺后端支撑。
-  - 后端接口 P0 已补齐，但多模块仍为内存/占位实现，需进入持久化与权限/文件流转阶段。
+  - 后台 P0 页面基本对齐；审核材料/审计日志已补齐后端支撑（材料来自文件关联，日志来自 audit_logs）。
+  - 后端接口 P0 已补齐，少量模块仍为占位（cases/rbac/reports），通知中心已接入审核/认证事件，后续补订单类事件即可。
 
 ## 1. 当前实现概览
 
@@ -25,13 +25,13 @@
 - 仪表盘、认证审核、内容审核（专利/需求/成果/书画）
 - 订单管理（列表 + 详情/里程碑）
 - 工单/争议处理（基础页 + 证据上传/SLA 占位）
-- 退款/结算/发票、地图数据、系统配置、技术经理人、评论管理
+- 退款/结算/发票、地图数据（含 Excel 导入）、系统配置、技术经理人、评论管理
 - 报表导出（基础页）
 - 账号权限（RBAC 基础页 + 权限校验/审计占位）
-- 上架审核详情抽屉 + 需求/成果/书画审核详情“材料/审计日志”占位接口已接入
+- 上架审核详情抽屉 + 需求/成果/书画审核详情“材料/审计日志”接口已落库支撑
 
 ### 1.3 后端（api）已实现接口（P0）
-- auth/users/regions/patents/patent-map/files/config
+- auth/users/regions/patents/patent-map（含 Excel 导入）/files/config
 - listings（后台审核/特色置顶 + 前台创建/更新/提交/下架/公开/搜索/我的）
 - orders（创建/列表/详情/支付意图/里程碑/退款/发票/结算放款；列表支持 `statusGroup` 聚合筛选，兼容 `status` 精确筛选优先）
 - conversations/messages（会话/消息/已读）
@@ -39,7 +39,8 @@
 - favorites（收藏/取消收藏/收藏列表）
 - demands/achievements/artworks（发布/编辑/提交/下架/公开详情/搜索/后台审核）
 - announcements/notifications（公开公告/通知）
-- contracts（合同中心列表/上传演示：仅卖家可上传合同 PDF；生产需补齐文件权限/落库/审计）
+  - 通知中心已由 /notifications 提供真实数据（内容审核/认证审核事件）
+- contracts（合同中心列表/上传已落库；仅卖家可上传合同 PDF；仍需补齐文件权限/审计）
 - organizations/tech-managers/inventors（机构/技术经理人/发明人榜）
 - addresses（地址管理）
 - verification（/me/verification 提交 + /admin/user-verifications 审核）
@@ -48,49 +49,52 @@
 - reports（报表统计/导出，占位）
 
 ### 1.4 当前实现形态说明
-- 部分模块为**内存/占位实现**（非持久化），用于前后端联调与流程对齐：
-  demands/achievements/artworks、comments、favorites、organizations/tech-managers/inventors、notifications、announcements、contracts、addresses 等。
+- demands/achievements/artworks/favorites 已落库（Prisma），接口保持不变。
+- 部分模块仍缺少专表：organizations 依托 user_verifications 统计展示；tech-managers 已新增 profile 表支撑配置与统计。
+- announcements/notifications/addresses/comments 已落库（Prisma），接口保持不变。
+- inventors 发明人榜已改为基于专利/上架的数据库统计。
+- conversations 已改为 contentType/contentId 统一落库（listing/demand/achievement/artwork/tech-manager），不再使用虚拟会话占位。
+- 文件下载权限已扩展：合同/发票/公开内容封面与媒体允许关联用户访问；仍需补齐更细粒度审计与证据链路。
+- 审核材料已改为基于文件/证据字段聚合；审核日志已改为基于 audit_logs。
+- 发票已支持后台上传/替换/删除，订单发票查询无文件时返回 404。
 - 需后续按数据库模型做**持久化落库**与权限/文件流转完善。
 
-## 2. 发现的“文档缺口/需补齐”
+## 2. 文档层对齐结论（已定稿/仍需执行）
 
-> 说明：以下为对齐过程发现仍需补齐或定稿的文档层任务；引用详见 `docs/TODO.md`、`docs/todo-demand-achievement.md`、`docs/ui-v2-todo.md`。
+> 说明：以下为已定稿与仍需执行的文档/契约结论；引用详见 `docs/TODO.md`、`docs/todo-demand-achievement.md`、`docs/ui-v2-todo.md`。
 
-- 渠道与范围定稿：PC 网页范围与交付边界仍需明确（`docs/TODO.md` §1）。
-- 数据模型与 ER 定稿：核心交易模型/状态机与落库字段需成文（`docs/TODO.md` §3）。
-- OpenAPI 统一规范：契约与字段一致性审计未完成（`docs/TODO.md` §4、§14）。
-- 架构图/流程图：对外演示与验收所需图例尚未定稿（`docs/TODO.md` §5、§8）。
-- 文件/对象存储规范：合同/发票/材料附件的上传、权限与留存规范未成文（`docs/TODO.md` §7.4、§7.12、§7.13）。
-- UI v2 体系文档：P0 公共能力与模板接入需确认后落地（`docs/ui-v2-todo.md`）。
+- 已定稿：P0 范围与渠道（小程序 + 用户 H5 + 管理后台）、NFR/合规基线、关键业务规则（订金/退款/结算/交付）。
+- 已补齐：架构图/流程图/ER/OpenAPI 文档清单与内容。
+- 已明确：外部数据源 **P1 预留**，P0 不接入；H5 支付仅引导回小程序。
+- 仍需执行（实现层）：OpenAPI 与 ER 对应字段的落库与权限/文件流转实现；UI v2 体系按 `docs/ui-v2-todo.md` 推进。
 
 ## 3. 仍需补齐/优化（面向实现）
 
 ### 3.1 前端（小程序/H5）
-- H5 下单支付仍为“引导回小程序”，若需 H5 支付需补充合规方案
-- 资料设置/地址管理目前前端为占位或轻交互，需与后端持久化打通
+- 地址管理已对接列表/新增/编辑/删除/设默认（与后端 CRUD 对齐）
 
 ### 3.2 管理后台（admin-web）
-- 审核材料/审计日志需后端持久化与文件关联支持
+- 审核材料/审计日志已由后端持久化与文件关联支撑（仍可优化材料上传与权限）
 
 ### 3.3 后端（api）
-- 内存模块需落库与权限完善（见第 4 节待办）
-- 通知中心真实数据来源、合同/发票真实文件上传与权限控制
+  - 少量模块仍为占位（cases/rbac/reports），其余已落库（公告/通知/地址/评论/需求/成果/书画/收藏等）
+  - 通知中心已接入内容审核/认证审核事件；合同/发票已支持文件上传/下载与权限，仍需更细粒度审计/水印/临时 URL
 
 ## 4. 详细 TODO（按优先级）
 
 ### 4.1 P0（必须先完成，进入后端正式开发）
 - [ ] **数据模型与落库**：完成核心实体 ER/字段/状态机定稿（用户/认证、专利/需求/成果/书画、订单/支付/退款/结算、消息/通知、收藏/评论/地址）。参考 `docs/TODO.md` §3、`docs/todo-demand-achievement.md` §3
 - [ ] **OpenAPI 契约**：补齐所有 P0 接口的字段对齐与枚举统一，形成可审计的接口文档。参考 `docs/TODO.md` §4、§14
-- [ ] **内存模块落库**：demands/achievements/artworks/comments/favorites/organizations/tech-managers/inventors/addresses/notifications/announcements/contracts 持久化与权限补齐
-- [ ] **文件/附件链路**：合同/发票/审核材料/权属证明等文件上传、访问控制、下载留存（含 audit 记录）
-- [ ] **审核与审计日志**：后台审核材料与审计日志字段/接口/展示打通
+- [x] **内存模块落库**：demands/achievements/artworks/favorites/inventors/contracts 已完成；organizations 统计落库使用现有表，tech-managers 已补 profile 表
+- [ ] **文件/附件链路**：合同/发票/审核材料已可上传与访问控制；仍需补齐下载留痕、临时 URL、水印与更细粒度权限（含 audit 记录）
+- [x] **审核与审计日志**：后台审核材料与审计日志字段/接口/展示已打通（材料来源文件关联，日志来源 audit_logs）
 - [ ] **支付与订单**：支付意图与回调、退款/争议、结算放款与发票出具字段落库与状态机一致
-- [ ] **地址/资料设置打通**：前端资料设置与地址管理完成 CRUD 与校验
-- [ ] **通知中心真实数据源**：替换占位数据，接入业务事件
+- [x] **地址/资料设置打通**：前端资料设置与地址管理完成 CRUD 与校验
+- [x] **通知中心真实数据源**：替换占位数据，接入审核/认证事件（订单类事件可后补）
 
 ### 4.2 P0（前端对齐/收口）
-- [ ] **专利发布补充字段结构化**：当前“【补充信息】”需映射到正式字段
-- [ ] **H5 支付方案确认**：是否需要 H5 支付/合规通道，或维持跳转小程序
+- [x] **专利发布补充字段结构化**：schema/迁移/接口/fixtures 已补齐（deliverables/expectedCompletion/negotiable/质押/许可现状）；前端如仍用摘要兜底需改用结构化字段
+- [x] **H5 支付方案确认**：维持“引导回小程序支付”，不做 H5 内发起支付
 - [ ] **字段命名与枚举统一**：status/auditStatus/verificationStatus 等跨端一致
 
 ### 4.3 P1（可后置，不阻塞 P0）

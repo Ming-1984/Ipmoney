@@ -75,6 +75,9 @@ enum PatentPartyRole {
 
 enum FileOwnerScope {
   LISTING
+  DEMAND
+  ACHIEVEMENT
+  ARTWORK
   CASE
   REFUND_REQUEST
   INVOICE
@@ -112,15 +115,85 @@ enum ListingStatus {
   SOLD
 }
 
+enum ContentStatus {
+  DRAFT
+  ACTIVE
+  OFF_SHELF
+}
+
+enum ArtworkStatus {
+  DRAFT
+  ACTIVE
+  OFF_SHELF
+  SOLD
+}
+
 enum FeaturedLevel {
   NONE
   CITY
   PROVINCE
 }
 
+enum PledgeStatus {
+  NONE
+  PLEDGED
+  UNKNOWN
+}
+
+enum ExistingLicenseStatus {
+  NONE
+  EXCLUSIVE
+  SOLE
+  NON_EXCLUSIVE
+  UNKNOWN
+}
+
 enum ListingMediaType {
   IMAGE
   FILE
+}
+
+enum ContentMediaType {
+  IMAGE
+  VIDEO
+  FILE
+}
+
+enum ArtworkCategory {
+  CALLIGRAPHY
+  PAINTING
+}
+
+enum CalligraphyScript {
+  KAISHU
+  XINGSHU
+  CAOSHU
+  LISHU
+  ZHUANSHU
+}
+
+enum PaintingGenre {
+  FIGURE
+  LANDSCAPE
+  BIRD_FLOWER
+  OTHER
+}
+
+enum AchievementMaturity {
+  CONCEPT
+  PROTOTYPE
+  PILOT
+  MASS_PRODUCTION
+  COMMERCIALIZED
+  OTHER
+}
+
+enum DeliveryPeriod {
+  WITHIN_1_MONTH
+  MONTH_1_3
+  MONTH_3_6
+  OVER_6_MONTHS
+  OTHER
 }
 
 enum ListingAuditAction {
@@ -136,9 +209,42 @@ enum ConsultChannel {
 
 enum ConversationMessageType {
   TEXT
+  EMOJI
   IMAGE
   FILE
   SYSTEM
+}
+
+enum ConversationContentType {
+  LISTING
+  DEMAND
+  ACHIEVEMENT
+  ARTWORK
+  TECH_MANAGER
+}
+
+enum ContractStatus {
+  WAIT_UPLOAD
+  WAIT_CONFIRM
+  AVAILABLE
+}
+
+enum NotificationKind {
+  system
+  cs
+}
+
+enum CommentContentType {
+  LISTING
+  DEMAND
+  ACHIEVEMENT
+  ARTWORK
+}
+
+enum CommentStatus {
+  VISIBLE
+  HIDDEN
+  DELETED
 }
 
 enum PaymentType {
@@ -211,6 +317,7 @@ model User {
 
   verifications         UserVerification[] @relation("UserVerification_User")
   reviewedVerifications UserVerification[] @relation("UserVerification_Reviewer")
+  techManagerProfile    TechManagerProfile?
 
   listings       Listing[] @relation("Listing_Seller")
   orders         Order[]   @relation("Order_Buyer")
@@ -220,17 +327,110 @@ model User {
   listingFavorites     ListingFavorite[]
   listingConsultEvents ListingConsultEvent[]
   userTagScores        UserTagScore[]
+  demands              Demand[]              @relation("Demand_Publisher")
+  achievements         Achievement[]         @relation("Achievement_Publisher")
+  artworks             Artwork[]             @relation("Artwork_Seller")
+  demandFavorites      DemandFavorite[]
+  achievementFavorites AchievementFavorite[]
+  artworkFavorites     ArtworkFavorite[]
 
   conversationsAsBuyer     Conversation[]            @relation("Conversation_Buyer")
   conversationsAsSeller    Conversation[]            @relation("Conversation_Seller")
   conversationParticipants ConversationParticipant[]
   sentMessages             ConversationMessage[]     @relation("ConversationMessage_Sender")
+  notifications            Notification[]
+  addresses                Address[]
+  comments                 Comment[]
 
   csCases              CsCase[]       @relation("CsCase_Cs")
   systemConfigsUpdated SystemConfig[] @relation("SystemConfig_UpdatedBy")
   auditLogs            AuditLog[]     @relation("AuditLog_Actor")
 
   @@map("users")
+}
+
+model TechManagerProfile {
+  userId         String   @id @map("user_id") @db.Uuid
+  intro          String?
+  serviceTagsJson Json?   @map("service_tags_json")
+  featuredRank   Int?     @map("featured_rank")
+  featuredUntil  DateTime? @map("featured_until")
+  consultCount   Int      @default(0) @map("consult_count")
+  dealCount      Int      @default(0) @map("deal_count")
+  ratingScore    Float    @default(0) @map("rating_score")
+  ratingCount    Int      @default(0) @map("rating_count")
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@index([featuredRank])
+  @@map("tech_manager_profiles")
+}
+
+model Announcement {
+  id        String   @id @default(uuid()) @db.Uuid
+  title     String
+  summary   String?
+  content   String?
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("announcements")
+}
+
+model Notification {
+  id        String           @id @default(uuid()) @db.Uuid
+  userId    String           @map("user_id") @db.Uuid
+  kind      NotificationKind
+  title     String
+  summary   String
+  source    String
+  readAt    DateTime?        @map("read_at")
+  createdAt DateTime         @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@index([userId, createdAt])
+  @@map("notifications")
+}
+
+model Address {
+  id          String   @id @default(uuid()) @db.Uuid
+  userId      String   @map("user_id") @db.Uuid
+  name        String
+  phone       String
+  regionCode  String?  @map("region_code")
+  addressLine String   @map("address_line")
+  isDefault   Boolean  @default(false) @map("is_default")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@index([userId, createdAt])
+  @@map("addresses")
+}
+
+model Comment {
+  id              String             @id @default(uuid()) @db.Uuid
+  contentType     CommentContentType @map("content_type")
+  contentId       String             @map("content_id") @db.Uuid
+  parentCommentId String?            @map("parent_comment_id") @db.Uuid
+  userId          String             @map("user_id") @db.Uuid
+  text            String
+  status          CommentStatus      @default(VISIBLE)
+  createdAt       DateTime           @default(now()) @map("created_at")
+  updatedAt       DateTime           @updatedAt @map("updated_at")
+
+  user    User     @relation(fields: [userId], references: [id])
+  parent  Comment? @relation("CommentParent", fields: [parentCommentId], references: [id])
+  replies Comment[] @relation("CommentParent")
+
+  @@index([contentType, contentId, createdAt])
+  @@index([userId, createdAt])
+  @@index([status, createdAt])
+  @@map("comments")
 }
 
 model Region {
@@ -248,6 +448,9 @@ model Region {
 
   users            User[]
   listings         Listing[]
+  demands          Demand[]
+  achievements     Achievement[]
+  artworks         Artwork[]
   verifications    UserVerification[]
   patentMapEntries PatentMapEntry[]
 
@@ -393,11 +596,18 @@ model File {
   createdAt  DateTime       @default(now()) @map("created_at")
 
   listingMedia       ListingMedia[]
+  demandMedia        DemandMedia[]      @relation("DemandMedia_File")
+  achievementMedia   AchievementMedia[] @relation("AchievementMedia_File")
+  artworkMedia       ArtworkMedia[]     @relation("ArtworkMedia_File")
   messageAttachments ConversationMessage[]
   milestoneEvidence  CsMilestone[]
   settlementEvidence Settlement[]
   invoiceOrders      Order[]
+  contractFiles      Contract[]         @relation("Contract_File")
   verificationLogos  UserVerification[]    @relation("UserVerification_LogoFile")
+  demandCovers       Demand[]           @relation("Demand_CoverFile")
+  achievementCovers  Achievement[]      @relation("Achievement_CoverFile")
+  artworkCovers      Artwork[]          @relation("Artwork_CoverFile")
 
   @@index([ownerScope, ownerId])
   @@map("files")
@@ -415,6 +625,14 @@ model Listing {
   priceType          PriceType        @map("price_type")
   priceAmount        Int?             @map("price_amount")
   depositAmount      Int              @map("deposit_amount")
+  deliverablesJson   Json?            @map("deliverables_json")
+  expectedCompletionDays Int?         @map("expected_completion_days")
+  negotiableRangeFen Int?             @map("negotiable_range_fen")
+  negotiableRangePercent Float?       @map("negotiable_range_percent")
+  negotiableNote     String?          @map("negotiable_note")
+  pledgeStatus       PledgeStatus?    @map("pledge_status")
+  existingLicenseStatus ExistingLicenseStatus? @map("existing_license_status")
+  encumbranceNote    String?          @map("encumbrance_note")
   regionCode         String?          @map("region_code")
   industryTagsJson   Json?            @map("industry_tags_json")
   listingTopicsJson  Json?            @map("listing_topics_json")
@@ -515,6 +733,239 @@ model ListingConsultEvent {
   @@map("listing_consult_events")
 }
 
+model Demand {
+  id                   String         @id @default(uuid()) @db.Uuid
+  publisherUserId      String         @map("publisher_user_id") @db.Uuid
+  source               ContentSource  @default(USER) @map("source")
+  title                String
+  summary              String?
+  description          String?
+  keywordsJson         Json?          @map("keywords_json")
+  deliveryPeriod       DeliveryPeriod? @map("delivery_period")
+  cooperationModesJson Json?          @map("cooperation_modes_json")
+  budgetType           PriceType?     @map("budget_type")
+  budgetMinFen         Int?           @map("budget_min_fen")
+  budgetMaxFen         Int?           @map("budget_max_fen")
+  contactName          String?        @map("contact_name")
+  contactTitle         String?        @map("contact_title")
+  contactPhoneMasked   String?        @map("contact_phone_masked")
+  coverFileId          String?        @map("cover_file_id") @db.Uuid
+  regionCode           String?        @map("region_code")
+  industryTagsJson     Json?          @map("industry_tags_json")
+  auditStatus          AuditStatus    @default(PENDING) @map("audit_status")
+  status               ContentStatus  @default(DRAFT)
+  createdAt            DateTime       @default(now()) @map("created_at")
+  updatedAt            DateTime       @updatedAt @map("updated_at")
+
+  publisher User   @relation("Demand_Publisher", fields: [publisherUserId], references: [id])
+  region    Region? @relation(fields: [regionCode], references: [code])
+  coverFile File?  @relation("Demand_CoverFile", fields: [coverFileId], references: [id])
+
+  media     DemandMedia[]
+  favorites DemandFavorite[]
+  stats     DemandStats?
+
+  @@index([publisherUserId, createdAt])
+  @@index([auditStatus, status])
+  @@index([status, auditStatus, createdAt])
+  @@index([regionCode])
+  @@map("demands")
+}
+
+model DemandMedia {
+  id       String           @id @default(uuid()) @db.Uuid
+  demandId String           @map("demand_id") @db.Uuid
+  fileId   String           @map("file_id") @db.Uuid
+  type     ContentMediaType
+  sort     Int              @default(0)
+
+  demand Demand @relation(fields: [demandId], references: [id])
+  file   File   @relation("DemandMedia_File", fields: [fileId], references: [id])
+
+  @@index([demandId, sort])
+  @@map("demand_media")
+}
+
+model DemandFavorite {
+  id        String   @id @default(uuid()) @db.Uuid
+  demandId  String   @map("demand_id") @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at")
+
+  demand Demand @relation(fields: [demandId], references: [id])
+  user   User   @relation(fields: [userId], references: [id])
+
+  @@unique([demandId, userId])
+  @@map("demand_favorites")
+}
+
+model DemandStats {
+  demandId      String   @id @map("demand_id") @db.Uuid
+  viewCount     Int      @default(0) @map("view_count")
+  favoriteCount Int      @default(0) @map("favorite_count")
+  consultCount  Int      @default(0) @map("consult_count")
+  commentCount  Int      @default(0) @map("comment_count")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  demand Demand @relation(fields: [demandId], references: [id])
+
+  @@map("demand_stats")
+}
+
+model Achievement {
+  id                   String              @id @default(uuid()) @db.Uuid
+  publisherUserId      String              @map("publisher_user_id") @db.Uuid
+  source               ContentSource       @default(USER) @map("source")
+  title                String
+  summary              String?
+  description          String?
+  keywordsJson         Json?               @map("keywords_json")
+  maturity             AchievementMaturity?
+  cooperationModesJson Json?               @map("cooperation_modes_json")
+  coverFileId          String?             @map("cover_file_id") @db.Uuid
+  regionCode           String?             @map("region_code")
+  industryTagsJson     Json?               @map("industry_tags_json")
+  auditStatus          AuditStatus         @default(PENDING) @map("audit_status")
+  status               ContentStatus       @default(DRAFT)
+  createdAt            DateTime            @default(now()) @map("created_at")
+  updatedAt            DateTime            @updatedAt @map("updated_at")
+
+  publisher User   @relation("Achievement_Publisher", fields: [publisherUserId], references: [id])
+  region    Region? @relation(fields: [regionCode], references: [code])
+  coverFile File?  @relation("Achievement_CoverFile", fields: [coverFileId], references: [id])
+
+  media     AchievementMedia[]
+  favorites AchievementFavorite[]
+  stats     AchievementStats?
+
+  @@index([publisherUserId, createdAt])
+  @@index([auditStatus, status])
+  @@index([status, auditStatus, createdAt])
+  @@index([regionCode])
+  @@map("achievements")
+}
+
+model AchievementMedia {
+  id            String           @id @default(uuid()) @db.Uuid
+  achievementId String           @map("achievement_id") @db.Uuid
+  fileId        String           @map("file_id") @db.Uuid
+  type          ContentMediaType
+  sort          Int              @default(0)
+
+  achievement Achievement @relation(fields: [achievementId], references: [id])
+  file        File        @relation("AchievementMedia_File", fields: [fileId], references: [id])
+
+  @@index([achievementId, sort])
+  @@map("achievement_media")
+}
+
+model AchievementFavorite {
+  id             String   @id @default(uuid()) @db.Uuid
+  achievementId  String   @map("achievement_id") @db.Uuid
+  userId         String   @map("user_id") @db.Uuid
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  achievement Achievement @relation(fields: [achievementId], references: [id])
+  user        User        @relation(fields: [userId], references: [id])
+
+  @@unique([achievementId, userId])
+  @@map("achievement_favorites")
+}
+
+model AchievementStats {
+  achievementId  String   @id @map("achievement_id") @db.Uuid
+  viewCount      Int      @default(0) @map("view_count")
+  favoriteCount  Int      @default(0) @map("favorite_count")
+  consultCount   Int      @default(0) @map("consult_count")
+  commentCount   Int      @default(0) @map("comment_count")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  achievement Achievement @relation(fields: [achievementId], references: [id])
+
+  @@map("achievement_stats")
+}
+
+model Artwork {
+  id                    String           @id @default(uuid()) @db.Uuid
+  sellerUserId          String           @map("seller_user_id") @db.Uuid
+  source                ContentSource    @default(USER) @map("source")
+  title                 String
+  description           String?
+  category              ArtworkCategory
+  calligraphyScript     CalligraphyScript?
+  paintingGenre         PaintingGenre?
+  creatorName           String           @map("creator_name")
+  creationDate          DateTime?        @map("creation_date") @db.Date
+  creationYear          Int?             @map("creation_year")
+  certificateNo         String?          @map("certificate_no")
+  certificateFileIdsJson Json?           @map("certificate_file_ids_json")
+  priceType             PriceType        @map("price_type")
+  priceAmountFen        Int?             @map("price_amount_fen")
+  depositAmountFen      Int              @default(0) @map("deposit_amount_fen")
+  regionCode            String?          @map("region_code")
+  material              String?
+  size                  String?
+  coverFileId           String?          @map("cover_file_id") @db.Uuid
+  auditStatus           AuditStatus      @default(PENDING) @map("audit_status")
+  status                ArtworkStatus    @default(DRAFT)
+  createdAt             DateTime         @default(now()) @map("created_at")
+  updatedAt             DateTime         @updatedAt @map("updated_at")
+
+  seller   User   @relation("Artwork_Seller", fields: [sellerUserId], references: [id])
+  region   Region? @relation(fields: [regionCode], references: [code])
+  coverFile File?  @relation("Artwork_CoverFile", fields: [coverFileId], references: [id])
+
+  media     ArtworkMedia[]
+  favorites ArtworkFavorite[]
+  stats     ArtworkStats?
+
+  @@index([sellerUserId, createdAt])
+  @@index([auditStatus, status])
+  @@index([status, auditStatus, createdAt])
+  @@index([regionCode])
+  @@map("artworks")
+}
+
+model ArtworkMedia {
+  id        String           @id @default(uuid()) @db.Uuid
+  artworkId String           @map("artwork_id") @db.Uuid
+  fileId    String           @map("file_id") @db.Uuid
+  type      ContentMediaType
+  sort      Int              @default(0)
+
+  artwork Artwork @relation(fields: [artworkId], references: [id])
+  file    File    @relation("ArtworkMedia_File", fields: [fileId], references: [id])
+
+  @@index([artworkId, sort])
+  @@map("artwork_media")
+}
+
+model ArtworkFavorite {
+  id        String   @id @default(uuid()) @db.Uuid
+  artworkId String   @map("artwork_id") @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at")
+
+  artwork Artwork @relation(fields: [artworkId], references: [id])
+  user    User    @relation(fields: [userId], references: [id])
+
+  @@unique([artworkId, userId])
+  @@map("artwork_favorites")
+}
+
+model ArtworkStats {
+  artworkId     String   @id @map("artwork_id") @db.Uuid
+  viewCount     Int      @default(0) @map("view_count")
+  favoriteCount Int      @default(0) @map("favorite_count")
+  consultCount  Int      @default(0) @map("consult_count")
+  commentCount  Int      @default(0) @map("comment_count")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  artwork Artwork @relation(fields: [artworkId], references: [id])
+
+  @@map("artwork_stats")
+}
+
 model UserTagScore {
   id        String   @id @default(uuid()) @db.Uuid
   userId    String   @map("user_id") @db.Uuid
@@ -554,14 +1005,34 @@ model Order {
   csCases        CsCase[]
   settlement     Settlement?
   conversations  Conversation[]
+  contract      Contract?
 
   @@index([status, createdAt])
   @@map("orders")
 }
 
+model Contract {
+  orderId        String         @id @map("order_id") @db.Uuid
+  status         ContractStatus @default(WAIT_UPLOAD)
+  contractFileId String?        @map("contract_file_id") @db.Uuid
+  fileUrl        String?        @map("file_url")
+  uploadedAt     DateTime?      @map("uploaded_at")
+  signedAt       DateTime?      @map("signed_at")
+  watermarkOwner String?        @map("watermark_owner")
+  createdAt      DateTime       @default(now()) @map("created_at")
+  updatedAt      DateTime       @updatedAt @map("updated_at")
+
+  order        Order @relation(fields: [orderId], references: [id])
+  contractFile File? @relation("Contract_File", fields: [contractFileId], references: [id])
+
+  @@map("contracts")
+}
+
 model Conversation {
   id            String    @id @default(uuid()) @db.Uuid
-  listingId     String    @map("listing_id") @db.Uuid
+  contentType   ConversationContentType @map("content_type")
+  contentId     String    @map("content_id") @db.Uuid
+  listingId     String?   @map("listing_id") @db.Uuid
   orderId       String?   @map("order_id") @db.Uuid
   buyerUserId   String    @map("buyer_user_id") @db.Uuid
   sellerUserId  String    @map("seller_user_id") @db.Uuid
@@ -569,15 +1040,16 @@ model Conversation {
   createdAt     DateTime  @default(now()) @map("created_at")
   updatedAt     DateTime  @updatedAt @map("updated_at")
 
-  listing Listing @relation(fields: [listingId], references: [id])
-  order   Order?  @relation(fields: [orderId], references: [id])
-  buyer   User    @relation("Conversation_Buyer", fields: [buyerUserId], references: [id])
-  seller  User    @relation("Conversation_Seller", fields: [sellerUserId], references: [id])
+  listing Listing? @relation(fields: [listingId], references: [id])
+  order   Order?   @relation(fields: [orderId], references: [id])
+  buyer   User     @relation("Conversation_Buyer", fields: [buyerUserId], references: [id])
+  seller  User     @relation("Conversation_Seller", fields: [sellerUserId], references: [id])
 
   participants ConversationParticipant[]
   messages     ConversationMessage[]
 
   @@index([listingId, updatedAt])
+  @@index([contentType, contentId, updatedAt])
   @@map("conversations")
 }
 

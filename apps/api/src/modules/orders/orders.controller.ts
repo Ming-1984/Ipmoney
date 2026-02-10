@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Post, Query, Req, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, HttpCode, Param, Post, Put, Query, Req, UseGuards } from '@nestjs/common';
 
 import { BearerAuthGuard } from '../../common/guards/bearer-auth.guard';
 import { VerifiedUserGuard } from '../../common/guards/verified-user.guard';
@@ -113,6 +113,21 @@ export class OrdersController {
   async adminIssueInvoice(@Req() req: any, @Param('orderId') orderId: string, @Body() body: any) {
     requirePermission(req, 'invoice.manage');
     return await this.orders.adminIssueInvoice(req, orderId, body || {});
+  }
+
+  @UseGuards(BearerAuthGuard)
+  @Put('/admin/orders/:orderId/invoice')
+  async adminUpsertInvoice(@Req() req: any, @Param('orderId') orderId: string, @Body() body: any) {
+    requirePermission(req, 'invoice.manage');
+    return await this.orders.adminUpsertOrderInvoice(req, orderId, body || {});
+  }
+
+  @UseGuards(BearerAuthGuard)
+  @Delete('/admin/orders/:orderId/invoice')
+  @HttpCode(204)
+  async adminDeleteInvoice(@Req() req: any, @Param('orderId') orderId: string) {
+    requirePermission(req, 'invoice.manage');
+    await this.orders.adminDeleteOrderInvoice(req, orderId);
   }
 
   @UseGuards(BearerAuthGuard)

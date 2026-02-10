@@ -8,7 +8,7 @@ import {
 
 import { AuditLogService } from '../../common/audit-log.service';
 import { PrismaService } from '../../common/prisma/prisma.service';
-import { addAuditLog } from '../audit-store';
+import { NotificationsService } from '../notifications/notifications.service';
 
 const DEMO_USER_ID = '99999999-9999-9999-9999-999999999999';
 
@@ -76,7 +76,11 @@ export type UserVerificationSubmitRequestDto = {
 
 @Injectable()
 export class UsersService {
-  constructor(private readonly prisma: PrismaService, private readonly audit: AuditLogService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly audit: AuditLogService,
+    private readonly notifications: NotificationsService,
+  ) {}
 
   async getUserProfileById(userId: string): Promise<UserProfileDto> {
     const userRecord =
@@ -231,6 +235,14 @@ export class UsersService {
       include: { logoFile: true },
     });
 
+    void this.audit.log({
+      actorUserId: userId,
+      action: 'VERIFICATION_SUBMIT',
+      targetType: 'USER_VERIFICATION',
+      targetId: created.id,
+      afterJson: { status: created.verificationStatus },
+    });
+
     return this.toUserVerificationDto(created);
   }
 
@@ -283,7 +295,12 @@ export class UsersService {
       data,
       include: { logoFile: true },
     });
-    addAuditLog('VERIFICATION', id, 'APPROVE', comment);
+    await this.notifications.create({
+      userId: updated.userId,
+      title: '认证审核通过',
+      summary: `${updated.displayName || '主体'}认证已通过审核，可正常发布与交易。`,
+      source: '平台审核',
+    });
     await this.audit.log({
       actorUserId: reviewerId || updated.userId,
       action: 'VERIFICATION_APPROVE',
@@ -311,7 +328,12 @@ export class UsersService {
       data,
       include: { logoFile: true },
     });
-    addAuditLog('VERIFICATION', id, 'REJECT', trimmedReason);
+    await this.notifications.create({
+      userId: updated.userId,
+      title: '认证审核驳回',
+      summary: `${updated.displayName || '主体'}认证审核未通过${trimmedReason ? `，原因：${trimmedReason}` : '，请修改后重新提交'}。`,
+      source: '平台审核',
+    });
     await this.audit.log({
       actorUserId: reviewerId || updated.userId,
       action: 'VERIFICATION_REJECT',

@@ -2,15 +2,18 @@ import { Body, Controller, Get, Inject, Param, Patch, Post, Put, Query, Req, Use
 
 import { BearerAuthGuard } from '../../common/guards/bearer-auth.guard';
 import { VerifiedUserGuard } from '../../common/guards/verified-user.guard';
+import { ContentAuditService } from '../../common/content-audit.service';
 import { requirePermission } from '../../common/permissions';
-import { getAuditLogs, getAuditMaterials } from '../audit-store';
 import { ListingsService } from './listings.service';
 
 type ListingsServiceApi = ListingsService & Record<string, any>;
 
 @Controller()
 export class ListingsController {
-  constructor(@Inject(ListingsService) private readonly listings: ListingsServiceApi) {}
+  constructor(
+    @Inject(ListingsService) private readonly listings: ListingsServiceApi,
+    private readonly contentAudit: ContentAuditService,
+  ) {}
 
   @UseGuards(BearerAuthGuard)
   @Get('/admin/listings')
@@ -111,7 +114,7 @@ export class ListingsController {
   async getMaterials(@Req() req: any, @Param('listingId') listingId: string) {
     this.listings.ensureAdmin(req);
     requirePermission(req, 'listing.read');
-    return { items: getAuditMaterials('LISTING', listingId) };
+    return await this.contentAudit.listMaterials('LISTING', listingId);
   }
 
   @UseGuards(BearerAuthGuard)
@@ -119,7 +122,7 @@ export class ListingsController {
   async getAuditLogs(@Req() req: any, @Param('listingId') listingId: string) {
     this.listings.ensureAdmin(req);
     requirePermission(req, 'auditLog.read');
-    return { items: getAuditLogs('LISTING', listingId) };
+    return await this.contentAudit.listLogs('LISTING', listingId);
   }
 
   @UseGuards(BearerAuthGuard)

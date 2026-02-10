@@ -1,0 +1,31 @@
+.address-edit-page {
+  .address-form-card {
+    display: flex;
+    flex-direction: column;
+    gap: 20rpx;
+  }
+
+  .form-field {
+    display: flex;
+    flex-direction: column;
+    gap: 12rpx;
+  }
+
+  .form-label {
+    font-size: 26rpx;
+    color: #475569;
+  }
+
+  .form-switch {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .address-form-actions {
+    margin-top: 24rpx;
+    display: flex;
+    flex-direction: column;
+    gap: 12rpx;
+  }
+}
