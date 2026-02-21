@@ -114,7 +114,7 @@ function collectUsedApiKeys({ rootDir, mode }) {
   const apiCallRe = new RegExp(
     '\\b(' +
       apiNames.join('|') +
-      ')\\s*(?:<[^>]*>)?\\s*\\(\\s*([\"\'`])([^\"\'`]+?)\\2',
+      ')\\s*(?:<[^>]*>(?:\\s*>)*\\s*)?\\(\\s*([\"\'`])([^\"\'`]+?)\\2',
     'g',
   );
 
@@ -197,6 +197,13 @@ function mdBool(v) {
   return v ? '✓' : '';
 }
 
+function applyDerivedFileUsage(used) {
+  if (used.has('POST /files/:param/temporary-access')) {
+    used.add('GET /files/:param');
+    used.add('GET /files/:param/preview');
+  }
+}
+
 function writeReport({ operations, clientUsed, adminUsed, fixtures }) {
   const openapiKeySet = new Set(operations.map((op) => keyOf(op.method, op.pathNorm)));
 
@@ -224,9 +231,9 @@ function writeReport({ operations, clientUsed, adminUsed, fixtures }) {
     .filter((s) => fixtures.byScenario.has(s));
 
   const lines = [];
-  lines.push('# OpenAPI × 前端 × Mock 覆盖报告（自动生成）');
+  lines.push('# OpenAPI 前端 / Mock 覆盖报告（自动生成）');
   lines.push('');
-  lines.push('> 由 `scripts/audit-coverage.mjs` 生成；用于 #14 覆盖度审计与防遗漏。');
+  lines.push('> 由 `scripts/audit-coverage.mjs` 生成；用于覆盖度审计与防遗忘。');
   lines.push('');
   lines.push('## 1. 汇总');
   lines.push('');
@@ -236,22 +243,22 @@ function writeReport({ operations, clientUsed, adminUsed, fixtures }) {
   lines.push(`- fixtures 场景数：${fixtures.byScenario.size}`);
   lines.push('');
 
-  lines.push('## 2. 关键差异（需要人工确认/回填）');
+  lines.push('## 2. 关键差异（需人工确认与回填）');
   lines.push('');
   lines.push(`- 前端使用但 OpenAPI 未定义：${usedNotInOpenapi.length}`);
   if (usedNotInOpenapi.length) {
     for (const k of usedNotInOpenapi.slice(0, 50)) lines.push(`  - ${k}`);
-    if (usedNotInOpenapi.length > 50) lines.push(`  - …（其余 ${usedNotInOpenapi.length - 50} 条略）`);
+    if (usedNotInOpenapi.length > 50) lines.push(`  - ...（其余 ${usedNotInOpenapi.length - 50} 条略）`);
   }
   lines.push(`- OpenAPI 定义但前端未使用：${unusedOps.length}`);
   if (unusedOps.length) {
     for (const k of unusedOps.slice(0, 50)) lines.push(`  - ${k}`);
-    if (unusedOps.length > 50) lines.push(`  - …（其余 ${unusedOps.length - 50} 条略）`);
+    if (unusedOps.length > 50) lines.push(`  - ...（其余 ${unusedOps.length - 50} 条略）`);
   }
   lines.push(`- 前端已使用但 happy fixtures 未覆盖（会回落到 Prism）：${fixtureMissingForUsed.length}`);
   if (fixtureMissingForUsed.length) {
     for (const k of fixtureMissingForUsed.slice(0, 50)) lines.push(`  - ${k}`);
-    if (fixtureMissingForUsed.length > 50) lines.push(`  - …（其余 ${fixtureMissingForUsed.length - 50} 条略）`);
+    if (fixtureMissingForUsed.length > 50) lines.push(`  - ...（其余 ${fixtureMissingForUsed.length - 50} 条略）`);
   }
   lines.push('');
 
@@ -280,7 +287,7 @@ function writeReport({ operations, clientUsed, adminUsed, fixtures }) {
   lines.push('');
   lines.push('## 4. 使用说明');
   lines.push('');
-  lines.push('- 本报告只做“接口层”覆盖审计：OpenAPI ↔ 前端调用 ↔ fixtures keys。');
+  lines.push('- 本报告只做“接口层”覆盖审计：OpenAPI -> 前端调用 -> fixtures keys。');
   lines.push('- PRD 页面/业务规则覆盖请结合 `docs/engineering/traceability-matrix.md` 的“页面能力矩阵”。');
   lines.push('- 若某接口未在 happy fixtures 覆盖，mock-api 会回落到 Prism 生成响应，但不保证演示数据质量。');
 
@@ -301,8 +308,12 @@ function main() {
 
   const fixtures = collectFixtureKeys();
 
-  const clientUsed = collectUsedApiKeys({ rootDir: path.join(repoRoot, 'apps', 'client', 'src'), mode: 'client' });
-  const adminUsed = collectUsedApiKeys({ rootDir: path.join(repoRoot, 'apps', 'admin-web', 'src'), mode: 'admin' });
+  const clientUsedRaw = collectUsedApiKeys({ rootDir: path.join(repoRoot, 'apps', 'client', 'src'), mode: 'client' });
+  const adminUsedRaw = collectUsedApiKeys({ rootDir: path.join(repoRoot, 'apps', 'admin-web', 'src'), mode: 'admin' });
+  const clientUsed = new Set(clientUsedRaw);
+  const adminUsed = new Set(adminUsedRaw);
+  applyDerivedFileUsage(clientUsed);
+  applyDerivedFileUsage(adminUsed);
 
   const result = writeReport({ operations, clientUsed, adminUsed, fixtures });
   console.log(`[audit] wrote ${result.reportPath}`);

@@ -11,10 +11,16 @@ param(
   [int]$AdminHeight = 900,
   [int]$ClientWaitMs = 6500,
   [int]$AdminWaitMs = 4500,
+  [int]$CaptureTimeoutSec = 120,
+  [ValidateSet("auto","new","old")][string]$HeadlessMode = "auto",
+  [switch]$MinimalArgs,
+  [switch]$UseVirtualTimeBudget,
   [switch]$IncludePdf,
   [switch]$MergeAll,
   [switch]$Zip,
-  [switch]$ListOnly
+  [switch]$ListOnly,
+  [string[]]$PageFilter = @(),
+  [switch]$ForceDemoAuth
 )
 
 $ErrorActionPreference = "Stop"
@@ -116,7 +122,15 @@ function Find-BrowserExe([string]$override) {
 
 function Test-HttpOk([string]$url, [int]$timeoutSeconds = 3) {
   try {
-    $res = Invoke-WebRequest -Uri $url -Method Get -TimeoutSec $timeoutSeconds -ErrorAction Stop
+    $params = @{
+      Uri         = $url
+      Method      = 'Get'
+      TimeoutSec  = $timeoutSeconds
+      ErrorAction = 'Stop'
+    }
+    # PowerShell 5.1 may rely on IE engine for parsing and can throw null-ref in headless environments.
+    if ($PSVersionTable.PSVersion.Major -lt 6) { $params.UseBasicParsing = $true }
+    $res = Invoke-WebRequest @params
     return $res.StatusCode -ge 200 -and $res.StatusCode -lt 500
   } catch {
     return $false
@@ -132,32 +146,61 @@ function Invoke-Capture(
   [int]$width,
   [int]$height,
   [int]$waitMs,
-  [bool]$includePdf
+  [bool]$includePdf,
+  [int]$timeoutSec
 ) {
+  $headlessArg = "--headless"
+  if ($HeadlessMode -eq "new") { $headlessArg = "--headless=new" }
+  if ($HeadlessMode -eq "old") { $headlessArg = "--headless=old" }
+
   $commonArgs = @(
-    "--headless",
-    "--disable-gpu",
-    "--hide-scrollbars",
-    "--no-first-run",
-    "--no-default-browser-check",
-    "--disable-extensions",
-    "--disable-component-extensions-with-background-pages",
-    "--user-data-dir=$userDataDir",
-    "--window-size=$width,$height",
-    "--virtual-time-budget=$waitMs",
-    "--run-all-compositor-stages-before-draw"
+    $headlessArg,
+    "--user-data-dir=`"$userDataDir`"",
+    "--window-size=$width,$height"
   )
+
+  if ($UseVirtualTimeBudget -or -not $MinimalArgs) {
+    $commonArgs += @("--virtual-time-budget=$waitMs")
+  }
+
+  if (-not $MinimalArgs) {
+    $commonArgs += @(
+      "--disable-gpu",
+      "--hide-scrollbars",
+      "--no-first-run",
+      "--no-default-browser-check",
+      "--disable-extensions",
+      "--disable-component-extensions-with-background-pages",
+      "--disable-background-timer-throttling",
+      "--disable-backgrounding-occluded-windows",
+      "--disable-renderer-backgrounding",
+      "--disable-features=CalculateNativeWinOcclusion",
+      "--run-all-compositor-stages-before-draw"
+    )
+  }
 
   Write-Host "[capture] $url"
 
   if (-not [string]::IsNullOrWhiteSpace($pngOut)) {
-    & $browserExe @commonArgs "--screenshot=$pngOut" $url | Out-Null
-    if ($LASTEXITCODE -ne 0) { throw "Screenshot failed: $url" }
+    $pngArgs = @($commonArgs + @("--screenshot=`"$pngOut`"", "`"$url`""))
+    $pngProc = Start-Process -FilePath $browserExe -ArgumentList $pngArgs -PassThru -WindowStyle Hidden
+    $timeoutMs = [Math]::Max(1000, $timeoutSec * 1000)
+    if (-not $pngProc.WaitForExit($timeoutMs)) {
+      Stop-Process -Id $pngProc.Id -Force -ErrorAction SilentlyContinue
+      throw "Screenshot timeout: $url"
+    }
+    if ($pngProc.ExitCode -ne 0) { throw "Screenshot failed: $url" }
   }
 
   if ($includePdf -and -not [string]::IsNullOrWhiteSpace($pdfOut)) {
-    & $browserExe @commonArgs "--print-to-pdf=$pdfOut" "--print-to-pdf-no-header" $url | Out-Null
-    if ($LASTEXITCODE -ne 0) { throw "PDF export failed: $url" }
+    $pdfArgs = @($commonArgs + @("--print-to-pdf=`"$pdfOut`"", "--print-to-pdf-no-header", "`"$url`""))
+    $pdfProc = Start-Process -FilePath $browserExe -ArgumentList $pdfArgs -PassThru -WindowStyle Hidden
+    $timeoutMs = [Math]::Max(1000, $timeoutSec * 1000)
+    if (-not $pdfProc.WaitForExit($timeoutMs)) {
+      Stop-Process -Id $pdfProc.Id -Force -ErrorAction SilentlyContinue
+      throw "PDF export timeout: $url"
+    }
+    if ($pdfProc.ExitCode -ne 0) { throw "PDF export failed: $url" }
   }
 }
 
@@ -256,7 +299,7 @@ if ($ListOnly) {
   if (-not [string]::IsNullOrWhiteSpace($clientBase)) {
     Write-Host "[capture] Client base: $clientBase"
     foreach ($p in $clientPages) {
-      $base = if ($p.demoAuth) { Add-QueryParam $clientBase "__demo_auth" "1" } else { $clientBase }
+      $base = if ($p.demoAuth -or $ForceDemoAuth) { Add-QueryParam $clientBase "__demo_auth" "1" } else { $clientBase }
       $full = Join-Url $base "/$($p.path)"
       Write-Host ("  - client/{0}: {1}" -f $p.name, $full)
     }
@@ -269,6 +312,26 @@ if ($ListOnly) {
     }
   }
   return
+}
+
+$normalizedFilter = @(
+  $PageFilter |
+    ForEach-Object { $_.ToString().Split(",") } |
+    ForEach-Object { $_.Trim().ToLowerInvariant() } |
+    Where-Object { -not [string]::IsNullOrWhiteSpace($_) }
+)
+function Should-IncludePage([string]$kind, [string]$name) {
+  if (-not $normalizedFilter -or $normalizedFilter.Count -eq 0) { return $true }
+  $variants = @(
+    $name,
+    "$kind-$name",
+    "$kind/$name",
+    "$kind\\$name"
+  ) | ForEach-Object { $_.ToLowerInvariant() }
+  foreach ($f in $normalizedFilter) {
+    if ($variants -contains $f) { return $true }
+  }
+  return $false
 }
 
 if (-not [string]::IsNullOrWhiteSpace($clientBase)) {
@@ -289,22 +352,24 @@ Write-Host "[capture] OutDir:  $outDirAbs"
 if (-not [string]::IsNullOrWhiteSpace($clientBase)) {
   Write-Host "[capture] Capturing client pages..."
   foreach ($p in $clientPages) {
-    $base = if ($p.demoAuth) { Add-QueryParam $clientBase "__demo_auth" "1" } else { $clientBase }
+    if (-not (Should-IncludePage "client" $p.name)) { continue }
+    $base = if ($p.demoAuth -or $ForceDemoAuth) { Add-QueryParam $clientBase "__demo_auth" "1" } else { $clientBase }
     $url = Join-Url $base "/$($p.path)"
 
     $pngOut = Join-Path $clientOut ("client-{0}.png" -f $p.name)
     $pdfOut = Join-Path $clientOut ("client-{0}.pdf" -f $p.name)
-    Invoke-Capture $browserExe $userDataAbs $url $pngOut $pdfOut $ClientWidth $ClientHeight $ClientWaitMs ([bool]$IncludePdf)
+    Invoke-Capture $browserExe $userDataAbs $url $pngOut $pdfOut $ClientWidth $ClientHeight $ClientWaitMs ([bool]$IncludePdf) $CaptureTimeoutSec
   }
 }
 
 if (-not [string]::IsNullOrWhiteSpace($adminBase)) {
   Write-Host "[capture] Capturing admin pages..."
   foreach ($p in $adminPages) {
+    if (-not (Should-IncludePage "admin" $p.name)) { continue }
     $url = Join-Url $adminBase $p.path
     $pngOut = Join-Path $adminOut ("admin-{0}.png" -f $p.name)
     $pdfOut = Join-Path $adminOut ("admin-{0}.pdf" -f $p.name)
-    Invoke-Capture $browserExe $userDataAbs $url $pngOut $pdfOut $AdminWidth $AdminHeight $AdminWaitMs ([bool]$IncludePdf)
+    Invoke-Capture $browserExe $userDataAbs $url $pngOut $pdfOut $AdminWidth $AdminHeight $AdminWaitMs ([bool]$IncludePdf) $CaptureTimeoutSec
   }
 }
 

@@ -109,6 +109,9 @@ $openApiPort = Find-FreePort 8080
 
 $env:TARO_APP_API_BASE_URL = "http://127.0.0.1:$mockPort"
 $env:VITE_API_BASE_URL = "http://127.0.0.1:$mockPort"
+$env:DEMO_AUTH_ENABLED = "true"
+$env:DEMO_AUTH_ALLOW_UUID_TOKENS = "true"
+$env:DEMO_PAYMENT_ENABLED = "true"
 $env:MOCK_API_PORT = "$mockPort"
 $env:MOCK_API_PRISM_PORT = "$prismPort"
 $env:CLIENT_H5_PORT = "$clientPort"
@@ -120,7 +123,8 @@ $env:VITE_ENABLE_MOCK_TOOLS = if ($EnableMockTools) { "1" } else { "0" }
 $clientEnvPath = Join-Path $repoRoot "apps/client/.env.local"
 $clientEnvLines = @(
   "TARO_APP_API_BASE_URL=http://127.0.0.1:$mockPort",
-  "TARO_APP_ENABLE_MOCK_TOOLS=$($env:TARO_APP_ENABLE_MOCK_TOOLS)"
+  "TARO_APP_ENABLE_MOCK_TOOLS=$($env:TARO_APP_ENABLE_MOCK_TOOLS)",
+  "DEMO_AUTH_ENABLED=true"
 )
 Set-Content -Path $clientEnvPath -Value ($clientEnvLines -join "`n") -Encoding UTF8
 
