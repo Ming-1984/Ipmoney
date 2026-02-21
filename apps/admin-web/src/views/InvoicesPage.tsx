@@ -1,7 +1,8 @@
 import { Button, Card, Descriptions, Input, Space, Typography, Upload, message } from 'antd';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 
-import { apiDelete, apiGet, apiPut, apiUploadFile, type FileObject } from '../lib/api';
+import { apiDelete, apiGet, apiPost, apiPut, apiUploadFile, type FileObject } from '../lib/api';
 import { fenToYuan, formatTimeSmart } from '../lib/format';
 import { AuditHint, RequestErrorAlert } from '../ui/RequestState';
 import { confirmActionWithReason } from '../ui/confirm';
@@ -17,8 +18,14 @@ type OrderInvoice = {
   updatedAt?: string;
 };
 
+type InvoiceIssueResponse = {
+  orderId: string;
+  invoiceNo: string;
+};
+
 export function InvoicesPage() {
-  const [orderId, setOrderId] = useState('e9032d03-9b23-40ba-84a3-ac681f21c41b');
+  const [orderId, setOrderId] = useState('');
+  const [searchParams] = useSearchParams();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<unknown | null>(null);
   const [invoice, setInvoice] = useState<OrderInvoice | null>(null);
@@ -27,6 +34,8 @@ export function InvoicesPage() {
   const [invoiceFile, setInvoiceFile] = useState<FileObject | null>(null);
   const [invoiceNo, setInvoiceNo] = useState('');
   const [issuedAt, setIssuedAt] = useState('');
+  const [issuing, setIssuing] = useState(false);
+  const [issueResult, setIssueResult] = useState<InvoiceIssueResponse | null>(null);
 
   const load = useCallback(async () => {
     if (!orderId) return;
@@ -39,6 +48,7 @@ export function InvoicesPage() {
       setInvoiceNo(d.invoiceNo || '');
       setIssuedAt(d.issuedAt || '');
       setInvoiceFile(null);
+      setIssueResult(null);
     } catch (e: any) {
       const status = Number(e?.status || 0);
       if (status === 404) {
@@ -47,6 +57,7 @@ export function InvoicesPage() {
         setInvoiceNo('');
         setIssuedAt('');
         setInvoiceFile(null);
+        setIssueResult(null);
       } else {
         const errMsg = e?.message || '加载失败';
         setError(e);
@@ -57,6 +68,11 @@ export function InvoicesPage() {
       setLoading(false);
     }
   }, [orderId]);
+
+  useEffect(() => {
+    const preset = String(searchParams.get('orderId') || '').trim();
+    if (preset) setOrderId(preset);
+  }, [searchParams]);
 
   useEffect(() => {
     void load();
@@ -82,20 +98,63 @@ export function InvoicesPage() {
         <Space>
           <Input
             value={orderId}
-            onChange={(e) => setOrderId(e.target.value)}
+            onChange={(e) => {
+              setOrderId(e.target.value);
+              setIssueResult(null);
+            }}
             style={{ width: 420 }}
             placeholder="订单号"
           />
           <Button loading={loading} onClick={load}>
             加载发票
           </Button>
+          <Button
+            loading={issuing}
+            disabled={!orderId}
+            onClick={async () => {
+              if (!orderId) {
+                message.warning('请先输入订单号');
+                return;
+              }
+              const { ok } = await confirmActionWithReason({
+                title: '确认下发开票？',
+                content: '该操作会生成发票号并通知买家；实际发票文件仍需上传。',
+                okText: '下发',
+                reasonLabel: '原因/备注（建议填写）',
+              });
+              if (!ok) return;
+              setIssuing(true);
+              try {
+                const res = await apiPost<InvoiceIssueResponse>(
+                  `/admin/orders/${orderId}/invoice`,
+                  {},
+                  { idempotencyKey: `invoice-issue-${orderId}` },
+                );
+                setIssueResult(res);
+                message.success(`已下发开票：${res.invoiceNo}`);
+                void load();
+              } catch (e: any) {
+                message.error(e?.message || '下发失败');
+              } finally {
+                setIssuing(false);
+              }
+            }}
+          >
+            下发开票
+          </Button>
         </Space>
 
         {error ? (
           <RequestErrorAlert error={error} onRetry={load} />
         ) : (
-          <AuditHint text="线下人工开票后回平台上传；上传/删除需留痕，便于对账与审计。" />
+          <AuditHint text="线下人工开票后回平台上传；可先下发开票生成发票号；上传/删除需留痕，便于对账与审计。" />
         )}
+
+        {issueResult ? (
+          <Typography.Text type="secondary">
+            最近下发：{issueResult.invoiceNo}
+          </Typography.Text>
+        ) : null}
 
         {invoice ? (
           <Descriptions bordered size="small" column={2}>
@@ -189,7 +248,7 @@ export function InvoicesPage() {
                         invoiceNo: invoiceNo || undefined,
                         issuedAt: issuedAt || undefined,
                       },
-                      { idempotencyKey: `demo-invoice-${orderId}` },
+                      { idempotencyKey: `invoice-${orderId}` },
                     );
                     message.success('已保存');
                     setInvoice(next);
@@ -219,7 +278,7 @@ export function InvoicesPage() {
                   if (!ok) return;
                   try {
                     await apiDelete(`/admin/orders/${orderId}/invoice`, {
-                      idempotencyKey: `demo-invoice-del-${orderId}`,
+                      idempotencyKey: `invoice-del-${orderId}`,
                     });
                     message.success('已删除');
                     setInvoice(null);

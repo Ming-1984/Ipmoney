@@ -74,6 +74,21 @@ type HotSearchConfig = {
   keywords: string[];
 };
 
+type AlertRule = {
+  type: string;
+  severity: 'LOW' | 'MEDIUM' | 'HIGH';
+  channels: Array<'SMS' | 'EMAIL' | 'IN_APP'>;
+  enabled: boolean;
+  threshold?: number;
+  cooldownMinutes?: number;
+};
+
+type AlertConfig = {
+  enabled: boolean;
+  defaultChannels?: Array<'SMS' | 'EMAIL' | 'IN_APP'>;
+  rules: AlertRule[];
+};
+
 function toList(value: string) {
   return value
     .split(/[,，\n]/)
@@ -98,6 +113,7 @@ export function ConfigPage() {
   const [taxonomyArtworkMaterials, setTaxonomyArtworkMaterials] = useState('');
   const [sensitiveWords, setSensitiveWords] = useState('');
   const [hotSearchKeywords, setHotSearchKeywords] = useState('');
+  const [alertJson, setAlertJson] = useState('');
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -115,12 +131,13 @@ export function ConfigPage() {
       const rec = await apiGet<RecommendationConfig>('/admin/config/recommendation');
       recForm.setFieldsValue(rec);
 
-      const [banner, cs, taxonomy, sensitive, hotSearch] = await Promise.all([
+      const [banner, cs, taxonomy, sensitive, hotSearch, alert] = await Promise.all([
         apiGet<BannerConfig>('/admin/config/banner'),
         apiGet<CustomerServiceConfig>('/admin/config/customer-service'),
         apiGet<TaxonomyConfig>('/admin/config/taxonomy'),
         apiGet<SensitiveWordsConfig>('/admin/config/sensitive-words'),
         apiGet<HotSearchConfig>('/admin/config/hot-search'),
+        apiGet<AlertConfig>('/admin/config/alerts'),
       ]);
 
       setBannerJson(JSON.stringify(banner, null, 2));
@@ -136,6 +153,7 @@ export function ConfigPage() {
       setTaxonomyArtworkMaterials((taxonomy.artworkMaterials || []).join('，'));
       setSensitiveWords((sensitive.words || []).join('，'));
       setHotSearchKeywords((hotSearch.keywords || []).join('，'));
+      setAlertJson(JSON.stringify(alert, null, 2));
     } catch (e: any) {
       message.error(e?.message || '加载失败');
     } finally {
@@ -287,7 +305,7 @@ export function ConfigPage() {
           <Button
             type="primary"
             onClick={async () => {
-              const { ok, reason } = await confirmActionWithReason({
+              const { ok } = await confirmActionWithReason({
                 title: '确认保存 Banner 配置？',
                 content: '保存后将影响首页轮播图展示。',
                 okText: '保存',
@@ -341,7 +359,7 @@ export function ConfigPage() {
           <Button
             type="primary"
             onClick={async () => {
-              const { ok, reason } = await confirmActionWithReason({
+              const { ok } = await confirmActionWithReason({
                 title: '确认保存客服设置？',
                 content: '保存后将影响前端客服展示与默认回复。',
                 okText: '保存',
@@ -420,7 +438,7 @@ export function ConfigPage() {
           <Button
             type="primary"
             onClick={async () => {
-              const { ok, reason } = await confirmActionWithReason({
+              const { ok } = await confirmActionWithReason({
                 title: '确认保存类目与标签？',
                 content: '保存后将影响发布与筛选选项。',
                 okText: '保存',
@@ -462,7 +480,7 @@ export function ConfigPage() {
           <Button
             type="primary"
             onClick={async () => {
-              const { ok, reason } = await confirmActionWithReason({
+              const { ok } = await confirmActionWithReason({
                 title: '确认保存敏感词？',
                 content: '保存后将用于审核与过滤。',
                 okText: '保存',
@@ -498,7 +516,7 @@ export function ConfigPage() {
           <Button
             type="primary"
             onClick={async () => {
-              const { ok, reason } = await confirmActionWithReason({
+              const { ok } = await confirmActionWithReason({
                 title: '确认保存热门搜索词？',
                 content: '保存后将用于前端搜索推荐。',
                 okText: '保存',
@@ -516,6 +534,45 @@ export function ConfigPage() {
             }}
           >
             保存热门搜索词
+          </Button>
+        </Space>
+      </Card>
+
+      <Card loading={loading}>
+        <Typography.Title level={3} style={{ marginTop: 0 }}>
+          告警配置
+        </Typography.Title>
+        <Typography.Paragraph type="secondary">
+          建议使用 JSON 编辑，保存前请确保格式正确；变更需留痕。
+        </Typography.Paragraph>
+        <Input.TextArea
+          value={alertJson}
+          onChange={(e) => setAlertJson(e.target.value)}
+          rows={8}
+        />
+        <Space style={{ marginTop: 12 }}>
+          <Button
+            type="primary"
+            onClick={async () => {
+              const { ok } = await confirmActionWithReason({
+                title: '确认保存告警配置？',
+                content: '保存后将影响告警规则与通知通道。',
+                okText: '保存',
+                reasonLabel: '变更原因（必填）',
+                reasonRequired: true,
+              });
+              if (!ok) return;
+              try {
+                const payload = JSON.parse(alertJson) as AlertConfig;
+                await apiPut<AlertConfig>('/admin/config/alerts', payload);
+                message.success('已保存');
+                void load();
+              } catch (e: any) {
+                message.error(e?.message || '保存失败，检查 JSON 格式');
+              }
+            }}
+          >
+            保存告警配置
           </Button>
         </Space>
       </Card>

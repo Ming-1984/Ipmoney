@@ -1,5 +1,5 @@
 ﻿import { Button, Card, DatePicker, Descriptions, Space, Typography, message } from 'antd';
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 
 import { apiGet, apiPost } from '../lib/api';
 import { fenToYuan } from '../lib/format';
@@ -20,24 +20,29 @@ type FinanceSummary = {
 type ExportResult = { exportUrl: string };
 
 export function ReportsPage() {
-  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<unknown | null>(null);
   const [summary, setSummary] = useState<FinanceSummary | null>(null);
+  const [range, setRange] = useState<any>(null);
+
+  const rangeParams = useMemo(() => {
+    if (!range || !range[0] || !range[1]) return {};
+    return {
+      start: range[0].toISOString(),
+      end: range[1].toISOString(),
+    };
+  }, [range]);
 
   const load = useCallback(async () => {
-    setLoading(true);
     setError(null);
     try {
-      const d = await apiGet<FinanceSummary>('/admin/reports/finance/summary');
+      const d = await apiGet<FinanceSummary>('/admin/reports/finance/summary', rangeParams);
       setSummary(d);
     } catch (e: any) {
       setError(e);
       message.error(e?.message || '加载失败');
       setSummary(null);
-    } finally {
-      setLoading(false);
     }
-  }, []);
+  }, [rangeParams]);
 
   useEffect(() => {
     void load();
@@ -58,7 +63,7 @@ export function ReportsPage() {
         {error ? <RequestErrorAlert error={error} onRetry={load} /> : null}
 
         <Space wrap size={12}>
-          <RangePicker />
+          <RangePicker value={range} onChange={(v) => setRange(v)} />
           <Button onClick={load}>刷新统计</Button>
           <Button
             type="primary"
@@ -71,9 +76,14 @@ export function ReportsPage() {
               });
               if (!ok) return;
               try {
-                const res = await apiPost<ExportResult>('/admin/reports/finance/export', {
-                  reason: reason || undefined,
-                });
+                const res = await apiPost<ExportResult>(
+                  '/admin/reports/finance/export',
+                  {
+                    ...rangeParams,
+                    reason: reason || undefined,
+                  },
+                  { idempotencyKey: `report-export-${Date.now()}`, retry: 1 },
+                );
                 message.success('已生成导出文件');
                 if (res?.exportUrl) window.open(res.exportUrl, '_blank', 'noreferrer');
               } catch (e: any) {

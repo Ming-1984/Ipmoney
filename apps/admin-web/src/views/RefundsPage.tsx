@@ -1,5 +1,6 @@
 import { Button, Card, Input, Space, Table, Tag, Typography, message } from 'antd';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 
 import { apiGet, apiPost } from '../lib/api';
 import { formatTimeSmart } from '../lib/format';
@@ -27,7 +28,8 @@ function statusTag(status: RefundRequestStatus) {
 }
 
 export function RefundsPage() {
-  const [orderId, setOrderId] = useState('e9032d03-9b23-40ba-84a3-ac681f21c41b');
+  const [orderId, setOrderId] = useState('');
+  const [searchParams] = useSearchParams();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<unknown | null>(null);
   const [data, setData] = useState<RefundRequest[] | null>(null);
@@ -48,6 +50,11 @@ export function RefundsPage() {
       setLoading(false);
     }
   }, [orderId]);
+
+  useEffect(() => {
+    const preset = String(searchParams.get('orderId') || '').trim();
+    if (preset) setOrderId(preset);
+  }, [searchParams]);
 
   useEffect(() => {
     void load();
@@ -103,6 +110,7 @@ export function RefundsPage() {
               key: 'actions',
               render: (_, r) => {
                 const disabled = r.status !== 'PENDING';
+                const canComplete = r.status === 'REFUNDING';
                 return (
                   <Space>
                     <Button
@@ -158,6 +166,31 @@ export function RefundsPage() {
                       }}
                     >
                       驳回
+                    </Button>
+                    <Button
+                      disabled={!canComplete}
+                      onClick={async () => {
+                        const { ok, reason } = await confirmActionWithReason({
+                          title: '确认退款已完成？',
+                          content: '确认后将结束退款流程并更新订单状态，请确保退款已实际完成。',
+                          okText: '确认完成',
+                          defaultReason: '退款完成确认',
+                          reasonLabel: '完成备注/依据（建议填写）',
+                          reasonHint: '建议写明：退款渠道、回单/流水号、完成时间等。',
+                        });
+                        if (!ok) return;
+                        try {
+                          await apiPost<RefundRequest>(`/admin/refund-requests/${r.id}/complete`, {
+                            remark: reason || undefined,
+                          });
+                          message.success('退款已完成');
+                          void load();
+                        } catch (e: any) {
+                          message.error(e?.message || '操作失败');
+                        }
+                      }}
+                    >
+                      完成退款
                     </Button>
                   </Space>
                 );

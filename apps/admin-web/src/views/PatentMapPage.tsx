@@ -271,7 +271,7 @@ export function PatentMapPage() {
                     form.append('file', importFile);
                     form.append('dryRun', importDryRun ? 'true' : 'false');
                     const r = await apiPostForm<PatentMapImportResult>('/admin/patent-map/import', form, {
-                      idempotencyKey: `demo-import-${Date.now()}`,
+                      idempotencyKey: `patent-map-import-${Date.now()}`,
                     });
                     setImportResult(r);
                     if (r.errors?.length) {
@@ -351,7 +351,7 @@ export function PatentMapPage() {
                     const next = await apiPut<PatentMapEntry>(
                       `/admin/patent-map/regions/${regionCode}/years/${year}`,
                       payload,
-                      { idempotencyKey: `demo-patent-map-${regionCode}-${year}` },
+                      { idempotencyKey: `patent-map-${regionCode}-${year}` },
                     );
                     message.success('已保存');
                     setEntry(next);

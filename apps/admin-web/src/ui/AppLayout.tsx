@@ -12,23 +12,35 @@ import {
   FileTextOutlined,
   LockOutlined,
   SolutionOutlined,
+  NotificationOutlined,
+  BookOutlined,
+  ProfileOutlined,
+  BellOutlined,
+  ScheduleOutlined,
 } from '@ant-design/icons';
-import { Layout, Menu, Select, Space, Typography } from 'antd';
-import React, { useMemo, useState } from 'react';
-import { Link, Outlet, useLocation } from 'react-router-dom';
+import { Layout, Menu, Typography } from 'antd';
+import React, { useEffect, useMemo, useState } from 'react';
+import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
 
-import { getMockScenario, setMockScenario } from '../lib/api';
 import logoGif from '../assets/brand/logo.gif';
 
 const { Header, Sider, Content } = Layout;
 
-const ENABLE_MOCK_TOOLS =
-  import.meta.env.VITE_ENABLE_MOCK_TOOLS === '1' || import.meta.env.VITE_ENABLE_MOCK_TOOLS === 'true';
-
 export function AppLayout() {
   const location = useLocation();
+  const navigate = useNavigate();
   const [collapsed, setCollapsed] = useState(false);
-  const [scenario, setScenario] = useState(getMockScenario());
+  const [hasToken, setHasToken] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    const token = String(localStorage.getItem('ipmoney.adminToken') || '').trim();
+    if (!token) {
+      setHasToken(false);
+      navigate('/login', { replace: true });
+      return;
+    }
+    setHasToken(true);
+  }, [location.pathname, navigate]);
 
   const selectedKeys = useMemo(() => {
     const path = location.pathname.replace(/^\//, '');
@@ -36,9 +48,18 @@ export function AppLayout() {
     return [path];
   }, [location.pathname]);
 
+  if (hasToken === false) return null;
+
   return (
     <Layout style={{ minHeight: '100vh' }}>
-      <Sider collapsible collapsed={collapsed} onCollapse={setCollapsed} width={240}>
+      <Sider
+        className="ipm-sider"
+        theme="light"
+        collapsible
+        collapsed={collapsed}
+        onCollapse={setCollapsed}
+        width={240}
+      >
         <div className="ipm-logo">
           <div className="ipm-logo-mark" aria-hidden="true">
             <img src={logoGif} alt="" />
@@ -51,7 +72,7 @@ export function AppLayout() {
           </div>
         </div>
         <Menu
-          theme="dark"
+          theme="light"
           mode="inline"
           selectedKeys={selectedKeys}
           items={[
@@ -96,6 +117,22 @@ export function AppLayout() {
               label: <Link to="/comments">留言管理</Link>,
             },
             {
+              key: 'announcements',
+              icon: <NotificationOutlined />,
+              label: <Link to="/announcements">公告管理</Link>,
+            },
+            {
+              key: 'alerts',
+              icon: <BellOutlined />,
+              label: <Link to="/alerts">告警中心</Link>,
+            },
+            {
+              key: 'audit-logs',
+              icon: <ProfileOutlined />,
+              label: <Link to="/audit-logs">审计日志</Link>,
+            },
+
+            {
               key: 'orders',
               label: <Link to="/orders">订单管理</Link>,
             },
@@ -103,6 +140,11 @@ export function AppLayout() {
               key: 'cases',
               icon: <SolutionOutlined />,
               label: <Link to="/cases">工单/争议</Link>,
+            },
+            {
+              key: 'maintenance',
+              icon: <ScheduleOutlined />,
+              label: <Link to="/maintenance">年费托管</Link>,
             },
             {
               key: 'refunds',
@@ -136,6 +178,11 @@ export function AppLayout() {
               label: <Link to="/patent-map">专利地图 CMS</Link>,
             },
             {
+              key: 'patents',
+              icon: <BookOutlined />,
+              label: <Link to="/patents">专利主数据</Link>,
+            },
+            {
               key: 'rbac',
               icon: <LockOutlined />,
               label: <Link to="/rbac">账号权限</Link>,
@@ -147,29 +194,6 @@ export function AppLayout() {
         <Header className="ipm-app-header" style={{ padding: '0 16px' }}>
           <div className="ipm-header-inner">
             <Typography.Text type="secondary">Ipmoney 运营后台</Typography.Text>
-            {ENABLE_MOCK_TOOLS ? (
-              <Space size={8}>
-                <Typography.Text type="secondary">场景</Typography.Text>
-                <Select
-                  size="small"
-                  value={scenario}
-                  style={{ width: 180 }}
-                  options={[
-                    { value: 'happy', label: 'happy' },
-                    { value: 'empty', label: 'empty' },
-                    { value: 'error', label: 'error' },
-                    { value: 'edge', label: 'edge' },
-                    { value: 'payment_callback_replay', label: 'payment_callback_replay' },
-                    { value: 'refund_failed', label: 'refund_failed' },
-                    { value: 'order_conflict', label: 'order_conflict' },
-                  ]}
-                  onChange={(v) => {
-                    setScenario(v);
-                    setMockScenario(v);
-                  }}
-                />
-              </Space>
-            ) : null}
           </div>
         </Header>
         <Content className="ipm-content">

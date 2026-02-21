@@ -1,5 +1,7 @@
-﻿import { Button, Card, Descriptions, Input, Select, Space, Table, Tag, Typography, message } from 'antd';
+﻿import { Button, Card, Descriptions, Form, Input, Modal, Select, Space, Table, Tag, Typography, message } from 'antd';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
+
+void Descriptions;
 
 import { apiGet, apiPatch, apiPost, apiDelete } from '../lib/api';
 import { formatTimeSmart } from '../lib/format';
@@ -41,6 +43,9 @@ export function RbacPage() {
   const [roleName, setRoleName] = useState('');
   const [roleDesc, setRoleDesc] = useState('');
   const [rolePerms, setRolePerms] = useState<string[]>([]);
+  const [editOpen, setEditOpen] = useState(false);
+  const [editingRole, setEditingRole] = useState<Role | null>(null);
+  const [editForm] = Form.useForm();
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -168,8 +173,21 @@ export function RbacPage() {
               render: (_, r) => (
                 <Space>
                   <Button
+                    onClick={() => {
+                      setEditingRole(r);
+                      editForm.setFieldsValue({
+                        name: r.name,
+                        description: r.description || '',
+                        permissionIds: r.permissionIds || [],
+                      });
+                      setEditOpen(true);
+                    }}
+                  >
+                    编辑
+                  </Button>
+                  <Button
                     onClick={async () => {
-                      const { ok, reason } = await confirmActionWithReason({
+                      const { ok } = await confirmActionWithReason({
                         title: '确认删除角色？',
                         content: '删除角色将影响已分配用户。',
                         okText: '删除',
@@ -194,6 +212,53 @@ export function RbacPage() {
             },
           ]}
         />
+
+        <Modal
+          open={editOpen}
+          title="编辑角色"
+          destroyOnClose
+          onCancel={() => {
+            setEditOpen(false);
+            setEditingRole(null);
+          }}
+          onOk={async () => {
+            try {
+              const v = await editForm.validateFields();
+              if (!editingRole) return;
+              const { ok } = await confirmActionWithReason({
+                title: '确认更新角色？',
+                content: '该操作会影响权限配置与人员分配。',
+                okText: '更新',
+                reasonLabel: '原因/备注（建议填写）',
+              });
+              if (!ok) return;
+              await apiPatch(`/admin/rbac/roles/${editingRole.id}`, {
+                name: v.name?.trim(),
+                description: v.description?.trim() || undefined,
+                permissionIds: v.permissionIds || [],
+              });
+              message.success('已更新');
+              setEditOpen(false);
+              setEditingRole(null);
+              void load();
+            } catch (e: any) {
+              if (e?.errorFields) return;
+              message.error(e?.message || '更新失败');
+            }
+          }}
+        >
+          <Form form={editForm} layout="vertical">
+            <Form.Item label="角色名称" name="name" rules={[{ required: true, message: '请输入角色名称' }]}>
+              <Input />
+            </Form.Item>
+            <Form.Item label="角色说明" name="description">
+              <Input />
+            </Form.Item>
+            <Form.Item label="权限点" name="permissionIds">
+              <Select mode="multiple" options={permOptions} placeholder="选择权限点" />
+            </Form.Item>
+          </Form>
+        </Modal>
       </Card>
 
       <Card loading={loading}>
@@ -253,3 +318,4 @@ export function RbacPage() {
     </Space>
   );
 }
+

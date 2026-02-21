@@ -6,6 +6,8 @@ import logoGif from '../assets/brand/logo.gif';
 
 export function LoginPage() {
   const navigate = useNavigate();
+  const [form] = Form.useForm();
+  const demoToken = String(import.meta.env.VITE_DEMO_ADMIN_TOKEN || '').trim();
 
   return (
     <div
@@ -34,20 +36,31 @@ export function LoginPage() {
           用于审核上架、需求、成果、认证以及订单履约与结算管理。
         </Typography.Paragraph>
         <Form
+          form={form}
           layout="vertical"
-          onFinish={() => {
+          onFinish={(values) => {
+            const token = String(values?.token || '').trim();
+            if (token) {
+              localStorage.setItem('ipmoney.adminToken', token);
+            }
             navigate('/');
           }}
         >
-          <Form.Item label="账号" name="username" rules={[{ required: true }]}>
-            <Input placeholder="admin" />
+          <Form.Item label="Access Token" name="token" rules={[{ required: true }]}>
+            <Input placeholder="Paste admin Bearer token" />
           </Form.Item>
-          <Form.Item label="密码" name="password" rules={[{ required: true }]}>
-            <Input.Password placeholder="••••••••" />
-          </Form.Item>
-          <Button type="primary" htmlType="submit" block>
-            登录
-          </Button>
+          {demoToken ? (
+            <Button
+              block
+              onClick={() => {
+                form.setFieldsValue({ token: demoToken });
+              }}
+              style={{ marginBottom: 12 }}
+            >
+              Use demo token
+            </Button>
+          ) : null}
+          <Button type="primary" htmlType="submit" block>Sign in</Button>
         </Form>
       </Card>
     </div>

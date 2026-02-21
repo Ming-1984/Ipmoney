@@ -1,5 +1,5 @@
 import type { ThemeConfig } from 'antd';
-import { ConfigProvider } from 'antd';
+import { ConfigProvider, theme as antdTheme } from 'antd';
 import zhCN from 'antd/locale/zh_CN';
 import React from 'react';
 import ReactDOM from 'react-dom/client';
@@ -9,6 +9,7 @@ import { router } from './router';
 import './styles.css';
 
 const theme: ThemeConfig = {
+  algorithm: antdTheme.defaultAlgorithm,
   token: {
     colorPrimary: 'var(--ipm-primary)',
     colorInfo: 'var(--ipm-primary)',

@@ -8,12 +8,17 @@ import { AchievementsAuditPage } from './views/AchievementsAuditPage';
 import { ArtworksAuditPage } from './views/ArtworksAuditPage';
 import { CasesPage } from './views/CasesPage';
 import { CommentsPage } from './views/CommentsPage';
+import { AnnouncementsPage } from './views/AnnouncementsPage';
+import { AlertsPage } from './views/AlertsPage';
+import { AuditLogsPage } from './views/AuditLogsPage';
 import { ListingsAuditPage } from './views/ListingsAuditPage';
 import { ConfigPage } from './views/ConfigPage';
 import { InvoicesPage } from './views/InvoicesPage';
 import { OrdersPage } from './views/OrdersPage';
 import { OrderDetailPage } from './views/OrderDetailPage';
+import { MaintenancePage } from './views/MaintenancePage';
 import { PatentMapPage } from './views/PatentMapPage';
+import { PatentsPage } from './views/PatentsPage';
 import { RegionsPage } from './views/RegionsPage';
 import { RefundsPage } from './views/RefundsPage';
 import { ReportsPage } from './views/ReportsPage';
@@ -46,10 +51,15 @@ export const router = createBrowserRouter([
       { path: 'invoices', element: <InvoicesPage /> },
       { path: 'reports', element: <ReportsPage /> },
       { path: 'comments', element: <CommentsPage /> },
+      { path: 'announcements', element: <AnnouncementsPage /> },
+      { path: 'alerts', element: <AlertsPage /> },
+      { path: 'audit-logs', element: <AuditLogsPage /> },
       { path: 'rbac', element: <RbacPage /> },
       { path: 'config', element: <ConfigPage /> },
+      { path: 'maintenance', element: <MaintenancePage /> },
       { path: 'regions', element: <RegionsPage /> },
       { path: 'patent-map', element: <PatentMapPage /> },
+      { path: 'patents', element: <PatentsPage /> },
     ],
   },
 ]);

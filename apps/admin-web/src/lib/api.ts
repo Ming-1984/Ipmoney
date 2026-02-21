@@ -6,7 +6,7 @@ export type FileObject = {
   sizeBytes: number;
   createdAt: string;
 };
-export type ApiRequestOptions = { idempotencyKey?: string };
+export type ApiRequestOptions = { idempotencyKey?: string; retry?: number; retryDelayMs?: number };
 export type ApiErrorKind = 'auth' | 'network' | 'business' | 'http' | 'unknown';
 
 export class ApiError extends Error {
@@ -27,12 +27,7 @@ export class ApiError extends Error {
   }
 }
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:4010';
-const MOCK_SCENARIO_KEY = 'ipmoney.mockScenario';
-
-function getScenario(): string {
-  return localStorage.getItem(MOCK_SCENARIO_KEY) || 'happy';
-}
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3200';
 
 function cleanParams(params?: Record<string, any>): Record<string, any> | undefined {
   if (!params) return undefined;
@@ -57,6 +52,45 @@ function buildUrl(path: string, params?: Record<string, any>) {
   return url.toString();
 }
 
+function getAuthHeader(): Record<string, string> {
+  const token = (localStorage.getItem('ipmoney.adminToken') || '').trim();
+  if (!token) return {};
+  return { Authorization: `Bearer ${token}` };
+}
+
+function buildHeaders(opts?: ApiRequestOptions, hasBody?: boolean): Record<string, string> {
+  const headers: Record<string, string> = {};
+  if (hasBody) headers['Content-Type'] = 'application/json';
+  if (opts?.idempotencyKey) headers['Idempotency-Key'] = opts.idempotencyKey;
+  Object.assign(headers, getAuthHeader());
+  return headers;
+}
+
+async function wait(ms: number) {
+  return await new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function fetchWithRetry(url: string, init: RequestInit, opts?: ApiRequestOptions) {
+  const retries = Math.max(0, opts?.retry ?? (opts?.idempotencyKey ? 1 : 0));
+  const delayMs = Math.max(200, opts?.retryDelayMs ?? 600);
+  let attempt = 0;
+  while (true) {
+    try {
+      const res = await fetch(url, init);
+      if ((res.status === 429 || res.status >= 500) && attempt < retries) {
+        attempt += 1;
+        await wait(delayMs * attempt);
+        continue;
+      }
+      return res;
+    } catch (e) {
+      if (attempt >= retries) throw e;
+      attempt += 1;
+      await wait(delayMs * attempt);
+    }
+  }
+}
+
 async function readJsonSafe<T>(res: Response): Promise<T | undefined> {
   try {
     return (await res.json()) as T;
@@ -70,6 +104,14 @@ function normalizeHttpError(status: number, data: unknown): ApiError {
   const code = err?.code;
 
   if (status === 401 || status === 403) {
+    try {
+      localStorage.removeItem('ipmoney.adminToken');
+    } catch {
+      // ignore storage failures
+    }
+    if (typeof window !== 'undefined' && window.location.pathname !== '/login') {
+      window.location.replace('/login');
+    }
     return new ApiError({ kind: 'auth', status, code, message: '权限不足或登录已失效', retryable: false, debug: data });
   }
   if (status === 404) {
@@ -108,13 +150,14 @@ export async function apiGet<TResponse>(
 ): Promise<TResponse> {
   let res: Response;
   try {
-    res = await fetch(buildUrl(path, params), {
-      method: 'GET',
-      headers: {
-        'X-Mock-Scenario': getScenario(),
-        Authorization: 'Bearer demo-admin-token',
+    res = await fetchWithRetry(
+      buildUrl(path, params),
+      {
+        method: 'GET',
+        headers: buildHeaders(),
       },
-    });
+      undefined,
+    );
   } catch (e) {
     throw normalizeFetchError(e);
   }
@@ -131,16 +174,15 @@ export async function apiPost<TResponse>(
 ): Promise<TResponse> {
   let res: Response;
   try {
-    res = await fetch(buildUrl(path), {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-Mock-Scenario': getScenario(),
-        ...(opts?.idempotencyKey ? { 'Idempotency-Key': opts.idempotencyKey } : {}),
-        Authorization: 'Bearer demo-admin-token',
+    res = await fetchWithRetry(
+      buildUrl(path),
+      {
+        method: 'POST',
+        headers: buildHeaders(opts, true),
+        body: body ? JSON.stringify(body) : undefined,
       },
-      body: body ? JSON.stringify(body) : undefined,
-    });
+      opts,
+    );
   } catch (e) {
     throw normalizeFetchError(e);
   }
@@ -150,14 +192,6 @@ export async function apiPost<TResponse>(
   throw normalizeHttpError(res.status, err);
 }
 
-export function setMockScenario(scenario: string) {
-  localStorage.setItem(MOCK_SCENARIO_KEY, scenario);
-}
-
-export function getMockScenario() {
-  return getScenario();
-}
-
 export async function apiPut<TResponse>(
   path: string,
   body?: any,
@@ -165,16 +199,15 @@ export async function apiPut<TResponse>(
 ): Promise<TResponse> {
   let res: Response;
   try {
-    res = await fetch(buildUrl(path), {
-      method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-Mock-Scenario': getScenario(),
-        ...(opts?.idempotencyKey ? { 'Idempotency-Key': opts.idempotencyKey } : {}),
-        Authorization: 'Bearer demo-admin-token',
+    res = await fetchWithRetry(
+      buildUrl(path),
+      {
+        method: 'PUT',
+        headers: buildHeaders(opts, true),
+        body: body ? JSON.stringify(body) : undefined,
       },
-      body: body ? JSON.stringify(body) : undefined,
-    });
+      opts,
+    );
   } catch (e) {
     throw normalizeFetchError(e);
   }
@@ -191,16 +224,15 @@ export async function apiPatch<TResponse>(
 ): Promise<TResponse> {
   let res: Response;
   try {
-    res = await fetch(buildUrl(path), {
-      method: 'PATCH',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-Mock-Scenario': getScenario(),
-        ...(opts?.idempotencyKey ? { 'Idempotency-Key': opts.idempotencyKey } : {}),
-        Authorization: 'Bearer demo-admin-token',
+    res = await fetchWithRetry(
+      buildUrl(path),
+      {
+        method: 'PATCH',
+        headers: buildHeaders(opts, true),
+        body: body ? JSON.stringify(body) : undefined,
       },
-      body: body ? JSON.stringify(body) : undefined,
-    });
+      opts,
+    );
   } catch (e) {
     throw normalizeFetchError(e);
   }
@@ -213,14 +245,14 @@ export async function apiPatch<TResponse>(
 export async function apiDelete(path: string, opts?: ApiRequestOptions): Promise<void> {
   let res: Response;
   try {
-    res = await fetch(buildUrl(path), {
-      method: 'DELETE',
-      headers: {
-        'X-Mock-Scenario': getScenario(),
-        ...(opts?.idempotencyKey ? { 'Idempotency-Key': opts.idempotencyKey } : {}),
-        Authorization: 'Bearer demo-admin-token',
+    res = await fetchWithRetry(
+      buildUrl(path),
+      {
+        method: 'DELETE',
+        headers: buildHeaders(opts),
       },
-    });
+      opts,
+    );
   } catch (e) {
     throw normalizeFetchError(e);
   }
@@ -238,15 +270,15 @@ export async function apiPostForm<TResponse>(
 ): Promise<TResponse> {
   let res: Response;
   try {
-    res = await fetch(buildUrl(path), {
-      method: 'POST',
-      headers: {
-        'X-Mock-Scenario': getScenario(),
-        ...(opts?.idempotencyKey ? { 'Idempotency-Key': opts.idempotencyKey } : {}),
-        Authorization: 'Bearer demo-admin-token',
+    res = await fetchWithRetry(
+      buildUrl(path),
+      {
+        method: 'POST',
+        headers: buildHeaders(opts),
+        body: form,
       },
-      body: form,
-    });
+      opts,
+    );
   } catch (e) {
     throw normalizeFetchError(e);
   }
@@ -263,14 +295,15 @@ export async function apiUploadFile(file: File, purpose?: string): Promise<FileO
 
   let res: Response;
   try {
-    res = await fetch(buildUrl('/files'), {
-      method: 'POST',
-      headers: {
-        'X-Mock-Scenario': getScenario(),
-        Authorization: 'Bearer demo-admin-token',
+    res = await fetchWithRetry(
+      buildUrl('/files'),
+      {
+        method: 'POST',
+        headers: buildHeaders(),
+        body: form,
       },
-      body: form,
-    });
+      { retry: 1 },
+    );
   } catch (e) {
     throw normalizeFetchError(e);
   }

@@ -1,5 +1,6 @@
 import { Button, Card, Descriptions, Input, Space, Typography, Upload, message } from 'antd';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 
 import { apiGet, apiPost, apiUploadFile, type FileObject } from '../lib/api';
 import { fenToYuan, formatTimeSmart } from '../lib/format';
@@ -22,7 +23,8 @@ type Settlement = {
 };
 
 export function SettlementsPage() {
-  const [orderId, setOrderId] = useState('e9032d03-9b23-40ba-84a3-ac681f21c41b');
+  const [orderId, setOrderId] = useState('');
+  const [searchParams] = useSearchParams();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<unknown | null>(null);
   const [settlement, setSettlement] = useState<Settlement | null>(null);
@@ -52,6 +54,11 @@ export function SettlementsPage() {
       setLoading(false);
     }
   }, [orderId]);
+
+  useEffect(() => {
+    const preset = String(searchParams.get('orderId') || '').trim();
+    if (preset) setOrderId(preset);
+  }, [searchParams]);
 
   useEffect(() => {
     void load();
@@ -190,7 +197,7 @@ export function SettlementsPage() {
                         payoutAt: new Date().toISOString(),
                         remark: finalRemark,
                       },
-                      { idempotencyKey: `demo-payout-${orderId}` },
+                      { idempotencyKey: `payout-${orderId}` },
                     );
                     message.success('已确认放款');
                     setSettlement(next);

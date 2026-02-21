@@ -1,10 +1,10 @@
-import { Button, Card, Descriptions, Divider, Drawer, Image, Input, Select, Space, Table, Tag, Typography, message } from 'antd';
+import { Button, Card, Descriptions, Divider, Drawer, Form, Image, Input, InputNumber, Modal, Select, Space, Table, Tag, Typography, message } from 'antd';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 
 import type { components } from '@ipmoney/api-types';
 
-import { apiGet, apiPost } from '../lib/api';
-import { fenToYuan, formatTimeSmart } from '../lib/format';
+import { apiGet, apiPatch, apiPost } from '../lib/api';
+import { fenToYuan, fenToYuanNumber, formatTimeSmart, yuanToFen } from '../lib/format';
 import {
   auditStatusLabel,
   artworkCategoryLabel,
@@ -55,6 +55,44 @@ function priceLabel(priceType?: PriceType | null, priceAmountFen?: number | null
   return priceAmountFen !== undefined && priceAmountFen !== null ? `¥${fenToYuan(priceAmountFen)}` : '-';
 }
 
+const CATEGORY_OPTIONS: { value: components['schemas']['ArtworkCategory']; label: string }[] = [
+  { value: 'CALLIGRAPHY', label: '书法' },
+  { value: 'PAINTING', label: '绘画' },
+];
+
+const CALLIGRAPHY_OPTIONS: { value: components['schemas']['CalligraphyScript']; label: string }[] = [
+  { value: 'KAISHU', label: '楷书' },
+  { value: 'XINGSHU', label: '行书' },
+  { value: 'CAOSHU', label: '草书' },
+  { value: 'LISHU', label: '隶书' },
+  { value: 'ZHUANSHU', label: '篆书' },
+];
+
+const PAINTING_OPTIONS: { value: components['schemas']['PaintingGenre']; label: string }[] = [
+  { value: 'FIGURE', label: '人物' },
+  { value: 'LANDSCAPE', label: '山水' },
+  { value: 'BIRD_FLOWER', label: '花鸟' },
+  { value: 'OTHER', label: '其他' },
+];
+
+const PRICE_TYPE_OPTIONS: { value: PriceType; label: string }[] = [
+  { value: 'FIXED', label: '一口价' },
+  { value: 'NEGOTIABLE', label: '面议' },
+];
+
+const STATUS_OPTIONS: { value: ArtworkStatus; label: string }[] = [
+  { value: 'DRAFT', label: '草稿' },
+  { value: 'ACTIVE', label: '上架' },
+  { value: 'OFF_SHELF', label: '下架' },
+  { value: 'SOLD', label: '已成交' },
+];
+
+const AUDIT_STATUS_OPTIONS: { value: AuditStatus; label: string }[] = [
+  { value: 'PENDING', label: '待审核' },
+  { value: 'APPROVED', label: '已通过' },
+  { value: 'REJECTED', label: '已驳回' },
+];
+
 export function ArtworksAuditPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<unknown | null>(null);
@@ -67,6 +105,10 @@ export function ArtworksAuditPage() {
   const [active, setActive] = useState<Artwork | null>(null);
   const [materials, setMaterials] = useState<AuditMaterial[]>([]);
   const [auditLogs, setAuditLogs] = useState<AuditLog[]>([]);
+  const [modalOpen, setModalOpen] = useState(false);
+  const [editing, setEditing] = useState<Artwork | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [form] = Form.useForm();
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -93,6 +135,115 @@ export function ArtworksAuditPage() {
   useEffect(() => {
     void load();
   }, [load]);
+
+  const openCreate = useCallback(() => {
+    setEditing(null);
+    form.resetFields();
+    form.setFieldsValue({ status: 'DRAFT', auditStatus: 'PENDING' });
+    setModalOpen(true);
+  }, [form]);
+
+  const openEdit = useCallback(
+    (item: Artwork) => {
+      setEditing(item);
+      form.setFieldsValue({
+        title: item.title,
+        category: item.category,
+        creatorName: item.creatorName,
+        calligraphyScript: item.calligraphyScript || undefined,
+        paintingGenre: item.paintingGenre || undefined,
+        priceType: item.priceType,
+        priceAmountYuan: fenToYuanNumber(item.priceAmountFen),
+        depositAmountYuan: fenToYuanNumber(item.depositAmountFen),
+        regionCode: item.regionCode || undefined,
+        material: item.material || undefined,
+        size: item.size || undefined,
+        description: item.description || undefined,
+        status: item.status || 'DRAFT',
+        auditStatus: item.auditStatus || 'PENDING',
+      });
+      setModalOpen(true);
+    },
+    [form],
+  );
+
+  const handleSubmit = useCallback(async () => {
+    try {
+      const values = await form.validateFields();
+      const payload = {
+        title: String(values.title || '').trim(),
+        category: values.category,
+        creatorName: String(values.creatorName || '').trim(),
+        calligraphyScript: values.calligraphyScript || undefined,
+        paintingGenre: values.paintingGenre || undefined,
+        priceType: values.priceType,
+        priceAmountFen:
+          values.priceType === 'NEGOTIABLE' || values.priceAmountYuan == null ? undefined : yuanToFen(values.priceAmountYuan),
+        depositAmountFen: values.depositAmountYuan == null ? undefined : yuanToFen(values.depositAmountYuan),
+        regionCode: values.regionCode ? String(values.regionCode).trim() : undefined,
+        material: values.material ? String(values.material).trim() : undefined,
+        size: values.size ? String(values.size).trim() : undefined,
+        description: values.description ? String(values.description).trim() : undefined,
+        status: values.status || undefined,
+        auditStatus: values.auditStatus || undefined,
+      };
+      setSaving(true);
+      if (editing) {
+        await apiPatch(`/admin/artworks/${editing.id}`, payload, { idempotencyKey: `admin-artwork-${editing.id}` });
+        message.success('已更新书画');
+      } else {
+        await apiPost('/admin/artworks', payload, { idempotencyKey: `admin-artwork-create-${Date.now()}` });
+        message.success('已创建书画');
+      }
+      setModalOpen(false);
+      void load();
+    } catch (e: any) {
+      if (e?.errorFields) return;
+      message.error(e?.message || '保存失败');
+    } finally {
+      setSaving(false);
+    }
+  }, [editing, form, load]);
+
+  const handlePublish = useCallback(
+    async (item: Artwork) => {
+      const { ok, reason } = await confirmActionWithReason({
+        title: '确认上架该书画？',
+        content: '上架后将对外展示并可被检索。',
+        okText: '上架',
+        reasonLabel: '上架备注（建议填写）',
+      });
+      if (!ok) return;
+      try {
+        await apiPost(`/admin/artworks/${item.id}/publish`, { reason: reason || undefined }, { idempotencyKey: `artwork-publish-${item.id}` });
+        message.success('已上架');
+        void load();
+      } catch (e: any) {
+        message.error(e?.message || '上架失败');
+      }
+    },
+    [load],
+  );
+
+  const handleOffShelf = useCallback(
+    async (item: Artwork) => {
+      const { ok, reason } = await confirmActionWithReason({
+        title: '确认下架该书画？',
+        content: '下架后将不再对外展示。',
+        okText: '下架',
+        reasonLabel: '下架原因（建议填写）',
+      });
+      if (!ok) return;
+      try {
+        await apiPost(`/admin/artworks/${item.id}/off-shelf`, { reason: reason || undefined }, { idempotencyKey: `artwork-off-${item.id}` });
+        message.success('已下架');
+        void load();
+      } catch (e: any) {
+        message.error(e?.message || '下架失败');
+      }
+    },
+    [load],
+  );
 
   const rows = useMemo(() => data?.items || [], [data?.items]);
   const detailMedia = useMemo(() => {
@@ -161,6 +312,9 @@ export function ArtworksAuditPage() {
             ]}
           />
           <Button onClick={load}>查询</Button>
+          <Button type="primary" onClick={openCreate}>
+            新建书画
+          </Button>
         </Space>
 
         <Table<Artwork>
@@ -190,15 +344,16 @@ export function ArtworksAuditPage() {
                   <Space>
                     <Button
                       onClick={async () => {
-                        setActive(r);
-                        setDetailOpen(true);
                         try {
-                          const [m, logs] = await Promise.all([
+                          const [detail, m, logs] = await Promise.all([
+                            apiGet<Artwork>(`/admin/artworks/${r.id}`),
                             apiGet<{ items: AuditMaterial[] }>(`/admin/artworks/${r.id}/materials`),
                             apiGet<{ items: AuditLog[] }>(`/admin/artworks/${r.id}/audit-logs`),
                           ]);
+                          setActive(detail);
                           setMaterials(m.items || []);
                           setAuditLogs(logs.items || []);
+                          setDetailOpen(true);
                         } catch (e: any) {
                           message.error(e?.message || '加载材料/审核记录失败');
                         }
@@ -206,6 +361,7 @@ export function ArtworksAuditPage() {
                     >
                       详情
                     </Button>
+                    <Button onClick={() => openEdit(r)}>编辑</Button>
                     <Button
                       type="primary"
                       disabled={disabled}
@@ -254,6 +410,12 @@ export function ArtworksAuditPage() {
                       }}
                     >
                       驳回
+                    </Button>
+                    <Button disabled={r.status === 'ACTIVE'} onClick={() => void handlePublish(r)}>
+                      上架
+                    </Button>
+                    <Button disabled={r.status !== 'ACTIVE'} onClick={() => void handleOffShelf(r)}>
+                      下架
                     </Button>
                   </Space>
                 );
@@ -425,6 +587,60 @@ export function ArtworksAuditPage() {
           </Space>
         ) : null}
       </Drawer>
+
+      <Modal
+        title={editing ? '编辑书画' : '新建书画'}
+        open={modalOpen}
+        onCancel={() => setModalOpen(false)}
+        onOk={handleSubmit}
+        okText="保存"
+        confirmLoading={saving}
+      >
+        <Form form={form} layout="vertical">
+          <Form.Item label="作品名称" name="title" rules={[{ required: true, message: '请输入作品名称' }]}>
+            <Input placeholder="书画作品名称" />
+          </Form.Item>
+          <Form.Item label="类别" name="category" rules={[{ required: true, message: '请选择类别' }]}>
+            <Select options={CATEGORY_OPTIONS} />
+          </Form.Item>
+          <Form.Item label="作者" name="creatorName" rules={[{ required: true, message: '请输入作者' }]}>
+            <Input placeholder="作者姓名" />
+          </Form.Item>
+          <Form.Item label="书体" name="calligraphyScript">
+            <Select allowClear options={CALLIGRAPHY_OPTIONS} placeholder="书体（可选）" />
+          </Form.Item>
+          <Form.Item label="题材" name="paintingGenre">
+            <Select allowClear options={PAINTING_OPTIONS} placeholder="题材（可选）" />
+          </Form.Item>
+          <Form.Item label="报价方式" name="priceType" rules={[{ required: true, message: '请选择报价方式' }]}>
+            <Select options={PRICE_TYPE_OPTIONS} />
+          </Form.Item>
+          <Form.Item label="报价金额（元）" name="priceAmountYuan">
+            <InputNumber min={0} style={{ width: '100%' }} placeholder="一口价时填写" />
+          </Form.Item>
+          <Form.Item label="订金金额（元）" name="depositAmountYuan">
+            <InputNumber min={0} style={{ width: '100%' }} placeholder="可选" />
+          </Form.Item>
+          <Form.Item label="地区编码" name="regionCode">
+            <Input placeholder="地区编码（6 位 adcode）" />
+          </Form.Item>
+          <Form.Item label="材质" name="material">
+            <Input placeholder="如：宣纸" />
+          </Form.Item>
+          <Form.Item label="尺寸" name="size">
+            <Input placeholder="如：四尺整张" />
+          </Form.Item>
+          <Form.Item label="作品介绍" name="description">
+            <Input.TextArea rows={4} placeholder="作品介绍（可选）" />
+          </Form.Item>
+          <Form.Item label="内容状态" name="status">
+            <Select options={STATUS_OPTIONS} />
+          </Form.Item>
+          <Form.Item label="审核状态" name="auditStatus">
+            <Select options={AUDIT_STATUS_OPTIONS} />
+          </Form.Item>
+        </Form>
+      </Modal>
     </Card>
   );
 }

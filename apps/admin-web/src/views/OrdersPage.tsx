@@ -1,4 +1,4 @@
-import { Button, Card, Space, Table, Typography, message } from 'antd';
+import { Button, Card, Form, Input, InputNumber, Modal, Space, Table, Typography, message } from 'antd';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
@@ -42,6 +42,10 @@ export function OrdersPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<unknown | null>(null);
   const [data, setData] = useState<PagedOrder | null>(null);
+  const [contractModalOpen, setContractModalOpen] = useState(false);
+  const [contractSubmitting, setContractSubmitting] = useState(false);
+  const [contractTarget, setContractTarget] = useState<Order | null>(null);
+  const [contractForm] = Form.useForm();
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -109,33 +113,23 @@ export function OrdersPage() {
                   <Button onClick={() => navigate(`/orders/${r.id}`)}>详情</Button>
                   <Button
                     type="primary"
-                    onClick={async () => {
-                      const { ok } = await confirmActionWithReason({
-                        title: '确认合同已签署？',
-                        content: '确认后将推进订单里程碑（可能触发状态机冲突 409）；该操作应记录审计留痕。',
-                        okText: '确认合同',
-                        defaultReason: '合同已签署',
-                        reasonLabel: '备注/依据（建议填写）',
-                        reasonHint: '建议填写：合同编号/签署方/签署时间/证据归档位置等。',
+                    disabled={r.status !== 'DEPOSIT_PAID'}
+                    onClick={() => {
+                      setContractTarget(r);
+                      contractForm.resetFields();
+                      contractForm.setFieldsValue({
+                        dealAmountYuan: r.dealAmountFen != null ? r.dealAmountFen / 100 : undefined,
+                        remark: '合同已签署',
                       });
-                      if (!ok) return;
-                      try {
-                        await apiPost<Order>(`/admin/orders/${r.id}/milestones/contract-signed`, {
-                          dealAmountFen: 28800000,
-                          signedAt: new Date().toISOString(),
-                        });
-                        message.success('合同确认成功');
-                        void load();
-                      } catch (e: any) {
-                        message.error(e?.message || '操作失败');
-                      }
+                      setContractModalOpen(true);
                     }}
                   >
                     合同确认
                   </Button>
                   <Button
+                    disabled={r.status !== 'FINAL_PAID_ESCROW'}
                     onClick={async () => {
-                      const { ok } = await confirmActionWithReason({
+                      const { ok, reason } = await confirmActionWithReason({
                         title: '确认权属变更已完成？',
                         content: '确认后订单将进入可放款/结算阶段；请确保已核验变更完成凭证并留痕。',
                         okText: '确认变更完成',
@@ -149,7 +143,9 @@ export function OrdersPage() {
                           `/admin/orders/${r.id}/milestones/transfer-completed`,
                           {
                             completedAt: new Date().toISOString(),
+                            remark: reason || undefined,
                           },
+                          { idempotencyKey: `transfer-completed-${r.id}` },
                         );
                         message.success('变更完成确认成功');
                         void load();
@@ -168,6 +164,72 @@ export function OrdersPage() {
 
         <Button onClick={load}>刷新</Button>
       </Space>
+      <Modal
+        open={contractModalOpen}
+        title="合同确认"
+        okText="确认合同"
+        okButtonProps={{ loading: contractSubmitting }}
+        onCancel={() => {
+          setContractModalOpen(false);
+          setContractTarget(null);
+        }}
+        onOk={async () => {
+          if (!contractTarget) {
+            setContractModalOpen(false);
+            return;
+          }
+          try {
+            const values = await contractForm.validateFields();
+            const dealAmountYuan = Number(values?.dealAmountYuan || 0);
+            if (!Number.isFinite(dealAmountYuan) || dealAmountYuan <= 0) {
+              message.error('成交价需大于 0');
+              return;
+            }
+            const dealAmountFen = Math.round(dealAmountYuan * 100);
+            setContractSubmitting(true);
+            await apiPost<Order>(
+              `/admin/orders/${contractTarget.id}/milestones/contract-signed`,
+              {
+                dealAmountFen,
+                signedAt: new Date().toISOString(),
+                remark: values?.remark ? String(values.remark).trim() : undefined,
+              },
+              { idempotencyKey: `contract-signed-${contractTarget.id}` },
+            );
+            message.success('合同确认成功');
+            setContractModalOpen(false);
+            setContractTarget(null);
+            contractForm.resetFields();
+            void load();
+          } catch (e: any) {
+            if (e?.errorFields) return;
+            message.error(e?.message || '操作失败');
+          } finally {
+            setContractSubmitting(false);
+          }
+        }}
+      >
+        <Form form={contractForm} layout="vertical">
+          <Form.Item
+            label="成交价（元）"
+            name="dealAmountYuan"
+            rules={[{ required: true, message: '请输入成交价' }]}
+          >
+            <InputNumber min={0} precision={2} style={{ width: '100%' }} placeholder="例如 288000" />
+          </Form.Item>
+          <Form.Item label="备注/依据（建议填写）" name="remark">
+            <Input.TextArea
+              rows={3}
+              placeholder="建议填写：合同编号/签署方/签署时间/证据归档位置等。"
+            />
+          </Form.Item>
+          {contractTarget ? (
+            <Typography.Text type="secondary">
+              当前订单订金：¥{fenToYuan(contractTarget.depositAmountFen)}
+            </Typography.Text>
+          ) : null}
+        </Form>
+      </Modal>
     </Card>
   );
 }

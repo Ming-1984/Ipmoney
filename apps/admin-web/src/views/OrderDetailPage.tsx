@@ -80,6 +80,8 @@ export function OrderDetailPage() {
   }, [load]);
 
   const milestones = useMemo(() => data?.milestones || [], [data?.milestones]);
+  const canConfirmDeposit = data?.status === 'DEPOSIT_PENDING';
+  const canConfirmFinal = data?.status === 'WAIT_FINAL_PAYMENT';
 
   return (
     <Space direction="vertical" size={16} style={{ width: '100%' }}>
@@ -151,6 +153,76 @@ export function OrderDetailPage() {
         )}
 
         <Space style={{ marginTop: 16 }}>
+          {canConfirmDeposit ? (
+            <Button
+              type="primary"
+              onClick={async () => {
+                if (!orderId) return;
+                const { ok, reason } = await confirmActionWithReason({
+                  title: '确认订金已到账？',
+                  content: '确认后将推进订单状态并通知双方，请确保资金已核验到帐。',
+                  okText: '确认订金',
+                  defaultReason: '订金到账确认',
+                  reasonLabel: '确认备注/依据（建议填写）',
+                  reasonHint: '建议写明：到账凭证、核验时间、操作人等，便于审计与对账。',
+                });
+                if (!ok) return;
+                try {
+                  await apiPost(
+                    `/admin/orders/${orderId}/payments/manual`,
+                    {
+                      payType: 'DEPOSIT',
+                      amountFen: data?.depositAmountFen ?? undefined,
+                      paidAt: new Date().toISOString(),
+                      remark: reason || undefined,
+                    },
+                    { idempotencyKey: `manual-pay-deposit-${orderId}` },
+                  );
+                  message.success('订金确认完成');
+                  void load();
+                } catch (e: any) {
+                  message.error(e?.message || '操作失败');
+                }
+              }}
+            >
+              确认订金
+            </Button>
+          ) : null}
+          {canConfirmFinal ? (
+            <Button
+              type="primary"
+              onClick={async () => {
+                if (!orderId) return;
+                const { ok, reason } = await confirmActionWithReason({
+                  title: '确认尾款已到账？',
+                  content: '确认后将推进订单状态并通知双方，请确保资金已核验到帐。',
+                  okText: '确认尾款',
+                  defaultReason: '尾款到账确认',
+                  reasonLabel: '确认备注/依据（建议填写）',
+                  reasonHint: '建议写明：到账凭证、核验时间、操作人等，便于审计与对账。',
+                });
+                if (!ok) return;
+                try {
+                  await apiPost(
+                    `/admin/orders/${orderId}/payments/manual`,
+                    {
+                      payType: 'FINAL',
+                      amountFen: data?.finalAmountFen ?? undefined,
+                      paidAt: new Date().toISOString(),
+                      remark: reason || undefined,
+                    },
+                    { idempotencyKey: `manual-pay-final-${orderId}` },
+                  );
+                  message.success('尾款确认完成');
+                  void load();
+                } catch (e: any) {
+                  message.error(e?.message || '操作失败');
+                }
+              }}
+            >
+              确认尾款
+            </Button>
+          ) : null}
           <Button
             type="primary"
             onClick={async () => {

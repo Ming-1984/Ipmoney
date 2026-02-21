@@ -1,8 +1,8 @@
-import { Button, Card, Descriptions, Divider, Drawer, Input, InputNumber, Modal, Select, Space, Table, Tag, Typography, message } from 'antd';
+import { Button, Card, Descriptions, Divider, Drawer, Form, Input, InputNumber, Modal, Select, Space, Table, Tag, Typography, message } from 'antd';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 
-import { apiGet, apiPost, apiPut } from '../lib/api';
-import { fenToYuan, formatTimeSmart } from '../lib/format';
+import { apiGet, apiPatch, apiPost, apiPut } from '../lib/api';
+import { fenToYuan, fenToYuanNumber, formatTimeSmart, yuanToFen } from '../lib/format';
 import { auditStatusLabel, featuredLevelLabel, listingStatusLabel, tradeModeLabel } from '../lib/labels';
 import { AuditHint, RequestErrorAlert } from '../ui/RequestState';
 import { confirmActionWithReason } from '../ui/confirm';
@@ -64,6 +64,29 @@ function listingTag(status: ListingStatus) {
   return <Tag>{listingStatusLabel(status)}</Tag>;
 }
 
+const TRADE_MODE_OPTIONS: { value: Listing['tradeMode']; label: string }[] = [
+  { value: 'ASSIGNMENT', label: '转让' },
+  { value: 'LICENSE', label: '许可' },
+];
+
+const PRICE_TYPE_OPTIONS: { value: Listing['priceType']; label: string }[] = [
+  { value: 'FIXED', label: '一口价' },
+  { value: 'NEGOTIABLE', label: '面议' },
+];
+
+const LISTING_STATUS_OPTIONS: { value: ListingStatus; label: string }[] = [
+  { value: 'DRAFT', label: '草稿' },
+  { value: 'ACTIVE', label: '上架' },
+  { value: 'OFF_SHELF', label: '下架' },
+  { value: 'SOLD', label: '已售出' },
+];
+
+const AUDIT_STATUS_OPTIONS: { value: AuditStatus; label: string }[] = [
+  { value: 'PENDING', label: '待审核' },
+  { value: 'APPROVED', label: '已通过' },
+  { value: 'REJECTED', label: '已驳回' },
+];
+
 export function ListingsAuditPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<unknown | null>(null);
@@ -85,6 +108,10 @@ export function ListingsAuditPage() {
   const [detail, setDetail] = useState<Listing | null>(null);
   const [materials, setMaterials] = useState<AuditMaterial[]>([]);
   const [auditLogs, setAuditLogs] = useState<AuditLog[]>([]);
+  const [modalOpen, setModalOpen] = useState(false);
+  const [editing, setEditing] = useState<Listing | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [form] = Form.useForm();
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -111,6 +138,103 @@ export function ListingsAuditPage() {
   useEffect(() => {
     void load();
   }, [load]);
+
+  const openCreate = useCallback(() => {
+    setEditing(null);
+    form.resetFields();
+    form.setFieldsValue({ status: 'DRAFT', auditStatus: 'PENDING', tradeMode: 'ASSIGNMENT', priceType: 'NEGOTIABLE' });
+    setModalOpen(true);
+  }, [form]);
+
+  const openEdit = useCallback(
+    (item: Listing) => {
+      setEditing(item);
+      form.setFieldsValue({
+        title: item.title,
+        tradeMode: item.tradeMode,
+        priceType: item.priceType,
+        priceAmountYuan: fenToYuanNumber(item.priceAmountFen),
+        depositAmountYuan: fenToYuanNumber(item.depositAmountFen),
+        regionCode: item.regionCode || undefined,
+        status: item.status || 'DRAFT',
+        auditStatus: item.auditStatus || 'PENDING',
+      });
+      setModalOpen(true);
+    },
+    [form],
+  );
+
+  const handleSubmit = useCallback(async () => {
+    try {
+      const values = await form.validateFields();
+      const payload = {
+        title: values.title ? String(values.title).trim() : undefined,
+        tradeMode: values.tradeMode,
+        priceType: values.priceType,
+        priceAmountFen:
+          values.priceType === 'NEGOTIABLE' || values.priceAmountYuan == null ? undefined : yuanToFen(values.priceAmountYuan),
+        depositAmountFen: values.depositAmountYuan == null ? undefined : yuanToFen(values.depositAmountYuan),
+        regionCode: values.regionCode ? String(values.regionCode).trim() : undefined,
+        status: values.status || undefined,
+        auditStatus: values.auditStatus || undefined,
+      };
+      setSaving(true);
+      if (editing) {
+        await apiPatch(`/admin/listings/${editing.id}`, payload, { idempotencyKey: `admin-listing-${editing.id}` });
+        message.success('已更新挂牌');
+      } else {
+        await apiPost('/admin/listings', payload, { idempotencyKey: `admin-listing-create-${Date.now()}` });
+        message.success('已创建挂牌');
+      }
+      setModalOpen(false);
+      void load();
+    } catch (e: any) {
+      if (e?.errorFields) return;
+      message.error(e?.message || '保存失败');
+    } finally {
+      setSaving(false);
+    }
+  }, [editing, form, load]);
+
+  const handlePublish = useCallback(
+    async (item: Listing) => {
+      const { ok, reason } = await confirmActionWithReason({
+        title: '确认上架该挂牌？',
+        content: '上架后将对外展示并可被检索。',
+        okText: '上架',
+        reasonLabel: '上架备注（建议填写）',
+      });
+      if (!ok) return;
+      try {
+        await apiPost(`/admin/listings/${item.id}/publish`, { reason: reason || undefined }, { idempotencyKey: `listing-publish-${item.id}` });
+        message.success('已上架');
+        void load();
+      } catch (e: any) {
+        message.error(e?.message || '上架失败');
+      }
+    },
+    [load],
+  );
+
+  const handleOffShelf = useCallback(
+    async (item: Listing) => {
+      const { ok, reason } = await confirmActionWithReason({
+        title: '确认下架该挂牌？',
+        content: '下架后将不再对外展示。',
+        okText: '下架',
+        reasonLabel: '下架原因（建议填写）',
+      });
+      if (!ok) return;
+      try {
+        await apiPost(`/admin/listings/${item.id}/off-shelf`, { reason: reason || undefined }, { idempotencyKey: `listing-off-${item.id}` });
+        message.success('已下架');
+        void load();
+      } catch (e: any) {
+        message.error(e?.message || '下架失败');
+      }
+    },
+    [load],
+  );
 
   const rows = useMemo(() => data?.items || [], [data?.items]);
 
@@ -193,6 +317,9 @@ export function ListingsAuditPage() {
             ]}
           />
           <Button onClick={load}>查询</Button>
+          <Button type="primary" onClick={openCreate}>
+            新建挂牌
+          </Button>
         </Space>
 
         <Table<Listing>
@@ -238,6 +365,7 @@ export function ListingsAuditPage() {
                 return (
                   <Space>
                     <Button onClick={() => void openDetail(r)}>详情</Button>
+                    <Button onClick={() => openEdit(r)}>编辑</Button>
                     <Button
                       type="primary"
                       disabled={disabled}
@@ -286,6 +414,12 @@ export function ListingsAuditPage() {
                       }}
                     >
                       驳回
+                    </Button>
+                    <Button disabled={r.status === 'ACTIVE'} onClick={() => void handlePublish(r)}>
+                      上架
+                    </Button>
+                    <Button disabled={r.status !== 'ACTIVE'} onClick={() => void handleOffShelf(r)}>
+                      下架
                     </Button>
                     <Button
                       onClick={() => {
@@ -388,6 +522,43 @@ export function ListingsAuditPage() {
           </Space>
         )}
       </Drawer>
+
+      <Modal
+        title={editing ? '编辑挂牌' : '新建挂牌'}
+        open={modalOpen}
+        onCancel={() => setModalOpen(false)}
+        onOk={handleSubmit}
+        okText="保存"
+        confirmLoading={saving}
+        bodyStyle={modalBodyScrollStyle}
+      >
+        <Form form={form} layout="vertical">
+          <Form.Item label="标题" name="title" rules={[{ required: true, message: '请输入标题' }]}>
+            <Input placeholder="挂牌标题" />
+          </Form.Item>
+          <Form.Item label="交易方式" name="tradeMode" rules={[{ required: true, message: '请选择交易方式' }]}>
+            <Select options={TRADE_MODE_OPTIONS} />
+          </Form.Item>
+          <Form.Item label="报价方式" name="priceType" rules={[{ required: true, message: '请选择报价方式' }]}>
+            <Select options={PRICE_TYPE_OPTIONS} />
+          </Form.Item>
+          <Form.Item label="报价金额（元）" name="priceAmountYuan">
+            <InputNumber min={0} style={{ width: '100%' }} placeholder="一口价时填写" />
+          </Form.Item>
+          <Form.Item label="订金金额（元）" name="depositAmountYuan">
+            <InputNumber min={0} style={{ width: '100%' }} placeholder="可选" />
+          </Form.Item>
+          <Form.Item label="地区编码" name="regionCode">
+            <Input placeholder="地区编码（6 位 adcode）" />
+          </Form.Item>
+          <Form.Item label="内容状态" name="status">
+            <Select options={LISTING_STATUS_OPTIONS} />
+          </Form.Item>
+          <Form.Item label="审核状态" name="auditStatus">
+            <Select options={AUDIT_STATUS_OPTIONS} />
+          </Form.Item>
+        </Form>
+      </Modal>
 
       <Modal
         open={featureModalOpen}

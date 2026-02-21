@@ -1,4 +1,4 @@
-﻿import { Button, Card, Descriptions, Divider, Drawer, Input, Select, Space, Table, Tag, Typography, Upload, message } from 'antd';
+﻿import { Button, Card, Descriptions, Divider, Drawer, Form, Input, Modal, Select, Space, Table, Tag, Typography, Upload, message } from 'antd';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 
 import { apiGet, apiPost, apiUploadFile } from '../lib/api';
@@ -6,8 +6,8 @@ import { formatTimeSmart } from '../lib/format';
 import { AuditHint, RequestErrorAlert } from '../ui/RequestState';
 import { confirmActionWithReason } from '../ui/confirm';
 
-type CaseType = 'ORDER' | 'REFUND' | 'AUDIT_MATERIAL' | 'DISPUTE';
-type CaseStatus = 'NEW' | 'IN_PROGRESS' | 'WAITING_MATERIAL' | 'RESOLVED' | 'CLOSED';
+type CaseType = 'FOLLOWUP' | 'REFUND' | 'DISPUTE';
+type CaseStatus = 'OPEN' | 'IN_PROGRESS' | 'CLOSED';
 
 type CaseSummary = {
   id: string;
@@ -51,27 +51,30 @@ type RbacUser = {
 
 const statusOptions: { value: CaseStatus | ''; label: string }[] = [
   { value: '', label: '全部状态' },
-  { value: 'NEW', label: '新建' },
+  { value: 'OPEN', label: '待处理' },
   { value: 'IN_PROGRESS', label: '处理中' },
-  { value: 'WAITING_MATERIAL', label: '待补材料' },
-  { value: 'RESOLVED', label: '已解决' },
   { value: 'CLOSED', label: '已关闭' },
 ];
 
 const typeOptions: { value: CaseType | ''; label: string }[] = [
   { value: '', label: '全部类型' },
-  { value: 'ORDER', label: '订单跟单' },
+  { value: 'FOLLOWUP', label: '订单跟单' },
   { value: 'REFUND', label: '退款争议' },
-  { value: 'AUDIT_MATERIAL', label: '审核补材料' },
   { value: 'DISPUTE', label: '交易争议' },
 ];
 
+const createTypeOptions = typeOptions.filter((opt) => opt.value) as { value: CaseType; label: string }[];
+
+const priorityOptions: { value: 'LOW' | 'MEDIUM' | 'HIGH'; label: string }[] = [
+  { value: 'LOW', label: '低' },
+  { value: 'MEDIUM', label: '中' },
+  { value: 'HIGH', label: '高' },
+];
+
 function statusTag(status: CaseStatus) {
-  if (status === 'RESOLVED') return <Tag color="green">已解决</Tag>;
   if (status === 'CLOSED') return <Tag color="default">已关闭</Tag>;
-  if (status === 'WAITING_MATERIAL') return <Tag color="orange">待补材料</Tag>;
   if (status === 'IN_PROGRESS') return <Tag color="blue">处理中</Tag>;
-  return <Tag color="gold">新建</Tag>;
+  return <Tag color="gold">待处理</Tag>;
 }
 
 export function CasesPage() {
@@ -81,6 +84,8 @@ export function CasesPage() {
   const [q, setQ] = useState('');
   const [status, setStatus] = useState<CaseStatus | ''>('');
   const [type, setType] = useState<CaseType | ''>('');
+  const [createOpen, setCreateOpen] = useState(false);
+  const [createForm] = Form.useForm();
 
   const [detailOpen, setDetailOpen] = useState(false);
   const [detail, setDetail] = useState<CaseDetail | null>(null);
@@ -146,7 +151,7 @@ export function CasesPage() {
             客服工单/争议处理
           </Typography.Title>
           <Typography.Paragraph type="secondary" style={{ marginBottom: 0 }}>
-            用于订单跟单、退款争议与材料补齐的闭环管理。
+            用于订单跟单、退款争议与交易争议的闭环管理。
           </Typography.Paragraph>
         </div>
 
@@ -180,6 +185,16 @@ export function CasesPage() {
             options={statusOptions}
           />
           <Button onClick={load}>查询</Button>
+          <Button
+            type="primary"
+            onClick={() => {
+              createForm.resetFields();
+              createForm.setFieldsValue({ type: 'FOLLOWUP', priority: 'MEDIUM' });
+              setCreateOpen(true);
+            }}
+          >
+            新建工单
+          </Button>
         </Space>
 
         <Table<CaseSummary>
@@ -221,6 +236,75 @@ export function CasesPage() {
             },
           ]}
         />
+
+        <Modal
+          open={createOpen}
+          title="新建工单"
+          destroyOnClose
+          onCancel={() => setCreateOpen(false)}
+          onOk={async () => {
+            try {
+              const v = await createForm.validateFields();
+              const { ok } = await confirmActionWithReason({
+                title: '确认创建工单？',
+                content: '新工单将进入待处理状态，可在详情中继续分派与跟进。',
+                okText: '创建',
+                reasonLabel: '原因/备注（建议填写）',
+              });
+              if (!ok) return;
+              await apiPost('/admin/cases', {
+                title: v.title?.trim(),
+                type: v.type,
+                priority: v.priority,
+                requesterName: v.requesterName?.trim() || undefined,
+                description: v.description?.trim() || undefined,
+                orderId: v.orderId?.trim() || undefined,
+                assigneeId: v.assigneeId || undefined,
+                dueAt: v.dueAt?.trim() || undefined,
+              });
+              message.success('已创建');
+              setCreateOpen(false);
+              void load();
+            } catch (e: any) {
+              if (e?.errorFields) return;
+              message.error(e?.message || '创建失败');
+            }
+          }}
+        >
+          <Form form={createForm} layout="vertical">
+            <Form.Item label="工单标题" name="title" rules={[{ required: true, message: '请输入工单标题' }]}>
+              <Input placeholder="例：订单跟单 / 退款争议" />
+            </Form.Item>
+            <Form.Item label="类型" name="type" rules={[{ required: true, message: '请选择工单类型' }]}>
+              <Select options={createTypeOptions} />
+            </Form.Item>
+            <Form.Item label="优先级" name="priority">
+              <Select options={priorityOptions} />
+            </Form.Item>
+            <Form.Item label="发起人" name="requesterName">
+              <Input placeholder="默认：系统" />
+            </Form.Item>
+            <Form.Item label="关联订单ID" name="orderId">
+              <Input placeholder="订单ID（可选）" />
+            </Form.Item>
+            <Form.Item label="跟单客服" name="assigneeId">
+              <Select
+                allowClear
+                options={assignees.map((u) => ({
+                  value: u.id,
+                  label: u.roleNames?.length ? `${u.name}（${u.roleNames.join(' / ')}）` : u.name,
+                }))}
+                placeholder="可选"
+              />
+            </Form.Item>
+            <Form.Item label="SLA 截止（ISO）" name="dueAt">
+              <Input placeholder="YYYY-MM-DD 或 YYYY-MM-DDTHH:mm:ss" />
+            </Form.Item>
+            <Form.Item label="描述" name="description">
+              <Input.TextArea rows={3} placeholder="问题描述/处理要点" />
+            </Form.Item>
+          </Form>
+        </Modal>
       </Space>
 
       <Drawer
@@ -387,7 +471,7 @@ export function CasesPage() {
             <div>
               <Typography.Text strong>状态流转</Typography.Text>
               <Space style={{ marginTop: 8 }} wrap>
-                {(['IN_PROGRESS', 'WAITING_MATERIAL', 'RESOLVED', 'CLOSED'] as CaseStatus[]).map((s) => (
+                {(['OPEN', 'IN_PROGRESS', 'CLOSED'] as CaseStatus[]).map((s) => (
                   <Button
                     key={s}
                     onClick={async () => {
@@ -460,3 +544,4 @@ export function CasesPage() {
     </Card>
   );
 }
+

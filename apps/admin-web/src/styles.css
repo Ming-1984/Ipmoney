@@ -26,6 +26,7 @@ body {
   margin: 0;
   background: var(--ipm-bg);
   color: var(--ipm-text);
+  color-scheme: light;
 }
 
 .ipm-app-header {
@@ -34,11 +35,87 @@ body {
   backdrop-filter: blur(8px);
 }
 
+.ipm-sider {
+  background: var(--ipm-bg-container) !important;
+  border-right: 1px solid var(--ipm-border);
+}
+
+.ipm-sider .ant-layout-sider-children {
+  background: transparent;
+}
+
+.ipm-sider .ant-menu {
+  background: transparent;
+}
+
+.ipm-sider .ipm-logo-text span {
+  color: var(--ipm-text) !important;
+}
+
+.ipm-sider .ipm-logo-subtitle {
+  color: var(--ipm-muted) !important;
+}
+
+.ipm-sider .ant-layout-sider-trigger {
+  background: var(--ipm-bg-container);
+  color: var(--ipm-muted);
+  border-top: 1px solid var(--ipm-border);
+}
+
 .ipm-header-inner {
   height: 100%;
   display: flex;
   align-items: center;
   justify-content: space-between;
+}
+
+.ant-card {
+  background: var(--ipm-bg-container);
+}
+
+.ant-table {
+  color: var(--ipm-text);
+  background: transparent;
+}
+
+.ant-table-thead > tr > th {
+  background: var(--ipm-bg-elevated) !important;
+  color: var(--ipm-text);
+  font-weight: 600;
+}
+
+.ant-alert {
+  background: var(--ipm-bg-elevated);
+  border-color: var(--ipm-border);
+  color: var(--ipm-text);
+}
+
+.ant-alert-info {
+  background: rgba(255, 237, 213, 0.85);
+}
+
+.ant-table-tbody > tr > td {
+  color: var(--ipm-text);
+}
+
+.ant-table-thead > tr > th,
+.ant-table-tbody > tr > td {
+  border-color: var(--ipm-border);
+}
+
+.ant-descriptions-item-label,
+.ant-form-item-label > label {
+  color: var(--ipm-muted);
+}
+
+.ant-descriptions-item-content {
+  color: var(--ipm-text);
+}
+
+.ant-tag:not(.ant-tag-has-color) {
+  color: var(--ipm-text);
+  background: rgba(15, 23, 42, 0.06);
+  border-color: rgba(15, 23, 42, 0.16);
 }
 
 .ipm-content {

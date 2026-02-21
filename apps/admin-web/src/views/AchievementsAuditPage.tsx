@@ -1,9 +1,9 @@
-import { Button, Card, Descriptions, Divider, Drawer, Image, Input, Select, Space, Table, Tag, Typography, message } from 'antd';
+import { Button, Card, Descriptions, Divider, Drawer, Form, Image, Input, Modal, Select, Space, Table, Tag, Typography, message } from 'antd';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 
 import type { components } from '@ipmoney/api-types';
 
-import { apiGet, apiPost } from '../lib/api';
+import { apiGet, apiPatch, apiPost } from '../lib/api';
 import { formatTimeSmart } from '../lib/format';
 import { auditStatusLabel, contentStatusLabel } from '../lib/labels';
 import { AuditHint, RequestErrorAlert } from '../ui/RequestState';
@@ -60,6 +60,44 @@ function cooperationModeLabel(mode: CooperationMode): string {
   return '其他';
 }
 
+function toTagInput(tags?: string[] | null) {
+  return (tags || []).join(', ');
+}
+
+function parseTags(input?: string): string[] {
+  return String(input || '')
+    .split(',')
+    .map((item) => item.trim())
+    .filter(Boolean);
+}
+
+const MATURITY_OPTIONS: { value: AchievementMaturity; label: string }[] = [
+  { value: 'CONCEPT', label: '概念' },
+  { value: 'PROTOTYPE', label: '样机/原型' },
+  { value: 'PILOT', label: '中试' },
+  { value: 'MASS_PRODUCTION', label: '量产' },
+  { value: 'COMMERCIALIZED', label: '已产业化' },
+];
+
+const COOPERATION_OPTIONS: { value: CooperationMode; label: string }[] = [
+  { value: 'TRANSFER', label: '专利转让' },
+  { value: 'TECH_CONSULTING', label: '技术咨询' },
+  { value: 'COMMISSIONED_DEV', label: '委托开发' },
+  { value: 'PLATFORM_CO_BUILD', label: '平台共建' },
+];
+
+const CONTENT_STATUS_OPTIONS: { value: ContentStatus; label: string }[] = [
+  { value: 'DRAFT', label: '草稿' },
+  { value: 'ACTIVE', label: '上架' },
+  { value: 'OFF_SHELF', label: '下架' },
+];
+
+const AUDIT_STATUS_OPTIONS: { value: AuditStatus; label: string }[] = [
+  { value: 'PENDING', label: '待审核' },
+  { value: 'APPROVED', label: '已通过' },
+  { value: 'REJECTED', label: '已驳回' },
+];
+
 export function AchievementsAuditPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<unknown | null>(null);
@@ -72,6 +110,10 @@ export function AchievementsAuditPage() {
   const [active, setActive] = useState<Achievement | null>(null);
   const [materials, setMaterials] = useState<AuditMaterial[]>([]);
   const [auditLogs, setAuditLogs] = useState<AuditLog[]>([]);
+  const [modalOpen, setModalOpen] = useState(false);
+  const [editing, setEditing] = useState<Achievement | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [form] = Form.useForm();
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -98,6 +140,106 @@ export function AchievementsAuditPage() {
   useEffect(() => {
     void load();
   }, [load]);
+
+  const openCreate = useCallback(() => {
+    setEditing(null);
+    form.resetFields();
+    form.setFieldsValue({ status: 'DRAFT', auditStatus: 'PENDING' });
+    setModalOpen(true);
+  }, [form]);
+
+  const openEdit = useCallback(
+    (item: Achievement) => {
+      setEditing(item);
+      form.setFieldsValue({
+        title: item.title,
+        summary: item.summary || undefined,
+        description: item.description || undefined,
+        maturity: item.maturity || undefined,
+        cooperationModes: item.cooperationModes || [],
+        regionCode: item.regionCode || undefined,
+        keywords: toTagInput(item.keywords),
+        industryTags: toTagInput(item.industryTags),
+        status: item.status || 'DRAFT',
+        auditStatus: item.auditStatus || 'PENDING',
+      });
+      setModalOpen(true);
+    },
+    [form],
+  );
+
+  const handleSubmit = useCallback(async () => {
+    try {
+      const values = await form.validateFields();
+      const payload = {
+        title: String(values.title || '').trim(),
+        summary: values.summary ? String(values.summary).trim() : undefined,
+        description: values.description ? String(values.description).trim() : undefined,
+        maturity: values.maturity || undefined,
+        cooperationModes: values.cooperationModes?.length ? values.cooperationModes : undefined,
+        regionCode: values.regionCode ? String(values.regionCode).trim() : undefined,
+        keywords: parseTags(values.keywords),
+        industryTags: parseTags(values.industryTags),
+        status: values.status || undefined,
+        auditStatus: values.auditStatus || undefined,
+      };
+      setSaving(true);
+      if (editing) {
+        await apiPatch(`/admin/achievements/${editing.id}`, payload, { idempotencyKey: `admin-achievement-${editing.id}` });
+        message.success('已更新成果');
+      } else {
+        await apiPost('/admin/achievements', payload, { idempotencyKey: `admin-achievement-create-${Date.now()}` });
+        message.success('已创建成果');
+      }
+      setModalOpen(false);
+      void load();
+    } catch (e: any) {
+      if (e?.errorFields) return;
+      message.error(e?.message || '保存失败');
+    } finally {
+      setSaving(false);
+    }
+  }, [editing, form, load]);
+
+  const handlePublish = useCallback(
+    async (item: Achievement) => {
+      const { ok, reason } = await confirmActionWithReason({
+        title: '确认上架该成果？',
+        content: '上架后将对外展示并可被检索。',
+        okText: '上架',
+        reasonLabel: '上架备注（建议填写）',
+      });
+      if (!ok) return;
+      try {
+        await apiPost(`/admin/achievements/${item.id}/publish`, { reason: reason || undefined }, { idempotencyKey: `achievement-publish-${item.id}` });
+        message.success('已上架');
+        void load();
+      } catch (e: any) {
+        message.error(e?.message || '上架失败');
+      }
+    },
+    [load],
+  );
+
+  const handleOffShelf = useCallback(
+    async (item: Achievement) => {
+      const { ok, reason } = await confirmActionWithReason({
+        title: '确认下架该成果？',
+        content: '下架后将不再对外展示。',
+        okText: '下架',
+        reasonLabel: '下架原因（建议填写）',
+      });
+      if (!ok) return;
+      try {
+        await apiPost(`/admin/achievements/${item.id}/off-shelf`, { reason: reason || undefined }, { idempotencyKey: `achievement-off-${item.id}` });
+        message.success('已下架');
+        void load();
+      } catch (e: any) {
+        message.error(e?.message || '下架失败');
+      }
+    },
+    [load],
+  );
 
   const rows = useMemo(() => data?.items || [], [data?.items]);
   const detailMedia = useMemo(() => {
@@ -165,6 +307,9 @@ export function AchievementsAuditPage() {
             ]}
           />
           <Button onClick={load}>查询</Button>
+          <Button type="primary" onClick={openCreate}>
+            新建成果
+          </Button>
         </Space>
 
         <Table<Achievement>
@@ -189,15 +334,16 @@ export function AchievementsAuditPage() {
                   <Space>
                     <Button
                       onClick={async () => {
-                        setActive(r);
-                        setDetailOpen(true);
                         try {
-                          const [m, logs] = await Promise.all([
+                          const [detail, m, logs] = await Promise.all([
+                            apiGet<Achievement>(`/admin/achievements/${r.id}`),
                             apiGet<{ items: AuditMaterial[] }>(`/admin/achievements/${r.id}/materials`),
                             apiGet<{ items: AuditLog[] }>(`/admin/achievements/${r.id}/audit-logs`),
                           ]);
+                          setActive(detail);
                           setMaterials(m.items || []);
                           setAuditLogs(logs.items || []);
+                          setDetailOpen(true);
                         } catch (e: any) {
                           message.error(e?.message || '加载材料/审核记录失败');
                         }
@@ -205,6 +351,7 @@ export function AchievementsAuditPage() {
                     >
                       详情
                     </Button>
+                    <Button onClick={() => openEdit(r)}>编辑</Button>
                     <Button
                       type="primary"
                       disabled={disabled}
@@ -253,6 +400,12 @@ export function AchievementsAuditPage() {
                       }}
                     >
                       驳回
+                    </Button>
+                    <Button disabled={r.status === 'ACTIVE'} onClick={() => void handlePublish(r)}>
+                      上架
+                    </Button>
+                    <Button disabled={r.status !== 'ACTIVE'} onClick={() => void handleOffShelf(r)}>
+                      下架
                     </Button>
                   </Space>
                 );
@@ -449,6 +602,48 @@ export function AchievementsAuditPage() {
           ) : null}
         </Drawer>
       </Space>
+
+      <Modal
+        title={editing ? '编辑成果' : '新建成果'}
+        open={modalOpen}
+        onCancel={() => setModalOpen(false)}
+        onOk={handleSubmit}
+        okText="保存"
+        confirmLoading={saving}
+      >
+        <Form form={form} layout="vertical">
+          <Form.Item label="标题" name="title" rules={[{ required: true, message: '请输入标题' }]}>
+            <Input placeholder="成果标题" />
+          </Form.Item>
+          <Form.Item label="摘要" name="summary">
+            <Input placeholder="摘要（可选）" />
+          </Form.Item>
+          <Form.Item label="详情" name="description">
+            <Input.TextArea rows={4} placeholder="成果详情（可选）" />
+          </Form.Item>
+          <Form.Item label="成熟度" name="maturity">
+            <Select allowClear options={MATURITY_OPTIONS} placeholder="选择成熟度" />
+          </Form.Item>
+          <Form.Item label="合作方式" name="cooperationModes">
+            <Select mode="multiple" allowClear options={COOPERATION_OPTIONS} placeholder="选择合作方式" />
+          </Form.Item>
+          <Form.Item label="地区编码" name="regionCode">
+            <Input placeholder="地区编码（6 位 adcode）" />
+          </Form.Item>
+          <Form.Item label="产业标签（逗号分隔）" name="industryTags">
+            <Input placeholder="如：新能源, 生物医药" />
+          </Form.Item>
+          <Form.Item label="关键词（逗号分隔）" name="keywords">
+            <Input placeholder="如：储能, 电池" />
+          </Form.Item>
+          <Form.Item label="内容状态" name="status">
+            <Select options={CONTENT_STATUS_OPTIONS} />
+          </Form.Item>
+          <Form.Item label="审核状态" name="auditStatus">
+            <Select options={AUDIT_STATUS_OPTIONS} />
+          </Form.Item>
+        </Form>
+      </Modal>
     </Card>
   );
 }

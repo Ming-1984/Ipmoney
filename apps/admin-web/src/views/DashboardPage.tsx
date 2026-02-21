@@ -10,6 +10,7 @@ type PagedUserVerification = components['schemas']['PagedUserVerification'];
 type PagedListing = components['schemas']['PagedListing'];
 type PagedOrder = components['schemas']['PagedOrder'];
 type PatentMapSummaryItem = components['schemas']['PatentMapSummaryItem'];
+type HealthResponse = { ok?: boolean; checks?: Record<string, { ok?: boolean; error?: string }> };
 
 export function DashboardPage() {
   const navigate = useNavigate();
@@ -21,6 +22,7 @@ export function DashboardPage() {
   const [ordersTotal, setOrdersTotal] = useState<number | null>(null);
   const [patentMapRegions, setPatentMapRegions] = useState<number | null>(null);
   const [patentMapTotal, setPatentMapTotal] = useState<number | null>(null);
+  const [healthOk, setHealthOk] = useState<boolean | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -30,12 +32,12 @@ export function DashboardPage() {
       apiGet<PagedUserVerification>('/admin/user-verifications', { status: 'PENDING', page: 1, pageSize: 1 }),
       apiGet<PagedListing>('/admin/listings', { auditStatus: 'PENDING', page: 1, pageSize: 1 }),
       apiGet<PagedOrder>('/orders', { page: 1, pageSize: 1 }),
-      apiGet<PatentMapSummaryItem[]>('/patent-map/summary'),
+      apiGet<HealthResponse>('/health'),
     ]);
 
     const errors: string[] = [];
 
-    const [rV, rL, rO, rM] = results;
+    const [rV, rL, rO, rH] = results;
     if (rV.status === 'fulfilled') setPendingVerifications(rV.value.page.total);
     else errors.push('认证审核数据加载失败');
 
@@ -45,12 +47,30 @@ export function DashboardPage() {
     if (rO.status === 'fulfilled') setOrdersTotal(rO.value.page.total);
     else errors.push('订单数据加载失败');
 
-    if (rM.status === 'fulfilled') {
-      const arr = rM.value || [];
-      setPatentMapRegions(arr.length);
-      setPatentMapTotal(arr.reduce((sum, x) => sum + (x.patentCount || 0), 0));
+    if (rH.status === 'fulfilled') {
+      setHealthOk(Boolean(rH.value?.ok));
     } else {
-      errors.push('专利地图数据加载失败');
+      setHealthOk(false);
+      errors.push('健康检查加载失败');
+    }
+
+    try {
+      const years = await apiGet<number[]>('/patent-map/years');
+      const latestYear = Array.isArray(years) && years.length ? [...years].sort((a, b) => b - a)[0] : null;
+      if (!latestYear) {
+        setPatentMapRegions(0);
+        setPatentMapTotal(0);
+      } else {
+        const summary = await apiGet<PatentMapSummaryItem[]>('/patent-map/summary', {
+          year: latestYear,
+          level: 'PROVINCE',
+        });
+        const arr = summary || [];
+        setPatentMapRegions(arr.length);
+        setPatentMapTotal(arr.reduce((sum, x) => sum + (x.patentCount || 0), 0));
+      }
+    } catch {
+      errors.push('Patent map data load failed');
     }
 
     if (errors.length) {
@@ -72,8 +92,9 @@ export function DashboardPage() {
       { title: '待审核上架', value: pendingListings, onClick: () => navigate('/listings') },
       { title: '订单总数', value: ordersTotal, onClick: () => navigate('/orders') },
       { title: '地图区域数', value: patentMapRegions, onClick: () => navigate('/patent-map') },
+      { title: 'API 健康', value: healthOk === null ? '-' : healthOk ? '正常' : '异常', onClick: () => navigate('/audit-logs') },
     ],
-    [navigate, ordersTotal, patentMapRegions, pendingListings, pendingVerifications],
+    [healthOk, navigate, ordersTotal, patentMapRegions, pendingListings, pendingVerifications],
   );
 
   return (
@@ -128,6 +149,9 @@ export function DashboardPage() {
               </Button>
               <Button block onClick={() => navigate('/patent-map')}>
                 专利地图 CMS
+              </Button>
+              <Button block onClick={() => navigate('/audit-logs')}>
+                审计日志
               </Button>
               <Button block onClick={load}>
                 刷新
