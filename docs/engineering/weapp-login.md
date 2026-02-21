@@ -1,8 +1,7 @@
 ﻿# 小程序登录与用户资料（头像/昵称）落地方案
 
 相关：
-- Checklist：`docs/TODO.md` → 7.3 登录鉴权与用户
-- 预览/排错：`docs/demo/runbook.md` → 1.1 小程序预览（微信开发者工具）
+- Checklist: docs/engineering/project-status.md (Auth and identity)
 
 ## 目标（仅小程序端，最快实现）
 
@@ -28,14 +27,15 @@
 
 ## 现状（代码快速盘点）
 
-- 小程序登录页：`apps/client/src/pages/login/index.tsx`
+- 小程序登录页：`apps/client/src/subpackages/login/index.tsx`
   - 已调用 `Taro.login()` 获取 `code` 并请求 `POST /auth/wechat/mp-login`。
   - 微信登录成功后：若 `user.phone` 为空，会弹出“授权手机号”弹窗；授权/跳过后进入身份选择页。
   - 目前后端为“演示用户”占位，不会调用微信 `code2Session`。
+  - Demo 登录入口仅在 `DEMO_AUTH_ENABLED=true` 且 `APP_MODE!=="production"` 时显示（客户端 `DEMO_LOGIN_ENABLED`）。
 - 我的页头部：`apps/client/src/pages/me/index.tsx`
   - 当前仅展示昵称/手机号/认证标签；未展示头像；昵称来源为 `/me`。
 - 后端登录：`apps/api/src/modules/auth/auth.service.ts`
-  - `wechatMpLogin` 目前仅校验 `code` 非空，然后返回 `demo-token` + 演示用户。
+- `wechatMpLogin` 目前仅校验 `code` 非空，然后返回配置的 `DEMO_USER_TOKEN` + 演示用户（需启用 `DEMO_AUTH_ENABLED` 并配置 demo 账号；生产构建强制禁用 Demo 登录入口）。
 - 后端手机号绑定：`POST /auth/wechat/phone-bind`
   - P0 为演示实现：暂不接微信 `phonenumber.getPhoneNumber`，仅模拟写入手机号（避免 unique 冲突）。
 - 后端资料更新：`apps/api/src/modules/users/users.service.ts`

@@ -32,10 +32,10 @@ sequenceDiagram
   end
 
   Bus-->>Pay: RefundApproved
-  Pay->>WxPay: 发起原路退款
-  WxPay-->>Pay: 退款结果回调（异步通知）
-  Pay->>Pay: 验签 + 幂等入库
-  Pay-->>Bus: RefundSucceeded(orderId)
+  Pay->>WxPay: 发起原路退款（P1；P0 手工完成）
+  WxPay-->>Pay: 退款结果回调（P1）
+  Pay->>Pay: 验签 + 幂等入库（P1）
+  Pay-->>Bus: RefundSucceeded(orderId)（P0 手工完成/ P1 回调）
 
   Bus-->>Order: RefundSucceeded
   Order->>Order: 订单状态机流转：REFUNDING → REFUNDED
@@ -43,4 +43,3 @@ sequenceDiagram
 
   Bus-->>Notif: RefundSucceeded / OrderStatusChanged
   Notif-->>Buyer: 通知：退款完成
-

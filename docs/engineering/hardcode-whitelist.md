@@ -25,4 +25,3 @@
 
 - 开发自测前运行：`pnpm scan:banned-words`
 - 若后续发现硬编码回潮：可追加脚本扫描 `#RRGGBB` 与 `fontSize/padding/margin` 等内联样式，作为 CI 门禁。
-

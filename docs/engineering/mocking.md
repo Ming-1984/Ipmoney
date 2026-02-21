@@ -1,111 +1,32 @@
-# Mock 驱动并行开发（OpenAPI + fixtures）
+﻿# Mock 驱动并行开发（OpenAPI + fixtures）
 
-> 目标：**前端不等后端接口**，页面/交互/状态机（loading/empty/error/权限）先做完；后端上线后只替换数据源。  
-> 单一真相：`docs/api/openapi.yaml`（契约先行；任何接口改动先改 OpenAPI，再改前后端实现）。
+> 目标：前端不等后端，页面交互/状态机先完成；后端上线后只切换数据源。
 
-## 1. 总体策略（最佳实践）
+## 原则
+1. OpenAPI 为唯一契约（任何接口改动先改 OpenAPI）。
+2. 双层 Mock：契约 Mock + 业务 fixtures Mock。
+3. 同一套 fixtures 复用开发/冒烟/演示。
 
-1) **接口契约锁定**：OpenAPI 作为唯一契约，CI 必跑 `npx -y @redocly/cli lint docs/api/openapi.yaml`。  
-2) **两层 Mock**（建议同时具备）：
-   - **契约 Mock（快速联调）**：基于 OpenAPI 直接启动 Mock Server。
-   - **业务 Mock（可控演示/回归）**：基于 fixtures 的确定性数据，覆盖“难场景”。
-3) **同一套 fixtures 三用**：开发调试 / 冒烟回归 / 甲方演示截图（避免一套数据写三遍）。
+## 启动方式
+- Mock API（fixtures + Prism fallback）：
+  - `pnpm -C apps/mock-api dev`
+- 默认端口：`http://127.0.0.1:4010`
 
-## 2. 契约 Mock（OpenAPI → Mock Server）
+## 场景切换
+- Header：`X-Mock-Scenario: happy | empty | error | edge`
+- fixtures 未命中的接口会转发到 Prism（内部端口 `4011`），确保契约覆盖。
 
-推荐工具：Prism（无需写后端即可起 Mock）。
+## 重置 Mock 状态
+- 直接调用：`POST http://127.0.0.1:4010/__reset`
+- 脚本：`scripts/dev-reset.ps1 -Target mock`
 
-- 启动 Mock Server：
-  - `npx -y @stoplight/prism-cli mock docs/api/openapi.yaml --port 4010 --cors`
-- 前端把 `API_BASE_URL` 指向 `http://127.0.0.1:4010`，即可用“契约 Mock”联调。
+## 环境建议
+- Dev：默认接 Mock（便于页面联调与演示）。
+- Staging：优先接真实 API，但允许使用 DEMO 开关做灰度验证。
+- Prod：禁用所有 DEMO/Mock 开关（见环境变量清单）。
 
-说明：
-- Prism 默认按 schema 生成响应；若需要更贴近业务的响应，优先补充 OpenAPI 的 `example/examples`，或使用 fixtures（见下）。
-
-### 2.1 推荐：fixtures 场景 + Prism fallback（更适合演示/回归）
-
-本仓库提供 `apps/mock-api`：
-
-- 启动：`pnpm mock`（`http://127.0.0.1:4010`）
-- 场景切换：Header `X-Mock-Scenario: happy|empty|error|edge|payment_callback_replay`
-- fixtures 未命中的接口自动转发到 Prism（内部端口 `4011`）
-
-### 2.2 （可选）逐模块替换到真实 API（开发网关）
-
-当后端开始逐模块落地真实实现时，可让前端继续请求 `mock-api(4010)`，由 `mock-api` 选择性把部分路由转发到真实 API：
-
-- 配置：
-  - `UPSTREAM_API_BASE_URL`：真实 API Base URL（可带 `/v1`）
-  - `UPSTREAM_PATH_PREFIXES`：需要走真实 API 的路由前缀（逗号分隔，如 `/files,/patents`）
-- 覆盖（调试用）：
-  - Header `X-Mock-Source: auto|fixture|upstream`
-  - 或 Query `?__source=auto|fixture|upstream`
-
-## 3. 业务 Mock（fixtures：可控、可演示、可回归）
-
-### 3.1 fixtures 目录建议
-
-建议独立目录（后续落代码仓库时）：
-
-```
-packages/fixtures/
-  scenarios/
-    happy/
-    empty/
-    error/
-    edge/
-```
-
-### 3.2 场景切换（推荐做法）
-
-为覆盖“真实环境难构造”的情况，建议统一“场景开关”：
-
-- Header：`X-Mock-Scenario: refund_failed` / `payment_callback_replay` / `empty` / `error` / `edge` …
-- 或 Query：`?__scenario=refund_failed`
-
-前端骨架与演示时，只需切换场景即可展示：
-- 退款失败/重试提示
-- 回调重放导致的幂等提示
-- 订单状态不允许跳转的错误提示
-- 无数据/无权限/审核中等状态页
-
-### 3.2.1 搜索筛选演示数据（Best Practice）
-- happy 场景应提供可对比的数据组合（至少 3 条），覆盖筛选维度：地区、产业标签、合作方式、预算类型/区间、成果成熟度。
-- 需求/成果/机构/专利交易各至少 2 个不同组合，便于验证筛选/排序与 FilterSummary 文案。
-
-### 3.3 fixtures ID 约束（UUID）
-
-前端路由参数（如 `listingId`/`demandId`/`achievementId`/`orderId`/`conversationId`/`patentId`）会做严格 UUID 校验；因此 fixtures / demo 脚本中的占位 ID（如 `aaaaaaaa-aaaa-...`、`11111111-1111-...`）会被判定为“链接无效”。
-
-- 约束：fixtures 中所有 `Uuid` 字段建议使用合法 UUID v4（version=4 + variant=8/9/a/b）。
-- 工具：`node scripts/fixture-uuids.mjs --check`（仅检查）、`node scripts/fixture-uuids.mjs --write`（批量修复）。
-
-### 3.4 P1 fixtures 预留计划（AI/托管/告警/平台内容）
-
-- **AI 智能体**：`POST /ai/agent/query` 返回结构化检索条件 + 匹配卡片（含低置信度样例）。
-- **AI 解析**：`/admin/ai/parse-results` 低分/低置信度列表 + 详情；`POST /ai/parse-results/{id}/feedback` 评分样例。
-- **平台内容 CMS**：`/admin/patents|demands|achievements` 列表/创建（`source=PLATFORM/ADMIN`）。
-- **专利托管**：`/admin/patent-maintenance/schedules`（到期/逾期/已处理）、`/tasks`（工单流转）。
-- **告警中心**：`/admin/alerts`（渠道/严重级别/确认状态）+ ack 操作。
-- **数据地图扩展**：地图类型切换（专利/技术经理人/科学家）返回结构预留（P1 占位）。
-
-## 4. 难场景覆盖清单（P0 必做）
-
-- **搜索/列表**：空结果、分页末页、过滤条件无效、排序枚举异常
-- **详情**：404（下架/不存在）、敏感字段不可见（公开 vs 登录）
-- **认证**：未选择身份、审核中、驳回（带原因）、通过后机构展示可见
-- **订单状态机**：非法跳转（409/400）、并发提交（幂等键重复）
-- **支付/退款**：回调重放、退款失败/处理中、重复支付提示
-- **权限**：401（未登录）、403（无权限/RBAC）
-
-## 5. 契约校验（防“Mock 漂移”）
-
-每次改动都要确保：
-- OpenAPI lint 通过（必做）
-- fixtures（如有）结构与字段不缺失（建议做：用脚本校验 fixtures 是否满足 OpenAPI schema）
-
-## 6. 回归与演示复用
-
-建议把“演示骨架”纳入固定流程：
-- 用同一套 fixtures 固定输出一组“可验收截图/录屏清单”
-- 甲方演示：只切换场景，无需等后端、无需手工造数据
+## 常见问题
+- 如果需要同时验证契约与后端实现：
+  - 前端先接 Mock；后端联调时切换 `API_BASE_URL` 到真实 API。
+- 如果出现“数据漂移”：
+  - 先更新 OpenAPI，再更新 fixtures 与后端实现。

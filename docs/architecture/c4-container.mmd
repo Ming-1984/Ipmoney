@@ -1,4 +1,4 @@
-%%{init: {'theme':'base','flowchart': {'htmlLabels': true},'themeVariables': {'fontFamily': 'Inter, Microsoft YaHei, sans-serif','fontSize': '18px','lineColor':'#64748B','primaryTextColor':'#0F172A','primaryBorderColor':'#CBD5E1','primaryColor':'#F8FAFC'}}}%%
+﻿%%{init: {'theme':'base','flowchart': {'htmlLabels': true},'themeVariables': {'fontFamily': 'Inter, Microsoft YaHei, sans-serif','fontSize': '18px','lineColor':'#64748B','primaryTextColor':'#0F172A','primaryBorderColor':'#CBD5E1','primaryColor':'#F8FAFC'}}}%%
 flowchart LR
   subgraph Clients[客户端]
     direction LR
@@ -113,7 +113,7 @@ flowchart LR
   Search -.-> ES
   File --> OSS
 
-  %% 事件驱动（典型：支付成功/退款成功/合同签署确认/变更完成/上架变更等）
+  %% 事件驱动（典型：支付确认/退款完成/合同签署确认/变更完成/上架变更等）
   %% P0：用 BullMQ/Outbox 做可靠异步；P1：可升级 Event Bus
   Listing -.-> MQ
   Order -.-> MQ
@@ -137,3 +137,4 @@ flowchart LR
 
   %% P0：不接外部专利数据源；P1 可通过适配层/任务刷新接入
   PatentProvider -.-> Patent
+

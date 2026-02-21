@@ -1,97 +1,58 @@
-# 前端 UI 设计范式（生产级：移动端优先）
+﻿# UI 指南（Client + Admin）
 
-> 目标：把 `apps/client`（小程序/H5）与 `apps/admin-web`（后台）做成**可直接上生产的视觉与交互基线**；同时保证后续“Mock → 真后端”替换数据源不受影响（UI 只消费 OpenAPI 契约字段）。
+> 最后更新：2026-02-20
 
-## 0. UI v2 对齐结论（已确认）
+## 范围
+- apps/client（微信小程序 + Taro H5）
+- apps/admin-web（React + Ant Design）
 
-> 参考范式：微信小程序设计指南（字号梯度、控件一致性）+ WeUI（微信官方基础样式库：列表/搜索/按钮/留白体系）。
+## 原则
+1. Token 驱动：颜色/间距/字号不硬编码，例外走白名单。
+2. 状态机统一：permission -> audit -> loading -> error -> empty -> content。
+3. 页面模板：A-G（Tab / List / Detail+Sticky / Form / Payment / Chat / Policy）。
+4. 权限策略：public / login-required / approved-required（页面级 + 动作级）。
+5. 视觉基线：微信/WeUI 风格，清爽、克制、信息密度高。
 
-- 风格基线：**微信原生 / WeUI**（更像生产、更省沟通成本）
-- 首页：**克制品牌条 + 白底内容面**（减少“活动页/模板页”观感）
-- 氛围：**大面积浅橙底**（覆盖面大但低饱和），高饱和橙只用于 CTA/高亮
-- 快捷入口：**微信风 Grid**
-- 观感：**高级、舒适**（信息层级靠字号/字重/颜色梯度，而非“全大字/全加粗/厚阴影”）
-- 图标：更活泼（优先用 NutUI icons + 多色渐变底座，低成本且风格统一）
+## 视觉系统
+- 主色：#FF6A00；点缀金色 #FFC54D；背景 #FFF3E6；主文本 #0F172A；次级 #475569；边框 #E2E8F0。
+- 背景变体：default（渐变 + 轻纹理）、plain（聊天/地图）、strong（P1）。
+- 品牌资源：
+  - apps/client/src/assets/brand/logo.gif
+  - apps/admin-web/src/assets/brand/logo.gif
 
-## 1. 基本原则（避免后续对接风险）
+## 字号与密度
+- 基线（rpx）：display 44, hero 40, title 36, body 34, subtitle 28, caption 24。
+- 最小可读：24rpx。
+- H5 root clamp：base 20, min 18, max 22；text-size-adjust 100%。
+- 触控热区 ≥ 44px。
 
-1. **接口契约不动**：UI 改造不新增/不修改接口字段含义；仅调整展示、文案、布局、组件拆分。
-2. **页面状态机不缩水**：每页仍需覆盖 `loading/empty/error/permission/audit`，且保持同一套展示范式。
-3. **组件与业务解耦**：
-   - `ui/*`：纯展示组件（卡片/按钮/徽标/空态等）
-   - `lib/*`：请求、鉴权、场景切换、格式化工具
-   - `pages/*`：页面编排（尽量薄）
-4. **移动端优先**：所有交互以小程序触控为标准（点击热区 ≥ 44px 等效；字体可读；避免密集表格）。
-5. **保留演示能力但不“露馅”**：Mock 场景切换能力默认隐藏（仅 dev 或显式开关开启），避免影响甲方观感与未来生产环境。
+## 导航规范
+- 小程序使用原生导航栏；H5 使用 PageHeader/NavBar。
+- 统一 safeNavigateBack，避免双导航。
 
-## 2. 品牌与配色（橙色更浓厚）
+## 筛选/排序收口（摘要）
+- 专利检索：q、regionCode、patentType、transactionType、price/deposit 范围、ipc、loc、legalStatus、industryTags；排序 RECOMMENDED/LATEST/PRICE_ASC/PRICE_DESC。
+- 需求/成果检索：q、regionCode、预算范围、合作方式、成熟度、industryTags；排序 RECOMMENDED/LATEST。
+- 书画检索：q、regionCode、作者、价格/订金；排序 RECOMMENDED/LATEST。
+- 机构检索：q、regionCode、types；排序 LATEST。
+- 发明人榜：q、regionCode、patentType；排序 RECOMMENDED/LATEST。
+- 订单列表：statusGroup/status；默认按最新。
+- 产业标签统一使用 `GET /public/industry-tags`（不以自由输入为主路径）。
 
-> 统一以 token 驱动，多端一致。
+## QA 检查（P0）
+- 用户可见文案不出现 “demo/mock” 等字样。
+- 页面状态机完整，无白屏。
+- 底部吸附与 TabBar 安全区正确。
+- 弹层/滚动不穿透。
+- H5 深链可落地（根路径重定向）。
+- H5 桌面端 ≥768px 居中手机宽度，固定层对齐。
+- 筛选/排序控件统一组件。
 
-- 主色 `Primary`：更浓厚的橙色（建议）：`#FF6A00`
-- Hover：`#FF7A00`
-- Active：`#E85A00`
-- 金色点缀 `Gold`：`#FFC54D`
-- 页面浅底：`#FFF3E6`（更偏“点金台”暖色）
-- 文本主色：`#0F172A`
-- 次级文字：`#475569`
-- 边框：`#E2E8F0`
+## 当前状态
+- 已完成：状态机、错误归一化、背景 token、H5 clamp、筛选/排序收口、导航规则、核心模板。
+- 待完成：硬编码 token 最终清扫、弹层/滚动回归、H5 桌面密度验证、P1 多地图扩展。
 
-落地：
-- 用户端：`apps/client/src/app.scss`（CSS 变量）
-- 后台：`apps/admin-web/src/main.tsx`（AntD theme token）+ `apps/admin-web/src/styles.css`
-
-## 3. 版式与组件（用户端）
-
-### 3.1 页面骨架
-
-- 顶部：`Hero/Header Card`（标题 + 一句解释 + 可选徽标/标签）
-- 中部：功能区（搜索/筛选/列表）
-- 底部：关键 CTA（详情页/支付页用“底部吸附按钮条”，避免滚动找不到）
-
-### 3.2 字体与间距（先定标尺，再铺页面）
-
-> 统一由 `apps/client/src/app.scss` 的 token + 工具类驱动，页面避免写死 `fontSize/fontWeight`；字号梯度参考微信设计指南常用字号（22/17/15/14/12pt）。
-
-- 字号基线（对齐 WeUI）：主字号 `34rpx≈17px`；次级 `28rpx≈14px`；说明/最小可读 `24rpx≈12px`
-- 最小可读字号：用户可见文本不低于 `24rpx≈12px`（caption）；Tag/Badge/Chat meta/列表 meta 等统一使用 `24rpx` 或 `28rpx`
-- 字号梯度（rpx）：`text-display(44)` / `text-hero(40)` / `text-title(36)` / `text-card-title(34)` / `text-body(34)` / `text-subtitle(28)` / `text-caption(24)`
-- 字重梯度：`800/700/700/600/400/400`（尽量少用 900，避免“粗笨/老年感”）
-- 行高：标题 `1.2–1.25`；正文 `1.5–1.6`
-- 文本工具类：`break-word`、`clamp-1/2`、`flex-1/min-w-0`（解决窄屏换行、标题竖排、挤压问题）
-- 留白与密度：统一间距刻度（4px 基准，`8/16/24/32/48/64rpx`），避免页面随手写值导致“不精致”
-- Safe Area：`container` 默认包含底部安全区；`StickyBar/ChatInput` 额外加安全区 padding（避免遮挡）
-
-### 3.3 组件范式（最低成本实现）
-
-- `Card`：白底 + 轻阴影 + 统一圆角；重要卡片可用左侧强调条或渐变 header。
-- `Primary Button`：橙色渐变；禁用态变浅；点击态更深。
-- `Ghost Button`：浅橙底 + 橙色描边。
-- `Chip`（筛选项）：圆角胶囊；选中态为实心主色。
-- `Tag`（信息标签）：金色/灰色两套；用于“省市特色/类型/交易方式”等。
-- `List Item`：可点击区域整行高亮；右侧箭头/状态徽标（可选）。
-
-### 3.4 首页（生产观感关键）
-
-- 背景：大面积浅橙底（低饱和）铺满页面上半屏；内容面（搜索/网格/列表）全部为白底
-- 品牌条：高度克制（不做厚重渐变大卡片），左品牌右 Logo/徽标
-- 搜索：一个容器（避免双层描边/双层圆角）；右侧 CTA 高饱和橙
-- Grid：2×2 微信风入口（分割线 + 小阴影/或无阴影），图标更活泼但统一底座与尺寸
-- 文案：减少“演示感”长句；辅助文案放 caption，并控制 1–2 行
-
-### 3.4 文案与信息密度
-
-- 每屏只保留 1 个最主要动作（如：详情页优先“支付订金/咨询”）。
-- “演示/Mock/接口”等字眼避免出现在用户可见主路径；必要时放在“关于/调试”里。
-
-## 4. 后台 UI（Ant Design）
-
-- 用 AntD 主题 token 统一主色；关键操作按钮（退款/放款/驳回）必须二次确认 + 审计提示。
-- 列表页：顶部筛选区 + 表格 + 抽屉/弹窗详情（P0 可先维持现有骨架）。
-
-## 5. 默认方案（可随时调整）
-
-1. 主色：`#FF6A00`（橙色更浓厚）；如需换色优先改 token（多端一致）。
-2. 组件库：**相关成熟功能优先使用成熟组件库提效**（P0 采用 NutUI Taro；必要时少量封装到 `ui/*`，业务域组件仍自研）。
-3. Mock 场景切换：默认隐藏；需要演示/调试时，通过启动参数/环境变量开启（见 `docs/demo/runbook.md`）。
-4. 组件库弹层：NutUI 的 `Toast/Dialog` 统一挂载在 `apps/client/src/app.tsx` 的 `AppOverlays`，页面通过封装的 `ui/nutui/*` 使用，避免散落调用。
+## 相关文档
+- Token 映射：docs/engineering/token-mapping.md
+- 硬编码白名单：docs/engineering/hardcode-whitelist.md
+- Dev QA：docs/engineering/dev-qa-todo.md

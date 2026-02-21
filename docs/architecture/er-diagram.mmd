@@ -9,6 +9,21 @@ erDiagram
     datetime updated_at
   }
 
+  RBAC_ROLES {
+    string id PK
+    string name
+    string description
+    string permission_ids_json "json"
+    datetime created_at
+    datetime updated_at
+  }
+
+  RBAC_USER_ROLES {
+    uuid user_id PK
+    string role_id PK
+    datetime created_at
+  }
+
   REGIONS {
     string code PK
     string name
@@ -63,6 +78,29 @@ erDiagram
     datetime publish_at
     string content
     string source_url
+    datetime created_at
+    datetime updated_at
+  }
+
+  NOTIFICATIONS {
+    uuid id PK
+    uuid user_id FK
+    string kind
+    string title
+    string summary
+    string source
+    datetime read_at
+    datetime created_at
+  }
+
+  ADDRESSES {
+    uuid id PK
+    uuid user_id FK
+    string name
+    string phone
+    string region_code
+    string address_line
+    boolean is_default
     datetime created_at
     datetime updated_at
   }
@@ -154,6 +192,16 @@ erDiagram
     string role "APPLICANT/INVENTOR/ASSIGNEE"
     string name
     string country_code
+  }
+
+  PATENT_LEGAL_EVENTS {
+    uuid id PK
+    uuid patent_id FK
+    date event_date
+    string event_code
+    string event_text_raw
+    string source
+    datetime created_at
   }
 
   PATENT_MEDIA {
@@ -394,11 +442,14 @@ erDiagram
     datetime created_at
   }
 
-  ARTWORK_CONSULT_EVENTS {
+  CONTENT_EVENTS {
     uuid id PK
-    uuid artwork_id FK
-    uuid user_id FK
-    string channel "WECHAT_CS/PHONE/FORM"
+    string content_type "LISTING/DEMAND/ACHIEVEMENT/ARTWORK"
+    uuid content_id
+    string event_type "VIEW/FAVORITE/CONSULT"
+    string actor_key
+    uuid actor_user_id
+    string device_id
     datetime created_at
   }
 
@@ -495,6 +546,21 @@ erDiagram
     datetime created_at
   }
 
+  PAYMENT_WEBHOOK_EVENTS {
+    uuid id PK
+    string provider
+    string event_id
+    string event_type
+    uuid order_id FK
+    uuid refund_request_id FK
+    string pay_type "DEPOSIT/FINAL"
+    string trade_no
+    int amount
+    string status "RECEIVED/PROCESSED/FAILED"
+    datetime processed_at
+    datetime created_at
+  }
+
   REFUND_REQUESTS {
     uuid id PK
     uuid order_id FK
@@ -513,6 +579,24 @@ erDiagram
     string status
     datetime created_at
     datetime updated_at
+  }
+
+  CS_CASE_NOTES {
+    uuid id PK
+    uuid case_id FK
+    uuid author_id FK
+    string author_name
+    string content
+    datetime created_at
+  }
+
+  CS_CASE_EVIDENCES {
+    uuid id PK
+    uuid case_id FK
+    uuid file_id FK
+    string file_name
+    string url
+    datetime created_at
   }
 
   CS_MILESTONES {
@@ -554,7 +638,7 @@ erDiagram
     datetime updated_at
   }
 
-  AI_PARSE_FEEDBACK {
+  AI_PARSE_FEEDBACKS {
     uuid id PK
     uuid parse_result_id FK
     uuid actor_user_id FK
@@ -622,6 +706,18 @@ erDiagram
     datetime updated_at
   }
 
+  IDEMPOTENCY_KEYS {
+    uuid id PK
+    string idempotency_key "unique per scope+user"
+    string scope
+    uuid user_id FK
+    string request_hash
+    string status "IN_PROGRESS/COMPLETED"
+    string response_json "json"
+    datetime created_at
+    datetime updated_at
+  }
+
   AUDIT_LOGS {
     uuid id PK
     uuid actor_user_id FK
@@ -650,19 +746,26 @@ erDiagram
   USERS ||--o{ ACHIEVEMENT_FAVORITES : favorites
   USERS ||--o{ ARTWORK_FAVORITES : favorites
   USERS ||--o{ LISTING_CONSULT_EVENTS : consults
-  USERS ||--o{ ARTWORK_CONSULT_EVENTS : consults
   USERS ||--o{ USER_TAG_SCORES : prefers
   USERS ||--o{ CONVERSATION_PARTICIPANTS : participates
   USERS ||--o{ CONVERSATION_MESSAGES : sends
+  USERS ||--o{ NOTIFICATIONS : receives
+  USERS ||--o{ ADDRESSES : owns
+  USERS ||--o{ CS_CASE_NOTES : writes
   USERS ||--o{ SYSTEM_CONFIGS : updates
+  USERS ||--o{ IDEMPOTENCY_KEYS : idempotency
   USERS ||--o{ AUDIT_LOGS : audits
-  USERS ||--o{ AI_PARSE_FEEDBACK : reviews
+  USERS ||--o{ AI_PARSE_FEEDBACKS : reviews
+  USERS ||--o{ RBAC_USER_ROLES : roles
   USERS ||--o{ PATENT_MAINTENANCE_TASKS : assigned
   USERS ||--o{ ANNOUNCEMENTS : publishes
+
+  RBAC_ROLES ||--o{ RBAC_USER_ROLES : members
 
   PATENTS ||--o{ PATENT_IDENTIFIERS : has
   PATENTS ||--o{ PATENT_CLASSIFICATIONS : has
   PATENTS ||--o{ PATENT_PARTIES : has
+  PATENTS ||--o{ PATENT_LEGAL_EVENTS : legal_events
   PATENTS ||--o{ PATENT_MEDIA : has
   PATENTS ||--o{ LISTINGS : referenced_by
   PATENTS ||--o{ PATENT_MAINTENANCE_SCHEDULES : schedules
@@ -691,10 +794,14 @@ erDiagram
   ARTWORKS ||--o{ ARTWORK_MEDIA : has
   ARTWORKS ||--o{ ARTWORK_FAVORITES : favored
   ARTWORKS ||--|| ARTWORK_STATS : stats
-  ARTWORKS ||--o{ ARTWORK_CONSULT_EVENTS : consulted
   REGIONS ||--o{ ARTWORKS : located_in
 
   %% Polymorphic links via content_type/content_id
+  USERS ||--o{ CONTENT_EVENTS : events
+  LISTINGS ||--o{ CONTENT_EVENTS : events
+  DEMANDS ||--o{ CONTENT_EVENTS : events
+  ACHIEVEMENTS ||--o{ CONTENT_EVENTS : events
+  ARTWORKS ||--o{ CONTENT_EVENTS : events
   LISTINGS ||--o{ CONVERSATIONS : discussed_in
   DEMANDS ||--o{ CONVERSATIONS : discussed_in
   ACHIEVEMENTS ||--o{ CONVERSATIONS : discussed_in
@@ -704,7 +811,7 @@ erDiagram
   ACHIEVEMENTS ||--o{ COMMENTS : commented_in
   ARTWORKS ||--o{ COMMENTS : commented_in
 
-  AI_PARSE_RESULTS ||--o{ AI_PARSE_FEEDBACK : feedback
+  AI_PARSE_RESULTS ||--o{ AI_PARSE_FEEDBACKS : feedback
   LISTINGS ||--o{ AI_PARSE_RESULTS : parsed
   DEMANDS ||--o{ AI_PARSE_RESULTS : parsed
   ACHIEVEMENTS ||--o{ AI_PARSE_RESULTS : parsed
@@ -719,6 +826,7 @@ erDiagram
   FILES ||--o{ PATENT_MEDIA : stored_as
   FILES ||--o{ CONVERSATION_MESSAGES : attached
   FILES ||--o{ CONTRACTS : contract_file
+  FILES ||--o{ CS_CASE_EVIDENCES : evidence
   FILES ||--o{ CS_MILESTONES : evidence
   FILES ||--o{ SETTLEMENTS : payout_evidence
   FILES ||--o{ PATENT_MAINTENANCE_TASKS : evidence
@@ -732,12 +840,17 @@ erDiagram
   PATENT_CLUSTERS ||--o| FILES : cover
 
   ORDERS ||--o{ PAYMENTS : has
+  ORDERS ||--o{ PAYMENT_WEBHOOK_EVENTS : has
   ORDERS ||--o{ REFUND_REQUESTS : has
   ORDERS ||--o{ CS_CASES : tracked_by
   ORDERS ||--|| SETTLEMENTS : settles
   ORDERS ||--o{ CONVERSATIONS : links
   ORDERS ||--o| CONTRACTS : has
 
+  REFUND_REQUESTS ||--o{ PAYMENT_WEBHOOK_EVENTS : has
+
+  CS_CASES ||--o{ CS_CASE_NOTES : notes
+  CS_CASES ||--o{ CS_CASE_EVIDENCES : evidences
   CS_CASES ||--o{ CS_MILESTONES : contains
 
   USERS ||--o{ COMMENTS : writes

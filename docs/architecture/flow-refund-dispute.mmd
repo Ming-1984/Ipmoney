@@ -34,9 +34,9 @@ flowchart TB
 
   Approve -->|RefundApproved| Payment
 
-  Payment -->|发起原路退款| WxPay
-  WxPay -->|退款回调| Payment
-  Payment -->|RefundSucceeded| Order
+  Payment -->|发起原路退款（P1；P0 手工完成）| WxPay
+  WxPay -->|退款回调（P1）| Payment
+  Payment -->|RefundSucceeded（P0 手工完成/ P1 回调）| Order
   Order -->|订单状态 REFUNDING→REFUNDED| Order
   Order -->|通知结果| Notif
 

@@ -1,4 +1,4 @@
-flowchart TD
+﻿flowchart TD
   %% Order list filtering: keep backend statuses detailed, but UI shows aggregated tabs.
 
   U[用户进入订单列表页<br/>/pages/orders/index?role=BUYER|SELLER] --> R{入口角色 role}
@@ -34,4 +34,4 @@ flowchart TD
   W4 --> L
   WLEG --> L
 
-  L --> UI[列表渲染：每条订单显示真实 status 文案<br/>（不精简后端状态）]
+  L --> UI[列表渲染：每条订单显示真实 status 文案<br/>（不简化后端状态）]

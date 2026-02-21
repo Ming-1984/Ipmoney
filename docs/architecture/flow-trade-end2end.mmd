@@ -1,10 +1,9 @@
-%%{init: {'theme':'base','flowchart': {'htmlLabels': true},'themeVariables': {'fontFamily': 'Inter, Microsoft YaHei, sans-serif','lineColor':'#64748B','primaryTextColor':'#0F172A','primaryBorderColor':'#CBD5E1','primaryColor':'#F8FAFC'}}}%%
+﻿%%{init: {'theme':'base','flowchart': {'htmlLabels': true},'themeVariables': {'fontFamily': 'Inter, Microsoft YaHei, sans-serif','lineColor':'#64748B','primaryTextColor':'#0F172A','primaryBorderColor':'#CBD5E1','primaryColor':'#F8FAFC'}}}%%
 flowchart LR
   %% UI note: Chat/consult page adds safety banner + context card; service interactions unchanged.
   %% 主链路：搜索→订金→线下签约→尾款→变更→结算放款（P0）
-
-  Buyer(["买家<br/>小程序/H5（电脑端）"])
-  Seller(["卖家<br/>小程序/H5（电脑端）"])
+  Buyer(["买家<br/>小程序 + H5（电脑端可用）"])
+  Seller(["卖家<br/>小程序 + H5（电脑端可用）"])
   CS(["客服/运营<br/>PC 后台"])
   Finance(["财务<br/>PC 后台"])
   WxPay([微信支付])
@@ -14,9 +13,9 @@ flowchart LR
     Listing["Listing Service<br/>上架商品"]
     Order["Order Service<br/>订单状态机"]
     Case["Case/Workflow Service<br/>跟单工单/里程碑"]
-    Payment["Payment Service<br/>支付/退款/回调"]
+    Payment["Payment Service<br/>支付/退款回调"]
     Settlement["Settlement Service<br/>佣金/放款/台账"]
-    Notif["Notification Service<br/>模板消息/站内信"]
+    Notif["Notification Service<br/>模板消息/站内通知"]
     File["File Service<br/>上传/下载"]
   end
 
@@ -27,10 +26,10 @@ flowchart LR
 
   Buyer -->|创建订单| Order
   Buyer -->|支付订金（小程序）| Payment
-  Payment -->|JSAPI 下单| WxPay
-  WxPay -->|支付回调| Payment
-  Payment -->|支付成功事件| Order
-  Order -->|状态=DEPOSIT_PAID| Case
+  Payment -->|JSAPI 下单（P1）| WxPay
+  WxPay -->|支付回调（P1）| Payment
+  Payment -->|支付确认事件（P0 手工确认 / P1 回调）| Order
+  Order -->|状态 DEPOSIT_PAID| Case
   Case -->|分配客服| CS
   Notif -->|通知买家/卖家| Buyer
   Notif -->|通知买家/卖家| Seller
@@ -38,16 +37,16 @@ flowchart LR
   CS -->|线下跟单：材料核验/尽调清单| Seller
   CS -->|线下跟单：签署合同| Buyer
 
-  CS -->|后台确认：合同已签署+成交价| Case
+  CS -->|后台确认：合同已签署 + 成交价| Case
   Case -->|ContractSignedConfirmed| Order
-  Order -->|状态=WAIT_FINAL_PAYMENT| Notif
+  Order -->|状态 WAIT_FINAL_PAYMENT| Notif
   Notif -->|解锁尾款支付通知| Buyer
 
   Buyer -->|支付尾款（托管；小程序）| Payment
-  Payment -->|JSAPI 下单| WxPay
-  WxPay -->|支付回调| Payment
-  Payment -->|支付成功事件| Order
-  Order -->|状态=FINAL_PAID_ESCROW| Case
+  Payment -->|JSAPI 下单（P1）| WxPay
+  WxPay -->|支付回调（P1）| Payment
+  Payment -->|支付确认事件（P0 手工确认 / P1 回调）| Order
+  Order -->|状态 FINAL_PAID_ESCROW| Case
 
   CS -->|线下办理权属变更/备案| Seller
   CS -->|线下办理权属变更/备案| Buyer
@@ -59,17 +58,3 @@ flowchart LR
   Settlement -->|生成待放款台账| Finance
   Finance -->|线下转账/打款（P0 默认）并回传凭证| Settlement
   Settlement -->|SettlementCompleted| Order
-  Order -->|状态=COMPLETED| Notif
-  Notif -->|通知交易完成| Buyer
-  Notif -->|通知已放款（扣佣金）| Seller
-
-  Buyer -->|发票中心提交开票申请| Order
-  Seller -->|发票中心提交开票申请| Order
-  Order -->|通知财务审核| Finance
-  Finance -->|审核/线下开票后上传电子发票| File
-  Finance -->|绑定发票到订单（仅 COMPLETED）| Order
-  Order -->|通知发票已开具| Notif
-  Notif -->|通知：可下载电子发票| Buyer
-  Notif -->|通知：可下载电子发票| Seller
-  Buyer -->|发票中心直接下载| File
-  Seller -->|发票中心直接下载| File

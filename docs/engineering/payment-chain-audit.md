@@ -1,4 +1,4 @@
-# 支付链路审计（现状 vs 正确接入）
+﻿# 支付链路审计（现状 vs 正确接入）
 
 ## 1. 范围
 
@@ -11,9 +11,9 @@
 
 ### 2.1 用户端（`apps/client`）
 
-- 小程序订金页：`POST /orders` → `POST /orders/{orderId}/payment-intents` → 跳转成功页；目前**未调用** `Taro.requestPayment` 拉起微信收银台。
+- 小程序订金页：`POST /orders` → `POST /orders/{orderId}/payment-intents` → 跳转结果页（待确认）；目前**未调用** `Taro.requestPayment` 拉起微信收银台。
   - `apps/client/src/pages/checkout/deposit-pay/index.tsx`
-- 小程序尾款页：`POST /orders/{orderId}/payment-intents` → 跳转成功页；目前**未调用** `Taro.requestPayment`。
+- 小程序尾款页：`POST /orders/{orderId}/payment-intents` → 跳转结果页（待确认）；目前**未调用** `Taro.requestPayment`。
   - `apps/client/src/pages/checkout/final-pay/index.tsx`
 - H5：订金/尾款页已禁用发起支付，统一展示“去小程序支付”引导：
   - 微信内：`wx-open-launch-weapp`（openTag）
@@ -24,18 +24,18 @@
 
 ### 2.2 Mock API（`apps/mock-api`）
 
-- `POST /orders/:orderId/payment-intents` 仅用于演示：根据 `payType` **直接覆盖订单状态**：
-  - `DEPOSIT` → `DEPOSIT_PAID`
-  - `FINAL` → `FINAL_PAID_ESCROW`
+- `POST /orders/:orderId/payment-intents` 仅用于演示：生成支付意图但**不自动推进订单状态**（需手工确认或回调收敛）。
   - `apps/mock-api/src/server.js`
-- `GET /orders/:orderId` 若命中覆盖，会返回被覆盖后的 `status`（用于成功页/详情页展示）。
+- `POST /admin/orders/:orderId/payments/manual`：用于演示“手工确认入账”，触发订单状态推进。
+- `POST /admin/refund-requests/:refundRequestId/complete`：用于演示“手工完成退款”，直接收敛退款/订单状态。
+- `GET /orders/:orderId` 若命中覆盖，会返回被覆盖后的 `status`（用于结果页/详情页展示）。
 - 目前**不会**同步覆盖 `GET /orders` 列表中的订单状态（列表可能仍显示旧状态）。
 
 ### 2.3 OpenAPI / 真后端（`apps/api`）
 
 - OpenAPI 已定义微信支付回调入口：`POST /webhooks/wechatpay/notify`（要求 `Wechatpay-*` 头 + 验签解密 + 幂等）。
   - `docs/api/openapi.yaml`
-- 但目前 `apps/api` 中尚无 `orders/payments/webhooks` 等实现模块；回调与真实支付链路仍属后端待落地项。
+- `apps/api` 已补 webhook 占位实现（幂等落库 + 状态收敛），但验签/解密/对账仍待补齐；同时新增后台手工确认支付/退款完成接口用于演示闭环。
 
 **结论**：当前“支付”属于 **Mock 演示链路**，并非“正确接入微信支付”的完整闭环。
 
@@ -50,7 +50,7 @@
 ### 3.2 小程序前端
 
 - 拿到 `wechatPayParams` 后调用 `Taro.requestPayment`。
-- 支付成功后建议：刷新订单状态（或显示“支付处理中”直到回调推进），避免“跳成功但未支付”。
+- 支付确认后建议：刷新订单状态（或显示“支付处理中”直到回调推进），避免“跳成功但未支付”。
 
 ### 3.3 H5
 

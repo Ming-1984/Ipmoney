@@ -11,4 +11,3 @@
 - 《争议处理与证据规则》：`docs/legal/dispute-evidence-rules.md`
 - 《内容规范与举报规则》：`docs/legal/content-reporting-rules.md`
 - 《发票与税务说明》：`docs/legal/invoice-tax.md`
-

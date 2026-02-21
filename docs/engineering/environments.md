@@ -8,11 +8,18 @@
 - `PORT`：API 监听端口
 - `BASE_URL`：对外服务域名（拼接回调 URL、文件访问 URL 等）
 - `UPLOAD_DIR`：本地文件落盘目录（P0 可用；生产建议改为对象存储）
+- `PUBLIC_HOST_WHITELIST`：允许拼接 `BASE_URL` 的 Host 白名单（逗号分隔；未设置则允许任意）
+- `FILE_TEMP_TOKEN_SECRET`：文件临时访问 token 签名密钥
+- `FILE_TEMP_TOKEN_TTL_SECONDS`：临时访问默认有效期（秒）
+- `FILE_WATERMARK_TEXT`：关键文件预览水印文本
 
 ## 前端（本地联调）
 
 - `TARO_APP_API_BASE_URL`：用户端（Taro）API Base URL（默认 `http://127.0.0.1:4010`）
 - `VITE_API_BASE_URL`：后台（Vite）API Base URL（默认 `http://127.0.0.1:4010`）
+- `TARO_APP_ENABLE_MOCK_TOOLS`：用户端 mock/场景切换（生产建议关闭）
+- `VITE_ENABLE_MOCK_TOOLS`：后台 mock/场景切换（生产建议关闭）
+- `VITE_DEMO_ADMIN_TOKEN`：后台演示 token（仅非生产/演示用）
 - `CLIENT_H5_PORT`：用户端 H5 DevServer 端口（默认 `5173`；`scripts/demo.ps1` 会自动找可用端口）
 - `ADMIN_WEB_PORT`：后台 DevServer 端口（默认 `5174`；`scripts/demo.ps1` 会自动找可用端口）
 
@@ -70,3 +77,8 @@
 - `ENABLE_USER_H5`：是否开启用户 H5（P0 默认 true）
 - `ENABLE_H5_PAYMENT`：是否允许在 H5 发起支付（P0 默认 false；仅展示“去小程序支付”）
 - `ENABLE_AUTO_PAYOUT`：是否允许“超时自动放款”（P0 默认 false；建议强制走后台配置）
+- `DEMO_AUTH_ENABLED`：是否允许演示登录/鉴权（非生产默认 true，生产默认 false；生产构建客户端会隐藏 Demo 登录入口，服务端在 `NODE_ENV=production` 时强制禁用）
+- `DEMO_PAYMENT_ENABLED`：是否允许演示支付意图（非生产默认 true，生产默认 false）
+- `RATE_LIMIT_ENABLED`：是否启用全局限流（默认 true）
+- `RATE_LIMIT_WINDOW_SECONDS`：限流窗口（秒）
+- `RATE_LIMIT_MAX`：窗口内最大请求数

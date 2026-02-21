@@ -13,7 +13,7 @@
 - **UI 组件库（用户端）**：优先选成熟可复用方案降低成本（P0 推荐 NutUI Taro；备选 Taroify）
 - **状态管理/请求（前端）**：Zustand + TanStack Query（统一 loading/error/cache；便于 Mock/真接口切换）
 - **Mock 驱动并行开发**：基于 OpenAPI 的 Prism Mock + fixtures 场景（见 `docs/engineering/mocking.md`）
-- **视觉规范**：橙色主题 +「专利点金台」理念（见 `docs/engineering/design-system.md`）
+- **视觉规范**：橙色主题 +「专利点金台」理念（见 `docs/engineering/ui-guidelines.md`）
 
 ## 后端（API）
 

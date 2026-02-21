@@ -4,13 +4,13 @@ stateDiagram-v2
 
   [*] --> DEPOSIT_PENDING: createOrder
 
-  DEPOSIT_PENDING --> DEPOSIT_PAID: depositPaymentSucceeded
+  DEPOSIT_PENDING --> DEPOSIT_PAID: depositPaymentConfirmed
   DEPOSIT_PENDING --> CANCELLED: buyerCancel / unpaidTimeout
 
   DEPOSIT_PAID --> WAIT_FINAL_PAYMENT: contractSignedConfirmed
   DEPOSIT_PAID --> REFUNDING: refundApproved<br/>(自动/人工)
 
-  WAIT_FINAL_PAYMENT --> FINAL_PAID_ESCROW: finalPaymentSucceeded
+  WAIT_FINAL_PAYMENT --> FINAL_PAID_ESCROW: finalPaymentConfirmed
   WAIT_FINAL_PAYMENT --> REFUNDING: refundApproved<br/>(合同未签/异常)
 
   FINAL_PAID_ESCROW --> READY_TO_SETTLE: transferCompletedConfirmed
