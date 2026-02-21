@@ -4,6 +4,7 @@ import { BearerAuthGuard } from '../../common/guards/bearer-auth.guard';
 import { AuditLogService } from '../../common/audit-log.service';
 import { requirePermission } from '../../common/permissions';
 import {
+  type AlertConfig,
   ConfigService,
   type BannerConfig,
   type CustomerServiceConfig,
@@ -163,6 +164,26 @@ export class AdminConfigController {
       action: 'CONFIG_HOT_SEARCH_UPDATE',
       targetType: 'SYSTEM_CONFIG',
       targetId: 'hot_search_config',
+      afterJson: next,
+    });
+    return next;
+  }
+
+  @Get('/alerts')
+  async getAlertConfig(@Req() req: any): Promise<AlertConfig> {
+    requirePermission(req, 'config.manage');
+    return await this.config.getAlertConfig();
+  }
+
+  @Put('/alerts')
+  async updateAlertConfig(@Req() req: any, @Body() body: Partial<AlertConfig>): Promise<AlertConfig> {
+    requirePermission(req, 'config.manage');
+    const next = await this.config.updateAlertConfig(body || {});
+    await this.audit.log({
+      actorUserId: req.auth.userId,
+      action: 'CONFIG_ALERT_UPDATE',
+      targetType: 'SYSTEM_CONFIG',
+      targetId: 'alert_config',
       afterJson: next,
     });
     return next;

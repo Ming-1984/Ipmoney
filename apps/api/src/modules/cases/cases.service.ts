@@ -1,9 +1,11 @@
-﻿import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
-import { requirePermission } from '../../common/permissions';
-import { randomUUID } from 'crypto';
+﻿import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import { CasePriority, CaseStatus, CaseType, Prisma } from '@prisma/client';
 
-type CaseType = 'ORDER' | 'REFUND' | 'AUDIT_MATERIAL' | 'DISPUTE';
-type CaseStatus = 'NEW' | 'IN_PROGRESS' | 'WAITING_MATERIAL' | 'RESOLVED' | 'CLOSED';
+import { requirePermission } from '../../common/permissions';
+import { PrismaService } from '../../common/prisma/prisma.service';
+
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 type CaseSlaStatus = 'ON_TIME' | 'OVERDUE';
 
 type CaseNote = {
@@ -19,192 +21,341 @@ type CaseRecord = {
   title: string;
   type: CaseType;
   status: CaseStatus;
-  orderId?: string;
+  orderId?: string | null;
   requesterName?: string;
   assigneeId?: string;
   assigneeName?: string;
-  priority?: 'LOW' | 'MEDIUM' | 'HIGH';
+  priority?: CasePriority;
   description?: string;
   createdAt: string;
   updatedAt?: string;
   notes: CaseNote[];
   evidenceFiles?: { id: string; name: string; url?: string }[];
   dueAt?: string;
+  slaStatus?: CaseSlaStatus;
 };
 
-const CASES: CaseRecord[] = [
-  {
-    id: randomUUID(),
-    title: '订金支付后买家要求退款',
-    type: 'REFUND',
-    status: 'IN_PROGRESS',
-    orderId: 'e9032d03-9b23-40ba-84a3-ac681f21c41b',
-    requesterName: '张女士',
-    assigneeId: 'cs-001',
-    assigneeName: '客服-王',
-    priority: 'HIGH',
-    description: '买家反馈材料不完整，申请退款。',
-    createdAt: new Date().toISOString(),
-    notes: [],
-    dueAt: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString(),
-  },
-  {
-    id: randomUUID(),
-    title: '审核补材料提醒',
-    type: 'AUDIT_MATERIAL',
-    status: 'WAITING_MATERIAL',
-    orderId: undefined,
-    requesterName: '运营',
-    assigneeId: 'cs-002',
-    assigneeName: '客服-李',
-    priority: 'MEDIUM',
-    description: '挂牌信息缺少权属证明，等待用户补齐。',
-    createdAt: new Date().toISOString(),
-    notes: [],
-    dueAt: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toISOString(),
-  },
-];
-
-const ASSIGNEES = [
-  { id: 'cs-001', name: '客服-王' },
-  { id: 'cs-002', name: '客服-李' },
-  { id: 'op-001', name: '运营-周' },
-];
+const DEFAULT_TITLES: Record<CaseType, string> = {
+  FOLLOWUP: '订单跟单',
+  REFUND: '退款争议',
+  DISPUTE: '交易争议',
+};
 
 @Injectable()
 export class CasesService {
+  constructor(private readonly prisma: PrismaService) {}
+
   private ensureAuth(req: any) {
     if (!req?.auth?.userId) throw new ForbiddenException({ code: 'FORBIDDEN', message: '无权限' });
   }
 
-  private getSlaStatus(dueAt?: string): CaseSlaStatus | undefined {
-    if (!dueAt) return undefined;
-    return new Date(dueAt).getTime() < Date.now() ? 'OVERDUE' : 'ON_TIME';
+  private normalizeType(value: any): CaseType | undefined {
+    const v = String(value || '').trim().toUpperCase();
+    if (v === 'FOLLOWUP' || v === 'REFUND' || v === 'DISPUTE') return v as CaseType;
+    return undefined;
   }
 
-  list(req: any, query: any) {
+  private normalizeStatus(value: any): CaseStatus | undefined {
+    const v = String(value || '').trim().toUpperCase();
+    if (v === 'OPEN' || v === 'IN_PROGRESS' || v === 'CLOSED') return v as CaseStatus;
+    return undefined;
+  }
+
+  private normalizePriority(value: any): CasePriority | undefined {
+    const v = String(value || '').trim().toUpperCase();
+    if (v === 'LOW' || v === 'MEDIUM' || v === 'HIGH') return v as CasePriority;
+    return undefined;
+  }
+
+  private parseDueAt(value: any): Date | null {
+    if (!value) return null;
+    const dt = new Date(String(value));
+    if (Number.isNaN(dt.getTime())) {
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: 'dueAt 格式不正确' });
+    }
+    return dt;
+  }
+
+  private getSlaStatus(dueAt?: Date | string | null): CaseSlaStatus | undefined {
+    if (!dueAt) return undefined;
+    const dt = typeof dueAt === 'string' ? new Date(dueAt) : dueAt;
+    if (Number.isNaN(dt.getTime())) return undefined;
+    return dt.getTime() < Date.now() ? 'OVERDUE' : 'ON_TIME';
+  }
+
+  private toCaseRecord(item: any): CaseRecord {
+    const title = String(item.title || '').trim() || DEFAULT_TITLES[item.type as CaseType] || '客服工单';
+    const notes = (item.notes || []).map((note: any) => ({
+      id: note.id,
+      authorId: note.authorId,
+      authorName: note.authorName,
+      content: note.content,
+      createdAt: note.createdAt.toISOString(),
+    }));
+    const evidenceFiles = (item.evidences || []).map((ev: any) => {
+      const fileName = ev.fileName || ev.file?.fileName || ev.fileId || ev.id;
+      const url = ev.url || ev.file?.url || undefined;
+      return {
+        id: ev.fileId || ev.id,
+        name: String(fileName || '附件'),
+        url,
+      };
+    });
+
+    return {
+      id: item.id,
+      title,
+      type: item.type,
+      status: item.status,
+      orderId: item.orderId ?? null,
+      requesterName: item.requesterName ?? undefined,
+      assigneeId: item.csUserId ?? undefined,
+      assigneeName: item.csUser?.nickname || item.csUser?.phone || undefined,
+      priority: item.priority ?? undefined,
+      description: item.description ?? undefined,
+      createdAt: item.createdAt.toISOString(),
+      updatedAt: item.updatedAt ? item.updatedAt.toISOString() : undefined,
+      notes,
+      evidenceFiles,
+      dueAt: item.dueAt ? item.dueAt.toISOString() : undefined,
+      slaStatus: this.getSlaStatus(item.dueAt),
+    };
+  }
+
+  private async fetchCase(caseId: string) {
+    return await this.prisma.csCase.findUnique({
+      where: { id: caseId },
+      include: {
+        csUser: true,
+        notes: { orderBy: { createdAt: 'desc' } },
+        evidences: { orderBy: { createdAt: 'desc' }, include: { file: true } },
+      },
+    });
+  }
+
+  private async ensureCaseExists(caseId: string) {
+    const found = await this.prisma.csCase.findUnique({ where: { id: caseId }, select: { id: true } });
+    if (!found) throw new NotFoundException({ code: 'NOT_FOUND', message: '工单不存在' });
+  }
+
+  async list(req: any, query: any) {
     this.ensureAuth(req);
     requirePermission(req, 'case.manage');
     const q = String(query?.q || '').trim();
-    const status = query?.status as CaseStatus | undefined;
-    const type = query?.type as CaseType | undefined;
+    const status = this.normalizeStatus(query?.status);
+    const type = this.normalizeType(query?.type);
     const page = Math.max(1, Number(query?.page || 1));
     const pageSize = Math.min(50, Math.max(1, Number(query?.pageSize || 20)));
 
-    let items = CASES;
+    const where: Prisma.CsCaseWhereInput = {};
+    if (status) where.status = status;
+    if (type) where.type = type;
     if (q) {
-      items = items.filter((c) =>
-        [c.id, c.title, c.orderId, c.requesterName].some((v) => (v || '').includes(q)),
-      );
+      if (UUID_RE.test(q)) {
+        where.OR = [{ id: q }, { orderId: q }];
+      } else {
+        where.OR = [
+          { title: { contains: q, mode: 'insensitive' } },
+          { requesterName: { contains: q, mode: 'insensitive' } },
+        ];
+      }
     }
-    if (status) items = items.filter((c) => c.status === status);
-    if (type) items = items.filter((c) => c.type === type);
 
-    const slice = items.slice((page - 1) * pageSize, page * pageSize).map((c) => ({
-      ...c,
-      slaStatus: this.getSlaStatus(c.dueAt),
-    }));
-    return { items: slice, page: { page, pageSize, total: items.length } };
-  }
+    const [items, total] = await Promise.all([
+      this.prisma.csCase.findMany({
+        where,
+        include: {
+          csUser: true,
+          notes: { orderBy: { createdAt: 'desc' } },
+          evidences: { orderBy: { createdAt: 'desc' }, include: { file: true } },
+        },
+        orderBy: { createdAt: 'desc' },
+        skip: (page - 1) * pageSize,
+        take: pageSize,
+      }),
+      this.prisma.csCase.count({ where }),
+    ]);
 
-  getDetail(req: any, caseId: string) {
-    this.ensureAuth(req);
-    requirePermission(req, 'case.manage');
-    const item = CASES.find((c) => c.id === caseId);
-    if (!item) throw new NotFoundException({ code: 'NOT_FOUND', message: '工单不存在' });
-    return { ...item, slaStatus: this.getSlaStatus(item.dueAt) };
-  }
-
-  create(req: any, body: any) {
-    this.ensureAuth(req);
-    requirePermission(req, 'case.manage');
-    const now = Date.now();
-    const defaultDueDays = body?.type === 'AUDIT_MATERIAL' ? 3 : body?.type === 'REFUND' ? 5 : 7;
-    const item: CaseRecord = {
-      id: randomUUID(),
-      title: String(body?.title || '新工单'),
-      type: (body?.type || 'ORDER') as CaseType,
-      status: 'NEW',
-      orderId: body?.orderId,
-      requesterName: body?.requesterName || '系统',
-      assigneeId: body?.assigneeId,
-      assigneeName: ASSIGNEES.find((a) => a.id === body?.assigneeId)?.name,
-      priority: body?.priority || 'MEDIUM',
-      description: body?.description,
-      createdAt: new Date().toISOString(),
-      notes: [],
-      evidenceFiles: [],
-      dueAt: body?.dueAt || new Date(now + defaultDueDays * 24 * 60 * 60 * 1000).toISOString(),
+    return {
+      items: items.map((item: any) => this.toCaseRecord(item)),
+      page: { page, pageSize, total },
     };
-    CASES.unshift(item);
-    return item;
   }
 
-  assign(req: any, caseId: string, body: any) {
+  async getDetail(req: any, caseId: string) {
     this.ensureAuth(req);
     requirePermission(req, 'case.manage');
-    const item = CASES.find((c) => c.id === caseId);
+    const item = await this.fetchCase(caseId);
     if (!item) throw new NotFoundException({ code: 'NOT_FOUND', message: '工单不存在' });
-    item.assigneeId = body?.assigneeId || item.assigneeId;
-    item.assigneeName = ASSIGNEES.find((a) => a.id === item.assigneeId)?.name || item.assigneeName;
-    item.updatedAt = new Date().toISOString();
-    return item;
+    return this.toCaseRecord(item);
   }
 
-  updateStatus(req: any, caseId: string, body: any) {
+  async create(req: any, body: any) {
     this.ensureAuth(req);
     requirePermission(req, 'case.manage');
-    const item = CASES.find((c) => c.id === caseId);
-    if (!item) throw new NotFoundException({ code: 'NOT_FOUND', message: '工单不存在' });
-    if (body?.status) item.status = body.status as CaseStatus;
-    item.updatedAt = new Date().toISOString();
-    return item;
+
+    const type = this.normalizeType(body?.type) ?? 'FOLLOWUP';
+    const status = this.normalizeStatus(body?.status) ?? 'OPEN';
+    const priority = this.normalizePriority(body?.priority);
+    const title = String(body?.title || '').trim() || DEFAULT_TITLES[type];
+    const requesterName = String(body?.requesterName || '').trim() || '系统';
+    const description = body?.description ? String(body.description).trim() : undefined;
+    const orderId = body?.orderId ? String(body.orderId).trim() : undefined;
+    const assigneeId = body?.assigneeId ? String(body.assigneeId).trim() : undefined;
+    const dueAt = this.parseDueAt(body?.dueAt);
+    const defaultDueDays = type === 'REFUND' ? 5 : 7;
+    const normalizedDueAt = dueAt ?? new Date(Date.now() + defaultDueDays * 24 * 60 * 60 * 1000);
+
+    if (orderId) {
+      const order = await this.prisma.order.findUnique({ where: { id: orderId }, select: { id: true } });
+      if (!order) throw new NotFoundException({ code: 'NOT_FOUND', message: '订单不存在' });
+    }
+
+    let csUserId: string | undefined = undefined;
+    if (assigneeId) {
+      const user = await this.prisma.user.findUnique({ where: { id: assigneeId }, select: { id: true } });
+      if (!user) throw new BadRequestException({ code: 'BAD_REQUEST', message: 'assigneeId 不存在' });
+      csUserId = assigneeId;
+    }
+
+    const created = await this.prisma.csCase.create({
+      data: {
+        orderId: orderId || null,
+        csUserId: csUserId || null,
+        title,
+        type,
+        status,
+        requesterName,
+        priority,
+        description,
+        dueAt: normalizedDueAt,
+      },
+      include: {
+        csUser: true,
+        notes: { orderBy: { createdAt: 'desc' } },
+        evidences: { orderBy: { createdAt: 'desc' }, include: { file: true } },
+      },
+    });
+
+    return this.toCaseRecord(created);
   }
 
-  addNote(req: any, caseId: string, body: any) {
+  async assign(req: any, caseId: string, body: any) {
     this.ensureAuth(req);
     requirePermission(req, 'case.manage');
-    const item = CASES.find((c) => c.id === caseId);
-    if (!item) throw new NotFoundException({ code: 'NOT_FOUND', message: '工单不存在' });
-    const note: CaseNote = {
-      id: randomUUID(),
-      authorId: req?.auth?.userId || 'admin',
-      authorName: req?.auth?.nickname || '管理员',
-      content: String(body?.note || '').trim(),
-      createdAt: new Date().toISOString(),
-    };
-    if (!note.content) return item;
-    item.notes.unshift(note);
-    item.updatedAt = new Date().toISOString();
-    return item;
+    const assigneeId = String(body?.assigneeId || '').trim();
+    if (!assigneeId) throw new BadRequestException({ code: 'BAD_REQUEST', message: 'assigneeId is required' });
+
+    await this.ensureCaseExists(caseId);
+
+    const user = await this.prisma.user.findUnique({ where: { id: assigneeId }, select: { id: true } });
+    if (!user) throw new BadRequestException({ code: 'BAD_REQUEST', message: 'assigneeId 不存在' });
+
+    const updated = await this.prisma.csCase.update({
+      where: { id: caseId },
+      data: { csUserId: assigneeId },
+      include: {
+        csUser: true,
+        notes: { orderBy: { createdAt: 'desc' } },
+        evidences: { orderBy: { createdAt: 'desc' }, include: { file: true } },
+      },
+    });
+    return this.toCaseRecord(updated);
   }
 
-  addEvidence(req: any, caseId: string, body: any) {
+  async updateStatus(req: any, caseId: string, body: any) {
     this.ensureAuth(req);
     requirePermission(req, 'case.manage');
-    const item = CASES.find((c) => c.id === caseId);
-    if (!item) throw new NotFoundException({ code: 'NOT_FOUND', message: '工单不存在' });
+    const status = this.normalizeStatus(body?.status);
+    if (!status) throw new BadRequestException({ code: 'BAD_REQUEST', message: 'status 不合法' });
+
+    await this.ensureCaseExists(caseId);
+
+    const updated = await this.prisma.csCase.update({
+      where: { id: caseId },
+      data: { status },
+      include: {
+        csUser: true,
+        notes: { orderBy: { createdAt: 'desc' } },
+        evidences: { orderBy: { createdAt: 'desc' }, include: { file: true } },
+      },
+    });
+    return this.toCaseRecord(updated);
+  }
+
+  async addNote(req: any, caseId: string, body: any) {
+    this.ensureAuth(req);
+    requirePermission(req, 'case.manage');
+    const content = String(body?.note || '').trim();
+    if (!content) {
+      const item = await this.fetchCase(caseId);
+      if (!item) throw new NotFoundException({ code: 'NOT_FOUND', message: '工单不存在' });
+      return this.toCaseRecord(item);
+    }
+
+    await this.ensureCaseExists(caseId);
+
+    await this.prisma.csCaseNote.create({
+      data: {
+        caseId,
+        authorId: req?.auth?.userId || 'admin',
+        authorName: req?.auth?.nickname || '管理员',
+        content,
+      },
+    });
+
+    const updated = await this.fetchCase(caseId);
+    if (!updated) throw new NotFoundException({ code: 'NOT_FOUND', message: '工单不存在' });
+    return this.toCaseRecord(updated);
+  }
+
+  async addEvidence(req: any, caseId: string, body: any) {
+    this.ensureAuth(req);
+    requirePermission(req, 'case.manage');
     const fileId = String(body?.fileId || '').trim();
-    if (!fileId) return item;
-    const record = {
-      id: fileId,
-      name: String(body?.fileName || fileId),
-      url: body?.url ? String(body.url) : undefined,
-    };
-    item.evidenceFiles = item.evidenceFiles || [];
-    item.evidenceFiles.unshift(record);
-    item.updatedAt = new Date().toISOString();
-    return item;
+    if (!fileId) throw new BadRequestException({ code: 'BAD_REQUEST', message: 'fileId is required' });
+
+    await this.ensureCaseExists(caseId);
+
+    const existing = await this.prisma.csCaseEvidence.findFirst({ where: { caseId, fileId } });
+    if (!existing) {
+      const file = await this.prisma.file.findUnique({ where: { id: fileId } });
+      const fileName = body?.fileName ? String(body.fileName) : file?.fileName || fileId;
+      const url = body?.url ? String(body.url) : file?.url;
+
+      await this.prisma.csCaseEvidence.create({
+        data: {
+          caseId,
+          fileId,
+          fileName,
+          url,
+        },
+      });
+    }
+
+    const updated = await this.fetchCase(caseId);
+    if (!updated) throw new NotFoundException({ code: 'NOT_FOUND', message: '工单不存在' });
+    return this.toCaseRecord(updated);
   }
 
-  updateSla(req: any, caseId: string, body: any) {
+  async updateSla(req: any, caseId: string, body: any) {
     this.ensureAuth(req);
     requirePermission(req, 'case.manage');
-    const item = CASES.find((c) => c.id === caseId);
-    if (!item) throw new NotFoundException({ code: 'NOT_FOUND', message: '工单不存在' });
-    if (body?.dueAt) item.dueAt = String(body.dueAt);
-    item.updatedAt = new Date().toISOString();
-    return { ...item, slaStatus: this.getSlaStatus(item.dueAt) };
+    const dueAt = this.parseDueAt(body?.dueAt);
+    if (!dueAt) throw new BadRequestException({ code: 'BAD_REQUEST', message: 'dueAt is required' });
+
+    await this.ensureCaseExists(caseId);
+
+    const updated = await this.prisma.csCase.update({
+      where: { id: caseId },
+      data: { dueAt },
+      include: {
+        csUser: true,
+        notes: { orderBy: { createdAt: 'desc' } },
+        evidences: { orderBy: { createdAt: 'desc' }, include: { file: true } },
+      },
+    });
+
+    return this.toCaseRecord(updated);
   }
 }
-

@@ -55,8 +55,8 @@ export class DemandsController {
   }
 
   @Get('/public/demands/:demandId')
-  async getPublic(@Param('demandId') demandId: string) {
-    return await this.demands.getPublic(demandId);
+  async getPublic(@Req() req: any, @Param('demandId') demandId: string) {
+    return await this.demands.getPublic(req, demandId);
   }
 
   @UseGuards(BearerAuthGuard)

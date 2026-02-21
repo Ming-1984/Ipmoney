@@ -9,9 +9,11 @@ type PledgeStatus = 'NONE' | 'PLEDGED' | 'UNKNOWN';
 type ExistingLicenseStatus = 'NONE' | 'EXCLUSIVE' | 'SOLE' | 'NON_EXCLUSIVE' | 'UNKNOWN';
 
 import { AuditLogService } from '../../common/audit-log.service';
+import { ContentEventService } from '../../common/content-event.service';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import { mapStats } from '../content-utils';
+import { ConfigService, type RecommendationConfig } from '../config/config.service';
 
 type ListingAdminDto = {
   id: string;
@@ -53,6 +55,8 @@ export class ListingsService {
     private readonly prisma: PrismaService,
     private readonly audit: AuditLogService,
     private readonly notifications: NotificationsService,
+    private readonly events: ContentEventService,
+    private readonly config: ConfigService,
   ) {}
 
   ensureAdmin(req: any) {
@@ -307,6 +311,33 @@ export class ListingsService {
     return new Date(date.toISOString().slice(0, 10));
   }
 
+  private async searchListingIdsByFts(keyword: string, limit = 2000): Promise<string[]> {
+    const q = String(keyword || '').trim();
+    if (!q) return [];
+    const rows = await this.prisma.$queryRaw<{ id: string }[]>(
+      Prisma.sql`
+        SELECT DISTINCT l.id
+        FROM listings l
+        LEFT JOIN patents p ON p.id = l.patent_id
+        LEFT JOIN (
+          SELECT patent_id, string_agg(name, ' ') AS party_names
+          FROM patent_parties
+          GROUP BY patent_id
+        ) pp ON pp.patent_id = p.id
+        WHERE l.audit_status = 'APPROVED'
+          AND l.status = 'ACTIVE'
+          AND to_tsvector(
+            'simple',
+            coalesce(l.title, '') || ' ' || coalesce(l.summary, '') || ' ' ||
+            coalesce(p.title, '') || ' ' || coalesce(p.abstract, '') || ' ' ||
+            coalesce(pp.party_names, '')
+          ) @@ plainto_tsquery('simple', ${q})
+        LIMIT ${limit}
+      `,
+    );
+    return rows.map((row) => row.id);
+  }
+
   private normalizeLegalStatus(value: unknown): string | undefined {
     const v = String(value || '').trim().toUpperCase();
     if (!v) return undefined;
@@ -535,7 +566,7 @@ export class ListingsService {
     };
   }
 
-  private toListingSummary(it: any) {
+  private toListingSummary(it: any, recommendationScore?: number | null) {
     const meta = this.extractPatentMeta(it.patent);
     return {
       id: it.id,
@@ -550,7 +581,7 @@ export class ListingsService {
       patentTypeDefinitionSource: meta.patentTypeDefinitionSource,
       patentTermYears: meta.patentTermYears,
       transferCount: meta.transferCount,
-      recommendationScore: null,
+      recommendationScore: recommendationScore ?? null,
       title: it.title,
       deliverables: this.normalizeStringArray(it.deliverablesJson),
       expectedCompletionDays: it.expectedCompletionDays ?? null,
@@ -587,6 +618,80 @@ export class ListingsService {
       updatedAt: it.updatedAt.toISOString(),
       stats: mapStats(it.stats),
     };
+  }
+
+  private normalizeWeight(value: unknown, fallback = 0) {
+    const num = Number(value);
+    return Number.isFinite(num) ? num : fallback;
+  }
+
+  private isFeaturedActive(item: any, nowMs: number) {
+    const level = String(item?.featuredLevel || 'NONE').toUpperCase();
+    if (level === 'NONE') return false;
+    const until = item?.featuredUntil instanceof Date ? item.featuredUntil.getTime() : undefined;
+    if (until !== undefined && until <= nowMs) return false;
+    return true;
+  }
+
+  private computeRecommendationScore(
+    item: any,
+    config: RecommendationConfig,
+    context: { regionCode?: string | null },
+    nowMs: number,
+  ) {
+    const weights = config?.weights || {
+      time: 1,
+      view: 1,
+      favorite: 1,
+      consult: 1,
+      region: 0,
+      user: 0,
+    };
+    const timeWeight = this.normalizeWeight(weights.time, 0);
+    const viewWeight = this.normalizeWeight(weights.view, 0);
+    const favoriteWeight = this.normalizeWeight(weights.favorite, 0);
+    const consultWeight = this.normalizeWeight(weights.consult, 0);
+    const regionWeight = this.normalizeWeight(weights.region, 0);
+    const userWeight = this.normalizeWeight(weights.user, 0);
+
+    const halfLifeHours = Math.max(1, this.normalizeWeight(config?.timeDecayHalfLifeHours, 72));
+    const createdAt = item?.createdAt instanceof Date ? item.createdAt.getTime() : nowMs;
+    const ageHours = Math.max(0, (nowMs - createdAt) / (1000 * 3600));
+    const decay = Math.pow(0.5, ageHours / halfLifeHours);
+
+    const stats = item?.stats ?? {};
+    const viewCount = Math.max(0, this.normalizeWeight(stats.viewCount, 0));
+    const favoriteCount = Math.max(0, this.normalizeWeight(stats.favoriteCount, 0));
+    const consultCount = Math.max(0, this.normalizeWeight(stats.consultCount, 0));
+
+    const regionCode = context.regionCode ? String(context.regionCode) : '';
+    const regionMatch =
+      regionCode && (item?.regionCode === regionCode || item?.featuredRegionCode === regionCode) ? 1 : 0;
+
+    const featuredActive = this.isFeaturedActive(item, nowMs);
+    const featuredLevel = String(item?.featuredLevel || 'NONE').toUpperCase();
+    const featuredRegionMatch =
+      !regionCode || item?.featuredRegionCode === regionCode || item?.regionCode === regionCode;
+    let featuredBoost = 0;
+    if (featuredActive && featuredRegionMatch) {
+      if (featuredLevel === 'PROVINCE') {
+        featuredBoost = this.normalizeWeight(config?.featuredBoost?.province, 0);
+      } else if (featuredLevel === 'CITY') {
+        featuredBoost = this.normalizeWeight(config?.featuredBoost?.city, 0);
+      }
+    }
+
+    const tagSimilarity = 0;
+
+    return (
+      timeWeight * decay +
+      viewWeight * Math.log1p(viewCount) +
+      favoriteWeight * Math.log1p(favoriteCount) +
+      consultWeight * Math.log1p(consultCount) +
+      regionWeight * regionMatch +
+      userWeight * tagSimilarity +
+      featuredBoost
+    );
   }
   async listAdmin(query: any): Promise<PagedListingAdmin> {
     const page = Math.max(1, Number(query?.page || 1));
@@ -1346,6 +1451,8 @@ export class ListingsService {
     }
 
     if (q) {
+      const useFts = qType === 'KEYWORD' || qType === 'AUTO';
+      const ftsIds = useFts ? await this.searchListingIdsByFts(q) : [];
       const orFilters: any[] = [];
       if (qType == 'NUMBER') {
         try {
@@ -1362,11 +1469,18 @@ export class ListingsService {
       } else if (qType == 'INVENTOR') {
         orFilters.push({ patent: { parties: { some: { role: 'INVENTOR', name: { contains: q, mode: 'insensitive' } } } } });
       } else if (qType == 'KEYWORD') {
-        orFilters.push({ title: { contains: q, mode: 'insensitive' } });
-        orFilters.push({ summary: { contains: q, mode: 'insensitive' } });
-        orFilters.push({ patent: { title: { contains: q, mode: 'insensitive' } } });
-        orFilters.push({ patent: { abstract: { contains: q, mode: 'insensitive' } } });
+        if (ftsIds.length > 0) {
+          orFilters.push({ id: { in: ftsIds } });
+        } else {
+          orFilters.push({ title: { contains: q, mode: 'insensitive' } });
+          orFilters.push({ summary: { contains: q, mode: 'insensitive' } });
+          orFilters.push({ patent: { title: { contains: q, mode: 'insensitive' } } });
+          orFilters.push({ patent: { abstract: { contains: q, mode: 'insensitive' } } });
+        }
       } else {
+        if (ftsIds.length > 0) {
+          orFilters.push({ id: { in: ftsIds } });
+        }
         orFilters.push({ title: { contains: q, mode: 'insensitive' } });
         orFilters.push({ summary: { contains: q, mode: 'insensitive' } });
         orFilters.push({ patent: { title: { contains: q, mode: 'insensitive' } } });
@@ -1385,6 +1499,67 @@ export class ListingsService {
       where.OR = orFilters;
     }
 
+    const include = { patent: { include: { parties: true, classifications: true } }, stats: true };
+
+    if (sortBy == 'RECOMMENDED') {
+      const recommendation = await this.config.getRecommendation();
+      if (recommendation?.enabled) {
+        const rows = await this.prisma.listing.findMany({
+          where,
+          select: {
+            id: true,
+            createdAt: true,
+            regionCode: true,
+            featuredLevel: true,
+            featuredRegionCode: true,
+            featuredRank: true,
+            featuredUntil: true,
+            stats: { select: { viewCount: true, favoriteCount: true, consultCount: true } },
+          },
+        });
+
+        const nowMs = Date.now();
+        const scored = rows.map((row: any) => {
+          const score = this.computeRecommendationScore(row, recommendation, { regionCode }, nowMs);
+          return {
+            id: row.id,
+            score,
+            featuredRank: Number.isFinite(Number(row.featuredRank)) ? Number(row.featuredRank) : Number.MAX_SAFE_INTEGER,
+            createdAt: row.createdAt instanceof Date ? row.createdAt : new Date(0),
+          };
+        });
+        const scoreMap = new Map(scored.map((item: any) => [item.id, item.score]));
+
+        scored.sort((a: any, b: any) => {
+          if (b.score !== a.score) return b.score - a.score;
+          if (a.featuredRank !== b.featuredRank) return a.featuredRank - b.featuredRank;
+          return b.createdAt.getTime() - a.createdAt.getTime();
+        });
+
+        const total = scored.length;
+        const start = (page - 1) * pageSize;
+        const pageIds = scored.slice(start, start + pageSize).map((item: any) => item.id);
+        const items = pageIds.length
+          ? await this.prisma.listing.findMany({
+              where: { id: { in: pageIds } },
+              include,
+            })
+          : [];
+        const itemMap = new Map(items.map((item: any) => [item.id, item]));
+
+        return {
+          items: pageIds
+            .map((id) => {
+              const item = itemMap.get(id);
+              if (!item) return null;
+              return this.toListingSummary(item, scoreMap.get(id) ?? null);
+            })
+            .filter(Boolean),
+          page: { page, pageSize, total },
+        };
+      }
+    }
+
     const orderBy: any[] = [];
     if (sortBy == 'PRICE_ASC') {
       orderBy.push({ priceAmount: 'asc' });
@@ -1395,8 +1570,6 @@ export class ListingsService {
     } else {
       orderBy.push({ createdAt: 'desc' });
     }
-
-    const include = { patent: { include: { parties: true, classifications: true } }, stats: true };
 
     const [items, total] = await Promise.all([
       this.prisma.listing.findMany({
@@ -1414,12 +1587,32 @@ export class ListingsService {
       page: { page, pageSize, total },
     };
   }
-  async getPublicById(listingId: string) {
+
+  async getMyRecommendations(req: any, query: any) {
+    if (!req?.auth?.userId) {
+      throw new ForbiddenException({ code: 'FORBIDDEN', message: 'forbidden' });
+    }
+    let regionCode = String(query?.regionCode || '').trim();
+    if (!regionCode) {
+      const user = await this.prisma.user.findUnique({
+        where: { id: req.auth.userId },
+        select: { regionCode: true },
+      });
+      regionCode = String(user?.regionCode || '').trim();
+    }
+    return await this.searchPublic({
+      ...(query || {}),
+      sortBy: 'RECOMMENDED',
+      regionCode: regionCode || undefined,
+    });
+  }
+  async getPublicById(req: any, listingId: string) {
     const it = await this.prisma.listing.findUnique({
       where: { id: listingId },
       include: { patent: { include: { parties: true, classifications: true } }, seller: true, stats: true },
     });
     if (!it) throw new NotFoundException({ code: 'NOT_FOUND', message: 'listing not found' });
+    void this.events.recordView(req, 'LISTING', listingId).catch(() => {});
     const meta = this.extractPatentMeta(it.patent);
     return {
       id: it.id,
@@ -1485,14 +1678,19 @@ export class ListingsService {
     if (!req?.auth?.userId) {
       throw new ForbiddenException({ code: 'FORBIDDEN', message: 'forbidden' });
     }
+    const listing = await this.prisma.listing.findUnique({ where: { id: listingId } });
+    if (!listing) throw new NotFoundException({ code: 'NOT_FOUND', message: 'listing not found' });
     const channel = String(payload?.channel || 'FORM').toUpperCase();
-    await this.prisma.listingConsultEvent.create({
-      data: {
-        listingId,
-        userId: req.auth.userId,
-        channel: channel === 'PHONE' ? 'PHONE' : channel === 'WECHAT_CS' ? 'WECHAT_CS' : 'FORM',
-      },
-    });
+    const recorded = await this.events.recordConsult(req, 'LISTING', listingId);
+    if (recorded) {
+      await this.prisma.listingConsultEvent.create({
+        data: {
+          listingId,
+          userId: req.auth.userId,
+          channel: channel === 'PHONE' ? 'PHONE' : channel === 'WECHAT_CS' ? 'WECHAT_CS' : 'FORM',
+        },
+      });
+    }
     return { ok: true };
   }
 }

@@ -1,5 +1,6 @@
 ﻿import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 
+import { ContentEventService } from '../../common/content-event.service';
 import { PrismaService } from '../../common/prisma/prisma.service';
 
 type ConversationContentType = 'LISTING' | 'DEMAND' | 'ACHIEVEMENT' | 'ARTWORK' | 'TECH_MANAGER';
@@ -56,7 +57,10 @@ type PagedConversationMessage = { items: ConversationMessageDto[]; nextCursor?: 
 
 @Injectable()
 export class ConversationsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly events: ContentEventService,
+  ) {}
 
   private ensureAuth(req: any) {
     if (!req?.auth?.userId) {
@@ -154,6 +158,11 @@ export class ConversationsService {
           sellerUserId,
         },
       });
+    }
+
+    if (contentType !== 'TECH_MANAGER') {
+      const ct = contentType as 'LISTING' | 'DEMAND' | 'ACHIEVEMENT' | 'ARTWORK';
+      void this.events.recordConsult(req, ct, contentId).catch(() => {});
     }
 
     return this.toConversationDto(conversation, contentTitle, listingTitle);

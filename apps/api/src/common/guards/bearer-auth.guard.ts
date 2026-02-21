@@ -1,11 +1,11 @@
 import { CanActivate, ExecutionContext, Injectable, UnauthorizedException } from '@nestjs/common';
+import type { Prisma } from '@prisma/client';
 import { resolvePermissions, resolvePermissionsFromRoleIds, type AdminRoleName } from '../permissions';
 import { PrismaService } from '../prisma/prisma.service';
-import { RBAC_CONFIG_KEY, ROLE_ID_TO_NAME, SYSTEM_ROLE_IDS, type RbacConfig } from '../rbac';
+import { ROLE_ID_TO_NAME, SYSTEM_ROLE_IDS, buildDefaultRbacRoles } from '../rbac';
+import { getDemoAuthConfig, isDemoUuidTokenEnabled } from '../demo';
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-const DEMO_USER_ID = '99999999-9999-9999-9999-999999999999';
-const DEMO_ADMIN_ID = '00000000-0000-0000-0000-000000000001';
 const ADMIN_ROLE_SET = new Set<AdminRoleName>(['admin', 'operator', 'finance', 'cs']);
 
 @Injectable()
@@ -20,16 +20,27 @@ export class BearerAuthGuard implements CanActivate {
     }
 
     const token = auth.slice('Bearer '.length).trim();
-    if (token === 'demo-admin-token') {
+    const demoConfig = getDemoAuthConfig();
+    const demoAuthEnabled = demoConfig.enabled;
+    const allowUuidToken = demoAuthEnabled && isDemoUuidTokenEnabled();
+    if (demoAuthEnabled && demoConfig.adminToken && token === demoConfig.adminToken) {
+      const adminUpdate: Prisma.UserUncheckedUpdateInput = { role: 'admin' };
+      if (demoConfig.adminNickname) adminUpdate.nickname = demoConfig.adminNickname;
+      if (demoConfig.adminPhone) adminUpdate.phone = demoConfig.adminPhone;
+      if (demoConfig.adminRegionCode) adminUpdate.regionCode = demoConfig.adminRegionCode;
+
+      const adminCreate: Prisma.UserUncheckedCreateInput = {
+        id: demoConfig.adminId as string,
+        role: 'admin',
+      };
+      if (demoConfig.adminPhone) adminCreate.phone = demoConfig.adminPhone;
+      if (demoConfig.adminNickname) adminCreate.nickname = demoConfig.adminNickname;
+      if (demoConfig.adminRegionCode) adminCreate.regionCode = demoConfig.adminRegionCode;
+
       const adminUser = await this.prisma.user.upsert({
-        where: { id: DEMO_ADMIN_ID },
-        update: { role: 'admin', nickname: '演示管理员' },
-        create: {
-          id: DEMO_ADMIN_ID,
-          phone: null,
-          role: 'admin',
-          nickname: '演示管理员',
-        },
+        where: { id: demoConfig.adminId as string },
+        update: adminUpdate,
+        create: adminCreate,
       });
       const roleNames: AdminRoleName[] = ['admin'];
       req.auth = {
@@ -47,23 +58,31 @@ export class BearerAuthGuard implements CanActivate {
       return true;
     }
 
-    const userId = token === 'demo-token' ? DEMO_USER_ID : UUID_RE.test(token) ? token : null;
+    const isDemoUserToken = demoAuthEnabled && demoConfig.userToken && token === demoConfig.userToken;
+    const userId = isDemoUserToken ? (demoConfig.userId as string) : allowUuidToken && UUID_RE.test(token) ? token : null;
     if (!userId) {
       throw new UnauthorizedException({ code: 'UNAUTHORIZED', message: '未登录' });
     }
 
     let user = await this.prisma.user.findUnique({ where: { id: userId } });
-    if (!user && userId === DEMO_USER_ID) {
+    if (!user && isDemoUserToken) {
+      const demoUpdate: Prisma.UserUncheckedUpdateInput = {};
+      if (demoConfig.userNickname) demoUpdate.nickname = demoConfig.userNickname;
+      if (demoConfig.userPhone) demoUpdate.phone = demoConfig.userPhone;
+      if (demoConfig.userRegionCode) demoUpdate.regionCode = demoConfig.userRegionCode;
+
+      const demoCreate: Prisma.UserUncheckedCreateInput = {
+        id: demoConfig.userId as string,
+        role: 'buyer',
+      };
+      if (demoConfig.userPhone) demoCreate.phone = demoConfig.userPhone;
+      if (demoConfig.userNickname) demoCreate.nickname = demoConfig.userNickname;
+      if (demoConfig.userRegionCode) demoCreate.regionCode = demoConfig.userRegionCode;
+
       user = await this.prisma.user.upsert({
-        where: { id: DEMO_USER_ID },
-        update: {},
-        create: {
-          id: DEMO_USER_ID,
-          phone: '13800138000',
-          role: 'buyer',
-          nickname: '演示用户',
-          regionCode: '110000',
-        },
+        where: { id: demoConfig.userId as string },
+        update: demoUpdate,
+        create: demoCreate,
       });
     }
     if (!user) {
@@ -73,23 +92,12 @@ export class BearerAuthGuard implements CanActivate {
     const role = user.role as AdminRoleName | string;
     let roleNames: AdminRoleName[] = ADMIN_ROLE_SET.has(role as AdminRoleName) ? [role as AdminRoleName] : [];
 
-    let rbacConfig: RbacConfig | null = null;
-    const configRow = await this.prisma.systemConfig.findUnique({ where: { key: RBAC_CONFIG_KEY } });
-    if (configRow?.value) {
-      try {
-        const parsed = JSON.parse(configRow.value) as RbacConfig;
-        if (parsed && Array.isArray(parsed.roles)) {
-          rbacConfig = parsed;
-        }
-      } catch {
-        rbacConfig = null;
-      }
-    }
+    const assignedRoles = await this.prisma.rbacUserRole.findMany({
+      where: { userId: user.id },
+      select: { roleId: true },
+    });
 
-    let roleIds: string[] = [];
-    if (rbacConfig?.userRoles && rbacConfig.userRoles[user.id]?.length) {
-      roleIds = rbacConfig.userRoles[user.id];
-    }
+    let roleIds: string[] = assignedRoles.map((item) => item.roleId);
     if (!roleIds.length) {
       const fallbackRoleId = SYSTEM_ROLE_IDS[role as AdminRoleName];
       if (fallbackRoleId) roleIds = [fallbackRoleId];
@@ -103,8 +111,13 @@ export class BearerAuthGuard implements CanActivate {
     }
 
     let permissions = resolvePermissions(roleNames);
-    if (rbacConfig?.roles?.length && roleIds.length) {
-      permissions = resolvePermissionsFromRoleIds(roleIds, rbacConfig.roles);
+    if (roleIds.length) {
+      const roleRows = await this.prisma.rbacRole.findMany({
+        where: { id: { in: roleIds } },
+        select: { id: true, permissionIds: true },
+      });
+      const roleRefs = roleRows.length ? roleRows : buildDefaultRbacRoles();
+      permissions = resolvePermissionsFromRoleIds(roleIds, roleRefs);
     }
 
     const verification = await this.prisma.userVerification.findFirst({

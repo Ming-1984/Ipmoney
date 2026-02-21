@@ -73,8 +73,14 @@ export class ListingsController {
   }
 
   @Get('/public/listings/:listingId')
-  async getPublic(@Param('listingId') listingId: string) {
-    return await this.listings.getPublicById(listingId);
+  async getPublic(@Req() req: any, @Param('listingId') listingId: string) {
+    return await this.listings.getPublicById(req, listingId);
+  }
+
+  @UseGuards(BearerAuthGuard)
+  @Get('/me/recommendations/listings')
+  async getMyRecommendations(@Req() req: any, @Query() query: any) {
+    return await this.listings.getMyRecommendations(req, query || {});
   }
 
   @UseGuards(BearerAuthGuard)

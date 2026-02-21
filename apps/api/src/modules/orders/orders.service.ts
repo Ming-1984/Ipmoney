@@ -1,4 +1,4 @@
-import { BadRequestException, ConflictException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ConflictException, ForbiddenException, Injectable, NotFoundException, NotImplementedException } from '@nestjs/common';
 import { MilestoneName, Prisma } from '@prisma/client';
 
 const AuditStatus = {
@@ -20,6 +20,8 @@ type ListingStatus = (typeof ListingStatus)[keyof typeof ListingStatus];
 import { AuditLogService } from '../../common/audit-log.service';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { ConfigService, TradeRulesConfig } from '../config/config.service';
+import { isDemoPaymentEnabled } from '../../common/demo';
+import { NotificationsService } from '../notifications/notifications.service';
 
 const DEFAULT_CS_USER_ID = '00000000-0000-0000-0000-000000000002';
 
@@ -111,11 +113,97 @@ export class OrdersService {
     private readonly prisma: PrismaService,
     private readonly audit: AuditLogService,
     private readonly config: ConfigService,
+    private readonly notifications: NotificationsService,
   ) {}
+
+  private async notifyUser(userId: string | null | undefined, title: string, summary: string, source: string) {
+    await this.notifications.create({ userId, title, summary, source });
+  }
+
+  private async getOrderWithListing(orderId: string) {
+    return await this.prisma.order.findUnique({
+      where: { id: orderId },
+      include: { listing: true },
+    });
+  }
+
+  private ensureOrderAccess(
+    req: any,
+    order: { buyerUserId?: string | null; listing?: { sellerUserId?: string | null } | null } | null,
+    opts: { allowBuyer?: boolean; allowSeller?: boolean; allowAdmin?: boolean } = {},
+  ) {
+    if (!order) throw new NotFoundException({ code: 'NOT_FOUND', message: 'order not found' });
+    const allowBuyer = opts.allowBuyer !== false;
+    const allowSeller = opts.allowSeller !== false;
+    const allowAdmin = opts.allowAdmin !== false;
+    if (allowAdmin && req?.auth?.isAdmin) return;
+    if (allowBuyer && order.buyerUserId && req?.auth?.userId === order.buyerUserId) return;
+    if (allowSeller && order.listing?.sellerUserId && req?.auth?.userId === order.listing.sellerUserId) return;
+    throw new ForbiddenException({ code: 'FORBIDDEN', message: 'forbidden' });
+  }
+
+  private async getOrderContext(orderId: string) {
+    const order = await this.prisma.order.findUnique({
+      where: { id: orderId },
+      include: { listing: true },
+    });
+    if (!order) return null;
+    return {
+      order,
+      listingTitle: order.listing?.title || '交易订单',
+      buyerUserId: order.buyerUserId,
+      sellerUserId: order.listing?.sellerUserId,
+    };
+  }
 
   private ensureAuth(req: any) {
     if (!req?.auth?.userId) {
       throw new ForbiddenException({ code: 'FORBIDDEN', message: 'forbidden' });
+    }
+  }
+
+  private getIdempotencyKey(req: any) {
+    const raw = req?.headers?.['idempotency-key'];
+    if (!raw) return '';
+    return String(raw).trim();
+  }
+
+  private async withIdempotency<T>(req: any, scope: string, handler: () => Promise<T>): Promise<T> {
+    const key = this.getIdempotencyKey(req);
+    if (!key) return await handler();
+
+    const userId = req?.auth?.userId ? String(req.auth.userId) : '';
+    if (!userId) return await handler();
+
+    const existing = await this.prisma.idempotencyKey.findUnique({
+      where: { key_scope_userId: { key, scope, userId } },
+    });
+    if (existing) {
+      if (existing.status === 'COMPLETED' && existing.responseJson != null) {
+        return existing.responseJson as T;
+      }
+      throw new ConflictException({ code: 'CONFLICT', message: 'idempotency key already used' });
+    }
+
+    const record = await this.prisma.idempotencyKey.create({
+      data: {
+        key,
+        scope,
+        userId,
+        status: 'IN_PROGRESS',
+      },
+    });
+
+    try {
+      const result = await handler();
+      await this.prisma.idempotencyKey.update({
+        where: { id: record.id },
+        data: { status: 'COMPLETED', responseJson: result as any },
+      });
+      return result;
+    } catch (error) {
+      await this.prisma.idempotencyKey.delete({ where: { id: record.id } });
+      throw error;
     }
   }
 
@@ -173,12 +261,15 @@ export class OrdersService {
 
     let csCase = await this.prisma.csCase.findFirst({ where: { orderId: order.id, type: 'FOLLOWUP' } });
     if (!csCase) {
+      const dueAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
       csCase = await this.prisma.csCase.create({
         data: {
           orderId: order.id,
           csUserId: assignedCsUserId,
+          title: '订单跟单',
           type: 'FOLLOWUP',
           status: 'OPEN',
+          dueAt,
         },
       });
     } else if (csCase.csUserId !== assignedCsUserId) {
@@ -213,6 +304,38 @@ export class OrdersService {
 
   private computeFinalAmount(dealAmount: number, depositAmount: number) {
     return Math.max(0, dealAmount - depositAmount);
+  }
+
+  private async getLatestDepositPaidAt(orderId: string): Promise<Date | null> {
+    const payment = await this.prisma.payment.findFirst({
+      where: {
+        orderId,
+        payType: 'DEPOSIT',
+        status: 'PAID',
+        paidAt: { not: null },
+      },
+      orderBy: { paidAt: 'desc' },
+    });
+    return payment?.paidAt ?? null;
+  }
+
+  private async canAutoRefund(order: { id: string; status: string }, rules: TradeRulesConfig): Promise<boolean> {
+    if (order.status !== 'DEPOSIT_PAID') return false;
+    const windowMinutes = Math.max(0, Number(rules.autoRefundWindowMinutes || 0));
+    if (!windowMinutes) return false;
+
+    const paidAt = await this.getLatestDepositPaidAt(order.id);
+    if (!paidAt) return false;
+    const elapsedMs = Date.now() - paidAt.getTime();
+    if (elapsedMs < 0 || elapsedMs > windowMinutes * 60 * 1000) return false;
+
+    const followupCase = await this.prisma.csCase.findFirst({
+      where: { orderId: order.id, type: 'FOLLOWUP' },
+      orderBy: { createdAt: 'asc' },
+    });
+    if (followupCase && followupCase.status !== 'OPEN') return false;
+
+    return true;
   }
 
   private toFileObject(file: any): FileObjectDto {
@@ -269,25 +392,49 @@ export class OrdersService {
     if (!listingId) {
       throw new BadRequestException({ code: 'BAD_REQUEST', message: 'listingId is required' });
     }
-    const listing = await this.prisma.listing.findUnique({
-      where: { id: listingId },
-      include: { patent: true },
-    });
-    if (!listing) throw new NotFoundException({ code: 'NOT_FOUND', message: 'listing not found' });
-    if (listing.auditStatus !== AuditStatus.APPROVED || listing.status !== ListingStatus.ACTIVE) {
-      throw new BadRequestException({ code: 'BAD_REQUEST', message: 'listing not available for trade' });
-    }
+    const scope = `ORDER_CREATE:${listingId}`;
+    return await this.withIdempotency(req, scope, async () => {
+      const listing = await this.prisma.listing.findUnique({
+        where: { id: listingId },
+        include: { patent: true },
+      });
+      if (!listing) throw new NotFoundException({ code: 'NOT_FOUND', message: 'listing not found' });
+      if (listing.auditStatus !== AuditStatus.APPROVED || listing.status !== ListingStatus.ACTIVE) {
+        throw new BadRequestException({ code: 'BAD_REQUEST', message: 'listing not available for trade' });
+      }
 
-    const order = await this.prisma.order.create({
-      data: {
-        listingId,
-        buyerUserId: req.auth.userId,
-        status: 'DEPOSIT_PENDING',
-        depositAmount: listing.depositAmount,
-      },
+      const order = await this.prisma.order.create({
+        data: {
+          listingId,
+          buyerUserId: req.auth.userId,
+          status: 'DEPOSIT_PENDING',
+          depositAmount: listing.depositAmount,
+        },
+      });
+      await this.audit.log({
+        actorUserId: req.auth.userId,
+        action: 'ORDER_CREATE',
+        targetType: 'ORDER',
+        targetId: order.id,
+        afterJson: { status: order.status, listingId, buyerUserId: order.buyerUserId },
+      });
+      const listingTitle = listing.title || '??';
+      await this.notifyUser(
+        order.buyerUserId,
+        '??????',
+        `?${listingTitle}???????????????????????`,
+        '????',
+      );
+      await this.notifyUser(
+        listing.sellerUserId,
+        '??????',
+        `??????${listingTitle}???????????????`,
+        '????',
+      );
+      return this.toOrderDto(order, listing, listing.patent);
     });
-    return this.toOrderDto(order, listing, listing.patent);
   }
+
 
   async listOrders(req: any, query: any): Promise<PagedOrder> {
     this.ensureAuth(req);
@@ -352,47 +499,173 @@ export class OrdersService {
   }
 
   async createPaymentIntent(req: any, orderId: string, body: { payType?: string }) {
+    if (!isDemoPaymentEnabled()) {
+      throw new NotImplementedException({ code: 'NOT_IMPLEMENTED', message: 'demo payment disabled' });
+    }
     this.ensureAuth(req);
+    const payType = String(body?.payType || 'DEPOSIT').toUpperCase();
+    const scope = `PAYMENT_INTENT:${orderId}:${payType}`;
+    return await this.withIdempotency(req, scope, async () => {
+      let order = await this.prisma.order.findUnique({ where: { id: orderId } });
+      if (!order) throw new NotFoundException({ code: 'NOT_FOUND', message: 'order not found' });
+      if (order.buyerUserId !== req.auth.userId) {
+        throw new ForbiddenException({ code: 'FORBIDDEN', message: 'forbidden' });
+      }
+      if (payType === 'DEPOSIT' && order.status !== 'DEPOSIT_PENDING') {
+        throw new ConflictException({ code: 'CONFLICT', message: 'deposit payment not allowed in current status' });
+      }
+      if (payType === 'FINAL' && order.status !== 'WAIT_FINAL_PAYMENT') {
+        throw new ConflictException({ code: 'CONFLICT', message: 'final payment not allowed in current status' });
+      }
+      if (payType === 'FINAL' && order.finalAmount == null && order.dealAmount != null) {
+        const computedFinal = this.computeFinalAmount(order.dealAmount, order.depositAmount);
+        order = await this.prisma.order.update({ where: { id: orderId }, data: { finalAmount: computedFinal } });
+      }
+      const normalizedPayType = payType === 'FINAL' ? 'FINAL' : 'DEPOSIT';
+      const amount = payType === 'FINAL' ? order.finalAmount ?? 0 : order.depositAmount;
+      const existingPaid = await this.prisma.payment.findFirst({
+        where: { orderId, payType: normalizedPayType, status: 'PAID' },
+      });
+      if (existingPaid) {
+        throw new ConflictException({ code: 'CONFLICT', message: 'payment already completed' });
+      }
+      const existingPending = await this.prisma.payment.findFirst({
+        where: { orderId, payType: normalizedPayType, status: 'PENDING' },
+        orderBy: { createdAt: 'desc' },
+      });
+      const tradeNo = existingPending?.tradeNo || `demo-${orderId}-${Date.now()}`;
+      const payment = existingPending
+        ? await this.prisma.payment.update({
+            where: { id: existingPending.id },
+            data: {
+              tradeNo,
+              amount,
+            },
+          })
+        : await this.prisma.payment.create({
+            data: {
+              orderId,
+              payType: normalizedPayType,
+              channel: 'WECHAT',
+              tradeNo,
+              amount,
+              status: 'PENDING',
+            },
+          });
+      await this.ensureCaseForOrder(order);
+
+      return {
+        paymentId: payment.id,
+        payType: normalizedPayType,
+        channel: 'WECHAT',
+        amountFen: amount,
+        wechatPayParams: {
+          timeStamp: String(Math.floor(Date.now() / 1000)),
+          nonceStr: `nonce-${payment.id.slice(0, 8)}`,
+          package: `prepay_id=demo-${payment.id.slice(0, 8)}`,
+          signType: 'RSA',
+          paySign: 'demo-sign',
+        },
+      };
+    });
+  }
+
+  async adminManualConfirmPayment(req: any, orderId: string, body: any) {
+    this.ensureAdmin(req);
+    const payType = String(body?.payType || '').toUpperCase();
+    if (!['DEPOSIT', 'FINAL'].includes(payType)) {
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: 'payType is required' });
+    }
+
     let order = await this.prisma.order.findUnique({ where: { id: orderId } });
     if (!order) throw new NotFoundException({ code: 'NOT_FOUND', message: 'order not found' });
-    if (order.buyerUserId !== req.auth.userId) {
-      throw new ForbiddenException({ code: 'FORBIDDEN', message: 'forbidden' });
+    if (payType === 'DEPOSIT' && order.status !== 'DEPOSIT_PENDING') {
+      throw new ConflictException({ code: 'CONFLICT', message: 'deposit payment not allowed in current status' });
     }
-    const payType = String(body?.payType || 'DEPOSIT').toUpperCase();
+    if (payType === 'FINAL' && order.status !== 'WAIT_FINAL_PAYMENT') {
+      throw new ConflictException({ code: 'CONFLICT', message: 'final payment not allowed in current status' });
+    }
     if (payType === 'FINAL' && order.finalAmount == null && order.dealAmount != null) {
       const computedFinal = this.computeFinalAmount(order.dealAmount, order.depositAmount);
       order = await this.prisma.order.update({ where: { id: orderId }, data: { finalAmount: computedFinal } });
     }
-    const amount = payType === 'FINAL' ? order.finalAmount ?? 0 : order.depositAmount;
-    const payment = await this.prisma.payment.create({
-      data: {
-        orderId,
-        payType: payType === 'FINAL' ? 'FINAL' : 'DEPOSIT',
-        channel: 'WECHAT',
-        tradeNo: `demo-${orderId}-${Date.now()}`,
-        amount,
-        status: 'PAID',
-        paidAt: new Date(),
-      },
-    });
 
-    if (payType === 'DEPOSIT') {
-      const updated = await this.prisma.order.update({ where: { id: orderId }, data: { status: 'DEPOSIT_PAID' } });
-      await this.ensureCaseForOrder(updated);
-    } else if (payType === 'FINAL') {
-      const updated = await this.prisma.order.update({ where: { id: orderId }, data: { status: 'FINAL_PAID_ESCROW' } });
-      await this.ensureCaseForOrder(updated);
+    const normalizedPayType = payType === 'FINAL' ? 'FINAL' : 'DEPOSIT';
+    const amount = payType === 'FINAL' ? order.finalAmount ?? 0 : order.depositAmount;
+    const amountBody = body?.amountFen;
+    if (typeof amountBody === 'number' && amountBody > 0 && amountBody !== amount) {
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: 'amount mismatch' });
     }
 
-    return { paymentId: payment.id };
+    const existingPayment = await this.prisma.payment.findFirst({
+      where: { orderId, payType: normalizedPayType, status: { in: ['PENDING', 'PAID'] } },
+      orderBy: { createdAt: 'desc' },
+    });
+    if (existingPayment?.status === 'PAID') {
+      throw new ConflictException({ code: 'CONFLICT', message: 'payment already completed' });
+    }
+
+    const paidAt = body?.paidAt ? new Date(body.paidAt) : new Date();
+    const tradeNo = String(body?.tradeNo || existingPayment?.tradeNo || `manual-${orderId}-${Date.now()}`);
+    const payment = existingPayment
+      ? await this.prisma.payment.update({
+          where: { id: existingPayment.id },
+          data: { status: 'PAID', paidAt, tradeNo, amount },
+        })
+      : await this.prisma.payment.create({
+          data: {
+            orderId,
+            payType: normalizedPayType,
+            channel: 'WECHAT',
+            tradeNo,
+            amount,
+            status: 'PAID',
+            paidAt,
+          },
+        });
+
+    const targetStatus = payType === 'FINAL' ? 'FINAL_PAID_ESCROW' : 'DEPOSIT_PAID';
+    const updated = await this.prisma.order.update({ where: { id: orderId }, data: { status: targetStatus } });
+
+    await this.audit.log({
+      actorUserId: req.auth.userId,
+      action: payType === 'FINAL' ? 'ORDER_FINAL_PAID' : 'ORDER_DEPOSIT_PAID',
+      targetType: 'ORDER',
+      targetId: updated.id,
+      beforeJson: { status: order.status },
+      afterJson: { status: updated.status, paymentId: payment.id, tradeNo, paidAt },
+    });
+
+    await this.ensureCaseForOrder(updated);
+    const ctx = await this.getOrderContext(orderId);
+    if (ctx) {
+      const title = payType === 'FINAL' ? '尾款支付确认' : '订金支付确认';
+      const summary =
+        payType === 'FINAL'
+          ? `《${ctx.listingTitle}》尾款已确认到账，平台将推进权属变更与结算。`
+          : `《${ctx.listingTitle}》订金已确认到账，平台客服将介入跟单。`;
+      await this.notifyUser(ctx.buyerUserId, title, summary, '交易通知');
+      await this.notifyUser(ctx.sellerUserId, title, summary, '交易通知');
+    }
+
+    return {
+      paymentId: payment.id,
+      orderId,
+      payType: normalizedPayType,
+      status: payment.status,
+      amountFen: amount,
+      paidAt: payment.paidAt?.toISOString(),
+      tradeNo: payment.tradeNo,
+    };
   }
+
 
   async getCaseWithMilestones(req: any, orderId: string): Promise<CaseWithMilestones> {
     this.ensureAuth(req);
-    const order = await this.prisma.order.findUnique({ where: { id: orderId } });
-    if (!order) throw new NotFoundException({ code: 'NOT_FOUND', message: 'order not found' });
+    const order = await this.getOrderWithListing(orderId);
+    this.ensureOrderAccess(req, order);
 
-    const csCase = await this.ensureCaseForOrder(order);
+    const csCase = await this.ensureCaseForOrder(order as any);
 
     const milestones = await this.prisma.csMilestone.findMany({ where: { caseId: csCase.id }, orderBy: { createdAt: 'asc' } });
     return {
@@ -411,6 +684,8 @@ export class OrdersService {
 
   async listRefundRequests(req: any, orderId: string): Promise<RefundRequestDto[]> {
     this.ensureAuth(req);
+    const order = await this.getOrderWithListing(orderId);
+    this.ensureOrderAccess(req, order);
     const list = await this.prisma.refundRequest.findMany({ where: { orderId }, orderBy: { createdAt: 'desc' } });
     return list.map((r: any) => ({
       id: r.id,
@@ -425,26 +700,134 @@ export class OrdersService {
 
   async createRefundRequest(req: any, orderId: string, body: any): Promise<RefundRequestDto> {
     this.ensureAuth(req);
-    const reasonCode = String(body?.reasonCode || 'OTHER');
-    const reasonText = body?.reasonText ? String(body.reasonText) : undefined;
-    const item = await this.prisma.refundRequest.create({
-      data: {
-        orderId,
-        reasonCode,
-        reasonText,
-        status: 'PENDING',
-      },
+    const scope = `REFUND_REQUEST:${orderId}`;
+    return await this.withIdempotency(req, scope, async () => {
+      const order = await this.getOrderWithListing(orderId);
+      this.ensureOrderAccess(req, order, { allowSeller: false });
+      if (!order) throw new NotFoundException({ code: 'NOT_FOUND', message: 'order not found' });
+      if (!['DEPOSIT_PAID', 'WAIT_FINAL_PAYMENT', 'FINAL_PAID_ESCROW'].includes(order.status)) {
+        throw new ConflictException({ code: 'CONFLICT', message: 'refund not allowed in current status' });
+      }
+      const existing = await this.prisma.refundRequest.findFirst({ where: { orderId, status: 'PENDING' } });
+      if (existing) {
+        throw new ConflictException({ code: 'CONFLICT', message: 'refund request already pending' });
+      }
+      const rules = await this.config.getTradeRules();
+      const autoRefundEligible = await this.canAutoRefund(order, rules);
+
+      const item = await this.prisma.refundRequest.create({
+        data: {
+          orderId,
+          reasonCode: String(body?.reasonCode || 'OTHER'),
+          reasonText: body?.reasonText ? String(body.reasonText) : null,
+        },
+      });
+      await this.audit.log({
+        actorUserId: req.auth.userId,
+        action: 'REFUND_REQUEST_CREATE',
+        targetType: 'REFUND_REQUEST',
+        targetId: item.id,
+        afterJson: item,
+      });
+
+      const ctx = await this.getOrderContext(orderId);
+      if (ctx) {
+        await this.notifyUser(
+          ctx.buyerUserId,
+          '???????',
+          `?${ctx.listingTitle}?????????????????`,
+          '????',
+        );
+        await this.notifyUser(
+          ctx.sellerUserId,
+          '??????',
+          `?${ctx.listingTitle}??????????????????`,
+          '????',
+        );
+      }
+
+      let currentItem = item;
+      let orderStatus = order.status;
+      if (autoRefundEligible) {
+        const approved = await this.prisma.refundRequest.update({
+          where: { id: item.id },
+          data: { status: 'REFUNDING' },
+        });
+        await this.audit.log({
+          actorUserId: req.auth.userId,
+          action: 'REFUND_AUTO_APPROVE',
+          targetType: 'REFUND_REQUEST',
+          targetId: approved.id,
+          beforeJson: { status: item.status },
+          afterJson: { status: approved.status, autoRefund: true },
+        });
+        currentItem = approved;
+
+        if (orderStatus !== 'REFUNDING') {
+          const orderUpdated = await this.prisma.order.update({
+            where: { id: order.id },
+            data: { status: 'REFUNDING' },
+          });
+          await this.audit.log({
+            actorUserId: req.auth.userId,
+            action: 'ORDER_REFUNDING',
+            targetType: 'ORDER',
+            targetId: orderUpdated.id,
+            beforeJson: { status: orderStatus },
+            afterJson: { status: orderUpdated.status, autoRefund: true },
+          });
+          orderStatus = orderUpdated.status;
+        }
+
+        const completed = await this.prisma.refundRequest.update({
+          where: { id: item.id },
+          data: { status: 'REFUNDED' },
+        });
+        await this.audit.log({
+          actorUserId: req.auth.userId,
+          action: 'REFUND_COMPLETED',
+          targetType: 'REFUND_REQUEST',
+          targetId: completed.id,
+          beforeJson: { status: approved.status },
+          afterJson: { status: completed.status, autoRefund: true },
+        });
+        currentItem = completed;
+
+        if (orderStatus !== 'REFUNDED') {
+          const orderUpdated = await this.prisma.order.update({
+            where: { id: order.id },
+            data: { status: 'REFUNDED' },
+          });
+          await this.audit.log({
+            actorUserId: req.auth.userId,
+            action: 'ORDER_REFUNDED',
+            targetType: 'ORDER',
+            targetId: orderUpdated.id,
+            beforeJson: { status: orderStatus },
+            afterJson: { status: orderUpdated.status, autoRefund: true },
+          });
+        }
+
+        if (ctx) {
+          const title = '\u9000\u6b3e\u5df2\u5b8c\u6210';
+          const summary = `\u300a${ctx.listingTitle}\u300b\u9000\u6b3e\u5df2\u5b8c\u6210\uff0c\u6b3e\u9879\u5c06\u6309\u539f\u8def\u9000\u56de\u3002`;
+          await this.notifyUser(ctx.buyerUserId, title, summary, '\u9000\u6b3e\u901a\u77e5');
+          await this.notifyUser(ctx.sellerUserId, title, summary, '\u9000\u6b3e\u901a\u77e5');
+        }
+      }
+
+      return {
+        id: currentItem.id,
+        orderId: currentItem.orderId,
+        reasonCode: currentItem.reasonCode,
+        reasonText: currentItem.reasonText ?? undefined,
+        status: currentItem.status,
+        createdAt: currentItem.createdAt.toISOString(),
+        updatedAt: currentItem.updatedAt?.toISOString(),
+      };
     });
-    return {
-      id: item.id,
-      orderId: item.orderId,
-      reasonCode: item.reasonCode,
-      reasonText: item.reasonText ?? undefined,
-      status: item.status,
-      createdAt: item.createdAt.toISOString(),
-      updatedAt: item.updatedAt?.toISOString(),
-    };
   }
+
 
   async adminApproveRefundRequest(req: any, refundRequestId: string): Promise<RefundRequestDto> {
     this.ensureAdmin(req);
@@ -453,9 +836,14 @@ export class OrdersService {
     if (existing.status !== 'PENDING') {
       throw new ConflictException({ code: 'CONFLICT', message: 'refund request already processed' });
     }
+    const order = await this.prisma.order.findUnique({ where: { id: existing.orderId } });
+    if (!order) throw new NotFoundException({ code: 'NOT_FOUND', message: 'order not found' });
+    if (!['DEPOSIT_PAID', 'WAIT_FINAL_PAYMENT', 'FINAL_PAID_ESCROW', 'REFUNDING'].includes(order.status)) {
+      throw new ConflictException({ code: 'CONFLICT', message: 'refund not allowed in current status' });
+    }
     const updated = await this.prisma.refundRequest.update({
       where: { id: refundRequestId },
-      data: { status: 'APPROVED' },
+      data: { status: 'REFUNDING' },
     });
     await this.audit.log({
       actorUserId: req.auth.userId,
@@ -465,6 +853,35 @@ export class OrdersService {
       beforeJson: existing,
       afterJson: updated,
     });
+    if (order.status !== 'REFUNDING') {
+      const orderUpdated = await this.prisma.order.update({
+        where: { id: order.id },
+        data: { status: 'REFUNDING' },
+      });
+      await this.audit.log({
+        actorUserId: req.auth.userId,
+        action: 'ORDER_REFUNDING',
+        targetType: 'ORDER',
+        targetId: orderUpdated.id,
+        beforeJson: { status: order.status },
+        afterJson: { status: orderUpdated.status },
+      });
+    }
+    const ctx = await this.getOrderContext(updated.orderId);
+    if (ctx) {
+      await this.notifyUser(
+        ctx.buyerUserId,
+        '退款申请已通过',
+        `《${ctx.listingTitle}》退款申请已通过，后续退款将按流程处理。`,
+        '退款通知',
+      );
+      await this.notifyUser(
+        ctx.sellerUserId,
+        '退款申请已通过',
+        `《${ctx.listingTitle}》退款申请已通过，请留意后续处理结果。`,
+        '退款通知',
+      );
+    }
     return {
       id: updated.id,
       orderId: updated.orderId,
@@ -499,6 +916,21 @@ export class OrdersService {
       beforeJson: existing,
       afterJson: { ...updated, rejectReason: reason },
     });
+    const ctx = await this.getOrderContext(updated.orderId);
+    if (ctx) {
+      await this.notifyUser(
+        ctx.buyerUserId,
+        '退款申请被驳回',
+        `《${ctx.listingTitle}》退款申请未通过，原因：${reason}。`,
+        '退款通知',
+      );
+      await this.notifyUser(
+        ctx.sellerUserId,
+        '退款申请被驳回',
+        `《${ctx.listingTitle}》退款申请未通过，原因：${reason}。`,
+        '退款通知',
+      );
+    }
     return {
       id: updated.id,
       orderId: updated.orderId,
@@ -507,6 +939,63 @@ export class OrdersService {
       status: updated.status,
       createdAt: updated.createdAt.toISOString(),
       updatedAt: updated.updatedAt?.toISOString(),
+    };
+  }
+
+  async adminCompleteRefundRequest(req: any, refundRequestId: string, body: any): Promise<RefundRequestDto> {
+    this.ensureAdmin(req);
+    const existing = await this.prisma.refundRequest.findUnique({ where: { id: refundRequestId } });
+    if (!existing) throw new NotFoundException({ code: 'NOT_FOUND', message: 'refund request not found' });
+    if (!['REFUNDING', 'APPROVED', 'PENDING'].includes(existing.status)) {
+      throw new ConflictException({ code: 'CONFLICT', message: 'refund request already completed' });
+    }
+    const order = await this.prisma.order.findUnique({ where: { id: existing.orderId } });
+    if (!order) throw new NotFoundException({ code: 'NOT_FOUND', message: 'order not found' });
+
+    const updatedRequest = await this.prisma.refundRequest.update({
+      where: { id: existing.id },
+      data: { status: 'REFUNDED' },
+    });
+    await this.audit.log({
+      actorUserId: req.auth.userId,
+      action: 'REFUND_COMPLETED',
+      targetType: 'REFUND_REQUEST',
+      targetId: updatedRequest.id,
+      beforeJson: { status: existing.status },
+      afterJson: { status: updatedRequest.status, remark: body?.remark },
+    });
+
+    if (order.status !== 'REFUNDED') {
+      const updatedOrder = await this.prisma.order.update({
+        where: { id: order.id },
+        data: { status: 'REFUNDED' },
+      });
+      await this.audit.log({
+        actorUserId: req.auth.userId,
+        action: 'ORDER_REFUNDED',
+        targetType: 'ORDER',
+        targetId: updatedOrder.id,
+        beforeJson: { status: order.status },
+        afterJson: { status: updatedOrder.status },
+      });
+    }
+
+    const ctx = await this.getOrderContext(updatedRequest.orderId);
+    if (ctx) {
+      const title = '退款已完成';
+      const summary = `《${ctx.listingTitle}》退款已完成，款项将按原路退回。`;
+      await this.notifyUser(ctx.buyerUserId, title, summary, '退款通知');
+      await this.notifyUser(ctx.sellerUserId, title, summary, '退款通知');
+    }
+
+    return {
+      id: updatedRequest.id,
+      orderId: updatedRequest.orderId,
+      reasonCode: updatedRequest.reasonCode,
+      reasonText: updatedRequest.reasonText ?? undefined,
+      status: updatedRequest.status,
+      createdAt: updatedRequest.createdAt.toISOString(),
+      updatedAt: updatedRequest.updatedAt?.toISOString(),
     };
   }
 
@@ -528,12 +1017,41 @@ export class OrdersService {
 
   async requestInvoice(req: any, orderId: string) {
     this.ensureAuth(req);
-    const order = await this.prisma.order.update({
-      where: { id: orderId },
-      data: { invoiceNo: `REQ-${Date.now()}` },
+    const scope = `INVOICE_REQUEST:${orderId}`;
+    return await this.withIdempotency(req, scope, async () => {
+      const order = await this.getOrderWithListing(orderId);
+      this.ensureOrderAccess(req, order, { allowSeller: false });
+      if (!order) throw new NotFoundException({ code: 'NOT_FOUND', message: 'order not found' });
+      if (order.status !== 'COMPLETED') {
+        throw new ConflictException({ code: 'CONFLICT', message: 'invoice request not allowed in current status' });
+      }
+      if (order.invoiceNo || order.invoiceIssuedAt) {
+        throw new ConflictException({ code: 'CONFLICT', message: 'invoice already requested' });
+      }
+      const updated = await this.prisma.order.update({
+        where: { id: orderId },
+        data: { invoiceNo: `REQ-${Date.now()}` },
+      });
+      await this.audit.log({
+        actorUserId: req.auth.userId,
+        action: 'INVOICE_REQUEST',
+        targetType: 'ORDER',
+        targetId: updated.id,
+        afterJson: { invoiceNo: updated.invoiceNo },
+      });
+      const ctx = await this.getOrderContext(orderId);
+      if (ctx) {
+        await this.notifyUser(
+          ctx.buyerUserId,
+          '???????',
+          `?${ctx.listingTitle}???????????????`,
+          '????',
+        );
+      }
+      return { orderId: updated.id, status: 'APPLYING' };
     });
-    return { orderId: order.id, status: 'APPLYING' };
   }
+
 
   async listInvoices(req: any, query: any) {
     this.ensureAuth(req);
@@ -600,9 +1118,18 @@ export class OrdersService {
   async adminContractSigned(req: any, orderId: string, body: any) {
     this.ensureAdmin(req);
     const dealAmountFen = Number(body?.dealAmountFen || 0);
+    if (!dealAmountFen || dealAmountFen <= 0) {
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: 'dealAmountFen is required' });
+    }
+    const remark = body?.remark ? String(body.remark).trim() : undefined;
+    const signedAt = body?.signedAt ? new Date(String(body.signedAt)) : undefined;
+    const evidenceFileId = body?.evidenceFileId ? String(body.evidenceFileId).trim() : undefined;
     const existing = await this.prisma.order.findUnique({ where: { id: orderId } });
     if (!existing) {
       throw new NotFoundException({ code: 'NOT_FOUND', message: 'Order not found' });
+    }
+    if (existing.status !== 'DEPOSIT_PAID') {
+      throw new ConflictException({ code: 'CONFLICT', message: 'contract signed not allowed in current status' });
     }
     const finalAmountFen = this.computeFinalAmount(dealAmountFen || 0, existing.depositAmount);
     const rules = await this.config.getTradeRules();
@@ -626,13 +1153,45 @@ export class OrdersService {
       action: 'ORDER_CONTRACT_SIGNED_CONFIRM',
       targetType: 'ORDER',
       targetId: order.id,
-      afterJson: { status: order.status, dealAmount: order.dealAmount },
+      afterJson: {
+        status: order.status,
+        dealAmount: order.dealAmount,
+        finalAmount: order.finalAmount,
+        signedAt: signedAt?.toISOString(),
+        evidenceFileId,
+        remark,
+      },
     });
+    const ctx = await this.getOrderContext(order.id);
+    if (ctx) {
+      await this.notifyUser(
+        ctx.buyerUserId,
+        '合同已确认',
+        `《${ctx.listingTitle}》合同已确认，请尽快完成尾款支付。`,
+        '交易通知',
+      );
+      await this.notifyUser(
+        ctx.sellerUserId,
+        '合同已确认',
+        `《${ctx.listingTitle}》合同已确认，等待买家支付尾款。`,
+        '交易通知',
+      );
+    }
     return this.toOrderDto(order);
   }
 
-  async adminTransferCompleted(req: any, orderId: string, _body: any) {
+  async adminTransferCompleted(req: any, orderId: string, body: any) {
     this.ensureAdmin(req);
+    const remark = body?.remark ? String(body.remark).trim() : undefined;
+    const completedAt = body?.completedAt ? new Date(String(body.completedAt)) : undefined;
+    const evidenceFileId = body?.evidenceFileId ? String(body.evidenceFileId).trim() : undefined;
+    const existing = await this.prisma.order.findUnique({ where: { id: orderId } });
+    if (!existing) {
+      throw new NotFoundException({ code: 'NOT_FOUND', message: 'Order not found' });
+    }
+    if (existing.status !== 'FINAL_PAID_ESCROW') {
+      throw new ConflictException({ code: 'CONFLICT', message: 'transfer completion not allowed in current status' });
+    }
     const order = await this.prisma.order.update({
       where: { id: orderId },
       data: { status: 'READY_TO_SETTLE' },
@@ -644,8 +1203,28 @@ export class OrdersService {
       action: 'ORDER_TRANSFER_COMPLETED_CONFIRM',
       targetType: 'ORDER',
       targetId: order.id,
-      afterJson: { status: order.status },
+      afterJson: {
+        status: order.status,
+        completedAt: completedAt?.toISOString(),
+        evidenceFileId,
+        remark,
+      },
     });
+    const ctx = await this.getOrderContext(order.id);
+    if (ctx) {
+      await this.notifyUser(
+        ctx.buyerUserId,
+        '过户完成确认',
+        `《${ctx.listingTitle}》过户已完成，平台将推进结算放款。`,
+        '交易通知',
+      );
+      await this.notifyUser(
+        ctx.sellerUserId,
+        '过户完成确认',
+        `《${ctx.listingTitle}》过户已完成，结算放款处理中。`,
+        '交易通知',
+      );
+    }
     return this.toOrderDto(order);
   }
 
@@ -690,12 +1269,26 @@ export class OrdersService {
     };
   }
 
-  async adminManualPayout(req: any, orderId: string, _body: any) {
+  async adminManualPayout(req: any, orderId: string, body: any) {
     this.ensureAdmin(req);
     const order = await this.prisma.order.findUnique({ where: { id: orderId } });
     if (!order) {
       throw new NotFoundException({ code: 'NOT_FOUND', message: 'Order not found' });
     }
+    if (order.status !== 'READY_TO_SETTLE') {
+      throw new ConflictException({ code: 'CONFLICT', message: 'payout not allowed in current status' });
+    }
+    const payoutEvidenceFileId = body?.payoutEvidenceFileId ? String(body.payoutEvidenceFileId).trim() : '';
+    if (!payoutEvidenceFileId) {
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: 'payoutEvidenceFileId is required' });
+    }
+    const payoutEvidenceFile = await this.prisma.file.findUnique({ where: { id: payoutEvidenceFileId } });
+    if (!payoutEvidenceFile) {
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: 'payout evidence file not found' });
+    }
+    const payoutRef = body?.payoutRef ? String(body.payoutRef).trim() : undefined;
+    const payoutAt = body?.payoutAt ? new Date(body.payoutAt) : new Date();
+    const remark = body?.remark ? String(body.remark).trim() : undefined;
     const rules = await this.config.getTradeRules();
     const settlementAmounts = this.computeSettlementAmounts(order, rules);
     const settlement = await this.prisma.settlement.upsert({
@@ -707,7 +1300,9 @@ export class OrdersService {
         payoutAmount: settlementAmounts.payoutAmount,
         payoutMethod: rules.payoutMethodDefault,
         payoutStatus: 'SUCCEEDED',
-        payoutAt: new Date(),
+        payoutRef,
+        payoutEvidenceFileId,
+        payoutAt,
         status: 'COMPLETED',
       },
       update: {
@@ -715,7 +1310,9 @@ export class OrdersService {
         commissionAmount: settlementAmounts.commissionAmount,
         payoutAmount: settlementAmounts.payoutAmount,
         payoutStatus: 'SUCCEEDED',
-        payoutAt: new Date(),
+        payoutRef,
+        payoutEvidenceFileId,
+        payoutAt,
         status: 'COMPLETED',
       },
     });
@@ -728,8 +1325,31 @@ export class OrdersService {
       action: 'SETTLEMENT_PAYOUT_MANUAL_CONFIRM',
       targetType: 'SETTLEMENT',
       targetId: settlement.id,
-      afterJson: { status: settlement.status, payoutStatus: settlement.payoutStatus, payoutAmount: settlement.payoutAmount },
+      afterJson: {
+        status: settlement.status,
+        payoutStatus: settlement.payoutStatus,
+        payoutAmount: settlement.payoutAmount,
+        payoutEvidenceFileId,
+        payoutRef,
+        payoutAt,
+        remark,
+      },
     });
+    const ctx = await this.getOrderContext(orderId);
+    if (ctx) {
+      await this.notifyUser(
+        ctx.sellerUserId,
+        '结算放款完成',
+        `《${ctx.listingTitle}》结算放款已完成，请注意到账信息。`,
+        '交易通知',
+      );
+      await this.notifyUser(
+        ctx.buyerUserId,
+        '订单已完成',
+        `《${ctx.listingTitle}》交易已完成，感谢您的使用。`,
+        '交易通知',
+      );
+    }
     return settlement;
   }
 
@@ -746,6 +1366,15 @@ export class OrdersService {
       targetId: order.id,
       afterJson: { invoiceNo: order.invoiceNo, invoiceIssuedAt: order.invoiceIssuedAt },
     });
+    const ctx = await this.getOrderContext(order.id);
+    if (ctx) {
+      await this.notifyUser(
+        ctx.buyerUserId,
+        '发票已开具',
+        `《${ctx.listingTitle}》发票已开具，可在发票中心下载。`,
+        '发票通知',
+      );
+    }
     return { orderId: order.id, invoiceNo: order.invoiceNo };
   }
 
@@ -779,6 +1408,15 @@ export class OrdersService {
       targetId: updated.id,
       afterJson: { invoiceFileId, invoiceNo, invoiceIssuedAt: issuedAt },
     });
+    const ctx = await this.getOrderContext(updated.id);
+    if (ctx) {
+      await this.notifyUser(
+        ctx.buyerUserId,
+        '发票已更新',
+        `《${ctx.listingTitle}》发票已更新，可在发票中心下载。`,
+        '发票通知',
+      );
+    }
 
     return await this.buildOrderInvoice(updated, updated.invoiceFile ?? file);
   }
@@ -800,5 +1438,14 @@ export class OrdersService {
       targetId: orderId,
       afterJson: { invoiceFileId: null },
     });
+    const ctx = await this.getOrderContext(orderId);
+    if (ctx) {
+      await this.notifyUser(
+        ctx.buyerUserId,
+        '发票已撤销',
+        `《${ctx.listingTitle}》发票已撤销，如需重开请重新申请。`,
+        '发票通知',
+      );
+    }
   }
 }

@@ -10,6 +10,9 @@ CREATE TYPE "ContentStatus" AS ENUM ('DRAFT', 'ACTIVE', 'OFF_SHELF');
 CREATE TYPE "ArtworkStatus" AS ENUM ('DRAFT', 'ACTIVE', 'OFF_SHELF', 'SOLD');
 
 -- CreateEnum
+CREATE TYPE "ContentSource" AS ENUM ('USER', 'PLATFORM', 'ADMIN');
+
+-- CreateEnum
 CREATE TYPE "ContentMediaType" AS ENUM ('IMAGE', 'VIDEO', 'FILE');
 
 -- CreateEnum

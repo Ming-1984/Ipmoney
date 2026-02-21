@@ -1,4 +1,10 @@
 ﻿{
+  "GET /health": {
+    "status": 200,
+    "body": {
+      "ok": true
+    }
+  },
   "GET /public/config/trade-rules": {
     "status": 200,
     "body": {
@@ -769,6 +775,172 @@
       "relatedPatents": []
     }
   },
+  "GET /admin/announcements": {
+    "status": 200,
+    "body": {
+      "items": [
+        {
+          "id": "8c8b6d24-53e2-48ef-8609-d42ef6327973",
+          "title": "Notice on 2025 Patent Open License List",
+          "summary": "Publish the 2025 open license list for public reference.",
+          "content": "Demo: announcement content for open license list.",
+          "publisherName": "Qianjiang Market Supervision Bureau",
+          "issueNo": "202510",
+          "sourceUrl": "https://example.com/announcements/202510",
+          "tags": [
+            "open-license",
+            "list"
+          ],
+          "relatedPatents": [
+            {
+              "name": "Battery thermal management structure",
+              "patentNo": "CN202311340972.0"
+            }
+          ],
+          "status": "PUBLISHED",
+          "createdAt": "2025-10-10T00:00:00Z",
+          "publishedAt": "2025-10-16T00:00:00Z",
+          "updatedAt": "2025-10-16T00:00:00Z"
+        },
+        {
+          "id": "6f3bb77a-1b7b-4fa0-9b6f-0f5c3b7f4a11",
+          "title": "Call for 2026 Patent Transfer Projects (Draft)",
+          "summary": "Collect transfer-ready patents from universities and enterprises.",
+          "content": "Demo: draft announcement content for editing.",
+          "publisherName": "Platform Ops Center",
+          "issueNo": "2026-01",
+          "sourceUrl": "",
+          "tags": [
+            "call",
+            "transfer"
+          ],
+          "relatedPatents": [],
+          "status": "DRAFT",
+          "createdAt": "2026-02-12T03:20:00Z",
+          "publishedAt": null,
+          "updatedAt": "2026-02-12T03:20:00Z"
+        },
+        {
+          "id": "f3d2f0c1-0b6a-4f56-9c4f-5b6b0c22c819",
+          "title": "University Patent Transfer Notice (Off Shelf)",
+          "summary": "The notice has expired and is taken down for record.",
+          "content": "Demo: historical announcement kept for audit.",
+          "publisherName": "University TTO",
+          "issueNo": "2025-12",
+          "sourceUrl": "https://example.com/announcements/2025-12",
+          "tags": [
+            "transfer"
+          ],
+          "relatedPatents": [
+            {
+              "name": "Portable water quality detector",
+              "patentNo": "CN202321234567.8"
+            }
+          ],
+          "status": "OFF_SHELF",
+          "createdAt": "2025-12-01T00:00:00Z",
+          "publishedAt": "2025-12-05T00:00:00Z",
+          "updatedAt": "2026-01-05T00:00:00Z"
+        }
+      ],
+      "page": {
+        "page": 1,
+        "pageSize": 20,
+        "total": 3
+      }
+    }
+  },
+  "POST /admin/announcements": {
+    "status": 200,
+    "body": {
+      "id": "9b2d5f74-1a34-4c1a-a6f8-8f2f6a4c9e10",
+      "title": "New Announcement (Demo)",
+      "summary": "Demo data for admin create flow.",
+      "content": "Demo: new announcement content.",
+      "publisherName": "Platform Ops Center",
+      "issueNo": "2026-02",
+      "sourceUrl": "https://example.com/announcements/2026-02",
+      "tags": [
+        "platform"
+      ],
+      "relatedPatents": [],
+      "status": "DRAFT",
+      "createdAt": "2026-02-15T08:00:00Z",
+      "publishedAt": null,
+      "updatedAt": "2026-02-15T08:00:00Z"
+    }
+  },
+  "PATCH /admin/announcements/:announcementId": {
+    "status": 200,
+    "body": {
+      "id": "6f3bb77a-1b7b-4fa0-9b6f-0f5c3b7f4a11",
+      "title": "Call for 2026 Patent Transfer Projects (Updated)",
+      "summary": "Updated scope and submission guidance.",
+      "content": "Demo: updated announcement content.",
+      "publisherName": "Platform Ops Center",
+      "issueNo": "2026-01",
+      "sourceUrl": "https://example.com/announcements/2026-01",
+      "tags": [
+        "call",
+        "transfer"
+      ],
+      "relatedPatents": [],
+      "status": "DRAFT",
+      "createdAt": "2026-02-12T03:20:00Z",
+      "publishedAt": null,
+      "updatedAt": "2026-02-15T08:30:00Z"
+    }
+  },
+  "DELETE /admin/announcements/:announcementId": {
+    "status": 204
+  },
+  "POST /admin/announcements/:announcementId/publish": {
+    "status": 200,
+    "body": {
+      "id": "6f3bb77a-1b7b-4fa0-9b6f-0f5c3b7f4a11",
+      "title": "Call for 2026 Patent Transfer Projects",
+      "summary": "Collect transfer-ready patents from universities and enterprises.",
+      "content": "Demo: announcement published and visible.",
+      "publisherName": "Platform Ops Center",
+      "issueNo": "2026-01",
+      "sourceUrl": "https://example.com/announcements/2026-01",
+      "tags": [
+        "call",
+        "transfer"
+      ],
+      "relatedPatents": [],
+      "status": "PUBLISHED",
+      "createdAt": "2026-02-12T03:20:00Z",
+      "publishedAt": "2026-02-15T09:00:00Z",
+      "updatedAt": "2026-02-15T09:00:00Z"
+    }
+  },
+  "POST /admin/announcements/:announcementId/off-shelf": {
+    "status": 200,
+    "body": {
+      "id": "8c8b6d24-53e2-48ef-8609-d42ef6327973",
+      "title": "Notice on 2025 Patent Open License List",
+      "summary": "Publish the 2025 open license list for public reference.",
+      "content": "Demo: announcement taken down.",
+      "publisherName": "Qianjiang Market Supervision Bureau",
+      "issueNo": "202510",
+      "sourceUrl": "https://example.com/announcements/202510",
+      "tags": [
+        "open-license",
+        "list"
+      ],
+      "relatedPatents": [
+        {
+          "name": "Battery thermal management structure",
+          "patentNo": "CN202311340972.0"
+        }
+      ],
+      "status": "OFF_SHELF",
+      "createdAt": "2025-10-10T00:00:00Z",
+      "publishedAt": "2025-10-16T00:00:00Z",
+      "updatedAt": "2026-02-15T09:10:00Z"
+    }
+  },
   "GET /public/patent-clusters": {
     "status": 200,
     "body": {
@@ -1359,7 +1531,7 @@
       "orderId": "e9032d03-9b23-40ba-84a3-ac681f21c41b",
       "reasonCode": "BUYER_CHANGED_MIND",
       "reasonText": "想换其它专利（演示）",
-      "status": "APPROVED",
+      "status": "REFUNDING",
       "createdAt": "2026-01-11T00:05:00Z",
       "updatedAt": "2026-01-11T00:06:00Z"
     }
@@ -1374,6 +1546,18 @@
       "status": "REJECTED",
       "createdAt": "2026-01-11T00:05:00Z",
       "updatedAt": "2026-01-11T00:06:00Z"
+    }
+  },
+  "POST /admin/refund-requests/:refundRequestId/complete": {
+    "status": 200,
+    "body": {
+      "id": "r0r0r0r0-0000-0000-0000-000000000000",
+      "orderId": "e9032d03-9b23-40ba-84a3-ac681f21c41b",
+      "reasonCode": "BUYER_CHANGED_MIND",
+      "reasonText": "??????????",
+      "status": "REFUNDED",
+      "createdAt": "2026-01-11T00:05:00Z",
+      "updatedAt": "2026-01-11T00:07:00Z"
     }
   },
   "GET /admin/listings": {
@@ -1604,6 +1788,22 @@
       "createdAt": "2026-01-11T12:00:00Z"
     }
   },
+  "GET /files/:fileId": {
+    "status": 200,
+    "body": "FILE_BINARY_PLACEHOLDER"
+  },
+  "GET /files/:fileId/preview": {
+    "status": 200,
+    "body": "FILE_PREVIEW_BINARY_PLACEHOLDER"
+  },
+  "POST /files/:fileId/temporary-access": {
+    "status": 200,
+    "body": {
+      "url": "https://example.com/files/temporary-access-url?token=demo",
+      "expiresAt": 1760000000000,
+      "scope": "preview"
+    }
+  },
   "GET /admin/orders/e9032d03-9b23-40ba-84a3-ac681f21c41b/settlement": {
     "status": 200,
     "body": {
@@ -1634,6 +1834,38 @@
       "createdAt": "2026-01-11T12:00:00Z",
       "updatedAt": "2026-01-11T12:10:00Z"
     }
+  },
+  "POST /admin/orders/:orderId/payouts/manual": {
+    "status": 200,
+    "body": {
+      "id": "81565129-ee15-46ce-a5b4-b207347dca4e",
+      "orderId": "e9032d03-9b23-40ba-84a3-ac681f21c41b",
+      "grossAmountFen": 28800000,
+      "commissionAmountFen": 1440000,
+      "payoutAmountFen": 27360000,
+      "payoutMethod": "MANUAL",
+      "payoutStatus": "SUCCEEDED",
+      "payoutRef": "manual-transfer-20260111",
+      "payoutEvidenceFileId": "4bb85502-99c2-4abf-b802-b6eb5563ca66",
+      "payoutAt": "2026-01-11T12:10:00Z",
+      "createdAt": "2026-01-11T12:00:00Z",
+      "updatedAt": "2026-01-11T12:10:00Z"
+    }
+  },
+  "POST /admin/orders/:orderId/payments/manual": {
+    "status": 200,
+    "body": {
+      "paymentId": "9d9d9d9d-1111-4111-8111-111111111111",
+      "orderId": "e9032d03-9b23-40ba-84a3-ac681f21c41b",
+      "payType": "DEPOSIT",
+      "status": "PAID",
+      "amountFen": 200000,
+      "paidAt": "2026-01-11T00:10:00Z",
+      "tradeNo": "manual-e9032d03"
+    }
+  },
+  "POST /webhooks/wechatpay/notify": {
+    "status": 204
   },
   "GET /orders/e9032d03-9b23-40ba-84a3-ac681f21c41b/invoice": {
     "status": 200,
@@ -1695,6 +1927,28 @@
       "attachedAt": "2026-01-14T12:02:00Z",
       "updatedAt": "2026-01-14T12:02:00Z"
     }
+  },
+  "PUT /admin/orders/:orderId/invoice": {
+    "status": 200,
+    "body": {
+      "orderId": "e9032d03-9b23-40ba-84a3-ac681f21c41b",
+      "amountFen": 1440000,
+      "itemName": "居间服务费",
+      "invoiceNo": "E-20260111-0001",
+      "issuedAt": "2026-01-11T12:20:00Z",
+      "invoiceFile": {
+        "id": "4bb85502-99c2-4abf-b802-b6eb5563ca66",
+        "url": "",
+        "mimeType": "application/pdf",
+        "sizeBytes": 234567,
+        "createdAt": "2026-01-11T12:21:00Z"
+      },
+      "attachedAt": "2026-01-11T12:22:00Z",
+      "updatedAt": "2026-01-11T12:22:00Z"
+    }
+  },
+  "DELETE /admin/orders/:orderId/invoice": {
+    "status": 204
   },
   "PUT /admin/orders/e9032d03-9b23-40ba-84a3-ac681f21c41b/invoice": {
     "status": 200,
@@ -1903,7 +2157,7 @@
           "lastMessageAt": "2026-02-02T10:30:00",
           "unreadCount": 2,
           "counterpart": {
-            "id": "00000000-0000-0000-0000-000000000001",
+            "id": "304bff7a-081c-4391-9ab0-df65813b8eca",
             "nickname": "平台客服助手",
             "role": "cs",
             "avatarUrl": ""
@@ -1920,7 +2174,7 @@
           "lastMessageAt": "2026-02-01T18:00:00",
           "unreadCount": 0,
           "counterpart": {
-            "id": "00000000-0000-0000-0000-000000000002",
+            "id": "1dc37c19-c642-4be1-8b91-7e576ab87906",
             "nickname": "交易通知",
             "role": "admin",
             "avatarUrl": ""
@@ -2243,6 +2497,140 @@
         }
       ],
       "updatedAt": "2026-01-11T00:00:00Z"
+    }
+  },
+  "GET /admin/patents": {
+    "status": 200,
+    "body": {
+      "items": [
+        {
+          "id": "965f9831-2c44-48e8-8b7a-cd7ab40ff7ec",
+          "jurisdiction": "CN",
+          "applicationNoNorm": "2023113409720",
+          "applicationNoDisplay": "202311340972.0",
+          "publicationNoDisplay": "CN116168409A",
+          "patentNoDisplay": "ZL202311340972.0",
+          "grantPublicationNoDisplay": "CN116168409B",
+          "patentType": "INVENTION",
+          "title": "一种用于锂电池热管理的散热结构",
+          "inventorNames": [
+            "张三",
+            "李四"
+          ],
+          "assigneeNames": [
+            "某新能源企业"
+          ],
+          "applicantNames": [
+            "某新能源企业"
+          ],
+          "legalStatus": "PENDING",
+          "sourcePrimary": "ADMIN",
+          "sourceUpdatedAt": "2026-02-16T08:00:00Z",
+          "createdAt": "2026-01-10T00:00:00Z",
+          "updatedAt": "2026-02-16T08:00:00Z"
+        }
+      ],
+      "page": {
+        "page": 1,
+        "pageSize": 20,
+        "total": 1
+      }
+    }
+  },
+  "POST /admin/patents": {
+    "status": 201,
+    "body": {
+      "id": "965f9831-2c44-48e8-8b7a-cd7ab40ff7ec",
+      "jurisdiction": "CN",
+      "applicationNoNorm": "2023113409720",
+      "applicationNoDisplay": "202311340972.0",
+      "publicationNoDisplay": "CN116168409A",
+      "patentNoDisplay": "ZL202311340972.0",
+      "grantPublicationNoDisplay": "CN116168409B",
+      "patentType": "INVENTION",
+      "title": "一种用于锂电池热管理的散热结构",
+      "inventorNames": [
+        "张三",
+        "李四"
+      ],
+      "assigneeNames": [
+        "某新能源企业"
+      ],
+      "applicantNames": [
+        "某新能源企业"
+      ],
+      "filingDate": "2023-10-20",
+      "publicationDate": "2024-05-01",
+      "grantDate": "2025-07-21",
+      "legalStatus": "PENDING",
+      "sourcePrimary": "ADMIN",
+      "sourceUpdatedAt": "2026-02-16T08:00:00Z",
+      "createdAt": "2026-01-10T00:00:00Z",
+      "updatedAt": "2026-02-16T08:00:00Z"
+    }
+  },
+  "GET /admin/patents/:patentId": {
+    "status": 200,
+    "body": {
+      "id": "965f9831-2c44-48e8-8b7a-cd7ab40ff7ec",
+      "jurisdiction": "CN",
+      "applicationNoNorm": "2023113409720",
+      "applicationNoDisplay": "202311340972.0",
+      "publicationNoDisplay": "CN116168409A",
+      "patentNoDisplay": "ZL202311340972.0",
+      "grantPublicationNoDisplay": "CN116168409B",
+      "patentType": "INVENTION",
+      "title": "一种用于锂电池热管理的散热结构",
+      "inventorNames": [
+        "张三",
+        "李四"
+      ],
+      "assigneeNames": [
+        "某新能源企业"
+      ],
+      "applicantNames": [
+        "某新能源企业"
+      ],
+      "filingDate": "2023-10-20",
+      "publicationDate": "2024-05-01",
+      "grantDate": "2025-07-21",
+      "legalStatus": "PENDING",
+      "sourcePrimary": "ADMIN",
+      "sourceUpdatedAt": "2026-02-16T08:00:00Z",
+      "createdAt": "2026-01-10T00:00:00Z",
+      "updatedAt": "2026-02-16T08:00:00Z"
+    }
+  },
+  "PATCH /admin/patents/:patentId": {
+    "status": 200,
+    "body": {
+      "id": "965f9831-2c44-48e8-8b7a-cd7ab40ff7ec",
+      "jurisdiction": "CN",
+      "applicationNoNorm": "2023113409720",
+      "applicationNoDisplay": "202311340972.0",
+      "publicationNoDisplay": "CN116168409A",
+      "patentNoDisplay": "ZL202311340972.0",
+      "grantPublicationNoDisplay": "CN116168409B",
+      "patentType": "INVENTION",
+      "title": "一种用于锂电池热管理的散热结构（后台维护）",
+      "inventorNames": [
+        "张三",
+        "李四"
+      ],
+      "assigneeNames": [
+        "某新能源企业"
+      ],
+      "applicantNames": [
+        "某新能源企业"
+      ],
+      "filingDate": "2023-10-20",
+      "publicationDate": "2024-05-01",
+      "grantDate": "2025-07-21",
+      "legalStatus": "PENDING",
+      "sourcePrimary": "ADMIN",
+      "sourceUpdatedAt": "2026-02-16T08:05:00Z",
+      "createdAt": "2026-01-10T00:00:00Z",
+      "updatedAt": "2026-02-16T08:05:00Z"
     }
   },
   "GET /patents/:patentId": {
@@ -3940,6 +4328,55 @@
       }
     }
   },
+  "GET /admin/demands/:demandId": {
+    "status": 200,
+    "body": {
+      "id": "81875741-fede-4d3c-adf9-9c8774964f50",
+      "title": "寻求电池热管理材料的技术咨询/平台共建",
+      "summary": "面向新能源车电池包，寻求高导热绝缘材料与结构方案，期望半年内完成样机验证。",
+      "keywords": [
+        "热管理",
+        "绝缘材料",
+        "新能源车"
+      ],
+      "deliveryPeriod": "MONTH_3_6",
+      "budgetType": "FIXED",
+      "budgetMinFen": 5000000,
+      "budgetMaxFen": 15000000,
+      "cooperationModes": [
+        "TECH_CONSULTING",
+        "PLATFORM_CO_BUILD"
+      ],
+      "contactName": "李老师",
+      "contactTitle": "技术转移负责人",
+      "contactPhoneMasked": "138****8899",
+      "regionCode": "310000",
+      "industryTags": [
+        "新能源",
+        "电池"
+      ],
+      "publisherUserId": "72f8697a-b950-406c-bc4f-2484a32cbb78",
+      "publisher": {
+        "userId": "72f8697a-b950-406c-bc4f-2484a32cbb78",
+        "displayName": "某高校技术转移中心",
+        "verificationType": "ACADEMY",
+        "verificationStatus": "APPROVED"
+      },
+      "stats": {
+        "viewCount": 120,
+        "favoriteCount": 8,
+        "consultCount": 4
+      },
+      "auditStatus": "APPROVED",
+      "status": "ACTIVE",
+      "coverUrl": "",
+      "createdAt": "2026-01-10T08:00:00Z",
+      "updatedAt": "2026-01-11T02:10:00Z",
+      "description": "希望对接具备热管理材料/结构方案的团队，重点关注：高导热、阻燃、耐老化与可量产性。可接受技术咨询或平台共建模式。",
+      "coverFileId": null,
+      "media": []
+    }
+  },
   "POST /admin/demands/:demandId/approve": {
     "status": 200,
     "body": {
@@ -4037,6 +4474,86 @@
         "pageSize": 20,
         "total": 0
       }
+    }
+  },
+  "GET /admin/achievements/:achievementId": {
+    "status": 200,
+    "body": {
+      "id": "7595bfdb-044d-4580-99bf-537a07c2577c",
+      "title": "粮食作物规模化制繁种智能化技术与装备研发",
+      "summary": "项目围绕粮食作物规模化制繁种场景，研发智能化制繁种技术与装备，覆盖播种、管理、收获与数据管理等关键环节，提升规模化生产的效率与标准化水平。\n\n项目在海南三亚、东方等地开展示范与推广，采取“边研发、边推广”的推进方式，在企业与基地开展应用验证，促进成果快速落地。\n\n当前成果已形成示范应用基础，可进一步与产业主体协作，推进持续推广与应用。",
+      "keywords": [
+        "制繁种",
+        "智能化",
+        "装备"
+      ],
+      "maturity": "PILOT",
+      "cooperationModes": [
+        "PLATFORM_CO_BUILD",
+        "COMMISSIONED_DEV"
+      ],
+      "regionCode": "460000",
+      "industryTags": [
+        "现代农业",
+        "智能农机",
+        "种业"
+      ],
+      "publisherUserId": "8b5c1e49-2c34-4f2a-9a4e-21c95f1421b8",
+      "publisher": {
+        "userId": "8b5c1e49-2c34-4f2a-9a4e-21c95f1421b8",
+        "displayName": "海南大学",
+        "verificationType": "ACADEMY",
+        "verificationStatus": "APPROVED",
+        "regionCode": "460000",
+        "logoUrl": "",
+        "intro": "高校科研机构，面向农业智能装备与成果转化。",
+        "stats": {
+          "listingCount": 12,
+          "patentCount": 68
+        },
+        "verifiedAt": "2025-04-11T00:00:00Z"
+      },
+      "stats": {
+        "viewCount": 96,
+        "favoriteCount": 8,
+        "consultCount": 3
+      },
+      "auditStatus": "APPROVED",
+      "status": "ACTIVE",
+      "coverUrl": "/assets/achievements/achievement-hainu-1.jpg",
+      "createdAt": "2025-04-11T02:30:00Z",
+      "updatedAt": "2026-01-11T02:10:00Z",
+      "description": "围绕粮食作物规模化制繁种需求，形成智能化技术与装备一体化方案，支持制繁种关键环节的流程优化与数据化管理。\n\n通过示范推广与现场验证，设备与流程在三亚、东方等地完成应用测试，具备继续扩展推广与合作落地的条件。",
+      "coverFileId": null,
+      "media": [
+        {
+          "fileId": "1e21f2c7-2a71-4b54-9d57-70f2bde8bfa3",
+          "type": "IMAGE",
+          "sort": 0,
+          "url": "/assets/achievements/achievement-hainu-1.jpg",
+          "mimeType": "image/jpeg",
+          "sizeBytes": 281632,
+          "fileName": "achievement-hainu-1.jpg"
+        },
+        {
+          "fileId": "2a35e6a6-9fe0-4b8f-9f84-9d7d13f2f963",
+          "type": "IMAGE",
+          "sort": 1,
+          "url": "/assets/achievements/achievement-hainu-2.jpg",
+          "mimeType": "image/jpeg",
+          "sizeBytes": 974871,
+          "fileName": "achievement-hainu-2.jpg"
+        },
+        {
+          "fileId": "a94b4d33-2d8d-4ee0-8f3e-27b46b1f3a56",
+          "type": "IMAGE",
+          "sort": 2,
+          "url": "/assets/achievements/achievement-hainu-3.jpg",
+          "mimeType": "image/jpeg",
+          "sizeBytes": 769259,
+          "fileName": "achievement-hainu-3.jpg"
+        }
+      ]
     }
   },
   "POST /admin/achievements/:achievementId/approve": {
@@ -4150,6 +4667,35 @@
       "coverUrl": "",
       "coverFileId": null,
       "media": []
+    }
+  },
+  "GET /admin/audit-logs": {
+    "status": 200,
+    "body": {
+      "items": [
+        {
+          "id": "8f30f123-7f3f-4d8a-a2cf-a4cfa4e7f001",
+          "actorUserId": "11111111-1111-4111-8111-111111111111",
+          "action": "ORDER_STATUS_UPDATE",
+          "targetType": "ORDER",
+          "targetId": "f89d59be-b978-4f89-ac4f-4f89b7cd30f6",
+          "beforeJson": {
+            "status": "WAIT_FINAL_PAYMENT"
+          },
+          "afterJson": {
+            "status": "WAIT_TRANSFER"
+          },
+          "requestId": "req-admin-audit-001",
+          "ip": "127.0.0.1",
+          "userAgent": "mock-admin",
+          "createdAt": "2026-02-16T08:20:00Z"
+        }
+      ],
+      "page": {
+        "page": 1,
+        "pageSize": 20,
+        "total": 1
+      }
     }
   },
   "GET /admin/comments": {
@@ -4919,6 +5465,49 @@
       }
     }
   },
+  "GET /admin/artworks/:artworkId": {
+    "status": 200,
+    "body": {
+      "id": "3d0b9c7a-1a9f-4b4d-9f6a-3a62b8f6d6e1",
+      "title": "?????",
+      "category": "PAINTING",
+      "paintingGenre": "LANDSCAPE",
+      "creatorName": "??",
+      "creationYear": 1998,
+      "priceType": "FIXED",
+      "priceAmountFen": 18800000,
+      "depositAmountFen": 200000,
+      "regionCode": "510000",
+      "coverUrl": "",
+      "auditStatus": "APPROVED",
+      "status": "ACTIVE",
+      "createdAt": "2026-01-10T10:00:00Z",
+      "stats": {
+        "viewCount": 56,
+        "favoriteCount": 7,
+        "consultCount": 2
+      },
+      "sellerUserId": "72f8697a-b950-406c-bc4f-2484a32cbb78",
+      "description": "?????????????????????????????",
+      "certificateNo": "????-2023-F-0123456",
+      "certificateFileIds": [
+        "1d7b45b5-2e4a-4f91-93e3-9c5bcb0df1a1"
+      ],
+      "coverFileId": null,
+      "media": [
+        {
+          "fileId": "6b5b98b2-4aab-4a75-8f2b-0dd2c56d49f4",
+          "type": "IMAGE",
+          "sort": 1,
+          "url": "",
+          "mimeType": "image/jpeg",
+          "sizeBytes": 245678,
+          "fileName": "artwork-1.jpg"
+        }
+      ],
+      "updatedAt": "2026-01-10T12:00:00Z"
+    }
+  },
   "POST /admin/artworks/:artworkId/approve": {
     "status": 200,
     "body": {
@@ -5343,6 +5932,22 @@
       "updatedAt": "2026-01-12T09:00:00Z"
     }
   },
+  "PATCH /admin/rbac/roles/:param": {
+    "status": 200,
+    "body": {
+      "id": "9b9c23f1-cc4d-4bb7-9d1f-775f2db6f01e",
+      "name": "Admin",
+      "description": "Full access",
+      "permissionIds": [
+        "rbac.manage",
+        "config.manage",
+        "report.read",
+        "listing.read",
+        "listing.audit"
+      ],
+      "updatedAt": "2026-02-20T10:00:00Z"
+    }
+  },
   "DELETE /admin/rbac/roles/:roleId": {
     "status": 200,
     "body": {
@@ -5640,8 +6245,8 @@
         {
           "id": "2f3b66b1-3f1f-4b6d-9c3c-6a2b3c4d5e6f",
           "title": "Audit material missing",
-          "type": "AUDIT_MATERIAL",
-          "status": "WAITING_MATERIAL",
+          "type": "FOLLOWUP",
+          "status": "OPEN",
           "orderId": null,
           "requesterName": "Ops",
           "assigneeId": "cs-002",
@@ -5661,6 +6266,27 @@
         "pageSize": 20,
         "total": 2
       }
+    }
+  },
+  "POST /admin/cases": {
+    "status": 201,
+    "body": {
+      "id": "7e3f6f42-5b8c-4b74-83e2-6b4bcb9b4c91",
+      "title": "平台创建的跟单工单",
+      "type": "FOLLOWUP",
+      "status": "OPEN",
+      "orderId": null,
+      "requesterName": "System",
+      "assigneeId": "cs-001",
+      "assigneeName": "Support-Wang",
+      "priority": "MEDIUM",
+      "description": "新建工单用于订单跟进。",
+      "createdAt": "2026-01-11T08:30:00Z",
+      "updatedAt": "2026-01-11T08:30:00Z",
+      "notes": [],
+      "evidenceFiles": [],
+      "dueAt": "2026-01-18T00:00:00Z",
+      "slaStatus": "ON_TIME"
     }
   },
   "GET /admin/cases/:caseId": {
@@ -5916,6 +6542,736 @@
       "summary": "《锂电池热管理需求》已通过审核，可在平台展示。",
       "source": "平台审核",
       "time": "2026-02-10T08:30:00Z"
+    }
+  },
+  "GET /admin/config/ai": {
+    "status": 200,
+    "body": {
+      "enabled": true,
+      "voiceEnabled": false,
+      "asrProvider": "mock",
+      "llmProvider": "mock",
+      "hotwords": [
+        "??",
+        "??",
+        "??"
+      ],
+      "agentModelVersion": "agent-v1",
+      "parseModelVersion": "parse-v1",
+      "confidenceThreshold": 0.6,
+      "reviewThreshold": 0.4,
+      "maxInputSeconds": 15
+    }
+  },
+  "PUT /admin/config/ai": {
+    "status": 200,
+    "body": {
+      "enabled": true,
+      "voiceEnabled": false,
+      "asrProvider": "mock",
+      "llmProvider": "mock",
+      "hotwords": [
+        "??",
+        "??",
+        "??"
+      ],
+      "agentModelVersion": "agent-v1",
+      "parseModelVersion": "parse-v1",
+      "confidenceThreshold": 0.6,
+      "reviewThreshold": 0.4,
+      "maxInputSeconds": 15
+    }
+  },
+  "GET /admin/config/alerts": {
+    "status": 200,
+    "body": {
+      "enabled": true,
+      "defaultChannels": [
+        "IN_APP"
+      ],
+      "rules": [
+        {
+          "type": "order.refund",
+          "severity": "MEDIUM",
+          "channels": [
+            "IN_APP"
+          ],
+          "enabled": true,
+          "threshold": 1,
+          "cooldownMinutes": 10
+        }
+      ]
+    }
+  },
+  "PUT /admin/config/alerts": {
+    "status": 200,
+    "body": {
+      "enabled": true,
+      "defaultChannels": [
+        "IN_APP"
+      ],
+      "rules": [
+        {
+          "type": "order.refund",
+          "severity": "MEDIUM",
+          "channels": [
+            "IN_APP"
+          ],
+          "enabled": true,
+          "threshold": 1,
+          "cooldownMinutes": 10
+        }
+      ]
+    }
+  },
+  "GET /admin/ai/parse-results": {
+    "status": 200,
+    "body": {
+      "items": [
+        {
+          "id": "c2f1b9f0-1c6f-4f0a-9d5f-4f7a1d2b3c41",
+          "contentType": "LISTING",
+          "contentId": "7a490e63-8173-41e7-b4f0-0d0bb5ce7d20",
+          "summaryPlain": "?????????????????????????",
+          "featuresPlain": "?????/?????????????????",
+          "keywords": [
+            "???",
+            "????",
+            "???"
+          ],
+          "confidence": 0.78,
+          "modelVersion": "parse-v1",
+          "status": "REVIEW_REQUIRED",
+          "createdAt": "2026-02-18T10:00:00Z",
+          "updatedAt": "2026-02-18T10:00:00Z"
+        }
+      ],
+      "page": {
+        "page": 1,
+        "pageSize": 20,
+        "total": 1
+      }
+    }
+  },
+  "PATCH /admin/ai/parse-results/:param": {
+    "status": 200,
+    "body": {
+      "id": "c2f1b9f0-1c6f-4f0a-9d5f-4f7a1d2b3c41",
+      "contentType": "LISTING",
+      "contentId": "7a490e63-8173-41e7-b4f0-0d0bb5ce7d20",
+      "summaryPlain": "?????????????????????????",
+      "featuresPlain": "?????/?????????????????",
+      "keywords": [
+        "???",
+        "????",
+        "???"
+      ],
+      "confidence": 0.78,
+      "modelVersion": "parse-v1",
+      "status": "REVIEW_REQUIRED",
+      "createdAt": "2026-02-18T10:00:00Z",
+      "updatedAt": "2026-02-18T10:00:00Z"
+    }
+  },
+  "GET /admin/alerts": {
+    "status": 200,
+    "body": {
+      "items": [
+        {
+          "id": "0c7e1c5f-4f60-4f0b-9ed7-6f6a4c2bde11",
+          "type": "order.refund",
+          "severity": "MEDIUM",
+          "channel": "IN_APP",
+          "status": "PENDING",
+          "targetType": "ORDER",
+          "targetId": "5b0f7af5-5f0a-4c31-9b2c-6f0d7b9d1e22",
+          "message": "???????",
+          "triggeredAt": "2026-02-18T10:00:00Z",
+          "sentAt": null
+        }
+      ],
+      "page": {
+        "page": 1,
+        "pageSize": 20,
+        "total": 1
+      }
+    }
+  },
+  "POST /admin/alerts/:param/ack": {
+    "status": 200,
+    "body": {
+      "id": "0c7e1c5f-4f60-4f0b-9ed7-6f6a4c2bde11",
+      "type": "order.refund",
+      "severity": "MEDIUM",
+      "channel": "IN_APP",
+      "status": "ACKED",
+      "targetType": "ORDER",
+      "targetId": "5b0f7af5-5f0a-4c31-9b2c-6f0d7b9d1e22",
+      "message": "???????",
+      "triggeredAt": "2026-02-18T10:00:00Z",
+      "sentAt": null
+    }
+  },
+  "GET /admin/patent-maintenance/schedules": {
+    "status": 200,
+    "body": {
+      "items": [
+        {
+          "id": "d2b3c4d5-e6f7-48a9-9abc-0d1e2f3a4b5c",
+          "patentId": "8a0e8a8d-1c3e-4d1a-9b7d-0f1b2c3d4e5f",
+          "yearNo": 3,
+          "dueDate": "2026-09-30",
+          "gracePeriodEnd": "2026-12-30",
+          "status": "DUE",
+          "createdAt": "2026-02-18T10:00:00Z",
+          "updatedAt": "2026-02-18T10:00:00Z"
+        }
+      ],
+      "page": {
+        "page": 1,
+        "pageSize": 20,
+        "total": 1
+      }
+    }
+  },
+  "GET /admin/patent-maintenance/schedules/:param": {
+    "status": 200,
+    "body": {
+      "id": "d2b3c4d5-e6f7-48a9-9abc-0d1e2f3a4b5c",
+      "patentId": "8a0e8a8d-1c3e-4d1a-9b7d-0f1b2c3d4e5f",
+      "yearNo": 3,
+      "dueDate": "2026-09-30",
+      "gracePeriodEnd": "2026-12-30",
+      "status": "DUE",
+      "createdAt": "2026-02-18T10:00:00Z",
+      "updatedAt": "2026-02-18T10:00:00Z"
+    }
+  },
+  "GET /admin/patent-maintenance/tasks": {
+    "status": 200,
+    "body": {
+      "items": [
+        {
+          "id": "e3f4a5b6-c7d8-49ea-8f9b-1a2b3c4d5e6f",
+          "scheduleId": "d2b3c4d5-e6f7-48a9-9abc-0d1e2f3a4b5c",
+          "assignedCsUserId": "11111111-1111-1111-1111-111111111111",
+          "status": "OPEN",
+          "note": "待处理",
+          "evidenceFileId": null,
+          "createdAt": "2026-02-18T10:00:00Z",
+          "updatedAt": "2026-02-18T10:00:00Z"
+        }
+      ],
+      "page": {
+        "page": 1,
+        "pageSize": 20,
+        "total": 1
+      }
+    }
+  },
+  "POST /admin/patent-maintenance/schedules": {
+    "status": 200,
+    "body": {
+      "id": "d2b3c4d5-e6f7-48a9-9abc-0d1e2f3a4b5c",
+      "patentId": "8a0e8a8d-1c3e-4d1a-9b7d-0f1b2c3d4e5f",
+      "yearNo": 3,
+      "dueDate": "2026-09-30",
+      "gracePeriodEnd": "2026-12-30",
+      "status": "DUE",
+      "createdAt": "2026-02-18T10:00:00Z",
+      "updatedAt": "2026-02-18T10:00:00Z"
+    }
+  },
+  "PATCH /admin/patent-maintenance/schedules/:param": {
+    "status": 200,
+    "body": {
+      "id": "d2b3c4d5-e6f7-48a9-9abc-0d1e2f3a4b5c",
+      "patentId": "8a0e8a8d-1c3e-4d1a-9b7d-0f1b2c3d4e5f",
+      "yearNo": 3,
+      "dueDate": "2026-09-30",
+      "gracePeriodEnd": "2026-12-30",
+      "status": "DUE",
+      "createdAt": "2026-02-18T10:00:00Z",
+      "updatedAt": "2026-02-18T10:00:00Z"
+    }
+  },
+  "POST /admin/patent-maintenance/tasks": {
+    "status": 200,
+    "body": {
+      "id": "e3f4a5b6-c7d8-49ea-8f9b-1a2b3c4d5e6f",
+      "scheduleId": "d2b3c4d5-e6f7-48a9-9abc-0d1e2f3a4b5c",
+      "assignedCsUserId": "11111111-1111-1111-1111-111111111111",
+      "status": "OPEN",
+      "note": "???????????",
+      "evidenceFileId": null,
+      "createdAt": "2026-02-18T10:00:00Z",
+      "updatedAt": "2026-02-18T10:00:00Z"
+    }
+  },
+  "PATCH /admin/patent-maintenance/tasks/:param": {
+    "status": 200,
+    "body": {
+      "id": "e3f4a5b6-c7d8-49ea-8f9b-1a2b3c4d5e6f",
+      "scheduleId": "d2b3c4d5-e6f7-48a9-9abc-0d1e2f3a4b5c",
+      "assignedCsUserId": "11111111-1111-1111-1111-111111111111",
+      "status": "IN_PROGRESS",
+      "note": "?????",
+      "evidenceFileId": null,
+      "createdAt": "2026-02-18T10:00:00Z",
+      "updatedAt": "2026-02-18T10:00:00Z"
+    }
+  },
+  "POST /ai/agent/query": {
+    "status": 200,
+    "body": {
+      "queryId": "5f4e3d2c-1b0a-4c9d-8e7f-6a5b4c3d2e1f",
+      "recognizedText": "?????????",
+      "normalizedText": "?? ??? ??",
+      "contentScope": "LISTING",
+      "parsedQuery": {
+        "contentType": "LISTING",
+        "keywords": [
+          "???"
+        ],
+        "filters": {
+          "regionCode": "110000",
+          "industryTags": [
+            "???"
+          ]
+        }
+      },
+      "matchSummary": "?????????????",
+      "topMatches": [],
+      "confidence": 0.86,
+      "createdAt": "2026-02-18T10:10:00Z"
+    }
+  },
+  "POST /ai/parse-results/:parseResultId/feedback": {
+    "status": 201,
+    "body": {
+      "id": "0f1e2d3c-4b5a-6c7d-8e9f-0a1b2c3d4e5f",
+      "parseResultId": "c2f1b9f0-1c6f-4f0a-9d5f-4f7a1d2b3c41",
+      "actorType": "USER",
+      "score": 5,
+      "reasonTags": [],
+      "comment": null,
+      "createdAt": "2026-02-18T10:12:00Z"
+    }
+  },
+  "POST /admin/achievements": {
+    "status": 201,
+    "body": {
+      "id": "6a7b8c9d-1234-4a5b-9c7d-9f1b2c3d4e5f",
+      "title": "????????",
+      "summary": "?????????????????",
+      "description": "????????????????????",
+      "maturity": "PILOT",
+      "cooperationModes": [
+        "TRANSFER"
+      ],
+      "regionCode": "110000",
+      "industryTags": [
+        "????"
+      ],
+      "keywords": [
+        "??",
+        "??"
+      ],
+      "publisher": {
+        "userId": "11111111-1111-1111-1111-111111111111",
+        "displayName": "????",
+        "verificationType": "ACADEMY",
+        "verificationStatus": "APPROVED",
+        "regionCode": "110000",
+        "logoUrl": "",
+        "intro": "??????"
+      },
+      "auditStatus": "PENDING",
+      "status": "DRAFT",
+      "createdAt": "2026-02-18T08:00:00Z",
+      "updatedAt": "2026-02-18T08:30:00Z"
+    }
+  },
+  "PATCH /admin/achievements/:achievementId": {
+    "status": 200,
+    "body": {
+      "id": "6a7b8c9d-1234-4a5b-9c7d-9f1b2c3d4e5f",
+      "title": "????????",
+      "summary": "?????????????????",
+      "description": "????????????????????",
+      "maturity": "PILOT",
+      "cooperationModes": [
+        "TRANSFER"
+      ],
+      "regionCode": "110000",
+      "industryTags": [
+        "????"
+      ],
+      "keywords": [
+        "??",
+        "??"
+      ],
+      "publisher": {
+        "userId": "11111111-1111-1111-1111-111111111111",
+        "displayName": "????",
+        "verificationType": "ACADEMY",
+        "verificationStatus": "APPROVED",
+        "regionCode": "110000",
+        "logoUrl": "",
+        "intro": "??????"
+      },
+      "auditStatus": "PENDING",
+      "status": "DRAFT",
+      "createdAt": "2026-02-18T08:00:00Z",
+      "updatedAt": "2026-02-18T08:30:00Z"
+    }
+  },
+  "POST /admin/achievements/:achievementId/publish": {
+    "status": 200,
+    "body": {
+      "id": "6a7b8c9d-1234-4a5b-9c7d-9f1b2c3d4e5f",
+      "title": "????????",
+      "summary": "?????????????????",
+      "description": "????????????????????",
+      "maturity": "PILOT",
+      "cooperationModes": [
+        "TRANSFER"
+      ],
+      "regionCode": "110000",
+      "industryTags": [
+        "????"
+      ],
+      "keywords": [
+        "??",
+        "??"
+      ],
+      "publisher": {
+        "userId": "11111111-1111-1111-1111-111111111111",
+        "displayName": "????",
+        "verificationType": "ACADEMY",
+        "verificationStatus": "APPROVED",
+        "regionCode": "110000",
+        "logoUrl": "",
+        "intro": "??????"
+      },
+      "auditStatus": "APPROVED",
+      "status": "ACTIVE",
+      "createdAt": "2026-02-18T08:00:00Z",
+      "updatedAt": "2026-02-18T08:30:00Z"
+    }
+  },
+  "POST /admin/achievements/:achievementId/off-shelf": {
+    "status": 200,
+    "body": {
+      "id": "6a7b8c9d-1234-4a5b-9c7d-9f1b2c3d4e5f",
+      "title": "????????",
+      "summary": "?????????????????",
+      "description": "????????????????????",
+      "maturity": "PILOT",
+      "cooperationModes": [
+        "TRANSFER"
+      ],
+      "regionCode": "110000",
+      "industryTags": [
+        "????"
+      ],
+      "keywords": [
+        "??",
+        "??"
+      ],
+      "publisher": {
+        "userId": "11111111-1111-1111-1111-111111111111",
+        "displayName": "????",
+        "verificationType": "ACADEMY",
+        "verificationStatus": "APPROVED",
+        "regionCode": "110000",
+        "logoUrl": "",
+        "intro": "??????"
+      },
+      "auditStatus": "APPROVED",
+      "status": "OFF_SHELF",
+      "createdAt": "2026-02-18T08:00:00Z",
+      "updatedAt": "2026-02-18T08:30:00Z"
+    }
+  },
+  "POST /admin/demands": {
+    "status": 201,
+    "body": {
+      "id": "7b8c9d0e-2345-4b6c-8d7e-1f2a3b4c5d6e",
+      "title": "?????????",
+      "summary": "??????????????",
+      "description": "??????????????????????",
+      "budgetType": "FIXED",
+      "budgetMinFen": 5000000,
+      "budgetMaxFen": 20000000,
+      "cooperationModes": [
+        "TECH_CONSULTING"
+      ],
+      "regionCode": "310000",
+      "industryTags": [
+        "???"
+      ],
+      "keywords": [
+        "????"
+      ],
+      "deliveryPeriod": "MONTH_1_3",
+      "publisher": {
+        "userId": "11111111-1111-1111-1111-111111111111",
+        "displayName": "????",
+        "verificationType": "ACADEMY",
+        "verificationStatus": "APPROVED",
+        "regionCode": "110000",
+        "logoUrl": "",
+        "intro": "??????"
+      },
+      "auditStatus": "PENDING",
+      "status": "DRAFT",
+      "createdAt": "2026-02-18T09:00:00Z",
+      "updatedAt": "2026-02-18T09:30:00Z"
+    }
+  },
+  "PATCH /admin/demands/:demandId": {
+    "status": 200,
+    "body": {
+      "id": "7b8c9d0e-2345-4b6c-8d7e-1f2a3b4c5d6e",
+      "title": "?????????",
+      "summary": "??????????????",
+      "description": "??????????????????????",
+      "budgetType": "FIXED",
+      "budgetMinFen": 5000000,
+      "budgetMaxFen": 20000000,
+      "cooperationModes": [
+        "TECH_CONSULTING"
+      ],
+      "regionCode": "310000",
+      "industryTags": [
+        "???"
+      ],
+      "keywords": [
+        "????"
+      ],
+      "deliveryPeriod": "MONTH_1_3",
+      "publisher": {
+        "userId": "11111111-1111-1111-1111-111111111111",
+        "displayName": "????",
+        "verificationType": "ACADEMY",
+        "verificationStatus": "APPROVED",
+        "regionCode": "110000",
+        "logoUrl": "",
+        "intro": "??????"
+      },
+      "auditStatus": "PENDING",
+      "status": "DRAFT",
+      "createdAt": "2026-02-18T09:00:00Z",
+      "updatedAt": "2026-02-18T09:30:00Z"
+    }
+  },
+  "POST /admin/demands/:demandId/publish": {
+    "status": 200,
+    "body": {
+      "id": "7b8c9d0e-2345-4b6c-8d7e-1f2a3b4c5d6e",
+      "title": "?????????",
+      "summary": "??????????????",
+      "description": "??????????????????????",
+      "budgetType": "FIXED",
+      "budgetMinFen": 5000000,
+      "budgetMaxFen": 20000000,
+      "cooperationModes": [
+        "TECH_CONSULTING"
+      ],
+      "regionCode": "310000",
+      "industryTags": [
+        "???"
+      ],
+      "keywords": [
+        "????"
+      ],
+      "deliveryPeriod": "MONTH_1_3",
+      "publisher": {
+        "userId": "11111111-1111-1111-1111-111111111111",
+        "displayName": "????",
+        "verificationType": "ACADEMY",
+        "verificationStatus": "APPROVED",
+        "regionCode": "110000",
+        "logoUrl": "",
+        "intro": "??????"
+      },
+      "auditStatus": "APPROVED",
+      "status": "ACTIVE",
+      "createdAt": "2026-02-18T09:00:00Z",
+      "updatedAt": "2026-02-18T09:30:00Z"
+    }
+  },
+  "POST /admin/demands/:demandId/off-shelf": {
+    "status": 200,
+    "body": {
+      "id": "7b8c9d0e-2345-4b6c-8d7e-1f2a3b4c5d6e",
+      "title": "?????????",
+      "summary": "??????????????",
+      "description": "??????????????????????",
+      "budgetType": "FIXED",
+      "budgetMinFen": 5000000,
+      "budgetMaxFen": 20000000,
+      "cooperationModes": [
+        "TECH_CONSULTING"
+      ],
+      "regionCode": "310000",
+      "industryTags": [
+        "???"
+      ],
+      "keywords": [
+        "????"
+      ],
+      "deliveryPeriod": "MONTH_1_3",
+      "publisher": {
+        "userId": "11111111-1111-1111-1111-111111111111",
+        "displayName": "????",
+        "verificationType": "ACADEMY",
+        "verificationStatus": "APPROVED",
+        "regionCode": "110000",
+        "logoUrl": "",
+        "intro": "??????"
+      },
+      "auditStatus": "APPROVED",
+      "status": "OFF_SHELF",
+      "createdAt": "2026-02-18T09:00:00Z",
+      "updatedAt": "2026-02-18T09:30:00Z"
+    }
+  },
+  "POST /admin/artworks": {
+    "status": 201,
+    "body": {
+      "id": "8c9d0e1f-3456-4c7d-9e8f-2a3b4c5d6e7f",
+      "title": "????",
+      "category": "PAINTING",
+      "paintingGenre": "LANDSCAPE",
+      "creatorName": "??",
+      "creationYear": 2020,
+      "priceType": "FIXED",
+      "priceAmountFen": 5000000,
+      "depositAmountFen": 200000,
+      "regionCode": "330000",
+      "description": "???????????",
+      "auditStatus": "PENDING",
+      "status": "DRAFT",
+      "createdAt": "2026-02-18T09:40:00Z",
+      "updatedAt": "2026-02-18T09:40:00Z"
+    }
+  },
+  "PATCH /admin/artworks/:artworkId": {
+    "status": 200,
+    "body": {
+      "id": "8c9d0e1f-3456-4c7d-9e8f-2a3b4c5d6e7f",
+      "title": "????",
+      "category": "PAINTING",
+      "paintingGenre": "LANDSCAPE",
+      "creatorName": "??",
+      "creationYear": 2020,
+      "priceType": "FIXED",
+      "priceAmountFen": 5000000,
+      "depositAmountFen": 200000,
+      "regionCode": "330000",
+      "description": "???????????",
+      "auditStatus": "PENDING",
+      "status": "DRAFT",
+      "createdAt": "2026-02-18T09:40:00Z",
+      "updatedAt": "2026-02-18T09:40:00Z"
+    }
+  },
+  "POST /admin/artworks/:artworkId/publish": {
+    "status": 200,
+    "body": {
+      "id": "8c9d0e1f-3456-4c7d-9e8f-2a3b4c5d6e7f",
+      "title": "????",
+      "category": "PAINTING",
+      "paintingGenre": "LANDSCAPE",
+      "creatorName": "??",
+      "creationYear": 2020,
+      "priceType": "FIXED",
+      "priceAmountFen": 5000000,
+      "depositAmountFen": 200000,
+      "regionCode": "330000",
+      "description": "???????????",
+      "auditStatus": "APPROVED",
+      "status": "ACTIVE",
+      "createdAt": "2026-02-18T09:40:00Z",
+      "updatedAt": "2026-02-18T09:40:00Z"
+    }
+  },
+  "POST /admin/artworks/:artworkId/off-shelf": {
+    "status": 200,
+    "body": {
+      "id": "8c9d0e1f-3456-4c7d-9e8f-2a3b4c5d6e7f",
+      "title": "????",
+      "category": "PAINTING",
+      "paintingGenre": "LANDSCAPE",
+      "creatorName": "??",
+      "creationYear": 2020,
+      "priceType": "FIXED",
+      "priceAmountFen": 5000000,
+      "depositAmountFen": 200000,
+      "regionCode": "330000",
+      "description": "???????????",
+      "auditStatus": "APPROVED",
+      "status": "OFF_SHELF",
+      "createdAt": "2026-02-18T09:40:00Z",
+      "updatedAt": "2026-02-18T09:40:00Z"
+    }
+  },
+  "POST /admin/listings": {
+    "status": 201,
+    "body": {
+      "id": "9d0e1f2a-4567-4d8e-9f0a-3b4c5d6e7f80",
+      "title": "????????",
+      "tradeMode": "ASSIGNMENT",
+      "priceType": "NEGOTIABLE",
+      "depositAmountFen": 200000,
+      "regionCode": "110000",
+      "auditStatus": "PENDING",
+      "status": "DRAFT",
+      "createdAt": "2026-02-18T10:00:00Z"
+    }
+  },
+  "PATCH /admin/listings/:listingId": {
+    "status": 200,
+    "body": {
+      "id": "9d0e1f2a-4567-4d8e-9f0a-3b4c5d6e7f80",
+      "title": "????????",
+      "tradeMode": "ASSIGNMENT",
+      "priceType": "NEGOTIABLE",
+      "depositAmountFen": 200000,
+      "regionCode": "110000",
+      "auditStatus": "PENDING",
+      "status": "DRAFT",
+      "createdAt": "2026-02-18T10:00:00Z"
+    }
+  },
+  "POST /admin/listings/:listingId/publish": {
+    "status": 200,
+    "body": {
+      "id": "9d0e1f2a-4567-4d8e-9f0a-3b4c5d6e7f80",
+      "title": "????????",
+      "tradeMode": "ASSIGNMENT",
+      "priceType": "NEGOTIABLE",
+      "depositAmountFen": 200000,
+      "regionCode": "110000",
+      "auditStatus": "APPROVED",
+      "status": "ACTIVE",
+      "createdAt": "2026-02-18T10:00:00Z"
+    }
+  },
+  "POST /admin/listings/:listingId/off-shelf": {
+    "status": 200,
+    "body": {
+      "id": "9d0e1f2a-4567-4d8e-9f0a-3b4c5d6e7f80",
+      "title": "????????",
+      "tradeMode": "ASSIGNMENT",
+      "priceType": "NEGOTIABLE",
+      "depositAmountFen": 200000,
+      "regionCode": "110000",
+      "auditStatus": "APPROVED",
+      "status": "OFF_SHELF",
+      "createdAt": "2026-02-18T10:00:00Z"
     }
   }
 }

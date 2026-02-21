@@ -4,6 +4,23 @@
  */
 
 export interface paths {
+    "/health": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 健康检查 */
+        get: operations["getHealth"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/auth/wechat/mp-login": {
         parameters: {
             query?: never;
@@ -313,6 +330,40 @@ export interface paths {
         get: operations["downloadFile"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/files/{fileId}/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 预览文件（带水印） */
+        get: operations["previewFile"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/files/{fileId}/temporary-access": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 生成临时访问链接 */
+        post: operations["createFileTemporaryAccess"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1788,24 +1839,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/admin/config/ai": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** 获取 AI 配置（后台，P1） */
-        get: operations["adminGetAiConfig"];
-        /** 更新 AI 配置（后台，P1） */
-        put: operations["adminUpdateAiConfig"];
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/admin/config/alerts": {
         parameters: {
             query?: never;
@@ -2552,6 +2585,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/admin/orders/{orderId}/payments/manual": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 手动确认订单支付 */
+        post: operations["adminManualConfirmPayment"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/admin/orders/{orderId}/milestones/contract-signed": {
         parameters: {
             query?: never;
@@ -2673,6 +2723,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/admin/refund-requests/{refundRequestId}/complete": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 退款完成确认 */
+        post: operations["adminCompleteRefundRequest"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/public/announcements": {
         parameters: {
             query?: never;
@@ -2699,6 +2766,93 @@ export interface paths {
         };
         /** Get public announcement by id */
         get: operations["getPublicAnnouncementById"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/announcements": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List announcements (admin) */
+        get: operations["adminListAnnouncements"];
+        put?: never;
+        /** Create announcement (admin) */
+        post: operations["adminCreateAnnouncement"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/announcements/{announcementId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Delete announcement (admin) */
+        delete: operations["adminDeleteAnnouncement"];
+        options?: never;
+        head?: never;
+        /** Update announcement (admin) */
+        patch: operations["adminUpdateAnnouncement"];
+        trace?: never;
+    };
+    "/admin/announcements/{announcementId}/publish": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Publish announcement (admin) */
+        post: operations["adminPublishAnnouncement"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/announcements/{announcementId}/off-shelf": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Off-shelf announcement (admin) */
+        post: operations["adminOffShelfAnnouncement"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/audit-logs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List audit logs */
+        get: operations["adminListAuditLogs"];
         put?: never;
         post?: never;
         delete?: never;
@@ -2734,7 +2888,8 @@ export interface paths {
         /** List cases */
         get: operations["adminListCases"];
         put?: never;
-        post?: never;
+        /** Create case */
+        post: operations["adminCreateCase"];
         delete?: never;
         options?: never;
         head?: never;
@@ -3437,6 +3592,20 @@ export interface components {
             sizeBytes: number;
             /** Format: date-time */
             createdAt: string;
+        };
+        /** @enum {string} */
+        FileTemporaryAccessScope: "download" | "preview";
+        FileTemporaryAccessRequest: {
+            scope?: components["schemas"]["FileTemporaryAccessScope"];
+            expiresInSeconds?: number;
+            ttlSeconds?: number;
+        };
+        FileTemporaryAccessResponse: {
+            /** Format: uri */
+            url: string;
+            /** Format: date-time */
+            expiresAt: string;
+            scope: components["schemas"]["FileTemporaryAccessScope"];
         };
         /** @enum {string} */
         Jurisdiction: "CN";
@@ -4208,6 +4377,25 @@ export interface components {
         };
         /** @enum {string} */
         PayType: "DEPOSIT" | "FINAL";
+        /** @enum {string} */
+        PaymentStatus: "PENDING" | "PAID" | "FAILED";
+        ManualPaymentConfirmRequest: {
+            payType: components["schemas"]["PayType"];
+            amountFen?: components["schemas"]["MoneyFen"];
+            /** Format: date-time */
+            paidAt?: string;
+            tradeNo?: string;
+        };
+        ManualPaymentConfirmResponse: {
+            paymentId: components["schemas"]["Uuid"];
+            orderId: components["schemas"]["Uuid"];
+            payType: components["schemas"]["PayType"];
+            status: components["schemas"]["PaymentStatus"];
+            amountFen: components["schemas"]["MoneyFen"];
+            /** Format: date-time */
+            paidAt?: string;
+            tradeNo?: string;
+        };
         PaymentIntentResponse: {
             paymentId: components["schemas"]["Uuid"];
             payType: components["schemas"]["PayType"];
@@ -4283,6 +4471,9 @@ export interface components {
             reasonCode: components["schemas"]["RefundReasonCode"];
             reasonText?: string;
             evidenceFileIds?: components["schemas"]["Uuid"][];
+        };
+        RefundRequestCompleteRequest: {
+            remark?: string;
         };
         RefundRequest: {
             id: components["schemas"]["Uuid"];
@@ -4813,34 +5004,6 @@ export interface components {
             items: components["schemas"]["AiParseResult"][];
             page: components["schemas"]["PageMeta"];
         };
-        AiConfig: {
-            enabled: boolean;
-            voiceEnabled?: boolean;
-            asrProvider?: string;
-            llmProvider?: string;
-            hotwords?: string[];
-            agentModelVersion?: string;
-            parseModelVersion?: string;
-            /** Format: double */
-            confidenceThreshold?: number;
-            /** Format: double */
-            reviewThreshold?: number;
-            maxInputSeconds?: number;
-        };
-        AiConfigUpdateRequest: {
-            enabled?: boolean;
-            voiceEnabled?: boolean;
-            asrProvider?: string;
-            llmProvider?: string;
-            hotwords?: string[];
-            agentModelVersion?: string;
-            parseModelVersion?: string;
-            /** Format: double */
-            confidenceThreshold?: number;
-            /** Format: double */
-            reviewThreshold?: number;
-            maxInputSeconds?: number;
-        };
         /** @enum {string} */
         AlertSeverity: "LOW" | "MEDIUM" | "HIGH";
         /** @enum {string} */
@@ -5069,19 +5232,62 @@ export interface components {
         AuditLogList: {
             items: components["schemas"]["AuditLog"][];
         };
+        PagedAuditLog: {
+            items: components["schemas"]["AuditLog"][];
+            page: components["schemas"]["PageMeta"];
+        };
+        /** @enum {string} */
+        AnnouncementStatus: "DRAFT" | "PUBLISHED" | "OFF_SHELF";
+        AnnouncementRelatedPatent: {
+            name?: string;
+            patentNo?: string;
+        };
         Announcement: {
             id: components["schemas"]["Uuid"];
             title: string;
             summary?: string | null;
             content?: string | null;
+            publisherName?: string | null;
+            issueNo?: string | null;
+            /** Format: uri */
+            sourceUrl?: string | null;
+            tags?: string[];
+            relatedPatents?: components["schemas"]["AnnouncementRelatedPatent"][];
+            status: components["schemas"]["AnnouncementStatus"];
             /** Format: date-time */
             createdAt: string;
             /** Format: date-time */
-            publishedAt?: string | null;
+            publishedAt?: string;
+            /** Format: date-time */
+            updatedAt: string;
         };
         PagedAnnouncement: {
             items: components["schemas"]["Announcement"][];
             page: components["schemas"]["PageMeta"];
+        };
+        AnnouncementCreateRequest: {
+            title: string;
+            summary?: string;
+            content?: string;
+            publisherName?: string;
+            issueNo?: string;
+            /** Format: uri */
+            sourceUrl?: string;
+            tags?: string[];
+            relatedPatents?: components["schemas"]["AnnouncementRelatedPatent"][];
+            status?: components["schemas"]["AnnouncementStatus"];
+        };
+        AnnouncementUpdateRequest: {
+            title?: string;
+            summary?: string;
+            content?: string;
+            publisherName?: string;
+            issueNo?: string;
+            /** Format: uri */
+            sourceUrl?: string;
+            tags?: string[];
+            relatedPatents?: components["schemas"]["AnnouncementRelatedPatent"][];
+            status?: components["schemas"]["AnnouncementStatus"];
         };
         /** @enum {string} */
         NotificationKind: "system" | "cs";
@@ -5231,6 +5437,18 @@ export interface components {
             dueAt?: string | null;
             slaStatus?: components["schemas"]["CaseSlaStatus"];
         };
+        CaseCreateRequest: {
+            title?: string;
+            type?: components["schemas"]["CaseType"];
+            status?: components["schemas"]["CaseStatus"];
+            priority?: components["schemas"]["CasePriority"];
+            requesterName?: string;
+            description?: string;
+            orderId?: components["schemas"]["Uuid"];
+            assigneeId?: components["schemas"]["Uuid"];
+            /** Format: date-time */
+            dueAt?: string;
+        };
         PagedCase: {
             items: components["schemas"]["CaseRecord"][];
             page: components["schemas"]["PageMeta"];
@@ -5350,9 +5568,9 @@ export interface components {
         SellerUserId: components["schemas"]["Uuid"];
         /** @description 产业标签过滤（可多选） */
         IndustryTags: string[];
-        /** @description IPC ?????????? H04L? */
+        /** @description IPC 细分分类号，例如 H04L */
         Ipc: string[];
-        /** @description Locarno ?????????? 12-01? */
+        /** @description Locarno 细分分类号，例如 12-01 */
         Loc: string[];
         LegalStatus: components["schemas"]["LegalStatus"];
         SortBy: components["schemas"]["SortBy"];
@@ -5441,6 +5659,39 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    getHealth: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        ok: boolean;
+                        checks?: {
+                            db?: {
+                                ok?: boolean;
+                                message?: string;
+                            };
+                            redis?: {
+                                ok?: boolean;
+                                message?: string;
+                            };
+                        };
+                    };
+                };
+            };
+            400: components["responses"]["BadRequest"];
+        };
+    };
     authWechatMpLogin: {
         parameters: {
             query?: never;
@@ -5963,7 +6214,10 @@ export interface operations {
     };
     downloadFile: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description 临时访问 token（用于无需登录的下载） */
+                token?: string;
+            };
             header?: never;
             path: {
                 fileId: components["schemas"]["Uuid"];
@@ -5979,6 +6233,63 @@ export interface operations {
                 };
                 content: {
                     "application/octet-stream": string;
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    previewFile: {
+        parameters: {
+            query?: {
+                /** @description 临时访问 token（用于无需登录的预览） */
+                token?: string;
+            };
+            header?: never;
+            path: {
+                fileId: components["schemas"]["Uuid"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/octet-stream": string;
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    createFileTemporaryAccess: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                fileId: components["schemas"]["Uuid"];
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["FileTemporaryAccessRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FileTemporaryAccessResponse"];
                 };
             };
             401: components["responses"]["Unauthorized"];
@@ -6531,9 +6842,9 @@ export interface operations {
                 regionCode?: components["parameters"]["RegionCode"];
                 /** @description 产业标签过滤（可多选） */
                 industryTags?: components["parameters"]["IndustryTags"];
-                /** @description IPC ?????????? H04L? */
+                /** @description IPC 细分分类号，例如 H04L */
                 ipc?: components["parameters"]["Ipc"];
-                /** @description Locarno ?????????? 12-01? */
+                /** @description Locarno 细分分类号，例如 12-01 */
                 locarno?: components["parameters"]["Loc"];
                 legalStatus?: components["parameters"]["LegalStatus"];
                 /** @description 发布时间起始（YYYY-MM-DD） */
@@ -8929,55 +9240,6 @@ export interface operations {
             403: components["responses"]["Forbidden"];
         };
     };
-    adminGetAiConfig: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["AiConfig"];
-                };
-            };
-            401: components["responses"]["Unauthorized"];
-            403: components["responses"]["Forbidden"];
-        };
-    };
-    adminUpdateAiConfig: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["AiConfigUpdateRequest"];
-            };
-        };
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["AiConfig"];
-                };
-            };
-            400: components["responses"]["BadRequest"];
-            401: components["responses"]["Unauthorized"];
-            403: components["responses"]["Forbidden"];
-        };
-    };
     adminGetAlertConfig: {
         parameters: {
             query?: never;
@@ -10651,6 +10913,37 @@ export interface operations {
             404: components["responses"]["NotFound"];
         };
     };
+    adminManualConfirmPayment: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                orderId: components["parameters"]["OrderId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ManualPaymentConfirmRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManualPaymentConfirmResponse"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+        };
+    };
     adminConfirmContractSigned: {
         parameters: {
             query?: never;
@@ -10938,6 +11231,40 @@ export interface operations {
             409: components["responses"]["Conflict"];
         };
     };
+    adminCompleteRefundRequest: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description 幂等键（建议用于支付/退款/放款等有副作用的接口；同一幂等键的重复请求应返回同一结果） */
+                "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
+            };
+            path: {
+                refundRequestId: components["parameters"]["RefundRequestId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["RefundRequestCompleteRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RefundRequest"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+        };
+    };
     listPublicAnnouncements: {
         parameters: {
             query?: {
@@ -10983,6 +11310,192 @@ export interface operations {
                 };
             };
             404: components["responses"]["NotFound"];
+        };
+    };
+    adminListAnnouncements: {
+        parameters: {
+            query?: {
+                status?: components["schemas"]["AnnouncementStatus"];
+                q?: string;
+                page?: components["parameters"]["Page"];
+                pageSize?: components["parameters"]["PageSize"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PagedAnnouncement"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+        };
+    };
+    adminCreateAnnouncement: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AnnouncementCreateRequest"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Announcement"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+        };
+    };
+    adminDeleteAnnouncement: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                announcementId: components["parameters"]["AnnouncementId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    adminUpdateAnnouncement: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                announcementId: components["parameters"]["AnnouncementId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AnnouncementUpdateRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Announcement"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    adminPublishAnnouncement: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                announcementId: components["parameters"]["AnnouncementId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Announcement"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    adminOffShelfAnnouncement: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                announcementId: components["parameters"]["AnnouncementId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Announcement"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    adminListAuditLogs: {
+        parameters: {
+            query?: {
+                targetType?: string;
+                targetId?: string;
+                actorUserId?: string;
+                action?: string;
+                page?: components["parameters"]["Page"];
+                pageSize?: components["parameters"]["PageSize"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PagedAuditLog"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
         };
     };
     adminGetOrderById: {
@@ -11032,6 +11545,33 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["PagedCase"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+        };
+    };
+    adminCreateCase: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CaseCreateRequest"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CaseRecord"];
                 };
             };
             400: components["responses"]["BadRequest"];

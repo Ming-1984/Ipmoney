@@ -55,8 +55,8 @@ export class AchievementsController {
   }
 
   @Get('/public/achievements/:achievementId')
-  async getPublic(@Param('achievementId') achievementId: string) {
-    return await this.achievements.getPublic(achievementId);
+  async getPublic(@Req() req: any, @Param('achievementId') achievementId: string) {
+    return await this.achievements.getPublic(req, achievementId);
   }
 
   @UseGuards(BearerAuthGuard)

@@ -23,7 +23,6 @@ type ContractListResponse = {
 };
 
 const CONTRACT_ID_PREFIX = 'contract-';
-const PLACEHOLDER_URL = 'https://example.com/contract.pdf';
 
 @Injectable()
 export class ContractsService {
@@ -123,16 +122,16 @@ export class ContractsService {
 
     const now = new Date();
     const contractFileId = body?.contractFileId ? String(body.contractFileId).trim() : '';
-
-    let fileUrl = PLACEHOLDER_URL;
-    if (contractFileId) {
-      const file = await this.prisma.file.findUnique({ where: { id: contractFileId } });
-      if (!file) throw new BadRequestException({ code: 'BAD_REQUEST', message: '合同文件不存在' });
-      if (String(file.mimeType || '') !== 'application/pdf') {
-        throw new BadRequestException({ code: 'BAD_REQUEST', message: '仅支持上传 PDF 合同' });
-      }
-      fileUrl = file.url;
+    if (!contractFileId) {
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: 'contractFileId is required' });
     }
+
+    const file = await this.prisma.file.findUnique({ where: { id: contractFileId } });
+    if (!file) throw new BadRequestException({ code: 'BAD_REQUEST', message: '合同文件不存在' });
+    if (String(file.mimeType || '') !== 'application/pdf') {
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: '仅支持上传 PDF 合同' });
+    }
+    const fileUrl = file.url;
 
     const contract = await this.prisma.contract.upsert({
       where: { orderId },

@@ -231,29 +231,38 @@ async function proxyToBaseUrl(req, res, bodyBuffer, baseUrl, { allowFallback }) 
 
 const prismProcess = startPrism();
 
-const dynamicState = {
-  orderStatusOverride: new Map(),
-  orderPatchById: new Map(),
-  invoiceByOrderId: new Map(),
-  approvedListingById: new Map(),
-  demandById: new Map(),
-  achievementById: new Map(),
-  conversationSummaryById: new Map(),
-  conversationPatchById: new Map(),
-  messagesByConversationId: new Map(),
-  filesById: new Map(),
-  commentsById: new Map(),
-  commentThreadsByContentKey: new Map(),
-  favoriteListingIds: new Set(),
-  favoriteDemandIds: new Set(),
-  favoriteAchievementIds: new Set(),
-  listingStatsDeltaById: new Map(),
-  demandStatsDeltaById: new Map(),
-  achievementStatsDeltaById: new Map(),
-  myVerification: null,
-  userVerificationsById: new Map(),
-  mePatch: {},
-};
+function createDynamicState() {
+  return {
+    orderStatusOverride: new Map(),
+    orderPatchById: new Map(),
+    invoiceByOrderId: new Map(),
+    approvedListingById: new Map(),
+    demandById: new Map(),
+    achievementById: new Map(),
+    conversationSummaryById: new Map(),
+    conversationPatchById: new Map(),
+    messagesByConversationId: new Map(),
+    filesById: new Map(),
+    commentsById: new Map(),
+    commentThreadsByContentKey: new Map(),
+    favoriteListingIds: new Set(),
+    favoriteDemandIds: new Set(),
+    favoriteAchievementIds: new Set(),
+    listingStatsDeltaById: new Map(),
+    demandStatsDeltaById: new Map(),
+    achievementStatsDeltaById: new Map(),
+    refundRequestsById: new Map(),
+    myVerification: null,
+    userVerificationsById: new Map(),
+    mePatch: {},
+  };
+}
+
+let dynamicState = createDynamicState();
+
+function resetDynamicState() {
+  dynamicState = createDynamicState();
+}
 
 function toListingSummary(approvedListing) {
   if (!approvedListing || typeof approvedListing !== 'object') return null;
@@ -387,7 +396,7 @@ function patchAchievementSummary(summary) {
 
 function seedUserIdFromFixtures() {
   const me = pickFixtureResponse({ method: 'GET', pathname: '/me', scenario: 'happy' });
-  return me?.body?.id || '99999999-9999-9999-9999-999999999999';
+  return me?.body?.id || '8c592d03-c1c1-40be-8d62-64ce71ac7606';
 }
 
 function getOrderFixtureById(orderId) {
@@ -961,6 +970,16 @@ function maybeSendDynamic(req, res, { method, url, scenario, requestBody }) {
     return true;
   }
 
+  const adminOrderMatch = pathname.match(/^\/admin\/orders\/([^/]+)$/);
+  if (method.toUpperCase() === 'GET' && adminOrderMatch) {
+    const orderId = adminOrderMatch[1];
+    const base = pickFixtureResponse({ method: 'GET', pathname: `/admin/orders/${orderId}`, scenario: 'happy' });
+    if (base?.body && typeof base.body === 'object') {
+      sendFixture(res, { status: 200, body: applyOrderOverrides({ ...base.body, id: orderId }) });
+      return true;
+    }
+  }
+
   if (method.toUpperCase() === 'GET' && pathname === '/invoices') {
     const statusFilter = String(url.searchParams.get('status') || '').trim();
     const page = Math.max(1, Number(url.searchParams.get('page') || 1));
@@ -989,6 +1008,22 @@ function maybeSendDynamic(req, res, { method, url, scenario, requestBody }) {
     const start = Math.max(0, (page - 1) * pageSize);
     const paged = filtered.slice(start, start + pageSize);
     sendFixture(res, { status: 200, body: { items: paged, page: { page, pageSize, total: filtered.length } } });
+    return true;
+  }
+
+  const refundListMatch = pathname.match(/^\/orders\/([^/]+)\/refund-requests$/);
+  if (method.toUpperCase() === 'GET' && refundListMatch) {
+    const orderId = refundListMatch[1];
+    const base = pickFixtureResponse({ method: 'GET', pathname, scenario: 'happy' });
+    if (!base || base.status >= 400) return false;
+    const items = Array.isArray(base.body) ? base.body : [];
+    const merged = items.map((it) => dynamicState.refundRequestsById.get(it.id) || it);
+    for (const it of dynamicState.refundRequestsById.values()) {
+      if (it?.orderId === orderId && !merged.find((row) => row?.id === it.id)) {
+        merged.unshift(it);
+      }
+    }
+    sendFixture(res, { status: 200, body: merged });
     return true;
   }
 
@@ -2751,15 +2786,65 @@ function maybeUpdateDynamicState({ method, pathname, scenario, requestBody, fixt
   const payMatch = pathname.match(/^\/orders\/([^/]+)\/payment-intents$/);
   if (method.toUpperCase() === 'POST' && payMatch) {
     const orderId = payMatch[1];
-    const payType = requestBody?.payType;
-    if (payType === 'DEPOSIT') {
-      dynamicState.orderStatusOverride.set(orderId, 'DEPOSIT_PAID');
-      const patch = dynamicState.orderPatchById.get(orderId) || {};
-      dynamicState.orderPatchById.set(orderId, { ...patch, updatedAt: new Date().toISOString() });
-    } else if (payType === 'FINAL') {
-      dynamicState.orderStatusOverride.set(orderId, 'FINAL_PAID_ESCROW');
-      const patch = dynamicState.orderPatchById.get(orderId) || {};
-      dynamicState.orderPatchById.set(orderId, { ...patch, updatedAt: new Date().toISOString() });
+    const patch = dynamicState.orderPatchById.get(orderId) || {};
+    dynamicState.orderPatchById.set(orderId, { ...patch, updatedAt: new Date().toISOString() });
+    return;
+  }
+
+  const manualPayMatch = pathname.match(/^\/admin\/orders\/([^/]+)\/payments\/manual$/);
+  if (method.toUpperCase() === 'POST' && manualPayMatch) {
+    const payload = fixture?.body && typeof fixture.body === 'object' ? fixture.body : {};
+    const orderId = manualPayMatch[1] || payload.orderId || requestBody?.orderId;
+    const payType = String(requestBody?.payType || payload.payType || 'DEPOSIT').toUpperCase();
+    const nextStatus = payType === 'FINAL' ? 'FINAL_PAID_ESCROW' : 'DEPOSIT_PAID';
+    dynamicState.orderStatusOverride.set(orderId, nextStatus);
+    const patch = dynamicState.orderPatchById.get(orderId) || {};
+    dynamicState.orderPatchById.set(orderId, { ...patch, updatedAt: new Date().toISOString() });
+    return;
+  }
+
+  const refundCreateMatch = pathname.match(/^\/orders\/([^/]+)\/refund-requests$/);
+  if (method.toUpperCase() === 'POST' && refundCreateMatch) {
+    const payload = fixture?.body && typeof fixture.body === 'object' ? fixture.body : null;
+    if (payload?.id) {
+      dynamicState.refundRequestsById.set(payload.id, payload);
+    }
+    return;
+  }
+
+  const refundApproveMatch = pathname.match(/^\/admin\/refund-requests\/([^/]+)\/approve$/);
+  if (method.toUpperCase() === 'POST' && refundApproveMatch) {
+    const payload = fixture?.body && typeof fixture.body === 'object' ? fixture.body : null;
+    if (payload?.id) {
+      dynamicState.refundRequestsById.set(payload.id, payload);
+    }
+    if (payload?.orderId) {
+      dynamicState.orderStatusOverride.set(payload.orderId, 'REFUNDING');
+      const patch = dynamicState.orderPatchById.get(payload.orderId) || {};
+      dynamicState.orderPatchById.set(payload.orderId, { ...patch, updatedAt: new Date().toISOString() });
+    }
+    return;
+  }
+
+  const refundRejectMatch = pathname.match(/^\/admin\/refund-requests\/([^/]+)\/reject$/);
+  if (method.toUpperCase() === 'POST' && refundRejectMatch) {
+    const payload = fixture?.body && typeof fixture.body === 'object' ? fixture.body : null;
+    if (payload?.id) {
+      dynamicState.refundRequestsById.set(payload.id, payload);
+    }
+    return;
+  }
+
+  const refundCompleteMatch = pathname.match(/^\/admin\/refund-requests\/([^/]+)\/complete$/);
+  if (method.toUpperCase() === 'POST' && refundCompleteMatch) {
+    const payload = fixture?.body && typeof fixture.body === 'object' ? fixture.body : null;
+    if (payload?.id) {
+      dynamicState.refundRequestsById.set(payload.id, payload);
+    }
+    if (payload?.orderId) {
+      dynamicState.orderStatusOverride.set(payload.orderId, 'REFUNDED');
+      const patch = dynamicState.orderPatchById.get(payload.orderId) || {};
+      dynamicState.orderPatchById.set(payload.orderId, { ...patch, updatedAt: new Date().toISOString() });
     }
     return;
   }
@@ -2789,6 +2874,20 @@ const server = http.createServer((req, res) => {
   }
 
   const url = new URL(req.url, `http://${HOST}:${PORT}`);
+  if (url.pathname === '/__reset') {
+    if (req.method && req.method.toUpperCase() !== 'POST') {
+      res.statusCode = 405;
+      res.setHeader('Content-Type', 'application/json; charset=utf-8');
+      res.end(JSON.stringify({ code: 'METHOD_NOT_ALLOWED', message: 'Use POST /__reset' }));
+      return;
+    }
+    resetDynamicState();
+    sendFixture(res, {
+      status: 200,
+      body: { ok: true, reset: 'dynamic', at: new Date().toISOString() },
+    });
+    return;
+  }
   const scenario =
     (req.headers['x-mock-scenario'] ? String(req.headers['x-mock-scenario']) : null) ||
     url.searchParams.get('__scenario') ||

@@ -7,10 +7,9 @@ import {
 } from '@nestjs/common';
 
 import { AuditLogService } from '../../common/audit-log.service';
+import { getDemoAuthConfig } from '../../common/demo';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { NotificationsService } from '../notifications/notifications.service';
-
-const DEMO_USER_ID = '99999999-9999-9999-9999-999999999999';
 
 type UserVerificationWhereInput = any;
 
@@ -83,18 +82,24 @@ export class UsersService {
   ) {}
 
   async getUserProfileById(userId: string): Promise<UserProfileDto> {
+    const demoConfig = getDemoAuthConfig();
+    const isDemoUser = demoConfig.enabled && demoConfig.userId && userId === demoConfig.userId;
     const userRecord =
       (await this.prisma.user.findUnique({ where: { id: userId } })) ||
-      (userId === DEMO_USER_ID
+      (isDemoUser
         ? await this.prisma.user.upsert({
-            where: { id: DEMO_USER_ID },
-            update: {},
+            where: { id: demoConfig.userId as string },
+            update: {
+              ...(demoConfig.userNickname ? { nickname: demoConfig.userNickname } : {}),
+              ...(demoConfig.userPhone ? { phone: demoConfig.userPhone } : {}),
+              ...(demoConfig.userRegionCode ? { regionCode: demoConfig.userRegionCode } : {}),
+            },
             create: {
-              id: DEMO_USER_ID,
-              phone: '13800138000',
+              id: demoConfig.userId as string,
               role: 'buyer',
-              nickname: 'Demo User',
-              regionCode: '110000',
+              ...(demoConfig.userPhone ? { phone: demoConfig.userPhone } : {}),
+              ...(demoConfig.userNickname ? { nickname: demoConfig.userNickname } : {}),
+              ...(demoConfig.userRegionCode ? { regionCode: demoConfig.userRegionCode } : {}),
             },
           })
         : null);

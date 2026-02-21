@@ -1,4 +1,4 @@
-﻿-- CreateEnum
+-- CreateEnum
 CREATE TYPE "ContractStatus" AS ENUM ('WAIT_UPLOAD', 'WAIT_CONFIRM', 'AVAILABLE');
 
 -- CreateTable

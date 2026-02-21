@@ -1,4 +1,4 @@
-﻿-- AlterEnum
+-- AlterEnum
 ALTER TYPE "ConversationMessageType" ADD VALUE 'EMOJI';
 
 -- CreateEnum

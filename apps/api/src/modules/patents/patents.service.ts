@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 
 import { PrismaService } from '../../common/prisma/prisma.service';
 
@@ -44,6 +44,13 @@ type PatentDto = {
 };
 
 type LegalStatusDto = NonNullable<PatentDto['legalStatus']>;
+type PatentTypeDto = PatentDto['patentType'];
+type PatentSourcePrimaryDto = NonNullable<PatentDto['sourcePrimary']>;
+type PatentPartyRoleDto = 'INVENTOR' | 'ASSIGNEE' | 'APPLICANT';
+type PagedPatentDto = {
+  items: PatentDto[];
+  page: { page: number; pageSize: number; total: number };
+};
 
 const PATENT_PARTY_ROLE = {
   INVENTOR: 'INVENTOR',
@@ -107,6 +114,164 @@ function toApplicationDisplay(normDigits: string): string {
 export class PatentsService {
   constructor(private readonly prisma: PrismaService) {}
 
+  ensureAdmin(req: any) {
+    if (!req?.auth?.isAdmin) {
+      throw new ForbiddenException({ code: 'FORBIDDEN', message: 'forbidden' });
+    }
+  }
+
+  private normalizeStringArray(input: unknown): string[] {
+    if (Array.isArray(input)) {
+      return Array.from(
+        new Set(
+          input
+            .map((value) => String(value || '').trim())
+            .filter((value) => value.length > 0),
+        ),
+      );
+    }
+    if (typeof input === 'string') {
+      return Array.from(
+        new Set(
+          input
+            .split(/[,\n，；;]/g)
+            .map((value) => value.trim())
+            .filter((value) => value.length > 0),
+        ),
+      );
+    }
+    return [];
+  }
+
+  private hasOwn(body: unknown, key: string): boolean {
+    return body !== null && body !== undefined && Object.prototype.hasOwnProperty.call(body, key);
+  }
+
+  private normalizePatentType(value: unknown): PatentTypeDto | undefined {
+    const normalized = String(value || '').trim().toUpperCase();
+    if (normalized === 'INVENTION' || normalized === 'UTILITY_MODEL' || normalized === 'DESIGN') {
+      return normalized as PatentTypeDto;
+    }
+    return undefined;
+  }
+
+  private normalizeLegalStatus(value: unknown): LegalStatusDto | undefined {
+    const normalized = String(value || '').trim().toUpperCase();
+    if (!normalized) return undefined;
+    if (['PENDING', 'GRANTED', 'EXPIRED', 'INVALIDATED', 'UNKNOWN'].includes(normalized)) {
+      return normalized as LegalStatusDto;
+    }
+    throw new BadRequestException({ code: 'BAD_REQUEST', message: 'legalStatus is invalid' });
+  }
+
+  private normalizeSourcePrimary(value: unknown): PatentSourcePrimaryDto | undefined {
+    const normalized = String(value || '').trim().toUpperCase();
+    if (!normalized) return undefined;
+    if (normalized === 'USER' || normalized === 'ADMIN' || normalized === 'PROVIDER') {
+      return normalized as PatentSourcePrimaryDto;
+    }
+    throw new BadRequestException({ code: 'BAD_REQUEST', message: 'sourcePrimary is invalid' });
+  }
+
+  private parseDate(value: unknown, fieldName: string): Date | undefined {
+    if (value === undefined || value === null || String(value).trim() === '') return undefined;
+    const date = new Date(String(value).trim());
+    if (Number.isNaN(date.getTime())) {
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: `${fieldName} is invalid` });
+    }
+    return new Date(date.toISOString().slice(0, 10));
+  }
+
+  private parseDateTime(value: unknown, fieldName: string): Date | undefined {
+    if (value === undefined || value === null || String(value).trim() === '') return undefined;
+    const date = new Date(String(value).trim());
+    if (Number.isNaN(date.getTime())) {
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: `${fieldName} is invalid` });
+    }
+    return date;
+  }
+
+  private normalizeApplicationNo(input: unknown): { applicationNoNorm: string; applicationNoDisplay: string } {
+    const raw = String(input || '').trim();
+    const cleaned = cleanRaw(raw).replace(/^CN/, '').replace(/^ZL/, '').replace(/\./g, '');
+    const isValid =
+      /^(19\d{2}|20\d{2})[123]\d{7}\d$/.test(cleaned) || /^\d{2}[123]\d{5}\d$/.test(cleaned);
+    if (!isValid) {
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: 'applicationNoNorm is invalid' });
+    }
+    return {
+      applicationNoNorm: cleaned,
+      applicationNoDisplay: toApplicationDisplay(cleaned),
+    };
+  }
+
+  private toDate(dateValue?: Date | null) {
+    return dateValue ? dateValue.toISOString().slice(0, 10) : undefined;
+  }
+
+  private toDateTime(dateValue?: Date | null) {
+    return dateValue ? dateValue.toISOString() : undefined;
+  }
+
+  private mapPatentRecord(record: any): PatentDto {
+    const parties = (record?.parties ?? []) as PatentParty[];
+    const inventorNames = parties
+      .filter((party: PatentParty) => party.role === PATENT_PARTY_ROLE.INVENTOR)
+      .map((party: PatentParty) => party.name);
+    const assigneeNames = parties
+      .filter((party: PatentParty) => party.role === PATENT_PARTY_ROLE.ASSIGNEE)
+      .map((party: PatentParty) => party.name);
+    const applicantNames = parties
+      .filter((party: PatentParty) => party.role === PATENT_PARTY_ROLE.APPLICANT)
+      .map((party: PatentParty) => party.name);
+
+    const legal = record?.legalStatus ? String(record.legalStatus).toUpperCase() : '';
+    const legalStatus =
+      legal && ['PENDING', 'GRANTED', 'EXPIRED', 'INVALIDATED', 'UNKNOWN'].includes(legal)
+        ? (legal as LegalStatusDto)
+        : undefined;
+    const transferCountValue =
+      typeof record?.transferCount === 'number'
+        ? record.transferCount
+        : Number.isFinite(Number(record?.transferCount))
+          ? Number(record.transferCount)
+          : undefined;
+
+    return {
+      id: record.id,
+      jurisdiction: 'CN',
+      applicationNoNorm: record.applicationNoNorm,
+      applicationNoDisplay: record.applicationNoDisplay ?? undefined,
+      publicationNoDisplay: record.publicationNoDisplay ?? undefined,
+      patentNoDisplay: record.patentNoDisplay ?? undefined,
+      grantPublicationNoDisplay: record.grantPublicationNoDisplay ?? undefined,
+      patentType: record.patentType,
+      title: record.title,
+      abstract: record.abstract ?? undefined,
+      inventorNames: inventorNames.length ? inventorNames : undefined,
+      assigneeNames: assigneeNames.length ? assigneeNames : undefined,
+      applicantNames: applicantNames.length ? applicantNames : undefined,
+      filingDate: this.toDate(record.filingDate),
+      publicationDate: this.toDate(record.publicationDate),
+      grantDate: this.toDate(record.grantDate),
+      legalStatus,
+      sourcePrimary: record.sourcePrimary ?? undefined,
+      sourceUpdatedAt: this.toDateTime(record.sourceUpdatedAt),
+      transferCount: transferCountValue,
+      createdAt: record.createdAt.toISOString(),
+      updatedAt: record.updatedAt.toISOString(),
+    };
+  }
+
+  private async syncParties(patentId: string, role: PatentPartyRoleDto, input: unknown) {
+    const names = this.normalizeStringArray(input);
+    await this.prisma.patentParty.deleteMany({ where: { patentId, role } });
+    if (!names.length) return;
+    await this.prisma.patentParty.createMany({
+      data: names.map((name) => ({ patentId, role, name })),
+    });
+  }
+
   normalizeNumber(raw?: string): PatentNormalizeResponseDto {
     const cleanedInput = cleanRaw(String(raw || ''));
     if (!cleanedInput) throw new BadRequestException({ code: 'BAD_REQUEST', message: 'raw 不能为空' });
@@ -169,56 +334,196 @@ export class PatentsService {
     throw new BadRequestException({ code: 'BAD_REQUEST', message: '无法识别专利号码格式' });
   }
 
+  async adminList(req: any, query: any): Promise<PagedPatentDto> {
+    this.ensureAdmin(req);
+    const page = Math.max(1, Number(query?.page || 1));
+    const pageSize = Math.min(100, Math.max(1, Number(query?.pageSize || 20)));
+    const q = String(query?.q || '').trim();
+    const patentType = this.normalizePatentType(query?.patentType);
+    const legalStatus = this.normalizeLegalStatus(query?.legalStatus);
+
+    const where: any = {};
+    if (patentType) where.patentType = patentType;
+    if (legalStatus) where.legalStatus = legalStatus;
+    if (q) {
+      where.OR = [
+        { title: { contains: q, mode: 'insensitive' } },
+        { applicationNoNorm: { contains: q, mode: 'insensitive' } },
+        { applicationNoDisplay: { contains: q, mode: 'insensitive' } },
+        { publicationNoDisplay: { contains: q, mode: 'insensitive' } },
+        { patentNoDisplay: { contains: q, mode: 'insensitive' } },
+        { parties: { some: { name: { contains: q, mode: 'insensitive' } } } },
+      ];
+    }
+
+    const [items, total] = await Promise.all([
+      this.prisma.patent.findMany({
+        where,
+        include: { parties: true },
+        orderBy: { updatedAt: 'desc' },
+        skip: (page - 1) * pageSize,
+        take: pageSize,
+      }),
+      this.prisma.patent.count({ where }),
+    ]);
+
+    return {
+      items: items.map((item) => this.mapPatentRecord(item)),
+      page: { page, pageSize, total },
+    };
+  }
+
+  async adminCreate(req: any, body: any): Promise<PatentDto> {
+    this.ensureAdmin(req);
+    const normalizedNo = this.normalizeApplicationNo(body?.applicationNoNorm || body?.applicationNoDisplay);
+    const patentType = this.normalizePatentType(body?.patentType);
+    if (!patentType) {
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: 'patentType is required' });
+    }
+    const title = String(body?.title || '').trim();
+    if (!title) {
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: 'title is required' });
+    }
+    const jurisdiction = String(body?.jurisdiction || 'CN').trim().toUpperCase();
+    if (jurisdiction !== 'CN') {
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: 'only CN jurisdiction is supported' });
+    }
+
+    const legalStatus = this.normalizeLegalStatus(body?.legalStatus);
+    const sourcePrimary = this.normalizeSourcePrimary(body?.sourcePrimary) ?? 'ADMIN';
+    const sourceUpdatedAt = this.parseDateTime(body?.sourceUpdatedAt, 'sourceUpdatedAt') ?? new Date();
+    const filingDate = this.parseDate(body?.filingDate, 'filingDate');
+    const publicationDate = this.parseDate(body?.publicationDate, 'publicationDate');
+    const grantDate = this.parseDate(body?.grantDate, 'grantDate');
+
+    const upserted = await this.prisma.patent.upsert({
+      where: {
+        jurisdiction_applicationNoNorm: {
+          jurisdiction,
+          applicationNoNorm: normalizedNo.applicationNoNorm,
+        },
+      },
+      create: {
+        jurisdiction,
+        applicationNoNorm: normalizedNo.applicationNoNorm,
+        applicationNoDisplay: String(body?.applicationNoDisplay || normalizedNo.applicationNoDisplay),
+        patentType,
+        title,
+        abstract: body?.abstract ? String(body.abstract) : null,
+        filingDate: filingDate ?? null,
+        publicationDate: publicationDate ?? null,
+        grantDate: grantDate ?? null,
+        legalStatus: legalStatus ?? null,
+        sourcePrimary,
+        sourceUpdatedAt,
+      },
+      update: {
+        applicationNoDisplay: String(body?.applicationNoDisplay || normalizedNo.applicationNoDisplay),
+        patentType,
+        title,
+        abstract: body?.abstract ? String(body.abstract) : null,
+        filingDate: filingDate ?? undefined,
+        publicationDate: publicationDate ?? undefined,
+        grantDate: grantDate ?? undefined,
+        legalStatus: legalStatus ?? undefined,
+        sourcePrimary,
+        sourceUpdatedAt,
+      },
+    });
+
+    if (this.hasOwn(body, 'inventorNames')) {
+      await this.syncParties(upserted.id, 'INVENTOR', body?.inventorNames);
+    }
+    if (this.hasOwn(body, 'assigneeNames')) {
+      await this.syncParties(upserted.id, 'ASSIGNEE', body?.assigneeNames);
+    }
+    if (this.hasOwn(body, 'applicantNames')) {
+      await this.syncParties(upserted.id, 'APPLICANT', body?.applicantNames);
+    }
+
+    return await this.getPatentById(upserted.id);
+  }
+
+  async adminGetById(req: any, patentId: string): Promise<PatentDto> {
+    this.ensureAdmin(req);
+    return await this.getPatentById(patentId);
+  }
+
+  async adminUpdate(req: any, patentId: string, body: any): Promise<PatentDto> {
+    this.ensureAdmin(req);
+    const existing = await this.prisma.patent.findUnique({ where: { id: String(patentId) } });
+    if (!existing) {
+      throw new NotFoundException({ code: 'NOT_FOUND', message: '专利不存在' });
+    }
+
+    const patch: any = {};
+    if (this.hasOwn(body, 'applicationNoDisplay')) {
+      const value = String(body?.applicationNoDisplay || '').trim();
+      patch.applicationNoDisplay = value || null;
+    }
+    if (this.hasOwn(body, 'patentType')) {
+      const patentType = this.normalizePatentType(body?.patentType);
+      if (!patentType) {
+        throw new BadRequestException({ code: 'BAD_REQUEST', message: 'patentType is invalid' });
+      }
+      patch.patentType = patentType;
+    }
+    if (this.hasOwn(body, 'title')) {
+      const title = String(body?.title || '').trim();
+      if (!title) {
+        throw new BadRequestException({ code: 'BAD_REQUEST', message: 'title is required' });
+      }
+      patch.title = title;
+    }
+    if (this.hasOwn(body, 'abstract')) {
+      const abstract = String(body?.abstract || '').trim();
+      patch.abstract = abstract || null;
+    }
+    if (this.hasOwn(body, 'filingDate')) {
+      patch.filingDate = this.parseDate(body?.filingDate, 'filingDate') ?? null;
+    }
+    if (this.hasOwn(body, 'publicationDate')) {
+      patch.publicationDate = this.parseDate(body?.publicationDate, 'publicationDate') ?? null;
+    }
+    if (this.hasOwn(body, 'grantDate')) {
+      patch.grantDate = this.parseDate(body?.grantDate, 'grantDate') ?? null;
+    }
+    if (this.hasOwn(body, 'legalStatus')) {
+      patch.legalStatus = this.normalizeLegalStatus(body?.legalStatus) ?? null;
+    }
+    if (this.hasOwn(body, 'sourcePrimary')) {
+      const sourcePrimary = this.normalizeSourcePrimary(body?.sourcePrimary);
+      if (!sourcePrimary) {
+        throw new BadRequestException({ code: 'BAD_REQUEST', message: 'sourcePrimary is invalid' });
+      }
+      patch.sourcePrimary = sourcePrimary;
+    }
+    if (this.hasOwn(body, 'sourceUpdatedAt')) {
+      patch.sourceUpdatedAt = this.parseDateTime(body?.sourceUpdatedAt, 'sourceUpdatedAt') ?? null;
+    }
+
+    if (Object.keys(patch).length > 0) {
+      await this.prisma.patent.update({ where: { id: existing.id }, data: patch });
+    }
+    if (this.hasOwn(body, 'inventorNames')) {
+      await this.syncParties(existing.id, 'INVENTOR', body?.inventorNames);
+    }
+    if (this.hasOwn(body, 'assigneeNames')) {
+      await this.syncParties(existing.id, 'ASSIGNEE', body?.assigneeNames);
+    }
+    if (this.hasOwn(body, 'applicantNames')) {
+      await this.syncParties(existing.id, 'APPLICANT', body?.applicantNames);
+    }
+
+    return await this.getPatentById(existing.id);
+  }
+
   async getPatentById(patentId: string): Promise<PatentDto> {
     const patentRecord = await this.prisma.patent.findUnique({
       where: { id: String(patentId) },
       include: { parties: true },
     });
     if (!patentRecord) throw new NotFoundException({ code: 'NOT_FOUND', message: '专利不存在' });
-
-    const parties = (patentRecord.parties ?? []) as PatentParty[];
-    const inventorNames = parties
-      .filter((party: PatentParty) => party.role === PATENT_PARTY_ROLE.INVENTOR)
-      .map((party: PatentParty) => party.name);
-    const assigneeNames = parties
-      .filter((party: PatentParty) => party.role === PATENT_PARTY_ROLE.ASSIGNEE)
-      .map((party: PatentParty) => party.name);
-    const applicantNames = parties
-      .filter((party: PatentParty) => party.role === PATENT_PARTY_ROLE.APPLICANT)
-      .map((party: PatentParty) => party.name);
-
-    const toDate = (dateValue?: Date | null) => (dateValue ? dateValue.toISOString().slice(0, 10) : undefined);
-    const toDateTime = (dateValue?: Date | null) => (dateValue ? dateValue.toISOString() : undefined);
-    const legal = patentRecord.legalStatus ? String(patentRecord.legalStatus).toUpperCase() : '';
-    const legalStatus =
-      legal && ['PENDING', 'GRANTED', 'EXPIRED', 'INVALIDATED', 'UNKNOWN'].includes(legal)
-        ? (legal as LegalStatusDto)
-        : undefined;
-
-    const patentAny = patentRecord as any;
-    return {
-      id: patentRecord.id,
-      jurisdiction: 'CN',
-      applicationNoNorm: patentRecord.applicationNoNorm,
-      applicationNoDisplay: patentRecord.applicationNoDisplay ?? undefined,
-      publicationNoDisplay: patentAny.publicationNoDisplay ?? undefined,
-      patentNoDisplay: patentAny.patentNoDisplay ?? undefined,
-      grantPublicationNoDisplay: patentAny.grantPublicationNoDisplay ?? undefined,
-      patentType: patentRecord.patentType,
-      title: patentRecord.title,
-      abstract: patentRecord.abstract ?? undefined,
-      inventorNames: inventorNames.length ? inventorNames : undefined,
-      assigneeNames: assigneeNames.length ? assigneeNames : undefined,
-      applicantNames: applicantNames.length ? applicantNames : undefined,
-      filingDate: toDate(patentRecord.filingDate),
-      publicationDate: toDate(patentRecord.publicationDate),
-      grantDate: toDate(patentRecord.grantDate),
-      legalStatus,
-      sourcePrimary: patentRecord.sourcePrimary,
-      sourceUpdatedAt: toDateTime(patentRecord.sourceUpdatedAt),
-      transferCount: typeof patentAny.transferCount === 'number' ? patentAny.transferCount : undefined,
-      createdAt: patentRecord.createdAt.toISOString(),
-      updatedAt: patentRecord.updatedAt.toISOString(),
-    };
+    return this.mapPatentRecord(patentRecord);
   }
 }

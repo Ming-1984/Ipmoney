@@ -81,6 +81,13 @@ export class OrdersController {
   }
 
   @UseGuards(BearerAuthGuard)
+  @Post('/admin/orders/:orderId/payments/manual')
+  async adminManualPayment(@Req() req: any, @Param('orderId') orderId: string, @Body() body: any) {
+    requirePermission(req, 'payment.manual.confirm');
+    return await this.orders.adminManualConfirmPayment(req, orderId, body || {});
+  }
+
+  @UseGuards(BearerAuthGuard)
   @Post('/admin/orders/:orderId/milestones/contract-signed')
   async adminContractSigned(@Req() req: any, @Param('orderId') orderId: string, @Body() body: any) {
     requirePermission(req, 'milestone.contractSigned.confirm');
@@ -146,5 +153,12 @@ export class OrdersController {
   ) {
     requirePermission(req, 'refund.reject');
     return await this.orders.adminRejectRefundRequest(req, refundRequestId, body || {});
+  }
+
+  @UseGuards(BearerAuthGuard)
+  @Post('/admin/refund-requests/:refundRequestId/complete')
+  async adminCompleteRefund(@Req() req: any, @Param('refundRequestId') refundRequestId: string, @Body() body: any) {
+    requirePermission(req, 'refund.complete');
+    return await this.orders.adminCompleteRefundRequest(req, refundRequestId, body || {});
   }
 }

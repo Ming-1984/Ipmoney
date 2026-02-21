@@ -2,8 +2,10 @@ import { BadRequestException, ForbiddenException, Injectable, NotFoundException 
 import { ArtworkCategory, CalligraphyScript, PaintingGenre, Prisma } from '@prisma/client';
 
 import { AuditLogService } from '../../common/audit-log.service';
+import { ContentEventService } from '../../common/content-event.service';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { mapContentMedia, mapStats, normalizeMediaInput, normalizeStringArray } from '../content-utils';
+import { ConfigService, type RecommendationConfig } from '../config/config.service';
 import { NotificationsService } from '../notifications/notifications.service';
 
 type Paged<T> = { items: T[]; page: { page: number; pageSize: number; total: number } };
@@ -45,6 +47,8 @@ export class ArtworksService {
     private readonly prisma: PrismaService,
     private readonly audit: AuditLogService,
     private readonly notifications: NotificationsService,
+    private readonly events: ContentEventService,
+    private readonly config: ConfigService,
   ) {}
 
   private ensureAuth(req: any) {
@@ -108,6 +112,56 @@ export class ArtworksService {
       throw new BadRequestException({ code: 'BAD_REQUEST', message: `${fieldName} is invalid` });
     }
     return Math.floor(num);
+  }
+
+  private normalizeWeight(value: unknown, fallback = 0) {
+    const num = Number(value);
+    return Number.isFinite(num) ? num : fallback;
+  }
+
+  private computeRecommendationScore(
+    item: { createdAt?: Date; regionCode?: string | null; stats?: any },
+    config: RecommendationConfig,
+    regionCode: string | null,
+    nowMs: number,
+  ) {
+    const weights = config?.weights || {
+      time: 1,
+      view: 1,
+      favorite: 1,
+      consult: 1,
+      region: 0,
+      user: 0,
+    };
+    const timeWeight = this.normalizeWeight(weights.time, 0);
+    const viewWeight = this.normalizeWeight(weights.view, 0);
+    const favoriteWeight = this.normalizeWeight(weights.favorite, 0);
+    const consultWeight = this.normalizeWeight(weights.consult, 0);
+    const regionWeight = this.normalizeWeight(weights.region, 0);
+    const userWeight = this.normalizeWeight(weights.user, 0);
+
+    const halfLifeHours = Math.max(1, this.normalizeWeight(config?.timeDecayHalfLifeHours, 72));
+    const createdAt = item?.createdAt instanceof Date ? item.createdAt.getTime() : nowMs;
+    const ageHours = Math.max(0, (nowMs - createdAt) / (1000 * 3600));
+    const decay = Math.pow(0.5, ageHours / halfLifeHours);
+
+    const stats = item?.stats ?? {};
+    const viewCount = Math.max(0, this.normalizeWeight(stats.viewCount, 0));
+    const favoriteCount = Math.max(0, this.normalizeWeight(stats.favoriteCount, 0));
+    const consultCount = Math.max(0, this.normalizeWeight(stats.consultCount, 0));
+
+    const normalizedRegion = regionCode ? String(regionCode) : '';
+    const regionMatch = normalizedRegion && item?.regionCode === normalizedRegion ? 1 : 0;
+    const tagSimilarity = 0;
+
+    return (
+      timeWeight * decay +
+      viewWeight * Math.log1p(viewCount) +
+      favoriteWeight * Math.log1p(favoriteCount) +
+      consultWeight * Math.log1p(consultCount) +
+      regionWeight * regionMatch +
+      userWeight * tagSimilarity
+    );
   }
 
   private parseOptionalDate(value: unknown, fieldName: string) {
@@ -189,7 +243,13 @@ export class ArtworksService {
 
   private toPublic(item: ArtworkRecord) {
     const dto = this.buildArtworkDto(item);
-    const { sellerUserId, certificateNo, certificateFileIds, coverFileId, ...rest } = dto;
+    const {
+      sellerUserId: _sellerUserId,
+      certificateNo: _certificateNo,
+      certificateFileIds: _certificateFileIds,
+      coverFileId: _coverFileId,
+      ...rest
+    } = dto;
     return {
       ...rest,
       seller: item.seller
@@ -487,6 +547,45 @@ export class ArtworksService {
     }
     if (andFilters.length > 0) where.AND = andFilters;
 
+    if (sortBy === 'RECOMMENDED') {
+      const recommendation = await this.config.getRecommendation();
+      if (recommendation?.enabled) {
+        const rows = await this.prisma.artwork.findMany({
+          where,
+          select: {
+            id: true,
+            createdAt: true,
+            regionCode: true,
+            stats: { select: { viewCount: true, favoriteCount: true, consultCount: true } },
+          },
+        });
+        const nowMs = Date.now();
+        const scored = rows.map((row: any) => ({
+          id: row.id,
+          score: this.computeRecommendationScore(row, recommendation, regionCode || null, nowMs),
+          createdAt: row.createdAt instanceof Date ? row.createdAt : new Date(0),
+        }));
+        scored.sort((a, b) => (b.score !== a.score ? b.score - a.score : b.createdAt.getTime() - a.createdAt.getTime()));
+        const total = scored.length;
+        const start = (page - 1) * pageSize;
+        const pageIds = scored.slice(start, start + pageSize).map((item) => item.id);
+
+        const items = pageIds.length
+          ? await this.prisma.artwork.findMany({
+              where: { id: { in: pageIds } },
+              include: { coverFile: true, stats: true },
+            })
+          : [];
+
+        const itemMap = new Map(items.map((item: any) => [item.id, item]));
+        const ordered = pageIds.map((id) => itemMap.get(id)).filter(Boolean) as ArtworkRecord[];
+        return {
+          items: ordered.map((item) => this.buildArtworkDto(item as ArtworkRecord)),
+          page: { page, pageSize, total },
+        };
+      }
+    }
+
     const orderBy: any =
       sortBy === 'PRICE_ASC'
         ? { priceAmountFen: 'asc' }
@@ -511,9 +610,10 @@ export class ArtworksService {
     };
   }
 
-  async getPublic(artworkId: string) {
+  async getPublic(req: any, artworkId: string) {
     const item = await this.fetchArtwork(artworkId, true);
     if (!item) throw new NotFoundException({ code: 'NOT_FOUND', message: '浣滃搧涓嶅瓨鍦?' });
+    void this.events.recordView(req, 'ARTWORK', artworkId).catch(() => {});
     return this.toPublic(item as ArtworkRecord);
   }
 

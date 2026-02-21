@@ -55,8 +55,8 @@ export class ArtworksController {
   }
 
   @Get('/public/artworks/:artworkId')
-  async getPublic(@Param('artworkId') artworkId: string) {
-    return await this.artworks.getPublic(artworkId);
+  async getPublic(@Req() req: any, @Param('artworkId') artworkId: string) {
+    return await this.artworks.getPublic(req, artworkId);
   }
 
   @UseGuards(BearerAuthGuard)

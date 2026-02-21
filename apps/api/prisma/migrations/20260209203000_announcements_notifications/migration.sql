@@ -1,4 +1,4 @@
-﻿-- CreateEnum
+-- CreateEnum
 CREATE TYPE "NotificationKind" AS ENUM ('system', 'cs');
 
 -- CreateTable

@@ -1,5 +1,8 @@
 ﻿import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 
+import { Prisma } from '@prisma/client';
+
+import { ContentEventService } from '../../common/content-event.service';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { buildPublisherMap, mapStats } from '../content-utils';
 
@@ -7,7 +10,10 @@ type Paged<T> = { items: T[]; page: { page: number; pageSize: number; total: num
 
 @Injectable()
 export class FavoritesService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly events: ContentEventService,
+  ) {}
 
   private ensureAuth(req: any) {
     if (!req?.auth?.userId) throw new ForbiddenException({ code: 'FORBIDDEN', message: '鏃犳潈闄?' });
@@ -218,18 +224,29 @@ export class FavoritesService {
 
   async favoriteListing(req: any, listingId: string) {
     this.ensureAuth(req);
-    await this.prisma.listing.findUnique({ where: { id: listingId } });
-    await this.prisma.listingFavorite.upsert({
-      where: { listingId_userId: { listingId, userId: req.auth.userId } },
-      create: { listingId, userId: req.auth.userId },
-      update: {},
-    });
+    const listing = await this.prisma.listing.findUnique({ where: { id: listingId } });
+    if (!listing) throw new NotFoundException({ code: 'NOT_FOUND', message: 'listing not found' });
+    try {
+      await this.prisma.listingFavorite.create({
+        data: { listingId, userId: req.auth.userId },
+      });
+      await this.events.adjustFavoriteCount('LISTING', listingId, 1);
+      void this.events.recordFavorite(req, 'LISTING', listingId).catch(() => {});
+    } catch (e: any) {
+      if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2002') {
+        return { ok: true };
+      }
+      throw e;
+    }
     return { ok: true };
   }
 
   async unfavoriteListing(req: any, listingId: string) {
     this.ensureAuth(req);
-    await this.prisma.listingFavorite.deleteMany({ where: { listingId, userId: req.auth.userId } });
+    const removed = await this.prisma.listingFavorite.deleteMany({ where: { listingId, userId: req.auth.userId } });
+    if (removed.count > 0) {
+      await this.events.adjustFavoriteCount('LISTING', listingId, -1);
+    }
     return { ok: true };
   }
 
@@ -237,17 +254,27 @@ export class FavoritesService {
     this.ensureAuth(req);
     const demand = await this.prisma.demand.findUnique({ where: { id: demandId } });
     if (!demand) throw new NotFoundException({ code: 'NOT_FOUND', message: '闇€姹備笉瀛樺湪' });
-    await this.prisma.demandFavorite.upsert({
-      where: { demandId_userId: { demandId, userId: req.auth.userId } },
-      create: { demandId, userId: req.auth.userId },
-      update: {},
-    });
+    try {
+      await this.prisma.demandFavorite.create({
+        data: { demandId, userId: req.auth.userId },
+      });
+      await this.events.adjustFavoriteCount('DEMAND', demandId, 1);
+      void this.events.recordFavorite(req, 'DEMAND', demandId).catch(() => {});
+    } catch (e: any) {
+      if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2002') {
+        return { ok: true };
+      }
+      throw e;
+    }
     return { ok: true };
   }
 
   async unfavoriteDemand(req: any, demandId: string) {
     this.ensureAuth(req);
-    await this.prisma.demandFavorite.deleteMany({ where: { demandId, userId: req.auth.userId } });
+    const removed = await this.prisma.demandFavorite.deleteMany({ where: { demandId, userId: req.auth.userId } });
+    if (removed.count > 0) {
+      await this.events.adjustFavoriteCount('DEMAND', demandId, -1);
+    }
     return { ok: true };
   }
 
@@ -255,17 +282,27 @@ export class FavoritesService {
     this.ensureAuth(req);
     const achievement = await this.prisma.achievement.findUnique({ where: { id: achievementId } });
     if (!achievement) throw new NotFoundException({ code: 'NOT_FOUND', message: '鎴愭灉涓嶅瓨鍦?' });
-    await this.prisma.achievementFavorite.upsert({
-      where: { achievementId_userId: { achievementId, userId: req.auth.userId } },
-      create: { achievementId, userId: req.auth.userId },
-      update: {},
-    });
+    try {
+      await this.prisma.achievementFavorite.create({
+        data: { achievementId, userId: req.auth.userId },
+      });
+      await this.events.adjustFavoriteCount('ACHIEVEMENT', achievementId, 1);
+      void this.events.recordFavorite(req, 'ACHIEVEMENT', achievementId).catch(() => {});
+    } catch (e: any) {
+      if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2002') {
+        return { ok: true };
+      }
+      throw e;
+    }
     return { ok: true };
   }
 
   async unfavoriteAchievement(req: any, achievementId: string) {
     this.ensureAuth(req);
-    await this.prisma.achievementFavorite.deleteMany({ where: { achievementId, userId: req.auth.userId } });
+    const removed = await this.prisma.achievementFavorite.deleteMany({ where: { achievementId, userId: req.auth.userId } });
+    if (removed.count > 0) {
+      await this.events.adjustFavoriteCount('ACHIEVEMENT', achievementId, -1);
+    }
     return { ok: true };
   }
 
@@ -273,17 +310,27 @@ export class FavoritesService {
     this.ensureAuth(req);
     const artwork = await this.prisma.artwork.findUnique({ where: { id: artworkId } });
     if (!artwork) throw new NotFoundException({ code: 'NOT_FOUND', message: '浣滃搧涓嶅瓨鍦?' });
-    await this.prisma.artworkFavorite.upsert({
-      where: { artworkId_userId: { artworkId, userId: req.auth.userId } },
-      create: { artworkId, userId: req.auth.userId },
-      update: {},
-    });
+    try {
+      await this.prisma.artworkFavorite.create({
+        data: { artworkId, userId: req.auth.userId },
+      });
+      await this.events.adjustFavoriteCount('ARTWORK', artworkId, 1);
+      void this.events.recordFavorite(req, 'ARTWORK', artworkId).catch(() => {});
+    } catch (e: any) {
+      if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2002') {
+        return { ok: true };
+      }
+      throw e;
+    }
     return { ok: true };
   }
 
   async unfavoriteArtwork(req: any, artworkId: string) {
     this.ensureAuth(req);
-    await this.prisma.artworkFavorite.deleteMany({ where: { artworkId, userId: req.auth.userId } });
+    const removed = await this.prisma.artworkFavorite.deleteMany({ where: { artworkId, userId: req.auth.userId } });
+    if (removed.count > 0) {
+      await this.events.adjustFavoriteCount('ARTWORK', artworkId, -1);
+    }
     return { ok: true };
   }
 }

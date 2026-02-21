@@ -68,9 +68,48 @@ tags:
     description: 专利年费托管与工单（P1）
   - name: Alerts
     description: 告警与通知（P1）
+  - name: System
+    description: 系统健康检查与内部状态
 security:
   - BearerAuth: []
 paths:
+  /health:
+    get:
+      tags: [System]
+      summary: 健康检查
+      operationId: getHealth
+      security: []
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [ok]
+                properties:
+                  ok:
+                    type: boolean
+                  checks:
+                    type: object
+                    properties:
+                      db:
+                        type: object
+                        properties:
+                          ok:
+                            type: boolean
+                          message:
+                            type: string
+                      redis:
+                        type: object
+                        properties:
+                          ok:
+                            type: boolean
+                          message:
+                            type: string
+        "400":
+          $ref: "#/components/responses/BadRequest"
+
   /auth/wechat/mp-login:
     post:
       tags: [Auth]
@@ -582,6 +621,12 @@ paths:
           required: true
           schema:
             $ref: "#/components/schemas/Uuid"
+        - name: token
+          in: query
+          required: false
+          description: 临时访问 token（用于无需登录的下载）
+          schema:
+            type: string
       responses:
         "200":
           description: OK
@@ -590,6 +635,74 @@ paths:
               schema:
                 type: string
                 format: binary
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /files/{fileId}/preview:
+    get:
+      tags: [Files]
+      summary: 预览文件（带水印）
+      operationId: previewFile
+      security:
+        - BearerAuth: []
+        - {}
+      parameters:
+        - name: fileId
+          in: path
+          required: true
+          schema:
+            $ref: "#/components/schemas/Uuid"
+        - name: token
+          in: query
+          required: false
+          description: 临时访问 token（用于无需登录的预览）
+          schema:
+            type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /files/{fileId}/temporary-access:
+    post:
+      tags: [Files]
+      summary: 生成临时访问链接
+      operationId: createFileTemporaryAccess
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: fileId
+          in: path
+          required: true
+          schema:
+            $ref: "#/components/schemas/Uuid"
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/FileTemporaryAccessRequest"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FileTemporaryAccessResponse"
         "401":
           $ref: "#/components/responses/Unauthorized"
         "403":
@@ -3260,50 +3373,6 @@ paths:
         "403":
           $ref: "#/components/responses/Forbidden"
 
-  /admin/config/ai:
-    get:
-      tags: [Admin, Config, AI]
-      summary: 获取 AI 配置（后台，P1）
-      operationId: adminGetAiConfig
-      security:
-        - BearerAuth: []
-      responses:
-        "200":
-          description: OK
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/AiConfig"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "403":
-          $ref: "#/components/responses/Forbidden"
-    put:
-      tags: [Admin, Config, AI]
-      summary: 更新 AI 配置（后台，P1）
-      operationId: adminUpdateAiConfig
-      security:
-        - BearerAuth: []
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/AiConfigUpdateRequest"
-      responses:
-        "200":
-          description: OK
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/AiConfig"
-        "400":
-          $ref: "#/components/responses/BadRequest"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "403":
-          $ref: "#/components/responses/Forbidden"
-
   /admin/config/alerts:
     get:
       tags: [Admin, Config, Alerts]
@@ -4952,6 +5021,39 @@ paths:
         "404":
           $ref: "#/components/responses/NotFound"
 
+  /admin/orders/{orderId}/payments/manual:
+    post:
+      tags: [Admin, Payments]
+      summary: 手动确认订单支付
+      operationId: adminManualConfirmPayment
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/OrderId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ManualPaymentConfirmRequest"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ManualPaymentConfirmResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+
   /admin/orders/{orderId}/milestones/contract-signed:
     post:
       tags: [Admin]
@@ -4976,6 +5078,8 @@ paths:
                 signedAt:
                   type: string
                   format: date-time
+                remark:
+                  type: string
       responses:
         "200":
           description: OK
@@ -5013,6 +5117,8 @@ paths:
                 completedAt:
                   type: string
                   format: date-time
+                remark:
+                  type: string
       responses:
         "200":
           description: OK
@@ -5236,6 +5342,40 @@ paths:
         "409":
           $ref: "#/components/responses/Conflict"
 
+  /admin/refund-requests/{refundRequestId}/complete:
+    post:
+      tags: [Admin]
+      summary: 退款完成确认
+      operationId: adminCompleteRefundRequest
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/RefundRequestId"
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RefundRequestCompleteRequest"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RefundRequest"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+
   /public/announcements:
     get:
       tags: [Users]
@@ -5272,6 +5412,199 @@ paths:
                 $ref: "#/components/schemas/Announcement"
         "404":
           $ref: "#/components/responses/NotFound"
+
+  /admin/announcements:
+    get:
+      tags: [Admin, Notifications]
+      summary: List announcements (admin)
+      operationId: adminListAnnouncements
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: status
+          in: query
+          required: false
+          schema:
+            $ref: "#/components/schemas/AnnouncementStatus"
+        - name: q
+          in: query
+          required: false
+          schema:
+            type: string
+        - $ref: "#/components/parameters/Page"
+        - $ref: "#/components/parameters/PageSize"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PagedAnnouncement"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+    post:
+      tags: [Admin, Notifications]
+      summary: Create announcement (admin)
+      operationId: adminCreateAnnouncement
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AnnouncementCreateRequest"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Announcement"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+
+  /admin/announcements/{announcementId}:
+    patch:
+      tags: [Admin, Notifications]
+      summary: Update announcement (admin)
+      operationId: adminUpdateAnnouncement
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/AnnouncementId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AnnouncementUpdateRequest"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Announcement"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+    delete:
+      tags: [Admin, Notifications]
+      summary: Delete announcement (admin)
+      operationId: adminDeleteAnnouncement
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/AnnouncementId"
+      responses:
+        "204":
+          description: No Content
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /admin/announcements/{announcementId}/publish:
+    post:
+      tags: [Admin, Notifications]
+      summary: Publish announcement (admin)
+      operationId: adminPublishAnnouncement
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/AnnouncementId"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Announcement"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /admin/announcements/{announcementId}/off-shelf:
+    post:
+      tags: [Admin, Notifications]
+      summary: Off-shelf announcement (admin)
+      operationId: adminOffShelfAnnouncement
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/AnnouncementId"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Announcement"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /admin/audit-logs:
+    get:
+      tags: [Admin]
+      summary: List audit logs
+      operationId: adminListAuditLogs
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: targetType
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: targetId
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: actorUserId
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: action
+          in: query
+          required: false
+          schema:
+            type: string
+        - $ref: "#/components/parameters/Page"
+        - $ref: "#/components/parameters/PageSize"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PagedAuditLog"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
 
   /admin/orders/{orderId}:
     get:
@@ -5328,6 +5661,31 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/PagedCase"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+    post:
+      tags: [Admin, Cases]
+      summary: Create case
+      operationId: adminCreateCase
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CaseCreateRequest"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CaseRecord"
         "400":
           $ref: "#/components/responses/BadRequest"
         "401":
@@ -6494,7 +6852,7 @@ components:
           type: string
       style: form
       explode: true
-      description: IPC ?????????? H04L?
+      description: IPC 细分分类号，例如 H04L
 
     Loc:
       name: locarno
@@ -6506,7 +6864,7 @@ components:
           type: string
       style: form
       explode: true
-      description: Locarno ?????????? 12-01?
+      description: Locarno 细分分类号，例如 12-01
 
     LegalStatus:
       name: legalStatus
@@ -7370,6 +7728,35 @@ components:
         createdAt:
           type: string
           format: date-time
+
+    FileTemporaryAccessScope:
+      type: string
+      enum: [download, preview]
+
+    FileTemporaryAccessRequest:
+      type: object
+      properties:
+        scope:
+          $ref: "#/components/schemas/FileTemporaryAccessScope"
+        expiresInSeconds:
+          type: integer
+          minimum: 0
+        ttlSeconds:
+          type: integer
+          minimum: 0
+
+    FileTemporaryAccessResponse:
+      type: object
+      required: [url, expiresAt, scope]
+      properties:
+        url:
+          type: string
+          format: uri
+        expiresAt:
+          type: string
+          format: date-time
+        scope:
+          $ref: "#/components/schemas/FileTemporaryAccessScope"
 
     Jurisdiction:
       type: string
@@ -9173,6 +9560,44 @@ components:
       type: string
       enum: [DEPOSIT, FINAL]
 
+    PaymentStatus:
+      type: string
+      enum: [PENDING, PAID, FAILED]
+
+    ManualPaymentConfirmRequest:
+      type: object
+      required: [payType]
+      properties:
+        payType:
+          $ref: "#/components/schemas/PayType"
+        amountFen:
+          $ref: "#/components/schemas/MoneyFen"
+        paidAt:
+          type: string
+          format: date-time
+        tradeNo:
+          type: string
+
+    ManualPaymentConfirmResponse:
+      type: object
+      required: [paymentId, orderId, payType, status, amountFen]
+      properties:
+        paymentId:
+          $ref: "#/components/schemas/Uuid"
+        orderId:
+          $ref: "#/components/schemas/Uuid"
+        payType:
+          $ref: "#/components/schemas/PayType"
+        status:
+          $ref: "#/components/schemas/PaymentStatus"
+        amountFen:
+          $ref: "#/components/schemas/MoneyFen"
+        paidAt:
+          type: string
+          format: date-time
+        tradeNo:
+          type: string
+
     PaymentIntentResponse:
       type: object
       required: [paymentId, payType, channel, amountFen, wechatPayParams]
@@ -9337,6 +9762,13 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/Uuid"
+
+    RefundRequestCompleteRequest:
+      type: object
+      properties:
+        remark:
+          type: string
+          maxLength: 500
 
     RefundRequest:
       type: object
@@ -10434,65 +10866,6 @@ components:
         page:
           $ref: "#/components/schemas/PageMeta"
 
-    AiConfig:
-      type: object
-      required: [enabled]
-      properties:
-        enabled:
-          type: boolean
-        voiceEnabled:
-          type: boolean
-        asrProvider:
-          type: string
-        llmProvider:
-          type: string
-        hotwords:
-          type: array
-          items:
-            type: string
-        agentModelVersion:
-          type: string
-        parseModelVersion:
-          type: string
-        confidenceThreshold:
-          type: number
-          format: double
-        reviewThreshold:
-          type: number
-          format: double
-        maxInputSeconds:
-          type: integer
-          minimum: 1
-
-    AiConfigUpdateRequest:
-      type: object
-      properties:
-        enabled:
-          type: boolean
-        voiceEnabled:
-          type: boolean
-        asrProvider:
-          type: string
-        llmProvider:
-          type: string
-        hotwords:
-          type: array
-          items:
-            type: string
-        agentModelVersion:
-          type: string
-        parseModelVersion:
-          type: string
-        confidenceThreshold:
-          type: number
-          format: double
-        reviewThreshold:
-          type: number
-          format: double
-        maxInputSeconds:
-          type: integer
-          minimum: 1
-
     AlertSeverity:
       type: string
       enum: [LOW, MEDIUM, HIGH]
@@ -10997,9 +11370,32 @@ components:
           items:
             $ref: "#/components/schemas/AuditLog"
 
+    PagedAuditLog:
+      type: object
+      required: [items, page]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/AuditLog"
+        page:
+          $ref: "#/components/schemas/PageMeta"
+
+    AnnouncementStatus:
+      type: string
+      enum: [DRAFT, PUBLISHED, OFF_SHELF]
+
+    AnnouncementRelatedPatent:
+      type: object
+      properties:
+        name:
+          type: string
+        patentNo:
+          type: string
+
     Announcement:
       type: object
-      required: [id, title, createdAt]
+      required: [id, title, status, createdAt, updatedAt]
       properties:
         id:
           $ref: "#/components/schemas/Uuid"
@@ -11011,13 +11407,35 @@ components:
         content:
           type: string
           nullable: true
+        publisherName:
+          type: string
+          nullable: true
+        issueNo:
+          type: string
+          nullable: true
+        sourceUrl:
+          type: string
+          format: uri
+          nullable: true
+        tags:
+          type: array
+          items:
+            type: string
+        relatedPatents:
+          type: array
+          items:
+            $ref: "#/components/schemas/AnnouncementRelatedPatent"
+        status:
+          $ref: "#/components/schemas/AnnouncementStatus"
         createdAt:
           type: string
           format: date-time
         publishedAt:
           type: string
           format: date-time
-          nullable: true
+        updatedAt:
+          type: string
+          format: date-time
 
     PagedAnnouncement:
       type: object
@@ -11029,6 +11447,61 @@ components:
             $ref: "#/components/schemas/Announcement"
         page:
           $ref: "#/components/schemas/PageMeta"
+
+    AnnouncementCreateRequest:
+      type: object
+      required: [title]
+      properties:
+        title:
+          type: string
+        summary:
+          type: string
+        content:
+          type: string
+        publisherName:
+          type: string
+        issueNo:
+          type: string
+        sourceUrl:
+          type: string
+          format: uri
+        tags:
+          type: array
+          items:
+            type: string
+        relatedPatents:
+          type: array
+          items:
+            $ref: "#/components/schemas/AnnouncementRelatedPatent"
+        status:
+          $ref: "#/components/schemas/AnnouncementStatus"
+
+    AnnouncementUpdateRequest:
+      type: object
+      properties:
+        title:
+          type: string
+        summary:
+          type: string
+        content:
+          type: string
+        publisherName:
+          type: string
+        issueNo:
+          type: string
+        sourceUrl:
+          type: string
+          format: uri
+        tags:
+          type: array
+          items:
+            type: string
+        relatedPatents:
+          type: array
+          items:
+            $ref: "#/components/schemas/AnnouncementRelatedPatent"
+        status:
+          $ref: "#/components/schemas/AnnouncementStatus"
 
     NotificationKind:
       type: string
@@ -11403,6 +11876,29 @@ components:
         slaStatus:
           $ref: "#/components/schemas/CaseSlaStatus"
           nullable: true
+
+    CaseCreateRequest:
+      type: object
+      properties:
+        title:
+          type: string
+        type:
+          $ref: "#/components/schemas/CaseType"
+        status:
+          $ref: "#/components/schemas/CaseStatus"
+        priority:
+          $ref: "#/components/schemas/CasePriority"
+        requesterName:
+          type: string
+        description:
+          type: string
+        orderId:
+          $ref: "#/components/schemas/Uuid"
+        assigneeId:
+          $ref: "#/components/schemas/Uuid"
+        dueAt:
+          type: string
+          format: date-time
 
     PagedCase:
       type: object

@@ -7,8 +7,10 @@ export const ADMIN_ROLE_PERMISSIONS: Record<AdminRoleName, string[]> = {
     'verification.review',
     'listing.read',
     'listing.audit',
+    'announcement.manage',
     'order.read',
     'case.manage',
+    'maintenance.manage',
     'refund.read',
     'refund.approve',
     'refund.reject',
@@ -16,6 +18,7 @@ export const ADMIN_ROLE_PERMISSIONS: Record<AdminRoleName, string[]> = {
     'config.manage',
     'report.read',
     'report.export',
+    'alert.manage',
     'auditLog.read',
   ],
   cs: [
@@ -23,6 +26,7 @@ export const ADMIN_ROLE_PERMISSIONS: Record<AdminRoleName, string[]> = {
     'listing.read',
     'order.read',
     'case.manage',
+    'maintenance.manage',
     'milestone.contractSigned.confirm',
     'milestone.transferCompleted.confirm',
     'refund.read',
@@ -35,11 +39,15 @@ export const ADMIN_ROLE_PERMISSIONS: Record<AdminRoleName, string[]> = {
     'refund.read',
     'refund.approve',
     'refund.reject',
+    'refund.complete',
+    'payment.manual.confirm',
     'settlement.read',
     'payout.manual.confirm',
     'invoice.manage',
     'report.read',
     'report.export',
+    'alert.manage',
+    'announcement.manage',
     'auditLog.read',
   ],
 };
@@ -54,13 +62,17 @@ export function resolvePermissions(roleNames: AdminRoleName[]) {
 
 export function resolvePermissionsFromRoleIds(
   roleIds: string[],
-  roles: Array<{ id: string; permissionIds?: string[] | null }>,
+  roles: Array<{ id: string; permissionIds?: unknown }>,
 ) {
   const out = new Set<string>();
   const roleMap = new Map<string, string[]>();
   roles.forEach((role) => {
     if (role?.id) {
-      roleMap.set(role.id, Array.isArray(role.permissionIds) ? role.permissionIds : []);
+      const raw = role.permissionIds;
+      const normalized = Array.isArray(raw)
+        ? raw.filter((item): item is string => typeof item === 'string')
+        : [];
+      roleMap.set(role.id, normalized);
     }
   });
 

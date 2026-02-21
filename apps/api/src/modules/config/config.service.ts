@@ -108,6 +108,21 @@ export type HotSearchConfig = {
   keywords: string[];
 };
 
+export type AlertRule = {
+  type: string;
+  severity: 'LOW' | 'MEDIUM' | 'HIGH';
+  channels: Array<'SMS' | 'EMAIL' | 'IN_APP'>;
+  enabled: boolean;
+  threshold?: number;
+  cooldownMinutes?: number;
+};
+
+export type AlertConfig = {
+  enabled: boolean;
+  defaultChannels?: Array<'SMS' | 'EMAIL' | 'IN_APP'>;
+  rules: AlertRule[];
+};
+
 const KEY_TRADE_RULES = 'trade_rules';
 const KEY_RECOMMENDATION = 'recommendation_config';
 const KEY_BANNER = 'banner_config';
@@ -116,6 +131,7 @@ const KEY_PATENT_CLUSTERS = 'patent_clusters_config';
 const KEY_TAXONOMY = 'taxonomy_config';
 const KEY_SENSITIVE = 'sensitive_words_config';
 const KEY_HOT_SEARCH = 'hot_search_config';
+const KEY_ALERT_CONFIG = 'alert_config';
 
 const DEFAULT_TRADE_RULES: TradeRulesConfig = {
   version: 1,
@@ -268,6 +284,31 @@ function buildDefaultSensitiveWords(): SensitiveWordsConfig {
 function buildDefaultHotSearch(): HotSearchConfig {
   return {
     keywords: ['Patent Transfer', 'High-Tech Retired', 'Industry Cluster'],
+  };
+}
+
+function buildDefaultAlertConfig(): AlertConfig {
+  return {
+    enabled: false,
+    defaultChannels: ['IN_APP'],
+    rules: [
+      {
+        type: 'order.refund',
+        severity: 'HIGH',
+        channels: ['IN_APP'],
+        enabled: true,
+        threshold: 1,
+        cooldownMinutes: 30,
+      },
+      {
+        type: 'payment.failed',
+        severity: 'MEDIUM',
+        channels: ['IN_APP'],
+        enabled: true,
+        threshold: 1,
+        cooldownMinutes: 60,
+      },
+    ],
   };
 }
 
@@ -493,5 +534,41 @@ export class ConfigService {
       },
     });
     return next;
+  }
+
+  async getAlertConfig(): Promise<AlertConfig> {
+    const fallback = buildDefaultAlertConfig();
+    const row = await this.ensureJsonConfig(KEY_ALERT_CONFIG, fallback);
+    try {
+      const parsed = JSON.parse(row.value) as Partial<AlertConfig>;
+      return {
+        ...fallback,
+        ...parsed,
+        rules: parsed.rules ?? fallback.rules,
+        defaultChannels: parsed.defaultChannels ?? fallback.defaultChannels,
+      };
+    } catch {
+      return fallback;
+    }
+  }
+
+  async updateAlertConfig(next: Partial<AlertConfig>): Promise<AlertConfig> {
+    const current = await this.getAlertConfig();
+    const row = await this.ensureJsonConfig(KEY_ALERT_CONFIG, buildDefaultAlertConfig());
+    const payload: AlertConfig = {
+      enabled: typeof next.enabled === 'boolean' ? next.enabled : current.enabled,
+      defaultChannels: next.defaultChannels ?? current.defaultChannels,
+      rules: next.rules ?? current.rules,
+    };
+    await this.prisma.systemConfig.update({
+      where: { key: KEY_ALERT_CONFIG },
+      data: {
+        valueType: SystemConfigValueType.JSON,
+        scope: SystemConfigScope.GLOBAL,
+        value: JSON.stringify(payload),
+        version: row.version + 1,
+      },
+    });
+    return payload;
   }
 }

@@ -2,8 +2,10 @@
 import { DeliveryPeriod, Prisma } from '@prisma/client';
 
 import { AuditLogService } from '../../common/audit-log.service';
+import { ContentEventService } from '../../common/content-event.service';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { buildPublisherMap, mapContentMedia, mapStats, normalizeMediaInput, normalizeStringArray } from '../content-utils';
+import { ConfigService, type RecommendationConfig } from '../config/config.service';
 import { NotificationsService } from '../notifications/notifications.service';
 
 type Paged<T> = { items: T[]; page: { page: number; pageSize: number; total: number } };
@@ -42,6 +44,8 @@ export class DemandsService {
     private readonly prisma: PrismaService,
     private readonly audit: AuditLogService,
     private readonly notifications: NotificationsService,
+    private readonly events: ContentEventService,
+    private readonly config: ConfigService,
   ) {}
 
   private ensureAuth(req: any) {
@@ -96,6 +100,56 @@ export class DemandsService {
     return Math.floor(num);
   }
 
+  private normalizeWeight(value: unknown, fallback = 0) {
+    const num = Number(value);
+    return Number.isFinite(num) ? num : fallback;
+  }
+
+  private computeRecommendationScore(
+    item: { createdAt?: Date; regionCode?: string | null; stats?: any },
+    config: RecommendationConfig,
+    regionCode: string | null,
+    nowMs: number,
+  ) {
+    const weights = config?.weights || {
+      time: 1,
+      view: 1,
+      favorite: 1,
+      consult: 1,
+      region: 0,
+      user: 0,
+    };
+    const timeWeight = this.normalizeWeight(weights.time, 0);
+    const viewWeight = this.normalizeWeight(weights.view, 0);
+    const favoriteWeight = this.normalizeWeight(weights.favorite, 0);
+    const consultWeight = this.normalizeWeight(weights.consult, 0);
+    const regionWeight = this.normalizeWeight(weights.region, 0);
+    const userWeight = this.normalizeWeight(weights.user, 0);
+
+    const halfLifeHours = Math.max(1, this.normalizeWeight(config?.timeDecayHalfLifeHours, 72));
+    const createdAt = item?.createdAt instanceof Date ? item.createdAt.getTime() : nowMs;
+    const ageHours = Math.max(0, (nowMs - createdAt) / (1000 * 3600));
+    const decay = Math.pow(0.5, ageHours / halfLifeHours);
+
+    const stats = item?.stats ?? {};
+    const viewCount = Math.max(0, this.normalizeWeight(stats.viewCount, 0));
+    const favoriteCount = Math.max(0, this.normalizeWeight(stats.favoriteCount, 0));
+    const consultCount = Math.max(0, this.normalizeWeight(stats.consultCount, 0));
+
+    const normalizedRegion = regionCode ? String(regionCode) : '';
+    const regionMatch = normalizedRegion && item?.regionCode === normalizedRegion ? 1 : 0;
+    const tagSimilarity = 0;
+
+    return (
+      timeWeight * decay +
+      viewWeight * Math.log1p(viewCount) +
+      favoriteWeight * Math.log1p(favoriteCount) +
+      consultWeight * Math.log1p(consultCount) +
+      regionWeight * regionMatch +
+      userWeight * tagSimilarity
+    );
+  }
+
   private asArray(value: unknown): string[] {
     return Array.isArray(value) ? (value as string[]) : [];
   }
@@ -140,7 +194,15 @@ export class DemandsService {
 
   private toPublic(item: DemandRecord, publisherMap: Record<string, any>) {
     const dto = this.buildDemandDto(item, publisherMap);
-    const { contactName, contactTitle, contactPhoneMasked, publisherUserId, coverFileId, updatedAt, ...rest } = dto;
+    const {
+      contactName: _contactName,
+      contactTitle: _contactTitle,
+      contactPhoneMasked: _contactPhoneMasked,
+      publisherUserId: _publisherUserId,
+      coverFileId: _coverFileId,
+      updatedAt: _updatedAt,
+      ...rest
+    } = dto;
     return rest;
   }
 
@@ -390,6 +452,50 @@ export class DemandsService {
       ];
     }
 
+    if (sortBy === 'RECOMMENDED') {
+      const recommendation = await this.config.getRecommendation();
+      if (recommendation?.enabled) {
+        const rows = await this.prisma.demand.findMany({
+          where,
+          select: {
+            id: true,
+            createdAt: true,
+            regionCode: true,
+            stats: { select: { viewCount: true, favoriteCount: true, consultCount: true } },
+          },
+        });
+        const nowMs = Date.now();
+        const scored = rows.map((row: any) => ({
+          id: row.id,
+          score: this.computeRecommendationScore(row, recommendation, regionCode || null, nowMs),
+          createdAt: row.createdAt instanceof Date ? row.createdAt : new Date(0),
+        }));
+        scored.sort((a, b) => (b.score !== a.score ? b.score - a.score : b.createdAt.getTime() - a.createdAt.getTime()));
+        const total = scored.length;
+        const start = (page - 1) * pageSize;
+        const pageIds = scored.slice(start, start + pageSize).map((item) => item.id);
+
+        const items = pageIds.length
+          ? await this.prisma.demand.findMany({
+              where: { id: { in: pageIds } },
+              include: { coverFile: true, media: { include: { file: true } }, stats: true },
+            })
+          : [];
+
+        const itemMap = new Map(items.map((item: any) => [item.id, item]));
+        const ordered = pageIds.map((id) => itemMap.get(id)).filter(Boolean) as DemandRecord[];
+        const publisherMap = await buildPublisherMap(
+          this.prisma,
+          ordered.map((item) => item.publisherUserId),
+        );
+
+        return {
+          items: ordered.map((item) => this.toPublic(item as DemandRecord, publisherMap)),
+          page: { page, pageSize, total },
+        };
+      }
+    }
+
     const orderBy: Prisma.DemandOrderByWithRelationInput = { createdAt: 'desc' };
 
     const [items, total] = await Promise.all([
@@ -414,9 +520,10 @@ export class DemandsService {
     };
   }
 
-  async getPublic(demandId: string) {
+  async getPublic(req: any, demandId: string) {
     const item = await this.fetchDemand(demandId);
     if (!item) throw new NotFoundException({ code: 'NOT_FOUND', message: '闇€姹備笉瀛樺湪' });
+    void this.events.recordView(req, 'DEMAND', demandId).catch(() => {});
     const publisherMap = await buildPublisherMap(this.prisma, [item.publisherUserId]);
     return this.toPublic(item as DemandRecord, publisherMap);
   }

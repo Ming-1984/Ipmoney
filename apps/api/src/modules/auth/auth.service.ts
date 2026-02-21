@@ -1,4 +1,5 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
+import type { Prisma } from '@prisma/client';
 type User = {
   id: string;
   phone?: string | null;
@@ -11,6 +12,7 @@ type User = {
 };
 
 import { PrismaService } from '../../common/prisma/prisma.service';
+import { getDemoAuthConfig } from '../../common/demo';
 
 const PHONE_RE = /^[0-9]{6,20}$/;
 
@@ -35,6 +37,14 @@ export type AuthTokenResponseDto = {
 export class AuthService {
   constructor(private readonly prisma: PrismaService) {}
 
+  private ensureDemoAuthEnabled() {
+    const config = getDemoAuthConfig();
+    if (!config.enabled) {
+      throw new BadRequestException({ code: 'NOT_IMPLEMENTED', message: 'demo auth disabled' });
+    }
+    return config;
+  }
+
   private assertPhone(phone: string) {
     const p = String(phone || '').trim();
     if (!p) throw new BadRequestException({ code: 'BAD_REQUEST', message: 'phone is required' });
@@ -45,6 +55,7 @@ export class AuthService {
   }
 
   async sendSmsCode(phone: string, purpose: string) {
+    this.ensureDemoAuthEnabled();
     void purpose;
     this.assertPhone(phone);
     return { cooldownSeconds: 60 };
@@ -71,6 +82,7 @@ export class AuthService {
   }
 
   async smsVerifyLogin(phone: string, code: string): Promise<AuthTokenResponseDto> {
+    this.ensureDemoAuthEnabled();
     const p = this.assertPhone(phone);
     const c = String(code || '').trim();
     if (c.length < 4 || c.length > 8) {
@@ -95,30 +107,39 @@ export class AuthService {
   }
 
   async wechatMpLogin(code: string): Promise<AuthTokenResponseDto> {
+    const demoConfig = this.ensureDemoAuthEnabled();
     const c = String(code || '').trim();
     if (!c) throw new BadRequestException({ code: 'BAD_REQUEST', message: 'code is required' });
 
     // P0: demo user placeholder; real implementation should map code to openid and bind phone.
+    const demoUpdate: Prisma.UserUncheckedUpdateInput = {};
+    if (demoConfig.userNickname) demoUpdate.nickname = demoConfig.userNickname;
+    if (demoConfig.userPhone) demoUpdate.phone = demoConfig.userPhone;
+    if (demoConfig.userRegionCode) demoUpdate.regionCode = demoConfig.userRegionCode;
+
+    const demoCreate: Prisma.UserUncheckedCreateInput = {
+      id: demoConfig.userId as string,
+      role: 'buyer',
+    };
+    if (demoConfig.userPhone) demoCreate.phone = demoConfig.userPhone;
+    if (demoConfig.userNickname) demoCreate.nickname = demoConfig.userNickname;
+    if (demoConfig.userRegionCode) demoCreate.regionCode = demoConfig.userRegionCode;
+
     const demoUser = await this.prisma.user.upsert({
-      where: { id: '99999999-9999-9999-9999-999999999999' },
-      update: {},
-      create: {
-        id: '99999999-9999-9999-9999-999999999999',
-        phone: null,
-        role: 'buyer',
-        nickname: 'Demo User',
-        regionCode: '110000',
-      },
+      where: { id: demoConfig.userId as string },
+      update: demoUpdate,
+      create: demoCreate,
     });
 
     return {
-      accessToken: 'demo-token',
+      accessToken: demoConfig.userToken as string,
       expiresInSeconds: Number(process.env.JWT_EXPIRES_IN_SECONDS || 7200),
       user: await this.toUserProfile(demoUser),
     };
   }
 
   async wechatPhoneBind(userId: string, phoneCode: string): Promise<{ phone: string }> {
+    this.ensureDemoAuthEnabled();
     const uid = String(userId || '').trim();
     if (!uid) {
       throw new BadRequestException({ code: 'UNAUTHORIZED', message: 'Unauthorized' });
