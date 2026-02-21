@@ -5,8 +5,8 @@ import './index.scss';
 
 import type { components } from '@ipmoney/api-types';
 
-import logoGif from '../../assets/brand/logo.gif';
-import promoCertificateGif from '../../assets/home/promo-certificate.gif';
+import logoPng from '../../assets/brand/logo.png';
+import promoCertificatePng from '../../assets/home/promo-certificate.png';
 
 // Feature zone background images (poster cards in "特色专区")
 import bgZoneSleeping from '../../assets/home/zones/zone-sleeping.jpg';
@@ -26,12 +26,13 @@ import homeIconArtZone from '../../assets/icons/home/home-art-zone.svg';
 import homeIconDemand from '../../assets/icons/home/home-demand.svg';
 import homeIconAchievement from '../../assets/icons/home/home-achievement.svg';
 import { STORAGE_KEYS } from '../../constants';
-import { getToken } from '../../lib/auth';
+import { getToken, onAuthChanged } from '../../lib/auth';
 import { apiGet } from '../../lib/api';
 import { syncFavorites } from '../../lib/favorites';
 import { EmptyCard, ErrorCard } from '../../ui/StateCards';
 import { toast } from '../../ui/nutui';
 import { ListingCard } from '../../ui/ListingCard';
+import { ListingListSkeleton } from '../../ui/ListingSkeleton';
 
 type PagedListingSummary = components['schemas']['PagedListingSummary'];
 type ListingSummary = components['schemas']['ListingSummary'];
@@ -82,6 +83,8 @@ export default function HomePage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [data, setData] = useState<PagedListingSummary | null>(null);
+  const [recommendMode, setRecommendMode] = useState<'RECOMMEND' | 'NEWEST'>('NEWEST');
+  const [isAuthed, setIsAuthed] = useState(Boolean(getToken()));
   const [keyword, setKeyword] = useState('');
   const [announcementLoading, setAnnouncementLoading] = useState(true);
   const [announcementError, setAnnouncementError] = useState<string | null>(null);
@@ -102,23 +105,35 @@ export default function HomePage() {
     return { paddingTop: `${top}px` };
   }, [statusBarHeight]);
 
+  useEffect(() => onAuthChanged(() => setIsAuthed(Boolean(getToken()))), []);
+
   const load = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      const d = await apiGet<PagedListingSummary>('/search/listings', {
-        sortBy: 'NEWEST',
-        page: 1,
-        pageSize: 5,
-      });
-      setData(d);
+      if (isAuthed) {
+        const d = await apiGet<PagedListingSummary>('/me/recommendations/listings', {
+          page: 1,
+          pageSize: 5,
+        });
+        setData(d);
+        setRecommendMode('RECOMMEND');
+      } else {
+        const d = await apiGet<PagedListingSummary>('/search/listings', {
+          sortBy: 'NEWEST',
+          page: 1,
+          pageSize: 5,
+        });
+        setData(d);
+        setRecommendMode('NEWEST');
+      }
     } catch (e: any) {
       setError(e?.message || '加载失败');
       setData(null);
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [isAuthed]);
 
   useEffect(() => {
     void load();
@@ -159,30 +174,29 @@ export default function HomePage() {
     if (q) {
       Taro.setStorageSync(STORAGE_KEYS.searchPrefill, { q, tab: 'LISTING' });
     }
-    Taro.navigateTo({ url: '/pages/search/index' });
+    Taro.navigateTo({ url: '/subpackages/search/index' });
   }, []);
 
-  const goMap = useCallback(() => Taro.navigateTo({ url: '/pages/patent-map/index' }), []);
-  const goInventors = useCallback(() => Taro.navigateTo({ url: '/pages/inventors/index' }), []);
+  const goMap = useCallback(() => Taro.navigateTo({ url: '/subpackages/patent-map/index' }), []);
+  const goInventors = useCallback(() => Taro.navigateTo({ url: '/subpackages/inventors/index' }), []);
   const goArtworks = useCallback(() => {
     Taro.setStorageSync(STORAGE_KEYS.searchPrefill, { tab: 'ARTWORK', reset: true });
-    Taro.navigateTo({ url: '/pages/search/index' });
+    Taro.navigateTo({ url: '/subpackages/search/index' });
   }, []);
   const goAchievements = useCallback(() => {
     Taro.setStorageSync(STORAGE_KEYS.searchPrefill, { tab: 'ACHIEVEMENT', reset: true });
-    Taro.navigateTo({ url: '/pages/search/index' });
+    Taro.navigateTo({ url: '/subpackages/search/index' });
   }, []);
   const goPatentExplore = useCallback(() => {
     Taro.setStorageSync(STORAGE_KEYS.searchPrefill, { tab: 'LISTING', reset: true });
-    Taro.navigateTo({ url: '/pages/search/index' });
+    Taro.navigateTo({ url: '/subpackages/search/index' });
   }, []);
   const goDemandSearch = useCallback(() => {
     Taro.setStorageSync(STORAGE_KEYS.searchPrefill, { tab: 'DEMAND', reset: true });
-    Taro.navigateTo({ url: '/pages/search/index' });
+    Taro.navigateTo({ url: '/subpackages/search/index' });
   }, []);
-  const goTechManagers = useCallback(() => Taro.switchTab({ url: '/pages/tech-managers/index' }), []);
-  const goAnnouncements = useCallback(() => Taro.navigateTo({ url: '/pages/announcements/index' }), []);
-  const goClusterPicker = useCallback(() => Taro.navigateTo({ url: '/pages/cluster-picker/index' }), []);
+  const goAnnouncements = useCallback(() => Taro.navigateTo({ url: '/subpackages/announcements/index' }), []);
+  const goClusterPicker = useCallback(() => Taro.navigateTo({ url: '/subpackages/cluster-picker/index' }), []);
   const goSleepingPatent = useCallback(() => {
     Taro.setStorageSync(STORAGE_KEYS.searchPrefill, {
       tab: 'LISTING',
@@ -190,7 +204,7 @@ export default function HomePage() {
       transferCountMax: 0,
       reset: true,
     });
-    Taro.navigateTo({ url: '/pages/search/index' });
+    Taro.navigateTo({ url: '/subpackages/search/index' });
   }, []);
   const goHighTechRetired = useCallback(() => {
     Taro.setStorageSync(STORAGE_KEYS.searchPrefill, {
@@ -198,7 +212,7 @@ export default function HomePage() {
       listingTopic: 'HIGH_TECH_RETIRED',
       reset: true,
     });
-    Taro.navigateTo({ url: '/pages/search/index' });
+    Taro.navigateTo({ url: '/subpackages/search/index' });
   }, []);
   const goOpenLicense = useCallback(() => {
     Taro.setStorageSync(STORAGE_KEYS.searchPrefill, {
@@ -206,7 +220,7 @@ export default function HomePage() {
       tradeMode: 'LICENSE',
       reset: true,
     });
-    Taro.navigateTo({ url: '/pages/search/index' });
+    Taro.navigateTo({ url: '/subpackages/search/index' });
   }, []);
 
   const quickEntries: QuickEntry[] = useMemo(
@@ -268,7 +282,7 @@ export default function HomePage() {
         <View className="home-hero-top">
           <View className="home-hero-brand">
             <View className="home-hero-logo">
-              <Image src={logoGif} mode="aspectFit" className="home-hero-logo-img" />
+              <Image src={logoPng} mode="aspectFit" className="home-hero-logo-img" />
             </View>
             <View className="home-hero-text">
               <Text className="home-hero-title">IPMONEY</Text>
@@ -333,7 +347,7 @@ export default function HomePage() {
 
       <View className="home-banner">
         <View className="home-banner-item">
-          <Image src={promoCertificateGif} mode="aspectFill" className="home-banner-img" />
+          <Image src={promoCertificatePng} mode="aspectFill" className="home-banner-img" />
         </View>
       </View>
 
@@ -366,16 +380,22 @@ export default function HomePage() {
         <View className="home-section-header">
           <View className="home-section-title-wrap">
             <View className="home-section-accent" />
-            <Text className="home-section-title">最新专利</Text>
+            <Text className="home-section-title">
+              {recommendMode === 'RECOMMEND' ? '为你推荐' : '最新专利'}
+            </Text>
           </View>
         </View>
 
         {loading ? (
-          <View className="home-loading">加载中…</View>
+          <ListingListSkeleton count={3} />
         ) : error ? (
           <ErrorCard message={error} onRetry={load} />
         ) : !items.length ? (
-          <EmptyCard message="暂无推荐内容" actionText="刷新" onAction={load} />
+          <EmptyCard
+            message={recommendMode === 'RECOMMEND' ? '暂无推荐内容' : '暂无最新内容'}
+            actionText="刷新"
+            onAction={load}
+          />
         ) : (
           <View className="search-card-list">
             {items.map((it: ListingSummary) => (
@@ -384,7 +404,7 @@ export default function HomePage() {
                 item={it}
                 favorited={false}
                 onClick={() => {
-                  Taro.navigateTo({ url: `/pages/listing/detail/index?listingId=${it.id}` });
+                  Taro.navigateTo({ url: `/subpackages/listing/detail/index?listingId=${it.id}` });
                 }}
                 onFavorite={() => {}}
                 onConsult={() => {}}

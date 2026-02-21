@@ -18,7 +18,6 @@ function getRouterEl() {
 
 function warn(lines: string[]) {
   if (typeof console === 'undefined') return;
-  // eslint-disable-next-line no-console
   console.warn(['[dom-guard]', ...lines].join('\n'));
 }
 
@@ -110,4 +109,3 @@ export function installH5DomGuard(options: DomGuardOptions) {
     observer.disconnect();
   };
 }
-

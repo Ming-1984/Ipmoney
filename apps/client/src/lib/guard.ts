@@ -1,7 +1,7 @@
 import Taro, { useDidShow } from '@tarojs/taro';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
-import { getToken, getVerificationStatus, isOnboardingDone } from './auth';
+import { getToken, getVerificationStatus, isOnboardingDone, onAuthChanged } from './auth';
 import { toast } from '../ui/nutui';
 
 export type PageAccessPolicy = 'public' | 'login-required' | 'approved-required';
@@ -45,15 +45,64 @@ export function usePageAccess(
     onShow?.(next);
   });
 
+  useEffect(() => {
+    const off = onAuthChanged(() => {
+      const next = getPageAccess(policy);
+      setAccess(next);
+    });
+    return () => off();
+  }, [policy]);
+
   return access;
 }
 
-export function goLogin() {
-  Taro.navigateTo({ url: '/pages/login/index' });
+const LOGIN_URL = '/subpackages/login/index';
+const ONBOARDING_URL = '/subpackages/onboarding/choose-identity/index';
+
+function buildQuery(params?: Record<string, any>): string {
+  if (!params) return '';
+  const parts: string[] = [];
+  for (const [key, value] of Object.entries(params)) {
+    if (value === undefined || value === null || value === '') continue;
+    parts.push(`${encodeURIComponent(key)}=${encodeURIComponent(String(value))}`);
+  }
+  return parts.join('&');
+}
+
+export function getCurrentPageUrl(): string | null {
+  try {
+    const pages = Taro.getCurrentPages?.() ?? [];
+    const current = pages[pages.length - 1] as any;
+    if (!current) return null;
+    const route = String(current.route || current.__route__ || '').trim();
+    if (route) {
+      const path = route.startsWith('/') ? route : `/${route}`;
+      const query = buildQuery(current.options || {});
+      return query ? `${path}?${query}` : path;
+    }
+    const taroPath = typeof current.$taroPath === 'string' ? current.$taroPath : '';
+    if (!taroPath) return null;
+    return taroPath.startsWith('/') ? taroPath : `/${taroPath}`;
+  } catch {
+    return null;
+  }
+}
+
+function isAuthRoute(url: string): boolean {
+  return url.startsWith(LOGIN_URL) || url.startsWith(ONBOARDING_URL);
+}
+
+export function goLogin(options?: { redirectUrl?: string }) {
+  const currentUrl = options?.redirectUrl || getCurrentPageUrl() || '';
+  if (currentUrl && isAuthRoute(currentUrl)) return;
+  const target = currentUrl
+    ? `${LOGIN_URL}?redirect=${encodeURIComponent(currentUrl)}`
+    : LOGIN_URL;
+  Taro.navigateTo({ url: target });
 }
 
 export function goOnboarding() {
-  Taro.navigateTo({ url: '/pages/onboarding/choose-identity/index' });
+  Taro.navigateTo({ url: ONBOARDING_URL });
 }
 
 export function requireLogin(): boolean {

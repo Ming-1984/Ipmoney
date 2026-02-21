@@ -1,0 +1,334 @@
+﻿import { View, Text, Image } from '@tarojs/components';
+import Taro from '@tarojs/taro';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import './index.scss';
+
+import type { components } from '@ipmoney/api-types';
+
+import {
+  clearVerificationStatus,
+  clearVerificationType,
+  isOnboardingDone,
+  setOnboardingDone,
+  setToken,
+  setVerificationStatus,
+  setVerificationType,
+} from '../../lib/auth';
+import { DEMO_LOGIN_ENABLED } from '../../constants';
+import { apiPost } from '../../lib/api';
+import { isTabPageUrl, normalizePageUrl } from '../../lib/navigation';
+import { useRouteStringParam } from '../../lib/routeParams';
+import { PageHeader, Spacer, Surface } from '../../ui/layout';
+import { WechatPhoneBindPopup } from '../../ui/WechatPhoneBindPopup';
+import { Button, Input, toast } from '../../ui/nutui';
+import loginHeroPng from '../../assets/brand/logo.png';
+
+type AuthTokenResponse = components['schemas']['AuthTokenResponse'];
+type VerificationStatus = components['schemas']['VerificationStatus'];
+type VerificationType = components['schemas']['VerificationType'];
+
+type LoginTab = 'wechat' | 'sms';
+
+export default function LoginPage() {
+  const env = useMemo(() => Taro.getEnv(), []);
+  const canWechatLogin = env === Taro.ENV_TYPE.WEAPP;
+
+  const [activeTab, setActiveTab] = useState<LoginTab>(canWechatLogin ? 'wechat' : 'sms');
+  const [busy, setBusy] = useState(false);
+  const [phoneBindOpen, setPhoneBindOpen] = useState(false);
+  const [phoneBindBusy, setPhoneBindBusy] = useState(false);
+  const postLoginNextRef = useRef<null | (() => void)>(null);
+  const redirectParam = useRouteStringParam('redirect');
+  const redirectUrl = useMemo(() => {
+    if (!redirectParam) return '';
+    try {
+      return decodeURIComponent(redirectParam);
+    } catch {
+      return redirectParam;
+    }
+  }, [redirectParam]);
+  const safeRedirectUrl = useMemo(() => normalizePageUrl(redirectUrl), [redirectUrl]);
+
+  const [phone, setPhone] = useState('');
+  const [smsCode, setSmsCode] = useState('');
+  const [cooldown, setCooldown] = useState(0);
+
+  useEffect(() => {
+    if (!canWechatLogin && activeTab !== 'sms') {
+      setActiveTab('sms');
+    }
+  }, [activeTab, canWechatLogin]);
+
+  useEffect(() => {
+    if (cooldown <= 0) return;
+    const t = setTimeout(() => setCooldown((v) => Math.max(0, v - 1)), 1000);
+    return () => clearTimeout(t);
+  }, [cooldown]);
+
+  const afterLogin = useCallback(
+    (auth: AuthTokenResponse, opts?: { fromWechat?: boolean }) => {
+      const token = auth.accessToken || '';
+      if (!token) {
+        toast('登录失败，请稍后重试');
+        return;
+      }
+      setToken(token);
+
+      const vt = (auth.user?.verificationType || null) as VerificationType | null;
+      const vs = (auth.user?.verificationStatus || null) as VerificationStatus | null;
+      const phoneFromAuth = String(auth.user?.phone || '').trim();
+
+      if (vt) setVerificationType(vt);
+      else clearVerificationType();
+
+      if (vs) setVerificationStatus(vs);
+      else clearVerificationStatus();
+
+      setOnboardingDone(Boolean(vt) || isOnboardingDone());
+
+      toast('登录成功', { icon: 'success' });
+
+      const goNext = () => {
+        const pages = Taro.getCurrentPages();
+        const canGoBack = pages.length > 1;
+
+        if (safeRedirectUrl && !safeRedirectUrl.startsWith('/subpackages/login/index')) {
+          if (isTabPageUrl(safeRedirectUrl)) {
+            Taro.switchTab({ url: safeRedirectUrl });
+            return;
+          }
+          Taro.redirectTo({ url: safeRedirectUrl });
+          return;
+        }
+
+        const nextUrl = !vt ? '/subpackages/onboarding/choose-identity/index' : '/pages/home/index';
+
+        if (!vt) {
+          Taro.redirectTo({ url: nextUrl });
+          return;
+        }
+        if (canGoBack) {
+          Taro.navigateBack();
+          return;
+        }
+        Taro.switchTab({ url: nextUrl });
+      };
+
+      const shouldPromptPhone = Boolean(opts?.fromWechat) && canWechatLogin && !phoneFromAuth;
+      if (shouldPromptPhone) {
+        postLoginNextRef.current = () => setTimeout(goNext, 200);
+        setPhoneBindOpen(true);
+        return;
+      }
+
+      setTimeout(goNext, 200);
+    },
+    [canWechatLogin],
+  );
+
+  const wechatLogin = useCallback(async () => {
+    if (busy) return;
+    setBusy(true);
+    try {
+      let code = '';
+      try {
+        const res = await Taro.login();
+        if (res?.code) code = res.code;
+      } catch (_) {
+        // non-weapp env: fallback to demo code
+      }
+      if (!code) throw new Error('无法获取微信登录凭证');
+
+      const auth = await apiPost<AuthTokenResponse>('/auth/wechat/mp-login', { code });
+      afterLogin(auth, { fromWechat: true });
+    } catch (e: any) {
+      toast(e?.message || '登录失败');
+    } finally {
+      setBusy(false);
+    }
+  }, [afterLogin, busy]);
+
+  const demoLogin = useCallback(async () => {
+    if (!DEMO_LOGIN_ENABLED || busy) return;
+    setBusy(true);
+    try {
+      const auth = await apiPost<AuthTokenResponse>('/auth/wechat/mp-login', { code: 'demo' });
+      afterLogin(auth);
+    } catch (e: any) {
+      toast(e?.message || '登录失败');
+    } finally {
+      setBusy(false);
+    }
+  }, [afterLogin, busy]);
+
+  const sendSms = useCallback(async () => {
+    if (busy) return;
+    const p = phone.trim();
+    if (!p) {
+      toast('请输入手机号');
+      return;
+    }
+    setBusy(true);
+    try {
+      const res = await apiPost<{ cooldownSeconds: number }>('/auth/sms/send', { phone: p, purpose: 'LOGIN' });
+      setCooldown(Number(res?.cooldownSeconds || 60));
+      toast('验证码已发送', { icon: 'success' });
+    } catch (e: any) {
+      toast(e?.message || '发送失败');
+    } finally {
+      setBusy(false);
+    }
+  }, [busy, phone]);
+
+  const verifySms = useCallback(async () => {
+    if (busy) return;
+    const p = phone.trim();
+    const c = smsCode.trim();
+    if (!p) {
+      toast('请输入手机号');
+      return;
+    }
+    if (!c) {
+      toast('请输入验证码');
+      return;
+    }
+    setBusy(true);
+    try {
+      const auth = await apiPost<AuthTokenResponse>('/auth/sms/verify', { phone: p, code: c });
+      afterLogin(auth);
+    } catch (e: any) {
+      toast(e?.message || '登录失败');
+    } finally {
+      setBusy(false);
+    }
+  }, [afterLogin, busy, phone, smsCode]);
+
+  return (
+    <View className="container login-page">
+      <PageHeader title="登录" subtitle="欢迎回来" />
+      <View className="login-hero">
+        <View className="login-hero-bg" />
+        <Image className="login-hero-ill" src={loginHeroPng} mode="aspectFit" />
+        <Text className="login-hero-title">登录解锁专利点金台</Text>
+        <Text className="login-hero-desc">登录后可收藏、咨询、下单；主体需审核通过后可交易。</Text>
+      </View>
+
+      <Surface className="login-card">
+        {DEMO_LOGIN_ENABLED ? (
+          <>
+            <View className="login-panel">
+              <Text className="login-panel-title">开发一键登录</Text>
+              <Text className="login-panel-subtitle">仅开发/测试环境可见</Text>
+              <Spacer size={10} />
+              <Button className="login-primary-btn" loading={busy} disabled={busy} onClick={() => void demoLogin()}>
+                体验登录
+              </Button>
+            </View>
+            <Spacer size={12} />
+          </>
+        ) : null}
+        {canWechatLogin ? (
+          <View className="login-tabs">
+            <Text
+              className={`login-tab ${activeTab === 'wechat' ? 'is-active' : ''}`}
+              onClick={() => setActiveTab('wechat')}
+            >
+              微信登录
+            </Text>
+            <Text
+              className={`login-tab ${activeTab === 'sms' ? 'is-active' : ''}`}
+              onClick={() => setActiveTab('sms')}
+            >
+              短信登录
+            </Text>
+          </View>
+        ) : null}
+
+        <Spacer size={12} />
+
+        {activeTab === 'wechat' && canWechatLogin ? (
+          <View className="login-panel">
+            <Text className="login-panel-title">微信一键登录</Text>
+            <Text className="login-panel-subtitle">授权后可同步头像昵称</Text>
+            <Spacer size={10} />
+            <Button className="login-primary-btn" loading={busy} disabled={busy} onClick={() => void wechatLogin()}>
+              微信一键登录
+            </Button>
+          </View>
+        ) : null}
+
+        {activeTab === 'sms' ? (
+          <View className="login-panel">
+            <Text className="login-panel-title">手机号登录</Text>
+            <Text className="login-panel-subtitle">用于电脑端/浏览器登录</Text>
+            <Spacer size={12} />
+
+            <View className="login-field">
+              <Text className="login-field-label">手机号</Text>
+              <View className="login-field-input">
+                <Input value={phone} onChange={setPhone} placeholder="请输入手机号" type="digit" clearable />
+              </View>
+            </View>
+
+            <Spacer size={10} />
+            <Button variant="ghost" loading={busy} disabled={busy || cooldown > 0} onClick={() => void sendSms()}>
+              {cooldown > 0 ? `重新发送(${cooldown}s)` : '发送验证码'}
+            </Button>
+
+            <Spacer size={12} />
+            <View className="login-field">
+              <Text className="login-field-label">验证码</Text>
+              <View className="login-field-input">
+                <Input value={smsCode} onChange={setSmsCode} placeholder="请输入短信验证码" type="digit" clearable />
+              </View>
+            </View>
+
+            <Spacer size={12} />
+            <Button className="login-primary-btn" loading={busy} disabled={busy} onClick={() => void verifySms()}>
+              登录
+            </Button>
+          </View>
+        ) : null}
+
+        <Spacer size={10} />
+        <View className="login-agreement">
+          <Text className="login-agreement-text">登录即同意</Text>
+          <Text className="login-agreement-link" onClick={() => Taro.navigateTo({ url: '/subpackages/legal/terms/index' })}>
+            《用户协议》
+          </Text>
+          <Text className="login-agreement-text">和</Text>
+          <Text className="login-agreement-link" onClick={() => Taro.navigateTo({ url: '/subpackages/legal/privacy/index' })}>
+            《隐私政策》
+          </Text>
+        </View>
+      </Surface>
+
+      <WechatPhoneBindPopup
+        visible={phoneBindOpen}
+        loading={phoneBindBusy}
+        onSkip={() => {
+          setPhoneBindOpen(false);
+          const next = postLoginNextRef.current;
+          postLoginNextRef.current = null;
+          next?.();
+        }}
+        onRequestBind={async (phoneCode) => {
+          if (phoneBindBusy) return;
+          setPhoneBindBusy(true);
+          try {
+            await apiPost('/auth/wechat/phone-bind', { phoneCode });
+            toast('手机号绑定成功', { icon: 'success' });
+            setPhoneBindOpen(false);
+            const next = postLoginNextRef.current;
+            postLoginNextRef.current = null;
+            next?.();
+          } catch (e: any) {
+            toast(e?.message || '绑定失败');
+          } finally {
+            setPhoneBindBusy(false);
+          }
+        }}
+      />
+    </View>
+  );
+}

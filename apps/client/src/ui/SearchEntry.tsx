@@ -2,6 +2,7 @@
 import React, { useCallback } from 'react';
 
 import { Close, Search } from '@nutui/icons-react-taro';
+import './SearchEntry.scss';
 
 export function SearchEntry(props: {
   value: string;

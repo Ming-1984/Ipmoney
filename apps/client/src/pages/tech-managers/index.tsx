@@ -7,7 +7,10 @@ import type { components } from '@ipmoney/api-types';
 
 import { apiGet } from '../../lib/api';
 import { regionDisplayName } from '../../lib/regions';
+import { usePagedList } from '../../lib/usePagedList';
+import { ListFooter } from '../../ui/ListFooter';
 import { SearchEntry } from '../../ui/SearchEntry';
+import { PullToRefresh, toast } from '../../ui/nutui';
 import { EmptyCard, ErrorCard, LoadingCard } from '../../ui/StateCards';
 
 type ConsultTab = 'TECH' | 'ORG';
@@ -23,66 +26,57 @@ export default function TechManagersPage() {
 
   const [techQInput, setTechQInput] = useState('');
   const [techQ, setTechQ] = useState('');
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [data, setData] = useState<PagedTechManagerSummary | null>(null);
 
   const [orgQInput, setOrgQInput] = useState('');
   const [orgQ, setOrgQ] = useState('');
-  const [orgLoading, setOrgLoading] = useState(true);
-  const [orgError, setOrgError] = useState<string | null>(null);
-  const [orgData, setOrgData] = useState<PagedOrganizationSummary | null>(null);
-
-  const loadTech = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const d = await apiGet<PagedTechManagerSummary>('/search/tech-managers', {
+  const techFetcher = useCallback(
+    async ({ page, pageSize }: { page: number; pageSize: number }) =>
+      apiGet<PagedTechManagerSummary>('/search/tech-managers', {
         q: techQ || undefined,
-        page: 1,
-        pageSize: 20,
-      });
-      setData(d);
-    } catch (e: any) {
-      setError(e?.message || '加载失败');
-      setData(null);
-    } finally {
-      setLoading(false);
-    }
-  }, [techQ]);
+        page,
+        pageSize,
+      }),
+    [techQ],
+  );
 
-  const loadOrg = useCallback(async () => {
-    setOrgLoading(true);
-    setOrgError(null);
-    try {
-      const d = await apiGet<PagedOrganizationSummary>('/public/organizations', {
+  const orgFetcher = useCallback(
+    async ({ page, pageSize }: { page: number; pageSize: number }) =>
+      apiGet<PagedOrganizationSummary>('/public/organizations', {
         q: orgQ || undefined,
-        page: 1,
-        pageSize: 20,
-      });
-      setOrgData(d);
-    } catch (e: any) {
-      setOrgError(e?.message || '加载失败');
-      setOrgData(null);
-    } finally {
-      setOrgLoading(false);
-    }
-  }, [orgQ]);
+        page,
+        pageSize,
+      }),
+    [orgQ],
+  );
+
+  const techList = usePagedList<TechManagerSummary>(techFetcher, {
+    pageSize: 20,
+    onError: (message, ctx) => {
+      if (ctx === 'loadMore') toast(message);
+    },
+  });
+
+  const orgList = usePagedList<OrganizationSummary>(orgFetcher, {
+    pageSize: 20,
+    onError: (message, ctx) => {
+      if (ctx === 'loadMore') toast(message);
+    },
+  });
 
   useEffect(() => {
     if (activeTab !== 'TECH') return;
-    void loadTech();
-  }, [activeTab, loadTech]);
+    void techList.reload();
+  }, [activeTab, techList.reload]);
 
   useEffect(() => {
     if (activeTab !== 'ORG') return;
-    void loadOrg();
-  }, [activeTab, loadOrg]);
+    void orgList.reload();
+  }, [activeTab, orgList.reload]);
 
-  const techItems = useMemo(() => data?.items || [], [data?.items]);
+  const techItems = useMemo(() => techList.items, [techList.items]);
   const orgItems = useMemo(
-    () => (orgData?.items || []).filter((x) => x.verificationStatus === 'APPROVED'),
-    [orgData?.items],
+    () => orgList.items.filter((x) => x.verificationStatus === 'APPROVED'),
+    [orgList.items],
   );
 
   return (
@@ -120,60 +114,66 @@ export default function TechManagersPage() {
             />
           </View>
 
-          {loading ? (
-            <LoadingCard />
-          ) : error ? (
-            <ErrorCard message={error} onRetry={loadTech} />
-          ) : techItems.length ? (
-            <View className="consult-list">
-              {techItems.map((it: TechManagerSummary) => {
-                const avatar = it.avatarUrl && !it.avatarUrl.includes('example.com') ? it.avatarUrl : '';
-                const ratingScore = it.stats?.ratingScore;
-                const ratingText =
-                  typeof ratingScore === 'number' && !Number.isNaN(ratingScore) ? ratingScore.toFixed(1) : '';
-                let experienceYears: number | null = null;
-                if (it.verifiedAt) {
-                  const verifiedDate = new Date(it.verifiedAt);
-                  if (!Number.isNaN(verifiedDate.getTime())) {
-                    const diffYears = Math.floor((Date.now() - verifiedDate.getTime()) / (365.25 * 24 * 60 * 60 * 1000));
-                    experienceYears = Math.max(1, diffYears);
+          <PullToRefresh type="primary" disabled={techList.loading || techList.refreshing} onRefresh={techList.refresh}>
+            {techList.loading ? (
+              <LoadingCard />
+            ) : techList.error ? (
+              <ErrorCard message={techList.error} onRetry={techList.reload} />
+            ) : techItems.length ? (
+              <View className="consult-list">
+                {techItems.map((it: TechManagerSummary) => {
+                  const avatar = it.avatarUrl && !it.avatarUrl.includes('example.com') ? it.avatarUrl : '';
+                  const ratingScore = it.stats?.ratingScore;
+                  const ratingText =
+                    typeof ratingScore === 'number' && !Number.isNaN(ratingScore) ? ratingScore.toFixed(1) : '';
+                  let experienceYears: number | null = null;
+                  if (it.verifiedAt) {
+                    const verifiedDate = new Date(it.verifiedAt);
+                    if (!Number.isNaN(verifiedDate.getTime())) {
+                      const diffYears = Math.floor((Date.now() - verifiedDate.getTime()) / (365.25 * 24 * 60 * 60 * 1000));
+                      experienceYears = Math.max(1, diffYears);
+                    }
                   }
-                }
-                return (
-                  <View
-                    key={it.userId}
-                    className="consult-card"
-                    onClick={() => {
-                      Taro.navigateTo({ url: `/pages/tech-managers/detail/index?techManagerId=${it.userId}` });
-                    }}
-                  >
-                    <View className="consult-card-main">
-                      <View className="consult-avatar">
-                        {avatar ? (
-                          <Image src={avatar} mode="aspectFill" className="consult-avatar-img" />
-                        ) : (
-                          <Text className="consult-avatar-text">{(it.displayName || 'T').slice(0, 1)}</Text>
-                        )}
-                      </View>
-                      <View className="consult-info">
-                        <View className="consult-name-row">
-                          <Text className="consult-name">{it.displayName || '-'}</Text>
+                  return (
+                    <View
+                      key={it.userId}
+                      className="consult-card"
+                      onClick={() => {
+                        Taro.navigateTo({ url: `/subpackages/tech-managers/detail/index?techManagerId=${it.userId}` });
+                      }}
+                    >
+                      <View className="consult-card-main">
+                        <View className="consult-avatar">
+                          {avatar ? (
+                            <Image src={avatar} mode="aspectFill" className="consult-avatar-img" />
+                          ) : (
+                            <Text className="consult-avatar-text">{(it.displayName || 'T').slice(0, 1)}</Text>
+                          )}
                         </View>
-                        <View className="consult-meta-row">
-                          {experienceYears ? <Text className="consult-meta">从业 {experienceYears} 年</Text> : null}
-                          {ratingText ? <Text className="consult-meta consult-rating">{ratingText}分</Text> : null}
+                        <View className="consult-info">
+                          <View className="consult-name-row">
+                            <Text className="consult-name">{it.displayName || '-'}</Text>
+                          </View>
+                          <View className="consult-meta-row">
+                            {experienceYears ? <Text className="consult-meta">从业 {experienceYears} 年</Text> : null}
+                            {ratingText ? <Text className="consult-meta consult-rating">{ratingText}分</Text> : null}
+                          </View>
+                          {it.intro ? <Text className="consult-intro clamp-1">{it.intro}</Text> : null}
                         </View>
-                        {it.intro ? <Text className="consult-intro clamp-1">{it.intro}</Text> : null}
                       </View>
+                      <View className="consult-action">咨询</View>
                     </View>
-                    <View className="consult-action">咨询</View>
-                  </View>
-                );
-              })}
-            </View>
-          ) : (
-            <EmptyCard message="暂无专家" actionText="刷新" onAction={loadTech} />
-          )}
+                  );
+                })}
+              </View>
+            ) : (
+              <EmptyCard message="暂无专家" actionText="刷新" onAction={techList.reload} />
+            )}
+
+            {!techList.loading && techItems.length ? (
+              <ListFooter loadingMore={techList.loadingMore} hasMore={techList.hasMore} onLoadMore={techList.loadMore} showNoMore />
+            ) : null}
+          </PullToRefresh>
         </>
       ) : (
         <>
@@ -192,49 +192,55 @@ export default function TechManagersPage() {
             />
           </View>
 
-          {orgLoading ? (
-            <LoadingCard />
-          ) : orgError ? (
-            <ErrorCard message={orgError} onRetry={loadOrg} />
-          ) : orgItems.length ? (
-            <View className="consult-list">
-              {orgItems.map((it: OrganizationSummary) => {
-                const logo = it.logoUrl && !it.logoUrl.includes('example.com') ? it.logoUrl : '';
-                const location = it.regionCode ? regionDisplayName(it.regionCode) : '';
-                return (
-                  <View
-                    key={it.userId}
-                    className="consult-card"
-                    onClick={() => {
-                      Taro.navigateTo({ url: `/pages/organizations/detail/index?orgUserId=${it.userId}` });
-                    }}
-                  >
-                    <View className="consult-card-main">
-                      <View className="consult-avatar">
-                        {logo ? (
-                          <Image src={logo} mode="aspectFill" className="consult-avatar-img" />
-                        ) : (
-                          <Text className="consult-avatar-text">{(it.displayName || '机').slice(0, 1)}</Text>
-                        )}
-                      </View>
-                      <View className="consult-info">
-                        <View className="consult-name-row">
-                          <Text className="consult-name">{it.displayName || '-'}</Text>
+          <PullToRefresh type="primary" disabled={orgList.loading || orgList.refreshing} onRefresh={orgList.refresh}>
+            {orgList.loading ? (
+              <LoadingCard />
+            ) : orgList.error ? (
+              <ErrorCard message={orgList.error} onRetry={orgList.reload} />
+            ) : orgItems.length ? (
+              <View className="consult-list">
+                {orgItems.map((it: OrganizationSummary) => {
+                  const logo = it.logoUrl && !it.logoUrl.includes('example.com') ? it.logoUrl : '';
+                  const location = it.regionCode ? regionDisplayName(it.regionCode) : '';
+                  return (
+                    <View
+                      key={it.userId}
+                      className="consult-card"
+                      onClick={() => {
+                        Taro.navigateTo({ url: `/subpackages/organizations/detail/index?orgUserId=${it.userId}` });
+                      }}
+                    >
+                      <View className="consult-card-main">
+                        <View className="consult-avatar">
+                          {logo ? (
+                            <Image src={logo} mode="aspectFill" className="consult-avatar-img" />
+                          ) : (
+                            <Text className="consult-avatar-text">{(it.displayName || '机').slice(0, 1)}</Text>
+                          )}
                         </View>
-                        <View className="consult-meta-row">
-                          {location ? <Text className="consult-meta">{location}</Text> : null}
+                        <View className="consult-info">
+                          <View className="consult-name-row">
+                            <Text className="consult-name">{it.displayName || '-'}</Text>
+                          </View>
+                          <View className="consult-meta-row">
+                            {location ? <Text className="consult-meta">{location}</Text> : null}
+                          </View>
+                          {it.intro ? <Text className="consult-intro clamp-1">{it.intro}</Text> : null}
                         </View>
-                        {it.intro ? <Text className="consult-intro clamp-1">{it.intro}</Text> : null}
                       </View>
+                      <View className="consult-action">咨询</View>
                     </View>
-                    <View className="consult-action">咨询</View>
-                  </View>
-                );
-              })}
-            </View>
-          ) : (
-            <EmptyCard message="暂无机构" actionText="刷新" onAction={loadOrg} />
-          )}
+                  );
+                })}
+              </View>
+            ) : (
+              <EmptyCard message="暂无机构" actionText="刷新" onAction={orgList.reload} />
+            )}
+
+            {!orgList.loading && orgItems.length ? (
+              <ListFooter loadingMore={orgList.loadingMore} hasMore={orgList.hasMore} onLoadMore={orgList.loadMore} showNoMore />
+            ) : null}
+          </PullToRefresh>
         </>
       )}
     </View>

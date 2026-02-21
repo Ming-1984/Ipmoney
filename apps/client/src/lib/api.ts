@@ -1,11 +1,11 @@
 import Taro from '@tarojs/taro';
 
-import { API_BASE_URL, ENABLE_MOCK_TOOLS, STORAGE_KEYS } from '../constants';
-import { getOfflineMock } from './offline';
-import { getToken } from './auth';
+import { API_BASE_URL, STORAGE_KEYS } from '../constants';
+import { clearToken, getToken, notifyAuthRequired } from './auth';
 
 export type ApiErrorShape = { code?: string; message?: string };
 export type ApiErrorKind = 'auth' | 'network' | 'business' | 'http' | 'unknown';
+export type ApiRequestOptions = { idempotencyKey?: string; retry?: number; retryDelayMs?: number };
 
 export class ApiError extends Error {
   kind: ApiErrorKind;
@@ -41,6 +41,30 @@ function cleanData(data: any): any {
   if (data === undefined || data === null) return undefined;
   if (typeof data !== 'object' || Array.isArray(data)) return data;
   return cleanParams(data as Record<string, any>) ?? {};
+}
+
+const PROTECTED_PREFIXES = [
+  '/me',
+  '/notifications',
+  '/conversations',
+  '/orders',
+  '/contracts',
+  '/invoices',
+  '/refunds',
+  '/settlements',
+  '/payments',
+  '/admin',
+];
+
+function isProtectedPath(path: string): boolean {
+  return PROTECTED_PREFIXES.some((prefix) => path.startsWith(prefix));
+}
+
+function ensureAuth(path: string) {
+  if (getToken()) return;
+  if (!isProtectedPath(path)) return;
+  notifyAuthRequired({ reason: 'missing', path });
+  throw normalizeHttpError(401, {});
 }
 
 function normalizeHttpError(statusCode: number, data: unknown): ApiError {
@@ -85,146 +109,178 @@ function normalizeRequestError(e: unknown): ApiError {
   return new ApiError({ kind: 'unknown', message: '请求失败，请稍后再试', retryable: true, debug: e });
 }
 
-function getScenario(): string {
-  return Taro.getStorageSync(STORAGE_KEYS.mockScenario) || 'happy';
+function getDeviceId(): string {
+  const existing = Taro.getStorageSync(STORAGE_KEYS.deviceId);
+  if (existing) return existing;
+  const id = `d-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
+  Taro.setStorageSync(STORAGE_KEYS.deviceId, id);
+  return id;
 }
 
-const SHOULD_USE_OFFLINE_MOCK = ENABLE_MOCK_TOOLS || API_BASE_URL.includes('127.0.0.1') || API_BASE_URL.includes('localhost');
 
-function maybeOffline(method: string, path: string, body?: any) {
-  if (!SHOULD_USE_OFFLINE_MOCK) return null;
-  return getOfflineMock(method, path, body);
+function buildHeaders(extra?: Record<string, string>) {
+  return {
+    'X-Device-Id': getDeviceId(),
+    ...(getToken() ? { Authorization: `Bearer ${getToken()}` } : {}),
+    ...extra,
+  };
+}
+
+async function wait(ms: number) {
+  return await new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function withRetry<T>(fn: () => Promise<T>, opts?: ApiRequestOptions): Promise<T> {
+  const retries = Math.max(0, opts?.retry ?? (opts?.idempotencyKey ? 1 : 0));
+  const delayMs = Math.max(200, opts?.retryDelayMs ?? 600);
+  let attempt = 0;
+  while (true) {
+    try {
+      return await fn();
+    } catch (e) {
+      if (e instanceof ApiError && e.retryable && attempt < retries) {
+        attempt += 1;
+        await wait(delayMs * attempt);
+        continue;
+      }
+      throw e;
+    }
+  }
 }
 
 export async function apiGet<TResponse>(
   path: string,
   params?: Record<string, any>,
 ): Promise<TResponse> {
-  const offline = maybeOffline('GET', path, params);
-  if (offline !== null) {
-    if (offline.status >= 200 && offline.status < 300) return offline.body as TResponse;
-    throw normalizeHttpError(offline.status, offline.body);
-  }
+  ensureAuth(path);
+  return await withRetry(async () => {
+    let res: Taro.request.SuccessCallbackResult<any>;
+    try {
+      res = await Taro.request({
+        url: `${API_BASE_URL}${path}`,
+        method: 'GET',
+        data: cleanParams(params),
+        header: buildHeaders(),
+      });
+    } catch (e) {
+      throw normalizeRequestError(e);
+    }
 
-  let res: Taro.request.SuccessCallbackResult<any>;
-  try {
-    res = await Taro.request({
-      url: `${API_BASE_URL}${path}`,
-      method: 'GET',
-      data: cleanParams(params),
-      header: {
-        'X-Mock-Scenario': getScenario(),
-        ...(getToken() ? { Authorization: `Bearer ${getToken()}` } : {}),
-      },
-    });
-  } catch (e) {
-    throw normalizeRequestError(e);
-  }
+    if (res.statusCode >= 200 && res.statusCode < 300) {
+      return res.data as TResponse;
+    }
 
-  if (res.statusCode >= 200 && res.statusCode < 300) {
-    return res.data as TResponse;
-  }
-
-  throw normalizeHttpError(res.statusCode, res.data);
+    if (res.statusCode === 401) {
+      clearToken();
+      notifyAuthRequired({ reason: 'expired', statusCode: res.statusCode, path });
+    }
+    throw normalizeHttpError(res.statusCode, res.data);
+  });
 }
 
 export async function apiPost<TResponse>(
   path: string,
   body?: any,
-  opts?: { idempotencyKey?: string },
+  opts?: ApiRequestOptions,
 ): Promise<TResponse> {
-  const offline = maybeOffline('POST', path, body);
-  if (offline !== null) {
-    if (offline.status >= 200 && offline.status < 300) return offline.body as TResponse;
-    throw normalizeHttpError(offline.status, offline.body);
-  }
+  ensureAuth(path);
+  return await withRetry(
+    async () => {
+      let res: Taro.request.SuccessCallbackResult<any>;
+      try {
+        res = await Taro.request({
+          url: `${API_BASE_URL}${path}`,
+          method: 'POST',
+          data: cleanData(body) ?? {},
+          header: buildHeaders({
+            'Content-Type': 'application/json',
+            ...(opts?.idempotencyKey ? { 'Idempotency-Key': opts.idempotencyKey } : {}),
+          }),
+        });
+      } catch (e) {
+        throw normalizeRequestError(e);
+      }
 
-  let res: Taro.request.SuccessCallbackResult<any>;
-  try {
-    res = await Taro.request({
-      url: `${API_BASE_URL}${path}`,
-      method: 'POST',
-      data: cleanData(body) ?? {},
-      header: {
-        'Content-Type': 'application/json',
-        'X-Mock-Scenario': getScenario(),
-        ...(opts?.idempotencyKey ? { 'Idempotency-Key': opts.idempotencyKey } : {}),
-        ...(getToken() ? { Authorization: `Bearer ${getToken()}` } : {}),
-      },
-    });
-  } catch (e) {
-    throw normalizeRequestError(e);
-  }
+      if (res.statusCode >= 200 && res.statusCode < 300) {
+        return res.data as TResponse;
+      }
 
-  if (res.statusCode >= 200 && res.statusCode < 300) {
-    return res.data as TResponse;
-  }
-
-  throw normalizeHttpError(res.statusCode, res.data);
+      if (res.statusCode === 401) {
+        clearToken();
+        notifyAuthRequired({ reason: 'expired', statusCode: res.statusCode, path });
+      }
+      throw normalizeHttpError(res.statusCode, res.data);
+    },
+    opts,
+  );
 }
 
 export async function apiPatch<TResponse>(
   path: string,
   body?: any,
-  opts?: { idempotencyKey?: string },
+  opts?: ApiRequestOptions,
 ): Promise<TResponse> {
-  const offline = maybeOffline('PATCH', path, body);
-  if (offline !== null) {
-    if (offline.status >= 200 && offline.status < 300) return offline.body as TResponse;
-    throw normalizeHttpError(offline.status, offline.body);
-  }
+  ensureAuth(path);
+  return await withRetry(
+    async () => {
+      let res: Taro.request.SuccessCallbackResult<any>;
+      try {
+        res = await Taro.request({
+          url: `${API_BASE_URL}${path}`,
+          method: 'PATCH',
+          data: cleanData(body) ?? {},
+          header: buildHeaders({
+            'Content-Type': 'application/json',
+            ...(opts?.idempotencyKey ? { 'Idempotency-Key': opts.idempotencyKey } : {}),
+          }),
+        });
+      } catch (e) {
+        throw normalizeRequestError(e);
+      }
 
-  let res: Taro.request.SuccessCallbackResult<any>;
-  try {
-    res = await Taro.request({
-      url: `${API_BASE_URL}${path}`,
-      method: 'PATCH',
-      data: cleanData(body) ?? {},
-      header: {
-        'Content-Type': 'application/json',
-        'X-Mock-Scenario': getScenario(),
-        ...(opts?.idempotencyKey ? { 'Idempotency-Key': opts.idempotencyKey } : {}),
-        ...(getToken() ? { Authorization: `Bearer ${getToken()}` } : {}),
-      },
-    });
-  } catch (e) {
-    throw normalizeRequestError(e);
-  }
+      if (res.statusCode >= 200 && res.statusCode < 300) {
+        return res.data as TResponse;
+      }
 
-  if (res.statusCode >= 200 && res.statusCode < 300) {
-    return res.data as TResponse;
-  }
-
-  throw normalizeHttpError(res.statusCode, res.data);
+      if (res.statusCode === 401) {
+        clearToken();
+        notifyAuthRequired({ reason: 'expired', statusCode: res.statusCode, path });
+      }
+      throw normalizeHttpError(res.statusCode, res.data);
+    },
+    opts,
+  );
 }
 
 export async function apiDelete(
   path: string,
-  opts?: { idempotencyKey?: string },
+  opts?: ApiRequestOptions,
 ): Promise<void> {
-  const offline = maybeOffline('DELETE', path);
-  if (offline !== null) {
-    if (offline.status >= 200 && offline.status < 300) return;
-    throw normalizeHttpError(offline.status, offline.body);
-  }
+  ensureAuth(path);
+  return await withRetry(
+    async () => {
+      let res: Taro.request.SuccessCallbackResult<any>;
+      try {
+        res = await Taro.request({
+          url: `${API_BASE_URL}${path}`,
+          method: 'DELETE',
+          header: buildHeaders({
+            ...(opts?.idempotencyKey ? { 'Idempotency-Key': opts.idempotencyKey } : {}),
+          }),
+        });
+      } catch (e) {
+        throw normalizeRequestError(e);
+      }
 
-  let res: Taro.request.SuccessCallbackResult<any>;
-  try {
-    res = await Taro.request({
-      url: `${API_BASE_URL}${path}`,
-      method: 'DELETE',
-      header: {
-        'X-Mock-Scenario': getScenario(),
-        ...(opts?.idempotencyKey ? { 'Idempotency-Key': opts.idempotencyKey } : {}),
-        ...(getToken() ? { Authorization: `Bearer ${getToken()}` } : {}),
-      },
-    });
-  } catch (e) {
-    throw normalizeRequestError(e);
-  }
+      if (res.statusCode === 204) return;
+      if (res.statusCode >= 200 && res.statusCode < 300) return;
 
-  if (res.statusCode === 204) return;
-  if (res.statusCode >= 200 && res.statusCode < 300) return;
-
-  throw normalizeHttpError(res.statusCode, res.data);
+      if (res.statusCode === 401) {
+        clearToken();
+        notifyAuthRequired({ reason: 'expired', statusCode: res.statusCode, path });
+      }
+      throw normalizeHttpError(res.statusCode, res.data);
+    },
+    opts,
+  );
 }

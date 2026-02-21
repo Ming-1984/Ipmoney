@@ -1,16 +1,19 @@
 import type { UserConfigExport, UserConfigFn } from '@tarojs/cli';
+import path from 'path';
 
 import devConfig from './dev';
 import prodConfig from './prod';
 
 export default ((merge, env) => {
   const isDev = env.mode === 'development';
-  const apiBaseUrl = process.env.TARO_APP_API_BASE_URL ?? 'http://127.0.0.1:4010';
+  const rawApiBaseUrl = process.env.TARO_APP_API_BASE_URL ?? 'http://127.0.0.1:3200';
+  const apiBaseUrl = rawApiBaseUrl.replace('http://localhost', 'http://127.0.0.1');
+  const demoAuthEnabledRaw = String(process.env.DEMO_AUTH_ENABLED || '').trim().toLowerCase() === 'true';
+  const demoAuthEnabled = demoAuthEnabledRaw && env.mode !== 'production';
   const taroEnv = process.env.TARO_ENV;
+  const enablePrebundle = isDev && taroEnv === 'h5';
   const outputRoot = taroEnv ? `dist/${taroEnv}` : 'dist';
-
-  const enableMockToolsEnv = process.env.TARO_APP_ENABLE_MOCK_TOOLS;
-  const enableMockTools = enableMockToolsEnv === '1' || enableMockToolsEnv === 'true';
+  const inlineImageLimit = taroEnv === 'weapp' ? 0 : 2048;
 
   const baseConfig: UserConfigExport = {
     projectName: 'ipmoney-client',
@@ -24,15 +27,22 @@ export default ((merge, env) => {
     plugins: ['@tarojs/plugin-framework-react'],
     defineConstants: {
       __API_BASE_URL__: JSON.stringify(apiBaseUrl),
-      __ENABLE_MOCK_TOOLS__: JSON.stringify(enableMockTools),
       __APP_MODE__: JSON.stringify(env.mode),
+      __DEMO_AUTH_ENABLED__: JSON.stringify(demoAuthEnabled),
     },
     alias: {},
     framework: 'react',
+    cache: {
+      enable: isDev,
+    },
+    imageUrlLoaderOption: {
+      limit: inlineImageLimit,
+    },
     compiler: {
       type: 'webpack5',
       prebundle: {
-        enable: false,
+        enable: enablePrebundle,
+        cacheDir: path.join(__dirname, '..', 'node_modules/.taro'),
       },
     },
     csso: {

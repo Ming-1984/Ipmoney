@@ -1,0 +1,106 @@
+@use '../../../styles/detail-compact' as *;
+
+.detail-section {
+  margin-top: 24rpx;
+}
+
+.detail-section-title {
+  font-size: 26rpx;
+  font-weight: 700;
+  color: var(--c-text);
+  margin-bottom: 12rpx;
+}
+
+.detail-seller-card {
+  padding: 24rpx;
+}
+
+.detail-seller-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12rpx;
+  margin-top: 12rpx;
+}
+
+.detail-seller-left {
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+  min-width: 0;
+}
+
+.detail-seller-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 6rpx;
+  min-width: 0;
+}
+
+.detail-seller-name {
+  font-size: 28rpx;
+  font-weight: 700;
+  color: var(--c-text);
+}
+
+.detail-seller-tags {
+  display: flex;
+  gap: 8rpx;
+  flex-wrap: wrap;
+}
+
+.detail-seller-tag {
+  font-size: 20rpx;
+  padding: 4rpx 10rpx;
+  border-radius: 999rpx;
+  background: var(--c-neutral-soft);
+  color: var(--c-muted);
+  border: 1rpx solid var(--c-divider);
+}
+
+.detail-seller-btn {
+  font-size: 22rpx;
+  color: var(--c-muted);
+  border: 1rpx solid var(--c-border);
+  padding: 8rpx 18rpx;
+  border-radius: 999rpx;
+}
+
+.detail-page .sticky-actions,
+.detail-page-compact .sticky-actions {
+  align-items: center;
+  justify-content: space-between;
+  gap: 16rpx;
+}
+
+.detail-sticky-icons {
+  display: flex;
+  gap: 24rpx;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.detail-sticky-icon {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4rpx;
+  color: var(--c-muted);
+}
+
+.detail-sticky-label {
+  font-size: 20rpx;
+  color: var(--c-muted);
+}
+
+.detail-sticky-buttons {
+  display: flex;
+  gap: 12rpx;
+  flex: 1;
+  justify-content: flex-end;
+}
+
+.detail-sticky-buttons .nut-button {
+  flex: 1;
+}
+

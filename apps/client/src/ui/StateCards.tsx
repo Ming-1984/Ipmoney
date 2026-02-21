@@ -4,7 +4,7 @@ import React from 'react';
 import { Button } from './nutui';
 import { STATE_COPY } from './copy';
 import { StateIllustration } from './layout/StateIllustration';
-import fortuneGod from '../assets/illustrations/fortune-god.svg';
+import loginHeroPng from '../assets/brand/logo.png';
 
 export function LoadingCard(props: { text?: string }) {
   const text = props.text || STATE_COPY.loading.title;
@@ -109,7 +109,7 @@ export function LoginUnlockCard(props: { onAction?: () => void; message?: string
   return (
     <View className="login-unlock-state">
       <View className="login-unlock-center">
-        <Image className="login-unlock-ill" src={fortuneGod} svg mode="aspectFit" />
+        <Image className="login-unlock-ill" src={loginHeroPng} mode="aspectFit" />
         <Text className="login-unlock-text">{props.message || '登录解锁专利点金台'}</Text>
       </View>
       {props.onAction ? (

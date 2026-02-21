@@ -4,7 +4,7 @@ import { View, Text, Image } from '@tarojs/components';
 import Taro from '@tarojs/taro';
 import React, { useCallback, useEffect, useMemo } from 'react';
 
-import brandLogoGif from '../../assets/brand/logo.gif';
+import brandLogoPng from '../../assets/brand/logo.png';
 import { isTabPageUrl, safeNavigateBack } from '../../lib/navigation';
 
 export type PageHeaderVariant = 'header' | 'hero';
@@ -92,7 +92,7 @@ export function PageHeader(props: {
         left={
           showBrand ? (
             <View className={`page-navbar-logo${showBack ? ' page-navbar-logo-with-back' : ''}`}>
-              <Image className="page-navbar-logo-img" src={brandLogoGif} mode="aspectFit" />
+              <Image className="page-navbar-logo-img" src={brandLogoPng} mode="aspectFit" />
             </View>
           ) : undefined
         }

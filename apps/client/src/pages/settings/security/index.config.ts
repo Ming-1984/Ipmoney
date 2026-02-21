@@ -1,4 +1,4 @@
 export default definePageConfig({
-  navigationBarTitleText: '�˺Ű�ȫ',
+  navigationBarTitleText: '账号安全',
   navigationStyle: 'custom',
 });

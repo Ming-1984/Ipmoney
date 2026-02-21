@@ -1,0 +1,222 @@
+.consult-detail-page {
+  background: #f5f6f8;
+  min-height: 100vh;
+  padding: 0;
+  padding-bottom: calc(var(--page-padding) + env(safe-area-inset-bottom));
+}
+
+.consult-detail-page-title {
+  text-align: center;
+  font-size: 32rpx;
+  font-weight: 700;
+  color: #111827;
+  margin: 6rpx 0 12rpx;
+}
+
+.consult-detail-hero {
+  margin: 0 0 12rpx;
+  padding: 16rpx var(--page-padding) 12rpx;
+  background: transparent;
+  border-radius: 0;
+  display: flex;
+  justify-content: flex-start;
+}
+
+.consult-detail-hero-card {
+  width: 100%;
+  background: #fff;
+  border-radius: 24rpx;
+  padding: 20rpx 20rpx;
+  box-shadow: 0 10rpx 22rpx rgba(15, 23, 42, 0.08);
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 16rpx;
+  text-align: left;
+}
+
+.consult-detail-avatar {
+  width: 156rpx;
+  height: 156rpx;
+  border-radius: 999rpx;
+  background: #f3f4f6;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #ff6600;
+  font-size: 36rpx;
+  font-weight: 700;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.consult-detail-avatar-img {
+  width: 100%;
+  height: 100%;
+}
+
+.consult-detail-meta {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4rpx;
+}
+
+.consult-detail-name-row {
+  display: flex;
+  align-items: center;
+  gap: 10rpx;
+}
+
+.consult-detail-name {
+  font-size: 32rpx;
+  font-weight: 700;
+  color: #111827;
+}
+
+.consult-detail-level-badge {
+  font-size: 20rpx;
+  color: #f97316;
+  background: rgba(249, 115, 22, 0.16);
+  padding: 4rpx 10rpx;
+  border-radius: 999rpx;
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+.consult-detail-badges {
+  margin-top: 8rpx;
+  display: flex;
+  align-items: center;
+  gap: 10rpx;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.consult-detail-level {
+  font-size: 20rpx;
+  color: #ff6600;
+  background: rgba(255, 102, 0, 0.14);
+  border: 1rpx solid rgba(255, 102, 0, 0.24);
+  padding: 4rpx 12rpx;
+  border-radius: 999rpx;
+  font-weight: 600;
+}
+
+.consult-detail-org {
+  margin-top: 2rpx;
+  font-size: 22rpx;
+  color: #6b7280;
+}
+
+.consult-detail-stats-card {
+  margin: -20rpx var(--page-padding) 16rpx;
+  background: #fff;
+  border-radius: 24rpx;
+  padding: 16rpx 20rpx;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  box-shadow: 0 10rpx 22rpx rgba(15, 23, 42, 0.08);
+}
+
+.consult-detail-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex: 1;
+  text-align: center;
+}
+
+.consult-detail-stat-num {
+  font-size: 34rpx;
+  font-weight: 700;
+  color: #111827;
+  display: block;
+}
+
+.consult-detail-stat-num.is-accent {
+  color: #111827;
+}
+
+.consult-detail-stat-label {
+  margin-top: 6rpx;
+  font-size: 22rpx;
+  color: #9ca3af;
+  display: block;
+}
+
+.consult-detail-stat-divider {
+  width: 1rpx;
+  height: 48rpx;
+  background: #e5e7eb;
+}
+
+.consult-detail-section {
+  margin: 0 var(--page-padding) 16rpx;
+  background: #fff;
+  border-radius: 24rpx;
+  padding: 18rpx 20rpx;
+  box-shadow: 0 10rpx 22rpx rgba(15, 23, 42, 0.06);
+}
+
+.consult-detail-section-head {
+  display: flex;
+  align-items: center;
+  gap: 10rpx;
+  margin-bottom: 10rpx;
+}
+
+.consult-detail-section-bar {
+  width: 6rpx;
+  height: 26rpx;
+  border-radius: 999rpx;
+  background: #ff6600;
+}
+
+.consult-detail-section-title {
+  font-size: 26rpx;
+  font-weight: 700;
+  color: #111827;
+}
+
+.consult-detail-section-text {
+  font-size: 26rpx;
+  color: #6b7280;
+  line-height: 1.6;
+}
+
+.consult-detail-section-accent {
+  color: #ff7a33;
+  font-weight: 600;
+}
+
+.consult-detail-honors {
+  display: flex;
+  flex-direction: column;
+  gap: 8rpx;
+}
+
+.consult-detail-honor {
+  font-size: 24rpx;
+  color: #6b7280;
+  line-height: 1.6;
+}
+
+.consult-detail-cta-wrap {
+  position: sticky;
+  bottom: 0;
+  padding: 10rpx var(--page-padding) calc(16rpx + env(safe-area-inset-bottom));
+  background: #f5f6f8;
+}
+
+.consult-detail-cta {
+  background: linear-gradient(135deg, #ff7a33, #ff6600);
+  color: #fff;
+  text-align: center;
+  font-size: 28rpx;
+  font-weight: 700;
+  padding: 20rpx 0;
+  border-radius: 999rpx;
+  box-shadow: 0 16rpx 28rpx rgba(255, 102, 0, 0.25);
+}

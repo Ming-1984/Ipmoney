@@ -9,7 +9,6 @@ function maybePortal(node: React.ReactNode): React.ReactNode {
   const root = ensureH5OverlayRoot();
   if (!root) return node;
   try {
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
     const { createPortal } = require('react-dom') as { createPortal: (n: React.ReactNode, c: Element) => React.ReactNode };
     return createPortal(node, root);
   } catch {

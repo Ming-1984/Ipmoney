@@ -1,0 +1,60 @@
+.wechat-phone-popup {
+  width: 100%;
+  padding: 34rpx 32rpx 28rpx;
+  box-sizing: border-box;
+}
+
+.wechat-phone-popup-wrap {
+  width: 640rpx;
+  max-width: calc(100vw - 96rpx);
+  box-sizing: border-box;
+  background: #fff;
+  border-radius: 20rpx;
+  overflow: hidden;
+}
+
+.wechat-phone-title {
+  display: block;
+  font-size: 34rpx;
+  font-weight: 700;
+  color: #111827;
+  text-align: center;
+}
+
+.wechat-phone-subtitle {
+  display: block;
+  margin-top: 12rpx;
+  font-size: 26rpx;
+  line-height: 36rpx;
+  color: #6b7280;
+  text-align: center;
+}
+
+.wechat-phone-actions {
+  margin-top: 22rpx;
+  display: flex;
+  flex-direction: column;
+  gap: 14rpx;
+}
+
+.wechat-phone-btn {
+  width: 100%;
+  border-radius: 14rpx;
+  font-size: 30rpx;
+  line-height: 92rpx;
+  height: 92rpx;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+.wechat-phone-btn-primary {
+  background: var(--c-primary);
+  color: #fff;
+  border: 0;
+}
+
+.wechat-phone-btn-ghost {
+  background: #fff;
+  color: #111827;
+  border: 2rpx solid #e5e7eb;
+}

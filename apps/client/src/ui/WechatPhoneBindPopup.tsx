@@ -1,6 +1,8 @@
 import { View, Text, Button as TaroButton } from '@tarojs/components';
 import React, { useCallback } from 'react';
 
+import './WechatPhoneBindPopup.scss';
+
 import { Popup } from './nutui';
 
 export type WechatPhoneBindPopupProps = {

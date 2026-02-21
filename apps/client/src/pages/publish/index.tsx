@@ -44,7 +44,7 @@ export default function PublishPage() {
         icon: iconPublishPatent,
         tone: 'tone-orange',
         onClick: () => {
-          Taro.navigateTo({ url: '/pages/publish/patent/index' });
+          Taro.navigateTo({ url: '/subpackages/publish/patent/index' });
         },
       },
       {
@@ -54,7 +54,7 @@ export default function PublishPage() {
         icon: iconPublishArtwork,
         tone: 'tone-purple',
         onClick: () => {
-          Taro.navigateTo({ url: '/pages/publish/artwork/index' });
+          Taro.navigateTo({ url: '/subpackages/publish/artwork/index' });
         },
       },
       {
@@ -64,7 +64,7 @@ export default function PublishPage() {
         icon: iconPublishDemand,
         tone: 'tone-blue',
         onClick: () => {
-          Taro.navigateTo({ url: '/pages/publish/demand/index' });
+          Taro.navigateTo({ url: '/subpackages/publish/demand/index' });
         },
       },
       {
@@ -74,7 +74,7 @@ export default function PublishPage() {
         icon: iconPublishAchievement,
         tone: 'tone-green',
         onClick: () => {
-          Taro.navigateTo({ url: '/pages/publish/achievement/index' });
+          Taro.navigateTo({ url: '/subpackages/publish/achievement/index' });
         },
       },
     ],
@@ -89,7 +89,7 @@ export default function PublishPage() {
         icon: iconPublishPatent,
         tone: 'tone-blue',
         onClick: () => {
-          Taro.navigateTo({ url: '/pages/my-listings/index' });
+          Taro.navigateTo({ url: '/subpackages/my-listings/index' });
         },
       },
       {
@@ -98,7 +98,7 @@ export default function PublishPage() {
         icon: iconPublishArtwork,
         tone: 'tone-purple',
         onClick: () => {
-          Taro.navigateTo({ url: '/pages/my-artworks/index' });
+          Taro.navigateTo({ url: '/subpackages/my-artworks/index' });
         },
       },
       {
@@ -107,7 +107,7 @@ export default function PublishPage() {
         icon: iconPublishDemand,
         tone: 'tone-orange',
         onClick: () => {
-          Taro.navigateTo({ url: '/pages/my-demands/index' });
+          Taro.navigateTo({ url: '/subpackages/my-demands/index' });
         },
       },
       {
@@ -116,7 +116,7 @@ export default function PublishPage() {
         icon: iconPublishAchievement,
         tone: 'tone-green',
         onClick: () => {
-          Taro.navigateTo({ url: '/pages/my-achievements/index' });
+          Taro.navigateTo({ url: '/subpackages/my-achievements/index' });
         },
       },
     ],

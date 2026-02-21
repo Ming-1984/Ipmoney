@@ -8,6 +8,17 @@ const TAB_PAGE_PATHS = [
   '/pages/me/index',
 ] as const;
 
+export function normalizePageUrl(url?: string, fallback = ''): string {
+  const raw = String(url || '').trim();
+  if (!raw) return fallback;
+  if (/^https?:\/\//i.test(raw) || raw.startsWith('//')) return fallback;
+  const normalized = raw.startsWith('/') ? raw : `/${raw}`;
+  if (normalized.startsWith('/pages/') || normalized.startsWith('/subpackages/')) {
+    return normalized;
+  }
+  return fallback;
+}
+
 function normalizeUrlPath(url: string): string {
   const path = url.split('?')[0] ?? url;
   return path.split('#')[0] ?? path;

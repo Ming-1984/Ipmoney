@@ -33,8 +33,8 @@ export default function SecurityPage() {
       <Spacer size={12} />
 
       <Surface className="settings-card">
-        <Cell title="绑定/更换手机号" extra="去设置" onClick={() => Taro.navigateTo({ url: '/pages/profile/edit/index' })} />
-        <Cell title="身份认证" extra="去认证" onClick={() => Taro.navigateTo({ url: '/pages/onboarding/choose-identity/index' })} />
+        <Cell title="绑定/更换手机号" extra="去设置" onClick={() => Taro.navigateTo({ url: '/subpackages/profile/edit/index' })} />
+        <Cell title="身份认证" extra="去认证" onClick={() => Taro.navigateTo({ url: '/subpackages/onboarding/choose-identity/index' })} />
         <Cell title="账号注销" onClick={handleCloseAccount} />
       </Surface>
 

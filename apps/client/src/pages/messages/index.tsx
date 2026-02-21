@@ -1,6 +1,6 @@
 ﻿import { View, Text, Image } from '@tarojs/components';
-import Taro from '@tarojs/taro';
-import React, { useCallback, useMemo, useState } from 'react';
+import Taro, { useDidHide, useDidShow } from '@tarojs/taro';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import './index.scss';
 
 import type { components } from '@ipmoney/api-types';
@@ -10,12 +10,14 @@ import iconMore from '../../assets/icons/icon-more-gray.svg';
 import iconShield from '../../assets/icons/icon-shield-orange.svg';
 import iconBellWhite from '../../assets/icons/icon-bell-white.svg';
 import { apiGet, apiPost } from '../../lib/api';
+import { usePagedList } from '../../lib/usePagedList';
 import { usePageAccess } from '../../lib/guard';
 import { formatTimeSmart } from '../../lib/format';
 import { AccessGate, PageState } from '../../ui/PageState';
 import { SearchEntry } from '../../ui/SearchEntry';
 import { PopupSheet } from '../../ui/layout';
 import { Avatar, Cell, PullToRefresh, Popup, confirm, toast } from '../../ui/nutui';
+import { ListFooter } from '../../ui/ListFooter';
 import emptyMessagesIcon from '../../assets/illustrations/empty-messages.svg';
 
 type PagedConversationSummary = components['schemas']['PagedConversationSummary'];
@@ -27,21 +29,30 @@ type ConversationCategory = 'cs' | 'trade' | 'user';
 const CS_NAME_KEYWORDS = ['平台客服', '客服助手', '官方客服', '客服'];
 const TRADE_NAME_KEYWORDS = ['交易通知', '系统通知', '订单通知', '支付通知'];
 const TRADE_MESSAGE_KEYWORDS = ['订单', '订金', '支付', '退款', '合同', '尾款', '托管', '结算', '发票', '仲裁', '争议', '审核'];
+const CONVERSATION_POLL_INTERVAL_MS = 15000;
 
 function includesAny(text: string, keywords: string[]): boolean {
   return keywords.some((keyword) => text.includes(keyword));
 }
 
 export default function MessagesPage() {
-  const [loading, setLoading] = useState(false);
-  const [refreshing, setRefreshing] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [data, setData] = useState<PagedConversationSummary | null>(null);
   const [latestNoticeTime, setLatestNoticeTime] = useState('');
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchValue, setSearchValue] = useState('');
   const [moreOpen, setMoreOpen] = useState(false);
   const [manageOpen, setManageOpen] = useState(false);
+  const [pageVisible, setPageVisible] = useState(true);
+
+  const fetcher = useCallback(
+    async ({ page, pageSize }: { page: number; pageSize: number }) =>
+      apiGet<PagedConversationSummary>('/me/conversations', { page, pageSize }),
+    [],
+  );
+
+  const convoList = usePagedList<ConversationSummary>(fetcher, {
+    pageSize: 20,
+    keepItemsOnRefreshError: true,
+  });
 
   const loadNotifications = useCallback(async () => {
     try {
@@ -53,50 +64,39 @@ export default function MessagesPage() {
   }, []);
 
   const load = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const d = await apiGet<PagedConversationSummary>('/me/conversations', {
-        page: 1,
-        pageSize: 20,
-      });
-      setData(d);
-    } catch (e: any) {
-      setError(e?.message || '加载失败');
-      setData(null);
-    } finally {
-      setLoading(false);
-    }
+    await convoList.reload();
     void loadNotifications();
-  }, []);
+  }, [convoList.reload, loadNotifications]);
 
   const refresh = useCallback(async () => {
-    if (refreshing) return;
-    setRefreshing(true);
-    try {
-      const d = await apiGet<PagedConversationSummary>('/me/conversations', {
-        page: 1,
-        pageSize: 20,
-      });
-      setData(d);
-      setError(null);
-    } catch (_) {
-      // keep existing data visible during refresh failures
-    } finally {
-      setRefreshing(false);
-    }
+    await convoList.refresh();
     void loadNotifications();
-  }, [refreshing, loadNotifications]);
+  }, [convoList.refresh, loadNotifications]);
 
   const access = usePageAccess('approved-required', (next) => {
     if (next.state === 'ok') {
       void load();
       return;
     }
-    setData(null);
-    setError(null);
-    setLoading(false);
+    convoList.reset();
   });
+
+  useDidShow(() => {
+    setPageVisible(true);
+  });
+
+  useDidHide(() => {
+    setPageVisible(false);
+  });
+
+  useEffect(() => {
+    if (!pageVisible || access.state !== 'ok') return;
+    const timer = setInterval(() => {
+      if (convoList.loading || convoList.loadingMore || convoList.refreshing) return;
+      void load();
+    }, CONVERSATION_POLL_INTERVAL_MS);
+    return () => clearInterval(timer);
+  }, [access.state, convoList.loading, convoList.loadingMore, convoList.refreshing, load, pageVisible]);
 
   const trimmedSearch = searchValue.trim().toLowerCase();
   const showSearch = searchOpen || Boolean(trimmedSearch);
@@ -147,7 +147,7 @@ export default function MessagesPage() {
     );
   }
 
-  const items = useMemo(() => data?.items || [], [data?.items]);
+  const items = useMemo(() => convoList.items, [convoList.items]);
 
   const getConversationCategory = useCallback((c: ConversationSummary): ConversationCategory => {
     const role = c.counterpart?.role || '';
@@ -221,13 +221,8 @@ export default function MessagesPage() {
       );
       const failed = results.filter((res) => res.status === 'rejected');
       const targetIds = new Set(unread.map((c) => c.id));
-      setData((prev) =>
-        prev
-          ? {
-              ...prev,
-              items: prev.items.map((c) => (targetIds.has(c.id) ? { ...c, unreadCount: 0 } : c)),
-            }
-          : prev,
+      convoList.setItems((prev) =>
+        prev.map((c) => (targetIds.has(c.id) ? { ...c, unreadCount: 0 } : c)),
       );
       if (failed.length) {
         toast('部分会话标记失败', { icon: 'warn' });
@@ -237,7 +232,7 @@ export default function MessagesPage() {
     } catch (e: any) {
       toast(e?.message || '操作失败', { icon: 'fail' });
     }
-  }, [consultItems]);
+  }, [consultItems, convoList.setItems]);
 
   const bulkClearHistory = useCallback(async () => {
     const targets = trimmedSearch ? filteredItems : consultItems;
@@ -253,21 +248,14 @@ export default function MessagesPage() {
     });
     if (!ok) return;
     const targetIds = new Set(targets.map((c) => c.id));
-    setData((prev) =>
-      prev
-        ? {
-            ...prev,
-            items: prev.items.map((c) =>
-              targetIds.has(c.id)
-                ? { ...c, lastMessagePreview: '', lastMessageAt: '', unreadCount: 0 }
-                : c,
-            ),
-          }
-        : prev,
+    convoList.setItems((prev) =>
+      prev.map((c) =>
+        targetIds.has(c.id) ? { ...c, lastMessagePreview: '', lastMessageAt: '', unreadCount: 0 } : c,
+      ),
     );
     setManageOpen(false);
     toast('已清空历史', { icon: 'success' });
-  }, [filteredItems, consultItems, trimmedSearch]);
+  }, [filteredItems, consultItems, trimmedSearch, convoList.setItems]);
 
   const bulkDelete = useCallback(async () => {
     const targets = trimmedSearch ? filteredItems : consultItems;
@@ -283,17 +271,10 @@ export default function MessagesPage() {
     });
     if (!ok) return;
     const targetIds = new Set(targets.map((c) => c.id));
-    setData((prev) =>
-      prev
-        ? {
-            ...prev,
-            items: prev.items.filter((c) => !targetIds.has(c.id)),
-          }
-        : prev,
-    );
+    convoList.setItems((prev) => prev.filter((c) => !targetIds.has(c.id)));
     setManageOpen(false);
     toast('已删除会话', { icon: 'success' });
-  }, [filteredItems, consultItems, trimmedSearch]);
+  }, [filteredItems, consultItems, trimmedSearch, convoList.setItems]);
 
   const emptyTitle = '暂无消息';
   const emptyMessage = '从详情页点击“咨询”即可创建会话。';
@@ -332,9 +313,9 @@ export default function MessagesPage() {
 
       <PageState
         access={access}
-        loading={loading}
+        loading={convoList.loading}
         loadingText="加载会话中…"
-        error={error}
+        error={convoList.error}
         empty={!filteredItems.length}
         emptyTitle={trimmedSearch ? '未找到会话' : emptyTitle}
         emptyMessage={trimmedSearch ? '换个关键词试试。' : emptyMessage}
@@ -343,12 +324,16 @@ export default function MessagesPage() {
         onRetry={load}
         onEmptyAction={trimmedSearch ? clearSearch : load}
       >
-        <PullToRefresh type="primary" disabled={refreshing} onRefresh={refresh}>
+        <PullToRefresh
+          type="primary"
+          disabled={convoList.loading || convoList.refreshing}
+          onRefresh={refresh}
+        >
           <View className="messages-list-new">
             <View
               className={`message-item-new notice-entry ${filteredItems.length ? '' : 'is-last'}`}
               onClick={() => {
-                Taro.navigateTo({ url: '/pages/notifications/index' });
+                Taro.navigateTo({ url: '/subpackages/notifications/index' });
               }}
             >
               <View className="message-avatar-new">
@@ -372,7 +357,7 @@ export default function MessagesPage() {
                 key={c.id}
                 className={`message-item-new ${idx === filteredItems.length - 1 ? 'is-last' : ''}`}
                 onClick={() => {
-                  Taro.navigateTo({ url: `/pages/messages/chat/index?conversationId=${c.id}` });
+                  Taro.navigateTo({ url: `/subpackages/messages/chat/index?conversationId=${c.id}` });
                 }}
               >
                 <View className="message-avatar-new">
@@ -411,6 +396,14 @@ export default function MessagesPage() {
               </View>
             ))}
           </View>
+          {!convoList.loading && filteredItems.length ? (
+            <ListFooter
+              loadingMore={convoList.loadingMore}
+              hasMore={convoList.hasMore}
+              onLoadMore={convoList.loadMore}
+              showNoMore
+            />
+          ) : null}
         </PullToRefresh>
       </PageState>
 
@@ -459,3 +452,4 @@ export default function MessagesPage() {
     </View>
   );
 }
+
