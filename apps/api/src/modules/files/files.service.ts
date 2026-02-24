@@ -22,9 +22,13 @@ const S3_REGION = process.env.S3_REGION || 'auto';
 const S3_ACCESS_KEY_ID = process.env.S3_ACCESS_KEY_ID || '';
 const S3_SECRET_ACCESS_KEY = process.env.S3_SECRET_ACCESS_KEY || '';
 const S3_BUCKET = process.env.S3_BUCKET || '';
+const NODE_ENV = String(process.env.NODE_ENV || '').trim().toLowerCase();
 const FILE_TEMP_TOKEN_SECRET = String(process.env.FILE_TEMP_TOKEN_SECRET || '').trim();
 if (!FILE_TEMP_TOKEN_SECRET) {
   throw new Error('FILE_TEMP_TOKEN_SECRET is required');
+}
+if (NODE_ENV === 'production' && FILE_TEMP_TOKEN_SECRET.toLowerCase() === 'change-me') {
+  throw new Error('FILE_TEMP_TOKEN_SECRET must not be the default "change-me" in production');
 }
 const FILE_TEMP_TOKEN_TTL_SECONDS = Math.max(60, Number(process.env.FILE_TEMP_TOKEN_TTL_SECONDS || 900));
 const FILE_WATERMARK_TEXT = process.env.FILE_WATERMARK_TEXT || 'Ipmoney Preview';

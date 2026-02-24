@@ -5,8 +5,14 @@ const path = require('node:path');
 
 const prisma = new PrismaClient();
 
+const NODE_ENV = String(process.env.NODE_ENV || '').trim().toLowerCase();
+const SEED_BASE_DATA = String(process.env.SEED_BASE_DATA || '').trim().toLowerCase() !== 'false';
 const SEED_DEMO_DATA = String(process.env.SEED_DEMO_DATA || '').trim().toLowerCase() === 'true';
 const PURGE_DEMO_MAP = String(process.env.SEED_DEMO_PURGE_MAP || '').trim().toLowerCase() === 'true';
+
+if (NODE_ENV === 'production' && SEED_DEMO_DATA) {
+  throw new Error('SEED_DEMO_DATA must be false in production.');
+}
 const DEFAULT_DEMO_USER_ID = '8c592d03-c1c1-40be-8d62-64ce71ac7606';
 const DEFAULT_DEMO_ADMIN_ID = '804b7a04-aafe-409a-bee4-e84f953cb4c0';
 const DEMO_USER_ID = String(process.env.DEMO_USER_ID || DEFAULT_DEMO_USER_ID).trim() || DEFAULT_DEMO_USER_ID;
@@ -1570,8 +1576,10 @@ async function seedArtworks() {
 }
 
 async function main() {
-  await seedRegions();
-  await seedSystemConfigs();
+  if (SEED_BASE_DATA) {
+    await seedRegions();
+    await seedSystemConfigs();
+  }
 
   if (SEED_DEMO_DATA) {
     await seedUsers();
@@ -1591,15 +1599,8 @@ async function main() {
     await seedFavorites();
     await seedConversations();
     await seedOrders();
-  } else {
+  } else if (PURGE_DEMO_MAP) {
     await seedPatentMapEntries();
-    await seedAnnouncements();
-    await seedNotifications();
-    await seedAddresses();
-    await seedDemands();
-    await seedAchievements();
-    await seedArtworks();
-    await seedUsers();
   }
 }
 

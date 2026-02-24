@@ -16,9 +16,23 @@ function parseBool(value: string | undefined): boolean {
   return String(value || '').trim().toLowerCase() === 'true';
 }
 
+function isReleaseLike(value: string | undefined): boolean {
+  const raw = String(value || '').trim().toLowerCase();
+  if (!raw) return false;
+  if (raw === 'prod' || raw === 'production') return true;
+  if (raw === 'staging' || raw === 'stage') return true;
+  if (/(^|[-_])prod($|[-_])/.test(raw)) return true;
+  if (/(^|[-_])staging($|[-_])/.test(raw)) return true;
+  return false;
+}
+
+function isNonDevEnv(): boolean {
+  const values = [process.env.NODE_ENV, process.env.DEPLOY_ENV, process.env.APP_MODE, process.env.STAGE, process.env.ENV];
+  return values.some((v) => isReleaseLike(v));
+}
+
 export function getDemoAuthConfig(): DemoAuthConfig {
-  const nodeEnv = String(process.env.NODE_ENV || '').trim().toLowerCase();
-  if (nodeEnv === 'production') return { enabled: false };
+  if (isNonDevEnv()) return { enabled: false };
   const enabled = parseBool(process.env.DEMO_AUTH_ENABLED);
   if (!enabled) return { enabled: false };
 
@@ -55,5 +69,6 @@ export function isDemoUuidTokenEnabled(): boolean {
 }
 
 export function isDemoPaymentEnabled(): boolean {
+  if (isNonDevEnv()) return false;
   return parseBool(process.env.DEMO_PAYMENT_ENABLED);
 }
