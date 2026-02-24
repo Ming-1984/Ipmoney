@@ -1,5 +1,5 @@
-import { ArrowLeft } from '@nutui/icons-react-taro';
-import { NavBar } from '@nutui/nutui-react-taro';
+import { ArrowLeft } from '../icons';
+import { NavBar } from '@nutui/nutui-react-taro/dist/es/packages/navbar/navbar';
 import { View, Text, Image } from '@tarojs/components';
 import Taro from '@tarojs/taro';
 import React, { useCallback, useEffect, useMemo } from 'react';

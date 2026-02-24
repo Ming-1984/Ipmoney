@@ -1,7 +1,7 @@
 ﻿import { View, Text, Input } from '@tarojs/components';
 import React, { useCallback } from 'react';
 
-import { Close, Search } from '@nutui/icons-react-taro';
+import { Close, Search } from './icons';
 import './SearchEntry.scss';
 
 export function SearchEntry(props: {

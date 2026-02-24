@@ -124,6 +124,7 @@ export default function MePage() {
   const [orderTab, setOrderTab] = useState<'orders' | 'publish'>('orders');
   const [refreshing, setRefreshing] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [agree, setAgree] = useState(false);
   const [showSms, setShowSms] = useState(false);
   const [phone, setPhone] = useState('');
   const [smsCode, setSmsCode] = useState('');
@@ -138,6 +139,12 @@ export default function MePage() {
     const t = setTimeout(() => setCooldown((v) => Math.max(0, v - 1)), 1000);
     return () => clearTimeout(t);
   }, [cooldown]);
+
+  const ensureAgreement = useCallback(() => {
+    if (agree) return true;
+    toast('请先阅读并同意《用户协议》和《隐私政策》');
+    return false;
+  }, [agree]);
 
   const loadMe = useCallback(async () => {
     if (!auth.token) return;
@@ -263,6 +270,7 @@ export default function MePage() {
 
   const wechatLogin = useCallback(async () => {
     if (busy) return;
+    if (!ensureAgreement()) return;
     setBusy(true);
     try {
       let code = '';
@@ -281,10 +289,11 @@ export default function MePage() {
     } finally {
       setBusy(false);
     }
-  }, [afterLogin, busy]);
+  }, [afterLogin, busy, ensureAgreement]);
 
   const demoLogin = useCallback(async () => {
     if (!DEMO_LOGIN_ENABLED || busy) return;
+    if (!ensureAgreement()) return;
     setBusy(true);
     try {
       const authToken = await apiPost<AuthTokenResponse>('/auth/wechat/mp-login', { code: 'demo' });
@@ -294,10 +303,11 @@ export default function MePage() {
     } finally {
       setBusy(false);
     }
-  }, [afterLogin, busy]);
+  }, [afterLogin, busy, ensureAgreement]);
 
   const sendSms = useCallback(async () => {
     if (busy) return;
+    if (!ensureAgreement()) return;
     const p = phone.trim();
     if (!p) {
       toast('请输入手机号');
@@ -313,10 +323,11 @@ export default function MePage() {
     } finally {
       setBusy(false);
     }
-  }, [busy, phone]);
+  }, [busy, ensureAgreement, phone]);
 
   const verifySms = useCallback(async () => {
     if (busy) return;
+    if (!ensureAgreement()) return;
     const p = phone.trim();
     const c = smsCode.trim();
     if (!p) {
@@ -336,7 +347,7 @@ export default function MePage() {
     } finally {
       setBusy(false);
     }
-  }, [afterLogin, busy, phone, smsCode]);
+  }, [afterLogin, busy, ensureAgreement, phone, smsCode]);
 
   const verification = useMemo(() => {
     return { type: auth.verificationType, status: auth.verificationStatus };
@@ -515,7 +526,10 @@ export default function MePage() {
             </View>
           ) : null}
           <View className="me-login-agreement">
-            <Text className="me-login-agreement-text">登录即同意</Text>
+            <Text className="me-login-agreement-check" onClick={() => setAgree((v) => !v)}>
+              {agree ? '[x]' : '[ ]'}
+            </Text>
+            <Text className="me-login-agreement-text">我已阅读并同意</Text>
             <Text className="me-login-agreement-link" onClick={() => Taro.navigateTo({ url: '/subpackages/legal/terms/index' })}>
               《用户协议》
             </Text>

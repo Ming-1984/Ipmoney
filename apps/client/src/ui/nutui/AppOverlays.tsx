@@ -1,6 +1,7 @@
 import React from 'react';
 
-import { Dialog, Toast } from '@nutui/nutui-react-taro';
+import Dialog from '@nutui/nutui-react-taro/dist/es/packages/dialog';
+import Toast from '@nutui/nutui-react-taro/dist/es/packages/toast';
 
 import { ensureH5OverlayRoot } from './overlayRoot';
 

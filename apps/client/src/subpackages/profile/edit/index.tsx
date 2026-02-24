@@ -5,7 +5,7 @@ import './index.scss';
 
 import type { components } from '@ipmoney/api-types';
 
-import { Photograph } from '@nutui/icons-react-taro';
+import { Photograph } from '../../../ui/icons';
 
 import { API_BASE_URL } from '../../../constants';
 import { getToken, setOnboardingDone, setVerificationStatus, setVerificationType } from '../../../lib/auth';

@@ -1,7 +1,7 @@
 import { View } from '@tarojs/components';
 import React from 'react';
 
-import { ArrowRight } from '@nutui/icons-react-taro';
+import { ArrowRight } from '../icons';
 
 import { Cell } from '../nutui';
 

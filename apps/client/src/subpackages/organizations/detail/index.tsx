@@ -5,7 +5,7 @@ import './index.scss';
 
 import type { components } from '@ipmoney/api-types';
 
-import { Heart, Share2 } from '@nutui/icons-react-taro';
+import { Heart, Share2 } from '../../../ui/icons';
 import { apiGet } from '../../../lib/api';
 import { verificationTypeLabel } from '../../../lib/labels';
 import { safeNavigateBack } from '../../../lib/navigation';

@@ -5,7 +5,7 @@ import './index.scss';
 
 import type { components } from '@ipmoney/api-types';
 
-import { Heart, HeartFill, Message, Share2 } from '@nutui/icons-react-taro';
+import { Heart, HeartFill, Message, Share2 } from '../../../ui/icons';
 
 import { apiGet, apiPost } from '../../../lib/api';
 import { getToken } from '../../../lib/auth';

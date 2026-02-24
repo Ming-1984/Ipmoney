@@ -1,5 +1,6 @@
 import Taro from '@tarojs/taro';
-import { Dialog, Toast } from '@nutui/nutui-react-taro';
+import Dialog from '@nutui/nutui-react-taro/dist/es/packages/dialog';
+import Toast from '@nutui/nutui-react-taro/dist/es/packages/toast';
 
 import { OVERLAY_IDS } from './AppOverlays';
 

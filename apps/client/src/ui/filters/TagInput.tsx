@@ -1,7 +1,7 @@
 import { View, Text, Input } from '@tarojs/components';
 import React, { useCallback, useMemo, useState } from 'react';
 
-import { Close } from '@nutui/icons-react-taro';
+import { Close } from '../icons';
 
 import { Button, toast } from '../nutui';
 

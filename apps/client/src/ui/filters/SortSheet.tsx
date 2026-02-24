@@ -1,7 +1,7 @@
 import { View, Text } from '@tarojs/components';
 import React from 'react';
 
-import { Check } from '@nutui/icons-react-taro';
+import { Check } from '../icons';
 
 import { Cell, CellGroup, Popup } from '../nutui';
 import { PopupSheet } from '../layout';

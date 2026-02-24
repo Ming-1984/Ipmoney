@@ -1,6 +1,6 @@
 import React from 'react';
 
-import { Popup as NutPopup } from '@nutui/nutui-react-taro';
+import { Popup as NutPopup } from '@nutui/nutui-react-taro/dist/es/packages/popup/popup';
 
 import { ensureH5OverlayRoot } from './overlayRoot';
 

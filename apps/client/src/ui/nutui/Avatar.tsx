@@ -1,6 +1,7 @@
 import React from 'react';
 
-import { Avatar as NutAvatar, AvatarGroup } from '@nutui/nutui-react-taro';
+import { Avatar as NutAvatar } from '@nutui/nutui-react-taro/dist/es/packages/avatar/avatar';
+import { AvatarGroup } from '@nutui/nutui-react-taro/dist/es/packages/avatargroup/avatargroup';
 
 type NutAvatarProps = React.ComponentProps<typeof NutAvatar>;
 

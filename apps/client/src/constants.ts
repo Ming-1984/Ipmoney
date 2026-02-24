@@ -6,8 +6,13 @@ export const APP_MODE = __APP_MODE__;
 
 declare const __DEMO_AUTH_ENABLED__: boolean;
 export const DEMO_AUTH_ENABLED = __DEMO_AUTH_ENABLED__;
-export const IS_PROD = APP_MODE === 'production';
-export const DEMO_LOGIN_ENABLED = DEMO_AUTH_ENABLED && !IS_PROD;
+
+declare const __IS_PROD_DEPLOY__: boolean;
+export const IS_PROD_DEPLOY = __IS_PROD_DEPLOY__;
+
+// Build mode can be "production" for staging builds; use IS_PROD_DEPLOY to gate demo-only UI/flows.
+export const IS_PROD_BUILD = APP_MODE === 'production';
+export const DEMO_LOGIN_ENABLED = DEMO_AUTH_ENABLED && !IS_PROD_DEPLOY;
 
 export const STORAGE_KEYS = {
   deviceId: 'ipmoney.deviceId',

@@ -1,6 +1,6 @@
 import React from 'react';
 
-import { Button as NutButton } from '@nutui/nutui-react-taro';
+import { Button as NutButton } from '@nutui/nutui-react-taro/dist/es/packages/button/button';
 
 export type AppButtonVariant = 'primary' | 'ghost' | 'danger' | 'default';
 
