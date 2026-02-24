@@ -10,6 +10,10 @@ param(
   [switch]$Seed,
   [switch]$PurgeDemo,
   [switch]$EnableDemoAuth = $true,
+  [switch]$EnableDemoPayment,
+  [switch]$AllowDemoUuidTokens,
+  [switch]$EnableMockTools,
+  [switch]$AllowNonDev,
   [int]$ApiPort = 3200,
   [int]$AdminPort = 5174,
   [int]$ClientPort = 5173
@@ -65,6 +69,31 @@ function Try-StopRepoNodeOnPort([int]$Port) {
     if ($after.Count -eq 0) { return $true }
   }
   return $false
+}
+
+function Stop-RepoNodeByCommandMatch {
+  param(
+    [Parameter(Mandatory = $true)][string[]]$Needles,
+    [Parameter(Mandatory = $true)][string]$Reason
+  )
+
+  $needlesLower = $Needles | ForEach-Object { $_.ToLower() }
+  $procs = @(Get-Process -Name node -ErrorAction SilentlyContinue)
+  foreach ($proc in $procs) {
+    $cmd = Get-ProcessCommandLine -ProcessId $proc.Id
+    if ([string]::IsNullOrWhiteSpace($cmd)) { continue }
+    if ($cmd -notlike "*$repoRoot*") { continue }
+
+    $lower = $cmd.ToLower()
+    $hit = $false
+    foreach ($n in $needlesLower) {
+      if ($lower.Contains($n)) { $hit = $true; break }
+    }
+    if (-not $hit) { continue }
+
+    Write-Host "[start] stopping repo node process (pid $($proc.Id)) for $Reason..."
+    try { Stop-Process -Id $proc.Id -Force -ErrorAction Stop } catch {}
+  }
 }
 
 function Test-LocalPortInUse([int]$Port) {
@@ -210,6 +239,23 @@ if (-not (Test-Path $envPath)) {
 $envMap = Read-EnvFile $envPath
 Apply-EnvMap -Map $envMap
 
+$detectedEnvValues = @(
+  $env:NODE_ENV,
+  $env:APP_MODE,
+  $env:DEPLOY_ENV,
+  $env:STAGE,
+  $env:ENV
+) | Where-Object { -not [string]::IsNullOrWhiteSpace($_) }
+
+$nonDevEnvs = @("production", "prod", "staging")
+if (-not $AllowNonDev) {
+  foreach ($value in $detectedEnvValues) {
+    if ($nonDevEnvs -contains $value.ToLower()) {
+      throw "start-dev.ps1 is intended for local dev only. Detected env '$value'. Use -AllowNonDev to override."
+    }
+  }
+}
+
 if (-not $SkipInstall -and -not (Test-Path (Join-Path $repoRoot "node_modules"))) {
   Write-Host "[start] installing dependencies..."
   Invoke-External -FilePath "pnpm" -Args @("install")
@@ -230,6 +276,9 @@ if (-not $SkipInfra) {
 }
 
 if (-not $SkipDb) {
+  # Prisma on Windows will fail to overwrite the query engine DLL if any existing
+  # API process is running and has loaded it. Stop any repo API processes first.
+  Stop-RepoNodeByCommandMatch -Needles @("apps\\api", "apps/api") -Reason "prisma generate (engine lock avoidance)"
   Write-Host "[start] preparing database (prisma generate/migrate)..."
   Invoke-External -FilePath "pnpm" -Args @("-C", "apps/api", "prisma:generate")
   Invoke-External -FilePath "pnpm" -Args @("-C", "apps/api", "db:migrate")
@@ -244,13 +293,15 @@ if (-not $SkipDb) {
 $apiBaseUrl = "http://127.0.0.1:$ApiPort"
 $env:PORT = "$ApiPort"
 $env:BASE_URL = $apiBaseUrl
-$env:PUBLIC_HOST_WHITELIST = "localhost:$ApiPort"
+$env:PUBLIC_HOST_WHITELIST = "localhost:$ApiPort,127.0.0.1:$ApiPort"
 $env:TARO_APP_API_BASE_URL = $apiBaseUrl
 $env:VITE_API_BASE_URL = $apiBaseUrl
-$env:TARO_APP_ENABLE_MOCK_TOOLS = "0"
-$env:VITE_ENABLE_MOCK_TOOLS = "0"
+$mockToolsValue = if ($EnableMockTools) { "1" } else { "0" }
+$env:TARO_APP_ENABLE_MOCK_TOOLS = $mockToolsValue
+$env:VITE_ENABLE_MOCK_TOOLS = $mockToolsValue
 $demoAuthValue = if ($EnableDemoAuth) { "true" } else { "false" }
-$demoPaymentValue = if ($EnableDemoAuth) { "true" } else { "false" }
+$demoPaymentEnabled = if ($PSBoundParameters.ContainsKey('EnableDemoPayment')) { [bool]$EnableDemoPayment } else { [bool]$EnableDemoAuth }
+$demoPaymentValue = if ($demoPaymentEnabled) { "true" } else { "false" }
 $env:DEMO_AUTH_ENABLED = $demoAuthValue
 $env:DEMO_PAYMENT_ENABLED = $demoPaymentValue
 if ($EnableDemoAuth) {
@@ -266,24 +317,23 @@ if ($EnableDemoAuth) {
   if ([string]::IsNullOrWhiteSpace($env:DEMO_USER_ID)) {
     $env:DEMO_USER_ID = [guid]::NewGuid().ToString()
   }
-  if ([string]::IsNullOrWhiteSpace($env:DEMO_AUTH_ALLOW_UUID_TOKENS)) {
-    $env:DEMO_AUTH_ALLOW_UUID_TOKENS = "true"
-  }
+  # Default to secure behavior: UUID passthrough is OFF unless explicitly enabled.
+  $env:DEMO_AUTH_ALLOW_UUID_TOKENS = if ($AllowDemoUuidTokens) { "true" } else { "false" }
 } else {
   $env:DEMO_AUTH_ALLOW_UUID_TOKENS = "false"
 }
 
 $psExe = (Get-Command powershell).Source
 
-$apiCommand = "cd `"$repoRoot`"; `$env:PORT='$ApiPort'; `$env:BASE_URL='$apiBaseUrl'; `$env:PUBLIC_HOST_WHITELIST='localhost:$ApiPort'; `$env:DEMO_AUTH_ENABLED='$demoAuthValue'; `$env:DEMO_PAYMENT_ENABLED='$demoPaymentValue'; `$env:DEMO_AUTH_ALLOW_UUID_TOKENS='$($env:DEMO_AUTH_ALLOW_UUID_TOKENS)'; `$env:DEMO_ADMIN_TOKEN='$($env:DEMO_ADMIN_TOKEN)'; `$env:DEMO_USER_TOKEN='$($env:DEMO_USER_TOKEN)'; `$env:DEMO_ADMIN_ID='$($env:DEMO_ADMIN_ID)'; `$env:DEMO_USER_ID='$($env:DEMO_USER_ID)'; pnpm -C apps/api dev"
-$adminCommand = "cd `"$repoRoot`"; `$env:VITE_API_BASE_URL='$apiBaseUrl'; `$env:VITE_ENABLE_MOCK_TOOLS='0'; `$env:VITE_DEMO_ADMIN_TOKEN='$($env:DEMO_ADMIN_TOKEN)'; `$env:VITE_DEMO_AUTH_ENABLED='$demoAuthValue'; `$env:ADMIN_WEB_PORT='$AdminPort'; pnpm -C apps/admin-web dev"
+$apiCommand = "cd `"$repoRoot`"; `$env:PORT='$ApiPort'; `$env:BASE_URL='$apiBaseUrl'; `$env:PUBLIC_HOST_WHITELIST='localhost:$ApiPort,127.0.0.1:$ApiPort'; `$env:DEMO_AUTH_ENABLED='$demoAuthValue'; `$env:DEMO_PAYMENT_ENABLED='$demoPaymentValue'; `$env:DEMO_AUTH_ALLOW_UUID_TOKENS='$($env:DEMO_AUTH_ALLOW_UUID_TOKENS)'; `$env:DEMO_ADMIN_TOKEN='$($env:DEMO_ADMIN_TOKEN)'; `$env:DEMO_USER_TOKEN='$($env:DEMO_USER_TOKEN)'; `$env:DEMO_ADMIN_ID='$($env:DEMO_ADMIN_ID)'; `$env:DEMO_USER_ID='$($env:DEMO_USER_ID)'; pnpm -C apps/api dev"
+$adminCommand = "cd `"$repoRoot`"; `$env:VITE_API_BASE_URL='$apiBaseUrl'; `$env:VITE_ENABLE_MOCK_TOOLS='$mockToolsValue'; `$env:VITE_DEMO_ADMIN_TOKEN='$($env:DEMO_ADMIN_TOKEN)'; `$env:VITE_DEMO_AUTH_ENABLED='$demoAuthValue'; `$env:ADMIN_WEB_PORT='$AdminPort'; pnpm -C apps/admin-web dev"
 
 $clientCommand = $null
 if ($Client -eq "weapp") {
-  $clientCommand = "cd `"$repoRoot`"; `$env:TARO_APP_API_BASE_URL='$apiBaseUrl'; `$env:TARO_APP_ENABLE_MOCK_TOOLS='0'; pnpm -C apps/client dev:weapp"
+  $clientCommand = "cd `"$repoRoot`"; `$env:TARO_APP_API_BASE_URL='$apiBaseUrl'; `$env:TARO_APP_ENABLE_MOCK_TOOLS='$mockToolsValue'; pnpm -C apps/client dev:weapp"
 }
 if ($Client -eq "h5") {
-  $clientCommand = "cd `"$repoRoot`"; `$env:TARO_APP_API_BASE_URL='$apiBaseUrl'; `$env:TARO_APP_ENABLE_MOCK_TOOLS='0'; `$env:CLIENT_H5_PORT='$ClientPort'; pnpm -C apps/client dev:h5"
+  $clientCommand = "cd `"$repoRoot`"; `$env:TARO_APP_API_BASE_URL='$apiBaseUrl'; `$env:TARO_APP_ENABLE_MOCK_TOOLS='$mockToolsValue'; `$env:CLIENT_H5_PORT='$ClientPort'; pnpm -C apps/client dev:h5"
 }
 
 if ($SplitWindows) {
@@ -312,7 +362,11 @@ if ($Client -eq "weapp") {
 }
 if ($EnableDemoAuth) {
   Write-Host "[start] Demo auth enabled."
-  Write-Host "[start] Demo payment enabled."
+  if ($demoPaymentEnabled) {
+    Write-Host "[start] Demo payment enabled."
+  } else {
+    Write-Host "[start] Demo payment disabled."
+  }
   Write-Host "[start] Admin token: $env:DEMO_ADMIN_TOKEN"
   Write-Host "[start] User token:  $env:DEMO_USER_TOKEN"
   Write-Host "[start] Admin id:    $env:DEMO_ADMIN_ID"

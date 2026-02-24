@@ -143,9 +143,8 @@ if ([string]::IsNullOrWhiteSpace($env:DEMO_ADMIN_ID)) {
 if ([string]::IsNullOrWhiteSpace($env:DEMO_USER_ID)) {
   $env:DEMO_USER_ID = [guid]::NewGuid().ToString()
 }
-if ([string]::IsNullOrWhiteSpace($env:DEMO_AUTH_ALLOW_UUID_TOKENS)) {
-  $env:DEMO_AUTH_ALLOW_UUID_TOKENS = "true"
-}
+# Smoke tests should not rely on UUID passthrough tokens; keep it off explicitly.
+$env:DEMO_AUTH_ALLOW_UUID_TOKENS = "false"
 $env:UPLOAD_DIR = (Join-Path $repoRoot ".tmp/uploads")
 New-Item -ItemType Directory -Force $env:UPLOAD_DIR | Out-Null
 

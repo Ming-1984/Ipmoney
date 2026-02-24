@@ -212,7 +212,7 @@ $adminOut = Join-Path $logDir "ui-render-admin.out.log"
 $adminErr = Join-Path $logDir "ui-render-admin.err.log"
 
 $mockCmd = "`$env:MOCK_API_PORT='$MockPort'; `$env:MOCK_API_PRISM_PORT='$PrismPort'; pnpm mock"
-$clientCmd = "`$env:TARO_APP_API_BASE_URL='http://127.0.0.1:$MockPort'; `$env:CLIENT_H5_PORT='$ClientPort'; `$env:TARO_APP_ENABLE_MOCK_TOOLS='0'; pnpm -C apps/client dev:h5"
+$clientCmd = "`$env:TARO_APP_API_BASE_URL='http://127.0.0.1:$MockPort'; `$env:CLIENT_H5_PORT='$ClientPort'; `$env:TARO_APP_ENABLE_MOCK_TOOLS='0'; `$env:DEMO_AUTH_ENABLED='true'; `$env:DEMO_PAYMENT_ENABLED='true'; pnpm -C apps/client dev:h5"
 $adminCmd = "`$env:VITE_API_BASE_URL='http://127.0.0.1:$MockPort'; `$env:ADMIN_WEB_PORT='$AdminPort'; `$env:VITE_ENABLE_MOCK_TOOLS='0'; pnpm -C apps/admin-web dev"
 
 $mockProc = Start-Process -FilePath "powershell" -ArgumentList @("-NoLogo", "-NoProfile", "-Command", $mockCmd) -WorkingDirectory $repoRoot -PassThru -WindowStyle Hidden -RedirectStandardOutput $mockOut -RedirectStandardError $mockErr

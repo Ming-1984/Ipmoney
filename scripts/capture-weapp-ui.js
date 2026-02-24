@@ -1,10 +1,38 @@
 const fs = require('node:fs');
 const path = require('node:path');
 
-const automator = require('miniprogram-automator');
+let automator;
+try {
+  // Optional dependency: only required for WeChat DevTools automation runs.
+  // Install: pnpm add -D miniprogram-automator
+  // eslint-disable-next-line global-require
+  automator = require('miniprogram-automator');
+} catch (e) {
+  // eslint-disable-next-line no-console
+  console.error('[weapp] Missing dependency: miniprogram-automator');
+  // eslint-disable-next-line no-console
+  console.error('[weapp] Install: pnpm add -D miniprogram-automator');
+  // eslint-disable-next-line no-console
+  console.error('[weapp] Then run: node scripts/capture-weapp-ui.js --help');
+  // eslint-disable-next-line no-console
+  console.error(String(e && e.message ? e.message : e));
+  process.exit(1);
+}
 
 function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function withTimeout(promise, timeoutMs, label) {
+  let timeoutId;
+  const timeout = new Promise((_, reject) => {
+    timeoutId = setTimeout(() => reject(new Error(`Timeout: ${label} (${timeoutMs}ms)`)), timeoutMs);
+  });
+  try {
+    return await Promise.race([promise, timeout]);
+  } finally {
+    clearTimeout(timeoutId);
+  }
 }
 
 function parseArgs(argv) {
@@ -63,6 +91,37 @@ function safeJsonParse(text) {
   }
 }
 
+function readEnvFile(filePath) {
+  const map = new Map();
+  if (!filePath) return map;
+  if (!fs.existsSync(filePath)) return map;
+  const text = fs.readFileSync(filePath, 'utf8');
+  for (const rawLine of text.split(/\r?\n/g)) {
+    const line = String(rawLine || '').trim();
+    if (!line || line.startsWith('#')) continue;
+    const idx = line.indexOf('=');
+    if (idx <= 0) continue;
+    const key = line.slice(0, idx).trim();
+    let val = line.slice(idx + 1).trim();
+    if (
+      (val.startsWith('"') && val.endsWith('"') && val.length >= 2) ||
+      (val.startsWith("'") && val.endsWith("'") && val.length >= 2)
+    ) {
+      val = val.slice(1, -1);
+    }
+    if (!key) continue;
+    map.set(key, val);
+  }
+  return map;
+}
+
+function getEnvValue(key, envMap) {
+  const fromProc = String(process.env[key] || '').trim();
+  if (fromProc) return fromProc;
+  const fromFile = envMap && envMap.has(key) ? String(envMap.get(key) || '').trim() : '';
+  return fromFile || '';
+}
+
 function cleanOldScreenshots(dirPath) {
   if (!fs.existsSync(dirPath)) return;
   if (!fs.statSync(dirPath).isDirectory()) return;
@@ -76,45 +135,56 @@ function cleanOldScreenshots(dirPath) {
 }
 
 const SAMPLE = {
-  listingId: '7a490e63-8173-41e7-b4f0-0d0bb5ce7d20',
-  patentId: '965f9831-2c44-48e8-8b7a-cd7ab40ff7ec',
-  orgUserId: 'c5b6438a-f3a7-4590-a484-0f2a2991c613',
-  conversationId: '127a267b-d5f8-4b39-acf8-855dff7258b0',
-  orderId: 'e9032d03-9b23-40ba-84a3-ac681f21c41b',
+  // Keep in sync with apps/api/prisma/seed.js demo IDs (SEED_* constants).
+  listingId: 'd562cea2-5502-4553-9cf1-869ee2c760fd',
+  patentId: '6e0511e4-5d32-4794-99f6-408d0941a754',
+  orgUserId: '982bb394-283b-418d-aec4-9e69568576b3',
+  conversationId: 'ae127712-cb2f-4526-8520-0dc45528ab8a',
+  orderId: '5e238163-ad1e-4830-a74d-944959427ebe',
+  paymentId: '28b74a0d-40c2-4af8-87b5-60d1390e46fd',
   regionCode: '110000',
   year: 2025,
 };
 
 const PAGES = [
   { name: 'home', url: '/pages/home/index' },
-  { name: 'search', url: '/pages/search/index' },
-  { name: 'patent-map', url: '/pages/patent-map/index' },
-  { name: 'patent-map-region-detail', url: `/pages/patent-map/region-detail/index?regionCode=${SAMPLE.regionCode}&year=${SAMPLE.year}` },
-  { name: 'inventors', url: '/pages/inventors/index' },
-  { name: 'listing-detail', url: `/pages/listing/detail/index?listingId=${SAMPLE.listingId}` },
-  { name: 'patent-detail', url: `/pages/patent/detail/index?patentId=${SAMPLE.patentId}` },
-  { name: 'organizations', url: '/pages/organizations/index' },
-  { name: 'organization-detail', url: `/pages/organizations/detail/index?orgUserId=${SAMPLE.orgUserId}` },
-  { name: 'trade-rules', url: '/pages/trade-rules/index' },
-  { name: 'login', url: '/pages/login/index' },
-  { name: 'onboarding-choose-identity', url: '/pages/onboarding/choose-identity/index' },
-  { name: 'onboarding-verification-form', url: '/pages/onboarding/verification-form/index' },
-  { name: 'region-picker', url: '/pages/region-picker/index' },
-  { name: 'profile-edit', url: '/pages/profile/edit/index' },
+  { name: 'search', url: '/subpackages/search/index' },
+  { name: 'patent-map', url: '/subpackages/patent-map/index' },
+  {
+    name: 'patent-map-region-detail',
+    url: `/subpackages/patent-map/region-detail/index?regionCode=${SAMPLE.regionCode}&year=${SAMPLE.year}`,
+  },
+  { name: 'inventors', url: '/subpackages/inventors/index' },
+  { name: 'listing-detail', url: `/subpackages/listing/detail/index?listingId=${SAMPLE.listingId}` },
+  { name: 'patent-detail', url: `/subpackages/patent/detail/index?patentId=${SAMPLE.patentId}` },
+  { name: 'organizations', url: '/subpackages/organizations/index' },
+  { name: 'organization-detail', url: `/subpackages/organizations/detail/index?orgUserId=${SAMPLE.orgUserId}` },
+  { name: 'trade-rules', url: '/subpackages/trade-rules/index' },
+  { name: 'login', url: '/subpackages/login/index' },
+  { name: 'onboarding-choose-identity', url: '/subpackages/onboarding/choose-identity/index' },
+  { name: 'onboarding-verification-form', url: '/subpackages/onboarding/verification-form/index' },
+  { name: 'region-picker', url: '/subpackages/region-picker/index' },
+  { name: 'profile-edit', url: '/subpackages/profile/edit/index' },
   { name: 'messages', url: '/pages/messages/index' },
-  { name: 'chat', url: `/pages/messages/chat/index?conversationId=${SAMPLE.conversationId}` },
+  { name: 'chat', url: `/subpackages/messages/chat/index?conversationId=${SAMPLE.conversationId}` },
   { name: 'publish', url: '/pages/publish/index' },
-  { name: 'publish-patent', url: '/pages/publish/patent/index' },
-  { name: 'publish-demand', url: '/pages/publish/demand/index' },
-  { name: 'publish-achievement', url: '/pages/publish/achievement/index' },
-  { name: 'my-listings', url: '/pages/my-listings/index' },
-  { name: 'favorites', url: '/pages/favorites/index' },
-  { name: 'orders', url: '/pages/orders/index' },
-  { name: 'order-detail', url: `/pages/orders/detail/index?orderId=${SAMPLE.orderId}` },
-  { name: 'checkout-deposit-pay', url: `/pages/checkout/deposit-pay/index?listingId=${SAMPLE.listingId}` },
-  { name: 'checkout-deposit-success', url: `/pages/checkout/deposit-success/index?orderId=${SAMPLE.orderId}&paymentId=demo-payment-deposit` },
-  { name: 'checkout-final-pay', url: `/pages/checkout/final-pay/index?orderId=${SAMPLE.orderId}` },
-  { name: 'checkout-final-success', url: `/pages/checkout/final-success/index?orderId=${SAMPLE.orderId}&paymentId=demo-payment-final` },
+  { name: 'publish-patent', url: '/subpackages/publish/patent/index' },
+  { name: 'publish-demand', url: '/subpackages/publish/demand/index' },
+  { name: 'publish-achievement', url: '/subpackages/publish/achievement/index' },
+  { name: 'my-listings', url: '/subpackages/my-listings/index' },
+  { name: 'favorites', url: '/subpackages/favorites/index' },
+  { name: 'orders', url: '/subpackages/orders/index' },
+  { name: 'order-detail', url: `/subpackages/orders/detail/index?orderId=${SAMPLE.orderId}` },
+  { name: 'checkout-deposit-pay', url: `/subpackages/checkout/deposit-pay/index?listingId=${SAMPLE.listingId}` },
+  {
+    name: 'checkout-deposit-success',
+    url: `/subpackages/checkout/deposit-success/index?orderId=${SAMPLE.orderId}&paymentId=${SAMPLE.paymentId}`,
+  },
+  { name: 'checkout-final-pay', url: `/subpackages/checkout/final-pay/index?orderId=${SAMPLE.orderId}` },
+  {
+    name: 'checkout-final-success',
+    url: `/subpackages/checkout/final-success/index?orderId=${SAMPLE.orderId}&paymentId=${SAMPLE.paymentId}`,
+  },
   { name: 'me', url: '/pages/me/index' },
 ];
 
@@ -125,7 +195,7 @@ function printHelp() {
       'Capture WeChat DevTools (weapp) screenshots into a folder compatible with scripts/merge-ui-screenshots.py.',
       '',
       'Usage:',
-      '  node scripts/capture-weapp-ui.js --cli-path "D:\\\\微信web开发者工具\\\\cli.bat" --project-path apps/client --out-dir docs/demo/rendered/ui',
+      '  node scripts/capture-weapp-ui.js --cli-path "D:\\\\微信web开发者工具\\\\cli.bat" --project-path apps/client --out-dir docs/demo/rendered/ui --user-token <DEMO_USER_TOKEN>',
       '',
       'Options:',
       '  --cli-path       Path to WeChat DevTools cli (cli/cli.bat). You may also pass the DevTools exe/dir; it will try to resolve cli.bat.',
@@ -134,6 +204,8 @@ function printHelp() {
       '  --wait-ms        Extra wait after each route change before screenshot (default: 2500).',
       '  --timeout-ms     DevTools launch timeout (default: 120000).',
       '  --scenario       Mock scenario storage value (default: happy).',
+      '  --user-token     Demo user token stored as ipmoney.token. If omitted, it will try DEMO_USER_TOKEN from process env or repo .env.',
+      '  --screenshot-timeout-ms  Timeout for each screenshot call (default: 20000).',
       '  --no-auth        Do not set demo auth storage keys.',
       '  --list-only      Only print planned pages.',
     ].join('\n'),
@@ -148,6 +220,7 @@ async function main() {
   }
 
   const repoRoot = path.resolve(__dirname, '..');
+  const envMap = readEnvFile(path.join(repoRoot, '.env'));
   const projectPath = path.resolve(repoRoot, String(args['project-path'] || 'apps/client'));
   const outDir = path.resolve(repoRoot, String(args['out-dir'] || 'docs/demo/rendered/ui'));
   const outClientDir = path.join(outDir, 'client');
@@ -161,9 +234,11 @@ async function main() {
 
   const waitMs = Number(args['wait-ms'] || 2500);
   const timeoutMs = Number(args['timeout-ms'] || 120_000);
+  const screenshotTimeoutMs = Number(args['screenshot-timeout-ms'] || 20_000);
   const scenario = String(args.scenario || 'happy');
   const noAuth = Boolean(args['no-auth']);
   const listOnly = Boolean(args['list-only']);
+  const userToken = String(args['user-token'] || '').trim() || getEnvValue('DEMO_USER_TOKEN', envMap) || '';
 
   if (listOnly) {
     // eslint-disable-next-line no-console
@@ -202,8 +277,15 @@ async function main() {
     }
   }
 
+  // miniprogram-automator spawns cliPath directly; on newer Node versions, spawning .bat may fail.
+  // Workaround: wrap via cmd.exe when cliPath is a .bat on Windows.
+  const isWindows = process.platform === 'win32';
+  const launchCliPath = isWindows && cliPathResolved.toLowerCase().endsWith('.bat') ? 'cmd' : cliPathResolved;
+  const launchArgs = isWindows && cliPathResolved.toLowerCase().endsWith('.bat') ? ['/c', cliPathResolved] : [];
+
   const miniProgram = await automator.launch({
-    cliPath: cliPathResolved,
+    cliPath: launchCliPath,
+    args: launchArgs,
     projectPath,
     timeout: timeoutMs,
     trustProject: true,
@@ -213,23 +295,38 @@ async function main() {
     await miniProgram.callWxMethod('setStorageSync', 'ipmoney.mockScenario', scenario);
 
     if (!noAuth) {
-      await miniProgram.callWxMethod('setStorageSync', 'ipmoney.token', 'demo-user-token');
+      if (!userToken) {
+        // eslint-disable-next-line no-console
+        console.error('[weapp] Missing demo user token. Pass --user-token or set DEMO_USER_TOKEN in env / repo .env.');
+        process.exit(1);
+      }
+      await miniProgram.callWxMethod('setStorageSync', 'ipmoney.token', userToken);
       await miniProgram.callWxMethod('setStorageSync', 'ipmoney.onboardingDone', true);
       await miniProgram.callWxMethod('setStorageSync', 'ipmoney.verificationType', 'PERSON');
       await miniProgram.callWxMethod('setStorageSync', 'ipmoney.verificationStatus', 'APPROVED');
     }
 
     // Make sure the next pages see the updated storage.
-    await miniProgram.reLaunch('/pages/home/index');
+    await miniProgram.callWxMethod('reLaunch', { url: '/pages/home/index' });
     await sleep(1500);
 
     for (const p of PAGES) {
       // eslint-disable-next-line no-console
       console.log(`[weapp] ${p.name} -> ${p.url}`);
-      await miniProgram.reLaunch(p.url);
+      await miniProgram.callWxMethod('reLaunch', { url: p.url });
       await sleep(waitMs);
       const outPath = path.join(outClientDir, `client-${p.name}.png`);
-      await miniProgram.screenshot({ path: outPath });
+      try {
+        await withTimeout(miniProgram.screenshot({ path: outPath }), screenshotTimeoutMs, `screenshot(${p.name})`);
+      } catch (e) {
+        // eslint-disable-next-line no-console
+        console.error(`[weapp] Screenshot failed: ${p.name}.`);
+        // eslint-disable-next-line no-console
+        console.error(
+          '[weapp] Note: on some WeChat DevTools versions, App.captureScreenshot may be unimplemented/hang in automation mode.',
+        );
+        throw e;
+      }
     }
   } finally {
     try {

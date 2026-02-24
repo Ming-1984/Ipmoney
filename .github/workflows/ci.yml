@@ -35,3 +35,23 @@ jobs:
 
       - name: Typecheck
         run: pnpm typecheck
+
+      - name: Scan banned words
+        run: pnpm scan:banned-words
+
+      - name: Generate OpenAPI types & reports (must be committed)
+        run: |
+          pnpm openapi:types
+          node scripts/audit-openapi-backend.mjs
+          node scripts/audit-coverage.mjs
+          git diff --exit-code
+
+      - name: Build (with non-local API base)
+        env:
+          VITE_API_BASE_URL: https://staging-api.example.com
+          TARO_APP_API_BASE_URL: https://staging-api.example.com
+        run: |
+          pnpm -C apps/api build
+          pnpm -C apps/admin-web build
+          pnpm -C apps/client build:h5
+          pnpm -C apps/client build:weapp
