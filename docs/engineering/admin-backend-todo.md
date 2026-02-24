@@ -6,7 +6,9 @@
 ## 现状结论（简要）
 - 管理后台主要页面已通过 `apps/admin-web/src/lib/api.ts` 调用真实 API（非前端本地 Mock）。
 - 仍有 **演示/占位成分**：登录为手工 token、合同确认金额硬编码、部分页面预填演示订单号。
-- 文档与实际默认值存在偏差：文档写“前端默认接 Mock(4010)”，但代码默认 `http://127.0.0.1:3200`。
+- 已明确两套启动口径：
+  - Dev（真实 API + Demo Auth）：`scripts/start-dev.ps1 -EnableDemoAuth` → 默认 API Base `http://127.0.0.1:3200`
+  - Mock 演示：`scripts/demo.ps1` → 默认 API Base `http://127.0.0.1:4010`
 
 ## P0（本周：影响业务正确性/审计/数据一致性）
 - [x] 订单合同确认：去除硬编码 `dealAmountFen`，改为输入成交价并校验；将审核备注写入审计日志。
@@ -16,13 +18,13 @@
 ## P1（上线前：安全/配置/合规）
 4) 后台登录：替换“手工 token”演示入口，接入真实管理员登录（或 SSO），确保 token 获取链路可审计。
 5) 环境变量一致性：
-   - 统一文档与代码的默认 API Base（是否默认 mock）。
-   - 生产环境禁止回退到 `localhost`。
-6) Mock/DEMO 开关治理：确保生产构建不会注入 `VITE_DEMO_ADMIN_TOKEN`；构建时校验并阻止。
+   - 统一文档与代码的默认 API Base（是否默认 mock）。（已完成）
+   - 生产环境禁止回退到 `localhost`。（已完成：生产构建 guard）
+6) Mock/DEMO 开关治理：确保生产构建不会注入 `VITE_DEMO_ADMIN_TOKEN`；构建时校验并阻止。（已完成：生产构建校验 demo token + mock tools）
 7) DevServer 404 噪音：补充 Vite proxy 或启动脚本校验 `VITE_API_BASE_URL`，避免请求落到前端端口。
 
 ## P2（增强体验/可运维）
-8) 增加后台“退出登录”入口（清 token + 返登录）。
+8) 增加后台“退出登录”入口（清 token + 返登录）。（已完成）
 9) 将合同确认/变更完成相关“依据/备注”汇总在订单详情的审计日志或里程碑视图中。
 
 ## 执行顺序（建议）

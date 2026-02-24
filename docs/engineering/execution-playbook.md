@@ -1,6 +1,6 @@
 ﻿# 执行 Playbook（Mock 驱动 + WeApp/H5/Admin）
 
-> 最后更新：2026-02-20
+> 最后更新：2026-02-24
 > 目标：在不接入真实微信登录/支付的前提下完成开发环境全链路自测，并保持一键切换到生产的能力。
 
 ## 本轮问题回顾（WeApp）
@@ -21,7 +21,7 @@
 - [x] OpenAPI 覆盖审计脚本修复（TS 泛型 `>>`）
 - [x] 管理端补齐：订单开票下发、角色编辑、工单创建、告警配置
 - [x] 小程序补齐：推荐接口接入（`/me/recommendations/listings`）
-- [x] `pnpm -C apps/client build:weapp` 通过
+- [x] `TARO_APP_API_BASE_URL` 使用非本地地址时，`pnpm -C apps/client build:weapp` 通过（生产构建保护）
 - [x] `scripts/ui-http-smoke.ps1` 通过
 - [x] `scripts/ui-render-smoke.ps1` 通过
 
@@ -32,7 +32,8 @@
 
 ## 推荐执行顺序
 1) 清理 DevTools 缓存 → 重启 DevTools
-2) 重新编译 WeApp：`pnpm -C apps/client build:weapp`
+2) 重新编译 WeApp（本地联调）：`pnpm -C apps/client dev:weapp`
+   - 生产构建（禁止 localhost/127）：`TARO_APP_API_BASE_URL=https://<public-api> pnpm -C apps/client build:weapp`
 3) 验证首页与 Tab 页面注册（`pages/home/index`）
 4) 跑覆盖报告：`node scripts/audit-coverage.mjs`
 5) 评估 AI 接口接入（如延期，更新处置清单）
@@ -40,11 +41,15 @@
 7) 更新测试报告：`docs/engineering/test-report.md`
 
 ## 开发命令速查
+- Dev（真实 API + Demo Auth）：`powershell -File scripts/start-dev.ps1 -EnableDemoAuth`
+- Mock 演示一键启动：`powershell -File scripts/demo.ps1`
 - 启动 mock：`pnpm mock`
 - 启动 WeApp：`pnpm -C apps/client dev:weapp`
+- WeApp 路由冒烟（无截图，DevTools 自动化，可选）：`powershell -File scripts/weapp-route-smoke.ps1 -NoAuth`
 - 启动 H5：`pnpm -C apps/client dev:h5`
 - 启动管理端：`pnpm -C apps/admin-web dev`
 - 一键重置：`powershell -File scripts/dev-reset.ps1`
+- 一键自检（lint/typecheck/build/smoke）：`powershell -File scripts/verify.ps1`
 
 ## Mock 与场景切换
 - Header：`X-Mock-Scenario: happy|empty|error|edge|payment_callback_replay|order_conflict|refund_failed`

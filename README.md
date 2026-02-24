@@ -14,10 +14,16 @@
 corepack enable
 corepack prepare pnpm@9.15.4 --activate
 pnpm install
+
+# Dev（真实 API + Demo Auth）
+powershell -ExecutionPolicy Bypass -File scripts/start-dev.ps1 -EnableDemoAuth
+
+# Mock 演示
 powershell -ExecutionPolicy Bypass -File scripts/demo.ps1
 ```
 
 默认端口：
+- API（start-dev）：`http://127.0.0.1:3200`
 - Mock（fixtures + Prism fallback）：`http://127.0.0.1:4010`
 - 用户端 H5（Taro）：`http://127.0.0.1:5173`
 - 后台（Vite）：`http://127.0.0.1:5174`
@@ -43,6 +49,10 @@ docker compose up -d
 
 ## 说明
 
+- 全面 TODO / 上线规划：`docs/engineering/overall-todo.md`
+- 项目状态：`docs/engineering/project-status.md`
+- 一键自检（lint/typecheck/build/smoke）：`powershell -ExecutionPolicy Bypass -File scripts/verify.ps1`
+- WeApp 路由冒烟（无截图，DevTools 自动化，可选）：`powershell -ExecutionPolicy Bypass -File scripts/weapp-route-smoke.ps1 -NoAuth`
 - Mock/fixtures 的规划见：`docs/engineering/mocking.md`
 - 执行节奏（Mock→逐模块替换）见：`docs/engineering/execution-playbook.md`
 - 甲方演示材料见：`docs/demo/README.md`

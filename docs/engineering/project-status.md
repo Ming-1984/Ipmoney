@@ -1,6 +1,11 @@
 ﻿# 项目状态（Ipmoney）
 
-> 最后更新：2026-02-20
+> 最后更新：2026-02-24
+
+## 本阶段口径（2026-02-24）
+- 目标：以 dev/staging 演示与联调为主，**不接入真实微信登录/支付/AI**。
+- 开发启动：`scripts/start-dev.ps1 -EnableDemoAuth`（仅 dev 使用）。
+- 生产相关 gating 项目本阶段暂缓，见“下一阶段生产 gating”。
 
 ## 范围（P0）
 - 渠道：微信小程序、Taro H5（电脑端可用）、管理后台 Web。
@@ -36,16 +41,18 @@
 - conversations/messages、comments、favorites、addresses、verification、cases、reports、rbac、ai、alerts、patent-maintenance。
 - 幂等保护（下单/支付/退款/发票）；审计日志；文件访问控制；临时 URL 与水印。
 - DEMO 特性开关（生产默认关闭）。
+- 生产就绪基础项：支持 `TRUST_PROXY`、`CORS_ORIGINS`；access log 默认不记录 query（避免泄露敏感信息）。
 
 ### QA / 运营
 - DB 预检与备份/恢复 runbook。
-- UI 渲染 + HTTP 冒烟 + API 冒烟，结果见测试报告。
+- UI 渲染 + HTTP 冒烟 + API 冒烟，结果见测试报告；WeApp 额外提供无截图路由冒烟脚本辅助定位问题（仍需手工冒烟收口）。
 - OpenAPI 覆盖报告定期更新（`docs/engineering/openapi-coverage.md`）。
 
 ## 进行中 / 待补齐（P0 收口）
+- WeApp 手工冒烟（首页/搜索/详情/消息/收藏/个人中心/发布）。
 - AI 解析/智能体接口：本轮暂缓（待你确认后再接入）。
 
-## 上线前必须项（生产 gating）
+## 下一阶段生产 gating（本阶段暂缓）
 ### 认证与身份
 - 真微信登录（code2Session）、真短信通道、真手机号绑定。
 - 替换 demo token：JWT + 严格 RBAC（前后台）。

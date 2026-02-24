@@ -5,14 +5,17 @@
 ## 1. 后端（apps/api）
 
 ### 1.1 prisma/seed.js（演示数据）
-- **开关**：`SEED_DEMO_DATA=true|false`（默认 false）；`SEED_DEMO_PURGE_MAP=true|false`
+- **开关**：
+  - `SEED_BASE_DATA=true|false`（默认 true，仅基础配置/地区）
+  - `SEED_DEMO_DATA=true|false`（默认 false，演示数据）
+  - `SEED_DEMO_PURGE_MAP=true|false`
 - **硬编码内容**（仅用于 demo/开发）：
   - 系统配置：`trade_rules`、`recommendation_config`
   - 专利地图示例：`patent_map_entries`（2024/2025 示例数据）
   - Demo 用户：`DEMO_USER_ID` / `DEMO_ADMIN_ID`
   - 公告/通知/地址等示例记录
 - **替代方案**：
-  - 生产环境关闭 `SEED_DEMO_DATA`，仅保留基础系统配置 seed（可拆成独立脚本）
+  - 生产环境关闭 `SEED_DEMO_DATA`，仅保留 `SEED_BASE_DATA`（基础配置/地区）
   - 示例数据改由 fixtures（`packages/fixtures/scenarios/*`）提供
   - 若需可运营配置，沉淀为后台可编辑配置（SystemConfig）
 

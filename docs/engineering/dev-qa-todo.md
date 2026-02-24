@@ -1,6 +1,6 @@
 ﻿# 研发/测试全链路与生产过渡 TODO
 
-> Last updated: 2026-02-20
+> Last updated: 2026-02-24
 
 > 目标：在**不接入真实微信登录**的前提下，完成开发环境全链路自测与性能优化；同时提供可平滑过渡到生产的流程与检查清单。
 
@@ -55,7 +55,7 @@
 
 ### P0（本周，阻断体验与噪音）
 - [x] 本地数据库一键重置并回填演示数据：`scripts/dev-reset.ps1 -Target api -Force -SeedDemo`
-- [ ] WeApp 冒烟：首页/搜索/详情/消息/收藏/个人中心/发布
+- [ ] WeApp 冒烟：首页/搜索/详情/消息/收藏/个人中心/发布（清单：`docs/engineering/weapp-manual-smoke-checklist.md`；可先跑 `node scripts/weapp-route-smoke.js --cli-path <cli.bat> --project-path apps/client --user-token <DEMO_USER_TOKEN>` 做无截图路由冒烟）
 - [x] 补齐“未登录态”页面级防护：未登录页面只渲染引导，不触发列表/消息/收藏 API
 - [x] 401 统一处理：toast + 跳转登录 + 可恢复（避免循环重试）
 - [x] dev 登录入口统一（小程序/H5/后台一致入口）
@@ -70,6 +70,7 @@
 - [x] 子包与懒加载策略复核（非 Tab 页已下沉 subpackages，`lazyCodeLoading: requiredComponents` 开启）
 - [x] 编译性能基线记录：冷启动/二次编译耗时（weapp build ~20.95s）
 - [x] 自动化 smoke test（启动、登录、核心页面冒烟；`scripts/ui-http-smoke.ps1` 9/9）
+- [x] H5 自动 Demo 登录引导：`?__demo_auth=1`（用于 `scripts/ui-render-smoke.ps1` / `scripts/capture-ui.ps1` 的截图与回归）
 - [ ] AI 解析/智能体接口接入：暂缓（待你确认后再排期）
 
 ### P2（迭代期，体验与质量）
@@ -94,12 +95,13 @@
 - [x] 页面级 `scss` 覆盖率提升，避免全局污染
 
 ### 4) 资源与图片
-- [x] banner <= 150KB，logo <= 60KB（可调整）
+- [x] 客户端：banner <= 150KB，logo <= 60KB（可调整）
+- [x] 管理端：logo 已由 `gif` 改为 `png`（~46KB）
 - [x] 无超大 base64 内联图片
 
 ### 5) 性能
-- [x] 冷启动与二次编译耗时达标（基线 20.95s，目标 <= 25s；增量 <= 5s）
-- [x] 首屏白屏时间可控（骨架屏 + 首屏监控目标 <= 2s）
+- [x] 编译耗时基线已记录（见 `docs/engineering/test-report.md`）
+- [ ] 首屏白屏时间可控（骨架屏 + 首屏监控目标 <= 2s；真机数据待补）
 
 ## 七、生产过渡清单（提前准备）
 - [x] 配置分层：dev/staging/prod 的 env 管理与注入（见 `docs/engineering/production-transition.md`）
@@ -116,7 +118,7 @@
 
 ## 九、默认约定（已按最佳实践执行）
 - 默认采用 demo/mock 登录作为 dev 主路径
-- 默认启用 SeedDemo 演示数据（收藏/消息/订单可见）
+- 默认仅写入基础 Seed（regions/system_configs）；需要演示数据时显式启用 `SEED_DEMO_DATA=true`
 - 默认以“最小全局样式 + 页面级样式”为目标
 - 默认优先消除 401 风暴与性能告警
 

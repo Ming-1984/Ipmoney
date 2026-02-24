@@ -15,6 +15,8 @@ Key deltas to enforce per environment:
 - `NODE_ENV`: `development` / `test` / `production`
 - `BASE_URL`: must be public in staging/prod (used in callbacks and file URLs)
 - `PUBLIC_HOST_WHITELIST`: restrict to expected hosts in staging/prod
+- `CORS_ORIGINS`: explicitly set allowed web origins in staging/prod (avoid "*")
+- `TRUST_PROXY`: enable when running behind ingress / reverse proxy
 - `JWT_SECRET`: unique per environment
 - `DATABASE_URL` / `REDIS_URL`: dedicated env per tier
 - `S3_*`: staging/prod buckets and credentials
@@ -26,7 +28,7 @@ Key deltas to enforce per environment:
 | --- | --- | --- | --- | --- |
 | `DEMO_AUTH_ENABLED` | true | false | false | Demo auth must be OFF outside dev |
 | `DEMO_PAYMENT_ENABLED` | true | false | false | Demo payment only in dev |
-| `DEMO_AUTH_ALLOW_UUID_TOKENS` | true | false | false | Disallow UUID token login outside dev |
+| `DEMO_AUTH_ALLOW_UUID_TOKENS` | false (default) | false | false | UUID token passthrough is for local debugging only; keep OFF by default |
 | `TARO_APP_ENABLE_MOCK_TOOLS` | 1 | 0 | 0 | Mock tools only in dev |
 | `VITE_ENABLE_MOCK_TOOLS` | 1 | 0 | 0 | Mock tools only in dev |
 | `ENABLE_H5_PAYMENT` | false | (decision) | (decision) | Keep false until payment is ready |
@@ -56,6 +58,9 @@ Recommended telemetry:
 - Audit logs for admin actions (already enforced in code)
 - Alert thresholds tied to business KPIs
 
+Note:
+- API now enforces `x-request-id` via middleware (dev/staging); ensure log pipeline captures it.
+
 ## 5) Rollout & rollback
 
 Miniapp:
@@ -65,6 +70,7 @@ Miniapp:
 Backend:
 - Prefer blue/green or canary
 - Run `scripts/db-preflight-check.ps1` on staging with prod snapshot
+- Apply migrations via `pnpm -C apps/api db:deploy` (Prisma migrate deploy)
 - Take backups with `scripts/db-backup.ps1`; restore via `scripts/db-restore.ps1`
 
 ## 6) Security & compliance
@@ -77,6 +83,7 @@ Backend:
 ## 7) Pre-prod checklist (quick)
 
 - Demo switches disabled
+- Run `pnpm check:prod-env` in staging/prod to validate env flags
 - Env variables layered and injected
 - Mock tools disabled in client/admin
 - Observability wired (logs/metrics/alerts)

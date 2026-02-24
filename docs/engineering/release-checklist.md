@@ -1,20 +1,21 @@
 # 上线前检查清单（P0）
 
 > 目标：在保持“演示/占位”不影响开发的前提下，明确上线必须补齐的检查项。
+> 本阶段（2026-02-24）：仅 dev/staging 演示，不接入真实微信登录/支付/AI。与真实登录/支付相关条目统一标记为“暂缓”。
 
 ## 1. 账号与鉴权
-- [ ] 微信小程序真实登录接入（code2Session → openid/session_key）
-- [ ] JWT + RBAC 落地（移除 `DEMO_USER_TOKEN` 与任意 UUID 直通）
+- [ ] 微信小程序真实登录接入（code2Session → openid/session_key）（暂缓）
+- [ ] JWT + RBAC 落地（移除 `DEMO_USER_TOKEN` 与任意 UUID 直通）（暂缓）
 - [x] 生产环境关闭演示开关：`DEMO_AUTH_ENABLED=false`、`DEMO_PAYMENT_ENABLED=false`（能力已落地，生产环境按变量生效）
-- [ ] 短信登录真实通道（发送/校验/频控/审计）
-- [ ] 手机号绑定真实接入（phonenumber.getPhoneNumber）
+- [ ] 短信登录真实通道（发送/校验/频控/审计）（暂缓）
+- [ ] 手机号绑定真实接入（phonenumber.getPhoneNumber）（暂缓）
 
 ## 2. 支付、退款与回调
-- [ ] 微信支付真实下单（prepay_id + paySign）
-- [ ] 回调验签/解密/金额校验（含重放防护）
-- [ ] 退款 API 接入与回调收敛
-- [ ] 对账闭环：支付/退款/放款流水导出与异常告警
-- [ ] 回调/业务/下载域名白名单配置（下载域名白名单已完成；支付回调域名待真实支付接入后定版）
+- [ ] 微信支付真实下单（prepay_id + paySign）（暂缓）
+- [ ] 回调验签/解密/金额校验（含重放防护）（暂缓）
+- [ ] 退款 API 接入与回调收敛（暂缓）
+- [ ] 对账闭环：支付/退款/放款流水导出与异常告警（暂缓）
+- [ ] 回调/业务/下载域名白名单配置（暂缓；下载域名白名单已完成；支付回调域名待真实支付接入后定版）
 
 ## 3. 订单主链路（端到端）
 - [x] 订金 → 合同确认 → 尾款 → 变更完成 → 结算放款（演示链路 + mock 回归通过）
@@ -29,7 +30,7 @@
 
 ## 5. 数据与数据库
 - [x] 迁移脚本可回滚、生产备份策略（已提供 `scripts/db-backup.ps1`/`scripts/db-restore.ps1` 与 `docs/engineering/db-backup-restore.md`；enum 变更按备份恢复）
-- [ ] 迁移演练：Staging 使用生产快照演练 `prisma migrate deploy`（重点 `20260216190000_schema_alignment`），并做唯一索引冲突预检（见 `docs/engineering/db-preflight-check.md`）
+- [ ] 迁移演练：Staging 使用生产快照演练 `prisma migrate deploy`（推荐：`pnpm -C apps/api db:deploy`；重点 `20260216190000_schema_alignment`），并做唯一索引冲突预检（见 `docs/engineering/db-preflight-check.md`）
 - [x] 关键索引/慢查询基线审计（dev：关键索引存在且 EXPLAIN 命中，见 `docs/engineering/db-preflight-check.md`）
 - [x] 数据一致性基线校验（dev：订单/退款/结算/发票预检 0 异常，见 `scripts/db-preflight-check.ps1`）
 - [ ] 慢查询生产审计（Staging/Prod：启用 `pg_stat_statements` + 压测/回放）
@@ -40,6 +41,8 @@
 - [x] 管理后台高危操作二次确认 + 审计
 - [x] 敏感字段脱敏与访问控制
 - [x] 访问限流、防刷、风控策略
+- [x] 登录协议勾选点位：登录前需勾选《用户协议》《隐私政策》（客户端）
+- [ ] 生产环境 CORS 白名单与反代配置：`CORS_ORIGINS` 显式配置（避免 `*`），如有网关/反代启用 `TRUST_PROXY=true`
 
 ## 7. 运维与监控
 - [x] 健康检查/探针可用（/health）
@@ -47,7 +50,7 @@
 - [ ] 灰度与回滚策略
 
 ## 8. 前端稳定性
-- [ ] 小程序主路径无白屏、无阻塞（真机）
+- [ ] 小程序主路径无白屏、无阻塞（真机；清单：`docs/engineering/weapp-manual-smoke-checklist.md`）
 - [ ] 错误态/空态/权限态可恢复
 - [ ] 关键页面加载性能可接受（列表/详情/支付结果）
 

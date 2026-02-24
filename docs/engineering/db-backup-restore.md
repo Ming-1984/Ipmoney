@@ -43,5 +43,5 @@ powershell -ExecutionPolicy Bypass -File scripts/db-restore.ps1 -Force -InFile .
 
 1) DB 预检（唯一索引冲突/一致性）：见 `docs/engineering/db-preflight-check.md`  
 2) 备份/快照  
-3) `prisma migrate deploy`  
+3) `prisma migrate deploy`（推荐：`pnpm -C apps/api db:deploy`）  
 4) 冒烟（API + 关键管理读写接口）

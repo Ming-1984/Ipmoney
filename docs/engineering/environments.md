@@ -7,16 +7,23 @@
 - `NODE_ENV`：`development` / `test` / `production`
 - `PORT`：API 监听端口
 - `BASE_URL`：对外服务域名（拼接回调 URL、文件访问 URL 等）
+- `TRUST_PROXY`：是否启用 Express `trust proxy`（部署在反向代理/网关后建议开启；影响 `req.ip`/协议解析）
+- `CORS_ORIGINS`：CORS 允许的 Origin 列表（逗号分隔；留空或 `*` 表示允许任意；生产建议显式配置）
 - `UPLOAD_DIR`：本地文件落盘目录（P0 可用；生产建议改为对象存储）
 - `PUBLIC_HOST_WHITELIST`：允许拼接 `BASE_URL` 的 Host 白名单（逗号分隔；未设置则允许任意）
+- `REQUEST_LOG_ENABLED`：是否输出 request access log（默认 true；建议生产开启并接入日志管道）
 - `FILE_TEMP_TOKEN_SECRET`：文件临时访问 token 签名密钥
 - `FILE_TEMP_TOKEN_TTL_SECONDS`：临时访问默认有效期（秒）
 - `FILE_WATERMARK_TEXT`：关键文件预览水印文本
 
 ## 前端（本地联调）
 
-- `TARO_APP_API_BASE_URL`：用户端（Taro）API Base URL（默认 `http://127.0.0.1:4010`）
-- `VITE_API_BASE_URL`：后台（Vite）API Base URL（默认 `http://127.0.0.1:4010`）
+- `TARO_APP_API_BASE_URL`：用户端（Taro）API Base URL  
+  - Dev（真实 API + Demo Auth）：`scripts/start-dev.ps1` 默认 `http://127.0.0.1:3200`  
+  - Mock 演示：`scripts/demo.ps1` 默认 `http://127.0.0.1:4010`
+- `VITE_API_BASE_URL`：后台（Vite）API Base URL  
+  - Dev（真实 API + Demo Auth）：`scripts/start-dev.ps1` 默认 `http://127.0.0.1:3200`  
+  - Mock 演示：`scripts/demo.ps1` 默认 `http://127.0.0.1:4010`
 - `TARO_APP_ENABLE_MOCK_TOOLS`：用户端 mock/场景切换（生产建议关闭）
 - `VITE_ENABLE_MOCK_TOOLS`：后台 mock/场景切换（生产建议关闭）
 - `VITE_DEMO_ADMIN_TOKEN`：后台演示 token（仅非生产/演示用）
@@ -35,6 +42,8 @@
 
 - `DATABASE_URL`：PostgreSQL 连接串
 - `REDIS_URL`：Redis 连接串
+
+说明：`apps/api` 的 Prisma 脚本已通过 `scripts/run-with-env.mjs` 自动加载上层目录的 `.env`（本地开发更顺滑；CI/部署仍建议显式注入环境变量）。
 
 ## JWT/鉴权
 
@@ -77,8 +86,11 @@
 - `ENABLE_USER_H5`：是否开启用户 H5（P0 默认 true）
 - `ENABLE_H5_PAYMENT`：是否允许在 H5 发起支付（P0 默认 false；仅展示“去小程序支付”）
 - `ENABLE_AUTO_PAYOUT`：是否允许“超时自动放款”（P0 默认 false；建议强制走后台配置）
-- `DEMO_AUTH_ENABLED`：是否允许演示登录/鉴权（非生产默认 true，生产默认 false；生产构建客户端会隐藏 Demo 登录入口，服务端在 `NODE_ENV=production` 时强制禁用）
-- `DEMO_PAYMENT_ENABLED`：是否允许演示支付意图（非生产默认 true，生产默认 false）
+- `DEMO_AUTH_ENABLED`：是否允许演示登录/鉴权（仅 dev 建议开启；staging/prod 必须关闭；生产构建客户端会隐藏 Demo 登录入口，服务端在 staging/prod（`NODE_ENV`/`DEPLOY_ENV`/`STAGE`/`APP_MODE`/`ENV`）下强制禁用）
+- `DEMO_PAYMENT_ENABLED`：是否允许演示支付意图（仅 dev 建议开启；staging/prod 必须关闭；服务端在 staging/prod 下强制禁用）
+- `SEED_BASE_DATA`：是否写入基础配置/地区（默认 true；生产推荐 true）
+- `SEED_DEMO_DATA`：是否写入演示数据（默认 false；生产必须 false）
+- `SEED_DEMO_PURGE_MAP`：是否清理专利地图演示数据（默认 false；仅在 `SEED_DEMO_DATA=false` 时生效）
 - `RATE_LIMIT_ENABLED`：是否启用全局限流（默认 true）
 - `RATE_LIMIT_WINDOW_SECONDS`：限流窗口（秒）
 - `RATE_LIMIT_MAX`：窗口内最大请求数

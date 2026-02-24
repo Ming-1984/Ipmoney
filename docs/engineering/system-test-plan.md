@@ -29,7 +29,8 @@
 - 执行：
   - `powershell -File scripts/api-real-smoke.ps1 -ApiPort 3248`
   - `powershell -File scripts/db-preflight-check.ps1`
-  - 小程序手工冒烟：首页/搜索/详情/消息/收藏/个人中心/发布
+  - （可选）WeApp 路由冒烟（无截图，DevTools 自动化）：`node scripts/weapp-route-smoke.js --cli-path <cli.bat> --project-path apps/client --user-token <DEMO_USER_TOKEN>`
+  - 小程序手工冒烟：首页/搜索/详情/消息/收藏/个人中心/发布（清单：`docs/engineering/weapp-manual-smoke-checklist.md`）
 - 产出：将结果记录到 `docs/engineering/test-report.md`
 
 ## 3. P0 功能用例清单（必须）
@@ -67,7 +68,7 @@
 
 ## 5. 执行记录与输出
 
-- 执行记录：写入 `docs/engineering/test-report-YYYY-MM-DD.md`
+- 执行记录：写入 `docs/engineering/test-report.md`（新增 `Latest (YYYY-MM-DD)` 区块）
 - 结论要求：
   - P0 全部通过才可上线
   - P1 可延后但需记录风险与处理计划

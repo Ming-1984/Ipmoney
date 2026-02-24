@@ -1,5 +1,133 @@
 ﻿# Test Report (Consolidated)
 
+## Latest (2026-02-24)
+
+### Commands & Results (dev)
+- `pnpm dev:infra`
+  - Result: success (postgres/redis/minio running)
+- `powershell -ExecutionPolicy Bypass -File scripts/verify.ps1 -ApiBaseUrl https://staging-api.example.com -ApiPort 3200 -ReportDate 2026-02-24`
+  - Result: success (all steps)
+  - Builds: api/admin-web/client(h5/weapp) success; H5 entrypoint ~1.01 MiB (perf budgets: asset<=650KiB, entry<=1200KiB); WeApp `app-origin.wxss` ~159.6 KB; admin largest js chunk ~674 kB (gzip ~220 kB)
+  - API smoke: pass (17/17) → `.tmp/api-real-smoke-2026-02-24-summary.json`
+  - DB preflight: pass (failed=0) → `.tmp/db-preflight-2026-02-24-summary.json`
+  - UI HTTP smoke: pass (9/9) → `.tmp/ui-http-smoke-2026-02-24-summary.json`
+  - UI render smoke (core): pass (3/3) → `.tmp/ui-render-smoke-2026-02-24-summary.json`
+- `powershell -ExecutionPolicy Bypass -File scripts/ui-render-smoke.ps1 -Mode full -ReportDate 2026-02-24`
+  - Result: pass (26/26)
+  - Artifacts: `docs/demo/rendered/ui-smoke-2026-02-24/`
+- `powershell -ExecutionPolicy Bypass -File scripts/weapp-route-smoke.ps1 -NoAuth -ReportDate 2026-02-24`
+  - Result: pass
+  - Report: `.tmp/weapp-route-smoke-2026-02-24.json`
+
+### Manual (pending)
+- WeApp 冒烟（真实 API）：首页 / 搜索 / 详情 / 消息 / 收藏 / 个人中心 / 发布（清单：`docs/engineering/weapp-manual-smoke-checklist.md`）
+
+## Latest (2026-02-23)
+
+### Commands & Results (dev)
+- `powershell -ExecutionPolicy Bypass -File scripts/verify.ps1 -ApiBaseUrl https://staging-api.example.com -ReportDate 2026-02-23`
+  - Result: success (all steps)
+- `powershell -ExecutionPolicy Bypass -File scripts/start-dev.ps1 -EnableDemoAuth -SplitWindows`
+  - Result: success
+  - Notes: Windows Prisma engine lock 规避（启动前自动停止 repo 内 api 进程）；UUID passthrough 默认关闭（需显式 `-AllowDemoUuidTokens` 才开启）
+- `TARO_APP_API_BASE_URL=https://staging-api.example.com pnpm -C apps/client build:h5`
+  - Result: success (explicit webpack perf budgets: asset<=650KiB, entry<=1200KiB)
+  - Notes: h5 entrypoint ~1.01 MiB; largest js assets: `js/app.js` ~573 KiB, `chunk/5015.js` ~538 KiB, `js/1101.js` ~299 KiB
+- `TARO_APP_API_BASE_URL=https://staging-api.example.com pnpm -C apps/client build:weapp`
+  - Result: success
+- `VITE_API_BASE_URL=https://staging-api.example.com pnpm -C apps/admin-web build`
+  - Result: success
+  - Notes: largest js chunk ~674 kB (gzip ~220 kB); logo ~46 kB
+- `node scripts/audit-openapi-backend.mjs`
+  - Result: OpenAPI-only=0, Controller-only=0
+  - Report: `docs/engineering/openapi-backend-diff.md`
+- `node scripts/audit-coverage.mjs`
+  - Result: success
+  - Report: `docs/engineering/openapi-coverage.md`
+- `pnpm scan:banned-words`
+  - Result: success
+- `powershell -File scripts/api-real-smoke.ps1 -ApiPort 3200 -ReportDate 2026-02-23`
+  - Result: pass (17/17)
+  - Summary: `.tmp/api-real-smoke-2026-02-23-summary.json`
+  - Details: `.tmp/api-real-smoke-2026-02-23.json`
+- `powershell -File scripts/db-preflight-check.ps1 -ReportDate 2026-02-23`
+  - Result: pass (failed=0)
+  - Summary: `.tmp/db-preflight-2026-02-23-summary.json`
+  - Details: `.tmp/db-preflight-2026-02-23.json`
+- `pnpm -C apps/api db:deploy`
+  - Result: success (no pending migrations)
+- `powershell -File scripts/ui-http-smoke.ps1 -ReportDate 2026-02-23`
+  - Result: pass
+  - Summary: `.tmp/ui-http-smoke-2026-02-23-summary.json`
+  - Details: `.tmp/ui-http-smoke-2026-02-23.json`
+- `powershell -File scripts/ui-render-smoke.ps1 -Mode full -ReportDate 2026-02-23`
+  - Result: pass (26/26)
+  - Summary: `.tmp/ui-render-smoke-2026-02-23-summary.json`
+  - Details: `.tmp/ui-render-smoke-2026-02-23.json`
+- `node scripts/weapp-route-smoke.js --no-auth`
+  - Result: pass
+  - Report: `.tmp/weapp-route-smoke-2026-02-23.json`
+  - Notes: 当前 DevTools 版本下 `App.getCurrentPage` 可能不完整（`getCurrentPagesByDomain` undefined）；该脚本仅做“可进入 + 无运行时异常”的路由级冒烟，不替代真机/手工点击
+
+### Manual (pending)
+- WeApp 冒烟（真实 API）：首页 / 搜索 / 详情 / 消息 / 收藏 / 个人中心 / 发布（清单：`docs/engineering/weapp-manual-smoke-checklist.md`）
+- WeApp 自动化截图（miniprogram-automator）：DevTools RC v1.06.2503281 `screenshot()` 超时（当前不可靠，先按手工冒烟为准）
+- WeApp 路由冒烟（可选，无截图）：`node scripts/weapp-route-smoke.js --cli-path <cli.bat> --project-path apps/client --user-token <DEMO_USER_TOKEN>`（用于验证核心路由可进入且无运行时异常；不替代真机/手工点击）
+
+## Latest (2026-02-22)
+
+### Commands & Results (dev)
+- `powershell -ExecutionPolicy Bypass -File scripts/verify.ps1 -ApiBaseUrl https://staging-api.example.com -ReportDate 2026-02-22`
+  - Result: success (all steps)
+- `pnpm openapi:lint`
+  - Result: success
+- `pnpm lint`
+  - Result: success
+- `pnpm typecheck`
+  - Result: success
+- `TARO_APP_API_BASE_URL=https://staging-api.example.com pnpm -C apps/client build:h5`
+  - Result: success (with bundle size warnings)
+  - Notes: h5 entrypoint ~1.02 MiB; largest js assets: `js/app.js` ~580 KiB, `chunk/5015.js` ~538 KiB, `js/1101.js` ~299 KiB
+- `TARO_APP_API_BASE_URL=https://staging-api.example.com pnpm -C apps/client build:weapp`
+  - Result: success
+- `VITE_API_BASE_URL=https://staging-api.example.com pnpm -C apps/admin-web build`
+  - Result: success (code-splitting enabled)
+  - Notes: largest js chunk ~674 kB (gzip ~220 kB); logo ~46 kB
+- `node scripts/audit-openapi-backend.mjs`
+  - Result: OpenAPI-only=0, Controller-only=0
+  - Report: `docs/engineering/openapi-backend-diff.md`
+- `node scripts/audit-coverage.mjs`
+  - Result: success
+  - Report: `docs/engineering/openapi-coverage.md`
+- `pnpm scan:banned-words`
+  - Result: success
+- `pnpm -C apps/api build`
+  - Result: success
+- `powershell -File scripts/api-real-smoke.ps1 -ApiPort 3200 -ReportDate 2026-02-22`
+  - Result: pass (17/17)
+  - Summary: `.tmp/api-real-smoke-2026-02-22-summary.json`
+  - Details: `.tmp/api-real-smoke-2026-02-22.json`
+- `powershell -File scripts/db-preflight-check.ps1 -ReportDate 2026-02-22`
+  - Result: pass (failed=0)
+  - Summary: `.tmp/db-preflight-2026-02-22-summary.json`
+  - Details: `.tmp/db-preflight-2026-02-22.json`
+- `powershell -File scripts/db-backup.ps1 -ReportDate 2026-02-22 -Clean -OutFile .tmp/db-backup-2026-02-22-clean.sql`
+  - Result: success
+  - Output: `.tmp/db-backup-2026-02-22-clean.sql`
+- `powershell -File scripts/db-restore.ps1 -InFile .tmp/db-backup-2026-02-22-clean.sql -Force`
+  - Result: success
+- `powershell -File scripts/ui-http-smoke.ps1 -ReportDate 2026-02-22`
+  - Result: pass
+  - Summary: `.tmp/ui-http-smoke-2026-02-22-summary.json`
+  - Details: `.tmp/ui-http-smoke-2026-02-22.json`
+- `powershell -File scripts/ui-render-smoke.ps1 -Mode core -ReportDate 2026-02-22`
+  - Result: pass (3/3)
+  - Summary: `.tmp/ui-render-smoke-2026-02-22-summary.json`
+  - Details: `.tmp/ui-render-smoke-2026-02-22.json`
+
+### Manual (pending)
+- WeApp 冒烟（真实 API）：首页 / 搜索 / 详情 / 消息 / 收藏 / 个人中心 / 发布
+
 ## Latest (2026-02-21)
 
 ### Commands & Results (non-mock API)

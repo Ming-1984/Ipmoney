@@ -31,7 +31,7 @@
   - 已调用 `Taro.login()` 获取 `code` 并请求 `POST /auth/wechat/mp-login`。
   - 微信登录成功后：若 `user.phone` 为空，会弹出“授权手机号”弹窗；授权/跳过后进入身份选择页。
   - 目前后端为“演示用户”占位，不会调用微信 `code2Session`。
-  - Demo 登录入口仅在 `DEMO_AUTH_ENABLED=true` 且 `APP_MODE!=="production"` 时显示（客户端 `DEMO_LOGIN_ENABLED`）。
+  - Demo 登录入口仅在 `DEMO_AUTH_ENABLED=true` 且非“生产发布环境”时显示（客户端 `DEMO_LOGIN_ENABLED`；由构建期注入的 `IS_PROD_DEPLOY` 判定）。
 - 我的页头部：`apps/client/src/pages/me/index.tsx`
   - 当前仅展示昵称/手机号/认证标签；未展示头像；昵称来源为 `/me`。
 - 后端登录：`apps/api/src/modules/auth/auth.service.ts`

@@ -5,7 +5,7 @@
 ## 1. 汇总
 
 - OpenAPI operations：243
-- 前端已使用（Client）：109
+- 前端已使用（Client）：110
 - 前端已使用（Admin）：132
 - fixtures 场景数：7
 
@@ -115,7 +115,7 @@
 | listRefundRequestsByOrder | GET | /orders/:param/refund-requests | ✓ | ✓ | ✓ | ✓ | ✓ |  |  |  |  |
 | getPatentMapRegionDetail | GET | /patent-map/regions/:param | ✓ |  | ✓ |  |  |  |  |  |  |
 | getPatentMapSummary | GET | /patent-map/summary | ✓ | ✓ | ✓ | ✓ | ✓ |  |  |  |  |
-| listPatentMapYears | GET | /patent-map/years |  | ✓ | ✓ | ✓ | ✓ |  |  |  |  |
+| listPatentMapYears | GET | /patent-map/years | ✓ | ✓ | ✓ | ✓ | ✓ |  |  |  |  |
 | getPatentById | GET | /patents/:param | ✓ |  | ✓ |  |  |  |  |  |  |
 | getPublicAchievementById | GET | /public/achievements/:param | ✓ |  | ✓ |  |  |  |  |  |  |
 | listPublicAchievementComments | GET | /public/achievements/:param/comments | ✓ |  | ✓ | ✓ | ✓ |  |  |  |  |
