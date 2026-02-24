@@ -18,11 +18,11 @@ import {
   BellOutlined,
   ScheduleOutlined,
 } from '@ant-design/icons';
-import { Layout, Menu, Typography } from 'antd';
-import React, { useEffect, useMemo, useState } from 'react';
+import { Button, Layout, Menu, Typography } from 'antd';
+import React, { Suspense, useEffect, useMemo, useState } from 'react';
 import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
 
-import logoGif from '../assets/brand/logo.gif';
+import logoPng from '../assets/brand/logo.png';
 
 const { Header, Sider, Content } = Layout;
 
@@ -62,7 +62,7 @@ export function AppLayout() {
       >
         <div className="ipm-logo">
           <div className="ipm-logo-mark" aria-hidden="true">
-            <img src={logoGif} alt="" />
+            <img src={logoPng} alt="" />
           </div>
           <div className="ipm-logo-text">
             <span style={{ color: '#fff', fontWeight: 800 }}>Ipmoney 后台</span>
@@ -194,11 +194,26 @@ export function AppLayout() {
         <Header className="ipm-app-header" style={{ padding: '0 16px' }}>
           <div className="ipm-header-inner">
             <Typography.Text type="secondary">Ipmoney 运营后台</Typography.Text>
+            <Button
+              size="small"
+              onClick={() => {
+                try {
+                  localStorage.removeItem('ipmoney.adminToken');
+                } catch {
+                  // ignore storage failures
+                }
+                navigate('/login', { replace: true });
+              }}
+            >
+              退出登录
+            </Button>
           </div>
         </Header>
         <Content className="ipm-content">
           <div className="ipm-content-inner">
-            <Outlet />
+            <Suspense fallback={<div style={{ padding: 16, color: 'rgba(0,0,0,0.45)' }}>Loading...</div>}>
+              <Outlet />
+            </Suspense>
           </div>
         </Content>
       </Layout>

@@ -10960,6 +10960,7 @@ export interface operations {
                     evidenceFileId?: components["schemas"]["Uuid"];
                     /** Format: date-time */
                     signedAt?: string;
+                    remark?: string;
                 };
             };
         };
@@ -10994,6 +10995,7 @@ export interface operations {
                     evidenceFileId?: components["schemas"]["Uuid"];
                     /** Format: date-time */
                     completedAt?: string;
+                    remark?: string;
                 };
             };
         };

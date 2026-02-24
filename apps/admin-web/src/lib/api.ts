@@ -27,7 +27,13 @@ export class ApiError extends Error {
   }
 }
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3200';
+const API_BASE_URL = (() => {
+  const raw = String(import.meta.env.VITE_API_BASE_URL || '').trim();
+  if (raw) return raw;
+  // Keep a dev-friendly default, but fail fast in production builds to avoid shipping localhost.
+  if (import.meta.env.DEV) return 'http://localhost:3200';
+  throw new Error('VITE_API_BASE_URL is required (missing in production build).');
+})();
 
 function cleanParams(params?: Record<string, any>): Record<string, any> | undefined {
   if (!params) return undefined;

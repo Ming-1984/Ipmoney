@@ -2,7 +2,7 @@ import { Button, Card, Form, Input, Typography } from 'antd';
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 
-import logoGif from '../assets/brand/logo.gif';
+import logoPng from '../assets/brand/logo.png';
 
 export function LoginPage() {
   const navigate = useNavigate();
@@ -23,7 +23,7 @@ export function LoginPage() {
       <Card style={{ width: 420 }}>
         <div style={{ display: 'flex', gap: 12, alignItems: 'center', marginBottom: 8 }}>
           <div className="ipm-logo-mark" aria-hidden="true">
-            <img src={logoGif} alt="" />
+            <img src={logoPng} alt="" />
           </div>
           <div>
             <Typography.Title level={3} style={{ marginTop: 0, marginBottom: 0 }}>
@@ -47,7 +47,7 @@ export function LoginPage() {
           }}
         >
           <Form.Item label="Access Token" name="token" rules={[{ required: true }]}>
-            <Input placeholder="Paste admin Bearer token" />
+            <Input placeholder="Paste admin token (without 'Bearer ')" />
           </Form.Item>
           {demoToken ? (
             <Button
