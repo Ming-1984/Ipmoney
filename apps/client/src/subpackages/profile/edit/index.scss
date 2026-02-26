@@ -67,6 +67,20 @@
   justify-content: center;
 }
 
+.profile-avatar-choose {
+  position: absolute;
+  inset: 0;
+  padding: 0;
+  margin: 0;
+  border: none;
+  background: transparent;
+  opacity: 0;
+}
+
+.profile-avatar-choose::after {
+  border: none;
+}
+
 .profile-avatar-row {
   display: flex;
   justify-content: center;

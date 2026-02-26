@@ -292,7 +292,7 @@
 
 .search-card {
   border-radius: 24rpx;
-  border: 1rpx solid rgba(200, 155, 60, 0.16);
+  border: none;
   background: var(--c-card);
   box-shadow: 0 14rpx 28rpx rgba(27, 27, 27, 0.05);
   padding: 22rpx 24rpx;
@@ -336,4 +336,3 @@
   justify-content: space-between;
   gap: 10rpx;
 }
-

@@ -1,4 +1,4 @@
-import { View, Text } from '@tarojs/components';
+import { View, Text, Image } from '@tarojs/components';
 import React, { useCallback, useEffect } from 'react';
 import './index.scss';
 
@@ -12,6 +12,7 @@ type InventorRankingItem = {
   inventorName: string;
   patentCount: number;
   listingCount: number;
+  avatarUrl?: string | null;
   location?: string;
   typeLabel?: string;
   tags?: string[];
@@ -58,49 +59,89 @@ export default function InventorsPage() {
         ) : error ? (
           <ErrorCard message={error} onRetry={reload} />
         ) : items.length ? (
-          <View className="inventor-rank-list">
-            {items.map((it, idx) => {
-              const rank = idx + 1;
-              const isTop = rank <= 3;
-              const typeLabel = it.typeLabel || '';
-              const tags = it.tags || [];
-              const showTags = Boolean(typeLabel || tags.length);
-              return (
-                <View key={`${it.inventorName}-${idx}`} className={`inventor-rank-card ${isTop ? 'is-top' : ''}`}>
-                  <View className={`inventor-rank-badge ${isTop ? 'is-top' : ''} rank-${rank}`}>
-                    <Text className="inventor-rank-badge-text">{rank}</Text>
-                    <Text className="inventor-rank-badge-label">{LABEL_RANK}</Text>
+          (() => {
+            const topItems = items.slice(0, 3);
+            const restItems = items.slice(3);
+            return (
+              <View className="inventor-rank-content">
+                {topItems.length ? (
+                  <View className="inventor-rank-podium">
+                    {topItems.map((it, idx) => {
+                      const rank = idx + 1;
+                      const avatar = String(it.avatarUrl || '').trim();
+                      const initial = (it.inventorName || '').trim().slice(0, 1) || '发';
+                      return (
+                        <View key={`${it.inventorName}-${rank}`} className={`inventor-podium-card rank-${rank}`}>
+                          <View className={`inventor-podium-badge rank-${rank}`}>
+                            <Text className="inventor-podium-badge-text">{rank}</Text>
+                          </View>
+                          <View className={`inventor-podium-avatar rank-${rank}`}>
+                            {avatar ? (
+                              <Image className="inventor-podium-avatar-img" src={avatar} mode="aspectFill" />
+                            ) : (
+                              <Text className="inventor-podium-avatar-text">{initial}</Text>
+                            )}
+                          </View>
+                          <Text className="inventor-podium-name clamp-1">{it.inventorName}</Text>
+                          <View className="inventor-podium-stats">
+                            <Text className="inventor-podium-score">{it.patentCount}</Text>
+                            <Text className="inventor-podium-score-label">{LABEL_PATENT_COUNT}</Text>
+                            <Text className="inventor-podium-subscore">{LABEL_LISTING_COUNT} {it.listingCount}</Text>
+                          </View>
+                        </View>
+                      );
+                    })}
                   </View>
-                  <View className="inventor-rank-main">
-                    <View className="inventor-rank-title-row">
-                      <Text className="inventor-rank-name clamp-1">{it.inventorName}</Text>
-                      {it.location ? <Text className="inventor-rank-location">{it.location}</Text> : null}
-                    </View>
-                    {showTags ? (
-                      <View className="inventor-rank-tags">
-                        {typeLabel ? <Text className="inventor-rank-chip inventor-rank-chip-primary">{typeLabel}</Text> : null}
-                        {tags.map((tag) => (
-                          <Text key={`${it.inventorName}-${tag}`} className="inventor-rank-chip">
-                            {tag}
-                          </Text>
-                        ))}
-                      </View>
-                    ) : null}
+                ) : null}
+
+                {restItems.length ? (
+                  <View className="inventor-rank-list compact">
+                    {restItems.map((it, idx) => {
+                      const rank = idx + 4;
+                      const typeLabel = it.typeLabel || '';
+                      const tags = it.tags || [];
+                      const showTags = Boolean(typeLabel || tags.length || it.location);
+                      const avatar = String(it.avatarUrl || '').trim();
+                      const initial = (it.inventorName || '').trim().slice(0, 1) || '发';
+                      return (
+                        <View key={`${it.inventorName}-${rank}`} className="inventor-rank-row">
+                          <View className={`inventor-rank-row-badge rank-${rank}`}>
+                            <Text className="inventor-rank-row-badge-text">{rank}</Text>
+                          </View>
+                          <View className="inventor-rank-row-avatar">
+                            {avatar ? (
+                              <Image className="inventor-rank-row-avatar-img" src={avatar} mode="aspectFill" />
+                            ) : (
+                              <Text className="inventor-rank-row-avatar-text">{initial}</Text>
+                            )}
+                          </View>
+                          <View className="inventor-rank-row-main">
+                            <Text className="inventor-rank-row-name clamp-1">{it.inventorName}</Text>
+                            {showTags ? (
+                              <View className="inventor-rank-tags">
+                                {it.location ? <Text className="inventor-rank-chip">{it.location}</Text> : null}
+                                {typeLabel ? <Text className="inventor-rank-chip inventor-rank-chip-primary">{typeLabel}</Text> : null}
+                                {tags.map((tag) => (
+                                  <Text key={`${it.inventorName}-${tag}`} className="inventor-rank-chip">
+                                    {tag}
+                                  </Text>
+                                ))}
+                              </View>
+                            ) : null}
+                          </View>
+                          <View className="inventor-rank-row-stats">
+                            <Text className="inventor-rank-row-stat-num">{it.patentCount}</Text>
+                            <Text className="inventor-rank-row-stat-label">{LABEL_PATENT_COUNT}</Text>
+                            <Text className="inventor-rank-row-stat-sub">{LABEL_LISTING_COUNT} {it.listingCount}</Text>
+                          </View>
+                        </View>
+                      );
+                    })}
                   </View>
-                  <View className="inventor-rank-stats">
-                    <View className="inventor-rank-stat">
-                      <Text className="inventor-rank-stat-num">{it.patentCount}</Text>
-                      <Text className="inventor-rank-stat-label">{LABEL_PATENT_COUNT}</Text>
-                    </View>
-                    <View className="inventor-rank-stat">
-                      <Text className="inventor-rank-stat-num is-muted">{it.listingCount}</Text>
-                      <Text className="inventor-rank-stat-label">{LABEL_LISTING_COUNT}</Text>
-                    </View>
-                  </View>
-                </View>
-              );
-            })}
-          </View>
+                ) : null}
+              </View>
+            );
+          })()
         ) : (
           <EmptyCard message={LABEL_EMPTY} actionText={LABEL_REFRESH} onAction={reload} />
         )}

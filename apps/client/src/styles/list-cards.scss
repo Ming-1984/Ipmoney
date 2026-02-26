@@ -12,7 +12,7 @@
   padding: 22rpx 26rpx;
   margin-bottom: 16rpx;
   background: var(--c-card);
-  border: 1rpx solid rgba(200, 155, 60, 0.16);
+  border: none;
   border-radius: 24rpx;
   box-shadow: 0 14rpx 28rpx rgba(27, 27, 27, 0.05);
 }
@@ -67,7 +67,7 @@
   gap: 16rpx;
   padding: 22rpx 24rpx;
   border-radius: 24rpx;
-  border: 1rpx solid rgba(200, 155, 60, 0.16);
+  border: none;
   background: var(--c-card);
   box-shadow: 0 14rpx 28rpx rgba(27, 27, 27, 0.05);
 }

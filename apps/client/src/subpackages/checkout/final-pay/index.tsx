@@ -7,7 +7,7 @@ import { apiGet, apiPost } from '../../../lib/api';
 import { ensureApproved } from '../../../lib/guard';
 import { fenToYuan } from '../../../lib/money';
 import { safeNavigateBack } from '../../../lib/navigation';
-import { useRouteUuidParam } from '../../../lib/routeParams';
+import { useRouteStringParam } from '../../../lib/routeParams';
 import { PageHeader, Spacer, StickyBar, Surface } from '../../../ui/layout';
 import { Button, toast } from '../../../ui/nutui';
 import { ErrorCard, LoadingCard, MissingParamCard } from '../../../ui/StateCards';
@@ -37,7 +37,7 @@ type PaymentIntentResponse = {
 };
 
 export default function FinalPayPage() {
-  const orderId = useRouteUuidParam('orderId') || '';
+  const orderId = useRouteStringParam('orderId') || '';
   const env = useMemo(() => Taro.getEnv(), []);
   const isH5 = env === Taro.ENV_TYPE.WEB;
 

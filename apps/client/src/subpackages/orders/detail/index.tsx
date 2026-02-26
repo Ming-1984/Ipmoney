@@ -11,7 +11,7 @@ import { formatTimeSmart } from '../../../lib/format';
 import { orderStatusLabel, orderStatusTagClass } from '../../../lib/labels';
 import { fenToYuan } from '../../../lib/money';
 import { safeNavigateBack } from '../../../lib/navigation';
-import { useRouteUuidParam } from '../../../lib/routeParams';
+import { useRouteStringParam } from '../../../lib/routeParams';
 import { AccessGate } from '../../../ui/PageState';
 import { Button, Popup, Segmented, TextArea, toast } from '../../../ui/nutui';
 import { EmptyCard, ErrorCard, LoadingCard, MissingParamCard } from '../../../ui/StateCards';
@@ -66,7 +66,7 @@ function refundStatusLabel(status?: string | null): string {
 }
 
 export default function OrderDetailPage() {
-  const orderId = useRouteUuidParam('orderId') || '';
+  const orderId = useRouteStringParam('orderId') || '';
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -505,4 +505,3 @@ export default function OrderDetailPage() {
     </View>
   );
 }
-

@@ -10,7 +10,7 @@ import { apiGet } from '../../../lib/api';
 import { orderStatusLabel } from '../../../lib/labels';
 import { fenToYuan } from '../../../lib/money';
 import { safeNavigateBack } from '../../../lib/navigation';
-import { useRouteUuidParam } from '../../../lib/routeParams';
+import { useRouteStringParam } from '../../../lib/routeParams';
 import { Button } from '../../../ui/nutui';
 import { PageHeader, Spacer, Surface } from '../../../ui/layout';
 import { LoadingCard, MissingParamCard, PermissionCard } from '../../../ui/StateCards';
@@ -18,8 +18,8 @@ import { LoadingCard, MissingParamCard, PermissionCard } from '../../../ui/State
 type Order = components['schemas']['Order'];
 
 export default function DepositSuccessPage() {
-  const orderId = useRouteUuidParam('orderId') || '';
-  const paymentId = useRouteUuidParam('paymentId') || '';
+  const orderId = useRouteStringParam('orderId') || '';
+  const paymentId = useRouteStringParam('paymentId') || '';
   const token = getToken();
 
   if (!orderId) {

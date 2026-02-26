@@ -9475,6 +9475,11 @@ components:
           type: integer
           minimum: 0
           description: 关联到的上架数量（可用于参考）
+        avatarUrl:
+          type: string
+          format: uri
+          nullable: true
+          description: 头像地址（实名信息匹配到用户时返回）
 
     PagedInventorRanking:
       type: object

@@ -17,7 +17,8 @@ function normalizeAvatarSrc(src?: NutAvatarProps['src']): NutAvatarProps['src'] 
 
 export function Avatar(props: NutAvatarProps) {
   const src = normalizeAvatarSrc(props.src);
-  return <NutAvatar {...props} src={src} />;
+  const { mode, fit, ...rest } = props;
+  return <NutAvatar {...rest} src={src} mode={mode ?? 'aspectFit'} fit={fit ?? 'contain'} />;
 }
 
 export { AvatarGroup };

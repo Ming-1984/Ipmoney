@@ -47,15 +47,25 @@ export class InventorsService {
     }
 
     const rows = await this.prisma.$queryRaw<
-      Array<{ inventorName: string; patentCount: number; listingCount: number }>
+      Array<{ inventorName: string; patentCount: number; listingCount: number; avatarUrl: string | null }>
     >(Prisma.sql`
       SELECT
         p.name AS "inventorName",
         COUNT(DISTINCT p.patent_id)::int AS "patentCount",
-        COUNT(DISTINCT l.id)::int AS "listingCount"
+        COUNT(DISTINCT l.id)::int AS "listingCount",
+        MAX(av.avatar_url) AS "avatarUrl"
       FROM patent_parties p
       JOIN patents pa ON pa.id = p.patent_id
       JOIN listings l ON l.patent_id = pa.id
+      LEFT JOIN LATERAL (
+        SELECT u.avatar_url
+        FROM user_verifications uv
+        JOIN users u ON u.id = uv.user_id
+        WHERE uv.display_name = p.name
+          AND uv.status = 'APPROVED'
+        ORDER BY u.updated_at DESC
+        LIMIT 1
+      ) av ON true
       WHERE p.role = 'INVENTOR'
         AND (${qLike}::text IS NULL OR p.name ILIKE ${qLike})
         AND (${regionCode}::text IS NULL OR l.region_code = ${regionCode})

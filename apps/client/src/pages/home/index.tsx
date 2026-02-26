@@ -5,8 +5,6 @@ import './index.scss';
 
 import type { components } from '@ipmoney/api-types';
 
-import logoPng from '../../assets/brand/logo.png';
-import promoCertificatePng from '../../assets/home/promo-certificate.png';
 
 // Feature zone background images (poster cards in "特色专区")
 import bgZoneSleeping from '../../assets/home/zones/zone-sleeping.jpg';
@@ -68,6 +66,16 @@ type PatentZoneEntry = {
   tone: string;
   onClick: () => void;
 };
+
+const HomeBanner = React.memo(function HomeBanner() {
+  return (
+    <View className="home-banner">
+      <View className="home-banner-item">
+        <View className="home-banner-img" />
+      </View>
+    </View>
+  );
+});
 
 function formatDate(value?: string): string {
   if (!value) return '-';
@@ -282,7 +290,7 @@ export default function HomePage() {
         <View className="home-hero-top">
           <View className="home-hero-brand">
             <View className="home-hero-logo">
-              <Image src={logoPng} mode="aspectFit" className="home-hero-logo-img" />
+              <View className="home-hero-logo-img" />
             </View>
             <View className="home-hero-text">
               <Text className="home-hero-title">IPMONEY</Text>
@@ -345,11 +353,7 @@ export default function HomePage() {
         </View>
       </View>
 
-      <View className="home-banner">
-        <View className="home-banner-item">
-          <Image src={promoCertificatePng} mode="aspectFill" className="home-banner-img" />
-        </View>
-      </View>
+      <HomeBanner />
 
       <View className="home-section">
         <View className="home-section-header">

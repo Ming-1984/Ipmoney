@@ -26,7 +26,6 @@ import { ErrorCard, LoadingCard } from '../../ui/StateCards';
 import { WechatPhoneBindPopup } from '../../ui/WechatPhoneBindPopup';
 import { Surface } from '../../ui/layout';
 import { Avatar, Button, Input, PullToRefresh, toast } from '../../ui/nutui';
-import loginHeroPng from '../../assets/brand/logo.png';
 
 import iconUser from '../../assets/icons/icon-user-purple.svg';
 import iconPublishPatent from '../../assets/icons/icon-publish-patent.svg';
@@ -458,7 +457,7 @@ export default function MePage() {
     return (
       <View className="container me-page me-page-locked page-locked">
         <View className="me-login-wrap">
-          <Image className="me-login-ill" src={loginHeroPng} mode="aspectFit" />
+          <View className="me-login-ill" />
           <Text className="me-login-title">登录解锁专利点金台</Text>
           <View className={`me-login-actions ${showSms ? 'is-expanded' : ''}`}>
             {DEMO_LOGIN_ENABLED ? (

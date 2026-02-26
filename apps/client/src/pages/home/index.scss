@@ -30,9 +30,9 @@
 }
 
 .home-hero-logo {
-  width: 64rpx;
-  height: 64rpx;
-  border-radius: 16rpx;
+  width: 96rpx;
+  height: 96rpx;
+  border-radius: 24rpx;
   background: rgba(255, 255, 255, 0.2);
   border: 2rpx solid rgba(255, 255, 255, 0.3);
   box-shadow: none;
@@ -42,8 +42,9 @@
 }
 
 .home-hero-logo-img {
-  width: 44rpx;
-  height: 44rpx;
+  width: 66rpx;
+  height: 66rpx;
+  background: url('../../assets/brand/logo.optim2.gif') center/contain no-repeat;
 }
 
 .home-hero-text {
@@ -209,6 +210,7 @@
   width: 100%;
   height: 100%;
   border-radius: 24rpx;
+  background: url('../../assets/home/promo-certificate.optim3.gif') center/cover no-repeat;
 }
 
 .home-banner-caption {
@@ -489,4 +491,3 @@
   flex-direction: column;
   gap: 16rpx;
 }
-

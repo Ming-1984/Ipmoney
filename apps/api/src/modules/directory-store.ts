@@ -29,6 +29,7 @@ export type InventorRanking = {
   inventorName: string;
   patentCount: number;
   listingCount: number;
+  avatarUrl?: string | null;
   location?: string | null;
   patentType?: string | null;
   tags?: string[] | null;

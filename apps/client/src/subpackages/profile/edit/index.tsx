@@ -1,4 +1,4 @@
-import { Picker, View, Text } from '@tarojs/components';
+import { Picker, View, Text, Button as TaroButton } from '@tarojs/components';
 import Taro from '@tarojs/taro';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import './index.scss';
@@ -25,6 +25,10 @@ export default function ProfileEditPage() {
   const params = useMemo(() => Taro.getCurrentInstance().router?.params || {}, []);
   const env = useMemo(() => Taro.getEnv(), []);
   const isWeapp = env === Taro.ENV_TYPE.WEAPP;
+  const canChooseAvatar = useMemo(
+    () => isWeapp && typeof (Taro as any).canIUse === 'function' && (Taro as any).canIUse('button.open-type.chooseAvatar'),
+    [isWeapp],
+  );
 
   const from = String((params as any)?.from || '');
   const nextType = String((params as any)?.nextType || '');
@@ -99,14 +103,20 @@ export default function ProfileEditPage() {
   }, [load]);
 
   const uploadAvatarFromPath = useCallback(async (tempPath: string) => {
-    const trimmed = String(tempPath || '').trim();
+    let trimmed = String(tempPath || '').trim();
     if (!trimmed) return false;
 
     // Prefer uploading to API (so avatarUrl becomes a stable URL). If upload isn't available (e.g. mock/prism),
     // fall back to local saved file path so WeApp can still display the avatar immediately.
     let localPath = trimmed;
+    if (/^https?:\/\//i.test(localPath)) {
+      try {
+        const info = await Taro.getImageInfo({ src: localPath });
+        if (info?.path) localPath = info.path;
+      } catch (_) {}
+    }
     try {
-      const res = await Taro.saveFile({ tempFilePath: trimmed });
+      const res = await Taro.saveFile({ tempFilePath: localPath });
       const savedPath = String((res as any)?.savedFilePath || '').trim();
       if (savedPath) localPath = savedPath;
     } catch (_) {}
@@ -154,6 +164,28 @@ export default function ProfileEditPage() {
       toast(e?.message || '选择头像失败');
     }
   }, [uploadAvatarFromPath]);
+
+  const handleChooseAvatar = useCallback(
+    async (e: any) => {
+      const tempPath = String(e?.detail?.avatarUrl || '').trim();
+      if (!tempPath) {
+        toast('Avatar not found');
+        return;
+      }
+      let resolvedPath = tempPath;
+      if (/^https?:\/\//i.test(resolvedPath)) {
+        try {
+          const info = await Taro.getImageInfo({ src: resolvedPath });
+          if (info?.path) resolvedPath = info.path;
+        } catch (_) {
+          toast('Avatar read failed, please retry');
+          return;
+        }
+      }
+      await uploadAvatarFromPath(resolvedPath);
+    },
+    [uploadAvatarFromPath],
+  );
 
   const save = useCallback(async () => {
     if (!requireLogin()) return;
@@ -258,8 +290,14 @@ export default function ProfileEditPage() {
                   <View
                     className="profile-avatar-picker"
                     onClick={() => {
-                      if (!isWeapp) return;
-                      void chooseAvatarFromAlbum();
+                      if (!isWeapp) {
+                        void chooseAvatarFromAlbum();
+                        return;
+                      }
+                      if (!canChooseAvatar) {
+                        toast('WeChat too old, update required');
+                        return;
+                      }
                     }}
                   >
                     <Avatar
@@ -267,14 +305,11 @@ export default function ProfileEditPage() {
                       src={avatarUrl}
                       icon={<Text className="text-strong">{(nickname.trim() || me?.nickname || '用').slice(0, 1)}</Text>}
                     />
+                    {isWeapp && canChooseAvatar ? (
+                      <TaroButton className="profile-avatar-choose" openType="chooseAvatar" onChooseAvatar={handleChooseAvatar} />
+                    ) : null}
                     {isWeapp ? (
-                      <View
-                        className="profile-avatar-camera"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          void chooseAvatarFromAlbum();
-                        }}
-                      >
+                      <View className="profile-avatar-camera">
                         <Photograph size={18} color="#fff" />
                       </View>
                     ) : null}

@@ -388,7 +388,7 @@ export class PatentMapService {
     const parsedRows: ParsedRow[] = [];
     const seenKeys = new Set<string>();
 
-    rawRows.forEach((row, index) => {
+    rawRows.forEach((row: Record<string, any>, index: number) => {
       const rowNumber = index + 2;
       const rowLookup = this.buildRowLookup(row);
       const rowErrors: string[] = [];
