@@ -1355,6 +1355,10 @@ export class OrdersService {
 
   async adminIssueInvoice(req: any, orderId: string, _body: any) {
     this.ensureAdmin(req);
+    const existing = await this.prisma.order.findUnique({ where: { id: orderId } });
+    if (!existing) {
+      throw new NotFoundException({ code: 'NOT_FOUND', message: 'order not found' });
+    }
     const order = await this.prisma.order.update({
       where: { id: orderId },
       data: { invoiceIssuedAt: new Date(), invoiceNo: `INV-${Date.now()}` },
