@@ -9,8 +9,9 @@
   - Script hardening: `api-real-smoke`, `ui-http-smoke`, `ui-render-smoke`, `ui-dom-smoke` now use dynamic port selection and process-tree cleanup (no kill-by-port behavior).
   - Build resilience: verify appends `NODE_OPTIONS=--max-old-space-size=4096` and retries transient `client:build:h5` crash exits once.
   - Quality gates: `openapi:lint`, `lint`, `typecheck`, `scan:banned-words` all pass.
-  - API smoke: pass (49/49) -> `.tmp/api-real-smoke-2026-03-05-summary.json`
-  - API smoke write/read split: writes 30/30, reads 19/19.
+  - API smoke: pass (55/55) -> `.tmp/api-real-smoke-2026-03-05-summary.json`
+  - API smoke write/read split: writes 36/36, reads 19/19.
+  - Failure/idempotency checks now included: duplicate favorites, invalid comment/message payloads, and missing-resource delete paths.
   - DB preflight: pass (failed=0) -> `.tmp/db-preflight-2026-03-05-summary.json`
   - UI HTTP smoke: pass (28/28) -> `.tmp/ui-http-smoke-2026-03-05-summary.json`
   - UI render smoke (core): pass (3/3) -> `.tmp/ui-render-smoke-2026-03-05-summary.json`
@@ -50,7 +51,7 @@
   - Machine summary: `.tmp/vulnerability-ledger-2026-03-05.json`
 
 ### Risks still open
-- API write-coverage phase-1 target is reached (30/135 ~= 22.2%), but write checks are still concentrated in user-side flows; `/admin` write domain coverage remains 0.
+- API write-coverage phase-1 target is reached (36/135 ~= 26.7%), but write checks are still concentrated in user-side flows; `/admin` write domain coverage remains 0.
 - UI status smoke is still shallow (route-level HTTP checks only 26/83 pages, plus 2 mock endpoints).
 - DOM assertions now cover all 83/83 pages, but many routes still use generic structural assertions and need incremental business-semantic tightening.
 - Security baseline still high-risk (`pnpm audit --prod`: critical 2 / high 21), remediation not yet executed.
