@@ -9,8 +9,8 @@
   - Script hardening: `api-real-smoke`, `ui-http-smoke`, `ui-render-smoke`, `ui-dom-smoke` now use dynamic port selection and process-tree cleanup (no kill-by-port behavior).
   - Build resilience: verify appends `NODE_OPTIONS=--max-old-space-size=4096` and retries transient `client:build:h5` crash exits once.
   - Quality gates: `openapi:lint`, `lint`, `typecheck`, `scan:banned-words` all pass.
-  - API smoke: pass (101/101) -> `.tmp/api-real-smoke-2026-03-06-summary.json`
-  - API smoke write/read split: writes 73/73, reads 28/28.
+  - API smoke: pass (122/122) -> `.tmp/api-real-smoke-2026-03-06-summary.json`
+  - API smoke write/read split: writes 93/93, reads 29/29.
   - Failure/idempotency checks now included: duplicate favorites, invalid comment/message payloads, and missing-resource delete paths.
   - Anti-flake hardening: `api-real-smoke` now forces `RATE_LIMIT_ENABLED=false` for local run consistency.
   - DB preflight: pass (failed=0) -> `.tmp/db-preflight-2026-03-06-summary.json`
@@ -67,8 +67,12 @@
   - Added guard probes in-flow: duplicate manual payment conflicts, payout missing evidence (400), invoice upsert missing file (400), refund/invoice request state-machine conflict checks (409).
   - Added file-dependent happy paths: `/files` upload, admin manual payout with evidence, invoice request success + duplicate guard, admin invoice upsert/delete with real file id.
 
+- Refund lifecycle probes (demo auth/payment)
+  - Result: pass (manual approve->complete flow + manual reject flow).
+  - Added state guards: missing reject reason (400), approve/reject/complete duplicate conflict checks (409), post-refunded re-request conflict (409).
+
 ### Risks still open
-- API write-coverage phase-1 target is reached and expanded (73/135 ~= 54.1%), but `/admin` write domain still has large uncovered area (especially broader case/refund lifecycle variants and deeper state/idempotency matrices).
+- API write-coverage phase-1 target is reached and expanded (93/135 ~= 68.9%), but `/admin` write domain still has large uncovered area (especially broader case workflows and cross-module state/idempotency matrices).
 - UI status smoke is still shallow (route-level HTTP checks only 26/83 pages, plus 2 mock endpoints).
 - DOM assertions now cover all 83/83 pages, but many routes still use generic structural assertions and need incremental business-semantic tightening.
 - Security baseline still high-risk (`pnpm audit --prod`: critical 2 / high 21), remediation not yet executed.
