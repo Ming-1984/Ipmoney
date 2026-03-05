@@ -18,6 +18,9 @@
     "openapi:preview": "redocly preview-docs docs/api/openapi.yaml --port 8080",
     "openapi:types": "openapi-typescript docs/api/openapi.yaml -o packages/api-types/index.d.ts",
     "mock": "pnpm -C apps/mock-api dev",
+    "check:weapp-budget": "node scripts/check-weapp-bundle-budget.mjs",
+    "audit:ledger": "node scripts/audit-vulnerability-ledger.mjs",
+    "matrix:page-api-test": "node scripts/build-page-api-test-matrix.mjs",
     "scan:banned-words": "node scripts/scan-banned-words.mjs",
     "check:prod-env": "node scripts/run-with-env.mjs -- node scripts/check-prod-env.mjs"
   },

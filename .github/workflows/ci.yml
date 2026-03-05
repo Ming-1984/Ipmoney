@@ -55,3 +55,4 @@ jobs:
           pnpm -C apps/admin-web build
           pnpm -C apps/client build:h5
           pnpm -C apps/client build:weapp
+          pnpm check:weapp-budget
