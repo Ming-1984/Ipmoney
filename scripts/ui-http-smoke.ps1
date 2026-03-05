@@ -19,15 +19,50 @@ if ([string]::IsNullOrWhiteSpace($ReportDate)) {
   $ReportDate = (Get-Date).ToString("yyyy-MM-dd")
 }
 
-function Stop-Ports([int[]]$ports) {
-  foreach ($p in $ports) {
-    try {
-      $conns = @(Get-NetTCPConnection -State Listen -LocalPort $p -ErrorAction SilentlyContinue)
-      foreach ($procId in ($conns.OwningProcess | Sort-Object -Unique)) {
-        Stop-Process -Id $procId -Force -ErrorAction SilentlyContinue
-      }
-    } catch { }
+function Test-PortAvailable([int]$Port) {
+  try {
+    $listener = [System.Net.Sockets.TcpListener]::new([System.Net.IPAddress]::Loopback, $Port)
+    $listener.Start()
+    $listener.Stop()
+    return $true
+  } catch {
+    return $false
   }
+}
+
+function Get-RandomAvailablePort() {
+  $listener = [System.Net.Sockets.TcpListener]::new([System.Net.IPAddress]::Loopback, 0)
+  try {
+    $listener.Start()
+    return [int]$listener.LocalEndpoint.Port
+  } finally {
+    $listener.Stop()
+  }
+}
+
+function Find-AvailablePort(
+  [int]$PreferredPort,
+  [int[]]$ReservedPorts = @(),
+  [int]$MaxOffset = 200,
+  [int]$RandomRetries = 10
+) {
+  if (($ReservedPorts -notcontains $PreferredPort) -and (Test-PortAvailable -Port $PreferredPort)) {
+    return $PreferredPort
+  }
+
+  for ($i = 1; $i -le $MaxOffset; $i++) {
+    $candidate = $PreferredPort + $i
+    if (($ReservedPorts -contains $candidate)) { continue }
+    if (Test-PortAvailable -Port $candidate) { return $candidate }
+  }
+
+  for ($attempt = 1; $attempt -le $RandomRetries; $attempt++) {
+    $candidate = Get-RandomAvailablePort
+    if (($ReservedPorts -contains $candidate)) { continue }
+    if (Test-PortAvailable -Port $candidate) { return $candidate }
+  }
+
+  throw "No available port found for preferred port $PreferredPort"
 }
 
 function Get-HttpStatus([string]$Url, [hashtable]$Headers) {
@@ -56,8 +91,20 @@ function Wait-Status([string]$Url, [int]$TimeoutSec, [hashtable]$Headers) {
   throw "timeout waiting for $Url"
 }
 
-$ports = @($MockPort, $PrismPort, $ClientPort, $AdminPort)
-Stop-Ports $ports
+$reservedPorts = @()
+$resolvedMockPort = Find-AvailablePort -PreferredPort $MockPort -ReservedPorts $reservedPorts
+$reservedPorts += $resolvedMockPort
+$resolvedPrismPort = Find-AvailablePort -PreferredPort $PrismPort -ReservedPorts $reservedPorts
+$reservedPorts += $resolvedPrismPort
+$resolvedClientPort = Find-AvailablePort -PreferredPort $ClientPort -ReservedPorts $reservedPorts
+$reservedPorts += $resolvedClientPort
+$resolvedAdminPort = Find-AvailablePort -PreferredPort $AdminPort -ReservedPorts $reservedPorts
+$reservedPorts += $resolvedAdminPort
+
+if ($resolvedMockPort -ne $MockPort) { Write-Host ("[ui-http-smoke] mock port fallback: {0} -> {1}" -f $MockPort, $resolvedMockPort) }
+if ($resolvedPrismPort -ne $PrismPort) { Write-Host ("[ui-http-smoke] prism port fallback: {0} -> {1}" -f $PrismPort, $resolvedPrismPort) }
+if ($resolvedClientPort -ne $ClientPort) { Write-Host ("[ui-http-smoke] client port fallback: {0} -> {1}" -f $ClientPort, $resolvedClientPort) }
+if ($resolvedAdminPort -ne $AdminPort) { Write-Host ("[ui-http-smoke] admin port fallback: {0} -> {1}" -f $AdminPort, $resolvedAdminPort) }
 
 $logDir = Join-Path $repoRoot ".tmp"
 New-Item -ItemType Directory -Force $logDir | Out-Null
@@ -69,29 +116,29 @@ $clientErr = Join-Path $logDir "ui-http-client.err.log"
 $adminOut = Join-Path $logDir "ui-http-admin.out.log"
 $adminErr = Join-Path $logDir "ui-http-admin.err.log"
 
-$mockCmd = "`$env:MOCK_API_PORT='$MockPort'; `$env:MOCK_API_PRISM_PORT='$PrismPort'; pnpm mock"
-$clientCmd = "`$env:TARO_APP_API_BASE_URL='http://127.0.0.1:$MockPort'; `$env:CLIENT_H5_PORT='$ClientPort'; `$env:TARO_APP_ENABLE_MOCK_TOOLS='0'; pnpm -C apps/client dev:h5"
-$adminCmd = "`$env:VITE_API_BASE_URL='http://127.0.0.1:$MockPort'; `$env:ADMIN_WEB_PORT='$AdminPort'; `$env:VITE_ENABLE_MOCK_TOOLS='0'; pnpm -C apps/admin-web dev"
+$mockCmd = "`$env:MOCK_API_PORT='$resolvedMockPort'; `$env:MOCK_API_PRISM_PORT='$resolvedPrismPort'; pnpm mock"
+$clientCmd = "`$env:TARO_APP_API_BASE_URL='http://127.0.0.1:$resolvedMockPort'; `$env:CLIENT_H5_PORT='$resolvedClientPort'; `$env:TARO_APP_ENABLE_MOCK_TOOLS='0'; pnpm -C apps/client dev:h5"
+$adminCmd = "`$env:VITE_API_BASE_URL='http://127.0.0.1:$resolvedMockPort'; `$env:ADMIN_WEB_PORT='$resolvedAdminPort'; `$env:VITE_ENABLE_MOCK_TOOLS='0'; pnpm -C apps/admin-web dev"
 
 $mockProc = Start-Process -FilePath "powershell" -ArgumentList @("-NoLogo", "-NoProfile", "-Command", $mockCmd) -WorkingDirectory $repoRoot -PassThru -WindowStyle Hidden -RedirectStandardOutput $mockOut -RedirectStandardError $mockErr
 $clientProc = Start-Process -FilePath "powershell" -ArgumentList @("-NoLogo", "-NoProfile", "-Command", $clientCmd) -WorkingDirectory $repoRoot -PassThru -WindowStyle Hidden -RedirectStandardOutput $clientOut -RedirectStandardError $clientErr
 $adminProc = Start-Process -FilePath "powershell" -ArgumentList @("-NoLogo", "-NoProfile", "-Command", $adminCmd) -WorkingDirectory $repoRoot -PassThru -WindowStyle Hidden -RedirectStandardOutput $adminOut -RedirectStandardError $adminErr
 
 try {
-  Wait-Status -Url "http://127.0.0.1:$MockPort/health" -TimeoutSec $WaitMockSec -Headers @{} | Out-Null
-  Wait-Status -Url "http://127.0.0.1:$ClientPort" -TimeoutSec $WaitClientSec -Headers @{} | Out-Null
-  Wait-Status -Url "http://127.0.0.1:$AdminPort" -TimeoutSec $WaitAdminSec -Headers @{} | Out-Null
+  Wait-Status -Url "http://127.0.0.1:$resolvedMockPort/health" -TimeoutSec $WaitMockSec -Headers @{} | Out-Null
+  Wait-Status -Url "http://127.0.0.1:$resolvedClientPort" -TimeoutSec $WaitClientSec -Headers @{} | Out-Null
+  Wait-Status -Url "http://127.0.0.1:$resolvedAdminPort" -TimeoutSec $WaitAdminSec -Headers @{} | Out-Null
 
   $checks = @(
-    @{ name = "mock-health"; url = "http://127.0.0.1:$MockPort/health"; headers = @{ "X-Mock-Scenario" = "happy" } },
-    @{ name = "mock-orders"; url = "http://127.0.0.1:$MockPort/orders"; headers = @{ "X-Mock-Scenario" = "happy" } },
-    @{ name = "client-root"; url = "http://127.0.0.1:$ClientPort/"; headers = @{} },
-    @{ name = "admin-root"; url = "http://127.0.0.1:$AdminPort/"; headers = @{} },
-    @{ name = "admin-login"; url = "http://127.0.0.1:$AdminPort/login"; headers = @{} },
-    @{ name = "admin-orders"; url = "http://127.0.0.1:$AdminPort/orders"; headers = @{} },
-    @{ name = "admin-verifications"; url = "http://127.0.0.1:$AdminPort/verifications"; headers = @{} },
-    @{ name = "admin-config"; url = "http://127.0.0.1:$AdminPort/config"; headers = @{} },
-    @{ name = "admin-patent-map"; url = "http://127.0.0.1:$AdminPort/patent-map"; headers = @{} }
+    @{ name = "mock-health"; url = "http://127.0.0.1:$resolvedMockPort/health"; headers = @{ "X-Mock-Scenario" = "happy" } },
+    @{ name = "mock-orders"; url = "http://127.0.0.1:$resolvedMockPort/orders"; headers = @{ "X-Mock-Scenario" = "happy" } },
+    @{ name = "client-root"; url = "http://127.0.0.1:$resolvedClientPort/"; headers = @{} },
+    @{ name = "admin-root"; url = "http://127.0.0.1:$resolvedAdminPort/"; headers = @{} },
+    @{ name = "admin-login"; url = "http://127.0.0.1:$resolvedAdminPort/login"; headers = @{} },
+    @{ name = "admin-orders"; url = "http://127.0.0.1:$resolvedAdminPort/orders"; headers = @{} },
+    @{ name = "admin-verifications"; url = "http://127.0.0.1:$resolvedAdminPort/verifications"; headers = @{} },
+    @{ name = "admin-config"; url = "http://127.0.0.1:$resolvedAdminPort/config"; headers = @{} },
+    @{ name = "admin-patent-map"; url = "http://127.0.0.1:$resolvedAdminPort/patent-map"; headers = @{} }
   )
 
   $results = @()
@@ -119,6 +166,4 @@ try {
       Stop-Process -Id $proc.Id -Force -ErrorAction SilentlyContinue
     }
   }
-  Stop-Ports $ports
 }
-
