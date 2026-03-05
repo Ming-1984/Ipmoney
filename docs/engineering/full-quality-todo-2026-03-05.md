@@ -1,6 +1,6 @@
 # Ipmoney Full Quality Remediation TODO (Complete)
 
-> Updated: 2026-03-05
+> Updated: 2026-03-06
 > Scope: `apps/api`, `apps/client`, `apps/admin-web`, `scripts`, CI/CD, engineering docs
 > Constraint: Real login/payment integrations are out of scope for this phase.
 
@@ -9,15 +9,15 @@
 ### 1.1 Quality gates status
 - `typecheck`: pass (api/client/admin-web).
 - `build`: pass (api/admin-web/client h5/weapp); WeApp severe regression has been fixed in this batch, and bundle gate is now enforced.
-- `smoke`: pass (API 63/63, UI HTTP 28/28, UI Render full 83/83, UI Render core 3/3, UI DOM core 11/11, UI DOM full-83 83/83).
-- `verify`: pass on 2026-03-05 (now includes `ui-dom-smoke(core)` in pipeline); port/process hardening has been applied to core smoke scripts.
+- `smoke`: pass (API 71/71, UI HTTP 28/28, UI Render full 83/83, UI Render core 3/3, UI DOM core 11/11, UI DOM full-83 83/83).
+- `verify`: pass on 2026-03-06 (now includes `ui-dom-smoke(core)` in pipeline); port/process hardening has been applied to core smoke scripts.
 - `weapp-route-smoke`: local fail due DevTools HTTP port availability (environment issue).
 
 ### 1.2 Coverage and test capability
 - OpenAPI operations: 243 (GET 108 / POST 93 / PUT 12 / PATCH 21 / DELETE 9).
-- API smoke covers 63 operations (~25.9%).
-- Write operations total 135; smoke now covers 36 (~26.7%).
-- Highest uncovered write concentration remains in `/admin` (77 write operations, still 0 covered in smoke).
+- API smoke covers 71 operations (~29.2%).
+- Write operations total 135; smoke now covers 44 (~32.6%).
+- Highest uncovered write concentration remains in `/admin` (77 write operations, 8 currently covered in smoke).
 - No `.test` / `.spec` business tests under `apps` and `packages`.
 
 ### 1.3 Code rigor
@@ -76,7 +76,7 @@
   - Acceptance: openapi lint, lint, typecheck, build, api smoke, db preflight, ui http smoke, ui render smoke(core) all pass.
 - [x] A03 Improve `verify` port resilience for OS reserved-port scenarios.
   - Acceptance: auto fallback works even when `ApiPort..ApiPort+30` is unavailable.
-- [ ] A04 Fix admin config write-path 500 regression (`/admin/config/*`).
+- [x] A04 Fix admin config write-path 500 regression (`/admin/config/*`).
   - Acceptance: `PUT /admin/config/trade-rules|customer-service|recommendation|alerts|banner|taxonomy|sensitive-words|hot-search` all return 200 and create audit logs successfully.
 
 ## B. Test system completion (P0-P1)
@@ -84,11 +84,11 @@
   - Acceptance: executable `test` scripts in `apps/api`; CI can run minimal set.
 - [ ] B02 Build write-first API test inventory (orders/refunds/invoices/comments/favorites/addresses/audit flow).
   - Acceptance: first batch covers >=30 key write APIs with success/failure/idempotency assertions.
-  - Progress: smoke batch now covers 36 write operations (favorites/comments/addresses/conversations/consultations + auth), with first failure/idempotency assertions added.
+  - Progress: smoke batch now covers 44 write operations (favorites/comments/addresses/conversations/consultations + auth + admin-config writes), with failure/idempotency assertions and admin config audit-log increment checks added.
 - [ ] B03 Add frontend E2E for key H5/admin paths (excluding real login/payment).
   - Acceptance: homepage/search/detail/publish/order/audit flows are script-regressible.
 - [x] B04 Upgrade `api-real-smoke` from read-heavy to read-write balanced.
-  - Acceptance: write coverage raised from 1.48% to >=20% (phase 1). (done: 36/135 = 26.7%)
+  - Acceptance: write coverage raised from 1.48% to >=20% (phase 1). (done: 44/135 = 32.6%)
 - [ ] B05 Define per-domain write coverage targets (`admin`, `listings`, `demands`, `achievements`, `artworks`, `me`, `orders`).
   - Acceptance: each domain has target + template assertions.
 
@@ -139,7 +139,7 @@
   - Acceptance: new critical vulns fail PR/main build.
 
 ## H. Documentation and release governance (P0-P1)
-- [x] H01 Update `docs/engineering/test-report.md` with 2026-03-05 results and risk notes.
+- [x] H01 Update `docs/engineering/test-report.md` with latest results and risk notes.
   - Acceptance: commands/results/failures/fix-status traceable.
 - [ ] H02 Sync `docs/engineering/overall-todo.md` with this file as single source.
   - Acceptance: no conflicting dual-track TODOs.
@@ -231,15 +231,15 @@
 
 ---
 
-## 5. Execution board (2026-03-05)
+## 5. Execution board (2026-03-06)
 
 | ID | Status | Owner | Planned | Completed | Blocker / Notes |
 | --- | --- | --- | --- | --- | --- |
 | A01 | done | Codex | 2026-03-05 | 2026-03-05 | full repo lint passed in verify |
 | A02 | done | Codex | 2026-03-05 | 2026-03-05 | full verify passed |
 | A03 | done | Codex | 2026-03-05 | 2026-03-05 | fallback validated (`3200` unavailable -> `3302`) |
-| A04 | in_progress | Codex | 2026-03-06 | - | admin config write probe currently hits 500 (`audit_logs.targetId` UUID mismatch with string config ids) |
-| H01 | done | Codex | 2026-03-05 | 2026-03-05 | test report backfilled with latest run |
+| A04 | done | Codex | 2026-03-06 | 2026-03-06 | `/admin/config/*` PUT now passes with UUID audit targets; smoke asserts audit-log increment |
+| H01 | done | Codex | 2026-03-05 | 2026-03-06 | test report refreshed with latest run |
 | N01 | done | Codex | 2026-03-05 | 2026-03-05 | preferred+range+random fallback implemented |
 | N02 | done | Codex | 2026-03-06 | 2026-03-05 | `api-real`/`ui-http`/`ui-render`/`ui-dom` now clean up spawned process trees |
 | N03 | done | Codex | 2026-03-06 | 2026-03-05 | dynamic fallback validated via forced collision (`4010` blocker) |
@@ -256,8 +256,8 @@
 | J06 | done | Codex | 2026-03-06 | 2026-03-05 | DOM full-mode batch-1 landed (36/36 pass, matrix 36/83) |
 | J07 | done | Codex | 2026-03-06 | 2026-03-05 | DOM full-mode expanded to full 83/83 with matrix sync |
 | K01 | done | Codex | 2026-03-06 | 2026-03-05 | vulnerability ledger + generator script completed |
-| B04 | done | Codex | 2026-03-06 | 2026-03-05 | `api-real-smoke` expanded to 63/63 (writes 36/36), write coverage 26.7% |
-| B02 | in_progress | Codex | 2026-03-06 | - | write batch reached 36 ops and added first failure/idempotency checks; admin/orders depth pending |
+| B04 | done | Codex | 2026-03-06 | 2026-03-06 | `api-real-smoke` expanded to 71/71 (writes 44/44), write coverage 32.6% |
+| B02 | in_progress | Codex | 2026-03-06 | - | write batch reached 44 ops and added admin config write + audit increment assertions; orders/admin depth still pending |
 
 ### Current execution batch (Batch-1)
 - Scope: A01 / A02 / A03 / N01 / N02 / N03 / N04 / H01 / D01 / D02 / D03 / D04 (completed).
@@ -283,9 +283,9 @@
 ### Current execution batch (Batch-3)
 - Scope: B04 close-out + B02 first write batch (in progress).
 - Deliverables:
-  1) `api-real-smoke` expanded from 17 to 63 checks (done),
-  2) write checks expanded from 2 to 36 (favorites/comments/addresses/conversations/consultations/auth) (done),
+  1) `api-real-smoke` expanded from 17 to 71 checks (done),
+  2) write checks expanded from 2 to 44 (favorites/comments/addresses/conversations/consultations/auth/admin-config) (done),
   3) first failure-path/idempotency assertions added (duplicate favorites, invalid comment/message, missing-address delete) (done),
   4) `verify` rerun full green with new API smoke baseline (done),
-  5) admin config write probe exposed server-side defect (`PUT /admin/config/*` returns 500 due audit-log UUID constraint mismatch) (new blocker),
-  6) next step: extend failure/idempotency depth into orders/admin write flows after blocker fix (pending).
+  5) admin config write-path defect fixed (`PUT /admin/config/*` now passes with audit-log increment assertions) (done),
+  6) next step: extend failure/idempotency depth into orders/admin write flows (pending).

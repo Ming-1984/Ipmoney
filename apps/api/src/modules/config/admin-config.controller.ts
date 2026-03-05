@@ -15,6 +15,17 @@ import {
   type TradeRulesConfig,
 } from './config.service';
 
+const SYSTEM_CONFIG_AUDIT_TARGET_IDS = {
+  tradeRules: '91da3cd0-6e2b-4cf2-a0da-2b248cd1d15e',
+  recommendation: '29e10f9c-d17f-4f51-b56c-0a0300af7cdb',
+  banner: 'fa7f5e92-cf58-49de-b744-f5af599e8465',
+  customerService: '712253f8-ae4e-4fd2-a2cf-43596e0bd0d4',
+  taxonomy: 'f9f67fd8-cf25-4da4-8517-72510ed6eb6f',
+  sensitiveWords: '0aca260f-4c11-42e6-ad9b-c7a7ca45f6a1',
+  hotSearch: '8dd52cb6-7fae-492d-8c8f-8a6ca6f74f42',
+  alerts: 'e92da947-d8e6-4648-a550-6f2fc0e933f3',
+} as const;
+
 @UseGuards(BearerAuthGuard)
 @Controller('/admin/config')
 export class AdminConfigController {
@@ -34,7 +45,7 @@ export class AdminConfigController {
       actorUserId: req.auth.userId,
       action: 'CONFIG_TRADE_RULES_UPDATE',
       targetType: 'SYSTEM_CONFIG',
-      targetId: 'trade_rules',
+      targetId: SYSTEM_CONFIG_AUDIT_TARGET_IDS.tradeRules,
       afterJson: next,
     });
     return next;
@@ -57,7 +68,7 @@ export class AdminConfigController {
       actorUserId: req.auth.userId,
       action: 'CONFIG_RECOMMENDATION_UPDATE',
       targetType: 'SYSTEM_CONFIG',
-      targetId: 'recommendation_config',
+      targetId: SYSTEM_CONFIG_AUDIT_TARGET_IDS.recommendation,
       afterJson: next,
     });
     return next;
@@ -77,7 +88,7 @@ export class AdminConfigController {
       actorUserId: req.auth.userId,
       action: 'CONFIG_BANNER_UPDATE',
       targetType: 'SYSTEM_CONFIG',
-      targetId: 'banner_config',
+      targetId: SYSTEM_CONFIG_AUDIT_TARGET_IDS.banner,
       afterJson: next,
     });
     return next;
@@ -100,7 +111,7 @@ export class AdminConfigController {
       actorUserId: req.auth.userId,
       action: 'CONFIG_CS_UPDATE',
       targetType: 'SYSTEM_CONFIG',
-      targetId: 'customer_service_config',
+      targetId: SYSTEM_CONFIG_AUDIT_TARGET_IDS.customerService,
       afterJson: next,
     });
     return next;
@@ -120,7 +131,7 @@ export class AdminConfigController {
       actorUserId: req.auth.userId,
       action: 'CONFIG_TAXONOMY_UPDATE',
       targetType: 'SYSTEM_CONFIG',
-      targetId: 'taxonomy_config',
+      targetId: SYSTEM_CONFIG_AUDIT_TARGET_IDS.taxonomy,
       afterJson: next,
     });
     return next;
@@ -143,7 +154,7 @@ export class AdminConfigController {
       actorUserId: req.auth.userId,
       action: 'CONFIG_SENSITIVE_UPDATE',
       targetType: 'SYSTEM_CONFIG',
-      targetId: 'sensitive_words_config',
+      targetId: SYSTEM_CONFIG_AUDIT_TARGET_IDS.sensitiveWords,
       afterJson: next,
     });
     return next;
@@ -163,7 +174,7 @@ export class AdminConfigController {
       actorUserId: req.auth.userId,
       action: 'CONFIG_HOT_SEARCH_UPDATE',
       targetType: 'SYSTEM_CONFIG',
-      targetId: 'hot_search_config',
+      targetId: SYSTEM_CONFIG_AUDIT_TARGET_IDS.hotSearch,
       afterJson: next,
     });
     return next;
@@ -183,7 +194,7 @@ export class AdminConfigController {
       actorUserId: req.auth.userId,
       action: 'CONFIG_ALERT_UPDATE',
       targetType: 'SYSTEM_CONFIG',
-      targetId: 'alert_config',
+      targetId: SYSTEM_CONFIG_AUDIT_TARGET_IDS.alerts,
       afterJson: next,
     });
     return next;
