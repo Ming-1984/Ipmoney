@@ -9,8 +9,8 @@
   - Script hardening: `api-real-smoke`, `ui-http-smoke`, `ui-render-smoke`, `ui-dom-smoke` now use dynamic port selection and process-tree cleanup (no kill-by-port behavior).
   - Build resilience: verify appends `NODE_OPTIONS=--max-old-space-size=4096` and retries transient `client:build:h5` crash exits once.
   - Quality gates: `openapi:lint`, `lint`, `typecheck`, `scan:banned-words` all pass.
-  - API smoke: pass (72/72) -> `.tmp/api-real-smoke-2026-03-06-summary.json`
-  - API smoke write/read split: writes 45/45, reads 27/27.
+  - API smoke: pass (81/81) -> `.tmp/api-real-smoke-2026-03-06-summary.json`
+  - API smoke write/read split: writes 54/54, reads 27/27.
   - Failure/idempotency checks now included: duplicate favorites, invalid comment/message payloads, and missing-resource delete paths.
   - DB preflight: pass (failed=0) -> `.tmp/db-preflight-2026-03-06-summary.json`
   - UI HTTP smoke: pass (28/28) -> `.tmp/ui-http-smoke-2026-03-06-summary.json`
@@ -58,8 +58,11 @@
   - Result: pass (404 expected)
   - Regression fixed: endpoint now maps missing-order path to `NOT_FOUND` instead of Prisma P2025 500.
 
+- Admin order/refund write negative-path probes (missing ids)
+  - Result: pass (10/10 expected 404), including manual payment, milestones, payout, invoice upsert/delete, refund approve/reject/complete.
+
 ### Risks still open
-- API write-coverage phase-1 target is reached and expanded (45/135 ~= 33.3%), but write checks are still concentrated in user-side flows; `/admin` write domain still has large uncovered area.
+- API write-coverage phase-1 target is reached and expanded (54/135 = 40.0%), but write checks are still concentrated in user-side flows; `/admin` write domain still has large uncovered area.
 - UI status smoke is still shallow (route-level HTTP checks only 26/83 pages, plus 2 mock endpoints).
 - DOM assertions now cover all 83/83 pages, but many routes still use generic structural assertions and need incremental business-semantic tightening.
 - Security baseline still high-risk (`pnpm audit --prod`: critical 2 / high 21), remediation not yet executed.
