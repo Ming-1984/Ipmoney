@@ -423,8 +423,11 @@ try {
     }
   )
 
+  $effectiveMode = $Mode
   if ($Mode -eq "full") {
-    # Full mode currently reuses core assertions.
+    # Full-page DOM assertions are pending; keep behavior explicit to avoid false confidence.
+    Write-Host "[ui-dom-smoke] full mode assertions are not implemented yet, fallback to core assertions."
+    $effectiveMode = "core-fallback"
     $pages = @($pages)
   }
 
@@ -606,7 +609,8 @@ try {
     total = $results.Count
     passed = @($results | Where-Object { $_.ok }).Count
     failed = @($results | Where-Object { -not $_.ok }).Count
-    mode = $Mode
+    requestedMode = $Mode
+    mode = $effectiveMode
   }
 
   $resultPath = Join-Path $logDir "ui-dom-smoke-$ReportDate.json"

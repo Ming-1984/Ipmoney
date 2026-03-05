@@ -40,6 +40,7 @@
 - Page/API/test matrix has been established for all 83 pages: `docs/engineering/page-api-test-matrix-2026-03-05.md`.
 - DOM assertion baseline is now available for core routes (11 pages): home/search/listing-detail/orders/publish/me + admin login/dashboard/orders/verifications/config.
 - Remaining blind spots: `ui-http-smoke` is still shallow (7/83 page routes + 2 mock endpoints), and DOM assertions are not yet expanded from core subset to all 83 pages.
+- `ui-dom-smoke -Mode full` now reports `mode=core-fallback` explicitly (to avoid false confidence) until full-page assertions are implemented.
 - E2E path automation is still pending for critical client/admin journeys.
 
 ### 1.6 Dependency/security baseline
