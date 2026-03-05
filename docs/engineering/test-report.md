@@ -9,8 +9,8 @@
   - Script hardening: `api-real-smoke`, `ui-http-smoke`, `ui-render-smoke`, `ui-dom-smoke` now use dynamic port selection and process-tree cleanup (no kill-by-port behavior).
   - Build resilience: verify appends `NODE_OPTIONS=--max-old-space-size=4096` and retries transient `client:build:h5` crash exits once.
   - Quality gates: `openapi:lint`, `lint`, `typecheck`, `scan:banned-words` all pass.
-  - API smoke: pass (55/55) -> `.tmp/api-real-smoke-2026-03-05-summary.json`
-  - API smoke write/read split: writes 36/36, reads 19/19.
+  - API smoke: pass (63/63) -> `.tmp/api-real-smoke-2026-03-05-summary.json`
+  - API smoke write/read split: writes 36/36, reads 27/27.
   - Failure/idempotency checks now included: duplicate favorites, invalid comment/message payloads, and missing-resource delete paths.
   - DB preflight: pass (failed=0) -> `.tmp/db-preflight-2026-03-05-summary.json`
   - UI HTTP smoke: pass (28/28) -> `.tmp/ui-http-smoke-2026-03-05-summary.json`
@@ -50,8 +50,13 @@
   - Ledger: `docs/engineering/vulnerability-ledger-2026-03-05.md`
   - Machine summary: `.tmp/vulnerability-ledger-2026-03-05.json`
 
+- Admin config write probe (`PUT /admin/config/*`, demo env token)
+  - Result: fail (500 on 8 routes)
+  - Root cause observed in API stderr: `audit_log.targetId` expects UUID while config controllers write string keys (`trade_rules`, `hot_search_config`, etc.).
+
 ### Risks still open
 - API write-coverage phase-1 target is reached (36/135 ~= 26.7%), but write checks are still concentrated in user-side flows; `/admin` write domain coverage remains 0.
+- Admin config write-path defect found during probe: `PUT /admin/config/*` currently returns 500 because audit-log persistence expects UUID `targetId` but config targets use string keys (e.g., `trade_rules`).
 - UI status smoke is still shallow (route-level HTTP checks only 26/83 pages, plus 2 mock endpoints).
 - DOM assertions now cover all 83/83 pages, but many routes still use generic structural assertions and need incremental business-semantic tightening.
 - Security baseline still high-risk (`pnpm audit --prod`: critical 2 / high 21), remediation not yet executed.
