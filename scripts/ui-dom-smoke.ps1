@@ -281,6 +281,13 @@ function Invoke-DumpDom(
 
 $sample = @{
   listingId = "7a490e63-8173-41e7-b4f0-0d0bb5ce7d20"
+  patentId = "965f9831-2c44-48e8-8b7a-cd7ab40ff7ec"
+  artworkId = "7f8e9f72-98f4-4f4a-8d11-44f38fcf3d51"
+  demandId = "8f278f0a-6ccf-45ce-a664-f5eaf39a9be4"
+  achievementId = "2a9ee2ee-9ab8-4335-b568-e9d9ef57f2f7"
+  orgUserId = "c5b6438a-f3a7-4590-a484-0f2a2991c613"
+  conversationId = "127a267b-d5f8-4b39-acf8-855dff7258b0"
+  orderId = "e9032d03-9b23-40ba-84a3-ac681f21c41b"
 }
 
 $clientApprovedStorage = @(
@@ -343,7 +350,7 @@ try {
   $clientBase = "http://127.0.0.1:$resolvedClientPort"
   $adminBase = "http://127.0.0.1:$resolvedAdminPort"
 
-  $pages = @(
+  $corePages = @(
     @{
       name = "client-home"; path = "#/pages/home/index"; base = $clientBase
       width = $ClientWidth; height = $ClientHeight; waitMs = $ClientWaitMs
@@ -424,11 +431,189 @@ try {
   )
 
   $effectiveMode = $Mode
+  $extendedPages = @(
+    @{
+      name = "client-tech-managers"; path = "#/pages/tech-managers/index"; base = $clientBase
+      width = $ClientWidth; height = $ClientHeight; waitMs = $ClientWaitMs
+      expectedUrlContains = "#/pages/tech-managers/index"; minElements = 60
+      selectorsAll = @(); selectorsAny = @()
+      textAny = @(); storage = @(); demoAuth = $false
+    },
+    @{
+      name = "client-patent-detail"; path = "#/pages/patent/detail/index?patentId=$($sample.patentId)"; base = $clientBase
+      width = $ClientWidth; height = $ClientHeight; waitMs = $ClientWaitMs
+      expectedUrlContains = "#/pages/patent/detail/index"; minElements = 60
+      selectorsAll = @(); selectorsAny = @()
+      textAny = @(); storage = @(); demoAuth = $false
+    },
+    @{
+      name = "client-artwork-detail"; path = "#/pages/artwork/detail/index?artworkId=$($sample.artworkId)"; base = $clientBase
+      width = $ClientWidth; height = $ClientHeight; waitMs = $ClientWaitMs
+      expectedUrlContains = "#/pages/artwork/detail/index"; minElements = 60
+      selectorsAll = @(); selectorsAny = @()
+      textAny = @(); storage = @(); demoAuth = $false
+    },
+    @{
+      name = "client-demand-detail"; path = "#/pages/demand/detail/index?demandId=$($sample.demandId)"; base = $clientBase
+      width = $ClientWidth; height = $ClientHeight; waitMs = $ClientWaitMs
+      expectedUrlContains = "#/pages/demand/detail/index"; minElements = 60
+      selectorsAll = @(); selectorsAny = @()
+      textAny = @(); storage = @(); demoAuth = $false
+    },
+    @{
+      name = "client-achievement-detail"; path = "#/pages/achievement/detail/index?achievementId=$($sample.achievementId)"; base = $clientBase
+      width = $ClientWidth; height = $ClientHeight; waitMs = $ClientWaitMs
+      expectedUrlContains = "#/pages/achievement/detail/index"; minElements = 60
+      selectorsAll = @(); selectorsAny = @()
+      textAny = @(); storage = @(); demoAuth = $false
+    },
+    @{
+      name = "client-organizations"; path = "#/pages/organizations/index"; base = $clientBase
+      width = $ClientWidth; height = $ClientHeight; waitMs = $ClientWaitMs
+      expectedUrlContains = "#/pages/organizations/index"; minElements = 60
+      selectorsAll = @(); selectorsAny = @()
+      textAny = @(); storage = @(); demoAuth = $false
+    },
+    @{
+      name = "client-organization-detail"; path = "#/pages/organizations/detail/index?orgUserId=$($sample.orgUserId)"; base = $clientBase
+      width = $ClientWidth; height = $ClientHeight; waitMs = $ClientWaitMs
+      expectedUrlContains = "#/pages/organizations/detail/index"; minElements = 60
+      selectorsAll = @(); selectorsAny = @()
+      textAny = @(); storage = @(); demoAuth = $false
+    },
+    @{
+      name = "client-patent-map"; path = "#/pages/patent-map/index"; base = $clientBase
+      width = $ClientWidth; height = $ClientHeight; waitMs = $ClientWaitMs
+      expectedUrlContains = "#/pages/patent-map/index"; minElements = 60
+      selectorsAll = @(); selectorsAny = @()
+      textAny = @(); storage = @(); demoAuth = $false
+    },
+    @{
+      name = "client-inventors"; path = "#/pages/inventors/index"; base = $clientBase
+      width = $ClientWidth; height = $ClientHeight; waitMs = $ClientWaitMs
+      expectedUrlContains = "#/pages/inventors/index"; minElements = 60
+      selectorsAll = @(); selectorsAny = @()
+      textAny = @(); storage = @(); demoAuth = $false
+    },
+    @{
+      name = "client-messages"; path = "#/pages/messages/index"; base = $clientBase
+      width = $ClientWidth; height = $ClientHeight; waitMs = $ClientWaitMs
+      expectedUrlContains = "#/pages/messages/index"; minElements = 60
+      selectorsAll = @(); selectorsAny = @()
+      textAny = @(); storage = $clientApprovedStorage; demoAuth = $true
+    },
+    @{
+      name = "client-chat"; path = "#/pages/messages/chat/index?conversationId=$($sample.conversationId)"; base = $clientBase
+      width = $ClientWidth; height = $ClientHeight; waitMs = $ClientWaitMs
+      expectedUrlContains = "#/pages/messages/chat/index"; minElements = 60
+      selectorsAll = @(); selectorsAny = @()
+      textAny = @(); storage = $clientApprovedStorage; demoAuth = $true
+    },
+    @{
+      name = "client-notifications"; path = "#/pages/notifications/index"; base = $clientBase
+      width = $ClientWidth; height = $ClientHeight; waitMs = $ClientWaitMs
+      expectedUrlContains = "#/pages/notifications/index"; minElements = 60
+      selectorsAll = @(); selectorsAny = @()
+      textAny = @(); storage = $clientApprovedStorage; demoAuth = $true
+    },
+    @{
+      name = "client-announcements"; path = "#/pages/announcements/index"; base = $clientBase
+      width = $ClientWidth; height = $ClientHeight; waitMs = $ClientWaitMs
+      expectedUrlContains = "#/pages/announcements/index"; minElements = 60
+      selectorsAll = @(); selectorsAny = @()
+      textAny = @(); storage = @(); demoAuth = $false
+    },
+    @{
+      name = "client-order-detail"; path = "#/pages/orders/detail/index?orderId=$($sample.orderId)"; base = $clientBase
+      width = $ClientWidth; height = $ClientHeight; waitMs = $ClientWaitMs
+      expectedUrlContains = "#/pages/orders/detail/index"; minElements = 60
+      selectorsAll = @(); selectorsAny = @()
+      textAny = @(); storage = $clientApprovedStorage; demoAuth = $true
+    },
+    @{
+      name = "client-about"; path = "#/pages/about/index"; base = $clientBase
+      width = $ClientWidth; height = $ClientHeight; waitMs = $ClientWaitMs
+      expectedUrlContains = "#/pages/about/index"; minElements = 50
+      selectorsAll = @(); selectorsAny = @()
+      textAny = @(); storage = @(); demoAuth = $false
+    },
+    @{
+      name = "client-support"; path = "#/pages/support/index"; base = $clientBase
+      width = $ClientWidth; height = $ClientHeight; waitMs = $ClientWaitMs
+      expectedUrlContains = "#/pages/support/index"; minElements = 50
+      selectorsAll = @(); selectorsAny = @()
+      textAny = @(); storage = @(); demoAuth = $false
+    },
+    @{
+      name = "client-legal-privacy"; path = "#/pages/legal/privacy/index"; base = $clientBase
+      width = $ClientWidth; height = $ClientHeight; waitMs = $ClientWaitMs
+      expectedUrlContains = "#/pages/legal/privacy/index"; minElements = 50
+      selectorsAll = @(); selectorsAny = @()
+      textAny = @(); storage = @(); demoAuth = $false
+    },
+    @{
+      name = "client-legal-terms"; path = "#/pages/legal/terms/index"; base = $clientBase
+      width = $ClientWidth; height = $ClientHeight; waitMs = $ClientWaitMs
+      expectedUrlContains = "#/pages/legal/terms/index"; minElements = 50
+      selectorsAll = @(); selectorsAny = @()
+      textAny = @(); storage = @(); demoAuth = $false
+    },
+    @{
+      name = "client-profile-edit"; path = "#/pages/profile/edit/index"; base = $clientBase
+      width = $ClientWidth; height = $ClientHeight; waitMs = $ClientWaitMs
+      expectedUrlContains = "#/pages/profile/edit/index"; minElements = 60
+      selectorsAll = @(); selectorsAny = @()
+      textAny = @(); storage = $clientApprovedStorage; demoAuth = $true
+    },
+    @{
+      name = "admin-listings"; path = "/listings"; base = $adminBase
+      width = $AdminWidth; height = $AdminHeight; waitMs = $AdminWaitMs
+      expectedUrlContains = "/listings"; minElements = 100
+      selectorsAll = @(".ipm-sider", ".ipm-content-inner"); selectorsAny = @(".ant-table", ".ant-card")
+      textAny = @(); storage = $adminAuthedStorage; demoAuth = $false
+    },
+    @{
+      name = "admin-refunds"; path = "/refunds"; base = $adminBase
+      width = $AdminWidth; height = $AdminHeight; waitMs = $AdminWaitMs
+      expectedUrlContains = "/refunds"; minElements = 100
+      selectorsAll = @(".ipm-sider", ".ipm-content-inner"); selectorsAny = @(".ant-table", ".ant-card")
+      textAny = @(); storage = $adminAuthedStorage; demoAuth = $false
+    },
+    @{
+      name = "admin-invoices"; path = "/invoices"; base = $adminBase
+      width = $AdminWidth; height = $AdminHeight; waitMs = $AdminWaitMs
+      expectedUrlContains = "/invoices"; minElements = 100
+      selectorsAll = @(".ipm-sider", ".ipm-content-inner"); selectorsAny = @(".ant-table", ".ant-card")
+      textAny = @(); storage = $adminAuthedStorage; demoAuth = $false
+    },
+    @{
+      name = "admin-patent-map"; path = "/patent-map"; base = $adminBase
+      width = $AdminWidth; height = $AdminHeight; waitMs = $AdminWaitMs
+      expectedUrlContains = "/patent-map"; minElements = 100
+      selectorsAll = @(".ipm-sider", ".ipm-content-inner"); selectorsAny = @(".ant-table", ".ant-card")
+      textAny = @(); storage = $adminAuthedStorage; demoAuth = $false
+    },
+    @{
+      name = "admin-rbac"; path = "/rbac"; base = $adminBase
+      width = $AdminWidth; height = $AdminHeight; waitMs = $AdminWaitMs
+      expectedUrlContains = "/rbac"; minElements = 80
+      selectorsAll = @(".ipm-sider", ".ipm-content-inner"); selectorsAny = @(".ant-tabs", ".ant-card")
+      textAny = @(); storage = $adminAuthedStorage; demoAuth = $false
+    },
+    @{
+      name = "admin-audit-logs"; path = "/audit-logs"; base = $adminBase
+      width = $AdminWidth; height = $AdminHeight; waitMs = $AdminWaitMs
+      expectedUrlContains = "/audit-logs"; minElements = 100
+      selectorsAll = @(".ipm-sider", ".ipm-content-inner"); selectorsAny = @(".ant-table", ".ant-card")
+      textAny = @(); storage = $adminAuthedStorage; demoAuth = $false
+    }
+  )
+
+  $pages = @($corePages)
   if ($Mode -eq "full") {
-    # Full-page DOM assertions are pending; keep behavior explicit to avoid false confidence.
-    Write-Host "[ui-dom-smoke] full mode assertions are not implemented yet, fallback to core assertions."
-    $effectiveMode = "core-fallback"
-    $pages = @($pages)
+    $effectiveMode = "full-batch1"
+    $pages = @($corePages + $extendedPages)
+    Write-Host ("[ui-dom-smoke] full mode batch-1 assertions: core={0}, extended={1}, total={2}" -f $corePages.Count, $extendedPages.Count, $pages.Count)
   }
 
   if ($PageFilter -and $PageFilter.Count -gt 0) {

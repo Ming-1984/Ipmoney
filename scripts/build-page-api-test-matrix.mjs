@@ -123,6 +123,7 @@ const renderSummary = readJsonMaybeBom(renderSummaryPath);
 const httpResults = readJsonMaybeBom(httpPath);
 const domResults = hasDomInputs ? readJsonMaybeBom(domPath) : [];
 const domSummary = hasDomInputs ? readJsonMaybeBom(domSummaryPath) : { passed: 0, total: 0 };
+const domMode = hasDomInputs && domSummary.mode ? String(domSummary.mode) : '';
 
 function toArray(value) {
   return Array.isArray(value) ? value : value ? [value] : [];
@@ -208,7 +209,13 @@ lines.push(
   '- Pages marked `HTTP Smoke=N` still have render evidence from screenshot artifacts under `docs/demo/rendered/ui-smoke-2026-03-05/`.',
 );
 if (hasDomInputs) {
-  lines.push('- DOM smoke currently tracks a core subset; next step is extending assertions from core to full 83-page scope.');
+  if (domMode.startsWith('full')) {
+    lines.push(
+      `- DOM smoke is running in \`${domMode}\` and currently covers ${domCovered}/${rows.length} pages; continue expanding toward full 83-page assertions.`,
+    );
+  } else {
+    lines.push('- DOM smoke currently tracks a core subset; next step is extending assertions from core to full 83-page scope.');
+  }
 } else {
   lines.push('- Priority next step: add at least 1-2 stable DOM assertions per high-risk page group (orders, publish, audit, config).');
 }

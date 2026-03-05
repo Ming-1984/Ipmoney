@@ -9,7 +9,7 @@
 ### 1.1 Quality gates status
 - `typecheck`: pass (api/client/admin-web).
 - `build`: pass (api/admin-web/client h5/weapp); WeApp severe regression has been fixed in this batch, and bundle gate is now enforced.
-- `smoke`: pass (API 17/17, UI HTTP 9/9, UI Render full 83/83, UI Render core 3/3, UI DOM core 11/11).
+- `smoke`: pass (API 17/17, UI HTTP 9/9, UI Render full 83/83, UI Render core 3/3, UI DOM core 11/11, UI DOM full-batch1 36/36).
 - `verify`: pass on 2026-03-05 (now includes `ui-dom-smoke(core)` in pipeline); port/process hardening has been applied to core smoke scripts.
 - `weapp-route-smoke`: local fail due DevTools HTTP port availability (environment issue).
 
@@ -38,9 +38,8 @@
 - Client configured pages: 58 (`apps/client/src/app.config.ts`); render smoke full covers 58 (100%), gap 0.
 - Admin routes: 25 (including `/login` and `/`); render smoke full covers 25 (100%), gap 0.
 - Page/API/test matrix has been established for all 83 pages: `docs/engineering/page-api-test-matrix-2026-03-05.md`.
-- DOM assertion baseline is now available for core routes (11 pages): home/search/listing-detail/orders/publish/me + admin login/dashboard/orders/verifications/config.
-- Remaining blind spots: `ui-http-smoke` is still shallow (7/83 page routes + 2 mock endpoints), and DOM assertions are not yet expanded from core subset to all 83 pages.
-- `ui-dom-smoke -Mode full` now reports `mode=core-fallback` explicitly (to avoid false confidence) until full-page assertions are implemented.
+- DOM assertions now cover 36 pages (`ui-dom-smoke` mode `full-batch1`), including all original core routes plus batch-1 expansion.
+- Remaining blind spots: `ui-http-smoke` is still shallow (7/83 page routes + 2 mock endpoints), and DOM assertions still miss 47/83 pages.
 - E2E path automation is still pending for critical client/admin journeys.
 
 ### 1.6 Dependency/security baseline
@@ -159,6 +158,10 @@
   - Acceptance: each page has 1-2 stable business DOM assertions. (done for core 11 pages via `scripts/ui-dom-smoke.ps1` + `scripts/dump-dom-cdp.mjs`)
 - [x] J05 Execute gap closure in batches (>=8 pages per batch).
   - Acceptance: each batch updates coverage stats and remaining gap list. (done in 2026-03-05 batch: full-mode 83/83)
+- [x] J06 Expand DOM assertions to first full-mode batch.
+  - Acceptance: DOM assertions cover >=30 pages with stable pass. (done: `ui-dom-smoke -Mode full` -> 36/36, mode `full-batch1`)
+- [ ] J07 Continue DOM expansion from 36/83 to full 83/83.
+  - Acceptance: each new batch adds >=8 pages and updates matrix/risk notes.
 
 ## K. Dependency security and version governance (P0-P2)
 - [x] K01 Build vulnerability ledger (severity + business impact + upgradeability).
@@ -242,6 +245,8 @@
 | J03 | done | Codex | 2026-03-06 | 2026-03-05 | client render coverage reached 58/58 (100%) |
 | J04 | done | Codex | 2026-03-06 | 2026-03-05 | core DOM assertions landed and green (11/11) |
 | J05 | done | Codex | 2026-03-06 | 2026-03-05 | coverage gap closure batch executed (83/83 pass) |
+| J06 | done | Codex | 2026-03-06 | 2026-03-05 | DOM full-mode batch-1 landed (36/36 pass, matrix 36/83) |
+| J07 | in progress | Codex | 2026-03-06 | - | continue extending DOM assertions to remaining 47 pages |
 | K01 | done | Codex | 2026-03-06 | 2026-03-05 | vulnerability ledger + generator script completed |
 
 ### Current execution batch (Batch-1)
@@ -255,10 +260,11 @@
   6) WeApp bundle regression fixed and gated (done).
 
 ### Current execution batch (Batch-2)
-- Scope: J01 / J02 / J03 / J04 / J05 / K01 (completed), K02 pending.
+- Scope: J01 / J02 / J03 / J04 / J05 / J06 / K01 (completed), J07 / K02 pending.
 - Deliverables:
   1) full page coverage run (`ui-render-smoke -Mode full`) with 83/83 pass (done),
   2) page-api-test matrix for all pages (done),
   3) vulnerability ledger generated from latest audit report (done),
   4) core DOM assertion smoke completed and integrated into `verify` (done),
-  5) remaining focus narrowed to critical/high dependency remediation + DOM expansion to full page set (pending).
+  5) DOM full-mode batch-1 completed (`ui-dom-smoke -Mode full`: 36/36; matrix DOM 36/83) (done),
+  6) remaining focus narrowed to critical/high dependency remediation + DOM expansion from 36/83 to full page set (pending).
