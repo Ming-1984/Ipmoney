@@ -9,15 +9,15 @@
 ### 1.1 Quality gates status
 - `typecheck`: pass (api/client/admin-web).
 - `build`: pass (api/admin-web/client h5/weapp); WeApp severe regression has been fixed in this batch, and bundle gate is now enforced.
-- `smoke`: pass (API 17/17, UI HTTP 28/28, UI Render full 83/83, UI Render core 3/3, UI DOM core 11/11, UI DOM full-83 83/83).
+- `smoke`: pass (API 49/49, UI HTTP 28/28, UI Render full 83/83, UI Render core 3/3, UI DOM core 11/11, UI DOM full-83 83/83).
 - `verify`: pass on 2026-03-05 (now includes `ui-dom-smoke(core)` in pipeline); port/process hardening has been applied to core smoke scripts.
 - `weapp-route-smoke`: local fail due DevTools HTTP port availability (environment issue).
 
 ### 1.2 Coverage and test capability
 - OpenAPI operations: 243 (GET 108 / POST 93 / PUT 12 / PATCH 21 / DELETE 9).
-- API smoke covers 17 operations (~7.0%).
-- Write operations total 135; smoke covers only 2 (~1.48%).
-- Highest uncovered write domains: `/admin` 77 writes (0 covered), `/listings` 9 (0), `/demands` 8 (0), `/achievements` 8 (0), `/artworks` 8 (0).
+- API smoke covers 49 operations (~20.2%).
+- Write operations total 135; smoke now covers 30 (~22.2%).
+- Highest uncovered write concentration remains in `/admin` (77 write operations, still 0 covered in smoke).
 - No `.test` / `.spec` business tests under `apps` and `packages`.
 
 ### 1.3 Code rigor
@@ -82,10 +82,11 @@
   - Acceptance: executable `test` scripts in `apps/api`; CI can run minimal set.
 - [ ] B02 Build write-first API test inventory (orders/refunds/invoices/comments/favorites/addresses/audit flow).
   - Acceptance: first batch covers >=30 key write APIs with success/failure/idempotency assertions.
+  - Progress: smoke batch now covers 30 write operations (favorites/comments/addresses/conversations/consultations + auth); failure-path assertions still pending.
 - [ ] B03 Add frontend E2E for key H5/admin paths (excluding real login/payment).
   - Acceptance: homepage/search/detail/publish/order/audit flows are script-regressible.
-- [ ] B04 Upgrade `api-real-smoke` from read-heavy to read-write balanced.
-  - Acceptance: write coverage raised from 1.48% to >=20% (phase 1).
+- [x] B04 Upgrade `api-real-smoke` from read-heavy to read-write balanced.
+  - Acceptance: write coverage raised from 1.48% to >=20% (phase 1). (done: 30/135 = 22.2%)
 - [ ] B05 Define per-domain write coverage targets (`admin`, `listings`, `demands`, `achievements`, `artworks`, `me`, `orders`).
   - Acceptance: each domain has target + template assertions.
 
@@ -252,6 +253,8 @@
 | J06 | done | Codex | 2026-03-06 | 2026-03-05 | DOM full-mode batch-1 landed (36/36 pass, matrix 36/83) |
 | J07 | done | Codex | 2026-03-06 | 2026-03-05 | DOM full-mode expanded to full 83/83 with matrix sync |
 | K01 | done | Codex | 2026-03-06 | 2026-03-05 | vulnerability ledger + generator script completed |
+| B04 | done | Codex | 2026-03-06 | 2026-03-05 | `api-real-smoke` expanded to 49/49 (writes 30/30), write coverage 22.2% |
+| B02 | in_progress | Codex | 2026-03-06 | - | first write batch reached 30 ops; failure-path/idempotency assertion depth pending |
 
 ### Current execution batch (Batch-1)
 - Scope: A01 / A02 / A03 / N01 / N02 / N03 / N04 / H01 / D01 / D02 / D03 / D04 (completed).
@@ -273,3 +276,11 @@
   5) DOM full-mode batch-1 completed (`ui-dom-smoke -Mode full`: 36/36; matrix DOM 36/83) (done),
   6) DOM full-mode expanded to all pages (`ui-dom-smoke -Mode full`: 83/83; matrix DOM 83/83) (done),
   7) remaining focus narrowed to critical/high dependency remediation + semantic-strengthening of DOM assertions (pending).
+
+### Current execution batch (Batch-3)
+- Scope: B04 close-out + B02 first write batch (in progress).
+- Deliverables:
+  1) `api-real-smoke` expanded from 17 to 49 checks (done),
+  2) write checks expanded from 2 to 30 (favorites/comments/addresses/conversations/consultations/auth) (done),
+  3) `verify` rerun full green with new API smoke baseline (done),
+  4) next step: add failure-path/idempotency assertions for orders/admin write flows (pending).
