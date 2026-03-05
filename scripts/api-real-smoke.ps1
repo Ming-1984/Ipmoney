@@ -346,6 +346,190 @@ function Get-ResultStringField {
   return [string]$match.Groups[1].Value
 }
 
+function Add-ResultAssertionFailure {
+  param(
+    [pscustomobject]$Result,
+    [string]$Assertion,
+    [string]$Message
+  )
+
+  if (-not $Result) {
+    throw "Cannot mark assertion failure on empty result"
+  }
+  $Result.ok = $false
+  if (-not [string]::IsNullOrWhiteSpace($Assertion)) {
+    $Result.expected = "$($Result.expected)+$Assertion"
+  }
+  if ([string]::IsNullOrWhiteSpace($Result.body)) {
+    $Result.body = "[assert] $Message"
+  } else {
+    $Result.body = "$($Result.body)`n[assert] $Message"
+  }
+}
+
+function Get-ResultJsonObject {
+  param(
+    [pscustomobject]$Result
+  )
+
+  if (-not $Result -or [string]::IsNullOrWhiteSpace($Result.body)) {
+    Add-ResultAssertionFailure -Result $Result -Assertion "json-body-present" -Message "Result body is empty"
+    return $null
+  }
+
+  try {
+    return $Result.body | ConvertFrom-Json
+  } catch {
+    Add-ResultAssertionFailure -Result $Result -Assertion "json-parse" -Message "Result body is not valid JSON"
+    return $null
+  }
+}
+
+function Get-ResultJsonFieldLookup {
+  param(
+    [object]$Json,
+    [string]$FieldPath
+  )
+
+  $current = $Json
+  foreach ($segment in $FieldPath.Split('.')) {
+    if ($null -eq $current) {
+      return [pscustomobject]@{ found = $false; value = $null }
+    }
+
+    if ($current -is [System.Collections.IDictionary]) {
+      if ($current.Contains($segment)) {
+        $current = $current[$segment]
+        continue
+      }
+      return [pscustomobject]@{ found = $false; value = $null }
+    }
+
+    if ($current -is [System.Array]) {
+      if ($segment -match '^\d+$') {
+        $index = [int]$segment
+        if ($index -ge 0 -and $index -lt $current.Length) {
+          $current = $current[$index]
+          continue
+        }
+      }
+      return [pscustomobject]@{ found = $false; value = $null }
+    }
+
+    $prop = $current.PSObject.Properties[$segment]
+    if (-not $prop) {
+      return [pscustomobject]@{ found = $false; value = $null }
+    }
+    $current = $prop.Value
+  }
+
+  return [pscustomobject]@{ found = $true; value = $current }
+}
+
+function Assert-ResultJsonFieldIn {
+  param(
+    [pscustomobject]$Result,
+    [string]$Field,
+    [object[]]$ExpectedValues,
+    [string]$Assertion
+  )
+
+  $json = Get-ResultJsonObject -Result $Result
+  if (-not $json) { return }
+  $lookup = Get-ResultJsonFieldLookup -Json $json -FieldPath $Field
+  if (-not $lookup.found) {
+    Add-ResultAssertionFailure -Result $Result -Assertion $Assertion -Message "Missing field '$Field'"
+    return
+  }
+  $actual = [string]$lookup.value
+  $expectedNormalized = @($ExpectedValues | ForEach-Object { [string]$_ })
+  if (-not ($expectedNormalized -contains $actual)) {
+    Add-ResultAssertionFailure -Result $Result -Assertion $Assertion -Message "Field '$Field' expected one of [$($expectedNormalized -join ', ')] but got '$actual'"
+  }
+}
+
+function Assert-ResultJsonFieldEquals {
+  param(
+    [pscustomobject]$Result,
+    [string]$Field,
+    [object]$ExpectedValue,
+    [string]$Assertion
+  )
+
+  Assert-ResultJsonFieldIn -Result $Result -Field $Field -ExpectedValues @($ExpectedValue) -Assertion $Assertion
+}
+
+function Assert-ResultJsonArrayContains {
+  param(
+    [pscustomobject]$Result,
+    [string]$Field,
+    [object]$ExpectedValue,
+    [string]$Assertion
+  )
+
+  $json = Get-ResultJsonObject -Result $Result
+  if (-not $json) { return }
+  $lookup = Get-ResultJsonFieldLookup -Json $json -FieldPath $Field
+  if (-not $lookup.found) {
+    Add-ResultAssertionFailure -Result $Result -Assertion $Assertion -Message "Missing array field '$Field'"
+    return
+  }
+  if ($lookup.value -is [string] -or -not ($lookup.value -is [System.Collections.IEnumerable])) {
+    Add-ResultAssertionFailure -Result $Result -Assertion $Assertion -Message "Field '$Field' is not an array"
+    return
+  }
+  $items = @($lookup.value | ForEach-Object { [string]$_ })
+  if (-not ($items -contains [string]$ExpectedValue)) {
+    Add-ResultAssertionFailure -Result $Result -Assertion $Assertion -Message "Array '$Field' does not contain '$ExpectedValue'"
+  }
+}
+
+function Assert-ResultJsonArrayItemFieldEquals {
+  param(
+    [pscustomobject]$Result,
+    [string]$ArrayField,
+    [string]$MatchField,
+    [object]$MatchValue,
+    [string]$TargetField,
+    [object]$ExpectedValue,
+    [string]$Assertion
+  )
+
+  $json = Get-ResultJsonObject -Result $Result
+  if (-not $json) { return }
+  $arrayLookup = Get-ResultJsonFieldLookup -Json $json -FieldPath $ArrayField
+  if (-not $arrayLookup.found) {
+    Add-ResultAssertionFailure -Result $Result -Assertion $Assertion -Message "Missing array field '$ArrayField'"
+    return
+  }
+  if ($arrayLookup.value -is [string] -or -not ($arrayLookup.value -is [System.Collections.IEnumerable])) {
+    Add-ResultAssertionFailure -Result $Result -Assertion $Assertion -Message "Field '$ArrayField' is not an array"
+    return
+  }
+
+  $matchedItem = $null
+  foreach ($item in @($arrayLookup.value)) {
+    $matchLookup = Get-ResultJsonFieldLookup -Json $item -FieldPath $MatchField
+    if ($matchLookup.found -and [string]$matchLookup.value -eq [string]$MatchValue) {
+      $matchedItem = $item
+      break
+    }
+  }
+  if (-not $matchedItem) {
+    Add-ResultAssertionFailure -Result $Result -Assertion $Assertion -Message "Array '$ArrayField' has no item where '$MatchField' == '$MatchValue'"
+    return
+  }
+
+  $targetLookup = Get-ResultJsonFieldLookup -Json $matchedItem -FieldPath $TargetField
+  if (-not $targetLookup.found) {
+    Add-ResultAssertionFailure -Result $Result -Assertion $Assertion -Message "Matched item missing field '$TargetField'"
+    return
+  }
+  if ([string]$targetLookup.value -ne [string]$ExpectedValue) {
+    Add-ResultAssertionFailure -Result $Result -Assertion $Assertion -Message "Matched item field '$TargetField' expected '$ExpectedValue' but got '$($targetLookup.value)'"
+  }
+}
+
 function New-RefundReadyOrder {
   param(
     [System.Collections.ArrayList]$Results,
@@ -550,17 +734,38 @@ try {
   [void](Add-ApiCaseResult -Results $results -Name "admin-refund-complete-missing" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/admin/refund-requests/$missingRefundRequestId/complete" -Body @{} -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-refund-complete-missing") -Expected @(404))
 
   $orderCreate = Add-ApiCaseResult -Results $results -Name "order-create" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/orders" -Body @{ listingId = $listingId } -Headers (New-WriteHeaders -AuthorizationToken $userToken -Prefix $idempotencyPrefix -Label "order-create") -Expected @(200, 201)
+  Assert-ResultJsonFieldEquals -Result $orderCreate -Field "status" -ExpectedValue "DEPOSIT_PENDING" -Assertion "order-status-created"
   $orderId = Get-ResultStringField -Result $orderCreate -Field "id"
   if ([string]::IsNullOrWhiteSpace($orderId)) { throw "order-create missing id" }
-  [void](Add-ApiCaseResult -Results $results -Name "order-payment-intent-deposit" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/orders/$orderId/payment-intents" -Body @{ payType = "DEPOSIT" } -Headers (New-WriteHeaders -AuthorizationToken $userToken -Prefix $idempotencyPrefix -Label "order-payment-intent-deposit") -Expected @(200, 201))
-  [void](Add-ApiCaseResult -Results $results -Name "admin-order-manual-payment-deposit" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/admin/orders/$orderId/payments/manual" -Body @{ payType = "DEPOSIT" } -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-order-manual-payment-deposit") -Expected @(200, 201))
+  $orderPaymentIntentDeposit = Add-ApiCaseResult -Results $results -Name "order-payment-intent-deposit" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/orders/$orderId/payment-intents" -Body @{ payType = "DEPOSIT" } -Headers (New-WriteHeaders -AuthorizationToken $userToken -Prefix $idempotencyPrefix -Label "order-payment-intent-deposit") -Expected @(200, 201)
+  Assert-ResultJsonFieldEquals -Result $orderPaymentIntentDeposit -Field "payType" -ExpectedValue "DEPOSIT" -Assertion "payment-intent-deposit-pay-type"
+  $adminOrderManualPaymentDeposit = Add-ApiCaseResult -Results $results -Name "admin-order-manual-payment-deposit" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/admin/orders/$orderId/payments/manual" -Body @{ payType = "DEPOSIT" } -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-order-manual-payment-deposit") -Expected @(200, 201)
+  Assert-ResultJsonFieldEquals -Result $adminOrderManualPaymentDeposit -Field "payType" -ExpectedValue "DEPOSIT" -Assertion "manual-payment-deposit-pay-type"
+  Assert-ResultJsonFieldEquals -Result $adminOrderManualPaymentDeposit -Field "status" -ExpectedValue "PAID" -Assertion "manual-payment-deposit-status"
   [void](Add-ApiCaseResult -Results $results -Name "admin-order-manual-payment-deposit-duplicate" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/admin/orders/$orderId/payments/manual" -Body @{ payType = "DEPOSIT" } -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-order-manual-payment-deposit-duplicate") -Expected @(409))
-  [void](Add-ApiCaseResult -Results $results -Name "admin-order-contract-signed" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/admin/orders/$orderId/milestones/contract-signed" -Body @{ dealAmountFen = 2000000 } -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-order-contract-signed") -Expected @(200, 201))
-  [void](Add-ApiCaseResult -Results $results -Name "order-payment-intent-final" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/orders/$orderId/payment-intents" -Body @{ payType = "FINAL" } -Headers (New-WriteHeaders -AuthorizationToken $userToken -Prefix $idempotencyPrefix -Label "order-payment-intent-final") -Expected @(200, 201))
-  [void](Add-ApiCaseResult -Results $results -Name "admin-order-manual-payment-final" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/admin/orders/$orderId/payments/manual" -Body @{ payType = "FINAL" } -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-order-manual-payment-final") -Expected @(200, 201))
+  $orderDetailAfterDeposit = Add-ApiCaseResult -Results $results -Name "order-detail-after-deposit-paid" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/orders/$orderId" -Body $null -Headers @{ Authorization = $userToken } -Expected @(200)
+  Assert-ResultJsonFieldEquals -Result $orderDetailAfterDeposit -Field "status" -ExpectedValue "DEPOSIT_PAID" -Assertion "order-status-after-deposit"
+  $adminOrderContractSigned = Add-ApiCaseResult -Results $results -Name "admin-order-contract-signed" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/admin/orders/$orderId/milestones/contract-signed" -Body @{ dealAmountFen = 2000000 } -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-order-contract-signed") -Expected @(200, 201)
+  Assert-ResultJsonFieldEquals -Result $adminOrderContractSigned -Field "status" -ExpectedValue "WAIT_FINAL_PAYMENT" -Assertion "order-status-after-contract"
+  $orderDetailAfterContractSigned = Add-ApiCaseResult -Results $results -Name "order-detail-after-contract-signed" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/orders/$orderId" -Body $null -Headers @{ Authorization = $userToken } -Expected @(200)
+  Assert-ResultJsonFieldEquals -Result $orderDetailAfterContractSigned -Field "status" -ExpectedValue "WAIT_FINAL_PAYMENT" -Assertion "order-detail-status-after-contract"
+  $orderPaymentIntentFinal = Add-ApiCaseResult -Results $results -Name "order-payment-intent-final" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/orders/$orderId/payment-intents" -Body @{ payType = "FINAL" } -Headers (New-WriteHeaders -AuthorizationToken $userToken -Prefix $idempotencyPrefix -Label "order-payment-intent-final") -Expected @(200, 201)
+  Assert-ResultJsonFieldEquals -Result $orderPaymentIntentFinal -Field "payType" -ExpectedValue "FINAL" -Assertion "payment-intent-final-pay-type"
+  $adminOrderManualPaymentFinal = Add-ApiCaseResult -Results $results -Name "admin-order-manual-payment-final" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/admin/orders/$orderId/payments/manual" -Body @{ payType = "FINAL" } -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-order-manual-payment-final") -Expected @(200, 201)
+  Assert-ResultJsonFieldEquals -Result $adminOrderManualPaymentFinal -Field "payType" -ExpectedValue "FINAL" -Assertion "manual-payment-final-pay-type"
+  Assert-ResultJsonFieldEquals -Result $adminOrderManualPaymentFinal -Field "status" -ExpectedValue "PAID" -Assertion "manual-payment-final-status"
   [void](Add-ApiCaseResult -Results $results -Name "admin-order-manual-payment-final-duplicate" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/admin/orders/$orderId/payments/manual" -Body @{ payType = "FINAL" } -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-order-manual-payment-final-duplicate") -Expected @(409))
-  [void](Add-ApiCaseResult -Results $results -Name "admin-order-transfer-completed" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/admin/orders/$orderId/milestones/transfer-completed" -Body @{} -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-order-transfer-completed") -Expected @(200, 201))
-  [void](Add-ApiCaseResult -Results $results -Name "admin-order-settlement-get" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/admin/orders/$orderId/settlement" -Body $null -Headers @{ Authorization = $adminToken } -Expected @(200))
+  $orderDetailAfterFinalPaid = Add-ApiCaseResult -Results $results -Name "order-detail-after-final-paid" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/orders/$orderId" -Body $null -Headers @{ Authorization = $userToken } -Expected @(200)
+  Assert-ResultJsonFieldEquals -Result $orderDetailAfterFinalPaid -Field "status" -ExpectedValue "FINAL_PAID_ESCROW" -Assertion "order-status-after-final-paid"
+  $adminOrderTransferCompleted = Add-ApiCaseResult -Results $results -Name "admin-order-transfer-completed" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/admin/orders/$orderId/milestones/transfer-completed" -Body @{} -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-order-transfer-completed") -Expected @(200, 201)
+  Assert-ResultJsonFieldEquals -Result $adminOrderTransferCompleted -Field "status" -ExpectedValue "READY_TO_SETTLE" -Assertion "order-status-after-transfer"
+  $orderCaseAfterTransfer = Add-ApiCaseResult -Results $results -Name "order-case-after-transfer-completed" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/orders/$orderId/case" -Body $null -Headers @{ Authorization = $userToken } -Expected @(200)
+  Assert-ResultJsonArrayItemFieldEquals -Result $orderCaseAfterTransfer -ArrayField "milestones" -MatchField "name" -MatchValue "CONTRACT_SIGNED" -TargetField "status" -ExpectedValue "DONE" -Assertion "order-case-contract-milestone"
+  Assert-ResultJsonArrayItemFieldEquals -Result $orderCaseAfterTransfer -ArrayField "milestones" -MatchField "name" -MatchValue "TRANSFER_COMPLETED" -TargetField "status" -ExpectedValue "DONE" -Assertion "order-case-transfer-milestone"
+  $orderDetailAfterTransfer = Add-ApiCaseResult -Results $results -Name "order-detail-after-transfer-completed" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/orders/$orderId" -Body $null -Headers @{ Authorization = $userToken } -Expected @(200)
+  Assert-ResultJsonFieldEquals -Result $orderDetailAfterTransfer -Field "status" -ExpectedValue "READY_TO_SETTLE" -Assertion "order-detail-status-after-transfer"
+  $adminOrderSettlementGet = Add-ApiCaseResult -Results $results -Name "admin-order-settlement-get" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/admin/orders/$orderId/settlement" -Body $null -Headers @{ Authorization = $adminToken } -Expected @(200)
+  Assert-ResultJsonFieldEquals -Result $adminOrderSettlementGet -Field "payoutStatus" -ExpectedValue "PENDING" -Assertion "settlement-status-before-payout"
   [void](Add-ApiCaseResult -Results $results -Name "admin-order-manual-payout-missing-evidence" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/admin/orders/$orderId/payouts/manual" -Body @{} -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-order-manual-payout-missing-evidence") -Expected @(400))
   [void](Add-ApiCaseResult -Results $results -Name "admin-order-upsert-invoice-missing-file" -Method "PUT" -Url "http://127.0.0.1:$resolvedApiPort/admin/orders/$orderId/invoice" -Body @{ invoiceFileId = [guid]::NewGuid().ToString() } -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-order-upsert-invoice-missing-file") -Expected @(400))
   [void](Add-ApiCaseResult -Results $results -Name "order-refund-request-not-allowed-ready-to-settle" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/orders/$orderId/refund-requests" -Body @{ reasonCode = "OTHER"; reasonText = "smoke not allowed" } -Headers (New-WriteHeaders -AuthorizationToken $userToken -Prefix $idempotencyPrefix -Label "order-refund-request-not-allowed-ready-to-settle") -Expected @(409))
@@ -568,44 +773,71 @@ try {
   $evidenceUpload = Add-ApiFileUploadCaseResult -Results $results -Name "file-upload-evidence" -Url "http://127.0.0.1:$resolvedApiPort/files" -AuthorizationToken $userToken -FilePath $smokeEvidencePath -FormFields $null -Expected @(200, 201)
   $evidenceFileId = Get-ResultStringField -Result $evidenceUpload -Field "id"
   if ([string]::IsNullOrWhiteSpace($evidenceFileId)) { throw "file-upload-evidence missing id" }
-  [void](Add-ApiCaseResult -Results $results -Name "admin-order-manual-payout-with-evidence" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/admin/orders/$orderId/payouts/manual" -Body @{ payoutEvidenceFileId = $evidenceFileId } -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-order-manual-payout-with-evidence") -Expected @(200, 201))
-  [void](Add-ApiCaseResult -Results $results -Name "order-invoice-request-completed" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/orders/$orderId/invoice-requests" -Body @{} -Headers (New-WriteHeaders -AuthorizationToken $userToken -Prefix $idempotencyPrefix -Label "order-invoice-request-completed") -Expected @(200, 201))
+  $adminOrderManualPayoutWithEvidence = Add-ApiCaseResult -Results $results -Name "admin-order-manual-payout-with-evidence" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/admin/orders/$orderId/payouts/manual" -Body @{ payoutEvidenceFileId = $evidenceFileId } -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-order-manual-payout-with-evidence") -Expected @(200, 201)
+  Assert-ResultJsonFieldEquals -Result $adminOrderManualPayoutWithEvidence -Field "payoutStatus" -ExpectedValue "SUCCEEDED" -Assertion "settlement-status-after-payout"
+  Assert-ResultJsonFieldEquals -Result $adminOrderManualPayoutWithEvidence -Field "status" -ExpectedValue "COMPLETED" -Assertion "order-status-after-payout"
+  Assert-ResultJsonFieldEquals -Result $adminOrderManualPayoutWithEvidence -Field "payoutEvidenceFileId" -ExpectedValue $evidenceFileId -Assertion "payout-evidence-file-linked"
+  $orderDetailAfterPayout = Add-ApiCaseResult -Results $results -Name "order-detail-after-manual-payout" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/orders/$orderId" -Body $null -Headers @{ Authorization = $userToken } -Expected @(200)
+  Assert-ResultJsonFieldEquals -Result $orderDetailAfterPayout -Field "status" -ExpectedValue "COMPLETED" -Assertion "order-detail-status-after-payout"
+  $adminOrderSettlementGetAfterPayout = Add-ApiCaseResult -Results $results -Name "admin-order-settlement-get-after-payout" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/admin/orders/$orderId/settlement" -Body $null -Headers @{ Authorization = $adminToken } -Expected @(200)
+  Assert-ResultJsonFieldEquals -Result $adminOrderSettlementGetAfterPayout -Field "payoutStatus" -ExpectedValue "SUCCEEDED" -Assertion "settlement-detail-status-after-payout"
+  $orderInvoiceRequestCompleted = Add-ApiCaseResult -Results $results -Name "order-invoice-request-completed" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/orders/$orderId/invoice-requests" -Body @{} -Headers (New-WriteHeaders -AuthorizationToken $userToken -Prefix $idempotencyPrefix -Label "order-invoice-request-completed") -Expected @(200, 201)
+  Assert-ResultJsonFieldEquals -Result $orderInvoiceRequestCompleted -Field "status" -ExpectedValue "APPLYING" -Assertion "invoice-request-status-applying"
   [void](Add-ApiCaseResult -Results $results -Name "order-invoice-request-completed-duplicate" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/orders/$orderId/invoice-requests" -Body @{} -Headers (New-WriteHeaders -AuthorizationToken $userToken -Prefix $idempotencyPrefix -Label "order-invoice-request-completed-duplicate") -Expected @(409))
-  [void](Add-ApiCaseResult -Results $results -Name "admin-order-upsert-invoice-with-file" -Method "PUT" -Url "http://127.0.0.1:$resolvedApiPort/admin/orders/$orderId/invoice" -Body @{ invoiceFileId = $evidenceFileId } -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-order-upsert-invoice-with-file") -Expected @(200))
+  $adminOrderUpsertInvoiceWithFile = Add-ApiCaseResult -Results $results -Name "admin-order-upsert-invoice-with-file" -Method "PUT" -Url "http://127.0.0.1:$resolvedApiPort/admin/orders/$orderId/invoice" -Body @{ invoiceFileId = $evidenceFileId } -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-order-upsert-invoice-with-file") -Expected @(200)
+  Assert-ResultJsonFieldEquals -Result $adminOrderUpsertInvoiceWithFile -Field "invoiceFile.id" -ExpectedValue $evidenceFileId -Assertion "invoice-upsert-file-linked"
+  $orderInvoiceGetExisting = Add-ApiCaseResult -Results $results -Name "order-invoice-get-existing" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/orders/$orderId/invoice" -Body $null -Headers @{ Authorization = $userToken } -Expected @(200)
+  Assert-ResultJsonFieldEquals -Result $orderInvoiceGetExisting -Field "invoiceFile.id" -ExpectedValue $evidenceFileId -Assertion "invoice-get-file-linked"
   [void](Add-ApiCaseResult -Results $results -Name "admin-order-delete-invoice-existing" -Method "DELETE" -Url "http://127.0.0.1:$resolvedApiPort/admin/orders/$orderId/invoice" -Body $null -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-order-delete-invoice-existing") -Expected @(204))
+  [void](Add-ApiCaseResult -Results $results -Name "order-invoice-get-after-delete" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/orders/$orderId/invoice" -Body $null -Headers @{ Authorization = $userToken } -Expected @(404))
 
   $refundApproveOrderId = New-RefundReadyOrder -Results $results -ApiPort $resolvedApiPort -UserToken $userToken -AdminToken $adminToken -ListingId $listingId -IdempotencyPrefix $idempotencyPrefix -CasePrefix "refund-approve"
   $refundApproveCreate = Add-ApiCaseResult -Results $results -Name "refund-approve-create" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/orders/$refundApproveOrderId/refund-requests" -Body @{ reasonCode = "OTHER"; reasonText = "smoke approve flow" } -Headers (New-WriteHeaders -AuthorizationToken $userToken -Prefix $idempotencyPrefix -Label "refund-approve-create") -Expected @(200, 201)
+  Assert-ResultJsonFieldEquals -Result $refundApproveCreate -Field "status" -ExpectedValue "PENDING" -Assertion "refund-request-created-status"
   $refundApproveRequestId = Get-ResultStringField -Result $refundApproveCreate -Field "id"
   if ([string]::IsNullOrWhiteSpace($refundApproveRequestId)) { throw "refund-approve-create missing id" }
   [void](Add-ApiCaseResult -Results $results -Name "refund-approve-list" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/orders/$refundApproveOrderId/refund-requests" -Body $null -Headers @{ Authorization = $userToken } -Expected @(200))
-  [void](Add-ApiCaseResult -Results $results -Name "admin-refund-approve-existing" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/admin/refund-requests/$refundApproveRequestId/approve" -Body @{} -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-refund-approve-existing") -Expected @(200, 201))
+  $adminRefundApproveExisting = Add-ApiCaseResult -Results $results -Name "admin-refund-approve-existing" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/admin/refund-requests/$refundApproveRequestId/approve" -Body @{} -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-refund-approve-existing") -Expected @(200, 201)
+  Assert-ResultJsonFieldEquals -Result $adminRefundApproveExisting -Field "status" -ExpectedValue "REFUNDING" -Assertion "refund-request-approved-status"
+  $refundApproveOrderDetail = Add-ApiCaseResult -Results $results -Name "refund-approve-order-detail" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/orders/$refundApproveOrderId" -Body $null -Headers @{ Authorization = $userToken } -Expected @(200)
+  Assert-ResultJsonFieldEquals -Result $refundApproveOrderDetail -Field "status" -ExpectedValue "REFUNDING" -Assertion "refund-order-status-after-approve"
   [void](Add-ApiCaseResult -Results $results -Name "admin-refund-approve-existing-duplicate" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/admin/refund-requests/$refundApproveRequestId/approve" -Body @{} -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-refund-approve-existing-duplicate") -Expected @(409))
-  [void](Add-ApiCaseResult -Results $results -Name "admin-refund-complete-existing" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/admin/refund-requests/$refundApproveRequestId/complete" -Body @{ remark = "smoke complete flow" } -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-refund-complete-existing") -Expected @(200, 201))
+  $adminRefundCompleteExisting = Add-ApiCaseResult -Results $results -Name "admin-refund-complete-existing" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/admin/refund-requests/$refundApproveRequestId/complete" -Body @{ remark = "smoke complete flow" } -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-refund-complete-existing") -Expected @(200, 201)
+  Assert-ResultJsonFieldEquals -Result $adminRefundCompleteExisting -Field "status" -ExpectedValue "REFUNDED" -Assertion "refund-request-completed-status"
+  $refundCompleteOrderDetail = Add-ApiCaseResult -Results $results -Name "refund-complete-order-detail" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/orders/$refundApproveOrderId" -Body $null -Headers @{ Authorization = $userToken } -Expected @(200)
+  Assert-ResultJsonFieldEquals -Result $refundCompleteOrderDetail -Field "status" -ExpectedValue "REFUNDED" -Assertion "refund-order-status-after-complete"
   [void](Add-ApiCaseResult -Results $results -Name "admin-refund-complete-existing-duplicate" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/admin/refund-requests/$refundApproveRequestId/complete" -Body @{ remark = "smoke duplicate complete flow" } -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-refund-complete-existing-duplicate") -Expected @(409))
   [void](Add-ApiCaseResult -Results $results -Name "order-refund-request-after-refunded" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/orders/$refundApproveOrderId/refund-requests" -Body @{ reasonCode = "OTHER"; reasonText = "smoke disallowed after refunded" } -Headers (New-WriteHeaders -AuthorizationToken $userToken -Prefix $idempotencyPrefix -Label "order-refund-request-after-refunded") -Expected @(409))
 
   $refundRejectOrderId = New-RefundReadyOrder -Results $results -ApiPort $resolvedApiPort -UserToken $userToken -AdminToken $adminToken -ListingId $listingId -IdempotencyPrefix $idempotencyPrefix -CasePrefix "refund-reject"
   $refundRejectCreate = Add-ApiCaseResult -Results $results -Name "refund-reject-create" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/orders/$refundRejectOrderId/refund-requests" -Body @{ reasonCode = "OTHER"; reasonText = "smoke reject flow" } -Headers (New-WriteHeaders -AuthorizationToken $userToken -Prefix $idempotencyPrefix -Label "refund-reject-create") -Expected @(200, 201)
+  Assert-ResultJsonFieldEquals -Result $refundRejectCreate -Field "status" -ExpectedValue "PENDING" -Assertion "refund-reject-created-status"
   $refundRejectRequestId = Get-ResultStringField -Result $refundRejectCreate -Field "id"
   if ([string]::IsNullOrWhiteSpace($refundRejectRequestId)) { throw "refund-reject-create missing id" }
   [void](Add-ApiCaseResult -Results $results -Name "admin-refund-reject-existing-missing-reason" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/admin/refund-requests/$refundRejectRequestId/reject" -Body @{} -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-refund-reject-existing-missing-reason") -Expected @(400))
-  [void](Add-ApiCaseResult -Results $results -Name "admin-refund-reject-existing" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/admin/refund-requests/$refundRejectRequestId/reject" -Body @{ reason = "smoke reject reason" } -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-refund-reject-existing") -Expected @(200, 201))
+  $adminRefundRejectExisting = Add-ApiCaseResult -Results $results -Name "admin-refund-reject-existing" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/admin/refund-requests/$refundRejectRequestId/reject" -Body @{ reason = "smoke reject reason" } -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-refund-reject-existing") -Expected @(200, 201)
+  Assert-ResultJsonFieldEquals -Result $adminRefundRejectExisting -Field "status" -ExpectedValue "REJECTED" -Assertion "refund-request-rejected-status"
+  $refundRejectOrderDetail = Add-ApiCaseResult -Results $results -Name "refund-reject-order-detail" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/orders/$refundRejectOrderId" -Body $null -Headers @{ Authorization = $userToken } -Expected @(200)
+  Assert-ResultJsonFieldEquals -Result $refundRejectOrderDetail -Field "status" -ExpectedValue "WAIT_FINAL_PAYMENT" -Assertion "refund-order-status-after-reject"
   [void](Add-ApiCaseResult -Results $results -Name "admin-refund-reject-existing-duplicate" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/admin/refund-requests/$refundRejectRequestId/reject" -Body @{ reason = "smoke reject reason duplicate" } -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-refund-reject-existing-duplicate") -Expected @(409))
   [void](Add-ApiCaseResult -Results $results -Name "admin-refund-complete-rejected" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/admin/refund-requests/$refundRejectRequestId/complete" -Body @{ remark = "smoke complete rejected" } -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-refund-complete-rejected") -Expected @(409))
   [void](Add-ApiCaseResult -Results $results -Name "admin-refund-approve-rejected" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/admin/refund-requests/$refundRejectRequestId/approve" -Body @{} -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-refund-approve-rejected") -Expected @(409))
 
   [void](Add-ApiCaseResult -Results $results -Name "admin-case-list" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/admin/cases" -Body $null -Headers @{ Authorization = $adminToken } -Expected @(200))
   $caseCreate = Add-ApiCaseResult -Results $results -Name "admin-case-create" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/admin/cases" -Body @{ type = "DISPUTE"; title = "smoke case $ReportDate"; orderId = $refundApproveOrderId; requesterName = "smoke"; priority = "HIGH"; description = "smoke case description" } -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-case-create") -Expected @(200, 201)
+  Assert-ResultJsonFieldEquals -Result $caseCreate -Field "status" -ExpectedValue "OPEN" -Assertion "case-create-status"
   $caseId = Get-ResultStringField -Result $caseCreate -Field "id"
   if ([string]::IsNullOrWhiteSpace($caseId)) { throw "admin-case-create missing id" }
-  [void](Add-ApiCaseResult -Results $results -Name "admin-case-detail" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/admin/cases/$caseId" -Body $null -Headers @{ Authorization = $adminToken } -Expected @(200))
+  $caseDetail = Add-ApiCaseResult -Results $results -Name "admin-case-detail" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/admin/cases/$caseId" -Body $null -Headers @{ Authorization = $adminToken } -Expected @(200)
+  Assert-ResultJsonFieldEquals -Result $caseDetail -Field "status" -ExpectedValue "OPEN" -Assertion "case-detail-status-open"
   $missingCaseId = [guid]::NewGuid().ToString()
   [void](Add-ApiCaseResult -Results $results -Name "admin-case-detail-missing" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/admin/cases/$missingCaseId" -Body $null -Headers @{ Authorization = $adminToken } -Expected @(404))
   [void](Add-ApiCaseResult -Results $results -Name "admin-case-assign-missing-assignee" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/admin/cases/$caseId/assign" -Body @{} -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-case-assign-missing-assignee") -Expected @(400))
-  [void](Add-ApiCaseResult -Results $results -Name "admin-case-assign" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/admin/cases/$caseId/assign" -Body @{ assigneeId = $currentUserId } -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-case-assign") -Expected @(200, 201))
+  $caseAssign = Add-ApiCaseResult -Results $results -Name "admin-case-assign" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/admin/cases/$caseId/assign" -Body @{ assigneeId = $currentUserId } -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-case-assign") -Expected @(200, 201)
+  Assert-ResultJsonFieldEquals -Result $caseAssign -Field "assigneeId" -ExpectedValue $currentUserId -Assertion "case-assignee-linked"
   [void](Add-ApiCaseResult -Results $results -Name "admin-case-status-invalid" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/admin/cases/$caseId/status" -Body @{ status = "UNKNOWN" } -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-case-status-invalid") -Expected @(400))
-  [void](Add-ApiCaseResult -Results $results -Name "admin-case-status-in-progress" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/admin/cases/$caseId/status" -Body @{ status = "IN_PROGRESS" } -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-case-status-in-progress") -Expected @(200, 201))
+  $caseStatusInProgress = Add-ApiCaseResult -Results $results -Name "admin-case-status-in-progress" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/admin/cases/$caseId/status" -Body @{ status = "IN_PROGRESS" } -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-case-status-in-progress") -Expected @(200, 201)
+  Assert-ResultJsonFieldEquals -Result $caseStatusInProgress -Field "status" -ExpectedValue "IN_PROGRESS" -Assertion "case-status-in-progress"
   [void](Add-ApiCaseResult -Results $results -Name "admin-case-note-empty" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/admin/cases/$caseId/notes" -Body @{} -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-case-note-empty") -Expected @(200, 201))
   [void](Add-ApiCaseResult -Results $results -Name "admin-case-note-add" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/admin/cases/$caseId/notes" -Body @{ note = "smoke case note" } -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-case-note-add") -Expected @(200, 201))
   [void](Add-ApiCaseResult -Results $results -Name "admin-case-evidence-missing-file" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/admin/cases/$caseId/evidence" -Body @{} -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-case-evidence-missing-file") -Expected @(400))
@@ -614,49 +846,99 @@ try {
   [void](Add-ApiCaseResult -Results $results -Name "admin-case-sla-missing-due-at" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/admin/cases/$caseId/sla" -Body @{} -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-case-sla-missing-due-at") -Expected @(400))
   [void](Add-ApiCaseResult -Results $results -Name "admin-case-sla-invalid-due-at" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/admin/cases/$caseId/sla" -Body @{ dueAt = "invalid-date" } -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-case-sla-invalid-due-at") -Expected @(400))
   [void](Add-ApiCaseResult -Results $results -Name "admin-case-sla-update" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/admin/cases/$caseId/sla" -Body @{ dueAt = (Get-Date).AddDays(2).ToString("o") } -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-case-sla-update") -Expected @(200, 201))
-  [void](Add-ApiCaseResult -Results $results -Name "admin-case-status-closed" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/admin/cases/$caseId/status" -Body @{ status = "CLOSED" } -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-case-status-closed") -Expected @(200, 201))
+  $caseStatusClosed = Add-ApiCaseResult -Results $results -Name "admin-case-status-closed" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/admin/cases/$caseId/status" -Body @{ status = "CLOSED" } -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-case-status-closed") -Expected @(200, 201)
+  Assert-ResultJsonFieldEquals -Result $caseStatusClosed -Field "status" -ExpectedValue "CLOSED" -Assertion "case-status-closed"
 
   [void](Add-ApiCaseResult -Results $results -Name "admin-maintenance-schedules-list" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/admin/patent-maintenance/schedules" -Body $null -Headers @{ Authorization = $adminToken } -Expected @(200))
   [void](Add-ApiCaseResult -Results $results -Name "admin-maintenance-schedule-create-missing-patent" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/admin/patent-maintenance/schedules" -Body @{ yearNo = 1; dueDate = (Get-Date).AddDays(30).ToString("o") } -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-maintenance-schedule-create-missing-patent") -Expected @(400))
   [void](Add-ApiCaseResult -Results $results -Name "admin-maintenance-schedule-create-invalid-patent" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/admin/patent-maintenance/schedules" -Body @{ patentId = [guid]::NewGuid().ToString(); yearNo = 1; dueDate = (Get-Date).AddDays(30).ToString("o") } -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-maintenance-schedule-create-invalid-patent") -Expected @(404))
   $maintenanceYearNo = [int][double]::Parse((Get-Date -UFormat %s))
   $scheduleCreate = Add-ApiCaseResult -Results $results -Name "admin-maintenance-schedule-create" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/admin/patent-maintenance/schedules" -Body @{ patentId = $patentId; yearNo = $maintenanceYearNo; dueDate = (Get-Date).AddDays(45).ToString("o"); status = "DUE" } -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-maintenance-schedule-create") -Expected @(200, 201)
+  Assert-ResultJsonFieldEquals -Result $scheduleCreate -Field "status" -ExpectedValue "DUE" -Assertion "maintenance-schedule-create-status"
   $scheduleId = Get-ResultStringField -Result $scheduleCreate -Field "id"
   if ([string]::IsNullOrWhiteSpace($scheduleId)) { throw "admin-maintenance-schedule-create missing id" }
-  [void](Add-ApiCaseResult -Results $results -Name "admin-maintenance-schedule-detail" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/admin/patent-maintenance/schedules/$scheduleId" -Body $null -Headers @{ Authorization = $adminToken } -Expected @(200))
+  $maintenanceScheduleDetail = Add-ApiCaseResult -Results $results -Name "admin-maintenance-schedule-detail" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/admin/patent-maintenance/schedules/$scheduleId" -Body $null -Headers @{ Authorization = $adminToken } -Expected @(200)
+  Assert-ResultJsonFieldEquals -Result $maintenanceScheduleDetail -Field "status" -ExpectedValue "DUE" -Assertion "maintenance-schedule-detail-status"
   [void](Add-ApiCaseResult -Results $results -Name "admin-maintenance-schedule-detail-missing" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/admin/patent-maintenance/schedules/$([guid]::NewGuid().ToString())" -Body $null -Headers @{ Authorization = $adminToken } -Expected @(404))
   [void](Add-ApiCaseResult -Results $results -Name "admin-maintenance-schedule-update-invalid-status" -Method "PATCH" -Url "http://127.0.0.1:$resolvedApiPort/admin/patent-maintenance/schedules/$scheduleId" -Body @{ status = "INVALID" } -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-maintenance-schedule-update-invalid-status") -Expected @(400))
-  [void](Add-ApiCaseResult -Results $results -Name "admin-maintenance-schedule-update" -Method "PATCH" -Url "http://127.0.0.1:$resolvedApiPort/admin/patent-maintenance/schedules/$scheduleId" -Body @{ status = "PAID"; gracePeriodEnd = (Get-Date).AddDays(60).ToString("o") } -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-maintenance-schedule-update") -Expected @(200))
+  $maintenanceGracePeriodIso = (Get-Date).AddDays(60).ToString("o")
+  $maintenanceGracePeriodExpectedDate = ([datetime]::Parse($maintenanceGracePeriodIso).ToUniversalTime()).ToString("yyyy-MM-dd")
+  $maintenanceScheduleUpdate = Add-ApiCaseResult -Results $results -Name "admin-maintenance-schedule-update" -Method "PATCH" -Url "http://127.0.0.1:$resolvedApiPort/admin/patent-maintenance/schedules/$scheduleId" -Body @{ status = "PAID"; gracePeriodEnd = $maintenanceGracePeriodIso } -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-maintenance-schedule-update") -Expected @(200)
+  Assert-ResultJsonFieldEquals -Result $maintenanceScheduleUpdate -Field "status" -ExpectedValue "PAID" -Assertion "maintenance-schedule-update-status"
+  Assert-ResultJsonFieldEquals -Result $maintenanceScheduleUpdate -Field "gracePeriodEnd" -ExpectedValue $maintenanceGracePeriodExpectedDate -Assertion "maintenance-schedule-grace-period"
+  $maintenanceScheduleDetailAfterUpdate = Add-ApiCaseResult -Results $results -Name "admin-maintenance-schedule-detail-after-update" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/admin/patent-maintenance/schedules/$scheduleId" -Body $null -Headers @{ Authorization = $adminToken } -Expected @(200)
+  Assert-ResultJsonFieldEquals -Result $maintenanceScheduleDetailAfterUpdate -Field "status" -ExpectedValue "PAID" -Assertion "maintenance-schedule-detail-after-update-status"
 
   [void](Add-ApiCaseResult -Results $results -Name "admin-maintenance-tasks-list" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/admin/patent-maintenance/tasks" -Body $null -Headers @{ Authorization = $adminToken } -Expected @(200))
   [void](Add-ApiCaseResult -Results $results -Name "admin-maintenance-task-create-missing-schedule" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/admin/patent-maintenance/tasks" -Body @{} -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-maintenance-task-create-missing-schedule") -Expected @(400))
   [void](Add-ApiCaseResult -Results $results -Name "admin-maintenance-task-create-invalid-schedule" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/admin/patent-maintenance/tasks" -Body @{ scheduleId = [guid]::NewGuid().ToString() } -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-maintenance-task-create-invalid-schedule") -Expected @(404))
   $taskCreate = Add-ApiCaseResult -Results $results -Name "admin-maintenance-task-create" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/admin/patent-maintenance/tasks" -Body @{ scheduleId = $scheduleId; assignedCsUserId = $currentUserId; status = "OPEN"; note = "smoke maintenance task" } -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-maintenance-task-create") -Expected @(200, 201)
+  Assert-ResultJsonFieldEquals -Result $taskCreate -Field "status" -ExpectedValue "OPEN" -Assertion "maintenance-task-create-status"
   $taskId = Get-ResultStringField -Result $taskCreate -Field "id"
   if ([string]::IsNullOrWhiteSpace($taskId)) { throw "admin-maintenance-task-create missing id" }
   [void](Add-ApiCaseResult -Results $results -Name "admin-maintenance-task-update-invalid-status" -Method "PATCH" -Url "http://127.0.0.1:$resolvedApiPort/admin/patent-maintenance/tasks/$taskId" -Body @{ status = "INVALID" } -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-maintenance-task-update-invalid-status") -Expected @(400))
   [void](Add-ApiCaseResult -Results $results -Name "admin-maintenance-task-update-invalid-evidence" -Method "PATCH" -Url "http://127.0.0.1:$resolvedApiPort/admin/patent-maintenance/tasks/$taskId" -Body @{ evidenceFileId = [guid]::NewGuid().ToString() } -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-maintenance-task-update-invalid-evidence") -Expected @(400))
-  [void](Add-ApiCaseResult -Results $results -Name "admin-maintenance-task-update" -Method "PATCH" -Url "http://127.0.0.1:$resolvedApiPort/admin/patent-maintenance/tasks/$taskId" -Body @{ status = "DONE"; evidenceFileId = $evidenceFileId; note = "smoke maintenance done" } -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-maintenance-task-update") -Expected @(200))
+  $maintenanceTaskUpdate = Add-ApiCaseResult -Results $results -Name "admin-maintenance-task-update" -Method "PATCH" -Url "http://127.0.0.1:$resolvedApiPort/admin/patent-maintenance/tasks/$taskId" -Body @{ status = "DONE"; evidenceFileId = $evidenceFileId; note = "smoke maintenance done" } -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-maintenance-task-update") -Expected @(200)
+  Assert-ResultJsonFieldEquals -Result $maintenanceTaskUpdate -Field "status" -ExpectedValue "DONE" -Assertion "maintenance-task-update-status"
+  Assert-ResultJsonFieldEquals -Result $maintenanceTaskUpdate -Field "evidenceFileId" -ExpectedValue $evidenceFileId -Assertion "maintenance-task-evidence-linked"
   [void](Add-ApiCaseResult -Results $results -Name "admin-maintenance-task-update-missing" -Method "PATCH" -Url "http://127.0.0.1:$resolvedApiPort/admin/patent-maintenance/tasks/$([guid]::NewGuid().ToString())" -Body @{ status = "DONE" } -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-maintenance-task-update-missing") -Expected @(404))
+  $maintenanceTasksBySchedule = Add-ApiCaseResult -Results $results -Name "admin-maintenance-tasks-list-by-schedule" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/admin/patent-maintenance/tasks?scheduleId=$scheduleId" -Body $null -Headers @{ Authorization = $adminToken } -Expected @(200)
+  Assert-ResultJsonArrayItemFieldEquals -Result $maintenanceTasksBySchedule -ArrayField "items" -MatchField "id" -MatchValue $taskId -TargetField "status" -ExpectedValue "DONE" -Assertion "maintenance-task-list-status"
 
-  [void](Add-ApiCaseResult -Results $results -Name "admin-rbac-users-list" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/admin/rbac/users" -Body $null -Headers @{ Authorization = $adminToken } -Expected @(200))
+  $rbacUsersListBefore = Add-ApiCaseResult -Results $results -Name "admin-rbac-users-list" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/admin/rbac/users" -Body $null -Headers @{ Authorization = $adminToken } -Expected @(200)
+  Assert-ResultJsonArrayItemFieldEquals -Result $rbacUsersListBefore -ArrayField "items" -MatchField "id" -MatchValue $currentUserId -TargetField "id" -ExpectedValue $currentUserId -Assertion "rbac-users-list-contains-current-user"
   [void](Add-ApiCaseResult -Results $results -Name "admin-rbac-role-create-missing-name" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/admin/rbac/roles" -Body @{ permissionIds = @("report.read") } -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-rbac-role-create-missing-name") -Expected @(400))
   [void](Add-ApiCaseResult -Results $results -Name "admin-rbac-role-create-invalid-permission" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/admin/rbac/roles" -Body @{ name = "smoke invalid role $ReportDate"; permissionIds = @("unknown.permission") } -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-rbac-role-create-invalid-permission") -Expected @(400))
   $rbacRoleCreate = Add-ApiCaseResult -Results $results -Name "admin-rbac-role-create" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/admin/rbac/roles" -Body @{ name = "smoke role $ReportDate"; description = "smoke role"; permissionIds = @("report.read", "auditLog.read") } -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-rbac-role-create") -Expected @(200, 201)
+  Assert-ResultJsonArrayContains -Result $rbacRoleCreate -Field "permissionIds" -ExpectedValue "report.read" -Assertion "rbac-role-create-permission-report-read"
+  Assert-ResultJsonArrayContains -Result $rbacRoleCreate -Field "permissionIds" -ExpectedValue "auditLog.read" -Assertion "rbac-role-create-permission-audit-log-read"
   $rbacRoleId = Get-ResultStringField -Result $rbacRoleCreate -Field "id"
   if ([string]::IsNullOrWhiteSpace($rbacRoleId)) { throw "admin-rbac-role-create missing id" }
+  $rbacRolesAfterCreate = Add-ApiCaseResult -Results $results -Name "admin-rbac-roles-list-after-create" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/admin/rbac/roles" -Body $null -Headers @{ Authorization = $adminToken } -Expected @(200)
+  Assert-ResultJsonArrayItemFieldEquals -Result $rbacRolesAfterCreate -ArrayField "items" -MatchField "id" -MatchValue $rbacRoleId -TargetField "name" -ExpectedValue "smoke role $ReportDate" -Assertion "rbac-role-created-visible-in-list"
   [void](Add-ApiCaseResult -Results $results -Name "admin-rbac-role-update-missing" -Method "PATCH" -Url "http://127.0.0.1:$resolvedApiPort/admin/rbac/roles/$([guid]::NewGuid().ToString())" -Body @{ name = "missing role" } -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-rbac-role-update-missing") -Expected @(404))
   [void](Add-ApiCaseResult -Results $results -Name "admin-rbac-role-update-invalid-permission" -Method "PATCH" -Url "http://127.0.0.1:$resolvedApiPort/admin/rbac/roles/$rbacRoleId" -Body @{ permissionIds = @("unknown.permission") } -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-rbac-role-update-invalid-permission") -Expected @(400))
-  [void](Add-ApiCaseResult -Results $results -Name "admin-rbac-role-update" -Method "PATCH" -Url "http://127.0.0.1:$resolvedApiPort/admin/rbac/roles/$rbacRoleId" -Body @{ name = "smoke role updated $ReportDate"; permissionIds = @("report.read") } -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-rbac-role-update") -Expected @(200))
+  $rbacRoleUpdate = Add-ApiCaseResult -Results $results -Name "admin-rbac-role-update" -Method "PATCH" -Url "http://127.0.0.1:$resolvedApiPort/admin/rbac/roles/$rbacRoleId" -Body @{ name = "smoke role updated $ReportDate"; permissionIds = @("report.read") } -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-rbac-role-update") -Expected @(200)
+  Assert-ResultJsonFieldEquals -Result $rbacRoleUpdate -Field "name" -ExpectedValue "smoke role updated $ReportDate" -Assertion "rbac-role-update-name"
+  Assert-ResultJsonArrayContains -Result $rbacRoleUpdate -Field "permissionIds" -ExpectedValue "report.read" -Assertion "rbac-role-update-permission-report-read"
   [void](Add-ApiCaseResult -Results $results -Name "admin-rbac-user-update-missing-role-ids" -Method "PATCH" -Url "http://127.0.0.1:$resolvedApiPort/admin/rbac/users/$currentUserId" -Body @{} -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-rbac-user-update-missing-role-ids") -Expected @(400))
   [void](Add-ApiCaseResult -Results $results -Name "admin-rbac-user-update-unknown-role" -Method "PATCH" -Url "http://127.0.0.1:$resolvedApiPort/admin/rbac/users/$currentUserId" -Body @{ roleIds = @([guid]::NewGuid().ToString()) } -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-rbac-user-update-unknown-role") -Expected @(400))
-  [void](Add-ApiCaseResult -Results $results -Name "admin-rbac-user-update-custom-role" -Method "PATCH" -Url "http://127.0.0.1:$resolvedApiPort/admin/rbac/users/$currentUserId" -Body @{ roleIds = @($rbacRoleId) } -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-rbac-user-update-custom-role") -Expected @(200))
-  [void](Add-ApiCaseResult -Results $results -Name "admin-rbac-user-update-clear-roles" -Method "PATCH" -Url "http://127.0.0.1:$resolvedApiPort/admin/rbac/users/$currentUserId" -Body @{ roleIds = @() } -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-rbac-user-update-clear-roles") -Expected @(200))
+  $rbacUserUpdateCustomRole = Add-ApiCaseResult -Results $results -Name "admin-rbac-user-update-custom-role" -Method "PATCH" -Url "http://127.0.0.1:$resolvedApiPort/admin/rbac/users/$currentUserId" -Body @{ roleIds = @($rbacRoleId) } -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-rbac-user-update-custom-role") -Expected @(200)
+  Assert-ResultJsonArrayContains -Result $rbacUserUpdateCustomRole -Field "roleIds" -ExpectedValue $rbacRoleId -Assertion "rbac-user-custom-role-linked"
+  $rbacUsersAfterCustomRole = Add-ApiCaseResult -Results $results -Name "admin-rbac-users-list-after-custom-role" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/admin/rbac/users" -Body $null -Headers @{ Authorization = $adminToken } -Expected @(200)
+  Assert-ResultJsonArrayItemFieldEquals -Result $rbacUsersAfterCustomRole -ArrayField "items" -MatchField "id" -MatchValue $currentUserId -TargetField "id" -ExpectedValue $currentUserId -Assertion "rbac-users-list-after-custom-role-current-user"
+  $rbacUsersAfterCustomRoleJson = Get-ResultJsonObject -Result $rbacUsersAfterCustomRole
+  if ($rbacUsersAfterCustomRoleJson) {
+    $currentUserInList = @($rbacUsersAfterCustomRoleJson.items | Where-Object { [string]$_.id -eq $currentUserId }) | Select-Object -First 1
+    if ($currentUserInList -and -not (@($currentUserInList.roleIds) | ForEach-Object { [string]$_ } | Where-Object { $_ -eq $rbacRoleId })) {
+      Add-ResultAssertionFailure -Result $rbacUsersAfterCustomRole -Assertion "rbac-users-list-custom-role-linked" -Message "Current user '$currentUserId' does not include role '$rbacRoleId' in users list"
+    }
+  }
+  $rbacUserUpdateClearRoles = Add-ApiCaseResult -Results $results -Name "admin-rbac-user-update-clear-roles" -Method "PATCH" -Url "http://127.0.0.1:$resolvedApiPort/admin/rbac/users/$currentUserId" -Body @{ roleIds = @() } -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-rbac-user-update-clear-roles") -Expected @(200)
+  $rbacUserClearJson = Get-ResultJsonObject -Result $rbacUserUpdateClearRoles
+  if ($rbacUserClearJson -and @($rbacUserClearJson.roleIds).Count -ne 0) {
+    Add-ResultAssertionFailure -Result $rbacUserUpdateClearRoles -Assertion "rbac-user-clear-roles-empty" -Message "Expected roleIds to be empty after clear"
+  }
   [void](Add-ApiCaseResult -Results $results -Name "admin-rbac-role-delete-system-forbidden" -Method "DELETE" -Url "http://127.0.0.1:$resolvedApiPort/admin/rbac/roles/role-admin" -Body $null -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-rbac-role-delete-system-forbidden") -Expected @(403))
   [void](Add-ApiCaseResult -Results $results -Name "admin-rbac-role-delete-missing" -Method "DELETE" -Url "http://127.0.0.1:$resolvedApiPort/admin/rbac/roles/$([guid]::NewGuid().ToString())" -Body $null -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-rbac-role-delete-missing") -Expected @(404))
   [void](Add-ApiCaseResult -Results $results -Name "admin-rbac-role-delete" -Method "DELETE" -Url "http://127.0.0.1:$resolvedApiPort/admin/rbac/roles/$rbacRoleId" -Body $null -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-rbac-role-delete") -Expected @(200))
+  $rbacRolesAfterDelete = Add-ApiCaseResult -Results $results -Name "admin-rbac-roles-list-after-delete" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/admin/rbac/roles" -Body $null -Headers @{ Authorization = $adminToken } -Expected @(200)
+  $rbacRolesAfterDeleteJson = Get-ResultJsonObject -Result $rbacRolesAfterDelete
+  if ($rbacRolesAfterDeleteJson) {
+    $deletedRoleStillExists = @($rbacRolesAfterDeleteJson.items | Where-Object { [string]$_.id -eq $rbacRoleId }).Count -gt 0
+    if ($deletedRoleStillExists) {
+      Add-ResultAssertionFailure -Result $rbacRolesAfterDelete -Assertion "rbac-role-deleted-removed-from-list" -Message "Deleted role '$rbacRoleId' still exists in roles list"
+    }
+  }
 
-  [void](Add-ApiCaseResult -Results $results -Name "admin-report-export" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/admin/reports/finance/export" -Body @{} -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-report-export") -Expected @(200, 201))
+  $reportExport = Add-ApiCaseResult -Results $results -Name "admin-report-export" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/admin/reports/finance/export" -Body @{} -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-report-export") -Expected @(200, 201)
+  $reportExportJson = Get-ResultJsonObject -Result $reportExport
+  if ($reportExportJson) {
+    $exportUrl = [string]$reportExportJson.exportUrl
+    if ([string]::IsNullOrWhiteSpace($exportUrl) -or -not $exportUrl.Contains("/files/")) {
+      Add-ResultAssertionFailure -Result $reportExport -Assertion "report-export-url" -Message "Export URL is empty or invalid: '$exportUrl'"
+    }
+  }
   [void](Add-ApiCaseResult -Results $results -Name "admin-report-export-invalid-range" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/admin/reports/finance/export" -Body @{ start = "2026-12-31T00:00:00.000Z"; end = "2026-01-01T00:00:00.000Z" } -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-report-export-invalid-range") -Expected @(400))
   [void](Add-ApiCaseResult -Results $results -Name "admin-patent-map-import-missing-file" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/admin/patent-map/import" -Body @{} -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-patent-map-import-missing-file") -Expected @(400))
   $patentMapImportPath = Join-Path $logDir "api-real-smoke-patent-map-import-$ReportDate.csv"
@@ -664,7 +946,9 @@ try {
     "regionCode,year,patentCount,industryBreakdown,topAssignees",
     "$importRegionCode,$((Get-Date).Year),1,," 
   ) | Out-File -Encoding UTF8 $patentMapImportPath
-  [void](Add-ApiFileUploadCaseResult -Results $results -Name "admin-patent-map-import-dry-run" -Url "http://127.0.0.1:$resolvedApiPort/admin/patent-map/import" -AuthorizationToken $adminToken -FilePath $patentMapImportPath -FormFields @{ dryRun = "true" } -Expected @(200, 201))
+  $patentMapImportDryRun = Add-ApiFileUploadCaseResult -Results $results -Name "admin-patent-map-import-dry-run" -Url "http://127.0.0.1:$resolvedApiPort/admin/patent-map/import" -AuthorizationToken $adminToken -FilePath $patentMapImportPath -FormFields @{ dryRun = "true" } -Expected @(200, 201)
+  Assert-ResultJsonFieldEquals -Result $patentMapImportDryRun -Field "dryRun" -ExpectedValue "True" -Assertion "patent-map-import-dry-run-flag"
+  Assert-ResultJsonFieldEquals -Result $patentMapImportDryRun -Field "importedCount" -ExpectedValue "1" -Assertion "patent-map-import-dry-run-count"
 
   $listingCommentCreate = Add-ApiCaseResult -Results $results -Name "listing-comment-create" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/listings/$listingId/comments" -Body @{ text = "smoke listing comment $ReportDate" } -Headers (New-WriteHeaders -AuthorizationToken $userToken -Prefix $idempotencyPrefix -Label "comment-listing-create") -Expected @(200, 201)
   $listingCommentId = Get-ResultStringField -Result $listingCommentCreate -Field "id"
@@ -709,18 +993,18 @@ try {
   [void](Add-ApiCaseResult -Results $results -Name "conversation-message-empty-text" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/conversations/$listingConversationId/messages" -Body @{ type = "TEXT"; text = "" } -Headers (New-WriteHeaders -AuthorizationToken $userToken -Prefix $idempotencyPrefix -Label "conversation-message-empty-text") -Expected @(400))
   [void](Add-ApiCaseResult -Results $results -Name "conversation-read" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/conversations/$listingConversationId/read" -Body $null -Headers (New-WriteHeaders -AuthorizationToken $userToken -Prefix $idempotencyPrefix -Label "conversation-read") -Expected @(200, 201))
 
-  $failedCount = [int](($results | Where-Object { -not $_.ok }).Count)
+  $failedCount = [int](@($results | Where-Object { -not $_.ok }).Count)
   $writeMethods = @("POST", "PUT", "PATCH", "DELETE")
   $writeResults = @($results | Where-Object { $writeMethods -contains $_.method.ToUpper() })
   $readResults = @($results | Where-Object { -not ($writeMethods -contains $_.method.ToUpper()) })
   $summary = [pscustomobject]@{
     total = $results.Count
-    passed = [int](($results | Where-Object { $_.ok }).Count)
+    passed = [int](@($results | Where-Object { $_.ok }).Count)
     failed = $failedCount
     writesTotal = $writeResults.Count
-    writesPassed = [int](($writeResults | Where-Object { $_.ok }).Count)
+    writesPassed = [int](@($writeResults | Where-Object { $_.ok }).Count)
     readsTotal = $readResults.Count
-    readsPassed = [int](($readResults | Where-Object { $_.ok }).Count)
+    readsPassed = [int](@($readResults | Where-Object { $_.ok }).Count)
   }
 
   $results | ConvertTo-Json -Depth 8 | Out-File -Encoding UTF8 $resultsPath

@@ -9,14 +9,14 @@
 ### 1.1 Quality gates status
 - `typecheck`: pass (api/client/admin-web).
 - `build`: pass (api/admin-web/client h5/weapp); WeApp severe regression has been fixed in this batch, and bundle gate is now enforced.
-- `smoke`: pass (API 173/173, UI HTTP 28/28, UI Render full 83/83, UI Render core 3/3, UI DOM core 11/11, UI DOM full-83 83/83).
+- `smoke`: pass (API 190/190, UI HTTP 28/28, UI Render full 83/83, UI Render core 3/3, UI DOM core 11/11, UI DOM full-83 83/83).
 - `verify`: pass on 2026-03-06 (now includes `ui-dom-smoke(core)` in pipeline); port/process hardening has been applied to core smoke scripts.
 - `weapp-route-smoke`: local fail due DevTools HTTP port availability (environment issue).
 
 ### 1.2 Coverage and test capability
 - OpenAPI operations: 243 (GET 108 / POST 93 / PUT 12 / PATCH 21 / DELETE 9).
-- API smoke covers 173 operations (~71.2%).
-- Write operations total 135; smoke now executes 136 write assertions (includes repeated negative/idempotency checks; unique write-operation coverage remains at least prior 132/135 baseline and is further expanded in this batch).
+- API smoke covers 190 checks (including semantic read-back/state assertions).
+- Write operations total 135; smoke now executes 136 write assertions plus 54 read-back semantic checks (state transitions, persistence, and cross-module link integrity), while unique write-operation coverage remains at least prior 132/135 baseline.
 - Highest uncovered write concentration remains in `/admin` (77 write operations; still the largest uncovered write domain).
 - No `.test` / `.spec` business tests under `apps` and `packages`.
 
@@ -85,7 +85,7 @@
   - Acceptance: executable `test` scripts in `apps/api`; CI can run minimal set.
 - [ ] B02 Build write-first API test inventory (orders/refunds/invoices/comments/favorites/addresses/audit flow).
   - Acceptance: first batch covers >=30 key write APIs with success/failure/idempotency assertions.
-  - Progress: smoke batch now executes 136 write assertions (favorites/comments/addresses/conversations/consultations + auth + admin-config writes + admin order/refund negative paths + order/admin happy-path state transitions + file-dependent payout/invoice paths + refund approve/complete/reject lifecycle checks + admin case workflows + patent-maintenance schedules/tasks workflows + rbac role/user workflows + reports export + patent-map import), with failure/idempotency assertions and targeted regression checks added.
+  - Progress: smoke batch now executes 136 write assertions (favorites/comments/addresses/conversations/consultations + auth + admin-config writes + admin order/refund negative paths + order/admin happy-path state transitions + file-dependent payout/invoice paths + refund approve/complete/reject lifecycle checks + admin case workflows + patent-maintenance schedules/tasks workflows + rbac role/user workflows + reports export + patent-map import), plus 54 semantic read-back checks for state continuity/persistence integrity, with failure/idempotency assertions and targeted regression checks added.
 - [ ] B03 Add frontend E2E for key H5/admin paths (excluding real login/payment).
   - Acceptance: homepage/search/detail/publish/order/audit flows are script-regressible.
 - [x] B04 Upgrade `api-real-smoke` from read-heavy to read-write balanced.
@@ -257,8 +257,8 @@
 | J06 | done | Codex | 2026-03-06 | 2026-03-05 | DOM full-mode batch-1 landed (36/36 pass, matrix 36/83) |
 | J07 | done | Codex | 2026-03-06 | 2026-03-05 | DOM full-mode expanded to full 83/83 with matrix sync |
 | K01 | done | Codex | 2026-03-06 | 2026-03-05 | vulnerability ledger + generator script completed |
-| B04 | done | Codex | 2026-03-06 | 2026-03-06 | `api-real-smoke` expanded to 173/173 (writes 136/136 assertions), with unique write-operation coverage already near-full baseline |
-| B02 | in_progress | Codex | 2026-03-06 | - | write batch now includes reports export + patent-map import checks; remaining depth is cross-module idempotency/state matrices rather than endpoint count |
+| B04 | done | Codex | 2026-03-06 | 2026-03-06 | `api-real-smoke` expanded to 190/190 (writes 136/136 + reads 54/54 semantic assertions), with unique write-operation coverage already near-full baseline |
+| B02 | in_progress | Codex | 2026-03-06 | - | write batch now includes semantic read-back checks (order/refund/case/maintenance/rbac/report/import); remaining depth is same-idempotency replay invariants + concurrency/state-race matrices |
 
 ### Current execution batch (Batch-1)
 - Scope: A01 / A02 / A03 / N01 / N02 / N03 / N04 / H01 / D01 / D02 / D03 / D04 (completed).
@@ -284,7 +284,7 @@
 ### Current execution batch (Batch-3)
 - Scope: B04 close-out + B02 first write batch (in progress).
 - Deliverables:
-  1) `api-real-smoke` expanded from 17 to 173 checks (done),
+  1) `api-real-smoke` expanded from 17 to 190 checks (done),
   2) write checks expanded from 2 to 136 assertions (favorites/comments/addresses/conversations/consultations/auth/admin-config/admin-order-refund-negative/order-admin-happy-path/file-dependent payout-invoice/refund lifecycle/admin-case workflows/patent-maintenance workflows/rbac workflows/reports export/patent-map import) (done),
   3) first failure-path/idempotency assertions added (duplicate favorites, invalid comment/message, missing-address delete) (done),
   4) `verify` rerun full green with new API smoke baseline (done),
@@ -297,4 +297,5 @@
   11) patent-maintenance schedules/tasks deepening landed (happy+negative paths for create/update/detail/list) (done),
   12) RBAC role/user deepening landed (create/update/delete role + user role assignment happy+negative paths) (done),
   13) reports export/patent-map import checks landed (including invalid-range and missing-file guards) (done),
-  14) next step: extend cross-module idempotency/state matrices and semantic assertion depth (pending).
+  14) semantic read-back/state continuity checks deepened (order/refund/case/maintenance/rbac/report/import) and single-failure summary counting edge fixed (done),
+  15) next step: extend same-idempotency replay invariants and concurrency/state-race matrices (pending).
