@@ -122,6 +122,22 @@ function Wait-Health([string]$Url, [int]$TimeoutSec = 45) {
   throw "api not ready: $Url"
 }
 
+function Normalize-ResultBody {
+  param(
+    [string]$Raw,
+    [int]$MaxChars = 4096
+  )
+
+  if ([string]::IsNullOrEmpty($Raw)) {
+    return ""
+  }
+  if ($Raw.Length -le $MaxChars) {
+    return $Raw
+  }
+  $rest = $Raw.Length - $MaxChars
+  return $Raw.Substring(0, $MaxChars) + "`n...[truncated $rest chars]"
+}
+
 function Invoke-ApiCase {
   param(
     [string]$Name,
@@ -158,6 +174,8 @@ function Invoke-ApiCase {
     }
   }
 
+  $raw = Normalize-ResultBody -Raw $raw
+
   return [pscustomobject]@{
     name = $Name
     method = $Method
@@ -181,6 +199,41 @@ function Add-ApiCaseResult {
   )
 
   $result = Invoke-ApiCase -Name $Name -Method $Method -Url $Url -Body $Body -Headers $Headers -Expected $Expected
+  [void]$Results.Add($result)
+  return $result
+}
+
+function Add-ApiFileUploadCaseResult {
+  param(
+    [System.Collections.ArrayList]$Results,
+    [string]$Name,
+    [string]$Url,
+    [string]$AuthorizationToken,
+    [string]$FilePath,
+    [int[]]$Expected
+  )
+
+  $tmpBody = Join-Path $env:TEMP ("api-file-upload-{0}.json" -f ([guid]::NewGuid().ToString('N')))
+  try {
+    $statusText = & curl.exe -s -o $tmpBody -w "%{http_code}" -X POST $Url -H "Authorization: $AuthorizationToken" -F "file=@$FilePath"
+    $status = [int]$statusText
+    $raw = ""
+    if (Test-Path $tmpBody) {
+      $raw = Get-Content -Path $tmpBody -Raw -ErrorAction SilentlyContinue
+    }
+  } finally {
+    Remove-Item -Path $tmpBody -Force -ErrorAction SilentlyContinue
+  }
+
+  $result = [pscustomobject]@{
+    name = $Name
+    method = "POST"
+    url = $Url
+    status = $status
+    expected = ($Expected -join "/")
+    ok = ($Expected -contains $status)
+    body = (Normalize-ResultBody -Raw $raw)
+  }
   [void]$Results.Add($result)
   return $result
 }
@@ -314,6 +367,10 @@ if ([string]::IsNullOrWhiteSpace($env:DEMO_USER_ID)) {
 $env:DEMO_AUTH_ALLOW_UUID_TOKENS = "false"
 # Keep smoke focused on business behavior instead of local rate-limit noise.
 $env:RATE_LIMIT_ENABLED = "false"
+# Keep file upload smoke local-only to avoid external object storage dependency.
+$env:S3_BUCKET = ""
+$env:S3_ACCESS_KEY_ID = ""
+$env:S3_SECRET_ACCESS_KEY = ""
 $env:UPLOAD_DIR = (Join-Path $repoRoot ".tmp/uploads")
 New-Item -ItemType Directory -Force $env:UPLOAD_DIR | Out-Null
 
@@ -323,6 +380,8 @@ $stdoutPath = Join-Path $logDir "api-real-smoke.out.log"
 $stderrPath = Join-Path $logDir "api-real-smoke.err.log"
 $resultsPath = Join-Path $logDir "api-real-smoke-$ReportDate.json"
 $summaryPath = Join-Path $logDir "api-real-smoke-$ReportDate-summary.json"
+$smokeEvidencePath = Join-Path $logDir "api-real-smoke-evidence-$ReportDate.txt"
+"api smoke evidence $ReportDate" | Out-File -Encoding ASCII $smokeEvidencePath
 
 $proc = Start-Process -FilePath "node" -ArgumentList @("apps/api/dist/main.js") -WorkingDirectory $repoRoot -PassThru -WindowStyle Hidden -RedirectStandardOutput $stdoutPath -RedirectStandardError $stderrPath
 
@@ -460,6 +519,14 @@ try {
   [void](Add-ApiCaseResult -Results $results -Name "admin-order-upsert-invoice-missing-file" -Method "PUT" -Url "http://127.0.0.1:$resolvedApiPort/admin/orders/$orderId/invoice" -Body @{ invoiceFileId = [guid]::NewGuid().ToString() } -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-order-upsert-invoice-missing-file") -Expected @(400))
   [void](Add-ApiCaseResult -Results $results -Name "order-refund-request-not-allowed-ready-to-settle" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/orders/$orderId/refund-requests" -Body @{ reasonCode = "OTHER"; reasonText = "smoke not allowed" } -Headers (New-WriteHeaders -AuthorizationToken $userToken -Prefix $idempotencyPrefix -Label "order-refund-request-not-allowed-ready-to-settle") -Expected @(409))
   [void](Add-ApiCaseResult -Results $results -Name "order-invoice-request-not-completed" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/orders/$orderId/invoice-requests" -Body @{} -Headers (New-WriteHeaders -AuthorizationToken $userToken -Prefix $idempotencyPrefix -Label "order-invoice-request-not-completed") -Expected @(409))
+  $evidenceUpload = Add-ApiFileUploadCaseResult -Results $results -Name "file-upload-evidence" -Url "http://127.0.0.1:$resolvedApiPort/files" -AuthorizationToken $userToken -FilePath $smokeEvidencePath -Expected @(200, 201)
+  $evidenceFileId = Get-ResultStringField -Result $evidenceUpload -Field "id"
+  if ([string]::IsNullOrWhiteSpace($evidenceFileId)) { throw "file-upload-evidence missing id" }
+  [void](Add-ApiCaseResult -Results $results -Name "admin-order-manual-payout-with-evidence" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/admin/orders/$orderId/payouts/manual" -Body @{ payoutEvidenceFileId = $evidenceFileId } -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-order-manual-payout-with-evidence") -Expected @(200, 201))
+  [void](Add-ApiCaseResult -Results $results -Name "order-invoice-request-completed" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/orders/$orderId/invoice-requests" -Body @{} -Headers (New-WriteHeaders -AuthorizationToken $userToken -Prefix $idempotencyPrefix -Label "order-invoice-request-completed") -Expected @(200, 201))
+  [void](Add-ApiCaseResult -Results $results -Name "order-invoice-request-completed-duplicate" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/orders/$orderId/invoice-requests" -Body @{} -Headers (New-WriteHeaders -AuthorizationToken $userToken -Prefix $idempotencyPrefix -Label "order-invoice-request-completed-duplicate") -Expected @(409))
+  [void](Add-ApiCaseResult -Results $results -Name "admin-order-upsert-invoice-with-file" -Method "PUT" -Url "http://127.0.0.1:$resolvedApiPort/admin/orders/$orderId/invoice" -Body @{ invoiceFileId = $evidenceFileId } -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-order-upsert-invoice-with-file") -Expected @(200))
+  [void](Add-ApiCaseResult -Results $results -Name "admin-order-delete-invoice-existing" -Method "DELETE" -Url "http://127.0.0.1:$resolvedApiPort/admin/orders/$orderId/invoice" -Body $null -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-order-delete-invoice-existing") -Expected @(204))
 
   $listingCommentCreate = Add-ApiCaseResult -Results $results -Name "listing-comment-create" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/listings/$listingId/comments" -Body @{ text = "smoke listing comment $ReportDate" } -Headers (New-WriteHeaders -AuthorizationToken $userToken -Prefix $idempotencyPrefix -Label "comment-listing-create") -Expected @(200, 201)
   $listingCommentId = Get-ResultStringField -Result $listingCommentCreate -Field "id"
