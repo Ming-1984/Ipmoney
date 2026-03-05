@@ -210,12 +210,20 @@ function Add-ApiFileUploadCaseResult {
     [string]$Url,
     [string]$AuthorizationToken,
     [string]$FilePath,
+    [hashtable]$FormFields,
     [int[]]$Expected
   )
 
   $tmpBody = Join-Path $env:TEMP ("api-file-upload-{0}.json" -f ([guid]::NewGuid().ToString('N')))
   try {
-    $statusText = & curl.exe -s -o $tmpBody -w "%{http_code}" -X POST $Url -H "Authorization: $AuthorizationToken" -F "file=@$FilePath"
+    $curlArgs = @("-s", "-o", $tmpBody, "-w", "%{http_code}", "-X", "POST", $Url, "-H", "Authorization: $AuthorizationToken", "-F", "file=@$FilePath")
+    if ($FormFields) {
+      foreach ($key in $FormFields.Keys) {
+        $curlArgs += "-F"
+        $curlArgs += ("{0}={1}" -f $key, [string]$FormFields[$key])
+      }
+    }
+    $statusText = & curl.exe @curlArgs
     $status = [int]$statusText
     $raw = ""
     if (Test-Path $tmpBody) {
@@ -456,6 +464,7 @@ try {
   $adminAchievementsForWrites = Invoke-RestMethod -Method Get -Uri "http://127.0.0.1:$resolvedApiPort/admin/achievements" -Headers @{ Authorization = $adminToken }
   $adminArtworksForWrites = Invoke-RestMethod -Method Get -Uri "http://127.0.0.1:$resolvedApiPort/admin/artworks" -Headers @{ Authorization = $adminToken }
   $adminPatentsForWrites = Invoke-RestMethod -Method Get -Uri "http://127.0.0.1:$resolvedApiPort/admin/patents" -Headers @{ Authorization = $adminToken }
+  $regionsForWrites = Invoke-RestMethod -Method Get -Uri "http://127.0.0.1:$resolvedApiPort/regions"
   $searchTechManagersForWrites = Invoke-RestMethod -Method Get -Uri "http://127.0.0.1:$resolvedApiPort/search/tech-managers"
   $adminUserVerificationsForWrites = Invoke-RestMethod -Method Get -Uri "http://127.0.0.1:$resolvedApiPort/admin/user-verifications" -Headers @{ Authorization = $adminToken }
   $adminTradeRulesConfig = Invoke-RestMethod -Method Get -Uri "http://127.0.0.1:$resolvedApiPort/admin/config/trade-rules" -Headers @{ Authorization = $adminToken }
@@ -472,6 +481,21 @@ try {
   $achievementId = Select-ContentId -Items @($adminAchievementsForWrites.items) -OwnerField "publisherUserId" -CurrentUserId $currentUserId -Label "achievement"
   $artworkId = Select-ContentId -Items @($adminArtworksForWrites.items) -OwnerField "sellerUserId" -CurrentUserId $currentUserId -Label "artwork"
   $patentId = Select-ContentId -Items @($adminPatentsForWrites.items) -OwnerField "" -CurrentUserId $currentUserId -Label "patent"
+  $regionCandidates = @()
+  if ($regionsForWrites -is [System.Array]) {
+    $regionCandidates = @($regionsForWrites)
+  } elseif ($regionsForWrites -and $regionsForWrites.items) {
+    $regionCandidates = @($regionsForWrites.items)
+  }
+  $regionItem = $regionCandidates | Select-Object -First 1
+  $importRegionCode = ""
+  if ($regionItem) {
+    if ($regionItem.code) { $importRegionCode = [string]$regionItem.code }
+    elseif ($regionItem.regionCode) { $importRegionCode = [string]$regionItem.regionCode }
+  }
+  if ([string]::IsNullOrWhiteSpace($importRegionCode)) {
+    throw "No region code available for patent-map import smoke cases"
+  }
   $missingOrderId = [guid]::NewGuid().ToString()
 
   $techManagerId = $null
@@ -541,7 +565,7 @@ try {
   [void](Add-ApiCaseResult -Results $results -Name "admin-order-upsert-invoice-missing-file" -Method "PUT" -Url "http://127.0.0.1:$resolvedApiPort/admin/orders/$orderId/invoice" -Body @{ invoiceFileId = [guid]::NewGuid().ToString() } -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-order-upsert-invoice-missing-file") -Expected @(400))
   [void](Add-ApiCaseResult -Results $results -Name "order-refund-request-not-allowed-ready-to-settle" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/orders/$orderId/refund-requests" -Body @{ reasonCode = "OTHER"; reasonText = "smoke not allowed" } -Headers (New-WriteHeaders -AuthorizationToken $userToken -Prefix $idempotencyPrefix -Label "order-refund-request-not-allowed-ready-to-settle") -Expected @(409))
   [void](Add-ApiCaseResult -Results $results -Name "order-invoice-request-not-completed" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/orders/$orderId/invoice-requests" -Body @{} -Headers (New-WriteHeaders -AuthorizationToken $userToken -Prefix $idempotencyPrefix -Label "order-invoice-request-not-completed") -Expected @(409))
-  $evidenceUpload = Add-ApiFileUploadCaseResult -Results $results -Name "file-upload-evidence" -Url "http://127.0.0.1:$resolvedApiPort/files" -AuthorizationToken $userToken -FilePath $smokeEvidencePath -Expected @(200, 201)
+  $evidenceUpload = Add-ApiFileUploadCaseResult -Results $results -Name "file-upload-evidence" -Url "http://127.0.0.1:$resolvedApiPort/files" -AuthorizationToken $userToken -FilePath $smokeEvidencePath -FormFields $null -Expected @(200, 201)
   $evidenceFileId = Get-ResultStringField -Result $evidenceUpload -Field "id"
   if ([string]::IsNullOrWhiteSpace($evidenceFileId)) { throw "file-upload-evidence missing id" }
   [void](Add-ApiCaseResult -Results $results -Name "admin-order-manual-payout-with-evidence" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/admin/orders/$orderId/payouts/manual" -Body @{ payoutEvidenceFileId = $evidenceFileId } -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-order-manual-payout-with-evidence") -Expected @(200, 201))
@@ -631,6 +655,16 @@ try {
   [void](Add-ApiCaseResult -Results $results -Name "admin-rbac-role-delete-system-forbidden" -Method "DELETE" -Url "http://127.0.0.1:$resolvedApiPort/admin/rbac/roles/role-admin" -Body $null -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-rbac-role-delete-system-forbidden") -Expected @(403))
   [void](Add-ApiCaseResult -Results $results -Name "admin-rbac-role-delete-missing" -Method "DELETE" -Url "http://127.0.0.1:$resolvedApiPort/admin/rbac/roles/$([guid]::NewGuid().ToString())" -Body $null -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-rbac-role-delete-missing") -Expected @(404))
   [void](Add-ApiCaseResult -Results $results -Name "admin-rbac-role-delete" -Method "DELETE" -Url "http://127.0.0.1:$resolvedApiPort/admin/rbac/roles/$rbacRoleId" -Body $null -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-rbac-role-delete") -Expected @(200))
+
+  [void](Add-ApiCaseResult -Results $results -Name "admin-report-export" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/admin/reports/finance/export" -Body @{} -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-report-export") -Expected @(200, 201))
+  [void](Add-ApiCaseResult -Results $results -Name "admin-report-export-invalid-range" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/admin/reports/finance/export" -Body @{ start = "2026-12-31T00:00:00.000Z"; end = "2026-01-01T00:00:00.000Z" } -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-report-export-invalid-range") -Expected @(400))
+  [void](Add-ApiCaseResult -Results $results -Name "admin-patent-map-import-missing-file" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/admin/patent-map/import" -Body @{} -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-patent-map-import-missing-file") -Expected @(400))
+  $patentMapImportPath = Join-Path $logDir "api-real-smoke-patent-map-import-$ReportDate.csv"
+  @(
+    "regionCode,year,patentCount,industryBreakdown,topAssignees",
+    "$importRegionCode,$((Get-Date).Year),1,," 
+  ) | Out-File -Encoding UTF8 $patentMapImportPath
+  [void](Add-ApiFileUploadCaseResult -Results $results -Name "admin-patent-map-import-dry-run" -Url "http://127.0.0.1:$resolvedApiPort/admin/patent-map/import" -AuthorizationToken $adminToken -FilePath $patentMapImportPath -FormFields @{ dryRun = "true" } -Expected @(200, 201))
 
   $listingCommentCreate = Add-ApiCaseResult -Results $results -Name "listing-comment-create" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/listings/$listingId/comments" -Body @{ text = "smoke listing comment $ReportDate" } -Headers (New-WriteHeaders -AuthorizationToken $userToken -Prefix $idempotencyPrefix -Label "comment-listing-create") -Expected @(200, 201)
   $listingCommentId = Get-ResultStringField -Result $listingCommentCreate -Field "id"

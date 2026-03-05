@@ -9,8 +9,8 @@
   - Script hardening: `api-real-smoke`, `ui-http-smoke`, `ui-render-smoke`, `ui-dom-smoke` now use dynamic port selection and process-tree cleanup (no kill-by-port behavior).
   - Build resilience: verify appends `NODE_OPTIONS=--max-old-space-size=4096` and retries transient `client:build:h5` crash exits once.
   - Quality gates: `openapi:lint`, `lint`, `typecheck`, `scan:banned-words` all pass.
-  - API smoke: pass (169/169) -> `.tmp/api-real-smoke-2026-03-06-summary.json`
-  - API smoke write/read split: writes 132/132, reads 37/37.
+  - API smoke: pass (173/173) -> `.tmp/api-real-smoke-2026-03-06-summary.json`
+  - API smoke write/read split: writes 136/136, reads 37/37.
   - Failure/idempotency checks now included: duplicate favorites, invalid comment/message payloads, and missing-resource delete paths.
   - Anti-flake hardening: `api-real-smoke` now forces `RATE_LIMIT_ENABLED=false` for local run consistency.
   - DB preflight: pass (failed=0) -> `.tmp/db-preflight-2026-03-06-summary.json`
@@ -83,8 +83,12 @@
   - Result: pass (`/admin/rbac` roles/users list/create/update/delete + user role assignment).
   - Added negative guards: missing role name (400), unknown permission/role ids (400), missing role/user targets (404), system role delete forbidden (403).
 
+- Report export & patent-map import probes (demo auth/payment)
+  - Result: pass (`/admin/reports/finance/export`, `/admin/patent-map/import` dry-run).
+  - Added negative guards: invalid export range (400), missing import file (400), multipart import dry-run with generated CSV payload.
+
 ### Risks still open
-- API write-coverage phase-1 target is reached and expanded (132/135 ~= 97.8%), but `/admin` write domain still has uncovered area (currently concentrated in patent-map import and reports export write paths, plus cross-module state/idempotency matrices).
+- API write-path assertions are expanded to 136 checks (including idempotency/negative probes), and unique write-operation coverage is at least the previous 132/135 baseline plus this batch's report-import additions; remaining risk is mainly cross-module state/idempotency matrix depth.
 - UI status smoke is still shallow (route-level HTTP checks only 26/83 pages, plus 2 mock endpoints).
 - DOM assertions now cover all 83/83 pages, but many routes still use generic structural assertions and need incremental business-semantic tightening.
 - Security baseline still high-risk (`pnpm audit --prod`: critical 2 / high 21), remediation not yet executed.
