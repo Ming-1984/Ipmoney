@@ -31,8 +31,8 @@
   - Artifacts: `.tmp/ui-dom-smoke-2026-03-05-summary.json`, `.tmp/ui-dom-smoke-2026-03-05.json`.
 
 - `powershell -ExecutionPolicy Bypass -File scripts/ui-dom-smoke.ps1 -Mode full -ReportDate 2026-03-05`
-  - Result: pass (36/36), mode=`full-batch1`
-  - Coverage expansion: DOM assertion coverage raised to 36/83 pages in matrix.
+  - Result: pass (83/83), mode=`full-83`
+  - Coverage expansion: DOM assertion coverage raised to 83/83 pages in matrix.
   - Artifacts: `.tmp/ui-dom-smoke-2026-03-05-summary.json`, `.tmp/ui-dom-smoke-2026-03-05.json`.
 
 - `apps/mock-api/src/server.js`
@@ -50,7 +50,7 @@
 ### Risks still open
 - API write-coverage remains very low (2/135 ~= 1.48%).
 - UI status smoke is still shallow (route-level HTTP checks only 7/83 pages, plus 2 mock endpoints).
-- DOM assertions currently cover 36/83 pages; remaining 47 pages are pending for full rollout.
+- DOM assertions now cover all 83/83 pages, but many routes still use generic structural assertions and need incremental business-semantic tightening.
 - Security baseline still high-risk (`pnpm audit --prod`: critical 2 / high 21), remediation not yet executed.
 
 ### WeApp bundle trend

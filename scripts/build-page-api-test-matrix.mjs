@@ -210,9 +210,15 @@ lines.push(
 );
 if (hasDomInputs) {
   if (domMode.startsWith('full')) {
-    lines.push(
-      `- DOM smoke is running in \`${domMode}\` and currently covers ${domCovered}/${rows.length} pages; continue expanding toward full 83-page assertions.`,
-    );
+    if (domCovered >= rows.length) {
+      lines.push(
+        `- DOM smoke is running in \`${domMode}\` and currently covers ${domCovered}/${rows.length} pages; full page coverage is achieved for this baseline.`,
+      );
+    } else {
+      lines.push(
+        `- DOM smoke is running in \`${domMode}\` and currently covers ${domCovered}/${rows.length} pages; continue expanding toward full 83-page assertions.`,
+      );
+    }
   } else {
     lines.push('- DOM smoke currently tracks a core subset; next step is extending assertions from core to full 83-page scope.');
   }
