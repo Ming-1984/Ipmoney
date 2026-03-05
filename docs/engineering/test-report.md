@@ -6,11 +6,12 @@
 - `powershell -ExecutionPolicy Bypass -File scripts/verify.ps1 -ApiBaseUrl https://staging-api.example.com -ApiPort 3200 -ReportDate 2026-03-05`
   - Result: success (all steps)
   - Port resilience: verify keeps preferred/range/random fallback and remains stable under collision scenarios.
-  - Script hardening: `api-real-smoke`, `ui-http-smoke`, `ui-render-smoke` now use dynamic port selection and only clean up spawned child processes (no kill-by-port behavior).
+  - Script hardening: `api-real-smoke`, `ui-http-smoke`, `ui-render-smoke`, `ui-dom-smoke` now use dynamic port selection and process-tree cleanup (no kill-by-port behavior).
+  - Build resilience: verify appends `NODE_OPTIONS=--max-old-space-size=4096` and retries transient `client:build:h5` crash exits once.
   - Quality gates: `openapi:lint`, `lint`, `typecheck`, `scan:banned-words` all pass.
   - API smoke: pass (17/17) -> `.tmp/api-real-smoke-2026-03-05-summary.json`
   - DB preflight: pass (failed=0) -> `.tmp/db-preflight-2026-03-05-summary.json`
-  - UI HTTP smoke: pass (9/9) -> `.tmp/ui-http-smoke-2026-03-05-summary.json`
+  - UI HTTP smoke: pass (28/28) -> `.tmp/ui-http-smoke-2026-03-05-summary.json`
   - UI render smoke (core): pass (3/3) -> `.tmp/ui-render-smoke-2026-03-05-summary.json`
   - UI DOM smoke (core): pass (11/11) -> `.tmp/ui-dom-smoke-2026-03-05-summary.json`
   - WeApp hard budget gate: pass -> `.tmp/weapp-bundle-budget-2026-03-05.json`
@@ -49,7 +50,7 @@
 
 ### Risks still open
 - API write-coverage remains very low (2/135 ~= 1.48%).
-- UI status smoke is still shallow (route-level HTTP checks only 7/83 pages, plus 2 mock endpoints).
+- UI status smoke is still shallow (route-level HTTP checks only 26/83 pages, plus 2 mock endpoints).
 - DOM assertions now cover all 83/83 pages, but many routes still use generic structural assertions and need incremental business-semantic tightening.
 - Security baseline still high-risk (`pnpm audit --prod`: critical 2 / high 21), remediation not yet executed.
 

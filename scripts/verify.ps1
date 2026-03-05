@@ -66,13 +66,49 @@ function Resolve-ApiPort([int]$PreferredPort, [int]$MaxOffset = 200, [int]$Rando
   throw "No available API port found in range [$PreferredPort, $($PreferredPort + $MaxOffset)] and random fallback retries exhausted"
 }
 
-function Invoke-Step([string]$name, [scriptblock]$block) {
-  Write-Host ""
-  Write-Host ("[verify] {0}" -f $name)
-  & $block
-  if ($LASTEXITCODE -ne 0) {
-    throw "Step failed: $name (exit=$LASTEXITCODE)"
+function Invoke-Step(
+  [string]$name,
+  [scriptblock]$block,
+  [int]$MaxAttempts = 1,
+  [int[]]$RetryExitCodes = @()
+) {
+  for ($attempt = 1; $attempt -le $MaxAttempts; $attempt++) {
+    Write-Host ""
+    Write-Host ("[verify] {0}" -f $name)
+    if ($MaxAttempts -gt 1) {
+      Write-Host ("[verify] attempt {0}/{1}" -f $attempt, $MaxAttempts)
+    }
+
+    & $block
+    if ($LASTEXITCODE -eq 0) {
+      return
+    }
+
+    $exitCode = [int]$LASTEXITCODE
+    $canRetry = $attempt -lt $MaxAttempts -and ($RetryExitCodes.Count -eq 0 -or $RetryExitCodes -contains $exitCode)
+    if ($canRetry) {
+      Write-Host ("[verify] step failed with retryable exit={0}, retrying..." -f $exitCode)
+      Start-Sleep -Seconds 3
+      continue
+    }
+
+    throw "Step failed: $name (exit=$exitCode)"
   }
+}
+
+function Ensure-NodeHeap([int]$MinMb = 4096) {
+  $current = [string]$env:NODE_OPTIONS
+  if ($current -match "(^|\\s)--max-old-space-size(=|\\s)") {
+    return
+  }
+
+  $heapArg = "--max-old-space-size=$MinMb"
+  if ([string]::IsNullOrWhiteSpace($current)) {
+    $env:NODE_OPTIONS = $heapArg
+  } else {
+    $env:NODE_OPTIONS = "$current $heapArg"
+  }
+  Write-Host ("[verify] NODE_OPTIONS appended for build stability: {0}" -f $heapArg)
 }
 
 Invoke-Step "openapi:lint" { pnpm openapi:lint }
@@ -86,10 +122,11 @@ Invoke-Step "scan:banned-words" { pnpm scan:banned-words }
 # Build artifacts (use a non-local API base so production guards won't trip in CI).
 $env:VITE_API_BASE_URL = $ApiBaseUrl
 $env:TARO_APP_API_BASE_URL = $ApiBaseUrl
+Ensure-NodeHeap -MinMb 4096
 
 Invoke-Step "api:build" { pnpm -C apps/api build }
 Invoke-Step "admin-web:build" { pnpm -C apps/admin-web build }
-Invoke-Step "client:build:h5" { pnpm -C apps/client build:h5 }
+Invoke-Step "client:build:h5" { pnpm -C apps/client build:h5 } -MaxAttempts 2 -RetryExitCodes @(134, -1073740791)
 Invoke-Step "client:build:weapp" { pnpm -C apps/client build:weapp }
 Invoke-Step "check:weapp-budget" { pnpm check:weapp-budget }
 

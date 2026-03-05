@@ -9,7 +9,7 @@
 ### 1.1 Quality gates status
 - `typecheck`: pass (api/client/admin-web).
 - `build`: pass (api/admin-web/client h5/weapp); WeApp severe regression has been fixed in this batch, and bundle gate is now enforced.
-- `smoke`: pass (API 17/17, UI HTTP 9/9, UI Render full 83/83, UI Render core 3/3, UI DOM core 11/11, UI DOM full-83 83/83).
+- `smoke`: pass (API 17/17, UI HTTP 28/28, UI Render full 83/83, UI Render core 3/3, UI DOM core 11/11, UI DOM full-83 83/83).
 - `verify`: pass on 2026-03-05 (now includes `ui-dom-smoke(core)` in pipeline); port/process hardening has been applied to core smoke scripts.
 - `weapp-route-smoke`: local fail due DevTools HTTP port availability (environment issue).
 
@@ -39,7 +39,7 @@
 - Admin routes: 25 (including `/login` and `/`); render smoke full covers 25 (100%), gap 0.
 - Page/API/test matrix has been established for all 83 pages: `docs/engineering/page-api-test-matrix-2026-03-05.md`.
 - DOM assertions now cover all 83 pages (`ui-dom-smoke` mode `full-83`), including all client/admin routes in current matrix.
-- Remaining blind spots: `ui-http-smoke` is still shallow (7/83 page routes + 2 mock endpoints), and DOM assertions still need semantic hardening (many pages currently use generic structural checks).
+- Remaining blind spots: `ui-http-smoke` is still shallow (26/83 page routes + 2 mock endpoints), and DOM assertions still need semantic hardening (many pages currently use generic structural checks).
 - E2E path automation is still pending for critical client/admin journeys.
 
 ### 1.6 Dependency/security baseline
@@ -53,7 +53,8 @@
 
 ### 1.8 Script robustness
 - `verify` port fallback was fixed in this batch; remaining auxiliary scripts (for example WeApp route smoke) still need the same resilience pattern.
-- `api-real-smoke` / `ui-http-smoke` / `ui-render-smoke` now avoid kill-by-port and use child-process cleanup + dynamic port fallback.
+- `api-real-smoke` / `ui-http-smoke` / `ui-render-smoke` / `ui-dom-smoke` now avoid kill-by-port and use child-process cleanup + dynamic port fallback.
+- `verify` now appends `NODE_OPTIONS=--max-old-space-size=4096` and retries transient `client:build:h5` crash exit codes once.
 
 ---
 
@@ -196,6 +197,8 @@
   - Acceptance: no accidental termination of unrelated local services.
 - [x] N03 Add collision self-healing and clear diagnostics to smoke scripts.
   - Acceptance: conflicts auto-resolve or fail with explicit retry guidance.
+- [x] N04 Add memory/process hardening for long smoke/verify runs.
+  - Acceptance: no leaked process trees after smoke runs; verify survives transient `client:build:h5` crashes with bounded retry.
 
 ---
 
@@ -234,8 +237,9 @@
 | A03 | done | Codex | 2026-03-05 | 2026-03-05 | fallback validated (`3200` unavailable -> `3302`) |
 | H01 | done | Codex | 2026-03-05 | 2026-03-05 | test report backfilled with latest run |
 | N01 | done | Codex | 2026-03-05 | 2026-03-05 | preferred+range+random fallback implemented |
-| N02 | done | Codex | 2026-03-06 | 2026-03-05 | `api-real`/`ui-http`/`ui-render` now clean up spawned processes only |
+| N02 | done | Codex | 2026-03-06 | 2026-03-05 | `api-real`/`ui-http`/`ui-render`/`ui-dom` now clean up spawned process trees |
 | N03 | done | Codex | 2026-03-06 | 2026-03-05 | dynamic fallback validated via forced collision (`4010` blocker) |
+| N04 | done | Codex | 2026-03-06 | 2026-03-05 | verify heap/retry hardening + smoke leak cleanup validated in repeated runs |
 | D01 | done | Codex | 2026-03-06 | 2026-03-05 | root cause report completed and documented |
 | D02 | done | Codex | 2026-03-06 | 2026-03-05 | wxss size reduced below phase targets |
 | D03 | done | Codex | 2026-03-06 | 2026-03-05 | hard budget gate enabled in verify + CI |
@@ -250,7 +254,7 @@
 | K01 | done | Codex | 2026-03-06 | 2026-03-05 | vulnerability ledger + generator script completed |
 
 ### Current execution batch (Batch-1)
-- Scope: A01 / A02 / A03 / N01 / N02 / N03 / H01 / D01 / D02 / D03 / D04 (completed).
+- Scope: A01 / A02 / A03 / N01 / N02 / N03 / N04 / H01 / D01 / D02 / D03 / D04 (completed).
 - Deliverables:
   1) resilient `scripts/verify.ps1` port fallback (done),
   2) fresh verify run result (done),

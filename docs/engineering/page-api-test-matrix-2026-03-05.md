@@ -6,37 +6,37 @@
 ## Snapshot
 - UI render smoke (full): 83/83 pass.
 - Coverage split: client 58/58, admin 25/25.
-- UI HTTP smoke: 7/83 pages have route-level HTTP checks (root-focused).
+- UI HTTP smoke: 26/83 pages have route-level HTTP checks (root-focused).
 - DOM assertion automation: 83/83 pages (83/83 in current DOM smoke run).
 - E2E automation: 0/83 (planned in B03).
 
 ## Matrix
 | Page | Area | Route | API Domain | HTTP Smoke | Render Smoke | DOM Assert | E2E | Manual | Owner |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| admin-achievements | admin | /achievements | admin/achievements-audit | N | Y | Y | N | pending | admin-web |
-| admin-alerts | admin | /alerts | admin/alerts | N | Y | Y | N | pending | admin-web |
-| admin-announcements | admin | /announcements | admin/announcements | N | Y | Y | N | pending | admin-web |
-| admin-artworks | admin | /artworks | admin/artworks-audit | N | Y | Y | N | pending | admin-web |
-| admin-audit-logs | admin | /audit-logs | admin/audit-logs | N | Y | Y | N | pending | admin-web |
-| admin-cases | admin | /cases | admin/misc | N | Y | Y | N | pending | admin-web |
-| admin-comments | admin | /comments | admin/comments | N | Y | Y | N | pending | admin-web |
+| admin-achievements | admin | /achievements | admin/achievements-audit | Y | Y | Y | N | pending | admin-web |
+| admin-alerts | admin | /alerts | admin/alerts | Y | Y | Y | N | pending | admin-web |
+| admin-announcements | admin | /announcements | admin/announcements | Y | Y | Y | N | pending | admin-web |
+| admin-artworks | admin | /artworks | admin/artworks-audit | Y | Y | Y | N | pending | admin-web |
+| admin-audit-logs | admin | /audit-logs | admin/audit-logs | Y | Y | Y | N | pending | admin-web |
+| admin-cases | admin | /cases | admin/misc | Y | Y | Y | N | pending | admin-web |
+| admin-comments | admin | /comments | admin/comments | Y | Y | Y | N | pending | admin-web |
 | admin-config | admin | /config | admin/config | Y | Y | Y | N | pending | admin-web |
 | admin-dashboard | admin | / | admin/dashboard | Y | Y | Y | N | pending | admin-web |
-| admin-demands | admin | /demands | admin/demands-audit | N | Y | Y | N | pending | admin-web |
-| admin-invoices | admin | /invoices | admin/invoices | N | Y | Y | N | pending | admin-web |
-| admin-listings | admin | /listings | admin/listings-audit | N | Y | Y | N | pending | admin-web |
+| admin-demands | admin | /demands | admin/demands-audit | Y | Y | Y | N | pending | admin-web |
+| admin-invoices | admin | /invoices | admin/invoices | Y | Y | Y | N | pending | admin-web |
+| admin-listings | admin | /listings | admin/listings-audit | Y | Y | Y | N | pending | admin-web |
 | admin-login | admin | /login | demo-auth-boundary | Y | Y | Y | N | pending | admin-web |
-| admin-maintenance | admin | /maintenance | admin/patent-maintenance | N | Y | Y | N | pending | admin-web |
-| admin-order-detail | admin | /orders/e9032d03-9b23-40ba-84a3-ac681f21c41b | admin/orders | N | Y | Y | N | pending | admin-web |
+| admin-maintenance | admin | /maintenance | admin/patent-maintenance | Y | Y | Y | N | pending | admin-web |
+| admin-order-detail | admin | /orders/e9032d03-9b23-40ba-84a3-ac681f21c41b | admin/orders | Y | Y | Y | N | pending | admin-web |
 | admin-orders | admin | /orders | admin/orders | Y | Y | Y | N | pending | admin-web |
 | admin-patent-map | admin | /patent-map | admin/patent-map | Y | Y | Y | N | pending | admin-web |
-| admin-patents | admin | /patents | admin/patents | N | Y | Y | N | pending | admin-web |
-| admin-rbac | admin | /rbac | admin/rbac | N | Y | Y | N | pending | admin-web |
-| admin-refunds | admin | /refunds | admin/refunds | N | Y | Y | N | pending | admin-web |
-| admin-regions | admin | /regions | admin/regions | N | Y | Y | N | pending | admin-web |
-| admin-reports | admin | /reports | admin/reports | N | Y | Y | N | pending | admin-web |
-| admin-settlements | admin | /settlements | admin/settlements | N | Y | Y | N | pending | admin-web |
-| admin-tech-managers | admin | /tech-managers | admin/tech-managers | N | Y | Y | N | pending | admin-web |
+| admin-patents | admin | /patents | admin/patents | Y | Y | Y | N | pending | admin-web |
+| admin-rbac | admin | /rbac | admin/rbac | Y | Y | Y | N | pending | admin-web |
+| admin-refunds | admin | /refunds | admin/refunds | Y | Y | Y | N | pending | admin-web |
+| admin-regions | admin | /regions | admin/regions | Y | Y | Y | N | pending | admin-web |
+| admin-reports | admin | /reports | admin/reports | Y | Y | Y | N | pending | admin-web |
+| admin-settlements | admin | /settlements | admin/settlements | Y | Y | Y | N | pending | admin-web |
+| admin-tech-managers | admin | /tech-managers | admin/tech-managers | Y | Y | Y | N | pending | admin-web |
 | admin-verifications | admin | /verifications | admin/verifications | Y | Y | Y | N | pending | admin-web |
 | client-about | client | /pages/about/index | static/config (no critical API write) | N | Y | Y | N | pending | client |
 | client-achievement-detail | client | /pages/achievement/detail/index?achievementId=2a9ee2ee-9ab8-4335-b568-e9d9ef57f2f7 | public achievement detail + conversation | N | Y | Y | N | pending | client |

@@ -153,7 +153,7 @@ const rows = renderList
       area,
       route: normalizeRoute(item.url),
       apiDomain: inferApiDomain(item.name, area),
-      http: httpAlias ? httpNameSet.has(httpAlias) : false,
+      http: httpNameSet.has(item.name) || (httpAlias ? httpNameSet.has(httpAlias) : false),
       render: !!item.ok,
       dom: domNameSet.has(item.name),
       e2e: false,
