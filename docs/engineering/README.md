@@ -3,6 +3,9 @@
 ## 状态
 - 项目状态：docs/engineering/project-status.md
 - 全面 TODO / 上线规划：docs/engineering/overall-todo.md
+- 全面质量整改 TODO（完整版，2026-03-05）：docs/engineering/full-quality-todo-2026-03-05.md
+- 页面-接口-测试矩阵（2026-03-05）：docs/engineering/page-api-test-matrix-2026-03-05.md
+- 漏洞台账（2026-03-05）：docs/engineering/vulnerability-ledger-2026-03-05.md
 - Dev QA 清单：docs/engineering/dev-qa-todo.md
 - 测试报告：docs/engineering/test-report.md
 
@@ -24,6 +27,7 @@
 
 ## UI 与前端
 - UI 指南：docs/engineering/ui-guidelines.md
+- WeApp 包体根因报告（2026-03-05）：docs/engineering/weapp-bundle-root-cause-2026-03-05.md
 - Token 映射：docs/engineering/token-mapping.md
 - 硬编码白名单：docs/engineering/hardcode-whitelist.md
 - 前端骨架说明：docs/engineering/frontend-skeleton.md
