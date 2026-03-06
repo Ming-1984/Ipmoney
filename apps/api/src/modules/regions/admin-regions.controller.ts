@@ -35,6 +35,6 @@ export class AdminRegionsController {
   @Put('/:regionCode/industry-tags')
   async setIndustryTags(@Req() req: any, @Param('regionCode') regionCode: string, @Body() body: { industryTags: string[] }) {
     requirePermission(req, 'config.manage');
-    return await this.regions.setRegionIndustryTags(regionCode, body?.industryTags || []);
+    return await this.regions.setRegionIndustryTags(regionCode, body?.industryTags as any);
   }
 }

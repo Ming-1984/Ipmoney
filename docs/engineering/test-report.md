@@ -10,8 +10,8 @@
   - Build resilience: verify appends `NODE_OPTIONS=--max-old-space-size=4096` and retries transient `client:build:h5` crash exits once.
   - Chaos trend persistence: verify now passes `-ChaosHistoryPath` into `api-real-smoke` and snapshots history as `.tmp/api-real-smoke-chaos-history-<ReportDate>.json` for reproducible trend baselines.
   - Quality gates: `openapi:lint`, `lint`, `typecheck`, `scan:banned-words` all pass.
-  - API smoke: pass (472/472) -> `.tmp/api-real-smoke-2026-03-06-summary.json`
-  - API smoke write/read split: writes 380/380, reads 92/92.
+  - API smoke: pass (473/473) -> `.tmp/api-real-smoke-2026-03-06-summary.json`
+  - API smoke write/read split: writes 381/381, reads 92/92.
   - Semantic/state checks now included: cross-module order/refund/case/maintenance/rbac state assertions, file-link persistence assertions, and post-action detail re-fetch checks.
   - Idempotency replay checks now included: same-key replay for order create, payment intents (deposit/final), invoice request, and refund request create.
   - Failure/idempotency checks now included: duplicate favorites, invalid comment/message payloads, and missing-resource delete paths.
@@ -119,12 +119,12 @@
   - Added AI coverage: `POST /ai/agent/query` text input path; `/admin/ai/parse-results` list/get/update (missing-id branch covered in current env; existing-id branch remains conditional on data availability); `/ai/parse-results/:id/feedback` create + same-key replay or missing-id 404 branch.
   - Added industry-tag coverage: `POST /admin/industry-tags` create + duplicate(409) + invalid-empty(400), and `GET /admin/industry-tags` / `GET /public/industry-tags` visibility checks for newly created tag.
   - Added admin write coverage: `PUT /admin/regions/:regionCode/industry-tags` (deterministic via created tag seed) and `PUT /admin/listings/:id/featured` (CITY/NONE success paths) with persistence assertions.
-  - Added admin negative coverage: region-industry-tags invalid body (400), invalid region code (400), missing region (404); listing-featured missing region for CITY (400), invalid featuredLevel (400), invalid featuredRank (400), invalid featuredUntil (400), missing listing (404).
+  - Added admin negative coverage: region-industry-tags invalid body (400), missing `industryTags` field (400), invalid region code (400), missing region (404); listing-featured missing region for CITY (400), invalid featuredLevel (400), invalid featuredRank (400), invalid featuredUntil (400), missing listing (404).
   - Added featured negative guard + fix: `PUT /admin/listings/:id/featured` missing listing now expected 404 (regression fixed from Prisma `P2025` 500 to business `NOT_FOUND`).
   - Added file temporary-access coverage: `POST /files/:id/temporary-access` preview success (`scope=preview`, non-empty `url`) plus missing-file 404 guard.
 
 ### Risks still open
-- API write-path assertions are now 380 checks (with 92 read-back semantic verifications), and unique write-operation coverage is at least the previous 132/135 baseline plus report-import and AI/industry-tag/region/featured/file-access additions; remaining risk is mainly deeper transaction-isolation windows under broader multi-actor parallel writes.
+- API write-path assertions are now 381 checks (with 92 read-back semantic verifications), and unique write-operation coverage is at least the previous 132/135 baseline plus report-import and AI/industry-tag/region/featured/file-access additions; remaining risk is mainly deeper transaction-isolation windows under broader multi-actor parallel writes.
 - UI status smoke is still shallow (route-level HTTP checks only 26/83 pages, plus 2 mock endpoints).
 - DOM assertions now cover all 83/83 pages, but many routes still use generic structural assertions and need incremental business-semantic tightening.
 - Security baseline still high-risk (`pnpm audit --prod`: critical 2 / high 21), remediation not yet executed.
