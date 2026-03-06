@@ -1623,6 +1623,10 @@ try {
   Assert-ResultJsonFieldEquals -Result $orderCreate -Field "status" -ExpectedValue "DEPOSIT_PENDING" -Assertion "order-status-created"
   $orderId = Get-ResultStringField -Result $orderCreate -Field "id"
   if ([string]::IsNullOrWhiteSpace($orderId)) { throw "order-create missing id" }
+  [void](Add-ApiCaseResult -Results $results -Name "order-create-unauthorized" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/orders" -Body @{ listingId = $listingId } -Headers @{} -Expected @(401))
+  [void](Add-ApiCaseResult -Results $results -Name "order-payment-intent-unauthorized" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/orders/$orderId/payment-intents" -Body @{ payType = "DEPOSIT" } -Headers @{} -Expected @(401))
+  [void](Add-ApiCaseResult -Results $results -Name "order-refund-request-unauthorized" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/orders/$orderId/refund-requests" -Body @{ reasonCode = "OTHER"; reasonText = "smoke unauthorized refund request" } -Headers @{} -Expected @(401))
+  [void](Add-ApiCaseResult -Results $results -Name "order-invoice-request-unauthorized" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/orders/$orderId/invoice-requests" -Body @{} -Headers @{} -Expected @(401))
   $orderCreateReplay = Add-ApiCaseResult -Results $results -Name "order-create-idempotent-replay" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/orders" -Body @{ listingId = $listingId } -Headers $orderCreateHeaders -Expected @(200, 201)
   Assert-ResultJsonFieldEquals -Result $orderCreateReplay -Field "id" -ExpectedValue $orderId -Assertion "order-create-idempotent-id"
   [void](Add-ApiCaseResult -Results $results -Name "order-payment-intent-invalid-pay-type" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/orders/$orderId/payment-intents" -Body @{ payType = "INVALID" } -Headers (New-WriteHeaders -AuthorizationToken $userToken -Prefix $idempotencyPrefix -Label "order-payment-intent-invalid-pay-type") -Expected @(400))
@@ -2635,6 +2639,7 @@ try {
   Assert-ResultJsonFieldEquals -Result $patentMapImportDryRun -Field "dryRun" -ExpectedValue "True" -Assertion "patent-map-import-dry-run-flag"
   Assert-ResultJsonFieldEquals -Result $patentMapImportDryRun -Field "importedCount" -ExpectedValue "1" -Assertion "patent-map-import-dry-run-count"
 
+  [void](Add-ApiCaseResult -Results $results -Name "listing-comment-create-unauthorized" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/listings/$listingId/comments" -Body @{ text = "smoke unauthorized listing comment" } -Headers @{} -Expected @(401))
   $listingCommentCreate = Add-ApiCaseResult -Results $results -Name "listing-comment-create" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/listings/$listingId/comments" -Body @{ text = "smoke listing comment $ReportDate" } -Headers (New-WriteHeaders -AuthorizationToken $userToken -Prefix $idempotencyPrefix -Label "comment-listing-create") -Expected @(200, 201)
   $listingCommentId = Get-ResultStringField -Result $listingCommentCreate -Field "id"
   if ([string]::IsNullOrWhiteSpace($listingCommentId)) { throw "listing-comment-create missing id" }
@@ -2658,6 +2663,7 @@ try {
   if ([string]::IsNullOrWhiteSpace($artworkCommentId)) { throw "artwork-comment-create missing id" }
   [void](Add-ApiCaseResult -Results $results -Name "artwork-comment-delete" -Method "DELETE" -Url "http://127.0.0.1:$resolvedApiPort/comments/$artworkCommentId" -Body $null -Headers (New-WriteHeaders -AuthorizationToken $userToken -Prefix $idempotencyPrefix -Label "comment-artwork-delete") -Expected @(200))
 
+  [void](Add-ApiCaseResult -Results $results -Name "me-address-create-unauthorized" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/me/addresses" -Body @{ name = "Unauthorized Receiver"; phone = "13800138001"; regionCode = "110000"; addressLine = "Unauthorized Street 1"; isDefault = $false } -Headers @{} -Expected @(401))
   $addressCreate = Add-ApiCaseResult -Results $results -Name "me-address-create" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/me/addresses" -Body @{ name = "Smoke Receiver"; phone = "13800138001"; regionCode = "110000"; addressLine = "Smoke Street 1"; isDefault = $false } -Headers (New-WriteHeaders -AuthorizationToken $userToken -Prefix $idempotencyPrefix -Label "address-create") -Expected @(200, 201)
   $addressId = Get-ResultStringField -Result $addressCreate -Field "id"
   if ([string]::IsNullOrWhiteSpace($addressId)) { throw "me-address-create missing id" }
@@ -2665,9 +2671,11 @@ try {
   [void](Add-ApiCaseResult -Results $results -Name "me-address-delete" -Method "DELETE" -Url "http://127.0.0.1:$resolvedApiPort/me/addresses/$addressId" -Body $null -Headers (New-WriteHeaders -AuthorizationToken $userToken -Prefix $idempotencyPrefix -Label "address-delete") -Expected @(200))
   [void](Add-ApiCaseResult -Results $results -Name "me-address-delete-missing" -Method "DELETE" -Url "http://127.0.0.1:$resolvedApiPort/me/addresses/$addressId" -Body $null -Headers (New-WriteHeaders -AuthorizationToken $userToken -Prefix $idempotencyPrefix -Label "address-delete-missing") -Expected @(404))
 
+  [void](Add-ApiCaseResult -Results $results -Name "listing-conversation-upsert-unauthorized" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/listings/$listingId/conversations" -Body $null -Headers @{} -Expected @(401))
   $listingConversation = Add-ApiCaseResult -Results $results -Name "listing-conversation-upsert" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/listings/$listingId/conversations" -Body $null -Headers (New-WriteHeaders -AuthorizationToken $userToken -Prefix $idempotencyPrefix -Label "conversation-listing-upsert") -Expected @(200, 201)
   $listingConversationId = Get-ResultStringField -Result $listingConversation -Field "id"
   if ([string]::IsNullOrWhiteSpace($listingConversationId)) { throw "listing-conversation-upsert missing id" }
+  [void](Add-ApiCaseResult -Results $results -Name "conversation-message-send-unauthorized" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/conversations/$listingConversationId/messages" -Body @{ type = "TEXT"; text = "smoke unauthorized message" } -Headers @{} -Expected @(401))
 
   [void](Add-ApiCaseResult -Results $results -Name "demand-conversation-upsert" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/demands/$demandId/conversations" -Body $null -Headers (New-WriteHeaders -AuthorizationToken $userToken -Prefix $idempotencyPrefix -Label "conversation-demand-upsert") -Expected @(200, 201))
   [void](Add-ApiCaseResult -Results $results -Name "achievement-conversation-upsert" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/achievements/$achievementId/conversations" -Body $null -Headers (New-WriteHeaders -AuthorizationToken $userToken -Prefix $idempotencyPrefix -Label "conversation-achievement-upsert") -Expected @(200, 201))
