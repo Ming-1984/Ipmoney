@@ -1,6 +1,6 @@
-﻿import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+﻿import { BadRequestException, ConflictException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 
-import { PatentMaintenanceStatus, PatentMaintenanceTaskStatus } from '@prisma/client';
+import { PatentMaintenanceStatus, PatentMaintenanceTaskStatus, Prisma } from '@prisma/client';
 import { AuditLogService } from '../../common/audit-log.service';
 import { requirePermission } from '../../common/permissions';
 import { PrismaService } from '../../common/prisma/prisma.service';
@@ -126,15 +126,27 @@ export class PatentMaintenanceService {
     const patent = await this.prisma.patent.findUnique({ where: { id: patentId }, select: { id: true } });
     if (!patent) throw new NotFoundException({ code: 'NOT_FOUND', message: 'Patent not found' });
 
-    const created = await this.prisma.patentMaintenanceSchedule.create({
-      data: {
-        patentId,
-        yearNo,
-        dueDate,
-        gracePeriodEnd: gracePeriodEnd || null,
-        status,
-      },
-    });
+    const created = await (async () => {
+      try {
+        return await this.prisma.patentMaintenanceSchedule.create({
+          data: {
+            patentId,
+            yearNo,
+            dueDate,
+            gracePeriodEnd: gracePeriodEnd || null,
+            status,
+          },
+        });
+      } catch (error) {
+        if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
+          throw new ConflictException({
+            code: 'CONFLICT',
+            message: 'Schedule already exists for the same patent/year',
+          });
+        }
+        throw error;
+      }
+    })();
 
     void this.audit.log({
       actorUserId: req.auth.userId,
