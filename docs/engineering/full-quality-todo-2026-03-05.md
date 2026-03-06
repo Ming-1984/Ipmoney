@@ -312,5 +312,5 @@
   26) randomized multi-iteration race harness landed (batched seeds + per-seed outcomes + aggregated distribution summary assertions) (done),
   27) randomized multi-order/multi-aggregate harness landed (seeded cross-order overlap bursts + per-run outcome capture + distribution assertions) (done),
   28) larger-seed chaos sampling + percentile-based stability thresholding landed (done: `chaos-randomized-outcome-distribution`, `p50/p95/max`, `p95<=3000ms` guard).
-  29) expanded seed space + cross-run trend-threshold baseline landed (done: 30 seeded runs, persisted trend history `.tmp/api-real-smoke-chaos-history.json`, rolling baseline window and deferred threshold activation when `priorSamples>=6`).
-  30) next step: accumulate >=6 historical chaos samples in repeated verify cycles, then tighten and validate active trend-threshold sensitivity against real variance (pending).
+  29) expanded seed space + cross-run trend-threshold baseline landed (done: 30 seeded runs, persisted trend history `.tmp/api-real-smoke-chaos-history.json`, rolling baseline window, and activation validated at `priorSamples=6` with `trendThresholdP95=1893ms` and observed `p95=753ms`).
+  30) next step: carry trend history across daily/CI runs and calibrate threshold factors using broader variance data (pending).

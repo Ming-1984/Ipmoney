@@ -1623,7 +1623,16 @@ try {
     try {
       $chaosHistoryRaw = Get-Content -Path $chaosHistoryPath -Raw -ErrorAction Stop
       if (-not [string]::IsNullOrWhiteSpace($chaosHistoryRaw)) {
-        $chaosHistoryEntries = @($chaosHistoryRaw | ConvertFrom-Json)
+        $chaosHistoryParsed = ConvertFrom-Json -InputObject $chaosHistoryRaw
+        foreach ($chaosParsedEntry in @($chaosHistoryParsed)) {
+          if ($chaosParsedEntry -is [System.Array]) {
+            foreach ($chaosInnerEntry in @($chaosParsedEntry)) {
+              $chaosHistoryEntries += $chaosInnerEntry
+            }
+          } else {
+            $chaosHistoryEntries += $chaosParsedEntry
+          }
+        }
       }
     } catch {
       Write-Host "[api-real-smoke] chaos history parse failed; trend baseline reset for this run."

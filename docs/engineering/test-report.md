@@ -83,6 +83,7 @@
   - Added randomized multi-order/multi-aggregate harness: two settled orders now run seed-driven cross-order overlap bursts (`invoice-request` pair + `refund-request` pair), with per-run outcome capture and aggregate distribution assertions to detect cross-aggregate isolation regressions.
   - Expanded chaos overlap harness to larger seeded space (30 runs / 5 batches): delayed overlap bursts emit a dedicated internal summary case with outcome distribution and `p50/p95/max` pair-latency percentiles.
   - Added cross-run chaos trend baseline: smoke now persists `.tmp/api-real-smoke-chaos-history.json`, computes rolling baseline (`historyWindow=20`, `minSamples=6`), and applies a trend-threshold guard once enough prior samples exist (while retaining absolute guard `p95 <= 3000ms`).
+  - Trend-guard activation validated in repeated runs: with `priorSamples=6`, chaos summary reports `checkApplied=true`, `trendThresholdP95=1893ms`, and current run `p95=753ms` (pass).
 
 - Refund lifecycle probes (demo auth/payment)
   - Result: pass (manual approve->complete flow + manual reject flow).
