@@ -2586,6 +2586,8 @@ try {
   if ($rbacUserClearJson -and @($rbacUserClearJson.roleIds).Count -ne 0) {
     Add-ResultAssertionFailure -Result $rbacUserUpdateClearRoles -Assertion "rbac-user-clear-roles-empty" -Message "Expected roleIds to be empty after clear"
   }
+  [void](Add-ApiCaseResult -Results $results -Name "admin-listings-after-clear-roles-forbidden" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/admin/listings" -Body $null -Headers @{ Authorization = $userToken } -Expected @(403))
+  [void](Add-ApiCaseResult -Results $results -Name "admin-report-summary-after-clear-roles-forbidden" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/admin/reports/finance/summary" -Body $null -Headers @{ Authorization = $userToken } -Expected @(403))
   [void](Add-ApiCaseResult -Results $results -Name "admin-rbac-role-delete-system-forbidden" -Method "DELETE" -Url "http://127.0.0.1:$resolvedApiPort/admin/rbac/roles/role-admin" -Body $null -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-rbac-role-delete-system-forbidden") -Expected @(403))
   [void](Add-ApiCaseResult -Results $results -Name "admin-rbac-role-delete-missing" -Method "DELETE" -Url "http://127.0.0.1:$resolvedApiPort/admin/rbac/roles/$([guid]::NewGuid().ToString())" -Body $null -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-rbac-role-delete-missing") -Expected @(404))
   [void](Add-ApiCaseResult -Results $results -Name "admin-rbac-role-delete" -Method "DELETE" -Url "http://127.0.0.1:$resolvedApiPort/admin/rbac/roles/$rbacRoleId" -Body $null -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-rbac-role-delete") -Expected @(200))
