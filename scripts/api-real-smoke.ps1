@@ -1392,6 +1392,136 @@ try {
   $mixedRandomizedSettlementAfter = Add-ApiCaseResult -Results $results -Name "mixed-randomized-settlement-after" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/admin/orders/$mixedRandomizedOrderId/settlement" -Body $null -Headers @{ Authorization = $adminToken } -Expected @(200)
   Assert-ResultJsonFieldEquals -Result $mixedRandomizedSettlementAfter -Field "payoutStatus" -ExpectedValue "SUCCEEDED" -Assertion "mixed-randomized-settlement-status-after"
 
+  $multiAggOrderAId = New-RefundReadyOrder -Results $results -ApiPort $resolvedApiPort -UserToken $userToken -AdminToken $adminToken -ListingId $listingId -IdempotencyPrefix $idempotencyPrefix -CasePrefix "multi-agg-a"
+  [void](Add-ApiCaseResult -Results $results -Name "multi-agg-a-order-payment-intent-final" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/orders/$multiAggOrderAId/payment-intents" -Body @{ payType = "FINAL" } -Headers (New-WriteHeaders -AuthorizationToken $userToken -Prefix $idempotencyPrefix -Label "multi-agg-a-order-payment-intent-final") -Expected @(200, 201))
+  [void](Add-ApiCaseResult -Results $results -Name "multi-agg-a-admin-order-manual-payment-final" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/admin/orders/$multiAggOrderAId/payments/manual" -Body @{ payType = "FINAL" } -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "multi-agg-a-admin-order-manual-payment-final") -Expected @(200, 201))
+  [void](Add-ApiCaseResult -Results $results -Name "multi-agg-a-admin-order-transfer-completed" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/admin/orders/$multiAggOrderAId/milestones/transfer-completed" -Body @{} -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "multi-agg-a-admin-order-transfer-completed") -Expected @(200, 201))
+  [void](Add-ApiCaseResult -Results $results -Name "multi-agg-a-admin-order-payout" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/admin/orders/$multiAggOrderAId/payouts/manual" -Body @{ payoutEvidenceFileId = $evidenceFileId } -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "multi-agg-a-admin-order-payout") -Expected @(200, 201))
+  $multiAggOrderBId = New-RefundReadyOrder -Results $results -ApiPort $resolvedApiPort -UserToken $userToken -AdminToken $adminToken -ListingId $listingId -IdempotencyPrefix $idempotencyPrefix -CasePrefix "multi-agg-b"
+  [void](Add-ApiCaseResult -Results $results -Name "multi-agg-b-order-payment-intent-final" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/orders/$multiAggOrderBId/payment-intents" -Body @{ payType = "FINAL" } -Headers (New-WriteHeaders -AuthorizationToken $userToken -Prefix $idempotencyPrefix -Label "multi-agg-b-order-payment-intent-final") -Expected @(200, 201))
+  [void](Add-ApiCaseResult -Results $results -Name "multi-agg-b-admin-order-manual-payment-final" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/admin/orders/$multiAggOrderBId/payments/manual" -Body @{ payType = "FINAL" } -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "multi-agg-b-admin-order-manual-payment-final") -Expected @(200, 201))
+  [void](Add-ApiCaseResult -Results $results -Name "multi-agg-b-admin-order-transfer-completed" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/admin/orders/$multiAggOrderBId/milestones/transfer-completed" -Body @{} -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "multi-agg-b-admin-order-transfer-completed") -Expected @(200, 201))
+  [void](Add-ApiCaseResult -Results $results -Name "multi-agg-b-admin-order-payout" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/admin/orders/$multiAggOrderBId/payouts/manual" -Body @{ payoutEvidenceFileId = $evidenceFileId } -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "multi-agg-b-admin-order-payout") -Expected @(200, 201))
+  $multiAggSeedBatches = @(@(4101, 4103), @(5101, 5107))
+  $multiAggDistribution = @{
+    invoiceSuccess = 0
+    invoiceConflict = 0
+    invoiceOther = 0
+    refundConflict = 0
+    refundOther = 0
+  }
+  $multiAggDetails = New-Object System.Collections.ArrayList
+  $multiAggRuns = 0
+  $multiAggBatchIndex = 0
+  foreach ($multiAggSeedBatch in $multiAggSeedBatches) {
+    $multiAggBatchIndex++
+    foreach ($multiAggSeed in $multiAggSeedBatch) {
+      $multiAggRuns++
+      $multiAggRandom = [System.Random]::new([int]$multiAggSeed)
+      $multiAggInvoiceDelayMs = 15 + $multiAggRandom.Next(0, 120)
+      Start-Sleep -Milliseconds $multiAggInvoiceDelayMs
+      $multiAggInvoiceNameA = "multi-agg-b$multiAggBatchIndex-r$multiAggRuns-order-a-invoice-request"
+      $multiAggInvoiceNameB = "multi-agg-b$multiAggBatchIndex-r$multiAggRuns-order-b-invoice-request"
+      $multiAggInvoicePairResults = Add-ConcurrentApiCasePairResults -Results $results -NameA $multiAggInvoiceNameA -MethodA "POST" -UrlA "http://127.0.0.1:$resolvedApiPort/orders/$multiAggOrderAId/invoice-requests" -BodyA @{} -HeadersA (New-WriteHeaders -AuthorizationToken $userToken -Prefix $idempotencyPrefix -Label $multiAggInvoiceNameA) -NameB $multiAggInvoiceNameB -MethodB "POST" -UrlB "http://127.0.0.1:$resolvedApiPort/orders/$multiAggOrderBId/invoice-requests" -BodyB @{} -HeadersB (New-WriteHeaders -AuthorizationToken $userToken -Prefix $idempotencyPrefix -Label $multiAggInvoiceNameB) -Expected @(200, 201, 409)
+      $multiAggInvoiceResultA = @($multiAggInvoicePairResults | Where-Object { $_.name -eq $multiAggInvoiceNameA } | Select-Object -First 1)
+      $multiAggInvoiceResultB = @($multiAggInvoicePairResults | Where-Object { $_.name -eq $multiAggInvoiceNameB } | Select-Object -First 1)
+      $multiAggInvoiceStatusA = if ($multiAggInvoiceResultA) { [int]$multiAggInvoiceResultA.status } else { -1 }
+      $multiAggInvoiceStatusB = if ($multiAggInvoiceResultB) { [int]$multiAggInvoiceResultB.status } else { -1 }
+      foreach ($multiAggInvoiceResult in @($multiAggInvoiceResultA, $multiAggInvoiceResultB)) {
+        if ($null -eq $multiAggInvoiceResult) {
+          $multiAggDistribution.invoiceOther = [int]$multiAggDistribution.invoiceOther + 1
+          continue
+        }
+        $multiAggInvoiceStatus = [int]$multiAggInvoiceResult.status
+        if ($multiAggInvoiceStatus -in @(200, 201)) {
+          $multiAggDistribution.invoiceSuccess = [int]$multiAggDistribution.invoiceSuccess + 1
+          Assert-ResultJsonFieldEquals -Result $multiAggInvoiceResult -Field "status" -ExpectedValue "APPLYING" -Assertion "multi-agg-invoice-success-status-$($multiAggInvoiceResult.name)"
+          $multiAggInvoiceOrderId = if ($multiAggInvoiceResult.name -eq $multiAggInvoiceNameA) { $multiAggOrderAId } else { $multiAggOrderBId }
+          $multiAggInvoiceUpsertName = "$($multiAggInvoiceResult.name)-admin-order-upsert-invoice-with-file"
+          $multiAggInvoiceUpsert = Add-ApiCaseResult -Results $results -Name $multiAggInvoiceUpsertName -Method "PUT" -Url "http://127.0.0.1:$resolvedApiPort/admin/orders/$multiAggInvoiceOrderId/invoice" -Body @{ invoiceFileId = $evidenceFileId } -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label $multiAggInvoiceUpsertName) -Expected @(200)
+          Assert-ResultJsonFieldEquals -Result $multiAggInvoiceUpsert -Field "invoiceFile.id" -ExpectedValue $evidenceFileId -Assertion "multi-agg-invoice-upsert-file-linked-$($multiAggInvoiceResult.name)"
+        } elseif ($multiAggInvoiceStatus -eq 409) {
+          $multiAggDistribution.invoiceConflict = [int]$multiAggDistribution.invoiceConflict + 1
+        } else {
+          $multiAggDistribution.invoiceOther = [int]$multiAggDistribution.invoiceOther + 1
+          foreach ($multiAggInvoicePairResult in @($multiAggInvoicePairResults)) {
+            Add-ResultAssertionFailure -Result $multiAggInvoicePairResult -Assertion "multi-agg-invoice-status-$($multiAggInvoiceResult.name)" -Message "Expected multi-aggregate invoice status to be one of [200,201,409], got [$multiAggInvoiceStatus]"
+          }
+        }
+      }
+      $multiAggRefundDelayMs = 15 + $multiAggRandom.Next(0, 120)
+      Start-Sleep -Milliseconds $multiAggRefundDelayMs
+      $multiAggRefundNameA = "multi-agg-b$multiAggBatchIndex-r$multiAggRuns-order-a-refund-request"
+      $multiAggRefundNameB = "multi-agg-b$multiAggBatchIndex-r$multiAggRuns-order-b-refund-request"
+      $multiAggRefundPairResults = Add-ConcurrentApiCasePairResults -Results $results -NameA $multiAggRefundNameA -MethodA "POST" -UrlA "http://127.0.0.1:$resolvedApiPort/orders/$multiAggOrderAId/refund-requests" -BodyA @{ reasonCode = "OTHER"; reasonText = "smoke multi-agg refund A b$multiAggBatchIndex-r$multiAggRuns" } -HeadersA (New-WriteHeaders -AuthorizationToken $userToken -Prefix $idempotencyPrefix -Label $multiAggRefundNameA) -NameB $multiAggRefundNameB -MethodB "POST" -UrlB "http://127.0.0.1:$resolvedApiPort/orders/$multiAggOrderBId/refund-requests" -BodyB @{ reasonCode = "OTHER"; reasonText = "smoke multi-agg refund B b$multiAggBatchIndex-r$multiAggRuns" } -HeadersB (New-WriteHeaders -AuthorizationToken $userToken -Prefix $idempotencyPrefix -Label $multiAggRefundNameB) -Expected @(200, 201, 409)
+      $multiAggRefundResultA = @($multiAggRefundPairResults | Where-Object { $_.name -eq $multiAggRefundNameA } | Select-Object -First 1)
+      $multiAggRefundResultB = @($multiAggRefundPairResults | Where-Object { $_.name -eq $multiAggRefundNameB } | Select-Object -First 1)
+      $multiAggRefundStatusA = if ($multiAggRefundResultA) { [int]$multiAggRefundResultA.status } else { -1 }
+      $multiAggRefundStatusB = if ($multiAggRefundResultB) { [int]$multiAggRefundResultB.status } else { -1 }
+      foreach ($multiAggRefundResult in @($multiAggRefundResultA, $multiAggRefundResultB)) {
+        if ($null -eq $multiAggRefundResult) {
+          $multiAggDistribution.refundOther = [int]$multiAggDistribution.refundOther + 1
+          continue
+        }
+        $multiAggRefundStatus = [int]$multiAggRefundResult.status
+        if ($multiAggRefundStatus -eq 409) {
+          $multiAggDistribution.refundConflict = [int]$multiAggDistribution.refundConflict + 1
+        } else {
+          $multiAggDistribution.refundOther = [int]$multiAggDistribution.refundOther + 1
+          foreach ($multiAggRefundPairResult in @($multiAggRefundPairResults)) {
+            Add-ResultAssertionFailure -Result $multiAggRefundPairResult -Assertion "multi-agg-refund-status-$($multiAggRefundResult.name)" -Message "Expected multi-aggregate refund status to be conflict 409, got [$multiAggRefundStatus]"
+          }
+        }
+      }
+      [void]$multiAggDetails.Add([pscustomobject]@{
+        batch = $multiAggBatchIndex
+        run = $multiAggRuns
+        seed = $multiAggSeed
+        invoiceDelayMs = $multiAggInvoiceDelayMs
+        refundDelayMs = $multiAggRefundDelayMs
+        invoiceStatusA = $multiAggInvoiceStatusA
+        invoiceStatusB = $multiAggInvoiceStatusB
+        refundStatusA = $multiAggRefundStatusA
+        refundStatusB = $multiAggRefundStatusB
+      })
+    }
+  }
+  $multiAggSummaryPayload = [ordered]@{
+    orderAId = $multiAggOrderAId
+    orderBId = $multiAggOrderBId
+    seedBatches = $multiAggSeedBatches
+    runs = $multiAggRuns
+    distribution = $multiAggDistribution
+    details = $multiAggDetails
+  }
+  $multiAggSummaryResult = [pscustomobject]@{
+    name = "multi-agg-randomized-outcome-distribution"
+    method = "GET"
+    url = "internal://multi-agg-randomized-outcome-distribution"
+    status = 200
+    expected = "200"
+    ok = $true
+    body = ($multiAggSummaryPayload | ConvertTo-Json -Depth 8 -Compress)
+  }
+  [void]$results.Add($multiAggSummaryResult)
+  if ([int]$multiAggDistribution.invoiceOther -ne 0 -or [int]$multiAggDistribution.refundOther -ne 0) {
+    Add-ResultAssertionFailure -Result $multiAggSummaryResult -Assertion "multi-agg-distribution-no-other-status" -Message "Multi-aggregate distribution contains unexpected statuses: invoiceOther=$($multiAggDistribution.invoiceOther), refundOther=$($multiAggDistribution.refundOther)"
+  }
+  if ([int]$multiAggDistribution.refundConflict -ne ($multiAggRuns * 2)) {
+    Add-ResultAssertionFailure -Result $multiAggSummaryResult -Assertion "multi-agg-distribution-refund-conflict" -Message "Expected multi-aggregate refund conflict count $($multiAggRuns * 2), got $($multiAggDistribution.refundConflict)"
+  }
+  if (([int]$multiAggDistribution.invoiceSuccess + [int]$multiAggDistribution.invoiceConflict) -ne ($multiAggRuns * 2)) {
+    Add-ResultAssertionFailure -Result $multiAggSummaryResult -Assertion "multi-agg-distribution-invoice-bounded" -Message "Expected multi-aggregate invoice success+conflict count $($multiAggRuns * 2), got $([int]$multiAggDistribution.invoiceSuccess + [int]$multiAggDistribution.invoiceConflict)"
+  }
+  $multiAggOrderADetailAfter = Add-ApiCaseResult -Results $results -Name "multi-agg-order-a-detail-after" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/orders/$multiAggOrderAId" -Body $null -Headers @{ Authorization = $userToken } -Expected @(200)
+  Assert-ResultJsonFieldEquals -Result $multiAggOrderADetailAfter -Field "status" -ExpectedValue "COMPLETED" -Assertion "multi-agg-order-a-status-after"
+  $multiAggOrderBDetailAfter = Add-ApiCaseResult -Results $results -Name "multi-agg-order-b-detail-after" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/orders/$multiAggOrderBId" -Body $null -Headers @{ Authorization = $userToken } -Expected @(200)
+  Assert-ResultJsonFieldEquals -Result $multiAggOrderBDetailAfter -Field "status" -ExpectedValue "COMPLETED" -Assertion "multi-agg-order-b-status-after"
+  $multiAggSettlementAfterA = Add-ApiCaseResult -Results $results -Name "multi-agg-settlement-after-a" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/admin/orders/$multiAggOrderAId/settlement" -Body $null -Headers @{ Authorization = $adminToken } -Expected @(200)
+  Assert-ResultJsonFieldEquals -Result $multiAggSettlementAfterA -Field "payoutStatus" -ExpectedValue "SUCCEEDED" -Assertion "multi-agg-settlement-status-after-a"
+  $multiAggSettlementAfterB = Add-ApiCaseResult -Results $results -Name "multi-agg-settlement-after-b" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/admin/orders/$multiAggOrderBId/settlement" -Body $null -Headers @{ Authorization = $adminToken } -Expected @(200)
+  Assert-ResultJsonFieldEquals -Result $multiAggSettlementAfterB -Field "payoutStatus" -ExpectedValue "SUCCEEDED" -Assertion "multi-agg-settlement-status-after-b"
+
   $refundApproveOrderId = New-RefundReadyOrder -Results $results -ApiPort $resolvedApiPort -UserToken $userToken -AdminToken $adminToken -ListingId $listingId -IdempotencyPrefix $idempotencyPrefix -CasePrefix "refund-approve"
   $refundApproveCreateHeaders = New-WriteHeaders -AuthorizationToken $userToken -Prefix $idempotencyPrefix -Label "refund-approve-create"
   $refundApproveCreate = Add-ApiCaseResult -Results $results -Name "refund-approve-create" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/orders/$refundApproveOrderId/refund-requests" -Body @{ reasonCode = "OTHER"; reasonText = "smoke approve flow" } -Headers $refundApproveCreateHeaders -Expected @(200, 201)
