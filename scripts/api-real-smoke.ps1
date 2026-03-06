@@ -126,7 +126,7 @@ function Wait-Health([string]$Url, [int]$TimeoutSec = 45) {
 function Normalize-ResultBody {
   param(
     [string]$Raw,
-    [int]$MaxChars = 4096
+    [int]$MaxChars = 65536
   )
 
   if ([string]::IsNullOrEmpty($Raw)) {
@@ -1142,6 +1142,15 @@ try {
   $missingAnnouncementId = [guid]::NewGuid().ToString()
   [void](Add-ApiCaseResult -Results $results -Name "admin-announcement-publish-missing" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/admin/announcements/$missingAnnouncementId/publish" -Body @{} -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-announcement-publish-missing") -Expected @(404))
   [void](Add-ApiCaseResult -Results $results -Name "admin-announcement-off-shelf-missing" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/admin/announcements/$missingAnnouncementId/off-shelf" -Body @{} -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-announcement-off-shelf-missing") -Expected @(404))
+  $missingTechManagerId = [guid]::NewGuid().ToString()
+  [void](Add-ApiCaseResult -Results $results -Name "admin-tech-manager-update-missing" -Method "PATCH" -Url "http://127.0.0.1:$resolvedApiPort/admin/tech-managers/$missingTechManagerId" -Body @{ intro = "smoke tech manager missing" } -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-tech-manager-update-missing") -Expected @(404))
+  [void](Add-ApiCaseResult -Results $results -Name "admin-tech-manager-update-invalid-featured-rank" -Method "PATCH" -Url "http://127.0.0.1:$resolvedApiPort/admin/tech-managers/$techManagerId" -Body @{ featuredRank = -1 } -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-tech-manager-update-invalid-featured-rank") -Expected @(400))
+  [void](Add-ApiCaseResult -Results $results -Name "admin-tech-manager-update-invalid-featured-until" -Method "PATCH" -Url "http://127.0.0.1:$resolvedApiPort/admin/tech-managers/$techManagerId" -Body @{ featuredUntil = "invalid-date" } -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-tech-manager-update-invalid-featured-until") -Expected @(400))
+  [void](Add-ApiCaseResult -Results $results -Name "admin-tech-manager-update-invalid-service-tags" -Method "PATCH" -Url "http://127.0.0.1:$resolvedApiPort/admin/tech-managers/$techManagerId" -Body @{ serviceTags = "not-array" } -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-tech-manager-update-invalid-service-tags") -Expected @(400))
+  $techManagerServiceTag = "smoke-service-$($ReportDate.Replace('-', ''))"
+  $adminTechManagerUpdate = Add-ApiCaseResult -Results $results -Name "admin-tech-manager-update" -Method "PATCH" -Url "http://127.0.0.1:$resolvedApiPort/admin/tech-managers/$techManagerId" -Body @{ intro = "smoke tech manager intro $ReportDate"; serviceTags = @($techManagerServiceTag); featuredRank = 0; featuredUntil = (Get-Date).AddDays(7).ToString("o") } -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-tech-manager-update") -Expected @(200)
+  Assert-ResultJsonFieldEquals -Result $adminTechManagerUpdate -Field "userId" -ExpectedValue $techManagerId -Assertion "admin-tech-manager-update-user-id"
+  Assert-ResultJsonArrayContains -Result $adminTechManagerUpdate -Field "serviceTags" -ExpectedValue $techManagerServiceTag -Assertion "admin-tech-manager-update-service-tag"
 
   $listingFavoriteHeaders = New-WriteHeaders -AuthorizationToken $userToken -Prefix $idempotencyPrefix -Label "favorite-listing-post"
   [void](Add-ApiCaseResult -Results $results -Name "listing-favorite-post" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/listings/$listingId/favorites" -Body $null -Headers $listingFavoriteHeaders -Expected @(200, 201))

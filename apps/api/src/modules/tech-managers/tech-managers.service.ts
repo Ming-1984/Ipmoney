@@ -1,4 +1,4 @@
-import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 
 import { AuditLogService } from '../../common/audit-log.service';
@@ -28,6 +28,10 @@ export class TechManagersService {
       return value.map((item) => String(item).trim()).filter(Boolean);
     }
     return [];
+  }
+
+  private hasOwn(body: unknown, key: string): boolean {
+    return body !== null && body !== undefined && Object.prototype.hasOwnProperty.call(body, key);
   }
 
   private toSummary(verificationRecord: any, profile?: any) {
@@ -155,16 +159,57 @@ export class TechManagersService {
     if (!verification) throw new NotFoundException({ code: 'NOT_FOUND', message: 'tech manager not found' });
 
     const updates: any = {};
-    if (body?.intro !== undefined) updates.intro = String(body.intro);
-    if (Array.isArray(body?.serviceTags)) updates.serviceTagsJson = body.serviceTags;
-    if (body?.featuredRank !== undefined) updates.featuredRank = Number(body.featuredRank);
-    if (body?.featuredUntil) updates.featuredUntil = new Date(String(body.featuredUntil));
+    const hasIntro = this.hasOwn(body, 'intro');
+    const hasServiceTags = this.hasOwn(body, 'serviceTags');
+    const hasFeaturedRank = this.hasOwn(body, 'featuredRank');
+    const hasFeaturedUntil = this.hasOwn(body, 'featuredUntil');
+
+    if (hasIntro) {
+      const introValue = body?.intro === null ? null : String(body?.intro ?? '').trim();
+      if (introValue !== null && introValue.length > 2000) {
+        throw new BadRequestException({ code: 'BAD_REQUEST', message: 'intro is too long' });
+      }
+      updates.intro = introValue;
+    }
+
+    if (hasServiceTags) {
+      if (!Array.isArray(body?.serviceTags)) {
+        throw new BadRequestException({ code: 'BAD_REQUEST', message: 'serviceTags must be an array' });
+      }
+      const serviceTags = body.serviceTags.map((item: unknown) => String(item ?? '').trim()).filter(Boolean);
+      for (const serviceTag of serviceTags) {
+        if (serviceTag.length > 50) {
+          throw new BadRequestException({ code: 'BAD_REQUEST', message: 'serviceTags item is too long' });
+        }
+      }
+      updates.serviceTagsJson = serviceTags;
+    }
+
+    if (hasFeaturedRank) {
+      const featuredRankValue = Number(body?.featuredRank);
+      if (!Number.isInteger(featuredRankValue) || featuredRankValue < 0) {
+        throw new BadRequestException({ code: 'BAD_REQUEST', message: 'featuredRank is invalid' });
+      }
+      updates.featuredRank = featuredRankValue;
+    }
+
+    if (hasFeaturedUntil) {
+      if (body?.featuredUntil === null || String(body?.featuredUntil).trim() === '') {
+        updates.featuredUntil = null;
+      } else {
+        const featuredUntil = new Date(String(body.featuredUntil));
+        if (Number.isNaN(featuredUntil.getTime())) {
+          throw new BadRequestException({ code: 'BAD_REQUEST', message: 'featuredUntil is invalid' });
+        }
+        updates.featuredUntil = featuredUntil;
+      }
+    }
 
     let updatedVerification = verification;
-    if (body?.intro !== undefined) {
+    if (hasIntro) {
       updatedVerification = await this.prisma.userVerification.update({
         where: { id: verification.id },
-        data: { intro: String(body.intro) },
+        data: { intro: updates.intro },
         include: { user: true },
       });
     }
