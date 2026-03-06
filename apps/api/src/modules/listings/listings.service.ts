@@ -75,6 +75,18 @@ export class ListingsService {
     return Object.prototype.hasOwnProperty.call(body || {}, key);
   }
 
+  private parsePositiveIntStrict(value: unknown, fieldName: string): number {
+    const raw = String(value ?? '').trim();
+    if (!raw) {
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: `${fieldName} is invalid` });
+    }
+    const parsed = Number(raw);
+    if (!Number.isInteger(parsed) || parsed <= 0) {
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: `${fieldName} is invalid` });
+    }
+    return parsed;
+  }
+
   private parseContentSourceStrict(value: unknown, fieldName: string): ContentSource {
     const normalized = this.normalizeContentSource(value);
     if (!normalized) {
@@ -843,8 +855,11 @@ export class ListingsService {
     );
   }
   async listAdmin(query: any): Promise<PagedListingAdmin> {
-    const page = Math.max(1, Number(query?.page || 1));
-    const pageSize = Math.min(50, Math.max(1, Number(query?.pageSize || 10)));
+    const hasPage = this.hasOwn(query, 'page');
+    const hasPageSize = this.hasOwn(query, 'pageSize');
+    const page = hasPage ? this.parsePositiveIntStrict(query?.page, 'page') : 1;
+    const pageSizeInput = hasPageSize ? this.parsePositiveIntStrict(query?.pageSize, 'pageSize') : 10;
+    const pageSize = Math.min(50, pageSizeInput);
     const q = String(query?.q || '').trim();
     const regionCode = String(query?.regionCode || '').trim();
     const hasAuditStatus = this.hasOwn(query, 'auditStatus');
@@ -1247,8 +1262,11 @@ export class ListingsService {
     if (!req?.auth?.userId) {
       throw new ForbiddenException({ code: 'FORBIDDEN', message: 'forbidden' });
     }
-    const page = Math.max(1, Number(query?.page || 1));
-    const pageSize = Math.min(50, Math.max(1, Number(query?.pageSize || 20)));
+    const hasPage = this.hasOwn(query, 'page');
+    const hasPageSize = this.hasOwn(query, 'pageSize');
+    const page = hasPage ? this.parsePositiveIntStrict(query?.page, 'page') : 1;
+    const pageSizeInput = hasPageSize ? this.parsePositiveIntStrict(query?.pageSize, 'pageSize') : 20;
+    const pageSize = Math.min(50, pageSizeInput);
     const items = await this.prisma.listing.findMany({
       where: { sellerUserId: req.auth.userId },
       include: { patent: { include: { parties: true, classifications: true } } },
@@ -1569,8 +1587,11 @@ export class ListingsService {
   }
 
   async searchPublic(query: any) {
-    const page = Math.max(1, Number(query?.page || 1));
-    const pageSize = Math.min(50, Math.max(1, Number(query?.pageSize || 20)));
+    const hasPage = this.hasOwn(query, 'page');
+    const hasPageSize = this.hasOwn(query, 'pageSize');
+    const page = hasPage ? this.parsePositiveIntStrict(query?.page, 'page') : 1;
+    const pageSizeInput = hasPageSize ? this.parsePositiveIntStrict(query?.pageSize, 'pageSize') : 20;
+    const pageSize = Math.min(50, pageSizeInput);
     const q = String(query?.q || '').trim();
     const hasQType = this.hasOwn(query, 'qType');
     const qType = hasQType ? this.parseSearchQTypeStrict(query?.qType, 'qType') : 'AUTO';

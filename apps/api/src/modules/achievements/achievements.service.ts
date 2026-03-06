@@ -83,6 +83,18 @@ export class AchievementsService {
     return Object.prototype.hasOwnProperty.call(body || {}, key);
   }
 
+  private parsePositiveIntStrict(value: unknown, fieldName: string): number {
+    const raw = String(value ?? '').trim();
+    if (!raw) {
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: `${fieldName} is invalid` });
+    }
+    const parsed = Number(raw);
+    if (!Number.isInteger(parsed) || parsed <= 0) {
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: `${fieldName} is invalid` });
+    }
+    return parsed;
+  }
+
   private parseContentSourceStrict(value: unknown, fieldName: string): 'USER' | 'ADMIN' | 'PLATFORM' {
     const normalized = this.normalizeContentSource(value);
     if (!normalized) {
@@ -225,8 +237,11 @@ export class AchievementsService {
 
   async listMine(req: any, query: any): Promise<Paged<any>> {
     this.ensureAuth(req);
-    const page = Math.max(1, Number(query?.page || 1));
-    const pageSize = Math.min(50, Math.max(1, Number(query?.pageSize || 20)));
+    const hasPage = this.hasOwn(query, 'page');
+    const hasPageSize = this.hasOwn(query, 'pageSize');
+    const page = hasPage ? this.parsePositiveIntStrict(query?.page, 'page') : 1;
+    const pageSizeInput = hasPageSize ? this.parsePositiveIntStrict(query?.pageSize, 'pageSize') : 20;
+    const pageSize = Math.min(50, pageSizeInput);
     const hasAuditStatus = this.hasOwn(query, 'auditStatus');
     const hasStatus = this.hasOwn(query, 'status');
     const auditStatus = hasAuditStatus ? this.parseAuditStatusStrict(query?.auditStatus, 'auditStatus') : undefined;
@@ -410,8 +425,11 @@ export class AchievementsService {
   }
 
   async search(query: any): Promise<Paged<any>> {
-    const page = Math.max(1, Number(query?.page || 1));
-    const pageSize = Math.min(50, Math.max(1, Number(query?.pageSize || 20)));
+    const hasPage = this.hasOwn(query, 'page');
+    const hasPageSize = this.hasOwn(query, 'pageSize');
+    const page = hasPage ? this.parsePositiveIntStrict(query?.page, 'page') : 1;
+    const pageSizeInput = hasPageSize ? this.parsePositiveIntStrict(query?.pageSize, 'pageSize') : 20;
+    const pageSize = Math.min(50, pageSizeInput);
     const q = String(query?.q || '').trim();
     const regionCode = String(query?.regionCode || '').trim();
     const hasSortBy = this.hasOwn(query, 'sortBy');
@@ -520,8 +538,11 @@ export class AchievementsService {
 
   async listAdmin(req: any, query: any): Promise<Paged<any>> {
     this.ensureAdmin(req);
-    const page = Math.max(1, Number(query?.page || 1));
-    const pageSize = Math.min(50, Math.max(1, Number(query?.pageSize || 20)));
+    const hasPage = this.hasOwn(query, 'page');
+    const hasPageSize = this.hasOwn(query, 'pageSize');
+    const page = hasPage ? this.parsePositiveIntStrict(query?.page, 'page') : 1;
+    const pageSizeInput = hasPageSize ? this.parsePositiveIntStrict(query?.pageSize, 'pageSize') : 20;
+    const pageSize = Math.min(50, pageSizeInput);
     const hasAuditStatus = this.hasOwn(query, 'auditStatus');
     const hasStatus = this.hasOwn(query, 'status');
     const hasSource = this.hasOwn(query, 'source');

@@ -146,6 +146,18 @@ export class OrdersService {
     return !!input && Object.prototype.hasOwnProperty.call(input, key);
   }
 
+  private parsePositiveIntStrict(value: unknown, fieldName: string): number {
+    const raw = String(value ?? '').trim();
+    if (!raw) {
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: `${fieldName} is invalid` });
+    }
+    const parsed = Number(raw);
+    if (!Number.isInteger(parsed) || parsed <= 0) {
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: `${fieldName} is invalid` });
+    }
+    return parsed;
+  }
+
   private normalizeOrderListRole(value: any): OrderListRole | undefined {
     const raw = String(value || '').trim().toUpperCase();
     if ((ORDER_LIST_ROLES as readonly string[]).includes(raw)) return raw as OrderListRole;
@@ -497,8 +509,11 @@ export class OrdersService {
 
   async listOrders(req: any, query: any): Promise<PagedOrder> {
     this.ensureAuth(req);
-    const page = Math.max(1, Number(query?.page || 1));
-    const pageSize = Math.min(50, Math.max(1, Number(query?.pageSize || 20)));
+    const hasPage = this.hasOwn(query, 'page');
+    const hasPageSize = this.hasOwn(query, 'pageSize');
+    const page = hasPage ? this.parsePositiveIntStrict(query?.page, 'page') : 1;
+    const pageSizeInput = hasPageSize ? this.parsePositiveIntStrict(query?.pageSize, 'pageSize') : 20;
+    const pageSize = Math.min(50, pageSizeInput);
     const hasAsRole = this.hasOwn(query, 'asRole');
     const hasStatus = this.hasOwn(query, 'status');
     const hasStatusGroup = this.hasOwn(query, 'statusGroup');
@@ -1138,8 +1153,11 @@ export class OrdersService {
 
   async listInvoices(req: any, query: any) {
     this.ensureAuth(req);
-    const page = Math.max(1, Number(query?.page || 1));
-    const pageSize = Math.min(50, Math.max(1, Number(query?.pageSize || 20)));
+    const hasPage = this.hasOwn(query, 'page');
+    const hasPageSize = this.hasOwn(query, 'pageSize');
+    const page = hasPage ? this.parsePositiveIntStrict(query?.page, 'page') : 1;
+    const pageSizeInput = hasPageSize ? this.parsePositiveIntStrict(query?.pageSize, 'pageSize') : 20;
+    const pageSize = Math.min(50, pageSizeInput);
     const hasStatus = this.hasOwn(query, 'status');
     const status = hasStatus ? this.normalizeInvoiceStatus(query?.status) : undefined;
     if (hasStatus && !status) {

@@ -37,6 +37,18 @@ export class TechManagersService {
     return body !== null && body !== undefined && Object.prototype.hasOwnProperty.call(body, key);
   }
 
+  private parsePositiveIntStrict(value: unknown, fieldName: string): number {
+    const raw = String(value ?? '').trim();
+    if (!raw) {
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: `${fieldName} is invalid` });
+    }
+    const parsed = Number(raw);
+    if (!Number.isInteger(parsed) || parsed <= 0) {
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: `${fieldName} is invalid` });
+    }
+    return parsed;
+  }
+
   private parseSortByStrict(value: unknown, fieldName: string): 'RECOMMENDED' | 'NEWEST' {
     const normalized = String(value || '').trim().toUpperCase();
     if (normalized === 'RECOMMENDED' || normalized === 'NEWEST') {
@@ -95,8 +107,11 @@ export class TechManagersService {
   }
 
   async search(query: any) {
-    const page = Math.max(1, Number(query?.page || 1));
-    const pageSize = Math.min(50, Math.max(1, Number(query?.pageSize || 20)));
+    const hasPage = this.hasOwn(query, 'page');
+    const hasPageSize = this.hasOwn(query, 'pageSize');
+    const page = hasPage ? this.parsePositiveIntStrict(query?.page, 'page') : 1;
+    const pageSizeInput = hasPageSize ? this.parsePositiveIntStrict(query?.pageSize, 'pageSize') : 20;
+    const pageSize = Math.min(50, pageSizeInput);
     const hasSortBy = this.hasOwn(query, 'sortBy');
     const sortBy = hasSortBy ? this.parseSortByStrict(query?.sortBy, 'sortBy') : 'RECOMMENDED';
     const where = this.buildWhere(query, true);
@@ -147,8 +162,11 @@ export class TechManagersService {
 
   async listAdmin(request: any, query: any) {
     this.ensureAdmin(request);
-    const page = Math.max(1, Number(query?.page || 1));
-    const pageSize = Math.min(50, Math.max(1, Number(query?.pageSize || 20)));
+    const hasPage = this.hasOwn(query, 'page');
+    const hasPageSize = this.hasOwn(query, 'pageSize');
+    const page = hasPage ? this.parsePositiveIntStrict(query?.page, 'page') : 1;
+    const pageSizeInput = hasPageSize ? this.parsePositiveIntStrict(query?.pageSize, 'pageSize') : 20;
+    const pageSize = Math.min(50, pageSizeInput);
     const where = this.buildWhere(query, false);
 
     const [items, total] = await Promise.all([
