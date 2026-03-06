@@ -2499,6 +2499,7 @@ try {
       Add-ResultAssertionFailure -Result $rbacUsersAfterCustomRole -Assertion "rbac-users-list-custom-role-linked" -Message "Current user '$currentUserId' does not include role '$rbacRoleId' in users list"
     }
   }
+  [void](Add-ApiCaseResult -Results $results -Name "admin-listings-custom-rbac-role-forbidden" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/admin/listings" -Body $null -Headers @{ Authorization = $userToken } -Expected @(403))
   $rbacUserUpdateClearRoles = Add-ApiCaseResult -Results $results -Name "admin-rbac-user-update-clear-roles" -Method "PATCH" -Url "http://127.0.0.1:$resolvedApiPort/admin/rbac/users/$currentUserId" -Body @{ roleIds = @() } -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-rbac-user-update-clear-roles") -Expected @(200)
   $rbacUserClearJson = Get-ResultJsonObject -Result $rbacUserUpdateClearRoles
   if ($rbacUserClearJson -and @($rbacUserClearJson.roleIds).Count -ne 0) {

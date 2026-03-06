@@ -125,10 +125,13 @@ export class BearerAuthGuard implements CanActivate {
       orderBy: { submittedAt: 'desc' },
     });
 
+    // Treat admin identity as system backoffice roles or wildcard permission only.
+    const isAdmin = roleNames.length > 0 || permissions.has('*');
+
     req.auth = {
       token,
       userId,
-      isAdmin: roleNames.length > 0 || roleIds.length > 0,
+      isAdmin,
       roleNames,
       roleIds,
       permissions,
