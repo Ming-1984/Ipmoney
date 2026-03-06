@@ -512,7 +512,12 @@ export class OrdersService {
       throw new NotImplementedException({ code: 'NOT_IMPLEMENTED', message: 'demo payment disabled' });
     }
     this.ensureAuth(req);
-    const payType = String(body?.payType || 'DEPOSIT').toUpperCase();
+    const hasPayType = !!body && Object.prototype.hasOwnProperty.call(body, 'payType');
+    const payTypeRaw = hasPayType ? String(body?.payType || '').toUpperCase() : 'DEPOSIT';
+    if (hasPayType && !['DEPOSIT', 'FINAL'].includes(payTypeRaw)) {
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: 'payType is invalid' });
+    }
+    const payType = payTypeRaw === 'FINAL' ? 'FINAL' : 'DEPOSIT';
     const scope = `PAYMENT_INTENT:${orderId}:${payType}`;
     return await this.withIdempotency(req, scope, async () => {
       let order = await this.prisma.order.findUnique({ where: { id: orderId } });
@@ -530,16 +535,15 @@ export class OrdersService {
         const computedFinal = this.computeFinalAmount(order.dealAmount, order.depositAmount);
         order = await this.prisma.order.update({ where: { id: orderId }, data: { finalAmount: computedFinal } });
       }
-      const normalizedPayType = payType === 'FINAL' ? 'FINAL' : 'DEPOSIT';
       const amount = payType === 'FINAL' ? order.finalAmount ?? 0 : order.depositAmount;
       const existingPaid = await this.prisma.payment.findFirst({
-        where: { orderId, payType: normalizedPayType, status: 'PAID' },
+        where: { orderId, payType, status: 'PAID' },
       });
       if (existingPaid) {
         throw new ConflictException({ code: 'CONFLICT', message: 'payment already completed' });
       }
       const existingPending = await this.prisma.payment.findFirst({
-        where: { orderId, payType: normalizedPayType, status: 'PENDING' },
+        where: { orderId, payType, status: 'PENDING' },
         orderBy: { createdAt: 'desc' },
       });
       const tradeNo = existingPending?.tradeNo || `demo-${orderId}-${Date.now()}`;
@@ -554,7 +558,7 @@ export class OrdersService {
         : await this.prisma.payment.create({
             data: {
               orderId,
-              payType: normalizedPayType,
+              payType,
               channel: 'WECHAT',
               tradeNo,
               amount,
@@ -565,7 +569,7 @@ export class OrdersService {
 
       return {
         paymentId: payment.id,
-        payType: normalizedPayType,
+        payType,
         channel: 'WECHAT',
         amountFen: amount,
         wechatPayParams: {

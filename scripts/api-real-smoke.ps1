@@ -1461,6 +1461,7 @@ try {
   if ([string]::IsNullOrWhiteSpace($orderId)) { throw "order-create missing id" }
   $orderCreateReplay = Add-ApiCaseResult -Results $results -Name "order-create-idempotent-replay" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/orders" -Body @{ listingId = $listingId } -Headers $orderCreateHeaders -Expected @(200, 201)
   Assert-ResultJsonFieldEquals -Result $orderCreateReplay -Field "id" -ExpectedValue $orderId -Assertion "order-create-idempotent-id"
+  [void](Add-ApiCaseResult -Results $results -Name "order-payment-intent-invalid-pay-type" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/orders/$orderId/payment-intents" -Body @{ payType = "INVALID" } -Headers (New-WriteHeaders -AuthorizationToken $userToken -Prefix $idempotencyPrefix -Label "order-payment-intent-invalid-pay-type") -Expected @(400))
   $orderPaymentIntentDepositHeaders = New-WriteHeaders -AuthorizationToken $userToken -Prefix $idempotencyPrefix -Label "order-payment-intent-deposit"
   $orderPaymentIntentDeposit = Add-ApiCaseResult -Results $results -Name "order-payment-intent-deposit" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/orders/$orderId/payment-intents" -Body @{ payType = "DEPOSIT" } -Headers $orderPaymentIntentDepositHeaders -Expected @(200, 201)
   Assert-ResultJsonFieldEquals -Result $orderPaymentIntentDeposit -Field "payType" -ExpectedValue "DEPOSIT" -Assertion "payment-intent-deposit-pay-type"

@@ -10,8 +10,8 @@
   - Build resilience: verify appends `NODE_OPTIONS=--max-old-space-size=4096` and retries transient `client:build:h5` crash exits once.
   - Chaos trend persistence: verify now passes `-ChaosHistoryPath` into `api-real-smoke` and snapshots history as `.tmp/api-real-smoke-chaos-history-<ReportDate>.json` for reproducible trend baselines.
   - Quality gates: `openapi:lint`, `lint`, `typecheck`, `scan:banned-words` all pass.
-  - API smoke: pass (641/641) -> `.tmp/api-real-smoke-2026-03-06-summary.json`
-  - API smoke write/read split: writes 548/548, reads 93/93.
+  - API smoke: pass (642/642) -> `.tmp/api-real-smoke-2026-03-06-summary.json`
+  - API smoke write/read split: writes 549/549, reads 93/93.
   - Semantic/state checks now included: cross-module order/refund/case/maintenance/rbac state assertions, file-link persistence assertions, and post-action detail re-fetch checks.
   - Idempotency replay checks now included: same-key replay for order create, payment intents (deposit/final), invoice request, and refund request create.
   - Failure/idempotency checks now included: duplicate favorites, invalid comment/message payloads (including strict 400 for empty comment create/update), and missing-resource delete paths.
@@ -68,6 +68,7 @@
 - Order/admin happy-path probes (demo auth/payment)
   - Result: pass (create order -> deposit paid -> contract signed -> final paid -> transfer completed -> settlement query).
   - Added guard probes in-flow: duplicate manual payment conflicts, payout missing evidence (400), invoice upsert missing file (400), refund/invoice request state-machine conflict checks (409).
+  - Added payment-intent validation hardening + guards: `POST /orders/:id/payment-intents` now treats explicit invalid `payType` as strict 400 (no silent fallback to `DEPOSIT`).
   - Added datetime validation hardening + guards: invalid `paidAt` / `signedAt` / `completedAt` / `payoutAt` / `issuedAt` now return 400 instead of leaking Prisma/Date conversion 500 paths.
   - Added semantic continuity assertions: order status verified after each transition (`DEPOSIT_PENDING` -> `DEPOSIT_PAID` -> `WAIT_FINAL_PAYMENT` -> `FINAL_PAID_ESCROW` -> `READY_TO_SETTLE` -> `COMPLETED`), settlement `payoutStatus` verified before/after payout, and `/orders/:id/case` milestone completion verified.
   - Added idempotency replay assertions: same `Idempotency-Key` now verifies stable `orderId`/`paymentId` replay behavior for order create and payment-intent paths.
@@ -143,7 +144,7 @@
   - Added file temporary-access coverage: `POST /files/:id/temporary-access` preview success (`scope=preview`, non-empty `url`) plus missing-file 404 guard.
 
 ### Risks still open
-- API write-path assertions are now 548 checks (with 93 read-back semantic verifications), and unique write-operation coverage is at least the previous 132/135 baseline plus report-import, AI/industry-tag/region/featured/file-access, admin-listings, user-listings, admin-cases create-enum hardening, patent-maintenance create-status strictness guards, and AI-query enum strictness guards; remaining risk is mainly deeper transaction-isolation windows under broader multi-actor parallel writes.
+- API write-path assertions are now 549 checks (with 93 read-back semantic verifications), and unique write-operation coverage is at least the previous 132/135 baseline plus report-import, AI/industry-tag/region/featured/file-access, admin-listings, user-listings, admin-cases create-enum hardening, patent-maintenance create-status strictness guards, AI-query enum strictness guards, and order payment-intent `payType` strictness guards; remaining risk is mainly deeper transaction-isolation windows under broader multi-actor parallel writes.
 - UI status smoke is still shallow (route-level HTTP checks only 26/83 pages, plus 2 mock endpoints).
 - DOM assertions now cover all 83/83 pages, but many routes still use generic structural assertions and need incremental business-semantic tightening.
 - Security baseline still high-risk (`pnpm audit --prod`: critical 2 / high 21), remediation not yet executed.
