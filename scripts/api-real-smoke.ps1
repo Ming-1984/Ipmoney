@@ -1133,6 +1133,50 @@ try {
     [void](Add-ApiCaseResult -Results $results -Name "settlement-refund-race-refund-create-after-transfer" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/orders/$settlementRefundRaceOrderId/refund-requests" -Body @{ reasonCode = "OTHER"; reasonText = "smoke disallowed after transfer won race" } -Headers (New-WriteHeaders -AuthorizationToken $userToken -Prefix $idempotencyPrefix -Label "settlement-refund-race-refund-create-after-transfer") -Expected @(409))
   }
 
+  $mixedRaceOrderId = New-RefundReadyOrder -Results $results -ApiPort $resolvedApiPort -UserToken $userToken -AdminToken $adminToken -ListingId $listingId -IdempotencyPrefix $idempotencyPrefix -CasePrefix "mixed-race"
+  [void](Add-ApiCaseResult -Results $results -Name "mixed-race-order-payment-intent-final" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/orders/$mixedRaceOrderId/payment-intents" -Body @{ payType = "FINAL" } -Headers (New-WriteHeaders -AuthorizationToken $userToken -Prefix $idempotencyPrefix -Label "mixed-race-order-payment-intent-final") -Expected @(200, 201))
+  [void](Add-ApiCaseResult -Results $results -Name "mixed-race-admin-order-manual-payment-final" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/admin/orders/$mixedRaceOrderId/payments/manual" -Body @{ payType = "FINAL" } -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "mixed-race-admin-order-manual-payment-final") -Expected @(200, 201))
+  [void](Add-ApiCaseResult -Results $results -Name "mixed-race-admin-order-transfer-completed" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/admin/orders/$mixedRaceOrderId/milestones/transfer-completed" -Body @{} -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "mixed-race-admin-order-transfer-completed") -Expected @(200, 201))
+  $mixedRaceOrderDetailBefore = Add-ApiCaseResult -Results $results -Name "mixed-race-order-detail-before" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/orders/$mixedRaceOrderId" -Body $null -Headers @{ Authorization = $userToken } -Expected @(200)
+  Assert-ResultJsonFieldEquals -Result $mixedRaceOrderDetailBefore -Field "status" -ExpectedValue "READY_TO_SETTLE" -Assertion "mixed-race-order-status-before"
+  $mixedRaceResults = Add-ConcurrentApiCaseTripleResults -Results $results -NameA "mixed-race-admin-order-payout" -MethodA "POST" -UrlA "http://127.0.0.1:$resolvedApiPort/admin/orders/$mixedRaceOrderId/payouts/manual" -BodyA @{ payoutEvidenceFileId = $evidenceFileId } -HeadersA (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "mixed-race-admin-order-payout") -NameB "mixed-race-order-invoice-request" -MethodB "POST" -UrlB "http://127.0.0.1:$resolvedApiPort/orders/$mixedRaceOrderId/invoice-requests" -BodyB @{} -HeadersB (New-WriteHeaders -AuthorizationToken $userToken -Prefix $idempotencyPrefix -Label "mixed-race-order-invoice-request") -NameC "mixed-race-order-refund-request" -MethodC "POST" -UrlC "http://127.0.0.1:$resolvedApiPort/orders/$mixedRaceOrderId/refund-requests" -BodyC @{ reasonCode = "OTHER"; reasonText = "smoke mixed race refund" } -HeadersC (New-WriteHeaders -AuthorizationToken $userToken -Prefix $idempotencyPrefix -Label "mixed-race-order-refund-request") -Expected @(200, 201, 409)
+  $mixedRacePayoutResult = @($mixedRaceResults | Where-Object { $_.name -eq "mixed-race-admin-order-payout" } | Select-Object -First 1)
+  $mixedRaceInvoiceResult = @($mixedRaceResults | Where-Object { $_.name -eq "mixed-race-order-invoice-request" } | Select-Object -First 1)
+  $mixedRaceRefundResult = @($mixedRaceResults | Where-Object { $_.name -eq "mixed-race-order-refund-request" } | Select-Object -First 1)
+  if (-not $mixedRacePayoutResult -or -not (@(200, 201) -contains [int]$mixedRacePayoutResult.status)) {
+    foreach ($mixedRaceResult in @($mixedRaceResults)) {
+      Add-ResultAssertionFailure -Result $mixedRaceResult -Assertion "mixed-race-payout-success" -Message "Expected payout branch to succeed once in mixed race scenario"
+    }
+  }
+  if (-not $mixedRaceRefundResult -or [int]$mixedRaceRefundResult.status -ne 409) {
+    foreach ($mixedRaceResult in @($mixedRaceResults)) {
+      Add-ResultAssertionFailure -Result $mixedRaceResult -Assertion "mixed-race-refund-conflict" -Message "Expected refund branch to conflict in mixed race scenario"
+    }
+  }
+  if (-not $mixedRaceInvoiceResult -or -not (@(200, 201, 409) -contains [int]$mixedRaceInvoiceResult.status)) {
+    foreach ($mixedRaceResult in @($mixedRaceResults)) {
+      Add-ResultAssertionFailure -Result $mixedRaceResult -Assertion "mixed-race-invoice-status" -Message "Expected invoice branch status to be one of [200,201,409]"
+    }
+  }
+  if ($mixedRaceInvoiceResult -and (@(200, 201) -contains [int]$mixedRaceInvoiceResult.status)) {
+    Assert-ResultJsonFieldEquals -Result $mixedRaceInvoiceResult -Field "status" -ExpectedValue "APPLYING" -Assertion "mixed-race-invoice-success-status"
+  }
+  $mixedRaceInvoiceResultFinal = $mixedRaceInvoiceResult
+  $mixedRaceOrderDetailAfter = Add-ApiCaseResult -Results $results -Name "mixed-race-order-detail-after" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/orders/$mixedRaceOrderId" -Body $null -Headers @{ Authorization = $userToken } -Expected @(200)
+  Assert-ResultJsonFieldEquals -Result $mixedRaceOrderDetailAfter -Field "status" -ExpectedValue "COMPLETED" -Assertion "mixed-race-order-status-after"
+  $mixedRaceSettlementAfter = Add-ApiCaseResult -Results $results -Name "mixed-race-settlement-after" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/admin/orders/$mixedRaceOrderId/settlement" -Body $null -Headers @{ Authorization = $adminToken } -Expected @(200)
+  Assert-ResultJsonFieldEquals -Result $mixedRaceSettlementAfter -Field "payoutStatus" -ExpectedValue "SUCCEEDED" -Assertion "mixed-race-settlement-status-after"
+  if ($mixedRaceInvoiceResult -and [int]$mixedRaceInvoiceResult.status -eq 409) {
+    $mixedRaceInvoiceRequestAfter = Add-ApiCaseResult -Results $results -Name "mixed-race-order-invoice-request-after-payout" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/orders/$mixedRaceOrderId/invoice-requests" -Body @{} -Headers (New-WriteHeaders -AuthorizationToken $userToken -Prefix $idempotencyPrefix -Label "mixed-race-order-invoice-request-after-payout") -Expected @(200, 201)
+    Assert-ResultJsonFieldEquals -Result $mixedRaceInvoiceRequestAfter -Field "status" -ExpectedValue "APPLYING" -Assertion "mixed-race-invoice-after-payout-status"
+    $mixedRaceInvoiceResultFinal = $mixedRaceInvoiceRequestAfter
+  }
+  if ($mixedRaceInvoiceResultFinal -and (@(200, 201) -contains [int]$mixedRaceInvoiceResultFinal.status)) {
+    $mixedRaceInvoiceUpsert = Add-ApiCaseResult -Results $results -Name "mixed-race-admin-order-upsert-invoice-with-file" -Method "PUT" -Url "http://127.0.0.1:$resolvedApiPort/admin/orders/$mixedRaceOrderId/invoice" -Body @{ invoiceFileId = $evidenceFileId } -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "mixed-race-admin-order-upsert-invoice-with-file") -Expected @(200)
+    Assert-ResultJsonFieldEquals -Result $mixedRaceInvoiceUpsert -Field "invoiceFile.id" -ExpectedValue $evidenceFileId -Assertion "mixed-race-invoice-upsert-file-linked"
+  }
+  [void](Add-ApiCaseResult -Results $results -Name "mixed-race-order-refund-request-after-payout" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/orders/$mixedRaceOrderId/refund-requests" -Body @{ reasonCode = "OTHER"; reasonText = "smoke mixed race disallowed after payout" } -Headers (New-WriteHeaders -AuthorizationToken $userToken -Prefix $idempotencyPrefix -Label "mixed-race-order-refund-request-after-payout") -Expected @(409))
+
   $refundApproveOrderId = New-RefundReadyOrder -Results $results -ApiPort $resolvedApiPort -UserToken $userToken -AdminToken $adminToken -ListingId $listingId -IdempotencyPrefix $idempotencyPrefix -CasePrefix "refund-approve"
   $refundApproveCreateHeaders = New-WriteHeaders -AuthorizationToken $userToken -Prefix $idempotencyPrefix -Label "refund-approve-create"
   $refundApproveCreate = Add-ApiCaseResult -Results $results -Name "refund-approve-create" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/orders/$refundApproveOrderId/refund-requests" -Body @{ reasonCode = "OTHER"; reasonText = "smoke approve flow" } -Headers $refundApproveCreateHeaders -Expected @(200, 201)
