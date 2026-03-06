@@ -9,14 +9,14 @@
 ### 1.1 Quality gates status
 - `typecheck`: pass (api/client/admin-web).
 - `build`: pass (api/admin-web/client h5/weapp); WeApp severe regression has been fixed in this batch, and bundle gate is now enforced.
-- `smoke`: pass (API 314/314, UI HTTP 28/28, UI Render full 83/83, UI Render core 3/3, UI DOM core 11/11, UI DOM full-83 83/83).
+- `smoke`: pass (API 338/338, UI HTTP 28/28, UI Render full 83/83, UI Render core 3/3, UI DOM core 11/11, UI DOM full-83 83/83).
 - `verify`: pass on 2026-03-06 (now includes `ui-dom-smoke(core)` in pipeline); port/process hardening has been applied to core smoke scripts.
 - `weapp-route-smoke`: local fail due DevTools HTTP port availability (environment issue).
 
 ### 1.2 Coverage and test capability
 - OpenAPI operations: 243 (GET 108 / POST 93 / PUT 12 / PATCH 21 / DELETE 9).
-- API smoke covers 314 checks (including semantic read-back/state assertions).
-- Write operations total 135; smoke now executes 237 write assertions plus 77 read-back semantic checks (state transitions, persistence, cross-module link integrity, same-key replay invariants, and selected concurrency race outcomes), while unique write-operation coverage remains at least prior 132/135 baseline.
+- API smoke covers 338 checks (including semantic read-back/state assertions).
+- Write operations total 135; smoke now executes 258 write assertions plus 80 read-back semantic checks (state transitions, persistence, cross-module link integrity, same-key replay invariants, and selected concurrency race outcomes), while unique write-operation coverage remains at least prior 132/135 baseline.
 - Highest uncovered write concentration remains in `/admin` (77 write operations; still the largest uncovered write domain).
 - No `.test` / `.spec` business tests under `apps` and `packages`.
 
@@ -85,7 +85,7 @@
   - Acceptance: executable `test` scripts in `apps/api`; CI can run minimal set.
 - [ ] B02 Build write-first API test inventory (orders/refunds/invoices/comments/favorites/addresses/audit flow).
   - Acceptance: first batch covers >=30 key write APIs with success/failure/idempotency assertions.
-  - Progress: smoke batch now executes 237 write assertions (favorites/comments/addresses/conversations/consultations + auth + admin-config writes + admin order/refund negative paths + order/admin happy-path state transitions + file-dependent payout/invoice paths + refund approve/complete/reject lifecycle checks + admin case workflows + patent-maintenance schedules/tasks workflows + rbac role/user workflows + reports export + patent-map import + same-key replay probes for order/payment/invoice/refund + concurrency race matrices including mixed payout/invoice/refund overlap + repeated mixed bursts on same aggregate + cross-order parallel payouts + staggered mixed-tail overlap + jittered repeated overlap loops), plus 77 semantic read-back checks for state continuity/persistence integrity, with failure/idempotency assertions, targeted regression checks, and mixed-race invoice consistency closure added.
+  - Progress: smoke batch now executes 258 write assertions (favorites/comments/addresses/conversations/consultations + auth + admin-config writes + admin order/refund negative paths + order/admin happy-path state transitions + file-dependent payout/invoice paths + refund approve/complete/reject lifecycle checks + admin case workflows + patent-maintenance schedules/tasks workflows + rbac role/user workflows + reports export + patent-map import + same-key replay probes for order/payment/invoice/refund + concurrency race matrices including mixed payout/invoice/refund overlap + repeated mixed bursts on same aggregate + cross-order parallel payouts + staggered mixed-tail overlap + jittered repeated overlap loops + randomized multi-iteration seeded overlap harness), plus 80 semantic read-back checks for state continuity/persistence integrity, with failure/idempotency assertions, targeted regression checks, mixed-race invoice consistency closure, and randomized outcome-distribution assertions added.
 - [ ] B03 Add frontend E2E for key H5/admin paths (excluding real login/payment).
   - Acceptance: homepage/search/detail/publish/order/audit flows are script-regressible.
 - [x] B04 Upgrade `api-real-smoke` from read-heavy to read-write balanced.
@@ -257,8 +257,8 @@
 | J06 | done | Codex | 2026-03-06 | 2026-03-05 | DOM full-mode batch-1 landed (36/36 pass, matrix 36/83) |
 | J07 | done | Codex | 2026-03-06 | 2026-03-05 | DOM full-mode expanded to full 83/83 with matrix sync |
 | K01 | done | Codex | 2026-03-06 | 2026-03-05 | vulnerability ledger + generator script completed |
-| B04 | done | Codex | 2026-03-06 | 2026-03-06 | `api-real-smoke` expanded to 314/314 (writes 237/237 + reads 77/77 semantic assertions), with unique write-operation coverage already near-full baseline |
-| B02 | in_progress | Codex | 2026-03-06 | - | write batch now includes same-key replay invariants + semantic read-back checks (order/refund/case/maintenance/rbac/report/import) + duplicate-maintenance-schedule 409 regression guard + concurrency race matrices (maintenance create, refund approve/reject, order payout pair/triple, transfer-vs-refund overlap, mixed payout/invoice/refund triple-write, repeated mixed bursts on same order aggregate, cross-order parallel payout, staggered mixed tail overlap, jittered repeated overlap loops) + invoice consistency closure for mixed-race `invoice_without_file` risk; remaining depth is deeper transaction-isolation windows |
+| B04 | done | Codex | 2026-03-06 | 2026-03-06 | `api-real-smoke` expanded to 338/338 (writes 258/258 + reads 80/80 semantic assertions), with unique write-operation coverage already near-full baseline |
+| B02 | in_progress | Codex | 2026-03-06 | - | write batch now includes same-key replay invariants + semantic read-back checks (order/refund/case/maintenance/rbac/report/import) + duplicate-maintenance-schedule 409 regression guard + concurrency race matrices (maintenance create, refund approve/reject, order payout pair/triple, transfer-vs-refund overlap, mixed payout/invoice/refund triple-write, repeated mixed bursts on same order aggregate, cross-order parallel payout, staggered mixed tail overlap, jittered repeated overlap loops, randomized seeded multi-iteration overlap harness with distribution assertions) + invoice consistency closure for mixed-race `invoice_without_file` risk; remaining depth is deeper transaction-isolation windows |
 
 ### Current execution batch (Batch-1)
 - Scope: A01 / A02 / A03 / N01 / N02 / N03 / N04 / H01 / D01 / D02 / D03 / D04 (completed).
@@ -284,8 +284,8 @@
 ### Current execution batch (Batch-3)
 - Scope: B04 close-out + B02 first write batch (in progress).
 - Deliverables:
-  1) `api-real-smoke` expanded from 17 to 314 checks (done),
-  2) write checks expanded from 2 to 237 assertions (favorites/comments/addresses/conversations/consultations/auth/admin-config/admin-order-refund-negative/order-admin-happy-path/file-dependent payout-invoice/refund lifecycle/admin-case workflows/patent-maintenance workflows/rbac workflows/reports export/patent-map import + same-key replay probes + concurrency race probes) (done),
+  1) `api-real-smoke` expanded from 17 to 338 checks (done),
+  2) write checks expanded from 2 to 258 assertions (favorites/comments/addresses/conversations/consultations/auth/admin-config/admin-order-refund-negative/order-admin-happy-path/file-dependent payout-invoice/refund lifecycle/admin-case workflows/patent-maintenance workflows/rbac workflows/reports export/patent-map import + same-key replay probes + concurrency race probes) (done),
   3) first failure-path/idempotency assertions added (duplicate favorites, invalid comment/message, missing-address delete) (done),
   4) `verify` rerun full green with new API smoke baseline (done),
   5) admin config write-path defect fixed (`PUT /admin/config/*` now passes with audit-log increment assertions) (done),
@@ -309,4 +309,5 @@
   23) repeated mixed overlap bursts landed on same order aggregate (post-terminal repeated concurrent `payout + invoice-request + refund-request` with bounded outcomes and terminal-state re-checks) (done),
   24) mixed overlap expansion landed to multi-order and staggered-start bursts (cross-order parallel payout success guarantees + post-payout staggered invoice/refund overlap guarantees) (done),
   25) jittered repeated race loops landed (same aggregate sampled across delayed overlap bursts with per-loop bounded outcomes + terminal-state re-check) (done),
-  26) next step: add randomized multi-iteration race harness (batched seeds + outcome distribution report) to detect probabilistic isolation regressions (pending).
+  26) randomized multi-iteration race harness landed (batched seeds + per-seed outcomes + aggregated distribution summary assertions) (done),
+  27) next step: add randomized multi-order/multi-aggregate harness with wider seed-space sampling to detect probabilistic cross-aggregate isolation regressions (pending).

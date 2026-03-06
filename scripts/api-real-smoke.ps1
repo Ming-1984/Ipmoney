@@ -1300,6 +1300,98 @@ try {
   $mixedJitterSettlementAfter = Add-ApiCaseResult -Results $results -Name "mixed-jitter-settlement-after" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/admin/orders/$mixedJitterOrderId/settlement" -Body $null -Headers @{ Authorization = $adminToken } -Expected @(200)
   Assert-ResultJsonFieldEquals -Result $mixedJitterSettlementAfter -Field "payoutStatus" -ExpectedValue "SUCCEEDED" -Assertion "mixed-jitter-settlement-status-after"
 
+  $mixedRandomizedOrderId = New-RefundReadyOrder -Results $results -ApiPort $resolvedApiPort -UserToken $userToken -AdminToken $adminToken -ListingId $listingId -IdempotencyPrefix $idempotencyPrefix -CasePrefix "mixed-randomized"
+  [void](Add-ApiCaseResult -Results $results -Name "mixed-randomized-order-payment-intent-final" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/orders/$mixedRandomizedOrderId/payment-intents" -Body @{ payType = "FINAL" } -Headers (New-WriteHeaders -AuthorizationToken $userToken -Prefix $idempotencyPrefix -Label "mixed-randomized-order-payment-intent-final") -Expected @(200, 201))
+  [void](Add-ApiCaseResult -Results $results -Name "mixed-randomized-admin-order-manual-payment-final" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/admin/orders/$mixedRandomizedOrderId/payments/manual" -Body @{ payType = "FINAL" } -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "mixed-randomized-admin-order-manual-payment-final") -Expected @(200, 201))
+  [void](Add-ApiCaseResult -Results $results -Name "mixed-randomized-admin-order-transfer-completed" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/admin/orders/$mixedRandomizedOrderId/milestones/transfer-completed" -Body @{} -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "mixed-randomized-admin-order-transfer-completed") -Expected @(200, 201))
+  [void](Add-ApiCaseResult -Results $results -Name "mixed-randomized-admin-order-payout" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/admin/orders/$mixedRandomizedOrderId/payouts/manual" -Body @{ payoutEvidenceFileId = $evidenceFileId } -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "mixed-randomized-admin-order-payout") -Expected @(200, 201))
+  $mixedRandomizedSeedBatches = @(@(1301, 1303, 1307), @(2309, 2311, 2317))
+  $mixedRandomizedDistribution = @{
+    invoiceSuccess = 0
+    invoiceConflict = 0
+    invoiceOther = 0
+    refundConflict = 0
+    refundOther = 0
+  }
+  $mixedRandomizedSeedDetails = New-Object System.Collections.ArrayList
+  $mixedRandomizedRuns = 0
+  $mixedRandomizedBatchIndex = 0
+  foreach ($mixedRandomizedSeedBatch in $mixedRandomizedSeedBatches) {
+    $mixedRandomizedBatchIndex++
+    foreach ($mixedRandomizedSeed in $mixedRandomizedSeedBatch) {
+      $mixedRandomizedRuns++
+      $mixedRandomizedRandom = [System.Random]::new([int]$mixedRandomizedSeed)
+      $mixedRandomizedDelayMs = 15 + $mixedRandomizedRandom.Next(0, 120)
+      Start-Sleep -Milliseconds $mixedRandomizedDelayMs
+      $mixedRandomizedInvoiceName = "mixed-randomized-b$mixedRandomizedBatchIndex-r$mixedRandomizedRuns-order-invoice-request"
+      $mixedRandomizedRefundName = "mixed-randomized-b$mixedRandomizedBatchIndex-r$mixedRandomizedRuns-order-refund-request"
+      $mixedRandomizedPairResults = Add-ConcurrentApiCasePairResults -Results $results -NameA $mixedRandomizedInvoiceName -MethodA "POST" -UrlA "http://127.0.0.1:$resolvedApiPort/orders/$mixedRandomizedOrderId/invoice-requests" -BodyA @{} -HeadersA (New-WriteHeaders -AuthorizationToken $userToken -Prefix $idempotencyPrefix -Label $mixedRandomizedInvoiceName) -NameB $mixedRandomizedRefundName -MethodB "POST" -UrlB "http://127.0.0.1:$resolvedApiPort/orders/$mixedRandomizedOrderId/refund-requests" -BodyB @{ reasonCode = "OTHER"; reasonText = "smoke mixed randomized refund b$mixedRandomizedBatchIndex-r$mixedRandomizedRuns" } -HeadersB (New-WriteHeaders -AuthorizationToken $userToken -Prefix $idempotencyPrefix -Label $mixedRandomizedRefundName) -Expected @(200, 201, 409)
+      $mixedRandomizedInvoiceResult = @($mixedRandomizedPairResults | Where-Object { $_.name -eq $mixedRandomizedInvoiceName } | Select-Object -First 1)
+      $mixedRandomizedRefundResult = @($mixedRandomizedPairResults | Where-Object { $_.name -eq $mixedRandomizedRefundName } | Select-Object -First 1)
+      $mixedRandomizedInvoiceStatus = if ($mixedRandomizedInvoiceResult) { [int]$mixedRandomizedInvoiceResult.status } else { -1 }
+      $mixedRandomizedRefundStatus = if ($mixedRandomizedRefundResult) { [int]$mixedRandomizedRefundResult.status } else { -1 }
+      if ($mixedRandomizedInvoiceStatus -in @(200, 201)) {
+        $mixedRandomizedDistribution.invoiceSuccess = [int]$mixedRandomizedDistribution.invoiceSuccess + 1
+        Assert-ResultJsonFieldEquals -Result $mixedRandomizedInvoiceResult -Field "status" -ExpectedValue "APPLYING" -Assertion "mixed-randomized-invoice-success-status-b$mixedRandomizedBatchIndex-r$mixedRandomizedRuns"
+        $mixedRandomizedInvoiceUpsertName = "mixed-randomized-b$mixedRandomizedBatchIndex-r$mixedRandomizedRuns-admin-order-upsert-invoice-with-file"
+        $mixedRandomizedInvoiceUpsert = Add-ApiCaseResult -Results $results -Name $mixedRandomizedInvoiceUpsertName -Method "PUT" -Url "http://127.0.0.1:$resolvedApiPort/admin/orders/$mixedRandomizedOrderId/invoice" -Body @{ invoiceFileId = $evidenceFileId } -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label $mixedRandomizedInvoiceUpsertName) -Expected @(200)
+        Assert-ResultJsonFieldEquals -Result $mixedRandomizedInvoiceUpsert -Field "invoiceFile.id" -ExpectedValue $evidenceFileId -Assertion "mixed-randomized-invoice-upsert-file-linked-b$mixedRandomizedBatchIndex-r$mixedRandomizedRuns"
+      } elseif ($mixedRandomizedInvoiceStatus -eq 409) {
+        $mixedRandomizedDistribution.invoiceConflict = [int]$mixedRandomizedDistribution.invoiceConflict + 1
+      } else {
+        $mixedRandomizedDistribution.invoiceOther = [int]$mixedRandomizedDistribution.invoiceOther + 1
+        foreach ($mixedRandomizedPairResult in @($mixedRandomizedPairResults)) {
+          Add-ResultAssertionFailure -Result $mixedRandomizedPairResult -Assertion "mixed-randomized-invoice-status-b$mixedRandomizedBatchIndex-r$mixedRandomizedRuns" -Message "Expected randomized invoice status to be one of [200,201,409], got [$mixedRandomizedInvoiceStatus]"
+        }
+      }
+      if ($mixedRandomizedRefundStatus -eq 409) {
+        $mixedRandomizedDistribution.refundConflict = [int]$mixedRandomizedDistribution.refundConflict + 1
+      } else {
+        $mixedRandomizedDistribution.refundOther = [int]$mixedRandomizedDistribution.refundOther + 1
+        foreach ($mixedRandomizedPairResult in @($mixedRandomizedPairResults)) {
+          Add-ResultAssertionFailure -Result $mixedRandomizedPairResult -Assertion "mixed-randomized-refund-status-b$mixedRandomizedBatchIndex-r$mixedRandomizedRuns" -Message "Expected randomized refund status to be conflict 409, got [$mixedRandomizedRefundStatus]"
+        }
+      }
+      [void]$mixedRandomizedSeedDetails.Add([pscustomobject]@{
+        batch = $mixedRandomizedBatchIndex
+        run = $mixedRandomizedRuns
+        seed = $mixedRandomizedSeed
+        delayMs = $mixedRandomizedDelayMs
+        invoiceStatus = $mixedRandomizedInvoiceStatus
+        refundStatus = $mixedRandomizedRefundStatus
+      })
+    }
+  }
+  $mixedRandomizedSummaryPayload = [ordered]@{
+    seedBatches = $mixedRandomizedSeedBatches
+    runs = $mixedRandomizedRuns
+    distribution = $mixedRandomizedDistribution
+    details = $mixedRandomizedSeedDetails
+  }
+  $mixedRandomizedSummaryResult = [pscustomobject]@{
+    name = "mixed-randomized-outcome-distribution"
+    method = "GET"
+    url = "internal://mixed-randomized-outcome-distribution"
+    status = 200
+    expected = "200"
+    ok = $true
+    body = ($mixedRandomizedSummaryPayload | ConvertTo-Json -Depth 8 -Compress)
+  }
+  [void]$results.Add($mixedRandomizedSummaryResult)
+  if ([int]$mixedRandomizedDistribution.invoiceOther -ne 0 -or [int]$mixedRandomizedDistribution.refundOther -ne 0) {
+    Add-ResultAssertionFailure -Result $mixedRandomizedSummaryResult -Assertion "mixed-randomized-distribution-no-other-status" -Message "Randomized distribution contains unexpected statuses: invoiceOther=$($mixedRandomizedDistribution.invoiceOther), refundOther=$($mixedRandomizedDistribution.refundOther)"
+  }
+  if ([int]$mixedRandomizedDistribution.refundConflict -ne $mixedRandomizedRuns) {
+    Add-ResultAssertionFailure -Result $mixedRandomizedSummaryResult -Assertion "mixed-randomized-distribution-refund-conflict" -Message "Expected refund conflict count $mixedRandomizedRuns, got $($mixedRandomizedDistribution.refundConflict)"
+  }
+  if (([int]$mixedRandomizedDistribution.invoiceSuccess + [int]$mixedRandomizedDistribution.invoiceConflict) -ne $mixedRandomizedRuns) {
+    Add-ResultAssertionFailure -Result $mixedRandomizedSummaryResult -Assertion "mixed-randomized-distribution-invoice-bounded" -Message "Expected invoice success+conflict count $mixedRandomizedRuns, got $([int]$mixedRandomizedDistribution.invoiceSuccess + [int]$mixedRandomizedDistribution.invoiceConflict)"
+  }
+  $mixedRandomizedOrderDetailAfter = Add-ApiCaseResult -Results $results -Name "mixed-randomized-order-detail-after" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/orders/$mixedRandomizedOrderId" -Body $null -Headers @{ Authorization = $userToken } -Expected @(200)
+  Assert-ResultJsonFieldEquals -Result $mixedRandomizedOrderDetailAfter -Field "status" -ExpectedValue "COMPLETED" -Assertion "mixed-randomized-order-status-after"
+  $mixedRandomizedSettlementAfter = Add-ApiCaseResult -Results $results -Name "mixed-randomized-settlement-after" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/admin/orders/$mixedRandomizedOrderId/settlement" -Body $null -Headers @{ Authorization = $adminToken } -Expected @(200)
+  Assert-ResultJsonFieldEquals -Result $mixedRandomizedSettlementAfter -Field "payoutStatus" -ExpectedValue "SUCCEEDED" -Assertion "mixed-randomized-settlement-status-after"
+
   $refundApproveOrderId = New-RefundReadyOrder -Results $results -ApiPort $resolvedApiPort -UserToken $userToken -AdminToken $adminToken -ListingId $listingId -IdempotencyPrefix $idempotencyPrefix -CasePrefix "refund-approve"
   $refundApproveCreateHeaders = New-WriteHeaders -AuthorizationToken $userToken -Prefix $idempotencyPrefix -Label "refund-approve-create"
   $refundApproveCreate = Add-ApiCaseResult -Results $results -Name "refund-approve-create" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/orders/$refundApproveOrderId/refund-requests" -Body @{ reasonCode = "OTHER"; reasonText = "smoke approve flow" } -Headers $refundApproveCreateHeaders -Expected @(200, 201)
