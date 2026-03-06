@@ -799,9 +799,12 @@ export class ListingsService {
     const pageSize = Math.min(50, Math.max(1, Number(query?.pageSize || 10)));
     const q = String(query?.q || '').trim();
     const regionCode = String(query?.regionCode || '').trim();
-    const auditStatus = String(query?.auditStatus || '').trim().toUpperCase();
-    const status = String(query?.status || '').trim().toUpperCase();
-    const source = this.normalizeContentSource(query?.source);
+    const hasAuditStatus = this.hasOwn(query, 'auditStatus');
+    const hasStatus = this.hasOwn(query, 'status');
+    const hasSource = this.hasOwn(query, 'source');
+    const auditStatus = hasAuditStatus ? this.parseAuditStatusStrict(query?.auditStatus, 'auditStatus') : undefined;
+    const status = hasStatus ? this.parseListingStatusStrict(query?.status, 'status') : undefined;
+    const source = hasSource ? this.parseContentSourceStrict(query?.source, 'source') : undefined;
 
     const where: any = {};
     if (q) {
