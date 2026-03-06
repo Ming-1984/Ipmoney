@@ -893,6 +893,8 @@ try {
     @{ name = "auth-sms-send"; method = "POST"; url = "http://127.0.0.1:$resolvedApiPort/auth/sms/send"; body = @{ phone = "13800138000" }; headers = @{}; expected = @(200, 201) },
     @{ name = "auth-sms-verify"; method = "POST"; url = "http://127.0.0.1:$resolvedApiPort/auth/sms/verify"; body = @{ phone = "13800138000"; code = "123456" }; headers = @{}; expected = @(200, 201) },
     @{ name = "me"; method = "GET"; url = "http://127.0.0.1:$resolvedApiPort/me"; body = $null; headers = @{ Authorization = $userToken }; expected = @(200) },
+    @{ name = "me-verification-invalid-type"; method = "POST"; url = "http://127.0.0.1:$resolvedApiPort/me/verification"; body = @{ type = "UNKNOWN"; displayName = "Smoke Invalid Verification Type" }; headers = @{ Authorization = $userToken }; expected = @(400) },
+    @{ name = "me-verification-empty-type"; method = "POST"; url = "http://127.0.0.1:$resolvedApiPort/me/verification"; body = @{ type = ""; displayName = "Smoke Empty Verification Type" }; headers = @{ Authorization = $userToken }; expected = @(400) },
     @{ name = "demands-mine"; method = "GET"; url = "http://127.0.0.1:$resolvedApiPort/demands"; body = $null; headers = @{ Authorization = $userToken }; expected = @(200) },
     @{ name = "demands-mine-invalid-status"; method = "GET"; url = "http://127.0.0.1:$resolvedApiPort/demands?status=UNKNOWN"; body = $null; headers = @{ Authorization = $userToken }; expected = @(400) },
     @{ name = "achievements-mine"; method = "GET"; url = "http://127.0.0.1:$resolvedApiPort/achievements"; body = $null; headers = @{ Authorization = $userToken }; expected = @(200) },

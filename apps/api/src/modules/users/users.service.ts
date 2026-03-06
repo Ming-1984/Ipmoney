@@ -217,9 +217,11 @@ export class UsersService {
   }
 
   async submitMyVerification(userId: string, input: UserVerificationSubmitRequestDto): Promise<UserVerificationDto> {
-    const verificationType = String(input?.type || '').trim() as UserVerificationSubmitRequestDto['type'];
+    const verificationTypeRaw = String(input?.type || '').trim();
+    const verificationType = this.normalizeVerificationType(verificationTypeRaw);
     const displayName = String(input?.displayName || '').trim();
-    if (!verificationType) throw new BadRequestException({ code: 'BAD_REQUEST', message: 'type must not be empty' });
+    if (!verificationTypeRaw) throw new BadRequestException({ code: 'BAD_REQUEST', message: 'type must not be empty' });
+    if (!verificationType) throw new BadRequestException({ code: 'BAD_REQUEST', message: 'type is invalid' });
     if (!displayName) throw new BadRequestException({ code: 'BAD_REQUEST', message: 'displayName must not be empty' });
 
     const evidenceFileIds = Array.isArray(input.evidenceFileIds) ? input.evidenceFileIds : [];
@@ -242,7 +244,7 @@ export class UsersService {
     const created = await this.prisma.userVerification.create({
       data: {
         userId,
-        verificationType: verificationType as any,
+        verificationType,
         verificationStatus: autoApprove ? 'APPROVED' : 'PENDING',
         displayName,
         unifiedSocialCreditCodeEnc: input.unifiedSocialCreditCode ? String(input.unifiedSocialCreditCode) : null,
