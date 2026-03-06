@@ -102,8 +102,8 @@ export class AnnouncementsService {
     const page = Math.max(1, Number(query?.page || 1));
     const pageSize = Math.min(50, Math.max(1, Number(query?.pageSize || 20)));
     const where: any = {};
-    if (query?.status && STATUS_SET.has(String(query.status).toUpperCase() as AnnouncementStatus)) {
-      where.status = String(query.status).toUpperCase();
+    if (this.hasOwn(query, 'status')) {
+      where.status = this.parseStatus(query?.status, 'status');
     }
     if (query?.q) {
       const q = String(query.q).trim();
