@@ -32,6 +32,22 @@ export class ContractsService {
     if (!req?.auth?.userId) throw new ForbiddenException({ code: 'FORBIDDEN', message: '无权限' });
   }
 
+  private hasOwn(input: any, key: string) {
+    return !!input && Object.prototype.hasOwnProperty.call(input, key);
+  }
+
+  private parsePositiveIntStrict(value: unknown, fieldName: string): number {
+    const raw = String(value ?? '').trim();
+    if (!raw) {
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: `${fieldName} is invalid` });
+    }
+    const parsed = Number(raw);
+    if (!Number.isInteger(parsed) || parsed <= 0) {
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: `${fieldName} is invalid` });
+    }
+    return parsed;
+  }
+
   private parseOrderId(contractId: string) {
     const id = String(contractId || '');
     if (id.startsWith(CONTRACT_ID_PREFIX)) return id.slice(CONTRACT_ID_PREFIX.length);
@@ -63,9 +79,10 @@ export class ContractsService {
 
   async list(req: any, query: any): Promise<ContractListResponse> {
     this.ensureAuth(req);
-    const page = Math.max(1, Number(query?.page || 1));
-    const pageSize = Math.min(50, Math.max(1, Number(query?.pageSize || 20)));
-    const hasStatus = !!query && Object.prototype.hasOwnProperty.call(query, 'status');
+    const page = this.hasOwn(query, 'page') ? this.parsePositiveIntStrict(query?.page, 'page') : 1;
+    const pageSizeInput = this.hasOwn(query, 'pageSize') ? this.parsePositiveIntStrict(query?.pageSize, 'pageSize') : 20;
+    const pageSize = Math.min(50, pageSizeInput);
+    const hasStatus = this.hasOwn(query, 'status');
     const status = String(query?.status || '').trim().toUpperCase();
     const normalizedStatus =
       status === 'WAIT_UPLOAD' || status === 'WAIT_CONFIRM' || status === 'AVAILABLE' ? (status as ContractStatus) : null;

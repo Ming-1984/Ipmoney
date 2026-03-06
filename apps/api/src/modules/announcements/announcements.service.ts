@@ -50,6 +50,18 @@ export class AnnouncementsService {
     return normalized as AnnouncementStatus;
   }
 
+  private parsePositiveIntStrict(value: unknown, fieldName: string): number {
+    const raw = String(value ?? '').trim();
+    if (!raw) {
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: `${fieldName} is invalid` });
+    }
+    const parsed = Number(raw);
+    if (!Number.isInteger(parsed) || parsed <= 0) {
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: `${fieldName} is invalid` });
+    }
+    return parsed;
+  }
+
   private toDto(item: any) {
     const createdAt = item.createdAt ? item.createdAt.toISOString() : new Date().toISOString();
     const publishedAt = item.publishedAt ? item.publishedAt.toISOString() : null;
@@ -75,8 +87,9 @@ export class AnnouncementsService {
   }
 
   async list(query: any) {
-    const page = Math.max(1, Number(query?.page || 1));
-    const pageSize = Math.min(50, Math.max(1, Number(query?.pageSize || 20)));
+    const page = this.hasOwn(query, 'page') ? this.parsePositiveIntStrict(query?.page, 'page') : 1;
+    const pageSizeInput = this.hasOwn(query, 'pageSize') ? this.parsePositiveIntStrict(query?.pageSize, 'pageSize') : 20;
+    const pageSize = Math.min(50, pageSizeInput);
     const [items, total] = await Promise.all([
       this.prisma.announcement.findMany({
         where: { status: 'PUBLISHED' as any },
@@ -99,8 +112,9 @@ export class AnnouncementsService {
   }
 
   async adminList(query: any) {
-    const page = Math.max(1, Number(query?.page || 1));
-    const pageSize = Math.min(50, Math.max(1, Number(query?.pageSize || 20)));
+    const page = this.hasOwn(query, 'page') ? this.parsePositiveIntStrict(query?.page, 'page') : 1;
+    const pageSizeInput = this.hasOwn(query, 'pageSize') ? this.parsePositiveIntStrict(query?.pageSize, 'pageSize') : 20;
+    const pageSize = Math.min(50, pageSizeInput);
     const where: any = {};
     if (this.hasOwn(query, 'status')) {
       where.status = this.parseStatus(query?.status, 'status');

@@ -49,6 +49,18 @@ export class CasesService {
     return Object.prototype.hasOwnProperty.call(body || {}, key);
   }
 
+  private parsePositiveIntStrict(value: unknown, fieldName: string): number {
+    const raw = String(value ?? '').trim();
+    if (!raw) {
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: `${fieldName} is invalid` });
+    }
+    const parsed = Number(raw);
+    if (!Number.isInteger(parsed) || parsed <= 0) {
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: `${fieldName} is invalid` });
+    }
+    return parsed;
+  }
+
   private ensureAuth(req: any) {
     if (!req?.auth?.userId) throw new ForbiddenException({ code: 'FORBIDDEN', message: '无权限' });
   }
@@ -174,8 +186,9 @@ export class CasesService {
     const hasType = this.hasOwn(query, 'type');
     const status = hasStatus ? this.parseStatusStrict(query?.status, 'status') : undefined;
     const type = hasType ? this.parseTypeStrict(query?.type, 'type') : undefined;
-    const page = Math.max(1, Number(query?.page || 1));
-    const pageSize = Math.min(50, Math.max(1, Number(query?.pageSize || 20)));
+    const page = this.hasOwn(query, 'page') ? this.parsePositiveIntStrict(query?.page, 'page') : 1;
+    const pageSizeInput = this.hasOwn(query, 'pageSize') ? this.parsePositiveIntStrict(query?.pageSize, 'pageSize') : 20;
+    const pageSize = Math.min(50, pageSizeInput);
 
     const where: Prisma.CsCaseWhereInput = {};
     if (status) where.status = status;
