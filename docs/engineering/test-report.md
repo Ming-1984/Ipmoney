@@ -9,8 +9,8 @@
   - Script hardening: `api-real-smoke`, `ui-http-smoke`, `ui-render-smoke`, `ui-dom-smoke` now use dynamic port selection and process-tree cleanup (no kill-by-port behavior).
   - Build resilience: verify appends `NODE_OPTIONS=--max-old-space-size=4096` and retries transient `client:build:h5` crash exits once.
   - Quality gates: `openapi:lint`, `lint`, `typecheck`, `scan:banned-words` all pass.
-  - API smoke: pass (264/264) -> `.tmp/api-real-smoke-2026-03-06-summary.json`
-  - API smoke write/read split: writes 195/195, reads 69/69.
+  - API smoke: pass (297/297) -> `.tmp/api-real-smoke-2026-03-06-summary.json`
+  - API smoke write/read split: writes 222/222, reads 75/75.
   - Semantic/state checks now included: cross-module order/refund/case/maintenance/rbac state assertions, file-link persistence assertions, and post-action detail re-fetch checks.
   - Idempotency replay checks now included: same-key replay for order create, payment intents (deposit/final), invoice request, and refund request create.
   - Failure/idempotency checks now included: duplicate favorites, invalid comment/message payloads, and missing-resource delete paths.
@@ -76,6 +76,8 @@
   - Added mixed triple-write race matrix: same order concurrent `payout + invoice-request + refund-request` now asserts payout success, refund conflict, invoice in allowed branch states, and post-race order/settlement convergence.
   - Added invoice consistency closure for mixed race: when invoice request succeeds (including replay-after-conflict branch), admin invoice upsert now links `invoiceFileId`, preventing `invoice_no` without file linkage and keeping db preflight (`invoice_without_file`) green.
   - Added repeated mixed-burst race matrix on same order aggregate: after settlement completion, rerun concurrent `payout + invoice-request + refund-request` and assert payout/refund remain conflict-only, invoice branch remains bounded (`200/201/409`), and aggregate terminal state remains stable.
+  - Added cross-order parallel payout matrix: two different orders run concurrent manual payout and both must succeed (no cross-aggregate conflict), followed by per-order terminal-state convergence checks.
+  - Added staggered-start mixed tail matrix: after payout succeeds first, concurrent `invoice-request + refund-request` on same order must keep refund conflict-only and keep order/settlement terminal states stable.
 
 - Refund lifecycle probes (demo auth/payment)
   - Result: pass (manual approve->complete flow + manual reject flow).
@@ -106,7 +108,7 @@
   - Added semantic assertions: export URL shape validation and dry-run import counters/flag validation.
 
 ### Risks still open
-- API write-path assertions are now 195 checks (with 69 read-back semantic verifications), and unique write-operation coverage is at least the previous 132/135 baseline plus report-import additions; remaining risk is mainly deeper transaction-isolation windows under broader multi-actor parallel writes.
+- API write-path assertions are now 222 checks (with 75 read-back semantic verifications), and unique write-operation coverage is at least the previous 132/135 baseline plus report-import additions; remaining risk is mainly deeper transaction-isolation windows under broader multi-actor parallel writes.
 - UI status smoke is still shallow (route-level HTTP checks only 26/83 pages, plus 2 mock endpoints).
 - DOM assertions now cover all 83/83 pages, but many routes still use generic structural assertions and need incremental business-semantic tightening.
 - Security baseline still high-risk (`pnpm audit --prod`: critical 2 / high 21), remediation not yet executed.
