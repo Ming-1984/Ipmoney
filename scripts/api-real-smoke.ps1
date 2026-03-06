@@ -930,6 +930,7 @@ try {
   $adminAchievementsForWrites = Invoke-RestMethod -Method Get -Uri "http://127.0.0.1:$resolvedApiPort/admin/achievements" -Headers @{ Authorization = $adminToken }
   $adminArtworksForWrites = Invoke-RestMethod -Method Get -Uri "http://127.0.0.1:$resolvedApiPort/admin/artworks" -Headers @{ Authorization = $adminToken }
   $adminPatentsForWrites = Invoke-RestMethod -Method Get -Uri "http://127.0.0.1:$resolvedApiPort/admin/patents" -Headers @{ Authorization = $adminToken }
+  $adminIndustryTagsForWrites = Invoke-RestMethod -Method Get -Uri "http://127.0.0.1:$resolvedApiPort/admin/industry-tags" -Headers @{ Authorization = $adminToken }
   $regionsForWrites = Invoke-RestMethod -Method Get -Uri "http://127.0.0.1:$resolvedApiPort/regions"
   $searchTechManagersForWrites = Invoke-RestMethod -Method Get -Uri "http://127.0.0.1:$resolvedApiPort/search/tech-managers"
   $adminUserVerificationsForWrites = Invoke-RestMethod -Method Get -Uri "http://127.0.0.1:$resolvedApiPort/admin/user-verifications" -Headers @{ Authorization = $adminToken }
@@ -962,6 +963,16 @@ try {
   if ([string]::IsNullOrWhiteSpace($importRegionCode)) {
     throw "No region code available for patent-map import smoke cases"
   }
+  $regionIndustryTags = @()
+  foreach ($industryTagItem in @($adminIndustryTagsForWrites.items | Select-Object -First 2)) {
+    $industryTagName = ""
+    if ($industryTagItem.name) { $industryTagName = [string]$industryTagItem.name }
+    elseif ($industryTagItem.label) { $industryTagName = [string]$industryTagItem.label }
+    elseif ($industryTagItem.id) { $industryTagName = [string]$industryTagItem.id }
+    if (-not [string]::IsNullOrWhiteSpace($industryTagName)) {
+      $regionIndustryTags += $industryTagName
+    }
+  }
   $missingOrderId = [guid]::NewGuid().ToString()
 
   $techManagerId = $null
@@ -979,6 +990,49 @@ try {
   if ([string]::IsNullOrWhiteSpace($techManagerId)) {
     throw "No tech manager id available for smoke write cases"
   }
+
+  [void](Add-ApiCaseResult -Results $results -Name "ai-agent-query-text" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/ai/agent/query" -Body @{ inputType = "TEXT"; inputText = "smoke ai query $ReportDate"; contentScope = "LISTING"; regionCode = $importRegionCode } -Headers @{} -Expected @(200, 204, 404))
+  $adminAiParseList = Add-ApiCaseResult -Results $results -Name "admin-ai-parse-results-list" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/admin/ai/parse-results" -Body $null -Headers @{ Authorization = $adminToken } -Expected @(200, 404)
+  $aiParseResultId = ""
+  if ([int]$adminAiParseList.status -eq 200) {
+    $adminAiParseListJson = Get-ResultJsonObject -Result $adminAiParseList
+    if ($adminAiParseListJson -and $adminAiParseListJson.items -and @($adminAiParseListJson.items).Count -gt 0) {
+      $aiParseResultId = [string]@($adminAiParseListJson.items | Select-Object -First 1).id
+    }
+  }
+  if ([string]::IsNullOrWhiteSpace($aiParseResultId)) {
+    foreach ($aiParseSource in @($adminListingsForWrites.items + $adminDemandsForWrites.items + $adminAchievementsForWrites.items + $adminArtworksForWrites.items)) {
+      if ($aiParseSource -and $aiParseSource.aiParse -and $aiParseSource.aiParse.id) {
+        $aiParseResultId = [string]$aiParseSource.aiParse.id
+        break
+      }
+    }
+  }
+  if (-not [string]::IsNullOrWhiteSpace($aiParseResultId)) {
+    $adminAiParseGet = Add-ApiCaseResult -Results $results -Name "admin-ai-parse-result-get-existing" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/admin/ai/parse-results/$aiParseResultId" -Body $null -Headers @{ Authorization = $adminToken } -Expected @(200, 404)
+    if ([int]$adminAiParseGet.status -eq 200) {
+      Assert-ResultJsonFieldEquals -Result $adminAiParseGet -Field "id" -ExpectedValue $aiParseResultId -Assertion "admin-ai-parse-result-id-match"
+      $adminAiParseUpdate = Add-ApiCaseResult -Results $results -Name "admin-ai-parse-result-update-existing" -Method "PATCH" -Url "http://127.0.0.1:$resolvedApiPort/admin/ai/parse-results/$aiParseResultId" -Body @{ status = "ACTIVE"; note = "smoke ai parse review $ReportDate" } -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-ai-parse-result-update-existing") -Expected @(200)
+      Assert-ResultJsonFieldEquals -Result $adminAiParseUpdate -Field "id" -ExpectedValue $aiParseResultId -Assertion "admin-ai-parse-update-id-match"
+      $aiParseFeedbackHeaders = New-WriteHeaders -AuthorizationToken $userToken -Prefix $idempotencyPrefix -Label "ai-parse-feedback-create"
+      $aiParseFeedbackCreate = Add-ApiCaseResult -Results $results -Name "ai-parse-feedback-create" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/ai/parse-results/$aiParseResultId/feedback" -Body @{ score = 5; reasonTags = @("SMOKE"); comment = "smoke ai feedback" } -Headers $aiParseFeedbackHeaders -Expected @(200, 201)
+      Assert-ResultJsonFieldEquals -Result $aiParseFeedbackCreate -Field "parseResultId" -ExpectedValue $aiParseResultId -Assertion "ai-parse-feedback-target-id"
+      $aiParseFeedbackReplay = Add-ApiCaseResult -Results $results -Name "ai-parse-feedback-idempotent-replay" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/ai/parse-results/$aiParseResultId/feedback" -Body @{ score = 5; reasonTags = @("SMOKE"); comment = "smoke ai feedback replay" } -Headers $aiParseFeedbackHeaders -Expected @(200, 201)
+      Assert-ResultJsonFieldEquals -Result $aiParseFeedbackReplay -Field "parseResultId" -ExpectedValue $aiParseResultId -Assertion "ai-parse-feedback-replay-target-id"
+    }
+  } else {
+    $missingAiParseResultId = [guid]::NewGuid().ToString()
+    [void](Add-ApiCaseResult -Results $results -Name "admin-ai-parse-result-get-missing" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/admin/ai/parse-results/$missingAiParseResultId" -Body $null -Headers @{ Authorization = $adminToken } -Expected @(404))
+    [void](Add-ApiCaseResult -Results $results -Name "admin-ai-parse-result-update-missing" -Method "PATCH" -Url "http://127.0.0.1:$resolvedApiPort/admin/ai/parse-results/$missingAiParseResultId" -Body @{ status = "ACTIVE"; note = "smoke missing parse result" } -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-ai-parse-result-update-missing") -Expected @(404))
+    [void](Add-ApiCaseResult -Results $results -Name "ai-parse-feedback-missing" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/ai/parse-results/$missingAiParseResultId/feedback" -Body @{ score = 4; reasonTags = @("SMOKE"); comment = "smoke missing feedback" } -Headers (New-WriteHeaders -AuthorizationToken $userToken -Prefix $idempotencyPrefix -Label "ai-parse-feedback-missing") -Expected @(404))
+  }
+
+  if ($regionIndustryTags.Count -gt 0) {
+    $adminSetRegionIndustryTags = Add-ApiCaseResult -Results $results -Name "admin-region-industry-tags-set" -Method "PUT" -Url "http://127.0.0.1:$resolvedApiPort/admin/regions/$importRegionCode/industry-tags" -Body @{ industryTags = $regionIndustryTags } -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-region-industry-tags-set") -Expected @(200)
+    Assert-ResultJsonArrayContains -Result $adminSetRegionIndustryTags -Field "industryTags" -ExpectedValue $regionIndustryTags[0] -Assertion "admin-region-industry-tags-persisted"
+  }
+  $adminSetListingFeatured = Add-ApiCaseResult -Results $results -Name "admin-listing-featured-set-none" -Method "PUT" -Url "http://127.0.0.1:$resolvedApiPort/admin/listings/$listingId/featured" -Body @{ featuredLevel = "NONE" } -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-listing-featured-set-none") -Expected @(200)
+  Assert-ResultJsonFieldEquals -Result $adminSetListingFeatured -Field "featuredLevel" -ExpectedValue "NONE" -Assertion "admin-listing-featured-level-none"
 
   $listingFavoriteHeaders = New-WriteHeaders -AuthorizationToken $userToken -Prefix $idempotencyPrefix -Label "favorite-listing-post"
   [void](Add-ApiCaseResult -Results $results -Name "listing-favorite-post" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/listings/$listingId/favorites" -Body $null -Headers $listingFavoriteHeaders -Expected @(200, 201))
@@ -1066,6 +1120,13 @@ try {
   $evidenceUpload = Add-ApiFileUploadCaseResult -Results $results -Name "file-upload-evidence" -Url "http://127.0.0.1:$resolvedApiPort/files" -AuthorizationToken $userToken -FilePath $smokeEvidencePath -FormFields $null -Expected @(200, 201)
   $evidenceFileId = Get-ResultStringField -Result $evidenceUpload -Field "id"
   if ([string]::IsNullOrWhiteSpace($evidenceFileId)) { throw "file-upload-evidence missing id" }
+  $fileTemporaryAccess = Add-ApiCaseResult -Results $results -Name "file-temporary-access-create-preview" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/files/$evidenceFileId/temporary-access" -Body @{ scope = "preview"; ttlSeconds = 600 } -Headers (New-WriteHeaders -AuthorizationToken $userToken -Prefix $idempotencyPrefix -Label "file-temporary-access-create-preview") -Expected @(200, 201)
+  Assert-ResultJsonFieldEquals -Result $fileTemporaryAccess -Field "scope" -ExpectedValue "preview" -Assertion "file-temporary-access-scope-preview"
+  $fileTemporaryAccessUrl = Get-ResultStringField -Result $fileTemporaryAccess -Field "url"
+  if ([string]::IsNullOrWhiteSpace($fileTemporaryAccessUrl)) {
+    Add-ResultAssertionFailure -Result $fileTemporaryAccess -Assertion "file-temporary-access-url" -Message "Temporary access url is empty"
+  }
+  [void](Add-ApiCaseResult -Results $results -Name "file-temporary-access-missing" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/files/$([guid]::NewGuid().ToString())/temporary-access" -Body @{ scope = "preview"; ttlSeconds = 600 } -Headers (New-WriteHeaders -AuthorizationToken $userToken -Prefix $idempotencyPrefix -Label "file-temporary-access-missing") -Expected @(404))
   $adminOrderManualPayoutWithEvidence = Add-ApiCaseResult -Results $results -Name "admin-order-manual-payout-with-evidence" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/admin/orders/$orderId/payouts/manual" -Body @{ payoutEvidenceFileId = $evidenceFileId } -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-order-manual-payout-with-evidence") -Expected @(200, 201)
   Assert-ResultJsonFieldEquals -Result $adminOrderManualPayoutWithEvidence -Field "payoutStatus" -ExpectedValue "SUCCEEDED" -Assertion "settlement-status-after-payout"
   Assert-ResultJsonFieldEquals -Result $adminOrderManualPayoutWithEvidence -Field "status" -ExpectedValue "COMPLETED" -Assertion "order-status-after-payout"
