@@ -24,6 +24,10 @@ export class PatentMaintenanceService {
     if (!req?.auth?.userId) throw new ForbiddenException({ code: 'FORBIDDEN', message: '无权限' });
   }
 
+  private hasOwn(input: any, key: string) {
+    return !!input && Object.prototype.hasOwnProperty.call(input, key);
+  }
+
   private normalizeStatus(value: any): PatentMaintenanceStatus | undefined {
     const v = String(value || '').trim().toUpperCase() as PatentMaintenanceStatus;
     return STATUS_SET.has(v) ? v : undefined;
@@ -94,7 +98,8 @@ export class PatentMaintenanceService {
 
     const where: any = {};
     if (query?.patentId) where.patentId = String(query.patentId).trim();
-    const status = this.normalizeStatus(query?.status);
+    const hasStatus = this.hasOwn(query, 'status');
+    const status = hasStatus ? this.parseStatusStrict(query?.status, 'status') : undefined;
     if (status) where.status = status;
 
     const dueFrom = this.parseDate(query?.dueFrom, 'dueFrom');
@@ -232,7 +237,8 @@ export class PatentMaintenanceService {
     const where: any = {};
     if (query?.scheduleId) where.scheduleId = String(query.scheduleId).trim();
     if (query?.assignedCsUserId) where.assignedCsUserId = String(query.assignedCsUserId).trim();
-    const status = this.normalizeTaskStatus(query?.status);
+    const hasStatus = this.hasOwn(query, 'status');
+    const status = hasStatus ? this.parseTaskStatusStrict(query?.status, 'status') : undefined;
     if (status) where.status = status;
 
     const [items, total] = await Promise.all([
