@@ -174,6 +174,46 @@ export class ListingsService {
     throw new BadRequestException({ code: 'BAD_REQUEST', message: `${fieldName} is invalid` });
   }
 
+  private normalizePatentType(value: unknown): 'INVENTION' | 'UTILITY_MODEL' | 'DESIGN' | undefined {
+    const normalized = String(value || '').trim().toUpperCase();
+    if (normalized === 'INVENTION' || normalized === 'UTILITY_MODEL' || normalized === 'DESIGN') {
+      return normalized as 'INVENTION' | 'UTILITY_MODEL' | 'DESIGN';
+    }
+    return undefined;
+  }
+
+  private parsePatentTypeStrict(value: unknown, fieldName: string): 'INVENTION' | 'UTILITY_MODEL' | 'DESIGN' {
+    const normalized = this.normalizePatentType(value);
+    if (!normalized) {
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: `${fieldName} is invalid` });
+    }
+    return normalized;
+  }
+
+  private parseLicenseModeStrict(value: unknown, fieldName: string): 'EXCLUSIVE' | 'SOLE' | 'NON_EXCLUSIVE' {
+    const normalized = this.normalizeLicenseMode(value);
+    if (!normalized) {
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: `${fieldName} is invalid` });
+    }
+    return normalized;
+  }
+
+  private parseSearchQTypeStrict(value: unknown, fieldName: string): 'AUTO' | 'NUMBER' | 'KEYWORD' | 'APPLICANT' | 'INVENTOR' {
+    const normalized = String(value || '').trim().toUpperCase();
+    if (normalized === 'AUTO' || normalized === 'NUMBER' || normalized === 'KEYWORD' || normalized === 'APPLICANT' || normalized === 'INVENTOR') {
+      return normalized as 'AUTO' | 'NUMBER' | 'KEYWORD' | 'APPLICANT' | 'INVENTOR';
+    }
+    throw new BadRequestException({ code: 'BAD_REQUEST', message: `${fieldName} is invalid` });
+  }
+
+  private parseListingSortByStrict(value: unknown, fieldName: string): 'RECOMMENDED' | 'NEWEST' | 'PRICE_ASC' | 'PRICE_DESC' {
+    const normalized = String(value || '').trim().toUpperCase();
+    if (normalized === 'RECOMMENDED' || normalized === 'NEWEST' || normalized === 'PRICE_ASC' || normalized === 'PRICE_DESC') {
+      return normalized as 'RECOMMENDED' | 'NEWEST' | 'PRICE_ASC' | 'PRICE_DESC';
+    }
+    throw new BadRequestException({ code: 'BAD_REQUEST', message: `${fieldName} is invalid` });
+  }
+
   private normalizeFileIds(input: unknown): string[] {
     return Array.from(
       new Set(
@@ -444,6 +484,14 @@ export class ListingsService {
     if (!v) return undefined;
     const allowed = ['PENDING', 'GRANTED', 'EXPIRED', 'INVALIDATED', 'UNKNOWN'];
     return allowed.includes(v) ? v : undefined;
+  }
+
+  private parseLegalStatusStrict(value: unknown, fieldName: string): 'PENDING' | 'GRANTED' | 'EXPIRED' | 'INVALIDATED' | 'UNKNOWN' {
+    const normalized = this.normalizeLegalStatus(value);
+    if (!normalized) {
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: `${fieldName} is invalid` });
+    }
+    return normalized as 'PENDING' | 'GRANTED' | 'EXPIRED' | 'INVALIDATED' | 'UNKNOWN';
   }
 
   private getPatentTypeMeta(patentType?: string | null) {
@@ -1524,19 +1572,25 @@ export class ListingsService {
     const page = Math.max(1, Number(query?.page || 1));
     const pageSize = Math.min(50, Math.max(1, Number(query?.pageSize || 20)));
     const q = String(query?.q || '').trim();
-    const qTypeRaw = String(query?.qType || 'AUTO').trim().toUpperCase();
-    const qType = ['AUTO', 'NUMBER', 'KEYWORD', 'APPLICANT', 'INVENTOR'].includes(qTypeRaw) ? qTypeRaw : 'AUTO';
-    const patentType = String(query?.patentType || '').trim().toUpperCase();
+    const hasQType = this.hasOwn(query, 'qType');
+    const qType = hasQType ? this.parseSearchQTypeStrict(query?.qType, 'qType') : 'AUTO';
+    const hasPatentType = this.hasOwn(query, 'patentType');
+    const patentType = hasPatentType ? this.parsePatentTypeStrict(query?.patentType, 'patentType') : undefined;
     const inventor = String(query?.inventor || '').trim();
     const applicant = String(query?.applicant || query?.applicantName || '').trim();
     const assignee = String(query?.assignee || query?.assigneeName || '').trim();
     const sellerUserId = String(query?.sellerUserId || '').trim();
-    const tradeMode = String(query?.tradeMode || '').trim().toUpperCase();
-    const licenseMode = String(query?.licenseMode || '').trim().toUpperCase();
-    const priceType = String(query?.priceType || '').trim().toUpperCase();
+    const hasTradeMode = this.hasOwn(query, 'tradeMode');
+    const tradeMode = hasTradeMode ? this.parseTradeModeStrict(query?.tradeMode, 'tradeMode') : undefined;
+    const hasLicenseMode = this.hasOwn(query, 'licenseMode');
+    const licenseMode = hasLicenseMode ? this.parseLicenseModeStrict(query?.licenseMode, 'licenseMode') : undefined;
+    const hasPriceType = this.hasOwn(query, 'priceType');
+    const priceType = hasPriceType ? this.parsePriceTypeStrict(query?.priceType, 'priceType') : undefined;
     const regionCode = String(query?.regionCode || '').trim();
-    const legalStatus = String(query?.legalStatus || '').trim().toUpperCase();
-    const sortBy = String(query?.sortBy || 'NEWEST').trim().toUpperCase();
+    const hasLegalStatus = this.hasOwn(query, 'legalStatus');
+    const legalStatus = hasLegalStatus ? this.parseLegalStatusStrict(query?.legalStatus, 'legalStatus') : undefined;
+    const hasSortBy = this.hasOwn(query, 'sortBy');
+    const sortBy = hasSortBy ? this.parseListingSortByStrict(query?.sortBy, 'sortBy') : 'NEWEST';
     const clusterId = String(query?.clusterId || '').trim();
     const listingTopics = this.normalizeStringArray(query?.listingTopics ?? query?.listingTopic)
       .map((v: any) => String(v || '').trim().toUpperCase())
