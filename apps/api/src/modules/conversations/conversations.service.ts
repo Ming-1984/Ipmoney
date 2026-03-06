@@ -329,7 +329,8 @@ export class ConversationsService {
 
   async sendMessage(req: any, conversationId: string, body: any) {
     this.ensureAuth(req);
-    const type = String(body?.type || 'TEXT').trim().toUpperCase();
+    const hasType = Object.prototype.hasOwnProperty.call(body || {}, 'type');
+    const type = hasType ? String(body?.type ?? '').trim().toUpperCase() : 'TEXT';
     if (type !== 'TEXT' && type !== 'EMOJI') {
       throw new BadRequestException({ code: 'BAD_REQUEST', message: 'invalid message type' });
     }
