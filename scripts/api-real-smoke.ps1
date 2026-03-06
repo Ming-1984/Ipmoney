@@ -316,6 +316,127 @@ function Add-ConcurrentApiCasePairResults {
   return ,$pairResults
 }
 
+function Add-ConcurrentApiCaseTripleResults {
+  param(
+    [System.Collections.ArrayList]$Results,
+    [string]$NameA,
+    [string]$MethodA,
+    [string]$UrlA,
+    [object]$BodyA,
+    [hashtable]$HeadersA,
+    [string]$NameB,
+    [string]$MethodB,
+    [string]$UrlB,
+    [object]$BodyB,
+    [hashtable]$HeadersB,
+    [string]$NameC,
+    [string]$MethodC,
+    [string]$UrlC,
+    [object]$BodyC,
+    [hashtable]$HeadersC,
+    [int[]]$Expected
+  )
+
+  $invokeScript = {
+    param(
+      [string]$Name,
+      [string]$Method,
+      [string]$Url,
+      [string]$BodyJson,
+      [hashtable]$Headers,
+      [string]$ExpectedCsv
+    )
+
+    $expectedStatuses = @()
+    if (-not [string]::IsNullOrWhiteSpace($ExpectedCsv)) {
+      $expectedStatuses = @($ExpectedCsv.Split(",") | ForEach-Object { [int]$_ })
+    }
+
+    $requestHeaders = @{}
+    if ($Headers) {
+      foreach ($key in $Headers.Keys) {
+        $requestHeaders[$key] = $Headers[$key]
+      }
+    }
+
+    $status = 0
+    $raw = ""
+    try {
+      if (-not [string]::IsNullOrWhiteSpace($BodyJson)) {
+        $requestHeaders["Content-Type"] = "application/json"
+        $resp = Invoke-WebRequest -Method $Method -Uri $Url -Headers $requestHeaders -Body $BodyJson -UseBasicParsing
+      } else {
+        $resp = Invoke-WebRequest -Method $Method -Uri $Url -Headers $requestHeaders -UseBasicParsing
+      }
+      $status = [int]$resp.StatusCode
+      $raw = [string]$resp.Content
+    } catch {
+      if ($_.Exception.Response -and $_.Exception.Response.StatusCode) {
+        $status = [int]$_.Exception.Response.StatusCode.value__
+        try {
+          $reader = New-Object System.IO.StreamReader($_.Exception.Response.GetResponseStream())
+          $raw = [string]$reader.ReadToEnd()
+          $reader.Close()
+        } catch {
+          $raw = ""
+        }
+      } else {
+        $status = 0
+        $raw = [string]$_.Exception.Message
+      }
+    }
+
+    if (-not [string]::IsNullOrEmpty($raw) -and $raw.Length -gt 4096) {
+      $rest = $raw.Length - 4096
+      $raw = $raw.Substring(0, 4096) + "`n...[truncated $rest chars]"
+    }
+
+    return [pscustomobject]@{
+      name = $Name
+      method = $Method
+      url = $Url
+      status = $status
+      expected = $ExpectedCsv
+      ok = ($expectedStatuses -contains $status)
+      body = $raw
+    }
+  }
+
+  $bodyJsonA = $null
+  if ($null -ne $BodyA) { $bodyJsonA = $BodyA | ConvertTo-Json -Depth 10 -Compress }
+  $bodyJsonB = $null
+  if ($null -ne $BodyB) { $bodyJsonB = $BodyB | ConvertTo-Json -Depth 10 -Compress }
+  $bodyJsonC = $null
+  if ($null -ne $BodyC) { $bodyJsonC = $BodyC | ConvertTo-Json -Depth 10 -Compress }
+  $expectedCsv = ($Expected -join ",")
+
+  $jobA = Start-Job -ScriptBlock $invokeScript -ArgumentList @($NameA, $MethodA, $UrlA, $bodyJsonA, $HeadersA, $expectedCsv)
+  $jobB = Start-Job -ScriptBlock $invokeScript -ArgumentList @($NameB, $MethodB, $UrlB, $bodyJsonB, $HeadersB, $expectedCsv)
+  $jobC = Start-Job -ScriptBlock $invokeScript -ArgumentList @($NameC, $MethodC, $UrlC, $bodyJsonC, $HeadersC, $expectedCsv)
+
+  $groupResults = @()
+  try {
+    [void](Wait-Job -Job @($jobA, $jobB, $jobC))
+    foreach ($job in @($jobA, $jobB, $jobC)) {
+      $received = Receive-Job -Job $job -ErrorAction SilentlyContinue
+      if ($received) {
+        $groupResults += @($received)
+      }
+    }
+  } finally {
+    foreach ($job in @($jobA, $jobB, $jobC)) {
+      if ($job) {
+        Remove-Job -Job $job -Force -ErrorAction SilentlyContinue
+      }
+    }
+  }
+
+  foreach ($groupResult in $groupResults) {
+    [void]$Results.Add($groupResult)
+  }
+  return ,$groupResults
+}
+
 function Add-ApiFileUploadCaseResult {
   param(
     [System.Collections.ArrayList]$Results,
@@ -502,6 +623,27 @@ function Assert-ConcurrentPairOneSuccessOneConflict {
     $statusSummary = ($results | ForEach-Object { [string]$_.status }) -join ","
     foreach ($result in $results) {
       Add-ResultAssertionFailure -Result $result -Assertion $Assertion -Message "Expected one success + one conflict($ConflictStatus), got statuses [$statusSummary]"
+    }
+  }
+}
+
+function Assert-ConcurrentResultStatusCounts {
+  param(
+    [object[]]$Results,
+    [int[]]$SuccessStatuses,
+    [int]$ExpectedSuccessCount,
+    [int]$ConflictStatus,
+    [int]$ExpectedConflictCount,
+    [string]$Assertion
+  )
+
+  $items = @($Results)
+  $successCount = @($items | Where-Object { $SuccessStatuses -contains [int]$_.status }).Count
+  $conflictCount = @($items | Where-Object { [int]$_.status -eq $ConflictStatus }).Count
+  if ($successCount -ne $ExpectedSuccessCount -or $conflictCount -ne $ExpectedConflictCount) {
+    $statusSummary = ($items | ForEach-Object { [string]$_.status }) -join ","
+    foreach ($item in $items) {
+      Add-ResultAssertionFailure -Result $item -Assertion $Assertion -Message "Expected success/conflict counts $ExpectedSuccessCount/$ExpectedConflictCount, got statuses [$statusSummary]"
     }
   }
 }
@@ -961,6 +1103,17 @@ try {
   Assert-ResultJsonFieldEquals -Result $payoutRaceOrderDetailAfter -Field "status" -ExpectedValue "COMPLETED" -Assertion "payout-race-order-status-after"
   $payoutRaceSettlementAfter = Add-ApiCaseResult -Results $results -Name "payout-race-settlement-after" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/admin/orders/$payoutRaceOrderId/settlement" -Body $null -Headers @{ Authorization = $adminToken } -Expected @(200)
   Assert-ResultJsonFieldEquals -Result $payoutRaceSettlementAfter -Field "payoutStatus" -ExpectedValue "SUCCEEDED" -Assertion "payout-race-settlement-status-after"
+
+  $payoutTripleRaceOrderId = New-RefundReadyOrder -Results $results -ApiPort $resolvedApiPort -UserToken $userToken -AdminToken $adminToken -ListingId $listingId -IdempotencyPrefix $idempotencyPrefix -CasePrefix "payout-race-triple"
+  [void](Add-ApiCaseResult -Results $results -Name "payout-race-triple-order-payment-intent-final" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/orders/$payoutTripleRaceOrderId/payment-intents" -Body @{ payType = "FINAL" } -Headers (New-WriteHeaders -AuthorizationToken $userToken -Prefix $idempotencyPrefix -Label "payout-race-triple-order-payment-intent-final") -Expected @(200, 201))
+  [void](Add-ApiCaseResult -Results $results -Name "payout-race-triple-admin-order-manual-payment-final" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/admin/orders/$payoutTripleRaceOrderId/payments/manual" -Body @{ payType = "FINAL" } -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "payout-race-triple-admin-order-manual-payment-final") -Expected @(200, 201))
+  [void](Add-ApiCaseResult -Results $results -Name "payout-race-triple-admin-order-transfer-completed" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/admin/orders/$payoutTripleRaceOrderId/milestones/transfer-completed" -Body @{} -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "payout-race-triple-admin-order-transfer-completed") -Expected @(200, 201))
+  $payoutTripleRaceResults = Add-ConcurrentApiCaseTripleResults -Results $results -NameA "admin-order-manual-payout-race-triple-a" -MethodA "POST" -UrlA "http://127.0.0.1:$resolvedApiPort/admin/orders/$payoutTripleRaceOrderId/payouts/manual" -BodyA @{ payoutEvidenceFileId = $evidenceFileId } -HeadersA (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-order-manual-payout-race-triple-a") -NameB "admin-order-manual-payout-race-triple-b" -MethodB "POST" -UrlB "http://127.0.0.1:$resolvedApiPort/admin/orders/$payoutTripleRaceOrderId/payouts/manual" -BodyB @{ payoutEvidenceFileId = $evidenceFileId } -HeadersB (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-order-manual-payout-race-triple-b") -NameC "admin-order-manual-payout-race-triple-c" -MethodC "POST" -UrlC "http://127.0.0.1:$resolvedApiPort/admin/orders/$payoutTripleRaceOrderId/payouts/manual" -BodyC @{ payoutEvidenceFileId = $evidenceFileId } -HeadersC (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-order-manual-payout-race-triple-c") -Expected @(200, 201, 409)
+  Assert-ConcurrentResultStatusCounts -Results $payoutTripleRaceResults -SuccessStatuses @(200, 201) -ExpectedSuccessCount 1 -ConflictStatus 409 -ExpectedConflictCount 2 -Assertion "order-payout-race-triple"
+  $payoutTripleRaceOrderDetailAfter = Add-ApiCaseResult -Results $results -Name "payout-race-triple-order-detail-after" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/orders/$payoutTripleRaceOrderId" -Body $null -Headers @{ Authorization = $userToken } -Expected @(200)
+  Assert-ResultJsonFieldEquals -Result $payoutTripleRaceOrderDetailAfter -Field "status" -ExpectedValue "COMPLETED" -Assertion "payout-race-triple-order-status-after"
+  $payoutTripleRaceSettlementAfter = Add-ApiCaseResult -Results $results -Name "payout-race-triple-settlement-after" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/admin/orders/$payoutTripleRaceOrderId/settlement" -Body $null -Headers @{ Authorization = $adminToken } -Expected @(200)
+  Assert-ResultJsonFieldEquals -Result $payoutTripleRaceSettlementAfter -Field "payoutStatus" -ExpectedValue "SUCCEEDED" -Assertion "payout-race-triple-settlement-status-after"
 
   $settlementRefundRaceOrderId = New-RefundReadyOrder -Results $results -ApiPort $resolvedApiPort -UserToken $userToken -AdminToken $adminToken -ListingId $listingId -IdempotencyPrefix $idempotencyPrefix -CasePrefix "settlement-refund-race"
   $settlementRefundRaceResults = Add-ConcurrentApiCasePairResults -Results $results -NameA "settlement-refund-race-user-refund-create" -MethodA "POST" -UrlA "http://127.0.0.1:$resolvedApiPort/orders/$settlementRefundRaceOrderId/refund-requests" -BodyA @{ reasonCode = "OTHER"; reasonText = "smoke settlement-refund race" } -HeadersA (New-WriteHeaders -AuthorizationToken $userToken -Prefix $idempotencyPrefix -Label "settlement-refund-race-user-refund-create") -NameB "settlement-refund-race-admin-transfer-completed" -MethodB "POST" -UrlB "http://127.0.0.1:$resolvedApiPort/admin/orders/$settlementRefundRaceOrderId/milestones/transfer-completed" -BodyB @{} -HeadersB (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "settlement-refund-race-admin-transfer-completed") -Expected @(200, 201, 409)
