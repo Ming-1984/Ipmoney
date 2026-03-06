@@ -49,6 +49,10 @@ export class CommentsService {
     }
   }
 
+  private hasOwn(input: any, key: string) {
+    return !!input && Object.prototype.hasOwnProperty.call(input, key);
+  }
+
   private normalizeContentType(value: any): CommentContentType | undefined {
     const v = String(value || '').trim().toUpperCase();
     if ((CONTENT_TYPES as readonly string[]).includes(v)) return v as CommentContentType;
@@ -208,16 +212,16 @@ export class CommentsService {
     const page = Math.max(1, Number(query?.page || 1));
     const pageSize = Math.min(50, Math.max(1, Number(query?.pageSize || 20)));
     const q = String(query?.q || '').trim();
-    const contentTypeRaw = query?.contentType;
-    const statusRaw = query?.status;
-    const contentType = contentTypeRaw ? this.normalizeContentType(contentTypeRaw) : undefined;
-    const status = statusRaw ? this.normalizeStatus(statusRaw) : undefined;
+    const hasContentType = this.hasOwn(query, 'contentType');
+    const hasStatus = this.hasOwn(query, 'status');
+    const contentType = hasContentType ? this.normalizeContentType(query?.contentType) : undefined;
+    const status = hasStatus ? this.normalizeStatus(query?.status) : undefined;
     const contentId = query?.contentId ? String(query.contentId).trim() : '';
 
-    if (contentTypeRaw && !contentType) {
+    if (hasContentType && !contentType) {
       throw new BadRequestException({ code: 'BAD_REQUEST', message: 'contentType is invalid' });
     }
-    if (statusRaw && !status) {
+    if (hasStatus && !status) {
       throw new BadRequestException({ code: 'BAD_REQUEST', message: 'status is invalid' });
     }
 
