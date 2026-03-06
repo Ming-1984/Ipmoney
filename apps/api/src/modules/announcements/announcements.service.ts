@@ -38,6 +38,18 @@ export class AnnouncementsService {
     private readonly audit: AuditLogService,
   ) {}
 
+  private hasOwn(input: unknown, key: string): boolean {
+    return input !== null && input !== undefined && Object.prototype.hasOwnProperty.call(input, key);
+  }
+
+  private parseStatus(value: unknown, fieldName: string): AnnouncementStatus {
+    const normalized = String(value ?? '').trim().toUpperCase();
+    if (!STATUS_SET.has(normalized as AnnouncementStatus)) {
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: `${fieldName} is invalid` });
+    }
+    return normalized as AnnouncementStatus;
+  }
+
   private toDto(item: any) {
     const createdAt = item.createdAt ? item.createdAt.toISOString() : new Date().toISOString();
     const publishedAt = item.publishedAt ? item.publishedAt.toISOString() : null;
@@ -113,9 +125,10 @@ export class AnnouncementsService {
     const title = String(payload?.title || '').trim();
     if (!title) throw new BadRequestException({ code: 'BAD_REQUEST', message: 'title is required' });
 
-    const status = STATUS_SET.has(String(payload?.status).toUpperCase() as AnnouncementStatus)
-      ? (String(payload.status).toUpperCase() as AnnouncementStatus)
-      : 'DRAFT';
+    let status: AnnouncementStatus = 'DRAFT';
+    if (this.hasOwn(payload, 'status')) {
+      status = this.parseStatus(payload?.status, 'status');
+    }
     const now = new Date();
     const created = await this.prisma.announcement.create({
       data: {
@@ -146,11 +159,14 @@ export class AnnouncementsService {
     const existing = await this.prisma.announcement.findUnique({ where: { id } });
     if (!existing) throw new NotFoundException({ code: 'NOT_FOUND', message: '公告不存在' });
 
-    const status = STATUS_SET.has(String(payload?.status).toUpperCase() as AnnouncementStatus)
-      ? (String(payload.status).toUpperCase() as AnnouncementStatus)
-      : existing.status;
+    const existingStatus = STATUS_SET.has(String(existing.status).toUpperCase() as AnnouncementStatus)
+      ? (String(existing.status).toUpperCase() as AnnouncementStatus)
+      : 'DRAFT';
+    let status = existingStatus;
+    if (this.hasOwn(payload, 'status')) {
+      status = this.parseStatus(payload?.status, 'status');
+    }
     const next: any = {
-      title: payload?.title ? String(payload.title).trim() : undefined,
       summary: payload?.summary !== undefined ? String(payload.summary || '').trim() || null : undefined,
       content: payload?.content !== undefined ? String(payload.content || '').trim() || null : undefined,
       publisherName:
@@ -158,9 +174,14 @@ export class AnnouncementsService {
       issueNo: payload?.issueNo !== undefined ? String(payload.issueNo || '').trim() || null : undefined,
       sourceUrl: payload?.sourceUrl !== undefined ? String(payload.sourceUrl || '').trim() || null : undefined,
     };
+    if (this.hasOwn(payload, 'title')) {
+      const nextTitle = String(payload?.title || '').trim();
+      if (!nextTitle) throw new BadRequestException({ code: 'BAD_REQUEST', message: 'title is required' });
+      next.title = nextTitle;
+    }
     if (payload?.tags !== undefined) next.tagsJson = normalizeTags(payload.tags);
     if (payload?.relatedPatents !== undefined) next.relatedPatentsJson = normalizeRelatedPatents(payload.relatedPatents);
-    if (status && status !== existing.status) {
+    if (status !== existingStatus) {
       next.status = status as any;
       if (status === 'PUBLISHED' && !existing.publishedAt) next.publishedAt = new Date();
     }
