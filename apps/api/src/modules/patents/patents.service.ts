@@ -173,6 +173,22 @@ export class PatentsService {
     throw new BadRequestException({ code: 'BAD_REQUEST', message: 'sourcePrimary is invalid' });
   }
 
+  private parsePatentTypeStrict(value: unknown, fieldName: string): PatentTypeDto {
+    const patentType = this.normalizePatentType(value);
+    if (!patentType) {
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: `${fieldName} is invalid` });
+    }
+    return patentType;
+  }
+
+  private parseLegalStatusStrict(value: unknown, fieldName: string): LegalStatusDto {
+    const legalStatus = this.normalizeLegalStatus(value);
+    if (!legalStatus) {
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: `${fieldName} is invalid` });
+    }
+    return legalStatus;
+  }
+
   private parseDate(value: unknown, fieldName: string): Date | undefined {
     if (value === undefined || value === null || String(value).trim() === '') return undefined;
     const date = new Date(String(value).trim());
@@ -339,8 +355,10 @@ export class PatentsService {
     const page = Math.max(1, Number(query?.page || 1));
     const pageSize = Math.min(100, Math.max(1, Number(query?.pageSize || 20)));
     const q = String(query?.q || '').trim();
-    const patentType = this.normalizePatentType(query?.patentType);
-    const legalStatus = this.normalizeLegalStatus(query?.legalStatus);
+    const hasPatentType = this.hasOwn(query, 'patentType');
+    const hasLegalStatus = this.hasOwn(query, 'legalStatus');
+    const patentType = hasPatentType ? this.parsePatentTypeStrict(query?.patentType, 'patentType') : undefined;
+    const legalStatus = hasLegalStatus ? this.parseLegalStatusStrict(query?.legalStatus, 'legalStatus') : undefined;
 
     const where: any = {};
     if (patentType) where.patentType = patentType;
