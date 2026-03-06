@@ -295,11 +295,19 @@ export class UsersService {
     };
     if (reviewerId) data.reviewedById = reviewerId;
 
-    const updated = await this.prisma.userVerification.update({
-      where: { id },
-      data,
-      include: { logoFile: true },
-    });
+    let updated: any;
+    try {
+      updated = await this.prisma.userVerification.update({
+        where: { id },
+        data,
+        include: { logoFile: true },
+      });
+    } catch (error: any) {
+      if (error?.code === 'P2025') {
+        throw new NotFoundException({ code: 'NOT_FOUND', message: 'verification not found' });
+      }
+      throw error;
+    }
     await this.notifications.create({
       userId: updated.userId,
       title: '认证审核通过',
@@ -328,11 +336,19 @@ export class UsersService {
     };
     if (reviewerId) data.reviewedById = reviewerId;
 
-    const updated = await this.prisma.userVerification.update({
-      where: { id },
-      data,
-      include: { logoFile: true },
-    });
+    let updated: any;
+    try {
+      updated = await this.prisma.userVerification.update({
+        where: { id },
+        data,
+        include: { logoFile: true },
+      });
+    } catch (error: any) {
+      if (error?.code === 'P2025') {
+        throw new NotFoundException({ code: 'NOT_FOUND', message: 'verification not found' });
+      }
+      throw error;
+    }
     await this.notifications.create({
       userId: updated.userId,
       title: '认证审核驳回',
