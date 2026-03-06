@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import { Prisma, PatentType } from '@prisma/client';
 
 import { PrismaService } from '../../common/prisma/prisma.service';
@@ -7,15 +7,27 @@ import { PrismaService } from '../../common/prisma/prisma.service';
 export class InventorsService {
   constructor(private readonly prisma: PrismaService) {}
 
+  private hasOwn(query: any, key: string) {
+    return Object.prototype.hasOwnProperty.call(query || {}, key);
+  }
+
+  private parsePatentTypeStrict(value: unknown, fieldName: string): PatentType {
+    const normalized = String(value || '').trim().toUpperCase();
+    if (Object.values(PatentType).includes(normalized as PatentType)) {
+      return normalized as PatentType;
+    }
+    throw new BadRequestException({ code: 'BAD_REQUEST', message: `${fieldName} is invalid` });
+  }
+
   search(query: any) {
     const page = Math.max(1, Number(query?.page || 1));
     const pageSize = Math.min(50, Math.max(1, Number(query?.pageSize || 20)));
     const q = String(query?.q || '').trim();
     const regionCode = String(query?.regionCode || '').trim();
-    const patentType = String(query?.patentType || '').trim().toUpperCase();
+    const hasPatentType = this.hasOwn(query, 'patentType');
     const qLike = q ? `%${q}%` : null;
     const region = regionCode || null;
-    const type = patentType && Object.values(PatentType).includes(patentType as PatentType) ? (patentType as PatentType) : null;
+    const type = hasPatentType ? this.parsePatentTypeStrict(query?.patentType, 'patentType') : null;
     const offset = (page - 1) * pageSize;
 
     return this.queryRankings(qLike, region, type, offset, pageSize, page, pageSize);

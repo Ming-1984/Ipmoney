@@ -961,6 +961,8 @@ try {
     @{ name = "search-artworks"; method = "GET"; url = "http://127.0.0.1:$resolvedApiPort/search/artworks"; body = $null; headers = @{}; expected = @(200) },
     @{ name = "search-artworks-invalid-category"; method = "GET"; url = "http://127.0.0.1:$resolvedApiPort/search/artworks?category=UNKNOWN"; body = $null; headers = @{}; expected = @(400) },
     @{ name = "search-artworks-invalid-price-type"; method = "GET"; url = "http://127.0.0.1:$resolvedApiPort/search/artworks?priceType=UNKNOWN"; body = $null; headers = @{}; expected = @(400) },
+    @{ name = "search-inventors"; method = "GET"; url = "http://127.0.0.1:$resolvedApiPort/search/inventors"; body = $null; headers = @{}; expected = @(200) },
+    @{ name = "search-inventors-invalid-patent-type"; method = "GET"; url = "http://127.0.0.1:$resolvedApiPort/search/inventors?patentType=UNKNOWN"; body = $null; headers = @{}; expected = @(400) },
     @{ name = "search-tech-managers"; method = "GET"; url = "http://127.0.0.1:$resolvedApiPort/search/tech-managers"; body = $null; headers = @{}; expected = @(200) }
   )
 
