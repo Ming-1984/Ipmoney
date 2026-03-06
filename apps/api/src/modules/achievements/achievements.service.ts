@@ -502,10 +502,13 @@ export class AchievementsService {
     this.ensureAdmin(req);
     const page = Math.max(1, Number(query?.page || 1));
     const pageSize = Math.min(50, Math.max(1, Number(query?.pageSize || 20)));
-    const auditStatus = this.normalizeAuditStatus(query?.auditStatus);
-    const status = this.normalizeContentStatus(query?.status);
+    const hasAuditStatus = this.hasOwn(query, 'auditStatus');
+    const hasStatus = this.hasOwn(query, 'status');
+    const hasSource = this.hasOwn(query, 'source');
+    const auditStatus = hasAuditStatus ? this.parseAuditStatusStrict(query?.auditStatus, 'auditStatus') : undefined;
+    const status = hasStatus ? this.parseContentStatusStrict(query?.status, 'status') : undefined;
     const q = String(query?.q || '').trim();
-    const source = this.normalizeContentSource(query?.source);
+    const source = hasSource ? this.parseContentSourceStrict(query?.source, 'source') : undefined;
 
     const where: any = {};
     if (auditStatus) where.auditStatus = auditStatus;
