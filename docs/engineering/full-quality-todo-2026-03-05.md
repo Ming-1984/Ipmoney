@@ -9,14 +9,14 @@
 ### 1.1 Quality gates status
 - `typecheck`: pass (api/client/admin-web).
 - `build`: pass (api/admin-web/client h5/weapp); WeApp severe regression has been fixed in this batch, and bundle gate is now enforced.
-- `smoke`: pass (API 210/210, UI HTTP 28/28, UI Render full 83/83, UI Render core 3/3, UI DOM core 11/11, UI DOM full-83 83/83).
+- `smoke`: pass (API 222/222, UI HTTP 28/28, UI Render full 83/83, UI Render core 3/3, UI DOM core 11/11, UI DOM full-83 83/83).
 - `verify`: pass on 2026-03-06 (now includes `ui-dom-smoke(core)` in pipeline); port/process hardening has been applied to core smoke scripts.
 - `weapp-route-smoke`: local fail due DevTools HTTP port availability (environment issue).
 
 ### 1.2 Coverage and test capability
 - OpenAPI operations: 243 (GET 108 / POST 93 / PUT 12 / PATCH 21 / DELETE 9).
-- API smoke covers 210 checks (including semantic read-back/state assertions).
-- Write operations total 135; smoke now executes 153 write assertions plus 57 read-back semantic checks (state transitions, persistence, cross-module link integrity, same-key replay invariants, and selected concurrency race outcomes), while unique write-operation coverage remains at least prior 132/135 baseline.
+- API smoke covers 222 checks (including semantic read-back/state assertions).
+- Write operations total 135; smoke now executes 162 write assertions plus 60 read-back semantic checks (state transitions, persistence, cross-module link integrity, same-key replay invariants, and selected concurrency race outcomes), while unique write-operation coverage remains at least prior 132/135 baseline.
 - Highest uncovered write concentration remains in `/admin` (77 write operations; still the largest uncovered write domain).
 - No `.test` / `.spec` business tests under `apps` and `packages`.
 
@@ -85,7 +85,7 @@
   - Acceptance: executable `test` scripts in `apps/api`; CI can run minimal set.
 - [ ] B02 Build write-first API test inventory (orders/refunds/invoices/comments/favorites/addresses/audit flow).
   - Acceptance: first batch covers >=30 key write APIs with success/failure/idempotency assertions.
-  - Progress: smoke batch now executes 153 write assertions (favorites/comments/addresses/conversations/consultations + auth + admin-config writes + admin order/refund negative paths + order/admin happy-path state transitions + file-dependent payout/invoice paths + refund approve/complete/reject lifecycle checks + admin case workflows + patent-maintenance schedules/tasks workflows + rbac role/user workflows + reports export + patent-map import + same-key replay probes for order/payment/invoice/refund + concurrency race matrices), plus 57 semantic read-back checks for state continuity/persistence integrity, with failure/idempotency assertions and targeted regression checks added.
+  - Progress: smoke batch now executes 162 write assertions (favorites/comments/addresses/conversations/consultations + auth + admin-config writes + admin order/refund negative paths + order/admin happy-path state transitions + file-dependent payout/invoice paths + refund approve/complete/reject lifecycle checks + admin case workflows + patent-maintenance schedules/tasks workflows + rbac role/user workflows + reports export + patent-map import + same-key replay probes for order/payment/invoice/refund + concurrency race matrices), plus 60 semantic read-back checks for state continuity/persistence integrity, with failure/idempotency assertions and targeted regression checks added.
 - [ ] B03 Add frontend E2E for key H5/admin paths (excluding real login/payment).
   - Acceptance: homepage/search/detail/publish/order/audit flows are script-regressible.
 - [x] B04 Upgrade `api-real-smoke` from read-heavy to read-write balanced.
@@ -257,8 +257,8 @@
 | J06 | done | Codex | 2026-03-06 | 2026-03-05 | DOM full-mode batch-1 landed (36/36 pass, matrix 36/83) |
 | J07 | done | Codex | 2026-03-06 | 2026-03-05 | DOM full-mode expanded to full 83/83 with matrix sync |
 | K01 | done | Codex | 2026-03-06 | 2026-03-05 | vulnerability ledger + generator script completed |
-| B04 | done | Codex | 2026-03-06 | 2026-03-06 | `api-real-smoke` expanded to 210/210 (writes 153/153 + reads 57/57 semantic assertions), with unique write-operation coverage already near-full baseline |
-| B02 | in_progress | Codex | 2026-03-06 | - | write batch now includes same-key replay invariants + semantic read-back checks (order/refund/case/maintenance/rbac/report/import) + duplicate-maintenance-schedule 409 regression guard + first concurrency race matrices (maintenance create, refund approve/reject); remaining depth is cross-domain high-contention races |
+| B04 | done | Codex | 2026-03-06 | 2026-03-06 | `api-real-smoke` expanded to 222/222 (writes 162/162 + reads 60/60 semantic assertions), with unique write-operation coverage already near-full baseline |
+| B02 | in_progress | Codex | 2026-03-06 | - | write batch now includes same-key replay invariants + semantic read-back checks (order/refund/case/maintenance/rbac/report/import) + duplicate-maintenance-schedule 409 regression guard + concurrency race matrices (maintenance create, refund approve/reject, order payout); remaining depth is broader cross-domain high-contention races |
 
 ### Current execution batch (Batch-1)
 - Scope: A01 / A02 / A03 / N01 / N02 / N03 / N04 / H01 / D01 / D02 / D03 / D04 (completed).
@@ -284,8 +284,8 @@
 ### Current execution batch (Batch-3)
 - Scope: B04 close-out + B02 first write batch (in progress).
 - Deliverables:
-  1) `api-real-smoke` expanded from 17 to 210 checks (done),
-  2) write checks expanded from 2 to 153 assertions (favorites/comments/addresses/conversations/consultations/auth/admin-config/admin-order-refund-negative/order-admin-happy-path/file-dependent payout-invoice/refund lifecycle/admin-case workflows/patent-maintenance workflows/rbac workflows/reports export/patent-map import + same-key replay probes + concurrency race probes) (done),
+  1) `api-real-smoke` expanded from 17 to 222 checks (done),
+  2) write checks expanded from 2 to 162 assertions (favorites/comments/addresses/conversations/consultations/auth/admin-config/admin-order-refund-negative/order-admin-happy-path/file-dependent payout-invoice/refund lifecycle/admin-case workflows/patent-maintenance workflows/rbac workflows/reports export/patent-map import + same-key replay probes + concurrency race probes) (done),
   3) first failure-path/idempotency assertions added (duplicate favorites, invalid comment/message, missing-address delete) (done),
   4) `verify` rerun full green with new API smoke baseline (done),
   5) admin config write-path defect fixed (`PUT /admin/config/*` now passes with audit-log increment assertions) (done),
@@ -301,4 +301,5 @@
   15) same-idempotency replay invariants landed for order create/payment-intents/invoice-request/refund-create (done),
   16) duplicate maintenance-schedule create defect fixed (`patentId + yearNo` unique collision now returns 409 instead of 500) with regression assertion (done),
   17) first concurrency/state-race matrices landed (maintenance schedule duplicate create race + refund approve/reject race, both asserting one success + one conflict and converged final state) (done),
-  18) next step: extend cross-domain high-contention races (order settlement/refund overlap, parallel admin writes without same idempotency key) (pending).
+  18) cross-domain high-contention race landed for order settlement (`/admin/orders/:id/payouts/manual` concurrent writes -> one success + one conflict + post-state convergence assertions) (done),
+  19) next step: extend overlap windows between settlement and refund/invoice state transitions under parallel admin writes (pending).

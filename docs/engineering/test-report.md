@@ -9,8 +9,8 @@
   - Script hardening: `api-real-smoke`, `ui-http-smoke`, `ui-render-smoke`, `ui-dom-smoke` now use dynamic port selection and process-tree cleanup (no kill-by-port behavior).
   - Build resilience: verify appends `NODE_OPTIONS=--max-old-space-size=4096` and retries transient `client:build:h5` crash exits once.
   - Quality gates: `openapi:lint`, `lint`, `typecheck`, `scan:banned-words` all pass.
-  - API smoke: pass (210/210) -> `.tmp/api-real-smoke-2026-03-06-summary.json`
-  - API smoke write/read split: writes 153/153, reads 57/57.
+  - API smoke: pass (222/222) -> `.tmp/api-real-smoke-2026-03-06-summary.json`
+  - API smoke write/read split: writes 162/162, reads 60/60.
   - Semantic/state checks now included: cross-module order/refund/case/maintenance/rbac state assertions, file-link persistence assertions, and post-action detail re-fetch checks.
   - Idempotency replay checks now included: same-key replay for order create, payment intents (deposit/final), invoice request, and refund request create.
   - Failure/idempotency checks now included: duplicate favorites, invalid comment/message payloads, and missing-resource delete paths.
@@ -70,6 +70,7 @@
   - Added semantic continuity assertions: order status verified after each transition (`DEPOSIT_PENDING` -> `DEPOSIT_PAID` -> `WAIT_FINAL_PAYMENT` -> `FINAL_PAID_ESCROW` -> `READY_TO_SETTLE` -> `COMPLETED`), settlement `payoutStatus` verified before/after payout, and `/orders/:id/case` milestone completion verified.
   - Added idempotency replay assertions: same `Idempotency-Key` now verifies stable `orderId`/`paymentId` replay behavior for order create and payment-intent paths.
   - Added file-dependent persistence checks: `/files` upload, admin manual payout with evidence, invoice request success + duplicate guard, admin invoice upsert/get/delete with real file id and post-delete 404 check.
+  - Added concurrency race matrix: same order concurrent manual payout now asserts one success + one conflict, then verifies order/settlement convergence (`COMPLETED` + `SUCCEEDED`).
 
 - Refund lifecycle probes (demo auth/payment)
   - Result: pass (manual approve->complete flow + manual reject flow).
@@ -100,7 +101,7 @@
   - Added semantic assertions: export URL shape validation and dry-run import counters/flag validation.
 
 ### Risks still open
-- API write-path assertions are now 153 checks (with 57 read-back semantic verifications), and unique write-operation coverage is at least the previous 132/135 baseline plus report-import additions; remaining risk is mainly broader high-contention concurrency windows (cross-domain parallel writes and transaction isolation boundaries).
+- API write-path assertions are now 162 checks (with 60 read-back semantic verifications), and unique write-operation coverage is at least the previous 132/135 baseline plus report-import additions; remaining risk is mainly broader high-contention concurrency windows (cross-domain parallel writes and transaction isolation boundaries).
 - UI status smoke is still shallow (route-level HTTP checks only 26/83 pages, plus 2 mock endpoints).
 - DOM assertions now cover all 83/83 pages, but many routes still use generic structural assertions and need incremental business-semantic tightening.
 - Security baseline still high-risk (`pnpm audit --prod`: critical 2 / high 21), remediation not yet executed.
