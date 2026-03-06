@@ -22,6 +22,10 @@ export class AiService {
     if (!req?.auth?.userId) throw new ForbiddenException({ code: 'FORBIDDEN', message: '无权限' });
   }
 
+  private hasOwn(input: any, key: string) {
+    return !!input && Object.prototype.hasOwnProperty.call(input, key);
+  }
+
   private normalizeContentType(value: any) {
     const v = String(value || '').trim().toUpperCase();
     return CONTENT_TYPES.includes(v as any) ? (v as (typeof CONTENT_TYPES)[number]) : undefined;
@@ -51,6 +55,14 @@ export class AiService {
       throw new BadRequestException({ code: 'BAD_REQUEST', message: `${field} is invalid` });
     }
     return contentScope;
+  }
+
+  private parseParseStatusStrict(value: any, field: string) {
+    const status = this.normalizeParseStatus(value);
+    if (!status) {
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: `${field} is invalid` });
+    }
+    return status;
   }
 
   private normalizeKeywords(input: any): string[] {
@@ -378,8 +390,10 @@ export class AiService {
 
     const page = Math.max(1, Number(query?.page || 1));
     const pageSize = Math.min(50, Math.max(1, Number(query?.pageSize || 20)));
-    const contentType = this.normalizeContentType(query?.contentType);
-    const status = this.normalizeParseStatus(query?.status);
+    const hasContentType = this.hasOwn(query, 'contentType');
+    const hasStatus = this.hasOwn(query, 'status');
+    const contentType = hasContentType ? this.parseContentTypeStrict(query?.contentType, 'contentType') : undefined;
+    const status = hasStatus ? this.parseParseStatusStrict(query?.status, 'status') : undefined;
 
     const where: any = {};
     if (contentType) where.contentType = contentType;
