@@ -963,13 +963,19 @@ try {
   if ([string]::IsNullOrWhiteSpace($importRegionCode)) {
     throw "No region code available for patent-map import smoke cases"
   }
+  $industryTagCandidates = @()
+  if ($adminIndustryTagsForWrites -is [System.Array]) {
+    $industryTagCandidates = @($adminIndustryTagsForWrites)
+  } elseif ($adminIndustryTagsForWrites -and $adminIndustryTagsForWrites.items) {
+    $industryTagCandidates = @($adminIndustryTagsForWrites.items)
+  }
   $regionIndustryTags = @()
-  foreach ($industryTagItem in @($adminIndustryTagsForWrites.items | Select-Object -First 2)) {
+  foreach ($industryTagItem in @($industryTagCandidates | Select-Object -First 2)) {
     $industryTagName = ""
     if ($industryTagItem.name) { $industryTagName = [string]$industryTagItem.name }
     elseif ($industryTagItem.label) { $industryTagName = [string]$industryTagItem.label }
     elseif ($industryTagItem.id) { $industryTagName = [string]$industryTagItem.id }
-    if (-not [string]::IsNullOrWhiteSpace($industryTagName)) {
+    if (-not [string]::IsNullOrWhiteSpace($industryTagName) -and -not ($regionIndustryTags -contains $industryTagName)) {
       $regionIndustryTags += $industryTagName
     }
   }
@@ -990,6 +996,48 @@ try {
   if ([string]::IsNullOrWhiteSpace($techManagerId)) {
     throw "No tech manager id available for smoke write cases"
   }
+
+  $newIndustryTagName = "smoke-tag-$ReportDate-$([guid]::NewGuid().ToString('N').Substring(0,8))"
+  $adminIndustryTagCreate = Add-ApiCaseResult -Results $results -Name "admin-industry-tag-create" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/admin/industry-tags" -Body @{ name = $newIndustryTagName } -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-industry-tag-create") -Expected @(200, 201)
+  Assert-ResultJsonFieldEquals -Result $adminIndustryTagCreate -Field "name" -ExpectedValue $newIndustryTagName -Assertion "admin-industry-tag-create-name"
+  [void](Add-ApiCaseResult -Results $results -Name "admin-industry-tag-create-duplicate" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/admin/industry-tags" -Body @{ name = $newIndustryTagName } -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-industry-tag-create-duplicate") -Expected @(409))
+  [void](Add-ApiCaseResult -Results $results -Name "admin-industry-tag-create-invalid-empty" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/admin/industry-tags" -Body @{ name = "   " } -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-industry-tag-create-invalid-empty") -Expected @(400))
+  $adminIndustryTagsAfterCreate = Add-ApiCaseResult -Results $results -Name "admin-industry-tags-list-after-create" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/admin/industry-tags" -Body $null -Headers @{ Authorization = $adminToken } -Expected @(200)
+  $adminIndustryTagsAfterCreateJson = Get-ResultJsonObject -Result $adminIndustryTagsAfterCreate
+  $adminIndustryTagsAfterCreateItems = @()
+  if ($adminIndustryTagsAfterCreateJson -is [System.Array]) {
+    $adminIndustryTagsAfterCreateItems = @($adminIndustryTagsAfterCreateJson)
+  } elseif ($adminIndustryTagsAfterCreateJson -and $adminIndustryTagsAfterCreateJson.items) {
+    $adminIndustryTagsAfterCreateItems = @($adminIndustryTagsAfterCreateJson.items)
+  }
+  $adminIndustryTagCreatedVisible = $false
+  foreach ($adminIndustryTagItem in $adminIndustryTagsAfterCreateItems) {
+    if ($adminIndustryTagItem -and $adminIndustryTagItem.name -and [string]$adminIndustryTagItem.name -eq $newIndustryTagName) {
+      $adminIndustryTagCreatedVisible = $true
+      break
+    }
+  }
+  if (-not $adminIndustryTagCreatedVisible) {
+    Add-ResultAssertionFailure -Result $adminIndustryTagsAfterCreate -Assertion "admin-industry-tags-created-visible" -Message "Created industry tag '$newIndustryTagName' not found in admin list"
+  }
+  $publicIndustryTagsList = Add-ApiCaseResult -Results $results -Name "public-industry-tags-list" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/public/industry-tags" -Body $null -Headers @{} -Expected @(200)
+  $publicIndustryTagsJson = Get-ResultJsonObject -Result $publicIndustryTagsList
+  $publicIndustryTagItems = @()
+  if ($publicIndustryTagsJson -is [System.Array]) {
+    $publicIndustryTagItems = @($publicIndustryTagsJson)
+  } elseif ($publicIndustryTagsJson -and $publicIndustryTagsJson.items) {
+    $publicIndustryTagItems = @($publicIndustryTagsJson.items)
+  }
+  $publicIndustryTagNames = @()
+  foreach ($publicIndustryTagItem in $publicIndustryTagItems) {
+    if ($publicIndustryTagItem -and $publicIndustryTagItem.name -and -not [string]::IsNullOrWhiteSpace([string]$publicIndustryTagItem.name)) {
+      $publicIndustryTagNames += [string]$publicIndustryTagItem.name
+    }
+  }
+  if (-not ($publicIndustryTagNames -contains $newIndustryTagName)) {
+    Add-ResultAssertionFailure -Result $publicIndustryTagsList -Assertion "public-industry-tags-created-visible" -Message "Created industry tag '$newIndustryTagName' not found in public list"
+  }
+  $regionIndustryTags = @($newIndustryTagName) + @($regionIndustryTags | Where-Object { $_ -ne $newIndustryTagName } | Select-Object -First 1)
 
   [void](Add-ApiCaseResult -Results $results -Name "ai-agent-query-text" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/ai/agent/query" -Body @{ inputType = "TEXT"; inputText = "smoke ai query $ReportDate"; contentScope = "LISTING"; regionCode = $importRegionCode } -Headers @{} -Expected @(200, 204, 404))
   $adminAiParseList = Add-ApiCaseResult -Results $results -Name "admin-ai-parse-results-list" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/admin/ai/parse-results" -Body $null -Headers @{ Authorization = $adminToken } -Expected @(200, 404)

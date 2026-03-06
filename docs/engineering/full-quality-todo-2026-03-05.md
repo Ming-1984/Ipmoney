@@ -9,14 +9,14 @@
 ### 1.1 Quality gates status
 - `typecheck`: pass (api/client/admin-web).
 - `build`: pass (api/admin-web/client h5/weapp); WeApp severe regression has been fixed in this batch, and bundle gate is now enforced.
-- `smoke`: pass (API 457/457, UI HTTP 28/28, UI Render full 83/83, UI Render core 3/3, UI DOM core 11/11, UI DOM full-83 83/83).
+- `smoke`: pass (API 463/463, UI HTTP 28/28, UI Render full 83/83, UI Render core 3/3, UI DOM core 11/11, UI DOM full-83 83/83).
 - `verify`: pass on 2026-03-06 (now includes `ui-dom-smoke(core)` in pipeline); port/process hardening has been applied to core smoke scripts.
 - `weapp-route-smoke`: local fail due DevTools HTTP port availability (environment issue).
 
 ### 1.2 Coverage and test capability
 - OpenAPI operations: 243 (GET 108 / POST 93 / PUT 12 / PATCH 21 / DELETE 9).
-- API smoke covers 457 checks (including semantic read-back/state assertions).
-- Write operations total 135; smoke now executes 367 write assertions plus 90 read-back semantic checks (state transitions, persistence, cross-module link integrity, same-key replay invariants, selected concurrency race outcomes, percentile-based chaos stability guard, cross-run trend-threshold capability, and AI/region/featured/file-temporary-access assertions), while unique write-operation coverage remains at least prior 132/135 baseline.
+- API smoke covers 463 checks (including semantic read-back/state assertions).
+- Write operations total 135; smoke now executes 371 write assertions plus 92 read-back semantic checks (state transitions, persistence, cross-module link integrity, same-key replay invariants, selected concurrency race outcomes, percentile-based chaos stability guard, cross-run trend-threshold capability, and AI/industry-tag/region/featured/file-temporary-access assertions), while unique write-operation coverage remains at least prior 132/135 baseline.
 - Highest uncovered write concentration remains in `/admin` (77 write operations; still the largest uncovered write domain).
 - No `.test` / `.spec` business tests under `apps` and `packages`.
 
@@ -86,11 +86,11 @@
   - Acceptance: executable `test` scripts in `apps/api`; CI can run minimal set.
 - [ ] B02 Build write-first API test inventory (orders/refunds/invoices/comments/favorites/addresses/audit flow).
   - Acceptance: first batch covers >=30 key write APIs with success/failure/idempotency assertions.
-  - Progress: smoke batch now executes 367 write assertions (favorites/comments/addresses/conversations/consultations + auth + admin-config writes + admin order/refund negative paths + order/admin happy-path state transitions + file-dependent payout/invoice paths + refund approve/complete/reject lifecycle checks + admin case workflows + patent-maintenance schedules/tasks workflows + rbac role/user workflows + reports export + patent-map import + AI parse/feedback + region industry-tags set + listing featured set + file temporary-access create + same-key replay probes for order/payment/invoice/refund/AI feedback + concurrency race matrices including mixed payout/invoice/refund overlap + repeated mixed bursts on same aggregate + cross-order parallel payouts + staggered mixed-tail overlap + jittered repeated overlap loops + randomized multi-iteration seeded overlap harness + randomized multi-order/multi-aggregate overlap harness + larger-seed chaos overlap harness with percentile + trend guards), plus 90 semantic read-back checks for state continuity/persistence integrity, with failure/idempotency assertions, targeted regression checks, mixed-race invoice consistency closure, randomized outcome-distribution assertions, percentile-based stability thresholding, and cross-run trend baseline support added.
+  - Progress: smoke batch now executes 371 write assertions (favorites/comments/addresses/conversations/consultations + auth + admin-config writes + admin order/refund negative paths + order/admin happy-path state transitions + file-dependent payout/invoice paths + refund approve/complete/reject lifecycle checks + admin case workflows + patent-maintenance schedules/tasks workflows + rbac role/user workflows + reports export + patent-map import + AI parse/feedback + admin industry-tag create/duplicate-invalid + region industry-tags set + listing featured set + file temporary-access create + same-key replay probes for order/payment/invoice/refund/AI feedback + concurrency race matrices including mixed payout/invoice/refund overlap + repeated mixed bursts on same aggregate + cross-order parallel payouts + staggered mixed-tail overlap + jittered repeated overlap loops + randomized multi-iteration seeded overlap harness + randomized multi-order/multi-aggregate overlap harness + larger-seed chaos overlap harness with percentile + trend guards), plus 92 semantic read-back checks for state continuity/persistence integrity, with failure/idempotency assertions, targeted regression checks, mixed-race invoice consistency closure, randomized outcome-distribution assertions, percentile-based stability thresholding, and cross-run trend baseline support added.
 - [ ] B03 Add frontend E2E for key H5/admin paths (excluding real login/payment).
   - Acceptance: homepage/search/detail/publish/order/audit flows are script-regressible.
 - [x] B04 Upgrade `api-real-smoke` from read-heavy to read-write balanced.
-  - Acceptance: write coverage raised from 1.48% to >=20% (phase 1). (done: >=132/135 unique operations covered, currently 367 write assertions executed in smoke)
+  - Acceptance: write coverage raised from 1.48% to >=20% (phase 1). (done: >=132/135 unique operations covered, currently 371 write assertions executed in smoke)
 - [ ] B05 Define per-domain write coverage targets (`admin`, `listings`, `demands`, `achievements`, `artworks`, `me`, `orders`).
   - Acceptance: each domain has target + template assertions.
 
@@ -258,7 +258,7 @@
 | J06 | done | Codex | 2026-03-06 | 2026-03-05 | DOM full-mode batch-1 landed (36/36 pass, matrix 36/83) |
 | J07 | done | Codex | 2026-03-06 | 2026-03-05 | DOM full-mode expanded to full 83/83 with matrix sync |
 | K01 | done | Codex | 2026-03-06 | 2026-03-05 | vulnerability ledger + generator script completed |
-| B04 | done | Codex | 2026-03-06 | 2026-03-06 | `api-real-smoke` expanded to 457/457 (writes 367/367 + reads 90/90 semantic assertions), with unique write-operation coverage already near-full baseline |
+| B04 | done | Codex | 2026-03-06 | 2026-03-06 | `api-real-smoke` expanded to 463/463 (writes 371/371 + reads 92/92 semantic assertions), with unique write-operation coverage already near-full baseline |
 | B02 | in_progress | Codex | 2026-03-06 | - | write batch now includes same-key replay invariants + semantic read-back checks (order/refund/case/maintenance/rbac/report/import/ai) + duplicate-maintenance-schedule 409 regression guard + concurrency race matrices (maintenance create, refund approve/reject, order payout pair/triple, transfer-vs-refund overlap, mixed payout/invoice/refund triple-write, repeated mixed bursts on same order aggregate, cross-order parallel payout, staggered mixed tail overlap, jittered repeated overlap loops, randomized seeded multi-iteration overlap harness with distribution assertions, randomized multi-order/multi-aggregate overlap harness, larger-seed chaos overlap harness with p50/p95/max percentile stats, `p95<=3000ms` stability threshold, and persisted cross-run trend baseline/threshold logic) + invoice consistency closure for mixed-race `invoice_without_file` risk + region/listing-featured/file-temporary-access deepening; remaining depth is deeper transaction-isolation windows |
 
 ### Current execution batch (Batch-1)
@@ -285,8 +285,8 @@
 ### Current execution batch (Batch-3)
 - Scope: B04 close-out + B02 first write batch (in progress).
 - Deliverables:
-  1) `api-real-smoke` expanded from 17 to 457 checks (done),
-  2) write checks expanded from 2 to 367 assertions and read-back checks expanded to 90 semantic assertions (favorites/comments/addresses/conversations/consultations/auth/admin-config/admin-order-refund-negative/order-admin-happy-path/file-dependent payout-invoice/refund lifecycle/admin-case workflows/patent-maintenance workflows/rbac workflows/reports export/patent-map import/ai parse feedback/region industry-tags/listing featured/file temporary-access + same-key replay probes + concurrency race probes + larger-seed chaos percentile/trend harness) (done),
+  1) `api-real-smoke` expanded from 17 to 463 checks (done),
+  2) write checks expanded from 2 to 371 assertions and read-back checks expanded to 92 semantic assertions (favorites/comments/addresses/conversations/consultations/auth/admin-config/admin-order-refund-negative/order-admin-happy-path/file-dependent payout-invoice/refund lifecycle/admin-case workflows/patent-maintenance workflows/rbac workflows/reports export/patent-map import/ai parse feedback/admin industry-tag create+list/public list/region industry-tags/listing featured/file temporary-access + same-key replay probes + concurrency race probes + larger-seed chaos percentile/trend harness) (done),
   3) first failure-path/idempotency assertions added (duplicate favorites, invalid comment/message, missing-address delete) (done),
   4) `verify` rerun full green with new API smoke baseline (done),
   5) admin config write-path defect fixed (`PUT /admin/config/*` now passes with audit-log increment assertions) (done),
@@ -314,5 +314,5 @@
   27) randomized multi-order/multi-aggregate harness landed (seeded cross-order overlap bursts + per-run outcome capture + distribution assertions) (done),
   28) larger-seed chaos sampling + percentile-based stability thresholding landed (done: `chaos-randomized-outcome-distribution`, `p50/p95/max`, `p95<=3000ms` guard).
   29) expanded seed space + cross-run trend-threshold baseline landed (done: 30 seeded runs, persisted trend history `.tmp/api-real-smoke-chaos-history.json`, rolling baseline window, and activation validated at `priorSamples=6` with `trendThresholdP95=1893ms` and observed `p95=753ms`).
-  30) AI/region/featured/file-temporary-access coverage landed (done: `POST /ai/agent/query`, `/admin/ai/parse-results` list/get/update branch coverage, `/ai/parse-results/:id/feedback` create + replay/missing checks, `PUT /admin/regions/:code/industry-tags`, `PUT /admin/listings/:id/featured`, and `POST /files/:id/temporary-access` success + missing guards).
+  30) AI/industry-tag/region/featured/file-temporary-access coverage landed (done: `POST /ai/agent/query`, `/admin/ai/parse-results` list/get/update branch coverage, `/ai/parse-results/:id/feedback` create + replay/missing checks, `POST /admin/industry-tags` create+duplicate-invalid checks + admin/public list visibility checks, `PUT /admin/regions/:code/industry-tags`, `PUT /admin/listings/:id/featured`, and `POST /files/:id/temporary-access` success + missing guards).
   31) next step: carry trend history across daily/CI runs and calibrate threshold factors using broader variance data (pending).
