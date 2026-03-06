@@ -1095,6 +1095,42 @@ try {
   if ([string]::IsNullOrWhiteSpace($missingRegionCode)) {
     $missingRegionCode = "999998"
   }
+  $newRegionCode = ""
+  for ($newRegionTry = 0; $newRegionTry -lt 50; $newRegionTry++) {
+    $candidateRegionCode = (Get-Random -Minimum 100000 -Maximum 1000000).ToString()
+    if ($candidateRegionCode -ne $missingRegionCode -and -not ($existingRegionCodes -contains $candidateRegionCode)) {
+      $newRegionCode = $candidateRegionCode
+      break
+    }
+  }
+  if ([string]::IsNullOrWhiteSpace($newRegionCode)) {
+    foreach ($fallbackRegionCode in @("999997", "999996", "999995")) {
+      if ($fallbackRegionCode -ne $missingRegionCode -and -not ($existingRegionCodes -contains $fallbackRegionCode)) {
+        $newRegionCode = $fallbackRegionCode
+        break
+      }
+    }
+  }
+  if ([string]::IsNullOrWhiteSpace($newRegionCode)) {
+    throw "No available region code for create/update smoke cases"
+  }
+
+  $adminRegionCreate = Add-ApiCaseResult -Results $results -Name "admin-region-create" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/admin/regions" -Body @{ code = $newRegionCode; name = "Smoke Region $ReportDate"; level = "CITY"; parentCode = $importRegionCode; centerLat = 31.23; centerLng = 121.47 } -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-region-create") -Expected @(200, 201)
+  Assert-ResultJsonFieldEquals -Result $adminRegionCreate -Field "code" -ExpectedValue $newRegionCode -Assertion "admin-region-create-code"
+  Assert-ResultJsonFieldEquals -Result $adminRegionCreate -Field "parentCode" -ExpectedValue $importRegionCode -Assertion "admin-region-create-parent-code"
+  [void](Add-ApiCaseResult -Results $results -Name "admin-region-create-duplicate" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/admin/regions" -Body @{ code = $newRegionCode; name = "Smoke Region Duplicate"; level = "CITY" } -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-region-create-duplicate") -Expected @(409))
+  [void](Add-ApiCaseResult -Results $results -Name "admin-region-create-invalid-code" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/admin/regions" -Body @{ code = "abc"; name = "Smoke Region Invalid Code"; level = "CITY" } -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-region-create-invalid-code") -Expected @(400))
+  [void](Add-ApiCaseResult -Results $results -Name "admin-region-create-invalid-level" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/admin/regions" -Body @{ code = "$($newRegionCode.Substring(0, 5))1"; name = "Smoke Region Invalid Level"; level = "TOWN" } -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-region-create-invalid-level") -Expected @(400))
+  [void](Add-ApiCaseResult -Results $results -Name "admin-region-create-invalid-center-lat" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/admin/regions" -Body @{ code = "$($newRegionCode.Substring(0, 5))2"; name = "Smoke Region Invalid Lat"; level = "CITY"; centerLat = "not-a-number" } -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-region-create-invalid-center-lat") -Expected @(400))
+  [void](Add-ApiCaseResult -Results $results -Name "admin-region-create-invalid-center-lng" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/admin/regions" -Body @{ code = "$($newRegionCode.Substring(0, 5))3"; name = "Smoke Region Invalid Lng"; level = "CITY"; centerLng = 181 } -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-region-create-invalid-center-lng") -Expected @(400))
+  [void](Add-ApiCaseResult -Results $results -Name "admin-region-create-missing-name" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/admin/regions" -Body @{ code = "$($newRegionCode.Substring(0, 5))4"; level = "CITY" } -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-region-create-missing-name") -Expected @(400))
+  $adminRegionUpdate = Add-ApiCaseResult -Results $results -Name "admin-region-update" -Method "PATCH" -Url "http://127.0.0.1:$resolvedApiPort/admin/regions/$newRegionCode" -Body @{ name = "Smoke Region Updated $ReportDate"; centerLat = 30.11; centerLng = 120.22 } -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-region-update") -Expected @(200)
+  Assert-ResultJsonFieldEquals -Result $adminRegionUpdate -Field "name" -ExpectedValue "Smoke Region Updated $ReportDate" -Assertion "admin-region-update-name"
+  [void](Add-ApiCaseResult -Results $results -Name "admin-region-update-missing" -Method "PATCH" -Url "http://127.0.0.1:$resolvedApiPort/admin/regions/$missingRegionCode" -Body @{ name = "Smoke Region Missing" } -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-region-update-missing") -Expected @(404))
+  [void](Add-ApiCaseResult -Results $results -Name "admin-region-update-invalid-code" -Method "PATCH" -Url "http://127.0.0.1:$resolvedApiPort/admin/regions/abc" -Body @{ name = "Smoke Region Invalid Code Update" } -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-region-update-invalid-code") -Expected @(400))
+  [void](Add-ApiCaseResult -Results $results -Name "admin-region-update-invalid-parent-code" -Method "PATCH" -Url "http://127.0.0.1:$resolvedApiPort/admin/regions/$newRegionCode" -Body @{ parentCode = "abc" } -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-region-update-invalid-parent-code") -Expected @(400))
+  [void](Add-ApiCaseResult -Results $results -Name "admin-region-update-invalid-center-lat" -Method "PATCH" -Url "http://127.0.0.1:$resolvedApiPort/admin/regions/$newRegionCode" -Body @{ centerLat = 95 } -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-region-update-invalid-center-lat") -Expected @(400))
+  [void](Add-ApiCaseResult -Results $results -Name "admin-region-update-invalid-center-lng" -Method "PATCH" -Url "http://127.0.0.1:$resolvedApiPort/admin/regions/$newRegionCode" -Body @{ centerLng = "oops" } -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-region-update-invalid-center-lng") -Expected @(400))
 
   if ($regionIndustryTags.Count -gt 0) {
     $adminSetRegionIndustryTags = Add-ApiCaseResult -Results $results -Name "admin-region-industry-tags-set" -Method "PUT" -Url "http://127.0.0.1:$resolvedApiPort/admin/regions/$importRegionCode/industry-tags" -Body @{ industryTags = $regionIndustryTags } -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-region-industry-tags-set") -Expected @(200)

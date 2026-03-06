@@ -49,6 +49,40 @@ export type RegionUpdateRequestDto = Partial<Omit<RegionCreateRequestDto, 'code'
 export class RegionsService {
   constructor(private readonly prisma: PrismaService) {}
 
+  private normalizeOptionalRegionCode(
+    value: unknown,
+    fieldName: string,
+    opts: { allowUndefined: boolean },
+  ): string | null | undefined {
+    if (value === undefined) return opts.allowUndefined ? undefined : null;
+    const trimmed = String(value ?? '').trim();
+    if (!trimmed) return null;
+    this.assertRegionCode(trimmed, fieldName);
+    return trimmed;
+  }
+
+  private parseOptionalCoordinate(
+    value: unknown,
+    fieldName: string,
+    opts: { allowUndefined: boolean; min: number; max: number },
+  ): number | null | undefined {
+    if (value === undefined) return opts.allowUndefined ? undefined : null;
+    if (value === null) return null;
+    const raw = String(value).trim();
+    if (!raw) return null;
+    const parsed = Number(raw);
+    if (!Number.isFinite(parsed)) {
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: `${fieldName} must be a number` });
+    }
+    if (parsed < opts.min || parsed > opts.max) {
+      throw new BadRequestException({
+        code: 'BAD_REQUEST',
+        message: `${fieldName} must be between ${opts.min} and ${opts.max}`,
+      });
+    }
+    return parsed;
+  }
+
   private toRegionNode(region: RegionRecord): RegionNodeDto {
     const industryTags = Array.isArray(region.industryTagsJson) ? (region.industryTagsJson as any[]) : [];
     return {
@@ -113,8 +147,17 @@ export class RegionsService {
       throw new BadRequestException({ code: 'BAD_REQUEST', message: 'level must not be empty' });
     }
     this.assertRegionLevel(input.level, 'level');
-
-    if (input.parentCode) this.assertRegionCode(input.parentCode, 'parentCode');
+    const parentCode = this.normalizeOptionalRegionCode(input.parentCode, 'parentCode', { allowUndefined: false });
+    const centerLat = this.parseOptionalCoordinate(input.centerLat, 'centerLat', {
+      allowUndefined: false,
+      min: -90,
+      max: 90,
+    });
+    const centerLng = this.parseOptionalCoordinate(input.centerLng, 'centerLng', {
+      allowUndefined: false,
+      min: -180,
+      max: 180,
+    });
 
     try {
       const region = await this.prisma.region.create({
@@ -122,9 +165,9 @@ export class RegionsService {
           code: input.code,
           name: String(input.name).trim(),
           level: input.level as any,
-          parentCode: input.parentCode ?? null,
-          centerLat: input.centerLat ?? null,
-          centerLng: input.centerLng ?? null,
+          parentCode: parentCode ?? null,
+          centerLat: centerLat ?? null,
+          centerLng: centerLng ?? null,
           industryTagsJson: [],
         },
       });
@@ -141,10 +184,20 @@ export class RegionsService {
     this.assertRegionCode(code, 'regionCode');
 
     if (patch.level) this.assertRegionLevel(patch.level, 'level');
-    if (patch.parentCode) this.assertRegionCode(patch.parentCode, 'parentCode');
     if (patch.name !== undefined && !String(patch.name).trim()) {
       throw new BadRequestException({ code: 'BAD_REQUEST', message: 'name must not be empty' });
     }
+    const parentCode = this.normalizeOptionalRegionCode(patch.parentCode, 'parentCode', { allowUndefined: true });
+    const centerLat = this.parseOptionalCoordinate(patch.centerLat, 'centerLat', {
+      allowUndefined: true,
+      min: -90,
+      max: 90,
+    });
+    const centerLng = this.parseOptionalCoordinate(patch.centerLng, 'centerLng', {
+      allowUndefined: true,
+      min: -180,
+      max: 180,
+    });
 
     try {
       const region = await this.prisma.region.update({
@@ -152,9 +205,9 @@ export class RegionsService {
         data: {
           name: patch.name !== undefined ? String(patch.name).trim() : undefined,
           level: patch.level !== undefined ? (patch.level as any) : undefined,
-          parentCode: patch.parentCode === undefined ? undefined : patch.parentCode ?? null,
-          centerLat: patch.centerLat === undefined ? undefined : patch.centerLat ?? null,
-          centerLng: patch.centerLng === undefined ? undefined : patch.centerLng ?? null,
+          parentCode: parentCode === undefined ? undefined : parentCode ?? null,
+          centerLat: centerLat === undefined ? undefined : centerLat ?? null,
+          centerLng: centerLng === undefined ? undefined : centerLng ?? null,
         },
       });
       return this.toRegionNode(region as RegionRecord);
