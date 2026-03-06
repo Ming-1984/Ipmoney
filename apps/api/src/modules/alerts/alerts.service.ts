@@ -32,9 +32,21 @@ export class AlertsService {
     if (!req?.auth?.userId) throw new ForbiddenException({ code: 'FORBIDDEN', message: '无权限' });
   }
 
+  private hasOwn(input: any, key: string) {
+    return !!input && Object.prototype.hasOwnProperty.call(input, key);
+  }
+
   private normalizeSetValue(value: any, set: Set<string>) {
     const v = String(value || '').trim().toUpperCase();
     return set.has(v) ? v : undefined;
+  }
+
+  private parseSetValueStrict(value: any, set: Set<string>, fieldName: string) {
+    const normalized = this.normalizeSetValue(value, set);
+    if (!normalized) {
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: `${fieldName} is invalid` });
+    }
+    return normalized;
   }
 
   private parseDateTime(value: any, field: string) {
@@ -69,10 +81,14 @@ export class AlertsService {
     const pageSize = Math.min(50, Math.max(1, Number(query?.pageSize || 20)));
 
     const where: any = {};
-    const status = this.normalizeSetValue(query?.status, STATUS_SET);
-    const severity = this.normalizeSetValue(query?.severity, SEVERITY_SET);
-    const channel = this.normalizeSetValue(query?.channel, CHANNEL_SET);
-    const targetType = this.normalizeSetValue(query?.targetType, TARGET_SET);
+    const hasStatus = this.hasOwn(query, 'status');
+    const hasSeverity = this.hasOwn(query, 'severity');
+    const hasChannel = this.hasOwn(query, 'channel');
+    const hasTargetType = this.hasOwn(query, 'targetType');
+    const status = hasStatus ? this.parseSetValueStrict(query?.status, STATUS_SET, 'status') : undefined;
+    const severity = hasSeverity ? this.parseSetValueStrict(query?.severity, SEVERITY_SET, 'severity') : undefined;
+    const channel = hasChannel ? this.parseSetValueStrict(query?.channel, CHANNEL_SET, 'channel') : undefined;
+    const targetType = hasTargetType ? this.parseSetValueStrict(query?.targetType, TARGET_SET, 'targetType') : undefined;
 
     if (status) where.status = status;
     if (severity) where.severity = severity;

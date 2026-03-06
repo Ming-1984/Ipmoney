@@ -2270,6 +2270,12 @@ try {
     }
   }
 
+  [void](Add-ApiCaseResult -Results $results -Name "admin-alert-list" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/admin/alerts" -Body $null -Headers @{ Authorization = $adminToken } -Expected @(200))
+  [void](Add-ApiCaseResult -Results $results -Name "admin-alert-list-invalid-status" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/admin/alerts?status=UNKNOWN" -Body $null -Headers @{ Authorization = $adminToken } -Expected @(400))
+  [void](Add-ApiCaseResult -Results $results -Name "admin-alert-list-invalid-severity" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/admin/alerts?severity=UNKNOWN" -Body $null -Headers @{ Authorization = $adminToken } -Expected @(400))
+  [void](Add-ApiCaseResult -Results $results -Name "admin-alert-list-invalid-channel" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/admin/alerts?channel=UNKNOWN" -Body $null -Headers @{ Authorization = $adminToken } -Expected @(400))
+  [void](Add-ApiCaseResult -Results $results -Name "admin-alert-list-invalid-target-type" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/admin/alerts?targetType=UNKNOWN" -Body $null -Headers @{ Authorization = $adminToken } -Expected @(400))
+
   [void](Add-ApiCaseResult -Results $results -Name "admin-case-list" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/admin/cases" -Body $null -Headers @{ Authorization = $adminToken } -Expected @(200))
   [void](Add-ApiCaseResult -Results $results -Name "admin-case-list-invalid-status" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/admin/cases?status=UNKNOWN" -Body $null -Headers @{ Authorization = $adminToken } -Expected @(400))
   [void](Add-ApiCaseResult -Results $results -Name "admin-case-list-invalid-type" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/admin/cases?type=UNKNOWN" -Body $null -Headers @{ Authorization = $adminToken } -Expected @(400))
