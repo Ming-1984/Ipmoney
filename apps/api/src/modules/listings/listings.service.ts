@@ -1300,6 +1300,22 @@ export class ListingsService {
     if (!req?.auth?.userId) {
       throw new ForbiddenException({ code: 'FORBIDDEN', message: 'forbidden' });
     }
+    const hasTradeMode = this.hasOwn(body, 'tradeMode');
+    const hasLicenseMode = this.hasOwn(body, 'licenseMode');
+    const hasPriceType = this.hasOwn(body, 'priceType');
+    const hasPriceAmountFen = this.hasOwn(body, 'priceAmountFen');
+    const hasDepositAmountFen = this.hasOwn(body, 'depositAmountFen');
+    const hasPledgeStatus = this.hasOwn(body, 'pledgeStatus');
+    const hasExistingLicenseStatus = this.hasOwn(body, 'existingLicenseStatus');
+    const tradeMode = hasTradeMode ? this.parseTradeModeStrict(body?.tradeMode, 'tradeMode') : 'ASSIGNMENT';
+    const licenseMode = hasLicenseMode ? this.parseNullableLicenseModeStrict(body?.licenseMode, 'licenseMode') : null;
+    const priceType = hasPriceType ? this.parsePriceTypeStrict(body?.priceType, 'priceType') : 'NEGOTIABLE';
+    const priceAmountFen = hasPriceAmountFen ? this.parseOptionalInt(body?.priceAmountFen, 'priceAmountFen', 0) : undefined;
+    const depositAmountFen = hasDepositAmountFen ? (this.parseOptionalInt(body?.depositAmountFen, 'depositAmountFen', 0) ?? 0) : 0;
+    const pledgeStatus = hasPledgeStatus ? this.parseNullablePledgeStatusStrict(body?.pledgeStatus, 'pledgeStatus') : null;
+    const existingLicenseStatus = hasExistingLicenseStatus
+      ? this.parseNullableExistingLicenseStatusStrict(body?.existingLicenseStatus, 'existingLicenseStatus')
+      : null;
     const patent = await this.ensurePatent(body);
     if (patent) {
       await Promise.all([
@@ -1310,7 +1326,6 @@ export class ListingsService {
         this.syncPatentClassifications(patent.id, 'LOC', body?.locCodes),
       ]);
     }
-    const depositAmountFen = Number(body?.depositAmountFen || 0);
     const listingTopics = this.normalizeStringArray(body?.listingTopics ?? body?.listingTopic)
       .map((v: any) => String(v || '').trim().toUpperCase())
       .filter((v: any) => v.length > 0);
@@ -1323,8 +1338,6 @@ export class ListingsService {
       throw new BadRequestException({ code: 'BAD_REQUEST', message: 'negotiableRange is invalid' });
     }
     const negotiableNote = body?.negotiableNote ? String(body?.negotiableNote) : null;
-    const pledgeStatus = this.normalizePledgeStatus(body?.pledgeStatus);
-    const existingLicenseStatus = this.normalizeExistingLicenseStatus(body?.existingLicenseStatus);
     const encumbranceNote = body?.encumbranceNote ? String(body?.encumbranceNote) : null;
     const listing = await this.prisma.listing.create({
       data: {
@@ -1333,18 +1346,18 @@ export class ListingsService {
         patentId: patent?.id ?? null,
         title: body?.title || patent?.title || 'Listing',
         summary: body?.summary || null,
-        tradeMode: body?.tradeMode || 'ASSIGNMENT',
-        licenseMode: body?.licenseMode || null,
-        priceType: body?.priceType || 'NEGOTIABLE',
-        priceAmount: body?.priceAmountFen ?? null,
+        tradeMode,
+        licenseMode,
+        priceType,
+        priceAmount: hasPriceAmountFen ? (priceAmountFen ?? null) : null,
         depositAmount: depositAmountFen,
         deliverablesJson: deliverables.length > 0 ? deliverables : Prisma.DbNull,
         expectedCompletionDays: expectedCompletionDays ?? null,
         negotiableRangeFen: negotiableRangeFen ?? null,
         negotiableRangePercent: negotiableRangePercent ?? null,
         negotiableNote,
-        pledgeStatus: pledgeStatus ?? null,
-        existingLicenseStatus: existingLicenseStatus ?? null,
+        pledgeStatus,
+        existingLicenseStatus,
         encumbranceNote,
         regionCode: body?.regionCode || null,
         industryTagsJson: body?.industryTags ?? Prisma.DbNull,
@@ -1390,24 +1403,36 @@ export class ListingsService {
     }
     const hasNegotiableNote = Object.prototype.hasOwnProperty.call(body || {}, 'negotiableNote');
     const negotiableNote = hasNegotiableNote ? (body?.negotiableNote ? String(body?.negotiableNote) : null) : undefined;
-    const hasPledgeStatus = Object.prototype.hasOwnProperty.call(body || {}, 'pledgeStatus');
-    const pledgeStatus = hasPledgeStatus ? this.normalizePledgeStatus(body?.pledgeStatus) : undefined;
-    const hasExistingLicenseStatus = Object.prototype.hasOwnProperty.call(body || {}, 'existingLicenseStatus');
-    const existingLicenseStatus = hasExistingLicenseStatus ? this.normalizeExistingLicenseStatus(body?.existingLicenseStatus) : undefined;
+    const hasPledgeStatus = this.hasOwn(body, 'pledgeStatus');
+    const pledgeStatus = hasPledgeStatus ? this.parseNullablePledgeStatusStrict(body?.pledgeStatus, 'pledgeStatus') : undefined;
+    const hasExistingLicenseStatus = this.hasOwn(body, 'existingLicenseStatus');
+    const existingLicenseStatus = hasExistingLicenseStatus
+      ? this.parseNullableExistingLicenseStatusStrict(body?.existingLicenseStatus, 'existingLicenseStatus')
+      : undefined;
     const hasEncumbranceNote = Object.prototype.hasOwnProperty.call(body || {}, 'encumbranceNote');
     const encumbranceNote = hasEncumbranceNote ? (body?.encumbranceNote ? String(body?.encumbranceNote) : null) : undefined;
     const hasClusterId = Object.prototype.hasOwnProperty.call(body || {}, 'clusterId');
+    const hasTradeMode = this.hasOwn(body, 'tradeMode');
+    const tradeMode = hasTradeMode ? this.parseTradeModeStrict(body?.tradeMode, 'tradeMode') : undefined;
+    const hasLicenseMode = this.hasOwn(body, 'licenseMode');
+    const licenseMode = hasLicenseMode ? this.parseNullableLicenseModeStrict(body?.licenseMode, 'licenseMode') : undefined;
+    const hasPriceType = this.hasOwn(body, 'priceType');
+    const priceType = hasPriceType ? this.parsePriceTypeStrict(body?.priceType, 'priceType') : undefined;
+    const hasPriceAmountFen = this.hasOwn(body, 'priceAmountFen');
+    const priceAmountFen = hasPriceAmountFen ? this.parseOptionalInt(body?.priceAmountFen, 'priceAmountFen', 0) : undefined;
+    const hasDepositAmountFen = this.hasOwn(body, 'depositAmountFen');
+    const depositAmountFen = hasDepositAmountFen ? this.parseOptionalInt(body?.depositAmountFen, 'depositAmountFen', 0) : undefined;
     const updated = await this.prisma.listing.update({
       where: { id: listingId },
       data: {
         patentId: patentId ?? null,
         title: body?.title ?? listing.title,
         summary: body?.summary ?? listing.summary,
-        tradeMode: body?.tradeMode ?? listing.tradeMode,
-        licenseMode: body?.licenseMode ?? listing.licenseMode,
-        priceType: body?.priceType ?? listing.priceType,
-        priceAmount: body?.priceAmountFen ?? listing.priceAmount,
-        depositAmount: body?.depositAmountFen ?? listing.depositAmount,
+        tradeMode: hasTradeMode ? tradeMode : listing.tradeMode,
+        licenseMode: hasLicenseMode ? licenseMode : listing.licenseMode,
+        priceType: hasPriceType ? priceType : listing.priceType,
+        priceAmount: hasPriceAmountFen ? (priceAmountFen ?? listing.priceAmount) : listing.priceAmount,
+        depositAmount: hasDepositAmountFen ? (depositAmountFen ?? listing.depositAmount) : listing.depositAmount,
         deliverablesJson: hasDeliverables ? (deliverables && deliverables.length > 0 ? deliverables : Prisma.DbNull) : undefined,
         expectedCompletionDays: hasExpectedCompletionDays ? (expectedCompletionDays ?? null) : listing.expectedCompletionDays,
         negotiableRangeFen: hasNegotiableRangeFen ? (negotiableRangeFen ?? null) : listing.negotiableRangeFen,
