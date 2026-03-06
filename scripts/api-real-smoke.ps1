@@ -1527,7 +1527,13 @@ try {
   [void](Add-ApiCaseResult -Results $results -Name "chaos-admin-order-manual-payment-final" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/admin/orders/$chaosOrderId/payments/manual" -Body @{ payType = "FINAL" } -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "chaos-admin-order-manual-payment-final") -Expected @(200, 201))
   [void](Add-ApiCaseResult -Results $results -Name "chaos-admin-order-transfer-completed" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/admin/orders/$chaosOrderId/milestones/transfer-completed" -Body @{} -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "chaos-admin-order-transfer-completed") -Expected @(200, 201))
   [void](Add-ApiCaseResult -Results $results -Name "chaos-admin-order-payout" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/admin/orders/$chaosOrderId/payouts/manual" -Body @{ payoutEvidenceFileId = $evidenceFileId } -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "chaos-admin-order-payout") -Expected @(200, 201))
-  $chaosSeedBatches = @(@(6101, 6103, 6107, 6113), @(7103, 7109, 7121, 7127), @(8101, 8111, 8117, 8123))
+  $chaosSeedBatches = @(
+    @(6101, 6103, 6107, 6113, 6121, 6131),
+    @(7103, 7109, 7121, 7127, 7151, 7159),
+    @(8101, 8111, 8117, 8123, 8147, 8161),
+    @(9103, 9109, 9127, 9133, 9151, 9161),
+    @(10103, 10111, 10141, 10151, 10159, 10163)
+  )
   $chaosDistribution = @{
     invoiceSuccess = 0
     invoiceConflict = 0
@@ -1605,15 +1611,68 @@ try {
   $chaosP50Ms = & $computePercentile -Values $chaosDurationsArray -Percentile 0.50
   $chaosP95Ms = & $computePercentile -Values $chaosDurationsArray -Percentile 0.95
   $chaosMaxMs = if ($chaosDurationsArray.Count -gt 0) { [int](($chaosDurationsArray | Measure-Object -Maximum).Maximum) } else { 0 }
+  $chaosAbsoluteP95ThresholdMs = 3000
+  $chaosTrendMinSamples = 6
+  $chaosTrendHistoryWindow = 20
+  $chaosHistoryMaxEntries = 120
+  $chaosHistoryPath = Join-Path $logDir "api-real-smoke-chaos-history.json"
+  $chaosInvoiceSuccessRate = if ($chaosRuns -gt 0) { [math]::Round(([double]$chaosDistribution.invoiceSuccess / [double]$chaosRuns), 4) } else { 0.0 }
+  $chaosRefundConflictRate = if ($chaosRuns -gt 0) { [math]::Round(([double]$chaosDistribution.refundConflict / [double]$chaosRuns), 4) } else { 0.0 }
+  $chaosHistoryEntries = @()
+  if (Test-Path $chaosHistoryPath) {
+    try {
+      $chaosHistoryRaw = Get-Content -Path $chaosHistoryPath -Raw -ErrorAction Stop
+      if (-not [string]::IsNullOrWhiteSpace($chaosHistoryRaw)) {
+        $chaosHistoryEntries = @($chaosHistoryRaw | ConvertFrom-Json)
+      }
+    } catch {
+      Write-Host "[api-real-smoke] chaos history parse failed; trend baseline reset for this run."
+      $chaosHistoryEntries = @()
+    }
+  }
+  $chaosHistoryWindowEntries = @($chaosHistoryEntries | Select-Object -Last $chaosTrendHistoryWindow)
+  $chaosHistoryP95Values = New-Object System.Collections.ArrayList
+  foreach ($chaosHistoryEntry in @($chaosHistoryWindowEntries)) {
+    if ($chaosHistoryEntry -and $chaosHistoryEntry.metrics -and $null -ne $chaosHistoryEntry.metrics.p95) {
+      [void]$chaosHistoryP95Values.Add([int]$chaosHistoryEntry.metrics.p95)
+    }
+  }
+  $chaosTrendCheckApplied = $false
+  $chaosTrendBaselineP50Ms = 0
+  $chaosTrendBaselineP90Ms = 0
+  $chaosTrendThresholdMs = 0
+  if ($chaosHistoryP95Values.Count -ge $chaosTrendMinSamples) {
+    $chaosTrendCheckApplied = $true
+    $chaosTrendP95Array = @($chaosHistoryP95Values | ForEach-Object { [int]$_ })
+    $chaosTrendBaselineP50Ms = & $computePercentile -Values $chaosTrendP95Array -Percentile 0.50
+    $chaosTrendBaselineP90Ms = & $computePercentile -Values $chaosTrendP95Array -Percentile 0.90
+    $chaosTrendThresholdMs = [math]::Max(1400, [math]::Max([int]([math]::Ceiling($chaosTrendBaselineP50Ms * 2.6)), [int]($chaosTrendBaselineP90Ms + 450)))
+  }
   $chaosSummaryPayload = [ordered]@{
     seedBatches = $chaosSeedBatches
     runs = $chaosRuns
     distribution = $chaosDistribution
+    rates = @{
+      invoiceSuccess = $chaosInvoiceSuccessRate
+      refundConflict = $chaosRefundConflictRate
+    }
     durationsMs = @{
       p50 = $chaosP50Ms
       p95 = $chaosP95Ms
       max = $chaosMaxMs
-      thresholdP95 = 3000
+      thresholdP95 = $chaosAbsoluteP95ThresholdMs
+      trendThresholdP95 = if ($chaosTrendCheckApplied) { $chaosTrendThresholdMs } else { $null }
+    }
+    trend = @{
+      historyPath = ".tmp/api-real-smoke-chaos-history.json"
+      historyWindow = $chaosTrendHistoryWindow
+      priorSamples = $chaosHistoryP95Values.Count
+      minSamples = $chaosTrendMinSamples
+      checkApplied = $chaosTrendCheckApplied
+      baselineP95 = @{
+        p50 = if ($chaosTrendCheckApplied) { $chaosTrendBaselineP50Ms } else { $null }
+        p90 = if ($chaosTrendCheckApplied) { $chaosTrendBaselineP90Ms } else { $null }
+      }
     }
     details = $chaosDetails
   }
@@ -1636,9 +1695,32 @@ try {
   if (([int]$chaosDistribution.invoiceSuccess + [int]$chaosDistribution.invoiceConflict) -ne $chaosRuns) {
     Add-ResultAssertionFailure -Result $chaosSummaryResult -Assertion "chaos-distribution-invoice-bounded" -Message "Expected chaos invoice success+conflict count $chaosRuns, got $([int]$chaosDistribution.invoiceSuccess + [int]$chaosDistribution.invoiceConflict)"
   }
-  if ($chaosP95Ms -gt 3000) {
-    Add-ResultAssertionFailure -Result $chaosSummaryResult -Assertion "chaos-p95-threshold" -Message "Expected chaos p95 <= 3000ms, got $chaosP95Ms ms"
+  if ($chaosP95Ms -gt $chaosAbsoluteP95ThresholdMs) {
+    Add-ResultAssertionFailure -Result $chaosSummaryResult -Assertion "chaos-p95-threshold" -Message "Expected chaos p95 <= $chaosAbsoluteP95ThresholdMs ms, got $chaosP95Ms ms"
   }
+  if ($chaosTrendCheckApplied -and $chaosP95Ms -gt $chaosTrendThresholdMs) {
+    Add-ResultAssertionFailure -Result $chaosSummaryResult -Assertion "chaos-p95-trend-threshold" -Message "Expected chaos p95 <= trend threshold $chaosTrendThresholdMs ms (baseline p50=$chaosTrendBaselineP50Ms, p90=$chaosTrendBaselineP90Ms), got $chaosP95Ms ms"
+  }
+  $chaosHistoryEntry = [ordered]@{
+    recordedAt = (Get-Date).ToUniversalTime().ToString("o")
+    reportDate = $ReportDate
+    runs = $chaosRuns
+    distribution = $chaosDistribution
+    rates = @{
+      invoiceSuccess = $chaosInvoiceSuccessRate
+      refundConflict = $chaosRefundConflictRate
+    }
+    metrics = @{
+      p50 = $chaosP50Ms
+      p95 = $chaosP95Ms
+      max = $chaosMaxMs
+    }
+  }
+  $chaosHistoryUpdated = @($chaosHistoryEntries + @([pscustomobject]$chaosHistoryEntry))
+  if ($chaosHistoryUpdated.Count -gt $chaosHistoryMaxEntries) {
+    $chaosHistoryUpdated = @($chaosHistoryUpdated | Select-Object -Last $chaosHistoryMaxEntries)
+  }
+  $chaosHistoryUpdated | ConvertTo-Json -Depth 8 | Out-File -Encoding UTF8 $chaosHistoryPath
   $chaosOrderDetailAfter = Add-ApiCaseResult -Results $results -Name "chaos-order-detail-after" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/orders/$chaosOrderId" -Body $null -Headers @{ Authorization = $userToken } -Expected @(200)
   Assert-ResultJsonFieldEquals -Result $chaosOrderDetailAfter -Field "status" -ExpectedValue "COMPLETED" -Assertion "chaos-order-status-after"
   $chaosSettlementAfter = Add-ApiCaseResult -Results $results -Name "chaos-settlement-after" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/admin/orders/$chaosOrderId/settlement" -Body $null -Headers @{ Authorization = $adminToken } -Expected @(200)
