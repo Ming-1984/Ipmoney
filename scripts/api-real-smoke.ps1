@@ -1094,6 +1094,8 @@ try {
   $regionIndustryTags = @($newIndustryTagName) + @($regionIndustryTags | Where-Object { $_ -ne $newIndustryTagName } | Select-Object -First 1)
 
   [void](Add-ApiCaseResult -Results $results -Name "ai-agent-query-text" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/ai/agent/query" -Body @{ inputType = "TEXT"; inputText = "smoke ai query $ReportDate"; contentScope = "LISTING"; regionCode = $importRegionCode } -Headers @{} -Expected @(200, 204, 404))
+  [void](Add-ApiCaseResult -Results $results -Name "ai-agent-query-invalid-content-scope" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/ai/agent/query" -Body @{ inputType = "TEXT"; inputText = "smoke ai invalid scope $ReportDate"; contentScope = "INVALID" } -Headers @{} -Expected @(400, 404))
+  [void](Add-ApiCaseResult -Results $results -Name "ai-agent-query-invalid-content-type" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/ai/agent/query" -Body @{ inputType = "TEXT"; inputText = "smoke ai invalid type $ReportDate"; contentScope = "LISTING"; contentType = "INVALID" } -Headers @{} -Expected @(400, 404))
   $adminAiParseList = Add-ApiCaseResult -Results $results -Name "admin-ai-parse-results-list" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/admin/ai/parse-results" -Body $null -Headers @{ Authorization = $adminToken } -Expected @(200, 404)
   $aiParseResultId = ""
   if ([int]$adminAiParseList.status -eq 200) {

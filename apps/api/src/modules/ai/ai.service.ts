@@ -29,12 +29,28 @@ export class AiService {
 
   private normalizeContentScope(value: any) {
     const v = String(value || '').trim().toUpperCase();
-    return CONTENT_SCOPES.includes(v as any) ? (v as (typeof CONTENT_SCOPES)[number]) : 'ALL';
+    return CONTENT_SCOPES.includes(v as any) ? (v as (typeof CONTENT_SCOPES)[number]) : undefined;
   }
 
   private normalizeParseStatus(value: any) {
     const v = String(value || '').trim().toUpperCase();
     return PARSE_STATUS.includes(v as any) ? (v as (typeof PARSE_STATUS)[number]) : undefined;
+  }
+
+  private parseContentTypeStrict(value: any, field: string) {
+    const contentType = this.normalizeContentType(value);
+    if (!contentType) {
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: `${field} is invalid` });
+    }
+    return contentType;
+  }
+
+  private parseContentScopeStrict(value: any, field: string) {
+    const contentScope = this.normalizeContentScope(value);
+    if (!contentScope) {
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: `${field} is invalid` });
+    }
+    return contentScope;
   }
 
   private normalizeKeywords(input: any): string[] {
@@ -270,14 +286,16 @@ export class AiService {
       throw new BadRequestException({ code: 'BAD_REQUEST', message: 'inputType is invalid' });
     }
 
-    const contentScope = this.normalizeContentScope(payload?.contentScope);
+    const hasContentScope = !!payload && Object.prototype.hasOwnProperty.call(payload, 'contentScope');
+    const contentScope = hasContentScope ? this.parseContentScopeStrict(payload?.contentScope, 'contentScope') : 'ALL';
     const inputText = String(payload?.inputText || '').trim();
     const recognizedText = inputText || '';
     const normalizedText = recognizedText.trim();
 
     const keywords = this.keywordize(normalizedText);
-    const parsedContentType = this.normalizeContentType(payload?.contentType) ||
-      (contentScope !== 'ALL' ? (contentScope as any) : 'LISTING');
+    const hasContentType = !!payload && Object.prototype.hasOwnProperty.call(payload, 'contentType');
+    const explicitContentType = hasContentType ? this.parseContentTypeStrict(payload?.contentType, 'contentType') : undefined;
+    const parsedContentType = explicitContentType || (contentScope !== 'ALL' ? (contentScope as any) : 'LISTING');
 
     const filters: any = {};
     if (normalizedText) filters.q = normalizedText;
