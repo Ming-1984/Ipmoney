@@ -34,6 +34,22 @@ export class PatentMaintenanceService {
     return TASK_STATUS_SET.has(v) ? v : undefined;
   }
 
+  private parseStatusStrict(value: any, field: string): PatentMaintenanceStatus {
+    const status = this.normalizeStatus(value);
+    if (!status) {
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: `${field} is invalid` });
+    }
+    return status;
+  }
+
+  private parseTaskStatusStrict(value: any, field: string): PatentMaintenanceTaskStatus {
+    const status = this.normalizeTaskStatus(value);
+    if (!status) {
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: `${field} is invalid` });
+    }
+    return status;
+  }
+
   private parseDate(value: any, field: string) {
     if (!value) return null;
     const dt = new Date(String(value));
@@ -121,7 +137,8 @@ export class PatentMaintenanceService {
     if (!dueDate) throw new BadRequestException({ code: 'BAD_REQUEST', message: 'dueDate is required' });
 
     const gracePeriodEnd = this.parseDate(body?.gracePeriodEnd, 'gracePeriodEnd');
-    const status = this.normalizeStatus(body?.status) || PatentMaintenanceStatus.DUE;
+    const hasStatus = !!body && Object.prototype.hasOwnProperty.call(body, 'status');
+    const status = hasStatus ? this.parseStatusStrict(body?.status, 'status') : PatentMaintenanceStatus.DUE;
 
     const patent = await this.prisma.patent.findUnique({ where: { id: patentId }, select: { id: true } });
     if (!patent) throw new NotFoundException({ code: 'NOT_FOUND', message: 'Patent not found' });
@@ -187,8 +204,7 @@ export class PatentMaintenanceService {
       next.gracePeriodEnd = grace || null;
     }
     if (body?.status !== undefined) {
-      const status = this.normalizeStatus(body?.status);
-      if (!status) throw new BadRequestException({ code: 'BAD_REQUEST', message: 'status is invalid' });
+      const status = this.parseStatusStrict(body?.status, 'status');
       next.status = status;
     }
 
@@ -255,12 +271,13 @@ export class PatentMaintenanceService {
     }
 
     const note = body?.note ? String(body.note).trim() : undefined;
+    const hasStatus = !!body && Object.prototype.hasOwnProperty.call(body, 'status');
 
     const created = await this.prisma.patentMaintenanceTask.create({
       data: {
         scheduleId,
         assignedCsUserId: assignedCsUserId || null,
-        status: this.normalizeTaskStatus(body?.status) || PatentMaintenanceTaskStatus.OPEN,
+        status: hasStatus ? this.parseTaskStatusStrict(body?.status, 'status') : PatentMaintenanceTaskStatus.OPEN,
         note: note || null,
       },
     });
@@ -297,8 +314,7 @@ export class PatentMaintenanceService {
     }
 
     if (body?.status !== undefined) {
-      const status = this.normalizeTaskStatus(body?.status);
-      if (!status) throw new BadRequestException({ code: 'BAD_REQUEST', message: 'status is invalid' });
+      const status = this.parseTaskStatusStrict(body?.status, 'status');
       next.status = status;
     }
 

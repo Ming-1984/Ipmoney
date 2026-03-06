@@ -10,8 +10,8 @@
   - Build resilience: verify appends `NODE_OPTIONS=--max-old-space-size=4096` and retries transient `client:build:h5` crash exits once.
   - Chaos trend persistence: verify now passes `-ChaosHistoryPath` into `api-real-smoke` and snapshots history as `.tmp/api-real-smoke-chaos-history-<ReportDate>.json` for reproducible trend baselines.
   - Quality gates: `openapi:lint`, `lint`, `typecheck`, `scan:banned-words` all pass.
-  - API smoke: pass (637/637) -> `.tmp/api-real-smoke-2026-03-06-summary.json`
-  - API smoke write/read split: writes 544/544, reads 93/93.
+  - API smoke: pass (639/639) -> `.tmp/api-real-smoke-2026-03-06-summary.json`
+  - API smoke write/read split: writes 546/546, reads 93/93.
   - Semantic/state checks now included: cross-module order/refund/case/maintenance/rbac state assertions, file-link persistence assertions, and post-action detail re-fetch checks.
   - Idempotency replay checks now included: same-key replay for order create, payment intents (deposit/final), invoice request, and refund request create.
   - Failure/idempotency checks now included: duplicate favorites, invalid comment/message payloads (including strict 400 for empty comment create/update), and missing-resource delete paths.
@@ -102,6 +102,7 @@
 - Patent-maintenance workflow probes (demo auth/payment)
   - Result: pass (`/admin/patent-maintenance` schedules/tasks list/create/update/detail).
   - Added negative guards: missing/invalid patent & schedule (400/404), duplicate schedule create conflict (409), invalid status values (400), invalid evidence file id (400), missing task update target (404).
+  - Added create-path validation hardening + guards: `POST /admin/patent-maintenance/schedules|tasks` now treats explicit invalid `status` as strict 400 (no silent fallback to default status).
   - Added semantic assertions: schedule status + grace period persistence and task status/evidence persistence (including list-by-schedule verification).
   - Regression fixed: duplicate schedule (`patentId + yearNo`) now maps Prisma unique-constraint failure to business `409 CONFLICT` instead of 500.
   - Added concurrency race matrix: same patent/year concurrent schedule create now asserts one success + one conflict and verifies persisted schedule detail.
@@ -141,7 +142,7 @@
   - Added file temporary-access coverage: `POST /files/:id/temporary-access` preview success (`scope=preview`, non-empty `url`) plus missing-file 404 guard.
 
 ### Risks still open
-- API write-path assertions are now 544 checks (with 93 read-back semantic verifications), and unique write-operation coverage is at least the previous 132/135 baseline plus report-import, AI/industry-tag/region/featured/file-access, admin-listings, user-listings, and admin-cases create-enum hardening additions; remaining risk is mainly deeper transaction-isolation windows under broader multi-actor parallel writes.
+- API write-path assertions are now 546 checks (with 93 read-back semantic verifications), and unique write-operation coverage is at least the previous 132/135 baseline plus report-import, AI/industry-tag/region/featured/file-access, admin-listings, user-listings, admin-cases create-enum hardening, and patent-maintenance create-status strictness guards; remaining risk is mainly deeper transaction-isolation windows under broader multi-actor parallel writes.
 - UI status smoke is still shallow (route-level HTTP checks only 26/83 pages, plus 2 mock endpoints).
 - DOM assertions now cover all 83/83 pages, but many routes still use generic structural assertions and need incremental business-semantic tightening.
 - Security baseline still high-risk (`pnpm audit --prod`: critical 2 / high 21), remediation not yet executed.
