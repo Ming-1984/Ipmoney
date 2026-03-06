@@ -2554,7 +2554,16 @@ try {
       Add-ResultAssertionFailure -Result $rbacUsersAfterCustomRole -Assertion "rbac-users-list-custom-role-linked" -Message "Current user '$currentUserId' does not include role '$rbacRoleId' in users list"
     }
   }
+  [void](Add-ApiCaseResult -Results $results -Name "admin-report-summary-custom-rbac-role-allowed" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/admin/reports/finance/summary" -Body $null -Headers @{ Authorization = $userToken } -Expected @(200))
+  [void](Add-ApiCaseResult -Results $results -Name "admin-report-export-custom-rbac-role-forbidden" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/admin/reports/finance/export" -Body @{} -Headers @{ Authorization = $userToken } -Expected @(403))
   [void](Add-ApiCaseResult -Results $results -Name "admin-listings-custom-rbac-role-forbidden" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/admin/listings" -Body $null -Headers @{ Authorization = $userToken } -Expected @(403))
+  [void](Add-ApiCaseResult -Results $results -Name "admin-audit-logs-custom-rbac-role-forbidden" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/admin/audit-logs" -Body $null -Headers @{ Authorization = $userToken } -Expected @(403))
+  [void](Add-ApiCaseResult -Results $results -Name "admin-cases-custom-rbac-role-forbidden" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/admin/cases" -Body $null -Headers @{ Authorization = $userToken } -Expected @(403))
+  [void](Add-ApiCaseResult -Results $results -Name "admin-maintenance-schedules-custom-rbac-role-forbidden" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/admin/patent-maintenance/schedules" -Body $null -Headers @{ Authorization = $userToken } -Expected @(403))
+  [void](Add-ApiCaseResult -Results $results -Name "admin-user-verifications-custom-rbac-role-forbidden" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/admin/user-verifications" -Body $null -Headers @{ Authorization = $userToken } -Expected @(403))
+  [void](Add-ApiCaseResult -Results $results -Name "admin-config-trade-rules-get-custom-rbac-role-forbidden" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/admin/config/trade-rules" -Body $null -Headers @{ Authorization = $userToken } -Expected @(403))
+  [void](Add-ApiCaseResult -Results $results -Name "admin-config-trade-rules-put-custom-rbac-role-forbidden" -Method "PUT" -Url "http://127.0.0.1:$resolvedApiPort/admin/config/trade-rules" -Body $adminTradeRulesConfig -Headers @{ Authorization = $userToken } -Expected @(403))
+  [void](Add-ApiCaseResult -Results $results -Name "admin-rbac-users-custom-rbac-role-forbidden" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/admin/rbac/users" -Body $null -Headers @{ Authorization = $userToken } -Expected @(403))
   $rbacUserUpdateClearRoles = Add-ApiCaseResult -Results $results -Name "admin-rbac-user-update-clear-roles" -Method "PATCH" -Url "http://127.0.0.1:$resolvedApiPort/admin/rbac/users/$currentUserId" -Body @{ roleIds = @() } -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-rbac-user-update-clear-roles") -Expected @(200)
   $rbacUserClearJson = Get-ResultJsonObject -Result $rbacUserUpdateClearRoles
   if ($rbacUserClearJson -and @($rbacUserClearJson.roleIds).Count -ne 0) {

@@ -1,5 +1,6 @@
-﻿export type AdminRoleName = 'admin' | 'cs' | 'operator' | 'finance';
+﻿import { ForbiddenException } from '@nestjs/common';
 
+export type AdminRoleName = 'admin' | 'cs' | 'operator' | 'finance';
 export const ADMIN_ROLE_PERMISSIONS: Record<AdminRoleName, string[]> = {
   admin: ['*'],
   operator: [
@@ -87,10 +88,6 @@ export function resolvePermissionsFromRoleIds(
 export function requirePermission(req: any, permission: string) {
   const perms: Set<string> | undefined = req?.auth?.permissions;
   if (!perms || (!perms.has('*') && !perms.has(permission))) {
-    const err: any = new Error('FORBIDDEN_PERMISSION');
-    err.status = 403;
-    err.code = 'FORBIDDEN';
-    err.message = '无权限';
-    throw err;
+    throw new ForbiddenException({ code: 'FORBIDDEN', message: '无权限' });
   }
 }
