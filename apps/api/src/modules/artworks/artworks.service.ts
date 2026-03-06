@@ -105,6 +105,68 @@ export class ArtworksService {
     return allowed.includes(v) ? (v as PaintingGenre) : undefined;
   }
 
+  private hasOwn(body: any, key: string) {
+    return Object.prototype.hasOwnProperty.call(body || {}, key);
+  }
+
+  private parseContentSourceStrict(value: unknown, fieldName: string): 'USER' | 'ADMIN' | 'PLATFORM' {
+    const normalized = this.normalizeContentSource(value);
+    if (!normalized) {
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: `${fieldName} is invalid` });
+    }
+    return normalized;
+  }
+
+  private parseAuditStatusStrict(value: unknown, fieldName: string): 'PENDING' | 'APPROVED' | 'REJECTED' {
+    const normalized = this.normalizeAuditStatus(value);
+    if (!normalized) {
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: `${fieldName} is invalid` });
+    }
+    return normalized;
+  }
+
+  private parseArtworkStatusStrict(value: unknown, fieldName: string): 'DRAFT' | 'ACTIVE' | 'OFF_SHELF' | 'SOLD' {
+    const normalized = this.normalizeArtworkStatus(value);
+    if (!normalized) {
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: `${fieldName} is invalid` });
+    }
+    return normalized;
+  }
+
+  private parseCategoryStrict(value: unknown, fieldName: string): ArtworkCategory {
+    const normalized = this.normalizeCategory(value);
+    if (!normalized) {
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: `${fieldName} is invalid` });
+    }
+    return normalized;
+  }
+
+  private parsePriceTypeStrict(value: unknown, fieldName: string): 'FIXED' | 'NEGOTIABLE' {
+    const normalized = this.normalizePriceType(value);
+    if (!normalized) {
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: `${fieldName} is invalid` });
+    }
+    return normalized;
+  }
+
+  private parseNullableCalligraphyScriptStrict(value: unknown, fieldName: string): CalligraphyScript | null {
+    if (value === null || String(value).trim() === '') return null;
+    const normalized = this.normalizeCalligraphyScript(value);
+    if (!normalized) {
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: `${fieldName} is invalid` });
+    }
+    return normalized;
+  }
+
+  private parseNullablePaintingGenreStrict(value: unknown, fieldName: string): PaintingGenre | null {
+    if (value === null || String(value).trim() === '') return null;
+    const normalized = this.normalizePaintingGenre(value);
+    if (!normalized) {
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: `${fieldName} is invalid` });
+    }
+    return normalized;
+  }
+
   private parseOptionalInt(value: unknown, fieldName: string, min = 0): number | undefined {
     if (value === undefined || value === null || String(value).trim() === '') return undefined;
     const num = Number(value);
@@ -661,16 +723,23 @@ export class ArtworksService {
     if (!creatorName) throw new BadRequestException({ code: 'BAD_REQUEST', message: 'creatorName is required' });
     if (!priceType) throw new BadRequestException({ code: 'BAD_REQUEST', message: 'priceType is required' });
 
-    const sourceInput = this.normalizeContentSource(body?.source) ?? 'ADMIN';
+    const hasSource = this.hasOwn(body, 'source');
+    const hasCalligraphyScript = this.hasOwn(body, 'calligraphyScript');
+    const hasPaintingGenre = this.hasOwn(body, 'paintingGenre');
+    const hasAuditStatus = this.hasOwn(body, 'auditStatus');
+    const hasStatus = this.hasOwn(body, 'status');
+    const sourceInput = hasSource ? this.parseContentSourceStrict(body?.source, 'source') : 'ADMIN';
     const ownerId = String(body?.sellerUserId || body?.publisherUserId || body?.ownerId || req?.auth?.userId || '').trim();
-    const calligraphyScript = this.normalizeCalligraphyScript(body?.calligraphyScript);
-    const paintingGenre = this.normalizePaintingGenre(body?.paintingGenre);
+    const calligraphyScript = hasCalligraphyScript ? this.parseNullableCalligraphyScriptStrict(body?.calligraphyScript, 'calligraphyScript') : undefined;
+    const paintingGenre = hasPaintingGenre ? this.parseNullablePaintingGenreStrict(body?.paintingGenre, 'paintingGenre') : undefined;
     const creationDate = this.parseOptionalDate(body?.creationDate, 'creationDate');
     const creationYear = this.parseOptionalInt(body?.creationYear, 'creationYear', 0);
     const priceAmountFen = this.parseOptionalInt(body?.priceAmountFen, 'priceAmountFen', 0);
     const depositAmountFen = this.parseOptionalInt(body?.depositAmountFen, 'depositAmountFen', 0);
     const certificateFileIds = this.normalizeFileIds(body?.certificateFileIds);
     const mediaInput = normalizeMediaInput(body?.media);
+    const auditStatus = hasAuditStatus ? this.parseAuditStatusStrict(body?.auditStatus, 'auditStatus') : 'PENDING';
+    const status = hasStatus ? this.parseArtworkStatusStrict(body?.status, 'status') : 'DRAFT';
 
     const created = await this.prisma.$transaction(async (tx) => {
       const artwork = await tx.artwork.create({
@@ -680,8 +749,8 @@ export class ArtworksService {
           title,
           description: body?.description ?? null,
           category,
-          calligraphyScript: calligraphyScript ?? null,
-          paintingGenre: paintingGenre ?? null,
+          calligraphyScript: calligraphyScript === undefined ? null : calligraphyScript,
+          paintingGenre: paintingGenre === undefined ? null : paintingGenre,
           creatorName,
           creationDate: creationDate ?? null,
           creationYear: creationYear ?? null,
@@ -694,8 +763,8 @@ export class ArtworksService {
           material: body?.material ? String(body.material) : null,
           size: body?.size ? String(body.size) : null,
           coverFileId: body?.coverFileId ? String(body.coverFileId) : null,
-          auditStatus: this.normalizeAuditStatus(body?.auditStatus) ?? 'PENDING',
-          status: this.normalizeArtworkStatus(body?.status) ?? 'DRAFT',
+          auditStatus,
+          status,
         },
       });
 
@@ -729,18 +798,28 @@ export class ArtworksService {
     const item = await this.fetchArtwork(artworkId);
     if (!item) throw new NotFoundException({ code: 'NOT_FOUND', message: 'artwork not found' });
 
-    const hasCertificateFileIds = Object.prototype.hasOwnProperty.call(body || {}, 'certificateFileIds');
-    const hasCoverFileId = Object.prototype.hasOwnProperty.call(body || {}, 'coverFileId');
-    const hasMedia = Object.prototype.hasOwnProperty.call(body || {}, 'media');
+    const hasCertificateFileIds = this.hasOwn(body, 'certificateFileIds');
+    const hasCoverFileId = this.hasOwn(body, 'coverFileId');
+    const hasMedia = this.hasOwn(body, 'media');
+    const hasSource = this.hasOwn(body, 'source');
+    const hasCategory = this.hasOwn(body, 'category');
+    const hasCalligraphyScript = this.hasOwn(body, 'calligraphyScript');
+    const hasPaintingGenre = this.hasOwn(body, 'paintingGenre');
+    const hasPriceType = this.hasOwn(body, 'priceType');
+    const hasAuditStatus = this.hasOwn(body, 'auditStatus');
+    const hasStatus = this.hasOwn(body, 'status');
 
-    const category = body?.category !== undefined ? this.normalizeCategory(body?.category) : undefined;
-    const calligraphyScript = body?.calligraphyScript !== undefined ? this.normalizeCalligraphyScript(body?.calligraphyScript) : undefined;
-    const paintingGenre = body?.paintingGenre !== undefined ? this.normalizePaintingGenre(body?.paintingGenre) : undefined;
+    const source = hasSource ? this.parseContentSourceStrict(body?.source, 'source') : undefined;
+    const category = hasCategory ? this.parseCategoryStrict(body?.category, 'category') : undefined;
+    const calligraphyScript = hasCalligraphyScript ? this.parseNullableCalligraphyScriptStrict(body?.calligraphyScript, 'calligraphyScript') : undefined;
+    const paintingGenre = hasPaintingGenre ? this.parseNullablePaintingGenreStrict(body?.paintingGenre, 'paintingGenre') : undefined;
     const creationDate = body?.creationDate !== undefined ? this.parseOptionalDate(body?.creationDate, 'creationDate') : undefined;
     const creationYear = body?.creationYear !== undefined ? this.parseOptionalInt(body?.creationYear, 'creationYear', 0) : undefined;
-    const priceType = body?.priceType !== undefined ? this.normalizePriceType(body?.priceType) : undefined;
+    const priceType = hasPriceType ? this.parsePriceTypeStrict(body?.priceType, 'priceType') : undefined;
     const priceAmountFen = body?.priceAmountFen !== undefined ? this.parseOptionalInt(body?.priceAmountFen, 'priceAmountFen', 0) : undefined;
     const depositAmountFen = body?.depositAmountFen !== undefined ? this.parseOptionalInt(body?.depositAmountFen, 'depositAmountFen', 0) : undefined;
+    const auditStatus = hasAuditStatus ? this.parseAuditStatusStrict(body?.auditStatus, 'auditStatus') : undefined;
+    const status = hasStatus ? this.parseArtworkStatusStrict(body?.status, 'status') : undefined;
     const certificateFileIds = hasCertificateFileIds ? this.normalizeFileIds(body?.certificateFileIds) : undefined;
     const mediaInput = hasMedia ? normalizeMediaInput(body?.media) : [];
     const sellerUserId = body?.sellerUserId
@@ -756,12 +835,12 @@ export class ArtworksService {
         where: { id: artworkId },
         data: {
           sellerUserId: sellerUserId ?? undefined,
-          source: body?.source !== undefined ? this.normalizeContentSource(body?.source) ?? item.source : undefined,
+          source: hasSource ? source : undefined,
           title: body?.title ?? undefined,
           description: body?.description ?? undefined,
           category: category ?? undefined,
-          calligraphyScript: calligraphyScript ?? null,
-          paintingGenre: paintingGenre ?? null,
+          calligraphyScript: hasCalligraphyScript ? calligraphyScript : undefined,
+          paintingGenre: hasPaintingGenre ? paintingGenre : undefined,
           creatorName: body?.creatorName ?? undefined,
           creationDate: creationDate ?? null,
           creationYear: creationYear ?? null,
@@ -778,8 +857,8 @@ export class ArtworksService {
           material: body?.material ?? undefined,
           size: body?.size ?? undefined,
           coverFileId: hasCoverFileId ? (body?.coverFileId ? String(body.coverFileId) : null) : undefined,
-          auditStatus: body?.auditStatus !== undefined ? this.normalizeAuditStatus(body?.auditStatus) ?? item.auditStatus : undefined,
-          status: body?.status !== undefined ? this.normalizeArtworkStatus(body?.status) ?? item.status : undefined,
+          auditStatus: hasAuditStatus ? auditStatus : undefined,
+          status: hasStatus ? status : undefined,
         },
       });
 
