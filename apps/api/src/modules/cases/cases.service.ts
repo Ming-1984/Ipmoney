@@ -45,6 +45,10 @@ const DEFAULT_TITLES: Record<CaseType, string> = {
 export class CasesService {
   constructor(private readonly prisma: PrismaService) {}
 
+  private hasOwn(body: any, key: string) {
+    return Object.prototype.hasOwnProperty.call(body || {}, key);
+  }
+
   private ensureAuth(req: any) {
     if (!req?.auth?.userId) throw new ForbiddenException({ code: 'FORBIDDEN', message: '无权限' });
   }
@@ -55,16 +59,40 @@ export class CasesService {
     return undefined;
   }
 
+  private parseTypeStrict(value: any, fieldName: string): CaseType {
+    const type = this.normalizeType(value);
+    if (!type) {
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: `${fieldName} 不合法` });
+    }
+    return type;
+  }
+
   private normalizeStatus(value: any): CaseStatus | undefined {
     const v = String(value || '').trim().toUpperCase();
     if (v === 'OPEN' || v === 'IN_PROGRESS' || v === 'CLOSED') return v as CaseStatus;
     return undefined;
   }
 
+  private parseStatusStrict(value: any, fieldName: string): CaseStatus {
+    const status = this.normalizeStatus(value);
+    if (!status) {
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: `${fieldName} 不合法` });
+    }
+    return status;
+  }
+
   private normalizePriority(value: any): CasePriority | undefined {
     const v = String(value || '').trim().toUpperCase();
     if (v === 'LOW' || v === 'MEDIUM' || v === 'HIGH') return v as CasePriority;
     return undefined;
+  }
+
+  private parsePriorityStrict(value: any, fieldName: string): CasePriority {
+    const priority = this.normalizePriority(value);
+    if (!priority) {
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: `${fieldName} 不合法` });
+    }
+    return priority;
   }
 
   private parseDueAt(value: any): Date | null {
@@ -194,9 +222,12 @@ export class CasesService {
     this.ensureAuth(req);
     requirePermission(req, 'case.manage');
 
-    const type = this.normalizeType(body?.type) ?? 'FOLLOWUP';
-    const status = this.normalizeStatus(body?.status) ?? 'OPEN';
-    const priority = this.normalizePriority(body?.priority);
+    const hasType = this.hasOwn(body, 'type');
+    const hasStatus = this.hasOwn(body, 'status');
+    const hasPriority = this.hasOwn(body, 'priority');
+    const type = hasType ? this.parseTypeStrict(body?.type, 'type') : 'FOLLOWUP';
+    const status = hasStatus ? this.parseStatusStrict(body?.status, 'status') : 'OPEN';
+    const priority = hasPriority ? this.parsePriorityStrict(body?.priority, 'priority') : undefined;
     const title = String(body?.title || '').trim() || DEFAULT_TITLES[type];
     const requesterName = String(body?.requesterName || '').trim() || '系统';
     const description = body?.description ? String(body.description).trim() : undefined;
