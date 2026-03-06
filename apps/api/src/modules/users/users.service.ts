@@ -73,6 +73,9 @@ export type UserVerificationSubmitRequestDto = {
   evidenceFileIds?: string[];
 };
 
+const USER_VERIFICATION_TYPES = ['PERSON', 'COMPANY', 'ACADEMY', 'GOVERNMENT', 'ASSOCIATION', 'TECH_MANAGER'] as const;
+const USER_VERIFICATION_STATUSES = ['PENDING', 'APPROVED', 'REJECTED'] as const;
+
 @Injectable()
 export class UsersService {
   constructor(
@@ -80,6 +83,22 @@ export class UsersService {
     private readonly audit: AuditLogService,
     private readonly notifications: NotificationsService,
   ) {}
+
+  private hasOwn(input: any, key: string) {
+    return !!input && Object.prototype.hasOwnProperty.call(input, key);
+  }
+
+  private normalizeVerificationType(value: any): UserVerificationDto['type'] | undefined {
+    const raw = String(value || '').trim().toUpperCase();
+    if ((USER_VERIFICATION_TYPES as readonly string[]).includes(raw)) return raw as UserVerificationDto['type'];
+    return undefined;
+  }
+
+  private normalizeVerificationStatus(value: any): UserVerificationDto['status'] | undefined {
+    const raw = String(value || '').trim().toUpperCase();
+    if ((USER_VERIFICATION_STATUSES as readonly string[]).includes(raw)) return raw as UserVerificationDto['status'];
+    return undefined;
+  }
 
   async getUserProfileById(userId: string): Promise<UserProfileDto> {
     const demoConfig = getDemoAuthConfig();
@@ -251,22 +270,28 @@ export class UsersService {
     return this.toUserVerificationDto(created);
   }
 
-  async adminListUserVerifications(params: {
-    q?: string;
-    type?: string;
-    status?: string;
-    page: number;
-    pageSize: number;
-  }) {
-    const page = Number(params.page || 1);
-    const pageSize = Math.min(50, Math.max(1, Number(params.pageSize || 10)));
+  async adminListUserVerifications(query: any) {
+    const page = Number(query?.page || 1);
+    const pageSize = Math.min(50, Math.max(1, Number(query?.pageSize || 10)));
     const skip = (page - 1) * pageSize;
+    const q = String(query?.q || '').trim();
+    const hasType = this.hasOwn(query, 'type');
+    const hasStatus = this.hasOwn(query, 'status');
+    const type = hasType ? this.normalizeVerificationType(query?.type) : undefined;
+    const status = hasStatus ? this.normalizeVerificationStatus(query?.status) : undefined;
+
+    if (hasType && !type) {
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: 'type is invalid' });
+    }
+    if (hasStatus && !status) {
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: 'status is invalid' });
+    }
 
     const where: UserVerificationWhereInput = {};
-    if (params.type) where.verificationType = params.type as any;
-    if (params.status) where.verificationStatus = params.status as any;
-    if (params.q && params.q.trim()) {
-      const searchText = params.q.trim();
+    if (type) where.verificationType = type as any;
+    if (status) where.verificationStatus = status as any;
+    if (q) {
+      const searchText = q;
       where.OR = [{ displayName: { contains: searchText } }, { user: { phone: { contains: searchText } } }];
     }
 

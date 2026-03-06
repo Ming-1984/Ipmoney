@@ -14,22 +14,9 @@ export class AdminUserVerificationsController {
   ) {}
 
   @Get()
-  async list(
-    @Req() req: any,
-    @Query('q') q?: string,
-    @Query('type') type?: string,
-    @Query('status') status?: string,
-    @Query('page') page?: string,
-    @Query('pageSize') pageSize?: string,
-  ) {
+  async list(@Req() req: any, @Query() query: any) {
     requirePermission(req, 'verification.read');
-    return await this.users.adminListUserVerifications({
-      q: q || undefined,
-      type: type || undefined,
-      status: status || undefined,
-      page: Number(page || 1),
-      pageSize: Number(pageSize || 10),
-    });
+    return await this.users.adminListUserVerifications(query || {});
   }
 
   @Post('/:verificationId/approve')

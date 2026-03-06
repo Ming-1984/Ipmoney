@@ -914,6 +914,8 @@ try {
     @{ name = "admin-comments-invalid-content-type"; method = "GET"; url = "http://127.0.0.1:$resolvedApiPort/admin/comments?contentType=UNKNOWN"; body = $null; headers = @{ Authorization = $adminToken }; expected = @(400) },
     @{ name = "admin-comments-invalid-status"; method = "GET"; url = "http://127.0.0.1:$resolvedApiPort/admin/comments?status=UNKNOWN"; body = $null; headers = @{ Authorization = $adminToken }; expected = @(400) },
     @{ name = "admin-user-verifications"; method = "GET"; url = "http://127.0.0.1:$resolvedApiPort/admin/user-verifications"; body = $null; headers = @{ Authorization = $adminToken }; expected = @(200) },
+    @{ name = "admin-user-verifications-invalid-type"; method = "GET"; url = "http://127.0.0.1:$resolvedApiPort/admin/user-verifications?type=UNKNOWN"; body = $null; headers = @{ Authorization = $adminToken }; expected = @(400) },
+    @{ name = "admin-user-verifications-empty-status"; method = "GET"; url = "http://127.0.0.1:$resolvedApiPort/admin/user-verifications?status="; body = $null; headers = @{ Authorization = $adminToken }; expected = @(400) },
     @{ name = "admin-audit-logs"; method = "GET"; url = "http://127.0.0.1:$resolvedApiPort/admin/audit-logs"; body = $null; headers = @{ Authorization = $adminToken }; expected = @(200) },
     @{ name = "admin-rbac-roles"; method = "GET"; url = "http://127.0.0.1:$resolvedApiPort/admin/rbac/roles"; body = $null; headers = @{ Authorization = $adminToken }; expected = @(200) },
     @{ name = "admin-rbac-permissions"; method = "GET"; url = "http://127.0.0.1:$resolvedApiPort/admin/rbac/permissions"; body = $null; headers = @{ Authorization = $adminToken }; expected = @(200) },
