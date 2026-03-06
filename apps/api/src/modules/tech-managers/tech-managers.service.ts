@@ -8,6 +8,9 @@ const VERIFICATION_STATUS = {
   APPROVED: 'APPROVED',
 } as const;
 
+const VERIFICATION_STATUSES = ['PENDING', 'APPROVED', 'REJECTED'] as const;
+type VerificationStatus = (typeof VERIFICATION_STATUSES)[number];
+
 const VERIFICATION_TYPE = {
   TECH_MANAGER: 'TECH_MANAGER',
 } as const;
@@ -42,6 +45,14 @@ export class TechManagersService {
     throw new BadRequestException({ code: 'BAD_REQUEST', message: `${fieldName} is invalid` });
   }
 
+  private parseVerificationStatusStrict(value: unknown, fieldName: string): VerificationStatus {
+    const normalized = String(value || '').trim().toUpperCase();
+    if ((VERIFICATION_STATUSES as readonly string[]).includes(normalized)) {
+      return normalized as VerificationStatus;
+    }
+    throw new BadRequestException({ code: 'BAD_REQUEST', message: `${fieldName} is invalid` });
+  }
+
   private toSummary(verificationRecord: any, profile?: any) {
     const serviceTags = this.normalizeStringArray(profile?.serviceTagsJson);
     return {
@@ -66,15 +77,15 @@ export class TechManagersService {
   private buildWhere(query: any, forceApproved = false): UserVerificationWhereInput {
     const searchText = String(query?.q || '').trim();
     const regionCode = String(query?.regionCode || '').trim();
-    const statusText = String(query?.verificationStatus || '').trim();
+    const hasVerificationStatus = this.hasOwn(query, 'verificationStatus');
 
     const where: UserVerificationWhereInput = {
       verificationType: VERIFICATION_TYPE.TECH_MANAGER,
     };
     if (forceApproved) {
       where.verificationStatus = VERIFICATION_STATUS.APPROVED;
-    } else if (statusText) {
-      where.verificationStatus = statusText as any;
+    } else if (hasVerificationStatus) {
+      where.verificationStatus = this.parseVerificationStatusStrict(query?.verificationStatus, 'verificationStatus');
     }
     if (regionCode) where.regionCode = regionCode;
     if (searchText) {
