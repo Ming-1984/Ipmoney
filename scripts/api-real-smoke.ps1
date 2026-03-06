@@ -1514,6 +1514,7 @@ try {
   if ([string]::IsNullOrWhiteSpace($evidenceFileId)) { throw "file-upload-evidence missing id" }
   $fileTemporaryAccess = Add-ApiCaseResult -Results $results -Name "file-temporary-access-create-preview" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/files/$evidenceFileId/temporary-access" -Body @{ scope = "preview"; ttlSeconds = 600 } -Headers (New-WriteHeaders -AuthorizationToken $userToken -Prefix $idempotencyPrefix -Label "file-temporary-access-create-preview") -Expected @(200, 201)
   Assert-ResultJsonFieldEquals -Result $fileTemporaryAccess -Field "scope" -ExpectedValue "preview" -Assertion "file-temporary-access-scope-preview"
+  [void](Add-ApiCaseResult -Results $results -Name "file-temporary-access-invalid-scope" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/files/$evidenceFileId/temporary-access" -Body @{ scope = "invalid"; ttlSeconds = 600 } -Headers (New-WriteHeaders -AuthorizationToken $userToken -Prefix $idempotencyPrefix -Label "file-temporary-access-invalid-scope") -Expected @(400))
   $fileTemporaryAccessUrl = Get-ResultStringField -Result $fileTemporaryAccess -Field "url"
   if ([string]::IsNullOrWhiteSpace($fileTemporaryAccessUrl)) {
     Add-ResultAssertionFailure -Result $fileTemporaryAccess -Assertion "file-temporary-access-url" -Message "Temporary access url is empty"

@@ -92,8 +92,15 @@ export class FilesController {
       throw new ForbiddenException({ code: 'FORBIDDEN', message: 'forbidden' });
     }
 
-    const scopeRaw = String(body?.scope || 'download').toLowerCase();
-    const scope = scopeRaw === 'preview' ? 'preview' : 'download';
+    const hasScope = Object.prototype.hasOwnProperty.call(body || {}, 'scope');
+    let scope: 'preview' | 'download' = 'download';
+    if (hasScope) {
+      const scopeRaw = String(body?.scope ?? '').trim().toLowerCase();
+      if (scopeRaw !== 'preview' && scopeRaw !== 'download') {
+        throw new BadRequestException({ code: 'BAD_REQUEST', message: 'scope is invalid' });
+      }
+      scope = scopeRaw;
+    }
     const expiresInSeconds = Number(body?.expiresInSeconds || body?.ttlSeconds || 0);
     const { token, expiresAt } = this.files.createTempToken(file.id, scope, expiresInSeconds);
 
