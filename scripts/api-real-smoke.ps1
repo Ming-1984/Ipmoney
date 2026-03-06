@@ -3,7 +3,8 @@ param(
   [int]$ApiPort = 3000,
   [string]$DatabaseUrl = "",
   [string]$RedisUrl = "",
-  [string]$ReportDate = ""
+  [string]$ReportDate = "",
+  [string]$ChaosHistoryPath = ""
 )
 
 $ErrorActionPreference = "Stop"
@@ -1615,7 +1616,15 @@ try {
   $chaosTrendMinSamples = 6
   $chaosTrendHistoryWindow = 20
   $chaosHistoryMaxEntries = 120
-  $chaosHistoryPath = Join-Path $logDir "api-real-smoke-chaos-history.json"
+  if ([string]::IsNullOrWhiteSpace($ChaosHistoryPath)) {
+    $chaosHistoryPath = Join-Path $logDir "api-real-smoke-chaos-history.json"
+  } else {
+    $chaosHistoryPath = $ChaosHistoryPath
+    $chaosHistoryParent = Split-Path -Path $chaosHistoryPath -Parent
+    if (-not [string]::IsNullOrWhiteSpace($chaosHistoryParent)) {
+      New-Item -ItemType Directory -Force -Path $chaosHistoryParent | Out-Null
+    }
+  }
   $chaosInvoiceSuccessRate = if ($chaosRuns -gt 0) { [math]::Round(([double]$chaosDistribution.invoiceSuccess / [double]$chaosRuns), 4) } else { 0.0 }
   $chaosRefundConflictRate = if ($chaosRuns -gt 0) { [math]::Round(([double]$chaosDistribution.refundConflict / [double]$chaosRuns), 4) } else { 0.0 }
   $chaosHistoryEntries = @()

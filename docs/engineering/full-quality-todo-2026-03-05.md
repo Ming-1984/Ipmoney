@@ -56,6 +56,7 @@
 - `api-real-smoke` / `ui-http-smoke` / `ui-render-smoke` / `ui-dom-smoke` now avoid kill-by-port and use child-process cleanup + dynamic port fallback.
 - `api-real-smoke` now disables local rate-limit (`RATE_LIMIT_ENABLED=false`) during run to reduce false 429 flakiness while validating business paths.
 - `verify` now appends `NODE_OPTIONS=--max-old-space-size=4096` and retries transient `client:build:h5` crash exit codes once.
+- `verify` now passes configurable chaos history path into `api-real-smoke` and writes per-report snapshots (`.tmp/api-real-smoke-chaos-history-<ReportDate>.json`) for trend reproducibility.
 
 ---
 

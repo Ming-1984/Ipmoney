@@ -8,6 +8,7 @@
   - Port resilience: verify keeps preferred/range/random fallback and remains stable under collision scenarios.
   - Script hardening: `api-real-smoke`, `ui-http-smoke`, `ui-render-smoke`, `ui-dom-smoke` now use dynamic port selection and process-tree cleanup (no kill-by-port behavior).
   - Build resilience: verify appends `NODE_OPTIONS=--max-old-space-size=4096` and retries transient `client:build:h5` crash exits once.
+  - Chaos trend persistence: verify now passes `-ChaosHistoryPath` into `api-real-smoke` and snapshots history as `.tmp/api-real-smoke-chaos-history-<ReportDate>.json` for reproducible trend baselines.
   - Quality gates: `openapi:lint`, `lint`, `typecheck`, `scan:banned-words` all pass.
   - API smoke: pass (449/449) -> `.tmp/api-real-smoke-2026-03-06-summary.json`
   - API smoke write/read split: writes 361/361, reads 88/88.

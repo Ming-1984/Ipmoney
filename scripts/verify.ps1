@@ -2,7 +2,8 @@
 param(
   [string]$ApiBaseUrl = "https://staging-api.example.com",
   [int]$ApiPort = 3200,
-  [string]$ReportDate = ""
+  [string]$ReportDate = "",
+  [string]$ChaosHistoryPath = ""
 )
 
 $ErrorActionPreference = "Stop"
@@ -12,6 +13,12 @@ Set-Location $repoRoot
 
 if ([string]::IsNullOrWhiteSpace($ReportDate)) {
   $ReportDate = (Get-Date).ToString("yyyy-MM-dd")
+}
+
+$tmpDir = Join-Path $repoRoot ".tmp"
+New-Item -ItemType Directory -Force $tmpDir | Out-Null
+if ([string]::IsNullOrWhiteSpace($ChaosHistoryPath)) {
+  $ChaosHistoryPath = Join-Path $tmpDir "api-real-smoke-chaos-history.json"
 }
 
 function Test-PortAvailable([int]$Port) {
@@ -140,7 +147,12 @@ if ($portResolution.Mode -eq "range-fallback") {
 if ($portResolution.Mode -eq "random-fallback") {
   Write-Host ("[verify] api port range [{0}, {1}] unavailable, fallback to random port {2}" -f $ApiPort, ($ApiPort + 200), $resolvedApiPort)
 }
-Invoke-Step "api-real-smoke" { powershell -ExecutionPolicy Bypass -File scripts/api-real-smoke.ps1 -ApiPort $resolvedApiPort -ReportDate $ReportDate }
+Invoke-Step "api-real-smoke" { powershell -ExecutionPolicy Bypass -File scripts/api-real-smoke.ps1 -ApiPort $resolvedApiPort -ReportDate $ReportDate -ChaosHistoryPath $ChaosHistoryPath }
+if (Test-Path $ChaosHistoryPath) {
+  $chaosHistorySnapshotPath = Join-Path $tmpDir "api-real-smoke-chaos-history-$ReportDate.json"
+  Copy-Item -Path $ChaosHistoryPath -Destination $chaosHistorySnapshotPath -Force
+  Write-Host ("[verify] chaos history snapshot: {0}" -f $chaosHistorySnapshotPath)
+}
 Invoke-Step "db-preflight-check" { powershell -ExecutionPolicy Bypass -File scripts/db-preflight-check.ps1 -ReportDate $ReportDate }
 Invoke-Step "ui-http-smoke" { powershell -ExecutionPolicy Bypass -File scripts/ui-http-smoke.ps1 -ReportDate $ReportDate }
 Invoke-Step "ui-render-smoke(core)" { powershell -ExecutionPolicy Bypass -File scripts/ui-render-smoke.ps1 -Mode core -ReportDate $ReportDate }
