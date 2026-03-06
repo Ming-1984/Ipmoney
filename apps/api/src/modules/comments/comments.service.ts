@@ -146,7 +146,7 @@ export class CommentsService {
   async createComment(req: any, contentType: CommentContentType, contentId: string, body: any): Promise<CommentDto> {
     this.ensureAuth(req);
     const text = String(body?.text || '').trim();
-    if (!text) throw new ForbiddenException({ code: 'BAD_REQUEST', message: '内容不能为空' });
+    if (!text) throw new BadRequestException({ code: 'BAD_REQUEST', message: '内容不能为空' });
     const parentCommentId = body?.parentCommentId ? String(body.parentCommentId) : null;
 
     if (parentCommentId) {
@@ -184,7 +184,7 @@ export class CommentsService {
       throw new ForbiddenException({ code: 'FORBIDDEN', message: '无权限' });
     }
     const text = String(body?.text || '').trim();
-    if (!text) throw new ForbiddenException({ code: 'BAD_REQUEST', message: '内容不能为空' });
+    if (!text) throw new BadRequestException({ code: 'BAD_REQUEST', message: '内容不能为空' });
     const updated = await this.prisma.comment.update({ where: { id: commentId }, data: { text } });
     const userMap = await this.buildUserBriefMap([comment.userId]);
     return this.toDto(updated, userMap.get(comment.userId));
