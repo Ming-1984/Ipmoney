@@ -914,10 +914,18 @@ export class ListingsService {
   }
 
   async approve(listingId: string, reviewerId: string | null, reason?: string) {
-    const it = await this.prisma.listing.update({
-      where: { id: listingId },
-      data: { auditStatus: 'APPROVED' },
-    });
+    let it: any;
+    try {
+      it = await this.prisma.listing.update({
+        where: { id: listingId },
+        data: { auditStatus: 'APPROVED' },
+      });
+    } catch (error: any) {
+      if (error?.code === 'P2025') {
+        throw new NotFoundException({ code: 'NOT_FOUND', message: 'listing not found' });
+      }
+      throw error;
+    }
     if (reviewerId) {
       await this.prisma.listingAuditLog.create({
         data: {
@@ -947,10 +955,18 @@ export class ListingsService {
   }
 
   async reject(listingId: string, reviewerId: string | null, reason?: string) {
-    const it = await this.prisma.listing.update({
-      where: { id: listingId },
-      data: { auditStatus: 'REJECTED' },
-    });
+    let it: any;
+    try {
+      it = await this.prisma.listing.update({
+        where: { id: listingId },
+        data: { auditStatus: 'REJECTED' },
+      });
+    } catch (error: any) {
+      if (error?.code === 'P2025') {
+        throw new NotFoundException({ code: 'NOT_FOUND', message: 'listing not found' });
+      }
+      throw error;
+    }
     if (reviewerId) {
       await this.prisma.listingAuditLog.create({
         data: {
