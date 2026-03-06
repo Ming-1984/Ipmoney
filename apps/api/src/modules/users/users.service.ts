@@ -88,6 +88,18 @@ export class UsersService {
     return !!input && Object.prototype.hasOwnProperty.call(input, key);
   }
 
+  private parsePositiveIntStrict(value: unknown, fieldName: string): number {
+    const raw = String(value ?? '').trim();
+    if (!raw) {
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: `${fieldName} is invalid` });
+    }
+    const parsed = Number(raw);
+    if (!Number.isInteger(parsed) || parsed <= 0) {
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: `${fieldName} is invalid` });
+    }
+    return parsed;
+  }
+
   private normalizeVerificationType(value: any): UserVerificationDto['type'] | undefined {
     const raw = String(value || '').trim().toUpperCase();
     if ((USER_VERIFICATION_TYPES as readonly string[]).includes(raw)) return raw as UserVerificationDto['type'];
@@ -273,8 +285,9 @@ export class UsersService {
   }
 
   async adminListUserVerifications(query: any) {
-    const page = Number(query?.page || 1);
-    const pageSize = Math.min(50, Math.max(1, Number(query?.pageSize || 10)));
+    const page = this.hasOwn(query, 'page') ? this.parsePositiveIntStrict(query?.page, 'page') : 1;
+    const pageSizeInput = this.hasOwn(query, 'pageSize') ? this.parsePositiveIntStrict(query?.pageSize, 'pageSize') : 10;
+    const pageSize = Math.min(50, pageSizeInput);
     const skip = (page - 1) * pageSize;
     const q = String(query?.q || '').trim();
     const hasType = this.hasOwn(query, 'type');
