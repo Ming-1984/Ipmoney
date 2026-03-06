@@ -1074,6 +1074,56 @@ try {
     throw "No tech manager id available for smoke write cases"
   }
 
+  $searchListingsForPublic = Invoke-RestMethod -Method Get -Uri "http://127.0.0.1:$resolvedApiPort/search/listings"
+  $searchDemandsForPublic = Invoke-RestMethod -Method Get -Uri "http://127.0.0.1:$resolvedApiPort/search/demands"
+  $searchAchievementsForPublic = Invoke-RestMethod -Method Get -Uri "http://127.0.0.1:$resolvedApiPort/search/achievements"
+  $searchArtworksForPublic = Invoke-RestMethod -Method Get -Uri "http://127.0.0.1:$resolvedApiPort/search/artworks"
+
+  $publicListingItem = @($searchListingsForPublic.items | Select-Object -First 1)[0]
+  $publicListingId = if ($publicListingItem -and $publicListingItem.id) { [string]$publicListingItem.id } else { "" }
+  if (-not [string]::IsNullOrWhiteSpace($publicListingId)) {
+    [void](Add-ApiCaseResult -Results $results -Name "public-listing-detail" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/public/listings/$publicListingId" -Body $null -Headers @{} -Expected @(200))
+    [void](Add-ApiCaseResult -Results $results -Name "public-listing-comments" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/public/listings/$publicListingId/comments" -Body $null -Headers @{} -Expected @(200))
+  }
+
+  $publicDemandItem = @($searchDemandsForPublic.items | Select-Object -First 1)[0]
+  $publicDemandId = if ($publicDemandItem -and $publicDemandItem.id) { [string]$publicDemandItem.id } else { "" }
+  if (-not [string]::IsNullOrWhiteSpace($publicDemandId)) {
+    [void](Add-ApiCaseResult -Results $results -Name "public-demand-detail" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/public/demands/$publicDemandId" -Body $null -Headers @{} -Expected @(200))
+    [void](Add-ApiCaseResult -Results $results -Name "public-demand-comments" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/public/demands/$publicDemandId/comments" -Body $null -Headers @{} -Expected @(200))
+  }
+
+  $publicAchievementItem = @($searchAchievementsForPublic.items | Select-Object -First 1)[0]
+  $publicAchievementId = if ($publicAchievementItem -and $publicAchievementItem.id) { [string]$publicAchievementItem.id } else { "" }
+  if (-not [string]::IsNullOrWhiteSpace($publicAchievementId)) {
+    [void](Add-ApiCaseResult -Results $results -Name "public-achievement-detail" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/public/achievements/$publicAchievementId" -Body $null -Headers @{} -Expected @(200))
+    [void](Add-ApiCaseResult -Results $results -Name "public-achievement-comments" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/public/achievements/$publicAchievementId/comments" -Body $null -Headers @{} -Expected @(200))
+  }
+
+  $publicArtworkItem = @($searchArtworksForPublic.items | Select-Object -First 1)[0]
+  $publicArtworkId = if ($publicArtworkItem -and $publicArtworkItem.id) { [string]$publicArtworkItem.id } else { "" }
+  if (-not [string]::IsNullOrWhiteSpace($publicArtworkId)) {
+    [void](Add-ApiCaseResult -Results $results -Name "public-artwork-detail" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/public/artworks/$publicArtworkId" -Body $null -Headers @{} -Expected @(200))
+    [void](Add-ApiCaseResult -Results $results -Name "public-artwork-comments" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/public/artworks/$publicArtworkId/comments" -Body $null -Headers @{} -Expected @(200))
+  }
+
+  [void](Add-ApiCaseResult -Results $results -Name "public-tech-manager-detail" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/public/tech-managers/$techManagerId" -Body $null -Headers @{} -Expected @(200))
+  [void](Add-ApiCaseResult -Results $results -Name "public-patent-clusters" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/public/patent-clusters" -Body $null -Headers @{} -Expected @(200))
+
+  $publicAnnouncementsList = Add-ApiCaseResult -Results $results -Name "public-announcements-list" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/public/announcements" -Body $null -Headers @{} -Expected @(200)
+  $publicAnnouncementsListJson = Get-ResultJsonObject -Result $publicAnnouncementsList
+  $publicAnnouncementItems = @()
+  if ($publicAnnouncementsListJson -is [System.Array]) {
+    $publicAnnouncementItems = @($publicAnnouncementsListJson)
+  } elseif ($publicAnnouncementsListJson -and $publicAnnouncementsListJson.items) {
+    $publicAnnouncementItems = @($publicAnnouncementsListJson.items)
+  }
+  $publicAnnouncementItem = @($publicAnnouncementItems | Select-Object -First 1)[0]
+  $publicAnnouncementId = if ($publicAnnouncementItem -and $publicAnnouncementItem.id) { [string]$publicAnnouncementItem.id } else { "" }
+  if (-not [string]::IsNullOrWhiteSpace($publicAnnouncementId)) {
+    [void](Add-ApiCaseResult -Results $results -Name "public-announcement-detail" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/public/announcements/$publicAnnouncementId" -Body $null -Headers @{} -Expected @(200))
+  }
+
   $smokeUserListingTitle = "Smoke User Listing $ReportDate $([guid]::NewGuid().ToString('N').Substring(0, 8))"
   $listingCreate = Add-ApiCaseResult -Results $results -Name "listing-create" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/listings" -Body @{ title = $smokeUserListingTitle; tradeMode = "LICENSE"; licenseMode = "EXCLUSIVE"; priceType = "FIXED"; priceAmountFen = 321000; depositAmountFen = 800; pledgeStatus = "NONE"; existingLicenseStatus = "SOLE"; regionCode = $importRegionCode } -Headers (New-WriteHeaders -AuthorizationToken $userToken -Prefix $idempotencyPrefix -Label "listing-create") -Expected @(200, 201)
   Assert-ResultJsonFieldEquals -Result $listingCreate -Field "title" -ExpectedValue $smokeUserListingTitle -Assertion "listing-create-title"
