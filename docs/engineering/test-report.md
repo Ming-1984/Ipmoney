@@ -9,8 +9,8 @@
   - Script hardening: `api-real-smoke`, `ui-http-smoke`, `ui-render-smoke`, `ui-dom-smoke` now use dynamic port selection and process-tree cleanup (no kill-by-port behavior).
   - Build resilience: verify appends `NODE_OPTIONS=--max-old-space-size=4096` and retries transient `client:build:h5` crash exits once.
   - Quality gates: `openapi:lint`, `lint`, `typecheck`, `scan:banned-words` all pass.
-  - API smoke: pass (197/197) -> `.tmp/api-real-smoke-2026-03-06-summary.json`
-  - API smoke write/read split: writes 143/143, reads 54/54.
+  - API smoke: pass (210/210) -> `.tmp/api-real-smoke-2026-03-06-summary.json`
+  - API smoke write/read split: writes 153/153, reads 57/57.
   - Semantic/state checks now included: cross-module order/refund/case/maintenance/rbac state assertions, file-link persistence assertions, and post-action detail re-fetch checks.
   - Idempotency replay checks now included: same-key replay for order create, payment intents (deposit/final), invoice request, and refund request create.
   - Failure/idempotency checks now included: duplicate favorites, invalid comment/message payloads, and missing-resource delete paths.
@@ -76,6 +76,7 @@
   - Added state guards: missing reject reason (400), approve/reject/complete duplicate conflict checks (409), post-refunded re-request conflict (409).
   - Added state assertions: refund request status progression (`PENDING` -> `REFUNDING` -> `REFUNDED` / `REJECTED`) plus order status verification after approve/complete/reject paths.
   - Added idempotency replay assertions: same-key refund create now verifies stable `refundRequestId` replay in approve/reject branches.
+  - Added concurrency race matrix: same refund request concurrent approve/reject now asserts one success + one conflict, then verifies order state convergence (`REFUNDING` or `WAIT_FINAL_PAYMENT`) and terminal completion path when approve wins.
 
 - Admin case workflow probes (demo auth/payment)
   - Result: pass (`/admin/cases` list/create/detail/assign/status/notes/evidence/sla).
@@ -86,6 +87,7 @@
   - Added negative guards: missing/invalid patent & schedule (400/404), duplicate schedule create conflict (409), invalid status values (400), invalid evidence file id (400), missing task update target (404).
   - Added semantic assertions: schedule status + grace period persistence and task status/evidence persistence (including list-by-schedule verification).
   - Regression fixed: duplicate schedule (`patentId + yearNo`) now maps Prisma unique-constraint failure to business `409 CONFLICT` instead of 500.
+  - Added concurrency race matrix: same patent/year concurrent schedule create now asserts one success + one conflict and verifies persisted schedule detail.
 
 - RBAC workflow probes (demo auth/payment)
   - Result: pass (`/admin/rbac` roles/users list/create/update/delete + user role assignment).
@@ -98,7 +100,7 @@
   - Added semantic assertions: export URL shape validation and dry-run import counters/flag validation.
 
 ### Risks still open
-- API write-path assertions are now 143 checks (with 54 read-back semantic verifications), and unique write-operation coverage is at least the previous 132/135 baseline plus report-import additions; remaining risk is mainly multi-entity concurrency edges (parallel write races and lock/transaction boundaries).
+- API write-path assertions are now 153 checks (with 57 read-back semantic verifications), and unique write-operation coverage is at least the previous 132/135 baseline plus report-import additions; remaining risk is mainly broader high-contention concurrency windows (cross-domain parallel writes and transaction isolation boundaries).
 - UI status smoke is still shallow (route-level HTTP checks only 26/83 pages, plus 2 mock endpoints).
 - DOM assertions now cover all 83/83 pages, but many routes still use generic structural assertions and need incremental business-semantic tightening.
 - Security baseline still high-risk (`pnpm audit --prod`: critical 2 / high 21), remediation not yet executed.

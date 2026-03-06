@@ -203,6 +203,119 @@ function Add-ApiCaseResult {
   return $result
 }
 
+function Add-ConcurrentApiCasePairResults {
+  param(
+    [System.Collections.ArrayList]$Results,
+    [string]$NameA,
+    [string]$MethodA,
+    [string]$UrlA,
+    [object]$BodyA,
+    [hashtable]$HeadersA,
+    [string]$NameB,
+    [string]$MethodB,
+    [string]$UrlB,
+    [object]$BodyB,
+    [hashtable]$HeadersB,
+    [int[]]$Expected
+  )
+
+  $invokeScript = {
+    param(
+      [string]$Name,
+      [string]$Method,
+      [string]$Url,
+      [string]$BodyJson,
+      [hashtable]$Headers,
+      [string]$ExpectedCsv
+    )
+
+    $expectedStatuses = @()
+    if (-not [string]::IsNullOrWhiteSpace($ExpectedCsv)) {
+      $expectedStatuses = @($ExpectedCsv.Split(",") | ForEach-Object { [int]$_ })
+    }
+
+    $requestHeaders = @{}
+    if ($Headers) {
+      foreach ($key in $Headers.Keys) {
+        $requestHeaders[$key] = $Headers[$key]
+      }
+    }
+
+    $status = 0
+    $raw = ""
+    try {
+      if (-not [string]::IsNullOrWhiteSpace($BodyJson)) {
+        $requestHeaders["Content-Type"] = "application/json"
+        $resp = Invoke-WebRequest -Method $Method -Uri $Url -Headers $requestHeaders -Body $BodyJson -UseBasicParsing
+      } else {
+        $resp = Invoke-WebRequest -Method $Method -Uri $Url -Headers $requestHeaders -UseBasicParsing
+      }
+      $status = [int]$resp.StatusCode
+      $raw = [string]$resp.Content
+    } catch {
+      if ($_.Exception.Response -and $_.Exception.Response.StatusCode) {
+        $status = [int]$_.Exception.Response.StatusCode.value__
+        try {
+          $reader = New-Object System.IO.StreamReader($_.Exception.Response.GetResponseStream())
+          $raw = [string]$reader.ReadToEnd()
+          $reader.Close()
+        } catch {
+          $raw = ""
+        }
+      } else {
+        $status = 0
+        $raw = [string]$_.Exception.Message
+      }
+    }
+
+    if (-not [string]::IsNullOrEmpty($raw) -and $raw.Length -gt 4096) {
+      $rest = $raw.Length - 4096
+      $raw = $raw.Substring(0, 4096) + "`n...[truncated $rest chars]"
+    }
+
+    return [pscustomobject]@{
+      name = $Name
+      method = $Method
+      url = $Url
+      status = $status
+      expected = $ExpectedCsv
+      ok = ($expectedStatuses -contains $status)
+      body = $raw
+    }
+  }
+
+  $bodyJsonA = $null
+  if ($null -ne $BodyA) { $bodyJsonA = $BodyA | ConvertTo-Json -Depth 10 -Compress }
+  $bodyJsonB = $null
+  if ($null -ne $BodyB) { $bodyJsonB = $BodyB | ConvertTo-Json -Depth 10 -Compress }
+  $expectedCsv = ($Expected -join ",")
+
+  $jobA = Start-Job -ScriptBlock $invokeScript -ArgumentList @($NameA, $MethodA, $UrlA, $bodyJsonA, $HeadersA, $expectedCsv)
+  $jobB = Start-Job -ScriptBlock $invokeScript -ArgumentList @($NameB, $MethodB, $UrlB, $bodyJsonB, $HeadersB, $expectedCsv)
+
+  $pairResults = @()
+  try {
+    [void](Wait-Job -Job @($jobA, $jobB))
+    foreach ($job in @($jobA, $jobB)) {
+      $received = Receive-Job -Job $job -ErrorAction SilentlyContinue
+      if ($received) {
+        $pairResults += @($received)
+      }
+    }
+  } finally {
+    foreach ($job in @($jobA, $jobB)) {
+      if ($job) {
+        Remove-Job -Job $job -Force -ErrorAction SilentlyContinue
+      }
+    }
+  }
+
+  foreach ($pairResult in $pairResults) {
+    [void]$Results.Add($pairResult)
+  }
+  return ,$pairResults
+}
+
 function Add-ApiFileUploadCaseResult {
   param(
     [System.Collections.ArrayList]$Results,
@@ -364,6 +477,32 @@ function Add-ResultAssertionFailure {
     $Result.body = "[assert] $Message"
   } else {
     $Result.body = "$($Result.body)`n[assert] $Message"
+  }
+}
+
+function Assert-ConcurrentPairOneSuccessOneConflict {
+  param(
+    [object[]]$PairResults,
+    [int[]]$SuccessStatuses,
+    [int]$ConflictStatus,
+    [string]$Assertion
+  )
+
+  $results = @($PairResults)
+  if ($results.Count -ne 2) {
+    foreach ($result in $results) {
+      Add-ResultAssertionFailure -Result $result -Assertion $Assertion -Message "Expected 2 concurrent results but got $($results.Count)"
+    }
+    return
+  }
+
+  $successCount = @($results | Where-Object { $SuccessStatuses -contains [int]$_.status }).Count
+  $conflictCount = @($results | Where-Object { [int]$_.status -eq $ConflictStatus }).Count
+  if ($successCount -ne 1 -or $conflictCount -ne 1) {
+    $statusSummary = ($results | ForEach-Object { [string]$_.status }) -join ","
+    foreach ($result in $results) {
+      Add-ResultAssertionFailure -Result $result -Assertion $Assertion -Message "Expected one success + one conflict($ConflictStatus), got statuses [$statusSummary]"
+    }
   }
 }
 
@@ -844,6 +983,34 @@ try {
   [void](Add-ApiCaseResult -Results $results -Name "admin-refund-complete-rejected" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/admin/refund-requests/$refundRejectRequestId/complete" -Body @{ remark = "smoke complete rejected" } -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-refund-complete-rejected") -Expected @(409))
   [void](Add-ApiCaseResult -Results $results -Name "admin-refund-approve-rejected" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/admin/refund-requests/$refundRejectRequestId/approve" -Body @{} -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-refund-approve-rejected") -Expected @(409))
 
+  $refundRaceOrderId = New-RefundReadyOrder -Results $results -ApiPort $resolvedApiPort -UserToken $userToken -AdminToken $adminToken -ListingId $listingId -IdempotencyPrefix $idempotencyPrefix -CasePrefix "refund-race"
+  $refundRaceCreate = Add-ApiCaseResult -Results $results -Name "refund-race-create" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/orders/$refundRaceOrderId/refund-requests" -Body @{ reasonCode = "OTHER"; reasonText = "smoke race flow" } -Headers (New-WriteHeaders -AuthorizationToken $userToken -Prefix $idempotencyPrefix -Label "refund-race-create") -Expected @(200, 201)
+  Assert-ResultJsonFieldEquals -Result $refundRaceCreate -Field "status" -ExpectedValue "PENDING" -Assertion "refund-race-create-status"
+  $refundRaceRequestId = Get-ResultStringField -Result $refundRaceCreate -Field "id"
+  if ([string]::IsNullOrWhiteSpace($refundRaceRequestId)) { throw "refund-race-create missing id" }
+  $refundRaceDecisionResults = Add-ConcurrentApiCasePairResults -Results $results -NameA "admin-refund-race-approve" -MethodA "POST" -UrlA "http://127.0.0.1:$resolvedApiPort/admin/refund-requests/$refundRaceRequestId/approve" -BodyA @{} -HeadersA (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-refund-race-approve") -NameB "admin-refund-race-reject" -MethodB "POST" -UrlB "http://127.0.0.1:$resolvedApiPort/admin/refund-requests/$refundRaceRequestId/reject" -BodyB @{ reason = "smoke race reject" } -HeadersB (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-refund-race-reject") -Expected @(200, 201, 409)
+  Assert-ConcurrentPairOneSuccessOneConflict -PairResults $refundRaceDecisionResults -SuccessStatuses @(200, 201) -ConflictStatus 409 -Assertion "refund-race-decision"
+  $refundRaceDecisionSuccess = @($refundRaceDecisionResults | Where-Object { @(200, 201) -contains [int]$_.status } | Select-Object -First 1)
+  if ($refundRaceDecisionSuccess) {
+    Assert-ResultJsonFieldIn -Result $refundRaceDecisionSuccess -Field "status" -ExpectedValues @("REFUNDING", "REJECTED") -Assertion "refund-race-decision-status"
+  }
+  $refundRaceOrderDetail = Add-ApiCaseResult -Results $results -Name "refund-race-order-detail" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/orders/$refundRaceOrderId" -Body $null -Headers @{ Authorization = $userToken } -Expected @(200)
+  Assert-ResultJsonFieldIn -Result $refundRaceOrderDetail -Field "status" -ExpectedValues @("REFUNDING", "WAIT_FINAL_PAYMENT") -Assertion "refund-race-order-status"
+  if ($refundRaceDecisionSuccess) {
+    $refundRaceDecisionStatus = ""
+    try {
+      $refundRaceDecisionStatus = Get-ResultStringField -Result $refundRaceDecisionSuccess -Field "status"
+    } catch { }
+    if ($refundRaceDecisionStatus -eq "REFUNDING") {
+      $adminRefundRaceComplete = Add-ApiCaseResult -Results $results -Name "admin-refund-race-complete-after-approve" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/admin/refund-requests/$refundRaceRequestId/complete" -Body @{ remark = "smoke race approve completion" } -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-refund-race-complete-after-approve") -Expected @(200, 201)
+      Assert-ResultJsonFieldEquals -Result $adminRefundRaceComplete -Field "status" -ExpectedValue "REFUNDED" -Assertion "refund-race-complete-status"
+      $refundRaceOrderDetailAfterComplete = Add-ApiCaseResult -Results $results -Name "refund-race-order-detail-after-complete" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/orders/$refundRaceOrderId" -Body $null -Headers @{ Authorization = $userToken } -Expected @(200)
+      Assert-ResultJsonFieldEquals -Result $refundRaceOrderDetailAfterComplete -Field "status" -ExpectedValue "REFUNDED" -Assertion "refund-race-order-status-after-complete"
+    } elseif ($refundRaceDecisionStatus -eq "REJECTED") {
+      [void](Add-ApiCaseResult -Results $results -Name "admin-refund-race-complete-rejected" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/admin/refund-requests/$refundRaceRequestId/complete" -Body @{ remark = "smoke race rejected completion" } -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-refund-race-complete-rejected") -Expected @(409))
+    }
+  }
+
   [void](Add-ApiCaseResult -Results $results -Name "admin-case-list" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/admin/cases" -Body $null -Headers @{ Authorization = $adminToken } -Expected @(200))
   $caseCreate = Add-ApiCaseResult -Results $results -Name "admin-case-create" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/admin/cases" -Body @{ type = "DISPUTE"; title = "smoke case $ReportDate"; orderId = $refundApproveOrderId; requesterName = "smoke"; priority = "HIGH"; description = "smoke case description" } -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-case-create") -Expected @(200, 201)
   Assert-ResultJsonFieldEquals -Result $caseCreate -Field "status" -ExpectedValue "OPEN" -Assertion "case-create-status"
@@ -874,6 +1041,16 @@ try {
   [void](Add-ApiCaseResult -Results $results -Name "admin-maintenance-schedule-create-missing-patent" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/admin/patent-maintenance/schedules" -Body @{ yearNo = 1; dueDate = (Get-Date).AddDays(30).ToString("o") } -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-maintenance-schedule-create-missing-patent") -Expected @(400))
   [void](Add-ApiCaseResult -Results $results -Name "admin-maintenance-schedule-create-invalid-patent" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/admin/patent-maintenance/schedules" -Body @{ patentId = [guid]::NewGuid().ToString(); yearNo = 1; dueDate = (Get-Date).AddDays(30).ToString("o") } -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-maintenance-schedule-create-invalid-patent") -Expected @(404))
   $maintenanceYearNo = [int][double]::Parse((Get-Date -UFormat %s))
+  $maintenanceRaceYearNo = $maintenanceYearNo + 10000
+  $maintenanceScheduleRaceBody = @{ patentId = $patentId; yearNo = $maintenanceRaceYearNo; dueDate = (Get-Date).AddDays(44).ToString("o"); status = "DUE" }
+  $maintenanceScheduleCreateRaceResults = Add-ConcurrentApiCasePairResults -Results $results -NameA "admin-maintenance-schedule-create-race-a" -MethodA "POST" -UrlA "http://127.0.0.1:$resolvedApiPort/admin/patent-maintenance/schedules" -BodyA $maintenanceScheduleRaceBody -HeadersA (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-maintenance-schedule-create-race-a") -NameB "admin-maintenance-schedule-create-race-b" -MethodB "POST" -UrlB "http://127.0.0.1:$resolvedApiPort/admin/patent-maintenance/schedules" -BodyB $maintenanceScheduleRaceBody -HeadersB (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-maintenance-schedule-create-race-b") -Expected @(200, 201, 409)
+  Assert-ConcurrentPairOneSuccessOneConflict -PairResults $maintenanceScheduleCreateRaceResults -SuccessStatuses @(200, 201) -ConflictStatus 409 -Assertion "maintenance-schedule-create-race"
+  $maintenanceScheduleRaceSuccess = @($maintenanceScheduleCreateRaceResults | Where-Object { @(200, 201) -contains [int]$_.status } | Select-Object -First 1)
+  if ($maintenanceScheduleRaceSuccess) {
+    $maintenanceScheduleRaceId = Get-ResultStringField -Result $maintenanceScheduleRaceSuccess -Field "id"
+    $maintenanceScheduleRaceDetail = Add-ApiCaseResult -Results $results -Name "admin-maintenance-schedule-create-race-detail" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/admin/patent-maintenance/schedules/$maintenanceScheduleRaceId" -Body $null -Headers @{ Authorization = $adminToken } -Expected @(200)
+    Assert-ResultJsonFieldEquals -Result $maintenanceScheduleRaceDetail -Field "status" -ExpectedValue "DUE" -Assertion "maintenance-schedule-race-detail-status"
+  }
   $scheduleCreate = Add-ApiCaseResult -Results $results -Name "admin-maintenance-schedule-create" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/admin/patent-maintenance/schedules" -Body @{ patentId = $patentId; yearNo = $maintenanceYearNo; dueDate = (Get-Date).AddDays(45).ToString("o"); status = "DUE" } -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-maintenance-schedule-create") -Expected @(200, 201)
   Assert-ResultJsonFieldEquals -Result $scheduleCreate -Field "status" -ExpectedValue "DUE" -Assertion "maintenance-schedule-create-status"
   $scheduleId = Get-ResultStringField -Result $scheduleCreate -Field "id"
