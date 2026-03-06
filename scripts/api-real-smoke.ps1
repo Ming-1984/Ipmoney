@@ -893,6 +893,12 @@ try {
     @{ name = "auth-sms-send"; method = "POST"; url = "http://127.0.0.1:$resolvedApiPort/auth/sms/send"; body = @{ phone = "13800138000" }; headers = @{}; expected = @(200, 201) },
     @{ name = "auth-sms-verify"; method = "POST"; url = "http://127.0.0.1:$resolvedApiPort/auth/sms/verify"; body = @{ phone = "13800138000"; code = "123456" }; headers = @{}; expected = @(200, 201) },
     @{ name = "me"; method = "GET"; url = "http://127.0.0.1:$resolvedApiPort/me"; body = $null; headers = @{ Authorization = $userToken }; expected = @(200) },
+    @{ name = "demands-mine"; method = "GET"; url = "http://127.0.0.1:$resolvedApiPort/demands"; body = $null; headers = @{ Authorization = $userToken }; expected = @(200) },
+    @{ name = "demands-mine-invalid-status"; method = "GET"; url = "http://127.0.0.1:$resolvedApiPort/demands?status=UNKNOWN"; body = $null; headers = @{ Authorization = $userToken }; expected = @(400) },
+    @{ name = "achievements-mine"; method = "GET"; url = "http://127.0.0.1:$resolvedApiPort/achievements"; body = $null; headers = @{ Authorization = $userToken }; expected = @(200) },
+    @{ name = "achievements-mine-invalid-audit-status"; method = "GET"; url = "http://127.0.0.1:$resolvedApiPort/achievements?auditStatus=UNKNOWN"; body = $null; headers = @{ Authorization = $userToken }; expected = @(400) },
+    @{ name = "artworks-mine"; method = "GET"; url = "http://127.0.0.1:$resolvedApiPort/artworks"; body = $null; headers = @{ Authorization = $userToken }; expected = @(200) },
+    @{ name = "artworks-mine-invalid-status"; method = "GET"; url = "http://127.0.0.1:$resolvedApiPort/artworks?status=UNKNOWN"; body = $null; headers = @{ Authorization = $userToken }; expected = @(400) },
     @{ name = "orders-user"; method = "GET"; url = "http://127.0.0.1:$resolvedApiPort/orders"; body = $null; headers = @{ Authorization = $userToken }; expected = @(200) },
     @{ name = "orders-user-invalid-as-role"; method = "GET"; url = "http://127.0.0.1:$resolvedApiPort/orders?asRole=UNKNOWN"; body = $null; headers = @{ Authorization = $userToken }; expected = @(400) },
     @{ name = "orders-user-invalid-status"; method = "GET"; url = "http://127.0.0.1:$resolvedApiPort/orders?status=UNKNOWN"; body = $null; headers = @{ Authorization = $userToken }; expected = @(400) },
@@ -942,8 +948,12 @@ try {
     @{ name = "patent-map-summary"; method = "GET"; url = "http://127.0.0.1:$resolvedApiPort/patent-map/summary?year=2025&level=PROVINCE"; body = $null; headers = @{}; expected = @(200) },
     @{ name = "search-listings"; method = "GET"; url = "http://127.0.0.1:$resolvedApiPort/search/listings"; body = $null; headers = @{}; expected = @(200) },
     @{ name = "search-demands"; method = "GET"; url = "http://127.0.0.1:$resolvedApiPort/search/demands"; body = $null; headers = @{}; expected = @(200) },
+    @{ name = "search-demands-invalid-budget-type"; method = "GET"; url = "http://127.0.0.1:$resolvedApiPort/search/demands?budgetType=UNKNOWN"; body = $null; headers = @{}; expected = @(400) },
     @{ name = "search-achievements"; method = "GET"; url = "http://127.0.0.1:$resolvedApiPort/search/achievements"; body = $null; headers = @{}; expected = @(200) },
+    @{ name = "search-achievements-invalid-maturity"; method = "GET"; url = "http://127.0.0.1:$resolvedApiPort/search/achievements?maturity=UNKNOWN"; body = $null; headers = @{}; expected = @(400) },
     @{ name = "search-artworks"; method = "GET"; url = "http://127.0.0.1:$resolvedApiPort/search/artworks"; body = $null; headers = @{}; expected = @(200) },
+    @{ name = "search-artworks-invalid-category"; method = "GET"; url = "http://127.0.0.1:$resolvedApiPort/search/artworks?category=UNKNOWN"; body = $null; headers = @{}; expected = @(400) },
+    @{ name = "search-artworks-invalid-price-type"; method = "GET"; url = "http://127.0.0.1:$resolvedApiPort/search/artworks?priceType=UNKNOWN"; body = $null; headers = @{}; expected = @(400) },
     @{ name = "search-tech-managers"; method = "GET"; url = "http://127.0.0.1:$resolvedApiPort/search/tech-managers"; body = $null; headers = @{}; expected = @(200) }
   )
 

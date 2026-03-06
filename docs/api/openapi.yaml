@@ -1698,6 +1698,8 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/PagedDemand"
+        "400":
+          $ref: "#/components/responses/BadRequest"
         "401":
           $ref: "#/components/responses/Unauthorized"
 
@@ -1921,6 +1923,8 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/PagedAchievement"
+        "400":
+          $ref: "#/components/responses/BadRequest"
         "401":
           $ref: "#/components/responses/Unauthorized"
 
@@ -2198,6 +2202,8 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/PagedArtwork"
+        "400":
+          $ref: "#/components/responses/BadRequest"
         "401":
           $ref: "#/components/responses/Unauthorized"
 

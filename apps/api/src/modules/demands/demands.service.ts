@@ -263,16 +263,23 @@ export class DemandsService {
     this.ensureAuth(req);
     const page = Math.max(1, Number(query?.page || 1));
     const pageSize = Math.min(50, Math.max(1, Number(query?.pageSize || 20)));
+    const hasAuditStatus = this.hasOwn(query, 'auditStatus');
+    const hasStatus = this.hasOwn(query, 'status');
+    const auditStatus = hasAuditStatus ? this.parseAuditStatusStrict(query?.auditStatus, 'auditStatus') : undefined;
+    const status = hasStatus ? this.parseContentStatusStrict(query?.status, 'status') : undefined;
+    const where: any = { publisherUserId: req.auth.userId };
+    if (auditStatus) where.auditStatus = auditStatus;
+    if (status) where.status = status;
 
     const [items, total] = await Promise.all([
       this.prisma.demand.findMany({
-        where: { publisherUserId: req.auth.userId },
+        where,
         include: { coverFile: true, media: { include: { file: true } }, stats: true },
         orderBy: { createdAt: 'desc' },
         skip: (page - 1) * pageSize,
         take: pageSize,
       }),
-      this.prisma.demand.count({ where: { publisherUserId: req.auth.userId } }),
+      this.prisma.demand.count({ where }),
     ]);
 
     const publisherMap = await buildPublisherMap(
@@ -470,7 +477,11 @@ export class DemandsService {
 
     const industryTags = normalizeStringArray(query?.industryTags);
     const cooperationModes = normalizeStringArray(query?.cooperationModes);
-    const budgetType = this.normalizePriceType(query?.budgetType);
+    const hasBudgetType = this.hasOwn(query, 'budgetType');
+    const budgetType = hasBudgetType ? this.normalizePriceType(query?.budgetType) : undefined;
+    if (hasBudgetType && !budgetType) {
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: 'budgetType is invalid' });
+    }
 
     const budgetMinFen = this.parseOptionalInt(query?.budgetMinFen, 'budgetMinFen', 0);
     const budgetMaxFen = this.parseOptionalInt(query?.budgetMaxFen, 'budgetMaxFen', 0);

@@ -341,8 +341,10 @@ export class ArtworksService {
     this.ensureAuth(req);
     const page = Math.max(1, Number(query?.page || 1));
     const pageSize = Math.min(50, Math.max(1, Number(query?.pageSize || 20)));
-    const status = this.normalizeArtworkStatus(query?.status);
-    const auditStatus = this.normalizeAuditStatus(query?.auditStatus);
+    const hasStatus = this.hasOwn(query, 'status');
+    const hasAuditStatus = this.hasOwn(query, 'auditStatus');
+    const status = hasStatus ? this.parseArtworkStatusStrict(query?.status, 'status') : undefined;
+    const auditStatus = hasAuditStatus ? this.parseAuditStatusStrict(query?.auditStatus, 'auditStatus') : undefined;
 
     const where: any = { sellerUserId: req.auth.userId };
     if (status) where.status = status;
@@ -548,13 +550,31 @@ export class ArtworksService {
     const page = Math.max(1, Number(query?.page || 1));
     const pageSize = Math.min(50, Math.max(1, Number(query?.pageSize || 20)));
     const q = String(query?.q || '').trim();
-    const category = this.normalizeCategory(query?.category || query?.artworkCategory);
-    const calligraphyScript = this.normalizeCalligraphyScript(query?.calligraphyScript);
-    const paintingGenre = this.normalizePaintingGenre(query?.paintingGenre);
+    const hasCategory = this.hasOwn(query, 'category') || this.hasOwn(query, 'artworkCategory');
+    const categoryRaw = this.hasOwn(query, 'category') ? query?.category : query?.artworkCategory;
+    const category = hasCategory ? this.normalizeCategory(categoryRaw) : undefined;
+    const hasCalligraphyScript = this.hasOwn(query, 'calligraphyScript');
+    const calligraphyScript = hasCalligraphyScript ? this.normalizeCalligraphyScript(query?.calligraphyScript) : undefined;
+    const hasPaintingGenre = this.hasOwn(query, 'paintingGenre');
+    const paintingGenre = hasPaintingGenre ? this.normalizePaintingGenre(query?.paintingGenre) : undefined;
     const creator = String(query?.creator || query?.creatorName || '').trim();
-    const priceType = this.normalizePriceType(query?.priceType);
+    const hasPriceType = this.hasOwn(query, 'priceType');
+    const priceType = hasPriceType ? this.normalizePriceType(query?.priceType) : undefined;
     const regionCode = String(query?.regionCode || '').trim();
     const sortBy = String(query?.sortBy || 'NEWEST').trim().toUpperCase();
+
+    if (hasCategory && !category) {
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: 'category is invalid' });
+    }
+    if (hasCalligraphyScript && !calligraphyScript) {
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: 'calligraphyScript is invalid' });
+    }
+    if (hasPaintingGenre && !paintingGenre) {
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: 'paintingGenre is invalid' });
+    }
+    if (hasPriceType && !priceType) {
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: 'priceType is invalid' });
+    }
 
     const creationYearStart = this.parseOptionalInt(query?.creationYearStart, 'creationYearStart', 0);
     const creationYearEnd = this.parseOptionalInt(query?.creationYearEnd, 'creationYearEnd', 0);

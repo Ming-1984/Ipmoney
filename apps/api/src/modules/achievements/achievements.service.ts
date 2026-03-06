@@ -219,16 +219,23 @@ export class AchievementsService {
     this.ensureAuth(req);
     const page = Math.max(1, Number(query?.page || 1));
     const pageSize = Math.min(50, Math.max(1, Number(query?.pageSize || 20)));
+    const hasAuditStatus = this.hasOwn(query, 'auditStatus');
+    const hasStatus = this.hasOwn(query, 'status');
+    const auditStatus = hasAuditStatus ? this.parseAuditStatusStrict(query?.auditStatus, 'auditStatus') : undefined;
+    const status = hasStatus ? this.parseContentStatusStrict(query?.status, 'status') : undefined;
+    const where: any = { publisherUserId: req.auth.userId };
+    if (auditStatus) where.auditStatus = auditStatus;
+    if (status) where.status = status;
 
     const [items, total] = await Promise.all([
       this.prisma.achievement.findMany({
-        where: { publisherUserId: req.auth.userId },
+        where,
         include: { coverFile: true, media: { include: { file: true } }, stats: true },
         orderBy: { createdAt: 'desc' },
         skip: (page - 1) * pageSize,
         take: pageSize,
       }),
-      this.prisma.achievement.count({ where: { publisherUserId: req.auth.userId } }),
+      this.prisma.achievement.count({ where }),
     ]);
 
     const publisherMap = await buildPublisherMap(
@@ -403,7 +410,11 @@ export class AchievementsService {
 
     const industryTags = normalizeStringArray(query?.industryTags);
     const cooperationModes = normalizeStringArray(query?.cooperationModes);
-    const maturity = this.normalizeMaturity(query?.maturity);
+    const hasMaturity = this.hasOwn(query, 'maturity');
+    const maturity = hasMaturity ? this.normalizeMaturity(query?.maturity) : undefined;
+    if (hasMaturity && !maturity) {
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: 'maturity is invalid' });
+    }
 
     const where: any = { status: 'ACTIVE', auditStatus: 'APPROVED' };
     if (regionCode) where.regionCode = regionCode;
