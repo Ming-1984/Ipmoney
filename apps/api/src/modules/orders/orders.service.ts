@@ -614,7 +614,7 @@ export class OrdersService {
       throw new ConflictException({ code: 'CONFLICT', message: 'payment already completed' });
     }
 
-    const paidAt = body?.paidAt ? new Date(body.paidAt) : new Date();
+    const paidAt = this.parseOptionalDateTime(body?.paidAt, 'paidAt') ?? new Date();
     const tradeNo = String(body?.tradeNo || existingPayment?.tradeNo || `manual-${orderId}-${Date.now()}`);
     const payment = existingPayment
       ? await this.prisma.payment.update({
