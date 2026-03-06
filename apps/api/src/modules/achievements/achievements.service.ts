@@ -116,6 +116,14 @@ export class AchievementsService {
     return normalized;
   }
 
+  private parseContentSortByStrict(value: unknown, fieldName: string): 'RECOMMENDED' | 'NEWEST' {
+    const normalized = String(value || '').trim().toUpperCase();
+    if (normalized === 'RECOMMENDED' || normalized === 'NEWEST') {
+      return normalized as 'RECOMMENDED' | 'NEWEST';
+    }
+    throw new BadRequestException({ code: 'BAD_REQUEST', message: `${fieldName} is invalid` });
+  }
+
   private asArray(value: unknown): string[] {
     return Array.isArray(value) ? (value as string[]) : [];
   }
@@ -406,7 +414,8 @@ export class AchievementsService {
     const pageSize = Math.min(50, Math.max(1, Number(query?.pageSize || 20)));
     const q = String(query?.q || '').trim();
     const regionCode = String(query?.regionCode || '').trim();
-    const sortBy = String(query?.sortBy || 'NEWEST').trim().toUpperCase();
+    const hasSortBy = this.hasOwn(query, 'sortBy');
+    const sortBy = hasSortBy ? this.parseContentSortByStrict(query?.sortBy, 'sortBy') : 'NEWEST';
 
     const industryTags = normalizeStringArray(query?.industryTags);
     const cooperationModes = normalizeStringArray(query?.cooperationModes);

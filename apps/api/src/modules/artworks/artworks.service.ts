@@ -167,6 +167,14 @@ export class ArtworksService {
     return normalized;
   }
 
+  private parseArtworkSortByStrict(value: unknown, fieldName: string): 'RECOMMENDED' | 'NEWEST' | 'PRICE_ASC' | 'PRICE_DESC' {
+    const normalized = String(value || '').trim().toUpperCase();
+    if (normalized === 'RECOMMENDED' || normalized === 'NEWEST' || normalized === 'PRICE_ASC' || normalized === 'PRICE_DESC') {
+      return normalized as 'RECOMMENDED' | 'NEWEST' | 'PRICE_ASC' | 'PRICE_DESC';
+    }
+    throw new BadRequestException({ code: 'BAD_REQUEST', message: `${fieldName} is invalid` });
+  }
+
   private parseOptionalInt(value: unknown, fieldName: string, min = 0): number | undefined {
     if (value === undefined || value === null || String(value).trim() === '') return undefined;
     const num = Number(value);
@@ -561,7 +569,8 @@ export class ArtworksService {
     const hasPriceType = this.hasOwn(query, 'priceType');
     const priceType = hasPriceType ? this.normalizePriceType(query?.priceType) : undefined;
     const regionCode = String(query?.regionCode || '').trim();
-    const sortBy = String(query?.sortBy || 'NEWEST').trim().toUpperCase();
+    const hasSortBy = this.hasOwn(query, 'sortBy');
+    const sortBy = hasSortBy ? this.parseArtworkSortByStrict(query?.sortBy, 'sortBy') : 'NEWEST';
 
     if (hasCategory && !category) {
       throw new BadRequestException({ code: 'BAD_REQUEST', message: 'category is invalid' });

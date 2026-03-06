@@ -956,14 +956,22 @@ try {
     @{ name = "search-listings-empty-sort-by"; method = "GET"; url = "http://127.0.0.1:$resolvedApiPort/search/listings?sortBy="; body = $null; headers = @{}; expected = @(400) },
     @{ name = "search-demands"; method = "GET"; url = "http://127.0.0.1:$resolvedApiPort/search/demands"; body = $null; headers = @{}; expected = @(200) },
     @{ name = "search-demands-invalid-budget-type"; method = "GET"; url = "http://127.0.0.1:$resolvedApiPort/search/demands?budgetType=UNKNOWN"; body = $null; headers = @{}; expected = @(400) },
+    @{ name = "search-demands-invalid-sort-by"; method = "GET"; url = "http://127.0.0.1:$resolvedApiPort/search/demands?sortBy=INVALID"; body = $null; headers = @{}; expected = @(400) },
+    @{ name = "search-demands-empty-sort-by"; method = "GET"; url = "http://127.0.0.1:$resolvedApiPort/search/demands?sortBy="; body = $null; headers = @{}; expected = @(400) },
     @{ name = "search-achievements"; method = "GET"; url = "http://127.0.0.1:$resolvedApiPort/search/achievements"; body = $null; headers = @{}; expected = @(200) },
     @{ name = "search-achievements-invalid-maturity"; method = "GET"; url = "http://127.0.0.1:$resolvedApiPort/search/achievements?maturity=UNKNOWN"; body = $null; headers = @{}; expected = @(400) },
+    @{ name = "search-achievements-invalid-sort-by"; method = "GET"; url = "http://127.0.0.1:$resolvedApiPort/search/achievements?sortBy=INVALID"; body = $null; headers = @{}; expected = @(400) },
+    @{ name = "search-achievements-empty-sort-by"; method = "GET"; url = "http://127.0.0.1:$resolvedApiPort/search/achievements?sortBy="; body = $null; headers = @{}; expected = @(400) },
     @{ name = "search-artworks"; method = "GET"; url = "http://127.0.0.1:$resolvedApiPort/search/artworks"; body = $null; headers = @{}; expected = @(200) },
     @{ name = "search-artworks-invalid-category"; method = "GET"; url = "http://127.0.0.1:$resolvedApiPort/search/artworks?category=UNKNOWN"; body = $null; headers = @{}; expected = @(400) },
     @{ name = "search-artworks-invalid-price-type"; method = "GET"; url = "http://127.0.0.1:$resolvedApiPort/search/artworks?priceType=UNKNOWN"; body = $null; headers = @{}; expected = @(400) },
+    @{ name = "search-artworks-invalid-sort-by"; method = "GET"; url = "http://127.0.0.1:$resolvedApiPort/search/artworks?sortBy=INVALID"; body = $null; headers = @{}; expected = @(400) },
+    @{ name = "search-artworks-empty-sort-by"; method = "GET"; url = "http://127.0.0.1:$resolvedApiPort/search/artworks?sortBy="; body = $null; headers = @{}; expected = @(400) },
     @{ name = "search-inventors"; method = "GET"; url = "http://127.0.0.1:$resolvedApiPort/search/inventors"; body = $null; headers = @{}; expected = @(200) },
     @{ name = "search-inventors-invalid-patent-type"; method = "GET"; url = "http://127.0.0.1:$resolvedApiPort/search/inventors?patentType=UNKNOWN"; body = $null; headers = @{}; expected = @(400) },
-    @{ name = "search-tech-managers"; method = "GET"; url = "http://127.0.0.1:$resolvedApiPort/search/tech-managers"; body = $null; headers = @{}; expected = @(200) }
+    @{ name = "search-tech-managers"; method = "GET"; url = "http://127.0.0.1:$resolvedApiPort/search/tech-managers"; body = $null; headers = @{}; expected = @(200) },
+    @{ name = "search-tech-managers-invalid-sort-by"; method = "GET"; url = "http://127.0.0.1:$resolvedApiPort/search/tech-managers?sortBy=INVALID"; body = $null; headers = @{}; expected = @(400) },
+    @{ name = "search-tech-managers-empty-sort-by"; method = "GET"; url = "http://127.0.0.1:$resolvedApiPort/search/tech-managers?sortBy="; body = $null; headers = @{}; expected = @(400) }
   )
 
   $results = New-Object System.Collections.ArrayList

@@ -34,6 +34,14 @@ export class TechManagersService {
     return body !== null && body !== undefined && Object.prototype.hasOwnProperty.call(body, key);
   }
 
+  private parseSortByStrict(value: unknown, fieldName: string): 'RECOMMENDED' | 'NEWEST' {
+    const normalized = String(value || '').trim().toUpperCase();
+    if (normalized === 'RECOMMENDED' || normalized === 'NEWEST') {
+      return normalized as 'RECOMMENDED' | 'NEWEST';
+    }
+    throw new BadRequestException({ code: 'BAD_REQUEST', message: `${fieldName} is invalid` });
+  }
+
   private toSummary(verificationRecord: any, profile?: any) {
     const serviceTags = this.normalizeStringArray(profile?.serviceTagsJson);
     return {
@@ -78,7 +86,8 @@ export class TechManagersService {
   async search(query: any) {
     const page = Math.max(1, Number(query?.page || 1));
     const pageSize = Math.min(50, Math.max(1, Number(query?.pageSize || 20)));
-    const sortBy = String(query?.sortBy || 'RECOMMENDED').trim().toUpperCase();
+    const hasSortBy = this.hasOwn(query, 'sortBy');
+    const sortBy = hasSortBy ? this.parseSortByStrict(query?.sortBy, 'sortBy') : 'RECOMMENDED';
     const where = this.buildWhere(query, true);
     const orderBy: Prisma.UserVerificationOrderByWithRelationInput[] =
       sortBy === 'NEWEST'
