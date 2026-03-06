@@ -306,6 +306,15 @@ export class OrdersService {
     return Math.max(0, dealAmount - depositAmount);
   }
 
+  private parseOptionalDateTime(value: unknown, fieldName: string): Date | undefined {
+    if (value === undefined || value === null || String(value).trim() === '') return undefined;
+    const parsed = new Date(String(value));
+    if (Number.isNaN(parsed.getTime())) {
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: `${fieldName} is invalid` });
+    }
+    return parsed;
+  }
+
   private async getLatestDepositPaidAt(orderId: string): Promise<Date | null> {
     const payment = await this.prisma.payment.findFirst({
       where: {
@@ -1122,7 +1131,7 @@ export class OrdersService {
       throw new BadRequestException({ code: 'BAD_REQUEST', message: 'dealAmountFen is required' });
     }
     const remark = body?.remark ? String(body.remark).trim() : undefined;
-    const signedAt = body?.signedAt ? new Date(String(body.signedAt)) : undefined;
+    const signedAt = this.parseOptionalDateTime(body?.signedAt, 'signedAt');
     const evidenceFileId = body?.evidenceFileId ? String(body.evidenceFileId).trim() : undefined;
     const existing = await this.prisma.order.findUnique({ where: { id: orderId } });
     if (!existing) {
@@ -1183,7 +1192,7 @@ export class OrdersService {
   async adminTransferCompleted(req: any, orderId: string, body: any) {
     this.ensureAdmin(req);
     const remark = body?.remark ? String(body.remark).trim() : undefined;
-    const completedAt = body?.completedAt ? new Date(String(body.completedAt)) : undefined;
+    const completedAt = this.parseOptionalDateTime(body?.completedAt, 'completedAt');
     const evidenceFileId = body?.evidenceFileId ? String(body.evidenceFileId).trim() : undefined;
     const existing = await this.prisma.order.findUnique({ where: { id: orderId } });
     if (!existing) {
@@ -1287,7 +1296,7 @@ export class OrdersService {
       throw new BadRequestException({ code: 'BAD_REQUEST', message: 'payout evidence file not found' });
     }
     const payoutRef = body?.payoutRef ? String(body.payoutRef).trim() : undefined;
-    const payoutAt = body?.payoutAt ? new Date(body.payoutAt) : new Date();
+    const payoutAt = this.parseOptionalDateTime(body?.payoutAt, 'payoutAt') ?? new Date();
     const remark = body?.remark ? String(body.remark).trim() : undefined;
     const rules = await this.config.getTradeRules();
     const settlementAmounts = this.computeSettlementAmounts(order, rules);
@@ -1397,7 +1406,7 @@ export class OrdersService {
     if (!file) throw new BadRequestException({ code: 'BAD_REQUEST', message: 'invoice file not found' });
 
     const invoiceNo = body?.invoiceNo ? String(body.invoiceNo).trim() : order.invoiceNo || `INV-${Date.now()}`;
-    const issuedAt = body?.issuedAt ? new Date(String(body.issuedAt)) : order.invoiceIssuedAt || new Date();
+    const issuedAt = this.parseOptionalDateTime(body?.issuedAt, 'issuedAt') ?? order.invoiceIssuedAt ?? new Date();
 
     const updated = await this.prisma.order.update({
       where: { id: orderId },
