@@ -3286,6 +3286,8 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/PagedContract"
+        "400":
+          $ref: "#/components/responses/BadRequest"
         "401":
           $ref: "#/components/responses/Unauthorized"
 

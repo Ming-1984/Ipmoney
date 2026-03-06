@@ -65,9 +65,13 @@ export class ContractsService {
     this.ensureAuth(req);
     const page = Math.max(1, Number(query?.page || 1));
     const pageSize = Math.min(50, Math.max(1, Number(query?.pageSize || 20)));
+    const hasStatus = !!query && Object.prototype.hasOwnProperty.call(query, 'status');
     const status = String(query?.status || '').trim().toUpperCase();
     const normalizedStatus =
       status === 'WAIT_UPLOAD' || status === 'WAIT_CONFIRM' || status === 'AVAILABLE' ? (status as ContractStatus) : null;
+    if (hasStatus && !normalizedStatus) {
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: 'status is invalid' });
+    }
 
     const baseWhere: any = {
       OR: [{ buyerUserId: req.auth.userId }, { listing: { sellerUserId: req.auth.userId } }],
