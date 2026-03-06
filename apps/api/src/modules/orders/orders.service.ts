@@ -32,6 +32,20 @@ const REFUND_REASON_CODES = [
   'OTHER',
 ] as const;
 const REFUND_REASON_CODE_SET = new Set<string>(REFUND_REASON_CODES);
+const ORDER_LIST_ROLES = ['BUYER', 'SELLER'] as const;
+const ORDER_STATUSES = [
+  'DEPOSIT_PENDING',
+  'DEPOSIT_PAID',
+  'WAIT_FINAL_PAYMENT',
+  'FINAL_PAID_ESCROW',
+  'READY_TO_SETTLE',
+  'COMPLETED',
+  'CANCELLED',
+  'REFUNDING',
+  'REFUNDED',
+] as const;
+const ORDER_STATUS_GROUPS = ['PAYMENT_PENDING', 'IN_PROGRESS', 'REFUND', 'DONE'] as const;
+const INVOICE_STATUSES = ['WAIT_APPLY', 'APPLYING', 'ISSUED'] as const;
 
 type OrderStatus =
   | 'DEPOSIT_PENDING'
@@ -126,6 +140,34 @@ export class OrdersService {
 
   private async notifyUser(userId: string | null | undefined, title: string, summary: string, source: string) {
     await this.notifications.create({ userId, title, summary, source });
+  }
+
+  private hasOwn(input: any, key: string) {
+    return !!input && Object.prototype.hasOwnProperty.call(input, key);
+  }
+
+  private normalizeOrderListRole(value: any): OrderListRole | undefined {
+    const raw = String(value || '').trim().toUpperCase();
+    if ((ORDER_LIST_ROLES as readonly string[]).includes(raw)) return raw as OrderListRole;
+    return undefined;
+  }
+
+  private normalizeOrderStatus(value: any): OrderStatus | undefined {
+    const raw = String(value || '').trim().toUpperCase();
+    if ((ORDER_STATUSES as readonly string[]).includes(raw)) return raw as OrderStatus;
+    return undefined;
+  }
+
+  private normalizeOrderStatusGroup(value: any): (typeof ORDER_STATUS_GROUPS)[number] | undefined {
+    const raw = String(value || '').trim().toUpperCase();
+    if ((ORDER_STATUS_GROUPS as readonly string[]).includes(raw)) return raw as (typeof ORDER_STATUS_GROUPS)[number];
+    return undefined;
+  }
+
+  private normalizeInvoiceStatus(value: any): InvoiceStatus | undefined {
+    const raw = String(value || '').trim().toUpperCase();
+    if ((INVOICE_STATUSES as readonly string[]).includes(raw)) return raw as InvoiceStatus;
+    return undefined;
   }
 
   private async getOrderWithListing(orderId: string) {
@@ -457,23 +499,35 @@ export class OrdersService {
     this.ensureAuth(req);
     const page = Math.max(1, Number(query?.page || 1));
     const pageSize = Math.min(50, Math.max(1, Number(query?.pageSize || 20)));
-    const asRole = String(query?.asRole || 'BUYER').toUpperCase() as OrderListRole;
-    const status = String(query?.status || '').trim();
-    const statusGroup = String(query?.statusGroup || '').trim();
+    const hasAsRole = this.hasOwn(query, 'asRole');
+    const hasStatus = this.hasOwn(query, 'status');
+    const hasStatusGroup = this.hasOwn(query, 'statusGroup');
+    const asRole = hasAsRole ? this.normalizeOrderListRole(query?.asRole) : 'BUYER';
+    const status = hasStatus ? this.normalizeOrderStatus(query?.status) : undefined;
+    const statusGroup = hasStatusGroup ? this.normalizeOrderStatusGroup(query?.statusGroup) : undefined;
+
+    if (hasAsRole && !asRole) {
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: 'asRole is invalid' });
+    }
+    if (hasStatus && !status) {
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: 'status is invalid' });
+    }
+    if (hasStatusGroup && !statusGroup) {
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: 'statusGroup is invalid' });
+    }
 
     const where: any = {};
     if (status) {
       where.status = status;
     } else if (statusGroup) {
-      const g = statusGroup.toUpperCase();
       const inStatuses =
-        g === 'PAYMENT_PENDING'
+        statusGroup === 'PAYMENT_PENDING'
           ? ['DEPOSIT_PENDING', 'WAIT_FINAL_PAYMENT']
-          : g === 'IN_PROGRESS'
+          : statusGroup === 'IN_PROGRESS'
             ? ['DEPOSIT_PAID', 'FINAL_PAID_ESCROW', 'READY_TO_SETTLE']
-            : g === 'REFUND'
+            : statusGroup === 'REFUND'
               ? ['REFUNDING', 'REFUNDED']
-              : g === 'DONE'
+              : statusGroup === 'DONE'
                 ? ['COMPLETED', 'CANCELLED']
                 : [];
       if (inStatuses.length) where.status = { in: inStatuses };
@@ -1086,7 +1140,11 @@ export class OrdersService {
     this.ensureAuth(req);
     const page = Math.max(1, Number(query?.page || 1));
     const pageSize = Math.min(50, Math.max(1, Number(query?.pageSize || 20)));
-    const status = String(query?.status || '').trim().toUpperCase();
+    const hasStatus = this.hasOwn(query, 'status');
+    const status = hasStatus ? this.normalizeInvoiceStatus(query?.status) : undefined;
+    if (hasStatus && !status) {
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: 'status is invalid' });
+    }
 
     const where: any = { buyerUserId: req.auth.userId };
     if (status === 'ISSUED') {
