@@ -1,4 +1,4 @@
-﻿import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+﻿import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 
 import { Prisma } from '@prisma/client';
 
@@ -17,6 +17,29 @@ export class FavoritesService {
 
   private ensureAuth(req: any) {
     if (!req?.auth?.userId) throw new ForbiddenException({ code: 'FORBIDDEN', message: '鏃犳潈闄?' });
+  }
+
+  private hasOwn(input: any, key: string) {
+    return !!input && Object.prototype.hasOwnProperty.call(input, key);
+  }
+
+  private parsePositiveIntStrict(value: unknown, fieldName: string): number {
+    const raw = String(value ?? '').trim();
+    if (!raw) {
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: `${fieldName} is invalid` });
+    }
+    const parsed = Number(raw);
+    if (!Number.isInteger(parsed) || parsed <= 0) {
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: `${fieldName} is invalid` });
+    }
+    return parsed;
+  }
+
+  private parsePagination(query: any) {
+    const page = this.hasOwn(query, 'page') ? this.parsePositiveIntStrict(query?.page, 'page') : 1;
+    const pageSizeInput = this.hasOwn(query, 'pageSize') ? this.parsePositiveIntStrict(query?.pageSize, 'pageSize') : 20;
+    const pageSize = Math.min(50, pageSizeInput);
+    return { page, pageSize };
   }
 
   private asArray(value: unknown): string[] {
@@ -108,8 +131,7 @@ export class FavoritesService {
 
   async listListingFavorites(req: any, query: any): Promise<Paged<any>> {
     this.ensureAuth(req);
-    const page = Math.max(1, Number(query?.page || 1));
-    const pageSize = Math.min(50, Math.max(1, Number(query?.pageSize || 20)));
+    const { page, pageSize } = this.parsePagination(query);
     const [items, total] = await Promise.all([
       this.prisma.listingFavorite.findMany({
         where: { userId: req.auth.userId },
@@ -146,8 +168,7 @@ export class FavoritesService {
 
   async listDemandFavorites(req: any, query: any): Promise<Paged<any>> {
     this.ensureAuth(req);
-    const page = Math.max(1, Number(query?.page || 1));
-    const pageSize = Math.min(50, Math.max(1, Number(query?.pageSize || 20)));
+    const { page, pageSize } = this.parsePagination(query);
 
     const [items, total] = await Promise.all([
       this.prisma.demandFavorite.findMany({
@@ -174,8 +195,7 @@ export class FavoritesService {
 
   async listAchievementFavorites(req: any, query: any): Promise<Paged<any>> {
     this.ensureAuth(req);
-    const page = Math.max(1, Number(query?.page || 1));
-    const pageSize = Math.min(50, Math.max(1, Number(query?.pageSize || 20)));
+    const { page, pageSize } = this.parsePagination(query);
 
     const [items, total] = await Promise.all([
       this.prisma.achievementFavorite.findMany({
@@ -202,8 +222,7 @@ export class FavoritesService {
 
   async listArtworkFavorites(req: any, query: any): Promise<Paged<any>> {
     this.ensureAuth(req);
-    const page = Math.max(1, Number(query?.page || 1));
-    const pageSize = Math.min(50, Math.max(1, Number(query?.pageSize || 20)));
+    const { page, pageSize } = this.parsePagination(query);
 
     const [items, total] = await Promise.all([
       this.prisma.artworkFavorite.findMany({

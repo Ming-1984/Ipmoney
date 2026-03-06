@@ -36,6 +36,18 @@ export class AlertsService {
     return !!input && Object.prototype.hasOwnProperty.call(input, key);
   }
 
+  private parsePositiveIntStrict(value: unknown, fieldName: string): number {
+    const raw = String(value ?? '').trim();
+    if (!raw) {
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: `${fieldName} is invalid` });
+    }
+    const parsed = Number(raw);
+    if (!Number.isInteger(parsed) || parsed <= 0) {
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: `${fieldName} is invalid` });
+    }
+    return parsed;
+  }
+
   private normalizeSetValue(value: any, set: Set<string>) {
     const v = String(value || '').trim().toUpperCase();
     return set.has(v) ? v : undefined;
@@ -77,8 +89,9 @@ export class AlertsService {
     this.ensureAuth(req);
     requirePermission(req, 'alert.manage');
 
-    const page = Math.max(1, Number(query?.page || 1));
-    const pageSize = Math.min(50, Math.max(1, Number(query?.pageSize || 20)));
+    const page = this.hasOwn(query, 'page') ? this.parsePositiveIntStrict(query?.page, 'page') : 1;
+    const pageSizeInput = this.hasOwn(query, 'pageSize') ? this.parsePositiveIntStrict(query?.pageSize, 'pageSize') : 20;
+    const pageSize = Math.min(50, pageSizeInput);
 
     const where: any = {};
     const hasStatus = this.hasOwn(query, 'status');

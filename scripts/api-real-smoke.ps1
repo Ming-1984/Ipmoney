@@ -895,6 +895,20 @@ try {
     @{ name = "me"; method = "GET"; url = "http://127.0.0.1:$resolvedApiPort/me"; body = $null; headers = @{ Authorization = $userToken }; expected = @(200) },
     @{ name = "me-verification-invalid-type"; method = "POST"; url = "http://127.0.0.1:$resolvedApiPort/me/verification"; body = @{ type = "UNKNOWN"; displayName = "Smoke Invalid Verification Type" }; headers = @{ Authorization = $userToken }; expected = @(400) },
     @{ name = "me-verification-empty-type"; method = "POST"; url = "http://127.0.0.1:$resolvedApiPort/me/verification"; body = @{ type = ""; displayName = "Smoke Empty Verification Type" }; headers = @{ Authorization = $userToken }; expected = @(400) },
+    @{ name = "notifications-list"; method = "GET"; url = "http://127.0.0.1:$resolvedApiPort/notifications"; body = $null; headers = @{ Authorization = $userToken }; expected = @(200) },
+    @{ name = "notifications-list-invalid-page"; method = "GET"; url = "http://127.0.0.1:$resolvedApiPort/notifications?page=abc"; body = $null; headers = @{ Authorization = $userToken }; expected = @(400) },
+    @{ name = "notifications-list-empty-page-size"; method = "GET"; url = "http://127.0.0.1:$resolvedApiPort/notifications?pageSize="; body = $null; headers = @{ Authorization = $userToken }; expected = @(400) },
+    @{ name = "favorites-listings"; method = "GET"; url = "http://127.0.0.1:$resolvedApiPort/me/favorites"; body = $null; headers = @{ Authorization = $userToken }; expected = @(200) },
+    @{ name = "favorites-listings-invalid-page"; method = "GET"; url = "http://127.0.0.1:$resolvedApiPort/me/favorites?page=abc"; body = $null; headers = @{ Authorization = $userToken }; expected = @(400) },
+    @{ name = "favorites-demands"; method = "GET"; url = "http://127.0.0.1:$resolvedApiPort/me/favorites/demands"; body = $null; headers = @{ Authorization = $userToken }; expected = @(200) },
+    @{ name = "favorites-demands-invalid-page"; method = "GET"; url = "http://127.0.0.1:$resolvedApiPort/me/favorites/demands?page=abc"; body = $null; headers = @{ Authorization = $userToken }; expected = @(400) },
+    @{ name = "favorites-achievements"; method = "GET"; url = "http://127.0.0.1:$resolvedApiPort/me/favorites/achievements"; body = $null; headers = @{ Authorization = $userToken }; expected = @(200) },
+    @{ name = "favorites-achievements-invalid-page"; method = "GET"; url = "http://127.0.0.1:$resolvedApiPort/me/favorites/achievements?page=abc"; body = $null; headers = @{ Authorization = $userToken }; expected = @(400) },
+    @{ name = "favorites-artworks"; method = "GET"; url = "http://127.0.0.1:$resolvedApiPort/me/favorites/artworks"; body = $null; headers = @{ Authorization = $userToken }; expected = @(200) },
+    @{ name = "favorites-artworks-invalid-page"; method = "GET"; url = "http://127.0.0.1:$resolvedApiPort/me/favorites/artworks?page=abc"; body = $null; headers = @{ Authorization = $userToken }; expected = @(400) },
+    @{ name = "me-conversations"; method = "GET"; url = "http://127.0.0.1:$resolvedApiPort/me/conversations"; body = $null; headers = @{ Authorization = $userToken }; expected = @(200) },
+    @{ name = "me-conversations-invalid-page"; method = "GET"; url = "http://127.0.0.1:$resolvedApiPort/me/conversations?page=abc"; body = $null; headers = @{ Authorization = $userToken }; expected = @(400) },
+    @{ name = "me-conversations-empty-page-size"; method = "GET"; url = "http://127.0.0.1:$resolvedApiPort/me/conversations?pageSize="; body = $null; headers = @{ Authorization = $userToken }; expected = @(400) },
     @{ name = "demands-mine"; method = "GET"; url = "http://127.0.0.1:$resolvedApiPort/demands"; body = $null; headers = @{ Authorization = $userToken }; expected = @(200) },
     @{ name = "demands-mine-invalid-status"; method = "GET"; url = "http://127.0.0.1:$resolvedApiPort/demands?status=UNKNOWN"; body = $null; headers = @{ Authorization = $userToken }; expected = @(400) },
     @{ name = "achievements-mine"; method = "GET"; url = "http://127.0.0.1:$resolvedApiPort/achievements"; body = $null; headers = @{ Authorization = $userToken }; expected = @(200) },
@@ -930,6 +944,8 @@ try {
     @{ name = "admin-comments"; method = "GET"; url = "http://127.0.0.1:$resolvedApiPort/admin/comments"; body = $null; headers = @{ Authorization = $adminToken }; expected = @(200) },
     @{ name = "admin-comments-invalid-content-type"; method = "GET"; url = "http://127.0.0.1:$resolvedApiPort/admin/comments?contentType=UNKNOWN"; body = $null; headers = @{ Authorization = $adminToken }; expected = @(400) },
     @{ name = "admin-comments-invalid-status"; method = "GET"; url = "http://127.0.0.1:$resolvedApiPort/admin/comments?status=UNKNOWN"; body = $null; headers = @{ Authorization = $adminToken }; expected = @(400) },
+    @{ name = "admin-comments-invalid-page"; method = "GET"; url = "http://127.0.0.1:$resolvedApiPort/admin/comments?page=abc"; body = $null; headers = @{ Authorization = $adminToken }; expected = @(400) },
+    @{ name = "admin-comments-empty-page-size"; method = "GET"; url = "http://127.0.0.1:$resolvedApiPort/admin/comments?pageSize="; body = $null; headers = @{ Authorization = $adminToken }; expected = @(400) },
     @{ name = "admin-user-verifications"; method = "GET"; url = "http://127.0.0.1:$resolvedApiPort/admin/user-verifications"; body = $null; headers = @{ Authorization = $adminToken }; expected = @(200) },
     @{ name = "admin-user-verifications-invalid-type"; method = "GET"; url = "http://127.0.0.1:$resolvedApiPort/admin/user-verifications?type=UNKNOWN"; body = $null; headers = @{ Authorization = $adminToken }; expected = @(400) },
     @{ name = "admin-user-verifications-empty-status"; method = "GET"; url = "http://127.0.0.1:$resolvedApiPort/admin/user-verifications?status="; body = $null; headers = @{ Authorization = $adminToken }; expected = @(400) },
@@ -1101,6 +1117,8 @@ try {
   if (-not [string]::IsNullOrWhiteSpace($publicListingId)) {
     [void](Add-ApiCaseResult -Results $results -Name "public-listing-detail" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/public/listings/$publicListingId" -Body $null -Headers @{} -Expected @(200))
     [void](Add-ApiCaseResult -Results $results -Name "public-listing-comments" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/public/listings/$publicListingId/comments" -Body $null -Headers @{} -Expected @(200))
+    [void](Add-ApiCaseResult -Results $results -Name "public-listing-comments-invalid-page" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/public/listings/$publicListingId/comments?page=abc" -Body $null -Headers @{} -Expected @(400))
+    [void](Add-ApiCaseResult -Results $results -Name "public-listing-comments-empty-page-size" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/public/listings/$publicListingId/comments?pageSize=" -Body $null -Headers @{} -Expected @(400))
   }
 
   $publicDemandItem = @($searchDemandsForPublic.items | Select-Object -First 1)[0]
@@ -2410,6 +2428,8 @@ try {
   [void](Add-ApiCaseResult -Results $results -Name "admin-alert-list-invalid-severity" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/admin/alerts?severity=UNKNOWN" -Body $null -Headers @{ Authorization = $adminToken } -Expected @(400))
   [void](Add-ApiCaseResult -Results $results -Name "admin-alert-list-invalid-channel" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/admin/alerts?channel=UNKNOWN" -Body $null -Headers @{ Authorization = $adminToken } -Expected @(400))
   [void](Add-ApiCaseResult -Results $results -Name "admin-alert-list-invalid-target-type" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/admin/alerts?targetType=UNKNOWN" -Body $null -Headers @{ Authorization = $adminToken } -Expected @(400))
+  [void](Add-ApiCaseResult -Results $results -Name "admin-alert-list-invalid-page" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/admin/alerts?page=abc" -Body $null -Headers @{ Authorization = $adminToken } -Expected @(400))
+  [void](Add-ApiCaseResult -Results $results -Name "admin-alert-list-empty-page-size" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/admin/alerts?pageSize=" -Body $null -Headers @{ Authorization = $adminToken } -Expected @(400))
 
   [void](Add-ApiCaseResult -Results $results -Name "admin-case-list" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/admin/cases" -Body $null -Headers @{ Authorization = $adminToken } -Expected @(200))
   [void](Add-ApiCaseResult -Results $results -Name "admin-case-list-invalid-status" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/admin/cases?status=UNKNOWN" -Body $null -Headers @{ Authorization = $adminToken } -Expected @(400))
