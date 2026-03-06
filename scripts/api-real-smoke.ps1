@@ -1522,6 +1522,128 @@ try {
   $multiAggSettlementAfterB = Add-ApiCaseResult -Results $results -Name "multi-agg-settlement-after-b" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/admin/orders/$multiAggOrderBId/settlement" -Body $null -Headers @{ Authorization = $adminToken } -Expected @(200)
   Assert-ResultJsonFieldEquals -Result $multiAggSettlementAfterB -Field "payoutStatus" -ExpectedValue "SUCCEEDED" -Assertion "multi-agg-settlement-status-after-b"
 
+  $chaosOrderId = New-RefundReadyOrder -Results $results -ApiPort $resolvedApiPort -UserToken $userToken -AdminToken $adminToken -ListingId $listingId -IdempotencyPrefix $idempotencyPrefix -CasePrefix "chaos"
+  [void](Add-ApiCaseResult -Results $results -Name "chaos-order-payment-intent-final" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/orders/$chaosOrderId/payment-intents" -Body @{ payType = "FINAL" } -Headers (New-WriteHeaders -AuthorizationToken $userToken -Prefix $idempotencyPrefix -Label "chaos-order-payment-intent-final") -Expected @(200, 201))
+  [void](Add-ApiCaseResult -Results $results -Name "chaos-admin-order-manual-payment-final" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/admin/orders/$chaosOrderId/payments/manual" -Body @{ payType = "FINAL" } -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "chaos-admin-order-manual-payment-final") -Expected @(200, 201))
+  [void](Add-ApiCaseResult -Results $results -Name "chaos-admin-order-transfer-completed" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/admin/orders/$chaosOrderId/milestones/transfer-completed" -Body @{} -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "chaos-admin-order-transfer-completed") -Expected @(200, 201))
+  [void](Add-ApiCaseResult -Results $results -Name "chaos-admin-order-payout" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/admin/orders/$chaosOrderId/payouts/manual" -Body @{ payoutEvidenceFileId = $evidenceFileId } -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "chaos-admin-order-payout") -Expected @(200, 201))
+  $chaosSeedBatches = @(@(6101, 6103, 6107, 6113), @(7103, 7109, 7121, 7127), @(8101, 8111, 8117, 8123))
+  $chaosDistribution = @{
+    invoiceSuccess = 0
+    invoiceConflict = 0
+    invoiceOther = 0
+    refundConflict = 0
+    refundOther = 0
+  }
+  $chaosDetails = New-Object System.Collections.ArrayList
+  $chaosDurationsMs = New-Object System.Collections.ArrayList
+  $chaosRuns = 0
+  $chaosBatchIndex = 0
+  foreach ($chaosSeedBatch in $chaosSeedBatches) {
+    $chaosBatchIndex++
+    foreach ($chaosSeed in $chaosSeedBatch) {
+      $chaosRuns++
+      $chaosRandom = [System.Random]::new([int]$chaosSeed)
+      $chaosDelayMs = 10 + $chaosRandom.Next(0, 180)
+      Start-Sleep -Milliseconds $chaosDelayMs
+      $chaosInvoiceName = "chaos-b$chaosBatchIndex-r$chaosRuns-order-invoice-request"
+      $chaosRefundName = "chaos-b$chaosBatchIndex-r$chaosRuns-order-refund-request"
+      $chaosStopwatch = [System.Diagnostics.Stopwatch]::StartNew()
+      $chaosPairResults = Add-ConcurrentApiCasePairResults -Results $results -NameA $chaosInvoiceName -MethodA "POST" -UrlA "http://127.0.0.1:$resolvedApiPort/orders/$chaosOrderId/invoice-requests" -BodyA @{} -HeadersA (New-WriteHeaders -AuthorizationToken $userToken -Prefix $idempotencyPrefix -Label $chaosInvoiceName) -NameB $chaosRefundName -MethodB "POST" -UrlB "http://127.0.0.1:$resolvedApiPort/orders/$chaosOrderId/refund-requests" -BodyB @{ reasonCode = "OTHER"; reasonText = "smoke chaos refund b$chaosBatchIndex-r$chaosRuns" } -HeadersB (New-WriteHeaders -AuthorizationToken $userToken -Prefix $idempotencyPrefix -Label $chaosRefundName) -Expected @(200, 201, 409)
+      $chaosStopwatch.Stop()
+      [void]$chaosDurationsMs.Add([int]$chaosStopwatch.ElapsedMilliseconds)
+      $chaosInvoiceResult = @($chaosPairResults | Where-Object { $_.name -eq $chaosInvoiceName } | Select-Object -First 1)
+      $chaosRefundResult = @($chaosPairResults | Where-Object { $_.name -eq $chaosRefundName } | Select-Object -First 1)
+      $chaosInvoiceStatus = if ($chaosInvoiceResult) { [int]$chaosInvoiceResult.status } else { -1 }
+      $chaosRefundStatus = if ($chaosRefundResult) { [int]$chaosRefundResult.status } else { -1 }
+      if ($chaosInvoiceStatus -in @(200, 201)) {
+        $chaosDistribution.invoiceSuccess = [int]$chaosDistribution.invoiceSuccess + 1
+        Assert-ResultJsonFieldEquals -Result $chaosInvoiceResult -Field "status" -ExpectedValue "APPLYING" -Assertion "chaos-invoice-success-status-b$chaosBatchIndex-r$chaosRuns"
+        $chaosInvoiceUpsertName = "chaos-b$chaosBatchIndex-r$chaosRuns-admin-order-upsert-invoice-with-file"
+        $chaosInvoiceUpsert = Add-ApiCaseResult -Results $results -Name $chaosInvoiceUpsertName -Method "PUT" -Url "http://127.0.0.1:$resolvedApiPort/admin/orders/$chaosOrderId/invoice" -Body @{ invoiceFileId = $evidenceFileId } -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label $chaosInvoiceUpsertName) -Expected @(200)
+        Assert-ResultJsonFieldEquals -Result $chaosInvoiceUpsert -Field "invoiceFile.id" -ExpectedValue $evidenceFileId -Assertion "chaos-invoice-upsert-file-linked-b$chaosBatchIndex-r$chaosRuns"
+      } elseif ($chaosInvoiceStatus -eq 409) {
+        $chaosDistribution.invoiceConflict = [int]$chaosDistribution.invoiceConflict + 1
+      } else {
+        $chaosDistribution.invoiceOther = [int]$chaosDistribution.invoiceOther + 1
+        foreach ($chaosPairResult in @($chaosPairResults)) {
+          Add-ResultAssertionFailure -Result $chaosPairResult -Assertion "chaos-invoice-status-b$chaosBatchIndex-r$chaosRuns" -Message "Expected chaos invoice status to be one of [200,201,409], got [$chaosInvoiceStatus]"
+        }
+      }
+      if ($chaosRefundStatus -eq 409) {
+        $chaosDistribution.refundConflict = [int]$chaosDistribution.refundConflict + 1
+      } else {
+        $chaosDistribution.refundOther = [int]$chaosDistribution.refundOther + 1
+        foreach ($chaosPairResult in @($chaosPairResults)) {
+          Add-ResultAssertionFailure -Result $chaosPairResult -Assertion "chaos-refund-status-b$chaosBatchIndex-r$chaosRuns" -Message "Expected chaos refund status to be conflict 409, got [$chaosRefundStatus]"
+        }
+      }
+      [void]$chaosDetails.Add([pscustomobject]@{
+        batch = $chaosBatchIndex
+        run = $chaosRuns
+        seed = $chaosSeed
+        delayMs = $chaosDelayMs
+        pairDurationMs = [int]$chaosStopwatch.ElapsedMilliseconds
+        invoiceStatus = $chaosInvoiceStatus
+        refundStatus = $chaosRefundStatus
+      })
+    }
+  }
+  $computePercentile = {
+    param(
+      [int[]]$Values,
+      [double]$Percentile
+    )
+    if (-not $Values -or $Values.Count -eq 0) { return 0 }
+    $sorted = @($Values | Sort-Object)
+    $index = [int][Math]::Ceiling($Percentile * $sorted.Count) - 1
+    if ($index -lt 0) { $index = 0 }
+    if ($index -ge $sorted.Count) { $index = $sorted.Count - 1 }
+    return [int]$sorted[$index]
+  }
+  $chaosDurationsArray = @($chaosDurationsMs | ForEach-Object { [int]$_ })
+  $chaosP50Ms = & $computePercentile -Values $chaosDurationsArray -Percentile 0.50
+  $chaosP95Ms = & $computePercentile -Values $chaosDurationsArray -Percentile 0.95
+  $chaosMaxMs = if ($chaosDurationsArray.Count -gt 0) { [int](($chaosDurationsArray | Measure-Object -Maximum).Maximum) } else { 0 }
+  $chaosSummaryPayload = [ordered]@{
+    seedBatches = $chaosSeedBatches
+    runs = $chaosRuns
+    distribution = $chaosDistribution
+    durationsMs = @{
+      p50 = $chaosP50Ms
+      p95 = $chaosP95Ms
+      max = $chaosMaxMs
+      thresholdP95 = 3000
+    }
+    details = $chaosDetails
+  }
+  $chaosSummaryResult = [pscustomobject]@{
+    name = "chaos-randomized-outcome-distribution"
+    method = "GET"
+    url = "internal://chaos-randomized-outcome-distribution"
+    status = 200
+    expected = "200"
+    ok = $true
+    body = ($chaosSummaryPayload | ConvertTo-Json -Depth 8 -Compress)
+  }
+  [void]$results.Add($chaosSummaryResult)
+  if ([int]$chaosDistribution.invoiceOther -ne 0 -or [int]$chaosDistribution.refundOther -ne 0) {
+    Add-ResultAssertionFailure -Result $chaosSummaryResult -Assertion "chaos-distribution-no-other-status" -Message "Chaos distribution contains unexpected statuses: invoiceOther=$($chaosDistribution.invoiceOther), refundOther=$($chaosDistribution.refundOther)"
+  }
+  if ([int]$chaosDistribution.refundConflict -ne $chaosRuns) {
+    Add-ResultAssertionFailure -Result $chaosSummaryResult -Assertion "chaos-distribution-refund-conflict" -Message "Expected chaos refund conflict count $chaosRuns, got $($chaosDistribution.refundConflict)"
+  }
+  if (([int]$chaosDistribution.invoiceSuccess + [int]$chaosDistribution.invoiceConflict) -ne $chaosRuns) {
+    Add-ResultAssertionFailure -Result $chaosSummaryResult -Assertion "chaos-distribution-invoice-bounded" -Message "Expected chaos invoice success+conflict count $chaosRuns, got $([int]$chaosDistribution.invoiceSuccess + [int]$chaosDistribution.invoiceConflict)"
+  }
+  if ($chaosP95Ms -gt 3000) {
+    Add-ResultAssertionFailure -Result $chaosSummaryResult -Assertion "chaos-p95-threshold" -Message "Expected chaos p95 <= 3000ms, got $chaosP95Ms ms"
+  }
+  $chaosOrderDetailAfter = Add-ApiCaseResult -Results $results -Name "chaos-order-detail-after" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/orders/$chaosOrderId" -Body $null -Headers @{ Authorization = $userToken } -Expected @(200)
+  Assert-ResultJsonFieldEquals -Result $chaosOrderDetailAfter -Field "status" -ExpectedValue "COMPLETED" -Assertion "chaos-order-status-after"
+  $chaosSettlementAfter = Add-ApiCaseResult -Results $results -Name "chaos-settlement-after" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/admin/orders/$chaosOrderId/settlement" -Body $null -Headers @{ Authorization = $adminToken } -Expected @(200)
+  Assert-ResultJsonFieldEquals -Result $chaosSettlementAfter -Field "payoutStatus" -ExpectedValue "SUCCEEDED" -Assertion "chaos-settlement-status-after"
+
   $refundApproveOrderId = New-RefundReadyOrder -Results $results -ApiPort $resolvedApiPort -UserToken $userToken -AdminToken $adminToken -ListingId $listingId -IdempotencyPrefix $idempotencyPrefix -CasePrefix "refund-approve"
   $refundApproveCreateHeaders = New-WriteHeaders -AuthorizationToken $userToken -Prefix $idempotencyPrefix -Label "refund-approve-create"
   $refundApproveCreate = Add-ApiCaseResult -Results $results -Name "refund-approve-create" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/orders/$refundApproveOrderId/refund-requests" -Body @{ reasonCode = "OTHER"; reasonText = "smoke approve flow" } -Headers $refundApproveCreateHeaders -Expected @(200, 201)
