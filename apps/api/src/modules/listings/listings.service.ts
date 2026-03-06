@@ -115,6 +115,23 @@ export class ListingsService {
     return normalized;
   }
 
+  private normalizeConsultChannel(value: unknown): 'FORM' | 'PHONE' | 'WECHAT_CS' | undefined {
+    const channel = String(value || '').trim().toUpperCase();
+    if (!channel) return undefined;
+    if (channel === 'FORM' || channel === 'PHONE' || channel === 'WECHAT_CS') {
+      return channel as 'FORM' | 'PHONE' | 'WECHAT_CS';
+    }
+    return undefined;
+  }
+
+  private parseConsultChannelStrict(value: unknown, fieldName: string): 'FORM' | 'PHONE' | 'WECHAT_CS' {
+    const normalized = this.normalizeConsultChannel(value);
+    if (!normalized) {
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: `${fieldName} is invalid` });
+    }
+    return normalized;
+  }
+
   private normalizePatentSource(value: any): 'USER' | 'ADMIN' | 'PROVIDER' | undefined {
     const source = String(value || '').trim().toUpperCase();
     if (!source) return undefined;
@@ -1874,14 +1891,15 @@ export class ListingsService {
     }
     const listing = await this.prisma.listing.findUnique({ where: { id: listingId } });
     if (!listing) throw new NotFoundException({ code: 'NOT_FOUND', message: 'listing not found' });
-    const channel = String(payload?.channel || 'FORM').toUpperCase();
+    const hasChannel = this.hasOwn(payload, 'channel');
+    const channel = hasChannel ? this.parseConsultChannelStrict(payload?.channel, 'channel') : 'FORM';
     const recorded = await this.events.recordConsult(req, 'LISTING', listingId);
     if (recorded) {
       await this.prisma.listingConsultEvent.create({
         data: {
           listingId,
           userId: req.auth.userId,
-          channel: channel === 'PHONE' ? 'PHONE' : channel === 'WECHAT_CS' ? 'WECHAT_CS' : 'FORM',
+          channel,
         },
       });
     }
