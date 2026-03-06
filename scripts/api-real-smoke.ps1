@@ -1263,6 +1263,43 @@ try {
   $mixedStaggeredSettlementAfter = Add-ApiCaseResult -Results $results -Name "mixed-staggered-settlement-after" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/admin/orders/$mixedStaggeredOrderId/settlement" -Body $null -Headers @{ Authorization = $adminToken } -Expected @(200)
   Assert-ResultJsonFieldEquals -Result $mixedStaggeredSettlementAfter -Field "payoutStatus" -ExpectedValue "SUCCEEDED" -Assertion "mixed-staggered-settlement-status-after"
 
+  $mixedJitterOrderId = New-RefundReadyOrder -Results $results -ApiPort $resolvedApiPort -UserToken $userToken -AdminToken $adminToken -ListingId $listingId -IdempotencyPrefix $idempotencyPrefix -CasePrefix "mixed-jitter"
+  [void](Add-ApiCaseResult -Results $results -Name "mixed-jitter-order-payment-intent-final" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/orders/$mixedJitterOrderId/payment-intents" -Body @{ payType = "FINAL" } -Headers (New-WriteHeaders -AuthorizationToken $userToken -Prefix $idempotencyPrefix -Label "mixed-jitter-order-payment-intent-final") -Expected @(200, 201))
+  [void](Add-ApiCaseResult -Results $results -Name "mixed-jitter-admin-order-manual-payment-final" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/admin/orders/$mixedJitterOrderId/payments/manual" -Body @{ payType = "FINAL" } -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "mixed-jitter-admin-order-manual-payment-final") -Expected @(200, 201))
+  [void](Add-ApiCaseResult -Results $results -Name "mixed-jitter-admin-order-transfer-completed" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/admin/orders/$mixedJitterOrderId/milestones/transfer-completed" -Body @{} -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "mixed-jitter-admin-order-transfer-completed") -Expected @(200, 201))
+  [void](Add-ApiCaseResult -Results $results -Name "mixed-jitter-admin-order-payout" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/admin/orders/$mixedJitterOrderId/payouts/manual" -Body @{ payoutEvidenceFileId = $evidenceFileId } -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "mixed-jitter-admin-order-payout") -Expected @(200, 201))
+  $mixedJitterBurstDelays = @(17, 43, 71)
+  $mixedJitterIteration = 0
+  foreach ($mixedJitterDelayMs in $mixedJitterBurstDelays) {
+    $mixedJitterIteration++
+    Start-Sleep -Milliseconds $mixedJitterDelayMs
+    $mixedJitterInvoiceName = "mixed-jitter-$mixedJitterIteration-order-invoice-request"
+    $mixedJitterRefundName = "mixed-jitter-$mixedJitterIteration-order-refund-request"
+    $mixedJitterResults = Add-ConcurrentApiCasePairResults -Results $results -NameA $mixedJitterInvoiceName -MethodA "POST" -UrlA "http://127.0.0.1:$resolvedApiPort/orders/$mixedJitterOrderId/invoice-requests" -BodyA @{} -HeadersA (New-WriteHeaders -AuthorizationToken $userToken -Prefix $idempotencyPrefix -Label $mixedJitterInvoiceName) -NameB $mixedJitterRefundName -MethodB "POST" -UrlB "http://127.0.0.1:$resolvedApiPort/orders/$mixedJitterOrderId/refund-requests" -BodyB @{ reasonCode = "OTHER"; reasonText = "smoke mixed jitter refund $mixedJitterIteration" } -HeadersB (New-WriteHeaders -AuthorizationToken $userToken -Prefix $idempotencyPrefix -Label $mixedJitterRefundName) -Expected @(200, 201, 409)
+    $mixedJitterInvoiceResult = @($mixedJitterResults | Where-Object { $_.name -eq $mixedJitterInvoiceName } | Select-Object -First 1)
+    $mixedJitterRefundResult = @($mixedJitterResults | Where-Object { $_.name -eq $mixedJitterRefundName } | Select-Object -First 1)
+    if (-not $mixedJitterRefundResult -or [int]$mixedJitterRefundResult.status -ne 409) {
+      foreach ($mixedJitterResult in @($mixedJitterResults)) {
+        Add-ResultAssertionFailure -Result $mixedJitterResult -Assertion "mixed-jitter-refund-conflict-$mixedJitterIteration" -Message "Expected jitter loop refund branch to conflict after payout terminal state"
+      }
+    }
+    if (-not $mixedJitterInvoiceResult -or -not (@(200, 201, 409) -contains [int]$mixedJitterInvoiceResult.status)) {
+      foreach ($mixedJitterResult in @($mixedJitterResults)) {
+        Add-ResultAssertionFailure -Result $mixedJitterResult -Assertion "mixed-jitter-invoice-status-$mixedJitterIteration" -Message "Expected jitter loop invoice branch status to be one of [200,201,409]"
+      }
+    }
+    if ($mixedJitterInvoiceResult -and (@(200, 201) -contains [int]$mixedJitterInvoiceResult.status)) {
+      Assert-ResultJsonFieldEquals -Result $mixedJitterInvoiceResult -Field "status" -ExpectedValue "APPLYING" -Assertion "mixed-jitter-invoice-success-status-$mixedJitterIteration"
+      $mixedJitterInvoiceUpsertName = "mixed-jitter-$mixedJitterIteration-admin-order-upsert-invoice-with-file"
+      $mixedJitterInvoiceUpsert = Add-ApiCaseResult -Results $results -Name $mixedJitterInvoiceUpsertName -Method "PUT" -Url "http://127.0.0.1:$resolvedApiPort/admin/orders/$mixedJitterOrderId/invoice" -Body @{ invoiceFileId = $evidenceFileId } -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label $mixedJitterInvoiceUpsertName) -Expected @(200)
+      Assert-ResultJsonFieldEquals -Result $mixedJitterInvoiceUpsert -Field "invoiceFile.id" -ExpectedValue $evidenceFileId -Assertion "mixed-jitter-invoice-upsert-file-linked-$mixedJitterIteration"
+    }
+  }
+  $mixedJitterOrderDetailAfter = Add-ApiCaseResult -Results $results -Name "mixed-jitter-order-detail-after" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/orders/$mixedJitterOrderId" -Body $null -Headers @{ Authorization = $userToken } -Expected @(200)
+  Assert-ResultJsonFieldEquals -Result $mixedJitterOrderDetailAfter -Field "status" -ExpectedValue "COMPLETED" -Assertion "mixed-jitter-order-status-after"
+  $mixedJitterSettlementAfter = Add-ApiCaseResult -Results $results -Name "mixed-jitter-settlement-after" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/admin/orders/$mixedJitterOrderId/settlement" -Body $null -Headers @{ Authorization = $adminToken } -Expected @(200)
+  Assert-ResultJsonFieldEquals -Result $mixedJitterSettlementAfter -Field "payoutStatus" -ExpectedValue "SUCCEEDED" -Assertion "mixed-jitter-settlement-status-after"
+
   $refundApproveOrderId = New-RefundReadyOrder -Results $results -ApiPort $resolvedApiPort -UserToken $userToken -AdminToken $adminToken -ListingId $listingId -IdempotencyPrefix $idempotencyPrefix -CasePrefix "refund-approve"
   $refundApproveCreateHeaders = New-WriteHeaders -AuthorizationToken $userToken -Prefix $idempotencyPrefix -Label "refund-approve-create"
   $refundApproveCreate = Add-ApiCaseResult -Results $results -Name "refund-approve-create" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/orders/$refundApproveOrderId/refund-requests" -Body @{ reasonCode = "OTHER"; reasonText = "smoke approve flow" } -Headers $refundApproveCreateHeaders -Expected @(200, 201)
