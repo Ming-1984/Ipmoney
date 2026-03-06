@@ -1176,6 +1176,34 @@ try {
     Assert-ResultJsonFieldEquals -Result $mixedRaceInvoiceUpsert -Field "invoiceFile.id" -ExpectedValue $evidenceFileId -Assertion "mixed-race-invoice-upsert-file-linked"
   }
   [void](Add-ApiCaseResult -Results $results -Name "mixed-race-order-refund-request-after-payout" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/orders/$mixedRaceOrderId/refund-requests" -Body @{ reasonCode = "OTHER"; reasonText = "smoke mixed race disallowed after payout" } -Headers (New-WriteHeaders -AuthorizationToken $userToken -Prefix $idempotencyPrefix -Label "mixed-race-order-refund-request-after-payout") -Expected @(409))
+  $mixedRaceRepeatResults = Add-ConcurrentApiCaseTripleResults -Results $results -NameA "mixed-race-repeat-admin-order-payout" -MethodA "POST" -UrlA "http://127.0.0.1:$resolvedApiPort/admin/orders/$mixedRaceOrderId/payouts/manual" -BodyA @{ payoutEvidenceFileId = $evidenceFileId } -HeadersA (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "mixed-race-repeat-admin-order-payout") -NameB "mixed-race-repeat-order-invoice-request" -MethodB "POST" -UrlB "http://127.0.0.1:$resolvedApiPort/orders/$mixedRaceOrderId/invoice-requests" -BodyB @{} -HeadersB (New-WriteHeaders -AuthorizationToken $userToken -Prefix $idempotencyPrefix -Label "mixed-race-repeat-order-invoice-request") -NameC "mixed-race-repeat-order-refund-request" -MethodC "POST" -UrlC "http://127.0.0.1:$resolvedApiPort/orders/$mixedRaceOrderId/refund-requests" -BodyC @{ reasonCode = "OTHER"; reasonText = "smoke mixed race repeat refund" } -HeadersC (New-WriteHeaders -AuthorizationToken $userToken -Prefix $idempotencyPrefix -Label "mixed-race-repeat-order-refund-request") -Expected @(200, 201, 409)
+  $mixedRaceRepeatPayoutResult = @($mixedRaceRepeatResults | Where-Object { $_.name -eq "mixed-race-repeat-admin-order-payout" } | Select-Object -First 1)
+  $mixedRaceRepeatInvoiceResult = @($mixedRaceRepeatResults | Where-Object { $_.name -eq "mixed-race-repeat-order-invoice-request" } | Select-Object -First 1)
+  $mixedRaceRepeatRefundResult = @($mixedRaceRepeatResults | Where-Object { $_.name -eq "mixed-race-repeat-order-refund-request" } | Select-Object -First 1)
+  if (-not $mixedRaceRepeatPayoutResult -or [int]$mixedRaceRepeatPayoutResult.status -ne 409) {
+    foreach ($mixedRaceRepeatResult in @($mixedRaceRepeatResults)) {
+      Add-ResultAssertionFailure -Result $mixedRaceRepeatResult -Assertion "mixed-race-repeat-payout-conflict" -Message "Expected repeated payout branch to conflict after settlement already succeeded"
+    }
+  }
+  if (-not $mixedRaceRepeatRefundResult -or [int]$mixedRaceRepeatRefundResult.status -ne 409) {
+    foreach ($mixedRaceRepeatResult in @($mixedRaceRepeatResults)) {
+      Add-ResultAssertionFailure -Result $mixedRaceRepeatResult -Assertion "mixed-race-repeat-refund-conflict" -Message "Expected repeated refund branch to conflict after payout terminal state"
+    }
+  }
+  if (-not $mixedRaceRepeatInvoiceResult -or -not (@(200, 201, 409) -contains [int]$mixedRaceRepeatInvoiceResult.status)) {
+    foreach ($mixedRaceRepeatResult in @($mixedRaceRepeatResults)) {
+      Add-ResultAssertionFailure -Result $mixedRaceRepeatResult -Assertion "mixed-race-repeat-invoice-status" -Message "Expected repeated invoice branch status to be one of [200,201,409]"
+    }
+  }
+  if ($mixedRaceRepeatInvoiceResult -and (@(200, 201) -contains [int]$mixedRaceRepeatInvoiceResult.status)) {
+    Assert-ResultJsonFieldEquals -Result $mixedRaceRepeatInvoiceResult -Field "status" -ExpectedValue "APPLYING" -Assertion "mixed-race-repeat-invoice-success-status"
+    $mixedRaceRepeatInvoiceUpsert = Add-ApiCaseResult -Results $results -Name "mixed-race-repeat-admin-order-upsert-invoice-with-file" -Method "PUT" -Url "http://127.0.0.1:$resolvedApiPort/admin/orders/$mixedRaceOrderId/invoice" -Body @{ invoiceFileId = $evidenceFileId } -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "mixed-race-repeat-admin-order-upsert-invoice-with-file") -Expected @(200)
+    Assert-ResultJsonFieldEquals -Result $mixedRaceRepeatInvoiceUpsert -Field "invoiceFile.id" -ExpectedValue $evidenceFileId -Assertion "mixed-race-repeat-invoice-upsert-file-linked"
+  }
+  $mixedRaceOrderDetailAfterRepeat = Add-ApiCaseResult -Results $results -Name "mixed-race-order-detail-after-repeat" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/orders/$mixedRaceOrderId" -Body $null -Headers @{ Authorization = $userToken } -Expected @(200)
+  Assert-ResultJsonFieldEquals -Result $mixedRaceOrderDetailAfterRepeat -Field "status" -ExpectedValue "COMPLETED" -Assertion "mixed-race-repeat-order-status-after"
+  $mixedRaceSettlementAfterRepeat = Add-ApiCaseResult -Results $results -Name "mixed-race-settlement-after-repeat" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/admin/orders/$mixedRaceOrderId/settlement" -Body $null -Headers @{ Authorization = $adminToken } -Expected @(200)
+  Assert-ResultJsonFieldEquals -Result $mixedRaceSettlementAfterRepeat -Field "payoutStatus" -ExpectedValue "SUCCEEDED" -Assertion "mixed-race-repeat-settlement-status-after"
 
   $refundApproveOrderId = New-RefundReadyOrder -Results $results -ApiPort $resolvedApiPort -UserToken $userToken -AdminToken $adminToken -ListingId $listingId -IdempotencyPrefix $idempotencyPrefix -CasePrefix "refund-approve"
   $refundApproveCreateHeaders = New-WriteHeaders -AuthorizationToken $userToken -Prefix $idempotencyPrefix -Label "refund-approve-create"
