@@ -170,8 +170,10 @@ export class CasesService {
     this.ensureAuth(req);
     requirePermission(req, 'case.manage');
     const q = String(query?.q || '').trim();
-    const status = this.normalizeStatus(query?.status);
-    const type = this.normalizeType(query?.type);
+    const hasStatus = this.hasOwn(query, 'status');
+    const hasType = this.hasOwn(query, 'type');
+    const status = hasStatus ? this.parseStatusStrict(query?.status, 'status') : undefined;
+    const type = hasType ? this.parseTypeStrict(query?.type, 'type') : undefined;
     const page = Math.max(1, Number(query?.page || 1));
     const pageSize = Math.min(50, Math.max(1, Number(query?.pageSize || 20)));
 
