@@ -10,8 +10,8 @@
   - Build resilience: verify appends `NODE_OPTIONS=--max-old-space-size=4096` and retries transient `client:build:h5` crash exits once.
   - Chaos trend persistence: verify now passes `-ChaosHistoryPath` into `api-real-smoke` and snapshots history as `.tmp/api-real-smoke-chaos-history-<ReportDate>.json` for reproducible trend baselines.
   - Quality gates: `openapi:lint`, `lint`, `typecheck`, `scan:banned-words` all pass.
-  - API smoke: pass (536/536) -> `.tmp/api-real-smoke-2026-03-06-summary.json`
-  - API smoke write/read split: writes 443/443, reads 93/93.
+  - API smoke: pass (553/553) -> `.tmp/api-real-smoke-2026-03-06-summary.json`
+  - API smoke write/read split: writes 460/460, reads 93/93.
   - Semantic/state checks now included: cross-module order/refund/case/maintenance/rbac state assertions, file-link persistence assertions, and post-action detail re-fetch checks.
   - Idempotency replay checks now included: same-key replay for order create, payment intents (deposit/final), invoice request, and refund request create.
   - Failure/idempotency checks now included: duplicate favorites, invalid comment/message payloads (including strict 400 for empty comment create/update), and missing-resource delete paths.
@@ -128,6 +128,7 @@
   - Added publish/off-shelf missing-resource guards: `POST /admin/listings|demands|achievements|artworks|announcements/:id/publish|off-shelf` now continuously asserted as 404 on missing ids.
   - Added patent admin write coverage: `POST/PATCH /admin/patents` create/update happy paths and strict negatives (invalid application number, missing patent type, invalid sourceUpdatedAt, invalid filingDate/sourcePrimary, missing patent 404).
   - Added announcement admin write coverage + hardening: `POST/PATCH/DELETE /admin/announcements` create/update/delete happy paths and strict negatives (invalid status, empty title, missing targets), plus public deleted-resource read-back (`GET /public/announcements/:id` -> 404).
+  - Added demand admin write coverage + hardening: `POST/PATCH /admin/demands` and `POST /admin/demands/:id/publish|off-shelf|approve|reject` now have happy-path coverage; explicit invalid `source/status/auditStatus/budgetType/deliveryPeriod` inputs now return strict 400, and missing update target returns 404.
   - Added tech-manager update validation hardening + coverage: `PATCH /admin/tech-managers/:id` now rejects invalid `featuredRank`/`featuredUntil`/`serviceTags` with 400, and missing target remains 404.
   - Added comment validation hardening: empty-text create/update now return 400 consistently (removed prior 403 ambiguity from `ForbiddenException(code=BAD_REQUEST)` path).
   - Added verification negative guards + fix: `POST /admin/user-verifications/:id/approve|reject` missing verification now expected 404 (regression fixed from Prisma `P2025` 500 to business `NOT_FOUND`), and reject missing `reason` now locked at 400.

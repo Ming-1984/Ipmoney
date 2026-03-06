@@ -91,6 +91,52 @@ export class DemandsService {
     return allowed.includes(v) ? (v as DeliveryPeriod) : undefined;
   }
 
+  private hasOwn(body: any, key: string) {
+    return Object.prototype.hasOwnProperty.call(body || {}, key);
+  }
+
+  private parseContentSourceStrict(value: unknown, fieldName: string): 'USER' | 'ADMIN' | 'PLATFORM' {
+    const normalized = this.normalizeContentSource(value);
+    if (!normalized) {
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: `${fieldName} is invalid` });
+    }
+    return normalized;
+  }
+
+  private parseContentStatusStrict(value: unknown, fieldName: string): 'DRAFT' | 'ACTIVE' | 'OFF_SHELF' {
+    const normalized = this.normalizeContentStatus(value);
+    if (!normalized) {
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: `${fieldName} is invalid` });
+    }
+    return normalized;
+  }
+
+  private parseAuditStatusStrict(value: unknown, fieldName: string): 'PENDING' | 'APPROVED' | 'REJECTED' {
+    const normalized = this.normalizeAuditStatus(value);
+    if (!normalized) {
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: `${fieldName} is invalid` });
+    }
+    return normalized;
+  }
+
+  private parseNullablePriceTypeStrict(value: unknown, fieldName: string): 'FIXED' | 'NEGOTIABLE' | null {
+    if (value === null || String(value).trim() === '') return null;
+    const normalized = this.normalizePriceType(value);
+    if (!normalized) {
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: `${fieldName} is invalid` });
+    }
+    return normalized;
+  }
+
+  private parseNullableDeliveryPeriodStrict(value: unknown, fieldName: string): DeliveryPeriod | null {
+    if (value === null || String(value).trim() === '') return null;
+    const normalized = this.normalizeDeliveryPeriod(value);
+    if (!normalized) {
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: `${fieldName} is invalid` });
+    }
+    return normalized;
+  }
+
   private parseOptionalInt(value: unknown, fieldName: string, min = 0): number | undefined {
     if (value === undefined || value === null || String(value).trim() === '') return undefined;
     const num = Number(value);
@@ -570,16 +616,23 @@ export class DemandsService {
     const title = String(body?.title || '').trim();
     if (!title) throw new BadRequestException({ code: 'BAD_REQUEST', message: 'title is required' });
 
-    const sourceInput = this.normalizeContentSource(body?.source) ?? 'ADMIN';
+    const hasSource = this.hasOwn(body, 'source');
+    const sourceInput = hasSource ? this.parseContentSourceStrict(body?.source, 'source') : 'ADMIN';
+    const hasDeliveryPeriod = this.hasOwn(body, 'deliveryPeriod');
+    const hasBudgetType = this.hasOwn(body, 'budgetType');
+    const hasAuditStatus = this.hasOwn(body, 'auditStatus');
+    const hasStatus = this.hasOwn(body, 'status');
     const ownerId = String(body?.publisherUserId || body?.ownerId || req?.auth?.userId || '').trim();
     const keywords = normalizeStringArray(body?.keywords);
     const cooperationModes = normalizeStringArray(body?.cooperationModes);
     const industryTags = normalizeStringArray(body?.industryTags);
-    const deliveryPeriod = this.normalizeDeliveryPeriod(body?.deliveryPeriod);
-    const budgetType = this.normalizePriceType(body?.budgetType);
+    const deliveryPeriod = hasDeliveryPeriod ? this.parseNullableDeliveryPeriodStrict(body?.deliveryPeriod, 'deliveryPeriod') : undefined;
+    const budgetType = hasBudgetType ? this.parseNullablePriceTypeStrict(body?.budgetType, 'budgetType') : undefined;
     const budgetMinFen = this.parseOptionalInt(body?.budgetMinFen, 'budgetMinFen', 0);
     const budgetMaxFen = this.parseOptionalInt(body?.budgetMaxFen, 'budgetMaxFen', 0);
     const mediaInput = normalizeMediaInput(body?.media);
+    const auditStatus = hasAuditStatus ? this.parseAuditStatusStrict(body?.auditStatus, 'auditStatus') : 'PENDING';
+    const status = hasStatus ? this.parseContentStatusStrict(body?.status, 'status') : 'DRAFT';
 
     const created = await this.prisma.$transaction(async (tx) => {
       const demand = await tx.demand.create({
@@ -590,9 +643,9 @@ export class DemandsService {
           summary: body?.summary ?? null,
           description: body?.description ?? null,
           keywordsJson: keywords.length > 0 ? keywords : Prisma.DbNull,
-          deliveryPeriod: deliveryPeriod ?? null,
+          deliveryPeriod: deliveryPeriod === undefined ? null : deliveryPeriod,
           cooperationModesJson: cooperationModes.length > 0 ? cooperationModes : Prisma.DbNull,
-          budgetType: budgetType ?? null,
+          budgetType: budgetType === undefined ? null : budgetType,
           budgetMinFen: budgetMinFen ?? null,
           budgetMaxFen: budgetMaxFen ?? null,
           contactName: body?.contactName ? String(body.contactName) : null,
@@ -601,8 +654,8 @@ export class DemandsService {
           coverFileId: body?.coverFileId ? String(body.coverFileId) : null,
           regionCode: body?.regionCode ? String(body.regionCode) : null,
           industryTagsJson: industryTags.length > 0 ? industryTags : Prisma.DbNull,
-          auditStatus: this.normalizeAuditStatus(body?.auditStatus) ?? 'PENDING',
-          status: this.normalizeContentStatus(body?.status) ?? 'DRAFT',
+          auditStatus,
+          status,
         },
       });
 
@@ -638,24 +691,32 @@ export class DemandsService {
     const item = await this.fetchDemand(demandId);
     if (!item) throw new NotFoundException({ code: 'NOT_FOUND', message: 'demand not found' });
 
-    const hasKeywords = Object.prototype.hasOwnProperty.call(body || {}, 'keywords');
-    const hasCooperationModes = Object.prototype.hasOwnProperty.call(body || {}, 'cooperationModes');
-    const hasIndustryTags = Object.prototype.hasOwnProperty.call(body || {}, 'industryTags');
-    const hasCoverFileId = Object.prototype.hasOwnProperty.call(body || {}, 'coverFileId');
-    const hasContactName = Object.prototype.hasOwnProperty.call(body || {}, 'contactName');
-    const hasContactTitle = Object.prototype.hasOwnProperty.call(body || {}, 'contactTitle');
-    const hasContactPhone = Object.prototype.hasOwnProperty.call(body || {}, 'contactPhoneMasked');
-    const hasMedia = Object.prototype.hasOwnProperty.call(body || {}, 'media');
+    const hasKeywords = this.hasOwn(body, 'keywords');
+    const hasCooperationModes = this.hasOwn(body, 'cooperationModes');
+    const hasIndustryTags = this.hasOwn(body, 'industryTags');
+    const hasCoverFileId = this.hasOwn(body, 'coverFileId');
+    const hasContactName = this.hasOwn(body, 'contactName');
+    const hasContactTitle = this.hasOwn(body, 'contactTitle');
+    const hasContactPhone = this.hasOwn(body, 'contactPhoneMasked');
+    const hasMedia = this.hasOwn(body, 'media');
+    const hasSource = this.hasOwn(body, 'source');
+    const hasDeliveryPeriod = this.hasOwn(body, 'deliveryPeriod');
+    const hasBudgetType = this.hasOwn(body, 'budgetType');
+    const hasAuditStatus = this.hasOwn(body, 'auditStatus');
+    const hasStatus = this.hasOwn(body, 'status');
 
     const keywords = hasKeywords ? normalizeStringArray(body?.keywords) : undefined;
     const cooperationModes = hasCooperationModes ? normalizeStringArray(body?.cooperationModes) : undefined;
     const industryTags = hasIndustryTags ? normalizeStringArray(body?.industryTags) : undefined;
     const mediaInput = hasMedia ? normalizeMediaInput(body?.media) : [];
 
-    const deliveryPeriod = this.normalizeDeliveryPeriod(body?.deliveryPeriod);
-    const budgetType = this.normalizePriceType(body?.budgetType);
+    const source = hasSource ? this.parseContentSourceStrict(body?.source, 'source') : undefined;
+    const deliveryPeriod = hasDeliveryPeriod ? this.parseNullableDeliveryPeriodStrict(body?.deliveryPeriod, 'deliveryPeriod') : undefined;
+    const budgetType = hasBudgetType ? this.parseNullablePriceTypeStrict(body?.budgetType, 'budgetType') : undefined;
     const budgetMinFen = this.parseOptionalInt(body?.budgetMinFen, 'budgetMinFen', 0);
     const budgetMaxFen = this.parseOptionalInt(body?.budgetMaxFen, 'budgetMaxFen', 0);
+    const auditStatus = hasAuditStatus ? this.parseAuditStatusStrict(body?.auditStatus, 'auditStatus') : undefined;
+    const status = hasStatus ? this.parseContentStatusStrict(body?.status, 'status') : undefined;
     const publisherUserId = body?.publisherUserId ? String(body.publisherUserId) : body?.ownerId ? String(body.ownerId) : undefined;
 
     await this.prisma.$transaction(async (tx) => {
@@ -663,12 +724,12 @@ export class DemandsService {
         where: { id: demandId },
         data: {
           publisherUserId: publisherUserId ?? undefined,
-          source: body?.source !== undefined ? this.normalizeContentSource(body?.source) ?? item.source : undefined,
+          source: hasSource ? source : undefined,
           title: body?.title ?? undefined,
           summary: body?.summary ?? undefined,
           description: body?.description ?? undefined,
-          deliveryPeriod: body?.deliveryPeriod !== undefined ? deliveryPeriod ?? null : undefined,
-          budgetType: body?.budgetType !== undefined ? budgetType ?? null : undefined,
+          deliveryPeriod: hasDeliveryPeriod ? deliveryPeriod : undefined,
+          budgetType: hasBudgetType ? budgetType : undefined,
           budgetMinFen: body?.budgetMinFen !== undefined ? budgetMinFen ?? null : undefined,
           budgetMaxFen: body?.budgetMaxFen !== undefined ? budgetMaxFen ?? null : undefined,
           regionCode: body?.regionCode ?? undefined,
@@ -683,8 +744,8 @@ export class DemandsService {
               : Prisma.DbNull
             : undefined,
           industryTagsJson: hasIndustryTags ? (industryTags && industryTags.length > 0 ? industryTags : Prisma.DbNull) : undefined,
-          auditStatus: body?.auditStatus !== undefined ? this.normalizeAuditStatus(body?.auditStatus) ?? item.auditStatus : undefined,
-          status: body?.status !== undefined ? this.normalizeContentStatus(body?.status) ?? item.status : undefined,
+          auditStatus: hasAuditStatus ? auditStatus : undefined,
+          status: hasStatus ? status : undefined,
         },
       });
 
