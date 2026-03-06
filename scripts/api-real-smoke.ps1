@@ -943,7 +943,27 @@ try {
   $adminSensitiveWordsConfig = Invoke-RestMethod -Method Get -Uri "http://127.0.0.1:$resolvedApiPort/admin/config/sensitive-words" -Headers @{ Authorization = $adminToken }
   $adminHotSearchConfig = Invoke-RestMethod -Method Get -Uri "http://127.0.0.1:$resolvedApiPort/admin/config/hot-search" -Headers @{ Authorization = $adminToken }
 
-  $listingId = Select-ContentId -Items @($adminListingsForWrites.items) -OwnerField "sellerUserId" -CurrentUserId $currentUserId -Label "listing"
+  $listingCandidates = @($adminListingsForWrites.items)
+  if ($listingCandidates.Count -le 0) {
+    throw "No listing items found for smoke write/order cases"
+  }
+  $nonSelfListings = @($listingCandidates | Where-Object { $_.sellerUserId -and [string]$_.sellerUserId -ne $currentUserId })
+  $selectedListing = $null
+  if ($nonSelfListings.Count -gt 0) {
+    $selectedListing = @($nonSelfListings | Select-Object -First 1)[0]
+  } else {
+    $selectedListing = @($listingCandidates | Select-Object -First 1)[0]
+  }
+  $listingId = [string]$selectedListing.id
+  if ([string]::IsNullOrWhiteSpace($listingId)) {
+    throw "No valid listing id available for smoke write/order cases"
+  }
+  if ([string]$selectedListing.status -ne "ACTIVE") {
+    [void](Add-ApiCaseResult -Results $results -Name "admin-listing-prepare-orderable-publish" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/admin/listings/$listingId/publish" -Body @{} -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-listing-prepare-orderable-publish") -Expected @(200, 201, 409))
+  }
+  if ([string]$selectedListing.auditStatus -ne "APPROVED") {
+    [void](Add-ApiCaseResult -Results $results -Name "admin-listing-prepare-orderable-approve" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/admin/listings/$listingId/approve" -Body @{} -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-listing-prepare-orderable-approve") -Expected @(200, 201, 409))
+  }
   $demandId = Select-ContentId -Items @($adminDemandsForWrites.items) -OwnerField "publisherUserId" -CurrentUserId $currentUserId -Label "demand"
   $achievementId = Select-ContentId -Items @($adminAchievementsForWrites.items) -OwnerField "publisherUserId" -CurrentUserId $currentUserId -Label "achievement"
   $artworkId = Select-ContentId -Items @($adminArtworksForWrites.items) -OwnerField "sellerUserId" -CurrentUserId $currentUserId -Label "artwork"
@@ -1176,10 +1196,13 @@ try {
   if ([string]::IsNullOrWhiteSpace($smokePatentId)) { throw "admin-patent-create missing id" }
   [void](Add-ApiCaseResult -Results $results -Name "admin-patent-create-invalid-application-no" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/admin/patents" -Body @{ applicationNoNorm = "INVALID"; patentType = "INVENTION"; title = "Smoke Patent Invalid" } -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-patent-create-invalid-application-no") -Expected @(400))
   [void](Add-ApiCaseResult -Results $results -Name "admin-patent-create-missing-patent-type" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/admin/patents" -Body @{ applicationNoNorm = "2026123456781"; title = "Smoke Patent Missing Type" } -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-patent-create-missing-patent-type") -Expected @(400))
+  [void](Add-ApiCaseResult -Results $results -Name "admin-patent-create-invalid-source-primary" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/admin/patents" -Body @{ applicationNoNorm = "2026123456771"; patentType = "INVENTION"; title = "Smoke Patent Invalid Source Primary"; sourcePrimary = "INVALID" } -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-patent-create-invalid-source-primary") -Expected @(400))
+  [void](Add-ApiCaseResult -Results $results -Name "admin-patent-create-invalid-legal-status" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/admin/patents" -Body @{ applicationNoNorm = "2026123456761"; patentType = "INVENTION"; title = "Smoke Patent Invalid Legal Status"; legalStatus = "INVALID" } -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-patent-create-invalid-legal-status") -Expected @(400))
   [void](Add-ApiCaseResult -Results $results -Name "admin-patent-create-invalid-source-updated-at" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/admin/patents" -Body @{ applicationNoNorm = "2026123456791"; patentType = "INVENTION"; title = "Smoke Patent Invalid Source"; sourceUpdatedAt = "invalid-date" } -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-patent-create-invalid-source-updated-at") -Expected @(400))
   $adminPatentUpdate = Add-ApiCaseResult -Results $results -Name "admin-patent-update" -Method "PATCH" -Url "http://127.0.0.1:$resolvedApiPort/admin/patents/$smokePatentId" -Body @{ title = "$smokePatentTitle Updated"; filingDate = "2026-01-02"; legalStatus = "GRANTED" } -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-patent-update") -Expected @(200)
   Assert-ResultJsonFieldEquals -Result $adminPatentUpdate -Field "title" -ExpectedValue "$smokePatentTitle Updated" -Assertion "admin-patent-update-title"
   [void](Add-ApiCaseResult -Results $results -Name "admin-patent-update-invalid-filing-date" -Method "PATCH" -Url "http://127.0.0.1:$resolvedApiPort/admin/patents/$smokePatentId" -Body @{ filingDate = "invalid-date" } -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-patent-update-invalid-filing-date") -Expected @(400))
+  [void](Add-ApiCaseResult -Results $results -Name "admin-patent-update-invalid-legal-status" -Method "PATCH" -Url "http://127.0.0.1:$resolvedApiPort/admin/patents/$smokePatentId" -Body @{ legalStatus = "INVALID" } -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-patent-update-invalid-legal-status") -Expected @(400))
   [void](Add-ApiCaseResult -Results $results -Name "admin-patent-update-invalid-source-primary" -Method "PATCH" -Url "http://127.0.0.1:$resolvedApiPort/admin/patents/$smokePatentId" -Body @{ sourcePrimary = "INVALID" } -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-patent-update-invalid-source-primary") -Expected @(400))
   [void](Add-ApiCaseResult -Results $results -Name "admin-patent-update-missing" -Method "PATCH" -Url "http://127.0.0.1:$resolvedApiPort/admin/patents/$([guid]::NewGuid().ToString())" -Body @{ title = "Smoke Patent Missing" } -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-patent-update-missing") -Expected @(404))
 
