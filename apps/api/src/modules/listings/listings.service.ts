@@ -71,6 +71,50 @@ export class ListingsService {
     return undefined;
   }
 
+  private hasOwn(body: any, key: string) {
+    return Object.prototype.hasOwnProperty.call(body || {}, key);
+  }
+
+  private parseContentSourceStrict(value: unknown, fieldName: string): ContentSource {
+    const normalized = this.normalizeContentSource(value);
+    if (!normalized) {
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: `${fieldName} is invalid` });
+    }
+    return normalized;
+  }
+
+  private normalizeTradeMode(value: unknown): 'ASSIGNMENT' | 'LICENSE' | undefined {
+    const mode = String(value || '').trim().toUpperCase();
+    if (mode === 'ASSIGNMENT' || mode === 'LICENSE') return mode as 'ASSIGNMENT' | 'LICENSE';
+    return undefined;
+  }
+
+  private normalizeLicenseMode(value: unknown): 'EXCLUSIVE' | 'SOLE' | 'NON_EXCLUSIVE' | undefined {
+    const mode = String(value || '').trim().toUpperCase();
+    if (!mode) return undefined;
+    if (mode === 'EXCLUSIVE' || mode === 'SOLE' || mode === 'NON_EXCLUSIVE') {
+      return mode as 'EXCLUSIVE' | 'SOLE' | 'NON_EXCLUSIVE';
+    }
+    return undefined;
+  }
+
+  private parseTradeModeStrict(value: unknown, fieldName: string): 'ASSIGNMENT' | 'LICENSE' {
+    const normalized = this.normalizeTradeMode(value);
+    if (!normalized) {
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: `${fieldName} is invalid` });
+    }
+    return normalized;
+  }
+
+  private parseNullableLicenseModeStrict(value: unknown, fieldName: string): 'EXCLUSIVE' | 'SOLE' | 'NON_EXCLUSIVE' | null {
+    if (value === null || String(value).trim() === '') return null;
+    const normalized = this.normalizeLicenseMode(value);
+    if (!normalized) {
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: `${fieldName} is invalid` });
+    }
+    return normalized;
+  }
+
   private normalizePatentSource(value: any): 'USER' | 'ADMIN' | 'PROVIDER' | undefined {
     const source = String(value || '').trim().toUpperCase();
     if (!source) return undefined;
@@ -85,10 +129,32 @@ export class ListingsService {
     return undefined;
   }
 
+  private parseListingStatusStrict(value: unknown, fieldName: string): ListingStatus {
+    const normalized = this.normalizeListingStatus(value);
+    if (!normalized) {
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: `${fieldName} is invalid` });
+    }
+    return normalized;
+  }
+
   private normalizeAuditStatus(value: any): AuditStatus | undefined {
     const s = String(value || '').trim().toUpperCase();
     if (s === 'PENDING' || s === 'APPROVED' || s === 'REJECTED') return s as AuditStatus;
     return undefined;
+  }
+
+  private parseAuditStatusStrict(value: unknown, fieldName: string): AuditStatus {
+    const normalized = this.normalizeAuditStatus(value);
+    if (!normalized) {
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: `${fieldName} is invalid` });
+    }
+    return normalized;
+  }
+
+  private parsePriceTypeStrict(value: unknown, fieldName: string): 'FIXED' | 'NEGOTIABLE' {
+    const normalized = String(value || '').trim().toUpperCase();
+    if (normalized === 'FIXED' || normalized === 'NEGOTIABLE') return normalized as 'FIXED' | 'NEGOTIABLE';
+    throw new BadRequestException({ code: 'BAD_REQUEST', message: `${fieldName} is invalid` });
   }
 
   private normalizeFileIds(input: unknown): string[] {
@@ -108,6 +174,15 @@ export class ListingsService {
     return undefined;
   }
 
+  private parseNullablePledgeStatusStrict(value: unknown, fieldName: string): PledgeStatus | null {
+    if (value === null || String(value).trim() === '') return null;
+    const normalized = this.normalizePledgeStatus(value);
+    if (!normalized) {
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: `${fieldName} is invalid` });
+    }
+    return normalized;
+  }
+
   private normalizeExistingLicenseStatus(value: unknown): ExistingLicenseStatus | undefined {
     const v = String(value || '').trim().toUpperCase();
     if (!v) return undefined;
@@ -115,6 +190,15 @@ export class ListingsService {
       return v as ExistingLicenseStatus;
     }
     return undefined;
+  }
+
+  private parseNullableExistingLicenseStatusStrict(value: unknown, fieldName: string): ExistingLicenseStatus | null {
+    if (value === null || String(value).trim() === '') return null;
+    const normalized = this.normalizeExistingLicenseStatus(value);
+    if (!normalized) {
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: `${fieldName} is invalid` });
+    }
+    return normalized;
   }
 
   private parseOptionalInt(value: unknown, fieldName: string, min?: number): number | undefined {
@@ -736,7 +820,30 @@ export class ListingsService {
 
   async adminCreate(req: any, body: any) {
     this.ensureAdmin(req);
-    const source = this.normalizeContentSource(body?.source) ?? 'ADMIN';
+    const hasSource = this.hasOwn(body, 'source');
+    const hasTradeMode = this.hasOwn(body, 'tradeMode');
+    const hasLicenseMode = this.hasOwn(body, 'licenseMode');
+    const hasPriceType = this.hasOwn(body, 'priceType');
+    const hasPriceAmountFen = this.hasOwn(body, 'priceAmountFen');
+    const hasDepositAmountFen = this.hasOwn(body, 'depositAmountFen');
+    const hasPledgeStatus = this.hasOwn(body, 'pledgeStatus');
+    const hasExistingLicenseStatus = this.hasOwn(body, 'existingLicenseStatus');
+    const hasAuditStatus = this.hasOwn(body, 'auditStatus');
+    const hasStatus = this.hasOwn(body, 'status');
+
+    const source = hasSource ? this.parseContentSourceStrict(body?.source, 'source') : 'ADMIN';
+    const tradeMode = hasTradeMode ? this.parseTradeModeStrict(body?.tradeMode, 'tradeMode') : 'ASSIGNMENT';
+    const licenseMode = hasLicenseMode ? this.parseNullableLicenseModeStrict(body?.licenseMode, 'licenseMode') : null;
+    const priceType = hasPriceType ? this.parsePriceTypeStrict(body?.priceType, 'priceType') : 'NEGOTIABLE';
+    const priceAmountFen = hasPriceAmountFen ? this.parseOptionalInt(body?.priceAmountFen, 'priceAmountFen', 0) : undefined;
+    const depositAmountFen = hasDepositAmountFen ? (this.parseOptionalInt(body?.depositAmountFen, 'depositAmountFen', 0) ?? 0) : 0;
+    const pledgeStatus = hasPledgeStatus ? this.parseNullablePledgeStatusStrict(body?.pledgeStatus, 'pledgeStatus') : null;
+    const existingLicenseStatus = hasExistingLicenseStatus
+      ? this.parseNullableExistingLicenseStatusStrict(body?.existingLicenseStatus, 'existingLicenseStatus')
+      : null;
+    const auditStatus = hasAuditStatus ? this.parseAuditStatusStrict(body?.auditStatus, 'auditStatus') : 'PENDING';
+    const status = hasStatus ? this.parseListingStatusStrict(body?.status, 'status') : 'DRAFT';
+
     const sellerUserId = String(body?.sellerUserId || req?.auth?.userId || '').trim();
     if (!sellerUserId) {
       throw new BadRequestException({ code: 'BAD_REQUEST', message: 'sellerUserId is required' });
@@ -751,7 +858,6 @@ export class ListingsService {
         this.syncPatentClassifications(patent.id, 'LOC', body?.locCodes),
       ]);
     }
-    const depositAmountFen = Number(body?.depositAmountFen || 0);
     const listingTopics = this.normalizeStringArray(body?.listingTopics ?? body?.listingTopic)
       .map((v: any) => String(v || '').trim().toUpperCase())
       .filter((v: any) => v.length > 0);
@@ -764,11 +870,7 @@ export class ListingsService {
       throw new BadRequestException({ code: 'BAD_REQUEST', message: 'negotiableRange is invalid' });
     }
     const negotiableNote = body?.negotiableNote ? String(body?.negotiableNote) : null;
-    const pledgeStatus = this.normalizePledgeStatus(body?.pledgeStatus);
-    const existingLicenseStatus = this.normalizeExistingLicenseStatus(body?.existingLicenseStatus);
     const encumbranceNote = body?.encumbranceNote ? String(body?.encumbranceNote) : null;
-    const auditStatus = this.normalizeAuditStatus(body?.auditStatus) ?? 'PENDING';
-    const status = this.normalizeListingStatus(body?.status) ?? 'DRAFT';
     const listing = await this.prisma.listing.create({
       data: {
         sellerUserId,
@@ -776,18 +878,18 @@ export class ListingsService {
         patentId: patent?.id ?? null,
         title: body?.title || patent?.title || 'Listing',
         summary: body?.summary || null,
-        tradeMode: body?.tradeMode || 'ASSIGNMENT',
-        licenseMode: body?.licenseMode || null,
-        priceType: body?.priceType || 'NEGOTIABLE',
-        priceAmount: body?.priceAmountFen ?? null,
+        tradeMode,
+        licenseMode,
+        priceType,
+        priceAmount: hasPriceAmountFen ? (priceAmountFen ?? null) : null,
         depositAmount: depositAmountFen,
         deliverablesJson: deliverables.length > 0 ? deliverables : Prisma.DbNull,
         expectedCompletionDays: expectedCompletionDays ?? null,
         negotiableRangeFen: negotiableRangeFen ?? null,
         negotiableRangePercent: negotiableRangePercent ?? null,
         negotiableNote,
-        pledgeStatus: pledgeStatus ?? null,
-        existingLicenseStatus: existingLicenseStatus ?? null,
+        pledgeStatus,
+        existingLicenseStatus,
         encumbranceNote,
         regionCode: body?.regionCode || null,
         industryTagsJson: body?.industryTags ?? Prisma.DbNull,
@@ -834,29 +936,44 @@ export class ListingsService {
     const hasNegotiableNote = Object.prototype.hasOwnProperty.call(body || {}, 'negotiableNote');
     const negotiableNote = hasNegotiableNote ? (body?.negotiableNote ? String(body?.negotiableNote) : null) : undefined;
     const hasPledgeStatus = Object.prototype.hasOwnProperty.call(body || {}, 'pledgeStatus');
-    const pledgeStatus = hasPledgeStatus ? this.normalizePledgeStatus(body?.pledgeStatus) : undefined;
+    const pledgeStatus = hasPledgeStatus ? this.parseNullablePledgeStatusStrict(body?.pledgeStatus, 'pledgeStatus') : undefined;
     const hasExistingLicenseStatus = Object.prototype.hasOwnProperty.call(body || {}, 'existingLicenseStatus');
-    const existingLicenseStatus = hasExistingLicenseStatus ? this.normalizeExistingLicenseStatus(body?.existingLicenseStatus) : undefined;
+    const existingLicenseStatus = hasExistingLicenseStatus
+      ? this.parseNullableExistingLicenseStatusStrict(body?.existingLicenseStatus, 'existingLicenseStatus')
+      : undefined;
     const hasEncumbranceNote = Object.prototype.hasOwnProperty.call(body || {}, 'encumbranceNote');
     const encumbranceNote = hasEncumbranceNote ? (body?.encumbranceNote ? String(body?.encumbranceNote) : null) : undefined;
     const hasClusterId = Object.prototype.hasOwnProperty.call(body || {}, 'clusterId');
-    const source = this.normalizeContentSource(body?.source);
-    const auditStatus = this.normalizeAuditStatus(body?.auditStatus);
-    const status = this.normalizeListingStatus(body?.status);
+    const hasSource = this.hasOwn(body, 'source');
+    const source = hasSource ? this.parseContentSourceStrict(body?.source, 'source') : undefined;
+    const hasTradeMode = this.hasOwn(body, 'tradeMode');
+    const tradeMode = hasTradeMode ? this.parseTradeModeStrict(body?.tradeMode, 'tradeMode') : undefined;
+    const hasLicenseMode = this.hasOwn(body, 'licenseMode');
+    const licenseMode = hasLicenseMode ? this.parseNullableLicenseModeStrict(body?.licenseMode, 'licenseMode') : undefined;
+    const hasPriceType = this.hasOwn(body, 'priceType');
+    const priceType = hasPriceType ? this.parsePriceTypeStrict(body?.priceType, 'priceType') : undefined;
+    const hasPriceAmountFen = this.hasOwn(body, 'priceAmountFen');
+    const priceAmountFen = hasPriceAmountFen ? this.parseOptionalInt(body?.priceAmountFen, 'priceAmountFen', 0) : undefined;
+    const hasDepositAmountFen = this.hasOwn(body, 'depositAmountFen');
+    const depositAmountFen = hasDepositAmountFen ? this.parseOptionalInt(body?.depositAmountFen, 'depositAmountFen', 0) : undefined;
+    const hasAuditStatus = this.hasOwn(body, 'auditStatus');
+    const auditStatus = hasAuditStatus ? this.parseAuditStatusStrict(body?.auditStatus, 'auditStatus') : undefined;
+    const hasStatus = this.hasOwn(body, 'status');
+    const status = hasStatus ? this.parseListingStatusStrict(body?.status, 'status') : undefined;
     const sellerUserId = body?.sellerUserId ? String(body.sellerUserId) : listing.sellerUserId;
     const updated = await this.prisma.listing.update({
       where: { id: listingId },
       data: {
         sellerUserId,
-        source: source ?? listing.source,
+        source: hasSource ? source : listing.source,
         patentId: patentId ?? null,
         title: body?.title ?? listing.title,
         summary: body?.summary ?? listing.summary,
-        tradeMode: body?.tradeMode ?? listing.tradeMode,
-        licenseMode: body?.licenseMode ?? listing.licenseMode,
-        priceType: body?.priceType ?? listing.priceType,
-        priceAmount: body?.priceAmountFen ?? listing.priceAmount,
-        depositAmount: body?.depositAmountFen ?? listing.depositAmount,
+        tradeMode: hasTradeMode ? tradeMode : listing.tradeMode,
+        licenseMode: hasLicenseMode ? licenseMode : listing.licenseMode,
+        priceType: hasPriceType ? priceType : listing.priceType,
+        priceAmount: hasPriceAmountFen ? (priceAmountFen ?? listing.priceAmount) : listing.priceAmount,
+        depositAmount: hasDepositAmountFen ? (depositAmountFen ?? listing.depositAmount) : listing.depositAmount,
         deliverablesJson: hasDeliverables ? (deliverables && deliverables.length > 0 ? deliverables : Prisma.DbNull) : undefined,
         expectedCompletionDays: hasExpectedCompletionDays ? (expectedCompletionDays ?? null) : listing.expectedCompletionDays,
         negotiableRangeFen: hasNegotiableRangeFen ? (negotiableRangeFen ?? null) : listing.negotiableRangeFen,
@@ -870,8 +987,8 @@ export class ListingsService {
         listingTopicsJson: hasListingTopics ? (listingTopics && listingTopics.length > 0 ? listingTopics : Prisma.DbNull) : undefined,
         proofFileIdsJson: hasProofFileIds ? (proofFileIds && proofFileIds.length > 0 ? proofFileIds : Prisma.DbNull) : undefined,
         clusterId: hasClusterId ? body?.clusterId : listing.clusterId,
-        auditStatus: auditStatus ?? listing.auditStatus,
-        status: status ?? listing.status,
+        auditStatus: hasAuditStatus ? auditStatus : listing.auditStatus,
+        status: hasStatus ? status : listing.status,
       },
     });
     if (patentId) {
