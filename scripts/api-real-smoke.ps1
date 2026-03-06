@@ -1081,6 +1081,7 @@ try {
   }
   $adminSetListingFeatured = Add-ApiCaseResult -Results $results -Name "admin-listing-featured-set-none" -Method "PUT" -Url "http://127.0.0.1:$resolvedApiPort/admin/listings/$listingId/featured" -Body @{ featuredLevel = "NONE" } -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-listing-featured-set-none") -Expected @(200)
   Assert-ResultJsonFieldEquals -Result $adminSetListingFeatured -Field "featuredLevel" -ExpectedValue "NONE" -Assertion "admin-listing-featured-level-none"
+  [void](Add-ApiCaseResult -Results $results -Name "admin-listing-featured-set-missing" -Method "PUT" -Url "http://127.0.0.1:$resolvedApiPort/admin/listings/$([guid]::NewGuid().ToString())/featured" -Body @{ featuredLevel = "NONE" } -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-listing-featured-set-missing") -Expected @(404))
 
   $listingFavoriteHeaders = New-WriteHeaders -AuthorizationToken $userToken -Prefix $idempotencyPrefix -Label "favorite-listing-post"
   [void](Add-ApiCaseResult -Results $results -Name "listing-favorite-post" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/listings/$listingId/favorites" -Body $null -Headers $listingFavoriteHeaders -Expected @(200, 201))

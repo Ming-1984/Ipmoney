@@ -993,7 +993,15 @@ export class ListingsService {
       data.featuredUntil = null;
     }
 
-    const it = await this.prisma.listing.update({ where: { id: listingId }, data });
+    let it: any;
+    try {
+      it = await this.prisma.listing.update({ where: { id: listingId }, data });
+    } catch (error: any) {
+      if (error?.code === 'P2025') {
+        throw new NotFoundException({ code: 'NOT_FOUND', message: 'listing not found' });
+      }
+      throw error;
+    }
     if (operatorId) {
       await this.audit.log({
         actorUserId: operatorId,
