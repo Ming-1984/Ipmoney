@@ -391,7 +391,15 @@ export class PatentsService {
     }
 
     const legalStatus = this.normalizeLegalStatus(body?.legalStatus);
-    const sourcePrimary = this.normalizeSourcePrimary(body?.sourcePrimary) ?? 'ADMIN';
+    const hasSourcePrimary = this.hasOwn(body, 'sourcePrimary');
+    let sourcePrimary: PatentSourcePrimaryDto = 'ADMIN';
+    if (hasSourcePrimary) {
+      const parsedSourcePrimary = this.normalizeSourcePrimary(body?.sourcePrimary);
+      if (!parsedSourcePrimary) {
+        throw new BadRequestException({ code: 'BAD_REQUEST', message: 'sourcePrimary is invalid' });
+      }
+      sourcePrimary = parsedSourcePrimary;
+    }
     const sourceUpdatedAt = this.parseDateTime(body?.sourceUpdatedAt, 'sourceUpdatedAt') ?? new Date();
     const filingDate = this.parseDate(body?.filingDate, 'filingDate');
     const publicationDate = this.parseDate(body?.publicationDate, 'publicationDate');
