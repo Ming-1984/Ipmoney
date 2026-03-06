@@ -24,6 +24,14 @@ import { isDemoPaymentEnabled } from '../../common/demo';
 import { NotificationsService } from '../notifications/notifications.service';
 
 const DEFAULT_CS_USER_ID = '00000000-0000-0000-0000-000000000002';
+const REFUND_REASON_CODES = [
+  'BUYER_CHANGED_MIND',
+  'SELLER_MISSING_MATERIALS',
+  'MUTUAL_AGREEMENT',
+  'RISK_CONTROL',
+  'OTHER',
+] as const;
+const REFUND_REASON_CODE_SET = new Set<string>(REFUND_REASON_CODES);
 
 type OrderStatus =
   | 'DEPOSIT_PENDING'
@@ -725,13 +733,21 @@ export class OrdersService {
       if (existing) {
         throw new ConflictException({ code: 'CONFLICT', message: 'refund request already pending' });
       }
+      const hasReasonCode = !!body && Object.prototype.hasOwnProperty.call(body, 'reasonCode');
+      if (!hasReasonCode) {
+        throw new BadRequestException({ code: 'BAD_REQUEST', message: 'reasonCode is required' });
+      }
+      const reasonCode = String(body?.reasonCode || '').trim().toUpperCase();
+      if (!REFUND_REASON_CODE_SET.has(reasonCode)) {
+        throw new BadRequestException({ code: 'BAD_REQUEST', message: 'reasonCode is invalid' });
+      }
       const rules = await this.config.getTradeRules();
       const autoRefundEligible = await this.canAutoRefund(order, rules);
 
       const item = await this.prisma.refundRequest.create({
         data: {
           orderId,
-          reasonCode: String(body?.reasonCode || 'OTHER'),
+          reasonCode,
           reasonText: body?.reasonText ? String(body.reasonText) : null,
         },
       });
