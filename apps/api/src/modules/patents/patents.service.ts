@@ -384,7 +384,8 @@ export class PatentsService {
     if (!title) {
       throw new BadRequestException({ code: 'BAD_REQUEST', message: 'title is required' });
     }
-    const jurisdiction = String(body?.jurisdiction || 'CN').trim().toUpperCase();
+    const hasJurisdiction = this.hasOwn(body, 'jurisdiction');
+    const jurisdiction = hasJurisdiction ? String(body?.jurisdiction ?? '').trim().toUpperCase() : 'CN';
     if (jurisdiction !== 'CN') {
       throw new BadRequestException({ code: 'BAD_REQUEST', message: 'only CN jurisdiction is supported' });
     }
