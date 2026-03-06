@@ -101,7 +101,16 @@ export class FilesController {
       }
       scope = scopeRaw;
     }
-    const expiresInSeconds = Number(body?.expiresInSeconds || body?.ttlSeconds || 0);
+    const hasExpiresInSeconds = Object.prototype.hasOwnProperty.call(body || {}, 'expiresInSeconds');
+    const hasTtlSeconds = Object.prototype.hasOwnProperty.call(body || {}, 'ttlSeconds');
+    const ttlRaw = hasExpiresInSeconds ? body?.expiresInSeconds : hasTtlSeconds ? body?.ttlSeconds : 0;
+    if ((hasExpiresInSeconds || hasTtlSeconds) && String(ttlRaw ?? '').trim() === '') {
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: 'expiresInSeconds is invalid' });
+    }
+    const expiresInSeconds = Number(ttlRaw || 0);
+    if (!Number.isFinite(expiresInSeconds) || expiresInSeconds < 0) {
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: 'expiresInSeconds is invalid' });
+    }
     const { token, expiresAt } = this.files.createTempToken(file.id, scope, expiresInSeconds);
 
     const baseUrl =
