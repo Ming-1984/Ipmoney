@@ -980,13 +980,41 @@ export class ListingsService {
   }
 
   async updateFeatured(listingId: string, payload: any, operatorId?: string | null) {
-    const level = String(payload?.featuredLevel || 'NONE').toUpperCase();
-    const featuredLevel = ['NONE', 'CITY', 'PROVINCE'].includes(level) ? (level as FeaturedLevel) : 'NONE';
+    if (payload?.featuredLevel === undefined || payload?.featuredLevel === null) {
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: 'featuredLevel is required' });
+    }
+    const level = String(payload?.featuredLevel).trim().toUpperCase();
+    if (!['NONE', 'CITY', 'PROVINCE'].includes(level)) {
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: 'featuredLevel must be NONE/CITY/PROVINCE' });
+    }
+    const featuredLevel = level as FeaturedLevel;
     const data: any = { featuredLevel };
     if (featuredLevel !== 'NONE') {
-      data.featuredRegionCode = payload?.featuredRegionCode || null;
-      data.featuredRank = payload?.featuredRank ?? null;
-      data.featuredUntil = payload?.featuredUntil ? new Date(String(payload.featuredUntil)) : null;
+      const featuredRegionCode = String(payload?.featuredRegionCode || '').trim();
+      if (!/^[0-9]{6}$/.test(featuredRegionCode)) {
+        throw new BadRequestException({ code: 'BAD_REQUEST', message: 'featuredRegionCode must be 6 digits when featuredLevel != NONE' });
+      }
+      data.featuredRegionCode = featuredRegionCode;
+
+      if (payload?.featuredRank !== undefined && payload?.featuredRank !== null) {
+        const featuredRank = Number(payload.featuredRank);
+        if (!Number.isInteger(featuredRank) || featuredRank < 0) {
+          throw new BadRequestException({ code: 'BAD_REQUEST', message: 'featuredRank must be an integer >= 0' });
+        }
+        data.featuredRank = featuredRank;
+      } else {
+        data.featuredRank = null;
+      }
+
+      if (payload?.featuredUntil !== undefined && payload?.featuredUntil !== null && String(payload.featuredUntil).trim().length > 0) {
+        const featuredUntil = new Date(String(payload.featuredUntil));
+        if (Number.isNaN(featuredUntil.getTime())) {
+          throw new BadRequestException({ code: 'BAD_REQUEST', message: 'featuredUntil must be a valid datetime' });
+        }
+        data.featuredUntil = featuredUntil;
+      } else {
+        data.featuredUntil = null;
+      }
     } else {
       data.featuredRegionCode = null;
       data.featuredRank = null;

@@ -1075,12 +1075,44 @@ try {
     [void](Add-ApiCaseResult -Results $results -Name "ai-parse-feedback-missing" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/ai/parse-results/$missingAiParseResultId/feedback" -Body @{ score = 4; reasonTags = @("SMOKE"); comment = "smoke missing feedback" } -Headers (New-WriteHeaders -AuthorizationToken $userToken -Prefix $idempotencyPrefix -Label "ai-parse-feedback-missing") -Expected @(404))
   }
 
+  $existingRegionCodes = @()
+  foreach ($regionCandidate in @($regionCandidates)) {
+    $regionCandidateCode = ""
+    if ($regionCandidate -and $regionCandidate.code) { $regionCandidateCode = [string]$regionCandidate.code }
+    elseif ($regionCandidate -and $regionCandidate.regionCode) { $regionCandidateCode = [string]$regionCandidate.regionCode }
+    if (-not [string]::IsNullOrWhiteSpace($regionCandidateCode)) {
+      $existingRegionCodes += $regionCandidateCode
+    }
+  }
+  $missingRegionCode = ""
+  for ($missingRegionTry = 0; $missingRegionTry -lt 20; $missingRegionTry++) {
+    $candidateRegionCode = (Get-Random -Minimum 100000 -Maximum 1000000).ToString()
+    if (-not ($existingRegionCodes -contains $candidateRegionCode)) {
+      $missingRegionCode = $candidateRegionCode
+      break
+    }
+  }
+  if ([string]::IsNullOrWhiteSpace($missingRegionCode)) {
+    $missingRegionCode = "999998"
+  }
+
   if ($regionIndustryTags.Count -gt 0) {
     $adminSetRegionIndustryTags = Add-ApiCaseResult -Results $results -Name "admin-region-industry-tags-set" -Method "PUT" -Url "http://127.0.0.1:$resolvedApiPort/admin/regions/$importRegionCode/industry-tags" -Body @{ industryTags = $regionIndustryTags } -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-region-industry-tags-set") -Expected @(200)
     Assert-ResultJsonArrayContains -Result $adminSetRegionIndustryTags -Field "industryTags" -ExpectedValue $regionIndustryTags[0] -Assertion "admin-region-industry-tags-persisted"
+    [void](Add-ApiCaseResult -Results $results -Name "admin-region-industry-tags-set-invalid-body" -Method "PUT" -Url "http://127.0.0.1:$resolvedApiPort/admin/regions/$importRegionCode/industry-tags" -Body @{ industryTags = "SMOKE" } -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-region-industry-tags-set-invalid-body") -Expected @(400))
   }
+  [void](Add-ApiCaseResult -Results $results -Name "admin-region-industry-tags-set-missing" -Method "PUT" -Url "http://127.0.0.1:$resolvedApiPort/admin/regions/$missingRegionCode/industry-tags" -Body @{ industryTags = @($newIndustryTagName) } -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-region-industry-tags-set-missing") -Expected @(404))
+  [void](Add-ApiCaseResult -Results $results -Name "admin-region-industry-tags-set-invalid-code" -Method "PUT" -Url "http://127.0.0.1:$resolvedApiPort/admin/regions/abc/industry-tags" -Body @{ industryTags = @($newIndustryTagName) } -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-region-industry-tags-set-invalid-code") -Expected @(400))
+
+  $adminSetListingFeaturedCity = Add-ApiCaseResult -Results $results -Name "admin-listing-featured-set-city" -Method "PUT" -Url "http://127.0.0.1:$resolvedApiPort/admin/listings/$listingId/featured" -Body @{ featuredLevel = "CITY"; featuredRegionCode = $importRegionCode; featuredRank = 0 } -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-listing-featured-set-city") -Expected @(200)
+  Assert-ResultJsonFieldEquals -Result $adminSetListingFeaturedCity -Field "featuredLevel" -ExpectedValue "CITY" -Assertion "admin-listing-featured-level-city"
+  Assert-ResultJsonFieldEquals -Result $adminSetListingFeaturedCity -Field "featuredRegionCode" -ExpectedValue $importRegionCode -Assertion "admin-listing-featured-region-city"
   $adminSetListingFeatured = Add-ApiCaseResult -Results $results -Name "admin-listing-featured-set-none" -Method "PUT" -Url "http://127.0.0.1:$resolvedApiPort/admin/listings/$listingId/featured" -Body @{ featuredLevel = "NONE" } -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-listing-featured-set-none") -Expected @(200)
   Assert-ResultJsonFieldEquals -Result $adminSetListingFeatured -Field "featuredLevel" -ExpectedValue "NONE" -Assertion "admin-listing-featured-level-none"
+  [void](Add-ApiCaseResult -Results $results -Name "admin-listing-featured-set-city-missing-region" -Method "PUT" -Url "http://127.0.0.1:$resolvedApiPort/admin/listings/$listingId/featured" -Body @{ featuredLevel = "CITY" } -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-listing-featured-set-city-missing-region") -Expected @(400))
+  [void](Add-ApiCaseResult -Results $results -Name "admin-listing-featured-set-invalid-level" -Method "PUT" -Url "http://127.0.0.1:$resolvedApiPort/admin/listings/$listingId/featured" -Body @{ featuredLevel = "INVALID" } -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-listing-featured-set-invalid-level") -Expected @(400))
+  [void](Add-ApiCaseResult -Results $results -Name "admin-listing-featured-set-city-invalid-rank" -Method "PUT" -Url "http://127.0.0.1:$resolvedApiPort/admin/listings/$listingId/featured" -Body @{ featuredLevel = "CITY"; featuredRegionCode = $importRegionCode; featuredRank = -1 } -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-listing-featured-set-city-invalid-rank") -Expected @(400))
+  [void](Add-ApiCaseResult -Results $results -Name "admin-listing-featured-set-city-invalid-until" -Method "PUT" -Url "http://127.0.0.1:$resolvedApiPort/admin/listings/$listingId/featured" -Body @{ featuredLevel = "CITY"; featuredRegionCode = $importRegionCode; featuredUntil = "not-a-date" } -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-listing-featured-set-city-invalid-until") -Expected @(400))
   [void](Add-ApiCaseResult -Results $results -Name "admin-listing-featured-set-missing" -Method "PUT" -Url "http://127.0.0.1:$resolvedApiPort/admin/listings/$([guid]::NewGuid().ToString())/featured" -Body @{ featuredLevel = "NONE" } -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-listing-featured-set-missing") -Expected @(404))
 
   $listingFavoriteHeaders = New-WriteHeaders -AuthorizationToken $userToken -Prefix $idempotencyPrefix -Label "favorite-listing-post"
