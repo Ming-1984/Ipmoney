@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { Prisma, VerificationType } from '@prisma/client';
 
 type VerificationStatus = 'PENDING' | 'APPROVED' | 'REJECTED';
@@ -22,15 +22,37 @@ const ORG_TYPES: VerificationType[] = [
 export class OrganizationsService {
   constructor(private readonly prisma: PrismaService) {}
 
-  private normalizeTypes(input: any): VerificationType[] {
-    if (!input) return [];
+  private hasOwn(input: any, key: string) {
+    return !!input && Object.prototype.hasOwnProperty.call(input, key);
+  }
+
+  private normalizeOrganizationTypes(input: any) {
+    if (input === undefined || input === null) {
+      return { values: [] as VerificationType[], invalid: false };
+    }
     const raw = Array.isArray(input) ? input : [input];
-    const types = raw
-      .map((value) => String(value || '').trim().toUpperCase())
-      .filter(Boolean)
-      .filter((value) => Object.values(VerificationType).includes(value as VerificationType))
-      .map((value) => value as VerificationType);
-    return types;
+    const values: VerificationType[] = [];
+    let invalid = false;
+
+    for (const item of raw) {
+      const normalized = String(item || '').trim().toUpperCase();
+      if (!normalized) {
+        invalid = true;
+        continue;
+      }
+      if (!Object.values(VerificationType).includes(normalized as VerificationType)) {
+        invalid = true;
+        continue;
+      }
+      const typed = normalized as VerificationType;
+      if (!ORG_TYPES.includes(typed)) {
+        invalid = true;
+        continue;
+      }
+      values.push(typed);
+    }
+
+    return { values: Array.from(new Set(values)), invalid };
   }
 
   private async buildStats(userIds: string[]) {
@@ -46,21 +68,24 @@ export class OrganizationsService {
         },
         _count: { _all: true },
       }),
-      this.prisma.$queryRaw<Array<{ sellerUserId: string; patentCount: number }>>(Prisma.sql`
-        SELECT
-          seller_user_id AS "sellerUserId",
-          COUNT(DISTINCT patent_id)::int AS "patentCount"
-        FROM listings
-        WHERE seller_user_id IN (${Prisma.join(userIds)})
-          AND patent_id IS NOT NULL
-          AND audit_status = 'APPROVED'
-          AND status IN ('ACTIVE', 'SOLD')
-        GROUP BY seller_user_id
-      `),
+      this.prisma.listing.findMany({
+        where: {
+          sellerUserId: { in: userIds },
+          patentId: { not: null },
+          auditStatus: VerificationStatus.APPROVED,
+          status: { in: ['ACTIVE', 'SOLD'] },
+        },
+        select: { sellerUserId: true, patentId: true },
+        distinct: ['sellerUserId', 'patentId'],
+      }),
     ]);
 
     const listingCountMap = new Map(listingCounts.map((row) => [row.sellerUserId, row._count._all]));
-    const patentCountMap = new Map(patentCounts.map((row) => [row.sellerUserId, row.patentCount]));
+    const patentCountMap = new Map<string, number>();
+    for (const row of patentCounts) {
+      const current = patentCountMap.get(row.sellerUserId) ?? 0;
+      patentCountMap.set(row.sellerUserId, current + 1);
+    }
     return { listingCountMap, patentCountMap };
   }
 
@@ -69,8 +94,18 @@ export class OrganizationsService {
     const pageSize = Math.min(50, Math.max(1, Number(query?.pageSize || 20)));
     const q = String(query?.q || '').trim();
     const regionCode = String(query?.regionCode || '').trim();
-    const typeFilters = this.normalizeTypes(query?.types || query?.type || query?.verificationType);
-    const orgTypes = typeFilters.length ? typeFilters.filter((type) => ORG_TYPES.includes(type)) : ORG_TYPES;
+    const hasTypes = this.hasOwn(query, 'types');
+    const hasType = this.hasOwn(query, 'type');
+    const hasVerificationType = this.hasOwn(query, 'verificationType');
+    const hasTypeInput = hasTypes || hasType || hasVerificationType;
+    const rawTypeInput = hasTypes ? query?.types : hasType ? query?.type : query?.verificationType;
+    const { values: typeFilters, invalid: typeInvalid } = this.normalizeOrganizationTypes(rawTypeInput);
+
+    if (hasTypeInput && (typeInvalid || typeFilters.length === 0)) {
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: 'type is invalid' });
+    }
+
+    const orgTypes = hasTypeInput ? typeFilters : ORG_TYPES;
 
     const where: any = {
       verificationStatus: VerificationStatus.APPROVED,
