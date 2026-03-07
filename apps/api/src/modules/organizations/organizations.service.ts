@@ -1,5 +1,5 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
-import { Prisma, VerificationType } from '@prisma/client';
+import { VerificationType } from '@prisma/client';
 
 type VerificationStatus = 'PENDING' | 'APPROVED' | 'REJECTED';
 
@@ -179,16 +179,18 @@ export class OrganizationsService {
           status: { in: ['ACTIVE', 'SOLD'] },
         },
       }),
-      this.prisma
-        .$queryRaw<Array<{ patentCount: number }>>(Prisma.sql`
-          SELECT COUNT(DISTINCT patent_id)::int AS "patentCount"
-          FROM listings
-          WHERE seller_user_id = ${orgUserId}
-            AND patent_id IS NOT NULL
-            AND audit_status = 'APPROVED'
-            AND status IN ('ACTIVE', 'SOLD')
-        `)
-        .then((rows) => Number(rows[0]?.patentCount ?? 0)),
+      this.prisma.listing
+        .findMany({
+          where: {
+            sellerUserId: orgUserId,
+            patentId: { not: null },
+            auditStatus: VerificationStatus.APPROVED,
+            status: { in: ['ACTIVE', 'SOLD'] },
+          },
+          select: { patentId: true },
+          distinct: ['patentId'],
+        })
+        .then((rows) => rows.length),
     ]);
     return {
       userId: v.userId,

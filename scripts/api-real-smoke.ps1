@@ -956,6 +956,9 @@ try {
     @{ name = "me-verification-unauthorized"; method = "POST"; url = "http://127.0.0.1:$resolvedApiPort/me/verification"; body = @{ type = "PERSONAL"; displayName = "Smoke Unauthorized Verification" }; headers = @{}; expected = @(401) },
     @{ name = "me-verification-invalid-type"; method = "POST"; url = "http://127.0.0.1:$resolvedApiPort/me/verification"; body = @{ type = "UNKNOWN"; displayName = "Smoke Invalid Verification Type" }; headers = @{ Authorization = $userToken }; expected = @(400) },
     @{ name = "me-verification-empty-type"; method = "POST"; url = "http://127.0.0.1:$resolvedApiPort/me/verification"; body = @{ type = ""; displayName = "Smoke Empty Verification Type" }; headers = @{ Authorization = $userToken }; expected = @(400) },
+    @{ name = "me-verification-get"; method = "GET"; url = "http://127.0.0.1:$resolvedApiPort/me/verification"; body = $null; headers = @{ Authorization = $userToken }; expected = @(200) },
+    @{ name = "me-addresses-list"; method = "GET"; url = "http://127.0.0.1:$resolvedApiPort/me/addresses"; body = $null; headers = @{ Authorization = $userToken }; expected = @(200) },
+    @{ name = "me-recommendations-listings"; method = "GET"; url = "http://127.0.0.1:$resolvedApiPort/me/recommendations/listings"; body = $null; headers = @{ Authorization = $userToken }; expected = @(200) },
     @{ name = "notifications-list"; method = "GET"; url = "http://127.0.0.1:$resolvedApiPort/notifications"; body = $null; headers = @{ Authorization = $userToken }; expected = @(200) },
     @{ name = "notifications-list-invalid-page"; method = "GET"; url = "http://127.0.0.1:$resolvedApiPort/notifications?page=abc"; body = $null; headers = @{ Authorization = $userToken }; expected = @(400) },
     @{ name = "notifications-list-empty-page-size"; method = "GET"; url = "http://127.0.0.1:$resolvedApiPort/notifications?pageSize="; body = $null; headers = @{ Authorization = $userToken }; expected = @(400) },
@@ -1023,6 +1026,7 @@ try {
     @{ name = "admin-rbac-users-unauthorized"; method = "GET"; url = "http://127.0.0.1:$resolvedApiPort/admin/rbac/users"; body = $null; headers = @{}; expected = @(401) },
     @{ name = "admin-rbac-roles"; method = "GET"; url = "http://127.0.0.1:$resolvedApiPort/admin/rbac/roles"; body = $null; headers = @{ Authorization = $adminToken }; expected = @(200) },
     @{ name = "admin-rbac-permissions"; method = "GET"; url = "http://127.0.0.1:$resolvedApiPort/admin/rbac/permissions"; body = $null; headers = @{ Authorization = $adminToken }; expected = @(200) },
+    @{ name = "admin-regions"; method = "GET"; url = "http://127.0.0.1:$resolvedApiPort/admin/regions"; body = $null; headers = @{ Authorization = $adminToken }; expected = @(200) },
     @{ name = "admin-report-summary-unauthorized"; method = "GET"; url = "http://127.0.0.1:$resolvedApiPort/admin/reports/finance/summary"; body = $null; headers = @{}; expected = @(401) },
     @{ name = "admin-report-summary"; method = "GET"; url = "http://127.0.0.1:$resolvedApiPort/admin/reports/finance/summary"; body = $null; headers = @{ Authorization = $adminToken }; expected = @(200) },
     @{ name = "admin-patents"; method = "GET"; url = "http://127.0.0.1:$resolvedApiPort/admin/patents"; body = $null; headers = @{ Authorization = $adminToken }; expected = @(200) },
@@ -1044,7 +1048,11 @@ try {
     @{ name = "public-organizations-empty-type"; method = "GET"; url = "http://127.0.0.1:$resolvedApiPort/public/organizations?type="; body = $null; headers = @{}; expected = @(400) },
     @{ name = "public-organizations-invalid-page"; method = "GET"; url = "http://127.0.0.1:$resolvedApiPort/public/organizations?page=abc"; body = $null; headers = @{}; expected = @(400) },
     @{ name = "public-organizations-empty-page-size"; method = "GET"; url = "http://127.0.0.1:$resolvedApiPort/public/organizations?pageSize="; body = $null; headers = @{}; expected = @(400) },
+    @{ name = "public-config-trade-rules"; method = "GET"; url = "http://127.0.0.1:$resolvedApiPort/public/config/trade-rules"; body = $null; headers = @{}; expected = @(200) },
+    @{ name = "public-config-customer-service"; method = "GET"; url = "http://127.0.0.1:$resolvedApiPort/public/config/customer-service"; body = $null; headers = @{}; expected = @(200) },
     @{ name = "patent-map-summary"; method = "GET"; url = "http://127.0.0.1:$resolvedApiPort/patent-map/summary?year=2025&level=PROVINCE"; body = $null; headers = @{}; expected = @(200) },
+    @{ name = "patent-map-years"; method = "GET"; url = "http://127.0.0.1:$resolvedApiPort/patent-map/years"; body = $null; headers = @{}; expected = @(200) },
+    @{ name = "regions"; method = "GET"; url = "http://127.0.0.1:$resolvedApiPort/regions"; body = $null; headers = @{}; expected = @(200) },
     @{ name = "search-listings"; method = "GET"; url = "http://127.0.0.1:$resolvedApiPort/search/listings"; body = $null; headers = @{}; expected = @(200) },
     @{ name = "search-listings-invalid-qtype"; method = "GET"; url = "http://127.0.0.1:$resolvedApiPort/search/listings?qType=UNKNOWN"; body = $null; headers = @{}; expected = @(400) },
     @{ name = "search-listings-invalid-patent-type"; method = "GET"; url = "http://127.0.0.1:$resolvedApiPort/search/listings?patentType=UNKNOWN"; body = $null; headers = @{}; expected = @(400) },
@@ -1084,6 +1092,29 @@ try {
   foreach ($c in $cases) {
     [void](Add-ApiCaseResult -Results $results -Name $c.name -Method $c.method -Url $c.url -Body $c.body -Headers $c.headers -Expected $c.expected)
   }
+  $notificationsListResult = @($results | Where-Object { $_.name -eq "notifications-list" } | Select-Object -First 1)[0]
+  if ($notificationsListResult) {
+    $notificationsListJson = Get-ResultJsonObject -Result $notificationsListResult
+    if ($notificationsListJson) {
+      $notificationItem = @($notificationsListJson.items | Select-Object -First 1)[0]
+      if ($notificationItem -and $notificationItem.id) {
+        [void](Add-ApiCaseResult -Results $results -Name "notifications-detail" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/notifications/$([string]$notificationItem.id)" -Body $null -Headers @{ Authorization = $userToken } -Expected @(200))
+      }
+    }
+  }
+  $publicOrganizationsListResult = @($results | Where-Object { $_.name -eq "public-organizations" } | Select-Object -First 1)[0]
+  if ($publicOrganizationsListResult) {
+    $publicOrganizationsListJson = Get-ResultJsonObject -Result $publicOrganizationsListResult
+    if ($publicOrganizationsListJson) {
+      $publicOrganizationItem = @($publicOrganizationsListJson.items | Select-Object -First 1)[0]
+      $publicOrganizationId = ""
+      if ($publicOrganizationItem -and $publicOrganizationItem.userId) { $publicOrganizationId = [string]$publicOrganizationItem.userId }
+      elseif ($publicOrganizationItem -and $publicOrganizationItem.id) { $publicOrganizationId = [string]$publicOrganizationItem.id }
+      if (-not [string]::IsNullOrWhiteSpace($publicOrganizationId)) {
+        [void](Add-ApiCaseResult -Results $results -Name "public-organization-detail" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/public/organizations/$publicOrganizationId" -Body $null -Headers @{} -Expected @(200))
+      }
+    }
+  }
 
   $adminListingsForWrites = Invoke-RestMethod -Method Get -Uri "http://127.0.0.1:$resolvedApiPort/admin/listings" -Headers @{ Authorization = $adminToken }
   $adminDemandsForWrites = Invoke-RestMethod -Method Get -Uri "http://127.0.0.1:$resolvedApiPort/admin/demands" -Headers @{ Authorization = $adminToken }
@@ -1102,6 +1133,15 @@ try {
   $adminTaxonomyConfig = Invoke-RestMethod -Method Get -Uri "http://127.0.0.1:$resolvedApiPort/admin/config/taxonomy" -Headers @{ Authorization = $adminToken }
   $adminSensitiveWordsConfig = Invoke-RestMethod -Method Get -Uri "http://127.0.0.1:$resolvedApiPort/admin/config/sensitive-words" -Headers @{ Authorization = $adminToken }
   $adminHotSearchConfig = Invoke-RestMethod -Method Get -Uri "http://127.0.0.1:$resolvedApiPort/admin/config/hot-search" -Headers @{ Authorization = $adminToken }
+  $verificationItems = @($adminUserVerificationsForWrites.items)
+  $verificationId = ""
+  if ($verificationItems.Count -gt 0) {
+    $verificationId = [string]$verificationItems[0].id
+  }
+  if (-not [string]::IsNullOrWhiteSpace($verificationId)) {
+    [void](Add-ApiCaseResult -Results $results -Name "admin-user-verification-materials" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/admin/user-verifications/$verificationId/materials" -Body $null -Headers @{ Authorization = $adminToken } -Expected @(200))
+    [void](Add-ApiCaseResult -Results $results -Name "admin-user-verification-audit-logs" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/admin/user-verifications/$verificationId/audit-logs" -Body $null -Headers @{ Authorization = $adminToken } -Expected @(200))
+  }
 
   $listingCandidates = @($adminListingsForWrites.items)
   if ($listingCandidates.Count -le 0) {
@@ -1243,6 +1283,7 @@ try {
   Assert-ResultJsonFieldEquals -Result $listingCreate -Field "existingLicenseStatus" -ExpectedValue "SOLE" -Assertion "listing-create-existing-license-status"
   $smokeUserListingId = Get-ResultStringField -Result $listingCreate -Field "id"
   if ([string]::IsNullOrWhiteSpace($smokeUserListingId)) { throw "listing-create missing id" }
+  [void](Add-ApiCaseResult -Results $results -Name "listing-get-by-id-self" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/listings/$smokeUserListingId" -Body $null -Headers @{ Authorization = $userToken } -Expected @(200))
   [void](Add-ApiCaseResult -Results $results -Name "listing-create-invalid-trade-mode" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/listings" -Body @{ title = "Smoke User Listing Invalid Trade"; tradeMode = "INVALID" } -Headers (New-WriteHeaders -AuthorizationToken $userToken -Prefix $idempotencyPrefix -Label "listing-create-invalid-trade-mode") -Expected @(400))
   [void](Add-ApiCaseResult -Results $results -Name "listing-create-invalid-license-mode" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/listings" -Body @{ title = "Smoke User Listing Invalid License"; licenseMode = "INVALID" } -Headers (New-WriteHeaders -AuthorizationToken $userToken -Prefix $idempotencyPrefix -Label "listing-create-invalid-license-mode") -Expected @(400))
   [void](Add-ApiCaseResult -Results $results -Name "listing-create-invalid-price-type" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/listings" -Body @{ title = "Smoke User Listing Invalid Price Type"; priceType = "INVALID" } -Headers (New-WriteHeaders -AuthorizationToken $userToken -Prefix $idempotencyPrefix -Label "listing-create-invalid-price-type") -Expected @(400))
@@ -1423,6 +1464,8 @@ try {
   Assert-ResultJsonFieldEquals -Result $adminPatentCreate -Field "title" -ExpectedValue $smokePatentTitle -Assertion "admin-patent-create-title"
   $smokePatentId = Get-ResultStringField -Result $adminPatentCreate -Field "id"
   if ([string]::IsNullOrWhiteSpace($smokePatentId)) { throw "admin-patent-create missing id" }
+  [void](Add-ApiCaseResult -Results $results -Name "admin-patent-get-by-id" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/admin/patents/$smokePatentId" -Body $null -Headers @{ Authorization = $adminToken } -Expected @(200))
+  [void](Add-ApiCaseResult -Results $results -Name "patent-get-by-id" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/patents/$smokePatentId" -Body $null -Headers @{ Authorization = $userToken } -Expected @(200))
   [void](Add-ApiCaseResult -Results $results -Name "admin-patent-create-invalid-application-no" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/admin/patents" -Body @{ applicationNoNorm = "INVALID"; patentType = "INVENTION"; title = "Smoke Patent Invalid" } -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-patent-create-invalid-application-no") -Expected @(400))
   [void](Add-ApiCaseResult -Results $results -Name "admin-patent-create-missing-patent-type" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/admin/patents" -Body @{ applicationNoNorm = "2026123456781"; title = "Smoke Patent Missing Type" } -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-patent-create-missing-patent-type") -Expected @(400))
   [void](Add-ApiCaseResult -Results $results -Name "admin-patent-create-invalid-source-primary" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/admin/patents" -Body @{ applicationNoNorm = "2026123456771"; patentType = "INVENTION"; title = "Smoke Patent Invalid Source Primary"; sourcePrimary = "INVALID" } -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-patent-create-invalid-source-primary") -Expected @(400))
@@ -1462,6 +1505,10 @@ try {
   Assert-ResultJsonFieldEquals -Result $adminDemandCreate -Field "status" -ExpectedValue "DRAFT" -Assertion "admin-demand-create-status"
   $smokeAdminDemandId = Get-ResultStringField -Result $adminDemandCreate -Field "id"
   if ([string]::IsNullOrWhiteSpace($smokeAdminDemandId)) { throw "admin-demand-create missing id" }
+  [void](Add-ApiCaseResult -Results $results -Name "admin-demand-get-by-id" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/admin/demands/$smokeAdminDemandId" -Body $null -Headers @{ Authorization = $adminToken } -Expected @(200))
+  [void](Add-ApiCaseResult -Results $results -Name "admin-demand-materials" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/admin/demands/$smokeAdminDemandId/materials" -Body $null -Headers @{ Authorization = $adminToken } -Expected @(200))
+  [void](Add-ApiCaseResult -Results $results -Name "admin-demand-audit-logs" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/admin/demands/$smokeAdminDemandId/audit-logs" -Body $null -Headers @{ Authorization = $adminToken } -Expected @(200))
+  [void](Add-ApiCaseResult -Results $results -Name "demand-get-by-id" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/demands/$smokeAdminDemandId" -Body $null -Headers @{ Authorization = $userToken } -Expected @(200, 404))
   [void](Add-ApiCaseResult -Results $results -Name "admin-demand-create-invalid-source" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/admin/demands" -Body @{ title = "Smoke Admin Demand Invalid Source"; source = "INVALID" } -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-demand-create-invalid-source") -Expected @(400))
   [void](Add-ApiCaseResult -Results $results -Name "admin-demand-create-invalid-status" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/admin/demands" -Body @{ title = "Smoke Admin Demand Invalid Status"; status = "INVALID" } -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-demand-create-invalid-status") -Expected @(400))
   [void](Add-ApiCaseResult -Results $results -Name "admin-demand-create-invalid-audit-status" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/admin/demands" -Body @{ title = "Smoke Admin Demand Invalid Audit"; auditStatus = "INVALID" } -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-demand-create-invalid-audit-status") -Expected @(400))
@@ -1491,6 +1538,10 @@ try {
   Assert-ResultJsonFieldEquals -Result $adminAchievementCreate -Field "maturity" -ExpectedValue "CONCEPT" -Assertion "admin-achievement-create-maturity"
   $smokeAdminAchievementId = Get-ResultStringField -Result $adminAchievementCreate -Field "id"
   if ([string]::IsNullOrWhiteSpace($smokeAdminAchievementId)) { throw "admin-achievement-create missing id" }
+  [void](Add-ApiCaseResult -Results $results -Name "admin-achievement-get-by-id" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/admin/achievements/$smokeAdminAchievementId" -Body $null -Headers @{ Authorization = $adminToken } -Expected @(200))
+  [void](Add-ApiCaseResult -Results $results -Name "admin-achievement-materials" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/admin/achievements/$smokeAdminAchievementId/materials" -Body $null -Headers @{ Authorization = $adminToken } -Expected @(200))
+  [void](Add-ApiCaseResult -Results $results -Name "admin-achievement-audit-logs" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/admin/achievements/$smokeAdminAchievementId/audit-logs" -Body $null -Headers @{ Authorization = $adminToken } -Expected @(200))
+  [void](Add-ApiCaseResult -Results $results -Name "achievement-get-by-id" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/achievements/$smokeAdminAchievementId" -Body $null -Headers @{ Authorization = $userToken } -Expected @(200, 404))
   [void](Add-ApiCaseResult -Results $results -Name "admin-achievement-create-invalid-source" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/admin/achievements" -Body @{ title = "Smoke Admin Achievement Invalid Source"; source = "INVALID" } -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-achievement-create-invalid-source") -Expected @(400))
   [void](Add-ApiCaseResult -Results $results -Name "admin-achievement-create-invalid-status" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/admin/achievements" -Body @{ title = "Smoke Admin Achievement Invalid Status"; status = "INVALID" } -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-achievement-create-invalid-status") -Expected @(400))
   [void](Add-ApiCaseResult -Results $results -Name "admin-achievement-create-invalid-audit-status" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/admin/achievements" -Body @{ title = "Smoke Admin Achievement Invalid Audit"; auditStatus = "INVALID" } -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-achievement-create-invalid-audit-status") -Expected @(400))
@@ -1518,6 +1569,10 @@ try {
   Assert-ResultJsonFieldEquals -Result $adminArtworkCreate -Field "category" -ExpectedValue "PAINTING" -Assertion "admin-artwork-create-category"
   $smokeAdminArtworkId = Get-ResultStringField -Result $adminArtworkCreate -Field "id"
   if ([string]::IsNullOrWhiteSpace($smokeAdminArtworkId)) { throw "admin-artwork-create missing id" }
+  [void](Add-ApiCaseResult -Results $results -Name "admin-artwork-get-by-id" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/admin/artworks/$smokeAdminArtworkId" -Body $null -Headers @{ Authorization = $adminToken } -Expected @(200))
+  [void](Add-ApiCaseResult -Results $results -Name "admin-artwork-materials" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/admin/artworks/$smokeAdminArtworkId/materials" -Body $null -Headers @{ Authorization = $adminToken } -Expected @(200))
+  [void](Add-ApiCaseResult -Results $results -Name "admin-artwork-audit-logs" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/admin/artworks/$smokeAdminArtworkId/audit-logs" -Body $null -Headers @{ Authorization = $adminToken } -Expected @(200))
+  [void](Add-ApiCaseResult -Results $results -Name "artwork-get-by-id" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/artworks/$smokeAdminArtworkId" -Body $null -Headers @{ Authorization = $userToken } -Expected @(200, 404))
   [void](Add-ApiCaseResult -Results $results -Name "admin-artwork-create-invalid-source" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/admin/artworks" -Body @{ title = "Smoke Admin Artwork Invalid Source"; category = "PAINTING"; creatorName = "Smoke Artist"; priceType = "FIXED"; source = "INVALID" } -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-artwork-create-invalid-source") -Expected @(400))
   [void](Add-ApiCaseResult -Results $results -Name "admin-artwork-create-invalid-status" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/admin/artworks" -Body @{ title = "Smoke Admin Artwork Invalid Status"; category = "PAINTING"; creatorName = "Smoke Artist"; priceType = "FIXED"; status = "INVALID" } -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-artwork-create-invalid-status") -Expected @(400))
   [void](Add-ApiCaseResult -Results $results -Name "admin-artwork-create-invalid-audit-status" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/admin/artworks" -Body @{ title = "Smoke Admin Artwork Invalid Audit"; category = "PAINTING"; creatorName = "Smoke Artist"; priceType = "FIXED"; auditStatus = "INVALID" } -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-artwork-create-invalid-audit-status") -Expected @(400))
@@ -1562,6 +1617,10 @@ try {
   Assert-ResultJsonFieldEquals -Result $adminListingCreate -Field "existingLicenseStatus" -ExpectedValue "SOLE" -Assertion "admin-listing-create-existing-license-status"
   $smokeAdminListingId = Get-ResultStringField -Result $adminListingCreate -Field "id"
   if ([string]::IsNullOrWhiteSpace($smokeAdminListingId)) { throw "admin-listing-create missing id" }
+  [void](Add-ApiCaseResult -Results $results -Name "admin-listing-get-by-id" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/admin/listings/$smokeAdminListingId" -Body $null -Headers @{ Authorization = $adminToken } -Expected @(200))
+  [void](Add-ApiCaseResult -Results $results -Name "admin-listing-materials" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/admin/listings/$smokeAdminListingId/materials" -Body $null -Headers @{ Authorization = $adminToken } -Expected @(200))
+  [void](Add-ApiCaseResult -Results $results -Name "admin-listing-audit-logs" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/admin/listings/$smokeAdminListingId/audit-logs" -Body $null -Headers @{ Authorization = $adminToken } -Expected @(200))
+  [void](Add-ApiCaseResult -Results $results -Name "listing-get-by-id" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/listings/$smokeAdminListingId" -Body $null -Headers @{ Authorization = $userToken } -Expected @(200, 404))
   [void](Add-ApiCaseResult -Results $results -Name "admin-listing-create-invalid-source" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/admin/listings" -Body @{ title = "Smoke Admin Listing Invalid Source"; sellerUserId = $currentUserId; source = "INVALID" } -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-listing-create-invalid-source") -Expected @(400))
   [void](Add-ApiCaseResult -Results $results -Name "admin-listing-create-invalid-status" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/admin/listings" -Body @{ title = "Smoke Admin Listing Invalid Status"; sellerUserId = $currentUserId; status = "INVALID" } -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-listing-create-invalid-status") -Expected @(400))
   [void](Add-ApiCaseResult -Results $results -Name "admin-listing-create-invalid-audit-status" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/admin/listings" -Body @{ title = "Smoke Admin Listing Invalid Audit"; sellerUserId = $currentUserId; auditStatus = "INVALID" } -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-listing-create-invalid-audit-status") -Expected @(400))
@@ -1716,6 +1775,7 @@ try {
   Assert-ResultJsonFieldEquals -Result $orderCreate -Field "status" -ExpectedValue "DEPOSIT_PENDING" -Assertion "order-status-created"
   $orderId = Get-ResultStringField -Result $orderCreate -Field "id"
   if ([string]::IsNullOrWhiteSpace($orderId)) { throw "order-create missing id" }
+  [void](Add-ApiCaseResult -Results $results -Name "admin-order-get-by-id" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/admin/orders/$orderId" -Body $null -Headers @{ Authorization = $adminToken } -Expected @(200))
   [void](Add-ApiCaseResult -Results $results -Name "order-create-unauthorized" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/orders" -Body @{ listingId = $listingId } -Headers @{} -Expected @(401))
   [void](Add-ApiCaseResult -Results $results -Name "order-payment-intent-unauthorized" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/orders/$orderId/payment-intents" -Body @{ payType = "DEPOSIT" } -Headers @{} -Expected @(401))
   [void](Add-ApiCaseResult -Results $results -Name "order-refund-request-unauthorized" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/orders/$orderId/refund-requests" -Body @{ reasonCode = "OTHER"; reasonText = "smoke unauthorized refund request" } -Headers @{} -Expected @(401))
@@ -1778,6 +1838,10 @@ try {
   $evidenceUpload = Add-ApiFileUploadCaseResult -Results $results -Name "file-upload-evidence" -Url "http://127.0.0.1:$resolvedApiPort/files" -AuthorizationToken $userToken -FilePath $smokeEvidencePath -FormFields $null -Expected @(200, 201)
   $evidenceFileId = Get-ResultStringField -Result $evidenceUpload -Field "id"
   if ([string]::IsNullOrWhiteSpace($evidenceFileId)) { throw "file-upload-evidence missing id" }
+  [void](Add-ApiCaseResult -Results $results -Name "file-download-unauthorized" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/files/$evidenceFileId" -Body $null -Headers @{} -Expected @(401))
+  [void](Add-ApiCaseResult -Results $results -Name "file-download" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/files/$evidenceFileId" -Body $null -Headers @{ Authorization = $userToken } -Expected @(200))
+  [void](Add-ApiCaseResult -Results $results -Name "file-preview-unauthorized" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/files/$evidenceFileId/preview" -Body $null -Headers @{} -Expected @(401))
+  [void](Add-ApiCaseResult -Results $results -Name "file-preview" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/files/$evidenceFileId/preview" -Body $null -Headers @{ Authorization = $userToken } -Expected @(200))
   $missingContractUploadId = [guid]::NewGuid().ToString()
   [void](Add-ApiCaseResult -Results $results -Name "contract-upload-unauthorized" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/contracts/$missingContractUploadId/upload" -Body @{ fileId = $evidenceFileId } -Headers @{} -Expected @(401))
   [void](Add-ApiCaseResult -Results $results -Name "file-temporary-access-create-preview-unauthorized" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/files/$evidenceFileId/temporary-access" -Body @{ scope = "preview"; ttlSeconds = 600 } -Headers @{} -Expected @(401))
@@ -2979,6 +3043,8 @@ try {
   Assert-ResultJsonFieldEquals -Result $adminPatentMapEntryUpsert -Field "patentCount" -ExpectedValue 3 -Assertion "admin-patent-map-entry-upsert-patent-count"
   $adminPatentMapEntryGet = Add-ApiCaseResult -Results $results -Name "admin-patent-map-entry-get-after-upsert" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/admin/patent-map/regions/$importRegionCode/years/$((Get-Date).Year)" -Body $null -Headers @{ Authorization = $adminToken } -Expected @(200)
   Assert-ResultJsonFieldEquals -Result $adminPatentMapEntryGet -Field "patentCount" -ExpectedValue 3 -Assertion "admin-patent-map-entry-get-after-upsert-patent-count"
+  $patentMapRegionDetailGet = Add-ApiCaseResult -Results $results -Name "patent-map-region-detail-after-upsert" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/patent-map/regions/${importRegionCode}?year=$((Get-Date).Year)" -Body $null -Headers @{} -Expected @(200)
+  Assert-ResultJsonFieldEquals -Result $patentMapRegionDetailGet -Field "patentCount" -ExpectedValue 3 -Assertion "patent-map-region-detail-after-upsert-patent-count"
 
   [void](Add-ApiCaseResult -Results $results -Name "listing-comment-create-unauthorized" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/listings/$listingId/comments" -Body @{ text = "smoke unauthorized listing comment" } -Headers @{} -Expected @(401))
   $listingCommentCreate = Add-ApiCaseResult -Results $results -Name "listing-comment-create" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/listings/$listingId/comments" -Body @{ text = "smoke listing comment $ReportDate" } -Headers (New-WriteHeaders -AuthorizationToken $userToken -Prefix $idempotencyPrefix -Label "comment-listing-create") -Expected @(200, 201)
@@ -3036,6 +3102,7 @@ try {
   $listingConversation = Add-ApiCaseResult -Results $results -Name "listing-conversation-upsert" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/listings/$listingId/conversations" -Body $null -Headers (New-WriteHeaders -AuthorizationToken $userToken -Prefix $idempotencyPrefix -Label "conversation-listing-upsert") -Expected @(200, 201)
   $listingConversationId = Get-ResultStringField -Result $listingConversation -Field "id"
   if ([string]::IsNullOrWhiteSpace($listingConversationId)) { throw "listing-conversation-upsert missing id" }
+  [void](Add-ApiCaseResult -Results $results -Name "conversation-messages-list-unauthorized" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/conversations/$listingConversationId/messages" -Body $null -Headers @{} -Expected @(401))
   [void](Add-ApiCaseResult -Results $results -Name "conversation-message-send-unauthorized" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/conversations/$listingConversationId/messages" -Body @{ type = "TEXT"; text = "smoke unauthorized message" } -Headers @{} -Expected @(401))
 
   [void](Add-ApiCaseResult -Results $results -Name "demand-conversation-upsert-unauthorized" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/demands/$demandId/conversations" -Body $null -Headers @{} -Expected @(401))
@@ -3047,7 +3114,12 @@ try {
   [void](Add-ApiCaseResult -Results $results -Name "tech-manager-conversation-upsert-unauthorized" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/tech-managers/$techManagerId/conversations" -Body $null -Headers @{} -Expected @(401))
   [void](Add-ApiCaseResult -Results $results -Name "tech-manager-conversation-upsert" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/tech-managers/$techManagerId/conversations" -Body $null -Headers (New-WriteHeaders -AuthorizationToken $userToken -Prefix $idempotencyPrefix -Label "conversation-tech-manager-upsert") -Expected @(200, 201))
 
-  [void](Add-ApiCaseResult -Results $results -Name "conversation-message-send" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/conversations/$listingConversationId/messages" -Body @{ type = "TEXT"; text = "smoke message $ReportDate" } -Headers (New-WriteHeaders -AuthorizationToken $userToken -Prefix $idempotencyPrefix -Label "conversation-message-send") -Expected @(200, 201))
+  $conversationMessageSend = Add-ApiCaseResult -Results $results -Name "conversation-message-send" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/conversations/$listingConversationId/messages" -Body @{ type = "TEXT"; text = "smoke message $ReportDate" } -Headers (New-WriteHeaders -AuthorizationToken $userToken -Prefix $idempotencyPrefix -Label "conversation-message-send") -Expected @(200, 201)
+  $conversationMessagesList = Add-ApiCaseResult -Results $results -Name "conversation-messages-list" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/conversations/$listingConversationId/messages" -Body $null -Headers @{ Authorization = $userToken } -Expected @(200)
+  $conversationMessageId = Get-ResultStringField -Result $conversationMessageSend -Field "id"
+  if (-not [string]::IsNullOrWhiteSpace($conversationMessageId)) {
+    Assert-ResultJsonArrayItemFieldEquals -Result $conversationMessagesList -ArrayField "items" -MatchField "id" -MatchValue $conversationMessageId -TargetField "type" -ExpectedValue "TEXT" -Assertion "conversation-messages-list-has-sent-message"
+  }
   [void](Add-ApiCaseResult -Results $results -Name "conversation-message-invalid-type" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/conversations/$listingConversationId/messages" -Body @{ type = "SYSTEM"; text = "invalid type" } -Headers (New-WriteHeaders -AuthorizationToken $userToken -Prefix $idempotencyPrefix -Label "conversation-message-invalid-type") -Expected @(400))
   [void](Add-ApiCaseResult -Results $results -Name "conversation-message-empty-type" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/conversations/$listingConversationId/messages" -Body @{ type = ""; text = "invalid empty type" } -Headers (New-WriteHeaders -AuthorizationToken $userToken -Prefix $idempotencyPrefix -Label "conversation-message-empty-type") -Expected @(400))
   [void](Add-ApiCaseResult -Results $results -Name "conversation-message-empty-text" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/conversations/$listingConversationId/messages" -Body @{ type = "TEXT"; text = "" } -Headers (New-WriteHeaders -AuthorizationToken $userToken -Prefix $idempotencyPrefix -Label "conversation-message-empty-text") -Expected @(400))
