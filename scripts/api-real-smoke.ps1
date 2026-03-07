@@ -893,7 +893,9 @@ try {
     @{ name = "auth-sms-send"; method = "POST"; url = "http://127.0.0.1:$resolvedApiPort/auth/sms/send"; body = @{ phone = "13800138000" }; headers = @{}; expected = @(200, 201) },
     @{ name = "auth-sms-verify"; method = "POST"; url = "http://127.0.0.1:$resolvedApiPort/auth/sms/verify"; body = @{ phone = "13800138000"; code = "123456" }; headers = @{}; expected = @(200, 201) },
     @{ name = "me-unauthorized"; method = "GET"; url = "http://127.0.0.1:$resolvedApiPort/me"; body = $null; headers = @{}; expected = @(401) },
+    @{ name = "me-patch-unauthorized"; method = "PATCH"; url = "http://127.0.0.1:$resolvedApiPort/me"; body = @{ displayName = "Smoke Unauthorized Profile Patch" }; headers = @{}; expected = @(401) },
     @{ name = "me"; method = "GET"; url = "http://127.0.0.1:$resolvedApiPort/me"; body = $null; headers = @{ Authorization = $userToken }; expected = @(200) },
+    @{ name = "me-verification-unauthorized"; method = "POST"; url = "http://127.0.0.1:$resolvedApiPort/me/verification"; body = @{ type = "PERSONAL"; displayName = "Smoke Unauthorized Verification" }; headers = @{}; expected = @(401) },
     @{ name = "me-verification-invalid-type"; method = "POST"; url = "http://127.0.0.1:$resolvedApiPort/me/verification"; body = @{ type = "UNKNOWN"; displayName = "Smoke Invalid Verification Type" }; headers = @{ Authorization = $userToken }; expected = @(400) },
     @{ name = "me-verification-empty-type"; method = "POST"; url = "http://127.0.0.1:$resolvedApiPort/me/verification"; body = @{ type = ""; displayName = "Smoke Empty Verification Type" }; headers = @{ Authorization = $userToken }; expected = @(400) },
     @{ name = "notifications-list"; method = "GET"; url = "http://127.0.0.1:$resolvedApiPort/notifications"; body = $null; headers = @{ Authorization = $userToken }; expected = @(200) },
@@ -1581,6 +1583,21 @@ try {
   Assert-ResultJsonFieldEquals -Result $adminTechManagerUpdate -Field "userId" -ExpectedValue $techManagerId -Assertion "admin-tech-manager-update-user-id"
   Assert-ResultJsonArrayContains -Result $adminTechManagerUpdate -Field "serviceTags" -ExpectedValue $techManagerServiceTag -Assertion "admin-tech-manager-update-service-tag"
 
+  [void](Add-ApiCaseResult -Results $results -Name "listing-submit-unauthorized" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/listings/$listingId/submit" -Body @{} -Headers @{} -Expected @(401))
+  [void](Add-ApiCaseResult -Results $results -Name "listing-off-shelf-unauthorized" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/listings/$listingId/off-shelf" -Body @{} -Headers @{} -Expected @(401))
+  [void](Add-ApiCaseResult -Results $results -Name "demand-create-unauthorized" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/demands" -Body @{ title = "Smoke Unauthorized Demand" } -Headers @{} -Expected @(401))
+  [void](Add-ApiCaseResult -Results $results -Name "demand-update-unauthorized" -Method "PATCH" -Url "http://127.0.0.1:$resolvedApiPort/demands/$demandId" -Body @{ title = "Smoke Unauthorized Demand Update" } -Headers @{} -Expected @(401))
+  [void](Add-ApiCaseResult -Results $results -Name "demand-submit-unauthorized" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/demands/$demandId/submit" -Body @{} -Headers @{} -Expected @(401))
+  [void](Add-ApiCaseResult -Results $results -Name "demand-off-shelf-unauthorized" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/demands/$demandId/off-shelf" -Body @{} -Headers @{} -Expected @(401))
+  [void](Add-ApiCaseResult -Results $results -Name "achievement-create-unauthorized" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/achievements" -Body @{ title = "Smoke Unauthorized Achievement" } -Headers @{} -Expected @(401))
+  [void](Add-ApiCaseResult -Results $results -Name "achievement-update-unauthorized" -Method "PATCH" -Url "http://127.0.0.1:$resolvedApiPort/achievements/$achievementId" -Body @{ title = "Smoke Unauthorized Achievement Update" } -Headers @{} -Expected @(401))
+  [void](Add-ApiCaseResult -Results $results -Name "achievement-submit-unauthorized" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/achievements/$achievementId/submit" -Body @{} -Headers @{} -Expected @(401))
+  [void](Add-ApiCaseResult -Results $results -Name "achievement-off-shelf-unauthorized" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/achievements/$achievementId/off-shelf" -Body @{} -Headers @{} -Expected @(401))
+  [void](Add-ApiCaseResult -Results $results -Name "artwork-create-unauthorized" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/artworks" -Body @{ title = "Smoke Unauthorized Artwork" } -Headers @{} -Expected @(401))
+  [void](Add-ApiCaseResult -Results $results -Name "artwork-update-unauthorized" -Method "PATCH" -Url "http://127.0.0.1:$resolvedApiPort/artworks/$artworkId" -Body @{ title = "Smoke Unauthorized Artwork Update" } -Headers @{} -Expected @(401))
+  [void](Add-ApiCaseResult -Results $results -Name "artwork-submit-unauthorized" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/artworks/$artworkId/submit" -Body @{} -Headers @{} -Expected @(401))
+  [void](Add-ApiCaseResult -Results $results -Name "artwork-off-shelf-unauthorized" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/artworks/$artworkId/off-shelf" -Body @{} -Headers @{} -Expected @(401))
+
   $listingFavoriteHeaders = New-WriteHeaders -AuthorizationToken $userToken -Prefix $idempotencyPrefix -Label "favorite-listing-post"
   [void](Add-ApiCaseResult -Results $results -Name "listing-favorite-post-unauthorized" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/listings/$listingId/favorites" -Body $null -Headers @{} -Expected @(401))
   [void](Add-ApiCaseResult -Results $results -Name "listing-favorite-post" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/listings/$listingId/favorites" -Body $null -Headers $listingFavoriteHeaders -Expected @(200, 201))
@@ -1693,6 +1710,7 @@ try {
   [void](Add-ApiCaseResult -Results $results -Name "admin-order-upsert-invoice-missing-file" -Method "PUT" -Url "http://127.0.0.1:$resolvedApiPort/admin/orders/$orderId/invoice" -Body @{ invoiceFileId = [guid]::NewGuid().ToString() } -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-order-upsert-invoice-missing-file") -Expected @(400))
   [void](Add-ApiCaseResult -Results $results -Name "order-refund-request-not-allowed-ready-to-settle" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/orders/$orderId/refund-requests" -Body @{ reasonCode = "OTHER"; reasonText = "smoke not allowed" } -Headers (New-WriteHeaders -AuthorizationToken $userToken -Prefix $idempotencyPrefix -Label "order-refund-request-not-allowed-ready-to-settle") -Expected @(409))
   [void](Add-ApiCaseResult -Results $results -Name "order-invoice-request-not-completed" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/orders/$orderId/invoice-requests" -Body @{} -Headers (New-WriteHeaders -AuthorizationToken $userToken -Prefix $idempotencyPrefix -Label "order-invoice-request-not-completed") -Expected @(409))
+  [void](Add-ApiFileUploadCaseResult -Results $results -Name "file-upload-evidence-unauthorized" -Url "http://127.0.0.1:$resolvedApiPort/files" -AuthorizationToken "" -FilePath $smokeEvidencePath -FormFields $null -Expected @(401))
   $evidenceUpload = Add-ApiFileUploadCaseResult -Results $results -Name "file-upload-evidence" -Url "http://127.0.0.1:$resolvedApiPort/files" -AuthorizationToken $userToken -FilePath $smokeEvidencePath -FormFields $null -Expected @(200, 201)
   $evidenceFileId = Get-ResultStringField -Result $evidenceUpload -Field "id"
   if ([string]::IsNullOrWhiteSpace($evidenceFileId)) { throw "file-upload-evidence missing id" }
