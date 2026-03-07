@@ -550,6 +550,64 @@ function Select-ContentId {
   return [string]$candidate.id
 }
 
+function New-SmokeAlertEventId {
+  param(
+    [string]$DatabaseUrl,
+    [string]$TargetId,
+    [string]$Message
+  )
+
+  if ([string]::IsNullOrWhiteSpace($DatabaseUrl)) {
+    throw "DatabaseUrl is required to seed smoke alert event"
+  }
+
+  $alertId = [guid]::NewGuid().ToString()
+  $normalizedTargetId = ""
+  if (-not [string]::IsNullOrWhiteSpace($TargetId)) {
+    $normalizedTargetId = [string]$TargetId
+  }
+  $normalizedMessage = [string]$Message
+  if ([string]::IsNullOrWhiteSpace($normalizedMessage)) {
+    $normalizedMessage = "smoke alert event"
+  }
+
+  $seedScript = @'
+const { PrismaClient } = require("./apps/api/node_modules/@prisma/client");
+const dbUrl = process.argv[2];
+const alertId = process.argv[3];
+const targetId = process.argv[4];
+const message = process.argv[5];
+const prisma = new PrismaClient({ datasources: { db: { url: dbUrl } } });
+(async () => {
+  await prisma.alertEvent.create({
+    data: {
+      id: alertId,
+      type: "SMOKE_ALERT_EVENT",
+      severity: "HIGH",
+      channel: "IN_APP",
+      status: "PENDING",
+      targetType: "SYSTEM",
+      targetId: targetId || null,
+      message,
+      triggeredAt: new Date(),
+    },
+  });
+  await prisma.$disconnect();
+})().catch(async (error) => {
+  console.error(String(error));
+  await prisma.$disconnect();
+  process.exit(1);
+});
+'@
+
+  $seedScript | node - $DatabaseUrl $alertId $normalizedTargetId $normalizedMessage | Out-Null
+  if ($LASTEXITCODE -ne 0) {
+    throw "Failed to seed smoke alert event"
+  }
+
+  return $alertId
+}
+
 function New-WriteHeaders {
   param(
     [string]$AuthorizationToken,
@@ -2474,13 +2532,21 @@ try {
     }
   }
 
-  [void](Add-ApiCaseResult -Results $results -Name "admin-alert-list" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/admin/alerts" -Body $null -Headers @{ Authorization = $adminToken } -Expected @(200))
+  $smokeAlertId = New-SmokeAlertEventId -DatabaseUrl $DatabaseUrl -TargetId $listingId -Message "smoke alert ack $ReportDate"
+  $missingAlertId = [guid]::NewGuid().ToString()
+  $adminAlertList = Add-ApiCaseResult -Results $results -Name "admin-alert-list" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/admin/alerts" -Body $null -Headers @{ Authorization = $adminToken } -Expected @(200)
+  Assert-ResultJsonArrayItemFieldEquals -Result $adminAlertList -ArrayField "items" -MatchField "id" -MatchValue $smokeAlertId -TargetField "id" -ExpectedValue $smokeAlertId -Assertion "admin-alert-list-has-smoke-alert"
   [void](Add-ApiCaseResult -Results $results -Name "admin-alert-list-invalid-status" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/admin/alerts?status=UNKNOWN" -Body $null -Headers @{ Authorization = $adminToken } -Expected @(400))
   [void](Add-ApiCaseResult -Results $results -Name "admin-alert-list-invalid-severity" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/admin/alerts?severity=UNKNOWN" -Body $null -Headers @{ Authorization = $adminToken } -Expected @(400))
   [void](Add-ApiCaseResult -Results $results -Name "admin-alert-list-invalid-channel" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/admin/alerts?channel=UNKNOWN" -Body $null -Headers @{ Authorization = $adminToken } -Expected @(400))
   [void](Add-ApiCaseResult -Results $results -Name "admin-alert-list-invalid-target-type" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/admin/alerts?targetType=UNKNOWN" -Body $null -Headers @{ Authorization = $adminToken } -Expected @(400))
   [void](Add-ApiCaseResult -Results $results -Name "admin-alert-list-invalid-page" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/admin/alerts?page=abc" -Body $null -Headers @{ Authorization = $adminToken } -Expected @(400))
   [void](Add-ApiCaseResult -Results $results -Name "admin-alert-list-empty-page-size" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/admin/alerts?pageSize=" -Body $null -Headers @{ Authorization = $adminToken } -Expected @(400))
+  $adminAlertAck = Add-ApiCaseResult -Results $results -Name "admin-alert-ack-existing" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/admin/alerts/$smokeAlertId/ack" -Body $null -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-alert-ack-existing") -Expected @(200, 201)
+  Assert-ResultJsonFieldEquals -Result $adminAlertAck -Field "status" -ExpectedValue "ACKED" -Assertion "admin-alert-ack-existing-status"
+  $adminAlertAckReplay = Add-ApiCaseResult -Results $results -Name "admin-alert-ack-existing-replay" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/admin/alerts/$smokeAlertId/ack" -Body $null -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-alert-ack-existing-replay") -Expected @(200, 201)
+  Assert-ResultJsonFieldEquals -Result $adminAlertAckReplay -Field "status" -ExpectedValue "ACKED" -Assertion "admin-alert-ack-replay-status"
+  [void](Add-ApiCaseResult -Results $results -Name "admin-alert-ack-missing" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/admin/alerts/$missingAlertId/ack" -Body $null -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-alert-ack-missing") -Expected @(404))
 
   [void](Add-ApiCaseResult -Results $results -Name "admin-case-list" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/admin/cases" -Body $null -Headers @{ Authorization = $adminToken } -Expected @(200))
   [void](Add-ApiCaseResult -Results $results -Name "admin-case-list-invalid-status" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/admin/cases?status=UNKNOWN" -Body $null -Headers @{ Authorization = $adminToken } -Expected @(400))
@@ -2601,6 +2667,7 @@ try {
   }
   $authBoundaryCaseDueAt = (Get-Date).AddDays(4).ToString("o")
   $authBoundaryScheduleDueAt = (Get-Date).AddDays(30).ToString("o")
+  $missingAdminCommentId = [guid]::NewGuid().ToString()
   $authBoundaryRegionCode = [string](Get-Random -Minimum 100000 -Maximum 999999)
   $authBoundaryIndustryTagName = "smoke-auth-tag-$($ReportDate.Replace('-', ''))-$(Get-Random -Minimum 100 -Maximum 999)"
   $authBoundaryAdminListingCreateBody = @{ title = "Smoke Auth Boundary Admin Listing $ReportDate"; sellerUserId = $currentUserId; source = "ADMIN"; status = "DRAFT"; auditStatus = "PENDING"; tradeMode = "LICENSE"; licenseMode = "EXCLUSIVE"; priceType = "FIXED"; priceAmountFen = 111111; depositAmountFen = 1000; pledgeStatus = "NONE"; existingLicenseStatus = "SOLE"; regionCode = $importRegionCode }
@@ -2661,6 +2728,8 @@ try {
   [void](Add-ApiCaseResult -Results $results -Name "admin-announcement-delete-unauthorized" -Method "DELETE" -Url "http://127.0.0.1:$resolvedApiPort/admin/announcements/$missingAnnouncementId" -Body $null -Headers @{} -Expected @(401))
   [void](Add-ApiCaseResult -Results $results -Name "admin-announcement-publish-unauthorized" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/admin/announcements/$missingAnnouncementId/publish" -Body @{} -Headers @{} -Expected @(401))
   [void](Add-ApiCaseResult -Results $results -Name "admin-announcement-off-shelf-unauthorized" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/admin/announcements/$missingAnnouncementId/off-shelf" -Body @{} -Headers @{} -Expected @(401))
+  [void](Add-ApiCaseResult -Results $results -Name "admin-comment-update-unauthorized" -Method "PATCH" -Url "http://127.0.0.1:$resolvedApiPort/admin/comments/$missingAdminCommentId" -Body @{ status = "HIDDEN" } -Headers @{} -Expected @(401))
+  [void](Add-ApiCaseResult -Results $results -Name "admin-alert-ack-unauthorized" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/admin/alerts/$missingAlertId/ack" -Body $null -Headers @{} -Expected @(401))
   [void](Add-ApiCaseResult -Results $results -Name "admin-case-note-add-unauthorized" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/admin/cases/$caseId/notes" -Body @{ note = "smoke unauthorized case note" } -Headers @{} -Expected @(401))
   [void](Add-ApiCaseResult -Results $results -Name "admin-ai-parse-result-update-unauthorized" -Method "PATCH" -Url "http://127.0.0.1:$resolvedApiPort/admin/ai/parse-results/$missingAiParseResultId" -Body @{ status = "ACTIVE"; note = "smoke unauthorized parse update" } -Headers @{} -Expected @(401, 404))
   [void](Add-ApiCaseResult -Results $results -Name "admin-patent-create-unauthorized" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/admin/patents" -Body $authBoundaryAdminPatentCreateBody -Headers @{} -Expected @(401))
@@ -2695,7 +2764,9 @@ try {
   [void](Add-ApiCaseResult -Results $results -Name "admin-achievements-custom-rbac-role-forbidden" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/admin/achievements" -Body $null -Headers @{ Authorization = $userToken } -Expected @(403))
   [void](Add-ApiCaseResult -Results $results -Name "admin-artworks-custom-rbac-role-forbidden" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/admin/artworks" -Body $null -Headers @{ Authorization = $userToken } -Expected @(403))
   [void](Add-ApiCaseResult -Results $results -Name "admin-comments-custom-rbac-role-forbidden" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/admin/comments" -Body $null -Headers @{ Authorization = $userToken } -Expected @(403))
+  [void](Add-ApiCaseResult -Results $results -Name "admin-comment-update-custom-rbac-role-forbidden" -Method "PATCH" -Url "http://127.0.0.1:$resolvedApiPort/admin/comments/$missingAdminCommentId" -Body @{ status = "HIDDEN" } -Headers @{ Authorization = $userToken } -Expected @(403))
   [void](Add-ApiCaseResult -Results $results -Name "admin-alerts-custom-rbac-role-forbidden" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/admin/alerts" -Body $null -Headers @{ Authorization = $userToken } -Expected @(403))
+  [void](Add-ApiCaseResult -Results $results -Name "admin-alert-ack-custom-rbac-role-forbidden" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/admin/alerts/$missingAlertId/ack" -Body $null -Headers @{ Authorization = $userToken } -Expected @(403))
   [void](Add-ApiCaseResult -Results $results -Name "admin-patents-custom-rbac-role-forbidden" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/admin/patents" -Body $null -Headers @{ Authorization = $userToken } -Expected @(403))
   [void](Add-ApiCaseResult -Results $results -Name "admin-tech-managers-custom-rbac-role-forbidden" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/admin/tech-managers" -Body $null -Headers @{ Authorization = $userToken } -Expected @(403))
   [void](Add-ApiCaseResult -Results $results -Name "admin-config-trade-rules-get-custom-rbac-role-forbidden" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/admin/config/trade-rules" -Body $null -Headers @{ Authorization = $userToken } -Expected @(403))
@@ -2780,6 +2851,8 @@ try {
   }
   [void](Add-ApiCaseResult -Results $results -Name "admin-listings-after-clear-roles-forbidden" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/admin/listings" -Body $null -Headers @{ Authorization = $userToken } -Expected @(403))
   [void](Add-ApiCaseResult -Results $results -Name "admin-report-summary-after-clear-roles-forbidden" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/admin/reports/finance/summary" -Body $null -Headers @{ Authorization = $userToken } -Expected @(403))
+  [void](Add-ApiCaseResult -Results $results -Name "admin-comment-update-after-clear-roles-forbidden" -Method "PATCH" -Url "http://127.0.0.1:$resolvedApiPort/admin/comments/$missingAdminCommentId" -Body @{ status = "HIDDEN" } -Headers @{ Authorization = $userToken } -Expected @(403))
+  [void](Add-ApiCaseResult -Results $results -Name "admin-alert-ack-after-clear-roles-forbidden" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/admin/alerts/$missingAlertId/ack" -Body $null -Headers @{ Authorization = $userToken } -Expected @(403))
   [void](Add-ApiCaseResult -Results $results -Name "admin-order-manual-payment-after-clear-roles-forbidden" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/admin/orders/$orderId/payments/manual" -Body @{ payType = "DEPOSIT" } -Headers @{ Authorization = $userToken } -Expected @(403))
   [void](Add-ApiCaseResult -Results $results -Name "admin-order-contract-signed-after-clear-roles-forbidden" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/admin/orders/$orderId/milestones/contract-signed" -Body @{ dealAmountFen = 2000000 } -Headers @{ Authorization = $userToken } -Expected @(403))
   [void](Add-ApiCaseResult -Results $results -Name "admin-order-transfer-completed-after-clear-roles-forbidden" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/admin/orders/$orderId/milestones/transfer-completed" -Body @{} -Headers @{ Authorization = $userToken } -Expected @(403))
@@ -2893,6 +2966,16 @@ try {
   [void](Add-ApiCaseResult -Results $results -Name "listing-comment-update-unauthorized" -Method "PATCH" -Url "http://127.0.0.1:$resolvedApiPort/comments/$listingCommentId" -Body @{ text = "smoke unauthorized listing comment update" } -Headers @{} -Expected @(401))
   [void](Add-ApiCaseResult -Results $results -Name "listing-comment-update" -Method "PATCH" -Url "http://127.0.0.1:$resolvedApiPort/comments/$listingCommentId" -Body @{ text = "smoke listing comment updated $ReportDate" } -Headers (New-WriteHeaders -AuthorizationToken $userToken -Prefix $idempotencyPrefix -Label "comment-listing-update") -Expected @(200))
   [void](Add-ApiCaseResult -Results $results -Name "listing-comment-update-empty-text" -Method "PATCH" -Url "http://127.0.0.1:$resolvedApiPort/comments/$listingCommentId" -Body @{ text = "" } -Headers (New-WriteHeaders -AuthorizationToken $userToken -Prefix $idempotencyPrefix -Label "comment-listing-update-empty") -Expected @(400))
+  [void](Add-ApiCaseResult -Results $results -Name "admin-comment-update-invalid-status" -Method "PATCH" -Url "http://127.0.0.1:$resolvedApiPort/admin/comments/$listingCommentId" -Body @{ status = "UNKNOWN" } -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-comment-update-invalid-status") -Expected @(400))
+  $adminCommentHide = Add-ApiCaseResult -Results $results -Name "admin-comment-update-hidden" -Method "PATCH" -Url "http://127.0.0.1:$resolvedApiPort/admin/comments/$listingCommentId" -Body @{ status = "HIDDEN" } -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-comment-update-hidden") -Expected @(200)
+  Assert-ResultJsonFieldEquals -Result $adminCommentHide -Field "status" -ExpectedValue "HIDDEN" -Assertion "admin-comment-update-hidden-status"
+  $adminCommentsHiddenList = Add-ApiCaseResult -Results $results -Name "admin-comments-hidden-filter-after-update" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/admin/comments?contentId=$listingId&status=HIDDEN" -Body $null -Headers @{ Authorization = $adminToken } -Expected @(200)
+  Assert-ResultJsonArrayItemFieldEquals -Result $adminCommentsHiddenList -ArrayField "items" -MatchField "id" -MatchValue $listingCommentId -TargetField "status" -ExpectedValue "HIDDEN" -Assertion "admin-comments-hidden-filter-has-comment"
+  $adminCommentVisible = Add-ApiCaseResult -Results $results -Name "admin-comment-update-visible" -Method "PATCH" -Url "http://127.0.0.1:$resolvedApiPort/admin/comments/$listingCommentId" -Body @{ status = "VISIBLE" } -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-comment-update-visible") -Expected @(200)
+  Assert-ResultJsonFieldEquals -Result $adminCommentVisible -Field "status" -ExpectedValue "VISIBLE" -Assertion "admin-comment-update-visible-status"
+  $adminCommentsVisibleList = Add-ApiCaseResult -Results $results -Name "admin-comments-visible-filter-after-restore" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/admin/comments?contentId=$listingId&status=VISIBLE" -Body $null -Headers @{ Authorization = $adminToken } -Expected @(200)
+  Assert-ResultJsonArrayItemFieldEquals -Result $adminCommentsVisibleList -ArrayField "items" -MatchField "id" -MatchValue $listingCommentId -TargetField "status" -ExpectedValue "VISIBLE" -Assertion "admin-comments-visible-filter-has-comment"
+  [void](Add-ApiCaseResult -Results $results -Name "admin-comment-update-missing" -Method "PATCH" -Url "http://127.0.0.1:$resolvedApiPort/admin/comments/$missingAdminCommentId" -Body @{ status = "HIDDEN" } -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-comment-update-missing") -Expected @(404))
   [void](Add-ApiCaseResult -Results $results -Name "listing-comment-delete-unauthorized" -Method "DELETE" -Url "http://127.0.0.1:$resolvedApiPort/comments/$listingCommentId" -Body $null -Headers @{} -Expected @(401))
   [void](Add-ApiCaseResult -Results $results -Name "listing-comment-delete" -Method "DELETE" -Url "http://127.0.0.1:$resolvedApiPort/comments/$listingCommentId" -Body $null -Headers (New-WriteHeaders -AuthorizationToken $userToken -Prefix $idempotencyPrefix -Label "comment-listing-delete") -Expected @(200))
 
