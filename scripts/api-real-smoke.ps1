@@ -1260,6 +1260,8 @@ try {
 
   [void](Add-ApiCaseResult -Results $results -Name "public-tech-manager-detail" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/public/tech-managers/$techManagerId" -Body $null -Headers @{} -Expected @(200))
   [void](Add-ApiCaseResult -Results $results -Name "public-patent-clusters" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/public/patent-clusters" -Body $null -Headers @{} -Expected @(200))
+  [void](Add-ApiCaseResult -Results $results -Name "public-patent-clusters-invalid-page" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/public/patent-clusters?page=abc" -Body $null -Headers @{} -Expected @(400))
+  [void](Add-ApiCaseResult -Results $results -Name "public-patent-clusters-empty-page-size" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/public/patent-clusters?pageSize=" -Body $null -Headers @{} -Expected @(400))
 
   $publicAnnouncementsList = Add-ApiCaseResult -Results $results -Name "public-announcements-list" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/public/announcements" -Body $null -Headers @{} -Expected @(200)
   [void](Add-ApiCaseResult -Results $results -Name "public-announcements-invalid-page" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/public/announcements?page=abc" -Body $null -Headers @{} -Expected @(400))

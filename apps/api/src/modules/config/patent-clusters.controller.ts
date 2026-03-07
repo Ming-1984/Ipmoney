@@ -1,4 +1,4 @@
-import { Controller, Get, Query } from '@nestjs/common';
+import { BadRequestException, Controller, Get, Query } from '@nestjs/common';
 
 import {
   ConfigService,
@@ -21,8 +21,8 @@ export class PatentClustersController {
     @Query('page') pageRaw?: string,
     @Query('pageSize') pageSizeRaw?: string,
   ): Promise<PatentClustersResponse> {
-    const page = this.normalizePositiveInt(pageRaw, 1);
-    const pageSize = Math.min(50, this.normalizePositiveInt(pageSizeRaw, 20));
+    const page = this.parsePositiveInt(pageRaw, 1, 'page');
+    const pageSize = Math.min(50, this.parsePositiveInt(pageSizeRaw, 20, 'pageSize'));
 
     const clustersConfig = await this.config.getPatentClusters();
     const items = clustersConfig.items ?? [];
@@ -37,11 +37,20 @@ export class PatentClustersController {
     };
   }
 
-  private normalizePositiveInt(rawValue: string | undefined, fallback: number): number {
-    if (!rawValue) return fallback;
-    const parsedValue = Number(rawValue);
-    if (!Number.isFinite(parsedValue)) return fallback;
-    const integerValue = Math.floor(parsedValue);
-    return integerValue > 0 ? integerValue : fallback;
+  private parsePositiveInt(rawValue: string | undefined, fallback: number, fieldName: string): number {
+    if (rawValue === undefined) return fallback;
+    const normalized = String(rawValue).trim();
+    if (!normalized) {
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: `${fieldName} must be a positive integer` });
+    }
+    if (!/^[0-9]+$/.test(normalized)) {
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: `${fieldName} must be a positive integer` });
+    }
+
+    const parsed = Number(normalized);
+    if (!Number.isSafeInteger(parsed) || parsed <= 0) {
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: `${fieldName} must be a positive integer` });
+    }
+    return parsed;
   }
 }
