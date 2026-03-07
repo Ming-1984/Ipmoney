@@ -1222,8 +1222,12 @@ export class OrdersService {
 
   async adminContractSigned(req: any, orderId: string, body: any) {
     this.ensureAdmin(req);
-    const dealAmountFen = Number(body?.dealAmountFen || 0);
-    if (!dealAmountFen || dealAmountFen <= 0) {
+    const rawDealAmountFen = body?.dealAmountFen;
+    if (rawDealAmountFen === undefined || rawDealAmountFen === null || String(rawDealAmountFen).trim() === '') {
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: 'dealAmountFen is required' });
+    }
+    const dealAmountFen = typeof rawDealAmountFen === 'number' ? rawDealAmountFen : Number(rawDealAmountFen);
+    if (!Number.isFinite(dealAmountFen) || !Number.isInteger(dealAmountFen) || dealAmountFen <= 0) {
       throw new BadRequestException({ code: 'BAD_REQUEST', message: 'dealAmountFen is required' });
     }
     const remark = body?.remark ? String(body.remark).trim() : undefined;
