@@ -100,6 +100,57 @@ function Wait-Status([string]$Url, [int]$TimeoutSec, [hashtable]$Headers) {
   throw "timeout waiting for $Url"
 }
 
+function Get-ClientH5RoutesFromAppConfig([string]$ConfigPath) {
+  if (-not (Test-Path $ConfigPath)) {
+    throw "client app config not found: $ConfigPath"
+  }
+
+  $raw = Get-Content $ConfigPath -Raw -Encoding UTF8
+  $routes = New-Object System.Collections.Generic.List[string]
+  $routeSet = New-Object 'System.Collections.Generic.HashSet[string]'
+
+  $mainPagesMatch = [regex]::Match($raw, "pages\s*:\s*\[(?<body>[\s\S]*?)\]\s*,\s*subPackages\s*:")
+  if ($mainPagesMatch.Success) {
+    $mainPagesBody = $mainPagesMatch.Groups["body"].Value
+    $mainPageMatches = [regex]::Matches($mainPagesBody, "'([^']+)'")
+    foreach ($mainPageMatch in $mainPageMatches) {
+      $path = [string]$mainPageMatch.Groups[1].Value
+      if ([string]::IsNullOrWhiteSpace($path)) { continue }
+      $route = "/#/" + $path.TrimStart("/")
+      if ($routeSet.Add($route)) {
+        [void]$routes.Add($route)
+      }
+    }
+  }
+
+  $subPackagesMatch = [regex]::Match($raw, "subPackages\s*:\s*\[(?<body>[\s\S]*?)\]\s*,\s*window\s*:")
+  if ($subPackagesMatch.Success) {
+    $subPackagesBody = $subPackagesMatch.Groups["body"].Value
+    $subPackageBlocks = [regex]::Matches(
+      $subPackagesBody,
+      "root\s*:\s*'([^']+)'\s*,\s*pages\s*:\s*\[(.*?)\]",
+      [System.Text.RegularExpressions.RegexOptions]::Singleline
+    )
+    foreach ($subPackageBlock in $subPackageBlocks) {
+      $root = [string]$subPackageBlock.Groups[1].Value
+      $pagesBody = [string]$subPackageBlock.Groups[2].Value
+      if ([string]::IsNullOrWhiteSpace($root)) { continue }
+      $root = $root.Trim("/")
+      $subPageMatches = [regex]::Matches($pagesBody, "'([^']+)'")
+      foreach ($subPageMatch in $subPageMatches) {
+        $subPath = [string]$subPageMatch.Groups[1].Value
+        if ([string]::IsNullOrWhiteSpace($subPath)) { continue }
+        $route = "/#/" + $root + "/" + $subPath.TrimStart("/")
+        if ($routeSet.Add($route)) {
+          [void]$routes.Add($route)
+        }
+      }
+    }
+  }
+
+  return ,$routes
+}
+
 $reservedPorts = @()
 $resolvedMockPort = Find-AvailablePort -PreferredPort $MockPort -ReservedPorts $reservedPorts
 $reservedPorts += $resolvedMockPort
@@ -172,6 +223,22 @@ try {
     @{ name = "mock-orders"; url = "http://127.0.0.1:$resolvedMockPort/orders"; headers = @{ "X-Mock-Scenario" = "happy" } },
     @{ name = "client-home"; url = "http://127.0.0.1:$resolvedClientPort/"; headers = @{} }
   )
+
+  $clientAppConfigPath = Join-Path $repoRoot "apps/client/src/app.config.ts"
+  $clientRoutePaths = Get-ClientH5RoutesFromAppConfig -ConfigPath $clientAppConfigPath
+  $clientRouteIndex = 0
+  foreach ($clientRoutePath in $clientRoutePaths) {
+    $clientRouteIndex += 1
+    $routeSlug = ($clientRoutePath -replace "^/#/", "" -replace "[^a-zA-Z0-9]+", "-").Trim("-").ToLower()
+    if ([string]::IsNullOrWhiteSpace($routeSlug)) {
+      $routeSlug = "route-$clientRouteIndex"
+    }
+    $checks += @{
+      name = ("client-route-{0:D2}-{1}" -f $clientRouteIndex, $routeSlug)
+      url = "http://127.0.0.1:$resolvedClientPort$clientRoutePath"
+      headers = @{}
+    }
+  }
 
   foreach ($routeCheck in $adminRouteChecks) {
     $checks += @{
