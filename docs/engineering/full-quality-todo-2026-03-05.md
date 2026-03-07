@@ -17,6 +17,7 @@
 - OpenAPI operations: 243 (GET 108 / POST 93 / PUT 12 / PATCH 21 / DELETE 9).
 - API smoke covers 938 checks (including semantic read-back/state assertions).
 - Write operations total 135; smoke now executes 685 write assertions plus 93 read-back semantic checks (state transitions, persistence, cross-module link integrity, same-key replay invariants, selected concurrency race outcomes, percentile-based chaos stability guard, cross-run trend-threshold capability, and AI/industry-tag/region/featured/file-temporary-access/admin-listings-write/user-listings-write/admin-cases-create-enum/patent-strict-negative/patent-maintenance-create-status/ai-query-strict-enum/order-payment-intent-strict-pay-type/RBAC-401-403-write-boundary/user-write-401-boundary-expanded/admin-settlement-refund-full-lifecycle-auth-boundary/admin-case-maintenance-verification-reject-auth-boundary assertions), while unique write-operation coverage remains at least prior 132/135 baseline.
+- Non-admin secured write-path 401 boundary: fully covered in smoke except `/auth/wechat/phone-bind` (login-scope, intentionally out of current phase).
 - Highest uncovered write concentration remains in `/admin` (77 write operations; still the largest uncovered write domain).
 - No `.test` / `.spec` business tests under `apps` and `packages`.
 

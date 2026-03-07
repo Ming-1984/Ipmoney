@@ -1714,7 +1714,8 @@ try {
   $evidenceUpload = Add-ApiFileUploadCaseResult -Results $results -Name "file-upload-evidence" -Url "http://127.0.0.1:$resolvedApiPort/files" -AuthorizationToken $userToken -FilePath $smokeEvidencePath -FormFields $null -Expected @(200, 201)
   $evidenceFileId = Get-ResultStringField -Result $evidenceUpload -Field "id"
   if ([string]::IsNullOrWhiteSpace($evidenceFileId)) { throw "file-upload-evidence missing id" }
-  [void](Add-ApiCaseResult -Results $results -Name "contract-upload-unauthorized" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/contracts/$([guid]::NewGuid().ToString())/upload" -Body @{ fileId = $evidenceFileId } -Headers @{} -Expected @(401))
+  $missingContractUploadId = [guid]::NewGuid().ToString()
+  [void](Add-ApiCaseResult -Results $results -Name "contract-upload-unauthorized" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/contracts/$missingContractUploadId/upload" -Body @{ fileId = $evidenceFileId } -Headers @{} -Expected @(401))
   [void](Add-ApiCaseResult -Results $results -Name "file-temporary-access-create-preview-unauthorized" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/files/$evidenceFileId/temporary-access" -Body @{ scope = "preview"; ttlSeconds = 600 } -Headers @{} -Expected @(401))
   $fileTemporaryAccess = Add-ApiCaseResult -Results $results -Name "file-temporary-access-create-preview" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/files/$evidenceFileId/temporary-access" -Body @{ scope = "preview"; ttlSeconds = 600 } -Headers (New-WriteHeaders -AuthorizationToken $userToken -Prefix $idempotencyPrefix -Label "file-temporary-access-create-preview") -Expected @(200, 201)
   Assert-ResultJsonFieldEquals -Result $fileTemporaryAccess -Field "scope" -ExpectedValue "preview" -Assertion "file-temporary-access-scope-preview"
