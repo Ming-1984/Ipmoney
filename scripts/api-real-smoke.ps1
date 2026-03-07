@@ -1395,6 +1395,8 @@ try {
       Assert-ResultJsonFieldEquals -Result $aiParseFeedbackCreate -Field "parseResultId" -ExpectedValue $aiParseResultId -Assertion "ai-parse-feedback-target-id"
       $aiParseFeedbackReplay = Add-ApiCaseResult -Results $results -Name "ai-parse-feedback-idempotent-replay" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/ai/parse-results/$aiParseResultId/feedback" -Body @{ score = 5; reasonTags = @("SMOKE"); comment = "smoke ai feedback replay" } -Headers $aiParseFeedbackHeaders -Expected @(200, 201)
       Assert-ResultJsonFieldEquals -Result $aiParseFeedbackReplay -Field "parseResultId" -ExpectedValue $aiParseResultId -Assertion "ai-parse-feedback-replay-target-id"
+      [void](Add-ApiCaseResult -Results $results -Name "ai-parse-feedback-create-invalid-score-decimal" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/ai/parse-results/$aiParseResultId/feedback" -Body @{ score = 3.5; reasonTags = @("SMOKE"); comment = "smoke ai feedback invalid decimal score" } -Headers (New-WriteHeaders -AuthorizationToken $userToken -Prefix $idempotencyPrefix -Label "ai-parse-feedback-invalid-score-decimal") -Expected @(400))
+      [void](Add-ApiCaseResult -Results $results -Name "ai-parse-feedback-create-empty-score" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/ai/parse-results/$aiParseResultId/feedback" -Body @{ score = ""; reasonTags = @("SMOKE"); comment = "smoke ai feedback empty score" } -Headers (New-WriteHeaders -AuthorizationToken $userToken -Prefix $idempotencyPrefix -Label "ai-parse-feedback-empty-score") -Expected @(400))
     }
   } else {
     $missingAiParseResultId = [guid]::NewGuid().ToString()

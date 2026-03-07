@@ -369,11 +369,14 @@ export class AiService {
   async createFeedback(req: any, parseResultId: string, payload: any) {
     this.ensureAuth(req);
 
-    const score = Number(payload?.score || 0);
-    if (!Number.isFinite(score) || score < 1 || score > 5) {
-      throw new BadRequestException({ code: 'BAD_REQUEST', message: 'score must be between 1 and 5' });
+    const rawScore = payload?.score;
+    if (rawScore === undefined || rawScore === null || String(rawScore).trim() === '') {
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: 'score must be an integer between 1 and 5' });
     }
-
+    const score = typeof rawScore === 'number' ? rawScore : Number(rawScore);
+    if (!Number.isFinite(score) || !Number.isInteger(score) || score < 1 || score > 5) {
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: 'score must be an integer between 1 and 5' });
+    }
     const parseResult = await this.prisma.aiParseResult.findUnique({ where: { id: parseResultId } });
     if (!parseResult) throw new NotFoundException({ code: 'NOT_FOUND', message: 'Parse result not found' });
 
@@ -386,7 +389,7 @@ export class AiService {
         parseResultId,
         actorUserId: req?.auth?.userId,
         actorType,
-        score: Math.round(score),
+        score,
         reasonTagsJson: reasonTags,
         comment: comment || null,
       },
