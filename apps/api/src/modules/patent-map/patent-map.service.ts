@@ -99,6 +99,12 @@ export class PatentMapService {
     }
   }
 
+  private assertYear(year: number) {
+    if (!Number.isInteger(year)) {
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: 'year is required and must be an integer' });
+    }
+  }
+
   private asIndustryBreakdown(value: unknown): PatentMapIndustryCountDto[] {
     if (!Array.isArray(value)) return [];
     return value
@@ -244,9 +250,7 @@ export class PatentMapService {
   }
 
   async getSummary(params: { year: number; level: string; parentCode?: string }): Promise<PatentMapSummaryItemDto[]> {
-    if (!Number.isFinite(params.year)) {
-      throw new BadRequestException({ code: 'BAD_REQUEST', message: 'year is required and must be an integer' });
-    }
+    this.assertYear(params.year);
     this.assertRegionLevel(params.level);
     if (params.parentCode) this.assertRegionCode(params.parentCode);
 
@@ -275,9 +279,7 @@ export class PatentMapService {
 
   async getRegionDetail(regionCode: string, year: number): Promise<PatentMapRegionDetailDto> {
     this.assertRegionCode(regionCode);
-    if (!Number.isFinite(year)) {
-      throw new BadRequestException({ code: 'BAD_REQUEST', message: 'year is required and must be an integer' });
-    }
+    this.assertYear(year);
 
     const region = await this.prisma.region.findUnique({ where: { code: regionCode } });
     if (!region) throw new NotFoundException({ code: 'NOT_FOUND', message: 'region not found' });
@@ -303,9 +305,7 @@ export class PatentMapService {
 
   async adminGetEntry(regionCode: string, year: number): Promise<PatentMapEntryDto> {
     this.assertRegionCode(regionCode);
-    if (!Number.isFinite(year)) {
-      throw new BadRequestException({ code: 'BAD_REQUEST', message: 'year is required and must be an integer' });
-    }
+    this.assertYear(year);
 
     const entry = await this.prisma.patentMapEntry.findUnique({
       where: { regionCode_year: { regionCode, year } },
@@ -320,9 +320,7 @@ export class PatentMapService {
     body: PatentMapEntryUpsertRequestDto,
   ): Promise<PatentMapEntryDto> {
     this.assertRegionCode(regionCode);
-    if (!Number.isFinite(year)) {
-      throw new BadRequestException({ code: 'BAD_REQUEST', message: 'year is required and must be an integer' });
-    }
+    this.assertYear(year);
     if (!body || !Number.isFinite(body.patentCount) || body.patentCount < 0) {
       throw new BadRequestException({ code: 'BAD_REQUEST', message: 'patentCount must be >= 0' });
     }
