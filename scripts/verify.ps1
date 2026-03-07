@@ -149,6 +149,7 @@ if ($portResolution.Mode -eq "random-fallback") {
 }
 Invoke-Step "api-real-smoke" { powershell -ExecutionPolicy Bypass -File scripts/api-real-smoke.ps1 -ApiPort $resolvedApiPort -ReportDate $ReportDate -ChaosHistoryPath $ChaosHistoryPath }
 Invoke-Step "api-smoke-openapi-coverage" { node scripts/check-api-smoke-openapi-coverage.mjs --report-date $ReportDate }
+Invoke-Step "api-smoke-quality-floor" { node scripts/check-api-smoke-quality-floor.mjs --report-date $ReportDate }
 if (Test-Path $ChaosHistoryPath) {
   $chaosHistorySnapshotPath = Join-Path $tmpDir "api-real-smoke-chaos-history-$ReportDate.json"
   Copy-Item -Path $ChaosHistoryPath -Destination $chaosHistorySnapshotPath -Force
