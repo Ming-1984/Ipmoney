@@ -148,6 +148,7 @@ if ($portResolution.Mode -eq "random-fallback") {
   Write-Host ("[verify] api port range [{0}, {1}] unavailable, fallback to random port {2}" -f $ApiPort, ($ApiPort + 200), $resolvedApiPort)
 }
 Invoke-Step "api-real-smoke" { powershell -ExecutionPolicy Bypass -File scripts/api-real-smoke.ps1 -ApiPort $resolvedApiPort -ReportDate $ReportDate -ChaosHistoryPath $ChaosHistoryPath }
+Invoke-Step "api-smoke-openapi-coverage" { node scripts/check-api-smoke-openapi-coverage.mjs --report-date $ReportDate }
 if (Test-Path $ChaosHistoryPath) {
   $chaosHistorySnapshotPath = Join-Path $tmpDir "api-real-smoke-chaos-history-$ReportDate.json"
   Copy-Item -Path $ChaosHistoryPath -Destination $chaosHistorySnapshotPath -Force

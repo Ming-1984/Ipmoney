@@ -10,13 +10,13 @@
 - `typecheck`: pass (api/client/admin-web).
 - `build`: pass (api/admin-web/client h5/weapp); WeApp severe regression has been fixed in this batch, and bundle gate is now enforced.
 - `smoke`: pass (API 1161/1161, UI HTTP 86/86, UI Render full 83/83, UI Render core 3/3, UI DOM core 11/11, UI DOM full-83 83/83).
-- `verify`: pass on 2026-03-07 (now includes `ui-dom-smoke(core)` in pipeline); port/process hardening has been applied to core smoke scripts.
+- `verify`: pass on 2026-03-07 (now includes `api-smoke-openapi-coverage` + `ui-dom-smoke(core)` in pipeline); port/process hardening has been applied to core smoke scripts.
 - `weapp-route-smoke`: local fail due DevTools HTTP port availability (environment issue).
 
 ### 1.2 Coverage and test capability
 - OpenAPI operations: 243 (GET 108 / POST 93 / PUT 12 / PATCH 21 / DELETE 9).
 - API smoke covers 1161 checks (including semantic read-back/state assertions).
-- OpenAPI smoke alignment (excluding login/payment integrations): 238/238 operations covered.
+- OpenAPI smoke alignment (excluding login/payment integrations): 238/238 operations covered, and this is now regression-gated in `verify`.
 - Write operations total 135; smoke now executes 857 write assertions plus 93 read-back semantic checks (state transitions, persistence, cross-module link integrity, same-key replay invariants, selected concurrency race outcomes, percentile-based chaos stability guard, cross-run trend-threshold capability, and AI/industry-tag/region/featured/file-temporary-access/admin-listings-write/user-listings-write/admin-cases-create-enum/patent-strict-negative/patent-maintenance-create-status/ai-query-strict-enum/order-payment-intent-strict-pay-type/RBAC-401-403-write-boundary/user-write-401-boundary-expanded/admin-settlement-refund-full-lifecycle-auth-boundary/admin-case-maintenance-verification-reject-auth-boundary/admin-config-write-401-403-convergence/admin-domain-write-401-403-convergence-round2/admin-content-write-401-403-convergence-round3/admin-residual-write-401-403-convergence-round4/admin-alert-comment-write-convergence-round5/admin-patent-map-entry-upsert-and-patents-normalize-write-convergence-round6 assertions), while unique write-operation coverage remains at least prior 132/135 baseline.
 - Non-admin secured write-path 401 boundary: fully covered in smoke except `/auth/wechat/phone-bind` (login-scope, intentionally out of current phase).
 - Admin secured config write-path boundary (`PUT /admin/config/*`): all 8 endpoints now include unauthorized/custom-role/after-clear forbidden convergence checks.
@@ -64,6 +64,7 @@
 - `api-real-smoke` now keeps a larger response truncation ceiling (64 KB) to prevent false JSON-assert failures on large list payloads.
 - `verify` now appends `NODE_OPTIONS=--max-old-space-size=4096` and retries transient `client:build:h5` crash exit codes once.
 - `verify` now passes configurable chaos history path into `api-real-smoke` and writes per-report snapshots (`.tmp/api-real-smoke-chaos-history-<ReportDate>.json`) for trend reproducibility.
+- `verify` now runs `api-smoke-openapi-coverage` immediately after `api-real-smoke` to block non-auth/non-payment OpenAPI coverage regressions.
 
 ---
 
@@ -82,7 +83,7 @@
 - [x] A01 Fix current lint blocker (Inventors unused variable).
   - Acceptance: full repo `pnpm lint` passes.
 - [x] A02 Run `scripts/verify.ps1` to full green baseline (excluding real login/payment).
-  - Acceptance: openapi lint, lint, typecheck, build, api smoke, db preflight, ui http smoke, ui render smoke(core) all pass.
+  - Acceptance: openapi lint, lint, typecheck, build, api smoke, api smoke openapi coverage, db preflight, ui http smoke, ui render smoke(core) all pass.
 - [x] A03 Improve `verify` port resilience for OS reserved-port scenarios.
   - Acceptance: auto fallback works even when `ApiPort..ApiPort+30` is unavailable.
 - [x] A04 Fix admin config write-path 500 regression (`/admin/config/*`).
@@ -214,6 +215,8 @@
   - Acceptance: conflicts auto-resolve or fail with explicit retry guidance.
 - [x] N04 Add memory/process hardening for long smoke/verify runs.
   - Acceptance: no leaked process trees after smoke runs; verify survives transient `client:build:h5` crashes with bounded retry.
+- [x] N05 Add OpenAPI-to-smoke coverage gate in `verify` (excluding real login/payment integrations).
+  - Acceptance: `verify` fails if any non-auth/non-WeChatPay webhook OpenAPI operation is missing from `api-real-smoke`.
 
 ---
 
@@ -256,6 +259,7 @@
 | N02 | done | Codex | 2026-03-06 | 2026-03-05 | `api-real`/`ui-http`/`ui-render`/`ui-dom` now clean up spawned process trees |
 | N03 | done | Codex | 2026-03-06 | 2026-03-05 | dynamic fallback validated via forced collision (`4010` blocker) |
 | N04 | done | Codex | 2026-03-06 | 2026-03-05 | verify heap/retry hardening + smoke leak cleanup validated in repeated runs |
+| N05 | done | Codex | 2026-03-07 | 2026-03-07 | `verify` now runs `api-smoke-openapi-coverage`; non-auth/non-payment OpenAPI coverage is gated at 238/238 |
 | D01 | done | Codex | 2026-03-06 | 2026-03-05 | root cause report completed and documented |
 | D02 | done | Codex | 2026-03-06 | 2026-03-05 | wxss size reduced below phase targets |
 | D03 | done | Codex | 2026-03-06 | 2026-03-05 | hard budget gate enabled in verify + CI |
@@ -341,5 +345,6 @@
   43) contract upload unauthorized boundary landed (done: added explicit 401 assertion for `POST /contracts/:id/upload`).
   44) organizations detail defect fixed (done: `GET /public/organizations/:orgUserId` no longer triggers Prisma `uuid = text` 500; distinct patent count now uses Prisma query path, and smoke includes detail-read regression coverage).
   45) `ui-http-smoke` route coverage expanded and automated (done: client routes now parsed from `apps/client/src/app.config.ts`, HTTP smoke rose from 28 to 86 checks, and full verify remained green).
-  46) next step: carry trend history across daily/CI runs and calibrate threshold factors using broader variance data (pending).
+  46) OpenAPI alignment gate landed in verify (done: `scripts/check-api-smoke-openapi-coverage.mjs` enforces 238/238 non-auth/non-payment operation coverage and fails on any regression).
+  47) next step: carry trend history across daily/CI runs and calibrate threshold factors using broader variance data (pending).
 
