@@ -100,6 +100,60 @@ function Wait-Status([string]$Url, [int]$TimeoutSec, [hashtable]$Headers) {
   throw "timeout waiting for $Url"
 }
 
+function Contains-IgnoreCase([string]$Text, [string]$Needle) {
+  if ([string]::IsNullOrWhiteSpace($Needle)) { return $false }
+  if ($null -eq $Text) { return $false }
+  return $Text.IndexOf($Needle, [System.StringComparison]::OrdinalIgnoreCase) -ge 0
+}
+
+function Invoke-HttpProbe([string]$Url, [hashtable]$Headers) {
+  $headerPath = Join-Path $env:TEMP ("ui-http-smoke-header-{0}.tmp" -f ([Guid]::NewGuid().ToString("N")))
+  $bodyPath = Join-Path $env:TEMP ("ui-http-smoke-body-{0}.tmp" -f ([Guid]::NewGuid().ToString("N")))
+  $statusCode = 0
+  $contentType = ""
+  $body = ""
+  try {
+    $args = @("-s", "-L", "-D", $headerPath, "-o", $bodyPath, "-w", "%{http_code}")
+    if ($Headers) {
+      foreach ($k in $Headers.Keys) {
+        $args += @("-H", "${k}: $($Headers[$k])")
+      }
+    }
+    $args += $Url
+
+    $statusRaw = & curl.exe @args
+    if ($LASTEXITCODE -eq 0) {
+      [int]::TryParse([string]$statusRaw, [ref]$statusCode) | Out-Null
+    }
+
+    if (Test-Path $headerPath) {
+      $headerText = Get-Content -Raw -Path $headerPath -ErrorAction SilentlyContinue
+      if ($headerText) {
+        $headerLines = $headerText -split "`r?`n"
+        foreach ($line in $headerLines) {
+          if ($line -match "^\s*Content-Type\s*:\s*(.+?)\s*$") {
+            $contentType = [string]$Matches[1]
+          }
+        }
+      }
+    }
+
+    if (Test-Path $bodyPath) {
+      $body = Get-Content -Raw -Path $bodyPath -ErrorAction SilentlyContinue
+      if ($null -eq $body) { $body = "" }
+    }
+  } finally {
+    Remove-Item -Path $headerPath -Force -ErrorAction SilentlyContinue
+    Remove-Item -Path $bodyPath -Force -ErrorAction SilentlyContinue
+  }
+
+  return [pscustomobject]@{
+    status = $statusCode
+    contentType = $contentType
+    bodyLength = $body.Length
+  }
+}
+
 function Get-ClientH5RoutesFromAppConfig([string]$ConfigPath) {
   if (-not (Test-Path $ConfigPath)) {
     throw "client app config not found: $ConfigPath"
@@ -219,9 +273,18 @@ try {
   )
 
   $checks = @(
-    @{ name = "mock-health"; url = "http://127.0.0.1:$resolvedMockPort/health"; headers = @{ "X-Mock-Scenario" = "happy" } },
-    @{ name = "mock-orders"; url = "http://127.0.0.1:$resolvedMockPort/orders"; headers = @{ "X-Mock-Scenario" = "happy" } },
-    @{ name = "client-home"; url = "http://127.0.0.1:$resolvedClientPort/"; headers = @{} }
+    @{
+      name = "mock-health"; url = "http://127.0.0.1:$resolvedMockPort/health"; headers = @{ "X-Mock-Scenario" = "happy" }
+      expectedContentType = "application/json"; minBodyLength = 8
+    },
+    @{
+      name = "mock-orders"; url = "http://127.0.0.1:$resolvedMockPort/orders"; headers = @{ "X-Mock-Scenario" = "happy" }
+      expectedContentType = "application/json"; minBodyLength = 16
+    },
+    @{
+      name = "client-home"; url = "http://127.0.0.1:$resolvedClientPort/"; headers = @{}
+      expectedContentType = "text/html"; minBodyLength = 200
+    }
   )
 
   $clientAppConfigPath = Join-Path $repoRoot "apps/client/src/app.config.ts"
@@ -237,6 +300,8 @@ try {
       name = ("client-route-{0:D2}-{1}" -f $clientRouteIndex, $routeSlug)
       url = "http://127.0.0.1:$resolvedClientPort$clientRoutePath"
       headers = @{}
+      expectedContentType = "text/html"
+      minBodyLength = 200
     }
   }
 
@@ -245,14 +310,47 @@ try {
       name = $routeCheck.name
       url = "http://127.0.0.1:$resolvedAdminPort$($routeCheck.path)"
       headers = @{}
+      expectedContentType = "text/html"
+      minBodyLength = 200
     }
   }
 
   $results = @()
   foreach ($c in $checks) {
-    $status = Get-HttpStatus -Url $c.url -Headers $c.headers
-    $pass = ($status -ge 200 -and $status -lt 400)
-    $results += [pscustomobject]@{ name = $c.name; url = $c.url; status = $status; pass = $pass }
+    $probe = Invoke-HttpProbe -Url $c.url -Headers $c.headers
+    $status = $probe.status
+    $contentType = [string]$probe.contentType
+    $bodyLength = [int]$probe.bodyLength
+    $reasons = New-Object System.Collections.Generic.List[string]
+
+    if (-not ($status -ge 200 -and $status -lt 400)) {
+      [void]$reasons.Add(("status={0}" -f $status))
+    }
+
+    if ($c.ContainsKey("expectedContentType")) {
+      $expectedContentType = [string]$c.expectedContentType
+      if (-not (Contains-IgnoreCase -Text $contentType -Needle $expectedContentType)) {
+        [void]$reasons.Add(("content-type expected contains {0} but got {1}" -f $expectedContentType, $contentType))
+      }
+    }
+
+    if ($c.ContainsKey("minBodyLength")) {
+      $minBodyLength = [int]$c.minBodyLength
+      if ($bodyLength -lt $minBodyLength) {
+        [void]$reasons.Add(("body-length expected >= {0} but got {1}" -f $minBodyLength, $bodyLength))
+      }
+    }
+
+    $pass = $reasons.Count -eq 0
+    $results += [pscustomobject]@{
+      name = $c.name
+      url = $c.url
+      status = $status
+      contentType = $contentType
+      bodyLength = $bodyLength
+      pass = $pass
+      reason = ($reasons -join "; ")
+    }
   }
 
   $summary = [pscustomobject]@{

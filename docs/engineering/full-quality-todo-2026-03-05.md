@@ -46,7 +46,7 @@
 - Admin routes: 25 (including `/login` and `/`); render smoke full covers 25 (100%), gap 0.
 - Page/API/test matrix has been established for all 83 pages: `docs/engineering/page-api-test-matrix-2026-03-05.md`.
 - DOM assertions now cover all 83 pages (`ui-dom-smoke` mode `full-83`), including all client/admin routes in current matrix.
-- Remaining blind spots: `ui-http-smoke` route reachability now covers all 83 configured page routes plus app root (86 checks including 2 mock endpoints), but remains status-only and still needs semantic/business assertions; DOM assertions also need continued semantic hardening on some pages.
+- Remaining blind spots: `ui-http-smoke` route reachability now covers all 83 configured page routes plus app root (86 checks including 2 mock endpoints), and now also checks content-type/body-length semantics, but still needs deeper page-business semantics; DOM assertions also need continued semantic hardening on some pages.
 - E2E path automation is still pending for critical client/admin journeys.
 
 ### 1.6 Dependency/security baseline
@@ -181,6 +181,8 @@
   - Acceptance: each new batch adds >=8 pages and updates matrix/risk notes. (done: `ui-dom-smoke -Mode full` -> 83/83, mode `full-83`)
 - [x] J08 Expand `ui-http-smoke` route reachability to full client/admin page set.
   - Acceptance: checks include all 83 configured client/admin page routes (plus mock endpoints), with script-generated client route list from app config. (done: `ui-http-smoke` 86/86)
+- [x] J09 Add response-shape assertions to `ui-http-smoke`.
+  - Acceptance: every HTTP smoke probe asserts expected content type and minimum response body length in addition to status code.
 
 ## K. Dependency security and version governance (P0-P2)
 - [x] K01 Build vulnerability ledger (severity + business impact + upgradeability).
@@ -277,6 +279,7 @@
 | J06 | done | Codex | 2026-03-06 | 2026-03-05 | DOM full-mode batch-1 landed (36/36 pass, matrix 36/83) |
 | J07 | done | Codex | 2026-03-06 | 2026-03-05 | DOM full-mode expanded to full 83/83 with matrix sync |
 | J08 | done | Codex | 2026-03-07 | 2026-03-07 | `ui-http-smoke` now auto-parses client app routes and reaches 86/86 (83 page routes + app root + 2 mock checks) |
+| J09 | done | Codex | 2026-03-07 | 2026-03-07 | `ui-http-smoke` now validates `content-type` + minimum body length for all 86 probes (not only status code) |
 | K01 | done | Codex | 2026-03-06 | 2026-03-05 | vulnerability ledger + generator script completed |
 | B04 | done | Codex | 2026-03-06 | 2026-03-07 | `api-real-smoke` expanded to 1161/1161 (writes 857/857 + reads 304/304 including 93 semantic read-back assertions), with unique write-operation coverage already near-full baseline |
 | B02 | in_progress | Codex | 2026-03-06 | - | write batch now includes same-key replay invariants + semantic read-back checks (order/refund/case/maintenance/rbac/report/import/ai) + duplicate-maintenance-schedule 409 regression guard + concurrency race matrices (maintenance create, refund approve/reject, order payout pair/triple, transfer-vs-refund overlap, mixed payout/invoice/refund triple-write, repeated mixed bursts on same order aggregate, cross-order parallel payout, staggered mixed tail overlap, jittered repeated overlap loops, randomized seeded multi-iteration overlap harness with distribution assertions, randomized multi-order/multi-aggregate overlap harness, larger-seed chaos overlap harness with p50/p95/max percentile stats, `p95<=3000ms` stability threshold, and persisted cross-run trend baseline/threshold logic) + invoice consistency closure for mixed-race `invoice_without_file` risk + region/listing-featured strict validation/file-temporary-access deepening + search/public-read strictness and RBAC privilege-boundary regression checks (including role-clear immediate convergence checks) + read-detail closure for `GET /files/{id}`, `GET /files/{id}/preview`, `GET /patent-map/regions/{regionCode}?year=...`, `GET /conversations/{conversationId}/messages`; remaining depth is deeper transaction-isolation windows |
@@ -352,5 +355,6 @@
   45) `ui-http-smoke` route coverage expanded and automated (done: client routes now parsed from `apps/client/src/app.config.ts`, HTTP smoke rose from 28 to 86 checks, and full verify remained green).
   46) OpenAPI alignment gate landed in verify (done: `scripts/check-api-smoke-openapi-coverage.mjs` enforces 238/238 non-auth/non-payment operation coverage and fails on any regression).
   47) API smoke quality-floor gate landed in verify (done: `scripts/check-api-smoke-quality-floor.mjs` enforces minimum depth floors for total/write/read/negative checks, key error-code counts, and admin negative density).
-  48) next step: carry trend history across daily/CI runs and calibrate threshold factors using broader variance data (pending).
+  48) `ui-http-smoke` semantic hardening landed (done: all 86 probes now include content-type + minimum body-length assertions, preventing status-only false positives on empty/wrong-type responses).
+  49) next step: carry trend history across daily/CI runs and calibrate threshold factors using broader variance data (pending).
 
