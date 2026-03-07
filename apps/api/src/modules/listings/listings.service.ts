@@ -1623,18 +1623,25 @@ export class ListingsService {
       .map((v: any) => String(v || '').trim().toUpperCase())
       .filter((v: any) => v.length > 0);
 
-    const parseNumber = (value: any) => {
-      if (value === undefined || value === null || String(value).trim() === '') return undefined;
-      const num = Number(value);
-      return Number.isFinite(num) ? num : undefined;
+    const parseStrictQueryIntFilter = (primaryKey: string, fallbackKey?: string) => {
+      const hasPrimary = this.hasOwn(query, primaryKey);
+      const hasFallback = fallbackKey ? this.hasOwn(query, fallbackKey) : false;
+      if (!hasPrimary && !hasFallback) return undefined;
+      const key = hasPrimary ? primaryKey : (fallbackKey as string);
+      const raw = hasPrimary ? query?.[primaryKey] : query?.[fallbackKey as string];
+      const parsed = this.parseOptionalInt(raw, key, 0);
+      if (parsed === undefined) {
+        throw new BadRequestException({ code: 'BAD_REQUEST', message: `${key} is invalid` });
+      }
+      return parsed;
     };
 
-    const priceMin = parseNumber(query?.priceMin ?? query?.priceMinFen);
-    const priceMax = parseNumber(query?.priceMax ?? query?.priceMaxFen);
-    const depositMin = parseNumber(query?.depositMin ?? query?.depositMinFen);
-    const depositMax = parseNumber(query?.depositMax ?? query?.depositMaxFen);
-    const transferCountMin = parseNumber(query?.transferCountMin);
-    const transferCountMax = parseNumber(query?.transferCountMax);
+    const priceMin = parseStrictQueryIntFilter('priceMin', 'priceMinFen');
+    const priceMax = parseStrictQueryIntFilter('priceMax', 'priceMaxFen');
+    const depositMin = parseStrictQueryIntFilter('depositMin', 'depositMinFen');
+    const depositMax = parseStrictQueryIntFilter('depositMax', 'depositMaxFen');
+    const transferCountMin = parseStrictQueryIntFilter('transferCountMin');
+    const transferCountMax = parseStrictQueryIntFilter('transferCountMax');
 
     const createdFrom = this.parseDateValue(query?.createdFrom, 'createdFrom', true);
     const createdTo = this.parseDateValue(query?.createdTo, 'createdTo', true);
