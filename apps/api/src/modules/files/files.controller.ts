@@ -103,13 +103,19 @@ export class FilesController {
     }
     const hasExpiresInSeconds = Object.prototype.hasOwnProperty.call(body || {}, 'expiresInSeconds');
     const hasTtlSeconds = Object.prototype.hasOwnProperty.call(body || {}, 'ttlSeconds');
-    const ttlRaw = hasExpiresInSeconds ? body?.expiresInSeconds : hasTtlSeconds ? body?.ttlSeconds : 0;
-    if ((hasExpiresInSeconds || hasTtlSeconds) && String(ttlRaw ?? '').trim() === '') {
-      throw new BadRequestException({ code: 'BAD_REQUEST', message: 'expiresInSeconds is invalid' });
-    }
-    const expiresInSeconds = Number(ttlRaw || 0);
-    if (!Number.isFinite(expiresInSeconds) || expiresInSeconds < 0) {
-      throw new BadRequestException({ code: 'BAD_REQUEST', message: 'expiresInSeconds is invalid' });
+    const hasTtl = hasExpiresInSeconds || hasTtlSeconds;
+    const ttlRaw = hasExpiresInSeconds ? body?.expiresInSeconds : hasTtlSeconds ? body?.ttlSeconds : undefined;
+
+    let expiresInSeconds: number | undefined = undefined;
+    if (hasTtl) {
+      if (String(ttlRaw ?? '').trim() === '') {
+        throw new BadRequestException({ code: 'BAD_REQUEST', message: 'expiresInSeconds is invalid' });
+      }
+      const parsedTtl = typeof ttlRaw === 'number' ? ttlRaw : Number(ttlRaw);
+      if (!Number.isFinite(parsedTtl) || !Number.isInteger(parsedTtl) || parsedTtl < 0) {
+        throw new BadRequestException({ code: 'BAD_REQUEST', message: 'expiresInSeconds is invalid' });
+      }
+      expiresInSeconds = parsedTtl;
     }
     const { token, expiresAt } = this.files.createTempToken(file.id, scope, expiresInSeconds);
 

@@ -30,7 +30,10 @@ if (!FILE_TEMP_TOKEN_SECRET) {
 if (NODE_ENV === 'production' && FILE_TEMP_TOKEN_SECRET.toLowerCase() === 'change-me') {
   throw new Error('FILE_TEMP_TOKEN_SECRET must not be the default "change-me" in production');
 }
-const FILE_TEMP_TOKEN_TTL_SECONDS = Math.max(60, Number(process.env.FILE_TEMP_TOKEN_TTL_SECONDS || 900));
+const FILE_TEMP_TOKEN_TTL_SECONDS_RAW = Number(process.env.FILE_TEMP_TOKEN_TTL_SECONDS ?? 900);
+const FILE_TEMP_TOKEN_TTL_SECONDS = Number.isFinite(FILE_TEMP_TOKEN_TTL_SECONDS_RAW)
+  ? Math.max(60, Math.floor(FILE_TEMP_TOKEN_TTL_SECONDS_RAW))
+  : 900;
 const FILE_WATERMARK_TEXT = process.env.FILE_WATERMARK_TEXT || 'Ipmoney Preview';
 const PUBLIC_HOST_WHITELIST = (process.env.PUBLIC_HOST_WHITELIST || '')
   .split(',')
@@ -107,7 +110,8 @@ export class FilesService {
   }
 
   createTempToken(fileId: string, scope: FileAccessScope, ttlSeconds?: number) {
-    const ttl = Math.max(60, Math.min(3600, Number(ttlSeconds || this.tempTokenTtlSeconds)));
+    const requestedTtl = ttlSeconds ?? this.tempTokenTtlSeconds;
+    const ttl = Math.max(60, Math.min(3600, requestedTtl));
     const expiresAt = Math.floor(Date.now() / 1000) + ttl;
     const payload = `${fileId}.${expiresAt}.${scope}`;
     const signature = crypto.createHmac('sha256', this.tempTokenSecret).update(payload).digest('base64url');
