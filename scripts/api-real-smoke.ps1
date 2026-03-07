@@ -1033,6 +1033,8 @@ try {
     @{ name = "admin-regions"; method = "GET"; url = "http://127.0.0.1:$resolvedApiPort/admin/regions"; body = $null; headers = @{ Authorization = $adminToken }; expected = @(200) },
     @{ name = "admin-report-summary-unauthorized"; method = "GET"; url = "http://127.0.0.1:$resolvedApiPort/admin/reports/finance/summary"; body = $null; headers = @{}; expected = @(401) },
     @{ name = "admin-report-summary"; method = "GET"; url = "http://127.0.0.1:$resolvedApiPort/admin/reports/finance/summary"; body = $null; headers = @{ Authorization = $adminToken }; expected = @(200) },
+    @{ name = "admin-report-summary-invalid-days"; method = "GET"; url = "http://127.0.0.1:$resolvedApiPort/admin/reports/finance/summary?days=abc"; body = $null; headers = @{ Authorization = $adminToken }; expected = @(400) },
+    @{ name = "admin-report-summary-empty-days"; method = "GET"; url = "http://127.0.0.1:$resolvedApiPort/admin/reports/finance/summary?days="; body = $null; headers = @{ Authorization = $adminToken }; expected = @(400) },
     @{ name = "admin-patents"; method = "GET"; url = "http://127.0.0.1:$resolvedApiPort/admin/patents"; body = $null; headers = @{ Authorization = $adminToken }; expected = @(200) },
     @{ name = "admin-patents-invalid-patent-type"; method = "GET"; url = "http://127.0.0.1:$resolvedApiPort/admin/patents?patentType=UNKNOWN"; body = $null; headers = @{ Authorization = $adminToken }; expected = @(400) },
     @{ name = "admin-patents-empty-legal-status"; method = "GET"; url = "http://127.0.0.1:$resolvedApiPort/admin/patents?legalStatus="; body = $null; headers = @{ Authorization = $adminToken }; expected = @(400) },
@@ -3032,6 +3034,8 @@ try {
     }
   }
   [void](Add-ApiCaseResult -Results $results -Name "admin-report-export-invalid-range" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/admin/reports/finance/export" -Body @{ start = "2026-12-31T00:00:00.000Z"; end = "2026-01-01T00:00:00.000Z" } -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-report-export-invalid-range") -Expected @(400))
+  [void](Add-ApiCaseResult -Results $results -Name "admin-report-export-invalid-days" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/admin/reports/finance/export" -Body @{ days = "abc" } -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-report-export-invalid-days") -Expected @(400))
+  [void](Add-ApiCaseResult -Results $results -Name "admin-report-export-empty-days" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/admin/reports/finance/export" -Body @{ days = "" } -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-report-export-empty-days") -Expected @(400))
   [void](Add-ApiCaseResult -Results $results -Name "admin-patent-map-import-missing-file" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/admin/patent-map/import" -Body @{} -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-patent-map-import-missing-file") -Expected @(400))
   $patentMapImportPath = Join-Path $logDir "api-real-smoke-patent-map-import-$ReportDate.csv"
   @(

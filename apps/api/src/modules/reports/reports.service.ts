@@ -22,8 +22,21 @@ export class ReportsService {
     if (!req?.auth?.userId) throw new ForbiddenException({ code: 'FORBIDDEN', message: '无权限' });
   }
 
+  private parsePositiveIntegerDays(input: any, fallbackDays: number) {
+    const raw = input?.days;
+    if (raw === undefined || raw === null) return fallbackDays;
+    if (typeof raw === 'string' && raw.trim().length === 0) {
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: 'days is invalid' });
+    }
+    const days = typeof raw === 'number' ? raw : Number(raw);
+    if (!Number.isInteger(days) || !Number.isFinite(days) || days < 1) {
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: 'days is invalid' });
+    }
+    return days;
+  }
+
   private buildRange(input: any, fallbackDays = 30) {
-    const days = Math.max(1, Number(input?.days || fallbackDays));
+    const days = this.parsePositiveIntegerDays(input, fallbackDays);
     const startRaw = input?.start;
     const endRaw = input?.end;
 
