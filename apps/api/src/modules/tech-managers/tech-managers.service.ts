@@ -224,8 +224,12 @@ export class TechManagersService {
     }
 
     if (hasFeaturedRank) {
-      const featuredRankValue = Number(body?.featuredRank);
-      if (!Number.isInteger(featuredRankValue) || featuredRankValue < 0) {
+      const rawFeaturedRank = body?.featuredRank;
+      if (rawFeaturedRank === null || rawFeaturedRank === undefined || String(rawFeaturedRank).trim() === '') {
+        throw new BadRequestException({ code: 'BAD_REQUEST', message: 'featuredRank is invalid' });
+      }
+      const featuredRankValue = typeof rawFeaturedRank === 'number' ? rawFeaturedRank : Number(rawFeaturedRank);
+      if (!Number.isFinite(featuredRankValue) || !Number.isInteger(featuredRankValue) || featuredRankValue < 0) {
         throw new BadRequestException({ code: 'BAD_REQUEST', message: 'featuredRank is invalid' });
       }
       updates.featuredRank = featuredRankValue;
