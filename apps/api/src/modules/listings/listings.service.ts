@@ -119,7 +119,10 @@ export class ListingsService {
   }
 
   private parseNullableLicenseModeStrict(value: unknown, fieldName: string): 'EXCLUSIVE' | 'SOLE' | 'NON_EXCLUSIVE' | null {
-    if (value === null || String(value).trim() === '') return null;
+    if (value === null) return null;
+    if (typeof value === 'string' && value.trim() === '') {
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: `${fieldName} is invalid` });
+    }
     const normalized = this.normalizeLicenseMode(value);
     if (!normalized) {
       throw new BadRequestException({ code: 'BAD_REQUEST', message: `${fieldName} is invalid` });
@@ -244,7 +247,10 @@ export class ListingsService {
   }
 
   private parseNullablePledgeStatusStrict(value: unknown, fieldName: string): PledgeStatus | null {
-    if (value === null || String(value).trim() === '') return null;
+    if (value === null) return null;
+    if (typeof value === 'string' && value.trim() === '') {
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: `${fieldName} is invalid` });
+    }
     const normalized = this.normalizePledgeStatus(value);
     if (!normalized) {
       throw new BadRequestException({ code: 'BAD_REQUEST', message: `${fieldName} is invalid` });
@@ -262,7 +268,10 @@ export class ListingsService {
   }
 
   private parseNullableExistingLicenseStatusStrict(value: unknown, fieldName: string): ExistingLicenseStatus | null {
-    if (value === null || String(value).trim() === '') return null;
+    if (value === null) return null;
+    if (typeof value === 'string' && value.trim() === '') {
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: `${fieldName} is invalid` });
+    }
     const normalized = this.normalizeExistingLicenseStatus(value);
     if (!normalized) {
       throw new BadRequestException({ code: 'BAD_REQUEST', message: `${fieldName} is invalid` });
