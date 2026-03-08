@@ -527,6 +527,25 @@ export class ListingsService {
     return normalized as 'PENDING' | 'GRANTED' | 'EXPIRED' | 'INVALIDATED' | 'UNKNOWN';
   }
 
+  private parseNullableLegalStatusStrict(
+    value: unknown,
+    fieldName: string,
+  ): 'PENDING' | 'GRANTED' | 'EXPIRED' | 'INVALIDATED' | 'UNKNOWN' | null {
+    if (value === null) return null;
+    if (typeof value === 'string' && value.trim() === '') {
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: `${fieldName} is invalid` });
+    }
+    return this.parseLegalStatusStrict(value, fieldName);
+  }
+
+  private parseSourcePrimaryStrict(value: unknown, fieldName: string): 'USER' | 'ADMIN' | 'PROVIDER' {
+    const normalized = this.normalizePatentSource(value);
+    if (!normalized) {
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: `${fieldName} is invalid` });
+    }
+    return normalized;
+  }
+
   private getPatentTypeMeta(patentType?: string | null) {
     const key = String(patentType || '').toUpperCase();
     if (!key) return null;
@@ -577,6 +596,14 @@ export class ListingsService {
     });
   }
 
+  private withPatentSourceFallback(body: any) {
+    const payload = { ...(body || {}) };
+    if (!this.hasOwn(payload, 'sourcePrimary') && this.hasOwn(body, 'source')) {
+      payload.sourcePrimary = body?.source;
+    }
+    return payload;
+  }
+
   private async ensurePatent(body: any) {
     const patentNumberRaw = String(body?.patentNumberRaw || '').trim();
     if (!patentNumberRaw) return null;
@@ -591,7 +618,8 @@ export class ListingsService {
       throw new BadRequestException({ code: 'BAD_REQUEST', message: 'patentType is required' });
     }
 
-    const legalStatus = this.normalizeLegalStatus(body?.legalStatus);
+    const hasLegalStatus = this.hasOwn(body, 'legalStatus');
+    const legalStatus = hasLegalStatus ? this.parseNullableLegalStatusStrict(body?.legalStatus, 'legalStatus') : undefined;
     const legalStatusRawInput = body?.legalStatusRaw ?? body?.legalStatus;
     const legalStatusRaw = legalStatusRawInput !== undefined && legalStatusRawInput !== null && String(legalStatusRawInput).trim() !== '' ? String(legalStatusRawInput) : undefined;
     const filingDate = this.parseDateValue(body?.filingDate, 'filingDate', true);
@@ -612,7 +640,8 @@ export class ListingsService {
       transferCount = num;
     }
 
-    const sourcePrimary = this.normalizePatentSource(body?.sourcePrimary ?? body?.source);
+    const hasSourcePrimary = this.hasOwn(body, 'sourcePrimary');
+    const sourcePrimary = hasSourcePrimary ? this.parseSourcePrimaryStrict(body?.sourcePrimary, 'sourcePrimary') : undefined;
     const applicationNoNorm = parsed.applicationNoNorm;
     let patent = await this.prisma.patent.findFirst({ where: { applicationNoNorm } });
 
@@ -660,13 +689,13 @@ export class ListingsService {
       if (parsed.patentNoDisplay && patent.patentNoDisplay !== parsed.patentNoDisplay) patch.patentNoDisplay = parsed.patentNoDisplay;
       if (parsed.grantPublicationNoDisplay && patent.grantPublicationNoDisplay !== parsed.grantPublicationNoDisplay)
         patch.grantPublicationNoDisplay = parsed.grantPublicationNoDisplay;
-      if (legalStatus && patent.legalStatus !== legalStatus) patch.legalStatus = legalStatus;
+      if (hasLegalStatus && patent.legalStatus !== legalStatus) patch.legalStatus = legalStatus;
       if (legalStatusRaw && patent.legalStatusRaw !== legalStatusRaw) patch.legalStatusRaw = legalStatusRaw;
       if (filingDate) patch.filingDate = filingDate;
       if (publicationDate) patch.publicationDate = publicationDate;
       if (grantDate) patch.grantDate = grantDate;
       if (transferCount !== undefined) patch.transferCount = transferCount;
-      if (sourcePrimary && patent.sourcePrimary !== sourcePrimary) patch.sourcePrimary = sourcePrimary;
+      if (hasSourcePrimary && patent.sourcePrimary !== sourcePrimary) patch.sourcePrimary = sourcePrimary;
       if (Object.keys(patch).length > 0) {
         patch.sourceUpdatedAt = new Date();
         patent = await this.prisma.patent.update({ where: { id: patent.id }, data: patch });
@@ -690,7 +719,8 @@ export class ListingsService {
 
   private async updatePatentCore(patentId: string, body: any) {
     if (!patentId || !body) return;
-    const legalStatus = this.normalizeLegalStatus(body?.legalStatus);
+    const hasLegalStatus = this.hasOwn(body, 'legalStatus');
+    const legalStatus = hasLegalStatus ? this.parseNullableLegalStatusStrict(body?.legalStatus, 'legalStatus') : undefined;
     const legalStatusRawInput = body?.legalStatusRaw ?? body?.legalStatus;
     const legalStatusRaw = legalStatusRawInput !== undefined && legalStatusRawInput !== null && String(legalStatusRawInput).trim() !== '' ? String(legalStatusRawInput) : undefined;
     const filingDate = this.parseDateValue(body?.filingDate, 'filingDate', true);
@@ -710,16 +740,17 @@ export class ListingsService {
       }
       transferCount = num;
     }
-    const sourcePrimary = this.normalizePatentSource(body?.sourcePrimary ?? body?.source);
+    const hasSourcePrimary = this.hasOwn(body, 'sourcePrimary');
+    const sourcePrimary = hasSourcePrimary ? this.parseSourcePrimaryStrict(body?.sourcePrimary, 'sourcePrimary') : undefined;
 
     const data: any = {};
-    if (legalStatus) data.legalStatus = legalStatus;
+    if (hasLegalStatus) data.legalStatus = legalStatus;
     if (legalStatusRaw) data.legalStatusRaw = legalStatusRaw;
     if (filingDate) data.filingDate = filingDate;
     if (publicationDate) data.publicationDate = publicationDate;
     if (grantDate) data.grantDate = grantDate;
     if (transferCount !== undefined) data.transferCount = transferCount;
-    if (sourcePrimary) data.sourcePrimary = sourcePrimary;
+    if (hasSourcePrimary) data.sourcePrimary = sourcePrimary;
     if (Object.keys(data).length === 0) return;
     data.sourceUpdatedAt = new Date();
     await this.prisma.patent.update({ where: { id: patentId }, data });
@@ -962,7 +993,7 @@ export class ListingsService {
     if (!sellerUserId) {
       throw new BadRequestException({ code: 'BAD_REQUEST', message: 'sellerUserId is required' });
     }
-    const patent = await this.ensurePatent({ ...(body || {}), sourcePrimary: this.normalizePatentSource(body?.sourcePrimary ?? body?.source) });
+    const patent = await this.ensurePatent(this.withPatentSourceFallback(body));
     if (patent) {
       await Promise.all([
         this.syncPatentParties(patent.id, 'INVENTOR', body?.inventorNames),
@@ -1024,8 +1055,9 @@ export class ListingsService {
       throw new NotFoundException({ code: 'NOT_FOUND', message: 'listing not found' });
     }
     let patentId = listing.patentId;
+    const patentBody = this.withPatentSourceFallback(body);
     if (body?.patentNumberRaw) {
-      const patent = await this.ensurePatent({ ...(body || {}), sourcePrimary: this.normalizePatentSource(body?.sourcePrimary ?? body?.source) });
+      const patent = await this.ensurePatent(patentBody);
       if (patent) patentId = patent.id;
     }
     const hasListingTopics = body?.listingTopics !== undefined || body?.listingTopic !== undefined;
@@ -1106,7 +1138,7 @@ export class ListingsService {
       },
     });
     if (patentId) {
-      await this.updatePatentCore(patentId, body);
+      await this.updatePatentCore(patentId, patentBody);
       await Promise.all([
         this.syncPatentParties(patentId, 'INVENTOR', body?.inventorNames),
         this.syncPatentParties(patentId, 'ASSIGNEE', body?.assigneeNames),
