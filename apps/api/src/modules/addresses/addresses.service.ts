@@ -1,4 +1,4 @@
-﻿import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+﻿import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 
 import { PrismaService } from '../../common/prisma/prisma.service';
 
@@ -10,6 +10,19 @@ export class AddressesService {
     if (!req?.auth?.userId) {
       throw new ForbiddenException({ code: 'FORBIDDEN', message: '无权限' });
     }
+  }
+
+  private hasOwn(body: any, key: string) {
+    return Object.prototype.hasOwnProperty.call(body || {}, key);
+  }
+
+  private parseNullableRegionCodeStrict(value: unknown, fieldName: string): string | null {
+    if (value === null) return null;
+    const raw = String(value ?? '').trim();
+    if (!raw) {
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: `${fieldName} is invalid` });
+    }
+    return raw;
   }
 
   private toDto(item: any) {
@@ -42,7 +55,8 @@ export class AddressesService {
     const name = String(body?.name || '收货人');
     const phone = String(body?.phone || '');
     const addressLine = String(body?.addressLine || '');
-    const regionCode = body?.regionCode ?? null;
+    const hasRegionCode = this.hasOwn(body, 'regionCode');
+    const regionCode = hasRegionCode ? this.parseNullableRegionCodeStrict(body?.regionCode, 'regionCode') : null;
 
     return await this.prisma.$transaction(async (tx) => {
       if (isDefault) {
@@ -70,6 +84,8 @@ export class AddressesService {
 
     const hasIsDefault = body?.isDefault !== undefined;
     const nextIsDefault = hasIsDefault ? Boolean(body?.isDefault) : existing.isDefault;
+    const hasRegionCode = this.hasOwn(body, 'regionCode');
+    const regionCode = hasRegionCode ? this.parseNullableRegionCodeStrict(body?.regionCode, 'regionCode') : existing.regionCode;
 
     return await this.prisma.$transaction(async (tx) => {
       if (hasIsDefault && nextIsDefault) {
@@ -80,7 +96,7 @@ export class AddressesService {
         data: {
           name: body?.name ?? existing.name,
           phone: body?.phone ?? existing.phone,
-          regionCode: body?.regionCode ?? existing.regionCode,
+          regionCode,
           addressLine: body?.addressLine ?? existing.addressLine,
           isDefault: nextIsDefault,
         },
@@ -96,3 +112,4 @@ export class AddressesService {
     return { ok: true };
   }
 }
+
