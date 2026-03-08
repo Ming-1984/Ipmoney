@@ -31,6 +31,14 @@ export class InventorsService {
     throw new BadRequestException({ code: 'BAD_REQUEST', message: `${fieldName} is invalid` });
   }
 
+  private parseRegionCodeFilterStrict(value: unknown, fieldName: string): string {
+    const raw = String(value ?? '').trim();
+    if (!raw) {
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: `${fieldName} is invalid` });
+    }
+    return raw;
+  }
+
   search(query: any) {
     const hasPage = this.hasOwn(query, 'page');
     const hasPageSize = this.hasOwn(query, 'pageSize');
@@ -38,7 +46,8 @@ export class InventorsService {
     const pageSizeInput = hasPageSize ? this.parsePositiveIntStrict(query?.pageSize, 'pageSize') : 20;
     const pageSize = Math.min(50, pageSizeInput);
     const q = String(query?.q || '').trim();
-    const regionCode = String(query?.regionCode || '').trim();
+    const hasRegionCode = this.hasOwn(query, 'regionCode');
+    const regionCode = hasRegionCode ? this.parseRegionCodeFilterStrict(query?.regionCode, 'regionCode') : '';
     const hasPatentType = this.hasOwn(query, 'patentType');
     const qLike = q ? `%${q}%` : null;
     const region = regionCode || null;

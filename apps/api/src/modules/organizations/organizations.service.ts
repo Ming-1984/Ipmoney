@@ -38,6 +38,14 @@ export class OrganizationsService {
     return parsed;
   }
 
+  private parseRegionCodeFilterStrict(value: unknown, fieldName: string): string {
+    const raw = String(value ?? '').trim();
+    if (!raw) {
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: `${fieldName} is invalid` });
+    }
+    return raw;
+  }
+
   private normalizeOrganizationTypes(input: any) {
     if (input === undefined || input === null) {
       return { values: [] as VerificationType[], invalid: false };
@@ -106,7 +114,8 @@ export class OrganizationsService {
     const pageSizeInput = this.hasOwn(query, 'pageSize') ? this.parsePositiveIntStrict(query?.pageSize, 'pageSize') : 20;
     const pageSize = Math.min(50, pageSizeInput);
     const q = String(query?.q || '').trim();
-    const regionCode = String(query?.regionCode || '').trim();
+    const hasRegionCode = this.hasOwn(query, 'regionCode');
+    const regionCode = hasRegionCode ? this.parseRegionCodeFilterStrict(query?.regionCode, 'regionCode') : '';
     const hasTypes = this.hasOwn(query, 'types');
     const hasType = this.hasOwn(query, 'type');
     const hasVerificationType = this.hasOwn(query, 'verificationType');

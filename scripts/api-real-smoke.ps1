@@ -1070,6 +1070,7 @@ try {
     @{ name = "admin-tech-managers"; method = "GET"; url = "http://127.0.0.1:$resolvedApiPort/admin/tech-managers"; body = $null; headers = @{ Authorization = $adminToken }; expected = @(200) },
     @{ name = "admin-tech-managers-invalid-verification-status"; method = "GET"; url = "http://127.0.0.1:$resolvedApiPort/admin/tech-managers?verificationStatus=UNKNOWN"; body = $null; headers = @{ Authorization = $adminToken }; expected = @(400) },
     @{ name = "admin-tech-managers-empty-verification-status"; method = "GET"; url = "http://127.0.0.1:$resolvedApiPort/admin/tech-managers?verificationStatus="; body = $null; headers = @{ Authorization = $adminToken }; expected = @(400) },
+    @{ name = "admin-tech-managers-empty-region-code"; method = "GET"; url = "http://127.0.0.1:$resolvedApiPort/admin/tech-managers?regionCode="; body = $null; headers = @{ Authorization = $adminToken }; expected = @(400) },
     @{ name = "admin-audit-logs"; method = "GET"; url = "http://127.0.0.1:$resolvedApiPort/admin/audit-logs"; body = $null; headers = @{ Authorization = $adminToken }; expected = @(200) },
     @{ name = "admin-audit-logs-empty-target-type"; method = "GET"; url = "http://127.0.0.1:$resolvedApiPort/admin/audit-logs?targetType="; body = $null; headers = @{ Authorization = $adminToken }; expected = @(400) },
     @{ name = "admin-audit-logs-empty-target-id"; method = "GET"; url = "http://127.0.0.1:$resolvedApiPort/admin/audit-logs?targetId="; body = $null; headers = @{ Authorization = $adminToken }; expected = @(400) },
@@ -1105,6 +1106,7 @@ try {
     @{ name = "public-organizations"; method = "GET"; url = "http://127.0.0.1:$resolvedApiPort/public/organizations"; body = $null; headers = @{}; expected = @(200) },
     @{ name = "public-organizations-invalid-type"; method = "GET"; url = "http://127.0.0.1:$resolvedApiPort/public/organizations?type=UNKNOWN"; body = $null; headers = @{}; expected = @(400) },
     @{ name = "public-organizations-empty-type"; method = "GET"; url = "http://127.0.0.1:$resolvedApiPort/public/organizations?type="; body = $null; headers = @{}; expected = @(400) },
+    @{ name = "public-organizations-empty-region-code"; method = "GET"; url = "http://127.0.0.1:$resolvedApiPort/public/organizations?regionCode="; body = $null; headers = @{}; expected = @(400) },
     @{ name = "public-organizations-invalid-page"; method = "GET"; url = "http://127.0.0.1:$resolvedApiPort/public/organizations?page=abc"; body = $null; headers = @{}; expected = @(400) },
     @{ name = "public-organizations-empty-page-size"; method = "GET"; url = "http://127.0.0.1:$resolvedApiPort/public/organizations?pageSize="; body = $null; headers = @{}; expected = @(400) },
     @{ name = "public-config-trade-rules"; method = "GET"; url = "http://127.0.0.1:$resolvedApiPort/public/config/trade-rules"; body = $null; headers = @{}; expected = @(200) },
@@ -1164,10 +1166,12 @@ try {
     @{ name = "search-inventors"; method = "GET"; url = "http://127.0.0.1:$resolvedApiPort/search/inventors"; body = $null; headers = @{}; expected = @(200) },
     @{ name = "search-inventors-invalid-patent-type"; method = "GET"; url = "http://127.0.0.1:$resolvedApiPort/search/inventors?patentType=UNKNOWN"; body = $null; headers = @{}; expected = @(400) },
     @{ name = "search-inventors-empty-page-size"; method = "GET"; url = "http://127.0.0.1:$resolvedApiPort/search/inventors?pageSize="; body = $null; headers = @{}; expected = @(400) },
+    @{ name = "search-inventors-empty-region-code"; method = "GET"; url = "http://127.0.0.1:$resolvedApiPort/search/inventors?regionCode="; body = $null; headers = @{}; expected = @(400) },
     @{ name = "search-tech-managers"; method = "GET"; url = "http://127.0.0.1:$resolvedApiPort/search/tech-managers"; body = $null; headers = @{}; expected = @(200) },
     @{ name = "search-tech-managers-invalid-sort-by"; method = "GET"; url = "http://127.0.0.1:$resolvedApiPort/search/tech-managers?sortBy=INVALID"; body = $null; headers = @{}; expected = @(400) },
     @{ name = "search-tech-managers-empty-sort-by"; method = "GET"; url = "http://127.0.0.1:$resolvedApiPort/search/tech-managers?sortBy="; body = $null; headers = @{}; expected = @(400) },
-    @{ name = "search-tech-managers-invalid-page"; method = "GET"; url = "http://127.0.0.1:$resolvedApiPort/search/tech-managers?page=abc"; body = $null; headers = @{}; expected = @(400) }
+    @{ name = "search-tech-managers-invalid-page"; method = "GET"; url = "http://127.0.0.1:$resolvedApiPort/search/tech-managers?page=abc"; body = $null; headers = @{}; expected = @(400) },
+    @{ name = "search-tech-managers-empty-region-code"; method = "GET"; url = "http://127.0.0.1:$resolvedApiPort/search/tech-managers?regionCode="; body = $null; headers = @{}; expected = @(400) }
   )
 
   $results = New-Object System.Collections.ArrayList
