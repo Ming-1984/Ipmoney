@@ -1139,6 +1139,8 @@ try {
     @{ name = "search-listings-empty-publication-date-to"; method = "GET"; url = "http://127.0.0.1:$resolvedApiPort/search/listings?publicationDateTo="; body = $null; headers = @{}; expected = @(400) },
     @{ name = "search-listings-empty-grant-date-from"; method = "GET"; url = "http://127.0.0.1:$resolvedApiPort/search/listings?grantDateFrom="; body = $null; headers = @{}; expected = @(400) },
     @{ name = "search-listings-empty-grant-date-to"; method = "GET"; url = "http://127.0.0.1:$resolvedApiPort/search/listings?grantDateTo="; body = $null; headers = @{}; expected = @(400) },
+    @{ name = "search-listings-empty-seller-user-id"; method = "GET"; url = "http://127.0.0.1:$resolvedApiPort/search/listings?sellerUserId="; body = $null; headers = @{}; expected = @(400) },
+    @{ name = "search-listings-empty-cluster-id"; method = "GET"; url = "http://127.0.0.1:$resolvedApiPort/search/listings?clusterId="; body = $null; headers = @{}; expected = @(400) },
     @{ name = "search-listings-empty-region-code"; method = "GET"; url = "http://127.0.0.1:$resolvedApiPort/search/listings?regionCode="; body = $null; headers = @{}; expected = @(400) },
     @{ name = "search-demands"; method = "GET"; url = "http://127.0.0.1:$resolvedApiPort/search/demands"; body = $null; headers = @{}; expected = @(200) },
     @{ name = "search-demands-invalid-budget-type"; method = "GET"; url = "http://127.0.0.1:$resolvedApiPort/search/demands?budgetType=UNKNOWN"; body = $null; headers = @{}; expected = @(400) },

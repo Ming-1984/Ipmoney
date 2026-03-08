@@ -296,6 +296,14 @@ export class ListingsService {
     return raw;
   }
 
+  private parseNonEmptyFilterStrict(value: unknown, fieldName: string): string {
+    const raw = String(value ?? '').trim();
+    if (!raw) {
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: `${fieldName} is invalid` });
+    }
+    return raw;
+  }
+
   private parseOptionalInt(value: unknown, fieldName: string, min?: number): number | undefined {
     if (value === undefined || value === null) return undefined;
     if (String(value).trim() === '') {
@@ -1706,7 +1714,8 @@ export class ListingsService {
     const inventor = String(query?.inventor || '').trim();
     const applicant = String(query?.applicant || query?.applicantName || '').trim();
     const assignee = String(query?.assignee || query?.assigneeName || '').trim();
-    const sellerUserId = String(query?.sellerUserId || '').trim();
+    const hasSellerUserId = this.hasOwn(query, 'sellerUserId');
+    const sellerUserId = hasSellerUserId ? this.parseNonEmptyFilterStrict(query?.sellerUserId, 'sellerUserId') : '';
     const hasTradeMode = this.hasOwn(query, 'tradeMode');
     const tradeMode = hasTradeMode ? this.parseTradeModeStrict(query?.tradeMode, 'tradeMode') : undefined;
     const hasLicenseMode = this.hasOwn(query, 'licenseMode');
@@ -1719,7 +1728,8 @@ export class ListingsService {
     const legalStatus = hasLegalStatus ? this.parseLegalStatusStrict(query?.legalStatus, 'legalStatus') : undefined;
     const hasSortBy = this.hasOwn(query, 'sortBy');
     const sortBy = hasSortBy ? this.parseListingSortByStrict(query?.sortBy, 'sortBy') : 'NEWEST';
-    const clusterId = String(query?.clusterId || '').trim();
+    const hasClusterId = this.hasOwn(query, 'clusterId');
+    const clusterId = hasClusterId ? this.parseNonEmptyFilterStrict(query?.clusterId, 'clusterId') : '';
     const listingTopics = this.normalizeStringArray(query?.listingTopics ?? query?.listingTopic)
       .map((v: any) => String(v || '').trim().toUpperCase())
       .filter((v: any) => v.length > 0);
