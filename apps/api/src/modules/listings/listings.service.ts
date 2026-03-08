@@ -1248,8 +1248,12 @@ export class ListingsService {
         data.featuredRank = null;
       }
 
-      if (payload?.featuredUntil !== undefined && payload?.featuredUntil !== null && String(payload.featuredUntil).trim().length > 0) {
-        const featuredUntil = new Date(String(payload.featuredUntil));
+      if (payload?.featuredUntil !== undefined && payload?.featuredUntil !== null) {
+        const rawFeaturedUntil = payload.featuredUntil;
+        if (typeof rawFeaturedUntil === 'string' && rawFeaturedUntil.trim().length === 0) {
+          throw new BadRequestException({ code: 'BAD_REQUEST', message: 'featuredUntil must be a valid datetime' });
+        }
+        const featuredUntil = new Date(String(rawFeaturedUntil));
         if (Number.isNaN(featuredUntil.getTime())) {
           throw new BadRequestException({ code: 'BAD_REQUEST', message: 'featuredUntil must be a valid datetime' });
         }

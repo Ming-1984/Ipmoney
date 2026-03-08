@@ -236,9 +236,12 @@ export class TechManagersService {
     }
 
     if (hasFeaturedUntil) {
-      if (body?.featuredUntil === null || String(body?.featuredUntil).trim() === '') {
+      if (body?.featuredUntil === null) {
         updates.featuredUntil = null;
       } else {
+        if (typeof body?.featuredUntil === 'string' && body.featuredUntil.trim() === '') {
+          throw new BadRequestException({ code: 'BAD_REQUEST', message: 'featuredUntil is invalid' });
+        }
         const featuredUntil = new Date(String(body.featuredUntil));
         if (Number.isNaN(featuredUntil.getTime())) {
           throw new BadRequestException({ code: 'BAD_REQUEST', message: 'featuredUntil is invalid' });
