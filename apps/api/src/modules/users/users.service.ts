@@ -97,6 +97,15 @@ export class UsersService {
     return raw;
   }
 
+  private parseNullableNonEmptyStringStrict(value: unknown, fieldName: string): string | null {
+    if (value === null) return null;
+    const raw = String(value ?? '').trim();
+    if (!raw) {
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: `${fieldName} is invalid` });
+    }
+    return raw;
+  }
+
   private parsePositiveIntStrict(value: unknown, fieldName: string): number {
     const raw = String(value ?? '').trim();
     if (!raw) {
@@ -264,18 +273,23 @@ export class UsersService {
 
     const now = new Date();
     const autoApprove = verificationType === 'PERSON';
+    const hasUnifiedSocialCreditCode = this.hasOwn(input, 'unifiedSocialCreditCode');
+    const hasRegionCode = this.hasOwn(input, 'regionCode');
+    const hasLogoFileId = this.hasOwn(input, 'logoFileId');
     const created = await this.prisma.userVerification.create({
       data: {
         userId,
         verificationType,
         verificationStatus: autoApprove ? 'APPROVED' : 'PENDING',
         displayName,
-        unifiedSocialCreditCodeEnc: input.unifiedSocialCreditCode ? String(input.unifiedSocialCreditCode) : null,
+        unifiedSocialCreditCodeEnc: hasUnifiedSocialCreditCode
+          ? this.parseNullableNonEmptyStringStrict(input.unifiedSocialCreditCode, 'unifiedSocialCreditCode')
+          : null,
         contactName: input.contactName ? String(input.contactName) : null,
         contactPhone: input.contactPhone ? String(input.contactPhone) : null,
-        regionCode: input.regionCode ? String(input.regionCode) : null,
+        regionCode: hasRegionCode ? this.parseNullableRegionCodeStrict(input.regionCode, 'regionCode') : null,
         intro: input.intro ? String(input.intro) : null,
-        logoFileId: input.logoFileId ? String(input.logoFileId) : null,
+        logoFileId: hasLogoFileId ? this.parseNullableNonEmptyStringStrict(input.logoFileId, 'logoFileId') : null,
         evidenceFileIdsJson: evidenceFileIds,
         submittedAt: now,
         reviewedAt: autoApprove ? now : null,
