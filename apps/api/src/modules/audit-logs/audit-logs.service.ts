@@ -28,10 +28,38 @@ export class AuditLogsService {
     const skip = (page - 1) * pageSize;
 
     const where: any = {};
-    if (query?.targetType) where.targetType = String(query.targetType);
-    if (query?.targetId) where.targetId = String(query.targetId);
-    if (query?.actorUserId) where.actorUserId = String(query.actorUserId);
-    if (query?.action) where.action = String(query.action);
+    const hasTargetType = this.hasOwn(query, 'targetType');
+    if (hasTargetType) {
+      const targetType = String(query?.targetType ?? '').trim();
+      if (!targetType) {
+        throw new BadRequestException({ code: 'BAD_REQUEST', message: 'targetType is invalid' });
+      }
+      where.targetType = targetType;
+    }
+    const hasTargetId = this.hasOwn(query, 'targetId');
+    if (hasTargetId) {
+      const targetId = String(query?.targetId ?? '').trim();
+      if (!targetId) {
+        throw new BadRequestException({ code: 'BAD_REQUEST', message: 'targetId is invalid' });
+      }
+      where.targetId = targetId;
+    }
+    const hasActorUserId = this.hasOwn(query, 'actorUserId');
+    if (hasActorUserId) {
+      const actorUserId = String(query?.actorUserId ?? '').trim();
+      if (!actorUserId) {
+        throw new BadRequestException({ code: 'BAD_REQUEST', message: 'actorUserId is invalid' });
+      }
+      where.actorUserId = actorUserId;
+    }
+    const hasAction = this.hasOwn(query, 'action');
+    if (hasAction) {
+      const action = String(query?.action ?? '').trim();
+      if (!action) {
+        throw new BadRequestException({ code: 'BAD_REQUEST', message: 'action is invalid' });
+      }
+      where.action = action;
+    }
 
     const [items, total] = await Promise.all([
       this.prisma.auditLog.findMany({
