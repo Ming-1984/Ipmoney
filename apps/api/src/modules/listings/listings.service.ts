@@ -578,12 +578,17 @@ export class ListingsService {
     const grantDate = this.parseDateValue(body?.grantDate, 'grantDate', true);
 
     let transferCount: number | undefined;
-    if (body?.transferCount !== undefined && body?.transferCount !== null && String(body?.transferCount).trim() !== '') {
-      const num = Number(body?.transferCount);
-      if (!Number.isFinite(num) || num < 0) {
+    const hasTransferCount = this.hasOwn(body, 'transferCount');
+    if (hasTransferCount) {
+      const rawTransferCount = body?.transferCount;
+      if (rawTransferCount === null || String(rawTransferCount).trim() === '') {
         throw new BadRequestException({ code: 'BAD_REQUEST', message: 'transferCount is invalid' });
       }
-      transferCount = Math.floor(num);
+      const num = Number(rawTransferCount);
+      if (!Number.isFinite(num) || num < 0 || !Number.isInteger(num)) {
+        throw new BadRequestException({ code: 'BAD_REQUEST', message: 'transferCount is invalid' });
+      }
+      transferCount = num;
     }
 
     const sourcePrimary = this.normalizePatentSource(body?.sourcePrimary ?? body?.source);
@@ -672,12 +677,17 @@ export class ListingsService {
     const grantDate = this.parseDateValue(body?.grantDate, 'grantDate', true);
 
     let transferCount: number | undefined;
-    if (body?.transferCount !== undefined && body?.transferCount !== null && String(body?.transferCount).trim() !== '') {
-      const num = Number(body?.transferCount);
-      if (!Number.isFinite(num) || num < 0) {
+    const hasTransferCount = this.hasOwn(body, 'transferCount');
+    if (hasTransferCount) {
+      const rawTransferCount = body?.transferCount;
+      if (rawTransferCount === null || String(rawTransferCount).trim() === '') {
         throw new BadRequestException({ code: 'BAD_REQUEST', message: 'transferCount is invalid' });
       }
-      transferCount = Math.floor(num);
+      const num = Number(rawTransferCount);
+      if (!Number.isFinite(num) || num < 0 || !Number.isInteger(num)) {
+        throw new BadRequestException({ code: 'BAD_REQUEST', message: 'transferCount is invalid' });
+      }
+      transferCount = num;
     }
     const sourcePrimary = this.normalizePatentSource(body?.sourcePrimary ?? body?.source);
 
