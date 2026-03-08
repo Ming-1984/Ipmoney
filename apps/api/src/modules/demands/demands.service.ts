@@ -354,8 +354,10 @@ export class DemandsService {
     const industryTags = normalizeStringArray(body?.industryTags);
     const hasDeliveryPeriod = this.hasOwn(body, 'deliveryPeriod');
     const hasBudgetType = this.hasOwn(body, 'budgetType');
+    const hasRegionCode = this.hasOwn(body, 'regionCode');
     const deliveryPeriod = hasDeliveryPeriod ? this.parseNullableDeliveryPeriodStrict(body?.deliveryPeriod, 'deliveryPeriod') : undefined;
     const budgetType = hasBudgetType ? this.parseNullablePriceTypeStrict(body?.budgetType, 'budgetType') : undefined;
+    const regionCode = hasRegionCode ? this.parseNullableRegionCodeStrict(body?.regionCode, 'regionCode') : undefined;
     const budgetMinFen = this.parseOptionalInt(body?.budgetMinFen, 'budgetMinFen', 0);
     const budgetMaxFen = this.parseOptionalInt(body?.budgetMaxFen, 'budgetMaxFen', 0);
     const mediaInput = normalizeMediaInput(body?.media);
@@ -378,7 +380,7 @@ export class DemandsService {
           contactTitle: body?.contactTitle ? String(body.contactTitle) : null,
           contactPhoneMasked: body?.contactPhoneMasked ? String(body.contactPhoneMasked) : null,
           coverFileId: body?.coverFileId ? String(body.coverFileId) : null,
-          regionCode: body?.regionCode ? String(body.regionCode) : null,
+          regionCode: hasRegionCode ? regionCode : null,
           industryTagsJson: industryTags.length > 0 ? industryTags : Prisma.DbNull,
         },
       });
@@ -699,12 +701,14 @@ export class DemandsService {
     const hasBudgetType = this.hasOwn(body, 'budgetType');
     const hasAuditStatus = this.hasOwn(body, 'auditStatus');
     const hasStatus = this.hasOwn(body, 'status');
+    const hasRegionCode = this.hasOwn(body, 'regionCode');
     const ownerId = String(body?.publisherUserId || body?.ownerId || req?.auth?.userId || '').trim();
     const keywords = normalizeStringArray(body?.keywords);
     const cooperationModes = normalizeStringArray(body?.cooperationModes);
     const industryTags = normalizeStringArray(body?.industryTags);
     const deliveryPeriod = hasDeliveryPeriod ? this.parseNullableDeliveryPeriodStrict(body?.deliveryPeriod, 'deliveryPeriod') : undefined;
     const budgetType = hasBudgetType ? this.parseNullablePriceTypeStrict(body?.budgetType, 'budgetType') : undefined;
+    const regionCode = hasRegionCode ? this.parseNullableRegionCodeStrict(body?.regionCode, 'regionCode') : undefined;
     const budgetMinFen = this.parseOptionalInt(body?.budgetMinFen, 'budgetMinFen', 0);
     const budgetMaxFen = this.parseOptionalInt(body?.budgetMaxFen, 'budgetMaxFen', 0);
     const mediaInput = normalizeMediaInput(body?.media);
@@ -729,7 +733,7 @@ export class DemandsService {
           contactTitle: body?.contactTitle ? String(body.contactTitle) : null,
           contactPhoneMasked: body?.contactPhoneMasked ? String(body.contactPhoneMasked) : null,
           coverFileId: body?.coverFileId ? String(body.coverFileId) : null,
-          regionCode: body?.regionCode ? String(body.regionCode) : null,
+          regionCode: hasRegionCode ? regionCode : null,
           industryTagsJson: industryTags.length > 0 ? industryTags : Prisma.DbNull,
           auditStatus,
           status,

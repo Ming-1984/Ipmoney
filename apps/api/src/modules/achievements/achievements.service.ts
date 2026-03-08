@@ -303,7 +303,9 @@ export class AchievementsService {
     const cooperationModes = normalizeStringArray(body?.cooperationModes);
     const industryTags = normalizeStringArray(body?.industryTags);
     const hasMaturity = this.hasOwn(body, 'maturity');
+    const hasRegionCode = this.hasOwn(body, 'regionCode');
     const maturity = hasMaturity ? this.parseNullableMaturityStrict(body?.maturity, 'maturity') : undefined;
+    const regionCode = hasRegionCode ? this.parseNullableRegionCodeStrict(body?.regionCode, 'regionCode') : undefined;
     const mediaInput = normalizeMediaInput(body?.media);
 
     const created = await this.prisma.$transaction(async (tx) => {
@@ -318,7 +320,7 @@ export class AchievementsService {
           maturity: maturity === undefined ? null : maturity,
           cooperationModesJson: cooperationModes.length > 0 ? cooperationModes : Prisma.DbNull,
           coverFileId: body?.coverFileId ? String(body.coverFileId) : null,
-          regionCode: body?.regionCode ? String(body.regionCode) : null,
+          regionCode: hasRegionCode ? regionCode : null,
           industryTagsJson: industryTags.length > 0 ? industryTags : Prisma.DbNull,
         },
       });
@@ -605,12 +607,14 @@ export class AchievementsService {
     const hasMaturity = this.hasOwn(body, 'maturity');
     const hasAuditStatus = this.hasOwn(body, 'auditStatus');
     const hasStatus = this.hasOwn(body, 'status');
+    const hasRegionCode = this.hasOwn(body, 'regionCode');
     const sourceInput = hasSource ? this.parseContentSourceStrict(body?.source, 'source') : 'ADMIN';
     const ownerId = String(body?.publisherUserId || body?.ownerId || req?.auth?.userId || '').trim();
     const keywords = normalizeStringArray(body?.keywords);
     const cooperationModes = normalizeStringArray(body?.cooperationModes);
     const industryTags = normalizeStringArray(body?.industryTags);
     const maturity = hasMaturity ? this.parseNullableMaturityStrict(body?.maturity, 'maturity') : undefined;
+    const regionCode = hasRegionCode ? this.parseNullableRegionCodeStrict(body?.regionCode, 'regionCode') : undefined;
     const mediaInput = normalizeMediaInput(body?.media);
     const auditStatus = hasAuditStatus ? this.parseAuditStatusStrict(body?.auditStatus, 'auditStatus') : 'PENDING';
     const status = hasStatus ? this.parseContentStatusStrict(body?.status, 'status') : 'DRAFT';
@@ -627,7 +631,7 @@ export class AchievementsService {
           maturity: maturity === undefined ? null : maturity,
           cooperationModesJson: cooperationModes.length > 0 ? cooperationModes : Prisma.DbNull,
           coverFileId: body?.coverFileId ? String(body.coverFileId) : null,
-          regionCode: body?.regionCode ? String(body.regionCode) : null,
+          regionCode: hasRegionCode ? regionCode : null,
           industryTagsJson: industryTags.length > 0 ? industryTags : Prisma.DbNull,
           auditStatus,
           status,
