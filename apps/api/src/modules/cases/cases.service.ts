@@ -61,6 +61,15 @@ export class CasesService {
     return parsed;
   }
 
+  private parseNullableNonEmptyStringStrict(value: unknown, fieldName: string): string | null {
+    if (value === null) return null;
+    const raw = String(value ?? '').trim();
+    if (!raw) {
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: `${fieldName} is invalid` });
+    }
+    return raw;
+  }
+
   private ensureAuth(req: any) {
     if (!req?.auth?.userId) throw new ForbiddenException({ code: 'FORBIDDEN', message: '无权限' });
   }
@@ -252,8 +261,10 @@ export class CasesService {
     const title = String(body?.title || '').trim() || DEFAULT_TITLES[type];
     const requesterName = String(body?.requesterName || '').trim() || '系统';
     const description = body?.description ? String(body.description).trim() : undefined;
-    const orderId = body?.orderId ? String(body.orderId).trim() : undefined;
-    const assigneeId = body?.assigneeId ? String(body.assigneeId).trim() : undefined;
+    const hasOrderId = this.hasOwn(body, 'orderId');
+    const orderId = hasOrderId ? this.parseNullableNonEmptyStringStrict(body?.orderId, 'orderId') : undefined;
+    const hasAssigneeId = this.hasOwn(body, 'assigneeId');
+    const assigneeId = hasAssigneeId ? this.parseNullableNonEmptyStringStrict(body?.assigneeId, 'assigneeId') : undefined;
     const hasDueAt = this.hasOwn(body, 'dueAt');
     const dueAt = hasDueAt ? this.parseDueAt(body?.dueAt, true) : null;
     const defaultDueDays = type === 'REFUND' ? 5 : 7;
@@ -273,7 +284,7 @@ export class CasesService {
 
     const created = await this.prisma.csCase.create({
       data: {
-        orderId: orderId || null,
+        orderId: orderId ?? null,
         csUserId: csUserId || null,
         title,
         type,
