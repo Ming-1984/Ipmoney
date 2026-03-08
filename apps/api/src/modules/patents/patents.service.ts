@@ -201,6 +201,18 @@ export class PatentsService {
     return legalStatus;
   }
 
+  private parseNullableLegalStatusStrict(value: unknown, fieldName: string): LegalStatusDto | null {
+    if (value === null) return null;
+    if (typeof value === 'string' && value.trim() === '') {
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: `${fieldName} is invalid` });
+    }
+    const legalStatus = this.normalizeLegalStatus(value);
+    if (!legalStatus) {
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: `${fieldName} is invalid` });
+    }
+    return legalStatus;
+  }
+
   private parseDate(value: unknown, fieldName: string): Date | undefined {
     if (value === undefined || value === null) return undefined;
     if (String(value).trim() === '') {
@@ -427,7 +439,8 @@ export class PatentsService {
       throw new BadRequestException({ code: 'BAD_REQUEST', message: 'only CN jurisdiction is supported' });
     }
 
-    const legalStatus = this.normalizeLegalStatus(body?.legalStatus);
+    const hasLegalStatus = this.hasOwn(body, 'legalStatus');
+    const legalStatus = hasLegalStatus ? this.parseNullableLegalStatusStrict(body?.legalStatus, 'legalStatus') : undefined;
     const hasSourcePrimary = this.hasOwn(body, 'sourcePrimary');
     let sourcePrimary: PatentSourcePrimaryDto = 'ADMIN';
     if (hasSourcePrimary) {
@@ -459,7 +472,7 @@ export class PatentsService {
         filingDate: filingDate ?? null,
         publicationDate: publicationDate ?? null,
         grantDate: grantDate ?? null,
-        legalStatus: legalStatus ?? null,
+        legalStatus: legalStatus === undefined ? null : legalStatus,
         sourcePrimary,
         sourceUpdatedAt,
       },
@@ -535,7 +548,7 @@ export class PatentsService {
       patch.grantDate = this.parseDate(body?.grantDate, 'grantDate') ?? null;
     }
     if (this.hasOwn(body, 'legalStatus')) {
-      patch.legalStatus = this.normalizeLegalStatus(body?.legalStatus) ?? null;
+      patch.legalStatus = this.parseNullableLegalStatusStrict(body?.legalStatus, 'legalStatus');
     }
     if (this.hasOwn(body, 'sourcePrimary')) {
       const sourcePrimary = this.normalizeSourcePrimary(body?.sourcePrimary);
