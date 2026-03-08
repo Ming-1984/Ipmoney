@@ -107,8 +107,14 @@ export class CasesService {
     return priority;
   }
 
-  private parseDueAt(value: any): Date | null {
-    if (!value) return null;
+  private parseDueAt(value: any, strict = false): Date | null {
+    if (value === undefined || value === null) return null;
+    if (String(value).trim() === '') {
+      if (strict) {
+        throw new BadRequestException({ code: 'BAD_REQUEST', message: 'dueAt 格式不正确' });
+      }
+      return null;
+    }
     const dt = new Date(String(value));
     if (Number.isNaN(dt.getTime())) {
       throw new BadRequestException({ code: 'BAD_REQUEST', message: 'dueAt 格式不正确' });
@@ -248,7 +254,8 @@ export class CasesService {
     const description = body?.description ? String(body.description).trim() : undefined;
     const orderId = body?.orderId ? String(body.orderId).trim() : undefined;
     const assigneeId = body?.assigneeId ? String(body.assigneeId).trim() : undefined;
-    const dueAt = this.parseDueAt(body?.dueAt);
+    const hasDueAt = this.hasOwn(body, 'dueAt');
+    const dueAt = hasDueAt ? this.parseDueAt(body?.dueAt, true) : null;
     const defaultDueDays = type === 'REFUND' ? 5 : 7;
     const normalizedDueAt = dueAt ?? new Date(Date.now() + defaultDueDays * 24 * 60 * 60 * 1000);
 
@@ -387,7 +394,7 @@ export class CasesService {
   async updateSla(req: any, caseId: string, body: any) {
     this.ensureAuth(req);
     requirePermission(req, 'case.manage');
-    const dueAt = this.parseDueAt(body?.dueAt);
+    const dueAt = this.parseDueAt(body?.dueAt, true);
     if (!dueAt) throw new BadRequestException({ code: 'BAD_REQUEST', message: 'dueAt is required' });
 
     await this.ensureCaseExists(caseId);
