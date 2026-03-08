@@ -66,8 +66,14 @@ export class PatentMaintenanceService {
     return status;
   }
 
-  private parseDate(value: any, field: string) {
-    if (!value) return null;
+  private parseDate(value: any, field: string, strict = false) {
+    if (value === undefined || value === null) return null;
+    if (String(value).trim() === '') {
+      if (strict) {
+        throw new BadRequestException({ code: 'BAD_REQUEST', message: `${field} is invalid` });
+      }
+      return null;
+    }
     const dt = new Date(String(value));
     if (Number.isNaN(dt.getTime())) {
       throw new BadRequestException({ code: 'BAD_REQUEST', message: `${field} is invalid` });
@@ -115,8 +121,8 @@ export class PatentMaintenanceService {
     const status = hasStatus ? this.parseStatusStrict(query?.status, 'status') : undefined;
     if (status) where.status = status;
 
-    const dueFrom = this.parseDate(query?.dueFrom, 'dueFrom');
-    const dueTo = this.parseDate(query?.dueTo, 'dueTo');
+    const dueFrom = this.parseDate(query?.dueFrom, 'dueFrom', true);
+    const dueTo = this.parseDate(query?.dueTo, 'dueTo', true);
     if (dueFrom || dueTo) {
       where.dueDate = {};
       if (dueFrom) where.dueDate.gte = dueFrom;

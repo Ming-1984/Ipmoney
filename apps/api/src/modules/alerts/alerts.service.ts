@@ -61,8 +61,14 @@ export class AlertsService {
     return normalized;
   }
 
-  private parseDateTime(value: any, field: string) {
-    if (!value) return null;
+  private parseDateTime(value: any, field: string, strict = false) {
+    if (value === undefined || value === null) return null;
+    if (String(value).trim() === '') {
+      if (strict) {
+        throw new BadRequestException({ code: 'BAD_REQUEST', message: `${field} is invalid` });
+      }
+      return null;
+    }
     const dt = new Date(String(value));
     if (Number.isNaN(dt.getTime())) {
       throw new BadRequestException({ code: 'BAD_REQUEST', message: `${field} is invalid` });
@@ -111,8 +117,8 @@ export class AlertsService {
     if (query?.type) where.type = String(query.type).trim();
     if (query?.targetId) where.targetId = String(query.targetId).trim();
 
-    const triggeredFrom = this.parseDateTime(query?.triggeredFrom, 'triggeredFrom');
-    const triggeredTo = this.parseDateTime(query?.triggeredTo, 'triggeredTo');
+    const triggeredFrom = this.parseDateTime(query?.triggeredFrom, 'triggeredFrom', true);
+    const triggeredTo = this.parseDateTime(query?.triggeredTo, 'triggeredTo', true);
     if (triggeredFrom || triggeredTo) {
       where.triggeredAt = {};
       if (triggeredFrom) where.triggeredAt.gte = triggeredFrom;
