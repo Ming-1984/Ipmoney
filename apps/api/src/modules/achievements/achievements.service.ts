@@ -101,6 +101,21 @@ export class AchievementsService {
     return raw;
   }
 
+  private parseOptionalPublisherUserIdStrict(body: any): string | undefined {
+    const candidateKeys: Array<'publisherUserId' | 'ownerId'> = ['publisherUserId', 'ownerId'];
+    for (const key of candidateKeys) {
+      if (!this.hasOwn(body, key)) continue;
+      const value = body?.[key];
+      if (value === null || value === undefined) continue;
+      const raw = String(value).trim();
+      if (!raw) {
+        throw new BadRequestException({ code: 'BAD_REQUEST', message: `${key} is invalid` });
+      }
+      return raw;
+    }
+    return undefined;
+  }
+
   private parsePositiveIntStrict(value: unknown, fieldName: string): number {
     const raw = String(value ?? '').trim();
     if (!raw) {
@@ -622,7 +637,7 @@ export class AchievementsService {
     const hasRegionCode = this.hasOwn(body, 'regionCode');
     const hasCoverFileId = this.hasOwn(body, 'coverFileId');
     const sourceInput = hasSource ? this.parseContentSourceStrict(body?.source, 'source') : 'ADMIN';
-    const ownerId = String(body?.publisherUserId || body?.ownerId || req?.auth?.userId || '').trim();
+    const ownerId = this.parseOptionalPublisherUserIdStrict(body) ?? String(req?.auth?.userId || '').trim();
     const keywords = normalizeStringArray(body?.keywords);
     const cooperationModes = normalizeStringArray(body?.cooperationModes);
     const industryTags = normalizeStringArray(body?.industryTags);
@@ -705,7 +720,7 @@ export class AchievementsService {
     const coverFileId = hasCoverFileId ? this.parseNullableCoverFileIdStrict(body?.coverFileId, 'coverFileId') : undefined;
     const auditStatus = hasAuditStatus ? this.parseAuditStatusStrict(body?.auditStatus, 'auditStatus') : undefined;
     const status = hasStatus ? this.parseContentStatusStrict(body?.status, 'status') : undefined;
-    const publisherUserId = body?.publisherUserId ? String(body.publisherUserId) : body?.ownerId ? String(body.ownerId) : undefined;
+    const publisherUserId = this.parseOptionalPublisherUserIdStrict(body);
 
     await this.prisma.$transaction(async (tx) => {
       await tx.achievement.update({

@@ -127,6 +127,21 @@ export class ArtworksService {
     return raw;
   }
 
+  private parseOptionalSellerUserIdStrict(body: any): string | undefined {
+    const candidateKeys: Array<'sellerUserId' | 'publisherUserId' | 'ownerId'> = ['sellerUserId', 'publisherUserId', 'ownerId'];
+    for (const key of candidateKeys) {
+      if (!this.hasOwn(body, key)) continue;
+      const value = body?.[key];
+      if (value === null || value === undefined) continue;
+      const raw = String(value).trim();
+      if (!raw) {
+        throw new BadRequestException({ code: 'BAD_REQUEST', message: `${key} is invalid` });
+      }
+      return raw;
+    }
+    return undefined;
+  }
+
   private parsePositiveIntStrict(value: unknown, fieldName: string): number {
     const raw = String(value ?? '').trim();
     if (!raw) {
@@ -838,7 +853,7 @@ export class ArtworksService {
     const hasRegionCode = this.hasOwn(body, 'regionCode');
     const hasCoverFileId = this.hasOwn(body, 'coverFileId');
     const sourceInput = hasSource ? this.parseContentSourceStrict(body?.source, 'source') : 'ADMIN';
-    const ownerId = String(body?.sellerUserId || body?.publisherUserId || body?.ownerId || req?.auth?.userId || '').trim();
+    const ownerId = this.parseOptionalSellerUserIdStrict(body) ?? String(req?.auth?.userId || '').trim();
     const calligraphyScript = hasCalligraphyScript ? this.parseNullableCalligraphyScriptStrict(body?.calligraphyScript, 'calligraphyScript') : undefined;
     const paintingGenre = hasPaintingGenre ? this.parseNullablePaintingGenreStrict(body?.paintingGenre, 'paintingGenre') : undefined;
     const regionCode = hasRegionCode ? this.parseNullableRegionCodeStrict(body?.regionCode, 'regionCode') : undefined;
@@ -936,13 +951,7 @@ export class ArtworksService {
     const status = hasStatus ? this.parseArtworkStatusStrict(body?.status, 'status') : undefined;
     const certificateFileIds = hasCertificateFileIds ? this.normalizeFileIds(body?.certificateFileIds) : undefined;
     const mediaInput = hasMedia ? normalizeMediaInput(body?.media) : [];
-    const sellerUserId = body?.sellerUserId
-      ? String(body.sellerUserId)
-      : body?.publisherUserId
-        ? String(body.publisherUserId)
-        : body?.ownerId
-          ? String(body.ownerId)
-          : undefined;
+    const sellerUserId = this.parseOptionalSellerUserIdStrict(body);
 
     await this.prisma.$transaction(async (tx) => {
       await tx.artwork.update({
