@@ -363,8 +363,8 @@ export class PatentMaintenanceService {
     const next: any = {};
 
     if (body?.assignedCsUserId !== undefined) {
-      const assignedCsUserId = body.assignedCsUserId ? String(body.assignedCsUserId).trim() : '';
-      if (assignedCsUserId) {
+      const assignedCsUserId = this.parseNullableNonEmptyStringStrict(body.assignedCsUserId, 'assignedCsUserId');
+      if (assignedCsUserId !== null) {
         const user = await this.prisma.user.findUnique({ where: { id: assignedCsUserId }, select: { id: true } });
         if (!user) throw new BadRequestException({ code: 'BAD_REQUEST', message: 'assignedCsUserId is invalid' });
         next.assignedCsUserId = assignedCsUserId;
@@ -383,8 +383,8 @@ export class PatentMaintenanceService {
     }
 
     if (body?.evidenceFileId !== undefined) {
-      const evidenceFileId = body.evidenceFileId ? String(body.evidenceFileId).trim() : '';
-      if (evidenceFileId) {
+      const evidenceFileId = this.parseNullableNonEmptyStringStrict(body.evidenceFileId, 'evidenceFileId');
+      if (evidenceFileId !== null) {
         const file = await this.prisma.file.findUnique({ where: { id: evidenceFileId }, select: { id: true } });
         if (!file) throw new BadRequestException({ code: 'BAD_REQUEST', message: 'evidenceFileId is invalid' });
         next.evidenceFileId = evidenceFileId;
