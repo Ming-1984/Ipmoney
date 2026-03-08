@@ -510,8 +510,16 @@ export class DemandsService {
       throw new BadRequestException({ code: 'BAD_REQUEST', message: 'budgetType is invalid' });
     }
 
-    const budgetMinFen = this.parseOptionalInt(query?.budgetMinFen, 'budgetMinFen', 0);
-    const budgetMaxFen = this.parseOptionalInt(query?.budgetMaxFen, 'budgetMaxFen', 0);
+    const parseStrictQueryIntFilter = (key: 'budgetMinFen' | 'budgetMaxFen') => {
+      if (!this.hasOwn(query, key)) return undefined;
+      const raw = query?.[key];
+      if (raw === undefined || raw === null || String(raw).trim() === '') {
+        throw new BadRequestException({ code: 'BAD_REQUEST', message: `${key} is invalid` });
+      }
+      return this.parseOptionalInt(raw, key, 0);
+    };
+    const budgetMinFen = parseStrictQueryIntFilter('budgetMinFen');
+    const budgetMaxFen = parseStrictQueryIntFilter('budgetMaxFen');
 
     const where: any = { status: 'ACTIVE', auditStatus: 'APPROVED' };
     if (regionCode) where.regionCode = regionCode;

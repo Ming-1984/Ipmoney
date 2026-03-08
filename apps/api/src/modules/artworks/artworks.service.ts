@@ -603,12 +603,22 @@ export class ArtworksService {
       throw new BadRequestException({ code: 'BAD_REQUEST', message: 'priceType is invalid' });
     }
 
-    const creationYearStart = this.parseOptionalInt(query?.creationYearStart, 'creationYearStart', 0);
-    const creationYearEnd = this.parseOptionalInt(query?.creationYearEnd, 'creationYearEnd', 0);
-    const priceMin = this.parseOptionalInt(query?.priceMin, 'priceMin', 0);
-    const priceMax = this.parseOptionalInt(query?.priceMax, 'priceMax', 0);
-    const depositMin = this.parseOptionalInt(query?.depositMin, 'depositMin', 0);
-    const depositMax = this.parseOptionalInt(query?.depositMax, 'depositMax', 0);
+    const parseStrictQueryIntFilter = (
+      key: 'creationYearStart' | 'creationYearEnd' | 'priceMin' | 'priceMax' | 'depositMin' | 'depositMax',
+    ) => {
+      if (!this.hasOwn(query, key)) return undefined;
+      const raw = query?.[key];
+      if (raw === undefined || raw === null || String(raw).trim() === '') {
+        throw new BadRequestException({ code: 'BAD_REQUEST', message: `${key} is invalid` });
+      }
+      return this.parseOptionalInt(raw, key, 0);
+    };
+    const creationYearStart = parseStrictQueryIntFilter('creationYearStart');
+    const creationYearEnd = parseStrictQueryIntFilter('creationYearEnd');
+    const priceMin = parseStrictQueryIntFilter('priceMin');
+    const priceMax = parseStrictQueryIntFilter('priceMax');
+    const depositMin = parseStrictQueryIntFilter('depositMin');
+    const depositMax = parseStrictQueryIntFilter('depositMax');
 
     const where: any = { status: 'ACTIVE', auditStatus: 'APPROVED' };
     if (category) where.category = category;
