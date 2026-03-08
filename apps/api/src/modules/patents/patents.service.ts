@@ -484,7 +484,7 @@ export class PatentsService {
         filingDate: filingDate ?? undefined,
         publicationDate: publicationDate ?? undefined,
         grantDate: grantDate ?? undefined,
-        legalStatus: legalStatus ?? undefined,
+        legalStatus: hasLegalStatus ? legalStatus : undefined,
         sourcePrimary,
         sourceUpdatedAt,
       },

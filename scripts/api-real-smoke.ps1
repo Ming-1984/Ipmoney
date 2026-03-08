@@ -828,6 +828,21 @@ function Assert-ResultJsonFieldEquals {
   Assert-ResultJsonFieldIn -Result $Result -Field $Field -ExpectedValues @($ExpectedValue) -Assertion $Assertion
 }
 
+function Assert-ResultJsonFieldMissing {
+  param(
+    [pscustomobject]$Result,
+    [string]$Field,
+    [string]$Assertion
+  )
+
+  $json = Get-ResultJsonObject -Result $Result
+  if (-not $json) { return }
+  $lookup = Get-ResultJsonFieldLookup -Json $json -FieldPath $Field
+  if ($lookup.found) {
+    Add-ResultAssertionFailure -Result $Result -Assertion $Assertion -Message "Field '$Field' should be missing but got '$($lookup.value)'"
+  }
+}
+
 function Assert-ResultJsonArrayContains {
   param(
     [pscustomobject]$Result,
@@ -1564,6 +1579,9 @@ try {
   [void](Add-ApiCaseResult -Results $results -Name "admin-patent-create-invalid-source-updated-at" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/admin/patents" -Body @{ applicationNoNorm = "2026123456791"; patentType = "INVENTION"; title = "Smoke Patent Invalid Source"; sourceUpdatedAt = "invalid-date" } -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-patent-create-invalid-source-updated-at") -Expected @(400))
   $adminPatentUpdate = Add-ApiCaseResult -Results $results -Name "admin-patent-update" -Method "PATCH" -Url "http://127.0.0.1:$resolvedApiPort/admin/patents/$smokePatentId" -Body @{ title = "$smokePatentTitle Updated"; filingDate = "2026-01-02"; legalStatus = "GRANTED" } -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-patent-update") -Expected @(200)
   Assert-ResultJsonFieldEquals -Result $adminPatentUpdate -Field "title" -ExpectedValue "$smokePatentTitle Updated" -Assertion "admin-patent-update-title"
+  $adminPatentUpsertClearLegalStatus = Add-ApiCaseResult -Results $results -Name "admin-patent-upsert-clear-legal-status" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/admin/patents" -Body @{ applicationNoNorm = $smokePatentApplicationNoNorm; patentType = "INVENTION"; title = "$smokePatentTitle Upsert Clear"; legalStatus = $null } -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-patent-upsert-clear-legal-status") -Expected @(200, 201)
+  Assert-ResultJsonFieldEquals -Result $adminPatentUpsertClearLegalStatus -Field "id" -ExpectedValue $smokePatentId -Assertion "admin-patent-upsert-clear-legal-status-id"
+  Assert-ResultJsonFieldMissing -Result $adminPatentUpsertClearLegalStatus -Field "legalStatus" -Assertion "admin-patent-upsert-clear-legal-status-null"
   [void](Add-ApiCaseResult -Results $results -Name "admin-patent-update-invalid-filing-date" -Method "PATCH" -Url "http://127.0.0.1:$resolvedApiPort/admin/patents/$smokePatentId" -Body @{ filingDate = "invalid-date" } -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-patent-update-invalid-filing-date") -Expected @(400))
   [void](Add-ApiCaseResult -Results $results -Name "admin-patent-update-empty-filing-date" -Method "PATCH" -Url "http://127.0.0.1:$resolvedApiPort/admin/patents/$smokePatentId" -Body @{ filingDate = "" } -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-patent-update-empty-filing-date") -Expected @(400))
   [void](Add-ApiCaseResult -Results $results -Name "admin-patent-update-empty-source-updated-at" -Method "PATCH" -Url "http://127.0.0.1:$resolvedApiPort/admin/patents/$smokePatentId" -Body @{ sourceUpdatedAt = "" } -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-patent-update-empty-source-updated-at") -Expected @(400))
