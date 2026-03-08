@@ -1013,6 +1013,7 @@ export class ListingsService {
     const hasPledgeStatus = this.hasOwn(body, 'pledgeStatus');
     const hasExistingLicenseStatus = this.hasOwn(body, 'existingLicenseStatus');
     const hasRegionCode = this.hasOwn(body, 'regionCode');
+    const hasClusterId = this.hasOwn(body, 'clusterId');
     const hasAuditStatus = this.hasOwn(body, 'auditStatus');
     const hasStatus = this.hasOwn(body, 'status');
 
@@ -1027,6 +1028,7 @@ export class ListingsService {
       ? this.parseNullableExistingLicenseStatusStrict(body?.existingLicenseStatus, 'existingLicenseStatus')
       : null;
     const regionCode = hasRegionCode ? this.parseNullableRegionCodeStrict(body?.regionCode, 'regionCode') : undefined;
+    const clusterId = hasClusterId ? this.parseNullableRegionCodeStrict(body?.clusterId, 'clusterId') : undefined;
     const auditStatus = hasAuditStatus ? this.parseAuditStatusStrict(body?.auditStatus, 'auditStatus') : 'PENDING';
     const status = hasStatus ? this.parseListingStatusStrict(body?.status, 'status') : 'DRAFT';
 
@@ -1081,7 +1083,7 @@ export class ListingsService {
         industryTagsJson: body?.industryTags ?? Prisma.DbNull,
         listingTopicsJson: listingTopics.length > 0 ? listingTopics : Prisma.DbNull,
         proofFileIdsJson: proofFileIds.length > 0 ? proofFileIds : Prisma.DbNull,
-        clusterId: body?.clusterId || null,
+        clusterId: hasClusterId ? clusterId : null,
         auditStatus,
         status,
       },
@@ -1131,6 +1133,7 @@ export class ListingsService {
     const hasEncumbranceNote = Object.prototype.hasOwnProperty.call(body || {}, 'encumbranceNote');
     const encumbranceNote = hasEncumbranceNote ? (body?.encumbranceNote ? String(body?.encumbranceNote) : null) : undefined;
     const hasClusterId = Object.prototype.hasOwnProperty.call(body || {}, 'clusterId');
+    const clusterId = hasClusterId ? this.parseNullableRegionCodeStrict(body?.clusterId, 'clusterId') : undefined;
     const hasRegionCode = this.hasOwn(body, 'regionCode');
     const regionCode = hasRegionCode ? this.parseNullableRegionCodeStrict(body?.regionCode, 'regionCode') : undefined;
     const hasSource = this.hasOwn(body, 'source');
@@ -1175,7 +1178,7 @@ export class ListingsService {
         industryTagsJson: body?.industryTags !== undefined ? body?.industryTags ?? Prisma.DbNull : undefined,
         listingTopicsJson: hasListingTopics ? (listingTopics && listingTopics.length > 0 ? listingTopics : Prisma.DbNull) : undefined,
         proofFileIdsJson: hasProofFileIds ? (proofFileIds && proofFileIds.length > 0 ? proofFileIds : Prisma.DbNull) : undefined,
-        clusterId: hasClusterId ? body?.clusterId : listing.clusterId,
+        clusterId: hasClusterId ? clusterId : listing.clusterId,
         auditStatus: hasAuditStatus ? auditStatus : listing.auditStatus,
         status: hasStatus ? status : listing.status,
       },
@@ -1508,6 +1511,7 @@ export class ListingsService {
     const hasPledgeStatus = this.hasOwn(body, 'pledgeStatus');
     const hasExistingLicenseStatus = this.hasOwn(body, 'existingLicenseStatus');
     const hasRegionCode = this.hasOwn(body, 'regionCode');
+    const hasClusterId = this.hasOwn(body, 'clusterId');
     const tradeMode = hasTradeMode ? this.parseTradeModeStrict(body?.tradeMode, 'tradeMode') : 'ASSIGNMENT';
     const licenseMode = hasLicenseMode ? this.parseNullableLicenseModeStrict(body?.licenseMode, 'licenseMode') : null;
     const priceType = hasPriceType ? this.parsePriceTypeStrict(body?.priceType, 'priceType') : 'NEGOTIABLE';
@@ -1518,6 +1522,7 @@ export class ListingsService {
       ? this.parseNullableExistingLicenseStatusStrict(body?.existingLicenseStatus, 'existingLicenseStatus')
       : null;
     const regionCode = hasRegionCode ? this.parseNullableRegionCodeStrict(body?.regionCode, 'regionCode') : undefined;
+    const clusterId = hasClusterId ? this.parseNullableRegionCodeStrict(body?.clusterId, 'clusterId') : undefined;
     const patent = await this.ensurePatent(body);
     if (patent) {
       await Promise.all([
@@ -1565,7 +1570,7 @@ export class ListingsService {
         industryTagsJson: body?.industryTags ?? Prisma.DbNull,
         listingTopicsJson: listingTopics.length > 0 ? listingTopics : Prisma.DbNull,
         proofFileIdsJson: proofFileIds.length > 0 ? proofFileIds : Prisma.DbNull,
-        clusterId: body?.clusterId || null,
+        clusterId: hasClusterId ? clusterId : null,
       },
     });
     return this.toAdminDto(listing);
@@ -1614,6 +1619,7 @@ export class ListingsService {
     const hasEncumbranceNote = Object.prototype.hasOwnProperty.call(body || {}, 'encumbranceNote');
     const encumbranceNote = hasEncumbranceNote ? (body?.encumbranceNote ? String(body?.encumbranceNote) : null) : undefined;
     const hasClusterId = Object.prototype.hasOwnProperty.call(body || {}, 'clusterId');
+    const clusterId = hasClusterId ? this.parseNullableRegionCodeStrict(body?.clusterId, 'clusterId') : undefined;
     const hasRegionCode = this.hasOwn(body, 'regionCode');
     const regionCode = hasRegionCode ? this.parseNullableRegionCodeStrict(body?.regionCode, 'regionCode') : undefined;
     const hasTradeMode = this.hasOwn(body, 'tradeMode');
@@ -1649,7 +1655,7 @@ export class ListingsService {
         industryTagsJson: body?.industryTags !== undefined ? body?.industryTags ?? Prisma.DbNull : undefined,
         listingTopicsJson: hasListingTopics ? (listingTopics && listingTopics.length > 0 ? listingTopics : Prisma.DbNull) : undefined,
         proofFileIdsJson: hasProofFileIds ? (proofFileIds && proofFileIds.length > 0 ? proofFileIds : Prisma.DbNull) : undefined,
-        clusterId: hasClusterId ? body?.clusterId : listing.clusterId,
+        clusterId: hasClusterId ? clusterId : listing.clusterId,
       },
     });
     if (patentId) {
