@@ -615,7 +615,8 @@ export class ArtworksService {
     const creator = String(query?.creator || query?.creatorName || '').trim();
     const hasPriceType = this.hasOwn(query, 'priceType');
     const priceType = hasPriceType ? this.normalizePriceType(query?.priceType) : undefined;
-    const regionCode = String(query?.regionCode || '').trim();
+    const hasRegionCode = this.hasOwn(query, 'regionCode');
+    const regionCode = hasRegionCode ? this.parseNullableRegionCodeStrict(query?.regionCode, 'regionCode') : null;
     const hasSortBy = this.hasOwn(query, 'sortBy');
     const sortBy = hasSortBy ? this.parseArtworkSortByStrict(query?.sortBy, 'sortBy') : 'NEWEST';
 

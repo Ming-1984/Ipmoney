@@ -447,7 +447,8 @@ export class AchievementsService {
     const pageSizeInput = hasPageSize ? this.parsePositiveIntStrict(query?.pageSize, 'pageSize') : 20;
     const pageSize = Math.min(50, pageSizeInput);
     const q = String(query?.q || '').trim();
-    const regionCode = String(query?.regionCode || '').trim();
+    const hasRegionCode = this.hasOwn(query, 'regionCode');
+    const regionCode = hasRegionCode ? this.parseNullableRegionCodeStrict(query?.regionCode, 'regionCode') : null;
     const hasSortBy = this.hasOwn(query, 'sortBy');
     const sortBy = hasSortBy ? this.parseContentSortByStrict(query?.sortBy, 'sortBy') : 'NEWEST';
 

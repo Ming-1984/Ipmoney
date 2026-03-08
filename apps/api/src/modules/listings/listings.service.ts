@@ -288,6 +288,14 @@ export class ListingsService {
     return raw;
   }
 
+  private parseRegionCodeFilterStrict(value: unknown, fieldName: string): string {
+    const raw = String(value ?? '').trim();
+    if (!raw) {
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: `${fieldName} is invalid` });
+    }
+    return raw;
+  }
+
   private parseOptionalInt(value: unknown, fieldName: string, min?: number): number | undefined {
     if (value === undefined || value === null) return undefined;
     if (String(value).trim() === '') {
@@ -945,7 +953,8 @@ export class ListingsService {
     const pageSizeInput = hasPageSize ? this.parsePositiveIntStrict(query?.pageSize, 'pageSize') : 10;
     const pageSize = Math.min(50, pageSizeInput);
     const q = String(query?.q || '').trim();
-    const regionCode = String(query?.regionCode || '').trim();
+    const hasRegionCode = this.hasOwn(query, 'regionCode');
+    const regionCode = hasRegionCode ? this.parseRegionCodeFilterStrict(query?.regionCode, 'regionCode') : '';
     const hasAuditStatus = this.hasOwn(query, 'auditStatus');
     const hasStatus = this.hasOwn(query, 'status');
     const hasSource = this.hasOwn(query, 'source');
@@ -1704,7 +1713,8 @@ export class ListingsService {
     const licenseMode = hasLicenseMode ? this.parseLicenseModeStrict(query?.licenseMode, 'licenseMode') : undefined;
     const hasPriceType = this.hasOwn(query, 'priceType');
     const priceType = hasPriceType ? this.parsePriceTypeStrict(query?.priceType, 'priceType') : undefined;
-    const regionCode = String(query?.regionCode || '').trim();
+    const hasRegionCode = this.hasOwn(query, 'regionCode');
+    const regionCode = hasRegionCode ? this.parseRegionCodeFilterStrict(query?.regionCode, 'regionCode') : '';
     const hasLegalStatus = this.hasOwn(query, 'legalStatus');
     const legalStatus = hasLegalStatus ? this.parseLegalStatusStrict(query?.legalStatus, 'legalStatus') : undefined;
     const hasSortBy = this.hasOwn(query, 'sortBy');
@@ -1985,7 +1995,8 @@ export class ListingsService {
     if (!req?.auth?.userId) {
       throw new ForbiddenException({ code: 'FORBIDDEN', message: 'forbidden' });
     }
-    let regionCode = String(query?.regionCode || '').trim();
+    const hasRegionCode = this.hasOwn(query, 'regionCode');
+    let regionCode = hasRegionCode ? this.parseRegionCodeFilterStrict(query?.regionCode, 'regionCode') : '';
     if (!regionCode) {
       const user = await this.prisma.user.findUnique({
         where: { id: req.auth.userId },
@@ -1996,7 +2007,7 @@ export class ListingsService {
     return await this.searchPublic({
       ...(query || {}),
       sortBy: 'RECOMMENDED',
-      regionCode: regionCode || undefined,
+      ...(regionCode ? { regionCode } : {}),
     });
   }
   async getPublicById(req: any, listingId: string) {
