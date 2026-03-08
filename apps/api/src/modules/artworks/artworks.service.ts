@@ -190,10 +190,10 @@ export class ArtworksService {
   private parseOptionalInt(value: unknown, fieldName: string, min = 0): number | undefined {
     if (value === undefined || value === null || String(value).trim() === '') return undefined;
     const num = Number(value);
-    if (!Number.isFinite(num) || num < min) {
+    if (!Number.isFinite(num) || !Number.isInteger(num) || num < min) {
       throw new BadRequestException({ code: 'BAD_REQUEST', message: `${fieldName} is invalid` });
     }
-    return Math.floor(num);
+    return num;
   }
 
   private normalizeWeight(value: unknown, fallback = 0) {
