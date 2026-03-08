@@ -162,7 +162,10 @@ export class ArtworksService {
   }
 
   private parseNullableCalligraphyScriptStrict(value: unknown, fieldName: string): CalligraphyScript | null {
-    if (value === null || String(value).trim() === '') return null;
+    if (value === null) return null;
+    if (typeof value === 'string' && value.trim() === '') {
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: `${fieldName} is invalid` });
+    }
     const normalized = this.normalizeCalligraphyScript(value);
     if (!normalized) {
       throw new BadRequestException({ code: 'BAD_REQUEST', message: `${fieldName} is invalid` });
@@ -171,7 +174,10 @@ export class ArtworksService {
   }
 
   private parseNullablePaintingGenreStrict(value: unknown, fieldName: string): PaintingGenre | null {
-    if (value === null || String(value).trim() === '') return null;
+    if (value === null) return null;
+    if (typeof value === 'string' && value.trim() === '') {
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: `${fieldName} is invalid` });
+    }
     const normalized = this.normalizePaintingGenre(value);
     if (!normalized) {
       throw new BadRequestException({ code: 'BAD_REQUEST', message: `${fieldName} is invalid` });
@@ -417,8 +423,10 @@ export class ArtworksService {
     if (!creatorName) throw new BadRequestException({ code: 'BAD_REQUEST', message: 'creatorName is required' });
     if (!priceType) throw new BadRequestException({ code: 'BAD_REQUEST', message: 'priceType is required' });
 
-    const calligraphyScript = this.normalizeCalligraphyScript(body?.calligraphyScript);
-    const paintingGenre = this.normalizePaintingGenre(body?.paintingGenre);
+    const hasCalligraphyScript = this.hasOwn(body, 'calligraphyScript');
+    const hasPaintingGenre = this.hasOwn(body, 'paintingGenre');
+    const calligraphyScript = hasCalligraphyScript ? this.parseNullableCalligraphyScriptStrict(body?.calligraphyScript, 'calligraphyScript') : undefined;
+    const paintingGenre = hasPaintingGenre ? this.parseNullablePaintingGenreStrict(body?.paintingGenre, 'paintingGenre') : undefined;
     const creationDate = this.parseOptionalDate(body?.creationDate, 'creationDate');
     const creationYear = this.parseOptionalInt(body?.creationYear, 'creationYear', 0);
     const priceAmountFen = this.parseOptionalInt(body?.priceAmountFen, 'priceAmountFen', 0);
@@ -434,8 +442,8 @@ export class ArtworksService {
           title,
           description: body?.description ?? null,
           category,
-          calligraphyScript: calligraphyScript ?? null,
-          paintingGenre: paintingGenre ?? null,
+          calligraphyScript: calligraphyScript === undefined ? null : calligraphyScript,
+          paintingGenre: paintingGenre === undefined ? null : paintingGenre,
           creatorName,
           creationDate: creationDate ?? null,
           creationYear: creationYear ?? null,
@@ -479,13 +487,17 @@ export class ArtworksService {
     const hasCertificateFileIds = Object.prototype.hasOwnProperty.call(body || {}, 'certificateFileIds');
     const hasCoverFileId = Object.prototype.hasOwnProperty.call(body || {}, 'coverFileId');
     const hasMedia = Object.prototype.hasOwnProperty.call(body || {}, 'media');
+    const hasCategory = this.hasOwn(body, 'category');
+    const hasCalligraphyScript = this.hasOwn(body, 'calligraphyScript');
+    const hasPaintingGenre = this.hasOwn(body, 'paintingGenre');
+    const hasPriceType = this.hasOwn(body, 'priceType');
 
-    const category = body?.category !== undefined ? this.normalizeCategory(body?.category) : undefined;
-    const calligraphyScript = body?.calligraphyScript !== undefined ? this.normalizeCalligraphyScript(body?.calligraphyScript) : undefined;
-    const paintingGenre = body?.paintingGenre !== undefined ? this.normalizePaintingGenre(body?.paintingGenre) : undefined;
+    const category = hasCategory ? this.parseCategoryStrict(body?.category, 'category') : undefined;
+    const calligraphyScript = hasCalligraphyScript ? this.parseNullableCalligraphyScriptStrict(body?.calligraphyScript, 'calligraphyScript') : undefined;
+    const paintingGenre = hasPaintingGenre ? this.parseNullablePaintingGenreStrict(body?.paintingGenre, 'paintingGenre') : undefined;
     const creationDate = body?.creationDate !== undefined ? this.parseOptionalDate(body?.creationDate, 'creationDate') : undefined;
     const creationYear = body?.creationYear !== undefined ? this.parseOptionalInt(body?.creationYear, 'creationYear', 0) : undefined;
-    const priceType = body?.priceType !== undefined ? this.normalizePriceType(body?.priceType) : undefined;
+    const priceType = hasPriceType ? this.parsePriceTypeStrict(body?.priceType, 'priceType') : undefined;
     const priceAmountFen = body?.priceAmountFen !== undefined ? this.parseOptionalInt(body?.priceAmountFen, 'priceAmountFen', 0) : undefined;
     const depositAmountFen = body?.depositAmountFen !== undefined ? this.parseOptionalInt(body?.depositAmountFen, 'depositAmountFen', 0) : undefined;
     const certificateFileIds = hasCertificateFileIds ? this.normalizeFileIds(body?.certificateFileIds) : undefined;
@@ -497,9 +509,9 @@ export class ArtworksService {
         data: {
           title: body?.title ?? undefined,
           description: body?.description ?? undefined,
-          category: category ?? undefined,
-          calligraphyScript: calligraphyScript ?? null,
-          paintingGenre: paintingGenre ?? null,
+          category: hasCategory ? category : undefined,
+          calligraphyScript: hasCalligraphyScript ? calligraphyScript : undefined,
+          paintingGenre: hasPaintingGenre ? paintingGenre : undefined,
           creatorName: body?.creatorName ?? undefined,
           creationDate: creationDate ?? null,
           creationYear: creationYear ?? null,
@@ -509,7 +521,7 @@ export class ArtworksService {
               ? certificateFileIds
               : Prisma.DbNull
             : undefined,
-          priceType: priceType ?? undefined,
+          priceType: hasPriceType ? priceType : undefined,
           priceAmountFen: priceAmountFen ?? null,
           depositAmountFen: depositAmountFen ?? undefined,
           regionCode: body?.regionCode ?? undefined,

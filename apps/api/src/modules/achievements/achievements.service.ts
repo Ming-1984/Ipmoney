@@ -120,7 +120,10 @@ export class AchievementsService {
   }
 
   private parseNullableMaturityStrict(value: unknown, fieldName: string): AchievementMaturity | null {
-    if (value === null || String(value).trim() === '') return null;
+    if (value === null) return null;
+    if (typeof value === 'string' && value.trim() === '') {
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: `${fieldName} is invalid` });
+    }
     const normalized = this.normalizeMaturity(value);
     if (!normalized) {
       throw new BadRequestException({ code: 'BAD_REQUEST', message: `${fieldName} is invalid` });
@@ -290,7 +293,8 @@ export class AchievementsService {
     const keywords = normalizeStringArray(body?.keywords);
     const cooperationModes = normalizeStringArray(body?.cooperationModes);
     const industryTags = normalizeStringArray(body?.industryTags);
-    const maturity = this.normalizeMaturity(body?.maturity);
+    const hasMaturity = this.hasOwn(body, 'maturity');
+    const maturity = hasMaturity ? this.parseNullableMaturityStrict(body?.maturity, 'maturity') : undefined;
     const mediaInput = normalizeMediaInput(body?.media);
 
     const created = await this.prisma.$transaction(async (tx) => {
@@ -302,7 +306,7 @@ export class AchievementsService {
           summary: body?.summary ?? null,
           description: body?.description ?? null,
           keywordsJson: keywords.length > 0 ? keywords : Prisma.DbNull,
-          maturity: maturity ?? null,
+          maturity: maturity === undefined ? null : maturity,
           cooperationModesJson: cooperationModes.length > 0 ? cooperationModes : Prisma.DbNull,
           coverFileId: body?.coverFileId ? String(body.coverFileId) : null,
           regionCode: body?.regionCode ? String(body.regionCode) : null,
@@ -341,12 +345,13 @@ export class AchievementsService {
     const hasIndustryTags = Object.prototype.hasOwnProperty.call(body || {}, 'industryTags');
     const hasCoverFileId = Object.prototype.hasOwnProperty.call(body || {}, 'coverFileId');
     const hasMedia = Object.prototype.hasOwnProperty.call(body || {}, 'media');
+    const hasMaturity = this.hasOwn(body, 'maturity');
 
     const keywords = hasKeywords ? normalizeStringArray(body?.keywords) : undefined;
     const cooperationModes = hasCooperationModes ? normalizeStringArray(body?.cooperationModes) : undefined;
     const industryTags = hasIndustryTags ? normalizeStringArray(body?.industryTags) : undefined;
     const mediaInput = hasMedia ? normalizeMediaInput(body?.media) : [];
-    const maturity = this.normalizeMaturity(body?.maturity);
+    const maturity = hasMaturity ? this.parseNullableMaturityStrict(body?.maturity, 'maturity') : undefined;
 
     await this.prisma.$transaction(async (tx) => {
       await tx.achievement.update({
@@ -355,7 +360,7 @@ export class AchievementsService {
           title: body?.title ?? undefined,
           summary: body?.summary ?? undefined,
           description: body?.description ?? undefined,
-          maturity: body?.maturity !== undefined ? maturity ?? null : undefined,
+          maturity: hasMaturity ? maturity : undefined,
           regionCode: body?.regionCode ?? undefined,
           coverFileId: hasCoverFileId ? (body?.coverFileId ? String(body.coverFileId) : null) : undefined,
           keywordsJson: hasKeywords ? (keywords && keywords.length > 0 ? keywords : Prisma.DbNull) : undefined,

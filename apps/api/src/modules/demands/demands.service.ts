@@ -132,7 +132,10 @@ export class DemandsService {
   }
 
   private parseNullablePriceTypeStrict(value: unknown, fieldName: string): 'FIXED' | 'NEGOTIABLE' | null {
-    if (value === null || String(value).trim() === '') return null;
+    if (value === null) return null;
+    if (typeof value === 'string' && value.trim() === '') {
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: `${fieldName} is invalid` });
+    }
     const normalized = this.normalizePriceType(value);
     if (!normalized) {
       throw new BadRequestException({ code: 'BAD_REQUEST', message: `${fieldName} is invalid` });
@@ -141,7 +144,10 @@ export class DemandsService {
   }
 
   private parseNullableDeliveryPeriodStrict(value: unknown, fieldName: string): DeliveryPeriod | null {
-    if (value === null || String(value).trim() === '') return null;
+    if (value === null) return null;
+    if (typeof value === 'string' && value.trim() === '') {
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: `${fieldName} is invalid` });
+    }
     const normalized = this.normalizeDeliveryPeriod(value);
     if (!normalized) {
       throw new BadRequestException({ code: 'BAD_REQUEST', message: `${fieldName} is invalid` });
@@ -337,8 +343,10 @@ export class DemandsService {
     const keywords = normalizeStringArray(body?.keywords);
     const cooperationModes = normalizeStringArray(body?.cooperationModes);
     const industryTags = normalizeStringArray(body?.industryTags);
-    const deliveryPeriod = this.normalizeDeliveryPeriod(body?.deliveryPeriod);
-    const budgetType = this.normalizePriceType(body?.budgetType);
+    const hasDeliveryPeriod = this.hasOwn(body, 'deliveryPeriod');
+    const hasBudgetType = this.hasOwn(body, 'budgetType');
+    const deliveryPeriod = hasDeliveryPeriod ? this.parseNullableDeliveryPeriodStrict(body?.deliveryPeriod, 'deliveryPeriod') : undefined;
+    const budgetType = hasBudgetType ? this.parseNullablePriceTypeStrict(body?.budgetType, 'budgetType') : undefined;
     const budgetMinFen = this.parseOptionalInt(body?.budgetMinFen, 'budgetMinFen', 0);
     const budgetMaxFen = this.parseOptionalInt(body?.budgetMaxFen, 'budgetMaxFen', 0);
     const mediaInput = normalizeMediaInput(body?.media);
@@ -352,9 +360,9 @@ export class DemandsService {
           summary: body?.summary ?? null,
           description: body?.description ?? null,
           keywordsJson: keywords.length > 0 ? keywords : Prisma.DbNull,
-          deliveryPeriod: deliveryPeriod ?? null,
+          deliveryPeriod: deliveryPeriod === undefined ? null : deliveryPeriod,
           cooperationModesJson: cooperationModes.length > 0 ? cooperationModes : Prisma.DbNull,
-          budgetType: budgetType ?? null,
+          budgetType: budgetType === undefined ? null : budgetType,
           budgetMinFen: budgetMinFen ?? null,
           budgetMaxFen: budgetMaxFen ?? null,
           contactName: body?.contactName ? String(body.contactName) : null,
@@ -401,14 +409,16 @@ export class DemandsService {
     const hasContactTitle = Object.prototype.hasOwnProperty.call(body || {}, 'contactTitle');
     const hasContactPhone = Object.prototype.hasOwnProperty.call(body || {}, 'contactPhoneMasked');
     const hasMedia = Object.prototype.hasOwnProperty.call(body || {}, 'media');
+    const hasDeliveryPeriod = this.hasOwn(body, 'deliveryPeriod');
+    const hasBudgetType = this.hasOwn(body, 'budgetType');
 
     const keywords = hasKeywords ? normalizeStringArray(body?.keywords) : undefined;
     const cooperationModes = hasCooperationModes ? normalizeStringArray(body?.cooperationModes) : undefined;
     const industryTags = hasIndustryTags ? normalizeStringArray(body?.industryTags) : undefined;
     const mediaInput = hasMedia ? normalizeMediaInput(body?.media) : [];
 
-    const deliveryPeriod = this.normalizeDeliveryPeriod(body?.deliveryPeriod);
-    const budgetType = this.normalizePriceType(body?.budgetType);
+    const deliveryPeriod = hasDeliveryPeriod ? this.parseNullableDeliveryPeriodStrict(body?.deliveryPeriod, 'deliveryPeriod') : undefined;
+    const budgetType = hasBudgetType ? this.parseNullablePriceTypeStrict(body?.budgetType, 'budgetType') : undefined;
     const budgetMinFen = this.parseOptionalInt(body?.budgetMinFen, 'budgetMinFen', 0);
     const budgetMaxFen = this.parseOptionalInt(body?.budgetMaxFen, 'budgetMaxFen', 0);
 
@@ -419,8 +429,8 @@ export class DemandsService {
           title: body?.title ?? undefined,
           summary: body?.summary ?? undefined,
           description: body?.description ?? undefined,
-          deliveryPeriod: body?.deliveryPeriod !== undefined ? deliveryPeriod ?? null : undefined,
-          budgetType: body?.budgetType !== undefined ? budgetType ?? null : undefined,
+          deliveryPeriod: hasDeliveryPeriod ? deliveryPeriod : undefined,
+          budgetType: hasBudgetType ? budgetType : undefined,
           budgetMinFen: body?.budgetMinFen !== undefined ? budgetMinFen ?? null : undefined,
           budgetMaxFen: body?.budgetMaxFen !== undefined ? budgetMaxFen ?? null : undefined,
           regionCode: body?.regionCode ?? undefined,
