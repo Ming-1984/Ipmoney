@@ -173,7 +173,8 @@ export class PatentMapService {
   private parseRegionCodeValue(value: unknown) {
     if (value === undefined || value === null) return '';
     if (typeof value === 'number' && Number.isFinite(value)) {
-      return String(Math.trunc(value)).padStart(6, '0');
+      if (!Number.isInteger(value)) return '';
+      return String(value).padStart(6, '0');
     }
     return String(value).trim();
   }
@@ -181,14 +182,14 @@ export class PatentMapService {
   private parseYearValue(value: unknown) {
     if (value instanceof Date) return value.getFullYear();
     const num = Number(value);
-    if (!Number.isFinite(num)) return null;
-    return Math.trunc(num);
+    if (!Number.isFinite(num) || !Number.isInteger(num)) return null;
+    return num;
   }
 
   private parseNonNegativeInt(value: unknown) {
     const num = Number(value);
-    if (!Number.isFinite(num) || num < 0) return null;
-    return Math.trunc(num);
+    if (!Number.isFinite(num) || !Number.isInteger(num) || num < 0) return null;
+    return num;
   }
 
   private parseKeyCountList(

@@ -3068,6 +3068,20 @@ try {
   $patentMapImportDryRun = Add-ApiFileUploadCaseResult -Results $results -Name "admin-patent-map-import-dry-run" -Url "http://127.0.0.1:$resolvedApiPort/admin/patent-map/import" -AuthorizationToken $adminToken -FilePath $patentMapImportPath -FormFields @{ dryRun = "true" } -Expected @(200, 201)
   Assert-ResultJsonFieldEquals -Result $patentMapImportDryRun -Field "dryRun" -ExpectedValue "True" -Assertion "patent-map-import-dry-run-flag"
   Assert-ResultJsonFieldIn -Result $patentMapImportDryRun -Field "importedCount" -ExpectedValues @(0, 1) -Assertion "patent-map-import-dry-run-count"
+  $patentMapImportInvalidDecimalPath = Join-Path $logDir "api-real-smoke-patent-map-import-invalid-decimal-$ReportDate.csv"
+  @(
+    "regionCode,year,patentCount,industryBreakdown,topAssignees",
+    "$importRegionCode,2025.5,3.5,,"
+  ) | Out-File -Encoding UTF8 $patentMapImportInvalidDecimalPath
+  $patentMapImportDryRunInvalidDecimal = Add-ApiFileUploadCaseResult -Results $results -Name "admin-patent-map-import-dry-run-invalid-decimal" -Url "http://127.0.0.1:$resolvedApiPort/admin/patent-map/import" -AuthorizationToken $adminToken -FilePath $patentMapImportInvalidDecimalPath -FormFields @{ dryRun = "true" } -Expected @(200, 201)
+  $patentMapImportDryRunInvalidDecimalJson = Get-ResultJsonObject -Result $patentMapImportDryRunInvalidDecimal
+  $patentMapImportDryRunInvalidDecimalErrors = @()
+  if ($patentMapImportDryRunInvalidDecimalJson -and $patentMapImportDryRunInvalidDecimalJson.errors) {
+    $patentMapImportDryRunInvalidDecimalErrors = @($patentMapImportDryRunInvalidDecimalJson.errors)
+  }
+  if ($patentMapImportDryRunInvalidDecimalErrors.Count -lt 1) {
+    Add-ResultAssertionFailure -Result $patentMapImportDryRunInvalidDecimal -Assertion "patent-map-import-dry-run-invalid-decimal-errors" -Message "Expected decimal year/patentCount row to be rejected in dry-run import"
+  }
   [void](Add-ApiCaseResult -Results $results -Name "admin-patent-map-entry-upsert-invalid-patent-count" -Method "PUT" -Url "http://127.0.0.1:$resolvedApiPort/admin/patent-map/regions/$importRegionCode/years/$((Get-Date).Year)" -Body @{ patentCount = -1 } -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-patent-map-entry-upsert-invalid-patent-count") -Expected @(400))
   [void](Add-ApiCaseResult -Results $results -Name "admin-patent-map-entry-upsert-missing-region" -Method "PUT" -Url "http://127.0.0.1:$resolvedApiPort/admin/patent-map/regions/$missingRegionCode/years/$((Get-Date).Year)" -Body @{ patentCount = 2 } -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-patent-map-entry-upsert-missing-region") -Expected @(404))
   [void](Add-ApiCaseResult -Results $results -Name "admin-patent-map-entry-get-invalid-year" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/admin/patent-map/regions/$importRegionCode/years/abc" -Body $null -Headers @{ Authorization = $adminToken } -Expected @(400))
