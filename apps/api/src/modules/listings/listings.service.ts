@@ -279,6 +279,15 @@ export class ListingsService {
     return normalized;
   }
 
+  private parseNullableRegionCodeStrict(value: unknown, fieldName: string): string | null {
+    if (value === null) return null;
+    const raw = String(value ?? '').trim();
+    if (!raw) {
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: `${fieldName} is invalid` });
+    }
+    return raw;
+  }
+
   private parseOptionalInt(value: unknown, fieldName: string, min?: number): number | undefined {
     if (value === undefined || value === null) return undefined;
     if (String(value).trim() === '') {
@@ -1103,6 +1112,8 @@ export class ListingsService {
     const hasEncumbranceNote = Object.prototype.hasOwnProperty.call(body || {}, 'encumbranceNote');
     const encumbranceNote = hasEncumbranceNote ? (body?.encumbranceNote ? String(body?.encumbranceNote) : null) : undefined;
     const hasClusterId = Object.prototype.hasOwnProperty.call(body || {}, 'clusterId');
+    const hasRegionCode = this.hasOwn(body, 'regionCode');
+    const regionCode = hasRegionCode ? this.parseNullableRegionCodeStrict(body?.regionCode, 'regionCode') : undefined;
     const hasSource = this.hasOwn(body, 'source');
     const source = hasSource ? this.parseContentSourceStrict(body?.source, 'source') : undefined;
     const hasTradeMode = this.hasOwn(body, 'tradeMode');
@@ -1141,7 +1152,7 @@ export class ListingsService {
         pledgeStatus: hasPledgeStatus ? pledgeStatus ?? null : listing.pledgeStatus,
         existingLicenseStatus: hasExistingLicenseStatus ? existingLicenseStatus ?? null : listing.existingLicenseStatus,
         encumbranceNote: hasEncumbranceNote ? encumbranceNote : listing.encumbranceNote,
-        regionCode: body?.regionCode ?? listing.regionCode,
+        regionCode: hasRegionCode ? regionCode : listing.regionCode,
         industryTagsJson: body?.industryTags !== undefined ? body?.industryTags ?? Prisma.DbNull : undefined,
         listingTopicsJson: hasListingTopics ? (listingTopics && listingTopics.length > 0 ? listingTopics : Prisma.DbNull) : undefined,
         proofFileIdsJson: hasProofFileIds ? (proofFileIds && proofFileIds.length > 0 ? proofFileIds : Prisma.DbNull) : undefined,
@@ -1582,6 +1593,8 @@ export class ListingsService {
     const hasEncumbranceNote = Object.prototype.hasOwnProperty.call(body || {}, 'encumbranceNote');
     const encumbranceNote = hasEncumbranceNote ? (body?.encumbranceNote ? String(body?.encumbranceNote) : null) : undefined;
     const hasClusterId = Object.prototype.hasOwnProperty.call(body || {}, 'clusterId');
+    const hasRegionCode = this.hasOwn(body, 'regionCode');
+    const regionCode = hasRegionCode ? this.parseNullableRegionCodeStrict(body?.regionCode, 'regionCode') : undefined;
     const hasTradeMode = this.hasOwn(body, 'tradeMode');
     const tradeMode = hasTradeMode ? this.parseTradeModeStrict(body?.tradeMode, 'tradeMode') : undefined;
     const hasLicenseMode = this.hasOwn(body, 'licenseMode');
@@ -1611,7 +1624,7 @@ export class ListingsService {
         pledgeStatus: hasPledgeStatus ? pledgeStatus ?? null : listing.pledgeStatus,
         existingLicenseStatus: hasExistingLicenseStatus ? existingLicenseStatus ?? null : listing.existingLicenseStatus,
         encumbranceNote: hasEncumbranceNote ? encumbranceNote : listing.encumbranceNote,
-        regionCode: body?.regionCode ?? listing.regionCode,
+        regionCode: hasRegionCode ? regionCode : listing.regionCode,
         industryTagsJson: body?.industryTags !== undefined ? body?.industryTags ?? Prisma.DbNull : undefined,
         listingTopicsJson: hasListingTopics ? (listingTopics && listingTopics.length > 0 ? listingTopics : Prisma.DbNull) : undefined,
         proofFileIdsJson: hasProofFileIds ? (proofFileIds && proofFileIds.length > 0 ? proofFileIds : Prisma.DbNull) : undefined,
