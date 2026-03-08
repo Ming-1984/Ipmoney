@@ -1016,6 +1016,7 @@ export class ListingsService {
     const hasClusterId = this.hasOwn(body, 'clusterId');
     const hasAuditStatus = this.hasOwn(body, 'auditStatus');
     const hasStatus = this.hasOwn(body, 'status');
+    const hasSellerUserId = this.hasOwn(body, 'sellerUserId');
 
     const source = hasSource ? this.parseContentSourceStrict(body?.source, 'source') : 'ADMIN';
     const tradeMode = hasTradeMode ? this.parseTradeModeStrict(body?.tradeMode, 'tradeMode') : 'ASSIGNMENT';
@@ -1032,7 +1033,9 @@ export class ListingsService {
     const auditStatus = hasAuditStatus ? this.parseAuditStatusStrict(body?.auditStatus, 'auditStatus') : 'PENDING';
     const status = hasStatus ? this.parseListingStatusStrict(body?.status, 'status') : 'DRAFT';
 
-    const sellerUserId = String(body?.sellerUserId || req?.auth?.userId || '').trim();
+    const sellerUserId = hasSellerUserId
+      ? this.parseNonEmptyFilterStrict(body?.sellerUserId, 'sellerUserId')
+      : String(req?.auth?.userId || '').trim();
     if (!sellerUserId) {
       throw new BadRequestException({ code: 'BAD_REQUEST', message: 'sellerUserId is required' });
     }
