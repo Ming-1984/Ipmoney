@@ -158,7 +158,10 @@ export class DemandsService {
   }
 
   private parseOptionalInt(value: unknown, fieldName: string, min = 0): number | undefined {
-    if (value === undefined || value === null || String(value).trim() === '') return undefined;
+    if (value === undefined || value === null) return undefined;
+    if (String(value).trim() === '') {
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: `${fieldName} is invalid` });
+    }
     const num = Number(value);
     if (!Number.isFinite(num) || !Number.isInteger(num) || num < min) {
       throw new BadRequestException({ code: 'BAD_REQUEST', message: `${fieldName} is invalid` });
