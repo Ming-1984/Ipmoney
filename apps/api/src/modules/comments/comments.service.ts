@@ -240,15 +240,19 @@ export class CommentsService {
     const q = String(query?.q || '').trim();
     const hasContentType = this.hasOwn(query, 'contentType');
     const hasStatus = this.hasOwn(query, 'status');
+    const hasContentId = this.hasOwn(query, 'contentId');
     const contentType = hasContentType ? this.normalizeContentType(query?.contentType) : undefined;
     const status = hasStatus ? this.normalizeStatus(query?.status) : undefined;
-    const contentId = query?.contentId ? String(query.contentId).trim() : '';
+    const contentId = hasContentId ? String(query?.contentId ?? '').trim() : '';
 
     if (hasContentType && !contentType) {
       throw new BadRequestException({ code: 'BAD_REQUEST', message: 'contentType is invalid' });
     }
     if (hasStatus && !status) {
       throw new BadRequestException({ code: 'BAD_REQUEST', message: 'status is invalid' });
+    }
+    if (hasContentId && !contentId) {
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: 'contentId is invalid' });
     }
 
     const where: any = {};

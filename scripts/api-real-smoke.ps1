@@ -1059,6 +1059,7 @@ try {
     @{ name = "admin-artworks-invalid-source"; method = "GET"; url = "http://127.0.0.1:$resolvedApiPort/admin/artworks?source=UNKNOWN"; body = $null; headers = @{ Authorization = $adminToken }; expected = @(400) },
     @{ name = "admin-comments"; method = "GET"; url = "http://127.0.0.1:$resolvedApiPort/admin/comments"; body = $null; headers = @{ Authorization = $adminToken }; expected = @(200) },
     @{ name = "admin-comments-invalid-content-type"; method = "GET"; url = "http://127.0.0.1:$resolvedApiPort/admin/comments?contentType=UNKNOWN"; body = $null; headers = @{ Authorization = $adminToken }; expected = @(400) },
+    @{ name = "admin-comments-empty-content-id"; method = "GET"; url = "http://127.0.0.1:$resolvedApiPort/admin/comments?contentId="; body = $null; headers = @{ Authorization = $adminToken }; expected = @(400) },
     @{ name = "admin-comments-invalid-status"; method = "GET"; url = "http://127.0.0.1:$resolvedApiPort/admin/comments?status=UNKNOWN"; body = $null; headers = @{ Authorization = $adminToken }; expected = @(400) },
     @{ name = "admin-comments-invalid-page"; method = "GET"; url = "http://127.0.0.1:$resolvedApiPort/admin/comments?page=abc"; body = $null; headers = @{ Authorization = $adminToken }; expected = @(400) },
     @{ name = "admin-comments-empty-page-size"; method = "GET"; url = "http://127.0.0.1:$resolvedApiPort/admin/comments?pageSize="; body = $null; headers = @{ Authorization = $adminToken }; expected = @(400) },
