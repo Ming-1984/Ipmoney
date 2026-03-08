@@ -36,17 +36,29 @@ export class ReportsService {
   }
 
   private buildRange(input: any, fallbackDays = 30) {
+    const hasStart = !!input && Object.prototype.hasOwnProperty.call(input, 'start');
+    const hasEnd = !!input && Object.prototype.hasOwnProperty.call(input, 'end');
     const days = this.parsePositiveIntegerDays(input, fallbackDays);
     const startRaw = input?.start;
     const endRaw = input?.end;
 
-    let start = startRaw ? new Date(String(startRaw)) : null;
-    let end = endRaw ? new Date(String(endRaw)) : null;
-
-    if (startRaw && (!start || Number.isNaN(start.getTime()))) {
+    if (hasStart && typeof startRaw === 'string' && startRaw.trim().length === 0) {
       throw new BadRequestException({ code: 'BAD_REQUEST', message: 'start is invalid' });
     }
-    if (endRaw && (!end || Number.isNaN(end.getTime()))) {
+    if (hasEnd && typeof endRaw === 'string' && endRaw.trim().length === 0) {
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: 'end is invalid' });
+    }
+
+    const hasStartValue = hasStart && startRaw !== undefined && startRaw !== null;
+    const hasEndValue = hasEnd && endRaw !== undefined && endRaw !== null;
+
+    let start = hasStartValue ? new Date(String(startRaw)) : null;
+    let end = hasEndValue ? new Date(String(endRaw)) : null;
+
+    if (hasStartValue && (!start || Number.isNaN(start.getTime()))) {
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: 'start is invalid' });
+    }
+    if (hasEndValue && (!end || Number.isNaN(end.getTime()))) {
       throw new BadRequestException({ code: 'BAD_REQUEST', message: 'end is invalid' });
     }
 
