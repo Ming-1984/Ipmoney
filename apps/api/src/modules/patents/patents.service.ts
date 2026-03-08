@@ -202,7 +202,10 @@ export class PatentsService {
   }
 
   private parseDate(value: unknown, fieldName: string): Date | undefined {
-    if (value === undefined || value === null || String(value).trim() === '') return undefined;
+    if (value === undefined || value === null) return undefined;
+    if (String(value).trim() === '') {
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: `${fieldName} is invalid` });
+    }
     const date = new Date(String(value).trim());
     if (Number.isNaN(date.getTime())) {
       throw new BadRequestException({ code: 'BAD_REQUEST', message: `${fieldName} is invalid` });
@@ -211,7 +214,10 @@ export class PatentsService {
   }
 
   private parseDateTime(value: unknown, fieldName: string): Date | undefined {
-    if (value === undefined || value === null || String(value).trim() === '') return undefined;
+    if (value === undefined || value === null) return undefined;
+    if (String(value).trim() === '') {
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: `${fieldName} is invalid` });
+    }
     const date = new Date(String(value).trim());
     if (Number.isNaN(date.getTime())) {
       throw new BadRequestException({ code: 'BAD_REQUEST', message: `${fieldName} is invalid` });
