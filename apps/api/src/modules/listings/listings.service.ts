@@ -458,7 +458,13 @@ export class ListingsService {
     return [];
   }
   private parseDateValue(value: unknown, fieldName: string, strict = false): Date | undefined {
-    if (value === undefined || value === null || String(value).trim() === '') return undefined;
+    if (value === undefined || value === null) return undefined;
+    if (String(value).trim() === '') {
+      if (strict) {
+        throw new BadRequestException({ code: 'BAD_REQUEST', message: `${fieldName} is invalid` });
+      }
+      return undefined;
+    }
     const textValue = String(value).trim();
     const date = new Date(textValue);
     if (Number.isNaN(date.getTime())) {
