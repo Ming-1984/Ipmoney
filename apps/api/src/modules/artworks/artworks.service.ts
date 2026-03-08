@@ -250,7 +250,10 @@ export class ArtworksService {
   }
 
   private parseOptionalDate(value: unknown, fieldName: string) {
-    if (value === undefined || value === null || String(value).trim() === '') return undefined;
+    if (value === undefined || value === null) return undefined;
+    if (String(value).trim() === '') {
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: `${fieldName} is invalid` });
+    }
     const date = new Date(String(value));
     if (Number.isNaN(date.getTime())) {
       throw new BadRequestException({ code: 'BAD_REQUEST', message: `${fieldName} is invalid` });
