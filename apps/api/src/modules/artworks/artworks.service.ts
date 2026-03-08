@@ -109,6 +109,15 @@ export class ArtworksService {
     return Object.prototype.hasOwnProperty.call(body || {}, key);
   }
 
+  private parseNullableRegionCodeStrict(value: unknown, fieldName: string): string | null {
+    if (value === null) return null;
+    const raw = String(value ?? '').trim();
+    if (!raw) {
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: `${fieldName} is invalid` });
+    }
+    return raw;
+  }
+
   private parsePositiveIntStrict(value: unknown, fieldName: string): number {
     const raw = String(value ?? '').trim();
     if (!raw) {
@@ -491,6 +500,7 @@ export class ArtworksService {
     const hasCalligraphyScript = this.hasOwn(body, 'calligraphyScript');
     const hasPaintingGenre = this.hasOwn(body, 'paintingGenre');
     const hasPriceType = this.hasOwn(body, 'priceType');
+    const hasRegionCode = this.hasOwn(body, 'regionCode');
 
     const category = hasCategory ? this.parseCategoryStrict(body?.category, 'category') : undefined;
     const calligraphyScript = hasCalligraphyScript ? this.parseNullableCalligraphyScriptStrict(body?.calligraphyScript, 'calligraphyScript') : undefined;
@@ -500,6 +510,7 @@ export class ArtworksService {
     const priceType = hasPriceType ? this.parsePriceTypeStrict(body?.priceType, 'priceType') : undefined;
     const priceAmountFen = body?.priceAmountFen !== undefined ? this.parseOptionalInt(body?.priceAmountFen, 'priceAmountFen', 0) : undefined;
     const depositAmountFen = body?.depositAmountFen !== undefined ? this.parseOptionalInt(body?.depositAmountFen, 'depositAmountFen', 0) : undefined;
+    const regionCode = hasRegionCode ? this.parseNullableRegionCodeStrict(body?.regionCode, 'regionCode') : undefined;
     const certificateFileIds = hasCertificateFileIds ? this.normalizeFileIds(body?.certificateFileIds) : undefined;
     const mediaInput = hasMedia ? normalizeMediaInput(body?.media) : [];
 
@@ -524,7 +535,7 @@ export class ArtworksService {
           priceType: hasPriceType ? priceType : undefined,
           priceAmountFen: priceAmountFen ?? null,
           depositAmountFen: depositAmountFen ?? undefined,
-          regionCode: body?.regionCode ?? undefined,
+          regionCode: hasRegionCode ? regionCode : undefined,
           material: body?.material ?? undefined,
           size: body?.size ?? undefined,
           coverFileId: hasCoverFileId ? (body?.coverFileId ? String(body.coverFileId) : null) : undefined,
@@ -889,6 +900,7 @@ export class ArtworksService {
     const hasPriceType = this.hasOwn(body, 'priceType');
     const hasAuditStatus = this.hasOwn(body, 'auditStatus');
     const hasStatus = this.hasOwn(body, 'status');
+    const hasRegionCode = this.hasOwn(body, 'regionCode');
 
     const source = hasSource ? this.parseContentSourceStrict(body?.source, 'source') : undefined;
     const category = hasCategory ? this.parseCategoryStrict(body?.category, 'category') : undefined;
@@ -899,6 +911,7 @@ export class ArtworksService {
     const priceType = hasPriceType ? this.parsePriceTypeStrict(body?.priceType, 'priceType') : undefined;
     const priceAmountFen = body?.priceAmountFen !== undefined ? this.parseOptionalInt(body?.priceAmountFen, 'priceAmountFen', 0) : undefined;
     const depositAmountFen = body?.depositAmountFen !== undefined ? this.parseOptionalInt(body?.depositAmountFen, 'depositAmountFen', 0) : undefined;
+    const regionCode = hasRegionCode ? this.parseNullableRegionCodeStrict(body?.regionCode, 'regionCode') : undefined;
     const auditStatus = hasAuditStatus ? this.parseAuditStatusStrict(body?.auditStatus, 'auditStatus') : undefined;
     const status = hasStatus ? this.parseArtworkStatusStrict(body?.status, 'status') : undefined;
     const certificateFileIds = hasCertificateFileIds ? this.normalizeFileIds(body?.certificateFileIds) : undefined;
@@ -934,7 +947,7 @@ export class ArtworksService {
           priceType: priceType ?? undefined,
           priceAmountFen: priceAmountFen ?? null,
           depositAmountFen: depositAmountFen ?? undefined,
-          regionCode: body?.regionCode ?? undefined,
+          regionCode: hasRegionCode ? regionCode : undefined,
           material: body?.material ?? undefined,
           size: body?.size ?? undefined,
           coverFileId: hasCoverFileId ? (body?.coverFileId ? String(body.coverFileId) : null) : undefined,

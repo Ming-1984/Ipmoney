@@ -83,6 +83,15 @@ export class AchievementsService {
     return Object.prototype.hasOwnProperty.call(body || {}, key);
   }
 
+  private parseNullableRegionCodeStrict(value: unknown, fieldName: string): string | null {
+    if (value === null) return null;
+    const raw = String(value ?? '').trim();
+    if (!raw) {
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: `${fieldName} is invalid` });
+    }
+    return raw;
+  }
+
   private parsePositiveIntStrict(value: unknown, fieldName: string): number {
     const raw = String(value ?? '').trim();
     if (!raw) {
@@ -346,12 +355,14 @@ export class AchievementsService {
     const hasCoverFileId = Object.prototype.hasOwnProperty.call(body || {}, 'coverFileId');
     const hasMedia = Object.prototype.hasOwnProperty.call(body || {}, 'media');
     const hasMaturity = this.hasOwn(body, 'maturity');
+    const hasRegionCode = this.hasOwn(body, 'regionCode');
 
     const keywords = hasKeywords ? normalizeStringArray(body?.keywords) : undefined;
     const cooperationModes = hasCooperationModes ? normalizeStringArray(body?.cooperationModes) : undefined;
     const industryTags = hasIndustryTags ? normalizeStringArray(body?.industryTags) : undefined;
     const mediaInput = hasMedia ? normalizeMediaInput(body?.media) : [];
     const maturity = hasMaturity ? this.parseNullableMaturityStrict(body?.maturity, 'maturity') : undefined;
+    const regionCode = hasRegionCode ? this.parseNullableRegionCodeStrict(body?.regionCode, 'regionCode') : undefined;
 
     await this.prisma.$transaction(async (tx) => {
       await tx.achievement.update({
@@ -361,7 +372,7 @@ export class AchievementsService {
           summary: body?.summary ?? undefined,
           description: body?.description ?? undefined,
           maturity: hasMaturity ? maturity : undefined,
-          regionCode: body?.regionCode ?? undefined,
+          regionCode: hasRegionCode ? regionCode : undefined,
           coverFileId: hasCoverFileId ? (body?.coverFileId ? String(body.coverFileId) : null) : undefined,
           keywordsJson: hasKeywords ? (keywords && keywords.length > 0 ? keywords : Prisma.DbNull) : undefined,
           cooperationModesJson: hasCooperationModes
@@ -663,6 +674,7 @@ export class AchievementsService {
     const hasMaturity = this.hasOwn(body, 'maturity');
     const hasAuditStatus = this.hasOwn(body, 'auditStatus');
     const hasStatus = this.hasOwn(body, 'status');
+    const hasRegionCode = this.hasOwn(body, 'regionCode');
 
     const keywords = hasKeywords ? normalizeStringArray(body?.keywords) : undefined;
     const cooperationModes = hasCooperationModes ? normalizeStringArray(body?.cooperationModes) : undefined;
@@ -670,6 +682,7 @@ export class AchievementsService {
     const mediaInput = hasMedia ? normalizeMediaInput(body?.media) : [];
     const source = hasSource ? this.parseContentSourceStrict(body?.source, 'source') : undefined;
     const maturity = hasMaturity ? this.parseNullableMaturityStrict(body?.maturity, 'maturity') : undefined;
+    const regionCode = hasRegionCode ? this.parseNullableRegionCodeStrict(body?.regionCode, 'regionCode') : undefined;
     const auditStatus = hasAuditStatus ? this.parseAuditStatusStrict(body?.auditStatus, 'auditStatus') : undefined;
     const status = hasStatus ? this.parseContentStatusStrict(body?.status, 'status') : undefined;
     const publisherUserId = body?.publisherUserId ? String(body.publisherUserId) : body?.ownerId ? String(body.ownerId) : undefined;
@@ -684,7 +697,7 @@ export class AchievementsService {
           summary: body?.summary ?? undefined,
           description: body?.description ?? undefined,
           maturity: hasMaturity ? maturity : undefined,
-          regionCode: body?.regionCode ?? undefined,
+          regionCode: hasRegionCode ? regionCode : undefined,
           coverFileId: hasCoverFileId ? (body?.coverFileId ? String(body.coverFileId) : null) : undefined,
           keywordsJson: hasKeywords ? (keywords && keywords.length > 0 ? keywords : Prisma.DbNull) : undefined,
           cooperationModesJson: hasCooperationModes

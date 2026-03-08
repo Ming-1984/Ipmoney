@@ -95,6 +95,15 @@ export class DemandsService {
     return Object.prototype.hasOwnProperty.call(body || {}, key);
   }
 
+  private parseNullableRegionCodeStrict(value: unknown, fieldName: string): string | null {
+    if (value === null) return null;
+    const raw = String(value ?? '').trim();
+    if (!raw) {
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: `${fieldName} is invalid` });
+    }
+    return raw;
+  }
+
   private parsePositiveIntStrict(value: unknown, fieldName: string): number {
     const raw = String(value ?? '').trim();
     if (!raw) {
@@ -411,6 +420,7 @@ export class DemandsService {
     const hasMedia = Object.prototype.hasOwnProperty.call(body || {}, 'media');
     const hasDeliveryPeriod = this.hasOwn(body, 'deliveryPeriod');
     const hasBudgetType = this.hasOwn(body, 'budgetType');
+    const hasRegionCode = this.hasOwn(body, 'regionCode');
 
     const keywords = hasKeywords ? normalizeStringArray(body?.keywords) : undefined;
     const cooperationModes = hasCooperationModes ? normalizeStringArray(body?.cooperationModes) : undefined;
@@ -419,6 +429,7 @@ export class DemandsService {
 
     const deliveryPeriod = hasDeliveryPeriod ? this.parseNullableDeliveryPeriodStrict(body?.deliveryPeriod, 'deliveryPeriod') : undefined;
     const budgetType = hasBudgetType ? this.parseNullablePriceTypeStrict(body?.budgetType, 'budgetType') : undefined;
+    const regionCode = hasRegionCode ? this.parseNullableRegionCodeStrict(body?.regionCode, 'regionCode') : undefined;
     const budgetMinFen = this.parseOptionalInt(body?.budgetMinFen, 'budgetMinFen', 0);
     const budgetMaxFen = this.parseOptionalInt(body?.budgetMaxFen, 'budgetMaxFen', 0);
 
@@ -433,7 +444,7 @@ export class DemandsService {
           budgetType: hasBudgetType ? budgetType : undefined,
           budgetMinFen: body?.budgetMinFen !== undefined ? budgetMinFen ?? null : undefined,
           budgetMaxFen: body?.budgetMaxFen !== undefined ? budgetMaxFen ?? null : undefined,
-          regionCode: body?.regionCode ?? undefined,
+          regionCode: hasRegionCode ? regionCode : undefined,
           contactName: hasContactName ? (body?.contactName ? String(body.contactName) : null) : undefined,
           contactTitle: hasContactTitle ? (body?.contactTitle ? String(body.contactTitle) : null) : undefined,
           contactPhoneMasked: hasContactPhone ? (body?.contactPhoneMasked ? String(body.contactPhoneMasked) : null) : undefined,
@@ -769,6 +780,7 @@ export class DemandsService {
     const hasBudgetType = this.hasOwn(body, 'budgetType');
     const hasAuditStatus = this.hasOwn(body, 'auditStatus');
     const hasStatus = this.hasOwn(body, 'status');
+    const hasRegionCode = this.hasOwn(body, 'regionCode');
 
     const keywords = hasKeywords ? normalizeStringArray(body?.keywords) : undefined;
     const cooperationModes = hasCooperationModes ? normalizeStringArray(body?.cooperationModes) : undefined;
@@ -778,6 +790,7 @@ export class DemandsService {
     const source = hasSource ? this.parseContentSourceStrict(body?.source, 'source') : undefined;
     const deliveryPeriod = hasDeliveryPeriod ? this.parseNullableDeliveryPeriodStrict(body?.deliveryPeriod, 'deliveryPeriod') : undefined;
     const budgetType = hasBudgetType ? this.parseNullablePriceTypeStrict(body?.budgetType, 'budgetType') : undefined;
+    const regionCode = hasRegionCode ? this.parseNullableRegionCodeStrict(body?.regionCode, 'regionCode') : undefined;
     const budgetMinFen = this.parseOptionalInt(body?.budgetMinFen, 'budgetMinFen', 0);
     const budgetMaxFen = this.parseOptionalInt(body?.budgetMaxFen, 'budgetMaxFen', 0);
     const auditStatus = hasAuditStatus ? this.parseAuditStatusStrict(body?.auditStatus, 'auditStatus') : undefined;
@@ -797,7 +810,7 @@ export class DemandsService {
           budgetType: hasBudgetType ? budgetType : undefined,
           budgetMinFen: body?.budgetMinFen !== undefined ? budgetMinFen ?? null : undefined,
           budgetMaxFen: body?.budgetMaxFen !== undefined ? budgetMaxFen ?? null : undefined,
-          regionCode: body?.regionCode ?? undefined,
+          regionCode: hasRegionCode ? regionCode : undefined,
           contactName: hasContactName ? (body?.contactName ? String(body.contactName) : null) : undefined,
           contactTitle: hasContactTitle ? (body?.contactTitle ? String(body.contactTitle) : null) : undefined,
           contactPhoneMasked: hasContactPhone ? (body?.contactPhoneMasked ? String(body.contactPhoneMasked) : null) : undefined,
