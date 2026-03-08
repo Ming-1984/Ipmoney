@@ -114,8 +114,22 @@ export class AlertsService {
     if (channel) where.channel = channel;
     if (targetType) where.targetType = targetType;
 
-    if (query?.type) where.type = String(query.type).trim();
-    if (query?.targetId) where.targetId = String(query.targetId).trim();
+    const hasType = this.hasOwn(query, 'type');
+    if (hasType) {
+      const type = String(query?.type ?? '').trim();
+      if (!type) {
+        throw new BadRequestException({ code: 'BAD_REQUEST', message: 'type is invalid' });
+      }
+      where.type = type;
+    }
+    const hasTargetId = this.hasOwn(query, 'targetId');
+    if (hasTargetId) {
+      const targetId = String(query?.targetId ?? '').trim();
+      if (!targetId) {
+        throw new BadRequestException({ code: 'BAD_REQUEST', message: 'targetId is invalid' });
+      }
+      where.targetId = targetId;
+    }
 
     const triggeredFrom = this.parseDateTime(query?.triggeredFrom, 'triggeredFrom', true);
     const triggeredTo = this.parseDateTime(query?.triggeredTo, 'triggeredTo', true);

@@ -116,7 +116,14 @@ export class PatentMaintenanceService {
     const pageSize = Math.min(50, pageSizeInput);
 
     const where: any = {};
-    if (query?.patentId) where.patentId = String(query.patentId).trim();
+    const hasPatentId = this.hasOwn(query, 'patentId');
+    if (hasPatentId) {
+      const patentId = String(query?.patentId ?? '').trim();
+      if (!patentId) {
+        throw new BadRequestException({ code: 'BAD_REQUEST', message: 'patentId is invalid' });
+      }
+      where.patentId = patentId;
+    }
     const hasStatus = this.hasOwn(query, 'status');
     const status = hasStatus ? this.parseStatusStrict(query?.status, 'status') : undefined;
     if (status) where.status = status;
@@ -256,8 +263,22 @@ export class PatentMaintenanceService {
     const pageSize = Math.min(50, pageSizeInput);
 
     const where: any = {};
-    if (query?.scheduleId) where.scheduleId = String(query.scheduleId).trim();
-    if (query?.assignedCsUserId) where.assignedCsUserId = String(query.assignedCsUserId).trim();
+    const hasScheduleId = this.hasOwn(query, 'scheduleId');
+    if (hasScheduleId) {
+      const scheduleId = String(query?.scheduleId ?? '').trim();
+      if (!scheduleId) {
+        throw new BadRequestException({ code: 'BAD_REQUEST', message: 'scheduleId is invalid' });
+      }
+      where.scheduleId = scheduleId;
+    }
+    const hasAssignedCsUserId = this.hasOwn(query, 'assignedCsUserId');
+    if (hasAssignedCsUserId) {
+      const assignedCsUserId = String(query?.assignedCsUserId ?? '').trim();
+      if (!assignedCsUserId) {
+        throw new BadRequestException({ code: 'BAD_REQUEST', message: 'assignedCsUserId is invalid' });
+      }
+      where.assignedCsUserId = assignedCsUserId;
+    }
     const hasStatus = this.hasOwn(query, 'status');
     const status = hasStatus ? this.parseTaskStatusStrict(query?.status, 'status') : undefined;
     if (status) where.status = status;
