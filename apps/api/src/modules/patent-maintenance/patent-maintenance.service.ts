@@ -158,10 +158,10 @@ export class PatentMaintenanceService {
       throw new BadRequestException({ code: 'BAD_REQUEST', message: 'yearNo is invalid' });
     }
 
-    const dueDate = this.parseDate(body?.dueDate, 'dueDate');
+    const dueDate = this.parseDate(body?.dueDate, 'dueDate', true);
     if (!dueDate) throw new BadRequestException({ code: 'BAD_REQUEST', message: 'dueDate is required' });
 
-    const gracePeriodEnd = this.parseDate(body?.gracePeriodEnd, 'gracePeriodEnd');
+    const gracePeriodEnd = this.parseDate(body?.gracePeriodEnd, 'gracePeriodEnd', true);
     const hasStatus = !!body && Object.prototype.hasOwnProperty.call(body, 'status');
     const status = hasStatus ? this.parseStatusStrict(body?.status, 'status') : PatentMaintenanceStatus.DUE;
 
@@ -220,12 +220,12 @@ export class PatentMaintenanceService {
 
     const next: any = {};
     if (body?.dueDate !== undefined) {
-      const dueDate = this.parseDate(body?.dueDate, 'dueDate');
+      const dueDate = this.parseDate(body?.dueDate, 'dueDate', true);
       if (!dueDate) throw new BadRequestException({ code: 'BAD_REQUEST', message: 'dueDate is required' });
       next.dueDate = dueDate;
     }
     if (body?.gracePeriodEnd !== undefined) {
-      const grace = this.parseDate(body?.gracePeriodEnd, 'gracePeriodEnd');
+      const grace = this.parseDate(body?.gracePeriodEnd, 'gracePeriodEnd', true);
       next.gracePeriodEnd = grace || null;
     }
     if (body?.status !== undefined) {
