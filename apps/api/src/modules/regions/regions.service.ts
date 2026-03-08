@@ -49,6 +49,19 @@ export type RegionUpdateRequestDto = Partial<Omit<RegionCreateRequestDto, 'code'
 export class RegionsService {
   constructor(private readonly prisma: PrismaService) {}
 
+  private hasOwn(input: any, key: string) {
+    return !!input && Object.prototype.hasOwnProperty.call(input, key);
+  }
+
+  private parseRegionLevelStrict(value: unknown, fieldName: string): 'PROVINCE' | 'CITY' | 'DISTRICT' {
+    const raw = String(value ?? '').trim().toUpperCase();
+    if (!raw) {
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: `${fieldName} must not be empty` });
+    }
+    this.assertRegionLevel(raw, fieldName);
+    return raw as 'PROVINCE' | 'CITY' | 'DISTRICT';
+  }
+
   private normalizeOptionalRegionCode(
     value: unknown,
     fieldName: string,
@@ -182,11 +195,14 @@ export class RegionsService {
 
   async updateRegion(code: string, patch: RegionUpdateRequestDto): Promise<RegionNodeDto> {
     this.assertRegionCode(code, 'regionCode');
-
-    if (patch.level) this.assertRegionLevel(patch.level, 'level');
-    if (patch.name !== undefined && !String(patch.name).trim()) {
+    const hasLevel = this.hasOwn(patch, 'level');
+    const hasName = this.hasOwn(patch, 'name');
+    const level = hasLevel ? this.parseRegionLevelStrict((patch as any)?.level, 'level') : undefined;
+    if (hasName && (patch.name === null || !String((patch as any).name).trim())) {
       throw new BadRequestException({ code: 'BAD_REQUEST', message: 'name must not be empty' });
     }
+    const name = hasName ? String((patch as any).name).trim() : undefined;
+
     const parentCode = this.normalizeOptionalRegionCode(patch.parentCode, 'parentCode', { allowUndefined: true });
     const centerLat = this.parseOptionalCoordinate(patch.centerLat, 'centerLat', {
       allowUndefined: true,
@@ -203,8 +219,8 @@ export class RegionsService {
       const region = await this.prisma.region.update({
         where: { code },
         data: {
-          name: patch.name !== undefined ? String(patch.name).trim() : undefined,
-          level: patch.level !== undefined ? (patch.level as any) : undefined,
+          name,
+          level: hasLevel ? (level as any) : undefined,
           parentCode: parentCode === undefined ? undefined : parentCode ?? null,
           centerLat: centerLat === undefined ? undefined : centerLat ?? null,
           centerLng: centerLng === undefined ? undefined : centerLng ?? null,
