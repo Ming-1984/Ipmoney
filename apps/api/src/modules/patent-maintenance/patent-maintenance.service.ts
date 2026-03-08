@@ -40,6 +40,15 @@ export class PatentMaintenanceService {
     return parsed;
   }
 
+  private parseNullableNonEmptyStringStrict(value: unknown, fieldName: string): string | null {
+    if (value === null) return null;
+    const raw = String(value ?? '').trim();
+    if (!raw) {
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: `${fieldName} is invalid` });
+    }
+    return raw;
+  }
+
   private normalizeStatus(value: any): PatentMaintenanceStatus | undefined {
     const v = String(value || '').trim().toUpperCase() as PatentMaintenanceStatus;
     return STATUS_SET.has(v) ? v : undefined;
@@ -312,7 +321,10 @@ export class PatentMaintenanceService {
     });
     if (!schedule) throw new NotFoundException({ code: 'NOT_FOUND', message: 'Schedule not found' });
 
-    const assignedCsUserId = body?.assignedCsUserId ? String(body.assignedCsUserId).trim() : undefined;
+    const hasAssignedCsUserId = this.hasOwn(body, 'assignedCsUserId');
+    const assignedCsUserId = hasAssignedCsUserId
+      ? this.parseNullableNonEmptyStringStrict(body?.assignedCsUserId, 'assignedCsUserId')
+      : undefined;
     if (assignedCsUserId) {
       const user = await this.prisma.user.findUnique({ where: { id: assignedCsUserId }, select: { id: true } });
       if (!user) throw new BadRequestException({ code: 'BAD_REQUEST', message: 'assignedCsUserId is invalid' });
@@ -324,7 +336,7 @@ export class PatentMaintenanceService {
     const created = await this.prisma.patentMaintenanceTask.create({
       data: {
         scheduleId,
-        assignedCsUserId: assignedCsUserId || null,
+        assignedCsUserId: hasAssignedCsUserId ? assignedCsUserId : null,
         status: hasStatus ? this.parseTaskStatusStrict(body?.status, 'status') : PatentMaintenanceTaskStatus.OPEN,
         note: note || null,
       },
