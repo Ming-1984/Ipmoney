@@ -8,6 +8,7 @@ import { PrismaService } from '../../common/prisma/prisma.service';
 const CONTENT_TYPES = ['LISTING', 'DEMAND', 'ACHIEVEMENT', 'ARTWORK'] as const;
 const CONTENT_SCOPES = ['LISTING', 'DEMAND', 'ACHIEVEMENT', 'ARTWORK', 'ALL'] as const;
 const PARSE_STATUS = ['ACTIVE', 'REVIEW_REQUIRED', 'REPLACED'] as const;
+const REGION_CODE_RE = /^[0-9]{6}$/;
 
 @Injectable()
 export class AiService {
@@ -75,6 +76,14 @@ export class AiService {
       throw new BadRequestException({ code: 'BAD_REQUEST', message: `${field} is invalid` });
     }
     return status;
+  }
+
+  private parseRegionCodeStrict(value: unknown, fieldName: string): string {
+    const raw = String(value ?? '').trim();
+    if (!raw || !REGION_CODE_RE.test(raw)) {
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: `${fieldName} is invalid` });
+    }
+    return raw;
   }
 
   private normalizeKeywords(input: any): string[] {
@@ -323,7 +332,10 @@ export class AiService {
 
     const filters: any = {};
     if (normalizedText) filters.q = normalizedText;
-    if (payload?.regionCode) filters.regionCode = String(payload.regionCode).trim();
+    const hasRegionCode = this.hasOwn(payload, 'regionCode');
+    if (hasRegionCode) {
+      filters.regionCode = this.parseRegionCodeStrict(payload?.regionCode, 'regionCode');
+    }
     if (Array.isArray(payload?.industryTags)) {
       filters.industryTags = payload.industryTags.map((item: any) => String(item).trim()).filter(Boolean);
     }
