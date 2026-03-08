@@ -128,9 +128,13 @@ export class RegionsService {
   async listRegions(params: { level?: string; parentCode?: string | null; q?: string }): Promise<RegionNodeDto[]> {
     const where: RegionWhereInput = {};
 
-    if (params.level) {
-      this.assertRegionLevel(params.level, 'level');
-      where.level = params.level as any;
+    if (params.level !== undefined) {
+      const level = String(params.level);
+      if (!level.trim()) {
+        throw new BadRequestException({ code: 'BAD_REQUEST', message: 'level must not be empty' });
+      }
+      this.assertRegionLevel(level, 'level');
+      where.level = level as any;
     }
     if (params.parentCode !== undefined) {
       if (params.parentCode === null) where.parentCode = null;

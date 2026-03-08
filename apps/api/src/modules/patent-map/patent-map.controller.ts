@@ -20,7 +20,7 @@ export class PatentMapController {
     return await this.patentMap.getSummary({
       year: Number(year),
       level,
-      parentCode: parentCode || undefined,
+      parentCode: parentCode ?? undefined,
     });
   }
 
@@ -29,4 +29,3 @@ export class PatentMapController {
     return await this.patentMap.getRegionDetail(regionCode, Number(year));
   }
 }
-

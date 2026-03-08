@@ -250,15 +250,23 @@ export class PatentMapService {
       .sort((leftYear: number, rightYear: number) => leftYear - rightYear);
   }
 
-  async getSummary(params: { year: number; level: string; parentCode?: string }): Promise<PatentMapSummaryItemDto[]> {
+  async getSummary(params: { year: number; level: string; parentCode?: string | null }): Promise<PatentMapSummaryItemDto[]> {
     this.assertYear(params.year);
     this.assertRegionLevel(params.level);
-    if (params.parentCode) this.assertRegionCode(params.parentCode);
+    let parentCode: string | undefined;
+    if (params.parentCode !== undefined) {
+      const rawParentCode = String(params.parentCode);
+      if (!rawParentCode.trim()) {
+        throw new BadRequestException({ code: 'BAD_REQUEST', message: 'parentCode must not be empty' });
+      }
+      this.assertRegionCode(rawParentCode);
+      parentCode = rawParentCode;
+    }
 
     const regions = await this.prisma.region.findMany({
       where: {
         level: params.level as any,
-        ...(params.parentCode ? { parentCode: params.parentCode } : {}),
+        ...(parentCode !== undefined ? { parentCode } : {}),
       },
       orderBy: { code: 'asc' },
     });
