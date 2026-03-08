@@ -65,6 +65,15 @@ export class CommentsService {
     return parsed;
   }
 
+  private parseNullableIdStrict(value: unknown, fieldName: string): string | null {
+    if (value === null) return null;
+    const raw = String(value ?? '').trim();
+    if (!raw) {
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: `${fieldName} is invalid` });
+    }
+    return raw;
+  }
+
   private normalizeContentType(value: any): CommentContentType | undefined {
     const v = String(value || '').trim().toUpperCase();
     if ((CONTENT_TYPES as readonly string[]).includes(v)) return v as CommentContentType;
@@ -164,7 +173,10 @@ export class CommentsService {
     this.ensureAuth(req);
     const text = String(body?.text || '').trim();
     if (!text) throw new BadRequestException({ code: 'BAD_REQUEST', message: '内容不能为空' });
-    const parentCommentId = body?.parentCommentId ? String(body.parentCommentId) : null;
+    const hasParentCommentId = this.hasOwn(body, 'parentCommentId');
+    const parentCommentId = hasParentCommentId
+      ? this.parseNullableIdStrict(body?.parentCommentId, 'parentCommentId')
+      : null;
 
     if (parentCommentId) {
       const parent = await this.prisma.comment.findUnique({ where: { id: parentCommentId } });
