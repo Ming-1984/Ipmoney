@@ -1152,7 +1152,8 @@ export class ListingsService {
     const auditStatus = hasAuditStatus ? this.parseAuditStatusStrict(body?.auditStatus, 'auditStatus') : undefined;
     const hasStatus = this.hasOwn(body, 'status');
     const status = hasStatus ? this.parseListingStatusStrict(body?.status, 'status') : undefined;
-    const sellerUserId = body?.sellerUserId ? String(body.sellerUserId) : listing.sellerUserId;
+    const hasSellerUserId = this.hasOwn(body, 'sellerUserId');
+    const sellerUserId = hasSellerUserId ? this.parseNonEmptyFilterStrict(body?.sellerUserId, 'sellerUserId') : listing.sellerUserId;
     const updated = await this.prisma.listing.update({
       where: { id: listingId },
       data: {
