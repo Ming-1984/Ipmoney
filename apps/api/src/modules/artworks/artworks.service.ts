@@ -118,6 +118,15 @@ export class ArtworksService {
     return raw;
   }
 
+  private parseNullableCoverFileIdStrict(value: unknown, fieldName: string): string | null {
+    if (value === null) return null;
+    const raw = String(value ?? '').trim();
+    if (!raw) {
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: `${fieldName} is invalid` });
+    }
+    return raw;
+  }
+
   private parsePositiveIntStrict(value: unknown, fieldName: string): number {
     const raw = String(value ?? '').trim();
     if (!raw) {
@@ -435,9 +444,11 @@ export class ArtworksService {
     const hasCalligraphyScript = this.hasOwn(body, 'calligraphyScript');
     const hasPaintingGenre = this.hasOwn(body, 'paintingGenre');
     const hasRegionCode = this.hasOwn(body, 'regionCode');
+    const hasCoverFileId = this.hasOwn(body, 'coverFileId');
     const calligraphyScript = hasCalligraphyScript ? this.parseNullableCalligraphyScriptStrict(body?.calligraphyScript, 'calligraphyScript') : undefined;
     const paintingGenre = hasPaintingGenre ? this.parseNullablePaintingGenreStrict(body?.paintingGenre, 'paintingGenre') : undefined;
     const regionCode = hasRegionCode ? this.parseNullableRegionCodeStrict(body?.regionCode, 'regionCode') : undefined;
+    const coverFileId = hasCoverFileId ? this.parseNullableCoverFileIdStrict(body?.coverFileId, 'coverFileId') : undefined;
     const creationDate = this.parseOptionalDate(body?.creationDate, 'creationDate');
     const creationYear = this.parseOptionalInt(body?.creationYear, 'creationYear', 0);
     const priceAmountFen = this.parseOptionalInt(body?.priceAmountFen, 'priceAmountFen', 0);
@@ -466,7 +477,7 @@ export class ArtworksService {
           regionCode: hasRegionCode ? regionCode : null,
           material: body?.material ? String(body.material) : null,
           size: body?.size ? String(body.size) : null,
-          coverFileId: body?.coverFileId ? String(body.coverFileId) : null,
+          coverFileId: hasCoverFileId ? coverFileId : null,
         },
       });
 
@@ -513,6 +524,7 @@ export class ArtworksService {
     const priceAmountFen = body?.priceAmountFen !== undefined ? this.parseOptionalInt(body?.priceAmountFen, 'priceAmountFen', 0) : undefined;
     const depositAmountFen = body?.depositAmountFen !== undefined ? this.parseOptionalInt(body?.depositAmountFen, 'depositAmountFen', 0) : undefined;
     const regionCode = hasRegionCode ? this.parseNullableRegionCodeStrict(body?.regionCode, 'regionCode') : undefined;
+    const coverFileId = hasCoverFileId ? this.parseNullableCoverFileIdStrict(body?.coverFileId, 'coverFileId') : undefined;
     const certificateFileIds = hasCertificateFileIds ? this.normalizeFileIds(body?.certificateFileIds) : undefined;
     const mediaInput = hasMedia ? normalizeMediaInput(body?.media) : [];
 
@@ -540,7 +552,7 @@ export class ArtworksService {
           regionCode: hasRegionCode ? regionCode : undefined,
           material: body?.material ?? undefined,
           size: body?.size ?? undefined,
-          coverFileId: hasCoverFileId ? (body?.coverFileId ? String(body.coverFileId) : null) : undefined,
+          coverFileId: hasCoverFileId ? coverFileId : undefined,
         },
       });
 
@@ -824,11 +836,13 @@ export class ArtworksService {
     const hasAuditStatus = this.hasOwn(body, 'auditStatus');
     const hasStatus = this.hasOwn(body, 'status');
     const hasRegionCode = this.hasOwn(body, 'regionCode');
+    const hasCoverFileId = this.hasOwn(body, 'coverFileId');
     const sourceInput = hasSource ? this.parseContentSourceStrict(body?.source, 'source') : 'ADMIN';
     const ownerId = String(body?.sellerUserId || body?.publisherUserId || body?.ownerId || req?.auth?.userId || '').trim();
     const calligraphyScript = hasCalligraphyScript ? this.parseNullableCalligraphyScriptStrict(body?.calligraphyScript, 'calligraphyScript') : undefined;
     const paintingGenre = hasPaintingGenre ? this.parseNullablePaintingGenreStrict(body?.paintingGenre, 'paintingGenre') : undefined;
     const regionCode = hasRegionCode ? this.parseNullableRegionCodeStrict(body?.regionCode, 'regionCode') : undefined;
+    const coverFileId = hasCoverFileId ? this.parseNullableCoverFileIdStrict(body?.coverFileId, 'coverFileId') : undefined;
     const creationDate = this.parseOptionalDate(body?.creationDate, 'creationDate');
     const creationYear = this.parseOptionalInt(body?.creationYear, 'creationYear', 0);
     const priceAmountFen = this.parseOptionalInt(body?.priceAmountFen, 'priceAmountFen', 0);
@@ -859,7 +873,7 @@ export class ArtworksService {
           regionCode: hasRegionCode ? regionCode : null,
           material: body?.material ? String(body.material) : null,
           size: body?.size ? String(body.size) : null,
-          coverFileId: body?.coverFileId ? String(body.coverFileId) : null,
+          coverFileId: hasCoverFileId ? coverFileId : null,
           auditStatus,
           status,
         },
@@ -917,6 +931,7 @@ export class ArtworksService {
     const priceAmountFen = body?.priceAmountFen !== undefined ? this.parseOptionalInt(body?.priceAmountFen, 'priceAmountFen', 0) : undefined;
     const depositAmountFen = body?.depositAmountFen !== undefined ? this.parseOptionalInt(body?.depositAmountFen, 'depositAmountFen', 0) : undefined;
     const regionCode = hasRegionCode ? this.parseNullableRegionCodeStrict(body?.regionCode, 'regionCode') : undefined;
+    const coverFileId = hasCoverFileId ? this.parseNullableCoverFileIdStrict(body?.coverFileId, 'coverFileId') : undefined;
     const auditStatus = hasAuditStatus ? this.parseAuditStatusStrict(body?.auditStatus, 'auditStatus') : undefined;
     const status = hasStatus ? this.parseArtworkStatusStrict(body?.status, 'status') : undefined;
     const certificateFileIds = hasCertificateFileIds ? this.normalizeFileIds(body?.certificateFileIds) : undefined;
@@ -955,7 +970,7 @@ export class ArtworksService {
           regionCode: hasRegionCode ? regionCode : undefined,
           material: body?.material ?? undefined,
           size: body?.size ?? undefined,
-          coverFileId: hasCoverFileId ? (body?.coverFileId ? String(body.coverFileId) : null) : undefined,
+          coverFileId: hasCoverFileId ? coverFileId : undefined,
           auditStatus: hasAuditStatus ? auditStatus : undefined,
           status: hasStatus ? status : undefined,
         },

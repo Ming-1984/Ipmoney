@@ -104,6 +104,15 @@ export class DemandsService {
     return raw;
   }
 
+  private parseNullableCoverFileIdStrict(value: unknown, fieldName: string): string | null {
+    if (value === null) return null;
+    const raw = String(value ?? '').trim();
+    if (!raw) {
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: `${fieldName} is invalid` });
+    }
+    return raw;
+  }
+
   private parsePositiveIntStrict(value: unknown, fieldName: string): number {
     const raw = String(value ?? '').trim();
     if (!raw) {
@@ -352,12 +361,14 @@ export class DemandsService {
     const keywords = normalizeStringArray(body?.keywords);
     const cooperationModes = normalizeStringArray(body?.cooperationModes);
     const industryTags = normalizeStringArray(body?.industryTags);
+    const hasCoverFileId = this.hasOwn(body, 'coverFileId');
     const hasDeliveryPeriod = this.hasOwn(body, 'deliveryPeriod');
     const hasBudgetType = this.hasOwn(body, 'budgetType');
     const hasRegionCode = this.hasOwn(body, 'regionCode');
     const deliveryPeriod = hasDeliveryPeriod ? this.parseNullableDeliveryPeriodStrict(body?.deliveryPeriod, 'deliveryPeriod') : undefined;
     const budgetType = hasBudgetType ? this.parseNullablePriceTypeStrict(body?.budgetType, 'budgetType') : undefined;
     const regionCode = hasRegionCode ? this.parseNullableRegionCodeStrict(body?.regionCode, 'regionCode') : undefined;
+    const coverFileId = hasCoverFileId ? this.parseNullableCoverFileIdStrict(body?.coverFileId, 'coverFileId') : undefined;
     const budgetMinFen = this.parseOptionalInt(body?.budgetMinFen, 'budgetMinFen', 0);
     const budgetMaxFen = this.parseOptionalInt(body?.budgetMaxFen, 'budgetMaxFen', 0);
     const mediaInput = normalizeMediaInput(body?.media);
@@ -379,7 +390,7 @@ export class DemandsService {
           contactName: body?.contactName ? String(body.contactName) : null,
           contactTitle: body?.contactTitle ? String(body.contactTitle) : null,
           contactPhoneMasked: body?.contactPhoneMasked ? String(body.contactPhoneMasked) : null,
-          coverFileId: body?.coverFileId ? String(body.coverFileId) : null,
+          coverFileId: hasCoverFileId ? coverFileId : null,
           regionCode: hasRegionCode ? regionCode : null,
           industryTagsJson: industryTags.length > 0 ? industryTags : Prisma.DbNull,
         },
@@ -432,6 +443,7 @@ export class DemandsService {
     const deliveryPeriod = hasDeliveryPeriod ? this.parseNullableDeliveryPeriodStrict(body?.deliveryPeriod, 'deliveryPeriod') : undefined;
     const budgetType = hasBudgetType ? this.parseNullablePriceTypeStrict(body?.budgetType, 'budgetType') : undefined;
     const regionCode = hasRegionCode ? this.parseNullableRegionCodeStrict(body?.regionCode, 'regionCode') : undefined;
+    const coverFileId = hasCoverFileId ? this.parseNullableCoverFileIdStrict(body?.coverFileId, 'coverFileId') : undefined;
     const budgetMinFen = this.parseOptionalInt(body?.budgetMinFen, 'budgetMinFen', 0);
     const budgetMaxFen = this.parseOptionalInt(body?.budgetMaxFen, 'budgetMaxFen', 0);
 
@@ -450,7 +462,7 @@ export class DemandsService {
           contactName: hasContactName ? (body?.contactName ? String(body.contactName) : null) : undefined,
           contactTitle: hasContactTitle ? (body?.contactTitle ? String(body.contactTitle) : null) : undefined,
           contactPhoneMasked: hasContactPhone ? (body?.contactPhoneMasked ? String(body.contactPhoneMasked) : null) : undefined,
-          coverFileId: hasCoverFileId ? (body?.coverFileId ? String(body.coverFileId) : null) : undefined,
+          coverFileId: hasCoverFileId ? coverFileId : undefined,
           keywordsJson: hasKeywords ? (keywords && keywords.length > 0 ? keywords : Prisma.DbNull) : undefined,
           cooperationModesJson: hasCooperationModes
             ? cooperationModes && cooperationModes.length > 0
@@ -702,6 +714,7 @@ export class DemandsService {
     const hasAuditStatus = this.hasOwn(body, 'auditStatus');
     const hasStatus = this.hasOwn(body, 'status');
     const hasRegionCode = this.hasOwn(body, 'regionCode');
+    const hasCoverFileId = this.hasOwn(body, 'coverFileId');
     const ownerId = String(body?.publisherUserId || body?.ownerId || req?.auth?.userId || '').trim();
     const keywords = normalizeStringArray(body?.keywords);
     const cooperationModes = normalizeStringArray(body?.cooperationModes);
@@ -709,6 +722,7 @@ export class DemandsService {
     const deliveryPeriod = hasDeliveryPeriod ? this.parseNullableDeliveryPeriodStrict(body?.deliveryPeriod, 'deliveryPeriod') : undefined;
     const budgetType = hasBudgetType ? this.parseNullablePriceTypeStrict(body?.budgetType, 'budgetType') : undefined;
     const regionCode = hasRegionCode ? this.parseNullableRegionCodeStrict(body?.regionCode, 'regionCode') : undefined;
+    const coverFileId = hasCoverFileId ? this.parseNullableCoverFileIdStrict(body?.coverFileId, 'coverFileId') : undefined;
     const budgetMinFen = this.parseOptionalInt(body?.budgetMinFen, 'budgetMinFen', 0);
     const budgetMaxFen = this.parseOptionalInt(body?.budgetMaxFen, 'budgetMaxFen', 0);
     const mediaInput = normalizeMediaInput(body?.media);
@@ -732,7 +746,7 @@ export class DemandsService {
           contactName: body?.contactName ? String(body.contactName) : null,
           contactTitle: body?.contactTitle ? String(body.contactTitle) : null,
           contactPhoneMasked: body?.contactPhoneMasked ? String(body.contactPhoneMasked) : null,
-          coverFileId: body?.coverFileId ? String(body.coverFileId) : null,
+          coverFileId: hasCoverFileId ? coverFileId : null,
           regionCode: hasRegionCode ? regionCode : null,
           industryTagsJson: industryTags.length > 0 ? industryTags : Prisma.DbNull,
           auditStatus,
@@ -796,6 +810,7 @@ export class DemandsService {
     const deliveryPeriod = hasDeliveryPeriod ? this.parseNullableDeliveryPeriodStrict(body?.deliveryPeriod, 'deliveryPeriod') : undefined;
     const budgetType = hasBudgetType ? this.parseNullablePriceTypeStrict(body?.budgetType, 'budgetType') : undefined;
     const regionCode = hasRegionCode ? this.parseNullableRegionCodeStrict(body?.regionCode, 'regionCode') : undefined;
+    const coverFileId = hasCoverFileId ? this.parseNullableCoverFileIdStrict(body?.coverFileId, 'coverFileId') : undefined;
     const budgetMinFen = this.parseOptionalInt(body?.budgetMinFen, 'budgetMinFen', 0);
     const budgetMaxFen = this.parseOptionalInt(body?.budgetMaxFen, 'budgetMaxFen', 0);
     const auditStatus = hasAuditStatus ? this.parseAuditStatusStrict(body?.auditStatus, 'auditStatus') : undefined;
@@ -819,7 +834,7 @@ export class DemandsService {
           contactName: hasContactName ? (body?.contactName ? String(body.contactName) : null) : undefined,
           contactTitle: hasContactTitle ? (body?.contactTitle ? String(body.contactTitle) : null) : undefined,
           contactPhoneMasked: hasContactPhone ? (body?.contactPhoneMasked ? String(body.contactPhoneMasked) : null) : undefined,
-          coverFileId: hasCoverFileId ? (body?.coverFileId ? String(body.coverFileId) : null) : undefined,
+          coverFileId: hasCoverFileId ? coverFileId : undefined,
           keywordsJson: hasKeywords ? (keywords && keywords.length > 0 ? keywords : Prisma.DbNull) : undefined,
           cooperationModesJson: hasCooperationModes
             ? cooperationModes && cooperationModes.length > 0

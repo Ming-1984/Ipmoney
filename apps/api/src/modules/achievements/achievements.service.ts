@@ -92,6 +92,15 @@ export class AchievementsService {
     return raw;
   }
 
+  private parseNullableCoverFileIdStrict(value: unknown, fieldName: string): string | null {
+    if (value === null) return null;
+    const raw = String(value ?? '').trim();
+    if (!raw) {
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: `${fieldName} is invalid` });
+    }
+    return raw;
+  }
+
   private parsePositiveIntStrict(value: unknown, fieldName: string): number {
     const raw = String(value ?? '').trim();
     if (!raw) {
@@ -302,10 +311,12 @@ export class AchievementsService {
     const keywords = normalizeStringArray(body?.keywords);
     const cooperationModes = normalizeStringArray(body?.cooperationModes);
     const industryTags = normalizeStringArray(body?.industryTags);
+    const hasCoverFileId = this.hasOwn(body, 'coverFileId');
     const hasMaturity = this.hasOwn(body, 'maturity');
     const hasRegionCode = this.hasOwn(body, 'regionCode');
     const maturity = hasMaturity ? this.parseNullableMaturityStrict(body?.maturity, 'maturity') : undefined;
     const regionCode = hasRegionCode ? this.parseNullableRegionCodeStrict(body?.regionCode, 'regionCode') : undefined;
+    const coverFileId = hasCoverFileId ? this.parseNullableCoverFileIdStrict(body?.coverFileId, 'coverFileId') : undefined;
     const mediaInput = normalizeMediaInput(body?.media);
 
     const created = await this.prisma.$transaction(async (tx) => {
@@ -319,7 +330,7 @@ export class AchievementsService {
           keywordsJson: keywords.length > 0 ? keywords : Prisma.DbNull,
           maturity: maturity === undefined ? null : maturity,
           cooperationModesJson: cooperationModes.length > 0 ? cooperationModes : Prisma.DbNull,
-          coverFileId: body?.coverFileId ? String(body.coverFileId) : null,
+          coverFileId: hasCoverFileId ? coverFileId : null,
           regionCode: hasRegionCode ? regionCode : null,
           industryTagsJson: industryTags.length > 0 ? industryTags : Prisma.DbNull,
         },
@@ -365,6 +376,7 @@ export class AchievementsService {
     const mediaInput = hasMedia ? normalizeMediaInput(body?.media) : [];
     const maturity = hasMaturity ? this.parseNullableMaturityStrict(body?.maturity, 'maturity') : undefined;
     const regionCode = hasRegionCode ? this.parseNullableRegionCodeStrict(body?.regionCode, 'regionCode') : undefined;
+    const coverFileId = hasCoverFileId ? this.parseNullableCoverFileIdStrict(body?.coverFileId, 'coverFileId') : undefined;
 
     await this.prisma.$transaction(async (tx) => {
       await tx.achievement.update({
@@ -375,7 +387,7 @@ export class AchievementsService {
           description: body?.description ?? undefined,
           maturity: hasMaturity ? maturity : undefined,
           regionCode: hasRegionCode ? regionCode : undefined,
-          coverFileId: hasCoverFileId ? (body?.coverFileId ? String(body.coverFileId) : null) : undefined,
+          coverFileId: hasCoverFileId ? coverFileId : undefined,
           keywordsJson: hasKeywords ? (keywords && keywords.length > 0 ? keywords : Prisma.DbNull) : undefined,
           cooperationModesJson: hasCooperationModes
             ? cooperationModes && cooperationModes.length > 0
@@ -608,6 +620,7 @@ export class AchievementsService {
     const hasAuditStatus = this.hasOwn(body, 'auditStatus');
     const hasStatus = this.hasOwn(body, 'status');
     const hasRegionCode = this.hasOwn(body, 'regionCode');
+    const hasCoverFileId = this.hasOwn(body, 'coverFileId');
     const sourceInput = hasSource ? this.parseContentSourceStrict(body?.source, 'source') : 'ADMIN';
     const ownerId = String(body?.publisherUserId || body?.ownerId || req?.auth?.userId || '').trim();
     const keywords = normalizeStringArray(body?.keywords);
@@ -615,6 +628,7 @@ export class AchievementsService {
     const industryTags = normalizeStringArray(body?.industryTags);
     const maturity = hasMaturity ? this.parseNullableMaturityStrict(body?.maturity, 'maturity') : undefined;
     const regionCode = hasRegionCode ? this.parseNullableRegionCodeStrict(body?.regionCode, 'regionCode') : undefined;
+    const coverFileId = hasCoverFileId ? this.parseNullableCoverFileIdStrict(body?.coverFileId, 'coverFileId') : undefined;
     const mediaInput = normalizeMediaInput(body?.media);
     const auditStatus = hasAuditStatus ? this.parseAuditStatusStrict(body?.auditStatus, 'auditStatus') : 'PENDING';
     const status = hasStatus ? this.parseContentStatusStrict(body?.status, 'status') : 'DRAFT';
@@ -630,7 +644,7 @@ export class AchievementsService {
           keywordsJson: keywords.length > 0 ? keywords : Prisma.DbNull,
           maturity: maturity === undefined ? null : maturity,
           cooperationModesJson: cooperationModes.length > 0 ? cooperationModes : Prisma.DbNull,
-          coverFileId: body?.coverFileId ? String(body.coverFileId) : null,
+          coverFileId: hasCoverFileId ? coverFileId : null,
           regionCode: hasRegionCode ? regionCode : null,
           industryTagsJson: industryTags.length > 0 ? industryTags : Prisma.DbNull,
           auditStatus,
@@ -688,6 +702,7 @@ export class AchievementsService {
     const source = hasSource ? this.parseContentSourceStrict(body?.source, 'source') : undefined;
     const maturity = hasMaturity ? this.parseNullableMaturityStrict(body?.maturity, 'maturity') : undefined;
     const regionCode = hasRegionCode ? this.parseNullableRegionCodeStrict(body?.regionCode, 'regionCode') : undefined;
+    const coverFileId = hasCoverFileId ? this.parseNullableCoverFileIdStrict(body?.coverFileId, 'coverFileId') : undefined;
     const auditStatus = hasAuditStatus ? this.parseAuditStatusStrict(body?.auditStatus, 'auditStatus') : undefined;
     const status = hasStatus ? this.parseContentStatusStrict(body?.status, 'status') : undefined;
     const publisherUserId = body?.publisherUserId ? String(body.publisherUserId) : body?.ownerId ? String(body.ownerId) : undefined;
@@ -703,7 +718,7 @@ export class AchievementsService {
           description: body?.description ?? undefined,
           maturity: hasMaturity ? maturity : undefined,
           regionCode: hasRegionCode ? regionCode : undefined,
-          coverFileId: hasCoverFileId ? (body?.coverFileId ? String(body.coverFileId) : null) : undefined,
+          coverFileId: hasCoverFileId ? coverFileId : undefined,
           keywordsJson: hasKeywords ? (keywords && keywords.length > 0 ? keywords : Prisma.DbNull) : undefined,
           cooperationModesJson: hasCooperationModes
             ? cooperationModes && cooperationModes.length > 0
