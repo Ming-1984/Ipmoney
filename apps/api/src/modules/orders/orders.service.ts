@@ -369,7 +369,10 @@ export class OrdersService {
   }
 
   private parseOptionalDateTime(value: unknown, fieldName: string): Date | undefined {
-    if (value === undefined || value === null || String(value).trim() === '') return undefined;
+    if (value === undefined || value === null) return undefined;
+    if (String(value).trim() === '') {
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: `${fieldName} is invalid` });
+    }
     const parsed = new Date(String(value));
     if (Number.isNaN(parsed.getTime())) {
       throw new BadRequestException({ code: 'BAD_REQUEST', message: `${fieldName} is invalid` });
