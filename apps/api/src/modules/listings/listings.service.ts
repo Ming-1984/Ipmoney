@@ -1012,6 +1012,7 @@ export class ListingsService {
     const hasDepositAmountFen = this.hasOwn(body, 'depositAmountFen');
     const hasPledgeStatus = this.hasOwn(body, 'pledgeStatus');
     const hasExistingLicenseStatus = this.hasOwn(body, 'existingLicenseStatus');
+    const hasRegionCode = this.hasOwn(body, 'regionCode');
     const hasAuditStatus = this.hasOwn(body, 'auditStatus');
     const hasStatus = this.hasOwn(body, 'status');
 
@@ -1025,6 +1026,7 @@ export class ListingsService {
     const existingLicenseStatus = hasExistingLicenseStatus
       ? this.parseNullableExistingLicenseStatusStrict(body?.existingLicenseStatus, 'existingLicenseStatus')
       : null;
+    const regionCode = hasRegionCode ? this.parseNullableRegionCodeStrict(body?.regionCode, 'regionCode') : undefined;
     const auditStatus = hasAuditStatus ? this.parseAuditStatusStrict(body?.auditStatus, 'auditStatus') : 'PENDING';
     const status = hasStatus ? this.parseListingStatusStrict(body?.status, 'status') : 'DRAFT';
 
@@ -1075,7 +1077,7 @@ export class ListingsService {
         pledgeStatus,
         existingLicenseStatus,
         encumbranceNote,
-        regionCode: body?.regionCode || null,
+        regionCode: hasRegionCode ? regionCode : null,
         industryTagsJson: body?.industryTags ?? Prisma.DbNull,
         listingTopicsJson: listingTopics.length > 0 ? listingTopics : Prisma.DbNull,
         proofFileIdsJson: proofFileIds.length > 0 ? proofFileIds : Prisma.DbNull,
@@ -1505,6 +1507,7 @@ export class ListingsService {
     const hasDepositAmountFen = this.hasOwn(body, 'depositAmountFen');
     const hasPledgeStatus = this.hasOwn(body, 'pledgeStatus');
     const hasExistingLicenseStatus = this.hasOwn(body, 'existingLicenseStatus');
+    const hasRegionCode = this.hasOwn(body, 'regionCode');
     const tradeMode = hasTradeMode ? this.parseTradeModeStrict(body?.tradeMode, 'tradeMode') : 'ASSIGNMENT';
     const licenseMode = hasLicenseMode ? this.parseNullableLicenseModeStrict(body?.licenseMode, 'licenseMode') : null;
     const priceType = hasPriceType ? this.parsePriceTypeStrict(body?.priceType, 'priceType') : 'NEGOTIABLE';
@@ -1514,6 +1517,7 @@ export class ListingsService {
     const existingLicenseStatus = hasExistingLicenseStatus
       ? this.parseNullableExistingLicenseStatusStrict(body?.existingLicenseStatus, 'existingLicenseStatus')
       : null;
+    const regionCode = hasRegionCode ? this.parseNullableRegionCodeStrict(body?.regionCode, 'regionCode') : undefined;
     const patent = await this.ensurePatent(body);
     if (patent) {
       await Promise.all([
@@ -1557,7 +1561,7 @@ export class ListingsService {
         pledgeStatus,
         existingLicenseStatus,
         encumbranceNote,
-        regionCode: body?.regionCode || null,
+        regionCode: hasRegionCode ? regionCode : null,
         industryTagsJson: body?.industryTags ?? Prisma.DbNull,
         listingTopicsJson: listingTopics.length > 0 ? listingTopics : Prisma.DbNull,
         proofFileIdsJson: proofFileIds.length > 0 ? proofFileIds : Prisma.DbNull,
