@@ -622,9 +622,12 @@ export class ListingsService {
     const legalStatus = hasLegalStatus ? this.parseNullableLegalStatusStrict(body?.legalStatus, 'legalStatus') : undefined;
     const legalStatusRawInput = body?.legalStatusRaw ?? body?.legalStatus;
     const legalStatusRaw = legalStatusRawInput !== undefined && legalStatusRawInput !== null && String(legalStatusRawInput).trim() !== '' ? String(legalStatusRawInput) : undefined;
-    const filingDate = this.parseDateValue(body?.filingDate, 'filingDate', true);
-    const publicationDate = this.parseDateValue(body?.publicationDate, 'publicationDate', true);
-    const grantDate = this.parseDateValue(body?.grantDate, 'grantDate', true);
+    const hasFilingDate = this.hasOwn(body, 'filingDate');
+    const filingDate = hasFilingDate ? this.parseDateValue(body?.filingDate, 'filingDate', true) : undefined;
+    const hasPublicationDate = this.hasOwn(body, 'publicationDate');
+    const publicationDate = hasPublicationDate ? this.parseDateValue(body?.publicationDate, 'publicationDate', true) : undefined;
+    const hasGrantDate = this.hasOwn(body, 'grantDate');
+    const grantDate = hasGrantDate ? this.parseDateValue(body?.grantDate, 'grantDate', true) : undefined;
 
     let transferCount: number | undefined;
     const hasTransferCount = this.hasOwn(body, 'transferCount');
@@ -691,9 +694,16 @@ export class ListingsService {
         patch.grantPublicationNoDisplay = parsed.grantPublicationNoDisplay;
       if (hasLegalStatus && patent.legalStatus !== legalStatus) patch.legalStatus = legalStatus;
       if (legalStatusRaw && patent.legalStatusRaw !== legalStatusRaw) patch.legalStatusRaw = legalStatusRaw;
-      if (filingDate) patch.filingDate = filingDate;
-      if (publicationDate) patch.publicationDate = publicationDate;
-      if (grantDate) patch.grantDate = grantDate;
+      const toDateKey = (value?: Date | null) => (value ? value.toISOString().slice(0, 10) : null);
+      if (hasFilingDate && toDateKey(patent.filingDate) !== toDateKey(filingDate ?? null)) {
+        patch.filingDate = filingDate ?? null;
+      }
+      if (hasPublicationDate && toDateKey(patent.publicationDate) !== toDateKey(publicationDate ?? null)) {
+        patch.publicationDate = publicationDate ?? null;
+      }
+      if (hasGrantDate && toDateKey(patent.grantDate) !== toDateKey(grantDate ?? null)) {
+        patch.grantDate = grantDate ?? null;
+      }
       if (transferCount !== undefined) patch.transferCount = transferCount;
       if (hasSourcePrimary && patent.sourcePrimary !== sourcePrimary) patch.sourcePrimary = sourcePrimary;
       if (Object.keys(patch).length > 0) {
@@ -723,9 +733,12 @@ export class ListingsService {
     const legalStatus = hasLegalStatus ? this.parseNullableLegalStatusStrict(body?.legalStatus, 'legalStatus') : undefined;
     const legalStatusRawInput = body?.legalStatusRaw ?? body?.legalStatus;
     const legalStatusRaw = legalStatusRawInput !== undefined && legalStatusRawInput !== null && String(legalStatusRawInput).trim() !== '' ? String(legalStatusRawInput) : undefined;
-    const filingDate = this.parseDateValue(body?.filingDate, 'filingDate', true);
-    const publicationDate = this.parseDateValue(body?.publicationDate, 'publicationDate', true);
-    const grantDate = this.parseDateValue(body?.grantDate, 'grantDate', true);
+    const hasFilingDate = this.hasOwn(body, 'filingDate');
+    const filingDate = hasFilingDate ? this.parseDateValue(body?.filingDate, 'filingDate', true) : undefined;
+    const hasPublicationDate = this.hasOwn(body, 'publicationDate');
+    const publicationDate = hasPublicationDate ? this.parseDateValue(body?.publicationDate, 'publicationDate', true) : undefined;
+    const hasGrantDate = this.hasOwn(body, 'grantDate');
+    const grantDate = hasGrantDate ? this.parseDateValue(body?.grantDate, 'grantDate', true) : undefined;
 
     let transferCount: number | undefined;
     const hasTransferCount = this.hasOwn(body, 'transferCount');
@@ -746,9 +759,9 @@ export class ListingsService {
     const data: any = {};
     if (hasLegalStatus) data.legalStatus = legalStatus;
     if (legalStatusRaw) data.legalStatusRaw = legalStatusRaw;
-    if (filingDate) data.filingDate = filingDate;
-    if (publicationDate) data.publicationDate = publicationDate;
-    if (grantDate) data.grantDate = grantDate;
+    if (hasFilingDate) data.filingDate = filingDate ?? null;
+    if (hasPublicationDate) data.publicationDate = publicationDate ?? null;
+    if (hasGrantDate) data.grantDate = grantDate ?? null;
     if (transferCount !== undefined) data.transferCount = transferCount;
     if (hasSourcePrimary) data.sourcePrimary = sourcePrimary;
     if (Object.keys(data).length === 0) return;
