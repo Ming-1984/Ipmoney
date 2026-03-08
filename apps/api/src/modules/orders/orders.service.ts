@@ -158,6 +158,15 @@ export class OrdersService {
     return parsed;
   }
 
+  private parseNullableNonEmptyStringStrict(value: unknown, fieldName: string): string | null {
+    if (value === null) return null;
+    const raw = String(value ?? '').trim();
+    if (!raw) {
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: `${fieldName} is invalid` });
+    }
+    return raw;
+  }
+
   private normalizeOrderListRole(value: any): OrderListRole | undefined {
     const raw = String(value || '').trim().toUpperCase();
     if ((ORDER_LIST_ROLES as readonly string[]).includes(raw)) return raw as OrderListRole;
@@ -1235,7 +1244,10 @@ export class OrdersService {
     }
     const remark = body?.remark ? String(body.remark).trim() : undefined;
     const signedAt = this.parseOptionalDateTime(body?.signedAt, 'signedAt');
-    const evidenceFileId = body?.evidenceFileId ? String(body.evidenceFileId).trim() : undefined;
+    const hasEvidenceFileId = this.hasOwn(body, 'evidenceFileId');
+    const evidenceFileId = hasEvidenceFileId
+      ? this.parseNullableNonEmptyStringStrict(body?.evidenceFileId, 'evidenceFileId')
+      : undefined;
     const existing = await this.prisma.order.findUnique({ where: { id: orderId } });
     if (!existing) {
       throw new NotFoundException({ code: 'NOT_FOUND', message: 'Order not found' });
@@ -1296,7 +1308,10 @@ export class OrdersService {
     this.ensureAdmin(req);
     const remark = body?.remark ? String(body.remark).trim() : undefined;
     const completedAt = this.parseOptionalDateTime(body?.completedAt, 'completedAt');
-    const evidenceFileId = body?.evidenceFileId ? String(body.evidenceFileId).trim() : undefined;
+    const hasEvidenceFileId = this.hasOwn(body, 'evidenceFileId');
+    const evidenceFileId = hasEvidenceFileId
+      ? this.parseNullableNonEmptyStringStrict(body?.evidenceFileId, 'evidenceFileId')
+      : undefined;
     const existing = await this.prisma.order.findUnique({ where: { id: orderId } });
     if (!existing) {
       throw new NotFoundException({ code: 'NOT_FOUND', message: 'Order not found' });
