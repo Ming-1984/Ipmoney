@@ -88,6 +88,15 @@ export class UsersService {
     return !!input && Object.prototype.hasOwnProperty.call(input, key);
   }
 
+  private parseNullableRegionCodeStrict(value: unknown, fieldName: string): string | null {
+    if (value === null) return null;
+    const raw = String(value ?? '').trim();
+    if (!raw) {
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: `${fieldName} is invalid` });
+    }
+    return raw;
+  }
+
   private parsePositiveIntStrict(value: unknown, fieldName: string): number {
     const raw = String(value ?? '').trim();
     if (!raw) {
@@ -162,6 +171,8 @@ export class UsersService {
     userId: string,
     patch: { nickname?: string; avatarUrl?: string; regionCode?: string },
   ): Promise<UserProfileDto> {
+    const hasRegionCode = this.hasOwn(patch, 'regionCode');
+    const regionCode = hasRegionCode ? this.parseNullableRegionCodeStrict((patch as any)?.regionCode, 'regionCode') : undefined;
     const avatarUrl =
       patch.avatarUrl === undefined
         ? undefined
@@ -178,7 +189,7 @@ export class UsersService {
         data: {
           nickname: patch.nickname !== undefined ? String(patch.nickname) : undefined,
           avatarUrl,
-          regionCode: patch.regionCode !== undefined ? String(patch.regionCode) : undefined,
+          regionCode: hasRegionCode ? regionCode : undefined,
         },
       });
     } catch (error: any) {
