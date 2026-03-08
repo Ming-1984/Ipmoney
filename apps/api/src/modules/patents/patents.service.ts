@@ -451,9 +451,12 @@ export class PatentsService {
       sourcePrimary = parsedSourcePrimary;
     }
     const sourceUpdatedAt = this.parseDateTime(body?.sourceUpdatedAt, 'sourceUpdatedAt') ?? new Date();
-    const filingDate = this.parseDate(body?.filingDate, 'filingDate');
-    const publicationDate = this.parseDate(body?.publicationDate, 'publicationDate');
-    const grantDate = this.parseDate(body?.grantDate, 'grantDate');
+    const hasFilingDate = this.hasOwn(body, 'filingDate');
+    const filingDate = hasFilingDate ? this.parseDate(body?.filingDate, 'filingDate') : undefined;
+    const hasPublicationDate = this.hasOwn(body, 'publicationDate');
+    const publicationDate = hasPublicationDate ? this.parseDate(body?.publicationDate, 'publicationDate') : undefined;
+    const hasGrantDate = this.hasOwn(body, 'grantDate');
+    const grantDate = hasGrantDate ? this.parseDate(body?.grantDate, 'grantDate') : undefined;
 
     const upserted = await this.prisma.patent.upsert({
       where: {
@@ -481,9 +484,9 @@ export class PatentsService {
         patentType,
         title,
         abstract: body?.abstract ? String(body.abstract) : null,
-        filingDate: filingDate ?? undefined,
-        publicationDate: publicationDate ?? undefined,
-        grantDate: grantDate ?? undefined,
+        filingDate: hasFilingDate ? (filingDate ?? null) : undefined,
+        publicationDate: hasPublicationDate ? (publicationDate ?? null) : undefined,
+        grantDate: hasGrantDate ? (grantDate ?? null) : undefined,
         legalStatus: hasLegalStatus ? legalStatus : undefined,
         sourcePrimary,
         sourceUpdatedAt,
