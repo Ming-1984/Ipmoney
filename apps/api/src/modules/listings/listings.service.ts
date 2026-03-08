@@ -283,7 +283,10 @@ export class ListingsService {
   }
 
   private parseOptionalFloat(value: unknown, fieldName: string, min?: number, max?: number): number | undefined {
-    if (value === undefined || value === null || String(value).trim() === '') return undefined;
+    if (value === undefined || value === null) return undefined;
+    if (String(value).trim() === '') {
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: `${fieldName} is invalid` });
+    }
     const num = Number(value);
     if (!Number.isFinite(num) || (min !== undefined && num < min) || (max !== undefined && num > max)) {
       throw new BadRequestException({ code: 'BAD_REQUEST', message: `${fieldName} is invalid` });

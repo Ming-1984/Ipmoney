@@ -641,7 +641,7 @@ function Get-ResultStringField {
 
 function Add-ResultAssertionFailure {
   param(
-    [pscustomobject]$Result,
+    [object]$Result,
     [string]$Assertion,
     [string]$Message
   )
@@ -649,11 +649,40 @@ function Add-ResultAssertionFailure {
   if (-not $Result) {
     throw "Cannot mark assertion failure on empty result"
   }
-  $Result.ok = $false
-  if (-not [string]::IsNullOrWhiteSpace($Assertion)) {
-    $Result.expected = "$($Result.expected)+$Assertion"
+  if ($Result -is [System.Array]) {
+    foreach ($item in @($Result)) {
+      Add-ResultAssertionFailure -Result $item -Assertion $Assertion -Message $Message
+    }
+    return
   }
-  if ([string]::IsNullOrWhiteSpace($Result.body)) {
+
+  if ($Result -is [hashtable]) {
+    $Result["ok"] = $false
+    if (-not [string]::IsNullOrWhiteSpace($Assertion)) {
+      $existingExpected = if ($Result.ContainsKey("expected")) { [string]$Result["expected"] } else { "" }
+      $Result["expected"] = if ([string]::IsNullOrWhiteSpace($existingExpected)) { "$Assertion" } else { "$existingExpected+$Assertion" }
+    }
+    $existingBody = if ($Result.ContainsKey("body")) { [string]$Result["body"] } else { "" }
+    $Result["body"] = if ([string]::IsNullOrWhiteSpace($existingBody)) { "[assert] $Message" } else { "$existingBody`n[assert] $Message" }
+    return
+  }
+
+  if (-not $Result.PSObject.Properties["ok"]) {
+    Add-Member -InputObject $Result -MemberType NoteProperty -Name "ok" -Value $false
+  } else {
+    $Result.ok = $false
+  }
+  if (-not [string]::IsNullOrWhiteSpace($Assertion)) {
+    if (-not $Result.PSObject.Properties["expected"]) {
+      Add-Member -InputObject $Result -MemberType NoteProperty -Name "expected" -Value "$Assertion"
+    } else {
+      $existingExpected = [string]$Result.expected
+      $Result.expected = if ([string]::IsNullOrWhiteSpace($existingExpected)) { "$Assertion" } else { "$existingExpected+$Assertion" }
+    }
+  }
+  if (-not $Result.PSObject.Properties["body"]) {
+    Add-Member -InputObject $Result -MemberType NoteProperty -Name "body" -Value "[assert] $Message"
+  } elseif ([string]::IsNullOrWhiteSpace([string]$Result.body)) {
     $Result.body = "[assert] $Message"
   } else {
     $Result.body = "$($Result.body)`n[assert] $Message"
@@ -1309,6 +1338,7 @@ try {
   [void](Add-ApiCaseResult -Results $results -Name "listing-create-invalid-price-amount" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/listings" -Body @{ title = "Smoke User Listing Invalid Price Amount"; priceAmountFen = -1 } -Headers (New-WriteHeaders -AuthorizationToken $userToken -Prefix $idempotencyPrefix -Label "listing-create-invalid-price-amount") -Expected @(400))
   [void](Add-ApiCaseResult -Results $results -Name "listing-create-invalid-deposit-amount" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/listings" -Body @{ title = "Smoke User Listing Invalid Deposit Amount"; depositAmountFen = -1 } -Headers (New-WriteHeaders -AuthorizationToken $userToken -Prefix $idempotencyPrefix -Label "listing-create-invalid-deposit-amount") -Expected @(400))
   [void](Add-ApiCaseResult -Results $results -Name "listing-create-empty-price-amount" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/listings" -Body @{ title = "Smoke User Listing Empty Price Amount"; priceAmountFen = "" } -Headers (New-WriteHeaders -AuthorizationToken $userToken -Prefix $idempotencyPrefix -Label "listing-create-empty-price-amount") -Expected @(400))
+  [void](Add-ApiCaseResult -Results $results -Name "listing-create-empty-negotiable-range-percent" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/listings" -Body @{ title = "Smoke User Listing Empty Negotiable Range Percent"; negotiableRangePercent = "" } -Headers (New-WriteHeaders -AuthorizationToken $userToken -Prefix $idempotencyPrefix -Label "listing-create-empty-negotiable-range-percent") -Expected @(400))
   [void](Add-ApiCaseResult -Results $results -Name "listing-create-invalid-transfer-count-decimal" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/listings" -Body @{ title = "Smoke User Listing Invalid Transfer Decimal"; patentNumberRaw = "CN202412345678.9"; patentType = "INVENTION"; transferCount = 1.5 } -Headers (New-WriteHeaders -AuthorizationToken $userToken -Prefix $idempotencyPrefix -Label "listing-create-invalid-transfer-count-decimal") -Expected @(400))
   [void](Add-ApiCaseResult -Results $results -Name "listing-create-empty-transfer-count" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/listings" -Body @{ title = "Smoke User Listing Empty Transfer Count"; patentNumberRaw = "CN202412345679.7"; patentType = "INVENTION"; transferCount = "" } -Headers (New-WriteHeaders -AuthorizationToken $userToken -Prefix $idempotencyPrefix -Label "listing-create-empty-transfer-count") -Expected @(400))
   [void](Add-ApiCaseResult -Results $results -Name "listing-update-unauthorized" -Method "PATCH" -Url "http://127.0.0.1:$resolvedApiPort/listings/$smokeUserListingId" -Body @{ title = "Smoke Unauthorized Listing Update" } -Headers @{} -Expected @(401))
@@ -1327,6 +1357,7 @@ try {
   [void](Add-ApiCaseResult -Results $results -Name "listing-update-invalid-price-amount" -Method "PATCH" -Url "http://127.0.0.1:$resolvedApiPort/listings/$smokeUserListingId" -Body @{ priceAmountFen = -1 } -Headers (New-WriteHeaders -AuthorizationToken $userToken -Prefix $idempotencyPrefix -Label "listing-update-invalid-price-amount") -Expected @(400))
   [void](Add-ApiCaseResult -Results $results -Name "listing-update-invalid-deposit-amount" -Method "PATCH" -Url "http://127.0.0.1:$resolvedApiPort/listings/$smokeUserListingId" -Body @{ depositAmountFen = -1 } -Headers (New-WriteHeaders -AuthorizationToken $userToken -Prefix $idempotencyPrefix -Label "listing-update-invalid-deposit-amount") -Expected @(400))
   [void](Add-ApiCaseResult -Results $results -Name "listing-update-empty-deposit-amount" -Method "PATCH" -Url "http://127.0.0.1:$resolvedApiPort/listings/$smokeUserListingId" -Body @{ depositAmountFen = "" } -Headers (New-WriteHeaders -AuthorizationToken $userToken -Prefix $idempotencyPrefix -Label "listing-update-empty-deposit-amount") -Expected @(400))
+  [void](Add-ApiCaseResult -Results $results -Name "listing-update-empty-negotiable-range-percent" -Method "PATCH" -Url "http://127.0.0.1:$resolvedApiPort/listings/$smokeUserListingId" -Body @{ negotiableRangePercent = "" } -Headers (New-WriteHeaders -AuthorizationToken $userToken -Prefix $idempotencyPrefix -Label "listing-update-empty-negotiable-range-percent") -Expected @(400))
   [void](Add-ApiCaseResult -Results $results -Name "listing-update-invalid-transfer-count-decimal" -Method "PATCH" -Url "http://127.0.0.1:$resolvedApiPort/listings/$smokeUserListingId" -Body @{ patentNumberRaw = "CN202412345680.5"; patentType = "INVENTION"; transferCount = 2.5 } -Headers (New-WriteHeaders -AuthorizationToken $userToken -Prefix $idempotencyPrefix -Label "listing-update-invalid-transfer-count-decimal") -Expected @(400))
   [void](Add-ApiCaseResult -Results $results -Name "listing-update-empty-transfer-count" -Method "PATCH" -Url "http://127.0.0.1:$resolvedApiPort/listings/$smokeUserListingId" -Body @{ patentNumberRaw = "CN202412345681.3"; patentType = "INVENTION"; transferCount = "" } -Headers (New-WriteHeaders -AuthorizationToken $userToken -Prefix $idempotencyPrefix -Label "listing-update-empty-transfer-count") -Expected @(400))
   [void](Add-ApiCaseResult -Results $results -Name "listing-update-missing" -Method "PATCH" -Url "http://127.0.0.1:$resolvedApiPort/listings/$([guid]::NewGuid().ToString())" -Body @{ title = "Smoke User Listing Missing" } -Headers (New-WriteHeaders -AuthorizationToken $userToken -Prefix $idempotencyPrefix -Label "listing-update-missing") -Expected @(404))
@@ -1665,6 +1696,7 @@ try {
   [void](Add-ApiCaseResult -Results $results -Name "admin-listing-create-invalid-price-amount" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/admin/listings" -Body @{ title = "Smoke Admin Listing Invalid Price Amount"; sellerUserId = $currentUserId; priceAmountFen = -1 } -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-listing-create-invalid-price-amount") -Expected @(400))
   [void](Add-ApiCaseResult -Results $results -Name "admin-listing-create-invalid-deposit-amount" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/admin/listings" -Body @{ title = "Smoke Admin Listing Invalid Deposit Amount"; sellerUserId = $currentUserId; depositAmountFen = -1 } -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-listing-create-invalid-deposit-amount") -Expected @(400))
   [void](Add-ApiCaseResult -Results $results -Name "admin-listing-create-empty-price-amount" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/admin/listings" -Body @{ title = "Smoke Admin Listing Empty Price Amount"; sellerUserId = $currentUserId; priceAmountFen = "" } -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-listing-create-empty-price-amount") -Expected @(400))
+  [void](Add-ApiCaseResult -Results $results -Name "admin-listing-create-empty-negotiable-range-percent" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/admin/listings" -Body @{ title = "Smoke Admin Listing Empty Negotiable Range Percent"; sellerUserId = $currentUserId; negotiableRangePercent = "" } -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-listing-create-empty-negotiable-range-percent") -Expected @(400))
   $adminListingUpdate = Add-ApiCaseResult -Results $results -Name "admin-listing-update" -Method "PATCH" -Url "http://127.0.0.1:$resolvedApiPort/admin/listings/$smokeAdminListingId" -Body @{ title = "$smokeAdminListingTitle Updated"; source = "PLATFORM"; status = "ACTIVE"; auditStatus = "APPROVED"; tradeMode = "ASSIGNMENT"; licenseMode = "SOLE"; priceType = "NEGOTIABLE"; priceAmountFen = 654321; depositAmountFen = 2000; pledgeStatus = "UNKNOWN"; existingLicenseStatus = "UNKNOWN" } -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-listing-update") -Expected @(200)
   Assert-ResultJsonFieldEquals -Result $adminListingUpdate -Field "source" -ExpectedValue "PLATFORM" -Assertion "admin-listing-update-source"
   Assert-ResultJsonFieldEquals -Result $adminListingUpdate -Field "tradeMode" -ExpectedValue "ASSIGNMENT" -Assertion "admin-listing-update-trade-mode"
@@ -1684,6 +1716,7 @@ try {
   [void](Add-ApiCaseResult -Results $results -Name "admin-listing-update-invalid-price-amount" -Method "PATCH" -Url "http://127.0.0.1:$resolvedApiPort/admin/listings/$smokeAdminListingId" -Body @{ priceAmountFen = -1 } -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-listing-update-invalid-price-amount") -Expected @(400))
   [void](Add-ApiCaseResult -Results $results -Name "admin-listing-update-invalid-deposit-amount" -Method "PATCH" -Url "http://127.0.0.1:$resolvedApiPort/admin/listings/$smokeAdminListingId" -Body @{ depositAmountFen = -1 } -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-listing-update-invalid-deposit-amount") -Expected @(400))
   [void](Add-ApiCaseResult -Results $results -Name "admin-listing-update-empty-deposit-amount" -Method "PATCH" -Url "http://127.0.0.1:$resolvedApiPort/admin/listings/$smokeAdminListingId" -Body @{ depositAmountFen = "" } -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-listing-update-empty-deposit-amount") -Expected @(400))
+  [void](Add-ApiCaseResult -Results $results -Name "admin-listing-update-empty-negotiable-range-percent" -Method "PATCH" -Url "http://127.0.0.1:$resolvedApiPort/admin/listings/$smokeAdminListingId" -Body @{ negotiableRangePercent = "" } -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-listing-update-empty-negotiable-range-percent") -Expected @(400))
   [void](Add-ApiCaseResult -Results $results -Name "admin-listing-update-missing" -Method "PATCH" -Url "http://127.0.0.1:$resolvedApiPort/admin/listings/$([guid]::NewGuid().ToString())" -Body @{ title = "Smoke Admin Listing Missing" } -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-listing-update-missing") -Expected @(404))
   $adminListingOffShelf = Add-ApiCaseResult -Results $results -Name "admin-listing-off-shelf" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/admin/listings/$smokeAdminListingId/off-shelf" -Body @{} -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-listing-off-shelf") -Expected @(200, 201)
   Assert-ResultJsonFieldEquals -Result $adminListingOffShelf -Field "status" -ExpectedValue "OFF_SHELF" -Assertion "admin-listing-off-shelf-status"
