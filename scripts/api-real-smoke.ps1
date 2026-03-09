@@ -2397,9 +2397,11 @@ try {
   Assert-ResultJsonFieldEquals -Result $adminOrderContractSigned -Field "status" -ExpectedValue "WAIT_FINAL_PAYMENT" -Assertion "order-status-after-contract"
   $orderDetailAfterContractSigned = Add-ApiCaseResult -Results $results -Name "order-detail-after-contract-signed" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/orders/$orderId" -Body $null -Headers @{ Authorization = $userToken } -Expected @(200)
   Assert-ResultJsonFieldEquals -Result $orderDetailAfterContractSigned -Field "status" -ExpectedValue "WAIT_FINAL_PAYMENT" -Assertion "order-detail-status-after-contract"
+  [void](Add-ApiCaseResult -Results $results -Name "contract-list-unauthorized" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/contracts" -Body $null -Headers @{} -Expected @(401))
   [void](Add-ApiCaseResult -Results $results -Name "contract-list" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/contracts" -Body $null -Headers @{ Authorization = $userToken } -Expected @(200))
   [void](Add-ApiCaseResult -Results $results -Name "contract-list-wait-upload" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/contracts?status=WAIT_UPLOAD" -Body $null -Headers @{ Authorization = $userToken } -Expected @(200))
   [void](Add-ApiCaseResult -Results $results -Name "contract-list-invalid-status" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/contracts?status=UNKNOWN" -Body $null -Headers @{ Authorization = $userToken } -Expected @(400))
+  [void](Add-ApiCaseResult -Results $results -Name "contract-list-invalid-page-zero" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/contracts?page=0" -Body $null -Headers @{ Authorization = $userToken } -Expected @(400))
   [void](Add-ApiCaseResult -Results $results -Name "contract-list-invalid-page" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/contracts?page=abc" -Body $null -Headers @{ Authorization = $userToken } -Expected @(400))
   [void](Add-ApiCaseResult -Results $results -Name "contract-list-empty-page-size" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/contracts?pageSize=" -Body $null -Headers @{ Authorization = $userToken } -Expected @(400))
   $orderPaymentIntentFinalHeaders = New-WriteHeaders -AuthorizationToken $userToken -Prefix $idempotencyPrefix -Label "order-payment-intent-final"
