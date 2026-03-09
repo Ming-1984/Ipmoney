@@ -463,6 +463,7 @@ export class PatentsService {
       }
       sourcePrimary = parsedSourcePrimary;
     }
+    const hasSourceUpdatedAt = this.hasOwn(body, 'sourceUpdatedAt');
     const sourceUpdatedAt = this.parseDateTime(body?.sourceUpdatedAt, 'sourceUpdatedAt') ?? new Date();
     const hasFilingDate = this.hasOwn(body, 'filingDate');
     const filingDate = hasFilingDate ? this.parseDate(body?.filingDate, 'filingDate') : undefined;
@@ -503,8 +504,8 @@ export class PatentsService {
         publicationDate: hasPublicationDate ? (publicationDate ?? null) : undefined,
         grantDate: hasGrantDate ? (grantDate ?? null) : undefined,
         legalStatus: hasLegalStatus ? legalStatus : undefined,
-        sourcePrimary,
-        sourceUpdatedAt,
+        sourcePrimary: hasSourcePrimary ? sourcePrimary : undefined,
+        sourceUpdatedAt: hasSourceUpdatedAt ? sourceUpdatedAt : undefined,
       },
     });
 
