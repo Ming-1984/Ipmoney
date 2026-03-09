@@ -122,6 +122,18 @@ export class DemandsService {
     return raw;
   }
 
+  private parseOptionalNonEmptyStringStrict(value: unknown, fieldName: string): string | undefined {
+    if (value === undefined) return undefined;
+    if (value === null) {
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: `${fieldName} is invalid` });
+    }
+    const raw = String(value).trim();
+    if (!raw) {
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: `${fieldName} is invalid` });
+    }
+    return raw;
+  }
+
   private parseOptionalPublisherUserIdStrict(body: any): string | undefined {
     const candidateKeys: Array<'publisherUserId' | 'ownerId'> = ['publisherUserId', 'ownerId'];
     for (const key of candidateKeys) {
@@ -470,6 +482,7 @@ export class DemandsService {
     const hasDeliveryPeriod = this.hasOwn(body, 'deliveryPeriod');
     const hasBudgetType = this.hasOwn(body, 'budgetType');
     const hasRegionCode = this.hasOwn(body, 'regionCode');
+    const hasTitle = this.hasOwn(body, 'title');
     const hasSummary = this.hasOwn(body, 'summary');
     const hasDescription = this.hasOwn(body, 'description');
 
@@ -481,6 +494,7 @@ export class DemandsService {
     const deliveryPeriod = hasDeliveryPeriod ? this.parseNullableDeliveryPeriodStrict(body?.deliveryPeriod, 'deliveryPeriod') : undefined;
     const budgetType = hasBudgetType ? this.parseNullablePriceTypeStrict(body?.budgetType, 'budgetType') : undefined;
     const regionCode = hasRegionCode ? this.parseNullableRegionCodeStrict(body?.regionCode, 'regionCode') : undefined;
+    const title = hasTitle ? this.parseOptionalNonEmptyStringStrict(body?.title, 'title') : undefined;
     const coverFileId = hasCoverFileId ? this.parseNullableCoverFileIdStrict(body?.coverFileId, 'coverFileId') : undefined;
     const summary = hasSummary ? this.parseNullableNonEmptyStringStrict(body?.summary, 'summary') : undefined;
     const description = hasDescription ? this.parseNullableNonEmptyStringStrict(body?.description, 'description') : undefined;
@@ -496,7 +510,7 @@ export class DemandsService {
       await tx.demand.update({
         where: { id: demandId },
         data: {
-          title: body?.title ?? undefined,
+          title: hasTitle ? title : undefined,
           summary: hasSummary ? summary : undefined,
           description: hasDescription ? description : undefined,
           deliveryPeriod: hasDeliveryPeriod ? deliveryPeriod : undefined,
@@ -857,6 +871,7 @@ export class DemandsService {
     const hasAuditStatus = this.hasOwn(body, 'auditStatus');
     const hasStatus = this.hasOwn(body, 'status');
     const hasRegionCode = this.hasOwn(body, 'regionCode');
+    const hasTitle = this.hasOwn(body, 'title');
     const hasSummary = this.hasOwn(body, 'summary');
     const hasDescription = this.hasOwn(body, 'description');
 
@@ -869,6 +884,7 @@ export class DemandsService {
     const deliveryPeriod = hasDeliveryPeriod ? this.parseNullableDeliveryPeriodStrict(body?.deliveryPeriod, 'deliveryPeriod') : undefined;
     const budgetType = hasBudgetType ? this.parseNullablePriceTypeStrict(body?.budgetType, 'budgetType') : undefined;
     const regionCode = hasRegionCode ? this.parseNullableRegionCodeStrict(body?.regionCode, 'regionCode') : undefined;
+    const title = hasTitle ? this.parseOptionalNonEmptyStringStrict(body?.title, 'title') : undefined;
     const coverFileId = hasCoverFileId ? this.parseNullableCoverFileIdStrict(body?.coverFileId, 'coverFileId') : undefined;
     const summary = hasSummary ? this.parseNullableNonEmptyStringStrict(body?.summary, 'summary') : undefined;
     const description = hasDescription ? this.parseNullableNonEmptyStringStrict(body?.description, 'description') : undefined;
@@ -889,7 +905,7 @@ export class DemandsService {
         data: {
           publisherUserId: publisherUserId ?? undefined,
           source: hasSource ? source : undefined,
-          title: body?.title ?? undefined,
+          title: hasTitle ? title : undefined,
           summary: hasSummary ? summary : undefined,
           description: hasDescription ? description : undefined,
           deliveryPeriod: hasDeliveryPeriod ? deliveryPeriod : undefined,
