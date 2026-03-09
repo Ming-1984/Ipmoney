@@ -470,11 +470,13 @@ export class ArtworksService {
     const hasRegionCode = this.hasOwn(body, 'regionCode');
     const hasCoverFileId = this.hasOwn(body, 'coverFileId');
     const hasDescription = this.hasOwn(body, 'description');
+    const hasCertificateNo = this.hasOwn(body, 'certificateNo');
     const calligraphyScript = hasCalligraphyScript ? this.parseNullableCalligraphyScriptStrict(body?.calligraphyScript, 'calligraphyScript') : undefined;
     const paintingGenre = hasPaintingGenre ? this.parseNullablePaintingGenreStrict(body?.paintingGenre, 'paintingGenre') : undefined;
     const regionCode = hasRegionCode ? this.parseNullableRegionCodeStrict(body?.regionCode, 'regionCode') : undefined;
     const coverFileId = hasCoverFileId ? this.parseNullableCoverFileIdStrict(body?.coverFileId, 'coverFileId') : undefined;
     const description = hasDescription ? this.parseNullableNonEmptyStringStrict(body?.description, 'description') : null;
+    const certificateNo = hasCertificateNo ? this.parseNullableNonEmptyStringStrict(body?.certificateNo, 'certificateNo') : null;
     const creationDate = this.parseOptionalDate(body?.creationDate, 'creationDate');
     const creationYear = this.parseOptionalInt(body?.creationYear, 'creationYear', 0);
     const priceAmountFen = this.parseOptionalInt(body?.priceAmountFen, 'priceAmountFen', 0);
@@ -495,7 +497,7 @@ export class ArtworksService {
           creatorName,
           creationDate: creationDate ?? null,
           creationYear: creationYear ?? null,
-          certificateNo: body?.certificateNo ? String(body.certificateNo) : null,
+          certificateNo,
           certificateFileIdsJson: certificateFileIds.length > 0 ? certificateFileIds : Prisma.DbNull,
           priceType,
           priceAmountFen: priceAmountFen ?? null,
@@ -541,6 +543,7 @@ export class ArtworksService {
     const hasPriceType = this.hasOwn(body, 'priceType');
     const hasRegionCode = this.hasOwn(body, 'regionCode');
     const hasDescription = this.hasOwn(body, 'description');
+    const hasCertificateNo = this.hasOwn(body, 'certificateNo');
 
     const category = hasCategory ? this.parseCategoryStrict(body?.category, 'category') : undefined;
     const calligraphyScript = hasCalligraphyScript ? this.parseNullableCalligraphyScriptStrict(body?.calligraphyScript, 'calligraphyScript') : undefined;
@@ -553,6 +556,7 @@ export class ArtworksService {
     const regionCode = hasRegionCode ? this.parseNullableRegionCodeStrict(body?.regionCode, 'regionCode') : undefined;
     const coverFileId = hasCoverFileId ? this.parseNullableCoverFileIdStrict(body?.coverFileId, 'coverFileId') : undefined;
     const description = hasDescription ? this.parseNullableNonEmptyStringStrict(body?.description, 'description') : undefined;
+    const certificateNo = hasCertificateNo ? this.parseNullableNonEmptyStringStrict(body?.certificateNo, 'certificateNo') : undefined;
     const certificateFileIds = hasCertificateFileIds ? this.normalizeFileIds(body?.certificateFileIds) : undefined;
     const mediaInput = hasMedia ? normalizeMediaInput(body?.media) : [];
 
@@ -568,7 +572,7 @@ export class ArtworksService {
           creatorName: body?.creatorName ?? undefined,
           creationDate: creationDate ?? null,
           creationYear: creationYear ?? null,
-          certificateNo: body?.certificateNo ?? undefined,
+          certificateNo: hasCertificateNo ? certificateNo : undefined,
           certificateFileIdsJson: hasCertificateFileIds
             ? certificateFileIds && certificateFileIds.length > 0
               ? certificateFileIds
@@ -866,6 +870,7 @@ export class ArtworksService {
     const hasRegionCode = this.hasOwn(body, 'regionCode');
     const hasCoverFileId = this.hasOwn(body, 'coverFileId');
     const hasDescription = this.hasOwn(body, 'description');
+    const hasCertificateNo = this.hasOwn(body, 'certificateNo');
     const sourceInput = hasSource ? this.parseContentSourceStrict(body?.source, 'source') : 'ADMIN';
     const ownerId = this.parseOptionalSellerUserIdStrict(body) ?? String(req?.auth?.userId || '').trim();
     const calligraphyScript = hasCalligraphyScript ? this.parseNullableCalligraphyScriptStrict(body?.calligraphyScript, 'calligraphyScript') : undefined;
@@ -873,6 +878,7 @@ export class ArtworksService {
     const regionCode = hasRegionCode ? this.parseNullableRegionCodeStrict(body?.regionCode, 'regionCode') : undefined;
     const coverFileId = hasCoverFileId ? this.parseNullableCoverFileIdStrict(body?.coverFileId, 'coverFileId') : undefined;
     const description = hasDescription ? this.parseNullableNonEmptyStringStrict(body?.description, 'description') : null;
+    const certificateNo = hasCertificateNo ? this.parseNullableNonEmptyStringStrict(body?.certificateNo, 'certificateNo') : null;
     const creationDate = this.parseOptionalDate(body?.creationDate, 'creationDate');
     const creationYear = this.parseOptionalInt(body?.creationYear, 'creationYear', 0);
     const priceAmountFen = this.parseOptionalInt(body?.priceAmountFen, 'priceAmountFen', 0);
@@ -895,7 +901,7 @@ export class ArtworksService {
           creatorName,
           creationDate: creationDate ?? null,
           creationYear: creationYear ?? null,
-          certificateNo: body?.certificateNo ? String(body.certificateNo) : null,
+          certificateNo,
           certificateFileIdsJson: certificateFileIds.length > 0 ? certificateFileIds : Prisma.DbNull,
           priceType,
           priceAmountFen: priceAmountFen ?? null,
@@ -951,6 +957,7 @@ export class ArtworksService {
     const hasStatus = this.hasOwn(body, 'status');
     const hasRegionCode = this.hasOwn(body, 'regionCode');
     const hasDescription = this.hasOwn(body, 'description');
+    const hasCertificateNo = this.hasOwn(body, 'certificateNo');
 
     const source = hasSource ? this.parseContentSourceStrict(body?.source, 'source') : undefined;
     const category = hasCategory ? this.parseCategoryStrict(body?.category, 'category') : undefined;
@@ -964,6 +971,7 @@ export class ArtworksService {
     const regionCode = hasRegionCode ? this.parseNullableRegionCodeStrict(body?.regionCode, 'regionCode') : undefined;
     const coverFileId = hasCoverFileId ? this.parseNullableCoverFileIdStrict(body?.coverFileId, 'coverFileId') : undefined;
     const description = hasDescription ? this.parseNullableNonEmptyStringStrict(body?.description, 'description') : undefined;
+    const certificateNo = hasCertificateNo ? this.parseNullableNonEmptyStringStrict(body?.certificateNo, 'certificateNo') : undefined;
     const auditStatus = hasAuditStatus ? this.parseAuditStatusStrict(body?.auditStatus, 'auditStatus') : undefined;
     const status = hasStatus ? this.parseArtworkStatusStrict(body?.status, 'status') : undefined;
     const certificateFileIds = hasCertificateFileIds ? this.normalizeFileIds(body?.certificateFileIds) : undefined;
@@ -984,7 +992,7 @@ export class ArtworksService {
           creatorName: body?.creatorName ?? undefined,
           creationDate: creationDate ?? null,
           creationYear: creationYear ?? null,
-          certificateNo: body?.certificateNo ?? undefined,
+          certificateNo: hasCertificateNo ? certificateNo : undefined,
           certificateFileIdsJson: hasCertificateFileIds
             ? certificateFileIds && certificateFileIds.length > 0
               ? certificateFileIds
