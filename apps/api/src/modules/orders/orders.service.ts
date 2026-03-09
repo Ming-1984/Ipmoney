@@ -201,8 +201,9 @@ export class OrdersService {
   }
 
   private async getOrderWithListing(orderId: string) {
+    const normalizedOrderId = this.parseUuidStrict(orderId, 'orderId');
     return await this.prisma.order.findUnique({
-      where: { id: orderId },
+      where: { id: normalizedOrderId },
       include: { listing: true },
     });
   }
@@ -778,7 +779,8 @@ export class OrdersService {
 
   async getCaseWithMilestones(req: any, orderId: string): Promise<CaseWithMilestones> {
     this.ensureAuth(req);
-    const order = await this.getOrderWithListing(orderId);
+    const normalizedOrderId = this.parseUuidStrict(orderId, 'orderId');
+    const order = await this.getOrderWithListing(normalizedOrderId);
     this.ensureOrderAccess(req, order);
 
     const csCase = await this.ensureCaseForOrder(order as any);
@@ -786,7 +788,7 @@ export class OrdersService {
     const milestones = await this.prisma.csMilestone.findMany({ where: { caseId: csCase.id }, orderBy: { createdAt: 'asc' } });
     return {
       id: csCase.id,
-      orderId,
+      orderId: normalizedOrderId,
       type: csCase.type,
       status: csCase.status,
       milestones: milestones.map((m: any) => ({
@@ -800,9 +802,10 @@ export class OrdersService {
 
   async listRefundRequests(req: any, orderId: string): Promise<RefundRequestDto[]> {
     this.ensureAuth(req);
-    const order = await this.getOrderWithListing(orderId);
+    const normalizedOrderId = this.parseUuidStrict(orderId, 'orderId');
+    const order = await this.getOrderWithListing(normalizedOrderId);
     this.ensureOrderAccess(req, order);
-    const list = await this.prisma.refundRequest.findMany({ where: { orderId }, orderBy: { createdAt: 'desc' } });
+    const list = await this.prisma.refundRequest.findMany({ where: { orderId: normalizedOrderId }, orderBy: { createdAt: 'desc' } });
     return list.map((r: any) => ({
       id: r.id,
       orderId: r.orderId,
@@ -816,15 +819,16 @@ export class OrdersService {
 
   async createRefundRequest(req: any, orderId: string, body: any): Promise<RefundRequestDto> {
     this.ensureAuth(req);
-    const scope = `REFUND_REQUEST:${orderId}`;
+    const normalizedOrderId = this.parseUuidStrict(orderId, 'orderId');
+    const scope = `REFUND_REQUEST:${normalizedOrderId}`;
     return await this.withIdempotency(req, scope, async () => {
-      const order = await this.getOrderWithListing(orderId);
+      const order = await this.getOrderWithListing(normalizedOrderId);
       this.ensureOrderAccess(req, order, { allowSeller: false });
       if (!order) throw new NotFoundException({ code: 'NOT_FOUND', message: 'order not found' });
       if (!['DEPOSIT_PAID', 'WAIT_FINAL_PAYMENT', 'FINAL_PAID_ESCROW'].includes(order.status)) {
         throw new ConflictException({ code: 'CONFLICT', message: 'refund not allowed in current status' });
       }
-      const existing = await this.prisma.refundRequest.findFirst({ where: { orderId, status: 'PENDING' } });
+      const existing = await this.prisma.refundRequest.findFirst({ where: { orderId: normalizedOrderId, status: 'PENDING' } });
       if (existing) {
         throw new ConflictException({ code: 'CONFLICT', message: 'refund request already pending' });
       }
@@ -841,7 +845,7 @@ export class OrdersService {
 
       const item = await this.prisma.refundRequest.create({
         data: {
-          orderId,
+          orderId: normalizedOrderId,
           reasonCode,
           reasonText: body?.reasonText ? String(body.reasonText) : null,
         },
@@ -854,7 +858,7 @@ export class OrdersService {
         afterJson: item,
       });
 
-      const ctx = await this.getOrderContext(orderId);
+      const ctx = await this.getOrderContext(normalizedOrderId);
       if (ctx) {
         await this.notifyUser(
           ctx.buyerUserId,
