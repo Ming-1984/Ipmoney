@@ -1494,12 +1494,13 @@ export class OrdersService {
 
   async adminIssueInvoice(req: any, orderId: string, _body: any) {
     this.ensureAdmin(req);
-    const existing = await this.prisma.order.findUnique({ where: { id: orderId } });
+    const normalizedOrderId = this.parseUuidStrict(orderId, 'orderId');
+    const existing = await this.prisma.order.findUnique({ where: { id: normalizedOrderId } });
     if (!existing) {
       throw new NotFoundException({ code: 'NOT_FOUND', message: 'order not found' });
     }
     const order = await this.prisma.order.update({
-      where: { id: orderId },
+      where: { id: normalizedOrderId },
       data: { invoiceIssuedAt: new Date(), invoiceNo: `INV-${Date.now()}` },
     });
     await this.audit.log({
@@ -1523,10 +1524,11 @@ export class OrdersService {
 
   async adminUpsertOrderInvoice(req: any, orderId: string, body: any): Promise<OrderInvoiceDto> {
     this.ensureAdmin(req);
+    const normalizedOrderId = this.parseUuidStrict(orderId, 'orderId');
     const invoiceFileId = this.parseUuidStrict(body?.invoiceFileId, 'invoiceFileId');
 
     const [order, file] = await Promise.all([
-      this.prisma.order.findUnique({ where: { id: orderId } }),
+      this.prisma.order.findUnique({ where: { id: normalizedOrderId } }),
       this.prisma.file.findUnique({ where: { id: invoiceFileId } }),
     ]);
     if (!order) throw new NotFoundException({ code: 'NOT_FOUND', message: 'order not found' });
@@ -1541,7 +1543,7 @@ export class OrdersService {
     const issuedAt = this.parseOptionalDateTime(body?.issuedAt, 'issuedAt') ?? order.invoiceIssuedAt ?? new Date();
 
     const updated = await this.prisma.order.update({
-      where: { id: orderId },
+      where: { id: normalizedOrderId },
       data: { invoiceFileId, invoiceNo, invoiceIssuedAt: issuedAt },
       include: { invoiceFile: true },
     });
@@ -1568,11 +1570,12 @@ export class OrdersService {
 
   async adminDeleteOrderInvoice(req: any, orderId: string) {
     this.ensureAdmin(req);
-    const order = await this.prisma.order.findUnique({ where: { id: orderId } });
+    const normalizedOrderId = this.parseUuidStrict(orderId, 'orderId');
+    const order = await this.prisma.order.findUnique({ where: { id: normalizedOrderId } });
     if (!order) throw new NotFoundException({ code: 'NOT_FOUND', message: 'order not found' });
 
     await this.prisma.order.update({
-      where: { id: orderId },
+      where: { id: normalizedOrderId },
       data: { invoiceFileId: null, invoiceIssuedAt: null, invoiceNo: null },
     });
 
@@ -1580,10 +1583,10 @@ export class OrdersService {
       actorUserId: req.auth.userId,
       action: 'INVOICE_DELETE',
       targetType: 'ORDER',
-      targetId: orderId,
+      targetId: normalizedOrderId,
       afterJson: { invoiceFileId: null },
     });
-    const ctx = await this.getOrderContext(orderId);
+    const ctx = await this.getOrderContext(normalizedOrderId);
     if (ctx) {
       await this.notifyUser(
         ctx.buyerUserId,
