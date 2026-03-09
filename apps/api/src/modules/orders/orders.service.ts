@@ -481,10 +481,11 @@ export class OrdersService {
 
   async createOrder(req: any, body: { listingId?: string; artworkId?: string }) {
     this.ensureAuth(req);
-    const listingId = String(body?.listingId || '').trim();
-    if (!listingId) {
+    const rawListingId = String(body?.listingId || '').trim();
+    if (!rawListingId) {
       throw new BadRequestException({ code: 'BAD_REQUEST', message: 'listingId is required' });
     }
+    const listingId = this.parseUuidStrict(rawListingId, 'listingId');
     const scope = `ORDER_CREATE:${listingId}`;
     return await this.withIdempotency(req, scope, async () => {
       const listing = await this.prisma.listing.findUnique({
@@ -1434,10 +1435,11 @@ export class OrdersService {
     if (order.status !== 'READY_TO_SETTLE') {
       throw new ConflictException({ code: 'CONFLICT', message: 'payout not allowed in current status' });
     }
-    const payoutEvidenceFileId = body?.payoutEvidenceFileId ? String(body.payoutEvidenceFileId).trim() : '';
-    if (!payoutEvidenceFileId) {
+    const rawPayoutEvidenceFileId = body?.payoutEvidenceFileId ? String(body.payoutEvidenceFileId).trim() : '';
+    if (!rawPayoutEvidenceFileId) {
       throw new BadRequestException({ code: 'BAD_REQUEST', message: 'payoutEvidenceFileId is required' });
     }
+    const payoutEvidenceFileId = this.parseUuidStrict(rawPayoutEvidenceFileId, 'payoutEvidenceFileId');
     const payoutEvidenceFile = await this.prisma.file.findUnique({ where: { id: payoutEvidenceFileId } });
     if (!payoutEvidenceFile) {
       throw new BadRequestException({ code: 'BAD_REQUEST', message: 'payout evidence file not found' });
