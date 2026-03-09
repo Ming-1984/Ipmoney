@@ -110,6 +110,18 @@ export class AchievementsService {
     return raw;
   }
 
+  private parseOptionalNonEmptyStringStrict(value: unknown, fieldName: string): string | undefined {
+    if (value === undefined) return undefined;
+    if (value === null) {
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: `${fieldName} is invalid` });
+    }
+    const raw = String(value).trim();
+    if (!raw) {
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: `${fieldName} is invalid` });
+    }
+    return raw;
+  }
+
   private parseOptionalPublisherUserIdStrict(body: any): string | undefined {
     const candidateKeys: Array<'publisherUserId' | 'ownerId'> = ['publisherUserId', 'ownerId'];
     for (const key of candidateKeys) {
@@ -397,6 +409,7 @@ export class AchievementsService {
     const hasMedia = Object.prototype.hasOwnProperty.call(body || {}, 'media');
     const hasMaturity = this.hasOwn(body, 'maturity');
     const hasRegionCode = this.hasOwn(body, 'regionCode');
+    const hasTitle = this.hasOwn(body, 'title');
     const hasSummary = this.hasOwn(body, 'summary');
     const hasDescription = this.hasOwn(body, 'description');
 
@@ -407,6 +420,7 @@ export class AchievementsService {
     const maturity = hasMaturity ? this.parseNullableMaturityStrict(body?.maturity, 'maturity') : undefined;
     const regionCode = hasRegionCode ? this.parseNullableRegionCodeStrict(body?.regionCode, 'regionCode') : undefined;
     const coverFileId = hasCoverFileId ? this.parseNullableCoverFileIdStrict(body?.coverFileId, 'coverFileId') : undefined;
+    const title = hasTitle ? this.parseOptionalNonEmptyStringStrict(body?.title, 'title') : undefined;
     const summary = hasSummary ? this.parseNullableNonEmptyStringStrict(body?.summary, 'summary') : undefined;
     const description = hasDescription ? this.parseNullableNonEmptyStringStrict(body?.description, 'description') : undefined;
 
@@ -414,7 +428,7 @@ export class AchievementsService {
       await tx.achievement.update({
         where: { id: achievementId },
         data: {
-          title: body?.title ?? undefined,
+          title: hasTitle ? title : undefined,
           summary: hasSummary ? summary : undefined,
           description: hasDescription ? description : undefined,
           maturity: hasMaturity ? maturity : undefined,
@@ -730,6 +744,7 @@ export class AchievementsService {
     const hasAuditStatus = this.hasOwn(body, 'auditStatus');
     const hasStatus = this.hasOwn(body, 'status');
     const hasRegionCode = this.hasOwn(body, 'regionCode');
+    const hasTitle = this.hasOwn(body, 'title');
     const hasSummary = this.hasOwn(body, 'summary');
     const hasDescription = this.hasOwn(body, 'description');
 
@@ -741,6 +756,7 @@ export class AchievementsService {
     const maturity = hasMaturity ? this.parseNullableMaturityStrict(body?.maturity, 'maturity') : undefined;
     const regionCode = hasRegionCode ? this.parseNullableRegionCodeStrict(body?.regionCode, 'regionCode') : undefined;
     const coverFileId = hasCoverFileId ? this.parseNullableCoverFileIdStrict(body?.coverFileId, 'coverFileId') : undefined;
+    const title = hasTitle ? this.parseOptionalNonEmptyStringStrict(body?.title, 'title') : undefined;
     const summary = hasSummary ? this.parseNullableNonEmptyStringStrict(body?.summary, 'summary') : undefined;
     const description = hasDescription ? this.parseNullableNonEmptyStringStrict(body?.description, 'description') : undefined;
     const auditStatus = hasAuditStatus ? this.parseAuditStatusStrict(body?.auditStatus, 'auditStatus') : undefined;
@@ -753,7 +769,7 @@ export class AchievementsService {
         data: {
           publisherUserId: publisherUserId ?? undefined,
           source: hasSource ? source : undefined,
-          title: body?.title ?? undefined,
+          title: hasTitle ? title : undefined,
           summary: hasSummary ? summary : undefined,
           description: hasDescription ? description : undefined,
           maturity: hasMaturity ? maturity : undefined,
