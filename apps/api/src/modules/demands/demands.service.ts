@@ -391,12 +391,16 @@ export class DemandsService {
     const hasRegionCode = this.hasOwn(body, 'regionCode');
     const hasContactName = this.hasOwn(body, 'contactName');
     const hasContactTitle = this.hasOwn(body, 'contactTitle');
+    const hasContactPhone = this.hasOwn(body, 'contactPhoneMasked');
     const deliveryPeriod = hasDeliveryPeriod ? this.parseNullableDeliveryPeriodStrict(body?.deliveryPeriod, 'deliveryPeriod') : undefined;
     const budgetType = hasBudgetType ? this.parseNullablePriceTypeStrict(body?.budgetType, 'budgetType') : undefined;
     const regionCode = hasRegionCode ? this.parseNullableRegionCodeStrict(body?.regionCode, 'regionCode') : undefined;
     const coverFileId = hasCoverFileId ? this.parseNullableCoverFileIdStrict(body?.coverFileId, 'coverFileId') : undefined;
     const contactName = hasContactName ? this.parseNullableNonEmptyStringStrict(body?.contactName, 'contactName') : null;
     const contactTitle = hasContactTitle ? this.parseNullableNonEmptyStringStrict(body?.contactTitle, 'contactTitle') : null;
+    const contactPhoneMasked = hasContactPhone
+      ? this.parseNullableNonEmptyStringStrict(body?.contactPhoneMasked, 'contactPhoneMasked')
+      : null;
     const budgetMinFen = this.parseOptionalInt(body?.budgetMinFen, 'budgetMinFen', 0);
     const budgetMaxFen = this.parseOptionalInt(body?.budgetMaxFen, 'budgetMaxFen', 0);
     const mediaInput = normalizeMediaInput(body?.media);
@@ -417,7 +421,7 @@ export class DemandsService {
           budgetMaxFen: budgetMaxFen ?? null,
           contactName,
           contactTitle,
-          contactPhoneMasked: body?.contactPhoneMasked ? String(body.contactPhoneMasked) : null,
+          contactPhoneMasked,
           coverFileId: hasCoverFileId ? coverFileId : null,
           regionCode: hasRegionCode ? regionCode : null,
           industryTagsJson: industryTags.length > 0 ? industryTags : Prisma.DbNull,
@@ -474,6 +478,9 @@ export class DemandsService {
     const coverFileId = hasCoverFileId ? this.parseNullableCoverFileIdStrict(body?.coverFileId, 'coverFileId') : undefined;
     const contactName = hasContactName ? this.parseNullableNonEmptyStringStrict(body?.contactName, 'contactName') : undefined;
     const contactTitle = hasContactTitle ? this.parseNullableNonEmptyStringStrict(body?.contactTitle, 'contactTitle') : undefined;
+    const contactPhoneMasked = hasContactPhone
+      ? this.parseNullableNonEmptyStringStrict(body?.contactPhoneMasked, 'contactPhoneMasked')
+      : undefined;
     const budgetMinFen = this.parseOptionalInt(body?.budgetMinFen, 'budgetMinFen', 0);
     const budgetMaxFen = this.parseOptionalInt(body?.budgetMaxFen, 'budgetMaxFen', 0);
 
@@ -491,7 +498,7 @@ export class DemandsService {
           regionCode: hasRegionCode ? regionCode : undefined,
           contactName: hasContactName ? contactName : undefined,
           contactTitle: hasContactTitle ? contactTitle : undefined,
-          contactPhoneMasked: hasContactPhone ? (body?.contactPhoneMasked ? String(body.contactPhoneMasked) : null) : undefined,
+          contactPhoneMasked: hasContactPhone ? contactPhoneMasked : undefined,
           coverFileId: hasCoverFileId ? coverFileId : undefined,
           keywordsJson: hasKeywords ? (keywords && keywords.length > 0 ? keywords : Prisma.DbNull) : undefined,
           cooperationModesJson: hasCooperationModes
@@ -747,6 +754,7 @@ export class DemandsService {
     const hasCoverFileId = this.hasOwn(body, 'coverFileId');
     const hasContactName = this.hasOwn(body, 'contactName');
     const hasContactTitle = this.hasOwn(body, 'contactTitle');
+    const hasContactPhone = this.hasOwn(body, 'contactPhoneMasked');
     const ownerId = this.parseOptionalPublisherUserIdStrict(body) ?? String(req?.auth?.userId || '').trim();
     const keywords = normalizeStringArray(body?.keywords);
     const cooperationModes = normalizeStringArray(body?.cooperationModes);
@@ -757,6 +765,9 @@ export class DemandsService {
     const coverFileId = hasCoverFileId ? this.parseNullableCoverFileIdStrict(body?.coverFileId, 'coverFileId') : undefined;
     const contactName = hasContactName ? this.parseNullableNonEmptyStringStrict(body?.contactName, 'contactName') : null;
     const contactTitle = hasContactTitle ? this.parseNullableNonEmptyStringStrict(body?.contactTitle, 'contactTitle') : null;
+    const contactPhoneMasked = hasContactPhone
+      ? this.parseNullableNonEmptyStringStrict(body?.contactPhoneMasked, 'contactPhoneMasked')
+      : null;
     const budgetMinFen = this.parseOptionalInt(body?.budgetMinFen, 'budgetMinFen', 0);
     const budgetMaxFen = this.parseOptionalInt(body?.budgetMaxFen, 'budgetMaxFen', 0);
     const mediaInput = normalizeMediaInput(body?.media);
@@ -779,7 +790,7 @@ export class DemandsService {
           budgetMaxFen: budgetMaxFen ?? null,
           contactName,
           contactTitle,
-          contactPhoneMasked: body?.contactPhoneMasked ? String(body.contactPhoneMasked) : null,
+          contactPhoneMasked,
           coverFileId: hasCoverFileId ? coverFileId : null,
           regionCode: hasRegionCode ? regionCode : null,
           industryTagsJson: industryTags.length > 0 ? industryTags : Prisma.DbNull,
@@ -847,6 +858,9 @@ export class DemandsService {
     const coverFileId = hasCoverFileId ? this.parseNullableCoverFileIdStrict(body?.coverFileId, 'coverFileId') : undefined;
     const contactName = hasContactName ? this.parseNullableNonEmptyStringStrict(body?.contactName, 'contactName') : undefined;
     const contactTitle = hasContactTitle ? this.parseNullableNonEmptyStringStrict(body?.contactTitle, 'contactTitle') : undefined;
+    const contactPhoneMasked = hasContactPhone
+      ? this.parseNullableNonEmptyStringStrict(body?.contactPhoneMasked, 'contactPhoneMasked')
+      : undefined;
     const budgetMinFen = this.parseOptionalInt(body?.budgetMinFen, 'budgetMinFen', 0);
     const budgetMaxFen = this.parseOptionalInt(body?.budgetMaxFen, 'budgetMaxFen', 0);
     const auditStatus = hasAuditStatus ? this.parseAuditStatusStrict(body?.auditStatus, 'auditStatus') : undefined;
@@ -869,7 +883,7 @@ export class DemandsService {
           regionCode: hasRegionCode ? regionCode : undefined,
           contactName: hasContactName ? contactName : undefined,
           contactTitle: hasContactTitle ? contactTitle : undefined,
-          contactPhoneMasked: hasContactPhone ? (body?.contactPhoneMasked ? String(body.contactPhoneMasked) : null) : undefined,
+          contactPhoneMasked: hasContactPhone ? contactPhoneMasked : undefined,
           coverFileId: hasCoverFileId ? coverFileId : undefined,
           keywordsJson: hasKeywords ? (keywords && keywords.length > 0 ? keywords : Prisma.DbNull) : undefined,
           cooperationModesJson: hasCooperationModes
