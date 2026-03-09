@@ -390,6 +390,9 @@ export class CasesService {
     const existing = await this.prisma.csCaseEvidence.findFirst({ where: { caseId, fileId } });
     if (!existing) {
       const file = await this.prisma.file.findUnique({ where: { id: fileId } });
+      if (!file) {
+        throw new BadRequestException({ code: 'BAD_REQUEST', message: 'fileId is invalid' });
+      }
       const fileName = body?.fileName ? String(body.fileName) : file?.fileName || fileId;
       const url = body?.url ? String(body.url) : file?.url;
 
