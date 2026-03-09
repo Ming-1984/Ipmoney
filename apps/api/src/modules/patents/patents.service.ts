@@ -470,6 +470,8 @@ export class PatentsService {
     const publicationDate = hasPublicationDate ? this.parseDate(body?.publicationDate, 'publicationDate') : undefined;
     const hasGrantDate = this.hasOwn(body, 'grantDate');
     const grantDate = hasGrantDate ? this.parseDate(body?.grantDate, 'grantDate') : undefined;
+    const hasAbstract = this.hasOwn(body, 'abstract');
+    const abstract = hasAbstract ? String(body?.abstract ?? '').trim() : undefined;
 
     const upserted = await this.prisma.patent.upsert({
       where: {
@@ -484,7 +486,7 @@ export class PatentsService {
         applicationNoDisplay: applicationNoDisplay ?? normalizedNo.applicationNoDisplay,
         patentType,
         title,
-        abstract: body?.abstract ? String(body.abstract) : null,
+        abstract: abstract === undefined ? null : abstract || null,
         filingDate: filingDate ?? null,
         publicationDate: publicationDate ?? null,
         grantDate: grantDate ?? null,
@@ -496,7 +498,7 @@ export class PatentsService {
         applicationNoDisplay: applicationNoDisplay ?? normalizedNo.applicationNoDisplay,
         patentType,
         title,
-        abstract: body?.abstract ? String(body.abstract) : null,
+        abstract: hasAbstract ? abstract || null : undefined,
         filingDate: hasFilingDate ? (filingDate ?? null) : undefined,
         publicationDate: hasPublicationDate ? (publicationDate ?? null) : undefined,
         grantDate: hasGrantDate ? (grantDate ?? null) : undefined,
