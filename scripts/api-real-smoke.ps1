@@ -126,7 +126,7 @@ function Wait-Health([string]$Url, [int]$TimeoutSec = 45) {
 function Normalize-ResultBody {
   param(
     [string]$Raw,
-    [int]$MaxChars = 65536
+    [int]$MaxChars = 524288
   )
 
   if ([string]::IsNullOrEmpty($Raw)) {
@@ -2432,6 +2432,7 @@ try {
   $missingContractUploadId = [guid]::NewGuid().ToString()
   [void](Add-ApiCaseResult -Results $results -Name "contract-upload-unauthorized" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/contracts/$missingContractUploadId/upload" -Body @{ fileId = $evidenceFileId } -Headers @{} -Expected @(401))
   [void](Add-ApiCaseResult -Results $results -Name "contract-upload-missing-contract-id" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/contracts/$missingContractUploadId/upload" -Body @{ contractFileId = $evidenceFileId } -Headers (New-WriteHeaders -AuthorizationToken $userToken -Prefix $idempotencyPrefix -Label "contract-upload-missing-contract-id") -Expected @(404))
+  [void](Add-ApiCaseResult -Results $results -Name "contract-upload-forbidden-not-seller" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/contracts/$orderId/upload" -Body @{ contractFileId = $evidenceFileId } -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "contract-upload-forbidden-not-seller") -Expected @(403))
   [void](Add-ApiCaseResult -Results $results -Name "contract-upload-invalid-contract-id-format" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/contracts/not-a-uuid/upload" -Body @{ contractFileId = [guid]::NewGuid().ToString() } -Headers (New-WriteHeaders -AuthorizationToken $userToken -Prefix $idempotencyPrefix -Label "contract-upload-invalid-contract-id-format") -Expected @(400))
   [void](Add-ApiCaseResult -Results $results -Name "contract-upload-invalid-prefixed-contract-id-format" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/contracts/contract-not-a-uuid/upload" -Body @{ contractFileId = [guid]::NewGuid().ToString() } -Headers (New-WriteHeaders -AuthorizationToken $userToken -Prefix $idempotencyPrefix -Label "contract-upload-invalid-prefixed-contract-id-format") -Expected @(400))
   [void](Add-ApiCaseResult -Results $results -Name "contract-upload-invalid-contract-file-id-format" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/contracts/$orderId/upload" -Body @{ contractFileId = "not-a-uuid" } -Headers (New-WriteHeaders -AuthorizationToken $userToken -Prefix $idempotencyPrefix -Label "contract-upload-invalid-contract-file-id-format") -Expected @(400))
