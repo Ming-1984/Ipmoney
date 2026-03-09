@@ -708,7 +708,10 @@ export class OrdersService {
     }
 
     const paidAt = this.parseOptionalDateTime(body?.paidAt, 'paidAt') ?? new Date();
-    const tradeNo = String(body?.tradeNo || existingPayment?.tradeNo || `manual-${orderId}-${Date.now()}`);
+    const hasTradeNo = this.hasOwn(body, 'tradeNo');
+    const fallbackTradeNo = existingPayment?.tradeNo || `manual-${orderId}-${Date.now()}`;
+    const parsedTradeNo = hasTradeNo ? this.parseNullableNonEmptyStringStrict(body?.tradeNo, 'tradeNo') : undefined;
+    const tradeNo = hasTradeNo ? (parsedTradeNo ?? fallbackTradeNo) : fallbackTradeNo;
     const payment = existingPayment
       ? await this.prisma.payment.update({
           where: { id: existingPayment.id },
