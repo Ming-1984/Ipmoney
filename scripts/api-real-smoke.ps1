@@ -2463,6 +2463,8 @@ try {
   if ([string]::IsNullOrWhiteSpace($contractUploadFileUrl)) {
     Add-ResultAssertionFailure -Result $contractUpload -Assertion "contract-upload-file-url" -Message "Uploaded contract fileUrl is empty"
   }
+  $contractListWaitConfirm = Add-ApiCaseResult -Results $results -Name "contract-list-wait-confirm" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/contracts?status=WAIT_CONFIRM" -Body $null -Headers @{ Authorization = $userToken } -Expected @(200)
+  Assert-ResultJsonArrayItemFieldEquals -Result $contractListWaitConfirm -ArrayField "items" -MatchField "orderId" -MatchValue $orderId -TargetField "status" -ExpectedValue "WAIT_CONFIRM" -Assertion "contract-list-wait-confirm-status"
   [void](Add-ApiCaseResult -Results $results -Name "file-temporary-access-create-preview-unauthorized" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/files/$evidenceFileId/temporary-access" -Body @{ scope = "preview"; ttlSeconds = 600 } -Headers @{} -Expected @(401))
   $fileTemporaryAccess = Add-ApiCaseResult -Results $results -Name "file-temporary-access-create-preview" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/files/$evidenceFileId/temporary-access" -Body @{ scope = "preview"; ttlSeconds = 600 } -Headers (New-WriteHeaders -AuthorizationToken $userToken -Prefix $idempotencyPrefix -Label "file-temporary-access-create-preview") -Expected @(200, 201)
   Assert-ResultJsonFieldEquals -Result $fileTemporaryAccess -Field "scope" -ExpectedValue "preview" -Assertion "file-temporary-access-scope-preview"
