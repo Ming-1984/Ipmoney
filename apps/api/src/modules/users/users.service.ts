@@ -106,6 +106,19 @@ export class UsersService {
     return raw;
   }
 
+  private parseStringArrayNonEmptyStrict(value: unknown, fieldName: string): string[] {
+    if (!Array.isArray(value)) {
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: `${fieldName} is invalid` });
+    }
+    return value.map((item) => {
+      const raw = String(item ?? '').trim();
+      if (!raw) {
+        throw new BadRequestException({ code: 'BAD_REQUEST', message: `${fieldName} is invalid` });
+      }
+      return raw;
+    });
+  }
+
   private parsePositiveIntStrict(value: unknown, fieldName: string): number {
     const raw = String(value ?? '').trim();
     if (!raw) {
@@ -256,7 +269,8 @@ export class UsersService {
     if (!verificationType) throw new BadRequestException({ code: 'BAD_REQUEST', message: 'type is invalid' });
     if (!displayName) throw new BadRequestException({ code: 'BAD_REQUEST', message: 'displayName must not be empty' });
 
-    const evidenceFileIds = Array.isArray(input.evidenceFileIds) ? input.evidenceFileIds : [];
+    const hasEvidenceFileIds = this.hasOwn(input, 'evidenceFileIds');
+    const evidenceFileIds = hasEvidenceFileIds ? this.parseStringArrayNonEmptyStrict(input.evidenceFileIds, 'evidenceFileIds') : [];
     const needsEvidence = verificationType !== 'PERSON';
     if (needsEvidence && evidenceFileIds.length < 1) {
       throw new BadRequestException({ code: 'BAD_REQUEST', message: 'evidenceFileIds requires at least 1 item' });
