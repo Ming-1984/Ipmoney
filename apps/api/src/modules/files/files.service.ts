@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import { FileOwnerScope } from '@prisma/client';
 import { createReadStream, mkdirSync, readFileSync } from 'node:fs';
 import path from 'node:path';
@@ -39,6 +39,7 @@ const PUBLIC_HOST_WHITELIST = (process.env.PUBLIC_HOST_WHITELIST || '')
   .split(',')
   .map((v) => v.trim())
   .filter(Boolean);
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 export type FileAccessScope = 'download' | 'preview';
 
@@ -69,6 +70,14 @@ export class FilesService {
     }
     this.tempTokenSecret = FILE_TEMP_TOKEN_SECRET;
     this.tempTokenTtlSeconds = FILE_TEMP_TOKEN_TTL_SECONDS;
+  }
+
+  private parseUuidStrict(value: unknown, fieldName: string): string {
+    const raw = String(value ?? '').trim();
+    if (!raw || !UUID_RE.test(raw)) {
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: `${fieldName} is invalid` });
+    }
+    return raw;
   }
 
   isObjectStorageEnabled() {
@@ -212,8 +221,8 @@ export class FilesService {
   }
 
   async getFileById(fileId: string) {
-    if (!fileId) return null;
-    return await this.prisma.file.findUnique({ where: { id: fileId } });
+    const normalizedFileId = this.parseUuidStrict(fileId, 'fileId');
+    return await this.prisma.file.findUnique({ where: { id: normalizedFileId } });
   }
 
   async canAccessFile(fileId: string, userId: string, isAdmin: boolean) {
