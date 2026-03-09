@@ -12,6 +12,7 @@ const TASK_STATUS_SET = new Set<PatentMaintenanceTaskStatus>([
   'DONE',
   'CANCELLED',
 ]);
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 @Injectable()
 export class PatentMaintenanceService {
@@ -88,6 +89,17 @@ export class PatentMaintenanceService {
       throw new BadRequestException({ code: 'BAD_REQUEST', message: `${field} is invalid` });
     }
     return dt;
+  }
+
+  private parseUuidParam(value: string, field: string): string {
+    const raw = String(value || '').trim();
+    if (!raw || !UUID_RE.test(raw)) {
+      throw new BadRequestException({
+        code: 'BAD_REQUEST',
+        message: `${field} is invalid`,
+      });
+    }
+    return raw;
   }
 
   private toScheduleDto(item: any) {
@@ -220,8 +232,9 @@ export class PatentMaintenanceService {
   async getSchedule(req: any, scheduleId: string) {
     this.ensureAuth(req);
     requirePermission(req, 'maintenance.manage');
+    const normalizedScheduleId = this.parseUuidParam(scheduleId, 'scheduleId');
 
-    const item = await this.prisma.patentMaintenanceSchedule.findUnique({ where: { id: scheduleId } });
+    const item = await this.prisma.patentMaintenanceSchedule.findUnique({ where: { id: normalizedScheduleId } });
     if (!item) throw new NotFoundException({ code: 'NOT_FOUND', message: 'Schedule not found' });
 
     return this.toScheduleDto(item);
@@ -230,8 +243,9 @@ export class PatentMaintenanceService {
   async updateSchedule(req: any, scheduleId: string, body: any) {
     this.ensureAuth(req);
     requirePermission(req, 'maintenance.manage');
+    const normalizedScheduleId = this.parseUuidParam(scheduleId, 'scheduleId');
 
-    const existing = await this.prisma.patentMaintenanceSchedule.findUnique({ where: { id: scheduleId } });
+    const existing = await this.prisma.patentMaintenanceSchedule.findUnique({ where: { id: normalizedScheduleId } });
     if (!existing) throw new NotFoundException({ code: 'NOT_FOUND', message: 'Schedule not found' });
 
     const next: any = {};
@@ -249,13 +263,16 @@ export class PatentMaintenanceService {
       next.status = status;
     }
 
-    const updated = await this.prisma.patentMaintenanceSchedule.update({ where: { id: scheduleId }, data: next });
+    const updated = await this.prisma.patentMaintenanceSchedule.update({
+      where: { id: normalizedScheduleId },
+      data: next,
+    });
 
     void this.audit.log({
       actorUserId: req.auth.userId,
       action: 'MAINTENANCE_SCHEDULE_UPDATE',
       targetType: 'PATENT_MAINTENANCE_SCHEDULE',
-      targetId: scheduleId,
+      targetId: normalizedScheduleId,
       beforeJson: this.toScheduleDto(existing),
       afterJson: this.toScheduleDto(updated),
     });
@@ -356,8 +373,9 @@ export class PatentMaintenanceService {
   async updateTask(req: any, taskId: string, body: any) {
     this.ensureAuth(req);
     requirePermission(req, 'maintenance.manage');
+    const normalizedTaskId = this.parseUuidParam(taskId, 'taskId');
 
-    const existing = await this.prisma.patentMaintenanceTask.findUnique({ where: { id: taskId } });
+    const existing = await this.prisma.patentMaintenanceTask.findUnique({ where: { id: normalizedTaskId } });
     if (!existing) throw new NotFoundException({ code: 'NOT_FOUND', message: 'Task not found' });
 
     const next: any = {};
@@ -393,13 +411,16 @@ export class PatentMaintenanceService {
       }
     }
 
-    const updated = await this.prisma.patentMaintenanceTask.update({ where: { id: taskId }, data: next });
+    const updated = await this.prisma.patentMaintenanceTask.update({
+      where: { id: normalizedTaskId },
+      data: next,
+    });
 
     void this.audit.log({
       actorUserId: req.auth.userId,
       action: 'MAINTENANCE_TASK_UPDATE',
       targetType: 'PATENT_MAINTENANCE_TASK',
-      targetId: taskId,
+      targetId: normalizedTaskId,
       beforeJson: this.toTaskDto(existing),
       afterJson: this.toTaskDto(updated),
     });
