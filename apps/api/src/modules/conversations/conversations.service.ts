@@ -54,6 +54,7 @@ type ConversationMessageDto = {
 };
 
 type PagedConversationMessage = { items: ConversationMessageDto[]; nextCursor?: string | null };
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 @Injectable()
 export class ConversationsService {
@@ -84,6 +85,14 @@ export class ConversationsService {
     return parsed;
   }
 
+  private parseUuidStrict(value: unknown, fieldName: string): string {
+    const raw = String(value ?? '').trim();
+    if (!raw || !UUID_RE.test(raw)) {
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: `${fieldName} is invalid` });
+    }
+    return raw;
+  }
+
   private toConversationDto(conv: any, contentTitle?: string | null, listingTitle?: string | null): ConversationDto {
     return {
       id: conv.id,
@@ -102,8 +111,9 @@ export class ConversationsService {
   }
 
   private async resolveContentMeta(contentType: ConversationContentType, contentId: string) {
+    const normalizedContentId = this.parseUuidStrict(contentId, 'contentId');
     if (contentType === 'LISTING') {
-      const listing = await this.prisma.listing.findUnique({ where: { id: contentId } });
+      const listing = await this.prisma.listing.findUnique({ where: { id: normalizedContentId } });
       if (!listing) throw new NotFoundException({ code: 'NOT_FOUND', message: 'listing not found' });
       return {
         sellerUserId: listing.sellerUserId,
@@ -114,7 +124,7 @@ export class ConversationsService {
     }
 
     if (contentType === 'DEMAND') {
-      const demand = await this.prisma.demand.findUnique({ where: { id: contentId } });
+      const demand = await this.prisma.demand.findUnique({ where: { id: normalizedContentId } });
       if (!demand) throw new NotFoundException({ code: 'NOT_FOUND', message: 'demand not found' });
       return {
         sellerUserId: demand.publisherUserId,
@@ -123,7 +133,7 @@ export class ConversationsService {
     }
 
     if (contentType === 'ACHIEVEMENT') {
-      const achievement = await this.prisma.achievement.findUnique({ where: { id: contentId } });
+      const achievement = await this.prisma.achievement.findUnique({ where: { id: normalizedContentId } });
       if (!achievement) throw new NotFoundException({ code: 'NOT_FOUND', message: 'achievement not found' });
       return {
         sellerUserId: achievement.publisherUserId,
@@ -132,7 +142,7 @@ export class ConversationsService {
     }
 
     if (contentType === 'ARTWORK') {
-      const artwork = await this.prisma.artwork.findUnique({ where: { id: contentId } });
+      const artwork = await this.prisma.artwork.findUnique({ where: { id: normalizedContentId } });
       if (!artwork) throw new NotFoundException({ code: 'NOT_FOUND', message: 'artwork not found' });
       return {
         sellerUserId: artwork.sellerUserId,
@@ -142,7 +152,7 @@ export class ConversationsService {
 
     const verification = await this.prisma.userVerification.findFirst({
       where: {
-        userId: contentId,
+        userId: normalizedContentId,
         verificationType: 'TECH_MANAGER',
         verificationStatus: 'APPROVED',
       },
@@ -157,18 +167,22 @@ export class ConversationsService {
 
   private async upsertConversation(req: any, contentType: ConversationContentType, contentId: string) {
     this.ensureAuth(req);
+    const normalizedContentId = this.parseUuidStrict(contentId, 'contentId');
     const buyerUserId = req.auth.userId;
-    const { sellerUserId, contentTitle, listingId, listingTitle } = await this.resolveContentMeta(contentType, contentId);
+    const { sellerUserId, contentTitle, listingId, listingTitle } = await this.resolveContentMeta(
+      contentType,
+      normalizedContentId,
+    );
 
     let conversation = await this.prisma.conversation.findFirst({
-      where: { contentType, contentId, buyerUserId, sellerUserId },
+      where: { contentType, contentId: normalizedContentId, buyerUserId, sellerUserId },
     });
 
     if (!conversation) {
       conversation = await this.prisma.conversation.create({
         data: {
           contentType,
-          contentId,
+          contentId: normalizedContentId,
           listingId: listingId ?? null,
           buyerUserId,
           sellerUserId,
@@ -178,7 +192,7 @@ export class ConversationsService {
 
     if (contentType !== 'TECH_MANAGER') {
       const ct = contentType as 'LISTING' | 'DEMAND' | 'ACHIEVEMENT' | 'ARTWORK';
-      void this.events.recordConsult(req, ct, contentId).catch(() => {});
+      void this.events.recordConsult(req, ct, normalizedContentId).catch(() => {});
     }
 
     return this.toConversationDto(conversation, contentTitle, listingTitle);
@@ -322,13 +336,14 @@ export class ConversationsService {
 
   async listMessages(req: any, conversationId: string, _query: any): Promise<PagedConversationMessage> {
     this.ensureAuth(req);
-    const conv = await this.prisma.conversation.findUnique({ where: { id: conversationId } });
+    const normalizedConversationId = this.parseUuidStrict(conversationId, 'conversationId');
+    const conv = await this.prisma.conversation.findUnique({ where: { id: normalizedConversationId } });
     if (!conv) throw new NotFoundException({ code: 'NOT_FOUND', message: 'conversation not found' });
     if (conv.buyerUserId !== req.auth.userId && conv.sellerUserId !== req.auth.userId) {
       throw new ForbiddenException({ code: 'FORBIDDEN', message: 'forbidden' });
     }
     const messages = await this.prisma.conversationMessage.findMany({
-      where: { conversationId },
+      where: { conversationId: normalizedConversationId },
       orderBy: { createdAt: 'asc' },
     });
     return {
@@ -346,6 +361,7 @@ export class ConversationsService {
 
   async sendMessage(req: any, conversationId: string, body: any) {
     this.ensureAuth(req);
+    const normalizedConversationId = this.parseUuidStrict(conversationId, 'conversationId');
     const hasType = Object.prototype.hasOwnProperty.call(body || {}, 'type');
     const type = hasType ? String(body?.type ?? '').trim().toUpperCase() : 'TEXT';
     if (type !== 'TEXT' && type !== 'EMOJI') {
@@ -354,7 +370,7 @@ export class ConversationsService {
     const text = String(body?.text || '').trim();
     if (!text) throw new BadRequestException({ code: 'BAD_REQUEST', message: 'text is required' });
 
-    const conv = await this.prisma.conversation.findUnique({ where: { id: conversationId } });
+    const conv = await this.prisma.conversation.findUnique({ where: { id: normalizedConversationId } });
     if (!conv) throw new NotFoundException({ code: 'NOT_FOUND', message: 'conversation not found' });
     if (conv.buyerUserId !== req.auth.userId && conv.sellerUserId !== req.auth.userId) {
       throw new ForbiddenException({ code: 'FORBIDDEN', message: 'forbidden' });
@@ -362,7 +378,7 @@ export class ConversationsService {
 
     const msg = await this.prisma.conversationMessage.create({
       data: {
-        conversationId,
+        conversationId: normalizedConversationId,
         senderUserId: req.auth.userId,
         type: type as ConversationMessageType,
         text,
@@ -370,7 +386,7 @@ export class ConversationsService {
     });
 
     await this.prisma.conversation.update({
-      where: { id: conversationId },
+      where: { id: normalizedConversationId },
       data: { lastMessageAt: msg.createdAt },
     });
 
@@ -386,8 +402,9 @@ export class ConversationsService {
 
   async markRead(req: any, conversationId: string) {
     this.ensureAuth(req);
+    const normalizedConversationId = this.parseUuidStrict(conversationId, 'conversationId');
     const participant = await this.prisma.conversationParticipant.findFirst({
-      where: { conversationId, userId: req.auth.userId },
+      where: { conversationId: normalizedConversationId, userId: req.auth.userId },
     });
     if (participant) {
       await this.prisma.conversationParticipant.update({
@@ -396,7 +413,7 @@ export class ConversationsService {
       });
     } else {
       await this.prisma.conversationParticipant.create({
-        data: { conversationId, userId: req.auth.userId, lastReadAt: new Date() },
+        data: { conversationId: normalizedConversationId, userId: req.auth.userId, lastReadAt: new Date() },
       });
     }
     return { ok: true };
