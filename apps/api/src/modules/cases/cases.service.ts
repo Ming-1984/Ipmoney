@@ -358,9 +358,7 @@ export class CasesService {
     requirePermission(req, 'case.manage');
     const content = String(body?.note || '').trim();
     if (!content) {
-      const item = await this.fetchCase(caseId);
-      if (!item) throw new NotFoundException({ code: 'NOT_FOUND', message: '工单不存在' });
-      return this.toCaseRecord(item);
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: 'note is required' });
     }
 
     await this.ensureCaseExists(caseId);
