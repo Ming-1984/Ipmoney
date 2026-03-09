@@ -7,6 +7,7 @@ import { PrismaService } from '../../common/prisma/prisma.service';
 import { buildPublisherMap, mapStats } from '../content-utils';
 
 type Paged<T> = { items: T[]; page: { page: number; pageSize: number; total: number } };
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 @Injectable()
 export class FavoritesService {
@@ -33,6 +34,14 @@ export class FavoritesService {
       throw new BadRequestException({ code: 'BAD_REQUEST', message: `${fieldName} is invalid` });
     }
     return parsed;
+  }
+
+  private parseUuidStrict(value: unknown, fieldName: string): string {
+    const raw = String(value ?? '').trim();
+    if (!raw || !UUID_RE.test(raw)) {
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: `${fieldName} is invalid` });
+    }
+    return raw;
   }
 
   private parsePagination(query: any) {
@@ -243,14 +252,15 @@ export class FavoritesService {
 
   async favoriteListing(req: any, listingId: string) {
     this.ensureAuth(req);
-    const listing = await this.prisma.listing.findUnique({ where: { id: listingId } });
+    const normalizedListingId = this.parseUuidStrict(listingId, 'listingId');
+    const listing = await this.prisma.listing.findUnique({ where: { id: normalizedListingId } });
     if (!listing) throw new NotFoundException({ code: 'NOT_FOUND', message: 'listing not found' });
     try {
       await this.prisma.listingFavorite.create({
-        data: { listingId, userId: req.auth.userId },
+        data: { listingId: normalizedListingId, userId: req.auth.userId },
       });
-      await this.events.adjustFavoriteCount('LISTING', listingId, 1);
-      void this.events.recordFavorite(req, 'LISTING', listingId).catch(() => {});
+      await this.events.adjustFavoriteCount('LISTING', normalizedListingId, 1);
+      void this.events.recordFavorite(req, 'LISTING', normalizedListingId).catch(() => {});
     } catch (e: any) {
       if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2002') {
         return { ok: true };
@@ -262,23 +272,27 @@ export class FavoritesService {
 
   async unfavoriteListing(req: any, listingId: string) {
     this.ensureAuth(req);
-    const removed = await this.prisma.listingFavorite.deleteMany({ where: { listingId, userId: req.auth.userId } });
+    const normalizedListingId = this.parseUuidStrict(listingId, 'listingId');
+    const removed = await this.prisma.listingFavorite.deleteMany({
+      where: { listingId: normalizedListingId, userId: req.auth.userId },
+    });
     if (removed.count > 0) {
-      await this.events.adjustFavoriteCount('LISTING', listingId, -1);
+      await this.events.adjustFavoriteCount('LISTING', normalizedListingId, -1);
     }
     return { ok: true };
   }
 
   async favoriteDemand(req: any, demandId: string) {
     this.ensureAuth(req);
-    const demand = await this.prisma.demand.findUnique({ where: { id: demandId } });
+    const normalizedDemandId = this.parseUuidStrict(demandId, 'demandId');
+    const demand = await this.prisma.demand.findUnique({ where: { id: normalizedDemandId } });
     if (!demand) throw new NotFoundException({ code: 'NOT_FOUND', message: '闇€姹備笉瀛樺湪' });
     try {
       await this.prisma.demandFavorite.create({
-        data: { demandId, userId: req.auth.userId },
+        data: { demandId: normalizedDemandId, userId: req.auth.userId },
       });
-      await this.events.adjustFavoriteCount('DEMAND', demandId, 1);
-      void this.events.recordFavorite(req, 'DEMAND', demandId).catch(() => {});
+      await this.events.adjustFavoriteCount('DEMAND', normalizedDemandId, 1);
+      void this.events.recordFavorite(req, 'DEMAND', normalizedDemandId).catch(() => {});
     } catch (e: any) {
       if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2002') {
         return { ok: true };
@@ -290,23 +304,27 @@ export class FavoritesService {
 
   async unfavoriteDemand(req: any, demandId: string) {
     this.ensureAuth(req);
-    const removed = await this.prisma.demandFavorite.deleteMany({ where: { demandId, userId: req.auth.userId } });
+    const normalizedDemandId = this.parseUuidStrict(demandId, 'demandId');
+    const removed = await this.prisma.demandFavorite.deleteMany({
+      where: { demandId: normalizedDemandId, userId: req.auth.userId },
+    });
     if (removed.count > 0) {
-      await this.events.adjustFavoriteCount('DEMAND', demandId, -1);
+      await this.events.adjustFavoriteCount('DEMAND', normalizedDemandId, -1);
     }
     return { ok: true };
   }
 
   async favoriteAchievement(req: any, achievementId: string) {
     this.ensureAuth(req);
-    const achievement = await this.prisma.achievement.findUnique({ where: { id: achievementId } });
+    const normalizedAchievementId = this.parseUuidStrict(achievementId, 'achievementId');
+    const achievement = await this.prisma.achievement.findUnique({ where: { id: normalizedAchievementId } });
     if (!achievement) throw new NotFoundException({ code: 'NOT_FOUND', message: '鎴愭灉涓嶅瓨鍦?' });
     try {
       await this.prisma.achievementFavorite.create({
-        data: { achievementId, userId: req.auth.userId },
+        data: { achievementId: normalizedAchievementId, userId: req.auth.userId },
       });
-      await this.events.adjustFavoriteCount('ACHIEVEMENT', achievementId, 1);
-      void this.events.recordFavorite(req, 'ACHIEVEMENT', achievementId).catch(() => {});
+      await this.events.adjustFavoriteCount('ACHIEVEMENT', normalizedAchievementId, 1);
+      void this.events.recordFavorite(req, 'ACHIEVEMENT', normalizedAchievementId).catch(() => {});
     } catch (e: any) {
       if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2002') {
         return { ok: true };
@@ -318,23 +336,27 @@ export class FavoritesService {
 
   async unfavoriteAchievement(req: any, achievementId: string) {
     this.ensureAuth(req);
-    const removed = await this.prisma.achievementFavorite.deleteMany({ where: { achievementId, userId: req.auth.userId } });
+    const normalizedAchievementId = this.parseUuidStrict(achievementId, 'achievementId');
+    const removed = await this.prisma.achievementFavorite.deleteMany({
+      where: { achievementId: normalizedAchievementId, userId: req.auth.userId },
+    });
     if (removed.count > 0) {
-      await this.events.adjustFavoriteCount('ACHIEVEMENT', achievementId, -1);
+      await this.events.adjustFavoriteCount('ACHIEVEMENT', normalizedAchievementId, -1);
     }
     return { ok: true };
   }
 
   async favoriteArtwork(req: any, artworkId: string) {
     this.ensureAuth(req);
-    const artwork = await this.prisma.artwork.findUnique({ where: { id: artworkId } });
+    const normalizedArtworkId = this.parseUuidStrict(artworkId, 'artworkId');
+    const artwork = await this.prisma.artwork.findUnique({ where: { id: normalizedArtworkId } });
     if (!artwork) throw new NotFoundException({ code: 'NOT_FOUND', message: '浣滃搧涓嶅瓨鍦?' });
     try {
       await this.prisma.artworkFavorite.create({
-        data: { artworkId, userId: req.auth.userId },
+        data: { artworkId: normalizedArtworkId, userId: req.auth.userId },
       });
-      await this.events.adjustFavoriteCount('ARTWORK', artworkId, 1);
-      void this.events.recordFavorite(req, 'ARTWORK', artworkId).catch(() => {});
+      await this.events.adjustFavoriteCount('ARTWORK', normalizedArtworkId, 1);
+      void this.events.recordFavorite(req, 'ARTWORK', normalizedArtworkId).catch(() => {});
     } catch (e: any) {
       if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2002') {
         return { ok: true };
@@ -346,9 +368,12 @@ export class FavoritesService {
 
   async unfavoriteArtwork(req: any, artworkId: string) {
     this.ensureAuth(req);
-    const removed = await this.prisma.artworkFavorite.deleteMany({ where: { artworkId, userId: req.auth.userId } });
+    const normalizedArtworkId = this.parseUuidStrict(artworkId, 'artworkId');
+    const removed = await this.prisma.artworkFavorite.deleteMany({
+      where: { artworkId: normalizedArtworkId, userId: req.auth.userId },
+    });
     if (removed.count > 0) {
-      await this.events.adjustFavoriteCount('ARTWORK', artworkId, -1);
+      await this.events.adjustFavoriteCount('ARTWORK', normalizedArtworkId, -1);
     }
     return { ok: true };
   }
