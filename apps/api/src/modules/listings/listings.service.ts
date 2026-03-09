@@ -1026,6 +1026,7 @@ export class ListingsService {
     const hasAuditStatus = this.hasOwn(body, 'auditStatus');
     const hasStatus = this.hasOwn(body, 'status');
     const hasSellerUserId = this.hasOwn(body, 'sellerUserId');
+    const hasTitle = this.hasOwn(body, 'title');
 
     const source = hasSource ? this.parseContentSourceStrict(body?.source, 'source') : 'ADMIN';
     const tradeMode = hasTradeMode ? this.parseTradeModeStrict(body?.tradeMode, 'tradeMode') : 'ASSIGNMENT';
@@ -1077,12 +1078,15 @@ export class ListingsService {
     const encumbranceNote = hasEncumbranceNote
       ? this.parseNullableNonEmptyStringStrict(body?.encumbranceNote, 'encumbranceNote')
       : null;
+    const fallbackTitle = patent?.title || 'Listing';
+    const parsedTitle = hasTitle ? this.parseNullableNonEmptyStringStrict(body?.title, 'title') : undefined;
+    const title = hasTitle ? (parsedTitle ?? fallbackTitle) : fallbackTitle;
     const listing = await this.prisma.listing.create({
       data: {
         sellerUserId,
         source,
         patentId: patent?.id ?? null,
-        title: body?.title || patent?.title || 'Listing',
+        title,
         summary: body?.summary || null,
         tradeMode,
         licenseMode,
@@ -1175,14 +1179,16 @@ export class ListingsService {
     const hasStatus = this.hasOwn(body, 'status');
     const status = hasStatus ? this.parseListingStatusStrict(body?.status, 'status') : undefined;
     const hasSellerUserId = this.hasOwn(body, 'sellerUserId');
+    const hasTitle = this.hasOwn(body, 'title');
     const sellerUserId = hasSellerUserId ? this.parseNonEmptyFilterStrict(body?.sellerUserId, 'sellerUserId') : listing.sellerUserId;
+    const parsedTitle = hasTitle ? this.parseNullableNonEmptyStringStrict(body?.title, 'title') : undefined;
     const updated = await this.prisma.listing.update({
       where: { id: listingId },
       data: {
         sellerUserId,
         source: hasSource ? source : listing.source,
         patentId: patentId ?? null,
-        title: body?.title ?? listing.title,
+        title: hasTitle ? (parsedTitle ?? listing.title) : listing.title,
         summary: body?.summary ?? listing.summary,
         tradeMode: hasTradeMode ? tradeMode : listing.tradeMode,
         licenseMode: hasLicenseMode ? licenseMode : listing.licenseMode,
@@ -1535,6 +1541,7 @@ export class ListingsService {
     const hasExistingLicenseStatus = this.hasOwn(body, 'existingLicenseStatus');
     const hasRegionCode = this.hasOwn(body, 'regionCode');
     const hasClusterId = this.hasOwn(body, 'clusterId');
+    const hasTitle = this.hasOwn(body, 'title');
     const tradeMode = hasTradeMode ? this.parseTradeModeStrict(body?.tradeMode, 'tradeMode') : 'ASSIGNMENT';
     const licenseMode = hasLicenseMode ? this.parseNullableLicenseModeStrict(body?.licenseMode, 'licenseMode') : null;
     const priceType = hasPriceType ? this.parsePriceTypeStrict(body?.priceType, 'priceType') : 'NEGOTIABLE';
@@ -1575,12 +1582,15 @@ export class ListingsService {
     const encumbranceNote = hasEncumbranceNote
       ? this.parseNullableNonEmptyStringStrict(body?.encumbranceNote, 'encumbranceNote')
       : null;
+    const fallbackTitle = patent?.title || 'Listing';
+    const parsedTitle = hasTitle ? this.parseNullableNonEmptyStringStrict(body?.title, 'title') : undefined;
+    const title = hasTitle ? (parsedTitle ?? fallbackTitle) : fallbackTitle;
     const listing = await this.prisma.listing.create({
       data: {
         sellerUserId: req.auth.userId,
         source: 'USER',
         patentId: patent?.id ?? null,
-        title: body?.title || patent?.title || 'Listing',
+        title,
         summary: body?.summary || null,
         tradeMode,
         licenseMode,
@@ -1665,11 +1675,13 @@ export class ListingsService {
     const priceAmountFen = hasPriceAmountFen ? this.parseOptionalInt(body?.priceAmountFen, 'priceAmountFen', 0) : undefined;
     const hasDepositAmountFen = this.hasOwn(body, 'depositAmountFen');
     const depositAmountFen = hasDepositAmountFen ? this.parseOptionalInt(body?.depositAmountFen, 'depositAmountFen', 0) : undefined;
+    const hasTitle = this.hasOwn(body, 'title');
+    const parsedTitle = hasTitle ? this.parseNullableNonEmptyStringStrict(body?.title, 'title') : undefined;
     const updated = await this.prisma.listing.update({
       where: { id: listingId },
       data: {
         patentId: patentId ?? null,
-        title: body?.title ?? listing.title,
+        title: hasTitle ? (parsedTitle ?? listing.title) : listing.title,
         summary: body?.summary ?? listing.summary,
         tradeMode: hasTradeMode ? tradeMode : listing.tradeMode,
         licenseMode: hasLicenseMode ? licenseMode : listing.licenseMode,
