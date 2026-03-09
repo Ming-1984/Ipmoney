@@ -137,7 +137,10 @@ export class ArtworksService {
   }
 
   private parseOptionalNonEmptyStringStrict(value: unknown, fieldName: string): string | undefined {
-    if (value === null || value === undefined) return undefined;
+    if (value === undefined) return undefined;
+    if (value === null) {
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: `${fieldName} is invalid` });
+    }
     const raw = String(value).trim();
     if (!raw) {
       throw new BadRequestException({ code: 'BAD_REQUEST', message: `${fieldName} is invalid` });
