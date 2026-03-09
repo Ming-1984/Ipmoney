@@ -7,6 +7,7 @@ type AnnouncementStatus = 'DRAFT' | 'PUBLISHED' | 'OFF_SHELF';
 type RelatedPatent = { name: string; patentNo: string };
 
 const STATUS_SET = new Set<AnnouncementStatus>(['DRAFT', 'PUBLISHED', 'OFF_SHELF']);
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 function normalizeTags(input: unknown): string[] {
   if (Array.isArray(input)) {
@@ -71,6 +72,14 @@ export class AnnouncementsService {
     return raw;
   }
 
+  private parseUuidStrict(value: unknown, fieldName: string): string {
+    const raw = String(value ?? '').trim();
+    if (!raw || !UUID_RE.test(raw)) {
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: `${fieldName} is invalid` });
+    }
+    return raw;
+  }
+
   private toDto(item: any) {
     const createdAt = item.createdAt ? item.createdAt.toISOString() : new Date().toISOString();
     const publishedAt = item.publishedAt ? item.publishedAt.toISOString() : null;
@@ -112,7 +121,8 @@ export class AnnouncementsService {
   }
 
   async getById(id: string) {
-    const item = await this.prisma.announcement.findUnique({ where: { id } });
+    const normalizedId = this.parseUuidStrict(id, 'announcementId');
+    const item = await this.prisma.announcement.findUnique({ where: { id: normalizedId } });
     if (!item) throw new NotFoundException({ code: 'NOT_FOUND', message: '公告不存在' });
     if (item.status && item.status !== 'PUBLISHED') {
       throw new NotFoundException({ code: 'NOT_FOUND', message: '公告不存在' });
@@ -181,7 +191,8 @@ export class AnnouncementsService {
   }
 
   async adminUpdate(request: any, id: string, payload: any) {
-    const existing = await this.prisma.announcement.findUnique({ where: { id } });
+    const normalizedId = this.parseUuidStrict(id, 'announcementId');
+    const existing = await this.prisma.announcement.findUnique({ where: { id: normalizedId } });
     if (!existing) throw new NotFoundException({ code: 'NOT_FOUND', message: '公告不存在' });
 
     const existingStatus = STATUS_SET.has(String(existing.status).toUpperCase() as AnnouncementStatus)
@@ -212,7 +223,7 @@ export class AnnouncementsService {
       if (status === 'PUBLISHED' && !existing.publishedAt) next.publishedAt = new Date();
     }
 
-    const updated = await this.prisma.announcement.update({ where: { id }, data: next });
+    const updated = await this.prisma.announcement.update({ where: { id: normalizedId }, data: next });
     void this.audit.log({
       actorUserId: request?.auth?.userId,
       action: 'ANNOUNCEMENT_UPDATE',
@@ -225,10 +236,11 @@ export class AnnouncementsService {
   }
 
   async adminPublish(request: any, id: string) {
-    const existing = await this.prisma.announcement.findUnique({ where: { id } });
+    const normalizedId = this.parseUuidStrict(id, 'announcementId');
+    const existing = await this.prisma.announcement.findUnique({ where: { id: normalizedId } });
     if (!existing) throw new NotFoundException({ code: 'NOT_FOUND', message: '公告不存在' });
     const updated = await this.prisma.announcement.update({
-      where: { id },
+      where: { id: normalizedId },
       data: { status: 'PUBLISHED' as any, publishedAt: existing.publishedAt ?? new Date() },
     });
     void this.audit.log({
@@ -243,10 +255,11 @@ export class AnnouncementsService {
   }
 
   async adminOffShelf(request: any, id: string) {
-    const existing = await this.prisma.announcement.findUnique({ where: { id } });
+    const normalizedId = this.parseUuidStrict(id, 'announcementId');
+    const existing = await this.prisma.announcement.findUnique({ where: { id: normalizedId } });
     if (!existing) throw new NotFoundException({ code: 'NOT_FOUND', message: '公告不存在' });
     const updated = await this.prisma.announcement.update({
-      where: { id },
+      where: { id: normalizedId },
       data: { status: 'OFF_SHELF' as any },
     });
     void this.audit.log({
@@ -261,14 +274,15 @@ export class AnnouncementsService {
   }
 
   async adminDelete(request: any, id: string) {
-    const existing = await this.prisma.announcement.findUnique({ where: { id } });
+    const normalizedId = this.parseUuidStrict(id, 'announcementId');
+    const existing = await this.prisma.announcement.findUnique({ where: { id: normalizedId } });
     if (!existing) throw new NotFoundException({ code: 'NOT_FOUND', message: '公告不存在' });
-    await this.prisma.announcement.delete({ where: { id } });
+    await this.prisma.announcement.delete({ where: { id: normalizedId } });
     void this.audit.log({
       actorUserId: request?.auth?.userId,
       action: 'ANNOUNCEMENT_DELETE',
       targetType: 'ANNOUNCEMENT',
-      targetId: id,
+      targetId: normalizedId,
       beforeJson: { status: existing.status, title: existing.title },
     });
     return { ok: true };
