@@ -1405,6 +1405,20 @@ try {
   [void](Add-ApiCaseResult -Results $results -Name "listing-create-empty-region-code" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/listings" -Body @{ title = "Smoke User Listing Empty Region"; regionCode = "" } -Headers (New-WriteHeaders -AuthorizationToken $userToken -Prefix $idempotencyPrefix -Label "listing-create-empty-region-code") -Expected @(400))
   [void](Add-ApiCaseResult -Results $results -Name "listing-create-empty-cluster-id" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/listings" -Body @{ title = "Smoke User Listing Empty Cluster"; clusterId = "" } -Headers (New-WriteHeaders -AuthorizationToken $userToken -Prefix $idempotencyPrefix -Label "listing-create-empty-cluster-id") -Expected @(400))
   [void](Add-ApiCaseResult -Results $results -Name "listing-create-empty-title" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/listings" -Body @{ title = "" } -Headers (New-WriteHeaders -AuthorizationToken $userToken -Prefix $idempotencyPrefix -Label "listing-create-empty-title") -Expected @(400))
+  $listingInvalidTitlePatentSeq = (Get-Random -Minimum 1000000 -Maximum 10000000).ToString().PadLeft(7, '0')
+  $listingInvalidTitlePatentNoNorm = "20241$listingInvalidTitlePatentSeq" + "1"
+  $listingInvalidTitlePatentNo = "CN20241$listingInvalidTitlePatentSeq.1"
+  [void](Add-ApiCaseResult -Results $results -Name "listing-create-empty-title-with-patent-no-side-effect" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/listings" -Body @{ title = ""; patentNumberRaw = $listingInvalidTitlePatentNo; patentType = "INVENTION" } -Headers (New-WriteHeaders -AuthorizationToken $userToken -Prefix $idempotencyPrefix -Label "listing-create-empty-title-with-patent-no-side-effect") -Expected @(400))
+  $listingInvalidTitlePatentLookup = Add-ApiCaseResult -Results $results -Name "listing-create-empty-title-with-patent-no-side-effect-patent-lookup" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/admin/patents?q=$listingInvalidTitlePatentNoNorm" -Body $null -Headers @{ Authorization = $adminToken } -Expected @(200)
+  $listingInvalidTitlePatentLookupJson = Get-ResultJsonObject -Result $listingInvalidTitlePatentLookup
+  $listingInvalidTitlePatentLookupItems = @()
+  if ($listingInvalidTitlePatentLookupJson -and $listingInvalidTitlePatentLookupJson.items) {
+    $listingInvalidTitlePatentLookupItems = @($listingInvalidTitlePatentLookupJson.items)
+  }
+  $listingInvalidTitlePatentMatch = @($listingInvalidTitlePatentLookupItems | Where-Object { [string]$_.applicationNoNorm -eq $listingInvalidTitlePatentNoNorm } | Select-Object -First 1)[0]
+  if ($listingInvalidTitlePatentMatch) {
+    Add-ResultAssertionFailure -Result $listingInvalidTitlePatentLookup -Assertion "listing-create-empty-title-with-patent-no-side-effect-no-patent" -Message "Invalid listing create unexpectedly persisted patent '$listingInvalidTitlePatentNoNorm'"
+  }
   [void](Add-ApiCaseResult -Results $results -Name "listing-create-empty-summary" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/listings" -Body @{ title = "Smoke User Listing Empty Summary"; summary = "" } -Headers (New-WriteHeaders -AuthorizationToken $userToken -Prefix $idempotencyPrefix -Label "listing-create-empty-summary") -Expected @(400))
   [void](Add-ApiCaseResult -Results $results -Name "listing-create-invalid-price-amount" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/listings" -Body @{ title = "Smoke User Listing Invalid Price Amount"; priceAmountFen = -1 } -Headers (New-WriteHeaders -AuthorizationToken $userToken -Prefix $idempotencyPrefix -Label "listing-create-invalid-price-amount") -Expected @(400))
   [void](Add-ApiCaseResult -Results $results -Name "listing-create-invalid-deposit-amount" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/listings" -Body @{ title = "Smoke User Listing Invalid Deposit Amount"; depositAmountFen = -1 } -Headers (New-WriteHeaders -AuthorizationToken $userToken -Prefix $idempotencyPrefix -Label "listing-create-invalid-deposit-amount") -Expected @(400))
@@ -1967,6 +1981,20 @@ try {
   [void](Add-ApiCaseResult -Results $results -Name "admin-listing-update-empty-cluster-id" -Method "PATCH" -Url "http://127.0.0.1:$resolvedApiPort/admin/listings/$smokeAdminListingId" -Body @{ clusterId = "" } -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-listing-update-empty-cluster-id") -Expected @(400))
   [void](Add-ApiCaseResult -Results $results -Name "admin-listing-update-empty-seller-user-id" -Method "PATCH" -Url "http://127.0.0.1:$resolvedApiPort/admin/listings/$smokeAdminListingId" -Body @{ sellerUserId = "" } -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-listing-update-empty-seller-user-id") -Expected @(400))
   [void](Add-ApiCaseResult -Results $results -Name "admin-listing-update-empty-title" -Method "PATCH" -Url "http://127.0.0.1:$resolvedApiPort/admin/listings/$smokeAdminListingId" -Body @{ title = "" } -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-listing-update-empty-title") -Expected @(400))
+  $adminListingInvalidTitlePatentSeq = (Get-Random -Minimum 1000000 -Maximum 10000000).ToString().PadLeft(7, '0')
+  $adminListingInvalidTitlePatentNoNorm = "20241$adminListingInvalidTitlePatentSeq" + "1"
+  $adminListingInvalidTitlePatentNo = "CN20241$adminListingInvalidTitlePatentSeq.1"
+  [void](Add-ApiCaseResult -Results $results -Name "admin-listing-update-empty-title-with-patent-no-side-effect" -Method "PATCH" -Url "http://127.0.0.1:$resolvedApiPort/admin/listings/$smokeAdminListingId" -Body @{ title = ""; patentNumberRaw = $adminListingInvalidTitlePatentNo; patentType = "INVENTION" } -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-listing-update-empty-title-with-patent-no-side-effect") -Expected @(400))
+  $adminListingInvalidTitlePatentLookup = Add-ApiCaseResult -Results $results -Name "admin-listing-update-empty-title-with-patent-no-side-effect-patent-lookup" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/admin/patents?q=$adminListingInvalidTitlePatentNoNorm" -Body $null -Headers @{ Authorization = $adminToken } -Expected @(200)
+  $adminListingInvalidTitlePatentLookupJson = Get-ResultJsonObject -Result $adminListingInvalidTitlePatentLookup
+  $adminListingInvalidTitlePatentLookupItems = @()
+  if ($adminListingInvalidTitlePatentLookupJson -and $adminListingInvalidTitlePatentLookupJson.items) {
+    $adminListingInvalidTitlePatentLookupItems = @($adminListingInvalidTitlePatentLookupJson.items)
+  }
+  $adminListingInvalidTitlePatentMatch = @($adminListingInvalidTitlePatentLookupItems | Where-Object { [string]$_.applicationNoNorm -eq $adminListingInvalidTitlePatentNoNorm } | Select-Object -First 1)[0]
+  if ($adminListingInvalidTitlePatentMatch) {
+    Add-ResultAssertionFailure -Result $adminListingInvalidTitlePatentLookup -Assertion "admin-listing-update-empty-title-with-patent-no-side-effect-no-patent" -Message "Invalid admin listing update unexpectedly persisted patent '$adminListingInvalidTitlePatentNoNorm'"
+  }
   [void](Add-ApiCaseResult -Results $results -Name "admin-listing-update-empty-summary" -Method "PATCH" -Url "http://127.0.0.1:$resolvedApiPort/admin/listings/$smokeAdminListingId" -Body @{ summary = "" } -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-listing-update-empty-summary") -Expected @(400))
   [void](Add-ApiCaseResult -Results $results -Name "admin-listing-update-invalid-source" -Method "PATCH" -Url "http://127.0.0.1:$resolvedApiPort/admin/listings/$smokeAdminListingId" -Body @{ source = "INVALID" } -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-listing-update-invalid-source") -Expected @(400))
   [void](Add-ApiCaseResult -Results $results -Name "admin-listing-update-invalid-status" -Method "PATCH" -Url "http://127.0.0.1:$resolvedApiPort/admin/listings/$smokeAdminListingId" -Body @{ status = "INVALID" } -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-listing-update-invalid-status") -Expected @(400))

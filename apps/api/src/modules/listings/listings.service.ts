@@ -1050,16 +1050,6 @@ export class ListingsService {
     if (!sellerUserId) {
       throw new BadRequestException({ code: 'BAD_REQUEST', message: 'sellerUserId is required' });
     }
-    const patent = await this.ensurePatent(this.withPatentSourceFallback(body));
-    if (patent) {
-      await Promise.all([
-        this.syncPatentParties(patent.id, 'INVENTOR', body?.inventorNames),
-        this.syncPatentParties(patent.id, 'ASSIGNEE', body?.assigneeNames),
-        this.syncPatentParties(patent.id, 'APPLICANT', body?.applicantNames),
-        this.syncPatentClassifications(patent.id, 'IPC', body?.ipcCodes),
-        this.syncPatentClassifications(patent.id, 'LOC', body?.locCodes),
-      ]);
-    }
     const listingTopics = this.normalizeStringArray(body?.listingTopics ?? body?.listingTopic)
       .map((v: any) => String(v || '').trim().toUpperCase())
       .filter((v: any) => v.length > 0);
@@ -1079,10 +1069,20 @@ export class ListingsService {
     const encumbranceNote = hasEncumbranceNote
       ? this.parseNullableNonEmptyStringStrict(body?.encumbranceNote, 'encumbranceNote')
       : null;
-    const fallbackTitle = patent?.title || 'Listing';
     const parsedTitle = hasTitle ? this.parseNullableNonEmptyStringStrict(body?.title, 'title') : undefined;
-    const title = hasTitle ? (parsedTitle ?? fallbackTitle) : fallbackTitle;
     const parsedSummary = hasSummary ? this.parseNullableNonEmptyStringStrict(body?.summary, 'summary') : undefined;
+    const patent = await this.ensurePatent(this.withPatentSourceFallback(body));
+    if (patent) {
+      await Promise.all([
+        this.syncPatentParties(patent.id, 'INVENTOR', body?.inventorNames),
+        this.syncPatentParties(patent.id, 'ASSIGNEE', body?.assigneeNames),
+        this.syncPatentParties(patent.id, 'APPLICANT', body?.applicantNames),
+        this.syncPatentClassifications(patent.id, 'IPC', body?.ipcCodes),
+        this.syncPatentClassifications(patent.id, 'LOC', body?.locCodes),
+      ]);
+    }
+    const fallbackTitle = patent?.title || 'Listing';
+    const title = hasTitle ? (parsedTitle ?? fallbackTitle) : fallbackTitle;
     const summary = hasSummary ? parsedSummary : null;
     const listing = await this.prisma.listing.create({
       data: {
@@ -1124,10 +1124,6 @@ export class ListingsService {
     }
     let patentId = listing.patentId;
     const patentBody = this.withPatentSourceFallback(body);
-    if (body?.patentNumberRaw) {
-      const patent = await this.ensurePatent(patentBody);
-      if (patent) patentId = patent.id;
-    }
     const hasListingTopics = body?.listingTopics !== undefined || body?.listingTopic !== undefined;
     const listingTopics = hasListingTopics
       ? this.normalizeStringArray(body?.listingTopics ?? body?.listingTopic)
@@ -1187,6 +1183,10 @@ export class ListingsService {
     const sellerUserId = hasSellerUserId ? this.parseNonEmptyFilterStrict(body?.sellerUserId, 'sellerUserId') : listing.sellerUserId;
     const parsedTitle = hasTitle ? this.parseNullableNonEmptyStringStrict(body?.title, 'title') : undefined;
     const parsedSummary = hasSummary ? this.parseNullableNonEmptyStringStrict(body?.summary, 'summary') : undefined;
+    if (body?.patentNumberRaw) {
+      const patent = await this.ensurePatent(patentBody);
+      if (patent) patentId = patent.id;
+    }
     const updated = await this.prisma.listing.update({
       where: { id: listingId },
       data: {
@@ -1559,16 +1559,6 @@ export class ListingsService {
       : null;
     const regionCode = hasRegionCode ? this.parseNullableRegionCodeStrict(body?.regionCode, 'regionCode') : undefined;
     const clusterId = hasClusterId ? this.parseNullableRegionCodeStrict(body?.clusterId, 'clusterId') : undefined;
-    const patent = await this.ensurePatent(body);
-    if (patent) {
-      await Promise.all([
-        this.syncPatentParties(patent.id, 'INVENTOR', body?.inventorNames),
-        this.syncPatentParties(patent.id, 'ASSIGNEE', body?.assigneeNames),
-        this.syncPatentParties(patent.id, 'APPLICANT', body?.applicantNames),
-        this.syncPatentClassifications(patent.id, 'IPC', body?.ipcCodes),
-        this.syncPatentClassifications(patent.id, 'LOC', body?.locCodes),
-      ]);
-    }
     const listingTopics = this.normalizeStringArray(body?.listingTopics ?? body?.listingTopic)
       .map((v: any) => String(v || '').trim().toUpperCase())
       .filter((v: any) => v.length > 0);
@@ -1588,10 +1578,20 @@ export class ListingsService {
     const encumbranceNote = hasEncumbranceNote
       ? this.parseNullableNonEmptyStringStrict(body?.encumbranceNote, 'encumbranceNote')
       : null;
-    const fallbackTitle = patent?.title || 'Listing';
     const parsedTitle = hasTitle ? this.parseNullableNonEmptyStringStrict(body?.title, 'title') : undefined;
-    const title = hasTitle ? (parsedTitle ?? fallbackTitle) : fallbackTitle;
     const parsedSummary = hasSummary ? this.parseNullableNonEmptyStringStrict(body?.summary, 'summary') : undefined;
+    const patent = await this.ensurePatent(body);
+    if (patent) {
+      await Promise.all([
+        this.syncPatentParties(patent.id, 'INVENTOR', body?.inventorNames),
+        this.syncPatentParties(patent.id, 'ASSIGNEE', body?.assigneeNames),
+        this.syncPatentParties(patent.id, 'APPLICANT', body?.applicantNames),
+        this.syncPatentClassifications(patent.id, 'IPC', body?.ipcCodes),
+        this.syncPatentClassifications(patent.id, 'LOC', body?.locCodes),
+      ]);
+    }
+    const fallbackTitle = patent?.title || 'Listing';
+    const title = hasTitle ? (parsedTitle ?? fallbackTitle) : fallbackTitle;
     const summary = hasSummary ? parsedSummary : null;
     const listing = await this.prisma.listing.create({
       data: {
@@ -1632,10 +1632,6 @@ export class ListingsService {
       throw new NotFoundException({ code: 'NOT_FOUND', message: 'listing not found' });
     }
     let patentId = listing.patentId;
-    if (body?.patentNumberRaw) {
-      const patent = await this.ensurePatent(body);
-      if (patent) patentId = patent.id;
-    }
     const hasListingTopics = body?.listingTopics !== undefined || body?.listingTopic !== undefined;
     const listingTopics = hasListingTopics
       ? this.normalizeStringArray(body?.listingTopics ?? body?.listingTopic)
@@ -1687,6 +1683,10 @@ export class ListingsService {
     const hasSummary = this.hasOwn(body, 'summary');
     const parsedTitle = hasTitle ? this.parseNullableNonEmptyStringStrict(body?.title, 'title') : undefined;
     const parsedSummary = hasSummary ? this.parseNullableNonEmptyStringStrict(body?.summary, 'summary') : undefined;
+    if (body?.patentNumberRaw) {
+      const patent = await this.ensurePatent(body);
+      if (patent) patentId = patent.id;
+    }
     const updated = await this.prisma.listing.update({
       where: { id: listingId },
       data: {
