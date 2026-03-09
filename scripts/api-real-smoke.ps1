@@ -1064,6 +1064,7 @@ try {
     @{ name = "admin-comments"; method = "GET"; url = "http://127.0.0.1:$resolvedApiPort/admin/comments"; body = $null; headers = @{ Authorization = $adminToken }; expected = @(200) },
     @{ name = "admin-comments-invalid-content-type"; method = "GET"; url = "http://127.0.0.1:$resolvedApiPort/admin/comments?contentType=UNKNOWN"; body = $null; headers = @{ Authorization = $adminToken }; expected = @(400) },
     @{ name = "admin-comments-empty-content-id"; method = "GET"; url = "http://127.0.0.1:$resolvedApiPort/admin/comments?contentId="; body = $null; headers = @{ Authorization = $adminToken }; expected = @(400) },
+    @{ name = "admin-comments-invalid-content-id-format"; method = "GET"; url = "http://127.0.0.1:$resolvedApiPort/admin/comments?contentId=not-a-uuid"; body = $null; headers = @{ Authorization = $adminToken }; expected = @(400) },
     @{ name = "admin-comments-invalid-status"; method = "GET"; url = "http://127.0.0.1:$resolvedApiPort/admin/comments?status=UNKNOWN"; body = $null; headers = @{ Authorization = $adminToken }; expected = @(400) },
     @{ name = "admin-comments-invalid-page"; method = "GET"; url = "http://127.0.0.1:$resolvedApiPort/admin/comments?page=abc"; body = $null; headers = @{ Authorization = $adminToken }; expected = @(400) },
     @{ name = "admin-comments-empty-page-size"; method = "GET"; url = "http://127.0.0.1:$resolvedApiPort/admin/comments?pageSize="; body = $null; headers = @{ Authorization = $adminToken }; expected = @(400) },
@@ -1323,6 +1324,7 @@ try {
     [void](Add-ApiCaseResult -Results $results -Name "public-listing-comments-invalid-page" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/public/listings/$publicListingId/comments?page=abc" -Body $null -Headers @{} -Expected @(400))
     [void](Add-ApiCaseResult -Results $results -Name "public-listing-comments-empty-page-size" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/public/listings/$publicListingId/comments?pageSize=" -Body $null -Headers @{} -Expected @(400))
   }
+  [void](Add-ApiCaseResult -Results $results -Name "public-listing-comments-invalid-listing-id-format" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/public/listings/not-a-uuid/comments" -Body $null -Headers @{} -Expected @(400))
 
   $publicDemandItem = @($searchDemandsForPublic.items | Select-Object -First 1)[0]
   $publicDemandId = if ($publicDemandItem -and $publicDemandItem.id) { [string]$publicDemandItem.id } else { "" }
@@ -1330,6 +1332,7 @@ try {
     [void](Add-ApiCaseResult -Results $results -Name "public-demand-detail" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/public/demands/$publicDemandId" -Body $null -Headers @{} -Expected @(200))
     [void](Add-ApiCaseResult -Results $results -Name "public-demand-comments" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/public/demands/$publicDemandId/comments" -Body $null -Headers @{} -Expected @(200))
   }
+  [void](Add-ApiCaseResult -Results $results -Name "public-demand-comments-invalid-demand-id-format" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/public/demands/not-a-uuid/comments" -Body $null -Headers @{} -Expected @(400))
 
   $publicAchievementItem = @($searchAchievementsForPublic.items | Select-Object -First 1)[0]
   $publicAchievementId = if ($publicAchievementItem -and $publicAchievementItem.id) { [string]$publicAchievementItem.id } else { "" }
@@ -1337,6 +1340,7 @@ try {
     [void](Add-ApiCaseResult -Results $results -Name "public-achievement-detail" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/public/achievements/$publicAchievementId" -Body $null -Headers @{} -Expected @(200))
     [void](Add-ApiCaseResult -Results $results -Name "public-achievement-comments" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/public/achievements/$publicAchievementId/comments" -Body $null -Headers @{} -Expected @(200))
   }
+  [void](Add-ApiCaseResult -Results $results -Name "public-achievement-comments-invalid-achievement-id-format" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/public/achievements/not-a-uuid/comments" -Body $null -Headers @{} -Expected @(400))
 
   $publicArtworkItem = @($searchArtworksForPublic.items | Select-Object -First 1)[0]
   $publicArtworkId = if ($publicArtworkItem -and $publicArtworkItem.id) { [string]$publicArtworkItem.id } else { "" }
@@ -1344,6 +1348,7 @@ try {
     [void](Add-ApiCaseResult -Results $results -Name "public-artwork-detail" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/public/artworks/$publicArtworkId" -Body $null -Headers @{} -Expected @(200))
     [void](Add-ApiCaseResult -Results $results -Name "public-artwork-comments" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/public/artworks/$publicArtworkId/comments" -Body $null -Headers @{} -Expected @(200))
   }
+  [void](Add-ApiCaseResult -Results $results -Name "public-artwork-comments-invalid-artwork-id-format" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/public/artworks/not-a-uuid/comments" -Body $null -Headers @{} -Expected @(400))
 
   [void](Add-ApiCaseResult -Results $results -Name "public-tech-manager-detail" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/public/tech-managers/$techManagerId" -Body $null -Headers @{} -Expected @(200))
   [void](Add-ApiCaseResult -Results $results -Name "public-patent-clusters" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/public/patent-clusters" -Body $null -Headers @{} -Expected @(200))
@@ -3607,10 +3612,14 @@ try {
   if ([string]::IsNullOrWhiteSpace($listingCommentId)) { throw "listing-comment-create missing id" }
   [void](Add-ApiCaseResult -Results $results -Name "listing-comment-create-empty-text" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/listings/$listingId/comments" -Body @{ text = "" } -Headers (New-WriteHeaders -AuthorizationToken $userToken -Prefix $idempotencyPrefix -Label "comment-listing-empty") -Expected @(400))
   [void](Add-ApiCaseResult -Results $results -Name "listing-comment-create-empty-parent-comment-id" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/listings/$listingId/comments" -Body @{ text = "smoke listing comment empty parent"; parentCommentId = "" } -Headers (New-WriteHeaders -AuthorizationToken $userToken -Prefix $idempotencyPrefix -Label "comment-listing-empty-parent") -Expected @(400))
+  [void](Add-ApiCaseResult -Results $results -Name "listing-comment-create-invalid-listing-id-format" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/listings/not-a-uuid/comments" -Body @{ text = "smoke invalid listing comment route id format" } -Headers (New-WriteHeaders -AuthorizationToken $userToken -Prefix $idempotencyPrefix -Label "comment-listing-invalid-listing-id-format") -Expected @(400))
+  [void](Add-ApiCaseResult -Results $results -Name "listing-comment-create-invalid-parent-comment-id-format" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/listings/$listingId/comments" -Body @{ text = "smoke invalid parent comment id format"; parentCommentId = "not-a-uuid" } -Headers (New-WriteHeaders -AuthorizationToken $userToken -Prefix $idempotencyPrefix -Label "comment-listing-invalid-parent-id-format") -Expected @(400))
   [void](Add-ApiCaseResult -Results $results -Name "listing-comment-update-unauthorized" -Method "PATCH" -Url "http://127.0.0.1:$resolvedApiPort/comments/$listingCommentId" -Body @{ text = "smoke unauthorized listing comment update" } -Headers @{} -Expected @(401))
+  [void](Add-ApiCaseResult -Results $results -Name "listing-comment-update-invalid-comment-id-format" -Method "PATCH" -Url "http://127.0.0.1:$resolvedApiPort/comments/not-a-uuid" -Body @{ text = "smoke invalid comment id format update" } -Headers (New-WriteHeaders -AuthorizationToken $userToken -Prefix $idempotencyPrefix -Label "comment-update-invalid-comment-id-format") -Expected @(400))
   [void](Add-ApiCaseResult -Results $results -Name "listing-comment-update" -Method "PATCH" -Url "http://127.0.0.1:$resolvedApiPort/comments/$listingCommentId" -Body @{ text = "smoke listing comment updated $ReportDate" } -Headers (New-WriteHeaders -AuthorizationToken $userToken -Prefix $idempotencyPrefix -Label "comment-listing-update") -Expected @(200))
   [void](Add-ApiCaseResult -Results $results -Name "listing-comment-update-empty-text" -Method "PATCH" -Url "http://127.0.0.1:$resolvedApiPort/comments/$listingCommentId" -Body @{ text = "" } -Headers (New-WriteHeaders -AuthorizationToken $userToken -Prefix $idempotencyPrefix -Label "comment-listing-update-empty") -Expected @(400))
   [void](Add-ApiCaseResult -Results $results -Name "admin-comment-update-invalid-status" -Method "PATCH" -Url "http://127.0.0.1:$resolvedApiPort/admin/comments/$listingCommentId" -Body @{ status = "UNKNOWN" } -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-comment-update-invalid-status") -Expected @(400))
+  [void](Add-ApiCaseResult -Results $results -Name "admin-comment-update-invalid-comment-id-format" -Method "PATCH" -Url "http://127.0.0.1:$resolvedApiPort/admin/comments/not-a-uuid" -Body @{ status = "HIDDEN" } -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-comment-update-invalid-comment-id-format") -Expected @(400))
   $adminCommentHide = Add-ApiCaseResult -Results $results -Name "admin-comment-update-hidden" -Method "PATCH" -Url "http://127.0.0.1:$resolvedApiPort/admin/comments/$listingCommentId" -Body @{ status = "HIDDEN" } -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-comment-update-hidden") -Expected @(200)
   Assert-ResultJsonFieldEquals -Result $adminCommentHide -Field "status" -ExpectedValue "HIDDEN" -Assertion "admin-comment-update-hidden-status"
   $adminCommentsHiddenList = Add-ApiCaseResult -Results $results -Name "admin-comments-hidden-filter-after-update" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/admin/comments?contentId=$listingId&status=HIDDEN" -Body $null -Headers @{ Authorization = $adminToken } -Expected @(200)
@@ -3621,9 +3630,11 @@ try {
   Assert-ResultJsonArrayItemFieldEquals -Result $adminCommentsVisibleList -ArrayField "items" -MatchField "id" -MatchValue $listingCommentId -TargetField "status" -ExpectedValue "VISIBLE" -Assertion "admin-comments-visible-filter-has-comment"
   [void](Add-ApiCaseResult -Results $results -Name "admin-comment-update-missing" -Method "PATCH" -Url "http://127.0.0.1:$resolvedApiPort/admin/comments/$missingAdminCommentId" -Body @{ status = "HIDDEN" } -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-comment-update-missing") -Expected @(404))
   [void](Add-ApiCaseResult -Results $results -Name "listing-comment-delete-unauthorized" -Method "DELETE" -Url "http://127.0.0.1:$resolvedApiPort/comments/$listingCommentId" -Body $null -Headers @{} -Expected @(401))
+  [void](Add-ApiCaseResult -Results $results -Name "listing-comment-delete-invalid-comment-id-format" -Method "DELETE" -Url "http://127.0.0.1:$resolvedApiPort/comments/not-a-uuid" -Body $null -Headers (New-WriteHeaders -AuthorizationToken $userToken -Prefix $idempotencyPrefix -Label "comment-delete-invalid-comment-id-format") -Expected @(400))
   [void](Add-ApiCaseResult -Results $results -Name "listing-comment-delete" -Method "DELETE" -Url "http://127.0.0.1:$resolvedApiPort/comments/$listingCommentId" -Body $null -Headers (New-WriteHeaders -AuthorizationToken $userToken -Prefix $idempotencyPrefix -Label "comment-listing-delete") -Expected @(200))
 
   [void](Add-ApiCaseResult -Results $results -Name "demand-comment-create-unauthorized" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/demands/$demandId/comments" -Body @{ text = "smoke unauthorized demand comment" } -Headers @{} -Expected @(401))
+  [void](Add-ApiCaseResult -Results $results -Name "demand-comment-create-invalid-demand-id-format" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/demands/not-a-uuid/comments" -Body @{ text = "smoke invalid demand comment route id format" } -Headers (New-WriteHeaders -AuthorizationToken $userToken -Prefix $idempotencyPrefix -Label "comment-demand-invalid-demand-id-format") -Expected @(400))
   $demandCommentCreate = Add-ApiCaseResult -Results $results -Name "demand-comment-create" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/demands/$demandId/comments" -Body @{ text = "smoke demand comment $ReportDate" } -Headers (New-WriteHeaders -AuthorizationToken $userToken -Prefix $idempotencyPrefix -Label "comment-demand-create") -Expected @(200, 201)
   $demandCommentId = Get-ResultStringField -Result $demandCommentCreate -Field "id"
   if ([string]::IsNullOrWhiteSpace($demandCommentId)) { throw "demand-comment-create missing id" }
@@ -3631,6 +3642,7 @@ try {
   [void](Add-ApiCaseResult -Results $results -Name "demand-comment-delete" -Method "DELETE" -Url "http://127.0.0.1:$resolvedApiPort/comments/$demandCommentId" -Body $null -Headers (New-WriteHeaders -AuthorizationToken $userToken -Prefix $idempotencyPrefix -Label "comment-demand-delete") -Expected @(200))
 
   [void](Add-ApiCaseResult -Results $results -Name "achievement-comment-create-unauthorized" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/achievements/$achievementId/comments" -Body @{ text = "smoke unauthorized achievement comment" } -Headers @{} -Expected @(401))
+  [void](Add-ApiCaseResult -Results $results -Name "achievement-comment-create-invalid-achievement-id-format" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/achievements/not-a-uuid/comments" -Body @{ text = "smoke invalid achievement comment route id format" } -Headers (New-WriteHeaders -AuthorizationToken $userToken -Prefix $idempotencyPrefix -Label "comment-achievement-invalid-achievement-id-format") -Expected @(400))
   $achievementCommentCreate = Add-ApiCaseResult -Results $results -Name "achievement-comment-create" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/achievements/$achievementId/comments" -Body @{ text = "smoke achievement comment $ReportDate" } -Headers (New-WriteHeaders -AuthorizationToken $userToken -Prefix $idempotencyPrefix -Label "comment-achievement-create") -Expected @(200, 201)
   $achievementCommentId = Get-ResultStringField -Result $achievementCommentCreate -Field "id"
   if ([string]::IsNullOrWhiteSpace($achievementCommentId)) { throw "achievement-comment-create missing id" }
@@ -3638,6 +3650,7 @@ try {
   [void](Add-ApiCaseResult -Results $results -Name "achievement-comment-delete" -Method "DELETE" -Url "http://127.0.0.1:$resolvedApiPort/comments/$achievementCommentId" -Body $null -Headers (New-WriteHeaders -AuthorizationToken $userToken -Prefix $idempotencyPrefix -Label "comment-achievement-delete") -Expected @(200))
 
   [void](Add-ApiCaseResult -Results $results -Name "artwork-comment-create-unauthorized" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/artworks/$artworkId/comments" -Body @{ text = "smoke unauthorized artwork comment" } -Headers @{} -Expected @(401))
+  [void](Add-ApiCaseResult -Results $results -Name "artwork-comment-create-invalid-artwork-id-format" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/artworks/not-a-uuid/comments" -Body @{ text = "smoke invalid artwork comment route id format" } -Headers (New-WriteHeaders -AuthorizationToken $userToken -Prefix $idempotencyPrefix -Label "comment-artwork-invalid-artwork-id-format") -Expected @(400))
   $artworkCommentCreate = Add-ApiCaseResult -Results $results -Name "artwork-comment-create" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/artworks/$artworkId/comments" -Body @{ text = "smoke artwork comment $ReportDate" } -Headers (New-WriteHeaders -AuthorizationToken $userToken -Prefix $idempotencyPrefix -Label "comment-artwork-create") -Expected @(200, 201)
   $artworkCommentId = Get-ResultStringField -Result $artworkCommentCreate -Field "id"
   if ([string]::IsNullOrWhiteSpace($artworkCommentId)) { throw "artwork-comment-create missing id" }

@@ -32,6 +32,7 @@ type CommentThread = { root: CommentDto; replies: CommentDto[] };
 type PagedCommentThread = { items: CommentThread[]; page: { page: number; pageSize: number; total: number } };
 
 type PagedComment = { items: CommentDto[]; page: { page: number; pageSize: number; total: number } };
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 @Injectable()
 export class CommentsService {
@@ -65,13 +66,17 @@ export class CommentsService {
     return parsed;
   }
 
-  private parseNullableIdStrict(value: unknown, fieldName: string): string | null {
-    if (value === null) return null;
+  private parseUuidStrict(value: unknown, fieldName: string): string {
     const raw = String(value ?? '').trim();
-    if (!raw) {
+    if (!raw || !UUID_RE.test(raw)) {
       throw new BadRequestException({ code: 'BAD_REQUEST', message: `${fieldName} is invalid` });
     }
     return raw;
+  }
+
+  private parseNullableIdStrict(value: unknown, fieldName: string): string | null {
+    if (value === null) return null;
+    return this.parseUuidStrict(value, fieldName);
   }
 
   private normalizeContentType(value: any): CommentContentType | undefined {
@@ -127,10 +132,16 @@ export class CommentsService {
   }
 
   async listThreads(contentType: CommentContentType, contentId: string, query: any): Promise<PagedCommentThread> {
+    const normalizedContentId = this.parseUuidStrict(contentId, 'contentId');
     const page = this.hasOwn(query, 'page') ? this.parsePositiveIntStrict(query?.page, 'page') : 1;
     const pageSizeInput = this.hasOwn(query, 'pageSize') ? this.parsePositiveIntStrict(query?.pageSize, 'pageSize') : 20;
     const pageSize = Math.min(50, pageSizeInput);
-    const rootWhere = { contentType, contentId, status: 'VISIBLE' as CommentStatus, parentCommentId: null };
+    const rootWhere = {
+      contentType,
+      contentId: normalizedContentId,
+      status: 'VISIBLE' as CommentStatus,
+      parentCommentId: null,
+    };
 
     const [roots, total] = await Promise.all([
       this.prisma.comment.findMany({
@@ -145,7 +156,12 @@ export class CommentsService {
     const rootIds = roots.map((r) => r.id);
     const replies = rootIds.length
       ? await this.prisma.comment.findMany({
-          where: { contentType, contentId, status: 'VISIBLE' as CommentStatus, parentCommentId: { in: rootIds } },
+          where: {
+            contentType,
+            contentId: normalizedContentId,
+            status: 'VISIBLE' as CommentStatus,
+            parentCommentId: { in: rootIds },
+          },
           orderBy: { createdAt: 'asc' },
         })
       : [];
@@ -171,6 +187,7 @@ export class CommentsService {
 
   async createComment(req: any, contentType: CommentContentType, contentId: string, body: any): Promise<CommentDto> {
     this.ensureAuth(req);
+    const normalizedContentId = this.parseUuidStrict(contentId, 'contentId');
     const text = String(body?.text || '').trim();
     if (!text) throw new BadRequestException({ code: 'BAD_REQUEST', message: '内容不能为空' });
     const hasParentCommentId = this.hasOwn(body, 'parentCommentId');
@@ -183,7 +200,7 @@ export class CommentsService {
       if (!parent || parent.status === 'DELETED') {
         throw new NotFoundException({ code: 'NOT_FOUND', message: '评论不存在' });
       }
-      if (parent.contentType !== contentType || parent.contentId !== contentId) {
+      if (parent.contentType !== contentType || parent.contentId !== normalizedContentId) {
         throw new BadRequestException({ code: 'BAD_REQUEST', message: 'parentCommentId is invalid' });
       }
     }
@@ -191,7 +208,7 @@ export class CommentsService {
     const created = await this.prisma.comment.create({
       data: {
         contentType,
-        contentId,
+        contentId: normalizedContentId,
         parentCommentId,
         text,
         status: 'VISIBLE',
@@ -205,7 +222,8 @@ export class CommentsService {
 
   async editComment(req: any, commentId: string, body: any): Promise<CommentDto> {
     this.ensureAuth(req);
-    const comment = await this.prisma.comment.findUnique({ where: { id: commentId } });
+    const normalizedCommentId = this.parseUuidStrict(commentId, 'commentId');
+    const comment = await this.prisma.comment.findUnique({ where: { id: normalizedCommentId } });
     if (!comment || comment.status === 'DELETED') {
       throw new NotFoundException({ code: 'NOT_FOUND', message: '评论不存在' });
     }
@@ -214,21 +232,22 @@ export class CommentsService {
     }
     const text = String(body?.text || '').trim();
     if (!text) throw new BadRequestException({ code: 'BAD_REQUEST', message: '内容不能为空' });
-    const updated = await this.prisma.comment.update({ where: { id: commentId }, data: { text } });
+    const updated = await this.prisma.comment.update({ where: { id: normalizedCommentId }, data: { text } });
     const userMap = await this.buildUserBriefMap([comment.userId]);
     return this.toDto(updated, userMap.get(comment.userId));
   }
 
   async deleteComment(req: any, commentId: string) {
     this.ensureAuth(req);
-    const comment = await this.prisma.comment.findUnique({ where: { id: commentId } });
+    const normalizedCommentId = this.parseUuidStrict(commentId, 'commentId');
+    const comment = await this.prisma.comment.findUnique({ where: { id: normalizedCommentId } });
     if (!comment || comment.status === 'DELETED') {
       throw new NotFoundException({ code: 'NOT_FOUND', message: '评论不存在' });
     }
     if (comment.userId !== req.auth.userId) {
       throw new ForbiddenException({ code: 'FORBIDDEN', message: '无权限' });
     }
-    await this.prisma.comment.update({ where: { id: commentId }, data: { status: 'DELETED' } });
+    await this.prisma.comment.update({ where: { id: normalizedCommentId }, data: { status: 'DELETED' } });
     return { ok: true };
   }
 
@@ -243,7 +262,7 @@ export class CommentsService {
     const hasContentId = this.hasOwn(query, 'contentId');
     const contentType = hasContentType ? this.normalizeContentType(query?.contentType) : undefined;
     const status = hasStatus ? this.normalizeStatus(query?.status) : undefined;
-    const contentId = hasContentId ? String(query?.contentId ?? '').trim() : '';
+    const contentId = hasContentId ? this.parseUuidStrict(query?.contentId, 'contentId') : '';
 
     if (hasContentType && !contentType) {
       throw new BadRequestException({ code: 'BAD_REQUEST', message: 'contentType is invalid' });
@@ -251,10 +270,6 @@ export class CommentsService {
     if (hasStatus && !status) {
       throw new BadRequestException({ code: 'BAD_REQUEST', message: 'status is invalid' });
     }
-    if (hasContentId && !contentId) {
-      throw new BadRequestException({ code: 'BAD_REQUEST', message: 'contentId is invalid' });
-    }
-
     const where: any = {};
     if (contentType) where.contentType = contentType;
     if (contentId) where.contentId = contentId;
@@ -287,11 +302,12 @@ export class CommentsService {
 
   async adminUpdate(req: any, commentId: string, body: any): Promise<CommentDto> {
     this.ensureAdmin(req);
+    const normalizedCommentId = this.parseUuidStrict(commentId, 'commentId');
     const status = this.normalizeStatus(body?.status);
     if (!status) throw new BadRequestException({ code: 'BAD_REQUEST', message: 'status is invalid' });
-    const existing = await this.prisma.comment.findUnique({ where: { id: commentId } });
+    const existing = await this.prisma.comment.findUnique({ where: { id: normalizedCommentId } });
     if (!existing) throw new NotFoundException({ code: 'NOT_FOUND', message: '评论不存在' });
-    const updated = await this.prisma.comment.update({ where: { id: commentId }, data: { status } });
+    const updated = await this.prisma.comment.update({ where: { id: normalizedCommentId }, data: { status } });
     const userMap = await this.buildUserBriefMap([updated.userId]);
     return this.toDto(updated, userMap.get(updated.userId));
   }
