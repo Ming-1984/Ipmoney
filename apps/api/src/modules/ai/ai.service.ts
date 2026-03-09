@@ -9,6 +9,7 @@ const CONTENT_TYPES = ['LISTING', 'DEMAND', 'ACHIEVEMENT', 'ARTWORK'] as const;
 const CONTENT_SCOPES = ['LISTING', 'DEMAND', 'ACHIEVEMENT', 'ARTWORK', 'ALL'] as const;
 const PARSE_STATUS = ['ACTIVE', 'REVIEW_REQUIRED', 'REPLACED'] as const;
 const REGION_CODE_RE = /^[0-9]{6}$/;
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 @Injectable()
 export class AiService {
@@ -81,6 +82,14 @@ export class AiService {
   private parseRegionCodeStrict(value: unknown, fieldName: string): string {
     const raw = String(value ?? '').trim();
     if (!raw || !REGION_CODE_RE.test(raw)) {
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: `${fieldName} is invalid` });
+    }
+    return raw;
+  }
+
+  private parseUuidStrict(value: unknown, fieldName: string): string {
+    const raw = String(value ?? '').trim();
+    if (!raw || !UUID_RE.test(raw)) {
       throw new BadRequestException({ code: 'BAD_REQUEST', message: `${fieldName} is invalid` });
     }
     return raw;
@@ -380,6 +389,7 @@ export class AiService {
 
   async createFeedback(req: any, parseResultId: string, payload: any) {
     this.ensureAuth(req);
+    const normalizedParseResultId = this.parseUuidStrict(parseResultId, 'parseResultId');
 
     const rawScore = payload?.score;
     if (rawScore === undefined || rawScore === null || String(rawScore).trim() === '') {
@@ -389,7 +399,7 @@ export class AiService {
     if (!Number.isFinite(score) || !Number.isInteger(score) || score < 1 || score > 5) {
       throw new BadRequestException({ code: 'BAD_REQUEST', message: 'score must be an integer between 1 and 5' });
     }
-    const parseResult = await this.prisma.aiParseResult.findUnique({ where: { id: parseResultId } });
+    const parseResult = await this.prisma.aiParseResult.findUnique({ where: { id: normalizedParseResultId } });
     if (!parseResult) throw new NotFoundException({ code: 'NOT_FOUND', message: 'Parse result not found' });
 
     const reasonTags = this.normalizeKeywords(payload?.reasonTags);
@@ -398,7 +408,7 @@ export class AiService {
 
     const created = await this.prisma.aiParseFeedback.create({
       data: {
-        parseResultId,
+        parseResultId: normalizedParseResultId,
         actorUserId: req?.auth?.userId,
         actorType,
         score,
@@ -447,8 +457,8 @@ export class AiService {
     this.ensureAuth(req);
     requirePermission(req, 'ai.manage');
     await this.ensureSeeded();
-
-    const item = await this.prisma.aiParseResult.findUnique({ where: { id: parseResultId } });
+    const normalizedParseResultId = this.parseUuidStrict(parseResultId, 'parseResultId');
+    const item = await this.prisma.aiParseResult.findUnique({ where: { id: normalizedParseResultId } });
     if (!item) throw new NotFoundException({ code: 'NOT_FOUND', message: 'Parse result not found' });
 
     return this.toParseResultDto(item);
@@ -458,8 +468,8 @@ export class AiService {
     this.ensureAuth(req);
     requirePermission(req, 'ai.manage');
     await this.ensureSeeded();
-
-    const existing = await this.prisma.aiParseResult.findUnique({ where: { id: parseResultId } });
+    const normalizedParseResultId = this.parseUuidStrict(parseResultId, 'parseResultId');
+    const existing = await this.prisma.aiParseResult.findUnique({ where: { id: normalizedParseResultId } });
     if (!existing) throw new NotFoundException({ code: 'NOT_FOUND', message: 'Parse result not found' });
 
     const next: any = {};
@@ -475,13 +485,13 @@ export class AiService {
     }
     if (payload?.note !== undefined) next.note = String(payload.note || '').trim() || null;
 
-    const updated = await this.prisma.aiParseResult.update({ where: { id: parseResultId }, data: next });
+    const updated = await this.prisma.aiParseResult.update({ where: { id: normalizedParseResultId }, data: next });
 
     void this.audit.log({
       actorUserId: req.auth.userId,
       action: 'AI_PARSE_UPDATE',
       targetType: 'AI_PARSE_RESULT',
-      targetId: parseResultId,
+      targetId: normalizedParseResultId,
       beforeJson: this.toParseResultDto(existing),
       afterJson: this.toParseResultDto(updated),
     });
