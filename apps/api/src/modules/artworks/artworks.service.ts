@@ -136,6 +136,15 @@ export class ArtworksService {
     return raw;
   }
 
+  private parseOptionalNonEmptyStringStrict(value: unknown, fieldName: string): string | undefined {
+    if (value === null || value === undefined) return undefined;
+    const raw = String(value).trim();
+    if (!raw) {
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: `${fieldName} is invalid` });
+    }
+    return raw;
+  }
+
   private parseOptionalSellerUserIdStrict(body: any): string | undefined {
     const candidateKeys: Array<'sellerUserId' | 'publisherUserId' | 'ownerId'> = ['sellerUserId', 'publisherUserId', 'ownerId'];
     for (const key of candidateKeys) {
@@ -546,6 +555,8 @@ export class ArtworksService {
     const hasPaintingGenre = this.hasOwn(body, 'paintingGenre');
     const hasPriceType = this.hasOwn(body, 'priceType');
     const hasRegionCode = this.hasOwn(body, 'regionCode');
+    const hasTitle = this.hasOwn(body, 'title');
+    const hasCreatorName = this.hasOwn(body, 'creatorName');
     const hasDescription = this.hasOwn(body, 'description');
     const hasCertificateNo = this.hasOwn(body, 'certificateNo');
     const hasMaterial = this.hasOwn(body, 'material');
@@ -561,6 +572,8 @@ export class ArtworksService {
     const depositAmountFen = body?.depositAmountFen !== undefined ? this.parseOptionalInt(body?.depositAmountFen, 'depositAmountFen', 0) : undefined;
     const regionCode = hasRegionCode ? this.parseNullableRegionCodeStrict(body?.regionCode, 'regionCode') : undefined;
     const coverFileId = hasCoverFileId ? this.parseNullableCoverFileIdStrict(body?.coverFileId, 'coverFileId') : undefined;
+    const title = hasTitle ? this.parseOptionalNonEmptyStringStrict(body?.title, 'title') : undefined;
+    const creatorName = hasCreatorName ? this.parseOptionalNonEmptyStringStrict(body?.creatorName, 'creatorName') : undefined;
     const description = hasDescription ? this.parseNullableNonEmptyStringStrict(body?.description, 'description') : undefined;
     const certificateNo = hasCertificateNo ? this.parseNullableNonEmptyStringStrict(body?.certificateNo, 'certificateNo') : undefined;
     const material = hasMaterial ? this.parseNullableNonEmptyStringStrict(body?.material, 'material') : undefined;
@@ -572,12 +585,12 @@ export class ArtworksService {
       await tx.artwork.update({
         where: { id: artworkId },
         data: {
-          title: body?.title ?? undefined,
+          title: hasTitle ? title : undefined,
           description: hasDescription ? description : undefined,
           category: hasCategory ? category : undefined,
           calligraphyScript: hasCalligraphyScript ? calligraphyScript : undefined,
           paintingGenre: hasPaintingGenre ? paintingGenre : undefined,
-          creatorName: body?.creatorName ?? undefined,
+          creatorName: hasCreatorName ? creatorName : undefined,
           creationDate: creationDate ?? null,
           creationYear: creationYear ?? null,
           certificateNo: hasCertificateNo ? certificateNo : undefined,
@@ -968,6 +981,8 @@ export class ArtworksService {
     const hasAuditStatus = this.hasOwn(body, 'auditStatus');
     const hasStatus = this.hasOwn(body, 'status');
     const hasRegionCode = this.hasOwn(body, 'regionCode');
+    const hasTitle = this.hasOwn(body, 'title');
+    const hasCreatorName = this.hasOwn(body, 'creatorName');
     const hasDescription = this.hasOwn(body, 'description');
     const hasCertificateNo = this.hasOwn(body, 'certificateNo');
     const hasMaterial = this.hasOwn(body, 'material');
@@ -984,6 +999,8 @@ export class ArtworksService {
     const depositAmountFen = body?.depositAmountFen !== undefined ? this.parseOptionalInt(body?.depositAmountFen, 'depositAmountFen', 0) : undefined;
     const regionCode = hasRegionCode ? this.parseNullableRegionCodeStrict(body?.regionCode, 'regionCode') : undefined;
     const coverFileId = hasCoverFileId ? this.parseNullableCoverFileIdStrict(body?.coverFileId, 'coverFileId') : undefined;
+    const title = hasTitle ? this.parseOptionalNonEmptyStringStrict(body?.title, 'title') : undefined;
+    const creatorName = hasCreatorName ? this.parseOptionalNonEmptyStringStrict(body?.creatorName, 'creatorName') : undefined;
     const description = hasDescription ? this.parseNullableNonEmptyStringStrict(body?.description, 'description') : undefined;
     const certificateNo = hasCertificateNo ? this.parseNullableNonEmptyStringStrict(body?.certificateNo, 'certificateNo') : undefined;
     const material = hasMaterial ? this.parseNullableNonEmptyStringStrict(body?.material, 'material') : undefined;
@@ -1000,12 +1017,12 @@ export class ArtworksService {
         data: {
           sellerUserId: sellerUserId ?? undefined,
           source: hasSource ? source : undefined,
-          title: body?.title ?? undefined,
+          title: hasTitle ? title : undefined,
           description: hasDescription ? description : undefined,
           category: category ?? undefined,
           calligraphyScript: hasCalligraphyScript ? calligraphyScript : undefined,
           paintingGenre: hasPaintingGenre ? paintingGenre : undefined,
-          creatorName: body?.creatorName ?? undefined,
+          creatorName: hasCreatorName ? creatorName : undefined,
           creationDate: creationDate ?? null,
           creationYear: creationYear ?? null,
           certificateNo: hasCertificateNo ? certificateNo : undefined,
