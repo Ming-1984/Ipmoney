@@ -686,12 +686,13 @@ export class OrdersService {
 
   async adminManualConfirmPayment(req: any, orderId: string, body: any) {
     this.ensureAdmin(req);
+    const normalizedOrderId = this.parseUuidStrict(orderId, 'orderId');
     const payType = String(body?.payType || '').toUpperCase();
     if (!['DEPOSIT', 'FINAL'].includes(payType)) {
       throw new BadRequestException({ code: 'BAD_REQUEST', message: 'payType is required' });
     }
 
-    let order = await this.prisma.order.findUnique({ where: { id: orderId } });
+    let order = await this.prisma.order.findUnique({ where: { id: normalizedOrderId } });
     if (!order) throw new NotFoundException({ code: 'NOT_FOUND', message: 'order not found' });
     if (payType === 'DEPOSIT' && order.status !== 'DEPOSIT_PENDING') {
       throw new ConflictException({ code: 'CONFLICT', message: 'deposit payment not allowed in current status' });
@@ -701,7 +702,7 @@ export class OrdersService {
     }
     if (payType === 'FINAL' && order.finalAmount == null && order.dealAmount != null) {
       const computedFinal = this.computeFinalAmount(order.dealAmount, order.depositAmount);
-      order = await this.prisma.order.update({ where: { id: orderId }, data: { finalAmount: computedFinal } });
+      order = await this.prisma.order.update({ where: { id: normalizedOrderId }, data: { finalAmount: computedFinal } });
     }
 
     const normalizedPayType = payType === 'FINAL' ? 'FINAL' : 'DEPOSIT';
@@ -712,7 +713,7 @@ export class OrdersService {
     }
 
     const existingPayment = await this.prisma.payment.findFirst({
-      where: { orderId, payType: normalizedPayType, status: { in: ['PENDING', 'PAID'] } },
+      where: { orderId: normalizedOrderId, payType: normalizedPayType, status: { in: ['PENDING', 'PAID'] } },
       orderBy: { createdAt: 'desc' },
     });
     if (existingPayment?.status === 'PAID') {
@@ -721,7 +722,7 @@ export class OrdersService {
 
     const paidAt = this.parseOptionalDateTime(body?.paidAt, 'paidAt') ?? new Date();
     const hasTradeNo = this.hasOwn(body, 'tradeNo');
-    const fallbackTradeNo = existingPayment?.tradeNo || `manual-${orderId}-${Date.now()}`;
+    const fallbackTradeNo = existingPayment?.tradeNo || `manual-${normalizedOrderId}-${Date.now()}`;
     const parsedTradeNo = hasTradeNo ? this.parseNullableNonEmptyStringStrict(body?.tradeNo, 'tradeNo') : undefined;
     const tradeNo = hasTradeNo ? (parsedTradeNo ?? fallbackTradeNo) : fallbackTradeNo;
     const payment = existingPayment
@@ -731,7 +732,7 @@ export class OrdersService {
         })
       : await this.prisma.payment.create({
           data: {
-            orderId,
+            orderId: normalizedOrderId,
             payType: normalizedPayType,
             channel: 'WECHAT',
             tradeNo,
@@ -742,7 +743,7 @@ export class OrdersService {
         });
 
     const targetStatus = payType === 'FINAL' ? 'FINAL_PAID_ESCROW' : 'DEPOSIT_PAID';
-    const updated = await this.prisma.order.update({ where: { id: orderId }, data: { status: targetStatus } });
+    const updated = await this.prisma.order.update({ where: { id: normalizedOrderId }, data: { status: targetStatus } });
 
     await this.audit.log({
       actorUserId: req.auth.userId,
@@ -754,7 +755,7 @@ export class OrdersService {
     });
 
     await this.ensureCaseForOrder(updated);
-    const ctx = await this.getOrderContext(orderId);
+    const ctx = await this.getOrderContext(normalizedOrderId);
     if (ctx) {
       const title = payType === 'FINAL' ? '尾款支付确认' : '订金支付确认';
       const summary =
@@ -767,7 +768,7 @@ export class OrdersService {
 
     return {
       paymentId: payment.id,
-      orderId,
+      orderId: normalizedOrderId,
       payType: normalizedPayType,
       status: payment.status,
       amountFen: amount,
@@ -1247,13 +1248,15 @@ export class OrdersService {
 
   async getAdminOrderDetail(req: any, orderId: string) {
     this.ensureAdmin(req);
-    const order = await this.prisma.order.findUnique({ where: { id: orderId }, include: { listing: true } });
+    const normalizedOrderId = this.parseUuidStrict(orderId, 'orderId');
+    const order = await this.prisma.order.findUnique({ where: { id: normalizedOrderId }, include: { listing: true } });
     if (!order) throw new NotFoundException({ code: 'NOT_FOUND', message: 'order not found' });
     return this.toOrderDto(order, order.listing);
   }
 
   async adminContractSigned(req: any, orderId: string, body: any) {
     this.ensureAdmin(req);
+    const normalizedOrderId = this.parseUuidStrict(orderId, 'orderId');
     const rawDealAmountFen = body?.dealAmountFen;
     if (rawDealAmountFen === undefined || rawDealAmountFen === null || String(rawDealAmountFen).trim() === '') {
       throw new BadRequestException({ code: 'BAD_REQUEST', message: 'dealAmountFen is required' });
@@ -1268,7 +1271,7 @@ export class OrdersService {
     const evidenceFileId = hasEvidenceFileId
       ? this.parseNullableNonEmptyStringStrict(body?.evidenceFileId, 'evidenceFileId')
       : undefined;
-    const existing = await this.prisma.order.findUnique({ where: { id: orderId } });
+    const existing = await this.prisma.order.findUnique({ where: { id: normalizedOrderId } });
     if (!existing) {
       throw new NotFoundException({ code: 'NOT_FOUND', message: 'Order not found' });
     }
@@ -1282,7 +1285,7 @@ export class OrdersService {
       rules,
     );
     const order = await this.prisma.order.update({
-      where: { id: orderId },
+      where: { id: normalizedOrderId },
       data: {
         dealAmount: dealAmountFen || undefined,
         finalAmount: finalAmountFen,
@@ -1326,13 +1329,14 @@ export class OrdersService {
 
   async adminTransferCompleted(req: any, orderId: string, body: any) {
     this.ensureAdmin(req);
+    const normalizedOrderId = this.parseUuidStrict(orderId, 'orderId');
     const remark = body?.remark ? String(body.remark).trim() : undefined;
     const completedAt = this.parseOptionalDateTime(body?.completedAt, 'completedAt');
     const hasEvidenceFileId = this.hasOwn(body, 'evidenceFileId');
     const evidenceFileId = hasEvidenceFileId
       ? this.parseNullableNonEmptyStringStrict(body?.evidenceFileId, 'evidenceFileId')
       : undefined;
-    const existing = await this.prisma.order.findUnique({ where: { id: orderId } });
+    const existing = await this.prisma.order.findUnique({ where: { id: normalizedOrderId } });
     if (!existing) {
       throw new NotFoundException({ code: 'NOT_FOUND', message: 'Order not found' });
     }
@@ -1340,7 +1344,7 @@ export class OrdersService {
       throw new ConflictException({ code: 'CONFLICT', message: 'transfer completion not allowed in current status' });
     }
     const order = await this.prisma.order.update({
-      where: { id: orderId },
+      where: { id: normalizedOrderId },
       data: { status: 'READY_TO_SETTLE' },
     });
     const csCase = await this.ensureCaseForOrder(order);
@@ -1377,16 +1381,17 @@ export class OrdersService {
 
   async getSettlement(req: any, orderId: string) {
     this.ensureAdmin(req);
-    const order = await this.prisma.order.findUnique({ where: { id: orderId } });
+    const normalizedOrderId = this.parseUuidStrict(orderId, 'orderId');
+    const order = await this.prisma.order.findUnique({ where: { id: normalizedOrderId } });
     if (!order) {
       throw new NotFoundException({ code: 'NOT_FOUND', message: 'Order not found' });
     }
     const rules = await this.config.getTradeRules();
     const settlementAmounts = this.computeSettlementAmounts(order, rules);
     const settlement = await this.prisma.settlement.upsert({
-      where: { orderId },
+      where: { orderId: normalizedOrderId },
       create: {
-        orderId,
+        orderId: normalizedOrderId,
         grossAmount: settlementAmounts.grossAmount,
         commissionAmount: settlementAmounts.commissionAmount,
         payoutAmount: settlementAmounts.payoutAmount,
@@ -1402,7 +1407,7 @@ export class OrdersService {
     });
     if (order.commissionAmount !== settlementAmounts.commissionAmount) {
       await this.prisma.order.update({
-        where: { id: orderId },
+        where: { id: normalizedOrderId },
         data: { commissionAmount: settlementAmounts.commissionAmount },
       });
     }
@@ -1418,7 +1423,8 @@ export class OrdersService {
 
   async adminManualPayout(req: any, orderId: string, body: any) {
     this.ensureAdmin(req);
-    const order = await this.prisma.order.findUnique({ where: { id: orderId } });
+    const normalizedOrderId = this.parseUuidStrict(orderId, 'orderId');
+    const order = await this.prisma.order.findUnique({ where: { id: normalizedOrderId } });
     if (!order) {
       throw new NotFoundException({ code: 'NOT_FOUND', message: 'Order not found' });
     }
@@ -1439,9 +1445,9 @@ export class OrdersService {
     const rules = await this.config.getTradeRules();
     const settlementAmounts = this.computeSettlementAmounts(order, rules);
     const settlement = await this.prisma.settlement.upsert({
-      where: { orderId },
+      where: { orderId: normalizedOrderId },
       create: {
-        orderId,
+        orderId: normalizedOrderId,
         grossAmount: settlementAmounts.grossAmount,
         commissionAmount: settlementAmounts.commissionAmount,
         payoutAmount: settlementAmounts.payoutAmount,
@@ -1464,7 +1470,7 @@ export class OrdersService {
       },
     });
     await this.prisma.order.update({
-      where: { id: orderId },
+      where: { id: normalizedOrderId },
       data: { status: 'COMPLETED', commissionAmount: settlementAmounts.commissionAmount },
     });
     await this.audit.log({
@@ -1482,7 +1488,7 @@ export class OrdersService {
         remark,
       },
     });
-    const ctx = await this.getOrderContext(orderId);
+    const ctx = await this.getOrderContext(normalizedOrderId);
     if (ctx) {
       await this.notifyUser(
         ctx.sellerUserId,
