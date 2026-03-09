@@ -471,12 +471,14 @@ export class ArtworksService {
     const hasCoverFileId = this.hasOwn(body, 'coverFileId');
     const hasDescription = this.hasOwn(body, 'description');
     const hasCertificateNo = this.hasOwn(body, 'certificateNo');
+    const hasMaterial = this.hasOwn(body, 'material');
     const calligraphyScript = hasCalligraphyScript ? this.parseNullableCalligraphyScriptStrict(body?.calligraphyScript, 'calligraphyScript') : undefined;
     const paintingGenre = hasPaintingGenre ? this.parseNullablePaintingGenreStrict(body?.paintingGenre, 'paintingGenre') : undefined;
     const regionCode = hasRegionCode ? this.parseNullableRegionCodeStrict(body?.regionCode, 'regionCode') : undefined;
     const coverFileId = hasCoverFileId ? this.parseNullableCoverFileIdStrict(body?.coverFileId, 'coverFileId') : undefined;
     const description = hasDescription ? this.parseNullableNonEmptyStringStrict(body?.description, 'description') : null;
     const certificateNo = hasCertificateNo ? this.parseNullableNonEmptyStringStrict(body?.certificateNo, 'certificateNo') : null;
+    const material = hasMaterial ? this.parseNullableNonEmptyStringStrict(body?.material, 'material') : null;
     const creationDate = this.parseOptionalDate(body?.creationDate, 'creationDate');
     const creationYear = this.parseOptionalInt(body?.creationYear, 'creationYear', 0);
     const priceAmountFen = this.parseOptionalInt(body?.priceAmountFen, 'priceAmountFen', 0);
@@ -503,7 +505,7 @@ export class ArtworksService {
           priceAmountFen: priceAmountFen ?? null,
           depositAmountFen: depositAmountFen ?? 0,
           regionCode: hasRegionCode ? regionCode : null,
-          material: body?.material ? String(body.material) : null,
+          material,
           size: body?.size ? String(body.size) : null,
           coverFileId: hasCoverFileId ? coverFileId : null,
         },
@@ -544,6 +546,7 @@ export class ArtworksService {
     const hasRegionCode = this.hasOwn(body, 'regionCode');
     const hasDescription = this.hasOwn(body, 'description');
     const hasCertificateNo = this.hasOwn(body, 'certificateNo');
+    const hasMaterial = this.hasOwn(body, 'material');
 
     const category = hasCategory ? this.parseCategoryStrict(body?.category, 'category') : undefined;
     const calligraphyScript = hasCalligraphyScript ? this.parseNullableCalligraphyScriptStrict(body?.calligraphyScript, 'calligraphyScript') : undefined;
@@ -557,6 +560,7 @@ export class ArtworksService {
     const coverFileId = hasCoverFileId ? this.parseNullableCoverFileIdStrict(body?.coverFileId, 'coverFileId') : undefined;
     const description = hasDescription ? this.parseNullableNonEmptyStringStrict(body?.description, 'description') : undefined;
     const certificateNo = hasCertificateNo ? this.parseNullableNonEmptyStringStrict(body?.certificateNo, 'certificateNo') : undefined;
+    const material = hasMaterial ? this.parseNullableNonEmptyStringStrict(body?.material, 'material') : undefined;
     const certificateFileIds = hasCertificateFileIds ? this.normalizeFileIds(body?.certificateFileIds) : undefined;
     const mediaInput = hasMedia ? normalizeMediaInput(body?.media) : [];
 
@@ -582,7 +586,7 @@ export class ArtworksService {
           priceAmountFen: priceAmountFen ?? null,
           depositAmountFen: depositAmountFen ?? undefined,
           regionCode: hasRegionCode ? regionCode : undefined,
-          material: body?.material ?? undefined,
+          material: hasMaterial ? material : undefined,
           size: body?.size ?? undefined,
           coverFileId: hasCoverFileId ? coverFileId : undefined,
         },
@@ -871,6 +875,7 @@ export class ArtworksService {
     const hasCoverFileId = this.hasOwn(body, 'coverFileId');
     const hasDescription = this.hasOwn(body, 'description');
     const hasCertificateNo = this.hasOwn(body, 'certificateNo');
+    const hasMaterial = this.hasOwn(body, 'material');
     const sourceInput = hasSource ? this.parseContentSourceStrict(body?.source, 'source') : 'ADMIN';
     const ownerId = this.parseOptionalSellerUserIdStrict(body) ?? String(req?.auth?.userId || '').trim();
     const calligraphyScript = hasCalligraphyScript ? this.parseNullableCalligraphyScriptStrict(body?.calligraphyScript, 'calligraphyScript') : undefined;
@@ -879,6 +884,7 @@ export class ArtworksService {
     const coverFileId = hasCoverFileId ? this.parseNullableCoverFileIdStrict(body?.coverFileId, 'coverFileId') : undefined;
     const description = hasDescription ? this.parseNullableNonEmptyStringStrict(body?.description, 'description') : null;
     const certificateNo = hasCertificateNo ? this.parseNullableNonEmptyStringStrict(body?.certificateNo, 'certificateNo') : null;
+    const material = hasMaterial ? this.parseNullableNonEmptyStringStrict(body?.material, 'material') : null;
     const creationDate = this.parseOptionalDate(body?.creationDate, 'creationDate');
     const creationYear = this.parseOptionalInt(body?.creationYear, 'creationYear', 0);
     const priceAmountFen = this.parseOptionalInt(body?.priceAmountFen, 'priceAmountFen', 0);
@@ -907,7 +913,7 @@ export class ArtworksService {
           priceAmountFen: priceAmountFen ?? null,
           depositAmountFen: depositAmountFen ?? 0,
           regionCode: hasRegionCode ? regionCode : null,
-          material: body?.material ? String(body.material) : null,
+          material,
           size: body?.size ? String(body.size) : null,
           coverFileId: hasCoverFileId ? coverFileId : null,
           auditStatus,
@@ -958,6 +964,7 @@ export class ArtworksService {
     const hasRegionCode = this.hasOwn(body, 'regionCode');
     const hasDescription = this.hasOwn(body, 'description');
     const hasCertificateNo = this.hasOwn(body, 'certificateNo');
+    const hasMaterial = this.hasOwn(body, 'material');
 
     const source = hasSource ? this.parseContentSourceStrict(body?.source, 'source') : undefined;
     const category = hasCategory ? this.parseCategoryStrict(body?.category, 'category') : undefined;
@@ -972,6 +979,7 @@ export class ArtworksService {
     const coverFileId = hasCoverFileId ? this.parseNullableCoverFileIdStrict(body?.coverFileId, 'coverFileId') : undefined;
     const description = hasDescription ? this.parseNullableNonEmptyStringStrict(body?.description, 'description') : undefined;
     const certificateNo = hasCertificateNo ? this.parseNullableNonEmptyStringStrict(body?.certificateNo, 'certificateNo') : undefined;
+    const material = hasMaterial ? this.parseNullableNonEmptyStringStrict(body?.material, 'material') : undefined;
     const auditStatus = hasAuditStatus ? this.parseAuditStatusStrict(body?.auditStatus, 'auditStatus') : undefined;
     const status = hasStatus ? this.parseArtworkStatusStrict(body?.status, 'status') : undefined;
     const certificateFileIds = hasCertificateFileIds ? this.normalizeFileIds(body?.certificateFileIds) : undefined;
@@ -1002,7 +1010,7 @@ export class ArtworksService {
           priceAmountFen: priceAmountFen ?? null,
           depositAmountFen: depositAmountFen ?? undefined,
           regionCode: hasRegionCode ? regionCode : undefined,
-          material: body?.material ?? undefined,
+          material: hasMaterial ? material : undefined,
           size: body?.size ?? undefined,
           coverFileId: hasCoverFileId ? coverFileId : undefined,
           auditStatus: hasAuditStatus ? auditStatus : undefined,
