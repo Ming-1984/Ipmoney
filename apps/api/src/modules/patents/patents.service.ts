@@ -51,6 +51,7 @@ type PagedPatentDto = {
   items: PatentDto[];
   page: { page: number; pageSize: number; total: number };
 };
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 const PATENT_PARTY_ROLE = {
   INVENTOR: 'INVENTOR',
@@ -244,6 +245,14 @@ export class PatentsService {
       throw new BadRequestException({ code: 'BAD_REQUEST', message: `${fieldName} is invalid` });
     }
     return date;
+  }
+
+  private parseUuidParam(value: string, fieldName: string): string {
+    const raw = String(value || '').trim();
+    if (!raw || !UUID_RE.test(raw)) {
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: `${fieldName} is invalid` });
+    }
+    return raw;
   }
 
   private normalizeApplicationNo(input: unknown): { applicationNoNorm: string; applicationNoDisplay: string } {
@@ -524,12 +533,14 @@ export class PatentsService {
 
   async adminGetById(req: any, patentId: string): Promise<PatentDto> {
     this.ensureAdmin(req);
-    return await this.getPatentById(patentId);
+    const normalizedPatentId = this.parseUuidParam(patentId, 'patentId');
+    return await this.getPatentById(normalizedPatentId);
   }
 
   async adminUpdate(req: any, patentId: string, body: any): Promise<PatentDto> {
     this.ensureAdmin(req);
-    const existing = await this.prisma.patent.findUnique({ where: { id: String(patentId) } });
+    const normalizedPatentId = this.parseUuidParam(patentId, 'patentId');
+    const existing = await this.prisma.patent.findUnique({ where: { id: normalizedPatentId } });
     if (!existing) {
       throw new NotFoundException({ code: 'NOT_FOUND', message: '专利不存在' });
     }
@@ -596,8 +607,9 @@ export class PatentsService {
   }
 
   async getPatentById(patentId: string): Promise<PatentDto> {
+    const normalizedPatentId = this.parseUuidParam(patentId, 'patentId');
     const patentRecord = await this.prisma.patent.findUnique({
-      where: { id: String(patentId) },
+      where: { id: normalizedPatentId },
       include: { parties: true },
     });
     if (!patentRecord) throw new NotFoundException({ code: 'NOT_FOUND', message: '专利不存在' });
