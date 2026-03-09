@@ -2402,6 +2402,7 @@ try {
   [void](Add-ApiCaseResult -Results $results -Name "contract-list-wait-upload" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/contracts?status=WAIT_UPLOAD" -Body $null -Headers @{ Authorization = $userToken } -Expected @(200))
   [void](Add-ApiCaseResult -Results $results -Name "contract-list-invalid-status" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/contracts?status=UNKNOWN" -Body $null -Headers @{ Authorization = $userToken } -Expected @(400))
   [void](Add-ApiCaseResult -Results $results -Name "contract-list-invalid-page-zero" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/contracts?page=0" -Body $null -Headers @{ Authorization = $userToken } -Expected @(400))
+  [void](Add-ApiCaseResult -Results $results -Name "contract-list-invalid-page-size-zero" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/contracts?pageSize=0" -Body $null -Headers @{ Authorization = $userToken } -Expected @(400))
   [void](Add-ApiCaseResult -Results $results -Name "contract-list-invalid-page" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/contracts?page=abc" -Body $null -Headers @{ Authorization = $userToken } -Expected @(400))
   [void](Add-ApiCaseResult -Results $results -Name "contract-list-empty-page-size" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/contracts?pageSize=" -Body $null -Headers @{ Authorization = $userToken } -Expected @(400))
   $orderPaymentIntentFinalHeaders = New-WriteHeaders -AuthorizationToken $userToken -Prefix $idempotencyPrefix -Label "order-payment-intent-final"
