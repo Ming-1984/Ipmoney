@@ -977,7 +977,20 @@ $stderrPath = Join-Path $logDir "api-real-smoke.err.log"
 $resultsPath = Join-Path $logDir "api-real-smoke-$ReportDate.json"
 $summaryPath = Join-Path $logDir "api-real-smoke-$ReportDate-summary.json"
 $smokeEvidencePath = Join-Path $logDir "api-real-smoke-evidence-$ReportDate.txt"
+$smokeContractPdfPath = Join-Path $logDir "api-real-smoke-contract-$ReportDate.pdf"
 "api smoke evidence $ReportDate" | Out-File -Encoding ASCII $smokeEvidencePath
+@"
+%PDF-1.1
+1 0 obj
+<< /Type /Catalog /Pages 2 0 R >>
+endobj
+2 0 obj
+<< /Type /Pages /Count 0 >>
+endobj
+trailer
+<< /Root 1 0 R >>
+%%EOF
+"@ | Out-File -Encoding ASCII $smokeContractPdfPath
 
 $proc = Start-Process -FilePath "node" -ArgumentList @("apps/api/dist/main.js") -WorkingDirectory $repoRoot -PassThru -WindowStyle Hidden -RedirectStandardOutput $stdoutPath -RedirectStandardError $stderrPath
 
@@ -2423,6 +2436,9 @@ try {
   $evidenceUpload = Add-ApiFileUploadCaseResult -Results $results -Name "file-upload-evidence" -Url "http://127.0.0.1:$resolvedApiPort/files" -AuthorizationToken $userToken -FilePath $smokeEvidencePath -FormFields $null -Expected @(200, 201)
   $evidenceFileId = Get-ResultStringField -Result $evidenceUpload -Field "id"
   if ([string]::IsNullOrWhiteSpace($evidenceFileId)) { throw "file-upload-evidence missing id" }
+  $contractPdfUpload = Add-ApiFileUploadCaseResult -Results $results -Name "file-upload-contract-pdf" -Url "http://127.0.0.1:$resolvedApiPort/files" -AuthorizationToken $userToken -FilePath $smokeContractPdfPath -FormFields $null -Expected @(200, 201)
+  $contractPdfFileId = Get-ResultStringField -Result $contractPdfUpload -Field "id"
+  if ([string]::IsNullOrWhiteSpace($contractPdfFileId)) { throw "file-upload-contract-pdf missing id" }
   [void](Add-ApiCaseResult -Results $results -Name "file-download-invalid-file-id-format" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/files/not-a-uuid" -Body $null -Headers @{ Authorization = $userToken } -Expected @(400))
   [void](Add-ApiCaseResult -Results $results -Name "file-preview-invalid-file-id-format" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/files/not-a-uuid/preview" -Body $null -Headers @{ Authorization = $userToken } -Expected @(400))
   [void](Add-ApiCaseResult -Results $results -Name "file-download-unauthorized" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/files/$evidenceFileId" -Body $null -Headers @{} -Expected @(401))
@@ -2440,6 +2456,13 @@ try {
   [void](Add-ApiCaseResult -Results $results -Name "contract-upload-missing-contract-file-id" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/contracts/$orderId/upload" -Body @{} -Headers (New-WriteHeaders -AuthorizationToken $userToken -Prefix $idempotencyPrefix -Label "contract-upload-missing-contract-file-id") -Expected @(400))
   [void](Add-ApiCaseResult -Results $results -Name "contract-upload-contract-file-id-not-found" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/contracts/$orderId/upload" -Body @{ contractFileId = [guid]::NewGuid().ToString() } -Headers (New-WriteHeaders -AuthorizationToken $userToken -Prefix $idempotencyPrefix -Label "contract-upload-contract-file-id-not-found") -Expected @(400))
   [void](Add-ApiCaseResult -Results $results -Name "contract-upload-non-pdf-contract-file" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/contracts/$orderId/upload" -Body @{ contractFileId = $evidenceFileId } -Headers (New-WriteHeaders -AuthorizationToken $userToken -Prefix $idempotencyPrefix -Label "contract-upload-non-pdf-contract-file") -Expected @(400))
+  $contractUpload = Add-ApiCaseResult -Results $results -Name "contract-upload" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/contracts/$orderId/upload" -Body @{ contractFileId = $contractPdfFileId } -Headers (New-WriteHeaders -AuthorizationToken $userToken -Prefix $idempotencyPrefix -Label "contract-upload") -Expected @(200, 201)
+  Assert-ResultJsonFieldEquals -Result $contractUpload -Field "status" -ExpectedValue "WAIT_CONFIRM" -Assertion "contract-upload-status-wait-confirm"
+  Assert-ResultJsonFieldEquals -Result $contractUpload -Field "orderId" -ExpectedValue $orderId -Assertion "contract-upload-order-id"
+  $contractUploadFileUrl = Get-ResultStringField -Result $contractUpload -Field "fileUrl"
+  if ([string]::IsNullOrWhiteSpace($contractUploadFileUrl)) {
+    Add-ResultAssertionFailure -Result $contractUpload -Assertion "contract-upload-file-url" -Message "Uploaded contract fileUrl is empty"
+  }
   [void](Add-ApiCaseResult -Results $results -Name "file-temporary-access-create-preview-unauthorized" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/files/$evidenceFileId/temporary-access" -Body @{ scope = "preview"; ttlSeconds = 600 } -Headers @{} -Expected @(401))
   $fileTemporaryAccess = Add-ApiCaseResult -Results $results -Name "file-temporary-access-create-preview" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/files/$evidenceFileId/temporary-access" -Body @{ scope = "preview"; ttlSeconds = 600 } -Headers (New-WriteHeaders -AuthorizationToken $userToken -Prefix $idempotencyPrefix -Label "file-temporary-access-create-preview") -Expected @(200, 201)
   Assert-ResultJsonFieldEquals -Result $fileTemporaryAccess -Field "scope" -ExpectedValue "preview" -Assertion "file-temporary-access-scope-preview"
