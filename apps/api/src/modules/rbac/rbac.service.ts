@@ -71,6 +71,7 @@ const PERMISSIONS: Permission[] = [
 
 const PERMISSION_ID_SET = new Set([...PERMISSIONS.map((item) => item.id), '*']);
 const SYSTEM_ROLE_ID_SET = new Set(Object.values(SYSTEM_ROLE_IDS));
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 @Injectable()
 export class RbacService {
@@ -98,6 +99,35 @@ export class RbacService {
       }
     }
     return out;
+  }
+
+  private parseUuidParam(value: string, field: string): string {
+    const raw = String(value || '').trim();
+    if (!raw || !UUID_RE.test(raw)) {
+      throw new BadRequestException({
+        code: 'BAD_REQUEST',
+        message: `${field} must be a valid UUID`,
+      });
+    }
+    return raw;
+  }
+
+  private parseRoleIdParam(roleId: string): string {
+    const raw = String(roleId || '').trim();
+    if (!raw) {
+      throw new BadRequestException({
+        code: 'BAD_REQUEST',
+        message: 'roleId must be a valid UUID',
+      });
+    }
+    if (SYSTEM_ROLE_ID_SET.has(raw)) return raw;
+    if (!UUID_RE.test(raw)) {
+      throw new BadRequestException({
+        code: 'BAD_REQUEST',
+        message: 'roleId must be a valid UUID',
+      });
+    }
+    return raw;
   }
 
   private toRoleDto(role: any): Role {
@@ -228,8 +258,9 @@ export class RbacService {
     this.ensureAuth(request);
     requirePermission(request, 'rbac.manage');
     await this.ensureSeeded();
+    const normalizedRoleId = this.parseRoleIdParam(roleId);
 
-    const existing = await this.prisma.rbacRole.findUnique({ where: { id: roleId } });
+    const existing = await this.prisma.rbacRole.findUnique({ where: { id: normalizedRoleId } });
     if (!existing) throw new NotFoundException({ code: 'NOT_FOUND', message: 'Role not found' });
 
     const next: any = {};
@@ -245,13 +276,13 @@ export class RbacService {
       next.permissionIds = this.normalizePermissionIds(payload.permissionIds);
     }
 
-    const updated = await this.prisma.rbacRole.update({ where: { id: roleId }, data: next });
+    const updated = await this.prisma.rbacRole.update({ where: { id: normalizedRoleId }, data: next });
 
     void this.audit.log({
       actorUserId: request.auth.userId,
       action: 'RBAC_ROLE_UPDATE',
       targetType: 'RBAC_ROLE',
-      targetId: roleId,
+      targetId: normalizedRoleId,
       beforeJson: this.toRoleDto(existing),
       afterJson: this.toRoleDto(updated),
     });
@@ -263,24 +294,25 @@ export class RbacService {
     this.ensureAuth(request);
     requirePermission(request, 'rbac.manage');
     await this.ensureSeeded();
+    const normalizedRoleId = this.parseRoleIdParam(roleId);
 
-    if (SYSTEM_ROLE_ID_SET.has(roleId)) {
+    if (SYSTEM_ROLE_ID_SET.has(normalizedRoleId)) {
       throw new ForbiddenException({ code: 'FORBIDDEN', message: 'System role cannot be deleted' });
     }
 
-    const existing = await this.prisma.rbacRole.findUnique({ where: { id: roleId } });
+    const existing = await this.prisma.rbacRole.findUnique({ where: { id: normalizedRoleId } });
     if (!existing) throw new NotFoundException({ code: 'NOT_FOUND', message: 'Role not found' });
 
     await this.prisma.$transaction([
-      this.prisma.rbacUserRole.deleteMany({ where: { roleId } }),
-      this.prisma.rbacRole.delete({ where: { id: roleId } }),
+      this.prisma.rbacUserRole.deleteMany({ where: { roleId: normalizedRoleId } }),
+      this.prisma.rbacRole.delete({ where: { id: normalizedRoleId } }),
     ]);
 
     void this.audit.log({
       actorUserId: request.auth.userId,
       action: 'RBAC_ROLE_DELETE',
       targetType: 'RBAC_ROLE',
-      targetId: roleId,
+      targetId: normalizedRoleId,
       beforeJson: this.toRoleDto(existing),
     });
 
@@ -325,8 +357,9 @@ export class RbacService {
     this.ensureAuth(request);
     requirePermission(request, 'rbac.manage');
     await this.ensureSeeded();
+    const normalizedUserId = this.parseUuidParam(userId, 'userId');
 
-    const userRecord = await this.prisma.user.findUnique({ where: { id: userId } });
+    const userRecord = await this.prisma.user.findUnique({ where: { id: normalizedUserId } });
     if (!userRecord) throw new NotFoundException({ code: 'NOT_FOUND', message: 'Account not found' });
 
     if (!Array.isArray(payload?.roleIds)) {
@@ -357,12 +390,12 @@ export class RbacService {
     }
 
     const operations: Prisma.PrismaPromise<unknown>[] = [
-      this.prisma.rbacUserRole.deleteMany({ where: { userId } }),
+      this.prisma.rbacUserRole.deleteMany({ where: { userId: normalizedUserId } }),
     ];
     if (normalizedRoleIds.length) {
       operations.push(
         this.prisma.rbacUserRole.createMany({
-          data: normalizedRoleIds.map((roleId) => ({ userId, roleId })),
+          data: normalizedRoleIds.map((roleId) => ({ userId: normalizedUserId, roleId })),
         }),
       );
     }
@@ -372,9 +405,9 @@ export class RbacService {
       actorUserId: request.auth.userId,
       action: 'RBAC_USER_UPDATE',
       targetType: 'RBAC_USER',
-      targetId: userId,
+      targetId: normalizedUserId,
       beforeJson: { id: userRecord.id },
-      afterJson: { id: userId, roleIds: normalizedRoleIds },
+      afterJson: { id: normalizedUserId, roleIds: normalizedRoleIds },
     });
 
     return {
