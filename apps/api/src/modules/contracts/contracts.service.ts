@@ -23,6 +23,7 @@ type ContractListResponse = {
 };
 
 const CONTRACT_ID_PREFIX = 'contract-';
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 @Injectable()
 export class ContractsService {
@@ -48,10 +49,18 @@ export class ContractsService {
     return parsed;
   }
 
+  private parseUuidStrict(value: unknown, fieldName: string): string {
+    const raw = String(value ?? '').trim();
+    if (!raw || !UUID_RE.test(raw)) {
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: `${fieldName} is invalid` });
+    }
+    return raw;
+  }
+
   private parseOrderId(contractId: string) {
     const id = String(contractId || '');
-    if (id.startsWith(CONTRACT_ID_PREFIX)) return id.slice(CONTRACT_ID_PREFIX.length);
-    return id;
+    const normalizedId = id.startsWith(CONTRACT_ID_PREFIX) ? id.slice(CONTRACT_ID_PREFIX.length) : id;
+    return this.parseUuidStrict(normalizedId, 'contractId');
   }
 
   private buildContractItem(order: any, contract: any | null, userId: string): ContractItem {
@@ -142,10 +151,11 @@ export class ContractsService {
     }
 
     const now = new Date();
-    const contractFileId = body?.contractFileId ? String(body.contractFileId).trim() : '';
-    if (!contractFileId) {
+    const rawContractFileId = body?.contractFileId ? String(body.contractFileId).trim() : '';
+    if (!rawContractFileId) {
       throw new BadRequestException({ code: 'BAD_REQUEST', message: 'contractFileId is required' });
     }
+    const contractFileId = this.parseUuidStrict(rawContractFileId, 'contractFileId');
 
     const file = await this.prisma.file.findUnique({ where: { id: contractFileId } });
     if (!file) throw new BadRequestException({ code: 'BAD_REQUEST', message: '合同文件不存在' });
