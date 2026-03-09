@@ -1,6 +1,8 @@
 ﻿import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../common/prisma/prisma.service';
 
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 @Injectable()
 export class NotificationsService {
   constructor(private readonly prisma: PrismaService) {}
@@ -23,6 +25,14 @@ export class NotificationsService {
       throw new BadRequestException({ code: 'BAD_REQUEST', message: `${fieldName} is invalid` });
     }
     return parsed;
+  }
+
+  private parseUuidStrict(value: unknown, fieldName: string): string {
+    const raw = String(value ?? '').trim();
+    if (!raw || !UUID_RE.test(raw)) {
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: `${fieldName} is invalid` });
+    }
+    return raw;
   }
 
   private toDto(item: any) {
@@ -96,7 +106,8 @@ export class NotificationsService {
 
   async getById(req: any, id: string) {
     this.ensureAuth(req);
-    const item = await this.prisma.notification.findFirst({ where: { id, userId: req.auth.userId } });
+    const normalizedId = this.parseUuidStrict(id, 'notificationId');
+    const item = await this.prisma.notification.findFirst({ where: { id: normalizedId, userId: req.auth.userId } });
     if (!item) throw new NotFoundException({ code: 'NOT_FOUND', message: '通知不存在' });
     return this.toDto(item);
   }

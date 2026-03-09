@@ -20,6 +20,7 @@ const TARGET_SET = new Set([
   'REFUND',
   'SYSTEM',
 ]);
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 @Injectable()
 export class AlertsService {
@@ -76,6 +77,14 @@ export class AlertsService {
     return dt;
   }
 
+  private parseUuidStrict(value: unknown, fieldName: string): string {
+    const raw = String(value ?? '').trim();
+    if (!raw || !UUID_RE.test(raw)) {
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: `${fieldName} is invalid` });
+    }
+    return raw;
+  }
+
   private toDto(item: any) {
     return {
       id: item.id,
@@ -124,10 +133,7 @@ export class AlertsService {
     }
     const hasTargetId = this.hasOwn(query, 'targetId');
     if (hasTargetId) {
-      const targetId = String(query?.targetId ?? '').trim();
-      if (!targetId) {
-        throw new BadRequestException({ code: 'BAD_REQUEST', message: 'targetId is invalid' });
-      }
+      const targetId = this.parseUuidStrict(query?.targetId, 'targetId');
       where.targetId = targetId;
     }
 
@@ -158,12 +164,13 @@ export class AlertsService {
   async acknowledge(req: any, alertId: string) {
     this.ensureAuth(req);
     requirePermission(req, 'alert.manage');
+    const normalizedAlertId = this.parseUuidStrict(alertId, 'alertId');
 
-    const existing = await this.prisma.alertEvent.findUnique({ where: { id: alertId } });
+    const existing = await this.prisma.alertEvent.findUnique({ where: { id: normalizedAlertId } });
     if (!existing) throw new NotFoundException({ code: 'NOT_FOUND', message: 'Alert not found' });
 
     const updated = await this.prisma.alertEvent.update({
-      where: { id: alertId },
+      where: { id: normalizedAlertId },
       data: { status: 'ACKED' },
     });
 
@@ -171,7 +178,7 @@ export class AlertsService {
       actorUserId: req.auth.userId,
       action: 'ALERT_ACK',
       targetType: 'ALERT_EVENT',
-      targetId: alertId,
+      targetId: normalizedAlertId,
       beforeJson: this.toDto(existing),
       afterJson: this.toDto(updated),
     });
