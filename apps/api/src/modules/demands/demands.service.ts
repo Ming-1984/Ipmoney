@@ -389,6 +389,7 @@ export class DemandsService {
     const hasDeliveryPeriod = this.hasOwn(body, 'deliveryPeriod');
     const hasBudgetType = this.hasOwn(body, 'budgetType');
     const hasRegionCode = this.hasOwn(body, 'regionCode');
+    const hasSummary = this.hasOwn(body, 'summary');
     const hasContactName = this.hasOwn(body, 'contactName');
     const hasContactTitle = this.hasOwn(body, 'contactTitle');
     const hasContactPhone = this.hasOwn(body, 'contactPhoneMasked');
@@ -396,6 +397,7 @@ export class DemandsService {
     const budgetType = hasBudgetType ? this.parseNullablePriceTypeStrict(body?.budgetType, 'budgetType') : undefined;
     const regionCode = hasRegionCode ? this.parseNullableRegionCodeStrict(body?.regionCode, 'regionCode') : undefined;
     const coverFileId = hasCoverFileId ? this.parseNullableCoverFileIdStrict(body?.coverFileId, 'coverFileId') : undefined;
+    const summary = hasSummary ? this.parseNullableNonEmptyStringStrict(body?.summary, 'summary') : null;
     const contactName = hasContactName ? this.parseNullableNonEmptyStringStrict(body?.contactName, 'contactName') : null;
     const contactTitle = hasContactTitle ? this.parseNullableNonEmptyStringStrict(body?.contactTitle, 'contactTitle') : null;
     const contactPhoneMasked = hasContactPhone
@@ -411,7 +413,7 @@ export class DemandsService {
           publisherUserId: req.auth.userId,
           source: 'USER',
           title,
-          summary: body?.summary ?? null,
+          summary,
           description: body?.description ?? null,
           keywordsJson: keywords.length > 0 ? keywords : Prisma.DbNull,
           deliveryPeriod: deliveryPeriod === undefined ? null : deliveryPeriod,
@@ -466,6 +468,7 @@ export class DemandsService {
     const hasDeliveryPeriod = this.hasOwn(body, 'deliveryPeriod');
     const hasBudgetType = this.hasOwn(body, 'budgetType');
     const hasRegionCode = this.hasOwn(body, 'regionCode');
+    const hasSummary = this.hasOwn(body, 'summary');
 
     const keywords = hasKeywords ? normalizeStringArray(body?.keywords) : undefined;
     const cooperationModes = hasCooperationModes ? normalizeStringArray(body?.cooperationModes) : undefined;
@@ -476,6 +479,7 @@ export class DemandsService {
     const budgetType = hasBudgetType ? this.parseNullablePriceTypeStrict(body?.budgetType, 'budgetType') : undefined;
     const regionCode = hasRegionCode ? this.parseNullableRegionCodeStrict(body?.regionCode, 'regionCode') : undefined;
     const coverFileId = hasCoverFileId ? this.parseNullableCoverFileIdStrict(body?.coverFileId, 'coverFileId') : undefined;
+    const summary = hasSummary ? this.parseNullableNonEmptyStringStrict(body?.summary, 'summary') : undefined;
     const contactName = hasContactName ? this.parseNullableNonEmptyStringStrict(body?.contactName, 'contactName') : undefined;
     const contactTitle = hasContactTitle ? this.parseNullableNonEmptyStringStrict(body?.contactTitle, 'contactTitle') : undefined;
     const contactPhoneMasked = hasContactPhone
@@ -489,7 +493,7 @@ export class DemandsService {
         where: { id: demandId },
         data: {
           title: body?.title ?? undefined,
-          summary: body?.summary ?? undefined,
+          summary: hasSummary ? summary : undefined,
           description: body?.description ?? undefined,
           deliveryPeriod: hasDeliveryPeriod ? deliveryPeriod : undefined,
           budgetType: hasBudgetType ? budgetType : undefined,
@@ -752,6 +756,7 @@ export class DemandsService {
     const hasStatus = this.hasOwn(body, 'status');
     const hasRegionCode = this.hasOwn(body, 'regionCode');
     const hasCoverFileId = this.hasOwn(body, 'coverFileId');
+    const hasSummary = this.hasOwn(body, 'summary');
     const hasContactName = this.hasOwn(body, 'contactName');
     const hasContactTitle = this.hasOwn(body, 'contactTitle');
     const hasContactPhone = this.hasOwn(body, 'contactPhoneMasked');
@@ -763,6 +768,7 @@ export class DemandsService {
     const budgetType = hasBudgetType ? this.parseNullablePriceTypeStrict(body?.budgetType, 'budgetType') : undefined;
     const regionCode = hasRegionCode ? this.parseNullableRegionCodeStrict(body?.regionCode, 'regionCode') : undefined;
     const coverFileId = hasCoverFileId ? this.parseNullableCoverFileIdStrict(body?.coverFileId, 'coverFileId') : undefined;
+    const summary = hasSummary ? this.parseNullableNonEmptyStringStrict(body?.summary, 'summary') : null;
     const contactName = hasContactName ? this.parseNullableNonEmptyStringStrict(body?.contactName, 'contactName') : null;
     const contactTitle = hasContactTitle ? this.parseNullableNonEmptyStringStrict(body?.contactTitle, 'contactTitle') : null;
     const contactPhoneMasked = hasContactPhone
@@ -780,7 +786,7 @@ export class DemandsService {
           publisherUserId: ownerId || req.auth.userId,
           source: sourceInput,
           title,
-          summary: body?.summary ?? null,
+          summary,
           description: body?.description ?? null,
           keywordsJson: keywords.length > 0 ? keywords : Prisma.DbNull,
           deliveryPeriod: deliveryPeriod === undefined ? null : deliveryPeriod,
@@ -845,6 +851,7 @@ export class DemandsService {
     const hasAuditStatus = this.hasOwn(body, 'auditStatus');
     const hasStatus = this.hasOwn(body, 'status');
     const hasRegionCode = this.hasOwn(body, 'regionCode');
+    const hasSummary = this.hasOwn(body, 'summary');
 
     const keywords = hasKeywords ? normalizeStringArray(body?.keywords) : undefined;
     const cooperationModes = hasCooperationModes ? normalizeStringArray(body?.cooperationModes) : undefined;
@@ -856,6 +863,7 @@ export class DemandsService {
     const budgetType = hasBudgetType ? this.parseNullablePriceTypeStrict(body?.budgetType, 'budgetType') : undefined;
     const regionCode = hasRegionCode ? this.parseNullableRegionCodeStrict(body?.regionCode, 'regionCode') : undefined;
     const coverFileId = hasCoverFileId ? this.parseNullableCoverFileIdStrict(body?.coverFileId, 'coverFileId') : undefined;
+    const summary = hasSummary ? this.parseNullableNonEmptyStringStrict(body?.summary, 'summary') : undefined;
     const contactName = hasContactName ? this.parseNullableNonEmptyStringStrict(body?.contactName, 'contactName') : undefined;
     const contactTitle = hasContactTitle ? this.parseNullableNonEmptyStringStrict(body?.contactTitle, 'contactTitle') : undefined;
     const contactPhoneMasked = hasContactPhone
@@ -874,7 +882,7 @@ export class DemandsService {
           publisherUserId: publisherUserId ?? undefined,
           source: hasSource ? source : undefined,
           title: body?.title ?? undefined,
-          summary: body?.summary ?? undefined,
+          summary: hasSummary ? summary : undefined,
           description: body?.description ?? undefined,
           deliveryPeriod: hasDeliveryPeriod ? deliveryPeriod : undefined,
           budgetType: hasBudgetType ? budgetType : undefined,
