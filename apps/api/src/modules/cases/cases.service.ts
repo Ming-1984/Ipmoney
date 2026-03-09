@@ -70,6 +70,19 @@ export class CasesService {
     return raw;
   }
 
+  private parseUuidStrict(value: unknown, fieldName: string): string {
+    const raw = String(value ?? '').trim();
+    if (!raw || !UUID_RE.test(raw)) {
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: `${fieldName} is invalid` });
+    }
+    return raw;
+  }
+
+  private parseNullableUuidStrict(value: unknown, fieldName: string): string | null {
+    if (value === null) return null;
+    return this.parseUuidStrict(value, fieldName);
+  }
+
   private ensureAuth(req: any) {
     if (!req?.auth?.userId) throw new ForbiddenException({ code: 'FORBIDDEN', message: '无权限' });
   }
@@ -178,8 +191,9 @@ export class CasesService {
   }
 
   private async fetchCase(caseId: string) {
+    const normalizedCaseId = this.parseUuidStrict(caseId, 'caseId');
     return await this.prisma.csCase.findUnique({
-      where: { id: caseId },
+      where: { id: normalizedCaseId },
       include: {
         csUser: true,
         notes: { orderBy: { createdAt: 'desc' } },
@@ -189,7 +203,8 @@ export class CasesService {
   }
 
   private async ensureCaseExists(caseId: string) {
-    const found = await this.prisma.csCase.findUnique({ where: { id: caseId }, select: { id: true } });
+    const normalizedCaseId = this.parseUuidStrict(caseId, 'caseId');
+    const found = await this.prisma.csCase.findUnique({ where: { id: normalizedCaseId }, select: { id: true } });
     if (!found) throw new NotFoundException({ code: 'NOT_FOUND', message: '工单不存在' });
   }
 
@@ -268,9 +283,9 @@ export class CasesService {
     const requesterName = hasRequesterName ? (parsedRequesterName ?? '系统') : '系统';
     const description = body?.description ? String(body.description).trim() : undefined;
     const hasOrderId = this.hasOwn(body, 'orderId');
-    const orderId = hasOrderId ? this.parseNullableNonEmptyStringStrict(body?.orderId, 'orderId') : undefined;
+    const orderId = hasOrderId ? this.parseNullableUuidStrict(body?.orderId, 'orderId') : undefined;
     const hasAssigneeId = this.hasOwn(body, 'assigneeId');
-    const assigneeId = hasAssigneeId ? this.parseNullableNonEmptyStringStrict(body?.assigneeId, 'assigneeId') : undefined;
+    const assigneeId = hasAssigneeId ? this.parseNullableUuidStrict(body?.assigneeId, 'assigneeId') : undefined;
     const hasDueAt = this.hasOwn(body, 'dueAt');
     const dueAt = hasDueAt ? this.parseDueAt(body?.dueAt, true) : null;
     const defaultDueDays = type === 'REFUND' ? 5 : 7;
@@ -313,8 +328,7 @@ export class CasesService {
   async assign(req: any, caseId: string, body: any) {
     this.ensureAuth(req);
     requirePermission(req, 'case.manage');
-    const assigneeId = String(body?.assigneeId || '').trim();
-    if (!assigneeId) throw new BadRequestException({ code: 'BAD_REQUEST', message: 'assigneeId is required' });
+    const assigneeId = this.parseUuidStrict(body?.assigneeId, 'assigneeId');
 
     await this.ensureCaseExists(caseId);
 
@@ -380,8 +394,7 @@ export class CasesService {
   async addEvidence(req: any, caseId: string, body: any) {
     this.ensureAuth(req);
     requirePermission(req, 'case.manage');
-    const fileId = String(body?.fileId || '').trim();
-    if (!fileId) throw new BadRequestException({ code: 'BAD_REQUEST', message: 'fileId is required' });
+    const fileId = this.parseUuidStrict(body?.fileId, 'fileId');
 
     await this.ensureCaseExists(caseId);
 
