@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Inject, Param, Patch, Post, Put, Query, Req, UseGuards } from '@nestjs/common';
+import { BadRequestException, Body, Controller, Get, Inject, Param, Patch, Post, Put, Query, Req, UseGuards } from '@nestjs/common';
 
 import { BearerAuthGuard } from '../../common/guards/bearer-auth.guard';
 import { VerifiedUserGuard } from '../../common/guards/verified-user.guard';
@@ -7,6 +7,7 @@ import { requirePermission } from '../../common/permissions';
 import { ListingsService } from './listings.service';
 
 type ListingsServiceApi = ListingsService & Record<string, any>;
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 @Controller()
 export class ListingsController {
@@ -14,6 +15,14 @@ export class ListingsController {
     @Inject(ListingsService) private readonly listings: ListingsServiceApi,
     private readonly contentAudit: ContentAuditService,
   ) {}
+
+  private parseUuidParam(value: string, field: string): string {
+    const raw = String(value || '').trim();
+    if (!raw || !UUID_RE.test(raw)) {
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: `${field} is invalid` });
+    }
+    return raw;
+  }
 
   @UseGuards(BearerAuthGuard)
   @Get('/admin/listings')
@@ -40,7 +49,8 @@ export class ListingsController {
   @UseGuards(BearerAuthGuard)
   @Get('/listings/:listingId')
   async getMine(@Req() req: any, @Param('listingId') listingId: string) {
-    return await this.listings.getMine(req, listingId);
+    const normalizedListingId = this.parseUuidParam(listingId, 'listingId');
+    return await this.listings.getMine(req, normalizedListingId);
   }
 
   @UseGuards(BearerAuthGuard, VerifiedUserGuard)
@@ -52,19 +62,22 @@ export class ListingsController {
   @UseGuards(BearerAuthGuard, VerifiedUserGuard)
   @Post('/listings/:listingId/submit')
   async submit(@Req() req: any, @Param('listingId') listingId: string) {
-    return await this.listings.submitListing(req, listingId);
+    const normalizedListingId = this.parseUuidParam(listingId, 'listingId');
+    return await this.listings.submitListing(req, normalizedListingId);
   }
 
   @UseGuards(BearerAuthGuard, VerifiedUserGuard)
   @Post('/listings/:listingId/off-shelf')
   async offShelf(@Req() req: any, @Param('listingId') listingId: string) {
-    return await this.listings.offShelf(req, listingId);
+    const normalizedListingId = this.parseUuidParam(listingId, 'listingId');
+    return await this.listings.offShelf(req, normalizedListingId);
   }
 
   @UseGuards(BearerAuthGuard, VerifiedUserGuard)
   @Patch('/listings/:listingId')
   async update(@Req() req: any, @Param('listingId') listingId: string, @Body() body: any) {
-    return await this.listings.updateListing(req, listingId, body || {});
+    const normalizedListingId = this.parseUuidParam(listingId, 'listingId');
+    return await this.listings.updateListing(req, normalizedListingId, body || {});
   }
 
   @Get('/search/listings')
@@ -74,7 +87,8 @@ export class ListingsController {
 
   @Get('/public/listings/:listingId')
   async getPublic(@Req() req: any, @Param('listingId') listingId: string) {
-    return await this.listings.getPublicById(req, listingId);
+    const normalizedListingId = this.parseUuidParam(listingId, 'listingId');
+    return await this.listings.getPublicById(req, normalizedListingId);
   }
 
   @UseGuards(BearerAuthGuard)
@@ -88,7 +102,8 @@ export class ListingsController {
   async getAdmin(@Req() req: any, @Param('listingId') listingId: string) {
     this.listings.ensureAdmin(req);
     requirePermission(req, 'listing.read');
-    return await this.listings.getAdminById(listingId);
+    const normalizedListingId = this.parseUuidParam(listingId, 'listingId');
+    return await this.listings.getAdminById(normalizedListingId);
   }
 
   @UseGuards(BearerAuthGuard)
@@ -96,7 +111,8 @@ export class ListingsController {
   async adminUpdate(@Req() req: any, @Param('listingId') listingId: string, @Body() body: any) {
     this.listings.ensureAdmin(req);
     requirePermission(req, 'listing.audit');
-    return await this.listings.adminUpdate(req, listingId, body || {});
+    const normalizedListingId = this.parseUuidParam(listingId, 'listingId');
+    return await this.listings.adminUpdate(req, normalizedListingId, body || {});
   }
 
   @UseGuards(BearerAuthGuard)
@@ -104,7 +120,8 @@ export class ListingsController {
   async adminPublish(@Req() req: any, @Param('listingId') listingId: string) {
     this.listings.ensureAdmin(req);
     requirePermission(req, 'listing.audit');
-    return await this.listings.adminPublish(req, listingId);
+    const normalizedListingId = this.parseUuidParam(listingId, 'listingId');
+    return await this.listings.adminPublish(req, normalizedListingId);
   }
 
   @UseGuards(BearerAuthGuard)
@@ -112,7 +129,8 @@ export class ListingsController {
   async adminOffShelf(@Req() req: any, @Param('listingId') listingId: string) {
     this.listings.ensureAdmin(req);
     requirePermission(req, 'listing.audit');
-    return await this.listings.adminOffShelf(req, listingId);
+    const normalizedListingId = this.parseUuidParam(listingId, 'listingId');
+    return await this.listings.adminOffShelf(req, normalizedListingId);
   }
 
   @UseGuards(BearerAuthGuard)
@@ -120,7 +138,8 @@ export class ListingsController {
   async getMaterials(@Req() req: any, @Param('listingId') listingId: string) {
     this.listings.ensureAdmin(req);
     requirePermission(req, 'listing.read');
-    return await this.contentAudit.listMaterials('LISTING', listingId);
+    const normalizedListingId = this.parseUuidParam(listingId, 'listingId');
+    return await this.contentAudit.listMaterials('LISTING', normalizedListingId);
   }
 
   @UseGuards(BearerAuthGuard)
@@ -128,7 +147,8 @@ export class ListingsController {
   async getAuditLogs(@Req() req: any, @Param('listingId') listingId: string) {
     this.listings.ensureAdmin(req);
     requirePermission(req, 'auditLog.read');
-    return await this.contentAudit.listLogs('LISTING', listingId);
+    const normalizedListingId = this.parseUuidParam(listingId, 'listingId');
+    return await this.contentAudit.listLogs('LISTING', normalizedListingId);
   }
 
   @UseGuards(BearerAuthGuard)
@@ -136,7 +156,8 @@ export class ListingsController {
   async approve(@Req() req: any, @Param('listingId') listingId: string, @Body() body: { reason?: string }) {
     this.listings.ensureAdmin(req);
     requirePermission(req, 'listing.audit');
-    return await this.listings.approve(listingId, req?.auth?.userId || null, body?.reason);
+    const normalizedListingId = this.parseUuidParam(listingId, 'listingId');
+    return await this.listings.approve(normalizedListingId, req?.auth?.userId || null, body?.reason);
   }
 
   @UseGuards(BearerAuthGuard)
@@ -144,7 +165,8 @@ export class ListingsController {
   async reject(@Req() req: any, @Param('listingId') listingId: string, @Body() body: { reason?: string }) {
     this.listings.ensureAdmin(req);
     requirePermission(req, 'listing.audit');
-    return await this.listings.reject(listingId, req?.auth?.userId || null, body?.reason);
+    const normalizedListingId = this.parseUuidParam(listingId, 'listingId');
+    return await this.listings.reject(normalizedListingId, req?.auth?.userId || null, body?.reason);
   }
 
   @UseGuards(BearerAuthGuard)
@@ -152,12 +174,14 @@ export class ListingsController {
   async updateFeatured(@Req() req: any, @Param('listingId') listingId: string, @Body() body: any) {
     this.listings.ensureAdmin(req);
     requirePermission(req, 'listing.audit');
-    return await this.listings.updateFeatured(listingId, body || {}, req?.auth?.userId || null);
+    const normalizedListingId = this.parseUuidParam(listingId, 'listingId');
+    return await this.listings.updateFeatured(normalizedListingId, body || {}, req?.auth?.userId || null);
   }
 
   @UseGuards(BearerAuthGuard)
   @Post('/listings/:listingId/consultations')
   async createConsultation(@Req() req: any, @Param('listingId') listingId: string, @Body() body: any) {
-    return await this.listings.createConsultation(req, listingId, body || {});
+    const normalizedListingId = this.parseUuidParam(listingId, 'listingId');
+    return await this.listings.createConsultation(req, normalizedListingId, body || {});
   }
 }
