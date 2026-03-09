@@ -495,7 +495,7 @@ export class PatentsService {
         sourceUpdatedAt,
       },
       update: {
-        applicationNoDisplay: applicationNoDisplay ?? normalizedNo.applicationNoDisplay,
+        applicationNoDisplay: hasApplicationNoDisplay ? applicationNoDisplay : undefined,
         patentType,
         title,
         abstract: hasAbstract ? abstract || null : undefined,
