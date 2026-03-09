@@ -1123,8 +1123,9 @@ export class OrdersService {
 
   async getOrderInvoice(req: any, orderId: string): Promise<OrderInvoiceDto> {
     this.ensureAuth(req);
+    const normalizedOrderId = this.parseUuidStrict(orderId, 'orderId');
     const order = await this.prisma.order.findUnique({
-      where: { id: orderId },
+      where: { id: normalizedOrderId },
       include: { listing: true, invoiceFile: true },
     });
     if (!order) throw new NotFoundException({ code: 'NOT_FOUND', message: 'order not found' });
@@ -1139,9 +1140,10 @@ export class OrdersService {
 
   async requestInvoice(req: any, orderId: string) {
     this.ensureAuth(req);
-    const scope = `INVOICE_REQUEST:${orderId}`;
+    const normalizedOrderId = this.parseUuidStrict(orderId, 'orderId');
+    const scope = `INVOICE_REQUEST:${normalizedOrderId}`;
     return await this.withIdempotency(req, scope, async () => {
-      const order = await this.getOrderWithListing(orderId);
+      const order = await this.getOrderWithListing(normalizedOrderId);
       this.ensureOrderAccess(req, order, { allowSeller: false });
       if (!order) throw new NotFoundException({ code: 'NOT_FOUND', message: 'order not found' });
       if (order.status !== 'COMPLETED') {
@@ -1151,7 +1153,7 @@ export class OrdersService {
         throw new ConflictException({ code: 'CONFLICT', message: 'invoice already requested' });
       }
       const updated = await this.prisma.order.update({
-        where: { id: orderId },
+        where: { id: normalizedOrderId },
         data: { invoiceNo: `REQ-${Date.now()}` },
       });
       await this.audit.log({
@@ -1161,7 +1163,7 @@ export class OrdersService {
         targetId: updated.id,
         afterJson: { invoiceNo: updated.invoiceNo },
       });
-      const ctx = await this.getOrderContext(orderId);
+      const ctx = await this.getOrderContext(normalizedOrderId);
       if (ctx) {
         await this.notifyUser(
           ctx.buyerUserId,
