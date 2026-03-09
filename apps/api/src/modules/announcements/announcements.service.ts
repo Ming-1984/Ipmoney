@@ -62,6 +62,15 @@ export class AnnouncementsService {
     return parsed;
   }
 
+  private parseNullableNonEmptyStringStrict(value: unknown, fieldName: string): string | null {
+    if (value === null) return null;
+    const raw = String(value ?? '').trim();
+    if (!raw) {
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: `${fieldName} is invalid` });
+    }
+    return raw;
+  }
+
   private toDto(item: any) {
     const createdAt = item.createdAt ? item.createdAt.toISOString() : new Date().toISOString();
     const publishedAt = item.publishedAt ? item.publishedAt.toISOString() : null;
@@ -138,6 +147,8 @@ export class AnnouncementsService {
   async adminCreate(request: any, payload: any) {
     const title = String(payload?.title || '').trim();
     if (!title) throw new BadRequestException({ code: 'BAD_REQUEST', message: 'title is required' });
+    const hasIssueNo = this.hasOwn(payload, 'issueNo');
+    const issueNo = hasIssueNo ? this.parseNullableNonEmptyStringStrict(payload?.issueNo, 'issueNo') : null;
 
     let status: AnnouncementStatus = 'DRAFT';
     if (this.hasOwn(payload, 'status')) {
@@ -150,7 +161,7 @@ export class AnnouncementsService {
         summary: payload?.summary ? String(payload.summary).trim() : null,
         content: payload?.content ? String(payload.content).trim() : null,
         publisherName: payload?.publisherName ? String(payload.publisherName).trim() : null,
-        issueNo: payload?.issueNo ? String(payload.issueNo).trim() : null,
+        issueNo,
         sourceUrl: payload?.sourceUrl ? String(payload.sourceUrl).trim() : null,
         tagsJson: normalizeTags(payload?.tags),
         relatedPatentsJson: normalizeRelatedPatents(payload?.relatedPatents),
@@ -180,12 +191,13 @@ export class AnnouncementsService {
     if (this.hasOwn(payload, 'status')) {
       status = this.parseStatus(payload?.status, 'status');
     }
+    const hasIssueNo = this.hasOwn(payload, 'issueNo');
     const next: any = {
       summary: payload?.summary !== undefined ? String(payload.summary || '').trim() || null : undefined,
       content: payload?.content !== undefined ? String(payload.content || '').trim() || null : undefined,
       publisherName:
         payload?.publisherName !== undefined ? String(payload.publisherName || '').trim() || null : undefined,
-      issueNo: payload?.issueNo !== undefined ? String(payload.issueNo || '').trim() || null : undefined,
+      issueNo: hasIssueNo ? this.parseNullableNonEmptyStringStrict(payload?.issueNo, 'issueNo') : undefined,
       sourceUrl: payload?.sourceUrl !== undefined ? String(payload.sourceUrl || '').trim() || null : undefined,
     };
     if (this.hasOwn(payload, 'title')) {
