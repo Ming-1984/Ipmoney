@@ -2414,6 +2414,8 @@ try {
   [void](Add-ApiCaseResult -Results $results -Name "contract-list-empty-page-size" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/contracts?pageSize=" -Body $null -Headers @{ Authorization = $userToken } -Expected @(400))
   $contractListPageSizeCapped = Add-ApiCaseResult -Results $results -Name "contract-list-page-size-capped" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/contracts?pageSize=999" -Body $null -Headers @{ Authorization = $userToken } -Expected @(200)
   Assert-ResultJsonFieldEquals -Result $contractListPageSizeCapped -Field "page.pageSize" -ExpectedValue 50 -Assertion "contract-list-page-size-capped-to-50"
+  $contractListPageSizeSlightOverCap = Add-ApiCaseResult -Results $results -Name "contract-list-page-size-slight-over-cap" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/contracts?pageSize=51" -Body $null -Headers @{ Authorization = $userToken } -Expected @(200)
+  Assert-ResultJsonFieldEquals -Result $contractListPageSizeSlightOverCap -Field "page.pageSize" -ExpectedValue 50 -Assertion "contract-list-page-size-51-capped-to-50"
   $orderPaymentIntentFinalHeaders = New-WriteHeaders -AuthorizationToken $userToken -Prefix $idempotencyPrefix -Label "order-payment-intent-final"
   $orderPaymentIntentFinal = Add-ApiCaseResult -Results $results -Name "order-payment-intent-final" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/orders/$orderId/payment-intents" -Body @{ payType = "FINAL" } -Headers $orderPaymentIntentFinalHeaders -Expected @(200, 201)
   Assert-ResultJsonFieldEquals -Result $orderPaymentIntentFinal -Field "payType" -ExpectedValue "FINAL" -Assertion "payment-intent-final-pay-type"
