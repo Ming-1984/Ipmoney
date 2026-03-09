@@ -304,6 +304,15 @@ export class ListingsService {
     return raw;
   }
 
+  private parseNullableNonEmptyStringStrict(value: unknown, fieldName: string): string | null {
+    if (value === null) return null;
+    const raw = String(value ?? '').trim();
+    if (!raw) {
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: `${fieldName} is invalid` });
+    }
+    return raw;
+  }
+
   private parseOptionalInt(value: unknown, fieldName: string, min?: number): number | undefined {
     if (value === undefined || value === null) return undefined;
     if (String(value).trim() === '') {
@@ -1060,7 +1069,10 @@ export class ListingsService {
     if (negotiableRangeFen !== undefined && negotiableRangePercent !== undefined) {
       throw new BadRequestException({ code: 'BAD_REQUEST', message: 'negotiableRange is invalid' });
     }
-    const negotiableNote = body?.negotiableNote ? String(body?.negotiableNote) : null;
+    const hasNegotiableNote = this.hasOwn(body, 'negotiableNote');
+    const negotiableNote = hasNegotiableNote
+      ? this.parseNullableNonEmptyStringStrict(body?.negotiableNote, 'negotiableNote')
+      : null;
     const encumbranceNote = body?.encumbranceNote ? String(body?.encumbranceNote) : null;
     const listing = await this.prisma.listing.create({
       data: {
@@ -1126,7 +1138,9 @@ export class ListingsService {
       throw new BadRequestException({ code: 'BAD_REQUEST', message: 'negotiableRange is invalid' });
     }
     const hasNegotiableNote = Object.prototype.hasOwnProperty.call(body || {}, 'negotiableNote');
-    const negotiableNote = hasNegotiableNote ? (body?.negotiableNote ? String(body?.negotiableNote) : null) : undefined;
+    const negotiableNote = hasNegotiableNote
+      ? this.parseNullableNonEmptyStringStrict(body?.negotiableNote, 'negotiableNote')
+      : undefined;
     const hasPledgeStatus = Object.prototype.hasOwnProperty.call(body || {}, 'pledgeStatus');
     const pledgeStatus = hasPledgeStatus ? this.parseNullablePledgeStatusStrict(body?.pledgeStatus, 'pledgeStatus') : undefined;
     const hasExistingLicenseStatus = Object.prototype.hasOwnProperty.call(body || {}, 'existingLicenseStatus');
@@ -1548,7 +1562,10 @@ export class ListingsService {
     if (negotiableRangeFen !== undefined && negotiableRangePercent !== undefined) {
       throw new BadRequestException({ code: 'BAD_REQUEST', message: 'negotiableRange is invalid' });
     }
-    const negotiableNote = body?.negotiableNote ? String(body?.negotiableNote) : null;
+    const hasNegotiableNote = this.hasOwn(body, 'negotiableNote');
+    const negotiableNote = hasNegotiableNote
+      ? this.parseNullableNonEmptyStringStrict(body?.negotiableNote, 'negotiableNote')
+      : null;
     const encumbranceNote = body?.encumbranceNote ? String(body?.encumbranceNote) : null;
     const listing = await this.prisma.listing.create({
       data: {
@@ -1613,7 +1630,9 @@ export class ListingsService {
       throw new BadRequestException({ code: 'BAD_REQUEST', message: 'negotiableRange is invalid' });
     }
     const hasNegotiableNote = Object.prototype.hasOwnProperty.call(body || {}, 'negotiableNote');
-    const negotiableNote = hasNegotiableNote ? (body?.negotiableNote ? String(body?.negotiableNote) : null) : undefined;
+    const negotiableNote = hasNegotiableNote
+      ? this.parseNullableNonEmptyStringStrict(body?.negotiableNote, 'negotiableNote')
+      : undefined;
     const hasPledgeStatus = this.hasOwn(body, 'pledgeStatus');
     const pledgeStatus = hasPledgeStatus ? this.parseNullablePledgeStatusStrict(body?.pledgeStatus, 'pledgeStatus') : undefined;
     const hasExistingLicenseStatus = this.hasOwn(body, 'existingLicenseStatus');
