@@ -390,11 +390,13 @@ export class DemandsService {
     const hasBudgetType = this.hasOwn(body, 'budgetType');
     const hasRegionCode = this.hasOwn(body, 'regionCode');
     const hasContactName = this.hasOwn(body, 'contactName');
+    const hasContactTitle = this.hasOwn(body, 'contactTitle');
     const deliveryPeriod = hasDeliveryPeriod ? this.parseNullableDeliveryPeriodStrict(body?.deliveryPeriod, 'deliveryPeriod') : undefined;
     const budgetType = hasBudgetType ? this.parseNullablePriceTypeStrict(body?.budgetType, 'budgetType') : undefined;
     const regionCode = hasRegionCode ? this.parseNullableRegionCodeStrict(body?.regionCode, 'regionCode') : undefined;
     const coverFileId = hasCoverFileId ? this.parseNullableCoverFileIdStrict(body?.coverFileId, 'coverFileId') : undefined;
     const contactName = hasContactName ? this.parseNullableNonEmptyStringStrict(body?.contactName, 'contactName') : null;
+    const contactTitle = hasContactTitle ? this.parseNullableNonEmptyStringStrict(body?.contactTitle, 'contactTitle') : null;
     const budgetMinFen = this.parseOptionalInt(body?.budgetMinFen, 'budgetMinFen', 0);
     const budgetMaxFen = this.parseOptionalInt(body?.budgetMaxFen, 'budgetMaxFen', 0);
     const mediaInput = normalizeMediaInput(body?.media);
@@ -414,7 +416,7 @@ export class DemandsService {
           budgetMinFen: budgetMinFen ?? null,
           budgetMaxFen: budgetMaxFen ?? null,
           contactName,
-          contactTitle: body?.contactTitle ? String(body.contactTitle) : null,
+          contactTitle,
           contactPhoneMasked: body?.contactPhoneMasked ? String(body.contactPhoneMasked) : null,
           coverFileId: hasCoverFileId ? coverFileId : null,
           regionCode: hasRegionCode ? regionCode : null,
@@ -471,6 +473,7 @@ export class DemandsService {
     const regionCode = hasRegionCode ? this.parseNullableRegionCodeStrict(body?.regionCode, 'regionCode') : undefined;
     const coverFileId = hasCoverFileId ? this.parseNullableCoverFileIdStrict(body?.coverFileId, 'coverFileId') : undefined;
     const contactName = hasContactName ? this.parseNullableNonEmptyStringStrict(body?.contactName, 'contactName') : undefined;
+    const contactTitle = hasContactTitle ? this.parseNullableNonEmptyStringStrict(body?.contactTitle, 'contactTitle') : undefined;
     const budgetMinFen = this.parseOptionalInt(body?.budgetMinFen, 'budgetMinFen', 0);
     const budgetMaxFen = this.parseOptionalInt(body?.budgetMaxFen, 'budgetMaxFen', 0);
 
@@ -487,7 +490,7 @@ export class DemandsService {
           budgetMaxFen: body?.budgetMaxFen !== undefined ? budgetMaxFen ?? null : undefined,
           regionCode: hasRegionCode ? regionCode : undefined,
           contactName: hasContactName ? contactName : undefined,
-          contactTitle: hasContactTitle ? (body?.contactTitle ? String(body.contactTitle) : null) : undefined,
+          contactTitle: hasContactTitle ? contactTitle : undefined,
           contactPhoneMasked: hasContactPhone ? (body?.contactPhoneMasked ? String(body.contactPhoneMasked) : null) : undefined,
           coverFileId: hasCoverFileId ? coverFileId : undefined,
           keywordsJson: hasKeywords ? (keywords && keywords.length > 0 ? keywords : Prisma.DbNull) : undefined,
@@ -743,6 +746,7 @@ export class DemandsService {
     const hasRegionCode = this.hasOwn(body, 'regionCode');
     const hasCoverFileId = this.hasOwn(body, 'coverFileId');
     const hasContactName = this.hasOwn(body, 'contactName');
+    const hasContactTitle = this.hasOwn(body, 'contactTitle');
     const ownerId = this.parseOptionalPublisherUserIdStrict(body) ?? String(req?.auth?.userId || '').trim();
     const keywords = normalizeStringArray(body?.keywords);
     const cooperationModes = normalizeStringArray(body?.cooperationModes);
@@ -752,6 +756,7 @@ export class DemandsService {
     const regionCode = hasRegionCode ? this.parseNullableRegionCodeStrict(body?.regionCode, 'regionCode') : undefined;
     const coverFileId = hasCoverFileId ? this.parseNullableCoverFileIdStrict(body?.coverFileId, 'coverFileId') : undefined;
     const contactName = hasContactName ? this.parseNullableNonEmptyStringStrict(body?.contactName, 'contactName') : null;
+    const contactTitle = hasContactTitle ? this.parseNullableNonEmptyStringStrict(body?.contactTitle, 'contactTitle') : null;
     const budgetMinFen = this.parseOptionalInt(body?.budgetMinFen, 'budgetMinFen', 0);
     const budgetMaxFen = this.parseOptionalInt(body?.budgetMaxFen, 'budgetMaxFen', 0);
     const mediaInput = normalizeMediaInput(body?.media);
@@ -773,7 +778,7 @@ export class DemandsService {
           budgetMinFen: budgetMinFen ?? null,
           budgetMaxFen: budgetMaxFen ?? null,
           contactName,
-          contactTitle: body?.contactTitle ? String(body.contactTitle) : null,
+          contactTitle,
           contactPhoneMasked: body?.contactPhoneMasked ? String(body.contactPhoneMasked) : null,
           coverFileId: hasCoverFileId ? coverFileId : null,
           regionCode: hasRegionCode ? regionCode : null,
@@ -841,6 +846,7 @@ export class DemandsService {
     const regionCode = hasRegionCode ? this.parseNullableRegionCodeStrict(body?.regionCode, 'regionCode') : undefined;
     const coverFileId = hasCoverFileId ? this.parseNullableCoverFileIdStrict(body?.coverFileId, 'coverFileId') : undefined;
     const contactName = hasContactName ? this.parseNullableNonEmptyStringStrict(body?.contactName, 'contactName') : undefined;
+    const contactTitle = hasContactTitle ? this.parseNullableNonEmptyStringStrict(body?.contactTitle, 'contactTitle') : undefined;
     const budgetMinFen = this.parseOptionalInt(body?.budgetMinFen, 'budgetMinFen', 0);
     const budgetMaxFen = this.parseOptionalInt(body?.budgetMaxFen, 'budgetMaxFen', 0);
     const auditStatus = hasAuditStatus ? this.parseAuditStatusStrict(body?.auditStatus, 'auditStatus') : undefined;
@@ -862,7 +868,7 @@ export class DemandsService {
           budgetMaxFen: body?.budgetMaxFen !== undefined ? budgetMaxFen ?? null : undefined,
           regionCode: hasRegionCode ? regionCode : undefined,
           contactName: hasContactName ? contactName : undefined,
-          contactTitle: hasContactTitle ? (body?.contactTitle ? String(body.contactTitle) : null) : undefined,
+          contactTitle: hasContactTitle ? contactTitle : undefined,
           contactPhoneMasked: hasContactPhone ? (body?.contactPhoneMasked ? String(body.contactPhoneMasked) : null) : undefined,
           coverFileId: hasCoverFileId ? coverFileId : undefined,
           keywordsJson: hasKeywords ? (keywords && keywords.length > 0 ? keywords : Prisma.DbNull) : undefined,
