@@ -1073,7 +1073,10 @@ export class ListingsService {
     const negotiableNote = hasNegotiableNote
       ? this.parseNullableNonEmptyStringStrict(body?.negotiableNote, 'negotiableNote')
       : null;
-    const encumbranceNote = body?.encumbranceNote ? String(body?.encumbranceNote) : null;
+    const hasEncumbranceNote = this.hasOwn(body, 'encumbranceNote');
+    const encumbranceNote = hasEncumbranceNote
+      ? this.parseNullableNonEmptyStringStrict(body?.encumbranceNote, 'encumbranceNote')
+      : null;
     const listing = await this.prisma.listing.create({
       data: {
         sellerUserId,
@@ -1148,7 +1151,9 @@ export class ListingsService {
       ? this.parseNullableExistingLicenseStatusStrict(body?.existingLicenseStatus, 'existingLicenseStatus')
       : undefined;
     const hasEncumbranceNote = Object.prototype.hasOwnProperty.call(body || {}, 'encumbranceNote');
-    const encumbranceNote = hasEncumbranceNote ? (body?.encumbranceNote ? String(body?.encumbranceNote) : null) : undefined;
+    const encumbranceNote = hasEncumbranceNote
+      ? this.parseNullableNonEmptyStringStrict(body?.encumbranceNote, 'encumbranceNote')
+      : undefined;
     const hasClusterId = Object.prototype.hasOwnProperty.call(body || {}, 'clusterId');
     const clusterId = hasClusterId ? this.parseNullableRegionCodeStrict(body?.clusterId, 'clusterId') : undefined;
     const hasRegionCode = this.hasOwn(body, 'regionCode');
@@ -1566,7 +1571,10 @@ export class ListingsService {
     const negotiableNote = hasNegotiableNote
       ? this.parseNullableNonEmptyStringStrict(body?.negotiableNote, 'negotiableNote')
       : null;
-    const encumbranceNote = body?.encumbranceNote ? String(body?.encumbranceNote) : null;
+    const hasEncumbranceNote = this.hasOwn(body, 'encumbranceNote');
+    const encumbranceNote = hasEncumbranceNote
+      ? this.parseNullableNonEmptyStringStrict(body?.encumbranceNote, 'encumbranceNote')
+      : null;
     const listing = await this.prisma.listing.create({
       data: {
         sellerUserId: req.auth.userId,
@@ -1640,7 +1648,9 @@ export class ListingsService {
       ? this.parseNullableExistingLicenseStatusStrict(body?.existingLicenseStatus, 'existingLicenseStatus')
       : undefined;
     const hasEncumbranceNote = Object.prototype.hasOwnProperty.call(body || {}, 'encumbranceNote');
-    const encumbranceNote = hasEncumbranceNote ? (body?.encumbranceNote ? String(body?.encumbranceNote) : null) : undefined;
+    const encumbranceNote = hasEncumbranceNote
+      ? this.parseNullableNonEmptyStringStrict(body?.encumbranceNote, 'encumbranceNote')
+      : undefined;
     const hasClusterId = Object.prototype.hasOwnProperty.call(body || {}, 'clusterId');
     const clusterId = hasClusterId ? this.parseNullableRegionCodeStrict(body?.clusterId, 'clusterId') : undefined;
     const hasRegionCode = this.hasOwn(body, 'regionCode');
