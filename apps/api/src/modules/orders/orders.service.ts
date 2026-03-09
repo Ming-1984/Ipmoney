@@ -960,7 +960,8 @@ export class OrdersService {
 
   async adminApproveRefundRequest(req: any, refundRequestId: string): Promise<RefundRequestDto> {
     this.ensureAdmin(req);
-    const existing = await this.prisma.refundRequest.findUnique({ where: { id: refundRequestId } });
+    const normalizedRefundRequestId = this.parseUuidStrict(refundRequestId, 'refundRequestId');
+    const existing = await this.prisma.refundRequest.findUnique({ where: { id: normalizedRefundRequestId } });
     if (!existing) throw new NotFoundException({ code: 'NOT_FOUND', message: 'refund request not found' });
     if (existing.status !== 'PENDING') {
       throw new ConflictException({ code: 'CONFLICT', message: 'refund request already processed' });
@@ -971,7 +972,7 @@ export class OrdersService {
       throw new ConflictException({ code: 'CONFLICT', message: 'refund not allowed in current status' });
     }
     const updated = await this.prisma.refundRequest.update({
-      where: { id: refundRequestId },
+      where: { id: normalizedRefundRequestId },
       data: { status: 'REFUNDING' },
     });
     await this.audit.log({
@@ -1024,17 +1025,18 @@ export class OrdersService {
 
   async adminRejectRefundRequest(req: any, refundRequestId: string, body: any): Promise<RefundRequestDto> {
     this.ensureAdmin(req);
+    const normalizedRefundRequestId = this.parseUuidStrict(refundRequestId, 'refundRequestId');
     const reason = String(body?.reason || '').trim();
     if (!reason) {
       throw new BadRequestException({ code: 'BAD_REQUEST', message: 'reason is required' });
     }
-    const existing = await this.prisma.refundRequest.findUnique({ where: { id: refundRequestId } });
+    const existing = await this.prisma.refundRequest.findUnique({ where: { id: normalizedRefundRequestId } });
     if (!existing) throw new NotFoundException({ code: 'NOT_FOUND', message: 'refund request not found' });
     if (existing.status !== 'PENDING') {
       throw new ConflictException({ code: 'CONFLICT', message: 'refund request already processed' });
     }
     const updated = await this.prisma.refundRequest.update({
-      where: { id: refundRequestId },
+      where: { id: normalizedRefundRequestId },
       data: { status: 'REJECTED' },
     });
     await this.audit.log({
@@ -1073,7 +1075,8 @@ export class OrdersService {
 
   async adminCompleteRefundRequest(req: any, refundRequestId: string, body: any): Promise<RefundRequestDto> {
     this.ensureAdmin(req);
-    const existing = await this.prisma.refundRequest.findUnique({ where: { id: refundRequestId } });
+    const normalizedRefundRequestId = this.parseUuidStrict(refundRequestId, 'refundRequestId');
+    const existing = await this.prisma.refundRequest.findUnique({ where: { id: normalizedRefundRequestId } });
     if (!existing) throw new NotFoundException({ code: 'NOT_FOUND', message: 'refund request not found' });
     if (!['REFUNDING', 'APPROVED', 'PENDING'].includes(existing.status)) {
       throw new ConflictException({ code: 'CONFLICT', message: 'refund request already completed' });
