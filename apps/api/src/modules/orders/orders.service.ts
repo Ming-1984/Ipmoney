@@ -46,6 +46,7 @@ const ORDER_STATUSES = [
 ] as const;
 const ORDER_STATUS_GROUPS = ['PAYMENT_PENDING', 'IN_PROGRESS', 'REFUND', 'DONE'] as const;
 const INVOICE_STATUSES = ['WAIT_APPLY', 'APPLYING', 'ISSUED'] as const;
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 type OrderStatus =
   | 'DEPOSIT_PENDING'
@@ -162,6 +163,14 @@ export class OrdersService {
     if (value === null) return null;
     const raw = String(value ?? '').trim();
     if (!raw) {
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: `${fieldName} is invalid` });
+    }
+    return raw;
+  }
+
+  private parseUuidStrict(value: unknown, fieldName: string): string {
+    const raw = String(value ?? '').trim();
+    if (!raw || !UUID_RE.test(raw)) {
       throw new BadRequestException({ code: 'BAD_REQUEST', message: `${fieldName} is invalid` });
     }
     return raw;
@@ -1514,10 +1523,7 @@ export class OrdersService {
 
   async adminUpsertOrderInvoice(req: any, orderId: string, body: any): Promise<OrderInvoiceDto> {
     this.ensureAdmin(req);
-    const invoiceFileId = String(body?.invoiceFileId || '').trim();
-    if (!invoiceFileId) {
-      throw new BadRequestException({ code: 'BAD_REQUEST', message: 'invoiceFileId is required' });
-    }
+    const invoiceFileId = this.parseUuidStrict(body?.invoiceFileId, 'invoiceFileId');
 
     const [order, file] = await Promise.all([
       this.prisma.order.findUnique({ where: { id: orderId } }),
