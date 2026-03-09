@@ -555,6 +555,9 @@ export class ArtworksService {
     const hasPaintingGenre = this.hasOwn(body, 'paintingGenre');
     const hasPriceType = this.hasOwn(body, 'priceType');
     const hasRegionCode = this.hasOwn(body, 'regionCode');
+    const hasCreationDate = this.hasOwn(body, 'creationDate');
+    const hasCreationYear = this.hasOwn(body, 'creationYear');
+    const hasPriceAmountFen = this.hasOwn(body, 'priceAmountFen');
     const hasTitle = this.hasOwn(body, 'title');
     const hasCreatorName = this.hasOwn(body, 'creatorName');
     const hasDescription = this.hasOwn(body, 'description');
@@ -565,10 +568,10 @@ export class ArtworksService {
     const category = hasCategory ? this.parseCategoryStrict(body?.category, 'category') : undefined;
     const calligraphyScript = hasCalligraphyScript ? this.parseNullableCalligraphyScriptStrict(body?.calligraphyScript, 'calligraphyScript') : undefined;
     const paintingGenre = hasPaintingGenre ? this.parseNullablePaintingGenreStrict(body?.paintingGenre, 'paintingGenre') : undefined;
-    const creationDate = body?.creationDate !== undefined ? this.parseOptionalDate(body?.creationDate, 'creationDate') : undefined;
-    const creationYear = body?.creationYear !== undefined ? this.parseOptionalInt(body?.creationYear, 'creationYear', 0) : undefined;
+    const creationDate = hasCreationDate ? this.parseOptionalDate(body?.creationDate, 'creationDate') : undefined;
+    const creationYear = hasCreationYear ? this.parseOptionalInt(body?.creationYear, 'creationYear', 0) : undefined;
     const priceType = hasPriceType ? this.parsePriceTypeStrict(body?.priceType, 'priceType') : undefined;
-    const priceAmountFen = body?.priceAmountFen !== undefined ? this.parseOptionalInt(body?.priceAmountFen, 'priceAmountFen', 0) : undefined;
+    const priceAmountFen = hasPriceAmountFen ? this.parseOptionalInt(body?.priceAmountFen, 'priceAmountFen', 0) : undefined;
     const depositAmountFen = body?.depositAmountFen !== undefined ? this.parseOptionalInt(body?.depositAmountFen, 'depositAmountFen', 0) : undefined;
     const regionCode = hasRegionCode ? this.parseNullableRegionCodeStrict(body?.regionCode, 'regionCode') : undefined;
     const coverFileId = hasCoverFileId ? this.parseNullableCoverFileIdStrict(body?.coverFileId, 'coverFileId') : undefined;
@@ -591,8 +594,8 @@ export class ArtworksService {
           calligraphyScript: hasCalligraphyScript ? calligraphyScript : undefined,
           paintingGenre: hasPaintingGenre ? paintingGenre : undefined,
           creatorName: hasCreatorName ? creatorName : undefined,
-          creationDate: creationDate ?? null,
-          creationYear: creationYear ?? null,
+          creationDate: hasCreationDate ? creationDate ?? null : undefined,
+          creationYear: hasCreationYear ? creationYear ?? null : undefined,
           certificateNo: hasCertificateNo ? certificateNo : undefined,
           certificateFileIdsJson: hasCertificateFileIds
             ? certificateFileIds && certificateFileIds.length > 0
@@ -600,7 +603,7 @@ export class ArtworksService {
               : Prisma.DbNull
             : undefined,
           priceType: hasPriceType ? priceType : undefined,
-          priceAmountFen: priceAmountFen ?? null,
+          priceAmountFen: hasPriceAmountFen ? priceAmountFen ?? null : undefined,
           depositAmountFen: depositAmountFen ?? undefined,
           regionCode: hasRegionCode ? regionCode : undefined,
           material: hasMaterial ? material : undefined,
@@ -981,6 +984,9 @@ export class ArtworksService {
     const hasAuditStatus = this.hasOwn(body, 'auditStatus');
     const hasStatus = this.hasOwn(body, 'status');
     const hasRegionCode = this.hasOwn(body, 'regionCode');
+    const hasCreationDate = this.hasOwn(body, 'creationDate');
+    const hasCreationYear = this.hasOwn(body, 'creationYear');
+    const hasPriceAmountFen = this.hasOwn(body, 'priceAmountFen');
     const hasTitle = this.hasOwn(body, 'title');
     const hasCreatorName = this.hasOwn(body, 'creatorName');
     const hasDescription = this.hasOwn(body, 'description');
@@ -992,10 +998,10 @@ export class ArtworksService {
     const category = hasCategory ? this.parseCategoryStrict(body?.category, 'category') : undefined;
     const calligraphyScript = hasCalligraphyScript ? this.parseNullableCalligraphyScriptStrict(body?.calligraphyScript, 'calligraphyScript') : undefined;
     const paintingGenre = hasPaintingGenre ? this.parseNullablePaintingGenreStrict(body?.paintingGenre, 'paintingGenre') : undefined;
-    const creationDate = body?.creationDate !== undefined ? this.parseOptionalDate(body?.creationDate, 'creationDate') : undefined;
-    const creationYear = body?.creationYear !== undefined ? this.parseOptionalInt(body?.creationYear, 'creationYear', 0) : undefined;
+    const creationDate = hasCreationDate ? this.parseOptionalDate(body?.creationDate, 'creationDate') : undefined;
+    const creationYear = hasCreationYear ? this.parseOptionalInt(body?.creationYear, 'creationYear', 0) : undefined;
     const priceType = hasPriceType ? this.parsePriceTypeStrict(body?.priceType, 'priceType') : undefined;
-    const priceAmountFen = body?.priceAmountFen !== undefined ? this.parseOptionalInt(body?.priceAmountFen, 'priceAmountFen', 0) : undefined;
+    const priceAmountFen = hasPriceAmountFen ? this.parseOptionalInt(body?.priceAmountFen, 'priceAmountFen', 0) : undefined;
     const depositAmountFen = body?.depositAmountFen !== undefined ? this.parseOptionalInt(body?.depositAmountFen, 'depositAmountFen', 0) : undefined;
     const regionCode = hasRegionCode ? this.parseNullableRegionCodeStrict(body?.regionCode, 'regionCode') : undefined;
     const coverFileId = hasCoverFileId ? this.parseNullableCoverFileIdStrict(body?.coverFileId, 'coverFileId') : undefined;
@@ -1023,8 +1029,8 @@ export class ArtworksService {
           calligraphyScript: hasCalligraphyScript ? calligraphyScript : undefined,
           paintingGenre: hasPaintingGenre ? paintingGenre : undefined,
           creatorName: hasCreatorName ? creatorName : undefined,
-          creationDate: creationDate ?? null,
-          creationYear: creationYear ?? null,
+          creationDate: hasCreationDate ? creationDate ?? null : undefined,
+          creationYear: hasCreationYear ? creationYear ?? null : undefined,
           certificateNo: hasCertificateNo ? certificateNo : undefined,
           certificateFileIdsJson: hasCertificateFileIds
             ? certificateFileIds && certificateFileIds.length > 0
@@ -1032,7 +1038,7 @@ export class ArtworksService {
               : Prisma.DbNull
             : undefined,
           priceType: priceType ?? undefined,
-          priceAmountFen: priceAmountFen ?? null,
+          priceAmountFen: hasPriceAmountFen ? priceAmountFen ?? null : undefined,
           depositAmountFen: depositAmountFen ?? undefined,
           regionCode: hasRegionCode ? regionCode : undefined,
           material: hasMaterial ? material : undefined,
