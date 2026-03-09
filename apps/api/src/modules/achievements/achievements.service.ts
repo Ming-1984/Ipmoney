@@ -339,10 +339,12 @@ export class AchievementsService {
     const hasMaturity = this.hasOwn(body, 'maturity');
     const hasRegionCode = this.hasOwn(body, 'regionCode');
     const hasSummary = this.hasOwn(body, 'summary');
+    const hasDescription = this.hasOwn(body, 'description');
     const maturity = hasMaturity ? this.parseNullableMaturityStrict(body?.maturity, 'maturity') : undefined;
     const regionCode = hasRegionCode ? this.parseNullableRegionCodeStrict(body?.regionCode, 'regionCode') : undefined;
     const coverFileId = hasCoverFileId ? this.parseNullableCoverFileIdStrict(body?.coverFileId, 'coverFileId') : undefined;
     const summary = hasSummary ? this.parseNullableNonEmptyStringStrict(body?.summary, 'summary') : null;
+    const description = hasDescription ? this.parseNullableNonEmptyStringStrict(body?.description, 'description') : null;
     const mediaInput = normalizeMediaInput(body?.media);
 
     const created = await this.prisma.$transaction(async (tx) => {
@@ -352,7 +354,7 @@ export class AchievementsService {
           source: 'USER',
           title,
           summary,
-          description: body?.description ?? null,
+          description,
           keywordsJson: keywords.length > 0 ? keywords : Prisma.DbNull,
           maturity: maturity === undefined ? null : maturity,
           cooperationModesJson: cooperationModes.length > 0 ? cooperationModes : Prisma.DbNull,
@@ -396,6 +398,7 @@ export class AchievementsService {
     const hasMaturity = this.hasOwn(body, 'maturity');
     const hasRegionCode = this.hasOwn(body, 'regionCode');
     const hasSummary = this.hasOwn(body, 'summary');
+    const hasDescription = this.hasOwn(body, 'description');
 
     const keywords = hasKeywords ? normalizeStringArray(body?.keywords) : undefined;
     const cooperationModes = hasCooperationModes ? normalizeStringArray(body?.cooperationModes) : undefined;
@@ -405,6 +408,7 @@ export class AchievementsService {
     const regionCode = hasRegionCode ? this.parseNullableRegionCodeStrict(body?.regionCode, 'regionCode') : undefined;
     const coverFileId = hasCoverFileId ? this.parseNullableCoverFileIdStrict(body?.coverFileId, 'coverFileId') : undefined;
     const summary = hasSummary ? this.parseNullableNonEmptyStringStrict(body?.summary, 'summary') : undefined;
+    const description = hasDescription ? this.parseNullableNonEmptyStringStrict(body?.description, 'description') : undefined;
 
     await this.prisma.$transaction(async (tx) => {
       await tx.achievement.update({
@@ -412,7 +416,7 @@ export class AchievementsService {
         data: {
           title: body?.title ?? undefined,
           summary: hasSummary ? summary : undefined,
-          description: body?.description ?? undefined,
+          description: hasDescription ? description : undefined,
           maturity: hasMaturity ? maturity : undefined,
           regionCode: hasRegionCode ? regionCode : undefined,
           coverFileId: hasCoverFileId ? coverFileId : undefined,
@@ -650,6 +654,7 @@ export class AchievementsService {
     const hasRegionCode = this.hasOwn(body, 'regionCode');
     const hasCoverFileId = this.hasOwn(body, 'coverFileId');
     const hasSummary = this.hasOwn(body, 'summary');
+    const hasDescription = this.hasOwn(body, 'description');
     const sourceInput = hasSource ? this.parseContentSourceStrict(body?.source, 'source') : 'ADMIN';
     const ownerId = this.parseOptionalPublisherUserIdStrict(body) ?? String(req?.auth?.userId || '').trim();
     const keywords = normalizeStringArray(body?.keywords);
@@ -659,6 +664,7 @@ export class AchievementsService {
     const regionCode = hasRegionCode ? this.parseNullableRegionCodeStrict(body?.regionCode, 'regionCode') : undefined;
     const coverFileId = hasCoverFileId ? this.parseNullableCoverFileIdStrict(body?.coverFileId, 'coverFileId') : undefined;
     const summary = hasSummary ? this.parseNullableNonEmptyStringStrict(body?.summary, 'summary') : null;
+    const description = hasDescription ? this.parseNullableNonEmptyStringStrict(body?.description, 'description') : null;
     const mediaInput = normalizeMediaInput(body?.media);
     const auditStatus = hasAuditStatus ? this.parseAuditStatusStrict(body?.auditStatus, 'auditStatus') : 'PENDING';
     const status = hasStatus ? this.parseContentStatusStrict(body?.status, 'status') : 'DRAFT';
@@ -670,7 +676,7 @@ export class AchievementsService {
           source: sourceInput,
           title,
           summary,
-          description: body?.description ?? null,
+          description,
           keywordsJson: keywords.length > 0 ? keywords : Prisma.DbNull,
           maturity: maturity === undefined ? null : maturity,
           cooperationModesJson: cooperationModes.length > 0 ? cooperationModes : Prisma.DbNull,
@@ -725,6 +731,7 @@ export class AchievementsService {
     const hasStatus = this.hasOwn(body, 'status');
     const hasRegionCode = this.hasOwn(body, 'regionCode');
     const hasSummary = this.hasOwn(body, 'summary');
+    const hasDescription = this.hasOwn(body, 'description');
 
     const keywords = hasKeywords ? normalizeStringArray(body?.keywords) : undefined;
     const cooperationModes = hasCooperationModes ? normalizeStringArray(body?.cooperationModes) : undefined;
@@ -735,6 +742,7 @@ export class AchievementsService {
     const regionCode = hasRegionCode ? this.parseNullableRegionCodeStrict(body?.regionCode, 'regionCode') : undefined;
     const coverFileId = hasCoverFileId ? this.parseNullableCoverFileIdStrict(body?.coverFileId, 'coverFileId') : undefined;
     const summary = hasSummary ? this.parseNullableNonEmptyStringStrict(body?.summary, 'summary') : undefined;
+    const description = hasDescription ? this.parseNullableNonEmptyStringStrict(body?.description, 'description') : undefined;
     const auditStatus = hasAuditStatus ? this.parseAuditStatusStrict(body?.auditStatus, 'auditStatus') : undefined;
     const status = hasStatus ? this.parseContentStatusStrict(body?.status, 'status') : undefined;
     const publisherUserId = this.parseOptionalPublisherUserIdStrict(body);
@@ -747,7 +755,7 @@ export class AchievementsService {
           source: hasSource ? source : undefined,
           title: body?.title ?? undefined,
           summary: hasSummary ? summary : undefined,
-          description: body?.description ?? undefined,
+          description: hasDescription ? description : undefined,
           maturity: hasMaturity ? maturity : undefined,
           regionCode: hasRegionCode ? regionCode : undefined,
           coverFileId: hasCoverFileId ? coverFileId : undefined,
