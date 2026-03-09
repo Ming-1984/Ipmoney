@@ -2403,6 +2403,7 @@ try {
   [void](Add-ApiCaseResult -Results $results -Name "contract-list-invalid-status" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/contracts?status=UNKNOWN" -Body $null -Headers @{ Authorization = $userToken } -Expected @(400))
   [void](Add-ApiCaseResult -Results $results -Name "contract-list-invalid-page-zero" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/contracts?page=0" -Body $null -Headers @{ Authorization = $userToken } -Expected @(400))
   [void](Add-ApiCaseResult -Results $results -Name "contract-list-invalid-page-size-zero" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/contracts?pageSize=0" -Body $null -Headers @{ Authorization = $userToken } -Expected @(400))
+  [void](Add-ApiCaseResult -Results $results -Name "contract-list-invalid-page-size" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/contracts?pageSize=abc" -Body $null -Headers @{ Authorization = $userToken } -Expected @(400))
   [void](Add-ApiCaseResult -Results $results -Name "contract-list-invalid-page" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/contracts?page=abc" -Body $null -Headers @{ Authorization = $userToken } -Expected @(400))
   [void](Add-ApiCaseResult -Results $results -Name "contract-list-empty-page-size" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/contracts?pageSize=" -Body $null -Headers @{ Authorization = $userToken } -Expected @(400))
   $orderPaymentIntentFinalHeaders = New-WriteHeaders -AuthorizationToken $userToken -Prefix $idempotencyPrefix -Label "order-payment-intent-final"
@@ -2466,6 +2467,9 @@ try {
   if ([string]::IsNullOrWhiteSpace($contractUploadFileUrl)) {
     Add-ResultAssertionFailure -Result $contractUpload -Assertion "contract-upload-file-url" -Message "Uploaded contract fileUrl is empty"
   }
+  $contractUploadPrefixedId = Add-ApiCaseResult -Results $results -Name "contract-upload-prefixed-contract-id" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/contracts/contract-$orderId/upload" -Body @{ contractFileId = $contractPdfFileId } -Headers (New-WriteHeaders -AuthorizationToken $userToken -Prefix $idempotencyPrefix -Label "contract-upload-prefixed-contract-id") -Expected @(200, 201)
+  Assert-ResultJsonFieldEquals -Result $contractUploadPrefixedId -Field "status" -ExpectedValue "WAIT_CONFIRM" -Assertion "contract-upload-prefixed-status-wait-confirm"
+  Assert-ResultJsonFieldEquals -Result $contractUploadPrefixedId -Field "orderId" -ExpectedValue $orderId -Assertion "contract-upload-prefixed-order-id"
   $contractListWaitConfirm = Add-ApiCaseResult -Results $results -Name "contract-list-wait-confirm" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/contracts?status=WAIT_CONFIRM" -Body $null -Headers @{ Authorization = $userToken } -Expected @(200)
   Assert-ResultJsonArrayItemFieldEquals -Result $contractListWaitConfirm -ArrayField "items" -MatchField "orderId" -MatchValue $orderId -TargetField "status" -ExpectedValue "WAIT_CONFIRM" -Assertion "contract-list-wait-confirm-status"
   [void](Add-ApiCaseResult -Results $results -Name "file-temporary-access-create-preview-unauthorized" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/files/$evidenceFileId/temporary-access" -Body @{ scope = "preview"; ttlSeconds = 600 } -Headers @{} -Expected @(401))
