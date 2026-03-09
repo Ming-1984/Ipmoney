@@ -594,8 +594,9 @@ export class OrdersService {
 
   async getOrderDetail(req: any, orderId: string): Promise<OrderDto> {
     this.ensureAuth(req);
+    const normalizedOrderId = this.parseUuidStrict(orderId, 'orderId');
     const order = await this.prisma.order.findUnique({
-      where: { id: orderId },
+      where: { id: normalizedOrderId },
       include: { listing: { include: { patent: true } } },
     });
     if (!order) throw new NotFoundException({ code: 'NOT_FOUND', message: 'order not found' });
@@ -610,15 +611,16 @@ export class OrdersService {
       throw new NotImplementedException({ code: 'NOT_IMPLEMENTED', message: 'demo payment disabled' });
     }
     this.ensureAuth(req);
+    const normalizedOrderId = this.parseUuidStrict(orderId, 'orderId');
     const hasPayType = !!body && Object.prototype.hasOwnProperty.call(body, 'payType');
     const payTypeRaw = hasPayType ? String(body?.payType || '').toUpperCase() : 'DEPOSIT';
     if (hasPayType && !['DEPOSIT', 'FINAL'].includes(payTypeRaw)) {
       throw new BadRequestException({ code: 'BAD_REQUEST', message: 'payType is invalid' });
     }
     const payType = payTypeRaw === 'FINAL' ? 'FINAL' : 'DEPOSIT';
-    const scope = `PAYMENT_INTENT:${orderId}:${payType}`;
+    const scope = `PAYMENT_INTENT:${normalizedOrderId}:${payType}`;
     return await this.withIdempotency(req, scope, async () => {
-      let order = await this.prisma.order.findUnique({ where: { id: orderId } });
+      let order = await this.prisma.order.findUnique({ where: { id: normalizedOrderId } });
       if (!order) throw new NotFoundException({ code: 'NOT_FOUND', message: 'order not found' });
       if (order.buyerUserId !== req.auth.userId) {
         throw new ForbiddenException({ code: 'FORBIDDEN', message: 'forbidden' });
@@ -631,20 +633,20 @@ export class OrdersService {
       }
       if (payType === 'FINAL' && order.finalAmount == null && order.dealAmount != null) {
         const computedFinal = this.computeFinalAmount(order.dealAmount, order.depositAmount);
-        order = await this.prisma.order.update({ where: { id: orderId }, data: { finalAmount: computedFinal } });
+        order = await this.prisma.order.update({ where: { id: normalizedOrderId }, data: { finalAmount: computedFinal } });
       }
       const amount = payType === 'FINAL' ? order.finalAmount ?? 0 : order.depositAmount;
       const existingPaid = await this.prisma.payment.findFirst({
-        where: { orderId, payType, status: 'PAID' },
+        where: { orderId: normalizedOrderId, payType, status: 'PAID' },
       });
       if (existingPaid) {
         throw new ConflictException({ code: 'CONFLICT', message: 'payment already completed' });
       }
       const existingPending = await this.prisma.payment.findFirst({
-        where: { orderId, payType, status: 'PENDING' },
+        where: { orderId: normalizedOrderId, payType, status: 'PENDING' },
         orderBy: { createdAt: 'desc' },
       });
-      const tradeNo = existingPending?.tradeNo || `demo-${orderId}-${Date.now()}`;
+      const tradeNo = existingPending?.tradeNo || `demo-${normalizedOrderId}-${Date.now()}`;
       const payment = existingPending
         ? await this.prisma.payment.update({
             where: { id: existingPending.id },
@@ -655,7 +657,7 @@ export class OrdersService {
           })
         : await this.prisma.payment.create({
             data: {
-              orderId,
+              orderId: normalizedOrderId,
               payType,
               channel: 'WECHAT',
               tradeNo,
