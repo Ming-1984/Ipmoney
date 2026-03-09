@@ -2,6 +2,8 @@
 
 import { PrismaService } from '../../common/prisma/prisma.service';
 
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 @Injectable()
 export class AddressesService {
   constructor(private readonly prisma: PrismaService) {}
@@ -20,6 +22,14 @@ export class AddressesService {
     if (value === null) return null;
     const raw = String(value ?? '').trim();
     if (!raw) {
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: `${fieldName} is invalid` });
+    }
+    return raw;
+  }
+
+  private parseUuidStrict(value: unknown, fieldName: string): string {
+    const raw = String(value ?? '').trim();
+    if (!raw || !UUID_RE.test(raw)) {
       throw new BadRequestException({ code: 'BAD_REQUEST', message: `${fieldName} is invalid` });
     }
     return raw;
@@ -78,8 +88,9 @@ export class AddressesService {
 
   async update(req: any, addressId: string, body: any) {
     this.ensureAuth(req);
+    const normalizedAddressId = this.parseUuidStrict(addressId, 'addressId');
     const userId = req.auth.userId;
-    const existing = await this.prisma.address.findFirst({ where: { id: addressId, userId } });
+    const existing = await this.prisma.address.findFirst({ where: { id: normalizedAddressId, userId } });
     if (!existing) throw new NotFoundException({ code: 'NOT_FOUND', message: '地址不存在' });
 
     const hasIsDefault = body?.isDefault !== undefined;
@@ -92,7 +103,7 @@ export class AddressesService {
         await tx.address.updateMany({ where: { userId, isDefault: true }, data: { isDefault: false } });
       }
       const updated = await tx.address.update({
-        where: { id: addressId },
+        where: { id: normalizedAddressId },
         data: {
           name: body?.name ?? existing.name,
           phone: body?.phone ?? existing.phone,
@@ -107,9 +118,13 @@ export class AddressesService {
 
   async remove(req: any, addressId: string) {
     this.ensureAuth(req);
-    const removed = await this.prisma.address.deleteMany({ where: { id: addressId, userId: req.auth.userId } });
+    const normalizedAddressId = this.parseUuidStrict(addressId, 'addressId');
+    const removed = await this.prisma.address.deleteMany({
+      where: { id: normalizedAddressId, userId: req.auth.userId },
+    });
     if (!removed.count) throw new NotFoundException({ code: 'NOT_FOUND', message: '地址不存在' });
     return { ok: true };
   }
 }
+
 
