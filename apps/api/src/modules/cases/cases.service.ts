@@ -258,8 +258,14 @@ export class CasesService {
     const type = hasType ? this.parseTypeStrict(body?.type, 'type') : 'FOLLOWUP';
     const status = hasStatus ? this.parseStatusStrict(body?.status, 'status') : 'OPEN';
     const priority = hasPriority ? this.parsePriorityStrict(body?.priority, 'priority') : undefined;
-    const title = String(body?.title || '').trim() || DEFAULT_TITLES[type];
-    const requesterName = String(body?.requesterName || '').trim() || '系统';
+    const hasTitle = this.hasOwn(body, 'title');
+    const parsedTitle = hasTitle ? this.parseNullableNonEmptyStringStrict(body?.title, 'title') : undefined;
+    const title = hasTitle ? (parsedTitle ?? DEFAULT_TITLES[type]) : DEFAULT_TITLES[type];
+    const hasRequesterName = this.hasOwn(body, 'requesterName');
+    const parsedRequesterName = hasRequesterName
+      ? this.parseNullableNonEmptyStringStrict(body?.requesterName, 'requesterName')
+      : undefined;
+    const requesterName = hasRequesterName ? (parsedRequesterName ?? '系统') : '系统';
     const description = body?.description ? String(body.description).trim() : undefined;
     const hasOrderId = this.hasOwn(body, 'orderId');
     const orderId = hasOrderId ? this.parseNullableNonEmptyStringStrict(body?.orderId, 'orderId') : undefined;
