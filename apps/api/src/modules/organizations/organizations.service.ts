@@ -17,6 +17,7 @@ const ORG_TYPES: VerificationType[] = [
   VerificationType.GOVERNMENT,
   VerificationType.ASSOCIATION,
 ];
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 @Injectable()
 export class OrganizationsService {
@@ -41,6 +42,14 @@ export class OrganizationsService {
   private parseRegionCodeFilterStrict(value: unknown, fieldName: string): string {
     const raw = String(value ?? '').trim();
     if (!raw) {
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: `${fieldName} is invalid` });
+    }
+    return raw;
+  }
+
+  private parseUuidStrict(value: unknown, fieldName: string): string {
+    const raw = String(value ?? '').trim();
+    if (!raw || !UUID_RE.test(raw)) {
       throw new BadRequestException({ code: 'BAD_REQUEST', message: `${fieldName} is invalid` });
     }
     return raw;
@@ -171,9 +180,10 @@ export class OrganizationsService {
   }
 
   async getById(orgUserId: string) {
+    const normalizedOrgUserId = this.parseUuidStrict(orgUserId, 'orgUserId');
     const v = await this.prisma.userVerification.findFirst({
       where: {
-        userId: orgUserId,
+        userId: normalizedOrgUserId,
         verificationStatus: VerificationStatus.APPROVED,
         verificationType: { in: ORG_TYPES },
       },
@@ -183,7 +193,7 @@ export class OrganizationsService {
     const [listingCount, patentCount] = await Promise.all([
       this.prisma.listing.count({
         where: {
-          sellerUserId: orgUserId,
+          sellerUserId: normalizedOrgUserId,
           auditStatus: VerificationStatus.APPROVED,
           status: { in: ['ACTIVE', 'SOLD'] },
         },
@@ -191,7 +201,7 @@ export class OrganizationsService {
       this.prisma.listing
         .findMany({
           where: {
-            sellerUserId: orgUserId,
+            sellerUserId: normalizedOrgUserId,
             patentId: { not: null },
             auditStatus: VerificationStatus.APPROVED,
             status: { in: ['ACTIVE', 'SOLD'] },

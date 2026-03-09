@@ -14,6 +14,7 @@ type VerificationStatus = (typeof VERIFICATION_STATUSES)[number];
 const VERIFICATION_TYPE = {
   TECH_MANAGER: 'TECH_MANAGER',
 } as const;
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 type UserVerificationWhereInput = any;
 
@@ -68,6 +69,14 @@ export class TechManagersService {
   private parseRegionCodeFilterStrict(value: unknown, fieldName: string): string {
     const raw = String(value ?? '').trim();
     if (!raw) {
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: `${fieldName} is invalid` });
+    }
+    return raw;
+  }
+
+  private parseUuidStrict(value: unknown, fieldName: string): string {
+    const raw = String(value ?? '').trim();
+    if (!raw || !UUID_RE.test(raw)) {
       throw new BadRequestException({ code: 'BAD_REQUEST', message: `${fieldName} is invalid` });
     }
     return raw;
@@ -152,9 +161,10 @@ export class TechManagersService {
   }
 
   async getPublic(techManagerId: string) {
+    const normalizedTechManagerId = this.parseUuidStrict(techManagerId, 'techManagerId');
     const verification = await this.prisma.userVerification.findFirst({
       where: {
-        userId: techManagerId,
+        userId: normalizedTechManagerId,
         verificationType: VERIFICATION_TYPE.TECH_MANAGER,
         verificationStatus: VERIFICATION_STATUS.APPROVED,
       },
@@ -199,8 +209,9 @@ export class TechManagersService {
 
   async updateAdmin(request: any, techManagerId: string, body: any) {
     this.ensureAdmin(request);
+    const normalizedTechManagerId = this.parseUuidStrict(techManagerId, 'techManagerId');
     const verification = await this.prisma.userVerification.findFirst({
-      where: { userId: techManagerId, verificationType: VERIFICATION_TYPE.TECH_MANAGER },
+      where: { userId: normalizedTechManagerId, verificationType: VERIFICATION_TYPE.TECH_MANAGER },
       include: { user: true },
     });
     if (!verification) throw new NotFoundException({ code: 'NOT_FOUND', message: 'tech manager not found' });
@@ -269,8 +280,8 @@ export class TechManagersService {
     }
 
     const profile = await this.prisma.techManagerProfile.upsert({
-      where: { userId: techManagerId },
-      create: { userId: techManagerId, ...updates },
+      where: { userId: normalizedTechManagerId },
+      create: { userId: normalizedTechManagerId, ...updates },
       update: updates,
     });
 

@@ -1210,6 +1210,7 @@ try {
       }
     }
   }
+  [void](Add-ApiCaseResult -Results $results -Name "public-organization-detail-invalid-org-user-id-format" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/public/organizations/not-a-uuid" -Body $null -Headers @{} -Expected @(400))
 
   $adminListingsForWrites = Invoke-RestMethod -Method Get -Uri "http://127.0.0.1:$resolvedApiPort/admin/listings" -Headers @{ Authorization = $adminToken }
   $adminDemandsForWrites = Invoke-RestMethod -Method Get -Uri "http://127.0.0.1:$resolvedApiPort/admin/demands" -Headers @{ Authorization = $adminToken }
@@ -1352,6 +1353,7 @@ try {
   [void](Add-ApiCaseResult -Results $results -Name "public-artwork-comments-invalid-artwork-id-format" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/public/artworks/not-a-uuid/comments" -Body $null -Headers @{} -Expected @(400))
 
   [void](Add-ApiCaseResult -Results $results -Name "public-tech-manager-detail" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/public/tech-managers/$techManagerId" -Body $null -Headers @{} -Expected @(200))
+  [void](Add-ApiCaseResult -Results $results -Name "public-tech-manager-detail-invalid-tech-manager-id-format" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/public/tech-managers/not-a-uuid" -Body $null -Headers @{} -Expected @(400))
   [void](Add-ApiCaseResult -Results $results -Name "public-patent-clusters" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/public/patent-clusters" -Body $null -Headers @{} -Expected @(200))
   [void](Add-ApiCaseResult -Results $results -Name "public-patent-clusters-invalid-page" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/public/patent-clusters?page=abc" -Body $null -Headers @{} -Expected @(400))
   [void](Add-ApiCaseResult -Results $results -Name "public-patent-clusters-empty-page-size" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/public/patent-clusters?pageSize=" -Body $null -Headers @{} -Expected @(400))
@@ -2077,6 +2079,7 @@ try {
   [void](Add-ApiCaseResult -Results $results -Name "admin-announcement-off-shelf-missing" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/admin/announcements/$missingAnnouncementId/off-shelf" -Body @{} -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-announcement-off-shelf-missing") -Expected @(404))
   $missingTechManagerId = [guid]::NewGuid().ToString()
   [void](Add-ApiCaseResult -Results $results -Name "admin-tech-manager-update-missing" -Method "PATCH" -Url "http://127.0.0.1:$resolvedApiPort/admin/tech-managers/$missingTechManagerId" -Body @{ intro = "smoke tech manager missing" } -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-tech-manager-update-missing") -Expected @(404))
+  [void](Add-ApiCaseResult -Results $results -Name "admin-tech-manager-update-invalid-tech-manager-id-format" -Method "PATCH" -Url "http://127.0.0.1:$resolvedApiPort/admin/tech-managers/not-a-uuid" -Body @{ intro = "smoke invalid tech manager id format" } -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-tech-manager-update-invalid-tech-manager-id-format") -Expected @(400))
   [void](Add-ApiCaseResult -Results $results -Name "admin-tech-manager-update-invalid-featured-rank" -Method "PATCH" -Url "http://127.0.0.1:$resolvedApiPort/admin/tech-managers/$techManagerId" -Body @{ featuredRank = -1 } -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-tech-manager-update-invalid-featured-rank") -Expected @(400))
   [void](Add-ApiCaseResult -Results $results -Name "admin-tech-manager-update-empty-featured-rank" -Method "PATCH" -Url "http://127.0.0.1:$resolvedApiPort/admin/tech-managers/$techManagerId" -Body @{ featuredRank = "" } -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-tech-manager-update-empty-featured-rank") -Expected @(400))
   [void](Add-ApiCaseResult -Results $results -Name "admin-tech-manager-update-empty-featured-until" -Method "PATCH" -Url "http://127.0.0.1:$resolvedApiPort/admin/tech-managers/$techManagerId" -Body @{ featuredUntil = "" } -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-tech-manager-update-empty-featured-until") -Expected @(400))
