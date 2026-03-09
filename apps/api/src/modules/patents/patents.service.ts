@@ -213,6 +213,15 @@ export class PatentsService {
     return legalStatus;
   }
 
+  private parseNullableNonEmptyStringStrict(value: unknown, fieldName: string): string | null {
+    if (value === null) return null;
+    const raw = String(value ?? '').trim();
+    if (!raw) {
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: `${fieldName} is invalid` });
+    }
+    return raw;
+  }
+
   private parseDate(value: unknown, fieldName: string): Date | undefined {
     if (value === undefined || value === null) return undefined;
     if (String(value).trim() === '') {
@@ -425,6 +434,10 @@ export class PatentsService {
   async adminCreate(req: any, body: any): Promise<PatentDto> {
     this.ensureAdmin(req);
     const normalizedNo = this.normalizeApplicationNo(body?.applicationNoNorm || body?.applicationNoDisplay);
+    const hasApplicationNoDisplay = this.hasOwn(body, 'applicationNoDisplay');
+    const applicationNoDisplay = hasApplicationNoDisplay
+      ? this.parseNullableNonEmptyStringStrict(body?.applicationNoDisplay, 'applicationNoDisplay')
+      : undefined;
     const patentType = this.normalizePatentType(body?.patentType);
     if (!patentType) {
       throw new BadRequestException({ code: 'BAD_REQUEST', message: 'patentType is required' });
@@ -468,7 +481,7 @@ export class PatentsService {
       create: {
         jurisdiction,
         applicationNoNorm: normalizedNo.applicationNoNorm,
-        applicationNoDisplay: String(body?.applicationNoDisplay || normalizedNo.applicationNoDisplay),
+        applicationNoDisplay: applicationNoDisplay ?? normalizedNo.applicationNoDisplay,
         patentType,
         title,
         abstract: body?.abstract ? String(body.abstract) : null,
@@ -480,7 +493,7 @@ export class PatentsService {
         sourceUpdatedAt,
       },
       update: {
-        applicationNoDisplay: String(body?.applicationNoDisplay || normalizedNo.applicationNoDisplay),
+        applicationNoDisplay: applicationNoDisplay ?? normalizedNo.applicationNoDisplay,
         patentType,
         title,
         abstract: body?.abstract ? String(body.abstract) : null,
@@ -520,8 +533,7 @@ export class PatentsService {
 
     const patch: any = {};
     if (this.hasOwn(body, 'applicationNoDisplay')) {
-      const value = String(body?.applicationNoDisplay || '').trim();
-      patch.applicationNoDisplay = value || null;
+      patch.applicationNoDisplay = this.parseNullableNonEmptyStringStrict(body?.applicationNoDisplay, 'applicationNoDisplay');
     }
     if (this.hasOwn(body, 'patentType')) {
       const patentType = this.normalizePatentType(body?.patentType);
