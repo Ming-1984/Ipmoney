@@ -1523,7 +1523,12 @@ export class OrdersService {
     if (!order) throw new NotFoundException({ code: 'NOT_FOUND', message: 'order not found' });
     if (!file) throw new BadRequestException({ code: 'BAD_REQUEST', message: 'invoice file not found' });
 
-    const invoiceNo = body?.invoiceNo ? String(body.invoiceNo).trim() : order.invoiceNo || `INV-${Date.now()}`;
+    const hasInvoiceNo = this.hasOwn(body, 'invoiceNo');
+    const fallbackInvoiceNo = order.invoiceNo || `INV-${Date.now()}`;
+    const parsedInvoiceNo = hasInvoiceNo
+      ? this.parseNullableNonEmptyStringStrict(body?.invoiceNo, 'invoiceNo')
+      : undefined;
+    const invoiceNo = hasInvoiceNo ? (parsedInvoiceNo ?? fallbackInvoiceNo) : fallbackInvoiceNo;
     const issuedAt = this.parseOptionalDateTime(body?.issuedAt, 'issuedAt') ?? order.invoiceIssuedAt ?? new Date();
 
     const updated = await this.prisma.order.update({
