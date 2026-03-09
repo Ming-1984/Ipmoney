@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Patch, Post, Query, Req, UseGuards } from '@nestjs/common';
+import { BadRequestException, Body, Controller, Get, Param, Patch, Post, Query, Req, UseGuards } from '@nestjs/common';
 
 import { BearerAuthGuard } from '../../common/guards/bearer-auth.guard';
 import { VerifiedUserGuard } from '../../common/guards/verified-user.guard';
@@ -6,12 +6,22 @@ import { ContentAuditService } from '../../common/content-audit.service';
 import { requirePermission } from '../../common/permissions';
 import { AchievementsService } from './achievements.service';
 
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 @Controller()
 export class AchievementsController {
   constructor(
     private readonly achievements: AchievementsService,
     private readonly contentAudit: ContentAuditService,
   ) {}
+
+  private parseUuidParam(value: string, field: string): string {
+    const raw = String(value || '').trim();
+    if (!raw || !UUID_RE.test(raw)) {
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: `${field} is invalid` });
+    }
+    return raw;
+  }
 
   @UseGuards(BearerAuthGuard)
   @Get('/achievements')
@@ -22,7 +32,8 @@ export class AchievementsController {
   @UseGuards(BearerAuthGuard)
   @Get('/achievements/:achievementId')
   async getMine(@Req() req: any, @Param('achievementId') achievementId: string) {
-    return await this.achievements.getMine(req, achievementId);
+    const normalizedAchievementId = this.parseUuidParam(achievementId, 'achievementId');
+    return await this.achievements.getMine(req, normalizedAchievementId);
   }
 
   @UseGuards(BearerAuthGuard, VerifiedUserGuard)
@@ -34,19 +45,22 @@ export class AchievementsController {
   @UseGuards(BearerAuthGuard, VerifiedUserGuard)
   @Patch('/achievements/:achievementId')
   async update(@Req() req: any, @Param('achievementId') achievementId: string, @Body() body: any) {
-    return await this.achievements.update(req, achievementId, body || {});
+    const normalizedAchievementId = this.parseUuidParam(achievementId, 'achievementId');
+    return await this.achievements.update(req, normalizedAchievementId, body || {});
   }
 
   @UseGuards(BearerAuthGuard, VerifiedUserGuard)
   @Post('/achievements/:achievementId/submit')
   async submit(@Req() req: any, @Param('achievementId') achievementId: string) {
-    return await this.achievements.submit(req, achievementId);
+    const normalizedAchievementId = this.parseUuidParam(achievementId, 'achievementId');
+    return await this.achievements.submit(req, normalizedAchievementId);
   }
 
   @UseGuards(BearerAuthGuard, VerifiedUserGuard)
   @Post('/achievements/:achievementId/off-shelf')
   async offShelf(@Req() req: any, @Param('achievementId') achievementId: string, @Body() body: any) {
-    return await this.achievements.offShelf(req, achievementId, body || {});
+    const normalizedAchievementId = this.parseUuidParam(achievementId, 'achievementId');
+    return await this.achievements.offShelf(req, normalizedAchievementId, body || {});
   }
 
   @Get('/search/achievements')
@@ -56,7 +70,8 @@ export class AchievementsController {
 
   @Get('/public/achievements/:achievementId')
   async getPublic(@Req() req: any, @Param('achievementId') achievementId: string) {
-    return await this.achievements.getPublic(req, achievementId);
+    const normalizedAchievementId = this.parseUuidParam(achievementId, 'achievementId');
+    return await this.achievements.getPublic(req, normalizedAchievementId);
   }
 
   @UseGuards(BearerAuthGuard)
@@ -77,28 +92,32 @@ export class AchievementsController {
   @Get('/admin/achievements/:achievementId')
   async adminGet(@Req() req: any, @Param('achievementId') achievementId: string) {
     requirePermission(req, 'listing.read');
-    return await this.achievements.adminGetById(req, achievementId);
+    const normalizedAchievementId = this.parseUuidParam(achievementId, 'achievementId');
+    return await this.achievements.adminGetById(req, normalizedAchievementId);
   }
 
   @UseGuards(BearerAuthGuard)
   @Patch('/admin/achievements/:achievementId')
   async adminUpdate(@Req() req: any, @Param('achievementId') achievementId: string, @Body() body: any) {
     requirePermission(req, 'listing.audit');
-    return await this.achievements.adminUpdate(req, achievementId, body || {});
+    const normalizedAchievementId = this.parseUuidParam(achievementId, 'achievementId');
+    return await this.achievements.adminUpdate(req, normalizedAchievementId, body || {});
   }
 
   @UseGuards(BearerAuthGuard)
   @Post('/admin/achievements/:achievementId/publish')
   async adminPublish(@Req() req: any, @Param('achievementId') achievementId: string) {
     requirePermission(req, 'listing.audit');
-    return await this.achievements.adminPublish(req, achievementId);
+    const normalizedAchievementId = this.parseUuidParam(achievementId, 'achievementId');
+    return await this.achievements.adminPublish(req, normalizedAchievementId);
   }
 
   @UseGuards(BearerAuthGuard)
   @Post('/admin/achievements/:achievementId/off-shelf')
   async adminOffShelf(@Req() req: any, @Param('achievementId') achievementId: string) {
     requirePermission(req, 'listing.audit');
-    return await this.achievements.adminOffShelf(req, achievementId);
+    const normalizedAchievementId = this.parseUuidParam(achievementId, 'achievementId');
+    return await this.achievements.adminOffShelf(req, normalizedAchievementId);
   }
 
   @UseGuards(BearerAuthGuard)
@@ -106,7 +125,8 @@ export class AchievementsController {
   async getMaterials(@Req() req: any, @Param('achievementId') achievementId: string) {
     this.achievements.ensureAdmin(req);
     requirePermission(req, 'listing.read');
-    return await this.contentAudit.listMaterials('ACHIEVEMENT', achievementId);
+    const normalizedAchievementId = this.parseUuidParam(achievementId, 'achievementId');
+    return await this.contentAudit.listMaterials('ACHIEVEMENT', normalizedAchievementId);
   }
 
   @UseGuards(BearerAuthGuard)
@@ -114,20 +134,23 @@ export class AchievementsController {
   async getAuditLogs(@Req() req: any, @Param('achievementId') achievementId: string) {
     this.achievements.ensureAdmin(req);
     requirePermission(req, 'auditLog.read');
-    return await this.contentAudit.listLogs('ACHIEVEMENT', achievementId);
+    const normalizedAchievementId = this.parseUuidParam(achievementId, 'achievementId');
+    return await this.contentAudit.listLogs('ACHIEVEMENT', normalizedAchievementId);
   }
 
   @UseGuards(BearerAuthGuard)
   @Post('/admin/achievements/:achievementId/approve')
   async approve(@Req() req: any, @Param('achievementId') achievementId: string) {
     requirePermission(req, 'listing.audit');
-    return await this.achievements.adminApprove(req, achievementId);
+    const normalizedAchievementId = this.parseUuidParam(achievementId, 'achievementId');
+    return await this.achievements.adminApprove(req, normalizedAchievementId);
   }
 
   @UseGuards(BearerAuthGuard)
   @Post('/admin/achievements/:achievementId/reject')
   async reject(@Req() req: any, @Param('achievementId') achievementId: string, @Body() body: any) {
     requirePermission(req, 'listing.audit');
-    return await this.achievements.adminReject(req, achievementId, body || {});
+    const normalizedAchievementId = this.parseUuidParam(achievementId, 'achievementId');
+    return await this.achievements.adminReject(req, normalizedAchievementId, body || {});
   }
 }
