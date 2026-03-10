@@ -41,5 +41,14 @@
 
 ## Remaining work
 - Keep animation assets out of global/shared style paths.
-- Prefer component-level `<Image>` rendering for heavy media over CSS background embedding.
+- For animated GIF specifically, render with component-level `<Image>`/`<GifImage>` in TSX, not CSS `background` URLs.
 - Continue trend tracking in `docs/engineering/test-report.md`.
+
+## Regression guard (added 2026-03-10)
+- `scripts/check-weapp-bundle-budget.mjs` now fails when key wxss files contain `data:image/gif;base64`.
+- This catches accidental regressions where GIF gets inlined into wxss due to CSS background usage.
+- Home page animated assets are rendered through `GifImage` in `pages/home/index.tsx`.
+- Do not use `assets/brand/logo.gif` or `assets/home/promo-certificate.gif` on home page:
+  - both are 2-frame variants and appear as blinking in WeApp;
+  - use multi-frame variants (`logo.optim2.gif`, `promo-certificate.optim3.gif`) instead.
+- `scripts/check-weapp-bundle-budget.mjs` now also fails if home page imports these disallowed 2-frame variants.

@@ -23,6 +23,8 @@ import homeIconPatentMap from '../../assets/icons/home/home-patent-map.svg';
 import homeIconArtZone from '../../assets/icons/home/home-art-zone.svg';
 import homeIconDemand from '../../assets/icons/home/home-demand.svg';
 import homeIconAchievement from '../../assets/icons/home/home-achievement.svg';
+import logoGif from '../../assets/brand/logo.optim2.gif';
+import promoCertificateGif from '../../assets/home/promo-certificate.optim3.gif';
 import { STORAGE_KEYS } from '../../constants';
 import { getToken, onAuthChanged } from '../../lib/auth';
 import { apiGet } from '../../lib/api';
@@ -31,6 +33,7 @@ import { EmptyCard, ErrorCard } from '../../ui/StateCards';
 import { toast } from '../../ui/nutui';
 import { ListingCard } from '../../ui/ListingCard';
 import { ListingListSkeleton } from '../../ui/ListingSkeleton';
+import GifImage from '../../ui/GifImage';
 
 type PagedListingSummary = components['schemas']['PagedListingSummary'];
 type ListingSummary = components['schemas']['ListingSummary'];
@@ -71,7 +74,8 @@ const HomeBanner = React.memo(function HomeBanner() {
   return (
     <View className="home-banner">
       <View className="home-banner-item">
-        <View className="home-banner-img" />
+        {/* Use multi-frame GIF variants here; small *.gif files are 2-frame and appear as blinking. */}
+        <GifImage src={promoCertificateGif} mode="aspectFill" className="home-banner-img" />
       </View>
     </View>
   );
@@ -290,7 +294,7 @@ export default function HomePage() {
         <View className="home-hero-top">
           <View className="home-hero-brand">
             <View className="home-hero-logo">
-              <View className="home-hero-logo-img" />
+              <GifImage src={logoGif} mode="aspectFill" className="home-hero-logo-img" />
             </View>
             <View className="home-hero-text">
               <Text className="home-hero-title">IPMONEY</Text>

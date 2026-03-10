@@ -41,12 +41,12 @@
   justify-content: center;
 }
 
+/* Animated GIF is rendered via <GifImage>; avoid CSS background image here. */
 .home-hero-logo-img {
   width: 96rpx;
   height: 96rpx;
   border-radius: 24rpx;
-  background: linear-gradient(135deg, #ffffff 0%, #ffe3c7 100%);
-  box-shadow: inset 0 0 0 2rpx rgba(255, 255, 255, 0.65);
+  display: block;
 }
 
 .home-hero-text {
@@ -208,11 +208,12 @@
   overflow: hidden;
 }
 
+/* Animated GIF is rendered via <GifImage>; avoid CSS background image here. */
 .home-banner-img {
   width: 100%;
   height: 100%;
   border-radius: 24rpx;
-  background: url('../../assets/home/promo-certificate.png') center/cover no-repeat;
+  display: block;
 }
 
 .home-banner-caption {
