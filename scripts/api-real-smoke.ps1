@@ -2415,6 +2415,8 @@ try {
   Assert-ResultJsonFieldEquals -Result $contractListPageSizeOne -Field "page.pageSize" -ExpectedValue 1 -Assertion "contract-list-page-size-one-reflects"
   [void](Add-ApiCaseResult -Results $results -Name "contract-list-empty-page" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/contracts?page=" -Body $null -Headers @{ Authorization = $userToken } -Expected @(400))
   [void](Add-ApiCaseResult -Results $results -Name "contract-list-empty-page-size" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/contracts?pageSize=" -Body $null -Headers @{ Authorization = $userToken } -Expected @(400))
+  $contractListPageSizeFifty = Add-ApiCaseResult -Results $results -Name "contract-list-page-size-fifty" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/contracts?pageSize=50" -Body $null -Headers @{ Authorization = $userToken } -Expected @(200)
+  Assert-ResultJsonFieldEquals -Result $contractListPageSizeFifty -Field "page.pageSize" -ExpectedValue 50 -Assertion "contract-list-page-size-fifty-reflects"
   $contractListPageSizeCapped = Add-ApiCaseResult -Results $results -Name "contract-list-page-size-capped" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/contracts?pageSize=999" -Body $null -Headers @{ Authorization = $userToken } -Expected @(200)
   Assert-ResultJsonFieldEquals -Result $contractListPageSizeCapped -Field "page.pageSize" -ExpectedValue 50 -Assertion "contract-list-page-size-capped-to-50"
   $contractListPageSizeSlightOverCap = Add-ApiCaseResult -Results $results -Name "contract-list-page-size-slight-over-cap" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/contracts?pageSize=51" -Body $null -Headers @{ Authorization = $userToken } -Expected @(200)
