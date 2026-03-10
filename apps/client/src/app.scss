@@ -1189,13 +1189,26 @@ scroll-view {
   background: transparent;
 }
 
-// Ensure avatars always show the full image (avoid center-crop in some runtimes).
+// Ensure avatars cover the frame consistently across runtimes.
 .nut-avatar-img {
-  background-size: contain;
+  background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
-  object-fit: contain;
+  object-fit: cover;
   object-position: center;
+}
+
+// Center fallback initials inside avatar frames.
+.nut-avatar-text {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  text-align: center;
+  line-height: 1;
 }
 
 
