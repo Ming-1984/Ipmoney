@@ -102,7 +102,7 @@ if ([string]::IsNullOrWhiteSpace($DatabaseUrl)) {
   $DatabaseUrl = $env:DATABASE_URL
 }
 if ([string]::IsNullOrWhiteSpace($DatabaseUrl)) {
-  $DatabaseUrl = "postgresql://ipmoney:ipmoney@127.0.0.1:5432/ipmoney"
+  $DatabaseUrl = "postgresql://ipmoney:ipmoney@localhost:5432/ipmoney"
 }
 if ([string]::IsNullOrWhiteSpace($RedisUrl)) {
   $RedisUrl = $env:REDIS_URL
@@ -110,6 +110,9 @@ if ([string]::IsNullOrWhiteSpace($RedisUrl)) {
 if ([string]::IsNullOrWhiteSpace($RedisUrl)) {
   $RedisUrl = "redis://127.0.0.1:6379"
 }
+
+# Prefer localhost so Node can use loopback in environments where 127.0.0.1 is not bridged to Docker IPv6 listeners.
+$DatabaseUrl = $DatabaseUrl -replace '@127\.0\.0\.1:', '@localhost:'
 
 function Wait-Health([string]$Url, [int]$TimeoutSec = 45) {
   $deadline = (Get-Date).AddSeconds($TimeoutSec)
@@ -121,6 +124,62 @@ function Wait-Health([string]$Url, [int]$TimeoutSec = 45) {
     Start-Sleep -Milliseconds 400
   }
   throw "api not ready: $Url"
+}
+
+function Clear-SmokeFilterArtifacts {
+  param(
+    [string]$DbUrl,
+    [switch]$Quiet
+  )
+
+  $cleanupScript = @'
+const { PrismaClient } = require("./apps/api/node_modules/@prisma/client");
+
+const dbUrl = process.argv[2] || "";
+if (!dbUrl) {
+  console.log(JSON.stringify({ skipped: true, reason: "missing-database-url" }));
+  process.exit(0);
+}
+
+const prisma = new PrismaClient({
+  datasources: { db: { url: dbUrl } },
+});
+
+(async () => {
+  const deletedTags = await prisma.industryTag.deleteMany({
+    where: { name: { startsWith: "smoke-tag-" } },
+  });
+  const deletedRegions = await prisma.region.deleteMany({
+    where: {
+      OR: [
+        { name: { startsWith: "Smoke Region " } },
+        { name: { startsWith: "smoke region " } },
+      ],
+    },
+  });
+  console.log(
+    JSON.stringify({
+      deletedSmokeIndustryTags: deletedTags.count,
+      deletedSmokeRegions: deletedRegions.count,
+    }),
+  );
+})()
+  .catch((error) => {
+    console.error(error instanceof Error ? error.message : String(error));
+    process.exit(2);
+  })
+  .finally(async () => {
+    await prisma.$disconnect();
+  });
+'@
+
+  $cleanupOutput = $cleanupScript | node - $DbUrl
+  if (-not $Quiet -and -not [string]::IsNullOrWhiteSpace([string]$cleanupOutput)) {
+    Write-Host $cleanupOutput
+  }
+  if ($LASTEXITCODE -ne 0) {
+    Write-Host "[api-real-smoke] warning: failed to clear historical smoke filter artifacts"
+  }
 }
 
 function Normalize-ResultBody {
@@ -969,6 +1028,8 @@ $env:S3_ACCESS_KEY_ID = ""
 $env:S3_SECRET_ACCESS_KEY = ""
 $env:UPLOAD_DIR = (Join-Path $repoRoot ".tmp/uploads")
 New-Item -ItemType Directory -Force $env:UPLOAD_DIR | Out-Null
+
+Clear-SmokeFilterArtifacts -DbUrl $DatabaseUrl
 
 $logDir = Join-Path $repoRoot ".tmp"
 New-Item -ItemType Directory -Force $logDir | Out-Null
@@ -2398,6 +2459,7 @@ try {
   $orderDetailAfterContractSigned = Add-ApiCaseResult -Results $results -Name "order-detail-after-contract-signed" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/orders/$orderId" -Body $null -Headers @{ Authorization = $userToken } -Expected @(200)
   Assert-ResultJsonFieldEquals -Result $orderDetailAfterContractSigned -Field "status" -ExpectedValue "WAIT_FINAL_PAYMENT" -Assertion "order-detail-status-after-contract"
   [void](Add-ApiCaseResult -Results $results -Name "contract-list-unauthorized" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/contracts" -Body $null -Headers @{} -Expected @(401))
+  [void](Add-ApiCaseResult -Results $results -Name "contract-list-unauthorized-with-pagination-query" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/contracts?page=1&pageSize=50" -Body $null -Headers @{} -Expected @(401))
   [void](Add-ApiCaseResult -Results $results -Name "contract-list" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/contracts" -Body $null -Headers @{ Authorization = $userToken } -Expected @(200))
   [void](Add-ApiCaseResult -Results $results -Name "contract-list-wait-upload" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/contracts?status=WAIT_UPLOAD" -Body $null -Headers @{ Authorization = $userToken } -Expected @(200))
   [void](Add-ApiCaseResult -Results $results -Name "contract-list-empty-status" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/contracts?status=" -Body $null -Headers @{ Authorization = $userToken } -Expected @(400))
@@ -3899,4 +3961,5 @@ try {
   if ($proc -and -not $proc.HasExited) {
     Stop-Process -Id $proc.Id -Force -ErrorAction SilentlyContinue
   }
+  Clear-SmokeFilterArtifacts -DbUrl $DatabaseUrl -Quiet
 }
