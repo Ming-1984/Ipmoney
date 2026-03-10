@@ -11,6 +11,14 @@ type Cache = {
   inFlight: Promise<IndustryTag[]> | null;
 };
 
+const HIDDEN_TEST_TAG_PATTERNS = [/^smoke-tag-/i, /^e2e-tag-/i, /^qa-tag-/i];
+
+function isVisibleIndustryTagName(name: string): boolean {
+  const normalized = String(name || '').trim();
+  if (!normalized) return false;
+  return !HIDDEN_TEST_TAG_PATTERNS.some((pattern) => pattern.test(normalized));
+}
+
 const cache: Cache = {
   tags: null,
   inFlight: null,
@@ -22,7 +30,9 @@ export async function listPublicIndustryTags(opts?: { force?: boolean }): Promis
   if (!force && cache.inFlight) return cache.inFlight;
 
   const p = apiGet<IndustryTag[]>('/public/industry-tags').then((res) => {
-    const tags = Array.isArray(res) ? res.filter((t) => t && typeof t === 'object') : [];
+    const tags = Array.isArray(res)
+      ? res.filter((t) => t && typeof t === 'object' && isVisibleIndustryTagName(String((t as any).name || '')))
+      : [];
     cache.tags = tags;
     cache.inFlight = null;
     return tags;
@@ -67,4 +77,3 @@ export function usePublicIndustryTags() {
 
   return { tags, names, loading, error, reload };
 }
-

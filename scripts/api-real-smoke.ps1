@@ -1303,6 +1303,57 @@ try {
   $adminTaxonomyConfig = Invoke-RestMethod -Method Get -Uri "http://127.0.0.1:$resolvedApiPort/admin/config/taxonomy" -Headers @{ Authorization = $adminToken }
   $adminSensitiveWordsConfig = Invoke-RestMethod -Method Get -Uri "http://127.0.0.1:$resolvedApiPort/admin/config/sensitive-words" -Headers @{ Authorization = $adminToken }
   $adminHotSearchConfig = Invoke-RestMethod -Method Get -Uri "http://127.0.0.1:$resolvedApiPort/admin/config/hot-search" -Headers @{ Authorization = $adminToken }
+
+  $preflightIndustryTagItems = @()
+  if ($adminIndustryTagsForWrites -is [System.Array]) {
+    $preflightIndustryTagItems = @($adminIndustryTagsForWrites)
+  } elseif ($adminIndustryTagsForWrites -and $adminIndustryTagsForWrites.items) {
+    $preflightIndustryTagItems = @($adminIndustryTagsForWrites.items)
+  }
+  $preflightSmokeTagNames = @(
+    $preflightIndustryTagItems |
+      ForEach-Object {
+        if ($_ -and $_.name) { [string]$_.name } else { "" }
+      } |
+      Where-Object { -not [string]::IsNullOrWhiteSpace($_) -and $_.Trim().ToLowerInvariant().StartsWith("smoke-tag-") }
+  )
+  $preflightRegionItems = @()
+  if ($regionsForWrites -is [System.Array]) {
+    $preflightRegionItems = @($regionsForWrites)
+  } elseif ($regionsForWrites -and $regionsForWrites.items) {
+    $preflightRegionItems = @($regionsForWrites.items)
+  }
+  $preflightSmokeRegionCodes = @(
+    $preflightRegionItems |
+      Where-Object {
+        $name = if ($_ -and $_.name) { [string]$_.name } else { "" }
+        -not [string]::IsNullOrWhiteSpace($name) -and $name.Trim().ToLowerInvariant().StartsWith("smoke region ")
+      } |
+      ForEach-Object {
+        if ($_ -and $_.code) { [string]$_.code } elseif ($_ -and $_.regionCode) { [string]$_.regionCode } else { "" }
+      } |
+      Where-Object { -not [string]::IsNullOrWhiteSpace($_) }
+  )
+  $smokeFilterArtifactPreflight = [pscustomobject]@{
+    name = "smoke-filter-artifact-preflight"
+    method = "GET"
+    url = "internal://smoke-filter-artifact-preflight"
+    status = 200
+    expected = "200"
+    ok = $true
+    body = (@{
+        leakedSmokeTagCount = $preflightSmokeTagNames.Count
+        leakedSmokeRegionCount = $preflightSmokeRegionCodes.Count
+      } | ConvertTo-Json -Compress)
+  }
+  [void]$results.Add($smokeFilterArtifactPreflight)
+  if ($preflightSmokeTagNames.Count -gt 0) {
+    Add-ResultAssertionFailure -Result $smokeFilterArtifactPreflight -Assertion "smoke-filter-preflight-industry-tags-clean" -Message "Expected no leaked smoke-tag industry tags before run, got [$($preflightSmokeTagNames -join ', ')]"
+  }
+  if ($preflightSmokeRegionCodes.Count -gt 0) {
+    Add-ResultAssertionFailure -Result $smokeFilterArtifactPreflight -Assertion "smoke-filter-preflight-regions-clean" -Message "Expected no leaked smoke regions before run, got codes [$($preflightSmokeRegionCodes -join ', ')]"
+  }
+
   $verificationItems = @($adminUserVerificationsForWrites.items)
   $verificationId = ""
   if ($verificationItems.Count -gt 0) {
