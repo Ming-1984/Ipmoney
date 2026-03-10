@@ -34,9 +34,9 @@ export function Avatar(props: NutAvatarProps) {
       mode={mode ?? 'aspectFill'}
       fit={fit ?? 'cover'}
       icon={showFallback ? icon : undefined}
-      onError={(e) => {
+      onError={() => {
         setHasError(true);
-        onError?.(e);
+        onError?.();
       }}
     >
       {showFallback ? children : null}
