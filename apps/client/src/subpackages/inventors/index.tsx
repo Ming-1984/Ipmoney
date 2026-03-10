@@ -23,7 +23,6 @@ type PagedInventorRanking = {
   page: { page: number; pageSize: number; total: number };
 };
 
-const LABEL_RANK = '\u6392\u540d';
 const LABEL_PATENT_COUNT = '\u4e13\u5229\u6570';
 const LABEL_LISTING_COUNT = '\u5173\u8054\u4e0a\u67b6';
 const LABEL_EMPTY = '\u6682\u65e0\u6570\u636e';

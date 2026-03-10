@@ -1,4 +1,60 @@
-﻿# Test Report (Consolidated)
+# Test Report (Consolidated)
+
+## Latest (2026-03-05)
+
+### Commands & Results (dev)
+- `powershell -ExecutionPolicy Bypass -File scripts/verify.ps1 -ApiBaseUrl https://staging-api.example.com -ApiPort 3200 -ReportDate 2026-03-05`
+  - Result: success (all steps)
+  - Port resilience: verify keeps preferred/range/random fallback and remains stable under collision scenarios.
+  - Script hardening: `api-real-smoke`, `ui-http-smoke`, `ui-render-smoke` now use dynamic port selection and only clean up spawned child processes (no kill-by-port behavior).
+  - Quality gates: `openapi:lint`, `lint`, `typecheck`, `scan:banned-words` all pass.
+  - API smoke: pass (17/17) -> `.tmp/api-real-smoke-2026-03-05-summary.json`
+  - DB preflight: pass (failed=0) -> `.tmp/db-preflight-2026-03-05-summary.json`
+  - UI HTTP smoke: pass (9/9) -> `.tmp/ui-http-smoke-2026-03-05-summary.json`
+  - UI render smoke (core): pass (3/3) -> `.tmp/ui-render-smoke-2026-03-05-summary.json`
+  - UI DOM smoke (core): pass (11/11) -> `.tmp/ui-dom-smoke-2026-03-05-summary.json`
+  - WeApp hard budget gate: pass -> `.tmp/weapp-bundle-budget-2026-03-05.json`
+  - Build risk closed for current threshold: key wxss files now pass budget (`app-origin.wxss` 286,492 B; `pages/home/index.wxss` 118,115 B; `pages/me/index.wxss` 69,236 B; `subpackages/login/index.wxss` 64,541 B).
+
+- `powershell -ExecutionPolicy Bypass -File scripts/ui-http-smoke.ps1 -ReportDate 2026-03-05` (with a temporary blocker bound on `4010`)
+  - Result: success
+  - Collision self-heal validated: mock/client/admin auto-fallback to `4014` / `5177` / `5178` (no process kill by port).
+
+- `powershell -ExecutionPolicy Bypass -File scripts/ui-render-smoke.ps1 -Mode full -ReportDate 2026-03-05`
+  - Result: pass (83/83)
+  - Coverage split: client 58/58, admin 25/25.
+  - Artifacts: `.tmp/ui-render-smoke-2026-03-05-summary.json`, `docs/demo/rendered/ui-smoke-2026-03-05/`.
+
+- `powershell -ExecutionPolicy Bypass -File scripts/ui-dom-smoke.ps1 -Mode core -ReportDate 2026-03-05`
+  - Result: pass (11/11)
+  - Core DOM routes covered: client home/search/listing-detail/orders/publish/me + admin login/dashboard/orders/verifications/config.
+  - Artifacts: `.tmp/ui-dom-smoke-2026-03-05-summary.json`, `.tmp/ui-dom-smoke-2026-03-05.json`.
+
+- `apps/mock-api/src/server.js`
+  - Result: fixed CORS allow-list gap by adding `X-Device-Id`, removing false network failures in H5 API calls during DOM smoke.
+
+- `node scripts/build-page-api-test-matrix.mjs --date 2026-03-05`
+  - Result: success
+  - Matrix: `docs/engineering/page-api-test-matrix-2026-03-05.md`
+
+- `node scripts/audit-vulnerability-ledger.mjs --date 2026-03-05 --input .tmp/pnpm-audit-prod-2026-03-05.json`
+  - Result: success
+  - Ledger: `docs/engineering/vulnerability-ledger-2026-03-05.md`
+  - Machine summary: `.tmp/vulnerability-ledger-2026-03-05.json`
+
+### Risks still open
+- API write-coverage remains very low (2/135 ~= 1.48%).
+- UI status smoke is still shallow (route-level HTTP checks only 7/83 pages, plus 2 mock endpoints).
+- DOM assertions currently cover core subset only (11/83); full-page DOM rollout is pending.
+- Security baseline still high-risk (`pnpm audit --prod`: critical 2 / high 21), remediation not yet executed.
+
+### WeApp bundle trend
+| Date | app-origin.wxss | pages/home/index.wxss | pages/me/index.wxss | subpackages/login/index.wxss | Note |
+| --- | ---: | ---: | ---: | ---: | --- |
+| 2026-02-24 | ~159.6 KB | n/a | n/a | n/a | historical baseline (previous report) |
+| 2026-03-05 (pre-fix) | 2,690,716 B | 2,586,679 B | 1,271,348 B | 1,266,653 B | severe regression detected |
+| 2026-03-05 (post-fix) | 286,492 B | 118,115 B | 69,236 B | 64,541 B | GIF background replacement + budget gate |
+
 
 ## Latest (2026-02-24)
 

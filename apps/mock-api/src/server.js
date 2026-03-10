@@ -86,7 +86,7 @@ function setCorsHeaders(res) {
   res.setHeader('Access-Control-Allow-Methods', 'GET,POST,PUT,PATCH,DELETE,OPTIONS');
   res.setHeader(
     'Access-Control-Allow-Headers',
-    'Content-Type, Authorization, X-Mock-Scenario, X-Mock-Source, Idempotency-Key, Wechatpay-Timestamp, Wechatpay-Nonce, Wechatpay-Signature, Wechatpay-Serial, Wechatpay-Signature-Type',
+    'Content-Type, Authorization, X-Device-Id, X-Mock-Scenario, X-Mock-Source, Idempotency-Key, Wechatpay-Timestamp, Wechatpay-Nonce, Wechatpay-Signature, Wechatpay-Serial, Wechatpay-Signature-Type',
   );
 }
 

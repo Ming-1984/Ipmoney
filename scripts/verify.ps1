@@ -14,6 +14,58 @@ if ([string]::IsNullOrWhiteSpace($ReportDate)) {
   $ReportDate = (Get-Date).ToString("yyyy-MM-dd")
 }
 
+function Test-PortAvailable([int]$Port) {
+  try {
+    $listener = [System.Net.Sockets.TcpListener]::new([System.Net.IPAddress]::Loopback, $Port)
+    $listener.Start()
+    $listener.Stop()
+    return $true
+  } catch {
+    return $false
+  }
+}
+
+function Get-RandomAvailablePort() {
+  $listener = [System.Net.Sockets.TcpListener]::new([System.Net.IPAddress]::Loopback, 0)
+  try {
+    $listener.Start()
+    return [int]$listener.LocalEndpoint.Port
+  } finally {
+    $listener.Stop()
+  }
+}
+
+function Resolve-ApiPort([int]$PreferredPort, [int]$MaxOffset = 200, [int]$RandomRetries = 10) {
+  if (Test-PortAvailable -Port $PreferredPort) {
+    return [pscustomobject]@{
+      Port = $PreferredPort
+      Mode = "preferred"
+    }
+  }
+
+  for ($i = 1; $i -le $MaxOffset; $i++) {
+    $candidate = $PreferredPort + $i
+    if (Test-PortAvailable -Port $candidate) {
+      return [pscustomobject]@{
+        Port = $candidate
+        Mode = "range-fallback"
+      }
+    }
+  }
+
+  for ($attempt = 1; $attempt -le $RandomRetries; $attempt++) {
+    $candidate = Get-RandomAvailablePort
+    if (Test-PortAvailable -Port $candidate) {
+      return [pscustomobject]@{
+        Port = $candidate
+        Mode = "random-fallback"
+      }
+    }
+  }
+
+  throw "No available API port found in range [$PreferredPort, $($PreferredPort + $MaxOffset)] and random fallback retries exhausted"
+}
+
 function Invoke-Step([string]$name, [scriptblock]$block) {
   Write-Host ""
   Write-Host ("[verify] {0}" -f $name)
@@ -39,13 +91,23 @@ Invoke-Step "api:build" { pnpm -C apps/api build }
 Invoke-Step "admin-web:build" { pnpm -C apps/admin-web build }
 Invoke-Step "client:build:h5" { pnpm -C apps/client build:h5 }
 Invoke-Step "client:build:weapp" { pnpm -C apps/client build:weapp }
+Invoke-Step "check:weapp-budget" { pnpm check:weapp-budget }
 
 # Smoke / preflight checks (require docker compose infra running).
-Invoke-Step "api-real-smoke" { powershell -ExecutionPolicy Bypass -File scripts/api-real-smoke.ps1 -ApiPort $ApiPort -ReportDate $ReportDate }
+$portResolution = Resolve-ApiPort -PreferredPort $ApiPort
+$resolvedApiPort = [int]$portResolution.Port
+
+if ($portResolution.Mode -eq "range-fallback") {
+  Write-Host ("[verify] api port {0} is unavailable, fallback to nearby port {1}" -f $ApiPort, $resolvedApiPort)
+}
+if ($portResolution.Mode -eq "random-fallback") {
+  Write-Host ("[verify] api port range [{0}, {1}] unavailable, fallback to random port {2}" -f $ApiPort, ($ApiPort + 200), $resolvedApiPort)
+}
+Invoke-Step "api-real-smoke" { powershell -ExecutionPolicy Bypass -File scripts/api-real-smoke.ps1 -ApiPort $resolvedApiPort -ReportDate $ReportDate }
 Invoke-Step "db-preflight-check" { powershell -ExecutionPolicy Bypass -File scripts/db-preflight-check.ps1 -ReportDate $ReportDate }
 Invoke-Step "ui-http-smoke" { powershell -ExecutionPolicy Bypass -File scripts/ui-http-smoke.ps1 -ReportDate $ReportDate }
 Invoke-Step "ui-render-smoke(core)" { powershell -ExecutionPolicy Bypass -File scripts/ui-render-smoke.ps1 -Mode core -ReportDate $ReportDate }
+Invoke-Step "ui-dom-smoke(core)" { powershell -ExecutionPolicy Bypass -File scripts/ui-dom-smoke.ps1 -Mode core -ReportDate $ReportDate }
 
 Write-Host ""
 Write-Host ("[verify] OK (ReportDate={0})" -f $ReportDate)
-

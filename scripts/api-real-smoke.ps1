@@ -39,6 +39,58 @@ function Apply-EnvMap([hashtable]$Map) {
   }
 }
 
+function Test-PortAvailable([int]$Port) {
+  try {
+    $listener = [System.Net.Sockets.TcpListener]::new([System.Net.IPAddress]::Loopback, $Port)
+    $listener.Start()
+    $listener.Stop()
+    return $true
+  } catch {
+    return $false
+  }
+}
+
+function Get-RandomAvailablePort() {
+  $listener = [System.Net.Sockets.TcpListener]::new([System.Net.IPAddress]::Loopback, 0)
+  try {
+    $listener.Start()
+    return [int]$listener.LocalEndpoint.Port
+  } finally {
+    $listener.Stop()
+  }
+}
+
+function Resolve-ApiPort([int]$PreferredPort, [int]$MaxOffset = 200, [int]$RandomRetries = 10) {
+  if (Test-PortAvailable -Port $PreferredPort) {
+    return [pscustomobject]@{
+      Port = $PreferredPort
+      Mode = "preferred"
+    }
+  }
+
+  for ($i = 1; $i -le $MaxOffset; $i++) {
+    $candidate = $PreferredPort + $i
+    if (Test-PortAvailable -Port $candidate) {
+      return [pscustomobject]@{
+        Port = $candidate
+        Mode = "range-fallback"
+      }
+    }
+  }
+
+  for ($attempt = 1; $attempt -le $RandomRetries; $attempt++) {
+    $candidate = Get-RandomAvailablePort
+    if (Test-PortAvailable -Port $candidate) {
+      return [pscustomobject]@{
+        Port = $candidate
+        Mode = "random-fallback"
+      }
+    }
+  }
+
+  throw "No available API port found for api-real-smoke"
+}
+
 Apply-EnvMap -Map (Read-EnvFile (Join-Path $repoRoot ".env"))
 
 if ([string]::IsNullOrWhiteSpace($ReportDate)) {
@@ -56,15 +108,6 @@ if ([string]::IsNullOrWhiteSpace($RedisUrl)) {
 }
 if ([string]::IsNullOrWhiteSpace($RedisUrl)) {
   $RedisUrl = "redis://127.0.0.1:6379"
-}
-
-function Stop-Port([int]$Port) {
-  try {
-    $conns = @(Get-NetTCPConnection -State Listen -LocalPort $Port -ErrorAction SilentlyContinue)
-    foreach ($pid in ($conns.OwningProcess | Sort-Object -Unique)) {
-      Stop-Process -Id $pid -Force -ErrorAction SilentlyContinue
-    }
-  } catch { }
 }
 
 function Wait-Health([string]$Url, [int]$TimeoutSec = 45) {
@@ -126,7 +169,16 @@ function Invoke-ApiCase {
   }
 }
 
-$env:PORT = "$ApiPort"
+$portResolution = Resolve-ApiPort -PreferredPort $ApiPort
+$resolvedApiPort = [int]$portResolution.Port
+if ($portResolution.Mode -eq "range-fallback") {
+  Write-Host ("[api-real-smoke] api port {0} unavailable, fallback to nearby port {1}" -f $ApiPort, $resolvedApiPort)
+}
+if ($portResolution.Mode -eq "random-fallback") {
+  Write-Host ("[api-real-smoke] api port range [{0}, {1}] unavailable, fallback to random port {2}" -f $ApiPort, ($ApiPort + 200), $resolvedApiPort)
+}
+
+$env:PORT = "$resolvedApiPort"
 $env:DATABASE_URL = $DatabaseUrl
 $env:REDIS_URL = $RedisUrl
 $env:DEMO_AUTH_ENABLED = "true"
@@ -155,34 +207,33 @@ $stderrPath = Join-Path $logDir "api-real-smoke.err.log"
 $resultsPath = Join-Path $logDir "api-real-smoke-$ReportDate.json"
 $summaryPath = Join-Path $logDir "api-real-smoke-$ReportDate-summary.json"
 
-Stop-Port $ApiPort
 $proc = Start-Process -FilePath "node" -ArgumentList @("apps/api/dist/main.js") -WorkingDirectory $repoRoot -PassThru -WindowStyle Hidden -RedirectStandardOutput $stdoutPath -RedirectStandardError $stderrPath
 
 try {
-  Wait-Health -Url "http://127.0.0.1:$ApiPort/health" -TimeoutSec 45
+  Wait-Health -Url "http://127.0.0.1:$resolvedApiPort/health" -TimeoutSec 45
 
-  $wechatLogin = Invoke-RestMethod -Method Post -Uri "http://127.0.0.1:$ApiPort/auth/wechat/mp-login" -Body (@{ code = "demo-code" } | ConvertTo-Json -Compress) -ContentType "application/json"
+  $wechatLogin = Invoke-RestMethod -Method Post -Uri "http://127.0.0.1:$resolvedApiPort/auth/wechat/mp-login" -Body (@{ code = "demo-code" } | ConvertTo-Json -Compress) -ContentType "application/json"
   $userToken = "Bearer $($wechatLogin.accessToken)"
   $adminToken = "Bearer $($env:DEMO_ADMIN_TOKEN)"
 
   $cases = @(
-    @{ name = "health"; method = "GET"; url = "http://127.0.0.1:$ApiPort/health"; body = $null; headers = @{}; expected = @(200) },
-    @{ name = "auth-sms-send"; method = "POST"; url = "http://127.0.0.1:$ApiPort/auth/sms/send"; body = @{ phone = "13800138000" }; headers = @{}; expected = @(200, 201) },
-    @{ name = "auth-sms-verify"; method = "POST"; url = "http://127.0.0.1:$ApiPort/auth/sms/verify"; body = @{ phone = "13800138000"; code = "123456" }; headers = @{}; expected = @(200, 201) },
-    @{ name = "me"; method = "GET"; url = "http://127.0.0.1:$ApiPort/me"; body = $null; headers = @{ Authorization = $userToken }; expected = @(200) },
-    @{ name = "orders-user"; method = "GET"; url = "http://127.0.0.1:$ApiPort/orders"; body = $null; headers = @{ Authorization = $userToken }; expected = @(200) },
-    @{ name = "admin-listings"; method = "GET"; url = "http://127.0.0.1:$ApiPort/admin/listings"; body = $null; headers = @{ Authorization = $adminToken }; expected = @(200) },
-    @{ name = "admin-demands"; method = "GET"; url = "http://127.0.0.1:$ApiPort/admin/demands"; body = $null; headers = @{ Authorization = $adminToken }; expected = @(200) },
-    @{ name = "admin-achievements"; method = "GET"; url = "http://127.0.0.1:$ApiPort/admin/achievements"; body = $null; headers = @{ Authorization = $adminToken }; expected = @(200) },
-    @{ name = "admin-artworks"; method = "GET"; url = "http://127.0.0.1:$ApiPort/admin/artworks"; body = $null; headers = @{ Authorization = $adminToken }; expected = @(200) },
-    @{ name = "admin-user-verifications"; method = "GET"; url = "http://127.0.0.1:$ApiPort/admin/user-verifications"; body = $null; headers = @{ Authorization = $adminToken }; expected = @(200) },
-    @{ name = "admin-audit-logs"; method = "GET"; url = "http://127.0.0.1:$ApiPort/admin/audit-logs"; body = $null; headers = @{ Authorization = $adminToken }; expected = @(200) },
-    @{ name = "admin-rbac-roles"; method = "GET"; url = "http://127.0.0.1:$ApiPort/admin/rbac/roles"; body = $null; headers = @{ Authorization = $adminToken }; expected = @(200) },
-    @{ name = "admin-rbac-permissions"; method = "GET"; url = "http://127.0.0.1:$ApiPort/admin/rbac/permissions"; body = $null; headers = @{ Authorization = $adminToken }; expected = @(200) },
-    @{ name = "admin-report-summary"; method = "GET"; url = "http://127.0.0.1:$ApiPort/admin/reports/finance/summary"; body = $null; headers = @{ Authorization = $adminToken }; expected = @(200) },
-    @{ name = "admin-patents"; method = "GET"; url = "http://127.0.0.1:$ApiPort/admin/patents"; body = $null; headers = @{ Authorization = $adminToken }; expected = @(200) },
-    @{ name = "patent-map-summary"; method = "GET"; url = "http://127.0.0.1:$ApiPort/patent-map/summary?year=2025&level=PROVINCE"; body = $null; headers = @{}; expected = @(200) },
-    @{ name = "search-listings"; method = "GET"; url = "http://127.0.0.1:$ApiPort/search/listings"; body = $null; headers = @{}; expected = @(200) }
+    @{ name = "health"; method = "GET"; url = "http://127.0.0.1:$resolvedApiPort/health"; body = $null; headers = @{}; expected = @(200) },
+    @{ name = "auth-sms-send"; method = "POST"; url = "http://127.0.0.1:$resolvedApiPort/auth/sms/send"; body = @{ phone = "13800138000" }; headers = @{}; expected = @(200, 201) },
+    @{ name = "auth-sms-verify"; method = "POST"; url = "http://127.0.0.1:$resolvedApiPort/auth/sms/verify"; body = @{ phone = "13800138000"; code = "123456" }; headers = @{}; expected = @(200, 201) },
+    @{ name = "me"; method = "GET"; url = "http://127.0.0.1:$resolvedApiPort/me"; body = $null; headers = @{ Authorization = $userToken }; expected = @(200) },
+    @{ name = "orders-user"; method = "GET"; url = "http://127.0.0.1:$resolvedApiPort/orders"; body = $null; headers = @{ Authorization = $userToken }; expected = @(200) },
+    @{ name = "admin-listings"; method = "GET"; url = "http://127.0.0.1:$resolvedApiPort/admin/listings"; body = $null; headers = @{ Authorization = $adminToken }; expected = @(200) },
+    @{ name = "admin-demands"; method = "GET"; url = "http://127.0.0.1:$resolvedApiPort/admin/demands"; body = $null; headers = @{ Authorization = $adminToken }; expected = @(200) },
+    @{ name = "admin-achievements"; method = "GET"; url = "http://127.0.0.1:$resolvedApiPort/admin/achievements"; body = $null; headers = @{ Authorization = $adminToken }; expected = @(200) },
+    @{ name = "admin-artworks"; method = "GET"; url = "http://127.0.0.1:$resolvedApiPort/admin/artworks"; body = $null; headers = @{ Authorization = $adminToken }; expected = @(200) },
+    @{ name = "admin-user-verifications"; method = "GET"; url = "http://127.0.0.1:$resolvedApiPort/admin/user-verifications"; body = $null; headers = @{ Authorization = $adminToken }; expected = @(200) },
+    @{ name = "admin-audit-logs"; method = "GET"; url = "http://127.0.0.1:$resolvedApiPort/admin/audit-logs"; body = $null; headers = @{ Authorization = $adminToken }; expected = @(200) },
+    @{ name = "admin-rbac-roles"; method = "GET"; url = "http://127.0.0.1:$resolvedApiPort/admin/rbac/roles"; body = $null; headers = @{ Authorization = $adminToken }; expected = @(200) },
+    @{ name = "admin-rbac-permissions"; method = "GET"; url = "http://127.0.0.1:$resolvedApiPort/admin/rbac/permissions"; body = $null; headers = @{ Authorization = $adminToken }; expected = @(200) },
+    @{ name = "admin-report-summary"; method = "GET"; url = "http://127.0.0.1:$resolvedApiPort/admin/reports/finance/summary"; body = $null; headers = @{ Authorization = $adminToken }; expected = @(200) },
+    @{ name = "admin-patents"; method = "GET"; url = "http://127.0.0.1:$resolvedApiPort/admin/patents"; body = $null; headers = @{ Authorization = $adminToken }; expected = @(200) },
+    @{ name = "patent-map-summary"; method = "GET"; url = "http://127.0.0.1:$resolvedApiPort/patent-map/summary?year=2025&level=PROVINCE"; body = $null; headers = @{}; expected = @(200) },
+    @{ name = "search-listings"; method = "GET"; url = "http://127.0.0.1:$resolvedApiPort/search/listings"; body = $null; headers = @{}; expected = @(200) }
   )
 
   $results = @()
@@ -211,5 +262,4 @@ try {
   if ($proc -and -not $proc.HasExited) {
     Stop-Process -Id $proc.Id -Force -ErrorAction SilentlyContinue
   }
-  Stop-Port $ApiPort
 }

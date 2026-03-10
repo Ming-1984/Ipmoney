@@ -38,15 +38,50 @@ if ([string]::IsNullOrWhiteSpace($OutDir)) {
   $OutDir = "docs/demo/rendered/ui-smoke-$ReportDate"
 }
 
-function Stop-Ports([int[]]$ports) {
-  foreach ($p in $ports) {
-    try {
-      $conns = @(Get-NetTCPConnection -State Listen -LocalPort $p -ErrorAction SilentlyContinue)
-      foreach ($procId in ($conns.OwningProcess | Sort-Object -Unique)) {
-        Stop-Process -Id $procId -Force -ErrorAction SilentlyContinue
-      }
-    } catch { }
+function Test-PortAvailable([int]$Port) {
+  try {
+    $listener = [System.Net.Sockets.TcpListener]::new([System.Net.IPAddress]::Loopback, $Port)
+    $listener.Start()
+    $listener.Stop()
+    return $true
+  } catch {
+    return $false
   }
+}
+
+function Get-RandomAvailablePort() {
+  $listener = [System.Net.Sockets.TcpListener]::new([System.Net.IPAddress]::Loopback, 0)
+  try {
+    $listener.Start()
+    return [int]$listener.LocalEndpoint.Port
+  } finally {
+    $listener.Stop()
+  }
+}
+
+function Find-AvailablePort(
+  [int]$PreferredPort,
+  [int[]]$ReservedPorts = @(),
+  [int]$MaxOffset = 200,
+  [int]$RandomRetries = 10
+) {
+  if (($ReservedPorts -notcontains $PreferredPort) -and (Test-PortAvailable -Port $PreferredPort)) {
+    return $PreferredPort
+  }
+
+  for ($i = 1; $i -le $MaxOffset; $i++) {
+    $candidate = $PreferredPort + $i
+    if (($ReservedPorts -contains $candidate)) { continue }
+    if (Test-PortAvailable -Port $candidate) { return $candidate }
+  }
+
+  for ($attempt = 1; $attempt -le $RandomRetries; $attempt++) {
+    $candidate = Get-RandomAvailablePort
+    if (($ReservedPorts -contains $candidate)) { continue }
+    if (Test-PortAvailable -Port $candidate) { return $candidate }
+  }
+
+  throw "No available port found for preferred port $PreferredPort"
 }
 
 function Get-HttpStatus([string]$Url, [hashtable]$Headers) {
@@ -156,9 +191,15 @@ function Invoke-Capture(
 $sample = @{
   listingId = "7a490e63-8173-41e7-b4f0-0d0bb5ce7d20"
   patentId = "965f9831-2c44-48e8-8b7a-cd7ab40ff7ec"
+  artworkId = "7f8e9f72-98f4-4f4a-8d11-44f38fcf3d51"
+  demandId = "8f278f0a-6ccf-45ce-a664-f5eaf39a9be4"
+  achievementId = "2a9ee2ee-9ab8-4335-b568-e9d9ef57f2f7"
+  techManagerId = "c05d27bc-c739-47ad-91f7-53ccf8517a4e"
   orgUserId = "c5b6438a-f3a7-4590-a484-0f2a2991c613"
   conversationId = "127a267b-d5f8-4b39-acf8-855dff7258b0"
   orderId = "e9032d03-9b23-40ba-84a3-ac681f21c41b"
+  notificationId = "f15de7ac-b89d-45a5-9a26-5296caef82a4"
+  announcementId = "d9b6adf1-0276-4af5-8bd0-5fcb8c20053c"
   regionCode = "110000"
   year = 2025
 }
@@ -198,8 +239,20 @@ function Add-QueryParam([string]$baseUrl, [string]$key, [string]$value) {
   }
 }
 
-$ports = @($MockPort, $PrismPort, $ClientPort, $AdminPort)
-Stop-Ports $ports
+$reservedPorts = @()
+$resolvedMockPort = Find-AvailablePort -PreferredPort $MockPort -ReservedPorts $reservedPorts
+$reservedPorts += $resolvedMockPort
+$resolvedPrismPort = Find-AvailablePort -PreferredPort $PrismPort -ReservedPorts $reservedPorts
+$reservedPorts += $resolvedPrismPort
+$resolvedClientPort = Find-AvailablePort -PreferredPort $ClientPort -ReservedPorts $reservedPorts
+$reservedPorts += $resolvedClientPort
+$resolvedAdminPort = Find-AvailablePort -PreferredPort $AdminPort -ReservedPorts $reservedPorts
+$reservedPorts += $resolvedAdminPort
+
+if ($resolvedMockPort -ne $MockPort) { Write-Host ("[ui-render-smoke] mock port fallback: {0} -> {1}" -f $MockPort, $resolvedMockPort) }
+if ($resolvedPrismPort -ne $PrismPort) { Write-Host ("[ui-render-smoke] prism port fallback: {0} -> {1}" -f $PrismPort, $resolvedPrismPort) }
+if ($resolvedClientPort -ne $ClientPort) { Write-Host ("[ui-render-smoke] client port fallback: {0} -> {1}" -f $ClientPort, $resolvedClientPort) }
+if ($resolvedAdminPort -ne $AdminPort) { Write-Host ("[ui-render-smoke] admin port fallback: {0} -> {1}" -f $AdminPort, $resolvedAdminPort) }
 
 $logDir = Join-Path $repoRoot ".tmp"
 New-Item -ItemType Directory -Force $logDir | Out-Null
@@ -211,18 +264,18 @@ $clientErr = Join-Path $logDir "ui-render-client.err.log"
 $adminOut = Join-Path $logDir "ui-render-admin.out.log"
 $adminErr = Join-Path $logDir "ui-render-admin.err.log"
 
-$mockCmd = "`$env:MOCK_API_PORT='$MockPort'; `$env:MOCK_API_PRISM_PORT='$PrismPort'; pnpm mock"
-$clientCmd = "`$env:TARO_APP_API_BASE_URL='http://127.0.0.1:$MockPort'; `$env:CLIENT_H5_PORT='$ClientPort'; `$env:TARO_APP_ENABLE_MOCK_TOOLS='0'; `$env:DEMO_AUTH_ENABLED='true'; `$env:DEMO_PAYMENT_ENABLED='true'; pnpm -C apps/client dev:h5"
-$adminCmd = "`$env:VITE_API_BASE_URL='http://127.0.0.1:$MockPort'; `$env:ADMIN_WEB_PORT='$AdminPort'; `$env:VITE_ENABLE_MOCK_TOOLS='0'; pnpm -C apps/admin-web dev"
+$mockCmd = "`$env:MOCK_API_PORT='$resolvedMockPort'; `$env:MOCK_API_PRISM_PORT='$resolvedPrismPort'; pnpm mock"
+$clientCmd = "`$env:TARO_APP_API_BASE_URL='http://127.0.0.1:$resolvedMockPort'; `$env:CLIENT_H5_PORT='$resolvedClientPort'; `$env:TARO_APP_ENABLE_MOCK_TOOLS='0'; `$env:DEMO_AUTH_ENABLED='true'; `$env:DEMO_PAYMENT_ENABLED='true'; pnpm -C apps/client dev:h5"
+$adminCmd = "`$env:VITE_API_BASE_URL='http://127.0.0.1:$resolvedMockPort'; `$env:ADMIN_WEB_PORT='$resolvedAdminPort'; `$env:VITE_ENABLE_MOCK_TOOLS='0'; pnpm -C apps/admin-web dev"
 
 $mockProc = Start-Process -FilePath "powershell" -ArgumentList @("-NoLogo", "-NoProfile", "-Command", $mockCmd) -WorkingDirectory $repoRoot -PassThru -WindowStyle Hidden -RedirectStandardOutput $mockOut -RedirectStandardError $mockErr
 $clientProc = Start-Process -FilePath "powershell" -ArgumentList @("-NoLogo", "-NoProfile", "-Command", $clientCmd) -WorkingDirectory $repoRoot -PassThru -WindowStyle Hidden -RedirectStandardOutput $clientOut -RedirectStandardError $clientErr
 $adminProc = Start-Process -FilePath "powershell" -ArgumentList @("-NoLogo", "-NoProfile", "-Command", $adminCmd) -WorkingDirectory $repoRoot -PassThru -WindowStyle Hidden -RedirectStandardOutput $adminOut -RedirectStandardError $adminErr
 
 try {
-  Wait-Status -Url "http://127.0.0.1:$MockPort/health" -TimeoutSec $WaitMockSec -Headers @{} | Out-Null
-  Wait-Status -Url "http://127.0.0.1:$ClientPort" -TimeoutSec $WaitClientSec -Headers @{} | Out-Null
-  Wait-Status -Url "http://127.0.0.1:$AdminPort" -TimeoutSec $WaitAdminSec -Headers @{} | Out-Null
+  Wait-Status -Url "http://127.0.0.1:$resolvedMockPort/health" -TimeoutSec $WaitMockSec -Headers @{} | Out-Null
+  Wait-Status -Url "http://127.0.0.1:$resolvedClientPort" -TimeoutSec $WaitClientSec -Headers @{} | Out-Null
+  Wait-Status -Url "http://127.0.0.1:$resolvedAdminPort" -TimeoutSec $WaitAdminSec -Headers @{} | Out-Null
   if ($WarmupSec -gt 0) {
     Start-Sleep -Seconds $WarmupSec
   }
@@ -236,36 +289,93 @@ try {
   New-Item -ItemType Directory -Force $outDirAbs | Out-Null
   New-Item -ItemType Directory -Force $userDataAbs | Out-Null
 
-  $clientBase = "http://127.0.0.1:$ClientPort"
-  $adminBase = "http://127.0.0.1:$AdminPort"
+  $clientBase = "http://127.0.0.1:$resolvedClientPort"
+  $adminBase = "http://127.0.0.1:$resolvedAdminPort"
 
   $pages = @()
   if ($Mode -eq "full") {
     $pages = @(
       @{ name = "client-home"; path = "#/pages/home/index"; demoAuth = $false; width = $ClientWidth; height = $ClientHeight; waitMs = $ClientWaitMs },
+      @{ name = "client-tech-managers"; path = "#/pages/tech-managers/index"; demoAuth = $false; width = $ClientWidth; height = $ClientHeight; waitMs = $ClientWaitMs },
+      @{ name = "client-publish-entry"; path = "#/pages/publish/index"; demoAuth = $true; width = $ClientWidth; height = $ClientHeight; waitMs = $ClientWaitMs },
       @{ name = "client-search"; path = "#/pages/search/index"; demoAuth = $false; width = $ClientWidth; height = $ClientHeight; waitMs = $ClientWaitMs },
       @{ name = "client-listing-detail"; path = "#/pages/listing/detail/index?listingId=$($sample.listingId)"; demoAuth = $false; width = $ClientWidth; height = $ClientHeight; waitMs = $ClientWaitMs },
       @{ name = "client-patent-detail"; path = "#/pages/patent/detail/index?patentId=$($sample.patentId)"; demoAuth = $false; width = $ClientWidth; height = $ClientHeight; waitMs = $ClientWaitMs },
+      @{ name = "client-artwork-detail"; path = "#/pages/artwork/detail/index?artworkId=$($sample.artworkId)"; demoAuth = $false; width = $ClientWidth; height = $ClientHeight; waitMs = $ClientWaitMs },
+      @{ name = "client-demand-detail"; path = "#/pages/demand/detail/index?demandId=$($sample.demandId)"; demoAuth = $false; width = $ClientWidth; height = $ClientHeight; waitMs = $ClientWaitMs },
+      @{ name = "client-achievement-detail"; path = "#/pages/achievement/detail/index?achievementId=$($sample.achievementId)"; demoAuth = $false; width = $ClientWidth; height = $ClientHeight; waitMs = $ClientWaitMs },
       @{ name = "client-organizations"; path = "#/pages/organizations/index"; demoAuth = $false; width = $ClientWidth; height = $ClientHeight; waitMs = $ClientWaitMs },
       @{ name = "client-organization-detail"; path = "#/pages/organizations/detail/index?orgUserId=$($sample.orgUserId)"; demoAuth = $false; width = $ClientWidth; height = $ClientHeight; waitMs = $ClientWaitMs },
+      @{ name = "client-patent-map"; path = "#/pages/patent-map/index"; demoAuth = $false; width = $ClientWidth; height = $ClientHeight; waitMs = $ClientWaitMs },
+      @{ name = "client-patent-map-region-detail"; path = "#/pages/patent-map/region-detail/index?regionCode=$($sample.regionCode)&year=$($sample.year)"; demoAuth = $false; width = $ClientWidth; height = $ClientHeight; waitMs = $ClientWaitMs },
+      @{ name = "client-inventors"; path = "#/pages/inventors/index"; demoAuth = $false; width = $ClientWidth; height = $ClientHeight; waitMs = $ClientWaitMs },
+      @{ name = "client-tech-manager-detail"; path = "#/pages/tech-managers/detail/index?techManagerId=$($sample.techManagerId)"; demoAuth = $false; width = $ClientWidth; height = $ClientHeight; waitMs = $ClientWaitMs },
       @{ name = "client-trade-rules"; path = "#/pages/trade-rules/index"; demoAuth = $false; width = $ClientWidth; height = $ClientHeight; waitMs = $ClientWaitMs },
       @{ name = "client-login"; path = "#/pages/login/index"; demoAuth = $false; width = $ClientWidth; height = $ClientHeight; waitMs = $ClientWaitMs },
       @{ name = "client-messages"; path = "#/pages/messages/index"; demoAuth = $true; width = $ClientWidth; height = $ClientHeight; waitMs = $ClientWaitMs },
       @{ name = "client-chat"; path = "#/pages/messages/chat/index?conversationId=$($sample.conversationId)"; demoAuth = $true; width = $ClientWidth; height = $ClientHeight; waitMs = $ClientWaitMs },
+      @{ name = "client-notifications"; path = "#/pages/notifications/index"; demoAuth = $true; width = $ClientWidth; height = $ClientHeight; waitMs = $ClientWaitMs },
+      @{ name = "client-notification-detail"; path = "#/pages/notifications/detail/index?id=$($sample.notificationId)"; demoAuth = $true; width = $ClientWidth; height = $ClientHeight; waitMs = $ClientWaitMs },
+      @{ name = "client-announcements"; path = "#/pages/announcements/index"; demoAuth = $false; width = $ClientWidth; height = $ClientHeight; waitMs = $ClientWaitMs },
+      @{ name = "client-announcement-detail"; path = "#/pages/announcements/detail/index?id=$($sample.announcementId)"; demoAuth = $false; width = $ClientWidth; height = $ClientHeight; waitMs = $ClientWaitMs },
       @{ name = "client-orders"; path = "#/pages/orders/index"; demoAuth = $true; width = $ClientWidth; height = $ClientHeight; waitMs = $ClientWaitMs },
       @{ name = "client-order-detail"; path = "#/pages/orders/detail/index?orderId=$($sample.orderId)"; demoAuth = $true; width = $ClientWidth; height = $ClientHeight; waitMs = $ClientWaitMs },
       @{ name = "client-favorites"; path = "#/pages/favorites/index"; demoAuth = $true; width = $ClientWidth; height = $ClientHeight; waitMs = $ClientWaitMs },
+      @{ name = "client-contracts"; path = "#/pages/contracts/index"; demoAuth = $true; width = $ClientWidth; height = $ClientHeight; waitMs = $ClientWaitMs },
+      @{ name = "client-invoices"; path = "#/pages/invoices/index"; demoAuth = $true; width = $ClientWidth; height = $ClientHeight; waitMs = $ClientWaitMs },
+      @{ name = "client-addresses"; path = "#/pages/addresses/index"; demoAuth = $true; width = $ClientWidth; height = $ClientHeight; waitMs = $ClientWaitMs },
+      @{ name = "client-address-edit"; path = "#/pages/addresses/edit/index"; demoAuth = $true; width = $ClientWidth; height = $ClientHeight; waitMs = $ClientWaitMs },
+      @{ name = "client-deposit-pay"; path = "#/pages/checkout/deposit-pay/index?listingId=$($sample.listingId)"; demoAuth = $true; width = $ClientWidth; height = $ClientHeight; waitMs = $ClientWaitMs },
+      @{ name = "client-deposit-success"; path = "#/pages/checkout/deposit-success/index?orderId=$($sample.orderId)"; demoAuth = $true; width = $ClientWidth; height = $ClientHeight; waitMs = $ClientWaitMs },
+      @{ name = "client-final-pay"; path = "#/pages/checkout/final-pay/index?orderId=$($sample.orderId)"; demoAuth = $true; width = $ClientWidth; height = $ClientHeight; waitMs = $ClientWaitMs },
+      @{ name = "client-final-success"; path = "#/pages/checkout/final-success/index?orderId=$($sample.orderId)"; demoAuth = $true; width = $ClientWidth; height = $ClientHeight; waitMs = $ClientWaitMs },
+      @{ name = "client-my-listings"; path = "#/pages/my-listings/index"; demoAuth = $true; width = $ClientWidth; height = $ClientHeight; waitMs = $ClientWaitMs },
+      @{ name = "client-my-demands"; path = "#/pages/my-demands/index"; demoAuth = $true; width = $ClientWidth; height = $ClientHeight; waitMs = $ClientWaitMs },
+      @{ name = "client-my-achievements"; path = "#/pages/my-achievements/index"; demoAuth = $true; width = $ClientWidth; height = $ClientHeight; waitMs = $ClientWaitMs },
+      @{ name = "client-my-artworks"; path = "#/pages/my-artworks/index"; demoAuth = $true; width = $ClientWidth; height = $ClientHeight; waitMs = $ClientWaitMs },
+      @{ name = "client-publish-patent"; path = "#/pages/publish/patent/index"; demoAuth = $true; width = $ClientWidth; height = $ClientHeight; waitMs = $ClientWaitMs },
+      @{ name = "client-publish-demand"; path = "#/pages/publish/demand/index"; demoAuth = $true; width = $ClientWidth; height = $ClientHeight; waitMs = $ClientWaitMs },
+      @{ name = "client-publish-achievement"; path = "#/pages/publish/achievement/index"; demoAuth = $true; width = $ClientWidth; height = $ClientHeight; waitMs = $ClientWaitMs },
+      @{ name = "client-publish-artwork"; path = "#/pages/publish/artwork/index"; demoAuth = $true; width = $ClientWidth; height = $ClientHeight; waitMs = $ClientWaitMs },
+      @{ name = "client-cluster-picker"; path = "#/pages/cluster-picker/index"; demoAuth = $false; width = $ClientWidth; height = $ClientHeight; waitMs = $ClientWaitMs },
+      @{ name = "client-settings-notifications"; path = "#/pages/settings/notifications/index"; demoAuth = $true; width = $ClientWidth; height = $ClientHeight; waitMs = $ClientWaitMs },
+      @{ name = "client-about"; path = "#/pages/about/index"; demoAuth = $false; width = $ClientWidth; height = $ClientHeight; waitMs = $ClientWaitMs },
+      @{ name = "client-support"; path = "#/pages/support/index"; demoAuth = $false; width = $ClientWidth; height = $ClientHeight; waitMs = $ClientWaitMs },
+      @{ name = "client-support-faq"; path = "#/pages/support/faq/index"; demoAuth = $false; width = $ClientWidth; height = $ClientHeight; waitMs = $ClientWaitMs },
+      @{ name = "client-support-faq-detail"; path = "#/pages/support/faq/detail/index?id=faq-1"; demoAuth = $false; width = $ClientWidth; height = $ClientHeight; waitMs = $ClientWaitMs },
+      @{ name = "client-support-contact"; path = "#/pages/support/contact/index"; demoAuth = $false; width = $ClientWidth; height = $ClientHeight; waitMs = $ClientWaitMs },
+      @{ name = "client-legal-privacy"; path = "#/pages/legal/privacy/index"; demoAuth = $false; width = $ClientWidth; height = $ClientHeight; waitMs = $ClientWaitMs },
+      @{ name = "client-legal-terms"; path = "#/pages/legal/terms/index"; demoAuth = $false; width = $ClientWidth; height = $ClientHeight; waitMs = $ClientWaitMs },
+      @{ name = "client-legal-privacy-guide"; path = "#/pages/legal/privacy-guide/index"; demoAuth = $false; width = $ClientWidth; height = $ClientHeight; waitMs = $ClientWaitMs },
+      @{ name = "client-profile-edit"; path = "#/pages/profile/edit/index"; demoAuth = $true; width = $ClientWidth; height = $ClientHeight; waitMs = $ClientWaitMs },
+      @{ name = "client-onboarding-choose-identity"; path = "#/pages/onboarding/choose-identity/index"; demoAuth = $true; width = $ClientWidth; height = $ClientHeight; waitMs = $ClientWaitMs },
+      @{ name = "client-onboarding-verification-form"; path = "#/pages/onboarding/verification-form/index"; demoAuth = $true; width = $ClientWidth; height = $ClientHeight; waitMs = $ClientWaitMs },
+      @{ name = "client-region-picker"; path = "#/pages/region-picker/index"; demoAuth = $false; width = $ClientWidth; height = $ClientHeight; waitMs = $ClientWaitMs },
+      @{ name = "client-ipc-picker"; path = "#/pages/ipc-picker/index"; demoAuth = $false; width = $ClientWidth; height = $ClientHeight; waitMs = $ClientWaitMs },
       @{ name = "client-me"; path = "#/pages/me/index"; demoAuth = $true; width = $ClientWidth; height = $ClientHeight; waitMs = $ClientWaitMs },
 
       @{ name = "admin-login"; path = "/login"; base = $adminBase; demoAuth = $false; width = $AdminWidth; height = $AdminHeight; waitMs = $AdminWaitMs },
       @{ name = "admin-dashboard"; path = "/"; base = $adminBase; demoAuth = $false; width = $AdminWidth; height = $AdminHeight; waitMs = $AdminWaitMs },
       @{ name = "admin-orders"; path = "/orders"; base = $adminBase; demoAuth = $false; width = $AdminWidth; height = $AdminHeight; waitMs = $AdminWaitMs },
+      @{ name = "admin-order-detail"; path = "/orders/$($sample.orderId)"; base = $adminBase; demoAuth = $false; width = $AdminWidth; height = $AdminHeight; waitMs = $AdminWaitMs },
       @{ name = "admin-refunds"; path = "/refunds"; base = $adminBase; demoAuth = $false; width = $AdminWidth; height = $AdminHeight; waitMs = $AdminWaitMs },
       @{ name = "admin-settlements"; path = "/settlements"; base = $adminBase; demoAuth = $false; width = $AdminWidth; height = $AdminHeight; waitMs = $AdminWaitMs },
       @{ name = "admin-invoices"; path = "/invoices"; base = $adminBase; demoAuth = $false; width = $AdminWidth; height = $AdminHeight; waitMs = $AdminWaitMs },
       @{ name = "admin-listings"; path = "/listings"; base = $adminBase; demoAuth = $false; width = $AdminWidth; height = $AdminHeight; waitMs = $AdminWaitMs },
+      @{ name = "admin-demands"; path = "/demands"; base = $adminBase; demoAuth = $false; width = $AdminWidth; height = $AdminHeight; waitMs = $AdminWaitMs },
+      @{ name = "admin-achievements"; path = "/achievements"; base = $adminBase; demoAuth = $false; width = $AdminWidth; height = $AdminHeight; waitMs = $AdminWaitMs },
+      @{ name = "admin-artworks"; path = "/artworks"; base = $adminBase; demoAuth = $false; width = $AdminWidth; height = $AdminHeight; waitMs = $AdminWaitMs },
+      @{ name = "admin-tech-managers"; path = "/tech-managers"; base = $adminBase; demoAuth = $false; width = $AdminWidth; height = $AdminHeight; waitMs = $AdminWaitMs },
+      @{ name = "admin-cases"; path = "/cases"; base = $adminBase; demoAuth = $false; width = $AdminWidth; height = $AdminHeight; waitMs = $AdminWaitMs },
+      @{ name = "admin-reports"; path = "/reports"; base = $adminBase; demoAuth = $false; width = $AdminWidth; height = $AdminHeight; waitMs = $AdminWaitMs },
+      @{ name = "admin-comments"; path = "/comments"; base = $adminBase; demoAuth = $false; width = $AdminWidth; height = $AdminHeight; waitMs = $AdminWaitMs },
+      @{ name = "admin-announcements"; path = "/announcements"; base = $adminBase; demoAuth = $false; width = $AdminWidth; height = $AdminHeight; waitMs = $AdminWaitMs },
+      @{ name = "admin-alerts"; path = "/alerts"; base = $adminBase; demoAuth = $false; width = $AdminWidth; height = $AdminHeight; waitMs = $AdminWaitMs },
       @{ name = "admin-verifications"; path = "/verifications"; base = $adminBase; demoAuth = $false; width = $AdminWidth; height = $AdminHeight; waitMs = $AdminWaitMs },
+      @{ name = "admin-rbac"; path = "/rbac"; base = $adminBase; demoAuth = $false; width = $AdminWidth; height = $AdminHeight; waitMs = $AdminWaitMs },
       @{ name = "admin-config"; path = "/config"; base = $adminBase; demoAuth = $false; width = $AdminWidth; height = $AdminHeight; waitMs = $AdminWaitMs },
+      @{ name = "admin-maintenance"; path = "/maintenance"; base = $adminBase; demoAuth = $false; width = $AdminWidth; height = $AdminHeight; waitMs = $AdminWaitMs },
+      @{ name = "admin-regions"; path = "/regions"; base = $adminBase; demoAuth = $false; width = $AdminWidth; height = $AdminHeight; waitMs = $AdminWaitMs },
       @{ name = "admin-patent-map"; path = "/patent-map"; base = $adminBase; demoAuth = $false; width = $AdminWidth; height = $AdminHeight; waitMs = $AdminWaitMs },
       @{ name = "admin-audit-logs"; path = "/audit-logs"; base = $adminBase; demoAuth = $false; width = $AdminWidth; height = $AdminHeight; waitMs = $AdminWaitMs },
       @{ name = "admin-patents"; path = "/patents"; base = $adminBase; demoAuth = $false; width = $AdminWidth; height = $AdminHeight; waitMs = $AdminWaitMs }
@@ -322,5 +432,4 @@ try {
       Stop-Process -Id $proc.Id -Force -ErrorAction SilentlyContinue
     }
   }
-  Stop-Ports $ports
 }
