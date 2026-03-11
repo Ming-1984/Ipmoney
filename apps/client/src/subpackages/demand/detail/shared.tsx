@@ -4,6 +4,7 @@ import React from 'react';
 import type { components } from '@ipmoney/api-types';
 
 import { formatTimeSmart } from '../../../lib/format';
+import { sanitizeIndustryTagNames } from '../../../lib/industryTags';
 import { deliveryPeriodLabel } from '../../../lib/labels';
 import { fenToYuan } from '../../../lib/money';
 import { regionDisplayName } from '../../../lib/regions';
@@ -47,6 +48,7 @@ export function budgetValue(it: Pick<DemandPublic, 'budgetType' | 'budgetMinFen'
 
 export function DemandMetaCard(props: { data: DemandPublic }) {
   const { data } = props;
+  const visibleIndustryTags = sanitizeIndustryTagNames(data.industryTags || []);
 
   return (
     <Surface className="detail-meta-card detail-compact-header" id="demand-overview">
@@ -63,7 +65,7 @@ export function DemandMetaCard(props: { data: DemandPublic }) {
         {data.deliveryPeriod ? (
           <Text className="detail-compact-tag">交付 {deliveryPeriodLabel(data.deliveryPeriod, { empty: '-' })}</Text>
         ) : null}
-        {data.industryTags?.slice(0, 4).map((t) => (
+        {visibleIndustryTags.slice(0, 4).map((t) => (
           <Text key={t} className="detail-compact-tag">
             {t}
           </Text>

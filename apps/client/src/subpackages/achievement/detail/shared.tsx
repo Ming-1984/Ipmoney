@@ -4,6 +4,7 @@ import React from 'react';
 import type { components } from '@ipmoney/api-types';
 
 import { formatTimeSmart } from '../../../lib/format';
+import { sanitizeIndustryTagNames } from '../../../lib/industryTags';
 import { regionDisplayName } from '../../../lib/regions';
 import { Spacer, Surface } from '../../../ui/layout';
 
@@ -23,6 +24,7 @@ export function maturityStageLabel(m?: AchievementMaturity): string {
 export function AchievementMetaCard(props: { data: AchievementPublic }) {
   const { data } = props;
   const publisherName = data.publisher?.displayName;
+  const visibleIndustryTags = sanitizeIndustryTagNames(data.industryTags || []);
 
   return (
     <Surface className="detail-meta-card detail-compact-header" id="achievement-overview">
@@ -31,7 +33,7 @@ export function AchievementMetaCard(props: { data: AchievementPublic }) {
 
       <View className="detail-compact-tags">
         <Text className="detail-compact-tag detail-compact-tag-strong">应用阶段 {maturityStageLabel(data.maturity)}</Text>
-        {data.industryTags?.slice(0, 4).map((tag) => (
+        {visibleIndustryTags.slice(0, 4).map((tag) => (
           <Text key={tag} className="detail-compact-tag">
             {tag}
           </Text>

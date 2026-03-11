@@ -5,6 +5,7 @@ import './index.scss';
 
 import { STORAGE_KEYS } from '../../constants';
 import { apiGet } from '../../lib/api';
+import { sanitizeIndustryTagNames } from '../../lib/industryTags';
 import { usePagedList } from '../../lib/usePagedList';
 import { ListFooter } from '../../ui/ListFooter';
 import { PageHeader, Spacer, Surface } from '../../ui/layout';
@@ -141,9 +142,11 @@ export default function ClusterPickerPage() {
                       <Text className="cluster-card-action">进入</Text>
                     </View>
                     {cluster.summary ? <Text className="cluster-card-summary">{cluster.summary}</Text> : null}
-                    {cluster.industryTags?.length ? (
+                    {sanitizeIndustryTagNames(cluster.industryTags || []).length ? (
                       <View className="cluster-card-tags">
-                        {cluster.industryTags.slice(0, 3).map((tag, idx) => (
+                        {sanitizeIndustryTagNames(cluster.industryTags || [])
+                          .slice(0, 3)
+                          .map((tag, idx) => (
                           <Text key={`${cluster.id}-tag-${idx}`} className="pill">
                             {tag}
                           </Text>

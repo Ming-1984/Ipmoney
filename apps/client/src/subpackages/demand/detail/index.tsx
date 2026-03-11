@@ -11,6 +11,7 @@ import { getToken } from '../../../lib/auth';
 import { favoriteDemand, isDemandFavorited, syncFavoriteDemands, unfavoriteDemand } from '../../../lib/favorites';
 import { formatTimeSmart } from '../../../lib/format';
 import { ensureApproved } from '../../../lib/guard';
+import { sanitizeIndustryTagNames } from '../../../lib/industryTags';
 import { deliveryPeriodLabel, verificationTypeLabel } from '../../../lib/labels';
 import { resolveLocalAsset } from '../../../lib/localAssets';
 import { safeNavigateBack } from '../../../lib/navigation';
@@ -140,6 +141,7 @@ export default function DemandDetailPage() {
     if (!coverUrlRaw) return list;
     return list.filter((item) => item.url !== coverUrlRaw);
   }, [media, coverUrlRaw]);
+  const visibleIndustryTags = useMemo(() => sanitizeIndustryTagNames(data?.industryTags || []), [data?.industryTags]);
 
 
   if (!demandId) {
@@ -284,7 +286,7 @@ export default function DemandDetailPage() {
               <View className="detail-field-row">
                 <Text className="detail-field-label">行业标签</Text>
                 <Text className="detail-field-value break-word">
-                  {data.industryTags?.length ? data.industryTags.join(' / ') : '-'}
+                  {visibleIndustryTags.length ? visibleIndustryTags.join(' / ') : '-'}
                 </Text>
               </View>
               <View className="detail-field-row">

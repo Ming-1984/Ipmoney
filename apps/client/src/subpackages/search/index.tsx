@@ -1039,7 +1039,9 @@ export default function SearchPage() {
                   <IndustryTagsPicker
                     value={draft.industryTags}
                     max={8}
-                    onChange={(tags) => setDraft((prev) => ({ ...prev, industryTags: tags }))}
+                    onChange={(tags) =>
+                      setDraft((prev) => ({ ...prev, industryTags: sanitizeIndustryTagNames(tags) }))
+                    }
                   />
                   <Text className="text-caption muted">标签数据源：公共产业标签库。</Text>
                   <View className="search-filter-card">
@@ -1359,9 +1361,10 @@ export default function SearchPage() {
                 const location = it.regionCode ? regionNameByCode(it.regionCode) || '' : '';
                 const publisher = it.publisher?.displayName || '';
                 const budgetValue = demandBudgetValue(it);
+                const visibleIndustryTags = sanitizeIndustryTagNames(it.industryTags || []);
                 const primaryTag = it.cooperationModes?.[0]
                   ? cooperationModeLabel(it.cooperationModes[0])
-                  : it.industryTags?.[0] || "技术需求";
+                  : visibleIndustryTags[0] || "技术需求";
 
                 return (
                   <View
@@ -1422,8 +1425,9 @@ export default function SearchPage() {
                 const location = it.regionCode ? regionNameByCode(it.regionCode) || '' : '';
                 const maturityText = maturityLabelShort(it.maturity || '');
                 const tags: { label: string; tone: 'green' | 'slate' }[] = [];
+                const visibleIndustryTags = sanitizeIndustryTagNames(it.industryTags || []);
                 it.cooperationModes?.slice(0, 2).forEach((m) => tags.push({ label: cooperationModeLabel(m), tone: 'green' }));
-                it.industryTags?.slice(0, 2).forEach((t) => tags.push({ label: t, tone: 'slate' }));
+                visibleIndustryTags.slice(0, 2).forEach((t) => tags.push({ label: t, tone: 'slate' }));
                 const visibleTags = tags.slice(0, 3);
                 const subinfoParts: string[] = [];
                 if (publisher) subinfoParts.push(`机构：${publisher}`);

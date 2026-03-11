@@ -3,6 +3,7 @@ import React from 'react';
 
 import type { components } from '@ipmoney/api-types';
 
+import { sanitizeIndustryTagNames } from '../lib/industryTags';
 import { patentTypeLabel, tradeModeLabel } from '../lib/labels';
 import { fenToYuan } from '../lib/money';
 import { regionDisplayName } from '../lib/regions';
@@ -63,7 +64,9 @@ export function ListingCard(props: {
   if (it.patentType) tags.push({ label: patentTypeLabel(it.patentType, { empty: '' }), tone: 'slate' });
   if (it.tradeMode) tags.push({ label: tradeModeLabel(it.tradeMode, { empty: '' }), tone: 'green' });
   if (region) tags.push({ label: region, tone: 'slate' });
-  it.industryTags?.slice(0, 2).forEach((tag) => tags.push({ label: tag, tone: 'slate' }));
+  sanitizeIndustryTagNames(it.industryTags || [])
+    .slice(0, 2)
+    .forEach((tag) => tags.push({ label: tag, tone: 'slate' }));
   const visibleTags = [...specialTags, ...tags].slice(0, 3);
 
   return (

@@ -12,6 +12,7 @@ import { getToken } from '../../../lib/auth';
 import { favorite, isFavorited, syncFavorites, unfavorite } from '../../../lib/favorites';
 import { ensureApproved } from '../../../lib/guard';
 import { formatTimeSmart } from '../../../lib/format';
+import { sanitizeIndustryTagNames } from '../../../lib/industryTags';
 import { featuredLevelLabel, patentTypeLabel, priceTypeLabel, tradeModeLabel, verificationTypeLabel } from '../../../lib/labels';
 import { fenToYuan } from '../../../lib/money';
 import { safeNavigateBack } from '../../../lib/navigation';
@@ -203,6 +204,7 @@ export default function ListingDetailPage() {
   }
 
   const regionLabel = data ? regionDisplayName(data.regionCode) || '-' : '-';
+  const visibleIndustryTags = sanitizeIndustryTagNames(data?.industryTags || []);
   const transferCount =
     (data as any)?.transferCount ??
     (data as any)?.transferTimes ??
@@ -247,7 +249,7 @@ export default function ListingDetailPage() {
               {data.featuredLevel && data.featuredLevel !== 'NONE' ? (
                 <Text className="detail-compact-tag">{featuredLevelLabel(data.featuredLevel)}</Text>
               ) : null}
-              {(data.industryTags || []).slice(0, 4).map((tag) => (
+              {visibleIndustryTags.slice(0, 4).map((tag) => (
                 <Text key={tag} className="detail-compact-tag">
                   {tag}
                 </Text>
@@ -338,7 +340,7 @@ export default function ListingDetailPage() {
               {[
                 { label: '交易方式', value: tradeModeLabel(data.tradeMode) },
                 { label: '价格方式', value: priceTypeLabel(data.priceType) },
-                { label: '行业', value: data.industryTags?.length ? data.industryTags.join(' / ') : '-' },
+                { label: '行业', value: visibleIndustryTags.length ? visibleIndustryTags.join(' / ') : '-' },
                 { label: '地区', value: regionLabel },
                 { label: '转让次数', value: transferCount != null ? `${transferCount} 次` : '-' },
                 { label: 'IPC 分类', value: data.ipcCodes?.length ? data.ipcCodes.join(' / ') : '-' },

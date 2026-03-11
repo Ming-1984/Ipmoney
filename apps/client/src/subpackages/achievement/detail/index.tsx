@@ -12,6 +12,7 @@ import { getToken } from '../../../lib/auth';
 import { favoriteAchievement, isAchievementFavorited, syncFavoriteAchievements, unfavoriteAchievement } from '../../../lib/favorites';
 import { formatTimeSmart } from '../../../lib/format';
 import { ensureApproved } from '../../../lib/guard';
+import { sanitizeIndustryTagNames } from '../../../lib/industryTags';
 import { resolveLocalAsset } from '../../../lib/localAssets';
 import { verificationTypeLabel } from '../../../lib/labels';
 import { safeNavigateBack } from '../../../lib/navigation';
@@ -141,6 +142,7 @@ export default function AchievementDetailPage() {
     if (!coverUrlRaw) return list;
     return list.filter((item) => item.url !== coverUrlRaw);
   }, [media, coverUrlRaw]);
+  const visibleIndustryTags = useMemo(() => sanitizeIndustryTagNames(data?.industryTags || []), [data?.industryTags]);
 
 
   if (!achievementId) {
@@ -272,7 +274,7 @@ export default function AchievementDetailPage() {
               <View className="detail-field-row">
                 <Text className="detail-field-label">行业标签</Text>
                 <Text className="detail-field-value break-word">
-                  {data.industryTags?.length ? data.industryTags.join(' / ') : '-'}
+                  {visibleIndustryTags.length ? visibleIndustryTags.join(' / ') : '-'}
                 </Text>
               </View>
               <View className="detail-field-row">

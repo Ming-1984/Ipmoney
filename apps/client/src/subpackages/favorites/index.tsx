@@ -16,6 +16,7 @@ import {
   unfavoriteDemand,
 } from '../../lib/favorites';
 import { apiPost } from '../../lib/api';
+import { sanitizeIndustryTagNames } from '../../lib/industryTags';
 import { resolveLocalAsset } from '../../lib/localAssets';
 import { fenToYuan } from '../../lib/money';
 import { regionNameByCode } from '../../lib/regions';
@@ -221,9 +222,10 @@ export default function FavoritesPage() {
             const location = it.regionCode ? regionNameByCode(it.regionCode) || '' : '';
             const publisher = it.publisher?.displayName || '';
             const budgetValue = demandBudgetValue(it);
+            const visibleIndustryTags = sanitizeIndustryTagNames(it.industryTags || []);
             const primaryTag = it.cooperationModes?.[0]
               ? cooperationModeLabel(it.cooperationModes[0])
-              : it.industryTags?.[0] || '技术需求';
+              : visibleIndustryTags[0] || '技术需求';
 
             return (
               <View
@@ -277,8 +279,9 @@ export default function FavoritesPage() {
             const location = it.regionCode ? regionNameByCode(it.regionCode) || '' : '';
             const maturityText = maturityLabelShort(it.maturity || '');
             const tags: { label: string; tone: 'green' | 'slate' }[] = [];
+            const visibleIndustryTags = sanitizeIndustryTagNames(it.industryTags || []);
             it.cooperationModes?.slice(0, 2).forEach((m) => tags.push({ label: cooperationModeLabel(m), tone: 'green' }));
-            it.industryTags?.slice(0, 2).forEach((t) => tags.push({ label: t, tone: 'slate' }));
+            visibleIndustryTags.slice(0, 2).forEach((t) => tags.push({ label: t, tone: 'slate' }));
             const visibleTags = tags.slice(0, 3);
             const subinfoParts: string[] = [];
             if (publisher) subinfoParts.push(`机构：${publisher}`);
