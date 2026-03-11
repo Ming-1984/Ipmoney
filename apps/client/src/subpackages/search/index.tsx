@@ -15,6 +15,7 @@ import {
   priceTypeLabel,
   tradeModeLabel,
 } from '../../lib/labels';
+import { sanitizeIndustryTagNames } from '../../lib/industryTags';
 import { fenToYuan, fenToYuanInt } from '../../lib/money';
 import { resolveLocalAsset } from '../../lib/localAssets';
 import { ensureRegionNamesReady, regionNameByCode } from '../../lib/regions';
@@ -380,7 +381,9 @@ export default function SearchPage() {
     if (targetTab === 'LISTING') {
       setListingFilters((prev) => {
         const base = prefill.reset ? LISTING_FILTER_DEFAULT : prev;
-        const nextIndustryTags = Array.isArray(prefill.industryTags) ? prefill.industryTags : base.industryTags;
+        const nextIndustryTags = Array.isArray(prefill.industryTags)
+          ? sanitizeIndustryTagNames(prefill.industryTags)
+          : sanitizeIndustryTagNames(base.industryTags);
         return {
           ...base,
           patentType: prefill.patentType ?? base.patentType,
@@ -409,7 +412,9 @@ export default function SearchPage() {
     if (targetTab === 'DEMAND') {
       setDemandFilters((prev) => {
         const base = prefill.reset ? DEMAND_FILTER_DEFAULT : prev;
-        const nextIndustryTags = Array.isArray(prefill.industryTags) ? prefill.industryTags : base.industryTags;
+        const nextIndustryTags = Array.isArray(prefill.industryTags)
+          ? sanitizeIndustryTagNames(prefill.industryTags)
+          : sanitizeIndustryTagNames(base.industryTags);
         const nextCooperationModes = Array.isArray(prefill.cooperationModes)
           ? prefill.cooperationModes
           : base.cooperationModes;
@@ -429,7 +434,9 @@ export default function SearchPage() {
     if (targetTab === 'ACHIEVEMENT') {
       setAchievementFilters((prev) => {
         const base = prefill.reset ? ACHIEVEMENT_FILTER_DEFAULT : prev;
-        const nextIndustryTags = Array.isArray(prefill.industryTags) ? prefill.industryTags : base.industryTags;
+        const nextIndustryTags = Array.isArray(prefill.industryTags)
+          ? sanitizeIndustryTagNames(prefill.industryTags)
+          : sanitizeIndustryTagNames(base.industryTags);
         const nextCooperationModes = Array.isArray(prefill.cooperationModes)
           ? prefill.cooperationModes
           : base.cooperationModes;
@@ -481,7 +488,8 @@ export default function SearchPage() {
       if (listingFilters.ipc.trim()) params.ipc = listingFilters.ipc.trim();
       if (listingFilters.loc.trim()) params.loc = listingFilters.loc.trim();
       if (listingFilters.legalStatus) params.legalStatus = listingFilters.legalStatus;
-      if (listingFilters.industryTags.length) params.industryTags = listingFilters.industryTags;
+      const listingIndustryTags = sanitizeIndustryTagNames(listingFilters.industryTags);
+      if (listingIndustryTags.length) params.industryTags = listingIndustryTags;
       if (listingFilters.listingTopic) params.listingTopic = listingFilters.listingTopic;
       if (listingFilters.clusterId) params.clusterId = listingFilters.clusterId;
       return apiGet<PagedListingSummary>('/search/listings', params);
@@ -504,7 +512,8 @@ export default function SearchPage() {
         if (demandFilters.budgetMinFen !== undefined) params.budgetMinFen = demandFilters.budgetMinFen;
         if (demandFilters.budgetMaxFen !== undefined) params.budgetMaxFen = demandFilters.budgetMaxFen;
       }
-      if (demandFilters.industryTags.length) params.industryTags = demandFilters.industryTags;
+      const demandIndustryTags = sanitizeIndustryTagNames(demandFilters.industryTags);
+      if (demandIndustryTags.length) params.industryTags = demandIndustryTags;
       return apiGet<PagedDemandSummary>('/search/demands', params);
     },
     [contentSortBy, demandFilters, q],
@@ -518,7 +527,8 @@ export default function SearchPage() {
       if (achievementFilters.regionCode) params.regionCode = achievementFilters.regionCode;
       if (achievementFilters.cooperationModes.length) params.cooperationModes = achievementFilters.cooperationModes;
       if (achievementFilters.maturity) params.maturity = achievementFilters.maturity;
-      if (achievementFilters.industryTags.length) params.industryTags = achievementFilters.industryTags;
+      const achievementIndustryTags = sanitizeIndustryTagNames(achievementFilters.industryTags);
+      if (achievementIndustryTags.length) params.industryTags = achievementIndustryTags;
       return apiGet<PagedAchievementSummary>('/search/achievements', params);
     },
     [achievementFilters, contentSortBy, q],

@@ -13,10 +13,25 @@ type Cache = {
 
 const HIDDEN_TEST_TAG_PATTERNS = [/^smoke-tag-/i, /^e2e-tag-/i, /^qa-tag-/i];
 
-function isVisibleIndustryTagName(name: string): boolean {
+export function isVisibleIndustryTagName(name: string): boolean {
   const normalized = String(name || '').trim();
   if (!normalized) return false;
   return !HIDDEN_TEST_TAG_PATTERNS.some((pattern) => pattern.test(normalized));
+}
+
+export function sanitizeIndustryTagNames(input: readonly unknown[] | null | undefined): string[] {
+  if (!Array.isArray(input)) return [];
+  const uniqueNormalized = new Set<string>();
+  const sanitized: string[] = [];
+  for (const item of input) {
+    const normalized = String(item || '').trim();
+    if (!isVisibleIndustryTagName(normalized)) continue;
+    const dedupeKey = normalized.toLowerCase();
+    if (uniqueNormalized.has(dedupeKey)) continue;
+    uniqueNormalized.add(dedupeKey);
+    sanitized.push(normalized);
+  }
+  return sanitized;
 }
 
 const cache: Cache = {
@@ -73,7 +88,7 @@ export function usePublicIndustryTags() {
     void reload();
   }, [reload]);
 
-  const names = useMemo(() => (tags || []).map((t) => String(t.name || '')).filter(Boolean), [tags]);
+  const names = useMemo(() => sanitizeIndustryTagNames((tags || []).map((t) => String(t.name || ''))), [tags]);
 
   return { tags, names, loading, error, reload };
 }
