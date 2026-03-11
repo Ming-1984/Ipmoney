@@ -4,7 +4,8 @@ param(
   [string]$DatabaseUrl = "",
   [string]$RedisUrl = "",
   [string]$ReportDate = "",
-  [string]$ChaosHistoryPath = ""
+  [string]$ChaosHistoryPath = "",
+  [switch]$SkipApiBuild = $false
 )
 
 $ErrorActionPreference = "Stop"
@@ -90,6 +91,61 @@ function Resolve-ApiPort([int]$PreferredPort, [int]$MaxOffset = 200, [int]$Rando
   }
 
   throw "No available API port found for api-real-smoke"
+}
+
+function Get-LatestFileWriteTimeUtc {
+  param(
+    [string]$Path,
+    [string]$Filter = "*"
+  )
+
+  if (-not (Test-Path $Path)) {
+    return $null
+  }
+  $latest = Get-ChildItem -Path $Path -Recurse -File -Filter $Filter -ErrorAction SilentlyContinue |
+    Sort-Object -Property LastWriteTimeUtc -Descending |
+    Select-Object -First 1
+  if (-not $latest) {
+    return $null
+  }
+  return $latest.LastWriteTimeUtc
+}
+
+function Ensure-ApiDistFresh {
+  param(
+    [string]$RepoRoot
+  )
+
+  $srcRoot = Join-Path $RepoRoot "apps/api/src"
+  $distRoot = Join-Path $RepoRoot "apps/api/dist"
+  $distMain = Join-Path $distRoot "main.js"
+
+  $shouldBuild = $false
+  $buildReason = ""
+  if (-not (Test-Path $distMain)) {
+    $shouldBuild = $true
+    $buildReason = "dist main missing"
+  } else {
+    $latestSrcUtc = Get-LatestFileWriteTimeUtc -Path $srcRoot
+    $latestDistUtc = Get-LatestFileWriteTimeUtc -Path $distRoot -Filter "*.js"
+    if ($null -eq $latestDistUtc) {
+      $shouldBuild = $true
+      $buildReason = "dist js bundle missing"
+    } elseif ($latestSrcUtc -and $latestSrcUtc -gt $latestDistUtc.AddSeconds(1)) {
+      $shouldBuild = $true
+      $buildReason = "source newer than dist"
+    }
+  }
+
+  if (-not $shouldBuild) {
+    return
+  }
+
+  Write-Host "[api-real-smoke] building apps/api ($buildReason)"
+  & pnpm -C apps/api build
+  if ($LASTEXITCODE -ne 0) {
+    throw "Failed to build apps/api before smoke run"
+  }
 }
 
 Apply-EnvMap -Map (Read-EnvFile (Join-Path $repoRoot ".env"))
@@ -1098,6 +1154,10 @@ $env:S3_ACCESS_KEY_ID = ""
 $env:S3_SECRET_ACCESS_KEY = ""
 $env:UPLOAD_DIR = (Join-Path $repoRoot ".tmp/uploads")
 New-Item -ItemType Directory -Force $env:UPLOAD_DIR | Out-Null
+
+if (-not $SkipApiBuild) {
+  Ensure-ApiDistFresh -RepoRoot $repoRoot
+}
 
 Clear-SmokeFilterArtifacts -DbUrl $DatabaseUrl
 
