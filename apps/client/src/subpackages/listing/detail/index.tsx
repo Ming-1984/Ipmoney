@@ -5,7 +5,7 @@ import './index.scss';
 
 import type { components } from '@ipmoney/api-types';
 
-import { Heart, HeartFill, Message, Share2 } from '../../../ui/icons';
+import { Heart, HeartFill, Share2 } from '../../../ui/icons';
 
 import { apiGet, apiPost } from '../../../lib/api';
 import { getToken } from '../../../lib/auth';
@@ -456,22 +456,6 @@ export default function ListingDetailPage() {
               <CommentsSection contentType="LISTING" contentId={listingId} />
             </View>
 
-            <View className="detail-bottom-tools">
-              <View className="detail-tool-row">
-                <TaroButton className="detail-tool" openType="share" hoverClass="none">
-                  <View className="detail-tool-icon">
-                    <Share2 size={16} />
-                  </View>
-                  <Text>分享</Text>
-                </TaroButton>
-                <View className={`detail-tool ${favoritedState ? 'is-active' : ''}`} onClick={() => void toggleFavorite()}>
-                  <View className="detail-tool-icon">
-                    {favoritedState ? <HeartFill size={16} color="#ff4d4f" /> : <Heart size={16} />}
-                  </View>
-                  <Text>{favoritedState ? '已收藏' : '收藏'}</Text>
-                </View>
-              </View>
-            </View>
           </View>
       ) : (
         <EmptyCard title="无数据" message="该挂牌不存在或不可见。" actionText="返回" onAction={() => void safeNavigateBack()} />
@@ -480,13 +464,17 @@ export default function ListingDetailPage() {
       {data ? (
         <StickyBar>
           <View className="detail-sticky-icons">
-            <View className="detail-sticky-icon" onClick={() => void startConsult()}>
-              <Message size={18} color="var(--c-muted)" />
-              <Text className="detail-sticky-label">咨询</Text>
-            </View>
-            <View className="detail-sticky-icon" onClick={() => void toggleFavorite()}>
-              {favoritedState ? <HeartFill size={18} color="#e31b23" /> : <Heart size={18} color="var(--c-muted)" />}
-              <Text className="detail-sticky-label">{favoritedState ? '已收藏' : '收藏'}</Text>
+            <TaroButton className="detail-tool" openType="share" hoverClass="none">
+              <View className="detail-tool-icon">
+                <Share2 size={16} />
+              </View>
+              <Text>分享</Text>
+            </TaroButton>
+            <View className={`detail-tool ${favoritedState ? 'is-active' : ''}`} onClick={() => void toggleFavorite()}>
+              <View className="detail-tool-icon">
+                {favoritedState ? <HeartFill size={16} color="#ff4d4f" /> : <Heart size={16} />}
+              </View>
+              <Text>{favoritedState ? '已收藏' : '收藏'}</Text>
             </View>
           </View>
 

@@ -313,22 +313,6 @@ export default function DemandDetailPage() {
 
           <Spacer size={12} />
 
-          <View className="detail-bottom-tools">
-            <View className="detail-tool-row">
-              <TaroButton className="detail-tool" openType="share" hoverClass="none">
-                <View className="detail-tool-icon">
-                  <Share2 size={16} />
-                </View>
-                <Text>分享</Text>
-              </TaroButton>
-              <View className={`detail-tool ${favoritedState ? 'is-active' : ''}`} onClick={() => void toggleFavorite()}>
-                <View className="detail-tool-icon">
-                  {favoritedState ? <HeartFill size={16} color="#ff4d4f" /> : <Heart size={16} />}
-                </View>
-                <Text>{favoritedState ? '已收藏' : '收藏'}</Text>
-              </View>
-            </View>
-          </View>
         </View>
       ) : (
         <EmptyCard title="无数据" message="该需求不存在或不可见。" actionText="返回" onAction={() => Taro.navigateBack()} />
@@ -336,10 +320,21 @@ export default function DemandDetailPage() {
 
       {!loading && !error && data ? (
         <StickyBar>
+          <View className="detail-sticky-icons">
+            <TaroButton className="detail-tool" openType="share" hoverClass="none">
+              <View className="detail-tool-icon">
+                <Share2 size={16} />
+              </View>
+              <Text>分享</Text>
+            </TaroButton>
+            <View className={`detail-tool ${favoritedState ? 'is-active' : ''}`} onClick={() => void toggleFavorite()}>
+              <View className="detail-tool-icon">
+                {favoritedState ? <HeartFill size={16} color="#ff4d4f" /> : <Heart size={16} />}
+              </View>
+              <Text>{favoritedState ? '已收藏' : '收藏'}</Text>
+            </View>
+          </View>
           <View className="detail-sticky-buttons">
-            <Button variant={favoritedState ? 'primary' : 'default'} onClick={() => void toggleFavorite()}>
-              {favoritedState ? '已收藏' : '收藏'}
-            </Button>
             <Button variant="primary" loading={consulting} disabled={consulting} onClick={() => void startConsult()}>
               {consulting ? '进入中...' : '咨询'}
             </Button>

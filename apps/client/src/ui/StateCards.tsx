@@ -52,8 +52,25 @@ export function EmptyCard(props: {
   actionText?: string;
   onAction?: () => void;
   image?: string;
+  variant?: 'card' | 'inline';
 }) {
   const actionText = props.actionText && props.actionText !== STATE_COPY.empty.actionText ? props.actionText : undefined;
+  if (props.image && props.variant === 'inline') {
+    return (
+      <View className="state-empty-inline">
+        <Image className="state-empty-inline-ill" src={props.image} svg mode="aspectFit" />
+        <Text className="state-empty-inline-title">{props.title || STATE_COPY.empty.title}</Text>
+        <Text className="state-empty-inline-message">{props.message || STATE_COPY.empty.message}</Text>
+        {actionText && props.onAction ? (
+          <View className="state-empty-inline-action">
+            <Button variant="ghost" onClick={props.onAction}>
+              {actionText}
+            </Button>
+          </View>
+        ) : null}
+      </View>
+    );
+  }
   return (
     <View className={`card card-state ${props.image ? 'card-state-empty' : ''}`}>
       {props.image ? (

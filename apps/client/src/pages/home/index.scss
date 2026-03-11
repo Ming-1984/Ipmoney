@@ -156,8 +156,8 @@
   border-radius: 24rpx;
   padding: 22rpx 10rpx 18rpx;
   display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
-  row-gap: 0;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  row-gap: 12rpx;
   box-shadow: 0 12rpx 30rpx rgba(15, 23, 42, 0.08);
 }
 
