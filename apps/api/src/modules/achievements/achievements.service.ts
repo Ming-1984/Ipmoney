@@ -4,7 +4,14 @@ import { AchievementMaturity, Prisma } from '@prisma/client';
 import { AuditLogService } from '../../common/audit-log.service';
 import { ContentEventService } from '../../common/content-event.service';
 import { PrismaService } from '../../common/prisma/prisma.service';
-import { buildPublisherMap, mapContentMedia, mapStats, normalizeMediaInput, normalizeStringArray } from '../content-utils';
+import {
+  buildPublisherMap,
+  mapContentMedia,
+  mapStats,
+  normalizeMediaInput,
+  normalizeStringArray,
+  sanitizeIndustryTagNames,
+} from '../content-utils';
 import { ConfigService, type RecommendationConfig } from '../config/config.service';
 import { NotificationsService } from '../notifications/notifications.service';
 
@@ -281,8 +288,9 @@ export class AchievementsService {
 
   private toPublic(item: AchievementRecord, publisherMap: Record<string, any>) {
     const dto = this.buildAchievementDto(item, publisherMap);
+    const sanitizedIndustryTags = sanitizeIndustryTagNames(dto.industryTags);
     const { publisherUserId: _publisherUserId, coverFileId: _coverFileId, updatedAt: _updatedAt, ...rest } = dto;
-    return rest;
+    return { ...rest, industryTags: sanitizedIndustryTags };
   }
 
   private async fetchAchievement(achievementId: string) {

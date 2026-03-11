@@ -40,6 +40,28 @@ export function normalizeStringArray(input: unknown): string[] {
   return [];
 }
 
+const HIDDEN_TEST_INDUSTRY_TAG_PATTERNS = [/^smoke-tag-/i, /^e2e-tag-/i, /^qa-tag-/i];
+
+export function isVisibleIndustryTagName(name: string): boolean {
+  const normalized = String(name || '').trim();
+  if (!normalized) return false;
+  return !HIDDEN_TEST_INDUSTRY_TAG_PATTERNS.some((pattern) => pattern.test(normalized));
+}
+
+export function sanitizeIndustryTagNames(input: unknown): string[] {
+  const normalizedList = normalizeStringArray(input);
+  const dedupe = new Set<string>();
+  const out: string[] = [];
+  for (const value of normalizedList) {
+    if (!isVisibleIndustryTagName(value)) continue;
+    const key = value.toLowerCase();
+    if (dedupe.has(key)) continue;
+    dedupe.add(key);
+    out.push(value);
+  }
+  return out;
+}
+
 export function normalizeMediaInput(input: unknown): Array<{ fileId: string; type: string; sort: number }> {
   if (!Array.isArray(input)) return [];
   return input

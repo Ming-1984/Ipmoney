@@ -4,7 +4,7 @@ import { Prisma } from '@prisma/client';
 
 import { ContentEventService } from '../../common/content-event.service';
 import { PrismaService } from '../../common/prisma/prisma.service';
-import { buildPublisherMap, mapStats } from '../content-utils';
+import { buildPublisherMap, mapStats, sanitizeIndustryTagNames } from '../content-utils';
 
 type Paged<T> = { items: T[]; page: { page: number; pageSize: number; total: number } };
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -72,7 +72,7 @@ export class FavoritesService {
       budgetMaxFen: item.budgetMaxFen ?? null,
       cooperationModes: this.asArray(item.cooperationModesJson),
       regionCode: item.regionCode ?? null,
-      industryTags: this.asArray(item.industryTagsJson),
+      industryTags: sanitizeIndustryTagNames(item.industryTagsJson),
       keywords: this.asArray(item.keywordsJson),
       deliveryPeriod: item.deliveryPeriod ?? null,
       publisher,
@@ -99,7 +99,7 @@ export class FavoritesService {
       maturity: item.maturity ?? null,
       cooperationModes: this.asArray(item.cooperationModesJson),
       regionCode: item.regionCode ?? null,
-      industryTags: this.asArray(item.industryTagsJson),
+      industryTags: sanitizeIndustryTagNames(item.industryTagsJson),
       keywords: this.asArray(item.keywordsJson),
       publisher,
       stats: mapStats(item.stats),
@@ -164,7 +164,7 @@ export class FavoritesService {
         priceAmountFen: listing.priceAmount ?? null,
         depositAmountFen: listing.depositAmount,
         regionCode: listing.regionCode ?? null,
-        industryTags: Array.isArray(listing.industryTagsJson) ? listing.industryTagsJson : [],
+        industryTags: sanitizeIndustryTagNames(listing.industryTagsJson),
         featuredLevel: listing.featuredLevel,
         featuredRegionCode: listing.featuredRegionCode ?? null,
         inventorNames: [],

@@ -12,7 +12,7 @@ import { AuditLogService } from '../../common/audit-log.service';
 import { ContentEventService } from '../../common/content-event.service';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { NotificationsService } from '../notifications/notifications.service';
-import { mapStats } from '../content-utils';
+import { mapStats, sanitizeIndustryTagNames } from '../content-utils';
 import { ConfigService, type RecommendationConfig } from '../config/config.service';
 
 type ListingAdminDto = {
@@ -874,7 +874,7 @@ export class ListingsService {
       priceAmountFen: it.priceAmount ?? null,
       depositAmountFen: it.depositAmount,
       regionCode: it.regionCode ?? null,
-      industryTags: this.normalizeStringArray(it.industryTagsJson),
+      industryTags: sanitizeIndustryTagNames(it.industryTagsJson),
       listingTopics: this.normalizeStringArray(it.listingTopicsJson),
       clusterId: it.clusterId ?? null,
       ipcCodes: meta.ipcCodes,
@@ -2131,7 +2131,7 @@ export class ListingsService {
       priceAmountFen: it.priceAmount ?? null,
       depositAmountFen: it.depositAmount,
       regionCode: it.regionCode ?? null,
-      industryTags: this.normalizeStringArray(it.industryTagsJson),
+      industryTags: sanitizeIndustryTagNames(it.industryTagsJson),
       listingTopics: this.normalizeStringArray(it.listingTopicsJson),
       clusterId: it.clusterId ?? null,
       featuredLevel: it.featuredLevel,

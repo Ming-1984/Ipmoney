@@ -4,7 +4,14 @@ import { DeliveryPeriod, Prisma } from '@prisma/client';
 import { AuditLogService } from '../../common/audit-log.service';
 import { ContentEventService } from '../../common/content-event.service';
 import { PrismaService } from '../../common/prisma/prisma.service';
-import { buildPublisherMap, mapContentMedia, mapStats, normalizeMediaInput, normalizeStringArray } from '../content-utils';
+import {
+  buildPublisherMap,
+  mapContentMedia,
+  mapStats,
+  normalizeMediaInput,
+  normalizeStringArray,
+  sanitizeIndustryTagNames,
+} from '../content-utils';
 import { ConfigService, type RecommendationConfig } from '../config/config.service';
 import { NotificationsService } from '../notifications/notifications.service';
 
@@ -323,6 +330,7 @@ export class DemandsService {
 
   private toPublic(item: DemandRecord, publisherMap: Record<string, any>) {
     const dto = this.buildDemandDto(item, publisherMap);
+    const sanitizedIndustryTags = sanitizeIndustryTagNames(dto.industryTags);
     const {
       contactName: _contactName,
       contactTitle: _contactTitle,
@@ -332,7 +340,7 @@ export class DemandsService {
       updatedAt: _updatedAt,
       ...rest
     } = dto;
-    return rest;
+    return { ...rest, industryTags: sanitizedIndustryTags };
   }
 
   private async fetchDemand(demandId: string) {
