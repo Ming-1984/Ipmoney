@@ -1804,6 +1804,25 @@ try {
   $adminRegionCreate = Add-ApiCaseResult -Results $results -Name "admin-region-create" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/admin/regions" -Body @{ code = $newRegionCode; name = "Smoke Region $ReportDate"; level = "CITY"; parentCode = $importRegionCode; centerLat = 31.23; centerLng = 121.47 } -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-region-create") -Expected @(200, 201)
   Assert-ResultJsonFieldEquals -Result $adminRegionCreate -Field "code" -ExpectedValue $newRegionCode -Assertion "admin-region-create-code"
   Assert-ResultJsonFieldEquals -Result $adminRegionCreate -Field "parentCode" -ExpectedValue $importRegionCode -Assertion "admin-region-create-parent-code"
+  $publicRegionsSmokeQuery = Add-ApiCaseResult -Results $results -Name "public-regions-query-smoke-region" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/regions?q=Smoke%20Region" -Body $null -Headers @{} -Expected @(200)
+  $publicRegionsSmokeQueryJson = Get-ResultJsonObject -Result $publicRegionsSmokeQuery
+  $publicRegionsSmokeQueryItems = @()
+  if ($publicRegionsSmokeQueryJson -is [System.Array]) {
+    $publicRegionsSmokeQueryItems = @($publicRegionsSmokeQueryJson)
+  } elseif ($publicRegionsSmokeQueryJson -and $publicRegionsSmokeQueryJson.items) {
+    $publicRegionsSmokeQueryItems = @($publicRegionsSmokeQueryJson.items)
+  }
+  $publicRegionsSmokeQueryCodes = @()
+  foreach ($publicRegionItem in $publicRegionsSmokeQueryItems) {
+    if ($publicRegionItem -and $publicRegionItem.code -and -not [string]::IsNullOrWhiteSpace([string]$publicRegionItem.code)) {
+      $publicRegionsSmokeQueryCodes += [string]$publicRegionItem.code
+    } elseif ($publicRegionItem -and $publicRegionItem.regionCode -and -not [string]::IsNullOrWhiteSpace([string]$publicRegionItem.regionCode)) {
+      $publicRegionsSmokeQueryCodes += [string]$publicRegionItem.regionCode
+    }
+  }
+  if ($publicRegionsSmokeQueryCodes -contains $newRegionCode) {
+    Add-ResultAssertionFailure -Result $publicRegionsSmokeQuery -Assertion "public-regions-smoke-region-hidden" -Message "Public regions should not expose test region '$newRegionCode'"
+  }
   [void](Add-ApiCaseResult -Results $results -Name "admin-region-create-duplicate" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/admin/regions" -Body @{ code = $newRegionCode; name = "Smoke Region Duplicate"; level = "CITY" } -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-region-create-duplicate") -Expected @(409))
   [void](Add-ApiCaseResult -Results $results -Name "admin-region-create-invalid-code" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/admin/regions" -Body @{ code = "abc"; name = "Smoke Region Invalid Code"; level = "CITY" } -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-region-create-invalid-code") -Expected @(400))
   [void](Add-ApiCaseResult -Results $results -Name "admin-region-create-invalid-level" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/admin/regions" -Body @{ code = "$($newRegionCode.Substring(0, 5))1"; name = "Smoke Region Invalid Level"; level = "TOWN" } -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-region-create-invalid-level") -Expected @(400))
