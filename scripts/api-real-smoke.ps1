@@ -2151,6 +2151,32 @@ try {
   if ($regionIndustryTags.Count -gt 0) {
     $adminSetRegionIndustryTags = Add-ApiCaseResult -Results $results -Name "admin-region-industry-tags-set" -Method "PUT" -Url "http://127.0.0.1:$resolvedApiPort/admin/regions/$importRegionCode/industry-tags" -Body @{ industryTags = $regionIndustryTags } -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-region-industry-tags-set") -Expected @(200)
     Assert-ResultJsonArrayContains -Result $adminSetRegionIndustryTags -Field "industryTags" -ExpectedValue $regionIndustryTags[0] -Assertion "admin-region-industry-tags-persisted"
+    $publicRegionsAfterIndustryTagsSet = Add-ApiCaseResult -Results $results -Name "public-regions-list-after-industry-tags-set" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/regions" -Body $null -Headers @{} -Expected @(200)
+    $publicRegionsAfterIndustryTagsSetJson = Get-ResultJsonObject -Result $publicRegionsAfterIndustryTagsSet
+    $publicRegionsAfterIndustryTagsSetItems = @()
+    if ($publicRegionsAfterIndustryTagsSetJson -is [System.Array]) {
+      $publicRegionsAfterIndustryTagsSetItems = @($publicRegionsAfterIndustryTagsSetJson)
+    } elseif ($publicRegionsAfterIndustryTagsSetJson -and $publicRegionsAfterIndustryTagsSetJson.items) {
+      $publicRegionsAfterIndustryTagsSetItems = @($publicRegionsAfterIndustryTagsSetJson.items)
+    }
+    $publicImportRegionAfterIndustryTagsSet = @(
+      $publicRegionsAfterIndustryTagsSetItems | Where-Object {
+        if ($_ -and $_.code) { return [string]$_.code -eq $importRegionCode }
+        if ($_ -and $_.regionCode) { return [string]$_.regionCode -eq $importRegionCode }
+        return $false
+      } | Select-Object -First 1
+    )[0]
+    if (-not $publicImportRegionAfterIndustryTagsSet) {
+      Add-ResultAssertionFailure -Result $publicRegionsAfterIndustryTagsSet -Assertion "public-regions-import-region-visible" -Message "Expected import region '$importRegionCode' in public regions list"
+    } else {
+      $publicImportRegionIndustryTags = @()
+      if ($publicImportRegionAfterIndustryTagsSet.industryTags -is [System.Array]) {
+        $publicImportRegionIndustryTags = @($publicImportRegionAfterIndustryTagsSet.industryTags | ForEach-Object { [string]$_ } | Where-Object { -not [string]::IsNullOrWhiteSpace($_) })
+      }
+      if ($publicImportRegionIndustryTags -contains $newIndustryTagName) {
+        Add-ResultAssertionFailure -Result $publicRegionsAfterIndustryTagsSet -Assertion "public-regions-industry-tags-smoke-tag-hidden" -Message "Public regions should not expose test industry tag '$newIndustryTagName' in region '$importRegionCode'"
+      }
+    }
     [void](Add-ApiCaseResult -Results $results -Name "admin-region-industry-tags-set-invalid-body" -Method "PUT" -Url "http://127.0.0.1:$resolvedApiPort/admin/regions/$importRegionCode/industry-tags" -Body @{ industryTags = "SMOKE" } -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-region-industry-tags-set-invalid-body") -Expected @(400))
     [void](Add-ApiCaseResult -Results $results -Name "admin-region-industry-tags-set-missing-field" -Method "PUT" -Url "http://127.0.0.1:$resolvedApiPort/admin/regions/$importRegionCode/industry-tags" -Body @{} -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-region-industry-tags-set-missing-field") -Expected @(400))
   }

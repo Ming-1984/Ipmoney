@@ -98,8 +98,24 @@ export class RegionsService {
     return parsed;
   }
 
-  private toRegionNode(region: RegionRecord): RegionNodeDto {
-    const industryTags = Array.isArray(region.industryTagsJson) ? (region.industryTagsJson as any[]) : [];
+  private isTestIndustryTagName(name: string): boolean {
+    const normalizedName = String(name || '').trim().toLowerCase();
+    if (!normalizedName) return false;
+    return TEST_INDUSTRY_TAG_PREFIXES.some((prefix) => normalizedName.startsWith(prefix));
+  }
+
+  private normalizeRegionIndustryTags(industryTagsJson: unknown, opts?: { includeTestArtifacts?: boolean }): string[] {
+    const includeTestArtifacts = opts?.includeTestArtifacts ?? true;
+    const rawTags = Array.isArray(industryTagsJson) ? (industryTagsJson as unknown[]) : [];
+    const normalizedTags = rawTags
+      .map((tag) => (typeof tag === 'string' ? tag.trim() : ''))
+      .filter((tag) => tag.length > 0);
+    if (includeTestArtifacts) return normalizedTags;
+    return normalizedTags.filter((tag) => !this.isTestIndustryTagName(tag));
+  }
+
+  private toRegionNode(region: RegionRecord, opts?: { includeTestArtifacts?: boolean }): RegionNodeDto {
+    const industryTags = this.normalizeRegionIndustryTags(region.industryTagsJson, opts);
     return {
       code: region.code,
       name: region.name,
@@ -107,7 +123,7 @@ export class RegionsService {
       parentCode: region.parentCode ?? null,
       centerLat: region.centerLat ?? null,
       centerLng: region.centerLng ?? null,
-      industryTags: industryTags.filter((tag: unknown) => typeof tag === 'string') as string[],
+      industryTags,
       updatedAt: region.updatedAt.toISOString(),
     };
   }
@@ -172,7 +188,9 @@ export class RegionsService {
       where,
       orderBy: [{ level: 'asc' }, { code: 'asc' }],
     });
-    return regions.map((regionRecord: RegionRecord) => this.toRegionNode(regionRecord));
+    return regions.map((regionRecord: RegionRecord) =>
+      this.toRegionNode(regionRecord, { includeTestArtifacts: Boolean(params.includeTestArtifacts) }),
+    );
   }
 
   async createRegion(input: RegionCreateRequestDto): Promise<RegionNodeDto> {
