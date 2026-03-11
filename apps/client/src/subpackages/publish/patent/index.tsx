@@ -9,6 +9,7 @@ import { API_BASE_URL } from '../../../constants';
 import { getToken } from '../../../lib/auth';
 import { apiGet, apiPatch, apiPost } from '../../../lib/api';
 import { ensureApproved, requireLogin } from '../../../lib/guard';
+import { sanitizeIndustryTagNames } from '../../../lib/industryTags';
 import { auditStatusLabel, listingStatusLabel, patentTypeLabel } from '../../../lib/labels';
 import { fenToYuan } from '../../../lib/money';
 import { uploadWithRetry } from '../../../lib/upload';
@@ -234,6 +235,7 @@ export default function PublishPatentPage() {
   const applicantNames = useMemo(() => splitList(applicantNamesInput), [applicantNamesInput]);
   const ipcCodes = useMemo(() => splitList(ipcCodesInput), [ipcCodesInput]);
   const locCodes = useMemo(() => splitList(locCodesInput), [locCodesInput]);
+  const sanitizedIndustryTags = useMemo(() => sanitizeIndustryTagNames(industryTags), [industryTags]);
 
   const uploadProof = useCallback(async () => {
     if (uploading) return;
@@ -308,7 +310,7 @@ export default function PublishPatentPage() {
         setDepositYuan(d.depositAmountFen !== undefined && d.depositAmountFen !== null ? fenToYuan(d.depositAmountFen, { empty: '' }) : '');
 
         setRegionCode(d.regionCode || '');
-        setIndustryTags(Array.isArray(d.industryTags) ? d.industryTags : []);
+        setIndustryTags(sanitizeIndustryTagNames(Array.isArray(d.industryTags) ? d.industryTags : []));
         setIpcCodesInput((d.ipcCodes || []).join(', '));
         setLocCodesInput((d.locCodes || []).join(', '));
         setProofFiles(((d.proofFileIds || []) as unknown as string[]).map((id) => ({ id: String(id) })));
@@ -390,7 +392,7 @@ export default function PublishPatentPage() {
         ...(assigneeNames.length ? { assigneeNames } : {}),
         ...(applicantNames.length ? { applicantNames } : {}),
         ...(regionCode.trim() ? { regionCode: regionCode.trim() } : {}),
-        ...(industryTags.length ? { industryTags } : {}),
+        ...(sanitizedIndustryTags.length ? { industryTags: sanitizedIndustryTags } : {}),
         ...(ipcCodes.length ? { ipcCodes } : {}),
         ...(locCodes.length ? { locCodes } : {}),
         ...(proofFiles.length ? { proofFileIds: proofFiles.map((f) => f.id) } : {}),
@@ -404,7 +406,7 @@ export default function PublishPatentPage() {
       depositYuan,
       expectedCycle,
       inventorNames,
-      industryTags,
+      sanitizedIndustryTags,
       ipcCodes,
       licenseMode,
       locCodes,
@@ -474,7 +476,7 @@ export default function PublishPatentPage() {
         ...(assigneeNames.length ? { assigneeNames } : {}),
         ...(applicantNames.length ? { applicantNames } : {}),
         ...(regionCode.trim() ? { regionCode: regionCode.trim() } : {}),
-        ...(industryTags.length ? { industryTags } : {}),
+        ...(sanitizedIndustryTags.length ? { industryTags: sanitizedIndustryTags } : {}),
         ...(ipcCodes.length ? { ipcCodes } : {}),
         ...(locCodes.length ? { locCodes } : {}),
         ...(proofFiles.length ? { proofFileIds: proofFiles.map((f) => f.id) } : {}),
@@ -488,7 +490,7 @@ export default function PublishPatentPage() {
       depositYuan,
       expectedCycle,
       inventorNames,
-      industryTags,
+      sanitizedIndustryTags,
       ipcCodes,
       licenseMode,
       listingId,
@@ -853,7 +855,11 @@ export default function PublishPatentPage() {
 
           <View className="form-field">
             <Text className="form-label">行业标签</Text>
-            <IndustryTagsPicker value={industryTags} max={8} onChange={setIndustryTags} />
+            <IndustryTagsPicker
+              value={industryTags}
+              max={8}
+              onChange={(next) => setIndustryTags(sanitizeIndustryTagNames(next))}
+            />
           </View>
 
           <Text className="publish-section-subtitle">权属证明材料 *</Text>

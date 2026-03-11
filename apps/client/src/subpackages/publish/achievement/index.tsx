@@ -9,6 +9,7 @@ import { API_BASE_URL, STORAGE_KEYS } from '../../../constants';
 import { getToken } from '../../../lib/auth';
 import { apiGet, apiPatch, apiPost } from '../../../lib/api';
 import { ensureApproved, requireLogin } from '../../../lib/guard';
+import { sanitizeIndustryTagNames } from '../../../lib/industryTags';
 import { auditStatusLabel, contentStatusLabel, verificationTypeLabel } from '../../../lib/labels';
 import { uploadWithRetry } from '../../../lib/upload';
 import { IndustryTagsPicker, TagInput } from '../../../ui/filters';
@@ -208,6 +209,7 @@ export default function PublishAchievementPage() {
   const [submitting, setSubmitting] = useState(false);
   const [offShelving, setOffShelving] = useState(false);
   const [draftRestored, setDraftRestored] = useState(false);
+  const sanitizedIndustryTags = useMemo(() => sanitizeIndustryTagNames(industryTags), [industryTags]);
 
   useEffect(() => {
     if (!initialAchievementId) return;
@@ -228,7 +230,7 @@ export default function PublishAchievementPage() {
         setMaturity((d.maturity || '') as AchievementMaturity | '');
         setCooperationModes((d.cooperationModes || []) as CooperationMode[]);
         setRegionCode(d.regionCode || '');
-        setIndustryTags(Array.isArray(d.industryTags) ? d.industryTags : []);
+        setIndustryTags(sanitizeIndustryTagNames(Array.isArray(d.industryTags) ? d.industryTags : []));
         if (d.publisher?.displayName) setPublisherName(d.publisher.displayName);
         if (d.publisher?.verificationType) setPublisherType(d.publisher.verificationType as VerificationType);
 
@@ -253,7 +255,7 @@ export default function PublishAchievementPage() {
     setMaturity((d.maturity || '') as AchievementMaturity | '');
     setCooperationModes(Array.isArray(d.cooperationModes) ? d.cooperationModes : []);
     setRegionCode(d.regionCode || '');
-    setIndustryTags(Array.isArray(d.industryTags) ? d.industryTags : []);
+    setIndustryTags(sanitizeIndustryTagNames(Array.isArray(d.industryTags) ? d.industryTags : []));
     setCoverFileId(d.coverFileId ?? null);
     setCoverUrl(d.coverUrl ?? null);
     setMedia(sortMedia(Array.isArray(d.media) ? d.media : []));
@@ -276,7 +278,7 @@ export default function PublishAchievementPage() {
         maturity,
         cooperationModes,
         regionCode,
-        industryTags,
+        industryTags: sanitizedIndustryTags,
         coverFileId,
         coverUrl,
         media,
@@ -290,7 +292,7 @@ export default function PublishAchievementPage() {
     coverFileId,
     coverUrl,
     description,
-    industryTags,
+    sanitizedIndustryTags,
     initialAchievementId,
     keywords,
     maturity,
@@ -514,7 +516,7 @@ export default function PublishAchievementPage() {
         ...(keywordList.length ? { keywords: keywordList } : {}),
         ...(maturity ? { maturity: maturity as AchievementMaturity } : {}),
         ...(regionCode.trim() ? { regionCode: regionCode.trim() } : {}),
-        ...(industryTags.length ? { industryTags } : {}),
+        ...(sanitizedIndustryTags.length ? { industryTags: sanitizedIndustryTags } : {}),
         ...(cooperationModes.length ? { cooperationModes } : {}),
         ...(coverFileId ? { coverFileId } : {}),
         ...(media.length ? { media: media.map((m, idx) => ({ fileId: m.fileId, type: m.type, sort: idx })) } : {}),
@@ -522,7 +524,18 @@ export default function PublishAchievementPage() {
 
       return req;
     },
-    [cooperationModes, coverFileId, description, industryTags, keywords, maturity, media, regionCode, summary, title],
+    [
+      cooperationModes,
+      coverFileId,
+      description,
+      keywords,
+      maturity,
+      media,
+      regionCode,
+      sanitizedIndustryTags,
+      summary,
+      title,
+    ],
   );
 
   const buildUpdate = useCallback(
@@ -767,7 +780,12 @@ export default function PublishAchievementPage() {
         <View style={{ height: '12rpx' }} />
         <Text className="form-label">产业标签（可选；数据源：公共产业标签库）</Text>
         <View style={{ height: '8rpx' }} />
-        <IndustryTagsPicker value={industryTags} max={8} onChange={setIndustryTags} disabled={!canEdit} />
+        <IndustryTagsPicker
+          value={industryTags}
+          max={8}
+          onChange={(next) => setIndustryTags(sanitizeIndustryTagNames(next))}
+          disabled={!canEdit}
+        />
       </Surface>
 
       <View style={{ height: '16rpx' }} />
