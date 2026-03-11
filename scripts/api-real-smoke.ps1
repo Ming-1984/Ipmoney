@@ -1099,6 +1099,49 @@ function Assert-ResultJsonArrayItemFieldEquals {
   }
 }
 
+function Assert-ResultJsonItemsItemArrayNotContains {
+  param(
+    [pscustomobject]$Result,
+    [string]$ItemId,
+    [string]$ArrayField,
+    [object]$UnexpectedValue,
+    [string]$Assertion
+  )
+
+  $json = Get-ResultJsonObject -Result $Result
+  if (-not $json) { return }
+  $itemsLookup = Get-ResultJsonFieldLookup -Json $json -FieldPath "items"
+  if (-not $itemsLookup.found) {
+    Add-ResultAssertionFailure -Result $Result -Assertion $Assertion -Message "Missing array field 'items'"
+    return
+  }
+  if ($itemsLookup.value -is [string] -or -not ($itemsLookup.value -is [System.Collections.IEnumerable])) {
+    Add-ResultAssertionFailure -Result $Result -Assertion $Assertion -Message "Field 'items' is not an array"
+    return
+  }
+
+  $matchedItem = @($itemsLookup.value | Where-Object { $_ -and [string]$_.id -eq [string]$ItemId } | Select-Object -First 1)[0]
+  if (-not $matchedItem) {
+    Add-ResultAssertionFailure -Result $Result -Assertion $Assertion -Message "Array 'items' has no item where 'id' == '$ItemId'"
+    return
+  }
+
+  $arrayLookup = Get-ResultJsonFieldLookup -Json $matchedItem -FieldPath $ArrayField
+  if (-not $arrayLookup.found) {
+    Add-ResultAssertionFailure -Result $Result -Assertion $Assertion -Message "Matched item missing field '$ArrayField'"
+    return
+  }
+  if ($arrayLookup.value -is [string] -or -not ($arrayLookup.value -is [System.Collections.IEnumerable])) {
+    Add-ResultAssertionFailure -Result $Result -Assertion $Assertion -Message "Matched item field '$ArrayField' is not an array"
+    return
+  }
+
+  $items = @($arrayLookup.value | ForEach-Object { [string]$_ })
+  if ($items -contains [string]$UnexpectedValue) {
+    Add-ResultAssertionFailure -Result $Result -Assertion $Assertion -Message "Matched item array '$ArrayField' should not contain '$UnexpectedValue'"
+  }
+}
+
 function New-RefundReadyOrder {
   param(
     [System.Collections.ArrayList]$Results,
@@ -2096,6 +2139,9 @@ try {
   Assert-ResultJsonFieldEquals -Result $adminDemandApprove -Field "auditStatus" -ExpectedValue "APPROVED" -Assertion "admin-demand-approve-audit-status"
   $publicDemandDetailAfterAdminApprove = Add-ApiCaseResult -Results $results -Name "public-demand-detail-admin-smoke-industry-tags-sanitized" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/public/demands/$smokeAdminDemandId" -Body $null -Headers @{} -Expected @(200)
   Assert-ResultJsonArrayNotContains -Result $publicDemandDetailAfterAdminApprove -Field "industryTags" -UnexpectedValue $newIndustryTagName -Assertion "public-demand-detail-admin-smoke-tag-hidden"
+  $publicDemandSearchQuery = [System.Uri]::EscapeDataString("$smokeAdminDemandTitle Updated")
+  $publicDemandSearchAfterAdminApprove = Add-ApiCaseResult -Results $results -Name "public-demand-search-admin-smoke-industry-tags-sanitized" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/search/demands?q=$publicDemandSearchQuery&page=1&pageSize=20" -Body $null -Headers @{} -Expected @(200)
+  Assert-ResultJsonItemsItemArrayNotContains -Result $publicDemandSearchAfterAdminApprove -ItemId $smokeAdminDemandId -ArrayField "industryTags" -UnexpectedValue $newIndustryTagName -Assertion "public-demand-search-admin-smoke-tag-hidden"
   [void](Add-ApiCaseResult -Results $results -Name "admin-demand-approve-invalid-demand-id-format" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/admin/demands/not-a-uuid/approve" -Body @{} -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-demand-approve-invalid-demand-id-format") -Expected @(400))
   $adminDemandReject = Add-ApiCaseResult -Results $results -Name "admin-demand-reject" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/admin/demands/$smokeAdminDemandId/reject" -Body @{ reason = "smoke reject admin demand" } -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-demand-reject") -Expected @(200, 201)
   Assert-ResultJsonFieldEquals -Result $adminDemandReject -Field "auditStatus" -ExpectedValue "REJECTED" -Assertion "admin-demand-reject-audit-status"
@@ -2155,6 +2201,9 @@ try {
   Assert-ResultJsonFieldEquals -Result $adminAchievementApprove -Field "auditStatus" -ExpectedValue "APPROVED" -Assertion "admin-achievement-approve-audit-status"
   $publicAchievementDetailAfterAdminApprove = Add-ApiCaseResult -Results $results -Name "public-achievement-detail-admin-smoke-industry-tags-sanitized" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/public/achievements/$smokeAdminAchievementId" -Body $null -Headers @{} -Expected @(200)
   Assert-ResultJsonArrayNotContains -Result $publicAchievementDetailAfterAdminApprove -Field "industryTags" -UnexpectedValue $newIndustryTagName -Assertion "public-achievement-detail-admin-smoke-tag-hidden"
+  $publicAchievementSearchQuery = [System.Uri]::EscapeDataString("$smokeAdminAchievementTitle Updated")
+  $publicAchievementSearchAfterAdminApprove = Add-ApiCaseResult -Results $results -Name "public-achievement-search-admin-smoke-industry-tags-sanitized" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/search/achievements?q=$publicAchievementSearchQuery&page=1&pageSize=20" -Body $null -Headers @{} -Expected @(200)
+  Assert-ResultJsonItemsItemArrayNotContains -Result $publicAchievementSearchAfterAdminApprove -ItemId $smokeAdminAchievementId -ArrayField "industryTags" -UnexpectedValue $newIndustryTagName -Assertion "public-achievement-search-admin-smoke-tag-hidden"
   [void](Add-ApiCaseResult -Results $results -Name "admin-achievement-approve-invalid-achievement-id-format" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/admin/achievements/not-a-uuid/approve" -Body @{} -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-achievement-approve-invalid-achievement-id-format") -Expected @(400))
   $adminAchievementReject = Add-ApiCaseResult -Results $results -Name "admin-achievement-reject" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/admin/achievements/$smokeAdminAchievementId/reject" -Body @{ reason = "smoke reject admin achievement" } -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-achievement-reject") -Expected @(200, 201)
   Assert-ResultJsonFieldEquals -Result $adminAchievementReject -Field "auditStatus" -ExpectedValue "REJECTED" -Assertion "admin-achievement-reject-audit-status"
@@ -2400,6 +2449,9 @@ try {
   Assert-ResultJsonFieldEquals -Result $adminListingApprove -Field "auditStatus" -ExpectedValue "APPROVED" -Assertion "admin-listing-approve-audit-status"
   $publicListingDetailAfterAdminApprove = Add-ApiCaseResult -Results $results -Name "public-listing-detail-admin-smoke-industry-tags-sanitized" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/public/listings/$smokeAdminListingId" -Body $null -Headers @{} -Expected @(200)
   Assert-ResultJsonArrayNotContains -Result $publicListingDetailAfterAdminApprove -Field "industryTags" -UnexpectedValue $newIndustryTagName -Assertion "public-listing-detail-admin-smoke-tag-hidden"
+  $publicListingSearchQuery = [System.Uri]::EscapeDataString("$smokeAdminListingTitle Updated")
+  $publicListingSearchAfterAdminApprove = Add-ApiCaseResult -Results $results -Name "public-listing-search-admin-smoke-industry-tags-sanitized" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/search/listings?q=$publicListingSearchQuery&page=1&pageSize=20" -Body $null -Headers @{} -Expected @(200)
+  Assert-ResultJsonItemsItemArrayNotContains -Result $publicListingSearchAfterAdminApprove -ItemId $smokeAdminListingId -ArrayField "industryTags" -UnexpectedValue $newIndustryTagName -Assertion "public-listing-search-admin-smoke-tag-hidden"
   [void](Add-ApiCaseResult -Results $results -Name "admin-listing-approve-invalid-listing-id-format" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/admin/listings/not-a-uuid/approve" -Body @{} -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-listing-approve-invalid-listing-id-format") -Expected @(400))
   $adminListingReject = Add-ApiCaseResult -Results $results -Name "admin-listing-reject" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/admin/listings/$smokeAdminListingId/reject" -Body @{ reason = "smoke reject admin listing" } -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-listing-reject") -Expected @(200, 201)
   Assert-ResultJsonFieldEquals -Result $adminListingReject -Field "auditStatus" -ExpectedValue "REJECTED" -Assertion "admin-listing-reject-audit-status"
