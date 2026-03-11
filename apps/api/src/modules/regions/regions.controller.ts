@@ -12,11 +12,11 @@ export class RegionsController {
     @Query('parentCode') parentCode?: string,
     @Query('q') q?: string,
   ) {
-    return await this.regions.listRegions({ level, parentCode: parentCode ?? undefined, q });
+    return await this.regions.listRegions({ level, parentCode: parentCode ?? undefined, q, includeTestArtifacts: false });
   }
 
   @Get('/public/industry-tags')
   async listPublicIndustryTags() {
-    return await this.regions.listIndustryTags();
+    return await this.regions.listIndustryTags({ includeTestArtifacts: false });
   }
 }

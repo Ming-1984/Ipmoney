@@ -145,22 +145,67 @@ const prisma = new PrismaClient({
   datasources: { db: { url: dbUrl } },
 });
 
+const TEST_TAG_PREFIXES = ["smoke-tag-", "e2e-tag-", "qa-tag-"];
+const TEST_REGION_PREFIXES = ["smoke region ", "e2e region ", "qa region "];
+
 (async () => {
-  const deletedTags = await prisma.industryTag.deleteMany({
-    where: { name: { startsWith: "smoke-tag-" } },
-  });
+  const deletedTagCountByPrefix = [];
+  let deletedTagTotal = 0;
+  for (const prefix of TEST_TAG_PREFIXES) {
+    const result = await prisma.industryTag.deleteMany({
+      where: {
+        name: {
+          startsWith: prefix,
+          mode: "insensitive",
+        },
+      },
+    });
+    deletedTagCountByPrefix.push({ prefix, count: result.count });
+    deletedTagTotal += result.count;
+  }
+
   const deletedRegions = await prisma.region.deleteMany({
     where: {
-      OR: [
-        { name: { startsWith: "Smoke Region " } },
-        { name: { startsWith: "smoke region " } },
-      ],
+      OR: TEST_REGION_PREFIXES.map((prefix) => ({
+        name: {
+          startsWith: prefix,
+          mode: "insensitive",
+        },
+      })),
     },
   });
+
+  // Remove any leaked test tags from persisted region industryTags arrays.
+  const candidateRegions = await prisma.region.findMany({
+    select: {
+      code: true,
+      industryTagsJson: true,
+    },
+  });
+  let cleanedRegionIndustryTagRows = 0;
+  for (const region of candidateRegions) {
+    const rawTags = Array.isArray(region.industryTagsJson) ? region.industryTagsJson : [];
+    const normalizedTags = rawTags
+      .map((item) => (typeof item === "string" ? item.trim() : ""))
+      .filter((name) => name.length > 0);
+    const filteredTags = normalizedTags.filter(
+      (name) => !TEST_TAG_PREFIXES.some((prefix) => name.toLowerCase().startsWith(prefix)),
+    );
+    if (filteredTags.length !== normalizedTags.length) {
+      await prisma.region.update({
+        where: { code: region.code },
+        data: { industryTagsJson: filteredTags },
+      });
+      cleanedRegionIndustryTagRows += 1;
+    }
+  }
+
   console.log(
     JSON.stringify({
-      deletedSmokeIndustryTags: deletedTags.count,
+      deletedSmokeIndustryTags: deletedTagTotal,
+      deletedSmokeIndustryTagByPrefix: deletedTagCountByPrefix,
       deletedSmokeRegions: deletedRegions.count,
+      cleanedRegionIndustryTagRows,
     }),
   );
 })()
@@ -1292,7 +1337,7 @@ try {
   $adminArtworksForWrites = Invoke-RestMethod -Method Get -Uri "http://127.0.0.1:$resolvedApiPort/admin/artworks" -Headers @{ Authorization = $adminToken }
   $adminPatentsForWrites = Invoke-RestMethod -Method Get -Uri "http://127.0.0.1:$resolvedApiPort/admin/patents" -Headers @{ Authorization = $adminToken }
   $adminIndustryTagsForWrites = Invoke-RestMethod -Method Get -Uri "http://127.0.0.1:$resolvedApiPort/admin/industry-tags" -Headers @{ Authorization = $adminToken }
-  $regionsForWrites = Invoke-RestMethod -Method Get -Uri "http://127.0.0.1:$resolvedApiPort/regions"
+  $regionsForWrites = Invoke-RestMethod -Method Get -Uri "http://127.0.0.1:$resolvedApiPort/admin/regions" -Headers @{ Authorization = $adminToken }
   $searchTechManagersForWrites = Invoke-RestMethod -Method Get -Uri "http://127.0.0.1:$resolvedApiPort/search/tech-managers"
   $adminUserVerificationsForWrites = Invoke-RestMethod -Method Get -Uri "http://127.0.0.1:$resolvedApiPort/admin/user-verifications" -Headers @{ Authorization = $adminToken }
   $adminTradeRulesConfig = Invoke-RestMethod -Method Get -Uri "http://127.0.0.1:$resolvedApiPort/admin/config/trade-rules" -Headers @{ Authorization = $adminToken }
@@ -1315,7 +1360,11 @@ try {
       ForEach-Object {
         if ($_ -and $_.name) { [string]$_.name } else { "" }
       } |
-      Where-Object { -not [string]::IsNullOrWhiteSpace($_) -and $_.Trim().ToLowerInvariant().StartsWith("smoke-tag-") }
+      Where-Object {
+        if ([string]::IsNullOrWhiteSpace($_)) { return $false }
+        $normalizedName = $_.Trim().ToLowerInvariant()
+        return $normalizedName.StartsWith("smoke-tag-") -or $normalizedName.StartsWith("e2e-tag-") -or $normalizedName.StartsWith("qa-tag-")
+      }
   )
   $preflightRegionItems = @()
   if ($regionsForWrites -is [System.Array]) {
@@ -1327,7 +1376,9 @@ try {
     $preflightRegionItems |
       Where-Object {
         $name = if ($_ -and $_.name) { [string]$_.name } else { "" }
-        -not [string]::IsNullOrWhiteSpace($name) -and $name.Trim().ToLowerInvariant().StartsWith("smoke region ")
+        if ([string]::IsNullOrWhiteSpace($name)) { return $false }
+        $normalizedName = $name.Trim().ToLowerInvariant()
+        return $normalizedName.StartsWith("smoke region ") -or $normalizedName.StartsWith("e2e region ") -or $normalizedName.StartsWith("qa region ")
       } |
       ForEach-Object {
         if ($_ -and $_.code) { [string]$_.code } elseif ($_ -and $_.regionCode) { [string]$_.regionCode } else { "" }
@@ -1655,8 +1706,8 @@ try {
       $publicIndustryTagNames += [string]$publicIndustryTagItem.name
     }
   }
-  if (-not ($publicIndustryTagNames -contains $newIndustryTagName)) {
-    Add-ResultAssertionFailure -Result $publicIndustryTagsList -Assertion "public-industry-tags-created-visible" -Message "Created industry tag '$newIndustryTagName' not found in public list"
+  if ($publicIndustryTagNames -contains $newIndustryTagName) {
+    Add-ResultAssertionFailure -Result $publicIndustryTagsList -Assertion "public-industry-tags-smoke-tag-hidden" -Message "Public industry tags should not expose test tag '$newIndustryTagName'"
   }
   $regionIndustryTags = @($newIndustryTagName) + @($regionIndustryTags | Where-Object { $_ -ne $newIndustryTagName } | Select-Object -First 1)
 

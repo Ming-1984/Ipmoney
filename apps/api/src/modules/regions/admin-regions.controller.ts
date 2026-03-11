@@ -17,7 +17,7 @@ export class AdminRegionsController {
     @Query('q') q?: string,
   ) {
     requirePermission(req, 'config.manage');
-    return await this.regions.listRegions({ level, parentCode: parentCode ?? undefined, q });
+    return await this.regions.listRegions({ level, parentCode: parentCode ?? undefined, q, includeTestArtifacts: true });
   }
 
   @Post()

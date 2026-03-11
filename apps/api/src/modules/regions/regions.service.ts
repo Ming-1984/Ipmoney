@@ -4,6 +4,8 @@ import { PrismaService } from '../../common/prisma/prisma.service';
 
 const REGION_CODE_RE = /^[0-9]{6}$/;
 const REGION_LEVELS = new Set(['PROVINCE', 'CITY', 'DISTRICT']);
+const TEST_REGION_NAME_PREFIXES = ['smoke region ', 'e2e region ', 'qa region '];
+const TEST_INDUSTRY_TAG_PREFIXES = ['smoke-tag-', 'e2e-tag-', 'qa-tag-'];
 
 type RegionRecord = {
   code: string;
@@ -125,7 +127,21 @@ export class RegionsService {
     }
   }
 
-  async listRegions(params: { level?: string; parentCode?: string | null; q?: string }): Promise<RegionNodeDto[]> {
+  private buildNamePrefixExclusion(prefixes: string[]) {
+    return prefixes.map((prefix) => ({
+      name: {
+        startsWith: prefix,
+        mode: 'insensitive',
+      },
+    }));
+  }
+
+  async listRegions(params: {
+    level?: string;
+    parentCode?: string | null;
+    q?: string;
+    includeTestArtifacts?: boolean;
+  }): Promise<RegionNodeDto[]> {
     const where: RegionWhereInput = {};
 
     if (params.level !== undefined) {
@@ -146,6 +162,10 @@ export class RegionsService {
 
     if (params.q && params.q.trim()) {
       where.name = { contains: params.q.trim() };
+    }
+
+    if (!params.includeTestArtifacts) {
+      where.NOT = this.buildNamePrefixExclusion(TEST_REGION_NAME_PREFIXES);
     }
 
     const regions = await this.prisma.region.findMany({
@@ -261,8 +281,12 @@ export class RegionsService {
     }
   }
 
-  async listIndustryTags(): Promise<IndustryTagRecord[]> {
-    return this.prisma.industryTag.findMany({ orderBy: { name: 'asc' } });
+  async listIndustryTags(opts?: { includeTestArtifacts?: boolean }): Promise<IndustryTagRecord[]> {
+    const where: any = {};
+    if (!opts?.includeTestArtifacts) {
+      where.NOT = this.buildNamePrefixExclusion(TEST_INDUSTRY_TAG_PREFIXES);
+    }
+    return this.prisma.industryTag.findMany({ where, orderBy: { name: 'asc' } });
   }
 
   async createIndustryTag(name: string): Promise<IndustryTagRecord> {
