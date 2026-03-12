@@ -43,6 +43,7 @@ describe('InventorsService filter strictness', () => {
     expect(() => service.search({ page: '0' })).toThrow(BadRequestException);
     expect(() => service.search({ pageSize: '1.5' })).toThrow(BadRequestException);
     expect(() => service.search({ regionCode: '   ' })).toThrow(BadRequestException);
+    expect(() => service.search({ regionCode: 'abc' })).toThrow(BadRequestException);
     expect(() => service.search({ patentType: 'bad-type' })).toThrow(BadRequestException);
   });
 });
@@ -67,6 +68,7 @@ describe('OrganizationsService filter strictness', () => {
 
   it('rejects invalid regionCode and type filters', async () => {
     await expect(service.list({ regionCode: '   ' })).rejects.toBeInstanceOf(BadRequestException);
+    await expect(service.list({ regionCode: 'abc' })).rejects.toBeInstanceOf(BadRequestException);
     await expect(service.list({ type: '   ' })).rejects.toBeInstanceOf(BadRequestException);
     await expect(service.list({ type: 'PERSON' })).rejects.toBeInstanceOf(BadRequestException);
     await expect(service.list({ types: ['COMPANY', 'BAD'] })).rejects.toBeInstanceOf(BadRequestException);

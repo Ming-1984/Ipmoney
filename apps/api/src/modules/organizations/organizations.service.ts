@@ -17,6 +17,7 @@ const ORG_TYPES: VerificationType[] = [
   VerificationType.GOVERNMENT,
   VerificationType.ASSOCIATION,
 ];
+const REGION_CODE_RE = /^[0-9]{6}$/;
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 @Injectable()
@@ -41,7 +42,7 @@ export class OrganizationsService {
 
   private parseRegionCodeFilterStrict(value: unknown, fieldName: string): string {
     const raw = String(value ?? '').trim();
-    if (!raw) {
+    if (!raw || !REGION_CODE_RE.test(raw)) {
       throw new BadRequestException({ code: 'BAD_REQUEST', message: `${fieldName} is invalid` });
     }
     return raw;
