@@ -1,0 +1,197 @@
+\documentclass[12pt,a4paper]{ctexart}
+\usepackage[margin=2.5cm]{geometry}
+\usepackage{enumitem}
+
+\setlength{\parindent}{2em}
+\setlist[itemize]{leftmargin=2em, itemsep=2pt, topsep=3pt}
+
+\newcommand{\clientnote}{
+\vspace{0.3em}
+\noindent\textbf{甲方备注：}\par
+\vspace{0.3em}
+\noindent\rule{\textwidth}{0.4pt}\par
+\vspace{1.0em}
+}
+
+\title{平台法律文档与小程序流程对齐清单}
+\author{}
+\date{}
+
+\begin{document}
+\maketitle
+
+\section{当前交易流程（系统现状）}
+\textbf{订单主链路（状态流转）}
+\begin{itemize}
+  \item 下单：买家对“审核通过且上架中”的标的下单，订单状态为 \texttt{DEPOSIT\_PENDING}。
+  \item 订金到账确认后：状态变为 \texttt{DEPOSIT\_PAID}。
+  \item 后台确认“合同已签 + 成交价”后：状态变为 \texttt{WAIT\_FINAL\_PAYMENT}，同时计算尾款与佣金。
+  \item 尾款到账确认后：状态变为 \texttt{FINAL\_PAID\_ESCROW}。
+  \item 后台确认权属变更完成后：状态变为 \texttt{READY\_TO\_SETTLE}。
+  \item 财务线下放款并上传凭证后：状态变为 \texttt{COMPLETED}。
+\end{itemize}
+
+\textbf{退款链路（系统现状）}
+\begin{itemize}
+  \item 买家可在 \texttt{DEPOSIT\_PAID}、\texttt{WAIT\_FINAL\_PAYMENT}、\texttt{FINAL\_PAID\_ESCROW} 发起退款申请。
+  \item 自动退款：仅在订金支付后短窗口内（当前默认 30 分钟）且满足系统条件时秒退，订单直接进入 \texttt{REFUNDED}。
+  \item 人工退款：后台审核通过后进入 \texttt{REFUNDING}，完成后进入 \texttt{REFUNDED}。
+\end{itemize}
+
+\textbf{发票链路（系统现状）}
+\begin{itemize}
+  \item 买家在订单 \texttt{COMPLETED} 后可线上发起“申请开票”。
+  \item 财务线下开票后，由后台上传电子发票附件并回填票号/开票时间。
+  \item 平台展示和下载的发票金额口径为平台服务费/佣金。
+\end{itemize}
+
+\textbf{合同链路（系统现状）}
+\begin{itemize}
+  \item 合同中心支持卖家上传 PDF 合同，状态进入“待确认”。
+  \item 买家端当前无独立“线上确认合同”按钮；合同签署确认由后台里程碑动作推进。
+\end{itemize}
+
+\section{《用户协议》}
+\textbf{系统现状（已实现）}
+\begin{itemize}
+  \item 登录前需勾选《用户协议》《隐私政策》。
+  \item 下单与支付接口要求用户已登录且认证通过。
+  \item 订单、发票、退款均按买家/卖家/管理员权限控制访问。
+\end{itemize}
+\textbf{请甲方确认/补充}
+\begin{itemize}
+  \item 协议主体、联系方式、适用对象、版本与生效时间。
+  \item 用户行为边界（绕平台交易、虚假信息、侵权信息）与处罚梯度。
+  \item 责任限制、免责条款、争议解决条款（法院/仲裁）最终口径。
+\end{itemize}
+\clientnote
+
+\section{《隐私政策》}
+\textbf{系统现状（已实现）}
+\begin{itemize}
+  \item 涉及账号信息、认证信息、订单与支付信息、合同/发票/证据附件等数据处理。
+  \item 文件下载与预览走权限校验，支持短期临时访问令牌。
+  \item 关键操作（上传、下载、退款、开票、放款）已有审计日志留痕。
+\end{itemize}
+\textbf{请甲方确认/补充}
+\begin{itemize}
+  \item 个人信息与敏感信息分类口径、处理目的与合法性基础。
+  \item 各类数据保留期限、删除机制、用户权利响应时限。
+  \item 第三方共享、委托处理、跨境传输（如有）合规表述。
+\end{itemize}
+\clientnote
+
+\section{《专利交易居间服务协议》}
+\textbf{系统现状（已实现）}
+\begin{itemize}
+  \item 平台负责撮合、订单流转、里程碑管理、资金托管与结算记录。
+  \item 合同签署、权属变更等核心履约动作当前由线下执行，后台做确认推进。
+  \item 平台以服务费/佣金口径参与结算，不直接承接标的权属转移义务。
+\end{itemize}
+\textbf{请甲方确认/补充}
+\begin{itemize}
+  \item “居间服务边界”与“非担保义务”条款的最终措辞。
+  \item 线下签约、过户失败、材料不全等场景的责任划分。
+  \item 风控中止交易、下架、拒绝服务的触发条件与通知机制。
+\end{itemize}
+\clientnote
+
+\section{《订金支付与退款规则》}
+\textbf{系统现状（已实现）}
+\begin{itemize}
+  \item 订金金额来源于上架标的；支付后由到账确认驱动状态变更。
+  \item 自动退款窗口默认 30 分钟（可配置），满足条件时可秒退。
+  \item 人工退款支持“通过/驳回/完成”；驳回需填写理由。
+  \item 退款原因码已落地：买家改变主意、卖家材料不符、协商一致、风控原因、其他。
+\end{itemize}
+\textbf{请甲方确认/补充}
+\begin{itemize}
+  \item 自动退款适用边界与不可退款场景的法务表述。
+  \item 人工退款所需证据、审核时限、补件规则。
+  \item 退款时资金原路退回、失败重试、异常处理条款。
+\end{itemize}
+\clientnote
+
+\section{《交易与结算规则》}
+\textbf{系统现状（已实现）}
+\begin{itemize}
+  \item 成交价由后台确认合同时录入，尾款为“成交价减订金”。
+  \item 放款前置状态为 \texttt{READY\_TO\_SETTLE}，当前执行方式为人工放款并上传凭证。
+  \item 佣金按比例并受上下限约束，按订单金额计算并在结算时扣除。
+\end{itemize}
+\textbf{请甲方确认/补充}
+\begin{itemize}
+  \item 结算时点、放款时限、失败回滚与争议冻结规则。
+  \item 佣金承担方与结算顺序的法律口径。
+  \item 放款凭证留存期限与审计可追溯要求。
+\end{itemize}
+\clientnote
+
+\section{《卖家上架与权属承诺》}
+\textbf{系统现状（已实现）}
+\begin{itemize}
+  \item 卖家提交审核时，前端要求至少上传 1 份权属材料。
+  \item 发布页有“禁止虚假/侵权内容”提示，但无独立承诺勾选项。
+  \item 系统支持质押状态、在先许可状态等字段录入。
+\end{itemize}
+\textbf{请甲方确认/补充}
+\begin{itemize}
+  \item 《卖家上架与权属承诺》条款需与现有“上传权属材料后提交审核”流程保持一致。
+  \item 权属/授权材料最小清单与不实陈述违约责任。
+  \item 质押、在先许可、权利限制披露标准及未披露后果。
+\end{itemize}
+\clientnote
+
+\section{《争议处理与证据规则》}
+\textbf{系统现状（已实现）}
+\begin{itemize}
+  \item 订单维度已有跟单里程碑；后台有工单系统可处理退款/交易争议并上传证据。
+  \item 用户端当前以退款申请入口为主，综合争议处理主要走客服/后台工单。
+\end{itemize}
+\textbf{请甲方确认/补充}
+\begin{itemize}
+  \item 争议受理范围、不予受理情形、提交时限。
+  \item 证据效力标准、补件规则、裁决优先级。
+  \item 升级仲裁/诉讼条件及证据保全规则。
+\end{itemize}
+\clientnote
+
+\section{《内容规范与举报规则》}
+\textbf{系统现状（已实现）}
+\begin{itemize}
+  \item 系统存在内容审核、上下架、封禁等治理能力。
+  \item 小程序前台暂无独立“举报入口”，当前主要通过客服渠道承接。
+\end{itemize}
+\textbf{请甲方确认/补充}
+\begin{itemize}
+  \item 举报渠道按当前客服受理口径编写，并明确处理时限。
+  \item 违规分类标准、证据要求、申诉流程。
+  \item 删除/下架/封禁的程序与通知规则。
+\end{itemize}
+\clientnote
+
+\section{《发票与税务说明》}
+\textbf{系统现状（已实现）}
+\begin{itemize}
+  \item 用户端存在“申请开票”动作；财务端执行“线下开票 + 平台上传附件”。
+  \item 发票中心展示待开票/可下载，已上传发票可复制下载链接。
+  \item 平台发票金额口径为服务费/佣金，不含标的成交价款。
+\end{itemize}
+\textbf{请甲方确认/补充}
+\begin{itemize}
+  \item 发票流程按当前“线上申请 + 财务线下开票并上传附件”口径写定。
+  \item 开票主体、票种、税率、抬头采集与留档要求。
+  \item 发票附件由后台在订单完成后上传/替换并留痕。
+\end{itemize}
+\clientnote
+
+\section*{交易参数（当前默认值，待甲方书面确认）}
+\begin{itemize}
+  \item 订金比例：5\%；订金区间：￥100--￥5000；面议固定订金：￥200。
+  \item 自动退款窗口：30 分钟。
+  \item 佣金比例：5\%；佣金区间：￥1000--￥50000（卖家承担）。
+  \item 时限参数：补材料 3 个工作日，签约 10 个工作日，权属变更 SLA 90 天。
+  \item 放款条件：权属变更完成确认；默认放款方式：人工放款；自动放款：关闭。
+\end{itemize}
+
+\end{document}
