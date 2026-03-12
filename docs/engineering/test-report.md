@@ -3,16 +3,16 @@
 ## Latest (2026-03-12)
 
 ### Commands & Results (dev)
-- `powershell -ExecutionPolicy Bypass -File scripts/verify.ps1 -ReportDate 2026-03-12-r195`
+- `powershell -ExecutionPolicy Bypass -File scripts/verify.ps1 -ReportDate 2026-03-12-r196`
   - Result: success (all steps)
-  - Render artifact: `docs/demo/rendered/ui-smoke-2026-03-12-r195/`
+  - Render artifact: `docs/demo/rendered/ui-smoke-2026-03-12-r196/`
   - Gate summary: `api-real-smoke` `1754/1754` (`writes=1297`,`reads=457`), OpenAPI coverage `238/238`, quality floor `violations=[]`, plus `db-preflight/ui-http-smoke/ui-render-smoke(core)/ui-dom-smoke(core)` all pass.
 - `powershell -ExecutionPolicy Bypass -File scripts/api-real-smoke.ps1 -ReportDate 2026-03-12-r193`
   - Result: pass (`1754/1754`) after chaos trend-threshold anti-flake tuning.
   - Notes: an earlier `verify` run (`r192`) had a single false-negative on `chaos-randomized-outcome-distribution` (trend threshold marginal exceed); script now reports base/effective trend thresholds and applies a bounded `+250ms` grace while keeping the absolute p95 guard unchanged.
 - `pnpm -C apps/api test`
-  - Result: pass (`103/103`)
-  - Coverage in this batch: `test/listings.search-filters.spec.ts` (`6`), `test/audit-logs.read.spec.ts` (`5`), `test/orders.write.spec.ts` (`24`), `test/comments.write.spec.ts` (`28`), `test/favorites.write.spec.ts` (`29`), `test/addresses.write.spec.ts` (`9`), `test/health.e2e-spec.ts` (`2`).
+  - Result: pass (`109/109`)
+  - Coverage in this batch: `test/org-inventor.filters.spec.ts` (`6`), `test/listings.search-filters.spec.ts` (`6`), `test/audit-logs.read.spec.ts` (`5`), `test/orders.write.spec.ts` (`24`), `test/comments.write.spec.ts` (`28`), `test/favorites.write.spec.ts` (`29`), `test/addresses.write.spec.ts` (`9`), `test/health.e2e-spec.ts` (`2`).
 - `pnpm -C apps/api test:e2e`
   - Result: pass (`2/2`).
 - `pnpm -C apps/api lint && pnpm -C apps/api typecheck && pnpm -C apps/api build`
