@@ -10,8 +10,8 @@
 - `typecheck`: pass (api/client/admin-web).
 - `build`: pass (api/admin-web/client h5/weapp); WeApp severe regression has been fixed in this batch, and bundle gate is now enforced.
 - `smoke`: pass on `2026-03-12-r172` (API `1749/1749`, UI HTTP 86/86, UI Render full 83/83, UI Render core 3/3, UI DOM full-83 83/83, UI DOM core 11/11), including announcement-tag and patent-map industry-breakdown/top-assignee compatibility regressions.
-- `verify`: pass on 2026-03-09 (now includes `api-smoke-openapi-coverage` + `api-smoke-quality-floor` + `ui-dom-smoke(core)` in pipeline); port/process hardening has been applied to core smoke scripts.
-- `weapp-route-smoke`: local fail due DevTools HTTP port availability (environment issue).
+- `verify`: pass on `2026-03-12-r185` (openapi/lint/typecheck/build/api-smoke `1754/1754` + coverage `238/238` + quality-floor `violations=[]` + db/ui-http/ui-render(core)/ui-dom(core) all green); port/process hardening has been applied to core smoke scripts.
+- `weapp-route-smoke`: pass on `2026-03-12-r184` (11/11 routes, no runtime exceptions); script now includes launch retry + stale DevTools diagnostics/failure report output.
 
 ### 1.2 Coverage and test capability
 - OpenAPI operations: 243 (GET 108 / POST 93 / PUT 12 / PATCH 21 / DELETE 9).
@@ -59,7 +59,7 @@
 - BOM in generated JSON artifacts causes cross-tool parsing noise.
 
 ### 1.8 Script robustness
-- `verify` port fallback was fixed in this batch; remaining auxiliary scripts (for example WeApp route smoke) still need the same resilience pattern.
+- `verify` port fallback was fixed in this batch; WeApp route smoke now also has launch retry/backoff + optional stale DevTools cleanup + per-attempt diagnostics.
 - `api-real-smoke` / `ui-http-smoke` / `ui-render-smoke` / `ui-dom-smoke` now avoid kill-by-port and use child-process cleanup + dynamic port fallback.
 - `api-real-smoke` now disables local rate-limit (`RATE_LIMIT_ENABLED=false`) during run to reduce false 429 flakiness while validating business paths.
 - `api-real-smoke` now keeps a larger response truncation ceiling (512 KB) to prevent false JSON-assert failures on large list payloads.
@@ -539,3 +539,5 @@
   229) checkout/about H5 runtime exception fixes landed (done: `MiniProgramPayGuide` now guards browser-side env access so missing `process` no longer crashes `/subpackages/checkout/{deposit-pay|final-pay}` in H5, and About page now gates `getAccountInfoSync` to WeApp environment to prevent unsupported-API unhandled rejection on `/subpackages/about/index`).
   230) round181 full UI smoke status captured (done: post-route/exception fixes `ui-dom-smoke(full)` passed `83/83`, `ui-render-smoke(full)` passed `83/83`, and `ui-http-smoke` remained green `86/86`).
   231) round182 gate status captured (done: `scripts/verify.ps1 -ReportDate 2026-03-12-r182` remained fully green with `api-real-smoke` `1754/1754`, OpenAPI coverage `238/238`, quality floor `violations=[]`, and `db-preflight/ui-http-smoke/ui-render-smoke(core)/ui-dom-smoke(core)` all passing).
+  232) weapp-route-smoke launch resilience and diagnostics landed (done: `scripts/weapp-route-smoke.js/.ps1` now support `--launch-retries`, `--launch-retry-delay-ms`, and optional `--kill-stale-devtools`; launch failures now record per-attempt DevTools process diagnostics into report JSON, and `scripts/weapp-route-smoke.ps1 -NoAuth -ReportDate 2026-03-12-r184` passed `11/11` routes with artifact `.tmp/weapp-route-smoke-2026-03-12-r184.json`).
+  233) round185 gate status captured (done: `scripts/verify.ps1 -ReportDate 2026-03-12-r185` remained fully green with `api-real-smoke` `1754/1754`, OpenAPI coverage `238/238`, quality floor `violations=[]`, and `db-preflight/ui-http-smoke/ui-render-smoke(core)/ui-dom-smoke(core)` all passing).
