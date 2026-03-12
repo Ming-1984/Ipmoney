@@ -201,23 +201,54 @@ const prisma = new PrismaClient({
   datasources: { db: { url: dbUrl } },
 });
 
-const TEST_TAG_PREFIXES = ["smoke-tag-", "e2e-tag-", "qa-tag-"];
+const TEST_TAG_BASE_PREFIXES = ["smoke", "e2e", "qa"];
+const TEST_TAG_VARIANT_PATTERN = /^(smoke|e2e|qa)[-_\s]?tag(?:[-_\s]|$)/i;
 const TEST_REGION_PREFIXES = ["smoke region ", "e2e region ", "qa region "];
 
+function isTestTagName(value) {
+  if (typeof value !== "string") return false;
+  const normalized = value.trim();
+  if (!normalized) return false;
+  return TEST_TAG_VARIANT_PATTERN.test(normalized);
+}
+
 (async () => {
-  const deletedTagCountByPrefix = [];
-  let deletedTagTotal = 0;
-  for (const prefix of TEST_TAG_PREFIXES) {
-    const result = await prisma.industryTag.deleteMany({
-      where: {
+  const deletedTagCountByPrefix = TEST_TAG_BASE_PREFIXES.map((prefix) => ({ prefix, count: 0 }));
+  const candidateTags = await prisma.industryTag.findMany({
+    where: {
+      OR: TEST_TAG_BASE_PREFIXES.map((prefix) => ({
         name: {
           startsWith: prefix,
           mode: "insensitive",
         },
+      })),
+    },
+    select: {
+      id: true,
+      name: true,
+    },
+  });
+  const matchedTestTags = candidateTags.filter((tag) => isTestTagName(tag.name));
+  for (const tag of matchedTestTags) {
+    const normalizedTagName = String(tag.name || "").trim().toLowerCase();
+    for (const entry of deletedTagCountByPrefix) {
+      if (normalizedTagName.startsWith(entry.prefix)) {
+        entry.count += 1;
+        break;
+      }
+    }
+  }
+  let deletedTagTotal = 0;
+  const matchedTagIds = matchedTestTags.map((tag) => tag.id);
+  if (matchedTagIds.length > 0) {
+    const result = await prisma.industryTag.deleteMany({
+      where: {
+        id: {
+          in: matchedTagIds,
+        },
       },
     });
-    deletedTagCountByPrefix.push({ prefix, count: result.count });
-    deletedTagTotal += result.count;
+    deletedTagTotal = result.count;
   }
 
   const deletedRegions = await prisma.region.deleteMany({
@@ -244,9 +275,7 @@ const TEST_REGION_PREFIXES = ["smoke region ", "e2e region ", "qa region "];
     const normalizedTags = rawTags
       .map((item) => (typeof item === "string" ? item.trim() : ""))
       .filter((name) => name.length > 0);
-    const filteredTags = normalizedTags.filter(
-      (name) => !TEST_TAG_PREFIXES.some((prefix) => name.toLowerCase().startsWith(prefix)),
-    );
+    const filteredTags = normalizedTags.filter((name) => !isTestTagName(name));
     if (filteredTags.length !== normalizedTags.length) {
       await prisma.region.update({
         where: { code: region.code },
@@ -259,7 +288,10 @@ const TEST_REGION_PREFIXES = ["smoke region ", "e2e region ", "qa region "];
   console.log(
     JSON.stringify({
       deletedSmokeIndustryTags: deletedTagTotal,
-      deletedSmokeIndustryTagByPrefix: deletedTagCountByPrefix,
+      deletedSmokeIndustryTagByPrefix: deletedTagCountByPrefix.map((entry) => ({
+        prefix: `${entry.prefix}[-_ ]tag`,
+        count: entry.count,
+      })),
       deletedSmokeRegions: deletedRegions.count,
       cleanedRegionIndustryTagRows,
     }),
@@ -1516,7 +1548,7 @@ try {
       Where-Object {
         if ([string]::IsNullOrWhiteSpace($_)) { return $false }
         $normalizedName = $_.Trim().ToLowerInvariant()
-        return $normalizedName.StartsWith("smoke-tag-") -or $normalizedName.StartsWith("e2e-tag-") -or $normalizedName.StartsWith("qa-tag-")
+        return $normalizedName -match '^(smoke|e2e|qa)[-_ ]?tag(?:[-_ ]|$)'
       }
   )
   $preflightRegionItems = @()
