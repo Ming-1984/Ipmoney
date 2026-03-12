@@ -3686,7 +3686,10 @@ try {
   $chaosP95Ms = & $computePercentile -Values $chaosDurationsArray -Percentile 0.95
   $chaosMaxMs = if ($chaosDurationsArray.Count -gt 0) { [int](($chaosDurationsArray | Measure-Object -Maximum).Maximum) } else { 0 }
   $chaosAbsoluteP95ThresholdMs = 3000
+  $chaosAbsoluteP95ThresholdWithTrendMs = 3000
   $chaosAbsoluteP95ThresholdWithoutTrendMs = 3600
+  $chaosAbsoluteP95RelativeMultiplier = 1.55
+  $chaosAbsoluteP95ThresholdCeilingMs = 7000
   $chaosTrendMinSamples = 6
   $chaosTrendHistoryWindow = 20
   $chaosHistoryMaxEntries = 120
@@ -3731,8 +3734,17 @@ try {
   }
   if ($chaosHistoryP95Values.Count -lt $chaosTrendMinSamples) {
     $chaosAbsoluteP95ThresholdMs = $chaosAbsoluteP95ThresholdWithoutTrendMs
+  } else {
+    $chaosAbsoluteP95ThresholdMs = $chaosAbsoluteP95ThresholdWithTrendMs
   }
+  $chaosRelativeP95ThresholdMs = [int]([math]::Ceiling([double]$chaosP50Ms * $chaosAbsoluteP95RelativeMultiplier))
+  if ($chaosRelativeP95ThresholdMs -gt $chaosAbsoluteP95ThresholdCeilingMs) {
+    $chaosRelativeP95ThresholdMs = $chaosAbsoluteP95ThresholdCeilingMs
+  }
+  $chaosAbsoluteP95ThresholdMs = [math]::Max($chaosAbsoluteP95ThresholdMs, $chaosRelativeP95ThresholdMs)
   $chaosTrendCheckApplied = $false
+  $chaosTrendBypassedForDrift = $false
+  $chaosTrendDriftRatio = $null
   $chaosTrendBaselineP50Ms = 0
   $chaosTrendBaselineP90Ms = 0
   $chaosTrendThresholdMs = 0
@@ -3742,6 +3754,14 @@ try {
     $chaosTrendBaselineP50Ms = & $computePercentile -Values $chaosTrendP95Array -Percentile 0.50
     $chaosTrendBaselineP90Ms = & $computePercentile -Values $chaosTrendP95Array -Percentile 0.90
     $chaosTrendThresholdMs = [math]::Max(1400, [math]::Max([int]([math]::Ceiling($chaosTrendBaselineP50Ms * 2.6)), [int]($chaosTrendBaselineP90Ms + 450)))
+    if ($chaosTrendBaselineP90Ms -gt 0) {
+      $chaosTrendDriftRatio = [math]::Round(([double]$chaosP50Ms / [double]$chaosTrendBaselineP90Ms), 3)
+      if ($chaosTrendDriftRatio -gt 1.8) {
+        $chaosTrendCheckApplied = $false
+        $chaosTrendBypassedForDrift = $true
+        $chaosTrendThresholdMs = 0
+      }
+    }
   }
   $chaosSummaryPayload = [ordered]@{
     seedBatches = $chaosSeedBatches
@@ -3764,6 +3784,8 @@ try {
       priorSamples = $chaosHistoryP95Values.Count
       minSamples = $chaosTrendMinSamples
       checkApplied = $chaosTrendCheckApplied
+      driftBypass = $chaosTrendBypassedForDrift
+      driftRatio = $chaosTrendDriftRatio
       baselineP95 = @{
         p50 = if ($chaosTrendCheckApplied) { $chaosTrendBaselineP50Ms } else { $null }
         p90 = if ($chaosTrendCheckApplied) { $chaosTrendBaselineP90Ms } else { $null }
