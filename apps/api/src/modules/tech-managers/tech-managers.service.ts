@@ -3,6 +3,7 @@ import { Prisma } from '@prisma/client';
 
 import { AuditLogService } from '../../common/audit-log.service';
 import { PrismaService } from '../../common/prisma/prisma.service';
+import { sanitizeServiceTagNames } from '../content-utils';
 
 const VERIFICATION_STATUS = {
   APPROVED: 'APPROVED',
@@ -32,6 +33,13 @@ export class TechManagersService {
       return value.map((item) => String(item).trim()).filter(Boolean);
     }
     return [];
+  }
+
+  private normalizeServiceTags(value: unknown, opts?: { includeTestArtifacts?: boolean }): string[] {
+    const normalized = this.normalizeStringArray(value);
+    const includeTestArtifacts = opts?.includeTestArtifacts ?? true;
+    if (includeTestArtifacts) return normalized;
+    return sanitizeServiceTagNames(normalized);
   }
 
   private hasOwn(body: unknown, key: string): boolean {
@@ -82,8 +90,8 @@ export class TechManagersService {
     return raw;
   }
 
-  private toSummary(verificationRecord: any, profile?: any) {
-    const serviceTags = this.normalizeStringArray(profile?.serviceTagsJson);
+  private toSummary(verificationRecord: any, profile?: any, opts?: { includeTestArtifacts?: boolean }) {
+    const serviceTags = this.normalizeServiceTags(profile?.serviceTagsJson, opts);
     return {
       userId: verificationRecord.userId,
       displayName: verificationRecord.displayName,
@@ -154,7 +162,7 @@ export class TechManagersService {
 
     return {
       items: items.map((verificationRecord: any) =>
-        this.toSummary(verificationRecord, verificationRecord.user?.techManagerProfile),
+        this.toSummary(verificationRecord, verificationRecord.user?.techManagerProfile, { includeTestArtifacts: false }),
       ),
       page: { page, pageSize, total },
     };
@@ -172,7 +180,7 @@ export class TechManagersService {
     });
     if (!verification) throw new NotFoundException({ code: 'NOT_FOUND', message: 'tech manager not found' });
 
-    const summary = this.toSummary(verification, verification.user?.techManagerProfile);
+    const summary = this.toSummary(verification, verification.user?.techManagerProfile, { includeTestArtifacts: false });
     const evidenceFileIds = Array.isArray(verification.evidenceFileIdsJson)
       ? verification.evidenceFileIdsJson.filter((fileId: any) => typeof fileId === 'string')
       : [];
@@ -201,7 +209,7 @@ export class TechManagersService {
 
     return {
       items: items.map((verificationRecord: any) =>
-        this.toSummary(verificationRecord, verificationRecord.user?.techManagerProfile),
+        this.toSummary(verificationRecord, verificationRecord.user?.techManagerProfile, { includeTestArtifacts: true }),
       ),
       page: { page, pageSize, total },
     };
@@ -293,6 +301,6 @@ export class TechManagersService {
       afterJson: updates,
     });
 
-    return this.toSummary(updatedVerification, profile);
+    return this.toSummary(updatedVerification, profile, { includeTestArtifacts: true });
   }
 }

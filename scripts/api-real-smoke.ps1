@@ -205,6 +205,7 @@ const TEST_TAG_BASE_PREFIXES = ["smoke", "e2e", "qa"];
 const TEST_TAG_VARIANT_PATTERN = /^(smoke|e2e|qa)[-_\s]?tag(?:[-_\s]|$)/i;
 const TEST_REGION_BASE_PREFIXES = ["smoke", "e2e", "qa"];
 const TEST_REGION_VARIANT_PATTERN = /^(smoke|e2e|qa)[-_\s]?region(?:[-_\s]|$)/i;
+const TEST_SERVICE_TAG_VARIANT_PATTERN = /^(smoke|e2e|qa)[-_\s]?service(?:[-_\s]?tag)?(?:[-_\s]|$)/i;
 
 function isTestTagName(value) {
   if (typeof value !== "string") return false;
@@ -218,6 +219,13 @@ function isTestRegionName(value) {
   const normalized = value.trim();
   if (!normalized) return false;
   return TEST_REGION_VARIANT_PATTERN.test(normalized);
+}
+
+function isTestServiceTagName(value) {
+  if (typeof value !== "string") return false;
+  const normalized = value.trim();
+  if (!normalized) return false;
+  return TEST_SERVICE_TAG_VARIANT_PATTERN.test(normalized);
 }
 
 (async () => {
@@ -311,6 +319,28 @@ function isTestRegionName(value) {
     }
   }
 
+  const candidateTechManagerProfiles = await prisma.techManagerProfile.findMany({
+    select: {
+      userId: true,
+      serviceTagsJson: true,
+    },
+  });
+  let cleanedTechManagerServiceTagRows = 0;
+  for (const profile of candidateTechManagerProfiles) {
+    const rawTags = Array.isArray(profile.serviceTagsJson) ? profile.serviceTagsJson : [];
+    const normalizedTags = rawTags
+      .map((item) => (typeof item === "string" ? item.trim() : ""))
+      .filter((name) => name.length > 0);
+    const filteredTags = normalizedTags.filter((name) => !isTestServiceTagName(name));
+    if (filteredTags.length !== normalizedTags.length) {
+      await prisma.techManagerProfile.update({
+        where: { userId: profile.userId },
+        data: { serviceTagsJson: filteredTags },
+      });
+      cleanedTechManagerServiceTagRows += 1;
+    }
+  }
+
   console.log(
     JSON.stringify({
       deletedSmokeIndustryTags: deletedTagTotal,
@@ -320,6 +350,7 @@ function isTestRegionName(value) {
       })),
       deletedSmokeRegions: deletedRegionTotal,
       cleanedRegionIndustryTagRows,
+      cleanedTechManagerServiceTagRows,
     }),
   );
 })()
@@ -1596,6 +1627,28 @@ try {
       } |
       Where-Object { -not [string]::IsNullOrWhiteSpace($_) }
   )
+  $preflightTechManagerItems = @()
+  if ($searchTechManagersForWrites -is [System.Array]) {
+    $preflightTechManagerItems = @($searchTechManagersForWrites)
+  } elseif ($searchTechManagersForWrites -and $searchTechManagersForWrites.items) {
+    $preflightTechManagerItems = @($searchTechManagersForWrites.items)
+  }
+  $preflightSmokeServiceTags = @(
+    $preflightTechManagerItems |
+      ForEach-Object {
+        if ($_ -and $_.serviceTags -is [System.Array]) {
+          @($_.serviceTags) | ForEach-Object { [string]$_ }
+        } else {
+          @()
+        }
+      } |
+      Where-Object {
+        if ([string]::IsNullOrWhiteSpace($_)) { return $false }
+        $normalizedName = $_.Trim().ToLowerInvariant()
+        return $normalizedName -match '^(smoke|e2e|qa)[-_ ]?service(?:[-_ ]?tag)?(?:[-_ ]|$)'
+      } |
+      Select-Object -Unique
+  )
   $smokeFilterArtifactPreflight = [pscustomobject]@{
     name = "smoke-filter-artifact-preflight"
     method = "GET"
@@ -1606,6 +1659,7 @@ try {
     body = (@{
         leakedSmokeTagCount = $preflightSmokeTagNames.Count
         leakedSmokeRegionCount = $preflightSmokeRegionCodes.Count
+        leakedSmokeServiceTagCount = $preflightSmokeServiceTags.Count
       } | ConvertTo-Json -Compress)
   }
   [void]$results.Add($smokeFilterArtifactPreflight)
@@ -1614,6 +1668,9 @@ try {
   }
   if ($preflightSmokeRegionCodes.Count -gt 0) {
     Add-ResultAssertionFailure -Result $smokeFilterArtifactPreflight -Assertion "smoke-filter-preflight-regions-clean" -Message "Expected no leaked smoke regions before run, got codes [$($preflightSmokeRegionCodes -join ', ')]"
+  }
+  if ($preflightSmokeServiceTags.Count -gt 0) {
+    Add-ResultAssertionFailure -Result $smokeFilterArtifactPreflight -Assertion "smoke-filter-preflight-tech-manager-service-tags-clean" -Message "Expected no leaked smoke service tags before run, got [$($preflightSmokeServiceTags -join ', ')]"
   }
 
   $verificationItems = @($adminUserVerificationsForWrites.items)
@@ -2712,6 +2769,8 @@ try {
   $adminTechManagerUpdate = Add-ApiCaseResult -Results $results -Name "admin-tech-manager-update" -Method "PATCH" -Url "http://127.0.0.1:$resolvedApiPort/admin/tech-managers/$techManagerId" -Body @{ intro = "smoke tech manager intro $ReportDate"; serviceTags = @($techManagerServiceTag); featuredRank = 0; featuredUntil = (Get-Date).AddDays(7).ToString("o") } -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-tech-manager-update") -Expected @(200)
   Assert-ResultJsonFieldEquals -Result $adminTechManagerUpdate -Field "userId" -ExpectedValue $techManagerId -Assertion "admin-tech-manager-update-user-id"
   Assert-ResultJsonArrayContains -Result $adminTechManagerUpdate -Field "serviceTags" -ExpectedValue $techManagerServiceTag -Assertion "admin-tech-manager-update-service-tag"
+  $publicTechManagerDetailAfterAdminUpdate = Add-ApiCaseResult -Results $results -Name "public-tech-manager-detail-smoke-service-tag-hidden" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/public/tech-managers/$techManagerId" -Body $null -Headers @{} -Expected @(200)
+  Assert-ResultJsonFieldMissing -Result $publicTechManagerDetailAfterAdminUpdate -Field "serviceTags" -Assertion "public-tech-manager-detail-smoke-service-tag-hidden"
 
   [void](Add-ApiCaseResult -Results $results -Name "listing-submit-unauthorized" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/listings/$listingId/submit" -Body @{} -Headers @{} -Expected @(401))
   [void](Add-ApiCaseResult -Results $results -Name "listing-off-shelf-unauthorized" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/listings/$listingId/off-shelf" -Body @{} -Headers @{} -Expected @(401))

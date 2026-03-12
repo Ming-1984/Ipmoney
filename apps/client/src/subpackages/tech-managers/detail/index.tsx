@@ -9,6 +9,7 @@ import { apiGet, apiPost } from '../../../lib/api';
 import { ensureApproved } from '../../../lib/guard';
 import { safeNavigateBack } from '../../../lib/navigation';
 import { useRouteUuidParam } from '../../../lib/routeParams';
+import { sanitizeServiceTagNames } from '../../../lib/serviceTags';
 import { toast } from '../../../ui/nutui';
 import { EmptyCard, ErrorCard, LoadingCard, MissingParamCard } from '../../../ui/StateCards';
 
@@ -91,9 +92,10 @@ export default function TechManagerDetailPage() {
         : '认证';
     const orgName =
       (data as any)?.organizationName || (data as any)?.companyName || (data as any)?.organization || '';
+    const visibleServiceTags = sanitizeServiceTagNames(data?.serviceTags || []);
     const expertiseText =
       (data as any)?.expertiseSummary ||
-      (data?.serviceTags?.length ? data.serviceTags.join('、') : '') ||
+      (visibleServiceTags.length ? visibleServiceTags.join('、') : '') ||
       '暂无';
     const honorTitles = ((data as any)?.honorTitles as string[]) || [];
     let experienceYears: string | number = '-';

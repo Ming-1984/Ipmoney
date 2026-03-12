@@ -66,6 +66,32 @@ export function sanitizeIndustryTagNames(input: unknown): string[] {
   return out;
 }
 
+const HIDDEN_TEST_SERVICE_TAG_PATTERNS = [
+  /^smoke[-_\s]?service(?:[-_\s]?tag)?(?:[-_\s]|$)/i,
+  /^e2e[-_\s]?service(?:[-_\s]?tag)?(?:[-_\s]|$)/i,
+  /^qa[-_\s]?service(?:[-_\s]?tag)?(?:[-_\s]|$)/i,
+];
+
+export function isVisibleServiceTagName(name: string): boolean {
+  const normalized = String(name || '').trim();
+  if (!normalized) return false;
+  return !HIDDEN_TEST_SERVICE_TAG_PATTERNS.some((pattern) => pattern.test(normalized));
+}
+
+export function sanitizeServiceTagNames(input: unknown): string[] {
+  const normalizedList = normalizeStringArray(input);
+  const dedupe = new Set<string>();
+  const out: string[] = [];
+  for (const value of normalizedList) {
+    if (!isVisibleServiceTagName(value)) continue;
+    const key = value.toLowerCase();
+    if (dedupe.has(key)) continue;
+    dedupe.add(key);
+    out.push(value);
+  }
+  return out;
+}
+
 export function normalizeMediaInput(input: unknown): Array<{ fileId: string; type: string; sort: number }> {
   if (!Array.isArray(input)) return [];
   return input
