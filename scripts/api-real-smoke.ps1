@@ -202,10 +202,10 @@ const prisma = new PrismaClient({
 });
 
 const TEST_TAG_BASE_PREFIXES = ["smoke", "e2e", "qa"];
-const TEST_TAG_VARIANT_PATTERN = /^(smoke|e2e|qa)[-_\s]?tag(?:[-_\s]|$)/i;
+const TEST_TAG_VARIANT_PATTERN = /^(smoke|e2e|qa)[-_\s/]*tag(?:[-_\s/]|$)/i;
 const TEST_REGION_BASE_PREFIXES = ["smoke", "e2e", "qa"];
-const TEST_REGION_VARIANT_PATTERN = /^(smoke|e2e|qa)[-_\s]?region(?:[-_\s]|$)/i;
-const TEST_SERVICE_TAG_VARIANT_PATTERN = /^(smoke|e2e|qa)[-_\s]?service(?:[-_\s]?tag)?(?:[-_\s]|$)/i;
+const TEST_REGION_VARIANT_PATTERN = /^(smoke|e2e|qa)[-_\s/]*region(?:[-_\s/]|$)/i;
+const TEST_SERVICE_TAG_VARIANT_PATTERN = /^(smoke|e2e|qa)[-_\s/]*service(?:[-_\s/]*tag)?(?:[-_\s/]|$)/i;
 
 function isTestTagName(value) {
   if (typeof value !== "string") return false;
@@ -345,7 +345,7 @@ function isTestServiceTagName(value) {
     JSON.stringify({
       deletedSmokeIndustryTags: deletedTagTotal,
       deletedSmokeIndustryTagByPrefix: deletedTagCountByPrefix.map((entry) => ({
-        prefix: `${entry.prefix}[-_ ]tag`,
+        prefix: `${entry.prefix}[-_ /]tag`,
         count: entry.count,
       })),
       deletedSmokeRegions: deletedRegionTotal,
@@ -1605,7 +1605,7 @@ try {
       Where-Object {
         if ([string]::IsNullOrWhiteSpace($_)) { return $false }
         $normalizedName = $_.Trim().ToLowerInvariant()
-        return $normalizedName -match '^(smoke|e2e|qa)[-_ ]?tag(?:[-_ ]|$)'
+        return $normalizedName -match '^(smoke|e2e|qa)[-_\s/]*tag(?:[-_\s/]|$)'
       }
   )
   $preflightRegionItems = @()
@@ -1620,7 +1620,7 @@ try {
         $name = if ($_ -and $_.name) { [string]$_.name } else { "" }
         if ([string]::IsNullOrWhiteSpace($name)) { return $false }
         $normalizedName = $name.Trim().ToLowerInvariant()
-        return $normalizedName -match '^(smoke|e2e|qa)[-_ ]?region(?:[-_ ]|$)'
+        return $normalizedName -match '^(smoke|e2e|qa)[-_\s/]*region(?:[-_\s/]|$)'
       } |
       ForEach-Object {
         if ($_ -and $_.code) { [string]$_.code } elseif ($_ -and $_.regionCode) { [string]$_.regionCode } else { "" }
@@ -1645,7 +1645,7 @@ try {
       Where-Object {
         if ([string]::IsNullOrWhiteSpace($_)) { return $false }
         $normalizedName = $_.Trim().ToLowerInvariant()
-        return $normalizedName -match '^(smoke|e2e|qa)[-_ ]?service(?:[-_ ]?tag)?(?:[-_ ]|$)'
+        return $normalizedName -match '^(smoke|e2e|qa)[-_\s/]*service(?:[-_\s/]*tag)?(?:[-_\s/]|$)'
       } |
       Select-Object -Unique
   )
@@ -1940,21 +1940,27 @@ try {
   $newIndustryTagName = "smoke-tag-$ReportDate-$([guid]::NewGuid().ToString('N').Substring(0,8))"
   $newIndustryTagNameAlt = "smoke_tag_$($ReportDate.Replace('-', '_'))_$([guid]::NewGuid().ToString('N').Substring(0,8))"
   $newIndustryTagNameSpace = "smoke tag $ReportDate $([guid]::NewGuid().ToString('N').Substring(0,8))"
+  $newIndustryTagNameSlash = "smoke/tag/$($ReportDate.Replace('-', '/'))/$([guid]::NewGuid().ToString('N').Substring(0,8))"
   $hiddenIndustryTagFilter = "smoke-tag-filter-only-$ReportDate-$([guid]::NewGuid().ToString('N').Substring(0,8))"
   $hiddenIndustryTagFilterAlt = "smoke_tag_filter_only_$($ReportDate.Replace('-', '_'))_$([guid]::NewGuid().ToString('N').Substring(0,8))"
   $hiddenIndustryTagFilterSpace = "smoke tag filter only $ReportDate $([guid]::NewGuid().ToString('N').Substring(0,8))"
+  $hiddenIndustryTagFilterSlash = "smoke/tag/filter/only/$($ReportDate.Replace('-', '/'))/$([guid]::NewGuid().ToString('N').Substring(0,8))"
   $encodedHiddenIndustryTagFilter = [System.Uri]::EscapeDataString($hiddenIndustryTagFilter)
   $encodedHiddenIndustryTagFilterAlt = [System.Uri]::EscapeDataString($hiddenIndustryTagFilterAlt)
   $encodedHiddenIndustryTagFilterSpace = [System.Uri]::EscapeDataString($hiddenIndustryTagFilterSpace)
+  $encodedHiddenIndustryTagFilterSlash = [System.Uri]::EscapeDataString($hiddenIndustryTagFilterSlash)
   $adminIndustryTagCreate = Add-ApiCaseResult -Results $results -Name "admin-industry-tag-create" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/admin/industry-tags" -Body @{ name = $newIndustryTagName } -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-industry-tag-create") -Expected @(200, 201)
   Assert-ResultJsonFieldEquals -Result $adminIndustryTagCreate -Field "name" -ExpectedValue $newIndustryTagName -Assertion "admin-industry-tag-create-name"
   $adminIndustryTagCreateAlt = Add-ApiCaseResult -Results $results -Name "admin-industry-tag-create-alt-underscore" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/admin/industry-tags" -Body @{ name = $newIndustryTagNameAlt } -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-industry-tag-create-alt-underscore") -Expected @(200, 201)
   Assert-ResultJsonFieldEquals -Result $adminIndustryTagCreateAlt -Field "name" -ExpectedValue $newIndustryTagNameAlt -Assertion "admin-industry-tag-create-alt-underscore-name"
   $adminIndustryTagCreateSpace = Add-ApiCaseResult -Results $results -Name "admin-industry-tag-create-alt-space" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/admin/industry-tags" -Body @{ name = $newIndustryTagNameSpace } -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-industry-tag-create-alt-space") -Expected @(200, 201)
   Assert-ResultJsonFieldEquals -Result $adminIndustryTagCreateSpace -Field "name" -ExpectedValue $newIndustryTagNameSpace -Assertion "admin-industry-tag-create-alt-space-name"
+  $adminIndustryTagCreateSlash = Add-ApiCaseResult -Results $results -Name "admin-industry-tag-create-alt-slash" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/admin/industry-tags" -Body @{ name = $newIndustryTagNameSlash } -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-industry-tag-create-alt-slash") -Expected @(200, 201)
+  Assert-ResultJsonFieldEquals -Result $adminIndustryTagCreateSlash -Field "name" -ExpectedValue $newIndustryTagNameSlash -Assertion "admin-industry-tag-create-alt-slash-name"
   [void](Add-ApiCaseResult -Results $results -Name "admin-industry-tag-create-duplicate" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/admin/industry-tags" -Body @{ name = $newIndustryTagName } -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-industry-tag-create-duplicate") -Expected @(409))
   [void](Add-ApiCaseResult -Results $results -Name "admin-industry-tag-create-alt-underscore-duplicate" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/admin/industry-tags" -Body @{ name = $newIndustryTagNameAlt } -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-industry-tag-create-alt-underscore-duplicate") -Expected @(409))
   [void](Add-ApiCaseResult -Results $results -Name "admin-industry-tag-create-alt-space-duplicate" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/admin/industry-tags" -Body @{ name = $newIndustryTagNameSpace } -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-industry-tag-create-alt-space-duplicate") -Expected @(409))
+  [void](Add-ApiCaseResult -Results $results -Name "admin-industry-tag-create-alt-slash-duplicate" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/admin/industry-tags" -Body @{ name = $newIndustryTagNameSlash } -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-industry-tag-create-alt-slash-duplicate") -Expected @(409))
   [void](Add-ApiCaseResult -Results $results -Name "admin-industry-tag-create-invalid-empty" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/admin/industry-tags" -Body @{ name = "   " } -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-industry-tag-create-invalid-empty") -Expected @(400))
   $adminIndustryTagsAfterCreate = Add-ApiCaseResult -Results $results -Name "admin-industry-tags-list-after-create" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/admin/industry-tags" -Body $null -Headers @{ Authorization = $adminToken } -Expected @(200)
   $adminIndustryTagsAfterCreateJson = Get-ResultJsonObject -Result $adminIndustryTagsAfterCreate
@@ -1967,6 +1973,7 @@ try {
   $adminIndustryTagCreatedVisible = $false
   $adminIndustryTagCreatedAltVisible = $false
   $adminIndustryTagCreatedSpaceVisible = $false
+  $adminIndustryTagCreatedSlashVisible = $false
   foreach ($adminIndustryTagItem in $adminIndustryTagsAfterCreateItems) {
     if ($adminIndustryTagItem -and $adminIndustryTagItem.name -and [string]$adminIndustryTagItem.name -eq $newIndustryTagName) {
       $adminIndustryTagCreatedVisible = $true
@@ -1977,6 +1984,9 @@ try {
     if ($adminIndustryTagItem -and $adminIndustryTagItem.name -and [string]$adminIndustryTagItem.name -eq $newIndustryTagNameSpace) {
       $adminIndustryTagCreatedSpaceVisible = $true
     }
+    if ($adminIndustryTagItem -and $adminIndustryTagItem.name -and [string]$adminIndustryTagItem.name -eq $newIndustryTagNameSlash) {
+      $adminIndustryTagCreatedSlashVisible = $true
+    }
   }
   if (-not $adminIndustryTagCreatedVisible) {
     Add-ResultAssertionFailure -Result $adminIndustryTagsAfterCreate -Assertion "admin-industry-tags-created-visible" -Message "Created industry tag '$newIndustryTagName' not found in admin list"
@@ -1986,6 +1996,9 @@ try {
   }
   if (-not $adminIndustryTagCreatedSpaceVisible) {
     Add-ResultAssertionFailure -Result $adminIndustryTagsAfterCreate -Assertion "admin-industry-tags-created-alt-space-visible" -Message "Created industry tag '$newIndustryTagNameSpace' not found in admin list"
+  }
+  if (-not $adminIndustryTagCreatedSlashVisible) {
+    Add-ResultAssertionFailure -Result $adminIndustryTagsAfterCreate -Assertion "admin-industry-tags-created-alt-slash-visible" -Message "Created industry tag '$newIndustryTagNameSlash' not found in admin list"
   }
   $publicIndustryTagsList = Add-ApiCaseResult -Results $results -Name "public-industry-tags-list" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/public/industry-tags" -Body $null -Headers @{} -Expected @(200)
   $publicIndustryTagsJson = Get-ResultJsonObject -Result $publicIndustryTagsList
@@ -2010,12 +2023,15 @@ try {
   if ($publicIndustryTagNames -contains $newIndustryTagNameSpace) {
     Add-ResultAssertionFailure -Result $publicIndustryTagsList -Assertion "public-industry-tags-smoke-tag-space-hidden" -Message "Public industry tags should not expose test tag '$newIndustryTagNameSpace'"
   }
-  $regionIndustryTags = @($newIndustryTagName, $newIndustryTagNameAlt, $newIndustryTagNameSpace) + @(
-    $regionIndustryTags | Where-Object { $_ -ne $newIndustryTagName -and $_ -ne $newIndustryTagNameAlt -and $_ -ne $newIndustryTagNameSpace } | Select-Object -First 1
+  if ($publicIndustryTagNames -contains $newIndustryTagNameSlash) {
+    Add-ResultAssertionFailure -Result $publicIndustryTagsList -Assertion "public-industry-tags-smoke-tag-slash-hidden" -Message "Public industry tags should not expose test tag '$newIndustryTagNameSlash'"
+  }
+  $regionIndustryTags = @($newIndustryTagName, $newIndustryTagNameAlt, $newIndustryTagNameSpace, $newIndustryTagNameSlash) + @(
+    $regionIndustryTags | Where-Object { $_ -ne $newIndustryTagName -and $_ -ne $newIndustryTagNameAlt -and $_ -ne $newIndustryTagNameSpace -and $_ -ne $newIndustryTagNameSlash } | Select-Object -First 1
   )
 
   [void](Add-ApiCaseResult -Results $results -Name "ai-agent-query-text" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/ai/agent/query" -Body @{ inputType = "TEXT"; inputText = "smoke ai query $ReportDate"; contentScope = "LISTING"; regionCode = $importRegionCode } -Headers @{} -Expected @(200, 204, 404))
-  $aiAgentQueryWithHiddenIndustryTag = Add-ApiCaseResult -Results $results -Name "ai-agent-query-hidden-industry-filter-sanitized" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/ai/agent/query" -Body @{ inputType = "TEXT"; inputText = "smoke ai hidden industry $ReportDate"; contentScope = "LISTING"; industryTags = @($hiddenIndustryTagFilter, $hiddenIndustryTagFilterAlt, $hiddenIndustryTagFilterSpace) } -Headers @{} -Expected @(200, 204, 404)
+  $aiAgentQueryWithHiddenIndustryTag = Add-ApiCaseResult -Results $results -Name "ai-agent-query-hidden-industry-filter-sanitized" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/ai/agent/query" -Body @{ inputType = "TEXT"; inputText = "smoke ai hidden industry $ReportDate"; contentScope = "LISTING"; industryTags = @($hiddenIndustryTagFilter, $hiddenIndustryTagFilterAlt, $hiddenIndustryTagFilterSpace, $hiddenIndustryTagFilterSlash) } -Headers @{} -Expected @(200, 204, 404)
   if ([int]$aiAgentQueryWithHiddenIndustryTag.status -eq 200) {
     $aiAgentHiddenJson = Get-ResultJsonObject -Result $aiAgentQueryWithHiddenIndustryTag
     if ($aiAgentHiddenJson) {
@@ -2030,6 +2046,9 @@ try {
         }
         if ($aiIndustryTags -contains $hiddenIndustryTagFilterSpace) {
           Add-ResultAssertionFailure -Result $aiAgentQueryWithHiddenIndustryTag -Assertion "ai-agent-query-hidden-industry-filter-space-hidden" -Message "AI parsed filters should not contain hidden test industry tag '$hiddenIndustryTagFilterSpace'"
+        }
+        if ($aiIndustryTags -contains $hiddenIndustryTagFilterSlash) {
+          Add-ResultAssertionFailure -Result $aiAgentQueryWithHiddenIndustryTag -Assertion "ai-agent-query-hidden-industry-filter-slash-hidden" -Message "AI parsed filters should not contain hidden test industry tag '$hiddenIndustryTagFilterSlash'"
         }
       }
     }
@@ -2261,11 +2280,12 @@ try {
   [void](Add-ApiCaseResult -Results $results -Name "admin-patent-update-missing" -Method "PATCH" -Url "http://127.0.0.1:$resolvedApiPort/admin/patents/$([guid]::NewGuid().ToString())" -Body @{ title = "Smoke Patent Missing" } -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-patent-update-missing") -Expected @(404))
 
   $smokeAnnouncementTitle = "Smoke Announcement $ReportDate $([guid]::NewGuid().ToString('N').Substring(0, 8))"
-  $adminAnnouncementCreate = Add-ApiCaseResult -Results $results -Name "admin-announcement-create" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/admin/announcements" -Body @{ title = $smokeAnnouncementTitle; status = "DRAFT"; summary = "smoke announcement summary"; tags = @($newIndustryTagName, $newIndustryTagNameAlt, $newIndustryTagNameSpace) } -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-announcement-create") -Expected @(200, 201)
+  $adminAnnouncementCreate = Add-ApiCaseResult -Results $results -Name "admin-announcement-create" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/admin/announcements" -Body @{ title = $smokeAnnouncementTitle; status = "DRAFT"; summary = "smoke announcement summary"; tags = @($newIndustryTagName, $newIndustryTagNameAlt, $newIndustryTagNameSpace, $newIndustryTagNameSlash) } -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-announcement-create") -Expected @(200, 201)
   Assert-ResultJsonFieldEquals -Result $adminAnnouncementCreate -Field "title" -ExpectedValue $smokeAnnouncementTitle -Assertion "admin-announcement-create-title"
   Assert-ResultJsonArrayContains -Result $adminAnnouncementCreate -Field "tags" -ExpectedValue $newIndustryTagName -Assertion "admin-announcement-create-smoke-tag-visible"
   Assert-ResultJsonArrayContains -Result $adminAnnouncementCreate -Field "tags" -ExpectedValue $newIndustryTagNameAlt -Assertion "admin-announcement-create-smoke-tag-alt-visible"
   Assert-ResultJsonArrayContains -Result $adminAnnouncementCreate -Field "tags" -ExpectedValue $newIndustryTagNameSpace -Assertion "admin-announcement-create-smoke-tag-space-visible"
+  Assert-ResultJsonArrayContains -Result $adminAnnouncementCreate -Field "tags" -ExpectedValue $newIndustryTagNameSlash -Assertion "admin-announcement-create-smoke-tag-slash-visible"
   $smokeAnnouncementId = Get-ResultStringField -Result $adminAnnouncementCreate -Field "id"
   if ([string]::IsNullOrWhiteSpace($smokeAnnouncementId)) { throw "admin-announcement-create missing id" }
   [void](Add-ApiCaseResult -Results $results -Name "admin-announcement-create-empty-issue-no" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/admin/announcements" -Body @{ title = "Smoke Announcement Empty Issue No"; issueNo = "" } -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-announcement-create-empty-issue-no") -Expected @(400))
@@ -2285,22 +2305,25 @@ try {
   Assert-ResultJsonArrayContains -Result $adminAnnouncementUpdate -Field "tags" -ExpectedValue $newIndustryTagName -Assertion "admin-announcement-update-smoke-tag-visible"
   Assert-ResultJsonArrayContains -Result $adminAnnouncementUpdate -Field "tags" -ExpectedValue $newIndustryTagNameAlt -Assertion "admin-announcement-update-smoke-tag-alt-visible"
   Assert-ResultJsonArrayContains -Result $adminAnnouncementUpdate -Field "tags" -ExpectedValue $newIndustryTagNameSpace -Assertion "admin-announcement-update-smoke-tag-space-visible"
+  Assert-ResultJsonArrayContains -Result $adminAnnouncementUpdate -Field "tags" -ExpectedValue $newIndustryTagNameSlash -Assertion "admin-announcement-update-smoke-tag-slash-visible"
   $publicAnnouncementDetailAfterAdminPublish = Add-ApiCaseResult -Results $results -Name "public-announcement-detail-admin-smoke-tags-sanitized" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/public/announcements/$smokeAnnouncementId" -Body $null -Headers @{} -Expected @(200)
   Assert-ResultJsonArrayNotContains -Result $publicAnnouncementDetailAfterAdminPublish -Field "tags" -UnexpectedValue $newIndustryTagName -Assertion "public-announcement-detail-admin-smoke-tag-hidden"
   Assert-ResultJsonArrayNotContains -Result $publicAnnouncementDetailAfterAdminPublish -Field "tags" -UnexpectedValue $newIndustryTagNameAlt -Assertion "public-announcement-detail-admin-smoke-tag-alt-hidden"
   Assert-ResultJsonArrayNotContains -Result $publicAnnouncementDetailAfterAdminPublish -Field "tags" -UnexpectedValue $newIndustryTagNameSpace -Assertion "public-announcement-detail-admin-smoke-tag-space-hidden"
+  Assert-ResultJsonArrayNotContains -Result $publicAnnouncementDetailAfterAdminPublish -Field "tags" -UnexpectedValue $newIndustryTagNameSlash -Assertion "public-announcement-detail-admin-smoke-tag-slash-hidden"
   $publicAnnouncementsListAfterAdminPublish = Add-ApiCaseResult -Results $results -Name "public-announcements-list-admin-smoke-tags-sanitized" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/public/announcements?page=1&pageSize=50" -Body $null -Headers @{} -Expected @(200)
   Assert-ResultJsonItemsContainsId -Result $publicAnnouncementsListAfterAdminPublish -ItemId $smokeAnnouncementId -Assertion "public-announcements-list-admin-smoke-item-visible"
   Assert-ResultJsonItemsItemArrayNotContains -Result $publicAnnouncementsListAfterAdminPublish -ItemId $smokeAnnouncementId -ArrayField "tags" -UnexpectedValue $newIndustryTagName -Assertion "public-announcements-list-admin-smoke-tag-hidden"
   Assert-ResultJsonItemsItemArrayNotContains -Result $publicAnnouncementsListAfterAdminPublish -ItemId $smokeAnnouncementId -ArrayField "tags" -UnexpectedValue $newIndustryTagNameAlt -Assertion "public-announcements-list-admin-smoke-tag-alt-hidden"
   Assert-ResultJsonItemsItemArrayNotContains -Result $publicAnnouncementsListAfterAdminPublish -ItemId $smokeAnnouncementId -ArrayField "tags" -UnexpectedValue $newIndustryTagNameSpace -Assertion "public-announcements-list-admin-smoke-tag-space-hidden"
+  Assert-ResultJsonItemsItemArrayNotContains -Result $publicAnnouncementsListAfterAdminPublish -ItemId $smokeAnnouncementId -ArrayField "tags" -UnexpectedValue $newIndustryTagNameSlash -Assertion "public-announcements-list-admin-smoke-tag-slash-hidden"
   [void](Add-ApiCaseResult -Results $results -Name "admin-announcement-delete-invalid-announcement-id-format" -Method "DELETE" -Url "http://127.0.0.1:$resolvedApiPort/admin/announcements/not-a-uuid" -Body $null -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-announcement-delete-invalid-announcement-id-format") -Expected @(400))
   [void](Add-ApiCaseResult -Results $results -Name "admin-announcement-delete-missing" -Method "DELETE" -Url "http://127.0.0.1:$resolvedApiPort/admin/announcements/$([guid]::NewGuid().ToString())" -Body $null -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-announcement-delete-missing") -Expected @(404))
   [void](Add-ApiCaseResult -Results $results -Name "admin-announcement-delete" -Method "DELETE" -Url "http://127.0.0.1:$resolvedApiPort/admin/announcements/$smokeAnnouncementId" -Body $null -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-announcement-delete") -Expected @(204))
   [void](Add-ApiCaseResult -Results $results -Name "public-announcement-get-deleted" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/public/announcements/$smokeAnnouncementId" -Body $null -Headers @{} -Expected @(404))
 
   $smokeAdminDemandTitle = "Smoke Admin Demand $ReportDate $([guid]::NewGuid().ToString('N').Substring(0, 8))"
-  $adminDemandCreate = Add-ApiCaseResult -Results $results -Name "admin-demand-create" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/admin/demands" -Body @{ title = $smokeAdminDemandTitle; source = "ADMIN"; status = "DRAFT"; auditStatus = "PENDING"; budgetType = "FIXED"; budgetMinFen = 1000; budgetMaxFen = 3000; deliveryPeriod = "MONTH_1_3"; industryTags = @($newIndustryTagName, $newIndustryTagNameAlt, $newIndustryTagNameSpace) } -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-demand-create") -Expected @(200, 201)
+  $adminDemandCreate = Add-ApiCaseResult -Results $results -Name "admin-demand-create" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/admin/demands" -Body @{ title = $smokeAdminDemandTitle; source = "ADMIN"; status = "DRAFT"; auditStatus = "PENDING"; budgetType = "FIXED"; budgetMinFen = 1000; budgetMaxFen = 3000; deliveryPeriod = "MONTH_1_3"; industryTags = @($newIndustryTagName, $newIndustryTagNameAlt, $newIndustryTagNameSpace, $newIndustryTagNameSlash) } -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-demand-create") -Expected @(200, 201)
   Assert-ResultJsonFieldEquals -Result $adminDemandCreate -Field "title" -ExpectedValue $smokeAdminDemandTitle -Assertion "admin-demand-create-title"
   Assert-ResultJsonFieldEquals -Result $adminDemandCreate -Field "status" -ExpectedValue "DRAFT" -Assertion "admin-demand-create-status"
   $smokeAdminDemandId = Get-ResultStringField -Result $adminDemandCreate -Field "id"
@@ -2331,7 +2354,7 @@ try {
   [void](Add-ApiCaseResult -Results $results -Name "admin-demand-create-empty-contact-phone-masked" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/admin/demands" -Body @{ title = "Smoke Admin Demand Empty Contact Phone"; contactPhoneMasked = "" } -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-demand-create-empty-contact-phone-masked") -Expected @(400))
   [void](Add-ApiCaseResult -Results $results -Name "admin-demand-create-invalid-budget-min-decimal" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/admin/demands" -Body @{ title = "Smoke Admin Demand Invalid Budget Min Decimal"; budgetMinFen = 1000.5 } -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-demand-create-invalid-budget-min-decimal") -Expected @(400))
   [void](Add-ApiCaseResult -Results $results -Name "admin-demand-create-empty-budget-min-fen" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/admin/demands" -Body @{ title = "Smoke Admin Demand Empty Budget Min"; budgetMinFen = "" } -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-demand-create-empty-budget-min-fen") -Expected @(400))
-  $adminDemandUpdate = Add-ApiCaseResult -Results $results -Name "admin-demand-update" -Method "PATCH" -Url "http://127.0.0.1:$resolvedApiPort/admin/demands/$smokeAdminDemandId" -Body @{ title = "$smokeAdminDemandTitle Updated"; source = "PLATFORM"; status = "ACTIVE"; auditStatus = "APPROVED"; budgetType = "NEGOTIABLE"; deliveryPeriod = "WITHIN_1_MONTH"; industryTags = @($newIndustryTagName, $newIndustryTagNameAlt, $newIndustryTagNameSpace) } -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-demand-update") -Expected @(200)
+  $adminDemandUpdate = Add-ApiCaseResult -Results $results -Name "admin-demand-update" -Method "PATCH" -Url "http://127.0.0.1:$resolvedApiPort/admin/demands/$smokeAdminDemandId" -Body @{ title = "$smokeAdminDemandTitle Updated"; source = "PLATFORM"; status = "ACTIVE"; auditStatus = "APPROVED"; budgetType = "NEGOTIABLE"; deliveryPeriod = "WITHIN_1_MONTH"; industryTags = @($newIndustryTagName, $newIndustryTagNameAlt, $newIndustryTagNameSpace, $newIndustryTagNameSlash) } -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-demand-update") -Expected @(200)
   Assert-ResultJsonFieldEquals -Result $adminDemandUpdate -Field "source" -ExpectedValue "PLATFORM" -Assertion "admin-demand-update-source"
   Assert-ResultJsonFieldEquals -Result $adminDemandUpdate -Field "auditStatus" -ExpectedValue "APPROVED" -Assertion "admin-demand-update-audit-status"
   [void](Add-ApiCaseResult -Results $results -Name "admin-demand-update-invalid-source" -Method "PATCH" -Url "http://127.0.0.1:$resolvedApiPort/admin/demands/$smokeAdminDemandId" -Body @{ source = "INVALID" } -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-demand-update-invalid-source") -Expected @(400))
@@ -2369,11 +2392,13 @@ try {
   Assert-ResultJsonArrayNotContains -Result $publicDemandDetailAfterAdminApprove -Field "industryTags" -UnexpectedValue $newIndustryTagName -Assertion "public-demand-detail-admin-smoke-tag-hidden"
   Assert-ResultJsonArrayNotContains -Result $publicDemandDetailAfterAdminApprove -Field "industryTags" -UnexpectedValue $newIndustryTagNameAlt -Assertion "public-demand-detail-admin-smoke-tag-alt-hidden"
   Assert-ResultJsonArrayNotContains -Result $publicDemandDetailAfterAdminApprove -Field "industryTags" -UnexpectedValue $newIndustryTagNameSpace -Assertion "public-demand-detail-admin-smoke-tag-space-hidden"
+  Assert-ResultJsonArrayNotContains -Result $publicDemandDetailAfterAdminApprove -Field "industryTags" -UnexpectedValue $newIndustryTagNameSlash -Assertion "public-demand-detail-admin-smoke-tag-slash-hidden"
   $publicDemandSearchQuery = [System.Uri]::EscapeDataString("$smokeAdminDemandTitle Updated")
   $publicDemandSearchAfterAdminApprove = Add-ApiCaseResult -Results $results -Name "public-demand-search-admin-smoke-industry-tags-sanitized" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/search/demands?q=$publicDemandSearchQuery&page=1&pageSize=20" -Body $null -Headers @{} -Expected @(200)
   Assert-ResultJsonItemsItemArrayNotContains -Result $publicDemandSearchAfterAdminApprove -ItemId $smokeAdminDemandId -ArrayField "industryTags" -UnexpectedValue $newIndustryTagName -Assertion "public-demand-search-admin-smoke-tag-hidden"
   Assert-ResultJsonItemsItemArrayNotContains -Result $publicDemandSearchAfterAdminApprove -ItemId $smokeAdminDemandId -ArrayField "industryTags" -UnexpectedValue $newIndustryTagNameAlt -Assertion "public-demand-search-admin-smoke-tag-alt-hidden"
   Assert-ResultJsonItemsItemArrayNotContains -Result $publicDemandSearchAfterAdminApprove -ItemId $smokeAdminDemandId -ArrayField "industryTags" -UnexpectedValue $newIndustryTagNameSpace -Assertion "public-demand-search-admin-smoke-tag-space-hidden"
+  Assert-ResultJsonItemsItemArrayNotContains -Result $publicDemandSearchAfterAdminApprove -ItemId $smokeAdminDemandId -ArrayField "industryTags" -UnexpectedValue $newIndustryTagNameSlash -Assertion "public-demand-search-admin-smoke-tag-slash-hidden"
   $publicDemandSearchWithHiddenIndustryFilter = Add-ApiCaseResult -Results $results -Name "public-demand-search-hidden-industry-filter-ignored" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/search/demands?q=$publicDemandSearchQuery&industryTags=$encodedHiddenIndustryTagFilter&page=1&pageSize=20" -Body $null -Headers @{} -Expected @(200)
   Assert-ResultJsonItemsContainsId -Result $publicDemandSearchWithHiddenIndustryFilter -ItemId $smokeAdminDemandId -Assertion "public-demand-search-hidden-industry-filter-item-visible"
   Assert-ResultJsonItemsItemArrayNotContains -Result $publicDemandSearchWithHiddenIndustryFilter -ItemId $smokeAdminDemandId -ArrayField "industryTags" -UnexpectedValue $newIndustryTagName -Assertion "public-demand-search-hidden-industry-filter-smoke-tag-hidden"
@@ -2383,13 +2408,16 @@ try {
   $publicDemandSearchWithHiddenIndustryFilterSpace = Add-ApiCaseResult -Results $results -Name "public-demand-search-hidden-industry-filter-alt-space-ignored" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/search/demands?q=$publicDemandSearchQuery&industryTags=$encodedHiddenIndustryTagFilterSpace&page=1&pageSize=20" -Body $null -Headers @{} -Expected @(200)
   Assert-ResultJsonItemsContainsId -Result $publicDemandSearchWithHiddenIndustryFilterSpace -ItemId $smokeAdminDemandId -Assertion "public-demand-search-hidden-industry-filter-alt-space-item-visible"
   Assert-ResultJsonItemsItemArrayNotContains -Result $publicDemandSearchWithHiddenIndustryFilterSpace -ItemId $smokeAdminDemandId -ArrayField "industryTags" -UnexpectedValue $newIndustryTagNameSpace -Assertion "public-demand-search-hidden-industry-filter-alt-space-smoke-tag-hidden"
+  $publicDemandSearchWithHiddenIndustryFilterSlash = Add-ApiCaseResult -Results $results -Name "public-demand-search-hidden-industry-filter-alt-slash-ignored" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/search/demands?q=$publicDemandSearchQuery&industryTags=$encodedHiddenIndustryTagFilterSlash&page=1&pageSize=20" -Body $null -Headers @{} -Expected @(200)
+  Assert-ResultJsonItemsContainsId -Result $publicDemandSearchWithHiddenIndustryFilterSlash -ItemId $smokeAdminDemandId -Assertion "public-demand-search-hidden-industry-filter-alt-slash-item-visible"
+  Assert-ResultJsonItemsItemArrayNotContains -Result $publicDemandSearchWithHiddenIndustryFilterSlash -ItemId $smokeAdminDemandId -ArrayField "industryTags" -UnexpectedValue $newIndustryTagNameSlash -Assertion "public-demand-search-hidden-industry-filter-alt-slash-smoke-tag-hidden"
   [void](Add-ApiCaseResult -Results $results -Name "admin-demand-approve-invalid-demand-id-format" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/admin/demands/not-a-uuid/approve" -Body @{} -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-demand-approve-invalid-demand-id-format") -Expected @(400))
   $adminDemandReject = Add-ApiCaseResult -Results $results -Name "admin-demand-reject" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/admin/demands/$smokeAdminDemandId/reject" -Body @{ reason = "smoke reject admin demand" } -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-demand-reject") -Expected @(200, 201)
   Assert-ResultJsonFieldEquals -Result $adminDemandReject -Field "auditStatus" -ExpectedValue "REJECTED" -Assertion "admin-demand-reject-audit-status"
   [void](Add-ApiCaseResult -Results $results -Name "admin-demand-reject-invalid-demand-id-format" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/admin/demands/not-a-uuid/reject" -Body @{ reason = "smoke invalid demand id format reject" } -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-demand-reject-invalid-demand-id-format") -Expected @(400))
 
   $smokeAdminAchievementTitle = "Smoke Admin Achievement $ReportDate $([guid]::NewGuid().ToString('N').Substring(0, 8))"
-  $adminAchievementCreate = Add-ApiCaseResult -Results $results -Name "admin-achievement-create" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/admin/achievements" -Body @{ title = $smokeAdminAchievementTitle; source = "ADMIN"; status = "DRAFT"; auditStatus = "PENDING"; maturity = "CONCEPT"; industryTags = @($newIndustryTagName, $newIndustryTagNameAlt, $newIndustryTagNameSpace) } -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-achievement-create") -Expected @(200, 201)
+  $adminAchievementCreate = Add-ApiCaseResult -Results $results -Name "admin-achievement-create" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/admin/achievements" -Body @{ title = $smokeAdminAchievementTitle; source = "ADMIN"; status = "DRAFT"; auditStatus = "PENDING"; maturity = "CONCEPT"; industryTags = @($newIndustryTagName, $newIndustryTagNameAlt, $newIndustryTagNameSpace, $newIndustryTagNameSlash) } -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-achievement-create") -Expected @(200, 201)
   Assert-ResultJsonFieldEquals -Result $adminAchievementCreate -Field "title" -ExpectedValue $smokeAdminAchievementTitle -Assertion "admin-achievement-create-title"
   Assert-ResultJsonFieldEquals -Result $adminAchievementCreate -Field "maturity" -ExpectedValue "CONCEPT" -Assertion "admin-achievement-create-maturity"
   $smokeAdminAchievementId = Get-ResultStringField -Result $adminAchievementCreate -Field "id"
@@ -2413,7 +2441,7 @@ try {
   [void](Add-ApiCaseResult -Results $results -Name "admin-achievement-create-empty-summary" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/admin/achievements" -Body @{ title = "Smoke Admin Achievement Empty Summary"; summary = "" } -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-achievement-create-empty-summary") -Expected @(400))
   [void](Add-ApiCaseResult -Results $results -Name "admin-achievement-create-empty-description" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/admin/achievements" -Body @{ title = "Smoke Admin Achievement Empty Description"; description = "" } -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-achievement-create-empty-description") -Expected @(400))
   [void](Add-ApiCaseResult -Results $results -Name "admin-achievement-create-empty-publisher-user-id" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/admin/achievements" -Body @{ title = "Smoke Admin Achievement Empty Publisher"; publisherUserId = "" } -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-achievement-create-empty-publisher-user-id") -Expected @(400))
-  $adminAchievementUpdate = Add-ApiCaseResult -Results $results -Name "admin-achievement-update" -Method "PATCH" -Url "http://127.0.0.1:$resolvedApiPort/admin/achievements/$smokeAdminAchievementId" -Body @{ title = "$smokeAdminAchievementTitle Updated"; source = "PLATFORM"; status = "ACTIVE"; auditStatus = "APPROVED"; maturity = "PILOT"; industryTags = @($newIndustryTagName, $newIndustryTagNameAlt, $newIndustryTagNameSpace) } -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-achievement-update") -Expected @(200)
+  $adminAchievementUpdate = Add-ApiCaseResult -Results $results -Name "admin-achievement-update" -Method "PATCH" -Url "http://127.0.0.1:$resolvedApiPort/admin/achievements/$smokeAdminAchievementId" -Body @{ title = "$smokeAdminAchievementTitle Updated"; source = "PLATFORM"; status = "ACTIVE"; auditStatus = "APPROVED"; maturity = "PILOT"; industryTags = @($newIndustryTagName, $newIndustryTagNameAlt, $newIndustryTagNameSpace, $newIndustryTagNameSlash) } -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-achievement-update") -Expected @(200)
   Assert-ResultJsonFieldEquals -Result $adminAchievementUpdate -Field "source" -ExpectedValue "PLATFORM" -Assertion "admin-achievement-update-source"
   Assert-ResultJsonFieldEquals -Result $adminAchievementUpdate -Field "maturity" -ExpectedValue "PILOT" -Assertion "admin-achievement-update-maturity"
   [void](Add-ApiCaseResult -Results $results -Name "admin-achievement-update-invalid-source" -Method "PATCH" -Url "http://127.0.0.1:$resolvedApiPort/admin/achievements/$smokeAdminAchievementId" -Body @{ source = "INVALID" } -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-achievement-update-invalid-source") -Expected @(400))
@@ -2444,11 +2472,13 @@ try {
   Assert-ResultJsonArrayNotContains -Result $publicAchievementDetailAfterAdminApprove -Field "industryTags" -UnexpectedValue $newIndustryTagName -Assertion "public-achievement-detail-admin-smoke-tag-hidden"
   Assert-ResultJsonArrayNotContains -Result $publicAchievementDetailAfterAdminApprove -Field "industryTags" -UnexpectedValue $newIndustryTagNameAlt -Assertion "public-achievement-detail-admin-smoke-tag-alt-hidden"
   Assert-ResultJsonArrayNotContains -Result $publicAchievementDetailAfterAdminApprove -Field "industryTags" -UnexpectedValue $newIndustryTagNameSpace -Assertion "public-achievement-detail-admin-smoke-tag-space-hidden"
+  Assert-ResultJsonArrayNotContains -Result $publicAchievementDetailAfterAdminApprove -Field "industryTags" -UnexpectedValue $newIndustryTagNameSlash -Assertion "public-achievement-detail-admin-smoke-tag-slash-hidden"
   $publicAchievementSearchQuery = [System.Uri]::EscapeDataString("$smokeAdminAchievementTitle Updated")
   $publicAchievementSearchAfterAdminApprove = Add-ApiCaseResult -Results $results -Name "public-achievement-search-admin-smoke-industry-tags-sanitized" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/search/achievements?q=$publicAchievementSearchQuery&page=1&pageSize=20" -Body $null -Headers @{} -Expected @(200)
   Assert-ResultJsonItemsItemArrayNotContains -Result $publicAchievementSearchAfterAdminApprove -ItemId $smokeAdminAchievementId -ArrayField "industryTags" -UnexpectedValue $newIndustryTagName -Assertion "public-achievement-search-admin-smoke-tag-hidden"
   Assert-ResultJsonItemsItemArrayNotContains -Result $publicAchievementSearchAfterAdminApprove -ItemId $smokeAdminAchievementId -ArrayField "industryTags" -UnexpectedValue $newIndustryTagNameAlt -Assertion "public-achievement-search-admin-smoke-tag-alt-hidden"
   Assert-ResultJsonItemsItemArrayNotContains -Result $publicAchievementSearchAfterAdminApprove -ItemId $smokeAdminAchievementId -ArrayField "industryTags" -UnexpectedValue $newIndustryTagNameSpace -Assertion "public-achievement-search-admin-smoke-tag-space-hidden"
+  Assert-ResultJsonItemsItemArrayNotContains -Result $publicAchievementSearchAfterAdminApprove -ItemId $smokeAdminAchievementId -ArrayField "industryTags" -UnexpectedValue $newIndustryTagNameSlash -Assertion "public-achievement-search-admin-smoke-tag-slash-hidden"
   $publicAchievementSearchWithHiddenIndustryFilter = Add-ApiCaseResult -Results $results -Name "public-achievement-search-hidden-industry-filter-ignored" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/search/achievements?q=$publicAchievementSearchQuery&industryTags=$encodedHiddenIndustryTagFilter&page=1&pageSize=20" -Body $null -Headers @{} -Expected @(200)
   Assert-ResultJsonItemsContainsId -Result $publicAchievementSearchWithHiddenIndustryFilter -ItemId $smokeAdminAchievementId -Assertion "public-achievement-search-hidden-industry-filter-item-visible"
   Assert-ResultJsonItemsItemArrayNotContains -Result $publicAchievementSearchWithHiddenIndustryFilter -ItemId $smokeAdminAchievementId -ArrayField "industryTags" -UnexpectedValue $newIndustryTagName -Assertion "public-achievement-search-hidden-industry-filter-smoke-tag-hidden"
@@ -2458,6 +2488,9 @@ try {
   $publicAchievementSearchWithHiddenIndustryFilterSpace = Add-ApiCaseResult -Results $results -Name "public-achievement-search-hidden-industry-filter-alt-space-ignored" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/search/achievements?q=$publicAchievementSearchQuery&industryTags=$encodedHiddenIndustryTagFilterSpace&page=1&pageSize=20" -Body $null -Headers @{} -Expected @(200)
   Assert-ResultJsonItemsContainsId -Result $publicAchievementSearchWithHiddenIndustryFilterSpace -ItemId $smokeAdminAchievementId -Assertion "public-achievement-search-hidden-industry-filter-alt-space-item-visible"
   Assert-ResultJsonItemsItemArrayNotContains -Result $publicAchievementSearchWithHiddenIndustryFilterSpace -ItemId $smokeAdminAchievementId -ArrayField "industryTags" -UnexpectedValue $newIndustryTagNameSpace -Assertion "public-achievement-search-hidden-industry-filter-alt-space-smoke-tag-hidden"
+  $publicAchievementSearchWithHiddenIndustryFilterSlash = Add-ApiCaseResult -Results $results -Name "public-achievement-search-hidden-industry-filter-alt-slash-ignored" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/search/achievements?q=$publicAchievementSearchQuery&industryTags=$encodedHiddenIndustryTagFilterSlash&page=1&pageSize=20" -Body $null -Headers @{} -Expected @(200)
+  Assert-ResultJsonItemsContainsId -Result $publicAchievementSearchWithHiddenIndustryFilterSlash -ItemId $smokeAdminAchievementId -Assertion "public-achievement-search-hidden-industry-filter-alt-slash-item-visible"
+  Assert-ResultJsonItemsItemArrayNotContains -Result $publicAchievementSearchWithHiddenIndustryFilterSlash -ItemId $smokeAdminAchievementId -ArrayField "industryTags" -UnexpectedValue $newIndustryTagNameSlash -Assertion "public-achievement-search-hidden-industry-filter-alt-slash-smoke-tag-hidden"
   [void](Add-ApiCaseResult -Results $results -Name "admin-achievement-approve-invalid-achievement-id-format" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/admin/achievements/not-a-uuid/approve" -Body @{} -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-achievement-approve-invalid-achievement-id-format") -Expected @(400))
   $adminAchievementReject = Add-ApiCaseResult -Results $results -Name "admin-achievement-reject" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/admin/achievements/$smokeAdminAchievementId/reject" -Body @{ reason = "smoke reject admin achievement" } -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-achievement-reject") -Expected @(200, 201)
   Assert-ResultJsonFieldEquals -Result $adminAchievementReject -Field "auditStatus" -ExpectedValue "REJECTED" -Assertion "admin-achievement-reject-audit-status"
@@ -2574,6 +2607,9 @@ try {
       if ($publicImportRegionIndustryTags -contains $newIndustryTagNameSpace) {
         Add-ResultAssertionFailure -Result $publicRegionsAfterIndustryTagsSet -Assertion "public-regions-industry-tags-smoke-tag-space-hidden" -Message "Public regions should not expose test industry tag '$newIndustryTagNameSpace' in region '$importRegionCode'"
       }
+      if ($publicImportRegionIndustryTags -contains $newIndustryTagNameSlash) {
+        Add-ResultAssertionFailure -Result $publicRegionsAfterIndustryTagsSet -Assertion "public-regions-industry-tags-smoke-tag-slash-hidden" -Message "Public regions should not expose test industry tag '$newIndustryTagNameSlash' in region '$importRegionCode'"
+      }
     }
     [void](Add-ApiCaseResult -Results $results -Name "admin-region-industry-tags-set-invalid-body" -Method "PUT" -Url "http://127.0.0.1:$resolvedApiPort/admin/regions/$importRegionCode/industry-tags" -Body @{ industryTags = "SMOKE" } -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-region-industry-tags-set-invalid-body") -Expected @(400))
     [void](Add-ApiCaseResult -Results $results -Name "admin-region-industry-tags-set-missing-field" -Method "PUT" -Url "http://127.0.0.1:$resolvedApiPort/admin/regions/$importRegionCode/industry-tags" -Body @{} -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-region-industry-tags-set-missing-field") -Expected @(400))
@@ -2582,7 +2618,7 @@ try {
   [void](Add-ApiCaseResult -Results $results -Name "admin-region-industry-tags-set-invalid-code" -Method "PUT" -Url "http://127.0.0.1:$resolvedApiPort/admin/regions/abc/industry-tags" -Body @{ industryTags = @($newIndustryTagName) } -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-region-industry-tags-set-invalid-code") -Expected @(400))
 
   $smokeAdminListingTitle = "Smoke Admin Listing $ReportDate $([guid]::NewGuid().ToString('N').Substring(0, 8))"
-  $adminListingCreate = Add-ApiCaseResult -Results $results -Name "admin-listing-create" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/admin/listings" -Body @{ title = $smokeAdminListingTitle; sellerUserId = $currentUserId; source = "ADMIN"; status = "DRAFT"; auditStatus = "PENDING"; tradeMode = "LICENSE"; licenseMode = "EXCLUSIVE"; priceType = "FIXED"; priceAmountFen = 123456; depositAmountFen = 1000; pledgeStatus = "NONE"; existingLicenseStatus = "SOLE"; regionCode = $importRegionCode; industryTags = @($newIndustryTagName, $newIndustryTagNameAlt, $newIndustryTagNameSpace) } -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-listing-create") -Expected @(200, 201)
+  $adminListingCreate = Add-ApiCaseResult -Results $results -Name "admin-listing-create" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/admin/listings" -Body @{ title = $smokeAdminListingTitle; sellerUserId = $currentUserId; source = "ADMIN"; status = "DRAFT"; auditStatus = "PENDING"; tradeMode = "LICENSE"; licenseMode = "EXCLUSIVE"; priceType = "FIXED"; priceAmountFen = 123456; depositAmountFen = 1000; pledgeStatus = "NONE"; existingLicenseStatus = "SOLE"; regionCode = $importRegionCode; industryTags = @($newIndustryTagName, $newIndustryTagNameAlt, $newIndustryTagNameSpace, $newIndustryTagNameSlash) } -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-listing-create") -Expected @(200, 201)
   Assert-ResultJsonFieldEquals -Result $adminListingCreate -Field "title" -ExpectedValue $smokeAdminListingTitle -Assertion "admin-listing-create-title"
   Assert-ResultJsonFieldEquals -Result $adminListingCreate -Field "tradeMode" -ExpectedValue "LICENSE" -Assertion "admin-listing-create-trade-mode"
   Assert-ResultJsonFieldEquals -Result $adminListingCreate -Field "priceType" -ExpectedValue "FIXED" -Assertion "admin-listing-create-price-type"
@@ -2644,7 +2680,7 @@ try {
   [void](Add-ApiCaseResult -Results $results -Name "admin-listing-create-empty-legal-status" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/admin/listings" -Body @{ title = "Smoke Admin Listing Empty Legal Status"; sellerUserId = $currentUserId; patentNumberRaw = "CN202412345750.3"; patentType = "INVENTION"; legalStatus = "" } -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-listing-create-empty-legal-status") -Expected @(400))
   [void](Add-ApiCaseResult -Results $results -Name "admin-listing-create-invalid-source-primary" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/admin/listings" -Body @{ title = "Smoke Admin Listing Invalid Source Primary"; sellerUserId = $currentUserId; patentNumberRaw = "CN202412345751.1"; patentType = "INVENTION"; sourcePrimary = "INVALID" } -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-listing-create-invalid-source-primary") -Expected @(400))
   [void](Add-ApiCaseResult -Results $results -Name "admin-listing-create-empty-source-primary" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/admin/listings" -Body @{ title = "Smoke Admin Listing Empty Source Primary"; sellerUserId = $currentUserId; patentNumberRaw = "CN202412345752.9"; patentType = "INVENTION"; sourcePrimary = "" } -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-listing-create-empty-source-primary") -Expected @(400))
-  $adminListingUpdate = Add-ApiCaseResult -Results $results -Name "admin-listing-update" -Method "PATCH" -Url "http://127.0.0.1:$resolvedApiPort/admin/listings/$smokeAdminListingId" -Body @{ title = "$smokeAdminListingTitle Updated"; source = "PLATFORM"; status = "ACTIVE"; auditStatus = "APPROVED"; tradeMode = "ASSIGNMENT"; licenseMode = "SOLE"; priceType = "NEGOTIABLE"; priceAmountFen = 654321; depositAmountFen = 2000; pledgeStatus = "UNKNOWN"; existingLicenseStatus = "UNKNOWN"; industryTags = @($newIndustryTagName, $newIndustryTagNameAlt, $newIndustryTagNameSpace) } -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-listing-update") -Expected @(200)
+  $adminListingUpdate = Add-ApiCaseResult -Results $results -Name "admin-listing-update" -Method "PATCH" -Url "http://127.0.0.1:$resolvedApiPort/admin/listings/$smokeAdminListingId" -Body @{ title = "$smokeAdminListingTitle Updated"; source = "PLATFORM"; status = "ACTIVE"; auditStatus = "APPROVED"; tradeMode = "ASSIGNMENT"; licenseMode = "SOLE"; priceType = "NEGOTIABLE"; priceAmountFen = 654321; depositAmountFen = 2000; pledgeStatus = "UNKNOWN"; existingLicenseStatus = "UNKNOWN"; industryTags = @($newIndustryTagName, $newIndustryTagNameAlt, $newIndustryTagNameSpace, $newIndustryTagNameSlash) } -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-listing-update") -Expected @(200)
   Assert-ResultJsonFieldEquals -Result $adminListingUpdate -Field "source" -ExpectedValue "PLATFORM" -Assertion "admin-listing-update-source"
   Assert-ResultJsonFieldEquals -Result $adminListingUpdate -Field "tradeMode" -ExpectedValue "ASSIGNMENT" -Assertion "admin-listing-update-trade-mode"
   Assert-ResultJsonFieldEquals -Result $adminListingUpdate -Field "priceType" -ExpectedValue "NEGOTIABLE" -Assertion "admin-listing-update-price-type"
@@ -2711,11 +2747,13 @@ try {
   Assert-ResultJsonArrayNotContains -Result $publicListingDetailAfterAdminApprove -Field "industryTags" -UnexpectedValue $newIndustryTagName -Assertion "public-listing-detail-admin-smoke-tag-hidden"
   Assert-ResultJsonArrayNotContains -Result $publicListingDetailAfterAdminApprove -Field "industryTags" -UnexpectedValue $newIndustryTagNameAlt -Assertion "public-listing-detail-admin-smoke-tag-alt-hidden"
   Assert-ResultJsonArrayNotContains -Result $publicListingDetailAfterAdminApprove -Field "industryTags" -UnexpectedValue $newIndustryTagNameSpace -Assertion "public-listing-detail-admin-smoke-tag-space-hidden"
+  Assert-ResultJsonArrayNotContains -Result $publicListingDetailAfterAdminApprove -Field "industryTags" -UnexpectedValue $newIndustryTagNameSlash -Assertion "public-listing-detail-admin-smoke-tag-slash-hidden"
   $publicListingSearchQuery = [System.Uri]::EscapeDataString("$smokeAdminListingTitle Updated")
   $publicListingSearchAfterAdminApprove = Add-ApiCaseResult -Results $results -Name "public-listing-search-admin-smoke-industry-tags-sanitized" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/search/listings?q=$publicListingSearchQuery&page=1&pageSize=20" -Body $null -Headers @{} -Expected @(200)
   Assert-ResultJsonItemsItemArrayNotContains -Result $publicListingSearchAfterAdminApprove -ItemId $smokeAdminListingId -ArrayField "industryTags" -UnexpectedValue $newIndustryTagName -Assertion "public-listing-search-admin-smoke-tag-hidden"
   Assert-ResultJsonItemsItemArrayNotContains -Result $publicListingSearchAfterAdminApprove -ItemId $smokeAdminListingId -ArrayField "industryTags" -UnexpectedValue $newIndustryTagNameAlt -Assertion "public-listing-search-admin-smoke-tag-alt-hidden"
   Assert-ResultJsonItemsItemArrayNotContains -Result $publicListingSearchAfterAdminApprove -ItemId $smokeAdminListingId -ArrayField "industryTags" -UnexpectedValue $newIndustryTagNameSpace -Assertion "public-listing-search-admin-smoke-tag-space-hidden"
+  Assert-ResultJsonItemsItemArrayNotContains -Result $publicListingSearchAfterAdminApprove -ItemId $smokeAdminListingId -ArrayField "industryTags" -UnexpectedValue $newIndustryTagNameSlash -Assertion "public-listing-search-admin-smoke-tag-slash-hidden"
   $publicListingSearchWithHiddenIndustryFilter = Add-ApiCaseResult -Results $results -Name "public-listing-search-hidden-industry-filter-ignored" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/search/listings?q=$publicListingSearchQuery&industryTags=$encodedHiddenIndustryTagFilter&page=1&pageSize=20" -Body $null -Headers @{} -Expected @(200)
   Assert-ResultJsonItemsContainsId -Result $publicListingSearchWithHiddenIndustryFilter -ItemId $smokeAdminListingId -Assertion "public-listing-search-hidden-industry-filter-item-visible"
   Assert-ResultJsonItemsItemArrayNotContains -Result $publicListingSearchWithHiddenIndustryFilter -ItemId $smokeAdminListingId -ArrayField "industryTags" -UnexpectedValue $newIndustryTagName -Assertion "public-listing-search-hidden-industry-filter-smoke-tag-hidden"
@@ -2725,6 +2763,9 @@ try {
   $publicListingSearchWithHiddenIndustryFilterSpace = Add-ApiCaseResult -Results $results -Name "public-listing-search-hidden-industry-filter-alt-space-ignored" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/search/listings?q=$publicListingSearchQuery&industryTags=$encodedHiddenIndustryTagFilterSpace&page=1&pageSize=20" -Body $null -Headers @{} -Expected @(200)
   Assert-ResultJsonItemsContainsId -Result $publicListingSearchWithHiddenIndustryFilterSpace -ItemId $smokeAdminListingId -Assertion "public-listing-search-hidden-industry-filter-alt-space-item-visible"
   Assert-ResultJsonItemsItemArrayNotContains -Result $publicListingSearchWithHiddenIndustryFilterSpace -ItemId $smokeAdminListingId -ArrayField "industryTags" -UnexpectedValue $newIndustryTagNameSpace -Assertion "public-listing-search-hidden-industry-filter-alt-space-smoke-tag-hidden"
+  $publicListingSearchWithHiddenIndustryFilterSlash = Add-ApiCaseResult -Results $results -Name "public-listing-search-hidden-industry-filter-alt-slash-ignored" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/search/listings?q=$publicListingSearchQuery&industryTags=$encodedHiddenIndustryTagFilterSlash&page=1&pageSize=20" -Body $null -Headers @{} -Expected @(200)
+  Assert-ResultJsonItemsContainsId -Result $publicListingSearchWithHiddenIndustryFilterSlash -ItemId $smokeAdminListingId -Assertion "public-listing-search-hidden-industry-filter-alt-slash-item-visible"
+  Assert-ResultJsonItemsItemArrayNotContains -Result $publicListingSearchWithHiddenIndustryFilterSlash -ItemId $smokeAdminListingId -ArrayField "industryTags" -UnexpectedValue $newIndustryTagNameSlash -Assertion "public-listing-search-hidden-industry-filter-alt-slash-smoke-tag-hidden"
   [void](Add-ApiCaseResult -Results $results -Name "admin-listing-approve-invalid-listing-id-format" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/admin/listings/not-a-uuid/approve" -Body @{} -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-listing-approve-invalid-listing-id-format") -Expected @(400))
   $adminListingReject = Add-ApiCaseResult -Results $results -Name "admin-listing-reject" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/admin/listings/$smokeAdminListingId/reject" -Body @{ reason = "smoke reject admin listing" } -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-listing-reject") -Expected @(200, 201)
   Assert-ResultJsonFieldEquals -Result $adminListingReject -Field "auditStatus" -ExpectedValue "REJECTED" -Assertion "admin-listing-reject-audit-status"
@@ -4407,13 +4448,14 @@ try {
   [void](Add-ApiCaseResult -Results $results -Name "admin-patent-map-entry-upsert-invalid-year-decimal" -Method "PUT" -Url "http://127.0.0.1:$resolvedApiPort/admin/patent-map/regions/$importRegionCode/years/2025.5" -Body @{ patentCount = 2 } -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-patent-map-entry-upsert-invalid-year-decimal") -Expected @(400))
   [void](Add-ApiCaseResult -Results $results -Name "admin-patent-map-entry-get-missing" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/admin/patent-map/regions/$missingRegionCode/years/$((Get-Date).Year)" -Body $null -Headers @{ Authorization = $adminToken } -Expected @(404))
   $patentMapVisibleIndustryTag = "patent-map-visible-tag-$ReportDate"
-  $adminPatentMapEntryUpsert = Add-ApiCaseResult -Results $results -Name "admin-patent-map-entry-upsert" -Method "PUT" -Url "http://127.0.0.1:$resolvedApiPort/admin/patent-map/regions/$importRegionCode/years/$((Get-Date).Year)" -Body @{ patentCount = 3; industryBreakdown = @(@{ industryTag = $newIndustryTagName; count = 2 }, @{ industryTag = $newIndustryTagNameAlt; count = 3 }, @{ industryTag = $newIndustryTagNameSpace; count = 4 }, @{ industryTag = $patentMapVisibleIndustryTag; count = 5 }); topAssignees = @(@{ name = "Smoke Corp"; patentCount = 1 }) } -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-patent-map-entry-upsert") -Expected @(200)
+  $adminPatentMapEntryUpsert = Add-ApiCaseResult -Results $results -Name "admin-patent-map-entry-upsert" -Method "PUT" -Url "http://127.0.0.1:$resolvedApiPort/admin/patent-map/regions/$importRegionCode/years/$((Get-Date).Year)" -Body @{ patentCount = 3; industryBreakdown = @(@{ industryTag = $newIndustryTagName; count = 2 }, @{ industryTag = $newIndustryTagNameAlt; count = 3 }, @{ industryTag = $newIndustryTagNameSpace; count = 4 }, @{ industryTag = $newIndustryTagNameSlash; count = 6 }, @{ industryTag = $patentMapVisibleIndustryTag; count = 5 }); topAssignees = @(@{ name = "Smoke Corp"; patentCount = 1 }) } -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-patent-map-entry-upsert") -Expected @(200)
   Assert-ResultJsonFieldEquals -Result $adminPatentMapEntryUpsert -Field "regionCode" -ExpectedValue $importRegionCode -Assertion "admin-patent-map-entry-upsert-region-code"
   Assert-ResultJsonFieldEquals -Result $adminPatentMapEntryUpsert -Field "year" -ExpectedValue $((Get-Date).Year) -Assertion "admin-patent-map-entry-upsert-year"
   Assert-ResultJsonFieldEquals -Result $adminPatentMapEntryUpsert -Field "patentCount" -ExpectedValue 3 -Assertion "admin-patent-map-entry-upsert-patent-count"
   Assert-ResultJsonArrayItemFieldEquals -Result $adminPatentMapEntryUpsert -ArrayField "industryBreakdown" -MatchField "industryTag" -MatchValue $newIndustryTagName -TargetField "count" -ExpectedValue 2 -Assertion "admin-patent-map-entry-upsert-smoke-tag-visible"
   Assert-ResultJsonArrayItemFieldEquals -Result $adminPatentMapEntryUpsert -ArrayField "industryBreakdown" -MatchField "industryTag" -MatchValue $newIndustryTagNameAlt -TargetField "count" -ExpectedValue 3 -Assertion "admin-patent-map-entry-upsert-smoke-tag-alt-visible"
   Assert-ResultJsonArrayItemFieldEquals -Result $adminPatentMapEntryUpsert -ArrayField "industryBreakdown" -MatchField "industryTag" -MatchValue $newIndustryTagNameSpace -TargetField "count" -ExpectedValue 4 -Assertion "admin-patent-map-entry-upsert-smoke-tag-space-visible"
+  Assert-ResultJsonArrayItemFieldEquals -Result $adminPatentMapEntryUpsert -ArrayField "industryBreakdown" -MatchField "industryTag" -MatchValue $newIndustryTagNameSlash -TargetField "count" -ExpectedValue 6 -Assertion "admin-patent-map-entry-upsert-smoke-tag-slash-visible"
   Assert-ResultJsonArrayItemFieldEquals -Result $adminPatentMapEntryUpsert -ArrayField "industryBreakdown" -MatchField "industryTag" -MatchValue $patentMapVisibleIndustryTag -TargetField "count" -ExpectedValue 5 -Assertion "admin-patent-map-entry-upsert-visible-tag-visible"
   $adminPatentMapEntryGet = Add-ApiCaseResult -Results $results -Name "admin-patent-map-entry-get-after-upsert" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/admin/patent-map/regions/$importRegionCode/years/$((Get-Date).Year)" -Body $null -Headers @{ Authorization = $adminToken } -Expected @(200)
   Assert-ResultJsonFieldEquals -Result $adminPatentMapEntryGet -Field "patentCount" -ExpectedValue 3 -Assertion "admin-patent-map-entry-get-after-upsert-patent-count"
@@ -4451,6 +4493,9 @@ try {
   }
   if ($patentMapIndustryBreakdownTags -contains $newIndustryTagNameSpace) {
     Add-ResultAssertionFailure -Result $patentMapRegionDetailGet -Assertion "patent-map-region-detail-smoke-tag-space-hidden" -Message "Public patent-map region detail should not expose test industry tag '$newIndustryTagNameSpace'"
+  }
+  if ($patentMapIndustryBreakdownTags -contains $newIndustryTagNameSlash) {
+    Add-ResultAssertionFailure -Result $patentMapRegionDetailGet -Assertion "patent-map-region-detail-smoke-tag-slash-hidden" -Message "Public patent-map region detail should not expose test industry tag '$newIndustryTagNameSlash'"
   }
   if (-not ($patentMapIndustryBreakdownTags -contains $patentMapVisibleIndustryTag)) {
     Add-ResultAssertionFailure -Result $patentMapRegionDetailGet -Assertion "patent-map-region-detail-visible-tag-preserved" -Message "Public patent-map region detail should preserve visible industry tag '$patentMapVisibleIndustryTag'"

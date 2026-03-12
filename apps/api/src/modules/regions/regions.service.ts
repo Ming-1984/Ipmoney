@@ -6,9 +6,9 @@ import { isVisibleIndustryTagName, sanitizeIndustryTagNames } from '../content-u
 const REGION_CODE_RE = /^[0-9]{6}$/;
 const REGION_LEVELS = new Set(['PROVINCE', 'CITY', 'DISTRICT']);
 const HIDDEN_TEST_REGION_NAME_PATTERNS = [
-  /^smoke[-_\s]?region(?:[-_\s]|$)/i,
-  /^e2e[-_\s]?region(?:[-_\s]|$)/i,
-  /^qa[-_\s]?region(?:[-_\s]|$)/i,
+  /^smoke[-_\s/]*region(?:[-_\s/]|$)/i,
+  /^e2e[-_\s/]*region(?:[-_\s/]|$)/i,
+  /^qa[-_\s/]*region(?:[-_\s/]|$)/i,
 ];
 
 function isVisibleRegionName(name: string): boolean {

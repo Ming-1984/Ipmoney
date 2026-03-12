@@ -1,7 +1,7 @@
 const HIDDEN_TEST_SERVICE_TAG_PATTERNS = [
-  /^smoke[-_\s]?service(?:[-_\s]?tag)?(?:[-_\s]|$)/i,
-  /^e2e[-_\s]?service(?:[-_\s]?tag)?(?:[-_\s]|$)/i,
-  /^qa[-_\s]?service(?:[-_\s]?tag)?(?:[-_\s]|$)/i,
+  /^smoke[-_\s/]*service(?:[-_\s/]*tag)?(?:[-_\s/]|$)/i,
+  /^e2e[-_\s/]*service(?:[-_\s/]*tag)?(?:[-_\s/]|$)/i,
+  /^qa[-_\s/]*service(?:[-_\s/]*tag)?(?:[-_\s/]|$)/i,
 ];
 
 export function isVisibleServiceTagName(name: string): boolean {

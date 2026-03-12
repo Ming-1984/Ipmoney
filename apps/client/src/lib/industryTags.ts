@@ -12,9 +12,9 @@ type Cache = {
 };
 
 const HIDDEN_TEST_TAG_PATTERNS = [
-  /^smoke[-_\s]?tag(?:[-_\s]|$)/i,
-  /^e2e[-_\s]?tag(?:[-_\s]|$)/i,
-  /^qa[-_\s]?tag(?:[-_\s]|$)/i,
+  /^smoke[-_\s/]*tag(?:[-_\s/]|$)/i,
+  /^e2e[-_\s/]*tag(?:[-_\s/]|$)/i,
+  /^qa[-_\s/]*tag(?:[-_\s/]|$)/i,
 ];
 
 export function isVisibleIndustryTagName(name: string): boolean {
