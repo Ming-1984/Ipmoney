@@ -3,17 +3,17 @@
 ## Latest (2026-03-13)
 
 ### Commands & Results (dev)
-- `powershell -ExecutionPolicy Bypass -File scripts/verify.ps1 -ReportDate 2026-03-13-r203`
+- `powershell -ExecutionPolicy Bypass -File scripts/verify.ps1 -ReportDate 2026-03-13-r204`
   - Result: success (all steps)
-  - Render artifact: `docs/demo/rendered/ui-smoke-2026-03-13-r203/` (core mode, 3 pages)
+  - Render artifact: `docs/demo/rendered/ui-smoke-2026-03-13-r204/` (core mode, 3 pages)
   - Gate summary: `api-real-smoke` `1754/1754` (`writes=1297`,`reads=457`), OpenAPI coverage `238/238`, quality floor `violations=[]`, plus `db-preflight/ui-http-smoke/ui-render-smoke(core)/ui-dom-smoke(core)` all pass.
 - `powershell -ExecutionPolicy Bypass -File scripts/api-real-smoke.ps1 -ReportDate 2026-03-12-r193`
   - Result: pass (`1754/1754`) after chaos trend-threshold anti-flake tuning.
   - Notes: an earlier `verify` run (`r192`) had a single false-negative on `chaos-randomized-outcome-distribution` (trend threshold marginal exceed); script now reports base/effective trend thresholds and applies a bounded `+250ms` grace while keeping the absolute p95 guard unchanged.
 - `pnpm -C apps/api test`
-  - Result: pass (`235/235`)
-  - Coverage in this batch: `test/rbac.read.spec.ts` (`5`), `test/favorites.filters.spec.ts` (`5`), `test/orders.filters.spec.ts` (`5`), `test/patent-maintenance.filters.spec.ts` (`5`), `test/demands.filters.spec.ts` (`5`), `test/achievements.filters.spec.ts` (`5`), `test/artworks.filters.spec.ts` (`5`), `test/conversations.filters.spec.ts` (`4`), `test/patents.filters.spec.ts` (`4`), `test/alerts.filters.spec.ts` (`4`), `test/cases.filters.spec.ts` (`4`), `test/notifications.filters.spec.ts` (`4`), `test/user-verifications.filters.spec.ts` (`2`), `test/admin-user-verifications.controller.spec.ts` (`5`), `test/admin-config.controller.spec.ts` (`3`), `test/config.service.spec.ts` (`5`), `test/public-config.controller.spec.ts` (`2`), `test/files.service.spec.ts` (`5`), `test/users.profile-verification.spec.ts` (`6`), `test/reports.filters.spec.ts` (`4`), `test/contracts.filters.spec.ts` (`4`), `test/announcements.filters.spec.ts` (`4`), `test/ai.query-filters.spec.ts` (`4`), `test/patent-map.filters.spec.ts` (`5`), `test/patent-clusters.filters.spec.ts` (`3`), `test/files.temporary-access.spec.ts` (`4`), `test/tech-managers.filters.spec.ts` (`4`), `test/content-utils.sanitize.spec.ts` (`5`), `test/regions.filters.spec.ts` (`6`), `test/org-inventor.filters.spec.ts` (`6`), `test/listings.search-filters.spec.ts` (`6`), `test/audit-logs.read.spec.ts` (`5`), `test/orders.write.spec.ts` (`24`), `test/comments.write.spec.ts` (`28`), `test/favorites.write.spec.ts` (`29`), `test/addresses.write.spec.ts` (`9`), `test/health.e2e-spec.ts` (`2`).
-  - Notes: this batch further added files-service temp-token strictness (ttl clamp/signature tamper/expiry/fileId-binding) and test bootstrap env hardening for `FILE_TEMP_TOKEN_SECRET`, while preserving prior config/RBAC/favorites/orders/patent-maintenance anti-pollution and strict-filter checks.
+  - Result: pass (`253/253`)
+  - Coverage in this batch: existing domain strictness suites remained green, and new coverage landed for `test/auth.service.spec.ts` (`8`), `test/auth.controller.spec.ts` (`4`), `test/webhooks.service.spec.ts` (`5`), and `test/webhooks.controller.spec.ts` (`1`).
+  - Notes: this batch closes non-real-integration `auth/webhooks` unit/controller strictness coverage while preserving prior config/RBAC/favorites/orders/patent-maintenance/files anti-pollution and strict-filter checks.
 - `pnpm -C apps/api test:e2e`
   - Result: pass (`2/2`).
 - `pnpm -C apps/api lint && pnpm -C apps/api typecheck && pnpm -C apps/api build`
