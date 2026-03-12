@@ -9,7 +9,7 @@
 ### 1.1 Quality gates status
 - `typecheck`: pass (api/client/admin-web).
 - `build`: pass (api/admin-web/client h5/weapp); WeApp severe regression has been fixed in this batch, and bundle gate is now enforced.
-- `smoke`: pass on `2026-03-12-r170` (API `1749/1749`, UI HTTP 86/86, UI Render full 83/83, UI Render core 3/3, UI DOM full-83 83/83, UI DOM core 11/11), including the new announcement-tag anti-leak regressions.
+- `smoke`: pass on `2026-03-12-r171` (API `1749/1749`, UI HTTP 86/86, UI Render full 83/83, UI Render core 3/3, UI DOM full-83 83/83, UI DOM core 11/11), including announcement-tag and patent-map industry-breakdown anti-leak regressions.
 - `verify`: pass on 2026-03-09 (now includes `api-smoke-openapi-coverage` + `api-smoke-quality-floor` + `ui-dom-smoke(core)` in pipeline); port/process hardening has been applied to core smoke scripts.
 - `weapp-route-smoke`: local fail due DevTools HTTP port availability (environment issue).
 
@@ -523,3 +523,5 @@
   213) announcement tags anti-leak hardening landed (done: `AnnouncementsService` now sanitizes hidden test industry-tag variants on public `list/getById` while preserving admin visibility; client announcement list/detail adds defensive sanitize; smoke adds `public-announcement-detail-admin-smoke-tags-sanitized` and `public-announcements-list-admin-smoke-tags-sanitized` regressions plus admin-side visibility assertions).
   214) round170 gate status captured (done: `api-real-smoke` passed `1749/1749`, `check-api-smoke-openapi-coverage` remained `238/238`, and `check-api-smoke-quality-floor` returned `violations=[]`).
   215) chaos guard drift-adaptive hardening landed (done: `api-real-smoke` chaos p95 guard now adds a p50-relative ceiling and auto-bypasses stale trend baseline checks under large drift, preserving anomaly detection while avoiding false negatives on changed machine/runtime profiles).
+  216) patent-map public industry-breakdown anti-leak hardening landed (done: `PatentMapService.getRegionDetail` now filters hidden test industry-tag variants from public `industryBreakdown` while preserving admin visibility, and smoke extends patent-map upsert/detail assertions to verify hidden variants are blocked but visible tags are preserved).
+  217) patent-map top-assignee schema compatibility hardening landed (done: patent-map top-assignee parsing/output now accepts both `name` and legacy `assigneeName`, and returns both fields for compatibility across client/admin/openapi type differences).
