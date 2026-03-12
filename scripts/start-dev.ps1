@@ -6,7 +6,7 @@ param(
   [switch]$AutoPort = $true,
   [switch]$SkipInstall,
   [switch]$SkipInfra,
-  [switch]$SkipDb,
+  [switch]$SkipDb,   
   [switch]$Seed,
   [switch]$PurgeDemo,
   [switch]$EnableDemoAuth = $true,
