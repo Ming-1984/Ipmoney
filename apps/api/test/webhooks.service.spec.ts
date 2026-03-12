@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { Prisma } from '@prisma/client';
 
 import { WebhooksService } from '../src/modules/webhooks/webhooks.service';
 
@@ -200,5 +201,40 @@ describe('WebhooksService strictness suite', () => {
     expect(statuses).toContain('RECEIVED');
     expect(statuses).toContain('FAILED');
     expect(prisma.idempotencyKey.delete).toHaveBeenCalledTimes(1);
+  });
+
+  it('uses request hash as idempotency key when provider event id is absent', async () => {
+    const { service, prisma } = createService();
+    const orderId = '55555555-5555-4555-8555-555555555555';
+    prisma.order.findUnique.mockResolvedValueOnce(null);
+
+    await service.handleWechatPayNotify(
+      { headers: { 'x-request-id': 'rid-hash-1', 'user-agent': 'vitest' }, ip: '127.0.0.1' },
+      {
+        eventType: 'TRANSACTION.SUCCESS',
+        orderId,
+      },
+    );
+
+    const keyArg = prisma.idempotencyKey.create.mock.calls[0]?.[0]?.data?.key;
+    expect(keyArg).toMatch(/^[a-f0-9]{64}$/);
+    expect(prisma.paymentWebhookEvent.upsert).toHaveBeenCalled();
+  });
+
+  it('treats duplicate webhook idempotency key as safe no-op', async () => {
+    const { service, prisma } = createService();
+    const duplicate = Object.create((Prisma as any).PrismaClientKnownRequestError.prototype);
+    duplicate.code = 'P2002';
+    prisma.idempotencyKey.create.mockRejectedValueOnce(duplicate);
+
+    await expect(
+      service.handleWechatPayNotify(
+        { headers: { 'x-request-id': 'rid-dup-1', 'user-agent': 'vitest' }, ip: '127.0.0.1' },
+        { id: 'evt-dup-1', eventType: 'TRANSACTION.SUCCESS', orderId: '66666666-6666-4666-8666-666666666666' },
+      ),
+    ).resolves.toBeUndefined();
+
+    expect(prisma.paymentWebhookEvent.upsert).not.toHaveBeenCalled();
+    expect(prisma.idempotencyKey.update).not.toHaveBeenCalled();
   });
 });

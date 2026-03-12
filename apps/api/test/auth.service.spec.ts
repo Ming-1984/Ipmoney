@@ -177,4 +177,32 @@ describe('AuthService demo strictness suite', () => {
     });
     expect(result).toEqual({ phone: '13800138001' });
   });
+
+  it('rejects phone bind when phoneCode is empty', async () => {
+    const { service } = createService();
+    await expect(service.wechatPhoneBind('u-1', '   ')).rejects.toMatchObject({
+      response: { code: 'BAD_REQUEST' },
+    });
+  });
+
+  it('rejects auth flows when demo auth is disabled in release-like env', async () => {
+    process.env.NODE_ENV = 'production';
+    const { service } = createService();
+
+    await expect(service.sendSmsCode('13800138000', 'login')).rejects.toMatchObject({
+      response: { code: 'NOT_IMPLEMENTED' },
+    });
+    await expect(service.smsVerifyLogin('13800138000', '1234')).rejects.toMatchObject({
+      response: { code: 'NOT_IMPLEMENTED' },
+    });
+  });
+
+  it('rejects auth flows when demo auth mandatory tokens are missing', async () => {
+    process.env.DEMO_USER_TOKEN = '';
+    const { service } = createService();
+
+    await expect(service.wechatMpLogin('code')).rejects.toMatchObject({
+      response: { code: 'NOT_IMPLEMENTED' },
+    });
+  });
 });
