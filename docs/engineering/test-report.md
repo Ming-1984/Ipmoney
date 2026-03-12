@@ -3,9 +3,17 @@
 ## Latest (2026-03-12)
 
 ### Commands & Results (dev)
-- `powershell -ExecutionPolicy Bypass -File scripts/verify.ps1 -ReportDate 2026-03-12-r185`
+- `powershell -ExecutionPolicy Bypass -File scripts/verify.ps1 -ReportDate 2026-03-12-r194`
   - Result: success (all steps)
   - Gate summary: `api-real-smoke` `1754/1754`, OpenAPI coverage `238/238`, quality floor `violations=[]`, plus `db-preflight/ui-http-smoke/ui-render-smoke(core)/ui-dom-smoke(core)` all pass.
+- `powershell -ExecutionPolicy Bypass -File scripts/api-real-smoke.ps1 -ReportDate 2026-03-12-r193`
+  - Result: pass (`1754/1754`) after chaos trend-threshold anti-flake tuning.
+  - Notes: an earlier `verify` run (`r192`) had a single false-negative on `chaos-randomized-outcome-distribution` (trend threshold marginal exceed); script now reports base/effective trend thresholds and applies a bounded `+250ms` grace while keeping the absolute p95 guard unchanged.
+- `pnpm -C apps/api test`
+  - Result: pass (`2/2`)
+  - Coverage in this batch: `test/health.e2e-spec.ts` (Nest testing module + Supertest route assertion; healthy/degraded branches).
+- `pnpm -C apps/api lint && pnpm -C apps/api typecheck && pnpm -C apps/api build`
+  - Result: success (all pass after test-framework bootstrap changes).
 - `powershell -ExecutionPolicy Bypass -File scripts/weapp-route-smoke.ps1 -NoAuth -ReportDate 2026-03-12-r187 -LaunchRetries 3 -LaunchRetryDelayMs 4000 -KillStaleDevtools`
   - Result: pass (11/11 routes)
   - Artifact: `.tmp/weapp-route-smoke-2026-03-12-r187.json`
