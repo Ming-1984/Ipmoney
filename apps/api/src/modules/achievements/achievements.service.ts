@@ -520,7 +520,7 @@ export class AchievementsService {
     const hasSortBy = this.hasOwn(query, 'sortBy');
     const sortBy = hasSortBy ? this.parseContentSortByStrict(query?.sortBy, 'sortBy') : 'NEWEST';
 
-    const industryTags = normalizeStringArray(query?.industryTags);
+    const industryTags = sanitizeIndustryTagNames(query?.industryTags);
     const cooperationModes = normalizeStringArray(query?.cooperationModes);
     const hasMaturity = this.hasOwn(query, 'maturity');
     const maturity = hasMaturity ? this.normalizeMaturity(query?.maturity) : undefined;

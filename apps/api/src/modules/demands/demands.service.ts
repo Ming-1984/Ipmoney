@@ -608,7 +608,7 @@ export class DemandsService {
     const hasSortBy = this.hasOwn(query, 'sortBy');
     const sortBy = hasSortBy ? this.parseContentSortByStrict(query?.sortBy, 'sortBy') : 'NEWEST';
 
-    const industryTags = normalizeStringArray(query?.industryTags);
+    const industryTags = sanitizeIndustryTagNames(query?.industryTags);
     const cooperationModes = normalizeStringArray(query?.cooperationModes);
     const hasBudgetType = this.hasOwn(query, 'budgetType');
     const budgetType = hasBudgetType ? this.normalizePriceType(query?.budgetType) : undefined;

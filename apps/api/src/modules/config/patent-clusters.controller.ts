@@ -5,6 +5,7 @@ import {
   type PatentClusterInstitutionSummary,
   type PatentClusterSummary,
 } from './config.service';
+import { sanitizeIndustryTagNames } from '../content-utils';
 
 type PatentClustersResponse = {
   items: PatentClusterSummary[];
@@ -29,10 +30,18 @@ export class PatentClustersController {
     const total = items.length;
     const startIndex = (page - 1) * pageSize;
     const pagedItems = items.slice(startIndex, startIndex + pageSize);
+    const sanitizedItems = pagedItems.map((item) => ({
+      ...item,
+      industryTags: sanitizeIndustryTagNames(item.industryTags),
+    }));
+    const sanitizedFeaturedInstitutions = (clustersConfig.featuredInstitutions ?? []).map((institution) => ({
+      ...institution,
+      tags: sanitizeIndustryTagNames(institution.tags),
+    }));
 
     return {
-      items: pagedItems,
-      featuredInstitutions: clustersConfig.featuredInstitutions ?? [],
+      items: sanitizedItems,
+      featuredInstitutions: sanitizedFeaturedInstitutions,
       page: { page, pageSize, total },
     };
   }

@@ -95,7 +95,9 @@ export default function ClusterPickerPage() {
               <Surface className="cluster-section" padding="none">
                 <Text className="cluster-section-title">高校 / 科研机构</Text>
                 <View className="cluster-institution-grid">
-                  {institutions.map((inst) => (
+                  {institutions.map((inst) => {
+                    const visibleInstitutionTags = sanitizeIndustryTagNames(inst.tags || []);
+                    return (
                     <View key={inst.id} className="cluster-institution-card">
                       <View className="cluster-institution-header">
                         <View className="cluster-institution-logo">
@@ -114,9 +116,9 @@ export default function ClusterPickerPage() {
                         <Text>专利 {inst.patentCount ?? '-'}</Text>
                         <Text>挂牌 {inst.listingCount ?? '-'}</Text>
                       </View>
-                      {inst.tags?.length ? (
+                      {visibleInstitutionTags.length ? (
                         <View className="cluster-institution-tags">
-                          {inst.tags.slice(0, 3).map((tag, idx) => (
+                          {visibleInstitutionTags.slice(0, 3).map((tag, idx) => (
                             <Text key={`${inst.id}-tag-${idx}`} className="pill">
                               {tag}
                             </Text>
@@ -124,7 +126,7 @@ export default function ClusterPickerPage() {
                         </View>
                       ) : null}
                     </View>
-                  ))}
+                  )})}
                 </View>
               </Surface>
             ) : null}
@@ -132,7 +134,9 @@ export default function ClusterPickerPage() {
             <Surface className="cluster-section" padding="none">
               <Text className="cluster-section-title">产业集群</Text>
               <View className="cluster-list">
-                {clusters.map((cluster) => (
+                {clusters.map((cluster) => {
+                  const visibleClusterTags = sanitizeIndustryTagNames(cluster.industryTags || []);
+                  return (
                   <View key={cluster.id} className="cluster-card" onClick={() => goClusterSearch(cluster)}>
                     <View className="cluster-card-header">
                       <View className="cluster-card-title-wrap">
@@ -142,11 +146,9 @@ export default function ClusterPickerPage() {
                       <Text className="cluster-card-action">进入</Text>
                     </View>
                     {cluster.summary ? <Text className="cluster-card-summary">{cluster.summary}</Text> : null}
-                    {sanitizeIndustryTagNames(cluster.industryTags || []).length ? (
+                    {visibleClusterTags.length ? (
                       <View className="cluster-card-tags">
-                        {sanitizeIndustryTagNames(cluster.industryTags || [])
-                          .slice(0, 3)
-                          .map((tag, idx) => (
+                        {visibleClusterTags.slice(0, 3).map((tag, idx) => (
                           <Text key={`${cluster.id}-tag-${idx}`} className="pill">
                             {tag}
                           </Text>
@@ -159,7 +161,7 @@ export default function ClusterPickerPage() {
                       <Text>机构 {cluster.institutionCount ?? '-'}</Text>
                     </View>
                   </View>
-                ))}
+                )})}
               </View>
             </Surface>
 

@@ -4,6 +4,7 @@ import { randomUUID } from 'crypto';
 import { AuditLogService } from '../../common/audit-log.service';
 import { requirePermission } from '../../common/permissions';
 import { PrismaService } from '../../common/prisma/prisma.service';
+import { sanitizeIndustryTagNames } from '../content-utils';
 
 const CONTENT_TYPES = ['LISTING', 'DEMAND', 'ACHIEVEMENT', 'ARTWORK'] as const;
 const CONTENT_SCOPES = ['LISTING', 'DEMAND', 'ACHIEVEMENT', 'ARTWORK', 'ALL'] as const;
@@ -346,7 +347,7 @@ export class AiService {
       filters.regionCode = this.parseRegionCodeStrict(payload?.regionCode, 'regionCode');
     }
     if (Array.isArray(payload?.industryTags)) {
-      filters.industryTags = payload.industryTags.map((item: any) => String(item).trim()).filter(Boolean);
+      filters.industryTags = sanitizeIndustryTagNames(payload.industryTags);
     }
 
     const targetTypes = contentScope === 'ALL' ? CONTENT_TYPES : ([contentScope] as any);

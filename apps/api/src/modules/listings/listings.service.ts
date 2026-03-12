@@ -1834,7 +1834,7 @@ export class ListingsService {
     const grantDateFrom = this.parseDateValue(query?.grantDateFrom, 'grantDateFrom', true);
     const grantDateTo = this.parseDateValue(query?.grantDateTo, 'grantDateTo', true);
 
-    const industryTags = this.normalizeStringArray(query?.industryTags);
+    const industryTags = sanitizeIndustryTagNames(query?.industryTags);
 
     const where: any = { auditStatus: 'APPROVED', status: 'ACTIVE' };
     if (regionCode) where.regionCode = regionCode;
