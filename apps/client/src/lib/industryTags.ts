@@ -11,7 +11,11 @@ type Cache = {
   inFlight: Promise<IndustryTag[]> | null;
 };
 
-const HIDDEN_TEST_TAG_PATTERNS = [/^smoke-tag-/i, /^e2e-tag-/i, /^qa-tag-/i];
+const HIDDEN_TEST_TAG_PATTERNS = [
+  /^smoke[-_\s]?tag(?:[-_\s]|$)/i,
+  /^e2e[-_\s]?tag(?:[-_\s]|$)/i,
+  /^qa[-_\s]?tag(?:[-_\s]|$)/i,
+];
 
 export function isVisibleIndustryTagName(name: string): boolean {
   const normalized = String(name || '').trim();

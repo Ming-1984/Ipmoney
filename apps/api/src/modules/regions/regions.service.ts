@@ -1,11 +1,11 @@
 import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 
 import { PrismaService } from '../../common/prisma/prisma.service';
+import { isVisibleIndustryTagName, sanitizeIndustryTagNames } from '../content-utils';
 
 const REGION_CODE_RE = /^[0-9]{6}$/;
 const REGION_LEVELS = new Set(['PROVINCE', 'CITY', 'DISTRICT']);
 const TEST_REGION_NAME_PREFIXES = ['smoke region ', 'e2e region ', 'qa region '];
-const TEST_INDUSTRY_TAG_PREFIXES = ['smoke-tag-', 'e2e-tag-', 'qa-tag-'];
 
 type RegionRecord = {
   code: string;
@@ -98,12 +98,6 @@ export class RegionsService {
     return parsed;
   }
 
-  private isTestIndustryTagName(name: string): boolean {
-    const normalizedName = String(name || '').trim().toLowerCase();
-    if (!normalizedName) return false;
-    return TEST_INDUSTRY_TAG_PREFIXES.some((prefix) => normalizedName.startsWith(prefix));
-  }
-
   private normalizeRegionIndustryTags(industryTagsJson: unknown, opts?: { includeTestArtifacts?: boolean }): string[] {
     const includeTestArtifacts = opts?.includeTestArtifacts ?? true;
     const rawTags = Array.isArray(industryTagsJson) ? (industryTagsJson as unknown[]) : [];
@@ -111,7 +105,7 @@ export class RegionsService {
       .map((tag) => (typeof tag === 'string' ? tag.trim() : ''))
       .filter((tag) => tag.length > 0);
     if (includeTestArtifacts) return normalizedTags;
-    return normalizedTags.filter((tag) => !this.isTestIndustryTagName(tag));
+    return sanitizeIndustryTagNames(normalizedTags);
   }
 
   private toRegionNode(region: RegionRecord, opts?: { includeTestArtifacts?: boolean }): RegionNodeDto {
@@ -300,11 +294,9 @@ export class RegionsService {
   }
 
   async listIndustryTags(opts?: { includeTestArtifacts?: boolean }): Promise<IndustryTagRecord[]> {
-    const where: any = {};
-    if (!opts?.includeTestArtifacts) {
-      where.NOT = this.buildNamePrefixExclusion(TEST_INDUSTRY_TAG_PREFIXES);
-    }
-    return this.prisma.industryTag.findMany({ where, orderBy: { name: 'asc' } });
+    const items = await this.prisma.industryTag.findMany({ orderBy: { name: 'asc' } });
+    if (opts?.includeTestArtifacts) return items;
+    return items.filter((item) => isVisibleIndustryTagName(String(item?.name || '')));
   }
 
   async createIndustryTag(name: string): Promise<IndustryTagRecord> {
