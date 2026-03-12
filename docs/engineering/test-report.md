@@ -6,10 +6,13 @@
 - `powershell -ExecutionPolicy Bypass -File scripts/verify.ps1 -ReportDate 2026-03-12-r185`
   - Result: success (all steps)
   - Gate summary: `api-real-smoke` `1754/1754`, OpenAPI coverage `238/238`, quality floor `violations=[]`, plus `db-preflight/ui-http-smoke/ui-render-smoke(core)/ui-dom-smoke(core)` all pass.
-- `powershell -ExecutionPolicy Bypass -File scripts/weapp-route-smoke.ps1 -NoAuth -ReportDate 2026-03-12-r184 -LaunchRetries 3 -LaunchRetryDelayMs 4000`
+- `powershell -ExecutionPolicy Bypass -File scripts/weapp-route-smoke.ps1 -NoAuth -ReportDate 2026-03-12-r187 -LaunchRetries 3 -LaunchRetryDelayMs 4000 -KillStaleDevtools`
   - Result: pass (11/11 routes)
-  - Artifact: `.tmp/weapp-route-smoke-2026-03-12-r184.json`
+  - Artifact: `.tmp/weapp-route-smoke-2026-03-12-r187.json`
   - Notes: script hardening landed for DevTools launch instability (`launch retry/backoff`, optional `-KillStaleDevtools`, per-attempt `wechatdevtools.exe` diagnostics and failure-report write-through).
+- `powershell -ExecutionPolicy Bypass -File scripts/weapp-route-smoke.ps1 -ReportDate 2026-03-12-r188 -LaunchRetries 1 -KillStaleDevtools`
+  - Result: expected fail (`DEMO_USER_TOKEN` missing), and failure artifact written successfully.
+  - Artifact: `.tmp/weapp-route-smoke-2026-03-12-r188.json`
 
 ## Latest (2026-03-06)
 

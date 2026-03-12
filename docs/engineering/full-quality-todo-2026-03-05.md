@@ -11,7 +11,7 @@
 - `build`: pass (api/admin-web/client h5/weapp); WeApp severe regression has been fixed in this batch, and bundle gate is now enforced.
 - `smoke`: pass on `2026-03-12-r172` (API `1749/1749`, UI HTTP 86/86, UI Render full 83/83, UI Render core 3/3, UI DOM full-83 83/83, UI DOM core 11/11), including announcement-tag and patent-map industry-breakdown/top-assignee compatibility regressions.
 - `verify`: pass on `2026-03-12-r185` (openapi/lint/typecheck/build/api-smoke `1754/1754` + coverage `238/238` + quality-floor `violations=[]` + db/ui-http/ui-render(core)/ui-dom(core) all green); port/process hardening has been applied to core smoke scripts.
-- `weapp-route-smoke`: pass on `2026-03-12-r184` (11/11 routes, no runtime exceptions); script now includes launch retry + stale DevTools diagnostics/failure report output.
+- `weapp-route-smoke`: pass on `2026-03-12-r187` (11/11 routes, no runtime exceptions, `--kill-stale-devtools` enabled); script now includes launch retry + stale DevTools diagnostics + success/failure report output.
 
 ### 1.2 Coverage and test capability
 - OpenAPI operations: 243 (GET 108 / POST 93 / PUT 12 / PATCH 21 / DELETE 9).
@@ -541,3 +541,4 @@
   231) round182 gate status captured (done: `scripts/verify.ps1 -ReportDate 2026-03-12-r182` remained fully green with `api-real-smoke` `1754/1754`, OpenAPI coverage `238/238`, quality floor `violations=[]`, and `db-preflight/ui-http-smoke/ui-render-smoke(core)/ui-dom-smoke(core)` all passing).
   232) weapp-route-smoke launch resilience and diagnostics landed (done: `scripts/weapp-route-smoke.js/.ps1` now support `--launch-retries`, `--launch-retry-delay-ms`, and optional `--kill-stale-devtools`; launch failures now record per-attempt DevTools process diagnostics into report JSON, and `scripts/weapp-route-smoke.ps1 -NoAuth -ReportDate 2026-03-12-r184` passed `11/11` routes with artifact `.tmp/weapp-route-smoke-2026-03-12-r184.json`).
   233) round185 gate status captured (done: `scripts/verify.ps1 -ReportDate 2026-03-12-r185` remained fully green with `api-real-smoke` `1754/1754`, OpenAPI coverage `238/238`, quality floor `violations=[]`, and `db-preflight/ui-http-smoke/ui-render-smoke(core)/ui-dom-smoke(core)` all passing).
+  234) weapp-route-smoke failure-path report persistence landed (done: script now writes report JSON even when post-launch runtime errors occur, and `scripts/weapp-route-smoke.ps1 -ReportDate 2026-03-12-r188 -LaunchRetries 1 -KillStaleDevtools` produced expected auth-missing failure artifact `.tmp/weapp-route-smoke-2026-03-12-r188.json`; no-auth regression remained green on `2026-03-12-r187` with `11/11` routes).
