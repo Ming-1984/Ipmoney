@@ -10,8 +10,8 @@
   - Result: pass (`1754/1754`) after chaos trend-threshold anti-flake tuning.
   - Notes: an earlier `verify` run (`r192`) had a single false-negative on `chaos-randomized-outcome-distribution` (trend threshold marginal exceed); script now reports base/effective trend thresholds and applies a bounded `+250ms` grace while keeping the absolute p95 guard unchanged.
 - `pnpm -C apps/api test`
-  - Result: pass (`84/84`)
-  - Coverage in this batch: `test/orders.write.spec.ts` (`16`), `test/comments.write.spec.ts` (`28`), `test/favorites.write.spec.ts` (`29`), `test/addresses.write.spec.ts` (`9`), `test/health.e2e-spec.ts` (`2`).
+  - Result: pass (`92/92`)
+  - Coverage in this batch: `test/orders.write.spec.ts` (`24`), `test/comments.write.spec.ts` (`28`), `test/favorites.write.spec.ts` (`29`), `test/addresses.write.spec.ts` (`9`), `test/health.e2e-spec.ts` (`2`).
 - `pnpm -C apps/api test:e2e`
   - Result: pass (`2/2`).
 - `pnpm -C apps/api lint && pnpm -C apps/api typecheck && pnpm -C apps/api build`
