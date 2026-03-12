@@ -435,6 +435,7 @@ async function main() {
   });
 
   const results = [];
+  let runError = null;
 
   try {
     await miniProgram.callWxMethod('setStorageSync', 'ipmoney.mockScenario', scenario);
@@ -499,6 +500,8 @@ async function main() {
         exceptions: pageExceptions.map((x) => x.payload),
       });
     }
+  } catch (error) {
+    runError = error;
   } finally {
     try {
       await miniProgram.close();
@@ -506,10 +509,11 @@ async function main() {
   }
 
   const summary = {
-    ok: results.every((r) => r.ok),
+    ok: !runError && results.every((r) => r.ok),
     startedAt: new Date(startedAt).toISOString(),
     finishedAt: new Date().toISOString(),
     routes: results,
+    error: runError ? safeErrorMessage(runError) : undefined,
     meta: {
       scenario,
       noAuth,
@@ -527,6 +531,7 @@ async function main() {
 
   fs.writeFileSync(outFile, JSON.stringify(summary, null, 2), 'utf8');
   console.log(`[weapp-route-smoke] wrote ${outFile}`);
+  if (runError) throw runError;
   if (!summary.ok) process.exit(1);
 }
 
