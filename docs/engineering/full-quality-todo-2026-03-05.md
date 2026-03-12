@@ -1,6 +1,6 @@
 # Ipmoney Full Quality Remediation TODO (Complete)
 
-> Updated: 2026-03-12
+> Updated: 2026-03-13
 > Scope: `apps/api`, `apps/client`, `apps/admin-web`, `scripts`, CI/CD, engineering docs
 > Constraint: Real login/payment integrations are out of scope for this phase.
 
@@ -10,7 +10,7 @@
 - `typecheck`: pass (api/client/admin-web).
 - `build`: pass (api/admin-web/client h5/weapp); WeApp severe regression has been fixed in this batch, and bundle gate is now enforced.
 - `smoke`: latest full rerun pass on `2026-03-12-r189/r190/r191` (UI HTTP `86/86`, UI Render full `83/83`, UI DOM full-83 `83/83`); previous API full baseline remains green on `2026-03-12-r185` (`1754/1754`), including announcement-tag and patent-map industry-breakdown/top-assignee compatibility regressions.
-- `verify`: pass on `2026-03-12-r197` (openapi/lint/typecheck/build/api-smoke `1754/1754` + coverage `238/238` + quality-floor `violations=[]` + db/ui-http/ui-render(core)/ui-dom(core) all green); port/process hardening has been applied to core smoke scripts.
+- `verify`: pass on `2026-03-13-r198` (openapi/lint/typecheck/build/api-smoke `1754/1754` + coverage `238/238` + quality-floor `violations=[]` + db/ui-http/ui-render(core)/ui-dom(core) all green); port/process hardening has been applied to core smoke scripts.
 - `api test` (new minimal gate): pass on `2026-03-12` with `pnpm -C apps/api test` (`2/2`, Vitest + Supertest health e2e), and CI now executes it as a dedicated step.
 - `weapp-route-smoke`: pass on `2026-03-12-r187` (11/11 routes, no runtime exceptions, `--kill-stale-devtools` enabled); script now includes launch retry + stale DevTools diagnostics + success/failure report output.
 
@@ -568,3 +568,4 @@
   254) ai query filter strictness suite landed (done: `apps/api/test/ai.query-filters.spec.ts` adds strict invalid `inputType/contentScope/contentType/regionCode` coverage, hidden `industryTags` sanitization and non-array ignore behavior in `createAgentQuery`, plus `adminListParseResults` filter validation and pageSize cap assertions; total `apps/api` Vitest suite now `133/133`).
   255) announcements filter/sanitization suite landed (done: `apps/api/test/announcements.filters.spec.ts` adds strict pagination/status validation for public/admin list paths, pageSize cap assertions, public hidden-tag sanitization assertions, and invalid-id guard on detail path; total `apps/api` Vitest suite now `137/137`).
   256) contracts list-filter strictness suite landed (done: `apps/api/test/contracts.filters.spec.ts` adds auth boundary, strict `page/pageSize/status` validation, `WAIT_UPLOAD` special where-clause convergence checks, pagination cap assertions, and response item mapping checks with `contract-*` id prefix; total `apps/api` Vitest suite now `141/141`).
+  257) round198 full verify rerun captured (done: `scripts/verify.ps1 -ReportDate 2026-03-13-r198` remained fully green with `api-real-smoke` `1754/1754` (`writes=1297`,`reads=457`), OpenAPI coverage `238/238`, quality floor `violations=[]`, and `db-preflight/ui-http-smoke/ui-render-smoke(core)/ui-dom-smoke(core)` all passing; UI render artifacts updated at `docs/demo/rendered/ui-smoke-2026-03-13-r198/`).

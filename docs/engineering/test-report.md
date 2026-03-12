@@ -1,11 +1,11 @@
 # Test Report (Consolidated)
 
-## Latest (2026-03-12)
+## Latest (2026-03-13)
 
 ### Commands & Results (dev)
-- `powershell -ExecutionPolicy Bypass -File scripts/verify.ps1 -ReportDate 2026-03-12-r197`
+- `powershell -ExecutionPolicy Bypass -File scripts/verify.ps1 -ReportDate 2026-03-13-r198`
   - Result: success (all steps)
-  - Render artifact: `docs/demo/rendered/ui-smoke-2026-03-12-r197/`
+  - Render artifact: `docs/demo/rendered/ui-smoke-2026-03-13-r198/`
   - Gate summary: `api-real-smoke` `1754/1754` (`writes=1297`,`reads=457`), OpenAPI coverage `238/238`, quality floor `violations=[]`, plus `db-preflight/ui-http-smoke/ui-render-smoke(core)/ui-dom-smoke(core)` all pass.
 - `powershell -ExecutionPolicy Bypass -File scripts/api-real-smoke.ps1 -ReportDate 2026-03-12-r193`
   - Result: pass (`1754/1754`) after chaos trend-threshold anti-flake tuning.
