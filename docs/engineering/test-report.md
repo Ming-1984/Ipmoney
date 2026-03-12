@@ -10,8 +10,10 @@
   - Result: pass (`1754/1754`) after chaos trend-threshold anti-flake tuning.
   - Notes: an earlier `verify` run (`r192`) had a single false-negative on `chaos-randomized-outcome-distribution` (trend threshold marginal exceed); script now reports base/effective trend thresholds and applies a bounded `+250ms` grace while keeping the absolute p95 guard unchanged.
 - `pnpm -C apps/api test`
-  - Result: pass (`2/2`)
-  - Coverage in this batch: `test/health.e2e-spec.ts` (Nest testing module + Supertest route assertion; healthy/degraded branches).
+  - Result: pass (`40/40`)
+  - Coverage in this batch: `test/favorites.write.spec.ts` (`29`), `test/addresses.write.spec.ts` (`9`), `test/health.e2e-spec.ts` (`2`).
+- `pnpm -C apps/api test:e2e`
+  - Result: pass (`2/2`).
 - `pnpm -C apps/api lint && pnpm -C apps/api typecheck && pnpm -C apps/api build`
   - Result: success (all pass after test-framework bootstrap changes).
 - `powershell -ExecutionPolicy Bypass -File scripts/weapp-route-smoke.ps1 -NoAuth -ReportDate 2026-03-12-r187 -LaunchRetries 3 -LaunchRetryDelayMs 4000 -KillStaleDevtools`
