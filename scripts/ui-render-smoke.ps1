@@ -295,6 +295,25 @@ function Add-QueryParam([string]$baseUrl, [string]$key, [string]$value) {
   }
 }
 
+function Normalize-ClientH5Fragment([string]$Fragment) {
+  if ([string]::IsNullOrWhiteSpace($Fragment)) { return $Fragment }
+  if (-not $Fragment.StartsWith("#/pages/")) { return $Fragment }
+
+  $mainRoutes = @(
+    "#/pages/home/index",
+    "#/pages/tech-managers/index",
+    "#/pages/publish/index",
+    "#/pages/messages/index",
+    "#/pages/me/index"
+  )
+
+  foreach ($route in $mainRoutes) {
+    if ($Fragment -eq $route) { return $Fragment }
+  }
+
+  return ($Fragment -replace "^#/pages/", "#/subpackages/")
+}
+
 $reservedPorts = @()
 $resolvedMockPort = Find-AvailablePort -PreferredPort $MockPort -ReservedPorts $reservedPorts
 $reservedPorts += $resolvedMockPort
@@ -463,7 +482,12 @@ try {
   $results = @()
   foreach ($p in $pages) {
     $baseUrl = if ($p.base) { $p.base } else { $clientBase }
-    $rawUrl = if ($p.path.StartsWith("http")) { $p.path } elseif ($p.path.StartsWith("/")) { "$baseUrl$($p.path)" } else { "$baseUrl/$($p.path)" }
+    $normalizedPath = [string]$p.path
+    if ($baseUrl -eq $clientBase) {
+      $normalizedPath = Normalize-ClientH5Fragment -Fragment $normalizedPath
+    }
+
+    $rawUrl = if ($normalizedPath.StartsWith("http")) { $normalizedPath } elseif ($normalizedPath.StartsWith("/")) { "$baseUrl$normalizedPath" } else { "$baseUrl/$normalizedPath" }
     $useDemoAuth = $p.demoAuth -or ($ForceDemoAuth -and $baseUrl -eq $clientBase)
     $url = if ($useDemoAuth) { Add-QueryParam $rawUrl "__demo_auth" "1" } else { $rawUrl }
     $pngOut = Join-Path $outDirAbs ("{0}.png" -f $p.name)

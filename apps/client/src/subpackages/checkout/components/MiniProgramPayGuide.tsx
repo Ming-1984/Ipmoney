@@ -142,7 +142,11 @@ export function MiniProgramPayGuide(props: {
     toast('已复制链接', { icon: 'success' });
   }, [url]);
 
-  const wxMpUsername = (process.env.TARO_APP_WX_MP_USERNAME || '').trim();
+  const wxMpUsername = useMemo(() => {
+    if (typeof process === 'undefined' || !process?.env) return '';
+    const value = process.env.TARO_APP_WX_MP_USERNAME;
+    return typeof value === 'string' ? value.trim() : '';
+  }, []);
   const openTagHtml = useMemo(() => {
     if (!isH5 || !wechat || !wxMpUsername) return null;
     return buildWxOpenLaunchWeappHtml({ username: wxMpUsername, path: miniProgramPath, buttonText: launchText });

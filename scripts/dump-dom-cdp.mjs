@@ -283,7 +283,25 @@ async function run() {
       if (event.sessionId !== sessionId) return;
       if (event.method === 'Runtime.exceptionThrown') {
         const details = event.params?.exceptionDetails || {};
-        const text = details.text || details.exception?.description || details.exception?.value || '';
+        const rawText = String(details.text || '').trim();
+        const rawDescription = String(details.exception?.description || details.exception?.value || '').trim();
+        const isGenericHeadline = rawText === 'Uncaught' || rawText === 'Uncaught (in promise)';
+        let text = rawDescription || rawText;
+        if (!isGenericHeadline && rawText && rawDescription && rawText !== rawDescription) {
+          text = `${rawText}: ${rawDescription}`;
+        }
+        if (!text || text === 'Object') {
+          const previewProps = details.exception?.preview?.properties;
+          if (Array.isArray(previewProps) && previewProps.length > 0) {
+            const entries = previewProps
+              .slice(0, 6)
+              .map((prop) => `${String(prop?.name || 'key')}=${String(prop?.value ?? prop?.type ?? '').trim()}`)
+              .filter(Boolean);
+            if (entries.length > 0) {
+              text = `Object{${entries.join(', ')}}`;
+            }
+          }
+        }
         runtimeExceptions.push({
           text: truncate(text, 800),
           url: String(details.url || ''),

@@ -189,6 +189,25 @@ function Add-QueryParam([string]$baseUrl, [string]$key, [string]$value) {
   }
 }
 
+function Normalize-ClientH5Fragment([string]$Fragment) {
+  if ([string]::IsNullOrWhiteSpace($Fragment)) { return $Fragment }
+  if (-not $Fragment.StartsWith("#/pages/")) { return $Fragment }
+
+  $mainRoutes = @(
+    "#/pages/home/index",
+    "#/pages/tech-managers/index",
+    "#/pages/publish/index",
+    "#/pages/messages/index",
+    "#/pages/me/index"
+  )
+
+  foreach ($route in $mainRoutes) {
+    if ($Fragment -eq $route) { return $Fragment }
+  }
+
+  return ($Fragment -replace "^#/pages/", "#/subpackages/")
+}
+
 function To-Int([object]$Value, [int]$Fallback = 0) {
   if ($null -eq $Value) { return $Fallback }
   $parsed = 0
@@ -1038,7 +1057,12 @@ try {
 
   $results = @()
   foreach ($p in $pages) {
-    $rawUrl = if ($p.path.StartsWith("http")) { $p.path } elseif ($p.path.StartsWith("/")) { "$($p.base)$($p.path)" } else { "$($p.base)/$($p.path)" }
+    $normalizedPath = [string]$p.path
+    if ($p.base -eq $clientBase) {
+      $normalizedPath = Normalize-ClientH5Fragment -Fragment $normalizedPath
+    }
+
+    $rawUrl = if ($normalizedPath.StartsWith("http")) { $normalizedPath } elseif ($normalizedPath.StartsWith("/")) { "$($p.base)$normalizedPath" } else { "$($p.base)/$normalizedPath" }
     $url = if ($p.demoAuth) { Add-QueryParam $rawUrl "__demo_auth" "1" } else { $rawUrl }
     $stdoutPath = Join-Path $logDir ("ui-dom-{0}-{1}.stdout.log" -f $ReportDate, $p.name)
     $stderrPath = Join-Path $logDir ("ui-dom-{0}-{1}.stderr.log" -f $ReportDate, $p.name)
@@ -1083,9 +1107,14 @@ try {
       }
       if ($preview.Length -gt 240) { $preview = $preview.Substring(0, 240) }
 
-      if (-not [string]::IsNullOrWhiteSpace([string]$p.expectedUrlContains)) {
-        if (-not (Contains-IgnoreCase -Text $href -Needle ([string]$p.expectedUrlContains))) {
-          throw ("href mismatch, expected fragment {0} but got {1}" -f [string]$p.expectedUrlContains, $href)
+      $expectedUrlContains = [string]$p.expectedUrlContains
+      if ($p.base -eq $clientBase) {
+        $expectedUrlContains = Normalize-ClientH5Fragment -Fragment $expectedUrlContains
+      }
+
+      if (-not [string]::IsNullOrWhiteSpace($expectedUrlContains)) {
+        if (-not (Contains-IgnoreCase -Text $href -Needle $expectedUrlContains)) {
+          throw ("href mismatch, expected fragment {0} but got {1}" -f $expectedUrlContains, $href)
         }
       }
 

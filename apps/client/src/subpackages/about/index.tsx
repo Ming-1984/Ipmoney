@@ -16,6 +16,10 @@ function envLabel(env?: string): string {
 
 export default function AboutPage() {
   const versionLabel = useMemo(() => {
+    if (Taro.getEnv() !== Taro.ENV_TYPE.WEAPP) {
+      return '—';
+    }
+
     try {
       if (typeof Taro.getAccountInfoSync === 'function') {
         const info = Taro.getAccountInfoSync();
