@@ -4406,14 +4406,42 @@ try {
   [void](Add-ApiCaseResult -Results $results -Name "admin-patent-map-entry-get-invalid-year-decimal" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/admin/patent-map/regions/$importRegionCode/years/2025.5" -Body $null -Headers @{ Authorization = $adminToken } -Expected @(400))
   [void](Add-ApiCaseResult -Results $results -Name "admin-patent-map-entry-upsert-invalid-year-decimal" -Method "PUT" -Url "http://127.0.0.1:$resolvedApiPort/admin/patent-map/regions/$importRegionCode/years/2025.5" -Body @{ patentCount = 2 } -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-patent-map-entry-upsert-invalid-year-decimal") -Expected @(400))
   [void](Add-ApiCaseResult -Results $results -Name "admin-patent-map-entry-get-missing" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/admin/patent-map/regions/$missingRegionCode/years/$((Get-Date).Year)" -Body $null -Headers @{ Authorization = $adminToken } -Expected @(404))
-  $adminPatentMapEntryUpsert = Add-ApiCaseResult -Results $results -Name "admin-patent-map-entry-upsert" -Method "PUT" -Url "http://127.0.0.1:$resolvedApiPort/admin/patent-map/regions/$importRegionCode/years/$((Get-Date).Year)" -Body @{ patentCount = 3; industryBreakdown = @(@{ industryTag = "SMOKE_TAG"; count = 2 }); topAssignees = @(@{ assigneeName = "Smoke Corp"; patentCount = 1 }) } -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-patent-map-entry-upsert") -Expected @(200)
+  $patentMapVisibleIndustryTag = "patent-map-visible-tag-$ReportDate"
+  $adminPatentMapEntryUpsert = Add-ApiCaseResult -Results $results -Name "admin-patent-map-entry-upsert" -Method "PUT" -Url "http://127.0.0.1:$resolvedApiPort/admin/patent-map/regions/$importRegionCode/years/$((Get-Date).Year)" -Body @{ patentCount = 3; industryBreakdown = @(@{ industryTag = $newIndustryTagName; count = 2 }, @{ industryTag = $newIndustryTagNameAlt; count = 3 }, @{ industryTag = $newIndustryTagNameSpace; count = 4 }, @{ industryTag = $patentMapVisibleIndustryTag; count = 5 }); topAssignees = @(@{ assigneeName = "Smoke Corp"; patentCount = 1 }) } -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-patent-map-entry-upsert") -Expected @(200)
   Assert-ResultJsonFieldEquals -Result $adminPatentMapEntryUpsert -Field "regionCode" -ExpectedValue $importRegionCode -Assertion "admin-patent-map-entry-upsert-region-code"
   Assert-ResultJsonFieldEquals -Result $adminPatentMapEntryUpsert -Field "year" -ExpectedValue $((Get-Date).Year) -Assertion "admin-patent-map-entry-upsert-year"
   Assert-ResultJsonFieldEquals -Result $adminPatentMapEntryUpsert -Field "patentCount" -ExpectedValue 3 -Assertion "admin-patent-map-entry-upsert-patent-count"
+  Assert-ResultJsonArrayItemFieldEquals -Result $adminPatentMapEntryUpsert -ArrayField "industryBreakdown" -MatchField "industryTag" -MatchValue $newIndustryTagName -TargetField "count" -ExpectedValue 2 -Assertion "admin-patent-map-entry-upsert-smoke-tag-visible"
+  Assert-ResultJsonArrayItemFieldEquals -Result $adminPatentMapEntryUpsert -ArrayField "industryBreakdown" -MatchField "industryTag" -MatchValue $newIndustryTagNameAlt -TargetField "count" -ExpectedValue 3 -Assertion "admin-patent-map-entry-upsert-smoke-tag-alt-visible"
+  Assert-ResultJsonArrayItemFieldEquals -Result $adminPatentMapEntryUpsert -ArrayField "industryBreakdown" -MatchField "industryTag" -MatchValue $newIndustryTagNameSpace -TargetField "count" -ExpectedValue 4 -Assertion "admin-patent-map-entry-upsert-smoke-tag-space-visible"
+  Assert-ResultJsonArrayItemFieldEquals -Result $adminPatentMapEntryUpsert -ArrayField "industryBreakdown" -MatchField "industryTag" -MatchValue $patentMapVisibleIndustryTag -TargetField "count" -ExpectedValue 5 -Assertion "admin-patent-map-entry-upsert-visible-tag-visible"
   $adminPatentMapEntryGet = Add-ApiCaseResult -Results $results -Name "admin-patent-map-entry-get-after-upsert" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/admin/patent-map/regions/$importRegionCode/years/$((Get-Date).Year)" -Body $null -Headers @{ Authorization = $adminToken } -Expected @(200)
   Assert-ResultJsonFieldEquals -Result $adminPatentMapEntryGet -Field "patentCount" -ExpectedValue 3 -Assertion "admin-patent-map-entry-get-after-upsert-patent-count"
+  Assert-ResultJsonArrayItemFieldEquals -Result $adminPatentMapEntryGet -ArrayField "industryBreakdown" -MatchField "industryTag" -MatchValue $newIndustryTagName -TargetField "count" -ExpectedValue 2 -Assertion "admin-patent-map-entry-get-after-upsert-smoke-tag-visible"
+  Assert-ResultJsonArrayItemFieldEquals -Result $adminPatentMapEntryGet -ArrayField "industryBreakdown" -MatchField "industryTag" -MatchValue $patentMapVisibleIndustryTag -TargetField "count" -ExpectedValue 5 -Assertion "admin-patent-map-entry-get-after-upsert-visible-tag-visible"
   $patentMapRegionDetailGet = Add-ApiCaseResult -Results $results -Name "patent-map-region-detail-after-upsert" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/patent-map/regions/${importRegionCode}?year=$((Get-Date).Year)" -Body $null -Headers @{} -Expected @(200)
   Assert-ResultJsonFieldEquals -Result $patentMapRegionDetailGet -Field "patentCount" -ExpectedValue 3 -Assertion "patent-map-region-detail-after-upsert-patent-count"
+  $patentMapRegionDetailJson = Get-ResultJsonObject -Result $patentMapRegionDetailGet
+  $patentMapIndustryBreakdownTags = @()
+  if ($patentMapRegionDetailJson -and $patentMapRegionDetailJson.industryBreakdown -is [System.Array]) {
+    $patentMapIndustryBreakdownTags = @(
+      $patentMapRegionDetailJson.industryBreakdown |
+        ForEach-Object { [string]$_.industryTag } |
+        Where-Object { -not [string]::IsNullOrWhiteSpace($_) }
+    )
+  }
+  if ($patentMapIndustryBreakdownTags -contains $newIndustryTagName) {
+    Add-ResultAssertionFailure -Result $patentMapRegionDetailGet -Assertion "patent-map-region-detail-smoke-tag-hidden" -Message "Public patent-map region detail should not expose test industry tag '$newIndustryTagName'"
+  }
+  if ($patentMapIndustryBreakdownTags -contains $newIndustryTagNameAlt) {
+    Add-ResultAssertionFailure -Result $patentMapRegionDetailGet -Assertion "patent-map-region-detail-smoke-tag-alt-hidden" -Message "Public patent-map region detail should not expose test industry tag '$newIndustryTagNameAlt'"
+  }
+  if ($patentMapIndustryBreakdownTags -contains $newIndustryTagNameSpace) {
+    Add-ResultAssertionFailure -Result $patentMapRegionDetailGet -Assertion "patent-map-region-detail-smoke-tag-space-hidden" -Message "Public patent-map region detail should not expose test industry tag '$newIndustryTagNameSpace'"
+  }
+  if (-not ($patentMapIndustryBreakdownTags -contains $patentMapVisibleIndustryTag)) {
+    Add-ResultAssertionFailure -Result $patentMapRegionDetailGet -Assertion "patent-map-region-detail-visible-tag-preserved" -Message "Public patent-map region detail should preserve visible industry tag '$patentMapVisibleIndustryTag'"
+  }
 
   [void](Add-ApiCaseResult -Results $results -Name "listing-comment-create-unauthorized" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/listings/$listingId/comments" -Body @{ text = "smoke unauthorized listing comment" } -Headers @{} -Expected @(401))
   $listingCommentCreate = Add-ApiCaseResult -Results $results -Name "listing-comment-create" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/listings/$listingId/comments" -Body @{ text = "smoke listing comment $ReportDate" } -Headers (New-WriteHeaders -AuthorizationToken $userToken -Prefix $idempotencyPrefix -Label "comment-listing-create") -Expected @(200, 201)

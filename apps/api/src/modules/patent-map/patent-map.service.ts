@@ -2,6 +2,7 @@ import { BadRequestException, Injectable, NotFoundException } from '@nestjs/comm
 import * as XLSX from 'xlsx';
 
 import { PrismaService } from '../../common/prisma/prisma.service';
+import { isVisibleIndustryTagName } from '../content-utils';
 
 type InputJsonValue = any;
 
@@ -47,7 +48,7 @@ const HEADER_ALIASES = {
 export type PatentMapSummaryItemDto = { regionCode: string; regionName: string; patentCount: number };
 
 export type PatentMapIndustryCountDto = { industryTag: string; count: number };
-export type PatentMapTopAssigneeDto = { assigneeName: string; patentCount: number };
+export type PatentMapTopAssigneeDto = { name: string; assigneeName?: string; patentCount: number };
 
 export type PatentMapRegionDetailDto = {
   regionCode: string;
@@ -105,9 +106,10 @@ export class PatentMapService {
     }
   }
 
-  private asIndustryBreakdown(value: unknown): PatentMapIndustryCountDto[] {
+  private asIndustryBreakdown(value: unknown, opts?: { includeTestArtifacts?: boolean }): PatentMapIndustryCountDto[] {
+    const includeTestArtifacts = opts?.includeTestArtifacts ?? true;
     if (!Array.isArray(value)) return [];
-    return value
+    const parsed = value
       .map((rawItem: any) => {
         if (!rawItem || typeof rawItem !== 'object') return null;
         const rawObject = rawItem as any;
@@ -117,6 +119,8 @@ export class PatentMapService {
         return { industryTag, count };
       })
       .filter(Boolean) as PatentMapIndustryCountDto[];
+    if (includeTestArtifacts) return parsed;
+    return parsed.filter((item) => isVisibleIndustryTagName(item.industryTag));
   }
 
   private asTopAssignees(value: unknown): PatentMapTopAssigneeDto[] {
@@ -125,10 +129,10 @@ export class PatentMapService {
       .map((rawItem: any) => {
         if (!rawItem || typeof rawItem !== 'object') return null;
         const rawObject = rawItem as any;
-        const assigneeName = String(rawObject.assigneeName ?? '').trim();
+        const assigneeName = String(rawObject.assigneeName ?? rawObject.name ?? '').trim();
         const patentCount = Number(rawObject.patentCount ?? 0);
         if (!assigneeName || !Number.isFinite(patentCount) || patentCount < 0) return null;
-        return { assigneeName, patentCount };
+        return { name: assigneeName, assigneeName, patentCount };
       })
       .filter(Boolean) as PatentMapTopAssigneeDto[];
   }
@@ -204,7 +208,10 @@ export class PatentMapService {
         if (!raw || typeof raw !== 'object') {
           return { items: [], error: 'invalid list item' };
         }
-        const key = String((raw as any)[keyField] ?? '').trim();
+        const key =
+          keyField === 'assigneeName'
+            ? String((raw as any).assigneeName ?? (raw as any).name ?? '').trim()
+            : String((raw as any)[keyField] ?? '').trim();
         const count = this.parseNonNegativeInt((raw as any)[countField]);
         if (!key || count === null) {
           return { items: [], error: 'invalid list item' };
@@ -298,7 +305,7 @@ export class PatentMapService {
     });
     if (!entry) throw new NotFoundException({ code: 'NOT_FOUND', message: 'no data for this region/year' });
 
-    const industryBreakdown = this.asIndustryBreakdown(entry.industryBreakdownJson);
+    const industryBreakdown = this.asIndustryBreakdown(entry.industryBreakdownJson, { includeTestArtifacts: false });
     const topAssignees = this.asTopAssignees(entry.topAssigneesJson);
 
     return {

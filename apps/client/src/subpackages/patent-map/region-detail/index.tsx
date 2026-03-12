@@ -1,11 +1,12 @@
 import { View, Text } from '@tarojs/components';
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import './index.scss';
 
 import type { components } from '@ipmoney/api-types';
 
 import { apiGet } from '../../../lib/api';
 import { formatTimeSmart } from '../../../lib/format';
+import { isVisibleIndustryTagName } from '../../../lib/industryTags';
 import { safeNavigateBack } from '../../../lib/navigation';
 import { useRouteNumberParam, useRouteStringParam } from '../../../lib/routeParams';
 import { CellRow, PageHeader, SectionHeader, Spacer, Surface } from '../../../ui/layout';
@@ -40,6 +41,11 @@ export default function PatentMapRegionDetailPage() {
   useEffect(() => {
     void load();
   }, [load]);
+
+  const visibleIndustryBreakdown = useMemo(
+    () => (data?.industryBreakdown || []).filter((it) => isVisibleIndustryTagName(String(it.industryTag || ''))),
+    [data?.industryBreakdown],
+  );
 
   if (!regionCode || !year) {
     return (
@@ -82,9 +88,9 @@ export default function PatentMapRegionDetailPage() {
 
           <SectionHeader title="产业分布" density="compact" />
           <Surface padding="none">
-            <CellGroup divider>
-              {data.industryBreakdown.length ? (
-                data.industryBreakdown.map((it, idx) => (
+              <CellGroup divider>
+              {visibleIndustryBreakdown.length ? (
+                visibleIndustryBreakdown.map((it, idx) => (
                   <CellRow
                     key={`${it.industryTag}-${idx}`}
                     arrow={false}
@@ -94,7 +100,7 @@ export default function PatentMapRegionDetailPage() {
                         {it.count}
                       </Tag>
                     }
-                    isLast={idx === data.industryBreakdown.length - 1}
+                    isLast={idx === visibleIndustryBreakdown.length - 1}
                   />
                 ))
               ) : (
