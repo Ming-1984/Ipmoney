@@ -9,6 +9,7 @@
 
 const fs = require('node:fs');
 const path = require('node:path');
+const { execFileSync } = require('node:child_process');
 
 let automator;
 try {
@@ -24,6 +25,168 @@ try {
 
 function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function parsePositiveInt(input, fallback, min = 1) {
+  const num = Number(input);
+  if (!Number.isFinite(num)) return fallback;
+  const rounded = Math.floor(num);
+  if (rounded < min) return fallback;
+  return rounded;
+}
+
+function safeErrorMessage(error) {
+  if (!error) return 'Unknown error';
+  return String(error && error.message ? error.message : error);
+}
+
+function getWechatDevtoolsProcessCount() {
+  if (process.platform !== 'win32') {
+    return {
+      count: null,
+      error: 'process-count check only supports Windows in this script.',
+    };
+  }
+
+  try {
+    const output = execFileSync('tasklist', ['/FI', 'IMAGENAME eq wechatdevtools.exe', '/FO', 'CSV', '/NH'], {
+      encoding: 'utf8',
+      stdio: ['ignore', 'pipe', 'pipe'],
+    });
+    const lines = String(output || '')
+      .split(/\r?\n/g)
+      .map((line) => line.trim())
+      .filter(Boolean);
+
+    const count = lines.filter((line) => line.toLowerCase().replace(/^"/, '').startsWith('wechatdevtools.exe')).length;
+    return { count, error: '' };
+  } catch (error) {
+    return { count: null, error: safeErrorMessage(error) };
+  }
+}
+
+function killWechatDevtoolsProcesses() {
+  const before = getWechatDevtoolsProcessCount();
+  const result = {
+    attempted: false,
+    beforeCount: before.count,
+    afterCount: before.count,
+    ok: true,
+    error: '',
+  };
+
+  if (process.platform !== 'win32') {
+    result.ok = false;
+    result.error = 'kill only supports Windows in this script.';
+    return result;
+  }
+
+  if (typeof before.count !== 'number' || before.count <= 0) {
+    if (before.error) {
+      result.ok = false;
+      result.error = before.error;
+    }
+    return result;
+  }
+
+  result.attempted = true;
+  try {
+    execFileSync('taskkill', ['/F', '/IM', 'wechatdevtools.exe'], {
+      encoding: 'utf8',
+      stdio: ['ignore', 'pipe', 'pipe'],
+    });
+  } catch (error) {
+    result.ok = false;
+    result.error = safeErrorMessage(error);
+  }
+
+  const after = getWechatDevtoolsProcessCount();
+  result.afterCount = after.count;
+  if (after.error && !result.error) {
+    result.ok = false;
+    result.error = after.error;
+  }
+  return result;
+}
+
+function isLaunchPortError(message) {
+  const msg = String(message || '').toLowerCase();
+  return msg.includes('failed to launch wechat web devtools') || msg.includes('please make sure http port is open');
+}
+
+async function launchMiniProgramWithRetry({
+  launchOptions,
+  launchRetries,
+  launchRetryDelayMs,
+  killStaleDevtools,
+}) {
+  const attempts = [];
+
+  for (let attempt = 1; attempt <= launchRetries; attempt += 1) {
+    const processBefore = getWechatDevtoolsProcessCount();
+    const devtoolsBefore = processBefore.count === null ? 'unknown' : String(processBefore.count);
+    console.log(`[weapp-route-smoke] launch attempt ${attempt}/${launchRetries} (wechatdevtools=${devtoolsBefore})`);
+
+    let killResult = null;
+    if (killStaleDevtools) {
+      killResult = killWechatDevtoolsProcesses();
+      if (killResult.attempted) {
+        const after = killResult.afterCount === null ? 'unknown' : String(killResult.afterCount);
+        console.log(
+          `[weapp-route-smoke] stale devtools cleanup attempted (before=${killResult.beforeCount}, after=${after}, ok=${killResult.ok})`,
+        );
+        await sleep(800);
+      }
+    }
+
+    const launchStartedAt = Date.now();
+    try {
+      const miniProgram = await automator.launch(launchOptions);
+      const processAfter = getWechatDevtoolsProcessCount();
+      attempts.push({
+        attempt,
+        ok: true,
+        elapsedMs: Date.now() - launchStartedAt,
+        devtoolsBefore: processBefore.count,
+        devtoolsAfter: processAfter.count,
+        killResult,
+      });
+      return { miniProgram, attempts };
+    } catch (error) {
+      const message = safeErrorMessage(error);
+      const processAfter = getWechatDevtoolsProcessCount();
+
+      attempts.push({
+        attempt,
+        ok: false,
+        elapsedMs: Date.now() - launchStartedAt,
+        error: message,
+        devtoolsBefore: processBefore.count,
+        devtoolsAfter: processAfter.count,
+        killResult,
+      });
+
+      console.error(`[weapp-route-smoke] launch attempt ${attempt}/${launchRetries} failed: ${message}`);
+      if (isLaunchPortError(message)) {
+        console.error(
+          '[weapp-route-smoke] hint: close stale WeChat DevTools windows or rerun with --kill-stale-devtools to auto-clean lingering processes.',
+        );
+      }
+
+      if (attempt < launchRetries) {
+        await sleep(launchRetryDelayMs);
+        continue;
+      }
+
+      const launchError = new Error(`DevTools launch failed after ${launchRetries} attempt(s): ${message}`);
+      launchError.launchAttempts = attempts;
+      throw launchError;
+    }
+  }
+
+  const launchError = new Error(`DevTools launch failed after ${launchRetries} attempt(s).`);
+  launchError.launchAttempts = attempts;
+  throw launchError;
 }
 
 function parseArgs(argv) {
@@ -159,6 +322,9 @@ function printHelp() {
       '  --out-file     Output JSON file (default: .tmp/weapp-route-smoke-<date>.json).',
       '  --wait-ms      Extra wait after each route change (default: 2000).',
       '  --timeout-ms   DevTools launch timeout (default: 120000).',
+      '  --launch-retries     DevTools launch retry count (default: 3).',
+      '  --launch-retry-delay-ms  Delay between launch retries in ms (default: 4000).',
+      '  --kill-stale-devtools    Auto kill lingering wechatdevtools.exe before each launch attempt (Windows only).',
       '  --scenario     Mock scenario storage value (default: happy).',
       '  --user-token   Demo user token stored as ipmoney.token. If omitted, it will try DEMO_USER_TOKEN from process env or repo .env.',
       '  --no-auth      Do not set demo auth storage keys.',
@@ -177,8 +343,11 @@ async function main() {
   const repoRoot = path.resolve(__dirname, '..');
   const envMap = readEnvFile(path.join(repoRoot, '.env'));
   const projectPath = path.resolve(repoRoot, String(args['project-path'] || 'apps/client'));
-  const waitMs = Number(args['wait-ms'] || 2000);
-  const timeoutMs = Number(args['timeout-ms'] || 120_000);
+  const waitMs = parsePositiveInt(args['wait-ms'], 2000, 200);
+  const timeoutMs = parsePositiveInt(args['timeout-ms'], 120_000, 5000);
+  const launchRetries = parsePositiveInt(args['launch-retries'], 3, 1);
+  const launchRetryDelayMs = parsePositiveInt(args['launch-retry-delay-ms'], 4000, 0);
+  const killStaleDevtools = Boolean(args['kill-stale-devtools']);
   const scenario = String(args.scenario || 'happy');
   const noAuth = Boolean(args['no-auth']);
   const listOnly = Boolean(args['list-only']);
@@ -201,23 +370,61 @@ async function main() {
   const outFile =
     String(args['out-file'] || '').trim() || path.resolve(repoRoot, '.tmp', `weapp-route-smoke-${reportDate}.json`);
   ensureDir(path.dirname(outFile));
+  const startedAt = Date.now();
 
   // miniprogram-automator spawns cliPath directly; on newer Node versions, spawning .bat may fail.
   // Workaround: wrap via cmd.exe when cliPath is a .bat on Windows.
   const isWindows = process.platform === 'win32';
   const launchCliPath = isWindows && cliPathResolved.toLowerCase().endsWith('.bat') ? 'cmd' : cliPathResolved;
   const launchArgs = isWindows && cliPathResolved.toLowerCase().endsWith('.bat') ? ['/c', cliPathResolved] : [];
+  console.log(
+    `[weapp-route-smoke] preflight project=${projectPath} cli=${cliPathResolved} timeoutMs=${timeoutMs} launchRetries=${launchRetries} killStale=${killStaleDevtools}`,
+  );
 
   const exceptions = [];
   const consoleLogs = [];
-
-  const miniProgram = await automator.launch({
-    cliPath: launchCliPath,
-    args: launchArgs,
-    projectPath,
-    timeout: timeoutMs,
-    trustProject: true,
-  });
+  let launchAttempts = [];
+  let miniProgram = null;
+  try {
+    const launched = await launchMiniProgramWithRetry({
+      launchOptions: {
+        cliPath: launchCliPath,
+        args: launchArgs,
+        projectPath,
+        timeout: timeoutMs,
+        trustProject: true,
+      },
+      launchRetries,
+      launchRetryDelayMs,
+      killStaleDevtools,
+    });
+    miniProgram = launched.miniProgram;
+    launchAttempts = launched.attempts;
+  } catch (error) {
+    launchAttempts = Array.isArray(error && error.launchAttempts) ? error.launchAttempts : launchAttempts;
+    const failureSummary = {
+      ok: false,
+      startedAt: new Date(startedAt).toISOString(),
+      finishedAt: new Date().toISOString(),
+      routes: [],
+      meta: {
+        scenario,
+        noAuth,
+        projectPath,
+        launchRetries,
+        launchRetryDelayMs,
+        killStaleDevtools,
+      },
+      launch: {
+        ok: false,
+        attempts: launchAttempts,
+        error: safeErrorMessage(error),
+      },
+    };
+    fs.writeFileSync(outFile, JSON.stringify(failureSummary, null, 2), 'utf8');
+    console.error(`[weapp-route-smoke] wrote ${outFile}`);
+    throw error;
+  }
 
   miniProgram.on('exception', (payload) => {
     exceptions.push({ ts: Date.now(), payload });
@@ -227,7 +434,6 @@ async function main() {
     consoleLogs.push({ ts: Date.now(), payload });
   });
 
-  const startedAt = Date.now();
   const results = [];
 
   try {
@@ -235,8 +441,9 @@ async function main() {
 
     if (!noAuth) {
       if (!userToken) {
-        console.error('[weapp-route-smoke] Missing demo user token. Pass --user-token or set DEMO_USER_TOKEN in env / repo .env.');
-        process.exit(1);
+        throw new Error(
+          '[weapp-route-smoke] Missing demo user token. Pass --user-token or set DEMO_USER_TOKEN in env / repo .env.',
+        );
       }
       await miniProgram.callWxMethod('setStorageSync', 'ipmoney.token', userToken);
       await miniProgram.callWxMethod('setStorageSync', 'ipmoney.onboardingDone', true);
@@ -307,7 +514,15 @@ async function main() {
       scenario,
       noAuth,
       projectPath,
+      launchRetries,
+      launchRetryDelayMs,
+      killStaleDevtools,
     },
+    launch: {
+      ok: true,
+      attempts: launchAttempts,
+    },
+    consoleLogCount: consoleLogs.length,
   };
 
   fs.writeFileSync(outFile, JSON.stringify(summary, null, 2), 'utf8');
