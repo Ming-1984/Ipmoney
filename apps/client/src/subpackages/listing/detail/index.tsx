@@ -1,6 +1,6 @@
 ﻿import { View, Text, Image, Button as TaroButton } from '@tarojs/components';
-import Taro, { useShareAppMessage } from '@tarojs/taro';
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import Taro, { usePageScroll, useShareAppMessage } from '@tarojs/taro';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import './index.scss';
 
 import type { components } from '@ipmoney/api-types';
@@ -68,6 +68,9 @@ export default function ListingDetailPage() {
   const [patentData, setPatentData] = useState<Patent | null>(null);
   const [favoritedState, setFavoritedState] = useState(false);
   const [activeTab, setActiveTab] = useState('overview');
+  const [tabsStuck, setTabsStuck] = useState(false);
+  const tabsOffsetTopRef = useRef<number | null>(null);
+  const stickyTopRef = useRef<number>(0);
 
   const tabs = useMemo(
     () => [
@@ -81,7 +84,17 @@ export default function ListingDetailPage() {
 
   const scrollToTab = useCallback((id: string) => {
     setActiveTab(id);
-    Taro.pageScrollTo({ selector: `#listing-${id}`, duration: 300 });
+    const selector = `#listing-${id}`;
+    const query = Taro.createSelectorQuery();
+    query
+      .select('.detail-tabs')
+      .boundingClientRect((rect) => {
+        const height = rect?.height ? Math.round(rect.height) : 0;
+        const top = rect?.top ? Math.round(rect.top) : 0;
+        const offsetTop = -(height + top);
+        Taro.pageScrollTo({ selector, duration: 300, offsetTop });
+      })
+      .exec();
   }, []);
 
   useEffect(() => {
@@ -107,6 +120,44 @@ export default function ListingDetailPage() {
   useEffect(() => {
     void load();
   }, [load]);
+
+  useEffect(() => {
+    try {
+      const info = Taro.getSystemInfoSync();
+      const rpx = info.windowWidth ? info.windowWidth / 750 : 1;
+      stickyTopRef.current = (info.statusBarHeight || 0) + 88 * rpx;
+    } catch {
+      stickyTopRef.current = 0;
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!data) return;
+    const timer = setTimeout(() => {
+      const query = Taro.createSelectorQuery();
+      query
+        .select('.detail-tabs')
+        .boundingClientRect()
+        .selectViewport()
+        .scrollOffset()
+        .exec((res) => {
+          const rect = res?.[0] as { top?: number } | undefined;
+          const viewport = res?.[1] as { scrollTop?: number } | undefined;
+          if (!rect || typeof rect.top !== 'number' || !viewport) return;
+          const scrollTop = viewport.scrollTop || 0;
+          tabsOffsetTopRef.current = rect.top + scrollTop;
+        });
+    }, 30);
+    return () => clearTimeout(timer);
+  }, [data]);
+
+  usePageScroll((res) => {
+    const offsetTop = tabsOffsetTopRef.current;
+    if (offsetTop == null) return;
+    const stickyTop = stickyTopRef.current || 0;
+    const next = res.scrollTop >= offsetTop - stickyTop - 1;
+    setTabsStuck((prev) => (prev !== next ? next : prev));
+  });
 
   useEffect(() => {
     const patentId = data?.patentId;
@@ -221,7 +272,7 @@ export default function ListingDetailPage() {
   
 
   return (
-    <View className="container detail-page-compact has-sticky">
+    <View className={`container detail-page-compact has-sticky${tabsStuck ? ' detail-tabs-stuck' : ''}`}>
       <PageHeader weapp back title="挂牌详情" subtitle="公开可见；咨询需登录且审核通过。" />
       <Spacer />
 

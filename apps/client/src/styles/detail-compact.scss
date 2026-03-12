@@ -108,13 +108,31 @@
 
 .detail-tabs {
   position: sticky;
-  top: 0;
+  --detail-tabs-top: calc(var(--tap-target) + env(safe-area-inset-top));
+  top: var(--detail-tabs-top);
   z-index: 10;
   background: rgba(255, 255, 255, 0.98);
   border-bottom: 1rpx solid var(--c-divider);
   margin-top: 16rpx;
   margin-left: calc(-1 * var(--page-padding));
   margin-right: calc(-1 * var(--page-padding));
+}
+
+.detail-tabs::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: calc(-1 * var(--detail-tabs-top));
+  height: var(--detail-tabs-top);
+  background: rgba(255, 255, 255, 0.98);
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.detail-tabs-stuck .detail-tabs::before {
+  opacity: 1;
 }
 
 .detail-tabs-scroll {
