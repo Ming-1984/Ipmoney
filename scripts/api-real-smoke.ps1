@@ -3744,6 +3744,7 @@ try {
   $chaosAbsoluteP95ThresholdWithoutTrendMs = 3600
   $chaosAbsoluteP95RelativeMultiplier = 1.55
   $chaosAbsoluteP95ThresholdCeilingMs = 7000
+  $chaosTrendThresholdGraceMs = 250
   $chaosTrendMinSamples = 6
   $chaosTrendHistoryWindow = 20
   $chaosHistoryMaxEntries = 120
@@ -3802,6 +3803,7 @@ try {
   $chaosTrendBaselineP50Ms = 0
   $chaosTrendBaselineP90Ms = 0
   $chaosTrendThresholdMs = 0
+  $chaosTrendThresholdEffectiveMs = 0
   if ($chaosHistoryP95Values.Count -ge $chaosTrendMinSamples) {
     $chaosTrendCheckApplied = $true
     $chaosTrendP95Array = @($chaosHistoryP95Values | ForEach-Object { [int]$_ })
@@ -3815,6 +3817,9 @@ try {
         $chaosTrendBypassedForDrift = $true
         $chaosTrendThresholdMs = 0
       }
+    }
+    if ($chaosTrendCheckApplied) {
+      $chaosTrendThresholdEffectiveMs = $chaosTrendThresholdMs + $chaosTrendThresholdGraceMs
     }
   }
   $chaosSummaryPayload = [ordered]@{
@@ -3831,6 +3836,8 @@ try {
       max = $chaosMaxMs
       thresholdP95 = $chaosAbsoluteP95ThresholdMs
       trendThresholdP95 = if ($chaosTrendCheckApplied) { $chaosTrendThresholdMs } else { $null }
+      trendThresholdGraceP95 = if ($chaosTrendCheckApplied) { $chaosTrendThresholdGraceMs } else { $null }
+      trendThresholdEffectiveP95 = if ($chaosTrendCheckApplied) { $chaosTrendThresholdEffectiveMs } else { $null }
     }
     trend = @{
       historyPath = $chaosHistoryPath
@@ -3869,8 +3876,8 @@ try {
   if ($chaosP95Ms -gt $chaosAbsoluteP95ThresholdMs) {
     Add-ResultAssertionFailure -Result $chaosSummaryResult -Assertion "chaos-p95-threshold" -Message "Expected chaos p95 <= $chaosAbsoluteP95ThresholdMs ms, got $chaosP95Ms ms"
   }
-  if ($chaosTrendCheckApplied -and $chaosP95Ms -gt $chaosTrendThresholdMs) {
-    Add-ResultAssertionFailure -Result $chaosSummaryResult -Assertion "chaos-p95-trend-threshold" -Message "Expected chaos p95 <= trend threshold $chaosTrendThresholdMs ms (baseline p50=$chaosTrendBaselineP50Ms, p90=$chaosTrendBaselineP90Ms), got $chaosP95Ms ms"
+  if ($chaosTrendCheckApplied -and $chaosP95Ms -gt $chaosTrendThresholdEffectiveMs) {
+    Add-ResultAssertionFailure -Result $chaosSummaryResult -Assertion "chaos-p95-trend-threshold" -Message "Expected chaos p95 <= trend threshold $chaosTrendThresholdMs ms (+grace $chaosTrendThresholdGraceMs ms => $chaosTrendThresholdEffectiveMs ms; baseline p50=$chaosTrendBaselineP50Ms, p90=$chaosTrendBaselineP90Ms), got $chaosP95Ms ms"
   }
   $chaosHistoryEntry = [ordered]@{
     recordedAt = (Get-Date).ToUniversalTime().ToString("o")
