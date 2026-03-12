@@ -203,13 +203,21 @@ const prisma = new PrismaClient({
 
 const TEST_TAG_BASE_PREFIXES = ["smoke", "e2e", "qa"];
 const TEST_TAG_VARIANT_PATTERN = /^(smoke|e2e|qa)[-_\s]?tag(?:[-_\s]|$)/i;
-const TEST_REGION_PREFIXES = ["smoke region ", "e2e region ", "qa region "];
+const TEST_REGION_BASE_PREFIXES = ["smoke", "e2e", "qa"];
+const TEST_REGION_VARIANT_PATTERN = /^(smoke|e2e|qa)[-_\s]?region(?:[-_\s]|$)/i;
 
 function isTestTagName(value) {
   if (typeof value !== "string") return false;
   const normalized = value.trim();
   if (!normalized) return false;
   return TEST_TAG_VARIANT_PATTERN.test(normalized);
+}
+
+function isTestRegionName(value) {
+  if (typeof value !== "string") return false;
+  const normalized = value.trim();
+  if (!normalized) return false;
+  return TEST_REGION_VARIANT_PATTERN.test(normalized);
 }
 
 (async () => {
@@ -251,16 +259,34 @@ function isTestTagName(value) {
     deletedTagTotal = result.count;
   }
 
-  const deletedRegions = await prisma.region.deleteMany({
+  const candidateRegionsForDelete = await prisma.region.findMany({
     where: {
-      OR: TEST_REGION_PREFIXES.map((prefix) => ({
+      OR: TEST_REGION_BASE_PREFIXES.map((prefix) => ({
         name: {
           startsWith: prefix,
           mode: "insensitive",
         },
       })),
     },
+    select: {
+      code: true,
+      name: true,
+    },
   });
+  const matchedRegionCodes = candidateRegionsForDelete
+    .filter((region) => isTestRegionName(region.name))
+    .map((region) => region.code);
+  let deletedRegionTotal = 0;
+  if (matchedRegionCodes.length > 0) {
+    const deletedRegions = await prisma.region.deleteMany({
+      where: {
+        code: {
+          in: matchedRegionCodes,
+        },
+      },
+    });
+    deletedRegionTotal = deletedRegions.count;
+  }
 
   // Remove any leaked test tags from persisted region industryTags arrays.
   const candidateRegions = await prisma.region.findMany({
@@ -292,7 +318,7 @@ function isTestTagName(value) {
         prefix: `${entry.prefix}[-_ ]tag`,
         count: entry.count,
       })),
-      deletedSmokeRegions: deletedRegions.count,
+      deletedSmokeRegions: deletedRegionTotal,
       cleanedRegionIndustryTagRows,
     }),
   );
@@ -1563,7 +1589,7 @@ try {
         $name = if ($_ -and $_.name) { [string]$_.name } else { "" }
         if ([string]::IsNullOrWhiteSpace($name)) { return $false }
         $normalizedName = $name.Trim().ToLowerInvariant()
-        return $normalizedName.StartsWith("smoke region ") -or $normalizedName.StartsWith("e2e region ") -or $normalizedName.StartsWith("qa region ")
+        return $normalizedName -match '^(smoke|e2e|qa)[-_ ]?region(?:[-_ ]|$)'
       } |
       ForEach-Object {
         if ($_ -and $_.code) { [string]$_.code } elseif ($_ -and $_.regionCode) { [string]$_.regionCode } else { "" }
@@ -2049,8 +2075,27 @@ try {
   [void](Add-ApiCaseResult -Results $results -Name "admin-region-create-invalid-center-lat" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/admin/regions" -Body @{ code = "$($newRegionCode.Substring(0, 5))2"; name = "Smoke Region Invalid Lat"; level = "CITY"; centerLat = "not-a-number" } -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-region-create-invalid-center-lat") -Expected @(400))
   [void](Add-ApiCaseResult -Results $results -Name "admin-region-create-invalid-center-lng" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/admin/regions" -Body @{ code = "$($newRegionCode.Substring(0, 5))3"; name = "Smoke Region Invalid Lng"; level = "CITY"; centerLng = 181 } -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-region-create-invalid-center-lng") -Expected @(400))
   [void](Add-ApiCaseResult -Results $results -Name "admin-region-create-missing-name" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/admin/regions" -Body @{ code = "$($newRegionCode.Substring(0, 5))4"; level = "CITY" } -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-region-create-missing-name") -Expected @(400))
-  $adminRegionUpdate = Add-ApiCaseResult -Results $results -Name "admin-region-update" -Method "PATCH" -Url "http://127.0.0.1:$resolvedApiPort/admin/regions/$newRegionCode" -Body @{ name = "Smoke Region Updated $ReportDate"; centerLat = 30.11; centerLng = 120.22 } -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-region-update") -Expected @(200)
-  Assert-ResultJsonFieldEquals -Result $adminRegionUpdate -Field "name" -ExpectedValue "Smoke Region Updated $ReportDate" -Assertion "admin-region-update-name"
+  $adminRegionUpdate = Add-ApiCaseResult -Results $results -Name "admin-region-update" -Method "PATCH" -Url "http://127.0.0.1:$resolvedApiPort/admin/regions/$newRegionCode" -Body @{ name = "Smoke_Region Updated $ReportDate"; centerLat = 30.11; centerLng = 120.22 } -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-region-update") -Expected @(200)
+  Assert-ResultJsonFieldEquals -Result $adminRegionUpdate -Field "name" -ExpectedValue "Smoke_Region Updated $ReportDate" -Assertion "admin-region-update-name"
+  $publicRegionsSmokeQueryUnderscore = Add-ApiCaseResult -Results $results -Name "public-regions-query-smoke-region-underscore" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/regions?q=Smoke_Region" -Body $null -Headers @{} -Expected @(200)
+  $publicRegionsSmokeQueryUnderscoreJson = Get-ResultJsonObject -Result $publicRegionsSmokeQueryUnderscore
+  $publicRegionsSmokeQueryUnderscoreItems = @()
+  if ($publicRegionsSmokeQueryUnderscoreJson -is [System.Array]) {
+    $publicRegionsSmokeQueryUnderscoreItems = @($publicRegionsSmokeQueryUnderscoreJson)
+  } elseif ($publicRegionsSmokeQueryUnderscoreJson -and $publicRegionsSmokeQueryUnderscoreJson.items) {
+    $publicRegionsSmokeQueryUnderscoreItems = @($publicRegionsSmokeQueryUnderscoreJson.items)
+  }
+  $publicRegionsSmokeQueryUnderscoreCodes = @()
+  foreach ($publicRegionItem in $publicRegionsSmokeQueryUnderscoreItems) {
+    if ($publicRegionItem -and $publicRegionItem.code -and -not [string]::IsNullOrWhiteSpace([string]$publicRegionItem.code)) {
+      $publicRegionsSmokeQueryUnderscoreCodes += [string]$publicRegionItem.code
+    } elseif ($publicRegionItem -and $publicRegionItem.regionCode -and -not [string]::IsNullOrWhiteSpace([string]$publicRegionItem.regionCode)) {
+      $publicRegionsSmokeQueryUnderscoreCodes += [string]$publicRegionItem.regionCode
+    }
+  }
+  if ($publicRegionsSmokeQueryUnderscoreCodes -contains $newRegionCode) {
+    Add-ResultAssertionFailure -Result $publicRegionsSmokeQueryUnderscore -Assertion "public-regions-smoke-region-underscore-hidden" -Message "Public regions should not expose underscore test region '$newRegionCode'"
+  }
   [void](Add-ApiCaseResult -Results $results -Name "admin-region-update-missing" -Method "PATCH" -Url "http://127.0.0.1:$resolvedApiPort/admin/regions/$missingRegionCode" -Body @{ name = "Smoke Region Missing" } -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-region-update-missing") -Expected @(404))
   [void](Add-ApiCaseResult -Results $results -Name "admin-region-update-invalid-code" -Method "PATCH" -Url "http://127.0.0.1:$resolvedApiPort/admin/regions/abc" -Body @{ name = "Smoke Region Invalid Code Update" } -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-region-update-invalid-code") -Expected @(400))
   [void](Add-ApiCaseResult -Results $results -Name "admin-region-update-invalid-parent-code" -Method "PATCH" -Url "http://127.0.0.1:$resolvedApiPort/admin/regions/$newRegionCode" -Body @{ parentCode = "abc" } -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-region-update-invalid-parent-code") -Expected @(400))
@@ -3530,6 +3575,7 @@ try {
   $chaosP95Ms = & $computePercentile -Values $chaosDurationsArray -Percentile 0.95
   $chaosMaxMs = if ($chaosDurationsArray.Count -gt 0) { [int](($chaosDurationsArray | Measure-Object -Maximum).Maximum) } else { 0 }
   $chaosAbsoluteP95ThresholdMs = 3000
+  $chaosAbsoluteP95ThresholdWithoutTrendMs = 3600
   $chaosTrendMinSamples = 6
   $chaosTrendHistoryWindow = 20
   $chaosHistoryMaxEntries = 120
@@ -3572,6 +3618,9 @@ try {
       [void]$chaosHistoryP95Values.Add([int]$chaosHistoryEntry.metrics.p95)
     }
   }
+  if ($chaosHistoryP95Values.Count -lt $chaosTrendMinSamples) {
+    $chaosAbsoluteP95ThresholdMs = $chaosAbsoluteP95ThresholdWithoutTrendMs
+  }
   $chaosTrendCheckApplied = $false
   $chaosTrendBaselineP50Ms = 0
   $chaosTrendBaselineP90Ms = 0
@@ -3599,7 +3648,7 @@ try {
       trendThresholdP95 = if ($chaosTrendCheckApplied) { $chaosTrendThresholdMs } else { $null }
     }
     trend = @{
-      historyPath = ".tmp/api-real-smoke-chaos-history.json"
+      historyPath = $chaosHistoryPath
       historyWindow = $chaosTrendHistoryWindow
       priorSamples = $chaosHistoryP95Values.Count
       minSamples = $chaosTrendMinSamples

@@ -11,7 +11,11 @@ type RegionNode = components['schemas']['RegionNode'];
 type RegionLevel = components['schemas']['RegionLevel'];
 
 type RegionNameMap = Record<string, string>;
-const HIDDEN_TEST_REGION_NAME_PATTERNS = [/^smoke region /i, /^e2e region /i, /^qa region /i];
+const HIDDEN_TEST_REGION_NAME_PATTERNS = [
+  /^smoke[-_\s]?region(?:[-_\s]|$)/i,
+  /^e2e[-_\s]?region(?:[-_\s]|$)/i,
+  /^qa[-_\s]?region(?:[-_\s]|$)/i,
+];
 
 const FALLBACK_REGION_NAMES: RegionNameMap = (regionProvinceSeed as Array<Pick<RegionNode, 'code' | 'name'>>).reduce(
   (acc, item) => {

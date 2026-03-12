@@ -5,7 +5,17 @@ import { isVisibleIndustryTagName, sanitizeIndustryTagNames } from '../content-u
 
 const REGION_CODE_RE = /^[0-9]{6}$/;
 const REGION_LEVELS = new Set(['PROVINCE', 'CITY', 'DISTRICT']);
-const TEST_REGION_NAME_PREFIXES = ['smoke region ', 'e2e region ', 'qa region '];
+const HIDDEN_TEST_REGION_NAME_PATTERNS = [
+  /^smoke[-_\s]?region(?:[-_\s]|$)/i,
+  /^e2e[-_\s]?region(?:[-_\s]|$)/i,
+  /^qa[-_\s]?region(?:[-_\s]|$)/i,
+];
+
+function isVisibleRegionName(name: string): boolean {
+  const normalized = String(name || '').trim();
+  if (!normalized) return false;
+  return !HIDDEN_TEST_REGION_NAME_PATTERNS.some((pattern) => pattern.test(normalized));
+}
 
 type RegionRecord = {
   code: string;
@@ -137,15 +147,6 @@ export class RegionsService {
     }
   }
 
-  private buildNamePrefixExclusion(prefixes: string[]) {
-    return prefixes.map((prefix) => ({
-      name: {
-        startsWith: prefix,
-        mode: 'insensitive',
-      },
-    }));
-  }
-
   async listRegions(params: {
     level?: string;
     parentCode?: string | null;
@@ -174,16 +175,14 @@ export class RegionsService {
       where.name = { contains: params.q.trim() };
     }
 
-    if (!params.includeTestArtifacts) {
-      where.NOT = this.buildNamePrefixExclusion(TEST_REGION_NAME_PREFIXES);
-    }
-
     const regions = await this.prisma.region.findMany({
       where,
       orderBy: [{ level: 'asc' }, { code: 'asc' }],
     });
-    return regions.map((regionRecord: RegionRecord) =>
-      this.toRegionNode(regionRecord, { includeTestArtifacts: Boolean(params.includeTestArtifacts) }),
+    const includeTestArtifacts = Boolean(params.includeTestArtifacts);
+    const visibleRegions = includeTestArtifacts ? regions : regions.filter((regionRecord) => isVisibleRegionName(regionRecord.name));
+    return visibleRegions.map((regionRecord: RegionRecord) =>
+      this.toRegionNode(regionRecord, { includeTestArtifacts }),
     );
   }
 
