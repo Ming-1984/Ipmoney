@@ -39,8 +39,21 @@ if ([string]::IsNullOrWhiteSpace($OutDir)) {
 }
 
 function Test-PortAvailable([int]$Port) {
+  if ($Port -lt 1 -or $Port -gt 65535) { return $false }
+
   try {
-    $listener = [System.Net.Sockets.TcpListener]::new([System.Net.IPAddress]::Loopback, $Port)
+    $activeListeners = [System.Net.NetworkInformation.IPGlobalProperties]::GetIPGlobalProperties().GetActiveTcpListeners()
+    foreach ($endpoint in $activeListeners) {
+      if ([int]$endpoint.Port -eq $Port) {
+        return $false
+      }
+    }
+  } catch {
+    # Fall through to socket probe.
+  }
+
+  try {
+    $listener = [System.Net.Sockets.TcpListener]::new([System.Net.IPAddress]::Any, $Port)
     $listener.Start()
     $listener.Stop()
     return $true
@@ -91,6 +104,40 @@ function Stop-ProcessTree([int]$RootPid) {
     Stop-ProcessTree -RootPid ([int]$child.ProcessId)
   }
   Stop-Process -Id $RootPid -Force -ErrorAction SilentlyContinue
+}
+
+function Get-LogTail([string]$Path, [int]$MaxLines = 40) {
+  if ([string]::IsNullOrWhiteSpace($Path) -or -not (Test-Path $Path)) {
+    return ""
+  }
+  $lines = @(Get-Content -Path $Path -Tail $MaxLines -ErrorAction SilentlyContinue)
+  if ($lines.Count -eq 0) { return "" }
+  return (($lines -join [Environment]::NewLine).Trim())
+}
+
+function Assert-ProcessRunning(
+  [System.Diagnostics.Process]$Process,
+  [string]$Name,
+  [string]$StdErrPath,
+  [string]$StdOutPath
+) {
+  if ($null -eq $Process) {
+    throw ("{0} process did not start" -f $Name)
+  }
+  if (-not $Process.HasExited) { return }
+
+  $stderrTail = Get-LogTail -Path $StdErrPath
+  $stdoutTail = Get-LogTail -Path $StdOutPath
+  $detail = ""
+  if (-not [string]::IsNullOrWhiteSpace($stderrTail)) {
+    $detail = $stderrTail
+  } elseif (-not [string]::IsNullOrWhiteSpace($stdoutTail)) {
+    $detail = $stdoutTail
+  } else {
+    $detail = "no process output captured"
+  }
+
+  throw ("{0} process exited early (pid={1}, code={2}) :: {3}" -f $Name, $Process.Id, $Process.ExitCode, $detail)
 }
 
 function Get-HttpStatus([string]$Url, [hashtable]$Headers) {
@@ -282,12 +329,21 @@ $clientProc = Start-Process -FilePath "powershell" -ArgumentList @("-NoLogo", "-
 $adminProc = Start-Process -FilePath "powershell" -ArgumentList @("-NoLogo", "-NoProfile", "-Command", $adminCmd) -WorkingDirectory $repoRoot -PassThru -WindowStyle Hidden -RedirectStandardOutput $adminOut -RedirectStandardError $adminErr
 
 try {
+  Start-Sleep -Milliseconds 1200
+  Assert-ProcessRunning -Process $mockProc -Name "mock" -StdErrPath $mockErr -StdOutPath $mockOut
+  Assert-ProcessRunning -Process $clientProc -Name "client" -StdErrPath $clientErr -StdOutPath $clientOut
+  Assert-ProcessRunning -Process $adminProc -Name "admin" -StdErrPath $adminErr -StdOutPath $adminOut
+
   Wait-Status -Url "http://127.0.0.1:$resolvedMockPort/health" -TimeoutSec $WaitMockSec -Headers @{} | Out-Null
   Wait-Status -Url "http://127.0.0.1:$resolvedClientPort" -TimeoutSec $WaitClientSec -Headers @{} | Out-Null
   Wait-Status -Url "http://127.0.0.1:$resolvedAdminPort" -TimeoutSec $WaitAdminSec -Headers @{} | Out-Null
   if ($WarmupSec -gt 0) {
     Start-Sleep -Seconds $WarmupSec
   }
+
+  Assert-ProcessRunning -Process $mockProc -Name "mock" -StdErrPath $mockErr -StdOutPath $mockOut
+  Assert-ProcessRunning -Process $clientProc -Name "client" -StdErrPath $clientErr -StdOutPath $clientOut
+  Assert-ProcessRunning -Process $adminProc -Name "admin" -StdErrPath $adminErr -StdOutPath $adminOut
 
   $browser = Find-BrowserExe $BrowserExe
   $outDirAbs = Join-Path $repoRoot $OutDir
@@ -414,6 +470,10 @@ try {
     $ok = $true
     $err = ""
     try {
+      Assert-ProcessRunning -Process $mockProc -Name "mock" -StdErrPath $mockErr -StdOutPath $mockOut
+      Assert-ProcessRunning -Process $clientProc -Name "client" -StdErrPath $clientErr -StdOutPath $clientOut
+      Assert-ProcessRunning -Process $adminProc -Name "admin" -StdErrPath $adminErr -StdOutPath $adminOut
+
       Invoke-Capture $browser $userDataAbs $url $pngOut $p.width $p.height $p.waitMs $CaptureTimeoutSec
     } catch {
       $ok = $false

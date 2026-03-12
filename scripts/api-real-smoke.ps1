@@ -42,8 +42,21 @@ function Apply-EnvMap([hashtable]$Map) {
 }
 
 function Test-PortAvailable([int]$Port) {
+  if ($Port -lt 1 -or $Port -gt 65535) { return $false }
+
   try {
-    $listener = [System.Net.Sockets.TcpListener]::new([System.Net.IPAddress]::Loopback, $Port)
+    $activeListeners = [System.Net.NetworkInformation.IPGlobalProperties]::GetIPGlobalProperties().GetActiveTcpListeners()
+    foreach ($endpoint in $activeListeners) {
+      if ([int]$endpoint.Port -eq $Port) {
+        return $false
+      }
+    }
+  } catch {
+    # Fall through to socket probe.
+  }
+
+  try {
+    $listener = [System.Net.Sockets.TcpListener]::new([System.Net.IPAddress]::Any, $Port)
     $listener.Start()
     $listener.Stop()
     return $true
