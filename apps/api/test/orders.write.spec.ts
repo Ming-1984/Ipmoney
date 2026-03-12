@@ -11,6 +11,8 @@ import { OrdersService } from '../src/modules/orders/orders.service';
 
 const LISTING_ID = '77777777-7777-4777-8777-777777777777';
 const ORDER_ID = '88888888-8888-4888-8888-888888888888';
+const REFUND_ID = '99999999-9999-4999-8999-999999999999';
+const FILE_ID = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
 const USER_ID = 'user-1';
 const SELLER_ID = 'seller-1';
 const ADMIN_ID = 'admin-1';
@@ -61,6 +63,7 @@ describe('OrdersService write-first suite', () => {
       order: { findUnique: vi.fn(), create: vi.fn(), update: vi.fn() },
       payment: { findFirst: vi.fn(), create: vi.fn(), update: vi.fn() },
       refundRequest: { findFirst: vi.fn(), create: vi.fn(), update: vi.fn(), findUnique: vi.fn() },
+      file: { findUnique: vi.fn() },
       idempotencyKey: { findUnique: vi.fn(), create: vi.fn(), update: vi.fn(), delete: vi.fn() },
       user: { findFirst: vi.fn(), upsert: vi.fn() },
       csCase: { findFirst: vi.fn(), create: vi.fn(), update: vi.fn() },
@@ -78,6 +81,7 @@ describe('OrdersService write-first suite', () => {
   });
 
   const buyerReq = { auth: { userId: USER_ID } };
+  const adminReq = { auth: { userId: ADMIN_ID, isAdmin: true } };
 
   it('rejects unauthenticated createOrder', async () => {
     await expect(service.createOrder({}, { listingId: LISTING_ID })).rejects.toBeInstanceOf(ForbiddenException);
@@ -321,12 +325,322 @@ describe('OrdersService write-first suite', () => {
 
   it('validates admin refund actions id/auth and required fields', async () => {
     await expect(service.adminApproveRefundRequest({}, ORDER_ID)).rejects.toBeInstanceOf(ForbiddenException);
-    await expect(service.adminApproveRefundRequest({ auth: { isAdmin: true, userId: ADMIN_ID } }, 'bad-id')).rejects.toBeInstanceOf(
+    await expect(service.adminApproveRefundRequest(adminReq, 'bad-id')).rejects.toBeInstanceOf(BadRequestException);
+
+    await expect(service.adminRejectRefundRequest(adminReq, ORDER_ID, { reason: '  ' })).rejects.toBeInstanceOf(
+      BadRequestException,
+    );
+  });
+
+  it('validates adminApproveRefundRequest entities and order status', async () => {
+    prisma.refundRequest.findUnique.mockResolvedValueOnce(null);
+    await expect(service.adminApproveRefundRequest(adminReq, REFUND_ID)).rejects.toBeInstanceOf(NotFoundException);
+
+    prisma.refundRequest.findUnique.mockResolvedValueOnce({
+      id: REFUND_ID,
+      orderId: ORDER_ID,
+      status: 'REJECTED',
+      reasonCode: 'OTHER',
+      reasonText: null,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    });
+    await expect(service.adminApproveRefundRequest(adminReq, REFUND_ID)).rejects.toBeInstanceOf(ConflictException);
+
+    prisma.refundRequest.findUnique.mockResolvedValueOnce({
+      id: REFUND_ID,
+      orderId: ORDER_ID,
+      status: 'PENDING',
+      reasonCode: 'OTHER',
+      reasonText: null,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    });
+    prisma.order.findUnique.mockResolvedValueOnce(null);
+    await expect(service.adminApproveRefundRequest(adminReq, REFUND_ID)).rejects.toBeInstanceOf(NotFoundException);
+
+    prisma.refundRequest.findUnique.mockResolvedValueOnce({
+      id: REFUND_ID,
+      orderId: ORDER_ID,
+      status: 'PENDING',
+      reasonCode: 'OTHER',
+      reasonText: null,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    });
+    prisma.order.findUnique.mockResolvedValueOnce(makeOrder({ status: 'DEPOSIT_PENDING' }));
+    await expect(service.adminApproveRefundRequest(adminReq, REFUND_ID)).rejects.toBeInstanceOf(ConflictException);
+  });
+
+  it('approves refund request and pushes order into REFUNDING', async () => {
+    const now = new Date('2026-03-12T00:00:00.000Z');
+    prisma.refundRequest.findUnique.mockResolvedValueOnce({
+      id: REFUND_ID,
+      orderId: ORDER_ID,
+      status: 'PENDING',
+      reasonCode: 'OTHER',
+      reasonText: null,
+      createdAt: now,
+      updatedAt: now,
+    });
+    prisma.order.findUnique
+      .mockResolvedValueOnce(makeOrder({ status: 'DEPOSIT_PAID' }))
+      .mockResolvedValueOnce(
+        makeOrder({ status: 'REFUNDING', listing: { sellerUserId: SELLER_ID, title: 'Patent Listing' } }),
+      );
+    prisma.refundRequest.update.mockResolvedValueOnce({
+      id: REFUND_ID,
+      orderId: ORDER_ID,
+      status: 'REFUNDING',
+      reasonCode: 'OTHER',
+      reasonText: null,
+      createdAt: now,
+      updatedAt: now,
+    });
+    prisma.order.update.mockResolvedValueOnce(makeOrder({ status: 'REFUNDING' }));
+
+    const result = await service.adminApproveRefundRequest(adminReq, REFUND_ID);
+
+    expect(prisma.order.update).toHaveBeenCalledWith({ where: { id: ORDER_ID }, data: { status: 'REFUNDING' } });
+    expect(result).toMatchObject({ id: REFUND_ID, orderId: ORDER_ID, status: 'REFUNDING' });
+    expect(notifications.create).toHaveBeenCalledTimes(2);
+  });
+
+  it('validates adminRejectRefundRequest pending status and returns rejected result', async () => {
+    prisma.refundRequest.findUnique.mockResolvedValueOnce(null);
+    await expect(service.adminRejectRefundRequest(adminReq, REFUND_ID, { reason: 'x' })).rejects.toBeInstanceOf(
+      NotFoundException,
+    );
+
+    prisma.refundRequest.findUnique.mockResolvedValueOnce({
+      id: REFUND_ID,
+      orderId: ORDER_ID,
+      status: 'REFUNDING',
+      reasonCode: 'OTHER',
+      reasonText: null,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    });
+    await expect(service.adminRejectRefundRequest(adminReq, REFUND_ID, { reason: 'x' })).rejects.toBeInstanceOf(
+      ConflictException,
+    );
+
+    const now = new Date('2026-03-12T00:00:00.000Z');
+    prisma.refundRequest.findUnique.mockResolvedValueOnce({
+      id: REFUND_ID,
+      orderId: ORDER_ID,
+      status: 'PENDING',
+      reasonCode: 'OTHER',
+      reasonText: null,
+      createdAt: now,
+      updatedAt: now,
+    });
+    prisma.refundRequest.update.mockResolvedValueOnce({
+      id: REFUND_ID,
+      orderId: ORDER_ID,
+      status: 'REJECTED',
+      reasonCode: 'OTHER',
+      reasonText: null,
+      createdAt: now,
+      updatedAt: now,
+    });
+    prisma.order.findUnique.mockResolvedValueOnce(
+      makeOrder({ status: 'DEPOSIT_PAID', listing: { sellerUserId: SELLER_ID, title: 'Patent Listing' } }),
+    );
+
+    const result = await service.adminRejectRefundRequest(adminReq, REFUND_ID, { reason: 'insufficient proof' });
+
+    expect(result).toMatchObject({ id: REFUND_ID, status: 'REJECTED' });
+    expect(notifications.create).toHaveBeenCalledTimes(2);
+  });
+
+  it('validates adminCompleteRefundRequest status/order and completes refund', async () => {
+    prisma.refundRequest.findUnique.mockResolvedValueOnce(null);
+    await expect(service.adminCompleteRefundRequest(adminReq, REFUND_ID, {})).rejects.toBeInstanceOf(NotFoundException);
+
+    prisma.refundRequest.findUnique.mockResolvedValueOnce({
+      id: REFUND_ID,
+      orderId: ORDER_ID,
+      status: 'REJECTED',
+      reasonCode: 'OTHER',
+      reasonText: null,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    });
+    await expect(service.adminCompleteRefundRequest(adminReq, REFUND_ID, {})).rejects.toBeInstanceOf(ConflictException);
+
+    prisma.refundRequest.findUnique.mockResolvedValueOnce({
+      id: REFUND_ID,
+      orderId: ORDER_ID,
+      status: 'REFUNDING',
+      reasonCode: 'OTHER',
+      reasonText: null,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    });
+    prisma.order.findUnique.mockResolvedValueOnce(null);
+    await expect(service.adminCompleteRefundRequest(adminReq, REFUND_ID, {})).rejects.toBeInstanceOf(NotFoundException);
+
+    const now = new Date('2026-03-12T00:00:00.000Z');
+    prisma.refundRequest.findUnique.mockResolvedValueOnce({
+      id: REFUND_ID,
+      orderId: ORDER_ID,
+      status: 'REFUNDING',
+      reasonCode: 'OTHER',
+      reasonText: null,
+      createdAt: now,
+      updatedAt: now,
+    });
+    prisma.order.findUnique
+      .mockResolvedValueOnce(makeOrder({ status: 'DEPOSIT_PAID' }))
+      .mockResolvedValueOnce(
+        makeOrder({ status: 'REFUNDED', listing: { sellerUserId: SELLER_ID, title: 'Patent Listing' } }),
+      );
+    prisma.refundRequest.update.mockResolvedValueOnce({
+      id: REFUND_ID,
+      orderId: ORDER_ID,
+      status: 'REFUNDED',
+      reasonCode: 'OTHER',
+      reasonText: null,
+      createdAt: now,
+      updatedAt: now,
+    });
+    prisma.order.update.mockResolvedValueOnce(makeOrder({ status: 'REFUNDED' }));
+
+    const result = await service.adminCompleteRefundRequest(adminReq, REFUND_ID, { remark: 'done' });
+
+    expect(prisma.order.update).toHaveBeenCalledWith({ where: { id: ORDER_ID }, data: { status: 'REFUNDED' } });
+    expect(result).toMatchObject({ id: REFUND_ID, status: 'REFUNDED' });
+    expect(notifications.create).toHaveBeenCalledTimes(2);
+  });
+
+  it('validates adminIssueInvoice and updates invoice metadata', async () => {
+    await expect(service.adminIssueInvoice({}, ORDER_ID, {})).rejects.toBeInstanceOf(ForbiddenException);
+    await expect(service.adminIssueInvoice(adminReq, 'bad-id', {})).rejects.toBeInstanceOf(BadRequestException);
+
+    prisma.order.findUnique.mockResolvedValueOnce(null);
+    await expect(service.adminIssueInvoice(adminReq, ORDER_ID, {})).rejects.toBeInstanceOf(NotFoundException);
+
+    prisma.order.findUnique
+      .mockResolvedValueOnce(makeOrder())
+      .mockResolvedValueOnce(makeOrder({ listing: { sellerUserId: SELLER_ID, title: 'Patent Listing' } }));
+    prisma.order.update.mockResolvedValueOnce(
+      makeOrder({ invoiceNo: 'INV-1', invoiceIssuedAt: new Date('2026-03-12T00:00:00.000Z') }),
+    );
+
+    const result = await service.adminIssueInvoice(adminReq, ORDER_ID, {});
+
+    expect(prisma.order.update).toHaveBeenCalledWith({
+      where: { id: ORDER_ID },
+      data: { invoiceIssuedAt: expect.any(Date), invoiceNo: expect.stringMatching(/^INV-/) },
+    });
+    expect(result).toMatchObject({ orderId: ORDER_ID, invoiceNo: expect.stringMatching(/^INV-/) });
+    expect(notifications.create).toHaveBeenCalledTimes(1);
+  });
+
+  it('validates adminUpsertOrderInvoice entity existence and strict fields', async () => {
+    await expect(service.adminUpsertOrderInvoice(adminReq, ORDER_ID, { invoiceFileId: 'bad-id' })).rejects.toBeInstanceOf(
       BadRequestException,
     );
 
+    prisma.order.findUnique.mockResolvedValueOnce(null);
+    prisma.file.findUnique.mockResolvedValueOnce({ id: FILE_ID });
+    await expect(service.adminUpsertOrderInvoice(adminReq, ORDER_ID, { invoiceFileId: FILE_ID })).rejects.toBeInstanceOf(
+      NotFoundException,
+    );
+
+    prisma.order.findUnique.mockResolvedValueOnce(makeOrder());
+    prisma.file.findUnique.mockResolvedValueOnce(null);
+    await expect(service.adminUpsertOrderInvoice(adminReq, ORDER_ID, { invoiceFileId: FILE_ID })).rejects.toBeInstanceOf(
+      BadRequestException,
+    );
+
+    prisma.order.findUnique.mockResolvedValueOnce(makeOrder({ invoiceNo: null, invoiceIssuedAt: null }));
+    prisma.file.findUnique.mockResolvedValueOnce({ id: FILE_ID });
     await expect(
-      service.adminRejectRefundRequest({ auth: { isAdmin: true, userId: ADMIN_ID } }, ORDER_ID, { reason: '  ' }),
+      service.adminUpsertOrderInvoice(adminReq, ORDER_ID, { invoiceFileId: FILE_ID, invoiceNo: '   ' }),
     ).rejects.toBeInstanceOf(BadRequestException);
+
+    prisma.order.findUnique.mockResolvedValueOnce(makeOrder({ invoiceNo: null, invoiceIssuedAt: null }));
+    prisma.file.findUnique.mockResolvedValueOnce({ id: FILE_ID });
+    await expect(
+      service.adminUpsertOrderInvoice(adminReq, ORDER_ID, { invoiceFileId: FILE_ID, issuedAt: 'bad-date' }),
+    ).rejects.toBeInstanceOf(BadRequestException);
+  });
+
+  it('upserts order invoice and returns mapped invoice dto', async () => {
+    const buildSpy = vi.spyOn(service as any, 'buildOrderInvoice').mockResolvedValue({
+      orderId: ORDER_ID,
+      amountFen: 100,
+      itemName: 'service',
+      invoiceNo: 'INV-123',
+      issuedAt: '2026-03-12T00:00:00.000Z',
+      invoiceFile: {
+        id: FILE_ID,
+        url: 'https://example.com/invoice.pdf',
+        mimeType: 'application/pdf',
+        sizeBytes: 10,
+        createdAt: '2026-03-12T00:00:00.000Z',
+      },
+    });
+    prisma.order.findUnique
+      .mockResolvedValueOnce(makeOrder({ invoiceNo: null, invoiceIssuedAt: null }))
+      .mockResolvedValueOnce(makeOrder({ listing: { sellerUserId: SELLER_ID, title: 'Patent Listing' } }));
+    prisma.file.findUnique.mockResolvedValueOnce({
+      id: FILE_ID,
+      url: 'https://example.com/invoice.pdf',
+      mimeType: 'application/pdf',
+      sizeBytes: 10,
+      createdAt: new Date('2026-03-12T00:00:00.000Z'),
+    });
+    prisma.order.update.mockResolvedValueOnce(
+      makeOrder({
+        invoiceNo: 'INV-123',
+        invoiceIssuedAt: new Date('2026-03-12T00:00:00.000Z'),
+        invoiceFile: {
+          id: FILE_ID,
+          url: 'https://example.com/invoice.pdf',
+          mimeType: 'application/pdf',
+          sizeBytes: 10,
+          createdAt: new Date('2026-03-12T00:00:00.000Z'),
+        },
+      }),
+    );
+
+    const result = await service.adminUpsertOrderInvoice(adminReq, ORDER_ID, {
+      invoiceFileId: FILE_ID,
+      invoiceNo: 'INV-123',
+      issuedAt: '2026-03-12T00:00:00.000Z',
+    });
+
+    expect(prisma.order.update).toHaveBeenCalledWith({
+      where: { id: ORDER_ID },
+      data: { invoiceFileId: FILE_ID, invoiceNo: 'INV-123', invoiceIssuedAt: new Date('2026-03-12T00:00:00.000Z') },
+      include: { invoiceFile: true },
+    });
+    expect(buildSpy).toHaveBeenCalledTimes(1);
+    expect(notifications.create).toHaveBeenCalledTimes(1);
+    expect(result).toMatchObject({ orderId: ORDER_ID, invoiceNo: 'INV-123' });
+  });
+
+  it('deletes order invoice and clears invoice fields', async () => {
+    await expect(service.adminDeleteOrderInvoice({}, ORDER_ID)).rejects.toBeInstanceOf(ForbiddenException);
+    await expect(service.adminDeleteOrderInvoice(adminReq, 'bad-id')).rejects.toBeInstanceOf(BadRequestException);
+
+    prisma.order.findUnique.mockResolvedValueOnce(null);
+    await expect(service.adminDeleteOrderInvoice(adminReq, ORDER_ID)).rejects.toBeInstanceOf(NotFoundException);
+
+    prisma.order.findUnique
+      .mockResolvedValueOnce(makeOrder({ invoiceNo: 'INV-1' }))
+      .mockResolvedValueOnce(makeOrder({ listing: { sellerUserId: SELLER_ID, title: 'Patent Listing' } }));
+    prisma.order.update.mockResolvedValueOnce(makeOrder({ invoiceNo: null, invoiceIssuedAt: null, invoiceFileId: null }));
+
+    await service.adminDeleteOrderInvoice(adminReq, ORDER_ID);
+
+    expect(prisma.order.update).toHaveBeenCalledWith({
+      where: { id: ORDER_ID },
+      data: { invoiceFileId: null, invoiceIssuedAt: null, invoiceNo: null },
+    });
+    expect(notifications.create).toHaveBeenCalledTimes(1);
   });
 });
