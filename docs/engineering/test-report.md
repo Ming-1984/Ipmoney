@@ -11,9 +11,9 @@
   - Result: pass (`1754/1754`) after chaos trend-threshold anti-flake tuning.
   - Notes: an earlier `verify` run (`r192`) had a single false-negative on `chaos-randomized-outcome-distribution` (trend threshold marginal exceed); script now reports base/effective trend thresholds and applies a bounded `+250ms` grace while keeping the absolute p95 guard unchanged.
 - `pnpm -C apps/api test`
-  - Result: pass (`133/133`)
-  - Coverage in this batch: `test/ai.query-filters.spec.ts` (`4`), `test/patent-map.filters.spec.ts` (`5`), `test/tech-managers.filters.spec.ts` (`4`), `test/content-utils.sanitize.spec.ts` (`5`), `test/regions.filters.spec.ts` (`6`), `test/org-inventor.filters.spec.ts` (`6`), `test/listings.search-filters.spec.ts` (`6`), `test/audit-logs.read.spec.ts` (`5`), `test/orders.write.spec.ts` (`24`), `test/comments.write.spec.ts` (`28`), `test/favorites.write.spec.ts` (`29`), `test/addresses.write.spec.ts` (`9`), `test/health.e2e-spec.ts` (`2`).
-  - Notes: `regionCode` filter strictness is now aligned to 6-digit validation in `inventors/organizations/tech-managers`; patent-map dry-run import regression now covers duplicate row and missing-region error convergence; AI query filter sanitization now includes hidden industry-tag suppression and strict admin filter pagination.
+  - Result: pass (`137/137`)
+  - Coverage in this batch: `test/announcements.filters.spec.ts` (`4`), `test/ai.query-filters.spec.ts` (`4`), `test/patent-map.filters.spec.ts` (`5`), `test/tech-managers.filters.spec.ts` (`4`), `test/content-utils.sanitize.spec.ts` (`5`), `test/regions.filters.spec.ts` (`6`), `test/org-inventor.filters.spec.ts` (`6`), `test/listings.search-filters.spec.ts` (`6`), `test/audit-logs.read.spec.ts` (`5`), `test/orders.write.spec.ts` (`24`), `test/comments.write.spec.ts` (`28`), `test/favorites.write.spec.ts` (`29`), `test/addresses.write.spec.ts` (`9`), `test/health.e2e-spec.ts` (`2`).
+  - Notes: `regionCode` filter strictness is now aligned to 6-digit validation in `inventors/organizations/tech-managers`; patent-map dry-run import regression now covers duplicate row and missing-region error convergence; AI query filter sanitization now includes hidden industry-tag suppression and strict admin filter pagination; announcement public list now has service-level hidden-tag sanitization regression guards.
 - `pnpm -C apps/api test:e2e`
   - Result: pass (`2/2`).
 - `pnpm -C apps/api lint && pnpm -C apps/api typecheck && pnpm -C apps/api build`
