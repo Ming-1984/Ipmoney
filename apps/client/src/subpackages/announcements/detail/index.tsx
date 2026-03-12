@@ -5,6 +5,7 @@ import './index.scss';
 
 import { apiGet } from '../../../lib/api';
 import { formatTimeSmart } from '../../../lib/format';
+import { sanitizeIndustryTagNames } from '../../../lib/industryTags';
 import { useRouteUuidParam } from '../../../lib/routeParams';
 import { PageHeader, Spacer, Surface } from '../../../ui/layout';
 import { EmptyCard, ErrorCard, LoadingCard, MissingParamCard } from '../../../ui/StateCards';
@@ -44,7 +45,7 @@ export default function AnnouncementDetailPage() {
     setError(null);
     try {
       const d = await apiGet<AnnouncementDetail>(`/public/announcements/${announcementId}`);
-      setData(d);
+      setData({ ...d, tags: sanitizeIndustryTagNames(d?.tags) });
     } catch (e: any) {
       setError(e?.message || '加载失败');
       setData(null);
@@ -96,9 +97,9 @@ export default function AnnouncementDetailPage() {
               <Text>发布日期：{formatDate(data.publishedAt)}</Text>
               {data.issueNo ? <Text>期次：{data.issueNo}</Text> : null}
             </View>
-            {data.tags?.length ? (
+            {sanitizeIndustryTagNames(data.tags).length ? (
               <View className="announcement-detail-tags">
-                {data.tags.map((tag, idx) => (
+                {sanitizeIndustryTagNames(data.tags).map((tag, idx) => (
                   <Text key={`${data.id}-tag-${idx}`} className="pill">
                     {tag}
                   </Text>

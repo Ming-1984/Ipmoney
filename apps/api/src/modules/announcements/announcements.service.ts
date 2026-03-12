@@ -2,6 +2,7 @@ import { BadRequestException, Injectable, NotFoundException } from '@nestjs/comm
 
 import { AuditLogService } from '../../common/audit-log.service';
 import { PrismaService } from '../../common/prisma/prisma.service';
+import { sanitizeIndustryTagNames } from '../content-utils';
 
 type AnnouncementStatus = 'DRAFT' | 'PUBLISHED' | 'OFF_SHELF';
 type RelatedPatent = { name: string; patentNo: string };
@@ -80,10 +81,14 @@ export class AnnouncementsService {
     return raw;
   }
 
-  private toDto(item: any) {
+  private toDto(item: any, opts?: { includeTestArtifacts?: boolean }) {
+    const includeTestArtifacts = opts?.includeTestArtifacts ?? true;
     const createdAt = item.createdAt ? item.createdAt.toISOString() : new Date().toISOString();
     const publishedAt = item.publishedAt ? item.publishedAt.toISOString() : null;
-    const tags = Array.isArray(item.tagsJson) ? item.tagsJson.filter((t: any) => typeof t === 'string') : [];
+    const normalizedTags = Array.isArray(item.tagsJson)
+      ? item.tagsJson.map((t: any) => String(t ?? '').trim()).filter(Boolean)
+      : [];
+    const tags = includeTestArtifacts ? normalizedTags : sanitizeIndustryTagNames(normalizedTags);
     const relatedPatents = Array.isArray(item.relatedPatentsJson)
       ? item.relatedPatentsJson.filter((p: any) => p && (p.name || p.patentNo))
       : [];
@@ -117,7 +122,10 @@ export class AnnouncementsService {
       }),
       this.prisma.announcement.count({ where: { status: 'PUBLISHED' as any } }),
     ]);
-    return { items: items.map((item: any) => this.toDto(item)), page: { page, pageSize, total } };
+    return {
+      items: items.map((item: any) => this.toDto(item, { includeTestArtifacts: false })),
+      page: { page, pageSize, total },
+    };
   }
 
   async getById(id: string) {
@@ -127,7 +135,7 @@ export class AnnouncementsService {
     if (item.status && item.status !== 'PUBLISHED') {
       throw new NotFoundException({ code: 'NOT_FOUND', message: '公告不存在' });
     }
-    return this.toDto(item);
+    return this.toDto(item, { includeTestArtifacts: false });
   }
 
   async adminList(query: any) {

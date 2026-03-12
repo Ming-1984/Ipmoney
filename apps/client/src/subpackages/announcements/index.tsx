@@ -5,6 +5,7 @@ import './index.scss';
 
 import { apiGet } from '../../lib/api';
 import { formatTimeSmart } from '../../lib/format';
+import { sanitizeIndustryTagNames } from '../../lib/industryTags';
 import { usePagedList } from '../../lib/usePagedList';
 import { ListFooter } from '../../ui/ListFooter';
 import { PageHeader, Spacer, Surface } from '../../ui/layout';
@@ -86,9 +87,9 @@ export default function AnnouncementsPage() {
                   <Text>{formatDate(item.publishedAt)}</Text>
                   {item.issueNo ? <Text>期次 {item.issueNo}</Text> : null}
                 </View>
-                {item.tags?.length ? (
+                {sanitizeIndustryTagNames(item.tags).length ? (
                   <View className="announcement-card-tags">
-                    {item.tags.map((tag, idx) => (
+                    {sanitizeIndustryTagNames(item.tags).map((tag, idx) => (
                       <Text key={`${item.id}-tag-${idx}`} className="pill">
                         {tag}
                       </Text>
