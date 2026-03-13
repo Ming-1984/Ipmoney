@@ -3,17 +3,17 @@
 ## Latest (2026-03-13)
 
 ### Commands & Results (dev)
-- `powershell -ExecutionPolicy Bypass -File scripts/verify.ps1 -ReportDate 2026-03-13-r208`
+- `powershell -ExecutionPolicy Bypass -File scripts/verify.ps1 -ReportDate 2026-03-13-r209`
   - Result: success (all steps)
-  - Render artifact: `docs/demo/rendered/ui-smoke-2026-03-13-r208/` (core mode, 3 pages)
+  - Render artifact: `docs/demo/rendered/ui-smoke-2026-03-13-r209/` (core mode, 3 pages)
   - Gate summary: `api-real-smoke` `1754/1754` (`writes=1297`,`reads=457`), OpenAPI coverage `238/238`, quality floor `violations=[]`, plus `db-preflight/ui-http-smoke/ui-render-smoke(core)/ui-dom-smoke(core)` all pass.
 - `powershell -ExecutionPolicy Bypass -File scripts/api-real-smoke.ps1 -ReportDate 2026-03-12-r193`
   - Result: pass (`1754/1754`) after chaos trend-threshold anti-flake tuning.
   - Notes: an earlier `verify` run (`r192`) had a single false-negative on `chaos-randomized-outcome-distribution` (trend threshold marginal exceed); script now reports base/effective trend thresholds and applies a bounded `+250ms` grace while keeping the absolute p95 guard unchanged.
 - `pnpm -C apps/api test`
-  - Result: pass (`289/289`)
-  - Coverage in this batch: existing domain strictness suites remained green, and new guard/permission coverage landed for `test/bearer-auth.guard.spec.ts` (`7`), `test/verified-user.guard.spec.ts` (`4`), and `test/permissions.spec.ts` (`4`).
-  - Notes: this batch hardens auth baseline behaviors (Bearer parsing, demo-token/uuid-token guard paths, verification guard enforcement, and permission wildcard/deny checks) without touching real login/payment integrations.
+  - Result: pass (`307/307`)
+  - Coverage in this batch: existing domain strictness suites remained green, and new baseline hardening landed for `test/all-exceptions.filter.spec.ts` (`4`), `test/rate-limit.guard.spec.ts` (`3`), `test/file-access.guard.spec.ts` (`3`), `test/request-id.middleware.spec.ts` (`4`), and `test/request-logger.middleware.spec.ts` (`4`).
+  - Notes: this batch closes high-risk infra branches (error payload normalization + production log redaction, per-IP rate-limit boundary/window reset behavior, temp-token file access fallback logic, request-id propagation, request-log single-shot emission and query stripping) without touching real login/payment integrations.
 - `pnpm -C apps/api test:e2e`
   - Result: pass (`2/2`).
 - `pnpm -C apps/api lint && pnpm -C apps/api typecheck && pnpm -C apps/api build`
