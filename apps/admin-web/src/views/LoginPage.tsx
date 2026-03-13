@@ -11,6 +11,7 @@ export function LoginPage() {
 
   return (
     <div
+      className="admin-login-page"
       style={{
         minHeight: '100vh',
         display: 'flex',

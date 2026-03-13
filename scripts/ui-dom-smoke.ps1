@@ -435,35 +435,35 @@ try {
       name = "client-home"; path = "#/pages/home/index"; base = $clientBase
       width = $ClientWidth; height = $ClientHeight; waitMs = $ClientWaitMs
       expectedUrlContains = "#/pages/home/index"; minElements = 100
-      selectorsAll = @(".home-page"); selectorsAny = @(".home-hero", ".home-quick-item", ".home-marquee-section")
+      selectorsAll = @(".home-page", ".home-search"); selectorsAny = @(".home-quick-item", ".home-marquee-section", ".home-zone-card")
       textAny = @(); storage = @(); demoAuth = $false
     },
     @{
       name = "client-search"; path = "#/subpackages/search/index"; base = $clientBase
       width = $ClientWidth; height = $ClientHeight; waitMs = $ClientWaitMs
       expectedUrlContains = "#/subpackages/search/index"; minElements = 120
-      selectorsAll = @(".search-v4"); selectorsAny = @(".search-sort-row", ".search-filter-btn", ".search-filter-section")
+      selectorsAll = @(".search-v4", ".search-hero"); selectorsAny = @(".search-sort-row", ".search-filter-btn", ".tabs-control-compact", ".search-card-list")
       textAny = @(); storage = @(); demoAuth = $false
     },
     @{
       name = "client-listing-detail"; path = "#/subpackages/listing/detail/index?listingId=$($sample.listingId)"; base = $clientBase
       width = $ClientWidth; height = $ClientHeight; waitMs = $ClientWaitMs
       expectedUrlContains = "#/subpackages/listing/detail/index"; minElements = 120
-      selectorsAll = @("#listing-overview", ".detail-page-compact"); selectorsAny = @(".detail-compact-title", ".detail-sticky-buttons")
+      selectorsAll = @("#listing-overview", "#listing-summary", ".detail-page-compact"); selectorsAny = @(".detail-compact-title", ".detail-tabs", ".detail-sticky-buttons")
       textAny = @(); storage = @(); demoAuth = $false
     },
     @{
       name = "client-orders"; path = "#/subpackages/orders/index"; base = $clientBase
       width = $ClientWidth; height = $ClientHeight; waitMs = $ClientWaitMs
       expectedUrlContains = "#/subpackages/orders/index"; minElements = 80
-      selectorsAll = @(".detail-tabs"); selectorsAny = @(".detail-tab", ".search-toolbar-row", ".text-card-title")
+      selectorsAll = @(".orders-page", ".detail-tabs"); selectorsAny = @(".detail-tab.is-active", ".search-toolbar-row", ".text-card-title")
       textAny = @(); storage = $clientApprovedStorage; demoAuth = $false
     },
     @{
       name = "client-publish-patent"; path = "#/subpackages/publish/patent/index"; base = $clientBase
       width = $ClientWidth; height = $ClientHeight; waitMs = $ClientWaitMs
       expectedUrlContains = "#/subpackages/publish/patent/index"; minElements = 100
-      selectorsAll = @(".publish-patent-page"); selectorsAny = @(".publish-section-title", ".form-label", ".publish-form")
+      selectorsAll = @(".publish-patent-page", ".publish-form"); selectorsAny = @(".publish-section-title", ".form-label", ".publish-action-btn", ".upload-box")
       textAny = @(); storage = $clientApprovedStorage; demoAuth = $false
     },
     @{
@@ -477,36 +477,36 @@ try {
       name = "admin-login"; path = "/login"; base = $adminBase
       width = $AdminWidth; height = $AdminHeight; waitMs = $AdminWaitMs
       expectedUrlContains = "/login"; minElements = 40
-      selectorsAll = @("input[placeholder*='token']"); selectorsAny = @(".ant-form", ".ant-card")
+      selectorsAll = @(".admin-login-page", "input[placeholder*='token']"); selectorsAny = @(".ipm-logo-mark", ".ant-form-item", "button[type='submit']")
       textAny = @("Access Token", "Sign in"); storage = @(); demoAuth = $false
     },
     @{
       name = "admin-dashboard"; path = "/"; base = $adminBase
       width = $AdminWidth; height = $AdminHeight; waitMs = $AdminWaitMs
       expectedUrlContains = "://127.0.0.1:$resolvedAdminPort/"; minElements = 100
-      selectorsAll = @(".ipm-sider", ".ipm-content-inner"); selectorsAny = @(".ant-statistic", ".ant-card")
+      selectorsAll = @(".ipm-sider", ".ipm-content-inner", ".admin-dashboard-page"); selectorsAny = @(".ant-statistic", ".ant-row", ".ant-btn")
       textAny = @(); storage = $adminAuthedStorage; demoAuth = $false
     },
     @{
       name = "admin-orders"; path = "/orders"; base = $adminBase
       width = $AdminWidth; height = $AdminHeight; waitMs = $AdminWaitMs
       expectedUrlContains = "/orders"; minElements = 100
-      selectorsAll = @(".ipm-sider", ".ipm-content-inner"); selectorsAny = @(".ant-table", ".ant-card")
+      selectorsAll = @(".ipm-sider", ".ipm-content-inner", ".admin-orders-page", ".ant-table"); selectorsAny = @(".ant-table-thead", ".ant-empty", ".ant-btn")
       textAny = @(); storage = $adminAuthedStorage; demoAuth = $false
     },
     @{
       name = "admin-verifications"; path = "/verifications"; base = $adminBase
       width = $AdminWidth; height = $AdminHeight; waitMs = $AdminWaitMs
       expectedUrlContains = "/verifications"; minElements = 100
-      selectorsAll = @(".ipm-sider", ".ipm-content-inner"); selectorsAny = @(".ant-table", ".ant-card")
+      selectorsAll = @(".ipm-sider", ".ipm-content-inner", ".admin-verifications-page", ".ant-table"); selectorsAny = @(".ant-table-thead", ".ant-empty", ".ant-btn")
       textAny = @(); storage = $adminAuthedStorage; demoAuth = $false
     },
     @{
       name = "admin-config"; path = "/config"; base = $adminBase
       width = $AdminWidth; height = $AdminHeight; waitMs = $AdminWaitMs
       expectedUrlContains = "/config"; minElements = 120
-      selectorsAll = @(".ipm-sider", ".ipm-content-inner"); selectorsAny = @(".ant-form", ".ant-form-item")
-      textAny = @("weights", "featuredBoost", "Banner"); storage = $adminAuthedStorage; demoAuth = $false
+      selectorsAll = @(".ipm-sider", ".ipm-content-inner", ".admin-config-page"); selectorsAny = @(".ant-input-number", "textarea.ant-input", ".ant-switch")
+      textAny = @("weights", "featuredBoost", "JSON", "Banner"); storage = $adminAuthedStorage; demoAuth = $false
     }
   )
 

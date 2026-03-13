@@ -154,7 +154,7 @@ export default function OrdersPage() {
 
   if (access.state === 'need-login') {
     return (
-      <View className="container">
+      <View className="container orders-page">
         <PageHeader title="我的订单" subtitle="订金/尾款都在平台托管；可查看状态与发起退款申请" />
         <Spacer />
         <PermissionCard title="需要登录" message="登录后才能查看订单。" actionText="去登录" onAction={goLogin} />
@@ -163,7 +163,7 @@ export default function OrdersPage() {
   }
   if (access.state === 'need-onboarding') {
     return (
-      <View className="container">
+      <View className="container orders-page">
         <PageHeader title="我的订单" subtitle="订金/尾款都在平台托管；可查看状态与发起退款申请" />
         <Spacer />
         <PermissionCard title="需要选择身份" message="完成身份选择后才能继续。" actionText="去选择" onAction={goOnboarding} />
@@ -172,7 +172,7 @@ export default function OrdersPage() {
   }
   if (access.state === 'audit-pending') {
     return (
-      <View className="container">
+      <View className="container orders-page">
         <PageHeader title="我的订单" subtitle="订金/尾款都在平台托管；可查看状态与发起退款申请" />
         <Spacer />
         <AuditPendingCard title="资料审核中" message="审核通过后才能交易与查看订单。" actionText="查看进度" onAction={goOnboarding} />
@@ -181,7 +181,7 @@ export default function OrdersPage() {
   }
   if (access.state === 'audit-rejected') {
     return (
-      <View className="container">
+      <View className="container orders-page">
         <PageHeader title="我的订单" subtitle="订金/尾款都在平台托管；可查看状态与发起退款申请" />
         <Spacer />
         <AuditPendingCard title="资料已驳回" message="请重新提交资料，审核通过后才能继续。" actionText="重新提交" onAction={goOnboarding} />
@@ -190,7 +190,7 @@ export default function OrdersPage() {
   }
   if (access.state === 'audit-required') {
     return (
-      <View className="container">
+      <View className="container orders-page">
         <PageHeader title="我的订单" subtitle="订金/尾款都在平台托管；可查看状态与发起退款申请" />
         <Spacer />
         <AuditPendingCard title="需要认证" message="完成认证并审核通过后才能继续。" actionText="去认证" onAction={goOnboarding} />
@@ -199,7 +199,7 @@ export default function OrdersPage() {
   }
 
   return (
-    <View className="container">
+    <View className="container orders-page">
       <PageHeader title="我的订单" subtitle="订金/尾款都在平台托管；可查看状态与发起退款申请" />
       <Spacer />
 
