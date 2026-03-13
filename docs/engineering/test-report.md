@@ -3,17 +3,17 @@
 ## Latest (2026-03-13)
 
 ### Commands & Results (dev)
-- `powershell -ExecutionPolicy Bypass -File scripts/verify.ps1 -ReportDate 2026-03-13-r210`
+- `powershell -ExecutionPolicy Bypass -File scripts/verify.ps1 -ReportDate 2026-03-13-r211`
   - Result: success (all steps)
-  - Render artifact: `docs/demo/rendered/ui-smoke-2026-03-13-r210/` (core mode, 3 pages)
+  - Render artifact: `docs/demo/rendered/ui-smoke-2026-03-13-r211/` (core mode, 3 pages)
   - Gate summary: `api-real-smoke` `1754/1754` (`writes=1297`,`reads=457`), OpenAPI coverage `238/238`, quality floor `violations=[]`, plus `db-preflight/ui-http-smoke/ui-render-smoke(core)/ui-dom-smoke(core)` all pass.
 - `powershell -ExecutionPolicy Bypass -File scripts/api-real-smoke.ps1 -ReportDate 2026-03-12-r193`
   - Result: pass (`1754/1754`) after chaos trend-threshold anti-flake tuning.
   - Notes: an earlier `verify` run (`r192`) had a single false-negative on `chaos-randomized-outcome-distribution` (trend threshold marginal exceed); script now reports base/effective trend thresholds and applies a bounded `+250ms` grace while keeping the absolute p95 guard unchanged.
 - `pnpm -C apps/api test`
-  - Result: pass (`312/312`)
-  - Coverage in this batch: existing domain strictness suites remained green, and new service-level coverage landed for `test/content-audit.service.spec.ts` (`5`) across materials aggregation, dedup/order normalization, verification evidence lookup, and audit-log action/reason mapping.
-  - Notes: this batch strengthens admin audit usability and data rigor (including anti-duplicate evidence aggregation behavior) without touching real login/payment integrations.
+  - Result: pass (`318/318`)
+  - Coverage in this batch: existing domain strictness suites remained green, and new controller-level coverage landed for `test/listings.controller.spec.ts` (`6`) across admin audit materials/audit-log delegation, permission enforcement, UUID strict parsing, and admin update/approve delegation.
+  - Notes: this batch hardens listing admin-audit entry points (including permission boundary and invalid-id rejection behavior) without touching real login/payment integrations.
 - `pnpm -C apps/api test:e2e`
   - Result: pass (`2/2`).
 - `pnpm -C apps/api lint && pnpm -C apps/api typecheck && pnpm -C apps/api build`
