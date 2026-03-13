@@ -25,15 +25,16 @@
 - `powershell -ExecutionPolicy Bypass -File scripts/weapp-route-smoke.ps1 -ReportDate 2026-03-12-r188 -LaunchRetries 1 -KillStaleDevtools`
   - Result: expected fail (`DEMO_USER_TOKEN` missing), and failure artifact written successfully.
   - Artifact: `.tmp/weapp-route-smoke-2026-03-12-r188.json`
-- `powershell -ExecutionPolicy Bypass -File scripts/ui-http-smoke.ps1 -ReportDate 2026-03-12-r189`
+- `powershell -ExecutionPolicy Bypass -File scripts/ui-http-smoke.ps1 -ReportDate 2026-03-13-r244`
   - Result: pass (`86/86`)
-  - Artifact: `.tmp/ui-http-smoke-2026-03-12-r189-summary.json`
-- `powershell -ExecutionPolicy Bypass -File scripts/ui-render-smoke.ps1 -Mode full -ReportDate 2026-03-12-r190`
+  - Artifact: `.tmp/ui-http-smoke-2026-03-13-r244-summary.json`
+- `powershell -ExecutionPolicy Bypass -File scripts/ui-render-smoke.ps1 -Mode full -ReportDate 2026-03-13-r242b`
   - Result: pass (`83/83`)
-  - Artifact: `.tmp/ui-render-smoke-2026-03-12-r190-summary.json`
-- `powershell -ExecutionPolicy Bypass -File scripts/ui-dom-smoke.ps1 -Mode full -ReportDate 2026-03-12-r191`
+  - Artifact: `.tmp/ui-render-smoke-2026-03-13-r242b-summary.json`
+  - Render artifact: `docs/demo/rendered/ui-smoke-2026-03-13-r242b/` (full mode, 83 pages)
+- `powershell -ExecutionPolicy Bypass -File scripts/ui-dom-smoke.ps1 -Mode full -ReportDate 2026-03-13-r243`
   - Result: pass (`83/83`, mode=`full-83`)
-  - Artifact: `.tmp/ui-dom-smoke-2026-03-12-r191-summary.json`
+  - Artifact: `.tmp/ui-dom-smoke-2026-03-13-r243-summary.json`
 - `node -e "const fs=require('fs');const data=JSON.parse(fs.readFileSync('.tmp/api-real-smoke-2026-03-12-r185.json','utf8').replace(/^\uFEFF/,''));const keys=['industry-tags-sanitized','hidden-industry-filter','public-regions-query-smoke-region','public-regions-list-after-industry-tags-set','public-announcements-list-admin-smoke-tags-sanitized','public-announcement-detail-admin-smoke-tags-sanitized'];const hit=data.filter(x=>keys.some(k=>String(x.name||'').includes(k)));const failed=hit.filter(x=>!x.ok);console.log(JSON.stringify({matched:hit.length,failed:failed.length},null,2));"`
   - Result: matched targeted anti-pollution checks `24`, failed `0` (including hidden `industryTags` filter variants and public list/detail sanitization checks).
 
