@@ -19,7 +19,7 @@ export default function NotificationSettingsPage() {
   const [replyNotify, setReplyNotify] = useState<ToggleValue>('on');
 
   return (
-    <View className="container settings-page">
+    <View className="container settings-page settings-notifications-page">
       <PageHeader weapp back title="通知设置" subtitle="订阅消息仅在允许后生效" />
       <Spacer />
 

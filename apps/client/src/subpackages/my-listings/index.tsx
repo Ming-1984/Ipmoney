@@ -64,7 +64,7 @@ export default function MyListingsPage() {
 
   if (access.state === 'need-login') {
     return (
-      <View className="container">
+      <View className="container my-listings-page">
         <PageHeader title="我的专利上架" subtitle="卖家查看/编辑/下架自己的专利上架信息" />
         <Spacer />
         <PermissionCard title="需要登录" message="登录后才能查看上架信息。" actionText="去登录" onAction={goLogin} />
@@ -73,7 +73,7 @@ export default function MyListingsPage() {
   }
   if (access.state === 'need-onboarding') {
     return (
-      <View className="container">
+      <View className="container my-listings-page">
         <PageHeader title="我的专利上架" subtitle="卖家查看/编辑/下架自己的专利上架信息" />
         <Spacer />
         <PermissionCard title="需要选择身份" message="完成身份选择后才能继续。" actionText="去选择" onAction={goOnboarding} />
@@ -82,7 +82,7 @@ export default function MyListingsPage() {
   }
   if (access.state === 'audit-pending') {
     return (
-      <View className="container">
+      <View className="container my-listings-page">
         <PageHeader title="我的专利上架" subtitle="卖家查看/编辑/下架自己的专利上架信息" />
         <Spacer />
         <AuditPendingCard title="资料审核中" message="审核通过后才能发布与管理上架信息。" actionText="查看进度" onAction={goOnboarding} />
@@ -91,7 +91,7 @@ export default function MyListingsPage() {
   }
   if (access.state === 'audit-rejected') {
     return (
-      <View className="container">
+      <View className="container my-listings-page">
         <PageHeader title="我的专利上架" subtitle="卖家查看/编辑/下架自己的专利上架信息" />
         <Spacer />
         <AuditPendingCard title="资料已驳回" message="请重新提交资料，审核通过后才能继续。" actionText="重新提交" onAction={goOnboarding} />
@@ -100,7 +100,7 @@ export default function MyListingsPage() {
   }
   if (access.state === 'audit-required') {
     return (
-      <View className="container">
+      <View className="container my-listings-page">
         <PageHeader title="我的专利上架" subtitle="卖家查看/编辑/下架自己的专利上架信息" />
         <Spacer />
         <AuditPendingCard title="需要认证" message="完成认证并审核通过后才能继续。" actionText="去认证" onAction={goOnboarding} />
@@ -109,7 +109,7 @@ export default function MyListingsPage() {
   }
 
   return (
-    <View className="container">
+    <View className="container my-listings-page">
       <PageHeader title="我的专利上架" subtitle="卖家查看/编辑/下架自己的专利上架信息" />
       <Spacer />
 
@@ -217,3 +217,4 @@ export default function MyListingsPage() {
     </View>
   );
 }
+

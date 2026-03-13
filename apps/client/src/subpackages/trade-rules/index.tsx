@@ -61,7 +61,7 @@ export default function TradeRulesPage() {
   }, [load]);
 
   return (
-    <View className="container">
+    <View className="container trade-rules-page">
       <PageHeader title="交易规则" subtitle="订金、佣金、退款窗口等关键规则以平台配置为准" />
       <Spacer />
 

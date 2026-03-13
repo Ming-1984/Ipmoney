@@ -79,7 +79,7 @@ export default function MyDemandsPage() {
 
   if (access.state === 'need-login') {
     return (
-      <View className="container">
+      <View className="container my-demands-page">
         <PageHeader title="我的需求" subtitle="发布方查看/编辑/下架自己的产学研需求" />
         <Spacer />
         <PermissionCard title="需要登录" message="登录后才能查看需求。" actionText="去登录" onAction={goLogin} />
@@ -88,7 +88,7 @@ export default function MyDemandsPage() {
   }
   if (access.state === 'need-onboarding') {
     return (
-      <View className="container">
+      <View className="container my-demands-page">
         <PageHeader title="我的需求" subtitle="发布方查看/编辑/下架自己的产学研需求" />
         <Spacer />
         <PermissionCard title="需要选择身份" message="完成身份选择后才能继续。" actionText="去选择" onAction={goOnboarding} />
@@ -97,7 +97,7 @@ export default function MyDemandsPage() {
   }
   if (access.state === 'audit-pending') {
     return (
-      <View className="container">
+      <View className="container my-demands-page">
         <PageHeader title="我的需求" subtitle="发布方查看/编辑/下架自己的产学研需求" />
         <Spacer />
         <AuditPendingCard title="资料审核中" message="审核通过后才能发布与管理需求。" actionText="查看进度" onAction={goOnboarding} />
@@ -106,7 +106,7 @@ export default function MyDemandsPage() {
   }
   if (access.state === 'audit-rejected') {
     return (
-      <View className="container">
+      <View className="container my-demands-page">
         <PageHeader title="我的需求" subtitle="发布方查看/编辑/下架自己的产学研需求" />
         <Spacer />
         <AuditPendingCard title="资料已驳回" message="请重新提交资料，审核通过后才能继续。" actionText="重新提交" onAction={goOnboarding} />
@@ -115,7 +115,7 @@ export default function MyDemandsPage() {
   }
   if (access.state === 'audit-required') {
     return (
-      <View className="container">
+      <View className="container my-demands-page">
         <PageHeader title="我的需求" subtitle="发布方查看/编辑/下架自己的产学研需求" />
         <Spacer />
         <AuditPendingCard title="需要认证" message="完成认证并审核通过后才能继续。" actionText="去认证" onAction={goOnboarding} />
@@ -124,7 +124,7 @@ export default function MyDemandsPage() {
   }
 
   return (
-    <View className="container">
+    <View className="container my-demands-page">
       <PageHeader title="我的需求" subtitle="发布方查看/编辑/下架自己的产学研需求" />
       <Spacer />
 
@@ -235,3 +235,4 @@ export default function MyDemandsPage() {
     </View>
   );
 }
+

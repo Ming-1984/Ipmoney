@@ -49,14 +49,14 @@ export default function PatentMapRegionDetailPage() {
 
   if (!regionCode || !year) {
     return (
-      <View className="container page-bg-plain">
+      <View className="container page-bg-plain patent-map-region-detail-page">
         <MissingParamCard onAction={() => void safeNavigateBack()} />
       </View>
     );
   }
 
   return (
-    <View className="container page-bg-plain">
+    <View className="container page-bg-plain patent-map-region-detail-page">
       <PageHeader title="区域详情" subtitle={`区域编码：${regionCode} · 年份：${year}`} />
       <Spacer />
 
