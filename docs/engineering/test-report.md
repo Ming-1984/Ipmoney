@@ -3,16 +3,16 @@
 ## Latest (2026-03-13)
 
 ### Commands & Results (dev)
-- `powershell -ExecutionPolicy Bypass -File scripts/verify.ps1 -ReportDate 2026-03-13-r228`
+- `powershell -ExecutionPolicy Bypass -File scripts/verify.ps1 -ReportDate 2026-03-13-r229`
   - Result: success (all steps)
-  - Render artifact: `docs/demo/rendered/ui-smoke-2026-03-13-r228/` (core mode, 3 pages)
+  - Render artifact: `docs/demo/rendered/ui-smoke-2026-03-13-r229/` (core mode, 3 pages)
   - Gate summary: `api-real-smoke` `1754/1754` (`writes=1297`,`reads=457`), OpenAPI coverage `238/238`, quality floor `violations=[]`, plus `db-preflight/ui-http-smoke/ui-render-smoke(core)/ui-dom-smoke(core)` all pass.
 - `powershell -ExecutionPolicy Bypass -File scripts/api-real-smoke.ps1 -ReportDate 2026-03-12-r193`
   - Result: pass (`1754/1754`) after chaos trend-threshold anti-flake tuning.
   - Notes: an earlier `verify` run (`r192`) had a single false-negative on `chaos-randomized-outcome-distribution` (trend threshold marginal exceed); script now reports base/effective trend thresholds and applies a bounded `+250ms` grace while keeping the absolute p95 guard unchanged.
 - `pnpm -C apps/api test`
-  - Result: pass (`468/468`)
-  - Coverage in this batch: existing domain strictness suites remained green, and AI feedback/admin-parse-update behavior coverage expanded with `test/ai.parse-feedback-update.spec.ts` (`6`).
+  - Result: pass (`475/475`)
+  - Coverage in this batch: existing domain strictness suites remained green, and service-depth coverage expanded with `test/tech-managers.update-admin.spec.ts` (`5`), `test/ai.parse-feedback-update.spec.ts` (`6`), and `test/patents.write-normalize.spec.ts` (`7`).
   - Notes: this batch strengthens AI feedback + admin parse-result update validation branches without touching real login/payment integrations.
 - `pnpm -C apps/api test:e2e`
   - Result: pass (`2/2`).
