@@ -3,10 +3,17 @@
 ## Latest (2026-03-14)
 
 ### Commands & Results (dev)
-- `powershell -ExecutionPolicy Bypass -File scripts/verify.ps1 -ReportDate 2026-03-14-r250`
+- `powershell -ExecutionPolicy Bypass -File scripts/verify.ps1 -ReportDate 2026-03-14-r251b`
   - Result: success (all steps)
-  - Render artifact: `docs/demo/rendered/ui-smoke-2026-03-14-r250/` (core mode, 3 pages)
+  - Render artifact: `docs/demo/rendered/ui-smoke-2026-03-14-r251b/` (core mode, 3 pages)
   - Gate summary: `api-real-smoke` `1754/1754` (`writes=1297`,`reads=457`), OpenAPI coverage `238/238`, quality floor `violations=[]`, plus `db-preflight/ui-http-smoke/ui-render-smoke(core)/ui-dom-smoke(core)` all pass.
+- `powershell -ExecutionPolicy Bypass -File scripts/ui-dom-smoke.ps1 -Mode full -ReportDate 2026-03-14-r251a -PageFilter client-tech-managers,client-patent-detail,client-artwork-detail,client-demand-detail,client-achievement-detail,client-organizations,client-organization-detail,client-patent-map,client-inventors,client-messages,client-chat,client-order-detail,client-profile-edit`
+  - Result: pass (`13/13`, changed-page semantic hardening batch).
+  - Notes: verified newly added semantic selectors for detail/consult/messages/profile/order/map pages before full-run promotion.
+- `powershell -ExecutionPolicy Bypass -File scripts/ui-dom-smoke.ps1 -Mode full -ReportDate 2026-03-14-r251b`
+  - Result: pass (`83/83`, mode=`full-83`)
+  - Artifact: `.tmp/ui-dom-smoke-2026-03-14-r251b-summary.json`
+  - Notes: semantic assertions expanded for `client-tech-managers/client-patent-detail/client-artwork-detail/client-demand-detail/client-achievement-detail/client-organizations/client-organization-detail/client-patent-map/client-inventors/client-messages/client-chat/client-order-detail/client-profile-edit`; stable root classes added for `organizations-page` and `patent-map-page`.
 - `powershell -ExecutionPolicy Bypass -File scripts/ui-dom-smoke.ps1 -Mode full -ReportDate 2026-03-14-r250`
   - Result: pass (`83/83`, mode=`full-83`)
   - Artifact: `.tmp/ui-dom-smoke-2026-03-14-r250-summary.json`
