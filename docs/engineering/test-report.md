@@ -3,17 +3,17 @@
 ## Latest (2026-03-13)
 
 ### Commands & Results (dev)
-- `powershell -ExecutionPolicy Bypass -File scripts/verify.ps1 -ReportDate 2026-03-13-r222`
+- `powershell -ExecutionPolicy Bypass -File scripts/verify.ps1 -ReportDate 2026-03-13-r223`
   - Result: success (all steps)
-  - Render artifact: `docs/demo/rendered/ui-smoke-2026-03-13-r222/` (core mode, 3 pages)
+  - Render artifact: `docs/demo/rendered/ui-smoke-2026-03-13-r223/` (core mode, 3 pages)
   - Gate summary: `api-real-smoke` `1754/1754` (`writes=1297`,`reads=457`), OpenAPI coverage `238/238`, quality floor `violations=[]`, plus `db-preflight/ui-http-smoke/ui-render-smoke(core)/ui-dom-smoke(core)` all pass.
 - `powershell -ExecutionPolicy Bypass -File scripts/api-real-smoke.ps1 -ReportDate 2026-03-12-r193`
   - Result: pass (`1754/1754`) after chaos trend-threshold anti-flake tuning.
   - Notes: an earlier `verify` run (`r192`) had a single false-negative on `chaos-randomized-outcome-distribution` (trend threshold marginal exceed); script now reports base/effective trend thresholds and applies a bounded `+250ms` grace while keeping the absolute p95 guard unchanged.
 - `pnpm -C apps/api test`
-  - Result: pass (`420/420`)
-  - Coverage in this batch: existing domain strictness suites remained green, and new controller-level coverage landed for `test/ai.controller.spec.ts` (`2`) + `test/admin-ai.controller.spec.ts` (`3`) + `test/tech-managers.controller.spec.ts` (`3`) + `test/patent-map.controller.spec.ts` (`3`) across AI query/feedback delegation, admin AI parse-result delegation, and tech-manager/patent-map controller boundary paths.
-  - Notes: this batch hardens AI/tech-manager/patent-map controller boundaries without touching real login/payment integrations.
+  - Result: pass (`437/437`)
+  - Coverage in this batch: existing domain strictness suites remained green, and controller delegation coverage expanded with `test/files.controller.spec.ts` (`4`) to close the remaining controller-spec gap.
+  - Notes: this batch closes the last controller delegation coverage gap without touching real login/payment integrations.
 - `pnpm -C apps/api test:e2e`
   - Result: pass (`2/2`).
 - `pnpm -C apps/api lint && pnpm -C apps/api typecheck && pnpm -C apps/api build`
