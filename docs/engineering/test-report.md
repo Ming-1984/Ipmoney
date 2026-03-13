@@ -3,6 +3,17 @@
 ## Latest (2026-03-14)
 
 ### Commands & Results (dev)
+- `powershell -ExecutionPolicy Bypass -File scripts/verify.ps1 -ReportDate r253b`
+  - Result: success (all steps)
+  - Render artifact: `docs/demo/rendered/ui-smoke-r253b/` (core mode, 3 pages)
+  - Gate summary: `api-real-smoke` `1754/1754` (`writes=1297`,`reads=457`), OpenAPI coverage `238/238`, quality floor `violations=[]`, plus `db-preflight/ui-http-smoke/ui-render-smoke(core)/ui-dom-smoke(core)` all pass.
+- `powershell -ExecutionPolicy Bypass -Command "& ./scripts/ui-dom-smoke.ps1 -Mode full -ReportDate r253a -PageFilter @('admin-listings','admin-refunds','admin-invoices','admin-patent-map','admin-rbac','admin-audit-logs','admin-order-detail','admin-settlements','admin-demands','admin-achievements','admin-artworks','admin-tech-managers','admin-cases','admin-reports','admin-comments','admin-announcements','admin-alerts','admin-maintenance','admin-regions','admin-patents')"`
+  - Result: pass (`20/20`, changed-page semantic hardening batch).
+  - Notes: verified admin route semantic selectors after replacing generic `ipm-sider/content + ant-*` assertions and adding stable root classes.
+- `powershell -ExecutionPolicy Bypass -File scripts/ui-dom-smoke.ps1 -Mode full -ReportDate r253b`
+  - Result: pass (`83/83`, mode=`full-83`)
+  - Artifact: `.tmp/ui-dom-smoke-r253b-summary.json`
+  - Notes: admin-side DOM semantic assertions are now fully class-based for listings/refunds/invoices/patent-map/rbac/audit-logs/order-detail/settlements/demands/achievements/artworks/tech-managers/cases/reports/comments/announcements/alerts/maintenance/regions/patents.
 - `powershell -ExecutionPolicy Bypass -File scripts/verify.ps1 -ReportDate 2026-03-14-r252b`
   - Result: success (all steps)
   - Render artifact: `docs/demo/rendered/ui-smoke-2026-03-14-r252b/` (core mode, 3 pages)
