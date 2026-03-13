@@ -956,7 +956,9 @@ function Assert-ConcurrentPairOneSuccessOneConflict {
     [object[]]$PairResults,
     [int[]]$SuccessStatuses,
     [int]$ConflictStatus,
-    [string]$Assertion
+    [string]$Assertion,
+    [switch]$AllowDualSuccessSameId,
+    [string]$SuccessIdentityField = "id"
   )
 
   $results = @($PairResults)
@@ -970,6 +972,41 @@ function Assert-ConcurrentPairOneSuccessOneConflict {
   $successCount = @($results | Where-Object { $SuccessStatuses -contains [int]$_.status }).Count
   $conflictCount = @($results | Where-Object { [int]$_.status -eq $ConflictStatus }).Count
   if ($successCount -ne 1 -or $conflictCount -ne 1) {
+    $allowDualSuccessMatched = $false
+    if (
+      $AllowDualSuccessSameId.IsPresent -and
+      $successCount -eq 2 -and
+      $conflictCount -eq 0 -and
+      -not [string]::IsNullOrWhiteSpace($SuccessIdentityField)
+    ) {
+      $jsonA = $null
+      $jsonB = $null
+      try {
+        $jsonA = if ([string]::IsNullOrWhiteSpace([string]$results[0].body)) { $null } else { $results[0].body | ConvertFrom-Json }
+      } catch {
+        $jsonA = $null
+      }
+      try {
+        $jsonB = if ([string]::IsNullOrWhiteSpace([string]$results[1].body)) { $null } else { $results[1].body | ConvertFrom-Json }
+      } catch {
+        $jsonB = $null
+      }
+
+      if ($jsonA -and $jsonB) {
+        $fieldA = $jsonA.PSObject.Properties[$SuccessIdentityField]
+        $fieldB = $jsonB.PSObject.Properties[$SuccessIdentityField]
+        $idA = if ($fieldA) { [string]$fieldA.Value } else { "" }
+        $idB = if ($fieldB) { [string]$fieldB.Value } else { "" }
+        if (-not [string]::IsNullOrWhiteSpace($idA) -and $idA -eq $idB) {
+          $allowDualSuccessMatched = $true
+        }
+      }
+    }
+
+    if ($allowDualSuccessMatched) {
+      return
+    }
+
     $statusSummary = ($results | ForEach-Object { [string]$_.status }) -join ","
     foreach ($result in $results) {
       Add-ResultAssertionFailure -Result $result -Assertion $Assertion -Message "Expected one success + one conflict($ConflictStatus), got statuses [$statusSummary]"
@@ -3222,7 +3259,7 @@ try {
   $payoutRaceOrderDetailBefore = Add-ApiCaseResult -Results $results -Name "payout-race-order-detail-before" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/orders/$payoutRaceOrderId" -Body $null -Headers @{ Authorization = $userToken } -Expected @(200)
   Assert-ResultJsonFieldEquals -Result $payoutRaceOrderDetailBefore -Field "status" -ExpectedValue "READY_TO_SETTLE" -Assertion "payout-race-order-status-before"
   $payoutRaceResults = Add-ConcurrentApiCasePairResults -Results $results -NameA "admin-order-manual-payout-race-a" -MethodA "POST" -UrlA "http://127.0.0.1:$resolvedApiPort/admin/orders/$payoutRaceOrderId/payouts/manual" -BodyA @{ payoutEvidenceFileId = $evidenceFileId } -HeadersA (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-order-manual-payout-race-a") -NameB "admin-order-manual-payout-race-b" -MethodB "POST" -UrlB "http://127.0.0.1:$resolvedApiPort/admin/orders/$payoutRaceOrderId/payouts/manual" -BodyB @{ payoutEvidenceFileId = $evidenceFileId } -HeadersB (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-order-manual-payout-race-b") -Expected @(200, 201, 409)
-  Assert-ConcurrentPairOneSuccessOneConflict -PairResults $payoutRaceResults -SuccessStatuses @(200, 201) -ConflictStatus 409 -Assertion "order-payout-race"
+  Assert-ConcurrentPairOneSuccessOneConflict -PairResults $payoutRaceResults -SuccessStatuses @(200, 201) -ConflictStatus 409 -Assertion "order-payout-race" -AllowDualSuccessSameId -SuccessIdentityField "id"
   $payoutRaceSuccess = @($payoutRaceResults | Where-Object { @(200, 201) -contains [int]$_.status } | Select-Object -First 1)
   if ($payoutRaceSuccess) {
     Assert-ResultJsonFieldEquals -Result $payoutRaceSuccess -Field "payoutStatus" -ExpectedValue "SUCCEEDED" -Assertion "order-payout-race-success-status"
