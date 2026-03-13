@@ -1,0 +1,67 @@
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+
+import { InventorsService } from '../src/modules/inventors/inventors.service';
+
+describe('InventorsService query branch suite', () => {
+  let prisma: any;
+  let service: InventorsService;
+
+  beforeEach(() => {
+    prisma = {
+      $queryRaw: vi.fn(),
+    };
+    service = new InventorsService(prisma);
+  });
+
+  it('returns empty page when count query reports zero and skips ranking query', async () => {
+    prisma.$queryRaw.mockResolvedValueOnce([{ total: 0n }]);
+
+    const result = await service.search({ q: 'alice', page: '2', pageSize: '20' });
+
+    expect(result).toEqual({
+      items: [],
+      page: { page: 2, pageSize: 20, total: 0 },
+    });
+    expect(prisma.$queryRaw).toHaveBeenCalledTimes(1);
+  });
+
+  it('returns ranking rows when count is positive', async () => {
+    prisma.$queryRaw
+      .mockResolvedValueOnce([{ total: 2n }])
+      .mockResolvedValueOnce([
+        {
+          inventorName: 'Alice',
+          patentCount: 5,
+          listingCount: 3,
+          avatarUrl: 'https://example.com/a.png',
+        },
+        {
+          inventorName: 'Bob',
+          patentCount: 2,
+          listingCount: 2,
+          avatarUrl: null,
+        },
+      ]);
+
+    const result = await service.search({ q: 'a', page: '1', pageSize: '50' });
+
+    expect(prisma.$queryRaw).toHaveBeenCalledTimes(2);
+    expect(result).toEqual({
+      items: [
+        {
+          inventorName: 'Alice',
+          patentCount: 5,
+          listingCount: 3,
+          avatarUrl: 'https://example.com/a.png',
+        },
+        {
+          inventorName: 'Bob',
+          patentCount: 2,
+          listingCount: 2,
+          avatarUrl: null,
+        },
+      ],
+      page: { page: 1, pageSize: 50, total: 2 },
+    });
+  });
+});
