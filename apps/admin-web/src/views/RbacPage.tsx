@@ -75,7 +75,7 @@ export function RbacPage() {
   );
 
   return (
-    <Space direction="vertical" size={16} style={{ width: '100%' }}>
+    <Space className="admin-rbac-page" direction="vertical" size={16} style={{ width: '100%' }}>
       <Card>
         <Typography.Title level={3} style={{ marginTop: 0 }}>
           账号与权限（RBAC）

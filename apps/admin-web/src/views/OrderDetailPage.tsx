@@ -84,7 +84,7 @@ export function OrderDetailPage() {
   const canConfirmFinal = data?.status === 'WAIT_FINAL_PAYMENT';
 
   return (
-    <Space direction="vertical" size={16} style={{ width: '100%' }}>
+    <Space className="admin-order-detail-page" direction="vertical" size={16} style={{ width: '100%' }}>
       <Card>
         <Space direction="vertical" size={12} style={{ width: '100%' }}>
           <Space align="center" style={{ width: '100%', justifyContent: 'space-between' }}>

@@ -649,42 +649,42 @@ try {
       name = "admin-listings"; path = "/listings"; base = $adminBase
       width = $AdminWidth; height = $AdminHeight; waitMs = $AdminWaitMs
       expectedUrlContains = "/listings"; minElements = 100
-      selectorsAll = @(".ipm-sider", ".ipm-content-inner"); selectorsAny = @(".ant-table", ".ant-card")
+      selectorsAll = @(".admin-listings-page", ".ipm-content-inner"); selectorsAny = @(".ant-table", ".ant-pagination")
       textAny = @(); storage = $adminAuthedStorage; demoAuth = $false
     },
     @{
       name = "admin-refunds"; path = "/refunds"; base = $adminBase
       width = $AdminWidth; height = $AdminHeight; waitMs = $AdminWaitMs
       expectedUrlContains = "/refunds"; minElements = 100
-      selectorsAll = @(".ipm-sider", ".ipm-content-inner"); selectorsAny = @(".ant-table", ".ant-card")
+      selectorsAll = @(".admin-refunds-page", ".ipm-content-inner"); selectorsAny = @(".ant-table", ".ant-pagination")
       textAny = @(); storage = $adminAuthedStorage; demoAuth = $false
     },
     @{
       name = "admin-invoices"; path = "/invoices"; base = $adminBase
       width = $AdminWidth; height = $AdminHeight; waitMs = $AdminWaitMs
       expectedUrlContains = "/invoices"; minElements = 100
-      selectorsAll = @(".ipm-sider", ".ipm-content-inner"); selectorsAny = @(".ant-table", ".ant-card")
+      selectorsAll = @(".admin-invoices-page", ".ipm-content-inner"); selectorsAny = @(".ant-card", ".ant-list", ".ant-descriptions", ".ant-empty")
       textAny = @(); storage = $adminAuthedStorage; demoAuth = $false
     },
     @{
       name = "admin-patent-map"; path = "/patent-map"; base = $adminBase
       width = $AdminWidth; height = $AdminHeight; waitMs = $AdminWaitMs
       expectedUrlContains = "/patent-map"; minElements = 100
-      selectorsAll = @(".ipm-sider", ".ipm-content-inner"); selectorsAny = @(".ant-table", ".ant-card")
+      selectorsAll = @(".admin-patent-map-page", ".ipm-content-inner"); selectorsAny = @(".ant-card", ".ant-upload", ".ant-table", ".ant-empty")
       textAny = @(); storage = $adminAuthedStorage; demoAuth = $false
     },
     @{
       name = "admin-rbac"; path = "/rbac"; base = $adminBase
       width = $AdminWidth; height = $AdminHeight; waitMs = $AdminWaitMs
       expectedUrlContains = "/rbac"; minElements = 80
-      selectorsAll = @(".ipm-sider", ".ipm-content-inner"); selectorsAny = @(".ant-tabs", ".ant-card")
+      selectorsAll = @(".admin-rbac-page", ".ipm-content-inner"); selectorsAny = @(".ant-tabs", ".ant-card")
       textAny = @(); storage = $adminAuthedStorage; demoAuth = $false
     },
     @{
       name = "admin-audit-logs"; path = "/audit-logs"; base = $adminBase
       width = $AdminWidth; height = $AdminHeight; waitMs = $AdminWaitMs
       expectedUrlContains = "/audit-logs"; minElements = 100
-      selectorsAll = @(".ipm-sider", ".ipm-content-inner"); selectorsAny = @(".ant-table", ".ant-card")
+      selectorsAll = @(".admin-audit-logs-page", ".ipm-content-inner"); selectorsAny = @(".ant-table", ".ant-pagination")
       textAny = @(); storage = $adminAuthedStorage; demoAuth = $false
     }
   )
@@ -925,98 +925,98 @@ try {
       name = "admin-order-detail"; path = "/orders/$($sample.orderId)"; base = $adminBase
       width = $AdminWidth; height = $AdminHeight; waitMs = $AdminWaitMs
       expectedUrlContains = "/orders/$($sample.orderId)"; minElements = 100
-      selectorsAll = @(".ipm-sider", ".ipm-content-inner"); selectorsAny = @(".ant-card", ".ant-descriptions")
+      selectorsAll = @(".admin-order-detail-page", ".ipm-content-inner"); selectorsAny = @(".ant-card", ".ant-descriptions")
       textAny = @(); storage = $adminAuthedStorage; demoAuth = $false
     },
     @{
       name = "admin-settlements"; path = "/settlements"; base = $adminBase
       width = $AdminWidth; height = $AdminHeight; waitMs = $AdminWaitMs
       expectedUrlContains = "/settlements"; minElements = 100
-      selectorsAll = @(".ipm-sider", ".ipm-content-inner"); selectorsAny = @(".ant-table", ".ant-card")
+      selectorsAll = @(".admin-settlements-page", ".ipm-content-inner"); selectorsAny = @(".ant-card", ".ant-list", ".ant-descriptions", ".ant-empty")
       textAny = @(); storage = $adminAuthedStorage; demoAuth = $false
     },
     @{
       name = "admin-demands"; path = "/demands"; base = $adminBase
       width = $AdminWidth; height = $AdminHeight; waitMs = $AdminWaitMs
       expectedUrlContains = "/demands"; minElements = 100
-      selectorsAll = @(".ipm-sider", ".ipm-content-inner"); selectorsAny = @(".ant-table", ".ant-card")
+      selectorsAll = @(".admin-demands-page", ".ipm-content-inner"); selectorsAny = @(".ant-table", ".ant-pagination")
       textAny = @(); storage = $adminAuthedStorage; demoAuth = $false
     },
     @{
       name = "admin-achievements"; path = "/achievements"; base = $adminBase
       width = $AdminWidth; height = $AdminHeight; waitMs = $AdminWaitMs
       expectedUrlContains = "/achievements"; minElements = 100
-      selectorsAll = @(".ipm-sider", ".ipm-content-inner"); selectorsAny = @(".ant-table", ".ant-card")
+      selectorsAll = @(".admin-achievements-page", ".ipm-content-inner"); selectorsAny = @(".ant-table", ".ant-pagination")
       textAny = @(); storage = $adminAuthedStorage; demoAuth = $false
     },
     @{
       name = "admin-artworks"; path = "/artworks"; base = $adminBase
       width = $AdminWidth; height = $AdminHeight; waitMs = $AdminWaitMs
       expectedUrlContains = "/artworks"; minElements = 100
-      selectorsAll = @(".ipm-sider", ".ipm-content-inner"); selectorsAny = @(".ant-table", ".ant-card")
+      selectorsAll = @(".admin-artworks-page", ".ipm-content-inner"); selectorsAny = @(".ant-table", ".ant-pagination")
       textAny = @(); storage = $adminAuthedStorage; demoAuth = $false
     },
     @{
       name = "admin-tech-managers"; path = "/tech-managers"; base = $adminBase
       width = $AdminWidth; height = $AdminHeight; waitMs = $AdminWaitMs
       expectedUrlContains = "/tech-managers"; minElements = 100
-      selectorsAll = @(".ipm-sider", ".ipm-content-inner"); selectorsAny = @(".ant-table", ".ant-card")
+      selectorsAll = @(".admin-tech-managers-page", ".ipm-content-inner"); selectorsAny = @(".ant-table", ".ant-pagination")
       textAny = @(); storage = $adminAuthedStorage; demoAuth = $false
     },
     @{
       name = "admin-cases"; path = "/cases"; base = $adminBase
       width = $AdminWidth; height = $AdminHeight; waitMs = $AdminWaitMs
       expectedUrlContains = "/cases"; minElements = 90
-      selectorsAll = @(".ipm-sider", ".ipm-content-inner"); selectorsAny = @(".ant-card", ".ant-table")
+      selectorsAll = @(".admin-cases-page", ".ipm-content-inner"); selectorsAny = @(".ant-card", ".ant-table")
       textAny = @(); storage = $adminAuthedStorage; demoAuth = $false
     },
     @{
       name = "admin-reports"; path = "/reports"; base = $adminBase
       width = $AdminWidth; height = $AdminHeight; waitMs = $AdminWaitMs
       expectedUrlContains = "/reports"; minElements = 90
-      selectorsAll = @(".ipm-sider", ".ipm-content-inner"); selectorsAny = @(".ant-card", ".ant-table")
+      selectorsAll = @(".admin-reports-page", ".ipm-content-inner"); selectorsAny = @(".ant-card", ".ant-table")
       textAny = @(); storage = $adminAuthedStorage; demoAuth = $false
     },
     @{
       name = "admin-comments"; path = "/comments"; base = $adminBase
       width = $AdminWidth; height = $AdminHeight; waitMs = $AdminWaitMs
       expectedUrlContains = "/comments"; minElements = 100
-      selectorsAll = @(".ipm-sider", ".ipm-content-inner"); selectorsAny = @(".ant-table", ".ant-card")
+      selectorsAll = @(".admin-comments-page", ".ipm-content-inner"); selectorsAny = @(".ant-table", ".ant-pagination")
       textAny = @(); storage = $adminAuthedStorage; demoAuth = $false
     },
     @{
       name = "admin-announcements"; path = "/announcements"; base = $adminBase
       width = $AdminWidth; height = $AdminHeight; waitMs = $AdminWaitMs
       expectedUrlContains = "/announcements"; minElements = 100
-      selectorsAll = @(".ipm-sider", ".ipm-content-inner"); selectorsAny = @(".ant-table", ".ant-card")
+      selectorsAll = @(".admin-announcements-page", ".ipm-content-inner"); selectorsAny = @(".ant-table", ".ant-pagination")
       textAny = @(); storage = $adminAuthedStorage; demoAuth = $false
     },
     @{
       name = "admin-alerts"; path = "/alerts"; base = $adminBase
       width = $AdminWidth; height = $AdminHeight; waitMs = $AdminWaitMs
       expectedUrlContains = "/alerts"; minElements = 100
-      selectorsAll = @(".ipm-sider", ".ipm-content-inner"); selectorsAny = @(".ant-table", ".ant-card")
+      selectorsAll = @(".admin-alerts-page", ".ipm-content-inner"); selectorsAny = @(".ant-table", ".ant-pagination")
       textAny = @(); storage = $adminAuthedStorage; demoAuth = $false
     },
     @{
       name = "admin-maintenance"; path = "/maintenance"; base = $adminBase
       width = $AdminWidth; height = $AdminHeight; waitMs = $AdminWaitMs
       expectedUrlContains = "/maintenance"; minElements = 100
-      selectorsAll = @(".ipm-sider", ".ipm-content-inner"); selectorsAny = @(".ant-table", ".ant-card")
+      selectorsAll = @(".admin-maintenance-page", ".ipm-content-inner"); selectorsAny = @(".ant-tabs", ".ant-table")
       textAny = @(); storage = $adminAuthedStorage; demoAuth = $false
     },
     @{
       name = "admin-regions"; path = "/regions"; base = $adminBase
       width = $AdminWidth; height = $AdminHeight; waitMs = $AdminWaitMs
       expectedUrlContains = "/regions"; minElements = 100
-      selectorsAll = @(".ipm-sider", ".ipm-content-inner"); selectorsAny = @(".ant-table", ".ant-card")
+      selectorsAll = @(".admin-regions-page", ".ipm-content-inner"); selectorsAny = @(".ant-tabs", ".ant-table")
       textAny = @(); storage = $adminAuthedStorage; demoAuth = $false
     },
     @{
       name = "admin-patents"; path = "/patents"; base = $adminBase
       width = $AdminWidth; height = $AdminHeight; waitMs = $AdminWaitMs
       expectedUrlContains = "/patents"; minElements = 100
-      selectorsAll = @(".ipm-sider", ".ipm-content-inner"); selectorsAny = @(".ant-table", ".ant-card")
+      selectorsAll = @(".admin-patents-page", ".ipm-content-inner"); selectorsAny = @(".ant-table", ".ant-pagination")
       textAny = @(); storage = $adminAuthedStorage; demoAuth = $false
     }
   )
