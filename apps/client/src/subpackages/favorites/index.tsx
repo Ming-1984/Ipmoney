@@ -403,7 +403,7 @@ export default function FavoritesPage() {
           : artworkItems.length;
 
   return (
-    <View className="container">
+    <View className="container favorites-page">
       <PageHeader title="我的收藏" subtitle="收藏后可快速回访；取消收藏后将不再显示" />
       <Spacer />
 

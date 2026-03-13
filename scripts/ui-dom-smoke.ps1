@@ -593,14 +593,14 @@ try {
       name = "client-notifications"; path = "#/pages/notifications/index"; base = $clientBase
       width = $ClientWidth; height = $ClientHeight; waitMs = $ClientWaitMs
       expectedUrlContains = "#/pages/notifications/index"; minElements = 60
-      selectorsAll = @(); selectorsAny = @()
+      selectorsAll = @(".notifications-page", ".notifications-tabs"); selectorsAny = @(".notifications-tab.is-active", ".notification-item", ".notification-empty")
       textAny = @(); storage = $clientApprovedStorage; demoAuth = $true
     },
     @{
       name = "client-announcements"; path = "#/pages/announcements/index"; base = $clientBase
       width = $ClientWidth; height = $ClientHeight; waitMs = $ClientWaitMs
       expectedUrlContains = "#/pages/announcements/index"; minElements = 60
-      selectorsAll = @(); selectorsAny = @()
+      selectorsAll = @(".announcements-page"); selectorsAny = @(".announcement-list", ".announcement-card", ".announcement-card-title", ".card-state")
       textAny = @(); storage = @(); demoAuth = $false
     },
     @{
@@ -614,28 +614,28 @@ try {
       name = "client-about"; path = "#/pages/about/index"; base = $clientBase
       width = $ClientWidth; height = $ClientHeight; waitMs = $ClientWaitMs
       expectedUrlContains = "#/pages/about/index"; minElements = 50
-      selectorsAll = @(); selectorsAny = @()
+      selectorsAll = @(".settings-page"); selectorsAny = @(".settings-card", ".settings-tip", ".settings-tip-text")
       textAny = @(); storage = @(); demoAuth = $false
     },
     @{
       name = "client-support"; path = "#/pages/support/index"; base = $clientBase
       width = $ClientWidth; height = $ClientHeight; waitMs = $ClientWaitMs
       expectedUrlContains = "#/pages/support/index"; minElements = 50
-      selectorsAll = @(); selectorsAny = @()
+      selectorsAll = @(".settings-page"); selectorsAny = @(".feedback-title", ".feedback-input", ".feedback-textarea")
       textAny = @(); storage = @(); demoAuth = $false
     },
     @{
       name = "client-legal-privacy"; path = "#/pages/legal/privacy/index"; base = $clientBase
       width = $ClientWidth; height = $ClientHeight; waitMs = $ClientWaitMs
       expectedUrlContains = "#/pages/legal/privacy/index"; minElements = 50
-      selectorsAll = @(); selectorsAny = @()
+      selectorsAll = @(".legal-page", ".legal-list"); selectorsAny = @(".legal-card", ".legal-title", ".legal-body")
       textAny = @(); storage = @(); demoAuth = $false
     },
     @{
       name = "client-legal-terms"; path = "#/pages/legal/terms/index"; base = $clientBase
       width = $ClientWidth; height = $ClientHeight; waitMs = $ClientWaitMs
       expectedUrlContains = "#/pages/legal/terms/index"; minElements = 50
-      selectorsAll = @(); selectorsAny = @()
+      selectorsAll = @(".legal-page", ".legal-list"); selectorsAny = @(".legal-card", ".legal-title", ".legal-body")
       textAny = @(); storage = @(); demoAuth = $false
     },
     @{
@@ -729,49 +729,49 @@ try {
       name = "client-notification-detail"; path = "#/pages/notifications/detail/index?id=$($sample.notificationId)"; base = $clientBase
       width = $ClientWidth; height = $ClientHeight; waitMs = $ClientWaitMs
       expectedUrlContains = "#/pages/notifications/detail/index"; minElements = 60
-      selectorsAll = @(); selectorsAny = @()
+      selectorsAll = @(".notification-detail-page", ".notification-detail-card"); selectorsAny = @(".notification-detail-title", ".notification-detail-content", ".notification-detail-source")
       textAny = @(); storage = $clientApprovedStorage; demoAuth = $true
     },
     @{
-      name = "client-announcement-detail"; path = "#/pages/announcements/detail/index?id=$($sample.announcementId)"; base = $clientBase
+      name = "client-announcement-detail"; path = "#/pages/announcements/detail/index?announcementId=$($sample.announcementId)"; base = $clientBase
       width = $ClientWidth; height = $ClientHeight; waitMs = $ClientWaitMs
       expectedUrlContains = "#/pages/announcements/detail/index"; minElements = 50
-      selectorsAll = @(); selectorsAny = @()
+      selectorsAll = @(".announcement-detail-page", ".announcement-detail-card"); selectorsAny = @(".announcement-detail-title", ".announcement-detail-content", ".announcement-detail-time")
       textAny = @(); storage = @(); demoAuth = $false
     },
     @{
       name = "client-favorites"; path = "#/pages/favorites/index"; base = $clientBase
       width = $ClientWidth; height = $ClientHeight; waitMs = $ClientWaitMs
       expectedUrlContains = "#/pages/favorites/index"; minElements = 60
-      selectorsAll = @(); selectorsAny = @()
+      selectorsAll = @(".favorites-page"); selectorsAny = @(".search-card-list", ".listing-list", ".artwork-favorite-item", ".text-strong", ".card-state")
       textAny = @(); storage = $clientApprovedStorage; demoAuth = $true
     },
     @{
       name = "client-contracts"; path = "#/pages/contracts/index"; base = $clientBase
       width = $ClientWidth; height = $ClientHeight; waitMs = $ClientWaitMs
       expectedUrlContains = "#/pages/contracts/index"; minElements = 60
-      selectorsAll = @(); selectorsAny = @()
+      selectorsAll = @(".contracts-page", ".contract-tabs"); selectorsAny = @(".contract-tab.is-active", ".contract-list", ".contract-card", ".card-state")
       textAny = @(); storage = $clientApprovedStorage; demoAuth = $true
     },
     @{
       name = "client-invoices"; path = "#/pages/invoices/index"; base = $clientBase
       width = $ClientWidth; height = $ClientHeight; waitMs = $ClientWaitMs
       expectedUrlContains = "#/pages/invoices/index"; minElements = 60
-      selectorsAll = @(); selectorsAny = @()
+      selectorsAll = @(".invoices-page", ".invoice-tabs"); selectorsAny = @(".invoice-tab.is-active", ".invoice-list", ".invoice-card", ".card-state")
       textAny = @(); storage = $clientApprovedStorage; demoAuth = $true
     },
     @{
       name = "client-addresses"; path = "#/pages/addresses/index"; base = $clientBase
       width = $ClientWidth; height = $ClientHeight; waitMs = $ClientWaitMs
       expectedUrlContains = "#/pages/addresses/index"; minElements = 60
-      selectorsAll = @(); selectorsAny = @()
+      selectorsAll = @(".address-page"); selectorsAny = @(".address-list", ".address-card", ".address-actions", ".card-state")
       textAny = @(); storage = $clientApprovedStorage; demoAuth = $true
     },
     @{
       name = "client-address-edit"; path = "#/pages/addresses/edit/index"; base = $clientBase
       width = $ClientWidth; height = $ClientHeight; waitMs = $ClientWaitMs
       expectedUrlContains = "#/pages/addresses/edit/index"; minElements = 60
-      selectorsAll = @(); selectorsAny = @()
+      selectorsAll = @(".address-edit-page", ".address-form-card"); selectorsAny = @(".form-field", ".form-label", ".address-form-actions")
       textAny = @(); storage = $clientApprovedStorage; demoAuth = $true
     },
     @{
@@ -869,28 +869,28 @@ try {
       name = "client-support-faq"; path = "#/pages/support/faq/index"; base = $clientBase
       width = $ClientWidth; height = $ClientHeight; waitMs = $ClientWaitMs
       expectedUrlContains = "#/pages/support/faq/index"; minElements = 50
-      selectorsAll = @(); selectorsAny = @()
+      selectorsAll = @(".settings-page", ".faq-search-card"); selectorsAny = @(".faq-section-title", ".settings-card", ".faq-bottom-card", ".faq-empty")
       textAny = @(); storage = @(); demoAuth = $false
     },
     @{
       name = "client-support-faq-detail"; path = "#/pages/support/faq/detail/index?id=faq-1"; base = $clientBase
       width = $ClientWidth; height = $ClientHeight; waitMs = $ClientWaitMs
       expectedUrlContains = "#/pages/support/faq/detail/index"; minElements = 50
-      selectorsAll = @(); selectorsAny = @()
+      selectorsAll = @(".faq-detail-page", ".faq-detail-card"); selectorsAny = @(".faq-detail-q", ".faq-detail-a", ".faq-detail-actions", ".faq-detail-meta")
       textAny = @(); storage = @(); demoAuth = $false
     },
     @{
       name = "client-support-contact"; path = "#/pages/support/contact/index"; base = $clientBase
       width = $ClientWidth; height = $ClientHeight; waitMs = $ClientWaitMs
       expectedUrlContains = "#/pages/support/contact/index"; minElements = 50
-      selectorsAll = @(); selectorsAny = @()
+      selectorsAll = @(".settings-page", ".settings-card"); selectorsAny = @(".cs-hint", ".settings-tip-text")
       textAny = @(); storage = @(); demoAuth = $false
     },
     @{
       name = "client-legal-privacy-guide"; path = "#/pages/legal/privacy-guide/index"; base = $clientBase
       width = $ClientWidth; height = $ClientHeight; waitMs = $ClientWaitMs
       expectedUrlContains = "#/pages/legal/privacy-guide/index"; minElements = 50
-      selectorsAll = @(); selectorsAny = @()
+      selectorsAll = @(".legal-page", ".legal-list"); selectorsAny = @(".legal-card", ".legal-title", ".legal-body")
       textAny = @(); storage = @(); demoAuth = $false
     },
     @{
