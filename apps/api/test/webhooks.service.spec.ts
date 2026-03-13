@@ -237,4 +237,194 @@ describe('WebhooksService strictness suite', () => {
     expect(prisma.paymentWebhookEvent.upsert).not.toHaveBeenCalled();
     expect(prisma.idempotencyKey.update).not.toHaveBeenCalled();
   });
+
+  it('derives FINAL payType from order status and backfills finalAmount when missing', async () => {
+    const { service, prisma, audit } = createService();
+    const orderId = '77777777-7777-4777-8777-777777777777';
+    const order = {
+      id: orderId,
+      status: 'WAIT_FINAL_PAYMENT',
+      depositAmount: 3000,
+      finalAmount: null,
+      dealAmount: 10000,
+      buyerUserId: 'buyer-7',
+      listing: {
+        title: 'Patent Listing FINAL',
+        sellerUserId: 'seller-7',
+      },
+    };
+
+    prisma.order.findUnique.mockResolvedValue(order);
+    prisma.payment.findFirst.mockResolvedValue(null);
+    prisma.order.update.mockResolvedValue({ ...order, status: 'FINAL_PAID_ESCROW', finalAmount: 7000 });
+
+    await service.handleWechatPayNotify(
+      { headers: { 'x-request-id': 'rid-final-1', 'user-agent': 'vitest' }, ip: '127.0.0.1' },
+      {
+        id: 'evt-final-1',
+        eventType: 'TRANSACTION.SUCCESS',
+        orderId,
+        amountFen: 7000,
+      },
+    );
+
+    expect(prisma.payment.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          orderId,
+          payType: 'FINAL',
+          amount: 7000,
+        }),
+      }),
+    );
+    expect(prisma.order.update).toHaveBeenCalledWith({
+      where: { id: orderId },
+      data: { status: 'FINAL_PAID_ESCROW', finalAmount: 7000 },
+    });
+    expect(audit.log).toHaveBeenCalledWith(expect.objectContaining({ action: 'ORDER_FINAL_PAID', targetId: orderId }));
+  });
+
+  it('updates existing pending payment instead of creating a new one', async () => {
+    const { service, prisma } = createService();
+    const orderId = '88888888-8888-4888-8888-888888888888';
+    const order = {
+      id: orderId,
+      status: 'DEPOSIT_PENDING',
+      depositAmount: 5000,
+      finalAmount: null,
+      dealAmount: 12000,
+      buyerUserId: 'buyer-8',
+      listing: {
+        title: 'Patent Listing Pending Pay',
+        sellerUserId: 'seller-8',
+      },
+    };
+
+    prisma.order.findUnique.mockResolvedValue(order);
+    prisma.payment.findFirst.mockResolvedValue({ id: 'pay-1', status: 'PENDING' });
+    prisma.order.update.mockResolvedValue({ ...order, status: 'DEPOSIT_PAID' });
+
+    await service.handleWechatPayNotify(
+      { headers: { 'x-request-id': 'rid-pending-1', 'user-agent': 'vitest' }, ip: '127.0.0.1' },
+      {
+        id: 'evt-pending-1',
+        eventType: 'TRANSACTION.SUCCESS',
+        orderId,
+        payType: 'DEPOSIT',
+        tradeNo: 'wx-pending-1',
+        amountFen: 5100,
+      },
+    );
+
+    expect(prisma.payment.create).not.toHaveBeenCalled();
+    expect(prisma.payment.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { id: 'pay-1' },
+        data: expect.objectContaining({
+          status: 'PAID',
+          tradeNo: 'wx-pending-1',
+          amount: 5100,
+        }),
+      }),
+    );
+  });
+
+  it('keeps idempotent no-op when order already in target paid status', async () => {
+    const { service, prisma, audit, notifications } = createService();
+    const orderId = '99999999-9999-4999-8999-999999999999';
+
+    prisma.order.findUnique.mockResolvedValue({
+      id: orderId,
+      status: 'DEPOSIT_PAID',
+      depositAmount: 5000,
+      finalAmount: null,
+      dealAmount: 12000,
+      buyerUserId: 'buyer-9',
+      listing: { title: 'Already Paid', sellerUserId: 'seller-9' },
+    });
+    prisma.payment.findFirst.mockResolvedValue({ id: 'pay-paid', status: 'PAID' });
+
+    await service.handleWechatPayNotify(
+      { headers: { 'x-request-id': 'rid-idem-1', 'user-agent': 'vitest' }, ip: '127.0.0.1' },
+      {
+        id: 'evt-idem-1',
+        eventType: 'TRANSACTION.SUCCESS',
+        orderId,
+        payType: 'DEPOSIT',
+      },
+    );
+
+    expect(prisma.order.update).not.toHaveBeenCalled();
+    expect(audit.log).not.toHaveBeenCalled();
+    expect(notifications.createMany).not.toHaveBeenCalled();
+  });
+
+  it('falls back to latest refund request by orderId when refundRequestId is absent', async () => {
+    const { service, prisma, audit } = createService();
+    const orderId = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
+    const refundRequestId = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';
+
+    prisma.refundRequest.findFirst.mockResolvedValue({
+      id: refundRequestId,
+      orderId,
+      status: 'REFUNDING',
+    });
+    prisma.order.findUnique.mockResolvedValue({
+      id: orderId,
+      status: 'FINAL_PAID_ESCROW',
+      buyerUserId: 'buyer-a',
+      listing: { title: 'Refund Fallback', sellerUserId: 'seller-a' },
+    });
+    prisma.refundRequest.update.mockResolvedValue({ id: refundRequestId, status: 'REFUNDED' });
+    prisma.order.update.mockResolvedValue({ id: orderId, status: 'REFUNDED' });
+
+    await service.handleWechatPayNotify(
+      { headers: { 'x-request-id': 'rid-ref-fallback-1', 'user-agent': 'vitest' }, ip: '127.0.0.1' },
+      {
+        id: 'evt-ref-fallback-1',
+        eventType: 'REFUND.SUCCESS',
+        orderId,
+      },
+    );
+
+    expect(prisma.refundRequest.findFirst).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({ orderId }),
+      }),
+    );
+    const actions = audit.log.mock.calls.map((call: any[]) => call[0]?.action);
+    expect(actions).toContain('REFUND_COMPLETED');
+    expect(actions).toContain('ORDER_REFUNDED');
+  });
+
+  it('safely ignores payment event when payType cannot be resolved from event or status', async () => {
+    const { service, prisma, audit, notifications } = createService();
+    const orderId = 'cccccccc-cccc-4ccc-8ccc-cccccccccccc';
+
+    prisma.order.findUnique.mockResolvedValue({
+      id: orderId,
+      status: 'WAIT_CONFIRM',
+      depositAmount: 5000,
+      finalAmount: 6000,
+      dealAmount: 11000,
+      buyerUserId: 'buyer-c',
+      listing: { title: 'Unknown Pay Type', sellerUserId: 'seller-c' },
+    });
+
+    await service.handleWechatPayNotify(
+      { headers: { 'x-request-id': 'rid-ignore-1', 'user-agent': 'vitest' }, ip: '127.0.0.1' },
+      {
+        id: 'evt-ignore-1',
+        eventType: 'TRANSACTION.SUCCESS',
+        orderId,
+      },
+    );
+
+    expect(prisma.payment.findFirst).not.toHaveBeenCalled();
+    expect(prisma.payment.create).not.toHaveBeenCalled();
+    expect(prisma.payment.update).not.toHaveBeenCalled();
+    expect(prisma.order.update).not.toHaveBeenCalled();
+    expect(audit.log).not.toHaveBeenCalled();
+    expect(notifications.createMany).not.toHaveBeenCalled();
+  });
 });
