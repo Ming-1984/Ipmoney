@@ -3,17 +3,17 @@
 ## Latest (2026-03-13)
 
 ### Commands & Results (dev)
-- `powershell -ExecutionPolicy Bypass -File scripts/verify.ps1 -ReportDate 2026-03-13-r237`
+- `powershell -ExecutionPolicy Bypass -File scripts/verify.ps1 -ReportDate 2026-03-13-r238`
   - Result: success (all steps)
-  - Render artifact: `docs/demo/rendered/ui-smoke-2026-03-13-r237/` (core mode, 3 pages)
+  - Render artifact: `docs/demo/rendered/ui-smoke-2026-03-13-r238/` (core mode, 3 pages)
   - Gate summary: `api-real-smoke` `1754/1754` (`writes=1297`,`reads=457`), OpenAPI coverage `238/238`, quality floor `violations=[]`, plus `db-preflight/ui-http-smoke/ui-render-smoke(core)/ui-dom-smoke(core)` all pass.
 - `powershell -ExecutionPolicy Bypass -File scripts/api-real-smoke.ps1 -ReportDate 2026-03-12-r193`
   - Result: pass (`1754/1754`) after chaos trend-threshold anti-flake tuning.
   - Notes: an earlier `verify` run (`r192`) had a single false-negative on `chaos-randomized-outcome-distribution` (trend threshold marginal exceed); script now reports base/effective trend thresholds and applies a bounded `+250ms` grace while keeping the absolute p95 guard unchanged.
 - `pnpm -C apps/api test`
-  - Result: pass (`531/531`)
-  - Coverage in this batch: existing domain strictness suites remained green, and regions write-flow coverage expanded with `test/regions.write-flow.spec.ts` (`7`) on create/update/industry-tags and industry-tag create strict branches.
-  - Notes: this batch strengthens region admin write-path validation, coordinate/level/code strictness, conflict/not-found mapping, and tag normalization without touching real login/payment integrations.
+  - Result: pass (`539/539`)
+  - Coverage in this batch: existing domain strictness suites remained green, and conversations write-flow coverage expanded with `test/conversations.write-flow.spec.ts` (`8`) on conversation upsert, message send, and read-mark write paths.
+  - Notes: this batch strengthens conversation write-path strictness for auth, id validation, participant boundaries, and write-side persistence branches without touching real login/payment integrations.
 - `pnpm -C apps/api test:e2e`
   - Result: pass (`2/2`).
 - `pnpm -C apps/api lint && pnpm -C apps/api typecheck && pnpm -C apps/api build`
