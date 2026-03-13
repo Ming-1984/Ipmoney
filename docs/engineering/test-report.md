@@ -35,8 +35,8 @@
 - `powershell -ExecutionPolicy Bypass -File scripts/ui-dom-smoke.ps1 -Mode full -ReportDate 2026-03-13-r243`
   - Result: pass (`83/83`, mode=`full-83`)
   - Artifact: `.tmp/ui-dom-smoke-2026-03-13-r243-summary.json`
-- `node -e "const fs=require('fs');const data=JSON.parse(fs.readFileSync('.tmp/api-real-smoke-2026-03-12-r185.json','utf8').replace(/^\uFEFF/,''));const keys=['industry-tags-sanitized','hidden-industry-filter','public-regions-query-smoke-region','public-regions-list-after-industry-tags-set','public-announcements-list-admin-smoke-tags-sanitized','public-announcement-detail-admin-smoke-tags-sanitized'];const hit=data.filter(x=>keys.some(k=>String(x.name||'').includes(k)));const failed=hit.filter(x=>!x.ok);console.log(JSON.stringify({matched:hit.length,failed:failed.length},null,2));"`
-  - Result: matched targeted anti-pollution checks `24`, failed `0` (including hidden `industryTags` filter variants and public list/detail sanitization checks).
+- `node -e "const fs=require('fs');const data=JSON.parse(fs.readFileSync('.tmp/api-real-smoke-2026-03-13-r241.json','utf8').replace(/^\uFEFF/,''));const keys=['industry-tags-sanitized','hidden-industry-filter','public-regions-query-smoke-region','public-regions-list-after-industry-tags-set','public-announcements-list-admin-smoke-tags-sanitized','public-announcement-detail-admin-smoke-tags-sanitized','public-tech-manager-detail-smoke-service-tag-hidden','patent-map-region-detail-smoke-tag-hidden'];const hit=data.filter(x=>keys.some(k=>String(x.name||'').includes(k)));const failed=hit.filter(x=>!x.ok);console.log(JSON.stringify({matched:hit.length,failed:failed.length},null,2));"`
+  - Result: matched targeted anti-pollution checks `25`, failed `0` (including hidden `industryTags`/`serviceTags` variants and public list/detail sanitization checks).
 
 ## Latest (2026-03-06)
 
