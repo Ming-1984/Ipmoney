@@ -516,77 +516,77 @@ try {
       name = "client-tech-managers"; path = "#/pages/tech-managers/index"; base = $clientBase
       width = $ClientWidth; height = $ClientHeight; waitMs = $ClientWaitMs
       expectedUrlContains = "#/pages/tech-managers/index"; minElements = 60
-      selectorsAll = @(); selectorsAny = @()
+      selectorsAll = @(".consult-page", ".consult-tabs", ".consult-search"); selectorsAny = @(".consult-tab.is-active", ".consult-list", ".consult-card", ".consult-action")
       textAny = @(); storage = @(); demoAuth = $false
     },
     @{
       name = "client-patent-detail"; path = "#/pages/patent/detail/index?patentId=$($sample.patentId)"; base = $clientBase
       width = $ClientWidth; height = $ClientHeight; waitMs = $ClientWaitMs
       expectedUrlContains = "#/pages/patent/detail/index"; minElements = 60
-      selectorsAll = @(); selectorsAny = @()
+      selectorsAll = @(".detail-page-compact", "#patent-overview", "#patent-info"); selectorsAny = @(".detail-tabs", ".detail-sticky-buttons", "#patent-comments", ".detail-tool-row")
       textAny = @(); storage = @(); demoAuth = $false
     },
     @{
       name = "client-artwork-detail"; path = "#/pages/artwork/detail/index?artworkId=$($sample.artworkId)"; base = $clientBase
       width = $ClientWidth; height = $ClientHeight; waitMs = $ClientWaitMs
       expectedUrlContains = "#/pages/artwork/detail/index"; minElements = 60
-      selectorsAll = @(); selectorsAny = @()
+      selectorsAll = @(".detail-page-compact", "#artwork-overview", "#artwork-info"); selectorsAny = @(".detail-tabs", "#artwork-comments", ".detail-tool-row", ".listing-detail-sticky-secondary")
       textAny = @(); storage = @(); demoAuth = $false
     },
     @{
       name = "client-demand-detail"; path = "#/pages/demand/detail/index?demandId=$($sample.demandId)"; base = $clientBase
       width = $ClientWidth; height = $ClientHeight; waitMs = $ClientWaitMs
       expectedUrlContains = "#/pages/demand/detail/index"; minElements = 60
-      selectorsAll = @(); selectorsAny = @()
+      selectorsAll = @(".detail-page-compact", "#demand-summary", "#demand-info"); selectorsAny = @(".detail-tabs", "#demand-comments", ".detail-tool-row", ".detail-sticky-buttons")
       textAny = @(); storage = @(); demoAuth = $false
     },
     @{
       name = "client-achievement-detail"; path = "#/pages/achievement/detail/index?achievementId=$($sample.achievementId)"; base = $clientBase
       width = $ClientWidth; height = $ClientHeight; waitMs = $ClientWaitMs
       expectedUrlContains = "#/pages/achievement/detail/index"; minElements = 60
-      selectorsAll = @(); selectorsAny = @()
+      selectorsAll = @(".detail-page-compact", "#achievement-summary", "#achievement-info"); selectorsAny = @(".detail-tabs", "#achievement-comments", ".detail-tool-row", ".detail-sticky-buttons")
       textAny = @(); storage = @(); demoAuth = $false
     },
     @{
       name = "client-organizations"; path = "#/pages/organizations/index"; base = $clientBase
       width = $ClientWidth; height = $ClientHeight; waitMs = $ClientWaitMs
       expectedUrlContains = "#/pages/organizations/index"; minElements = 60
-      selectorsAll = @(); selectorsAny = @()
+      selectorsAll = @(".organizations-page", ".search-sort-row", ".search-filter-btn"); selectorsAny = @(".search-card-list", ".org-card", ".search-toolbar-row", ".card-state")
       textAny = @(); storage = @(); demoAuth = $false
     },
     @{
       name = "client-organization-detail"; path = "#/pages/organizations/detail/index?orgUserId=$($sample.orgUserId)"; base = $clientBase
       width = $ClientWidth; height = $ClientHeight; waitMs = $ClientWaitMs
       expectedUrlContains = "#/pages/organizations/detail/index"; minElements = 60
-      selectorsAll = @(); selectorsAny = @()
+      selectorsAll = @(".detail-page-compact", "#org-overview", "#org-intro"); selectorsAny = @(".detail-tabs", "#org-note", ".detail-tool-row")
       textAny = @(); storage = @(); demoAuth = $false
     },
     @{
       name = "client-patent-map"; path = "#/pages/patent-map/index"; base = $clientBase
       width = $ClientWidth; height = $ClientHeight; waitMs = $ClientWaitMs
       expectedUrlContains = "#/pages/patent-map/index"; minElements = 60
-      selectorsAll = @(); selectorsAny = @()
+      selectorsAll = @(".patent-map-page"); selectorsAny = @("#patent-map", ".card", ".tag.tag-gold", ".card-state")
       textAny = @(); storage = @(); demoAuth = $false
     },
     @{
       name = "client-inventors"; path = "#/pages/inventors/index"; base = $clientBase
       width = $ClientWidth; height = $ClientHeight; waitMs = $ClientWaitMs
       expectedUrlContains = "#/pages/inventors/index"; minElements = 60
-      selectorsAll = @(); selectorsAny = @()
+      selectorsAll = @(".consult-page", ".inventor-rank-page"); selectorsAny = @(".inventor-rank-content", ".inventor-podium-card", ".inventor-rank-row", ".card-state")
       textAny = @(); storage = @(); demoAuth = $false
     },
     @{
       name = "client-messages"; path = "#/pages/messages/index"; base = $clientBase
       width = $ClientWidth; height = $ClientHeight; waitMs = $ClientWaitMs
       expectedUrlContains = "#/pages/messages/index"; minElements = 60
-      selectorsAll = @(); selectorsAny = @()
+      selectorsAll = @(".messages-page", ".messages-header-new", ".messages-alert"); selectorsAny = @(".messages-list-new", ".message-item-new", ".messages-alert-link")
       textAny = @(); storage = $clientApprovedStorage; demoAuth = $true
     },
     @{
       name = "client-chat"; path = "#/pages/messages/chat/index?conversationId=$($sample.conversationId)"; base = $clientBase
       width = $ClientWidth; height = $ClientHeight; waitMs = $ClientWaitMs
       expectedUrlContains = "#/pages/messages/chat/index"; minElements = 60
-      selectorsAll = @(); selectorsAny = @()
+      selectorsAll = @(".chat-page", ".chat-header"); selectorsAny = @(".chat-content", ".chat-input-bar", ".chat-safety", ".chat-context-card")
       textAny = @(); storage = $clientApprovedStorage; demoAuth = $true
     },
     @{
@@ -607,7 +607,7 @@ try {
       name = "client-order-detail"; path = "#/pages/orders/detail/index?orderId=$($sample.orderId)"; base = $clientBase
       width = $ClientWidth; height = $ClientHeight; waitMs = $ClientWaitMs
       expectedUrlContains = "#/pages/orders/detail/index"; minElements = 60
-      selectorsAll = @(); selectorsAny = @()
+      selectorsAll = @(".detail-page-compact", "#order-overview", ".detail-tabs"); selectorsAny = @("#order-case", "#order-refund", "#order-invoice", ".text-card-title")
       textAny = @(); storage = $clientApprovedStorage; demoAuth = $true
     },
     @{
@@ -642,7 +642,7 @@ try {
       name = "client-profile-edit"; path = "#/pages/profile/edit/index"; base = $clientBase
       width = $ClientWidth; height = $ClientHeight; waitMs = $ClientWaitMs
       expectedUrlContains = "#/pages/profile/edit/index"; minElements = 60
-      selectorsAll = @(); selectorsAny = @()
+      selectorsAll = @(".profile-edit-page", ".profile-card"); selectorsAny = @(".profile-avatar-picker", ".form-field", ".profile-primary-btn")
       textAny = @(); storage = $clientApprovedStorage; demoAuth = $true
     },
     @{

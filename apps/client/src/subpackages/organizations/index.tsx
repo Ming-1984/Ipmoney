@@ -120,7 +120,7 @@ export default function OrganizationsPage() {
   }, [filters.regionCode, filters.regionName, filters.types]);
 
   return (
-    <View className="container">
+    <View className="container organizations-page">
       <PageHeader title="机构展示" subtitle="企业/科研院校等审核通过后，对外展示。" brand={false} />
       <Spacer />
 

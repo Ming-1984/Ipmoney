@@ -194,7 +194,7 @@ export default function PatentMapPage() {
   }, [isWeapp, markers]);
 
   return (
-    <View className="container page-bg-plain">
+    <View className="container page-bg-plain patent-map-page">
       <PageHeader title="区域产业专利地图" subtitle="展示各区域专利数量。" />
       <Spacer />
 
