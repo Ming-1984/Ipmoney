@@ -1,19 +1,19 @@
 # Test Report (Consolidated)
 
-## Latest (2026-03-13)
+## Latest (2026-03-14)
 
 ### Commands & Results (dev)
-- `powershell -ExecutionPolicy Bypass -File scripts/verify.ps1 -ReportDate 2026-03-13-r241`
+- `powershell -ExecutionPolicy Bypass -File scripts/verify.ps1 -ReportDate 2026-03-14-r245`
   - Result: success (all steps)
-  - Render artifact: `docs/demo/rendered/ui-smoke-2026-03-13-r241/` (core mode, 3 pages)
+  - Render artifact: `docs/demo/rendered/ui-smoke-2026-03-14-r245/` (core mode, 3 pages)
   - Gate summary: `api-real-smoke` `1754/1754` (`writes=1297`,`reads=457`), OpenAPI coverage `238/238`, quality floor `violations=[]`, plus `db-preflight/ui-http-smoke/ui-render-smoke(core)/ui-dom-smoke(core)` all pass.
 - `powershell -ExecutionPolicy Bypass -File scripts/api-real-smoke.ps1 -ReportDate 2026-03-12-r193`
   - Result: pass (`1754/1754`) after chaos trend-threshold anti-flake tuning.
   - Notes: an earlier `verify` run (`r192`) had a single false-negative on `chaos-randomized-outcome-distribution` (trend threshold marginal exceed); script now reports base/effective trend thresholds and applies a bounded `+250ms` grace while keeping the absolute p95 guard unchanged.
 - `pnpm -C apps/api test`
-  - Result: pass (`560/560`)
-  - Coverage in this batch: existing domain strictness suites remained green, and patent-map admin write-flow coverage expanded with `test/patent-map.write-flow.spec.ts` (`7`) on admin get-entry/upsert/import branches.
-  - Notes: this batch strengthens patent-map write-path validation/import transaction/fallback behavior without touching real login/payment integrations.
+  - Result: pass (`568/568`)
+  - Coverage in this batch: existing domain strictness suites remained green, and write-flow coverage expanded with `test/patent-map.write-flow.spec.ts` (`7`) plus `test/users.admin-verifications-review.spec.ts` (`8`) for admin verification review approve/reject branches.
+  - Notes: this batch strengthens patent-map and user-verification admin write-path validation/branch behavior without touching real login/payment integrations.
 - `pnpm -C apps/api test:e2e`
   - Result: pass (`2/2`).
 - `pnpm -C apps/api lint && pnpm -C apps/api typecheck && pnpm -C apps/api build`
@@ -35,7 +35,7 @@
 - `powershell -ExecutionPolicy Bypass -File scripts/ui-dom-smoke.ps1 -Mode full -ReportDate 2026-03-13-r243`
   - Result: pass (`83/83`, mode=`full-83`)
   - Artifact: `.tmp/ui-dom-smoke-2026-03-13-r243-summary.json`
-- `node -e "const fs=require('fs');const data=JSON.parse(fs.readFileSync('.tmp/api-real-smoke-2026-03-13-r241.json','utf8').replace(/^\uFEFF/,''));const keys=['industry-tags-sanitized','hidden-industry-filter','public-regions-query-smoke-region','public-regions-list-after-industry-tags-set','public-announcements-list-admin-smoke-tags-sanitized','public-announcement-detail-admin-smoke-tags-sanitized','public-tech-manager-detail-smoke-service-tag-hidden','patent-map-region-detail-smoke-tag-hidden'];const hit=data.filter(x=>keys.some(k=>String(x.name||'').includes(k)));const failed=hit.filter(x=>!x.ok);console.log(JSON.stringify({matched:hit.length,failed:failed.length},null,2));"`
+- `node -e "const fs=require('fs');const data=JSON.parse(fs.readFileSync('.tmp/api-real-smoke-2026-03-14-r245.json','utf8').replace(/^\uFEFF/,''));const keys=['industry-tags-sanitized','hidden-industry-filter','public-regions-query-smoke-region','public-regions-list-after-industry-tags-set','public-announcements-list-admin-smoke-tags-sanitized','public-announcement-detail-admin-smoke-tags-sanitized','public-tech-manager-detail-smoke-service-tag-hidden','patent-map-region-detail-smoke-tag-hidden'];const hit=data.filter(x=>keys.some(k=>String(x.name||'').includes(k)));const failed=hit.filter(x=>!x.ok);console.log(JSON.stringify({matched:hit.length,failed:failed.length},null,2));"`
   - Result: matched targeted anti-pollution checks `25`, failed `0` (including hidden `industryTags`/`serviceTags` variants and public list/detail sanitization checks).
 
 ## Latest (2026-03-06)
