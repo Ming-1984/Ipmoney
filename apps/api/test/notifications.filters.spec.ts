@@ -27,6 +27,8 @@ describe('NotificationsService filter and id strictness suite', () => {
     const req = { auth: { userId: 'u-1' } };
     await expect(service.list(req, { page: '0' })).rejects.toBeInstanceOf(BadRequestException);
     await expect(service.list(req, { pageSize: '1.2' })).rejects.toBeInstanceOf(BadRequestException);
+    await expect(service.list(req, { page: '9007199254740992' })).rejects.toBeInstanceOf(BadRequestException);
+    await expect(service.list(req, { pageSize: '9007199254740992' })).rejects.toBeInstanceOf(BadRequestException);
 
     prisma.notification.findMany.mockResolvedValueOnce([]);
     prisma.notification.count.mockResolvedValueOnce(0);
@@ -39,6 +41,38 @@ describe('NotificationsService filter and id strictness suite', () => {
       take: 50,
     });
     expect(result.page).toEqual({ page: 2, pageSize: 50, total: 0 });
+  });
+
+  it('uses default pagination and fallback dto time when createdAt is missing', async () => {
+    vi.useFakeTimers();
+    try {
+      vi.setSystemTime(new Date('2026-03-14T00:00:00.000Z'));
+      const req = { auth: { userId: 'u-1' } };
+
+      prisma.notification.findMany.mockResolvedValueOnce([
+        {
+          id: '11111111-1111-1111-1111-111111111111',
+          kind: 'system',
+          title: 'T',
+          summary: 'S',
+          source: 'SYSTEM',
+        },
+      ]);
+      prisma.notification.count.mockResolvedValueOnce(1);
+
+      const result = await service.list(req, {});
+
+      expect(prisma.notification.findMany).toHaveBeenCalledWith({
+        where: { userId: 'u-1' },
+        orderBy: { createdAt: 'desc' },
+        skip: 0,
+        take: 20,
+      });
+      expect(result.page).toEqual({ page: 1, pageSize: 20, total: 1 });
+      expect(result.items[0]?.time).toBe('2026-03-14T00:00:00.000Z');
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it('validates notification id format strictly', async () => {
@@ -61,7 +95,8 @@ describe('NotificationsService filter and id strictness suite', () => {
       source: 'SYSTEM',
       createdAt: new Date('2026-03-13T00:00:00.000Z'),
     });
-    const dto = await service.getById(req, id);
+    const dto = await service.getById(req, ` ${id} `);
+    expect(prisma.notification.findFirst).toHaveBeenLastCalledWith({ where: { id, userId: 'u-1' } });
     expect(dto).toMatchObject({
       id,
       kind: 'system',

@@ -3,6 +3,14 @@
 ## Latest (2026-03-14)
 
 ### Commands & Results (dev)
+- `pnpm -C apps/api test -- test/notifications.filters.spec.ts`
+  - Result: pass (`5/5`)
+  - Notes: expanded notifications strict regression coverage for non-safe-integer `page/pageSize`, default pagination + missing `createdAt` fallback mapping, and trimmed `notificationId` query branch.
+- `pnpm -C apps/api test`
+  - Result: pass (`614/614`)
+  - Notes: full API Vitest suite remained green after notifications filter strictness/safe-integer hardening.
+- `pnpm -C apps/api test:e2e`
+  - Result: pass (`2/2`)
 - `pnpm -C apps/api test -- test/inventors.query.spec.ts`
   - Result: pass (`4/4`)
   - Notes: expanded inventors query strict regression coverage for invalid `page/pageSize`, invalid `regionCode/patentType`, and `pageSize` cap branch with positive-count ranking path.
