@@ -3,6 +3,19 @@
 ## Latest (2026-03-14)
 
 ### Commands & Results (dev)
+- `powershell -ExecutionPolicy Bypass -File scripts/verify.ps1 -ReportDate r288e`
+  - Result: pass
+  - Notes: full-chain quality gate remained green (`api-real-smoke` `1754/1754`, coverage `238/238`, quality-floor `violations=[]`, `db-preflight` `9/9`, `ui-render(core)` `3/3`, `ui-dom(core)` `11/11`); hidden smoke/e2e/qa tag cleanup counters stayed `0`, showing no new persistence pollution surfaced in this round.
+- `powershell -ExecutionPolicy Bypass -File scripts/ui-render-smoke.ps1 -Mode full -ReportDate r288a`
+  - Result: pass (`83/83`)
+- `powershell -ExecutionPolicy Bypass -File scripts/ui-dom-smoke.ps1 -Mode full -ReportDate r288b`
+  - Result: pass (`83/83`)
+  - Notes: full-page DOM semantic assertions stayed stable, including search and publish/filter related pages.
+- `powershell -ExecutionPolicy Bypass -File scripts/weapp-route-smoke.ps1 -NoAuth -ReportDate r288c -LaunchRetries 3 -LaunchRetryDelayMs 4000 -KillStaleDevtools`
+  - Result: pass (`11/11` routes)
+- `powershell -ExecutionPolicy Bypass -File scripts/weapp-route-smoke.ps1 -ReportDate r288d -UserToken demo-user-11111111-1111-4111-8111-111111111111 -LaunchRetries 3 -LaunchRetryDelayMs 4000 -KillStaleDevtools`
+  - Result: pass (`11/11` routes)
+  - Notes: auth/no-auth route navigation remained stable with first-attempt launch and stale DevTools cleanup on auth run.
 - `powershell -ExecutionPolicy Bypass -File scripts/api-real-smoke.ps1 -ReportDate r287b`
   - Result: pass (`1754/1754`)
   - Notes: aligned smoke expectation with tech-manager service-tag write-time sanitization (`admin-tech-manager-update-service-tag-sanitized`), then full smoke suite returned green (`writes=1297`,`reads=457`).
