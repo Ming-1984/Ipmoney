@@ -2874,7 +2874,7 @@ try {
   $techManagerServiceTag = "smoke-service-$($ReportDate.Replace('-', ''))"
   $adminTechManagerUpdate = Add-ApiCaseResult -Results $results -Name "admin-tech-manager-update" -Method "PATCH" -Url "http://127.0.0.1:$resolvedApiPort/admin/tech-managers/$techManagerId" -Body @{ intro = "smoke tech manager intro $ReportDate"; serviceTags = @($techManagerServiceTag); featuredRank = 0; featuredUntil = (Get-Date).AddDays(7).ToString("o") } -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-tech-manager-update") -Expected @(200)
   Assert-ResultJsonFieldEquals -Result $adminTechManagerUpdate -Field "userId" -ExpectedValue $techManagerId -Assertion "admin-tech-manager-update-user-id"
-  Assert-ResultJsonArrayContains -Result $adminTechManagerUpdate -Field "serviceTags" -ExpectedValue $techManagerServiceTag -Assertion "admin-tech-manager-update-service-tag"
+  Assert-ResultJsonFieldMissing -Result $adminTechManagerUpdate -Field "serviceTags" -Assertion "admin-tech-manager-update-service-tag-sanitized"
   $publicTechManagerDetailAfterAdminUpdate = Add-ApiCaseResult -Results $results -Name "public-tech-manager-detail-smoke-service-tag-hidden" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/public/tech-managers/$techManagerId" -Body $null -Headers @{} -Expected @(200)
   Assert-ResultJsonFieldMissing -Result $publicTechManagerDetailAfterAdminUpdate -Field "serviceTags" -Assertion "public-tech-manager-detail-smoke-service-tag-hidden"
 

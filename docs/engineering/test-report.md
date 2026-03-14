@@ -3,6 +3,12 @@
 ## Latest (2026-03-14)
 
 ### Commands & Results (dev)
+- `powershell -ExecutionPolicy Bypass -File scripts/api-real-smoke.ps1 -ReportDate r287b`
+  - Result: pass (`1754/1754`)
+  - Notes: aligned smoke expectation with tech-manager service-tag write-time sanitization (`admin-tech-manager-update-service-tag-sanitized`), then full smoke suite returned green (`writes=1297`,`reads=457`).
+- `powershell -ExecutionPolicy Bypass -File scripts/verify.ps1 -ReportDate r287c`
+  - Result: pass
+  - Notes: full-chain quality gate remained green after smoke assertion alignment (`api-real-smoke` `1754/1754`, coverage `238/238`, quality-floor `violations=[]`, `db-preflight` `9/9`, `ui-render(core)` `3/3`, `ui-dom(core)` `11/11`).
 - `pnpm -C apps/api test -- test/tech-managers.update-admin.spec.ts test/tech-managers.filters.spec.ts`
   - Result: pass (`9/9`)
   - Notes: hardened tech-manager admin write path to sanitize hidden `serviceTags` before persistence, and aligned update-admin regression assertions to sanitized write behavior.
