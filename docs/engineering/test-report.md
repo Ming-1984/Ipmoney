@@ -3,6 +3,19 @@
 ## Latest (2026-03-15)
 
 ### Commands & Results (dev)
+- `powershell -ExecutionPolicy Bypass -File scripts/verify.ps1 -ReportDate r320e`
+  - Result: pass
+  - Notes: full-chain quality gate remained green (`api-real-smoke` `1754/1754` (`writes=1297`,`reads=457`), coverage `238/238`, quality-floor `violations=[]`, `db-preflight` `9/9`, `ui-render(core)` `3/3`, `ui-dom(core)` `11/11`).
+- `powershell -ExecutionPolicy Bypass -File scripts/ui-render-smoke.ps1 -Mode full -ReportDate r320a`
+  - Result: pass (`83/83`)
+- `powershell -ExecutionPolicy Bypass -File scripts/ui-dom-smoke.ps1 -Mode full -ReportDate r320b`
+  - Result: pass (`83/83`)
+  - Notes: full-page render and DOM semantic assertions remained stable, including search and publish/filter pages.
+- `powershell -ExecutionPolicy Bypass -File scripts/weapp-route-smoke.ps1 -NoAuth -ReportDate r320c -TimeoutMs 180000 -LaunchRetries 3 -LaunchRetryDelayMs 4000 -KillStaleDevtools`
+  - Result: pass (`11/11` routes)
+- `powershell -ExecutionPolicy Bypass -File scripts/weapp-route-smoke.ps1 -ReportDate r320d -UserToken demo-user-11111111-1111-4111-8111-111111111111 -TimeoutMs 180000 -LaunchRetries 3 -LaunchRetryDelayMs 4000 -KillStaleDevtools`
+  - Result: pass (`11/11` routes)
+  - Notes: auth/no-auth route navigation remained stable with stale DevTools cleanup.
 - `pnpm -C apps/api test`
   - Result: pass (`619/619`)
   - Notes: full API Vitest suite remained green after `r318` full-chain rerun.
