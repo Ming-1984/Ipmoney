@@ -29,7 +29,11 @@ describe('FavoritesService list filter strictness suite', () => {
 
   it('rejects invalid pagination strictly', async () => {
     await expect(service.listListingFavorites(req, { page: '0' })).rejects.toBeInstanceOf(BadRequestException);
+    await expect(service.listListingFavorites(req, { page: '9007199254740992' })).rejects.toBeInstanceOf(BadRequestException);
     await expect(service.listDemandFavorites(req, { pageSize: '1.5' })).rejects.toBeInstanceOf(BadRequestException);
+    await expect(service.listDemandFavorites(req, { pageSize: '9007199254740992' })).rejects.toBeInstanceOf(
+      BadRequestException,
+    );
     await expect(service.listAchievementFavorites(req, { page: '   ' })).rejects.toBeInstanceOf(BadRequestException);
   });
 

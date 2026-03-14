@@ -18,8 +18,10 @@ describe('InventorsService query branch suite', () => {
     expect(() => service.search({ page: '0' })).toThrow(BadRequestException);
     expect(() => service.search({ page: '-1' })).toThrow(BadRequestException);
     expect(() => service.search({ page: '1.5' })).toThrow(BadRequestException);
+    expect(() => service.search({ page: '9007199254740992' })).toThrow(BadRequestException);
     expect(() => service.search({ pageSize: '0' })).toThrow(BadRequestException);
     expect(() => service.search({ pageSize: 'abc' })).toThrow(BadRequestException);
+    expect(() => service.search({ pageSize: '9007199254740992' })).toThrow(BadRequestException);
   });
 
   it('rejects invalid regionCode and patentType filters', async () => {

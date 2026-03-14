@@ -3,6 +3,14 @@
 ## Latest (2026-03-14)
 
 ### Commands & Results (dev)
+- `pnpm -C apps/api test -- test/inventors.query.spec.ts test/contracts.filters.spec.ts test/favorites.filters.spec.ts`
+  - Result: pass (`15/15`)
+  - Notes: hardened inventors/contracts/favorites pagination strictness by adding non-safe-integer `page/pageSize` rejection coverage and corresponding service-level safe-integer guards.
+- `pnpm -C apps/api test`
+  - Result: pass (`615/615`)
+  - Notes: full API Vitest suite remained green after inventors/contracts/favorites safe-integer pagination hardening.
+- `pnpm -C apps/api test:e2e`
+  - Result: pass (`2/2`)
 - `pnpm -C apps/api test -- test/cases.filters.spec.ts`
   - Result: pass (`4/4`)
   - Notes: hardened cases list strictness by enforcing non-safe-integer `page/pageSize` rejection on admin case filters.

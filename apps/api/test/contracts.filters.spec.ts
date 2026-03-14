@@ -25,6 +25,8 @@ describe('ContractsService list filter strictness suite', () => {
     const req = { auth: { userId: 'u-1' } };
     await expect(service.list(req, { page: '0' })).rejects.toBeInstanceOf(BadRequestException);
     await expect(service.list(req, { pageSize: '1.5' })).rejects.toBeInstanceOf(BadRequestException);
+    await expect(service.list(req, { page: '9007199254740992' })).rejects.toBeInstanceOf(BadRequestException);
+    await expect(service.list(req, { pageSize: '9007199254740992' })).rejects.toBeInstanceOf(BadRequestException);
     await expect(service.list(req, { status: 'pending' })).rejects.toBeInstanceOf(BadRequestException);
     await expect(service.list(req, { status: '' })).rejects.toBeInstanceOf(BadRequestException);
   });
