@@ -3,6 +3,9 @@
 ## Latest (2026-03-14)
 
 ### Commands & Results (dev)
+- `powershell -ExecutionPolicy Bypass -File scripts/api-real-smoke.ps1 -ReportDate r289a`
+  - Result: pass (`1754/1754`)
+  - Notes: independent smoke rerun remained fully green (`writes=1297`,`reads=457`); hidden-tag cleanup counters stayed `0` (`deletedSmokeIndustryTags/deletedSmokeRegions/cleanedRegionIndustryTagRows/cleanedTechManagerServiceTagRows`).
 - `pnpm -C apps/api test`
   - Result: pass (`619/619`)
   - Notes: full API Vitest suite stayed green after `r288` full-chain rerun; no regression found in search/filter or tag-sanitization related suites.
