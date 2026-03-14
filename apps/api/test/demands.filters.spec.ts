@@ -79,6 +79,18 @@ describe('DemandsService search/list filter strictness suite', () => {
     expect(result.page).toEqual({ page: 2, pageSize: 50, total: 0 });
   });
 
+  it('removes industryTags filter when all tags are hidden smoke/e2e/qa artifacts', async () => {
+    prisma.demand.findMany.mockResolvedValueOnce([]);
+    prisma.demand.count.mockResolvedValueOnce(0);
+
+    await service.search({
+      industryTags: ['smoke-tag-temp', 'e2e_tag_case', 'qa/tag-case'],
+    });
+
+    const args = prisma.demand.findMany.mock.calls[0]?.[0];
+    expect(args.where.industryTagsJson).toBeUndefined();
+  });
+
   it('rejects invalid admin filters strictly', async () => {
     const req = { auth: { isAdmin: true } };
     await expect(service.listAdmin(req, { page: '0' })).rejects.toBeInstanceOf(BadRequestException);
