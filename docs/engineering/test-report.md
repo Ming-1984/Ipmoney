@@ -3,6 +3,9 @@
 ## Latest (2026-03-14)
 
 ### Commands & Results (dev)
+- `powershell -ExecutionPolicy Bypass -File scripts/verify.ps1 -ReportDate r285a`
+  - Result: pass
+  - Notes: full-chain quality gate stayed green (`openapi:lint/lint/typecheck/builds/check-weapp-budget/api-real-smoke/openapi-coverage/quality-floor/db-preflight/ui-http-smoke/ui-render-smoke(core)/ui-dom-smoke(core)`); `api-real-smoke` `1754/1754` (`writes=1297`,`reads=457`), coverage `238/238`, quality-floor `violations=[]`, `db-preflight` `9/9`, `ui-render(core)` `3/3`, `ui-dom(core)` `11/11`; render artifacts updated at `docs/demo/rendered/ui-smoke-r285a/`.
 - `pnpm -C apps/api test -- test/demands.write-flow.spec.ts test/achievements.write-flow.spec.ts test/listings.write-flow.spec.ts`
   - Result: pass (`22/22`)
   - Notes: completed write-time industry-tag sanitization on demand/achievement/listing write paths, and updated write-flow assertions to verify hidden smoke tags are dropped before persistence.
