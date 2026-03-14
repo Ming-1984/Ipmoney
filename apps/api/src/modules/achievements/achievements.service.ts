@@ -354,7 +354,7 @@ export class AchievementsService {
 
     const keywords = normalizeStringArray(body?.keywords);
     const cooperationModes = normalizeStringArray(body?.cooperationModes);
-    const industryTags = normalizeStringArray(body?.industryTags);
+    const industryTags = sanitizeIndustryTagNames(body?.industryTags);
     const hasCoverFileId = this.hasOwn(body, 'coverFileId');
     const hasMaturity = this.hasOwn(body, 'maturity');
     const hasRegionCode = this.hasOwn(body, 'regionCode');
@@ -423,7 +423,7 @@ export class AchievementsService {
 
     const keywords = hasKeywords ? normalizeStringArray(body?.keywords) : undefined;
     const cooperationModes = hasCooperationModes ? normalizeStringArray(body?.cooperationModes) : undefined;
-    const industryTags = hasIndustryTags ? normalizeStringArray(body?.industryTags) : undefined;
+    const industryTags = hasIndustryTags ? sanitizeIndustryTagNames(body?.industryTags) : undefined;
     const mediaInput = hasMedia ? normalizeMediaInput(body?.media) : [];
     const maturity = hasMaturity ? this.parseNullableMaturityStrict(body?.maturity, 'maturity') : undefined;
     const regionCode = hasRegionCode ? this.parseNullableRegionCodeStrict(body?.regionCode, 'regionCode') : undefined;
@@ -681,7 +681,7 @@ export class AchievementsService {
     const ownerId = this.parseOptionalPublisherUserIdStrict(body) ?? String(req?.auth?.userId || '').trim();
     const keywords = normalizeStringArray(body?.keywords);
     const cooperationModes = normalizeStringArray(body?.cooperationModes);
-    const industryTags = normalizeStringArray(body?.industryTags);
+    const industryTags = sanitizeIndustryTagNames(body?.industryTags);
     const maturity = hasMaturity ? this.parseNullableMaturityStrict(body?.maturity, 'maturity') : undefined;
     const regionCode = hasRegionCode ? this.parseNullableRegionCodeStrict(body?.regionCode, 'regionCode') : undefined;
     const coverFileId = hasCoverFileId ? this.parseNullableCoverFileIdStrict(body?.coverFileId, 'coverFileId') : undefined;
@@ -758,7 +758,7 @@ export class AchievementsService {
 
     const keywords = hasKeywords ? normalizeStringArray(body?.keywords) : undefined;
     const cooperationModes = hasCooperationModes ? normalizeStringArray(body?.cooperationModes) : undefined;
-    const industryTags = hasIndustryTags ? normalizeStringArray(body?.industryTags) : undefined;
+    const industryTags = hasIndustryTags ? sanitizeIndustryTagNames(body?.industryTags) : undefined;
     const mediaInput = hasMedia ? normalizeMediaInput(body?.media) : [];
     const source = hasSource ? this.parseContentSourceStrict(body?.source, 'source') : undefined;
     const maturity = hasMaturity ? this.parseNullableMaturityStrict(body?.maturity, 'maturity') : undefined;

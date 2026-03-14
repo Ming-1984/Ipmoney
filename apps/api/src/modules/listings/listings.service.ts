@@ -1028,6 +1028,7 @@ export class ListingsService {
     const hasSellerUserId = this.hasOwn(body, 'sellerUserId');
     const hasTitle = this.hasOwn(body, 'title');
     const hasSummary = this.hasOwn(body, 'summary');
+    const industryTags = sanitizeIndustryTagNames(body?.industryTags);
 
     const source = hasSource ? this.parseContentSourceStrict(body?.source, 'source') : 'ADMIN';
     const tradeMode = hasTradeMode ? this.parseTradeModeStrict(body?.tradeMode, 'tradeMode') : 'ASSIGNMENT';
@@ -1105,7 +1106,7 @@ export class ListingsService {
         existingLicenseStatus,
         encumbranceNote,
         regionCode: hasRegionCode ? regionCode : null,
-        industryTagsJson: body?.industryTags ?? Prisma.DbNull,
+        industryTagsJson: industryTags.length > 0 ? industryTags : Prisma.DbNull,
         listingTopicsJson: listingTopics.length > 0 ? listingTopics : Prisma.DbNull,
         proofFileIdsJson: proofFileIds.length > 0 ? proofFileIds : Prisma.DbNull,
         clusterId: hasClusterId ? clusterId : null,
@@ -1177,6 +1178,8 @@ export class ListingsService {
     const auditStatus = hasAuditStatus ? this.parseAuditStatusStrict(body?.auditStatus, 'auditStatus') : undefined;
     const hasStatus = this.hasOwn(body, 'status');
     const status = hasStatus ? this.parseListingStatusStrict(body?.status, 'status') : undefined;
+    const hasIndustryTags = this.hasOwn(body, 'industryTags');
+    const industryTags = hasIndustryTags ? sanitizeIndustryTagNames(body?.industryTags) : undefined;
     const hasSellerUserId = this.hasOwn(body, 'sellerUserId');
     const hasTitle = this.hasOwn(body, 'title');
     const hasSummary = this.hasOwn(body, 'summary');
@@ -1209,7 +1212,7 @@ export class ListingsService {
         existingLicenseStatus: hasExistingLicenseStatus ? existingLicenseStatus ?? null : listing.existingLicenseStatus,
         encumbranceNote: hasEncumbranceNote ? encumbranceNote : listing.encumbranceNote,
         regionCode: hasRegionCode ? regionCode : listing.regionCode,
-        industryTagsJson: body?.industryTags !== undefined ? body?.industryTags ?? Prisma.DbNull : undefined,
+        industryTagsJson: hasIndustryTags ? (industryTags && industryTags.length > 0 ? industryTags : Prisma.DbNull) : undefined,
         listingTopicsJson: hasListingTopics ? (listingTopics && listingTopics.length > 0 ? listingTopics : Prisma.DbNull) : undefined,
         proofFileIdsJson: hasProofFileIds ? (proofFileIds && proofFileIds.length > 0 ? proofFileIds : Prisma.DbNull) : undefined,
         clusterId: hasClusterId ? clusterId : listing.clusterId,
@@ -1548,6 +1551,7 @@ export class ListingsService {
     const hasClusterId = this.hasOwn(body, 'clusterId');
     const hasTitle = this.hasOwn(body, 'title');
     const hasSummary = this.hasOwn(body, 'summary');
+    const industryTags = sanitizeIndustryTagNames(body?.industryTags);
     const tradeMode = hasTradeMode ? this.parseTradeModeStrict(body?.tradeMode, 'tradeMode') : 'ASSIGNMENT';
     const licenseMode = hasLicenseMode ? this.parseNullableLicenseModeStrict(body?.licenseMode, 'licenseMode') : null;
     const priceType = hasPriceType ? this.parsePriceTypeStrict(body?.priceType, 'priceType') : 'NEGOTIABLE';
@@ -1614,7 +1618,7 @@ export class ListingsService {
         existingLicenseStatus,
         encumbranceNote,
         regionCode: hasRegionCode ? regionCode : null,
-        industryTagsJson: body?.industryTags ?? Prisma.DbNull,
+        industryTagsJson: industryTags.length > 0 ? industryTags : Prisma.DbNull,
         listingTopicsJson: listingTopics.length > 0 ? listingTopics : Prisma.DbNull,
         proofFileIdsJson: proofFileIds.length > 0 ? proofFileIds : Prisma.DbNull,
         clusterId: hasClusterId ? clusterId : null,
@@ -1679,6 +1683,8 @@ export class ListingsService {
     const priceAmountFen = hasPriceAmountFen ? this.parseOptionalInt(body?.priceAmountFen, 'priceAmountFen', 0) : undefined;
     const hasDepositAmountFen = this.hasOwn(body, 'depositAmountFen');
     const depositAmountFen = hasDepositAmountFen ? this.parseOptionalInt(body?.depositAmountFen, 'depositAmountFen', 0) : undefined;
+    const hasIndustryTags = this.hasOwn(body, 'industryTags');
+    const industryTags = hasIndustryTags ? sanitizeIndustryTagNames(body?.industryTags) : undefined;
     const hasTitle = this.hasOwn(body, 'title');
     const hasSummary = this.hasOwn(body, 'summary');
     const parsedTitle = hasTitle ? this.parseNullableNonEmptyStringStrict(body?.title, 'title') : undefined;
@@ -1707,7 +1713,7 @@ export class ListingsService {
         existingLicenseStatus: hasExistingLicenseStatus ? existingLicenseStatus ?? null : listing.existingLicenseStatus,
         encumbranceNote: hasEncumbranceNote ? encumbranceNote : listing.encumbranceNote,
         regionCode: hasRegionCode ? regionCode : listing.regionCode,
-        industryTagsJson: body?.industryTags !== undefined ? body?.industryTags ?? Prisma.DbNull : undefined,
+        industryTagsJson: hasIndustryTags ? (industryTags && industryTags.length > 0 ? industryTags : Prisma.DbNull) : undefined,
         listingTopicsJson: hasListingTopics ? (listingTopics && listingTopics.length > 0 ? listingTopics : Prisma.DbNull) : undefined,
         proofFileIdsJson: hasProofFileIds ? (proofFileIds && proofFileIds.length > 0 ? proofFileIds : Prisma.DbNull) : undefined,
         clusterId: hasClusterId ? clusterId : listing.clusterId,

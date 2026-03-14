@@ -151,7 +151,7 @@ describe('ListingsService write flow suite', () => {
           pledgeStatus: 'PLEDGED',
           existingLicenseStatus: 'NON_EXCLUSIVE',
           encumbranceNote: 'encumbrance',
-          industryTagsJson: ['AI', 'smoke-tag-temp'],
+          industryTagsJson: ['AI'],
         }),
       }),
     );

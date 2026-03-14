@@ -404,7 +404,7 @@ export class DemandsService {
 
     const keywords = normalizeStringArray(body?.keywords);
     const cooperationModes = normalizeStringArray(body?.cooperationModes);
-    const industryTags = normalizeStringArray(body?.industryTags);
+    const industryTags = sanitizeIndustryTagNames(body?.industryTags);
     const hasCoverFileId = this.hasOwn(body, 'coverFileId');
     const hasDeliveryPeriod = this.hasOwn(body, 'deliveryPeriod');
     const hasBudgetType = this.hasOwn(body, 'budgetType');
@@ -496,7 +496,7 @@ export class DemandsService {
 
     const keywords = hasKeywords ? normalizeStringArray(body?.keywords) : undefined;
     const cooperationModes = hasCooperationModes ? normalizeStringArray(body?.cooperationModes) : undefined;
-    const industryTags = hasIndustryTags ? normalizeStringArray(body?.industryTags) : undefined;
+    const industryTags = hasIndustryTags ? sanitizeIndustryTagNames(body?.industryTags) : undefined;
     const mediaInput = hasMedia ? normalizeMediaInput(body?.media) : [];
 
     const deliveryPeriod = hasDeliveryPeriod ? this.parseNullableDeliveryPeriodStrict(body?.deliveryPeriod, 'deliveryPeriod') : undefined;
@@ -790,7 +790,7 @@ export class DemandsService {
     const ownerId = this.parseOptionalPublisherUserIdStrict(body) ?? String(req?.auth?.userId || '').trim();
     const keywords = normalizeStringArray(body?.keywords);
     const cooperationModes = normalizeStringArray(body?.cooperationModes);
-    const industryTags = normalizeStringArray(body?.industryTags);
+    const industryTags = sanitizeIndustryTagNames(body?.industryTags);
     const deliveryPeriod = hasDeliveryPeriod ? this.parseNullableDeliveryPeriodStrict(body?.deliveryPeriod, 'deliveryPeriod') : undefined;
     const budgetType = hasBudgetType ? this.parseNullablePriceTypeStrict(body?.budgetType, 'budgetType') : undefined;
     const regionCode = hasRegionCode ? this.parseNullableRegionCodeStrict(body?.regionCode, 'regionCode') : undefined;
@@ -885,7 +885,7 @@ export class DemandsService {
 
     const keywords = hasKeywords ? normalizeStringArray(body?.keywords) : undefined;
     const cooperationModes = hasCooperationModes ? normalizeStringArray(body?.cooperationModes) : undefined;
-    const industryTags = hasIndustryTags ? normalizeStringArray(body?.industryTags) : undefined;
+    const industryTags = hasIndustryTags ? sanitizeIndustryTagNames(body?.industryTags) : undefined;
     const mediaInput = hasMedia ? normalizeMediaInput(body?.media) : [];
 
     const source = hasSource ? this.parseContentSourceStrict(body?.source, 'source') : undefined;

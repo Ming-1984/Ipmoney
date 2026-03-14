@@ -114,7 +114,7 @@ describe('AchievementsService write flow suite', () => {
           maturity: 'PILOT',
           coverFileId: 'cover-file-1',
           regionCode: '440300',
-          industryTagsJson: ['AI', 'smoke-tag-temp'],
+          industryTagsJson: ['AI'],
         }),
       }),
     );
@@ -179,7 +179,7 @@ describe('AchievementsService write flow suite', () => {
         regionCode: null,
         keywordsJson: ['AI'],
         cooperationModesJson: ['COOP_X'],
-        industryTagsJson: ['AI', 'smoke-tag-temp'],
+        industryTagsJson: ['AI'],
       }),
     });
     expect(prisma.achievementMedia.deleteMany).toHaveBeenCalledWith({ where: { achievementId: ACHIEVEMENT_ID } });

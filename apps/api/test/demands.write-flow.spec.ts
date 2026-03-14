@@ -132,7 +132,7 @@ describe('DemandsService write flow suite', () => {
           contactPhoneMasked: '138****0000',
           coverFileId: 'cover-file-1',
           regionCode: '440300',
-          industryTagsJson: ['AI', 'smoke-tag-temp'],
+          industryTagsJson: ['AI'],
         }),
       }),
     );
@@ -203,7 +203,7 @@ describe('DemandsService write flow suite', () => {
         regionCode: null,
         keywordsJson: ['AI'],
         cooperationModesJson: ['COOP_X'],
-        industryTagsJson: ['AI', 'smoke-tag-temp'],
+        industryTagsJson: ['AI'],
       }),
     });
     expect(prisma.demandMedia.deleteMany).toHaveBeenCalledWith({ where: { demandId: DEMAND_ID } });
