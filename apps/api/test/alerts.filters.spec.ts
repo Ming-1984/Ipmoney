@@ -27,13 +27,17 @@ describe('AlertsService list filter strictness suite', () => {
     const req = { auth: { userId: 'u-1', permissions: new Set(['alert.manage']) } };
     await expect(service.list(req, { page: '0' })).rejects.toBeInstanceOf(BadRequestException);
     await expect(service.list(req, { pageSize: '1.5' })).rejects.toBeInstanceOf(BadRequestException);
+    await expect(service.list(req, { page: '9007199254740992' })).rejects.toBeInstanceOf(BadRequestException);
+    await expect(service.list(req, { pageSize: '9007199254740992' })).rejects.toBeInstanceOf(BadRequestException);
     await expect(service.list(req, { status: 'bad' })).rejects.toBeInstanceOf(BadRequestException);
     await expect(service.list(req, { severity: 'bad' })).rejects.toBeInstanceOf(BadRequestException);
     await expect(service.list(req, { channel: 'bad' })).rejects.toBeInstanceOf(BadRequestException);
     await expect(service.list(req, { targetType: 'bad' })).rejects.toBeInstanceOf(BadRequestException);
     await expect(service.list(req, { type: '   ' })).rejects.toBeInstanceOf(BadRequestException);
     await expect(service.list(req, { targetId: 'bad-id' })).rejects.toBeInstanceOf(BadRequestException);
+    await expect(service.list(req, { triggeredFrom: '' })).rejects.toBeInstanceOf(BadRequestException);
     await expect(service.list(req, { triggeredFrom: 'bad-date' })).rejects.toBeInstanceOf(BadRequestException);
+    await expect(service.list(req, { triggeredTo: 'bad-date' })).rejects.toBeInstanceOf(BadRequestException);
   });
 
   it('caps pageSize and applies normalized filters', async () => {
@@ -49,7 +53,7 @@ describe('AlertsService list filter strictness suite', () => {
       channel: 'in_app',
       targetType: 'order',
       type: 'PAYMENT_TIMEOUT',
-      targetId: '11111111-1111-1111-1111-111111111111',
+      targetId: ' 11111111-1111-1111-1111-111111111111 ',
       triggeredFrom: '2026-03-01T00:00:00.000Z',
       triggeredTo: '2026-03-13T00:00:00.000Z',
     });
@@ -106,5 +110,6 @@ describe('AlertsService list filter strictness suite', () => {
       triggeredAt: '2026-03-13T00:00:00.000Z',
       sentAt: null,
     });
+    expect(result.page).toEqual({ page: 1, pageSize: 20, total: 1 });
   });
 });
