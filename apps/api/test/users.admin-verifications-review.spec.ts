@@ -46,7 +46,13 @@ describe('UsersService admin verification review suite', () => {
 
   it('validates admin list query strictly', async () => {
     await expect(service.adminListUserVerifications({ page: '0' })).rejects.toBeInstanceOf(BadRequestException);
+    await expect(service.adminListUserVerifications({ page: '9007199254740992' })).rejects.toBeInstanceOf(
+      BadRequestException,
+    );
     await expect(service.adminListUserVerifications({ pageSize: '1.2' })).rejects.toBeInstanceOf(BadRequestException);
+    await expect(service.adminListUserVerifications({ pageSize: '9007199254740992' })).rejects.toBeInstanceOf(
+      BadRequestException,
+    );
     await expect(service.adminListUserVerifications({ type: 'BAD' })).rejects.toBeInstanceOf(BadRequestException);
     await expect(service.adminListUserVerifications({ status: 'BAD' })).rejects.toBeInstanceOf(BadRequestException);
   });

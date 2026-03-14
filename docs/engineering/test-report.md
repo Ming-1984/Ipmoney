@@ -3,6 +3,14 @@
 ## Latest (2026-03-14)
 
 ### Commands & Results (dev)
+- `pnpm -C apps/api test -- test/comments.write.spec.ts test/user-verifications.filters.spec.ts test/users.admin-verifications-review.spec.ts`
+  - Result: pass (`39/39`)
+  - Notes: hardened comments/users pagination strictness by adding non-safe-integer `page/pageSize` rejection coverage and corresponding service-level safe-integer guards.
+- `pnpm -C apps/api test`
+  - Result: pass (`615/615`)
+  - Notes: full API Vitest suite remained green after comments/users safe-integer pagination hardening.
+- `pnpm -C apps/api test:e2e`
+  - Result: pass (`2/2`)
 - `pnpm -C apps/api test -- test/listings.search-filters.spec.ts test/orders.filters.spec.ts test/patents.filters.spec.ts test/org-inventor.filters.spec.ts`
   - Result: pass (`26/26`)
   - Notes: hardened listings/orders/patents/organizations filter strictness by adding non-safe-integer `page/pageSize` rejection coverage and corresponding service-level safe-integer guards.

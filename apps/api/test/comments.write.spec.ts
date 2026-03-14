@@ -54,6 +54,12 @@ describe('CommentsService write-first suite', () => {
 
   it('rejects non-positive page in listThreads', async () => {
     await expect(service.listThreads('LISTING', CONTENT_ID, { page: '0' })).rejects.toBeInstanceOf(BadRequestException);
+    await expect(service.listThreads('LISTING', CONTENT_ID, { page: '9007199254740992' })).rejects.toBeInstanceOf(
+      BadRequestException,
+    );
+    await expect(service.listThreads('LISTING', CONTENT_ID, { pageSize: '9007199254740992' })).rejects.toBeInstanceOf(
+      BadRequestException,
+    );
   });
 
   it('caps pageSize to 50 and groups roots/replies', async () => {
@@ -230,6 +236,10 @@ describe('CommentsService write-first suite', () => {
     await expect(service.adminList(adminReq, { status: 'bad' })).rejects.toBeInstanceOf(BadRequestException);
     await expect(service.adminList(adminReq, { contentId: 'bad-id' })).rejects.toBeInstanceOf(BadRequestException);
     await expect(service.adminList(adminReq, { page: '0' })).rejects.toBeInstanceOf(BadRequestException);
+    await expect(service.adminList(adminReq, { page: '9007199254740992' })).rejects.toBeInstanceOf(BadRequestException);
+    await expect(service.adminList(adminReq, { pageSize: '9007199254740992' })).rejects.toBeInstanceOf(
+      BadRequestException,
+    );
   });
 
   it('lists admin comments with normalized filters and capped pageSize', async () => {

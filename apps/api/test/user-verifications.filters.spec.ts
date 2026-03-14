@@ -21,7 +21,13 @@ describe('UsersService admin verification list filter strictness suite', () => {
 
   it('rejects invalid pagination/type/status filters', async () => {
     await expect(service.adminListUserVerifications({ page: '0' })).rejects.toBeInstanceOf(BadRequestException);
+    await expect(service.adminListUserVerifications({ page: '9007199254740992' })).rejects.toBeInstanceOf(
+      BadRequestException,
+    );
     await expect(service.adminListUserVerifications({ pageSize: '1.1' })).rejects.toBeInstanceOf(BadRequestException);
+    await expect(service.adminListUserVerifications({ pageSize: '9007199254740992' })).rejects.toBeInstanceOf(
+      BadRequestException,
+    );
     await expect(service.adminListUserVerifications({ type: '   ' })).rejects.toBeInstanceOf(BadRequestException);
     await expect(service.adminListUserVerifications({ type: 'bad' })).rejects.toBeInstanceOf(BadRequestException);
     await expect(service.adminListUserVerifications({ status: '   ' })).rejects.toBeInstanceOf(BadRequestException);
