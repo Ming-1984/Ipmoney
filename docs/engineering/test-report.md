@@ -3,6 +3,14 @@
 ## Latest (2026-03-14)
 
 ### Commands & Results (dev)
+- `pnpm -C apps/api test`
+  - Result: pass (`619/619`)
+  - Notes: full API Vitest suite remained green after `r300` full-chain rerun.
+- `pnpm -C apps/api test:e2e`
+  - Result: pass (`2/2`)
+- `powershell -ExecutionPolicy Bypass -File scripts/api-real-smoke.ps1 -ReportDate r301a`
+  - Result: pass (`1754/1754`)
+  - Notes: independent smoke rerun remained fully green (`writes=1297`,`reads=457`); hidden-tag cleanup counters stayed `0`.
 - `powershell -ExecutionPolicy Bypass -File scripts/verify.ps1 -ReportDate r300e`
   - Result: fail
   - Notes: single `api-real-smoke` chaos check failed at `chaos-randomized-outcome-distribution` (`api-real-smoke failed: 1`) while prior verify stages remained green.
