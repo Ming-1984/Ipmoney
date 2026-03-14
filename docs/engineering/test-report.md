@@ -3,6 +3,14 @@
 ## Latest (2026-03-14)
 
 ### Commands & Results (dev)
+- `pnpm -C apps/api test -- test/reports.filters.spec.ts`
+  - Result: pass (`10/10`)
+  - Notes: expanded reports strict regression coverage for permission-denied branches (`report.read`/`report.export`), `days/start/end` invalid filters, end-only/start-only range derivation, `BASE_URL` precedence + fallback baseUrl, and CSV escaping behavior.
+- `pnpm -C apps/api test`
+  - Result: pass (`607/607`)
+  - Notes: full API Vitest suite remained green after reports strict branch expansion.
+- `pnpm -C apps/api test:e2e`
+  - Result: pass (`2/2`)
 - `pnpm -C apps/api test -- test/contracts.filters.spec.ts`
   - Result: pass (`6/6`)
   - Notes: expanded strict regression coverage for contracts list status branches (`WAIT_CONFIRM/AVAILABLE`), empty status rejection, default pagination, and buyer-side counterpart/file-url fallback mapping.
