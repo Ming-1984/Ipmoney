@@ -70,7 +70,9 @@ describe('AuditLogsService audit-flow suite', () => {
 
   it('rejects invalid page/pageSize values', async () => {
     await expect(service.list({ page: '0' })).rejects.toBeInstanceOf(BadRequestException);
+    await expect(service.list({ page: '9007199254740992' })).rejects.toBeInstanceOf(BadRequestException);
     await expect(service.list({ pageSize: '-1' })).rejects.toBeInstanceOf(BadRequestException);
+    await expect(service.list({ pageSize: '9007199254740992' })).rejects.toBeInstanceOf(BadRequestException);
     await expect(service.list({ page: '1.5' })).rejects.toBeInstanceOf(BadRequestException);
     await expect(service.list({ pageSize: '' })).rejects.toBeInstanceOf(BadRequestException);
   });

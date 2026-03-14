@@ -20,7 +20,9 @@ describe('AnnouncementsService filter and sanitization suite', () => {
 
   it('rejects invalid list pagination params', async () => {
     await expect(service.list({ page: '0' })).rejects.toBeInstanceOf(BadRequestException);
+    await expect(service.list({ page: '9007199254740992' })).rejects.toBeInstanceOf(BadRequestException);
     await expect(service.list({ pageSize: '1.5' })).rejects.toBeInstanceOf(BadRequestException);
+    await expect(service.list({ pageSize: '9007199254740992' })).rejects.toBeInstanceOf(BadRequestException);
   });
 
   it('caps public list pageSize and sanitizes hidden tags', async () => {
@@ -61,6 +63,8 @@ describe('AnnouncementsService filter and sanitization suite', () => {
 
   it('validates admin list filters and query shape', async () => {
     await expect(service.adminList({ status: 'unknown' })).rejects.toBeInstanceOf(BadRequestException);
+    await expect(service.adminList({ page: '9007199254740992' })).rejects.toBeInstanceOf(BadRequestException);
+    await expect(service.adminList({ pageSize: '9007199254740992' })).rejects.toBeInstanceOf(BadRequestException);
 
     prisma.announcement.findMany.mockResolvedValueOnce([]);
     prisma.announcement.count.mockResolvedValueOnce(0);

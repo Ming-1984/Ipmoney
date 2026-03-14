@@ -3,6 +3,14 @@
 ## Latest (2026-03-14)
 
 ### Commands & Results (dev)
+- `pnpm -C apps/api test -- test/announcements.filters.spec.ts test/ai.query-filters.spec.ts test/audit-logs.read.spec.ts test/tech-managers.filters.spec.ts`
+  - Result: pass (`17/17`)
+  - Notes: hardened announcements/ai/audit-logs/tech-managers filter strictness by adding non-safe-integer `page/pageSize` rejection coverage and corresponding service-level safe-integer guards.
+- `pnpm -C apps/api test`
+  - Result: pass (`615/615`)
+  - Notes: full API Vitest suite remained green after announcements/ai/audit-logs/tech-managers safe-integer pagination hardening.
+- `pnpm -C apps/api test:e2e`
+  - Result: pass (`2/2`)
 - `pnpm -C apps/api test -- test/achievements.filters.spec.ts test/demands.filters.spec.ts test/artworks.filters.spec.ts test/patent-maintenance.filters.spec.ts`
   - Result: pass (`22/22`)
   - Notes: hardened achievements/demands/artworks/patent-maintenance filter strictness by adding non-safe-integer `page/pageSize` rejection coverage and corresponding service-level safe-integer guards.

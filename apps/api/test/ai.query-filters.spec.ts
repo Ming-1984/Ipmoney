@@ -73,6 +73,12 @@ describe('AiService query filter strictness suite', () => {
     const req = { auth: { userId: 'admin-1', permissions: new Set(['ai.manage']) } };
     prisma.aiParseResult.count.mockResolvedValueOnce(1);
 
+    await expect(service.adminListParseResults(req, { page: '9007199254740992' })).rejects.toBeInstanceOf(
+      BadRequestException,
+    );
+    await expect(service.adminListParseResults(req, { pageSize: '9007199254740992' })).rejects.toBeInstanceOf(
+      BadRequestException,
+    );
     await expect(service.adminListParseResults(req, { status: 'bad' })).rejects.toBeInstanceOf(BadRequestException);
 
     prisma.aiParseResult.count.mockResolvedValueOnce(1);

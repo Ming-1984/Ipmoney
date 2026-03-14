@@ -21,7 +21,9 @@ describe('TechManagersService filter and sanitization suite', () => {
 
   it('rejects invalid search filters strictly', async () => {
     await expect(service.search({ page: '0' })).rejects.toBeInstanceOf(BadRequestException);
+    await expect(service.search({ page: '9007199254740992' })).rejects.toBeInstanceOf(BadRequestException);
     await expect(service.search({ pageSize: '1.5' })).rejects.toBeInstanceOf(BadRequestException);
+    await expect(service.search({ pageSize: '9007199254740992' })).rejects.toBeInstanceOf(BadRequestException);
     await expect(service.search({ sortBy: 'hot' })).rejects.toBeInstanceOf(BadRequestException);
     await expect(service.search({ regionCode: 'abc' })).rejects.toBeInstanceOf(BadRequestException);
   });
@@ -80,6 +82,12 @@ describe('TechManagersService filter and sanitization suite', () => {
 
   it('validates admin list verificationStatus and keeps test service tags visible', async () => {
     await expect(service.listAdmin({ auth: { isAdmin: true } }, { verificationStatus: 'invalid' })).rejects.toBeInstanceOf(
+      BadRequestException,
+    );
+    await expect(service.listAdmin({ auth: { isAdmin: true } }, { page: '9007199254740992' })).rejects.toBeInstanceOf(
+      BadRequestException,
+    );
+    await expect(service.listAdmin({ auth: { isAdmin: true } }, { pageSize: '9007199254740992' })).rejects.toBeInstanceOf(
       BadRequestException,
     );
 
