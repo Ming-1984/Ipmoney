@@ -1,3 +1,4 @@
+import { BadRequestException } from '@nestjs/common';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { InventorsService } from '../src/modules/inventors/inventors.service';
@@ -13,6 +14,22 @@ describe('InventorsService query branch suite', () => {
     service = new InventorsService(prisma);
   });
 
+  it('rejects invalid pagination inputs when explicitly provided', async () => {
+    expect(() => service.search({ page: '0' })).toThrow(BadRequestException);
+    expect(() => service.search({ page: '-1' })).toThrow(BadRequestException);
+    expect(() => service.search({ page: '1.5' })).toThrow(BadRequestException);
+    expect(() => service.search({ pageSize: '0' })).toThrow(BadRequestException);
+    expect(() => service.search({ pageSize: 'abc' })).toThrow(BadRequestException);
+  });
+
+  it('rejects invalid regionCode and patentType filters', async () => {
+    expect(() => service.search({ regionCode: '' })).toThrow(BadRequestException);
+    expect(() => service.search({ regionCode: '11000' })).toThrow(BadRequestException);
+    expect(() => service.search({ regionCode: 'abc123' })).toThrow(BadRequestException);
+    expect(() => service.search({ patentType: '' })).toThrow(BadRequestException);
+    expect(() => service.search({ patentType: 'UNKNOWN' })).toThrow(BadRequestException);
+  });
+
   it('returns empty page when count query reports zero and skips ranking query', async () => {
     prisma.$queryRaw.mockResolvedValueOnce([{ total: 0n }]);
 
@@ -25,7 +42,7 @@ describe('InventorsService query branch suite', () => {
     expect(prisma.$queryRaw).toHaveBeenCalledTimes(1);
   });
 
-  it('returns ranking rows when count is positive', async () => {
+  it('caps pageSize to 50 and returns ranking rows when count is positive', async () => {
     prisma.$queryRaw
       .mockResolvedValueOnce([{ total: 2n }])
       .mockResolvedValueOnce([
@@ -43,7 +60,13 @@ describe('InventorsService query branch suite', () => {
         },
       ]);
 
-    const result = await service.search({ q: 'a', page: '1', pageSize: '50' });
+    const result = await service.search({
+      q: 'a',
+      page: '1',
+      pageSize: '500',
+      regionCode: '110000',
+      patentType: 'invention',
+    });
 
     expect(prisma.$queryRaw).toHaveBeenCalledTimes(2);
     expect(result).toEqual({

@@ -3,6 +3,14 @@
 ## Latest (2026-03-14)
 
 ### Commands & Results (dev)
+- `pnpm -C apps/api test -- test/inventors.query.spec.ts`
+  - Result: pass (`4/4`)
+  - Notes: expanded inventors query strict regression coverage for invalid `page/pageSize`, invalid `regionCode/patentType`, and `pageSize` cap branch with positive-count ranking path.
+- `pnpm -C apps/api test`
+  - Result: pass (`613/613`)
+  - Notes: full API Vitest suite remained green after inventors query strict branch expansion.
+- `pnpm -C apps/api test:e2e`
+  - Result: pass (`2/2`)
 - `pnpm -C apps/api test -- test/patent-clusters.filters.spec.ts`
   - Result: pass (`4/4`)
   - Notes: expanded patent-clusters strict regression coverage for non-safe-integer `page/pageSize` rejection and out-of-range pagination with default `featuredInstitutions` fallback.
