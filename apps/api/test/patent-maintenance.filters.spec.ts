@@ -33,7 +33,9 @@ describe('PatentMaintenanceService list filter strictness suite', () => {
 
   it('rejects invalid listSchedules query filters strictly', async () => {
     await expect(service.listSchedules(authReq, { page: '0' })).rejects.toBeInstanceOf(BadRequestException);
+    await expect(service.listSchedules(authReq, { page: '9007199254740992' })).rejects.toBeInstanceOf(BadRequestException);
     await expect(service.listSchedules(authReq, { pageSize: '1.5' })).rejects.toBeInstanceOf(BadRequestException);
+    await expect(service.listSchedules(authReq, { pageSize: '9007199254740992' })).rejects.toBeInstanceOf(BadRequestException);
     await expect(service.listSchedules(authReq, { patentId: '   ' })).rejects.toBeInstanceOf(BadRequestException);
     await expect(service.listSchedules(authReq, { status: 'bad' })).rejects.toBeInstanceOf(BadRequestException);
     await expect(service.listSchedules(authReq, { dueFrom: '' })).rejects.toBeInstanceOf(BadRequestException);
@@ -64,7 +66,9 @@ describe('PatentMaintenanceService list filter strictness suite', () => {
 
   it('rejects invalid listTasks query filters strictly', async () => {
     await expect(service.listTasks(authReq, { page: '0' })).rejects.toBeInstanceOf(BadRequestException);
+    await expect(service.listTasks(authReq, { page: '9007199254740992' })).rejects.toBeInstanceOf(BadRequestException);
     await expect(service.listTasks(authReq, { pageSize: '1.5' })).rejects.toBeInstanceOf(BadRequestException);
+    await expect(service.listTasks(authReq, { pageSize: '9007199254740992' })).rejects.toBeInstanceOf(BadRequestException);
     await expect(service.listTasks(authReq, { scheduleId: '   ' })).rejects.toBeInstanceOf(BadRequestException);
     await expect(service.listTasks(authReq, { assignedCsUserId: '   ' })).rejects.toBeInstanceOf(BadRequestException);
     await expect(service.listTasks(authReq, { status: 'bad' })).rejects.toBeInstanceOf(BadRequestException);

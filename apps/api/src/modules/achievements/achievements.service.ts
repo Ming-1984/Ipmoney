@@ -150,7 +150,7 @@ export class AchievementsService {
       throw new BadRequestException({ code: 'BAD_REQUEST', message: `${fieldName} is invalid` });
     }
     const parsed = Number(raw);
-    if (!Number.isInteger(parsed) || parsed <= 0) {
+    if (!Number.isSafeInteger(parsed) || parsed <= 0) {
       throw new BadRequestException({ code: 'BAD_REQUEST', message: `${fieldName} is invalid` });
     }
     return parsed;

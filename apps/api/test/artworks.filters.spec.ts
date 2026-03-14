@@ -27,7 +27,9 @@ describe('ArtworksService search/list filter strictness suite', () => {
 
   it('rejects invalid public search filters strictly', async () => {
     await expect(service.search({ page: '0' })).rejects.toBeInstanceOf(BadRequestException);
+    await expect(service.search({ page: '9007199254740992' })).rejects.toBeInstanceOf(BadRequestException);
     await expect(service.search({ pageSize: '1.5' })).rejects.toBeInstanceOf(BadRequestException);
+    await expect(service.search({ pageSize: '9007199254740992' })).rejects.toBeInstanceOf(BadRequestException);
     await expect(service.search({ regionCode: '   ' })).rejects.toBeInstanceOf(BadRequestException);
     await expect(service.search({ category: 'bad' })).rejects.toBeInstanceOf(BadRequestException);
     await expect(service.search({ calligraphyScript: 'bad' })).rejects.toBeInstanceOf(BadRequestException);
@@ -96,7 +98,9 @@ describe('ArtworksService search/list filter strictness suite', () => {
   it('rejects invalid admin filters strictly', async () => {
     const req = { auth: { isAdmin: true } };
     await expect(service.listAdmin(req, { page: '0' })).rejects.toBeInstanceOf(BadRequestException);
+    await expect(service.listAdmin(req, { page: '9007199254740992' })).rejects.toBeInstanceOf(BadRequestException);
     await expect(service.listAdmin(req, { pageSize: '1.5' })).rejects.toBeInstanceOf(BadRequestException);
+    await expect(service.listAdmin(req, { pageSize: '9007199254740992' })).rejects.toBeInstanceOf(BadRequestException);
     await expect(service.listAdmin(req, { auditStatus: 'bad' })).rejects.toBeInstanceOf(BadRequestException);
     await expect(service.listAdmin(req, { status: 'bad' })).rejects.toBeInstanceOf(BadRequestException);
     await expect(service.listAdmin(req, { source: 'bad' })).rejects.toBeInstanceOf(BadRequestException);
