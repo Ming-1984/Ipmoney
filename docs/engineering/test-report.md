@@ -3,6 +3,14 @@
 ## Latest (2026-03-14)
 
 ### Commands & Results (dev)
+- `pnpm -C apps/api test -- test/contracts.filters.spec.ts`
+  - Result: pass (`6/6`)
+  - Notes: expanded strict regression coverage for contracts list status branches (`WAIT_CONFIRM/AVAILABLE`), empty status rejection, default pagination, and buyer-side counterpart/file-url fallback mapping.
+- `pnpm -C apps/api test`
+  - Result: pass (`601/601`)
+  - Notes: full API Vitest suite remained green after contracts filter branch expansion.
+- `pnpm -C apps/api test:e2e`
+  - Result: pass (`2/2`)
 - `powershell -ExecutionPolicy Bypass -File scripts/verify.ps1 -ReportDate r262a`
   - Result: success (all steps)
   - Notes: full gate stayed green after latest orders strictness expansions (`api-real-smoke 1754/1754`, OpenAPI coverage `238/238`, quality floor `violations=[]`, plus db/ui-http/ui-render(core)/ui-dom(core) pass).

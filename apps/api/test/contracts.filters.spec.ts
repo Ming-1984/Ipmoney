@@ -26,6 +26,7 @@ describe('ContractsService list filter strictness suite', () => {
     await expect(service.list(req, { page: '0' })).rejects.toBeInstanceOf(BadRequestException);
     await expect(service.list(req, { pageSize: '1.5' })).rejects.toBeInstanceOf(BadRequestException);
     await expect(service.list(req, { status: 'pending' })).rejects.toBeInstanceOf(BadRequestException);
+    await expect(service.list(req, { status: '' })).rejects.toBeInstanceOf(BadRequestException);
   });
 
   it('caps pageSize and applies WAIT_UPLOAD special where-clause', async () => {
@@ -78,6 +79,74 @@ describe('ContractsService list filter strictness suite', () => {
       counterpartName: 'Buyer',
       status: 'WAIT_UPLOAD',
       canUpload: true,
+    });
+  });
+
+  it('applies WAIT_CONFIRM and AVAILABLE status filters via contract relation', async () => {
+    const req = { auth: { userId: 'user-1' } };
+    prisma.order.findMany.mockResolvedValue([]);
+    prisma.order.count.mockResolvedValue(0);
+
+    await service.list(req, { status: 'wait_confirm' });
+    expect(prisma.order.findMany).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          AND: [{ contract: { is: { status: 'WAIT_CONFIRM' } } }],
+        }),
+      }),
+    );
+
+    await service.list(req, { status: 'available' });
+    expect(prisma.order.findMany).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          AND: [{ contract: { is: { status: 'AVAILABLE' } } }],
+        }),
+      }),
+    );
+  });
+
+  it('uses default pagination and maps buyer-side counterpart/file-url fallback', async () => {
+    const req = { auth: { userId: 'buyer-1' } };
+    prisma.order.findMany.mockResolvedValueOnce([
+      {
+        id: '33333333-3333-4333-8333-333333333333',
+        createdAt: new Date('2026-03-12T00:00:00.000Z'),
+        listing: {
+          title: 'Listing B',
+          sellerUserId: 'seller-2',
+          seller: { nickname: 'SellerB' },
+        },
+        buyer: { nickname: 'BuyerB' },
+        contract: {
+          status: 'WAIT_CONFIRM',
+          createdAt: new Date('2026-03-12T00:10:00.000Z'),
+          uploadedAt: new Date('2026-03-12T00:20:00.000Z'),
+          signedAt: null,
+          fileUrl: null,
+          contractFile: { url: 'https://example.com/contract-b.pdf' },
+          watermarkOwner: 'seller-2',
+        },
+      },
+    ]);
+    prisma.order.count.mockResolvedValueOnce(1);
+
+    const result = await service.list(req, {});
+
+    expect(prisma.order.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        skip: 0,
+        take: 20,
+      }),
+    );
+    expect(result.page).toEqual({ page: 1, pageSize: 20, total: 1 });
+    expect(result.items[0]).toMatchObject({
+      id: 'contract-33333333-3333-4333-8333-333333333333',
+      counterpartName: 'SellerB',
+      status: 'WAIT_CONFIRM',
+      fileUrl: 'https://example.com/contract-b.pdf',
+      canUpload: false,
+      watermarkOwner: 'seller-2',
     });
   });
 });
