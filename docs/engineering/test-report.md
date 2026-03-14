@@ -3,6 +3,14 @@
 ## Latest (2026-03-14)
 
 ### Commands & Results (dev)
+- `pnpm -C apps/api test -- test/orders.write.spec.ts`
+  - Result: pass (`29/29`)
+  - Notes: expanded order state-machine strictness coverage for auto-refund transition and admin contract/transfer/payout status transitions.
+- `pnpm -C apps/api test`
+  - Result: pass (`582/582`)
+  - Notes: full API Vitest suite stayed green after orders state-machine boundary hardening.
+- `pnpm -C apps/api test:e2e`
+  - Result: pass (`2/2`)
 - `pnpm -C apps/api test -- test/demands.filters.spec.ts test/achievements.filters.spec.ts`
   - Result: pass (`12/12`)
   - Notes: added regression guards to ensure all-hidden `smoke/e2e/qa` industry tags do not generate `industryTagsJson` filter conditions in demand/achievement public search.

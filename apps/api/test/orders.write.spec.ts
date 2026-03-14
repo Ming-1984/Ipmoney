@@ -63,6 +63,7 @@ describe('OrdersService write-first suite', () => {
       order: { findUnique: vi.fn(), create: vi.fn(), update: vi.fn() },
       payment: { findFirst: vi.fn(), create: vi.fn(), update: vi.fn() },
       refundRequest: { findFirst: vi.fn(), create: vi.fn(), update: vi.fn(), findUnique: vi.fn() },
+      settlement: { upsert: vi.fn() },
       file: { findUnique: vi.fn() },
       idempotencyKey: { findUnique: vi.fn(), create: vi.fn(), update: vi.fn(), delete: vi.fn() },
       user: { findFirst: vi.fn(), upsert: vi.fn() },
@@ -70,7 +71,15 @@ describe('OrdersService write-first suite', () => {
       csMilestone: { findMany: vi.fn(), createMany: vi.fn(), updateMany: vi.fn() },
     };
     audit = { log: vi.fn().mockResolvedValue(undefined) };
-    config = { getTradeRules: vi.fn().mockResolvedValue({ autoRefundWindowMinutes: 0 }) };
+    config = {
+      getTradeRules: vi.fn().mockResolvedValue({
+        commissionRate: 0.05,
+        commissionMinFen: 100,
+        commissionMaxFen: 2000000,
+        payoutMethodDefault: 'BANK_TRANSFER',
+        autoRefundWindowMinutes: 0,
+      }),
+    };
     notifications = { create: vi.fn().mockResolvedValue(undefined) };
 
     service = new OrdersService(prisma, audit, config, notifications);
@@ -271,6 +280,79 @@ describe('OrdersService write-first suite', () => {
     );
     expect(notifications.create).toHaveBeenCalledTimes(2);
     expect(result).toMatchObject({ orderId: ORDER_ID, reasonCode: 'OTHER', status: 'PENDING' });
+  });
+
+  it('auto-completes refund request when inside auto-refund window', async () => {
+    const now = new Date('2026-03-12T00:00:00.000Z');
+    const paidAt = new Date();
+    config.getTradeRules.mockResolvedValueOnce({
+      commissionRate: 0.05,
+      commissionMinFen: 100,
+      commissionMaxFen: 2000000,
+      payoutMethodDefault: 'BANK_TRANSFER',
+      autoRefundWindowMinutes: 30,
+    });
+    prisma.order.findUnique
+      .mockResolvedValueOnce(
+        makeOrder({
+          status: 'DEPOSIT_PAID',
+          listing: { sellerUserId: SELLER_ID, title: 'Patent Listing' },
+        }),
+      )
+      .mockResolvedValueOnce(
+        makeOrder({
+          status: 'DEPOSIT_PAID',
+          listing: { sellerUserId: SELLER_ID, title: 'Patent Listing' },
+        }),
+      );
+    prisma.payment.findFirst.mockResolvedValueOnce({ id: 'payment-1', paidAt });
+    prisma.csCase.findFirst.mockResolvedValueOnce(null);
+    prisma.refundRequest.findFirst.mockResolvedValueOnce(null);
+    prisma.refundRequest.create.mockResolvedValueOnce({
+      id: REFUND_ID,
+      orderId: ORDER_ID,
+      reasonCode: 'OTHER',
+      reasonText: null,
+      status: 'PENDING',
+      createdAt: now,
+      updatedAt: now,
+    });
+    prisma.refundRequest.update
+      .mockResolvedValueOnce({
+        id: REFUND_ID,
+        orderId: ORDER_ID,
+        reasonCode: 'OTHER',
+        reasonText: null,
+        status: 'REFUNDING',
+        createdAt: now,
+        updatedAt: now,
+      })
+      .mockResolvedValueOnce({
+        id: REFUND_ID,
+        orderId: ORDER_ID,
+        reasonCode: 'OTHER',
+        reasonText: null,
+        status: 'REFUNDED',
+        createdAt: now,
+        updatedAt: now,
+      });
+    prisma.order.update
+      .mockResolvedValueOnce(makeOrder({ status: 'REFUNDING' }))
+      .mockResolvedValueOnce(makeOrder({ status: 'REFUNDED' }));
+
+    const result = await service.createRefundRequest(buyerReq, ORDER_ID, { reasonCode: 'OTHER' });
+
+    expect(prisma.refundRequest.update).toHaveBeenNthCalledWith(1, {
+      where: { id: REFUND_ID },
+      data: { status: 'REFUNDING' },
+    });
+    expect(prisma.refundRequest.update).toHaveBeenNthCalledWith(2, {
+      where: { id: REFUND_ID },
+      data: { status: 'REFUNDED' },
+    });
+    expect(prisma.order.update).toHaveBeenNthCalledWith(1, { where: { id: ORDER_ID }, data: { status: 'REFUNDING' } });
+    expect(prisma.order.update).toHaveBeenNthCalledWith(2, { where: { id: ORDER_ID }, data: { status: 'REFUNDED' } });
+    expect(result).toMatchObject({ id: REFUND_ID, orderId: ORDER_ID, status: 'REFUNDED' });
   });
 
   it('validates requestInvoice auth/id/access/status', async () => {
@@ -512,6 +594,132 @@ describe('OrdersService write-first suite', () => {
     expect(prisma.order.update).toHaveBeenCalledWith({ where: { id: ORDER_ID }, data: { status: 'REFUNDED' } });
     expect(result).toMatchObject({ id: REFUND_ID, status: 'REFUNDED' });
     expect(notifications.create).toHaveBeenCalledTimes(2);
+  });
+
+  it('moves order to WAIT_FINAL_PAYMENT on adminContractSigned and marks milestone', async () => {
+    const ensureCaseSpy = vi.spyOn(service as any, 'ensureCaseForOrder').mockResolvedValue({ id: 'case-1' });
+    const markCaseSpy = vi.spyOn(service as any, 'markCaseMilestone').mockResolvedValue(undefined);
+    prisma.order.findUnique
+      .mockResolvedValueOnce(makeOrder({ status: 'DEPOSIT_PAID', depositAmount: 2000 }))
+      .mockResolvedValueOnce(
+        makeOrder({ status: 'WAIT_FINAL_PAYMENT', listing: { sellerUserId: SELLER_ID, title: 'Patent Listing' } }),
+      );
+    prisma.order.update.mockResolvedValueOnce(
+      makeOrder({
+        status: 'WAIT_FINAL_PAYMENT',
+        depositAmount: 2000,
+        dealAmount: 10000,
+        finalAmount: 8000,
+        commissionAmount: 500,
+      }),
+    );
+
+    const result = await service.adminContractSigned(adminReq, ORDER_ID, { dealAmountFen: 10000, remark: 'ok' });
+
+    expect(prisma.order.update).toHaveBeenCalledWith({
+      where: { id: ORDER_ID },
+      data: {
+        dealAmount: 10000,
+        finalAmount: 8000,
+        commissionAmount: 500,
+        status: 'WAIT_FINAL_PAYMENT',
+      },
+    });
+    expect(ensureCaseSpy).toHaveBeenCalledTimes(1);
+    expect(markCaseSpy).toHaveBeenCalledWith('case-1', 'CONTRACT_SIGNED');
+    expect(result).toMatchObject({ id: ORDER_ID, status: 'WAIT_FINAL_PAYMENT', finalAmountFen: 8000, dealAmountFen: 10000 });
+  });
+
+  it('moves order to READY_TO_SETTLE on adminTransferCompleted and marks milestone', async () => {
+    const ensureCaseSpy = vi.spyOn(service as any, 'ensureCaseForOrder').mockResolvedValue({ id: 'case-2' });
+    const markCaseSpy = vi.spyOn(service as any, 'markCaseMilestone').mockResolvedValue(undefined);
+    prisma.order.findUnique
+      .mockResolvedValueOnce(makeOrder({ status: 'FINAL_PAID_ESCROW' }))
+      .mockResolvedValueOnce(
+        makeOrder({ status: 'READY_TO_SETTLE', listing: { sellerUserId: SELLER_ID, title: 'Patent Listing' } }),
+      );
+    prisma.order.update.mockResolvedValueOnce(makeOrder({ status: 'READY_TO_SETTLE' }));
+
+    const result = await service.adminTransferCompleted(adminReq, ORDER_ID, { remark: 'done' });
+
+    expect(prisma.order.update).toHaveBeenCalledWith({ where: { id: ORDER_ID }, data: { status: 'READY_TO_SETTLE' } });
+    expect(ensureCaseSpy).toHaveBeenCalledTimes(1);
+    expect(markCaseSpy).toHaveBeenCalledWith('case-2', 'TRANSFER_COMPLETED');
+    expect(result).toMatchObject({ id: ORDER_ID, status: 'READY_TO_SETTLE' });
+  });
+
+  it('validates adminManualPayout status and payout evidence file strictly', async () => {
+    await expect(service.adminManualPayout({}, ORDER_ID, {})).rejects.toBeInstanceOf(ForbiddenException);
+    await expect(service.adminManualPayout(adminReq, 'bad-id', {})).rejects.toBeInstanceOf(BadRequestException);
+
+    prisma.order.findUnique.mockResolvedValueOnce(null);
+    await expect(
+      service.adminManualPayout(adminReq, ORDER_ID, { payoutEvidenceFileId: FILE_ID }),
+    ).rejects.toBeInstanceOf(NotFoundException);
+
+    prisma.order.findUnique.mockResolvedValueOnce(makeOrder({ status: 'FINAL_PAID_ESCROW' }));
+    await expect(
+      service.adminManualPayout(adminReq, ORDER_ID, { payoutEvidenceFileId: FILE_ID }),
+    ).rejects.toBeInstanceOf(ConflictException);
+
+    prisma.order.findUnique.mockResolvedValueOnce(makeOrder({ status: 'READY_TO_SETTLE' }));
+    await expect(
+      service.adminManualPayout(adminReq, ORDER_ID, { payoutEvidenceFileId: 'bad-id' }),
+    ).rejects.toBeInstanceOf(BadRequestException);
+
+    prisma.order.findUnique.mockResolvedValueOnce(makeOrder({ status: 'READY_TO_SETTLE' }));
+    prisma.file.findUnique.mockResolvedValueOnce(null);
+    await expect(
+      service.adminManualPayout(adminReq, ORDER_ID, { payoutEvidenceFileId: FILE_ID }),
+    ).rejects.toBeInstanceOf(BadRequestException);
+  });
+
+  it('completes settlement and order on adminManualPayout', async () => {
+    prisma.order.findUnique
+      .mockResolvedValueOnce(
+        makeOrder({
+          status: 'READY_TO_SETTLE',
+          depositAmount: 2000,
+          dealAmount: 10000,
+          finalAmount: 8000,
+        }),
+      )
+      .mockResolvedValueOnce(
+        makeOrder({ status: 'COMPLETED', listing: { sellerUserId: SELLER_ID, title: 'Patent Listing' } }),
+      );
+    prisma.file.findUnique.mockResolvedValueOnce({ id: FILE_ID });
+    prisma.settlement.upsert.mockResolvedValueOnce({
+      id: 'settlement-1',
+      orderId: ORDER_ID,
+      status: 'COMPLETED',
+      payoutStatus: 'SUCCEEDED',
+      payoutAmount: 9500,
+      commissionAmount: 500,
+      grossAmount: 10000,
+    });
+    prisma.order.update.mockResolvedValueOnce(makeOrder({ status: 'COMPLETED', commissionAmount: 500 }));
+
+    const result = await service.adminManualPayout(adminReq, ORDER_ID, {
+      payoutEvidenceFileId: FILE_ID,
+      payoutRef: 'PO-1',
+    });
+
+    expect(prisma.order.update).toHaveBeenCalledWith({
+      where: { id: ORDER_ID },
+      data: { status: 'COMPLETED', commissionAmount: 500 },
+    });
+    expect(prisma.settlement.upsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { orderId: ORDER_ID },
+        update: expect.objectContaining({
+          status: 'COMPLETED',
+          payoutStatus: 'SUCCEEDED',
+          payoutEvidenceFileId: FILE_ID,
+          payoutRef: 'PO-1',
+        }),
+      }),
+    );
+    expect(result).toMatchObject({ id: 'settlement-1', orderId: ORDER_ID, status: 'COMPLETED', payoutStatus: 'SUCCEEDED' });
   });
 
   it('validates adminIssueInvoice and updates invoice metadata', async () => {
