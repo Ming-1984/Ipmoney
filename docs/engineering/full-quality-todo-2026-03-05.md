@@ -11,7 +11,7 @@
 - `build`: pass (api/admin-web/client h5/weapp); WeApp severe regression has been fixed in this batch, and bundle gate is now enforced.
 - `smoke`: latest full rerun pass on `r254a/r254b/r253b` (UI HTTP `86/86`, UI Render full `83/83`, UI DOM full-83 `83/83`); API full baseline remains green on `r254c` (`api-real-smoke 1754/1754`), including announcement-tag and patent-map industry-breakdown/top-assignee compatibility regressions.
 - `verify`: pass on `r254c` (openapi/lint/typecheck/build/api-smoke `1754/1754` + coverage `238/238` + quality-floor `violations=[]` + db/ui-http/ui-render(core)/ui-dom(core) all green); port/process hardening has been applied to core smoke scripts.
-- `api test` (new minimal gate): pass on `2026-03-14` with `pnpm -C apps/api test` (`575/575`, Vitest + Supertest health e2e), and CI now executes it as a dedicated step.
+- `api test` (new minimal gate): latest rerun pass on `2026-03-14` with `pnpm -C apps/api test` (`575/575`) and `pnpm -C apps/api test:e2e` (`2/2`), and CI executes it as a dedicated step.
 - `weapp-route-smoke`: latest pass on `r255a/r255b` (both `11/11` routes, `--kill-stale-devtools` enabled, with no-auth and auth-storage variants); script includes launch retry + stale DevTools diagnostics + success/failure report output.
 
 ### 1.2 Coverage and test capability
@@ -668,5 +668,7 @@
   351) round254 full verify rerun captured (done: `scripts/verify.ps1 -ReportDate r254c` remained fully green with `api-real-smoke` `1754/1754` (`writes=1297`,`reads=457`), OpenAPI coverage `238/238`, quality floor `violations=[]`, and `db-preflight/ui-http-smoke/ui-render-smoke(core)/ui-dom-smoke(core)` all passing; UI render artifacts updated at `docs/demo/rendered/ui-smoke-r254c/`).
   352) round255 weapp-route-smoke no-auth rerun captured (done: `scripts/weapp-route-smoke.ps1 -NoAuth -ReportDate r255a -LaunchRetries 3 -LaunchRetryDelayMs 4000 -KillStaleDevtools` passed `11/11` routes; output `.tmp/weapp-route-smoke-r255a.json` confirms no runtime exceptions and first-attempt launch success).
   353) round255 weapp-route-smoke auth-storage rerun captured (done: `scripts/weapp-route-smoke.ps1 -ReportDate r255b -UserToken demo-user-<guid> -LaunchRetries 3 -LaunchRetryDelayMs 4000 -KillStaleDevtools` passed `11/11` routes; output `.tmp/weapp-route-smoke-r255b.json` confirms auth-storage branch stability and stale DevTools cleanup effectiveness).
+  354) round256 api unit regression rerun captured (done: `pnpm -C apps/api test` remained fully green at `575/575`, confirming current API Vitest suite stability after recent UI/test workflow updates).
+  355) round256 api e2e regression rerun captured (done: `pnpm -C apps/api test:e2e` remained fully green at `2/2`, confirming standalone health e2e stability).
 
 

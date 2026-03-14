@@ -3,6 +3,12 @@
 ## Latest (2026-03-14)
 
 ### Commands & Results (dev)
+- `pnpm -C apps/api test`
+  - Result: pass (`575/575`)
+  - Notes: full Vitest regression rerun remained green after the latest UI/admin semantic hardening and WeApp smoke batches.
+- `pnpm -C apps/api test:e2e`
+  - Result: pass (`2/2`)
+  - Notes: health e2e remained stable in standalone rerun.
 - `powershell -ExecutionPolicy Bypass -File scripts/weapp-route-smoke.ps1 -NoAuth -ReportDate r255a -LaunchRetries 3 -LaunchRetryDelayMs 4000 -KillStaleDevtools`
   - Result: pass (11/11 routes)
   - Artifact: `.tmp/weapp-route-smoke-r255a.json`
