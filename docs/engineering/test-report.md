@@ -3,6 +3,14 @@
 ## Latest (2026-03-14)
 
 ### Commands & Results (dev)
+- `powershell -ExecutionPolicy Bypass -File scripts/weapp-route-smoke.ps1 -NoAuth -ReportDate r255a -LaunchRetries 3 -LaunchRetryDelayMs 4000 -KillStaleDevtools`
+  - Result: pass (11/11 routes)
+  - Artifact: `.tmp/weapp-route-smoke-r255a.json`
+  - Notes: no-auth route smoke remained stable; launch succeeded on first attempt.
+- `powershell -ExecutionPolicy Bypass -Command "$tok = \"demo-user-<guid>\"; & ./scripts/weapp-route-smoke.ps1 -ReportDate r255b -UserToken $tok -LaunchRetries 3 -LaunchRetryDelayMs 4000 -KillStaleDevtools"`
+  - Result: pass (11/11 routes)
+  - Artifact: `.tmp/weapp-route-smoke-r255b.json`
+  - Notes: auth-storage route smoke remained stable; stale DevTools cleanup succeeded before launch.
 - `powershell -ExecutionPolicy Bypass -File scripts/verify.ps1 -ReportDate r254c`
   - Result: success (all steps)
   - Render artifact: `docs/demo/rendered/ui-smoke-r254c/` (core mode, 3 pages)
