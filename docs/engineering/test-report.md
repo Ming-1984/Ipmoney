@@ -3,6 +3,14 @@
 ## Latest (2026-03-14)
 
 ### Commands & Results (dev)
+- `pnpm -C apps/api test -- test/cases.filters.spec.ts`
+  - Result: pass (`4/4`)
+  - Notes: hardened cases list strictness by enforcing non-safe-integer `page/pageSize` rejection on admin case filters.
+- `pnpm -C apps/api test`
+  - Result: pass (`615/615`)
+  - Notes: full API Vitest suite remained green after cases filter strictness/safe-integer hardening.
+- `pnpm -C apps/api test:e2e`
+  - Result: pass (`2/2`)
 - `pnpm -C apps/api test -- test/alerts.filters.spec.ts`
   - Result: pass (`4/4`)
   - Notes: hardened alerts filter strictness by enforcing non-safe-integer `page/pageSize` rejection and adding invalid `triggeredFrom/triggeredTo` date-path assertions.
