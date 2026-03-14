@@ -22,8 +22,30 @@ describe('UsersService admin verification list filter strictness suite', () => {
   it('rejects invalid pagination/type/status filters', async () => {
     await expect(service.adminListUserVerifications({ page: '0' })).rejects.toBeInstanceOf(BadRequestException);
     await expect(service.adminListUserVerifications({ pageSize: '1.1' })).rejects.toBeInstanceOf(BadRequestException);
+    await expect(service.adminListUserVerifications({ type: '   ' })).rejects.toBeInstanceOf(BadRequestException);
     await expect(service.adminListUserVerifications({ type: 'bad' })).rejects.toBeInstanceOf(BadRequestException);
+    await expect(service.adminListUserVerifications({ status: '   ' })).rejects.toBeInstanceOf(BadRequestException);
     await expect(service.adminListUserVerifications({ status: 'bad' })).rejects.toBeInstanceOf(BadRequestException);
+  });
+
+  it('uses default pagination and empty where when no filters are provided', async () => {
+    prisma.userVerification.count.mockResolvedValueOnce(0);
+    prisma.userVerification.findMany.mockResolvedValueOnce([]);
+
+    const result = await service.adminListUserVerifications({ q: '   ' });
+
+    expect(prisma.userVerification.count).toHaveBeenCalledWith({ where: {} });
+    expect(prisma.userVerification.findMany).toHaveBeenCalledWith({
+      where: {},
+      include: { logoFile: true },
+      orderBy: { submittedAt: 'desc' },
+      skip: 0,
+      take: 10,
+    });
+    expect(result).toEqual({
+      items: [],
+      page: { page: 1, pageSize: 10, total: 0 },
+    });
   });
 
   it('caps pageSize and applies normalized type/status + q filters', async () => {

@@ -3,6 +3,14 @@
 ## Latest (2026-03-14)
 
 ### Commands & Results (dev)
+- `pnpm -C apps/api test -- test/user-verifications.filters.spec.ts`
+  - Result: pass (`3/3`)
+  - Notes: expanded admin verification-list strict regression coverage for empty `type/status` rejection and default pagination + empty-query where-clause short-circuit behavior.
+- `pnpm -C apps/api test`
+  - Result: pass (`609/609`)
+  - Notes: full API Vitest suite remained green after user-verifications filter strict branch expansion.
+- `pnpm -C apps/api test:e2e`
+  - Result: pass (`2/2`)
 - `pnpm -C apps/api test -- test/org-inventor.filters.spec.ts`
   - Result: pass (`7/7`)
   - Notes: expanded org/inventor strict regression coverage for explicit-empty pagination/type guards, `verificationType` alias + dedup normalization, and organizations empty-result stats short-circuit branch.
