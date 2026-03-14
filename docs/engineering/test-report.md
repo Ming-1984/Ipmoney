@@ -3,6 +3,14 @@
 ## Latest (2026-03-14)
 
 ### Commands & Results (dev)
+- `pnpm -C apps/api test -- test/organizations.detail.spec.ts`
+  - Result: pass (`4/4`)
+  - Notes: expanded organization-detail strict regression coverage for org-type query constraint assertion and nullable-field/zero-stats mapping branches.
+- `pnpm -C apps/api test`
+  - Result: pass (`610/610`)
+  - Notes: full API Vitest suite remained green after organizations detail branch expansion.
+- `pnpm -C apps/api test:e2e`
+  - Result: pass (`2/2`)
 - `pnpm -C apps/api test -- test/user-verifications.filters.spec.ts`
   - Result: pass (`3/3`)
   - Notes: expanded admin verification-list strict regression coverage for empty `type/status` rejection and default pagination + empty-query where-clause short-circuit behavior.

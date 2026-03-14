@@ -55,6 +55,7 @@ describe('OrganizationsService detail suite', () => {
         where: expect.objectContaining({
           userId: VALID_ORG_USER_ID,
           verificationStatus: 'APPROVED',
+          verificationType: { in: ['COMPANY', 'ACADEMY', 'GOVERNMENT', 'ASSOCIATION'] },
         }),
       }),
     );
@@ -81,6 +82,39 @@ describe('OrganizationsService detail suite', () => {
         patentCount: 2,
       },
       verifiedAt: '2026-03-13T00:00:00.000Z',
+    });
+  });
+
+  it('maps nullable detail fields to undefined and returns zero stats', async () => {
+    prisma.userVerification.findFirst.mockResolvedValueOnce({
+      userId: VALID_ORG_USER_ID,
+      displayName: 'Org Beta',
+      verificationType: 'ACADEMY',
+      verificationStatus: 'APPROVED',
+      regionCode: null,
+      intro: null,
+      reviewedAt: null,
+      logoFile: null,
+    });
+    prisma.listing.count.mockResolvedValueOnce(0);
+    prisma.listing.findMany.mockResolvedValueOnce([]);
+
+    const result = await service.getById(VALID_ORG_USER_ID);
+
+    expect(result).toEqual({
+      userId: VALID_ORG_USER_ID,
+      displayName: 'Org Beta',
+      verificationType: 'ACADEMY',
+      verificationStatus: 'APPROVED',
+      orgCategory: undefined,
+      logoUrl: undefined,
+      regionCode: undefined,
+      intro: undefined,
+      stats: {
+        listingCount: 0,
+        patentCount: 0,
+      },
+      verifiedAt: undefined,
     });
   });
 });
