@@ -3,6 +3,22 @@
 ## Latest (2026-03-14)
 
 ### Commands & Results (dev)
+- `powershell -ExecutionPolicy Bypass -File scripts/verify.ps1 -ReportDate r259a`
+  - Result: success (all steps)
+  - Notes: full gate stayed green (`api-real-smoke 1754/1754`, OpenAPI coverage `238/238`, quality floor `violations=[]`, plus db/ui-http/ui-render(core)/ui-dom(core) pass).
+- `powershell -ExecutionPolicy Bypass -File scripts/ui-http-smoke.ps1 -ReportDate r259b`
+  - Result: pass (`86/86`)
+  - Notes: one concurrent-run attempt hit `EADDRINUSE(5173)` during parallel execution; sequential rerun passed cleanly.
+- `powershell -ExecutionPolicy Bypass -File scripts/ui-render-smoke.ps1 -Mode full -ReportDate r259c`
+  - Result: pass (`83/83`)
+- `powershell -ExecutionPolicy Bypass -File scripts/ui-dom-smoke.ps1 -Mode full -ReportDate r259d`
+  - Result: pass (`83/83`, mode=`full-83`)
+- `powershell -ExecutionPolicy Bypass -File scripts/weapp-route-smoke.ps1 -NoAuth -ReportDate r259e -LaunchRetries 3 -LaunchRetryDelayMs 4000 -KillStaleDevtools`
+  - Result: pass (`11/11`)
+  - Artifact: `.tmp/weapp-route-smoke-r259e.json`
+- `powershell -ExecutionPolicy Bypass -Command "& ./scripts/weapp-route-smoke.ps1 -ReportDate r259f -UserToken ('demo-user-' + [guid]::NewGuid().ToString()) -LaunchRetries 3 -LaunchRetryDelayMs 4000 -KillStaleDevtools"`
+  - Result: pass (`11/11`)
+  - Artifact: `.tmp/weapp-route-smoke-r259f.json`
 - `pnpm -C apps/api test -- test/orders.write.spec.ts`
   - Result: pass (`29/29`)
   - Notes: expanded order state-machine strictness coverage for auto-refund transition and admin contract/transfer/payout status transitions.
