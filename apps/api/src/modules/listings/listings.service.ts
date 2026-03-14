@@ -319,7 +319,7 @@ export class ListingsService {
       throw new BadRequestException({ code: 'BAD_REQUEST', message: `${fieldName} is invalid` });
     }
     const num = Number(value);
-    if (!Number.isFinite(num) || !Number.isInteger(num) || (min !== undefined && num < min)) {
+    if (!Number.isFinite(num) || !Number.isSafeInteger(num) || (min !== undefined && num < min)) {
       throw new BadRequestException({ code: 'BAD_REQUEST', message: `${fieldName} is invalid` });
     }
     return num;

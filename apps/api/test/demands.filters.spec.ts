@@ -37,6 +37,8 @@ describe('DemandsService search/list filter strictness suite', () => {
     await expect(service.search({ sortBy: 'bad' })).rejects.toBeInstanceOf(BadRequestException);
     await expect(service.search({ budgetType: 'bad' })).rejects.toBeInstanceOf(BadRequestException);
     await expect(service.search({ budgetMinFen: '1.2' })).rejects.toBeInstanceOf(BadRequestException);
+    await expect(service.search({ budgetMinFen: '9007199254740992' })).rejects.toBeInstanceOf(BadRequestException);
+    await expect(service.search({ budgetMaxFen: '9007199254740992' })).rejects.toBeInstanceOf(BadRequestException);
     await expect(service.search({ budgetMaxFen: '   ' })).rejects.toBeInstanceOf(BadRequestException);
   });
 

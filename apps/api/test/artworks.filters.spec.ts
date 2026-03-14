@@ -37,6 +37,11 @@ describe('ArtworksService search/list filter strictness suite', () => {
     await expect(service.search({ priceType: 'bad' })).rejects.toBeInstanceOf(BadRequestException);
     await expect(service.search({ creationYearStart: '   ' })).rejects.toBeInstanceOf(BadRequestException);
     await expect(service.search({ priceMin: '1.2' })).rejects.toBeInstanceOf(BadRequestException);
+    await expect(service.search({ creationYearStart: '9007199254740992' })).rejects.toBeInstanceOf(BadRequestException);
+    await expect(service.search({ priceMin: '9007199254740992' })).rejects.toBeInstanceOf(BadRequestException);
+    await expect(service.search({ priceMax: '9007199254740992' })).rejects.toBeInstanceOf(BadRequestException);
+    await expect(service.search({ depositMin: '9007199254740992' })).rejects.toBeInstanceOf(BadRequestException);
+    await expect(service.search({ depositMax: '9007199254740992' })).rejects.toBeInstanceOf(BadRequestException);
   });
 
   it('caps pageSize and applies normalized public search filters', async () => {

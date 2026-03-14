@@ -3,6 +3,14 @@
 ## Latest (2026-03-14)
 
 ### Commands & Results (dev)
+- `pnpm -C apps/api test -- test/demands.filters.spec.ts test/artworks.filters.spec.ts test/listings.search-filters.spec.ts`
+  - Result: pass (`17/17`)
+  - Notes: hardened demands/artworks/listings numeric-filter strictness by enforcing safe-integer parsing for optional integer filters (`price/budget/deposit/transferCount/creationYear`) and adding unsafe-integer rejection coverage.
+- `pnpm -C apps/api test`
+  - Result: pass (`615/615`)
+  - Notes: full API Vitest suite remained green after numeric-filter safe-integer hardening in demands/artworks/listings.
+- `pnpm -C apps/api test:e2e`
+  - Result: pass (`2/2`)
 - `pnpm -C apps/api test -- test/comments.write.spec.ts test/user-verifications.filters.spec.ts test/users.admin-verifications-review.spec.ts`
   - Result: pass (`39/39`)
   - Notes: hardened comments/users pagination strictness by adding non-safe-integer `page/pageSize` rejection coverage and corresponding service-level safe-integer guards.
