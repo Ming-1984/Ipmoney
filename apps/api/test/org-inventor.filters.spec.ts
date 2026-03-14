@@ -72,7 +72,9 @@ describe('OrganizationsService filter strictness', () => {
 
   it('rejects invalid regionCode and type filters', async () => {
     await expect(service.list({ page: '0' })).rejects.toBeInstanceOf(BadRequestException);
+    await expect(service.list({ page: '9007199254740992' })).rejects.toBeInstanceOf(BadRequestException);
     await expect(service.list({ pageSize: '' })).rejects.toBeInstanceOf(BadRequestException);
+    await expect(service.list({ pageSize: '9007199254740992' })).rejects.toBeInstanceOf(BadRequestException);
     await expect(service.list({ regionCode: '   ' })).rejects.toBeInstanceOf(BadRequestException);
     await expect(service.list({ regionCode: 'abc' })).rejects.toBeInstanceOf(BadRequestException);
     await expect(service.list({ type: '   ' })).rejects.toBeInstanceOf(BadRequestException);

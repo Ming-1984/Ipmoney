@@ -24,7 +24,9 @@ describe('PatentsService admin list filter strictness suite', () => {
   it('rejects invalid pagination and patent filters strictly', async () => {
     const req = { auth: { isAdmin: true } };
     await expect(service.adminList(req, { page: '0' })).rejects.toBeInstanceOf(BadRequestException);
+    await expect(service.adminList(req, { page: '9007199254740992' })).rejects.toBeInstanceOf(BadRequestException);
     await expect(service.adminList(req, { pageSize: '1.5' })).rejects.toBeInstanceOf(BadRequestException);
+    await expect(service.adminList(req, { pageSize: '9007199254740992' })).rejects.toBeInstanceOf(BadRequestException);
     await expect(service.adminList(req, { patentType: 'bad' })).rejects.toBeInstanceOf(BadRequestException);
     await expect(service.adminList(req, { legalStatus: 'bad' })).rejects.toBeInstanceOf(BadRequestException);
   });

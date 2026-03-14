@@ -35,7 +35,9 @@ describe('OrdersService list filter strictness suite', () => {
   it('rejects invalid listOrders filters strictly', async () => {
     const req = { auth: { userId: 'u-1' } };
     await expect(service.listOrders(req, { page: '0' })).rejects.toBeInstanceOf(BadRequestException);
+    await expect(service.listOrders(req, { page: '9007199254740992' })).rejects.toBeInstanceOf(BadRequestException);
     await expect(service.listOrders(req, { pageSize: '1.5' })).rejects.toBeInstanceOf(BadRequestException);
+    await expect(service.listOrders(req, { pageSize: '9007199254740992' })).rejects.toBeInstanceOf(BadRequestException);
     await expect(service.listOrders(req, { asRole: 'bad' })).rejects.toBeInstanceOf(BadRequestException);
     await expect(service.listOrders(req, { status: 'bad' })).rejects.toBeInstanceOf(BadRequestException);
     await expect(service.listOrders(req, { statusGroup: 'bad' })).rejects.toBeInstanceOf(BadRequestException);
@@ -103,7 +105,9 @@ describe('OrdersService list filter strictness suite', () => {
   it('rejects invalid listInvoices filters strictly', async () => {
     const req = { auth: { userId: 'u-1' } };
     await expect(service.listInvoices(req, { page: '0' })).rejects.toBeInstanceOf(BadRequestException);
+    await expect(service.listInvoices(req, { page: '9007199254740992' })).rejects.toBeInstanceOf(BadRequestException);
     await expect(service.listInvoices(req, { pageSize: '1.5' })).rejects.toBeInstanceOf(BadRequestException);
+    await expect(service.listInvoices(req, { pageSize: '9007199254740992' })).rejects.toBeInstanceOf(BadRequestException);
     await expect(service.listInvoices(req, { status: 'bad' })).rejects.toBeInstanceOf(BadRequestException);
   });
 

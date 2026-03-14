@@ -49,6 +49,8 @@ describe('ListingsService search filter strictness suite', () => {
   });
 
   it('rejects invalid numeric filters strictly', async () => {
+    await expect(service.searchPublic({ page: '9007199254740992' })).rejects.toBeInstanceOf(BadRequestException);
+    await expect(service.searchPublic({ pageSize: '9007199254740992' })).rejects.toBeInstanceOf(BadRequestException);
     await expect(service.searchPublic({ priceMin: '1.2' })).rejects.toBeInstanceOf(BadRequestException);
     await expect(service.searchPublic({ transferCountMin: '   ' })).rejects.toBeInstanceOf(BadRequestException);
     await expect(service.searchPublic({ priceMaxFen: '-1' })).rejects.toBeInstanceOf(BadRequestException);
