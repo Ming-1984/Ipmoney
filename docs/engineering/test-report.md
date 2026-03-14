@@ -3,6 +3,11 @@
 ## Latest (2026-03-14)
 
 ### Commands & Results (dev)
+- `pnpm -C apps/api test`
+  - Result: pass (`619/619`)
+  - Notes: full API Vitest suite stayed green after `r288` full-chain rerun; no regression found in search/filter or tag-sanitization related suites.
+- `pnpm -C apps/api test:e2e`
+  - Result: pass (`2/2`)
 - `powershell -ExecutionPolicy Bypass -File scripts/verify.ps1 -ReportDate r288e`
   - Result: pass
   - Notes: full-chain quality gate remained green (`api-real-smoke` `1754/1754`, coverage `238/238`, quality-floor `violations=[]`, `db-preflight` `9/9`, `ui-render(core)` `3/3`, `ui-dom(core)` `11/11`); hidden smoke/e2e/qa tag cleanup counters stayed `0`, showing no new persistence pollution surfaced in this round.
