@@ -671,7 +671,7 @@ export class ListingsService {
         throw new BadRequestException({ code: 'BAD_REQUEST', message: 'transferCount is invalid' });
       }
       const num = Number(rawTransferCount);
-      if (!Number.isFinite(num) || num < 0 || !Number.isInteger(num)) {
+      if (!Number.isFinite(num) || num < 0 || !Number.isSafeInteger(num)) {
         throw new BadRequestException({ code: 'BAD_REQUEST', message: 'transferCount is invalid' });
       }
       transferCount = num;
@@ -782,7 +782,7 @@ export class ListingsService {
         throw new BadRequestException({ code: 'BAD_REQUEST', message: 'transferCount is invalid' });
       }
       const num = Number(rawTransferCount);
-      if (!Number.isFinite(num) || num < 0 || !Number.isInteger(num)) {
+      if (!Number.isFinite(num) || num < 0 || !Number.isSafeInteger(num)) {
         throw new BadRequestException({ code: 'BAD_REQUEST', message: 'transferCount is invalid' });
       }
       transferCount = num;

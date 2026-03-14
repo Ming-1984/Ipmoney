@@ -81,6 +81,9 @@ describe('ListingsService write flow suite', () => {
     await expect(service.createListing(USER_REQ, { regionCode: '   ' })).rejects.toBeInstanceOf(BadRequestException);
     await expect(service.createListing(USER_REQ, { title: '   ' })).rejects.toBeInstanceOf(BadRequestException);
     await expect(
+      service.createListing(USER_REQ, { patentNumberRaw: 'CN202410123456.7', transferCount: '9007199254740992' }),
+    ).rejects.toBeInstanceOf(BadRequestException);
+    await expect(
       service.createListing(USER_REQ, { negotiableRangeFen: '100', negotiableRangePercent: '10' }),
     ).rejects.toBeInstanceOf(BadRequestException);
   });

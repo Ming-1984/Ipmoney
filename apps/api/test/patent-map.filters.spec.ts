@@ -25,6 +25,7 @@ describe('PatentMapService filter and import strictness suite', () => {
 
   it('validates summary query params strictly', async () => {
     await expect(service.getSummary({ year: 2026.5, level: 'CITY' })).rejects.toBeInstanceOf(BadRequestException);
+    await expect(service.getSummary({ year: 9007199254740992, level: 'CITY' })).rejects.toBeInstanceOf(BadRequestException);
     await expect(service.getSummary({ year: 2026, level: 'TOWN' as any })).rejects.toBeInstanceOf(BadRequestException);
     await expect(service.getSummary({ year: 2026, level: 'CITY', parentCode: '   ' })).rejects.toBeInstanceOf(
       BadRequestException,
@@ -106,5 +107,27 @@ describe('PatentMapService filter and import strictness suite', () => {
         expect.objectContaining({ rowNumber: 4, message: expect.stringContaining('region not found') }),
       ]),
     );
+  });
+
+  it('rejects unsafe integer year/patentCount in import rows', async () => {
+    const worksheet = XLSX.utils.json_to_sheet([
+      { regionCode: '110000', year: '9007199254740992', patentCount: '9007199254740992' },
+    ]);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'sheet1');
+    const buffer = XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx' }) as Buffer;
+
+    const result = await service.adminImportExcel({ buffer }, true);
+
+    expect(result.dryRun).toBe(true);
+    expect(result.importedCount).toBe(0);
+    expect(result.updatedCount).toBe(0);
+    expect(result.errors).toEqual([
+      expect.objectContaining({
+        rowNumber: 2,
+        message: expect.stringContaining('year is required and must be an integer'),
+      }),
+    ]);
+    expect(result.errors[0].message).toContain('patentCount must be >= 0');
   });
 });

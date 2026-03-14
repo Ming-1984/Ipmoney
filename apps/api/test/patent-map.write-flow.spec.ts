@@ -27,6 +27,7 @@ describe('PatentMapService admin write-flow suite', () => {
   it('validates admin get-entry params strictly', async () => {
     await expect(service.adminGetEntry('1100', 2026)).rejects.toBeInstanceOf(BadRequestException);
     await expect(service.adminGetEntry('110000', 2026.5)).rejects.toBeInstanceOf(BadRequestException);
+    await expect(service.adminGetEntry('110000', 9007199254740992)).rejects.toBeInstanceOf(BadRequestException);
   });
 
   it('returns normalized dto for existing admin entry', async () => {

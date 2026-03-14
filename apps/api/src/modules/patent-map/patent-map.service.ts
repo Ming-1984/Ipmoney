@@ -101,7 +101,7 @@ export class PatentMapService {
   }
 
   private assertYear(year: number) {
-    if (!Number.isInteger(year)) {
+    if (!Number.isSafeInteger(year)) {
       throw new BadRequestException({ code: 'BAD_REQUEST', message: 'year is required and must be an integer' });
     }
   }
@@ -177,7 +177,7 @@ export class PatentMapService {
   private parseRegionCodeValue(value: unknown) {
     if (value === undefined || value === null) return '';
     if (typeof value === 'number' && Number.isFinite(value)) {
-      if (!Number.isInteger(value)) return '';
+      if (!Number.isSafeInteger(value)) return '';
       return String(value).padStart(6, '0');
     }
     return String(value).trim();
@@ -186,13 +186,13 @@ export class PatentMapService {
   private parseYearValue(value: unknown) {
     if (value instanceof Date) return value.getFullYear();
     const num = Number(value);
-    if (!Number.isFinite(num) || !Number.isInteger(num)) return null;
+    if (!Number.isFinite(num) || !Number.isSafeInteger(num)) return null;
     return num;
   }
 
   private parseNonNegativeInt(value: unknown) {
     const num = Number(value);
-    if (!Number.isFinite(num) || !Number.isInteger(num) || num < 0) return null;
+    if (!Number.isFinite(num) || !Number.isSafeInteger(num) || num < 0) return null;
     return num;
   }
 

@@ -3,6 +3,14 @@
 ## Latest (2026-03-14)
 
 ### Commands & Results (dev)
+- `pnpm -C apps/api test -- test/listings.write-flow.spec.ts test/patent-map.write-flow.spec.ts test/patent-map.filters.spec.ts`
+  - Result: pass (`20/20`)
+  - Notes: hardened listing write-path `transferCount` and patent-map year/count parsing with safe-integer guards; added unsafe-integer boundary rejection coverage (`9007199254740992`) for write/filter/import flows.
+- `pnpm -C apps/api test`
+  - Result: pass (`616/616`)
+  - Notes: full API Vitest suite remained green after listing transfer-count and patent-map safe-integer hardening.
+- `pnpm -C apps/api test:e2e`
+  - Result: pass (`2/2`)
 - `pnpm -C apps/api test -- test/demands.filters.spec.ts test/artworks.filters.spec.ts test/listings.search-filters.spec.ts`
   - Result: pass (`17/17`)
   - Notes: hardened demands/artworks/listings numeric-filter strictness by enforcing safe-integer parsing for optional integer filters (`price/budget/deposit/transferCount/creationYear`) and adding unsafe-integer rejection coverage.
