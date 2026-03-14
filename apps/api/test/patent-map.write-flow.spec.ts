@@ -74,6 +74,12 @@ describe('PatentMapService admin write-flow suite', () => {
     await expect(service.adminUpsertEntry('110000', 2026, { patentCount: -1 } as any)).rejects.toBeInstanceOf(
       BadRequestException,
     );
+    await expect(service.adminUpsertEntry('110000', 2026, { patentCount: 1.5 } as any)).rejects.toBeInstanceOf(
+      BadRequestException,
+    );
+    await expect(
+      service.adminUpsertEntry('110000', 2026, { patentCount: 9007199254740992 } as any),
+    ).rejects.toBeInstanceOf(BadRequestException);
 
     prisma.region.findUnique.mockResolvedValueOnce(null);
     await expect(service.adminUpsertEntry('110000', 2026, { patentCount: 0 })).rejects.toBeInstanceOf(

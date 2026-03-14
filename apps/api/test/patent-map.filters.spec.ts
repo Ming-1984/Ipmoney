@@ -62,9 +62,13 @@ describe('PatentMapService filter and import strictness suite', () => {
       patentCount: 12,
       industryBreakdownJson: [
         { industryTag: 'AI', count: 5 },
+        { industryTag: 'Biomed', count: 1.5 },
         { industryTag: 'smoke-tag-temp', count: 2 },
       ],
-      topAssigneesJson: [{ assigneeName: 'Org A', patentCount: 3 }],
+      topAssigneesJson: [
+        { assigneeName: 'Org A', patentCount: 3 },
+        { assigneeName: 'Org B', patentCount: 1.5 },
+      ],
       updatedAt: new Date('2026-03-12T00:00:00.000Z'),
     });
 

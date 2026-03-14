@@ -115,7 +115,7 @@ export class PatentMapService {
         const rawObject = rawItem as any;
         const industryTag = String(rawObject.industryTag ?? '').trim();
         const count = Number(rawObject.count ?? 0);
-        if (!industryTag || !Number.isFinite(count) || count < 0) return null;
+        if (!industryTag || !Number.isFinite(count) || !Number.isSafeInteger(count) || count < 0) return null;
         return { industryTag, count };
       })
       .filter(Boolean) as PatentMapIndustryCountDto[];
@@ -131,7 +131,7 @@ export class PatentMapService {
         const rawObject = rawItem as any;
         const assigneeName = String(rawObject.assigneeName ?? rawObject.name ?? '').trim();
         const patentCount = Number(rawObject.patentCount ?? 0);
-        if (!assigneeName || !Number.isFinite(patentCount) || patentCount < 0) return null;
+        if (!assigneeName || !Number.isFinite(patentCount) || !Number.isSafeInteger(patentCount) || patentCount < 0) return null;
         return { name: assigneeName, assigneeName, patentCount };
       })
       .filter(Boolean) as PatentMapTopAssigneeDto[];
@@ -337,7 +337,7 @@ export class PatentMapService {
   ): Promise<PatentMapEntryDto> {
     this.assertRegionCode(regionCode);
     this.assertYear(year);
-    if (!body || !Number.isFinite(body.patentCount) || body.patentCount < 0) {
+    if (!body || !Number.isFinite(body.patentCount) || !Number.isSafeInteger(body.patentCount) || body.patentCount < 0) {
       throw new BadRequestException({ code: 'BAD_REQUEST', message: 'patentCount must be >= 0' });
     }
 

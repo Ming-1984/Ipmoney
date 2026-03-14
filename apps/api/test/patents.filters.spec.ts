@@ -108,4 +108,26 @@ describe('PatentsService admin list filter strictness suite', () => {
     });
     expect(result.page).toEqual({ page: 1, pageSize: 20, total: 1 });
   });
+
+  it('drops unsafe transferCount values from dto mapping', async () => {
+    const req = { auth: { isAdmin: true } };
+    prisma.patent.findMany.mockResolvedValueOnce([
+      {
+        id: 'p-unsafe',
+        applicationNoNorm: '2024000000011',
+        applicationNoDisplay: '202400000001.1',
+        patentType: 'INVENTION',
+        title: 'Patent Unsafe',
+        transferCount: '9007199254740992',
+        createdAt: new Date('2026-03-13T00:00:00.000Z'),
+        updatedAt: new Date('2026-03-13T01:00:00.000Z'),
+        parties: [],
+      },
+    ]);
+    prisma.patent.count.mockResolvedValueOnce(1);
+
+    const result = await service.adminList(req, {});
+
+    expect(result.items[0].transferCount).toBeUndefined();
+  });
 });

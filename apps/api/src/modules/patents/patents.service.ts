@@ -294,12 +294,16 @@ export class PatentsService {
       legal && ['PENDING', 'GRANTED', 'EXPIRED', 'INVALIDATED', 'UNKNOWN'].includes(legal)
         ? (legal as LegalStatusDto)
         : undefined;
-    const transferCountValue =
+    const rawTransferCount =
       typeof record?.transferCount === 'number'
         ? record.transferCount
         : Number.isFinite(Number(record?.transferCount))
           ? Number(record.transferCount)
           : undefined;
+    const transferCountValue =
+      typeof rawTransferCount === 'number' && Number.isSafeInteger(rawTransferCount) && rawTransferCount >= 0
+        ? rawTransferCount
+        : undefined;
 
     return {
       id: record.id,
