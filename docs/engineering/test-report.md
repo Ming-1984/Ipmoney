@@ -3,6 +3,25 @@
 ## Latest (2026-03-14)
 
 ### Commands & Results (dev)
+- `powershell -ExecutionPolicy Bypass -File scripts/verify.ps1 -ReportDate r306e`
+  - Result: pass
+  - Notes: full-chain quality gate remained green (`api-real-smoke` `1754/1754`, coverage `238/238`, quality-floor `violations=[]`, `db-preflight` `9/9`, `ui-render(core)` `3/3`, `ui-dom(core)` `11/11`); hidden-tag cleanup counters stayed `0`.
+- `powershell -ExecutionPolicy Bypass -File scripts/ui-render-smoke.ps1 -Mode full -ReportDate r306a`
+  - Result: pass (`83/83`)
+- `powershell -ExecutionPolicy Bypass -File scripts/ui-dom-smoke.ps1 -Mode full -ReportDate r306b`
+  - Result: fail (`81/83`)
+  - Notes: two transient DOM dump WebSocket handshake/non-101 network failures (`client-onboarding-verification-form`, `client-region-picker`).
+- `powershell -ExecutionPolicy Bypass -File scripts/ui-dom-smoke.ps1 -Mode full -ReportDate r306b2`
+  - Result: pass (`83/83`)
+  - Notes: immediate rerun fully green, confirming no persistent page/DOM regression.
+- `powershell -ExecutionPolicy Bypass -File scripts/weapp-route-smoke.ps1 -NoAuth -ReportDate r306c -LaunchRetries 3 -LaunchRetryDelayMs 4000 -KillStaleDevtools`
+  - Result: fail (process timeout)
+  - Notes: run timed out before writing result file under transient DevTools residue contention.
+- `powershell -ExecutionPolicy Bypass -File scripts/weapp-route-smoke.ps1 -NoAuth -ReportDate r306c2 -TimeoutMs 180000 -LaunchRetries 3 -LaunchRetryDelayMs 4000 -KillStaleDevtools`
+  - Result: pass (`11/11` routes)
+- `powershell -ExecutionPolicy Bypass -File scripts/weapp-route-smoke.ps1 -ReportDate r306d -UserToken demo-user-11111111-1111-4111-8111-111111111111 -TimeoutMs 180000 -LaunchRetries 3 -LaunchRetryDelayMs 4000 -KillStaleDevtools`
+  - Result: pass (`11/11` routes)
+  - Notes: auth/no-auth route navigation remained stable after stale DevTools cleanup.
 - `pnpm -C apps/api test`
   - Result: pass (`619/619`)
   - Notes: full API Vitest suite remained green after `r304` full-chain rerun.
