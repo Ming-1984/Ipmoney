@@ -22,6 +22,8 @@ describe('PatentClustersController filter strictness suite', () => {
     await expect(controller.listClusters('0', undefined)).rejects.toBeInstanceOf(BadRequestException);
     await expect(controller.listClusters(undefined, 'abc')).rejects.toBeInstanceOf(BadRequestException);
     await expect(controller.listClusters(undefined, '0')).rejects.toBeInstanceOf(BadRequestException);
+    await expect(controller.listClusters('9007199254740992', undefined)).rejects.toBeInstanceOf(BadRequestException);
+    await expect(controller.listClusters(undefined, '9007199254740992')).rejects.toBeInstanceOf(BadRequestException);
   });
 
   it('caps pageSize and paginates correctly', async () => {
@@ -53,7 +55,7 @@ describe('PatentClustersController filter strictness suite', () => {
         {
           id: 'inst-1',
           name: 'Institution 1',
-          tags: ['新能源', 'qa-tag-1', '新能源', '储能'],
+          tags: ['Energy', 'qa-tag-1', 'energy', 'Storage'],
         },
       ],
     });
@@ -61,6 +63,19 @@ describe('PatentClustersController filter strictness suite', () => {
     const result = await controller.listClusters(undefined, undefined);
 
     expect(result.items[0].industryTags).toEqual(['AI', 'Robotics']);
-    expect(result.featuredInstitutions?.[0].tags).toEqual(['新能源', '储能']);
+    expect(result.featuredInstitutions?.[0].tags).toEqual(['Energy', 'Storage']);
+  });
+
+  it('returns empty paged list when page offset exceeds total and defaults featuredInstitutions to []', async () => {
+    config.getPatentClusters.mockResolvedValueOnce({
+      items: [{ id: 'cluster-1', name: 'Cluster 1', industryTags: ['AI'] }],
+      featuredInstitutions: undefined,
+    });
+
+    const result = await controller.listClusters('3', '20');
+
+    expect(result.page).toEqual({ page: 3, pageSize: 20, total: 1 });
+    expect(result.items).toEqual([]);
+    expect(result.featuredInstitutions).toEqual([]);
   });
 });

@@ -3,6 +3,14 @@
 ## Latest (2026-03-14)
 
 ### Commands & Results (dev)
+- `pnpm -C apps/api test -- test/patent-clusters.filters.spec.ts`
+  - Result: pass (`4/4`)
+  - Notes: expanded patent-clusters strict regression coverage for non-safe-integer `page/pageSize` rejection and out-of-range pagination with default `featuredInstitutions` fallback.
+- `pnpm -C apps/api test`
+  - Result: pass (`611/611`)
+  - Notes: full API Vitest suite remained green after patent-clusters filter strict branch expansion.
+- `pnpm -C apps/api test:e2e`
+  - Result: pass (`2/2`)
 - `pnpm -C apps/api test -- test/organizations.detail.spec.ts`
   - Result: pass (`4/4`)
   - Notes: expanded organization-detail strict regression coverage for org-type query constraint assertion and nullable-field/zero-stats mapping branches.
