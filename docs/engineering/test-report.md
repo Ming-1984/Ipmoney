@@ -3,6 +3,17 @@
 ## Latest (2026-03-14)
 
 ### Commands & Results (dev)
+- `pnpm -C apps/api test`
+  - Result: pass (`619/619`)
+  - Notes: full API Vitest suite remained green after `r302` full-chain rerun.
+- `pnpm -C apps/api test:e2e`
+  - Result: pass (`2/2`)
+- `powershell -ExecutionPolicy Bypass -File scripts/api-real-smoke.ps1 -ReportDate r303a`
+  - Result: fail (`1753/1754`)
+  - Notes: single chaos-threshold item failed at `chaos-randomized-outcome-distribution` (`200+chaos-p95-threshold+chaos-p95-trend-threshold`).
+- `powershell -ExecutionPolicy Bypass -File scripts/api-real-smoke.ps1 -ReportDate r303b`
+  - Result: pass (`1754/1754`)
+  - Notes: immediate rerun returned fully green (`writes=1297`,`reads=457`); hidden-tag cleanup counters stayed `0`.
 - `powershell -ExecutionPolicy Bypass -File scripts/verify.ps1 -ReportDate r302e`
   - Result: pass
   - Notes: full-chain quality gate remained green (`api-real-smoke` `1754/1754`, coverage `238/238`, quality-floor `violations=[]`, `db-preflight` `9/9`, `ui-render(core)` `3/3`, `ui-dom(core)` `11/11`); hidden-tag cleanup counters stayed `0`.
