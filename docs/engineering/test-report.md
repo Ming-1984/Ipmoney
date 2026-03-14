@@ -3,6 +3,18 @@
 ## Latest (2026-03-14)
 
 ### Commands & Results (dev)
+- `powershell -ExecutionPolicy Bypass -File scripts/ui-render-smoke.ps1 -Mode full -ReportDate r286a`
+  - Result: pass (`83/83`)
+- `powershell -ExecutionPolicy Bypass -File scripts/ui-dom-smoke.ps1 -Mode full -ReportDate r286b`
+  - Result: fail (`82/83`)
+  - Notes: single transient failure on `client-publish-patent` due to DOM dump WebSocket handshake network error (non-business assertion failure).
+- `powershell -ExecutionPolicy Bypass -File scripts/ui-dom-smoke.ps1 -Mode full -ReportDate r286c`
+  - Result: pass (`83/83`)
+  - Notes: immediate rerun fully green, confirming no persistent page/DOM regression.
+- `powershell -ExecutionPolicy Bypass -File scripts/weapp-route-smoke.ps1 -NoAuth -ReportDate r286d -LaunchRetries 3 -LaunchRetryDelayMs 4000 -KillStaleDevtools`
+  - Result: pass (`11/11` routes)
+- `powershell -ExecutionPolicy Bypass -File scripts/weapp-route-smoke.ps1 -ReportDate r286e -UserToken demo-user-11111111-1111-4111-8111-111111111111 -LaunchRetries 3 -LaunchRetryDelayMs 4000 -KillStaleDevtools`
+  - Result: pass (`11/11` routes)
 - `powershell -ExecutionPolicy Bypass -File scripts/verify.ps1 -ReportDate r285a`
   - Result: pass
   - Notes: full-chain quality gate stayed green (`openapi:lint/lint/typecheck/builds/check-weapp-budget/api-real-smoke/openapi-coverage/quality-floor/db-preflight/ui-http-smoke/ui-render-smoke(core)/ui-dom-smoke(core)`); `api-real-smoke` `1754/1754` (`writes=1297`,`reads=457`), coverage `238/238`, quality-floor `violations=[]`, `db-preflight` `9/9`, `ui-render(core)` `3/3`, `ui-dom(core)` `11/11`; render artifacts updated at `docs/demo/rendered/ui-smoke-r285a/`.
