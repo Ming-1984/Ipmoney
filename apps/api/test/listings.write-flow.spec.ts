@@ -421,4 +421,14 @@ describe('ListingsService write flow suite', () => {
     expect(audit.log).toHaveBeenCalledWith(expect.objectContaining({ action: 'LISTING_REJECT', targetId: LISTING_ID }));
     expect(notifications.create).toHaveBeenCalledWith(expect.objectContaining({ userId: USER_ID }));
   });
+
+  it('updateFeatured rejects unsafe integer featuredRank', async () => {
+    await expect(
+      service.updateFeatured(LISTING_ID, {
+        featuredLevel: 'CITY',
+        featuredRegionCode: '110000',
+        featuredRank: '9007199254740992',
+      }),
+    ).rejects.toBeInstanceOf(BadRequestException);
+  });
 });

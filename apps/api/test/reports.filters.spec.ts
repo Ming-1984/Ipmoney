@@ -54,6 +54,9 @@ describe('ReportsService range filter strictness suite', () => {
     await expect(service.getFinanceSummary({ ...req, query: { days: '0' } })).rejects.toBeInstanceOf(BadRequestException);
     await expect(service.getFinanceSummary({ ...req, query: { days: '-3' } })).rejects.toBeInstanceOf(BadRequestException);
     await expect(service.getFinanceSummary({ ...req, query: { days: '1.5' } })).rejects.toBeInstanceOf(BadRequestException);
+    await expect(service.getFinanceSummary({ ...req, query: { days: '9007199254740992' } })).rejects.toBeInstanceOf(
+      BadRequestException,
+    );
     await expect(service.getFinanceSummary({ ...req, query: { start: '   ' } })).rejects.toBeInstanceOf(BadRequestException);
     await expect(service.getFinanceSummary({ ...req, query: { end: '   ' } })).rejects.toBeInstanceOf(BadRequestException);
     await expect(service.getFinanceSummary({ ...req, query: { end: 'bad-date' } })).rejects.toBeInstanceOf(

@@ -3,6 +3,14 @@
 ## Latest (2026-03-14)
 
 ### Commands & Results (dev)
+- `pnpm -C apps/api test -- test/ai.parse-feedback-update.spec.ts test/listings.write-flow.spec.ts test/files.temporary-access.spec.ts test/orders.write.spec.ts test/patent-maintenance.write-flow.spec.ts test/tech-managers.update-admin.spec.ts test/reports.filters.spec.ts`
+  - Result: pass (`83/83`)
+  - Notes: hardened remaining integer write/filter guards (`ai score`, listing `featuredRank`, file temp-access TTL, order `dealAmountFen`, maintenance `yearNo`, tech-manager `featuredRank`, report `days`) with safe-integer validation and added `9007199254740992` boundary rejection coverage.
+- `pnpm -C apps/api test`
+  - Result: pass (`618/618`)
+  - Notes: full API Vitest suite remained green after the cross-module safe-integer hardening batch.
+- `pnpm -C apps/api test:e2e`
+  - Result: pass (`2/2`)
 - `pnpm -C apps/api test -- test/listings.write-flow.spec.ts test/patent-map.write-flow.spec.ts test/patent-map.filters.spec.ts`
   - Result: pass (`20/20`)
   - Notes: hardened listing write-path `transferCount` and patent-map year/count parsing with safe-integer guards; added unsafe-integer boundary rejection coverage (`9007199254740992`) for write/filter/import flows.

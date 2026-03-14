@@ -29,7 +29,7 @@ export class ReportsService {
       throw new BadRequestException({ code: 'BAD_REQUEST', message: 'days is invalid' });
     }
     const days = typeof raw === 'number' ? raw : Number(raw);
-    if (!Number.isInteger(days) || !Number.isFinite(days) || days < 1) {
+    if (!Number.isSafeInteger(days) || !Number.isFinite(days) || days < 1) {
       throw new BadRequestException({ code: 'BAD_REQUEST', message: 'days is invalid' });
     }
     return days;

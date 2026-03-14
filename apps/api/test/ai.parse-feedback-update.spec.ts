@@ -42,6 +42,9 @@ describe('AiService feedback and parse-update suite', () => {
         score: '1.5',
       }),
     ).rejects.toBeInstanceOf(BadRequestException);
+    await expect(service.createFeedback({ auth: { userId: 'u-1' } }, VALID_ID, { score: '9007199254740992' })).rejects.toBeInstanceOf(
+      BadRequestException,
+    );
     await expect(service.createFeedback({ auth: { userId: 'u-1' } }, VALID_ID, { score: 0 })).rejects.toBeInstanceOf(
       BadRequestException,
     );

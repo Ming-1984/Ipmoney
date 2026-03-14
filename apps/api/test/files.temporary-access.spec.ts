@@ -61,6 +61,9 @@ describe('FilesController temporary-access strictness suite', () => {
     await expect(controller.createTemporaryAccess(req, FILE_ID, { expiresInSeconds: -1 })).rejects.toBeInstanceOf(
       BadRequestException,
     );
+    await expect(
+      controller.createTemporaryAccess(req, FILE_ID, { expiresInSeconds: '9007199254740992' }),
+    ).rejects.toBeInstanceOf(BadRequestException);
   });
 
   it('accepts ttlSeconds alias and returns preview url', async () => {

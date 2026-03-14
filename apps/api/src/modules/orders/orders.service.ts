@@ -1266,7 +1266,7 @@ export class OrdersService {
       throw new BadRequestException({ code: 'BAD_REQUEST', message: 'dealAmountFen is required' });
     }
     const dealAmountFen = typeof rawDealAmountFen === 'number' ? rawDealAmountFen : Number(rawDealAmountFen);
-    if (!Number.isFinite(dealAmountFen) || !Number.isInteger(dealAmountFen) || dealAmountFen <= 0) {
+    if (!Number.isFinite(dealAmountFen) || !Number.isSafeInteger(dealAmountFen) || dealAmountFen <= 0) {
       throw new BadRequestException({ code: 'BAD_REQUEST', message: 'dealAmountFen is required' });
     }
     const remark = body?.remark ? String(body.remark).trim() : undefined;

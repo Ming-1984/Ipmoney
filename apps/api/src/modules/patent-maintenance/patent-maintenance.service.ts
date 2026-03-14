@@ -182,7 +182,7 @@ export class PatentMaintenanceService {
 
     const rawYearNo = body?.yearNo;
     const yearNo = typeof rawYearNo === 'number' ? rawYearNo : Number(rawYearNo);
-    if (!Number.isFinite(yearNo) || !Number.isInteger(yearNo) || yearNo <= 0) {
+    if (!Number.isFinite(yearNo) || !Number.isSafeInteger(yearNo) || yearNo <= 0) {
       throw new BadRequestException({ code: 'BAD_REQUEST', message: 'yearNo is invalid' });
     }
 

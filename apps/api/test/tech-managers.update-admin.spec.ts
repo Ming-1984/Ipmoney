@@ -103,6 +103,9 @@ describe('TechManagersService update/public detail suite', () => {
     await expect(service.updateAdmin(ADMIN_REQ, VALID_ID, { featuredRank: 1.2 })).rejects.toBeInstanceOf(
       BadRequestException,
     );
+    await expect(service.updateAdmin(ADMIN_REQ, VALID_ID, { featuredRank: '9007199254740992' })).rejects.toBeInstanceOf(
+      BadRequestException,
+    );
     await expect(service.updateAdmin(ADMIN_REQ, VALID_ID, { featuredRank: -1 })).rejects.toBeInstanceOf(
       BadRequestException,
     );

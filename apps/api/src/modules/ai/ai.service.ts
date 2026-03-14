@@ -397,7 +397,7 @@ export class AiService {
       throw new BadRequestException({ code: 'BAD_REQUEST', message: 'score must be an integer between 1 and 5' });
     }
     const score = typeof rawScore === 'number' ? rawScore : Number(rawScore);
-    if (!Number.isFinite(score) || !Number.isInteger(score) || score < 1 || score > 5) {
+    if (!Number.isFinite(score) || !Number.isSafeInteger(score) || score < 1 || score > 5) {
       throw new BadRequestException({ code: 'BAD_REQUEST', message: 'score must be an integer between 1 and 5' });
     }
     const parseResult = await this.prisma.aiParseResult.findUnique({ where: { id: normalizedParseResultId } });

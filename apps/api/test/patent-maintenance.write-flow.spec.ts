@@ -65,6 +65,9 @@ describe('PatentMaintenanceService write flow suite', () => {
     await expect(service.createSchedule(REQ, { patentId: 'pat-1', yearNo: '1.5', dueDate: '2026-06-01' })).rejects.toBeInstanceOf(
       BadRequestException,
     );
+    await expect(
+      service.createSchedule(REQ, { patentId: 'pat-1', yearNo: '9007199254740992', dueDate: '2026-06-01' }),
+    ).rejects.toBeInstanceOf(BadRequestException);
     await expect(service.createSchedule(REQ, { patentId: 'pat-1', yearNo: 1, dueDate: '' })).rejects.toBeInstanceOf(
       BadRequestException,
     );

@@ -1361,7 +1361,7 @@ export class ListingsService {
           throw new BadRequestException({ code: 'BAD_REQUEST', message: 'featuredRank must be an integer >= 0' });
         }
         const featuredRank = typeof rawFeaturedRank === 'number' ? rawFeaturedRank : Number(rawFeaturedRank);
-        if (!Number.isFinite(featuredRank) || !Number.isInteger(featuredRank) || featuredRank < 0) {
+        if (!Number.isFinite(featuredRank) || !Number.isSafeInteger(featuredRank) || featuredRank < 0) {
           throw new BadRequestException({ code: 'BAD_REQUEST', message: 'featuredRank must be an integer >= 0' });
         }
         data.featuredRank = featuredRank;

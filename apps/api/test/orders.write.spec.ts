@@ -831,6 +831,12 @@ describe('OrdersService write-first suite', () => {
     expect(result).toMatchObject({ id: ORDER_ID, status: 'WAIT_FINAL_PAYMENT', finalAmountFen: 8000, dealAmountFen: 10000 });
   });
 
+  it('rejects unsafe integer dealAmountFen on adminContractSigned', async () => {
+    await expect(
+      service.adminContractSigned(adminReq, ORDER_ID, { dealAmountFen: '9007199254740992' }),
+    ).rejects.toBeInstanceOf(BadRequestException);
+  });
+
   it('moves order to READY_TO_SETTLE on adminTransferCompleted and marks milestone', async () => {
     const ensureCaseSpy = vi.spyOn(service as any, 'ensureCaseForOrder').mockResolvedValue({ id: 'case-2' });
     const markCaseSpy = vi.spyOn(service as any, 'markCaseMilestone').mockResolvedValue(undefined);
