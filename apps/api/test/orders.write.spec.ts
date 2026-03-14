@@ -206,6 +206,76 @@ describe('OrdersService write-first suite', () => {
     expect(result).toMatchObject({ payType: 'FINAL', amountFen: 3000 });
   });
 
+  it('validates adminManualConfirmPayment auth/id/payType/status/amount/existing payment', async () => {
+    await expect(service.adminManualConfirmPayment({}, ORDER_ID, {})).rejects.toBeInstanceOf(ForbiddenException);
+    await expect(service.adminManualConfirmPayment(adminReq, 'bad-id', {})).rejects.toBeInstanceOf(BadRequestException);
+    await expect(service.adminManualConfirmPayment(adminReq, ORDER_ID, {})).rejects.toBeInstanceOf(BadRequestException);
+
+    prisma.order.findUnique.mockResolvedValueOnce(null);
+    await expect(service.adminManualConfirmPayment(adminReq, ORDER_ID, { payType: 'DEPOSIT' })).rejects.toBeInstanceOf(
+      NotFoundException,
+    );
+
+    prisma.order.findUnique.mockResolvedValueOnce(makeOrder({ status: 'DEPOSIT_PAID' }));
+    await expect(service.adminManualConfirmPayment(adminReq, ORDER_ID, { payType: 'DEPOSIT' })).rejects.toBeInstanceOf(
+      ConflictException,
+    );
+
+    prisma.order.findUnique.mockResolvedValueOnce(makeOrder({ status: 'DEPOSIT_PENDING', depositAmount: 2000 }));
+    await expect(
+      service.adminManualConfirmPayment(adminReq, ORDER_ID, { payType: 'DEPOSIT', amountFen: 1999 }),
+    ).rejects.toBeInstanceOf(BadRequestException);
+
+    prisma.order.findUnique.mockResolvedValueOnce(makeOrder({ status: 'DEPOSIT_PENDING', depositAmount: 2000 }));
+    prisma.payment.findFirst.mockResolvedValueOnce({ id: 'paid-1', status: 'PAID' });
+    await expect(
+      service.adminManualConfirmPayment(adminReq, ORDER_ID, { payType: 'DEPOSIT', amountFen: 2000 }),
+    ).rejects.toBeInstanceOf(ConflictException);
+  });
+
+  it('confirms manual DEPOSIT payment with pending payment reuse', async () => {
+    const paidAt = new Date('2026-03-12T01:00:00.000Z');
+    const ensureCaseSpy = vi.spyOn(service as any, 'ensureCaseForOrder').mockResolvedValue(undefined);
+    prisma.order.findUnique
+      .mockResolvedValueOnce(makeOrder({ status: 'DEPOSIT_PENDING', depositAmount: 2000 }))
+      .mockResolvedValueOnce(makeOrder({ status: 'DEPOSIT_PAID', listing: { sellerUserId: SELLER_ID, title: 'Patent Listing' } }));
+    prisma.payment.findFirst.mockResolvedValueOnce({
+      id: 'pending-payment',
+      status: 'PENDING',
+      tradeNo: 'trade-1',
+      createdAt: new Date('2026-03-12T00:00:00.000Z'),
+    });
+    prisma.payment.update.mockResolvedValueOnce({
+      id: 'pending-payment',
+      status: 'PAID',
+      tradeNo: 'trade-1',
+      amount: 2000,
+      paidAt,
+    });
+    prisma.order.update.mockResolvedValueOnce(makeOrder({ status: 'DEPOSIT_PAID' }));
+
+    const result = await service.adminManualConfirmPayment(adminReq, ORDER_ID, {
+      payType: 'DEPOSIT',
+      amountFen: 2000,
+      paidAt: paidAt.toISOString(),
+    });
+
+    expect(prisma.payment.update).toHaveBeenCalledWith({
+      where: { id: 'pending-payment' },
+      data: { status: 'PAID', paidAt, tradeNo: 'trade-1', amount: 2000 },
+    });
+    expect(prisma.order.update).toHaveBeenCalledWith({ where: { id: ORDER_ID }, data: { status: 'DEPOSIT_PAID' } });
+    expect(ensureCaseSpy).toHaveBeenCalledTimes(1);
+    expect(result).toMatchObject({
+      paymentId: 'pending-payment',
+      orderId: ORDER_ID,
+      payType: 'DEPOSIT',
+      status: 'PAID',
+      amountFen: 2000,
+      tradeNo: 'trade-1',
+    });
+  });
+
   it('validates createRefundRequest auth/id/access/status/reasonCode', async () => {
     await expect(service.createRefundRequest({}, ORDER_ID, {})).rejects.toBeInstanceOf(ForbiddenException);
     await expect(service.createRefundRequest(buyerReq, 'bad-id', {})).rejects.toBeInstanceOf(BadRequestException);
@@ -646,6 +716,88 @@ describe('OrdersService write-first suite', () => {
     expect(ensureCaseSpy).toHaveBeenCalledTimes(1);
     expect(markCaseSpy).toHaveBeenCalledWith('case-2', 'TRANSFER_COMPLETED');
     expect(result).toMatchObject({ id: ORDER_ID, status: 'READY_TO_SETTLE' });
+  });
+
+  it('validates getSettlement auth/id/not-found strictly', async () => {
+    await expect(service.getSettlement({}, ORDER_ID)).rejects.toBeInstanceOf(ForbiddenException);
+    await expect(service.getSettlement(adminReq, 'bad-id')).rejects.toBeInstanceOf(BadRequestException);
+
+    prisma.order.findUnique.mockResolvedValueOnce(null);
+    await expect(service.getSettlement(adminReq, ORDER_ID)).rejects.toBeInstanceOf(NotFoundException);
+  });
+
+  it('upserts settlement and synchronizes commission when order commission drifts', async () => {
+    prisma.order.findUnique.mockResolvedValueOnce(
+      makeOrder({
+        status: 'READY_TO_SETTLE',
+        depositAmount: 2000,
+        dealAmount: 10000,
+        finalAmount: 8000,
+        commissionAmount: 100,
+      }),
+    );
+    prisma.settlement.upsert.mockResolvedValueOnce({
+      id: 'settlement-1',
+      orderId: ORDER_ID,
+      payoutStatus: 'PENDING',
+      payoutAmount: 9500,
+      commissionAmount: 500,
+      grossAmount: 10000,
+    });
+    prisma.order.update.mockResolvedValueOnce(makeOrder({ commissionAmount: 500 }));
+
+    const result = await service.getSettlement(adminReq, ORDER_ID);
+
+    expect(prisma.settlement.upsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { orderId: ORDER_ID },
+        create: expect.objectContaining({
+          orderId: ORDER_ID,
+          grossAmount: 10000,
+          commissionAmount: 500,
+          payoutAmount: 9500,
+          payoutStatus: 'PENDING',
+          status: 'PENDING',
+        }),
+        update: { grossAmount: 10000, commissionAmount: 500, payoutAmount: 9500 },
+      }),
+    );
+    expect(prisma.order.update).toHaveBeenCalledWith({
+      where: { id: ORDER_ID },
+      data: { commissionAmount: 500 },
+    });
+    expect(result).toMatchObject({
+      id: 'settlement-1',
+      orderId: ORDER_ID,
+      payoutStatus: 'PENDING',
+      payoutAmountFen: 9500,
+      commissionAmountFen: 500,
+      grossAmountFen: 10000,
+    });
+  });
+
+  it('keeps order commission untouched when settlement commission is already aligned', async () => {
+    prisma.order.findUnique.mockResolvedValueOnce(
+      makeOrder({
+        status: 'READY_TO_SETTLE',
+        depositAmount: 2000,
+        dealAmount: 10000,
+        finalAmount: 8000,
+        commissionAmount: 500,
+      }),
+    );
+    prisma.settlement.upsert.mockResolvedValueOnce({
+      id: 'settlement-2',
+      orderId: ORDER_ID,
+      payoutStatus: 'PENDING',
+      payoutAmount: 9500,
+      commissionAmount: 500,
+      grossAmount: 10000,
+    });
+
+    await service.getSettlement(adminReq, ORDER_ID);
+
+    expect(prisma.order.update).not.toHaveBeenCalled();
   });
 
   it('validates adminManualPayout status and payout evidence file strictly', async () => {

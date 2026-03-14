@@ -3,6 +3,14 @@
 ## Latest (2026-03-14)
 
 ### Commands & Results (dev)
+- `pnpm -C apps/api test -- test/orders.write.spec.ts`
+  - Result: pass (`34/34`)
+  - Notes: added strict regression coverage for `adminManualConfirmPayment` and `getSettlement` branches (auth/id/status/amount-mismatch/existing-paid + settlement commission-sync).
+- `pnpm -C apps/api test`
+  - Result: pass (`587/587`)
+  - Notes: full API Vitest suite remained green after the new orders payment/settlement branch hardening.
+- `pnpm -C apps/api test:e2e`
+  - Result: pass (`2/2`)
 - `powershell -ExecutionPolicy Bypass -File scripts/verify.ps1 -ReportDate r259a`
   - Result: success (all steps)
   - Notes: full gate stayed green (`api-real-smoke 1754/1754`, OpenAPI coverage `238/238`, quality floor `violations=[]`, plus db/ui-http/ui-render(core)/ui-dom(core) pass).
