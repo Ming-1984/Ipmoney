@@ -3,6 +3,14 @@
 ## Latest (2026-03-14)
 
 ### Commands & Results (dev)
+- `pnpm -C apps/api test -- test/demands.filters.spec.ts test/achievements.filters.spec.ts`
+  - Result: pass (`12/12`)
+  - Notes: added regression guards to ensure all-hidden `smoke/e2e/qa` industry tags do not generate `industryTagsJson` filter conditions in demand/achievement public search.
+- `pnpm -C apps/api test`
+  - Result: pass (`577/577`)
+  - Notes: full API Vitest suite stayed green after the new hidden-tag filter guards.
+- `pnpm -C apps/api test:e2e`
+  - Result: pass (`2/2`)
 - `pnpm -C apps/api test`
   - Result: pass (`575/575`)
   - Notes: full Vitest regression rerun remained green after the latest UI/admin semantic hardening and WeApp smoke batches.
