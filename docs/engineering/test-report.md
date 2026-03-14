@@ -4,6 +4,14 @@
 
 ### Commands & Results (dev)
 - `pnpm -C apps/api test -- test/orders.write.spec.ts`
+  - Result: pass (`42/42`)
+  - Notes: expanded strict read-path coverage for orders domain: `getOrderDetail/getCaseWithMilestones/listRefundRequests/getOrderInvoice/getAdminOrderDetail` (auth/id/not-found/access + DTO mapping branches).
+- `pnpm -C apps/api test`
+  - Result: pass (`595/595`)
+  - Notes: full API Vitest suite remained green after orders read-path branch hardening.
+- `pnpm -C apps/api test:e2e`
+  - Result: pass (`2/2`)
+- `pnpm -C apps/api test -- test/orders.write.spec.ts`
   - Result: pass (`34/34`)
   - Notes: added strict regression coverage for `adminManualConfirmPayment` and `getSettlement` branches (auth/id/status/amount-mismatch/existing-paid + settlement commission-sync).
 - `pnpm -C apps/api test`

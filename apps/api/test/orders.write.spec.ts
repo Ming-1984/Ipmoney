@@ -62,7 +62,7 @@ describe('OrdersService write-first suite', () => {
       listing: { findUnique: vi.fn() },
       order: { findUnique: vi.fn(), create: vi.fn(), update: vi.fn() },
       payment: { findFirst: vi.fn(), create: vi.fn(), update: vi.fn() },
-      refundRequest: { findFirst: vi.fn(), create: vi.fn(), update: vi.fn(), findUnique: vi.fn() },
+      refundRequest: { findFirst: vi.fn(), create: vi.fn(), update: vi.fn(), findUnique: vi.fn(), findMany: vi.fn() },
       settlement: { upsert: vi.fn() },
       file: { findUnique: vi.fn() },
       idempotencyKey: { findUnique: vi.fn(), create: vi.fn(), update: vi.fn(), delete: vi.fn() },
@@ -204,6 +204,137 @@ describe('OrdersService write-first suite', () => {
     );
     expect(ensureCaseSpy).toHaveBeenCalledTimes(1);
     expect(result).toMatchObject({ payType: 'FINAL', amountFen: 3000 });
+  });
+
+  it('validates getOrderDetail auth/id/not-found/access strictly', async () => {
+    await expect(service.getOrderDetail({}, ORDER_ID)).rejects.toBeInstanceOf(ForbiddenException);
+    await expect(service.getOrderDetail(buyerReq, 'bad-id')).rejects.toBeInstanceOf(BadRequestException);
+
+    prisma.order.findUnique.mockResolvedValueOnce(null);
+    await expect(service.getOrderDetail(buyerReq, ORDER_ID)).rejects.toBeInstanceOf(NotFoundException);
+
+    prisma.order.findUnique.mockResolvedValueOnce(makeOrder({ buyerUserId: 'user-2', listing: { sellerUserId: 'seller-2' } }));
+    await expect(service.getOrderDetail(buyerReq, ORDER_ID)).rejects.toBeInstanceOf(ForbiddenException);
+  });
+
+  it('returns order detail for seller access with listing/patent fields', async () => {
+    prisma.order.findUnique.mockResolvedValueOnce(
+      makeOrder({
+        listing: {
+          sellerUserId: SELLER_ID,
+          title: 'Patent Listing',
+          patent: { applicationNoDisplay: 'CN123' },
+        },
+      }),
+    );
+
+    const result = await service.getOrderDetail({ auth: { userId: SELLER_ID } }, ORDER_ID);
+
+    expect(result).toMatchObject({
+      id: ORDER_ID,
+      listingId: LISTING_ID,
+      sellerUserId: SELLER_ID,
+      listingTitle: 'Patent Listing',
+      applicationNoDisplay: 'CN123',
+    });
+  });
+
+  it('validates getCaseWithMilestones auth/id/access strictly', async () => {
+    await expect(service.getCaseWithMilestones({}, ORDER_ID)).rejects.toBeInstanceOf(ForbiddenException);
+    await expect(service.getCaseWithMilestones(buyerReq, 'bad-id')).rejects.toBeInstanceOf(BadRequestException);
+
+    prisma.order.findUnique.mockResolvedValueOnce(null);
+    await expect(service.getCaseWithMilestones(buyerReq, ORDER_ID)).rejects.toBeInstanceOf(NotFoundException);
+
+    prisma.order.findUnique.mockResolvedValueOnce(makeOrder({ buyerUserId: 'user-2', listing: { sellerUserId: 'seller-2' } }));
+    await expect(service.getCaseWithMilestones(buyerReq, ORDER_ID)).rejects.toBeInstanceOf(ForbiddenException);
+  });
+
+  it('returns case milestones without recreating existing milestones', async () => {
+    prisma.order.findUnique.mockResolvedValueOnce(makeOrder({ assignedCsUserId: 'cs-1' }));
+    prisma.csCase.findFirst.mockResolvedValueOnce({
+      id: 'case-1',
+      orderId: ORDER_ID,
+      type: 'FOLLOWUP',
+      status: 'OPEN',
+      csUserId: 'cs-1',
+    });
+    prisma.csMilestone.findMany
+      .mockResolvedValueOnce([
+        { id: 'm-contract', name: 'CONTRACT_SIGNED', status: 'PENDING' },
+        { id: 'm-transfer-submitted', name: 'TRANSFER_SUBMITTED', status: 'PENDING' },
+        { id: 'm-transfer-completed', name: 'TRANSFER_COMPLETED', status: 'PENDING' },
+      ])
+      .mockResolvedValueOnce([
+        { id: 'm1', name: 'CONTRACT_SIGNED', status: 'DONE', createdAt: new Date('2026-03-12T00:00:00.000Z') },
+        { id: 'm2', name: 'TRANSFER_COMPLETED', status: 'PENDING', createdAt: new Date('2026-03-12T01:00:00.000Z') },
+      ]);
+
+    const result = await service.getCaseWithMilestones(buyerReq, ORDER_ID);
+
+    expect(prisma.csMilestone.createMany).not.toHaveBeenCalled();
+    expect(result).toMatchObject({
+      id: 'case-1',
+      orderId: ORDER_ID,
+      type: 'FOLLOWUP',
+      status: 'OPEN',
+    });
+    expect(result.milestones).toEqual([
+      {
+        id: 'm1',
+        name: 'CONTRACT_SIGNED',
+        status: 'DONE',
+        createdAt: '2026-03-12T00:00:00.000Z',
+      },
+      {
+        id: 'm2',
+        name: 'TRANSFER_COMPLETED',
+        status: 'PENDING',
+        createdAt: '2026-03-12T01:00:00.000Z',
+      },
+    ]);
+  });
+
+  it('validates listRefundRequests auth/id/access and maps dto', async () => {
+    await expect(service.listRefundRequests({}, ORDER_ID)).rejects.toBeInstanceOf(ForbiddenException);
+    await expect(service.listRefundRequests(buyerReq, 'bad-id')).rejects.toBeInstanceOf(BadRequestException);
+
+    prisma.order.findUnique.mockResolvedValueOnce(null);
+    await expect(service.listRefundRequests(buyerReq, ORDER_ID)).rejects.toBeInstanceOf(NotFoundException);
+
+    prisma.order.findUnique.mockResolvedValueOnce(makeOrder({ buyerUserId: 'user-2', listing: { sellerUserId: 'seller-2' } }));
+    await expect(service.listRefundRequests(buyerReq, ORDER_ID)).rejects.toBeInstanceOf(ForbiddenException);
+
+    prisma.order.findUnique.mockResolvedValueOnce(makeOrder());
+    prisma.refundRequest.findMany.mockResolvedValueOnce([
+      {
+        id: REFUND_ID,
+        orderId: ORDER_ID,
+        reasonCode: 'OTHER',
+        reasonText: null,
+        status: 'PENDING',
+        createdAt: new Date('2026-03-12T02:00:00.000Z'),
+        updatedAt: new Date('2026-03-12T03:00:00.000Z'),
+      },
+    ]);
+
+    const result = await service.listRefundRequests(buyerReq, ORDER_ID);
+
+    expect(prisma.refundRequest.findMany).toHaveBeenCalledWith({
+      where: { orderId: ORDER_ID },
+      orderBy: { createdAt: 'desc' },
+    });
+    expect(result).toEqual([
+      {
+        id: REFUND_ID,
+        orderId: ORDER_ID,
+        reasonCode: 'OTHER',
+        reasonText: undefined,
+        status: 'PENDING',
+        createdAt: '2026-03-12T02:00:00.000Z',
+        updatedAt: '2026-03-12T03:00:00.000Z',
+      },
+    ]);
   });
 
   it('validates adminManualConfirmPayment auth/id/payType/status/amount/existing payment', async () => {
@@ -898,6 +1029,56 @@ describe('OrdersService write-first suite', () => {
     expect(notifications.create).toHaveBeenCalledTimes(1);
   });
 
+  it('validates getOrderInvoice auth/id/not-found/access/invoice-missing strictly', async () => {
+    await expect(service.getOrderInvoice({}, ORDER_ID)).rejects.toBeInstanceOf(ForbiddenException);
+    await expect(service.getOrderInvoice(buyerReq, 'bad-id')).rejects.toBeInstanceOf(BadRequestException);
+
+    prisma.order.findUnique.mockResolvedValueOnce(null);
+    await expect(service.getOrderInvoice(buyerReq, ORDER_ID)).rejects.toBeInstanceOf(NotFoundException);
+
+    prisma.order.findUnique.mockResolvedValueOnce(
+      makeOrder({ buyerUserId: 'user-2', listing: { sellerUserId: 'seller-2' }, invoiceFileId: FILE_ID, invoiceFile: { id: FILE_ID } }),
+    );
+    await expect(service.getOrderInvoice(buyerReq, ORDER_ID)).rejects.toBeInstanceOf(ForbiddenException);
+
+    prisma.order.findUnique.mockResolvedValueOnce(makeOrder({ invoiceFileId: null, invoiceFile: null }));
+    await expect(service.getOrderInvoice(buyerReq, ORDER_ID)).rejects.toBeInstanceOf(NotFoundException);
+  });
+
+  it('returns mapped order invoice for buyer access', async () => {
+    const buildSpy = vi.spyOn(service as any, 'buildOrderInvoice').mockResolvedValue({
+      orderId: ORDER_ID,
+      amountFen: 500,
+      itemName: 'service',
+      invoiceNo: 'INV-100',
+      issuedAt: '2026-03-12T00:00:00.000Z',
+      invoiceFile: {
+        id: FILE_ID,
+        url: 'https://example.com/invoice.pdf',
+        mimeType: 'application/pdf',
+        sizeBytes: 123,
+        createdAt: '2026-03-12T00:00:00.000Z',
+      },
+    });
+    prisma.order.findUnique.mockResolvedValueOnce(
+      makeOrder({
+        invoiceFileId: FILE_ID,
+        invoiceFile: {
+          id: FILE_ID,
+          url: 'https://example.com/invoice.pdf',
+          mimeType: 'application/pdf',
+          sizeBytes: 123,
+          createdAt: new Date('2026-03-12T00:00:00.000Z'),
+        },
+      }),
+    );
+
+    const result = await service.getOrderInvoice(buyerReq, ORDER_ID);
+
+    expect(buildSpy).toHaveBeenCalledTimes(1);
+    expect(result).toMatchObject({ orderId: ORDER_ID, invoiceNo: 'INV-100', amountFen: 500 });
+  });
+
   it('validates adminUpsertOrderInvoice entity existence and strict fields', async () => {
     await expect(service.adminUpsertOrderInvoice(adminReq, ORDER_ID, { invoiceFileId: 'bad-id' })).rejects.toBeInstanceOf(
       BadRequestException,
@@ -1002,5 +1183,27 @@ describe('OrdersService write-first suite', () => {
       data: { invoiceFileId: null, invoiceIssuedAt: null, invoiceNo: null },
     });
     expect(notifications.create).toHaveBeenCalledTimes(1);
+  });
+
+  it('validates getAdminOrderDetail auth/id/not-found and returns dto', async () => {
+    await expect(service.getAdminOrderDetail({}, ORDER_ID)).rejects.toBeInstanceOf(ForbiddenException);
+    await expect(service.getAdminOrderDetail(adminReq, 'bad-id')).rejects.toBeInstanceOf(BadRequestException);
+
+    prisma.order.findUnique.mockResolvedValueOnce(null);
+    await expect(service.getAdminOrderDetail(adminReq, ORDER_ID)).rejects.toBeInstanceOf(NotFoundException);
+
+    prisma.order.findUnique.mockResolvedValueOnce(
+      makeOrder({
+        listing: { sellerUserId: SELLER_ID, title: 'Patent Listing', patent: { applicationNoDisplay: 'CN123' } },
+      }),
+    );
+    const result = await service.getAdminOrderDetail(adminReq, ORDER_ID);
+
+    expect(result).toMatchObject({
+      id: ORDER_ID,
+      listingId: LISTING_ID,
+      sellerUserId: SELLER_ID,
+      listingTitle: 'Patent Listing',
+    });
   });
 });
