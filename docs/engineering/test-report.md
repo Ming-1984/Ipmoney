@@ -3,6 +3,14 @@
 ## Latest (2026-03-14)
 
 ### Commands & Results (dev)
+- `pnpm -C apps/api test -- test/orders.filters.spec.ts`
+  - Result: pass (`9/9`)
+  - Notes: expanded strict regression coverage for `listOrders` (`status` vs `statusGroup` priority + default buyer role) and `listInvoices` (`ISSUED/WAIT_APPLY` mapping branches).
+- `pnpm -C apps/api test`
+  - Result: pass (`599/599`)
+  - Notes: full API Vitest suite remained green after orders filters branch expansion.
+- `pnpm -C apps/api test:e2e`
+  - Result: pass (`2/2`)
 - `pnpm -C apps/api test -- test/orders.write.spec.ts`
   - Result: pass (`42/42`)
   - Notes: expanded strict read-path coverage for orders domain: `getOrderDetail/getCaseWithMilestones/listRefundRequests/getOrderInvoice/getAdminOrderDetail` (auth/id/not-found/access + DTO mapping branches).
