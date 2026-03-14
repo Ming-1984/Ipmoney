@@ -10,7 +10,7 @@
 - `typecheck`: pass (api/client/admin-web).
 - `build`: pass (api/admin-web/client h5/weapp); WeApp severe regression has been fixed in this batch, and bundle gate is now enforced.
 - `smoke`: latest full rerun pass on `r259b/r259c/r259d` (UI HTTP `86/86`, UI Render full `83/83`, UI DOM full-83 `83/83`); API full baseline remains green on `r259a` (`api-real-smoke 1754/1754`), including announcement-tag and patent-map industry-breakdown/top-assignee compatibility regressions.
-- `verify`: pass on `r259a` (openapi/lint/typecheck/build/api-smoke `1754/1754` + coverage `238/238` + quality-floor `violations=[]` + db/ui-http/ui-render(core)/ui-dom(core) all green); port/process hardening has been applied to core smoke scripts.
+- `verify`: pass on `r262a` (openapi/lint/typecheck/build/api-smoke `1754/1754` + coverage `238/238` + quality-floor `violations=[]` + db/ui-http/ui-render(core)/ui-dom(core) all green); port/process hardening has been applied to core smoke scripts.
 - `api test` (new minimal gate): latest rerun pass on `2026-03-14` with `pnpm -C apps/api test` (`599/599`) and `pnpm -C apps/api test:e2e` (`2/2`), and CI executes it as a dedicated step.
 - `weapp-route-smoke`: latest pass on `r259e/r259f` (both `11/11` routes, `--kill-stale-devtools` enabled, with no-auth and auth-storage variants); script includes launch retry + stale DevTools diagnostics + success/failure report output.
 
@@ -683,5 +683,6 @@
   366) round261 api regression rerun captured (done: targeted suite `pnpm -C apps/api test -- test/orders.write.spec.ts` passed `42/42`, then full `pnpm -C apps/api test` passed `595/595` and `pnpm -C apps/api test:e2e` passed `2/2` with no regressions).
   367) orders list/invoice filter strictness branches expanded (done: `apps/api/test/orders.filters.spec.ts` adds strict branch coverage for `listOrders` status-vs-statusGroup priority and default buyer-role behavior, plus `listInvoices` `ISSUED/WAIT_APPLY` mapping branches with commission fallback and requestedAt nullability; file total now `9` tests).
   368) round262 api regression rerun captured (done: targeted suite `pnpm -C apps/api test -- test/orders.filters.spec.ts` passed `9/9`, then full `pnpm -C apps/api test` passed `599/599` and `pnpm -C apps/api test:e2e` passed `2/2` with no regressions).
+  369) round262 full verify rerun captured (done: `scripts/verify.ps1 -ReportDate r262a` remained fully green with `api-real-smoke` `1754/1754`, OpenAPI coverage `238/238`, quality floor `violations=[]`, and `db/ui-http/ui-render(core)/ui-dom(core)` all passing; render artifact updated at `docs/demo/rendered/ui-smoke-r262a/`).
 
 

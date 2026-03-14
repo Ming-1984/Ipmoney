@@ -3,6 +3,9 @@
 ## Latest (2026-03-14)
 
 ### Commands & Results (dev)
+- `powershell -ExecutionPolicy Bypass -File scripts/verify.ps1 -ReportDate r262a`
+  - Result: success (all steps)
+  - Notes: full gate stayed green after latest orders strictness expansions (`api-real-smoke 1754/1754`, OpenAPI coverage `238/238`, quality floor `violations=[]`, plus db/ui-http/ui-render(core)/ui-dom(core) pass).
 - `pnpm -C apps/api test -- test/orders.filters.spec.ts`
   - Result: pass (`9/9`)
   - Notes: expanded strict regression coverage for `listOrders` (`status` vs `statusGroup` priority + default buyer role) and `listInvoices` (`ISSUED/WAIT_APPLY` mapping branches).
