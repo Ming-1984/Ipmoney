@@ -3,6 +3,14 @@
 ## Latest (2026-03-14)
 
 ### Commands & Results (dev)
+- `pnpm -C apps/api test -- test/conversations.filters.spec.ts`
+  - Result: pass (`5/5`)
+  - Notes: expanded conversations strict regression coverage for non-safe-integer `page/pageSize`, `listMessages` not-found branch, trimmed `conversationId` normalization, and message DTO mapping branch.
+- `pnpm -C apps/api test`
+  - Result: pass (`615/615`)
+  - Notes: full API Vitest suite remained green after conversations filter strictness/safe-integer hardening.
+- `pnpm -C apps/api test:e2e`
+  - Result: pass (`2/2`)
 - `pnpm -C apps/api test -- test/notifications.filters.spec.ts`
   - Result: pass (`5/5`)
   - Notes: expanded notifications strict regression coverage for non-safe-integer `page/pageSize`, default pagination + missing `createdAt` fallback mapping, and trimmed `notificationId` query branch.
