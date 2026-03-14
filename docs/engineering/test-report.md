@@ -3,6 +3,25 @@
 ## Latest (2026-03-14)
 
 ### Commands & Results (dev)
+- `powershell -ExecutionPolicy Bypass -File scripts/verify.ps1 -ReportDate r298e`
+  - Result: pass
+  - Notes: full-chain quality gate remained green (`api-real-smoke` `1754/1754`, coverage `238/238`, quality-floor `violations=[]`, `db-preflight` `9/9`, `ui-render(core)` `3/3`, `ui-dom(core)` `11/11`); hidden-tag cleanup counters stayed `0`.
+- `powershell -ExecutionPolicy Bypass -File scripts/ui-render-smoke.ps1 -Mode full -ReportDate r298a`
+  - Result: pass (`83/83`)
+- `powershell -ExecutionPolicy Bypass -File scripts/ui-dom-smoke.ps1 -Mode full -ReportDate r298b`
+  - Result: pass (`83/83`)
+  - Notes: full-page DOM semantic assertions stayed stable, including search and publish/filter related pages.
+- `powershell -ExecutionPolicy Bypass -File scripts/weapp-route-smoke.ps1 -NoAuth -ReportDate r298c -LaunchRetries 3 -LaunchRetryDelayMs 4000 -KillStaleDevtools`
+  - Result: fail (process `exit=1`)
+  - Notes: initial run was launched in parallel with auth variant, triggering transient DevTools resource contention while route traversal logs remained complete.
+- `powershell -ExecutionPolicy Bypass -File scripts/weapp-route-smoke.ps1 -ReportDate r298d -UserToken demo-user-11111111-1111-4111-8111-111111111111 -LaunchRetries 3 -LaunchRetryDelayMs 4000 -KillStaleDevtools`
+  - Result: fail (process `exit=1`)
+  - Notes: initial run was launched in parallel with no-auth variant, triggering transient DevTools resource contention.
+- `powershell -ExecutionPolicy Bypass -File scripts/weapp-route-smoke.ps1 -NoAuth -ReportDate r298c2 -LaunchRetries 3 -LaunchRetryDelayMs 4000 -KillStaleDevtools`
+  - Result: pass (`11/11` routes)
+- `powershell -ExecutionPolicy Bypass -File scripts/weapp-route-smoke.ps1 -ReportDate r298d2 -UserToken demo-user-11111111-1111-4111-8111-111111111111 -LaunchRetries 3 -LaunchRetryDelayMs 4000 -KillStaleDevtools`
+  - Result: pass (`11/11` routes)
+  - Notes: immediate sequential rerun of both no-auth/auth paths returned fully green, confirming no persistent weapp route regression.
 - `pnpm -C apps/api test`
   - Result: pass (`619/619`)
   - Notes: full API Vitest suite remained green after `r296` full-chain rerun.
