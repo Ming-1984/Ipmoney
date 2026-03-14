@@ -41,9 +41,13 @@ describe('InventorsService filter strictness', () => {
 
   it('rejects invalid inventor query params', async () => {
     expect(() => service.search({ page: '0' })).toThrow(BadRequestException);
+    expect(() => service.search({ page: '' })).toThrow(BadRequestException);
+    expect(() => service.search({ page: undefined })).toThrow(BadRequestException);
     expect(() => service.search({ pageSize: '1.5' })).toThrow(BadRequestException);
+    expect(() => service.search({ pageSize: '' })).toThrow(BadRequestException);
     expect(() => service.search({ regionCode: '   ' })).toThrow(BadRequestException);
     expect(() => service.search({ regionCode: 'abc' })).toThrow(BadRequestException);
+    expect(() => service.search({ patentType: '   ' })).toThrow(BadRequestException);
     expect(() => service.search({ patentType: 'bad-type' })).toThrow(BadRequestException);
   });
 });
@@ -67,6 +71,8 @@ describe('OrganizationsService filter strictness', () => {
   });
 
   it('rejects invalid regionCode and type filters', async () => {
+    await expect(service.list({ page: '0' })).rejects.toBeInstanceOf(BadRequestException);
+    await expect(service.list({ pageSize: '' })).rejects.toBeInstanceOf(BadRequestException);
     await expect(service.list({ regionCode: '   ' })).rejects.toBeInstanceOf(BadRequestException);
     await expect(service.list({ regionCode: 'abc' })).rejects.toBeInstanceOf(BadRequestException);
     await expect(service.list({ type: '   ' })).rejects.toBeInstanceOf(BadRequestException);
@@ -74,11 +80,28 @@ describe('OrganizationsService filter strictness', () => {
     await expect(service.list({ types: ['COMPANY', 'BAD'] })).rejects.toBeInstanceOf(BadRequestException);
   });
 
+  it('uses verificationType alias with deduplicated normalized values', async () => {
+    prisma.userVerification.findMany.mockResolvedValueOnce([]);
+    prisma.userVerification.count.mockResolvedValueOnce(0);
+
+    await service.list({
+      verificationType: [' company ', 'ACADEMY', 'COMPANY'],
+    });
+
+    expect(prisma.userVerification.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          verificationType: { in: ['COMPANY', 'ACADEMY'] },
+        }),
+      }),
+    );
+    expect(prisma.listing.groupBy).not.toHaveBeenCalled();
+    expect(prisma.listing.findMany).not.toHaveBeenCalled();
+  });
+
   it('caps pageSize and applies approved org type filters', async () => {
     prisma.userVerification.findMany.mockResolvedValueOnce([]);
     prisma.userVerification.count.mockResolvedValueOnce(0);
-    prisma.listing.groupBy.mockResolvedValueOnce([]);
-    prisma.listing.findMany.mockResolvedValueOnce([]);
 
     const result = await service.list({
       page: '2',
@@ -100,6 +123,8 @@ describe('OrganizationsService filter strictness', () => {
         take: 50,
       }),
     );
+    expect(prisma.listing.groupBy).not.toHaveBeenCalled();
+    expect(prisma.listing.findMany).not.toHaveBeenCalled();
     expect(result.page).toEqual({ page: 2, pageSize: 50, total: 0 });
   });
 

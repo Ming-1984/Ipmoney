@@ -3,6 +3,14 @@
 ## Latest (2026-03-14)
 
 ### Commands & Results (dev)
+- `pnpm -C apps/api test -- test/org-inventor.filters.spec.ts`
+  - Result: pass (`7/7`)
+  - Notes: expanded org/inventor strict regression coverage for explicit-empty pagination/type guards, `verificationType` alias + dedup normalization, and organizations empty-result stats short-circuit branch.
+- `pnpm -C apps/api test`
+  - Result: pass (`608/608`)
+  - Notes: full API Vitest suite remained green after org/inventor strict branch expansion.
+- `pnpm -C apps/api test:e2e`
+  - Result: pass (`2/2`)
 - `pnpm -C apps/api test -- test/reports.filters.spec.ts`
   - Result: pass (`10/10`)
   - Notes: expanded reports strict regression coverage for permission-denied branches (`report.read`/`report.export`), `days/start/end` invalid filters, end-only/start-only range derivation, `BASE_URL` precedence + fallback baseUrl, and CSV escaping behavior.
