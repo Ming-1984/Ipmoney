@@ -3,6 +3,16 @@
 ## Latest (2026-03-14)
 
 ### Commands & Results (dev)
+- `powershell -ExecutionPolicy Bypass -File scripts/verify.ps1 -ReportDate r254c`
+  - Result: success (all steps)
+  - Render artifact: `docs/demo/rendered/ui-smoke-r254c/` (core mode, 3 pages)
+  - Gate summary: `api-real-smoke` `1754/1754` (`writes=1297`,`reads=457`), OpenAPI coverage `238/238`, quality floor `violations=[]`, plus `db-preflight/ui-http-smoke/ui-render-smoke(core)/ui-dom-smoke(core)` all pass.
+- `powershell -ExecutionPolicy Bypass -File scripts/ui-http-smoke.ps1 -ReportDate r254a`
+  - Result: pass (`86/86`)
+  - Artifact: `.tmp/ui-http-smoke-r254a-summary.json`
+- `powershell -ExecutionPolicy Bypass -File scripts/ui-render-smoke.ps1 -Mode full -ReportDate r254b`
+  - Result: pass (`83/83`)
+  - Artifact: `.tmp/ui-render-smoke-r254b-summary.json`
 - `powershell -ExecutionPolicy Bypass -File scripts/verify.ps1 -ReportDate r253b`
   - Result: success (all steps)
   - Render artifact: `docs/demo/rendered/ui-smoke-r253b/` (core mode, 3 pages)
