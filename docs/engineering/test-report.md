@@ -3,6 +3,14 @@
 ## Latest (2026-03-15)
 
 ### Commands & Results (dev)
+- `pnpm -C apps/api test`
+  - Result: pass (`619/619`)
+  - Notes: full API Vitest suite remained green after `r312` full-chain rerun.
+- `pnpm -C apps/api test:e2e`
+  - Result: pass (`2/2`)
+- `powershell -ExecutionPolicy Bypass -File scripts/api-real-smoke.ps1 -ReportDate r313a`
+  - Result: pass (`1754/1754`)
+  - Notes: independent smoke rerun remained fully green (`writes=1297`,`reads=457`); hidden-tag cleanup counters stayed `0`.
 - `powershell -ExecutionPolicy Bypass -File scripts/verify.ps1 -ReportDate r312e`
   - Result: pass
   - Notes: full-chain quality gate remained green (`api-real-smoke` `1754/1754`, coverage `238/238`, quality-floor `violations=[]`, `db-preflight` `9/9`, `ui-render(core)` `3/3`, `ui-dom(core)` `11/11`); hidden-tag cleanup counters stayed `0`.
