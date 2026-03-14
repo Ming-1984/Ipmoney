@@ -3,6 +3,14 @@
 ## Latest (2026-03-14)
 
 ### Commands & Results (dev)
+- `pnpm -C apps/api test -- test/tech-managers.update-admin.spec.ts test/tech-managers.filters.spec.ts`
+  - Result: pass (`9/9`)
+  - Notes: hardened tech-manager admin write path to sanitize hidden `serviceTags` before persistence, and aligned update-admin regression assertions to sanitized write behavior.
+- `pnpm -C apps/api test`
+  - Result: pass (`619/619`)
+  - Notes: full API Vitest suite remained green after tech-manager `serviceTags` write-time sanitization.
+- `pnpm -C apps/api test:e2e`
+  - Result: pass (`2/2`)
 - `powershell -ExecutionPolicy Bypass -File scripts/ui-render-smoke.ps1 -Mode full -ReportDate r286a`
   - Result: pass (`83/83`)
 - `powershell -ExecutionPolicy Bypass -File scripts/ui-dom-smoke.ps1 -Mode full -ReportDate r286b`

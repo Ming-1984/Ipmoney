@@ -143,7 +143,7 @@ describe('TechManagersService update/public detail suite', () => {
     prisma.techManagerProfile.upsert.mockResolvedValueOnce({
       userId: VALID_ID,
       intro: 'New intro',
-      serviceTagsJson: ['Patent Drafting', 'smoke-service-tag-1'],
+      serviceTagsJson: ['Patent Drafting'],
       consultCount: 0,
       dealCount: 0,
       ratingScore: null,
@@ -169,13 +169,13 @@ describe('TechManagersService update/public detail suite', () => {
       create: {
         userId: VALID_ID,
         intro: 'New intro',
-        serviceTagsJson: ['Patent Drafting', 'smoke-service-tag-1'],
+        serviceTagsJson: ['Patent Drafting'],
         featuredRank: 3,
         featuredUntil: null,
       },
       update: {
         intro: 'New intro',
-        serviceTagsJson: ['Patent Drafting', 'smoke-service-tag-1'],
+        serviceTagsJson: ['Patent Drafting'],
         featuredRank: 3,
         featuredUntil: null,
       },
@@ -187,12 +187,12 @@ describe('TechManagersService update/public detail suite', () => {
       targetId: 'verification-1',
       afterJson: {
         intro: 'New intro',
-        serviceTagsJson: ['Patent Drafting', 'smoke-service-tag-1'],
+        serviceTagsJson: ['Patent Drafting'],
         featuredRank: 3,
         featuredUntil: null,
       },
     });
-    expect(result.serviceTags).toEqual(['Patent Drafting', 'smoke-service-tag-1']);
+    expect(result.serviceTags).toEqual(['Patent Drafting']);
     expect(result.intro).toBe('New intro');
   });
 });

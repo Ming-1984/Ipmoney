@@ -243,12 +243,13 @@ export class TechManagersService {
       if (!Array.isArray(body?.serviceTags)) {
         throw new BadRequestException({ code: 'BAD_REQUEST', message: 'serviceTags must be an array' });
       }
-      const serviceTags = body.serviceTags.map((item: unknown) => String(item ?? '').trim()).filter(Boolean);
-      for (const serviceTag of serviceTags) {
+      const serviceTagsRaw = body.serviceTags.map((item: unknown) => String(item ?? '').trim()).filter(Boolean);
+      for (const serviceTag of serviceTagsRaw) {
         if (serviceTag.length > 50) {
           throw new BadRequestException({ code: 'BAD_REQUEST', message: 'serviceTags item is too long' });
         }
       }
+      const serviceTags = sanitizeServiceTagNames(serviceTagsRaw);
       updates.serviceTagsJson = serviceTags;
     }
 
