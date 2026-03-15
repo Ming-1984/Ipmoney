@@ -18,3 +18,6 @@ coverage
 # Ignore only local export/temp outputs if needed.
 # Local IPC classification source files (CNIPA/WIPO)
 docs/ipc/
+
+# API local upload temp artifacts from smoke/verify
+apps/api/uploads/*.csv
