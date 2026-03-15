@@ -5,6 +5,14 @@
 ### Commands & Results (dev)
 - `pnpm -C apps/api test`
   - Result: pass (`619/619`)
+  - Notes: API baseline remained green after remote sync and client type-fix patch.
+- `pnpm -C apps/api test:e2e`
+  - Result: pass (`2/2`)
+- `powershell -ExecutionPolicy Bypass -File scripts/verify.ps1 -ReportDate r324e`
+  - Result: fail -> pass
+  - Notes: first run failed at `client:typecheck` because `boundingClientRect` callback value was treated as object-only in detail-tab scrolling logic (`apps/client/src/subpackages/achievement/detail/index.tsx`, `apps/client/src/subpackages/demand/detail/index.tsx`, `apps/client/src/subpackages/listing/detail/index.tsx`); after normalizing callback value with `Array.isArray(rect) ? rect[0] : rect`, rerun passed full-chain (`api-real-smoke` `1754/1754`, OpenAPI coverage `238/238`, quality-floor `violations=[]`).
+- `pnpm -C apps/api test`
+  - Result: pass (`619/619`)
   - Notes: full API Vitest suite remained green after `r322` full-chain rerun.
 - `pnpm -C apps/api test:e2e`
   - Result: pass (`2/2`)
