@@ -431,6 +431,41 @@ scroll-view {
   height: 220rpx;
 }
 
+.state-empty-inline {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 520rpx;
+  padding: 32rpx 24rpx 40rpx;
+  text-align: center;
+}
+
+.state-empty-inline-ill {
+  width: 240rpx;
+  height: 240rpx;
+  filter: drop-shadow(0 10rpx 20rpx rgba(255, 102, 0, 0.08));
+  opacity: 0.98;
+}
+
+.state-empty-inline-title {
+  margin-top: 16rpx;
+  font-size: 32rpx;
+  font-weight: 700;
+  color: var(--c-text);
+}
+
+.state-empty-inline-message {
+  margin-top: 8rpx;
+  font-size: 24rpx;
+  color: var(--c-muted);
+  line-height: 1.6;
+}
+
+.state-empty-inline-action {
+  margin-top: 16rpx;
+}
+
 .page-locked {
   background: #ffffff;
 }

@@ -31,6 +31,7 @@ import { Button, CellGroup, Input, PullToRefresh, toast } from '../../ui/nutui';
 import { usePagedList } from '../../lib/usePagedList';
 import { ListFooter } from '../../ui/ListFooter';
 import iconAward from '../../assets/icons/icon-award-teal.svg';
+import emptySearchNone from '../../assets/illustrations/empty-search-none.svg';
 import { STORAGE_KEYS } from '../../constants';
 
 type Tab = 'LISTING' | 'DEMAND' | 'ACHIEVEMENT' | 'ARTWORK';
@@ -1342,7 +1343,14 @@ export default function SearchPage() {
               ))}
             </View>
           ) : (
-            <EmptyCard message="暂无专利结果" actionText="刷新" onAction={listingList.reload} />
+            <EmptyCard
+              image={emptySearchNone}
+              title="暂无专利结果"
+              message="请调整关键词或筛选条件后重试。"
+              variant="inline"
+              actionText="刷新"
+              onAction={listingList.reload}
+            />
           )}
 
           {!listingList.loading && listingItems.length ? (
@@ -1400,7 +1408,14 @@ export default function SearchPage() {
               })}
             </View>
           ) : (
-            <EmptyCard message="暂无需求结果" actionText="刷新" onAction={demandList.reload} />
+            <EmptyCard
+              image={emptySearchNone}
+              title="暂无需求结果"
+              message="请调整关键词或筛选条件后重试。"
+              variant="inline"
+              actionText="刷新"
+              onAction={demandList.reload}
+            />
           )}
 
           {!demandList.loading && demandItems.length ? (
@@ -1479,7 +1494,14 @@ export default function SearchPage() {
               })}
           </View>
         ) : (
-          <EmptyCard message="暂无需求结果" actionText="刷新" onAction={achievementList.reload} />
+          <EmptyCard
+            image={emptySearchNone}
+            title="暂无成果结果"
+            message="请调整关键词或筛选条件后重试。"
+            variant="inline"
+            actionText="刷新"
+            onAction={achievementList.reload}
+          />
         )}
 
           {!achievementList.loading && achievementItems.length ? (
@@ -1510,7 +1532,14 @@ export default function SearchPage() {
               ))}
             </Surface>
           ) : (
-            <EmptyCard message="暂无需求结果" actionText="刷新" onAction={artworkList.reload} />
+            <EmptyCard
+              image={emptySearchNone}
+              title="暂无书画结果"
+              message="请调整关键词或筛选条件后重试。"
+              variant="inline"
+              actionText="刷新"
+              onAction={artworkList.reload}
+            />
           )}
 
           {!artworkList.loading && artworkItems.length ? (
@@ -1528,4 +1557,3 @@ export default function SearchPage() {
     </View>
   );
 }
-

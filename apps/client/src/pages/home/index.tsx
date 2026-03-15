@@ -23,6 +23,9 @@ import homeIconPatentMap from '../../assets/icons/home/home-patent-map.svg';
 import homeIconArtZone from '../../assets/icons/home/home-art-zone.svg';
 import homeIconDemand from '../../assets/icons/home/home-demand.svg';
 import homeIconAchievement from '../../assets/icons/home/home-achievement.svg';
+import homeIconTechManager from '../../assets/icons/home/home-tech-manager.svg';
+import homeIconDesignPatent from '../../assets/icons/home/home-design-patent.svg';
+import homeIconAnnouncements from '../../assets/icons/home/home-announcements.svg';
 import logoGif from '../../assets/brand/logo.optim2.gif';
 import promoCertificateGif from '../../assets/home/promo-certificate.optim3.gif';
 import { STORAGE_KEYS } from '../../constants';
@@ -191,6 +194,7 @@ export default function HomePage() {
 
   const goMap = useCallback(() => Taro.navigateTo({ url: '/subpackages/patent-map/index' }), []);
   const goInventors = useCallback(() => Taro.navigateTo({ url: '/subpackages/inventors/index' }), []);
+  const goTechManagers = useCallback(() => Taro.switchTab({ url: '/pages/tech-managers/index' }), []);
   const goArtworks = useCallback(() => {
     Taro.setStorageSync(STORAGE_KEYS.searchPrefill, { tab: 'ARTWORK', reset: true });
     Taro.navigateTo({ url: '/subpackages/search/index' });
@@ -205,6 +209,14 @@ export default function HomePage() {
   }, []);
   const goDemandSearch = useCallback(() => {
     Taro.setStorageSync(STORAGE_KEYS.searchPrefill, { tab: 'DEMAND', reset: true });
+    Taro.navigateTo({ url: '/subpackages/search/index' });
+  }, []);
+  const goDesignPatents = useCallback(() => {
+    Taro.setStorageSync(STORAGE_KEYS.searchPrefill, {
+      tab: 'LISTING',
+      patentType: 'DESIGN',
+      reset: true,
+    });
     Taro.navigateTo({ url: '/subpackages/search/index' });
   }, []);
   const goAnnouncements = useCallback(() => Taro.navigateTo({ url: '/subpackages/announcements/index' }), []);
@@ -237,13 +249,25 @@ export default function HomePage() {
 
   const quickEntries: QuickEntry[] = useMemo(
     () => [
-      { key: 'inventor', label: '发明人榜', icon: homeIconInventors, onClick: goInventors },
-      { key: 'map', label: '专利地图', icon: homeIconPatentMap, onClick: goMap },
+      { key: 'design-patent', label: '外观专利', icon: homeIconDesignPatent, onClick: goDesignPatents },
       { key: 'art', label: '书画专区', icon: homeIconArtZone, onClick: goArtworks },
       { key: 'demand', label: '产学研需求', icon: homeIconDemand, onClick: goDemandSearch },
       { key: 'achievement', label: '成果转化', icon: homeIconAchievement, onClick: goAchievements },
+      { key: 'map', label: '专利地图', icon: homeIconPatentMap, onClick: goMap },
+      { key: 'tech-manager', label: '技术经理', icon: homeIconTechManager, onClick: goTechManagers },
+      { key: 'inventor', label: '发明人榜', icon: homeIconInventors, onClick: goInventors },
+      { key: 'announcements', label: '全部公告', icon: homeIconAnnouncements, onClick: goAnnouncements },
     ],
-    [goAchievements, goArtworks, goDemandSearch, goInventors, goMap],
+    [
+      goAchievements,
+      goAnnouncements,
+      goArtworks,
+      goDemandSearch,
+      goDesignPatents,
+      goInventors,
+      goMap,
+      goTechManagers,
+    ],
   );
 
   const patentZoneEntries: PatentZoneEntry[] = useMemo(
@@ -267,15 +291,6 @@ export default function HomePage() {
         onClick: goHighTechRetired,
       },
       {
-        key: 'cluster',
-        title: '产业集群',
-        desc: '按集群标签聚合展示',
-        icon: iconMap,
-        bgImage: bgZoneCluster,
-        tone: 'tone-green',
-        onClick: goClusterPicker,
-      },
-      {
         key: 'open-license',
         title: '开放许可',
         desc: '交易方式为许可',
@@ -283,6 +298,15 @@ export default function HomePage() {
         bgImage: bgZoneOpenLicense,
         tone: 'tone-teal',
         onClick: goOpenLicense,
+      },
+      {
+        key: 'cluster',
+        title: '产业集群',
+        desc: '按集群标签聚合展示',
+        icon: iconMap,
+        bgImage: bgZoneCluster,
+        tone: 'tone-green',
+        onClick: goClusterPicker,
       },
     ],
     [goClusterPicker, goHighTechRetired, goOpenLicense, goSleepingPatent],
@@ -389,7 +413,7 @@ export default function HomePage() {
           <View className="home-section-title-wrap">
             <View className="home-section-accent" />
             <Text className="home-section-title">
-              {recommendMode === 'RECOMMEND' ? '为你推荐' : '最新专利'}
+              {recommendMode === 'RECOMMEND' ? '高价值低金额' : '最新专利'}
             </Text>
           </View>
         </View>

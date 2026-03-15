@@ -515,23 +515,6 @@ export default function PatentDetailOverviewPage() {
           <Spacer size={12} />
 
 
-          <View className="detail-bottom-tools">
-            <View className="detail-tool-row">
-              <TaroButton className="detail-tool" openType="share" hoverClass="none">
-                <View className="detail-tool-icon">
-                  <Share2 size={16} />
-                </View>
-                <Text>分享</Text>
-              </TaroButton>
-              <View className={`detail-tool ${favoritedState ? 'is-active' : ''}`} onClick={() => void toggleFavorite()}>
-                <View className="detail-tool-icon">
-                  {favoritedState ? <HeartFill size={16} color="#ff4d4f" /> : <Heart size={16} />}
-                </View>
-                <Text>{favoritedState ? '已收藏' : '收藏'}</Text>
-              </View>
-            </View>
-          </View>
-
           {data.sourcePrimary || data.sourceUpdatedAt ? (
             <>
               <Spacer size={12} />
@@ -547,6 +530,20 @@ export default function PatentDetailOverviewPage() {
 
       {data && canTrade ? (
         <StickyBar>
+          <View className="detail-sticky-icons">
+            <TaroButton className="detail-tool" openType="share" hoverClass="none">
+              <View className="detail-tool-icon">
+                <Share2 size={16} />
+              </View>
+              <Text>分享</Text>
+            </TaroButton>
+            <View className={`detail-tool ${favoritedState ? 'is-active' : ''}`} onClick={() => void toggleFavorite()}>
+              <View className="detail-tool-icon">
+                {favoritedState ? <HeartFill size={16} color="#ff4d4f" /> : <Heart size={16} />}
+              </View>
+              <Text>{favoritedState ? '已收藏' : '收藏'}</Text>
+            </View>
+          </View>
           <View className="detail-sticky-buttons">
             <Button variant="default" onClick={() => void startConsult()}>
               在线咨询

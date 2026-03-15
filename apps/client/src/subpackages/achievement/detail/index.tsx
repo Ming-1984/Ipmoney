@@ -1,6 +1,6 @@
 ﻿import { View, Text, Image, Button as TaroButton } from '@tarojs/components';
-import Taro, { useShareAppMessage } from '@tarojs/taro';
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import Taro, { usePageScroll, useShareAppMessage } from '@tarojs/taro';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import './index.scss';
 
@@ -38,6 +38,9 @@ export default function AchievementDetailPage() {
   const [consulting, setConsulting] = useState(false);
   const [favoritedState, setFavoritedState] = useState(false);
   const [activeTab, setActiveTab] = useState('overview');
+  const [tabsStuck, setTabsStuck] = useState(false);
+  const tabsOffsetTopRef = useRef<number | null>(null);
+  const stickyTopRef = useRef<number>(0);
 
   const load = useCallback(async () => {
     if (!achievementId) return;
@@ -57,6 +60,44 @@ export default function AchievementDetailPage() {
   useEffect(() => {
     void load();
   }, [load]);
+
+  useEffect(() => {
+    try {
+      const info = Taro.getSystemInfoSync();
+      const rpx = info.windowWidth ? info.windowWidth / 750 : 1;
+      stickyTopRef.current = (info.statusBarHeight || 0) + 88 * rpx;
+    } catch {
+      stickyTopRef.current = 0;
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!data) return;
+    const timer = setTimeout(() => {
+      const query = Taro.createSelectorQuery();
+      query
+        .select('.detail-tabs')
+        .boundingClientRect()
+        .selectViewport()
+        .scrollOffset()
+        .exec((res) => {
+          const rect = res?.[0] as { top?: number } | undefined;
+          const viewport = res?.[1] as { scrollTop?: number } | undefined;
+          if (!rect || typeof rect.top !== 'number' || !viewport) return;
+          const scrollTop = viewport.scrollTop || 0;
+          tabsOffsetTopRef.current = rect.top + scrollTop;
+        });
+    }, 30);
+    return () => clearTimeout(timer);
+  }, [data]);
+
+  usePageScroll((res) => {
+    const offsetTop = tabsOffsetTopRef.current;
+    if (offsetTop == null) return;
+    const stickyTop = stickyTopRef.current || 0;
+    const next = res.scrollTop >= offsetTop - stickyTop - 1;
+    setTabsStuck((prev) => (prev !== next ? next : prev));
+  });
 
   useEffect(() => {
     setFavoritedState(isAchievementFavorited(achievementId));
@@ -130,7 +171,17 @@ export default function AchievementDetailPage() {
   );
   const scrollToTab = useCallback((id: string) => {
     setActiveTab(id);
-    Taro.pageScrollTo({ selector: `#achievement-${id}`, duration: 300 });
+    const selector = `#achievement-${id}`;
+    const query = Taro.createSelectorQuery();
+    query
+      .select('.detail-tabs')
+      .boundingClientRect((rect) => {
+        const height = rect?.height ? Math.round(rect.height) : 0;
+        const top = rect?.top ? Math.round(rect.top) : 0;
+        const offsetTop = -(height + top);
+        Taro.pageScrollTo({ selector, duration: 300, offsetTop });
+      })
+      .exec();
   }, []);
 
   const coverUrl = resolveLocalAsset(data?.coverUrl || null);
@@ -154,7 +205,7 @@ export default function AchievementDetailPage() {
   }
 
   return (
-    <View className="container detail-page-compact has-sticky">
+    <View className={`container detail-page-compact has-sticky${tabsStuck ? ' detail-tabs-stuck' : ''}`}>
       <PageHeader weapp back title="成果详情" subtitle="公开可见；咨询需登录且审核通过。" />
       <Spacer />
 
@@ -307,22 +358,6 @@ export default function AchievementDetailPage() {
 
           <Spacer size={12} />
 
-          <View className="detail-bottom-tools">
-            <View className="detail-tool-row">
-              <TaroButton className="detail-tool" openType="share" hoverClass="none">
-                <View className="detail-tool-icon">
-                  <Share2 size={16} />
-                </View>
-                <Text>分享</Text>
-              </TaroButton>
-              <View className={`detail-tool ${favoritedState ? 'is-active' : ''}`} onClick={() => void toggleFavorite()}>
-                <View className="detail-tool-icon">
-                  {favoritedState ? <HeartFill size={16} color="#ff4d4f" /> : <Heart size={16} />}
-                </View>
-                <Text>{favoritedState ? '已收藏' : '收藏'}</Text>
-              </View>
-            </View>
-          </View>
         </View>
       ) : (
         <EmptyCard title="无数据" message="该成果不存在或不可见。" actionText="返回" onAction={() => Taro.navigateBack()} />
@@ -330,10 +365,21 @@ export default function AchievementDetailPage() {
 
       {!loading && !error && data ? (
         <StickyBar>
+          <View className="detail-sticky-icons">
+            <TaroButton className="detail-tool" openType="share" hoverClass="none">
+              <View className="detail-tool-icon">
+                <Share2 size={16} />
+              </View>
+              <Text>分享</Text>
+            </TaroButton>
+            <View className={`detail-tool ${favoritedState ? 'is-active' : ''}`} onClick={() => void toggleFavorite()}>
+              <View className="detail-tool-icon">
+                {favoritedState ? <HeartFill size={16} color="#ff4d4f" /> : <Heart size={16} />}
+              </View>
+              <Text>{favoritedState ? '已收藏' : '收藏'}</Text>
+            </View>
+          </View>
           <View className="detail-sticky-buttons">
-            <Button variant={favoritedState ? 'primary' : 'default'} onClick={() => void toggleFavorite()}>
-              {favoritedState ? '已收藏' : '收藏'}
-            </Button>
             <Button variant="primary" loading={consulting} disabled={consulting} onClick={() => void startConsult()}>
               {consulting ? '进入中...' : '咨询'}
             </Button>

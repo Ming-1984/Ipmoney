@@ -337,24 +337,6 @@ export default function ArtworkDetailPage() {
           </TipBanner>
 
           <Spacer size={12} />
-          <View className="detail-bottom-tools">
-            <View className="detail-tool-row">
-              <TaroButton className="detail-tool" openType="share" hoverClass="none">
-                <View className="detail-tool-icon">
-                  <Share2 size={16} />
-                </View>
-                <Text>分享</Text>
-              </TaroButton>
-              <View className={`detail-tool ${favoritedState ? 'is-active' : ''}`} onClick={() => void toggleFavorite()}>
-                <View className="detail-tool-icon">
-                  {favoritedState ? <HeartFill size={16} color="#ff4d4f" /> : <Heart size={16} />}
-                </View>
-                <Text>{favoritedState ? '已收藏' : '收藏'}</Text>
-              </View>
-            </View>
-          </View>
-
-          <Spacer size={12} />
           <View id="artwork-comments">
             <CommentsSection contentType="ARTWORK" contentId={artworkId} />
           </View>
@@ -365,31 +347,25 @@ export default function ArtworkDetailPage() {
 
       {data ? (
         <StickyBar>
-          <View className="listing-detail-sticky-secondary">
-            <Button
-              variant="ghost"
-              size="small"
-              onClick={() => {
-                void toggleFavorite();
-              }}
-            >
-              <View className="row" style={{ gap: '8rpx', alignItems: 'center' }}>
-                {favoritedState ? <HeartFill size={14} color="#e31b23" /> : <Heart size={14} color="var(--c-muted)" />}
-                <Text>{favoritedState ? '已收藏' : '收藏'}</Text>
+          <View className="detail-sticky-icons">
+            <TaroButton className="detail-tool" openType="share" hoverClass="none">
+              <View className="detail-tool-icon">
+                <Share2 size={16} />
               </View>
-            </Button>
-            <Button
-              variant="ghost"
-              size="small"
-              onClick={() => {
-                void startConsult();
-              }}
-            >
-              咨询
-            </Button>
+              <Text>??</Text>
+            </TaroButton>
+            <View className={`detail-tool ${favoritedState ? 'is-active' : ''}`} onClick={() => void toggleFavorite()}>
+              <View className="detail-tool-icon">
+                {favoritedState ? <HeartFill size={16} color="#ff4d4f" /> : <Heart size={16} />}
+              </View>
+              <Text>{favoritedState ? '???' : '??'}</Text>
+            </View>
           </View>
 
-          <View className="flex-1">
+          <View className="detail-sticky-buttons">
+            <Button variant="default" onClick={() => void startConsult()}>
+              ??
+            </Button>
             <Button
               variant="primary"
               onClick={() => {
@@ -397,7 +373,7 @@ export default function ArtworkDetailPage() {
                 Taro.navigateTo({ url: `/subpackages/checkout/deposit-pay/index?artworkId=${artworkId}` });
               }}
             >
-              {`付订金 ￥${data.depositAmountFen != null ? fenToYuan(data.depositAmountFen) : '-'}`}
+              {`??? ?${data.depositAmountFen != null ? fenToYuan(data.depositAmountFen) : '-'}`}
             </Button>
           </View>
         </StickyBar>

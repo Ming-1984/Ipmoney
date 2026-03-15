@@ -66,41 +66,11 @@
   border-radius: 999rpx;
 }
 
-.detail-page .sticky-actions,
-.detail-page-compact .sticky-actions {
-  align-items: center;
-  justify-content: space-between;
-  gap: 16rpx;
-}
-
-.detail-sticky-icons {
-  display: flex;
-  gap: 24rpx;
-  align-items: center;
-  flex-shrink: 0;
-}
-
-.detail-sticky-icon {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 4rpx;
-  color: var(--c-muted);
-}
-
-.detail-sticky-label {
-  font-size: 20rpx;
-  color: var(--c-muted);
-}
-
 .detail-sticky-buttons {
   display: flex;
   gap: 12rpx;
-  flex: 1;
-  justify-content: flex-end;
 }
 
 .detail-sticky-buttons .nut-button {
   flex: 1;
 }
-
