@@ -175,8 +175,9 @@ export default function DemandDetailPage() {
     query
       .select('.detail-tabs')
       .boundingClientRect((rect) => {
-        const height = rect?.height ? Math.round(rect.height) : 0;
-        const top = rect?.top ? Math.round(rect.top) : 0;
+        const targetRect = Array.isArray(rect) ? rect[0] : rect;
+        const height = targetRect?.height ? Math.round(targetRect.height) : 0;
+        const top = targetRect?.top ? Math.round(targetRect.top) : 0;
         const offsetTop = -(height + top);
         Taro.pageScrollTo({ selector, duration: 300, offsetTop });
       })
