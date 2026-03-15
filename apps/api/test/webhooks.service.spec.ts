@@ -1,6 +1,8 @@
+import { BadRequestException } from '@nestjs/common';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { Prisma } from '@prisma/client';
 
+import { WechatPayError } from '../src/common/wechat-pay.client';
 import { WebhooksService } from '../src/modules/webhooks/webhooks.service';
 
 describe('WebhooksService strictness suite', () => {
@@ -34,11 +36,20 @@ describe('WebhooksService strictness suite', () => {
     const audit = { log: vi.fn().mockResolvedValue(undefined) } as any;
     const notifications = { createMany: vi.fn().mockResolvedValue(undefined) } as any;
 
+    const service = new WebhooksService(prisma, audit, notifications);
+    const wechatPay = {
+      isWebhookVerificationEnabled: vi.fn().mockReturnValue(false),
+      verifyNotifySignature: vi.fn().mockResolvedValue(undefined),
+      decryptNotifyResource: vi.fn().mockReturnValue(null),
+    };
+    (service as any).wechatPay = wechatPay;
+
     return {
       prisma,
       audit,
       notifications,
-      service: new WebhooksService(prisma, audit, notifications),
+      wechatPay,
+      service,
     };
   }
 
@@ -77,6 +88,84 @@ describe('WebhooksService strictness suite', () => {
     await expect(service.handleWechatPayNotify({}, null)).resolves.toBeUndefined();
     expect(prisma.idempotencyKey.create).not.toHaveBeenCalled();
     expect(prisma.paymentWebhookEvent.upsert).not.toHaveBeenCalled();
+  });
+
+  it('verifies signature and consumes decrypted resource when webhook verification is enabled', async () => {
+    const { service, prisma, wechatPay } = createService();
+    const orderId = '12121212-1212-4121-8121-121212121212';
+
+    wechatPay.isWebhookVerificationEnabled.mockReturnValue(true);
+    wechatPay.decryptNotifyResource.mockReturnValue({
+      out_trade_no: `order-${orderId}`,
+      transaction_id: 'wx-real-1',
+      amount: { total: 5000 },
+      pay_type: 'DEPOSIT',
+    });
+
+    prisma.order.findUnique.mockResolvedValue({
+      id: orderId,
+      status: 'DEPOSIT_PENDING',
+      depositAmount: 5000,
+      finalAmount: null,
+      dealAmount: 12000,
+      buyerUserId: 'buyer-real-1',
+      listing: { title: 'Real Webhook Listing', sellerUserId: 'seller-real-1' },
+    });
+    prisma.payment.findFirst.mockResolvedValue(null);
+    prisma.order.update.mockResolvedValue({ id: orderId, status: 'DEPOSIT_PAID' });
+
+    const body = {
+      id: 'evt-real-1',
+      event_type: 'TRANSACTION.SUCCESS',
+      resource: { ciphertext: 'base64-cipher', nonce: 'nonce-1', associated_data: 'aad' },
+    };
+    const rawBody = JSON.stringify(body);
+
+    await service.handleWechatPayNotify({ headers: { 'x-request-id': 'rid-real-1' }, ip: '127.0.0.1' }, body, rawBody);
+
+    expect(wechatPay.verifyNotifySignature).toHaveBeenCalledWith({ 'x-request-id': 'rid-real-1' }, rawBody);
+    expect(wechatPay.decryptNotifyResource).toHaveBeenCalledWith(body);
+    expect(prisma.payment.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          orderId,
+          payType: 'DEPOSIT',
+          tradeNo: 'wx-real-1',
+          amount: 5000,
+        }),
+      }),
+    );
+  });
+
+  it('rejects webhook when verification is enabled but raw body is missing', async () => {
+    const { service, prisma, wechatPay } = createService();
+    wechatPay.isWebhookVerificationEnabled.mockReturnValue(true);
+
+    await expect(
+      service.handleWechatPayNotify(
+        { headers: { 'x-request-id': 'rid-missing-raw' } },
+        { id: 'evt-missing-raw', event_type: 'TRANSACTION.SUCCESS' },
+      ),
+    ).rejects.toBeInstanceOf(BadRequestException);
+
+    expect(wechatPay.verifyNotifySignature).not.toHaveBeenCalled();
+    expect(prisma.idempotencyKey.create).not.toHaveBeenCalled();
+  });
+
+  it('maps WechatPay verify errors to BAD_REQUEST payload', async () => {
+    const { service, wechatPay } = createService();
+    wechatPay.isWebhookVerificationEnabled.mockReturnValue(true);
+    wechatPay.verifyNotifySignature.mockRejectedValue(
+      new WechatPayError('WECHATPAY_NOTIFY_SIGNATURE_INVALID', 'wechatpay notify signature invalid'),
+    );
+
+    await expect(
+      service.handleWechatPayNotify(
+        { headers: { 'x-request-id': 'rid-invalid-sign' } },
+        { id: 'evt-invalid-sign', event_type: 'TRANSACTION.SUCCESS' },
+        '{"id":"evt-invalid-sign"}',
+      ),
+    ).rejects.toBeInstanceOf(BadRequestException);
   });
 
   it('processes payment success and transitions order to DEPOSIT_PAID', async () => {

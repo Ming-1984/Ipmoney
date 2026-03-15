@@ -7,6 +7,8 @@ build
 .next
 coverage
 .swc
+release/
+secret/
 .env
 .env.*
 !.env.example

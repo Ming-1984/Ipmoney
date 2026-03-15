@@ -66,7 +66,7 @@ describe('OrdersService write-first suite', () => {
       settlement: { upsert: vi.fn() },
       file: { findUnique: vi.fn() },
       idempotencyKey: { findUnique: vi.fn(), create: vi.fn(), update: vi.fn(), delete: vi.fn() },
-      user: { findFirst: vi.fn(), upsert: vi.fn() },
+      user: { findFirst: vi.fn(), upsert: vi.fn(), findUnique: vi.fn() },
       csCase: { findFirst: vi.fn(), create: vi.fn(), update: vi.fn() },
       csMilestone: { findMany: vi.fn(), createMany: vi.fn(), updateMany: vi.fn() },
     };
@@ -183,6 +183,77 @@ describe('OrdersService write-first suite', () => {
     });
     expect(ensureCaseSpy).toHaveBeenCalledTimes(1);
     expect(result).toMatchObject({ paymentId: 'pending-1', payType: 'DEPOSIT', amountFen: 2000, channel: 'WECHAT' });
+  });
+
+  it('creates real wechat pay intent when payment config is enabled', async () => {
+    const ensureCaseSpy = vi.spyOn(service as any, 'ensureCaseForOrder').mockResolvedValue(undefined);
+    const wechatPay = {
+      isPaymentEnabled: vi.fn().mockReturnValue(true),
+      getPaymentMissingFields: vi.fn().mockReturnValue([]),
+      resolvePayerOpenId: vi.fn().mockReturnValue('openid-real-1'),
+      createJsapiPayment: vi.fn().mockResolvedValue({
+        prepayId: 'wx-prepay-1',
+        payParams: {
+          timeStamp: '1710000000',
+          nonceStr: 'nonce-real-1',
+          package: 'prepay_id=wx-prepay-1',
+          signType: 'RSA',
+          paySign: 'real-sign',
+        },
+      }),
+    };
+    (service as any).wechatPay = wechatPay;
+
+    prisma.order.findUnique.mockResolvedValueOnce(makeOrder({ status: 'DEPOSIT_PENDING', listingId: LISTING_ID }));
+    prisma.payment.findFirst.mockResolvedValueOnce(null).mockResolvedValueOnce(null);
+    prisma.payment.create.mockResolvedValueOnce({ id: 'payment-real-1' });
+    prisma.user.findUnique.mockResolvedValueOnce({ wechatOpenid: 'openid-from-user' });
+    prisma.listing.findUnique.mockResolvedValueOnce({ title: 'Patent Listing' });
+
+    const result = await service.createPaymentIntent(buyerReq, ORDER_ID, { payType: 'DEPOSIT' });
+
+    expect(wechatPay.createJsapiPayment).toHaveBeenCalledWith(
+      expect.objectContaining({
+        amountFen: 2000,
+        payerOpenId: 'openid-real-1',
+      }),
+    );
+    expect(result).toMatchObject({
+      paymentId: 'payment-real-1',
+      payType: 'DEPOSIT',
+      amountFen: 2000,
+      channel: 'WECHAT',
+      wechatPayParams: {
+        timeStamp: '1710000000',
+        nonceStr: 'nonce-real-1',
+        package: 'prepay_id=wx-prepay-1',
+        signType: 'RSA',
+        paySign: 'real-sign',
+      },
+    });
+    expect(ensureCaseSpy).toHaveBeenCalledTimes(1);
+  });
+
+  it('rejects real wechat pay intent when buyer openid cannot be resolved', async () => {
+    const wechatPay = {
+      isPaymentEnabled: vi.fn().mockReturnValue(true),
+      getPaymentMissingFields: vi.fn().mockReturnValue([]),
+      resolvePayerOpenId: vi.fn().mockReturnValue(undefined),
+      createJsapiPayment: vi.fn(),
+    };
+    (service as any).wechatPay = wechatPay;
+    vi.spyOn(service as any, 'ensureCaseForOrder').mockResolvedValue(undefined);
+
+    prisma.order.findUnique.mockResolvedValueOnce(makeOrder({ status: 'DEPOSIT_PENDING', listingId: LISTING_ID }));
+    prisma.payment.findFirst.mockResolvedValueOnce(null).mockResolvedValueOnce(null);
+    prisma.payment.create.mockResolvedValueOnce({ id: 'payment-real-2' });
+    prisma.user.findUnique.mockResolvedValueOnce({ wechatOpenid: null });
+    prisma.listing.findUnique.mockResolvedValueOnce({ title: 'Patent Listing' });
+
+    await expect(service.createPaymentIntent(buyerReq, ORDER_ID, { payType: 'DEPOSIT' })).rejects.toBeInstanceOf(
+      BadRequestException,
+    );
+    expect(wechatPay.createJsapiPayment).not.toHaveBeenCalled();
   });
 
   it('computes finalAmount when FINAL payment intent is created', async () => {

@@ -22,6 +22,7 @@ import { PrismaService } from '../../common/prisma/prisma.service';
 import { ConfigService, TradeRulesConfig } from '../config/config.service';
 import { isDemoPaymentEnabled } from '../../common/demo';
 import { NotificationsService } from '../notifications/notifications.service';
+import { WechatPayClient, WechatPayError } from '../../common/wechat-pay.client';
 
 const DEFAULT_CS_USER_ID = '00000000-0000-0000-0000-000000000002';
 const REFUND_REASON_CODES = [
@@ -132,6 +133,8 @@ type InvoiceItem = OrderDto & {
 
 @Injectable()
 export class OrdersService {
+  private readonly wechatPay = new WechatPayClient();
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly audit: AuditLogService,
@@ -174,6 +177,14 @@ export class OrdersService {
       throw new BadRequestException({ code: 'BAD_REQUEST', message: `${fieldName} is invalid` });
     }
     return raw;
+  }
+
+  private buildWechatTradeNo(orderId: string, payType: 'DEPOSIT' | 'FINAL'): string {
+    const normalizedOrderId = orderId.replace(/-/g, '');
+    const prefix = payType === 'FINAL' ? 'IPF' : 'IPD';
+    const millis = Date.now().toString();
+    const suffix = millis.slice(-8);
+    return `${prefix}${normalizedOrderId.slice(0, 20)}${suffix}`.slice(0, 32);
   }
 
   private normalizeOrderListRole(value: any): OrderListRole | undefined {
@@ -609,8 +620,13 @@ export class OrdersService {
   }
 
   async createPaymentIntent(req: any, orderId: string, body: { payType?: string }) {
-    if (!isDemoPaymentEnabled()) {
-      throw new NotImplementedException({ code: 'NOT_IMPLEMENTED', message: 'demo payment disabled' });
+    const realWechatPayEnabled = this.wechatPay.isPaymentEnabled();
+    if (!realWechatPayEnabled && !isDemoPaymentEnabled()) {
+      throw new NotImplementedException({
+        code: 'NOT_IMPLEMENTED',
+        message: 'payment provider not configured',
+        missingFields: this.wechatPay.getPaymentMissingFields(),
+      });
     }
     this.ensureAuth(req);
     const normalizedOrderId = this.parseUuidStrict(orderId, 'orderId');
@@ -638,6 +654,9 @@ export class OrdersService {
         order = await this.prisma.order.update({ where: { id: normalizedOrderId }, data: { finalAmount: computedFinal } });
       }
       const amount = payType === 'FINAL' ? order.finalAmount ?? 0 : order.depositAmount;
+      if (!Number.isSafeInteger(amount) || amount <= 0) {
+        throw new ConflictException({ code: 'CONFLICT', message: 'payment amount is invalid' });
+      }
       const existingPaid = await this.prisma.payment.findFirst({
         where: { orderId: normalizedOrderId, payType, status: 'PAID' },
       });
@@ -648,7 +667,7 @@ export class OrdersService {
         where: { orderId: normalizedOrderId, payType, status: 'PENDING' },
         orderBy: { createdAt: 'desc' },
       });
-      const tradeNo = existingPending?.tradeNo || `demo-${normalizedOrderId}-${Date.now()}`;
+      const tradeNo = existingPending?.tradeNo || (realWechatPayEnabled ? this.buildWechatTradeNo(normalizedOrderId, payType) : `demo-${normalizedOrderId}-${Date.now()}`);
       const payment = existingPending
         ? await this.prisma.payment.update({
             where: { id: existingPending.id },
@@ -668,6 +687,63 @@ export class OrdersService {
             },
           });
       await this.ensureCaseForOrder(order);
+
+      if (realWechatPayEnabled) {
+        const [buyer, listing] = await Promise.all([
+          this.prisma.user.findUnique({
+            where: { id: order.buyerUserId },
+            select: { wechatOpenid: true },
+          }),
+          this.prisma.listing.findUnique({
+            where: { id: order.listingId },
+            select: { title: true },
+          }),
+        ]);
+
+        const payerOpenId = this.wechatPay.resolvePayerOpenId(buyer?.wechatOpenid ?? undefined);
+        if (!payerOpenId) {
+          throw new BadRequestException({
+            code: 'BAD_REQUEST',
+            message: 'buyer wechat openid is required',
+            hint: 'bind wechat account or set WX_PAY_TEST_OPENID for local non-prod validation',
+          });
+        }
+
+        const description = String(listing?.title || `订单支付-${normalizedOrderId.slice(0, 8)}`).trim().slice(0, 120) || 'IPMoney 订单支付';
+        const attach = JSON.stringify({
+          orderId: normalizedOrderId,
+          payType,
+          paymentId: payment.id,
+        });
+
+        try {
+          const wechatPayment = await this.wechatPay.createJsapiPayment({
+            outTradeNo: tradeNo,
+            amountFen: amount,
+            description,
+            payerOpenId,
+            attach,
+          });
+
+          return {
+            paymentId: payment.id,
+            payType,
+            channel: 'WECHAT',
+            amountFen: amount,
+            wechatPayParams: wechatPayment.payParams,
+          };
+        } catch (error) {
+          if (error instanceof WechatPayError) {
+            throw new BadRequestException({
+              code: error.code,
+              message: error.message,
+              details: error.details,
+              statusCode: error.statusCode,
+            });
+          }
+          throw error;
+        }
+      }
 
       return {
         paymentId: payment.id,

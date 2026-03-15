@@ -11,6 +11,7 @@
 ## 发布与运维
 - 生产过渡：docs/engineering/production-transition.md
 - 发布检查清单：docs/engineering/release-checklist.md
+- 甲方部署与联调 TODO（2026-03-15）：docs/engineering/party-a-deployment-todo-2026-03-15.md
 - 系统测试计划：docs/engineering/system-test-plan.md
 - 环境变量：docs/engineering/environments.md
 - DB 预检：docs/engineering/db-preflight-check.md
