@@ -1,5 +1,5 @@
 import { View, Text } from '@tarojs/components';
-import Taro from '@tarojs/taro';
+import Taro, { useDidShow } from '@tarojs/taro';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import './index.scss';
 
@@ -76,6 +76,12 @@ export default function NotificationsPage() {
     loadedOnceRef.current = true;
     void reloadData();
   }, [access.state, reloadData]);
+
+  useDidShow(() => {
+    if (access.state !== 'ok') return;
+    if (!loadedOnceRef.current) return;
+    void refreshData();
+  });
 
   const filteredItems = useMemo(() => {
     return (items || []).filter((item) => item.kind === activeTab);

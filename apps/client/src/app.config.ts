@@ -57,18 +57,35 @@
       pages: ['index', 'detail/index'],
     },
     {
+      root: 'subpackages/listing',
+      pages: ['detail/index'],
+    },
+    {
+      root: 'subpackages/demand',
+      pages: ['detail/index'],
+    },
+    {
+      root: 'subpackages/achievement',
+      pages: ['detail/index'],
+    },
+    {
+      root: 'subpackages/artwork',
+      pages: ['detail/index'],
+    },
+    {
+      root: 'subpackages/favorites',
+      pages: ['index'],
+    },
+    {
+      root: 'subpackages/organizations',
+      pages: ['index', 'detail/index'],
+    },
+    {
       root: 'subpackages',
       pages: [
         'inventors/index',
         'tech-managers/detail/index',
-        'organizations/index',
-        'organizations/detail/index',
-        'artwork/detail/index',
-        'listing/detail/index',
-        'demand/detail/index',
-        'achievement/detail/index',
         'trade-rules/index',
-        'favorites/index',
         'contracts/index',
         'invoices/index',
         'addresses/index',
@@ -90,11 +107,17 @@
   preloadRule: {
     'pages/home/index': {
       network: 'all',
-      packages: ['subpackages/search', 'subpackages/patent-map', 'subpackages/announcements', 'subpackages'],
+      packages: [
+        'subpackages/search',
+        'subpackages/patent-map',
+        'subpackages/announcements',
+        'subpackages/listing',
+        'subpackages',
+      ],
     },
     'pages/tech-managers/index': {
       network: 'all',
-      packages: ['subpackages'],
+      packages: ['subpackages/organizations', 'subpackages'],
     },
     'pages/messages/index': {
       network: 'all',
@@ -102,7 +125,7 @@
     },
     'pages/me/index': {
       network: 'all',
-      packages: ['subpackages/orders', 'subpackages/publish', 'subpackages/checkout', 'subpackages'],
+      packages: ['subpackages/orders', 'subpackages/publish', 'subpackages/checkout', 'subpackages/favorites', 'subpackages'],
     },
   },
   window: {
