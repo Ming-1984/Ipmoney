@@ -444,6 +444,7 @@ export default function FavoritesPage() {
         : tab === 'ACHIEVEMENT'
           ? achievementItems.length
           : artworkItems.length;
+  const showActiveInitialLoading = activeList.loading && activeCount === 0;
 
   return (
     <View className="container favorites-page">
@@ -471,19 +472,19 @@ export default function FavoritesPage() {
 
       <PageState
         access={access}
-        loading={activeList.loading && activeCount === 0}
+        loading={showActiveInitialLoading}
         error={activeList.error}
         onRetry={activeList.reload}
-        empty={!activeList.loading && !activeList.error && activeCount === 0}
+        empty={!showActiveInitialLoading && !activeList.error && activeCount === 0}
         emptyTitle="暂无收藏"
         emptyMessage="看到心仪内容，点“收藏”即可保存。"
         emptyActionText="刷新"
         emptyImage={emptyFavorites}
         onEmptyAction={activeList.reload}
       >
-        <PullToRefresh type="primary" disabled={activeList.loading || activeList.refreshing} onRefresh={activeList.refresh}>
+        <PullToRefresh type="primary" disabled={showActiveInitialLoading || activeList.refreshing} onRefresh={activeList.refresh}>
           {renderContent()}
-          {!activeList.loading && activeCount ? (
+          {!showActiveInitialLoading && activeCount ? (
             <ListFooter
               loadingMore={activeList.loadingMore}
               hasMore={activeList.hasMore}

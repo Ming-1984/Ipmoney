@@ -86,6 +86,8 @@ export default function TechManagersPage() {
     () => orgList.items.filter((x) => x.verificationStatus === 'APPROVED'),
     [orgList.items],
   );
+  const showTechInitialLoading = techList.loading && techItems.length === 0;
+  const showOrgInitialLoading = orgList.loading && orgItems.length === 0;
 
   return (
     <View className="container consult-page">
@@ -122,8 +124,8 @@ export default function TechManagersPage() {
             />
           </View>
 
-          <PullToRefresh type="primary" disabled={techList.loading || techList.refreshing} onRefresh={techList.refresh}>
-            {techList.loading ? (
+          <PullToRefresh type="primary" disabled={showTechInitialLoading || techList.refreshing} onRefresh={techList.refresh}>
+            {showTechInitialLoading ? (
               <LoadingCard />
             ) : techList.error ? (
               <ErrorCard message={techList.error} onRetry={techList.reload} />
@@ -178,7 +180,7 @@ export default function TechManagersPage() {
               <EmptyCard message="暂无专家" actionText="刷新" onAction={techList.reload} />
             )}
 
-            {!techList.loading && techItems.length ? (
+            {!showTechInitialLoading && techItems.length ? (
               <ListFooter loadingMore={techList.loadingMore} hasMore={techList.hasMore} onLoadMore={techList.loadMore} showNoMore />
             ) : null}
           </PullToRefresh>
@@ -200,8 +202,8 @@ export default function TechManagersPage() {
             />
           </View>
 
-          <PullToRefresh type="primary" disabled={orgList.loading || orgList.refreshing} onRefresh={orgList.refresh}>
-            {orgList.loading ? (
+          <PullToRefresh type="primary" disabled={showOrgInitialLoading || orgList.refreshing} onRefresh={orgList.refresh}>
+            {showOrgInitialLoading ? (
               <LoadingCard />
             ) : orgList.error ? (
               <ErrorCard message={orgList.error} onRetry={orgList.reload} />
@@ -245,7 +247,7 @@ export default function TechManagersPage() {
               <EmptyCard message="暂无机构" actionText="刷新" onAction={orgList.reload} />
             )}
 
-            {!orgList.loading && orgItems.length ? (
+            {!showOrgInitialLoading && orgItems.length ? (
               <ListFooter loadingMore={orgList.loadingMore} hasMore={orgList.hasMore} onLoadMore={orgList.loadMore} showNoMore />
             ) : null}
           </PullToRefresh>

@@ -742,6 +742,10 @@ export default function SearchPage() {
     }
     return items;
   }, [artworkList.items, artworkSortBy]);
+  const showListingInitialLoading = listingList.loading && listingItems.length === 0;
+  const showDemandInitialLoading = demandList.loading && demandItems.length === 0;
+  const showAchievementInitialLoading = achievementList.loading && achievementItems.length === 0;
+  const showArtworkInitialLoading = artworkList.loading && artworkItems.length === 0;
 
   const artworkYearOptions = useMemo(() => {
     const years = (artworkList.items || [])
@@ -1318,8 +1322,8 @@ export default function SearchPage() {
       ) : null}
 
       {tab === 'LISTING' ? (
-        <PullToRefresh type="primary" disabled={listingList.loading || listingList.refreshing} onRefresh={listingList.refresh}>
-          {listingList.loading ? (
+        <PullToRefresh type="primary" disabled={showListingInitialLoading || listingList.refreshing} onRefresh={listingList.refresh}>
+          {showListingInitialLoading ? (
             <ListingListSkeleton />
           ) : listingList.error ? (
             <ErrorCard message={listingList.error} onRetry={listingList.reload} />
@@ -1353,13 +1357,13 @@ export default function SearchPage() {
             />
           )}
 
-          {!listingList.loading && listingItems.length ? (
+          {!showListingInitialLoading && listingItems.length ? (
             <ListFooter loadingMore={listingList.loadingMore} hasMore={listingList.hasMore} onLoadMore={listingList.loadMore} showNoMore />
           ) : null}
         </PullToRefresh>
       ) : tab === 'DEMAND' ? (
-        <PullToRefresh type="primary" disabled={demandList.loading || demandList.refreshing} onRefresh={demandList.refresh}>
-          {demandList.loading ? (
+        <PullToRefresh type="primary" disabled={showDemandInitialLoading || demandList.refreshing} onRefresh={demandList.refresh}>
+          {showDemandInitialLoading ? (
             <LoadingCard />
           ) : demandList.error ? (
             <ErrorCard message={demandList.error} onRetry={demandList.reload} />
@@ -1418,17 +1422,17 @@ export default function SearchPage() {
             />
           )}
 
-          {!demandList.loading && demandItems.length ? (
+          {!showDemandInitialLoading && demandItems.length ? (
             <ListFooter loadingMore={demandList.loadingMore} hasMore={demandList.hasMore} onLoadMore={demandList.loadMore} showNoMore />
           ) : null}
         </PullToRefresh>
       ) : tab === 'ACHIEVEMENT' ? (
         <PullToRefresh
           type="primary"
-          disabled={achievementList.loading || achievementList.refreshing}
+          disabled={showAchievementInitialLoading || achievementList.refreshing}
           onRefresh={achievementList.refresh}
         >
-          {achievementList.loading ? (
+          {showAchievementInitialLoading ? (
             <LoadingCard />
           ) : achievementList.error ? (
             <ErrorCard message={achievementList.error} onRetry={achievementList.reload} />
@@ -1504,7 +1508,7 @@ export default function SearchPage() {
           />
         )}
 
-          {!achievementList.loading && achievementItems.length ? (
+          {!showAchievementInitialLoading && achievementItems.length ? (
             <ListFooter
               loadingMore={achievementList.loadingMore}
               hasMore={achievementList.hasMore}
@@ -1514,8 +1518,8 @@ export default function SearchPage() {
           ) : null}
         </PullToRefresh>
       ) : tab === 'ARTWORK' ? (
-        <PullToRefresh type="primary" disabled={artworkList.loading || artworkList.refreshing} onRefresh={artworkList.refresh}>
-          {artworkList.loading ? (
+        <PullToRefresh type="primary" disabled={showArtworkInitialLoading || artworkList.refreshing} onRefresh={artworkList.refresh}>
+          {showArtworkInitialLoading ? (
             <LoadingCard />
           ) : artworkList.error ? (
             <ErrorCard message={artworkList.error} onRetry={artworkList.reload} />
@@ -1542,7 +1546,7 @@ export default function SearchPage() {
             />
           )}
 
-          {!artworkList.loading && artworkItems.length ? (
+          {!showArtworkInitialLoading && artworkItems.length ? (
             <ListFooter
               loadingMore={artworkList.loadingMore}
               hasMore={artworkList.hasMore}

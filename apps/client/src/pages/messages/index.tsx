@@ -339,7 +339,7 @@ export default function MessagesPage() {
       >
         <PullToRefresh
           type="primary"
-          disabled={convoList.loading || convoList.refreshing}
+          disabled={showInitialLoading || convoList.refreshing}
           onRefresh={refreshData}
         >
           <View className="messages-list-new">
