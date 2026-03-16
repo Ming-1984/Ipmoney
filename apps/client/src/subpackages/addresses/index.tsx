@@ -1,6 +1,6 @@
 ﻿import { View, Text } from '@tarojs/components';
 import Taro, { useDidShow } from '@tarojs/taro';
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import './index.scss';
 
 import { apiGet, apiPatch } from '../../lib/api';
@@ -21,6 +21,7 @@ type Address = {
 
 export default function AddressManagePage() {
   const access = usePageAccess('login-required');
+  const loadedOnceRef = useRef(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [addresses, setAddresses] = useState<Address[]>([]);
@@ -29,28 +30,45 @@ export default function AddressManagePage() {
     Taro.navigateTo({ url: '/subpackages/addresses/edit/index' });
   }, []);
 
-  const load = useCallback(async () => {
-    setLoading(true);
-    setError(null);
+  const load = useCallback(async (options?: { silent?: boolean }) => {
+    const silent = Boolean(options?.silent);
+    if (!silent) {
+      setLoading(true);
+      setError(null);
+    }
     try {
       const list = await apiGet<Address[]>('/me/addresses');
       setAddresses(list || []);
     } catch (e: any) {
-      setError(e?.message || '加载失败');
-      setAddresses([]);
+      const message = e?.message || '加载失败';
+      if (silent) {
+        toast(message);
+      } else {
+        setError(message);
+        setAddresses([]);
+      }
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   }, []);
 
   useEffect(() => {
-    if (access.state !== 'ok') return;
+    if (access.state !== 'ok') {
+      loadedOnceRef.current = false;
+      setLoading(false);
+      setError(null);
+      setAddresses([]);
+      return;
+    }
+    if (loadedOnceRef.current) return;
+    loadedOnceRef.current = true;
     void load();
   }, [access.state, load]);
 
   useDidShow(() => {
     if (access.state !== 'ok') return;
-    void load();
+    if (!loadedOnceRef.current) return;
+    void load({ silent: true });
   });
 
   const setDefault = useCallback(
@@ -58,7 +76,7 @@ export default function AddressManagePage() {
       try {
         await apiPatch(`/me/addresses/${addressId}`, { isDefault: true });
         toast('已设为默认');
-        void load();
+        void load({ silent: true });
       } catch (e: any) {
         toast(e?.message || '设置失败');
       }

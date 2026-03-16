@@ -9,6 +9,7 @@ import type { components } from '@ipmoney/api-types';
 import { Heart, HeartFill, Share2 } from '../../../ui/icons';
 import { apiGet, apiPost } from '../../../lib/api';
 import { getToken } from '../../../lib/auth';
+import { getDetailCache, setDetailCache } from '../../../lib/detailCache';
 import { favoriteAchievement, isAchievementFavorited, syncFavoriteAchievements, unfavoriteAchievement } from '../../../lib/favorites';
 import { formatTimeSmart } from '../../../lib/format';
 import { ensureApproved } from '../../../lib/guard';
@@ -44,14 +45,24 @@ export default function AchievementDetailPage() {
 
   const load = useCallback(async () => {
     if (!achievementId) return;
-    setLoading(true);
-    setError(null);
+    const cached = getDetailCache<AchievementPublic>('achievement-public', achievementId);
+    if (cached) {
+      setData(cached);
+      setLoading(false);
+      setError(null);
+    } else {
+      setLoading(true);
+      setError(null);
+    }
     try {
       const d = await apiGet<AchievementPublic>(`/public/achievements/${achievementId}`);
       setData(d);
+      setDetailCache('achievement-public', achievementId, d);
     } catch (e: any) {
-      setError(e?.message || '加载失败');
-      setData(null);
+      if (!cached) {
+        setError(e?.message || '加载失败');
+        setData(null);
+      }
     } finally {
       setLoading(false);
     }

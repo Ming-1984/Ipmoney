@@ -90,6 +90,7 @@ export default function OrganizationsPage() {
   }, [reload]);
 
   const items = useMemo(() => rawItems.filter((x) => x.verificationStatus === 'APPROVED'), [rawItems]);
+  const showInitialLoading = loading && rawItems.length === 0;
 
   const openFilters = useCallback(() => setFiltersOpen(true), []);
 
@@ -166,8 +167,8 @@ export default function OrganizationsPage() {
 
       <View style={{ height: '16rpx' }} />
 
-      <PullToRefresh type="primary" disabled={loading || refreshing} onRefresh={refresh}>
-        {loading ? (
+      <PullToRefresh type="primary" disabled={showInitialLoading || refreshing} onRefresh={refresh}>
+        {showInitialLoading ? (
           <LoadingCard />
         ) : error ? (
           <ErrorCard message={error} onRetry={reload} />
@@ -225,7 +226,7 @@ export default function OrganizationsPage() {
           />
         )}
 
-        {!loading && items.length ? (
+        {!showInitialLoading && items.length ? (
           <ListFooter loadingMore={loadingMore} hasMore={hasMore} onLoadMore={loadMore} showNoMore />
         ) : null}
       </PullToRefresh>

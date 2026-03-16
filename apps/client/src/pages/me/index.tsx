@@ -21,6 +21,7 @@ import {
 } from '../../lib/auth';
 import { DEMO_LOGIN_ENABLED } from '../../constants';
 import { apiGet, apiPost } from '../../lib/api';
+import { getDetailCache, setDetailCache } from '../../lib/detailCache';
 import { regionDisplayName } from '../../lib/regions';
 import { ErrorCard, LoadingCard } from '../../ui/StateCards';
 import { WechatPhoneBindPopup } from '../../ui/WechatPhoneBindPopup';
@@ -66,6 +67,24 @@ type VerificationType = components['schemas']['VerificationType'];
 type IconItem = { key: string; label: string; icon: string; onClick: () => void };
 
 type ToolItem = { key: string; label: string; icon: string; value?: string; onClick: () => void };
+type AuthState = {
+  token: string | null;
+  onboardingDone: boolean;
+  verificationType: VerificationType | null;
+  verificationStatus: VerificationStatus | null;
+};
+
+const ME_PROFILE_CACHE_SCOPE = 'me-profile';
+const ME_PROFILE_CACHE_KEY = 'self';
+
+function readAuthState(): AuthState {
+  return {
+    token: getToken(),
+    onboardingDone: isOnboardingDone(),
+    verificationType: getVerificationType(),
+    verificationStatus: getVerificationStatus(),
+  };
+}
 
 function verificationTypeLabel(t?: string | null): string {
   if (!t) return '-';
@@ -89,33 +108,32 @@ function verificationStatusLabel(s?: string | null): string {
 export default function MePage() {
   const env = useMemo(() => Taro.getEnv(), []);
   const canWechatLogin = env === Taro.ENV_TYPE.WEAPP;
-  const [auth, setAuth] = useState(() => ({
-    token: getToken(),
-    onboardingDone: isOnboardingDone(),
-    verificationType: getVerificationType(),
-    verificationStatus: getVerificationStatus(),
-  }));
+  const [auth, setAuth] = useState<AuthState>(() => readAuthState());
+  const syncAuthState = useCallback(() => {
+    const next = readAuthState();
+    setAuth((prev) => {
+      if (
+        prev.token === next.token &&
+        prev.onboardingDone === next.onboardingDone &&
+        prev.verificationType === next.verificationType &&
+        prev.verificationStatus === next.verificationStatus
+      ) {
+        return prev;
+      }
+      return next;
+    });
+  }, []);
 
   useDidShow(() => {
-    setAuth({
-      token: getToken(),
-      onboardingDone: isOnboardingDone(),
-      verificationType: getVerificationType(),
-      verificationStatus: getVerificationStatus(),
-    });
+    syncAuthState();
   });
 
   useEffect(() => {
     const off = onAuthChanged(() => {
-      setAuth({
-        token: getToken(),
-        onboardingDone: isOnboardingDone(),
-        verificationType: getVerificationType(),
-        verificationStatus: getVerificationStatus(),
-      });
+      syncAuthState();
     });
     return () => off();
-  }, []);
+  }, [syncAuthState]);
 
   const [meLoading, setMeLoading] = useState(false);
   const [meError, setMeError] = useState<string | null>(null);
@@ -132,7 +150,6 @@ export default function MePage() {
   const [phoneBindBusy, setPhoneBindBusy] = useState(false);
   const postLoginNextRef = useRef<null | (() => void)>(null);
 
-
   useEffect(() => {
     if (cooldown <= 0) return;
     const t = setTimeout(() => setCooldown((v) => Math.max(0, v - 1)), 1000);
@@ -145,51 +162,67 @@ export default function MePage() {
     return false;
   }, [agree]);
 
-  const loadMe = useCallback(async () => {
+  const loadMe = useCallback(async (options?: { silent?: boolean }) => {
     if (!auth.token) return;
-    setMeLoading(true);
+    const silent = Boolean(options?.silent);
+    const cached = !silent ? getDetailCache<Me>(ME_PROFILE_CACHE_SCOPE, ME_PROFILE_CACHE_KEY) : null;
+    const hasCached = Boolean(cached);
+    if (!silent) {
+      if (cached) {
+        setMe(cached);
+        setMeLoading(false);
+      } else {
+        setMeLoading(true);
+      }
+    }
     setMeError(null);
     try {
       const d = await apiGet<Me>('/me');
       setMe(d);
+      setDetailCache(ME_PROFILE_CACHE_SCOPE, ME_PROFILE_CACHE_KEY, d);
     } catch (e: any) {
-      setMeError(e?.message || '加载失败');
-      setMe(null);
+      if (!hasCached) {
+        setMeError(e?.message || '加载失败');
+        setMe(null);
+      }
     } finally {
-      setMeLoading(false);
+      if (!silent) setMeLoading(false);
     }
   }, [auth.token]);
 
   const syncVerification = useCallback(async () => {
     if (!auth.token) return;
+    if (!auth.onboardingDone) {
+      clearVerificationType();
+      clearVerificationStatus();
+      setOnboardingDone(false);
+      syncAuthState();
+      return;
+    }
     try {
       const v = await apiGet<UserVerification>('/me/verification');
       if (v?.type) setVerificationType(v.type);
       if (v?.status) setVerificationStatus(v.status);
       setOnboardingDone(true);
     } catch (e: any) {
-      const msg = String(e?.message || '');
-      if (msg.includes('404')) {
+      const statusCode = Number(e?.statusCode || 0);
+      const code = String(e?.code || '');
+      if (statusCode === 404 || code === 'NOT_FOUND') {
         clearVerificationType();
         clearVerificationStatus();
         setOnboardingDone(false);
       }
     } finally {
-      setAuth({
-        token: getToken(),
-        onboardingDone: isOnboardingDone(),
-        verificationType: getVerificationType(),
-        verificationStatus: getVerificationStatus(),
-      });
+      syncAuthState();
     }
-  }, [auth.token]);
+  }, [auth.onboardingDone, auth.token, syncAuthState]);
 
   const refresh = useCallback(async () => {
     if (!auth.token) return;
     if (refreshing) return;
     setRefreshing(true);
     try {
-      await Promise.all([loadMe(), syncVerification()]);
+      await Promise.all([loadMe({ silent: true }), syncVerification()]);
     } finally {
       setRefreshing(false);
     }
@@ -204,9 +237,9 @@ export default function MePage() {
   }, [auth.token, loadMe]);
 
   useEffect(() => {
-    if (!auth.token) return;
+    if (!auth.token || !auth.onboardingDone) return;
     void syncVerification();
-  }, [auth.token, syncVerification]);
+  }, [auth.onboardingDone, auth.token, syncVerification]);
 
   const afterLogin = useCallback(
     (authToken: AuthTokenResponse, opts?: { fromWechat?: boolean }) => {

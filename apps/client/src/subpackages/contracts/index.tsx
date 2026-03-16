@@ -1,6 +1,6 @@
 import { View, Text } from '@tarojs/components';
 import Taro from '@tarojs/taro';
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import './index.scss';
 
 import { apiGet, apiPost } from '../../lib/api';
@@ -55,6 +55,7 @@ function contractStatusClass(status: ContractStatus): string {
 }
 
 export default function ContractCenterPage() {
+  const loadedOnceRef = useRef(false);
   const [activeTab, setActiveTab] = useState<ContractStatus>('WAIT_UPLOAD');
 
   const fetcher = useCallback(
@@ -72,12 +73,19 @@ export default function ContractCenterPage() {
     });
 
   const access = usePageAccess('approved-required', (a) => {
-    if (a.state === 'ok') return;
+    if (a.state === 'ok') {
+      if (loadedOnceRef.current) {
+        void refresh();
+      }
+      return;
+    }
+    loadedOnceRef.current = false;
     reset();
   });
 
   useEffect(() => {
     if (access.state !== 'ok') return;
+    loadedOnceRef.current = true;
     void reload();
   }, [access.state, reload, activeTab]);
 

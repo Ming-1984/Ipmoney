@@ -1,6 +1,6 @@
 import { View, Text } from '@tarojs/components';
 import Taro from '@tarojs/taro';
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import './index.scss';
 
 import type { components } from '@ipmoney/api-types';
@@ -27,6 +27,7 @@ const TABS: { id: NoticeTab; label: string }[] = [
 export default function NotificationsPage() {
   const tabParam = useRouteStringParam('tab');
   const [activeTab, setActiveTab] = useState<NoticeTab>('system');
+  const loadedOnceRef = useRef(false);
 
   useEffect(() => {
     if (tabParam === 'system' || tabParam === 'cs') {
@@ -48,11 +49,26 @@ export default function NotificationsPage() {
       },
     });
 
+  const reloadData = useCallback(async () => {
+    await reload();
+    loadedOnceRef.current = true;
+  }, [reload]);
+
+  const refreshData = useCallback(async () => {
+    await refresh();
+    loadedOnceRef.current = true;
+  }, [refresh]);
+
   const access = usePageAccess('login-required', (next) => {
     if (next.state === 'ok') {
-      void reload();
+      if (loadedOnceRef.current) {
+        void refreshData();
+      } else {
+        void reloadData();
+      }
       return;
     }
+    loadedOnceRef.current = false;
     reset();
   });
 
@@ -72,9 +88,9 @@ export default function NotificationsPage() {
         empty={!loading && !error && !items.length}
         emptyTitle="暂无通知"
         emptyMessage="稍后有新消息会展示在这里。"
-        onRetry={reload}
+        onRetry={reloadData}
       >
-        <PullToRefresh type="primary" disabled={loading || refreshing} onRefresh={refresh}>
+        <PullToRefresh type="primary" disabled={loading || refreshing} onRefresh={refreshData}>
           <View className="notifications-tabs">
             {TABS.map((tab) => (
               <View

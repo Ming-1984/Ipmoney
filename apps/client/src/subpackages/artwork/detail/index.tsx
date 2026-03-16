@@ -10,6 +10,7 @@ import { Heart, HeartFill, Share2 } from '../../../ui/icons';
 
 import { apiGet, apiPost } from '../../../lib/api';
 import { getToken } from '../../../lib/auth';
+import { getDetailCache, setDetailCache } from '../../../lib/detailCache';
 import { createFileTemporaryAccess } from '../../../lib/files';
 import { favoriteArtwork, isArtworkFavorited, syncFavoriteArtworks, unfavoriteArtwork } from '../../../lib/favorites';
 import { ensureApproved } from '../../../lib/guard';
@@ -50,6 +51,7 @@ export default function ArtworkDetailPage() {
   const [data, setData] = useState<ArtworkPublic | null>(null);
   const [favoritedState, setFavoritedState] = useState(false);
   const [activeTab, setActiveTab] = useState('artwork-overview');
+
   const certificateMedia = useMemo(
     () => ((data?.media || []) as ContentMedia[]).filter((m) => m.type === 'FILE'),
     [data?.media],
@@ -60,14 +62,24 @@ export default function ArtworkDetailPage() {
   }, [artworkId]);
 
   const load = useCallback(async () => {
-    setLoading(true);
-    setError(null);
+    const cached = getDetailCache<ArtworkPublic>('artwork-public', artworkId);
+    if (cached) {
+      setData(cached);
+      setLoading(false);
+      setError(null);
+    } else {
+      setLoading(true);
+      setError(null);
+    }
     try {
       const d = await apiGet<ArtworkPublic>(`/public/artworks/${artworkId}`);
       setData(d);
+      setDetailCache('artwork-public', artworkId, d);
     } catch (e: any) {
-      setError(e?.message || '加载失败');
-      setData(null);
+      if (!cached) {
+        setError(e?.message || 'Load failed');
+        setData(null);
+      }
     } finally {
       setLoading(false);
     }
@@ -85,7 +97,7 @@ export default function ArtworkDetailPage() {
   }, [artworkId]);
 
   useShareAppMessage(() => ({
-    title: data?.title ? `书画作品：${data.title}` : '书画详情',
+    title: data?.title ? `Artwork: ${data.title}` : 'Artwork Detail',
     path: artworkId ? `/subpackages/artwork/detail/index?artworkId=${artworkId}` : '/pages/home/index',
     imageUrl: data?.coverUrl || undefined,
   }));
@@ -100,7 +112,7 @@ export default function ArtworkDetailPage() {
       );
       Taro.navigateTo({ url: `/subpackages/messages/chat/index?conversationId=${conv.id}` });
     } catch (e: any) {
-      toast(e?.message || '进入咨询失败');
+      toast(e?.message || 'Failed to start chat');
     }
   }, [artworkId]);
 
@@ -110,24 +122,23 @@ export default function ArtworkDetailPage() {
       if (favoritedState) {
         await unfavoriteArtwork(artworkId);
         setFavoritedState(false);
-        toast('已取消收藏', { icon: 'success' });
+        toast('Removed from favorites', { icon: 'success' });
         return;
       }
       await favoriteArtwork(artworkId);
       setFavoritedState(true);
-      toast('已收藏', { icon: 'success' });
+      toast('Added to favorites', { icon: 'success' });
     } catch (e: any) {
-      toast(e?.message || '操作失败');
+      toast(e?.message || 'Operation failed');
     }
   }, [artworkId, favoritedState]);
 
-
   const tabs = useMemo(
     () => [
-      { id: 'artwork-overview', label: '概览' },
-      { id: 'artwork-info', label: '信息' },
-      { id: 'artwork-detail', label: '介绍' },
-      { id: 'artwork-comments', label: '评论' },
+      { id: 'artwork-overview', label: 'Overview' },
+      { id: 'artwork-info', label: 'Info' },
+      { id: 'artwork-detail', label: 'Intro' },
+      { id: 'artwork-comments', label: 'Comments' },
     ],
     [],
   );
@@ -144,12 +155,12 @@ export default function ArtworkDetailPage() {
         const res = await createFileTemporaryAccess(String(m.fileId), { scope: 'preview', expiresInSeconds: 600 });
         url = res?.url || '';
       } catch (e: any) {
-        toast(e?.message || '获取链接失败', { icon: 'fail' });
+        toast(e?.message || 'Failed to resolve media link', { icon: 'fail' });
         return;
       }
     }
     if (!url) {
-      toast('暂无可用链接', { icon: 'fail' });
+      toast('Media link unavailable', { icon: 'fail' });
       return;
     }
     if (String(m.mimeType || '').startsWith('image/')) {
@@ -157,12 +168,12 @@ export default function ArtworkDetailPage() {
       return;
     }
     void Taro.setClipboardData({ data: url });
-    toast('链接已复制', { icon: 'success' });
+    toast('Link copied', { icon: 'success' });
   }, []);
 
   return (
     <View className="container detail-page-compact has-sticky">
-      <PageHeader weapp back title="书画详情" subtitle="订金与尾款平台托管，权属变更完成后再放款" />
+      <PageHeader weapp back title="Artwork Detail" subtitle="Escrowed payment flow for secure delivery" />
       <Spacer />
 
       {loading ? (
@@ -180,30 +191,30 @@ export default function ArtworkDetailPage() {
           <Spacer size={12} />
 
           <Surface className="detail-compact-header" id="artwork-overview">
-            <Text className="detail-compact-title clamp-2">{data.title || '未命名书画'}</Text>
+            <Text className="detail-compact-title clamp-2">{data.title || 'Untitled Artwork'}</Text>
             <Spacer size={8} />
 
             <View className="detail-compact-tags">
-              <Text className="detail-compact-tag detail-compact-tag-strong">类别：{artworkCategoryLabel(data.category)}</Text>
+              <Text className="detail-compact-tag detail-compact-tag-strong">Category: {artworkCategoryLabel(data.category)}</Text>
               {data.calligraphyScript ? (
-                <Text className="detail-compact-tag">书体：{calligraphyScriptLabel(data.calligraphyScript)}</Text>
+                <Text className="detail-compact-tag">Script: {calligraphyScriptLabel(data.calligraphyScript)}</Text>
               ) : null}
-              {data.paintingGenre ? <Text className="detail-compact-tag">题材：{paintingGenreLabel(data.paintingGenre)}</Text> : null}
-              <Text className="detail-compact-tag">报价：{priceTypeLabel(data.priceType)}</Text>
+              {data.paintingGenre ? <Text className="detail-compact-tag">Genre: {paintingGenreLabel(data.paintingGenre)}</Text> : null}
+              <Text className="detail-compact-tag">Pricing: {priceTypeLabel(data.priceType)}</Text>
             </View>
 
             <Spacer size={10} />
             <View className="detail-compact-price">
-              ￥{data.depositAmountFen != null ? fenToYuan(data.depositAmountFen) : '-'}
-              <Text className="detail-compact-price-sub">订金</Text>
+              ¥{data.depositAmountFen != null ? fenToYuan(data.depositAmountFen) : '-'}
+              <Text className="detail-compact-price-sub">Deposit</Text>
             </View>
             <Text className="detail-compact-subline">
-              价格：
+              Price:
               {data.priceType === 'NEGOTIABLE'
-                ? '面议'
+                ? ' Negotiable'
                 : data.priceAmountFen != null
-                  ? `￥${fenToYuan(data.priceAmountFen)}`
-                  : '-'}
+                  ? ` ¥${fenToYuan(data.priceAmountFen)}`
+                  : ' -'}
             </Text>
           </Surface>
 
@@ -233,10 +244,10 @@ export default function ArtworkDetailPage() {
                     background="var(--c-soft)"
                     color="var(--c-primary)"
                   >
-                    {(data.seller.nickname || '卖家').slice(0, 1)}
+                    {(data.seller.nickname || 'S').slice(0, 1)}
                   </Avatar>
                   <View className="artwork-seller-meta">
-                    <Text className="artwork-seller-name">{data.seller.nickname || '卖家'}</Text>
+                    <Text className="artwork-seller-name">{data.seller.nickname || 'Seller'}</Text>
                     <View className="artwork-seller-tags">
                       {data.seller.verificationType ? (
                         <Text className="detail-compact-tag">
@@ -260,53 +271,53 @@ export default function ArtworkDetailPage() {
             <View className="detail-field-list">
               {data.creatorName ? (
                 <View className="detail-field-row">
-                  <Text className="detail-field-label">作者</Text>
+                  <Text className="detail-field-label">Creator</Text>
                   <Text className="detail-field-value">{data.creatorName}</Text>
                 </View>
               ) : null}
               {data.creationYear ? (
                 <View className="detail-field-row">
-                  <Text className="detail-field-label">年份</Text>
+                  <Text className="detail-field-label">Year</Text>
                   <Text className="detail-field-value">{data.creationYear}</Text>
                 </View>
               ) : null}
               {data.regionCode ? (
                 <View className="detail-field-row">
-                  <Text className="detail-field-label">地区</Text>
+                  <Text className="detail-field-label">Region</Text>
                   <Text className="detail-field-value">{regionDisplayName(data.regionCode)}</Text>
                 </View>
               ) : null}
               {data.material ? (
                 <View className="detail-field-row">
-                  <Text className="detail-field-label">材质</Text>
+                  <Text className="detail-field-label">Material</Text>
                   <Text className="detail-field-value">{data.material}</Text>
                 </View>
               ) : null}
               {data.size ? (
                 <View className="detail-field-row">
-                  <Text className="detail-field-label">尺寸</Text>
+                  <Text className="detail-field-label">Size</Text>
                   <Text className="detail-field-value">{data.size}</Text>
                 </View>
               ) : null}
               {data.certificateNo ? (
                 <View className="detail-field-row">
-                  <Text className="detail-field-label">著作权登记证书编号</Text>
+                  <Text className="detail-field-label">Certificate No.</Text>
                   <Text className="detail-field-value">{data.certificateNo}</Text>
                 </View>
               ) : null}
               <View className="detail-field-row detail-field-row--column">
-                <Text className="detail-field-label">权属材料</Text>
+                <Text className="detail-field-label">Proof Files</Text>
                 {certificateMedia.length ? (
                   <View className="detail-file-list">
                     {certificateMedia.map((m, idx) => (
                       <View key={`${m.fileId}-${idx}`} className="detail-file-item" onClick={() => openMedia(m)}>
-                        <Text className="detail-file-name">{m.fileName || `材料 ${idx + 1}`}</Text>
-                        <Text className="detail-file-meta">{m.mimeType || '文件'}</Text>
+                        <Text className="detail-file-name">{m.fileName || `File ${idx + 1}`}</Text>
+                        <Text className="detail-file-meta">{m.mimeType || 'File'}</Text>
                       </View>
                     ))}
                   </View>
                 ) : (
-                  <Text className="detail-field-value muted">暂无权属材料</Text>
+                  <Text className="detail-field-value muted">No proof files</Text>
                 )}
               </View>
             </View>
@@ -317,8 +328,8 @@ export default function ArtworkDetailPage() {
           <View id="artwork-detail" className="detail-section-card">
             <View className="detail-field-list">
               <View className="detail-field-row">
-                <Text className="detail-field-label">介绍</Text>
-                <Text className="detail-field-value break-word">{data.description || '暂无介绍'}</Text>
+                <Text className="detail-field-label">Description</Text>
+                <Text className="detail-field-value break-word">{data.description || 'No description'}</Text>
               </View>
             </View>
           </View>
@@ -327,13 +338,13 @@ export default function ArtworkDetailPage() {
 
           <TipBanner
             tone="warning"
-            title="交易说明"
-            actionText="交易规则"
+            title="Trade Notes"
+            actionText="Trade Rules"
             onAction={() => {
               Taro.navigateTo({ url: '/subpackages/trade-rules/index' });
             }}
           >
-            合同线下签署；尾款在平台支付；权属确认完成后再放款。收藏/咨询/下单需登录且审核通过。
+            Contract signing is offline. Final payment is settled after ownership confirmation.
           </TipBanner>
 
           <Spacer size={12} />
@@ -342,7 +353,7 @@ export default function ArtworkDetailPage() {
           </View>
         </View>
       ) : (
-        <EmptyCard title="暂无数据" message="该书画可能已下架或暂不可访问。" actionText="返回" onAction={() => void safeNavigateBack()} />
+        <EmptyCard title="No Data" message="This artwork is unavailable." actionText="Back" onAction={() => void safeNavigateBack()} />
       )}
 
       {data ? (
@@ -352,19 +363,19 @@ export default function ArtworkDetailPage() {
               <View className="detail-tool-icon">
                 <Share2 size={16} />
               </View>
-              <Text>??</Text>
+              <Text>Share</Text>
             </TaroButton>
             <View className={`detail-tool ${favoritedState ? 'is-active' : ''}`} onClick={() => void toggleFavorite()}>
               <View className="detail-tool-icon">
                 {favoritedState ? <HeartFill size={16} color="#ff4d4f" /> : <Heart size={16} />}
               </View>
-              <Text>{favoritedState ? '???' : '??'}</Text>
+              <Text>{favoritedState ? 'Saved' : 'Save'}</Text>
             </View>
           </View>
 
           <View className="detail-sticky-buttons">
             <Button variant="default" onClick={() => void startConsult()}>
-              ??
+              Chat
             </Button>
             <Button
               variant="primary"
@@ -373,7 +384,7 @@ export default function ArtworkDetailPage() {
                 Taro.navigateTo({ url: `/subpackages/checkout/deposit-pay/index?artworkId=${artworkId}` });
               }}
             >
-              {`??? ?${data.depositAmountFen != null ? fenToYuan(data.depositAmountFen) : '-'}`}
+              {`Deposit ¥${data.depositAmountFen != null ? fenToYuan(data.depositAmountFen) : '-'}`}
             </Button>
           </View>
         </StickyBar>

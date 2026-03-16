@@ -1,6 +1,6 @@
 import { View, Text, Image } from '@tarojs/components';
 import Taro from '@tarojs/taro';
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import './index.scss';
 
 import type { components } from '@ipmoney/api-types';
@@ -76,6 +76,7 @@ function maturityLabelShort(m?: AchievementMaturity | ''): string | null {
 }
 
 export default function FavoritesPage() {
+  const loadedOnceRef = useRef(false);
   const [tab, setTab] = useState<FavoriteTab>('LISTING');
   const listingList = usePagedList<ListingSummary>(
     useCallback(async ({ page, pageSize }: { page: number; pageSize: number }) => listFavorites(page, pageSize), []),
@@ -125,26 +126,68 @@ export default function FavoritesPage() {
   }, [achievementList.reset, artworkList.reset, demandList.reset, listingList.reset]);
 
   const access = usePageAccess('approved-required', (a) => {
-    if (a.state === 'ok') return;
+    if (a.state === 'ok') {
+      if (loadedOnceRef.current) {
+        if (tab === 'LISTING') {
+          void listingList.refresh();
+          return;
+        }
+        if (tab === 'DEMAND') {
+          void demandList.refresh();
+          return;
+        }
+        if (tab === 'ACHIEVEMENT') {
+          void achievementList.refresh();
+          return;
+        }
+        void artworkList.refresh();
+      }
+      return;
+    }
+    loadedOnceRef.current = false;
     resetAll();
   });
 
   useEffect(() => {
     if (access.state !== 'ok') return;
+    loadedOnceRef.current = true;
     if (tab === 'LISTING') {
-      void listingList.reload();
+      if (!listingList.items.length && !listingList.loading) {
+        void listingList.reload();
+      }
       return;
     }
     if (tab === 'DEMAND') {
-      void demandList.reload();
+      if (!demandList.items.length && !demandList.loading) {
+        void demandList.reload();
+      }
       return;
     }
     if (tab === 'ACHIEVEMENT') {
-      void achievementList.reload();
+      if (!achievementList.items.length && !achievementList.loading) {
+        void achievementList.reload();
+      }
       return;
     }
-    void artworkList.reload();
-  }, [access.state, tab, listingList.reload, demandList.reload, achievementList.reload, artworkList.reload]);
+    if (!artworkList.items.length && !artworkList.loading) {
+      void artworkList.reload();
+    }
+  }, [
+    access.state,
+    tab,
+    listingList.items.length,
+    listingList.loading,
+    listingList.reload,
+    demandList.items.length,
+    demandList.loading,
+    demandList.reload,
+    achievementList.items.length,
+    achievementList.loading,
+    achievementList.reload,
+    artworkList.items.length,
+    artworkList.loading,
+    artworkList.reload,
+  ]);
 
   const listingItems = useMemo(() => listingList.items, [listingList.items]);
   const demandItems = useMemo(() => demandList.items, [demandList.items]);
@@ -428,7 +471,7 @@ export default function FavoritesPage() {
 
       <PageState
         access={access}
-        loading={activeList.loading}
+        loading={activeList.loading && activeCount === 0}
         error={activeList.error}
         onRetry={activeList.reload}
         empty={!activeList.loading && !activeList.error && activeCount === 0}

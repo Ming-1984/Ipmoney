@@ -1,4 +1,4 @@
-import { View, Text } from '@tarojs/components';
+﻿import { Text, View } from '@tarojs/components';
 import React from 'react';
 import './index.scss';
 
@@ -7,11 +7,11 @@ import { PageHeader, Spacer, Surface } from '../../../ui/layout';
 const SECTIONS = [
   {
     title: '服务协议',
-    body: '本协议用于说明你在使用平台服务时的权利义务，包括交易、咨询、发布等行为规范。',
+    body: '本协议用于说明你在使用平台服务时的权利与义务，包括交易、咨询、发布等行为规范。',
   },
   {
     title: '交易规则',
-    body: '订金用于锁定意向，尾款在合同签署确认后支付并托管，变更完成后结算放款。',
+    body: '订金用于锁定意向；尾款在合同签署确认后支付并托管；变更完成后按约定结算放款。',
   },
   {
     title: '违规处理',

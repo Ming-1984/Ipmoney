@@ -1,6 +1,6 @@
 ﻿import { View, Text, Image } from '@tarojs/components';
 import Taro from '@tarojs/taro';
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import './index.scss';
 
 import type { components } from '@ipmoney/api-types';
@@ -23,6 +23,8 @@ type PagedOrganizationSummary = components['schemas']['PagedOrganizationSummary'
 
 export default function TechManagersPage() {
   const [activeTab, setActiveTab] = useState<ConsultTab>('TECH');
+  const techQueryKeyRef = useRef<string | null>(null);
+  const orgQueryKeyRef = useRef<string | null>(null);
 
   const [techQInput, setTechQInput] = useState('');
   const [techQ, setTechQ] = useState('');
@@ -65,13 +67,19 @@ export default function TechManagersPage() {
 
   useEffect(() => {
     if (activeTab !== 'TECH') return;
+    const queryKey = techQ.trim();
+    if (techQueryKeyRef.current === queryKey) return;
+    techQueryKeyRef.current = queryKey;
     void techList.reload();
-  }, [activeTab, techList.reload]);
+  }, [activeTab, techQ, techList.reload]);
 
   useEffect(() => {
     if (activeTab !== 'ORG') return;
+    const queryKey = orgQ.trim();
+    if (orgQueryKeyRef.current === queryKey) return;
+    orgQueryKeyRef.current = queryKey;
     void orgList.reload();
-  }, [activeTab, orgList.reload]);
+  }, [activeTab, orgList.reload, orgQ]);
 
   const techItems = useMemo(() => techList.items, [techList.items]);
   const orgItems = useMemo(

@@ -1,6 +1,6 @@
 ﻿import { View, Text } from '@tarojs/components';
 import Taro from '@tarojs/taro';
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import './index.scss';
 
 import type { components } from '@ipmoney/api-types';
@@ -56,6 +56,7 @@ function invoiceStatusClass(status: InvoiceStatus): string {
 }
 
 export default function InvoiceCenterPage() {
+  const loadedOnceRef = useRef(false);
   const tabParam = useRouteStringParam('tab');
   const [activeTab, setActiveTab] = useState<InvoiceStatus>('WAIT_APPLY');
 
@@ -80,12 +81,19 @@ export default function InvoiceCenterPage() {
     });
 
   const access = usePageAccess('approved-required', (a) => {
-    if (a.state === 'ok') return;
+    if (a.state === 'ok') {
+      if (loadedOnceRef.current) {
+        void refresh();
+      }
+      return;
+    }
+    loadedOnceRef.current = false;
     reset();
   });
 
   useEffect(() => {
     if (access.state !== 'ok') return;
+    loadedOnceRef.current = true;
     void reload();
   }, [access.state, reload, activeTab]);
 

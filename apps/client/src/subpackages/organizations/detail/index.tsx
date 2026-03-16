@@ -7,6 +7,7 @@ import type { components } from '@ipmoney/api-types';
 
 import { Heart, Share2 } from '../../../ui/icons';
 import { apiGet } from '../../../lib/api';
+import { getDetailCache, setDetailCache } from '../../../lib/detailCache';
 import { verificationTypeLabel } from '../../../lib/labels';
 import { safeNavigateBack } from '../../../lib/navigation';
 import { regionDisplayName } from '../../../lib/regions';
@@ -27,14 +28,24 @@ export default function OrganizationDetailPage() {
 
   const load = useCallback(async () => {
     if (!orgUserId) return;
-    setLoading(true);
-    setError(null);
+    const cached = getDetailCache<OrganizationSummary>('organization-summary', orgUserId);
+    if (cached) {
+      setData(cached);
+      setLoading(false);
+      setError(null);
+    } else {
+      setLoading(true);
+      setError(null);
+    }
     try {
       const d = await apiGet<OrganizationSummary>(`/public/organizations/${orgUserId}`);
       setData(d);
+      setDetailCache('organization-summary', orgUserId, d);
     } catch (e: any) {
-      setError(e?.message || '加载失败');
-      setData(null);
+      if (!cached) {
+        setError(e?.message || 'Load failed');
+        setData(null);
+      }
     } finally {
       setLoading(false);
     }
@@ -45,16 +56,16 @@ export default function OrganizationDetailPage() {
   }, [load]);
 
   useShareAppMessage(() => ({
-    title: data?.displayName ? `机构：${data.displayName}` : '机构详情',
+    title: data?.displayName ? `Organization: ${data.displayName}` : 'Organization Detail',
     path: orgUserId ? `/subpackages/organizations/detail/index?orgUserId=${orgUserId}` : '/pages/home/index',
     imageUrl: data?.logoUrl || undefined,
   }));
 
   const tabs = useMemo(
     () => [
-      { id: 'org-overview', label: '概览' },
-      { id: 'org-intro', label: '简介' },
-      { id: 'org-note', label: '说明' },
+      { id: 'org-overview', label: 'Overview' },
+      { id: 'org-intro', label: 'Intro' },
+      { id: 'org-note', label: 'Note' },
     ],
     [],
   );
@@ -79,7 +90,7 @@ export default function OrganizationDetailPage() {
 
   return (
     <View className="container detail-page-compact">
-      <PageHeader weapp title="机构详情" subtitle="展示已审核通过的机构主体信息" brand={false} />
+      <PageHeader weapp title="Organization Detail" subtitle="Verified organization profile" brand={false} />
       <Spacer />
 
       {loading ? (
@@ -100,9 +111,9 @@ export default function OrganizationDetailPage() {
                   <Text className="detail-compact-tag detail-compact-tag-strong">
                     {verificationTypeLabel(data.verificationType)}
                   </Text>
-                  <Text className="detail-compact-tag">地区：{regionDisplayName(data.regionCode)}</Text>
-                  <Text className="detail-compact-tag">上架 {data.stats?.listingCount ?? 0}</Text>
-                  <Text className="detail-compact-tag">专利 {data.stats?.patentCount ?? 0}</Text>
+                  <Text className="detail-compact-tag">Region: {regionDisplayName(data.regionCode)}</Text>
+                  <Text className="detail-compact-tag">Listings {data.stats?.listingCount ?? 0}</Text>
+                  <Text className="detail-compact-tag">Patents {data.stats?.patentCount ?? 0}</Text>
                 </View>
               </View>
             </View>
@@ -127,16 +138,16 @@ export default function OrganizationDetailPage() {
           <View id="org-intro" className="detail-section-card">
             <View className="detail-field-list">
               <View className="detail-field-row">
-                <Text className="detail-field-label">简介</Text>
-                <Text className="detail-field-value break-word">{data.intro || '暂无简介'}</Text>
+                <Text className="detail-field-label">Introduction</Text>
+                <Text className="detail-field-value break-word">{data.intro || 'No introduction'}</Text>
               </View>
             </View>
           </View>
 
           <Spacer size={12} />
 
-          <TipBanner id="org-note" tone="info" title="说明">
-            机构信息由主体提交并经平台审核后展示；如需下架/纠错，请联系平台客服。
+          <TipBanner id="org-note" tone="info" title="Note">
+            Organization info is submitted by the account owner and reviewed by platform admins.
           </TipBanner>
 
           <Spacer size={12} />
@@ -146,21 +157,20 @@ export default function OrganizationDetailPage() {
                 <View className="detail-tool-icon">
                   <Share2 size={16} />
                 </View>
-                <Text>分享</Text>
+                <Text>Share</Text>
               </TaroButton>
               <View className="detail-tool is-disabled">
                 <View className="detail-tool-icon">
                   <Heart size={16} />
                 </View>
-                <Text>收藏</Text>
+                <Text>Save</Text>
               </View>
             </View>
           </View>
         </View>
       ) : (
-        <EmptyCard message="无数据" actionText="返回" onAction={() => void safeNavigateBack()} />
+        <EmptyCard message="No data" actionText="Back" onAction={() => void safeNavigateBack()} />
       )}
     </View>
   );
 }
-

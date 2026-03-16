@@ -12,10 +12,12 @@ import { getToken } from '../../../lib/auth';
 import { favorite, isFavorited, syncFavorites, unfavorite } from '../../../lib/favorites';
 import { ensureApproved } from '../../../lib/guard';
 import { formatTimeSmart } from '../../../lib/format';
+import { getDetailCache, setDetailCache } from '../../../lib/detailCache';
 import { sanitizeIndustryTagNames } from '../../../lib/industryTags';
 import { featuredLevelLabel, patentTypeLabel, priceTypeLabel, tradeModeLabel, verificationTypeLabel } from '../../../lib/labels';
 import { fenToYuan } from '../../../lib/money';
 import { safeNavigateBack } from '../../../lib/navigation';
+import { getPatentCache, setPatentCache } from '../../../lib/patentCache';
 import { regionDisplayName } from '../../../lib/regions';
 import { useRouteUuidParam } from '../../../lib/routeParams';
 import { CommentsSection } from '../../../ui/CommentsSection';
@@ -106,14 +108,24 @@ export default function ListingDetailPage() {
 
   const load = useCallback(async () => {
     if (!listingId) return;
-    setLoading(true);
-    setError(null);
+    const cached = getDetailCache<ListingPublic>('listing-public', listingId);
+    if (cached) {
+      setData(cached);
+      setLoading(false);
+      setError(null);
+    } else {
+      setLoading(true);
+      setError(null);
+    }
     try {
       const d = await apiGet<ListingPublic>(`/public/listings/${listingId}`);
       setData(d);
+      setDetailCache('listing-public', listingId, d);
     } catch (e: any) {
-      setError(e?.message || '加载失败');
-      setData(null);
+      if (!cached) {
+        setError(e?.message || '加载失败');
+        setData(null);
+      }
     } finally {
       setLoading(false);
     }
@@ -169,17 +181,27 @@ export default function ListingDetailPage() {
       return;
     }
     let alive = true;
-    setPatentLoading(true);
-    setPatentError(null);
+    const cached = getPatentCache<Patent>(patentId);
+    if (cached) {
+      setPatentData(cached);
+      setPatentLoading(false);
+      setPatentError(null);
+    } else {
+      setPatentLoading(true);
+      setPatentError(null);
+    }
     apiGet<Patent>(`/patents/${patentId}`)
       .then((d) => {
         if (!alive) return;
         setPatentData(d);
+        setPatentCache(patentId, d);
       })
       .catch((e: any) => {
         if (!alive) return;
-        setPatentError(e?.message || '专利信息加载失败');
-        setPatentData(null);
+        if (!cached) {
+          setPatentError(e?.message || '专利信息加载失败');
+          setPatentData(null);
+        }
       })
       .finally(() => {
         if (!alive) return;

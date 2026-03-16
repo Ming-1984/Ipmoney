@@ -21,11 +21,13 @@ export type IpcClassItem = IpcClass & {
   sectionName: string;
 };
 
-export function getIpcDataset(): IpcDataset {
-  return ipcData as IpcDataset;
-}
+let datasetCache: IpcDataset | null = null;
+let flattenedDatasetRef: IpcDataset | null = null;
+let flattenedCache: IpcClassItem[] | null = null;
+let searchableDatasetRef: IpcDataset | null = null;
+let searchableCache: Array<{ item: IpcClassItem; haystack: string }> | null = null;
 
-export function flattenIpcClasses(data: IpcDataset): IpcClassItem[] {
+function buildFlattened(data: IpcDataset): IpcClassItem[] {
   const out: IpcClassItem[] = [];
   data.sections.forEach((section) => {
     section.classes.forEach((cls) => {
@@ -40,9 +42,36 @@ export function flattenIpcClasses(data: IpcDataset): IpcClassItem[] {
   return out;
 }
 
+function getSearchable(data: IpcDataset): Array<{ item: IpcClassItem; haystack: string }> {
+  if (searchableDatasetRef === data && searchableCache) return searchableCache;
+  const flattened = flattenIpcClasses(data);
+  searchableDatasetRef = data;
+  searchableCache = flattened.map((item) => ({
+    item,
+    haystack: `${item.code} ${item.name} ${item.sectionCode} ${item.sectionName}`.toLowerCase(),
+  }));
+  return searchableCache;
+}
+
+export function getIpcDataset(): IpcDataset {
+  if (!datasetCache) {
+    datasetCache = ipcData as IpcDataset;
+  }
+  return datasetCache;
+}
+
+export function flattenIpcClasses(data: IpcDataset): IpcClassItem[] {
+  if (flattenedDatasetRef === data && flattenedCache) return flattenedCache;
+  const flattened = buildFlattened(data);
+  flattenedDatasetRef = data;
+  flattenedCache = flattened;
+  return flattened;
+}
+
 export function searchIpcClasses(query: string, data: IpcDataset): IpcClassItem[] {
   const q = query.trim().toLowerCase();
   if (!q) return [];
-  const all = flattenIpcClasses(data);
-  return all.filter((item) => item.code.toLowerCase().includes(q) || item.name.toLowerCase().includes(q));
+  return getSearchable(data)
+    .filter((entry) => entry.haystack.includes(q))
+    .map((entry) => entry.item);
 }

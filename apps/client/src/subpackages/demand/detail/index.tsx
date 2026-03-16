@@ -8,6 +8,7 @@ import type { components } from '@ipmoney/api-types';
 import { Heart, HeartFill, Share2 } from '../../../ui/icons';
 import { apiGet, apiPost } from '../../../lib/api';
 import { getToken } from '../../../lib/auth';
+import { getDetailCache, setDetailCache } from '../../../lib/detailCache';
 import { favoriteDemand, isDemandFavorited, syncFavoriteDemands, unfavoriteDemand } from '../../../lib/favorites';
 import { formatTimeSmart } from '../../../lib/format';
 import { ensureApproved } from '../../../lib/guard';
@@ -43,14 +44,24 @@ export default function DemandDetailPage() {
 
   const load = useCallback(async () => {
     if (!demandId) return;
-    setLoading(true);
-    setError(null);
+    const cached = getDetailCache<DemandPublic>('demand-public', demandId);
+    if (cached) {
+      setData(cached);
+      setLoading(false);
+      setError(null);
+    } else {
+      setLoading(true);
+      setError(null);
+    }
     try {
       const d = await apiGet<DemandPublic>(`/public/demands/${demandId}`);
       setData(d);
+      setDetailCache('demand-public', demandId, d);
     } catch (e: any) {
-      setError(e?.message || '加载失败');
-      setData(null);
+      if (!cached) {
+        setError(e?.message || '加载失败');
+        setData(null);
+      }
     } finally {
       setLoading(false);
     }

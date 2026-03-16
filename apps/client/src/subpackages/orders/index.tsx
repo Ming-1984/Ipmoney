@@ -1,6 +1,6 @@
 import { View, Text } from '@tarojs/components';
 import Taro from '@tarojs/taro';
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import './index.scss';
 
 import type { components } from '@ipmoney/api-types';
@@ -51,6 +51,7 @@ const TABS: Array<{ id: OrderListTab; label: string }> = [
 ];
 
 export default function OrdersPage() {
+  const loadedOnceRef = useRef(false);
   const routeRole = useRouteStringParam('role');
   const routeStatus = useRouteStringParam('status');
   const routeTab = useRouteStringParam('tab');
@@ -97,27 +98,14 @@ export default function OrdersPage() {
     return [orderStatusLabel(status)];
   }, [status]);
 
-  const buildUrl = useCallback(
-    (next: { role?: OrderListRole; tab?: OrderListTab; status?: string | null }) => {
-      const r = next.role || asRole;
-      const t = next.tab || tab;
-      const s = next.status === undefined ? routeStatus : next.status;
-      const parts: string[] = [];
-      parts.push(`role=${encodeURIComponent(r)}`);
-      if (t && t !== 'all') parts.push(`tab=${encodeURIComponent(t)}`);
-      if (s) parts.push(`status=${encodeURIComponent(s)}`);
-      return `/subpackages/orders/index?${parts.join('&')}`;
-    },
-    [asRole, routeStatus, tab],
-  );
-
   const goToTab = useCallback(
     (nextTab: OrderListTab) => {
       if (nextTab === tab) return;
       // Changing the group tab clears any exact status filter.
-      Taro.redirectTo({ url: buildUrl({ tab: nextTab, status: null }) });
+      setTab(nextTab);
+      setStatus('');
     },
-    [buildUrl, tab],
+    [tab],
   );
 
   const fetcher = useCallback(
@@ -143,14 +131,24 @@ export default function OrdersPage() {
     });
 
   const access = usePageAccess('approved-required', (a) => {
-    if (a.state === 'ok') return;
+    if (a.state === 'ok') {
+      if (loadedOnceRef.current) {
+        void refresh();
+      }
+      return;
+    }
+    loadedOnceRef.current = false;
     reset();
   });
 
   useEffect(() => {
     if (access.state !== 'ok') return;
+    loadedOnceRef.current = true;
     void reload();
   }, [access.state, reload]);
+
+  const showInitialLoading = loading && items.length === 0;
+  const showBlockingError = Boolean(error && items.length === 0);
 
   if (access.state === 'need-login') {
     return (
@@ -224,7 +222,7 @@ export default function OrdersPage() {
             <View
               className="pill pill-strong"
               onClick={() => {
-                Taro.redirectTo({ url: buildUrl({ status: null }) });
+                setStatus('');
               }}
             >
               <Text>清空</Text>
@@ -236,12 +234,18 @@ export default function OrdersPage() {
       <View style={{ height: '12rpx' }} />
 
       <PullToRefresh type="primary" disabled={loading || refreshing} onRefresh={refresh}>
-        {loading ? (
+        {showInitialLoading ? (
           <LoadingCard />
-        ) : error ? (
-          <ErrorCard message={error} onRetry={reload} />
+        ) : showBlockingError ? (
+          <ErrorCard message={error || undefined} onRetry={reload} />
         ) : items.length ? (
           <View>
+            {loading ? (
+              <>
+                <Text className="muted">加载中…</Text>
+                <View style={{ height: '8rpx' }} />
+              </>
+            ) : null}
             {items.map((it: Order) => (
               <Surface
                 key={it.id}

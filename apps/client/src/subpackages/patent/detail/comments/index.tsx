@@ -1,4 +1,4 @@
-import { View, Text } from '@tarojs/components';
+﻿import { View, Text } from '@tarojs/components';
 import Taro from '@tarojs/taro';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import './index.scss';
@@ -10,6 +10,7 @@ import { ensureApproved } from '../../../../lib/guard';
 import { patentTypeLabel } from '../../../../lib/labels';
 import { fenToYuan } from '../../../../lib/money';
 import { safeNavigateBack } from '../../../../lib/navigation';
+import { getPatentCache, setPatentCache } from '../../../../lib/patentCache';
 import { useRouteUuidParam } from '../../../../lib/routeParams';
 import { CommentsSection } from '../../../../ui/CommentsSection';
 import { PageHeader, Spacer, StickyBar, Surface } from '../../../../ui/layout';
@@ -52,14 +53,24 @@ export default function PatentDetailCommentsPage() {
 
   const load = useCallback(async () => {
     if (!patentId) return;
-    setLoading(true);
-    setError(null);
+    const cached = getPatentCache<Patent>(patentId);
+    if (cached) {
+      setData(cached);
+      setLoading(false);
+      setError(null);
+    } else {
+      setLoading(true);
+      setError(null);
+    }
     try {
-      const d = await apiGet<Patent>(`/patents/${patentId}`);
-      setData(d);
+      const next = await apiGet<Patent>(`/patents/${patentId}`);
+      setData(next);
+      setPatentCache(patentId, next);
     } catch (e: any) {
-      setError(e?.message || '加载失败');
-      setData(null);
+      if (!cached) {
+        setError(e?.message || '加载失败');
+        setData(null);
+      }
     } finally {
       setLoading(false);
     }
@@ -69,7 +80,7 @@ export default function PatentDetailCommentsPage() {
     try {
       await Taro.setClipboardData({ data: text });
       toast('已复制', { icon: 'success' });
-    } catch (_) {
+    } catch {
       toast('复制失败', { icon: 'fail' });
     }
   }, []);
@@ -82,23 +93,25 @@ export default function PatentDetailCommentsPage() {
   const listingId = tradeSnapshot?.listingId || '';
   const depositAmountFen = tradeSnapshot?.depositAmountFen ?? null;
   const canTrade = Boolean(listingId);
-  const depositLabel = depositAmountFen != null ? `付订金 ￥${fenToYuan(depositAmountFen)}` : '付订金';
+  const depositLabel = depositAmountFen != null ? `订金 ¥${fenToYuan(depositAmountFen)}` : '订金 -';
 
   const startConsult = useCallback(async () => {
     if (!listingId) {
-      toast('暂无可咨询的挂牌', { icon: 'fail' });
+      toast('当前专利暂无可咨询挂牌', { icon: 'fail' });
       return;
     }
     if (!ensureApproved()) return;
+
     try {
       await apiPost<void>(
         `/listings/${listingId}/consultations`,
         { channel: 'FORM' },
         { idempotencyKey: `patent-c-${listingId}` },
       );
-    } catch (_) {
-      // ignore: heat event
+    } catch {
+      // Heat event is best effort.
     }
+
     try {
       const conv = await apiPost<Conversation>(
         `/listings/${listingId}/conversations`,
@@ -139,7 +152,7 @@ export default function PatentDetailCommentsPage() {
 
   return (
     <View className="container detail-page-compact has-sticky">
-      <PageHeader weapp title="专利详情" subtitle="评论信息" />
+      <PageHeader weapp title="专利详情" subtitle="评论视图" />
       <Spacer />
 
       {loading ? (
@@ -196,7 +209,7 @@ export default function PatentDetailCommentsPage() {
             </View>
           ) : (
             <View className="detail-section-card">
-              <Text className="muted">暂无关联挂牌，无法展示评论</Text>
+              <Text className="muted">当前专利未关联挂牌，暂不展示评论。</Text>
             </View>
           )}
         </View>

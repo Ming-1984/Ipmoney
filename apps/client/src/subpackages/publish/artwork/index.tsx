@@ -6,7 +6,7 @@ import './index.scss';
 import type { components } from '@ipmoney/api-types';
 
 import { API_BASE_URL } from '../../../constants';
-import { getToken } from '../../../lib/auth';
+import { getToken, isOnboardingDone } from '../../../lib/auth';
 import { apiGet, apiPatch, apiPost } from '../../../lib/api';
 import { ensureApproved, requireLogin } from '../../../lib/guard';
 import { auditStatusLabel, artworkStatusLabel, verificationTypeLabel } from '../../../lib/labels';
@@ -243,6 +243,7 @@ export default function PublishArtworkPage() {
     let mounted = true;
     (async () => {
       if (!requireLogin()) return;
+      if (!isOnboardingDone()) return;
       try {
         const v = await apiGet<UserVerification>('/me/verification');
         if (!mounted) return;

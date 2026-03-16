@@ -75,6 +75,9 @@ type OrderDto = {
   updatedAt?: string;
   listingTitle?: string | null;
   applicationNoDisplay?: string | null;
+  invoiceNo?: string | null;
+  invoiceFileId?: string | null;
+  invoiceIssuedAt?: string | null;
 };
 
 type PagedOrder = {
@@ -487,6 +490,9 @@ export class OrdersService {
       updatedAt: toIso(order.updatedAt),
       listingTitle: listing?.title ?? undefined,
       applicationNoDisplay: patent?.applicationNoDisplay ?? undefined,
+      invoiceNo: order.invoiceNo ?? null,
+      invoiceFileId: order.invoiceFileId ?? null,
+      invoiceIssuedAt: toIso(order.invoiceIssuedAt) ?? null,
     };
   }
 

@@ -19,6 +19,17 @@ import { DEMO_AUTH_ENABLED, IS_PROD_DEPLOY } from './constants';
 type AuthTokenResponse = components['schemas']['AuthTokenResponse'];
 type VerificationStatus = components['schemas']['VerificationStatus'];
 type VerificationType = components['schemas']['VerificationType'];
+const REGION_WARMUP_DELAY_MS = 1200;
+let regionWarmupScheduled = false;
+
+function scheduleRegionWarmup() {
+  if (regionWarmupScheduled) return;
+  regionWarmupScheduled = true;
+  // Defer non-critical region dictionary warmup to reduce launch-time request burst.
+  setTimeout(() => {
+    void ensureRegionNamesReady();
+  }, REGION_WARMUP_DELAY_MS);
+}
 
 if (process.env.TARO_ENV === 'weapp') {
   try {
@@ -31,7 +42,7 @@ if (process.env.TARO_ENV === 'weapp') {
 export default function App(props: { children: ReactNode }) {
   useLaunch(() => {
     console.log('[client] app launch');
-    void ensureRegionNamesReady();
+    scheduleRegionWarmup();
     if (process.env.TARO_ENV !== 'h5') return;
     if (typeof window === 'undefined') return;
     const hash = window.location.hash || '';

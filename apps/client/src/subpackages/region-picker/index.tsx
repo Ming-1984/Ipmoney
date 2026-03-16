@@ -1,4 +1,4 @@
-import { Picker, Text, View } from '@tarojs/components';
+﻿import { Picker, Text, View } from '@tarojs/components';
 import Taro from '@tarojs/taro';
 import React, { useCallback, useMemo, useState } from 'react';
 import './index.scss';
@@ -73,7 +73,7 @@ export default function RegionPickerPage() {
     try {
       Taro.setStorageSync(STORAGE_KEYS.regionPickerResult, payload);
     } catch {
-      // ignore
+      // ignore storage errors
     }
     const cacheNodes = normalizedCodes
       .map((code, idx) => ({ code, name: normalizedNames[idx] || '' }))
@@ -86,7 +86,7 @@ export default function RegionPickerPage() {
 
   return (
     <View className="container region-picker-page">
-      <PageHeader title="选择地区" subtitle="使用系统区域库进行省/市/区分级选择" />
+      <PageHeader title="选择地区" subtitle="使用系统行政区划进行省/市/区分级选择" />
       <Spacer />
 
       <Surface className="region-picker-card">

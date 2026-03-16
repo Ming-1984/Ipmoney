@@ -197,7 +197,7 @@ scroll-view::-webkit-scrollbar {
 .taro_page {
   font-size: inherit;
   line-height: inherit;
-  background: transparent;
+  background: var(--bg-page-plain);
   min-height: 100vh;
 }
 
@@ -209,7 +209,6 @@ scroll-view::-webkit-scrollbar {
 /* 底部导航（H5/小程序统一轻量样式） */
 .taro-tabbar__container {
   background: rgba(255, 255, 255, 0.98);
-  backdrop-filter: blur(10px);
   box-shadow: 0 -18rpx 36rpx rgba(27, 27, 27, 0.08);
   border-top: 1rpx solid var(--c-divider);
 }
@@ -350,7 +349,7 @@ scroll-view {
   padding-bottom: calc(var(--page-padding) + constant(safe-area-inset-bottom));
   padding-bottom: calc(var(--page-padding) + env(safe-area-inset-bottom));
   min-height: 100vh;
-  background: transparent;
+  background: var(--bg-page-plain);
 }
 
 .page-bg-plain {
@@ -815,7 +814,6 @@ scroll-view {
 .page-navbar .nut-navbar {
   padding: 0 var(--page-padding);
   border-bottom: 1rpx solid var(--c-divider);
-  backdrop-filter: blur(10px);
 }
 
 .page-navbar .nut-navbar-title-center {
@@ -1307,8 +1305,15 @@ scroll-view {
   padding-bottom: calc(16rpx + env(safe-area-inset-bottom));
   background: rgba(255, 255, 255, 0.96);
   border-top: 1rpx solid rgba(200, 155, 60, 0.18);
+}
+
+/* #ifdef H5 */
+.taro-tabbar__container,
+.page-navbar .nut-navbar,
+.sticky-bar {
   backdrop-filter: blur(10px);
 }
+/* #endif */
 
 .sticky-actions {
   display: flex;

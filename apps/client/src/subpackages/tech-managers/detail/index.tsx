@@ -6,6 +6,7 @@ import './index.scss';
 import type { components } from '@ipmoney/api-types';
 
 import { apiGet, apiPost } from '../../../lib/api';
+import { getDetailCache, setDetailCache } from '../../../lib/detailCache';
 import { ensureApproved } from '../../../lib/guard';
 import { safeNavigateBack } from '../../../lib/navigation';
 import { useRouteUuidParam } from '../../../lib/routeParams';
@@ -34,14 +35,24 @@ export default function TechManagerDetailPage() {
 
   const load = useCallback(async () => {
     if (!techManagerId) return;
-    setLoading(true);
-    setError(null);
+    const cached = getDetailCache<TechManagerPublic>('tech-manager-public', techManagerId);
+    if (cached) {
+      setData(cached);
+      setLoading(false);
+      setError(null);
+    } else {
+      setLoading(true);
+      setError(null);
+    }
     try {
       const d = await apiGet<TechManagerPublic>(`/public/tech-managers/${techManagerId}`);
       setData(d);
+      setDetailCache('tech-manager-public', techManagerId, d);
     } catch (e: any) {
-      setError(e?.message || '加载失败');
-      setData(null);
+      if (!cached) {
+        setError(e?.message || '加载失败');
+        setData(null);
+      }
     } finally {
       setLoading(false);
     }

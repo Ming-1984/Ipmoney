@@ -12,7 +12,7 @@ import { useRouteUuidParam } from '../../../lib/routeParams';
 import { PageHeader, Spacer, StickyBar, Surface } from '../../../ui/layout';
 import { Button, toast } from '../../../ui/nutui';
 import { EmptyCard, ErrorCard, LoadingCard, MissingParamCard } from '../../../ui/StateCards';
-import { MiniProgramPayGuide } from '../components/MiniProgramPayGuide';
+import type { MiniProgramPayGuideProps } from '../components/MiniProgramPayGuide';
 
 type PayTarget = {
   id: string;
@@ -38,6 +38,8 @@ type PaymentIntentResponse = {
   };
 };
 
+type MiniProgramPayGuideComponent = React.ComponentType<MiniProgramPayGuideProps>;
+
 export default function DepositPayPage() {
   const listingId = useRouteUuidParam('listingId') || '';
   const artworkId = useRouteUuidParam('artworkId') || '';
@@ -56,6 +58,7 @@ export default function DepositPayPage() {
   const [error, setError] = useState<string | null>(null);
   const [target, setTarget] = useState<PayTarget | null>(null);
   const [paying, setPaying] = useState(false);
+  const [PayGuide, setPayGuide] = useState<MiniProgramPayGuideComponent | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -75,6 +78,28 @@ export default function DepositPayPage() {
   useEffect(() => {
     void load();
   }, [load]);
+
+  useEffect(() => {
+    if (!isH5) {
+      setPayGuide(null);
+      return;
+    }
+    let alive = true;
+    /* #ifdef H5 */
+    import('../components/MiniProgramPayGuide')
+      .then((mod) => {
+        if (!alive) return;
+        setPayGuide(() => mod.MiniProgramPayGuide);
+      })
+      .catch(() => {
+        if (!alive) return;
+        setPayGuide(null);
+      });
+    /* #endif */
+    return () => {
+      alive = false;
+    };
+  }, [isH5]);
 
   const onPay = useCallback(async () => {
     if (!ensureApproved()) return;
@@ -146,10 +171,16 @@ export default function DepositPayPage() {
           {isH5 ? (
             <>
               <Spacer size={12} />
-              <MiniProgramPayGuide
-                miniProgramPath={`pages/checkout/deposit-pay/index?${listingId ? `listingId=${listingId}` : `artworkId=${artworkId}`}`}
-                description="H5 端不发起支付。微信内可一键跳转小程序；微信外/桌面可复制链接或扫码在微信打开。"
-              />
+              {PayGuide ? (
+                <PayGuide
+                  miniProgramPath={`pages/checkout/deposit-pay/index?${listingId ? `listingId=${listingId}` : `artworkId=${artworkId}`}`}
+                  description="H5 端不发起支付。微信内可一键跳转小程序；微信外/桌面可复制链接或扫码在微信打开。"
+                />
+              ) : (
+                <Surface className="pay-card" padding="md">
+                  <Text className="muted">支付引导加载中…</Text>
+                </Surface>
+              )}
             </>
           ) : null}
         </View>

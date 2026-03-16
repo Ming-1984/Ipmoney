@@ -1,6 +1,6 @@
 ﻿import { View, Text, Image } from '@tarojs/components';
 import Taro from '@tarojs/taro';
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import './index.scss';
 
 import type { components } from '@ipmoney/api-types';
@@ -22,6 +22,7 @@ type ListingStatus = components['schemas']['ListingStatus'];
 type AuditStatus = components['schemas']['AuditStatus'];
 
 export default function MyListingsPage() {
+  const loadedOnceRef = useRef(false);
   const [status, setStatus] = useState<ListingStatus | ''>('');
   const [auditStatusFilter, setAuditStatusFilter] = useState<AuditStatus | ''>('');
 
@@ -46,14 +47,19 @@ export default function MyListingsPage() {
 
   const access = usePageAccess('approved-required', (a) => {
     if (a.state === 'ok') {
-      void reload();
+      if (loadedOnceRef.current) {
+        void refresh();
+      }
       return;
     }
+    loadedOnceRef.current = false;
     reset();
   });
 
   useEffect(() => {
     if (access.state !== 'ok') return;
+    if (loadedOnceRef.current) return;
+    loadedOnceRef.current = true;
     void reload();
   }, [access.state, reload]);
 

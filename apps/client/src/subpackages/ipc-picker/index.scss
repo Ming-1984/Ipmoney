@@ -29,6 +29,15 @@
   color: #9ca3af;
 }
 
+.ipc-picker-search-meta {
+  padding: 0 24rpx 10rpx;
+}
+
+.ipc-picker-search-meta-text {
+  font-size: 20rpx;
+  color: #6b7280;
+}
+
 .ipc-picker-body {
   flex: 1;
   display: flex;
@@ -38,6 +47,9 @@
 .ipc-picker-sections {
   width: 200rpx;
   background: #f7f8fa;
+}
+
+.ipc-picker-sections-inner {
   padding: 8rpx 0;
 }
 
@@ -65,8 +77,12 @@
 
 .ipc-picker-list {
   flex: 1;
-  padding: 8rpx 12rpx;
   background: #ffffff;
+}
+
+.ipc-picker-list-inner {
+  padding: 8rpx 12rpx;
+  min-height: 100%;
 }
 
 .ipc-class-item {

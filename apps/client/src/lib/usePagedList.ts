@@ -22,7 +22,7 @@ export function usePagedList<T>(
   const pageSize = options?.pageSize ?? 20;
   const requestIdRef = useRef(0);
   const onErrorRef = useRef<UsePagedListOptions['onError']>(options?.onError);
-  const keepItemsOnRefreshErrorRef = useRef<boolean>(Boolean(options?.keepItemsOnRefreshError));
+  const keepItemsOnRefreshErrorRef = useRef<boolean>(options?.keepItemsOnRefreshError ?? true);
 
   const [items, setItemsState] = useState<T[]>([]);
   const [pageInfo, setPageInfo] = useState<PageInfo | null>(null);
@@ -36,7 +36,7 @@ export function usePagedList<T>(
 
   useEffect(() => {
     onErrorRef.current = options?.onError;
-    keepItemsOnRefreshErrorRef.current = Boolean(options?.keepItemsOnRefreshError);
+    keepItemsOnRefreshErrorRef.current = options?.keepItemsOnRefreshError ?? true;
   }, [options?.onError, options?.keepItemsOnRefreshError]);
 
   useEffect(() => {
@@ -77,7 +77,8 @@ export function usePagedList<T>(
       } catch (e: any) {
         if (requestId !== requestIdRef.current) return;
         const message = e?.message || '加载失败';
-        const keepOnRefresh = ctx === 'refresh' && keepItemsOnRefreshErrorRef.current;
+        const hasItems = itemsLengthRef.current > 0;
+        const keepOnRefresh = ctx === 'refresh' && keepItemsOnRefreshErrorRef.current && hasItems;
         if (ctx === 'loadMore' && itemsLengthRef.current > 0) {
           onErrorRef.current?.(message, ctx);
         } else if (keepOnRefresh) {

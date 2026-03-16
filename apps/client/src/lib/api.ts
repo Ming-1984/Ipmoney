@@ -6,6 +6,7 @@ import { clearToken, getToken, notifyAuthRequired } from './auth';
 export type ApiErrorShape = { code?: string; message?: string };
 export type ApiErrorKind = 'auth' | 'network' | 'business' | 'http' | 'unknown';
 export type ApiRequestOptions = { idempotencyKey?: string; retry?: number; retryDelayMs?: number };
+const REQUEST_TIMEOUT_MS = 12000;
 
 export class ApiError extends Error {
   kind: ApiErrorKind;
@@ -78,18 +79,25 @@ function normalizeHttpError(statusCode: number, data: unknown): ApiError {
     return new ApiError({ kind: 'http', statusCode, code, message: '内容不存在或已下架', retryable: false, debug: data });
   }
   if (statusCode === 429) {
-    return new ApiError({ kind: 'http', statusCode, code, message: '操作太频繁，请稍后再试', retryable: true, debug: data });
+    return new ApiError({ kind: 'http', statusCode, code, message: '操作过于频繁，请稍后再试', retryable: true, debug: data });
   }
   if (statusCode >= 500) {
     return new ApiError({ kind: 'http', statusCode, code, message: '服务开小差，请稍后再试', retryable: true, debug: data });
   }
 
+  // 4xx 通常是参数/业务态问题，不做自动重试，避免放大 409/422 噪音。
+  if (statusCode >= 400 && statusCode < 500) {
+    if (err?.message) {
+      return new ApiError({ kind: 'business', statusCode, code, message: err.message, retryable: false, debug: data });
+    }
+    return new ApiError({ kind: 'http', statusCode, code, message: '请求失败，请检查参数后重试', retryable: false, debug: data });
+  }
+
   if (err?.message) {
     return new ApiError({ kind: 'business', statusCode, code, message: err.message, retryable: false, debug: data });
   }
-  return new ApiError({ kind: 'http', statusCode, code, message: '请求失败，请稍后再试', retryable: true, debug: data });
+  return new ApiError({ kind: 'http', statusCode, code, message: '请求失败，请稍后重试', retryable: true, debug: data });
 }
-
 function normalizeRequestError(e: unknown): ApiError {
   if (e instanceof ApiError) return e;
 
@@ -119,9 +127,10 @@ function getDeviceId(): string {
 
 
 function buildHeaders(extra?: Record<string, string>) {
+  const token = getToken();
   return {
     'X-Device-Id': getDeviceId(),
-    ...(getToken() ? { Authorization: `Bearer ${getToken()}` } : {}),
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
     ...extra,
   };
 }
@@ -161,6 +170,7 @@ export async function apiGet<TResponse>(
         method: 'GET',
         data: cleanParams(params),
         header: buildHeaders(),
+        timeout: REQUEST_TIMEOUT_MS,
       });
     } catch (e) {
       throw normalizeRequestError(e);
@@ -196,6 +206,7 @@ export async function apiPost<TResponse>(
             'Content-Type': 'application/json',
             ...(opts?.idempotencyKey ? { 'Idempotency-Key': opts.idempotencyKey } : {}),
           }),
+          timeout: REQUEST_TIMEOUT_MS,
         });
       } catch (e) {
         throw normalizeRequestError(e);
@@ -233,6 +244,7 @@ export async function apiPatch<TResponse>(
             'Content-Type': 'application/json',
             ...(opts?.idempotencyKey ? { 'Idempotency-Key': opts.idempotencyKey } : {}),
           }),
+          timeout: REQUEST_TIMEOUT_MS,
         });
       } catch (e) {
         throw normalizeRequestError(e);
@@ -267,6 +279,7 @@ export async function apiDelete(
           header: buildHeaders({
             ...(opts?.idempotencyKey ? { 'Idempotency-Key': opts.idempotencyKey } : {}),
           }),
+          timeout: REQUEST_TIMEOUT_MS,
         });
       } catch (e) {
         throw normalizeRequestError(e);
