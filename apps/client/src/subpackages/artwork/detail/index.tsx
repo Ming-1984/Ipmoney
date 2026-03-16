@@ -46,9 +46,10 @@ export default function ArtworkDetailPage() {
     );
   }
 
-  const [loading, setLoading] = useState(true);
+  const initialCachedData = getDetailCache<ArtworkPublic>('artwork-public', artworkId);
+  const [loading, setLoading] = useState(!initialCachedData);
   const [error, setError] = useState<string | null>(null);
-  const [data, setData] = useState<ArtworkPublic | null>(null);
+  const [data, setData] = useState<ArtworkPublic | null>(initialCachedData);
   const [favoritedState, setFavoritedState] = useState(false);
   const [activeTab, setActiveTab] = useState('artwork-overview');
 
@@ -56,6 +57,13 @@ export default function ArtworkDetailPage() {
     () => ((data?.media || []) as ContentMedia[]).filter((m) => m.type === 'FILE'),
     [data?.media],
   );
+
+  useEffect(() => {
+    const cached = getDetailCache<ArtworkPublic>('artwork-public', artworkId);
+    setData(cached || null);
+    setLoading(!cached);
+    setError(null);
+  }, [artworkId]);
 
   useEffect(() => {
     setFavoritedState(isArtworkFavorited(artworkId));

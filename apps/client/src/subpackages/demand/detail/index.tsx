@@ -32,15 +32,29 @@ type Conversation = { id: string };
 export default function DemandDetailPage() {
   const demandId = useRouteUuidParam('demandId') || '';
 
-  const [loading, setLoading] = useState(true);
+  const initialCachedData = demandId ? getDetailCache<DemandPublic>('demand-public', demandId) : null;
+  const [loading, setLoading] = useState(!initialCachedData);
   const [error, setError] = useState<string | null>(null);
-  const [data, setData] = useState<DemandPublic | null>(null);
+  const [data, setData] = useState<DemandPublic | null>(initialCachedData);
   const [consulting, setConsulting] = useState(false);
   const [favoritedState, setFavoritedState] = useState(false);
   const [activeTab, setActiveTab] = useState('overview');
   const [tabsStuck, setTabsStuck] = useState(false);
   const tabsOffsetTopRef = useRef<number | null>(null);
   const stickyTopRef = useRef<number>(0);
+
+  useEffect(() => {
+    if (!demandId) {
+      setData(null);
+      setLoading(false);
+      setError(null);
+      return;
+    }
+    const cached = getDetailCache<DemandPublic>('demand-public', demandId);
+    setData(cached || null);
+    setLoading(!cached);
+    setError(null);
+  }, [demandId]);
 
   const load = useCallback(async () => {
     if (!demandId) return;

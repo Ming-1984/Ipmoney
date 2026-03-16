@@ -63,9 +63,10 @@ function remainingYears(filingDate?: string | null, patentType?: Patent['patentT
 
 export default function ListingDetailPage() {
   const listingId = useRouteUuidParam('listingId');
-  const [loading, setLoading] = useState(true);
+  const initialCachedData = listingId ? getDetailCache<ListingPublic>('listing-public', listingId) : null;
+  const [loading, setLoading] = useState(!initialCachedData);
   const [error, setError] = useState<string | null>(null);
-  const [data, setData] = useState<ListingPublic | null>(null);
+  const [data, setData] = useState<ListingPublic | null>(initialCachedData);
   const [patentLoading, setPatentLoading] = useState(false);
   const [patentError, setPatentError] = useState<string | null>(null);
   const [patentData, setPatentData] = useState<Patent | null>(null);
@@ -104,6 +105,19 @@ export default function ListingDetailPage() {
   useEffect(() => {
     if (!listingId) return;
     setFavoritedState(isFavorited(listingId));
+  }, [listingId]);
+
+  useEffect(() => {
+    if (!listingId) {
+      setData(null);
+      setLoading(false);
+      setError(null);
+      return;
+    }
+    const cached = getDetailCache<ListingPublic>('listing-public', listingId);
+    setData(cached || null);
+    setLoading(!cached);
+    setError(null);
   }, [listingId]);
 
   const load = useCallback(async () => {

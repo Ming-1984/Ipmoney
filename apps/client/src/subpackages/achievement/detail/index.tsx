@@ -33,15 +33,29 @@ type Conversation = { id: string };
 export default function AchievementDetailPage() {
   const achievementId = useRouteUuidParam('achievementId') || '';
 
-  const [loading, setLoading] = useState(true);
+  const initialCachedData = achievementId ? getDetailCache<AchievementPublic>('achievement-public', achievementId) : null;
+  const [loading, setLoading] = useState(!initialCachedData);
   const [error, setError] = useState<string | null>(null);
-  const [data, setData] = useState<AchievementPublic | null>(null);
+  const [data, setData] = useState<AchievementPublic | null>(initialCachedData);
   const [consulting, setConsulting] = useState(false);
   const [favoritedState, setFavoritedState] = useState(false);
   const [activeTab, setActiveTab] = useState('overview');
   const [tabsStuck, setTabsStuck] = useState(false);
   const tabsOffsetTopRef = useRef<number | null>(null);
   const stickyTopRef = useRef<number>(0);
+
+  useEffect(() => {
+    if (!achievementId) {
+      setData(null);
+      setLoading(false);
+      setError(null);
+      return;
+    }
+    const cached = getDetailCache<AchievementPublic>('achievement-public', achievementId);
+    setData(cached || null);
+    setLoading(!cached);
+    setError(null);
+  }, [achievementId]);
 
   const load = useCallback(async () => {
     if (!achievementId) return;

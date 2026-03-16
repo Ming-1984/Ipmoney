@@ -21,10 +21,24 @@ type OrganizationSummary = components['schemas']['OrganizationSummary'];
 export default function OrganizationDetailPage() {
   const orgUserId = useRouteUuidParam('orgUserId') || '';
 
-  const [loading, setLoading] = useState(true);
+  const initialCachedData = orgUserId ? getDetailCache<OrganizationSummary>('organization-summary', orgUserId) : null;
+  const [loading, setLoading] = useState(!initialCachedData);
   const [error, setError] = useState<string | null>(null);
-  const [data, setData] = useState<OrganizationSummary | null>(null);
+  const [data, setData] = useState<OrganizationSummary | null>(initialCachedData);
   const [activeTab, setActiveTab] = useState('org-overview');
+
+  useEffect(() => {
+    if (!orgUserId) {
+      setData(null);
+      setLoading(false);
+      setError(null);
+      return;
+    }
+    const cached = getDetailCache<OrganizationSummary>('organization-summary', orgUserId);
+    setData(cached || null);
+    setLoading(!cached);
+    setError(null);
+  }, [orgUserId]);
 
   const load = useCallback(async () => {
     if (!orgUserId) return;

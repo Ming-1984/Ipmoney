@@ -29,9 +29,23 @@ type DetailMeta = {
 export default function TechManagerDetailPage() {
   const techManagerId = useRouteUuidParam('techManagerId') || '';
 
-  const [loading, setLoading] = useState(true);
+  const initialCachedData = techManagerId ? getDetailCache<TechManagerPublic>('tech-manager-public', techManagerId) : null;
+  const [loading, setLoading] = useState(!initialCachedData);
   const [error, setError] = useState<string | null>(null);
-  const [data, setData] = useState<TechManagerPublic | null>(null);
+  const [data, setData] = useState<TechManagerPublic | null>(initialCachedData);
+
+  useEffect(() => {
+    if (!techManagerId) {
+      setData(null);
+      setLoading(false);
+      setError(null);
+      return;
+    }
+    const cached = getDetailCache<TechManagerPublic>('tech-manager-public', techManagerId);
+    setData(cached || null);
+    setLoading(!cached);
+    setError(null);
+  }, [techManagerId]);
 
   const load = useCallback(async () => {
     if (!techManagerId) return;
