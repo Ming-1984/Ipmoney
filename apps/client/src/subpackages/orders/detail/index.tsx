@@ -83,10 +83,11 @@ function refundStatusLabel(status?: string | null): string {
 export default function OrderDetailPage() {
   const orderId = useRouteStringParam('orderId') || '';
   const loadedOnceRef = useRef(false);
+  const initialCachedOrder = orderId ? getDetailCache<OrderDetail>(ORDER_DETAIL_CACHE_SCOPE, orderId) : null;
 
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(!initialCachedOrder);
   const [error, setError] = useState<string | null>(null);
-  const [order, setOrder] = useState<OrderDetail | null>(null);
+  const [order, setOrder] = useState<OrderDetail | null>(initialCachedOrder);
   const [activeTab, setActiveTab] = useState('order-overview');
 
   const [caseLoading, setCaseLoading] = useState(false);
@@ -210,6 +211,15 @@ export default function OrderDetailPage() {
     setInvoiceRequested(false);
     setRefundsReady(false);
     setInvoiceChecked(false);
+    setError(null);
+    if (!orderId) {
+      setOrder(null);
+      setLoading(false);
+      return;
+    }
+    const cached = getDetailCache<OrderDetail>(ORDER_DETAIL_CACHE_SCOPE, orderId);
+    setOrder(cached || null);
+    setLoading(!cached);
   }, [orderId]);
 
   useEffect(() => {

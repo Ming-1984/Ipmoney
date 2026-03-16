@@ -80,7 +80,7 @@ export default function NotificationsPage() {
   const filteredItems = useMemo(() => {
     return (items || []).filter((item) => item.kind === activeTab);
   }, [items, activeTab]);
-  const showInitialLoading = loading && filteredItems.length === 0;
+  const showInitialLoading = loading && items.length === 0;
 
   return (
     <View className="container notifications-page">
@@ -91,7 +91,7 @@ export default function NotificationsPage() {
         access={access}
         loading={showInitialLoading}
         error={error}
-        empty={!showInitialLoading && !error && !filteredItems.length}
+        empty={!showInitialLoading && !error && !items.length}
         emptyTitle="暂无通知"
         emptyMessage="稍后有新消息会展示在这里。"
         onRetry={reloadData}

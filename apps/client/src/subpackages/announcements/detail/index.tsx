@@ -38,9 +38,12 @@ function formatDate(value?: string): string {
 
 export default function AnnouncementDetailPage() {
   const announcementId = useRouteUuidParam('announcementId');
-  const [loading, setLoading] = useState(true);
+  const initialCachedData = announcementId
+    ? getDetailCache<AnnouncementDetail>(ANNOUNCEMENT_DETAIL_CACHE_SCOPE, announcementId)
+    : null;
+  const [loading, setLoading] = useState(!initialCachedData);
   const [error, setError] = useState<string | null>(null);
-  const [data, setData] = useState<AnnouncementDetail | null>(null);
+  const [data, setData] = useState<AnnouncementDetail | null>(initialCachedData);
 
   const load = useCallback(async (options?: { silent?: boolean }) => {
     if (!announcementId) return;
@@ -73,9 +76,15 @@ export default function AnnouncementDetailPage() {
   }, [announcementId]);
 
   useEffect(() => {
-    setLoading(true);
     setError(null);
-    setData(null);
+    if (!announcementId) {
+      setData(null);
+      setLoading(false);
+      return;
+    }
+    const cached = getDetailCache<AnnouncementDetail>(ANNOUNCEMENT_DETAIL_CACHE_SCOPE, announcementId);
+    setData(cached || null);
+    setLoading(!cached);
   }, [announcementId]);
 
   useEffect(() => {

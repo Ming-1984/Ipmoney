@@ -22,9 +22,10 @@ const NOTIFICATION_CACHE_SCOPE = 'notification-detail';
 export default function NotificationDetailPage() {
   const id = useRouteStringParam('id');
   const loadedOnceRef = useRef(false);
-  const [loading, setLoading] = useState(true);
+  const initialCachedItem = id ? getDetailCache<NotificationItem>(NOTIFICATION_CACHE_SCOPE, id) : null;
+  const [loading, setLoading] = useState(!initialCachedItem);
   const [error, setError] = useState<string | null>(null);
-  const [item, setItem] = useState<NotificationItem | null>(null);
+  const [item, setItem] = useState<NotificationItem | null>(initialCachedItem);
 
   const load = useCallback(async (options?: { silent?: boolean }) => {
     const silent = Boolean(options?.silent);
@@ -77,9 +78,15 @@ export default function NotificationDetailPage() {
 
   useEffect(() => {
     loadedOnceRef.current = false;
-    setItem(null);
     setError(null);
-    setLoading(true);
+    if (!id) {
+      setItem(null);
+      setLoading(false);
+      return;
+    }
+    const cached = getDetailCache<NotificationItem>(NOTIFICATION_CACHE_SCOPE, id);
+    setItem(cached || null);
+    setLoading(!cached);
   }, [id]);
 
   useEffect(() => {
