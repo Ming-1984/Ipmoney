@@ -6,6 +6,7 @@ import './index.scss';
 import type { components } from '@ipmoney/api-types';
 
 import { apiGet, apiPost } from '../../../lib/api';
+import { getDetailCache, setDetailCache } from '../../../lib/detailCache';
 import { ensureApproved, usePageAccess } from '../../../lib/guard';
 import { formatTimeSmart } from '../../../lib/format';
 import { orderStatusLabel, orderStatusTagClass } from '../../../lib/labels';
@@ -33,6 +34,7 @@ type OrderInvoice = components['schemas']['OrderInvoice'];
 
 const REFUNDABLE_STATUSES = new Set<OrderBase['status']>(['DEPOSIT_PAID', 'WAIT_FINAL_PAYMENT', 'FINAL_PAID_ESCROW']);
 const BLOCKING_REFUND_REQUEST_STATUSES = new Set<RefundRequest['status']>(['PENDING', 'APPROVED', 'REFUNDING']);
+const ORDER_DETAIL_CACHE_SCOPE = 'order-detail';
 const REFUND_REASON_OPTIONS: Array<{ label: string; value: RefundReasonCode }> = [
   { label: '改主意', value: 'BUYER_CHANGED_MIND' },
   { label: '卖家材料', value: 'SELLER_MISSING_MATERIALS' },
@@ -111,16 +113,22 @@ export default function OrderDetailPage() {
   const load = useCallback(async (options?: { silent?: boolean }): Promise<OrderDetail | null> => {
     const silent = Boolean(options?.silent);
     if (!orderId) return null;
-    if (!silent) {
+    const cached = silent ? null : getDetailCache<OrderDetail>(ORDER_DETAIL_CACHE_SCOPE, orderId);
+    if (cached) {
+      setOrder(cached);
+      setLoading(false);
+      setError(null);
+    } else if (!silent) {
       setLoading(true);
       setError(null);
     }
     try {
       const d = await apiGet<OrderDetail>(`/orders/${orderId}`);
       setOrder(d);
+      setDetailCache(ORDER_DETAIL_CACHE_SCOPE, orderId, d);
       return d;
     } catch (e: any) {
-      if (!silent) {
+      if (!silent && !cached) {
         setError(e?.message || '加载失败');
         setOrder(null);
       }
@@ -341,6 +349,7 @@ export default function OrderDetailPage() {
     setActiveTab(id);
     Taro.pageScrollTo({ selector: `#${id}`, duration: 300 });
   }, []);
+  const showInitialLoading = loading && !order;
 
   if (!orderId) {
     return (
@@ -357,7 +366,7 @@ export default function OrderDetailPage() {
 
       {access.state !== 'ok' ? (
         <AccessGate access={access} />
-      ) : loading ? (
+      ) : showInitialLoading ? (
         <LoadingCard />
       ) : error ? (
         <ErrorCard message={error} onRetry={load} />

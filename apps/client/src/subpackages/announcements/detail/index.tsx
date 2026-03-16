@@ -4,12 +4,13 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import './index.scss';
 
 import { apiGet } from '../../../lib/api';
+import { getDetailCache, setDetailCache } from '../../../lib/detailCache';
 import { formatTimeSmart } from '../../../lib/format';
 import { sanitizeIndustryTagNames } from '../../../lib/industryTags';
 import { useRouteUuidParam } from '../../../lib/routeParams';
+import { Button, toast } from '../../../ui/nutui';
 import { PageHeader, Spacer, Surface } from '../../../ui/layout';
 import { EmptyCard, ErrorCard, LoadingCard, MissingParamCard } from '../../../ui/StateCards';
-import { Button, toast } from '../../../ui/nutui';
 
 type AnnouncementDetail = {
   id: string;
@@ -22,6 +23,8 @@ type AnnouncementDetail = {
   sourceUrl?: string;
   relatedPatents?: { name: string; patentNo: string }[];
 };
+
+const ANNOUNCEMENT_DETAIL_CACHE_SCOPE = 'announcement-detail';
 
 function formatDate(value?: string): string {
   if (!value) return '-';
@@ -39,19 +42,40 @@ export default function AnnouncementDetailPage() {
   const [error, setError] = useState<string | null>(null);
   const [data, setData] = useState<AnnouncementDetail | null>(null);
 
-  const load = useCallback(async () => {
+  const load = useCallback(async (options?: { silent?: boolean }) => {
     if (!announcementId) return;
-    setLoading(true);
-    setError(null);
+    const silent = Boolean(options?.silent);
+
+    const cached = silent ? null : getDetailCache<AnnouncementDetail>(ANNOUNCEMENT_DETAIL_CACHE_SCOPE, announcementId);
+    if (cached) {
+      setData(cached);
+      setLoading(false);
+      setError(null);
+    } else if (!silent) {
+      setLoading(true);
+      setError(null);
+    }
+
     try {
       const d = await apiGet<AnnouncementDetail>(`/public/announcements/${announcementId}`);
-      setData({ ...d, tags: sanitizeIndustryTagNames(d?.tags) });
+      const normalized = { ...d, tags: sanitizeIndustryTagNames(d?.tags) };
+      setData(normalized);
+      setDetailCache(ANNOUNCEMENT_DETAIL_CACHE_SCOPE, announcementId, normalized);
+      if (!silent) setError(null);
     } catch (e: any) {
-      setError(e?.message || '加载失败');
-      setData(null);
+      if (!silent && !cached) {
+        setError(e?.message || '加载失败');
+        setData(null);
+      }
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
+  }, [announcementId]);
+
+  useEffect(() => {
+    setLoading(true);
+    setError(null);
+    setData(null);
   }, [announcementId]);
 
   useEffect(() => {
@@ -77,15 +101,22 @@ export default function AnnouncementDetailPage() {
     );
   }
 
+  const showInitialLoading = loading && !data;
+
   return (
     <View className="container announcement-detail-page">
       <PageHeader weapp back title="公告详情" subtitle="挂牌清单与公告信息" />
       <Spacer />
 
-      {loading ? (
+      {showInitialLoading ? (
         <LoadingCard text="公告加载中" />
       ) : error ? (
-        <ErrorCard message={error} onRetry={load} />
+        <ErrorCard
+          message={error}
+          onRetry={() => {
+            void load();
+          }}
+        />
       ) : !data ? (
         <EmptyCard message="未找到公告详情" actionText="返回" onAction={() => Taro.navigateBack()} />
       ) : (
@@ -150,9 +181,7 @@ export default function AnnouncementDetailPage() {
             </Surface>
           ) : null}
 
-          {data.publishedAt ? (
-            <Text className="announcement-detail-time">更新时间：{formatTimeSmart(data.publishedAt)}</Text>
-          ) : null}
+          {data.publishedAt ? <Text className="announcement-detail-time">更新时间：{formatTimeSmart(data.publishedAt)}</Text> : null}
         </>
       )}
     </View>
