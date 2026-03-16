@@ -5,6 +5,7 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import './index.scss';
 
 import { apiGet, apiPost } from '../../../lib/api';
+import { getDetailCache, setDetailCache } from '../../../lib/detailCache';
 import { ensureApproved } from '../../../lib/guard';
 import { fenToYuan } from '../../../lib/money';
 import { safeNavigateBack } from '../../../lib/navigation';
@@ -39,12 +40,53 @@ type PaymentIntentResponse = {
 };
 
 type MiniProgramPayGuideComponent = React.ComponentType<MiniProgramPayGuideProps>;
+const CHECKOUT_TARGET_CACHE_SCOPE = 'checkout-target';
+
+function checkoutTargetCacheKey(listingId: string, artworkId: string): string {
+  if (listingId) return `listing:${listingId}`;
+  if (artworkId) return `artwork:${artworkId}`;
+  return '';
+}
+
+function toPayTarget(raw: unknown): PayTarget | null {
+  if (!raw || typeof raw !== 'object') return null;
+  const value = raw as Record<string, unknown>;
+  const id = String(value.id || '').trim();
+  if (!id) return null;
+  const depositAmountFen = Number(value.depositAmountFen);
+  if (!Number.isFinite(depositAmountFen)) return null;
+  const priceType = value.priceType === 'NEGOTIABLE' ? 'NEGOTIABLE' : 'FIXED';
+  const priceAmountFen =
+    typeof value.priceAmountFen === 'number' && Number.isFinite(value.priceAmountFen)
+      ? value.priceAmountFen
+      : undefined;
+  return {
+    id,
+    title: String(value.title || '').trim() || '未命名内容',
+    depositAmountFen,
+    priceType,
+    priceAmountFen,
+  };
+}
+
+function readCachedPayTarget(listingId: string, artworkId: string): PayTarget | null {
+  const targetCacheKey = checkoutTargetCacheKey(listingId, artworkId);
+  if (targetCacheKey) {
+    const cached = getDetailCache<PayTarget>(CHECKOUT_TARGET_CACHE_SCOPE, targetCacheKey);
+    if (cached) return cached;
+  }
+  if (listingId) return toPayTarget(getDetailCache<unknown>('listing-public', listingId));
+  if (artworkId) return toPayTarget(getDetailCache<unknown>('artwork-public', artworkId));
+  return null;
+}
 
 export default function DepositPayPage() {
   const listingId = useRouteUuidParam('listingId') || '';
   const artworkId = useRouteUuidParam('artworkId') || '';
   const env = useMemo(() => Taro.getEnv(), []);
   const isH5 = env === Taro.ENV_TYPE.WEB;
+  const targetCacheKey = checkoutTargetCacheKey(listingId, artworkId);
+  const initialCachedTarget = readCachedPayTarget(listingId, artworkId);
 
   if (!listingId && !artworkId) {
     return (
@@ -54,26 +96,41 @@ export default function DepositPayPage() {
     );
   }
 
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(!initialCachedTarget);
   const [error, setError] = useState<string | null>(null);
-  const [target, setTarget] = useState<PayTarget | null>(null);
+  const [target, setTarget] = useState<PayTarget | null>(initialCachedTarget);
   const [paying, setPaying] = useState(false);
   const [PayGuide, setPayGuide] = useState<MiniProgramPayGuideComponent | null>(null);
 
-  const load = useCallback(async () => {
-    setLoading(true);
+  useEffect(() => {
+    const cached = readCachedPayTarget(listingId, artworkId);
+    setTarget(cached);
+    setLoading(!cached);
     setError(null);
+  }, [artworkId, listingId]);
+
+  const load = useCallback(async () => {
+    const cached = readCachedPayTarget(listingId, artworkId);
+    if (cached) {
+      setTarget(cached);
+      setLoading(false);
+      setError(null);
+    } else {
+      setLoading(true);
+      setError(null);
+    }
     try {
       const endpoint = listingId ? `/public/listings/${listingId}` : `/public/artworks/${artworkId}`;
       const d = await apiGet<PayTarget>(endpoint);
       setTarget(d);
+      if (targetCacheKey) setDetailCache(CHECKOUT_TARGET_CACHE_SCOPE, targetCacheKey, d);
     } catch (e: any) {
       setError(e?.message || '加载失败');
-      setTarget(null);
+      if (!cached) setTarget(null);
     } finally {
       setLoading(false);
     }
-  }, [artworkId, listingId]);
+  }, [artworkId, listingId, targetCacheKey]);
 
   useEffect(() => {
     void load();

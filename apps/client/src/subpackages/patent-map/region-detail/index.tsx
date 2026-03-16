@@ -5,6 +5,7 @@ import './index.scss';
 import type { components } from '@ipmoney/api-types';
 
 import { apiGet } from '../../../lib/api';
+import { getDetailCache, setDetailCache } from '../../../lib/detailCache';
 import { formatTimeSmart } from '../../../lib/format';
 import { isVisibleIndustryTagName } from '../../../lib/industryTags';
 import { safeNavigateBack } from '../../../lib/navigation';
@@ -14,29 +15,53 @@ import { CellGroup, Space, Tag } from '../../../ui/nutui';
 import { EmptyCard, ErrorCard, LoadingCard, MissingParamCard } from '../../../ui/StateCards';
 
 type PatentMapRegionDetail = components['schemas']['PatentMapRegionDetail'];
+const REGION_DETAIL_CACHE_SCOPE = 'patent-map-region-detail';
 
 export default function PatentMapRegionDetailPage() {
   const regionCode = useRouteStringParam('regionCode') || '';
   const year = useRouteNumberParam('year') || 0;
+  const cacheKey = regionCode && year ? `${regionCode}-${year}` : '';
+  const initialCachedData = cacheKey ? getDetailCache<PatentMapRegionDetail>(REGION_DETAIL_CACHE_SCOPE, cacheKey) : null;
 
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(!initialCachedData);
   const [error, setError] = useState<string | null>(null);
-  const [data, setData] = useState<PatentMapRegionDetail | null>(null);
+  const [data, setData] = useState<PatentMapRegionDetail | null>(initialCachedData);
+
+  useEffect(() => {
+    if (!cacheKey) {
+      setLoading(false);
+      setError(null);
+      setData(null);
+      return;
+    }
+    const cached = getDetailCache<PatentMapRegionDetail>(REGION_DETAIL_CACHE_SCOPE, cacheKey);
+    setData(cached || null);
+    setLoading(!cached);
+    setError(null);
+  }, [cacheKey]);
 
   const load = useCallback(async () => {
     if (!regionCode || !year) return;
-    setLoading(true);
-    setError(null);
+    const cached = cacheKey ? getDetailCache<PatentMapRegionDetail>(REGION_DETAIL_CACHE_SCOPE, cacheKey) : null;
+    if (cached) {
+      setData(cached);
+      setLoading(false);
+      setError(null);
+    } else {
+      setLoading(true);
+      setError(null);
+    }
     try {
       const d = await apiGet<PatentMapRegionDetail>(`/patent-map/regions/${regionCode}`, { year });
       setData(d);
+      if (cacheKey) setDetailCache(REGION_DETAIL_CACHE_SCOPE, cacheKey, d);
     } catch (e: any) {
       setError(e?.message || '加载失败');
       setData(null);
     } finally {
       setLoading(false);
     }
-  }, [regionCode, year]);
+  }, [cacheKey, regionCode, year]);
 
   useEffect(() => {
     void load();

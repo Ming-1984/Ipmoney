@@ -39,14 +39,15 @@ export default function ProfileEditPage() {
   const nextUrl = useMemo(() => normalizePageUrl(rawNextUrl), [rawNextUrl]);
   const verifyType = String((params as any)?.verifyType || '').trim();
   const isOnboarding = from === 'login';
+  const initialCachedProfile = getDetailCache<UserProfile>(PROFILE_CACHE_SCOPE, PROFILE_CACHE_KEY);
 
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(!initialCachedProfile);
   const [error, setError] = useState<string | null>(null);
-  const [me, setMe] = useState<UserProfile | null>(null);
+  const [me, setMe] = useState<UserProfile | null>(initialCachedProfile);
 
-  const [avatarUrl, setAvatarUrl] = useState('');
-  const [nickname, setNickname] = useState('');
-  const [regionCode, setRegionCode] = useState('');
+  const [avatarUrl, setAvatarUrl] = useState(initialCachedProfile?.avatarUrl || '');
+  const [nickname, setNickname] = useState(initialCachedProfile?.nickname || '');
+  const [regionCode, setRegionCode] = useState(initialCachedProfile?.regionCode || '');
   const [regionName, setRegionName] = useState('');
 
   const goNext = useCallback(() => {

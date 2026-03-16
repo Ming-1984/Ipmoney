@@ -4,6 +4,7 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import './index.scss';
 
 import { apiGet, apiPost } from '../../../lib/api';
+import { getDetailCache, setDetailCache } from '../../../lib/detailCache';
 import { ensureApproved } from '../../../lib/guard';
 import { fenToYuan } from '../../../lib/money';
 import { safeNavigateBack } from '../../../lib/navigation';
@@ -37,26 +38,49 @@ type PaymentIntentResponse = {
 };
 
 type MiniProgramPayGuideComponent = React.ComponentType<MiniProgramPayGuideProps>;
+const ORDER_DETAIL_CACHE_SCOPE = 'order-detail';
 
 export default function FinalPayPage() {
   const orderId = useRouteStringParam('orderId') || '';
   const env = useMemo(() => Taro.getEnv(), []);
   const isH5 = env === Taro.ENV_TYPE.WEB;
+  const initialCachedOrder = orderId ? getDetailCache<Order>(ORDER_DETAIL_CACHE_SCOPE, orderId) : null;
 
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(!initialCachedOrder);
   const [error, setError] = useState<string | null>(null);
-  const [order, setOrder] = useState<Order | null>(null);
+  const [order, setOrder] = useState<Order | null>(initialCachedOrder);
   const [paying, setPaying] = useState(false);
   const [PayGuide, setPayGuide] = useState<MiniProgramPayGuideComponent | null>(null);
   const canPayFinal = order?.status === 'WAIT_FINAL_PAYMENT';
 
+  useEffect(() => {
+    if (!orderId) {
+      setOrder(null);
+      setLoading(false);
+      setError(null);
+      return;
+    }
+    const cached = getDetailCache<Order>(ORDER_DETAIL_CACHE_SCOPE, orderId);
+    setOrder(cached || null);
+    setLoading(!cached);
+    setError(null);
+  }, [orderId]);
+
   const load = useCallback(async () => {
     if (!orderId) return;
-    setLoading(true);
-    setError(null);
+    const cached = getDetailCache<Order>(ORDER_DETAIL_CACHE_SCOPE, orderId);
+    if (cached) {
+      setOrder(cached);
+      setLoading(false);
+      setError(null);
+    } else {
+      setLoading(true);
+      setError(null);
+    }
     try {
       const d = await apiGet<Order>(`/orders/${orderId}`);
       setOrder(d);
+      setDetailCache(ORDER_DETAIL_CACHE_SCOPE, orderId, d);
     } catch (e: any) {
       setError(e?.message || '加载失败');
       setOrder(null);

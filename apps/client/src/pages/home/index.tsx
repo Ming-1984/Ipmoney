@@ -110,15 +110,24 @@ function formatDate(value?: string): string {
 }
 
 export default function HomePage() {
-  const [loading, setLoading] = useState(true);
+  const initialAuthed = Boolean(getToken());
+  const initialListings = getDetailCache<PagedListingSummary>(
+    HOME_LISTINGS_CACHE_SCOPE,
+    initialAuthed ? 'recommend' : 'newest',
+  );
+  const initialAnnouncements = getDetailCache<PagedAnnouncements>(HOME_ANNOUNCEMENTS_CACHE_SCOPE, 'top6');
+
+  const [loading, setLoading] = useState(!initialListings);
   const [error, setError] = useState<string | null>(null);
-  const [data, setData] = useState<PagedListingSummary | null>(null);
-  const [recommendMode, setRecommendMode] = useState<'RECOMMEND' | 'NEWEST'>('NEWEST');
-  const [isAuthed, setIsAuthed] = useState(Boolean(getToken()));
+  const [data, setData] = useState<PagedListingSummary | null>(initialListings);
+  const [recommendMode, setRecommendMode] = useState<'RECOMMEND' | 'NEWEST'>(
+    initialAuthed ? 'RECOMMEND' : 'NEWEST',
+  );
+  const [isAuthed, setIsAuthed] = useState(initialAuthed);
   const [keyword, setKeyword] = useState('');
-  const [announcementLoading, setAnnouncementLoading] = useState(true);
+  const [announcementLoading, setAnnouncementLoading] = useState(!initialAnnouncements);
   const [announcementError, setAnnouncementError] = useState<string | null>(null);
-  const [announcements, setAnnouncements] = useState<PagedAnnouncements | null>(null);
+  const [announcements, setAnnouncements] = useState<PagedAnnouncements | null>(initialAnnouncements);
 
   const statusBarHeight = useMemo(() => {
     if (process.env.TARO_ENV !== 'weapp') return 0;

@@ -4,6 +4,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import './index.scss';
 
 import { apiGet, apiPatch } from '../../lib/api';
+import { getDetailCache, setDetailCache } from '../../lib/detailCache';
 import { usePageAccess } from '../../lib/guard';
 import { PageHeader, Spacer, Surface } from '../../ui/layout';
 import { Button, toast } from '../../ui/nutui';
@@ -19,12 +20,16 @@ type Address = {
   isDefault?: boolean;
 };
 
+const ADDRESS_CACHE_SCOPE = 'me-addresses';
+const ADDRESS_CACHE_KEY = 'list';
+
 export default function AddressManagePage() {
   const access = usePageAccess('login-required');
   const loadedOnceRef = useRef(false);
-  const [loading, setLoading] = useState(true);
+  const initialCachedAddresses = getDetailCache<Address[]>(ADDRESS_CACHE_SCOPE, ADDRESS_CACHE_KEY);
+  const [loading, setLoading] = useState(initialCachedAddresses === null);
   const [error, setError] = useState<string | null>(null);
-  const [addresses, setAddresses] = useState<Address[]>([]);
+  const [addresses, setAddresses] = useState<Address[]>(initialCachedAddresses || []);
 
   const addAddress = useCallback(() => {
     Taro.navigateTo({ url: '/subpackages/addresses/edit/index' });
@@ -32,13 +37,22 @@ export default function AddressManagePage() {
 
   const load = useCallback(async (options?: { silent?: boolean }) => {
     const silent = Boolean(options?.silent);
+    const cached = getDetailCache<Address[]>(ADDRESS_CACHE_SCOPE, ADDRESS_CACHE_KEY);
     if (!silent) {
-      setLoading(true);
-      setError(null);
+      if (cached !== null) {
+        setAddresses(cached);
+        setLoading(false);
+        setError(null);
+      } else {
+        setLoading(true);
+        setError(null);
+      }
     }
     try {
       const list = await apiGet<Address[]>('/me/addresses');
-      setAddresses(list || []);
+      const normalized = list || [];
+      setAddresses(normalized);
+      setDetailCache(ADDRESS_CACHE_SCOPE, ADDRESS_CACHE_KEY, normalized);
     } catch (e: any) {
       const message = e?.message || '加载失败';
       if (silent) {

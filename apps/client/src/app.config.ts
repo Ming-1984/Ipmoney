@@ -109,8 +109,6 @@
       network: 'all',
       packages: [
         'subpackages/search',
-        'subpackages/patent-map',
-        'subpackages/announcements',
         'subpackages/listing',
       ],
     },
