@@ -90,6 +90,7 @@ export default function ContractCenterPage() {
   }, [access.state, reload, activeTab]);
 
   const items = useMemo(() => rawItems.filter((it) => it.status === activeTab), [rawItems, activeTab]);
+  const showInitialLoading = loading && items.length === 0;
 
   const uploadContract = useCallback(async (item: ContractItem) => {
     if (!ensureApproved()) return;
@@ -98,9 +99,8 @@ export default function ContractCenterPage() {
       return;
     }
 
-    const isWeapp = process.env.TARO_ENV === 'weapp';
-    if (!isWeapp) {
-      toast('请在小程序上传 PDF 合同');
+    if (process.env.TARO_ENV !== 'weapp') {
+      toast('请在小程序中上传 PDF 合同');
       return;
     }
 
@@ -136,8 +136,8 @@ export default function ContractCenterPage() {
     } catch (e: any) {
       const errMsg = String(e?.errMsg || '').toLowerCase();
       if (errMsg.includes('cancel')) return;
-      // If upload isn't available, keep going with simulated upload.
-      contractFileId = null;
+      toast('上传失败，请重试');
+      return;
     }
 
     if (!contractFileId) {
@@ -156,7 +156,7 @@ export default function ContractCenterPage() {
     } catch (e: any) {
       toast(e?.message || '上传失败');
     }
-  }, []);
+  }, [reload]);
 
   const remindConfirm = useCallback((item: ContractItem) => {
     const url = item.fileUrl || '';
@@ -180,7 +180,7 @@ export default function ContractCenterPage() {
 
   return (
     <View className="container contracts-page">
-      <PageHeader weapp title="合同中心" subtitle="合同上传、确认与查阅集中管理" />
+      <PageHeader weapp title="合同中心" subtitle="合同上传、确认与查阅统一管理" />
       <Spacer />
 
       <View className="contract-tabs">
@@ -198,14 +198,14 @@ export default function ContractCenterPage() {
 
       <PageState
         access={access}
-        loading={loading}
+        loading={showInitialLoading}
         error={error}
-        empty={!loading && !error && items.length === 0}
+        empty={!showInitialLoading && !error && items.length === 0}
         emptyTitle="暂无合同"
-        emptyMessage="当前分类下暂无合同记录"
+        emptyMessage="当前分类下暂无合同记录。"
         onRetry={reload}
       >
-        <PullToRefresh type="primary" disabled={loading || refreshing} onRefresh={refresh}>
+        <PullToRefresh type="primary" disabled={showInitialLoading || refreshing} onRefresh={refresh}>
           <View className="contract-list">
             {items.map((item) => (
               <Surface key={item.id} className="contract-card" padding="none">
@@ -219,10 +219,10 @@ export default function ContractCenterPage() {
                   {item.listingTitle ? <Text className="muted clamp-1">交易标的：{item.listingTitle}</Text> : null}
                   {item.counterpartName ? <Text className="muted">对方：{item.counterpartName}</Text> : null}
                   <Text className="muted">关联订单：{item.orderId.slice(0, 8)}...</Text>
-                  <Text className="muted">合同时间：{formatTimeSmart(item.createdAt)}</Text>
+                  <Text className="muted">创建时间：{formatTimeSmart(item.createdAt)}</Text>
                   {item.uploadedAt ? <Text className="muted">上传时间：{formatTimeSmart(item.uploadedAt)}</Text> : null}
                   {item.signedAt ? <Text className="muted">确认时间：{formatTimeSmart(item.signedAt)}</Text> : null}
-                  <Text className="muted">水印：{item.watermarkOwner || '发布方'}</Text>
+                  <Text className="muted">水印归属：{item.watermarkOwner || '发布方'}</Text>
                 </View>
                 <View className="contract-actions">
                   <Button
@@ -261,7 +261,7 @@ export default function ContractCenterPage() {
             ))}
           </View>
 
-          {!loading && items.length ? (
+          {!showInitialLoading && items.length ? (
             <ListFooter loadingMore={loadingMore} hasMore={hasMore} onLoadMore={loadMore} showNoMore />
           ) : null}
         </PullToRefresh>

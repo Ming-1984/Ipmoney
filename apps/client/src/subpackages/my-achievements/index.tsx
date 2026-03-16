@@ -70,10 +70,10 @@ export default function MyAchievementsPage() {
 
   useEffect(() => {
     if (access.state !== 'ok') return;
-    if (loadedOnceRef.current) return;
     loadedOnceRef.current = true;
     void reload();
   }, [access.state, reload]);
+  const showInitialLoading = loading && items.length === 0;
 
   const goCreate = useCallback(() => {
     if (!ensureApproved()) return;
@@ -166,8 +166,8 @@ export default function MyAchievementsPage() {
 
       <View style={{ height: '16rpx' }} />
 
-      <PullToRefresh type="primary" disabled={loading || refreshing} onRefresh={refresh}>
-        {loading ? (
+      <PullToRefresh type="primary" disabled={showInitialLoading || refreshing} onRefresh={refresh}>
+        {showInitialLoading ? (
           <LoadingCard />
         ) : error ? (
           <ErrorCard message={error} onRetry={reload} />
@@ -230,7 +230,7 @@ export default function MyAchievementsPage() {
           <EmptyCard title="暂无成果" message="可先发布一条成果草稿。" actionText="刷新" onAction={reload} />
         )}
 
-        {!loading && items.length ? (
+        {!showInitialLoading && items.length ? (
           <ListFooter loadingMore={loadingMore} hasMore={hasMore} onLoadMore={loadMore} showNoMore />
         ) : null}
       </PullToRefresh>

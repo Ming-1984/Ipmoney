@@ -73,10 +73,10 @@ export default function MyDemandsPage() {
 
   useEffect(() => {
     if (access.state !== 'ok') return;
-    if (loadedOnceRef.current) return;
     loadedOnceRef.current = true;
     void reload();
   }, [access.state, reload]);
+  const showInitialLoading = loading && items.length === 0;
 
   const goCreate = useCallback(() => {
     if (!ensureApproved()) return;
@@ -169,8 +169,8 @@ export default function MyDemandsPage() {
 
       <View style={{ height: '16rpx' }} />
 
-      <PullToRefresh type="primary" disabled={loading || refreshing} onRefresh={refresh}>
-        {loading ? (
+      <PullToRefresh type="primary" disabled={showInitialLoading || refreshing} onRefresh={refresh}>
+        {showInitialLoading ? (
           <LoadingCard />
         ) : error ? (
           <ErrorCard message={error} onRetry={reload} />
@@ -234,7 +234,7 @@ export default function MyDemandsPage() {
           <EmptyCard title="暂无需求" message="可先发布一条需求草稿。" actionText="刷新" onAction={reload} />
         )}
 
-        {!loading && items.length ? (
+        {!showInitialLoading && items.length ? (
           <ListFooter loadingMore={loadingMore} hasMore={hasMore} onLoadMore={loadMore} showNoMore />
         ) : null}
       </PullToRefresh>

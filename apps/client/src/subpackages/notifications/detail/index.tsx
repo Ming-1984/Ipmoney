@@ -6,6 +6,7 @@ import './index.scss';
 import type { components } from '@ipmoney/api-types';
 
 import { apiGet } from '../../../lib/api';
+import { getDetailCache, setDetailCache } from '../../../lib/detailCache';
 import { formatTimeSmart } from '../../../lib/format';
 import { usePageAccess } from '../../../lib/guard';
 import { safeNavigateBack } from '../../../lib/navigation';
@@ -15,6 +16,8 @@ import { MissingParamCard } from '../../../ui/StateCards';
 import { PageHeader, Spacer, Surface } from '../../../ui/layout';
 
 type NotificationItem = components['schemas']['Notification'];
+
+const NOTIFICATION_CACHE_SCOPE = 'notification-detail';
 
 export default function NotificationDetailPage() {
   const id = useRouteStringParam('id');
@@ -33,15 +36,24 @@ export default function NotificationDetailPage() {
       }
       return;
     }
-    if (!silent) {
+
+    const cached = silent ? null : getDetailCache<NotificationItem>(NOTIFICATION_CACHE_SCOPE, id);
+    if (cached) {
+      setItem(cached);
+      setLoading(false);
+      setError(null);
+    } else if (!silent) {
       setLoading(true);
       setError(null);
     }
+
     try {
       const data = await apiGet<NotificationItem>(`/notifications/${id}`);
       setItem(data);
+      setDetailCache(NOTIFICATION_CACHE_SCOPE, id, data);
+      if (!silent) setError(null);
     } catch (e: any) {
-      if (!silent) {
+      if (!silent && !cached) {
         setError(e?.message || '加载失败');
         setItem(null);
       }
@@ -52,7 +64,7 @@ export default function NotificationDetailPage() {
 
   const access = usePageAccess('login-required', (next) => {
     if (next.state === 'ok') {
-      if (loadedOnceRef.current) {
+      if (loadedOnceRef.current && id) {
         void load({ silent: true });
       }
       return;
@@ -64,11 +76,18 @@ export default function NotificationDetailPage() {
   });
 
   useEffect(() => {
+    loadedOnceRef.current = false;
+    setItem(null);
+    setError(null);
+    setLoading(true);
+  }, [id]);
+
+  useEffect(() => {
     if (access.state !== 'ok') return;
-    if (loadedOnceRef.current) return;
+    if (!id) return;
     loadedOnceRef.current = true;
     void load();
-  }, [access.state, load]);
+  }, [access.state, id, load]);
 
   if (!id) {
     return (
@@ -80,6 +99,8 @@ export default function NotificationDetailPage() {
     );
   }
 
+  const showInitialLoading = loading && !item;
+
   return (
     <View className="container notification-detail-page">
       <PageHeader weapp back title="通知详情" subtitle="系统与客服消息" />
@@ -87,14 +108,16 @@ export default function NotificationDetailPage() {
 
       <PageState
         access={access}
-        loading={loading}
+        loading={showInitialLoading}
         error={error}
-        empty={!loading && !error && !item}
+        empty={!showInitialLoading && !error && !item}
         emptyTitle="未找到对应通知"
         emptyMessage="通知可能已被清理或不存在。"
         emptyActionText="返回"
-        onEmptyAction={() => Taro.navigateBack()}
-        onRetry={load}
+        onEmptyAction={() => void safeNavigateBack()}
+        onRetry={() => {
+          void load();
+        }}
       >
         {item ? (
           <Surface className="notification-detail-card" padding="none">

@@ -63,8 +63,6 @@ export default function NotificationsPage() {
     if (next.state === 'ok') {
       if (loadedOnceRef.current) {
         void refreshData();
-      } else {
-        void reloadData();
       }
       return;
     }
@@ -72,9 +70,17 @@ export default function NotificationsPage() {
     reset();
   });
 
+  useEffect(() => {
+    if (access.state !== 'ok') return;
+    if (loadedOnceRef.current) return;
+    loadedOnceRef.current = true;
+    void reloadData();
+  }, [access.state, reloadData]);
+
   const filteredItems = useMemo(() => {
     return (items || []).filter((item) => item.kind === activeTab);
   }, [items, activeTab]);
+  const showInitialLoading = loading && filteredItems.length === 0;
 
   return (
     <View className="container notifications-page">
@@ -83,14 +89,14 @@ export default function NotificationsPage() {
 
       <PageState
         access={access}
-        loading={loading}
+        loading={showInitialLoading}
         error={error}
-        empty={!loading && !error && !items.length}
+        empty={!showInitialLoading && !error && !filteredItems.length}
         emptyTitle="暂无通知"
         emptyMessage="稍后有新消息会展示在这里。"
         onRetry={reloadData}
       >
-        <PullToRefresh type="primary" disabled={loading || refreshing} onRefresh={refreshData}>
+        <PullToRefresh type="primary" disabled={showInitialLoading || refreshing} onRefresh={refreshData}>
           <View className="notifications-tabs">
             {TABS.map((tab) => (
               <View
@@ -127,6 +133,7 @@ export default function NotificationsPage() {
                 <Text className="notification-source">{item.source}</Text>
               </Surface>
             ))}
+
             {!filteredItems.length ? (
               <Surface className="notification-empty" padding="none">
                 <Text className="notification-empty-title">暂无通知</Text>
@@ -135,7 +142,7 @@ export default function NotificationsPage() {
             ) : null}
           </View>
 
-          {!loading && items.length ? (
+          {!showInitialLoading && filteredItems.length ? (
             <ListFooter loadingMore={loadingMore} hasMore={hasMore} onLoadMore={loadMore} showNoMore />
           ) : null}
         </PullToRefresh>

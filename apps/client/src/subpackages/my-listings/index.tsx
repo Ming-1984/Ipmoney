@@ -58,10 +58,10 @@ export default function MyListingsPage() {
 
   useEffect(() => {
     if (access.state !== 'ok') return;
-    if (loadedOnceRef.current) return;
     loadedOnceRef.current = true;
     void reload();
   }, [access.state, reload]);
+  const showInitialLoading = loading && items.length === 0;
 
   const goCreate = useCallback(() => {
     if (!ensureApproved()) return;
@@ -155,8 +155,8 @@ export default function MyListingsPage() {
 
       <View style={{ height: '16rpx' }} />
 
-      <PullToRefresh type="primary" disabled={loading || refreshing} onRefresh={refresh}>
-        {loading ? (
+      <PullToRefresh type="primary" disabled={showInitialLoading || refreshing} onRefresh={refresh}>
+        {showInitialLoading ? (
           <LoadingCard />
         ) : error ? (
           <ErrorCard message={error} onRetry={reload} />
@@ -216,7 +216,7 @@ export default function MyListingsPage() {
           <EmptyCard message="暂无上架记录" actionText="刷新" onAction={reload} />
         )}
 
-        {!loading && items.length ? (
+        {!showInitialLoading && items.length ? (
           <ListFooter loadingMore={loadingMore} hasMore={hasMore} onLoadMore={loadMore} showNoMore />
         ) : null}
       </PullToRefresh>

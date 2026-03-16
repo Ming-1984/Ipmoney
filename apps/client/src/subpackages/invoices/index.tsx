@@ -104,6 +104,7 @@ export default function InvoiceCenterPage() {
     }
     return list.filter((it) => it.invoiceStatus === activeTab);
   }, [rawItems, activeTab]);
+  const showInitialLoading = loading && items.length === 0;
 
   const copyInvoiceLink = useCallback((item: InvoiceItem) => {
     const url = item.invoiceFileUrl || '';
@@ -135,15 +136,15 @@ export default function InvoiceCenterPage() {
 
       <PageState
         access={access}
-        loading={loading}
+        loading={showInitialLoading}
         error={error}
-        empty={!loading && !error && items.length === 0}
+        empty={!showInitialLoading && !error && items.length === 0}
         emptyTitle="暂无发票"
         emptyMessage="当前分类下暂无发票记录。"
         emptyImage={emptyInvoices}
         onRetry={reload}
       >
-        <PullToRefresh type="primary" disabled={loading || refreshing} onRefresh={refresh}>
+        <PullToRefresh type="primary" disabled={showInitialLoading || refreshing} onRefresh={refresh}>
           <View className="invoice-list">
             {items.map((item) => (
               <Surface key={item.id} className="invoice-card" padding="none">
@@ -184,7 +185,7 @@ export default function InvoiceCenterPage() {
             ))}
           </View>
 
-          {!loading && items.length ? (
+          {!showInitialLoading && items.length ? (
             <ListFooter loadingMore={loadingMore} hasMore={hasMore} onLoadMore={loadMore} showNoMore />
           ) : null}
         </PullToRefresh>
