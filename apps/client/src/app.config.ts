@@ -112,12 +112,11 @@
         'subpackages/patent-map',
         'subpackages/announcements',
         'subpackages/listing',
-        'subpackages',
       ],
     },
     'pages/tech-managers/index': {
       network: 'all',
-      packages: ['subpackages/organizations', 'subpackages'],
+      packages: ['subpackages/organizations'],
     },
     'pages/messages/index': {
       network: 'all',
@@ -125,7 +124,7 @@
     },
     'pages/me/index': {
       network: 'all',
-      packages: ['subpackages/orders', 'subpackages/publish', 'subpackages/checkout', 'subpackages/favorites', 'subpackages'],
+      packages: ['subpackages/orders', 'subpackages/publish', 'subpackages/checkout', 'subpackages/favorites'],
     },
   },
   window: {

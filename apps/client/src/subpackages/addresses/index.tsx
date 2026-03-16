@@ -68,6 +68,7 @@ export default function AddressManagePage() {
   useDidShow(() => {
     if (access.state !== 'ok') return;
     if (!loadedOnceRef.current) return;
+    if (loading) return;
     void load({ silent: true });
   });
 

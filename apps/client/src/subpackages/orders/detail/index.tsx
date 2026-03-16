@@ -100,6 +100,7 @@ export default function OrderDetailPage() {
   const [invoiceLoading, setInvoiceLoading] = useState(false);
   const [invoiceError, setInvoiceError] = useState<string | null>(null);
   const [invoice, setInvoice] = useState<OrderInvoice | null>(null);
+  const [invoiceChecked, setInvoiceChecked] = useState(false);
   const [invoiceRequesting, setInvoiceRequesting] = useState(false);
   const [invoiceRequested, setInvoiceRequested] = useState(false);
 
@@ -175,6 +176,7 @@ export default function OrderDetailPage() {
       setInvoiceLoading(false);
       setInvoiceError(null);
       setInvoice(null);
+      setInvoiceChecked(true);
       return;
     }
     setInvoiceLoading(true);
@@ -193,6 +195,7 @@ export default function OrderDetailPage() {
       }
     } finally {
       setInvoiceLoading(false);
+      setInvoiceChecked(true);
     }
   }, [canFetchInvoiceDetail, orderId]);
 
@@ -206,20 +209,23 @@ export default function OrderDetailPage() {
     loadedOnceRef.current = false;
     setInvoiceRequested(false);
     setRefundsReady(false);
+    setInvoiceChecked(false);
   }, [orderId]);
 
   useEffect(() => {
     setInvoice(null);
     setInvoiceError(null);
-  }, [order?.invoiceFileId, orderId]);
+    setInvoiceChecked(false);
+  }, [order?.invoiceFileId, order?.invoiceNo, order?.invoiceIssuedAt, orderId]);
 
   useEffect(() => {
     if (activeTab !== 'order-invoice') return;
     if (!canFetchInvoiceDetail) return;
     if (invoiceLoading) return;
+    if (invoiceChecked) return;
     if (invoice || invoiceError) return;
     void loadInvoice();
-  }, [activeTab, canFetchInvoiceDetail, invoice, invoiceError, invoiceLoading, loadInvoice]);
+  }, [activeTab, canFetchInvoiceDetail, invoice, invoiceError, invoiceLoading, invoiceChecked, loadInvoice]);
 
   const access = usePageAccess('approved-required', (a) => {
     if (a.state === 'ok') {
@@ -258,6 +264,7 @@ export default function OrderDetailPage() {
     try {
       await apiPost(`/orders/${orderId}/invoice-requests`, {}, { idempotencyKey: `invoice-${orderId}` });
       setInvoiceRequested(true);
+      setInvoiceChecked(false);
       toast('已提交开票申请', { icon: 'success' });
       void load();
     } catch (e: any) {
@@ -501,7 +508,12 @@ export default function OrderDetailPage() {
           <View style={{ height: '16rpx' }} />
 
           <Surface>
-            <Text className="text-card-title">发票</Text>
+            <View className="row-between" style={{ gap: '12rpx' }}>
+              <Text className="text-card-title">发票</Text>
+              <Button variant="ghost" size="small" disabled={invoiceLoading || !canFetchInvoiceDetail} onClick={() => void loadInvoice()}>
+                刷新
+              </Button>
+            </View>
             <View style={{ height: '10rpx' }} />
             <View id="order-invoice" />
             {invoiceLoading ? (
