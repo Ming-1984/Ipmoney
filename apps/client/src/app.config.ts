@@ -9,67 +9,164 @@
   lazyCodeLoading: 'requiredComponents',
   subPackages: [
     {
-      root: 'subpackages',
-      pages: [
-        'search/index',
-        'patent-map/index',
-        'patent-map/region-detail/index',
-        'patent/detail/index',
-        'patent/detail/summary/index',
-        'patent/detail/info/index',
-        'patent/detail/comments/index',
-        'orders/index',
-        'orders/detail/index',
-        'checkout/deposit-pay/index',
-        'checkout/deposit-success/index',
-        'checkout/final-pay/index',
-        'checkout/final-success/index',
-        'publish/patent/index',
-        'publish/demand/index',
-        'publish/achievement/index',
-        'publish/artwork/index',
-        'messages/chat/index',
-        'support/index',
-        'support/faq/index',
-        'support/faq/detail/index',
-        'support/contact/index',
-        'legal/privacy/index',
-        'legal/terms/index',
-        'legal/privacy-guide/index',
-        'onboarding/choose-identity/index',
-        'onboarding/verification-form/index',
-        'notifications/index',
-        'notifications/detail/index',
-        'announcements/index',
-        'announcements/detail/index',
-        'listing/detail/index',
-        'demand/detail/index',
-        'achievement/detail/index',
-        'artwork/detail/index',
-        'favorites/index',
-        'organizations/index',
-        'organizations/detail/index',
-        'inventors/index',
-        'tech-managers/detail/index',
-        'trade-rules/index',
-        'contracts/index',
-        'invoices/index',
-        'addresses/index',
-        'addresses/edit/index',
-        'my-listings/index',
-        'my-demands/index',
-        'my-achievements/index',
-        'my-artworks/index',
-        'cluster-picker/index',
-        'settings/notifications/index',
-        'about/index',
-        'profile/edit/index',
-        'login/index',
-        'region-picker/index',
-        'ipc-picker/index',
-      ],
+      root: 'subpackages/search',
+      pages: ['index'],
+    },
+    {
+      root: 'subpackages/patent-map',
+      pages: ['index', 'region-detail/index'],
+    },
+    {
+      root: 'subpackages/patent',
+      pages: ['detail/index', 'detail/summary/index', 'detail/info/index', 'detail/comments/index'],
+    },
+    {
+      root: 'subpackages/orders',
+      pages: ['index', 'detail/index'],
+    },
+    {
+      root: 'subpackages/checkout',
+      pages: ['deposit-pay/index', 'deposit-success/index', 'final-pay/index', 'final-success/index'],
+    },
+    {
+      root: 'subpackages/publish',
+      pages: ['patent/index', 'demand/index', 'achievement/index', 'artwork/index'],
+    },
+    {
+      root: 'subpackages/messages',
+      pages: ['chat/index'],
+    },
+    {
+      root: 'subpackages/support',
+      pages: ['index', 'faq/index', 'faq/detail/index', 'contact/index'],
+    },
+    {
+      root: 'subpackages/legal',
+      pages: ['privacy/index', 'terms/index', 'privacy-guide/index'],
+    },
+    {
+      root: 'subpackages/onboarding',
+      pages: ['choose-identity/index', 'verification-form/index'],
+    },
+    {
+      root: 'subpackages/notifications',
+      pages: ['index', 'detail/index'],
+    },
+    {
+      root: 'subpackages/announcements',
+      pages: ['index', 'detail/index'],
+    },
+    {
+      root: 'subpackages/listing',
+      pages: ['detail/index'],
+    },
+    {
+      root: 'subpackages/demand',
+      pages: ['detail/index'],
+    },
+    {
+      root: 'subpackages/achievement',
+      pages: ['detail/index'],
+    },
+    {
+      root: 'subpackages/artwork',
+      pages: ['detail/index'],
+    },
+    {
+      root: 'subpackages/favorites',
+      pages: ['index'],
+    },
+    {
+      root: 'subpackages/organizations',
+      pages: ['index', 'detail/index'],
+    },
+    {
+      root: 'subpackages/inventors',
+      pages: ['index'],
+    },
+    {
+      root: 'subpackages/tech-managers',
+      pages: ['detail/index'],
+    },
+    {
+      root: 'subpackages/trade-rules',
+      pages: ['index'],
+    },
+    {
+      root: 'subpackages/contracts',
+      pages: ['index'],
+    },
+    {
+      root: 'subpackages/invoices',
+      pages: ['index'],
+    },
+    {
+      root: 'subpackages/addresses',
+      pages: ['index', 'edit/index'],
+    },
+    {
+      root: 'subpackages/my-listings',
+      pages: ['index'],
+    },
+    {
+      root: 'subpackages/my-demands',
+      pages: ['index'],
+    },
+    {
+      root: 'subpackages/my-achievements',
+      pages: ['index'],
+    },
+    {
+      root: 'subpackages/my-artworks',
+      pages: ['index'],
+    },
+    {
+      root: 'subpackages/cluster-picker',
+      pages: ['index'],
+    },
+    {
+      root: 'subpackages/settings',
+      pages: ['notifications/index'],
+    },
+    {
+      root: 'subpackages/about',
+      pages: ['index'],
+    },
+    {
+      root: 'subpackages/profile',
+      pages: ['edit/index'],
+    },
+    {
+      root: 'subpackages/login',
+      pages: ['index'],
+    },
+    {
+      root: 'subpackages/region-picker',
+      pages: ['index'],
+    },
+    {
+      root: 'subpackages/ipc-picker',
+      pages: ['index'],
     },
   ],
+  preloadRule: {
+    'pages/home/index': {
+      network: 'all',
+      packages: ['subpackages/search', 'subpackages/listing'],
+    },
+    'pages/tech-managers/index': {
+      network: 'all',
+      packages: ['subpackages/organizations'],
+    },
+    'pages/messages/index': {
+      network: 'all',
+      packages: ['subpackages/messages', 'subpackages/notifications'],
+    },
+    'pages/me/index': {
+      network: 'all',
+      packages: ['subpackages/orders', 'subpackages/publish', 'subpackages/checkout', 'subpackages/favorites'],
+    },
+  },
   window: {
     backgroundColor: '#f7f3ec',
     backgroundTextStyle: 'light',
