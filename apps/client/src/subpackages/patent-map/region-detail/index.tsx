@@ -43,6 +43,7 @@ export default function PatentMapRegionDetailPage() {
   const load = useCallback(async () => {
     if (!regionCode || !year) return;
     const cached = cacheKey ? getDetailCache<PatentMapRegionDetail>(REGION_DETAIL_CACHE_SCOPE, cacheKey) : null;
+    const hasCached = Boolean(cached);
     if (cached) {
       setData(cached);
       setLoading(false);
@@ -56,8 +57,10 @@ export default function PatentMapRegionDetailPage() {
       setData(d);
       if (cacheKey) setDetailCache(REGION_DETAIL_CACHE_SCOPE, cacheKey, d);
     } catch (e: any) {
-      setError(e?.message || '加载失败');
-      setData(null);
+      if (!hasCached) {
+        setError(e?.message || '加载失败');
+        setData(null);
+      }
     } finally {
       setLoading(false);
     }

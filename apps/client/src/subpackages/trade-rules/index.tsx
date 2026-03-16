@@ -46,13 +46,17 @@ export default function TradeRulesPage() {
   const [error, setError] = useState<string | null>(null);
   const [data, setData] = useState<TradeRulesConfig | null>(initialCachedData);
 
-  const load = useCallback(async () => {
+  const load = useCallback(async (options?: { silent?: boolean }) => {
+    const silent = Boolean(options?.silent);
     const cached = getDetailCache<TradeRulesConfig>(TRADE_RULES_CACHE_SCOPE, TRADE_RULES_CACHE_KEY);
+    const hasCached = Boolean(cached);
     if (cached) {
       setData(cached);
-      setLoading(false);
-      setError(null);
-    } else {
+      if (!silent) {
+        setLoading(false);
+        setError(null);
+      }
+    } else if (!silent) {
       setLoading(true);
       setError(null);
     }
@@ -60,11 +64,14 @@ export default function TradeRulesPage() {
       const d = await apiGet<TradeRulesConfig>('/public/config/trade-rules');
       setData(d);
       setDetailCache(TRADE_RULES_CACHE_SCOPE, TRADE_RULES_CACHE_KEY, d);
+      if (!silent) setError(null);
     } catch (e: any) {
-      setError(e?.message || '加载失败');
-      setData(null);
+      if (!hasCached) {
+        setError(e?.message || '加载失败');
+        setData(null);
+      }
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   }, []);
 
