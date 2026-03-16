@@ -619,7 +619,7 @@ export default function OrderDetailPage() {
         onClose={() => setRefundOpen(false)}
         onOverlayClick={() => setRefundOpen(false)}
       >
-        <PopupSheet>
+        <PopupSheet scrollable={false}>
           <Surface>
             <Text className="text-strong">原因类型</Text>
             <View style={{ height: '10rpx' }} />
