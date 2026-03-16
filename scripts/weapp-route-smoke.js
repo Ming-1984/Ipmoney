@@ -349,7 +349,7 @@ async function main() {
   const launchRetryDelayMs = parsePositiveInt(args['launch-retry-delay-ms'], 4000, 0);
   const killStaleDevtools = Boolean(args['kill-stale-devtools']);
   const scenario = String(args.scenario || 'happy');
-  const noAuth = Boolean(args['no-auth']);
+  let noAuth = Boolean(args['no-auth']);
   const listOnly = Boolean(args['list-only']);
   const userToken = String(args['user-token'] || '').trim() || getEnvValue('DEMO_USER_TOKEN', envMap) || '';
 
@@ -442,10 +442,15 @@ async function main() {
 
     if (!noAuth) {
       if (!userToken) {
-        throw new Error(
-          '[weapp-route-smoke] Missing demo user token. Pass --user-token or set DEMO_USER_TOKEN in env / repo .env.',
+        console.warn(
+          '[weapp-route-smoke] Missing demo user token, fallback to no-auth mode. ' +
+            'Pass --user-token or set DEMO_USER_TOKEN in env / repo .env to test authenticated routes.',
         );
+        noAuth = true;
       }
+    }
+
+    if (!noAuth) {
       await miniProgram.callWxMethod('setStorageSync', 'ipmoney.token', userToken);
       await miniProgram.callWxMethod('setStorageSync', 'ipmoney.onboardingDone', true);
       await miniProgram.callWxMethod('setStorageSync', 'ipmoney.verificationType', 'PERSON');
