@@ -233,7 +233,7 @@ export default function OrdersPage() {
 
       <View style={{ height: '12rpx' }} />
 
-      <PullToRefresh type="primary" disabled={loading || refreshing} onRefresh={refresh}>
+      <PullToRefresh type="primary" disabled={showInitialLoading || refreshing} onRefresh={refresh}>
         {showInitialLoading ? (
           <LoadingCard />
         ) : showBlockingError ? (
@@ -269,7 +269,7 @@ export default function OrdersPage() {
           <EmptyCard title="暂无订单" message="完成下单后订单会出现在这里。" actionText="刷新" onAction={reload} image={emptyOrders} />
         )}
 
-        {!loading && items.length ? (
+        {!showInitialLoading && items.length ? (
           <ListFooter loadingMore={loadingMore} hasMore={hasMore} onLoadMore={loadMore} showNoMore />
         ) : null}
       </PullToRefresh>

@@ -65,6 +65,7 @@ export default function ClusterPickerPage() {
   useEffect(() => {
     void reload();
   }, [reload]);
+  const showInitialLoading = loading && clusters.length === 0;
 
   const goClusterSearch = useCallback((cluster: ClusterSummary) => {
     Taro.setStorageSync(STORAGE_KEYS.searchPrefill, {
@@ -82,8 +83,8 @@ export default function ClusterPickerPage() {
       <PageHeader weapp back title="产业集群" subtitle="先选集群，再进入专利搜索" />
       <Spacer />
 
-      <PullToRefresh type="primary" disabled={loading || refreshing} onRefresh={refresh}>
-        {loading ? (
+      <PullToRefresh type="primary" disabled={showInitialLoading || refreshing} onRefresh={refresh}>
+        {showInitialLoading ? (
           <LoadingCard text="集群加载中" />
         ) : error ? (
           <ErrorCard message={error} onRetry={reload} />

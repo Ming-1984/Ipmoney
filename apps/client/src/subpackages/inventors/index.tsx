@@ -49,11 +49,12 @@ export default function InventorsPage() {
   useEffect(() => {
     void reload();
   }, [reload]);
+  const showInitialLoading = loading && items.length === 0;
 
   return (
     <View className="container consult-page inventor-rank-page">
-      <PullToRefresh type="primary" disabled={loading || refreshing} onRefresh={refresh}>
-        {loading ? (
+      <PullToRefresh type="primary" disabled={showInitialLoading || refreshing} onRefresh={refresh}>
+        {showInitialLoading ? (
           <LoadingCard />
         ) : error ? (
           <ErrorCard message={error} onRetry={reload} />
@@ -145,7 +146,7 @@ export default function InventorsPage() {
           <EmptyCard message={LABEL_EMPTY} actionText={LABEL_REFRESH} onAction={reload} />
         )}
 
-        {!loading && items.length ? (
+        {!showInitialLoading && items.length ? (
           <ListFooter loadingMore={loadingMore} hasMore={hasMore} onLoadMore={loadMore} showNoMore />
         ) : null}
       </PullToRefresh>
