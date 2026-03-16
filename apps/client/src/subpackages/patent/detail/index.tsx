@@ -90,10 +90,24 @@ function remainingYears(filingDate?: string | null, patentType?: Patent['patentT
 export default function PatentDetailOverviewPage() {
   const patentId = useRouteUuidParam('patentId') || '';
 
-  const [loading, setLoading] = useState(true);
+  const initialCachedData = patentId ? getPatentCache<Patent>(patentId) : null;
+  const [loading, setLoading] = useState(!initialCachedData);
   const [error, setError] = useState<string | null>(null);
-  const [data, setData] = useState<Patent | null>(null);
+  const [data, setData] = useState<Patent | null>(initialCachedData);
   const [favoritedState, setFavoritedState] = useState(false);
+
+  useEffect(() => {
+    if (!patentId) {
+      setData(null);
+      setLoading(false);
+      setError(null);
+      return;
+    }
+    const cached = getPatentCache<Patent>(patentId);
+    setData(cached || null);
+    setLoading(!cached);
+    setError(null);
+  }, [patentId]);
 
   const load = useCallback(async () => {
     if (!patentId) return;

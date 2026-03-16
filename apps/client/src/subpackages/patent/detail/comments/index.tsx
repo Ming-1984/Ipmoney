@@ -46,10 +46,24 @@ function buildTabUrl(tabId: string, patentId: string): string {
 export default function PatentDetailCommentsPage() {
   const patentId = useRouteUuidParam('patentId') || '';
 
-  const [loading, setLoading] = useState(true);
+  const initialCachedData = patentId ? getPatentCache<Patent>(patentId) : null;
+  const [loading, setLoading] = useState(!initialCachedData);
   const [error, setError] = useState<string | null>(null);
-  const [data, setData] = useState<Patent | null>(null);
+  const [data, setData] = useState<Patent | null>(initialCachedData);
   const activeTab = 'comments';
+
+  useEffect(() => {
+    if (!patentId) {
+      setData(null);
+      setLoading(false);
+      setError(null);
+      return;
+    }
+    const cached = getPatentCache<Patent>(patentId);
+    setData(cached || null);
+    setLoading(!cached);
+    setError(null);
+  }, [patentId]);
 
   const load = useCallback(async () => {
     if (!patentId) return;
