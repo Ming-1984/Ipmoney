@@ -101,7 +101,6 @@ export default function OrderDetailPage() {
   const [invoiceLoading, setInvoiceLoading] = useState(false);
   const [invoiceError, setInvoiceError] = useState<string | null>(null);
   const [invoice, setInvoice] = useState<OrderInvoice | null>(null);
-  const [invoiceChecked, setInvoiceChecked] = useState(false);
   const [invoiceRequesting, setInvoiceRequesting] = useState(false);
   const [invoiceRequested, setInvoiceRequested] = useState(false);
 
@@ -177,7 +176,6 @@ export default function OrderDetailPage() {
       setInvoiceLoading(false);
       setInvoiceError(null);
       setInvoice(null);
-      setInvoiceChecked(true);
       return;
     }
     setInvoiceLoading(true);
@@ -196,7 +194,6 @@ export default function OrderDetailPage() {
       }
     } finally {
       setInvoiceLoading(false);
-      setInvoiceChecked(true);
     }
   }, [canFetchInvoiceDetail, orderId]);
 
@@ -210,7 +207,6 @@ export default function OrderDetailPage() {
     loadedOnceRef.current = false;
     setInvoiceRequested(false);
     setRefundsReady(false);
-    setInvoiceChecked(false);
     setError(null);
     if (!orderId) {
       setOrder(null);
@@ -225,17 +221,9 @@ export default function OrderDetailPage() {
   useEffect(() => {
     setInvoice(null);
     setInvoiceError(null);
-    setInvoiceChecked(false);
   }, [order?.invoiceFileId, order?.invoiceNo, order?.invoiceIssuedAt, orderId]);
 
-  useEffect(() => {
-    if (activeTab !== 'order-invoice') return;
-    if (!canFetchInvoiceDetail) return;
-    if (invoiceLoading) return;
-    if (invoiceChecked) return;
-    if (invoice || invoiceError) return;
-    void loadInvoice();
-  }, [activeTab, canFetchInvoiceDetail, invoice, invoiceError, invoiceLoading, invoiceChecked, loadInvoice]);
+  // Avoid auto-fetch on tab switch to reduce noisy 404 logs when invoice file is not ready yet.
 
   const access = usePageAccess('approved-required', (a) => {
     if (a.state === 'ok') {
@@ -274,7 +262,6 @@ export default function OrderDetailPage() {
     try {
       await apiPost(`/orders/${orderId}/invoice-requests`, {}, { idempotencyKey: `invoice-${orderId}` });
       setInvoiceRequested(true);
-      setInvoiceChecked(false);
       toast('已提交开票申请', { icon: 'success' });
       void load();
     } catch (e: any) {

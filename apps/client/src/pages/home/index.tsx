@@ -155,7 +155,7 @@ export default function HomePage() {
       setLoading(false);
       setError(null);
     } else {
-      setLoading(true);
+      // Keep previous list visible when switching mode to avoid skeleton flash.
       setError(null);
     }
     try {

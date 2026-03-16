@@ -135,9 +135,10 @@ export default function MePage() {
     return () => off();
   }, [syncAuthState]);
 
-  const [meLoading, setMeLoading] = useState(false);
+  const initialCachedMe = getDetailCache<Me>(ME_PROFILE_CACHE_SCOPE, ME_PROFILE_CACHE_KEY);
+  const [meLoading, setMeLoading] = useState(Boolean(auth.token) && !initialCachedMe);
   const [meError, setMeError] = useState<string | null>(null);
-  const [me, setMe] = useState<Me | null>(null);
+  const [me, setMe] = useState<Me | null>(initialCachedMe);
   const [orderTab, setOrderTab] = useState<'orders' | 'publish'>('orders');
   const [refreshing, setRefreshing] = useState(false);
   const [busy, setBusy] = useState(false);
