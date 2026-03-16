@@ -484,7 +484,12 @@ async function main() {
           const page = await miniProgram.currentPage();
           current = page ? { path: page.path, query: page.query } : null;
         } catch (e) {
-          currentErr = String(e && e.message ? e.message : e);
+          const message = String(e && e.message ? e.message : e);
+          // Some DevTools builds expose currentPage() but throw this internal API error.
+          // Treat it as unsupported rather than as a route issue.
+          if (!message.includes('getCurrentPagesByDomain')) {
+            currentErr = message;
+          }
         }
       }
 
