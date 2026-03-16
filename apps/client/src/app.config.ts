@@ -9,80 +9,46 @@
   lazyCodeLoading: 'requiredComponents',
   subPackages: [
     {
-      root: 'subpackages/search',
-      pages: ['index'],
-    },
-    {
-      root: 'subpackages/patent-map',
-      pages: ['index', 'region-detail/index'],
-    },
-    {
-      root: 'subpackages/patent',
-      pages: ['detail/index', 'detail/summary/index', 'detail/info/index', 'detail/comments/index'],
-    },
-    {
-      root: 'subpackages/orders',
-      pages: ['index', 'detail/index'],
-    },
-    {
-      root: 'subpackages/checkout',
-      pages: ['deposit-pay/index', 'deposit-success/index', 'final-pay/index', 'final-success/index'],
-    },
-    {
-      root: 'subpackages/publish',
-      pages: ['patent/index', 'demand/index', 'achievement/index', 'artwork/index'],
-    },
-    {
-      root: 'subpackages/messages',
-      pages: ['chat/index'],
-    },
-    {
-      root: 'subpackages/support',
-      pages: ['index', 'faq/index', 'faq/detail/index', 'contact/index'],
-    },
-    {
-      root: 'subpackages/legal',
-      pages: ['privacy/index', 'terms/index', 'privacy-guide/index'],
-    },
-    {
-      root: 'subpackages/onboarding',
-      pages: ['choose-identity/index', 'verification-form/index'],
-    },
-    {
-      root: 'subpackages/notifications',
-      pages: ['index', 'detail/index'],
-    },
-    {
-      root: 'subpackages/announcements',
-      pages: ['index', 'detail/index'],
-    },
-    {
-      root: 'subpackages/listing',
-      pages: ['detail/index'],
-    },
-    {
-      root: 'subpackages/demand',
-      pages: ['detail/index'],
-    },
-    {
-      root: 'subpackages/achievement',
-      pages: ['detail/index'],
-    },
-    {
-      root: 'subpackages/artwork',
-      pages: ['detail/index'],
-    },
-    {
-      root: 'subpackages/favorites',
-      pages: ['index'],
-    },
-    {
-      root: 'subpackages/organizations',
-      pages: ['index', 'detail/index'],
-    },
-    {
       root: 'subpackages',
       pages: [
+        'search/index',
+        'patent-map/index',
+        'patent-map/region-detail/index',
+        'patent/detail/index',
+        'patent/detail/summary/index',
+        'patent/detail/info/index',
+        'patent/detail/comments/index',
+        'orders/index',
+        'orders/detail/index',
+        'checkout/deposit-pay/index',
+        'checkout/deposit-success/index',
+        'checkout/final-pay/index',
+        'checkout/final-success/index',
+        'publish/patent/index',
+        'publish/demand/index',
+        'publish/achievement/index',
+        'publish/artwork/index',
+        'messages/chat/index',
+        'support/index',
+        'support/faq/index',
+        'support/faq/detail/index',
+        'support/contact/index',
+        'legal/privacy/index',
+        'legal/terms/index',
+        'legal/privacy-guide/index',
+        'onboarding/choose-identity/index',
+        'onboarding/verification-form/index',
+        'notifications/index',
+        'notifications/detail/index',
+        'announcements/index',
+        'announcements/detail/index',
+        'listing/detail/index',
+        'demand/detail/index',
+        'achievement/detail/index',
+        'artwork/detail/index',
+        'favorites/index',
+        'organizations/index',
+        'organizations/detail/index',
         'inventors/index',
         'tech-managers/detail/index',
         'trade-rules/index',
@@ -104,27 +70,6 @@
       ],
     },
   ],
-  preloadRule: {
-    'pages/home/index': {
-      network: 'all',
-      packages: [
-        'subpackages/search',
-        'subpackages/listing',
-      ],
-    },
-    'pages/tech-managers/index': {
-      network: 'all',
-      packages: ['subpackages/organizations'],
-    },
-    'pages/messages/index': {
-      network: 'all',
-      packages: ['subpackages/messages', 'subpackages/notifications'],
-    },
-    'pages/me/index': {
-      network: 'all',
-      packages: ['subpackages/orders', 'subpackages/publish', 'subpackages/checkout', 'subpackages/favorites'],
-    },
-  },
   window: {
     backgroundColor: '#f7f3ec',
     backgroundTextStyle: 'light',
