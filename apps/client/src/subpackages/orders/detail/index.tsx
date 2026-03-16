@@ -35,6 +35,8 @@ type OrderInvoice = components['schemas']['OrderInvoice'];
 const REFUNDABLE_STATUSES = new Set<OrderBase['status']>(['DEPOSIT_PAID', 'WAIT_FINAL_PAYMENT', 'FINAL_PAID_ESCROW']);
 const BLOCKING_REFUND_REQUEST_STATUSES = new Set<RefundRequest['status']>(['PENDING', 'APPROVED', 'REFUNDING']);
 const ORDER_DETAIL_CACHE_SCOPE = 'order-detail';
+const ORDER_CASE_CACHE_SCOPE = 'order-case';
+const ORDER_REFUNDS_CACHE_SCOPE = 'order-refunds';
 const REFUND_REASON_OPTIONS: Array<{ label: string; value: RefundReasonCode }> = [
   { label: '改主意', value: 'BUYER_CHANGED_MIND' },
   { label: '卖家材料', value: 'SELLER_MISSING_MATERIALS' },
@@ -84,6 +86,8 @@ export default function OrderDetailPage() {
   const orderId = useRouteStringParam('orderId') || '';
   const loadedOnceRef = useRef(false);
   const initialCachedOrder = orderId ? getDetailCache<OrderDetail>(ORDER_DETAIL_CACHE_SCOPE, orderId) : null;
+  const initialCachedCase = orderId ? getDetailCache<CaseWithMilestones>(ORDER_CASE_CACHE_SCOPE, orderId) : null;
+  const initialCachedRefunds = orderId ? getDetailCache<RefundRequest[]>(ORDER_REFUNDS_CACHE_SCOPE, orderId) : null;
 
   const [loading, setLoading] = useState(!initialCachedOrder);
   const [error, setError] = useState<string | null>(null);
@@ -92,12 +96,12 @@ export default function OrderDetailPage() {
 
   const [caseLoading, setCaseLoading] = useState(false);
   const [caseError, setCaseError] = useState<string | null>(null);
-  const [caseData, setCaseData] = useState<CaseWithMilestones | null>(null);
+  const [caseData, setCaseData] = useState<CaseWithMilestones | null>(initialCachedCase);
 
   const [refundsLoading, setRefundsLoading] = useState(false);
   const [refundsError, setRefundsError] = useState<string | null>(null);
-  const [refunds, setRefunds] = useState<RefundRequest[]>([]);
-  const [refundsReady, setRefundsReady] = useState(false);
+  const [refunds, setRefunds] = useState<RefundRequest[]>(Array.isArray(initialCachedRefunds) ? initialCachedRefunds : []);
+  const [refundsReady, setRefundsReady] = useState(Array.isArray(initialCachedRefunds));
   const [invoiceLoading, setInvoiceLoading] = useState(false);
   const [invoiceError, setInvoiceError] = useState<string | null>(null);
   const [invoice, setInvoice] = useState<OrderInvoice | null>(null);
@@ -139,33 +143,60 @@ export default function OrderDetailPage() {
     }
   }, [orderId]);
 
-  const loadCase = useCallback(async () => {
+  const loadCase = useCallback(async (options?: { silent?: boolean }) => {
     if (!orderId) return;
-    setCaseLoading(true);
-    setCaseError(null);
+    const silent = Boolean(options?.silent);
+    const cached = getDetailCache<CaseWithMilestones>(ORDER_CASE_CACHE_SCOPE, orderId);
+    const hasCached = Boolean(cached);
+    if (cached) {
+      setCaseData(cached);
+      if (!silent) setCaseError(null);
+    }
+    if (!hasCached) {
+      setCaseLoading(true);
+      setCaseError(null);
+    }
     try {
       const d = await apiGet<CaseWithMilestones>(`/orders/${orderId}/case`);
       setCaseData(d);
+      setCaseError(null);
+      setDetailCache(ORDER_CASE_CACHE_SCOPE, orderId, d);
     } catch (e: any) {
-      setCaseError(e?.message || '加载失败');
-      setCaseData(null);
+      if (!hasCached) {
+        setCaseError(e?.message || '加载失败');
+        setCaseData(null);
+      }
     } finally {
-      setCaseLoading(false);
+      if (!hasCached) setCaseLoading(false);
     }
   }, [orderId]);
 
-  const loadRefunds = useCallback(async () => {
+  const loadRefunds = useCallback(async (options?: { silent?: boolean }) => {
     if (!orderId) return;
-    setRefundsLoading(true);
-    setRefundsError(null);
+    const silent = Boolean(options?.silent);
+    const cached = getDetailCache<RefundRequest[]>(ORDER_REFUNDS_CACHE_SCOPE, orderId);
+    const hasCached = Array.isArray(cached);
+    if (hasCached) {
+      setRefunds(cached);
+      setRefundsReady(true);
+      if (!silent) setRefundsError(null);
+    } else {
+      setRefundsLoading(true);
+      setRefundsError(null);
+    }
     try {
       const d = await apiGet<RefundRequest[]>(`/orders/${orderId}/refund-requests`);
-      setRefunds(Array.isArray(d) ? d : []);
+      const normalized = Array.isArray(d) ? d : [];
+      setRefunds(normalized);
+      setRefundsError(null);
+      setDetailCache(ORDER_REFUNDS_CACHE_SCOPE, orderId, normalized);
     } catch (e: any) {
-      setRefundsError(e?.message || '加载失败');
-      setRefunds([]);
+      if (!hasCached) {
+        setRefundsError(e?.message || '加载失败');
+        setRefunds([]);
+      }
     } finally {
-      setRefundsLoading(false);
+      if (!hasCached) setRefundsLoading(false);
       setRefundsReady(true);
     }
   }, [orderId]);
@@ -199,23 +230,43 @@ export default function OrderDetailPage() {
 
   const refreshAll = useCallback((options?: { silent?: boolean }) => {
     void load({ silent: options?.silent });
-    void loadCase();
-    void loadRefunds();
+    void loadCase({ silent: options?.silent });
+    void loadRefunds({ silent: options?.silent });
   }, [load, loadCase, loadRefunds]);
 
   useEffect(() => {
     loadedOnceRef.current = false;
     setInvoiceRequested(false);
-    setRefundsReady(false);
     setError(null);
     if (!orderId) {
       setOrder(null);
       setLoading(false);
+      setCaseLoading(false);
+      setCaseError(null);
+      setCaseData(null);
+      setRefundsLoading(false);
+      setRefundsError(null);
+      setRefunds([]);
+      setRefundsReady(false);
       return;
     }
-    const cached = getDetailCache<OrderDetail>(ORDER_DETAIL_CACHE_SCOPE, orderId);
-    setOrder(cached || null);
-    setLoading(!cached);
+    const cachedOrder = getDetailCache<OrderDetail>(ORDER_DETAIL_CACHE_SCOPE, orderId);
+    const cachedCase = getDetailCache<CaseWithMilestones>(ORDER_CASE_CACHE_SCOPE, orderId);
+    const cachedRefunds = getDetailCache<RefundRequest[]>(ORDER_REFUNDS_CACHE_SCOPE, orderId);
+    setOrder(cachedOrder || null);
+    setLoading(!cachedOrder);
+    setCaseLoading(false);
+    setCaseError(null);
+    setCaseData(cachedCase || null);
+    setRefundsLoading(false);
+    setRefundsError(null);
+    if (Array.isArray(cachedRefunds)) {
+      setRefunds(cachedRefunds);
+      setRefundsReady(true);
+    } else {
+      setRefunds([]);
+      setRefundsReady(false);
+    }
   }, [orderId]);
 
   useEffect(() => {
