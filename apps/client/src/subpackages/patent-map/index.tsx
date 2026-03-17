@@ -7,6 +7,7 @@ import type { components } from '@ipmoney/api-types';
 
 import markerIcon from '../../assets/tabbar/search-active.png';
 import { apiGet } from '../../lib/api';
+import { getDetailCache, setDetailCache } from '../../lib/detailCache';
 import { cacheRegionNames } from '../../lib/regions';
 import { CellRow, PageHeader, Spacer, Surface } from '../../ui/layout';
 import { Button, CellGroup } from '../../ui/nutui';
@@ -29,74 +30,128 @@ const MAP_DEFAULT = {
   scale: 4,
 };
 const MAP_ID = 'patent-map';
+const PATENT_MAP_CACHE_SCOPE = 'patent-map';
+const PATENT_MAP_REGIONS_CACHE_KEY = 'regions-province';
+const PATENT_MAP_YEARS_CACHE_KEY = 'years';
+
+function normalizeYearList(input: unknown): number[] {
+  if (!Array.isArray(input)) return [];
+  return input.filter((val) => Number.isFinite(val)).map((val) => Number(val));
+}
+
+function summaryCacheKey(year: number): string {
+  return `summary-${year}`;
+}
 
 export default function PatentMapPage() {
   const env = useMemo(() => Taro.getEnv(), []);
   const isWeapp = env === Taro.ENV_TYPE.WEAPP;
 
-  const [loadingSummary, setLoadingSummary] = useState(false);
+  const initialCachedYears = normalizeYearList(getDetailCache<number[]>(PATENT_MAP_CACHE_SCOPE, PATENT_MAP_YEARS_CACHE_KEY));
+  const initialYear = initialCachedYears.length ? Math.max(...initialCachedYears) : null;
+  const initialCachedSummary =
+    initialYear != null
+      ? getDetailCache<PatentMapSummaryItem[]>(PATENT_MAP_CACHE_SCOPE, summaryCacheKey(initialYear))
+      : null;
+  const initialCachedRegions = getDetailCache<RegionNode[]>(PATENT_MAP_CACHE_SCOPE, PATENT_MAP_REGIONS_CACHE_KEY) || [];
+
+  const [loadingSummary, setLoadingSummary] = useState(!initialCachedSummary);
   const [error, setError] = useState<string | null>(null);
-  const [summary, setSummary] = useState<PatentMapSummaryItem[] | null>(null);
+  const [summary, setSummary] = useState<PatentMapSummaryItem[] | null>(initialCachedSummary);
 
-  const [loadingYears, setLoadingYears] = useState(false);
+  const [loadingYears, setLoadingYears] = useState(initialYear == null);
   const [yearsError, setYearsError] = useState<string | null>(null);
-  const [year, setYear] = useState<number | null>(null);
+  const [year, setYear] = useState<number | null>(initialYear);
 
-  const [loadingRegions, setLoadingRegions] = useState(false);
+  const [loadingRegions, setLoadingRegions] = useState(!initialCachedRegions.length);
   const [regionsError, setRegionsError] = useState<string | null>(null);
-  const [regions, setRegions] = useState<RegionNode[]>([]);
+  const [regions, setRegions] = useState<RegionNode[]>(initialCachedRegions);
 
   const [selectedRegion, setSelectedRegion] = useState<MarkerItem | null>(null);
 
   const loadRegions = useCallback(async () => {
-    setLoadingRegions(true);
-    setRegionsError(null);
+    const cached = getDetailCache<RegionNode[]>(PATENT_MAP_CACHE_SCOPE, PATENT_MAP_REGIONS_CACHE_KEY);
+    const hasCached = Array.isArray(cached) && cached.length > 0;
+    if (hasCached) {
+      setRegions(cached);
+      setLoadingRegions(false);
+      setRegionsError(null);
+      cacheRegionNames(cached);
+    } else {
+      setLoadingRegions(true);
+      setRegionsError(null);
+    }
     try {
       const d = await apiGet<RegionNode[]>('/regions', { level: 'PROVINCE' });
       const next = Array.isArray(d) ? d : [];
       setRegions(next);
+      setDetailCache(PATENT_MAP_CACHE_SCOPE, PATENT_MAP_REGIONS_CACHE_KEY, next);
       cacheRegionNames(next);
     } catch (e: any) {
-      setRegionsError(e?.message || '加载失败');
-      setRegions([]);
+      if (!hasCached) {
+        setRegionsError(e?.message || '加载失败');
+        setRegions([]);
+      }
     } finally {
       setLoadingRegions(false);
     }
   }, []);
 
   const loadYears = useCallback(async () => {
-    setLoadingYears(true);
-    setYearsError(null);
+    const cachedYears = normalizeYearList(getDetailCache<number[]>(PATENT_MAP_CACHE_SCOPE, PATENT_MAP_YEARS_CACHE_KEY));
+    const hasCached = cachedYears.length > 0;
+    if (hasCached) {
+      const cachedLatestYear = Math.max(...cachedYears);
+      setYear(cachedLatestYear);
+      setLoadingYears(false);
+      setYearsError(null);
+    } else {
+      setLoadingYears(true);
+      setYearsError(null);
+    }
     try {
       const d = await apiGet<number[]>('/patent-map/years');
-      const years = Array.isArray(d) ? d.filter((val) => Number.isFinite(val)) : [];
+      const years = normalizeYearList(d);
       const nextYear = years.length ? Math.max(...years) : new Date().getFullYear();
+      setDetailCache(PATENT_MAP_CACHE_SCOPE, PATENT_MAP_YEARS_CACHE_KEY, years);
       setYear(nextYear);
     } catch (e: any) {
-      setYearsError(e?.message || '加载失败');
-      setYear(new Date().getFullYear());
+      if (!hasCached) {
+        setYearsError(e?.message || '加载失败');
+        setYear(new Date().getFullYear());
+      }
     } finally {
       setLoadingYears(false);
     }
   }, []);
 
   const loadSummary = useCallback(async (yearValue?: number) => {
-    setLoadingSummary(true);
-    setError(null);
+    const targetYear = yearValue ?? year;
+    if (!targetYear) return;
+    const cacheKey = summaryCacheKey(targetYear);
+    const cached = getDetailCache<PatentMapSummaryItem[]>(PATENT_MAP_CACHE_SCOPE, cacheKey);
+    const hasCached = Array.isArray(cached) && cached.length > 0;
+    if (cached) {
+      setSummary(cached);
+      setLoadingSummary(false);
+      setError(null);
+    } else {
+      setLoadingSummary(true);
+      setError(null);
+    }
     try {
-      const targetYear = yearValue ?? year;
-      if (!targetYear) {
-        setLoadingSummary(false);
-        return;
-      }
       const d = await apiGet<PatentMapSummaryItem[]>('/patent-map/summary', {
         year: targetYear,
         level: 'PROVINCE',
       });
-      setSummary(d);
+      const normalized = Array.isArray(d) ? d : [];
+      setSummary(normalized);
+      setDetailCache(PATENT_MAP_CACHE_SCOPE, cacheKey, normalized);
     } catch (e: any) {
-      setError(e?.message || '加载失败');
-      setSummary(null);
+      if (!hasCached) {
+        setError(e?.message || '加载失败');
+        setSummary(null);
+      }
     } finally {
       setLoadingSummary(false);
     }
@@ -193,12 +248,14 @@ export default function PatentMapPage() {
     return () => clearTimeout(timer);
   }, [isWeapp, markers]);
 
+  const showInitialLoading = (loadingYears || loadingSummary) && !summary?.length;
+
   return (
     <View className="container page-bg-plain patent-map-page">
       <PageHeader title="区域产业专利地图" subtitle="展示各区域专利数量。" />
       <Spacer />
 
-      {loadingYears || loadingSummary ? (
+      {showInitialLoading ? (
         <LoadingCard text="加载地图数据…" />
       ) : yearsError || error ? (
         <ErrorCard message={yearsError || error || ''} onRetry={handleRetry} />
