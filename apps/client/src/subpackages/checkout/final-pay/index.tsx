@@ -69,6 +69,7 @@ export default function FinalPayPage() {
   const load = useCallback(async () => {
     if (!orderId) return;
     const cached = getDetailCache<Order>(ORDER_DETAIL_CACHE_SCOPE, orderId);
+    const hasCached = Boolean(cached);
     if (cached) {
       setOrder(cached);
       setLoading(false);
@@ -82,8 +83,10 @@ export default function FinalPayPage() {
       setOrder(d);
       setDetailCache(ORDER_DETAIL_CACHE_SCOPE, orderId, d);
     } catch (e: any) {
-      setError(e?.message || '加载失败');
-      setOrder(null);
+      if (!hasCached) {
+        setError(e?.message || '加载失败');
+        setOrder(null);
+      }
     } finally {
       setLoading(false);
     }
