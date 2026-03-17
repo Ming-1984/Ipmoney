@@ -5,6 +5,7 @@ import './index.scss';
 
 import { STORAGE_KEYS } from '../../constants';
 import { apiGet } from '../../lib/api';
+import { sanitizeIndustryTagNames } from '../../lib/industryTags';
 import { usePagedList } from '../../lib/usePagedList';
 import { ListFooter } from '../../ui/ListFooter';
 import { PageHeader, Spacer, Surface } from '../../ui/layout';
@@ -64,6 +65,7 @@ export default function ClusterPickerPage() {
   useEffect(() => {
     void reload();
   }, [reload]);
+  const showInitialLoading = loading && clusters.length === 0;
 
   const goClusterSearch = useCallback((cluster: ClusterSummary) => {
     Taro.setStorageSync(STORAGE_KEYS.searchPrefill, {
@@ -81,8 +83,8 @@ export default function ClusterPickerPage() {
       <PageHeader weapp back title="产业集群" subtitle="先选集群，再进入专利搜索" />
       <Spacer />
 
-      <PullToRefresh type="primary" disabled={loading || refreshing} onRefresh={refresh}>
-        {loading ? (
+      <PullToRefresh type="primary" disabled={showInitialLoading || refreshing} onRefresh={refresh}>
+        {showInitialLoading ? (
           <LoadingCard text="集群加载中" />
         ) : error ? (
           <ErrorCard message={error} onRetry={reload} />
@@ -94,7 +96,9 @@ export default function ClusterPickerPage() {
               <Surface className="cluster-section" padding="none">
                 <Text className="cluster-section-title">高校 / 科研机构</Text>
                 <View className="cluster-institution-grid">
-                  {institutions.map((inst) => (
+                  {institutions.map((inst) => {
+                    const visibleInstitutionTags = sanitizeIndustryTagNames(inst.tags || []);
+                    return (
                     <View key={inst.id} className="cluster-institution-card">
                       <View className="cluster-institution-header">
                         <View className="cluster-institution-logo">
@@ -113,9 +117,9 @@ export default function ClusterPickerPage() {
                         <Text>专利 {inst.patentCount ?? '-'}</Text>
                         <Text>挂牌 {inst.listingCount ?? '-'}</Text>
                       </View>
-                      {inst.tags?.length ? (
+                      {visibleInstitutionTags.length ? (
                         <View className="cluster-institution-tags">
-                          {inst.tags.slice(0, 3).map((tag, idx) => (
+                          {visibleInstitutionTags.slice(0, 3).map((tag, idx) => (
                             <Text key={`${inst.id}-tag-${idx}`} className="pill">
                               {tag}
                             </Text>
@@ -123,7 +127,7 @@ export default function ClusterPickerPage() {
                         </View>
                       ) : null}
                     </View>
-                  ))}
+                  )})}
                 </View>
               </Surface>
             ) : null}
@@ -131,7 +135,9 @@ export default function ClusterPickerPage() {
             <Surface className="cluster-section" padding="none">
               <Text className="cluster-section-title">产业集群</Text>
               <View className="cluster-list">
-                {clusters.map((cluster) => (
+                {clusters.map((cluster) => {
+                  const visibleClusterTags = sanitizeIndustryTagNames(cluster.industryTags || []);
+                  return (
                   <View key={cluster.id} className="cluster-card" onClick={() => goClusterSearch(cluster)}>
                     <View className="cluster-card-header">
                       <View className="cluster-card-title-wrap">
@@ -141,9 +147,9 @@ export default function ClusterPickerPage() {
                       <Text className="cluster-card-action">进入</Text>
                     </View>
                     {cluster.summary ? <Text className="cluster-card-summary">{cluster.summary}</Text> : null}
-                    {cluster.industryTags?.length ? (
+                    {visibleClusterTags.length ? (
                       <View className="cluster-card-tags">
-                        {cluster.industryTags.slice(0, 3).map((tag, idx) => (
+                        {visibleClusterTags.slice(0, 3).map((tag, idx) => (
                           <Text key={`${cluster.id}-tag-${idx}`} className="pill">
                             {tag}
                           </Text>
@@ -156,7 +162,7 @@ export default function ClusterPickerPage() {
                       <Text>机构 {cluster.institutionCount ?? '-'}</Text>
                     </View>
                   </View>
-                ))}
+                )})}
               </View>
             </Surface>
 

@@ -7,6 +7,7 @@ import type { components } from '@ipmoney/api-types';
 
 import { getToken } from '../../../lib/auth';
 import { apiGet } from '../../../lib/api';
+import { getDetailCache, setDetailCache } from '../../../lib/detailCache';
 import { orderStatusLabel } from '../../../lib/labels';
 import { fenToYuan } from '../../../lib/money';
 import { safeNavigateBack } from '../../../lib/navigation';
@@ -16,11 +17,13 @@ import { PageHeader, Spacer, Surface } from '../../../ui/layout';
 import { LoadingCard, MissingParamCard, PermissionCard } from '../../../ui/StateCards';
 
 type Order = components['schemas']['Order'];
+const ORDER_DETAIL_CACHE_SCOPE = 'order-detail';
 
 export default function FinalSuccessPage() {
   const orderId = useRouteStringParam('orderId') || '';
   const paymentId = useRouteStringParam('paymentId') || '';
   const token = getToken();
+  const initialCachedOrder = orderId ? getDetailCache<Order>(ORDER_DETAIL_CACHE_SCOPE, orderId) : null;
 
   if (!orderId) {
     return (
@@ -30,16 +33,34 @@ export default function FinalSuccessPage() {
     );
   }
 
-  const [loading, setLoading] = useState(true);
-  const [order, setOrder] = useState<Order | null>(null);
+  const [loading, setLoading] = useState(!initialCachedOrder);
+  const [order, setOrder] = useState<Order | null>(initialCachedOrder);
+
+  useEffect(() => {
+    if (!orderId) {
+      setOrder(null);
+      setLoading(false);
+      return;
+    }
+    const cached = getDetailCache<Order>(ORDER_DETAIL_CACHE_SCOPE, orderId);
+    setOrder(cached || null);
+    setLoading(!cached);
+  }, [orderId]);
 
   const load = useCallback(async () => {
-    setLoading(true);
+    const cached = getDetailCache<Order>(ORDER_DETAIL_CACHE_SCOPE, orderId);
+    if (cached) {
+      setOrder(cached);
+      setLoading(false);
+    } else {
+      setLoading(true);
+    }
     try {
       const d = await apiGet<Order>(`/orders/${orderId}`);
       setOrder(d);
+      setDetailCache(ORDER_DETAIL_CACHE_SCOPE, orderId, d);
     } catch (_) {
-      setOrder(null);
+      if (!cached) setOrder(null);
     } finally {
       setLoading(false);
     }

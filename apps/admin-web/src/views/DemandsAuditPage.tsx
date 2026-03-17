@@ -267,7 +267,7 @@ export function DemandsAuditPage() {
   const detailFiles = useMemo(() => detailMedia.filter((m) => m.type === 'FILE'), [detailMedia]);
 
   return (
-    <Card>
+    <Card className="admin-demands-page">
       <Space direction="vertical" size={16} style={{ width: '100%' }}>
         <div>
           <Typography.Title level={3} style={{ marginTop: 0 }}>

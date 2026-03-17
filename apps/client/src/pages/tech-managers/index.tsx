@@ -1,6 +1,6 @@
 ﻿import { View, Text, Image } from '@tarojs/components';
 import Taro from '@tarojs/taro';
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import './index.scss';
 
 import type { components } from '@ipmoney/api-types';
@@ -23,6 +23,8 @@ type PagedOrganizationSummary = components['schemas']['PagedOrganizationSummary'
 
 export default function TechManagersPage() {
   const [activeTab, setActiveTab] = useState<ConsultTab>('TECH');
+  const techQueryKeyRef = useRef<string | null>(null);
+  const orgQueryKeyRef = useRef<string | null>(null);
 
   const [techQInput, setTechQInput] = useState('');
   const [techQ, setTechQ] = useState('');
@@ -65,19 +67,27 @@ export default function TechManagersPage() {
 
   useEffect(() => {
     if (activeTab !== 'TECH') return;
+    const queryKey = techQ.trim();
+    if (techQueryKeyRef.current === queryKey) return;
+    techQueryKeyRef.current = queryKey;
     void techList.reload();
-  }, [activeTab, techList.reload]);
+  }, [activeTab, techQ, techList.reload]);
 
   useEffect(() => {
     if (activeTab !== 'ORG') return;
+    const queryKey = orgQ.trim();
+    if (orgQueryKeyRef.current === queryKey) return;
+    orgQueryKeyRef.current = queryKey;
     void orgList.reload();
-  }, [activeTab, orgList.reload]);
+  }, [activeTab, orgList.reload, orgQ]);
 
   const techItems = useMemo(() => techList.items, [techList.items]);
   const orgItems = useMemo(
     () => orgList.items.filter((x) => x.verificationStatus === 'APPROVED'),
     [orgList.items],
   );
+  const showTechInitialLoading = techList.loading && techItems.length === 0;
+  const showOrgInitialLoading = orgList.loading && orgItems.length === 0;
 
   return (
     <View className="container consult-page">
@@ -114,8 +124,8 @@ export default function TechManagersPage() {
             />
           </View>
 
-          <PullToRefresh type="primary" disabled={techList.loading || techList.refreshing} onRefresh={techList.refresh}>
-            {techList.loading ? (
+          <PullToRefresh type="primary" disabled={showTechInitialLoading || techList.refreshing} onRefresh={techList.refresh}>
+            {showTechInitialLoading ? (
               <LoadingCard />
             ) : techList.error ? (
               <ErrorCard message={techList.error} onRetry={techList.reload} />
@@ -170,7 +180,7 @@ export default function TechManagersPage() {
               <EmptyCard message="暂无专家" actionText="刷新" onAction={techList.reload} />
             )}
 
-            {!techList.loading && techItems.length ? (
+            {!showTechInitialLoading && techItems.length ? (
               <ListFooter loadingMore={techList.loadingMore} hasMore={techList.hasMore} onLoadMore={techList.loadMore} showNoMore />
             ) : null}
           </PullToRefresh>
@@ -192,8 +202,8 @@ export default function TechManagersPage() {
             />
           </View>
 
-          <PullToRefresh type="primary" disabled={orgList.loading || orgList.refreshing} onRefresh={orgList.refresh}>
-            {orgList.loading ? (
+          <PullToRefresh type="primary" disabled={showOrgInitialLoading || orgList.refreshing} onRefresh={orgList.refresh}>
+            {showOrgInitialLoading ? (
               <LoadingCard />
             ) : orgList.error ? (
               <ErrorCard message={orgList.error} onRetry={orgList.reload} />
@@ -237,7 +247,7 @@ export default function TechManagersPage() {
               <EmptyCard message="暂无机构" actionText="刷新" onAction={orgList.reload} />
             )}
 
-            {!orgList.loading && orgItems.length ? (
+            {!showOrgInitialLoading && orgItems.length ? (
               <ListFooter loadingMore={orgList.loadingMore} hasMore={orgList.hasMore} onLoadMore={orgList.loadMore} showNoMore />
             ) : null}
           </PullToRefresh>

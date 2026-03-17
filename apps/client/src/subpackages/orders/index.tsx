@@ -1,6 +1,6 @@
 import { View, Text } from '@tarojs/components';
 import Taro from '@tarojs/taro';
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import './index.scss';
 
 import type { components } from '@ipmoney/api-types';
@@ -51,6 +51,7 @@ const TABS: Array<{ id: OrderListTab; label: string }> = [
 ];
 
 export default function OrdersPage() {
+  const loadedOnceRef = useRef(false);
   const routeRole = useRouteStringParam('role');
   const routeStatus = useRouteStringParam('status');
   const routeTab = useRouteStringParam('tab');
@@ -97,27 +98,14 @@ export default function OrdersPage() {
     return [orderStatusLabel(status)];
   }, [status]);
 
-  const buildUrl = useCallback(
-    (next: { role?: OrderListRole; tab?: OrderListTab; status?: string | null }) => {
-      const r = next.role || asRole;
-      const t = next.tab || tab;
-      const s = next.status === undefined ? routeStatus : next.status;
-      const parts: string[] = [];
-      parts.push(`role=${encodeURIComponent(r)}`);
-      if (t && t !== 'all') parts.push(`tab=${encodeURIComponent(t)}`);
-      if (s) parts.push(`status=${encodeURIComponent(s)}`);
-      return `/subpackages/orders/index?${parts.join('&')}`;
-    },
-    [asRole, routeStatus, tab],
-  );
-
   const goToTab = useCallback(
     (nextTab: OrderListTab) => {
       if (nextTab === tab) return;
       // Changing the group tab clears any exact status filter.
-      Taro.redirectTo({ url: buildUrl({ tab: nextTab, status: null }) });
+      setTab(nextTab);
+      setStatus('');
     },
-    [buildUrl, tab],
+    [tab],
   );
 
   const fetcher = useCallback(
@@ -143,18 +131,28 @@ export default function OrdersPage() {
     });
 
   const access = usePageAccess('approved-required', (a) => {
-    if (a.state === 'ok') return;
+    if (a.state === 'ok') {
+      if (loadedOnceRef.current) {
+        void refresh();
+      }
+      return;
+    }
+    loadedOnceRef.current = false;
     reset();
   });
 
   useEffect(() => {
     if (access.state !== 'ok') return;
+    loadedOnceRef.current = true;
     void reload();
   }, [access.state, reload]);
 
+  const showInitialLoading = loading && items.length === 0;
+  const showBlockingError = Boolean(error && items.length === 0);
+
   if (access.state === 'need-login') {
     return (
-      <View className="container">
+      <View className="container orders-page">
         <PageHeader title="我的订单" subtitle="订金/尾款都在平台托管；可查看状态与发起退款申请" />
         <Spacer />
         <PermissionCard title="需要登录" message="登录后才能查看订单。" actionText="去登录" onAction={goLogin} />
@@ -163,7 +161,7 @@ export default function OrdersPage() {
   }
   if (access.state === 'need-onboarding') {
     return (
-      <View className="container">
+      <View className="container orders-page">
         <PageHeader title="我的订单" subtitle="订金/尾款都在平台托管；可查看状态与发起退款申请" />
         <Spacer />
         <PermissionCard title="需要选择身份" message="完成身份选择后才能继续。" actionText="去选择" onAction={goOnboarding} />
@@ -172,7 +170,7 @@ export default function OrdersPage() {
   }
   if (access.state === 'audit-pending') {
     return (
-      <View className="container">
+      <View className="container orders-page">
         <PageHeader title="我的订单" subtitle="订金/尾款都在平台托管；可查看状态与发起退款申请" />
         <Spacer />
         <AuditPendingCard title="资料审核中" message="审核通过后才能交易与查看订单。" actionText="查看进度" onAction={goOnboarding} />
@@ -181,7 +179,7 @@ export default function OrdersPage() {
   }
   if (access.state === 'audit-rejected') {
     return (
-      <View className="container">
+      <View className="container orders-page">
         <PageHeader title="我的订单" subtitle="订金/尾款都在平台托管；可查看状态与发起退款申请" />
         <Spacer />
         <AuditPendingCard title="资料已驳回" message="请重新提交资料，审核通过后才能继续。" actionText="重新提交" onAction={goOnboarding} />
@@ -190,7 +188,7 @@ export default function OrdersPage() {
   }
   if (access.state === 'audit-required') {
     return (
-      <View className="container">
+      <View className="container orders-page">
         <PageHeader title="我的订单" subtitle="订金/尾款都在平台托管；可查看状态与发起退款申请" />
         <Spacer />
         <AuditPendingCard title="需要认证" message="完成认证并审核通过后才能继续。" actionText="去认证" onAction={goOnboarding} />
@@ -199,7 +197,7 @@ export default function OrdersPage() {
   }
 
   return (
-    <View className="container">
+    <View className="container orders-page">
       <PageHeader title="我的订单" subtitle="订金/尾款都在平台托管；可查看状态与发起退款申请" />
       <Spacer />
 
@@ -224,7 +222,7 @@ export default function OrdersPage() {
             <View
               className="pill pill-strong"
               onClick={() => {
-                Taro.redirectTo({ url: buildUrl({ status: null }) });
+                setStatus('');
               }}
             >
               <Text>清空</Text>
@@ -235,13 +233,19 @@ export default function OrdersPage() {
 
       <View style={{ height: '12rpx' }} />
 
-      <PullToRefresh type="primary" disabled={loading || refreshing} onRefresh={refresh}>
-        {loading ? (
+      <PullToRefresh type="primary" disabled={showInitialLoading || refreshing} onRefresh={refresh}>
+        {showInitialLoading ? (
           <LoadingCard />
-        ) : error ? (
-          <ErrorCard message={error} onRetry={reload} />
+        ) : showBlockingError ? (
+          <ErrorCard message={error || undefined} onRetry={reload} />
         ) : items.length ? (
           <View>
+            {loading ? (
+              <>
+                <Text className="muted">加载中…</Text>
+                <View style={{ height: '8rpx' }} />
+              </>
+            ) : null}
             {items.map((it: Order) => (
               <Surface
                 key={it.id}
@@ -265,7 +269,7 @@ export default function OrdersPage() {
           <EmptyCard title="暂无订单" message="完成下单后订单会出现在这里。" actionText="刷新" onAction={reload} image={emptyOrders} />
         )}
 
-        {!loading && items.length ? (
+        {!showInitialLoading && items.length ? (
           <ListFooter loadingMore={loadingMore} hasMore={hasMore} onLoadMore={loadMore} showNoMore />
         ) : null}
       </PullToRefresh>

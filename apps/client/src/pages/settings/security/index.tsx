@@ -1,4 +1,4 @@
-import { View, Text } from '@tarojs/components';
+﻿import { Text, View } from '@tarojs/components';
 import Taro from '@tarojs/taro';
 import React, { useCallback } from 'react';
 import './index.scss';
@@ -39,6 +39,7 @@ export default function SecurityPage() {
       </Surface>
 
       <Spacer size={12} />
+
       <Surface className="settings-tip">
         <Text className="settings-tip-text">如发现异常登录或账号风险，请尽快联系平台客服处理。</Text>
       </Surface>

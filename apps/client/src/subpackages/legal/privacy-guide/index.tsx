@@ -1,4 +1,4 @@
-import { View, Text } from '@tarojs/components';
+﻿import { Text, View } from '@tarojs/components';
 import React from 'react';
 import './index.scss';
 
@@ -7,15 +7,15 @@ import { PageHeader, Spacer, Surface } from '../../../ui/layout';
 const SECTIONS = [
   {
     title: '用户隐私保护指引',
-    body: '为确保你的知情权与选择权，本指引说明小程序中涉及个人信息的使用场景与授权方式。',
+    body: '为保障你的知情权与选择权，本指引用于说明小程序内涉及个人信息的使用场景与授权方式。',
   },
   {
     title: '必要权限说明',
-    body: '在登录、咨询、交易等场景中，平台可能需要获取头像昵称、联系方式等信息。',
+    body: '在登录、咨询、交易等场景中，平台可能需要获取头像昵称、联系方式等必要信息。',
   },
   {
     title: '撤回授权',
-    body: '你可在微信系统设置中撤回授权，撤回后可能影响部分功能使用。',
+    body: '你可在微信系统设置中撤回授权，撤回后可能影响部分功能正常使用。',
   },
 ];
 

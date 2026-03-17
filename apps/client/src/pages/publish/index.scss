@@ -21,10 +21,15 @@
   z-index: 6;
   padding: 16rpx 0;
   background: var(--bg-page-plain);
-  backdrop-filter: blur(10px);
   box-shadow: 0 10rpx 24rpx rgba(15, 23, 42, 0.08);
   margin-bottom: var(--space-3);
 }
+
+/* #ifdef H5 */
+.publish-header {
+  backdrop-filter: blur(10px);
+}
+/* #endif */
 
 .publish-title {
   font-size: 44rpx;

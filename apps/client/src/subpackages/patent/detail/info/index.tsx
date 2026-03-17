@@ -1,4 +1,4 @@
-import { View, Text } from '@tarojs/components';
+﻿import { View, Text } from '@tarojs/components';
 import Taro from '@tarojs/taro';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import './index.scss';
@@ -10,9 +10,10 @@ import { ensureApproved } from '../../../../lib/guard';
 import { patentTypeLabel, priceTypeLabel, verificationTypeLabel } from '../../../../lib/labels';
 import { fenToYuan } from '../../../../lib/money';
 import { safeNavigateBack } from '../../../../lib/navigation';
+import { getPatentCache, setPatentCache } from '../../../../lib/patentCache';
 import { useRouteUuidParam } from '../../../../lib/routeParams';
-import { PageHeader, SectionHeader, Spacer, StickyBar, Surface } from '../../../../ui/layout';
 import { Avatar, Button, toast } from '../../../../ui/nutui';
+import { PageHeader, SectionHeader, Spacer, StickyBar, Surface } from '../../../../ui/layout';
 import { EmptyCard, ErrorCard, LoadingCard, MissingParamCard } from '../../../../ui/StateCards';
 
 type Patent = components['schemas']['Patent'];
@@ -40,10 +41,10 @@ function legalStatusLabel(status?: Patent['legalStatus']): string {
 
 function supplyTypeLabel(type?: string | null): string {
   if (!type) return '-';
-  if (type === 'UNIVERSITY') return '普通高校';
+  if (type === 'UNIVERSITY') return '高校';
   if (type === 'UNIVERSITY_985') return '985高校';
   if (type === 'UNIVERSITY_211') return '211高校';
-  if (type === 'RESEARCH_INSTITUTE') return '研究所';
+  if (type === 'RESEARCH_INSTITUTE') return '科研院所';
   return '其他';
 }
 
@@ -60,8 +61,9 @@ function remainingYears(filingDate?: string | null, patentType?: Patent['patentT
   const expiry = new Date(start);
   expiry.setFullYear(start.getFullYear() + termYears);
   const diffMs = expiry.getTime() - Date.now();
-  const years = Math.max(0, Math.floor(diffMs / (1000 * 60 * 60 * 24 * 365.25)));
-  return `${years}年`;
+  if (diffMs <= 0) return '0 年';
+  const years = Math.ceil(diffMs / (1000 * 60 * 60 * 24 * 365.25));
+  return `${years} 年`;
 }
 
 function buildTabUrl(tabId: string, patentId: string): string {
@@ -75,21 +77,45 @@ function buildTabUrl(tabId: string, patentId: string): string {
 export default function PatentDetailInfoPage() {
   const patentId = useRouteUuidParam('patentId') || '';
 
-  const [loading, setLoading] = useState(true);
+  const initialCachedData = patentId ? getPatentCache<Patent>(patentId) : null;
+  const [loading, setLoading] = useState(!initialCachedData);
   const [error, setError] = useState<string | null>(null);
-  const [data, setData] = useState<Patent | null>(null);
+  const [data, setData] = useState<Patent | null>(initialCachedData);
   const activeTab = 'info';
+
+  useEffect(() => {
+    if (!patentId) {
+      setData(null);
+      setLoading(false);
+      setError(null);
+      return;
+    }
+    const cached = getPatentCache<Patent>(patentId);
+    setData(cached || null);
+    setLoading(!cached);
+    setError(null);
+  }, [patentId]);
 
   const load = useCallback(async () => {
     if (!patentId) return;
-    setLoading(true);
-    setError(null);
+    const cached = getPatentCache<Patent>(patentId);
+    if (cached) {
+      setData(cached);
+      setLoading(false);
+      setError(null);
+    } else {
+      setLoading(true);
+      setError(null);
+    }
     try {
-      const d = await apiGet<Patent>(`/patents/${patentId}`);
-      setData(d);
+      const next = await apiGet<Patent>(`/patents/${patentId}`);
+      setData(next);
+      setPatentCache(patentId, next);
     } catch (e: any) {
-      setError(e?.message || '加载失败');
-      setData(null);
+      if (!cached) {
+        setError(e?.message || '加载失败');
+        setData(null);
+      }
     } finally {
       setLoading(false);
     }
@@ -99,7 +125,7 @@ export default function PatentDetailInfoPage() {
     try {
       await Taro.setClipboardData({ data: text });
       toast('已复制', { icon: 'success' });
-    } catch (_) {
+    } catch {
       toast('复制失败', { icon: 'fail' });
     }
   }, []);
@@ -112,7 +138,7 @@ export default function PatentDetailInfoPage() {
   const listingId = tradeSnapshot?.listingId || '';
   const depositAmountFen = tradeSnapshot?.depositAmountFen ?? null;
   const canTrade = Boolean(listingId);
-  const depositLabel = depositAmountFen != null ? `付订金 ￥${fenToYuan(depositAmountFen)}` : '付订金';
+  const depositLabel = depositAmountFen != null ? `订金 ¥${fenToYuan(depositAmountFen)}` : '订金 -';
   const hasSpecStats = [
     (data as any)?.claimCount,
     (data as any)?.specPageCount,
@@ -123,19 +149,21 @@ export default function PatentDetailInfoPage() {
 
   const startConsult = useCallback(async () => {
     if (!listingId) {
-      toast('暂无可咨询的挂牌', { icon: 'fail' });
+      toast('当前专利暂无可咨询挂牌', { icon: 'fail' });
       return;
     }
     if (!ensureApproved()) return;
+
     try {
       await apiPost<void>(
         `/listings/${listingId}/consultations`,
         { channel: 'FORM' },
         { idempotencyKey: `patent-c-${listingId}` },
       );
-    } catch (_) {
-      // ignore: heat event
+    } catch {
+      // Heat event is best effort.
     }
+
     try {
       const conv = await apiPost<Conversation>(
         `/listings/${listingId}/conversations`,
@@ -185,7 +213,7 @@ export default function PatentDetailInfoPage() {
 
   return (
     <View className="container detail-page-compact has-sticky">
-      <PageHeader weapp title="专利详情" subtitle="基础信息" />
+      <PageHeader weapp title="专利详情" subtitle="基础信息视图" />
       <Spacer />
 
       {loading ? (
@@ -241,7 +269,12 @@ export default function PatentDetailInfoPage() {
             <Surface className="detail-section-card patent-provider-card">
               {hasTrade ? (
                 <View className="patent-provider-row">
-                  <Avatar size="44" src={tradeSnapshot?.seller?.avatarUrl || ''} background="rgba(15, 23, 42, 0.06)" color="var(--c-muted)">
+                  <Avatar
+                    size="44"
+                    src={tradeSnapshot?.seller?.avatarUrl || ''}
+                    background="rgba(15, 23, 42, 0.06)"
+                    color="var(--c-muted)"
+                  >
                     {(tradeSnapshot?.seller?.nickname || '供').slice(0, 1)}
                   </Avatar>
                   <View className="patent-provider-meta">
@@ -289,6 +322,12 @@ export default function PatentDetailInfoPage() {
                 <Text className="detail-field-value break-word">{(data as any)?.mainIpcCode || '-'}</Text>
               </View>
               <View className="detail-field-row">
+                <Text className="detail-field-label">Locarno分类</Text>
+                <Text className="detail-field-value break-word">
+                  {(data as any)?.locCodes?.length ? (data as any).locCodes.join(' / ') : '-'}
+                </Text>
+              </View>
+              <View className="detail-field-row">
                 <Text className="detail-field-label">申请日</Text>
                 <Text className="detail-field-value break-word">{data.filingDate || '-'}</Text>
               </View>
@@ -306,21 +345,15 @@ export default function PatentDetailInfoPage() {
             <View className="detail-field-list">
               <View className="detail-field-row">
                 <Text className="detail-field-label">发明人</Text>
-                <Text className="detail-field-value break-word">
-                  {data.inventorNames?.length ? data.inventorNames.join(' / ') : '-'}
-                </Text>
+                <Text className="detail-field-value break-word">{data.inventorNames?.length ? data.inventorNames.join(' / ') : '-'}</Text>
               </View>
               <View className="detail-field-row">
-                <Text className="detail-field-label">权利人</Text>
-                <Text className="detail-field-value break-word">
-                  {data.assigneeNames?.length ? data.assigneeNames.join(' / ') : '-'}
-                </Text>
+                <Text className="detail-field-label">专利权人</Text>
+                <Text className="detail-field-value break-word">{data.assigneeNames?.length ? data.assigneeNames.join(' / ') : '-'}</Text>
               </View>
               <View className="detail-field-row">
                 <Text className="detail-field-label">申请人</Text>
-                <Text className="detail-field-value break-word">
-                  {data.applicantNames?.length ? data.applicantNames.join(' / ') : '-'}
-                </Text>
+                <Text className="detail-field-value break-word">{data.applicantNames?.length ? data.applicantNames.join(' / ') : '-'}</Text>
               </View>
             </View>
           </View>
@@ -360,7 +393,7 @@ export default function PatentDetailInfoPage() {
                     <Text className="detail-field-value">{formatCount((data as any)?.specWordCount, '字')}</Text>
                   </View>
                   <View className="detail-field-row">
-                    <Text className="detail-field-label">说明书附图数量</Text>
+                    <Text className="detail-field-label">附图数量</Text>
                     <Text className="detail-field-value">{formatCount((data as any)?.specFigureCount, '张')}</Text>
                   </View>
                 </View>
@@ -384,7 +417,7 @@ export default function PatentDetailInfoPage() {
                       {(tradeSnapshot as any)?.priceType === 'NEGOTIABLE'
                         ? '面议'
                         : (tradeSnapshot as any)?.priceAmountFen != null
-                          ? `￥${fenToYuan((tradeSnapshot as any).priceAmountFen)}`
+                          ? `¥${fenToYuan((tradeSnapshot as any).priceAmountFen)}`
                           : '-'}
                     </Text>
                   </View>
@@ -392,7 +425,7 @@ export default function PatentDetailInfoPage() {
                     <Text className="detail-field-label">订金</Text>
                     <Text className="detail-field-value">
                       {(tradeSnapshot as any)?.depositAmountFen != null
-                        ? `￥${fenToYuan((tradeSnapshot as any).depositAmountFen)}`
+                        ? `¥${fenToYuan((tradeSnapshot as any).depositAmountFen)}`
                         : '-'}
                     </Text>
                   </View>
@@ -407,7 +440,7 @@ export default function PatentDetailInfoPage() {
                     <Text className="detail-field-value">
                       {(tradeSnapshot as any)?.seller?.nickname || '-'}
                       {(tradeSnapshot as any)?.seller?.verificationType
-                        ? `（${verificationTypeLabel((tradeSnapshot as any).seller.verificationType as any)}）`
+                        ? ` (${verificationTypeLabel((tradeSnapshot as any).seller.verificationType as any)})`
                         : ''}
                     </Text>
                   </View>
@@ -422,9 +455,9 @@ export default function PatentDetailInfoPage() {
             <SectionHeader title="相关权益" density="compact" />
             <Surface className="detail-section-card">
               <View className="patent-rights-card">
-                <View className="patent-rights-icon">✔</View>
+                <View className="patent-rights-icon">✓</View>
                 <Text className="patent-rights-text">
-                  专利权属清晰，已核查专利登记簿副本，无质押、无纠纷。成交后包含：专利证书原件 + 变更手续协助 + 3个月技术交底。
+                  平台已完成基础权属校验，建议交易前按项目实际情况补充尽调材料、权利状态与交付范围确认。
                 </Text>
               </View>
             </Surface>

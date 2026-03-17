@@ -1,10 +1,10 @@
-import { View, Text } from '@tarojs/components';
+﻿import { Text, View } from '@tarojs/components';
 import Taro from '@tarojs/taro';
 import React, { useCallback, useState } from 'react';
 import './index.scss';
 
 import { PageHeader, Spacer, Surface, TipBanner } from '../../ui/layout';
-import { Cell, Button, Input, TextArea } from '../../ui/nutui';
+import { Button, Cell, Input, TextArea } from '../../ui/nutui';
 
 export default function SupportPage() {
   const [contact, setContact] = useState('');
@@ -26,7 +26,7 @@ export default function SupportPage() {
       <Spacer />
 
       <TipBanner tone="info" title="服务提示">
-        客服工作时间：工作日 09:00-18:00，非工作时间可提交意见反馈，我们将尽快处理。
+        客服工作时间：工作日 09:00-18:00。非工作时间可提交意见反馈，我们会尽快处理。
       </TipBanner>
 
       <Spacer size={12} />
@@ -38,6 +38,7 @@ export default function SupportPage() {
       </Surface>
 
       <Spacer size={12} />
+
       <Surface className="settings-card">
         <View className="feedback-title">意见反馈</View>
         <Input
@@ -51,15 +52,13 @@ export default function SupportPage() {
           className="feedback-textarea"
           value={content}
           onChange={setContent}
-          placeholder="请描述你的问题或建议"
+          placeholder="请描述你遇到的问题或建议"
           maxLength={500}
         />
         <Button variant="primary" onClick={submitFeedback}>
           提交反馈
         </Button>
-        <Text className="settings-tip-text">
-          请尽量描述问题环境与操作步骤，以便我们更快定位。
-        </Text>
+        <Text className="settings-tip-text">请尽量描述问题环境与操作步骤，便于我们更快定位。</Text>
       </Surface>
     </View>
   );

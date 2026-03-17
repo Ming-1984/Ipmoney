@@ -49,10 +49,10 @@ docker compose up -d
 
 ## 说明
 
-- 全面 TODO / 上线规划：`docs/engineering/overall-todo.md`
+- 全面质量整改 TODO（主执行清单）：`docs/engineering/full-quality-todo-2026-03-05.md`
 - 项目状态：`docs/engineering/project-status.md`
 - 一键自检（lint/typecheck/build/smoke）：`powershell -ExecutionPolicy Bypass -File scripts/verify.ps1`
 - WeApp 路由冒烟（无截图，DevTools 自动化，可选）：`powershell -ExecutionPolicy Bypass -File scripts/weapp-route-smoke.ps1 -NoAuth`
 - Mock/fixtures 的规划见：`docs/engineering/mocking.md`
-- 执行节奏（Mock→逐模块替换）见：`docs/engineering/execution-playbook.md`
+- 历史规划归档：`docs/engineering/archive/legacy-roadmaps-2026-02-to-2026-03.md`
 - 甲方演示材料见：`docs/demo/README.md`

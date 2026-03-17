@@ -47,6 +47,40 @@ export default ((merge, env) => {
     maxAssetSize: 650 * 1024,
     maxEntrypointSize: 1200 * 1024,
   };
+  const applySplitChunks = (chain: any) => {
+    chain.optimization.splitChunks({
+      chunks: 'all',
+      minSize: 24 * 1024,
+      maxInitialRequests: 25,
+      maxAsyncRequests: 30,
+      cacheGroups: {
+        framework: {
+          name: 'framework',
+          test: /[\\/]node_modules[\\/](react|react-dom|@tarojs)[\\/]/,
+          priority: 40,
+          reuseExistingChunk: true,
+        },
+        ui: {
+          name: 'ui-kit',
+          test: /[\\/]node_modules[\\/](@nutui|swiper)[\\/]/,
+          priority: 30,
+          reuseExistingChunk: true,
+        },
+        vendors: {
+          name: 'vendors',
+          test: /[\\/]node_modules[\\/]/,
+          priority: 20,
+          reuseExistingChunk: true,
+        },
+        common: {
+          name: 'common',
+          minChunks: 2,
+          priority: 10,
+          reuseExistingChunk: true,
+        },
+      },
+    });
+  };
 
   const baseConfig: UserConfigExport = {
     projectName: 'ipmoney-client',
@@ -85,12 +119,15 @@ export default ((merge, env) => {
       },
     },
     csso: {
-      enable: false,
+      enable: !isDev,
     },
+    // For WeChat mini-program, rely on subpackages + lazyCodeLoading.
+    // Custom splitChunks on mini can cause unstable startup chunk loading.
     mini: {},
     h5: {
       webpackChain(chain) {
         try {
+          applySplitChunks(chain);
           chain.performance
             .maxAssetSize(h5PerformanceBudget.maxAssetSize)
             .maxEntrypointSize(h5PerformanceBudget.maxEntrypointSize);

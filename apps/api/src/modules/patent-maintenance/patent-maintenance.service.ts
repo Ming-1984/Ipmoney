@@ -35,7 +35,7 @@ export class PatentMaintenanceService {
       throw new BadRequestException({ code: 'BAD_REQUEST', message: `${fieldName} is invalid` });
     }
     const parsed = Number(raw);
-    if (!Number.isInteger(parsed) || parsed <= 0) {
+    if (!Number.isSafeInteger(parsed) || parsed <= 0) {
       throw new BadRequestException({ code: 'BAD_REQUEST', message: `${fieldName} is invalid` });
     }
     return parsed;
@@ -182,7 +182,7 @@ export class PatentMaintenanceService {
 
     const rawYearNo = body?.yearNo;
     const yearNo = typeof rawYearNo === 'number' ? rawYearNo : Number(rawYearNo);
-    if (!Number.isFinite(yearNo) || !Number.isInteger(yearNo) || yearNo <= 0) {
+    if (!Number.isFinite(yearNo) || !Number.isSafeInteger(yearNo) || yearNo <= 0) {
       throw new BadRequestException({ code: 'BAD_REQUEST', message: 'yearNo is invalid' });
     }
 

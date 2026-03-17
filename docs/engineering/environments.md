@@ -62,8 +62,11 @@
 - `WX_PAY_MCH_CERT_SERIAL_NO`
 - `WX_PAY_API_V3_KEY`
 - `WX_PAY_MCH_PRIVATE_KEY`（建议为 PEM 内容；或用文件路径变量）
+- `WX_PAY_PLATFORM_CERT_SERIAL_NO`（可选：单证书场景可与 `WX_PAY_PLATFORM_CERT` 搭配）
+- `WX_PAY_PLATFORM_CERT`（可选：平台证书 PEM 或证书路径）
 - `WX_PAY_PLATFORM_CERTS`（可选：平台证书缓存）
 - `WX_PAY_NOTIFY_URL`：支付/退款回调地址（指向 `docs/api/openapi.yaml` 的 webhook path）
+- `WX_PAY_TEST_OPENID`（仅本地/非生产可选：用于缺少用户 openid 时联调）
 
 ## 对象存储（S3 兼容）
 

@@ -1,4 +1,4 @@
-import { View, Text } from '@tarojs/components';
+﻿import { View, Text } from '@tarojs/components';
 import Taro from '@tarojs/taro';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import './index.scss';
@@ -6,10 +6,11 @@ import './index.scss';
 import type { components } from '@ipmoney/api-types';
 
 import { apiGet, apiPost } from '../../../../lib/api';
-import { patentTypeLabel } from '../../../../lib/labels';
 import { ensureApproved } from '../../../../lib/guard';
+import { patentTypeLabel } from '../../../../lib/labels';
 import { fenToYuan } from '../../../../lib/money';
 import { safeNavigateBack } from '../../../../lib/navigation';
+import { getPatentCache, setPatentCache } from '../../../../lib/patentCache';
 import { useRouteUuidParam } from '../../../../lib/routeParams';
 import { PageHeader, SectionHeader, Spacer, StickyBar, Surface } from '../../../../ui/layout';
 import { Button, toast } from '../../../../ui/nutui';
@@ -44,21 +45,45 @@ function buildTabUrl(tabId: string, patentId: string): string {
 export default function PatentDetailSummaryPage() {
   const patentId = useRouteUuidParam('patentId') || '';
 
-  const [loading, setLoading] = useState(true);
+  const initialCachedData = patentId ? getPatentCache<Patent>(patentId) : null;
+  const [loading, setLoading] = useState(!initialCachedData);
   const [error, setError] = useState<string | null>(null);
-  const [data, setData] = useState<Patent | null>(null);
+  const [data, setData] = useState<Patent | null>(initialCachedData);
   const activeTab = 'summary';
+
+  useEffect(() => {
+    if (!patentId) {
+      setData(null);
+      setLoading(false);
+      setError(null);
+      return;
+    }
+    const cached = getPatentCache<Patent>(patentId);
+    setData(cached || null);
+    setLoading(!cached);
+    setError(null);
+  }, [patentId]);
 
   const load = useCallback(async () => {
     if (!patentId) return;
-    setLoading(true);
-    setError(null);
+    const cached = getPatentCache<Patent>(patentId);
+    if (cached) {
+      setData(cached);
+      setLoading(false);
+      setError(null);
+    } else {
+      setLoading(true);
+      setError(null);
+    }
     try {
-      const d = await apiGet<Patent>(`/patents/${patentId}`);
-      setData(d);
+      const next = await apiGet<Patent>(`/patents/${patentId}`);
+      setData(next);
+      setPatentCache(patentId, next);
     } catch (e: any) {
-      setError(e?.message || '加载失败');
-      setData(null);
+      if (!cached) {
+        setError(e?.message || '加载失败');
+        setData(null);
+      }
     } finally {
       setLoading(false);
     }
@@ -68,7 +93,7 @@ export default function PatentDetailSummaryPage() {
     try {
       await Taro.setClipboardData({ data: text });
       toast('已复制', { icon: 'success' });
-    } catch (_) {
+    } catch {
       toast('复制失败', { icon: 'fail' });
     }
   }, []);
@@ -81,23 +106,25 @@ export default function PatentDetailSummaryPage() {
   const listingId = tradeSnapshot?.listingId || '';
   const depositAmountFen = tradeSnapshot?.depositAmountFen ?? null;
   const canTrade = Boolean(listingId);
-  const depositLabel = depositAmountFen != null ? `付订金 ￥${fenToYuan(depositAmountFen)}` : '付订金';
+  const depositLabel = depositAmountFen != null ? `订金 ¥${fenToYuan(depositAmountFen)}` : '订金 -';
 
   const startConsult = useCallback(async () => {
     if (!listingId) {
-      toast('暂无可咨询的挂牌', { icon: 'fail' });
+      toast('当前专利暂无可咨询挂牌', { icon: 'fail' });
       return;
     }
     if (!ensureApproved()) return;
+
     try {
       await apiPost<void>(
         `/listings/${listingId}/consultations`,
         { channel: 'FORM' },
         { idempotencyKey: `patent-c-${listingId}` },
       );
-    } catch (_) {
-      // ignore: heat event
+    } catch {
+      // Heat event is best effort.
     }
+
     try {
       const conv = await apiPost<Conversation>(
         `/listings/${listingId}/conversations`,
@@ -138,7 +165,7 @@ export default function PatentDetailSummaryPage() {
 
   return (
     <View className="container detail-page-compact has-sticky">
-      <PageHeader weapp title="专利详情" subtitle="摘要信息" />
+      <PageHeader weapp title="专利详情" subtitle="摘要视图" />
       <Spacer />
 
       {loading ? (
@@ -192,7 +219,7 @@ export default function PatentDetailSummaryPage() {
           <View id="patent-summary" className="patent-card-stack">
             <SectionHeader title="技术摘要" density="compact" />
             <Surface className="detail-section-card">
-              <Text className="patent-summary-text">{data.abstract || '暂无摘要'}</Text>
+              <Text className="patent-summary-text">{data.abstract || '暂无摘要信息'}</Text>
             </Surface>
           </View>
         </View>

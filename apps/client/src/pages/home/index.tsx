@@ -27,10 +27,13 @@ import homeIconTechManager from '../../assets/icons/home/home-tech-manager.svg';
 import homeIconDesignPatent from '../../assets/icons/home/home-design-patent.svg';
 import homeIconAnnouncements from '../../assets/icons/home/home-announcements.svg';
 import logoGif from '../../assets/brand/logo.optim2.gif';
+import logoPng from '../../assets/brand/logo.png';
 import promoCertificateGif from '../../assets/home/promo-certificate.optim3.gif';
+import promoCertificatePng from '../../assets/home/promo-certificate.png';
 import { STORAGE_KEYS } from '../../constants';
 import { getToken, onAuthChanged } from '../../lib/auth';
 import { apiGet } from '../../lib/api';
+import { getDetailCache, setDetailCache } from '../../lib/detailCache';
 import { syncFavorites } from '../../lib/favorites';
 import { EmptyCard, ErrorCard } from '../../ui/StateCards';
 import { toast } from '../../ui/nutui';
@@ -73,12 +76,24 @@ type PatentZoneEntry = {
   onClick: () => void;
 };
 
+const HOME_ANNOUNCEMENTS_DELAY_MS = 500;
+const HOME_FAVORITES_SYNC_DELAY_MS = 800;
+const HOME_LISTINGS_CACHE_SCOPE = 'home-listings';
+const HOME_ANNOUNCEMENTS_CACHE_SCOPE = 'home-announcements';
+
 const HomeBanner = React.memo(function HomeBanner() {
   return (
     <View className="home-banner">
       <View className="home-banner-item">
-        {/* Use multi-frame GIF variants here; small *.gif files are 2-frame and appear as blinking. */}
-        <GifImage src={promoCertificateGif} mode="aspectFill" className="home-banner-img" />
+        <GifImage
+          src={promoCertificateGif}
+          fallbackSrc={promoCertificatePng}
+          deferOnWeapp
+          deferMs={1600}
+          lazyLoad
+          mode="aspectFill"
+          className="home-banner-img"
+        />
       </View>
     </View>
   );
@@ -95,15 +110,24 @@ function formatDate(value?: string): string {
 }
 
 export default function HomePage() {
-  const [loading, setLoading] = useState(true);
+  const initialAuthed = Boolean(getToken());
+  const initialListings = getDetailCache<PagedListingSummary>(
+    HOME_LISTINGS_CACHE_SCOPE,
+    initialAuthed ? 'recommend' : 'newest',
+  );
+  const initialAnnouncements = getDetailCache<PagedAnnouncements>(HOME_ANNOUNCEMENTS_CACHE_SCOPE, 'top6');
+
+  const [loading, setLoading] = useState(!initialListings);
   const [error, setError] = useState<string | null>(null);
-  const [data, setData] = useState<PagedListingSummary | null>(null);
-  const [recommendMode, setRecommendMode] = useState<'RECOMMEND' | 'NEWEST'>('NEWEST');
-  const [isAuthed, setIsAuthed] = useState(Boolean(getToken()));
+  const [data, setData] = useState<PagedListingSummary | null>(initialListings);
+  const [recommendMode, setRecommendMode] = useState<'RECOMMEND' | 'NEWEST'>(
+    initialAuthed ? 'RECOMMEND' : 'NEWEST',
+  );
+  const [isAuthed, setIsAuthed] = useState(initialAuthed);
   const [keyword, setKeyword] = useState('');
-  const [announcementLoading, setAnnouncementLoading] = useState(true);
+  const [announcementLoading, setAnnouncementLoading] = useState(!initialAnnouncements);
   const [announcementError, setAnnouncementError] = useState<string | null>(null);
-  const [announcements, setAnnouncements] = useState<PagedAnnouncements | null>(null);
+  const [announcements, setAnnouncements] = useState<PagedAnnouncements | null>(initialAnnouncements);
 
   const statusBarHeight = useMemo(() => {
     if (process.env.TARO_ENV !== 'weapp') return 0;
@@ -123,8 +147,17 @@ export default function HomePage() {
   useEffect(() => onAuthChanged(() => setIsAuthed(Boolean(getToken()))), []);
 
   const load = useCallback(async () => {
-    setLoading(true);
-    setError(null);
+    const cacheKey = isAuthed ? 'recommend' : 'newest';
+    const cached = getDetailCache<PagedListingSummary>(HOME_LISTINGS_CACHE_SCOPE, cacheKey);
+    if (cached) {
+      setData(cached);
+      setRecommendMode(isAuthed ? 'RECOMMEND' : 'NEWEST');
+      setLoading(false);
+      setError(null);
+    } else {
+      // Keep previous list visible when switching mode to avoid skeleton flash.
+      setError(null);
+    }
     try {
       if (isAuthed) {
         const d = await apiGet<PagedListingSummary>('/me/recommendations/listings', {
@@ -133,6 +166,7 @@ export default function HomePage() {
         });
         setData(d);
         setRecommendMode('RECOMMEND');
+        setDetailCache(HOME_LISTINGS_CACHE_SCOPE, 'recommend', d);
       } else {
         const d = await apiGet<PagedListingSummary>('/search/listings', {
           sortBy: 'NEWEST',
@@ -141,10 +175,13 @@ export default function HomePage() {
         });
         setData(d);
         setRecommendMode('NEWEST');
+        setDetailCache(HOME_LISTINGS_CACHE_SCOPE, 'newest', d);
       }
     } catch (e: any) {
-      setError(e?.message || '加载失败');
-      setData(null);
+      if (!cached) {
+        setError(e?.message || '加载失败');
+        setData(null);
+      }
     } finally {
       setLoading(false);
     }
@@ -156,25 +193,41 @@ export default function HomePage() {
 
   useEffect(() => {
     if (!getToken()) return;
-    syncFavorites().catch(() => {});
+    const timer = setTimeout(() => {
+      syncFavorites().catch(() => {});
+    }, HOME_FAVORITES_SYNC_DELAY_MS);
+    return () => clearTimeout(timer);
   }, []);
 
   const loadAnnouncements = useCallback(async () => {
-    setAnnouncementLoading(true);
-    setAnnouncementError(null);
+    const cached = getDetailCache<PagedAnnouncements>(HOME_ANNOUNCEMENTS_CACHE_SCOPE, 'top6');
+    if (cached) {
+      setAnnouncements(cached);
+      setAnnouncementLoading(false);
+      setAnnouncementError(null);
+    } else {
+      setAnnouncementLoading(true);
+      setAnnouncementError(null);
+    }
     try {
       const d = await apiGet<PagedAnnouncements>('/public/announcements', { page: 1, pageSize: 6 });
       setAnnouncements(d);
+      setDetailCache(HOME_ANNOUNCEMENTS_CACHE_SCOPE, 'top6', d);
     } catch (e: any) {
-      setAnnouncements(null);
-      setAnnouncementError(e?.message || '加载失败');
+      if (!cached) {
+        setAnnouncements(null);
+        setAnnouncementError(e?.message || '加载失败');
+      }
     } finally {
       setAnnouncementLoading(false);
     }
   }, []);
 
   useEffect(() => {
-    void loadAnnouncements();
+    const timer = setTimeout(() => {
+      void loadAnnouncements();
+    }, HOME_ANNOUNCEMENTS_DELAY_MS);
+    return () => clearTimeout(timer);
   }, [loadAnnouncements]);
 
   const items = useMemo(() => data?.items || [], [data?.items]);
@@ -318,7 +371,14 @@ export default function HomePage() {
         <View className="home-hero-top">
           <View className="home-hero-brand">
             <View className="home-hero-logo">
-              <GifImage src={logoGif} mode="aspectFill" className="home-hero-logo-img" />
+              <GifImage
+                src={logoGif}
+                fallbackSrc={logoPng}
+                deferOnWeapp
+                deferMs={1200}
+                mode="aspectFill"
+                className="home-hero-logo-img"
+              />
             </View>
             <View className="home-hero-text">
               <Text className="home-hero-title">IPMONEY</Text>
@@ -357,7 +417,7 @@ export default function HomePage() {
         <View className="home-zone-grid">
           {patentZoneEntries.map((entry) => (
             <View key={entry.key} className={`home-zone-card ${entry.tone}`} onClick={entry.onClick}>
-              <Image src={entry.bgImage} mode="aspectFill" className="home-zone-bg" />
+              <Image src={entry.bgImage} mode="aspectFill" className="home-zone-bg" lazyLoad />
               <View className="home-zone-scrim" />
 
               <View className="home-zone-content">

@@ -12,9 +12,12 @@ import { getToken } from '../../../lib/auth';
 import { favorite, isFavorited, syncFavorites, unfavorite } from '../../../lib/favorites';
 import { ensureApproved } from '../../../lib/guard';
 import { formatTimeSmart } from '../../../lib/format';
+import { getDetailCache, setDetailCache } from '../../../lib/detailCache';
+import { sanitizeIndustryTagNames } from '../../../lib/industryTags';
 import { featuredLevelLabel, patentTypeLabel, priceTypeLabel, tradeModeLabel, verificationTypeLabel } from '../../../lib/labels';
 import { fenToYuan } from '../../../lib/money';
 import { safeNavigateBack } from '../../../lib/navigation';
+import { getPatentCache, setPatentCache } from '../../../lib/patentCache';
 import { regionDisplayName } from '../../../lib/regions';
 import { useRouteUuidParam } from '../../../lib/routeParams';
 import { CommentsSection } from '../../../ui/CommentsSection';
@@ -60,9 +63,10 @@ function remainingYears(filingDate?: string | null, patentType?: Patent['patentT
 
 export default function ListingDetailPage() {
   const listingId = useRouteUuidParam('listingId');
-  const [loading, setLoading] = useState(true);
+  const initialCachedData = listingId ? getDetailCache<ListingPublic>('listing-public', listingId) : null;
+  const [loading, setLoading] = useState(!initialCachedData);
   const [error, setError] = useState<string | null>(null);
-  const [data, setData] = useState<ListingPublic | null>(null);
+  const [data, setData] = useState<ListingPublic | null>(initialCachedData);
   const [patentLoading, setPatentLoading] = useState(false);
   const [patentError, setPatentError] = useState<string | null>(null);
   const [patentData, setPatentData] = useState<Patent | null>(null);
@@ -89,8 +93,9 @@ export default function ListingDetailPage() {
     query
       .select('.detail-tabs')
       .boundingClientRect((rect) => {
-        const height = rect?.height ? Math.round(rect.height) : 0;
-        const top = rect?.top ? Math.round(rect.top) : 0;
+        const targetRect = Array.isArray(rect) ? rect[0] : rect;
+        const height = targetRect?.height ? Math.round(targetRect.height) : 0;
+        const top = targetRect?.top ? Math.round(targetRect.top) : 0;
         const offsetTop = -(height + top);
         Taro.pageScrollTo({ selector, duration: 300, offsetTop });
       })
@@ -102,16 +107,39 @@ export default function ListingDetailPage() {
     setFavoritedState(isFavorited(listingId));
   }, [listingId]);
 
+  useEffect(() => {
+    if (!listingId) {
+      setData(null);
+      setLoading(false);
+      setError(null);
+      return;
+    }
+    const cached = getDetailCache<ListingPublic>('listing-public', listingId);
+    setData(cached || null);
+    setLoading(!cached);
+    setError(null);
+  }, [listingId]);
+
   const load = useCallback(async () => {
     if (!listingId) return;
-    setLoading(true);
-    setError(null);
+    const cached = getDetailCache<ListingPublic>('listing-public', listingId);
+    if (cached) {
+      setData(cached);
+      setLoading(false);
+      setError(null);
+    } else {
+      setLoading(true);
+      setError(null);
+    }
     try {
       const d = await apiGet<ListingPublic>(`/public/listings/${listingId}`);
       setData(d);
+      setDetailCache('listing-public', listingId, d);
     } catch (e: any) {
-      setError(e?.message || '加载失败');
-      setData(null);
+      if (!cached) {
+        setError(e?.message || '加载失败');
+        setData(null);
+      }
     } finally {
       setLoading(false);
     }
@@ -167,17 +195,27 @@ export default function ListingDetailPage() {
       return;
     }
     let alive = true;
-    setPatentLoading(true);
-    setPatentError(null);
+    const cached = getPatentCache<Patent>(patentId);
+    if (cached) {
+      setPatentData(cached);
+      setPatentLoading(false);
+      setPatentError(null);
+    } else {
+      setPatentLoading(true);
+      setPatentError(null);
+    }
     apiGet<Patent>(`/patents/${patentId}`)
       .then((d) => {
         if (!alive) return;
         setPatentData(d);
+        setPatentCache(patentId, d);
       })
       .catch((e: any) => {
         if (!alive) return;
-        setPatentError(e?.message || '专利信息加载失败');
-        setPatentData(null);
+        if (!cached) {
+          setPatentError(e?.message || '专利信息加载失败');
+          setPatentData(null);
+        }
       })
       .finally(() => {
         if (!alive) return;
@@ -254,6 +292,7 @@ export default function ListingDetailPage() {
   }
 
   const regionLabel = data ? regionDisplayName(data.regionCode) || '-' : '-';
+  const visibleIndustryTags = sanitizeIndustryTagNames(data?.industryTags || []);
   const transferCount =
     (data as any)?.transferCount ??
     (data as any)?.transferTimes ??
@@ -298,7 +337,7 @@ export default function ListingDetailPage() {
               {data.featuredLevel && data.featuredLevel !== 'NONE' ? (
                 <Text className="detail-compact-tag">{featuredLevelLabel(data.featuredLevel)}</Text>
               ) : null}
-              {(data.industryTags || []).slice(0, 4).map((tag) => (
+              {visibleIndustryTags.slice(0, 4).map((tag) => (
                 <Text key={tag} className="detail-compact-tag">
                   {tag}
                 </Text>
@@ -389,7 +428,7 @@ export default function ListingDetailPage() {
               {[
                 { label: '交易方式', value: tradeModeLabel(data.tradeMode) },
                 { label: '价格方式', value: priceTypeLabel(data.priceType) },
-                { label: '行业', value: data.industryTags?.length ? data.industryTags.join(' / ') : '-' },
+                { label: '行业', value: visibleIndustryTags.length ? visibleIndustryTags.join(' / ') : '-' },
                 { label: '地区', value: regionLabel },
                 { label: '转让次数', value: transferCount != null ? `${transferCount} 次` : '-' },
                 { label: 'IPC 分类', value: data.ipcCodes?.length ? data.ipcCodes.join(' / ') : '-' },

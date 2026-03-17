@@ -1,9 +1,21 @@
 import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 
 import { PrismaService } from '../../common/prisma/prisma.service';
+import { isVisibleIndustryTagName, sanitizeIndustryTagNames } from '../content-utils';
 
 const REGION_CODE_RE = /^[0-9]{6}$/;
 const REGION_LEVELS = new Set(['PROVINCE', 'CITY', 'DISTRICT']);
+const HIDDEN_TEST_REGION_NAME_PATTERNS = [
+  /^smoke[-_\s/]*region(?:[-_\s/]|$)/i,
+  /^e2e[-_\s/]*region(?:[-_\s/]|$)/i,
+  /^qa[-_\s/]*region(?:[-_\s/]|$)/i,
+];
+
+function isVisibleRegionName(name: string): boolean {
+  const normalized = String(name || '').trim();
+  if (!normalized) return false;
+  return !HIDDEN_TEST_REGION_NAME_PATTERNS.some((pattern) => pattern.test(normalized));
+}
 
 type RegionRecord = {
   code: string;
@@ -96,8 +108,18 @@ export class RegionsService {
     return parsed;
   }
 
-  private toRegionNode(region: RegionRecord): RegionNodeDto {
-    const industryTags = Array.isArray(region.industryTagsJson) ? (region.industryTagsJson as any[]) : [];
+  private normalizeRegionIndustryTags(industryTagsJson: unknown, opts?: { includeTestArtifacts?: boolean }): string[] {
+    const includeTestArtifacts = opts?.includeTestArtifacts ?? true;
+    const rawTags = Array.isArray(industryTagsJson) ? (industryTagsJson as unknown[]) : [];
+    const normalizedTags = rawTags
+      .map((tag) => (typeof tag === 'string' ? tag.trim() : ''))
+      .filter((tag) => tag.length > 0);
+    if (includeTestArtifacts) return normalizedTags;
+    return sanitizeIndustryTagNames(normalizedTags);
+  }
+
+  private toRegionNode(region: RegionRecord, opts?: { includeTestArtifacts?: boolean }): RegionNodeDto {
+    const industryTags = this.normalizeRegionIndustryTags(region.industryTagsJson, opts);
     return {
       code: region.code,
       name: region.name,
@@ -105,7 +127,7 @@ export class RegionsService {
       parentCode: region.parentCode ?? null,
       centerLat: region.centerLat ?? null,
       centerLng: region.centerLng ?? null,
-      industryTags: industryTags.filter((tag: unknown) => typeof tag === 'string') as string[],
+      industryTags,
       updatedAt: region.updatedAt.toISOString(),
     };
   }
@@ -125,7 +147,12 @@ export class RegionsService {
     }
   }
 
-  async listRegions(params: { level?: string; parentCode?: string | null; q?: string }): Promise<RegionNodeDto[]> {
+  async listRegions(params: {
+    level?: string;
+    parentCode?: string | null;
+    q?: string;
+    includeTestArtifacts?: boolean;
+  }): Promise<RegionNodeDto[]> {
     const where: RegionWhereInput = {};
 
     if (params.level !== undefined) {
@@ -152,7 +179,11 @@ export class RegionsService {
       where,
       orderBy: [{ level: 'asc' }, { code: 'asc' }],
     });
-    return regions.map((regionRecord: RegionRecord) => this.toRegionNode(regionRecord));
+    const includeTestArtifacts = Boolean(params.includeTestArtifacts);
+    const visibleRegions = includeTestArtifacts ? regions : regions.filter((regionRecord) => isVisibleRegionName(regionRecord.name));
+    return visibleRegions.map((regionRecord: RegionRecord) =>
+      this.toRegionNode(regionRecord, { includeTestArtifacts }),
+    );
   }
 
   async createRegion(input: RegionCreateRequestDto): Promise<RegionNodeDto> {
@@ -261,8 +292,10 @@ export class RegionsService {
     }
   }
 
-  async listIndustryTags(): Promise<IndustryTagRecord[]> {
-    return this.prisma.industryTag.findMany({ orderBy: { name: 'asc' } });
+  async listIndustryTags(opts?: { includeTestArtifacts?: boolean }): Promise<IndustryTagRecord[]> {
+    const items = await this.prisma.industryTag.findMany({ orderBy: { name: 'asc' } });
+    if (opts?.includeTestArtifacts) return items;
+    return items.filter((item) => isVisibleIndustryTagName(String(item?.name || '')));
   }
 
   async createIndustryTag(name: string): Promise<IndustryTagRecord> {

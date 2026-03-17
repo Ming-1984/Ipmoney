@@ -1,4 +1,4 @@
-import { View, Text } from '@tarojs/components';
+﻿import { Text, View } from '@tarojs/components';
 import React from 'react';
 import './index.scss';
 
@@ -11,11 +11,11 @@ const SECTIONS = [
   },
   {
     title: '信息收集与使用',
-    body: '为提供登录、咨询、交易与消息服务，我们会收集必要的账号信息与业务数据，并用于服务提供与风险控制。',
+    body: '为提供登录、咨询、交易与消息服务，我们会收集必要的账号信息与业务数据，并用于服务履约与风险控制。',
   },
   {
     title: '信息共享',
-    body: '仅在交易履约或法律法规要求的情况下共享必要信息，且会尽力保护你的隐私。',
+    body: '仅在交易履约或法律法规要求的情形下共享必要信息，并采取合理措施保护你的隐私安全。',
   },
 ];
 

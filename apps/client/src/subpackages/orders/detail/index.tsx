@@ -1,11 +1,12 @@
 ﻿import { View, Text } from '@tarojs/components';
 import Taro from '@tarojs/taro';
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import './index.scss';
 
 import type { components } from '@ipmoney/api-types';
 
 import { apiGet, apiPost } from '../../../lib/api';
+import { getDetailCache, setDetailCache } from '../../../lib/detailCache';
 import { ensureApproved, usePageAccess } from '../../../lib/guard';
 import { formatTimeSmart } from '../../../lib/format';
 import { orderStatusLabel, orderStatusTagClass } from '../../../lib/labels';
@@ -13,7 +14,7 @@ import { fenToYuan } from '../../../lib/money';
 import { safeNavigateBack } from '../../../lib/navigation';
 import { useRouteStringParam } from '../../../lib/routeParams';
 import { AccessGate } from '../../../ui/PageState';
-import { Button, Popup, Segmented, TextArea, toast } from '../../../ui/nutui';
+import { Button, Popup, TextArea, toast } from '../../../ui/nutui';
 import { EmptyCard, ErrorCard, LoadingCard, MissingParamCard } from '../../../ui/StateCards';
 import { PageHeader, PopupSheet, Spacer, Surface } from '../../../ui/layout';
 
@@ -21,12 +22,28 @@ type OrderBase = components['schemas']['Order'];
 type OrderDetail = OrderBase & {
   listingTitle?: string | null;
   applicationNoDisplay?: string | null;
+  invoiceNo?: string | null;
+  invoiceFileId?: string | null;
+  invoiceIssuedAt?: string | null;
 };
 type CaseWithMilestones = components['schemas']['CaseWithMilestones'];
 type RefundRequest = components['schemas']['RefundRequest'];
 type RefundReasonCode = components['schemas']['RefundReasonCode'];
 type RefundRequestCreate = components['schemas']['RefundRequestCreate'];
 type OrderInvoice = components['schemas']['OrderInvoice'];
+
+const REFUNDABLE_STATUSES = new Set<OrderBase['status']>(['DEPOSIT_PAID', 'WAIT_FINAL_PAYMENT', 'FINAL_PAID_ESCROW']);
+const BLOCKING_REFUND_REQUEST_STATUSES = new Set<RefundRequest['status']>(['PENDING', 'APPROVED', 'REFUNDING']);
+const ORDER_DETAIL_CACHE_SCOPE = 'order-detail';
+const ORDER_CASE_CACHE_SCOPE = 'order-case';
+const ORDER_REFUNDS_CACHE_SCOPE = 'order-refunds';
+const REFUND_REASON_OPTIONS: Array<{ label: string; value: RefundReasonCode }> = [
+  { label: '改主意', value: 'BUYER_CHANGED_MIND' },
+  { label: '卖家材料', value: 'SELLER_MISSING_MATERIALS' },
+  { label: '协商一致', value: 'MUTUAL_AGREEMENT' },
+  { label: '风控', value: 'RISK_CONTROL' },
+  { label: '其他', value: 'OTHER' },
+];
 
 function reasonLabel(code: RefundReasonCode): string {
   if (code === 'BUYER_CHANGED_MIND') return '买家改变主意';
@@ -67,19 +84,24 @@ function refundStatusLabel(status?: string | null): string {
 
 export default function OrderDetailPage() {
   const orderId = useRouteStringParam('orderId') || '';
+  const loadedOnceRef = useRef(false);
+  const initialCachedOrder = orderId ? getDetailCache<OrderDetail>(ORDER_DETAIL_CACHE_SCOPE, orderId) : null;
+  const initialCachedCase = orderId ? getDetailCache<CaseWithMilestones>(ORDER_CASE_CACHE_SCOPE, orderId) : null;
+  const initialCachedRefunds = orderId ? getDetailCache<RefundRequest[]>(ORDER_REFUNDS_CACHE_SCOPE, orderId) : null;
 
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(!initialCachedOrder);
   const [error, setError] = useState<string | null>(null);
-  const [order, setOrder] = useState<OrderDetail | null>(null);
+  const [order, setOrder] = useState<OrderDetail | null>(initialCachedOrder);
   const [activeTab, setActiveTab] = useState('order-overview');
 
   const [caseLoading, setCaseLoading] = useState(false);
   const [caseError, setCaseError] = useState<string | null>(null);
-  const [caseData, setCaseData] = useState<CaseWithMilestones | null>(null);
+  const [caseData, setCaseData] = useState<CaseWithMilestones | null>(initialCachedCase);
 
   const [refundsLoading, setRefundsLoading] = useState(false);
   const [refundsError, setRefundsError] = useState<string | null>(null);
-  const [refunds, setRefunds] = useState<RefundRequest[]>([]);
+  const [refunds, setRefunds] = useState<RefundRequest[]>(Array.isArray(initialCachedRefunds) ? initialCachedRefunds : []);
+  const [refundsReady, setRefundsReady] = useState(Array.isArray(initialCachedRefunds));
   const [invoiceLoading, setInvoiceLoading] = useState(false);
   const [invoiceError, setInvoiceError] = useState<string | null>(null);
   const [invoice, setInvoice] = useState<OrderInvoice | null>(null);
@@ -87,56 +109,106 @@ export default function OrderDetailPage() {
   const [invoiceRequested, setInvoiceRequested] = useState(false);
 
   const [refundOpen, setRefundOpen] = useState(false);
+  const [refundSubmitting, setRefundSubmitting] = useState(false);
   const [reasonCode, setReasonCode] = useState<RefundReasonCode>('BUYER_CHANGED_MIND');
   const [reasonText, setReasonText] = useState('');
 
-  const load = useCallback(async () => {
-    if (!orderId) return;
-    setLoading(true);
-    setError(null);
+  const canFetchInvoiceDetail = Boolean(order?.invoiceFileId && (order?.invoiceNo || order?.invoiceIssuedAt));
+
+  const load = useCallback(async (options?: { silent?: boolean }): Promise<OrderDetail | null> => {
+    const silent = Boolean(options?.silent);
+    if (!orderId) return null;
+    const cached = silent ? null : getDetailCache<OrderDetail>(ORDER_DETAIL_CACHE_SCOPE, orderId);
+    if (cached) {
+      setOrder(cached);
+      setLoading(false);
+      setError(null);
+    } else if (!silent) {
+      setLoading(true);
+      setError(null);
+    }
     try {
       const d = await apiGet<OrderDetail>(`/orders/${orderId}`);
       setOrder(d);
+      setDetailCache(ORDER_DETAIL_CACHE_SCOPE, orderId, d);
+      return d;
     } catch (e: any) {
-      setError(e?.message || '加载失败');
-      setOrder(null);
+      if (!silent && !cached) {
+        setError(e?.message || '加载失败');
+        setOrder(null);
+      }
+      return null;
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   }, [orderId]);
 
-  const loadCase = useCallback(async () => {
+  const loadCase = useCallback(async (options?: { silent?: boolean }) => {
     if (!orderId) return;
-    setCaseLoading(true);
-    setCaseError(null);
+    const silent = Boolean(options?.silent);
+    const cached = getDetailCache<CaseWithMilestones>(ORDER_CASE_CACHE_SCOPE, orderId);
+    const hasCached = Boolean(cached);
+    if (cached) {
+      setCaseData(cached);
+      if (!silent) setCaseError(null);
+    }
+    if (!hasCached) {
+      setCaseLoading(true);
+      setCaseError(null);
+    }
     try {
       const d = await apiGet<CaseWithMilestones>(`/orders/${orderId}/case`);
       setCaseData(d);
+      setCaseError(null);
+      setDetailCache(ORDER_CASE_CACHE_SCOPE, orderId, d);
     } catch (e: any) {
-      setCaseError(e?.message || '加载失败');
-      setCaseData(null);
+      if (!hasCached) {
+        setCaseError(e?.message || '加载失败');
+        setCaseData(null);
+      }
     } finally {
-      setCaseLoading(false);
+      if (!hasCached) setCaseLoading(false);
     }
   }, [orderId]);
 
-  const loadRefunds = useCallback(async () => {
+  const loadRefunds = useCallback(async (options?: { silent?: boolean }) => {
     if (!orderId) return;
-    setRefundsLoading(true);
-    setRefundsError(null);
+    const silent = Boolean(options?.silent);
+    const cached = getDetailCache<RefundRequest[]>(ORDER_REFUNDS_CACHE_SCOPE, orderId);
+    const hasCached = Array.isArray(cached);
+    if (hasCached) {
+      setRefunds(cached);
+      setRefundsReady(true);
+      if (!silent) setRefundsError(null);
+    } else {
+      setRefundsLoading(true);
+      setRefundsError(null);
+    }
     try {
       const d = await apiGet<RefundRequest[]>(`/orders/${orderId}/refund-requests`);
-      setRefunds(Array.isArray(d) ? d : []);
+      const normalized = Array.isArray(d) ? d : [];
+      setRefunds(normalized);
+      setRefundsError(null);
+      setDetailCache(ORDER_REFUNDS_CACHE_SCOPE, orderId, normalized);
     } catch (e: any) {
-      setRefundsError(e?.message || '加载失败');
-      setRefunds([]);
+      if (!hasCached) {
+        setRefundsError(e?.message || '加载失败');
+        setRefunds([]);
+      }
     } finally {
-      setRefundsLoading(false);
+      if (!hasCached) setRefundsLoading(false);
+      setRefundsReady(true);
     }
   }, [orderId]);
 
   const loadInvoice = useCallback(async () => {
     if (!orderId) return;
+    if (!canFetchInvoiceDetail) {
+      setInvoiceLoading(false);
+      setInvoiceError(null);
+      setInvoice(null);
+      return;
+    }
     setInvoiceLoading(true);
     setInvoiceError(null);
     try {
@@ -154,28 +226,69 @@ export default function OrderDetailPage() {
     } finally {
       setInvoiceLoading(false);
     }
-  }, [orderId]);
+  }, [canFetchInvoiceDetail, orderId]);
 
-  const loadRefundsAndInvoice = useCallback(() => {
-    void loadRefunds();
-    void loadInvoice();
-  }, [loadInvoice, loadRefunds]);
-
-  const refreshAll = useCallback(() => {
-    void load();
-    void loadCase();
-    void loadRefundsAndInvoice();
-  }, [load, loadCase, loadRefundsAndInvoice]);
+  const refreshAll = useCallback((options?: { silent?: boolean }) => {
+    void load({ silent: options?.silent });
+    void loadCase({ silent: options?.silent });
+    void loadRefunds({ silent: options?.silent });
+  }, [load, loadCase, loadRefunds]);
 
   useEffect(() => {
+    loadedOnceRef.current = false;
     setInvoiceRequested(false);
+    setError(null);
+    if (!orderId) {
+      setOrder(null);
+      setLoading(false);
+      setCaseLoading(false);
+      setCaseError(null);
+      setCaseData(null);
+      setRefundsLoading(false);
+      setRefundsError(null);
+      setRefunds([]);
+      setRefundsReady(false);
+      return;
+    }
+    const cachedOrder = getDetailCache<OrderDetail>(ORDER_DETAIL_CACHE_SCOPE, orderId);
+    const cachedCase = getDetailCache<CaseWithMilestones>(ORDER_CASE_CACHE_SCOPE, orderId);
+    const cachedRefunds = getDetailCache<RefundRequest[]>(ORDER_REFUNDS_CACHE_SCOPE, orderId);
+    setOrder(cachedOrder || null);
+    setLoading(!cachedOrder);
+    setCaseLoading(false);
+    setCaseError(null);
+    setCaseData(cachedCase || null);
+    setRefundsLoading(false);
+    setRefundsError(null);
+    if (Array.isArray(cachedRefunds)) {
+      setRefunds(cachedRefunds);
+      setRefundsReady(true);
+    } else {
+      setRefunds([]);
+      setRefundsReady(false);
+    }
   }, [orderId]);
+
+  useEffect(() => {
+    setInvoice(null);
+    setInvoiceError(null);
+  }, [order?.invoiceFileId, order?.invoiceNo, order?.invoiceIssuedAt, orderId]);
+
+  // Avoid auto-fetch on tab switch to reduce noisy 404 logs when invoice file is not ready yet.
 
   const access = usePageAccess('approved-required', (a) => {
     if (a.state === 'ok') {
-      if (orderId) void refreshAll();
+      if (orderId) {
+        if (loadedOnceRef.current) {
+          void refreshAll({ silent: true });
+        } else {
+          loadedOnceRef.current = true;
+          void refreshAll();
+        }
+      }
       return;
     }
+    loadedOnceRef.current = false;
     setLoading(false);
     setError(null);
     setOrder(null);
@@ -185,6 +298,7 @@ export default function OrderDetailPage() {
     setRefundsLoading(false);
     setRefundsError(null);
     setRefunds([]);
+    setRefundsReady(false);
     setInvoiceLoading(false);
     setInvoiceError(null);
     setInvoice(null);
@@ -200,19 +314,38 @@ export default function OrderDetailPage() {
       await apiPost(`/orders/${orderId}/invoice-requests`, {}, { idempotencyKey: `invoice-${orderId}` });
       setInvoiceRequested(true);
       toast('已提交开票申请', { icon: 'success' });
+      void load();
     } catch (e: any) {
       toast(e?.message || '申请开票失败', { icon: 'fail' });
     } finally {
       setInvoiceRequesting(false);
     }
-  }, [orderId, invoiceRequesting]);
+  }, [orderId, invoiceRequesting, load]);
+
+  const refundableByStatus = Boolean(order?.status && REFUNDABLE_STATUSES.has(order.status));
+  const hasBlockingRefund = refunds.some((r) => BLOCKING_REFUND_REQUEST_STATUSES.has(r.status));
+  const canSubmitRefund = refundsReady && !refundsLoading && refundableByStatus && !hasBlockingRefund;
+  const refundBlockedHint = !refundsReady || refundsLoading
+    ? '退款状态同步中，请稍后'
+    : !refundableByStatus
+    ? '当前订单状态不支持退款'
+    : hasBlockingRefund
+      ? '已有退款流程处理中'
+      : '';
 
   const submitRefund = useCallback(async () => {
     if (!ensureApproved()) return;
+    if (!orderId) return;
+    if (refundSubmitting) return;
+    if (!canSubmitRefund) {
+      toast(refundBlockedHint || '当前不可申请退款');
+      return;
+    }
     const payload: RefundRequestCreate = {
       reasonCode,
       ...(reasonText.trim() ? { reasonText: reasonText.trim() } : {}),
     };
+    setRefundSubmitting(true);
     try {
       await apiPost<RefundRequest>(`/orders/${orderId}/refund-requests`, payload, {
         idempotencyKey: `refund-${orderId}-${reasonCode}`,
@@ -220,46 +353,43 @@ export default function OrderDetailPage() {
       toast('已提交退款申请', { icon: 'success' });
       setRefundOpen(false);
       setReasonText('');
-      void loadRefundsAndInvoice();
+      void loadRefunds();
+      void load();
     } catch (e: any) {
-      toast(e?.message || '提交失败');
+      const statusCode = Number(e?.statusCode || 0);
+      const code = String(e?.code || '').toUpperCase();
+      if (statusCode === 409 || code === 'CONFLICT') {
+        toast('退款申请已存在或正在处理');
+        setRefundOpen(false);
+        void loadRefunds();
+        void load({ silent: true });
+      } else {
+        toast(e?.message || '提交失败');
+      }
+    } finally {
+      setRefundSubmitting(false);
     }
-  }, [orderId, reasonCode, reasonText, loadRefundsAndInvoice]);
+  }, [orderId, refundSubmitting, canSubmitRefund, refundBlockedHint, reasonCode, reasonText, load, loadRefunds]);
+
+  const hasInvoiceFile = Boolean(order?.invoiceFileId || invoice?.invoiceFile?.url);
+  const hasInvoiceRequest = Boolean(order?.invoiceNo || invoiceRequested);
 
   const openInvoiceCenter = useCallback(() => {
-    const tab = invoice?.invoiceFile?.url ? 'ISSUED' : 'WAIT_APPLY';
+    const tab = hasInvoiceFile ? 'ISSUED' : hasInvoiceRequest ? 'APPLYING' : 'WAIT_APPLY';
     Taro.navigateTo({ url: `/subpackages/invoices/index?tab=${tab}&orderId=${orderId}` });
-  }, [invoice?.invoiceFile?.url, orderId]);
+  }, [hasInvoiceFile, hasInvoiceRequest, orderId]);
 
-  const canRequestInvoice = order?.status === 'COMPLETED' && !invoice?.invoiceFile?.url && !invoiceRequested;
-  const invoiceHint = invoiceRequested
+  const canRequestInvoice = order?.status === 'COMPLETED' && !hasInvoiceFile && !hasInvoiceRequest;
+  const invoiceHint = hasInvoiceFile
+    ? canFetchInvoiceDetail
+      ? '电子发票已上传，可复制下载链接'
+      : '电子发票处理中，请到发票中心查看'
+    : hasInvoiceRequest
     ? '已提交开票申请，财务处理中'
     : order?.status === 'COMPLETED'
       ? '订单已完成，可申请开票'
       : '订单完成后由财务上传';
 
-  /*
-  const tabs = useMemo(
-    () => [
-      { id: 'order-overview', label: '订单' },
-      { id: 'order-case', label: '里程碑' },
-      { id: 'order-refund', label: '退款' },
-      { id: 'order-invoice', label: '发票' },
-    ],
-    [],
-  );
-  /*
-  const tabs = useMemo(
-    () => [
-      { id: 'order-overview', label: '订单' },
-      { id: 'order-case', label: '里程碑' },
-      { id: 'order-refund', label: '退款' },
-      { id: 'order-invoice', label: '发票' },
-    ],
-    [],
-  );
-
-  */
   const detailTabs = useMemo(
     () => [
       { id: 'order-overview', label: '\u8BA2\u5355' },
@@ -274,6 +404,7 @@ export default function OrderDetailPage() {
     setActiveTab(id);
     Taro.pageScrollTo({ selector: `#${id}`, duration: 300 });
   }, []);
+  const showInitialLoading = loading && !order;
 
   if (!orderId) {
     return (
@@ -290,7 +421,7 @@ export default function OrderDetailPage() {
 
       {access.state !== 'ok' ? (
         <AccessGate access={access} />
-      ) : loading ? (
+      ) : showInitialLoading ? (
         <LoadingCard />
       ) : error ? (
         <ErrorCard message={error} onRetry={load} />
@@ -390,8 +521,13 @@ export default function OrderDetailPage() {
               <Button
                 variant="danger"
                 size="small"
+                disabled={!canSubmitRefund || refundSubmitting}
                 onClick={() => {
                   if (!ensureApproved()) return;
+                  if (!canSubmitRefund) {
+                    toast(refundBlockedHint || '当前不可申请退款');
+                    return;
+                  }
                   setRefundOpen(true);
                 }}
               >
@@ -399,6 +535,8 @@ export default function OrderDetailPage() {
               </Button>
             </View>
             <View style={{ height: '10rpx' }} />
+            {!canSubmitRefund && refundBlockedHint ? <Text className="muted">{refundBlockedHint}</Text> : null}
+            {!canSubmitRefund && refundBlockedHint ? <View style={{ height: '10rpx' }} /> : null}
             {refundsLoading ? (
               <Text className="muted">加载中…</Text>
             ) : refundsError ? (
@@ -418,14 +556,19 @@ export default function OrderDetailPage() {
           <View style={{ height: '16rpx' }} />
 
           <Surface>
-            <Text className="text-card-title">发票</Text>
+            <View className="row-between" style={{ gap: '12rpx' }}>
+              <Text className="text-card-title">发票</Text>
+              <Button variant="ghost" size="small" disabled={invoiceLoading || !canFetchInvoiceDetail} onClick={() => void loadInvoice()}>
+                刷新
+              </Button>
+            </View>
             <View style={{ height: '10rpx' }} />
             <View id="order-invoice" />
             {invoiceLoading ? (
               <Text className="muted">加载中…</Text>
             ) : invoiceError ? (
               <ErrorCard title="发票信息加载失败" message={invoiceError} onRetry={loadInvoice} />
-            ) : invoice?.invoiceFile?.url ? (
+            ) : hasInvoiceFile && invoice?.invoiceFile?.url ? (
               <View className="row-between" style={{ gap: '12rpx' }}>
                 <Text className="muted clamp-1">电子发票已上传</Text>
                 <Button
@@ -476,21 +619,21 @@ export default function OrderDetailPage() {
         onClose={() => setRefundOpen(false)}
         onOverlayClick={() => setRefundOpen(false)}
       >
-        <PopupSheet>
+        <PopupSheet scrollable={false}>
           <Surface>
             <Text className="text-strong">原因类型</Text>
             <View style={{ height: '10rpx' }} />
-            <Segmented
-              value={reasonCode}
-              options={[
-                { label: '改主意', value: 'BUYER_CHANGED_MIND' },
-                { label: '卖家材料', value: 'SELLER_MISSING_MATERIALS' },
-                { label: '协商一致', value: 'MUTUAL_AGREEMENT' },
-                { label: '风控', value: 'RISK_CONTROL' },
-                { label: '其他', value: 'OTHER' },
-              ]}
-              onChange={(v) => setReasonCode(v as RefundReasonCode)}
-            />
+            <View className="refund-reason-grid">
+              {REFUND_REASON_OPTIONS.map((option) => (
+                <View
+                  key={option.value}
+                  className={`refund-reason-item ${reasonCode === option.value ? 'is-active' : ''}`}
+                  onClick={() => setReasonCode(option.value)}
+                >
+                  <Text>{option.label}</Text>
+                </View>
+              ))}
+            </View>
 
             <View style={{ height: '12rpx' }} />
             <Text className="muted">说明（可选）</Text>
@@ -498,7 +641,9 @@ export default function OrderDetailPage() {
             <TextArea value={reasonText} onChange={setReasonText} placeholder={`原因：${reasonLabel(reasonCode)}`} maxLength={500} />
 
             <View style={{ height: '14rpx' }} />
-            <Button onClick={() => void submitRefund()}>提交</Button>
+            <Button loading={refundSubmitting} disabled={refundSubmitting} onClick={() => void submitRefund()}>
+              提交
+            </Button>
           </Surface>
         </PopupSheet>
       </Popup>

@@ -6,9 +6,11 @@ import './index.scss';
 import type { components } from '@ipmoney/api-types';
 
 import { apiGet, apiPost } from '../../../lib/api';
+import { getDetailCache, setDetailCache } from '../../../lib/detailCache';
 import { ensureApproved } from '../../../lib/guard';
 import { safeNavigateBack } from '../../../lib/navigation';
 import { useRouteUuidParam } from '../../../lib/routeParams';
+import { sanitizeServiceTagNames } from '../../../lib/serviceTags';
 import { toast } from '../../../ui/nutui';
 import { EmptyCard, ErrorCard, LoadingCard, MissingParamCard } from '../../../ui/StateCards';
 
@@ -27,20 +29,44 @@ type DetailMeta = {
 export default function TechManagerDetailPage() {
   const techManagerId = useRouteUuidParam('techManagerId') || '';
 
-  const [loading, setLoading] = useState(true);
+  const initialCachedData = techManagerId ? getDetailCache<TechManagerPublic>('tech-manager-public', techManagerId) : null;
+  const [loading, setLoading] = useState(!initialCachedData);
   const [error, setError] = useState<string | null>(null);
-  const [data, setData] = useState<TechManagerPublic | null>(null);
+  const [data, setData] = useState<TechManagerPublic | null>(initialCachedData);
+
+  useEffect(() => {
+    if (!techManagerId) {
+      setData(null);
+      setLoading(false);
+      setError(null);
+      return;
+    }
+    const cached = getDetailCache<TechManagerPublic>('tech-manager-public', techManagerId);
+    setData(cached || null);
+    setLoading(!cached);
+    setError(null);
+  }, [techManagerId]);
 
   const load = useCallback(async () => {
     if (!techManagerId) return;
-    setLoading(true);
-    setError(null);
+    const cached = getDetailCache<TechManagerPublic>('tech-manager-public', techManagerId);
+    if (cached) {
+      setData(cached);
+      setLoading(false);
+      setError(null);
+    } else {
+      setLoading(true);
+      setError(null);
+    }
     try {
       const d = await apiGet<TechManagerPublic>(`/public/tech-managers/${techManagerId}`);
       setData(d);
+      setDetailCache('tech-manager-public', techManagerId, d);
     } catch (e: any) {
-      setError(e?.message || '加载失败');
-      setData(null);
+      if (!cached) {
+        setError(e?.message || '加载失败');
+        setData(null);
+      }
     } finally {
       setLoading(false);
     }
@@ -91,9 +117,10 @@ export default function TechManagerDetailPage() {
         : '认证';
     const orgName =
       (data as any)?.organizationName || (data as any)?.companyName || (data as any)?.organization || '';
+    const visibleServiceTags = sanitizeServiceTagNames(data?.serviceTags || []);
     const expertiseText =
       (data as any)?.expertiseSummary ||
-      (data?.serviceTags?.length ? data.serviceTags.join('、') : '') ||
+      (visibleServiceTags.length ? visibleServiceTags.join('、') : '') ||
       '暂无';
     const honorTitles = ((data as any)?.honorTitles as string[]) || [];
     let experienceYears: string | number = '-';

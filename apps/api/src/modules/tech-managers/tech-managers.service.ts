@@ -3,6 +3,7 @@ import { Prisma } from '@prisma/client';
 
 import { AuditLogService } from '../../common/audit-log.service';
 import { PrismaService } from '../../common/prisma/prisma.service';
+import { sanitizeServiceTagNames } from '../content-utils';
 
 const VERIFICATION_STATUS = {
   APPROVED: 'APPROVED',
@@ -14,6 +15,7 @@ type VerificationStatus = (typeof VERIFICATION_STATUSES)[number];
 const VERIFICATION_TYPE = {
   TECH_MANAGER: 'TECH_MANAGER',
 } as const;
+const REGION_CODE_RE = /^[0-9]{6}$/;
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 type UserVerificationWhereInput = any;
@@ -34,6 +36,13 @@ export class TechManagersService {
     return [];
   }
 
+  private normalizeServiceTags(value: unknown, opts?: { includeTestArtifacts?: boolean }): string[] {
+    const normalized = this.normalizeStringArray(value);
+    const includeTestArtifacts = opts?.includeTestArtifacts ?? true;
+    if (includeTestArtifacts) return normalized;
+    return sanitizeServiceTagNames(normalized);
+  }
+
   private hasOwn(body: unknown, key: string): boolean {
     return body !== null && body !== undefined && Object.prototype.hasOwnProperty.call(body, key);
   }
@@ -44,7 +53,7 @@ export class TechManagersService {
       throw new BadRequestException({ code: 'BAD_REQUEST', message: `${fieldName} is invalid` });
     }
     const parsed = Number(raw);
-    if (!Number.isInteger(parsed) || parsed <= 0) {
+    if (!Number.isSafeInteger(parsed) || parsed <= 0) {
       throw new BadRequestException({ code: 'BAD_REQUEST', message: `${fieldName} is invalid` });
     }
     return parsed;
@@ -68,7 +77,7 @@ export class TechManagersService {
 
   private parseRegionCodeFilterStrict(value: unknown, fieldName: string): string {
     const raw = String(value ?? '').trim();
-    if (!raw) {
+    if (!raw || !REGION_CODE_RE.test(raw)) {
       throw new BadRequestException({ code: 'BAD_REQUEST', message: `${fieldName} is invalid` });
     }
     return raw;
@@ -82,8 +91,8 @@ export class TechManagersService {
     return raw;
   }
 
-  private toSummary(verificationRecord: any, profile?: any) {
-    const serviceTags = this.normalizeStringArray(profile?.serviceTagsJson);
+  private toSummary(verificationRecord: any, profile?: any, opts?: { includeTestArtifacts?: boolean }) {
+    const serviceTags = this.normalizeServiceTags(profile?.serviceTagsJson, opts);
     return {
       userId: verificationRecord.userId,
       displayName: verificationRecord.displayName,
@@ -154,7 +163,7 @@ export class TechManagersService {
 
     return {
       items: items.map((verificationRecord: any) =>
-        this.toSummary(verificationRecord, verificationRecord.user?.techManagerProfile),
+        this.toSummary(verificationRecord, verificationRecord.user?.techManagerProfile, { includeTestArtifacts: false }),
       ),
       page: { page, pageSize, total },
     };
@@ -172,7 +181,7 @@ export class TechManagersService {
     });
     if (!verification) throw new NotFoundException({ code: 'NOT_FOUND', message: 'tech manager not found' });
 
-    const summary = this.toSummary(verification, verification.user?.techManagerProfile);
+    const summary = this.toSummary(verification, verification.user?.techManagerProfile, { includeTestArtifacts: false });
     const evidenceFileIds = Array.isArray(verification.evidenceFileIdsJson)
       ? verification.evidenceFileIdsJson.filter((fileId: any) => typeof fileId === 'string')
       : [];
@@ -201,7 +210,7 @@ export class TechManagersService {
 
     return {
       items: items.map((verificationRecord: any) =>
-        this.toSummary(verificationRecord, verificationRecord.user?.techManagerProfile),
+        this.toSummary(verificationRecord, verificationRecord.user?.techManagerProfile, { includeTestArtifacts: true }),
       ),
       page: { page, pageSize, total },
     };
@@ -234,12 +243,13 @@ export class TechManagersService {
       if (!Array.isArray(body?.serviceTags)) {
         throw new BadRequestException({ code: 'BAD_REQUEST', message: 'serviceTags must be an array' });
       }
-      const serviceTags = body.serviceTags.map((item: unknown) => String(item ?? '').trim()).filter(Boolean);
-      for (const serviceTag of serviceTags) {
+      const serviceTagsRaw = body.serviceTags.map((item: unknown) => String(item ?? '').trim()).filter(Boolean);
+      for (const serviceTag of serviceTagsRaw) {
         if (serviceTag.length > 50) {
           throw new BadRequestException({ code: 'BAD_REQUEST', message: 'serviceTags item is too long' });
         }
       }
+      const serviceTags = sanitizeServiceTagNames(serviceTagsRaw);
       updates.serviceTagsJson = serviceTags;
     }
 
@@ -249,7 +259,7 @@ export class TechManagersService {
         throw new BadRequestException({ code: 'BAD_REQUEST', message: 'featuredRank is invalid' });
       }
       const featuredRankValue = typeof rawFeaturedRank === 'number' ? rawFeaturedRank : Number(rawFeaturedRank);
-      if (!Number.isFinite(featuredRankValue) || !Number.isInteger(featuredRankValue) || featuredRankValue < 0) {
+      if (!Number.isFinite(featuredRankValue) || !Number.isSafeInteger(featuredRankValue) || featuredRankValue < 0) {
         throw new BadRequestException({ code: 'BAD_REQUEST', message: 'featuredRank is invalid' });
       }
       updates.featuredRank = featuredRankValue;
@@ -293,6 +303,6 @@ export class TechManagersService {
       afterJson: updates,
     });
 
-    return this.toSummary(updatedVerification, profile);
+    return this.toSummary(updatedVerification, profile, { includeTestArtifacts: true });
   }
 }

@@ -5,6 +5,7 @@ import './index.scss';
 
 import { apiGet } from '../../lib/api';
 import { formatTimeSmart } from '../../lib/format';
+import { sanitizeIndustryTagNames } from '../../lib/industryTags';
 import { usePagedList } from '../../lib/usePagedList';
 import { ListFooter } from '../../ui/ListFooter';
 import { PageHeader, Spacer, Surface } from '../../ui/layout';
@@ -54,14 +55,15 @@ export default function AnnouncementsPage() {
   useEffect(() => {
     void reload();
   }, [reload]);
+  const showInitialLoading = loading && items.length === 0;
 
   return (
     <View className="container announcements-page">
       <PageHeader weapp back title="公告" subtitle="挂牌清单与专利公告" />
       <Spacer />
 
-      <PullToRefresh type="primary" disabled={loading || refreshing} onRefresh={refresh}>
-        {loading ? (
+      <PullToRefresh type="primary" disabled={showInitialLoading || refreshing} onRefresh={refresh}>
+        {showInitialLoading ? (
           <LoadingCard text="公告加载中" />
         ) : error ? (
           <ErrorCard message={error} onRetry={reload} />
@@ -86,9 +88,9 @@ export default function AnnouncementsPage() {
                   <Text>{formatDate(item.publishedAt)}</Text>
                   {item.issueNo ? <Text>期次 {item.issueNo}</Text> : null}
                 </View>
-                {item.tags?.length ? (
+                {sanitizeIndustryTagNames(item.tags).length ? (
                   <View className="announcement-card-tags">
-                    {item.tags.map((tag, idx) => (
+                    {sanitizeIndustryTagNames(item.tags).map((tag, idx) => (
                       <Text key={`${item.id}-tag-${idx}`} className="pill">
                         {tag}
                       </Text>
@@ -104,7 +106,7 @@ export default function AnnouncementsPage() {
           </View>
         )}
 
-        {!loading && items.length ? (
+        {!showInitialLoading && items.length ? (
           <ListFooter loadingMore={loadingMore} hasMore={hasMore} onLoadMore={loadMore} showNoMore />
         ) : null}
       </PullToRefresh>

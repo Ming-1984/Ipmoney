@@ -36,6 +36,9 @@ jobs:
       - name: Typecheck
         run: pnpm typecheck
 
+      - name: API minimal tests
+        run: pnpm -C apps/api test
+
       - name: Scan banned words
         run: pnpm scan:banned-words
 

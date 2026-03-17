@@ -1,9 +1,10 @@
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { createHash } from 'crypto';
 
 import { AuditLogService } from '../../common/audit-log.service';
 import { PrismaService } from '../../common/prisma/prisma.service';
+import { WechatPayClient, WechatPayError } from '../../common/wechat-pay.client';
 import { NotificationsService } from '../notifications/notifications.service';
 
 const SYSTEM_ACTOR_USER_ID = '00000000-0000-0000-0000-000000000001';
@@ -21,6 +22,8 @@ type WebhookEvent = {
 
 @Injectable()
 export class WebhooksService {
+  private readonly wechatPay = new WechatPayClient();
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly audit: AuditLogService,
@@ -221,39 +224,77 @@ export class WebhooksService {
     });
   }
 
-  async handleWechatPayNotify(req: any, body: any) {
-    if (!body || typeof body !== 'object') return;
-    const event = this.normalizeEvent(body);
-    const eventKey = this.getWebhookEventKey(body);
+  private toRawBodyString(rawBody: string | Buffer | undefined): string {
+    if (typeof rawBody === 'string') return rawBody;
+    if (Buffer.isBuffer(rawBody)) return rawBody.toString('utf8');
+    return '';
+  }
 
-    await this.withWebhookDedup(req, body, async () => {
-      await this.upsertWebhookEvent(eventKey, event, body, 'RECEIVED');
+  private async prepareNotifyPayload(req: any, body: any, rawBody: string | Buffer | undefined) {
+    if (!this.wechatPay.isWebhookVerificationEnabled()) return body;
+
+    const raw = this.toRawBodyString(rawBody);
+    if (!raw) {
+      throw new BadRequestException({
+        code: 'BAD_REQUEST',
+        message: 'wechatpay raw body is required for signature verification',
+      });
+    }
+
+    try {
+      await this.wechatPay.verifyNotifySignature(req?.headers, raw);
+      const decryptedResource = this.wechatPay.decryptNotifyResource(body);
+      if (!decryptedResource || typeof decryptedResource !== 'object') return body;
+      return {
+        ...body,
+        resource: decryptedResource,
+      };
+    } catch (error) {
+      if (error instanceof WechatPayError) {
+        throw new BadRequestException({
+          code: error.code,
+          message: error.message,
+          details: error.details,
+        });
+      }
+      throw error;
+    }
+  }
+
+  async handleWechatPayNotify(req: any, body: any, rawBody?: string | Buffer) {
+    if (!body || typeof body !== 'object') return;
+    const notifyPayload = await this.prepareNotifyPayload(req, body, rawBody);
+    const event = this.normalizeEvent(notifyPayload);
+    const eventKey = this.getWebhookEventKey(notifyPayload);
+
+    await this.withWebhookDedup(req, notifyPayload, async () => {
+      await this.upsertWebhookEvent(eventKey, event, notifyPayload, 'RECEIVED');
       try {
         const eventType = event.eventType;
 
         if (eventType.includes('REFUND')) {
           await this.handleRefundSuccess(req, event);
-          await this.upsertWebhookEvent(eventKey, event, body, 'PROCESSED');
+          await this.upsertWebhookEvent(eventKey, event, notifyPayload, 'PROCESSED');
           return;
         }
         if (eventType.includes('TRANSACTION') || eventType.includes('PAYMENT') || eventType.includes('PAY')) {
           await this.handlePaymentSuccess(req, event);
-          await this.upsertWebhookEvent(eventKey, event, body, 'PROCESSED');
+          await this.upsertWebhookEvent(eventKey, event, notifyPayload, 'PROCESSED');
           return;
         }
         if (event.refundRequestId) {
           await this.handleRefundSuccess(req, event);
-          await this.upsertWebhookEvent(eventKey, event, body, 'PROCESSED');
+          await this.upsertWebhookEvent(eventKey, event, notifyPayload, 'PROCESSED');
           return;
         }
         if (event.orderId) {
           await this.handlePaymentSuccess(req, event);
-          await this.upsertWebhookEvent(eventKey, event, body, 'PROCESSED');
+          await this.upsertWebhookEvent(eventKey, event, notifyPayload, 'PROCESSED');
           return;
         }
-        await this.upsertWebhookEvent(eventKey, event, body, 'PROCESSED');
+        await this.upsertWebhookEvent(eventKey, event, notifyPayload, 'PROCESSED');
       } catch (error) {
-        await this.upsertWebhookEvent(eventKey, event, body, 'FAILED');
+        await this.upsertWebhookEvent(eventKey, event, notifyPayload, 'FAILED');
         throw error;
       }
     });
@@ -337,11 +378,11 @@ export class WebhooksService {
 
       const ctx = await this.getOrderContext(orderId);
       if (ctx) {
-        const title = payType === 'DEPOSIT' ? '订金支付成功' : '尾款支付成功';
+        const title = payType === 'DEPOSIT' ? 'Deposit payment succeeded' : 'Final payment succeeded';
         const summary =
           payType === 'DEPOSIT'
-            ? `《${ctx.listingTitle}》订金已支付，平台客服将介入跟单。`
-            : `《${ctx.listingTitle}》尾款已支付，等待过户完成确认。`;
+            ? `Order ${ctx.listingTitle} deposit was paid. CS follow-up has started.`
+            : `Order ${ctx.listingTitle} final payment was paid. Waiting for transfer completion confirmation.`;
         await this.notifyUsers([ctx.buyerUserId, ctx.sellerUserId], title, summary);
       }
     }
@@ -410,9 +451,10 @@ export class WebhooksService {
 
     const ctx = await this.getOrderContext(order.id);
     if (ctx) {
-      const title = '退款已完成';
-      const summary = `《${ctx.listingTitle}》退款已完成，款项将按原路退回。`;
+      const title = 'Refund completed';
+      const summary = `Order ${ctx.listingTitle} refund is completed and funds will be returned via the original payment path.`;
       await this.notifyUsers([ctx.buyerUserId, ctx.sellerUserId], title, summary);
     }
   }
 }
+

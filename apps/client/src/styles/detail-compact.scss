@@ -139,10 +139,19 @@
   display: flex;
   align-items: flex-end;
   gap: 24rpx;
-  padding: 12rpx var(--page-padding);
+  padding: 0;
+  margin: 12rpx 0;
   overflow-x: auto;
   white-space: nowrap;
   -webkit-overflow-scrolling: touch;
+}
+
+.detail-tabs-scroll .detail-tab:first-child {
+  margin-left: var(--page-padding);
+}
+
+.detail-tabs-scroll .detail-tab:last-child {
+  margin-right: var(--page-padding);
 }
 
 .detail-tab {

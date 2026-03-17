@@ -1,11 +1,17 @@
 ﻿# 项目状态（Ipmoney）
 
-> 最后更新：2026-02-24
+> 最后更新：2026-03-15
 
-## 本阶段口径（2026-02-24）
+## 本阶段口径（2026-03-15）
 - 目标：以 dev/staging 演示与联调为主，**不接入真实微信登录/支付/AI**。
 - 开发启动：`scripts/start-dev.ps1 -EnableDemoAuth`（仅 dev 使用）。
 - 生产相关 gating 项目本阶段暂缓，见“下一阶段生产 gating”。
+
+## 最新验证快照（2026-03-15）
+- 代码与远端：`main` 已与 `origin/main` 对齐。
+- API 自动化：`pnpm -C apps/api test` 通过（`619/619`），`pnpm -C apps/api test:e2e` 通过（`2/2`）。
+- 全链路验证：`scripts/verify.ps1 -ReportDate r324e` 首次因 `client:typecheck` 失败，修复详情页 `boundingClientRect` 联合类型处理后同轮复跑通过（`api-real-smoke 1754/1754`、OpenAPI 覆盖 `238/238`、quality-floor `violations=[]`）。
+- 证据目录：`docs/demo/rendered/ui-smoke-r324e/` 已补齐并纳入版本管理。
 
 ## 范围（P0）
 - 渠道：微信小程序、Taro H5（电脑端可用）、管理后台 Web。
@@ -84,7 +90,8 @@
 - P0 仅使用平台内数据源，外部数据源为 P1。
 
 ## 参考
-- Dev QA 清单：docs/engineering/dev-qa-todo.md
+- 全面质量整改 TODO（主执行清单）：docs/engineering/full-quality-todo-2026-03-05.md
+- 历史规划归档：docs/engineering/archive/legacy-roadmaps-2026-02-to-2026-03.md
 - 测试报告：docs/engineering/test-report.md
 - 生产过渡 runbook：docs/engineering/production-transition.md
 - 权限矩阵：docs/engineering/permissions-matrix.md

@@ -1,12 +1,12 @@
-import { View, Text } from '@tarojs/components';
+﻿import { Text, View } from '@tarojs/components';
 import Taro from '@tarojs/taro';
 import React, { useMemo } from 'react';
 import './index.scss';
 
 import { useRouteStringParam } from '../../../../lib/routeParams';
-import { MissingParamCard } from '../../../../ui/StateCards';
 import { PageHeader, Spacer, Surface } from '../../../../ui/layout';
 import { Cell } from '../../../../ui/nutui';
+import { MissingParamCard } from '../../../../ui/StateCards';
 import { FAQS } from '../data';
 
 export default function SupportFaqDetailPage() {
@@ -65,4 +65,3 @@ export default function SupportFaqDetailPage() {
     </View>
   );
 }
-

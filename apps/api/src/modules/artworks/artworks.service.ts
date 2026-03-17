@@ -169,7 +169,7 @@ export class ArtworksService {
       throw new BadRequestException({ code: 'BAD_REQUEST', message: `${fieldName} is invalid` });
     }
     const parsed = Number(raw);
-    if (!Number.isInteger(parsed) || parsed <= 0) {
+    if (!Number.isSafeInteger(parsed) || parsed <= 0) {
       throw new BadRequestException({ code: 'BAD_REQUEST', message: `${fieldName} is invalid` });
     }
     return parsed;
@@ -253,7 +253,7 @@ export class ArtworksService {
       throw new BadRequestException({ code: 'BAD_REQUEST', message: `${fieldName} is invalid` });
     }
     const num = Number(value);
-    if (!Number.isFinite(num) || !Number.isInteger(num) || num < min) {
+    if (!Number.isFinite(num) || !Number.isSafeInteger(num) || num < min) {
       throw new BadRequestException({ code: 'BAD_REQUEST', message: `${fieldName} is invalid` });
     }
     return num;

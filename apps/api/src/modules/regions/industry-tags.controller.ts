@@ -12,7 +12,7 @@ export class IndustryTagsController {
   @Get()
   async list(@Req() req: any) {
     requirePermission(req, 'config.manage');
-    return await this.regions.listIndustryTags();
+    return await this.regions.listIndustryTags({ includeTestArtifacts: true });
   }
 
   @Post()

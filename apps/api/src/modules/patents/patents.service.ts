@@ -154,7 +154,7 @@ export class PatentsService {
       throw new BadRequestException({ code: 'BAD_REQUEST', message: `${fieldName} is invalid` });
     }
     const parsed = Number(raw);
-    if (!Number.isInteger(parsed) || parsed <= 0) {
+    if (!Number.isSafeInteger(parsed) || parsed <= 0) {
       throw new BadRequestException({ code: 'BAD_REQUEST', message: `${fieldName} is invalid` });
     }
     return parsed;
@@ -294,12 +294,16 @@ export class PatentsService {
       legal && ['PENDING', 'GRANTED', 'EXPIRED', 'INVALIDATED', 'UNKNOWN'].includes(legal)
         ? (legal as LegalStatusDto)
         : undefined;
-    const transferCountValue =
+    const rawTransferCount =
       typeof record?.transferCount === 'number'
         ? record.transferCount
         : Number.isFinite(Number(record?.transferCount))
           ? Number(record.transferCount)
           : undefined;
+    const transferCountValue =
+      typeof rawTransferCount === 'number' && Number.isSafeInteger(rawTransferCount) && rawTransferCount >= 0
+        ? rawTransferCount
+        : undefined;
 
     return {
       id: record.id,

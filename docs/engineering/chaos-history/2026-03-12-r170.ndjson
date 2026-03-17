@@ -1,0 +1,21 @@
+﻿{
+    "recordedAt":  "2026-03-12T07:57:22.5560697Z",
+    "reportDate":  "2026-03-12-r170",
+    "runs":  30,
+    "distribution":  {
+                         "invoiceOther":  0,
+                         "invoiceSuccess":  1,
+                         "invoiceConflict":  29,
+                         "refundOther":  0,
+                         "refundConflict":  30
+                     },
+    "rates":  {
+                  "invoiceSuccess":  0.0333,
+                  "refundConflict":  1
+              },
+    "metrics":  {
+                    "p50":  3313,
+                    "max":  4137,
+                    "p95":  3979
+                }
+}

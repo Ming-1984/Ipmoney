@@ -15,6 +15,7 @@ import {
   priceTypeLabel,
   tradeModeLabel,
 } from '../../lib/labels';
+import { sanitizeIndustryTagNames } from '../../lib/industryTags';
 import { fenToYuan, fenToYuanInt } from '../../lib/money';
 import { resolveLocalAsset } from '../../lib/localAssets';
 import { ensureRegionNamesReady, regionNameByCode } from '../../lib/regions';
@@ -381,7 +382,9 @@ export default function SearchPage() {
     if (targetTab === 'LISTING') {
       setListingFilters((prev) => {
         const base = prefill.reset ? LISTING_FILTER_DEFAULT : prev;
-        const nextIndustryTags = Array.isArray(prefill.industryTags) ? prefill.industryTags : base.industryTags;
+        const nextIndustryTags = Array.isArray(prefill.industryTags)
+          ? sanitizeIndustryTagNames(prefill.industryTags)
+          : sanitizeIndustryTagNames(base.industryTags);
         return {
           ...base,
           patentType: prefill.patentType ?? base.patentType,
@@ -410,7 +413,9 @@ export default function SearchPage() {
     if (targetTab === 'DEMAND') {
       setDemandFilters((prev) => {
         const base = prefill.reset ? DEMAND_FILTER_DEFAULT : prev;
-        const nextIndustryTags = Array.isArray(prefill.industryTags) ? prefill.industryTags : base.industryTags;
+        const nextIndustryTags = Array.isArray(prefill.industryTags)
+          ? sanitizeIndustryTagNames(prefill.industryTags)
+          : sanitizeIndustryTagNames(base.industryTags);
         const nextCooperationModes = Array.isArray(prefill.cooperationModes)
           ? prefill.cooperationModes
           : base.cooperationModes;
@@ -430,7 +435,9 @@ export default function SearchPage() {
     if (targetTab === 'ACHIEVEMENT') {
       setAchievementFilters((prev) => {
         const base = prefill.reset ? ACHIEVEMENT_FILTER_DEFAULT : prev;
-        const nextIndustryTags = Array.isArray(prefill.industryTags) ? prefill.industryTags : base.industryTags;
+        const nextIndustryTags = Array.isArray(prefill.industryTags)
+          ? sanitizeIndustryTagNames(prefill.industryTags)
+          : sanitizeIndustryTagNames(base.industryTags);
         const nextCooperationModes = Array.isArray(prefill.cooperationModes)
           ? prefill.cooperationModes
           : base.cooperationModes;
@@ -482,7 +489,8 @@ export default function SearchPage() {
       if (listingFilters.ipc.trim()) params.ipc = listingFilters.ipc.trim();
       if (listingFilters.loc.trim()) params.loc = listingFilters.loc.trim();
       if (listingFilters.legalStatus) params.legalStatus = listingFilters.legalStatus;
-      if (listingFilters.industryTags.length) params.industryTags = listingFilters.industryTags;
+      const listingIndustryTags = sanitizeIndustryTagNames(listingFilters.industryTags);
+      if (listingIndustryTags.length) params.industryTags = listingIndustryTags;
       if (listingFilters.listingTopic) params.listingTopic = listingFilters.listingTopic;
       if (listingFilters.clusterId) params.clusterId = listingFilters.clusterId;
       return apiGet<PagedListingSummary>('/search/listings', params);
@@ -505,7 +513,8 @@ export default function SearchPage() {
         if (demandFilters.budgetMinFen !== undefined) params.budgetMinFen = demandFilters.budgetMinFen;
         if (demandFilters.budgetMaxFen !== undefined) params.budgetMaxFen = demandFilters.budgetMaxFen;
       }
-      if (demandFilters.industryTags.length) params.industryTags = demandFilters.industryTags;
+      const demandIndustryTags = sanitizeIndustryTagNames(demandFilters.industryTags);
+      if (demandIndustryTags.length) params.industryTags = demandIndustryTags;
       return apiGet<PagedDemandSummary>('/search/demands', params);
     },
     [contentSortBy, demandFilters, q],
@@ -519,7 +528,8 @@ export default function SearchPage() {
       if (achievementFilters.regionCode) params.regionCode = achievementFilters.regionCode;
       if (achievementFilters.cooperationModes.length) params.cooperationModes = achievementFilters.cooperationModes;
       if (achievementFilters.maturity) params.maturity = achievementFilters.maturity;
-      if (achievementFilters.industryTags.length) params.industryTags = achievementFilters.industryTags;
+      const achievementIndustryTags = sanitizeIndustryTagNames(achievementFilters.industryTags);
+      if (achievementIndustryTags.length) params.industryTags = achievementIndustryTags;
       return apiGet<PagedAchievementSummary>('/search/achievements', params);
     },
     [achievementFilters, contentSortBy, q],
@@ -732,6 +742,10 @@ export default function SearchPage() {
     }
     return items;
   }, [artworkList.items, artworkSortBy]);
+  const showListingInitialLoading = listingList.loading && listingItems.length === 0;
+  const showDemandInitialLoading = demandList.loading && demandItems.length === 0;
+  const showAchievementInitialLoading = achievementList.loading && achievementItems.length === 0;
+  const showArtworkInitialLoading = artworkList.loading && artworkItems.length === 0;
 
   const artworkYearOptions = useMemo(() => {
     const years = (artworkList.items || [])
@@ -1030,7 +1044,9 @@ export default function SearchPage() {
                   <IndustryTagsPicker
                     value={draft.industryTags}
                     max={8}
-                    onChange={(tags) => setDraft((prev) => ({ ...prev, industryTags: tags }))}
+                    onChange={(tags) =>
+                      setDraft((prev) => ({ ...prev, industryTags: sanitizeIndustryTagNames(tags) }))
+                    }
                   />
                   <Text className="text-caption muted">标签数据源：公共产业标签库。</Text>
                   <View className="search-filter-card">
@@ -1306,8 +1322,8 @@ export default function SearchPage() {
       ) : null}
 
       {tab === 'LISTING' ? (
-        <PullToRefresh type="primary" disabled={listingList.loading || listingList.refreshing} onRefresh={listingList.refresh}>
-          {listingList.loading ? (
+        <PullToRefresh type="primary" disabled={showListingInitialLoading || listingList.refreshing} onRefresh={listingList.refresh}>
+          {showListingInitialLoading ? (
             <ListingListSkeleton />
           ) : listingList.error ? (
             <ErrorCard message={listingList.error} onRetry={listingList.reload} />
@@ -1341,13 +1357,13 @@ export default function SearchPage() {
             />
           )}
 
-          {!listingList.loading && listingItems.length ? (
+          {!showListingInitialLoading && listingItems.length ? (
             <ListFooter loadingMore={listingList.loadingMore} hasMore={listingList.hasMore} onLoadMore={listingList.loadMore} showNoMore />
           ) : null}
         </PullToRefresh>
       ) : tab === 'DEMAND' ? (
-        <PullToRefresh type="primary" disabled={demandList.loading || demandList.refreshing} onRefresh={demandList.refresh}>
-          {demandList.loading ? (
+        <PullToRefresh type="primary" disabled={showDemandInitialLoading || demandList.refreshing} onRefresh={demandList.refresh}>
+          {showDemandInitialLoading ? (
             <LoadingCard />
           ) : demandList.error ? (
             <ErrorCard message={demandList.error} onRetry={demandList.reload} />
@@ -1357,9 +1373,10 @@ export default function SearchPage() {
                 const location = it.regionCode ? regionNameByCode(it.regionCode) || '' : '';
                 const publisher = it.publisher?.displayName || '';
                 const budgetValue = demandBudgetValue(it);
+                const visibleIndustryTags = sanitizeIndustryTagNames(it.industryTags || []);
                 const primaryTag = it.cooperationModes?.[0]
                   ? cooperationModeLabel(it.cooperationModes[0])
-                  : it.industryTags?.[0] || "技术需求";
+                  : visibleIndustryTags[0] || "技术需求";
 
                 return (
                   <View
@@ -1405,17 +1422,17 @@ export default function SearchPage() {
             />
           )}
 
-          {!demandList.loading && demandItems.length ? (
+          {!showDemandInitialLoading && demandItems.length ? (
             <ListFooter loadingMore={demandList.loadingMore} hasMore={demandList.hasMore} onLoadMore={demandList.loadMore} showNoMore />
           ) : null}
         </PullToRefresh>
       ) : tab === 'ACHIEVEMENT' ? (
         <PullToRefresh
           type="primary"
-          disabled={achievementList.loading || achievementList.refreshing}
+          disabled={showAchievementInitialLoading || achievementList.refreshing}
           onRefresh={achievementList.refresh}
         >
-          {achievementList.loading ? (
+          {showAchievementInitialLoading ? (
             <LoadingCard />
           ) : achievementList.error ? (
             <ErrorCard message={achievementList.error} onRetry={achievementList.reload} />
@@ -1427,8 +1444,9 @@ export default function SearchPage() {
                 const location = it.regionCode ? regionNameByCode(it.regionCode) || '' : '';
                 const maturityText = maturityLabelShort(it.maturity || '');
                 const tags: { label: string; tone: 'green' | 'slate' }[] = [];
+                const visibleIndustryTags = sanitizeIndustryTagNames(it.industryTags || []);
                 it.cooperationModes?.slice(0, 2).forEach((m) => tags.push({ label: cooperationModeLabel(m), tone: 'green' }));
-                it.industryTags?.slice(0, 2).forEach((t) => tags.push({ label: t, tone: 'slate' }));
+                visibleIndustryTags.slice(0, 2).forEach((t) => tags.push({ label: t, tone: 'slate' }));
                 const visibleTags = tags.slice(0, 3);
                 const subinfoParts: string[] = [];
                 if (publisher) subinfoParts.push(`机构：${publisher}`);
@@ -1490,7 +1508,7 @@ export default function SearchPage() {
           />
         )}
 
-          {!achievementList.loading && achievementItems.length ? (
+          {!showAchievementInitialLoading && achievementItems.length ? (
             <ListFooter
               loadingMore={achievementList.loadingMore}
               hasMore={achievementList.hasMore}
@@ -1500,8 +1518,8 @@ export default function SearchPage() {
           ) : null}
         </PullToRefresh>
       ) : tab === 'ARTWORK' ? (
-        <PullToRefresh type="primary" disabled={artworkList.loading || artworkList.refreshing} onRefresh={artworkList.refresh}>
-          {artworkList.loading ? (
+        <PullToRefresh type="primary" disabled={showArtworkInitialLoading || artworkList.refreshing} onRefresh={artworkList.refresh}>
+          {showArtworkInitialLoading ? (
             <LoadingCard />
           ) : artworkList.error ? (
             <ErrorCard message={artworkList.error} onRetry={artworkList.reload} />
@@ -1528,7 +1546,7 @@ export default function SearchPage() {
             />
           )}
 
-          {!artworkList.loading && artworkItems.length ? (
+          {!showArtworkInitialLoading && artworkItems.length ? (
             <ListFooter
               loadingMore={artworkList.loadingMore}
               hasMore={artworkList.hasMore}

@@ -1,6 +1,6 @@
 ﻿import { View, Text, Image } from '@tarojs/components';
 import Taro from '@tarojs/taro';
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import './index.scss';
 
 import type { components } from '@ipmoney/api-types';
@@ -22,6 +22,7 @@ type ListingStatus = components['schemas']['ListingStatus'];
 type AuditStatus = components['schemas']['AuditStatus'];
 
 export default function MyListingsPage() {
+  const loadedOnceRef = useRef(false);
   const [status, setStatus] = useState<ListingStatus | ''>('');
   const [auditStatusFilter, setAuditStatusFilter] = useState<AuditStatus | ''>('');
 
@@ -46,16 +47,21 @@ export default function MyListingsPage() {
 
   const access = usePageAccess('approved-required', (a) => {
     if (a.state === 'ok') {
-      void reload();
+      if (loadedOnceRef.current) {
+        void refresh();
+      }
       return;
     }
+    loadedOnceRef.current = false;
     reset();
   });
 
   useEffect(() => {
     if (access.state !== 'ok') return;
+    loadedOnceRef.current = true;
     void reload();
   }, [access.state, reload]);
+  const showInitialLoading = loading && items.length === 0;
 
   const goCreate = useCallback(() => {
     if (!ensureApproved()) return;
@@ -64,7 +70,7 @@ export default function MyListingsPage() {
 
   if (access.state === 'need-login') {
     return (
-      <View className="container">
+      <View className="container my-listings-page">
         <PageHeader title="我的专利上架" subtitle="卖家查看/编辑/下架自己的专利上架信息" />
         <Spacer />
         <PermissionCard title="需要登录" message="登录后才能查看上架信息。" actionText="去登录" onAction={goLogin} />
@@ -73,7 +79,7 @@ export default function MyListingsPage() {
   }
   if (access.state === 'need-onboarding') {
     return (
-      <View className="container">
+      <View className="container my-listings-page">
         <PageHeader title="我的专利上架" subtitle="卖家查看/编辑/下架自己的专利上架信息" />
         <Spacer />
         <PermissionCard title="需要选择身份" message="完成身份选择后才能继续。" actionText="去选择" onAction={goOnboarding} />
@@ -82,7 +88,7 @@ export default function MyListingsPage() {
   }
   if (access.state === 'audit-pending') {
     return (
-      <View className="container">
+      <View className="container my-listings-page">
         <PageHeader title="我的专利上架" subtitle="卖家查看/编辑/下架自己的专利上架信息" />
         <Spacer />
         <AuditPendingCard title="资料审核中" message="审核通过后才能发布与管理上架信息。" actionText="查看进度" onAction={goOnboarding} />
@@ -91,7 +97,7 @@ export default function MyListingsPage() {
   }
   if (access.state === 'audit-rejected') {
     return (
-      <View className="container">
+      <View className="container my-listings-page">
         <PageHeader title="我的专利上架" subtitle="卖家查看/编辑/下架自己的专利上架信息" />
         <Spacer />
         <AuditPendingCard title="资料已驳回" message="请重新提交资料，审核通过后才能继续。" actionText="重新提交" onAction={goOnboarding} />
@@ -100,7 +106,7 @@ export default function MyListingsPage() {
   }
   if (access.state === 'audit-required') {
     return (
-      <View className="container">
+      <View className="container my-listings-page">
         <PageHeader title="我的专利上架" subtitle="卖家查看/编辑/下架自己的专利上架信息" />
         <Spacer />
         <AuditPendingCard title="需要认证" message="完成认证并审核通过后才能继续。" actionText="去认证" onAction={goOnboarding} />
@@ -109,7 +115,7 @@ export default function MyListingsPage() {
   }
 
   return (
-    <View className="container">
+    <View className="container my-listings-page">
       <PageHeader title="我的专利上架" subtitle="卖家查看/编辑/下架自己的专利上架信息" />
       <Spacer />
 
@@ -149,8 +155,8 @@ export default function MyListingsPage() {
 
       <View style={{ height: '16rpx' }} />
 
-      <PullToRefresh type="primary" disabled={loading || refreshing} onRefresh={refresh}>
-        {loading ? (
+      <PullToRefresh type="primary" disabled={showInitialLoading || refreshing} onRefresh={refresh}>
+        {showInitialLoading ? (
           <LoadingCard />
         ) : error ? (
           <ErrorCard message={error} onRetry={reload} />
@@ -210,10 +216,11 @@ export default function MyListingsPage() {
           <EmptyCard message="暂无上架记录" actionText="刷新" onAction={reload} />
         )}
 
-        {!loading && items.length ? (
+        {!showInitialLoading && items.length ? (
           <ListFooter loadingMore={loadingMore} hasMore={hasMore} onLoadMore={loadMore} showNoMore />
         ) : null}
       </PullToRefresh>
     </View>
   );
 }
+

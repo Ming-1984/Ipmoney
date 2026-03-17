@@ -144,7 +144,7 @@ export function CasesPage() {
   }, []);
 
   return (
-    <Card>
+    <Card className="admin-cases-page">
       <Space direction="vertical" size={16} style={{ width: '100%' }}>
         <div>
           <Typography.Title level={3} style={{ marginTop: 0 }}>

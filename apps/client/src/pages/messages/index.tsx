@@ -1,6 +1,6 @@
 ﻿import { View, Text, Image } from '@tarojs/components';
 import Taro, { useDidHide, useDidShow } from '@tarojs/taro';
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import './index.scss';
 
 import type { components } from '@ipmoney/api-types';
@@ -42,6 +42,8 @@ export default function MessagesPage() {
   const [moreOpen, setMoreOpen] = useState(false);
   const [manageOpen, setManageOpen] = useState(false);
   const [pageVisible, setPageVisible] = useState(true);
+  const loadedOnceRef = useRef(false);
+  const busyRef = useRef(false);
 
   const fetcher = useCallback(
     async ({ page, pageSize }: { page: number; pageSize: number }) =>
@@ -59,25 +61,36 @@ export default function MessagesPage() {
       const d = await apiGet<PagedNotification>('/notifications', { page: 1, pageSize: 1 });
       setLatestNoticeTime((d?.items || [])[0]?.time || '');
     } catch (_) {
-      setLatestNoticeTime('');
+      // Keep previous notice time to avoid UI flicker on transient failures.
     }
   }, []);
 
-  const load = useCallback(async () => {
+  const reloadData = useCallback(async () => {
     await convoList.reload();
+    loadedOnceRef.current = true;
     void loadNotifications();
   }, [convoList.reload, loadNotifications]);
 
-  const refresh = useCallback(async () => {
+  const refreshData = useCallback(async () => {
     await convoList.refresh();
+    loadedOnceRef.current = true;
     void loadNotifications();
   }, [convoList.refresh, loadNotifications]);
 
+  useEffect(() => {
+    busyRef.current = convoList.loading || convoList.loadingMore || convoList.refreshing;
+  }, [convoList.loading, convoList.loadingMore, convoList.refreshing]);
+
   const access = usePageAccess('approved-required', (next) => {
     if (next.state === 'ok') {
-      void load();
+      if (loadedOnceRef.current) {
+        void refreshData();
+      } else {
+        void reloadData();
+      }
       return;
     }
+    loadedOnceRef.current = false;
     convoList.reset();
   });
 
@@ -92,11 +105,12 @@ export default function MessagesPage() {
   useEffect(() => {
     if (!pageVisible || access.state !== 'ok') return;
     const timer = setInterval(() => {
-      if (convoList.loading || convoList.loadingMore || convoList.refreshing) return;
-      void load();
+      if (busyRef.current) return;
+      if (searchOpen || Boolean(searchValue.trim()) || moreOpen || manageOpen) return;
+      void refreshData();
     }, CONVERSATION_POLL_INTERVAL_MS);
     return () => clearInterval(timer);
-  }, [access.state, convoList.loading, convoList.loadingMore, convoList.refreshing, load, pageVisible]);
+  }, [access.state, manageOpen, moreOpen, pageVisible, refreshData, searchOpen, searchValue]);
 
   const trimmedSearch = searchValue.trim().toLowerCase();
   const showSearch = searchOpen || Boolean(trimmedSearch);
@@ -147,8 +161,6 @@ export default function MessagesPage() {
     );
   }
 
-  const items = useMemo(() => convoList.items, [convoList.items]);
-
   const getConversationCategory = useCallback((c: ConversationSummary): ConversationCategory => {
     const role = c.counterpart?.role || '';
     if (role === 'cs') return 'cs';
@@ -173,7 +185,7 @@ export default function MessagesPage() {
   }, []);
 
   const viewItems = useMemo(() => {
-    return items.map((c) => {
+    return convoList.items.map((c) => {
       const category = getConversationCategory(c);
       return {
         ...c,
@@ -181,7 +193,7 @@ export default function MessagesPage() {
         _displayName: getConversationDisplayName(c, category),
       };
     });
-  }, [items, getConversationCategory, getConversationDisplayName]);
+  }, [convoList.items, getConversationCategory, getConversationDisplayName]);
 
   const consultItems = useMemo(() => {
     return viewItems.filter((c) => c._category === 'user');
@@ -198,6 +210,7 @@ export default function MessagesPage() {
       return merged.includes(trimmedSearch);
     });
   }, [consultItems, trimmedSearch]);
+  const showInitialLoading = convoList.loading && convoList.items.length === 0;
 
   const clearSearch = useCallback(() => {
     setSearchValue('');
@@ -313,7 +326,7 @@ export default function MessagesPage() {
 
       <PageState
         access={access}
-        loading={convoList.loading}
+        loading={showInitialLoading}
         loadingText="加载会话中…"
         error={convoList.error}
         empty={!filteredItems.length}
@@ -321,13 +334,13 @@ export default function MessagesPage() {
         emptyMessage={trimmedSearch ? '换个关键词试试。' : emptyMessage}
         emptyActionText={trimmedSearch ? '清空搜索' : '刷新'}
         emptyImage={emptyMessagesIcon}
-        onRetry={load}
-        onEmptyAction={trimmedSearch ? clearSearch : load}
+        onRetry={reloadData}
+        onEmptyAction={trimmedSearch ? clearSearch : reloadData}
       >
         <PullToRefresh
           type="primary"
-          disabled={convoList.loading || convoList.refreshing}
-          onRefresh={refresh}
+          disabled={showInitialLoading || convoList.refreshing}
+          onRefresh={refreshData}
         >
           <View className="messages-list-new">
             <View
@@ -396,7 +409,7 @@ export default function MessagesPage() {
               </View>
             ))}
           </View>
-          {!convoList.loading && filteredItems.length ? (
+          {!showInitialLoading && filteredItems.length ? (
             <ListFooter
               loadingMore={convoList.loadingMore}
               hasMore={convoList.hasMore}

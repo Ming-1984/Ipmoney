@@ -166,7 +166,7 @@ export function ConfigPage() {
   }, [load]);
 
   return (
-    <Space direction="vertical" size={16} style={{ width: '100%' }}>
+    <Space className="admin-config-page" direction="vertical" size={16} style={{ width: '100%' }}>
       <Card loading={loading}>
         <Typography.Title level={3} style={{ marginTop: 0 }}>
           交易规则配置

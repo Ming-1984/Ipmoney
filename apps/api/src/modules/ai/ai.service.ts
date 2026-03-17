@@ -4,6 +4,7 @@ import { randomUUID } from 'crypto';
 import { AuditLogService } from '../../common/audit-log.service';
 import { requirePermission } from '../../common/permissions';
 import { PrismaService } from '../../common/prisma/prisma.service';
+import { sanitizeIndustryTagNames } from '../content-utils';
 
 const CONTENT_TYPES = ['LISTING', 'DEMAND', 'ACHIEVEMENT', 'ARTWORK'] as const;
 const CONTENT_SCOPES = ['LISTING', 'DEMAND', 'ACHIEVEMENT', 'ARTWORK', 'ALL'] as const;
@@ -34,7 +35,7 @@ export class AiService {
       throw new BadRequestException({ code: 'BAD_REQUEST', message: `${fieldName} is invalid` });
     }
     const parsed = Number(raw);
-    if (!Number.isInteger(parsed) || parsed <= 0) {
+    if (!Number.isSafeInteger(parsed) || parsed <= 0) {
       throw new BadRequestException({ code: 'BAD_REQUEST', message: `${fieldName} is invalid` });
     }
     return parsed;
@@ -346,7 +347,7 @@ export class AiService {
       filters.regionCode = this.parseRegionCodeStrict(payload?.regionCode, 'regionCode');
     }
     if (Array.isArray(payload?.industryTags)) {
-      filters.industryTags = payload.industryTags.map((item: any) => String(item).trim()).filter(Boolean);
+      filters.industryTags = sanitizeIndustryTagNames(payload.industryTags);
     }
 
     const targetTypes = contentScope === 'ALL' ? CONTENT_TYPES : ([contentScope] as any);
@@ -396,7 +397,7 @@ export class AiService {
       throw new BadRequestException({ code: 'BAD_REQUEST', message: 'score must be an integer between 1 and 5' });
     }
     const score = typeof rawScore === 'number' ? rawScore : Number(rawScore);
-    if (!Number.isFinite(score) || !Number.isInteger(score) || score < 1 || score > 5) {
+    if (!Number.isFinite(score) || !Number.isSafeInteger(score) || score < 1 || score > 5) {
       throw new BadRequestException({ code: 'BAD_REQUEST', message: 'score must be an integer between 1 and 5' });
     }
     const parseResult = await this.prisma.aiParseResult.findUnique({ where: { id: normalizedParseResultId } });

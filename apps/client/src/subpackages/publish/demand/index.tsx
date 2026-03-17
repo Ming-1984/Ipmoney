@@ -9,6 +9,7 @@ import { API_BASE_URL, STORAGE_KEYS } from '../../../constants';
 import { getToken } from '../../../lib/auth';
 import { apiGet, apiPatch, apiPost } from '../../../lib/api';
 import { ensureApproved, requireLogin } from '../../../lib/guard';
+import { sanitizeIndustryTagNames } from '../../../lib/industryTags';
 import { auditStatusLabel, contentStatusLabel } from '../../../lib/labels';
 import { fenToYuan } from '../../../lib/money';
 import { uploadWithRetry } from '../../../lib/upload';
@@ -226,6 +227,7 @@ export default function PublishDemandPage() {
   const [submitting, setSubmitting] = useState(false);
   const [offShelving, setOffShelving] = useState(false);
   const [draftRestored, setDraftRestored] = useState(false);
+  const sanitizedIndustryTags = useMemo(() => sanitizeIndustryTagNames(industryTags), [industryTags]);
 
   useEffect(() => {
     if (!initialDemandId) return;
@@ -254,7 +256,7 @@ export default function PublishDemandPage() {
         setContactTitle(d.contactTitle || '');
         setContactPhoneMasked(d.contactPhoneMasked || '');
         setRegionCode(d.regionCode || '');
-        setIndustryTags(Array.isArray(d.industryTags) ? d.industryTags : []);
+        setIndustryTags(sanitizeIndustryTagNames(Array.isArray(d.industryTags) ? d.industryTags : []));
 
         setCoverFileId(d.coverFileId ?? null);
         setCoverUrl(d.coverUrl || null);
@@ -283,7 +285,7 @@ export default function PublishDemandPage() {
     setContactTitle(d.contactTitle || '');
     setContactPhoneMasked(d.contactPhoneMasked || '');
     setRegionCode(d.regionCode || '');
-    setIndustryTags(Array.isArray(d.industryTags) ? d.industryTags : []);
+    setIndustryTags(sanitizeIndustryTagNames(Array.isArray(d.industryTags) ? d.industryTags : []));
     setCoverFileId(d.coverFileId ?? null);
     setCoverUrl(d.coverUrl ?? null);
     setMedia(sortMedia(Array.isArray(d.media) ? d.media : []));
@@ -312,7 +314,7 @@ export default function PublishDemandPage() {
         contactTitle,
         contactPhoneMasked,
         regionCode,
-        industryTags,
+        industryTags: sanitizedIndustryTags,
         coverFileId,
         coverUrl,
         media,
@@ -333,7 +335,7 @@ export default function PublishDemandPage() {
     deliveryPeriod,
     demandId,
     description,
-    industryTags,
+    sanitizedIndustryTags,
     initialDemandId,
     keywords,
     media,
@@ -524,7 +526,7 @@ export default function PublishDemandPage() {
         ...(deliveryPeriod ? { deliveryPeriod } : {}),
         ...(budgetType ? { budgetType } : {}),
         ...(regionCode.trim() ? { regionCode: regionCode.trim() } : {}),
-        ...(industryTags.length ? { industryTags } : {}),
+        ...(sanitizedIndustryTags.length ? { industryTags: sanitizedIndustryTags } : {}),
         ...(cooperationModes.length ? { cooperationModes } : {}),
         ...(contactName.trim() ? { contactName: contactName.trim() } : {}),
         ...(contactTitle.trim() ? { contactTitle: contactTitle.trim() } : {}),
@@ -561,7 +563,7 @@ export default function PublishDemandPage() {
       coverFileId,
       deliveryPeriod,
       description,
-      industryTags,
+      sanitizedIndustryTags,
       keywords,
       media,
       regionCode,
@@ -839,7 +841,12 @@ export default function PublishDemandPage() {
         <View style={{ height: '12rpx' }} />
         <Text className="form-label">产业标签（可选；数据源：公共产业标签库）</Text>
         <View style={{ height: '8rpx' }} />
-        <IndustryTagsPicker value={industryTags} max={8} onChange={setIndustryTags} disabled={!canEdit} />
+        <IndustryTagsPicker
+          value={industryTags}
+          max={8}
+          onChange={(next) => setIndustryTags(sanitizeIndustryTagNames(next))}
+          disabled={!canEdit}
+        />
       </Surface>
 
       <View style={{ height: '16rpx' }} />

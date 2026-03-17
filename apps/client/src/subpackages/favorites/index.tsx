@@ -1,6 +1,6 @@
 import { View, Text, Image } from '@tarojs/components';
 import Taro from '@tarojs/taro';
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import './index.scss';
 
 import type { components } from '@ipmoney/api-types';
@@ -16,6 +16,7 @@ import {
   unfavoriteDemand,
 } from '../../lib/favorites';
 import { apiPost } from '../../lib/api';
+import { sanitizeIndustryTagNames } from '../../lib/industryTags';
 import { resolveLocalAsset } from '../../lib/localAssets';
 import { fenToYuan } from '../../lib/money';
 import { regionNameByCode } from '../../lib/regions';
@@ -75,6 +76,7 @@ function maturityLabelShort(m?: AchievementMaturity | ''): string | null {
 }
 
 export default function FavoritesPage() {
+  const loadedOnceRef = useRef(false);
   const [tab, setTab] = useState<FavoriteTab>('LISTING');
   const listingList = usePagedList<ListingSummary>(
     useCallback(async ({ page, pageSize }: { page: number; pageSize: number }) => listFavorites(page, pageSize), []),
@@ -124,26 +126,68 @@ export default function FavoritesPage() {
   }, [achievementList.reset, artworkList.reset, demandList.reset, listingList.reset]);
 
   const access = usePageAccess('approved-required', (a) => {
-    if (a.state === 'ok') return;
+    if (a.state === 'ok') {
+      if (loadedOnceRef.current) {
+        if (tab === 'LISTING') {
+          void listingList.refresh();
+          return;
+        }
+        if (tab === 'DEMAND') {
+          void demandList.refresh();
+          return;
+        }
+        if (tab === 'ACHIEVEMENT') {
+          void achievementList.refresh();
+          return;
+        }
+        void artworkList.refresh();
+      }
+      return;
+    }
+    loadedOnceRef.current = false;
     resetAll();
   });
 
   useEffect(() => {
     if (access.state !== 'ok') return;
+    loadedOnceRef.current = true;
     if (tab === 'LISTING') {
-      void listingList.reload();
+      if (!listingList.items.length && !listingList.loading) {
+        void listingList.reload();
+      }
       return;
     }
     if (tab === 'DEMAND') {
-      void demandList.reload();
+      if (!demandList.items.length && !demandList.loading) {
+        void demandList.reload();
+      }
       return;
     }
     if (tab === 'ACHIEVEMENT') {
-      void achievementList.reload();
+      if (!achievementList.items.length && !achievementList.loading) {
+        void achievementList.reload();
+      }
       return;
     }
-    void artworkList.reload();
-  }, [access.state, tab, listingList.reload, demandList.reload, achievementList.reload, artworkList.reload]);
+    if (!artworkList.items.length && !artworkList.loading) {
+      void artworkList.reload();
+    }
+  }, [
+    access.state,
+    tab,
+    listingList.items.length,
+    listingList.loading,
+    listingList.reload,
+    demandList.items.length,
+    demandList.loading,
+    demandList.reload,
+    achievementList.items.length,
+    achievementList.loading,
+    achievementList.reload,
+    artworkList.items.length,
+    artworkList.loading,
+    artworkList.reload,
+  ]);
 
   const listingItems = useMemo(() => listingList.items, [listingList.items]);
   const demandItems = useMemo(() => demandList.items, [demandList.items]);
@@ -221,9 +265,10 @@ export default function FavoritesPage() {
             const location = it.regionCode ? regionNameByCode(it.regionCode) || '' : '';
             const publisher = it.publisher?.displayName || '';
             const budgetValue = demandBudgetValue(it);
+            const visibleIndustryTags = sanitizeIndustryTagNames(it.industryTags || []);
             const primaryTag = it.cooperationModes?.[0]
               ? cooperationModeLabel(it.cooperationModes[0])
-              : it.industryTags?.[0] || '技术需求';
+              : visibleIndustryTags[0] || '技术需求';
 
             return (
               <View
@@ -277,8 +322,9 @@ export default function FavoritesPage() {
             const location = it.regionCode ? regionNameByCode(it.regionCode) || '' : '';
             const maturityText = maturityLabelShort(it.maturity || '');
             const tags: { label: string; tone: 'green' | 'slate' }[] = [];
+            const visibleIndustryTags = sanitizeIndustryTagNames(it.industryTags || []);
             it.cooperationModes?.slice(0, 2).forEach((m) => tags.push({ label: cooperationModeLabel(m), tone: 'green' }));
-            it.industryTags?.slice(0, 2).forEach((t) => tags.push({ label: t, tone: 'slate' }));
+            visibleIndustryTags.slice(0, 2).forEach((t) => tags.push({ label: t, tone: 'slate' }));
             const visibleTags = tags.slice(0, 3);
             const subinfoParts: string[] = [];
             if (publisher) subinfoParts.push(`机构：${publisher}`);
@@ -398,9 +444,10 @@ export default function FavoritesPage() {
         : tab === 'ACHIEVEMENT'
           ? achievementItems.length
           : artworkItems.length;
+  const showActiveInitialLoading = activeList.loading && activeCount === 0;
 
   return (
-    <View className="container">
+    <View className="container favorites-page">
       <PageHeader title="我的收藏" subtitle="收藏后可快速回访；取消收藏后将不再显示" />
       <Spacer />
 
@@ -425,19 +472,19 @@ export default function FavoritesPage() {
 
       <PageState
         access={access}
-        loading={activeList.loading}
+        loading={showActiveInitialLoading}
         error={activeList.error}
         onRetry={activeList.reload}
-        empty={!activeList.loading && !activeList.error && activeCount === 0}
+        empty={!showActiveInitialLoading && !activeList.error && activeCount === 0}
         emptyTitle="暂无收藏"
         emptyMessage="看到心仪内容，点“收藏”即可保存。"
         emptyActionText="刷新"
         emptyImage={emptyFavorites}
         onEmptyAction={activeList.reload}
       >
-        <PullToRefresh type="primary" disabled={activeList.loading || activeList.refreshing} onRefresh={activeList.refresh}>
+        <PullToRefresh type="primary" disabled={showActiveInitialLoading || activeList.refreshing} onRefresh={activeList.refresh}>
           {renderContent()}
-          {!activeList.loading && activeCount ? (
+          {!showActiveInitialLoading && activeCount ? (
             <ListFooter
               loadingMore={activeList.loadingMore}
               hasMore={activeList.hasMore}

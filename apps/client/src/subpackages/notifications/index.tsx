@@ -1,6 +1,6 @@
 import { View, Text } from '@tarojs/components';
 import Taro from '@tarojs/taro';
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import './index.scss';
 
 import type { components } from '@ipmoney/api-types';
@@ -27,6 +27,7 @@ const TABS: { id: NoticeTab; label: string }[] = [
 export default function NotificationsPage() {
   const tabParam = useRouteStringParam('tab');
   const [activeTab, setActiveTab] = useState<NoticeTab>('system');
+  const loadedOnceRef = useRef(false);
 
   useEffect(() => {
     if (tabParam === 'system' || tabParam === 'cs') {
@@ -48,17 +49,38 @@ export default function NotificationsPage() {
       },
     });
 
+  const reloadData = useCallback(async () => {
+    await reload();
+    loadedOnceRef.current = true;
+  }, [reload]);
+
+  const refreshData = useCallback(async () => {
+    await refresh();
+    loadedOnceRef.current = true;
+  }, [refresh]);
+
   const access = usePageAccess('login-required', (next) => {
     if (next.state === 'ok') {
-      void reload();
+      if (loadedOnceRef.current) {
+        void refreshData();
+      }
       return;
     }
+    loadedOnceRef.current = false;
     reset();
   });
+
+  useEffect(() => {
+    if (access.state !== 'ok') return;
+    if (loadedOnceRef.current) return;
+    loadedOnceRef.current = true;
+    void reloadData();
+  }, [access.state, reloadData]);
 
   const filteredItems = useMemo(() => {
     return (items || []).filter((item) => item.kind === activeTab);
   }, [items, activeTab]);
+  const showInitialLoading = loading && items.length === 0;
 
   return (
     <View className="container notifications-page">
@@ -67,14 +89,14 @@ export default function NotificationsPage() {
 
       <PageState
         access={access}
-        loading={loading}
+        loading={showInitialLoading}
         error={error}
-        empty={!loading && !error && !items.length}
+        empty={!showInitialLoading && !error && !items.length}
         emptyTitle="暂无通知"
         emptyMessage="稍后有新消息会展示在这里。"
-        onRetry={reload}
+        onRetry={reloadData}
       >
-        <PullToRefresh type="primary" disabled={loading || refreshing} onRefresh={refresh}>
+        <PullToRefresh type="primary" disabled={showInitialLoading || refreshing} onRefresh={refreshData}>
           <View className="notifications-tabs">
             {TABS.map((tab) => (
               <View
@@ -111,6 +133,7 @@ export default function NotificationsPage() {
                 <Text className="notification-source">{item.source}</Text>
               </Surface>
             ))}
+
             {!filteredItems.length ? (
               <Surface className="notification-empty" padding="none">
                 <Text className="notification-empty-title">暂无通知</Text>
@@ -119,7 +142,7 @@ export default function NotificationsPage() {
             ) : null}
           </View>
 
-          {!loading && items.length ? (
+          {!showInitialLoading && filteredItems.length ? (
             <ListFooter loadingMore={loadingMore} hasMore={hasMore} onLoadMore={loadMore} showNoMore />
           ) : null}
         </PullToRefresh>

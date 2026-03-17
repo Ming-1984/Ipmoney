@@ -1,11 +1,13 @@
 import { View, Text } from '@tarojs/components';
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import './index.scss';
 
 import type { components } from '@ipmoney/api-types';
 
 import { apiGet } from '../../../lib/api';
+import { getDetailCache, setDetailCache } from '../../../lib/detailCache';
 import { formatTimeSmart } from '../../../lib/format';
+import { isVisibleIndustryTagName } from '../../../lib/industryTags';
 import { safeNavigateBack } from '../../../lib/navigation';
 import { useRouteNumberParam, useRouteStringParam } from '../../../lib/routeParams';
 import { CellRow, PageHeader, SectionHeader, Spacer, Surface } from '../../../ui/layout';
@@ -13,44 +15,76 @@ import { CellGroup, Space, Tag } from '../../../ui/nutui';
 import { EmptyCard, ErrorCard, LoadingCard, MissingParamCard } from '../../../ui/StateCards';
 
 type PatentMapRegionDetail = components['schemas']['PatentMapRegionDetail'];
+const REGION_DETAIL_CACHE_SCOPE = 'patent-map-region-detail';
 
 export default function PatentMapRegionDetailPage() {
   const regionCode = useRouteStringParam('regionCode') || '';
   const year = useRouteNumberParam('year') || 0;
+  const cacheKey = regionCode && year ? `${regionCode}-${year}` : '';
+  const initialCachedData = cacheKey ? getDetailCache<PatentMapRegionDetail>(REGION_DETAIL_CACHE_SCOPE, cacheKey) : null;
 
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(!initialCachedData);
   const [error, setError] = useState<string | null>(null);
-  const [data, setData] = useState<PatentMapRegionDetail | null>(null);
+  const [data, setData] = useState<PatentMapRegionDetail | null>(initialCachedData);
+
+  useEffect(() => {
+    if (!cacheKey) {
+      setLoading(false);
+      setError(null);
+      setData(null);
+      return;
+    }
+    const cached = getDetailCache<PatentMapRegionDetail>(REGION_DETAIL_CACHE_SCOPE, cacheKey);
+    setData(cached || null);
+    setLoading(!cached);
+    setError(null);
+  }, [cacheKey]);
 
   const load = useCallback(async () => {
     if (!regionCode || !year) return;
-    setLoading(true);
-    setError(null);
+    const cached = cacheKey ? getDetailCache<PatentMapRegionDetail>(REGION_DETAIL_CACHE_SCOPE, cacheKey) : null;
+    const hasCached = Boolean(cached);
+    if (cached) {
+      setData(cached);
+      setLoading(false);
+      setError(null);
+    } else {
+      setLoading(true);
+      setError(null);
+    }
     try {
       const d = await apiGet<PatentMapRegionDetail>(`/patent-map/regions/${regionCode}`, { year });
       setData(d);
+      if (cacheKey) setDetailCache(REGION_DETAIL_CACHE_SCOPE, cacheKey, d);
     } catch (e: any) {
-      setError(e?.message || '加载失败');
-      setData(null);
+      if (!hasCached) {
+        setError(e?.message || '加载失败');
+        setData(null);
+      }
     } finally {
       setLoading(false);
     }
-  }, [regionCode, year]);
+  }, [cacheKey, regionCode, year]);
 
   useEffect(() => {
     void load();
   }, [load]);
 
+  const visibleIndustryBreakdown = useMemo(
+    () => (data?.industryBreakdown || []).filter((it) => isVisibleIndustryTagName(String(it.industryTag || ''))),
+    [data?.industryBreakdown],
+  );
+
   if (!regionCode || !year) {
     return (
-      <View className="container page-bg-plain">
+      <View className="container page-bg-plain patent-map-region-detail-page">
         <MissingParamCard onAction={() => void safeNavigateBack()} />
       </View>
     );
   }
 
   return (
-    <View className="container page-bg-plain">
+    <View className="container page-bg-plain patent-map-region-detail-page">
       <PageHeader title="区域详情" subtitle={`区域编码：${regionCode} · 年份：${year}`} />
       <Spacer />
 
@@ -82,9 +116,9 @@ export default function PatentMapRegionDetailPage() {
 
           <SectionHeader title="产业分布" density="compact" />
           <Surface padding="none">
-            <CellGroup divider>
-              {data.industryBreakdown.length ? (
-                data.industryBreakdown.map((it, idx) => (
+              <CellGroup divider>
+              {visibleIndustryBreakdown.length ? (
+                visibleIndustryBreakdown.map((it, idx) => (
                   <CellRow
                     key={`${it.industryTag}-${idx}`}
                     arrow={false}
@@ -94,7 +128,7 @@ export default function PatentMapRegionDetailPage() {
                         {it.count}
                       </Tag>
                     }
-                    isLast={idx === data.industryBreakdown.length - 1}
+                    isLast={idx === visibleIndustryBreakdown.length - 1}
                   />
                 ))
               ) : (

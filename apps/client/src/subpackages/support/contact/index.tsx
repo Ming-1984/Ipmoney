@@ -1,9 +1,10 @@
-import { View, Text } from '@tarojs/components';
+﻿import { Text, View } from '@tarojs/components';
 import Taro from '@tarojs/taro';
 import React, { useCallback, useEffect, useState } from 'react';
 import './index.scss';
 
 import { apiGet } from '../../../lib/api';
+import { getDetailCache, setDetailCache } from '../../../lib/detailCache';
 import { PageHeader, Spacer, Surface, TipBanner } from '../../../ui/layout';
 import { Cell, toast } from '../../../ui/nutui';
 
@@ -14,16 +15,26 @@ type CustomerServiceConfig = {
 };
 
 const FALLBACK_PHONE = '400-000-0000';
+const CS_CONFIG_CACHE_SCOPE = 'public-config';
+const CS_CONFIG_CACHE_KEY = 'customer-service';
 
 export default function SupportContactPage() {
   const [phone, setPhone] = useState(FALLBACK_PHONE);
 
   const load = useCallback(async () => {
+    const cached = getDetailCache<CustomerServiceConfig>(CS_CONFIG_CACHE_SCOPE, CS_CONFIG_CACHE_KEY);
+    if (cached?.phone && String(cached.phone).trim()) {
+      setPhone(String(cached.phone).trim());
+    }
     try {
       const d = await apiGet<CustomerServiceConfig>('/public/config/customer-service');
-      if (d?.phone && String(d.phone).trim()) setPhone(String(d.phone).trim());
+      if (d?.phone && String(d.phone).trim()) {
+        const normalizedPhone = String(d.phone).trim();
+        setPhone(normalizedPhone);
+        setDetailCache(CS_CONFIG_CACHE_SCOPE, CS_CONFIG_CACHE_KEY, { ...d, phone: normalizedPhone });
+      }
     } catch {
-      // Keep fallback phone when config isn't ready.
+      // Keep cached/fallback phone when config service isn't ready.
     }
   }, []);
 
@@ -54,7 +65,7 @@ export default function SupportContactPage() {
       <Spacer />
 
       <TipBanner tone="info" title="服务提示">
-        客服工作时间：工作日 09:00-18:00，非工作时间可提交意见反馈，我们将尽快处理。
+        客服工作时间：工作日 09:00-18:00；非工作时间可提交意见反馈，我们会尽快处理。
       </TipBanner>
 
       <Spacer size={12} />

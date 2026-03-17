@@ -9,9 +9,11 @@ import type { components } from '@ipmoney/api-types';
 import { Heart, HeartFill, Share2 } from '../../../ui/icons';
 import { apiGet, apiPost } from '../../../lib/api';
 import { getToken } from '../../../lib/auth';
+import { getDetailCache, setDetailCache } from '../../../lib/detailCache';
 import { favoriteAchievement, isAchievementFavorited, syncFavoriteAchievements, unfavoriteAchievement } from '../../../lib/favorites';
 import { formatTimeSmart } from '../../../lib/format';
 import { ensureApproved } from '../../../lib/guard';
+import { sanitizeIndustryTagNames } from '../../../lib/industryTags';
 import { resolveLocalAsset } from '../../../lib/localAssets';
 import { verificationTypeLabel } from '../../../lib/labels';
 import { safeNavigateBack } from '../../../lib/navigation';
@@ -31,9 +33,10 @@ type Conversation = { id: string };
 export default function AchievementDetailPage() {
   const achievementId = useRouteUuidParam('achievementId') || '';
 
-  const [loading, setLoading] = useState(true);
+  const initialCachedData = achievementId ? getDetailCache<AchievementPublic>('achievement-public', achievementId) : null;
+  const [loading, setLoading] = useState(!initialCachedData);
   const [error, setError] = useState<string | null>(null);
-  const [data, setData] = useState<AchievementPublic | null>(null);
+  const [data, setData] = useState<AchievementPublic | null>(initialCachedData);
   const [consulting, setConsulting] = useState(false);
   const [favoritedState, setFavoritedState] = useState(false);
   const [activeTab, setActiveTab] = useState('overview');
@@ -41,16 +44,39 @@ export default function AchievementDetailPage() {
   const tabsOffsetTopRef = useRef<number | null>(null);
   const stickyTopRef = useRef<number>(0);
 
+  useEffect(() => {
+    if (!achievementId) {
+      setData(null);
+      setLoading(false);
+      setError(null);
+      return;
+    }
+    const cached = getDetailCache<AchievementPublic>('achievement-public', achievementId);
+    setData(cached || null);
+    setLoading(!cached);
+    setError(null);
+  }, [achievementId]);
+
   const load = useCallback(async () => {
     if (!achievementId) return;
-    setLoading(true);
-    setError(null);
+    const cached = getDetailCache<AchievementPublic>('achievement-public', achievementId);
+    if (cached) {
+      setData(cached);
+      setLoading(false);
+      setError(null);
+    } else {
+      setLoading(true);
+      setError(null);
+    }
     try {
       const d = await apiGet<AchievementPublic>(`/public/achievements/${achievementId}`);
       setData(d);
+      setDetailCache('achievement-public', achievementId, d);
     } catch (e: any) {
-      setError(e?.message || '加载失败');
-      setData(null);
+      if (!cached) {
+        setError(e?.message || '加载失败');
+        setData(null);
+      }
     } finally {
       setLoading(false);
     }
@@ -175,8 +201,9 @@ export default function AchievementDetailPage() {
     query
       .select('.detail-tabs')
       .boundingClientRect((rect) => {
-        const height = rect?.height ? Math.round(rect.height) : 0;
-        const top = rect?.top ? Math.round(rect.top) : 0;
+        const targetRect = Array.isArray(rect) ? rect[0] : rect;
+        const height = targetRect?.height ? Math.round(targetRect.height) : 0;
+        const top = targetRect?.top ? Math.round(targetRect.top) : 0;
         const offsetTop = -(height + top);
         Taro.pageScrollTo({ selector, duration: 300, offsetTop });
       })
@@ -192,6 +219,7 @@ export default function AchievementDetailPage() {
     if (!coverUrlRaw) return list;
     return list.filter((item) => item.url !== coverUrlRaw);
   }, [media, coverUrlRaw]);
+  const visibleIndustryTags = useMemo(() => sanitizeIndustryTagNames(data?.industryTags || []), [data?.industryTags]);
 
 
   if (!achievementId) {
@@ -323,7 +351,7 @@ export default function AchievementDetailPage() {
               <View className="detail-field-row">
                 <Text className="detail-field-label">行业标签</Text>
                 <Text className="detail-field-value break-word">
-                  {data.industryTags?.length ? data.industryTags.join(' / ') : '-'}
+                  {visibleIndustryTags.length ? visibleIndustryTags.join(' / ') : '-'}
                 </Text>
               </View>
               <View className="detail-field-row">

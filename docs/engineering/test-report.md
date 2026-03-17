@@ -1,5 +1,788 @@
 # Test Report (Consolidated)
 
+## Latest (2026-03-15)
+
+### Commands & Results (dev)
+- `pnpm -C apps/api test`
+  - Result: pass (`619/619`)
+  - Notes: API baseline remained green after remote sync and client type-fix patch.
+- `pnpm -C apps/api test:e2e`
+  - Result: pass (`2/2`)
+- `powershell -ExecutionPolicy Bypass -File scripts/verify.ps1 -ReportDate r324e`
+  - Result: fail -> pass
+  - Notes: first run failed at `client:typecheck` because `boundingClientRect` callback value was treated as object-only in detail-tab scrolling logic (`apps/client/src/subpackages/achievement/detail/index.tsx`, `apps/client/src/subpackages/demand/detail/index.tsx`, `apps/client/src/subpackages/listing/detail/index.tsx`); after normalizing callback value with `Array.isArray(rect) ? rect[0] : rect`, rerun passed full-chain (`api-real-smoke` `1754/1754`, OpenAPI coverage `238/238`, quality-floor `violations=[]`), and render artifact was updated at `docs/demo/rendered/ui-smoke-r324e/`.
+- `pnpm -C apps/api test`
+  - Result: pass (`619/619`)
+  - Notes: full API Vitest suite remained green after `r322` full-chain rerun.
+- `pnpm -C apps/api test:e2e`
+  - Result: pass (`2/2`)
+- `powershell -ExecutionPolicy Bypass -File scripts/api-real-smoke.ps1 -ReportDate r323a`
+  - Result: fail (`1753/1754`)
+  - Notes: single transient parser failure at case `admin-maintenance-schedule-create` (`Cannot parse field 'id'`).
+- `powershell -ExecutionPolicy Bypass -File scripts/api-real-smoke.ps1 -ReportDate r323b`
+  - Result: pass (`1754/1754`)
+  - Notes: immediate rerun returned fully green (`writes=1297`,`reads=457`); hidden-tag cleanup counters stayed `0`.
+- `powershell -ExecutionPolicy Bypass -File scripts/verify.ps1 -ReportDate r322e`
+  - Result: pass
+  - Notes: full-chain quality gate remained green (`api-real-smoke` `1754/1754` (`writes=1297`,`reads=457`), coverage `238/238`, quality-floor `violations=[]`, `db-preflight` `9/9`, `ui-render(core)` `3/3`, `ui-dom(core)` `11/11`).
+- `powershell -ExecutionPolicy Bypass -File scripts/ui-render-smoke.ps1 -Mode full -ReportDate r322a`
+  - Result: pass (`83/83`)
+- `powershell -ExecutionPolicy Bypass -File scripts/ui-dom-smoke.ps1 -Mode full -ReportDate r322b`
+  - Result: pass (`83/83`)
+  - Notes: full-page render and DOM semantic assertions remained stable, including search and publish/filter pages.
+- `powershell -ExecutionPolicy Bypass -File scripts/weapp-route-smoke.ps1 -NoAuth -ReportDate r322c -TimeoutMs 180000 -LaunchRetries 3 -LaunchRetryDelayMs 4000 -KillStaleDevtools`
+  - Result: pass (`11/11` routes)
+- `powershell -ExecutionPolicy Bypass -File scripts/weapp-route-smoke.ps1 -ReportDate r322d -UserToken demo-user-11111111-1111-4111-8111-111111111111 -TimeoutMs 180000 -LaunchRetries 3 -LaunchRetryDelayMs 4000 -KillStaleDevtools`
+  - Result: pass (`11/11` routes)
+  - Notes: auth/no-auth route navigation remained stable with stale DevTools cleanup.
+- `pnpm -C apps/api test`
+  - Result: pass (`619/619`)
+  - Notes: full API Vitest suite remained green after `r320` full-chain rerun.
+- `pnpm -C apps/api test:e2e`
+  - Result: pass (`2/2`)
+- `powershell -ExecutionPolicy Bypass -File scripts/api-real-smoke.ps1 -ReportDate r321a`
+  - Result: pass (`1754/1754`)
+  - Notes: independent smoke rerun remained fully green (`writes=1297`,`reads=457`); hidden-tag cleanup counters stayed `0`.
+- `powershell -ExecutionPolicy Bypass -File scripts/verify.ps1 -ReportDate r320e`
+  - Result: pass
+  - Notes: full-chain quality gate remained green (`api-real-smoke` `1754/1754` (`writes=1297`,`reads=457`), coverage `238/238`, quality-floor `violations=[]`, `db-preflight` `9/9`, `ui-render(core)` `3/3`, `ui-dom(core)` `11/11`).
+- `powershell -ExecutionPolicy Bypass -File scripts/ui-render-smoke.ps1 -Mode full -ReportDate r320a`
+  - Result: pass (`83/83`)
+- `powershell -ExecutionPolicy Bypass -File scripts/ui-dom-smoke.ps1 -Mode full -ReportDate r320b`
+  - Result: pass (`83/83`)
+  - Notes: full-page render and DOM semantic assertions remained stable, including search and publish/filter pages.
+- `powershell -ExecutionPolicy Bypass -File scripts/weapp-route-smoke.ps1 -NoAuth -ReportDate r320c -TimeoutMs 180000 -LaunchRetries 3 -LaunchRetryDelayMs 4000 -KillStaleDevtools`
+  - Result: pass (`11/11` routes)
+- `powershell -ExecutionPolicy Bypass -File scripts/weapp-route-smoke.ps1 -ReportDate r320d -UserToken demo-user-11111111-1111-4111-8111-111111111111 -TimeoutMs 180000 -LaunchRetries 3 -LaunchRetryDelayMs 4000 -KillStaleDevtools`
+  - Result: pass (`11/11` routes)
+  - Notes: auth/no-auth route navigation remained stable with stale DevTools cleanup.
+- `pnpm -C apps/api test`
+  - Result: pass (`619/619`)
+  - Notes: full API Vitest suite remained green after `r318` full-chain rerun.
+- `pnpm -C apps/api test:e2e`
+  - Result: pass (`2/2`)
+- `powershell -ExecutionPolicy Bypass -File scripts/api-real-smoke.ps1 -ReportDate r319a`
+  - Result: pass (`1754/1754`)
+  - Notes: independent smoke rerun remained fully green (`writes=1297`,`reads=457`); hidden-tag cleanup counters stayed `0`.
+- `powershell -ExecutionPolicy Bypass -File scripts/verify.ps1 -ReportDate r318e`
+  - Result: pass
+  - Notes: full-chain quality gate remained green (`api-real-smoke` `1754/1754` (`writes=1297`,`reads=457`), coverage `238/238`, quality-floor `violations=[]`, `db-preflight` `9/9`, `ui-render(core)` `3/3`, `ui-dom(core)` `11/11`).
+- `powershell -ExecutionPolicy Bypass -File scripts/ui-render-smoke.ps1 -Mode full -ReportDate r318a`
+  - Result: pass (`83/83`)
+- `powershell -ExecutionPolicy Bypass -File scripts/ui-dom-smoke.ps1 -Mode full -ReportDate r318b`
+  - Result: pass (`83/83`)
+  - Notes: full-page render and DOM semantic assertions remained stable, including search and publish/filter pages.
+- `powershell -ExecutionPolicy Bypass -File scripts/weapp-route-smoke.ps1 -NoAuth -ReportDate r318c -TimeoutMs 180000 -LaunchRetries 3 -LaunchRetryDelayMs 4000 -KillStaleDevtools`
+  - Result: pass (`11/11` routes)
+- `powershell -ExecutionPolicy Bypass -File scripts/weapp-route-smoke.ps1 -ReportDate r318d -UserToken demo-user-11111111-1111-4111-8111-111111111111 -TimeoutMs 180000 -LaunchRetries 3 -LaunchRetryDelayMs 4000 -KillStaleDevtools`
+  - Result: pass (`11/11` routes)
+  - Notes: auth/no-auth route navigation remained stable with stale DevTools cleanup.
+- `pnpm -C apps/api test`
+  - Result: pass (`619/619`)
+  - Notes: full API Vitest suite remained green after `r316` full-chain rerun.
+- `pnpm -C apps/api test:e2e`
+  - Result: pass (`2/2`)
+- `powershell -ExecutionPolicy Bypass -File scripts/api-real-smoke.ps1 -ReportDate r317a`
+  - Result: pass (`1754/1754`)
+  - Notes: independent smoke rerun remained fully green (`writes=1297`,`reads=457`); hidden-tag cleanup counters stayed `0`.
+- `powershell -ExecutionPolicy Bypass -File scripts/verify.ps1 -ReportDate r316e`
+  - Result: pass
+  - Notes: full-chain quality gate remained green (`api-real-smoke` `1754/1754` (`writes=1297`,`reads=457`), coverage `238/238`, quality-floor `violations=[]`, `db-preflight` `9/9`, `ui-http` `86/86`, `ui-render(core)` `3/3`, `ui-dom(core)` `11/11`).
+- `powershell -ExecutionPolicy Bypass -File scripts/ui-render-smoke.ps1 -Mode full -ReportDate r316a`
+  - Result: pass (`83/83`)
+- `powershell -ExecutionPolicy Bypass -File scripts/ui-dom-smoke.ps1 -Mode full -ReportDate r316b`
+  - Result: pass (`83/83`)
+  - Notes: full-page render and DOM semantic assertions remained stable, including search and publish/filter pages.
+- `powershell -ExecutionPolicy Bypass -File scripts/weapp-route-smoke.ps1 -NoAuth -ReportDate r316c -TimeoutMs 180000 -LaunchRetries 3 -LaunchRetryDelayMs 4000 -KillStaleDevtools`
+  - Result: pass (`11/11` routes)
+- `powershell -ExecutionPolicy Bypass -File scripts/weapp-route-smoke.ps1 -ReportDate r316d -UserToken demo-user-11111111-1111-4111-8111-111111111111 -TimeoutMs 180000 -LaunchRetries 3 -LaunchRetryDelayMs 4000 -KillStaleDevtools`
+  - Result: pass (`11/11` routes)
+  - Notes: auth/no-auth route navigation remained stable with stale DevTools cleanup.
+- `pnpm -C apps/api test`
+  - Result: pass (`619/619`)
+  - Notes: full API Vitest suite remained green after `r314` full-chain rerun.
+- `pnpm -C apps/api test:e2e`
+  - Result: pass (`2/2`)
+- `powershell -ExecutionPolicy Bypass -File scripts/api-real-smoke.ps1 -ReportDate r315a`
+  - Result: pass (`1754/1754`)
+  - Notes: independent smoke rerun remained fully green (`writes=1297`,`reads=457`); hidden-tag cleanup counters stayed `0`.
+- `powershell -ExecutionPolicy Bypass -File scripts/verify.ps1 -ReportDate r314e`
+  - Result: pass
+  - Notes: full-chain quality gate remained green (`api-real-smoke` `1754/1754`, coverage `238/238`, quality-floor `violations=[]`, `db-preflight` `9/9`, `ui-render(core)` `3/3`, `ui-dom(core)` `11/11`); hidden-tag cleanup counters stayed `0`.
+- `powershell -ExecutionPolicy Bypass -File scripts/ui-render-smoke.ps1 -Mode full -ReportDate r314a`
+  - Result: pass (`83/83`)
+- `powershell -ExecutionPolicy Bypass -File scripts/ui-dom-smoke.ps1 -Mode full -ReportDate r314b`
+  - Result: pass (`83/83`)
+  - Notes: full-page DOM semantic assertions stayed stable, including search and publish/filter related pages.
+- `powershell -ExecutionPolicy Bypass -File scripts/weapp-route-smoke.ps1 -NoAuth -ReportDate r314c -TimeoutMs 180000 -LaunchRetries 3 -LaunchRetryDelayMs 4000 -KillStaleDevtools`
+  - Result: pass (`11/11` routes)
+- `powershell -ExecutionPolicy Bypass -File scripts/weapp-route-smoke.ps1 -ReportDate r314d -UserToken demo-user-11111111-1111-4111-8111-111111111111 -TimeoutMs 180000 -LaunchRetries 3 -LaunchRetryDelayMs 4000 -KillStaleDevtools`
+  - Result: pass (`11/11` routes)
+  - Notes: auth/no-auth route navigation remained stable with stale DevTools cleanup.
+- `pnpm -C apps/api test`
+  - Result: pass (`619/619`)
+  - Notes: full API Vitest suite remained green after `r312` full-chain rerun.
+- `pnpm -C apps/api test:e2e`
+  - Result: pass (`2/2`)
+- `powershell -ExecutionPolicy Bypass -File scripts/api-real-smoke.ps1 -ReportDate r313a`
+  - Result: pass (`1754/1754`)
+  - Notes: independent smoke rerun remained fully green (`writes=1297`,`reads=457`); hidden-tag cleanup counters stayed `0`.
+- `powershell -ExecutionPolicy Bypass -File scripts/verify.ps1 -ReportDate r312e`
+  - Result: pass
+  - Notes: full-chain quality gate remained green (`api-real-smoke` `1754/1754`, coverage `238/238`, quality-floor `violations=[]`, `db-preflight` `9/9`, `ui-render(core)` `3/3`, `ui-dom(core)` `11/11`); hidden-tag cleanup counters stayed `0`.
+- `powershell -ExecutionPolicy Bypass -File scripts/ui-render-smoke.ps1 -Mode full -ReportDate r312a`
+  - Result: pass (`83/83`)
+- `powershell -ExecutionPolicy Bypass -File scripts/ui-dom-smoke.ps1 -Mode full -ReportDate r312b`
+  - Result: pass (`83/83`)
+  - Notes: full-page DOM semantic assertions stayed stable, including search and publish/filter related pages.
+- `powershell -ExecutionPolicy Bypass -File scripts/weapp-route-smoke.ps1 -NoAuth -ReportDate r312c -TimeoutMs 180000 -LaunchRetries 3 -LaunchRetryDelayMs 4000 -KillStaleDevtools`
+  - Result: pass (`11/11` routes)
+- `powershell -ExecutionPolicy Bypass -File scripts/weapp-route-smoke.ps1 -ReportDate r312d -UserToken demo-user-11111111-1111-4111-8111-111111111111 -TimeoutMs 180000 -LaunchRetries 3 -LaunchRetryDelayMs 4000 -KillStaleDevtools`
+  - Result: pass (`11/11` routes)
+  - Notes: auth/no-auth route navigation remained stable with stale DevTools cleanup.
+- `pnpm -C apps/api test`
+  - Result: pass (`619/619`)
+  - Notes: full API Vitest suite remained green after `r310` full-chain rerun.
+- `pnpm -C apps/api test:e2e`
+  - Result: pass (`2/2`)
+- `powershell -ExecutionPolicy Bypass -File scripts/api-real-smoke.ps1 -ReportDate r311a`
+  - Result: pass (`1754/1754`)
+  - Notes: independent smoke rerun remained fully green (`writes=1297`,`reads=457`); hidden-tag cleanup counters stayed `0`.
+- `powershell -ExecutionPolicy Bypass -File scripts/verify.ps1 -ReportDate r310e`
+  - Result: pass
+  - Notes: full-chain quality gate remained green (`api-real-smoke` `1754/1754`, coverage `238/238`, quality-floor `violations=[]`, `db-preflight` `9/9`, `ui-render(core)` `3/3`, `ui-dom(core)` `11/11`); hidden-tag cleanup counters stayed `0`.
+- `powershell -ExecutionPolicy Bypass -File scripts/ui-render-smoke.ps1 -Mode full -ReportDate r310a`
+  - Result: pass (`83/83`)
+- `powershell -ExecutionPolicy Bypass -File scripts/ui-dom-smoke.ps1 -Mode full -ReportDate r310b`
+  - Result: pass (`83/83`)
+  - Notes: full-page DOM semantic assertions stayed stable, including search and publish/filter related pages.
+- `powershell -ExecutionPolicy Bypass -File scripts/weapp-route-smoke.ps1 -NoAuth -ReportDate r310c -TimeoutMs 180000 -LaunchRetries 3 -LaunchRetryDelayMs 4000 -KillStaleDevtools`
+  - Result: pass (`11/11` routes)
+- `powershell -ExecutionPolicy Bypass -File scripts/weapp-route-smoke.ps1 -ReportDate r310d -UserToken demo-user-11111111-1111-4111-8111-111111111111 -TimeoutMs 180000 -LaunchRetries 3 -LaunchRetryDelayMs 4000 -KillStaleDevtools`
+  - Result: pass (`11/11` routes)
+  - Notes: auth/no-auth route navigation remained stable with stale DevTools cleanup.
+- `pnpm -C apps/api test`
+  - Result: pass (`619/619`)
+  - Notes: full API Vitest suite remained green after `r308` full-chain rerun.
+- `pnpm -C apps/api test:e2e`
+  - Result: pass (`2/2`)
+- `powershell -ExecutionPolicy Bypass -File scripts/api-real-smoke.ps1 -ReportDate r309a`
+  - Result: pass (`1754/1754`)
+  - Notes: independent smoke rerun remained fully green (`writes=1297`,`reads=457`); hidden-tag cleanup counters stayed `0`.
+- `powershell -ExecutionPolicy Bypass -File scripts/verify.ps1 -ReportDate r308e`
+  - Result: pass
+  - Notes: full-chain quality gate remained green (`api-real-smoke` `1754/1754`, coverage `238/238`, quality-floor `violations=[]`, `db-preflight` `9/9`, `ui-render(core)` `3/3`, `ui-dom(core)` `11/11`); hidden-tag cleanup counters stayed `0`.
+- `powershell -ExecutionPolicy Bypass -File scripts/ui-render-smoke.ps1 -Mode full -ReportDate r308a`
+  - Result: pass (`83/83`)
+- `powershell -ExecutionPolicy Bypass -File scripts/ui-dom-smoke.ps1 -Mode full -ReportDate r308b`
+  - Result: pass (`83/83`)
+  - Notes: full-page DOM semantic assertions stayed stable, including search and publish/filter related pages.
+- `powershell -ExecutionPolicy Bypass -File scripts/weapp-route-smoke.ps1 -NoAuth -ReportDate r308c -TimeoutMs 180000 -LaunchRetries 3 -LaunchRetryDelayMs 4000 -KillStaleDevtools`
+  - Result: pass (`11/11` routes)
+- `powershell -ExecutionPolicy Bypass -File scripts/weapp-route-smoke.ps1 -ReportDate r308d -UserToken demo-user-11111111-1111-4111-8111-111111111111 -TimeoutMs 180000 -LaunchRetries 3 -LaunchRetryDelayMs 4000 -KillStaleDevtools`
+  - Result: pass (`11/11` routes)
+  - Notes: auth/no-auth route navigation remained stable with stale DevTools cleanup.
+- `pnpm -C apps/api test`
+  - Result: pass (`619/619`)
+  - Notes: full API Vitest suite remained green after `r306` full-chain rerun.
+- `pnpm -C apps/api test:e2e`
+  - Result: pass (`2/2`)
+- `powershell -ExecutionPolicy Bypass -File scripts/api-real-smoke.ps1 -ReportDate r307a`
+  - Result: pass (`1754/1754`)
+  - Notes: independent smoke rerun remained fully green (`writes=1297`,`reads=457`); hidden-tag cleanup counters stayed `0`.
+- `powershell -ExecutionPolicy Bypass -File scripts/verify.ps1 -ReportDate r306e`
+  - Result: pass
+  - Notes: full-chain quality gate remained green (`api-real-smoke` `1754/1754`, coverage `238/238`, quality-floor `violations=[]`, `db-preflight` `9/9`, `ui-render(core)` `3/3`, `ui-dom(core)` `11/11`); hidden-tag cleanup counters stayed `0`.
+- `powershell -ExecutionPolicy Bypass -File scripts/ui-render-smoke.ps1 -Mode full -ReportDate r306a`
+  - Result: pass (`83/83`)
+- `powershell -ExecutionPolicy Bypass -File scripts/ui-dom-smoke.ps1 -Mode full -ReportDate r306b`
+  - Result: fail (`81/83`)
+  - Notes: two transient DOM dump WebSocket handshake/non-101 network failures (`client-onboarding-verification-form`, `client-region-picker`).
+- `powershell -ExecutionPolicy Bypass -File scripts/ui-dom-smoke.ps1 -Mode full -ReportDate r306b2`
+  - Result: pass (`83/83`)
+  - Notes: immediate rerun fully green, confirming no persistent page/DOM regression.
+- `powershell -ExecutionPolicy Bypass -File scripts/weapp-route-smoke.ps1 -NoAuth -ReportDate r306c -LaunchRetries 3 -LaunchRetryDelayMs 4000 -KillStaleDevtools`
+  - Result: fail (process timeout)
+  - Notes: run timed out before writing result file under transient DevTools residue contention.
+- `powershell -ExecutionPolicy Bypass -File scripts/weapp-route-smoke.ps1 -NoAuth -ReportDate r306c2 -TimeoutMs 180000 -LaunchRetries 3 -LaunchRetryDelayMs 4000 -KillStaleDevtools`
+  - Result: pass (`11/11` routes)
+- `powershell -ExecutionPolicy Bypass -File scripts/weapp-route-smoke.ps1 -ReportDate r306d -UserToken demo-user-11111111-1111-4111-8111-111111111111 -TimeoutMs 180000 -LaunchRetries 3 -LaunchRetryDelayMs 4000 -KillStaleDevtools`
+  - Result: pass (`11/11` routes)
+  - Notes: auth/no-auth route navigation remained stable after stale DevTools cleanup.
+- `pnpm -C apps/api test`
+  - Result: pass (`619/619`)
+  - Notes: full API Vitest suite remained green after `r304` full-chain rerun.
+- `pnpm -C apps/api test:e2e`
+  - Result: pass (`2/2`)
+- `powershell -ExecutionPolicy Bypass -File scripts/api-real-smoke.ps1 -ReportDate r305a`
+  - Result: pass (`1754/1754`)
+  - Notes: independent smoke rerun remained fully green (`writes=1297`,`reads=457`); hidden-tag cleanup counters stayed `0`.
+- `powershell -ExecutionPolicy Bypass -File scripts/verify.ps1 -ReportDate r304e`
+  - Result: pass
+  - Notes: full-chain quality gate remained green (`api-real-smoke` `1754/1754`, coverage `238/238`, quality-floor `violations=[]`, `db-preflight` `9/9`, `ui-render(core)` `3/3`, `ui-dom(core)` `11/11`); hidden-tag cleanup counters stayed `0`.
+- `powershell -ExecutionPolicy Bypass -File scripts/ui-render-smoke.ps1 -Mode full -ReportDate r304a`
+  - Result: pass (`83/83`)
+- `powershell -ExecutionPolicy Bypass -File scripts/ui-dom-smoke.ps1 -Mode full -ReportDate r304b`
+  - Result: fail (`82/83`)
+  - Notes: single transient failure due to DOM dump WebSocket handshake/network error (non-business assertion failure).
+- `powershell -ExecutionPolicy Bypass -File scripts/ui-dom-smoke.ps1 -Mode full -ReportDate r304b2`
+  - Result: pass (`83/83`)
+  - Notes: immediate rerun fully green, confirming no persistent page/DOM regression.
+- `powershell -ExecutionPolicy Bypass -File scripts/weapp-route-smoke.ps1 -NoAuth -ReportDate r304c -LaunchRetries 3 -LaunchRetryDelayMs 4000 -KillStaleDevtools`
+  - Result: pass (`11/11` routes)
+- `powershell -ExecutionPolicy Bypass -File scripts/weapp-route-smoke.ps1 -ReportDate r304d -UserToken demo-user-11111111-1111-4111-8111-111111111111 -LaunchRetries 3 -LaunchRetryDelayMs 4000 -KillStaleDevtools`
+  - Result: pass (`11/11` routes)
+  - Notes: auth/no-auth route navigation remained stable with first-attempt launch and stale DevTools cleanup.
+- `pnpm -C apps/api test`
+  - Result: pass (`619/619`)
+  - Notes: full API Vitest suite remained green after `r302` full-chain rerun.
+- `pnpm -C apps/api test:e2e`
+  - Result: pass (`2/2`)
+- `powershell -ExecutionPolicy Bypass -File scripts/api-real-smoke.ps1 -ReportDate r303a`
+  - Result: fail (`1753/1754`)
+  - Notes: single chaos-threshold item failed at `chaos-randomized-outcome-distribution` (`200+chaos-p95-threshold+chaos-p95-trend-threshold`).
+- `powershell -ExecutionPolicy Bypass -File scripts/api-real-smoke.ps1 -ReportDate r303b`
+  - Result: pass (`1754/1754`)
+  - Notes: immediate rerun returned fully green (`writes=1297`,`reads=457`); hidden-tag cleanup counters stayed `0`.
+- `powershell -ExecutionPolicy Bypass -File scripts/verify.ps1 -ReportDate r302e`
+  - Result: pass
+  - Notes: full-chain quality gate remained green (`api-real-smoke` `1754/1754`, coverage `238/238`, quality-floor `violations=[]`, `db-preflight` `9/9`, `ui-render(core)` `3/3`, `ui-dom(core)` `11/11`); hidden-tag cleanup counters stayed `0`.
+- `powershell -ExecutionPolicy Bypass -File scripts/ui-render-smoke.ps1 -Mode full -ReportDate r302a`
+  - Result: pass (`83/83`)
+  - Notes: run auto-fell back ports `mock 4010 -> 4011` and `prism 4011 -> 4012`, then completed fully green.
+- `powershell -ExecutionPolicy Bypass -File scripts/ui-dom-smoke.ps1 -Mode full -ReportDate r302b`
+  - Result: pass (`83/83`)
+  - Notes: full-page DOM semantic assertions stayed stable, including search and publish/filter related pages.
+- `powershell -ExecutionPolicy Bypass -File scripts/weapp-route-smoke.ps1 -NoAuth -ReportDate r302c -LaunchRetries 3 -LaunchRetryDelayMs 4000 -KillStaleDevtools`
+  - Result: fail (process `exit=1`)
+  - Notes: initial run was launched in parallel with auth variant and hit transient DevTools channel timeout.
+- `powershell -ExecutionPolicy Bypass -File scripts/weapp-route-smoke.ps1 -ReportDate r302d -UserToken demo-user-11111111-1111-4111-8111-111111111111 -LaunchRetries 3 -LaunchRetryDelayMs 4000 -KillStaleDevtools`
+  - Result: fail (process `exit=1`)
+  - Notes: initial run was launched in parallel with no-auth variant and hit transient DevTools resource contention.
+- `powershell -ExecutionPolicy Bypass -File scripts/weapp-route-smoke.ps1 -NoAuth -ReportDate r302c2 -LaunchRetries 3 -LaunchRetryDelayMs 4000 -KillStaleDevtools`
+  - Result: pass (`11/11` routes)
+- `powershell -ExecutionPolicy Bypass -File scripts/weapp-route-smoke.ps1 -ReportDate r302d2 -UserToken demo-user-11111111-1111-4111-8111-111111111111 -LaunchRetries 3 -LaunchRetryDelayMs 4000 -KillStaleDevtools`
+  - Result: pass (`11/11` routes)
+  - Notes: immediate sequential rerun of both no-auth/auth paths returned fully green, confirming no persistent weapp route regression.
+- `pnpm -C apps/api test`
+  - Result: pass (`619/619`)
+  - Notes: full API Vitest suite remained green after `r300` full-chain rerun.
+- `pnpm -C apps/api test:e2e`
+  - Result: pass (`2/2`)
+- `powershell -ExecutionPolicy Bypass -File scripts/api-real-smoke.ps1 -ReportDate r301a`
+  - Result: pass (`1754/1754`)
+  - Notes: independent smoke rerun remained fully green (`writes=1297`,`reads=457`); hidden-tag cleanup counters stayed `0`.
+- `powershell -ExecutionPolicy Bypass -File scripts/verify.ps1 -ReportDate r300e`
+  - Result: fail
+  - Notes: single `api-real-smoke` chaos check failed at `chaos-randomized-outcome-distribution` (`api-real-smoke failed: 1`) while prior verify stages remained green.
+- `powershell -ExecutionPolicy Bypass -File scripts/api-real-smoke.ps1 -ReportDate r300f`
+  - Result: pass (`1754/1754`)
+  - Notes: immediate standalone smoke rerun returned fully green (`writes=1297`,`reads=457`), indicating no persistent API regression.
+- `powershell -ExecutionPolicy Bypass -File scripts/verify.ps1 -ReportDate r300e2`
+  - Result: pass
+  - Notes: full-chain quality gate rerun remained green (`api-real-smoke` `1754/1754`, coverage `238/238`, quality-floor `violations=[]`, `db-preflight` `9/9`, `ui-render(core)` `3/3`, `ui-dom(core)` `11/11`); hidden-tag cleanup counters stayed `0`.
+- `powershell -ExecutionPolicy Bypass -File scripts/ui-render-smoke.ps1 -Mode full -ReportDate r300a`
+  - Result: pass (`83/83`)
+- `powershell -ExecutionPolicy Bypass -File scripts/ui-dom-smoke.ps1 -Mode full -ReportDate r300b`
+  - Result: pass (`83/83`)
+  - Notes: full-page DOM semantic assertions stayed stable, including search and publish/filter related pages.
+- `powershell -ExecutionPolicy Bypass -File scripts/weapp-route-smoke.ps1 -NoAuth -ReportDate r300c -LaunchRetries 3 -LaunchRetryDelayMs 4000 -KillStaleDevtools`
+  - Result: pass (`11/11` routes)
+- `powershell -ExecutionPolicy Bypass -File scripts/weapp-route-smoke.ps1 -ReportDate r300d -UserToken demo-user-11111111-1111-4111-8111-111111111111 -LaunchRetries 3 -LaunchRetryDelayMs 4000 -KillStaleDevtools`
+  - Result: pass (`11/11` routes)
+  - Notes: auth/no-auth route navigation remained stable with first-attempt launch and stale DevTools cleanup.
+- `pnpm -C apps/api test`
+  - Result: pass (`619/619`)
+  - Notes: full API Vitest suite remained green after `r298` full-chain rerun.
+- `pnpm -C apps/api test:e2e`
+  - Result: pass (`2/2`)
+- `powershell -ExecutionPolicy Bypass -File scripts/api-real-smoke.ps1 -ReportDate r299a`
+  - Result: pass (`1754/1754`)
+  - Notes: independent smoke rerun remained fully green (`writes=1297`,`reads=457`); hidden-tag cleanup counters stayed `0`.
+- `powershell -ExecutionPolicy Bypass -File scripts/verify.ps1 -ReportDate r298e`
+  - Result: pass
+  - Notes: full-chain quality gate remained green (`api-real-smoke` `1754/1754`, coverage `238/238`, quality-floor `violations=[]`, `db-preflight` `9/9`, `ui-render(core)` `3/3`, `ui-dom(core)` `11/11`); hidden-tag cleanup counters stayed `0`.
+- `powershell -ExecutionPolicy Bypass -File scripts/ui-render-smoke.ps1 -Mode full -ReportDate r298a`
+  - Result: pass (`83/83`)
+- `powershell -ExecutionPolicy Bypass -File scripts/ui-dom-smoke.ps1 -Mode full -ReportDate r298b`
+  - Result: pass (`83/83`)
+  - Notes: full-page DOM semantic assertions stayed stable, including search and publish/filter related pages.
+- `powershell -ExecutionPolicy Bypass -File scripts/weapp-route-smoke.ps1 -NoAuth -ReportDate r298c -LaunchRetries 3 -LaunchRetryDelayMs 4000 -KillStaleDevtools`
+  - Result: fail (process `exit=1`)
+  - Notes: initial run was launched in parallel with auth variant, triggering transient DevTools resource contention while route traversal logs remained complete.
+- `powershell -ExecutionPolicy Bypass -File scripts/weapp-route-smoke.ps1 -ReportDate r298d -UserToken demo-user-11111111-1111-4111-8111-111111111111 -LaunchRetries 3 -LaunchRetryDelayMs 4000 -KillStaleDevtools`
+  - Result: fail (process `exit=1`)
+  - Notes: initial run was launched in parallel with no-auth variant, triggering transient DevTools resource contention.
+- `powershell -ExecutionPolicy Bypass -File scripts/weapp-route-smoke.ps1 -NoAuth -ReportDate r298c2 -LaunchRetries 3 -LaunchRetryDelayMs 4000 -KillStaleDevtools`
+  - Result: pass (`11/11` routes)
+- `powershell -ExecutionPolicy Bypass -File scripts/weapp-route-smoke.ps1 -ReportDate r298d2 -UserToken demo-user-11111111-1111-4111-8111-111111111111 -LaunchRetries 3 -LaunchRetryDelayMs 4000 -KillStaleDevtools`
+  - Result: pass (`11/11` routes)
+  - Notes: immediate sequential rerun of both no-auth/auth paths returned fully green, confirming no persistent weapp route regression.
+- `pnpm -C apps/api test`
+  - Result: pass (`619/619`)
+  - Notes: full API Vitest suite remained green after `r296` full-chain rerun.
+- `pnpm -C apps/api test:e2e`
+  - Result: pass (`2/2`)
+- `powershell -ExecutionPolicy Bypass -File scripts/api-real-smoke.ps1 -ReportDate r297a`
+  - Result: pass (`1754/1754`)
+  - Notes: independent smoke rerun remained fully green (`writes=1297`,`reads=457`); hidden-tag cleanup counters stayed `0`.
+- `powershell -ExecutionPolicy Bypass -File scripts/verify.ps1 -ReportDate r296e`
+  - Result: pass
+  - Notes: full-chain quality gate remained green (`api-real-smoke` `1754/1754`, coverage `238/238`, quality-floor `violations=[]`, `db-preflight` `9/9`, `ui-render(core)` `3/3`, `ui-dom(core)` `11/11`); hidden-tag cleanup counters stayed `0`.
+- `powershell -ExecutionPolicy Bypass -File scripts/ui-render-smoke.ps1 -Mode full -ReportDate r296a`
+  - Result: pass (`83/83`)
+- `powershell -ExecutionPolicy Bypass -File scripts/ui-dom-smoke.ps1 -Mode full -ReportDate r296b`
+  - Result: pass (`83/83`)
+  - Notes: full-page DOM semantic assertions stayed stable, including search and publish/filter related pages.
+- `powershell -ExecutionPolicy Bypass -File scripts/weapp-route-smoke.ps1 -NoAuth -ReportDate r296c -LaunchRetries 3 -LaunchRetryDelayMs 4000 -KillStaleDevtools`
+  - Result: pass (`11/11` routes)
+- `powershell -ExecutionPolicy Bypass -File scripts/weapp-route-smoke.ps1 -ReportDate r296d -UserToken demo-user-11111111-1111-4111-8111-111111111111 -LaunchRetries 3 -LaunchRetryDelayMs 4000 -KillStaleDevtools`
+  - Result: pass (`11/11` routes)
+  - Notes: auth/no-auth route navigation remained stable with first-attempt launch and stale DevTools cleanup.
+- `pnpm -C apps/api test`
+  - Result: pass (`619/619`)
+  - Notes: full API Vitest suite remained green after `r294` full-chain rerun.
+- `pnpm -C apps/api test:e2e`
+  - Result: pass (`2/2`)
+- `powershell -ExecutionPolicy Bypass -File scripts/api-real-smoke.ps1 -ReportDate r295a`
+  - Result: pass (`1754/1754`)
+  - Notes: independent smoke rerun remained fully green (`writes=1297`,`reads=457`); hidden-tag cleanup counters stayed `0`.
+- `powershell -ExecutionPolicy Bypass -File scripts/verify.ps1 -ReportDate r294e`
+  - Result: pass
+  - Notes: full-chain quality gate remained green (`api-real-smoke` `1754/1754`, coverage `238/238`, quality-floor `violations=[]`, `db-preflight` `9/9`, `ui-render(core)` `3/3`, `ui-dom(core)` `11/11`); hidden-tag cleanup counters stayed `0`.
+- `powershell -ExecutionPolicy Bypass -File scripts/ui-render-smoke.ps1 -Mode full -ReportDate r294a`
+  - Result: pass (`83/83`)
+- `powershell -ExecutionPolicy Bypass -File scripts/ui-dom-smoke.ps1 -Mode full -ReportDate r294b`
+  - Result: pass (`83/83`)
+  - Notes: full-page DOM semantic assertions stayed stable, including search and publish/filter related pages.
+- `powershell -ExecutionPolicy Bypass -File scripts/weapp-route-smoke.ps1 -NoAuth -ReportDate r294c -LaunchRetries 3 -LaunchRetryDelayMs 4000 -KillStaleDevtools`
+  - Result: pass (`11/11` routes)
+- `powershell -ExecutionPolicy Bypass -File scripts/weapp-route-smoke.ps1 -ReportDate r294d -UserToken demo-user-11111111-1111-4111-8111-111111111111 -LaunchRetries 3 -LaunchRetryDelayMs 4000 -KillStaleDevtools`
+  - Result: pass (`11/11` routes)
+  - Notes: auth/no-auth route navigation remained stable with first-attempt launch and stale DevTools cleanup.
+- `pnpm -C apps/api test`
+  - Result: pass (`619/619`)
+  - Notes: full API Vitest suite remained green after `r292` full-chain rerun.
+- `pnpm -C apps/api test:e2e`
+  - Result: pass (`2/2`)
+- `powershell -ExecutionPolicy Bypass -File scripts/api-real-smoke.ps1 -ReportDate r293a`
+  - Result: pass (`1754/1754`)
+  - Notes: independent smoke rerun remained fully green (`writes=1297`,`reads=457`); hidden-tag cleanup counters stayed `0`.
+- `powershell -ExecutionPolicy Bypass -File scripts/verify.ps1 -ReportDate r292e`
+  - Result: pass
+  - Notes: full-chain quality gate remained green (`api-real-smoke` `1754/1754`, coverage `238/238`, quality-floor `violations=[]`, `db-preflight` `9/9`, `ui-render(core)` `3/3`, `ui-dom(core)` `11/11`); hidden-tag cleanup counters stayed `0`.
+- `powershell -ExecutionPolicy Bypass -File scripts/ui-render-smoke.ps1 -Mode full -ReportDate r292a`
+  - Result: pass (`83/83`)
+- `powershell -ExecutionPolicy Bypass -File scripts/ui-dom-smoke.ps1 -Mode full -ReportDate r292b`
+  - Result: fail (`82/83`)
+  - Notes: single transient failure on `admin-login` due to DOM dump WebSocket handshake network error (non-business assertion failure).
+- `powershell -ExecutionPolicy Bypass -File scripts/ui-dom-smoke.ps1 -Mode full -ReportDate r292b2`
+  - Result: pass (`83/83`)
+  - Notes: immediate rerun fully green, confirming no persistent page/DOM regression.
+- `powershell -ExecutionPolicy Bypass -File scripts/weapp-route-smoke.ps1 -NoAuth -ReportDate r292c -LaunchRetries 3 -LaunchRetryDelayMs 4000 -KillStaleDevtools`
+  - Result: pass (`11/11` routes)
+- `powershell -ExecutionPolicy Bypass -File scripts/weapp-route-smoke.ps1 -ReportDate r292d -UserToken demo-user-11111111-1111-4111-8111-111111111111 -LaunchRetries 3 -LaunchRetryDelayMs 4000 -KillStaleDevtools`
+  - Result: pass (`11/11` routes)
+  - Notes: auth/no-auth route navigation remained stable with first-attempt launch and stale DevTools cleanup.
+- `pnpm -C apps/api test`
+  - Result: pass (`619/619`)
+  - Notes: full API Vitest suite remained green after `r290` full-chain rerun.
+- `pnpm -C apps/api test:e2e`
+  - Result: pass (`2/2`)
+- `powershell -ExecutionPolicy Bypass -File scripts/api-real-smoke.ps1 -ReportDate r291a`
+  - Result: pass (`1754/1754`)
+  - Notes: independent smoke rerun remained fully green (`writes=1297`,`reads=457`); hidden-tag cleanup counters stayed `0`.
+- `powershell -ExecutionPolicy Bypass -File scripts/verify.ps1 -ReportDate r290e`
+  - Result: pass
+  - Notes: full-chain quality gate remained green (`api-real-smoke` `1754/1754`, coverage `238/238`, quality-floor `violations=[]`, `db-preflight` `9/9`, `ui-render(core)` `3/3`, `ui-dom(core)` `11/11`); hidden-tag cleanup counters stayed `0`.
+- `powershell -ExecutionPolicy Bypass -File scripts/ui-render-smoke.ps1 -Mode full -ReportDate r290a`
+  - Result: pass (`83/83`)
+- `powershell -ExecutionPolicy Bypass -File scripts/ui-dom-smoke.ps1 -Mode full -ReportDate r290b`
+  - Result: pass (`83/83`)
+  - Notes: full-page DOM semantic assertions stayed stable, including search and publish/filter related pages.
+- `powershell -ExecutionPolicy Bypass -File scripts/weapp-route-smoke.ps1 -NoAuth -ReportDate r290c -LaunchRetries 3 -LaunchRetryDelayMs 4000 -KillStaleDevtools`
+  - Result: pass (`11/11` routes)
+- `powershell -ExecutionPolicy Bypass -File scripts/weapp-route-smoke.ps1 -ReportDate r290d -UserToken demo-user-11111111-1111-4111-8111-111111111111 -LaunchRetries 3 -LaunchRetryDelayMs 4000 -KillStaleDevtools`
+  - Result: pass (`11/11` routes)
+  - Notes: auth/no-auth route navigation remained stable with first-attempt launch and stale DevTools cleanup.
+- `powershell -ExecutionPolicy Bypass -File scripts/api-real-smoke.ps1 -ReportDate r289a`
+  - Result: pass (`1754/1754`)
+  - Notes: independent smoke rerun remained fully green (`writes=1297`,`reads=457`); hidden-tag cleanup counters stayed `0` (`deletedSmokeIndustryTags/deletedSmokeRegions/cleanedRegionIndustryTagRows/cleanedTechManagerServiceTagRows`).
+- `pnpm -C apps/api test`
+  - Result: pass (`619/619`)
+  - Notes: full API Vitest suite stayed green after `r288` full-chain rerun; no regression found in search/filter or tag-sanitization related suites.
+- `pnpm -C apps/api test:e2e`
+  - Result: pass (`2/2`)
+- `powershell -ExecutionPolicy Bypass -File scripts/verify.ps1 -ReportDate r288e`
+  - Result: pass
+  - Notes: full-chain quality gate remained green (`api-real-smoke` `1754/1754`, coverage `238/238`, quality-floor `violations=[]`, `db-preflight` `9/9`, `ui-render(core)` `3/3`, `ui-dom(core)` `11/11`); hidden smoke/e2e/qa tag cleanup counters stayed `0`, showing no new persistence pollution surfaced in this round.
+- `powershell -ExecutionPolicy Bypass -File scripts/ui-render-smoke.ps1 -Mode full -ReportDate r288a`
+  - Result: pass (`83/83`)
+- `powershell -ExecutionPolicy Bypass -File scripts/ui-dom-smoke.ps1 -Mode full -ReportDate r288b`
+  - Result: pass (`83/83`)
+  - Notes: full-page DOM semantic assertions stayed stable, including search and publish/filter related pages.
+- `powershell -ExecutionPolicy Bypass -File scripts/weapp-route-smoke.ps1 -NoAuth -ReportDate r288c -LaunchRetries 3 -LaunchRetryDelayMs 4000 -KillStaleDevtools`
+  - Result: pass (`11/11` routes)
+- `powershell -ExecutionPolicy Bypass -File scripts/weapp-route-smoke.ps1 -ReportDate r288d -UserToken demo-user-11111111-1111-4111-8111-111111111111 -LaunchRetries 3 -LaunchRetryDelayMs 4000 -KillStaleDevtools`
+  - Result: pass (`11/11` routes)
+  - Notes: auth/no-auth route navigation remained stable with first-attempt launch and stale DevTools cleanup on auth run.
+- `powershell -ExecutionPolicy Bypass -File scripts/api-real-smoke.ps1 -ReportDate r287b`
+  - Result: pass (`1754/1754`)
+  - Notes: aligned smoke expectation with tech-manager service-tag write-time sanitization (`admin-tech-manager-update-service-tag-sanitized`), then full smoke suite returned green (`writes=1297`,`reads=457`).
+- `powershell -ExecutionPolicy Bypass -File scripts/verify.ps1 -ReportDate r287c`
+  - Result: pass
+  - Notes: full-chain quality gate remained green after smoke assertion alignment (`api-real-smoke` `1754/1754`, coverage `238/238`, quality-floor `violations=[]`, `db-preflight` `9/9`, `ui-render(core)` `3/3`, `ui-dom(core)` `11/11`).
+- `pnpm -C apps/api test -- test/tech-managers.update-admin.spec.ts test/tech-managers.filters.spec.ts`
+  - Result: pass (`9/9`)
+  - Notes: hardened tech-manager admin write path to sanitize hidden `serviceTags` before persistence, and aligned update-admin regression assertions to sanitized write behavior.
+- `pnpm -C apps/api test`
+  - Result: pass (`619/619`)
+  - Notes: full API Vitest suite remained green after tech-manager `serviceTags` write-time sanitization.
+- `pnpm -C apps/api test:e2e`
+  - Result: pass (`2/2`)
+- `powershell -ExecutionPolicy Bypass -File scripts/ui-render-smoke.ps1 -Mode full -ReportDate r286a`
+  - Result: pass (`83/83`)
+- `powershell -ExecutionPolicy Bypass -File scripts/ui-dom-smoke.ps1 -Mode full -ReportDate r286b`
+  - Result: fail (`82/83`)
+  - Notes: single transient failure on `client-publish-patent` due to DOM dump WebSocket handshake network error (non-business assertion failure).
+- `powershell -ExecutionPolicy Bypass -File scripts/ui-dom-smoke.ps1 -Mode full -ReportDate r286c`
+  - Result: pass (`83/83`)
+  - Notes: immediate rerun fully green, confirming no persistent page/DOM regression.
+- `powershell -ExecutionPolicy Bypass -File scripts/weapp-route-smoke.ps1 -NoAuth -ReportDate r286d -LaunchRetries 3 -LaunchRetryDelayMs 4000 -KillStaleDevtools`
+  - Result: pass (`11/11` routes)
+- `powershell -ExecutionPolicy Bypass -File scripts/weapp-route-smoke.ps1 -ReportDate r286e -UserToken demo-user-11111111-1111-4111-8111-111111111111 -LaunchRetries 3 -LaunchRetryDelayMs 4000 -KillStaleDevtools`
+  - Result: pass (`11/11` routes)
+- `powershell -ExecutionPolicy Bypass -File scripts/verify.ps1 -ReportDate r285a`
+  - Result: pass
+  - Notes: full-chain quality gate stayed green (`openapi:lint/lint/typecheck/builds/check-weapp-budget/api-real-smoke/openapi-coverage/quality-floor/db-preflight/ui-http-smoke/ui-render-smoke(core)/ui-dom-smoke(core)`); `api-real-smoke` `1754/1754` (`writes=1297`,`reads=457`), coverage `238/238`, quality-floor `violations=[]`, `db-preflight` `9/9`, `ui-render(core)` `3/3`, `ui-dom(core)` `11/11`; render artifacts updated at `docs/demo/rendered/ui-smoke-r285a/`.
+- `pnpm -C apps/api test -- test/demands.write-flow.spec.ts test/achievements.write-flow.spec.ts test/listings.write-flow.spec.ts`
+  - Result: pass (`22/22`)
+  - Notes: completed write-time industry-tag sanitization on demand/achievement/listing write paths, and updated write-flow assertions to verify hidden smoke tags are dropped before persistence.
+- `pnpm -C apps/api test`
+  - Result: pass (`619/619`)
+  - Notes: full API Vitest suite remained green after cross-module write-time industry-tag sanitization.
+- `pnpm -C apps/api test:e2e`
+  - Result: pass (`2/2`)
+- `powershell -ExecutionPolicy Bypass -File scripts/ui-render-smoke.ps1 -Mode full -ReportDate r284a`
+  - Result: pass (`83/83`)
+- `powershell -ExecutionPolicy Bypass -File scripts/ui-dom-smoke.ps1 -Mode full -ReportDate r284b`
+  - Result: pass (`83/83`)
+  - Notes: full-page DOM semantic assertions remained green after latest API hardening.
+- `powershell -ExecutionPolicy Bypass -File scripts/weapp-route-smoke.ps1 -NoAuth -ReportDate r284c -LaunchRetries 3 -LaunchRetryDelayMs 4000 -KillStaleDevtools`
+  - Result: pass (`11/11` routes)
+- `powershell -ExecutionPolicy Bypass -File scripts/weapp-route-smoke.ps1 -ReportDate r284d -UserToken demo-user-11111111-1111-4111-8111-111111111111 -LaunchRetries 3 -LaunchRetryDelayMs 4000 -KillStaleDevtools`
+  - Result: pass (`11/11` routes)
+  - Notes: both no-auth and auth-storage route branches passed with first-attempt launch and stale DevTools cleanup.
+- `powershell -ExecutionPolicy Bypass -File scripts/verify.ps1 -ReportDate r283a`
+  - Result: pass
+  - Notes: full-chain quality gate stayed green (`openapi:lint/lint/typecheck/builds/check-weapp-budget/api-real-smoke/openapi-coverage/quality-floor/db-preflight/ui-http-smoke/ui-render-smoke(core)/ui-dom-smoke(core)`); `api-real-smoke` `1754/1754` (`writes=1297`,`reads=457`), coverage `238/238`, quality-floor `violations=[]`, `db-preflight` `9/9`, `ui-render(core)` `3/3`, `ui-dom(core)` `11/11`.
+- `pnpm -C apps/api test -- test/patent-map.write-flow.spec.ts test/patent-map.filters.spec.ts test/patents.filters.spec.ts`
+  - Result: pass (`18/18`)
+  - Notes: hardened patent-map and patents count-field sanitization by enforcing safe-integer guards for `patentCount`/breakdown/top-assignee counts and DTO `transferCount`; added unsafe/decimal boundary rejection coverage.
+- `pnpm -C apps/api test`
+  - Result: pass (`619/619`)
+  - Notes: full API Vitest suite remained green after patent-map/patents count-field safe-integer hardening.
+- `pnpm -C apps/api test:e2e`
+  - Result: pass (`2/2`)
+- `pnpm -C apps/api test -- test/ai.parse-feedback-update.spec.ts test/listings.write-flow.spec.ts test/files.temporary-access.spec.ts test/orders.write.spec.ts test/patent-maintenance.write-flow.spec.ts test/tech-managers.update-admin.spec.ts test/reports.filters.spec.ts`
+  - Result: pass (`83/83`)
+  - Notes: hardened remaining integer write/filter guards (`ai score`, listing `featuredRank`, file temp-access TTL, order `dealAmountFen`, maintenance `yearNo`, tech-manager `featuredRank`, report `days`) with safe-integer validation and added `9007199254740992` boundary rejection coverage.
+- `pnpm -C apps/api test`
+  - Result: pass (`618/618`)
+  - Notes: full API Vitest suite remained green after the cross-module safe-integer hardening batch.
+- `pnpm -C apps/api test:e2e`
+  - Result: pass (`2/2`)
+- `pnpm -C apps/api test -- test/listings.write-flow.spec.ts test/patent-map.write-flow.spec.ts test/patent-map.filters.spec.ts`
+  - Result: pass (`20/20`)
+  - Notes: hardened listing write-path `transferCount` and patent-map year/count parsing with safe-integer guards; added unsafe-integer boundary rejection coverage (`9007199254740992`) for write/filter/import flows.
+- `pnpm -C apps/api test`
+  - Result: pass (`616/616`)
+  - Notes: full API Vitest suite remained green after listing transfer-count and patent-map safe-integer hardening.
+- `pnpm -C apps/api test:e2e`
+  - Result: pass (`2/2`)
+- `pnpm -C apps/api test -- test/demands.filters.spec.ts test/artworks.filters.spec.ts test/listings.search-filters.spec.ts`
+  - Result: pass (`17/17`)
+  - Notes: hardened demands/artworks/listings numeric-filter strictness by enforcing safe-integer parsing for optional integer filters (`price/budget/deposit/transferCount/creationYear`) and adding unsafe-integer rejection coverage.
+- `pnpm -C apps/api test`
+  - Result: pass (`615/615`)
+  - Notes: full API Vitest suite remained green after numeric-filter safe-integer hardening in demands/artworks/listings.
+- `pnpm -C apps/api test:e2e`
+  - Result: pass (`2/2`)
+- `pnpm -C apps/api test -- test/comments.write.spec.ts test/user-verifications.filters.spec.ts test/users.admin-verifications-review.spec.ts`
+  - Result: pass (`39/39`)
+  - Notes: hardened comments/users pagination strictness by adding non-safe-integer `page/pageSize` rejection coverage and corresponding service-level safe-integer guards.
+- `pnpm -C apps/api test`
+  - Result: pass (`615/615`)
+  - Notes: full API Vitest suite remained green after comments/users safe-integer pagination hardening.
+- `pnpm -C apps/api test:e2e`
+  - Result: pass (`2/2`)
+- `pnpm -C apps/api test -- test/listings.search-filters.spec.ts test/orders.filters.spec.ts test/patents.filters.spec.ts test/org-inventor.filters.spec.ts`
+  - Result: pass (`26/26`)
+  - Notes: hardened listings/orders/patents/organizations filter strictness by adding non-safe-integer `page/pageSize` rejection coverage and corresponding service-level safe-integer guards.
+- `pnpm -C apps/api test`
+  - Result: pass (`615/615`)
+  - Notes: full API Vitest suite remained green after listings/orders/patents/organizations safe-integer pagination hardening.
+- `pnpm -C apps/api test:e2e`
+  - Result: pass (`2/2`)
+- `pnpm -C apps/api test -- test/announcements.filters.spec.ts test/ai.query-filters.spec.ts test/audit-logs.read.spec.ts test/tech-managers.filters.spec.ts`
+  - Result: pass (`17/17`)
+  - Notes: hardened announcements/ai/audit-logs/tech-managers filter strictness by adding non-safe-integer `page/pageSize` rejection coverage and corresponding service-level safe-integer guards.
+- `pnpm -C apps/api test`
+  - Result: pass (`615/615`)
+  - Notes: full API Vitest suite remained green after announcements/ai/audit-logs/tech-managers safe-integer pagination hardening.
+- `pnpm -C apps/api test:e2e`
+  - Result: pass (`2/2`)
+- `pnpm -C apps/api test -- test/achievements.filters.spec.ts test/demands.filters.spec.ts test/artworks.filters.spec.ts test/patent-maintenance.filters.spec.ts`
+  - Result: pass (`22/22`)
+  - Notes: hardened achievements/demands/artworks/patent-maintenance filter strictness by adding non-safe-integer `page/pageSize` rejection coverage and corresponding service-level safe-integer guards.
+- `pnpm -C apps/api test`
+  - Result: pass (`615/615`)
+  - Notes: full API Vitest suite remained green after achievements/demands/artworks/patent-maintenance safe-integer pagination hardening.
+- `pnpm -C apps/api test:e2e`
+  - Result: pass (`2/2`)
+- `pnpm -C apps/api test -- test/inventors.query.spec.ts test/contracts.filters.spec.ts test/favorites.filters.spec.ts`
+  - Result: pass (`15/15`)
+  - Notes: hardened inventors/contracts/favorites pagination strictness by adding non-safe-integer `page/pageSize` rejection coverage and corresponding service-level safe-integer guards.
+- `pnpm -C apps/api test`
+  - Result: pass (`615/615`)
+  - Notes: full API Vitest suite remained green after inventors/contracts/favorites safe-integer pagination hardening.
+- `pnpm -C apps/api test:e2e`
+  - Result: pass (`2/2`)
+- `pnpm -C apps/api test -- test/cases.filters.spec.ts`
+  - Result: pass (`4/4`)
+  - Notes: hardened cases list strictness by enforcing non-safe-integer `page/pageSize` rejection on admin case filters.
+- `pnpm -C apps/api test`
+  - Result: pass (`615/615`)
+  - Notes: full API Vitest suite remained green after cases filter strictness/safe-integer hardening.
+- `pnpm -C apps/api test:e2e`
+  - Result: pass (`2/2`)
+- `pnpm -C apps/api test -- test/alerts.filters.spec.ts`
+  - Result: pass (`4/4`)
+  - Notes: hardened alerts filter strictness by enforcing non-safe-integer `page/pageSize` rejection and adding invalid `triggeredFrom/triggeredTo` date-path assertions.
+- `pnpm -C apps/api test`
+  - Result: pass (`615/615`)
+  - Notes: full API Vitest suite remained green after alerts filter strictness/safe-integer hardening.
+- `pnpm -C apps/api test:e2e`
+  - Result: pass (`2/2`)
+- `pnpm -C apps/api test -- test/conversations.filters.spec.ts`
+  - Result: pass (`5/5`)
+  - Notes: expanded conversations strict regression coverage for non-safe-integer `page/pageSize`, `listMessages` not-found branch, trimmed `conversationId` normalization, and message DTO mapping branch.
+- `pnpm -C apps/api test`
+  - Result: pass (`615/615`)
+  - Notes: full API Vitest suite remained green after conversations filter strictness/safe-integer hardening.
+- `pnpm -C apps/api test:e2e`
+  - Result: pass (`2/2`)
+- `pnpm -C apps/api test -- test/notifications.filters.spec.ts`
+  - Result: pass (`5/5`)
+  - Notes: expanded notifications strict regression coverage for non-safe-integer `page/pageSize`, default pagination + missing `createdAt` fallback mapping, and trimmed `notificationId` query branch.
+- `pnpm -C apps/api test`
+  - Result: pass (`614/614`)
+  - Notes: full API Vitest suite remained green after notifications filter strictness/safe-integer hardening.
+- `pnpm -C apps/api test:e2e`
+  - Result: pass (`2/2`)
+- `pnpm -C apps/api test -- test/inventors.query.spec.ts`
+  - Result: pass (`4/4`)
+  - Notes: expanded inventors query strict regression coverage for invalid `page/pageSize`, invalid `regionCode/patentType`, and `pageSize` cap branch with positive-count ranking path.
+- `pnpm -C apps/api test`
+  - Result: pass (`613/613`)
+  - Notes: full API Vitest suite remained green after inventors query strict branch expansion.
+- `pnpm -C apps/api test:e2e`
+  - Result: pass (`2/2`)
+- `pnpm -C apps/api test -- test/patent-clusters.filters.spec.ts`
+  - Result: pass (`4/4`)
+  - Notes: expanded patent-clusters strict regression coverage for non-safe-integer `page/pageSize` rejection and out-of-range pagination with default `featuredInstitutions` fallback.
+- `pnpm -C apps/api test`
+  - Result: pass (`611/611`)
+  - Notes: full API Vitest suite remained green after patent-clusters filter strict branch expansion.
+- `pnpm -C apps/api test:e2e`
+  - Result: pass (`2/2`)
+- `pnpm -C apps/api test -- test/organizations.detail.spec.ts`
+  - Result: pass (`4/4`)
+  - Notes: expanded organization-detail strict regression coverage for org-type query constraint assertion and nullable-field/zero-stats mapping branches.
+- `pnpm -C apps/api test`
+  - Result: pass (`610/610`)
+  - Notes: full API Vitest suite remained green after organizations detail branch expansion.
+- `pnpm -C apps/api test:e2e`
+  - Result: pass (`2/2`)
+- `pnpm -C apps/api test -- test/user-verifications.filters.spec.ts`
+  - Result: pass (`3/3`)
+  - Notes: expanded admin verification-list strict regression coverage for empty `type/status` rejection and default pagination + empty-query where-clause short-circuit behavior.
+- `pnpm -C apps/api test`
+  - Result: pass (`609/609`)
+  - Notes: full API Vitest suite remained green after user-verifications filter strict branch expansion.
+- `pnpm -C apps/api test:e2e`
+  - Result: pass (`2/2`)
+- `pnpm -C apps/api test -- test/org-inventor.filters.spec.ts`
+  - Result: pass (`7/7`)
+  - Notes: expanded org/inventor strict regression coverage for explicit-empty pagination/type guards, `verificationType` alias + dedup normalization, and organizations empty-result stats short-circuit branch.
+- `pnpm -C apps/api test`
+  - Result: pass (`608/608`)
+  - Notes: full API Vitest suite remained green after org/inventor strict branch expansion.
+- `pnpm -C apps/api test:e2e`
+  - Result: pass (`2/2`)
+- `pnpm -C apps/api test -- test/reports.filters.spec.ts`
+  - Result: pass (`10/10`)
+  - Notes: expanded reports strict regression coverage for permission-denied branches (`report.read`/`report.export`), `days/start/end` invalid filters, end-only/start-only range derivation, `BASE_URL` precedence + fallback baseUrl, and CSV escaping behavior.
+- `pnpm -C apps/api test`
+  - Result: pass (`607/607`)
+  - Notes: full API Vitest suite remained green after reports strict branch expansion.
+- `pnpm -C apps/api test:e2e`
+  - Result: pass (`2/2`)
+- `pnpm -C apps/api test -- test/contracts.filters.spec.ts`
+  - Result: pass (`6/6`)
+  - Notes: expanded strict regression coverage for contracts list status branches (`WAIT_CONFIRM/AVAILABLE`), empty status rejection, default pagination, and buyer-side counterpart/file-url fallback mapping.
+- `pnpm -C apps/api test`
+  - Result: pass (`601/601`)
+  - Notes: full API Vitest suite remained green after contracts filter branch expansion.
+- `pnpm -C apps/api test:e2e`
+  - Result: pass (`2/2`)
+- `powershell -ExecutionPolicy Bypass -File scripts/verify.ps1 -ReportDate r262a`
+  - Result: success (all steps)
+  - Notes: full gate stayed green after latest orders strictness expansions (`api-real-smoke 1754/1754`, OpenAPI coverage `238/238`, quality floor `violations=[]`, plus db/ui-http/ui-render(core)/ui-dom(core) pass).
+- `pnpm -C apps/api test -- test/orders.filters.spec.ts`
+  - Result: pass (`9/9`)
+  - Notes: expanded strict regression coverage for `listOrders` (`status` vs `statusGroup` priority + default buyer role) and `listInvoices` (`ISSUED/WAIT_APPLY` mapping branches).
+- `pnpm -C apps/api test`
+  - Result: pass (`599/599`)
+  - Notes: full API Vitest suite remained green after orders filters branch expansion.
+- `pnpm -C apps/api test:e2e`
+  - Result: pass (`2/2`)
+- `pnpm -C apps/api test -- test/orders.write.spec.ts`
+  - Result: pass (`42/42`)
+  - Notes: expanded strict read-path coverage for orders domain: `getOrderDetail/getCaseWithMilestones/listRefundRequests/getOrderInvoice/getAdminOrderDetail` (auth/id/not-found/access + DTO mapping branches).
+- `pnpm -C apps/api test`
+  - Result: pass (`595/595`)
+  - Notes: full API Vitest suite remained green after orders read-path branch hardening.
+- `pnpm -C apps/api test:e2e`
+  - Result: pass (`2/2`)
+- `pnpm -C apps/api test -- test/orders.write.spec.ts`
+  - Result: pass (`34/34`)
+  - Notes: added strict regression coverage for `adminManualConfirmPayment` and `getSettlement` branches (auth/id/status/amount-mismatch/existing-paid + settlement commission-sync).
+- `pnpm -C apps/api test`
+  - Result: pass (`587/587`)
+  - Notes: full API Vitest suite remained green after the new orders payment/settlement branch hardening.
+- `pnpm -C apps/api test:e2e`
+  - Result: pass (`2/2`)
+- `powershell -ExecutionPolicy Bypass -File scripts/verify.ps1 -ReportDate r259a`
+  - Result: success (all steps)
+  - Notes: full gate stayed green (`api-real-smoke 1754/1754`, OpenAPI coverage `238/238`, quality floor `violations=[]`, plus db/ui-http/ui-render(core)/ui-dom(core) pass).
+- `powershell -ExecutionPolicy Bypass -File scripts/ui-http-smoke.ps1 -ReportDate r259b`
+  - Result: pass (`86/86`)
+  - Notes: one concurrent-run attempt hit `EADDRINUSE(5173)` during parallel execution; sequential rerun passed cleanly.
+- `powershell -ExecutionPolicy Bypass -File scripts/ui-render-smoke.ps1 -Mode full -ReportDate r259c`
+  - Result: pass (`83/83`)
+- `powershell -ExecutionPolicy Bypass -File scripts/ui-dom-smoke.ps1 -Mode full -ReportDate r259d`
+  - Result: pass (`83/83`, mode=`full-83`)
+- `powershell -ExecutionPolicy Bypass -File scripts/weapp-route-smoke.ps1 -NoAuth -ReportDate r259e -LaunchRetries 3 -LaunchRetryDelayMs 4000 -KillStaleDevtools`
+  - Result: pass (`11/11`)
+  - Artifact: `.tmp/weapp-route-smoke-r259e.json`
+- `powershell -ExecutionPolicy Bypass -Command "& ./scripts/weapp-route-smoke.ps1 -ReportDate r259f -UserToken ('demo-user-' + [guid]::NewGuid().ToString()) -LaunchRetries 3 -LaunchRetryDelayMs 4000 -KillStaleDevtools"`
+  - Result: pass (`11/11`)
+  - Artifact: `.tmp/weapp-route-smoke-r259f.json`
+- `pnpm -C apps/api test -- test/orders.write.spec.ts`
+  - Result: pass (`29/29`)
+  - Notes: expanded order state-machine strictness coverage for auto-refund transition and admin contract/transfer/payout status transitions.
+- `pnpm -C apps/api test`
+  - Result: pass (`582/582`)
+  - Notes: full API Vitest suite stayed green after orders state-machine boundary hardening.
+- `pnpm -C apps/api test:e2e`
+  - Result: pass (`2/2`)
+- `pnpm -C apps/api test -- test/demands.filters.spec.ts test/achievements.filters.spec.ts`
+  - Result: pass (`12/12`)
+  - Notes: added regression guards to ensure all-hidden `smoke/e2e/qa` industry tags do not generate `industryTagsJson` filter conditions in demand/achievement public search.
+- `pnpm -C apps/api test`
+  - Result: pass (`577/577`)
+  - Notes: full API Vitest suite stayed green after the new hidden-tag filter guards.
+- `pnpm -C apps/api test:e2e`
+  - Result: pass (`2/2`)
+- `pnpm -C apps/api test`
+  - Result: pass (`575/575`)
+  - Notes: full Vitest regression rerun remained green after the latest UI/admin semantic hardening and WeApp smoke batches.
+- `pnpm -C apps/api test:e2e`
+  - Result: pass (`2/2`)
+  - Notes: health e2e remained stable in standalone rerun.
+- `powershell -ExecutionPolicy Bypass -File scripts/weapp-route-smoke.ps1 -NoAuth -ReportDate r255a -LaunchRetries 3 -LaunchRetryDelayMs 4000 -KillStaleDevtools`
+  - Result: pass (11/11 routes)
+  - Artifact: `.tmp/weapp-route-smoke-r255a.json`
+  - Notes: no-auth route smoke remained stable; launch succeeded on first attempt.
+- `powershell -ExecutionPolicy Bypass -Command "$tok = \"demo-user-<guid>\"; & ./scripts/weapp-route-smoke.ps1 -ReportDate r255b -UserToken $tok -LaunchRetries 3 -LaunchRetryDelayMs 4000 -KillStaleDevtools"`
+  - Result: pass (11/11 routes)
+  - Artifact: `.tmp/weapp-route-smoke-r255b.json`
+  - Notes: auth-storage route smoke remained stable; stale DevTools cleanup succeeded before launch.
+- `powershell -ExecutionPolicy Bypass -File scripts/verify.ps1 -ReportDate r254c`
+  - Result: success (all steps)
+  - Render artifact: `docs/demo/rendered/ui-smoke-r254c/` (core mode, 3 pages)
+  - Gate summary: `api-real-smoke` `1754/1754` (`writes=1297`,`reads=457`), OpenAPI coverage `238/238`, quality floor `violations=[]`, plus `db-preflight/ui-http-smoke/ui-render-smoke(core)/ui-dom-smoke(core)` all pass.
+- `powershell -ExecutionPolicy Bypass -File scripts/ui-http-smoke.ps1 -ReportDate r254a`
+  - Result: pass (`86/86`)
+  - Artifact: `.tmp/ui-http-smoke-r254a-summary.json`
+- `powershell -ExecutionPolicy Bypass -File scripts/ui-render-smoke.ps1 -Mode full -ReportDate r254b`
+  - Result: pass (`83/83`)
+  - Artifact: `.tmp/ui-render-smoke-r254b-summary.json`
+- `powershell -ExecutionPolicy Bypass -File scripts/verify.ps1 -ReportDate r253b`
+  - Result: success (all steps)
+  - Render artifact: `docs/demo/rendered/ui-smoke-r253b/` (core mode, 3 pages)
+  - Gate summary: `api-real-smoke` `1754/1754` (`writes=1297`,`reads=457`), OpenAPI coverage `238/238`, quality floor `violations=[]`, plus `db-preflight/ui-http-smoke/ui-render-smoke(core)/ui-dom-smoke(core)` all pass.
+- `powershell -ExecutionPolicy Bypass -Command "& ./scripts/ui-dom-smoke.ps1 -Mode full -ReportDate r253a -PageFilter @('admin-listings','admin-refunds','admin-invoices','admin-patent-map','admin-rbac','admin-audit-logs','admin-order-detail','admin-settlements','admin-demands','admin-achievements','admin-artworks','admin-tech-managers','admin-cases','admin-reports','admin-comments','admin-announcements','admin-alerts','admin-maintenance','admin-regions','admin-patents')"`
+  - Result: pass (`20/20`, changed-page semantic hardening batch).
+  - Notes: verified admin route semantic selectors after replacing generic `ipm-sider/content + ant-*` assertions and adding stable root classes.
+- `powershell -ExecutionPolicy Bypass -File scripts/ui-dom-smoke.ps1 -Mode full -ReportDate r253b`
+  - Result: pass (`83/83`, mode=`full-83`)
+  - Artifact: `.tmp/ui-dom-smoke-r253b-summary.json`
+  - Notes: admin-side DOM semantic assertions are now fully class-based for listings/refunds/invoices/patent-map/rbac/audit-logs/order-detail/settlements/demands/achievements/artworks/tech-managers/cases/reports/comments/announcements/alerts/maintenance/regions/patents.
+- `powershell -ExecutionPolicy Bypass -File scripts/verify.ps1 -ReportDate 2026-03-14-r252b`
+  - Result: success (all steps)
+  - Render artifact: `docs/demo/rendered/ui-smoke-2026-03-14-r252b/` (core mode, 3 pages)
+  - Gate summary: `api-real-smoke` `1754/1754` (`writes=1297`,`reads=457`), OpenAPI coverage `238/238`, quality floor `violations=[]`, plus `db-preflight/ui-http-smoke/ui-render-smoke(core)/ui-dom-smoke(core)` all pass.
+- `powershell -ExecutionPolicy Bypass -File scripts/ui-dom-smoke.ps1 -Mode full -ReportDate 2026-03-14-r252a -PageFilter client-publish-entry,client-patent-map-region-detail,client-tech-manager-detail,client-trade-rules,client-login,client-deposit-pay,client-deposit-success,client-final-pay,client-final-success,client-my-listings,client-my-demands,client-my-achievements,client-my-artworks,client-publish-demand,client-publish-achievement,client-publish-artwork,client-cluster-picker,client-settings-notifications,client-onboarding-choose-identity,client-onboarding-verification-form,client-region-picker,client-ipc-picker`
+  - Result: pass (`22/22`, changed-page semantic hardening batch).
+  - Notes: verified semantic selectors for publish/checkout/my-content/picker/onboarding routes before full-run promotion.
+- `powershell -ExecutionPolicy Bypass -File scripts/ui-dom-smoke.ps1 -Mode full -ReportDate 2026-03-14-r252b`
+  - Result: pass (`83/83`, mode=`full-83`)
+  - Artifact: `.tmp/ui-dom-smoke-2026-03-14-r252b-summary.json`
+  - Notes: semantic assertions completed for all remaining previously-empty phase2 routes; stable root classes added for `trade-rules-page`, `patent-map-region-detail-page`, `settings-notifications-page`, and `my-*-page` variants to reduce generic selector coupling.
+- `powershell -ExecutionPolicy Bypass -File scripts/ui-dom-smoke.ps1 -Mode full -ReportDate 2026-03-14-r251a -PageFilter client-tech-managers,client-patent-detail,client-artwork-detail,client-demand-detail,client-achievement-detail,client-organizations,client-organization-detail,client-patent-map,client-inventors,client-messages,client-chat,client-order-detail,client-profile-edit`
+  - Result: pass (`13/13`, changed-page semantic hardening batch).
+  - Notes: verified newly added semantic selectors for detail/consult/messages/profile/order/map pages before full-run promotion.
+- `powershell -ExecutionPolicy Bypass -File scripts/ui-dom-smoke.ps1 -Mode full -ReportDate 2026-03-14-r251b`
+  - Result: pass (`83/83`, mode=`full-83`)
+  - Artifact: `.tmp/ui-dom-smoke-2026-03-14-r251b-summary.json`
+  - Notes: semantic assertions expanded for `client-tech-managers/client-patent-detail/client-artwork-detail/client-demand-detail/client-achievement-detail/client-organizations/client-organization-detail/client-patent-map/client-inventors/client-messages/client-chat/client-order-detail/client-profile-edit`; stable root classes added for `organizations-page` and `patent-map-page`.
+- `powershell -ExecutionPolicy Bypass -File scripts/ui-dom-smoke.ps1 -Mode full -ReportDate 2026-03-14-r250`
+  - Result: pass (`83/83`, mode=`full-83`)
+  - Artifact: `.tmp/ui-dom-smoke-2026-03-14-r250-summary.json`
+  - Notes: extended semantic assertions landed for notifications/announcements/favorites/contracts/invoices/addresses/support/legal pages, and `client-announcement-detail` route probe was corrected from `id` to `announcementId`.
+- `powershell -ExecutionPolicy Bypass -File scripts/api-real-smoke.ps1 -ReportDate 2026-03-12-r193`
+  - Result: pass (`1754/1754`) after chaos trend-threshold anti-flake tuning.
+  - Notes: an earlier `verify` run (`r192`) had a single false-negative on `chaos-randomized-outcome-distribution` (trend threshold marginal exceed); script now reports base/effective trend thresholds and applies a bounded `+250ms` grace while keeping the absolute p95 guard unchanged.
+- `pnpm -C apps/api test`
+  - Result: pass (`575/575`)
+  - Coverage in this batch: existing domain strictness suites remained green, and users-domain coverage expanded with `test/users.profile-readback.spec.ts` (`7`) on profile readback, demo-user fallback, verification DTO masking, and approve-comment truncation branches.
+  - Notes: this batch strengthens users profile/verification readback and admin review edge-branch validation without touching real login/payment integrations.
+- `pnpm -C apps/api test:e2e`
+  - Result: pass (`2/2`).
+- `pnpm -C apps/api lint && pnpm -C apps/api typecheck && pnpm -C apps/api build`
+  - Result: success (all pass after test-framework bootstrap changes).
+- `powershell -ExecutionPolicy Bypass -File scripts/weapp-route-smoke.ps1 -NoAuth -ReportDate 2026-03-12-r187 -LaunchRetries 3 -LaunchRetryDelayMs 4000 -KillStaleDevtools`
+  - Result: pass (11/11 routes)
+  - Artifact: `.tmp/weapp-route-smoke-2026-03-12-r187.json`
+  - Notes: script hardening landed for DevTools launch instability (`launch retry/backoff`, optional `-KillStaleDevtools`, per-attempt `wechatdevtools.exe` diagnostics and failure-report write-through).
+- `powershell -ExecutionPolicy Bypass -File scripts/weapp-route-smoke.ps1 -ReportDate 2026-03-12-r188 -LaunchRetries 1 -KillStaleDevtools`
+  - Result: expected fail (`DEMO_USER_TOKEN` missing), and failure artifact written successfully.
+  - Artifact: `.tmp/weapp-route-smoke-2026-03-12-r188.json`
+- `powershell -ExecutionPolicy Bypass -File scripts/ui-http-smoke.ps1 -ReportDate 2026-03-13-r244`
+  - Result: pass (`86/86`)
+  - Artifact: `.tmp/ui-http-smoke-2026-03-13-r244-summary.json`
+- `powershell -ExecutionPolicy Bypass -File scripts/ui-render-smoke.ps1 -Mode full -ReportDate 2026-03-13-r242b`
+  - Result: pass (`83/83`)
+  - Artifact: `.tmp/ui-render-smoke-2026-03-13-r242b-summary.json`
+  - Render artifact: `docs/demo/rendered/ui-smoke-2026-03-13-r242b/` (full mode, 83 pages)
+- `powershell -ExecutionPolicy Bypass -File scripts/ui-dom-smoke.ps1 -Mode full -ReportDate 2026-03-13-r243`
+  - Result: pass (`83/83`, mode=`full-83`)
+  - Artifact: `.tmp/ui-dom-smoke-2026-03-13-r243-summary.json`
+- `node -e "const fs=require('fs');const data=JSON.parse(fs.readFileSync('.tmp/api-real-smoke-2026-03-14-r247.json','utf8').replace(/^\uFEFF/,''));const keys=['industry-tags-sanitized','hidden-industry-filter','public-regions-query-smoke-region','public-regions-list-after-industry-tags-set','public-announcements-list-admin-smoke-tags-sanitized','public-announcement-detail-admin-smoke-tags-sanitized','public-tech-manager-detail-smoke-service-tag-hidden','patent-map-region-detail-smoke-tag-hidden'];const hit=data.filter(x=>keys.some(k=>String(x.name||'').includes(k)));const failed=hit.filter(x=>!x.ok);console.log(JSON.stringify({matched:hit.length,failed:failed.length},null,2));"`
+  - Result: matched targeted anti-pollution checks `25`, failed `0` (including hidden `industryTags`/`serviceTags` variants and public list/detail sanitization checks).
+
 ## Latest (2026-03-06)
 
 ### Commands & Results (dev)

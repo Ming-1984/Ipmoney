@@ -12,7 +12,7 @@ import { AuditLogService } from '../../common/audit-log.service';
 import { ContentEventService } from '../../common/content-event.service';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { NotificationsService } from '../notifications/notifications.service';
-import { mapStats } from '../content-utils';
+import { mapStats, sanitizeIndustryTagNames } from '../content-utils';
 import { ConfigService, type RecommendationConfig } from '../config/config.service';
 
 type ListingAdminDto = {
@@ -81,7 +81,7 @@ export class ListingsService {
       throw new BadRequestException({ code: 'BAD_REQUEST', message: `${fieldName} is invalid` });
     }
     const parsed = Number(raw);
-    if (!Number.isInteger(parsed) || parsed <= 0) {
+    if (!Number.isSafeInteger(parsed) || parsed <= 0) {
       throw new BadRequestException({ code: 'BAD_REQUEST', message: `${fieldName} is invalid` });
     }
     return parsed;
@@ -319,7 +319,7 @@ export class ListingsService {
       throw new BadRequestException({ code: 'BAD_REQUEST', message: `${fieldName} is invalid` });
     }
     const num = Number(value);
-    if (!Number.isFinite(num) || !Number.isInteger(num) || (min !== undefined && num < min)) {
+    if (!Number.isFinite(num) || !Number.isSafeInteger(num) || (min !== undefined && num < min)) {
       throw new BadRequestException({ code: 'BAD_REQUEST', message: `${fieldName} is invalid` });
     }
     return num;
@@ -671,7 +671,7 @@ export class ListingsService {
         throw new BadRequestException({ code: 'BAD_REQUEST', message: 'transferCount is invalid' });
       }
       const num = Number(rawTransferCount);
-      if (!Number.isFinite(num) || num < 0 || !Number.isInteger(num)) {
+      if (!Number.isFinite(num) || num < 0 || !Number.isSafeInteger(num)) {
         throw new BadRequestException({ code: 'BAD_REQUEST', message: 'transferCount is invalid' });
       }
       transferCount = num;
@@ -782,7 +782,7 @@ export class ListingsService {
         throw new BadRequestException({ code: 'BAD_REQUEST', message: 'transferCount is invalid' });
       }
       const num = Number(rawTransferCount);
-      if (!Number.isFinite(num) || num < 0 || !Number.isInteger(num)) {
+      if (!Number.isFinite(num) || num < 0 || !Number.isSafeInteger(num)) {
         throw new BadRequestException({ code: 'BAD_REQUEST', message: 'transferCount is invalid' });
       }
       transferCount = num;
@@ -874,7 +874,7 @@ export class ListingsService {
       priceAmountFen: it.priceAmount ?? null,
       depositAmountFen: it.depositAmount,
       regionCode: it.regionCode ?? null,
-      industryTags: this.normalizeStringArray(it.industryTagsJson),
+      industryTags: sanitizeIndustryTagNames(it.industryTagsJson),
       listingTopics: this.normalizeStringArray(it.listingTopicsJson),
       clusterId: it.clusterId ?? null,
       ipcCodes: meta.ipcCodes,
@@ -1028,6 +1028,7 @@ export class ListingsService {
     const hasSellerUserId = this.hasOwn(body, 'sellerUserId');
     const hasTitle = this.hasOwn(body, 'title');
     const hasSummary = this.hasOwn(body, 'summary');
+    const industryTags = sanitizeIndustryTagNames(body?.industryTags);
 
     const source = hasSource ? this.parseContentSourceStrict(body?.source, 'source') : 'ADMIN';
     const tradeMode = hasTradeMode ? this.parseTradeModeStrict(body?.tradeMode, 'tradeMode') : 'ASSIGNMENT';
@@ -1105,7 +1106,7 @@ export class ListingsService {
         existingLicenseStatus,
         encumbranceNote,
         regionCode: hasRegionCode ? regionCode : null,
-        industryTagsJson: body?.industryTags ?? Prisma.DbNull,
+        industryTagsJson: industryTags.length > 0 ? industryTags : Prisma.DbNull,
         listingTopicsJson: listingTopics.length > 0 ? listingTopics : Prisma.DbNull,
         proofFileIdsJson: proofFileIds.length > 0 ? proofFileIds : Prisma.DbNull,
         clusterId: hasClusterId ? clusterId : null,
@@ -1177,6 +1178,8 @@ export class ListingsService {
     const auditStatus = hasAuditStatus ? this.parseAuditStatusStrict(body?.auditStatus, 'auditStatus') : undefined;
     const hasStatus = this.hasOwn(body, 'status');
     const status = hasStatus ? this.parseListingStatusStrict(body?.status, 'status') : undefined;
+    const hasIndustryTags = this.hasOwn(body, 'industryTags');
+    const industryTags = hasIndustryTags ? sanitizeIndustryTagNames(body?.industryTags) : undefined;
     const hasSellerUserId = this.hasOwn(body, 'sellerUserId');
     const hasTitle = this.hasOwn(body, 'title');
     const hasSummary = this.hasOwn(body, 'summary');
@@ -1209,7 +1212,7 @@ export class ListingsService {
         existingLicenseStatus: hasExistingLicenseStatus ? existingLicenseStatus ?? null : listing.existingLicenseStatus,
         encumbranceNote: hasEncumbranceNote ? encumbranceNote : listing.encumbranceNote,
         regionCode: hasRegionCode ? regionCode : listing.regionCode,
-        industryTagsJson: body?.industryTags !== undefined ? body?.industryTags ?? Prisma.DbNull : undefined,
+        industryTagsJson: hasIndustryTags ? (industryTags && industryTags.length > 0 ? industryTags : Prisma.DbNull) : undefined,
         listingTopicsJson: hasListingTopics ? (listingTopics && listingTopics.length > 0 ? listingTopics : Prisma.DbNull) : undefined,
         proofFileIdsJson: hasProofFileIds ? (proofFileIds && proofFileIds.length > 0 ? proofFileIds : Prisma.DbNull) : undefined,
         clusterId: hasClusterId ? clusterId : listing.clusterId,
@@ -1361,7 +1364,7 @@ export class ListingsService {
           throw new BadRequestException({ code: 'BAD_REQUEST', message: 'featuredRank must be an integer >= 0' });
         }
         const featuredRank = typeof rawFeaturedRank === 'number' ? rawFeaturedRank : Number(rawFeaturedRank);
-        if (!Number.isFinite(featuredRank) || !Number.isInteger(featuredRank) || featuredRank < 0) {
+        if (!Number.isFinite(featuredRank) || !Number.isSafeInteger(featuredRank) || featuredRank < 0) {
           throw new BadRequestException({ code: 'BAD_REQUEST', message: 'featuredRank must be an integer >= 0' });
         }
         data.featuredRank = featuredRank;
@@ -1548,6 +1551,7 @@ export class ListingsService {
     const hasClusterId = this.hasOwn(body, 'clusterId');
     const hasTitle = this.hasOwn(body, 'title');
     const hasSummary = this.hasOwn(body, 'summary');
+    const industryTags = sanitizeIndustryTagNames(body?.industryTags);
     const tradeMode = hasTradeMode ? this.parseTradeModeStrict(body?.tradeMode, 'tradeMode') : 'ASSIGNMENT';
     const licenseMode = hasLicenseMode ? this.parseNullableLicenseModeStrict(body?.licenseMode, 'licenseMode') : null;
     const priceType = hasPriceType ? this.parsePriceTypeStrict(body?.priceType, 'priceType') : 'NEGOTIABLE';
@@ -1614,7 +1618,7 @@ export class ListingsService {
         existingLicenseStatus,
         encumbranceNote,
         regionCode: hasRegionCode ? regionCode : null,
-        industryTagsJson: body?.industryTags ?? Prisma.DbNull,
+        industryTagsJson: industryTags.length > 0 ? industryTags : Prisma.DbNull,
         listingTopicsJson: listingTopics.length > 0 ? listingTopics : Prisma.DbNull,
         proofFileIdsJson: proofFileIds.length > 0 ? proofFileIds : Prisma.DbNull,
         clusterId: hasClusterId ? clusterId : null,
@@ -1679,6 +1683,8 @@ export class ListingsService {
     const priceAmountFen = hasPriceAmountFen ? this.parseOptionalInt(body?.priceAmountFen, 'priceAmountFen', 0) : undefined;
     const hasDepositAmountFen = this.hasOwn(body, 'depositAmountFen');
     const depositAmountFen = hasDepositAmountFen ? this.parseOptionalInt(body?.depositAmountFen, 'depositAmountFen', 0) : undefined;
+    const hasIndustryTags = this.hasOwn(body, 'industryTags');
+    const industryTags = hasIndustryTags ? sanitizeIndustryTagNames(body?.industryTags) : undefined;
     const hasTitle = this.hasOwn(body, 'title');
     const hasSummary = this.hasOwn(body, 'summary');
     const parsedTitle = hasTitle ? this.parseNullableNonEmptyStringStrict(body?.title, 'title') : undefined;
@@ -1707,7 +1713,7 @@ export class ListingsService {
         existingLicenseStatus: hasExistingLicenseStatus ? existingLicenseStatus ?? null : listing.existingLicenseStatus,
         encumbranceNote: hasEncumbranceNote ? encumbranceNote : listing.encumbranceNote,
         regionCode: hasRegionCode ? regionCode : listing.regionCode,
-        industryTagsJson: body?.industryTags !== undefined ? body?.industryTags ?? Prisma.DbNull : undefined,
+        industryTagsJson: hasIndustryTags ? (industryTags && industryTags.length > 0 ? industryTags : Prisma.DbNull) : undefined,
         listingTopicsJson: hasListingTopics ? (listingTopics && listingTopics.length > 0 ? listingTopics : Prisma.DbNull) : undefined,
         proofFileIdsJson: hasProofFileIds ? (proofFileIds && proofFileIds.length > 0 ? proofFileIds : Prisma.DbNull) : undefined,
         clusterId: hasClusterId ? clusterId : listing.clusterId,
@@ -1834,7 +1840,7 @@ export class ListingsService {
     const grantDateFrom = this.parseDateValue(query?.grantDateFrom, 'grantDateFrom', true);
     const grantDateTo = this.parseDateValue(query?.grantDateTo, 'grantDateTo', true);
 
-    const industryTags = this.normalizeStringArray(query?.industryTags);
+    const industryTags = sanitizeIndustryTagNames(query?.industryTags);
 
     const where: any = { auditStatus: 'APPROVED', status: 'ACTIVE' };
     if (regionCode) where.regionCode = regionCode;
@@ -2131,7 +2137,7 @@ export class ListingsService {
       priceAmountFen: it.priceAmount ?? null,
       depositAmountFen: it.depositAmount,
       regionCode: it.regionCode ?? null,
-      industryTags: this.normalizeStringArray(it.industryTagsJson),
+      industryTags: sanitizeIndustryTagNames(it.industryTagsJson),
       listingTopics: this.normalizeStringArray(it.listingTopicsJson),
       clusterId: it.clusterId ?? null,
       featuredLevel: it.featuredLevel,

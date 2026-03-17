@@ -2,6 +2,7 @@ import { BadRequestException, Injectable, NotFoundException } from '@nestjs/comm
 import * as XLSX from 'xlsx';
 
 import { PrismaService } from '../../common/prisma/prisma.service';
+import { isVisibleIndustryTagName } from '../content-utils';
 
 type InputJsonValue = any;
 
@@ -47,7 +48,7 @@ const HEADER_ALIASES = {
 export type PatentMapSummaryItemDto = { regionCode: string; regionName: string; patentCount: number };
 
 export type PatentMapIndustryCountDto = { industryTag: string; count: number };
-export type PatentMapTopAssigneeDto = { assigneeName: string; patentCount: number };
+export type PatentMapTopAssigneeDto = { name: string; assigneeName?: string; patentCount: number };
 
 export type PatentMapRegionDetailDto = {
   regionCode: string;
@@ -100,23 +101,26 @@ export class PatentMapService {
   }
 
   private assertYear(year: number) {
-    if (!Number.isInteger(year)) {
+    if (!Number.isSafeInteger(year)) {
       throw new BadRequestException({ code: 'BAD_REQUEST', message: 'year is required and must be an integer' });
     }
   }
 
-  private asIndustryBreakdown(value: unknown): PatentMapIndustryCountDto[] {
+  private asIndustryBreakdown(value: unknown, opts?: { includeTestArtifacts?: boolean }): PatentMapIndustryCountDto[] {
+    const includeTestArtifacts = opts?.includeTestArtifacts ?? true;
     if (!Array.isArray(value)) return [];
-    return value
+    const parsed = value
       .map((rawItem: any) => {
         if (!rawItem || typeof rawItem !== 'object') return null;
         const rawObject = rawItem as any;
         const industryTag = String(rawObject.industryTag ?? '').trim();
         const count = Number(rawObject.count ?? 0);
-        if (!industryTag || !Number.isFinite(count) || count < 0) return null;
+        if (!industryTag || !Number.isFinite(count) || !Number.isSafeInteger(count) || count < 0) return null;
         return { industryTag, count };
       })
       .filter(Boolean) as PatentMapIndustryCountDto[];
+    if (includeTestArtifacts) return parsed;
+    return parsed.filter((item) => isVisibleIndustryTagName(item.industryTag));
   }
 
   private asTopAssignees(value: unknown): PatentMapTopAssigneeDto[] {
@@ -125,10 +129,10 @@ export class PatentMapService {
       .map((rawItem: any) => {
         if (!rawItem || typeof rawItem !== 'object') return null;
         const rawObject = rawItem as any;
-        const assigneeName = String(rawObject.assigneeName ?? '').trim();
+        const assigneeName = String(rawObject.assigneeName ?? rawObject.name ?? '').trim();
         const patentCount = Number(rawObject.patentCount ?? 0);
-        if (!assigneeName || !Number.isFinite(patentCount) || patentCount < 0) return null;
-        return { assigneeName, patentCount };
+        if (!assigneeName || !Number.isFinite(patentCount) || !Number.isSafeInteger(patentCount) || patentCount < 0) return null;
+        return { name: assigneeName, assigneeName, patentCount };
       })
       .filter(Boolean) as PatentMapTopAssigneeDto[];
   }
@@ -173,7 +177,7 @@ export class PatentMapService {
   private parseRegionCodeValue(value: unknown) {
     if (value === undefined || value === null) return '';
     if (typeof value === 'number' && Number.isFinite(value)) {
-      if (!Number.isInteger(value)) return '';
+      if (!Number.isSafeInteger(value)) return '';
       return String(value).padStart(6, '0');
     }
     return String(value).trim();
@@ -182,13 +186,13 @@ export class PatentMapService {
   private parseYearValue(value: unknown) {
     if (value instanceof Date) return value.getFullYear();
     const num = Number(value);
-    if (!Number.isFinite(num) || !Number.isInteger(num)) return null;
+    if (!Number.isFinite(num) || !Number.isSafeInteger(num)) return null;
     return num;
   }
 
   private parseNonNegativeInt(value: unknown) {
     const num = Number(value);
-    if (!Number.isFinite(num) || !Number.isInteger(num) || num < 0) return null;
+    if (!Number.isFinite(num) || !Number.isSafeInteger(num) || num < 0) return null;
     return num;
   }
 
@@ -204,7 +208,10 @@ export class PatentMapService {
         if (!raw || typeof raw !== 'object') {
           return { items: [], error: 'invalid list item' };
         }
-        const key = String((raw as any)[keyField] ?? '').trim();
+        const key =
+          keyField === 'assigneeName'
+            ? String((raw as any).assigneeName ?? (raw as any).name ?? '').trim()
+            : String((raw as any)[keyField] ?? '').trim();
         const count = this.parseNonNegativeInt((raw as any)[countField]);
         if (!key || count === null) {
           return { items: [], error: 'invalid list item' };
@@ -298,7 +305,7 @@ export class PatentMapService {
     });
     if (!entry) throw new NotFoundException({ code: 'NOT_FOUND', message: 'no data for this region/year' });
 
-    const industryBreakdown = this.asIndustryBreakdown(entry.industryBreakdownJson);
+    const industryBreakdown = this.asIndustryBreakdown(entry.industryBreakdownJson, { includeTestArtifacts: false });
     const topAssignees = this.asTopAssignees(entry.topAssigneesJson);
 
     return {
@@ -330,7 +337,7 @@ export class PatentMapService {
   ): Promise<PatentMapEntryDto> {
     this.assertRegionCode(regionCode);
     this.assertYear(year);
-    if (!body || !Number.isFinite(body.patentCount) || body.patentCount < 0) {
+    if (!body || !Number.isFinite(body.patentCount) || !Number.isSafeInteger(body.patentCount) || body.patentCount < 0) {
       throw new BadRequestException({ code: 'BAD_REQUEST', message: 'patentCount must be >= 0' });
     }
 

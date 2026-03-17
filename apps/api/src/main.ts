@@ -14,7 +14,7 @@ function parseBool(value: string | undefined): boolean {
 }
 
 async function bootstrap() {
-  const app = await NestFactory.create<NestExpressApplication>(AppModule, { cors: false });
+  const app = await NestFactory.create<NestExpressApplication>(AppModule, { cors: false, rawBody: true });
 
   // Behind a reverse proxy (ingress / load balancer), Express needs trust proxy
   // to correctly resolve req.ip and protocol.

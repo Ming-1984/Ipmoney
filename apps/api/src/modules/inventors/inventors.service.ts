@@ -3,6 +3,8 @@ import { Prisma, PatentType } from '@prisma/client';
 
 import { PrismaService } from '../../common/prisma/prisma.service';
 
+const REGION_CODE_RE = /^[0-9]{6}$/;
+
 @Injectable()
 export class InventorsService {
   constructor(private readonly prisma: PrismaService) {}
@@ -17,7 +19,7 @@ export class InventorsService {
       throw new BadRequestException({ code: 'BAD_REQUEST', message: `${fieldName} is invalid` });
     }
     const parsed = Number(raw);
-    if (!Number.isInteger(parsed) || parsed <= 0) {
+    if (!Number.isSafeInteger(parsed) || parsed <= 0) {
       throw new BadRequestException({ code: 'BAD_REQUEST', message: `${fieldName} is invalid` });
     }
     return parsed;
@@ -33,7 +35,7 @@ export class InventorsService {
 
   private parseRegionCodeFilterStrict(value: unknown, fieldName: string): string {
     const raw = String(value ?? '').trim();
-    if (!raw) {
+    if (!raw || !REGION_CODE_RE.test(raw)) {
       throw new BadRequestException({ code: 'BAD_REQUEST', message: `${fieldName} is invalid` });
     }
     return raw;

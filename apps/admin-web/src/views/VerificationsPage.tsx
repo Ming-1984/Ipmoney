@@ -91,7 +91,7 @@ export function VerificationsPage() {
   const rows = useMemo(() => data?.items || [], [data?.items]);
 
   return (
-    <Card>
+    <Card className="admin-verifications-page">
       <Space direction="vertical" size={16} style={{ width: '100%' }}>
         <div>
           <Typography.Title level={3} style={{ marginTop: 0 }}>

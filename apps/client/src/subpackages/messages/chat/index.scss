@@ -165,10 +165,14 @@
 
 .chat-scroll {
   height: 100%;
+  background: var(--bg-page-plain);
+}
+
+.chat-scroll-inner {
+  min-height: 100%;
   padding-top: 12rpx;
   padding-bottom: calc(180rpx + constant(safe-area-inset-bottom));
   padding-bottom: calc(180rpx + env(safe-area-inset-bottom));
-  background: var(--bg-page-plain);
 }
 
 .chat-time-divider {

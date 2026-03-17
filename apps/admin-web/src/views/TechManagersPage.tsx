@@ -95,7 +95,7 @@ export function TechManagersPage() {
   }, [editTarget, featuredRank, featuredUntil, intro, load, saving, serviceTagsInput]);
 
   return (
-    <Card>
+    <Card className="admin-tech-managers-page">
       <Space direction="vertical" size={16} style={{ width: '100%' }}>
         <div>
           <Typography.Title level={3} style={{ marginTop: 0 }}>

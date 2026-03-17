@@ -4,7 +4,14 @@ import { DeliveryPeriod, Prisma } from '@prisma/client';
 import { AuditLogService } from '../../common/audit-log.service';
 import { ContentEventService } from '../../common/content-event.service';
 import { PrismaService } from '../../common/prisma/prisma.service';
-import { buildPublisherMap, mapContentMedia, mapStats, normalizeMediaInput, normalizeStringArray } from '../content-utils';
+import {
+  buildPublisherMap,
+  mapContentMedia,
+  mapStats,
+  normalizeMediaInput,
+  normalizeStringArray,
+  sanitizeIndustryTagNames,
+} from '../content-utils';
 import { ConfigService, type RecommendationConfig } from '../config/config.service';
 import { NotificationsService } from '../notifications/notifications.service';
 
@@ -155,7 +162,7 @@ export class DemandsService {
       throw new BadRequestException({ code: 'BAD_REQUEST', message: `${fieldName} is invalid` });
     }
     const parsed = Number(raw);
-    if (!Number.isInteger(parsed) || parsed <= 0) {
+    if (!Number.isSafeInteger(parsed) || parsed <= 0) {
       throw new BadRequestException({ code: 'BAD_REQUEST', message: `${fieldName} is invalid` });
     }
     return parsed;
@@ -223,7 +230,7 @@ export class DemandsService {
       throw new BadRequestException({ code: 'BAD_REQUEST', message: `${fieldName} is invalid` });
     }
     const num = Number(value);
-    if (!Number.isFinite(num) || !Number.isInteger(num) || num < min) {
+    if (!Number.isFinite(num) || !Number.isSafeInteger(num) || num < min) {
       throw new BadRequestException({ code: 'BAD_REQUEST', message: `${fieldName} is invalid` });
     }
     return num;
@@ -323,6 +330,7 @@ export class DemandsService {
 
   private toPublic(item: DemandRecord, publisherMap: Record<string, any>) {
     const dto = this.buildDemandDto(item, publisherMap);
+    const sanitizedIndustryTags = sanitizeIndustryTagNames(dto.industryTags);
     const {
       contactName: _contactName,
       contactTitle: _contactTitle,
@@ -332,7 +340,7 @@ export class DemandsService {
       updatedAt: _updatedAt,
       ...rest
     } = dto;
-    return rest;
+    return { ...rest, industryTags: sanitizedIndustryTags };
   }
 
   private async fetchDemand(demandId: string) {
@@ -396,7 +404,7 @@ export class DemandsService {
 
     const keywords = normalizeStringArray(body?.keywords);
     const cooperationModes = normalizeStringArray(body?.cooperationModes);
-    const industryTags = normalizeStringArray(body?.industryTags);
+    const industryTags = sanitizeIndustryTagNames(body?.industryTags);
     const hasCoverFileId = this.hasOwn(body, 'coverFileId');
     const hasDeliveryPeriod = this.hasOwn(body, 'deliveryPeriod');
     const hasBudgetType = this.hasOwn(body, 'budgetType');
@@ -488,7 +496,7 @@ export class DemandsService {
 
     const keywords = hasKeywords ? normalizeStringArray(body?.keywords) : undefined;
     const cooperationModes = hasCooperationModes ? normalizeStringArray(body?.cooperationModes) : undefined;
-    const industryTags = hasIndustryTags ? normalizeStringArray(body?.industryTags) : undefined;
+    const industryTags = hasIndustryTags ? sanitizeIndustryTagNames(body?.industryTags) : undefined;
     const mediaInput = hasMedia ? normalizeMediaInput(body?.media) : [];
 
     const deliveryPeriod = hasDeliveryPeriod ? this.parseNullableDeliveryPeriodStrict(body?.deliveryPeriod, 'deliveryPeriod') : undefined;
@@ -600,7 +608,7 @@ export class DemandsService {
     const hasSortBy = this.hasOwn(query, 'sortBy');
     const sortBy = hasSortBy ? this.parseContentSortByStrict(query?.sortBy, 'sortBy') : 'NEWEST';
 
-    const industryTags = normalizeStringArray(query?.industryTags);
+    const industryTags = sanitizeIndustryTagNames(query?.industryTags);
     const cooperationModes = normalizeStringArray(query?.cooperationModes);
     const hasBudgetType = this.hasOwn(query, 'budgetType');
     const budgetType = hasBudgetType ? this.normalizePriceType(query?.budgetType) : undefined;
@@ -782,7 +790,7 @@ export class DemandsService {
     const ownerId = this.parseOptionalPublisherUserIdStrict(body) ?? String(req?.auth?.userId || '').trim();
     const keywords = normalizeStringArray(body?.keywords);
     const cooperationModes = normalizeStringArray(body?.cooperationModes);
-    const industryTags = normalizeStringArray(body?.industryTags);
+    const industryTags = sanitizeIndustryTagNames(body?.industryTags);
     const deliveryPeriod = hasDeliveryPeriod ? this.parseNullableDeliveryPeriodStrict(body?.deliveryPeriod, 'deliveryPeriod') : undefined;
     const budgetType = hasBudgetType ? this.parseNullablePriceTypeStrict(body?.budgetType, 'budgetType') : undefined;
     const regionCode = hasRegionCode ? this.parseNullableRegionCodeStrict(body?.regionCode, 'regionCode') : undefined;
@@ -877,7 +885,7 @@ export class DemandsService {
 
     const keywords = hasKeywords ? normalizeStringArray(body?.keywords) : undefined;
     const cooperationModes = hasCooperationModes ? normalizeStringArray(body?.cooperationModes) : undefined;
-    const industryTags = hasIndustryTags ? normalizeStringArray(body?.industryTags) : undefined;
+    const industryTags = hasIndustryTags ? sanitizeIndustryTagNames(body?.industryTags) : undefined;
     const mediaInput = hasMedia ? normalizeMediaInput(body?.media) : [];
 
     const source = hasSource ? this.parseContentSourceStrict(body?.source, 'source') : undefined;

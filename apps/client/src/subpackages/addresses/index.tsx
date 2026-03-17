@@ -1,9 +1,10 @@
 ﻿import { View, Text } from '@tarojs/components';
 import Taro, { useDidShow } from '@tarojs/taro';
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import './index.scss';
 
 import { apiGet, apiPatch } from '../../lib/api';
+import { getDetailCache, setDetailCache } from '../../lib/detailCache';
 import { usePageAccess } from '../../lib/guard';
 import { PageHeader, Spacer, Surface } from '../../ui/layout';
 import { Button, toast } from '../../ui/nutui';
@@ -19,38 +20,70 @@ type Address = {
   isDefault?: boolean;
 };
 
+const ADDRESS_CACHE_SCOPE = 'me-addresses';
+const ADDRESS_CACHE_KEY = 'list';
+
 export default function AddressManagePage() {
   const access = usePageAccess('login-required');
-  const [loading, setLoading] = useState(true);
+  const loadedOnceRef = useRef(false);
+  const initialCachedAddresses = getDetailCache<Address[]>(ADDRESS_CACHE_SCOPE, ADDRESS_CACHE_KEY);
+  const [loading, setLoading] = useState(initialCachedAddresses === null);
   const [error, setError] = useState<string | null>(null);
-  const [addresses, setAddresses] = useState<Address[]>([]);
+  const [addresses, setAddresses] = useState<Address[]>(initialCachedAddresses || []);
 
   const addAddress = useCallback(() => {
     Taro.navigateTo({ url: '/subpackages/addresses/edit/index' });
   }, []);
 
-  const load = useCallback(async () => {
-    setLoading(true);
-    setError(null);
+  const load = useCallback(async (options?: { silent?: boolean }) => {
+    const silent = Boolean(options?.silent);
+    const cached = getDetailCache<Address[]>(ADDRESS_CACHE_SCOPE, ADDRESS_CACHE_KEY);
+    if (!silent) {
+      if (cached !== null) {
+        setAddresses(cached);
+        setLoading(false);
+        setError(null);
+      } else {
+        setLoading(true);
+        setError(null);
+      }
+    }
     try {
       const list = await apiGet<Address[]>('/me/addresses');
-      setAddresses(list || []);
+      const normalized = list || [];
+      setAddresses(normalized);
+      setDetailCache(ADDRESS_CACHE_SCOPE, ADDRESS_CACHE_KEY, normalized);
     } catch (e: any) {
-      setError(e?.message || '加载失败');
-      setAddresses([]);
+      const message = e?.message || '加载失败';
+      if (silent) {
+        toast(message);
+      } else {
+        setError(message);
+        setAddresses([]);
+      }
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   }, []);
 
   useEffect(() => {
-    if (access.state !== 'ok') return;
+    if (access.state !== 'ok') {
+      loadedOnceRef.current = false;
+      setLoading(false);
+      setError(null);
+      setAddresses([]);
+      return;
+    }
+    if (loadedOnceRef.current) return;
+    loadedOnceRef.current = true;
     void load();
   }, [access.state, load]);
 
   useDidShow(() => {
     if (access.state !== 'ok') return;
-    void load();
+    if (!loadedOnceRef.current) return;
+    if (loading) return;
+    void load({ silent: true });
   });
 
   const setDefault = useCallback(
@@ -58,7 +91,7 @@ export default function AddressManagePage() {
       try {
         await apiPatch(`/me/addresses/${addressId}`, { isDefault: true });
         toast('已设为默认');
-        void load();
+        void load({ silent: true });
       } catch (e: any) {
         toast(e?.message || '设置失败');
       }

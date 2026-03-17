@@ -6,9 +6,12 @@ param(
   [string]$ReportDate = "",
   [int]$WaitMs = 2000,
   [int]$TimeoutMs = 120000,
+  [int]$LaunchRetries = 3,
+  [int]$LaunchRetryDelayMs = 4000,
   [string]$Scenario = "happy",
   [string]$UserToken = "",
-  [switch]$NoAuth
+  [switch]$NoAuth,
+  [switch]$KillStaleDevtools
 )
 
 $ErrorActionPreference = "Stop"
@@ -34,6 +37,8 @@ $args = @(
   "--out-file", $OutFile,
   "--wait-ms", "$WaitMs",
   "--timeout-ms", "$TimeoutMs",
+  "--launch-retries", "$LaunchRetries",
+  "--launch-retry-delay-ms", "$LaunchRetryDelayMs",
   "--scenario", $Scenario
 )
 
@@ -47,9 +52,12 @@ if ($NoAuth) {
   $args += @("--user-token", $UserToken)
 }
 
+if ($KillStaleDevtools) {
+  $args += @("--kill-stale-devtools")
+}
+
 Write-Host "[weapp-route-smoke] outFile: $OutFile"
 & node @args
 if ($LASTEXITCODE -ne 0) {
   throw "weapp-route-smoke failed (exit=$LASTEXITCODE). See: $OutFile"
 }
-

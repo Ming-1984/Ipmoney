@@ -1,4 +1,4 @@
-﻿import { View, Text, Image, Button as TaroButton } from '@tarojs/components';
+import { View, Text, Image, Button as TaroButton } from '@tarojs/components';
 import Taro, { useShareAppMessage } from '@tarojs/taro';
 import React, { useCallback, useEffect, useState } from 'react';
 import './index.scss';
@@ -14,6 +14,7 @@ import { ensureApproved } from '../../../lib/guard';
 import { patentTypeLabel, priceTypeLabel, verificationTypeLabel } from '../../../lib/labels';
 import { fenToYuan } from '../../../lib/money';
 import { safeNavigateBack } from '../../../lib/navigation';
+import { getPatentCache, setPatentCache } from '../../../lib/patentCache';
 import { useRouteUuidParam } from '../../../lib/routeParams';
 import { CommentsSection } from '../../../ui/CommentsSection';
 import { PageHeader, SectionHeader, Spacer, StickyBar, Surface, TipBanner } from '../../../ui/layout';
@@ -89,21 +90,45 @@ function remainingYears(filingDate?: string | null, patentType?: Patent['patentT
 export default function PatentDetailOverviewPage() {
   const patentId = useRouteUuidParam('patentId') || '';
 
-  const [loading, setLoading] = useState(true);
+  const initialCachedData = patentId ? getPatentCache<Patent>(patentId) : null;
+  const [loading, setLoading] = useState(!initialCachedData);
   const [error, setError] = useState<string | null>(null);
-  const [data, setData] = useState<Patent | null>(null);
+  const [data, setData] = useState<Patent | null>(initialCachedData);
   const [favoritedState, setFavoritedState] = useState(false);
+
+  useEffect(() => {
+    if (!patentId) {
+      setData(null);
+      setLoading(false);
+      setError(null);
+      return;
+    }
+    const cached = getPatentCache<Patent>(patentId);
+    setData(cached || null);
+    setLoading(!cached);
+    setError(null);
+  }, [patentId]);
 
   const load = useCallback(async () => {
     if (!patentId) return;
-    setLoading(true);
-    setError(null);
+    const cached = getPatentCache<Patent>(patentId);
+    if (cached) {
+      setData(cached);
+      setLoading(false);
+      setError(null);
+    } else {
+      setLoading(true);
+      setError(null);
+    }
     try {
       const d = await apiGet<Patent>(`/patents/${patentId}`);
       setData(d);
+      setPatentCache(patentId, d);
     } catch (e: any) {
-      setError(e?.message || '加载失败');
-      setData(null);
+      if (!cached) {
+        setError(e?.message || '加载失败');
+        setData(null);
+      }
     } finally {
       setLoading(false);
     }

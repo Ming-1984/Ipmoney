@@ -112,7 +112,7 @@ export class FilesController {
         throw new BadRequestException({ code: 'BAD_REQUEST', message: 'expiresInSeconds is invalid' });
       }
       const parsedTtl = typeof ttlRaw === 'number' ? ttlRaw : Number(ttlRaw);
-      if (!Number.isFinite(parsedTtl) || !Number.isInteger(parsedTtl) || parsedTtl < 0) {
+      if (!Number.isFinite(parsedTtl) || !Number.isSafeInteger(parsedTtl) || parsedTtl < 0) {
         throw new BadRequestException({ code: 'BAD_REQUEST', message: 'expiresInSeconds is invalid' });
       }
       expiresInSeconds = parsedTtl;

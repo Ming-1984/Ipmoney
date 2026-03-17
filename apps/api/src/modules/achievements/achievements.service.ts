@@ -4,7 +4,14 @@ import { AchievementMaturity, Prisma } from '@prisma/client';
 import { AuditLogService } from '../../common/audit-log.service';
 import { ContentEventService } from '../../common/content-event.service';
 import { PrismaService } from '../../common/prisma/prisma.service';
-import { buildPublisherMap, mapContentMedia, mapStats, normalizeMediaInput, normalizeStringArray } from '../content-utils';
+import {
+  buildPublisherMap,
+  mapContentMedia,
+  mapStats,
+  normalizeMediaInput,
+  normalizeStringArray,
+  sanitizeIndustryTagNames,
+} from '../content-utils';
 import { ConfigService, type RecommendationConfig } from '../config/config.service';
 import { NotificationsService } from '../notifications/notifications.service';
 
@@ -143,7 +150,7 @@ export class AchievementsService {
       throw new BadRequestException({ code: 'BAD_REQUEST', message: `${fieldName} is invalid` });
     }
     const parsed = Number(raw);
-    if (!Number.isInteger(parsed) || parsed <= 0) {
+    if (!Number.isSafeInteger(parsed) || parsed <= 0) {
       throw new BadRequestException({ code: 'BAD_REQUEST', message: `${fieldName} is invalid` });
     }
     return parsed;
@@ -281,8 +288,9 @@ export class AchievementsService {
 
   private toPublic(item: AchievementRecord, publisherMap: Record<string, any>) {
     const dto = this.buildAchievementDto(item, publisherMap);
+    const sanitizedIndustryTags = sanitizeIndustryTagNames(dto.industryTags);
     const { publisherUserId: _publisherUserId, coverFileId: _coverFileId, updatedAt: _updatedAt, ...rest } = dto;
-    return rest;
+    return { ...rest, industryTags: sanitizedIndustryTags };
   }
 
   private async fetchAchievement(achievementId: string) {
@@ -346,7 +354,7 @@ export class AchievementsService {
 
     const keywords = normalizeStringArray(body?.keywords);
     const cooperationModes = normalizeStringArray(body?.cooperationModes);
-    const industryTags = normalizeStringArray(body?.industryTags);
+    const industryTags = sanitizeIndustryTagNames(body?.industryTags);
     const hasCoverFileId = this.hasOwn(body, 'coverFileId');
     const hasMaturity = this.hasOwn(body, 'maturity');
     const hasRegionCode = this.hasOwn(body, 'regionCode');
@@ -415,7 +423,7 @@ export class AchievementsService {
 
     const keywords = hasKeywords ? normalizeStringArray(body?.keywords) : undefined;
     const cooperationModes = hasCooperationModes ? normalizeStringArray(body?.cooperationModes) : undefined;
-    const industryTags = hasIndustryTags ? normalizeStringArray(body?.industryTags) : undefined;
+    const industryTags = hasIndustryTags ? sanitizeIndustryTagNames(body?.industryTags) : undefined;
     const mediaInput = hasMedia ? normalizeMediaInput(body?.media) : [];
     const maturity = hasMaturity ? this.parseNullableMaturityStrict(body?.maturity, 'maturity') : undefined;
     const regionCode = hasRegionCode ? this.parseNullableRegionCodeStrict(body?.regionCode, 'regionCode') : undefined;
@@ -512,7 +520,7 @@ export class AchievementsService {
     const hasSortBy = this.hasOwn(query, 'sortBy');
     const sortBy = hasSortBy ? this.parseContentSortByStrict(query?.sortBy, 'sortBy') : 'NEWEST';
 
-    const industryTags = normalizeStringArray(query?.industryTags);
+    const industryTags = sanitizeIndustryTagNames(query?.industryTags);
     const cooperationModes = normalizeStringArray(query?.cooperationModes);
     const hasMaturity = this.hasOwn(query, 'maturity');
     const maturity = hasMaturity ? this.normalizeMaturity(query?.maturity) : undefined;
@@ -673,7 +681,7 @@ export class AchievementsService {
     const ownerId = this.parseOptionalPublisherUserIdStrict(body) ?? String(req?.auth?.userId || '').trim();
     const keywords = normalizeStringArray(body?.keywords);
     const cooperationModes = normalizeStringArray(body?.cooperationModes);
-    const industryTags = normalizeStringArray(body?.industryTags);
+    const industryTags = sanitizeIndustryTagNames(body?.industryTags);
     const maturity = hasMaturity ? this.parseNullableMaturityStrict(body?.maturity, 'maturity') : undefined;
     const regionCode = hasRegionCode ? this.parseNullableRegionCodeStrict(body?.regionCode, 'regionCode') : undefined;
     const coverFileId = hasCoverFileId ? this.parseNullableCoverFileIdStrict(body?.coverFileId, 'coverFileId') : undefined;
@@ -750,7 +758,7 @@ export class AchievementsService {
 
     const keywords = hasKeywords ? normalizeStringArray(body?.keywords) : undefined;
     const cooperationModes = hasCooperationModes ? normalizeStringArray(body?.cooperationModes) : undefined;
-    const industryTags = hasIndustryTags ? normalizeStringArray(body?.industryTags) : undefined;
+    const industryTags = hasIndustryTags ? sanitizeIndustryTagNames(body?.industryTags) : undefined;
     const mediaInput = hasMedia ? normalizeMediaInput(body?.media) : [];
     const source = hasSource ? this.parseContentSourceStrict(body?.source, 'source') : undefined;
     const maturity = hasMaturity ? this.parseNullableMaturityStrict(body?.maturity, 'maturity') : undefined;

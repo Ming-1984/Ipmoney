@@ -8,9 +8,11 @@ import type { components } from '@ipmoney/api-types';
 import { Heart, HeartFill, Share2 } from '../../../ui/icons';
 import { apiGet, apiPost } from '../../../lib/api';
 import { getToken } from '../../../lib/auth';
+import { getDetailCache, setDetailCache } from '../../../lib/detailCache';
 import { favoriteDemand, isDemandFavorited, syncFavoriteDemands, unfavoriteDemand } from '../../../lib/favorites';
 import { formatTimeSmart } from '../../../lib/format';
 import { ensureApproved } from '../../../lib/guard';
+import { sanitizeIndustryTagNames } from '../../../lib/industryTags';
 import { deliveryPeriodLabel, verificationTypeLabel } from '../../../lib/labels';
 import { resolveLocalAsset } from '../../../lib/localAssets';
 import { safeNavigateBack } from '../../../lib/navigation';
@@ -30,9 +32,10 @@ type Conversation = { id: string };
 export default function DemandDetailPage() {
   const demandId = useRouteUuidParam('demandId') || '';
 
-  const [loading, setLoading] = useState(true);
+  const initialCachedData = demandId ? getDetailCache<DemandPublic>('demand-public', demandId) : null;
+  const [loading, setLoading] = useState(!initialCachedData);
   const [error, setError] = useState<string | null>(null);
-  const [data, setData] = useState<DemandPublic | null>(null);
+  const [data, setData] = useState<DemandPublic | null>(initialCachedData);
   const [consulting, setConsulting] = useState(false);
   const [favoritedState, setFavoritedState] = useState(false);
   const [activeTab, setActiveTab] = useState('overview');
@@ -40,16 +43,39 @@ export default function DemandDetailPage() {
   const tabsOffsetTopRef = useRef<number | null>(null);
   const stickyTopRef = useRef<number>(0);
 
+  useEffect(() => {
+    if (!demandId) {
+      setData(null);
+      setLoading(false);
+      setError(null);
+      return;
+    }
+    const cached = getDetailCache<DemandPublic>('demand-public', demandId);
+    setData(cached || null);
+    setLoading(!cached);
+    setError(null);
+  }, [demandId]);
+
   const load = useCallback(async () => {
     if (!demandId) return;
-    setLoading(true);
-    setError(null);
+    const cached = getDetailCache<DemandPublic>('demand-public', demandId);
+    if (cached) {
+      setData(cached);
+      setLoading(false);
+      setError(null);
+    } else {
+      setLoading(true);
+      setError(null);
+    }
     try {
       const d = await apiGet<DemandPublic>(`/public/demands/${demandId}`);
       setData(d);
+      setDetailCache('demand-public', demandId, d);
     } catch (e: any) {
-      setError(e?.message || '加载失败');
-      setData(null);
+      if (!cached) {
+        setError(e?.message || '加载失败');
+        setData(null);
+      }
     } finally {
       setLoading(false);
     }
@@ -174,8 +200,9 @@ export default function DemandDetailPage() {
     query
       .select('.detail-tabs')
       .boundingClientRect((rect) => {
-        const height = rect?.height ? Math.round(rect.height) : 0;
-        const top = rect?.top ? Math.round(rect.top) : 0;
+        const targetRect = Array.isArray(rect) ? rect[0] : rect;
+        const height = targetRect?.height ? Math.round(targetRect.height) : 0;
+        const top = targetRect?.top ? Math.round(targetRect.top) : 0;
         const offsetTop = -(height + top);
         Taro.pageScrollTo({ selector, duration: 300, offsetTop });
       })
@@ -191,6 +218,7 @@ export default function DemandDetailPage() {
     if (!coverUrlRaw) return list;
     return list.filter((item) => item.url !== coverUrlRaw);
   }, [media, coverUrlRaw]);
+  const visibleIndustryTags = useMemo(() => sanitizeIndustryTagNames(data?.industryTags || []), [data?.industryTags]);
 
 
   if (!demandId) {
@@ -335,7 +363,7 @@ export default function DemandDetailPage() {
               <View className="detail-field-row">
                 <Text className="detail-field-label">行业标签</Text>
                 <Text className="detail-field-value break-word">
-                  {data.industryTags?.length ? data.industryTags.join(' / ') : '-'}
+                  {visibleIndustryTags.length ? visibleIndustryTags.join(' / ') : '-'}
                 </Text>
               </View>
               <View className="detail-field-row">

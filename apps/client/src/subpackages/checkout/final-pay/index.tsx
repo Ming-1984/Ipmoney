@@ -4,6 +4,7 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import './index.scss';
 
 import { apiGet, apiPost } from '../../../lib/api';
+import { getDetailCache, setDetailCache } from '../../../lib/detailCache';
 import { ensureApproved } from '../../../lib/guard';
 import { fenToYuan } from '../../../lib/money';
 import { safeNavigateBack } from '../../../lib/navigation';
@@ -11,7 +12,7 @@ import { useRouteStringParam } from '../../../lib/routeParams';
 import { PageHeader, Spacer, StickyBar, Surface } from '../../../ui/layout';
 import { Button, toast } from '../../../ui/nutui';
 import { ErrorCard, LoadingCard, MissingParamCard } from '../../../ui/StateCards';
-import { MiniProgramPayGuide } from '../components/MiniProgramPayGuide';
+import type { MiniProgramPayGuideProps } from '../components/MiniProgramPayGuide';
 
 type Order = {
   id: string;
@@ -36,26 +37,56 @@ type PaymentIntentResponse = {
   };
 };
 
+type MiniProgramPayGuideComponent = React.ComponentType<MiniProgramPayGuideProps>;
+const ORDER_DETAIL_CACHE_SCOPE = 'order-detail';
+
 export default function FinalPayPage() {
   const orderId = useRouteStringParam('orderId') || '';
   const env = useMemo(() => Taro.getEnv(), []);
   const isH5 = env === Taro.ENV_TYPE.WEB;
+  const initialCachedOrder = orderId ? getDetailCache<Order>(ORDER_DETAIL_CACHE_SCOPE, orderId) : null;
 
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(!initialCachedOrder);
   const [error, setError] = useState<string | null>(null);
-  const [order, setOrder] = useState<Order | null>(null);
+  const [order, setOrder] = useState<Order | null>(initialCachedOrder);
   const [paying, setPaying] = useState(false);
+  const [PayGuide, setPayGuide] = useState<MiniProgramPayGuideComponent | null>(null);
+  const canPayFinal = order?.status === 'WAIT_FINAL_PAYMENT';
+
+  useEffect(() => {
+    if (!orderId) {
+      setOrder(null);
+      setLoading(false);
+      setError(null);
+      return;
+    }
+    const cached = getDetailCache<Order>(ORDER_DETAIL_CACHE_SCOPE, orderId);
+    setOrder(cached || null);
+    setLoading(!cached);
+    setError(null);
+  }, [orderId]);
 
   const load = useCallback(async () => {
     if (!orderId) return;
-    setLoading(true);
-    setError(null);
+    const cached = getDetailCache<Order>(ORDER_DETAIL_CACHE_SCOPE, orderId);
+    const hasCached = Boolean(cached);
+    if (cached) {
+      setOrder(cached);
+      setLoading(false);
+      setError(null);
+    } else {
+      setLoading(true);
+      setError(null);
+    }
     try {
       const d = await apiGet<Order>(`/orders/${orderId}`);
       setOrder(d);
+      setDetailCache(ORDER_DETAIL_CACHE_SCOPE, orderId, d);
     } catch (e: any) {
-      setError(e?.message || '加载失败');
-      setOrder(null);
+      if (!hasCached) {
+        setError(e?.message || '加载失败');
+        setOrder(null);
+      }
     } finally {
       setLoading(false);
     }
@@ -65,9 +96,35 @@ export default function FinalPayPage() {
     void load();
   }, [load]);
 
+  useEffect(() => {
+    if (!isH5) {
+      setPayGuide(null);
+      return;
+    }
+    let alive = true;
+    /* #ifdef H5 */
+    import('../components/MiniProgramPayGuide')
+      .then((mod) => {
+        if (!alive) return;
+        setPayGuide(() => mod.MiniProgramPayGuide);
+      })
+      .catch(() => {
+        if (!alive) return;
+        setPayGuide(null);
+      });
+    /* #endif */
+    return () => {
+      alive = false;
+    };
+  }, [isH5]);
+
   const onPay = useCallback(async () => {
     if (!ensureApproved()) return;
     if (!orderId) return;
+    if (!canPayFinal) {
+      toast('当前订单状态不可支付尾款');
+      return;
+    }
     if (isH5) {
       toast('H5 端不发起支付，请到小程序完成支付');
       return;
@@ -87,7 +144,7 @@ export default function FinalPayPage() {
     } finally {
       setPaying(false);
     }
-  }, [isH5, orderId]);
+  }, [canPayFinal, isH5, orderId]);
 
   if (!orderId) {
     return (
@@ -140,10 +197,16 @@ export default function FinalPayPage() {
           {isH5 ? (
             <>
               <Spacer size={12} />
-              <MiniProgramPayGuide
-                miniProgramPath={`pages/checkout/final-pay/index?orderId=${orderId}`}
-                description="H5 端不发起支付。微信内可一键跳转小程序；微信外/桌面可复制链接或扫码在微信打开。"
-              />
+              {PayGuide ? (
+                <PayGuide
+                  miniProgramPath={`pages/checkout/final-pay/index?orderId=${orderId}`}
+                  description="H5 端不发起支付。微信内可一键跳转小程序；微信外/桌面可复制链接或扫码在微信打开。"
+                />
+              ) : (
+                <Surface className="pay-card" padding="md">
+                  <Text className="muted">支付引导加载中…</Text>
+                </Surface>
+              )}
             </>
           ) : null}
         </View>
@@ -159,8 +222,8 @@ export default function FinalPayPage() {
             </Button>
           </View>
           <View style={{ flex: 2, minWidth: 0 }}>
-            <Button variant="primary" loading={paying} disabled={paying} onClick={onPay}>
-              {paying ? '处理中…' : `支付尾款${order.finalAmountFen ? ` ¥${fenToYuan(order.finalAmountFen)}` : ''}`}
+            <Button variant="primary" loading={paying} disabled={paying || !canPayFinal} onClick={onPay}>
+              {paying ? '处理中…' : !canPayFinal ? '当前不可支付' : `支付尾款${order.finalAmountFen ? ` ¥${fenToYuan(order.finalAmountFen)}` : ''}`}
             </Button>
           </View>
         </StickyBar>

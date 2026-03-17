@@ -1,5 +1,5 @@
 import Taro, { useDidShow } from '@tarojs/taro';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 import { getToken, getVerificationStatus, isOnboardingDone, onAuthChanged } from './auth';
 import { toast } from '../ui/nutui';
@@ -38,17 +38,22 @@ export function usePageAccess(
   onShow?: (access: PageAccessState) => void,
 ): PageAccessState {
   const [access, setAccess] = useState<PageAccessState>(() => getPageAccess(policy));
+  const onShowRef = useRef<typeof onShow>(onShow);
+
+  useEffect(() => {
+    onShowRef.current = onShow;
+  }, [onShow]);
 
   useDidShow(() => {
     const next = getPageAccess(policy);
-    setAccess(next);
-    onShow?.(next);
+    setAccess((prev) => (prev.state === next.state ? prev : next));
+    onShowRef.current?.(next);
   });
 
   useEffect(() => {
     const off = onAuthChanged(() => {
       const next = getPageAccess(policy);
-      setAccess(next);
+      setAccess((prev) => (prev.state === next.state ? prev : next));
     });
     return () => off();
   }, [policy]);
@@ -128,14 +133,14 @@ export function ensureApproved(): boolean {
   const status = getVerificationStatus();
   if (status === 'APPROVED') return true;
   if (status === 'PENDING') {
-    toast('资料审核中，暂不可操作');
+    toast('\u8d44\u6599\u5ba1\u6838\u4e2d\uff0c\u6682\u4e0d\u53ef\u64cd\u4f5c');
     return false;
   }
   if (status === 'REJECTED') {
-    toast('资料已驳回，请重新提交');
+    toast('\u8d44\u6599\u5df2\u9a73\u56de\uff0c\u8bf7\u91cd\u65b0\u63d0\u4ea4');
     return false;
   }
-  toast('请先完成认证');
+  toast('\u8bf7\u5148\u5b8c\u6210\u8ba4\u8bc1');
   return false;
 }
 
@@ -144,3 +149,4 @@ export function ensureActionAccess(policy: ActionAccessPolicy): boolean {
   if (policy === 'login-required') return ensureOnboarding();
   return ensureApproved();
 }
+

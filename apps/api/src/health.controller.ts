@@ -1,4 +1,4 @@
-import { Controller, Get } from '@nestjs/common';
+import { Controller, Get, Inject } from '@nestjs/common';
 
 import { PrismaService } from './common/prisma/prisma.service';
 import { RedisProbeService } from './common/redis-probe.service';
@@ -6,7 +6,9 @@ import { RedisProbeService } from './common/redis-probe.service';
 @Controller()
 export class HealthController {
   constructor(
+    @Inject(PrismaService)
     private readonly prisma: PrismaService,
+    @Inject(RedisProbeService)
     private readonly redisProbe: RedisProbeService,
   ) {}
 

@@ -1,7 +1,7 @@
 import { View, Text } from '@tarojs/components';
 import React, { useMemo } from 'react';
 
-import { usePublicIndustryTags } from '../../lib/industryTags';
+import { sanitizeIndustryTagNames, usePublicIndustryTags } from '../../lib/industryTags';
 import { Button } from '../nutui';
 import type { ChipOption } from './ChipGroup';
 import { ChipGroup } from './ChipGroup';
@@ -13,6 +13,7 @@ export function IndustryTagsPicker(props: {
   disabled?: boolean;
 }) {
   const { names, loading, error, reload } = usePublicIndustryTags();
+  const selected = useMemo(() => sanitizeIndustryTagNames(props.value || []), [props.value]);
 
   const options = useMemo(() => {
     const disabled = Boolean(props.disabled);
@@ -24,7 +25,6 @@ export function IndustryTagsPicker(props: {
           ...(disabled ? { disabled: true } : {}),
         }) satisfies ChipOption<string>,
     );
-    const selected = (props.value || []).filter(Boolean);
     const extras = selected
       .filter((t) => !names.includes(t))
       .map(
@@ -36,7 +36,7 @@ export function IndustryTagsPicker(props: {
           }) satisfies ChipOption<string>,
       );
     return [...base, ...extras];
-  }, [names, props.disabled, props.value]);
+  }, [names, props.disabled, selected]);
 
   return (
     <View>
@@ -53,9 +53,9 @@ export function IndustryTagsPicker(props: {
       <ChipGroup<string>
         multiple
         max={props.max}
-        value={(props.value || []) as string[]}
+        value={selected}
         options={options}
-        onChange={props.disabled ? () => {} : props.onChange}
+        onChange={props.disabled ? () => {} : (next) => props.onChange(sanitizeIndustryTagNames(next))}
       />
     </View>
   );

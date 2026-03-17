@@ -5,6 +5,7 @@ import './index.scss';
 import type { components } from '@ipmoney/api-types';
 
 import { apiGet } from '../../lib/api';
+import { getDetailCache, setDetailCache } from '../../lib/detailCache';
 import { fenToYuan } from '../../lib/money';
 import { PageHeader, SectionHeader, Spacer, Surface, TipBanner } from '../../ui/layout';
 import { Tag } from '../../ui/nutui';
@@ -13,6 +14,8 @@ import { ErrorCard, LoadingCard } from '../../ui/StateCards';
 type TradeRulesConfig = components['schemas']['TradeRulesConfig'];
 type PayoutCondition = components['schemas']['PayoutCondition'];
 type PayoutMethod = components['schemas']['PayoutMethod'];
+const TRADE_RULES_CACHE_SCOPE = 'trade-rules';
+const TRADE_RULES_CACHE_KEY = 'config';
 
 function percent(v?: number): string {
   if (v === undefined || v === null) return '—';
@@ -38,21 +41,37 @@ function payoutMethodLabel(v?: PayoutMethod): string {
 }
 
 export default function TradeRulesPage() {
-  const [loading, setLoading] = useState(true);
+  const initialCachedData = getDetailCache<TradeRulesConfig>(TRADE_RULES_CACHE_SCOPE, TRADE_RULES_CACHE_KEY);
+  const [loading, setLoading] = useState(!initialCachedData);
   const [error, setError] = useState<string | null>(null);
-  const [data, setData] = useState<TradeRulesConfig | null>(null);
+  const [data, setData] = useState<TradeRulesConfig | null>(initialCachedData);
 
-  const load = useCallback(async () => {
-    setLoading(true);
-    setError(null);
+  const load = useCallback(async (options?: { silent?: boolean }) => {
+    const silent = Boolean(options?.silent);
+    const cached = getDetailCache<TradeRulesConfig>(TRADE_RULES_CACHE_SCOPE, TRADE_RULES_CACHE_KEY);
+    const hasCached = Boolean(cached);
+    if (cached) {
+      setData(cached);
+      if (!silent) {
+        setLoading(false);
+        setError(null);
+      }
+    } else if (!silent) {
+      setLoading(true);
+      setError(null);
+    }
     try {
       const d = await apiGet<TradeRulesConfig>('/public/config/trade-rules');
       setData(d);
+      setDetailCache(TRADE_RULES_CACHE_SCOPE, TRADE_RULES_CACHE_KEY, d);
+      if (!silent) setError(null);
     } catch (e: any) {
-      setError(e?.message || '加载失败');
-      setData(null);
+      if (!hasCached) {
+        setError(e?.message || '加载失败');
+        setData(null);
+      }
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   }, []);
 
@@ -61,7 +80,7 @@ export default function TradeRulesPage() {
   }, [load]);
 
   return (
-    <View className="container">
+    <View className="container trade-rules-page">
       <PageHeader title="交易规则" subtitle="订金、佣金、退款窗口等关键规则以平台配置为准" />
       <Spacer />
 
