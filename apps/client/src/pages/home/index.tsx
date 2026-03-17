@@ -344,15 +344,29 @@ export default function HomePage() {
         </View>
       </View>
 
-      <View className="home-quick">
-        {quickEntries.map((entry) => (
-          <View key={entry.key} className="home-quick-item" onClick={entry.onClick}>
-            <View className="home-quick-icon">
-              <Image src={entry.icon} svg mode="aspectFit" className="home-quick-icon-img" />
-            </View>
-            <Text className="home-quick-label">{entry.label}</Text>
+      <View className="home-section">
+        <View className="home-section-header">
+          <View className="home-section-title-wrap">
+            <View className="home-section-accent" />
+            <Text className="home-section-title">特色专区</Text>
           </View>
-        ))}
+          <Text className="home-section-more" onClick={goPatentExplore}>
+            更多
+          </Text>
+        </View>
+        <View className="home-zone-grid">
+          {patentZoneEntries.map((entry) => (
+            <View key={entry.key} className={`home-zone-card ${entry.tone}`} onClick={entry.onClick}>
+              <Image src={entry.bgImage} mode="aspectFill" className="home-zone-bg" />
+              <View className="home-zone-scrim" />
+
+              <View className="home-zone-content">
+                <Text className="home-zone-title">{entry.title}</Text>
+                <Text className="home-zone-desc">{entry.desc}</Text>
+              </View>
+            </View>
+          ))}
+        </View>
       </View>
 
       <View className="home-section home-marquee-section">
@@ -383,29 +397,15 @@ export default function HomePage() {
 
       <HomeBanner />
 
-      <View className="home-section">
-        <View className="home-section-header">
-          <View className="home-section-title-wrap">
-            <View className="home-section-accent" />
-            <Text className="home-section-title">特色专区</Text>
-          </View>
-          <Text className="home-section-more" onClick={goPatentExplore}>
-            更多
-          </Text>
-        </View>
-        <View className="home-zone-grid">
-          {patentZoneEntries.map((entry) => (
-            <View key={entry.key} className={`home-zone-card ${entry.tone}`} onClick={entry.onClick}>
-              <Image src={entry.bgImage} mode="aspectFill" className="home-zone-bg" />
-              <View className="home-zone-scrim" />
-
-              <View className="home-zone-content">
-                <Text className="home-zone-title">{entry.title}</Text>
-                <Text className="home-zone-desc">{entry.desc}</Text>
-              </View>
+      <View className="home-quick">
+        {quickEntries.map((entry) => (
+          <View key={entry.key} className="home-quick-item" onClick={entry.onClick}>
+            <View className="home-quick-icon">
+              <Image src={entry.icon} svg mode="aspectFit" className="home-quick-icon-img" />
             </View>
-          ))}
-        </View>
+            <Text className="home-quick-label">{entry.label}</Text>
+          </View>
+        ))}
       </View>
 
       <View className="home-section">
