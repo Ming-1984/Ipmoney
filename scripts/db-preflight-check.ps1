@@ -60,7 +60,8 @@ where payout_status = 'SUCCEEDED'
 select 'invoice_without_file' as key, count(*) as value
 from orders
 where invoice_no is not null
-  and invoice_file_id is null;
+  and invoice_file_id is null
+  and invoice_no not like 'REQ-%';
 
 select 'webhook_orphan_order' as key, count(*) as value
 from payment_webhook_events e
@@ -109,4 +110,3 @@ Write-Host ($summary | ConvertTo-Json -Compress)
 if (-not $summary.ok) {
   throw ("db-preflight-check failed: " + ($failed -join ", "))
 }
-

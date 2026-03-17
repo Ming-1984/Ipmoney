@@ -812,6 +812,38 @@ function Select-ContentId {
   return [string]$candidate.id
 }
 
+function Get-ListingDepositAmountFen {
+  param([object]$Listing)
+
+  if (-not $Listing) {
+    return 0
+  }
+
+  $candidateValues = @()
+  if ($Listing.PSObject -and $Listing.PSObject.Properties['depositAmountFen']) {
+    $candidateValues += $Listing.depositAmountFen
+  }
+  if ($Listing.PSObject -and $Listing.PSObject.Properties['depositAmount']) {
+    $candidateValues += $Listing.depositAmount
+  }
+
+  foreach ($value in $candidateValues) {
+    if ($null -eq $value) {
+      continue
+    }
+    $text = [string]$value
+    if ([string]::IsNullOrWhiteSpace($text)) {
+      continue
+    }
+    $parsed = 0
+    if ([int]::TryParse($text, [ref]$parsed)) {
+      return $parsed
+    }
+  }
+
+  return 0
+}
+
 function New-SmokeAlertEventId {
   param(
     [string]$DatabaseUrl,
@@ -1739,9 +1771,21 @@ try {
   if ($listingCandidates.Count -le 0) {
     throw "No listing items found for smoke write/order cases"
   }
+  $orderableListings = @(
+    $listingCandidates | Where-Object {
+      [string]$_.status -eq "ACTIVE" -and
+      [string]$_.auditStatus -eq "APPROVED" -and
+      (Get-ListingDepositAmountFen -Listing $_) -gt 0
+    }
+  )
   $nonSelfListings = @($listingCandidates | Where-Object { $_.sellerUserId -and [string]$_.sellerUserId -ne $currentUserId })
+  $nonSelfOrderableListings = @($orderableListings | Where-Object { $_.sellerUserId -and [string]$_.sellerUserId -ne $currentUserId })
   $selectedListing = $null
-  if ($nonSelfListings.Count -gt 0) {
+  if ($nonSelfOrderableListings.Count -gt 0) {
+    $selectedListing = @($nonSelfOrderableListings | Select-Object -First 1)[0]
+  } elseif ($orderableListings.Count -gt 0) {
+    $selectedListing = @($orderableListings | Select-Object -First 1)[0]
+  } elseif ($nonSelfListings.Count -gt 0) {
     $selectedListing = @($nonSelfListings | Select-Object -First 1)[0]
   } else {
     $selectedListing = @($listingCandidates | Select-Object -First 1)[0]
@@ -1755,6 +1799,11 @@ try {
   }
   if ([string]$selectedListing.auditStatus -ne "APPROVED") {
     [void](Add-ApiCaseResult -Results $results -Name "admin-listing-prepare-orderable-approve" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/admin/listings/$listingId/approve" -Body @{} -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-listing-prepare-orderable-approve") -Expected @(200, 201, 409))
+  }
+  $selectedListingDepositAmountFen = Get-ListingDepositAmountFen -Listing $selectedListing
+  if ($selectedListingDepositAmountFen -le 0) {
+    $prepareOrderableDeposit = Add-ApiCaseResult -Results $results -Name "admin-listing-prepare-orderable-deposit" -Method "PATCH" -Url "http://127.0.0.1:$resolvedApiPort/admin/listings/$listingId" -Body @{ depositAmountFen = 1000 } -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-listing-prepare-orderable-deposit") -Expected @(200)
+    Assert-ResultJsonFieldEquals -Result $prepareOrderableDeposit -Field "depositAmountFen" -ExpectedValue 1000 -Assertion "orderable-listing-deposit-updated"
   }
   $demandId = Select-ContentId -Items @($adminDemandsForWrites.items) -OwnerField "publisherUserId" -CurrentUserId $currentUserId -Label "demand"
   $achievementId = Select-ContentId -Items @($adminAchievementsForWrites.items) -OwnerField "publisherUserId" -CurrentUserId $currentUserId -Label "achievement"
