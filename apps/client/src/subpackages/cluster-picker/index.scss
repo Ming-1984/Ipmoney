@@ -40,7 +40,7 @@
   height: 64rpx;
   border-radius: 16rpx;
   background: rgba(255, 122, 0, 0.12);
-  color: #f97316;
+  color: var(--c-primary-hover);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -136,7 +136,7 @@
 
 .cluster-card-action {
   font-size: 22rpx;
-  color: #f97316;
+  color: var(--c-primary-hover);
   flex-shrink: 0;
 }
 
@@ -162,3 +162,4 @@
   font-size: 22rpx;
   color: #94a3b8;
 }
+

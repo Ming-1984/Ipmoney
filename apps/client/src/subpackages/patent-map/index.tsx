@@ -221,7 +221,7 @@ export default function PatentMapPage() {
           borderWidth: 0,
           borderColor: '#00000000',
           borderRadius: 6,
-          bgColor: '#f97316',
+          bgColor: '#eb5c20',
           padding: 6,
             textAlign: 'center' as const,
         },

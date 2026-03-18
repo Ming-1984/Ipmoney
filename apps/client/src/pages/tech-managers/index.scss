@@ -24,7 +24,7 @@
 }
 
 .consult-tab.is-active {
-  color: #f97316;
+  color: var(--c-primary-hover);
 }
 
 .consult-tab-underline {
@@ -34,7 +34,7 @@
   width: 40%;
   height: 4rpx;
   border-radius: 999rpx;
-  background: #f97316;
+  background: var(--c-primary-hover);
 }
 
 .consult-header {
@@ -118,7 +118,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #ff6600;
+  color: var(--c-primary);
   font-size: 32rpx;
   font-weight: 700;
   overflow: hidden;
@@ -170,7 +170,7 @@
 }
 
 .consult-rating {
-  color: #ff6600;
+  color: var(--c-primary);
   font-weight: 600;
 }
 
@@ -180,10 +180,11 @@
 }
 
 .consult-action {
-  background: #ff6600;
+  background: var(--c-primary);
   color: #fff;
   font-size: 22rpx;
   padding: 10rpx 26rpx;
   border-radius: 999rpx;
   font-weight: 600;
 }
+

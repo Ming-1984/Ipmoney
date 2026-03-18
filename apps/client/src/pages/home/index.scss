@@ -6,7 +6,7 @@
 }
 
 .home-hero {
-  background: #ff6600;
+  background: var(--c-primary);
   padding: 16rpx 32rpx 36rpx;
   border: none;
   border-radius: 0 0 32rpx 32rpx;
@@ -91,7 +91,7 @@
   height: 12rpx;
   border-radius: 50%;
   background: #ef4444;
-  border: 2rpx solid #ff6600;
+  border: 2rpx solid var(--c-primary);
 }
 
 .home-search {
@@ -142,7 +142,7 @@
 }
 
 .home-search-btn {
-  background: #ff6600;
+  background: var(--c-primary);
   color: #fff;
   font-size: 22rpx;
   padding: 8rpx 24rpx;
@@ -307,7 +307,7 @@
   font-size: 20rpx;
   font-weight: 600;
   background: rgba(255, 122, 0, 0.12);
-  color: #f97316;
+  color: var(--c-primary-hover);
   flex-shrink: 0;
 }
 
@@ -478,7 +478,7 @@
 .home-reco-price {
   font-size: 26rpx;
   font-weight: 700;
-  color: #ff6600;
+  color: var(--c-primary);
 }
 
 .home-reco-action {
@@ -494,3 +494,4 @@
   flex-direction: column;
   gap: 16rpx;
 }
+

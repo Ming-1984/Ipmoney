@@ -391,14 +391,14 @@
   width: 56rpx;
   height: 56rpx;
   border-radius: 999rpx;
-  background: #f97316;
+  background: var(--c-primary-hover);
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
 .message-system-avatar.is-trade {
-  background: #f97316;
+  background: var(--c-primary-hover);
 }
 
 .message-system-icon {
@@ -538,3 +538,4 @@
   color: #1f2937;
   text-align: center;
 }
+

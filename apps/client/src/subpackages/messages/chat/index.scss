@@ -147,7 +147,7 @@
 
 .chat-context-price {
   font-size: 22rpx;
-  color: #f97316;
+  color: var(--c-primary-hover);
   font-weight: 600;
 }
 
@@ -418,7 +418,7 @@
   width: 72rpx;
   height: 72rpx;
   border-radius: 999rpx;
-  background: #f97316;
+  background: var(--c-primary-hover);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -444,3 +444,4 @@
     transform: translateX(-50%);
   }
 }
+

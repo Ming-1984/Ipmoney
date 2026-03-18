@@ -255,7 +255,7 @@
   top: 0;
   padding: 4rpx 8rpx;
   border-radius: 0 0 12rpx 0;
-  background: #ff7a33;
+  background: var(--c-primary-hover);
   color: #ffffff;
   font-size: 18rpx;
   line-height: 1.2;
@@ -442,7 +442,7 @@
 
 .demand-card-budget-value {
   font-size: 26rpx;
-  color: #f97316;
+  color: var(--c-primary-hover);
   font-weight: 700;
 }
 
@@ -455,3 +455,4 @@
   font-size: 22rpx;
   font-weight: 600;
 }
+

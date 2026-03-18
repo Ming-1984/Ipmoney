@@ -28,7 +28,7 @@
 
 .notification-detail-tag.is-system {
   background: rgba(249, 115, 22, 0.12);
-  color: #f97316;
+  color: var(--c-primary-hover);
 }
 
 .notification-detail-tag.is-cs {
@@ -95,7 +95,7 @@
 
 .notification-related-link {
   font-size: 26rpx;
-  color: #f97316;
+  color: var(--c-primary-hover);
 }
 
 .notification-detail-empty {
@@ -120,3 +120,4 @@
 .notification-detail-empty-btn {
   margin-top: 16rpx;
 }
+

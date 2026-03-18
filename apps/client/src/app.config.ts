@@ -176,7 +176,7 @@
   },
   tabBar: {
     color: '#475569',
-    selectedColor: '#ff6600',
+    selectedColor: '#eb5c20',
     backgroundColor: '#ffffff',
     list: [
       {

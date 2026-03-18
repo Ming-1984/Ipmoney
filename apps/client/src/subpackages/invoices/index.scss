@@ -1,4 +1,4 @@
-﻿.invoices-page {
+.invoices-page {
   padding: 0 24rpx 32rpx;
 }
 
@@ -22,7 +22,7 @@
 }
 
 .invoice-tab.is-active {
-  color: #f97316;
+  color: var(--c-primary-hover);
 }
 
 .invoice-tab-underline {
@@ -32,7 +32,7 @@
   width: 40%;
   height: 4rpx;
   border-radius: 999rpx;
-  background: #f97316;
+  background: var(--c-primary-hover);
 }
 
 .invoice-list {
@@ -60,7 +60,7 @@
 
 .invoice-status.is-wait {
   background: rgba(249, 115, 22, 0.12);
-  color: #f97316;
+  color: var(--c-primary-hover);
 }
 
 .invoice-status.is-applying {
@@ -87,3 +87,4 @@
   gap: 12rpx;
   justify-content: flex-end;
 }
+

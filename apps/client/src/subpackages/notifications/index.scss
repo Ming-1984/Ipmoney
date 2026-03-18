@@ -22,7 +22,7 @@
 }
 
 .notifications-tab.is-active {
-  color: #f97316;
+  color: var(--c-primary-hover);
 }
 
 .notifications-tab-underline {
@@ -32,7 +32,7 @@
   width: 40%;
   height: 4rpx;
   border-radius: 999rpx;
-  background: #f97316;
+  background: var(--c-primary-hover);
 }
 
 .notifications-list {
@@ -67,7 +67,7 @@
 
 .notification-tag.is-system {
   background: rgba(249, 115, 22, 0.12);
-  color: #f97316;
+  color: var(--c-primary-hover);
 }
 
 .notification-tag.is-cs {
@@ -118,3 +118,4 @@
   font-size: 24rpx;
   color: #94a3b8;
 }
+
