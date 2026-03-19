@@ -45,7 +45,7 @@ type PriceType = components['schemas']['PriceType'];
 type CooperationMode = components['schemas']['CooperationMode'];
 type LegalStatus = components['schemas']['LegalStatus'];
 type TransferCountRange = '' | 'ZERO' | 'ONE' | 'TWO_PLUS';
-type ListingTopic = '' | 'HIGH_TECH_RETIRED' | 'CLUSTER_FEATURED';
+type ListingTopic = '' | 'HIGH_TECH_RETIRED' | 'AWARD_WINNING';
 
 type PagedDemandSummary = components['schemas']['PagedDemandSummary'];
 type DemandSummary = components['schemas']['DemandSummary'];
@@ -176,8 +176,6 @@ type ListingFilters = {
   legalStatus: LegalStatus | '';
   industryTags: string[];
   listingTopic: ListingTopic;
-  clusterId?: string;
-  clusterName?: string;
 };
 
 type DemandFilters = {
@@ -224,8 +222,6 @@ const LISTING_FILTER_DEFAULT: ListingFilters = {
   transferCountMin: undefined,
   transferCountMax: undefined,
   listingTopic: '',
-  clusterId: undefined,
-  clusterName: undefined,
 };
 
 const DEMAND_FILTER_DEFAULT: DemandFilters = {
@@ -404,8 +400,6 @@ export default function SearchPage() {
           legalStatus: prefill.legalStatus ?? base.legalStatus,
           industryTags: nextIndustryTags,
           listingTopic: prefill.listingTopic ?? base.listingTopic,
-          clusterId: prefill.clusterId ?? base.clusterId,
-          clusterName: prefill.clusterName ?? base.clusterName,
         };
       });
     }
@@ -492,7 +486,6 @@ export default function SearchPage() {
       const listingIndustryTags = sanitizeIndustryTagNames(listingFilters.industryTags);
       if (listingIndustryTags.length) params.industryTags = listingIndustryTags;
       if (listingFilters.listingTopic) params.listingTopic = listingFilters.listingTopic;
-      if (listingFilters.clusterId) params.clusterId = listingFilters.clusterId;
       return apiGet<PagedListingSummary>('/search/listings', params);
     },
     [listingFilters, q, sortBy],
@@ -771,10 +764,8 @@ export default function SearchPage() {
 
   const listingFilterLabels = useMemo(() => {
     const out: string[] = [];
-    if (listingFilters.listingTopic === 'HIGH_TECH_RETIRED') out.push('高新退役');
-    if (listingFilters.listingTopic === 'CLUSTER_FEATURED') {
-      out.push(listingFilters.clusterName ? `产业集群·${listingFilters.clusterName}` : '产业集群');
-    }
+    if (listingFilters.listingTopic === 'HIGH_TECH_RETIRED') out.push('退役专利');
+    if (listingFilters.listingTopic === 'AWARD_WINNING') out.push('获奖专利');
     if (listingFilters.regionName || listingFilters.regionCode) out.push(listingFilters.regionName || listingFilters.regionCode || '');
     if (listingFilters.patentType) out.push(patentTypeLabel(listingFilters.patentType));
     if (listingFilters.tradeMode) out.push(tradeModeLabel(listingFilters.tradeMode));

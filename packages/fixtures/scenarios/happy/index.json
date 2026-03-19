@@ -1,4 +1,4 @@
-﻿{
+{
   "GET /health": {
     "status": 200,
     "body": {
@@ -77,6 +77,7 @@
             "consultCount": 6
           },
           "recommendationScore": 0.92,
+          "transferCount": 0,
           "listingTopics": [
             "HIGH_TECH_RETIRED"
           ]
@@ -129,10 +130,10 @@
             "consultCount": 3
           },
           "recommendationScore": 0.71,
+          "transferCount": 2,
           "listingTopics": [
-            "CLUSTER_FEATURED"
-          ],
-          "clusterId": "4c96e0e3-3c71-4514-8c87-fa1a30e5b88f"
+            "AWARD_WINNING"
+          ]
         }
       ],
       "page": {
@@ -237,9 +238,8 @@
       },
       "recommendationScore": 0.71,
       "listingTopics": [
-        "CLUSTER_FEATURED"
+        "AWARD_WINNING"
       ],
-      "clusterId": "4c96e0e3-3c71-4514-8c87-fa1a30e5b88f",
       "seller": {
         "id": "72f8697a-b950-406c-bc4f-2484a32cbb78",
         "nickname": "某高校技术转移中心",
@@ -939,159 +939,6 @@
       "createdAt": "2025-10-10T00:00:00Z",
       "publishedAt": "2025-10-16T00:00:00Z",
       "updatedAt": "2026-02-15T09:10:00Z"
-    }
-  },
-  "GET /public/patent-clusters": {
-    "status": 200,
-    "body": {
-      "featuredInstitutions": [
-        {
-          "id": "89af78b5-f0ce-4f54-ad1b-61b579a9eb17",
-          "name": "广东工业大学",
-          "regionName": "广东·广州",
-          "tags": [
-            "高校",
-            "技术转移"
-          ],
-          "patentCount": 3120,
-          "listingCount": 86,
-          "logoUrl": ""
-        },
-        {
-          "id": "63ba8b6e-c8f5-4c05-a89b-67b4879b5c62",
-          "name": "佛山科学技术学院",
-          "regionName": "广东·佛山",
-          "tags": [
-            "高校",
-            "成果转化"
-          ],
-          "patentCount": 1240,
-          "listingCount": 42,
-          "logoUrl": ""
-        },
-        {
-          "id": "2ba959ae-7ef6-45bc-ab9f-217544629a22",
-          "name": "中国地质大学（武汉）",
-          "regionName": "湖北·武汉",
-          "tags": [
-            "高校",
-            "科研院所"
-          ],
-          "patentCount": 2560,
-          "listingCount": 73,
-          "logoUrl": ""
-        }
-      ],
-      "items": [
-        {
-          "id": "8ceb0b1a-f686-4ef3-bbca-7af3f32b0d51",
-          "name": "佛山·南海氢能产业集群",
-          "regionName": "广东·佛山·南海",
-          "industryTags": [
-            "氢能",
-            "燃料电池",
-            "新能源装备"
-          ],
-          "summary": "聚焦氢能与燃料电池，覆盖制氢、储运与装备应用链条。",
-          "patentCount": 1860,
-          "listingCount": 128,
-          "institutionCount": 12,
-          "updatedAt": "2026-01-15T00:00:00Z"
-        },
-        {
-          "id": "4c96e0e3-3c71-4514-8c87-fa1a30e5b88f",
-          "name": "如东海上风电装备产业集群",
-          "regionName": "江苏·南通·如东",
-          "industryTags": [
-            "海上风电",
-            "装备制造",
-            "新能源"
-          ],
-          "summary": "面向海上风电装备制造与配套服务的产业集群。",
-          "patentCount": 1420,
-          "listingCount": 95,
-          "institutionCount": 9,
-          "updatedAt": "2026-01-15T00:00:00Z"
-        },
-        {
-          "id": "2701d8b7-561c-4dfb-a68d-3b4c7f76d3c9",
-          "name": "成德绵自凉航空航天产业集群",
-          "regionName": "四川",
-          "industryTags": [
-            "航空航天",
-            "高端装备",
-            "新材料"
-          ],
-          "summary": "覆盖航空航天装备与配套材料的区域协同集群。",
-          "patentCount": 2100,
-          "listingCount": 140,
-          "institutionCount": 18,
-          "updatedAt": "2026-01-15T00:00:00Z"
-        },
-        {
-          "id": "0cd8a221-51ec-44e9-830d-dba96c1efa2e",
-          "name": "青烟威船舶与海洋工程装备产业集群",
-          "regionName": "山东·青岛/烟台/威海",
-          "industryTags": [
-            "船舶制造",
-            "海工装备",
-            "海洋工程"
-          ],
-          "summary": "面向船舶与海洋工程装备的跨市集群协同。",
-          "patentCount": 1980,
-          "listingCount": 122,
-          "institutionCount": 15,
-          "updatedAt": "2026-01-15T00:00:00Z"
-        },
-        {
-          "id": "aef573fa-d3b4-4799-99cf-2a776764697f",
-          "name": "洛阳现代农机装备产业集群",
-          "regionName": "河南·洛阳",
-          "industryTags": [
-            "农机装备",
-            "智能制造",
-            "现代农业"
-          ],
-          "summary": "围绕现代农机装备制造与应用的产业集群。",
-          "patentCount": 1320,
-          "listingCount": 76,
-          "institutionCount": 7,
-          "updatedAt": "2026-01-15T00:00:00Z"
-        }
-      ],
-      "page": {
-        "page": 1,
-        "pageSize": 10,
-        "total": 5
-      }
-    }
-  },
-  "GET /public/patent-clusters/:clusterId": {
-    "status": 200,
-    "body": {
-      "id": "8ceb0b1a-f686-4ef3-bbca-7af3f32b0d51",
-      "name": "佛山·南海氢能产业集群",
-      "regionName": "广东·佛山·南海",
-      "industryTags": [
-        "氢能",
-        "燃料电池",
-        "新能源装备"
-      ],
-      "summary": "聚焦氢能与燃料电池，覆盖制氢、储运与装备应用链条。",
-      "patentCount": 1860,
-      "listingCount": 128,
-      "institutionCount": 12,
-      "featuredInstitutions": [
-        {
-          "id": "89af78b5-f0ce-4f54-ad1b-61b579a9eb17",
-          "name": "广东工业大学"
-        },
-        {
-          "id": "63ba8b6e-c8f5-4c05-a89b-67b4879b5c62",
-          "name": "佛山科学技术学院"
-        }
-      ],
-      "updatedAt": "2026-01-15T00:00:00Z"
     }
   },
   "GET /regions": {
@@ -2122,7 +1969,7 @@
             "传感器"
           ],
           "listingTopics": [
-            "CLUSTER_FEATURED"
+            "AWARD_WINNING"
           ],
           "featuredLevel": "CITY",
           "featuredRegionCode": "310000",

@@ -1,4 +1,4 @@
-erDiagram
+﻿erDiagram
   USERS {
     uuid id PK
     string phone
@@ -42,28 +42,7 @@ erDiagram
     datetime updated_at
   }
 
-  PATENT_CLUSTERS {
-    uuid id PK
-    string name
-    string region_code FK
-    string summary
-    string highlight_tags_json "json"
-    int patent_count_cached
-    uuid cover_file_id FK
-    string status "ACTIVE/INACTIVE"
-    datetime created_at
-    datetime updated_at
-  }
 
-  CLUSTER_INSTITUTIONS {
-    uuid id PK
-    uuid cluster_id FK
-    string name
-    string category "UNIVERSITY/RESEARCH/INSTITUTE/COMPANY/OTHER"
-    int sort
-    datetime created_at
-    datetime updated_at
-  }
 
   ANNOUNCEMENTS {
     uuid id PK
@@ -242,11 +221,10 @@ erDiagram
     string pledge_status "NONE/PLEDGED/UNKNOWN"
     string existing_license_status "NONE/EXCLUSIVE/SOLE/NON_EXCLUSIVE/UNKNOWN"
     string encumbrance_note
-    int transfer_count "0=沉睡专利"
+    int transfer_count "0=娌夌潯涓撳埄"
     string region_code
     string industry_tags_json "json"
-    string listing_topics_json "json: HIGH_TECH_RETIRED/CLUSTER_FEATURED（沉睡专利由 transfer_count=0 判定）"
-    uuid cluster_id FK
+    string listing_topics_json "json: HIGH_TECH_RETIRED/AWARD_WINNING锛堟矇鐫′笓鍒╃敱 transfer_count=0 鍒ゅ畾锛?
     string featured_level "NONE/CITY/PROVINCE"
     string featured_region_code
     int featured_rank
@@ -333,7 +311,7 @@ erDiagram
     int sort
   }
 
-  %% 成果详情媒体展示：封面使用 cover_file_id；更多图片来自 ACHIEVEMENT_MEDIA(type=IMAGE)，前端以图集展示并可单图预览
+  %% 鎴愭灉璇︽儏濯掍綋灞曠ず锛氬皝闈娇鐢?cover_file_id锛涙洿澶氬浘鐗囨潵鑷?ACHIEVEMENT_MEDIA(type=IMAGE)锛屽墠绔互鍥鹃泦灞曠ず骞跺彲鍗曞浘棰勮
 
   ACHIEVEMENT_FAVORITES {
     uuid id PK
@@ -735,7 +713,6 @@ erDiagram
   USERS ||--o{ USER_VERIFICATIONS : verifies
   USERS ||--|| TECH_MANAGER_PROFILES : profiles
   REGIONS ||--o{ USERS : located_in
-  REGIONS ||--o{ PATENT_CLUSTERS : located_in
   USERS ||--o{ LISTINGS : publishes
   USERS ||--o{ DEMANDS : publishes
   USERS ||--o{ ACHIEVEMENTS : publishes
@@ -777,7 +754,6 @@ erDiagram
   LISTINGS ||--o{ LISTING_FAVORITES : favored
   LISTINGS ||--o{ LISTING_CONSULT_EVENTS : consulted
   REGIONS ||--o{ LISTINGS : located_in
-  PATENT_CLUSTERS ||--o{ LISTINGS : clusters
 
   ARTWORKS ||--o{ ORDERS : generates
 
@@ -837,7 +813,6 @@ erDiagram
   DEMANDS ||--o| FILES : cover
   ACHIEVEMENTS ||--o| FILES : cover
   ARTWORKS ||--o| FILES : cover
-  PATENT_CLUSTERS ||--o| FILES : cover
 
   ORDERS ||--o{ PAYMENTS : has
   ORDERS ||--o{ PAYMENT_WEBHOOK_EVENTS : has
@@ -858,4 +833,3 @@ erDiagram
   CONVERSATIONS ||--o{ CONVERSATION_PARTICIPANTS : has
   CONVERSATIONS ||--o{ CONVERSATION_MESSAGES : contains
   PATENT_MAP_ENTRIES }o--|| REGIONS : for_region
-  PATENT_CLUSTERS ||--o{ CLUSTER_INSTITUTIONS : includes

@@ -1,4 +1,4 @@
-# Page-API-Test Matrix (2026-03-05)
+﻿# Page-API-Test Matrix (2026-03-05)
 
 > Scope: client + admin-web pages; excludes real login/payment integrations.
 > Data sources: `.tmp/ui-render-smoke-2026-03-05.json`, `.tmp/ui-http-smoke-2026-03-05.json`, `.tmp/ui-dom-smoke-2026-03-05.json`, `docs/engineering/traceability-matrix.md`.
@@ -46,7 +46,6 @@
 | client-announcements | client | /pages/announcements/index | public announcements | N | Y | Y | N | pending | client |
 | client-artwork-detail | client | /pages/artwork/detail/index?artworkId=7f8e9f72-98f4-4f4a-8d11-44f38fcf3d51 | public artwork detail + conversation | N | Y | Y | N | pending | client |
 | client-chat | client | /pages/messages/chat/index?conversationId=127a267b-d5f8-4b39-acf8-855dff7258b0 | conversations + notifications | N | Y | Y | N | pending | client |
-| client-cluster-picker | client | /pages/cluster-picker/index | static/config (no critical API write) | N | Y | Y | N | pending | client |
 | client-contracts | client | /pages/contracts/index | orders/payment/address/invoice | N | Y | Y | N | pending | client |
 | client-demand-detail | client | /pages/demand/detail/index?demandId=8f278f0a-6ccf-45ce-a664-f5eaf39a9be4 | public demand detail + conversation | N | Y | Y | N | pending | client |
 | client-deposit-pay | client | /pages/checkout/deposit-pay/index?listingId=7a490e63-8173-41e7-b4f0-0d0bb5ce7d20 | client/misc | N | Y | Y | N | pending | client |
