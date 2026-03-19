@@ -45,7 +45,6 @@ describe('ListingsService search filter strictness suite', () => {
   it('rejects empty-string strict filters in search query', async () => {
     await expect(service.searchPublic({ regionCode: '   ' })).rejects.toBeInstanceOf(BadRequestException);
     await expect(service.searchPublic({ sellerUserId: '   ' })).rejects.toBeInstanceOf(BadRequestException);
-    await expect(service.searchPublic({ clusterId: '   ' })).rejects.toBeInstanceOf(BadRequestException);
   });
 
   it('rejects invalid numeric filters strictly', async () => {

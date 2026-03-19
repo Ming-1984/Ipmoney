@@ -13,7 +13,7 @@
 - Discovery/detail: `subpackages/search`, `subpackages/listing/detail`, `subpackages/demand/detail`,
   `subpackages/achievement/detail`, `subpackages/artwork/detail`, `subpackages/patent/detail`,
   `subpackages/organizations`, `subpackages/organizations/detail`, `subpackages/inventors`,
-  `subpackages/patent-map/*`, `subpackages/announcements/*`, `subpackages/cluster-picker`.
+  `subpackages/patent-map/*`, `subpackages/announcements/*`.
 - Help/legal: `subpackages/about`, `subpackages/support/*`, `subpackages/legal/*`.
 - Auth flows: `subpackages/login`, `subpackages/onboarding/*`, `subpackages/region-picker`, `subpackages/ipc-picker`.
 

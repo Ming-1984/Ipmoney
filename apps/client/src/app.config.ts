@@ -121,10 +121,6 @@
       pages: ['index'],
     },
     {
-      root: 'subpackages/cluster-picker',
-      pages: ['index'],
-    },
-    {
       root: 'subpackages/settings',
       pages: ['notifications/index'],
     },

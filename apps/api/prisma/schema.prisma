@@ -741,7 +741,6 @@ model Listing {
   industryTagsJson   Json?            @map("industry_tags_json")
   listingTopicsJson  Json?            @map("listing_topics_json")
   proofFileIdsJson   Json?            @map("proof_file_ids_json")
-  clusterId          String?          @map("cluster_id")
   featuredLevel      FeaturedLevel    @default(NONE) @map("featured_level")
   featuredRegionCode String?          @map("featured_region_code")
   featuredRank       Int?             @map("featured_rank")

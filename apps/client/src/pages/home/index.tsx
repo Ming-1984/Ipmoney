@@ -9,13 +9,14 @@ import type { components } from '@ipmoney/api-types';
 // Feature zone background images (poster cards in "特色专区")
 import bgZoneSleeping from '../../assets/home/zones/zone-sleeping.jpg';
 import bgZoneHighTechRetired from '../../assets/home/zones/zone-high-tech-retired.jpg';
-import bgZoneCluster from '../../assets/home/zones/zone-cluster.jpg';
 import bgZoneOpenLicense from '../../assets/home/zones/zone-open-license.jpg';
+// Reuse existing poster until a dedicated "获奖专利" asset is provided.
+import bgZoneAward from '../../assets/home/zones/zone-award.jpg';
 import iconSearch from '../../assets/icons/icon-search-gray.svg';
 import iconActivity from '../../assets/icons/icon-activity-blue.svg';
-import iconMap from '../../assets/icons/icon-map-green.svg';
 import iconAward from '../../assets/icons/icon-award-teal.svg';
 import iconShield from '../../assets/icons/icon-shield-orange.svg';
+import iconTrending from '../../assets/icons/icon-trending-red.svg';
 
 // Home quick entry icons (provided by you in repo root, copied into assets)
 import homeIconInventors from '../../assets/icons/home/home-inventors.svg';
@@ -273,7 +274,6 @@ export default function HomePage() {
     Taro.navigateTo({ url: '/subpackages/search/index' });
   }, []);
   const goAnnouncements = useCallback(() => Taro.navigateTo({ url: '/subpackages/announcements/index' }), []);
-  const goClusterPicker = useCallback(() => Taro.navigateTo({ url: '/subpackages/cluster-picker/index' }), []);
   const goSleepingPatent = useCallback(() => {
     Taro.setStorageSync(STORAGE_KEYS.searchPrefill, {
       tab: 'LISTING',
@@ -287,6 +287,14 @@ export default function HomePage() {
     Taro.setStorageSync(STORAGE_KEYS.searchPrefill, {
       tab: 'LISTING',
       listingTopic: 'HIGH_TECH_RETIRED',
+      reset: true,
+    });
+    Taro.navigateTo({ url: '/subpackages/search/index' });
+  }, []);
+  const goAwardWinning = useCallback(() => {
+    Taro.setStorageSync(STORAGE_KEYS.searchPrefill, {
+      tab: 'LISTING',
+      listingTopic: 'AWARD_WINNING',
       reset: true,
     });
     Taro.navigateTo({ url: '/subpackages/search/index' });
@@ -326,6 +334,15 @@ export default function HomePage() {
   const patentZoneEntries: PatentZoneEntry[] = useMemo(
     () => [
       {
+        key: 'retired',
+        title: '退役专利',
+        desc: '平台审核通过的退役专利',
+        icon: iconShield,
+        bgImage: bgZoneHighTechRetired,
+        tone: 'tone-orange',
+        onClick: goHighTechRetired,
+      },
+      {
         key: 'sleeping',
         title: '沉睡专利',
         desc: '转让次数为 0 的专利',
@@ -335,13 +352,13 @@ export default function HomePage() {
         onClick: goSleepingPatent,
       },
       {
-        key: 'high-tech-retired',
-        title: '高新退役',
-        desc: '审核通过的优质专利',
-        icon: iconShield,
-        bgImage: bgZoneHighTechRetired,
-        tone: 'tone-orange',
-        onClick: goHighTechRetired,
+        key: 'award-winning',
+        title: '获奖专利',
+        desc: '平台标记的获奖专利',
+        icon: iconTrending,
+        bgImage: bgZoneAward,
+        tone: 'tone-green',
+        onClick: goAwardWinning,
       },
       {
         key: 'open-license',
@@ -352,17 +369,8 @@ export default function HomePage() {
         tone: 'tone-teal',
         onClick: goOpenLicense,
       },
-      {
-        key: 'cluster',
-        title: '产业集群',
-        desc: '按集群标签聚合展示',
-        icon: iconMap,
-        bgImage: bgZoneCluster,
-        tone: 'tone-green',
-        onClick: goClusterPicker,
-      },
     ],
-    [goClusterPicker, goHighTechRetired, goOpenLicense, goSleepingPatent],
+    [goAwardWinning, goHighTechRetired, goOpenLicense, goSleepingPatent],
   );
 
   return (

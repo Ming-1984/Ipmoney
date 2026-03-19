@@ -1,4 +1,4 @@
-# Test Report (Consolidated)
+﻿# Test Report (Consolidated)
 
 ## Latest (2026-03-15)
 
@@ -588,12 +588,9 @@
   - Notes: full API Vitest suite remained green after inventors query strict branch expansion.
 - `pnpm -C apps/api test:e2e`
   - Result: pass (`2/2`)
-- `pnpm -C apps/api test -- test/patent-clusters.filters.spec.ts`
   - Result: pass (`4/4`)
-  - Notes: expanded patent-clusters strict regression coverage for non-safe-integer `page/pageSize` rejection and out-of-range pagination with default `featuredInstitutions` fallback.
 - `pnpm -C apps/api test`
   - Result: pass (`611/611`)
-  - Notes: full API Vitest suite remained green after patent-clusters filter strict branch expansion.
 - `pnpm -C apps/api test:e2e`
   - Result: pass (`2/2`)
 - `pnpm -C apps/api test -- test/organizations.detail.spec.ts`
@@ -734,7 +731,6 @@
   - Result: success (all steps)
   - Render artifact: `docs/demo/rendered/ui-smoke-2026-03-14-r252b/` (core mode, 3 pages)
   - Gate summary: `api-real-smoke` `1754/1754` (`writes=1297`,`reads=457`), OpenAPI coverage `238/238`, quality floor `violations=[]`, plus `db-preflight/ui-http-smoke/ui-render-smoke(core)/ui-dom-smoke(core)` all pass.
-- `powershell -ExecutionPolicy Bypass -File scripts/ui-dom-smoke.ps1 -Mode full -ReportDate 2026-03-14-r252a -PageFilter client-publish-entry,client-patent-map-region-detail,client-tech-manager-detail,client-trade-rules,client-login,client-deposit-pay,client-deposit-success,client-final-pay,client-final-success,client-my-listings,client-my-demands,client-my-achievements,client-my-artworks,client-publish-demand,client-publish-achievement,client-publish-artwork,client-cluster-picker,client-settings-notifications,client-onboarding-choose-identity,client-onboarding-verification-form,client-region-picker,client-ipc-picker`
   - Result: pass (`22/22`, changed-page semantic hardening batch).
   - Notes: verified semantic selectors for publish/checkout/my-content/picker/onboarding routes before full-run promotion.
 - `powershell -ExecutionPolicy Bypass -File scripts/ui-dom-smoke.ps1 -Mode full -ReportDate 2026-03-14-r252b`
@@ -948,10 +944,10 @@
 - `powershell -ExecutionPolicy Bypass -File scripts/verify.ps1 -ApiBaseUrl https://staging-api.example.com -ApiPort 3200 -ReportDate 2026-02-24`
   - Result: success (all steps)
   - Builds: api/admin-web/client(h5/weapp) success; H5 entrypoint ~1.01 MiB (perf budgets: asset<=650KiB, entry<=1200KiB); WeApp `app-origin.wxss` ~159.6 KB; admin largest js chunk ~674 kB (gzip ~220 kB)
-  - API smoke: pass (17/17) → `.tmp/api-real-smoke-2026-02-24-summary.json`
-  - DB preflight: pass (failed=0) → `.tmp/db-preflight-2026-02-24-summary.json`
-  - UI HTTP smoke: pass (9/9) → `.tmp/ui-http-smoke-2026-02-24-summary.json`
-  - UI render smoke (core): pass (3/3) → `.tmp/ui-render-smoke-2026-02-24-summary.json`
+  - API smoke: pass (17/17) 鈫?`.tmp/api-real-smoke-2026-02-24-summary.json`
+  - DB preflight: pass (failed=0) 鈫?`.tmp/db-preflight-2026-02-24-summary.json`
+  - UI HTTP smoke: pass (9/9) 鈫?`.tmp/ui-http-smoke-2026-02-24-summary.json`
+  - UI render smoke (core): pass (3/3) 鈫?`.tmp/ui-render-smoke-2026-02-24-summary.json`
 - `powershell -ExecutionPolicy Bypass -File scripts/ui-render-smoke.ps1 -Mode full -ReportDate 2026-02-24`
   - Result: pass (26/26)
   - Artifacts: `docs/demo/rendered/ui-smoke-2026-02-24/`
@@ -960,8 +956,7 @@
   - Report: `.tmp/weapp-route-smoke-2026-02-24.json`
 
 ### Manual (pending)
-- WeApp 冒烟（真实 API）：首页 / 搜索 / 详情 / 消息 / 收藏 / 个人中心 / 发布（清单：`docs/engineering/weapp-manual-smoke-checklist.md`）
-
+- WeApp 鍐掔儫锛堢湡瀹?API锛夛細棣栭〉 / 鎼滅储 / 璇︽儏 / 娑堟伅 / 鏀惰棌 / 涓汉涓績 / 鍙戝竷锛堟竻鍗曪細`docs/engineering/weapp-manual-smoke-checklist.md`锛?
 ## Latest (2026-02-23)
 
 ### Commands & Results (dev)
@@ -969,7 +964,7 @@
   - Result: success (all steps)
 - `powershell -ExecutionPolicy Bypass -File scripts/start-dev.ps1 -EnableDemoAuth -SplitWindows`
   - Result: success
-  - Notes: Windows Prisma engine lock 规避（启动前自动停止 repo 内 api 进程）；UUID passthrough 默认关闭（需显式 `-AllowDemoUuidTokens` 才开启）
+  - Notes: Windows Prisma engine lock 瑙勯伩锛堝惎鍔ㄥ墠鑷姩鍋滄 repo 鍐?api 杩涚▼锛夛紱UUID passthrough 榛樿鍏抽棴锛堥渶鏄惧紡 `-AllowDemoUuidTokens` 鎵嶅紑鍚級
 - `TARO_APP_API_BASE_URL=https://staging-api.example.com pnpm -C apps/client build:h5`
   - Result: success (explicit webpack perf budgets: asset<=650KiB, entry<=1200KiB)
   - Notes: h5 entrypoint ~1.01 MiB; largest js assets: `js/app.js` ~573 KiB, `chunk/5015.js` ~538 KiB, `js/1101.js` ~299 KiB
@@ -1007,13 +1002,11 @@
 - `node scripts/weapp-route-smoke.js --no-auth`
   - Result: pass
   - Report: `.tmp/weapp-route-smoke-2026-02-23.json`
-  - Notes: 当前 DevTools 版本下 `App.getCurrentPage` 可能不完整（`getCurrentPagesByDomain` undefined）；该脚本仅做“可进入 + 无运行时异常”的路由级冒烟，不替代真机/手工点击
+  - Notes: 褰撳墠 DevTools 鐗堟湰涓?`App.getCurrentPage` 鍙兘涓嶅畬鏁达紙`getCurrentPagesByDomain` undefined锛夛紱璇ヨ剼鏈粎鍋氣€滃彲杩涘叆 + 鏃犺繍琛屾椂寮傚父鈥濈殑璺敱绾у啋鐑燂紝涓嶆浛浠ｇ湡鏈?鎵嬪伐鐐瑰嚮
 
 ### Manual (pending)
-- WeApp 冒烟（真实 API）：首页 / 搜索 / 详情 / 消息 / 收藏 / 个人中心 / 发布（清单：`docs/engineering/weapp-manual-smoke-checklist.md`）
-- WeApp 自动化截图（miniprogram-automator）：DevTools RC v1.06.2503281 `screenshot()` 超时（当前不可靠，先按手工冒烟为准）
-- WeApp 路由冒烟（可选，无截图）：`node scripts/weapp-route-smoke.js --cli-path <cli.bat> --project-path apps/client --user-token <DEMO_USER_TOKEN>`（用于验证核心路由可进入且无运行时异常；不替代真机/手工点击）
-
+- WeApp 鍐掔儫锛堢湡瀹?API锛夛細棣栭〉 / 鎼滅储 / 璇︽儏 / 娑堟伅 / 鏀惰棌 / 涓汉涓績 / 鍙戝竷锛堟竻鍗曪細`docs/engineering/weapp-manual-smoke-checklist.md`锛?- WeApp 鑷姩鍖栨埅鍥撅紙miniprogram-automator锛夛細DevTools RC v1.06.2503281 `screenshot()` 瓒呮椂锛堝綋鍓嶄笉鍙潬锛屽厛鎸夋墜宸ュ啋鐑熶负鍑嗭級
+- WeApp 璺敱鍐掔儫锛堝彲閫夛紝鏃犳埅鍥撅級锛歚node scripts/weapp-route-smoke.js --cli-path <cli.bat> --project-path apps/client --user-token <DEMO_USER_TOKEN>`锛堢敤浜庨獙璇佹牳蹇冭矾鐢卞彲杩涘叆涓旀棤杩愯鏃跺紓甯革紱涓嶆浛浠ｇ湡鏈?鎵嬪伐鐐瑰嚮锛?
 ## Latest (2026-02-22)
 
 ### Commands & Results (dev)
@@ -1066,7 +1059,7 @@
   - Details: `.tmp/ui-render-smoke-2026-02-22.json`
 
 ### Manual (pending)
-- WeApp 冒烟（真实 API）：首页 / 搜索 / 详情 / 消息 / 收藏 / 个人中心 / 发布
+- WeApp 鍐掔儫锛堢湡瀹?API锛夛細棣栭〉 / 鎼滅储 / 璇︽儏 / 娑堟伅 / 鏀惰棌 / 涓汉涓績 / 鍙戝竷
 
 ## Latest (2026-02-21)
 
@@ -1081,15 +1074,12 @@
   - Details: `.tmp/db-preflight-2026-02-21.json`
 
 ### Manual (pending)
-- WeApp 冒烟（真实 API）：首页 / 搜索 / 详情 / 消息 / 收藏 / 个人中心 / 发布
+- WeApp 鍐掔儫锛堢湡瀹?API锛夛細棣栭〉 / 鎼滅储 / 璇︽儏 / 娑堟伅 / 鏀惰棌 / 涓汉涓績 / 鍙戝竷
 
 ## Latest (2026-02-20)
 
 ### Notes
-- 项目目录已更名为 `Patent_valuation`，执行 `pnpm install --force --prefer-offline` 重建 pnpm 软链接。
-- OpenAPI 覆盖审计脚本已修复 TS 泛型 `>>` 误报。
-- 已清理 build 缓存后重新验证（client dist/.taro/.temp/.cache、admin-web dist、api dist）。
-
+- 椤圭洰鐩綍宸叉洿鍚嶄负 `Patent_valuation`锛屾墽琛?`pnpm install --force --prefer-offline` 閲嶅缓 pnpm 杞摼鎺ャ€?- OpenAPI 瑕嗙洊瀹¤鑴氭湰宸蹭慨澶?TS 娉涘瀷 `>>` 璇姤銆?- 宸叉竻鐞?build 缂撳瓨鍚庨噸鏂伴獙璇侊紙client dist/.taro/.temp/.cache銆乤dmin-web dist銆乤pi dist锛夈€?
 ### Commands & Results (post-rename recheck)
 - `pnpm -C apps/client build:weapp`
   - Result: success
@@ -1115,8 +1105,7 @@
 - `node scripts/audit-coverage.mjs`
   - Result: success
   - Report: `docs/engineering/openapi-coverage.md`
-  - Unused endpoints: 5（AI P1，已标记暂缓）
-
+  - Unused endpoints: 5锛圓I P1锛屽凡鏍囪鏆傜紦锛?
 - `pnpm -C apps/admin-web typecheck`
   - Result: success
 
@@ -1124,8 +1113,7 @@
   - Result: success
 
 - `pnpm -C apps/api prisma:generate`
-  - Result: success（Prisma Client 重新生成）
-
+  - Result: success锛圥risma Client 閲嶆柊鐢熸垚锛?
 - `pnpm -C apps/api typecheck`
   - Result: success
 
@@ -1148,7 +1136,7 @@
   - Details: `.tmp/ui-http-smoke-2026-02-20.json`
 
 - `powershell -File scripts/api-real-smoke.ps1 -ReportDate 2026-02-20`
-  - Result: fail（API 未就绪）
+  - Result: fail锛圓PI 鏈氨缁級
   - Error: `api not ready: http://127.0.0.1:3000/health`
 
 ### Previous Run (2026-02-20, not re-run after rename)

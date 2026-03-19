@@ -625,23 +625,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/public/patent-clusters": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** List patent clusters for the cluster picker */
-        get: operations["listPatentClusters"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/public/organizations/{orgUserId}": {
         parameters: {
             query?: never;
@@ -3760,7 +3743,6 @@ export interface components {
             regionCode?: string;
             industryTags?: string[];
             listingTopics?: components["schemas"]["ListingTopic"][];
-            clusterId?: string;
             featuredLevel?: components["schemas"]["FeaturedLevel"];
             /** @description 省/市级特色产业专利的生效区域（adcode） */
             featuredRegionCode?: string;
@@ -3888,7 +3870,6 @@ export interface components {
             regionCode?: string;
             industryTags?: string[];
             listingTopics?: components["schemas"]["ListingTopic"][];
-            clusterId?: string;
             ipcCodes?: string[];
             locCodes?: string[];
             media?: components["schemas"]["ListingMedia"][];
@@ -3935,7 +3916,6 @@ export interface components {
             regionCode?: string;
             industryTags?: string[];
             listingTopics?: components["schemas"]["ListingTopic"][];
-            clusterId?: string;
             ipcCodes?: string[];
             locCodes?: string[];
             media?: components["schemas"]["ListingMedia"][];
@@ -3952,33 +3932,6 @@ export interface components {
              * @description 过期时间（为空表示长期）
              */
             featuredUntil?: string;
-        };
-        PatentClusterSummary: {
-            id: string;
-            name: string;
-            regionName?: string | null;
-            industryTags?: string[] | null;
-            summary?: string | null;
-            patentCount?: number | null;
-            listingCount?: number | null;
-            institutionCount?: number | null;
-            /** Format: date-time */
-            updatedAt?: string | null;
-            coverUrl?: string | null;
-        };
-        PatentClusterInstitutionSummary: {
-            id: string;
-            name: string;
-            regionName?: string | null;
-            tags?: string[] | null;
-            patentCount?: number | null;
-            listingCount?: number | null;
-            logoUrl?: string | null;
-        };
-        PagedPatentClusters: {
-            items: components["schemas"]["PatentClusterSummary"][];
-            featuredInstitutions?: components["schemas"]["PatentClusterInstitutionSummary"][] | null;
-            page: components["schemas"]["PageMeta"];
         };
         PageMeta: {
             page: number;
@@ -4002,7 +3955,7 @@ export interface components {
         /** @enum {string} */
         ArtworkSortBy: "RECOMMENDED" | "NEWEST" | "PRICE_ASC" | "PRICE_DESC";
         /** @enum {string} */
-        ListingTopic: "HIGH_TECH_RETIRED" | "CLUSTER_FEATURED";
+        ListingTopic: "HIGH_TECH_RETIRED" | "AWARD_WINNING";
         /** @enum {string} */
         TechManagerSortBy: "RECOMMENDED" | "NEWEST";
         /** @enum {string} */
@@ -4338,6 +4291,11 @@ export interface components {
             patentCount: number;
             /** @description 关联到的上架数量（可用于参考） */
             listingCount: number;
+            /**
+             * Format: uri
+             * @description 头像地址（实名信息匹配到用户时返回）
+             */
+            avatarUrl?: string | null;
         };
         PagedInventorRanking: {
             items: components["schemas"]["InventorRankingItem"][];
@@ -5524,8 +5482,6 @@ export interface components {
         TransferCountMax: number;
         /** @description 专利专题入口（特色专区筛选） */
         ListingTopic: components["schemas"]["ListingTopic"];
-        /** @description 产业集群标识 */
-        ClusterId: string;
         /** @description 发布时间起始（YYYY-MM-DD） */
         CreatedFrom: string;
         /** @description 发布时间截止（YYYY-MM-DD） */
@@ -6292,6 +6248,7 @@ export interface operations {
                     "application/json": components["schemas"]["FileTemporaryAccessResponse"];
                 };
             };
+            400: components["responses"]["BadRequest"];
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
@@ -6662,30 +6619,6 @@ export interface operations {
             400: components["responses"]["BadRequest"];
         };
     };
-    listPatentClusters: {
-        parameters: {
-            query?: {
-                page?: components["parameters"]["Page"];
-                pageSize?: components["parameters"]["PageSize"];
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["PagedPatentClusters"];
-                };
-            };
-            400: components["responses"]["BadRequest"];
-        };
-    };
     getPublicOrganizationById: {
         parameters: {
             query?: never;
@@ -6836,8 +6769,6 @@ export interface operations {
                 transferCountMax?: components["parameters"]["TransferCountMax"];
                 /** @description 专利专题入口（特色专区筛选） */
                 listingTopic?: components["parameters"]["ListingTopic"];
-                /** @description 产业集群标识 */
-                clusterId?: components["parameters"]["ClusterId"];
                 /** @description 行政区划 adcode（6 位字符串） */
                 regionCode?: components["parameters"]["RegionCode"];
                 /** @description 产业标签过滤（可多选） */
@@ -7420,6 +7351,7 @@ export interface operations {
                     "application/json": components["schemas"]["PagedDemand"];
                 };
             };
+            400: components["responses"]["BadRequest"];
             401: components["responses"]["Unauthorized"];
         };
     };
@@ -7668,6 +7600,7 @@ export interface operations {
                     "application/json": components["schemas"]["PagedAchievement"];
                 };
             };
+            400: components["responses"]["BadRequest"];
             401: components["responses"]["Unauthorized"];
         };
     };
@@ -7977,6 +7910,7 @@ export interface operations {
                     "application/json": components["schemas"]["PagedArtwork"];
                 };
             };
+            400: components["responses"]["BadRequest"];
             401: components["responses"]["Unauthorized"];
         };
     };
@@ -8227,6 +8161,7 @@ export interface operations {
                     "application/json": components["schemas"]["PagedOrder"];
                 };
             };
+            400: components["responses"]["BadRequest"];
             401: components["responses"]["Unauthorized"];
         };
     };
@@ -8475,6 +8410,7 @@ export interface operations {
                     "application/json": components["schemas"]["PagedInvoiceItem"];
                 };
             };
+            400: components["responses"]["BadRequest"];
             401: components["responses"]["Unauthorized"];
         };
     };
@@ -9154,6 +9090,7 @@ export interface operations {
                     "application/json": components["schemas"]["PagedContract"];
                 };
             };
+            400: components["responses"]["BadRequest"];
             401: components["responses"]["Unauthorized"];
         };
     };
@@ -9314,6 +9251,7 @@ export interface operations {
                     "application/json": components["schemas"]["PagedAiParseResult"];
                 };
             };
+            400: components["responses"]["BadRequest"];
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
         };
@@ -9398,6 +9336,7 @@ export interface operations {
                     "application/json": components["schemas"]["PagedPatent"];
                 };
             };
+            400: components["responses"]["BadRequest"];
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
         };
@@ -9510,6 +9449,7 @@ export interface operations {
                     "application/json": components["schemas"]["PagedPatentMaintenanceSchedule"];
                 };
             };
+            400: components["responses"]["BadRequest"];
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
         };
@@ -9621,6 +9561,7 @@ export interface operations {
                     "application/json": components["schemas"]["PagedPatentMaintenanceTask"];
                 };
             };
+            400: components["responses"]["BadRequest"];
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
         };
@@ -9715,6 +9656,7 @@ export interface operations {
                     "application/json": components["schemas"]["PagedAlertEvent"];
                 };
             };
+            400: components["responses"]["BadRequest"];
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
         };
@@ -9773,6 +9715,7 @@ export interface operations {
                     "application/json": components["schemas"]["PagedListing"];
                 };
             };
+            400: components["responses"]["BadRequest"];
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
         };
@@ -10037,6 +9980,7 @@ export interface operations {
                     "application/json": components["schemas"]["PagedDemand"];
                 };
             };
+            400: components["responses"]["BadRequest"];
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
         };
@@ -10267,6 +10211,7 @@ export interface operations {
                     "application/json": components["schemas"]["PagedAchievement"];
                 };
             };
+            400: components["responses"]["BadRequest"];
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
         };
@@ -10496,6 +10441,7 @@ export interface operations {
                     "application/json": components["schemas"]["PagedArtwork"];
                 };
             };
+            400: components["responses"]["BadRequest"];
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
         };
@@ -10723,6 +10669,7 @@ export interface operations {
                     "application/json": components["schemas"]["PagedTechManagerSummary"];
                 };
             };
+            400: components["responses"]["BadRequest"];
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
         };
@@ -10787,6 +10734,7 @@ export interface operations {
                     "application/json": components["schemas"]["PagedComment"];
                 };
             };
+            400: components["responses"]["BadRequest"];
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
         };
@@ -10847,6 +10795,7 @@ export interface operations {
                     "application/json": components["schemas"]["PagedUserVerification"];
                 };
             };
+            400: components["responses"]["BadRequest"];
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
         };
@@ -11337,6 +11286,7 @@ export interface operations {
                     "application/json": components["schemas"]["PagedAnnouncement"];
                 };
             };
+            400: components["responses"]["BadRequest"];
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
         };

@@ -1005,25 +1005,6 @@ paths:
         "400":
           $ref: "#/components/responses/BadRequest"
 
-  /public/patent-clusters:
-    get:
-      tags: [Search]
-      summary: List patent clusters for the cluster picker
-      operationId: listPatentClusters
-      security: []
-      parameters:
-        - $ref: "#/components/parameters/Page"
-        - $ref: "#/components/parameters/PageSize"
-      responses:
-        "200":
-          description: OK
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/PagedPatentClusters"
-        "400":
-          $ref: "#/components/responses/BadRequest"
-
   /public/organizations/{orgUserId}:
     get:
       tags: [Organizations]
@@ -1186,7 +1167,6 @@ paths:
         - $ref: "#/components/parameters/TransferCountMin"
         - $ref: "#/components/parameters/TransferCountMax"
         - $ref: "#/components/parameters/ListingTopic"
-        - $ref: "#/components/parameters/ClusterId"
         - $ref: "#/components/parameters/RegionCode"
         - $ref: "#/components/parameters/IndustryTags"
         - $ref: "#/components/parameters/Ipc"
@@ -6694,13 +6674,6 @@ components:
       schema:
         $ref: "#/components/schemas/ListingTopic"
       description: 专利专题入口（特色专区筛选）
-    ClusterId:
-      name: clusterId
-      in: query
-      required: false
-      schema:
-        type: string
-      description: 产业集群标识
     CreatedFrom:
       name: createdFrom
       in: query
@@ -8120,8 +8093,6 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/ListingTopic"
-        clusterId:
-          type: string
         featuredLevel:
           $ref: "#/components/schemas/FeaturedLevel"
         featuredRegionCode:
@@ -8366,8 +8337,6 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/ListingTopic"
-        clusterId:
-          type: string
         ipcCodes:
           type: array
           items:
@@ -8472,8 +8441,6 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/ListingTopic"
-        clusterId:
-          type: string
         ipcCodes:
           type: array
           items:
@@ -8508,89 +8475,6 @@ components:
           type: string
           format: date-time
           description: 过期时间（为空表示长期）
-
-    PatentClusterSummary:
-      type: object
-      required: [id, name]
-      properties:
-        id:
-          type: string
-        name:
-          type: string
-        regionName:
-          type: string
-          nullable: true
-        industryTags:
-          type: array
-          nullable: true
-          items:
-            type: string
-        summary:
-          type: string
-          nullable: true
-        patentCount:
-          type: integer
-          minimum: 0
-          nullable: true
-        listingCount:
-          type: integer
-          minimum: 0
-          nullable: true
-        institutionCount:
-          type: integer
-          minimum: 0
-          nullable: true
-        updatedAt:
-          type: string
-          format: date-time
-          nullable: true
-        coverUrl:
-          type: string
-          nullable: true
-
-    PatentClusterInstitutionSummary:
-      type: object
-      required: [id, name]
-      properties:
-        id:
-          type: string
-        name:
-          type: string
-        regionName:
-          type: string
-          nullable: true
-        tags:
-          type: array
-          nullable: true
-          items:
-            type: string
-        patentCount:
-          type: integer
-          minimum: 0
-          nullable: true
-        listingCount:
-          type: integer
-          minimum: 0
-          nullable: true
-        logoUrl:
-          type: string
-          nullable: true
-
-    PagedPatentClusters:
-      type: object
-      required: [items, page]
-      properties:
-        items:
-          type: array
-          items:
-            $ref: "#/components/schemas/PatentClusterSummary"
-        featuredInstitutions:
-          type: array
-          nullable: true
-          items:
-            $ref: "#/components/schemas/PatentClusterInstitutionSummary"
-        page:
-          $ref: "#/components/schemas/PageMeta"
 
     PageMeta:
       type: object
@@ -8646,7 +8530,7 @@ components:
 
     ListingTopic:
       type: string
-      enum: [HIGH_TECH_RETIRED, CLUSTER_FEATURED]
+      enum: [HIGH_TECH_RETIRED, AWARD_WINNING]
 
     TechManagerSortBy:
       type: string

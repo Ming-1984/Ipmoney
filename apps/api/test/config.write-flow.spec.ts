@@ -206,20 +206,4 @@ describe('ConfigService extended write flow suite', () => {
     });
   });
 
-  it('getPatentClusters merges partial payload and falls back updatedAt', async () => {
-    prisma.systemConfig.findUnique.mockResolvedValueOnce({
-      key: 'patent_clusters_config',
-      value: JSON.stringify({
-        items: [{ id: 'c-1', name: 'Cluster A' }],
-      }),
-      version: 1,
-      updatedAt: new Date('2026-03-13T04:00:00.000Z'),
-    });
-
-    const result = await service.getPatentClusters();
-
-    expect(result.items).toEqual([{ id: 'c-1', name: 'Cluster A' }]);
-    expect(Array.isArray(result.featuredInstitutions)).toBe(true);
-    expect(result.updatedAt).toBe('2026-03-13T04:00:00.000Z');
-  });
 });

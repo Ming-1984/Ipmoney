@@ -1694,6 +1694,11 @@ function maybeSendDynamic(req, res, { method, url, scenario, requestBody }) {
     const tradeMode = String(url.searchParams.get('tradeMode') || '').trim();
     const priceType = String(url.searchParams.get('priceType') || '').trim();
     const regionCode = String(url.searchParams.get('regionCode') || '').trim();
+    const listingTopic = String(url.searchParams.get('listingTopic') || '').trim().toUpperCase();
+    const listingTopics = url.searchParams
+      .getAll('listingTopics')
+      .map((v) => String(v || '').trim().toUpperCase())
+      .filter(Boolean);
     const ipc = String(url.searchParams.get('ipc') || '').trim().toLowerCase().replace(/\s+/g, '');
     const loc = String(url.searchParams.get('loc') || '').trim().toLowerCase().replace(/\s+/g, '');
     const legalStatus = String(url.searchParams.get('legalStatus') || '').trim();
@@ -1704,6 +1709,8 @@ function maybeSendDynamic(req, res, { method, url, scenario, requestBody }) {
     const priceMaxFen = readNum('priceMaxFen');
     const depositMinFen = readNum('depositMinFen');
     const depositMaxFen = readNum('depositMaxFen');
+    const transferCountMin = readNum('transferCountMin');
+    const transferCountMax = readNum('transferCountMax');
 
     const page = Math.max(1, Number(url.searchParams.get('page') || 1));
     const pageSize = Math.max(1, Math.min(100, Number(url.searchParams.get('pageSize') || 10)));
@@ -1733,6 +1740,31 @@ function maybeSendDynamic(req, res, { method, url, scenario, requestBody }) {
       if (tradeMode && String(it.tradeMode || '') !== tradeMode) return false;
       if (priceType && String(it.priceType || '') !== priceType) return false;
       if (regionCode && String(it.regionCode || '') !== regionCode) return false;
+
+      const itTopics = Array.isArray(it.listingTopics)
+        ? it.listingTopics.map((v) => String(v || '').trim().toUpperCase()).filter(Boolean)
+        : [];
+      const expectedTopics = [
+        ...(listingTopic ? [listingTopic] : []),
+        ...(listingTopics.length ? listingTopics : []),
+      ].filter(Boolean);
+      if (expectedTopics.length) {
+        let ok = false;
+        for (const t of expectedTopics) {
+          if (itTopics.includes(t)) {
+            ok = true;
+            break;
+          }
+        }
+        if (!ok) return false;
+      }
+
+      if (transferCountMin !== null || transferCountMax !== null) {
+        const tc = Number.isFinite(Number(it.transferCount)) ? Number(it.transferCount) : null;
+        if (tc === null) return false;
+        if (transferCountMin !== null && tc < transferCountMin) return false;
+        if (transferCountMax !== null && tc > transferCountMax) return false;
+      }
 
       if (priceMinFen !== null || priceMaxFen !== null) {
         const price = it.priceAmountFen;

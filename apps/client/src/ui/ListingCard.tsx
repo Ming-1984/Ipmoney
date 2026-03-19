@@ -10,7 +10,7 @@ import { regionDisplayName } from '../lib/regions';
 import iconAward from '../assets/icons/icon-award-teal.svg';
 
 type ListingSummary = components['schemas']['ListingSummary'];
-type ListingTopic = 'HIGH_TECH_RETIRED' | 'CLUSTER_FEATURED';
+type ListingTopic = 'HIGH_TECH_RETIRED' | 'AWARD_WINNING';
 type ListingSummaryExtra = ListingSummary & {
   ipcCodes?: string[];
   publisher?: components['schemas']['OrganizationSummary'];
@@ -19,7 +19,6 @@ type ListingSummaryExtra = ListingSummary & {
   transferTimes?: number;
   listingTopic?: ListingTopic | '';
   listingTopics?: ListingTopic[];
-  clusterName?: string;
 };
 
 export function ListingCard(props: {
@@ -52,15 +51,8 @@ export function ListingCard(props: {
     : extra.listingTopic
       ? [extra.listingTopic]
       : [];
-  if (listingTopics.includes('HIGH_TECH_RETIRED')) specialTags.push({ label: '高新退役', tone: 'green' });
-  if (
-    listingTopics.includes('CLUSTER_FEATURED') ||
-    (it.featuredLevel && it.featuredLevel !== 'NONE') ||
-    Boolean(it.featuredRegionCode)
-  ) {
-    const clusterLabel = extra.clusterName ? `产业集群·${extra.clusterName}` : '产业集群';
-    specialTags.push({ label: clusterLabel, tone: 'green' });
-  }
+  if (listingTopics.includes('HIGH_TECH_RETIRED')) specialTags.push({ label: '退役专利', tone: 'green' });
+  if (listingTopics.includes('AWARD_WINNING')) specialTags.push({ label: '获奖专利', tone: 'green' });
   if (it.patentType) tags.push({ label: patentTypeLabel(it.patentType, { empty: '' }), tone: 'slate' });
   if (it.tradeMode) tags.push({ label: tradeModeLabel(it.tradeMode, { empty: '' }), tone: 'green' });
   if (region) tags.push({ label: region, tone: 'slate' });

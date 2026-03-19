@@ -34,7 +34,6 @@ function buildListing(overrides: Record<string, unknown> = {}) {
     industryTagsJson: ['AI'],
     listingTopicsJson: ['AI'],
     proofFileIdsJson: ['file-1'],
-    clusterId: '440304',
     auditStatus: 'PENDING',
     status: 'DRAFT',
     featuredLevel: 'NONE',
@@ -103,7 +102,6 @@ describe('ListingsService write flow suite', () => {
         deliverablesJson: ['deliver-1'],
         expectedCompletionDays: 30,
         regionCode: '440300',
-        clusterId: '440304',
         pledgeStatus: 'PLEDGED',
         existingLicenseStatus: 'NON_EXCLUSIVE',
         encumbranceNote: 'encumbrance',
@@ -123,7 +121,6 @@ describe('ListingsService write flow suite', () => {
       deliverables: [' deliver-1 '],
       expectedCompletionDays: '30',
       regionCode: '440300',
-      clusterId: '440304',
       pledgeStatus: 'pledged',
       existingLicenseStatus: 'non_exclusive',
       encumbranceNote: ' encumbrance ',
@@ -147,7 +144,6 @@ describe('ListingsService write flow suite', () => {
           deliverablesJson: ['deliver-1'],
           expectedCompletionDays: 30,
           regionCode: '440300',
-          clusterId: '440304',
           pledgeStatus: 'PLEDGED',
           existingLicenseStatus: 'NON_EXCLUSIVE',
           encumbranceNote: 'encumbrance',
@@ -200,7 +196,6 @@ describe('ListingsService write flow suite', () => {
         existingLicenseStatus: 'UNKNOWN',
         encumbranceNote: 'clean',
         regionCode: null,
-        clusterId: null,
       }),
     );
 
@@ -220,7 +215,6 @@ describe('ListingsService write flow suite', () => {
       existingLicenseStatus: 'unknown',
       encumbranceNote: ' clean ',
       regionCode: null,
-      clusterId: null,
     });
 
     expect(prisma.listing.update).toHaveBeenCalledWith({
@@ -241,7 +235,6 @@ describe('ListingsService write flow suite', () => {
         existingLicenseStatus: 'UNKNOWN',
         encumbranceNote: 'clean',
         regionCode: null,
-        clusterId: null,
       }),
     });
     expect(result).toMatchObject({
