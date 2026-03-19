@@ -390,9 +390,15 @@ export default function HomePage() {
             </View>
             <View className="home-hero-text">
               <Text className="home-hero-title">IPMONEY</Text>
-              <Text className="home-hero-subtitle">专利 & 书画交易</Text>
+              <Text className="home-hero-subtitle">专利 & 商标交易</Text>
             </View>
           </View>
+        </View>
+
+        <View className="home-hero-tags">
+          <Text className="home-hero-tag">0元专利托管</Text>
+          <Text className="home-hero-tag">0元代办过户</Text>
+          <Text className="home-hero-tag">0元风险交易</Text>
         </View>
 
         <View className="home-search">
@@ -403,7 +409,7 @@ export default function HomePage() {
             onInput={(e) => setKeyword(e.detail.value)}
             onFocus={() => goSearch()}
             onConfirm={() => goSearch(keyword)}
-            placeholder="搜索专利、书画、专家…"
+            placeholder="开始寻找被你发现的IP"
             placeholderClass="home-search-placeholder"
           />
           <View className="home-search-btn" onClick={() => goSearch(keyword)}>
