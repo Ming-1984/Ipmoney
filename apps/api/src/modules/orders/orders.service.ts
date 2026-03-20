@@ -496,7 +496,7 @@ export class OrdersService {
     };
   }
 
-  async createOrder(req: any, body: { listingId?: string; artworkId?: string }) {
+  async createOrder(req: any, body: { listingId?: string }) {
     this.ensureAuth(req);
     const rawListingId = String(body?.listingId || '').trim();
     if (!rawListingId) {

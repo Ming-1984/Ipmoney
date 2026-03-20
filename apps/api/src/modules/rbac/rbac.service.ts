@@ -39,7 +39,6 @@ const PERMISSIONS: Permission[] = [
   { id: 'verification.review', name: 'Verification Review', description: 'Approve or reject verification' },
   { id: 'listing.read', name: 'Listing Read', description: 'View listing details' },
   { id: 'listing.audit', name: 'Listing Audit', description: 'Audit listing content' },
-  { id: 'announcement.manage', name: 'Announcement Manage', description: 'Manage platform announcements' },
   { id: 'order.read', name: 'Order Read', description: 'View order details' },
   { id: 'case.manage', name: 'Case Manage', description: 'Create, assign, and track cases' },
   { id: 'maintenance.manage', name: 'Maintenance Manage', description: 'Manage patent maintenance schedules and tasks' },

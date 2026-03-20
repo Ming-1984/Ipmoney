@@ -252,36 +252,12 @@ export class FilesService {
 
     if (contractHit || invoiceHit) return true;
 
-    const [listingHit, demandHit, achievementHit, artworkHit, orgLogoHit, messageHit, caseEvidenceHit] = await Promise.all([
+    const [listingHit, orgLogoHit, messageHit, caseEvidenceHit] = await Promise.all([
       this.prisma.listing.findFirst({
         where: {
           auditStatus: 'APPROVED',
           status: { in: ['ACTIVE', 'SOLD'] },
           media: { some: { fileId } },
-        },
-        select: { id: true },
-      }),
-      this.prisma.demand.findFirst({
-        where: {
-          auditStatus: 'APPROVED',
-          status: 'ACTIVE',
-          OR: [{ coverFileId: fileId }, { media: { some: { fileId } } }],
-        },
-        select: { id: true },
-      }),
-      this.prisma.achievement.findFirst({
-        where: {
-          auditStatus: 'APPROVED',
-          status: 'ACTIVE',
-          OR: [{ coverFileId: fileId }, { media: { some: { fileId } } }],
-        },
-        select: { id: true },
-      }),
-      this.prisma.artwork.findFirst({
-        where: {
-          auditStatus: 'APPROVED',
-          status: { in: ['ACTIVE', 'SOLD'] },
-          OR: [{ coverFileId: fileId }, { media: { some: { fileId } } }],
         },
         select: { id: true },
       }),
@@ -314,6 +290,6 @@ export class FilesService {
       }),
     ]);
 
-    return !!(listingHit || demandHit || achievementHit || artworkHit || orgLogoHit || messageHit || caseEvidenceHit);
+    return !!(listingHit || orgLogoHit || messageHit || caseEvidenceHit);
   }
 }

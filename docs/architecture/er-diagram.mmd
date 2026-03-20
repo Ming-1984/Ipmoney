@@ -1,4 +1,4 @@
-﻿erDiagram
+erDiagram
   USERS {
     uuid id PK
     string phone
@@ -44,7 +44,6 @@
 
 
 
-  ANNOUNCEMENTS {
     uuid id PK
     string type "PATENT"
     string title
@@ -196,7 +195,6 @@
     string url
     string mime_type
     int size_bytes
-    string owner_scope "LISTING/DEMAND/ACHIEVEMENT/ARTWORK/CASE/REFUND_REQUEST/INVOICE/USER/USER_VERIFICATION/MESSAGE/AI_PARSE/MAINTENANCE_TASK/PATENT_CLUSTER"
     uuid owner_id
     datetime created_at
   }
@@ -235,7 +233,6 @@
     datetime updated_at
   }
 
-  DEMANDS {
     uuid id PK
     uuid publisher_user_id FK
     string title
@@ -260,23 +257,17 @@
     datetime updated_at
   }
 
-  DEMAND_MEDIA {
     uuid id PK
-    uuid demand_id FK
     uuid file_id FK
     string type "IMAGE/VIDEO/FILE"
     int sort
   }
 
-  DEMAND_FAVORITES {
     uuid id PK
-    uuid demand_id FK
     uuid user_id FK
     datetime created_at
   }
 
-  DEMAND_STATS {
-    uuid demand_id PK
     int view_count
     int favorite_count
     int consult_count
@@ -284,7 +275,6 @@
     datetime updated_at
   }
 
-  ACHIEVEMENTS {
     uuid id PK
     uuid publisher_user_id FK
     string title
@@ -303,25 +293,18 @@
     datetime updated_at
   }
 
-  ACHIEVEMENT_MEDIA {
     uuid id PK
-    uuid achievement_id FK
     uuid file_id FK
     string type "IMAGE/VIDEO/FILE"
     int sort
   }
 
-  %% 鎴愭灉璇︽儏濯掍綋灞曠ず锛氬皝闈娇鐢?cover_file_id锛涙洿澶氬浘鐗囨潵鑷?ACHIEVEMENT_MEDIA(type=IMAGE)锛屽墠绔互鍥鹃泦灞曠ず骞跺彲鍗曞浘棰勮
 
-  ACHIEVEMENT_FAVORITES {
     uuid id PK
-    uuid achievement_id FK
     uuid user_id FK
     datetime created_at
   }
 
-  ACHIEVEMENT_STATS {
-    uuid achievement_id PK
     int view_count
     int favorite_count
     int consult_count
@@ -329,7 +312,6 @@
     datetime updated_at
   }
 
-  ARTWORKS {
     uuid id PK
     uuid seller_user_id FK
     string title
@@ -355,23 +337,17 @@
     datetime updated_at
   }
 
-  ARTWORK_MEDIA {
     uuid id PK
-    uuid artwork_id FK
     uuid file_id FK
     string type "IMAGE/VIDEO/FILE"
     int sort
   }
 
-  ARTWORK_FAVORITES {
     uuid id PK
-    uuid artwork_id FK
     uuid user_id FK
     datetime created_at
   }
 
-  ARTWORK_STATS {
-    uuid artwork_id PK
     int view_count
     int favorite_count
     int consult_count
@@ -422,7 +398,6 @@
 
   CONTENT_EVENTS {
     uuid id PK
-    string content_type "LISTING/DEMAND/ACHIEVEMENT/ARTWORK"
     uuid content_id
     string event_type "VIEW/FAVORITE/CONSULT"
     string actor_key
@@ -442,7 +417,6 @@
   ORDERS {
     uuid id PK
     uuid listing_id FK
-    uuid artwork_id FK
     uuid buyer_user_id FK
     uuid assigned_cs_user_id FK
     string status
@@ -471,7 +445,6 @@
 
   CONVERSATIONS {
     uuid id PK
-    string content_type "LISTING/DEMAND/ACHIEVEMENT/ARTWORK/TECH_MANAGER"
     uuid content_id FK
     uuid order_id FK
     uuid buyer_user_id FK
@@ -502,7 +475,6 @@
 
   COMMENTS {
     uuid id PK
-    string content_type "LISTING/DEMAND/ACHIEVEMENT/ARTWORK"
     uuid content_id FK
     uuid parent_comment_id FK
     uuid user_id FK
@@ -604,7 +576,6 @@
 
   AI_PARSE_RESULTS {
     uuid id PK
-    string content_type "LISTING/DEMAND/ACHIEVEMENT/ARTWORK"
     uuid content_id FK
     string summary_plain
     string features_plain
@@ -655,7 +626,6 @@
     string severity "LOW/MEDIUM/HIGH"
     string channel "SMS/EMAIL/IN_APP"
     string status "PENDING/SENT/ACKED/SUPPRESSED"
-    string target_type "PATENT/ORDER/LISTING/DEMAND/ACHIEVEMENT/ARTWORK/AI_PARSE/IMPORT/PAYMENT/REFUND/SYSTEM"
     uuid target_id
     datetime triggered_at
     datetime sent_at
@@ -714,14 +684,8 @@
   USERS ||--|| TECH_MANAGER_PROFILES : profiles
   REGIONS ||--o{ USERS : located_in
   USERS ||--o{ LISTINGS : publishes
-  USERS ||--o{ DEMANDS : publishes
-  USERS ||--o{ ACHIEVEMENTS : publishes
-  USERS ||--o{ ARTWORKS : publishes
   USERS ||--o{ ORDERS : places
   USERS ||--o{ LISTING_FAVORITES : favorites
-  USERS ||--o{ DEMAND_FAVORITES : favorites
-  USERS ||--o{ ACHIEVEMENT_FAVORITES : favorites
-  USERS ||--o{ ARTWORK_FAVORITES : favorites
   USERS ||--o{ LISTING_CONSULT_EVENTS : consults
   USERS ||--o{ USER_TAG_SCORES : prefers
   USERS ||--o{ CONVERSATION_PARTICIPANTS : participates
@@ -735,7 +699,6 @@
   USERS ||--o{ AI_PARSE_FEEDBACKS : reviews
   USERS ||--o{ RBAC_USER_ROLES : roles
   USERS ||--o{ PATENT_MAINTENANCE_TASKS : assigned
-  USERS ||--o{ ANNOUNCEMENTS : publishes
 
   RBAC_ROLES ||--o{ RBAC_USER_ROLES : members
 
@@ -755,50 +718,22 @@
   LISTINGS ||--o{ LISTING_CONSULT_EVENTS : consulted
   REGIONS ||--o{ LISTINGS : located_in
 
-  ARTWORKS ||--o{ ORDERS : generates
 
-  DEMANDS ||--o{ DEMAND_MEDIA : has
-  DEMANDS ||--o{ DEMAND_FAVORITES : favored
-  DEMANDS ||--|| DEMAND_STATS : stats
-  REGIONS ||--o{ DEMANDS : located_in
 
-  ACHIEVEMENTS ||--o{ ACHIEVEMENT_MEDIA : has
-  ACHIEVEMENTS ||--o{ ACHIEVEMENT_FAVORITES : favored
-  ACHIEVEMENTS ||--|| ACHIEVEMENT_STATS : stats
-  REGIONS ||--o{ ACHIEVEMENTS : located_in
 
-  ARTWORKS ||--o{ ARTWORK_MEDIA : has
-  ARTWORKS ||--o{ ARTWORK_FAVORITES : favored
-  ARTWORKS ||--|| ARTWORK_STATS : stats
-  REGIONS ||--o{ ARTWORKS : located_in
 
   %% Polymorphic links via content_type/content_id
   USERS ||--o{ CONTENT_EVENTS : events
   LISTINGS ||--o{ CONTENT_EVENTS : events
-  DEMANDS ||--o{ CONTENT_EVENTS : events
-  ACHIEVEMENTS ||--o{ CONTENT_EVENTS : events
-  ARTWORKS ||--o{ CONTENT_EVENTS : events
   LISTINGS ||--o{ CONVERSATIONS : discussed_in
-  DEMANDS ||--o{ CONVERSATIONS : discussed_in
-  ACHIEVEMENTS ||--o{ CONVERSATIONS : discussed_in
-  ARTWORKS ||--o{ CONVERSATIONS : discussed_in
   LISTINGS ||--o{ COMMENTS : commented_in
-  DEMANDS ||--o{ COMMENTS : commented_in
-  ACHIEVEMENTS ||--o{ COMMENTS : commented_in
-  ARTWORKS ||--o{ COMMENTS : commented_in
 
   AI_PARSE_RESULTS ||--o{ AI_PARSE_FEEDBACKS : feedback
   LISTINGS ||--o{ AI_PARSE_RESULTS : parsed
-  DEMANDS ||--o{ AI_PARSE_RESULTS : parsed
-  ACHIEVEMENTS ||--o{ AI_PARSE_RESULTS : parsed
-  ARTWORKS ||--o{ AI_PARSE_RESULTS : parsed
 
   PATENT_MAINTENANCE_SCHEDULES ||--o{ PATENT_MAINTENANCE_TASKS : tasks
 
   FILES ||--o{ LISTING_MEDIA : stored_as
-  FILES ||--o{ DEMAND_MEDIA : stored_as
-  FILES ||--o{ ACHIEVEMENT_MEDIA : stored_as
-  FILES ||--o{ ARTWORK_MEDIA : stored_as
   FILES ||--o{ PATENT_MEDIA : stored_as
   FILES ||--o{ CONVERSATION_MESSAGES : attached
   FILES ||--o{ CONTRACTS : contract_file
@@ -810,9 +745,6 @@
   REFUND_REQUESTS ||--o{ FILES : evidence
   USER_VERIFICATIONS ||--o{ FILES : evidence
   USER_VERIFICATIONS ||--o| FILES : logo
-  DEMANDS ||--o| FILES : cover
-  ACHIEVEMENTS ||--o| FILES : cover
-  ARTWORKS ||--o| FILES : cover
 
   ORDERS ||--o{ PAYMENTS : has
   ORDERS ||--o{ PAYMENT_WEBHOOK_EVENTS : has

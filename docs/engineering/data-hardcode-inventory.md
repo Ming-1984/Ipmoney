@@ -13,7 +13,7 @@
   - 系统配置：`trade_rules`、`recommendation_config`
   - 专利地图示例：`patent_map_entries`（2024/2025 示例数据）
   - Demo 用户：`DEMO_USER_ID` / `DEMO_ADMIN_ID`
-  - 公告/通知/地址等示例记录
+  - 通知/地址等示例记录
 - **替代方案**：
   - 生产环境关闭 `SEED_DEMO_DATA`，仅保留 `SEED_BASE_DATA`（基础配置/地区）
   - 示例数据改由 fixtures（`packages/fixtures/scenarios/*`）提供
@@ -49,4 +49,3 @@
 - 将 seed 分拆为：
   - **基础系统配置 seed（生产可用）**
   - **演示 seed（dev-only，可一键清理）**
-

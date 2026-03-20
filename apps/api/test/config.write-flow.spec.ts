@@ -165,10 +165,6 @@ describe('ConfigService extended write flow suite', () => {
       industries: ['AI'],
       ipcMappings: ['G06'],
       locMappings: ['01'],
-      artworkCategories: ['Painting'],
-      calligraphyStyles: ['Regular Script'],
-      paintingThemes: ['Landscape Painting'],
-      artworkMaterials: ['Paper'],
     };
     const sensitive = { words: ['blocked-a', 'blocked-b'] };
     const hot = { keywords: ['Patent Transfer', 'Tech Broker'] };

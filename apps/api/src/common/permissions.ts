@@ -8,7 +8,6 @@ export const ADMIN_ROLE_PERMISSIONS: Record<AdminRoleName, string[]> = {
     'verification.review',
     'listing.read',
     'listing.audit',
-    'announcement.manage',
     'order.read',
     'case.manage',
     'maintenance.manage',
@@ -48,7 +47,6 @@ export const ADMIN_ROLE_PERMISSIONS: Record<AdminRoleName, string[]> = {
     'report.read',
     'report.export',
     'alert.manage',
-    'announcement.manage',
     'auditLog.read',
   ],
 };

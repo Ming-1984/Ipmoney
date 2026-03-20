@@ -11,7 +11,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** 健康检查 */
+        /** 鍋ュ悍妫€鏌?*/
         get: operations["getHealth"];
         put?: never;
         post?: never;
@@ -31,13 +31,8 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * 微信小程序登录（code → token）
-         * @description 小程序端通过 `wx.login` 获取 `code` 后调用本接口。
-         *
-         *     说明：
-         *     - 服务端应使用微信 `code2Session`（`/sns/jscode2session`）换取 `openid/session_key`，并按 `openid` 做用户映射后签发平台 `accessToken`。
-         *     - `wx.login` 不返回头像/昵称：头像/昵称建议走 `chooseAvatar + input type="nickname"`，并通过 `POST /files` + `PATCH /me` 落库。
-         */
+         * 寰俊灏忕▼搴忕櫥褰曪紙code 鈫?token锛?         * @description 灏忕▼搴忕閫氳繃 `wx.login` 鑾峰彇 `code` 鍚庤皟鐢ㄦ湰鎺ュ彛銆?         *
+         *     璇存槑锛?         *     - 鏈嶅姟绔簲浣跨敤寰俊 `code2Session`锛坄/sns/jscode2session`锛夋崲鍙?`openid/session_key`锛屽苟鎸?`openid` 鍋氱敤鎴锋槧灏勫悗绛惧彂骞冲彴 `accessToken`銆?         *     - `wx.login` 涓嶈繑鍥炲ご鍍?鏄电О锛氬ご鍍?鏄电О寤鸿璧?`chooseAvatar + input type="nickname"`锛屽苟閫氳繃 `POST /files` + `PATCH /me` 钀藉簱銆?         */
         post: operations["authWechatMpLogin"];
         delete?: never;
         options?: never;
@@ -78,7 +73,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** 发送短信验证码 */
+        /** 鍙戦€佺煭淇￠獙璇佺爜 */
         post: operations["authSmsSend"];
         delete?: never;
         options?: never;
@@ -95,7 +90,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** 短信验证码登录 */
+        /** 鐭俊楠岃瘉鐮佺櫥褰?*/
         post: operations["authSmsVerify"];
         delete?: never;
         options?: never;
@@ -110,14 +105,14 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** 获取我的资料 */
+        /** 鑾峰彇鎴戠殑璧勬枡 */
         get: operations["getMe"];
         put?: never;
         post?: never;
         delete?: never;
         options?: never;
         head?: never;
-        /** 更新我的资料 */
+        /** 鏇存柊鎴戠殑璧勬枡 */
         patch: operations["updateMe"];
         trace?: never;
     };
@@ -128,10 +123,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** 获取我的认证信息 */
+        /** 鑾峰彇鎴戠殑璁よ瘉淇℃伅 */
         get: operations["getMyVerification"];
         put?: never;
-        /** 提交认证 */
+        /** 鎻愪氦璁よ瘉 */
         post: operations["submitMyVerification"];
         delete?: never;
         options?: never;
@@ -146,10 +141,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** 我的地址列表 */
+        /** 鎴戠殑鍦板潃鍒楄〃 */
         get: operations["listMyAddresses"];
         put?: never;
-        /** 新增地址 */
+        /** 鏂板鍦板潃 */
         post: operations["createMyAddress"];
         delete?: never;
         options?: never;
@@ -167,11 +162,11 @@ export interface paths {
         get?: never;
         put?: never;
         post?: never;
-        /** 删除地址 */
+        /** 鍒犻櫎鍦板潃 */
         delete: operations["deleteMyAddress"];
         options?: never;
         head?: never;
-        /** 更新地址 */
+        /** 鏇存柊鍦板潃 */
         patch: operations["updateMyAddress"];
         trace?: never;
     };
@@ -182,59 +177,8 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** 我的收藏列表 */
+        /** 鎴戠殑鏀惰棌鍒楄〃 */
         get: operations["listMyFavoriteListings"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/me/favorites/demands": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** 我的需求收藏列表 */
-        get: operations["listMyFavoriteDemands"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/me/favorites/achievements": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** 我的成果收藏列表 */
-        get: operations["listMyFavoriteAchievements"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/me/favorites/artworks": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** 我的书画收藏列表 */
-        get: operations["listMyFavoriteArtworks"];
         put?: never;
         post?: never;
         delete?: never;
@@ -250,7 +194,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** 猜你喜欢（个性化推荐） */
+        /** 鐚滀綘鍠滄锛堜釜鎬у寲鎺ㄨ崘锛?*/
         get: operations["getMyRecommendedListings"];
         put?: never;
         post?: never;
@@ -267,7 +211,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** 通知列表 */
+        /** 閫氱煡鍒楄〃 */
         get: operations["listMyNotifications"];
         put?: never;
         post?: never;
@@ -284,7 +228,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** 通知详情 */
+        /** 閫氱煡璇︽儏 */
         get: operations["getNotificationById"];
         put?: never;
         post?: never;
@@ -304,12 +248,11 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * 上传文件
-         * @description 用于上传头像/认证材料/合同等文件。
-         *
-         *     小程序头像建议：
+         * 涓婁紶鏂囦欢
+         * @description 鐢ㄤ簬涓婁紶澶村儚/璁よ瘉鏉愭枡/鍚堝悓绛夋枃浠躲€?         *
+         *     灏忕▼搴忓ご鍍忓缓璁細
          *     1) `purpose=AVATAR`
-         *     2) 上传成功拿到 `url`
+         *     2) 涓婁紶鎴愬姛鎷垮埌 `url`
          *     3) `PATCH /me { avatarUrl: url }`
          */
         post: operations["uploadFile"];
@@ -343,7 +286,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** 预览文件（带水印） */
+        /** 棰勮鏂囦欢锛堝甫姘村嵃锛?*/
         get: operations["previewFile"];
         put?: never;
         post?: never;
@@ -362,7 +305,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** 生成临时访问链接 */
+        /** 鐢熸垚涓存椂璁块棶閾炬帴 */
         post: operations["createFileTemporaryAccess"];
         delete?: never;
         options?: never;
@@ -379,7 +322,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** 专利号码解析与规范化 */
+        /** 涓撳埄鍙风爜瑙ｆ瀽涓庤鑼冨寲 */
         post: operations["normalizePatentNumber"];
         delete?: never;
         options?: never;
@@ -394,7 +337,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** 获取专利主数据 */
+        /** 鑾峰彇涓撳埄涓绘暟鎹?*/
         get: operations["getPatentById"];
         put?: never;
         post?: never;
@@ -411,7 +354,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** 获取交易规则配置（前台展示用） */
+        /** 鑾峰彇浜ゆ槗瑙勫垯閰嶇疆锛堝墠鍙板睍绀虹敤锛?*/
         get: operations["getPublicTradeRulesConfig"];
         put?: never;
         post?: never;
@@ -428,7 +371,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** 获取客服配置（前台展示用） */
+        /** 鑾峰彇瀹㈡湇閰嶇疆锛堝墠鍙板睍绀虹敤锛?*/
         get: operations["getPublicCustomerServiceConfig"];
         put?: never;
         post?: never;
@@ -445,7 +388,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** 获取上架详情（公开） */
+        /** 鑾峰彇涓婃灦璇︽儏锛堝叕寮€锛?*/
         get: operations["getPublicListingById"];
         put?: never;
         post?: never;
@@ -462,110 +405,8 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** 获取上架留言列表（公开） */
+        /** 鑾峰彇涓婃灦鐣欒█鍒楄〃锛堝叕寮€锛?*/
         get: operations["listPublicListingComments"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/public/demands/{demandId}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** 获取需求详情（公开） */
-        get: operations["getPublicDemandById"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/public/demands/{demandId}/comments": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** 获取需求留言列表（公开） */
-        get: operations["listPublicDemandComments"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/public/achievements/{achievementId}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** 获取成果详情（公开） */
-        get: operations["getPublicAchievementById"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/public/achievements/{achievementId}/comments": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** 获取成果留言列表（公开） */
-        get: operations["listPublicAchievementComments"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/public/artworks/{artworkId}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** 获取书画作品详情（公开） */
-        get: operations["getPublicArtworkById"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/public/artworks/{artworkId}/comments": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** 获取书画留言列表（公开） */
-        get: operations["listPublicArtworkComments"];
         put?: never;
         post?: never;
         delete?: never;
@@ -581,7 +422,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** 获取技术经理人详情（公开） */
+        /** 鑾峰彇鎶€鏈粡鐞嗕汉璇︽儏锛堝叕寮€锛?*/
         get: operations["getPublicTechManagerById"];
         put?: never;
         post?: never;
@@ -598,7 +439,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** 获取入驻机构列表（企业/科研院校等） */
+        /** 鑾峰彇鍏ラ┗鏈烘瀯鍒楄〃锛堜紒涓?绉戠爺闄㈡牎绛夛級 */
         get: operations["listPublicOrganizations"];
         put?: never;
         post?: never;
@@ -615,7 +456,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** 获取产业标签列表（用于筛选） */
+        /** 鑾峰彇浜т笟鏍囩鍒楄〃锛堢敤浜庣瓫閫夛級 */
         get: operations["listPublicIndustryTags"];
         put?: never;
         post?: never;
@@ -632,7 +473,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** 获取机构详情（公开） */
+        /** 鑾峰彇鏈烘瀯璇︽儏锛堝叕寮€锛?*/
         get: operations["getPublicOrganizationById"];
         put?: never;
         post?: never;
@@ -650,71 +491,9 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * 获取行政区划树（用于筛选/地图）
-         * @description 用于地区筛选与地图定位。
-         *
-         *     小程序「专利地图」P0（最快落地）会用 `level=PROVINCE` 获取各省份的 `centerLat/centerLng` 作为地图 marker 坐标。
-         */
+         * 鑾峰彇琛屾斂鍖哄垝鏍戯紙鐢ㄤ簬绛涢€?鍦板浘锛?         * @description 鐢ㄤ簬鍦板尯绛涢€変笌鍦板浘瀹氫綅銆?         *
+         *     灏忕▼搴忋€屼笓鍒╁湴鍥俱€峆0锛堟渶蹇惤鍦帮級浼氱敤 `level=PROVINCE` 鑾峰彇鍚勭渷浠界殑 `centerLat/centerLng` 浣滀负鍦板浘 marker 鍧愭爣銆?         */
         get: operations["listRegions"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/patent-map/years": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** 获取地图可用年份列表 */
-        get: operations["listPatentMapYears"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/patent-map/summary": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * 获取地图热力数据（按区域聚合）
-         * @description 返回某一年、某层级（省/市/区）的专利数量统计。
-         *
-         *     小程序「专利地图」P0（最快落地）典型用法：
-         *     1) `GET /patent-map/years` 获取年份；
-         *     2) `GET /patent-map/summary?year=YYYY&level=PROVINCE` 获取省级专利数量；
-         *     3) `GET /regions?level=PROVINCE` 获取省级中心点坐标，前端在真实地图上以 marker 展示。
-         */
-        get: operations["getPatentMapSummary"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/patent-map/regions/{regionCode}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** 获取某区域地图详情（产业分布/重点企业） */
-        get: operations["getPatentMapRegionDetail"];
         put?: never;
         post?: never;
         delete?: never;
@@ -730,59 +509,8 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** 专利交易检索 */
+        /** 涓撳埄浜ゆ槗妫€绱?*/
         get: operations["searchListings"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/search/demands": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** 产学研需求检索 */
-        get: operations["searchDemands"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/search/achievements": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** 成果展示检索 */
-        get: operations["searchAchievements"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/search/artworks": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** 书画专区检索 */
-        get: operations["searchArtworks"];
         put?: never;
         post?: never;
         delete?: never;
@@ -798,7 +526,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** 技术经理人检索 */
+        /** 鎶€鏈粡鐞嗕汉妫€绱?*/
         get: operations["searchTechManagers"];
         put?: never;
         post?: never;
@@ -815,7 +543,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** 发明人排行榜（按平台内上传专利统计） */
+        /** 鍙戞槑浜烘帓琛屾锛堟寜骞冲彴鍐呬笂浼犱笓鍒╃粺璁★級 */
         get: operations["searchInventorRankings"];
         put?: never;
         post?: never;
@@ -835,10 +563,7 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * 智能体语义检索（P1）
-         * @description 支持文本/语音输入，输出结构化检索条件与匹配理由。
-         *     小程序支持语音输入；H5 仅提示去小程序使用语音搜索。
-         */
+         * 鏅鸿兘浣撹涔夋绱紙P1锛?         * @description 鏀寔鏂囨湰/璇煶杈撳叆锛岃緭鍑虹粨鏋勫寲妫€绱㈡潯浠朵笌鍖归厤鐞嗙敱銆?         *     灏忕▼搴忔敮鎸佽闊宠緭鍏ワ紱H5 浠呮彁绀哄幓灏忕▼搴忎娇鐢ㄨ闊虫悳绱€?         */
         post: operations["createAiAgentQuery"];
         delete?: never;
         options?: never;
@@ -855,7 +580,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** AI 解析评价/纠错反馈（P1） */
+        /** AI 瑙ｆ瀽璇勪环/绾犻敊鍙嶉锛圥1锛?*/
         post: operations["createAiParseFeedback"];
         delete?: never;
         options?: never;
@@ -870,10 +595,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** 我的上架列表（卖家） */
+        /** 鎴戠殑涓婃灦鍒楄〃锛堝崠瀹讹級 */
         get: operations["listMyListings"];
         put?: never;
-        /** 创建上架草稿（卖家） */
+        /** 鍒涘缓涓婃灦鑽夌锛堝崠瀹讹級 */
         post: operations["createListing"];
         delete?: never;
         options?: never;
@@ -888,14 +613,14 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** 获取上架详情（卖家/已登录） */
+        /** 鑾峰彇涓婃灦璇︽儏锛堝崠瀹?宸茬櫥褰曪級 */
         get: operations["getListingById"];
         put?: never;
         post?: never;
         delete?: never;
         options?: never;
         head?: never;
-        /** 更新上架草稿（卖家） */
+        /** 鏇存柊涓婃灦鑽夌锛堝崠瀹讹級 */
         patch: operations["updateListing"];
         trace?: never;
     };
@@ -908,9 +633,9 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** 收藏 */
+        /** 鏀惰棌 */
         post: operations["favoriteListing"];
-        /** 取消收藏 */
+        /** 鍙栨秷鏀惰棌 */
         delete: operations["unfavoriteListing"];
         options?: never;
         head?: never;
@@ -926,7 +651,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** 记录咨询热度事件（用于推荐） */
+        /** 璁板綍鍜ㄨ鐑害浜嬩欢锛堢敤浜庢帹鑽愶級 */
         post: operations["createListingConsultation"];
         delete?: never;
         options?: never;
@@ -943,7 +668,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** 创建上架留言/回复 */
+        /** 鍒涘缓涓婃灦鐣欒█/鍥炲 */
         post: operations["createListingComment"];
         delete?: never;
         options?: never;
@@ -960,7 +685,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** 提交审核（卖家） */
+        /** 鎻愪氦瀹℃牳锛堝崠瀹讹級 */
         post: operations["submitListing"];
         delete?: never;
         options?: never;
@@ -977,184 +702,8 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** 下架（卖家） */
+        /** 涓嬫灦锛堝崠瀹讹級 */
         post: operations["offShelfListing"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/demands": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** 我的需求列表（发布方） */
-        get: operations["listMyDemands"];
-        put?: never;
-        /** 创建需求草稿（发布方） */
-        post: operations["createDemand"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/demands/{demandId}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** 获取需求详情（发布方/已登录） */
-        get: operations["getDemandById"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        /** 更新需求草稿（发布方） */
-        patch: operations["updateDemand"];
-        trace?: never;
-    };
-    "/demands/{demandId}/favorites": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** 收藏需求 */
-        post: operations["favoriteDemand"];
-        /** 取消收藏需求 */
-        delete: operations["unfavoriteDemand"];
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/demands/{demandId}/comments": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** 创建需求留言/回复 */
-        post: operations["createDemandComment"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/demands/{demandId}/submit": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** 提交审核（发布方） */
-        post: operations["submitDemand"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/demands/{demandId}/off-shelf": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** 下架（发布方） */
-        post: operations["offShelfDemand"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/achievements": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** 我的成果列表（发布方） */
-        get: operations["listMyAchievements"];
-        put?: never;
-        /** 创建成果草稿（发布方） */
-        post: operations["createAchievement"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/achievements/{achievementId}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** 获取成果详情（发布方/已登录） */
-        get: operations["getAchievementById"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        /** 更新成果草稿（发布方） */
-        patch: operations["updateAchievement"];
-        trace?: never;
-    };
-    "/achievements/{achievementId}/favorites": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** 收藏成果 */
-        post: operations["favoriteAchievement"];
-        /** 取消收藏成果 */
-        delete: operations["unfavoriteAchievement"];
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/achievements/{achievementId}/comments": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** 创建成果留言/回复 */
-        post: operations["createAchievementComment"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1171,151 +720,12 @@ export interface paths {
         get?: never;
         put?: never;
         post?: never;
-        /** 删除留言 */
+        /** 鍒犻櫎鐣欒█ */
         delete: operations["deleteComment"];
         options?: never;
         head?: never;
-        /** 编辑留言 */
+        /** 缂栬緫鐣欒█ */
         patch: operations["updateComment"];
-        trace?: never;
-    };
-    "/achievements/{achievementId}/submit": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** 提交审核（发布方） */
-        post: operations["submitAchievement"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/achievements/{achievementId}/off-shelf": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** 下架（发布方） */
-        post: operations["offShelfAchievement"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/artworks": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** 我的书画列表（发布方） */
-        get: operations["listMyArtworks"];
-        put?: never;
-        /** 创建书画草稿（发布方） */
-        post: operations["createArtwork"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/artworks/{artworkId}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** 获取书画详情（发布方/已登录） */
-        get: operations["getArtworkById"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        /** 更新书画草稿（发布方） */
-        patch: operations["updateArtwork"];
-        trace?: never;
-    };
-    "/artworks/{artworkId}/favorites": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** 收藏书画作品 */
-        post: operations["favoriteArtwork"];
-        /** 取消收藏书画作品 */
-        delete: operations["unfavoriteArtwork"];
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/artworks/{artworkId}/comments": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** 创建书画留言/回复 */
-        post: operations["createArtworkComment"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/artworks/{artworkId}/submit": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** 提交审核（发布方） */
-        post: operations["submitArtwork"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/artworks/{artworkId}/off-shelf": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** 下架（发布方） */
-        post: operations["offShelfArtwork"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
         trace?: never;
     };
     "/orders": {
@@ -1325,10 +735,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** 我的订单列表（买家/卖家） */
+        /** 鎴戠殑璁㈠崟鍒楄〃锛堜拱瀹?鍗栧锛?*/
         get: operations["listMyOrders"];
         put?: never;
-        /** 创建订单（买家） */
+        /** 鍒涘缓璁㈠崟锛堜拱瀹讹級 */
         post: operations["createOrder"];
         delete?: never;
         options?: never;
@@ -1343,7 +753,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** 获取订单详情 */
+        /** 鑾峰彇璁㈠崟璇︽儏 */
         get: operations["getOrderById"];
         put?: never;
         post?: never;
@@ -1362,7 +772,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** 创建支付意图（订金/尾款） */
+        /** 鍒涘缓鏀粯鎰忓浘锛堣閲?灏炬锛?*/
         post: operations["createPaymentIntent"];
         delete?: never;
         options?: never;
@@ -1377,10 +787,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** 查询退款申请列表 */
+        /** 鏌ヨ閫€娆剧敵璇峰垪琛?*/
         get: operations["listRefundRequestsByOrder"];
         put?: never;
-        /** 发起退款申请 */
+        /** 鍙戣捣閫€娆剧敵璇?*/
         post: operations["createRefundRequest"];
         delete?: never;
         options?: never;
@@ -1395,7 +805,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** 获取订单跟单工单与里程碑 */
+        /** 鑾峰彇璁㈠崟璺熷崟宸ュ崟涓庨噷绋嬬 */
         get: operations["getOrderCase"];
         put?: never;
         post?: never;
@@ -1412,7 +822,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** 获取订单电子发票（订单完成后） */
+        /** 鑾峰彇璁㈠崟鐢靛瓙鍙戠エ锛堣鍗曞畬鎴愬悗锛?*/
         get: operations["getOrderInvoice"];
         put?: never;
         post?: never;
@@ -1432,10 +842,7 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * 发起开票申请（演示）
-         * @description P0 口径：平台支持“财务线下开票 + 后台上传发票 PDF + 用户下载”。
-         *     当前实现为演示用途，保留申请入口以便对齐前端流程与后续扩展。
-         */
+         * 鍙戣捣寮€绁ㄧ敵璇凤紙婕旂ず锛?         * @description P0 鍙ｅ緞锛氬钩鍙版敮鎸佲€滆储鍔＄嚎涓嬪紑绁?+ 鍚庡彴涓婁紶鍙戠エ PDF + 鐢ㄦ埛涓嬭浇鈥濄€?         *     褰撳墠瀹炵幇涓烘紨绀虹敤閫旓紝淇濈暀鐢宠鍏ュ彛浠ヤ究瀵归綈鍓嶇娴佺▼涓庡悗缁墿灞曘€?         */
         post: operations["requestOrderInvoice"];
         delete?: never;
         options?: never;
@@ -1450,7 +857,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** 发票管理中心列表（演示） */
+        /** 鍙戠エ绠＄悊涓績鍒楄〃锛堟紨绀猴級 */
         get: operations["listMyInvoices"];
         put?: never;
         post?: never;
@@ -1470,10 +877,8 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * 微信支付回调（内部接口）
-         * @description 微信支付 v3 回调统一入口（支付/退款）：服务端必须执行 **验签 + 解密 resource**，并做幂等处理（避免重复通知导致重复入账/重复退款）。
-         *     参考：微信支付 v3 文档中的回调 HTTP Header（Wechatpay-*）与回调报文 resource 解密流程。
-         */
+         * 寰俊鏀粯鍥炶皟锛堝唴閮ㄦ帴鍙ｏ級
+         * @description 寰俊鏀粯 v3 鍥炶皟缁熶竴鍏ュ彛锛堟敮浠?閫€娆撅級锛氭湇鍔＄蹇呴』鎵ц **楠岀 + 瑙ｅ瘑 resource**锛屽苟鍋氬箓绛夊鐞嗭紙閬垮厤閲嶅閫氱煡瀵艰嚧閲嶅鍏ヨ处/閲嶅閫€娆撅級銆?         *     鍙傝€冿細寰俊鏀粯 v3 鏂囨。涓殑鍥炶皟 HTTP Header锛圵echatpay-*锛変笌鍥炶皟鎶ユ枃 resource 瑙ｅ瘑娴佺▼銆?         */
         post: operations["wechatPayNotify"];
         delete?: never;
         options?: never;
@@ -1488,7 +893,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** 获取我的会话列表 */
+        /** 鑾峰彇鎴戠殑浼氳瘽鍒楄〃 */
         get: operations["listMyConversations"];
         put?: never;
         post?: never;
@@ -1507,59 +912,8 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** 创建/获取与该上架相关的会话（咨询） */
+        /** 鍒涘缓/鑾峰彇涓庤涓婃灦鐩稿叧鐨勪細璇濓紙鍜ㄨ锛?*/
         post: operations["upsertListingConversation"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/demands/{demandId}/conversations": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** 创建/获取与该需求相关的会话（咨询） */
-        post: operations["upsertDemandConversation"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/achievements/{achievementId}/conversations": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** 创建/获取与该成果相关的会话（咨询） */
-        post: operations["upsertAchievementConversation"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/artworks/{artworkId}/conversations": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** 创建/获取与该书画相关的会话（咨询） */
-        post: operations["upsertArtworkConversation"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1575,7 +929,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** 创建/获取与该技术经理人相关的会话（咨询） */
+        /** 鍒涘缓/鑾峰彇涓庤鎶€鏈粡鐞嗕汉鐩稿叧鐨勪細璇濓紙鍜ㄨ锛?*/
         post: operations["upsertTechManagerConversation"];
         delete?: never;
         options?: never;
@@ -1590,10 +944,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** 获取会话消息列表 */
+        /** 鑾峰彇浼氳瘽娑堟伅鍒楄〃 */
         get: operations["listConversationMessages"];
         put?: never;
-        /** 发送消息（文本/表情） */
+        /** 鍙戦€佹秷鎭紙鏂囨湰/琛ㄦ儏锛?*/
         post: operations["sendConversationMessage"];
         delete?: never;
         options?: never;
@@ -1610,7 +964,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** 标记会话已读 */
+        /** 鏍囪浼氳瘽宸茶 */
         post: operations["markConversationRead"];
         delete?: never;
         options?: never;
@@ -1625,10 +979,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** 区域管理：查询区域列表 */
+        /** 鍖哄煙绠＄悊锛氭煡璇㈠尯鍩熷垪琛?*/
         get: operations["adminListRegions"];
         put?: never;
-        /** 区域管理：新增区域节点 */
+        /** 鍖哄煙绠＄悊锛氭柊澧炲尯鍩熻妭鐐?*/
         post: operations["adminCreateRegion"];
         delete?: never;
         options?: never;
@@ -1649,7 +1003,7 @@ export interface paths {
         delete?: never;
         options?: never;
         head?: never;
-        /** 区域管理：更新区域节点 */
+        /** 鍖哄煙绠＄悊锛氭洿鏂板尯鍩熻妭鐐?*/
         patch: operations["adminUpdateRegion"];
         trace?: never;
     };
@@ -1661,7 +1015,7 @@ export interface paths {
             cookie?: never;
         };
         get?: never;
-        /** 区域管理：设置区域特色产业标签 */
+        /** 鍖哄煙绠＄悊锛氳缃尯鍩熺壒鑹蹭骇涓氭爣绛?*/
         put: operations["adminSetRegionIndustryTags"];
         post?: never;
         delete?: never;
@@ -1677,46 +1031,11 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** 获取可用产业标签列表 */
+        /** 鑾峰彇鍙敤浜т笟鏍囩鍒楄〃 */
         get: operations["adminListIndustryTags"];
         put?: never;
-        /** 新增产业标签 */
+        /** 鏂板浜т笟鏍囩 */
         post: operations["adminCreateIndustryTag"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/admin/patent-map/regions/{regionCode}/years/{year}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** 查看区域+年份地图数据 */
-        get: operations["adminGetPatentMapEntry"];
-        /** 录入/更新区域+年份地图数据 */
-        put: operations["adminUpsertPatentMapEntry"];
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/admin/patent-map/import": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Excel 导入地图数据 */
-        post: operations["adminImportPatentMapExcel"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1730,9 +1049,9 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** 获取交易规则配置（后台） */
+        /** 鑾峰彇浜ゆ槗瑙勫垯閰嶇疆锛堝悗鍙帮級 */
         get: operations["adminGetTradeRulesConfig"];
-        /** 更新交易规则配置（后台） */
+        /** 鏇存柊浜ゆ槗瑙勫垯閰嶇疆锛堝悗鍙帮級 */
         put: operations["adminUpdateTradeRulesConfig"];
         post?: never;
         delete?: never;
@@ -1748,9 +1067,9 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** 获取客服配置（后台） */
+        /** 鑾峰彇瀹㈡湇閰嶇疆锛堝悗鍙帮級 */
         get: operations["adminGetCustomerServiceConfig"];
-        /** 更新客服配置（后台） */
+        /** 鏇存柊瀹㈡湇閰嶇疆锛堝悗鍙帮級 */
         put: operations["adminUpdateCustomerServiceConfig"];
         post?: never;
         delete?: never;
@@ -1767,10 +1086,8 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * 合同中心列表
-         * @description 合同文件仅支持 PDF。
-         *     - 仅卖家可上传合同（`POST /contracts/{contractId}/upload`）
-         *     - 买家可查阅并确认（确认能力 P1；P0 以“待确认/可查阅”状态演示为准）
+         * 鍚堝悓涓績鍒楄〃
+         * @description 鍚堝悓鏂囦欢浠呮敮鎸?PDF銆?         *     - 浠呭崠瀹跺彲涓婁紶鍚堝悓锛坄POST /contracts/{contractId}/upload`锛?         *     - 涔板鍙煡闃呭苟纭锛堢‘璁よ兘鍔?P1锛汸0 浠モ€滃緟纭/鍙煡闃呪€濈姸鎬佹紨绀轰负鍑嗭級
          */
         get: operations["listContracts"];
         put?: never;
@@ -1791,12 +1108,8 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * 卖家上传合同（PDF）
-         * @description 流程：
-         *     1) `POST /files` 上传 PDF（`purpose=CONTRACT_EVIDENCE`）
-         *     2) 拿到 `file.id`
-         *     3) 调用本接口把 `contractFileId` 关联到合同记录
-         */
+         * 鍗栧涓婁紶鍚堝悓锛圥DF锛?         * @description 娴佺▼锛?         *     1) `POST /files` 涓婁紶 PDF锛坄purpose=CONTRACT_EVIDENCE`锛?         *     2) 鎷垮埌 `file.id`
+         *     3) 璋冪敤鏈帴鍙ｆ妸 `contractFileId` 鍏宠仈鍒板悎鍚岃褰?         */
         post: operations["uploadContractPdf"];
         delete?: never;
         options?: never;
@@ -1811,9 +1124,9 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** 获取推荐配置（后台） */
+        /** 鑾峰彇鎺ㄨ崘閰嶇疆锛堝悗鍙帮級 */
         get: operations["adminGetRecommendationConfig"];
-        /** 更新推荐配置（后台） */
+        /** 鏇存柊鎺ㄨ崘閰嶇疆锛堝悗鍙帮級 */
         put: operations["adminUpdateRecommendationConfig"];
         post?: never;
         delete?: never;
@@ -1829,9 +1142,9 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** 获取告警配置（后台，P1） */
+        /** 鑾峰彇鍛婅閰嶇疆锛堝悗鍙帮紝P1锛?*/
         get: operations["adminGetAlertConfig"];
-        /** 更新告警配置（后台，P1） */
+        /** 鏇存柊鍛婅閰嶇疆锛堝悗鍙帮紝P1锛?*/
         put: operations["adminUpdateAlertConfig"];
         post?: never;
         delete?: never;
@@ -1847,7 +1160,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** AI 解析复核列表（P1） */
+        /** AI 瑙ｆ瀽澶嶆牳鍒楄〃锛圥1锛?*/
         get: operations["adminListAiParseResults"];
         put?: never;
         post?: never;
@@ -1864,14 +1177,14 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** 获取 AI 解析详情（P1） */
+        /** 鑾峰彇 AI 瑙ｆ瀽璇︽儏锛圥1锛?*/
         get: operations["adminGetAiParseResult"];
         put?: never;
         post?: never;
         delete?: never;
         options?: never;
         head?: never;
-        /** 更新 AI 解析结果（P1） */
+        /** 鏇存柊 AI 瑙ｆ瀽缁撴灉锛圥1锛?*/
         patch: operations["adminUpdateAiParseResult"];
         trace?: never;
     };
@@ -1882,10 +1195,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** 专利库列表（后台，P1） */
+        /** 涓撳埄搴撳垪琛紙鍚庡彴锛孭1锛?*/
         get: operations["adminListPatents"];
         put?: never;
-        /** 新建专利主数据（后台，P1） */
+        /** 鏂板缓涓撳埄涓绘暟鎹紙鍚庡彴锛孭1锛?*/
         post: operations["adminCreatePatent"];
         delete?: never;
         options?: never;
@@ -1900,14 +1213,14 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** 获取专利主数据（后台，P1） */
+        /** 鑾峰彇涓撳埄涓绘暟鎹紙鍚庡彴锛孭1锛?*/
         get: operations["adminGetPatentById"];
         put?: never;
         post?: never;
         delete?: never;
         options?: never;
         head?: never;
-        /** 更新专利主数据（后台，P1） */
+        /** 鏇存柊涓撳埄涓绘暟鎹紙鍚庡彴锛孭1锛?*/
         patch: operations["adminUpdatePatent"];
         trace?: never;
     };
@@ -1918,10 +1231,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** 年费日程列表（后台，P1） */
+        /** 骞磋垂鏃ョ▼鍒楄〃锛堝悗鍙帮紝P1锛?*/
         get: operations["adminListPatentMaintenanceSchedules"];
         put?: never;
-        /** 创建年费日程（后台，P1） */
+        /** 鍒涘缓骞磋垂鏃ョ▼锛堝悗鍙帮紝P1锛?*/
         post: operations["adminCreatePatentMaintenanceSchedule"];
         delete?: never;
         options?: never;
@@ -1936,14 +1249,14 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** 获取年费日程详情（后台，P1） */
+        /** 鑾峰彇骞磋垂鏃ョ▼璇︽儏锛堝悗鍙帮紝P1锛?*/
         get: operations["adminGetPatentMaintenanceSchedule"];
         put?: never;
         post?: never;
         delete?: never;
         options?: never;
         head?: never;
-        /** 更新年费日程（后台，P1） */
+        /** 鏇存柊骞磋垂鏃ョ▼锛堝悗鍙帮紝P1锛?*/
         patch: operations["adminUpdatePatentMaintenanceSchedule"];
         trace?: never;
     };
@@ -1954,10 +1267,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** 托管任务列表（后台，P1） */
+        /** 鎵樼浠诲姟鍒楄〃锛堝悗鍙帮紝P1锛?*/
         get: operations["adminListPatentMaintenanceTasks"];
         put?: never;
-        /** 创建托管任务（后台，P1） */
+        /** 鍒涘缓鎵樼浠诲姟锛堝悗鍙帮紝P1锛?*/
         post: operations["adminCreatePatentMaintenanceTask"];
         delete?: never;
         options?: never;
@@ -1978,7 +1291,7 @@ export interface paths {
         delete?: never;
         options?: never;
         head?: never;
-        /** 更新托管任务（后台，P1） */
+        /** 鏇存柊鎵樼浠诲姟锛堝悗鍙帮紝P1锛?*/
         patch: operations["adminUpdatePatentMaintenanceTask"];
         trace?: never;
     };
@@ -1989,7 +1302,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** 告警事件列表（后台，P1） */
+        /** 鍛婅浜嬩欢鍒楄〃锛堝悗鍙帮紝P1锛?*/
         get: operations["adminListAlertEvents"];
         put?: never;
         post?: never;
@@ -2008,7 +1321,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** 告警确认（后台，P1） */
+        /** 鍛婅纭锛堝悗鍙帮紝P1锛?*/
         post: operations["adminAcknowledgeAlertEvent"];
         delete?: never;
         options?: never;
@@ -2023,10 +1336,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** 上架审核/平台内容列表 */
+        /** 涓婃灦瀹℃牳/骞冲彴鍐呭鍒楄〃 */
         get: operations["adminListListingsForAudit"];
         put?: never;
-        /** 创建平台自有上架（P1） */
+        /** 鍒涘缓骞冲彴鑷湁涓婃灦锛圥1锛?*/
         post: operations["adminCreateListing"];
         delete?: never;
         options?: never;
@@ -2041,14 +1354,14 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** 获取上架详情（后台，P1） */
+        /** 鑾峰彇涓婃灦璇︽儏锛堝悗鍙帮紝P1锛?*/
         get: operations["adminGetListingById"];
         put?: never;
         post?: never;
         delete?: never;
         options?: never;
         head?: never;
-        /** 更新平台自有上架（后台，P1） */
+        /** 鏇存柊骞冲彴鑷湁涓婃灦锛堝悗鍙帮紝P1锛?*/
         patch: operations["adminUpdateListing"];
         trace?: never;
     };
@@ -2061,7 +1374,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** 发布上架（后台，P1） */
+        /** 鍙戝竷涓婃灦锛堝悗鍙帮紝P1锛?*/
         post: operations["adminPublishListing"];
         delete?: never;
         options?: never;
@@ -2078,7 +1391,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** 下架（后台，P1） */
+        /** 涓嬫灦锛堝悗鍙帮紝P1锛?*/
         post: operations["adminOffShelfListing"];
         delete?: never;
         options?: never;
@@ -2095,7 +1408,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** 上架审核通过 */
+        /** 涓婃灦瀹℃牳閫氳繃 */
         post: operations["adminApproveListing"];
         delete?: never;
         options?: never;
@@ -2112,7 +1425,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** 上架审核驳回 */
+        /** 涓婃灦瀹℃牳椹冲洖 */
         post: operations["adminRejectListing"];
         delete?: never;
         options?: never;
@@ -2128,321 +1441,9 @@ export interface paths {
             cookie?: never;
         };
         get?: never;
-        /** 标记省/市级特色产业专利（置顶/加权） */
+        /** 鏍囪鐪?甯傜骇鐗硅壊浜т笟涓撳埄锛堢疆椤?鍔犳潈锛?*/
         put: operations["adminSetListingFeatured"];
         post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/admin/demands": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** 需求审核/平台内容列表 */
-        get: operations["adminListDemandsForAudit"];
-        put?: never;
-        /** 创建平台自有需求（P1） */
-        post: operations["adminCreateDemand"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/admin/demands/{demandId}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** 获取需求详情（后台，P1） */
-        get: operations["adminGetDemandById"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        /** 更新平台自有需求（后台，P1） */
-        patch: operations["adminUpdateDemand"];
-        trace?: never;
-    };
-    "/admin/demands/{demandId}/publish": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** 发布需求（后台，P1） */
-        post: operations["adminPublishDemand"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/admin/demands/{demandId}/off-shelf": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** 下架需求（后台，P1） */
-        post: operations["adminOffShelfDemand"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/admin/demands/{demandId}/approve": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** 需求审核通过 */
-        post: operations["adminApproveDemand"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/admin/demands/{demandId}/reject": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** 需求审核驳回 */
-        post: operations["adminRejectDemand"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/admin/achievements": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** 成果审核/平台内容列表 */
-        get: operations["adminListAchievementsForAudit"];
-        put?: never;
-        /** 创建平台自有成果（P1） */
-        post: operations["adminCreateAchievement"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/admin/achievements/{achievementId}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** 获取成果详情（后台，P1） */
-        get: operations["adminGetAchievementById"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        /** 更新平台自有成果（后台，P1） */
-        patch: operations["adminUpdateAchievement"];
-        trace?: never;
-    };
-    "/admin/achievements/{achievementId}/publish": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** 发布成果（后台，P1） */
-        post: operations["adminPublishAchievement"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/admin/achievements/{achievementId}/off-shelf": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** 下架成果（后台，P1） */
-        post: operations["adminOffShelfAchievement"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/admin/achievements/{achievementId}/approve": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** 成果审核通过 */
-        post: operations["adminApproveAchievement"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/admin/achievements/{achievementId}/reject": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** 成果审核驳回 */
-        post: operations["adminRejectAchievement"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/admin/artworks": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** 书画审核/平台内容列表 */
-        get: operations["adminListArtworksForAudit"];
-        put?: never;
-        /** 创建平台自有书画（P1） */
-        post: operations["adminCreateArtwork"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/admin/artworks/{artworkId}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** 获取书画详情（后台，P1） */
-        get: operations["adminGetArtworkById"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        /** 更新平台自有书画（后台，P1） */
-        patch: operations["adminUpdateArtwork"];
-        trace?: never;
-    };
-    "/admin/artworks/{artworkId}/publish": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** 发布书画（后台，P1） */
-        post: operations["adminPublishArtwork"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/admin/artworks/{artworkId}/off-shelf": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** 下架书画（后台，P1） */
-        post: operations["adminOffShelfArtwork"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/admin/artworks/{artworkId}/approve": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** 书画审核通过 */
-        post: operations["adminApproveArtwork"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/admin/artworks/{artworkId}/reject": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** 书画审核驳回 */
-        post: operations["adminRejectArtwork"];
         delete?: never;
         options?: never;
         head?: never;
@@ -2456,7 +1457,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** 技术经理人管理列表 */
+        /** 鎶€鏈粡鐞嗕汉绠＄悊鍒楄〃 */
         get: operations["adminListTechManagers"];
         put?: never;
         post?: never;
@@ -2479,7 +1480,7 @@ export interface paths {
         delete?: never;
         options?: never;
         head?: never;
-        /** 更新技术经理人展示信息 */
+        /** 鏇存柊鎶€鏈粡鐞嗕汉灞曠ず淇℃伅 */
         patch: operations["adminUpdateTechManager"];
         trace?: never;
     };
@@ -2490,7 +1491,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** 留言管理列表 */
+        /** 鐣欒█绠＄悊鍒楄〃 */
         get: operations["adminListComments"];
         put?: never;
         post?: never;
@@ -2513,7 +1514,7 @@ export interface paths {
         delete?: never;
         options?: never;
         head?: never;
-        /** 更新留言状态（隐藏/恢复/删除） */
+        /** 鏇存柊鐣欒█鐘舵€侊紙闅愯棌/鎭㈠/鍒犻櫎锛?*/
         patch: operations["adminUpdateComment"];
         trace?: never;
     };
@@ -2524,7 +1525,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** 认证审核列表 */
+        /** 璁よ瘉瀹℃牳鍒楄〃 */
         get: operations["adminListUserVerifications"];
         put?: never;
         post?: never;
@@ -2543,7 +1544,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** 认证通过 */
+        /** 璁よ瘉閫氳繃 */
         post: operations["adminApproveUserVerification"];
         delete?: never;
         options?: never;
@@ -2560,7 +1561,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** 认证驳回 */
+        /** 璁よ瘉椹冲洖 */
         post: operations["adminRejectUserVerification"];
         delete?: never;
         options?: never;
@@ -2577,7 +1578,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** 手动确认订单支付 */
+        /** 鎵嬪姩纭璁㈠崟鏀粯 */
         post: operations["adminManualConfirmPayment"];
         delete?: never;
         options?: never;
@@ -2594,7 +1595,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** 合同签署确认（解锁尾款支付） */
+        /** 鍚堝悓绛剧讲纭锛堣В閿佸熬娆炬敮浠橈級 */
         post: operations["adminConfirmContractSigned"];
         delete?: never;
         options?: never;
@@ -2611,7 +1612,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** 变更完成确认（触发结算放款） */
+        /** 鍙樻洿瀹屾垚纭锛堣Е鍙戠粨绠楁斁娆撅級 */
         post: operations["adminConfirmTransferCompleted"];
         delete?: never;
         options?: never;
@@ -2626,7 +1627,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** 查看结算台账 */
+        /** 鏌ョ湅缁撶畻鍙拌处 */
         get: operations["adminGetOrderSettlement"];
         put?: never;
         post?: never;
@@ -2645,7 +1646,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** 财务人工放款确认（P0 默认） */
+        /** 璐㈠姟浜哄伐鏀炬纭锛圥0 榛樿锛?*/
         post: operations["adminConfirmManualPayout"];
         delete?: never;
         options?: never;
@@ -2661,11 +1662,11 @@ export interface paths {
             cookie?: never;
         };
         get?: never;
-        /** 上传/替换订单电子发票（财务） */
+        /** 涓婁紶/鏇挎崲璁㈠崟鐢靛瓙鍙戠エ锛堣储鍔★級 */
         put: operations["adminUpsertOrderInvoice"];
         /** Issue order invoice (admin demo) */
         post: operations["adminIssueOrderInvoice"];
-        /** 删除订单电子发票（财务） */
+        /** 鍒犻櫎璁㈠崟鐢靛瓙鍙戠エ锛堣储鍔★級 */
         delete: operations["adminDeleteOrderInvoice"];
         options?: never;
         head?: never;
@@ -2681,7 +1682,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** 退款审批通过 */
+        /** 閫€娆惧鎵归€氳繃 */
         post: operations["adminApproveRefundRequest"];
         delete?: never;
         options?: never;
@@ -2698,7 +1699,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** 退款审批驳回 */
+        /** 閫€娆惧鎵归┏鍥?*/
         post: operations["adminRejectRefundRequest"];
         delete?: never;
         options?: never;
@@ -2715,112 +1716,8 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** 退款完成确认 */
+        /** 閫€娆惧畬鎴愮‘璁?*/
         post: operations["adminCompleteRefundRequest"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/public/announcements": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** List public announcements */
-        get: operations["listPublicAnnouncements"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/public/announcements/{announcementId}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Get public announcement by id */
-        get: operations["getPublicAnnouncementById"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/admin/announcements": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** List announcements (admin) */
-        get: operations["adminListAnnouncements"];
-        put?: never;
-        /** Create announcement (admin) */
-        post: operations["adminCreateAnnouncement"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/admin/announcements/{announcementId}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post?: never;
-        /** Delete announcement (admin) */
-        delete: operations["adminDeleteAnnouncement"];
-        options?: never;
-        head?: never;
-        /** Update announcement (admin) */
-        patch: operations["adminUpdateAnnouncement"];
-        trace?: never;
-    };
-    "/admin/announcements/{announcementId}/publish": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Publish announcement (admin) */
-        post: operations["adminPublishAnnouncement"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/admin/announcements/{announcementId}/off-shelf": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Off-shelf announcement (admin) */
-        post: operations["adminOffShelfAnnouncement"];
         delete?: never;
         options?: never;
         head?: never;
@@ -3007,108 +1904,6 @@ export interface paths {
         };
         /** Get listing audit logs */
         get: operations["adminGetListingAuditLogs"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/admin/demands/{demandId}/materials": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Get demand audit materials */
-        get: operations["adminGetDemandMaterials"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/admin/demands/{demandId}/audit-logs": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Get demand audit logs */
-        get: operations["adminGetDemandAuditLogs"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/admin/achievements/{achievementId}/materials": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Get achievement audit materials */
-        get: operations["adminGetAchievementMaterials"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/admin/achievements/{achievementId}/audit-logs": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Get achievement audit logs */
-        get: operations["adminGetAchievementAuditLogs"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/admin/artworks/{artworkId}/materials": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Get artwork audit materials */
-        get: operations["adminGetArtworkMaterials"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/admin/artworks/{artworkId}/audit-logs": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Get artwork audit logs */
-        get: operations["adminGetArtworkAuditLogs"];
         put?: never;
         post?: never;
         delete?: never;
@@ -3354,7 +2149,7 @@ export interface components {
         PhoneNumber: string;
         /**
          * Format: int64
-         * @description 金额（人民币分）
+         * @description 閲戦锛堜汉姘戝竵鍒嗭級
          */
         MoneyFen: number;
         ErrorResponse: {
@@ -3377,19 +2172,17 @@ export interface components {
         /** @enum {string} */
         FilePurpose: "AVATAR" | "ORG_LOGO" | "IDENTITY" | "BUSINESS_LICENSE" | "ORG_CERTIFICATE" | "PROFESSIONAL_CERTIFICATE" | "PATENT_PROOF" | "CONTRACT_EVIDENCE" | "INVOICE" | "OTHER";
         /**
-         * @description 合同中心状态（卖家上传 PDF → 买家确认 → 可查阅）
+         * @description 鍚堝悓涓績鐘舵€侊紙鍗栧涓婁紶 PDF 鈫?涔板纭 鈫?鍙煡闃咃級
          * @enum {string}
          */
         ContractStatus: "WAIT_UPLOAD" | "WAIT_CONFIRM" | "AVAILABLE";
         /**
-         * @description 合同上传请求（仅卖家可调用）。
-         *     `contractFileId` 建议来自 `POST /files`（`purpose=CONTRACT_EVIDENCE`），且仅允许 PDF。
-         */
+         * @description 鍚堝悓涓婁紶璇锋眰锛堜粎鍗栧鍙皟鐢級銆?         *     `contractFileId` 寤鸿鏉ヨ嚜 `POST /files`锛坄purpose=CONTRACT_EVIDENCE`锛夛紝涓斾粎鍏佽 PDF銆?         */
         ContractUploadRequest: {
             contractFileId?: components["schemas"]["Uuid"];
         };
         ContractItem: {
-            /** @description 合同 ID（当前实现为 `contract-{orderId}`） */
+            /** @description 鍚堝悓 ID锛堝綋鍓嶅疄鐜颁负 `contract-{orderId}`锛?*/
             id: string;
             orderId: components["schemas"]["Uuid"];
             listingTitle?: string | null;
@@ -3403,12 +2196,11 @@ export interface components {
             signedAt?: string | null;
             /**
              * Format: uri
-             * @description 合同 PDF URL（演示用；生产建议关联 FileObject）
-             */
+             * @description 鍚堝悓 PDF URL锛堟紨绀虹敤锛涚敓浜у缓璁叧鑱?FileObject锛?             */
             fileUrl?: string | null;
-            /** @description 水印/归属标识（演示用） */
+            /** @description 姘村嵃/褰掑睘鏍囪瘑锛堟紨绀虹敤锛?*/
             watermarkOwner?: string | null;
-            /** @description 是否允许上传（仅卖家为 true） */
+            /** @description 鏄惁鍏佽涓婁紶锛堜粎鍗栧涓?true锛?*/
             canUpload?: boolean;
         };
         PagedContract: {
@@ -3416,7 +2208,7 @@ export interface components {
             page: components["schemas"]["PageMeta"];
         };
         /**
-         * @description 发票状态（演示；真实生产需按财务流程细化）
+         * @description 鍙戠エ鐘舵€侊紙婕旂ず锛涚湡瀹炵敓浜ч渶鎸夎储鍔℃祦绋嬬粏鍖栵級
          * @enum {string}
          */
         InvoiceStatus: "WAIT_APPLY" | "APPLYING" | "ISSUED";
@@ -3442,7 +2234,7 @@ export interface components {
         };
         UserProfile: {
             id: components["schemas"]["Uuid"];
-            /** @description 手机号（可选；未绑定手机号的微信用户可能为空） */
+            /** @description 鎵嬫満鍙凤紙鍙€夛紱鏈粦瀹氭墜鏈哄彿鐨勫井淇＄敤鎴峰彲鑳戒负绌猴級 */
             phone?: components["schemas"]["PhoneNumber"];
             nickname?: string;
             /** Format: uri */
@@ -3450,9 +2242,9 @@ export interface components {
             role: components["schemas"]["UserRole"];
             verificationStatus?: components["schemas"]["VerificationStatus"];
             verificationType?: components["schemas"]["VerificationType"];
-            /** @description 用户选择的身份类型（未选择/未提交时为空） */
+            /** @description 鐢ㄦ埛閫夋嫨鐨勮韩浠界被鍨嬶紙鏈€夋嫨/鏈彁浜ゆ椂涓虹┖锛?*/
             orgCategory?: components["schemas"]["SupplyType"];
-            /** @description 用户当前地区（用于地域推荐；可由小程序定位/手动选择后更新） */
+            /** @description 鐢ㄦ埛褰撳墠鍦板尯锛堢敤浜庡湴鍩熸帹鑽愶紱鍙敱灏忕▼搴忓畾浣?鎵嬪姩閫夋嫨鍚庢洿鏂帮級 */
             regionCode?: string;
             /** Format: date-time */
             createdAt: string;
@@ -3498,17 +2290,17 @@ export interface components {
             type: components["schemas"]["VerificationType"];
             status: components["schemas"]["VerificationStatus"];
             displayName?: string;
-            /** @description 企业/机构统一社会信用代码（脱敏） */
+            /** @description 浼佷笟/鏈烘瀯缁熶竴绀句細淇＄敤浠ｇ爜锛堣劚鏁忥級 */
             unifiedSocialCreditCodeMasked?: string;
             contactName?: string;
             contactPhoneMasked?: string;
-            /** @description 个人身份证号/技术经理人证件号（脱敏） */
+            /** @description 涓汉韬唤璇佸彿/鎶€鏈粡鐞嗕汉璇佷欢鍙凤紙鑴辨晱锛?*/
             idNumberMasked?: string;
-            /** @description 主体所在地区（用于展示/地域推荐） */
+            /** @description 涓讳綋鎵€鍦ㄥ湴鍖猴紙鐢ㄤ簬灞曠ず/鍦板煙鎺ㄨ崘锛?*/
             regionCode?: string;
-            /** @description 主体简介（用于机构展示） */
+            /** @description 涓讳綋绠€浠嬶紙鐢ㄤ簬鏈烘瀯灞曠ず锛?*/
             intro?: string;
-            /** @description 技术经理人服务标签（仅 TECH_MANAGER） */
+            /** @description 鎶€鏈粡鐞嗕汉鏈嶅姟鏍囩锛堜粎 TECH_MANAGER锛?*/
             serviceTags?: string[];
             logoFileId?: components["schemas"]["Uuid"];
             /** Format: uri */
@@ -3527,9 +2319,9 @@ export interface components {
              * @enum {string}
              */
             type: "PERSON";
-            /** @description 个人展示名称（可默认取昵称） */
+            /** @description 涓汉灞曠ず鍚嶇О锛堝彲榛樿鍙栨樀绉帮級 */
             displayName: string;
-            /** @description 可选；如采集则后台存储需加密 */
+            /** @description 鍙€夛紱濡傞噰闆嗗垯鍚庡彴瀛樺偍闇€鍔犲瘑 */
             idNumber?: string;
         };
         UserVerificationSubmitOrganizationRequest: {
@@ -3538,9 +2330,9 @@ export interface components {
              * @enum {string}
              */
             type: "COMPANY" | "ACADEMY" | "GOVERNMENT" | "ASSOCIATION";
-            /** @description 主体名称（企业/科研院校/政府/协会） */
+            /** @description 涓讳綋鍚嶇О锛堜紒涓?绉戠爺闄㈡牎/鏀垮簻/鍗忎細锛?*/
             displayName: string;
-            /** @description 统一社会信用代码（后台需加密/脱敏展示） */
+            /** @description 缁熶竴绀句細淇＄敤浠ｇ爜锛堝悗鍙伴渶鍔犲瘑/鑴辨晱灞曠ず锛?*/
             unifiedSocialCreditCode?: string;
             contactName?: string;
             contactPhone?: components["schemas"]["PhoneNumber"];
@@ -3555,9 +2347,9 @@ export interface components {
              * @enum {string}
              */
             type: "TECH_MANAGER";
-            /** @description 技术经理人/经纪人展示名称 */
+            /** @description 鎶€鏈粡鐞嗕汉/缁忕邯浜哄睍绀哄悕绉?*/
             displayName: string;
-            /** @description 可选；如采集则后台存储需加密 */
+            /** @description 鍙€夛紱濡傞噰闆嗗垯鍚庡彴瀛樺偍闇€鍔犲瘑 */
             idNumber?: string;
             contactPhone?: components["schemas"]["PhoneNumber"];
             regionCode?: string;
@@ -3724,7 +2516,7 @@ export interface components {
             patentTypeDefinitionSource?: string;
             patentTermYears?: number;
             title: string;
-            /** @description 发明人列表（用于展示/发明人榜跳转；P0 可选返回） */
+            /** @description 鍙戞槑浜哄垪琛紙鐢ㄤ簬灞曠ず/鍙戞槑浜烘璺宠浆锛汸0 鍙€夎繑鍥烇級 */
             inventorNames?: string[];
             assigneeNames?: string[];
             applicantNames?: string[];
@@ -3744,22 +2536,21 @@ export interface components {
             industryTags?: string[];
             listingTopics?: components["schemas"]["ListingTopic"][];
             featuredLevel?: components["schemas"]["FeaturedLevel"];
-            /** @description 省/市级特色产业专利的生效区域（adcode） */
+            /** @description 鐪?甯傜骇鐗硅壊浜т笟涓撳埄鐨勭敓鏁堝尯鍩燂紙adcode锛?*/
             featuredRegionCode?: string;
-            /** @description 特色置顶优先级（数值越小越靠前） */
+            /** @description 鐗硅壊缃《浼樺厛绾э紙鏁板€艰秺灏忚秺闈犲墠锛?*/
             featuredRank?: number;
             /**
              * Format: date-time
-             * @description 特色置顶过期时间（为空表示长期）
+             * @description 鐗硅壊缃《杩囨湡鏃堕棿锛堜负绌鸿〃绀洪暱鏈燂級
              */
             featuredUntil?: string;
             stats?: components["schemas"]["ListingStats"];
-            /** @description 转让次数（0 表示沉睡专利） */
+            /** @description 杞娆℃暟锛? 琛ㄧず娌夌潯涓撳埄锛?*/
             transferCount?: number;
             /**
              * Format: double
-             * @description 智能推荐得分（仅在 sortBy=RECOMMENDED 或猜你喜欢接口中返回）
-             */
+             * @description 鏅鸿兘鎺ㄨ崘寰楀垎锛堜粎鍦?sortBy=RECOMMENDED 鎴栫寽浣犲枩娆㈡帴鍙ｄ腑杩斿洖锛?             */
             recommendationScore?: number;
             auditStatus: components["schemas"]["AuditStatus"];
             status: components["schemas"]["ListingStatus"];
@@ -3773,22 +2564,21 @@ export interface components {
         Listing: components["schemas"]["ListingSummary"] & {
             sellerUserId?: components["schemas"]["Uuid"];
             summary?: string;
-            /** @description 可交付资料清单（示例：源文件/权属材料/技术文档） */
+            /** @description 鍙氦浠樿祫鏂欐竻鍗曪紙绀轰緥锛氭簮鏂囦欢/鏉冨睘鏉愭枡/鎶€鏈枃妗ｏ級 */
             deliverables?: string[];
-            /** @description 预计周期（天） */
+            /** @description 棰勮鍛ㄦ湡锛堝ぉ锛?*/
             expectedCompletionDays?: number;
-            /** @description 可谈空间（金额上限，单位分；与 negotiableRangePercent 二选一） */
+            /** @description 鍙皥绌洪棿锛堥噾棰濅笂闄愶紝鍗曚綅鍒嗭紱涓?negotiableRangePercent 浜岄€変竴锛?*/
             negotiableRangeFen?: components["schemas"]["MoneyFen"];
             /**
              * Format: double
-             * @description 可谈空间（比例上限 0-100；与 negotiableRangeFen 二选一）
-             */
+             * @description 鍙皥绌洪棿锛堟瘮渚嬩笂闄?0-100锛涗笌 negotiableRangeFen 浜岄€変竴锛?             */
             negotiableRangePercent?: number;
-            /** @description 可谈空间补充说明 */
+            /** @description 鍙皥绌洪棿琛ュ厖璇存槑 */
             negotiableNote?: string;
             pledgeStatus?: components["schemas"]["PledgeStatus"];
             existingLicenseStatus?: components["schemas"]["ExistingLicenseStatus"];
-            /** @description 质押/许可现状补充说明 */
+            /** @description 璐ㄦ娂/璁稿彲鐜扮姸琛ュ厖璇存槑 */
             encumbranceNote?: string;
             ipcCodes?: string[];
             locCodes?: string[];
@@ -3799,22 +2589,21 @@ export interface components {
         ListingPublic: components["schemas"]["ListingSummary"] & {
             seller?: components["schemas"]["UserBrief"];
             summary?: string;
-            /** @description 可交付资料清单（示例：源文件/权属材料/技术文档） */
+            /** @description 鍙氦浠樿祫鏂欐竻鍗曪紙绀轰緥锛氭簮鏂囦欢/鏉冨睘鏉愭枡/鎶€鏈枃妗ｏ級 */
             deliverables?: string[];
-            /** @description 预计周期（天） */
+            /** @description 棰勮鍛ㄦ湡锛堝ぉ锛?*/
             expectedCompletionDays?: number;
-            /** @description 可谈空间（金额上限，单位分；与 negotiableRangePercent 二选一） */
+            /** @description 鍙皥绌洪棿锛堥噾棰濅笂闄愶紝鍗曚綅鍒嗭紱涓?negotiableRangePercent 浜岄€変竴锛?*/
             negotiableRangeFen?: components["schemas"]["MoneyFen"];
             /**
              * Format: double
-             * @description 可谈空间（比例上限 0-100；与 negotiableRangeFen 二选一）
-             */
+             * @description 鍙皥绌洪棿锛堟瘮渚嬩笂闄?0-100锛涗笌 negotiableRangeFen 浜岄€変竴锛?             */
             negotiableRangePercent?: number;
-            /** @description 可谈空间补充说明 */
+            /** @description 鍙皥绌洪棿琛ュ厖璇存槑 */
             negotiableNote?: string;
             pledgeStatus?: components["schemas"]["PledgeStatus"];
             existingLicenseStatus?: components["schemas"]["ExistingLicenseStatus"];
-            /** @description 质押/许可现状补充说明 */
+            /** @description 璐ㄦ娂/璁稿彲鐜扮姸琛ュ厖璇存槑 */
             encumbranceNote?: string;
             ipcCodes?: string[];
             locCodes?: string[];
@@ -3822,16 +2611,16 @@ export interface components {
             aiParse?: components["schemas"]["AiParseResult"];
         };
         ListingCreateRequest: {
-            /** @description 允许为空，P0 支持先发后补齐专利主数据 */
+            /** @description 鍏佽涓虹┖锛孭0 鏀寔鍏堝彂鍚庤ˉ榻愪笓鍒╀富鏁版嵁 */
             patentNumberRaw?: string;
-            /** @description 若无法自动识别则必填 */
+            /** @description 鑻ユ棤娉曡嚜鍔ㄨ瘑鍒垯蹇呭～ */
             patentType?: components["schemas"]["PatentType"];
             title?: string;
-            /** @description 发明人（用于发明人榜；P0 建议填写） */
+            /** @description 鍙戞槑浜猴紙鐢ㄤ簬鍙戞槑浜烘锛汸0 寤鸿濉啓锛?*/
             inventorNames?: string[];
-            /** @description 权利人/专利权人（用于检索与展示；P0 建议填写） */
+            /** @description 鏉冨埄浜?涓撳埄鏉冧汉锛堢敤浜庢绱笌灞曠ず锛汸0 寤鸿濉啓锛?*/
             assigneeNames?: string[];
-            /** @description 申请人（可选） */
+            /** @description 鐢宠浜猴紙鍙€夛級 */
             applicantNames?: string[];
             legalStatus?: components["schemas"]["LegalStatus"];
             legalStatusRaw?: string;
@@ -3843,29 +2632,28 @@ export interface components {
             grantDate?: string;
             transferCount?: number;
             summary?: string;
-            /** @description 可交付资料清单（示例：源文件/权属材料/技术文档） */
+            /** @description 鍙氦浠樿祫鏂欐竻鍗曪紙绀轰緥锛氭簮鏂囦欢/鏉冨睘鏉愭枡/鎶€鏈枃妗ｏ級 */
             deliverables?: string[];
-            /** @description 预计周期（天） */
+            /** @description 棰勮鍛ㄦ湡锛堝ぉ锛?*/
             expectedCompletionDays?: number;
-            /** @description 可谈空间（金额上限，单位分；与 negotiableRangePercent 二选一） */
+            /** @description 鍙皥绌洪棿锛堥噾棰濅笂闄愶紝鍗曚綅鍒嗭紱涓?negotiableRangePercent 浜岄€変竴锛?*/
             negotiableRangeFen?: components["schemas"]["MoneyFen"];
             /**
              * Format: double
-             * @description 可谈空间（比例上限 0-100；与 negotiableRangeFen 二选一）
-             */
+             * @description 鍙皥绌洪棿锛堟瘮渚嬩笂闄?0-100锛涗笌 negotiableRangeFen 浜岄€変竴锛?             */
             negotiableRangePercent?: number;
-            /** @description 可谈空间补充说明 */
+            /** @description 鍙皥绌洪棿琛ュ厖璇存槑 */
             negotiableNote?: string;
             pledgeStatus?: components["schemas"]["PledgeStatus"];
             existingLicenseStatus?: components["schemas"]["ExistingLicenseStatus"];
-            /** @description 质押/许可现状补充说明 */
+            /** @description 璐ㄦ娂/璁稿彲鐜扮姸琛ュ厖璇存槑 */
             encumbranceNote?: string;
             tradeMode: components["schemas"]["TradeMode"];
             licenseMode?: components["schemas"]["LicenseMode"];
             priceType: components["schemas"]["PriceType"];
-            /** @description FIXED 时必填 */
+            /** @description FIXED 鏃跺繀濉?*/
             priceAmountFen?: components["schemas"]["MoneyFen"];
-            /** @description 可选；若不填则按平台订金策略计算 */
+            /** @description 鍙€夛紱鑻ヤ笉濉垯鎸夊钩鍙拌閲戠瓥鐣ヨ绠?*/
             depositAmountFen?: components["schemas"]["MoneyFen"];
             regionCode?: string;
             industryTags?: string[];
@@ -3891,22 +2679,21 @@ export interface components {
             grantDate?: string;
             transferCount?: number;
             summary?: string;
-            /** @description 可交付资料清单（示例：源文件/权属材料/技术文档） */
+            /** @description 鍙氦浠樿祫鏂欐竻鍗曪紙绀轰緥锛氭簮鏂囦欢/鏉冨睘鏉愭枡/鎶€鏈枃妗ｏ級 */
             deliverables?: string[];
-            /** @description 预计周期（天） */
+            /** @description 棰勮鍛ㄦ湡锛堝ぉ锛?*/
             expectedCompletionDays?: number;
-            /** @description 可谈空间（金额上限，单位分；与 negotiableRangePercent 二选一） */
+            /** @description 鍙皥绌洪棿锛堥噾棰濅笂闄愶紝鍗曚綅鍒嗭紱涓?negotiableRangePercent 浜岄€変竴锛?*/
             negotiableRangeFen?: components["schemas"]["MoneyFen"];
             /**
              * Format: double
-             * @description 可谈空间（比例上限 0-100；与 negotiableRangeFen 二选一）
-             */
+             * @description 鍙皥绌洪棿锛堟瘮渚嬩笂闄?0-100锛涗笌 negotiableRangeFen 浜岄€変竴锛?             */
             negotiableRangePercent?: number;
-            /** @description 可谈空间补充说明 */
+            /** @description 鍙皥绌洪棿琛ュ厖璇存槑 */
             negotiableNote?: string;
             pledgeStatus?: components["schemas"]["PledgeStatus"];
             existingLicenseStatus?: components["schemas"]["ExistingLicenseStatus"];
-            /** @description 质押/许可现状补充说明 */
+            /** @description 璐ㄦ娂/璁稿彲鐜扮姸琛ュ厖璇存槑 */
             encumbranceNote?: string;
             tradeMode?: components["schemas"]["TradeMode"];
             licenseMode?: components["schemas"]["LicenseMode"];
@@ -3923,13 +2710,13 @@ export interface components {
         };
         ListingFeaturedUpdateRequest: {
             featuredLevel: components["schemas"]["FeaturedLevel"];
-            /** @description 省/市级生效区域 adcode（featuredLevel != NONE 时必填） */
+            /** @description 鐪?甯傜骇鐢熸晥鍖哄煙 adcode锛坒eaturedLevel != NONE 鏃跺繀濉級 */
             featuredRegionCode?: string;
-            /** @description 特色置顶优先级（数值越小越靠前） */
+            /** @description 鐗硅壊缃《浼樺厛绾э紙鏁板€艰秺灏忚秺闈犲墠锛?*/
             featuredRank?: number;
             /**
              * Format: date-time
-             * @description 过期时间（为空表示长期）
+             * @description 杩囨湡鏃堕棿锛堜负绌鸿〃绀洪暱鏈燂級
              */
             featuredUntil?: string;
         };
@@ -3953,23 +2740,19 @@ export interface components {
         /** @enum {string} */
         SearchQType: "AUTO" | "NUMBER" | "KEYWORD" | "APPLICANT" | "INVENTOR";
         /** @enum {string} */
-        ArtworkSortBy: "RECOMMENDED" | "NEWEST" | "PRICE_ASC" | "PRICE_DESC";
         /** @enum {string} */
-        ListingTopic: "HIGH_TECH_RETIRED" | "AWARD_WINNING";
+        ListingTopic: "HIGH_TECH_RETIRED" | "AWARD_WINNING" | "FIVE_STAR";
         /** @enum {string} */
         TechManagerSortBy: "RECOMMENDED" | "NEWEST";
         /** @enum {string} */
-        ArtworkCategory: "CALLIGRAPHY" | "PAINTING";
         /** @enum {string} */
         CalligraphyScript: "KAISHU" | "XINGSHU" | "CAOSHU" | "LISHU" | "ZHUANSHU";
         /** @enum {string} */
         PaintingGenre: "FIGURE" | "LANDSCAPE" | "BIRD_FLOWER" | "OTHER";
         /** @enum {string} */
-        ArtworkStatus: "DRAFT" | "ACTIVE" | "OFF_SHELF" | "SOLD";
         /** @enum {string} */
         CooperationMode: "TRANSFER" | "TECH_CONSULTING" | "COMMISSIONED_DEV" | "PLATFORM_CO_BUILD";
         /** @enum {string} */
-        AchievementMaturity: "CONCEPT" | "PROTOTYPE" | "PILOT" | "MASS_PRODUCTION" | "COMMERCIALIZED" | "OTHER";
         /** @enum {string} */
         DeliveryPeriod: "WITHIN_1_MONTH" | "MONTH_1_3" | "MONTH_3_6" | "OVER_6_MONTHS" | "OTHER";
         ContentMedia: {
@@ -3984,29 +2767,6 @@ export interface components {
             readonly sizeBytes?: number;
             readonly fileName?: string;
         };
-        DemandSummary: {
-            id: components["schemas"]["Uuid"];
-            source?: components["schemas"]["ContentSource"];
-            title: string;
-            summary?: string;
-            budgetType?: components["schemas"]["PriceType"];
-            budgetMinFen?: components["schemas"]["MoneyFen"];
-            budgetMaxFen?: components["schemas"]["MoneyFen"];
-            cooperationModes?: components["schemas"]["CooperationMode"][];
-            regionCode?: string;
-            industryTags?: string[];
-            keywords?: string[];
-            deliveryPeriod?: components["schemas"]["DeliveryPeriod"];
-            publisher: components["schemas"]["OrganizationSummary"];
-            stats?: components["schemas"]["ListingStats"];
-            auditStatus: components["schemas"]["AuditStatus"];
-            status: components["schemas"]["ContentStatus"];
-            /** Format: uri */
-            coverUrl?: string;
-            /** Format: date-time */
-            createdAt: string;
-        };
-        Demand: components["schemas"]["DemandSummary"] & {
             publisherUserId?: components["schemas"]["Uuid"];
             description?: string;
             keywords?: string[];
@@ -4020,75 +2780,10 @@ export interface components {
             /** Format: date-time */
             updatedAt?: string;
         };
-        DemandPublic: components["schemas"]["DemandSummary"] & {
             description?: string;
             media?: components["schemas"]["ContentMedia"][];
             aiParse?: components["schemas"]["AiParseResult"];
         };
-        PagedDemandSummary: {
-            items: components["schemas"]["DemandSummary"][];
-            page: components["schemas"]["PageMeta"];
-        };
-        PagedDemand: {
-            items: components["schemas"]["Demand"][];
-            page: components["schemas"]["PageMeta"];
-        };
-        DemandCreateRequest: {
-            title: string;
-            description?: string;
-            summary?: string;
-            keywords?: string[];
-            deliveryPeriod?: components["schemas"]["DeliveryPeriod"];
-            budgetType?: components["schemas"]["PriceType"];
-            budgetMinFen?: components["schemas"]["MoneyFen"];
-            budgetMaxFen?: components["schemas"]["MoneyFen"];
-            cooperationModes?: components["schemas"]["CooperationMode"][];
-            contactName?: string;
-            contactTitle?: string;
-            contactPhoneMasked?: string;
-            regionCode?: string;
-            industryTags?: string[];
-            coverFileId?: components["schemas"]["Uuid"];
-            media?: components["schemas"]["ContentMedia"][];
-        };
-        DemandUpdateRequest: {
-            title?: string;
-            description?: string;
-            summary?: string;
-            keywords?: string[];
-            deliveryPeriod?: components["schemas"]["DeliveryPeriod"];
-            budgetType?: components["schemas"]["PriceType"];
-            budgetMinFen?: components["schemas"]["MoneyFen"];
-            budgetMaxFen?: components["schemas"]["MoneyFen"];
-            cooperationModes?: components["schemas"]["CooperationMode"][];
-            contactName?: string;
-            contactTitle?: string;
-            contactPhoneMasked?: string;
-            regionCode?: string;
-            industryTags?: string[];
-            coverFileId?: components["schemas"]["Uuid"];
-            media?: components["schemas"]["ContentMedia"][];
-        };
-        AchievementSummary: {
-            id: components["schemas"]["Uuid"];
-            source?: components["schemas"]["ContentSource"];
-            title: string;
-            summary?: string;
-            maturity?: components["schemas"]["AchievementMaturity"];
-            cooperationModes?: components["schemas"]["CooperationMode"][];
-            regionCode?: string;
-            industryTags?: string[];
-            keywords?: string[];
-            publisher: components["schemas"]["OrganizationSummary"];
-            stats?: components["schemas"]["ListingStats"];
-            auditStatus: components["schemas"]["AuditStatus"];
-            status: components["schemas"]["ContentStatus"];
-            /** Format: uri */
-            coverUrl?: string;
-            /** Format: date-time */
-            createdAt: string;
-        };
-        Achievement: components["schemas"]["AchievementSummary"] & {
             publisherUserId?: components["schemas"]["Uuid"];
             description?: string;
             coverFileId?: components["schemas"]["Uuid"];
@@ -4097,72 +2792,10 @@ export interface components {
             /** Format: date-time */
             updatedAt?: string;
         };
-        AchievementPublic: components["schemas"]["AchievementSummary"] & {
             description?: string;
             media?: components["schemas"]["ContentMedia"][];
             aiParse?: components["schemas"]["AiParseResult"];
         };
-        PagedAchievementSummary: {
-            items: components["schemas"]["AchievementSummary"][];
-            page: components["schemas"]["PageMeta"];
-        };
-        PagedAchievement: {
-            items: components["schemas"]["Achievement"][];
-            page: components["schemas"]["PageMeta"];
-        };
-        AchievementCreateRequest: {
-            title: string;
-            description?: string;
-            summary?: string;
-            keywords?: string[];
-            maturity?: components["schemas"]["AchievementMaturity"];
-            cooperationModes?: components["schemas"]["CooperationMode"][];
-            regionCode?: string;
-            industryTags?: string[];
-            coverFileId?: components["schemas"]["Uuid"];
-            media?: components["schemas"]["ContentMedia"][];
-        };
-        AchievementUpdateRequest: {
-            title?: string;
-            description?: string;
-            summary?: string;
-            keywords?: string[];
-            maturity?: components["schemas"]["AchievementMaturity"];
-            cooperationModes?: components["schemas"]["CooperationMode"][];
-            regionCode?: string;
-            industryTags?: string[];
-            coverFileId?: components["schemas"]["Uuid"];
-            media?: components["schemas"]["ContentMedia"][];
-        };
-        ArtworkSummary: {
-            id: components["schemas"]["Uuid"];
-            source?: components["schemas"]["ContentSource"];
-            title: string;
-            category: components["schemas"]["ArtworkCategory"];
-            calligraphyScript?: components["schemas"]["CalligraphyScript"];
-            paintingGenre?: components["schemas"]["PaintingGenre"];
-            creatorName: string;
-            /** Format: date */
-            creationDate?: string;
-            creationYear?: number;
-            certificateNo?: string;
-            priceType: components["schemas"]["PriceType"];
-            priceAmountFen?: components["schemas"]["MoneyFen"];
-            depositAmountFen: components["schemas"]["MoneyFen"];
-            regionCode?: string;
-            material?: string;
-            size?: string;
-            /** Format: uri */
-            coverUrl?: string;
-            stats?: components["schemas"]["ListingStats"];
-            auditStatus: components["schemas"]["AuditStatus"];
-            status: components["schemas"]["ArtworkStatus"];
-            /** Format: date-time */
-            createdAt: string;
-            /** Format: date-time */
-            updatedAt: string;
-        };
-        Artwork: components["schemas"]["ArtworkSummary"] & {
             sellerUserId?: components["schemas"]["Uuid"];
             description?: string;
             certificateFileIds?: components["schemas"]["Uuid"][];
@@ -4172,61 +2805,10 @@ export interface components {
             /** Format: date-time */
             updatedAt?: string;
         };
-        ArtworkPublic: components["schemas"]["ArtworkSummary"] & {
             seller?: components["schemas"]["UserBrief"];
             description?: string;
             media?: components["schemas"]["ContentMedia"][];
             aiParse?: components["schemas"]["AiParseResult"];
-        };
-        PagedArtworkSummary: {
-            items: components["schemas"]["ArtworkSummary"][];
-            page: components["schemas"]["PageMeta"];
-        };
-        PagedArtwork: {
-            items: components["schemas"]["Artwork"][];
-            page: components["schemas"]["PageMeta"];
-        };
-        ArtworkCreateRequest: {
-            title: string;
-            category: components["schemas"]["ArtworkCategory"];
-            calligraphyScript?: components["schemas"]["CalligraphyScript"];
-            paintingGenre?: components["schemas"]["PaintingGenre"];
-            creatorName: string;
-            /** Format: date */
-            creationDate?: string;
-            creationYear?: number;
-            certificateNo?: string;
-            certificateFileIds?: components["schemas"]["Uuid"][];
-            description?: string;
-            priceType: components["schemas"]["PriceType"];
-            priceAmountFen?: components["schemas"]["MoneyFen"];
-            depositAmountFen?: components["schemas"]["MoneyFen"];
-            regionCode?: string;
-            material?: string;
-            size?: string;
-            coverFileId?: components["schemas"]["Uuid"];
-            media?: components["schemas"]["ContentMedia"][];
-        };
-        ArtworkUpdateRequest: {
-            title?: string;
-            category?: components["schemas"]["ArtworkCategory"];
-            calligraphyScript?: components["schemas"]["CalligraphyScript"];
-            paintingGenre?: components["schemas"]["PaintingGenre"];
-            creatorName?: string;
-            /** Format: date */
-            creationDate?: string;
-            creationYear?: number;
-            certificateNo?: string;
-            certificateFileIds?: components["schemas"]["Uuid"][];
-            description?: string;
-            priceType?: components["schemas"]["PriceType"];
-            priceAmountFen?: components["schemas"]["MoneyFen"];
-            depositAmountFen?: components["schemas"]["MoneyFen"];
-            regionCode?: string;
-            material?: string;
-            size?: string;
-            coverFileId?: components["schemas"]["Uuid"];
-            media?: components["schemas"]["ContentMedia"][];
         };
         OrganizationStats: {
             listingCount: number;
@@ -4287,13 +2869,13 @@ export interface components {
         };
         InventorRankingItem: {
             inventorName: string;
-            /** @description 该发明人在平台内上传专利中的去重数量（按 patentId） */
+            /** @description 璇ュ彂鏄庝汉鍦ㄥ钩鍙板唴涓婁紶涓撳埄涓殑鍘婚噸鏁伴噺锛堟寜 patentId锛?*/
             patentCount: number;
-            /** @description 关联到的上架数量（可用于参考） */
+            /** @description 鍏宠仈鍒扮殑涓婃灦鏁伴噺锛堝彲鐢ㄤ簬鍙傝€冿級 */
             listingCount: number;
             /**
              * Format: uri
-             * @description 头像地址（实名信息匹配到用户时返回）
+             * @description 澶村儚鍦板潃锛堝疄鍚嶄俊鎭尮閰嶅埌鐢ㄦ埛鏃惰繑鍥烇級
              */
             avatarUrl?: string | null;
         };
@@ -4304,7 +2886,7 @@ export interface components {
         /** @enum {string} */
         OrderStatus: "DEPOSIT_PENDING" | "DEPOSIT_PAID" | "WAIT_FINAL_PAYMENT" | "FINAL_PAID_ESCROW" | "READY_TO_SETTLE" | "COMPLETED" | "CANCELLED" | "REFUNDING" | "REFUNDED";
         /**
-         * @description 订单状态分组（用于列表页聚合 Tab 筛选）
+         * @description 璁㈠崟鐘舵€佸垎缁勶紙鐢ㄤ簬鍒楄〃椤佃仛鍚?Tab 绛涢€夛級
          * @enum {string}
          */
         OrderStatusGroup: "PAYMENT_PENDING" | "IN_PROGRESS" | "REFUND" | "DONE";
@@ -4313,20 +2895,19 @@ export interface components {
         Order: {
             id: components["schemas"]["Uuid"];
             listingId?: components["schemas"]["Uuid"];
-            artworkId?: components["schemas"]["Uuid"];
             patentId?: components["schemas"]["Uuid"];
             buyerUserId: components["schemas"]["Uuid"];
             sellerUserId?: components["schemas"]["Uuid"];
             assignedCsUserId?: components["schemas"]["Uuid"];
             status: components["schemas"]["OrderStatus"];
-            /** @description 合同签署确认后写入（成交总价） */
+            /** @description 鍚堝悓绛剧讲纭鍚庡啓鍏ワ紙鎴愪氦鎬讳环锛?*/
             dealAmountFen?: components["schemas"]["MoneyFen"];
             depositAmountFen: components["schemas"]["MoneyFen"];
-            /** @description 合同签署确认后写入（尾款金额） */
+            /** @description 鍚堝悓绛剧讲纭鍚庡啓鍏ワ紙灏炬閲戦锛?*/
             finalAmountFen?: components["schemas"]["MoneyFen"];
-            /** @description 结算时写入（卖家承担） */
+            /** @description 缁撶畻鏃跺啓鍏ワ紙鍗栧鎵挎媴锛?*/
             commissionAmountFen?: components["schemas"]["MoneyFen"];
-            /** @description 订单电子发票（仅订单完成后可能存在） */
+            /** @description 璁㈠崟鐢靛瓙鍙戠エ锛堜粎璁㈠崟瀹屾垚鍚庡彲鑳藉瓨鍦級 */
             invoice?: components["schemas"]["OrderInvoice"];
             /** Format: date-time */
             createdAt: string;
@@ -4397,9 +2978,9 @@ export interface components {
         };
         OrderInvoice: {
             orderId: components["schemas"]["Uuid"];
-            /** @description 订单服务费/佣金金额（开票金额） */
+            /** @description 璁㈠崟鏈嶅姟璐?浣ｉ噾閲戦锛堝紑绁ㄩ噾棰濓級 */
             amountFen?: components["schemas"]["MoneyFen"];
-            /** @description 发票项目名称/服务内容（默认：居间服务费） */
+            /** @description 鍙戠エ椤圭洰鍚嶇О/鏈嶅姟鍐呭锛堥粯璁わ細灞呴棿鏈嶅姟璐癸級 */
             itemName?: string;
             invoiceNo?: string;
             /** Format: date-time */
@@ -4578,15 +3159,14 @@ export interface components {
             autoPayoutOnTimeout: boolean;
         };
         /**
-         * @description 客服分配策略（演示用；真实生产可接入更复杂的分配/排班）
-         * @enum {string}
+         * @description 瀹㈡湇鍒嗛厤绛栫暐锛堟紨绀虹敤锛涚湡瀹炵敓浜у彲鎺ュ叆鏇村鏉傜殑鍒嗛厤/鎺掔彮锛?         * @enum {string}
          */
         CustomerServiceAssignStrategy: "AUTO" | "MANUAL";
-        /** @description 客服配置（前台展示/后台配置） */
+        /** @description 瀹㈡湇閰嶇疆锛堝墠鍙板睍绀?鍚庡彴閰嶇疆锛?*/
         CustomerServiceConfig: {
             /** @example 400-000-0000 */
             phone: string;
-            /** @example 您好，已收到您的咨询，客服将在 15 分钟内联系您。 */
+            /** @example 鎮ㄥソ锛屽凡鏀跺埌鎮ㄧ殑鍜ㄨ锛屽鏈嶅皢鍦?15 鍒嗛挓鍐呰仈绯绘偍銆?*/
             defaultReply: string;
             assignStrategy: components["schemas"]["CustomerServiceAssignStrategy"];
         };
@@ -4596,37 +3176,34 @@ export interface components {
             assignStrategy: components["schemas"]["CustomerServiceAssignStrategy"];
         };
         /**
-         * @description 行政区划层级（P0 地图主要用 PROVINCE/CITY）
-         * @enum {string}
+         * @description 琛屾斂鍖哄垝灞傜骇锛圥0 鍦板浘涓昏鐢?PROVINCE/CITY锛?         * @enum {string}
          */
         RegionLevel: "PROVINCE" | "CITY" | "DISTRICT";
         RegionNode: {
             /**
-             * @description 行政区划 adcode（6 位字符串）
-             * @example 110000
+             * @description 琛屾斂鍖哄垝 adcode锛? 浣嶅瓧绗︿覆锛?             * @example 110000
              */
             code: string;
             /**
-             * @description 行政区划名称
-             * @example 北京市
-             */
+             * @description 琛屾斂鍖哄垝鍚嶇О
+             * @example 鍖椾含甯?             */
             name: string;
             level: components["schemas"]["RegionLevel"];
-            /** @description 父级行政区划 adcode（6 位字符串）；省级为 null */
+            /** @description 鐖剁骇琛屾斂鍖哄垝 adcode锛? 浣嶅瓧绗︿覆锛夛紱鐪佺骇涓?null */
             parentCode?: string | null;
             /**
              * Format: double
-             * @description 地图中心点纬度（用于地图 marker；建议使用 GCJ-02 坐标系；可为空）
+             * @description 鍦板浘涓績鐐圭含搴︼紙鐢ㄤ簬鍦板浘 marker锛涘缓璁娇鐢?GCJ-02 鍧愭爣绯伙紱鍙负绌猴級
              * @example 39.9042
              */
             centerLat?: number | null;
             /**
              * Format: double
-             * @description 地图中心点经度（用于地图 marker；建议使用 GCJ-02 坐标系；可为空）
+             * @description 鍦板浘涓績鐐圭粡搴︼紙鐢ㄤ簬鍦板浘 marker锛涘缓璁娇鐢?GCJ-02 鍧愭爣绯伙紱鍙负绌猴級
              * @example 116.4074
              */
             centerLng?: number | null;
-            /** @description 区域特色产业标签（用于推荐/搜索加权） */
+            /** @description 鍖哄煙鐗硅壊浜т笟鏍囩锛堢敤浜庢帹鑽?鎼滅储鍔犳潈锛?*/
             industryTags?: string[];
             /** Format: date-time */
             updatedAt?: string;
@@ -4661,67 +3238,6 @@ export interface components {
         IndustryTagCreateRequest: {
             name: string;
         };
-        PatentMapIndustryCount: {
-            industryTag: string;
-            count: number;
-        };
-        PatentMapTopAssignee: {
-            name: string;
-            patentCount: number;
-        };
-        PatentMapSummaryItem: {
-            /**
-             * @description 行政区划 adcode（6 位字符串）
-             * @example 110000
-             */
-            regionCode: string;
-            /**
-             * @description 行政区划名称快照（用于直接展示）
-             * @example 北京市
-             */
-            regionName: string;
-            /**
-             * @description 该区域该年份的专利数量（按 `level/parentCode` 聚合口径）
-             * @example 1234
-             */
-            patentCount: number;
-        };
-        PatentMapRegionDetail: {
-            regionCode: string;
-            regionName: string;
-            year: number;
-            patentCount: number;
-            industryBreakdown: components["schemas"]["PatentMapIndustryCount"][];
-            topAssignees: components["schemas"]["PatentMapTopAssignee"][];
-            /** Format: date-time */
-            updatedAt?: string;
-        };
-        PatentMapEntry: {
-            regionCode: string;
-            year: number;
-            patentCount: number;
-            industryBreakdown: components["schemas"]["PatentMapIndustryCount"][];
-            topAssignees: components["schemas"]["PatentMapTopAssignee"][];
-            /** Format: date-time */
-            createdAt?: string;
-            /** Format: date-time */
-            updatedAt?: string;
-        };
-        PatentMapEntryUpsertRequest: {
-            patentCount: number;
-            industryBreakdown?: components["schemas"]["PatentMapIndustryCount"][];
-            topAssignees?: components["schemas"]["PatentMapTopAssignee"][];
-        };
-        PatentMapImportError: {
-            rowNumber: number;
-            message: string;
-        };
-        PatentMapImportResult: {
-            dryRun: boolean;
-            importedCount: number;
-            updatedCount: number;
-            errors: components["schemas"]["PatentMapImportError"][];
-        };
         UserBrief: {
             id: components["schemas"]["Uuid"];
             nickname?: string;
@@ -4733,14 +3249,14 @@ export interface components {
             orgCategory?: components["schemas"]["SupplyType"];
         };
         /** @enum {string} */
-        CommentContentType: "LISTING" | "DEMAND" | "ACHIEVEMENT" | "ARTWORK";
+        CommentContentType: "LISTING";
         /** @enum {string} */
         CommentStatus: "VISIBLE" | "HIDDEN" | "DELETED";
         Comment: {
             id: components["schemas"]["Uuid"];
             contentType: components["schemas"]["CommentContentType"];
             contentId: components["schemas"]["Uuid"];
-            /** @description 为空表示根留言；非空表示回复某条留言 */
+            /** @description 涓虹┖琛ㄧず鏍圭暀瑷€锛涢潪绌鸿〃绀哄洖澶嶆煇鏉＄暀瑷€ */
             parentCommentId?: components["schemas"]["Uuid"];
             status?: components["schemas"]["CommentStatus"];
             user: components["schemas"]["UserBrief"];
@@ -4760,7 +3276,7 @@ export interface components {
         };
         CommentCreateRequest: {
             text: string;
-            /** @description 回复目标留言 ID（为空表示发起新留言） */
+            /** @description 鍥炲鐩爣鐣欒█ ID锛堜负绌鸿〃绀哄彂璧锋柊鐣欒█锛?*/
             parentCommentId?: components["schemas"]["Uuid"];
         };
         CommentUpdateRequest: {
@@ -4774,7 +3290,7 @@ export interface components {
             page: components["schemas"]["PageMeta"];
         };
         /** @enum {string} */
-        ConversationContentType: "LISTING" | "DEMAND" | "ACHIEVEMENT" | "ARTWORK" | "TECH_MANAGER";
+        ConversationContentType: "LISTING" | "TECH_MANAGER";
         Conversation: {
             id: components["schemas"]["Uuid"];
             contentType: components["schemas"]["ConversationContentType"];
@@ -4814,8 +3330,7 @@ export interface components {
             page: components["schemas"]["PageMeta"];
         };
         /**
-         * @description 客户端仅允许发送 TEXT/EMOJI；SYSTEM 为系统消息
-         * @enum {string}
+         * @description 瀹㈡埛绔粎鍏佽鍙戦€?TEXT/EMOJI锛汼YSTEM 涓虹郴缁熸秷鎭?         * @enum {string}
          */
         ConversationMessageType: "TEXT" | "EMOJI" | "SYSTEM";
         ConversationMessage: {
@@ -4823,17 +3338,17 @@ export interface components {
             conversationId: components["schemas"]["Uuid"];
             senderUserId: components["schemas"]["Uuid"];
             type: components["schemas"]["ConversationMessageType"];
-            /** @description 文本/表情内容 */
+            /** @description 鏂囨湰/琛ㄦ儏鍐呭 */
             text?: string;
             /**
              * @deprecated
-             * @description P1 预留（附件消息未开放）
+             * @description P1 棰勭暀锛堥檮浠舵秷鎭湭寮€鏀撅級
              */
             fileId?: components["schemas"]["Uuid"];
             /**
              * Format: uri
              * @deprecated
-             * @description P1 预留（附件消息未开放）
+             * @description P1 棰勭暀锛堥檮浠舵秷鎭湭寮€鏀撅級
              */
             fileUrl?: string | null;
             /** Format: date-time */
@@ -4841,7 +3356,7 @@ export interface components {
         };
         ConversationMessageSendRequest: {
             type: components["schemas"]["ConversationMessageType"];
-            /** @description type=TEXT/EMOJI 时必填 */
+            /** @description type=TEXT/EMOJI 鏃跺繀濉?*/
             text: string;
         };
         PagedConversationMessage: {
@@ -4851,9 +3366,9 @@ export interface components {
         /** @enum {string} */
         AiAgentInputType: "TEXT" | "VOICE";
         /** @enum {string} */
-        AiContentScope: "LISTING" | "DEMAND" | "ACHIEVEMENT" | "ARTWORK" | "ALL";
+        AiContentScope: "LISTING" | "ALL";
         /** @enum {string} */
-        AiContentType: "LISTING" | "DEMAND" | "ACHIEVEMENT" | "ARTWORK";
+        AiContentType: "LISTING";
         /** @enum {string} */
         AiParseStatus: "ACTIVE" | "REVIEW_REQUIRED" | "REPLACED";
         /** @enum {string} */
@@ -4884,8 +3399,6 @@ export interface components {
             budgetType?: components["schemas"]["PriceType"];
             budgetMinFen?: components["schemas"]["MoneyFen"];
             budgetMaxFen?: components["schemas"]["MoneyFen"];
-            maturity?: components["schemas"]["AchievementMaturity"];
-            category?: components["schemas"]["ArtworkCategory"];
             calligraphyScript?: components["schemas"]["CalligraphyScript"];
             paintingGenre?: components["schemas"]["PaintingGenre"];
             creator?: string;
@@ -4969,7 +3482,7 @@ export interface components {
         /** @enum {string} */
         AlertStatus: "PENDING" | "SENT" | "ACKED" | "SUPPRESSED";
         /** @enum {string} */
-        AlertTargetType: "PATENT" | "ORDER" | "LISTING" | "DEMAND" | "ACHIEVEMENT" | "ARTWORK" | "AI_PARSE" | "IMPORT" | "PAYMENT" | "REFUND" | "SYSTEM";
+        AlertTargetType: "PATENT" | "ORDER" | "LISTING" | "AI_PARSE" | "IMPORT" | "PAYMENT" | "REFUND" | "SYSTEM";
         AlertRule: {
             type: string;
             severity: components["schemas"]["AlertSeverity"];
@@ -5130,42 +3643,6 @@ export interface components {
             auditStatus?: components["schemas"]["AuditStatus"];
             status?: components["schemas"]["ListingStatus"];
         };
-        AdminDemandCreateRequest: components["schemas"]["DemandCreateRequest"] & {
-            source?: components["schemas"]["ContentSource"];
-            publisherUserId?: components["schemas"]["Uuid"];
-            auditStatus?: components["schemas"]["AuditStatus"];
-            status?: components["schemas"]["ContentStatus"];
-        };
-        AdminDemandUpdateRequest: components["schemas"]["DemandUpdateRequest"] & {
-            source?: components["schemas"]["ContentSource"];
-            publisherUserId?: components["schemas"]["Uuid"];
-            auditStatus?: components["schemas"]["AuditStatus"];
-            status?: components["schemas"]["ContentStatus"];
-        };
-        AdminAchievementCreateRequest: components["schemas"]["AchievementCreateRequest"] & {
-            source?: components["schemas"]["ContentSource"];
-            publisherUserId?: components["schemas"]["Uuid"];
-            auditStatus?: components["schemas"]["AuditStatus"];
-            status?: components["schemas"]["ContentStatus"];
-        };
-        AdminAchievementUpdateRequest: components["schemas"]["AchievementUpdateRequest"] & {
-            source?: components["schemas"]["ContentSource"];
-            publisherUserId?: components["schemas"]["Uuid"];
-            auditStatus?: components["schemas"]["AuditStatus"];
-            status?: components["schemas"]["ContentStatus"];
-        };
-        AdminArtworkCreateRequest: components["schemas"]["ArtworkCreateRequest"] & {
-            source?: components["schemas"]["ContentSource"];
-            sellerUserId?: components["schemas"]["Uuid"];
-            auditStatus?: components["schemas"]["AuditStatus"];
-            status?: components["schemas"]["ArtworkStatus"];
-        };
-        AdminArtworkUpdateRequest: components["schemas"]["ArtworkUpdateRequest"] & {
-            source?: components["schemas"]["ContentSource"];
-            sellerUserId?: components["schemas"]["Uuid"];
-            auditStatus?: components["schemas"]["AuditStatus"];
-            status?: components["schemas"]["ArtworkStatus"];
-        };
         AuditMaterial: {
             id: components["schemas"]["Uuid"];
             name: string;
@@ -5195,58 +3672,6 @@ export interface components {
             page: components["schemas"]["PageMeta"];
         };
         /** @enum {string} */
-        AnnouncementStatus: "DRAFT" | "PUBLISHED" | "OFF_SHELF";
-        AnnouncementRelatedPatent: {
-            name?: string;
-            patentNo?: string;
-        };
-        Announcement: {
-            id: components["schemas"]["Uuid"];
-            title: string;
-            summary?: string | null;
-            content?: string | null;
-            publisherName?: string | null;
-            issueNo?: string | null;
-            /** Format: uri */
-            sourceUrl?: string | null;
-            tags?: string[];
-            relatedPatents?: components["schemas"]["AnnouncementRelatedPatent"][];
-            status: components["schemas"]["AnnouncementStatus"];
-            /** Format: date-time */
-            createdAt: string;
-            /** Format: date-time */
-            publishedAt?: string;
-            /** Format: date-time */
-            updatedAt: string;
-        };
-        PagedAnnouncement: {
-            items: components["schemas"]["Announcement"][];
-            page: components["schemas"]["PageMeta"];
-        };
-        AnnouncementCreateRequest: {
-            title: string;
-            summary?: string;
-            content?: string;
-            publisherName?: string;
-            issueNo?: string;
-            /** Format: uri */
-            sourceUrl?: string;
-            tags?: string[];
-            relatedPatents?: components["schemas"]["AnnouncementRelatedPatent"][];
-            status?: components["schemas"]["AnnouncementStatus"];
-        };
-        AnnouncementUpdateRequest: {
-            title?: string;
-            summary?: string;
-            content?: string;
-            publisherName?: string;
-            issueNo?: string;
-            /** Format: uri */
-            sourceUrl?: string;
-            tags?: string[];
-            relatedPatents?: components["schemas"]["AnnouncementRelatedPatent"][];
-            status?: components["schemas"]["AnnouncementStatus"];
-        };
         /** @enum {string} */
         NotificationKind: "system" | "cs";
         Notification: {
@@ -5279,10 +3704,6 @@ export interface components {
             industries: string[];
             ipcMappings: string[];
             locMappings: string[];
-            artworkCategories: string[];
-            calligraphyStyles: string[];
-            paintingThemes: string[];
-            artworkMaterials: string[];
         };
         SensitiveWordsConfig: {
             words: string[];
@@ -5464,7 +3885,7 @@ export interface components {
         };
     };
     parameters: {
-        /** @description 关键词（标题/摘要/权利人/发明人/机构名称等） */
+        /** @description 鍏抽敭璇嶏紙鏍囬/鎽樿/鏉冨埄浜?鍙戞槑浜?鏈烘瀯鍚嶇О绛夛級 */
         Q: string;
         PatentType: components["schemas"]["PatentType"];
         TradeMode: components["schemas"]["TradeMode"];
@@ -5480,122 +3901,115 @@ export interface components {
         DepositMax: components["schemas"]["MoneyFen"];
         TransferCountMin: number;
         TransferCountMax: number;
-        /** @description 专利专题入口（特色专区筛选） */
+        /** @description 涓撳埄涓撻鍏ュ彛锛堢壒鑹蹭笓鍖虹瓫閫夛級 */
         ListingTopic: components["schemas"]["ListingTopic"];
-        /** @description 发布时间起始（YYYY-MM-DD） */
+        /** @description 鍙戝竷鏃堕棿璧峰锛圷YYY-MM-DD锛?*/
         CreatedFrom: string;
-        /** @description 发布时间截止（YYYY-MM-DD） */
+        /** @description 鍙戝竷鏃堕棿鎴锛圷YYY-MM-DD锛?*/
         CreatedTo: string;
-        /** @description 行政区划 adcode（6 位字符串） */
+        /** @description 琛屾斂鍖哄垝 adcode锛? 浣嶅瓧绗︿覆锛?*/
         RegionCode: string;
-        /** @description 书画类别（书法/绘画） */
-        ArtworkCategory: components["schemas"]["ArtworkCategory"];
+        /** @description 涔︾敾绫诲埆锛堜功娉?缁樼敾锛?*/
         CalligraphyScript: components["schemas"]["CalligraphyScript"];
         PaintingGenre: components["schemas"]["PaintingGenre"];
-        /** @description 作者/创作者 */
+        /** @description 浣滆€?鍒涗綔鑰?*/
         Creator: string;
-        /** @description 创作年份起 */
+        /** @description 鍒涗綔骞翠唤璧?*/
         CreationYearStart: number;
-        /** @description 创作年份止 */
+        /** @description 鍒涗綔骞翠唤姝?*/
         CreationYearEnd: number;
-        /** @description 机构类型过滤（默认仅展示已审核通过的企业/科研院校） */
+        /** @description 鏈烘瀯绫诲瀷杩囨护锛堥粯璁や粎灞曠ず宸插鏍搁€氳繃鐨勪紒涓?绉戠爺闄㈡牎锛?*/
         OrganizationTypes: components["schemas"]["VerificationType"][];
-        /** @description 发明人姓名（精确/模糊匹配，取决于实现；用于聚合其相关专利） */
+        /** @description 鍙戞槑浜哄鍚嶏紙绮剧‘/妯＄硦鍖归厤锛屽彇鍐充簬瀹炵幇锛涚敤浜庤仛鍚堝叾鐩稿叧涓撳埄锛?*/
         Inventor: string;
-        /** @description 搜索类型（AUTO/NUMBER/KEYWORD/APPLICANT/INVENTOR） */
+        /** @description 鎼滅储绫诲瀷锛圓UTO/NUMBER/KEYWORD/APPLICANT/INVENTOR锛?*/
         QType: components["schemas"]["SearchQType"];
-        /** @description 申请人姓名（精确/模糊匹配，取决于实现） */
+        /** @description 鐢宠浜哄鍚嶏紙绮剧‘/妯＄硦鍖归厤锛屽彇鍐充簬瀹炵幇锛?*/
         Applicant: string;
-        /** @description 权利人姓名（精确/模糊匹配，取决于实现） */
+        /** @description 鏉冨埄浜哄鍚嶏紙绮剧‘/妯＄硦鍖归厤锛屽彇鍐充簬瀹炵幇锛?*/
         Assignee: string;
-        /** @description 申请日起始（YYYY-MM-DD） */
+        /** @description 鐢宠鏃ヨ捣濮嬶紙YYYY-MM-DD锛?*/
         FilingDateFrom: string;
-        /** @description 申请日截止（YYYY-MM-DD） */
+        /** @description 鐢宠鏃ユ埅姝紙YYYY-MM-DD锛?*/
         FilingDateTo: string;
-        /** @description 公开/公告日起始（YYYY-MM-DD） */
+        /** @description 鍏紑/鍏憡鏃ヨ捣濮嬶紙YYYY-MM-DD锛?*/
         PublicationDateFrom: string;
-        /** @description 公开/公告日截止（YYYY-MM-DD） */
+        /** @description 鍏紑/鍏憡鏃ユ埅姝紙YYYY-MM-DD锛?*/
         PublicationDateTo: string;
-        /** @description 授权日起始（YYYY-MM-DD） */
+        /** @description 鎺堟潈鏃ヨ捣濮嬶紙YYYY-MM-DD锛?*/
         GrantDateFrom: string;
-        /** @description 授权日截止（YYYY-MM-DD） */
+        /** @description 鎺堟潈鏃ユ埅姝紙YYYY-MM-DD锛?*/
         GrantDateTo: string;
-        /** @description 卖家/机构 userId（用于机构聚合页筛选） */
+        /** @description 鍗栧/鏈烘瀯 userId锛堢敤浜庢満鏋勮仛鍚堥〉绛涢€夛級 */
         SellerUserId: components["schemas"]["Uuid"];
-        /** @description 产业标签过滤（可多选） */
+        /** @description 浜т笟鏍囩杩囨护锛堝彲澶氶€夛級 */
         IndustryTags: string[];
-        /** @description IPC 细分分类号，例如 H04L */
+        /** @description IPC 缁嗗垎鍒嗙被鍙凤紝渚嬪 H04L */
         Ipc: string[];
-        /** @description Locarno 细分分类号，例如 12-01 */
+        /** @description Locarno 缁嗗垎鍒嗙被鍙凤紝渚嬪 12-01 */
         Loc: string[];
         LegalStatus: components["schemas"]["LegalStatus"];
         SortBy: components["schemas"]["SortBy"];
         ContentSortBy: components["schemas"]["ContentSortBy"];
-        ArtworkSortBy: components["schemas"]["ArtworkSortBy"];
         TechManagerSortBy: components["schemas"]["TechManagerSortBy"];
-        /** @description 合作方式过滤（可多选） */
+        /** @description 鍚堜綔鏂瑰紡杩囨护锛堝彲澶氶€夛級 */
         CooperationModes: components["schemas"]["CooperationMode"][];
-        AchievementMaturity: components["schemas"]["AchievementMaturity"];
         ContentStatus: components["schemas"]["ContentStatus"];
-        ArtworkStatus: components["schemas"]["ArtworkStatus"];
-        /** @description 内容来源过滤 */
+        /** @description 鍐呭鏉ユ簮杩囨护 */
         ContentSource: components["schemas"]["ContentSource"];
-        /** @description 认证状态过滤 */
+        /** @description 璁よ瘉鐘舵€佽繃婊?*/
         VerificationStatus: components["schemas"]["VerificationStatus"];
-        /** @description AI 内容类型过滤 */
+        /** @description AI 鍐呭绫诲瀷杩囨护 */
         AiContentType: components["schemas"]["AiContentType"];
-        /** @description AI 解析状态过滤 */
+        /** @description AI 瑙ｆ瀽鐘舵€佽繃婊?*/
         AiParseStatus: components["schemas"]["AiParseStatus"];
-        /** @description 年费日程状态过滤 */
+        /** @description 骞磋垂鏃ョ▼鐘舵€佽繃婊?*/
         MaintenanceStatus: components["schemas"]["PatentMaintenanceStatus"];
-        /** @description 托管任务状态过滤 */
+        /** @description 鎵樼浠诲姟鐘舵€佽繃婊?*/
         MaintenanceTaskStatus: components["schemas"]["PatentMaintenanceTaskStatus"];
-        /** @description 告警状态过滤 */
+        /** @description 鍛婅鐘舵€佽繃婊?*/
         AlertStatus: components["schemas"]["AlertStatus"];
-        /** @description 告警级别过滤 */
+        /** @description 鍛婅绾у埆杩囨护 */
         AlertSeverity: components["schemas"]["AlertSeverity"];
-        /** @description 告警渠道过滤 */
+        /** @description 鍛婅娓犻亾杩囨护 */
         AlertChannel: components["schemas"]["AlertChannel"];
-        /** @description 告警目标类型过滤 */
+        /** @description 鍛婅鐩爣绫诲瀷杩囨护 */
         AlertTargetType: components["schemas"]["AlertTargetType"];
         ParseResultId: components["schemas"]["Uuid"];
         MaintenanceScheduleId: components["schemas"]["Uuid"];
         MaintenanceTaskId: components["schemas"]["Uuid"];
         AlertId: components["schemas"]["Uuid"];
-        /** @description 留言所属内容类型过滤 */
+        /** @description 鐣欒█鎵€灞炲唴瀹圭被鍨嬭繃婊?*/
         CommentContentType: components["schemas"]["CommentContentType"];
-        /** @description 留言所属内容 ID 过滤 */
+        /** @description 鐣欒█鎵€灞炲唴瀹?ID 杩囨护 */
         CommentContentId: components["schemas"]["Uuid"];
-        /** @description 留言状态过滤（后台管理） */
+        /** @description 鐣欒█鐘舵€佽繃婊わ紙鍚庡彴绠＄悊锛?*/
         CommentStatus: components["schemas"]["CommentStatus"];
         Page: number;
         PageSize: number;
         ListingStatus: components["schemas"]["ListingStatus"];
         AuditStatus: components["schemas"]["AuditStatus"];
         OrderStatus: components["schemas"]["OrderStatus"];
-        /** @description 订单状态分组筛选（用于“全部/待付款/进行中/退款/售后/已结束”等聚合 Tab） */
+        /** @description 璁㈠崟鐘舵€佸垎缁勭瓫閫夛紙鐢ㄤ簬鈥滃叏閮?寰呬粯娆?杩涜涓?閫€娆?鍞悗/宸茬粨鏉熲€濈瓑鑱氬悎 Tab锛?*/
         OrderStatusGroup: components["schemas"]["OrderStatusGroup"];
-        /** @description 幂等键（建议用于支付/退款/放款等有副作用的接口；同一幂等键的重复请求应返回同一结果） */
+        /** @description 骞傜瓑閿紙寤鸿鐢ㄤ簬鏀粯/閫€娆?鏀炬绛夋湁鍓綔鐢ㄧ殑鎺ュ彛锛涘悓涓€骞傜瓑閿殑閲嶅璇锋眰搴旇繑鍥炲悓涓€缁撴灉锛?*/
         IdempotencyKey: string;
-        /** @description 微信支付回调验签字段（v3）：时间戳字符串 */
+        /** @description 寰俊鏀粯鍥炶皟楠岀瀛楁锛坴3锛夛細鏃堕棿鎴冲瓧绗︿覆 */
         WechatpayTimestamp: string;
-        /** @description 微信支付回调验签字段（v3）：随机串 */
+        /** @description 寰俊鏀粯鍥炶皟楠岀瀛楁锛坴3锛夛細闅忔満涓?*/
         WechatpayNonce: string;
-        /** @description 微信支付回调验签字段（v3）：签名 */
+        /** @description 寰俊鏀粯鍥炶皟楠岀瀛楁锛坴3锛夛細绛惧悕 */
         WechatpaySignature: string;
-        /** @description 微信支付回调验签字段（v3）：平台证书序列号 */
+        /** @description 寰俊鏀粯鍥炶皟楠岀瀛楁锛坴3锛夛細骞冲彴璇佷功搴忓垪鍙?*/
         WechatpaySerial: string;
-        /** @description 微信支付回调验签字段（v3）：签名类型（如 WECHATPAY2-SHA256-RSA2048） */
+        /** @description 寰俊鏀粯鍥炶皟楠岀瀛楁锛坴3锛夛細绛惧悕绫诲瀷锛堝 WECHATPAY2-SHA256-RSA2048锛?*/
         WechatpaySignatureType: string;
         ListingId: components["schemas"]["Uuid"];
-        DemandId: components["schemas"]["Uuid"];
-        AchievementId: components["schemas"]["Uuid"];
-        ArtworkId: components["schemas"]["Uuid"];
         TechManagerId: components["schemas"]["Uuid"];
         CommentId: components["schemas"]["Uuid"];
         OrgUserId: components["schemas"]["Uuid"];
         ConversationId: components["schemas"]["Uuid"];
-        /** @description 行政区划码/adcode */
+        /** @description 琛屾斂鍖哄垝鐮?adcode */
         RegionCodePath: string;
         YearPath: number;
         OrderId: components["schemas"]["Uuid"];
@@ -5603,7 +4017,6 @@ export interface components {
         PatentId: components["schemas"]["Uuid"];
         VerificationId: components["schemas"]["Uuid"];
         CaseId: components["schemas"]["Uuid"];
-        AnnouncementId: components["schemas"]["Uuid"];
         AddressId: components["schemas"]["Uuid"];
         NotificationId: components["schemas"]["Uuid"];
         RoleId: components["schemas"]["Uuid"];
@@ -5794,14 +4207,14 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": {
-                    /** @description 昵称；小程序端建议使用 `<input type="nickname">` 采集 */
+                    /** @description 鏄电О锛涘皬绋嬪簭绔缓璁娇鐢?`<input type="nickname">` 閲囬泦 */
                     nickname?: string;
                     /**
                      * Format: uri
-                     * @description 头像 URL；建议先 `POST /files` 上传（`purpose=AVATAR`）再写入
+                     * @description 澶村儚 URL锛涘缓璁厛 `POST /files` 涓婁紶锛坄purpose=AVATAR`锛夊啀鍐欏叆
                      */
                     avatarUrl?: string;
-                    /** @description 用于地域推荐；小程序定位/手动选择后可更新 */
+                    /** @description 鐢ㄤ簬鍦板煙鎺ㄨ崘锛涘皬绋嬪簭瀹氫綅/鎵嬪姩閫夋嫨鍚庡彲鏇存柊 */
                     regionCode?: string;
                 };
             };
@@ -5992,82 +4405,10 @@ export interface operations {
             401: components["responses"]["Unauthorized"];
         };
     };
-    listMyFavoriteDemands: {
-        parameters: {
-            query?: {
-                page?: components["parameters"]["Page"];
-                pageSize?: components["parameters"]["PageSize"];
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["PagedDemandSummary"];
-                };
-            };
-            401: components["responses"]["Unauthorized"];
-        };
-    };
-    listMyFavoriteAchievements: {
-        parameters: {
-            query?: {
-                page?: components["parameters"]["Page"];
-                pageSize?: components["parameters"]["PageSize"];
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["PagedAchievementSummary"];
-                };
-            };
-            401: components["responses"]["Unauthorized"];
-        };
-    };
-    listMyFavoriteArtworks: {
-        parameters: {
-            query?: {
-                page?: components["parameters"]["Page"];
-                pageSize?: components["parameters"]["PageSize"];
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["PagedArtworkSummary"];
-                };
-            };
-            401: components["responses"]["Unauthorized"];
-        };
-    };
     getMyRecommendedListings: {
         parameters: {
             query?: {
-                /** @description 行政区划 adcode（6 位字符串） */
+                /** @description 琛屾斂鍖哄垝 adcode锛? 浣嶅瓧绗︿覆锛?*/
                 regionCode?: components["parameters"]["RegionCode"];
                 page?: components["parameters"]["Page"];
                 pageSize?: components["parameters"]["PageSize"];
@@ -6171,7 +4512,7 @@ export interface operations {
     downloadFile: {
         parameters: {
             query?: {
-                /** @description 临时访问 token（用于无需登录的下载） */
+                /** @description 涓存椂璁块棶 token锛堢敤浜庢棤闇€鐧诲綍鐨勪笅杞斤級 */
                 token?: string;
             };
             header?: never;
@@ -6199,7 +4540,7 @@ export interface operations {
     previewFile: {
         parameters: {
             query?: {
-                /** @description 临时访问 token（用于无需登录的预览） */
+                /** @description 涓存椂璁块棶 token锛堢敤浜庢棤闇€鐧诲綍鐨勯瑙堬級 */
                 token?: string;
             };
             header?: never;
@@ -6395,156 +4736,6 @@ export interface operations {
             404: components["responses"]["NotFound"];
         };
     };
-    getPublicDemandById: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                demandId: components["parameters"]["DemandId"];
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["DemandPublic"];
-                };
-            };
-            404: components["responses"]["NotFound"];
-        };
-    };
-    listPublicDemandComments: {
-        parameters: {
-            query?: {
-                page?: components["parameters"]["Page"];
-                pageSize?: components["parameters"]["PageSize"];
-            };
-            header?: never;
-            path: {
-                demandId: components["parameters"]["DemandId"];
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["PagedCommentThread"];
-                };
-            };
-            400: components["responses"]["BadRequest"];
-            404: components["responses"]["NotFound"];
-        };
-    };
-    getPublicAchievementById: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                achievementId: components["parameters"]["AchievementId"];
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["AchievementPublic"];
-                };
-            };
-            404: components["responses"]["NotFound"];
-        };
-    };
-    listPublicAchievementComments: {
-        parameters: {
-            query?: {
-                page?: components["parameters"]["Page"];
-                pageSize?: components["parameters"]["PageSize"];
-            };
-            header?: never;
-            path: {
-                achievementId: components["parameters"]["AchievementId"];
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["PagedCommentThread"];
-                };
-            };
-            400: components["responses"]["BadRequest"];
-            404: components["responses"]["NotFound"];
-        };
-    };
-    getPublicArtworkById: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                artworkId: components["parameters"]["ArtworkId"];
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ArtworkPublic"];
-                };
-            };
-            404: components["responses"]["NotFound"];
-        };
-    };
-    listPublicArtworkComments: {
-        parameters: {
-            query?: {
-                page?: components["parameters"]["Page"];
-                pageSize?: components["parameters"]["PageSize"];
-            };
-            header?: never;
-            path: {
-                artworkId: components["parameters"]["ArtworkId"];
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["PagedCommentThread"];
-                };
-            };
-            400: components["responses"]["BadRequest"];
-            404: components["responses"]["NotFound"];
-        };
-    };
     getPublicTechManagerById: {
         parameters: {
             query?: never;
@@ -6571,11 +4762,11 @@ export interface operations {
     listPublicOrganizations: {
         parameters: {
             query?: {
-                /** @description 关键词（标题/摘要/权利人/发明人/机构名称等） */
+                /** @description 鍏抽敭璇嶏紙鏍囬/鎽樿/鏉冨埄浜?鍙戞槑浜?鏈烘瀯鍚嶇О绛夛級 */
                 q?: components["parameters"]["Q"];
-                /** @description 机构类型过滤（默认仅展示已审核通过的企业/科研院校） */
+                /** @description 鏈烘瀯绫诲瀷杩囨护锛堥粯璁や粎灞曠ず宸插鏍搁€氳繃鐨勪紒涓?绉戠爺闄㈡牎锛?*/
                 types?: components["parameters"]["OrganizationTypes"];
-                /** @description 行政区划 adcode（6 位字符串） */
+                /** @description 琛屾斂鍖哄垝 adcode锛? 浣嶅瓧绗︿覆锛?*/
                 regionCode?: components["parameters"]["RegionCode"];
                 page?: components["parameters"]["Page"];
                 pageSize?: components["parameters"]["PageSize"];
@@ -6646,7 +4837,7 @@ export interface operations {
         parameters: {
             query?: {
                 level?: components["schemas"]["RegionLevel"];
-                /** @description 父级行政区划 adcode（6 位字符串） */
+                /** @description 鐖剁骇琛屾斂鍖哄垝 adcode锛? 浣嶅瓧绗︿覆锛?*/
                 parentCode?: string;
             };
             header?: never;
@@ -6667,95 +4858,21 @@ export interface operations {
             400: components["responses"]["BadRequest"];
         };
     };
-    listPatentMapYears: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": number[];
-                };
-            };
-            400: components["responses"]["BadRequest"];
-        };
-    };
-    getPatentMapSummary: {
-        parameters: {
-            query: {
-                year: number;
-                level: components["schemas"]["RegionLevel"];
-                /** @description 父级行政区划码/adcode（如按 CITY 聚合时传省级 code） */
-                parentCode?: string;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["PatentMapSummaryItem"][];
-                };
-            };
-            400: components["responses"]["BadRequest"];
-        };
-    };
-    getPatentMapRegionDetail: {
-        parameters: {
-            query: {
-                year: number;
-            };
-            header?: never;
-            path: {
-                /** @description 行政区划码/adcode */
-                regionCode: components["parameters"]["RegionCodePath"];
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["PatentMapRegionDetail"];
-                };
-            };
-            400: components["responses"]["BadRequest"];
-            404: components["responses"]["NotFound"];
-        };
-    };
     searchListings: {
         parameters: {
             query?: {
-                /** @description 关键词（标题/摘要/权利人/发明人/机构名称等） */
+                /** @description 鍏抽敭璇嶏紙鏍囬/鎽樿/鏉冨埄浜?鍙戞槑浜?鏈烘瀯鍚嶇О绛夛級 */
                 q?: components["parameters"]["Q"];
-                /** @description 搜索类型（AUTO/NUMBER/KEYWORD/APPLICANT/INVENTOR） */
+                /** @description 鎼滅储绫诲瀷锛圓UTO/NUMBER/KEYWORD/APPLICANT/INVENTOR锛?*/
                 qType?: components["parameters"]["QType"];
                 patentType?: components["parameters"]["PatentType"];
-                /** @description 发明人姓名（精确/模糊匹配，取决于实现；用于聚合其相关专利） */
+                /** @description 鍙戞槑浜哄鍚嶏紙绮剧‘/妯＄硦鍖归厤锛屽彇鍐充簬瀹炵幇锛涚敤浜庤仛鍚堝叾鐩稿叧涓撳埄锛?*/
                 inventor?: components["parameters"]["Inventor"];
-                /** @description 申请人姓名（精确/模糊匹配，取决于实现） */
+                /** @description 鐢宠浜哄鍚嶏紙绮剧‘/妯＄硦鍖归厤锛屽彇鍐充簬瀹炵幇锛?*/
                 applicant?: components["parameters"]["Applicant"];
-                /** @description 权利人姓名（精确/模糊匹配，取决于实现） */
+                /** @description 鏉冨埄浜哄鍚嶏紙绮剧‘/妯＄硦鍖归厤锛屽彇鍐充簬瀹炵幇锛?*/
                 assignee?: components["parameters"]["Assignee"];
-                /** @description 卖家/机构 userId（用于机构聚合页筛选） */
+                /** @description 鍗栧/鏈烘瀯 userId锛堢敤浜庢満鏋勮仛鍚堥〉绛涢€夛級 */
                 sellerUserId?: components["parameters"]["SellerUserId"];
                 tradeMode?: components["parameters"]["TradeMode"];
                 /** @description License mode filter (valid when tradeMode=LICENSE) */
@@ -6767,32 +4884,32 @@ export interface operations {
                 depositMax?: components["parameters"]["DepositMax"];
                 transferCountMin?: components["parameters"]["TransferCountMin"];
                 transferCountMax?: components["parameters"]["TransferCountMax"];
-                /** @description 专利专题入口（特色专区筛选） */
+                /** @description 涓撳埄涓撻鍏ュ彛锛堢壒鑹蹭笓鍖虹瓫閫夛級 */
                 listingTopic?: components["parameters"]["ListingTopic"];
-                /** @description 行政区划 adcode（6 位字符串） */
+                /** @description 琛屾斂鍖哄垝 adcode锛? 浣嶅瓧绗︿覆锛?*/
                 regionCode?: components["parameters"]["RegionCode"];
-                /** @description 产业标签过滤（可多选） */
+                /** @description 浜т笟鏍囩杩囨护锛堝彲澶氶€夛級 */
                 industryTags?: components["parameters"]["IndustryTags"];
-                /** @description IPC 细分分类号，例如 H04L */
+                /** @description IPC 缁嗗垎鍒嗙被鍙凤紝渚嬪 H04L */
                 ipc?: components["parameters"]["Ipc"];
-                /** @description Locarno 细分分类号，例如 12-01 */
+                /** @description Locarno 缁嗗垎鍒嗙被鍙凤紝渚嬪 12-01 */
                 locarno?: components["parameters"]["Loc"];
                 legalStatus?: components["parameters"]["LegalStatus"];
-                /** @description 发布时间起始（YYYY-MM-DD） */
+                /** @description 鍙戝竷鏃堕棿璧峰锛圷YYY-MM-DD锛?*/
                 createdFrom?: components["parameters"]["CreatedFrom"];
-                /** @description 发布时间截止（YYYY-MM-DD） */
+                /** @description 鍙戝竷鏃堕棿鎴锛圷YYY-MM-DD锛?*/
                 createdTo?: components["parameters"]["CreatedTo"];
-                /** @description 申请日起始（YYYY-MM-DD） */
+                /** @description 鐢宠鏃ヨ捣濮嬶紙YYYY-MM-DD锛?*/
                 filingDateFrom?: components["parameters"]["FilingDateFrom"];
-                /** @description 申请日截止（YYYY-MM-DD） */
+                /** @description 鐢宠鏃ユ埅姝紙YYYY-MM-DD锛?*/
                 filingDateTo?: components["parameters"]["FilingDateTo"];
-                /** @description 公开/公告日起始（YYYY-MM-DD） */
+                /** @description 鍏紑/鍏憡鏃ヨ捣濮嬶紙YYYY-MM-DD锛?*/
                 publicationDateFrom?: components["parameters"]["PublicationDateFrom"];
-                /** @description 公开/公告日截止（YYYY-MM-DD） */
+                /** @description 鍏紑/鍏憡鏃ユ埅姝紙YYYY-MM-DD锛?*/
                 publicationDateTo?: components["parameters"]["PublicationDateTo"];
-                /** @description 授权日起始（YYYY-MM-DD） */
+                /** @description 鎺堟潈鏃ヨ捣濮嬶紙YYYY-MM-DD锛?*/
                 grantDateFrom?: components["parameters"]["GrantDateFrom"];
-                /** @description 授权日截止（YYYY-MM-DD） */
+                /** @description 鎺堟潈鏃ユ埅姝紙YYYY-MM-DD锛?*/
                 grantDateTo?: components["parameters"]["GrantDateTo"];
                 sortBy?: components["parameters"]["SortBy"];
                 page?: components["parameters"]["Page"];
@@ -6816,126 +4933,12 @@ export interface operations {
             400: components["responses"]["BadRequest"];
         };
     };
-    searchDemands: {
-        parameters: {
-            query?: {
-                /** @description 关键词（标题/摘要/权利人/发明人/机构名称等） */
-                q?: components["parameters"]["Q"];
-                /** @description 行政区划 adcode（6 位字符串） */
-                regionCode?: components["parameters"]["RegionCode"];
-                /** @description 产业标签过滤（可多选） */
-                industryTags?: components["parameters"]["IndustryTags"];
-                /** @description 合作方式过滤（可多选） */
-                cooperationModes?: components["parameters"]["CooperationModes"];
-                budgetType?: components["parameters"]["BudgetType"];
-                budgetMinFen?: components["parameters"]["BudgetMin"];
-                budgetMaxFen?: components["parameters"]["BudgetMax"];
-                sortBy?: components["parameters"]["ContentSortBy"];
-                page?: components["parameters"]["Page"];
-                pageSize?: components["parameters"]["PageSize"];
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["PagedDemandSummary"];
-                };
-            };
-            400: components["responses"]["BadRequest"];
-        };
-    };
-    searchAchievements: {
-        parameters: {
-            query?: {
-                /** @description 关键词（标题/摘要/权利人/发明人/机构名称等） */
-                q?: components["parameters"]["Q"];
-                /** @description 行政区划 adcode（6 位字符串） */
-                regionCode?: components["parameters"]["RegionCode"];
-                /** @description 产业标签过滤（可多选） */
-                industryTags?: components["parameters"]["IndustryTags"];
-                /** @description 合作方式过滤（可多选） */
-                cooperationModes?: components["parameters"]["CooperationModes"];
-                maturity?: components["parameters"]["AchievementMaturity"];
-                sortBy?: components["parameters"]["ContentSortBy"];
-                page?: components["parameters"]["Page"];
-                pageSize?: components["parameters"]["PageSize"];
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["PagedAchievementSummary"];
-                };
-            };
-            400: components["responses"]["BadRequest"];
-        };
-    };
-    searchArtworks: {
-        parameters: {
-            query?: {
-                /** @description 关键词（标题/摘要/权利人/发明人/机构名称等） */
-                q?: components["parameters"]["Q"];
-                /** @description 书画类别（书法/绘画） */
-                category?: components["parameters"]["ArtworkCategory"];
-                calligraphyScript?: components["parameters"]["CalligraphyScript"];
-                paintingGenre?: components["parameters"]["PaintingGenre"];
-                /** @description 作者/创作者 */
-                creator?: components["parameters"]["Creator"];
-                /** @description 创作年份起 */
-                creationYearStart?: components["parameters"]["CreationYearStart"];
-                /** @description 创作年份止 */
-                creationYearEnd?: components["parameters"]["CreationYearEnd"];
-                priceType?: components["parameters"]["PriceType"];
-                priceMin?: components["parameters"]["PriceMin"];
-                priceMax?: components["parameters"]["PriceMax"];
-                depositMin?: components["parameters"]["DepositMin"];
-                depositMax?: components["parameters"]["DepositMax"];
-                /** @description 行政区划 adcode（6 位字符串） */
-                regionCode?: components["parameters"]["RegionCode"];
-                sortBy?: components["parameters"]["ArtworkSortBy"];
-                page?: components["parameters"]["Page"];
-                pageSize?: components["parameters"]["PageSize"];
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["PagedArtworkSummary"];
-                };
-            };
-            400: components["responses"]["BadRequest"];
-        };
-    };
     searchTechManagers: {
         parameters: {
             query?: {
-                /** @description 关键词（标题/摘要/权利人/发明人/机构名称等） */
+                /** @description 鍏抽敭璇嶏紙鏍囬/鎽樿/鏉冨埄浜?鍙戞槑浜?鏈烘瀯鍚嶇О绛夛級 */
                 q?: components["parameters"]["Q"];
-                /** @description 行政区划 adcode（6 位字符串） */
+                /** @description 琛屾斂鍖哄垝 adcode锛? 浣嶅瓧绗︿覆锛?*/
                 regionCode?: components["parameters"]["RegionCode"];
                 sortBy?: components["parameters"]["TechManagerSortBy"];
                 page?: components["parameters"]["Page"];
@@ -6962,9 +4965,9 @@ export interface operations {
     searchInventorRankings: {
         parameters: {
             query?: {
-                /** @description 关键词（标题/摘要/权利人/发明人/机构名称等） */
+                /** @description 鍏抽敭璇嶏紙鏍囬/鎽樿/鏉冨埄浜?鍙戞槑浜?鏈烘瀯鍚嶇О绛夛級 */
                 q?: components["parameters"]["Q"];
-                /** @description 行政区划 adcode（6 位字符串） */
+                /** @description 琛屾斂鍖哄垝 adcode锛? 浣嶅瓧绗︿覆锛?*/
                 regionCode?: components["parameters"]["RegionCode"];
                 patentType?: components["parameters"]["PatentType"];
                 page?: components["parameters"]["Page"];
@@ -7017,7 +5020,7 @@ export interface operations {
         parameters: {
             query?: never;
             header?: {
-                /** @description 幂等键（建议用于支付/退款/放款等有副作用的接口；同一幂等键的重复请求应返回同一结果） */
+                /** @description 骞傜瓑閿紙寤鸿鐢ㄤ簬鏀粯/閫€娆?鏀炬绛夋湁鍓綔鐢ㄧ殑鎺ュ彛锛涘悓涓€骞傜瓑閿殑閲嶅璇锋眰搴旇繑鍥炲悓涓€缁撴灉锛?*/
                 "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
             };
             path: {
@@ -7157,7 +5160,7 @@ export interface operations {
         parameters: {
             query?: never;
             header?: {
-                /** @description 幂等键（建议用于支付/退款/放款等有副作用的接口；同一幂等键的重复请求应返回同一结果） */
+                /** @description 骞傜瓑閿紙寤鸿鐢ㄤ簬鏀粯/閫€娆?鏀炬绛夋湁鍓綔鐢ㄧ殑鎺ュ彛锛涘悓涓€骞傜瓑閿殑閲嶅璇锋眰搴旇繑鍥炲悓涓€缁撴灉锛?*/
                 "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
             };
             path: {
@@ -7183,7 +5186,7 @@ export interface operations {
         parameters: {
             query?: never;
             header?: {
-                /** @description 幂等键（建议用于支付/退款/放款等有副作用的接口；同一幂等键的重复请求应返回同一结果） */
+                /** @description 骞傜瓑閿紙寤鸿鐢ㄤ簬鏀粯/閫€娆?鏀炬绛夋湁鍓綔鐢ㄧ殑鎺ュ彛锛涘悓涓€骞傜瓑閿殑閲嶅璇锋眰搴旇繑鍥炲悓涓€缁撴灉锛?*/
                 "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
             };
             path: {
@@ -7209,7 +5212,7 @@ export interface operations {
         parameters: {
             query?: never;
             header?: {
-                /** @description 幂等键（建议用于支付/退款/放款等有副作用的接口；同一幂等键的重复请求应返回同一结果） */
+                /** @description 骞傜瓑閿紙寤鸿鐢ㄤ簬鏀粯/閫€娆?鏀炬绛夋湁鍓綔鐢ㄧ殑鎺ュ彛锛涘悓涓€骞傜瓑閿殑閲嶅璇锋眰搴旇繑鍥炲悓涓€缁撴灉锛?*/
                 "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
             };
             path: {
@@ -7243,7 +5246,7 @@ export interface operations {
         parameters: {
             query?: never;
             header?: {
-                /** @description 幂等键（建议用于支付/退款/放款等有副作用的接口；同一幂等键的重复请求应返回同一结果） */
+                /** @description 骞傜瓑閿紙寤鸿鐢ㄤ簬鏀粯/閫€娆?鏀炬绛夋湁鍓綔鐢ㄧ殑鎺ュ彛锛涘悓涓€骞傜瓑閿殑閲嶅璇锋眰搴旇繑鍥炲悓涓€缁撴灉锛?*/
                 "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
             };
             path: {
@@ -7328,453 +5331,11 @@ export interface operations {
             404: components["responses"]["NotFound"];
         };
     };
-    listMyDemands: {
-        parameters: {
-            query?: {
-                status?: components["parameters"]["ContentStatus"];
-                auditStatus?: components["parameters"]["AuditStatus"];
-                page?: components["parameters"]["Page"];
-                pageSize?: components["parameters"]["PageSize"];
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["PagedDemand"];
-                };
-            };
-            400: components["responses"]["BadRequest"];
-            401: components["responses"]["Unauthorized"];
-        };
-    };
-    createDemand: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["DemandCreateRequest"];
-            };
-        };
-        responses: {
-            /** @description Created */
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Demand"];
-                };
-            };
-            400: components["responses"]["BadRequest"];
-            401: components["responses"]["Unauthorized"];
-            403: components["responses"]["Forbidden"];
-        };
-    };
-    getDemandById: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                demandId: components["parameters"]["DemandId"];
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Demand"];
-                };
-            };
-            401: components["responses"]["Unauthorized"];
-            404: components["responses"]["NotFound"];
-        };
-    };
-    updateDemand: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                demandId: components["parameters"]["DemandId"];
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["DemandUpdateRequest"];
-            };
-        };
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Demand"];
-                };
-            };
-            400: components["responses"]["BadRequest"];
-            401: components["responses"]["Unauthorized"];
-            403: components["responses"]["Forbidden"];
-            404: components["responses"]["NotFound"];
-        };
-    };
-    favoriteDemand: {
-        parameters: {
-            query?: never;
-            header?: {
-                /** @description 幂等键（建议用于支付/退款/放款等有副作用的接口；同一幂等键的重复请求应返回同一结果） */
-                "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
-            };
-            path: {
-                demandId: components["parameters"]["DemandId"];
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description No Content */
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            401: components["responses"]["Unauthorized"];
-            404: components["responses"]["NotFound"];
-            409: components["responses"]["Conflict"];
-        };
-    };
-    unfavoriteDemand: {
-        parameters: {
-            query?: never;
-            header?: {
-                /** @description 幂等键（建议用于支付/退款/放款等有副作用的接口；同一幂等键的重复请求应返回同一结果） */
-                "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
-            };
-            path: {
-                demandId: components["parameters"]["DemandId"];
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description No Content */
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            401: components["responses"]["Unauthorized"];
-            404: components["responses"]["NotFound"];
-            409: components["responses"]["Conflict"];
-        };
-    };
-    createDemandComment: {
-        parameters: {
-            query?: never;
-            header?: {
-                /** @description 幂等键（建议用于支付/退款/放款等有副作用的接口；同一幂等键的重复请求应返回同一结果） */
-                "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
-            };
-            path: {
-                demandId: components["parameters"]["DemandId"];
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["CommentCreateRequest"];
-            };
-        };
-        responses: {
-            /** @description Created */
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Comment"];
-                };
-            };
-            400: components["responses"]["BadRequest"];
-            401: components["responses"]["Unauthorized"];
-            404: components["responses"]["NotFound"];
-            409: components["responses"]["Conflict"];
-        };
-    };
-    submitDemand: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                demandId: components["parameters"]["DemandId"];
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Demand"];
-                };
-            };
-            401: components["responses"]["Unauthorized"];
-            403: components["responses"]["Forbidden"];
-            404: components["responses"]["NotFound"];
-        };
-    };
-    offShelfDemand: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                demandId: components["parameters"]["DemandId"];
-            };
-            cookie?: never;
-        };
-        requestBody?: {
-            content: {
-                "application/json": {
-                    reason?: string;
-                };
-            };
-        };
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Demand"];
-                };
-            };
-            401: components["responses"]["Unauthorized"];
-            403: components["responses"]["Forbidden"];
-            404: components["responses"]["NotFound"];
-        };
-    };
-    listMyAchievements: {
-        parameters: {
-            query?: {
-                status?: components["parameters"]["ContentStatus"];
-                auditStatus?: components["parameters"]["AuditStatus"];
-                page?: components["parameters"]["Page"];
-                pageSize?: components["parameters"]["PageSize"];
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["PagedAchievement"];
-                };
-            };
-            400: components["responses"]["BadRequest"];
-            401: components["responses"]["Unauthorized"];
-        };
-    };
-    createAchievement: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["AchievementCreateRequest"];
-            };
-        };
-        responses: {
-            /** @description Created */
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Achievement"];
-                };
-            };
-            400: components["responses"]["BadRequest"];
-            401: components["responses"]["Unauthorized"];
-            403: components["responses"]["Forbidden"];
-        };
-    };
-    getAchievementById: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                achievementId: components["parameters"]["AchievementId"];
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Achievement"];
-                };
-            };
-            401: components["responses"]["Unauthorized"];
-            404: components["responses"]["NotFound"];
-        };
-    };
-    updateAchievement: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                achievementId: components["parameters"]["AchievementId"];
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["AchievementUpdateRequest"];
-            };
-        };
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Achievement"];
-                };
-            };
-            400: components["responses"]["BadRequest"];
-            401: components["responses"]["Unauthorized"];
-            403: components["responses"]["Forbidden"];
-            404: components["responses"]["NotFound"];
-        };
-    };
-    favoriteAchievement: {
-        parameters: {
-            query?: never;
-            header?: {
-                /** @description 幂等键（建议用于支付/退款/放款等有副作用的接口；同一幂等键的重复请求应返回同一结果） */
-                "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
-            };
-            path: {
-                achievementId: components["parameters"]["AchievementId"];
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description No Content */
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            401: components["responses"]["Unauthorized"];
-            404: components["responses"]["NotFound"];
-            409: components["responses"]["Conflict"];
-        };
-    };
-    unfavoriteAchievement: {
-        parameters: {
-            query?: never;
-            header?: {
-                /** @description 幂等键（建议用于支付/退款/放款等有副作用的接口；同一幂等键的重复请求应返回同一结果） */
-                "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
-            };
-            path: {
-                achievementId: components["parameters"]["AchievementId"];
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description No Content */
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            401: components["responses"]["Unauthorized"];
-            404: components["responses"]["NotFound"];
-            409: components["responses"]["Conflict"];
-        };
-    };
-    createAchievementComment: {
-        parameters: {
-            query?: never;
-            header?: {
-                /** @description 幂等键（建议用于支付/退款/放款等有副作用的接口；同一幂等键的重复请求应返回同一结果） */
-                "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
-            };
-            path: {
-                achievementId: components["parameters"]["AchievementId"];
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["CommentCreateRequest"];
-            };
-        };
-        responses: {
-            /** @description Created */
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Comment"];
-                };
-            };
-            400: components["responses"]["BadRequest"];
-            401: components["responses"]["Unauthorized"];
-            404: components["responses"]["NotFound"];
-            409: components["responses"]["Conflict"];
-        };
-    };
     deleteComment: {
         parameters: {
             query?: never;
             header?: {
-                /** @description 幂等键（建议用于支付/退款/放款等有副作用的接口；同一幂等键的重复请求应返回同一结果） */
+                /** @description 骞傜瓑閿紙寤鸿鐢ㄤ簬鏀粯/閫€娆?鏀炬绛夋湁鍓綔鐢ㄧ殑鎺ュ彛锛涘悓涓€骞傜瓑閿殑閲嶅璇锋眰搴旇繑鍥炲悓涓€缁撴灉锛?*/
                 "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
             };
             path: {
@@ -7801,7 +5362,7 @@ export interface operations {
         parameters: {
             query?: never;
             header?: {
-                /** @description 幂等键（建议用于支付/退款/放款等有副作用的接口；同一幂等键的重复请求应返回同一结果） */
+                /** @description 骞傜瓑閿紙寤鸿鐢ㄤ簬鏀粯/閫€娆?鏀炬绛夋湁鍓綔鐢ㄧ殑鎺ュ彛锛涘悓涓€骞傜瓑閿殑閲嶅璇锋眰搴旇繑鍥炲悓涓€缁撴灉锛?*/
                 "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
             };
             path: {
@@ -7831,317 +5392,12 @@ export interface operations {
             409: components["responses"]["Conflict"];
         };
     };
-    submitAchievement: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                achievementId: components["parameters"]["AchievementId"];
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Achievement"];
-                };
-            };
-            401: components["responses"]["Unauthorized"];
-            403: components["responses"]["Forbidden"];
-            404: components["responses"]["NotFound"];
-        };
-    };
-    offShelfAchievement: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                achievementId: components["parameters"]["AchievementId"];
-            };
-            cookie?: never;
-        };
-        requestBody?: {
-            content: {
-                "application/json": {
-                    reason?: string;
-                };
-            };
-        };
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Achievement"];
-                };
-            };
-            401: components["responses"]["Unauthorized"];
-            403: components["responses"]["Forbidden"];
-            404: components["responses"]["NotFound"];
-        };
-    };
-    listMyArtworks: {
-        parameters: {
-            query?: {
-                status?: components["parameters"]["ArtworkStatus"];
-                auditStatus?: components["parameters"]["AuditStatus"];
-                page?: components["parameters"]["Page"];
-                pageSize?: components["parameters"]["PageSize"];
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["PagedArtwork"];
-                };
-            };
-            400: components["responses"]["BadRequest"];
-            401: components["responses"]["Unauthorized"];
-        };
-    };
-    createArtwork: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["ArtworkCreateRequest"];
-            };
-        };
-        responses: {
-            /** @description Created */
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Artwork"];
-                };
-            };
-            400: components["responses"]["BadRequest"];
-            401: components["responses"]["Unauthorized"];
-            403: components["responses"]["Forbidden"];
-        };
-    };
-    getArtworkById: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                artworkId: components["parameters"]["ArtworkId"];
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Artwork"];
-                };
-            };
-            401: components["responses"]["Unauthorized"];
-            404: components["responses"]["NotFound"];
-        };
-    };
-    updateArtwork: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                artworkId: components["parameters"]["ArtworkId"];
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["ArtworkUpdateRequest"];
-            };
-        };
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Artwork"];
-                };
-            };
-            400: components["responses"]["BadRequest"];
-            401: components["responses"]["Unauthorized"];
-            403: components["responses"]["Forbidden"];
-            404: components["responses"]["NotFound"];
-        };
-    };
-    favoriteArtwork: {
-        parameters: {
-            query?: never;
-            header?: {
-                /** @description 幂等键（建议用于支付/退款/放款等有副作用的接口；同一幂等键的重复请求应返回同一结果） */
-                "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
-            };
-            path: {
-                artworkId: components["parameters"]["ArtworkId"];
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description No Content */
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            401: components["responses"]["Unauthorized"];
-            404: components["responses"]["NotFound"];
-            409: components["responses"]["Conflict"];
-        };
-    };
-    unfavoriteArtwork: {
-        parameters: {
-            query?: never;
-            header?: {
-                /** @description 幂等键（建议用于支付/退款/放款等有副作用的接口；同一幂等键的重复请求应返回同一结果） */
-                "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
-            };
-            path: {
-                artworkId: components["parameters"]["ArtworkId"];
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description No Content */
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            401: components["responses"]["Unauthorized"];
-            404: components["responses"]["NotFound"];
-            409: components["responses"]["Conflict"];
-        };
-    };
-    createArtworkComment: {
-        parameters: {
-            query?: never;
-            header?: {
-                /** @description 幂等键（建议用于支付/退款/放款等有副作用的接口；同一幂等键的重复请求应返回同一结果） */
-                "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
-            };
-            path: {
-                artworkId: components["parameters"]["ArtworkId"];
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["CommentCreateRequest"];
-            };
-        };
-        responses: {
-            /** @description Created */
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Comment"];
-                };
-            };
-            400: components["responses"]["BadRequest"];
-            401: components["responses"]["Unauthorized"];
-            404: components["responses"]["NotFound"];
-            409: components["responses"]["Conflict"];
-        };
-    };
-    submitArtwork: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                artworkId: components["parameters"]["ArtworkId"];
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Artwork"];
-                };
-            };
-            401: components["responses"]["Unauthorized"];
-            403: components["responses"]["Forbidden"];
-            404: components["responses"]["NotFound"];
-        };
-    };
-    offShelfArtwork: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                artworkId: components["parameters"]["ArtworkId"];
-            };
-            cookie?: never;
-        };
-        requestBody?: {
-            content: {
-                "application/json": {
-                    reason?: string;
-                };
-            };
-        };
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Artwork"];
-                };
-            };
-            401: components["responses"]["Unauthorized"];
-            403: components["responses"]["Forbidden"];
-            404: components["responses"]["NotFound"];
-        };
-    };
     listMyOrders: {
         parameters: {
             query: {
                 asRole: components["schemas"]["OrderListRole"];
                 status?: components["parameters"]["OrderStatus"];
-                /** @description 订单状态分组筛选（用于“全部/待付款/进行中/退款/售后/已结束”等聚合 Tab） */
+                /** @description 璁㈠崟鐘舵€佸垎缁勭瓫閫夛紙鐢ㄤ簬鈥滃叏閮?寰呬粯娆?杩涜涓?閫€娆?鍞悗/宸茬粨鏉熲€濈瓑鑱氬悎 Tab锛?*/
                 statusGroup?: components["parameters"]["OrderStatusGroup"];
                 page?: components["parameters"]["Page"];
                 pageSize?: components["parameters"]["PageSize"];
@@ -8176,7 +5432,6 @@ export interface operations {
             content: {
                 "application/json": {
                     listingId?: components["schemas"]["Uuid"];
-                    artworkId?: components["schemas"]["Uuid"];
                 } & (unknown | unknown);
             };
         };
@@ -8224,7 +5479,7 @@ export interface operations {
         parameters: {
             query?: never;
             header?: {
-                /** @description 幂等键（建议用于支付/退款/放款等有副作用的接口；同一幂等键的重复请求应返回同一结果） */
+                /** @description 骞傜瓑閿紙寤鸿鐢ㄤ簬鏀粯/閫€娆?鏀炬绛夋湁鍓綔鐢ㄧ殑鎺ュ彛锛涘悓涓€骞傜瓑閿殑閲嶅璇锋眰搴旇繑鍥炲悓涓€缁撴灉锛?*/
                 "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
             };
             path: {
@@ -8282,7 +5537,7 @@ export interface operations {
         parameters: {
             query?: never;
             header?: {
-                /** @description 幂等键（建议用于支付/退款/放款等有副作用的接口；同一幂等键的重复请求应返回同一结果） */
+                /** @description 骞傜瓑閿紙寤鸿鐢ㄤ簬鏀粯/閫€娆?鏀炬绛夋湁鍓綔鐢ㄧ殑鎺ュ彛锛涘悓涓€骞傜瓑閿殑閲嶅璇锋眰搴旇繑鍥炲悓涓€缁撴灉锛?*/
                 "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
             };
             path: {
@@ -8363,7 +5618,7 @@ export interface operations {
         parameters: {
             query?: never;
             header?: {
-                /** @description 幂等键（建议用于支付/退款/放款等有副作用的接口；同一幂等键的重复请求应返回同一结果） */
+                /** @description 骞傜瓑閿紙寤鸿鐢ㄤ簬鏀粯/閫€娆?鏀炬绛夋湁鍓綔鐢ㄧ殑鎺ュ彛锛涘悓涓€骞傜瓑閿殑閲嶅璇锋眰搴旇繑鍥炲悓涓€缁撴灉锛?*/
                 "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
             };
             path: {
@@ -8390,7 +5645,7 @@ export interface operations {
     listMyInvoices: {
         parameters: {
             query?: {
-                /** @description 发票状态筛选 */
+                /** @description 鍙戠エ鐘舵€佺瓫閫?*/
                 status?: components["schemas"]["InvoiceStatus"];
                 page?: components["parameters"]["Page"];
                 pageSize?: components["parameters"]["PageSize"];
@@ -8418,15 +5673,15 @@ export interface operations {
         parameters: {
             query?: never;
             header: {
-                /** @description 微信支付回调验签字段（v3）：时间戳字符串 */
+                /** @description 寰俊鏀粯鍥炶皟楠岀瀛楁锛坴3锛夛細鏃堕棿鎴冲瓧绗︿覆 */
                 "Wechatpay-Timestamp": components["parameters"]["WechatpayTimestamp"];
-                /** @description 微信支付回调验签字段（v3）：随机串 */
+                /** @description 寰俊鏀粯鍥炶皟楠岀瀛楁锛坴3锛夛細闅忔満涓?*/
                 "Wechatpay-Nonce": components["parameters"]["WechatpayNonce"];
-                /** @description 微信支付回调验签字段（v3）：签名 */
+                /** @description 寰俊鏀粯鍥炶皟楠岀瀛楁锛坴3锛夛細绛惧悕 */
                 "Wechatpay-Signature": components["parameters"]["WechatpaySignature"];
-                /** @description 微信支付回调验签字段（v3）：平台证书序列号 */
+                /** @description 寰俊鏀粯鍥炶皟楠岀瀛楁锛坴3锛夛細骞冲彴璇佷功搴忓垪鍙?*/
                 "Wechatpay-Serial": components["parameters"]["WechatpaySerial"];
-                /** @description 微信支付回调验签字段（v3）：签名类型（如 WECHATPAY2-SHA256-RSA2048） */
+                /** @description 寰俊鏀粯鍥炶皟楠岀瀛楁锛坴3锛夛細绛惧悕绫诲瀷锛堝 WECHATPAY2-SHA256-RSA2048锛?*/
                 "Wechatpay-Signature-Type"?: components["parameters"]["WechatpaySignatureType"];
             };
             path?: never;
@@ -8478,7 +5733,7 @@ export interface operations {
         parameters: {
             query?: never;
             header?: {
-                /** @description 幂等键（建议用于支付/退款/放款等有副作用的接口；同一幂等键的重复请求应返回同一结果） */
+                /** @description 骞傜瓑閿紙寤鸿鐢ㄤ簬鏀粯/閫€娆?鏀炬绛夋湁鍓綔鐢ㄧ殑鎺ュ彛锛涘悓涓€骞傜瓑閿殑閲嶅璇锋眰搴旇繑鍥炲悓涓€缁撴灉锛?*/
                 "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
             };
             path: {
@@ -8502,95 +5757,11 @@ export interface operations {
             409: components["responses"]["Conflict"];
         };
     };
-    upsertDemandConversation: {
-        parameters: {
-            query?: never;
-            header?: {
-                /** @description 幂等键（建议用于支付/退款/放款等有副作用的接口；同一幂等键的重复请求应返回同一结果） */
-                "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
-            };
-            path: {
-                demandId: components["parameters"]["DemandId"];
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Conversation"];
-                };
-            };
-            401: components["responses"]["Unauthorized"];
-            404: components["responses"]["NotFound"];
-            409: components["responses"]["Conflict"];
-        };
-    };
-    upsertAchievementConversation: {
-        parameters: {
-            query?: never;
-            header?: {
-                /** @description 幂等键（建议用于支付/退款/放款等有副作用的接口；同一幂等键的重复请求应返回同一结果） */
-                "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
-            };
-            path: {
-                achievementId: components["parameters"]["AchievementId"];
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Conversation"];
-                };
-            };
-            401: components["responses"]["Unauthorized"];
-            404: components["responses"]["NotFound"];
-            409: components["responses"]["Conflict"];
-        };
-    };
-    upsertArtworkConversation: {
-        parameters: {
-            query?: never;
-            header?: {
-                /** @description 幂等键（建议用于支付/退款/放款等有副作用的接口；同一幂等键的重复请求应返回同一结果） */
-                "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
-            };
-            path: {
-                artworkId: components["parameters"]["ArtworkId"];
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Conversation"];
-                };
-            };
-            401: components["responses"]["Unauthorized"];
-            404: components["responses"]["NotFound"];
-            409: components["responses"]["Conflict"];
-        };
-    };
     upsertTechManagerConversation: {
         parameters: {
             query?: never;
             header?: {
-                /** @description 幂等键（建议用于支付/退款/放款等有副作用的接口；同一幂等键的重复请求应返回同一结果） */
+                /** @description 骞傜瓑閿紙寤鸿鐢ㄤ簬鏀粯/閫€娆?鏀炬绛夋湁鍓綔鐢ㄧ殑鎺ュ彛锛涘悓涓€骞傜瓑閿殑閲嶅璇锋眰搴旇繑鍥炲悓涓€缁撴灉锛?*/
                 "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
             };
             path: {
@@ -8617,7 +5788,7 @@ export interface operations {
     listConversationMessages: {
         parameters: {
             query?: {
-                /** @description 游标分页（为空表示从最新开始） */
+                /** @description 娓告爣鍒嗛〉锛堜负绌鸿〃绀轰粠鏈€鏂板紑濮嬶級 */
                 cursor?: string;
                 limit?: number;
             };
@@ -8646,7 +5817,7 @@ export interface operations {
         parameters: {
             query?: never;
             header?: {
-                /** @description 幂等键（建议用于支付/退款/放款等有副作用的接口；同一幂等键的重复请求应返回同一结果） */
+                /** @description 骞傜瓑閿紙寤鸿鐢ㄤ簬鏀粯/閫€娆?鏀炬绛夋湁鍓綔鐢ㄧ殑鎺ュ彛锛涘悓涓€骞傜瓑閿殑閲嶅璇锋眰搴旇繑鍥炲悓涓€缁撴灉锛?*/
                 "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
             };
             path: {
@@ -8679,7 +5850,7 @@ export interface operations {
         parameters: {
             query?: never;
             header?: {
-                /** @description 幂等键（建议用于支付/退款/放款等有副作用的接口；同一幂等键的重复请求应返回同一结果） */
+                /** @description 骞傜瓑閿紙寤鸿鐢ㄤ簬鏀粯/閫€娆?鏀炬绛夋湁鍓綔鐢ㄧ殑鎺ュ彛锛涘悓涓€骞傜瓑閿殑閲嶅璇锋眰搴旇繑鍥炲悓涓€缁撴灉锛?*/
                 "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
             };
             path: {
@@ -8706,7 +5877,7 @@ export interface operations {
             query?: {
                 level?: components["schemas"]["RegionLevel"];
                 parentCode?: string;
-                /** @description 名称/拼音模糊搜索 */
+                /** @description 鍚嶇О/鎷奸煶妯＄硦鎼滅储 */
                 q?: string;
             };
             header?: never;
@@ -8761,7 +5932,7 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
-                /** @description 行政区划码/adcode */
+                /** @description 琛屾斂鍖哄垝鐮?adcode */
                 regionCode: components["parameters"]["RegionCodePath"];
             };
             cookie?: never;
@@ -8792,11 +5963,11 @@ export interface operations {
         parameters: {
             query?: never;
             header?: {
-                /** @description 幂等键（建议用于支付/退款/放款等有副作用的接口；同一幂等键的重复请求应返回同一结果） */
+                /** @description 骞傜瓑閿紙寤鸿鐢ㄤ簬鏀粯/閫€娆?鏀炬绛夋湁鍓綔鐢ㄧ殑鎺ュ彛锛涘悓涓€骞傜瓑閿殑閲嶅璇锋眰搴旇繑鍥炲悓涓€缁撴灉锛?*/
                 "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
             };
             path: {
-                /** @description 行政区划码/adcode */
+                /** @description 琛屾斂鍖哄垝鐮?adcode */
                 regionCode: components["parameters"]["RegionCodePath"];
             };
             cookie?: never;
@@ -8873,101 +6044,6 @@ export interface operations {
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
             409: components["responses"]["Conflict"];
-        };
-    };
-    adminGetPatentMapEntry: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description 行政区划码/adcode */
-                regionCode: components["parameters"]["RegionCodePath"];
-                year: components["parameters"]["YearPath"];
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["PatentMapEntry"];
-                };
-            };
-            401: components["responses"]["Unauthorized"];
-            403: components["responses"]["Forbidden"];
-            404: components["responses"]["NotFound"];
-        };
-    };
-    adminUpsertPatentMapEntry: {
-        parameters: {
-            query?: never;
-            header?: {
-                /** @description 幂等键（建议用于支付/退款/放款等有副作用的接口；同一幂等键的重复请求应返回同一结果） */
-                "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
-            };
-            path: {
-                /** @description 行政区划码/adcode */
-                regionCode: components["parameters"]["RegionCodePath"];
-                year: components["parameters"]["YearPath"];
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["PatentMapEntryUpsertRequest"];
-            };
-        };
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["PatentMapEntry"];
-                };
-            };
-            400: components["responses"]["BadRequest"];
-            401: components["responses"]["Unauthorized"];
-            403: components["responses"]["Forbidden"];
-            404: components["responses"]["NotFound"];
-            409: components["responses"]["Conflict"];
-        };
-    };
-    adminImportPatentMapExcel: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "multipart/form-data": {
-                    /** Format: binary */
-                    file: string;
-                    /** @default false */
-                    dryRun?: boolean;
-                };
-            };
-        };
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["PatentMapImportResult"];
-                };
-            };
-            400: components["responses"]["BadRequest"];
-            401: components["responses"]["Unauthorized"];
-            403: components["responses"]["Forbidden"];
         };
     };
     adminGetTradeRulesConfig: {
@@ -9070,7 +6146,7 @@ export interface operations {
     listContracts: {
         parameters: {
             query?: {
-                /** @description 合同状态筛选 */
+                /** @description 鍚堝悓鐘舵€佺瓫閫?*/
                 status?: components["schemas"]["ContractStatus"];
                 page?: components["parameters"]["Page"];
                 pageSize?: components["parameters"]["PageSize"];
@@ -9098,11 +6174,11 @@ export interface operations {
         parameters: {
             query?: never;
             header?: {
-                /** @description 幂等键（建议用于支付/退款/放款等有副作用的接口；同一幂等键的重复请求应返回同一结果） */
+                /** @description 骞傜瓑閿紙寤鸿鐢ㄤ簬鏀粯/閫€娆?鏀炬绛夋湁鍓綔鐢ㄧ殑鎺ュ彛锛涘悓涓€骞傜瓑閿殑閲嶅璇锋眰搴旇繑鍥炲悓涓€缁撴灉锛?*/
                 "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
             };
             path: {
-                /** @description 合同 ID（当前实现为 `contract-{orderId}`） */
+                /** @description 鍚堝悓 ID锛堝綋鍓嶅疄鐜颁负 `contract-{orderId}`锛?*/
                 contractId: string;
             };
             cookie?: never;
@@ -9229,9 +6305,9 @@ export interface operations {
     adminListAiParseResults: {
         parameters: {
             query?: {
-                /** @description AI 内容类型过滤 */
+                /** @description AI 鍐呭绫诲瀷杩囨护 */
                 contentType?: components["parameters"]["AiContentType"];
-                /** @description AI 解析状态过滤 */
+                /** @description AI 瑙ｆ瀽鐘舵€佽繃婊?*/
                 status?: components["parameters"]["AiParseStatus"];
                 page?: components["parameters"]["Page"];
                 pageSize?: components["parameters"]["PageSize"];
@@ -9314,7 +6390,7 @@ export interface operations {
     adminListPatents: {
         parameters: {
             query?: {
-                /** @description 关键词（标题/摘要/权利人/发明人/机构名称等） */
+                /** @description 鍏抽敭璇嶏紙鏍囬/鎽樿/鏉冨埄浜?鍙戞槑浜?鏈烘瀯鍚嶇О绛夛級 */
                 q?: components["parameters"]["Q"];
                 patentType?: components["parameters"]["PatentType"];
                 legalStatus?: components["parameters"]["LegalStatus"];
@@ -9427,7 +6503,7 @@ export interface operations {
         parameters: {
             query?: {
                 patentId?: components["schemas"]["Uuid"];
-                /** @description 年费日程状态过滤 */
+                /** @description 骞磋垂鏃ョ▼鐘舵€佽繃婊?*/
                 status?: components["parameters"]["MaintenanceStatus"];
                 dueFrom?: string;
                 dueTo?: string;
@@ -9541,7 +6617,7 @@ export interface operations {
             query?: {
                 scheduleId?: components["schemas"]["Uuid"];
                 assignedCsUserId?: components["schemas"]["Uuid"];
-                /** @description 托管任务状态过滤 */
+                /** @description 鎵樼浠诲姟鐘舵€佽繃婊?*/
                 status?: components["parameters"]["MaintenanceTaskStatus"];
                 page?: components["parameters"]["Page"];
                 pageSize?: components["parameters"]["PageSize"];
@@ -9626,13 +6702,13 @@ export interface operations {
     adminListAlertEvents: {
         parameters: {
             query?: {
-                /** @description 告警状态过滤 */
+                /** @description 鍛婅鐘舵€佽繃婊?*/
                 status?: components["parameters"]["AlertStatus"];
-                /** @description 告警级别过滤 */
+                /** @description 鍛婅绾у埆杩囨护 */
                 severity?: components["parameters"]["AlertSeverity"];
-                /** @description 告警渠道过滤 */
+                /** @description 鍛婅娓犻亾杩囨护 */
                 channel?: components["parameters"]["AlertChannel"];
-                /** @description 告警目标类型过滤 */
+                /** @description 鍛婅鐩爣绫诲瀷杩囨护 */
                 targetType?: components["parameters"]["AlertTargetType"];
                 type?: string;
                 targetId?: components["schemas"]["Uuid"];
@@ -9689,13 +6765,13 @@ export interface operations {
     adminListListingsForAudit: {
         parameters: {
             query?: {
-                /** @description 关键词（标题/摘要/权利人/发明人/机构名称等） */
+                /** @description 鍏抽敭璇嶏紙鏍囬/鎽樿/鏉冨埄浜?鍙戞槑浜?鏈烘瀯鍚嶇О绛夛級 */
                 q?: components["parameters"]["Q"];
-                /** @description 行政区划 adcode（6 位字符串） */
+                /** @description 琛屾斂鍖哄垝 adcode锛? 浣嶅瓧绗︿覆锛?*/
                 regionCode?: components["parameters"]["RegionCode"];
                 auditStatus?: components["parameters"]["AuditStatus"];
                 status?: components["parameters"]["ListingStatus"];
-                /** @description 内容来源过滤 */
+                /** @description 鍐呭鏉ユ簮杩囨护 */
                 source?: components["parameters"]["ContentSource"];
                 page?: components["parameters"]["Page"];
                 pageSize?: components["parameters"]["PageSize"];
@@ -9921,7 +6997,7 @@ export interface operations {
         parameters: {
             query?: never;
             header?: {
-                /** @description 幂等键（建议用于支付/退款/放款等有副作用的接口；同一幂等键的重复请求应返回同一结果） */
+                /** @description 骞傜瓑閿紙寤鸿鐢ㄤ簬鏀粯/閫€娆?鏀炬绛夋湁鍓綔鐢ㄧ殑鎺ュ彛锛涘悓涓€骞傜瓑閿殑閲嶅璇锋眰搴旇繑鍥炲悓涓€缁撴灉锛?*/
                 "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
             };
             path: {
@@ -9951,705 +7027,14 @@ export interface operations {
             409: components["responses"]["Conflict"];
         };
     };
-    adminListDemandsForAudit: {
-        parameters: {
-            query?: {
-                /** @description 关键词（标题/摘要/权利人/发明人/机构名称等） */
-                q?: components["parameters"]["Q"];
-                /** @description 行政区划 adcode（6 位字符串） */
-                regionCode?: components["parameters"]["RegionCode"];
-                auditStatus?: components["parameters"]["AuditStatus"];
-                status?: components["parameters"]["ContentStatus"];
-                /** @description 内容来源过滤 */
-                source?: components["parameters"]["ContentSource"];
-                page?: components["parameters"]["Page"];
-                pageSize?: components["parameters"]["PageSize"];
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["PagedDemand"];
-                };
-            };
-            400: components["responses"]["BadRequest"];
-            401: components["responses"]["Unauthorized"];
-            403: components["responses"]["Forbidden"];
-        };
-    };
-    adminCreateDemand: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["AdminDemandCreateRequest"];
-            };
-        };
-        responses: {
-            /** @description Created */
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Demand"];
-                };
-            };
-            400: components["responses"]["BadRequest"];
-            401: components["responses"]["Unauthorized"];
-            403: components["responses"]["Forbidden"];
-        };
-    };
-    adminGetDemandById: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                demandId: components["parameters"]["DemandId"];
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Demand"];
-                };
-            };
-            401: components["responses"]["Unauthorized"];
-            403: components["responses"]["Forbidden"];
-            404: components["responses"]["NotFound"];
-        };
-    };
-    adminUpdateDemand: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                demandId: components["parameters"]["DemandId"];
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["AdminDemandUpdateRequest"];
-            };
-        };
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Demand"];
-                };
-            };
-            400: components["responses"]["BadRequest"];
-            401: components["responses"]["Unauthorized"];
-            403: components["responses"]["Forbidden"];
-            404: components["responses"]["NotFound"];
-        };
-    };
-    adminPublishDemand: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                demandId: components["parameters"]["DemandId"];
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Demand"];
-                };
-            };
-            401: components["responses"]["Unauthorized"];
-            403: components["responses"]["Forbidden"];
-            404: components["responses"]["NotFound"];
-            409: components["responses"]["Conflict"];
-        };
-    };
-    adminOffShelfDemand: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                demandId: components["parameters"]["DemandId"];
-            };
-            cookie?: never;
-        };
-        requestBody?: {
-            content: {
-                "application/json": {
-                    reason?: string;
-                };
-            };
-        };
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Demand"];
-                };
-            };
-            401: components["responses"]["Unauthorized"];
-            403: components["responses"]["Forbidden"];
-            404: components["responses"]["NotFound"];
-        };
-    };
-    adminApproveDemand: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                demandId: components["parameters"]["DemandId"];
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Demand"];
-                };
-            };
-            401: components["responses"]["Unauthorized"];
-            403: components["responses"]["Forbidden"];
-            404: components["responses"]["NotFound"];
-            409: components["responses"]["Conflict"];
-        };
-    };
-    adminRejectDemand: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                demandId: components["parameters"]["DemandId"];
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": {
-                    reason: string;
-                };
-            };
-        };
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Demand"];
-                };
-            };
-            401: components["responses"]["Unauthorized"];
-            403: components["responses"]["Forbidden"];
-            404: components["responses"]["NotFound"];
-            409: components["responses"]["Conflict"];
-        };
-    };
-    adminListAchievementsForAudit: {
-        parameters: {
-            query?: {
-                /** @description 关键词（标题/摘要/权利人/发明人/机构名称等） */
-                q?: components["parameters"]["Q"];
-                /** @description 行政区划 adcode（6 位字符串） */
-                regionCode?: components["parameters"]["RegionCode"];
-                auditStatus?: components["parameters"]["AuditStatus"];
-                status?: components["parameters"]["ContentStatus"];
-                /** @description 内容来源过滤 */
-                source?: components["parameters"]["ContentSource"];
-                page?: components["parameters"]["Page"];
-                pageSize?: components["parameters"]["PageSize"];
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["PagedAchievement"];
-                };
-            };
-            400: components["responses"]["BadRequest"];
-            401: components["responses"]["Unauthorized"];
-            403: components["responses"]["Forbidden"];
-        };
-    };
-    adminCreateAchievement: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["AdminAchievementCreateRequest"];
-            };
-        };
-        responses: {
-            /** @description Created */
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Achievement"];
-                };
-            };
-            400: components["responses"]["BadRequest"];
-            401: components["responses"]["Unauthorized"];
-            403: components["responses"]["Forbidden"];
-        };
-    };
-    adminGetAchievementById: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                achievementId: components["parameters"]["AchievementId"];
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Achievement"];
-                };
-            };
-            401: components["responses"]["Unauthorized"];
-            403: components["responses"]["Forbidden"];
-            404: components["responses"]["NotFound"];
-        };
-    };
-    adminUpdateAchievement: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                achievementId: components["parameters"]["AchievementId"];
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["AdminAchievementUpdateRequest"];
-            };
-        };
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Achievement"];
-                };
-            };
-            400: components["responses"]["BadRequest"];
-            401: components["responses"]["Unauthorized"];
-            403: components["responses"]["Forbidden"];
-            404: components["responses"]["NotFound"];
-        };
-    };
-    adminPublishAchievement: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                achievementId: components["parameters"]["AchievementId"];
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Achievement"];
-                };
-            };
-            401: components["responses"]["Unauthorized"];
-            403: components["responses"]["Forbidden"];
-            404: components["responses"]["NotFound"];
-            409: components["responses"]["Conflict"];
-        };
-    };
-    adminOffShelfAchievement: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                achievementId: components["parameters"]["AchievementId"];
-            };
-            cookie?: never;
-        };
-        requestBody?: {
-            content: {
-                "application/json": {
-                    reason?: string;
-                };
-            };
-        };
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Achievement"];
-                };
-            };
-            401: components["responses"]["Unauthorized"];
-            403: components["responses"]["Forbidden"];
-            404: components["responses"]["NotFound"];
-        };
-    };
-    adminApproveAchievement: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                achievementId: components["parameters"]["AchievementId"];
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Achievement"];
-                };
-            };
-            401: components["responses"]["Unauthorized"];
-            403: components["responses"]["Forbidden"];
-            404: components["responses"]["NotFound"];
-            409: components["responses"]["Conflict"];
-        };
-    };
-    adminRejectAchievement: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                achievementId: components["parameters"]["AchievementId"];
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": {
-                    reason: string;
-                };
-            };
-        };
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Achievement"];
-                };
-            };
-            401: components["responses"]["Unauthorized"];
-            403: components["responses"]["Forbidden"];
-            404: components["responses"]["NotFound"];
-        };
-    };
-    adminListArtworksForAudit: {
-        parameters: {
-            query?: {
-                /** @description 关键词（标题/摘要/权利人/发明人/机构名称等） */
-                q?: components["parameters"]["Q"];
-                /** @description 行政区划 adcode（6 位字符串） */
-                regionCode?: components["parameters"]["RegionCode"];
-                auditStatus?: components["parameters"]["AuditStatus"];
-                status?: components["parameters"]["ArtworkStatus"];
-                /** @description 内容来源过滤 */
-                source?: components["parameters"]["ContentSource"];
-                page?: components["parameters"]["Page"];
-                pageSize?: components["parameters"]["PageSize"];
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["PagedArtwork"];
-                };
-            };
-            400: components["responses"]["BadRequest"];
-            401: components["responses"]["Unauthorized"];
-            403: components["responses"]["Forbidden"];
-        };
-    };
-    adminCreateArtwork: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["AdminArtworkCreateRequest"];
-            };
-        };
-        responses: {
-            /** @description Created */
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Artwork"];
-                };
-            };
-            400: components["responses"]["BadRequest"];
-            401: components["responses"]["Unauthorized"];
-            403: components["responses"]["Forbidden"];
-        };
-    };
-    adminGetArtworkById: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                artworkId: components["parameters"]["ArtworkId"];
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Artwork"];
-                };
-            };
-            401: components["responses"]["Unauthorized"];
-            403: components["responses"]["Forbidden"];
-            404: components["responses"]["NotFound"];
-        };
-    };
-    adminUpdateArtwork: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                artworkId: components["parameters"]["ArtworkId"];
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["AdminArtworkUpdateRequest"];
-            };
-        };
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Artwork"];
-                };
-            };
-            400: components["responses"]["BadRequest"];
-            401: components["responses"]["Unauthorized"];
-            403: components["responses"]["Forbidden"];
-            404: components["responses"]["NotFound"];
-        };
-    };
-    adminPublishArtwork: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                artworkId: components["parameters"]["ArtworkId"];
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Artwork"];
-                };
-            };
-            401: components["responses"]["Unauthorized"];
-            403: components["responses"]["Forbidden"];
-            404: components["responses"]["NotFound"];
-            409: components["responses"]["Conflict"];
-        };
-    };
-    adminOffShelfArtwork: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                artworkId: components["parameters"]["ArtworkId"];
-            };
-            cookie?: never;
-        };
-        requestBody?: {
-            content: {
-                "application/json": {
-                    reason?: string;
-                };
-            };
-        };
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Artwork"];
-                };
-            };
-            401: components["responses"]["Unauthorized"];
-            403: components["responses"]["Forbidden"];
-            404: components["responses"]["NotFound"];
-        };
-    };
-    adminApproveArtwork: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                artworkId: components["parameters"]["ArtworkId"];
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Artwork"];
-                };
-            };
-            401: components["responses"]["Unauthorized"];
-            403: components["responses"]["Forbidden"];
-            404: components["responses"]["NotFound"];
-            409: components["responses"]["Conflict"];
-        };
-    };
-    adminRejectArtwork: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                artworkId: components["parameters"]["ArtworkId"];
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": {
-                    reason: string;
-                };
-            };
-        };
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Artwork"];
-                };
-            };
-            401: components["responses"]["Unauthorized"];
-            403: components["responses"]["Forbidden"];
-            404: components["responses"]["NotFound"];
-        };
-    };
     adminListTechManagers: {
         parameters: {
             query?: {
-                /** @description 关键词（标题/摘要/权利人/发明人/机构名称等） */
+                /** @description 鍏抽敭璇嶏紙鏍囬/鎽樿/鏉冨埄浜?鍙戞槑浜?鏈烘瀯鍚嶇О绛夛級 */
                 q?: components["parameters"]["Q"];
-                /** @description 行政区划 adcode（6 位字符串） */
+                /** @description 琛屾斂鍖哄垝 adcode锛? 浣嶅瓧绗︿覆锛?*/
                 regionCode?: components["parameters"]["RegionCode"];
-                /** @description 认证状态过滤 */
+                /** @description 璁よ瘉鐘舵€佽繃婊?*/
                 verificationStatus?: components["parameters"]["VerificationStatus"];
                 page?: components["parameters"]["Page"];
                 pageSize?: components["parameters"]["PageSize"];
@@ -10708,13 +7093,13 @@ export interface operations {
     adminListComments: {
         parameters: {
             query?: {
-                /** @description 关键词（标题/摘要/权利人/发明人/机构名称等） */
+                /** @description 鍏抽敭璇嶏紙鏍囬/鎽樿/鏉冨埄浜?鍙戞槑浜?鏈烘瀯鍚嶇О绛夛級 */
                 q?: components["parameters"]["Q"];
-                /** @description 留言所属内容类型过滤 */
+                /** @description 鐣欒█鎵€灞炲唴瀹圭被鍨嬭繃婊?*/
                 contentType?: components["parameters"]["CommentContentType"];
-                /** @description 留言所属内容 ID 过滤 */
+                /** @description 鐣欒█鎵€灞炲唴瀹?ID 杩囨护 */
                 contentId?: components["parameters"]["CommentContentId"];
-                /** @description 留言状态过滤（后台管理） */
+                /** @description 鐣欒█鐘舵€佽繃婊わ紙鍚庡彴绠＄悊锛?*/
                 status?: components["parameters"]["CommentStatus"];
                 page?: components["parameters"]["Page"];
                 pageSize?: components["parameters"]["PageSize"];
@@ -10773,7 +7158,7 @@ export interface operations {
     adminListUserVerifications: {
         parameters: {
             query?: {
-                /** @description 按主体名称/手机号模糊搜索 */
+                /** @description 鎸変富浣撳悕绉?鎵嬫満鍙锋ā绯婃悳绱?*/
                 q?: string;
                 type?: components["schemas"]["VerificationType"];
                 status?: components["schemas"]["VerificationStatus"];
@@ -10993,7 +7378,7 @@ export interface operations {
         parameters: {
             query?: never;
             header?: {
-                /** @description 幂等键（建议用于支付/退款/放款等有副作用的接口；同一幂等键的重复请求应返回同一结果） */
+                /** @description 骞傜瓑閿紙寤鸿鐢ㄤ簬鏀粯/閫€娆?鏀炬绛夋湁鍓綔鐢ㄧ殑鎺ュ彛锛涘悓涓€骞傜瓑閿殑閲嶅璇锋眰搴旇繑鍥炲悓涓€缁撴灉锛?*/
                 "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
             };
             path: {
@@ -11027,7 +7412,7 @@ export interface operations {
         parameters: {
             query?: never;
             header?: {
-                /** @description 幂等键（建议用于支付/退款/放款等有副作用的接口；同一幂等键的重复请求应返回同一结果） */
+                /** @description 骞傜瓑閿紙寤鸿鐢ㄤ簬鏀粯/閫€娆?鏀炬绛夋湁鍓綔鐢ㄧ殑鎺ュ彛锛涘悓涓€骞傜瓑閿殑閲嶅璇锋眰搴旇繑鍥炲悓涓€缁撴灉锛?*/
                 "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
             };
             path: {
@@ -11061,7 +7446,7 @@ export interface operations {
         parameters: {
             query?: never;
             header?: {
-                /** @description 幂等键（建议用于支付/退款/放款等有副作用的接口；同一幂等键的重复请求应返回同一结果） */
+                /** @description 骞傜瓑閿紙寤鸿鐢ㄤ簬鏀粯/閫€娆?鏀炬绛夋湁鍓綔鐢ㄧ殑鎺ュ彛锛涘悓涓€骞傜瓑閿殑閲嶅璇锋眰搴旇繑鍥炲悓涓€缁撴灉锛?*/
                 "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
             };
             path: {
@@ -11095,7 +7480,7 @@ export interface operations {
         parameters: {
             query?: never;
             header?: {
-                /** @description 幂等键（建议用于支付/退款/放款等有副作用的接口；同一幂等键的重复请求应返回同一结果） */
+                /** @description 骞傜瓑閿紙寤鸿鐢ㄤ簬鏀粯/閫€娆?鏀炬绛夋湁鍓綔鐢ㄧ殑鎺ュ彛锛涘悓涓€骞傜瓑閿殑閲嶅璇锋眰搴旇繑鍥炲悓涓€缁撴灉锛?*/
                 "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
             };
             path: {
@@ -11122,7 +7507,7 @@ export interface operations {
         parameters: {
             query?: never;
             header?: {
-                /** @description 幂等键（建议用于支付/退款/放款等有副作用的接口；同一幂等键的重复请求应返回同一结果） */
+                /** @description 骞傜瓑閿紙寤鸿鐢ㄤ簬鏀粯/閫€娆?鏀炬绛夋湁鍓綔鐢ㄧ殑鎺ュ彛锛涘悓涓€骞傜瓑閿殑閲嶅璇锋眰搴旇繑鍥炲悓涓€缁撴灉锛?*/
                 "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
             };
             path: {
@@ -11151,7 +7536,7 @@ export interface operations {
         parameters: {
             query?: never;
             header?: {
-                /** @description 幂等键（建议用于支付/退款/放款等有副作用的接口；同一幂等键的重复请求应返回同一结果） */
+                /** @description 骞傜瓑閿紙寤鸿鐢ㄤ簬鏀粯/閫€娆?鏀炬绛夋湁鍓綔鐢ㄧ殑鎺ュ彛锛涘悓涓€骞傜瓑閿殑閲嶅璇锋眰搴旇繑鍥炲悓涓€缁撴灉锛?*/
                 "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
             };
             path: {
@@ -11186,7 +7571,7 @@ export interface operations {
         parameters: {
             query?: never;
             header?: {
-                /** @description 幂等键（建议用于支付/退款/放款等有副作用的接口；同一幂等键的重复请求应返回同一结果） */
+                /** @description 骞傜瓑閿紙寤鸿鐢ㄤ簬鏀粯/閫€娆?鏀炬绛夋湁鍓綔鐢ㄧ殑鎺ュ彛锛涘悓涓€骞傜瓑閿殑閲嶅璇锋眰搴旇繑鍥炲悓涓€缁撴灉锛?*/
                 "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
             };
             path: {
@@ -11214,211 +7599,6 @@ export interface operations {
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
             409: components["responses"]["Conflict"];
-        };
-    };
-    listPublicAnnouncements: {
-        parameters: {
-            query?: {
-                page?: components["parameters"]["Page"];
-                pageSize?: components["parameters"]["PageSize"];
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["PagedAnnouncement"];
-                };
-            };
-            400: components["responses"]["BadRequest"];
-        };
-    };
-    getPublicAnnouncementById: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                announcementId: components["parameters"]["AnnouncementId"];
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Announcement"];
-                };
-            };
-            404: components["responses"]["NotFound"];
-        };
-    };
-    adminListAnnouncements: {
-        parameters: {
-            query?: {
-                status?: components["schemas"]["AnnouncementStatus"];
-                q?: string;
-                page?: components["parameters"]["Page"];
-                pageSize?: components["parameters"]["PageSize"];
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["PagedAnnouncement"];
-                };
-            };
-            400: components["responses"]["BadRequest"];
-            401: components["responses"]["Unauthorized"];
-            403: components["responses"]["Forbidden"];
-        };
-    };
-    adminCreateAnnouncement: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["AnnouncementCreateRequest"];
-            };
-        };
-        responses: {
-            /** @description Created */
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Announcement"];
-                };
-            };
-            400: components["responses"]["BadRequest"];
-            401: components["responses"]["Unauthorized"];
-            403: components["responses"]["Forbidden"];
-        };
-    };
-    adminDeleteAnnouncement: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                announcementId: components["parameters"]["AnnouncementId"];
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description No Content */
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            401: components["responses"]["Unauthorized"];
-            403: components["responses"]["Forbidden"];
-            404: components["responses"]["NotFound"];
-        };
-    };
-    adminUpdateAnnouncement: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                announcementId: components["parameters"]["AnnouncementId"];
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["AnnouncementUpdateRequest"];
-            };
-        };
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Announcement"];
-                };
-            };
-            400: components["responses"]["BadRequest"];
-            401: components["responses"]["Unauthorized"];
-            403: components["responses"]["Forbidden"];
-            404: components["responses"]["NotFound"];
-        };
-    };
-    adminPublishAnnouncement: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                announcementId: components["parameters"]["AnnouncementId"];
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Announcement"];
-                };
-            };
-            401: components["responses"]["Unauthorized"];
-            403: components["responses"]["Forbidden"];
-            404: components["responses"]["NotFound"];
-        };
-    };
-    adminOffShelfAnnouncement: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                announcementId: components["parameters"]["AnnouncementId"];
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Announcement"];
-                };
-            };
-            401: components["responses"]["Unauthorized"];
-            403: components["responses"]["Forbidden"];
-            404: components["responses"]["NotFound"];
         };
     };
     adminListAuditLogs: {
@@ -11773,156 +7953,6 @@ export interface operations {
             404: components["responses"]["NotFound"];
         };
     };
-    adminGetDemandMaterials: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                demandId: components["parameters"]["DemandId"];
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["AuditMaterialList"];
-                };
-            };
-            401: components["responses"]["Unauthorized"];
-            403: components["responses"]["Forbidden"];
-            404: components["responses"]["NotFound"];
-        };
-    };
-    adminGetDemandAuditLogs: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                demandId: components["parameters"]["DemandId"];
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["AuditLogList"];
-                };
-            };
-            401: components["responses"]["Unauthorized"];
-            403: components["responses"]["Forbidden"];
-            404: components["responses"]["NotFound"];
-        };
-    };
-    adminGetAchievementMaterials: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                achievementId: components["parameters"]["AchievementId"];
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["AuditMaterialList"];
-                };
-            };
-            401: components["responses"]["Unauthorized"];
-            403: components["responses"]["Forbidden"];
-            404: components["responses"]["NotFound"];
-        };
-    };
-    adminGetAchievementAuditLogs: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                achievementId: components["parameters"]["AchievementId"];
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["AuditLogList"];
-                };
-            };
-            401: components["responses"]["Unauthorized"];
-            403: components["responses"]["Forbidden"];
-            404: components["responses"]["NotFound"];
-        };
-    };
-    adminGetArtworkMaterials: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                artworkId: components["parameters"]["ArtworkId"];
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["AuditMaterialList"];
-                };
-            };
-            401: components["responses"]["Unauthorized"];
-            403: components["responses"]["Forbidden"];
-            404: components["responses"]["NotFound"];
-        };
-    };
-    adminGetArtworkAuditLogs: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                artworkId: components["parameters"]["ArtworkId"];
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["AuditLogList"];
-                };
-            };
-            401: components["responses"]["Unauthorized"];
-            403: components["responses"]["Forbidden"];
-            404: components["responses"]["NotFound"];
-        };
-    };
     adminGetVerificationMaterials: {
         parameters: {
             query?: never;
@@ -12244,7 +8274,7 @@ export interface operations {
         parameters: {
             query?: never;
             header?: {
-                /** @description 幂等键（建议用于支付/退款/放款等有副作用的接口；同一幂等键的重复请求应返回同一结果） */
+                /** @description 骞傜瓑閿紙寤鸿鐢ㄤ簬鏀粯/閫€娆?鏀炬绛夋湁鍓綔鐢ㄧ殑鎺ュ彛锛涘悓涓€骞傜瓑閿殑閲嶅璇锋眰搴旇繑鍥炲悓涓€缁撴灉锛?*/
                 "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
             };
             path: {

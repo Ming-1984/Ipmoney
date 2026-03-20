@@ -543,7 +543,7 @@ export default function ListingDetailPage() {
             ) : null}
 
             <View className="detail-section listing-detail-block" id="listing-comments">
-              <CommentsSection contentType="LISTING" contentId={listingId} />
+              <CommentsSection contentId={listingId} />
             </View>
 
           </View>

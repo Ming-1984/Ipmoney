@@ -4,7 +4,7 @@ import { createHash } from 'crypto';
 import { PrismaService } from './prisma/prisma.service';
 import { ConfigService } from '../modules/config/config.service';
 
-type ContentType = 'LISTING' | 'DEMAND' | 'ACHIEVEMENT' | 'ARTWORK';
+type ContentType = 'LISTING';
 type EventType = 'VIEW' | 'FAVORITE' | 'CONSULT';
 
 type ActorInfo = {
@@ -105,58 +105,13 @@ export class ContentEventService {
     const data = this.buildStatsIncrement(delta);
     if (Object.keys(data).length === 0) return;
 
-    if (contentType === 'LISTING') {
-      await this.prisma.listingStats.upsert({
-        where: { listingId: contentId },
-        create: {
-          listingId: contentId,
-          viewCount: delta.viewCount ?? 0,
-          favoriteCount: delta.favoriteCount ?? 0,
-          consultCount: delta.consultCount ?? 0,
-        },
-        update: data,
-      });
-      return;
-    }
-
-    if (contentType === 'DEMAND') {
-      await this.prisma.demandStats.upsert({
-        where: { demandId: contentId },
-        create: {
-          demandId: contentId,
-          viewCount: delta.viewCount ?? 0,
-          favoriteCount: delta.favoriteCount ?? 0,
-          consultCount: delta.consultCount ?? 0,
-          commentCount: 0,
-        },
-        update: data,
-      });
-      return;
-    }
-
-    if (contentType === 'ACHIEVEMENT') {
-      await this.prisma.achievementStats.upsert({
-        where: { achievementId: contentId },
-        create: {
-          achievementId: contentId,
-          viewCount: delta.viewCount ?? 0,
-          favoriteCount: delta.favoriteCount ?? 0,
-          consultCount: delta.consultCount ?? 0,
-          commentCount: 0,
-        },
-        update: data,
-      });
-      return;
-    }
-
-    await this.prisma.artworkStats.upsert({
-      where: { artworkId: contentId },
+    await this.prisma.listingStats.upsert({
+      where: { listingId: contentId },
       create: {
-        artworkId: contentId,
+        listingId: contentId,
         viewCount: delta.viewCount ?? 0,
         favoriteCount: delta.favoriteCount ?? 0,
         consultCount: delta.consultCount ?? 0,
-        commentCount: 0,
       },
       update: data,
     });
@@ -170,38 +125,11 @@ export class ContentEventService {
       return;
     }
 
-    if (contentType === 'LISTING') {
-      const current = await this.prisma.listingStats.findUnique({ where: { listingId: contentId } });
-      if (!current) return;
-      const next = Math.max(0, (current.favoriteCount ?? 0) + delta);
-      if (next === current.favoriteCount) return;
-      await this.prisma.listingStats.update({ where: { listingId: contentId }, data: { favoriteCount: next } });
-      return;
-    }
-
-    if (contentType === 'DEMAND') {
-      const current = await this.prisma.demandStats.findUnique({ where: { demandId: contentId } });
-      if (!current) return;
-      const next = Math.max(0, (current.favoriteCount ?? 0) + delta);
-      if (next === current.favoriteCount) return;
-      await this.prisma.demandStats.update({ where: { demandId: contentId }, data: { favoriteCount: next } });
-      return;
-    }
-
-    if (contentType === 'ACHIEVEMENT') {
-      const current = await this.prisma.achievementStats.findUnique({ where: { achievementId: contentId } });
-      if (!current) return;
-      const next = Math.max(0, (current.favoriteCount ?? 0) + delta);
-      if (next === current.favoriteCount) return;
-      await this.prisma.achievementStats.update({ where: { achievementId: contentId }, data: { favoriteCount: next } });
-      return;
-    }
-
-    const current = await this.prisma.artworkStats.findUnique({ where: { artworkId: contentId } });
+    const current = await this.prisma.listingStats.findUnique({ where: { listingId: contentId } });
     if (!current) return;
     const next = Math.max(0, (current.favoriteCount ?? 0) + delta);
     if (next === current.favoriteCount) return;
-    await this.prisma.artworkStats.update({ where: { artworkId: contentId }, data: { favoriteCount: next } });
+    await this.prisma.listingStats.update({ where: { listingId: contentId }, data: { favoriteCount: next } });
   }
 
   async recordView(req: any, contentType: ContentType, contentId: string) {

@@ -96,8 +96,6 @@ export function clearToken() {
   safeRemoveStorage(STORAGE_KEYS.verificationType);
   safeRemoveStorage(STORAGE_KEYS.verificationStatus);
   safeRemoveStorage(STORAGE_KEYS.favoriteListingIds);
-  safeRemoveStorage(STORAGE_KEYS.favoriteDemandIds);
-  safeRemoveStorage(STORAGE_KEYS.favoriteAchievementIds);
   notifyAuthChanged();
 }
 

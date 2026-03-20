@@ -6,8 +6,8 @@ import { requirePermission } from '../../common/permissions';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { sanitizeIndustryTagNames } from '../content-utils';
 
-const CONTENT_TYPES = ['LISTING', 'DEMAND', 'ACHIEVEMENT', 'ARTWORK'] as const;
-const CONTENT_SCOPES = ['LISTING', 'DEMAND', 'ACHIEVEMENT', 'ARTWORK', 'ALL'] as const;
+const CONTENT_TYPES = ['LISTING'] as const;
+const CONTENT_SCOPES = ['LISTING', 'ALL'] as const;
 const PARSE_STATUS = ['ACTIVE', 'REVIEW_REQUIRED', 'REPLACED'] as const;
 const REGION_CODE_RE = /^[0-9]{6}$/;
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -159,28 +159,11 @@ export class AiService {
       return;
     }
 
-    const [listings, demands, achievements, artworks] = await Promise.all([
-      this.prisma.listing.findMany({
-        where: { status: 'ACTIVE' as any, auditStatus: 'APPROVED' as any },
-        orderBy: { createdAt: 'desc' },
-        take: 10,
-      }),
-      this.prisma.demand.findMany({
-        where: { status: 'ACTIVE' as any, auditStatus: 'APPROVED' as any },
-        orderBy: { createdAt: 'desc' },
-        take: 10,
-      }),
-      this.prisma.achievement.findMany({
-        where: { status: 'ACTIVE' as any, auditStatus: 'APPROVED' as any },
-        orderBy: { createdAt: 'desc' },
-        take: 10,
-      }),
-      this.prisma.artwork.findMany({
-        where: { status: 'ACTIVE' as any, auditStatus: 'APPROVED' as any },
-        orderBy: { createdAt: 'desc' },
-        take: 10,
-      }),
-    ]);
+    const listings = await this.prisma.listing.findMany({
+      where: { status: 'ACTIVE' as any, auditStatus: 'APPROVED' as any },
+      orderBy: { createdAt: 'desc' },
+      take: 10,
+    });
 
     const now = new Date();
     const seedRows: any[] = [];
@@ -194,54 +177,6 @@ export class AiService {
         featuresPlain: item.summary || null,
         keywordsJson: this.keywordize(item.title || ''),
         confidence: 0.52,
-        modelVersion: 'seed-v1',
-        status: 'ACTIVE',
-        createdAt: now,
-        updatedAt: now,
-      });
-    });
-
-    demands.forEach((item: any) => {
-      seedRows.push({
-        id: randomUUID(),
-        contentType: 'DEMAND',
-        contentId: item.id,
-        summaryPlain: item.summary || item.description || item.title,
-        featuresPlain: item.description || null,
-        keywordsJson: this.keywordize(item.title || ''),
-        confidence: 0.5,
-        modelVersion: 'seed-v1',
-        status: 'ACTIVE',
-        createdAt: now,
-        updatedAt: now,
-      });
-    });
-
-    achievements.forEach((item: any) => {
-      seedRows.push({
-        id: randomUUID(),
-        contentType: 'ACHIEVEMENT',
-        contentId: item.id,
-        summaryPlain: item.summary || item.description || item.title,
-        featuresPlain: item.description || null,
-        keywordsJson: this.keywordize(item.title || ''),
-        confidence: 0.5,
-        modelVersion: 'seed-v1',
-        status: 'ACTIVE',
-        createdAt: now,
-        updatedAt: now,
-      });
-    });
-
-    artworks.forEach((item: any) => {
-      seedRows.push({
-        id: randomUUID(),
-        contentType: 'ARTWORK',
-        contentId: item.id,
-        summaryPlain: item.description || item.title,
-        featuresPlain: item.description || null,
-        keywordsJson: this.keywordize(item.title || ''),
-        confidence: 0.5,
         modelVersion: 'seed-v1',
         status: 'ACTIVE',
         createdAt: now,
@@ -265,57 +200,6 @@ export class AiService {
       ];
     }
     return await this.prisma.listing.findMany({
-      where,
-      orderBy: { createdAt: 'desc' },
-      take: limit,
-      select: { id: true, title: true },
-    });
-  }
-
-  private async searchDemands(text: string, limit: number) {
-    const where: any = { status: 'ACTIVE', auditStatus: 'APPROVED' };
-    if (text) {
-      where.OR = [
-        { title: { contains: text, mode: 'insensitive' } },
-        { summary: { contains: text, mode: 'insensitive' } },
-        { description: { contains: text, mode: 'insensitive' } },
-      ];
-    }
-    return await this.prisma.demand.findMany({
-      where,
-      orderBy: { createdAt: 'desc' },
-      take: limit,
-      select: { id: true, title: true },
-    });
-  }
-
-  private async searchAchievements(text: string, limit: number) {
-    const where: any = { status: 'ACTIVE', auditStatus: 'APPROVED' };
-    if (text) {
-      where.OR = [
-        { title: { contains: text, mode: 'insensitive' } },
-        { summary: { contains: text, mode: 'insensitive' } },
-        { description: { contains: text, mode: 'insensitive' } },
-      ];
-    }
-    return await this.prisma.achievement.findMany({
-      where,
-      orderBy: { createdAt: 'desc' },
-      take: limit,
-      select: { id: true, title: true },
-    });
-  }
-
-  private async searchArtworks(text: string, limit: number) {
-    const where: any = { status: 'ACTIVE', auditStatus: 'APPROVED' };
-    if (text) {
-      where.OR = [
-        { title: { contains: text, mode: 'insensitive' } },
-        { description: { contains: text, mode: 'insensitive' } },
-        { creatorName: { contains: text, mode: 'insensitive' } },
-      ];
-    }
-    return await this.prisma.artwork.findMany({
       where,
       orderBy: { createdAt: 'desc' },
       take: limit,
@@ -356,9 +240,6 @@ export class AiService {
     for (const type of targetTypes) {
       let rows: Array<{ id: string; title: string }> = [];
       if (type === 'LISTING') rows = await this.searchListings(normalizedText, 3);
-      if (type === 'DEMAND') rows = await this.searchDemands(normalizedText, 3);
-      if (type === 'ACHIEVEMENT') rows = await this.searchAchievements(normalizedText, 3);
-      if (type === 'ARTWORK') rows = await this.searchArtworks(normalizedText, 3);
 
       rows.forEach((row, idx) => {
         matches.push({

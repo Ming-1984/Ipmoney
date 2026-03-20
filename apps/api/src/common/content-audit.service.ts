@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 
 import { PrismaService } from './prisma/prisma.service';
 
-type AuditTargetType = 'LISTING' | 'DEMAND' | 'ACHIEVEMENT' | 'ARTWORK' | 'VERIFICATION';
+type AuditTargetType = 'LISTING' | 'VERIFICATION';
 
 type AuditMaterialDto = {
   id: string;
@@ -69,42 +69,6 @@ export class ContentAuditService {
         }
       }
 
-      return { items };
-    }
-
-    if (targetType === 'DEMAND') {
-      const media = await this.prisma.demandMedia.findMany({
-        where: { demandId: targetId },
-        include: { file: true },
-        orderBy: { sort: 'asc' },
-      });
-      for (const m of media) {
-        if (m.file) pushFile(m.file, 'Attachment', String(m.type));
-      }
-      return { items };
-    }
-
-    if (targetType === 'ACHIEVEMENT') {
-      const media = await this.prisma.achievementMedia.findMany({
-        where: { achievementId: targetId },
-        include: { file: true },
-        orderBy: { sort: 'asc' },
-      });
-      for (const m of media) {
-        if (m.file) pushFile(m.file, 'Attachment', String(m.type));
-      }
-      return { items };
-    }
-
-    if (targetType === 'ARTWORK') {
-      const media = await this.prisma.artworkMedia.findMany({
-        where: { artworkId: targetId },
-        include: { file: true },
-        orderBy: { sort: 'asc' },
-      });
-      for (const m of media) {
-        if (m.file) pushFile(m.file, 'Attachment', String(m.type));
-      }
       return { items };
     }
 

@@ -1,5 +1,4 @@
-﻿import { View, Text } from '@tarojs/components';
-import { Image } from '@tarojs/components';
+﻿import { View, Text, Image } from '@tarojs/components';
 import Taro from '@tarojs/taro';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
@@ -14,7 +13,6 @@ import type { SectionHeaderAccent } from './layout/SectionHeader';
 import { Avatar, Button, Empty, Tag, TextArea, confirm, toast } from './nutui';
 import emptyComments from '../assets/illustrations/empty-comments.svg';
 
-type CommentContentType = components['schemas']['CommentContentType'];
 type CommentStatus = components['schemas']['CommentStatus'];
 type CommentThread = components['schemas']['CommentThread'];
 type Comment = components['schemas']['Comment'];
@@ -23,13 +21,11 @@ type PageMeta = components['schemas']['PageMeta'];
 type Me = components['schemas']['UserProfile'];
 
 type CommentsSectionProps = {
-  contentType: CommentContentType;
   contentId: string;
   title?: string;
   accent?: SectionHeaderAccent;
   showHeader?: boolean;
   className?: string;
-  variant?: 'default' | 'achievement';
 };
 
 type ComposerState =
@@ -53,7 +49,7 @@ function displayUserInitial(user?: Comment['user']): string {
 }
 
 export function CommentsSection(props: CommentsSectionProps) {
-  const { contentType, contentId, title = '留言', accent = 'primary', showHeader = true, className, variant = 'default' } = props;
+  const { contentId, title = '留言', accent = 'primary', showHeader = true, className } = props;
   const [threads, setThreads] = useState<CommentThread[]>([]);
   const [pageMeta, setPageMeta] = useState<PageMeta | null>(null);
   const [loading, setLoading] = useState(false);
@@ -90,14 +86,7 @@ export function CommentsSection(props: CommentsSectionProps) {
       setError(null);
       try {
         const params = { page, pageSize: DEFAULT_PAGE_SIZE };
-        const d =
-          contentType === 'LISTING'
-            ? await apiGet<PagedCommentThread>(`/public/listings/${contentId}/comments`, params)
-            : contentType === 'DEMAND'
-              ? await apiGet<PagedCommentThread>(`/public/demands/${contentId}/comments`, params)
-              : contentType === 'ARTWORK'
-                ? await apiGet<PagedCommentThread>(`/public/artworks/${contentId}/comments`, params)
-                : await apiGet<PagedCommentThread>(`/public/achievements/${contentId}/comments`, params);
+        const d = await apiGet<PagedCommentThread>(`/public/listings/${contentId}/comments`, params);
         setPageMeta(d.page);
         setThreads((prev) => (page === 1 ? d.items : [...prev, ...d.items]));
       } catch (e: any) {
@@ -108,7 +97,7 @@ export function CommentsSection(props: CommentsSectionProps) {
         else setLoadingMore(false);
       }
     },
-    [contentId, contentType],
+    [contentId],
   );
 
   useEffect(() => {
@@ -135,7 +124,7 @@ export function CommentsSection(props: CommentsSectionProps) {
         setCurrentUserId(null);
         setCurrentUser(null);
       });
-  }, [contentId, contentType]);
+  }, [contentId]);
 
   const total = pageMeta?.total ?? threads.length;
   const currentPage = pageMeta?.page ?? 1;
@@ -219,23 +208,9 @@ export function CommentsSection(props: CommentsSectionProps) {
       } else {
         const payload: components['schemas']['CommentCreateRequest'] = { text };
         if (composer.mode === 'reply') payload.parentCommentId = composer.targetId;
-        if (contentType === 'LISTING') {
-          await apiPost<Comment>(`/listings/${contentId}/comments`, payload, {
-            idempotencyKey: `comment-${contentId}-${Date.now()}`,
-          });
-        } else if (contentType === 'DEMAND') {
-          await apiPost<Comment>(`/demands/${contentId}/comments`, payload, {
-            idempotencyKey: `comment-${contentId}-${Date.now()}`,
-          });
-        } else if (contentType === 'ARTWORK') {
-          await apiPost<Comment>(`/artworks/${contentId}/comments`, payload, {
-            idempotencyKey: `comment-${contentId}-${Date.now()}`,
-          });
-        } else {
-          await apiPost<Comment>(`/achievements/${contentId}/comments`, payload, {
-            idempotencyKey: `comment-${contentId}-${Date.now()}`,
-          });
-        }
+        await apiPost<Comment>(`/listings/${contentId}/comments`, payload, {
+          idempotencyKey: `comment-${contentId}-${Date.now()}`,
+        });
         toast('已发布', { icon: 'success' });
       }
       resetComposer();
@@ -245,7 +220,7 @@ export function CommentsSection(props: CommentsSectionProps) {
     } finally {
       setSubmitting(false);
     }
-  }, [commentById, composer, composerText, contentId, contentType, currentUserId, loadPage, resetComposer]);
+  }, [commentById, composer, composerText, contentId, currentUserId, loadPage, resetComposer]);
 
   const removeComment = useCallback(
     async (comment: Comment) => {
@@ -325,7 +300,7 @@ export function CommentsSection(props: CommentsSectionProps) {
     setTimeout(() => setComposerFocus(false), 120);
   }, []);
 
-  const renderComment = (comment: Comment, options?: { isReply?: boolean; rootId?: string }) => {
+  const renderComment = (comment: Comment, options?: { isReply?: boolean }) => {
     const status = normalizeStatus(comment.status);
     const isVisible = status === 'VISIBLE';
     const isMock = typeof comment.id === 'string' && comment.id.startsWith('mock-');
@@ -335,54 +310,7 @@ export function CommentsSection(props: CommentsSectionProps) {
       options?.isReply && comment.parentCommentId
         ? displayUserName(commentById.get(comment.parentCommentId)?.user)
         : null;
-    const isAchievementReply = variant === 'achievement' && options?.isReply;
-    const replyPrefix = isAchievementReply ? '作者回复：' : replyToName ? `回复 ${replyToName}：` : null;
-
-    if (variant === 'achievement') {
-      return (
-        <View
-          className={`comment-item comment-item-achievement ${options?.isReply ? 'comment-reply-item' : ''}`}
-          onClick={(e) => {
-            e.stopPropagation?.();
-            if (longPressRef.current) {
-              longPressRef.current = false;
-              return;
-            }
-            if (canReply) startReply(comment);
-          }}
-          onLongPress={() => void handleLongPress(comment)}
-        >
-          {isAchievementReply ? (
-            <View className="comment-reply-block">
-              <Text className="comment-text break-word">
-                {replyPrefix ? <Text className="comment-reply-prefix">{replyPrefix}</Text> : null}
-                {comment.text || ''}
-              </Text>
-            </View>
-          ) : (
-            <View className="comment-main-block">
-              <View className="comment-main-top">
-                <View className="comment-main-left">
-                  <Avatar size="36" src={comment.user?.avatarUrl || ''} background="rgba(15, 23, 42, 0.06)" color="var(--c-muted)">
-                    {displayUserInitial(comment.user)}
-                  </Avatar>
-                  <View className="comment-main-meta">
-                    <View className="comment-main-name">
-                      <Text className="comment-name">{displayUserName(comment.user)}</Text>
-                      <Text className="comment-role-tag">技术经理人</Text>
-                    </View>
-                    <Text className="comment-time muted">{formatTimeSmart(comment.createdAt)}</Text>
-                  </View>
-                </View>
-              </View>
-              <View className={`comment-bubble ${status === 'VISIBLE' ? '' : 'comment-text-muted'} comment-bubble-achievement`}>
-                <Text className="comment-text break-word">{comment.text || ''}</Text>
-              </View>
-            </View>
-          )}
-        </View>
-      );
-    }
+    const replyPrefix = replyToName ? `回复 ${replyToName}：` : null;
 
     return (
       <View
@@ -437,7 +365,7 @@ export function CommentsSection(props: CommentsSectionProps) {
   };
 
   return (
-    <Surface className={`${className || ''} ${variant === 'achievement' ? 'comment-surface-achievement' : ''}`}>
+    <Surface className={className || ''}>
       {showHeader ? <SectionHeader title={`${title}${total ? `（${total}）` : ''}`} density="compact" accent={accent} /> : null}
       <View className="comment-composer" id={composerId}>
         {!composerFocus ? (
@@ -502,7 +430,7 @@ export function CommentsSection(props: CommentsSectionProps) {
                 {thread.replies?.length ? (
                   <View className="comment-replies">
                     {thread.replies.map((reply) => (
-                      <View key={reply.id}>{renderComment(reply, { isReply: true, rootId: thread.root.id })}</View>
+                      <View key={reply.id}>{renderComment(reply, { isReply: true })}</View>
                     ))}
                   </View>
                 ) : null}

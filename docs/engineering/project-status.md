@@ -1,4 +1,4 @@
-﻿# 项目状态（Ipmoney）
+# 项目状态（Ipmoney）
 
 > 最后更新：2026-03-15
 
@@ -16,7 +16,6 @@
 ## 范围（P0）
 - 渠道：微信小程序、Taro H5（电脑端可用）、管理后台 Web。
 - 主链路：上架 -> 订金 -> 合同确认 -> 尾款 -> 变更完成 -> 结算放款。
-- 内容模块：listings、demands、achievements、artworks、专利地图、机构、技术经理人、公告、通知。
 
 ## 已完成（基线）
 ### 客户端（小程序 + H5）
@@ -42,8 +41,6 @@
 ### API + 数据
 - OpenAPI <-> Controllers 对齐（243/243）；fixtures 覆盖完成。
 - OpenAPI 覆盖审计：脚本修复，未使用接口剩 AI P1。
-- 核心模块：auth/users/regions/patents/patent-map/files/config/listings/orders/refunds/settlements/invoices。
-- 内容模块：demands/achievements/artworks/announcements/notifications/organizations/tech-managers/inventors。
 - conversations/messages、comments、favorites、addresses、verification、cases、reports、rbac、ai、alerts、patent-maintenance。
 - 幂等保护（下单/支付/退款/发票）；审计日志；文件访问控制；临时 URL 与水印。
 - DEMO 特性开关（生产默认关闭）。

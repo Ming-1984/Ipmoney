@@ -1,16 +1,10 @@
-﻿# Patent Map（小程序）真实地图方案（P0.1）
 
 ## 目标与范围
 - **目标（最小可用）**：在小程序端真实地图底图上展示“省级专利数量”，支持点击查看区域详情。
 - **范围**：仅小程序端（weapp）；仅省级（`PROVINCE`）；**不引入外部地图 Key**；不做省市面填色（choropleth）。
-- **复用**：继续复用现有“区域详情页”与 `GET /patent-map/regions/{regionCode}?year=...`。
 
 ## 现状
-- `pages/patent-map/index` 当前为“年份切换 + 区域列表”。
 - 后端已有接口：
-  - `GET /patent-map/years`
-  - `GET /patent-map/summary`
-  - `GET /patent-map/regions/{regionCode}`
 - 行政区中心点已入库：`GET /regions?level=PROVINCE` 返回 `centerLat/centerLng`。
 
 ## 组件选择（成熟组件）
@@ -21,13 +15,10 @@
 ## 实施计划（待对齐）
 1) 年份 + summary + 省级中心点 join，生成 markers（缺中心点只展示列表）。
 2) 地图渲染 markers，点击 marker 更新“选中区域卡片”。
-3) 卡片按钮跳转详情页（复用 `/pages/patent-map/region-detail`）。
 4) 可选：使用 `MapContext.includePoints` 适配视野。
 
 ## 数据来源（P0.1）
 小程序端只需把两个接口结果做一次 join：
-1) 年份：`GET /patent-map/years`
-2) 省级统计：`GET /patent-map/summary?year=YYYY&level=PROVINCE`
 3) 省级中心点：`GET /regions?level=PROVINCE`
 
 Join 规则：
@@ -39,7 +30,6 @@ Join 规则：
 - 地图：使用小程序 `Map` 组件在真实底图上渲染省级 markers。
   - marker 文案：展示 `patentCount`（或在 callout 中展示“省名 + 数量”）。
   - marker 点击：弹出底部卡片，包含 `regionName`、`patentCount`、按钮“查看详情”。
-  - “查看详情”：跳转 `pages/patent-map/region-detail/index?regionCode=...&year=...`。
 - 列表：保留当前省级列表作为兜底（方便快速进入详情）。
 
 ## 技术要点（实现提示）
