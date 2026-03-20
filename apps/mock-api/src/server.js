@@ -1,4 +1,4 @@
-﻿const http = require('node:http');
+const http = require('node:http');
 const { spawn } = require('node:child_process');
 const { randomUUID } = require('node:crypto');
 const { readFileSync, existsSync } = require('node:fs');
@@ -237,7 +237,6 @@ function createDynamicState() {
     orderPatchById: new Map(),
     invoiceByOrderId: new Map(),
     approvedListingById: new Map(),
-    achievementById: new Map(),
     conversationSummaryById: new Map(),
     conversationPatchById: new Map(),
     messagesByConversationId: new Map(),
@@ -245,9 +244,7 @@ function createDynamicState() {
     commentsById: new Map(),
     commentThreadsByContentKey: new Map(),
     favoriteListingIds: new Set(),
-    favoriteAchievementIds: new Set(),
     listingStatsDeltaById: new Map(),
-    achievementStatsDeltaById: new Map(),
     refundRequestsById: new Map(),
     myVerification: null,
     userVerificationsById: new Map(),
@@ -295,28 +292,6 @@ function toListingSummary(approvedListing) {
     createdAt: approvedListing.createdAt,
   };
 }
-function toAchievementSummary(achievement) {
-  if (!achievement || typeof achievement !== 'object') return null;
-  const id = achievement.id;
-  if (!id) return null;
-
-  return {
-    id,
-    title: achievement.title,
-    summary: achievement.summary,
-    maturity: achievement.maturity,
-    cooperationModes: achievement.cooperationModes || [],
-    regionCode: achievement.regionCode,
-    industryTags: achievement.industryTags || [],
-    keywords: achievement.keywords || [],
-    publisher: achievement.publisher,
-    stats: achievement.stats || { viewCount: 0, favoriteCount: 0, consultCount: 0 },
-    auditStatus: achievement.auditStatus,
-    status: achievement.status,
-    coverUrl: achievement.coverUrl,
-    createdAt: achievement.createdAt,
-  };
-}
 
 function applyStatsDelta(stats, id, deltaById) {
   if (!id) return stats;
@@ -334,20 +309,11 @@ function applyStatsDelta(stats, id, deltaById) {
 function applyListingStatsDelta(stats, listingId) {
   return applyStatsDelta(stats, listingId, dynamicState.listingStatsDeltaById);
 }
-function applyAchievementStatsDelta(stats, achievementId) {
-  return applyStatsDelta(stats, achievementId, dynamicState.achievementStatsDeltaById);
-}
 
 function patchListingSummary(summary) {
   if (!summary || typeof summary !== 'object' || !summary.id) return summary;
   if (!dynamicState.listingStatsDeltaById.size) return summary;
   const nextStats = applyListingStatsDelta(summary.stats, summary.id);
-  return { ...summary, stats: nextStats };
-}
-function patchAchievementSummary(summary) {
-  if (!summary || typeof summary !== 'object' || !summary.id) return summary;
-  if (!dynamicState.achievementStatsDeltaById.size) return summary;
-  const nextStats = applyAchievementStatsDelta(summary.stats, summary.id);
   return { ...summary, stats: nextStats };
 }
 
@@ -432,38 +398,6 @@ function findListingSummaryById(listingId) {
     status: 'ACTIVE',
     createdAt: new Date().toISOString(),
     stats: { viewCount: 0, favoriteCount: 0, consultCount: 0 },
-  });
-}
-function findAchievementSummaryById(achievementId) {
-  if (!achievementId) return null;
-
-  const local = dynamicState.achievementById.get(achievementId);
-  if (local) {
-    const s = toAchievementSummary(local);
-    return s ? patchAchievementSummary(s) : null;
-  }
-
-  const sources = [
-    { pathname: '/search/achievements', key: 'items' },
-    { pathname: '/me/favorites/achievements', key: 'items' },
-  ];
-
-  for (const src of sources) {
-    const base = pickFixtureResponse({ method: 'GET', pathname: src.pathname, scenario: 'happy' });
-    const baseItems = Array.isArray(base?.body?.[src.key]) ? base.body[src.key] : Array.isArray(base?.body?.items) ? base.body.items : [];
-    const found = baseItems.find((it) => it && typeof it === 'object' && it.id === achievementId);
-    if (found) return patchAchievementSummary(found);
-  }
-
-  return patchAchievementSummary({
-    id: achievementId,
-    title: '（演示）未知成果',
-    publisher: { userId: seedUserIdFromFixtures(), displayName: '演示用户', verificationType: 'PERSON', verificationStatus: 'APPROVED' },
-    auditStatus: 'APPROVED',
-    status: 'ACTIVE',
-    createdAt: new Date().toISOString(),
-    stats: { viewCount: 0, favoriteCount: 0, consultCount: 0 },
-    keywords: [],
   });
 }
 
@@ -555,7 +489,6 @@ function commentContentKey(contentType, contentId) {
 
 function commentListFixturePath(contentType) {
   if (contentType === 'LISTING') return '/public/listings/:listingId/comments';
-  if (contentType === 'ACHIEVEMENT') return '/public/achievements/:achievementId/comments';
   return null;
 }
 
@@ -672,12 +605,7 @@ function buildPagedCommentThreads({ contentType, contentId, page, pageSize }) {
 }
 
 function bumpCommentCountDelta(contentType, contentId, delta) {
-  const map =
-    contentType === 'LISTING'
-      ? dynamicState.listingStatsDeltaById
-      : contentType === 'ACHIEVEMENT'
-        ? dynamicState.achievementStatsDeltaById
-        : null;
+  const map = contentType === 'LISTING' ? dynamicState.listingStatsDeltaById : null;
   if (!map) return;
 
   const existing = map.get(contentId) || { viewCountDelta: 0, favoriteCountDelta: 0, consultCountDelta: 0, commentCountDelta: 0 };
@@ -772,9 +700,7 @@ function getDefaultContentId(contentType) {
   const pathname =
     contentType === 'LISTING'
       ? '/public/listings/:listingId'
-      : contentType === 'ACHIEVEMENT'
-        ? '/public/achievements/:achievementId'
-        : null;
+          : null;
   if (!pathname) return null;
   const base = pickFixtureResponse({ method: 'GET', pathname, scenario: 'happy' });
   return base?.body?.id || null;
@@ -783,9 +709,7 @@ function getDefaultContentId(contentType) {
 function ensureDefaultCommentsSeeded() {
   if (dynamicState.commentThreadsByContentKey.size > 0) return;
   const listingId = getDefaultContentId('LISTING');
-  const achievementId = getDefaultContentId('ACHIEVEMENT');
   if (listingId) ensureCommentThreadsSeeded('LISTING', listingId);
-  if (achievementId) ensureCommentThreadsSeeded('ACHIEVEMENT', achievementId);
 }
 
 function adminListComments({ url }) {
@@ -998,140 +922,17 @@ function maybeSendDynamic(req, res, { method, url, scenario, requestBody }) {
     return true;
   }
 
-  
-  
-  
-  
-  
-  
-  if (method.toUpperCase() === 'POST' && pathname === '/achievements') {
-    const now = new Date().toISOString();
-    const id = randomUUID();
-    const publisher = getPublisherSummaryForCurrentUser();
-    const coverFileId = requestBody?.coverFileId ?? null;
-    const coverUrl = coverFileId ? dynamicState.filesById.get(coverFileId)?.url || '' : '';
 
-    const achievement = {
-      id,
-      title: requestBody?.title || '未命名成果',
-      summary: requestBody?.summary || '',
-      description: requestBody?.description || '',
-      keywords: Array.isArray(requestBody?.keywords) ? requestBody.keywords : [],
-      maturity: requestBody?.maturity || 'OTHER',
-      cooperationModes: Array.isArray(requestBody?.cooperationModes) ? requestBody.cooperationModes : [],
-      regionCode: requestBody?.regionCode || '',
-      industryTags: Array.isArray(requestBody?.industryTags) ? requestBody.industryTags : [],
-      publisherUserId: publisher.userId,
-      publisher,
-      stats: { viewCount: 0, favoriteCount: 0, consultCount: 0 },
-      auditStatus: 'PENDING',
-      status: 'DRAFT',
-      coverFileId,
-      coverUrl,
-      media: enrichContentMedia(requestBody?.media || []),
-      createdAt: now,
-      updatedAt: now,
-    };
 
-    dynamicState.achievementById.set(id, achievement);
-    sendFixture(res, { status: 201, body: achievement });
-    return true;
-  }
 
-  if (method.toUpperCase() === 'GET' && pathname === '/achievements') {
-    const userId = seedUserIdFromFixtures();
-    const statusFilter = url.searchParams.get('status');
-    const auditFilter = url.searchParams.get('auditStatus');
-    const page = Number(url.searchParams.get('page') || 1);
-    const pageSize = Number(url.searchParams.get('pageSize') || 20);
 
-    const all = [...dynamicState.achievementById.values()].filter((a) => {
-      if (a?.publisherUserId && a.publisherUserId !== userId) return false;
-      if (statusFilter && a?.status !== statusFilter) return false;
-      if (auditFilter && a?.auditStatus !== auditFilter) return false;
-      return true;
-    });
 
-    all.sort((a, b) => String(b.updatedAt || b.createdAt || '').localeCompare(String(a.updatedAt || a.createdAt || '')));
 
-    const start = Math.max(0, (page - 1) * pageSize);
-    const paged = all.slice(start, start + pageSize);
-    sendFixture(res, { status: 200, body: { items: paged, page: { page, pageSize, total: all.length } } });
-    return true;
-  }
 
-  const achievementMatch = pathname.match(/^\/achievements\/([^/]+)$/);
-  if (achievementMatch && method.toUpperCase() === 'GET') {
-    const achievementId = achievementMatch[1];
-    const a = dynamicState.achievementById.get(achievementId);
-    if (a) {
-      sendFixture(res, { status: 200, body: a });
-      return true;
-    }
-  }
 
-  if (achievementMatch && method.toUpperCase() === 'PATCH') {
-    const achievementId = achievementMatch[1];
-    const existing = dynamicState.achievementById.get(achievementId);
-    const base = existing || {
-      id: achievementId,
-      title: '未命名成果',
-      summary: '',
-      description: '',
-      keywords: [],
-      maturity: 'OTHER',
-      cooperationModes: [],
-      regionCode: '',
-      industryTags: [],
-      publisherUserId: seedUserIdFromFixtures(),
-      publisher: getPublisherSummaryForCurrentUser(),
-      stats: { viewCount: 0, favoriteCount: 0, consultCount: 0 },
-      auditStatus: 'PENDING',
-      status: 'DRAFT',
-      coverFileId: null,
-      coverUrl: '',
-      media: [],
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
 
-    const coverFileId = Object.prototype.hasOwnProperty.call(requestBody || {}, 'coverFileId') ? requestBody.coverFileId : base.coverFileId;
-    const coverUrl = coverFileId ? dynamicState.filesById.get(coverFileId)?.url || '' : base.coverUrl || '';
 
-    const updated = {
-      ...base,
-      ...(requestBody || {}),
-      coverFileId: coverFileId ?? null,
-      coverUrl,
-      media: Array.isArray(requestBody?.media) ? enrichContentMedia(requestBody.media) : base.media,
-      updatedAt: new Date().toISOString(),
-    };
-    dynamicState.achievementById.set(achievementId, updated);
-    sendFixture(res, { status: 200, body: updated });
-    return true;
-  }
 
-  const achievementSubmitMatch = pathname.match(/^\/achievements\/([^/]+)\/submit$/);
-  if (method.toUpperCase() === 'POST' && achievementSubmitMatch) {
-    const achievementId = achievementSubmitMatch[1];
-    const a = dynamicState.achievementById.get(achievementId);
-    if (!a) return false;
-    const updated = { ...a, auditStatus: 'PENDING', status: a.status || 'DRAFT', updatedAt: new Date().toISOString() };
-    dynamicState.achievementById.set(achievementId, updated);
-    sendFixture(res, { status: 200, body: updated });
-    return true;
-  }
-
-  const achievementOffShelfMatch = pathname.match(/^\/achievements\/([^/]+)\/off-shelf$/);
-  if (method.toUpperCase() === 'POST' && achievementOffShelfMatch) {
-    const achievementId = achievementOffShelfMatch[1];
-    const a = dynamicState.achievementById.get(achievementId);
-    if (!a) return false;
-    const updated = { ...a, auditStatus: 'APPROVED', status: 'OFF_SHELF', updatedAt: new Date().toISOString() };
-    dynamicState.achievementById.set(achievementId, updated);
-    sendFixture(res, { status: 200, body: updated });
-    return true;
-  }
 
   if (method.toUpperCase() === 'GET' && pathname === '/me/favorites') {
     const page = Number(url.searchParams.get('page') || 1);
@@ -1147,20 +948,7 @@ function maybeSendDynamic(req, res, { method, url, scenario, requestBody }) {
     return true;
   }
 
-  
-  if (method.toUpperCase() === 'GET' && pathname === '/me/favorites/achievements') {
-    const page = Number(url.searchParams.get('page') || 1);
-    const pageSize = Number(url.searchParams.get('pageSize') || 10);
-    const ids = [...dynamicState.favoriteAchievementIds];
-    const all = ids
-      .map((id) => findAchievementSummaryById(id))
-      .filter(Boolean);
 
-    const start = Math.max(0, (page - 1) * pageSize);
-    const paged = all.slice(start, start + pageSize);
-    sendFixture(res, { status: 200, body: { items: paged, page: { page, pageSize, total: all.length } } });
-    return true;
-  }
 
   if (method.toUpperCase() === 'GET' && pathname === '/public/organizations') {
     const base = pickFixtureResponse({ method: 'GET', pathname: '/public/organizations', scenario: 'happy' });
@@ -1230,30 +1018,7 @@ function maybeSendDynamic(req, res, { method, url, scenario, requestBody }) {
     return true;
   }
 
-  
-  const publicAchievementMatch = pathname.match(/^\/public\/achievements\/([^/]+)$/);
-  if (method.toUpperCase() === 'GET' && publicAchievementMatch) {
-    const achievementId = publicAchievementMatch[1];
-    const local = dynamicState.achievementById.get(achievementId);
-    if (local) {
-      if (local.auditStatus !== 'APPROVED' || local.status !== 'ACTIVE') {
-        sendFixture(res, { status: 404, body: { code: 'NOT_FOUND', message: 'Content not visible' } });
-        return true;
-      }
-      const next = { ...local, media: enrichContentMedia(local.media) };
-      next.stats = applyAchievementStatsDelta(next.stats, achievementId);
-      sendFixture(res, { status: 200, body: next });
-      return true;
-    }
 
-    const base = pickFixtureResponse({ method: 'GET', pathname, scenario: 'happy' });
-    if (!base || base.status >= 400 || !base.body) return false;
-    const next = { ...base.body, id: achievementId };
-    next.stats = applyAchievementStatsDelta(next.stats, achievementId);
-    if (Array.isArray(next.media)) next.media = enrichContentMedia(next.media);
-    sendFixture(res, { status: 200, body: next });
-    return true;
-  }
 
   const publicListingCommentsMatch = pathname.match(/^\/public\/listings\/([^/]+)\/comments$/);
   if (method.toUpperCase() === 'GET' && publicListingCommentsMatch) {
@@ -1264,15 +1029,7 @@ function maybeSendDynamic(req, res, { method, url, scenario, requestBody }) {
     return true;
   }
 
-  
-  const publicAchievementCommentsMatch = pathname.match(/^\/public\/achievements\/([^/]+)\/comments$/);
-  if (method.toUpperCase() === 'GET' && publicAchievementCommentsMatch) {
-    const achievementId = publicAchievementCommentsMatch[1];
-    const page = Math.max(1, Number(url.searchParams.get('page') || 1));
-    const pageSize = Math.max(1, Math.min(100, Number(url.searchParams.get('pageSize') || 20)));
-    sendFixture(res, { status: 200, body: buildPagedCommentThreads({ contentType: 'ACHIEVEMENT', contentId: achievementId, page, pageSize }) });
-    return true;
-  }
+
 
   const listingCommentCreateMatch = pathname.match(/^\/listings\/([^/]+)\/comments$/);
   if (method.toUpperCase() === 'POST' && listingCommentCreateMatch) {
@@ -1282,14 +1039,7 @@ function maybeSendDynamic(req, res, { method, url, scenario, requestBody }) {
     return true;
   }
 
-  
-  const achievementCommentCreateMatch = pathname.match(/^\/achievements\/([^/]+)\/comments$/);
-  if (method.toUpperCase() === 'POST' && achievementCommentCreateMatch) {
-    const achievementId = achievementCommentCreateMatch[1];
-    const result = createCommentForContent({ contentType: 'ACHIEVEMENT', contentId: achievementId, requestBody });
-    sendFixture(res, { status: result.status, body: result.body });
-    return true;
-  }
+
 
   const commentUpdateMatch = pathname.match(/^\/comments\/([^/]+)$/);
   if (method.toUpperCase() === 'PATCH' && commentUpdateMatch) {
@@ -1587,105 +1337,7 @@ function maybeSendDynamic(req, res, { method, url, scenario, requestBody }) {
     return true;
   }
 
-  
-  if (method.toUpperCase() === 'GET' && pathname === '/search/achievements') {
-    const base = pickFixtureResponse({ method: 'GET', pathname: '/search/achievements', scenario: 'happy' });
-    if (!base || base.status >= 400) return false;
 
-    const q = String(url.searchParams.get('q') || '').trim().toLowerCase();
-    const regionCode = String(url.searchParams.get('regionCode') || '').trim();
-    const maturity = String(url.searchParams.get('maturity') || '').trim();
-    const cooperationModes = url.searchParams.getAll('cooperationModes').filter(Boolean);
-    const industryTags = url.searchParams.getAll('industryTags').filter(Boolean);
-    const sortBy = String(url.searchParams.get('sortBy') || 'RECOMMENDED').trim();
-
-    const page = Math.max(1, Number(url.searchParams.get('page') || 1));
-    const pageSize = Math.max(1, Math.min(100, Number(url.searchParams.get('pageSize') || 10)));
-
-    const baseItems = Array.isArray(base.body?.items) ? base.body.items : [];
-    const extras = [];
-    for (const achievement of dynamicState.achievementById.values()) {
-      if (!achievement || typeof achievement !== 'object') continue;
-      if (achievement.auditStatus !== 'APPROVED' || achievement.status !== 'ACTIVE') continue;
-      const summary = toAchievementSummary(achievement);
-      if (summary) extras.push(summary);
-    }
-
-    const seen = new Set();
-    const all = [];
-    for (const it of [...extras, ...baseItems]) {
-      if (!it || !it.id) continue;
-      if (seen.has(it.id)) continue;
-      seen.add(it.id);
-      all.push(patchAchievementSummary(it));
-    }
-
-    const filtered = all.filter((it) => {
-      if (!it || !it.id) return false;
-      if (q) {
-        const hay = `${it.title || ''} ${it.summary || ''}`.toLowerCase();
-        if (!hay.includes(q)) return false;
-      }
-      if (regionCode && String(it.regionCode || '') !== regionCode) return false;
-      if (maturity && String(it.maturity || '') !== maturity) return false;
-
-      if (cooperationModes.length) {
-        const modes = Array.isArray(it.cooperationModes) ? it.cooperationModes : [];
-        if (!modes.length) return false;
-        let ok = false;
-        for (const m of cooperationModes) {
-          if (modes.includes(m)) {
-            ok = true;
-            break;
-          }
-        }
-        if (!ok) return false;
-      }
-
-      if (industryTags.length) {
-        const tags = Array.isArray(it.industryTags) ? it.industryTags : [];
-        if (!tags.length) return false;
-        let ok = false;
-        for (const t of industryTags) {
-          if (tags.includes(t)) {
-            ok = true;
-            break;
-          }
-        }
-        if (!ok) return false;
-      }
-
-      return true;
-    });
-
-    const asTime = (t) => {
-      const ms = Date.parse(String(t || ''));
-      return Number.isFinite(ms) ? ms : 0;
-    };
-    const popularScore = (it) => {
-      const s = it.stats || {};
-      return Number(s.viewCount || 0) + Number(s.favoriteCount || 0) * 10 + Number(s.consultCount || 0) * 20;
-    };
-    const byCreatedDesc = (a, b) => asTime(b.createdAt) - asTime(a.createdAt);
-
-    filtered.sort((a, b) => {
-      if (sortBy === 'NEWEST') return byCreatedDesc(a, b);
-      if (sortBy === 'POPULAR') return popularScore(b) - popularScore(a) || byCreatedDesc(a, b);
-      return popularScore(b) - popularScore(a) || byCreatedDesc(a, b);
-    });
-
-    const start = Math.max(0, (page - 1) * pageSize);
-    const paged = filtered.slice(start, start + pageSize);
-
-    sendFixture(res, {
-      status: 200,
-      body: {
-        items: paged,
-        page: { page, pageSize, total: filtered.length },
-      },
-    });
-    return true;
-  }
 
   if (method.toUpperCase() === 'GET' && pathname === '/search/inventors') {
     const base = pickFixtureResponse({ method: 'GET', pathname: '/search/inventors', scenario: 'happy' });
@@ -1813,125 +1465,11 @@ function maybeSendDynamic(req, res, { method, url, scenario, requestBody }) {
     return true;
   }
 
-  
-  
-  
-  if (method.toUpperCase() === 'GET' && pathname === '/admin/achievements' && dynamicState.achievementById.size) {
-    const base = pickFixtureResponse({ method: 'GET', pathname: '/admin/achievements', scenario: 'happy' });
-    if (!base || base.status >= 400) return false;
 
-    const q = String(url.searchParams.get('q') || '').trim().toLowerCase();
-    const regionCode = String(url.searchParams.get('regionCode') || '').trim();
-    const statusFilter = url.searchParams.get('status');
-    const auditFilter = url.searchParams.get('auditStatus');
-    const page = Number(url.searchParams.get('page') || 1);
-    const pageSize = Number(url.searchParams.get('pageSize') || 20);
 
-    const baseItems = Array.isArray(base.body?.items) ? base.body.items : [];
-    const extras = [...dynamicState.achievementById.values()];
 
-    const seen = new Set();
-    const all = [];
-    for (const it of [...extras, ...baseItems]) {
-      if (!it || !it.id) continue;
-      if (seen.has(it.id)) continue;
-      if (statusFilter && it.status !== statusFilter) continue;
-      if (auditFilter && it.auditStatus !== auditFilter) continue;
-      if (regionCode && String(it.regionCode || '') !== regionCode) continue;
-      if (q) {
-        const hay = `${it.title || ''} ${it.summary || ''}`.toLowerCase();
-        if (!hay.includes(q)) continue;
-      }
-      seen.add(it.id);
-      all.push(it);
-    }
 
-    all.sort((a, b) => String(b.updatedAt || b.createdAt || '').localeCompare(String(a.updatedAt || a.createdAt || '')));
 
-    const start = Math.max(0, (page - 1) * pageSize);
-    const paged = all.slice(start, start + pageSize);
-
-    sendFixture(res, {
-      status: 200,
-      body: {
-        items: paged,
-        page: { page, pageSize, total: all.length },
-      },
-    });
-    return true;
-  }
-
-  const adminAchievementApproveMatch = pathname.match(/^\/admin\/achievements\/([^/]+)\/approve$/);
-  if (method.toUpperCase() === 'POST' && adminAchievementApproveMatch) {
-    const achievementId = adminAchievementApproveMatch[1];
-    const now = new Date().toISOString();
-    const existing = dynamicState.achievementById.get(achievementId);
-    const summary = existing ? null : findAchievementSummaryById(achievementId);
-    const publisher = existing?.publisher || summary?.publisher || getPublisherSummaryForCurrentUser();
-
-    const base = existing || {
-      id: achievementId,
-      title: summary?.title || '未命名成果',
-      summary: summary?.summary || '',
-      description: '',
-      keywords: summary?.keywords || [],
-      maturity: summary?.maturity || 'OTHER',
-      cooperationModes: summary?.cooperationModes || [],
-      regionCode: summary?.regionCode || '',
-      industryTags: summary?.industryTags || [],
-      publisherUserId: publisher.userId,
-      publisher,
-      stats: summary?.stats || { viewCount: 0, favoriteCount: 0, consultCount: 0 },
-      auditStatus: 'PENDING',
-      status: 'DRAFT',
-      coverFileId: null,
-      coverUrl: summary?.coverUrl || '',
-      media: [],
-      createdAt: summary?.createdAt || now,
-      updatedAt: now,
-    };
-
-    const updated = { ...base, auditStatus: 'APPROVED', status: 'ACTIVE', updatedAt: now };
-    dynamicState.achievementById.set(achievementId, updated);
-    sendFixture(res, { status: 200, body: updated });
-    return true;
-  }
-
-  const adminAchievementRejectMatch = pathname.match(/^\/admin\/achievements\/([^/]+)\/reject$/);
-  if (method.toUpperCase() === 'POST' && adminAchievementRejectMatch) {
-    const achievementId = adminAchievementRejectMatch[1];
-    const now = new Date().toISOString();
-    const existing = dynamicState.achievementById.get(achievementId);
-    const summary = existing ? null : findAchievementSummaryById(achievementId);
-    const publisher = existing?.publisher || summary?.publisher || getPublisherSummaryForCurrentUser();
-
-    const base = existing || {
-      id: achievementId,
-      title: summary?.title || '未命名成果',
-      summary: summary?.summary || '',
-      description: '',
-      keywords: summary?.keywords || [],
-      maturity: summary?.maturity || 'OTHER',
-      cooperationModes: summary?.cooperationModes || [],
-      regionCode: summary?.regionCode || '',
-      industryTags: summary?.industryTags || [],
-      publisherUserId: publisher.userId,
-      publisher,
-      stats: summary?.stats || { viewCount: 0, favoriteCount: 0, consultCount: 0 },
-      auditStatus: 'PENDING',
-      status: 'DRAFT',
-      coverFileId: null,
-      coverUrl: summary?.coverUrl || '',
-      media: [],
-      createdAt: summary?.createdAt || now,
-      updatedAt: now,
-    };
-
-    const updated = { ...base, auditStatus: 'REJECTED', status: 'DRAFT', updatedAt: now };
-    dynamicState.achievementById.set(achievementId, updated);
-    sendFixture(res, { status: 200, body: updated });
-    return true;
-  }
 
   const orderInvoiceMatch = pathname.match(/^\/orders\/([^/]+)\/invoice$/);
   if (method.toUpperCase() === 'GET' && orderInvoiceMatch) {
@@ -2028,59 +1566,9 @@ function maybeUpdateDynamicState({ method, pathname, scenario, requestBody, fixt
     return;
   }
 
-  
-  const achievementFavoritesMatch = pathname.match(/^\/achievements\/([^/]+)\/favorites$/);
-  if (achievementFavoritesMatch) {
-    const achievementId = achievementFavoritesMatch[1];
-    const existing = dynamicState.achievementStatsDeltaById.get(achievementId) || {
-      viewCountDelta: 0,
-      favoriteCountDelta: 0,
-      consultCountDelta: 0,
-    };
 
-    if (method.toUpperCase() === 'POST') {
-      dynamicState.favoriteAchievementIds.add(achievementId);
-      dynamicState.achievementStatsDeltaById.set(achievementId, { ...existing, favoriteCountDelta: existing.favoriteCountDelta + 1 });
-      return;
-    }
-    if (method.toUpperCase() === 'DELETE') {
-      dynamicState.favoriteAchievementIds.delete(achievementId);
-      dynamicState.achievementStatsDeltaById.set(achievementId, { ...existing, favoriteCountDelta: existing.favoriteCountDelta - 1 });
-      return;
-    }
-  }
 
-  
-  const achievementConvMatch = pathname.match(/^\/achievements\/([^/]+)\/conversations$/);
-  if (method.toUpperCase() === 'POST' && achievementConvMatch) {
-    const achievementId = achievementConvMatch[1];
-    const existing = dynamicState.achievementStatsDeltaById.get(achievementId) || {
-      viewCountDelta: 0,
-      favoriteCountDelta: 0,
-      consultCountDelta: 0,
-    };
-    dynamicState.achievementStatsDeltaById.set(achievementId, { ...existing, consultCountDelta: existing.consultCountDelta + 1 });
 
-    const conv = fixture?.body;
-    if (conv && typeof conv === 'object' && conv.id) {
-      const summary = findAchievementSummaryById(conv.contentId || achievementId);
-      const publisher = summary?.publisher;
-      dynamicState.conversationSummaryById.set(conv.id, {
-        id: conv.id,
-        contentType: conv.contentType || 'ACHIEVEMENT',
-        contentId: conv.contentId || achievementId,
-        contentTitle: conv.contentTitle || summary?.title || '成果咨询',
-        lastMessageAt: conv.lastMessageAt || new Date().toISOString(),
-        unreadCount: 0,
-        counterpart: {
-          id: publisher?.userId || conv.sellerUserId || seedUserIdFromFixtures(),
-          nickname: publisher?.displayName || '对方',
-          avatarUrl: publisher?.logoUrl || '',
-        },
-      });
-    }
-    return;
-  }
 
   if (method.toUpperCase() === 'PATCH' && pathname === '/me') {
     dynamicState.mePatch = { ...dynamicState.mePatch, ...(requestBody || {}) };

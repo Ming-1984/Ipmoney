@@ -4,7 +4,6 @@ import React, { useMemo } from 'react';
 import './index.scss';
 
 import iconPublishPatent from '../../assets/icons/icon-publish-patent.svg';
-import iconPublishAchievement from '../../assets/icons/icon-publish-achievement.svg';
 import iconShield from '../../assets/icons/icon-shield-orange.svg';
 import iconCategory from '../../assets/icons/icon-category-gray.svg';
 
@@ -45,16 +44,6 @@ export default function PublishPage() {
           Taro.navigateTo({ url: '/subpackages/publish/patent/index' });
         },
       },
-      {
-        key: 'achievement',
-        title: '发布专利成果',
-        desc: '案例/转化成果',
-        icon: iconPublishAchievement,
-        tone: 'tone-green',
-        onClick: () => {
-          Taro.navigateTo({ url: '/subpackages/publish/achievement/index' });
-        },
-      },
     ],
     [],
   );
@@ -68,15 +57,6 @@ export default function PublishPage() {
         tone: 'tone-blue',
         onClick: () => {
           Taro.navigateTo({ url: '/subpackages/my-listings/index' });
-        },
-      },
-      {
-        key: 'achievements',
-        title: '专利成果',
-        icon: iconPublishAchievement,
-        tone: 'tone-green',
-        onClick: () => {
-          Taro.navigateTo({ url: '/subpackages/my-achievements/index' });
         },
       },
     ],

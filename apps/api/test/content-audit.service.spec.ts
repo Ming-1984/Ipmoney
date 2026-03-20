@@ -11,7 +11,6 @@ describe('ContentAuditService strictness suite', () => {
       listing: { findUnique: vi.fn().mockResolvedValue(null) },
       file: { findMany: vi.fn().mockResolvedValue([]) },
       listingMedia: { findMany: vi.fn().mockResolvedValue([]) },
-      achievementMedia: { findMany: vi.fn().mockResolvedValue([]) },
       userVerification: { findUnique: vi.fn().mockResolvedValue(null) },
       auditLog: { findMany: vi.fn().mockResolvedValue([]) },
     };

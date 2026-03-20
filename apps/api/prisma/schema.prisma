@@ -75,7 +75,6 @@ enum PatentPartyRole {
 
 enum FileOwnerScope {
   LISTING
-  ACHIEVEMENT
   CASE
   REFUND_REQUEST
   INVOICE
@@ -113,17 +112,6 @@ enum ListingStatus {
   SOLD
 }
 
-enum ContentStatus {
-  DRAFT
-  ACTIVE
-  OFF_SHELF
-}
-
-enum AnnouncementStatus {
-  DRAFT
-  PUBLISHED
-  OFF_SHELF
-}
 
 enum FeaturedLevel {
   NONE
@@ -150,20 +138,6 @@ enum ListingMediaType {
   FILE
 }
 
-enum ContentMediaType {
-  IMAGE
-  VIDEO
-  FILE
-}
-
-enum AchievementMaturity {
-  CONCEPT
-  PROTOTYPE
-  PILOT
-  MASS_PRODUCTION
-  COMMERCIALIZED
-  OTHER
-}
 
 enum ListingAuditAction {
   APPROVE
@@ -186,7 +160,6 @@ enum ConversationMessageType {
 
 enum ConversationContentType {
   LISTING
-  ACHIEVEMENT
   TECH_MANAGER
 }
 
@@ -203,7 +176,6 @@ enum NotificationKind {
 
 enum CommentContentType {
   LISTING
-  ACHIEVEMENT
 }
 
 enum ContentEventType {
@@ -287,7 +259,6 @@ enum SystemConfigScope {
 
 enum AiContentType {
   LISTING
-  ACHIEVEMENT
 }
 
 enum AiParseStatus {
@@ -324,7 +295,6 @@ enum AlertTargetType {
   PATENT
   ORDER
   LISTING
-  ACHIEVEMENT
   AI_PARSE
   IMPORT
   PAYMENT
@@ -371,8 +341,6 @@ model User {
   listingFavorites     ListingFavorite[]
   listingConsultEvents ListingConsultEvent[]
   userTagScores        UserTagScore[]
-  achievements         Achievement[]         @relation("Achievement_Publisher")
-  achievementFavorites AchievementFavorite[]
 
   conversationsAsBuyer     Conversation[]            @relation("Conversation_Buyer")
   conversationsAsSeller    Conversation[]            @relation("Conversation_Seller")
@@ -411,24 +379,6 @@ model TechManagerProfile {
 
   @@index([featuredRank])
   @@map("tech_manager_profiles")
-}
-
-model Announcement {
-  id        String   @id @default(uuid()) @db.Uuid
-  title     String
-  summary   String?
-  content   String?
-  publisherName String? @map("publisher_name")
-  issueNo   String? @map("issue_no")
-  sourceUrl String? @map("source_url")
-  tagsJson  Json?   @map("tags_json")
-  relatedPatentsJson Json? @map("related_patents_json")
-  status    AnnouncementStatus @default(PUBLISHED)
-  publishedAt DateTime? @map("published_at")
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
-
-  @@map("announcements")
 }
 
 model Notification {
@@ -500,9 +450,7 @@ model Region {
 
   users            User[]
   listings         Listing[]
-  achievements     Achievement[]
   verifications    UserVerification[]
-  patentMapEntries PatentMapEntry[]
 
   @@map("regions")
 }
@@ -647,7 +595,6 @@ model File {
   createdAt  DateTime       @default(now()) @map("created_at")
 
   listingMedia       ListingMedia[]
-  achievementMedia   AchievementMedia[] @relation("AchievementMedia_File")
   messageAttachments ConversationMessage[]
   milestoneEvidence  CsMilestone[]
   caseEvidences      CsCaseEvidence[]
@@ -656,7 +603,6 @@ model File {
   contractFiles      Contract[]         @relation("Contract_File")
   maintenanceEvidenceTasks PatentMaintenanceTask[] @relation("PatentMaintenanceTask_Evidence")
   verificationLogos  UserVerification[]    @relation("UserVerification_LogoFile")
-  achievementCovers  Achievement[]      @relation("Achievement_CoverFile")
 
   @@index([ownerScope, ownerId])
   @@map("files")
@@ -795,78 +741,29 @@ model ContentEvent {
   @@map("content_events")
 }
 
-model Achievement {
-  id                   String              @id @default(uuid()) @db.Uuid
-  publisherUserId      String              @map("publisher_user_id") @db.Uuid
-  source               ContentSource       @default(USER) @map("source")
-  title                String
-  summary              String?
-  description          String?
-  keywordsJson         Json?               @map("keywords_json")
-  maturity             AchievementMaturity?
-  cooperationModesJson Json?               @map("cooperation_modes_json")
-  coverFileId          String?             @map("cover_file_id") @db.Uuid
-  regionCode           String?             @map("region_code")
-  industryTagsJson     Json?               @map("industry_tags_json")
-  auditStatus          AuditStatus         @default(PENDING) @map("audit_status")
-  status               ContentStatus       @default(DRAFT)
-  createdAt            DateTime            @default(now()) @map("created_at")
-  updatedAt            DateTime            @updatedAt @map("updated_at")
 
-  publisher User   @relation("Achievement_Publisher", fields: [publisherUserId], references: [id])
-  region    Region? @relation(fields: [regionCode], references: [code])
-  coverFile File?  @relation("Achievement_CoverFile", fields: [coverFileId], references: [id])
 
-  media     AchievementMedia[]
-  favorites AchievementFavorite[]
-  stats     AchievementStats?
 
-  @@index([publisherUserId, createdAt])
-  @@index([auditStatus, status])
-  @@index([status, auditStatus, createdAt])
-  @@index([regionCode])
-  @@map("achievements")
-}
 
-model AchievementMedia {
-  id            String           @id @default(uuid()) @db.Uuid
-  achievementId String           @map("achievement_id") @db.Uuid
-  fileId        String           @map("file_id") @db.Uuid
-  type          ContentMediaType
-  sort          Int              @default(0)
 
-  achievement Achievement @relation(fields: [achievementId], references: [id])
-  file        File        @relation("AchievementMedia_File", fields: [fileId], references: [id])
 
-  @@index([achievementId, sort])
-  @@map("achievement_media")
-}
 
-model AchievementFavorite {
-  id             String   @id @default(uuid()) @db.Uuid
-  achievementId  String   @map("achievement_id") @db.Uuid
-  userId         String   @map("user_id") @db.Uuid
-  createdAt      DateTime @default(now()) @map("created_at")
 
-  achievement Achievement @relation(fields: [achievementId], references: [id])
-  user        User        @relation(fields: [userId], references: [id])
 
-  @@unique([achievementId, userId])
-  @@map("achievement_favorites")
-}
 
-model AchievementStats {
-  achievementId  String   @id @map("achievement_id") @db.Uuid
-  viewCount      Int      @default(0) @map("view_count")
-  favoriteCount  Int      @default(0) @map("favorite_count")
-  consultCount   Int      @default(0) @map("consult_count")
-  commentCount   Int      @default(0) @map("comment_count")
-  updatedAt      DateTime @updatedAt @map("updated_at")
 
-  achievement Achievement @relation(fields: [achievementId], references: [id])
 
-  @@map("achievement_stats")
-}
+
+
+
+
+
+
+
+
+
+
+
 
 model UserTagScore {
   id        String   @id @default(uuid()) @db.Uuid
@@ -1138,21 +1035,7 @@ model Settlement {
   @@map("settlements")
 }
 
-model PatentMapEntry {
-  id                    String   @id @default(uuid()) @db.Uuid
-  regionCode            String   @map("region_code")
-  year                  Int
-  patentCount           Int      @map("patent_count")
-  industryBreakdownJson Json?    @map("industry_breakdown_json")
-  topAssigneesJson      Json?    @map("top_assignees_json")
-  createdAt             DateTime @default(now()) @map("created_at")
-  updatedAt             DateTime @updatedAt @map("updated_at")
 
-  region Region @relation(fields: [regionCode], references: [code])
-
-  @@unique([regionCode, year])
-  @@map("patent_map_entries")
-}
 
 model SystemConfig {
   id          String                @id @default(uuid()) @db.Uuid

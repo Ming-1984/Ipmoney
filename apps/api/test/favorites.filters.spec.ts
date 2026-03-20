@@ -1,4 +1,4 @@
-import { BadRequestException, ForbiddenException } from '@nestjs/common';
+﻿import { BadRequestException, ForbiddenException } from '@nestjs/common';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { FavoritesService } from '../src/modules/favorites/favorites.service';
@@ -11,7 +11,6 @@ describe('FavoritesService list filter strictness suite', () => {
   beforeEach(() => {
     prisma = {
       listingFavorite: { findMany: vi.fn(), count: vi.fn() },
-      achievementFavorite: { findMany: vi.fn(), count: vi.fn() },
     };
     const events = {
       adjustFavoriteCount: vi.fn().mockResolvedValue(undefined),
@@ -22,13 +21,15 @@ describe('FavoritesService list filter strictness suite', () => {
 
   it('requires auth for list favorites endpoints', async () => {
     await expect(service.listListingFavorites({}, {})).rejects.toBeInstanceOf(ForbiddenException);
-    await expect(service.listAchievementFavorites({}, {})).rejects.toBeInstanceOf(ForbiddenException);
   });
 
   it('rejects invalid pagination strictly', async () => {
     await expect(service.listListingFavorites(req, { page: '0' })).rejects.toBeInstanceOf(BadRequestException);
     await expect(service.listListingFavorites(req, { page: '9007199254740992' })).rejects.toBeInstanceOf(BadRequestException);
-    await expect(service.listAchievementFavorites(req, { page: '   ' })).rejects.toBeInstanceOf(BadRequestException);
+    await expect(service.listListingFavorites(req, { pageSize: '1.5' })).rejects.toBeInstanceOf(BadRequestException);
+    await expect(service.listListingFavorites(req, { pageSize: '9007199254740992' })).rejects.toBeInstanceOf(
+      BadRequestException,
+    );
   });
 
   it('caps pageSize and applies user-bound where in listListingFavorites', async () => {
@@ -71,5 +72,4 @@ describe('FavoritesService list filter strictness suite', () => {
     const result = await service.listListingFavorites(req, {});
     expect(result.items[0].industryTags).toEqual(['AI']);
   });
-
 });

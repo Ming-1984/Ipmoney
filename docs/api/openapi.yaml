@@ -6,74 +6,63 @@ info:
     name: Proprietary
     url: https://ipmoney.com
   description: |
-    Ipmoney 专利交易平台（小程序 + 用户 H5 + 后台）对外 API（P0）。
-
-    业务约束（P0）：
-    - 标的范围：仅 CN 专利（数据以用户上传/后台录入为准）
-    - 资金路径：订金与尾款均线上支付并托管
-    - 合同签署：线下签署完成后由客服/运营确认里程碑解锁尾款支付
-    - 佣金：卖家承担；放款时从卖家应收中扣除
-servers:
+    Ipmoney 涓撳埄浜ゆ槗骞冲彴锛堝皬绋嬪簭 + 鐢ㄦ埛 H5 + 鍚庡彴锛夊澶?API锛圥0锛夈€?
+    涓氬姟绾︽潫锛圥0锛夛細
+    - 鏍囩殑鑼冨洿锛氫粎 CN 涓撳埄锛堟暟鎹互鐢ㄦ埛涓婁紶/鍚庡彴褰曞叆涓哄噯锛?    - 璧勯噾璺緞锛氳閲戜笌灏炬鍧囩嚎涓婃敮浠樺苟鎵樼
+    - 鍚堝悓绛剧讲锛氱嚎涓嬬缃插畬鎴愬悗鐢卞鏈?杩愯惀纭閲岀▼纰戣В閿佸熬娆炬敮浠?    - 浣ｉ噾锛氬崠瀹舵壙鎷咃紱鏀炬鏃朵粠鍗栧搴旀敹涓墸闄?servers:
   - url: https://api.ipmoney.com/v1
 tags:
   - name: Auth
-    description: 登录、短信验证码与 token
+    description: Auth
   - name: Users
-    description: 用户资料与认证主体
+    description: Users
   - name: Organizations
-    description: 机构展示（企业/科研院校等）
+    description: Organizations
   - name: Config
-    description: 交易规则与推荐配置
+    description: Config
   - name: Files
-    description: 文件上传、下载与鉴权
+    description: Files
   - name: Patents
-    description: 专利主数据与号码规范化
+    description: Patents
   - name: Search
-    description: 检索、排序与猜你喜欢
+    description: Search
   - name: Listings
-    description: 上架商品（卖家）与收藏/咨询
-  - name: Achievements
-    description: 成果展示（发布/审核/展示/咨询）
+    description: Listings
   - name: TechManagers
-    description: 技术经理人栏目（检索/展示/咨询）
+    description: Tech managers
   - name: Orders
-    description: 订单创建、查询与状态机
+    description: Orders
   - name: Payments
-    description: 支付意图、回调与幂等
+    description: Payments
   - name: Refunds
-    description: 退款申请与审批
+    description: Refunds
   - name: Cases
-    description: 跟单工单与里程碑
+    description: Cases
   - name: Invoices
-    description: 订单电子发票下载
+    description: Invoices
   - name: Messaging
-    description: 会话与消息（咨询/聊天）
+    description: Messaging
   - name: Notifications
-    description: 通知中心（系统/客服）
+    description: Notifications
   - name: Comments
-    description: 详情页留言与互动回复
+    description: Comments
   - name: Regions
-    description: 行政区划与地域产业标签
-  - name: PatentMap
-    description: 专利地图数据查询
+    description: Regions
   - name: Admin
-    description: 后台管理（审核/配置/财务/地图 CMS）
+    description: Admin
   - name: AI
-    description: 智能体/语音/解析/评分（P1）
+    description: AI
   - name: Maintenance
-    description: 专利年费托管与工单（P1）
+    description: Maintenance
   - name: Alerts
-    description: 告警与通知（P1）
+    description: Alerts
   - name: System
-    description: 系统健康检查与内部状态
-security:
-  - BearerAuth: []
+    description: System
 paths:
   /health:
     get:
       tags: [System]
-      summary: 健康检查
-      operationId: getHealth
+      summary: 鍋ュ悍妫€鏌?      operationId: getHealth
       security: []
       responses:
         "200":
@@ -109,14 +98,9 @@ paths:
   /auth/wechat/mp-login:
     post:
       tags: [Auth]
-      summary: 微信小程序登录（code → token）
-      description: |
-        小程序端通过 `wx.login` 获取 `code` 后调用本接口。
-
-        说明：
-        - 服务端应使用微信 `code2Session`（`/sns/jscode2session`）换取 `openid/session_key`，并按 `openid` 做用户映射后签发平台 `accessToken`。
-        - `wx.login` 不返回头像/昵称：头像/昵称建议走 `chooseAvatar + input type="nickname"`，并通过 `POST /files` + `PATCH /me` 落库。
-      operationId: authWechatMpLogin
+      summary: 寰俊灏忕▼搴忕櫥褰曪紙code 鈫?token锛?      description: |
+        灏忕▼搴忕閫氳繃 `wx.login` 鑾峰彇 `code` 鍚庤皟鐢ㄦ湰鎺ュ彛銆?
+        璇存槑锛?        - 鏈嶅姟绔簲浣跨敤寰俊 `code2Session`锛坄/sns/jscode2session`锛夋崲鍙?`openid/session_key`锛屽苟鎸?`openid` 鍋氱敤鎴锋槧灏勫悗绛惧彂骞冲彴 `accessToken`銆?        - `wx.login` 涓嶈繑鍥炲ご鍍?鏄电О锛氬ご鍍?鏄电О寤鸿璧?`chooseAvatar + input type="nickname"`锛屽苟閫氳繃 `POST /files` + `PATCH /me` 钀藉簱銆?      operationId: authWechatMpLogin
       security: []
       requestBody:
         required: true
@@ -180,7 +164,7 @@ paths:
   /auth/sms/send:
     post:
       tags: [Auth]
-      summary: 发送短信验证码
+      summary: 鍙戦€佺煭淇￠獙璇佺爜
       operationId: authSmsSend
       security: []
       requestBody:
@@ -213,8 +197,7 @@ paths:
   /auth/sms/verify:
     post:
       tags: [Auth]
-      summary: 短信验证码登录
-      operationId: authSmsVerify
+      summary: 鐭俊楠岃瘉鐮佺櫥褰?      operationId: authSmsVerify
       security: []
       requestBody:
         required: true
@@ -242,7 +225,7 @@ paths:
   /me:
     get:
       tags: [Users]
-      summary: 获取我的资料
+      summary: 鑾峰彇鎴戠殑璧勬枡
       operationId: getMe
       security:
         - BearerAuth: []
@@ -257,7 +240,7 @@ paths:
           $ref: "#/components/responses/Unauthorized"
     patch:
       tags: [Users]
-      summary: 更新我的资料
+      summary: 鏇存柊鎴戠殑璧勬枡
       operationId: updateMe
       security:
         - BearerAuth: []
@@ -271,14 +254,14 @@ paths:
                 nickname:
                   type: string
                   maxLength: 50
-                  description: 昵称；小程序端建议使用 `<input type="nickname">` 采集
+                  description: 鏄电О锛涘皬绋嬪簭绔缓璁娇鐢?`<input type="nickname">` 閲囬泦
                 avatarUrl:
                   type: string
                   format: uri
-                  description: 头像 URL；建议先 `POST /files` 上传（`purpose=AVATAR`）再写入
+                  description: 澶村儚 URL锛涘缓璁厛 `POST /files` 涓婁紶锛坄purpose=AVATAR`锛夊啀鍐欏叆
                 regionCode:
                   type: string
-                  description: 用于地域推荐；小程序定位/手动选择后可更新
+                  description: 鐢ㄤ簬鍦板煙鎺ㄨ崘锛涘皬绋嬪簭瀹氫綅/鎵嬪姩閫夋嫨鍚庡彲鏇存柊
       responses:
         "200":
           description: OK
@@ -292,7 +275,7 @@ paths:
   /me/verification:
     get:
       tags: [Users]
-      summary: 获取我的认证信息
+      summary: 鑾峰彇鎴戠殑璁よ瘉淇℃伅
       operationId: getMyVerification
       security:
         - BearerAuth: []
@@ -309,7 +292,7 @@ paths:
           $ref: "#/components/responses/NotFound"
     post:
       tags: [Users]
-      summary: 提交认证
+      summary: 鎻愪氦璁よ瘉
       operationId: submitMyVerification
       security:
         - BearerAuth: []
@@ -336,7 +319,7 @@ paths:
   /me/addresses:
     get:
       tags: [Users]
-      summary: 我的地址列表
+      summary: 鎴戠殑鍦板潃鍒楄〃
       operationId: listMyAddresses
       security:
         - BearerAuth: []
@@ -353,7 +336,7 @@ paths:
           $ref: "#/components/responses/Unauthorized"
     post:
       tags: [Users]
-      summary: 新增地址
+      summary: 鏂板鍦板潃
       operationId: createMyAddress
       security:
         - BearerAuth: []
@@ -378,7 +361,7 @@ paths:
   /me/addresses/{addressId}:
     patch:
       tags: [Users]
-      summary: 更新地址
+      summary: 鏇存柊鍦板潃
       operationId: updateMyAddress
       security:
         - BearerAuth: []
@@ -405,7 +388,7 @@ paths:
           $ref: "#/components/responses/NotFound"
     delete:
       tags: [Users]
-      summary: 删除地址
+      summary: 鍒犻櫎鍦板潃
       operationId: deleteMyAddress
       security:
         - BearerAuth: []
@@ -426,7 +409,7 @@ paths:
   /me/favorites:
     get:
       tags: [Listings]
-      summary: 我的收藏列表
+      summary: 鎴戠殑鏀惰棌鍒楄〃
       operationId: listMyFavoriteListings
       security:
         - BearerAuth: []
@@ -443,31 +426,10 @@ paths:
         "401":
           $ref: "#/components/responses/Unauthorized"
 
-  /me/favorites/achievements:
-    get:
-      tags: [Achievements]
-      summary: 我的成果收藏列表
-      operationId: listMyFavoriteAchievements
-      security:
-        - BearerAuth: []
-      parameters:
-        - $ref: "#/components/parameters/Page"
-        - $ref: "#/components/parameters/PageSize"
-      responses:
-        "200":
-          description: OK
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/PagedAchievementSummary"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-
   /me/recommendations/listings:
     get:
       tags: [Search]
-      summary: 猜你喜欢（个性化推荐）
-      operationId: getMyRecommendedListings
+      summary: 鐚滀綘鍠滄锛堜釜鎬у寲鎺ㄨ崘锛?      operationId: getMyRecommendedListings
       security:
         - BearerAuth: []
       parameters:
@@ -487,7 +449,7 @@ paths:
   /notifications:
     get:
       tags: [Notifications]
-      summary: 通知列表
+      summary: 閫氱煡鍒楄〃
       operationId: listMyNotifications
       security:
         - BearerAuth: []
@@ -507,7 +469,7 @@ paths:
   /notifications/{notificationId}:
     get:
       tags: [Notifications]
-      summary: 通知详情
+      summary: 閫氱煡璇︽儏
       operationId: getNotificationById
       security:
         - BearerAuth: []
@@ -528,13 +490,12 @@ paths:
   /files:
     post:
       tags: [Files]
-      summary: 上传文件
+      summary: 涓婁紶鏂囦欢
       description: |
-        用于上传头像/认证材料/合同等文件。
-
-        小程序头像建议：
+        鐢ㄤ簬涓婁紶澶村儚/璁よ瘉鏉愭枡/鍚堝悓绛夋枃浠躲€?
+        灏忕▼搴忓ご鍍忓缓璁細
         1) `purpose=AVATAR`
-        2) 上传成功拿到 `url`
+        2) 涓婁紶鎴愬姛鎷垮埌 `url`
         3) `PATCH /me { avatarUrl: url }`
       operationId: uploadFile
       security:
@@ -580,7 +541,7 @@ paths:
         - name: token
           in: query
           required: false
-          description: 临时访问 token（用于无需登录的下载）
+          description: 涓存椂璁块棶 token锛堢敤浜庢棤闇€鐧诲綍鐨勪笅杞斤級
           schema:
             type: string
       responses:
@@ -601,8 +562,7 @@ paths:
   /files/{fileId}/preview:
     get:
       tags: [Files]
-      summary: 预览文件（带水印）
-      operationId: previewFile
+      summary: 棰勮鏂囦欢锛堝甫姘村嵃锛?      operationId: previewFile
       security:
         - BearerAuth: []
         - {}
@@ -615,7 +575,7 @@ paths:
         - name: token
           in: query
           required: false
-          description: 临时访问 token（用于无需登录的预览）
+          description: 涓存椂璁块棶 token锛堢敤浜庢棤闇€鐧诲綍鐨勯瑙堬級
           schema:
             type: string
       responses:
@@ -636,7 +596,7 @@ paths:
   /files/{fileId}/temporary-access:
     post:
       tags: [Files]
-      summary: 生成临时访问链接
+      summary: 鐢熸垚涓存椂璁块棶閾炬帴
       operationId: createFileTemporaryAccess
       security:
         - BearerAuth: []
@@ -671,7 +631,7 @@ paths:
   /patents/normalize:
     post:
       tags: [Patents]
-      summary: 专利号码解析与规范化
+      summary: 涓撳埄鍙风爜瑙ｆ瀽涓庤鑼冨寲
       operationId: normalizePatentNumber
       security: []
       requestBody:
@@ -693,8 +653,7 @@ paths:
   /patents/{patentId}:
     get:
       tags: [Patents]
-      summary: 获取专利主数据
-      operationId: getPatentById
+      summary: 鑾峰彇涓撳埄涓绘暟鎹?      operationId: getPatentById
       security:
         - BearerAuth: []
       parameters:
@@ -714,8 +673,7 @@ paths:
   /public/config/trade-rules:
     get:
       tags: [Config]
-      summary: 获取交易规则配置（前台展示用）
-      operationId: getPublicTradeRulesConfig
+      summary: 鑾峰彇浜ゆ槗瑙勫垯閰嶇疆锛堝墠鍙板睍绀虹敤锛?      operationId: getPublicTradeRulesConfig
       security: []
       responses:
         "200":
@@ -730,8 +688,7 @@ paths:
   /public/config/customer-service:
     get:
       tags: [Config]
-      summary: 获取客服配置（前台展示用）
-      operationId: getPublicCustomerServiceConfig
+      summary: 鑾峰彇瀹㈡湇閰嶇疆锛堝墠鍙板睍绀虹敤锛?      operationId: getPublicCustomerServiceConfig
       security: []
       responses:
         "200":
@@ -746,8 +703,7 @@ paths:
   /public/listings/{listingId}:
     get:
       tags: [Listings]
-      summary: 获取上架详情（公开）
-      operationId: getPublicListingById
+      summary: 鑾峰彇涓婃灦璇︽儏锛堝叕寮€锛?      operationId: getPublicListingById
       security: []
       parameters:
         - $ref: "#/components/parameters/ListingId"
@@ -764,51 +720,10 @@ paths:
   /public/listings/{listingId}/comments:
     get:
       tags: [Comments]
-      summary: 获取上架留言列表（公开）
-      operationId: listPublicListingComments
+      summary: 鑾峰彇涓婃灦鐣欒█鍒楄〃锛堝叕寮€锛?      operationId: listPublicListingComments
       security: []
       parameters:
         - $ref: "#/components/parameters/ListingId"
-        - $ref: "#/components/parameters/Page"
-        - $ref: "#/components/parameters/PageSize"
-      responses:
-        "200":
-          description: OK
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/PagedCommentThread"
-        "400":
-          $ref: "#/components/responses/BadRequest"
-        "404":
-          $ref: "#/components/responses/NotFound"
-
-  /public/achievements/{achievementId}:
-    get:
-      tags: [Achievements]
-      summary: 获取成果详情（公开）
-      operationId: getPublicAchievementById
-      security: []
-      parameters:
-        - $ref: "#/components/parameters/AchievementId"
-      responses:
-        "200":
-          description: OK
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/AchievementPublic"
-        "404":
-          $ref: "#/components/responses/NotFound"
-
-  /public/achievements/{achievementId}/comments:
-    get:
-      tags: [Comments]
-      summary: 获取成果留言列表（公开）
-      operationId: listPublicAchievementComments
-      security: []
-      parameters:
-        - $ref: "#/components/parameters/AchievementId"
         - $ref: "#/components/parameters/Page"
         - $ref: "#/components/parameters/PageSize"
       responses:
@@ -826,8 +741,7 @@ paths:
   /public/tech-managers/{techManagerId}:
     get:
       tags: [TechManagers]
-      summary: 获取技术经理人详情（公开）
-      operationId: getPublicTechManagerById
+      summary: 鑾峰彇鎶€鏈粡鐞嗕汉璇︽儏锛堝叕寮€锛?      operationId: getPublicTechManagerById
       security: []
       parameters:
         - $ref: "#/components/parameters/TechManagerId"
@@ -844,7 +758,7 @@ paths:
   /public/organizations:
     get:
       tags: [Organizations]
-      summary: 获取入驻机构列表（企业/科研院校等）
+      summary: 鑾峰彇鍏ラ┗鏈烘瀯鍒楄〃锛堜紒涓?绉戠爺闄㈡牎绛夛級
       operationId: listPublicOrganizations
       security: []
       parameters:
@@ -866,7 +780,7 @@ paths:
   /public/industry-tags:
     get:
       tags: [Regions]
-      summary: 获取产业标签列表（用于筛选）
+      summary: 鑾峰彇浜т笟鏍囩鍒楄〃锛堢敤浜庣瓫閫夛級
       operationId: listPublicIndustryTags
       security: []
       responses:
@@ -884,8 +798,7 @@ paths:
   /public/organizations/{orgUserId}:
     get:
       tags: [Organizations]
-      summary: 获取机构详情（公开）
-      operationId: getPublicOrganizationById
+      summary: 鑾峰彇鏈烘瀯璇︽儏锛堝叕寮€锛?      operationId: getPublicOrganizationById
       security: []
       parameters:
         - $ref: "#/components/parameters/OrgUserId"
@@ -902,12 +815,9 @@ paths:
   /regions:
     get:
       tags: [Regions]
-      summary: 获取行政区划树（用于筛选/地图）
-      description: |-
-        用于地区筛选与地图定位。
-
-        小程序「专利地图」P0（最快落地）会用 `level=PROVINCE` 获取各省份的 `centerLat/centerLng` 作为地图 marker 坐标。
-      operationId: listRegions
+      summary: 鑾峰彇琛屾斂鍖哄垝鏍戯紙鐢ㄤ簬绛涢€?鍦板浘锛?      description: |-
+        鐢ㄤ簬鍦板尯绛涢€変笌鍦板浘瀹氫綅銆?
+        灏忕▼搴忋€屼笓鍒╁湴鍥俱€峆0锛堟渶蹇惤鍦帮級浼氱敤 `level=PROVINCE` 鑾峰彇鍚勭渷浠界殑 `centerLat/centerLng` 浣滀负鍦板浘 marker 鍧愭爣銆?      operationId: listRegions
       security: []
       parameters:
         - name: level
@@ -921,8 +831,7 @@ paths:
           schema:
             type: string
             pattern: "^[0-9]{6}$"
-          description: 父级行政区划 adcode（6 位字符串）
-      responses:
+          description: 鐖剁骇琛屾斂鍖哄垝 adcode锛? 浣嶅瓧绗︿覆锛?      responses:
         "200":
           description: OK
           content:
@@ -934,96 +843,10 @@ paths:
         "400":
           $ref: "#/components/responses/BadRequest"
 
-  /patent-map/years:
-    get:
-      tags: [PatentMap]
-      summary: 获取地图可用年份列表
-      operationId: listPatentMapYears
-      security: []
-      responses:
-        "200":
-          description: OK
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  type: integer
-        "400":
-          $ref: "#/components/responses/BadRequest"
-
-  /patent-map/summary:
-    get:
-      tags: [PatentMap]
-      summary: 获取地图热力数据（按区域聚合）
-      description: |-
-        返回某一年、某层级（省/市/区）的专利数量统计。
-
-        小程序「专利地图」P0（最快落地）典型用法：
-        1) `GET /patent-map/years` 获取年份；
-        2) `GET /patent-map/summary?year=YYYY&level=PROVINCE` 获取省级专利数量；
-        3) `GET /regions?level=PROVINCE` 获取省级中心点坐标，前端在真实地图上以 marker 展示。
-      operationId: getPatentMapSummary
-      security: []
-      parameters:
-        - name: year
-          in: query
-          required: true
-          schema:
-            type: integer
-        - name: level
-          in: query
-          required: true
-          schema:
-            $ref: "#/components/schemas/RegionLevel"
-        - name: parentCode
-          in: query
-          required: false
-          schema:
-            type: string
-          description: 父级行政区划码/adcode（如按 CITY 聚合时传省级 code）
-      responses:
-        "200":
-          description: OK
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: "#/components/schemas/PatentMapSummaryItem"
-        "400":
-          $ref: "#/components/responses/BadRequest"
-
-  /patent-map/regions/{regionCode}:
-    get:
-      tags: [PatentMap]
-      summary: 获取某区域地图详情（产业分布/重点企业）
-      operationId: getPatentMapRegionDetail
-      security: []
-      parameters:
-        - $ref: "#/components/parameters/RegionCodePath"
-        - name: year
-          in: query
-          required: true
-          schema:
-            type: integer
-      responses:
-        "200":
-          description: OK
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/PatentMapRegionDetail"
-        "400":
-          $ref: "#/components/responses/BadRequest"
-        "404":
-          $ref: "#/components/responses/NotFound"
-
   /search/listings:
     get:
       tags: [Search]
-      summary: 专利交易检索
-      operationId: searchListings
+      summary: 涓撳埄浜ゆ槗妫€绱?      operationId: searchListings
       security: []
       parameters:
         - $ref: "#/components/parameters/Q"
@@ -1069,36 +892,10 @@ paths:
         "400":
           $ref: "#/components/responses/BadRequest"
 
-  /search/achievements:
-    get:
-      tags: [Search]
-      summary: 成果展示检索
-      operationId: searchAchievements
-      security: []
-      parameters:
-        - $ref: "#/components/parameters/Q"
-        - $ref: "#/components/parameters/RegionCode"
-        - $ref: "#/components/parameters/IndustryTags"
-        - $ref: "#/components/parameters/CooperationModes"
-        - $ref: "#/components/parameters/AchievementMaturity"
-        - $ref: "#/components/parameters/ContentSortBy"
-        - $ref: "#/components/parameters/Page"
-        - $ref: "#/components/parameters/PageSize"
-      responses:
-        "200":
-          description: OK
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/PagedAchievementSummary"
-        "400":
-          $ref: "#/components/responses/BadRequest"
-
   /search/tech-managers:
     get:
       tags: [Search, TechManagers]
-      summary: 技术经理人检索
-      operationId: searchTechManagers
+      summary: 鎶€鏈粡鐞嗕汉妫€绱?      operationId: searchTechManagers
       security: []
       parameters:
         - $ref: "#/components/parameters/Q"
@@ -1119,7 +916,7 @@ paths:
   /search/inventors:
     get:
       tags: [Search]
-      summary: 发明人排行榜（按平台内上传专利统计）
+      summary: 鍙戞槑浜烘帓琛屾锛堟寜骞冲彴鍐呬笂浼犱笓鍒╃粺璁★級
       operationId: searchInventorRankings
       security: []
       parameters:
@@ -1141,11 +938,8 @@ paths:
   /ai/agent/query:
     post:
       tags: [AI]
-      summary: 智能体语义检索（P1）
-      description: |
-        支持文本/语音输入，输出结构化检索条件与匹配理由。
-        小程序支持语音输入；H5 仅提示去小程序使用语音搜索。
-      operationId: createAiAgentQuery
+      summary: 鏅鸿兘浣撹涔夋绱紙P1锛?      description: |
+        鏀寔鏂囨湰/璇煶杈撳叆锛岃緭鍑虹粨鏋勫寲妫€绱㈡潯浠朵笌鍖归厤鐞嗙敱銆?        灏忕▼搴忔敮鎸佽闊宠緭鍏ワ紱H5 浠呮彁绀哄幓灏忕▼搴忎娇鐢ㄨ闊虫悳绱€?      operationId: createAiAgentQuery
       security: []
       requestBody:
         required: true
@@ -1166,8 +960,7 @@ paths:
   /ai/parse-results/{parseResultId}/feedback:
     post:
       tags: [AI]
-      summary: AI 解析评价/纠错反馈（P1）
-      operationId: createAiParseFeedback
+      summary: AI 瑙ｆ瀽璇勪环/绾犻敊鍙嶉锛圥1锛?      operationId: createAiParseFeedback
       security:
         - BearerAuth: []
       parameters:
@@ -1198,7 +991,7 @@ paths:
   /listings:
     post:
       tags: [Listings]
-      summary: 创建上架草稿（卖家）
+      summary: 鍒涘缓涓婃灦鑽夌锛堝崠瀹讹級
       operationId: createListing
       security:
         - BearerAuth: []
@@ -1223,7 +1016,7 @@ paths:
           $ref: "#/components/responses/Forbidden"
     get:
       tags: [Listings]
-      summary: 我的上架列表（卖家）
+      summary: 鎴戠殑涓婃灦鍒楄〃锛堝崠瀹讹級
       operationId: listMyListings
       security:
         - BearerAuth: []
@@ -1245,7 +1038,7 @@ paths:
   /listings/{listingId}:
     get:
       tags: [Listings]
-      summary: 获取上架详情（卖家/已登录）
+      summary: 鑾峰彇涓婃灦璇︽儏锛堝崠瀹?宸茬櫥褰曪級
       operationId: getListingById
       security:
         - BearerAuth: []
@@ -1264,7 +1057,7 @@ paths:
           $ref: "#/components/responses/Unauthorized"
     patch:
       tags: [Listings]
-      summary: 更新上架草稿（卖家）
+      summary: 鏇存柊涓婃灦鑽夌锛堝崠瀹讹級
       operationId: updateListing
       security:
         - BearerAuth: []
@@ -1295,7 +1088,7 @@ paths:
   /listings/{listingId}/favorites:
     post:
       tags: [Listings]
-      summary: 收藏
+      summary: 鏀惰棌
       operationId: favoriteListing
       security:
         - BearerAuth: []
@@ -1313,7 +1106,7 @@ paths:
           $ref: "#/components/responses/Conflict"
     delete:
       tags: [Listings]
-      summary: 取消收藏
+      summary: 鍙栨秷鏀惰棌
       operationId: unfavoriteListing
       security:
         - BearerAuth: []
@@ -1333,7 +1126,7 @@ paths:
   /listings/{listingId}/consultations:
     post:
       tags: [Listings]
-      summary: 记录咨询热度事件（用于推荐）
+      summary: 璁板綍鍜ㄨ鐑害浜嬩欢锛堢敤浜庢帹鑽愶級
       operationId: createListingConsultation
       security:
         - BearerAuth: []
@@ -1365,7 +1158,7 @@ paths:
   /listings/{listingId}/comments:
     post:
       tags: [Comments]
-      summary: 创建上架留言/回复
+      summary: 鍒涘缓涓婃灦鐣欒█/鍥炲
       operationId: createListingComment
       security:
         - BearerAuth: []
@@ -1397,7 +1190,7 @@ paths:
   /listings/{listingId}/submit:
     post:
       tags: [Listings]
-      summary: 提交审核（卖家）
+      summary: 鎻愪氦瀹℃牳锛堝崠瀹讹級
       operationId: submitListing
       security:
         - BearerAuth: []
@@ -1420,7 +1213,7 @@ paths:
   /listings/{listingId}/off-shelf:
     post:
       tags: [Listings]
-      summary: 下架（卖家）
+      summary: 涓嬫灦锛堝崠瀹讹級
       operationId: offShelfListing
       security:
         - BearerAuth: []
@@ -1450,179 +1243,10 @@ paths:
         "404":
           $ref: "#/components/responses/NotFound"
 
-  /achievements:
-    post:
-      tags: [Achievements]
-      summary: 创建成果草稿（发布方）
-      operationId: createAchievement
-      security:
-        - BearerAuth: []
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/AchievementCreateRequest"
-      responses:
-        "201":
-          description: Created
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Achievement"
-        "400":
-          $ref: "#/components/responses/BadRequest"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "403":
-          $ref: "#/components/responses/Forbidden"
-    get:
-      tags: [Achievements]
-      summary: 我的成果列表（发布方）
-      operationId: listMyAchievements
-      security:
-        - BearerAuth: []
-      parameters:
-        - $ref: "#/components/parameters/ContentStatus"
-        - $ref: "#/components/parameters/AuditStatus"
-        - $ref: "#/components/parameters/Page"
-        - $ref: "#/components/parameters/PageSize"
-      responses:
-        "200":
-          description: OK
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/PagedAchievement"
-        "400":
-          $ref: "#/components/responses/BadRequest"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-
-  /achievements/{achievementId}:
-    get:
-      tags: [Achievements]
-      summary: 获取成果详情（发布方/已登录）
-      operationId: getAchievementById
-      security:
-        - BearerAuth: []
-      parameters:
-        - $ref: "#/components/parameters/AchievementId"
-      responses:
-        "200":
-          description: OK
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Achievement"
-        "404":
-          $ref: "#/components/responses/NotFound"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-    patch:
-      tags: [Achievements]
-      summary: 更新成果草稿（发布方）
-      operationId: updateAchievement
-      security:
-        - BearerAuth: []
-      parameters:
-        - $ref: "#/components/parameters/AchievementId"
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/AchievementUpdateRequest"
-      responses:
-        "200":
-          description: OK
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Achievement"
-        "400":
-          $ref: "#/components/responses/BadRequest"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "403":
-          $ref: "#/components/responses/Forbidden"
-        "404":
-          $ref: "#/components/responses/NotFound"
-
-  /achievements/{achievementId}/favorites:
-    post:
-      tags: [Achievements]
-      summary: 收藏成果
-      operationId: favoriteAchievement
-      security:
-        - BearerAuth: []
-      parameters:
-        - $ref: "#/components/parameters/AchievementId"
-        - $ref: "#/components/parameters/IdempotencyKey"
-      responses:
-        "204":
-          description: No Content
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "404":
-          $ref: "#/components/responses/NotFound"
-        "409":
-          $ref: "#/components/responses/Conflict"
-    delete:
-      tags: [Achievements]
-      summary: 取消收藏成果
-      operationId: unfavoriteAchievement
-      security:
-        - BearerAuth: []
-      parameters:
-        - $ref: "#/components/parameters/AchievementId"
-        - $ref: "#/components/parameters/IdempotencyKey"
-      responses:
-        "204":
-          description: No Content
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "404":
-          $ref: "#/components/responses/NotFound"
-        "409":
-          $ref: "#/components/responses/Conflict"
-
-  /achievements/{achievementId}/comments:
-    post:
-      tags: [Comments]
-      summary: 创建成果留言/回复
-      operationId: createAchievementComment
-      security:
-        - BearerAuth: []
-      parameters:
-        - $ref: "#/components/parameters/AchievementId"
-        - $ref: "#/components/parameters/IdempotencyKey"
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/CommentCreateRequest"
-      responses:
-        "201":
-          description: Created
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Comment"
-        "400":
-          $ref: "#/components/responses/BadRequest"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "404":
-          $ref: "#/components/responses/NotFound"
-        "409":
-          $ref: "#/components/responses/Conflict"
-
   /comments/{commentId}:
     patch:
       tags: [Comments]
-      summary: 编辑留言
+      summary: 缂栬緫鐣欒█
       operationId: updateComment
       security:
         - BearerAuth: []
@@ -1654,7 +1278,7 @@ paths:
           $ref: "#/components/responses/Conflict"
     delete:
       tags: [Comments]
-      summary: 删除留言
+      summary: 鍒犻櫎鐣欒█
       operationId: deleteComment
       security:
         - BearerAuth: []
@@ -1673,66 +1297,10 @@ paths:
         "409":
           $ref: "#/components/responses/Conflict"
 
-  /achievements/{achievementId}/submit:
-    post:
-      tags: [Achievements]
-      summary: 提交审核（发布方）
-      operationId: submitAchievement
-      security:
-        - BearerAuth: []
-      parameters:
-        - $ref: "#/components/parameters/AchievementId"
-      responses:
-        "200":
-          description: OK
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Achievement"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "403":
-          $ref: "#/components/responses/Forbidden"
-        "404":
-          $ref: "#/components/responses/NotFound"
-
-  /achievements/{achievementId}/off-shelf:
-    post:
-      tags: [Achievements]
-      summary: 下架（发布方）
-      operationId: offShelfAchievement
-      security:
-        - BearerAuth: []
-      parameters:
-        - $ref: "#/components/parameters/AchievementId"
-      requestBody:
-        required: false
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                reason:
-                  type: string
-                  maxLength: 200
-      responses:
-        "200":
-          description: OK
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Achievement"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "403":
-          $ref: "#/components/responses/Forbidden"
-        "404":
-          $ref: "#/components/responses/NotFound"
-
   /orders:
     post:
       tags: [Orders]
-      summary: 创建订单（买家）
+      summary: 鍒涘缓璁㈠崟锛堜拱瀹讹級
       operationId: createOrder
       security:
         - BearerAuth: []
@@ -1742,8 +1310,7 @@ paths:
           application/json:
             schema:
               type: object
-              oneOf:
-                - required: [listingId]
+              required: [listingId]
               properties:
                 listingId:
                   $ref: "#/components/schemas/Uuid"
@@ -1764,8 +1331,7 @@ paths:
           $ref: "#/components/responses/Conflict"
     get:
       tags: [Orders]
-      summary: 我的订单列表（买家/卖家）
-      operationId: listMyOrders
+      summary: 鎴戠殑璁㈠崟鍒楄〃锛堜拱瀹?鍗栧锛?      operationId: listMyOrders
       security:
         - BearerAuth: []
       parameters:
@@ -1793,7 +1359,7 @@ paths:
   /orders/{orderId}:
     get:
       tags: [Orders]
-      summary: 获取订单详情
+      summary: 鑾峰彇璁㈠崟璇︽儏
       operationId: getOrderById
       security:
         - BearerAuth: []
@@ -1814,8 +1380,7 @@ paths:
   /orders/{orderId}/payment-intents:
     post:
       tags: [Payments]
-      summary: 创建支付意图（订金/尾款）
-      operationId: createPaymentIntent
+      summary: 鍒涘缓鏀粯鎰忓浘锛堣閲?灏炬锛?      operationId: createPaymentIntent
       security:
         - BearerAuth: []
       parameters:
@@ -1848,8 +1413,7 @@ paths:
   /orders/{orderId}/refund-requests:
     post:
       tags: [Refunds]
-      summary: 发起退款申请
-      operationId: createRefundRequest
+      summary: 鍙戣捣閫€娆剧敵璇?      operationId: createRefundRequest
       security:
         - BearerAuth: []
       parameters:
@@ -1878,8 +1442,7 @@ paths:
           $ref: "#/components/responses/Conflict"
     get:
       tags: [Refunds]
-      summary: 查询退款申请列表
-      operationId: listRefundRequestsByOrder
+      summary: 鏌ヨ閫€娆剧敵璇峰垪琛?      operationId: listRefundRequestsByOrder
       security:
         - BearerAuth: []
       parameters:
@@ -1901,7 +1464,7 @@ paths:
   /orders/{orderId}/case:
     get:
       tags: [Cases]
-      summary: 获取订单跟单工单与里程碑
+      summary: 鑾峰彇璁㈠崟璺熷崟宸ュ崟涓庨噷绋嬬
       operationId: getOrderCase
       security:
         - BearerAuth: []
@@ -1922,8 +1485,7 @@ paths:
   /orders/{orderId}/invoice:
     get:
       tags: [Invoices]
-      summary: 获取订单电子发票（订单完成后）
-      operationId: getOrderInvoice
+      summary: 鑾峰彇璁㈠崟鐢靛瓙鍙戠エ锛堣鍗曞畬鎴愬悗锛?      operationId: getOrderInvoice
       security:
         - BearerAuth: []
       parameters:
@@ -1943,11 +1505,8 @@ paths:
   /orders/{orderId}/invoice-requests:
     post:
       tags: [Invoices]
-      summary: 发起开票申请（演示）
-      description: |
-        P0 口径：平台支持“财务线下开票 + 后台上传发票 PDF + 用户下载”。
-        当前实现为演示用途，保留申请入口以便对齐前端流程与后续扩展。
-      operationId: requestOrderInvoice
+      summary: 鍙戣捣寮€绁ㄧ敵璇凤紙婕旂ず锛?      description: |
+        P0 鍙ｅ緞锛氬钩鍙版敮鎸佲€滆储鍔＄嚎涓嬪紑绁?+ 鍚庡彴涓婁紶鍙戠エ PDF + 鐢ㄦ埛涓嬭浇鈥濄€?        褰撳墠瀹炵幇涓烘紨绀虹敤閫旓紝淇濈暀鐢宠鍏ュ彛浠ヤ究瀵归綈鍓嶇娴佺▼涓庡悗缁墿灞曘€?      operationId: requestOrderInvoice
       security:
         - BearerAuth: []
       parameters:
@@ -1970,7 +1529,7 @@ paths:
   /invoices:
     get:
       tags: [Invoices]
-      summary: 发票管理中心列表（演示）
+      summary: 鍙戠エ绠＄悊涓績鍒楄〃锛堟紨绀猴級
       operationId: listMyInvoices
       security:
         - BearerAuth: []
@@ -1980,8 +1539,7 @@ paths:
           required: false
           schema:
             $ref: "#/components/schemas/InvoiceStatus"
-          description: 发票状态筛选
-        - $ref: "#/components/parameters/Page"
+          description: 鍙戠エ鐘舵€佺瓫閫?        - $ref: "#/components/parameters/Page"
         - $ref: "#/components/parameters/PageSize"
       responses:
         "200":
@@ -1998,13 +1556,11 @@ paths:
   /webhooks/wechatpay/notify:
     post:
       tags: [Payments]
-      summary: 微信支付回调（内部接口）
+      summary: 寰俊鏀粯鍥炶皟锛堝唴閮ㄦ帴鍙ｏ級
       operationId: wechatPayNotify
       security: []
       description: |-
-        微信支付 v3 回调统一入口（支付/退款）：服务端必须执行 **验签 + 解密 resource**，并做幂等处理（避免重复通知导致重复入账/重复退款）。
-        参考：微信支付 v3 文档中的回调 HTTP Header（Wechatpay-*）与回调报文 resource 解密流程。
-      parameters:
+        寰俊鏀粯 v3 鍥炶皟缁熶竴鍏ュ彛锛堟敮浠?閫€娆撅級锛氭湇鍔＄蹇呴』鎵ц **楠岀 + 瑙ｅ瘑 resource**锛屽苟鍋氬箓绛夊鐞嗭紙閬垮厤閲嶅閫氱煡瀵艰嚧閲嶅鍏ヨ处/閲嶅閫€娆撅級銆?        鍙傝€冿細寰俊鏀粯 v3 鏂囨。涓殑鍥炶皟 HTTP Header锛圵echatpay-*锛変笌鍥炶皟鎶ユ枃 resource 瑙ｅ瘑娴佺▼銆?      parameters:
         - $ref: "#/components/parameters/WechatpayTimestamp"
         - $ref: "#/components/parameters/WechatpayNonce"
         - $ref: "#/components/parameters/WechatpaySignature"
@@ -2026,7 +1582,7 @@ paths:
   /me/conversations:
     get:
       tags: [Messaging]
-      summary: 获取我的会话列表
+      summary: 鑾峰彇鎴戠殑浼氳瘽鍒楄〃
       operationId: listMyConversations
       security:
         - BearerAuth: []
@@ -2046,8 +1602,7 @@ paths:
   /listings/{listingId}/conversations:
     post:
       tags: [Messaging]
-      summary: 创建/获取与该上架相关的会话（咨询）
-      operationId: upsertListingConversation
+      summary: 鍒涘缓/鑾峰彇涓庤涓婃灦鐩稿叧鐨勪細璇濓紙鍜ㄨ锛?      operationId: upsertListingConversation
       security:
         - BearerAuth: []
       parameters:
@@ -2067,35 +1622,10 @@ paths:
         "409":
           $ref: "#/components/responses/Conflict"
 
-  /achievements/{achievementId}/conversations:
-    post:
-      tags: [Messaging]
-      summary: 创建/获取与该成果相关的会话（咨询）
-      operationId: upsertAchievementConversation
-      security:
-        - BearerAuth: []
-      parameters:
-        - $ref: "#/components/parameters/AchievementId"
-        - $ref: "#/components/parameters/IdempotencyKey"
-      responses:
-        "200":
-          description: OK
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Conversation"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "404":
-          $ref: "#/components/responses/NotFound"
-        "409":
-          $ref: "#/components/responses/Conflict"
-
   /tech-managers/{techManagerId}/conversations:
     post:
       tags: [Messaging, TechManagers]
-      summary: 创建/获取与该技术经理人相关的会话（咨询）
-      operationId: upsertTechManagerConversation
+      summary: 鍒涘缓/鑾峰彇涓庤鎶€鏈粡鐞嗕汉鐩稿叧鐨勪細璇濓紙鍜ㄨ锛?      operationId: upsertTechManagerConversation
       security:
         - BearerAuth: []
       parameters:
@@ -2118,7 +1648,7 @@ paths:
   /conversations/{conversationId}/messages:
     get:
       tags: [Messaging]
-      summary: 获取会话消息列表
+      summary: 鑾峰彇浼氳瘽娑堟伅鍒楄〃
       operationId: listConversationMessages
       security:
         - BearerAuth: []
@@ -2129,7 +1659,7 @@ paths:
           required: false
           schema:
             type: string
-          description: 游标分页（为空表示从最新开始）
+          description: 娓告爣鍒嗛〉锛堜负绌鸿〃绀轰粠鏈€鏂板紑濮嬶級
         - name: limit
           in: query
           required: false
@@ -2151,8 +1681,7 @@ paths:
           $ref: "#/components/responses/NotFound"
     post:
       tags: [Messaging]
-      summary: 发送消息（文本/表情）
-      operationId: sendConversationMessage
+      summary: 鍙戦€佹秷鎭紙鏂囨湰/琛ㄦ儏锛?      operationId: sendConversationMessage
       security:
         - BearerAuth: []
       parameters:
@@ -2183,7 +1712,7 @@ paths:
   /conversations/{conversationId}/read:
     post:
       tags: [Messaging]
-      summary: 标记会话已读
+      summary: 鏍囪浼氳瘽宸茶
       operationId: markConversationRead
       security:
         - BearerAuth: []
@@ -2203,8 +1732,7 @@ paths:
   /admin/regions:
     get:
       tags: [Admin, Regions]
-      summary: 区域管理：查询区域列表
-      operationId: adminListRegions
+      summary: 鍖哄煙绠＄悊锛氭煡璇㈠尯鍩熷垪琛?      operationId: adminListRegions
       security:
         - BearerAuth: []
       parameters:
@@ -2223,7 +1751,7 @@ paths:
           required: false
           schema:
             type: string
-          description: 名称/拼音模糊搜索
+          description: 鍚嶇О/鎷奸煶妯＄硦鎼滅储
       responses:
         "200":
           description: OK
@@ -2239,8 +1767,7 @@ paths:
           $ref: "#/components/responses/Forbidden"
     post:
       tags: [Admin, Regions]
-      summary: 区域管理：新增区域节点
-      operationId: adminCreateRegion
+      summary: 鍖哄煙绠＄悊锛氭柊澧炲尯鍩熻妭鐐?      operationId: adminCreateRegion
       security:
         - BearerAuth: []
       requestBody:
@@ -2268,8 +1795,7 @@ paths:
   /admin/regions/{regionCode}:
     patch:
       tags: [Admin, Regions]
-      summary: 区域管理：更新区域节点
-      operationId: adminUpdateRegion
+      summary: 鍖哄煙绠＄悊锛氭洿鏂板尯鍩熻妭鐐?      operationId: adminUpdateRegion
       security:
         - BearerAuth: []
       parameters:
@@ -2301,8 +1827,7 @@ paths:
   /admin/regions/{regionCode}/industry-tags:
     put:
       tags: [Admin, Regions]
-      summary: 区域管理：设置区域特色产业标签
-      operationId: adminSetRegionIndustryTags
+      summary: 鍖哄煙绠＄悊锛氳缃尯鍩熺壒鑹蹭骇涓氭爣绛?      operationId: adminSetRegionIndustryTags
       security:
         - BearerAuth: []
       parameters:
@@ -2341,7 +1866,7 @@ paths:
   /admin/industry-tags:
     get:
       tags: [Admin, Regions]
-      summary: 获取可用产业标签列表
+      summary: 鑾峰彇鍙敤浜т笟鏍囩鍒楄〃
       operationId: adminListIndustryTags
       security:
         - BearerAuth: []
@@ -2360,7 +1885,7 @@ paths:
           $ref: "#/components/responses/Forbidden"
     post:
       tags: [Admin, Regions]
-      summary: 新增产业标签
+      summary: 鏂板浜т笟鏍囩
       operationId: adminCreateIndustryTag
       security:
         - BearerAuth: []
@@ -2386,102 +1911,10 @@ paths:
         "409":
           $ref: "#/components/responses/Conflict"
 
-  /admin/patent-map/regions/{regionCode}/years/{year}:
-    get:
-      tags: [Admin, PatentMap]
-      summary: 查看区域+年份地图数据
-      operationId: adminGetPatentMapEntry
-      security:
-        - BearerAuth: []
-      parameters:
-        - $ref: "#/components/parameters/RegionCodePath"
-        - $ref: "#/components/parameters/YearPath"
-      responses:
-        "200":
-          description: OK
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/PatentMapEntry"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "403":
-          $ref: "#/components/responses/Forbidden"
-        "404":
-          $ref: "#/components/responses/NotFound"
-    put:
-      tags: [Admin, PatentMap]
-      summary: 录入/更新区域+年份地图数据
-      operationId: adminUpsertPatentMapEntry
-      security:
-        - BearerAuth: []
-      parameters:
-        - $ref: "#/components/parameters/RegionCodePath"
-        - $ref: "#/components/parameters/YearPath"
-        - $ref: "#/components/parameters/IdempotencyKey"
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/PatentMapEntryUpsertRequest"
-      responses:
-        "200":
-          description: OK
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/PatentMapEntry"
-        "400":
-          $ref: "#/components/responses/BadRequest"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "403":
-          $ref: "#/components/responses/Forbidden"
-        "404":
-          $ref: "#/components/responses/NotFound"
-        "409":
-          $ref: "#/components/responses/Conflict"
-
-  /admin/patent-map/import:
-    post:
-      tags: [Admin, PatentMap]
-      summary: Excel 导入地图数据
-      operationId: adminImportPatentMapExcel
-      security:
-        - BearerAuth: []
-      requestBody:
-        required: true
-        content:
-          multipart/form-data:
-            schema:
-              type: object
-              required: [file]
-              properties:
-                file:
-                  type: string
-                  format: binary
-                dryRun:
-                  type: boolean
-                  default: false
-      responses:
-        "200":
-          description: OK
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/PatentMapImportResult"
-        "400":
-          $ref: "#/components/responses/BadRequest"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "403":
-          $ref: "#/components/responses/Forbidden"
-
   /admin/config/trade-rules:
     get:
       tags: [Admin, Config]
-      summary: 获取交易规则配置（后台）
+      summary: 鑾峰彇浜ゆ槗瑙勫垯閰嶇疆锛堝悗鍙帮級
       operationId: adminGetTradeRulesConfig
       security:
         - BearerAuth: []
@@ -2498,7 +1931,7 @@ paths:
           $ref: "#/components/responses/Forbidden"
     put:
       tags: [Admin, Config]
-      summary: 更新交易规则配置（后台）
+      summary: 鏇存柊浜ゆ槗瑙勫垯閰嶇疆锛堝悗鍙帮級
       operationId: adminUpdateTradeRulesConfig
       security:
         - BearerAuth: []
@@ -2525,7 +1958,7 @@ paths:
   /admin/config/customer-service:
     get:
       tags: [Admin, Config]
-      summary: 获取客服配置（后台）
+      summary: 鑾峰彇瀹㈡湇閰嶇疆锛堝悗鍙帮級
       operationId: adminGetCustomerServiceConfig
       security:
         - BearerAuth: []
@@ -2542,7 +1975,7 @@ paths:
           $ref: "#/components/responses/Forbidden"
     put:
       tags: [Admin, Config]
-      summary: 更新客服配置（后台）
+      summary: 鏇存柊瀹㈡湇閰嶇疆锛堝悗鍙帮級
       operationId: adminUpdateCustomerServiceConfig
       security:
         - BearerAuth: []
@@ -2567,11 +2000,9 @@ paths:
   /contracts:
     get:
       tags: [Contracts]
-      summary: 合同中心列表
+      summary: 鍚堝悓涓績鍒楄〃
       description: |
-        合同文件仅支持 PDF。
-        - 仅卖家可上传合同（`POST /contracts/{contractId}/upload`）
-        - 买家可查阅并确认（确认能力 P1；P0 以“待确认/可查阅”状态演示为准）
+        鍚堝悓鏂囦欢浠呮敮鎸?PDF銆?        - 浠呭崠瀹跺彲涓婁紶鍚堝悓锛坄POST /contracts/{contractId}/upload`锛?        - 涔板鍙煡闃呭苟纭锛堢‘璁よ兘鍔?P1锛汸0 浠モ€滃緟纭/鍙煡闃呪€濈姸鎬佹紨绀轰负鍑嗭級
       operationId: listContracts
       security:
         - BearerAuth: []
@@ -2581,8 +2012,7 @@ paths:
           required: false
           schema:
             $ref: "#/components/schemas/ContractStatus"
-          description: 合同状态筛选
-        - $ref: "#/components/parameters/Page"
+          description: 鍚堝悓鐘舵€佺瓫閫?        - $ref: "#/components/parameters/Page"
         - $ref: "#/components/parameters/PageSize"
       responses:
         "200":
@@ -2599,13 +2029,9 @@ paths:
   /contracts/{contractId}/upload:
     post:
       tags: [Contracts]
-      summary: 卖家上传合同（PDF）
-      description: |
-        流程：
-        1) `POST /files` 上传 PDF（`purpose=CONTRACT_EVIDENCE`）
-        2) 拿到 `file.id`
-        3) 调用本接口把 `contractFileId` 关联到合同记录
-      operationId: uploadContractPdf
+      summary: 鍗栧涓婁紶鍚堝悓锛圥DF锛?      description: |
+        娴佺▼锛?        1) `POST /files` 涓婁紶 PDF锛坄purpose=CONTRACT_EVIDENCE`锛?        2) 鎷垮埌 `file.id`
+        3) 璋冪敤鏈帴鍙ｆ妸 `contractFileId` 鍏宠仈鍒板悎鍚岃褰?      operationId: uploadContractPdf
       security:
         - BearerAuth: []
       parameters:
@@ -2614,8 +2040,7 @@ paths:
           required: true
           schema:
             type: string
-          description: 合同 ID（当前实现为 `contract-{orderId}`）
-        - $ref: "#/components/parameters/IdempotencyKey"
+          description: 鍚堝悓 ID锛堝綋鍓嶅疄鐜颁负 `contract-{orderId}`锛?        - $ref: "#/components/parameters/IdempotencyKey"
       requestBody:
         required: false
         content:
@@ -2641,7 +2066,7 @@ paths:
   /admin/config/recommendation:
     get:
       tags: [Admin, Config]
-      summary: 获取推荐配置（后台）
+      summary: 鑾峰彇鎺ㄨ崘閰嶇疆锛堝悗鍙帮級
       operationId: adminGetRecommendationConfig
       security:
         - BearerAuth: []
@@ -2658,7 +2083,7 @@ paths:
           $ref: "#/components/responses/Forbidden"
     put:
       tags: [Admin, Config]
-      summary: 更新推荐配置（后台）
+      summary: 鏇存柊鎺ㄨ崘閰嶇疆锛堝悗鍙帮級
       operationId: adminUpdateRecommendationConfig
       security:
         - BearerAuth: []
@@ -2685,8 +2110,7 @@ paths:
   /admin/config/alerts:
     get:
       tags: [Admin, Config, Alerts]
-      summary: 获取告警配置（后台，P1）
-      operationId: adminGetAlertConfig
+      summary: 鑾峰彇鍛婅閰嶇疆锛堝悗鍙帮紝P1锛?      operationId: adminGetAlertConfig
       security:
         - BearerAuth: []
       responses:
@@ -2702,8 +2126,7 @@ paths:
           $ref: "#/components/responses/Forbidden"
     put:
       tags: [Admin, Config, Alerts]
-      summary: 更新告警配置（后台，P1）
-      operationId: adminUpdateAlertConfig
+      summary: 鏇存柊鍛婅閰嶇疆锛堝悗鍙帮紝P1锛?      operationId: adminUpdateAlertConfig
       security:
         - BearerAuth: []
       requestBody:
@@ -2729,8 +2152,7 @@ paths:
   /admin/ai/parse-results:
     get:
       tags: [Admin, AI]
-      summary: AI 解析复核列表（P1）
-      operationId: adminListAiParseResults
+      summary: AI 瑙ｆ瀽澶嶆牳鍒楄〃锛圥1锛?      operationId: adminListAiParseResults
       security:
         - BearerAuth: []
       parameters:
@@ -2755,8 +2177,7 @@ paths:
   /admin/ai/parse-results/{parseResultId}:
     get:
       tags: [Admin, AI]
-      summary: 获取 AI 解析详情（P1）
-      operationId: adminGetAiParseResult
+      summary: 鑾峰彇 AI 瑙ｆ瀽璇︽儏锛圥1锛?      operationId: adminGetAiParseResult
       security:
         - BearerAuth: []
       parameters:
@@ -2776,8 +2197,7 @@ paths:
           $ref: "#/components/responses/NotFound"
     patch:
       tags: [Admin, AI]
-      summary: 更新 AI 解析结果（P1）
-      operationId: adminUpdateAiParseResult
+      summary: 鏇存柊 AI 瑙ｆ瀽缁撴灉锛圥1锛?      operationId: adminUpdateAiParseResult
       security:
         - BearerAuth: []
       parameters:
@@ -2807,8 +2227,7 @@ paths:
   /admin/patents:
     get:
       tags: [Admin, Patents]
-      summary: 专利库列表（后台，P1）
-      operationId: adminListPatents
+      summary: 涓撳埄搴撳垪琛紙鍚庡彴锛孭1锛?      operationId: adminListPatents
       security:
         - BearerAuth: []
       parameters:
@@ -2832,8 +2251,7 @@ paths:
           $ref: "#/components/responses/Forbidden"
     post:
       tags: [Admin, Patents]
-      summary: 新建专利主数据（后台，P1）
-      operationId: adminCreatePatent
+      summary: 鏂板缓涓撳埄涓绘暟鎹紙鍚庡彴锛孭1锛?      operationId: adminCreatePatent
       security:
         - BearerAuth: []
       requestBody:
@@ -2859,8 +2277,7 @@ paths:
   /admin/patents/{patentId}:
     get:
       tags: [Admin, Patents]
-      summary: 获取专利主数据（后台，P1）
-      operationId: adminGetPatentById
+      summary: 鑾峰彇涓撳埄涓绘暟鎹紙鍚庡彴锛孭1锛?      operationId: adminGetPatentById
       security:
         - BearerAuth: []
       parameters:
@@ -2880,8 +2297,7 @@ paths:
           $ref: "#/components/responses/NotFound"
     patch:
       tags: [Admin, Patents]
-      summary: 更新专利主数据（后台，P1）
-      operationId: adminUpdatePatent
+      summary: 鏇存柊涓撳埄涓绘暟鎹紙鍚庡彴锛孭1锛?      operationId: adminUpdatePatent
       security:
         - BearerAuth: []
       parameters:
@@ -2911,8 +2327,7 @@ paths:
   /admin/patent-maintenance/schedules:
     get:
       tags: [Admin, Maintenance]
-      summary: 年费日程列表（后台，P1）
-      operationId: adminListPatentMaintenanceSchedules
+      summary: 骞磋垂鏃ョ▼鍒楄〃锛堝悗鍙帮紝P1锛?      operationId: adminListPatentMaintenanceSchedules
       security:
         - BearerAuth: []
       parameters:
@@ -2951,8 +2366,7 @@ paths:
           $ref: "#/components/responses/Forbidden"
     post:
       tags: [Admin, Maintenance]
-      summary: 创建年费日程（后台，P1）
-      operationId: adminCreatePatentMaintenanceSchedule
+      summary: 鍒涘缓骞磋垂鏃ョ▼锛堝悗鍙帮紝P1锛?      operationId: adminCreatePatentMaintenanceSchedule
       security:
         - BearerAuth: []
       requestBody:
@@ -2978,8 +2392,7 @@ paths:
   /admin/patent-maintenance/schedules/{scheduleId}:
     get:
       tags: [Admin, Maintenance]
-      summary: 获取年费日程详情（后台，P1）
-      operationId: adminGetPatentMaintenanceSchedule
+      summary: 鑾峰彇骞磋垂鏃ョ▼璇︽儏锛堝悗鍙帮紝P1锛?      operationId: adminGetPatentMaintenanceSchedule
       security:
         - BearerAuth: []
       parameters:
@@ -2999,8 +2412,7 @@ paths:
           $ref: "#/components/responses/NotFound"
     patch:
       tags: [Admin, Maintenance]
-      summary: 更新年费日程（后台，P1）
-      operationId: adminUpdatePatentMaintenanceSchedule
+      summary: 鏇存柊骞磋垂鏃ョ▼锛堝悗鍙帮紝P1锛?      operationId: adminUpdatePatentMaintenanceSchedule
       security:
         - BearerAuth: []
       parameters:
@@ -3030,8 +2442,7 @@ paths:
   /admin/patent-maintenance/tasks:
     get:
       tags: [Admin, Maintenance]
-      summary: 托管任务列表（后台，P1）
-      operationId: adminListPatentMaintenanceTasks
+      summary: 鎵樼浠诲姟鍒楄〃锛堝悗鍙帮紝P1锛?      operationId: adminListPatentMaintenanceTasks
       security:
         - BearerAuth: []
       parameters:
@@ -3063,8 +2474,7 @@ paths:
           $ref: "#/components/responses/Forbidden"
     post:
       tags: [Admin, Maintenance]
-      summary: 创建托管任务（后台，P1）
-      operationId: adminCreatePatentMaintenanceTask
+      summary: 鍒涘缓鎵樼浠诲姟锛堝悗鍙帮紝P1锛?      operationId: adminCreatePatentMaintenanceTask
       security:
         - BearerAuth: []
       requestBody:
@@ -3090,8 +2500,7 @@ paths:
   /admin/patent-maintenance/tasks/{taskId}:
     patch:
       tags: [Admin, Maintenance]
-      summary: 更新托管任务（后台，P1）
-      operationId: adminUpdatePatentMaintenanceTask
+      summary: 鏇存柊鎵樼浠诲姟锛堝悗鍙帮紝P1锛?      operationId: adminUpdatePatentMaintenanceTask
       security:
         - BearerAuth: []
       parameters:
@@ -3121,8 +2530,7 @@ paths:
   /admin/alerts:
     get:
       tags: [Admin, Alerts]
-      summary: 告警事件列表（后台，P1）
-      operationId: adminListAlertEvents
+      summary: 鍛婅浜嬩欢鍒楄〃锛堝悗鍙帮紝P1锛?      operationId: adminListAlertEvents
       security:
         - BearerAuth: []
       parameters:
@@ -3171,8 +2579,7 @@ paths:
   /admin/alerts/{alertId}/ack:
     post:
       tags: [Admin, Alerts]
-      summary: 告警确认（后台，P1）
-      operationId: adminAcknowledgeAlertEvent
+      summary: 鍛婅纭锛堝悗鍙帮紝P1锛?      operationId: adminAcknowledgeAlertEvent
       security:
         - BearerAuth: []
       parameters:
@@ -3194,7 +2601,7 @@ paths:
   /admin/listings:
     get:
       tags: [Admin]
-      summary: 上架审核/平台内容列表
+      summary: 涓婃灦瀹℃牳/骞冲彴鍐呭鍒楄〃
       operationId: adminListListingsForAudit
       security:
         - BearerAuth: []
@@ -3221,8 +2628,7 @@ paths:
           $ref: "#/components/responses/Forbidden"
     post:
       tags: [Admin]
-      summary: 创建平台自有上架（P1）
-      operationId: adminCreateListing
+      summary: 鍒涘缓骞冲彴鑷湁涓婃灦锛圥1锛?      operationId: adminCreateListing
       security:
         - BearerAuth: []
       requestBody:
@@ -3248,8 +2654,7 @@ paths:
   /admin/listings/{listingId}:
     get:
       tags: [Admin]
-      summary: 获取上架详情（后台，P1）
-      operationId: adminGetListingById
+      summary: 鑾峰彇涓婃灦璇︽儏锛堝悗鍙帮紝P1锛?      operationId: adminGetListingById
       security:
         - BearerAuth: []
       parameters:
@@ -3269,8 +2674,7 @@ paths:
           $ref: "#/components/responses/NotFound"
     patch:
       tags: [Admin]
-      summary: 更新平台自有上架（后台，P1）
-      operationId: adminUpdateListing
+      summary: 鏇存柊骞冲彴鑷湁涓婃灦锛堝悗鍙帮紝P1锛?      operationId: adminUpdateListing
       security:
         - BearerAuth: []
       parameters:
@@ -3300,8 +2704,7 @@ paths:
   /admin/listings/{listingId}/publish:
     post:
       tags: [Admin]
-      summary: 发布上架（后台，P1）
-      operationId: adminPublishListing
+      summary: 鍙戝竷涓婃灦锛堝悗鍙帮紝P1锛?      operationId: adminPublishListing
       security:
         - BearerAuth: []
       parameters:
@@ -3325,8 +2728,7 @@ paths:
   /admin/listings/{listingId}/off-shelf:
     post:
       tags: [Admin]
-      summary: 下架（后台，P1）
-      operationId: adminOffShelfListing
+      summary: 涓嬫灦锛堝悗鍙帮紝P1锛?      operationId: adminOffShelfListing
       security:
         - BearerAuth: []
       parameters:
@@ -3358,7 +2760,7 @@ paths:
   /admin/listings/{listingId}/approve:
     post:
       tags: [Admin]
-      summary: 上架审核通过
+      summary: 涓婃灦瀹℃牳閫氳繃
       operationId: adminApproveListing
       security:
         - BearerAuth: []
@@ -3383,7 +2785,7 @@ paths:
   /admin/listings/{listingId}/reject:
     post:
       tags: [Admin]
-      summary: 上架审核驳回
+      summary: 涓婃灦瀹℃牳椹冲洖
       operationId: adminRejectListing
       security:
         - BearerAuth: []
@@ -3420,8 +2822,7 @@ paths:
   /admin/listings/{listingId}/featured:
     put:
       tags: [Admin]
-      summary: 标记省/市级特色产业专利（置顶/加权）
-      operationId: adminSetListingFeatured
+      summary: 鏍囪鐪?甯傜骇鐗硅壊浜т笟涓撳埄锛堢疆椤?鍔犳潈锛?      operationId: adminSetListingFeatured
       security:
         - BearerAuth: []
       parameters:
@@ -3451,234 +2852,10 @@ paths:
         "409":
           $ref: "#/components/responses/Conflict"
 
-  /admin/achievements:
-    get:
-      tags: [Admin]
-      summary: 成果审核/平台内容列表
-      operationId: adminListAchievementsForAudit
-      security:
-        - BearerAuth: []
-      parameters:
-        - $ref: "#/components/parameters/Q"
-        - $ref: "#/components/parameters/RegionCode"
-        - $ref: "#/components/parameters/AuditStatus"
-        - $ref: "#/components/parameters/ContentStatus"
-        - $ref: "#/components/parameters/ContentSource"
-        - $ref: "#/components/parameters/Page"
-        - $ref: "#/components/parameters/PageSize"
-      responses:
-        "200":
-          description: OK
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/PagedAchievement"
-        "400":
-          $ref: "#/components/responses/BadRequest"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "403":
-          $ref: "#/components/responses/Forbidden"
-    post:
-      tags: [Admin]
-      summary: 创建平台自有成果（P1）
-      operationId: adminCreateAchievement
-      security:
-        - BearerAuth: []
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/AdminAchievementCreateRequest"
-      responses:
-        "201":
-          description: Created
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Achievement"
-        "400":
-          $ref: "#/components/responses/BadRequest"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "403":
-          $ref: "#/components/responses/Forbidden"
-
-  /admin/achievements/{achievementId}:
-    get:
-      tags: [Admin]
-      summary: 获取成果详情（后台，P1）
-      operationId: adminGetAchievementById
-      security:
-        - BearerAuth: []
-      parameters:
-        - $ref: "#/components/parameters/AchievementId"
-      responses:
-        "200":
-          description: OK
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Achievement"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "403":
-          $ref: "#/components/responses/Forbidden"
-        "404":
-          $ref: "#/components/responses/NotFound"
-    patch:
-      tags: [Admin]
-      summary: 更新平台自有成果（后台，P1）
-      operationId: adminUpdateAchievement
-      security:
-        - BearerAuth: []
-      parameters:
-        - $ref: "#/components/parameters/AchievementId"
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/AdminAchievementUpdateRequest"
-      responses:
-        "200":
-          description: OK
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Achievement"
-        "400":
-          $ref: "#/components/responses/BadRequest"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "403":
-          $ref: "#/components/responses/Forbidden"
-        "404":
-          $ref: "#/components/responses/NotFound"
-
-  /admin/achievements/{achievementId}/publish:
-    post:
-      tags: [Admin]
-      summary: 发布成果（后台，P1）
-      operationId: adminPublishAchievement
-      security:
-        - BearerAuth: []
-      parameters:
-        - $ref: "#/components/parameters/AchievementId"
-      responses:
-        "200":
-          description: OK
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Achievement"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "403":
-          $ref: "#/components/responses/Forbidden"
-        "404":
-          $ref: "#/components/responses/NotFound"
-        "409":
-          $ref: "#/components/responses/Conflict"
-
-  /admin/achievements/{achievementId}/off-shelf:
-    post:
-      tags: [Admin]
-      summary: 下架成果（后台，P1）
-      operationId: adminOffShelfAchievement
-      security:
-        - BearerAuth: []
-      parameters:
-        - $ref: "#/components/parameters/AchievementId"
-      requestBody:
-        required: false
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                reason:
-                  type: string
-                  maxLength: 200
-      responses:
-        "200":
-          description: OK
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Achievement"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "403":
-          $ref: "#/components/responses/Forbidden"
-        "404":
-          $ref: "#/components/responses/NotFound"
-
-  /admin/achievements/{achievementId}/approve:
-    post:
-      tags: [Admin]
-      summary: 成果审核通过
-      operationId: adminApproveAchievement
-      security:
-        - BearerAuth: []
-      parameters:
-        - $ref: "#/components/parameters/AchievementId"
-      responses:
-        "200":
-          description: OK
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Achievement"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "403":
-          $ref: "#/components/responses/Forbidden"
-        "404":
-          $ref: "#/components/responses/NotFound"
-        "409":
-          $ref: "#/components/responses/Conflict"
-
-  /admin/achievements/{achievementId}/reject:
-    post:
-      tags: [Admin]
-      summary: 成果审核驳回
-      operationId: adminRejectAchievement
-      security:
-        - BearerAuth: []
-      parameters:
-        - $ref: "#/components/parameters/AchievementId"
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              required: [reason]
-              properties:
-                reason:
-                  type: string
-                  minLength: 1
-                  maxLength: 500
-      responses:
-        "200":
-          description: OK
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Achievement"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "403":
-          $ref: "#/components/responses/Forbidden"
-        "404":
-          $ref: "#/components/responses/NotFound"
-
   /admin/tech-managers:
     get:
       tags: [Admin, TechManagers]
-      summary: 技术经理人管理列表
+      summary: 鎶€鏈粡鐞嗕汉绠＄悊鍒楄〃
       operationId: adminListTechManagers
       security:
         - BearerAuth: []
@@ -3705,7 +2882,7 @@ paths:
   /admin/tech-managers/{techManagerId}:
     patch:
       tags: [Admin, TechManagers]
-      summary: 更新技术经理人展示信息
+      summary: 鏇存柊鎶€鏈粡鐞嗕汉灞曠ず淇℃伅
       operationId: adminUpdateTechManager
       security:
         - BearerAuth: []
@@ -3738,7 +2915,7 @@ paths:
   /admin/comments:
     get:
       tags: [Admin]
-      summary: 留言管理列表
+      summary: 鐣欒█绠＄悊鍒楄〃
       operationId: adminListComments
       security:
         - BearerAuth: []
@@ -3766,8 +2943,7 @@ paths:
   /admin/comments/{commentId}:
     patch:
       tags: [Admin]
-      summary: 更新留言状态（隐藏/恢复/删除）
-      operationId: adminUpdateComment
+      summary: 鏇存柊鐣欒█鐘舵€侊紙闅愯棌/鎭㈠/鍒犻櫎锛?      operationId: adminUpdateComment
       security:
         - BearerAuth: []
       parameters:
@@ -3799,7 +2975,7 @@ paths:
   /admin/user-verifications:
     get:
       tags: [Admin]
-      summary: 认证审核列表
+      summary: 璁よ瘉瀹℃牳鍒楄〃
       operationId: adminListUserVerifications
       security:
         - BearerAuth: []
@@ -3809,8 +2985,7 @@ paths:
           required: false
           schema:
             type: string
-          description: 按主体名称/手机号模糊搜索
-        - name: type
+          description: 鎸変富浣撳悕绉?鎵嬫満鍙锋ā绯婃悳绱?        - name: type
           in: query
           required: false
           schema:
@@ -3839,7 +3014,7 @@ paths:
   /admin/user-verifications/{verificationId}/approve:
     post:
       tags: [Admin]
-      summary: 认证通过
+      summary: 璁よ瘉閫氳繃
       operationId: adminApproveUserVerification
       security:
         - BearerAuth: []
@@ -3872,7 +3047,7 @@ paths:
   /admin/user-verifications/{verificationId}/reject:
     post:
       tags: [Admin]
-      summary: 认证驳回
+      summary: 璁よ瘉椹冲洖
       operationId: adminRejectUserVerification
       security:
         - BearerAuth: []
@@ -3907,7 +3082,7 @@ paths:
   /admin/orders/{orderId}/payments/manual:
     post:
       tags: [Admin, Payments]
-      summary: 手动确认订单支付
+      summary: 鎵嬪姩纭璁㈠崟鏀粯
       operationId: adminManualConfirmPayment
       security:
         - BearerAuth: []
@@ -3940,7 +3115,7 @@ paths:
   /admin/orders/{orderId}/milestones/contract-signed:
     post:
       tags: [Admin]
-      summary: 合同签署确认（解锁尾款支付）
+      summary: 鍚堝悓绛剧讲纭锛堣В閿佸熬娆炬敮浠橈級
       operationId: adminConfirmContractSigned
       security:
         - BearerAuth: []
@@ -3982,7 +3157,7 @@ paths:
   /admin/orders/{orderId}/milestones/transfer-completed:
     post:
       tags: [Admin]
-      summary: 变更完成确认（触发结算放款）
+      summary: 鍙樻洿瀹屾垚纭锛堣Е鍙戠粨绠楁斁娆撅級
       operationId: adminConfirmTransferCompleted
       security:
         - BearerAuth: []
@@ -4021,7 +3196,7 @@ paths:
   /admin/orders/{orderId}/settlement:
     get:
       tags: [Admin]
-      summary: 查看结算台账
+      summary: 鏌ョ湅缁撶畻鍙拌处
       operationId: adminGetOrderSettlement
       security:
         - BearerAuth: []
@@ -4044,8 +3219,7 @@ paths:
   /admin/orders/{orderId}/payouts/manual:
     post:
       tags: [Admin]
-      summary: 财务人工放款确认（P0 默认）
-      operationId: adminConfirmManualPayout
+      summary: 璐㈠姟浜哄伐鏀炬纭锛圥0 榛樿锛?      operationId: adminConfirmManualPayout
       security:
         - BearerAuth: []
       parameters:
@@ -4110,7 +3284,7 @@ paths:
           $ref: "#/components/responses/Conflict"
     put:
       tags: [Admin]
-      summary: 上传/替换订单电子发票（财务）
+      summary: 涓婁紶/鏇挎崲璁㈠崟鐢靛瓙鍙戠エ锛堣储鍔★級
       operationId: adminUpsertOrderInvoice
       security:
         - BearerAuth: []
@@ -4142,7 +3316,7 @@ paths:
           $ref: "#/components/responses/Conflict"
     delete:
       tags: [Admin]
-      summary: 删除订单电子发票（财务）
+      summary: 鍒犻櫎璁㈠崟鐢靛瓙鍙戠エ锛堣储鍔★級
       operationId: adminDeleteOrderInvoice
       security:
         - BearerAuth: []
@@ -4164,7 +3338,7 @@ paths:
   /admin/refund-requests/{refundRequestId}/approve:
     post:
       tags: [Admin]
-      summary: 退款审批通过
+      summary: 閫€娆惧鎵归€氳繃
       operationId: adminApproveRefundRequest
       security:
         - BearerAuth: []
@@ -4190,8 +3364,7 @@ paths:
   /admin/refund-requests/{refundRequestId}/reject:
     post:
       tags: [Admin]
-      summary: 退款审批驳回
-      operationId: adminRejectRefundRequest
+      summary: 閫€娆惧鎵归┏鍥?      operationId: adminRejectRefundRequest
       security:
         - BearerAuth: []
       parameters:
@@ -4228,8 +3401,7 @@ paths:
   /admin/refund-requests/{refundRequestId}/complete:
     post:
       tags: [Admin]
-      summary: 退款完成确认
-      operationId: adminCompleteRefundRequest
+      summary: 閫€娆惧畬鎴愮‘璁?      operationId: adminCompleteRefundRequest
       security:
         - BearerAuth: []
       parameters:
@@ -4258,196 +3430,6 @@ paths:
           $ref: "#/components/responses/NotFound"
         "409":
           $ref: "#/components/responses/Conflict"
-
-  /public/announcements:
-    get:
-      tags: [Users]
-      summary: List public announcements
-      operationId: listPublicAnnouncements
-      security: []
-      parameters:
-        - $ref: "#/components/parameters/Page"
-        - $ref: "#/components/parameters/PageSize"
-      responses:
-        "200":
-          description: OK
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/PagedAnnouncement"
-        "400":
-          $ref: "#/components/responses/BadRequest"
-
-  /public/announcements/{announcementId}:
-    get:
-      tags: [Users]
-      summary: Get public announcement by id
-      operationId: getPublicAnnouncementById
-      security: []
-      parameters:
-        - $ref: "#/components/parameters/AnnouncementId"
-      responses:
-        "200":
-          description: OK
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Announcement"
-        "404":
-          $ref: "#/components/responses/NotFound"
-
-  /admin/announcements:
-    get:
-      tags: [Admin, Notifications]
-      summary: List announcements (admin)
-      operationId: adminListAnnouncements
-      security:
-        - BearerAuth: []
-      parameters:
-        - name: status
-          in: query
-          required: false
-          schema:
-            $ref: "#/components/schemas/AnnouncementStatus"
-        - name: q
-          in: query
-          required: false
-          schema:
-            type: string
-        - $ref: "#/components/parameters/Page"
-        - $ref: "#/components/parameters/PageSize"
-      responses:
-        "200":
-          description: OK
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/PagedAnnouncement"
-        "400":
-          $ref: "#/components/responses/BadRequest"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "403":
-          $ref: "#/components/responses/Forbidden"
-    post:
-      tags: [Admin, Notifications]
-      summary: Create announcement (admin)
-      operationId: adminCreateAnnouncement
-      security:
-        - BearerAuth: []
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/AnnouncementCreateRequest"
-      responses:
-        "201":
-          description: Created
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Announcement"
-        "400":
-          $ref: "#/components/responses/BadRequest"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "403":
-          $ref: "#/components/responses/Forbidden"
-
-  /admin/announcements/{announcementId}:
-    patch:
-      tags: [Admin, Notifications]
-      summary: Update announcement (admin)
-      operationId: adminUpdateAnnouncement
-      security:
-        - BearerAuth: []
-      parameters:
-        - $ref: "#/components/parameters/AnnouncementId"
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/AnnouncementUpdateRequest"
-      responses:
-        "200":
-          description: OK
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Announcement"
-        "400":
-          $ref: "#/components/responses/BadRequest"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "403":
-          $ref: "#/components/responses/Forbidden"
-        "404":
-          $ref: "#/components/responses/NotFound"
-    delete:
-      tags: [Admin, Notifications]
-      summary: Delete announcement (admin)
-      operationId: adminDeleteAnnouncement
-      security:
-        - BearerAuth: []
-      parameters:
-        - $ref: "#/components/parameters/AnnouncementId"
-      responses:
-        "204":
-          description: No Content
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "403":
-          $ref: "#/components/responses/Forbidden"
-        "404":
-          $ref: "#/components/responses/NotFound"
-
-  /admin/announcements/{announcementId}/publish:
-    post:
-      tags: [Admin, Notifications]
-      summary: Publish announcement (admin)
-      operationId: adminPublishAnnouncement
-      security:
-        - BearerAuth: []
-      parameters:
-        - $ref: "#/components/parameters/AnnouncementId"
-      responses:
-        "200":
-          description: OK
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Announcement"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "403":
-          $ref: "#/components/responses/Forbidden"
-        "404":
-          $ref: "#/components/responses/NotFound"
-
-  /admin/announcements/{announcementId}/off-shelf:
-    post:
-      tags: [Admin, Notifications]
-      summary: Off-shelf announcement (admin)
-      operationId: adminOffShelfAnnouncement
-      security:
-        - BearerAuth: []
-      parameters:
-        - $ref: "#/components/parameters/AnnouncementId"
-      responses:
-        "200":
-          description: OK
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Announcement"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "403":
-          $ref: "#/components/responses/Forbidden"
-        "404":
-          $ref: "#/components/responses/NotFound"
 
   /admin/audit-logs:
     get:
@@ -4820,52 +3802,6 @@ paths:
         - BearerAuth: []
       parameters:
         - $ref: "#/components/parameters/ListingId"
-      responses:
-        "200":
-          description: OK
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/AuditLogList"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "403":
-          $ref: "#/components/responses/Forbidden"
-        "404":
-          $ref: "#/components/responses/NotFound"
-
-  /admin/achievements/{achievementId}/materials:
-    get:
-      tags: [Admin]
-      summary: Get achievement audit materials
-      operationId: adminGetAchievementMaterials
-      security:
-        - BearerAuth: []
-      parameters:
-        - $ref: "#/components/parameters/AchievementId"
-      responses:
-        "200":
-          description: OK
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/AuditMaterialList"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "403":
-          $ref: "#/components/responses/Forbidden"
-        "404":
-          $ref: "#/components/responses/NotFound"
-
-  /admin/achievements/{achievementId}/audit-logs:
-    get:
-      tags: [Admin]
-      summary: Get achievement audit logs
-      operationId: adminGetAchievementAuditLogs
-      security:
-        - BearerAuth: []
-      parameters:
-        - $ref: "#/components/parameters/AchievementId"
       responses:
         "200":
           description: OK
@@ -5356,7 +4292,7 @@ components:
       required: false
       schema:
         type: string
-      description: 关键词（标题/摘要/权利人/发明人/机构名称等）
+      description: 鍏抽敭璇嶏紙鏍囬/鎽樿/鏉冨埄浜?鍙戞槑浜?鏈烘瀯鍚嶇О绛夛級
     PatentType:
       name: patentType
       in: query
@@ -5446,7 +4382,7 @@ components:
       required: false
       schema:
         $ref: "#/components/schemas/ListingTopic"
-      description: 专利专题入口（特色专区筛选）
+      description: 涓撳埄涓撻鍏ュ彛锛堢壒鑹蹭笓鍖虹瓫閫夛級
     CreatedFrom:
       name: createdFrom
       in: query
@@ -5454,16 +4390,14 @@ components:
       schema:
         type: string
         format: date
-      description: 发布时间起始（YYYY-MM-DD）
-    CreatedTo:
+      description: 鍙戝竷鏃堕棿璧峰锛圷YYY-MM-DD锛?    CreatedTo:
       name: createdTo
       in: query
       required: false
       schema:
         type: string
         format: date
-      description: 发布时间截止（YYYY-MM-DD）
-    RegionCode:
+      description: 鍙戝竷鏃堕棿鎴锛圷YYY-MM-DD锛?    RegionCode:
       name: regionCode
       in: query
       required: false
@@ -5471,8 +4405,51 @@ components:
         type: string
         pattern: "^[0-9]{6}$"
         example: "110000"
-      description: 行政区划 adcode（6 位字符串）
+      description: 琛屾斂鍖哄垝 adcode锛? 浣嶅瓧绗︿覆锛?
+    ArtworkCategory:
+      name: category
+      in: query
+      required: false
+      schema:
+        $ref: "#/components/schemas/ArtworkCategory"
+      description: 涔︾敾绫诲埆锛堜功娉?缁樼敾锛?
+    CalligraphyScript:
+      name: calligraphyScript
+      in: query
+      required: false
+      schema:
+        $ref: "#/components/schemas/CalligraphyScript"
 
+    PaintingGenre:
+      name: paintingGenre
+      in: query
+      required: false
+      schema:
+        $ref: "#/components/schemas/PaintingGenre"
+
+    Creator:
+      name: creator
+      in: query
+      required: false
+      schema:
+        type: string
+      description: 浣滆€?鍒涗綔鑰?
+    CreationYearStart:
+      name: creationYearStart
+      in: query
+      required: false
+      schema:
+        type: integer
+        minimum: 0
+      description: 鍒涗綔骞翠唤璧?
+    CreationYearEnd:
+      name: creationYearEnd
+      in: query
+      required: false
+      schema:
+        type: integer
+        minimum: 0
+      description: 鍒涗綔骞翠唤姝?
     OrganizationTypes:
       name: types
       in: query
@@ -5483,92 +4460,81 @@ components:
           $ref: "#/components/schemas/VerificationType"
       style: form
       explode: true
-      description: 机构类型过滤（默认仅展示已审核通过的企业/科研院校）
-
+      description: 鏈烘瀯绫诲瀷杩囨护锛堥粯璁や粎灞曠ず宸插鏍搁€氳繃鐨勪紒涓?绉戠爺闄㈡牎锛?
     Inventor:
       name: inventor
       in: query
       required: false
       schema:
         type: string
-      description: 发明人姓名（精确/模糊匹配，取决于实现；用于聚合其相关专利）
-    QType:
+      description: 鍙戞槑浜哄鍚嶏紙绮剧‘/妯＄硦鍖归厤锛屽彇鍐充簬瀹炵幇锛涚敤浜庤仛鍚堝叾鐩稿叧涓撳埄锛?    QType:
       name: qType
       in: query
       required: false
       schema:
         $ref: "#/components/schemas/SearchQType"
-      description: 搜索类型（AUTO/NUMBER/KEYWORD/APPLICANT/INVENTOR）
-    Applicant:
+      description: 鎼滅储绫诲瀷锛圓UTO/NUMBER/KEYWORD/APPLICANT/INVENTOR锛?    Applicant:
       name: applicant
       in: query
       required: false
       schema:
         type: string
-      description: 申请人姓名（精确/模糊匹配，取决于实现）
-    Assignee:
+      description: 鐢宠浜哄鍚嶏紙绮剧‘/妯＄硦鍖归厤锛屽彇鍐充簬瀹炵幇锛?    Assignee:
       name: assignee
       in: query
       required: false
       schema:
         type: string
-      description: 权利人姓名（精确/模糊匹配，取决于实现）
-    FilingDateFrom:
+      description: 鏉冨埄浜哄鍚嶏紙绮剧‘/妯＄硦鍖归厤锛屽彇鍐充簬瀹炵幇锛?    FilingDateFrom:
       name: filingDateFrom
       in: query
       required: false
       schema:
         type: string
         format: date
-      description: 申请日起始（YYYY-MM-DD）
-    FilingDateTo:
+      description: 鐢宠鏃ヨ捣濮嬶紙YYYY-MM-DD锛?    FilingDateTo:
       name: filingDateTo
       in: query
       required: false
       schema:
         type: string
         format: date
-      description: 申请日截止（YYYY-MM-DD）
-    PublicationDateFrom:
+      description: 鐢宠鏃ユ埅姝紙YYYY-MM-DD锛?    PublicationDateFrom:
       name: publicationDateFrom
       in: query
       required: false
       schema:
         type: string
         format: date
-      description: 公开/公告日起始（YYYY-MM-DD）
-    PublicationDateTo:
+      description: 鍏紑/鍏憡鏃ヨ捣濮嬶紙YYYY-MM-DD锛?    PublicationDateTo:
       name: publicationDateTo
       in: query
       required: false
       schema:
         type: string
         format: date
-      description: 公开/公告日截止（YYYY-MM-DD）
-    GrantDateFrom:
+      description: 鍏紑/鍏憡鏃ユ埅姝紙YYYY-MM-DD锛?    GrantDateFrom:
       name: grantDateFrom
       in: query
       required: false
       schema:
         type: string
         format: date
-      description: 授权日起始（YYYY-MM-DD）
-    GrantDateTo:
+      description: 鎺堟潈鏃ヨ捣濮嬶紙YYYY-MM-DD锛?    GrantDateTo:
       name: grantDateTo
       in: query
       required: false
       schema:
         type: string
         format: date
-      description: 授权日截止（YYYY-MM-DD）
-
+      description: 鎺堟潈鏃ユ埅姝紙YYYY-MM-DD锛?
     SellerUserId:
       name: sellerUserId
       in: query
       required: false
       schema:
         $ref: "#/components/schemas/Uuid"
-      description: 卖家/机构 userId（用于机构聚合页筛选）
+      description: 鍗栧/鏈烘瀯 userId锛堢敤浜庢満鏋勮仛鍚堥〉绛涢€夛級
     IndustryTags:
       name: industryTags
       in: query
@@ -5579,7 +4545,7 @@ components:
           type: string
       style: form
       explode: true
-      description: 产业标签过滤（可多选）
+      description: 浜т笟鏍囩杩囨护锛堝彲澶氶€夛級
     Ipc:
       name: ipc
       in: query
@@ -5590,7 +4556,7 @@ components:
           type: string
       style: form
       explode: true
-      description: IPC 细分分类号，例如 H04L
+      description: IPC 缁嗗垎鍒嗙被鍙凤紝渚嬪 H04L
 
     Loc:
       name: locarno
@@ -5602,7 +4568,7 @@ components:
           type: string
       style: form
       explode: true
-      description: Locarno 细分分类号，例如 12-01
+      description: Locarno 缁嗗垎鍒嗙被鍙凤紝渚嬪 12-01
 
     LegalStatus:
       name: legalStatus
@@ -5622,6 +4588,12 @@ components:
       required: false
       schema:
         $ref: "#/components/schemas/ContentSortBy"
+    ArtworkSortBy:
+      name: sortBy
+      in: query
+      required: false
+      schema:
+        $ref: "#/components/schemas/ArtworkSortBy"
     TechManagerSortBy:
       name: sortBy
       in: query
@@ -5638,7 +4610,7 @@ components:
           $ref: "#/components/schemas/CooperationMode"
       style: form
       explode: true
-      description: 合作方式过滤（可多选）
+      description: 鍚堜綔鏂瑰紡杩囨护锛堝彲澶氶€夛級
     AchievementMaturity:
       name: maturity
       in: query
@@ -5651,13 +4623,20 @@ components:
       required: false
       schema:
         $ref: "#/components/schemas/ContentStatus"
+    ArtworkStatus:
+      name: status
+      in: query
+      required: false
+      schema:
+        $ref: "#/components/schemas/ArtworkStatus"
+
     ContentSource:
       name: source
       in: query
       required: false
       schema:
         $ref: "#/components/schemas/ContentSource"
-      description: 内容来源过滤
+      description: 鍐呭鏉ユ簮杩囨护
 
     VerificationStatus:
       name: verificationStatus
@@ -5665,15 +4644,14 @@ components:
       required: false
       schema:
         $ref: "#/components/schemas/VerificationStatus"
-      description: 认证状态过滤
-
+      description: 璁よ瘉鐘舵€佽繃婊?
     AiContentType:
       name: contentType
       in: query
       required: false
       schema:
         $ref: "#/components/schemas/AiContentType"
-      description: AI 内容类型过滤
+      description: AI 鍐呭绫诲瀷杩囨护
 
     AiParseStatus:
       name: status
@@ -5681,39 +4659,35 @@ components:
       required: false
       schema:
         $ref: "#/components/schemas/AiParseStatus"
-      description: AI 解析状态过滤
-
+      description: AI 瑙ｆ瀽鐘舵€佽繃婊?
     MaintenanceStatus:
       name: status
       in: query
       required: false
       schema:
         $ref: "#/components/schemas/PatentMaintenanceStatus"
-      description: 年费日程状态过滤
-
+      description: 骞磋垂鏃ョ▼鐘舵€佽繃婊?
     MaintenanceTaskStatus:
       name: status
       in: query
       required: false
       schema:
         $ref: "#/components/schemas/PatentMaintenanceTaskStatus"
-      description: 托管任务状态过滤
-
+      description: 鎵樼浠诲姟鐘舵€佽繃婊?
     AlertStatus:
       name: status
       in: query
       required: false
       schema:
         $ref: "#/components/schemas/AlertStatus"
-      description: 告警状态过滤
-
+      description: 鍛婅鐘舵€佽繃婊?
     AlertSeverity:
       name: severity
       in: query
       required: false
       schema:
         $ref: "#/components/schemas/AlertSeverity"
-      description: 告警级别过滤
+      description: 鍛婅绾у埆杩囨护
 
     AlertChannel:
       name: channel
@@ -5721,7 +4695,7 @@ components:
       required: false
       schema:
         $ref: "#/components/schemas/AlertChannel"
-      description: 告警渠道过滤
+      description: 鍛婅娓犻亾杩囨护
 
     AlertTargetType:
       name: targetType
@@ -5729,7 +4703,7 @@ components:
       required: false
       schema:
         $ref: "#/components/schemas/AlertTargetType"
-      description: 告警目标类型过滤
+      description: 鍛婅鐩爣绫诲瀷杩囨护
 
     ParseResultId:
       name: parseResultId
@@ -5765,15 +4739,14 @@ components:
       required: false
       schema:
         $ref: "#/components/schemas/CommentContentType"
-      description: 留言所属内容类型过滤
-
+      description: 鐣欒█鎵€灞炲唴瀹圭被鍨嬭繃婊?
     CommentContentId:
       name: contentId
       in: query
       required: false
       schema:
         $ref: "#/components/schemas/Uuid"
-      description: 留言所属内容 ID 过滤
+      description: 鐣欒█鎵€灞炲唴瀹?ID 杩囨护
 
     CommentStatus:
       name: status
@@ -5781,8 +4754,7 @@ components:
       required: false
       schema:
         $ref: "#/components/schemas/CommentStatus"
-      description: 留言状态过滤（后台管理）
-
+      description: 鐣欒█鐘舵€佽繃婊わ紙鍚庡彴绠＄悊锛?
     Page:
       name: page
       in: query
@@ -5823,7 +4795,7 @@ components:
       name: statusGroup
       in: query
       required: false
-      description: "订单状态分组筛选（用于“全部/待付款/进行中/退款/售后/已结束”等聚合 Tab）"
+      description: "璁㈠崟鐘舵€佸垎缁勭瓫閫夛紙鐢ㄤ簬鈥滃叏閮?寰呬粯娆?杩涜涓?閫€娆?鍞悗/宸茬粨鏉熲€濈瓑鑱氬悎 Tab锛?
       schema:
         $ref: "#/components/schemas/OrderStatusGroup"
 
@@ -5834,53 +4806,42 @@ components:
       schema:
         type: string
         maxLength: 64
-      description: 幂等键（建议用于支付/退款/放款等有副作用的接口；同一幂等键的重复请求应返回同一结果）
-
+      description: 骞傜瓑閿紙寤鸿鐢ㄤ簬鏀粯/閫€娆?鏀炬绛夋湁鍓綔鐢ㄧ殑鎺ュ彛锛涘悓涓€骞傜瓑閿殑閲嶅璇锋眰搴旇繑鍥炲悓涓€缁撴灉锛?
     WechatpayTimestamp:
       name: Wechatpay-Timestamp
       in: header
       required: true
       schema:
         type: string
-      description: 微信支付回调验签字段（v3）：时间戳字符串
+      description: 寰俊鏀粯鍥炶皟楠岀瀛楁锛坴3锛夛細鏃堕棿鎴冲瓧绗︿覆
     WechatpayNonce:
       name: Wechatpay-Nonce
       in: header
       required: true
       schema:
         type: string
-      description: 微信支付回调验签字段（v3）：随机串
-    WechatpaySignature:
+      description: 寰俊鏀粯鍥炶皟楠岀瀛楁锛坴3锛夛細闅忔満涓?    WechatpaySignature:
       name: Wechatpay-Signature
       in: header
       required: true
       schema:
         type: string
-      description: 微信支付回调验签字段（v3）：签名
+      description: 寰俊鏀粯鍥炶皟楠岀瀛楁锛坴3锛夛細绛惧悕
     WechatpaySerial:
       name: Wechatpay-Serial
       in: header
       required: true
       schema:
         type: string
-      description: 微信支付回调验签字段（v3）：平台证书序列号
-    WechatpaySignatureType:
+      description: 寰俊鏀粯鍥炶皟楠岀瀛楁锛坴3锛夛細骞冲彴璇佷功搴忓垪鍙?    WechatpaySignatureType:
       name: Wechatpay-Signature-Type
       in: header
       required: false
       schema:
         type: string
-      description: 微信支付回调验签字段（v3）：签名类型（如 WECHATPAY2-SHA256-RSA2048）
-
+      description: 寰俊鏀粯鍥炶皟楠岀瀛楁锛坴3锛夛細绛惧悕绫诲瀷锛堝 WECHATPAY2-SHA256-RSA2048锛?
     ListingId:
       name: listingId
-      in: path
-      required: true
-      schema:
-        $ref: "#/components/schemas/Uuid"
-
-    AchievementId:
-      name: achievementId
       in: path
       required: true
       schema:
@@ -5920,7 +4881,7 @@ components:
       required: true
       schema:
         type: string
-      description: 行政区划码/adcode
+      description: 琛屾斂鍖哄垝鐮?adcode
 
     YearPath:
       name: year
@@ -5954,12 +4915,6 @@ components:
         $ref: "#/components/schemas/Uuid"
     CaseId:
       name: caseId
-      in: path
-      required: true
-      schema:
-        $ref: "#/components/schemas/Uuid"
-    AnnouncementId:
-      name: announcementId
       in: path
       required: true
       schema:
@@ -5999,7 +4954,7 @@ components:
       type: integer
       format: int64
       minimum: 0
-      description: 金额（人民币分）
+      description: 閲戦锛堜汉姘戝竵鍒嗭級
 
     ErrorResponse:
       type: object
@@ -6015,7 +4970,7 @@ components:
 
     SmsPurpose:
       type: string
-      enum: [LOGIN, BIND_PHONE]
+      enum: [LOGIN, BIND_PHONE, FIVE_STAR]
 
     UserRole:
       type: string
@@ -6050,14 +5005,12 @@ components:
     ContractStatus:
       type: string
       enum: [WAIT_UPLOAD, WAIT_CONFIRM, AVAILABLE]
-      description: 合同中心状态（卖家上传 PDF → 买家确认 → 可查阅）
+      description: 鍚堝悓涓績鐘舵€侊紙鍗栧涓婁紶 PDF 鈫?涔板纭 鈫?鍙煡闃咃級
 
     ContractUploadRequest:
       type: object
       description: |
-        合同上传请求（仅卖家可调用）。
-        `contractFileId` 建议来自 `POST /files`（`purpose=CONTRACT_EVIDENCE`），且仅允许 PDF。
-      properties:
+        鍚堝悓涓婁紶璇锋眰锛堜粎鍗栧鍙皟鐢級銆?        `contractFileId` 寤鸿鏉ヨ嚜 `POST /files`锛坄purpose=CONTRACT_EVIDENCE`锛夛紝涓斾粎鍏佽 PDF銆?      properties:
         contractFileId:
           $ref: "#/components/schemas/Uuid"
 
@@ -6067,8 +5020,7 @@ components:
       properties:
         id:
           type: string
-          description: 合同 ID（当前实现为 `contract-{orderId}`）
-        orderId:
+          description: 鍚堝悓 ID锛堝綋鍓嶅疄鐜颁负 `contract-{orderId}`锛?        orderId:
           $ref: "#/components/schemas/Uuid"
         listingTitle:
           type: string
@@ -6093,15 +5045,12 @@ components:
           type: string
           format: uri
           nullable: true
-          description: 合同 PDF URL（演示用；生产建议关联 FileObject）
-        watermarkOwner:
+          description: 鍚堝悓 PDF URL锛堟紨绀虹敤锛涚敓浜у缓璁叧鑱?FileObject锛?        watermarkOwner:
           type: string
           nullable: true
-          description: 水印/归属标识（演示用）
-        canUpload:
+          description: 姘村嵃/褰掑睘鏍囪瘑锛堟紨绀虹敤锛?        canUpload:
           type: boolean
-          description: 是否允许上传（仅卖家为 true）
-
+          description: 鏄惁鍏佽涓婁紶锛堜粎鍗栧涓?true锛?
     PagedContract:
       type: object
       required: [items, page]
@@ -6116,7 +5065,7 @@ components:
     InvoiceStatus:
       type: string
       enum: [WAIT_APPLY, APPLYING, ISSUED]
-      description: 发票状态（演示；真实生产需按财务流程细化）
+      description: 鍙戠エ鐘舵€侊紙婕旂ず锛涚湡瀹炵敓浜ч渶鎸夎储鍔℃祦绋嬬粏鍖栵級
 
     InvoiceRequestResult:
       type: object
@@ -6177,7 +5126,7 @@ components:
         phone:
           $ref: "#/components/schemas/PhoneNumber"
           nullable: true
-          description: 手机号（可选；未绑定手机号的微信用户可能为空）
+          description: 鎵嬫満鍙凤紙鍙€夛紱鏈粦瀹氭墜鏈哄彿鐨勫井淇＄敤鎴峰彲鑳戒负绌猴級
         nickname:
           type: string
         avatarUrl:
@@ -6192,10 +5141,9 @@ components:
           nullable: true
         orgCategory:
           $ref: "#/components/schemas/SupplyType"
-          description: 用户选择的身份类型（未选择/未提交时为空）
-        regionCode:
+          description: 鐢ㄦ埛閫夋嫨鐨勮韩浠界被鍨嬶紙鏈€夋嫨/鏈彁浜ゆ椂涓虹┖锛?        regionCode:
           type: string
-          description: 用户当前地区（用于地域推荐；可由小程序定位/手动选择后更新）
+          description: 鐢ㄦ埛褰撳墠鍦板尯锛堢敤浜庡湴鍩熸帹鑽愶紱鍙敱灏忕▼搴忓畾浣?鎵嬪姩閫夋嫨鍚庢洿鏂帮級
         createdAt:
           type: string
           format: date-time
@@ -6287,26 +5235,22 @@ components:
           type: string
         unifiedSocialCreditCodeMasked:
           type: string
-          description: 企业/机构统一社会信用代码（脱敏）
+          description: 浼佷笟/鏈烘瀯缁熶竴绀句細淇＄敤浠ｇ爜锛堣劚鏁忥級
         contactName:
           type: string
         contactPhoneMasked:
           type: string
         idNumberMasked:
           type: string
-          description: 个人身份证号/技术经理人证件号（脱敏）
-        regionCode:
+          description: 涓汉韬唤璇佸彿/鎶€鏈粡鐞嗕汉璇佷欢鍙凤紙鑴辨晱锛?        regionCode:
           type: string
-          description: 主体所在地区（用于展示/地域推荐）
-        intro:
+          description: 涓讳綋鎵€鍦ㄥ湴鍖猴紙鐢ㄤ簬灞曠ず/鍦板煙鎺ㄨ崘锛?        intro:
           type: string
-          description: 主体简介（用于机构展示）
-        serviceTags:
+          description: 涓讳綋绠€浠嬶紙鐢ㄤ簬鏈烘瀯灞曠ず锛?        serviceTags:
           type: array
           items:
             type: string
-          description: 技术经理人服务标签（仅 TECH_MANAGER）
-        logoFileId:
+          description: 鎶€鏈粡鐞嗕汉鏈嶅姟鏍囩锛堜粎 TECH_MANAGER锛?        logoFileId:
           $ref: "#/components/schemas/Uuid"
         logoUrl:
           type: string
@@ -6350,10 +5294,10 @@ components:
           type: string
           minLength: 1
           maxLength: 200
-          description: 个人展示名称（可默认取昵称）
+          description: 涓汉灞曠ず鍚嶇О锛堝彲榛樿鍙栨樀绉帮級
         idNumber:
           type: string
-          description: 可选；如采集则后台存储需加密
+          description: 鍙€夛紱濡傞噰闆嗗垯鍚庡彴瀛樺偍闇€鍔犲瘑
 
     UserVerificationSubmitOrganizationRequest:
       type: object
@@ -6366,11 +5310,9 @@ components:
           type: string
           minLength: 1
           maxLength: 200
-          description: 主体名称（企业/科研院校/政府/协会）
-        unifiedSocialCreditCode:
+          description: 涓讳綋鍚嶇О锛堜紒涓?绉戠爺闄㈡牎/鏀垮簻/鍗忎細锛?        unifiedSocialCreditCode:
           type: string
-          description: 统一社会信用代码（后台需加密/脱敏展示）
-        contactName:
+          description: 缁熶竴绀句細淇＄敤浠ｇ爜锛堝悗鍙伴渶鍔犲瘑/鑴辨晱灞曠ず锛?        contactName:
           type: string
         contactPhone:
           $ref: "#/components/schemas/PhoneNumber"
@@ -6398,10 +5340,9 @@ components:
           type: string
           minLength: 1
           maxLength: 200
-          description: 技术经理人/经纪人展示名称
-        idNumber:
+          description: 鎶€鏈粡鐞嗕汉/缁忕邯浜哄睍绀哄悕绉?        idNumber:
           type: string
-          description: 可选；如采集则后台存储需加密
+          description: 鍙€夛紱濡傞噰闆嗗垯鍚庡彴瀛樺偍闇€鍔犲瘑
         contactPhone:
           $ref: "#/components/schemas/PhoneNumber"
         regionCode:
@@ -6751,7 +5692,7 @@ components:
           type: array
           items:
             type: string
-          description: 发明人列表（用于展示/发明人榜跳转；P0 可选返回）
+          description: 鍙戞槑浜哄垪琛紙鐢ㄤ簬灞曠ず/鍙戞槑浜烘璺宠浆锛汸0 鍙€夎繑鍥烇級
         assigneeNames:
           type: array
           items:
@@ -6795,26 +5736,22 @@ components:
           $ref: "#/components/schemas/FeaturedLevel"
         featuredRegionCode:
           type: string
-          description: 省/市级特色产业专利的生效区域（adcode）
-        featuredRank:
+          description: 鐪?甯傜骇鐗硅壊浜т笟涓撳埄鐨勭敓鏁堝尯鍩燂紙adcode锛?        featuredRank:
           type: integer
           minimum: 0
-          description: 特色置顶优先级（数值越小越靠前）
-        featuredUntil:
+          description: 鐗硅壊缃《浼樺厛绾э紙鏁板€艰秺灏忚秺闈犲墠锛?        featuredUntil:
           type: string
           format: date-time
-          description: 特色置顶过期时间（为空表示长期）
+          description: 鐗硅壊缃《杩囨湡鏃堕棿锛堜负绌鸿〃绀洪暱鏈燂級
         stats:
           $ref: "#/components/schemas/ListingStats"
         transferCount:
           type: integer
           minimum: 0
-          description: 转让次数（0 表示沉睡专利）
-        recommendationScore:
+          description: 杞娆℃暟锛? 琛ㄧず娌夌潯涓撳埄锛?        recommendationScore:
           type: number
           format: double
-          description: 智能推荐得分（仅在 sortBy=RECOMMENDED 或猜你喜欢接口中返回）
-        auditStatus:
+          description: 鏅鸿兘鎺ㄨ崘寰楀垎锛堜粎鍦?sortBy=RECOMMENDED 鎴栫寽浣犲枩娆㈡帴鍙ｄ腑杩斿洖锛?        auditStatus:
           $ref: "#/components/schemas/AuditStatus"
         status:
           $ref: "#/components/schemas/ListingStatus"
@@ -6841,30 +5778,27 @@ components:
               type: array
               items:
                 type: string
-              description: 可交付资料清单（示例：源文件/权属材料/技术文档）
+              description: 鍙氦浠樿祫鏂欐竻鍗曪紙绀轰緥锛氭簮鏂囦欢/鏉冨睘鏉愭枡/鎶€鏈枃妗ｏ級
             expectedCompletionDays:
               type: integer
               minimum: 1
-              description: 预计周期（天）
-            negotiableRangeFen:
+              description: 棰勮鍛ㄦ湡锛堝ぉ锛?            negotiableRangeFen:
               $ref: "#/components/schemas/MoneyFen"
-              description: 可谈空间（金额上限，单位分；与 negotiableRangePercent 二选一）
-            negotiableRangePercent:
+              description: 鍙皥绌洪棿锛堥噾棰濅笂闄愶紝鍗曚綅鍒嗭紱涓?negotiableRangePercent 浜岄€変竴锛?            negotiableRangePercent:
               type: number
               format: double
               minimum: 0
               maximum: 100
-              description: 可谈空间（比例上限 0-100；与 negotiableRangeFen 二选一）
-            negotiableNote:
+              description: 鍙皥绌洪棿锛堟瘮渚嬩笂闄?0-100锛涗笌 negotiableRangeFen 浜岄€変竴锛?            negotiableNote:
               type: string
-              description: 可谈空间补充说明
+              description: 鍙皥绌洪棿琛ュ厖璇存槑
             pledgeStatus:
               $ref: "#/components/schemas/PledgeStatus"
             existingLicenseStatus:
               $ref: "#/components/schemas/ExistingLicenseStatus"
             encumbranceNote:
               type: string
-              description: 质押/许可现状补充说明
+              description: 璐ㄦ娂/璁稿彲鐜扮姸琛ュ厖璇存槑
             ipcCodes:
               type: array
               items:
@@ -6898,30 +5832,27 @@ components:
               type: array
               items:
                 type: string
-              description: 可交付资料清单（示例：源文件/权属材料/技术文档）
+              description: 鍙氦浠樿祫鏂欐竻鍗曪紙绀轰緥锛氭簮鏂囦欢/鏉冨睘鏉愭枡/鎶€鏈枃妗ｏ級
             expectedCompletionDays:
               type: integer
               minimum: 1
-              description: 预计周期（天）
-            negotiableRangeFen:
+              description: 棰勮鍛ㄦ湡锛堝ぉ锛?            negotiableRangeFen:
               $ref: "#/components/schemas/MoneyFen"
-              description: 可谈空间（金额上限，单位分；与 negotiableRangePercent 二选一）
-            negotiableRangePercent:
+              description: 鍙皥绌洪棿锛堥噾棰濅笂闄愶紝鍗曚綅鍒嗭紱涓?negotiableRangePercent 浜岄€変竴锛?            negotiableRangePercent:
               type: number
               format: double
               minimum: 0
               maximum: 100
-              description: 可谈空间（比例上限 0-100；与 negotiableRangeFen 二选一）
-            negotiableNote:
+              description: 鍙皥绌洪棿锛堟瘮渚嬩笂闄?0-100锛涗笌 negotiableRangeFen 浜岄€変竴锛?            negotiableNote:
               type: string
-              description: 可谈空间补充说明
+              description: 鍙皥绌洪棿琛ュ厖璇存槑
             pledgeStatus:
               $ref: "#/components/schemas/PledgeStatus"
             existingLicenseStatus:
               $ref: "#/components/schemas/ExistingLicenseStatus"
             encumbranceNote:
               type: string
-              description: 质押/许可现状补充说明
+              description: 璐ㄦ娂/璁稿彲鐜扮姸琛ュ厖璇存槑
             ipcCodes:
               type: array
               items:
@@ -6944,10 +5875,10 @@ components:
       properties:
         patentNumberRaw:
           type: string
-          description: 允许为空，P0 支持先发后补齐专利主数据
+          description: 鍏佽涓虹┖锛孭0 鏀寔鍏堝彂鍚庤ˉ榻愪笓鍒╀富鏁版嵁
         patentType:
           $ref: "#/components/schemas/PatentType"
-          description: 若无法自动识别则必填
+          description: 鑻ユ棤娉曡嚜鍔ㄨ瘑鍒垯蹇呭～
         title:
           type: string
           maxLength: 200
@@ -6955,17 +5886,15 @@ components:
           type: array
           items:
             type: string
-          description: 发明人（用于发明人榜；P0 建议填写）
-        assigneeNames:
+          description: 鍙戞槑浜猴紙鐢ㄤ簬鍙戞槑浜烘锛汸0 寤鸿濉啓锛?        assigneeNames:
           type: array
           items:
             type: string
-          description: 权利人/专利权人（用于检索与展示；P0 建议填写）
-        applicantNames:
+          description: 鏉冨埄浜?涓撳埄鏉冧汉锛堢敤浜庢绱笌灞曠ず锛汸0 寤鸿濉啓锛?        applicantNames:
           type: array
           items:
             type: string
-          description: 申请人（可选）
+          description: 鐢宠浜猴紙鍙€夛級
         legalStatus:
           $ref: "#/components/schemas/LegalStatus"
         legalStatusRaw:
@@ -6989,30 +5918,27 @@ components:
           type: array
           items:
             type: string
-          description: 可交付资料清单（示例：源文件/权属材料/技术文档）
+          description: 鍙氦浠樿祫鏂欐竻鍗曪紙绀轰緥锛氭簮鏂囦欢/鏉冨睘鏉愭枡/鎶€鏈枃妗ｏ級
         expectedCompletionDays:
           type: integer
           minimum: 1
-          description: 预计周期（天）
-        negotiableRangeFen:
+          description: 棰勮鍛ㄦ湡锛堝ぉ锛?        negotiableRangeFen:
           $ref: "#/components/schemas/MoneyFen"
-          description: 可谈空间（金额上限，单位分；与 negotiableRangePercent 二选一）
-        negotiableRangePercent:
+          description: 鍙皥绌洪棿锛堥噾棰濅笂闄愶紝鍗曚綅鍒嗭紱涓?negotiableRangePercent 浜岄€変竴锛?        negotiableRangePercent:
           type: number
           format: double
           minimum: 0
           maximum: 100
-          description: 可谈空间（比例上限 0-100；与 negotiableRangeFen 二选一）
-        negotiableNote:
+          description: 鍙皥绌洪棿锛堟瘮渚嬩笂闄?0-100锛涗笌 negotiableRangeFen 浜岄€変竴锛?        negotiableNote:
           type: string
-          description: 可谈空间补充说明
+          description: 鍙皥绌洪棿琛ュ厖璇存槑
         pledgeStatus:
           $ref: "#/components/schemas/PledgeStatus"
         existingLicenseStatus:
           $ref: "#/components/schemas/ExistingLicenseStatus"
         encumbranceNote:
           type: string
-          description: 质押/许可现状补充说明
+          description: 璐ㄦ娂/璁稿彲鐜扮姸琛ュ厖璇存槑
         tradeMode:
           $ref: "#/components/schemas/TradeMode"
         licenseMode:
@@ -7021,11 +5947,9 @@ components:
           $ref: "#/components/schemas/PriceType"
         priceAmountFen:
           $ref: "#/components/schemas/MoneyFen"
-          description: FIXED 时必填
-        depositAmountFen:
+          description: FIXED 鏃跺繀濉?        depositAmountFen:
           $ref: "#/components/schemas/MoneyFen"
-          description: 可选；若不填则按平台订金策略计算
-        regionCode:
+          description: 鍙€夛紱鑻ヤ笉濉垯鎸夊钩鍙拌閲戠瓥鐣ヨ绠?        regionCode:
           type: string
         industryTags:
           type: array
@@ -7095,30 +6019,27 @@ components:
           type: array
           items:
             type: string
-          description: 可交付资料清单（示例：源文件/权属材料/技术文档）
+          description: 鍙氦浠樿祫鏂欐竻鍗曪紙绀轰緥锛氭簮鏂囦欢/鏉冨睘鏉愭枡/鎶€鏈枃妗ｏ級
         expectedCompletionDays:
           type: integer
           minimum: 1
-          description: 预计周期（天）
-        negotiableRangeFen:
+          description: 棰勮鍛ㄦ湡锛堝ぉ锛?        negotiableRangeFen:
           $ref: "#/components/schemas/MoneyFen"
-          description: 可谈空间（金额上限，单位分；与 negotiableRangePercent 二选一）
-        negotiableRangePercent:
+          description: 鍙皥绌洪棿锛堥噾棰濅笂闄愶紝鍗曚綅鍒嗭紱涓?negotiableRangePercent 浜岄€変竴锛?        negotiableRangePercent:
           type: number
           format: double
           minimum: 0
           maximum: 100
-          description: 可谈空间（比例上限 0-100；与 negotiableRangeFen 二选一）
-        negotiableNote:
+          description: 鍙皥绌洪棿锛堟瘮渚嬩笂闄?0-100锛涗笌 negotiableRangeFen 浜岄€変竴锛?        negotiableNote:
           type: string
-          description: 可谈空间补充说明
+          description: 鍙皥绌洪棿琛ュ厖璇存槑
         pledgeStatus:
           $ref: "#/components/schemas/PledgeStatus"
         existingLicenseStatus:
           $ref: "#/components/schemas/ExistingLicenseStatus"
         encumbranceNote:
           type: string
-          description: 质押/许可现状补充说明
+          description: 璐ㄦ娂/璁稿彲鐜扮姸琛ュ厖璇存槑
         tradeMode:
           $ref: "#/components/schemas/TradeMode"
         licenseMode:
@@ -7164,15 +6085,14 @@ components:
           $ref: "#/components/schemas/FeaturedLevel"
         featuredRegionCode:
           type: string
-          description: 省/市级生效区域 adcode（featuredLevel != NONE 时必填）
+          description: 鐪?甯傜骇鐢熸晥鍖哄煙 adcode锛坒eaturedLevel != NONE 鏃跺繀濉級
         featuredRank:
           type: integer
           minimum: 0
-          description: 特色置顶优先级（数值越小越靠前）
-        featuredUntil:
+          description: 鐗硅壊缃《浼樺厛绾э紙鏁板€艰秺灏忚秺闈犲墠锛?        featuredUntil:
           type: string
           format: date-time
-          description: 过期时间（为空表示长期）
+          description: 杩囨湡鏃堕棿锛堜负绌鸿〃绀洪暱鏈燂級
 
     PageMeta:
       type: object
@@ -7222,6 +6142,10 @@ components:
       type: string
       enum: [AUTO, NUMBER, KEYWORD, APPLICANT, INVENTOR]
 
+    ArtworkSortBy:
+      type: string
+      enum: [RECOMMENDED, NEWEST, PRICE_ASC, PRICE_DESC]
+
     ListingTopic:
       type: string
       enum: [HIGH_TECH_RETIRED, AWARD_WINNING]
@@ -7229,6 +6153,22 @@ components:
     TechManagerSortBy:
       type: string
       enum: [RECOMMENDED, NEWEST]
+
+    ArtworkCategory:
+      type: string
+      enum: [CALLIGRAPHY, PAINTING]
+
+    CalligraphyScript:
+      type: string
+      enum: [KAISHU, XINGSHU, CAOSHU, LISHU, ZHUANSHU]
+
+    PaintingGenre:
+      type: string
+      enum: [FIGURE, LANDSCAPE, BIRD_FLOWER, OTHER]
+
+    ArtworkStatus:
+      type: string
+      enum: [DRAFT, ACTIVE, OFF_SHELF, SOLD]
 
     CooperationMode:
       type: string
@@ -7268,6 +6208,204 @@ components:
         fileName:
           type: string
           readOnly: true
+
+    DemandSummary:
+      type: object
+      required: [id, title, publisher, auditStatus, status, createdAt]
+      properties:
+        id:
+          $ref: "#/components/schemas/Uuid"
+        source:
+          $ref: "#/components/schemas/ContentSource"
+        title:
+          type: string
+          maxLength: 200
+        summary:
+          type: string
+          maxLength: 2000
+        budgetType:
+          $ref: "#/components/schemas/PriceType"
+        budgetMinFen:
+          $ref: "#/components/schemas/MoneyFen"
+        budgetMaxFen:
+          $ref: "#/components/schemas/MoneyFen"
+        cooperationModes:
+          type: array
+          items:
+            $ref: "#/components/schemas/CooperationMode"
+        regionCode:
+          type: string
+        industryTags:
+          type: array
+          items:
+            type: string
+        keywords:
+          type: array
+          maxItems: 30
+          items:
+            type: string
+            maxLength: 50
+        deliveryPeriod:
+          $ref: "#/components/schemas/DeliveryPeriod"
+        publisher:
+          $ref: "#/components/schemas/OrganizationSummary"
+        stats:
+          $ref: "#/components/schemas/ListingStats"
+        auditStatus:
+          $ref: "#/components/schemas/AuditStatus"
+        status:
+          $ref: "#/components/schemas/ContentStatus"
+        coverUrl:
+          type: string
+          format: uri
+        createdAt:
+          type: string
+          format: date-time
+
+    DemandPublic:
+      allOf:
+        - $ref: "#/components/schemas/DemandSummary"
+        - type: object
+          properties:
+            description:
+              type: string
+              maxLength: 2000
+            media:
+              type: array
+              items:
+                $ref: "#/components/schemas/ContentMedia"
+            aiParse:
+              $ref: "#/components/schemas/AiParseResult"
+              nullable: true
+
+    PagedDemandSummary:
+      type: object
+      required: [items, page]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/DemandSummary"
+        page:
+          $ref: "#/components/schemas/PageMeta"
+
+    PagedDemand:
+      type: object
+      required: [items, page]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/Demand"
+        page:
+          $ref: "#/components/schemas/PageMeta"
+
+    DemandCreateRequest:
+      type: object
+      required: [title]
+      properties:
+        title:
+          type: string
+          maxLength: 200
+        description:
+          type: string
+          maxLength: 2000
+        summary:
+          type: string
+          maxLength: 2000
+        keywords:
+          type: array
+          maxItems: 30
+          items:
+            type: string
+            maxLength: 50
+        deliveryPeriod:
+          $ref: "#/components/schemas/DeliveryPeriod"
+        budgetType:
+          $ref: "#/components/schemas/PriceType"
+        budgetMinFen:
+          $ref: "#/components/schemas/MoneyFen"
+        budgetMaxFen:
+          $ref: "#/components/schemas/MoneyFen"
+        cooperationModes:
+          type: array
+          items:
+            $ref: "#/components/schemas/CooperationMode"
+        contactName:
+          type: string
+          maxLength: 50
+        contactTitle:
+          type: string
+          maxLength: 100
+        contactPhoneMasked:
+          type: string
+          maxLength: 30
+        regionCode:
+          type: string
+        industryTags:
+          type: array
+          items:
+            type: string
+        coverFileId:
+          $ref: "#/components/schemas/Uuid"
+          nullable: true
+        media:
+          type: array
+          items:
+            $ref: "#/components/schemas/ContentMedia"
+
+    DemandUpdateRequest:
+      type: object
+      properties:
+        title:
+          type: string
+          maxLength: 200
+        description:
+          type: string
+          maxLength: 2000
+        summary:
+          type: string
+          maxLength: 2000
+        keywords:
+          type: array
+          maxItems: 30
+          items:
+            type: string
+            maxLength: 50
+        deliveryPeriod:
+          $ref: "#/components/schemas/DeliveryPeriod"
+        budgetType:
+          $ref: "#/components/schemas/PriceType"
+        budgetMinFen:
+          $ref: "#/components/schemas/MoneyFen"
+        budgetMaxFen:
+          $ref: "#/components/schemas/MoneyFen"
+        cooperationModes:
+          type: array
+          items:
+            $ref: "#/components/schemas/CooperationMode"
+        contactName:
+          type: string
+          maxLength: 50
+        contactTitle:
+          type: string
+          maxLength: 100
+        contactPhoneMasked:
+          type: string
+          maxLength: 30
+        regionCode:
+          type: string
+        industryTags:
+          type: array
+          items:
+            type: string
+        coverFileId:
+          $ref: "#/components/schemas/Uuid"
+          nullable: true
+        media:
+          type: array
+          items:
+            $ref: "#/components/schemas/ContentMedia"
 
     AchievementSummary:
       type: object
@@ -7315,30 +6453,6 @@ components:
         createdAt:
           type: string
           format: date-time
-
-    Achievement:
-      allOf:
-        - $ref: "#/components/schemas/AchievementSummary"
-        - type: object
-          properties:
-            publisherUserId:
-              $ref: "#/components/schemas/Uuid"
-            description:
-              type: string
-              maxLength: 5000
-            coverFileId:
-              $ref: "#/components/schemas/Uuid"
-              nullable: true
-            media:
-              type: array
-              items:
-                $ref: "#/components/schemas/ContentMedia"
-            aiParse:
-              $ref: "#/components/schemas/AiParseResult"
-              nullable: true
-            updatedAt:
-              type: string
-              format: date-time
 
     AchievementPublic:
       allOf:
@@ -7447,6 +6561,212 @@ components:
           type: array
           items:
             type: string
+        coverFileId:
+          $ref: "#/components/schemas/Uuid"
+          nullable: true
+        media:
+          type: array
+          items:
+            $ref: "#/components/schemas/ContentMedia"
+
+    ArtworkSummary:
+      type: object
+      required: [id, title, category, creatorName, priceType, depositAmountFen, auditStatus, status, createdAt, updatedAt]
+      properties:
+        id:
+          $ref: "#/components/schemas/Uuid"
+        source:
+          $ref: "#/components/schemas/ContentSource"
+        title:
+          type: string
+          maxLength: 200
+        category:
+          $ref: "#/components/schemas/ArtworkCategory"
+        calligraphyScript:
+          $ref: "#/components/schemas/CalligraphyScript"
+        paintingGenre:
+          $ref: "#/components/schemas/PaintingGenre"
+        creatorName:
+          type: string
+          maxLength: 200
+        creationDate:
+          type: string
+          format: date
+        creationYear:
+          type: integer
+          minimum: 0
+        certificateNo:
+          type: string
+          maxLength: 100
+        priceType:
+          $ref: "#/components/schemas/PriceType"
+        priceAmountFen:
+          $ref: "#/components/schemas/MoneyFen"
+        depositAmountFen:
+          $ref: "#/components/schemas/MoneyFen"
+        regionCode:
+          type: string
+        material:
+          type: string
+          maxLength: 200
+        size:
+          type: string
+          maxLength: 100
+        coverUrl:
+          type: string
+          format: uri
+        stats:
+          $ref: "#/components/schemas/ListingStats"
+        auditStatus:
+          $ref: "#/components/schemas/AuditStatus"
+        status:
+          $ref: "#/components/schemas/ArtworkStatus"
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    ArtworkPublic:
+      allOf:
+        - $ref: "#/components/schemas/ArtworkSummary"
+        - type: object
+          properties:
+            seller:
+              $ref: "#/components/schemas/UserBrief"
+            description:
+              type: string
+              maxLength: 5000
+            media:
+              type: array
+              items:
+                $ref: "#/components/schemas/ContentMedia"
+            aiParse:
+              $ref: "#/components/schemas/AiParseResult"
+              nullable: true
+
+    PagedArtworkSummary:
+      type: object
+      required: [items, page]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/ArtworkSummary"
+        page:
+          $ref: "#/components/schemas/PageMeta"
+
+    PagedArtwork:
+      type: object
+      required: [items, page]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/Artwork"
+        page:
+          $ref: "#/components/schemas/PageMeta"
+
+    ArtworkCreateRequest:
+      type: object
+      required: [title, category, creatorName, priceType]
+      properties:
+        title:
+          type: string
+          maxLength: 200
+        category:
+          $ref: "#/components/schemas/ArtworkCategory"
+        calligraphyScript:
+          $ref: "#/components/schemas/CalligraphyScript"
+        paintingGenre:
+          $ref: "#/components/schemas/PaintingGenre"
+        creatorName:
+          type: string
+          maxLength: 200
+        creationDate:
+          type: string
+          format: date
+        creationYear:
+          type: integer
+          minimum: 0
+        certificateNo:
+          type: string
+          maxLength: 100
+        certificateFileIds:
+          type: array
+          items:
+            $ref: "#/components/schemas/Uuid"
+        description:
+          type: string
+          maxLength: 5000
+        priceType:
+          $ref: "#/components/schemas/PriceType"
+        priceAmountFen:
+          $ref: "#/components/schemas/MoneyFen"
+        depositAmountFen:
+          $ref: "#/components/schemas/MoneyFen"
+        regionCode:
+          type: string
+        material:
+          type: string
+          maxLength: 200
+        size:
+          type: string
+          maxLength: 100
+        coverFileId:
+          $ref: "#/components/schemas/Uuid"
+          nullable: true
+        media:
+          type: array
+          items:
+            $ref: "#/components/schemas/ContentMedia"
+
+    ArtworkUpdateRequest:
+      type: object
+      properties:
+        title:
+          type: string
+          maxLength: 200
+        category:
+          $ref: "#/components/schemas/ArtworkCategory"
+        calligraphyScript:
+          $ref: "#/components/schemas/CalligraphyScript"
+        paintingGenre:
+          $ref: "#/components/schemas/PaintingGenre"
+        creatorName:
+          type: string
+          maxLength: 200
+        creationDate:
+          type: string
+          format: date
+        creationYear:
+          type: integer
+          minimum: 0
+        certificateNo:
+          type: string
+          maxLength: 100
+        certificateFileIds:
+          type: array
+          items:
+            $ref: "#/components/schemas/Uuid"
+        description:
+          type: string
+          maxLength: 5000
+        priceType:
+          $ref: "#/components/schemas/PriceType"
+        priceAmountFen:
+          $ref: "#/components/schemas/MoneyFen"
+        depositAmountFen:
+          $ref: "#/components/schemas/MoneyFen"
+        regionCode:
+          type: string
+        material:
+          type: string
+          maxLength: 200
+        size:
+          type: string
+          maxLength: 100
         coverFileId:
           $ref: "#/components/schemas/Uuid"
           nullable: true
@@ -7599,16 +6919,15 @@ components:
         patentCount:
           type: integer
           minimum: 0
-          description: 该发明人在平台内上传专利中的去重数量（按 patentId）
-        listingCount:
+          description: 璇ュ彂鏄庝汉鍦ㄥ钩鍙板唴涓婁紶涓撳埄涓殑鍘婚噸鏁伴噺锛堟寜 patentId锛?        listingCount:
           type: integer
           minimum: 0
-          description: 关联到的上架数量（可用于参考）
+          description: 鍏宠仈鍒扮殑涓婃灦鏁伴噺锛堝彲鐢ㄤ簬鍙傝€冿級
         avatarUrl:
           type: string
           format: uri
           nullable: true
-          description: 头像地址（实名信息匹配到用户时返回）
+          description: 澶村儚鍦板潃锛堝疄鍚嶄俊鎭尮閰嶅埌鐢ㄦ埛鏃惰繑鍥烇級
 
     PagedInventorRanking:
       type: object
@@ -7636,7 +6955,7 @@ components:
 
     OrderStatusGroup:
       type: string
-      description: 订单状态分组（用于列表页聚合 Tab 筛选）
+      description: 璁㈠崟鐘舵€佸垎缁勶紙鐢ㄤ簬鍒楄〃椤佃仛鍚?Tab 绛涢€夛級
       enum:
         - PAYMENT_PENDING
         - IN_PROGRESS
@@ -7668,18 +6987,15 @@ components:
           $ref: "#/components/schemas/OrderStatus"
         dealAmountFen:
           $ref: "#/components/schemas/MoneyFen"
-          description: 合同签署确认后写入（成交总价）
-        depositAmountFen:
+          description: 鍚堝悓绛剧讲纭鍚庡啓鍏ワ紙鎴愪氦鎬讳环锛?        depositAmountFen:
           $ref: "#/components/schemas/MoneyFen"
         finalAmountFen:
           $ref: "#/components/schemas/MoneyFen"
-          description: 合同签署确认后写入（尾款金额）
-        commissionAmountFen:
+          description: 鍚堝悓绛剧讲纭鍚庡啓鍏ワ紙灏炬閲戦锛?        commissionAmountFen:
           $ref: "#/components/schemas/MoneyFen"
-          description: 结算时写入（卖家承担）
-        invoice:
+          description: 缁撶畻鏃跺啓鍏ワ紙鍗栧鎵挎媴锛?        invoice:
           $ref: "#/components/schemas/OrderInvoice"
-          description: 订单电子发票（仅订单完成后可能存在）
+          description: 璁㈠崟鐢靛瓙鍙戠エ锛堜粎璁㈠崟瀹屾垚鍚庡彲鑳藉瓨鍦級
         createdAt:
           type: string
           format: date-time
@@ -7827,10 +7143,10 @@ components:
           $ref: "#/components/schemas/Uuid"
         amountFen:
           $ref: "#/components/schemas/MoneyFen"
-          description: 订单服务费/佣金金额（开票金额）
+          description: 璁㈠崟鏈嶅姟璐?浣ｉ噾閲戦锛堝紑绁ㄩ噾棰濓級
         itemName:
           type: string
-          description: 发票项目名称/服务内容（默认：居间服务费）
+          description: 鍙戠エ椤圭洰鍚嶇О/鏈嶅姟鍐呭锛堥粯璁わ細灞呴棿鏈嶅姟璐癸級
         invoiceNo:
           type: string
         issuedAt:
@@ -8208,19 +7524,17 @@ components:
     CustomerServiceAssignStrategy:
       type: string
       enum: [AUTO, MANUAL]
-      description: 客服分配策略（演示用；真实生产可接入更复杂的分配/排班）
-
+      description: 瀹㈡湇鍒嗛厤绛栫暐锛堟紨绀虹敤锛涚湡瀹炵敓浜у彲鎺ュ叆鏇村鏉傜殑鍒嗛厤/鎺掔彮锛?
     CustomerServiceConfig:
       type: object
       required: [phone, defaultReply, assignStrategy]
-      description: 客服配置（前台展示/后台配置）
-      properties:
+      description: 瀹㈡湇閰嶇疆锛堝墠鍙板睍绀?鍚庡彴閰嶇疆锛?      properties:
         phone:
           type: string
           example: "400-000-0000"
         defaultReply:
           type: string
-          example: "您好，已收到您的咨询，客服将在 15 分钟内联系您。"
+          example: "鎮ㄥソ锛屽凡鏀跺埌鎮ㄧ殑鍜ㄨ锛屽鏈嶅皢鍦?15 鍒嗛挓鍐呰仈绯绘偍銆?
         assignStrategy:
           $ref: "#/components/schemas/CustomerServiceAssignStrategy"
 
@@ -8238,8 +7552,7 @@ components:
     RegionLevel:
       type: string
       enum: [PROVINCE, CITY, DISTRICT]
-      description: 行政区划层级（P0 地图主要用 PROVINCE/CITY）
-
+      description: 琛屾斂鍖哄垝灞傜骇锛圥0 鍦板浘涓昏鐢?PROVINCE/CITY锛?
     RegionNode:
       type: object
       required: [code, name, level]
@@ -8247,37 +7560,34 @@ components:
         code:
           type: string
           pattern: "^[0-9]{6}$"
-          description: 行政区划 adcode（6 位字符串）
-          example: "110000"
+          description: 琛屾斂鍖哄垝 adcode锛? 浣嶅瓧绗︿覆锛?          example: "110000"
         name:
           type: string
-          description: 行政区划名称
-          example: 北京市
-        level:
+          description: 琛屾斂鍖哄垝鍚嶇О
+          example: 鍖椾含甯?        level:
           $ref: "#/components/schemas/RegionLevel"
         parentCode:
           type: string
           pattern: "^[0-9]{6}$"
           nullable: true
-          description: 父级行政区划 adcode（6 位字符串）；省级为 null
+          description: 鐖剁骇琛屾斂鍖哄垝 adcode锛? 浣嶅瓧绗︿覆锛夛紱鐪佺骇涓?null
         centerLat:
           type: number
           format: double
           nullable: true
-          description: 地图中心点纬度（用于地图 marker；建议使用 GCJ-02 坐标系；可为空）
+          description: 鍦板浘涓績鐐圭含搴︼紙鐢ㄤ簬鍦板浘 marker锛涘缓璁娇鐢?GCJ-02 鍧愭爣绯伙紱鍙负绌猴級
           example: 39.9042
         centerLng:
           type: number
           format: double
           nullable: true
-          description: 地图中心点经度（用于地图 marker；建议使用 GCJ-02 坐标系；可为空）
+          description: 鍦板浘涓績鐐圭粡搴︼紙鐢ㄤ簬鍦板浘 marker锛涘缓璁娇鐢?GCJ-02 鍧愭爣绯伙紱鍙负绌猴級
           example: 116.4074
         industryTags:
           type: array
           items:
             type: string
-          description: 区域特色产业标签（用于推荐/搜索加权）
-        updatedAt:
+          description: 鍖哄煙鐗硅壊浜т笟鏍囩锛堢敤浜庢帹鑽?鎼滅储鍔犳潈锛?        updatedAt:
           type: string
           format: date-time
 
@@ -8376,17 +7686,14 @@ components:
         regionCode:
           type: string
           pattern: "^[0-9]{6}$"
-          description: 行政区划 adcode（6 位字符串）
-          example: "110000"
+          description: 琛屾斂鍖哄垝 adcode锛? 浣嶅瓧绗︿覆锛?          example: "110000"
         regionName:
           type: string
-          description: 行政区划名称快照（用于直接展示）
-          example: 北京市
-        patentCount:
+          description: 琛屾斂鍖哄垝鍚嶇О蹇収锛堢敤浜庣洿鎺ュ睍绀猴級
+          example: 鍖椾含甯?        patentCount:
           type: integer
           minimum: 0
-          description: 该区域该年份的专利数量（按 `level/parentCode` 聚合口径）
-          example: 1234
+          description: 璇ュ尯鍩熻骞翠唤鐨勪笓鍒╂暟閲忥紙鎸?`level/parentCode` 鑱氬悎鍙ｅ緞锛?          example: 1234
 
     PatentMapRegionDetail:
       type: object
@@ -8505,7 +7812,7 @@ components:
 
     CommentContentType:
       type: string
-      enum: [LISTING, ACHIEVEMENT]
+      enum: [LISTING]
 
     CommentStatus:
       type: string
@@ -8524,7 +7831,7 @@ components:
         parentCommentId:
           $ref: "#/components/schemas/Uuid"
           nullable: true
-          description: 为空表示根留言；非空表示回复某条留言
+          description: 涓虹┖琛ㄧず鏍圭暀瑷€锛涢潪绌鸿〃绀哄洖澶嶆煇鏉＄暀瑷€
         status:
           $ref: "#/components/schemas/CommentStatus"
         user:
@@ -8574,8 +7881,7 @@ components:
         parentCommentId:
           $ref: "#/components/schemas/Uuid"
           nullable: true
-          description: 回复目标留言 ID（为空表示发起新留言）
-
+          description: 鍥炲鐩爣鐣欒█ ID锛堜负绌鸿〃绀哄彂璧锋柊鐣欒█锛?
     CommentUpdateRequest:
       type: object
       required: [text]
@@ -8605,7 +7911,7 @@ components:
 
     ConversationContentType:
       type: string
-      enum: [LISTING, ACHIEVEMENT, TECH_MANAGER]
+      enum: [LISTING, TECH_MANAGER]
 
     Conversation:
       type: object
@@ -8686,8 +7992,7 @@ components:
 
     ConversationMessageType:
       type: string
-      description: 客户端仅允许发送 TEXT/EMOJI；SYSTEM 为系统消息
-      enum: [TEXT, EMOJI, SYSTEM]
+      description: 瀹㈡埛绔粎鍏佽鍙戦€?TEXT/EMOJI锛汼YSTEM 涓虹郴缁熸秷鎭?      enum: [TEXT, EMOJI, SYSTEM]
 
     ConversationMessage:
       type: object
@@ -8703,18 +8008,18 @@ components:
           $ref: "#/components/schemas/ConversationMessageType"
         text:
           type: string
-          description: 文本/表情内容
+          description: 鏂囨湰/琛ㄦ儏鍐呭
         fileId:
           $ref: "#/components/schemas/Uuid"
           nullable: true
           deprecated: true
-          description: P1 预留（附件消息未开放）
+          description: P1 棰勭暀锛堥檮浠舵秷鎭湭寮€鏀撅級
         fileUrl:
           type: string
           format: uri
           nullable: true
           deprecated: true
-          description: P1 预留（附件消息未开放）
+          description: P1 棰勭暀锛堥檮浠舵秷鎭湭寮€鏀撅級
         createdAt:
           type: string
           format: date-time
@@ -8727,8 +8032,7 @@ components:
           $ref: "#/components/schemas/ConversationMessageType"
         text:
           type: string
-          description: type=TEXT/EMOJI 时必填
-
+          description: type=TEXT/EMOJI 鏃跺繀濉?
     PagedConversationMessage:
       type: object
       required: [items]
@@ -8747,11 +8051,11 @@ components:
 
     AiContentScope:
       type: string
-      enum: [LISTING, ACHIEVEMENT, ALL]
+      enum: [LISTING, DEMAND, ACHIEVEMENT, ARTWORK, ALL]
 
     AiContentType:
       type: string
-      enum: [LISTING, ACHIEVEMENT]
+      enum: [LISTING, DEMAND, ACHIEVEMENT, ARTWORK]
 
     AiParseStatus:
       type: string
@@ -8822,6 +8126,21 @@ components:
           $ref: "#/components/schemas/MoneyFen"
         maturity:
           $ref: "#/components/schemas/AchievementMaturity"
+        category:
+          $ref: "#/components/schemas/ArtworkCategory"
+        calligraphyScript:
+          $ref: "#/components/schemas/CalligraphyScript"
+        paintingGenre:
+          $ref: "#/components/schemas/PaintingGenre"
+        creator:
+          type: string
+        creationYearStart:
+          type: integer
+          minimum: 0
+        creationYearEnd:
+          type: integer
+          minimum: 0
+
     AiAgentParsedQuery:
       type: object
       properties:
@@ -8996,7 +8315,7 @@ components:
 
     AlertTargetType:
       type: string
-      enum: [PATENT, ORDER, LISTING, ACHIEVEMENT, AI_PARSE, IMPORT, PAYMENT, REFUND, SYSTEM]
+      enum: [PATENT, ORDER, LISTING, DEMAND, ACHIEVEMENT, ARTWORK, AI_PARSE, IMPORT, PAYMENT, REFUND, SYSTEM]
 
     AlertRule:
       type: object
@@ -9349,6 +8668,34 @@ components:
             status:
               $ref: "#/components/schemas/ListingStatus"
 
+    AdminDemandCreateRequest:
+      allOf:
+        - $ref: "#/components/schemas/DemandCreateRequest"
+        - type: object
+          properties:
+            source:
+              $ref: "#/components/schemas/ContentSource"
+            publisherUserId:
+              $ref: "#/components/schemas/Uuid"
+            auditStatus:
+              $ref: "#/components/schemas/AuditStatus"
+            status:
+              $ref: "#/components/schemas/ContentStatus"
+
+    AdminDemandUpdateRequest:
+      allOf:
+        - $ref: "#/components/schemas/DemandUpdateRequest"
+        - type: object
+          properties:
+            source:
+              $ref: "#/components/schemas/ContentSource"
+            publisherUserId:
+              $ref: "#/components/schemas/Uuid"
+            auditStatus:
+              $ref: "#/components/schemas/AuditStatus"
+            status:
+              $ref: "#/components/schemas/ContentStatus"
+
     AdminAchievementCreateRequest:
       allOf:
         - $ref: "#/components/schemas/AchievementCreateRequest"
@@ -9376,6 +8723,34 @@ components:
               $ref: "#/components/schemas/AuditStatus"
             status:
               $ref: "#/components/schemas/ContentStatus"
+
+    AdminArtworkCreateRequest:
+      allOf:
+        - $ref: "#/components/schemas/ArtworkCreateRequest"
+        - type: object
+          properties:
+            source:
+              $ref: "#/components/schemas/ContentSource"
+            sellerUserId:
+              $ref: "#/components/schemas/Uuid"
+            auditStatus:
+              $ref: "#/components/schemas/AuditStatus"
+            status:
+              $ref: "#/components/schemas/ArtworkStatus"
+
+    AdminArtworkUpdateRequest:
+      allOf:
+        - $ref: "#/components/schemas/ArtworkUpdateRequest"
+        - type: object
+          properties:
+            source:
+              $ref: "#/components/schemas/ContentSource"
+            sellerUserId:
+              $ref: "#/components/schemas/Uuid"
+            auditStatus:
+              $ref: "#/components/schemas/AuditStatus"
+            status:
+              $ref: "#/components/schemas/ArtworkStatus"
 
     AuditMaterial:
       type: object
@@ -9452,50 +8827,6 @@ components:
           type: string
         patentNo:
           type: string
-
-    Announcement:
-      type: object
-      required: [id, title, status, createdAt, updatedAt]
-      properties:
-        id:
-          $ref: "#/components/schemas/Uuid"
-        title:
-          type: string
-        summary:
-          type: string
-          nullable: true
-        content:
-          type: string
-          nullable: true
-        publisherName:
-          type: string
-          nullable: true
-        issueNo:
-          type: string
-          nullable: true
-        sourceUrl:
-          type: string
-          format: uri
-          nullable: true
-        tags:
-          type: array
-          items:
-            type: string
-        relatedPatents:
-          type: array
-          items:
-            $ref: "#/components/schemas/AnnouncementRelatedPatent"
-        status:
-          $ref: "#/components/schemas/AnnouncementStatus"
-        createdAt:
-          type: string
-          format: date-time
-        publishedAt:
-          type: string
-          format: date-time
-        updatedAt:
-          type: string
-          format: date-time
 
     PagedAnnouncement:
       type: object
@@ -9643,6 +8974,7 @@ components:
           type: array
           items:
             type: string
+
     SensitiveWordsConfig:
       type: object
       required: [words]

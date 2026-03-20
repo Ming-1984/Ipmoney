@@ -1,4 +1,4 @@
-﻿erDiagram
+erDiagram
   USERS {
     uuid id PK
     string phone
@@ -44,7 +44,6 @@
 
 
 
-  ANNOUNCEMENTS {
     uuid id PK
     string type "PATENT"
     string title
@@ -196,7 +195,6 @@
     string url
     string mime_type
     int size_bytes
-    string owner_scope "LISTING/ACHIEVEMENT/CASE/REFUND_REQUEST/INVOICE/USER/USER_VERIFICATION/MESSAGE/AI_PARSE/MAINTENANCE_TASK/PATENT_CLUSTER"
     uuid owner_id
     datetime created_at
   }
@@ -235,7 +233,48 @@
     datetime updated_at
   }
 
-  ACHIEVEMENTS {
+    uuid id PK
+    uuid publisher_user_id FK
+    string title
+    string summary
+    string description
+    string keywords_json "json"
+    string delivery_period
+    string cooperation_modes_json "json"
+    string budget_type "FIXED/NEGOTIABLE"
+    int budget_min
+    int budget_max
+    string contact_name
+    string contact_title
+    string contact_phone_masked
+    uuid cover_file_id FK
+    string region_code
+    string industry_tags_json "json"
+    string audit_status "PENDING/APPROVED/REJECTED"
+    string status "DRAFT/ACTIVE/OFF_SHELF"
+    string source "USER/PLATFORM/ADMIN"
+    datetime created_at
+    datetime updated_at
+  }
+
+    uuid id PK
+    uuid file_id FK
+    string type "IMAGE/VIDEO/FILE"
+    int sort
+  }
+
+    uuid id PK
+    uuid user_id FK
+    datetime created_at
+  }
+
+    int view_count
+    int favorite_count
+    int consult_count
+    int comment_count
+    datetime updated_at
+  }
+
     uuid id PK
     uuid publisher_user_id FK
     string title
@@ -254,25 +293,61 @@
     datetime updated_at
   }
 
-  ACHIEVEMENT_MEDIA {
     uuid id PK
-    uuid achievement_id FK
     uuid file_id FK
     string type "IMAGE/VIDEO/FILE"
     int sort
   }
 
-  %% 鎴愭灉璇︽儏濯掍綋灞曠ず锛氬皝闈娇鐢?cover_file_id锛涙洿澶氬浘鐗囨潵鑷?ACHIEVEMENT_MEDIA(type=IMAGE)锛屽墠绔互鍥鹃泦灞曠ず骞跺彲鍗曞浘棰勮
 
-  ACHIEVEMENT_FAVORITES {
     uuid id PK
-    uuid achievement_id FK
     uuid user_id FK
     datetime created_at
   }
 
-  ACHIEVEMENT_STATS {
-    uuid achievement_id PK
+    int view_count
+    int favorite_count
+    int consult_count
+    int comment_count
+    datetime updated_at
+  }
+
+    uuid id PK
+    uuid seller_user_id FK
+    string title
+    string description
+    string category "CALLIGRAPHY/PAINTING"
+    string calligraphy_script
+    string painting_genre
+    string creator_name
+    date creation_date
+    int creation_year
+    string certificate_no
+    string price_type "FIXED/NEGOTIABLE"
+    int price_amount
+    int deposit_amount
+    string region_code
+    string material
+    string size
+    uuid cover_file_id FK
+    string audit_status "PENDING/APPROVED/REJECTED"
+    string status "DRAFT/ACTIVE/OFF_SHELF/SOLD"
+    string source "USER/PLATFORM/ADMIN"
+    datetime created_at
+    datetime updated_at
+  }
+
+    uuid id PK
+    uuid file_id FK
+    string type "IMAGE/VIDEO/FILE"
+    int sort
+  }
+
+    uuid id PK
+    uuid user_id FK
+    datetime created_at
+  }
+
     int view_count
     int favorite_count
     int consult_count
@@ -323,7 +398,6 @@
 
   CONTENT_EVENTS {
     uuid id PK
-    string content_type "LISTING/ACHIEVEMENT"
     uuid content_id
     string event_type "VIEW/FAVORITE/CONSULT"
     string actor_key
@@ -371,7 +445,6 @@
 
   CONVERSATIONS {
     uuid id PK
-    string content_type "LISTING/ACHIEVEMENT/TECH_MANAGER"
     uuid content_id FK
     uuid order_id FK
     uuid buyer_user_id FK
@@ -402,7 +475,6 @@
 
   COMMENTS {
     uuid id PK
-    string content_type "LISTING/ACHIEVEMENT"
     uuid content_id FK
     uuid parent_comment_id FK
     uuid user_id FK
@@ -504,7 +576,6 @@
 
   AI_PARSE_RESULTS {
     uuid id PK
-    string content_type "LISTING/ACHIEVEMENT"
     uuid content_id FK
     string summary_plain
     string features_plain
@@ -555,7 +626,6 @@
     string severity "LOW/MEDIUM/HIGH"
     string channel "SMS/EMAIL/IN_APP"
     string status "PENDING/SENT/ACKED/SUPPRESSED"
-    string target_type "PATENT/ORDER/LISTING/ACHIEVEMENT/AI_PARSE/IMPORT/PAYMENT/REFUND/SYSTEM"
     uuid target_id
     datetime triggered_at
     datetime sent_at
@@ -614,10 +684,8 @@
   USERS ||--|| TECH_MANAGER_PROFILES : profiles
   REGIONS ||--o{ USERS : located_in
   USERS ||--o{ LISTINGS : publishes
-  USERS ||--o{ ACHIEVEMENTS : publishes
   USERS ||--o{ ORDERS : places
   USERS ||--o{ LISTING_FAVORITES : favorites
-  USERS ||--o{ ACHIEVEMENT_FAVORITES : favorites
   USERS ||--o{ LISTING_CONSULT_EVENTS : consults
   USERS ||--o{ USER_TAG_SCORES : prefers
   USERS ||--o{ CONVERSATION_PARTICIPANTS : participates
@@ -631,7 +699,6 @@
   USERS ||--o{ AI_PARSE_FEEDBACKS : reviews
   USERS ||--o{ RBAC_USER_ROLES : roles
   USERS ||--o{ PATENT_MAINTENANCE_TASKS : assigned
-  USERS ||--o{ ANNOUNCEMENTS : publishes
 
   RBAC_ROLES ||--o{ RBAC_USER_ROLES : members
 
@@ -653,29 +720,20 @@
 
 
 
-  ACHIEVEMENTS ||--o{ ACHIEVEMENT_MEDIA : has
-  ACHIEVEMENTS ||--o{ ACHIEVEMENT_FAVORITES : favored
-  ACHIEVEMENTS ||--|| ACHIEVEMENT_STATS : stats
-  REGIONS ||--o{ ACHIEVEMENTS : located_in
 
 
   %% Polymorphic links via content_type/content_id
   USERS ||--o{ CONTENT_EVENTS : events
   LISTINGS ||--o{ CONTENT_EVENTS : events
-  ACHIEVEMENTS ||--o{ CONTENT_EVENTS : events
   LISTINGS ||--o{ CONVERSATIONS : discussed_in
-  ACHIEVEMENTS ||--o{ CONVERSATIONS : discussed_in
   LISTINGS ||--o{ COMMENTS : commented_in
-  ACHIEVEMENTS ||--o{ COMMENTS : commented_in
 
   AI_PARSE_RESULTS ||--o{ AI_PARSE_FEEDBACKS : feedback
   LISTINGS ||--o{ AI_PARSE_RESULTS : parsed
-  ACHIEVEMENTS ||--o{ AI_PARSE_RESULTS : parsed
 
   PATENT_MAINTENANCE_SCHEDULES ||--o{ PATENT_MAINTENANCE_TASKS : tasks
 
   FILES ||--o{ LISTING_MEDIA : stored_as
-  FILES ||--o{ ACHIEVEMENT_MEDIA : stored_as
   FILES ||--o{ PATENT_MEDIA : stored_as
   FILES ||--o{ CONVERSATION_MESSAGES : attached
   FILES ||--o{ CONTRACTS : contract_file
@@ -687,7 +745,6 @@
   REFUND_REQUESTS ||--o{ FILES : evidence
   USER_VERIFICATIONS ||--o{ FILES : evidence
   USER_VERIFICATIONS ||--o| FILES : logo
-  ACHIEVEMENTS ||--o| FILES : cover
 
   ORDERS ||--o{ PAYMENTS : has
   ORDERS ||--o{ PAYMENT_WEBHOOK_EVENTS : has

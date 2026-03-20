@@ -1,4 +1,4 @@
-﻿import { View, Text, Image, Swiper, SwiperItem, Input } from '@tarojs/components';
+﻿import { View, Text, Image, Input } from '@tarojs/components';
 import Taro from '@tarojs/taro';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import './index.scss';
@@ -20,11 +20,11 @@ import iconTrending from '../../assets/icons/icon-trending-red.svg';
 
 // Home quick entry icons (provided by you in repo root, copied into assets)
 import homeIconInventors from '../../assets/icons/home/home-inventors.svg';
-import homeIconPatentMap from '../../assets/icons/home/home-patent-map.svg';
-import homeIconAchievement from '../../assets/icons/home/home-achievement.svg';
 import homeIconTechManager from '../../assets/icons/home/home-tech-manager.svg';
 import homeIconDesignPatent from '../../assets/icons/home/home-design-patent.svg';
-import homeIconAnnouncements from '../../assets/icons/home/home-announcements.svg';
+import homeIconInventionPatent from '../../assets/icons/home/home-invention-patent.svg';
+import homeIconUtilityPatent from '../../assets/icons/home/home-utility-patent.svg';
+import homeIconFiveStar from '../../assets/icons/home/home-five-star.svg';
 import logoGif from '../../assets/brand/logo.optim2.gif';
 import logoPng from '../../assets/brand/logo.png';
 import promoCertificateGif from '../../assets/home/promo-certificate.optim3.gif';
@@ -50,21 +50,6 @@ type QuickEntry = {
   onClick: () => void;
 };
 
-type AnnouncementSummary = {
-  id: string;
-  title: string;
-  publisherName?: string;
-  publishedAt?: string;
-  issueNo?: string;
-  tags?: string[];
-  summary?: string;
-};
-
-type PagedAnnouncements = {
-  items: AnnouncementSummary[];
-  page?: { page: number; pageSize: number; total: number };
-};
-
 type PatentZoneEntry = {
   key: string;
   title: string;
@@ -75,10 +60,8 @@ type PatentZoneEntry = {
   onClick: () => void;
 };
 
-const HOME_ANNOUNCEMENTS_DELAY_MS = 500;
 const HOME_FAVORITES_SYNC_DELAY_MS = 800;
 const HOME_LISTINGS_CACHE_SCOPE = 'home-listings';
-const HOME_ANNOUNCEMENTS_CACHE_SCOPE = 'home-announcements';
 
 const HomeBanner = React.memo(function HomeBanner() {
   return (
@@ -98,23 +81,12 @@ const HomeBanner = React.memo(function HomeBanner() {
   );
 });
 
-function formatDate(value?: string): string {
-  if (!value) return '-';
-  const d = new Date(value);
-  if (Number.isNaN(d.getTime())) return String(value);
-  const yyyy = d.getFullYear();
-  const mm = String(d.getMonth() + 1).padStart(2, '0');
-  const dd = String(d.getDate()).padStart(2, '0');
-  return `${yyyy}-${mm}-${dd}`;
-}
-
 export default function HomePage() {
   const initialAuthed = Boolean(getToken());
   const initialListings = getDetailCache<PagedListingSummary>(
     HOME_LISTINGS_CACHE_SCOPE,
     initialAuthed ? 'recommend' : 'newest',
   );
-  const initialAnnouncements = getDetailCache<PagedAnnouncements>(HOME_ANNOUNCEMENTS_CACHE_SCOPE, 'top6');
 
   const [loading, setLoading] = useState(!initialListings);
   const [error, setError] = useState<string | null>(null);
@@ -124,9 +96,6 @@ export default function HomePage() {
   );
   const [isAuthed, setIsAuthed] = useState(initialAuthed);
   const [keyword, setKeyword] = useState('');
-  const [announcementLoading, setAnnouncementLoading] = useState(!initialAnnouncements);
-  const [announcementError, setAnnouncementError] = useState<string | null>(null);
-  const [announcements, setAnnouncements] = useState<PagedAnnouncements | null>(initialAnnouncements);
 
   const statusBarHeight = useMemo(() => {
     if (process.env.TARO_ENV !== 'weapp') return 0;
@@ -198,39 +167,7 @@ export default function HomePage() {
     return () => clearTimeout(timer);
   }, []);
 
-  const loadAnnouncements = useCallback(async () => {
-    const cached = getDetailCache<PagedAnnouncements>(HOME_ANNOUNCEMENTS_CACHE_SCOPE, 'top6');
-    if (cached) {
-      setAnnouncements(cached);
-      setAnnouncementLoading(false);
-      setAnnouncementError(null);
-    } else {
-      setAnnouncementLoading(true);
-      setAnnouncementError(null);
-    }
-    try {
-      const d = await apiGet<PagedAnnouncements>('/public/announcements', { page: 1, pageSize: 6 });
-      setAnnouncements(d);
-      setDetailCache(HOME_ANNOUNCEMENTS_CACHE_SCOPE, 'top6', d);
-    } catch (e: any) {
-      if (!cached) {
-        setAnnouncements(null);
-        setAnnouncementError(e?.message || '加载失败');
-      }
-    } finally {
-      setAnnouncementLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      void loadAnnouncements();
-    }, HOME_ANNOUNCEMENTS_DELAY_MS);
-    return () => clearTimeout(timer);
-  }, [loadAnnouncements]);
-
   const items = useMemo(() => data?.items || [], [data?.items]);
-  const announcementItems = useMemo(() => announcements?.items || [], [announcements?.items]);
 
   const goSearch = useCallback((value?: string) => {
     const q = typeof value === 'string' ? value.trim() : '';
@@ -244,13 +181,8 @@ export default function HomePage() {
     Taro.navigateTo({ url: '/subpackages/search/index' });
   }, []);
 
-  const goMap = useCallback(() => Taro.navigateTo({ url: '/subpackages/patent-map/index' }), []);
   const goInventors = useCallback(() => Taro.navigateTo({ url: '/subpackages/inventors/index' }), []);
   const goTechManagers = useCallback(() => Taro.switchTab({ url: '/pages/tech-managers/index' }), []);
-  const goAchievements = useCallback(() => {
-    Taro.setStorageSync(STORAGE_KEYS.searchPrefill, { tab: 'ACHIEVEMENT', reset: true });
-    Taro.navigateTo({ url: '/subpackages/search/index' });
-  }, []);
   const goPatentExplore = useCallback(() => {
     Taro.setStorageSync(STORAGE_KEYS.searchPrefill, { tab: 'LISTING', reset: true });
     Taro.navigateTo({ url: '/subpackages/search/index' });
@@ -280,9 +212,13 @@ export default function HomePage() {
     Taro.navigateTo({ url: '/subpackages/search/index' });
   }, []);
   const goFiveStarPatents = useCallback(() => {
-    toast('五星专利口径待定');
+    Taro.setStorageSync(STORAGE_KEYS.searchPrefill, {
+      tab: 'LISTING',
+      listingTopic: 'FIVE_STAR',
+      reset: true,
+    });
+    Taro.navigateTo({ url: '/subpackages/search/index' });
   }, []);
-  const goAnnouncements = useCallback(() => Taro.navigateTo({ url: '/subpackages/announcements/index' }), []);
   const goSleepingPatent = useCallback(() => {
     Taro.setStorageSync(STORAGE_KEYS.searchPrefill, {
       tab: 'LISTING',
@@ -320,19 +256,19 @@ export default function HomePage() {
   const quickEntries: QuickEntry[] = useMemo(
     () => [
       { key: 'design-patent', label: '外观专利', icon: homeIconDesignPatent, onClick: goDesignPatents },
-      { key: 'invention-patent', label: '发明专利', icon: homeIconAchievement, onClick: goInventionPatents },
-      { key: 'utility-model', label: '实用新型', icon: homeIconPatentMap, onClick: goUtilityPatents },
-      { key: 'tech-manager', label: '技术经理', icon: homeIconTechManager, onClick: goTechManagers },
+      { key: 'invention-patent', label: '发明专利', icon: homeIconInventionPatent, onClick: goInventionPatents },
+      { key: 'utility-patent', label: '实用专利', icon: homeIconUtilityPatent, onClick: goUtilityPatents },
       { key: 'inventor', label: '发明人榜', icon: homeIconInventors, onClick: goInventors },
-      { key: 'five-star', label: '五星专利', icon: homeIconAnnouncements, onClick: goFiveStarPatents },
+      { key: 'tech-manager', label: '技术经理', icon: homeIconTechManager, onClick: goTechManagers },
+      { key: 'five-star', label: '五星专利', icon: homeIconFiveStar, onClick: goFiveStarPatents },
     ],
     [
       goDesignPatents,
-      goFiveStarPatents,
-      goInventionPatents,
       goInventors,
-      goTechManagers,
+      goInventionPatents,
       goUtilityPatents,
+      goFiveStarPatents,
+      goTechManagers,
     ],
   );
 
@@ -445,32 +381,6 @@ export default function HomePage() {
               </View>
             </View>
           ))}
-        </View>
-      </View>
-
-      <View className="home-section home-marquee-section">
-        <View className="home-marquee-card">
-          {announcementLoading ? (
-            <Text className="home-marquee-placeholder">加载中…</Text>
-          ) : announcementError ? (
-            <Text className="home-marquee-placeholder">{announcementError}</Text>
-          ) : announcementItems.length ? (
-            <Swiper className="home-marquee-swiper" autoplay circular vertical interval={4000}>
-              {announcementItems.slice(0, 3).map((item) => (
-                <SwiperItem key={item.id}>
-                  <View className="home-marquee-item" onClick={goAnnouncements}>
-                    <View className="home-marquee-tag">
-                      <Text>公告</Text>
-                    </View>
-                    <Text className="home-marquee-title clamp-1">{item.title}</Text>
-                    <Text className="home-marquee-date">{formatDate(item.publishedAt)}</Text>
-                  </View>
-                </SwiperItem>
-              ))}
-            </Swiper>
-          ) : (
-            <Text className="home-marquee-placeholder">暂无公告</Text>
-          )}
         </View>
       </View>
 

@@ -3,7 +3,7 @@
 import { ContentEventService } from '../../common/content-event.service';
 import { PrismaService } from '../../common/prisma/prisma.service';
 
-type ConversationContentType = 'LISTING' | 'ACHIEVEMENT' | 'TECH_MANAGER';
+type ConversationContentType = 'LISTING' | 'TECH_MANAGER';
 type ConversationMessageType = 'TEXT' | 'EMOJI' | 'IMAGE' | 'FILE' | 'SYSTEM';
 
 type ConversationDto = {
@@ -123,15 +123,6 @@ export class ConversationsService {
       };
     }
 
-    if (contentType === 'ACHIEVEMENT') {
-      const achievement = await this.prisma.achievement.findUnique({ where: { id: normalizedContentId } });
-      if (!achievement) throw new NotFoundException({ code: 'NOT_FOUND', message: 'achievement not found' });
-      return {
-        sellerUserId: achievement.publisherUserId,
-        contentTitle: achievement.title ?? 'Consultation',
-      };
-    }
-
     const verification = await this.prisma.userVerification.findFirst({
       where: {
         userId: normalizedContentId,
@@ -172,9 +163,8 @@ export class ConversationsService {
       });
     }
 
-    if (contentType !== 'TECH_MANAGER') {
-      const ct = contentType as 'LISTING' | 'ACHIEVEMENT';
-      void this.events.recordConsult(req, ct, normalizedContentId).catch(() => {});
+    if (contentType === 'LISTING') {
+      void this.events.recordConsult(req, 'LISTING', normalizedContentId).catch(() => {});
     }
 
     return this.toConversationDto(conversation, contentTitle, listingTitle);
@@ -201,37 +191,26 @@ export class ConversationsService {
       }),
     ]);
 
-    const achievementIds = new Set<string>();
     const techManagerIds = new Set<string>();
 
     for (const it of items as any[]) {
       const type = (it.contentType || 'LISTING') as ConversationContentType;
       const id = String(it.contentId || it.listingId || '');
       if (!id) continue;
-      if (type === 'ACHIEVEMENT') achievementIds.add(id);
       if (type === 'TECH_MANAGER') techManagerIds.add(id);
     }
 
-    const [achievements, techManagers] = await Promise.all([
-      achievementIds.size
-        ? this.prisma.achievement.findMany({
-            where: { id: { in: Array.from(achievementIds) } },
-            select: { id: true, title: true },
-          })
-        : Promise.resolve([]),
-      techManagerIds.size
-        ? this.prisma.userVerification.findMany({
-            where: {
-              userId: { in: Array.from(techManagerIds) },
-              verificationType: 'TECH_MANAGER',
-              verificationStatus: 'APPROVED',
-            },
-            include: { user: true },
-          })
-        : Promise.resolve([]),
-    ]);
+    const techManagers = techManagerIds.size
+      ? await this.prisma.userVerification.findMany({
+          where: {
+            userId: { in: Array.from(techManagerIds) },
+            verificationType: 'TECH_MANAGER',
+            verificationStatus: 'APPROVED',
+          },
+          include: { user: true },
+        })
+      : [];
 
-    const achievementMap = new Map(achievements.map((item: any) => [item.id, item.title]));
     const techManagerMap = new Map(
       techManagers.map((item: any) => [item.userId, item.displayName ?? item.user?.nickname ?? 'Tech Manager']),
     );
@@ -242,9 +221,7 @@ export class ConversationsService {
       const contentTitle =
         contentType === 'LISTING'
           ? it.listing?.title ?? 'Consultation'
-          : contentType === 'ACHIEVEMENT'
-            ? achievementMap.get(contentId) ?? 'Consultation'
-            : techManagerMap.get(contentId) ?? 'Consultation';
+          : techManagerMap.get(contentId) ?? 'Consultation';
 
       const counterpart = it.buyerUserId === req.auth.userId ? it.seller : it.buyer;
       const counterpartId = counterpart?.id ?? (it.buyerUserId === req.auth.userId ? it.sellerUserId : it.buyerUserId);
@@ -276,10 +253,6 @@ export class ConversationsService {
 
   async createListingConversation(req: any, listingId: string) {
     return await this.upsertConversation(req, 'LISTING', listingId);
-  }
-
-  async createAchievementConversation(req: any, achievementId: string) {
-    return await this.upsertConversation(req, 'ACHIEVEMENT', achievementId);
   }
 
   async createTechManagerConversation(req: any, techManagerId: string) {

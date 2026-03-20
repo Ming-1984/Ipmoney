@@ -8,7 +8,6 @@ const prisma = new PrismaClient();
 const NODE_ENV = String(process.env.NODE_ENV || '').trim().toLowerCase();
 const SEED_BASE_DATA = String(process.env.SEED_BASE_DATA || '').trim().toLowerCase() !== 'false';
 const SEED_DEMO_DATA = String(process.env.SEED_DEMO_DATA || '').trim().toLowerCase() === 'true';
-const PURGE_DEMO_MAP = String(process.env.SEED_DEMO_PURGE_MAP || '').trim().toLowerCase() === 'true';
 
 if (NODE_ENV === 'production' && SEED_DEMO_DATA) {
   throw new Error('SEED_DEMO_DATA must be false in production.');
@@ -36,9 +35,6 @@ const SEED_PATENT_ID_1 = '6e0511e4-5d32-4794-99f6-408d0941a754';
 const SEED_PATENT_ID_2 = '28a2ae7c-9021-46a3-a75b-2a37dd06aa66';
 const SEED_PATENT_ID_3 = '61cac934-7d84-45a4-80e5-c9c9acb35b18';
 
-const SEED_ACHIEVEMENT_ID_1 = 'c0b1c093-6bf4-4296-9e04-62e874acd2fc';
-const SEED_ACHIEVEMENT_ID_2 = 'ca2a49f0-88a4-4db7-9cc4-3fbaf5e5c4dc';
-
 const SEED_ORDER_ID_1 = '5e238163-ad1e-4830-a74d-944959427ebe';
 const SEED_PAYMENT_ID_1 = '28b74a0d-40c2-4af8-87b5-60d1390e46fd';
 
@@ -53,8 +49,6 @@ const SEED_PERSON_VERIFICATION_ID = 'e5f0b2c5-780e-4e74-acd0-57062b6b3412';
 const SEED_FILE_LISTING_1 = 'c70ff054-ec17-4262-b9a1-56ece2a9ec5a';
 const SEED_FILE_LISTING_2 = '3289ec88-661a-4db8-ad1d-50c456e611d2';
 const SEED_FILE_LISTING_3 = '8bb620c6-5539-4b53-bc25-ecbd82f71ea0';
-const SEED_FILE_ACHIEVEMENT_1 = '026760c6-638d-4cc7-940c-1f8b45b65b04';
-const SEED_FILE_ACHIEVEMENT_2 = '0a789d3c-ff8b-4c63-817f-76f24ffa77e6';
 const SEED_FILE_ORG_LOGO = '10d0030b-ab22-4fb7-bc37-b53a56e3f6a6';
 
 function readJson(filePath) {
@@ -141,101 +135,6 @@ async function seedSystemConfigs() {
   }
 
   console.log(`[seed] system_configs upserted: ${entries.length}`);
-}
-
-async function seedPatentMapEntries() {
-  const entries = [
-    {
-      regionCode: '110000',
-      year: 2024,
-      patentCount: 1200,
-      industryBreakdown: [
-        { industryTag: '新能源', count: 320 },
-        { industryTag: '电池', count: 210 },
-        { industryTag: '智能制造', count: 180 },
-      ],
-      topAssignees: [
-        { assigneeName: '某新能源企业', patentCount: 120 },
-        { assigneeName: '某高校技术转移中心', patentCount: 88 },
-      ],
-    },
-    {
-      regionCode: '310000',
-      year: 2024,
-      patentCount: 980,
-      industryBreakdown: [
-        { industryTag: '生物医药', count: 260 },
-        { industryTag: '集成电路', count: 240 },
-        { industryTag: '环保', count: 160 },
-      ],
-      topAssignees: [
-        { assigneeName: '某医药集团', patentCount: 110 },
-        { assigneeName: '某半导体公司', patentCount: 96 },
-      ],
-    },
-    {
-      regionCode: '110000',
-      year: 2025,
-      patentCount: 1350,
-      industryBreakdown: [
-        { industryTag: '新能源', count: 360 },
-        { industryTag: '电池', count: 260 },
-        { industryTag: '人工智能', count: 200 },
-      ],
-      topAssignees: [
-        { assigneeName: '某新能源企业', patentCount: 140 },
-        { assigneeName: '某研究院', patentCount: 92 },
-      ],
-    },
-    {
-      regionCode: '310000',
-      year: 2025,
-      patentCount: 1050,
-      industryBreakdown: [
-        { industryTag: '集成电路', count: 280 },
-        { industryTag: '生物医药', count: 270 },
-        { industryTag: '智能制造', count: 170 },
-      ],
-      topAssignees: [
-        { assigneeName: '某半导体公司', patentCount: 120 },
-        { assigneeName: '某高校技术转移中心', patentCount: 75 },
-      ],
-    },
-  ];
-
-  if (!SEED_DEMO_DATA) {
-    if (PURGE_DEMO_MAP) {
-      await prisma.patentMapEntry.deleteMany({
-        where: {
-          OR: entries.map((e) => ({ regionCode: e.regionCode, year: e.year })),
-        },
-      });
-      console.log(`[seed] patent_map_entries demo data purged: ${entries.length}`);
-    } else {
-      console.log('[seed] demo data disabled; skipping patent_map_entries');
-    }
-    return;
-  }
-
-  for (const e of entries) {
-    await prisma.patentMapEntry.upsert({
-      where: { regionCode_year: { regionCode: e.regionCode, year: e.year } },
-      update: {
-        patentCount: e.patentCount,
-        industryBreakdownJson: e.industryBreakdown,
-        topAssigneesJson: e.topAssignees,
-      },
-      create: {
-        regionCode: e.regionCode,
-        year: e.year,
-        patentCount: e.patentCount,
-        industryBreakdownJson: e.industryBreakdown,
-        topAssigneesJson: e.topAssignees,
-      },
-    });
-  }
-
-  console.log(`[seed] patent_map_entries upserted: ${entries.length}`);
 }
 
 async function seedUsers() {
@@ -347,24 +246,6 @@ async function seedFiles() {
       sizeBytes: 168000,
       ownerScope: 'LISTING',
       ownerId: SEED_LISTING_ID_3,
-    },
-    {
-      id: SEED_FILE_ACHIEVEMENT_1,
-      url: 'https://images.unsplash.com/photo-1508921912186-1d1a45ebb3c1?auto=format&fit=crop&w=1200&q=80',
-      fileName: 'achievement-sodium-ion.jpg',
-      mimeType: 'image/jpeg',
-      sizeBytes: 163000,
-      ownerScope: 'ACHIEVEMENT',
-      ownerId: SEED_ACHIEVEMENT_ID_1,
-    },
-    {
-      id: SEED_FILE_ACHIEVEMENT_2,
-      url: 'https://images.unsplash.com/photo-1498050108023-c5249f4df085?auto=format&fit=crop&w=1200&q=80',
-      fileName: 'achievement-sensor-array.jpg',
-      mimeType: 'image/jpeg',
-      sizeBytes: 171000,
-      ownerScope: 'ACHIEVEMENT',
-      ownerId: SEED_ACHIEVEMENT_ID_2,
     },
     {
       id: SEED_FILE_ORG_LOGO,
@@ -853,13 +734,8 @@ async function seedFavorites() {
     update: {},
     create: { listingId: SEED_LISTING_ID_1, userId: DEMO_USER_ID },
   });
-  await prisma.achievementFavorite.upsert({
-    where: { achievementId_userId: { achievementId: SEED_ACHIEVEMENT_ID_1, userId: DEMO_USER_ID } },
-    update: {},
-    create: { achievementId: SEED_ACHIEVEMENT_ID_1, userId: DEMO_USER_ID },
-  });
 
-  console.log('[seed] favorites upserted: 2');
+  console.log('[seed] favorites upserted: 1');
 }
 
 async function seedConversations() {
@@ -998,102 +874,6 @@ async function seedOrders() {
   console.log('[seed] orders upserted: 1');
 }
 
-async function seedAnnouncements() {
-  const entries = [
-      {
-        id: '8c8b6d24-53e2-48ef-8609-d42ef6327973',
-        title: '关于发布2025年专利开放许可项目清单的通知',
-        summary: '发布2025年专利开放许可项目清单，面向社会公告。',
-        content:
-          '为推动专利转化运用，现发布2025年专利开放许可项目清单。欢迎有意向的企事业单位联系平台客服获取详细材料与对接方式。',
-        publisherName: '国家知识产权局',
-        issueNo: '2025-10',
-        sourceUrl: 'https://example.com/announcement/2025-open-license',
-        tags: ['专利开放许可', '政策公告'],
-        relatedPatents: [
-          { name: '专利开放许可清单', patentNo: 'CN202510000001' },
-        ],
-        createdAt: '2025-10-16T00:00:00Z',
-      },
-      {
-        id: '1c8dabbf-a9d2-4015-8cb1-d2e74a873a35',
-        title: '浙江安防职业技术学院专利转让交易公示——一种基于大数据服务的智慧安防系统',
-        summary: '学院发布专利转让交易公示，欢迎意向单位咨询。',
-        content:
-          '本次公示涉及智慧安防系统相关专利。公告期内如有异议，请与平台客服或发布单位联系。',
-        publisherName: '浙江安防职业技术学院',
-        issueNo: '2024-07',
-        sourceUrl: 'https://example.com/announcement/zaf-202407',
-        tags: ['转让公示'],
-        relatedPatents: [
-          { name: '智慧安防系统', patentNo: 'CN202410000002' },
-        ],
-        createdAt: '2024-07-04T00:00:00Z',
-      },
-      {
-        id: 'a3d41364-9ea6-4294-b5c9-6b4bc9951ebd',
-        title: '陆冬赵燕专利转让公示',
-        summary: '专利转让公示信息公开。',
-        content: '现对相关专利转让事项进行公示，公示期内接受咨询与反馈。',
-        publisherName: '发布机构',
-        issueNo: '2023-12',
-        sourceUrl: 'https://example.com/announcement/2023-12',
-        tags: ['转让公示'],
-        relatedPatents: [
-          { name: '一种装置', patentNo: 'CN202310000003' },
-        ],
-        createdAt: '2023-12-21T00:00:00Z',
-      },
-    {
-      id: 'b7dcf6d7-783b-487c-9363-702cd027db28',
-      title: '关于“基于改进的LSTM-seq2seq模型的河流突发水污染事故水质预测方法”等4件专利转让的公示',
-      summary: '中国地质大学（武汉）发布专利转让公示。',
-      content: '本次公示涉及4件专利转让事项，详情请联系平台或发布单位。',
-      createdAt: '2023-11-24T00:00:00Z',
-    },
-  ];
-
-  if (!SEED_DEMO_DATA) {
-    await prisma.announcement.deleteMany({ where: { id: { in: entries.map((e) => e.id) } } });
-    console.log(`[seed] announcements demo data purged: ${entries.length}`);
-    return;
-  }
-
-  for (const e of entries) {
-    await prisma.announcement.upsert({
-      where: { id: e.id },
-      update: {
-        title: e.title,
-        summary: e.summary,
-        content: e.content,
-        publisherName: e.publisherName,
-        issueNo: e.issueNo,
-        sourceUrl: e.sourceUrl,
-        tagsJson: e.tags,
-        relatedPatentsJson: e.relatedPatents,
-        status: 'PUBLISHED',
-        publishedAt: new Date(e.createdAt),
-      },
-      create: {
-        id: e.id,
-        title: e.title,
-        summary: e.summary,
-        content: e.content,
-        publisherName: e.publisherName,
-        issueNo: e.issueNo,
-        sourceUrl: e.sourceUrl,
-        tagsJson: e.tags,
-        relatedPatentsJson: e.relatedPatents,
-        status: 'PUBLISHED',
-        publishedAt: new Date(e.createdAt),
-        createdAt: new Date(e.createdAt),
-      },
-    });
-  }
-
-  console.log(`[seed] announcements upserted: ${entries.length}`);
-}
-
 async function seedNotifications() {
   const entries = [
     {
@@ -1177,106 +957,6 @@ async function seedAddresses() {
   console.log(`[seed] addresses upserted: ${entries.length}`);
 }
 
-async function seedAchievements() {
-  const entries = [
-    {
-      id: SEED_ACHIEVEMENT_ID_1,
-      publisherUserId: DEMO_USER_ID,
-      source: 'USER',
-      title: '高功率密度液冷电池包样机',
-      summary: '已完成样机与台架验证',
-      description: '面向乘用车与储能的液冷电池包样机，具备高功率密度与热均匀性，已完成台架测试。',
-      keywordsJson: ['液冷', '电池包', '热管理'],
-      maturity: 'PILOT',
-      cooperationModesJson: ['TRANSFER', 'PLATFORM_CO_BUILD'],
-      regionCode: '110000',
-      industryTagsJson: ['新能源', '汽车'],
-      auditStatus: 'APPROVED',
-      status: 'ACTIVE',
-      coverFileId: SEED_FILE_ACHIEVEMENT_1,
-      stats: { viewCount: 120, favoriteCount: 9, consultCount: 3, commentCount: 1 },
-    },
-    {
-      id: SEED_ACHIEVEMENT_ID_2,
-      publisherUserId: SEED_ORG_USER_ID,
-      source: 'USER',
-      title: '智能涂覆产线数字孪生成果',
-      summary: '已在两条产线试运行',
-      description: '基于视觉检测与工艺模型的数字孪生系统，实现涂覆厚度在线监控与工艺自优化。',
-      keywordsJson: ['数字孪生', '视觉检测', '工艺优化'],
-      maturity: 'PROTOTYPE',
-      cooperationModesJson: ['TRANSFER', 'TECH_CONSULTING'],
-      regionCode: '310000',
-      industryTagsJson: ['智能制造', '新材料'],
-      auditStatus: 'APPROVED',
-      status: 'ACTIVE',
-      coverFileId: SEED_FILE_ACHIEVEMENT_2,
-      stats: { viewCount: 76, favoriteCount: 5, consultCount: 2, commentCount: 0 },
-    },
-  ];
-
-  if (!SEED_DEMO_DATA) {
-    await prisma.achievement.deleteMany({ where: { id: { in: entries.map((e) => e.id) } } });
-    console.log(`[seed] achievements demo data purged: ${entries.length}`);
-    return;
-  }
-
-  for (const e of entries) {
-    await prisma.achievement.upsert({
-      where: { id: e.id },
-      update: {
-        title: e.title,
-        summary: e.summary,
-        description: e.description,
-        keywordsJson: e.keywordsJson,
-        maturity: e.maturity,
-        cooperationModesJson: e.cooperationModesJson,
-        regionCode: e.regionCode,
-        industryTagsJson: e.industryTagsJson,
-        auditStatus: e.auditStatus,
-        status: e.status,
-        coverFileId: e.coverFileId,
-      },
-      create: {
-        id: e.id,
-        publisherUserId: e.publisherUserId,
-        source: e.source,
-        title: e.title,
-        summary: e.summary,
-        description: e.description,
-        keywordsJson: e.keywordsJson,
-        maturity: e.maturity,
-        cooperationModesJson: e.cooperationModesJson,
-        regionCode: e.regionCode,
-        industryTagsJson: e.industryTagsJson,
-        auditStatus: e.auditStatus,
-        status: e.status,
-        coverFileId: e.coverFileId,
-      },
-    });
-
-    await prisma.achievementStats.upsert({
-      where: { achievementId: e.id },
-      update: {
-        viewCount: e.stats.viewCount,
-        favoriteCount: e.stats.favoriteCount,
-        consultCount: e.stats.consultCount,
-        commentCount: e.stats.commentCount,
-      },
-      create: {
-        achievementId: e.id,
-        viewCount: e.stats.viewCount,
-        favoriteCount: e.stats.favoriteCount,
-        consultCount: e.stats.consultCount,
-        commentCount: e.stats.commentCount,
-      },
-    });
-  }
-
-  console.log(`[seed] achievements upserted: ${entries.length}`);
-}
-
-
 async function main() {
   if (SEED_BASE_DATA) {
     await seedRegions();
@@ -1291,16 +971,11 @@ async function main() {
     await seedPersonalVerification();
     await seedPatents();
     await seedListings();
-    await seedPatentMapEntries();
-    await seedAnnouncements();
     await seedNotifications();
     await seedAddresses();
-    await seedAchievements();
     await seedFavorites();
     await seedConversations();
     await seedOrders();
-  } else if (PURGE_DEMO_MAP) {
-    await seedPatentMapEntries();
   }
 }
 

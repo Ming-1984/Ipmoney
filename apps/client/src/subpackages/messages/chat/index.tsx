@@ -45,7 +45,6 @@ type PagedConversationMessage = { items: UiConversationMessage[]; nextCursor?: s
 type ConversationSummary = components['schemas']['ConversationSummary'];
 type PagedConversationSummary = components['schemas']['PagedConversationSummary'];
 type ListingPublic = components['schemas']['ListingPublic'];
-type AchievementPublic = components['schemas']['AchievementPublic'];
 type TechManagerPublic = components['schemas']['TechManagerPublic'];
 
 type ContextCard = {
@@ -354,11 +353,6 @@ export default function ChatPage() {
           .join('·');
         price = formatPriceLabel(d.priceType, d.priceAmountFen);
         thumbUrl = d.coverUrl || '';
-      } else if (c.contentType === 'ACHIEVEMENT') {
-        const d = await apiGet<AchievementPublic>(`/public/achievements/${c.contentId}`);
-        title = d.title || title;
-        tag = '成果';
-        thumbUrl = d.coverUrl || '';
       } else if (c.contentType === 'TECH_MANAGER') {
         const d = await apiGet<TechManagerPublic>(`/public/tech-managers/${c.contentId}`);
         title = d.displayName || title;
@@ -555,10 +549,6 @@ export default function ChatPage() {
     const id = contextCard.contentId;
     if (contextCard.contentType === 'LISTING') {
       Taro.navigateTo({ url: `/subpackages/listing/detail/index?listingId=${id}` });
-      return;
-    }
-    if (contextCard.contentType === 'ACHIEVEMENT') {
-      Taro.navigateTo({ url: `/subpackages/achievement/detail/index?achievementId=${id}` });
       return;
     }
     if (contextCard.contentType === 'TECH_MANAGER') {
@@ -794,3 +784,4 @@ export default function ChatPage() {
     </View>
   );
 }
+

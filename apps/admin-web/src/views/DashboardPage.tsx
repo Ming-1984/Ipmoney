@@ -1,4 +1,4 @@
-import { Button, Card, Col, Row, Space, Statistic, Typography, message } from 'antd';
+﻿import { Button, Card, Col, Row, Space, Statistic, Typography, message } from 'antd';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
@@ -9,7 +9,6 @@ import { apiGet } from '../lib/api';
 type PagedUserVerification = components['schemas']['PagedUserVerification'];
 type PagedListing = components['schemas']['PagedListing'];
 type PagedOrder = components['schemas']['PagedOrder'];
-type PatentMapSummaryItem = components['schemas']['PatentMapSummaryItem'];
 type HealthResponse = { ok?: boolean; checks?: Record<string, { ok?: boolean; error?: string }> };
 
 export function DashboardPage() {
@@ -20,8 +19,6 @@ export function DashboardPage() {
   const [pendingVerifications, setPendingVerifications] = useState<number | null>(null);
   const [pendingListings, setPendingListings] = useState<number | null>(null);
   const [ordersTotal, setOrdersTotal] = useState<number | null>(null);
-  const [patentMapRegions, setPatentMapRegions] = useState<number | null>(null);
-  const [patentMapTotal, setPatentMapTotal] = useState<number | null>(null);
   const [healthOk, setHealthOk] = useState<boolean | null>(null);
 
   const load = useCallback(async () => {
@@ -54,25 +51,6 @@ export function DashboardPage() {
       errors.push('健康检查加载失败');
     }
 
-    try {
-      const years = await apiGet<number[]>('/patent-map/years');
-      const latestYear = Array.isArray(years) && years.length ? [...years].sort((a, b) => b - a)[0] : null;
-      if (!latestYear) {
-        setPatentMapRegions(0);
-        setPatentMapTotal(0);
-      } else {
-        const summary = await apiGet<PatentMapSummaryItem[]>('/patent-map/summary', {
-          year: latestYear,
-          level: 'PROVINCE',
-        });
-        const arr = summary || [];
-        setPatentMapRegions(arr.length);
-        setPatentMapTotal(arr.reduce((sum, x) => sum + (x.patentCount || 0), 0));
-      }
-    } catch {
-      errors.push('Patent map data load failed');
-    }
-
     if (errors.length) {
       const msg = errors.join('；');
       setError(msg);
@@ -91,10 +69,9 @@ export function DashboardPage() {
       { title: '待审核认证', value: pendingVerifications, onClick: () => navigate('/verifications') },
       { title: '待审核上架', value: pendingListings, onClick: () => navigate('/listings') },
       { title: '订单总数', value: ordersTotal, onClick: () => navigate('/orders') },
-      { title: '地图区域数', value: patentMapRegions, onClick: () => navigate('/patent-map') },
       { title: 'API 健康', value: healthOk === null ? '-' : healthOk ? '正常' : '异常', onClick: () => navigate('/audit-logs') },
     ],
-    [healthOk, navigate, ordersTotal, patentMapRegions, pendingListings, pendingVerifications],
+    [healthOk, navigate, ordersTotal, pendingListings, pendingVerifications],
   );
 
   return (
@@ -127,9 +104,6 @@ export function DashboardPage() {
             <Typography.Paragraph type="secondary">
               订金/尾款均在平台托管；合同线下签署后由运营确认里程碑；放款以“变更完成确认”为准，建议上传凭证留痕。
             </Typography.Paragraph>
-            <Typography.Paragraph type="secondary" style={{ marginBottom: 0 }}>
-              地图专利总量（示例）：{patentMapTotal ?? '-'}
-            </Typography.Paragraph>
           </Card>
         </Col>
         <Col xs={24} lg={8}>
@@ -146,9 +120,6 @@ export function DashboardPage() {
               </Button>
               <Button block onClick={() => navigate('/config')}>
                 交易/推荐配置
-              </Button>
-              <Button block onClick={() => navigate('/patent-map')}>
-                专利地图 CMS
               </Button>
               <Button block onClick={() => navigate('/audit-logs')}>
                 审计日志

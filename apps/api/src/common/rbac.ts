@@ -1,4 +1,4 @@
-import type { AdminRoleName } from './permissions';
+﻿import type { AdminRoleName } from './permissions';
 
 export type RbacRole = {
   id: string;
@@ -38,7 +38,6 @@ export function buildDefaultRbacRoles(now = new Date()): RbacRole[] {
         'verification.review',
         'listing.read',
         'listing.audit',
-        'announcement.manage',
         'order.read',
         'case.manage',
         'maintenance.manage',
@@ -90,7 +89,6 @@ export function buildDefaultRbacRoles(now = new Date()): RbacRole[] {
         'report.read',
         'report.export',
         'alert.manage',
-        'announcement.manage',
         'auditLog.read',
       ],
       updatedAt,

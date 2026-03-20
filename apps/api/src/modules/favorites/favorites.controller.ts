@@ -1,4 +1,4 @@
-import { Controller, Delete, Get, Param, Post, Query, Req, UseGuards } from '@nestjs/common';
+﻿import { Controller, Delete, Get, Param, Post, Query, Req, UseGuards } from '@nestjs/common';
 
 import { BearerAuthGuard } from '../../common/guards/bearer-auth.guard';
 import { FavoritesService } from './favorites.service';
@@ -14,12 +14,6 @@ export class FavoritesController {
   }
 
   @UseGuards(BearerAuthGuard)
-  @Get('/me/favorites/achievements')
-  async listAchievementFavorites(@Req() req: any, @Query() query: any) {
-    return await this.favorites.listAchievementFavorites(req, query);
-  }
-
-  @UseGuards(BearerAuthGuard)
   @Post('/listings/:listingId/favorites')
   async favoriteListing(@Req() req: any, @Param('listingId') listingId: string) {
     return await this.favorites.favoriteListing(req, listingId);
@@ -30,17 +24,4 @@ export class FavoritesController {
   async unfavoriteListing(@Req() req: any, @Param('listingId') listingId: string) {
     return await this.favorites.unfavoriteListing(req, listingId);
   }
-
-  @UseGuards(BearerAuthGuard)
-  @Post('/achievements/:achievementId/favorites')
-  async favoriteAchievement(@Req() req: any, @Param('achievementId') achievementId: string) {
-    return await this.favorites.favoriteAchievement(req, achievementId);
-  }
-
-  @UseGuards(BearerAuthGuard)
-  @Delete('/achievements/:achievementId/favorites')
-  async unfavoriteAchievement(@Req() req: any, @Param('achievementId') achievementId: string) {
-    return await this.favorites.unfavoriteAchievement(req, achievementId);
-  }
-
 }

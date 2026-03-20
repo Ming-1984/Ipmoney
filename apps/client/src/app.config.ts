@@ -13,10 +13,6 @@
       pages: ['index'],
     },
     {
-      root: 'subpackages/patent-map',
-      pages: ['index', 'region-detail/index'],
-    },
-    {
       root: 'subpackages/patent',
       pages: ['detail/index', 'detail/summary/index', 'detail/info/index', 'detail/comments/index'],
     },
@@ -30,7 +26,7 @@
     },
     {
       root: 'subpackages/publish',
-      pages: ['patent/index', 'achievement/index'],
+      pages: ['patent/index'],
     },
     {
       root: 'subpackages/messages',
@@ -53,15 +49,7 @@
       pages: ['index', 'detail/index'],
     },
     {
-      root: 'subpackages/announcements',
-      pages: ['index', 'detail/index'],
-    },
-    {
       root: 'subpackages/listing',
-      pages: ['detail/index'],
-    },
-    {
-      root: 'subpackages/achievement',
       pages: ['detail/index'],
     },
     {
@@ -98,10 +86,6 @@
     },
     {
       root: 'subpackages/my-listings',
-      pages: ['index'],
-    },
-    {
-      root: 'subpackages/my-achievements',
       pages: ['index'],
     },
     {

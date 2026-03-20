@@ -2,7 +2,7 @@
 
 import { PrismaService } from '../../common/prisma/prisma.service';
 
-const CONTENT_TYPES = ['LISTING', 'ACHIEVEMENT'] as const;
+const CONTENT_TYPES = ['LISTING'] as const;
 const STATUS_TYPES = ['VISIBLE', 'HIDDEN', 'DELETED'] as const;
 
 type CommentContentType = (typeof CONTENT_TYPES)[number];

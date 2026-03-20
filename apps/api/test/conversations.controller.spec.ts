@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+﻿import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { ConversationsController } from '../src/modules/conversations/conversations.controller';
 
@@ -12,7 +12,6 @@ describe('ConversationsController delegation suite', () => {
     conversations = {
       listMine: vi.fn(),
       createListingConversation: vi.fn(),
-      createAchievementConversation: vi.fn(),
       createTechManagerConversation: vi.fn(),
       listMessages: vi.fn(),
       sendMessage: vi.fn(),
@@ -30,18 +29,15 @@ describe('ConversationsController delegation suite', () => {
     expect(conversations.listMine).toHaveBeenCalledWith(req, { page: '1' });
   });
 
-  it('delegates all create conversation entry routes', async () => {
+  it('delegates create conversation entry routes', async () => {
     const req: any = { auth: { userId: 'user-1' } };
     conversations.createListingConversation.mockResolvedValue({ ok: true });
-    conversations.createAchievementConversation.mockResolvedValue({ ok: true });
     conversations.createTechManagerConversation.mockResolvedValue({ ok: true });
 
     await controller.createListingConversation(req, VALID_UUID);
-    await controller.createAchievementConversation(req, VALID_UUID);
     await controller.createTechManagerConversation(req, VALID_UUID);
 
     expect(conversations.createListingConversation).toHaveBeenCalledWith(req, VALID_UUID);
-    expect(conversations.createAchievementConversation).toHaveBeenCalledWith(req, VALID_UUID);
     expect(conversations.createTechManagerConversation).toHaveBeenCalledWith(req, VALID_UUID);
   });
 

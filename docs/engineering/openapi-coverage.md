@@ -1,4 +1,4 @@
-﻿# OpenAPI 鍓嶇 / Mock 瑕嗙洊鎶ュ憡锛堣嚜鍔ㄧ敓鎴愶級
+# OpenAPI 鍓嶇 / Mock 瑕嗙洊鎶ュ憡锛堣嚜鍔ㄧ敓鎴愶級
 
 > 鐢?`scripts/audit-coverage.mjs` 鐢熸垚锛涚敤浜庤鐩栧害瀹¤涓庨槻閬楀繕銆?
 ## 1. 姹囨€?
@@ -21,23 +21,14 @@
 ## 3. 瑕嗙洊鏄庣粏锛堟寜 operation锛?
 | operationId | method | path | Client | Admin | happy | empty | error | edge | order_conflict | payment_callback_replay | refund_failed |
 |---|---|---|---|---|---|---|---|---|---|---|---|
-| unfavoriteAchievement | DELETE | /achievements/:param/favorites | 鉁?|  | 鉁?|  |  |  |  |  |  |
-| adminDeleteAnnouncement | DELETE | /admin/announcements/:param |  | 鉁?| 鉁?|  |  |  |  |  |  |
 | adminDeleteOrderInvoice | DELETE | /admin/orders/:param/invoice |  | 鉁?| 鉁?|  | 鉁?|  |  |  |  |
 | adminDeleteRbacRole | DELETE | /admin/rbac/roles/:param |  | 鉁?| 鉁?|  |  |  |  |  |  |
 | deleteComment | DELETE | /comments/:param | 鉁?|  | 鉁?| 鉁?| 鉁?| 鉁?|  |  |  |
 | unfavoriteListing | DELETE | /listings/:param/favorites | 鉁?|  | 鉁?|  |  |  |  |  |  |
 | deleteMyAddress | DELETE | /me/addresses/:param | 鉁?|  | 鉁?|  |  |  |  |  |  |
-| listMyAchievements | GET | /achievements | 鉁?|  | 鉁?|  |  |  |  |  |  |
-| getAchievementById | GET | /achievements/:param | 鉁?|  | 鉁?|  |  |  |  |  |  |
-| adminListAchievementsForAudit | GET | /admin/achievements |  | 鉁?| 鉁?|  |  |  |  |  |  |
-| adminGetAchievementById | GET | /admin/achievements/:param |  | 鉁?| 鉁?|  |  |  |  |  |  |
-| adminGetAchievementAuditLogs | GET | /admin/achievements/:param/audit-logs |  | 鉁?| 鉁?|  |  |  |  |  |  |
-| adminGetAchievementMaterials | GET | /admin/achievements/:param/materials |  | 鉁?| 鉁?|  |  |  |  |  |  |
 | adminListAiParseResults | GET | /admin/ai/parse-results |  |  | 鉁?|  |  |  |  |  |  |
 | adminGetAiParseResult | GET | /admin/ai/parse-results/:param |  |  |  |  |  |  |  |  |  |
 | adminListAlertEvents | GET | /admin/alerts |  | 鉁?| 鉁?|  |  |  |  |  |  |
-| adminListAnnouncements | GET | /admin/announcements |  | 鉁?| 鉁?|  |  |  |  |  |  |
 | adminListAuditLogs | GET | /admin/audit-logs |  | 鉁?| 鉁?|  |  |  |  |  |  |
 | adminListCases | GET | /admin/cases |  | 鉁?| 鉁?|  |  |  |  |  |  |
 | adminGetCaseById | GET | /admin/cases/:param |  | 鉁?| 鉁?|  |  |  |  |  |  |
@@ -60,7 +51,6 @@
 | adminListPatentMaintenanceSchedules | GET | /admin/patent-maintenance/schedules |  | 鉁?| 鉁?|  |  |  |  |  |  |
 | adminGetPatentMaintenanceSchedule | GET | /admin/patent-maintenance/schedules/:param |  | 鉁?| 鉁?|  |  |  |  |  |  |
 | adminListPatentMaintenanceTasks | GET | /admin/patent-maintenance/tasks |  | 鉁?| 鉁?|  |  |  |  |  |  |
-| adminGetPatentMapEntry | GET | /admin/patent-map/regions/:param/years/:param |  | 鉁?| 鉁?| 鉁?| 鉁?|  |  |  |  |
 | adminListPatents | GET | /admin/patents |  | 鉁?| 鉁?|  |  |  |  |  |  |
 | adminGetPatentById | GET | /admin/patents/:param |  | 鉁?| 鉁?|  |  |  |  |  |  |
 | adminListRbacPermissions | GET | /admin/rbac/permissions |  | 鉁?| 鉁?|  |  |  |  |  |  |
@@ -84,7 +74,6 @@
 | listMyAddresses | GET | /me/addresses | 鉁?|  | 鉁?|  |  |  |  |  |  |
 | listMyConversations | GET | /me/conversations | 鉁?|  | 鉁?| 鉁?| 鉁?|  |  |  |  |
 | listMyFavoriteListings | GET | /me/favorites | 鉁?|  | 鉁?|  |  |  |  |  |  |
-| listMyFavoriteAchievements | GET | /me/favorites/achievements | 鉁?|  | 鉁?|  |  |  |  |  |  |
 | getMyRecommendedListings | GET | /me/recommendations/listings | 鉁?|  | 鉁?| 鉁?| 鉁?|  |  |  |  |
 | getMyVerification | GET | /me/verification | 鉁?|  | 鉁?|  |  |  |  |  |  |
 | listMyNotifications | GET | /notifications | 鉁?|  | 鉁?|  |  |  |  |  |  |
@@ -94,14 +83,7 @@
 | getOrderCase | GET | /orders/:param/case | 鉁?|  | 鉁?|  |  |  |  |  |  |
 | getOrderInvoice | GET | /orders/:param/invoice | 鉁?| 鉁?| 鉁?| 鉁?| 鉁?|  |  |  |  |
 | listRefundRequestsByOrder | GET | /orders/:param/refund-requests | 鉁?| 鉁?| 鉁?| 鉁?| 鉁?|  |  |  |  |
-| getPatentMapRegionDetail | GET | /patent-map/regions/:param | 鉁?|  | 鉁?|  |  |  |  |  |  |
-| getPatentMapSummary | GET | /patent-map/summary | 鉁?| 鉁?| 鉁?| 鉁?| 鉁?|  |  |  |  |
-| listPatentMapYears | GET | /patent-map/years | 鉁?| 鉁?| 鉁?| 鉁?| 鉁?|  |  |  |  |
 | getPatentById | GET | /patents/:param | 鉁?|  | 鉁?|  |  |  |  |  |  |
-| getPublicAchievementById | GET | /public/achievements/:param | 鉁?|  | 鉁?|  |  |  |  |  |  |
-| listPublicAchievementComments | GET | /public/achievements/:param/comments | 鉁?|  | 鉁?| 鉁?| 鉁?|  |  |  |  |
-| listPublicAnnouncements | GET | /public/announcements | 鉁?|  | 鉁?|  |  |  |  |  |  |
-| getPublicAnnouncementById | GET | /public/announcements/:param | 鉁?|  | 鉁?|  |  |  |  |  |  |
 | getPublicCustomerServiceConfig | GET | /public/config/customer-service | 鉁?|  | 鉁?|  |  |  |  |  |  |
 | getPublicTradeRulesConfig | GET | /public/config/trade-rules | 鉁?|  | 鉁?|  |  |  |  |  |  |
 | listPublicIndustryTags | GET | /public/industry-tags | 鉁?|  | 鉁?|  |  |  |  |  |  |
@@ -111,14 +93,10 @@
 | getPublicOrganizationById | GET | /public/organizations/:param | 鉁?|  | 鉁?|  |  |  |  |  |  |
 | getPublicTechManagerById | GET | /public/tech-managers/:param | 鉁?|  | 鉁?|  |  |  |  |  |  |
 | listRegions | GET | /regions | 鉁?|  | 鉁?|  |  | 鉁?|  |  |  |
-| searchAchievements | GET | /search/achievements | 鉁?|  | 鉁?| 鉁?| 鉁?| 鉁?|  |  |  |
 | searchInventorRankings | GET | /search/inventors | 鉁?|  | 鉁?| 鉁?| 鉁?|  |  |  |  |
 | searchListings | GET | /search/listings | 鉁?|  | 鉁?| 鉁?| 鉁?| 鉁?|  |  |  |
 | searchTechManagers | GET | /search/tech-managers | 鉁?|  | 鉁?| 鉁?| 鉁?| 鉁?|  |  |  |
-| updateAchievement | PATCH | /achievements/:param | 鉁?|  | 鉁?|  |  |  |  |  |  |
-| adminUpdateAchievement | PATCH | /admin/achievements/:param |  | 鉁?| 鉁?|  |  |  |  |  |  |
 | adminUpdateAiParseResult | PATCH | /admin/ai/parse-results/:param |  |  | 鉁?|  |  |  |  |  |  |
-| adminUpdateAnnouncement | PATCH | /admin/announcements/:param |  | 鉁?| 鉁?|  |  |  |  |  |  |
 | adminUpdateComment | PATCH | /admin/comments/:param |  | 鉁?| 鉁?| 鉁?| 鉁?| 鉁?|  |  |  |
 | adminUpdateListing | PATCH | /admin/listings/:param |  | 鉁?| 鉁?|  |  |  |  |  |  |
 | adminUpdatePatentMaintenanceSchedule | PATCH | /admin/patent-maintenance/schedules/:param |  | 鉁?| 鉁?|  |  |  |  |  |  |
@@ -132,21 +110,7 @@
 | updateListing | PATCH | /listings/:param | 鉁?|  | 鉁?|  |  |  |  |  |  |
 | updateMe | PATCH | /me | 鉁?|  | 鉁?|  |  |  |  |  |  |
 | updateMyAddress | PATCH | /me/addresses/:param | 鉁?|  | 鉁?|  |  |  |  |  |  |
-| createAchievement | POST | /achievements | 鉁?|  | 鉁?|  |  |  |  |  |  |
-| createAchievementComment | POST | /achievements/:param/comments | 鉁?|  | 鉁?| 鉁?| 鉁?|  |  |  |  |
-| upsertAchievementConversation | POST | /achievements/:param/conversations | 鉁?|  | 鉁?|  |  |  |  |  |  |
-| favoriteAchievement | POST | /achievements/:param/favorites | 鉁?|  | 鉁?|  |  |  |  |  |  |
-| offShelfAchievement | POST | /achievements/:param/off-shelf | 鉁?|  | 鉁?|  |  |  |  |  |  |
-| submitAchievement | POST | /achievements/:param/submit | 鉁?|  | 鉁?|  |  |  |  |  |  |
-| adminCreateAchievement | POST | /admin/achievements |  | 鉁?| 鉁?|  |  |  |  |  |  |
-| adminApproveAchievement | POST | /admin/achievements/:param/approve |  | 鉁?| 鉁?|  |  |  |  |  |  |
-| adminOffShelfAchievement | POST | /admin/achievements/:param/off-shelf |  | 鉁?| 鉁?|  |  |  |  |  |  |
-| adminPublishAchievement | POST | /admin/achievements/:param/publish |  | 鉁?| 鉁?|  |  |  |  |  |  |
-| adminRejectAchievement | POST | /admin/achievements/:param/reject |  | 鉁?| 鉁?|  |  |  |  |  |  |
 | adminAcknowledgeAlertEvent | POST | /admin/alerts/:param/ack |  | 鉁?| 鉁?|  |  |  |  |  |  |
-| adminCreateAnnouncement | POST | /admin/announcements |  | 鉁?| 鉁?|  |  |  |  |  |  |
-| adminOffShelfAnnouncement | POST | /admin/announcements/:param/off-shelf |  | 鉁?| 鉁?|  |  |  |  |  |  |
-| adminPublishAnnouncement | POST | /admin/announcements/:param/publish |  | 鉁?| 鉁?|  |  |  |  |  |  |
 | adminCreateCase | POST | /admin/cases |  | 鉁?| 鉁?|  |  |  |  |  |  |
 | adminAssignCase | POST | /admin/cases/:param/assign |  | 鉁?| 鉁?|  |  |  |  |  |  |
 | adminAddCaseEvidence | POST | /admin/cases/:param/evidence |  | 鉁?| 鉁?|  |  |  |  |  |  |
@@ -166,7 +130,6 @@
 | adminConfirmManualPayout | POST | /admin/orders/:param/payouts/manual |  | 鉁?| 鉁?|  | 鉁?|  |  |  |  |
 | adminCreatePatentMaintenanceSchedule | POST | /admin/patent-maintenance/schedules |  | 鉁?| 鉁?|  |  |  |  |  |  |
 | adminCreatePatentMaintenanceTask | POST | /admin/patent-maintenance/tasks |  | 鉁?| 鉁?|  |  |  |  |  |  |
-| adminImportPatentMapExcel | POST | /admin/patent-map/import |  | 鉁?| 鉁?|  |  |  |  |  |  |
 | adminCreatePatent | POST | /admin/patents |  | 鉁?| 鉁?|  |  |  |  |  |  |
 | adminCreateRbacRole | POST | /admin/rbac/roles |  | 鉁?| 鉁?|  |  |  |  |  |  |
 | adminApproveRefundRequest | POST | /admin/refund-requests/:param/approve |  | 鉁?| 鉁?|  |  |  |  |  | 鉁?|
@@ -213,7 +176,6 @@
 | adminUpdateTradeRulesConfig | PUT | /admin/config/trade-rules |  | 鉁?| 鉁?| 鉁?| 鉁?|  |  |  |  |
 | adminSetListingFeatured | PUT | /admin/listings/:param/featured |  | 鉁?| 鉁?|  |  |  |  |  |  |
 | adminUpsertOrderInvoice | PUT | /admin/orders/:param/invoice |  | 鉁?| 鉁?|  | 鉁?|  |  |  |  |
-| adminUpsertPatentMapEntry | PUT | /admin/patent-map/regions/:param/years/:param |  | 鉁?| 鉁?|  | 鉁?|  |  |  |  |
 | adminSetRegionIndustryTags | PUT | /admin/regions/:param/industry-tags |  | 鉁?| 鉁?|  |  |  |  |  |  |
 
 ## 4. 浣跨敤璇存槑

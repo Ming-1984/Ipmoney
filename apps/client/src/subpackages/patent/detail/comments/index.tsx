@@ -219,7 +219,7 @@ export default function PatentDetailCommentsPage() {
 
           {listingId ? (
             <View id="patent-comments" className="patent-card-stack">
-              <CommentsSection contentType="LISTING" contentId={listingId} title="互动留言" />
+              <CommentsSection contentId={listingId} title="互动留言" />
             </View>
           ) : (
             <View className="detail-section-card">

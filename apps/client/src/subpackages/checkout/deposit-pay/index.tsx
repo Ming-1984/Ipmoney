@@ -74,7 +74,8 @@ function readCachedPayTarget(listingId: string): PayTarget | null {
     const cached = getDetailCache<PayTarget>(CHECKOUT_TARGET_CACHE_SCOPE, targetCacheKey);
     if (cached) return cached;
   }
-  return listingId ? toPayTarget(getDetailCache<unknown>('listing-public', listingId)) : null;
+  if (listingId) return toPayTarget(getDetailCache<unknown>('listing-public', listingId));
+  return null;
 }
 
 export default function DepositPayPage() {
@@ -162,8 +163,7 @@ export default function DepositPayPage() {
     }
     setPaying(true);
     try {
-      const payload = { listingId };
-      const order = await apiPost<Order>('/orders', payload);
+      const order = await apiPost<Order>('/orders', { listingId });
       const intent = await apiPost<PaymentIntentResponse>(
         `/orders/${order.id}/payment-intents`,
         { payType: 'DEPOSIT' },

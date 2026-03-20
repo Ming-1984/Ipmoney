@@ -1,4 +1,4 @@
-import { View, Text, Image, Button as TaroButton } from '@tarojs/components';
+﻿import { View, Text, Image, Button as TaroButton } from '@tarojs/components';
 import Taro, { useShareAppMessage } from '@tarojs/taro';
 import React, { useCallback, useEffect, useState } from 'react';
 import './index.scss';
@@ -44,29 +44,29 @@ type PatentTradeSnapshot = {
 type Conversation = { id: string };
 
 function legalStatusLabel(status?: Patent['legalStatus']): string {
-  if (!status) return '未知';
-  if (status === 'PENDING') return '审中';
-  if (status === 'GRANTED') return '已授权';
-  if (status === 'EXPIRED') return '已失效';
-  if (status === 'INVALIDATED') return '已无效';
-  return '未知';
+  if (!status) return '鏈煡';
+  if (status === 'PENDING') return '瀹′腑';
+  if (status === 'GRANTED') return '宸叉巿鏉?;
+  if (status === 'EXPIRED') return '宸插け鏁?;
+  if (status === 'INVALIDATED') return '宸叉棤鏁?;
+  return '鏈煡';
 }
 
 function sourcePrimaryLabel(source?: Patent['sourcePrimary']): string {
-  if (!source) return '未知';
-  if (source === 'USER') return '用户提交';
-  if (source === 'ADMIN') return '后台录入';
-  if (source === 'PROVIDER') return '数据服务商';
-  return '未知';
+  if (!source) return '鏈煡';
+  if (source === 'USER') return '鐢ㄦ埛鎻愪氦';
+  if (source === 'ADMIN') return '鍚庡彴褰曞叆';
+  if (source === 'PROVIDER') return '鏁版嵁鏈嶅姟鍟?;
+  return '鏈煡';
 }
 
 function supplyTypeLabel(type?: string | null): string {
   if (!type) return '-';
-  if (type === 'UNIVERSITY') return '高校';
-  if (type === 'UNIVERSITY_985') return '985高校';
-  if (type === 'UNIVERSITY_211') return '211高校';
-  if (type === 'RESEARCH_INSTITUTE') return '科研院所';
-  return '其他';
+  if (type === 'UNIVERSITY') return '楂樻牎';
+  if (type === 'UNIVERSITY_985') return '985楂樻牎';
+  if (type === 'UNIVERSITY_211') return '211楂樻牎';
+  if (type === 'RESEARCH_INSTITUTE') return '绉戠爺闄㈡墍';
+  return '鍏朵粬';
 }
 
 function formatCount(value?: number | null, unit?: string): string {
@@ -82,9 +82,9 @@ function remainingYears(filingDate?: string | null, patentType?: Patent['patentT
   const expiry = new Date(start);
   expiry.setFullYear(start.getFullYear() + termYears);
   const diffMs = expiry.getTime() - Date.now();
-  if (diffMs <= 0) return '0 年';
+  if (diffMs <= 0) return '0 骞?;
   const years = Math.ceil(diffMs / (1000 * 60 * 60 * 24 * 365.25));
-  return `${years} 年`;
+  return `${years} 骞碻;
 }
 
 export default function PatentDetailOverviewPage() {
@@ -126,7 +126,7 @@ export default function PatentDetailOverviewPage() {
       setPatentCache(patentId, d);
     } catch (e: any) {
       if (!cached) {
-        setError(e?.message || '加载失败');
+        setError(e?.message || '鍔犺浇澶辫触');
         setData(null);
       }
     } finally {
@@ -137,9 +137,9 @@ export default function PatentDetailOverviewPage() {
   const copyText = useCallback(async (text: string) => {
     try {
       await Taro.setClipboardData({ data: text });
-      toast('已复制', { icon: 'success' });
+      toast('宸插鍒?, { icon: 'success' });
     } catch (_) {
-      toast('复制失败', { icon: 'fail' });
+      toast('澶嶅埗澶辫触', { icon: 'fail' });
     }
   }, []);
 
@@ -151,7 +151,7 @@ export default function PatentDetailOverviewPage() {
   const listingId = tradeSnapshot?.listingId || '';
   const depositAmountFen = tradeSnapshot?.depositAmountFen ?? null;
   const canTrade = Boolean(listingId);
-  const depositLabel = depositAmountFen != null ? `订金 ￥${fenToYuan(depositAmountFen)}` : '订金 -';
+  const depositLabel = depositAmountFen != null ? `璁㈤噾 锟?{fenToYuan(depositAmountFen)}` : '璁㈤噾 -';
   const hasSpecStats = [
     (data as any)?.claimCount,
     (data as any)?.specPageCount,
@@ -162,7 +162,7 @@ export default function PatentDetailOverviewPage() {
 
   const startConsult = useCallback(async () => {
     if (!listingId) {
-      toast('暂无可咨询的挂牌', { icon: 'fail' });
+      toast('鏆傛棤鍙挩璇㈢殑鎸傜墝', { icon: 'fail' });
       return;
     }
     if (!ensureApproved()) return;
@@ -183,7 +183,7 @@ export default function PatentDetailOverviewPage() {
       );
       Taro.navigateTo({ url: `/subpackages/messages/chat/index?conversationId=${conv.id}` });
     } catch (e: any) {
-      toast(e?.message || '进入咨询失败');
+      toast(e?.message || '杩涘叆鍜ㄨ澶辫触');
     }
   }, [listingId]);
 
@@ -205,7 +205,7 @@ export default function PatentDetailOverviewPage() {
 
   const toggleFavorite = useCallback(async () => {
     if (!listingId) {
-      toast('暂无可收藏的挂牌', { icon: 'fail' });
+      toast('鏆傛棤鍙敹钘忕殑鎸傜墝', { icon: 'fail' });
       return;
     }
     if (!ensureApproved()) return;
@@ -213,21 +213,21 @@ export default function PatentDetailOverviewPage() {
       if (favoritedState) {
         await unfavorite(listingId);
         setFavoritedState(false);
-        toast('已取消收藏', { icon: 'success' });
+        toast('宸插彇娑堟敹钘?, { icon: 'success' });
         return;
       }
       await favorite(listingId);
       setFavoritedState(true);
-      toast('已收藏', { icon: 'success' });
+      toast('宸叉敹钘?, { icon: 'success' });
     } catch (e: any) {
-      toast(e?.message || '操作失败');
+      toast(e?.message || '鎿嶄綔澶辫触');
     }
   }, [favoritedState, listingId]);
 
   const openSellerHome = useCallback(() => {
     const sellerId = tradeSnapshot?.seller?.id;
     if (!sellerId) {
-      toast('暂无机构主页');
+      toast('鏆傛棤鏈烘瀯涓婚〉');
       return;
     }
     Taro.navigateTo({ url: `/subpackages/organizations/detail/index?orgUserId=${sellerId}` });
@@ -246,7 +246,7 @@ export default function PatentDetailOverviewPage() {
   const hasMedia = Boolean(coverUrl || specMedia.length);
 
   useShareAppMessage(() => ({
-    title: data?.title ? `专利：${data.title}` : '专利详情',
+    title: data?.title ? `涓撳埄锛?{data.title}` : '涓撳埄璇︽儏',
     path: patentId ? `/subpackages/patent/detail/index?patentId=${patentId}` : '/pages/home/index',
     imageUrl: coverUrl || undefined,
   }));
@@ -261,7 +261,7 @@ export default function PatentDetailOverviewPage() {
 
   return (
     <View className="container detail-page-compact has-sticky">
-      <PageHeader weapp title="专利详情" subtitle="公开可见，数据来自平台或服务商。" />
+      <PageHeader weapp title="涓撳埄璇︽儏" subtitle="鍏紑鍙锛屾暟鎹潵鑷钩鍙版垨鏈嶅姟鍟嗐€? />
       <Spacer />
 
       {loading ? (
@@ -271,17 +271,17 @@ export default function PatentDetailOverviewPage() {
       ) : data ? (
         <View>
           <Surface className="detail-meta-card detail-compact-header" id="patent-overview">
-            <Text className="detail-compact-title clamp-2">{data.title || '未命名专利'}</Text>
+            <Text className="detail-compact-title clamp-2">{data.title || '鏈懡鍚嶄笓鍒?}</Text>
             <Spacer size={8} />
             <View className="detail-compact-tags">
-              <Text className="detail-compact-tag detail-compact-tag-strong">类型 {patentTypeLabel(data.patentType)}</Text>
-              <Text className="detail-compact-tag">状态 {legalStatusLabel(data.legalStatus)}</Text>
-              {(data as any)?.caseStatus ? <Text className="detail-compact-tag">案号 {(data as any).caseStatus}</Text> : null}
+              <Text className="detail-compact-tag detail-compact-tag-strong">绫诲瀷 {patentTypeLabel(data.patentType)}</Text>
+              <Text className="detail-compact-tag">鐘舵€?{legalStatusLabel(data.legalStatus)}</Text>
+              {(data as any)?.caseStatus ? <Text className="detail-compact-tag">妗堝彿 {(data as any).caseStatus}</Text> : null}
             </View>
             <Spacer size={10} />
             <View className="detail-compact-row">
               <Text className="muted ellipsis" style={{ flex: 1, minWidth: 0 }}>
-                申请号 {data.applicationNoDisplay || data.applicationNoNorm || "-"}
+                鐢宠鍙?{data.applicationNoDisplay || data.applicationNoNorm || "-"}
               </Text>
               {data.applicationNoDisplay || data.applicationNoNorm ? (
                 <Button
@@ -290,7 +290,7 @@ export default function PatentDetailOverviewPage() {
                   variant="ghost"
                   onClick={() => void copyText((data.applicationNoDisplay || data.applicationNoNorm) as string)}
                 >
-                  复制
+                  澶嶅埗
                 </Button>
               ) : null}
             </View>
@@ -299,9 +299,9 @@ export default function PatentDetailOverviewPage() {
           <Spacer size={12} />
 
           <View className="patent-card-stack">
-            <SectionHeader title="技术摘要" density="compact" />
+            <SectionHeader title="鎶€鏈憳瑕? density="compact" />
             <Surface className="detail-section-card">
-              <Text className="patent-summary-text">{data.abstract || '暂无摘要'}</Text>
+              <Text className="patent-summary-text">{data.abstract || '鏆傛棤鎽樿'}</Text>
             </Surface>
           </View>
 
@@ -310,7 +310,7 @@ export default function PatentDetailOverviewPage() {
           {hasMedia ? (
             <>
               <View id="patent-media" className="detail-section-card">
-                <SectionHeader title="说明书附件" density="compact" />
+                <SectionHeader title="璇存槑涔﹂檮浠? density="compact" />
                 <Spacer size={8} />
                 {coverUrl ? (
                   <>
@@ -320,14 +320,14 @@ export default function PatentDetailOverviewPage() {
                     <Spacer size={8} />
                   </>
                 ) : null}
-                {specMedia.length ? <MediaList media={specMedia} coverUrl={coverUrl} /> : <Text className="muted">暂无附件</Text>}
+                {specMedia.length ? <MediaList media={specMedia} coverUrl={coverUrl} /> : <Text className="muted">鏆傛棤闄勪欢</Text>}
               </View>
               <Spacer size={12} />
             </>
           ) : null}
 
           <View className="patent-card-stack">
-            <SectionHeader title="供方信息" density="compact" />
+            <SectionHeader title="渚涙柟淇℃伅" density="compact" />
             <Surface className="detail-section-card patent-provider-card">
               {hasTrade ? (
                 <View className="patent-provider-row">
@@ -337,10 +337,10 @@ export default function PatentDetailOverviewPage() {
                     background="rgba(15, 23, 42, 0.06)"
                     color="var(--c-muted)"
                   >
-                    {(tradeSnapshot?.seller?.nickname || "供").slice(0, 1)}
+                    {(tradeSnapshot?.seller?.nickname || "渚?).slice(0, 1)}
                   </Avatar>
                   <View className="patent-provider-meta">
-                    <Text className="patent-provider-name">{tradeSnapshot?.seller?.nickname || '暂无供方'}</Text>
+                    <Text className="patent-provider-name">{tradeSnapshot?.seller?.nickname || '鏆傛棤渚涙柟'}</Text>
                     <View className="patent-provider-tags">
                       <Text className="patent-provider-tag">
                         {supplyTypeLabel((tradeSnapshot as any)?.supplyType || (tradeSnapshot as any)?.seller?.orgCategory)}
@@ -353,11 +353,11 @@ export default function PatentDetailOverviewPage() {
                     </View>
                   </View>
                   <Button block={false} size="small" variant="ghost" onClick={openSellerHome}>
-                    主页
+                    涓婚〉
                   </Button>
                 </View>
               ) : (
-                <Text className="muted">暂无供方信息</Text>
+                <Text className="muted">鏆傛棤渚涙柟淇℃伅</Text>
               )}
             </Surface>
           </View>
@@ -365,36 +365,36 @@ export default function PatentDetailOverviewPage() {
           <Spacer size={12} />
 
           <View id="patent-info" className="patent-card-stack">
-            <SectionHeader title="专利信息" density="compact" />
+            <SectionHeader title="涓撳埄淇℃伅" density="compact" />
             <View className="detail-field-list">
               <View className="detail-field-row">
-                <Text className="detail-field-label">专利号</Text>
+                <Text className="detail-field-label">涓撳埄鍙?/Text>
                 <Text className="detail-field-value break-word">{(data as any)?.patentNoDisplay || '-'}</Text>
               </View>
               <View className="detail-field-row">
-                <Text className="detail-field-label">类型</Text>
+                <Text className="detail-field-label">绫诲瀷</Text>
                 <Text className="detail-field-value break-word">{patentTypeLabel(data.patentType) || '-'}</Text>
               </View>
               <View className="detail-field-row">
-                <Text className="detail-field-label">法律状态</Text>
+                <Text className="detail-field-label">娉曞緥鐘舵€?/Text>
                 <Text className="detail-field-value break-word">{legalStatusLabel(data.legalStatus)}</Text>
               </View>
               <View className="detail-field-row">
-                <Text className="detail-field-label">IPC分类</Text>
+                <Text className="detail-field-label">IPC鍒嗙被</Text>
                 <Text className="detail-field-value break-word">{(data as any)?.mainIpcCode || '-'}</Text>
               </View>
               <View className="detail-field-row">
-                <Text className="detail-field-label">Locarno分类</Text>
+                <Text className="detail-field-label">Locarno鍒嗙被</Text>
                 <Text className="detail-field-value break-word">
                   {(data as any)?.locCodes?.length ? (data as any).locCodes.join(' / ') : '-'}
                 </Text>
               </View>
               <View className="detail-field-row">
-                <Text className="detail-field-label">申请日</Text>
+                <Text className="detail-field-label">鐢宠鏃?/Text>
                 <Text className="detail-field-value break-word">{data.filingDate || '-'}</Text>
               </View>
               <View className="detail-field-row">
-                <Text className="detail-field-label">剩余年限</Text>
+                <Text className="detail-field-label">鍓╀綑骞撮檺</Text>
                 <Text className="detail-field-value break-word">{remainingYears(data.filingDate, data.patentType)}</Text>
               </View>
             </View>
@@ -403,18 +403,18 @@ export default function PatentDetailOverviewPage() {
           <Spacer size={12} />
 
           <View id="patent-owners" className="patent-card-stack">
-            <SectionHeader title="权利人信息" density="compact" />
+            <SectionHeader title="鏉冨埄浜轰俊鎭? density="compact" />
             <View className="detail-field-list">
               <View className="detail-field-row">
-                <Text className="detail-field-label">发明人</Text>
+                <Text className="detail-field-label">鍙戞槑浜?/Text>
                 <Text className="detail-field-value break-word">{data.inventorNames?.length ? data.inventorNames.join(' / ') : '-'}</Text>
               </View>
               <View className="detail-field-row">
-                <Text className="detail-field-label">权利人</Text>
+                <Text className="detail-field-label">鏉冨埄浜?/Text>
                 <Text className="detail-field-value break-word">{data.assigneeNames?.length ? data.assigneeNames.join(' / ') : '-'}</Text>
               </View>
               <View className="detail-field-row">
-                <Text className="detail-field-label">申请人</Text>
+                <Text className="detail-field-label">鐢宠浜?/Text>
                 <Text className="detail-field-value break-word">{data.applicantNames?.length ? data.applicantNames.join(' / ') : '-'}</Text>
               </View>
             </View>
@@ -423,14 +423,14 @@ export default function PatentDetailOverviewPage() {
           <Spacer size={12} />
 
           <View id="patent-dates" className="patent-card-stack">
-            <SectionHeader title="时间信息" density="compact" />
+            <SectionHeader title="鏃堕棿淇℃伅" density="compact" />
             <View className="detail-field-list">
               <View className="detail-field-row">
-                <Text className="detail-field-label">公开日</Text>
+                <Text className="detail-field-label">鍏紑鏃?/Text>
                 <Text className="detail-field-value is-muted">{data.publicationDate || '-'}</Text>
               </View>
               <View className="detail-field-row">
-                <Text className="detail-field-label">授权日</Text>
+                <Text className="detail-field-label">鎺堟潈鏃?/Text>
                 <Text className="detail-field-value is-muted">{data.grantDate || '-'}</Text>
               </View>
             </View>
@@ -440,23 +440,23 @@ export default function PatentDetailOverviewPage() {
             <>
               <Spacer size={12} />
               <View id="patent-spec" className="patent-card-stack">
-                <SectionHeader title="说明书统计" density="compact" />
+                <SectionHeader title="璇存槑涔︾粺璁? density="compact" />
                 <View className="detail-field-list">
                   <View className="detail-field-row">
-                    <Text className="detail-field-label">权利要求数</Text>
-                    <Text className="detail-field-value">{formatCount((data as any)?.claimCount, '项')}</Text>
+                    <Text className="detail-field-label">鏉冨埄瑕佹眰鏁?/Text>
+                    <Text className="detail-field-value">{formatCount((data as any)?.claimCount, '椤?)}</Text>
                   </View>
                   <View className="detail-field-row">
-                    <Text className="detail-field-label">说明书页数</Text>
-                    <Text className="detail-field-value">{formatCount((data as any)?.specPageCount, '页')}</Text>
+                    <Text className="detail-field-label">璇存槑涔﹂〉鏁?/Text>
+                    <Text className="detail-field-value">{formatCount((data as any)?.specPageCount, '椤?)}</Text>
                   </View>
                   <View className="detail-field-row">
-                    <Text className="detail-field-label">说明书字数</Text>
-                    <Text className="detail-field-value">{formatCount((data as any)?.specWordCount, '字')}</Text>
+                    <Text className="detail-field-label">璇存槑涔﹀瓧鏁?/Text>
+                    <Text className="detail-field-value">{formatCount((data as any)?.specWordCount, '瀛?)}</Text>
                   </View>
                   <View className="detail-field-row">
-                    <Text className="detail-field-label">说明书附图数量</Text>
-                    <Text className="detail-field-value">{formatCount((data as any)?.specFigureCount, '张')}</Text>
+                    <Text className="detail-field-label">璇存槑涔﹂檮鍥炬暟閲?/Text>
+                    <Text className="detail-field-value">{formatCount((data as any)?.specFigureCount, '寮?)}</Text>
                   </View>
                 </View>
               </View>
@@ -467,38 +467,38 @@ export default function PatentDetailOverviewPage() {
             <>
               <Spacer size={12} />
               <View id="patent-trade" className="patent-card-stack">
-                <SectionHeader title="交易信息" density="compact" />
+                <SectionHeader title="浜ゆ槗淇℃伅" density="compact" />
                 <View className="detail-field-list">
                   <View className="detail-field-row">
-                    <Text className="detail-field-label">价格方式</Text>
+                    <Text className="detail-field-label">浠锋牸鏂瑰紡</Text>
                     <Text className="detail-field-value">{priceTypeLabel((tradeSnapshot as any)?.priceType)}</Text>
                   </View>
                   <View className="detail-field-row">
-                    <Text className="detail-field-label">售价</Text>
+                    <Text className="detail-field-label">鍞环</Text>
                     <Text className="detail-field-value">
                       {(tradeSnapshot as any)?.priceType === 'NEGOTIABLE'
-                        ? '面议'
+                        ? '闈㈣'
                         : (tradeSnapshot as any)?.priceAmountFen != null
-                          ? `￥${fenToYuan((tradeSnapshot as any).priceAmountFen)}`
+                          ? `锟?{fenToYuan((tradeSnapshot as any).priceAmountFen)}`
                           : '-'}
                     </Text>
                   </View>
                   <View className="detail-field-row">
-                    <Text className="detail-field-label">订金</Text>
+                    <Text className="detail-field-label">璁㈤噾</Text>
                     <Text className="detail-field-value">
                       {(tradeSnapshot as any)?.depositAmountFen != null
-                        ? `￥${fenToYuan((tradeSnapshot as any).depositAmountFen)}`
+                        ? `锟?{fenToYuan((tradeSnapshot as any).depositAmountFen)}`
                         : '-'}
                     </Text>
                   </View>
                   <View className="detail-field-row">
-                    <Text className="detail-field-label">供给方类型</Text>
+                    <Text className="detail-field-label">渚涚粰鏂圭被鍨?/Text>
                     <Text className="detail-field-value">
                       {supplyTypeLabel((tradeSnapshot as any)?.supplyType || (tradeSnapshot as any)?.seller?.orgCategory)}
                     </Text>
                   </View>
                   <View className="detail-field-row">
-                    <Text className="detail-field-label">供给方</Text>
+                    <Text className="detail-field-label">渚涚粰鏂?/Text>
                     <Text className="detail-field-value">
                       {(tradeSnapshot as any)?.seller?.nickname || '-'}
                       {(tradeSnapshot as any)?.seller?.verificationType
@@ -514,13 +514,12 @@ export default function PatentDetailOverviewPage() {
           <Spacer size={12} />
 
           <View id="patent-rights" className="patent-card-stack">
-            <SectionHeader title="相关权益" density="compact" />
+            <SectionHeader title="鐩稿叧鏉冪泭" density="compact" />
             <Surface className="detail-section-card">
               <View className="patent-rights-card">
-                <View className="patent-rights-icon">✓</View>
+                <View className="patent-rights-icon">鉁?/View>
                 <Text className="patent-rights-text">
-                  专利权属清晰，已核查专利登记簿副本，无质押、无纠纷。成交后包含：专利证书原件 + 变更手续协助 + 3个月技术交底。
-                </Text>
+                  涓撳埄鏉冨睘娓呮櫚锛屽凡鏍告煡涓撳埄鐧昏绨垮壇鏈紝鏃犺川鎶笺€佹棤绾犵悍銆傛垚浜ゅ悗鍖呭惈锛氫笓鍒╄瘉涔﹀師浠?+ 鍙樻洿鎵嬬画鍗忓姪 + 3涓湀鎶€鏈氦搴曘€?                </Text>
               </View>
             </Surface>
           </View>
@@ -529,10 +528,10 @@ export default function PatentDetailOverviewPage() {
 
           <View id="patent-comments" className="patent-card-stack">
             {listingId ? (
-              <CommentsSection contentType="LISTING" contentId={listingId} title="互动留言" />
+              <CommentsSection contentId={listingId} title="浜掑姩鐣欒█" />
             ) : (
               <Surface className="detail-section-card">
-                <Text className="muted">暂无关联挂牌，无法展示评论</Text>
+                <Text className="muted">鏆傛棤鍏宠仈鎸傜墝锛屾棤娉曞睍绀鸿瘎璁?/Text>
               </Surface>
             )}
           </View>
@@ -543,14 +542,14 @@ export default function PatentDetailOverviewPage() {
           {data.sourcePrimary || data.sourceUpdatedAt ? (
             <>
               <Spacer size={12} />
-              <TipBanner id="patent-source" tone="info" title="数据来源">
-                {`来源：${sourcePrimaryLabel(data.sourcePrimary)}${data.sourceUpdatedAt ? ` · 更新于 ${formatTimeSmart(data.sourceUpdatedAt)}` : ""}`}
+              <TipBanner id="patent-source" tone="info" title="鏁版嵁鏉ユ簮">
+                {`鏉ユ簮锛?{sourcePrimaryLabel(data.sourcePrimary)}${data.sourceUpdatedAt ? ` 路 鏇存柊浜?${formatTimeSmart(data.sourceUpdatedAt)}` : ""}`}
               </TipBanner>
             </>
           ) : null}
         </View>
       ) : (
-        <EmptyCard message="暂无数据" actionText="返回" onAction={() => void safeNavigateBack()} />
+        <EmptyCard message="鏆傛棤鏁版嵁" actionText="杩斿洖" onAction={() => void safeNavigateBack()} />
       )}
 
       {data && canTrade ? (
@@ -560,18 +559,18 @@ export default function PatentDetailOverviewPage() {
               <View className="detail-tool-icon">
                 <Share2 size={16} />
               </View>
-              <Text>分享</Text>
+              <Text>鍒嗕韩</Text>
             </TaroButton>
             <View className={`detail-tool ${favoritedState ? 'is-active' : ''}`} onClick={() => void toggleFavorite()}>
               <View className="detail-tool-icon">
                 {favoritedState ? <HeartFill size={16} color="#ff4d4f" /> : <Heart size={16} />}
               </View>
-              <Text>{favoritedState ? '已收藏' : '收藏'}</Text>
+              <Text>{favoritedState ? '宸叉敹钘? : '鏀惰棌'}</Text>
             </View>
           </View>
           <View className="detail-sticky-buttons">
             <Button variant="default" onClick={() => void startConsult()}>
-              在线咨询
+              鍦ㄧ嚎鍜ㄨ
             </Button>
             <Button
               variant="primary"

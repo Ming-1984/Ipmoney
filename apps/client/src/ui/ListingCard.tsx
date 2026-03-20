@@ -10,7 +10,7 @@ import { regionDisplayName } from '../lib/regions';
 import iconAward from '../assets/icons/icon-award-teal.svg';
 
 type ListingSummary = components['schemas']['ListingSummary'];
-type ListingTopic = 'HIGH_TECH_RETIRED' | 'AWARD_WINNING';
+type ListingTopic = 'FIVE_STAR' | 'HIGH_TECH_RETIRED' | 'AWARD_WINNING';
 type ListingSummaryExtra = ListingSummary & {
   ipcCodes?: string[];
   publisher?: components['schemas']['OrganizationSummary'];
@@ -51,6 +51,7 @@ export function ListingCard(props: {
     : extra.listingTopic
       ? [extra.listingTopic]
       : [];
+  if (listingTopics.includes('FIVE_STAR')) specialTags.push({ label: '五星专利', tone: 'green' });
   if (listingTopics.includes('HIGH_TECH_RETIRED')) specialTags.push({ label: '退役专利', tone: 'green' });
   if (listingTopics.includes('AWARD_WINNING')) specialTags.push({ label: '获奖专利', tone: 'green' });
   if (it.patentType) tags.push({ label: patentTypeLabel(it.patentType, { empty: '' }), tone: 'slate' });

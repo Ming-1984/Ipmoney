@@ -4,7 +4,7 @@ import { Prisma } from '@prisma/client';
 
 import { ContentEventService } from '../../common/content-event.service';
 import { PrismaService } from '../../common/prisma/prisma.service';
-import { buildPublisherMap, mapStats, sanitizeIndustryTagNames } from '../content-utils';
+import { mapStats, sanitizeIndustryTagNames } from '../content-utils';
 
 type Paged<T> = { items: T[]; page: { page: number; pageSize: number; total: number } };
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -17,7 +17,7 @@ export class FavoritesService {
   ) {}
 
   private ensureAuth(req: any) {
-    if (!req?.auth?.userId) throw new ForbiddenException({ code: 'FORBIDDEN', message: '鏃犳潈闄?' });
+    if (!req?.auth?.userId) throw new ForbiddenException({ code: 'FORBIDDEN', message: '无权限' });
   }
 
   private hasOwn(input: any, key: string) {
@@ -49,36 +49,6 @@ export class FavoritesService {
     const pageSizeInput = this.hasOwn(query, 'pageSize') ? this.parsePositiveIntStrict(query?.pageSize, 'pageSize') : 20;
     const pageSize = Math.min(50, pageSizeInput);
     return { page, pageSize };
-  }
-
-  private asArray(value: unknown): string[] {
-    return Array.isArray(value) ? (value as string[]) : [];
-  }
-
-  private toAchievementSummary(item: any, publisherMap: Record<string, any>) {
-    const publisher = publisherMap[item.publisherUserId] ?? {
-      userId: item.publisherUserId,
-      displayName: 'User',
-      verificationType: 'PERSON',
-      verificationStatus: 'PENDING',
-    };
-    return {
-      id: item.id,
-      source: item.source ?? 'USER',
-      title: item.title,
-      summary: item.summary ?? null,
-      maturity: item.maturity ?? null,
-      cooperationModes: this.asArray(item.cooperationModesJson),
-      regionCode: item.regionCode ?? null,
-      industryTags: sanitizeIndustryTagNames(item.industryTagsJson),
-      keywords: this.asArray(item.keywordsJson),
-      publisher,
-      stats: mapStats(item.stats),
-      auditStatus: item.auditStatus,
-      status: item.status,
-      coverUrl: item.coverFile?.url ?? null,
-      createdAt: item.createdAt.toISOString(),
-    };
   }
 
   async listListingFavorites(req: any, query: any): Promise<Paged<any>> {
@@ -118,33 +88,6 @@ export class FavoritesService {
     return { items: mapped, page: { page, pageSize, total } };
   }
 
-  async listAchievementFavorites(req: any, query: any): Promise<Paged<any>> {
-    this.ensureAuth(req);
-    const { page, pageSize } = this.parsePagination(query);
-
-    const [items, total] = await Promise.all([
-      this.prisma.achievementFavorite.findMany({
-        where: { userId: req.auth.userId },
-        include: { achievement: { include: { coverFile: true, stats: true } } },
-        orderBy: { createdAt: 'desc' },
-        skip: (page - 1) * pageSize,
-        take: pageSize,
-      }),
-      this.prisma.achievementFavorite.count({ where: { userId: req.auth.userId } }),
-    ]);
-
-    const achievements = items.map((fav) => fav.achievement).filter(Boolean);
-    const publisherMap = await buildPublisherMap(
-      this.prisma,
-      achievements.map((item: any) => item.publisherUserId),
-    );
-
-    return {
-      items: items.map((fav) => this.toAchievementSummary(fav.achievement, publisherMap)),
-      page: { page, pageSize, total },
-    };
-  }
-
   async favoriteListing(req: any, listingId: string) {
     this.ensureAuth(req);
     const normalizedListingId = this.parseUuidStrict(listingId, 'listingId');
@@ -176,37 +119,4 @@ export class FavoritesService {
     }
     return { ok: true };
   }
-
-  async favoriteAchievement(req: any, achievementId: string) {
-    this.ensureAuth(req);
-    const normalizedAchievementId = this.parseUuidStrict(achievementId, 'achievementId');
-    const achievement = await this.prisma.achievement.findUnique({ where: { id: normalizedAchievementId } });
-    if (!achievement) throw new NotFoundException({ code: 'NOT_FOUND', message: '鎴愭灉涓嶅瓨鍦?' });
-    try {
-      await this.prisma.achievementFavorite.create({
-        data: { achievementId: normalizedAchievementId, userId: req.auth.userId },
-      });
-      await this.events.adjustFavoriteCount('ACHIEVEMENT', normalizedAchievementId, 1);
-      void this.events.recordFavorite(req, 'ACHIEVEMENT', normalizedAchievementId).catch(() => {});
-    } catch (e: any) {
-      if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2002') {
-        return { ok: true };
-      }
-      throw e;
-    }
-    return { ok: true };
-  }
-
-  async unfavoriteAchievement(req: any, achievementId: string) {
-    this.ensureAuth(req);
-    const normalizedAchievementId = this.parseUuidStrict(achievementId, 'achievementId');
-    const removed = await this.prisma.achievementFavorite.deleteMany({
-      where: { achievementId: normalizedAchievementId, userId: req.auth.userId },
-    });
-    if (removed.count > 0) {
-      await this.events.adjustFavoriteCount('ACHIEVEMENT', normalizedAchievementId, -1);
-    }
-    return { ok: true };
-  }
-
 }

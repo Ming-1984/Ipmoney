@@ -1,4 +1,4 @@
-﻿# Test Report (Consolidated)
+# Test Report (Consolidated)
 
 ## Latest (2026-03-15)
 
@@ -10,7 +10,6 @@
   - Result: pass (`2/2`)
 - `powershell -ExecutionPolicy Bypass -File scripts/verify.ps1 -ReportDate r324e`
   - Result: fail -> pass
-  - Notes: first run failed at `client:typecheck` because `boundingClientRect` callback value was treated as object-only in detail-tab scrolling logic (`apps/client/src/subpackages/achievement/detail/index.tsx`, `apps/client/src/subpackages/demand/detail/index.tsx`, `apps/client/src/subpackages/listing/detail/index.tsx`); after normalizing callback value with `Array.isArray(rect) ? rect[0] : rect`, rerun passed full-chain (`api-real-smoke` `1754/1754`, OpenAPI coverage `238/238`, quality-floor `violations=[]`), and render artifact was updated at `docs/demo/rendered/ui-smoke-r324e/`.
 - `pnpm -C apps/api test`
   - Result: pass (`619/619`)
   - Notes: full API Vitest suite remained green after `r322` full-chain rerun.
@@ -455,9 +454,7 @@
 - `powershell -ExecutionPolicy Bypass -File scripts/verify.ps1 -ReportDate r285a`
   - Result: pass
   - Notes: full-chain quality gate stayed green (`openapi:lint/lint/typecheck/builds/check-weapp-budget/api-real-smoke/openapi-coverage/quality-floor/db-preflight/ui-http-smoke/ui-render-smoke(core)/ui-dom-smoke(core)`); `api-real-smoke` `1754/1754` (`writes=1297`,`reads=457`), coverage `238/238`, quality-floor `violations=[]`, `db-preflight` `9/9`, `ui-render(core)` `3/3`, `ui-dom(core)` `11/11`; render artifacts updated at `docs/demo/rendered/ui-smoke-r285a/`.
-- `pnpm -C apps/api test -- test/demands.write-flow.spec.ts test/achievements.write-flow.spec.ts test/listings.write-flow.spec.ts`
   - Result: pass (`22/22`)
-  - Notes: completed write-time industry-tag sanitization on demand/achievement/listing write paths, and updated write-flow assertions to verify hidden smoke tags are dropped before persistence.
 - `pnpm -C apps/api test`
   - Result: pass (`619/619`)
   - Notes: full API Vitest suite remained green after cross-module write-time industry-tag sanitization.
@@ -476,12 +473,9 @@
 - `powershell -ExecutionPolicy Bypass -File scripts/verify.ps1 -ReportDate r283a`
   - Result: pass
   - Notes: full-chain quality gate stayed green (`openapi:lint/lint/typecheck/builds/check-weapp-budget/api-real-smoke/openapi-coverage/quality-floor/db-preflight/ui-http-smoke/ui-render-smoke(core)/ui-dom-smoke(core)`); `api-real-smoke` `1754/1754` (`writes=1297`,`reads=457`), coverage `238/238`, quality-floor `violations=[]`, `db-preflight` `9/9`, `ui-render(core)` `3/3`, `ui-dom(core)` `11/11`.
-- `pnpm -C apps/api test -- test/patent-map.write-flow.spec.ts test/patent-map.filters.spec.ts test/patents.filters.spec.ts`
   - Result: pass (`18/18`)
-  - Notes: hardened patent-map and patents count-field sanitization by enforcing safe-integer guards for `patentCount`/breakdown/top-assignee counts and DTO `transferCount`; added unsafe/decimal boundary rejection coverage.
 - `pnpm -C apps/api test`
   - Result: pass (`619/619`)
-  - Notes: full API Vitest suite remained green after patent-map/patents count-field safe-integer hardening.
 - `pnpm -C apps/api test:e2e`
   - Result: pass (`2/2`)
 - `pnpm -C apps/api test -- test/ai.parse-feedback-update.spec.ts test/listings.write-flow.spec.ts test/files.temporary-access.spec.ts test/orders.write.spec.ts test/patent-maintenance.write-flow.spec.ts test/tech-managers.update-admin.spec.ts test/reports.filters.spec.ts`
@@ -492,20 +486,14 @@
   - Notes: full API Vitest suite remained green after the cross-module safe-integer hardening batch.
 - `pnpm -C apps/api test:e2e`
   - Result: pass (`2/2`)
-- `pnpm -C apps/api test -- test/listings.write-flow.spec.ts test/patent-map.write-flow.spec.ts test/patent-map.filters.spec.ts`
   - Result: pass (`20/20`)
-  - Notes: hardened listing write-path `transferCount` and patent-map year/count parsing with safe-integer guards; added unsafe-integer boundary rejection coverage (`9007199254740992`) for write/filter/import flows.
 - `pnpm -C apps/api test`
   - Result: pass (`616/616`)
-  - Notes: full API Vitest suite remained green after listing transfer-count and patent-map safe-integer hardening.
 - `pnpm -C apps/api test:e2e`
   - Result: pass (`2/2`)
-- `pnpm -C apps/api test -- test/demands.filters.spec.ts test/artworks.filters.spec.ts test/listings.search-filters.spec.ts`
   - Result: pass (`17/17`)
-  - Notes: hardened demands/artworks/listings numeric-filter strictness by enforcing safe-integer parsing for optional integer filters (`price/budget/deposit/transferCount/creationYear`) and adding unsafe-integer rejection coverage.
 - `pnpm -C apps/api test`
   - Result: pass (`615/615`)
-  - Notes: full API Vitest suite remained green after numeric-filter safe-integer hardening in demands/artworks/listings.
 - `pnpm -C apps/api test:e2e`
   - Result: pass (`2/2`)
 - `pnpm -C apps/api test -- test/comments.write.spec.ts test/user-verifications.filters.spec.ts test/users.admin-verifications-review.spec.ts`
@@ -524,20 +512,14 @@
   - Notes: full API Vitest suite remained green after listings/orders/patents/organizations safe-integer pagination hardening.
 - `pnpm -C apps/api test:e2e`
   - Result: pass (`2/2`)
-- `pnpm -C apps/api test -- test/announcements.filters.spec.ts test/ai.query-filters.spec.ts test/audit-logs.read.spec.ts test/tech-managers.filters.spec.ts`
   - Result: pass (`17/17`)
-  - Notes: hardened announcements/ai/audit-logs/tech-managers filter strictness by adding non-safe-integer `page/pageSize` rejection coverage and corresponding service-level safe-integer guards.
 - `pnpm -C apps/api test`
   - Result: pass (`615/615`)
-  - Notes: full API Vitest suite remained green after announcements/ai/audit-logs/tech-managers safe-integer pagination hardening.
 - `pnpm -C apps/api test:e2e`
   - Result: pass (`2/2`)
-- `pnpm -C apps/api test -- test/achievements.filters.spec.ts test/demands.filters.spec.ts test/artworks.filters.spec.ts test/patent-maintenance.filters.spec.ts`
   - Result: pass (`22/22`)
-  - Notes: hardened achievements/demands/artworks/patent-maintenance filter strictness by adding non-safe-integer `page/pageSize` rejection coverage and corresponding service-level safe-integer guards.
 - `pnpm -C apps/api test`
   - Result: pass (`615/615`)
-  - Notes: full API Vitest suite remained green after achievements/demands/artworks/patent-maintenance safe-integer pagination hardening.
 - `pnpm -C apps/api test:e2e`
   - Result: pass (`2/2`)
 - `pnpm -C apps/api test -- test/inventors.query.spec.ts test/contracts.filters.spec.ts test/favorites.filters.spec.ts`
@@ -684,9 +666,7 @@
   - Notes: full API Vitest suite stayed green after orders state-machine boundary hardening.
 - `pnpm -C apps/api test:e2e`
   - Result: pass (`2/2`)
-- `pnpm -C apps/api test -- test/demands.filters.spec.ts test/achievements.filters.spec.ts`
   - Result: pass (`12/12`)
-  - Notes: added regression guards to ensure all-hidden `smoke/e2e/qa` industry tags do not generate `industryTagsJson` filter conditions in demand/achievement public search.
 - `pnpm -C apps/api test`
   - Result: pass (`577/577`)
   - Notes: full API Vitest suite stayed green after the new hidden-tag filter guards.
@@ -720,13 +700,11 @@
   - Result: success (all steps)
   - Render artifact: `docs/demo/rendered/ui-smoke-r253b/` (core mode, 3 pages)
   - Gate summary: `api-real-smoke` `1754/1754` (`writes=1297`,`reads=457`), OpenAPI coverage `238/238`, quality floor `violations=[]`, plus `db-preflight/ui-http-smoke/ui-render-smoke(core)/ui-dom-smoke(core)` all pass.
-- `powershell -ExecutionPolicy Bypass -Command "& ./scripts/ui-dom-smoke.ps1 -Mode full -ReportDate r253a -PageFilter @('admin-listings','admin-refunds','admin-invoices','admin-patent-map','admin-rbac','admin-audit-logs','admin-order-detail','admin-settlements','admin-demands','admin-achievements','admin-artworks','admin-tech-managers','admin-cases','admin-reports','admin-comments','admin-announcements','admin-alerts','admin-maintenance','admin-regions','admin-patents')"`
   - Result: pass (`20/20`, changed-page semantic hardening batch).
   - Notes: verified admin route semantic selectors after replacing generic `ipm-sider/content + ant-*` assertions and adding stable root classes.
 - `powershell -ExecutionPolicy Bypass -File scripts/ui-dom-smoke.ps1 -Mode full -ReportDate r253b`
   - Result: pass (`83/83`, mode=`full-83`)
   - Artifact: `.tmp/ui-dom-smoke-r253b-summary.json`
-  - Notes: admin-side DOM semantic assertions are now fully class-based for listings/refunds/invoices/patent-map/rbac/audit-logs/order-detail/settlements/demands/achievements/artworks/tech-managers/cases/reports/comments/announcements/alerts/maintenance/regions/patents.
 - `powershell -ExecutionPolicy Bypass -File scripts/verify.ps1 -ReportDate 2026-03-14-r252b`
   - Result: success (all steps)
   - Render artifact: `docs/demo/rendered/ui-smoke-2026-03-14-r252b/` (core mode, 3 pages)
@@ -736,18 +714,14 @@
 - `powershell -ExecutionPolicy Bypass -File scripts/ui-dom-smoke.ps1 -Mode full -ReportDate 2026-03-14-r252b`
   - Result: pass (`83/83`, mode=`full-83`)
   - Artifact: `.tmp/ui-dom-smoke-2026-03-14-r252b-summary.json`
-  - Notes: semantic assertions completed for all remaining previously-empty phase2 routes; stable root classes added for `trade-rules-page`, `patent-map-region-detail-page`, `settings-notifications-page`, and `my-*-page` variants to reduce generic selector coupling.
-- `powershell -ExecutionPolicy Bypass -File scripts/ui-dom-smoke.ps1 -Mode full -ReportDate 2026-03-14-r251a -PageFilter client-tech-managers,client-patent-detail,client-artwork-detail,client-demand-detail,client-achievement-detail,client-organizations,client-organization-detail,client-patent-map,client-inventors,client-messages,client-chat,client-order-detail,client-profile-edit`
   - Result: pass (`13/13`, changed-page semantic hardening batch).
   - Notes: verified newly added semantic selectors for detail/consult/messages/profile/order/map pages before full-run promotion.
 - `powershell -ExecutionPolicy Bypass -File scripts/ui-dom-smoke.ps1 -Mode full -ReportDate 2026-03-14-r251b`
   - Result: pass (`83/83`, mode=`full-83`)
   - Artifact: `.tmp/ui-dom-smoke-2026-03-14-r251b-summary.json`
-  - Notes: semantic assertions expanded for `client-tech-managers/client-patent-detail/client-artwork-detail/client-demand-detail/client-achievement-detail/client-organizations/client-organization-detail/client-patent-map/client-inventors/client-messages/client-chat/client-order-detail/client-profile-edit`; stable root classes added for `organizations-page` and `patent-map-page`.
 - `powershell -ExecutionPolicy Bypass -File scripts/ui-dom-smoke.ps1 -Mode full -ReportDate 2026-03-14-r250`
   - Result: pass (`83/83`, mode=`full-83`)
   - Artifact: `.tmp/ui-dom-smoke-2026-03-14-r250-summary.json`
-  - Notes: extended semantic assertions landed for notifications/announcements/favorites/contracts/invoices/addresses/support/legal pages, and `client-announcement-detail` route probe was corrected from `id` to `announcementId`.
 - `powershell -ExecutionPolicy Bypass -File scripts/api-real-smoke.ps1 -ReportDate 2026-03-12-r193`
   - Result: pass (`1754/1754`) after chaos trend-threshold anti-flake tuning.
   - Notes: an earlier `verify` run (`r192`) had a single false-negative on `chaos-randomized-outcome-distribution` (trend threshold marginal exceed); script now reports base/effective trend thresholds and applies a bounded `+250ms` grace while keeping the absolute p95 guard unchanged.
@@ -776,7 +750,6 @@
 - `powershell -ExecutionPolicy Bypass -File scripts/ui-dom-smoke.ps1 -Mode full -ReportDate 2026-03-13-r243`
   - Result: pass (`83/83`, mode=`full-83`)
   - Artifact: `.tmp/ui-dom-smoke-2026-03-13-r243-summary.json`
-- `node -e "const fs=require('fs');const data=JSON.parse(fs.readFileSync('.tmp/api-real-smoke-2026-03-14-r247.json','utf8').replace(/^\uFEFF/,''));const keys=['industry-tags-sanitized','hidden-industry-filter','public-regions-query-smoke-region','public-regions-list-after-industry-tags-set','public-announcements-list-admin-smoke-tags-sanitized','public-announcement-detail-admin-smoke-tags-sanitized','public-tech-manager-detail-smoke-service-tag-hidden','patent-map-region-detail-smoke-tag-hidden'];const hit=data.filter(x=>keys.some(k=>String(x.name||'').includes(k)));const failed=hit.filter(x=>!x.ok);console.log(JSON.stringify({matched:hit.length,failed:failed.length},null,2));"`
   - Result: matched targeted anti-pollution checks `25`, failed `0` (including hidden `industryTags`/`serviceTags` variants and public list/detail sanitization checks).
 
 ## Latest (2026-03-06)
@@ -892,8 +865,6 @@
   - Added negative guards: missing role name (400), unknown permission/role ids (400), missing role/user targets (404), system role delete forbidden (403).
   - Added semantic assertions: role permission set integrity, role visibility after create/delete, user custom-role assignment visibility, and clear-role empty state.
 
-- Report export & patent-map import probes (demo auth/payment)
-  - Result: pass (`/admin/reports/finance/export`, `/admin/patent-map/import` dry-run).
   - Added negative guards: invalid export range (400), missing import file (400), multipart import dry-run with generated CSV payload.
   - Added semantic assertions: export URL shape validation and dry-run import counters/flag validation.
 
@@ -904,16 +875,9 @@
   - Added industry-tag coverage: `POST /admin/industry-tags` create + duplicate(409) + invalid-empty(400), and `GET /admin/industry-tags` / `GET /public/industry-tags` visibility checks for newly created tag.
   - Added admin write coverage: `POST/PATCH /admin/regions` create/update happy paths and `PUT /admin/regions/:regionCode/industry-tags` (deterministic via created tag seed), plus `PUT /admin/listings/:id/featured` (CITY/NONE success paths) with persistence assertions.
   - Added region validation hardening + guards: `centerLat` / `centerLng` now reject non-number and out-of-range values with 400, and `parentCode` empty/invalid normalization is now strict in create/update paths.
-  - Added admin negative coverage: region-industry-tags invalid body (400), missing `industryTags` field (400), invalid region code (400), missing region (404); listing-featured missing region for CITY (400), invalid featuredLevel (400), invalid featuredRank (400), invalid featuredUntil (400), missing listing (404), and audit approve/reject missing resources (listing/demand/achievement/artwork all 404).
   - Added featured negative guard + fix: `PUT /admin/listings/:id/featured` missing listing now expected 404 (regression fixed from Prisma `P2025` 500 to business `NOT_FOUND`).
   - Added listing audit negative guard + fix: `POST /admin/listings/:id/approve|reject` missing listing now expected 404 (regression fixed from Prisma `P2025` 500 to business `NOT_FOUND`).
-  - Added audit missing-resource guards for additional domains: `POST /admin/demands|achievements|artworks/:id/approve|reject` now continuously asserted as 404 on missing ids.
-  - Added publish/off-shelf missing-resource guards: `POST /admin/listings|demands|achievements|artworks|announcements/:id/publish|off-shelf` now continuously asserted as 404 on missing ids.
   - Added patent admin write coverage: `POST/PATCH /admin/patents` create/update happy paths and strict negatives (invalid application number, missing patent type, invalid sourceUpdatedAt, invalid filingDate/sourcePrimary/legalStatus, missing patent 404).
-  - Added announcement admin write coverage + hardening: `POST/PATCH/DELETE /admin/announcements` create/update/delete happy paths and strict negatives (invalid status, empty title, missing targets), plus public deleted-resource read-back (`GET /public/announcements/:id` -> 404).
-  - Added demand admin write coverage + hardening: `POST/PATCH /admin/demands` and `POST /admin/demands/:id/publish|off-shelf|approve|reject` now have happy-path coverage; explicit invalid `source/status/auditStatus/budgetType/deliveryPeriod` inputs now return strict 400, and missing update target returns 404.
-  - Added achievement admin write coverage + hardening: `POST/PATCH /admin/achievements` and `POST /admin/achievements/:id/publish|off-shelf|approve|reject` now have happy-path coverage; explicit invalid `source/status/auditStatus/maturity` inputs now return strict 400, and missing update target returns 404.
-  - Added artwork admin write coverage + hardening: `POST/PATCH /admin/artworks` and `POST /admin/artworks/:id/publish|off-shelf|approve|reject` now have happy-path coverage; explicit invalid `source/status/auditStatus/category/priceType/calligraphyScript/paintingGenre` inputs now return strict 400, and missing update target returns 404.
   - Added listing admin write coverage + hardening: `POST/PATCH /admin/listings` and `POST /admin/listings/:id/publish|off-shelf|approve|reject` now have happy-path coverage; explicit invalid `source/status/auditStatus/tradeMode/licenseMode/priceType/pledgeStatus/existingLicenseStatus/priceAmountFen/depositAmountFen` inputs now return strict 400, and missing update target returns 404.
   - Added order-create stability hardening in smoke: listing selection now gracefully falls back when no non-self listing exists, and auto-prepares listing audit status (`approve`) before order flow to avoid non-deterministic `order-create` precondition failures.
   - Added listing user write coverage + hardening: `POST/PATCH /listings` now have happy-path coverage; explicit invalid `tradeMode/licenseMode/priceType/pledgeStatus/existingLicenseStatus/priceAmountFen/depositAmountFen` inputs now return strict 400, and missing update target returns 404.

@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Post, Query, Req, UseGuards } from '@nestjs/common';
+﻿import { Body, Controller, Get, Param, Post, Query, Req, UseGuards } from '@nestjs/common';
 
 import { BearerAuthGuard } from '../../common/guards/bearer-auth.guard';
 import { ConversationsService } from './conversations.service';
@@ -17,12 +17,6 @@ export class ConversationsController {
   @Post('/listings/:listingId/conversations')
   async createListingConversation(@Req() req: any, @Param('listingId') listingId: string) {
     return await this.conversations.createListingConversation(req, listingId);
-  }
-
-  @UseGuards(BearerAuthGuard)
-  @Post('/achievements/:achievementId/conversations')
-  async createAchievementConversation(@Req() req: any, @Param('achievementId') achievementId: string) {
-    return await this.conversations.createAchievementConversation(req, achievementId);
   }
 
   @UseGuards(BearerAuthGuard)

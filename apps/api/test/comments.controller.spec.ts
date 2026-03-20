@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+﻿import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { CommentsController } from '../src/modules/comments/comments.controller';
 
@@ -20,25 +20,21 @@ describe('CommentsController delegation suite', () => {
     controller = new CommentsController(comments);
   });
 
-  it('delegates public list routes to listThreads with correct content type', async () => {
+  it('delegates public list route to listThreads with correct content type', async () => {
     comments.listThreads.mockResolvedValue({ items: [] });
 
     await controller.listListingComments(VALID_UUID, { page: '1' });
-    await controller.listAchievementComments(VALID_UUID, { pageSize: '20' });
 
-    expect(comments.listThreads).toHaveBeenNthCalledWith(1, 'LISTING', VALID_UUID, { page: '1' });
-    expect(comments.listThreads).toHaveBeenNthCalledWith(2, 'ACHIEVEMENT', VALID_UUID, { pageSize: '20' });
+    expect(comments.listThreads).toHaveBeenCalledWith('LISTING', VALID_UUID, { page: '1' });
   });
 
-  it('delegates create comment routes with fallback empty body', async () => {
+  it('delegates create comment route with fallback empty body', async () => {
     const req: any = { auth: { userId: 'user-1' } };
     comments.createComment.mockResolvedValue({ id: 'comment-1' });
 
     await controller.createListingComment(req, VALID_UUID, undefined as any);
-    await controller.createAchievementComment(req, VALID_UUID, undefined as any);
 
-    expect(comments.createComment).toHaveBeenNthCalledWith(1, req, 'LISTING', VALID_UUID, {});
-    expect(comments.createComment).toHaveBeenNthCalledWith(2, req, 'ACHIEVEMENT', VALID_UUID, {});
+    expect(comments.createComment).toHaveBeenCalledWith(req, 'LISTING', VALID_UUID, {});
   });
 
   it('delegates edit/delete/admin list/admin update paths', async () => {

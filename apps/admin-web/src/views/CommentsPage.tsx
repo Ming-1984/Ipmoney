@@ -1,4 +1,4 @@
-import { Button, Card, Input, Select, Space, Table, Tag, Typography, message } from 'antd';
+﻿import { Button, Card, Input, Select, Space, Table, Tag, Typography, message } from 'antd';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 
 import { apiGet, apiPatch } from '../lib/api';
@@ -7,7 +7,7 @@ import { RequestErrorAlert } from '../ui/RequestState';
 import { confirmAction } from '../ui/confirm';
 
 type CommentStatus = 'VISIBLE' | 'HIDDEN' | 'DELETED';
-type CommentContentType = 'LISTING' | 'ACHIEVEMENT';
+type CommentContentType = 'LISTING';
 
 type Comment = {
   id: string;
@@ -35,8 +35,7 @@ type PagedComment = {
 
 function contentTypeLabel(type?: CommentContentType | null): string {
   if (!type) return '-';
-  if (type === 'LISTING') return '???';
-  return '???';
+  return '专利';
 }
 
 function statusTag(status?: CommentStatus | null) {
@@ -138,7 +137,6 @@ export function CommentsPage() {
             options={[
               { value: '', label: '全部类型' },
               { value: 'LISTING', label: '专利' },
-              { value: 'ACHIEVEMENT', label: '成果' },
             ]}
           />
           <Input

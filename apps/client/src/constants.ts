@@ -1,4 +1,4 @@
-declare const __API_BASE_URL__: string;
+﻿declare const __API_BASE_URL__: string;
 export const API_BASE_URL = __API_BASE_URL__;
 
 declare const __APP_MODE__: string;
@@ -21,11 +21,9 @@ export const STORAGE_KEYS = {
   verificationType: 'ipmoney.verificationType',
   verificationStatus: 'ipmoney.verificationStatus',
   favoriteListingIds: 'ipmoney.favoriteListingIds',
-  favoriteAchievementIds: 'ipmoney.favoriteAchievementIds',
   regionPickerResult: 'ipmoney.regionPickerResult',
   regionNameMap: 'ipmoney.regionNameMap',
   searchPrefill: 'ipmoney.searchPrefill',
-  publishAchievementDraft: 'ipmoney.publishAchievementDraft.v1',
 };
 
 export type VerificationType =

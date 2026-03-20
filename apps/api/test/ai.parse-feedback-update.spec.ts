@@ -21,7 +21,6 @@ describe('AiService feedback and parse-update suite', () => {
         create: vi.fn(),
       },
       listing: { findMany: vi.fn() },
-      achievement: { findMany: vi.fn() },
     };
     audit = { log: vi.fn().mockResolvedValue(undefined) };
     service = new AiService(prisma, audit);
