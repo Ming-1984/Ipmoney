@@ -1,4 +1,4 @@
-﻿-- AlterEnum
+-- AlterEnum
 -- This migration adds more than one value to an enum.
 -- With PostgreSQL versions 11 and earlier, this is not possible
 -- in a single migration. This can be worked around by creating
@@ -49,6 +49,7 @@ ALTER TABLE "files" ADD COLUMN     "file_name" TEXT;
 ALTER TABLE "idempotency_keys" ALTER COLUMN "updated_at" DROP DEFAULT;
 
 -- AlterTable
+ALTER TABLE "listings" ADD COLUMN     "cluster_id" TEXT,
 ADD COLUMN     "listing_topics_json" JSONB,
 ADD COLUMN     "proof_file_ids_json" JSONB,
 ADD COLUMN     "source" "ContentSource" NOT NULL DEFAULT 'USER',
