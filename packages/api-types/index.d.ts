@@ -192,23 +192,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/me/favorites/demands": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** 我的需求收藏列表 */
-        get: operations["listMyFavoriteDemands"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/me/favorites/achievements": {
         parameters: {
             query?: never;
@@ -218,23 +201,6 @@ export interface paths {
         };
         /** 我的成果收藏列表 */
         get: operations["listMyFavoriteAchievements"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/me/favorites/artworks": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** 我的书画收藏列表 */
-        get: operations["listMyFavoriteArtworks"];
         put?: never;
         post?: never;
         delete?: never;
@@ -472,40 +438,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/public/demands/{demandId}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** 获取需求详情（公开） */
-        get: operations["getPublicDemandById"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/public/demands/{demandId}/comments": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** 获取需求留言列表（公开） */
-        get: operations["listPublicDemandComments"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/public/achievements/{achievementId}": {
         parameters: {
             query?: never;
@@ -532,40 +464,6 @@ export interface paths {
         };
         /** 获取成果留言列表（公开） */
         get: operations["listPublicAchievementComments"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/public/artworks/{artworkId}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** 获取书画作品详情（公开） */
-        get: operations["getPublicArtworkById"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/public/artworks/{artworkId}/comments": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** 获取书画留言列表（公开） */
-        get: operations["listPublicArtworkComments"];
         put?: never;
         post?: never;
         delete?: never;
@@ -740,23 +638,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/search/demands": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** 产学研需求检索 */
-        get: operations["searchDemands"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/search/achievements": {
         parameters: {
             query?: never;
@@ -766,23 +647,6 @@ export interface paths {
         };
         /** 成果展示检索 */
         get: operations["searchAchievements"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/search/artworks": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** 书画专区检索 */
-        get: operations["searchArtworks"];
         put?: never;
         post?: never;
         delete?: never;
@@ -985,111 +849,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/demands": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** 我的需求列表（发布方） */
-        get: operations["listMyDemands"];
-        put?: never;
-        /** 创建需求草稿（发布方） */
-        post: operations["createDemand"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/demands/{demandId}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** 获取需求详情（发布方/已登录） */
-        get: operations["getDemandById"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        /** 更新需求草稿（发布方） */
-        patch: operations["updateDemand"];
-        trace?: never;
-    };
-    "/demands/{demandId}/favorites": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** 收藏需求 */
-        post: operations["favoriteDemand"];
-        /** 取消收藏需求 */
-        delete: operations["unfavoriteDemand"];
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/demands/{demandId}/comments": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** 创建需求留言/回复 */
-        post: operations["createDemandComment"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/demands/{demandId}/submit": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** 提交审核（发布方） */
-        post: operations["submitDemand"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/demands/{demandId}/off-shelf": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** 下架（发布方） */
-        post: operations["offShelfDemand"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/achievements": {
         parameters: {
             query?: never;
@@ -1207,111 +966,6 @@ export interface paths {
         put?: never;
         /** 下架（发布方） */
         post: operations["offShelfAchievement"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/artworks": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** 我的书画列表（发布方） */
-        get: operations["listMyArtworks"];
-        put?: never;
-        /** 创建书画草稿（发布方） */
-        post: operations["createArtwork"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/artworks/{artworkId}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** 获取书画详情（发布方/已登录） */
-        get: operations["getArtworkById"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        /** 更新书画草稿（发布方） */
-        patch: operations["updateArtwork"];
-        trace?: never;
-    };
-    "/artworks/{artworkId}/favorites": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** 收藏书画作品 */
-        post: operations["favoriteArtwork"];
-        /** 取消收藏书画作品 */
-        delete: operations["unfavoriteArtwork"];
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/artworks/{artworkId}/comments": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** 创建书画留言/回复 */
-        post: operations["createArtworkComment"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/artworks/{artworkId}/submit": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** 提交审核（发布方） */
-        post: operations["submitArtwork"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/artworks/{artworkId}/off-shelf": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** 下架（发布方） */
-        post: operations["offShelfArtwork"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1515,23 +1169,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/demands/{demandId}/conversations": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** 创建/获取与该需求相关的会话（咨询） */
-        post: operations["upsertDemandConversation"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/achievements/{achievementId}/conversations": {
         parameters: {
             query?: never;
@@ -1543,23 +1180,6 @@ export interface paths {
         put?: never;
         /** 创建/获取与该成果相关的会话（咨询） */
         post: operations["upsertAchievementConversation"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/artworks/{artworkId}/conversations": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** 创建/获取与该书画相关的会话（咨询） */
-        post: operations["upsertArtworkConversation"];
         delete?: never;
         options?: never;
         head?: never;
@@ -2137,110 +1757,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/admin/demands": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** 需求审核/平台内容列表 */
-        get: operations["adminListDemandsForAudit"];
-        put?: never;
-        /** 创建平台自有需求（P1） */
-        post: operations["adminCreateDemand"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/admin/demands/{demandId}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** 获取需求详情（后台，P1） */
-        get: operations["adminGetDemandById"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        /** 更新平台自有需求（后台，P1） */
-        patch: operations["adminUpdateDemand"];
-        trace?: never;
-    };
-    "/admin/demands/{demandId}/publish": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** 发布需求（后台，P1） */
-        post: operations["adminPublishDemand"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/admin/demands/{demandId}/off-shelf": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** 下架需求（后台，P1） */
-        post: operations["adminOffShelfDemand"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/admin/demands/{demandId}/approve": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** 需求审核通过 */
-        post: operations["adminApproveDemand"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/admin/demands/{demandId}/reject": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** 需求审核驳回 */
-        post: operations["adminRejectDemand"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/admin/achievements": {
         parameters: {
             query?: never;
@@ -2339,110 +1855,6 @@ export interface paths {
         put?: never;
         /** 成果审核驳回 */
         post: operations["adminRejectAchievement"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/admin/artworks": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** 书画审核/平台内容列表 */
-        get: operations["adminListArtworksForAudit"];
-        put?: never;
-        /** 创建平台自有书画（P1） */
-        post: operations["adminCreateArtwork"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/admin/artworks/{artworkId}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** 获取书画详情（后台，P1） */
-        get: operations["adminGetArtworkById"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        /** 更新平台自有书画（后台，P1） */
-        patch: operations["adminUpdateArtwork"];
-        trace?: never;
-    };
-    "/admin/artworks/{artworkId}/publish": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** 发布书画（后台，P1） */
-        post: operations["adminPublishArtwork"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/admin/artworks/{artworkId}/off-shelf": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** 下架书画（后台，P1） */
-        post: operations["adminOffShelfArtwork"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/admin/artworks/{artworkId}/approve": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** 书画审核通过 */
-        post: operations["adminApproveArtwork"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/admin/artworks/{artworkId}/reject": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** 书画审核驳回 */
-        post: operations["adminRejectArtwork"];
         delete?: never;
         options?: never;
         head?: never;
@@ -3015,40 +2427,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/admin/demands/{demandId}/materials": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Get demand audit materials */
-        get: operations["adminGetDemandMaterials"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/admin/demands/{demandId}/audit-logs": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Get demand audit logs */
-        get: operations["adminGetDemandAuditLogs"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/admin/achievements/{achievementId}/materials": {
         parameters: {
             query?: never;
@@ -3075,40 +2453,6 @@ export interface paths {
         };
         /** Get achievement audit logs */
         get: operations["adminGetAchievementAuditLogs"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/admin/artworks/{artworkId}/materials": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Get artwork audit materials */
-        get: operations["adminGetArtworkMaterials"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/admin/artworks/{artworkId}/audit-logs": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Get artwork audit logs */
-        get: operations["adminGetArtworkAuditLogs"];
         put?: never;
         post?: never;
         delete?: never;
@@ -3953,19 +3297,9 @@ export interface components {
         /** @enum {string} */
         SearchQType: "AUTO" | "NUMBER" | "KEYWORD" | "APPLICANT" | "INVENTOR";
         /** @enum {string} */
-        ArtworkSortBy: "RECOMMENDED" | "NEWEST" | "PRICE_ASC" | "PRICE_DESC";
-        /** @enum {string} */
         ListingTopic: "HIGH_TECH_RETIRED" | "AWARD_WINNING";
         /** @enum {string} */
         TechManagerSortBy: "RECOMMENDED" | "NEWEST";
-        /** @enum {string} */
-        ArtworkCategory: "CALLIGRAPHY" | "PAINTING";
-        /** @enum {string} */
-        CalligraphyScript: "KAISHU" | "XINGSHU" | "CAOSHU" | "LISHU" | "ZHUANSHU";
-        /** @enum {string} */
-        PaintingGenre: "FIGURE" | "LANDSCAPE" | "BIRD_FLOWER" | "OTHER";
-        /** @enum {string} */
-        ArtworkStatus: "DRAFT" | "ACTIVE" | "OFF_SHELF" | "SOLD";
         /** @enum {string} */
         CooperationMode: "TRANSFER" | "TECH_CONSULTING" | "COMMISSIONED_DEV" | "PLATFORM_CO_BUILD";
         /** @enum {string} */
@@ -3983,91 +3317,6 @@ export interface components {
             /** Format: int64 */
             readonly sizeBytes?: number;
             readonly fileName?: string;
-        };
-        DemandSummary: {
-            id: components["schemas"]["Uuid"];
-            source?: components["schemas"]["ContentSource"];
-            title: string;
-            summary?: string;
-            budgetType?: components["schemas"]["PriceType"];
-            budgetMinFen?: components["schemas"]["MoneyFen"];
-            budgetMaxFen?: components["schemas"]["MoneyFen"];
-            cooperationModes?: components["schemas"]["CooperationMode"][];
-            regionCode?: string;
-            industryTags?: string[];
-            keywords?: string[];
-            deliveryPeriod?: components["schemas"]["DeliveryPeriod"];
-            publisher: components["schemas"]["OrganizationSummary"];
-            stats?: components["schemas"]["ListingStats"];
-            auditStatus: components["schemas"]["AuditStatus"];
-            status: components["schemas"]["ContentStatus"];
-            /** Format: uri */
-            coverUrl?: string;
-            /** Format: date-time */
-            createdAt: string;
-        };
-        Demand: components["schemas"]["DemandSummary"] & {
-            publisherUserId?: components["schemas"]["Uuid"];
-            description?: string;
-            keywords?: string[];
-            deliveryPeriod?: components["schemas"]["DeliveryPeriod"];
-            contactName?: string;
-            contactTitle?: string;
-            contactPhoneMasked?: string;
-            coverFileId?: components["schemas"]["Uuid"];
-            media?: components["schemas"]["ContentMedia"][];
-            aiParse?: components["schemas"]["AiParseResult"];
-            /** Format: date-time */
-            updatedAt?: string;
-        };
-        DemandPublic: components["schemas"]["DemandSummary"] & {
-            description?: string;
-            media?: components["schemas"]["ContentMedia"][];
-            aiParse?: components["schemas"]["AiParseResult"];
-        };
-        PagedDemandSummary: {
-            items: components["schemas"]["DemandSummary"][];
-            page: components["schemas"]["PageMeta"];
-        };
-        PagedDemand: {
-            items: components["schemas"]["Demand"][];
-            page: components["schemas"]["PageMeta"];
-        };
-        DemandCreateRequest: {
-            title: string;
-            description?: string;
-            summary?: string;
-            keywords?: string[];
-            deliveryPeriod?: components["schemas"]["DeliveryPeriod"];
-            budgetType?: components["schemas"]["PriceType"];
-            budgetMinFen?: components["schemas"]["MoneyFen"];
-            budgetMaxFen?: components["schemas"]["MoneyFen"];
-            cooperationModes?: components["schemas"]["CooperationMode"][];
-            contactName?: string;
-            contactTitle?: string;
-            contactPhoneMasked?: string;
-            regionCode?: string;
-            industryTags?: string[];
-            coverFileId?: components["schemas"]["Uuid"];
-            media?: components["schemas"]["ContentMedia"][];
-        };
-        DemandUpdateRequest: {
-            title?: string;
-            description?: string;
-            summary?: string;
-            keywords?: string[];
-            deliveryPeriod?: components["schemas"]["DeliveryPeriod"];
-            budgetType?: components["schemas"]["PriceType"];
-            budgetMinFen?: components["schemas"]["MoneyFen"];
-            budgetMaxFen?: components["schemas"]["MoneyFen"];
-            cooperationModes?: components["schemas"]["CooperationMode"][];
-            contactName?: string;
-            contactTitle?: string;
-            contactPhoneMasked?: string;
-            regionCode?: string;
-            industryTags?: string[];
-            coverFileId?: components["schemas"]["Uuid"];
-            media?: components["schemas"]["ContentMedia"][];
         };
         AchievementSummary: {
             id: components["schemas"]["Uuid"];
@@ -4131,100 +3380,6 @@ export interface components {
             cooperationModes?: components["schemas"]["CooperationMode"][];
             regionCode?: string;
             industryTags?: string[];
-            coverFileId?: components["schemas"]["Uuid"];
-            media?: components["schemas"]["ContentMedia"][];
-        };
-        ArtworkSummary: {
-            id: components["schemas"]["Uuid"];
-            source?: components["schemas"]["ContentSource"];
-            title: string;
-            category: components["schemas"]["ArtworkCategory"];
-            calligraphyScript?: components["schemas"]["CalligraphyScript"];
-            paintingGenre?: components["schemas"]["PaintingGenre"];
-            creatorName: string;
-            /** Format: date */
-            creationDate?: string;
-            creationYear?: number;
-            certificateNo?: string;
-            priceType: components["schemas"]["PriceType"];
-            priceAmountFen?: components["schemas"]["MoneyFen"];
-            depositAmountFen: components["schemas"]["MoneyFen"];
-            regionCode?: string;
-            material?: string;
-            size?: string;
-            /** Format: uri */
-            coverUrl?: string;
-            stats?: components["schemas"]["ListingStats"];
-            auditStatus: components["schemas"]["AuditStatus"];
-            status: components["schemas"]["ArtworkStatus"];
-            /** Format: date-time */
-            createdAt: string;
-            /** Format: date-time */
-            updatedAt: string;
-        };
-        Artwork: components["schemas"]["ArtworkSummary"] & {
-            sellerUserId?: components["schemas"]["Uuid"];
-            description?: string;
-            certificateFileIds?: components["schemas"]["Uuid"][];
-            coverFileId?: components["schemas"]["Uuid"];
-            media?: components["schemas"]["ContentMedia"][];
-            aiParse?: components["schemas"]["AiParseResult"];
-            /** Format: date-time */
-            updatedAt?: string;
-        };
-        ArtworkPublic: components["schemas"]["ArtworkSummary"] & {
-            seller?: components["schemas"]["UserBrief"];
-            description?: string;
-            media?: components["schemas"]["ContentMedia"][];
-            aiParse?: components["schemas"]["AiParseResult"];
-        };
-        PagedArtworkSummary: {
-            items: components["schemas"]["ArtworkSummary"][];
-            page: components["schemas"]["PageMeta"];
-        };
-        PagedArtwork: {
-            items: components["schemas"]["Artwork"][];
-            page: components["schemas"]["PageMeta"];
-        };
-        ArtworkCreateRequest: {
-            title: string;
-            category: components["schemas"]["ArtworkCategory"];
-            calligraphyScript?: components["schemas"]["CalligraphyScript"];
-            paintingGenre?: components["schemas"]["PaintingGenre"];
-            creatorName: string;
-            /** Format: date */
-            creationDate?: string;
-            creationYear?: number;
-            certificateNo?: string;
-            certificateFileIds?: components["schemas"]["Uuid"][];
-            description?: string;
-            priceType: components["schemas"]["PriceType"];
-            priceAmountFen?: components["schemas"]["MoneyFen"];
-            depositAmountFen?: components["schemas"]["MoneyFen"];
-            regionCode?: string;
-            material?: string;
-            size?: string;
-            coverFileId?: components["schemas"]["Uuid"];
-            media?: components["schemas"]["ContentMedia"][];
-        };
-        ArtworkUpdateRequest: {
-            title?: string;
-            category?: components["schemas"]["ArtworkCategory"];
-            calligraphyScript?: components["schemas"]["CalligraphyScript"];
-            paintingGenre?: components["schemas"]["PaintingGenre"];
-            creatorName?: string;
-            /** Format: date */
-            creationDate?: string;
-            creationYear?: number;
-            certificateNo?: string;
-            certificateFileIds?: components["schemas"]["Uuid"][];
-            description?: string;
-            priceType?: components["schemas"]["PriceType"];
-            priceAmountFen?: components["schemas"]["MoneyFen"];
-            depositAmountFen?: components["schemas"]["MoneyFen"];
-            regionCode?: string;
-            material?: string;
-            size?: string;
             coverFileId?: components["schemas"]["Uuid"];
             media?: components["schemas"]["ContentMedia"][];
         };
@@ -4313,7 +3468,6 @@ export interface components {
         Order: {
             id: components["schemas"]["Uuid"];
             listingId?: components["schemas"]["Uuid"];
-            artworkId?: components["schemas"]["Uuid"];
             patentId?: components["schemas"]["Uuid"];
             buyerUserId: components["schemas"]["Uuid"];
             sellerUserId?: components["schemas"]["Uuid"];
@@ -4733,7 +3887,7 @@ export interface components {
             orgCategory?: components["schemas"]["SupplyType"];
         };
         /** @enum {string} */
-        CommentContentType: "LISTING" | "DEMAND" | "ACHIEVEMENT" | "ARTWORK";
+        CommentContentType: "LISTING" | "ACHIEVEMENT";
         /** @enum {string} */
         CommentStatus: "VISIBLE" | "HIDDEN" | "DELETED";
         Comment: {
@@ -4774,7 +3928,7 @@ export interface components {
             page: components["schemas"]["PageMeta"];
         };
         /** @enum {string} */
-        ConversationContentType: "LISTING" | "DEMAND" | "ACHIEVEMENT" | "ARTWORK" | "TECH_MANAGER";
+        ConversationContentType: "LISTING" | "ACHIEVEMENT" | "TECH_MANAGER";
         Conversation: {
             id: components["schemas"]["Uuid"];
             contentType: components["schemas"]["ConversationContentType"];
@@ -4851,9 +4005,9 @@ export interface components {
         /** @enum {string} */
         AiAgentInputType: "TEXT" | "VOICE";
         /** @enum {string} */
-        AiContentScope: "LISTING" | "DEMAND" | "ACHIEVEMENT" | "ARTWORK" | "ALL";
+        AiContentScope: "LISTING" | "ACHIEVEMENT" | "ALL";
         /** @enum {string} */
-        AiContentType: "LISTING" | "DEMAND" | "ACHIEVEMENT" | "ARTWORK";
+        AiContentType: "LISTING" | "ACHIEVEMENT";
         /** @enum {string} */
         AiParseStatus: "ACTIVE" | "REVIEW_REQUIRED" | "REPLACED";
         /** @enum {string} */
@@ -4885,12 +4039,6 @@ export interface components {
             budgetMinFen?: components["schemas"]["MoneyFen"];
             budgetMaxFen?: components["schemas"]["MoneyFen"];
             maturity?: components["schemas"]["AchievementMaturity"];
-            category?: components["schemas"]["ArtworkCategory"];
-            calligraphyScript?: components["schemas"]["CalligraphyScript"];
-            paintingGenre?: components["schemas"]["PaintingGenre"];
-            creator?: string;
-            creationYearStart?: number;
-            creationYearEnd?: number;
         };
         AiAgentParsedQuery: {
             contentType?: components["schemas"]["AiContentType"];
@@ -4969,7 +4117,7 @@ export interface components {
         /** @enum {string} */
         AlertStatus: "PENDING" | "SENT" | "ACKED" | "SUPPRESSED";
         /** @enum {string} */
-        AlertTargetType: "PATENT" | "ORDER" | "LISTING" | "DEMAND" | "ACHIEVEMENT" | "ARTWORK" | "AI_PARSE" | "IMPORT" | "PAYMENT" | "REFUND" | "SYSTEM";
+        AlertTargetType: "PATENT" | "ORDER" | "LISTING" | "ACHIEVEMENT" | "AI_PARSE" | "IMPORT" | "PAYMENT" | "REFUND" | "SYSTEM";
         AlertRule: {
             type: string;
             severity: components["schemas"]["AlertSeverity"];
@@ -5130,18 +4278,6 @@ export interface components {
             auditStatus?: components["schemas"]["AuditStatus"];
             status?: components["schemas"]["ListingStatus"];
         };
-        AdminDemandCreateRequest: components["schemas"]["DemandCreateRequest"] & {
-            source?: components["schemas"]["ContentSource"];
-            publisherUserId?: components["schemas"]["Uuid"];
-            auditStatus?: components["schemas"]["AuditStatus"];
-            status?: components["schemas"]["ContentStatus"];
-        };
-        AdminDemandUpdateRequest: components["schemas"]["DemandUpdateRequest"] & {
-            source?: components["schemas"]["ContentSource"];
-            publisherUserId?: components["schemas"]["Uuid"];
-            auditStatus?: components["schemas"]["AuditStatus"];
-            status?: components["schemas"]["ContentStatus"];
-        };
         AdminAchievementCreateRequest: components["schemas"]["AchievementCreateRequest"] & {
             source?: components["schemas"]["ContentSource"];
             publisherUserId?: components["schemas"]["Uuid"];
@@ -5153,18 +4289,6 @@ export interface components {
             publisherUserId?: components["schemas"]["Uuid"];
             auditStatus?: components["schemas"]["AuditStatus"];
             status?: components["schemas"]["ContentStatus"];
-        };
-        AdminArtworkCreateRequest: components["schemas"]["ArtworkCreateRequest"] & {
-            source?: components["schemas"]["ContentSource"];
-            sellerUserId?: components["schemas"]["Uuid"];
-            auditStatus?: components["schemas"]["AuditStatus"];
-            status?: components["schemas"]["ArtworkStatus"];
-        };
-        AdminArtworkUpdateRequest: components["schemas"]["ArtworkUpdateRequest"] & {
-            source?: components["schemas"]["ContentSource"];
-            sellerUserId?: components["schemas"]["Uuid"];
-            auditStatus?: components["schemas"]["AuditStatus"];
-            status?: components["schemas"]["ArtworkStatus"];
         };
         AuditMaterial: {
             id: components["schemas"]["Uuid"];
@@ -5279,10 +4403,6 @@ export interface components {
             industries: string[];
             ipcMappings: string[];
             locMappings: string[];
-            artworkCategories: string[];
-            calligraphyStyles: string[];
-            paintingThemes: string[];
-            artworkMaterials: string[];
         };
         SensitiveWordsConfig: {
             words: string[];
@@ -5488,16 +4608,6 @@ export interface components {
         CreatedTo: string;
         /** @description 行政区划 adcode（6 位字符串） */
         RegionCode: string;
-        /** @description 书画类别（书法/绘画） */
-        ArtworkCategory: components["schemas"]["ArtworkCategory"];
-        CalligraphyScript: components["schemas"]["CalligraphyScript"];
-        PaintingGenre: components["schemas"]["PaintingGenre"];
-        /** @description 作者/创作者 */
-        Creator: string;
-        /** @description 创作年份起 */
-        CreationYearStart: number;
-        /** @description 创作年份止 */
-        CreationYearEnd: number;
         /** @description 机构类型过滤（默认仅展示已审核通过的企业/科研院校） */
         OrganizationTypes: components["schemas"]["VerificationType"][];
         /** @description 发明人姓名（精确/模糊匹配，取决于实现；用于聚合其相关专利） */
@@ -5531,13 +4641,11 @@ export interface components {
         LegalStatus: components["schemas"]["LegalStatus"];
         SortBy: components["schemas"]["SortBy"];
         ContentSortBy: components["schemas"]["ContentSortBy"];
-        ArtworkSortBy: components["schemas"]["ArtworkSortBy"];
         TechManagerSortBy: components["schemas"]["TechManagerSortBy"];
         /** @description 合作方式过滤（可多选） */
         CooperationModes: components["schemas"]["CooperationMode"][];
         AchievementMaturity: components["schemas"]["AchievementMaturity"];
         ContentStatus: components["schemas"]["ContentStatus"];
-        ArtworkStatus: components["schemas"]["ArtworkStatus"];
         /** @description 内容来源过滤 */
         ContentSource: components["schemas"]["ContentSource"];
         /** @description 认证状态过滤 */
@@ -5588,9 +4696,7 @@ export interface components {
         /** @description 微信支付回调验签字段（v3）：签名类型（如 WECHATPAY2-SHA256-RSA2048） */
         WechatpaySignatureType: string;
         ListingId: components["schemas"]["Uuid"];
-        DemandId: components["schemas"]["Uuid"];
         AchievementId: components["schemas"]["Uuid"];
-        ArtworkId: components["schemas"]["Uuid"];
         TechManagerId: components["schemas"]["Uuid"];
         CommentId: components["schemas"]["Uuid"];
         OrgUserId: components["schemas"]["Uuid"];
@@ -5992,30 +5098,6 @@ export interface operations {
             401: components["responses"]["Unauthorized"];
         };
     };
-    listMyFavoriteDemands: {
-        parameters: {
-            query?: {
-                page?: components["parameters"]["Page"];
-                pageSize?: components["parameters"]["PageSize"];
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["PagedDemandSummary"];
-                };
-            };
-            401: components["responses"]["Unauthorized"];
-        };
-    };
     listMyFavoriteAchievements: {
         parameters: {
             query?: {
@@ -6035,30 +5117,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["PagedAchievementSummary"];
-                };
-            };
-            401: components["responses"]["Unauthorized"];
-        };
-    };
-    listMyFavoriteArtworks: {
-        parameters: {
-            query?: {
-                page?: components["parameters"]["Page"];
-                pageSize?: components["parameters"]["PageSize"];
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["PagedArtworkSummary"];
                 };
             };
             401: components["responses"]["Unauthorized"];
@@ -6395,56 +5453,6 @@ export interface operations {
             404: components["responses"]["NotFound"];
         };
     };
-    getPublicDemandById: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                demandId: components["parameters"]["DemandId"];
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["DemandPublic"];
-                };
-            };
-            404: components["responses"]["NotFound"];
-        };
-    };
-    listPublicDemandComments: {
-        parameters: {
-            query?: {
-                page?: components["parameters"]["Page"];
-                pageSize?: components["parameters"]["PageSize"];
-            };
-            header?: never;
-            path: {
-                demandId: components["parameters"]["DemandId"];
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["PagedCommentThread"];
-                };
-            };
-            400: components["responses"]["BadRequest"];
-            404: components["responses"]["NotFound"];
-        };
-    };
     getPublicAchievementById: {
         parameters: {
             query?: never;
@@ -6477,56 +5485,6 @@ export interface operations {
             header?: never;
             path: {
                 achievementId: components["parameters"]["AchievementId"];
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["PagedCommentThread"];
-                };
-            };
-            400: components["responses"]["BadRequest"];
-            404: components["responses"]["NotFound"];
-        };
-    };
-    getPublicArtworkById: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                artworkId: components["parameters"]["ArtworkId"];
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ArtworkPublic"];
-                };
-            };
-            404: components["responses"]["NotFound"];
-        };
-    };
-    listPublicArtworkComments: {
-        parameters: {
-            query?: {
-                page?: components["parameters"]["Page"];
-                pageSize?: components["parameters"]["PageSize"];
-            };
-            header?: never;
-            path: {
-                artworkId: components["parameters"]["ArtworkId"];
             };
             cookie?: never;
         };
@@ -6816,42 +5774,6 @@ export interface operations {
             400: components["responses"]["BadRequest"];
         };
     };
-    searchDemands: {
-        parameters: {
-            query?: {
-                /** @description 关键词（标题/摘要/权利人/发明人/机构名称等） */
-                q?: components["parameters"]["Q"];
-                /** @description 行政区划 adcode（6 位字符串） */
-                regionCode?: components["parameters"]["RegionCode"];
-                /** @description 产业标签过滤（可多选） */
-                industryTags?: components["parameters"]["IndustryTags"];
-                /** @description 合作方式过滤（可多选） */
-                cooperationModes?: components["parameters"]["CooperationModes"];
-                budgetType?: components["parameters"]["BudgetType"];
-                budgetMinFen?: components["parameters"]["BudgetMin"];
-                budgetMaxFen?: components["parameters"]["BudgetMax"];
-                sortBy?: components["parameters"]["ContentSortBy"];
-                page?: components["parameters"]["Page"];
-                pageSize?: components["parameters"]["PageSize"];
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["PagedDemandSummary"];
-                };
-            };
-            400: components["responses"]["BadRequest"];
-        };
-    };
     searchAchievements: {
         parameters: {
             query?: {
@@ -6881,50 +5803,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["PagedAchievementSummary"];
-                };
-            };
-            400: components["responses"]["BadRequest"];
-        };
-    };
-    searchArtworks: {
-        parameters: {
-            query?: {
-                /** @description 关键词（标题/摘要/权利人/发明人/机构名称等） */
-                q?: components["parameters"]["Q"];
-                /** @description 书画类别（书法/绘画） */
-                category?: components["parameters"]["ArtworkCategory"];
-                calligraphyScript?: components["parameters"]["CalligraphyScript"];
-                paintingGenre?: components["parameters"]["PaintingGenre"];
-                /** @description 作者/创作者 */
-                creator?: components["parameters"]["Creator"];
-                /** @description 创作年份起 */
-                creationYearStart?: components["parameters"]["CreationYearStart"];
-                /** @description 创作年份止 */
-                creationYearEnd?: components["parameters"]["CreationYearEnd"];
-                priceType?: components["parameters"]["PriceType"];
-                priceMin?: components["parameters"]["PriceMin"];
-                priceMax?: components["parameters"]["PriceMax"];
-                depositMin?: components["parameters"]["DepositMin"];
-                depositMax?: components["parameters"]["DepositMax"];
-                /** @description 行政区划 adcode（6 位字符串） */
-                regionCode?: components["parameters"]["RegionCode"];
-                sortBy?: components["parameters"]["ArtworkSortBy"];
-                page?: components["parameters"]["Page"];
-                pageSize?: components["parameters"]["PageSize"];
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["PagedArtworkSummary"];
                 };
             };
             400: components["responses"]["BadRequest"];
@@ -7328,255 +6206,6 @@ export interface operations {
             404: components["responses"]["NotFound"];
         };
     };
-    listMyDemands: {
-        parameters: {
-            query?: {
-                status?: components["parameters"]["ContentStatus"];
-                auditStatus?: components["parameters"]["AuditStatus"];
-                page?: components["parameters"]["Page"];
-                pageSize?: components["parameters"]["PageSize"];
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["PagedDemand"];
-                };
-            };
-            400: components["responses"]["BadRequest"];
-            401: components["responses"]["Unauthorized"];
-        };
-    };
-    createDemand: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["DemandCreateRequest"];
-            };
-        };
-        responses: {
-            /** @description Created */
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Demand"];
-                };
-            };
-            400: components["responses"]["BadRequest"];
-            401: components["responses"]["Unauthorized"];
-            403: components["responses"]["Forbidden"];
-        };
-    };
-    getDemandById: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                demandId: components["parameters"]["DemandId"];
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Demand"];
-                };
-            };
-            401: components["responses"]["Unauthorized"];
-            404: components["responses"]["NotFound"];
-        };
-    };
-    updateDemand: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                demandId: components["parameters"]["DemandId"];
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["DemandUpdateRequest"];
-            };
-        };
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Demand"];
-                };
-            };
-            400: components["responses"]["BadRequest"];
-            401: components["responses"]["Unauthorized"];
-            403: components["responses"]["Forbidden"];
-            404: components["responses"]["NotFound"];
-        };
-    };
-    favoriteDemand: {
-        parameters: {
-            query?: never;
-            header?: {
-                /** @description 幂等键（建议用于支付/退款/放款等有副作用的接口；同一幂等键的重复请求应返回同一结果） */
-                "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
-            };
-            path: {
-                demandId: components["parameters"]["DemandId"];
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description No Content */
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            401: components["responses"]["Unauthorized"];
-            404: components["responses"]["NotFound"];
-            409: components["responses"]["Conflict"];
-        };
-    };
-    unfavoriteDemand: {
-        parameters: {
-            query?: never;
-            header?: {
-                /** @description 幂等键（建议用于支付/退款/放款等有副作用的接口；同一幂等键的重复请求应返回同一结果） */
-                "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
-            };
-            path: {
-                demandId: components["parameters"]["DemandId"];
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description No Content */
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            401: components["responses"]["Unauthorized"];
-            404: components["responses"]["NotFound"];
-            409: components["responses"]["Conflict"];
-        };
-    };
-    createDemandComment: {
-        parameters: {
-            query?: never;
-            header?: {
-                /** @description 幂等键（建议用于支付/退款/放款等有副作用的接口；同一幂等键的重复请求应返回同一结果） */
-                "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
-            };
-            path: {
-                demandId: components["parameters"]["DemandId"];
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["CommentCreateRequest"];
-            };
-        };
-        responses: {
-            /** @description Created */
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Comment"];
-                };
-            };
-            400: components["responses"]["BadRequest"];
-            401: components["responses"]["Unauthorized"];
-            404: components["responses"]["NotFound"];
-            409: components["responses"]["Conflict"];
-        };
-    };
-    submitDemand: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                demandId: components["parameters"]["DemandId"];
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Demand"];
-                };
-            };
-            401: components["responses"]["Unauthorized"];
-            403: components["responses"]["Forbidden"];
-            404: components["responses"]["NotFound"];
-        };
-    };
-    offShelfDemand: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                demandId: components["parameters"]["DemandId"];
-            };
-            cookie?: never;
-        };
-        requestBody?: {
-            content: {
-                "application/json": {
-                    reason?: string;
-                };
-            };
-        };
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Demand"];
-                };
-            };
-            401: components["responses"]["Unauthorized"];
-            403: components["responses"]["Forbidden"];
-            404: components["responses"]["NotFound"];
-        };
-    };
     listMyAchievements: {
         parameters: {
             query?: {
@@ -7887,255 +6516,6 @@ export interface operations {
             404: components["responses"]["NotFound"];
         };
     };
-    listMyArtworks: {
-        parameters: {
-            query?: {
-                status?: components["parameters"]["ArtworkStatus"];
-                auditStatus?: components["parameters"]["AuditStatus"];
-                page?: components["parameters"]["Page"];
-                pageSize?: components["parameters"]["PageSize"];
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["PagedArtwork"];
-                };
-            };
-            400: components["responses"]["BadRequest"];
-            401: components["responses"]["Unauthorized"];
-        };
-    };
-    createArtwork: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["ArtworkCreateRequest"];
-            };
-        };
-        responses: {
-            /** @description Created */
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Artwork"];
-                };
-            };
-            400: components["responses"]["BadRequest"];
-            401: components["responses"]["Unauthorized"];
-            403: components["responses"]["Forbidden"];
-        };
-    };
-    getArtworkById: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                artworkId: components["parameters"]["ArtworkId"];
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Artwork"];
-                };
-            };
-            401: components["responses"]["Unauthorized"];
-            404: components["responses"]["NotFound"];
-        };
-    };
-    updateArtwork: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                artworkId: components["parameters"]["ArtworkId"];
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["ArtworkUpdateRequest"];
-            };
-        };
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Artwork"];
-                };
-            };
-            400: components["responses"]["BadRequest"];
-            401: components["responses"]["Unauthorized"];
-            403: components["responses"]["Forbidden"];
-            404: components["responses"]["NotFound"];
-        };
-    };
-    favoriteArtwork: {
-        parameters: {
-            query?: never;
-            header?: {
-                /** @description 幂等键（建议用于支付/退款/放款等有副作用的接口；同一幂等键的重复请求应返回同一结果） */
-                "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
-            };
-            path: {
-                artworkId: components["parameters"]["ArtworkId"];
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description No Content */
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            401: components["responses"]["Unauthorized"];
-            404: components["responses"]["NotFound"];
-            409: components["responses"]["Conflict"];
-        };
-    };
-    unfavoriteArtwork: {
-        parameters: {
-            query?: never;
-            header?: {
-                /** @description 幂等键（建议用于支付/退款/放款等有副作用的接口；同一幂等键的重复请求应返回同一结果） */
-                "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
-            };
-            path: {
-                artworkId: components["parameters"]["ArtworkId"];
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description No Content */
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            401: components["responses"]["Unauthorized"];
-            404: components["responses"]["NotFound"];
-            409: components["responses"]["Conflict"];
-        };
-    };
-    createArtworkComment: {
-        parameters: {
-            query?: never;
-            header?: {
-                /** @description 幂等键（建议用于支付/退款/放款等有副作用的接口；同一幂等键的重复请求应返回同一结果） */
-                "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
-            };
-            path: {
-                artworkId: components["parameters"]["ArtworkId"];
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["CommentCreateRequest"];
-            };
-        };
-        responses: {
-            /** @description Created */
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Comment"];
-                };
-            };
-            400: components["responses"]["BadRequest"];
-            401: components["responses"]["Unauthorized"];
-            404: components["responses"]["NotFound"];
-            409: components["responses"]["Conflict"];
-        };
-    };
-    submitArtwork: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                artworkId: components["parameters"]["ArtworkId"];
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Artwork"];
-                };
-            };
-            401: components["responses"]["Unauthorized"];
-            403: components["responses"]["Forbidden"];
-            404: components["responses"]["NotFound"];
-        };
-    };
-    offShelfArtwork: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                artworkId: components["parameters"]["ArtworkId"];
-            };
-            cookie?: never;
-        };
-        requestBody?: {
-            content: {
-                "application/json": {
-                    reason?: string;
-                };
-            };
-        };
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Artwork"];
-                };
-            };
-            401: components["responses"]["Unauthorized"];
-            403: components["responses"]["Forbidden"];
-            404: components["responses"]["NotFound"];
-        };
-    };
     listMyOrders: {
         parameters: {
             query: {
@@ -8176,8 +6556,7 @@ export interface operations {
             content: {
                 "application/json": {
                     listingId?: components["schemas"]["Uuid"];
-                    artworkId?: components["schemas"]["Uuid"];
-                } & (unknown | unknown);
+                } & unknown;
             };
         };
         responses: {
@@ -8502,34 +6881,6 @@ export interface operations {
             409: components["responses"]["Conflict"];
         };
     };
-    upsertDemandConversation: {
-        parameters: {
-            query?: never;
-            header?: {
-                /** @description 幂等键（建议用于支付/退款/放款等有副作用的接口；同一幂等键的重复请求应返回同一结果） */
-                "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
-            };
-            path: {
-                demandId: components["parameters"]["DemandId"];
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Conversation"];
-                };
-            };
-            401: components["responses"]["Unauthorized"];
-            404: components["responses"]["NotFound"];
-            409: components["responses"]["Conflict"];
-        };
-    };
     upsertAchievementConversation: {
         parameters: {
             query?: never;
@@ -8539,34 +6890,6 @@ export interface operations {
             };
             path: {
                 achievementId: components["parameters"]["AchievementId"];
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Conversation"];
-                };
-            };
-            401: components["responses"]["Unauthorized"];
-            404: components["responses"]["NotFound"];
-            409: components["responses"]["Conflict"];
-        };
-    };
-    upsertArtworkConversation: {
-        parameters: {
-            query?: never;
-            header?: {
-                /** @description 幂等键（建议用于支付/退款/放款等有副作用的接口；同一幂等键的重复请求应返回同一结果） */
-                "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
-            };
-            path: {
-                artworkId: components["parameters"]["ArtworkId"];
             };
             cookie?: never;
         };
@@ -9951,237 +8274,6 @@ export interface operations {
             409: components["responses"]["Conflict"];
         };
     };
-    adminListDemandsForAudit: {
-        parameters: {
-            query?: {
-                /** @description 关键词（标题/摘要/权利人/发明人/机构名称等） */
-                q?: components["parameters"]["Q"];
-                /** @description 行政区划 adcode（6 位字符串） */
-                regionCode?: components["parameters"]["RegionCode"];
-                auditStatus?: components["parameters"]["AuditStatus"];
-                status?: components["parameters"]["ContentStatus"];
-                /** @description 内容来源过滤 */
-                source?: components["parameters"]["ContentSource"];
-                page?: components["parameters"]["Page"];
-                pageSize?: components["parameters"]["PageSize"];
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["PagedDemand"];
-                };
-            };
-            400: components["responses"]["BadRequest"];
-            401: components["responses"]["Unauthorized"];
-            403: components["responses"]["Forbidden"];
-        };
-    };
-    adminCreateDemand: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["AdminDemandCreateRequest"];
-            };
-        };
-        responses: {
-            /** @description Created */
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Demand"];
-                };
-            };
-            400: components["responses"]["BadRequest"];
-            401: components["responses"]["Unauthorized"];
-            403: components["responses"]["Forbidden"];
-        };
-    };
-    adminGetDemandById: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                demandId: components["parameters"]["DemandId"];
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Demand"];
-                };
-            };
-            401: components["responses"]["Unauthorized"];
-            403: components["responses"]["Forbidden"];
-            404: components["responses"]["NotFound"];
-        };
-    };
-    adminUpdateDemand: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                demandId: components["parameters"]["DemandId"];
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["AdminDemandUpdateRequest"];
-            };
-        };
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Demand"];
-                };
-            };
-            400: components["responses"]["BadRequest"];
-            401: components["responses"]["Unauthorized"];
-            403: components["responses"]["Forbidden"];
-            404: components["responses"]["NotFound"];
-        };
-    };
-    adminPublishDemand: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                demandId: components["parameters"]["DemandId"];
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Demand"];
-                };
-            };
-            401: components["responses"]["Unauthorized"];
-            403: components["responses"]["Forbidden"];
-            404: components["responses"]["NotFound"];
-            409: components["responses"]["Conflict"];
-        };
-    };
-    adminOffShelfDemand: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                demandId: components["parameters"]["DemandId"];
-            };
-            cookie?: never;
-        };
-        requestBody?: {
-            content: {
-                "application/json": {
-                    reason?: string;
-                };
-            };
-        };
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Demand"];
-                };
-            };
-            401: components["responses"]["Unauthorized"];
-            403: components["responses"]["Forbidden"];
-            404: components["responses"]["NotFound"];
-        };
-    };
-    adminApproveDemand: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                demandId: components["parameters"]["DemandId"];
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Demand"];
-                };
-            };
-            401: components["responses"]["Unauthorized"];
-            403: components["responses"]["Forbidden"];
-            404: components["responses"]["NotFound"];
-            409: components["responses"]["Conflict"];
-        };
-    };
-    adminRejectDemand: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                demandId: components["parameters"]["DemandId"];
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": {
-                    reason: string;
-                };
-            };
-        };
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Demand"];
-                };
-            };
-            401: components["responses"]["Unauthorized"];
-            403: components["responses"]["Forbidden"];
-            404: components["responses"]["NotFound"];
-            409: components["responses"]["Conflict"];
-        };
-    };
     adminListAchievementsForAudit: {
         parameters: {
             query?: {
@@ -10405,236 +8497,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Achievement"];
-                };
-            };
-            401: components["responses"]["Unauthorized"];
-            403: components["responses"]["Forbidden"];
-            404: components["responses"]["NotFound"];
-        };
-    };
-    adminListArtworksForAudit: {
-        parameters: {
-            query?: {
-                /** @description 关键词（标题/摘要/权利人/发明人/机构名称等） */
-                q?: components["parameters"]["Q"];
-                /** @description 行政区划 adcode（6 位字符串） */
-                regionCode?: components["parameters"]["RegionCode"];
-                auditStatus?: components["parameters"]["AuditStatus"];
-                status?: components["parameters"]["ArtworkStatus"];
-                /** @description 内容来源过滤 */
-                source?: components["parameters"]["ContentSource"];
-                page?: components["parameters"]["Page"];
-                pageSize?: components["parameters"]["PageSize"];
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["PagedArtwork"];
-                };
-            };
-            400: components["responses"]["BadRequest"];
-            401: components["responses"]["Unauthorized"];
-            403: components["responses"]["Forbidden"];
-        };
-    };
-    adminCreateArtwork: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["AdminArtworkCreateRequest"];
-            };
-        };
-        responses: {
-            /** @description Created */
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Artwork"];
-                };
-            };
-            400: components["responses"]["BadRequest"];
-            401: components["responses"]["Unauthorized"];
-            403: components["responses"]["Forbidden"];
-        };
-    };
-    adminGetArtworkById: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                artworkId: components["parameters"]["ArtworkId"];
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Artwork"];
-                };
-            };
-            401: components["responses"]["Unauthorized"];
-            403: components["responses"]["Forbidden"];
-            404: components["responses"]["NotFound"];
-        };
-    };
-    adminUpdateArtwork: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                artworkId: components["parameters"]["ArtworkId"];
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["AdminArtworkUpdateRequest"];
-            };
-        };
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Artwork"];
-                };
-            };
-            400: components["responses"]["BadRequest"];
-            401: components["responses"]["Unauthorized"];
-            403: components["responses"]["Forbidden"];
-            404: components["responses"]["NotFound"];
-        };
-    };
-    adminPublishArtwork: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                artworkId: components["parameters"]["ArtworkId"];
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Artwork"];
-                };
-            };
-            401: components["responses"]["Unauthorized"];
-            403: components["responses"]["Forbidden"];
-            404: components["responses"]["NotFound"];
-            409: components["responses"]["Conflict"];
-        };
-    };
-    adminOffShelfArtwork: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                artworkId: components["parameters"]["ArtworkId"];
-            };
-            cookie?: never;
-        };
-        requestBody?: {
-            content: {
-                "application/json": {
-                    reason?: string;
-                };
-            };
-        };
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Artwork"];
-                };
-            };
-            401: components["responses"]["Unauthorized"];
-            403: components["responses"]["Forbidden"];
-            404: components["responses"]["NotFound"];
-        };
-    };
-    adminApproveArtwork: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                artworkId: components["parameters"]["ArtworkId"];
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Artwork"];
-                };
-            };
-            401: components["responses"]["Unauthorized"];
-            403: components["responses"]["Forbidden"];
-            404: components["responses"]["NotFound"];
-            409: components["responses"]["Conflict"];
-        };
-    };
-    adminRejectArtwork: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                artworkId: components["parameters"]["ArtworkId"];
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": {
-                    reason: string;
-                };
-            };
-        };
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Artwork"];
                 };
             };
             401: components["responses"]["Unauthorized"];
@@ -11773,56 +9635,6 @@ export interface operations {
             404: components["responses"]["NotFound"];
         };
     };
-    adminGetDemandMaterials: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                demandId: components["parameters"]["DemandId"];
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["AuditMaterialList"];
-                };
-            };
-            401: components["responses"]["Unauthorized"];
-            403: components["responses"]["Forbidden"];
-            404: components["responses"]["NotFound"];
-        };
-    };
-    adminGetDemandAuditLogs: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                demandId: components["parameters"]["DemandId"];
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["AuditLogList"];
-                };
-            };
-            401: components["responses"]["Unauthorized"];
-            403: components["responses"]["Forbidden"];
-            404: components["responses"]["NotFound"];
-        };
-    };
     adminGetAchievementMaterials: {
         parameters: {
             query?: never;
@@ -11854,56 +9666,6 @@ export interface operations {
             header?: never;
             path: {
                 achievementId: components["parameters"]["AchievementId"];
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["AuditLogList"];
-                };
-            };
-            401: components["responses"]["Unauthorized"];
-            403: components["responses"]["Forbidden"];
-            404: components["responses"]["NotFound"];
-        };
-    };
-    adminGetArtworkMaterials: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                artworkId: components["parameters"]["ArtworkId"];
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["AuditMaterialList"];
-                };
-            };
-            401: components["responses"]["Unauthorized"];
-            403: components["responses"]["Forbidden"];
-            404: components["responses"]["NotFound"];
-        };
-    };
-    adminGetArtworkAuditLogs: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                artworkId: components["parameters"]["ArtworkId"];
             };
             cookie?: never;
         };

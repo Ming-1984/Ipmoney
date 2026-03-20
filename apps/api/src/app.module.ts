@@ -19,9 +19,7 @@ import { OrdersModule } from './modules/orders/orders.module';
 import { WebhooksModule } from './modules/webhooks/webhooks.module';
 import { ConversationsModule } from './modules/conversations/conversations.module';
 import { CommentsModule } from './modules/comments/comments.module';
-import { DemandsModule } from './modules/demands/demands.module';
 import { AchievementsModule } from './modules/achievements/achievements.module';
-import { ArtworksModule } from './modules/artworks/artworks.module';
 import { FavoritesModule } from './modules/favorites/favorites.module';
 import { AnnouncementsModule } from './modules/announcements/announcements.module';
 import { NotificationsModule } from './modules/notifications/notifications.module';
@@ -56,9 +54,7 @@ import { RateLimitGuard } from './common/guards/rate-limit.guard';
     WebhooksModule,
     ConversationsModule,
     CommentsModule,
-    DemandsModule,
     AchievementsModule,
-    ArtworksModule,
     FavoritesModule,
     AnnouncementsModule,
     NotificationsModule,

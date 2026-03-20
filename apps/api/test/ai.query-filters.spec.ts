@@ -10,9 +10,7 @@ describe('AiService query filter strictness suite', () => {
   beforeEach(() => {
     prisma = {
       listing: { findMany: vi.fn() },
-      demand: { findMany: vi.fn() },
       achievement: { findMany: vi.fn() },
-      artwork: { findMany: vi.fn() },
       aiParseResult: {
         count: vi.fn(),
         findMany: vi.fn(),
@@ -55,9 +53,7 @@ describe('AiService query filter strictness suite', () => {
 
   it('ignores non-array industryTags payload in createAgentQuery filters', async () => {
     prisma.listing.findMany.mockResolvedValueOnce([]);
-    prisma.demand.findMany.mockResolvedValueOnce([]);
     prisma.achievement.findMany.mockResolvedValueOnce([]);
-    prisma.artwork.findMany.mockResolvedValueOnce([]);
 
     const result = await service.createAgentQuery({
       inputType: 'text',

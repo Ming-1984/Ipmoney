@@ -10,18 +10,10 @@ const USER_ID = 'user-1';
 type FavoriteCase = {
   name: string;
   entityField: string;
-  eventType: 'LISTING' | 'DEMAND' | 'ACHIEVEMENT' | 'ARTWORK';
+  eventType: 'LISTING' | 'ACHIEVEMENT';
   notFoundMessage: string;
-  favoriteMethod:
-    | 'favoriteListing'
-    | 'favoriteDemand'
-    | 'favoriteAchievement'
-    | 'favoriteArtwork';
-  unfavoriteMethod:
-    | 'unfavoriteListing'
-    | 'unfavoriteDemand'
-    | 'unfavoriteAchievement'
-    | 'unfavoriteArtwork';
+  favoriteMethod: 'favoriteListing' | 'favoriteAchievement';
+  unfavoriteMethod: 'unfavoriteListing' | 'unfavoriteAchievement';
   findUnique: ReturnType<typeof vi.fn>;
   create: ReturnType<typeof vi.fn>;
   deleteMany: ReturnType<typeof vi.fn>;
@@ -36,12 +28,8 @@ describe('FavoritesService write-first suite', () => {
     prisma = {
       listing: { findUnique: vi.fn() },
       listingFavorite: { create: vi.fn(), deleteMany: vi.fn() },
-      demand: { findUnique: vi.fn() },
-      demandFavorite: { create: vi.fn(), deleteMany: vi.fn() },
       achievement: { findUnique: vi.fn() },
       achievementFavorite: { create: vi.fn(), deleteMany: vi.fn() },
-      artwork: { findUnique: vi.fn() },
-      artworkFavorite: { create: vi.fn(), deleteMany: vi.fn() },
     };
     events = {
       adjustFavoriteCount: vi.fn().mockResolvedValue(undefined),
@@ -65,17 +53,6 @@ describe('FavoritesService write-first suite', () => {
       deleteMany: prisma?.listingFavorite?.deleteMany,
     },
     {
-      name: 'demand',
-      entityField: 'demandId',
-      eventType: 'DEMAND',
-      notFoundMessage: '闇€姹備笉瀛樺湪',
-      favoriteMethod: 'favoriteDemand',
-      unfavoriteMethod: 'unfavoriteDemand',
-      findUnique: prisma?.demand?.findUnique,
-      create: prisma?.demandFavorite?.create,
-      deleteMany: prisma?.demandFavorite?.deleteMany,
-    },
-    {
       name: 'achievement',
       entityField: 'achievementId',
       eventType: 'ACHIEVEMENT',
@@ -85,17 +62,6 @@ describe('FavoritesService write-first suite', () => {
       findUnique: prisma?.achievement?.findUnique,
       create: prisma?.achievementFavorite?.create,
       deleteMany: prisma?.achievementFavorite?.deleteMany,
-    },
-    {
-      name: 'artwork',
-      entityField: 'artworkId',
-      eventType: 'ARTWORK',
-      notFoundMessage: '浣滃搧涓嶅瓨鍦?',
-      favoriteMethod: 'favoriteArtwork',
-      unfavoriteMethod: 'unfavoriteArtwork',
-      findUnique: prisma?.artwork?.findUnique,
-      create: prisma?.artworkFavorite?.create,
-      deleteMany: prisma?.artworkFavorite?.deleteMany,
     },
   ];
 
@@ -108,27 +74,11 @@ describe('FavoritesService write-first suite', () => {
         deleteMany: prisma.listingFavorite.deleteMany,
       };
     }
-    if (caseName === 'demand') {
-      return {
-        ...cases[1],
-        findUnique: prisma.demand.findUnique,
-        create: prisma.demandFavorite.create,
-        deleteMany: prisma.demandFavorite.deleteMany,
-      };
-    }
-    if (caseName === 'achievement') {
-      return {
-        ...cases[2],
-        findUnique: prisma.achievement.findUnique,
-        create: prisma.achievementFavorite.create,
-        deleteMany: prisma.achievementFavorite.deleteMany,
-      };
-    }
     return {
-      ...cases[3],
-      findUnique: prisma.artwork.findUnique,
-      create: prisma.artworkFavorite.create,
-      deleteMany: prisma.artworkFavorite.deleteMany,
+      ...cases[1],
+      findUnique: prisma.achievement.findUnique,
+      create: prisma.achievementFavorite.create,
+      deleteMany: prisma.achievementFavorite.deleteMany,
     };
   }
 

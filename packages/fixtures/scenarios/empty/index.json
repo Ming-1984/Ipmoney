@@ -1,86 +1,101 @@
-﻿{
+{
   "GET /search/listings": {
     "status": 200,
     "body": {
       "items": [],
-      "page": { "page": 1, "pageSize": 10, "total": 0 }
-    }
-  },
-  "GET /search/demands": {
-    "status": 200,
-    "body": {
-      "items": [],
-      "page": { "page": 1, "pageSize": 10, "total": 0 }
+      "page": {
+        "page": 1,
+        "pageSize": 10,
+        "total": 0
+      }
     }
   },
   "GET /search/achievements": {
     "status": 200,
     "body": {
       "items": [],
-      "page": { "page": 1, "pageSize": 10, "total": 0 }
-    }
-  },
-  "GET /search/artworks": {
-    "status": 200,
-    "body": {
-      "items": [],
-      "page": { "page": 1, "pageSize": 10, "total": 0 }
+      "page": {
+        "page": 1,
+        "pageSize": 10,
+        "total": 0
+      }
     }
   },
   "GET /search/tech-managers": {
     "status": 200,
     "body": {
       "items": [],
-      "page": { "page": 1, "pageSize": 10, "total": 0 }
+      "page": {
+        "page": 1,
+        "pageSize": 10,
+        "total": 0
+      }
     }
   },
   "GET /public/organizations": {
     "status": 200,
     "body": {
       "items": [],
-      "page": { "page": 1, "pageSize": 10, "total": 0 }
+      "page": {
+        "page": 1,
+        "pageSize": 10,
+        "total": 0
+      }
     }
   },
   "GET /search/inventors": {
     "status": 200,
     "body": {
       "items": [],
-      "page": { "page": 1, "pageSize": 10, "total": 0 }
+      "page": {
+        "page": 1,
+        "pageSize": 10,
+        "total": 0
+      }
     }
   },
   "GET /admin/user-verifications": {
     "status": 200,
     "body": {
       "items": [],
-      "page": { "page": 1, "pageSize": 10, "total": 0 }
+      "page": {
+        "page": 1,
+        "pageSize": 10,
+        "total": 0
+      }
     }
   },
   "GET /admin/listings": {
     "status": 200,
     "body": {
       "items": [],
-      "page": { "page": 1, "pageSize": 10, "total": 0 }
-    }
-  },
-  "GET /admin/artworks": {
-    "status": 200,
-    "body": {
-      "items": [],
-      "page": { "page": 1, "pageSize": 10, "total": 0 }
+      "page": {
+        "page": 1,
+        "pageSize": 10,
+        "total": 0
+      }
     }
   },
   "GET /admin/tech-managers": {
     "status": 200,
     "body": {
       "items": [],
-      "page": { "page": 1, "pageSize": 10, "total": 0 }
+      "page": {
+        "page": 1,
+        "pageSize": 10,
+        "total": 0
+      }
     }
   },
   "GET /orders": {
     "status": 200,
     "body": {
       "items": [],
-      "page": { "page": 1, "pageSize": 10, "total": 0 }
+      "page": {
+        "page": 1,
+        "pageSize": 10,
+        "total": 0
+      }
     }
   },
   "GET /orders/:orderId/refund-requests": {
@@ -133,8 +148,18 @@
       "enabled": true,
       "timeDecayHalfLifeHours": 72,
       "dedupeWindowHours": 24,
-      "weights": { "time": 1, "view": 1, "favorite": 2, "consult": 3, "region": 2, "user": 1 },
-      "featuredBoost": { "province": 2, "city": 3 },
+      "weights": {
+        "time": 1,
+        "view": 1,
+        "favorite": 2,
+        "consult": 3,
+        "region": 2,
+        "user": 1
+      },
+      "featuredBoost": {
+        "province": 2,
+        "city": 3
+      },
       "updatedAt": "2026-01-11T00:00:00Z"
     }
   },
@@ -144,43 +169,88 @@
       "enabled": true,
       "timeDecayHalfLifeHours": 72,
       "dedupeWindowHours": 24,
-      "weights": { "time": 1, "view": 1, "favorite": 2, "consult": 3, "region": 2, "user": 1 },
-      "featuredBoost": { "province": 2, "city": 3 },
+      "weights": {
+        "time": 1,
+        "view": 1,
+        "favorite": 2,
+        "consult": 3,
+        "region": 2,
+        "user": 1
+      },
+      "featuredBoost": {
+        "province": 2,
+        "city": 3
+      },
       "updatedAt": "2026-01-11T00:01:00Z"
     }
   },
-  "GET /admin/orders/:orderId/settlement": { "status": 404 },
-  "GET /orders/:orderId/invoice": { "status": 404 },
-  "GET /admin/patent-map/regions/:regionCode/years/:year": { "status": 404 },
-  "GET /patent-map/years": { "status": 200, "body": [] },
-  "GET /patent-map/summary": { "status": 200, "body": [] },
+  "GET /admin/orders/:orderId/settlement": {
+    "status": 404
+  },
+  "GET /orders/:orderId/invoice": {
+    "status": 404
+  },
+  "GET /admin/patent-map/regions/:regionCode/years/:year": {
+    "status": 404
+  },
+  "GET /patent-map/years": {
+    "status": 200,
+    "body": []
+  },
+  "GET /patent-map/summary": {
+    "status": 200,
+    "body": []
+  },
   "GET /me/recommendations/listings": {
     "status": 200,
-    "body": { "items": [], "page": { "page": 1, "pageSize": 10, "total": 0 } }
+    "body": {
+      "items": [],
+      "page": {
+        "page": 1,
+        "pageSize": 10,
+        "total": 0
+      }
+    }
   },
   "GET /me/conversations": {
     "status": 200,
-    "body": { "items": [], "page": { "page": 1, "pageSize": 20, "total": 0 } }
+    "body": {
+      "items": [],
+      "page": {
+        "page": 1,
+        "pageSize": 20,
+        "total": 0
+      }
+    }
   },
   "GET /conversations/:conversationId/messages": {
     "status": 200,
-    "body": { "items": [], "nextCursor": null }
+    "body": {
+      "items": [],
+      "nextCursor": null
+    }
   },
   "GET /public/listings/:listingId/comments": {
     "status": 200,
-    "body": { "items": [], "page": { "page": 1, "pageSize": 20, "total": 0 } }
-  },
-  "GET /public/demands/:demandId/comments": {
-    "status": 200,
-    "body": { "items": [], "page": { "page": 1, "pageSize": 20, "total": 0 } }
+    "body": {
+      "items": [],
+      "page": {
+        "page": 1,
+        "pageSize": 20,
+        "total": 0
+      }
+    }
   },
   "GET /public/achievements/:achievementId/comments": {
     "status": 200,
-    "body": { "items": [], "page": { "page": 1, "pageSize": 20, "total": 0 } }
-  },
-  "GET /public/artworks/:artworkId/comments": {
-    "status": 200,
-    "body": { "items": [], "page": { "page": 1, "pageSize": 20, "total": 0 } }
+    "body": {
+      "items": [],
+      "page": {
+        "page": 1,
+        "pageSize": 20,
+        "total": 0
+      }
+    }
   },
   "POST /listings/:listingId/comments": {
     "status": 201,
@@ -190,22 +260,14 @@
       "contentId": "7a490e63-8173-41e7-b4f0-0d0bb5ce7d20",
       "parentCommentId": null,
       "status": "VISIBLE",
-      "user": { "id": "c776f954-77a5-49d9-b778-77a1120d1be9", "nickname": "演示用户", "avatarUrl": "", "role": "buyer" },
+      "user": {
+        "id": "c776f954-77a5-49d9-b778-77a1120d1be9",
+        "nickname": "演示用户",
+        "avatarUrl": "",
+        "role": "buyer"
+      },
       "text": "空场景留言（演示）",
       "createdAt": "2026-01-11T09:10:00Z"
-    }
-  },
-  "POST /demands/:demandId/comments": {
-    "status": 201,
-    "body": {
-      "id": "50000000-0000-4000-8000-000000000002",
-      "contentType": "DEMAND",
-      "contentId": "81875741-fede-4d3c-adf9-9c8774964f50",
-      "parentCommentId": null,
-      "status": "VISIBLE",
-      "user": { "id": "c776f954-77a5-49d9-b778-77a1120d1be9", "nickname": "演示用户", "avatarUrl": "", "role": "buyer" },
-      "text": "空场景留言（演示）",
-      "createdAt": "2026-01-11T10:10:00Z"
     }
   },
   "POST /achievements/:achievementId/comments": {
@@ -216,22 +278,14 @@
       "contentId": "7595bfdb-044d-4580-99bf-537a07c2577c",
       "parentCommentId": null,
       "status": "VISIBLE",
-      "user": { "id": "c776f954-77a5-49d9-b778-77a1120d1be9", "nickname": "演示用户", "avatarUrl": "", "role": "buyer" },
+      "user": {
+        "id": "c776f954-77a5-49d9-b778-77a1120d1be9",
+        "nickname": "演示用户",
+        "avatarUrl": "",
+        "role": "buyer"
+      },
       "text": "空场景留言（演示）",
       "createdAt": "2026-01-11T11:10:00Z"
-    }
-  },
-  "POST /artworks/:artworkId/comments": {
-    "status": 201,
-    "body": {
-      "id": "80000000-0000-4000-8000-000000000002",
-      "contentType": "ARTWORK",
-      "contentId": "3d0b9c7a-1a9f-4b4d-9f6a-3a62b8f6d6e1",
-      "parentCommentId": null,
-      "status": "VISIBLE",
-      "user": { "id": "c776f954-77a5-49d9-b778-77a1120d1be9", "nickname": "演示用户", "avatarUrl": "", "role": "buyer" },
-      "text": "空场景留言（演示）",
-      "createdAt": "2026-01-11T11:30:00Z"
     }
   },
   "PATCH /comments/:commentId": {
@@ -242,14 +296,31 @@
       "contentId": "7a490e63-8173-41e7-b4f0-0d0bb5ce7d20",
       "parentCommentId": null,
       "status": "VISIBLE",
-      "user": { "id": "c776f954-77a5-49d9-b778-77a1120d1be9", "nickname": "演示用户", "avatarUrl": "", "role": "buyer" },
+      "user": {
+        "id": "c776f954-77a5-49d9-b778-77a1120d1be9",
+        "nickname": "演示用户",
+        "avatarUrl": "",
+        "role": "buyer"
+      },
       "text": "已编辑（演示）",
       "createdAt": "2026-01-11T09:10:00Z",
       "updatedAt": "2026-01-11T09:12:00Z"
     }
   },
-  "DELETE /comments/:commentId": { "status": 204 },
-  "GET /admin/comments": { "status": 200, "body": { "items": [], "page": { "page": 1, "pageSize": 20, "total": 0 } } },
+  "DELETE /comments/:commentId": {
+    "status": 204
+  },
+  "GET /admin/comments": {
+    "status": 200,
+    "body": {
+      "items": [],
+      "page": {
+        "page": 1,
+        "pageSize": 20,
+        "total": 0
+      }
+    }
+  },
   "PATCH /admin/comments/:commentId": {
     "status": 200,
     "body": {
@@ -258,7 +329,12 @@
       "contentId": "7a490e63-8173-41e7-b4f0-0d0bb5ce7d20",
       "parentCommentId": null,
       "status": "HIDDEN",
-      "user": { "id": "c776f954-77a5-49d9-b778-77a1120d1be9", "nickname": "演示用户", "avatarUrl": "", "role": "buyer" },
+      "user": {
+        "id": "c776f954-77a5-49d9-b778-77a1120d1be9",
+        "nickname": "演示用户",
+        "avatarUrl": "",
+        "role": "buyer"
+      },
       "text": "后台留言管理（演示）",
       "createdAt": "2026-01-11T09:00:00Z",
       "updatedAt": "2026-01-11T09:20:00Z"
@@ -275,4 +351,3 @@
     }
   }
 }
-

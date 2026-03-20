@@ -24,14 +24,10 @@ describe('CommentsController delegation suite', () => {
     comments.listThreads.mockResolvedValue({ items: [] });
 
     await controller.listListingComments(VALID_UUID, { page: '1' });
-    await controller.listDemandComments(VALID_UUID, { page: '2' });
     await controller.listAchievementComments(VALID_UUID, { pageSize: '20' });
-    await controller.listArtworkComments(VALID_UUID, {});
 
     expect(comments.listThreads).toHaveBeenNthCalledWith(1, 'LISTING', VALID_UUID, { page: '1' });
-    expect(comments.listThreads).toHaveBeenNthCalledWith(2, 'DEMAND', VALID_UUID, { page: '2' });
-    expect(comments.listThreads).toHaveBeenNthCalledWith(3, 'ACHIEVEMENT', VALID_UUID, { pageSize: '20' });
-    expect(comments.listThreads).toHaveBeenNthCalledWith(4, 'ARTWORK', VALID_UUID, {});
+    expect(comments.listThreads).toHaveBeenNthCalledWith(2, 'ACHIEVEMENT', VALID_UUID, { pageSize: '20' });
   });
 
   it('delegates create comment routes with fallback empty body', async () => {
@@ -39,14 +35,10 @@ describe('CommentsController delegation suite', () => {
     comments.createComment.mockResolvedValue({ id: 'comment-1' });
 
     await controller.createListingComment(req, VALID_UUID, undefined as any);
-    await controller.createDemandComment(req, VALID_UUID, null as any);
     await controller.createAchievementComment(req, VALID_UUID, undefined as any);
-    await controller.createArtworkComment(req, VALID_UUID, null as any);
 
     expect(comments.createComment).toHaveBeenNthCalledWith(1, req, 'LISTING', VALID_UUID, {});
-    expect(comments.createComment).toHaveBeenNthCalledWith(2, req, 'DEMAND', VALID_UUID, {});
-    expect(comments.createComment).toHaveBeenNthCalledWith(3, req, 'ACHIEVEMENT', VALID_UUID, {});
-    expect(comments.createComment).toHaveBeenNthCalledWith(4, req, 'ARTWORK', VALID_UUID, {});
+    expect(comments.createComment).toHaveBeenNthCalledWith(2, req, 'ACHIEVEMENT', VALID_UUID, {});
   });
 
   it('delegates edit/delete/admin list/admin update paths', async () => {

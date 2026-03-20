@@ -21,8 +21,6 @@ import iconTrending from '../../assets/icons/icon-trending-red.svg';
 // Home quick entry icons (provided by you in repo root, copied into assets)
 import homeIconInventors from '../../assets/icons/home/home-inventors.svg';
 import homeIconPatentMap from '../../assets/icons/home/home-patent-map.svg';
-import homeIconArtZone from '../../assets/icons/home/home-art-zone.svg';
-import homeIconDemand from '../../assets/icons/home/home-demand.svg';
 import homeIconAchievement from '../../assets/icons/home/home-achievement.svg';
 import homeIconTechManager from '../../assets/icons/home/home-tech-manager.svg';
 import homeIconDesignPatent from '../../assets/icons/home/home-design-patent.svg';
@@ -249,20 +247,12 @@ export default function HomePage() {
   const goMap = useCallback(() => Taro.navigateTo({ url: '/subpackages/patent-map/index' }), []);
   const goInventors = useCallback(() => Taro.navigateTo({ url: '/subpackages/inventors/index' }), []);
   const goTechManagers = useCallback(() => Taro.switchTab({ url: '/pages/tech-managers/index' }), []);
-  const goArtworks = useCallback(() => {
-    Taro.setStorageSync(STORAGE_KEYS.searchPrefill, { tab: 'ARTWORK', reset: true });
-    Taro.navigateTo({ url: '/subpackages/search/index' });
-  }, []);
   const goAchievements = useCallback(() => {
     Taro.setStorageSync(STORAGE_KEYS.searchPrefill, { tab: 'ACHIEVEMENT', reset: true });
     Taro.navigateTo({ url: '/subpackages/search/index' });
   }, []);
   const goPatentExplore = useCallback(() => {
     Taro.setStorageSync(STORAGE_KEYS.searchPrefill, { tab: 'LISTING', reset: true });
-    Taro.navigateTo({ url: '/subpackages/search/index' });
-  }, []);
-  const goDemandSearch = useCallback(() => {
-    Taro.setStorageSync(STORAGE_KEYS.searchPrefill, { tab: 'DEMAND', reset: true });
     Taro.navigateTo({ url: '/subpackages/search/index' });
   }, []);
   const goDesignPatents = useCallback(() => {
@@ -272,6 +262,25 @@ export default function HomePage() {
       reset: true,
     });
     Taro.navigateTo({ url: '/subpackages/search/index' });
+  }, []);
+  const goInventionPatents = useCallback(() => {
+    Taro.setStorageSync(STORAGE_KEYS.searchPrefill, {
+      tab: 'LISTING',
+      patentType: 'INVENTION',
+      reset: true,
+    });
+    Taro.navigateTo({ url: '/subpackages/search/index' });
+  }, []);
+  const goUtilityPatents = useCallback(() => {
+    Taro.setStorageSync(STORAGE_KEYS.searchPrefill, {
+      tab: 'LISTING',
+      patentType: 'UTILITY_MODEL',
+      reset: true,
+    });
+    Taro.navigateTo({ url: '/subpackages/search/index' });
+  }, []);
+  const goFiveStarPatents = useCallback(() => {
+    toast('五星专利口径待定');
   }, []);
   const goAnnouncements = useCallback(() => Taro.navigateTo({ url: '/subpackages/announcements/index' }), []);
   const goSleepingPatent = useCallback(() => {
@@ -311,23 +320,19 @@ export default function HomePage() {
   const quickEntries: QuickEntry[] = useMemo(
     () => [
       { key: 'design-patent', label: '外观专利', icon: homeIconDesignPatent, onClick: goDesignPatents },
-      { key: 'art', label: '书画专区', icon: homeIconArtZone, onClick: goArtworks },
-      { key: 'demand', label: '产学研需求', icon: homeIconDemand, onClick: goDemandSearch },
-      { key: 'achievement', label: '成果转化', icon: homeIconAchievement, onClick: goAchievements },
-      { key: 'map', label: '专利地图', icon: homeIconPatentMap, onClick: goMap },
+      { key: 'invention-patent', label: '发明专利', icon: homeIconAchievement, onClick: goInventionPatents },
+      { key: 'utility-model', label: '实用新型', icon: homeIconPatentMap, onClick: goUtilityPatents },
       { key: 'tech-manager', label: '技术经理', icon: homeIconTechManager, onClick: goTechManagers },
       { key: 'inventor', label: '发明人榜', icon: homeIconInventors, onClick: goInventors },
-      { key: 'announcements', label: '全部公告', icon: homeIconAnnouncements, onClick: goAnnouncements },
+      { key: 'five-star', label: '五星专利', icon: homeIconAnnouncements, onClick: goFiveStarPatents },
     ],
     [
-      goAchievements,
-      goAnnouncements,
-      goArtworks,
-      goDemandSearch,
       goDesignPatents,
+      goFiveStarPatents,
+      goInventionPatents,
       goInventors,
-      goMap,
       goTechManagers,
+      goUtilityPatents,
     ],
   );
 

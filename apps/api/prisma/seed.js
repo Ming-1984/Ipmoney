@@ -36,14 +36,8 @@ const SEED_PATENT_ID_1 = '6e0511e4-5d32-4794-99f6-408d0941a754';
 const SEED_PATENT_ID_2 = '28a2ae7c-9021-46a3-a75b-2a37dd06aa66';
 const SEED_PATENT_ID_3 = '61cac934-7d84-45a4-80e5-c9c9acb35b18';
 
-const SEED_DEMAND_ID_1 = '5f772bf1-c477-4b86-abcc-e9e273b8f6ff';
-const SEED_DEMAND_ID_2 = 'e6d8cc6c-0a3e-46c7-9900-ef23fc040b11';
-
 const SEED_ACHIEVEMENT_ID_1 = 'c0b1c093-6bf4-4296-9e04-62e874acd2fc';
 const SEED_ACHIEVEMENT_ID_2 = 'ca2a49f0-88a4-4db7-9cc4-3fbaf5e5c4dc';
-
-const SEED_ARTWORK_ID_1 = '2f515e73-3d9b-4e68-b381-b7229490b6cd';
-const SEED_ARTWORK_ID_2 = 'dea00737-56b0-4361-a64b-a9562f856b27';
 
 const SEED_ORDER_ID_1 = '5e238163-ad1e-4830-a74d-944959427ebe';
 const SEED_PAYMENT_ID_1 = '28b74a0d-40c2-4af8-87b5-60d1390e46fd';
@@ -59,12 +53,8 @@ const SEED_PERSON_VERIFICATION_ID = 'e5f0b2c5-780e-4e74-acd0-57062b6b3412';
 const SEED_FILE_LISTING_1 = 'c70ff054-ec17-4262-b9a1-56ece2a9ec5a';
 const SEED_FILE_LISTING_2 = '3289ec88-661a-4db8-ad1d-50c456e611d2';
 const SEED_FILE_LISTING_3 = '8bb620c6-5539-4b53-bc25-ecbd82f71ea0';
-const SEED_FILE_DEMAND_1 = 'a8e4f3d1-13b5-49bf-8841-cd1a459b2cc8';
-const SEED_FILE_DEMAND_2 = '080fd2e3-ca59-4a11-8581-3f6592c0e7c2';
 const SEED_FILE_ACHIEVEMENT_1 = '026760c6-638d-4cc7-940c-1f8b45b65b04';
 const SEED_FILE_ACHIEVEMENT_2 = '0a789d3c-ff8b-4c63-817f-76f24ffa77e6';
-const SEED_FILE_ARTWORK_1 = '12b19b1d-598c-4b94-823c-8902a95512e7';
-const SEED_FILE_ARTWORK_2 = '497acb00-6fe8-43ca-9611-fb1616a81267';
 const SEED_FILE_ORG_LOGO = '10d0030b-ab22-4fb7-bc37-b53a56e3f6a6';
 
 function readJson(filePath) {
@@ -359,24 +349,6 @@ async function seedFiles() {
       ownerId: SEED_LISTING_ID_3,
     },
     {
-      id: SEED_FILE_DEMAND_1,
-      url: 'https://images.unsplash.com/photo-1481277542470-605612bd2d61?auto=format&fit=crop&w=1200&q=80',
-      fileName: 'demand-energy-storage.jpg',
-      mimeType: 'image/jpeg',
-      sizeBytes: 156000,
-      ownerScope: 'DEMAND',
-      ownerId: SEED_DEMAND_ID_1,
-    },
-    {
-      id: SEED_FILE_DEMAND_2,
-      url: 'https://images.unsplash.com/photo-1474631245212-32dc3c8310c6?auto=format&fit=crop&w=1200&q=80',
-      fileName: 'demand-lab-coop.jpg',
-      mimeType: 'image/jpeg',
-      sizeBytes: 149000,
-      ownerScope: 'DEMAND',
-      ownerId: SEED_DEMAND_ID_2,
-    },
-    {
       id: SEED_FILE_ACHIEVEMENT_1,
       url: 'https://images.unsplash.com/photo-1508921912186-1d1a45ebb3c1?auto=format&fit=crop&w=1200&q=80',
       fileName: 'achievement-sodium-ion.jpg',
@@ -393,24 +365,6 @@ async function seedFiles() {
       sizeBytes: 171000,
       ownerScope: 'ACHIEVEMENT',
       ownerId: SEED_ACHIEVEMENT_ID_2,
-    },
-    {
-      id: SEED_FILE_ARTWORK_1,
-      url: 'https://images.unsplash.com/photo-1496317899792-9d7dbcd928a1?auto=format&fit=crop&w=1200&q=80',
-      fileName: 'artwork-landscape.jpg',
-      mimeType: 'image/jpeg',
-      sizeBytes: 142000,
-      ownerScope: 'ARTWORK',
-      ownerId: SEED_ARTWORK_ID_1,
-    },
-    {
-      id: SEED_FILE_ARTWORK_2,
-      url: 'https://images.unsplash.com/photo-1487412720507-e7ab37603c6f?auto=format&fit=crop&w=1200&q=80',
-      fileName: 'artwork-calligraphy.jpg',
-      mimeType: 'image/jpeg',
-      sizeBytes: 139000,
-      ownerScope: 'ARTWORK',
-      ownerId: SEED_ARTWORK_ID_2,
     },
     {
       id: SEED_FILE_ORG_LOGO,
@@ -899,23 +853,13 @@ async function seedFavorites() {
     update: {},
     create: { listingId: SEED_LISTING_ID_1, userId: DEMO_USER_ID },
   });
-  await prisma.demandFavorite.upsert({
-    where: { demandId_userId: { demandId: SEED_DEMAND_ID_1, userId: DEMO_USER_ID } },
-    update: {},
-    create: { demandId: SEED_DEMAND_ID_1, userId: DEMO_USER_ID },
-  });
   await prisma.achievementFavorite.upsert({
     where: { achievementId_userId: { achievementId: SEED_ACHIEVEMENT_ID_1, userId: DEMO_USER_ID } },
     update: {},
     create: { achievementId: SEED_ACHIEVEMENT_ID_1, userId: DEMO_USER_ID },
   });
-  await prisma.artworkFavorite.upsert({
-    where: { artworkId_userId: { artworkId: SEED_ARTWORK_ID_1, userId: DEMO_USER_ID } },
-    update: {},
-    create: { artworkId: SEED_ARTWORK_ID_1, userId: DEMO_USER_ID },
-  });
 
-  console.log('[seed] favorites upserted: 4');
+  console.log('[seed] favorites upserted: 2');
 }
 
 async function seedConversations() {
@@ -1233,129 +1177,6 @@ async function seedAddresses() {
   console.log(`[seed] addresses upserted: ${entries.length}`);
 }
 
-async function seedDemands() {
-  const entries = [
-    {
-      id: SEED_DEMAND_ID_1,
-      publisherUserId: DEMO_USER_ID,
-      source: 'USER',
-      title: '动力电池健康评估算法需求',
-      summary: '面向BMS的SOH/寿命评估方案',
-      description: '需要可部署的电池健康评估算法或模型，支持在线学习与多工况适配，优先有车规落地经验。',
-      keywordsJson: ['电池', '算法', 'BMS'],
-      deliveryPeriod: 'MONTH_1_3',
-      cooperationModesJson: ['TRANSFER', 'TECH_CONSULTING'],
-      budgetType: 'NEGOTIABLE',
-      budgetMinFen: 200000,
-      budgetMaxFen: 800000,
-      contactName: '赵先生',
-      contactTitle: '技术负责人',
-      contactPhoneMasked: '138****8000',
-      regionCode: '110000',
-      industryTagsJson: ['新能源', '汽车'],
-      auditStatus: 'APPROVED',
-      status: 'ACTIVE',
-      coverFileId: SEED_FILE_DEMAND_1,
-      stats: { viewCount: 88, favoriteCount: 6, consultCount: 2, commentCount: 1 },
-    },
-    {
-      id: SEED_DEMAND_ID_2,
-      publisherUserId: SEED_ORG_USER_ID,
-      source: 'USER',
-      title: '储能系统热失控预警合作',
-      summary: '传感+模型联合预警',
-      description: '寻求具备温度/气体传感与模型算法的团队，共同开发热失控预警系统并推进产品化落地。',
-      keywordsJson: ['储能', '传感', '预警'],
-      deliveryPeriod: 'MONTH_3_6',
-      cooperationModesJson: ['TRANSFER', 'PLATFORM_CO_BUILD'],
-      budgetType: 'NEGOTIABLE',
-      budgetMinFen: 300000,
-      budgetMaxFen: 1200000,
-      contactName: '李女士',
-      contactTitle: '项目经理',
-      contactPhoneMasked: '021****2211',
-      regionCode: '310000',
-      industryTagsJson: ['储能', '安全'],
-      auditStatus: 'APPROVED',
-      status: 'ACTIVE',
-      coverFileId: SEED_FILE_DEMAND_2,
-      stats: { viewCount: 64, favoriteCount: 4, consultCount: 1, commentCount: 0 },
-    },
-  ];
-
-  if (!SEED_DEMO_DATA) {
-    await prisma.demand.deleteMany({ where: { id: { in: entries.map((e) => e.id) } } });
-    console.log(`[seed] demands demo data purged: ${entries.length}`);
-    return;
-  }
-
-  for (const e of entries) {
-    await prisma.demand.upsert({
-      where: { id: e.id },
-      update: {
-        title: e.title,
-        summary: e.summary,
-        description: e.description,
-        keywordsJson: e.keywordsJson,
-        deliveryPeriod: e.deliveryPeriod,
-        cooperationModesJson: e.cooperationModesJson,
-        budgetType: e.budgetType,
-        budgetMinFen: e.budgetMinFen,
-        budgetMaxFen: e.budgetMaxFen,
-        contactName: e.contactName,
-        contactTitle: e.contactTitle,
-        contactPhoneMasked: e.contactPhoneMasked,
-        regionCode: e.regionCode,
-        industryTagsJson: e.industryTagsJson,
-        auditStatus: e.auditStatus,
-        status: e.status,
-        coverFileId: e.coverFileId,
-      },
-      create: {
-        id: e.id,
-        publisherUserId: e.publisherUserId,
-        source: e.source,
-        title: e.title,
-        summary: e.summary,
-        description: e.description,
-        keywordsJson: e.keywordsJson,
-        deliveryPeriod: e.deliveryPeriod,
-        cooperationModesJson: e.cooperationModesJson,
-        budgetType: e.budgetType,
-        budgetMinFen: e.budgetMinFen,
-        budgetMaxFen: e.budgetMaxFen,
-        contactName: e.contactName,
-        contactTitle: e.contactTitle,
-        contactPhoneMasked: e.contactPhoneMasked,
-        regionCode: e.regionCode,
-        industryTagsJson: e.industryTagsJson,
-        auditStatus: e.auditStatus,
-        status: e.status,
-        coverFileId: e.coverFileId,
-      },
-    });
-
-    await prisma.demandStats.upsert({
-      where: { demandId: e.id },
-      update: {
-        viewCount: e.stats.viewCount,
-        favoriteCount: e.stats.favoriteCount,
-        consultCount: e.stats.consultCount,
-        commentCount: e.stats.commentCount,
-      },
-      create: {
-        demandId: e.id,
-        viewCount: e.stats.viewCount,
-        favoriteCount: e.stats.favoriteCount,
-        consultCount: e.stats.consultCount,
-        commentCount: e.stats.commentCount,
-      },
-    });
-  }
-
-  console.log(`[seed] demands upserted: ${entries.length}`);
-}
-
 async function seedAchievements() {
   const entries = [
     {
@@ -1455,125 +1276,6 @@ async function seedAchievements() {
   console.log(`[seed] achievements upserted: ${entries.length}`);
 }
 
-async function seedArtworks() {
-  const entries = [
-    {
-      id: SEED_ARTWORK_ID_1,
-      sellerUserId: DEMO_USER_ID,
-      source: 'USER',
-      title: '松风远岫',
-      description: '当代水墨山水，构图清雅，适合会议室或展厅陈设。',
-      category: 'PAINTING',
-      paintingGenre: 'LANDSCAPE',
-      creatorName: '林溪',
-      creationYear: 2021,
-      certificateNo: 'ART-2021-001',
-      priceType: 'NEGOTIABLE',
-      depositAmountFen: 200000,
-      regionCode: '110000',
-      material: '宣纸、水墨',
-      size: '68x136 cm',
-      auditStatus: 'APPROVED',
-      status: 'ACTIVE',
-      coverFileId: SEED_FILE_ARTWORK_1,
-      stats: { viewCount: 54, favoriteCount: 3, consultCount: 1, commentCount: 0 },
-    },
-    {
-      id: SEED_ARTWORK_ID_2,
-      sellerUserId: SEED_ORG_USER_ID,
-      source: 'USER',
-      title: '行书《致远》',
-      description: '行书作品，笔势流畅，适合企业办公空间。',
-      category: 'CALLIGRAPHY',
-      calligraphyScript: 'XINGSHU',
-      creatorName: '周弘',
-      creationYear: 2019,
-      certificateNo: 'ART-2019-014',
-      priceType: 'FIXED',
-      priceAmountFen: 680000,
-      depositAmountFen: 80000,
-      regionCode: '310000',
-      material: '宣纸、墨',
-      size: '138x69 cm',
-      auditStatus: 'APPROVED',
-      status: 'ACTIVE',
-      coverFileId: SEED_FILE_ARTWORK_2,
-      stats: { viewCount: 42, favoriteCount: 2, consultCount: 1, commentCount: 0 },
-    },
-  ];
-
-  if (!SEED_DEMO_DATA) {
-    await prisma.artwork.deleteMany({ where: { id: { in: entries.map((e) => e.id) } } });
-    console.log(`[seed] artworks demo data purged: ${entries.length}`);
-    return;
-  }
-
-  for (const e of entries) {
-    await prisma.artwork.upsert({
-      where: { id: e.id },
-      update: {
-        title: e.title,
-        description: e.description,
-        category: e.category,
-        paintingGenre: e.paintingGenre ?? null,
-        calligraphyScript: e.calligraphyScript ?? null,
-        creatorName: e.creatorName,
-        creationYear: e.creationYear,
-        certificateNo: e.certificateNo,
-        priceType: e.priceType,
-        priceAmountFen: e.priceAmountFen ?? null,
-        depositAmountFen: e.depositAmountFen,
-        regionCode: e.regionCode,
-        material: e.material,
-        size: e.size,
-        auditStatus: e.auditStatus,
-        status: e.status,
-        coverFileId: e.coverFileId,
-      },
-      create: {
-        id: e.id,
-        sellerUserId: e.sellerUserId,
-        source: e.source,
-        title: e.title,
-        description: e.description,
-        category: e.category,
-        paintingGenre: e.paintingGenre ?? null,
-        calligraphyScript: e.calligraphyScript ?? null,
-        creatorName: e.creatorName,
-        creationYear: e.creationYear,
-        certificateNo: e.certificateNo,
-        priceType: e.priceType,
-        priceAmountFen: e.priceAmountFen ?? null,
-        depositAmountFen: e.depositAmountFen,
-        regionCode: e.regionCode,
-        material: e.material,
-        size: e.size,
-        auditStatus: e.auditStatus,
-        status: e.status,
-        coverFileId: e.coverFileId,
-      },
-    });
-
-    await prisma.artworkStats.upsert({
-      where: { artworkId: e.id },
-      update: {
-        viewCount: e.stats.viewCount,
-        favoriteCount: e.stats.favoriteCount,
-        consultCount: e.stats.consultCount,
-        commentCount: e.stats.commentCount,
-      },
-      create: {
-        artworkId: e.id,
-        viewCount: e.stats.viewCount,
-        favoriteCount: e.stats.favoriteCount,
-        consultCount: e.stats.consultCount,
-        commentCount: e.stats.commentCount,
-      },
-    });
-  }
-
-  console.log(`[seed] artworks upserted: ${entries.length}`);
-}
 
 async function main() {
   if (SEED_BASE_DATA) {
@@ -1593,9 +1295,7 @@ async function main() {
     await seedAnnouncements();
     await seedNotifications();
     await seedAddresses();
-    await seedDemands();
     await seedAchievements();
-    await seedArtworks();
     await seedFavorites();
     await seedConversations();
     await seedOrders();

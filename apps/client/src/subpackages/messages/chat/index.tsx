@@ -45,9 +45,7 @@ type PagedConversationMessage = { items: UiConversationMessage[]; nextCursor?: s
 type ConversationSummary = components['schemas']['ConversationSummary'];
 type PagedConversationSummary = components['schemas']['PagedConversationSummary'];
 type ListingPublic = components['schemas']['ListingPublic'];
-type DemandPublic = components['schemas']['DemandPublic'];
 type AchievementPublic = components['schemas']['AchievementPublic'];
-type ArtworkPublic = components['schemas']['ArtworkPublic'];
 type TechManagerPublic = components['schemas']['TechManagerPublic'];
 
 type ContextCard = {
@@ -356,22 +354,10 @@ export default function ChatPage() {
           .join('·');
         price = formatPriceLabel(d.priceType, d.priceAmountFen);
         thumbUrl = d.coverUrl || '';
-      } else if (c.contentType === 'DEMAND') {
-        const d = await apiGet<DemandPublic>(`/public/demands/${c.contentId}`);
-        title = d.title || title;
-        tag = '需求';
-        price = formatBudgetLabel(d.budgetType, d.budgetMinFen, d.budgetMaxFen);
-        thumbUrl = d.coverUrl || '';
       } else if (c.contentType === 'ACHIEVEMENT') {
         const d = await apiGet<AchievementPublic>(`/public/achievements/${c.contentId}`);
         title = d.title || title;
         tag = '成果';
-        thumbUrl = d.coverUrl || '';
-      } else if (c.contentType === 'ARTWORK') {
-        const d = await apiGet<ArtworkPublic>(`/public/artworks/${c.contentId}`);
-        title = d.title || title;
-        tag = '书画';
-        price = formatPriceLabel(d.priceType, d.priceAmountFen);
         thumbUrl = d.coverUrl || '';
       } else if (c.contentType === 'TECH_MANAGER') {
         const d = await apiGet<TechManagerPublic>(`/public/tech-managers/${c.contentId}`);
@@ -571,16 +557,8 @@ export default function ChatPage() {
       Taro.navigateTo({ url: `/subpackages/listing/detail/index?listingId=${id}` });
       return;
     }
-    if (contextCard.contentType === 'DEMAND') {
-      Taro.navigateTo({ url: `/subpackages/demand/detail/index?demandId=${id}` });
-      return;
-    }
     if (contextCard.contentType === 'ACHIEVEMENT') {
       Taro.navigateTo({ url: `/subpackages/achievement/detail/index?achievementId=${id}` });
-      return;
-    }
-    if (contextCard.contentType === 'ARTWORK') {
-      Taro.navigateTo({ url: `/subpackages/artwork/detail/index?artworkId=${id}` });
       return;
     }
     if (contextCard.contentType === 'TECH_MANAGER') {
@@ -816,5 +794,3 @@ export default function ChatPage() {
     </View>
   );
 }
-
-

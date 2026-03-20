@@ -118,7 +118,7 @@ describe('CommentsService write-first suite', () => {
 
   it('rejects parentCommentId with mismatched content target', async () => {
     prisma.comment.findUnique.mockResolvedValueOnce(
-      makeComment({ id: PARENT_ID, contentType: 'DEMAND', contentId: CONTENT_ID }),
+      makeComment({ id: PARENT_ID, contentType: 'ACHIEVEMENT', contentId: CONTENT_ID }),
     );
     await expect(
       service.createComment(authedReq, 'LISTING', CONTENT_ID, { text: 'a', parentCommentId: PARENT_ID }),

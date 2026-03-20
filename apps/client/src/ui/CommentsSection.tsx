@@ -93,11 +93,7 @@ export function CommentsSection(props: CommentsSectionProps) {
         const d =
           contentType === 'LISTING'
             ? await apiGet<PagedCommentThread>(`/public/listings/${contentId}/comments`, params)
-            : contentType === 'DEMAND'
-              ? await apiGet<PagedCommentThread>(`/public/demands/${contentId}/comments`, params)
-              : contentType === 'ARTWORK'
-                ? await apiGet<PagedCommentThread>(`/public/artworks/${contentId}/comments`, params)
-                : await apiGet<PagedCommentThread>(`/public/achievements/${contentId}/comments`, params);
+            : await apiGet<PagedCommentThread>(`/public/achievements/${contentId}/comments`, params);
         setPageMeta(d.page);
         setThreads((prev) => (page === 1 ? d.items : [...prev, ...d.items]));
       } catch (e: any) {
@@ -221,14 +217,6 @@ export function CommentsSection(props: CommentsSectionProps) {
         if (composer.mode === 'reply') payload.parentCommentId = composer.targetId;
         if (contentType === 'LISTING') {
           await apiPost<Comment>(`/listings/${contentId}/comments`, payload, {
-            idempotencyKey: `comment-${contentId}-${Date.now()}`,
-          });
-        } else if (contentType === 'DEMAND') {
-          await apiPost<Comment>(`/demands/${contentId}/comments`, payload, {
-            idempotencyKey: `comment-${contentId}-${Date.now()}`,
-          });
-        } else if (contentType === 'ARTWORK') {
-          await apiPost<Comment>(`/artworks/${contentId}/comments`, payload, {
             idempotencyKey: `comment-${contentId}-${Date.now()}`,
           });
         } else {

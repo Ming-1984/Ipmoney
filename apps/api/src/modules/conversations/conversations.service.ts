@@ -3,7 +3,7 @@
 import { ContentEventService } from '../../common/content-event.service';
 import { PrismaService } from '../../common/prisma/prisma.service';
 
-type ConversationContentType = 'LISTING' | 'DEMAND' | 'ACHIEVEMENT' | 'ARTWORK' | 'TECH_MANAGER';
+type ConversationContentType = 'LISTING' | 'ACHIEVEMENT' | 'TECH_MANAGER';
 type ConversationMessageType = 'TEXT' | 'EMOJI' | 'IMAGE' | 'FILE' | 'SYSTEM';
 
 type ConversationDto = {
@@ -123,30 +123,12 @@ export class ConversationsService {
       };
     }
 
-    if (contentType === 'DEMAND') {
-      const demand = await this.prisma.demand.findUnique({ where: { id: normalizedContentId } });
-      if (!demand) throw new NotFoundException({ code: 'NOT_FOUND', message: 'demand not found' });
-      return {
-        sellerUserId: demand.publisherUserId,
-        contentTitle: demand.title ?? 'Consultation',
-      };
-    }
-
     if (contentType === 'ACHIEVEMENT') {
       const achievement = await this.prisma.achievement.findUnique({ where: { id: normalizedContentId } });
       if (!achievement) throw new NotFoundException({ code: 'NOT_FOUND', message: 'achievement not found' });
       return {
         sellerUserId: achievement.publisherUserId,
         contentTitle: achievement.title ?? 'Consultation',
-      };
-    }
-
-    if (contentType === 'ARTWORK') {
-      const artwork = await this.prisma.artwork.findUnique({ where: { id: normalizedContentId } });
-      if (!artwork) throw new NotFoundException({ code: 'NOT_FOUND', message: 'artwork not found' });
-      return {
-        sellerUserId: artwork.sellerUserId,
-        contentTitle: artwork.title ?? 'Consultation',
       };
     }
 
@@ -191,7 +173,7 @@ export class ConversationsService {
     }
 
     if (contentType !== 'TECH_MANAGER') {
-      const ct = contentType as 'LISTING' | 'DEMAND' | 'ACHIEVEMENT' | 'ARTWORK';
+      const ct = contentType as 'LISTING' | 'ACHIEVEMENT';
       void this.events.recordConsult(req, ct, normalizedContentId).catch(() => {});
     }
 
@@ -219,37 +201,21 @@ export class ConversationsService {
       }),
     ]);
 
-    const demandIds = new Set<string>();
     const achievementIds = new Set<string>();
-    const artworkIds = new Set<string>();
     const techManagerIds = new Set<string>();
 
     for (const it of items as any[]) {
       const type = (it.contentType || 'LISTING') as ConversationContentType;
       const id = String(it.contentId || it.listingId || '');
       if (!id) continue;
-      if (type === 'DEMAND') demandIds.add(id);
       if (type === 'ACHIEVEMENT') achievementIds.add(id);
-      if (type === 'ARTWORK') artworkIds.add(id);
       if (type === 'TECH_MANAGER') techManagerIds.add(id);
     }
 
-    const [demands, achievements, artworks, techManagers] = await Promise.all([
-      demandIds.size
-        ? this.prisma.demand.findMany({
-            where: { id: { in: Array.from(demandIds) } },
-            select: { id: true, title: true },
-          })
-        : Promise.resolve([]),
+    const [achievements, techManagers] = await Promise.all([
       achievementIds.size
         ? this.prisma.achievement.findMany({
             where: { id: { in: Array.from(achievementIds) } },
-            select: { id: true, title: true },
-          })
-        : Promise.resolve([]),
-      artworkIds.size
-        ? this.prisma.artwork.findMany({
-            where: { id: { in: Array.from(artworkIds) } },
             select: { id: true, title: true },
           })
         : Promise.resolve([]),
@@ -265,9 +231,7 @@ export class ConversationsService {
         : Promise.resolve([]),
     ]);
 
-    const demandMap = new Map(demands.map((item: any) => [item.id, item.title]));
     const achievementMap = new Map(achievements.map((item: any) => [item.id, item.title]));
-    const artworkMap = new Map(artworks.map((item: any) => [item.id, item.title]));
     const techManagerMap = new Map(
       techManagers.map((item: any) => [item.userId, item.displayName ?? item.user?.nickname ?? 'Tech Manager']),
     );
@@ -278,13 +242,9 @@ export class ConversationsService {
       const contentTitle =
         contentType === 'LISTING'
           ? it.listing?.title ?? 'Consultation'
-          : contentType === 'DEMAND'
-            ? demandMap.get(contentId) ?? 'Consultation'
-            : contentType === 'ACHIEVEMENT'
-              ? achievementMap.get(contentId) ?? 'Consultation'
-              : contentType === 'ARTWORK'
-                ? artworkMap.get(contentId) ?? 'Consultation'
-                : techManagerMap.get(contentId) ?? 'Consultation';
+          : contentType === 'ACHIEVEMENT'
+            ? achievementMap.get(contentId) ?? 'Consultation'
+            : techManagerMap.get(contentId) ?? 'Consultation';
 
       const counterpart = it.buyerUserId === req.auth.userId ? it.seller : it.buyer;
       const counterpartId = counterpart?.id ?? (it.buyerUserId === req.auth.userId ? it.sellerUserId : it.buyerUserId);
@@ -318,16 +278,8 @@ export class ConversationsService {
     return await this.upsertConversation(req, 'LISTING', listingId);
   }
 
-  async createDemandConversation(req: any, demandId: string) {
-    return await this.upsertConversation(req, 'DEMAND', demandId);
-  }
-
   async createAchievementConversation(req: any, achievementId: string) {
     return await this.upsertConversation(req, 'ACHIEVEMENT', achievementId);
-  }
-
-  async createArtworkConversation(req: any, artworkId: string) {
-    return await this.upsertConversation(req, 'ARTWORK', artworkId);
   }
 
   async createTechManagerConversation(req: any, techManagerId: string) {

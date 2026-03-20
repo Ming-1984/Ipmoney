@@ -11,7 +11,7 @@ export class OrdersController {
 
   @UseGuards(BearerAuthGuard, VerifiedUserGuard)
   @Post('/orders')
-  async createOrder(@Req() req: any, @Body() body: { listingId?: string; artworkId?: string }) {
+  async createOrder(@Req() req: any, @Body() body: { listingId?: string }) {
     return await this.orders.createOrder(req, body || {});
   }
 

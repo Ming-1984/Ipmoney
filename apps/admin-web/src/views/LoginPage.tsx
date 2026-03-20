@@ -34,7 +34,7 @@ export function LoginPage() {
           </div>
         </div>
         <Typography.Paragraph type="secondary">
-          用于审核上架、需求、成果、认证以及订单履约与结算管理。
+          Used for listing and achievement review, verification, and order settlement management.
         </Typography.Paragraph>
         <Form
           form={form}

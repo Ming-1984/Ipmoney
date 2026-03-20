@@ -4,8 +4,6 @@ import React, { useMemo } from 'react';
 import './index.scss';
 
 import iconPublishPatent from '../../assets/icons/icon-publish-patent.svg';
-import iconPublishArtwork from '../../assets/icons/icon-publish-artwork.svg';
-import iconPublishDemand from '../../assets/icons/icon-publish-demand.svg';
 import iconPublishAchievement from '../../assets/icons/icon-publish-achievement.svg';
 import iconShield from '../../assets/icons/icon-shield-orange.svg';
 import iconCategory from '../../assets/icons/icon-category-gray.svg';
@@ -48,28 +46,8 @@ export default function PublishPage() {
         },
       },
       {
-        key: 'artwork',
-        title: '发布书画专区',
-        desc: '艺术作品交易',
-        icon: iconPublishArtwork,
-        tone: 'tone-purple',
-        onClick: () => {
-          Taro.navigateTo({ url: '/subpackages/publish/artwork/index' });
-        },
-      },
-      {
-        key: 'demand',
-        title: '发布产学研需求',
-        desc: '技术/人才/资金',
-        icon: iconPublishDemand,
-        tone: 'tone-blue',
-        onClick: () => {
-          Taro.navigateTo({ url: '/subpackages/publish/demand/index' });
-        },
-      },
-      {
         key: 'achievement',
-        title: '发布成果展示',
+        title: '发布专利成果',
         desc: '案例/转化成果',
         icon: iconPublishAchievement,
         tone: 'tone-green',
@@ -93,26 +71,8 @@ export default function PublishPage() {
         },
       },
       {
-        key: 'artworks',
-        title: '我的书画',
-        icon: iconPublishArtwork,
-        tone: 'tone-purple',
-        onClick: () => {
-          Taro.navigateTo({ url: '/subpackages/my-artworks/index' });
-        },
-      },
-      {
-        key: 'demands',
-        title: '技术需求',
-        icon: iconPublishDemand,
-        tone: 'tone-orange',
-        onClick: () => {
-          Taro.navigateTo({ url: '/subpackages/my-demands/index' });
-        },
-      },
-      {
         key: 'achievements',
-        title: '成果案例',
+        title: '专利成果',
         icon: iconPublishAchievement,
         tone: 'tone-green',
         onClick: () => {

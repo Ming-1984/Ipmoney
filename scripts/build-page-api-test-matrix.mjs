@@ -50,9 +50,7 @@ function inferApiDomain(name, area) {
   if (area === 'admin') {
     if (/verifications/.test(name)) return 'admin/verifications';
     if (/listings/.test(name)) return 'admin/listings-audit';
-    if (/demands/.test(name)) return 'admin/demands-audit';
     if (/achievements/.test(name)) return 'admin/achievements-audit';
-    if (/artworks/.test(name)) return 'admin/artworks-audit';
     if (/tech-managers/.test(name)) return 'admin/tech-managers';
     if (/orders|order-detail/.test(name)) return 'admin/orders';
     if (/refunds/.test(name)) return 'admin/refunds';
@@ -77,15 +75,13 @@ function inferApiDomain(name, area) {
   if (/home|search|listing|patent-detail|inventors|tech-managers|organizations/.test(name)) {
     return 'public discovery/search';
   }
-  if (/demand-detail/.test(name)) return 'public demand detail + conversation';
   if (/achievement-detail/.test(name)) return 'public achievement detail + conversation';
-  if (/artwork-detail/.test(name)) return 'public artwork detail + conversation';
   if (/patent-map|region-detail/.test(name)) return 'patent-map + regions';
   if (/login|onboarding|profile-edit|me$|settings-notifications/.test(name)) return 'auth/me/verification';
   if (/messages|chat|notifications/.test(name)) return 'conversations + notifications';
   if (/orders|checkout|contracts|invoices|addresses/.test(name)) return 'orders/payment/address/invoice';
   if (/favorites/.test(name)) return 'favorites';
-  if (/my-listings|my-demands|my-achievements|my-artworks|publish/.test(name)) {
+  if (/my-listings|my-achievements|publish/.test(name)) {
     return 'my-content create/update/submit';
   }
   if (/announcements/.test(name)) return 'public announcements';

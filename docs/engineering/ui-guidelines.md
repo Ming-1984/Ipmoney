@@ -32,8 +32,7 @@
 
 ## 筛选/排序收口（摘要）
 - 专利检索：q、regionCode、patentType、transactionType、price/deposit 范围、ipc、loc、legalStatus、industryTags；排序 RECOMMENDED/LATEST/PRICE_ASC/PRICE_DESC。
-- 需求/成果检索：q、regionCode、预算范围、合作方式、成熟度、industryTags；排序 RECOMMENDED/LATEST。
-- 书画检索：q、regionCode、作者、价格/订金；排序 RECOMMENDED/LATEST。
+- 成果检索：q、regionCode、成熟度、industryTags；排序 RECOMMENDED/LATEST。
 - 机构检索：q、regionCode、types；排序 LATEST。
 - 发明人榜：q、regionCode、patentType；排序 RECOMMENDED/LATEST。
 - 订单列表：statusGroup/status；默认按最新。

@@ -21,9 +21,7 @@ DEFAULT_PAGE_BASENAMES = [
     "11-user-center",
     "12-publish-chooser",
     "13-publish-patent",
-    "14-publish-demand",
     "15-publish-achievement",
-    "16-publish-artwork",
     "17-tech-managers",
 ]
 
@@ -159,7 +157,7 @@ def _resize(im: Image.Image, scale: float) -> Image.Image:
 
 def main() -> None:
     parser = argparse.ArgumentParser(
-        description="Merge miniapp page PNGs (01-17) into a single image for review.",
+        description="Merge miniapp page PNGs into a single image for review.",
     )
     parser.add_argument(
         "--input-dir",
@@ -203,7 +201,7 @@ def main() -> None:
     parser.add_argument(
         "images",
         nargs="*",
-        help="Optional list of basenames or filenames to merge (default: 01-15 miniapp pages).",
+        help="Optional list of basenames or filenames to merge (default: curated miniapp pages).",
     )
     args = parser.parse_args()
 

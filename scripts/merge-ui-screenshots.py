@@ -28,7 +28,6 @@ CLIENT_ORDER = [
     "chat",
     "publish",
     "publish-patent",
-    "publish-demand",
     "publish-achievement",
     "my-listings",
     "favorites",

@@ -42,9 +42,8 @@ type PaymentIntentResponse = {
 type MiniProgramPayGuideComponent = React.ComponentType<MiniProgramPayGuideProps>;
 const CHECKOUT_TARGET_CACHE_SCOPE = 'checkout-target';
 
-function checkoutTargetCacheKey(listingId: string, artworkId: string): string {
+function checkoutTargetCacheKey(listingId: string): string {
   if (listingId) return `listing:${listingId}`;
-  if (artworkId) return `artwork:${artworkId}`;
   return '';
 }
 
@@ -69,26 +68,23 @@ function toPayTarget(raw: unknown): PayTarget | null {
   };
 }
 
-function readCachedPayTarget(listingId: string, artworkId: string): PayTarget | null {
-  const targetCacheKey = checkoutTargetCacheKey(listingId, artworkId);
+function readCachedPayTarget(listingId: string): PayTarget | null {
+  const targetCacheKey = checkoutTargetCacheKey(listingId);
   if (targetCacheKey) {
     const cached = getDetailCache<PayTarget>(CHECKOUT_TARGET_CACHE_SCOPE, targetCacheKey);
     if (cached) return cached;
   }
-  if (listingId) return toPayTarget(getDetailCache<unknown>('listing-public', listingId));
-  if (artworkId) return toPayTarget(getDetailCache<unknown>('artwork-public', artworkId));
-  return null;
+  return listingId ? toPayTarget(getDetailCache<unknown>('listing-public', listingId)) : null;
 }
 
 export default function DepositPayPage() {
   const listingId = useRouteUuidParam('listingId') || '';
-  const artworkId = useRouteUuidParam('artworkId') || '';
   const env = useMemo(() => Taro.getEnv(), []);
   const isH5 = env === Taro.ENV_TYPE.WEB;
-  const targetCacheKey = checkoutTargetCacheKey(listingId, artworkId);
-  const initialCachedTarget = readCachedPayTarget(listingId, artworkId);
+  const targetCacheKey = checkoutTargetCacheKey(listingId);
+  const initialCachedTarget = readCachedPayTarget(listingId);
 
-  if (!listingId && !artworkId) {
+  if (!listingId) {
     return (
       <View className="container">
         <MissingParamCard onAction={() => void safeNavigateBack()} />
@@ -103,14 +99,14 @@ export default function DepositPayPage() {
   const [PayGuide, setPayGuide] = useState<MiniProgramPayGuideComponent | null>(null);
 
   useEffect(() => {
-    const cached = readCachedPayTarget(listingId, artworkId);
+    const cached = readCachedPayTarget(listingId);
     setTarget(cached);
     setLoading(!cached);
     setError(null);
-  }, [artworkId, listingId]);
+  }, [listingId]);
 
   const load = useCallback(async () => {
-    const cached = readCachedPayTarget(listingId, artworkId);
+    const cached = readCachedPayTarget(listingId);
     if (cached) {
       setTarget(cached);
       setLoading(false);
@@ -120,8 +116,7 @@ export default function DepositPayPage() {
       setError(null);
     }
     try {
-      const endpoint = listingId ? `/public/listings/${listingId}` : `/public/artworks/${artworkId}`;
-      const d = await apiGet<PayTarget>(endpoint);
+      const d = await apiGet<PayTarget>(`/public/listings/${listingId}`);
       setTarget(d);
       if (targetCacheKey) setDetailCache(CHECKOUT_TARGET_CACHE_SCOPE, targetCacheKey, d);
     } catch (e: any) {
@@ -130,7 +125,7 @@ export default function DepositPayPage() {
     } finally {
       setLoading(false);
     }
-  }, [artworkId, listingId, targetCacheKey]);
+  }, [listingId, targetCacheKey]);
 
   useEffect(() => {
     void load();
@@ -160,14 +155,14 @@ export default function DepositPayPage() {
 
   const onPay = useCallback(async () => {
     if (!ensureApproved()) return;
-    if (!listingId && !artworkId) return;
+    if (!listingId) return;
     if (isH5) {
       toast('H5 端不发起支付，请到小程序完成支付');
       return;
     }
     setPaying(true);
     try {
-      const payload = listingId ? { listingId } : { artworkId };
+      const payload = { listingId };
       const order = await apiPost<Order>('/orders', payload);
       const intent = await apiPost<PaymentIntentResponse>(
         `/orders/${order.id}/payment-intents`,
@@ -183,7 +178,7 @@ export default function DepositPayPage() {
     } finally {
       setPaying(false);
     }
-  }, [artworkId, isH5, listingId]);
+  }, [isH5, listingId]);
 
   return (
     <View className="container has-sticky pay-page">
@@ -230,7 +225,7 @@ export default function DepositPayPage() {
               <Spacer size={12} />
               {PayGuide ? (
                 <PayGuide
-                  miniProgramPath={`pages/checkout/deposit-pay/index?${listingId ? `listingId=${listingId}` : `artworkId=${artworkId}`}`}
+                  miniProgramPath={`pages/checkout/deposit-pay/index?listingId=${listingId}`}
                   description="H5 端不发起支付。微信内可一键跳转小程序；微信外/桌面可复制链接或扫码在微信打开。"
                 />
               ) : (
@@ -242,7 +237,7 @@ export default function DepositPayPage() {
           ) : null}
         </View>
       ) : (
-        <EmptyCard title="无数据" message="该专利/书画不存在或不可见。" actionText="返回" onAction={() => Taro.navigateBack()} />
+        <EmptyCard title="无数据" message="该专利不存在或不可见。" actionText="返回" onAction={() => Taro.navigateBack()} />
       )}
 
       {target && !loading && !error && !isH5 ? (

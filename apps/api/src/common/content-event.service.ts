@@ -4,7 +4,7 @@ import { createHash } from 'crypto';
 import { PrismaService } from './prisma/prisma.service';
 import { ConfigService } from '../modules/config/config.service';
 
-type ContentType = 'LISTING' | 'DEMAND' | 'ACHIEVEMENT' | 'ARTWORK';
+type ContentType = 'LISTING' | 'ACHIEVEMENT';
 type EventType = 'VIEW' | 'FAVORITE' | 'CONSULT';
 
 type ActorInfo = {
@@ -119,21 +119,6 @@ export class ContentEventService {
       return;
     }
 
-    if (contentType === 'DEMAND') {
-      await this.prisma.demandStats.upsert({
-        where: { demandId: contentId },
-        create: {
-          demandId: contentId,
-          viewCount: delta.viewCount ?? 0,
-          favoriteCount: delta.favoriteCount ?? 0,
-          consultCount: delta.consultCount ?? 0,
-          commentCount: 0,
-        },
-        update: data,
-      });
-      return;
-    }
-
     if (contentType === 'ACHIEVEMENT') {
       await this.prisma.achievementStats.upsert({
         where: { achievementId: contentId },
@@ -149,17 +134,6 @@ export class ContentEventService {
       return;
     }
 
-    await this.prisma.artworkStats.upsert({
-      where: { artworkId: contentId },
-      create: {
-        artworkId: contentId,
-        viewCount: delta.viewCount ?? 0,
-        favoriteCount: delta.favoriteCount ?? 0,
-        consultCount: delta.consultCount ?? 0,
-        commentCount: 0,
-      },
-      update: data,
-    });
   }
 
   async adjustFavoriteCount(contentType: ContentType, contentId: string, delta: number) {
@@ -179,15 +153,6 @@ export class ContentEventService {
       return;
     }
 
-    if (contentType === 'DEMAND') {
-      const current = await this.prisma.demandStats.findUnique({ where: { demandId: contentId } });
-      if (!current) return;
-      const next = Math.max(0, (current.favoriteCount ?? 0) + delta);
-      if (next === current.favoriteCount) return;
-      await this.prisma.demandStats.update({ where: { demandId: contentId }, data: { favoriteCount: next } });
-      return;
-    }
-
     if (contentType === 'ACHIEVEMENT') {
       const current = await this.prisma.achievementStats.findUnique({ where: { achievementId: contentId } });
       if (!current) return;
@@ -196,12 +161,6 @@ export class ContentEventService {
       await this.prisma.achievementStats.update({ where: { achievementId: contentId }, data: { favoriteCount: next } });
       return;
     }
-
-    const current = await this.prisma.artworkStats.findUnique({ where: { artworkId: contentId } });
-    if (!current) return;
-    const next = Math.max(0, (current.favoriteCount ?? 0) + delta);
-    if (next === current.favoriteCount) return;
-    await this.prisma.artworkStats.update({ where: { artworkId: contentId }, data: { favoriteCount: next } });
   }
 
   async recordView(req: any, contentType: ContentType, contentId: string) {

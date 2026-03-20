@@ -65,10 +65,6 @@ export type TaxonomyConfig = {
   industries: string[];
   ipcMappings: string[];
   locMappings: string[];
-  artworkCategories: string[];
-  calligraphyStyles: string[];
-  paintingThemes: string[];
-  artworkMaterials: string[];
 };
 
 export type SensitiveWordsConfig = {
@@ -160,10 +156,6 @@ function buildDefaultTaxonomy(): TaxonomyConfig {
     industries: ['New Materials', 'Smart Manufacturing', 'Biomedicine'],
     ipcMappings: ['A01', 'B65', 'G06'],
     locMappings: ['01', '02', '19'],
-    artworkCategories: ['Calligraphy', 'Painting'],
-    calligraphyStyles: ['Regular Script', 'Running Script', 'Cursive Script', 'Clerical Script', 'Seal Script'],
-    paintingThemes: ['Figure Painting', 'Landscape Painting', 'Bird-and-Flower Painting'],
-    artworkMaterials: ['Xuan Paper', 'Silk', 'Paper'],
   };
 }
 

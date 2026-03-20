@@ -30,7 +30,7 @@
     },
     {
       root: 'subpackages/publish',
-      pages: ['patent/index', 'demand/index', 'achievement/index', 'artwork/index'],
+      pages: ['patent/index', 'achievement/index'],
     },
     {
       root: 'subpackages/messages',
@@ -61,15 +61,7 @@
       pages: ['detail/index'],
     },
     {
-      root: 'subpackages/demand',
-      pages: ['detail/index'],
-    },
-    {
       root: 'subpackages/achievement',
-      pages: ['detail/index'],
-    },
-    {
-      root: 'subpackages/artwork',
       pages: ['detail/index'],
     },
     {
@@ -109,15 +101,7 @@
       pages: ['index'],
     },
     {
-      root: 'subpackages/my-demands',
-      pages: ['index'],
-    },
-    {
       root: 'subpackages/my-achievements',
-      pages: ['index'],
-    },
-    {
-      root: 'subpackages/my-artworks',
       pages: ['index'],
     },
     {

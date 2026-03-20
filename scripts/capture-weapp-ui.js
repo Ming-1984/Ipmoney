@@ -169,7 +169,6 @@ const PAGES = [
   { name: 'chat', url: `/subpackages/messages/chat/index?conversationId=${SAMPLE.conversationId}` },
   { name: 'publish', url: '/pages/publish/index' },
   { name: 'publish-patent', url: '/subpackages/publish/patent/index' },
-  { name: 'publish-demand', url: '/subpackages/publish/demand/index' },
   { name: 'publish-achievement', url: '/subpackages/publish/achievement/index' },
   { name: 'my-listings', url: '/subpackages/my-listings/index' },
   { name: 'favorites', url: '/subpackages/favorites/index' },

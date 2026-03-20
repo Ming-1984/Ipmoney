@@ -267,7 +267,6 @@ $clientPages = @(
   @{ name = "chat"; path = "#/pages/messages/chat/index?conversationId=$($sample.conversationId)"; demoAuth = $true },
   @{ name = "publish"; path = "#/pages/publish/index"; demoAuth = $true },
   @{ name = "publish-patent"; path = "#/pages/publish/patent/index"; demoAuth = $true },
-  @{ name = "publish-demand"; path = "#/pages/publish/demand/index"; demoAuth = $true },
   @{ name = "publish-achievement"; path = "#/pages/publish/achievement/index"; demoAuth = $true },
   @{ name = "my-listings"; path = "#/pages/my-listings/index"; demoAuth = $true },
   @{ name = "favorites"; path = "#/pages/favorites/index"; demoAuth = $true },

@@ -4,10 +4,8 @@ import {
   FileDoneOutlined,
   GiftOutlined,
   MessageOutlined,
-  PictureOutlined,
   TeamOutlined,
   TrophyOutlined,
-  BulbOutlined,
   SettingOutlined,
   FileTextOutlined,
   LockOutlined,
@@ -92,19 +90,9 @@ export function AppLayout() {
               label: <Link to="/listings">上架审核</Link>,
             },
             {
-              key: 'demands',
-              icon: <BulbOutlined />,
-              label: <Link to="/demands">需求审核</Link>,
-            },
-            {
               key: 'achievements',
               icon: <TrophyOutlined />,
               label: <Link to="/achievements">成果审核</Link>,
-            },
-            {
-              key: 'artworks',
-              icon: <PictureOutlined />,
-              label: <Link to="/artworks">书画审核</Link>,
             },
             {
               key: 'tech-managers',

@@ -11,9 +11,7 @@ describe('FavoritesService list filter strictness suite', () => {
   beforeEach(() => {
     prisma = {
       listingFavorite: { findMany: vi.fn(), count: vi.fn() },
-      demandFavorite: { findMany: vi.fn(), count: vi.fn() },
       achievementFavorite: { findMany: vi.fn(), count: vi.fn() },
-      artworkFavorite: { findMany: vi.fn(), count: vi.fn() },
     };
     const events = {
       adjustFavoriteCount: vi.fn().mockResolvedValue(undefined),
@@ -24,16 +22,12 @@ describe('FavoritesService list filter strictness suite', () => {
 
   it('requires auth for list favorites endpoints', async () => {
     await expect(service.listListingFavorites({}, {})).rejects.toBeInstanceOf(ForbiddenException);
-    await expect(service.listDemandFavorites({}, {})).rejects.toBeInstanceOf(ForbiddenException);
+    await expect(service.listAchievementFavorites({}, {})).rejects.toBeInstanceOf(ForbiddenException);
   });
 
   it('rejects invalid pagination strictly', async () => {
     await expect(service.listListingFavorites(req, { page: '0' })).rejects.toBeInstanceOf(BadRequestException);
     await expect(service.listListingFavorites(req, { page: '9007199254740992' })).rejects.toBeInstanceOf(BadRequestException);
-    await expect(service.listDemandFavorites(req, { pageSize: '1.5' })).rejects.toBeInstanceOf(BadRequestException);
-    await expect(service.listDemandFavorites(req, { pageSize: '9007199254740992' })).rejects.toBeInstanceOf(
-      BadRequestException,
-    );
     await expect(service.listAchievementFavorites(req, { page: '   ' })).rejects.toBeInstanceOf(BadRequestException);
   });
 
@@ -78,19 +72,4 @@ describe('FavoritesService list filter strictness suite', () => {
     expect(result.items[0].industryTags).toEqual(['AI']);
   });
 
-  it('caps pageSize and applies user-bound where in listArtworkFavorites', async () => {
-    prisma.artworkFavorite.findMany.mockResolvedValueOnce([]);
-    prisma.artworkFavorite.count.mockResolvedValueOnce(0);
-
-    const result = await service.listArtworkFavorites(req, { page: '2', pageSize: '88' });
-
-    expect(prisma.artworkFavorite.findMany).toHaveBeenCalledWith(
-      expect.objectContaining({
-        where: { userId: 'u-1' },
-        skip: 50,
-        take: 50,
-      }),
-    );
-    expect(result.page).toEqual({ page: 2, pageSize: 50, total: 0 });
-  });
 });

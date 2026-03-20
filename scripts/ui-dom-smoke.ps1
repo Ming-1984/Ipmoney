@@ -348,8 +348,6 @@ function Invoke-DumpDom(
 $sample = @{
   listingId = "7a490e63-8173-41e7-b4f0-0d0bb5ce7d20"
   patentId = "965f9831-2c44-48e8-8b7a-cd7ab40ff7ec"
-  artworkId = "7f8e9f72-98f4-4f4a-8d11-44f38fcf3d51"
-  demandId = "8f278f0a-6ccf-45ce-a664-f5eaf39a9be4"
   achievementId = "2a9ee2ee-9ab8-4335-b568-e9d9ef57f2f7"
   techManagerId = "c05d27bc-c739-47ad-91f7-53ccf8517a4e"
   orgUserId = "c5b6438a-f3a7-4590-a484-0f2a2991c613"
@@ -524,20 +522,6 @@ try {
       width = $ClientWidth; height = $ClientHeight; waitMs = $ClientWaitMs
       expectedUrlContains = "#/pages/patent/detail/index"; minElements = 60
       selectorsAll = @(".detail-page-compact", "#patent-overview", "#patent-info"); selectorsAny = @(".detail-tabs", ".detail-sticky-buttons", "#patent-comments", ".detail-tool-row")
-      textAny = @(); storage = @(); demoAuth = $false
-    },
-    @{
-      name = "client-artwork-detail"; path = "#/pages/artwork/detail/index?artworkId=$($sample.artworkId)"; base = $clientBase
-      width = $ClientWidth; height = $ClientHeight; waitMs = $ClientWaitMs
-      expectedUrlContains = "#/pages/artwork/detail/index"; minElements = 60
-      selectorsAll = @(".detail-page-compact", "#artwork-overview", "#artwork-info"); selectorsAny = @(".detail-tabs", "#artwork-comments", ".detail-tool-row", ".listing-detail-sticky-secondary")
-      textAny = @(); storage = @(); demoAuth = $false
-    },
-    @{
-      name = "client-demand-detail"; path = "#/pages/demand/detail/index?demandId=$($sample.demandId)"; base = $clientBase
-      width = $ClientWidth; height = $ClientHeight; waitMs = $ClientWaitMs
-      expectedUrlContains = "#/pages/demand/detail/index"; minElements = 60
-      selectorsAll = @(".detail-page-compact", "#demand-summary", "#demand-info"); selectorsAny = @(".detail-tabs", "#demand-comments", ".detail-tool-row", ".detail-sticky-buttons")
       textAny = @(); storage = @(); demoAuth = $false
     },
     @{
@@ -743,7 +727,7 @@ try {
       name = "client-favorites"; path = "#/pages/favorites/index"; base = $clientBase
       width = $ClientWidth; height = $ClientHeight; waitMs = $ClientWaitMs
       expectedUrlContains = "#/pages/favorites/index"; minElements = 60
-      selectorsAll = @(".favorites-page"); selectorsAny = @(".search-card-list", ".listing-list", ".artwork-favorite-item", ".text-strong", ".card-state")
+      selectorsAll = @(".favorites-page"); selectorsAny = @(".search-card-list", ".listing-list", ".text-strong", ".card-state")
       textAny = @(); storage = $clientApprovedStorage; demoAuth = $true
     },
     @{
@@ -810,13 +794,6 @@ try {
       textAny = @(); storage = $clientApprovedStorage; demoAuth = $true
     },
     @{
-      name = "client-my-demands"; path = "#/pages/my-demands/index"; base = $clientBase
-      width = $ClientWidth; height = $ClientHeight; waitMs = $ClientWaitMs
-      expectedUrlContains = "#/pages/my-demands/index"; minElements = 60
-      selectorsAll = @(".my-demands-page"); selectorsAny = @(".card-list", ".list-card", ".card-state", ".audit-pending-card")
-      textAny = @(); storage = $clientApprovedStorage; demoAuth = $true
-    },
-    @{
       name = "client-my-achievements"; path = "#/pages/my-achievements/index"; base = $clientBase
       width = $ClientWidth; height = $ClientHeight; waitMs = $ClientWaitMs
       expectedUrlContains = "#/pages/my-achievements/index"; minElements = 60
@@ -824,31 +801,10 @@ try {
       textAny = @(); storage = $clientApprovedStorage; demoAuth = $true
     },
     @{
-      name = "client-my-artworks"; path = "#/pages/my-artworks/index"; base = $clientBase
-      width = $ClientWidth; height = $ClientHeight; waitMs = $ClientWaitMs
-      expectedUrlContains = "#/pages/my-artworks/index"; minElements = 60
-      selectorsAll = @(".my-artworks-page"); selectorsAny = @(".card-list", ".list-card", ".card-state", ".audit-pending-card")
-      textAny = @(); storage = $clientApprovedStorage; demoAuth = $true
-    },
-    @{
-      name = "client-publish-demand"; path = "#/pages/publish/demand/index"; base = $clientBase
-      width = $ClientWidth; height = $ClientHeight; waitMs = $ClientWaitMs
-      expectedUrlContains = "#/pages/publish/demand/index"; minElements = 60
-      selectorsAll = @(".publish-demand-page", ".text-card-title"); selectorsAny = @(".form-label", ".chip-row", ".row-between")
-      textAny = @(); storage = $clientApprovedStorage; demoAuth = $true
-    },
-    @{
       name = "client-publish-achievement"; path = "#/pages/publish/achievement/index"; base = $clientBase
       width = $ClientWidth; height = $ClientHeight; waitMs = $ClientWaitMs
       expectedUrlContains = "#/pages/publish/achievement/index"; minElements = 60
       selectorsAll = @(".publish-achievement-page", ".text-card-title"); selectorsAny = @(".form-label", ".chip-row", ".row-between")
-      textAny = @(); storage = $clientApprovedStorage; demoAuth = $true
-    },
-    @{
-      name = "client-publish-artwork"; path = "#/pages/publish/artwork/index"; base = $clientBase
-      width = $ClientWidth; height = $ClientHeight; waitMs = $ClientWaitMs
-      expectedUrlContains = "#/pages/publish/artwork/index"; minElements = 60
-      selectorsAll = @(".publish-artwork-page", ".text-card-title"); selectorsAny = @(".form-label", ".chip-row", ".row-between")
       textAny = @(); storage = $clientApprovedStorage; demoAuth = $true
     },
     @{
@@ -936,24 +892,10 @@ try {
       textAny = @(); storage = $adminAuthedStorage; demoAuth = $false
     },
     @{
-      name = "admin-demands"; path = "/demands"; base = $adminBase
-      width = $AdminWidth; height = $AdminHeight; waitMs = $AdminWaitMs
-      expectedUrlContains = "/demands"; minElements = 100
-      selectorsAll = @(".admin-demands-page", ".ipm-content-inner"); selectorsAny = @(".ant-table", ".ant-pagination")
-      textAny = @(); storage = $adminAuthedStorage; demoAuth = $false
-    },
-    @{
       name = "admin-achievements"; path = "/achievements"; base = $adminBase
       width = $AdminWidth; height = $AdminHeight; waitMs = $AdminWaitMs
       expectedUrlContains = "/achievements"; minElements = 100
       selectorsAll = @(".admin-achievements-page", ".ipm-content-inner"); selectorsAny = @(".ant-table", ".ant-pagination")
-      textAny = @(); storage = $adminAuthedStorage; demoAuth = $false
-    },
-    @{
-      name = "admin-artworks"; path = "/artworks"; base = $adminBase
-      width = $AdminWidth; height = $AdminHeight; waitMs = $AdminWaitMs
-      expectedUrlContains = "/artworks"; minElements = 100
-      selectorsAll = @(".admin-artworks-page", ".ipm-content-inner"); selectorsAny = @(".ant-table", ".ant-pagination")
       textAny = @(); storage = $adminAuthedStorage; demoAuth = $false
     },
     @{

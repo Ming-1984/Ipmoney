@@ -247,8 +247,6 @@ function Invoke-Capture(
 $sample = @{
   listingId = "7a490e63-8173-41e7-b4f0-0d0bb5ce7d20"
   patentId = "965f9831-2c44-48e8-8b7a-cd7ab40ff7ec"
-  artworkId = "7f8e9f72-98f4-4f4a-8d11-44f38fcf3d51"
-  demandId = "8f278f0a-6ccf-45ce-a664-f5eaf39a9be4"
   achievementId = "2a9ee2ee-9ab8-4335-b568-e9d9ef57f2f7"
   techManagerId = "c05d27bc-c739-47ad-91f7-53ccf8517a4e"
   orgUserId = "c5b6438a-f3a7-4590-a484-0f2a2991c613"
@@ -385,8 +383,6 @@ try {
       @{ name = "client-search"; path = "#/pages/search/index"; demoAuth = $false; width = $ClientWidth; height = $ClientHeight; waitMs = $ClientWaitMs },
       @{ name = "client-listing-detail"; path = "#/pages/listing/detail/index?listingId=$($sample.listingId)"; demoAuth = $false; width = $ClientWidth; height = $ClientHeight; waitMs = $ClientWaitMs },
       @{ name = "client-patent-detail"; path = "#/pages/patent/detail/index?patentId=$($sample.patentId)"; demoAuth = $false; width = $ClientWidth; height = $ClientHeight; waitMs = $ClientWaitMs },
-      @{ name = "client-artwork-detail"; path = "#/pages/artwork/detail/index?artworkId=$($sample.artworkId)"; demoAuth = $false; width = $ClientWidth; height = $ClientHeight; waitMs = $ClientWaitMs },
-      @{ name = "client-demand-detail"; path = "#/pages/demand/detail/index?demandId=$($sample.demandId)"; demoAuth = $false; width = $ClientWidth; height = $ClientHeight; waitMs = $ClientWaitMs },
       @{ name = "client-achievement-detail"; path = "#/pages/achievement/detail/index?achievementId=$($sample.achievementId)"; demoAuth = $false; width = $ClientWidth; height = $ClientHeight; waitMs = $ClientWaitMs },
       @{ name = "client-organizations"; path = "#/pages/organizations/index"; demoAuth = $false; width = $ClientWidth; height = $ClientHeight; waitMs = $ClientWaitMs },
       @{ name = "client-organization-detail"; path = "#/pages/organizations/detail/index?orgUserId=$($sample.orgUserId)"; demoAuth = $false; width = $ClientWidth; height = $ClientHeight; waitMs = $ClientWaitMs },
@@ -414,13 +410,9 @@ try {
       @{ name = "client-final-pay"; path = "#/pages/checkout/final-pay/index?orderId=$($sample.orderId)"; demoAuth = $true; width = $ClientWidth; height = $ClientHeight; waitMs = $ClientWaitMs },
       @{ name = "client-final-success"; path = "#/pages/checkout/final-success/index?orderId=$($sample.orderId)"; demoAuth = $true; width = $ClientWidth; height = $ClientHeight; waitMs = $ClientWaitMs },
       @{ name = "client-my-listings"; path = "#/pages/my-listings/index"; demoAuth = $true; width = $ClientWidth; height = $ClientHeight; waitMs = $ClientWaitMs },
-      @{ name = "client-my-demands"; path = "#/pages/my-demands/index"; demoAuth = $true; width = $ClientWidth; height = $ClientHeight; waitMs = $ClientWaitMs },
       @{ name = "client-my-achievements"; path = "#/pages/my-achievements/index"; demoAuth = $true; width = $ClientWidth; height = $ClientHeight; waitMs = $ClientWaitMs },
-      @{ name = "client-my-artworks"; path = "#/pages/my-artworks/index"; demoAuth = $true; width = $ClientWidth; height = $ClientHeight; waitMs = $ClientWaitMs },
       @{ name = "client-publish-patent"; path = "#/pages/publish/patent/index"; demoAuth = $true; width = $ClientWidth; height = $ClientHeight; waitMs = $ClientWaitMs },
-      @{ name = "client-publish-demand"; path = "#/pages/publish/demand/index"; demoAuth = $true; width = $ClientWidth; height = $ClientHeight; waitMs = $ClientWaitMs },
       @{ name = "client-publish-achievement"; path = "#/pages/publish/achievement/index"; demoAuth = $true; width = $ClientWidth; height = $ClientHeight; waitMs = $ClientWaitMs },
-      @{ name = "client-publish-artwork"; path = "#/pages/publish/artwork/index"; demoAuth = $true; width = $ClientWidth; height = $ClientHeight; waitMs = $ClientWaitMs },
       @{ name = "client-cluster-picker"; path = "#/pages/cluster-picker/index"; demoAuth = $false; width = $ClientWidth; height = $ClientHeight; waitMs = $ClientWaitMs },
       @{ name = "client-settings-notifications"; path = "#/pages/settings/notifications/index"; demoAuth = $true; width = $ClientWidth; height = $ClientHeight; waitMs = $ClientWaitMs },
       @{ name = "client-about"; path = "#/pages/about/index"; demoAuth = $false; width = $ClientWidth; height = $ClientHeight; waitMs = $ClientWaitMs },
@@ -446,9 +438,7 @@ try {
       @{ name = "admin-settlements"; path = "/settlements"; base = $adminBase; demoAuth = $false; width = $AdminWidth; height = $AdminHeight; waitMs = $AdminWaitMs },
       @{ name = "admin-invoices"; path = "/invoices"; base = $adminBase; demoAuth = $false; width = $AdminWidth; height = $AdminHeight; waitMs = $AdminWaitMs },
       @{ name = "admin-listings"; path = "/listings"; base = $adminBase; demoAuth = $false; width = $AdminWidth; height = $AdminHeight; waitMs = $AdminWaitMs },
-      @{ name = "admin-demands"; path = "/demands"; base = $adminBase; demoAuth = $false; width = $AdminWidth; height = $AdminHeight; waitMs = $AdminWaitMs },
       @{ name = "admin-achievements"; path = "/achievements"; base = $adminBase; demoAuth = $false; width = $AdminWidth; height = $AdminHeight; waitMs = $AdminWaitMs },
-      @{ name = "admin-artworks"; path = "/artworks"; base = $adminBase; demoAuth = $false; width = $AdminWidth; height = $AdminHeight; waitMs = $AdminWaitMs },
       @{ name = "admin-tech-managers"; path = "/tech-managers"; base = $adminBase; demoAuth = $false; width = $AdminWidth; height = $AdminHeight; waitMs = $AdminWaitMs },
       @{ name = "admin-cases"; path = "/cases"; base = $adminBase; demoAuth = $false; width = $AdminWidth; height = $AdminHeight; waitMs = $AdminWaitMs },
       @{ name = "admin-reports"; path = "/reports"; base = $adminBase; demoAuth = $false; width = $AdminWidth; height = $AdminHeight; waitMs = $AdminWaitMs },

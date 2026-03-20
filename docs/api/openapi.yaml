@@ -32,12 +32,8 @@ tags:
     description: 检索、排序与猜你喜欢
   - name: Listings
     description: 上架商品（卖家）与收藏/咨询
-  - name: Demands
-    description: 产学研需求（发布/审核/展示/咨询）
   - name: Achievements
     description: 成果展示（发布/审核/展示/咨询）
-  - name: Artworks
-    description: 书画专区（发布/审核/展示/咨询）
   - name: TechManagers
     description: 技术经理人栏目（检索/展示/咨询）
   - name: Orders
@@ -447,26 +443,6 @@ paths:
         "401":
           $ref: "#/components/responses/Unauthorized"
 
-  /me/favorites/demands:
-    get:
-      tags: [Demands]
-      summary: 我的需求收藏列表
-      operationId: listMyFavoriteDemands
-      security:
-        - BearerAuth: []
-      parameters:
-        - $ref: "#/components/parameters/Page"
-        - $ref: "#/components/parameters/PageSize"
-      responses:
-        "200":
-          description: OK
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/PagedDemandSummary"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-
   /me/favorites/achievements:
     get:
       tags: [Achievements]
@@ -484,26 +460,6 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/PagedAchievementSummary"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-
-  /me/favorites/artworks:
-    get:
-      tags: [Artworks]
-      summary: 我的书画收藏列表
-      operationId: listMyFavoriteArtworks
-      security:
-        - BearerAuth: []
-      parameters:
-        - $ref: "#/components/parameters/Page"
-        - $ref: "#/components/parameters/PageSize"
-      responses:
-        "200":
-          description: OK
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/PagedArtworkSummary"
         "401":
           $ref: "#/components/responses/Unauthorized"
 
@@ -827,46 +783,6 @@ paths:
         "404":
           $ref: "#/components/responses/NotFound"
 
-  /public/demands/{demandId}:
-    get:
-      tags: [Demands]
-      summary: 获取需求详情（公开）
-      operationId: getPublicDemandById
-      security: []
-      parameters:
-        - $ref: "#/components/parameters/DemandId"
-      responses:
-        "200":
-          description: OK
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/DemandPublic"
-        "404":
-          $ref: "#/components/responses/NotFound"
-
-  /public/demands/{demandId}/comments:
-    get:
-      tags: [Comments]
-      summary: 获取需求留言列表（公开）
-      operationId: listPublicDemandComments
-      security: []
-      parameters:
-        - $ref: "#/components/parameters/DemandId"
-        - $ref: "#/components/parameters/Page"
-        - $ref: "#/components/parameters/PageSize"
-      responses:
-        "200":
-          description: OK
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/PagedCommentThread"
-        "400":
-          $ref: "#/components/responses/BadRequest"
-        "404":
-          $ref: "#/components/responses/NotFound"
-
   /public/achievements/{achievementId}:
     get:
       tags: [Achievements]
@@ -893,46 +809,6 @@ paths:
       security: []
       parameters:
         - $ref: "#/components/parameters/AchievementId"
-        - $ref: "#/components/parameters/Page"
-        - $ref: "#/components/parameters/PageSize"
-      responses:
-        "200":
-          description: OK
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/PagedCommentThread"
-        "400":
-          $ref: "#/components/responses/BadRequest"
-        "404":
-          $ref: "#/components/responses/NotFound"
-
-  /public/artworks/{artworkId}:
-    get:
-      tags: [Artworks]
-      summary: 获取书画作品详情（公开）
-      operationId: getPublicArtworkById
-      security: []
-      parameters:
-        - $ref: "#/components/parameters/ArtworkId"
-      responses:
-        "200":
-          description: OK
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ArtworkPublic"
-        "404":
-          $ref: "#/components/responses/NotFound"
-
-  /public/artworks/{artworkId}/comments:
-    get:
-      tags: [Comments]
-      summary: 获取书画留言列表（公开）
-      operationId: listPublicArtworkComments
-      security: []
-      parameters:
-        - $ref: "#/components/parameters/ArtworkId"
         - $ref: "#/components/parameters/Page"
         - $ref: "#/components/parameters/PageSize"
       responses:
@@ -1193,33 +1069,6 @@ paths:
         "400":
           $ref: "#/components/responses/BadRequest"
 
-  /search/demands:
-    get:
-      tags: [Search]
-      summary: 产学研需求检索
-      operationId: searchDemands
-      security: []
-      parameters:
-        - $ref: "#/components/parameters/Q"
-        - $ref: "#/components/parameters/RegionCode"
-        - $ref: "#/components/parameters/IndustryTags"
-        - $ref: "#/components/parameters/CooperationModes"
-        - $ref: "#/components/parameters/BudgetType"
-        - $ref: "#/components/parameters/BudgetMin"
-        - $ref: "#/components/parameters/BudgetMax"
-        - $ref: "#/components/parameters/ContentSortBy"
-        - $ref: "#/components/parameters/Page"
-        - $ref: "#/components/parameters/PageSize"
-      responses:
-        "200":
-          description: OK
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/PagedDemandSummary"
-        "400":
-          $ref: "#/components/responses/BadRequest"
-
   /search/achievements:
     get:
       tags: [Search]
@@ -1242,39 +1091,6 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/PagedAchievementSummary"
-        "400":
-          $ref: "#/components/responses/BadRequest"
-
-  /search/artworks:
-    get:
-      tags: [Search]
-      summary: 书画专区检索
-      operationId: searchArtworks
-      security: []
-      parameters:
-        - $ref: "#/components/parameters/Q"
-        - $ref: "#/components/parameters/ArtworkCategory"
-        - $ref: "#/components/parameters/CalligraphyScript"
-        - $ref: "#/components/parameters/PaintingGenre"
-        - $ref: "#/components/parameters/Creator"
-        - $ref: "#/components/parameters/CreationYearStart"
-        - $ref: "#/components/parameters/CreationYearEnd"
-        - $ref: "#/components/parameters/PriceType"
-        - $ref: "#/components/parameters/PriceMin"
-        - $ref: "#/components/parameters/PriceMax"
-        - $ref: "#/components/parameters/DepositMin"
-        - $ref: "#/components/parameters/DepositMax"
-        - $ref: "#/components/parameters/RegionCode"
-        - $ref: "#/components/parameters/ArtworkSortBy"
-        - $ref: "#/components/parameters/Page"
-        - $ref: "#/components/parameters/PageSize"
-      responses:
-        "200":
-          description: OK
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/PagedArtworkSummary"
         "400":
           $ref: "#/components/responses/BadRequest"
 
@@ -1634,231 +1450,6 @@ paths:
         "404":
           $ref: "#/components/responses/NotFound"
 
-  /demands:
-    post:
-      tags: [Demands]
-      summary: 创建需求草稿（发布方）
-      operationId: createDemand
-      security:
-        - BearerAuth: []
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/DemandCreateRequest"
-      responses:
-        "201":
-          description: Created
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Demand"
-        "400":
-          $ref: "#/components/responses/BadRequest"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "403":
-          $ref: "#/components/responses/Forbidden"
-    get:
-      tags: [Demands]
-      summary: 我的需求列表（发布方）
-      operationId: listMyDemands
-      security:
-        - BearerAuth: []
-      parameters:
-        - $ref: "#/components/parameters/ContentStatus"
-        - $ref: "#/components/parameters/AuditStatus"
-        - $ref: "#/components/parameters/Page"
-        - $ref: "#/components/parameters/PageSize"
-      responses:
-        "200":
-          description: OK
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/PagedDemand"
-        "400":
-          $ref: "#/components/responses/BadRequest"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-
-  /demands/{demandId}:
-    get:
-      tags: [Demands]
-      summary: 获取需求详情（发布方/已登录）
-      operationId: getDemandById
-      security:
-        - BearerAuth: []
-      parameters:
-        - $ref: "#/components/parameters/DemandId"
-      responses:
-        "200":
-          description: OK
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Demand"
-        "404":
-          $ref: "#/components/responses/NotFound"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-    patch:
-      tags: [Demands]
-      summary: 更新需求草稿（发布方）
-      operationId: updateDemand
-      security:
-        - BearerAuth: []
-      parameters:
-        - $ref: "#/components/parameters/DemandId"
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/DemandUpdateRequest"
-      responses:
-        "200":
-          description: OK
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Demand"
-        "400":
-          $ref: "#/components/responses/BadRequest"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "403":
-          $ref: "#/components/responses/Forbidden"
-        "404":
-          $ref: "#/components/responses/NotFound"
-
-  /demands/{demandId}/favorites:
-    post:
-      tags: [Demands]
-      summary: 收藏需求
-      operationId: favoriteDemand
-      security:
-        - BearerAuth: []
-      parameters:
-        - $ref: "#/components/parameters/DemandId"
-        - $ref: "#/components/parameters/IdempotencyKey"
-      responses:
-        "204":
-          description: No Content
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "404":
-          $ref: "#/components/responses/NotFound"
-        "409":
-          $ref: "#/components/responses/Conflict"
-    delete:
-      tags: [Demands]
-      summary: 取消收藏需求
-      operationId: unfavoriteDemand
-      security:
-        - BearerAuth: []
-      parameters:
-        - $ref: "#/components/parameters/DemandId"
-        - $ref: "#/components/parameters/IdempotencyKey"
-      responses:
-        "204":
-          description: No Content
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "404":
-          $ref: "#/components/responses/NotFound"
-        "409":
-          $ref: "#/components/responses/Conflict"
-
-  /demands/{demandId}/comments:
-    post:
-      tags: [Comments]
-      summary: 创建需求留言/回复
-      operationId: createDemandComment
-      security:
-        - BearerAuth: []
-      parameters:
-        - $ref: "#/components/parameters/DemandId"
-        - $ref: "#/components/parameters/IdempotencyKey"
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/CommentCreateRequest"
-      responses:
-        "201":
-          description: Created
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Comment"
-        "400":
-          $ref: "#/components/responses/BadRequest"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "404":
-          $ref: "#/components/responses/NotFound"
-        "409":
-          $ref: "#/components/responses/Conflict"
-
-  /demands/{demandId}/submit:
-    post:
-      tags: [Demands]
-      summary: 提交审核（发布方）
-      operationId: submitDemand
-      security:
-        - BearerAuth: []
-      parameters:
-        - $ref: "#/components/parameters/DemandId"
-      responses:
-        "200":
-          description: OK
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Demand"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "403":
-          $ref: "#/components/responses/Forbidden"
-        "404":
-          $ref: "#/components/responses/NotFound"
-
-  /demands/{demandId}/off-shelf:
-    post:
-      tags: [Demands]
-      summary: 下架（发布方）
-      operationId: offShelfDemand
-      security:
-        - BearerAuth: []
-      parameters:
-        - $ref: "#/components/parameters/DemandId"
-      requestBody:
-        required: false
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                reason:
-                  type: string
-                  maxLength: 200
-      responses:
-        "200":
-          description: OK
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Demand"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "403":
-          $ref: "#/components/responses/Forbidden"
-        "404":
-          $ref: "#/components/responses/NotFound"
-
   /achievements:
     post:
       tags: [Achievements]
@@ -2138,231 +1729,6 @@ paths:
         "404":
           $ref: "#/components/responses/NotFound"
 
-  /artworks:
-    post:
-      tags: [Artworks]
-      summary: 创建书画草稿（发布方）
-      operationId: createArtwork
-      security:
-        - BearerAuth: []
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/ArtworkCreateRequest"
-      responses:
-        "201":
-          description: Created
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Artwork"
-        "400":
-          $ref: "#/components/responses/BadRequest"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "403":
-          $ref: "#/components/responses/Forbidden"
-    get:
-      tags: [Artworks]
-      summary: 我的书画列表（发布方）
-      operationId: listMyArtworks
-      security:
-        - BearerAuth: []
-      parameters:
-        - $ref: "#/components/parameters/ArtworkStatus"
-        - $ref: "#/components/parameters/AuditStatus"
-        - $ref: "#/components/parameters/Page"
-        - $ref: "#/components/parameters/PageSize"
-      responses:
-        "200":
-          description: OK
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/PagedArtwork"
-        "400":
-          $ref: "#/components/responses/BadRequest"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-
-  /artworks/{artworkId}:
-    get:
-      tags: [Artworks]
-      summary: 获取书画详情（发布方/已登录）
-      operationId: getArtworkById
-      security:
-        - BearerAuth: []
-      parameters:
-        - $ref: "#/components/parameters/ArtworkId"
-      responses:
-        "200":
-          description: OK
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Artwork"
-        "404":
-          $ref: "#/components/responses/NotFound"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-    patch:
-      tags: [Artworks]
-      summary: 更新书画草稿（发布方）
-      operationId: updateArtwork
-      security:
-        - BearerAuth: []
-      parameters:
-        - $ref: "#/components/parameters/ArtworkId"
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/ArtworkUpdateRequest"
-      responses:
-        "200":
-          description: OK
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Artwork"
-        "400":
-          $ref: "#/components/responses/BadRequest"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "403":
-          $ref: "#/components/responses/Forbidden"
-        "404":
-          $ref: "#/components/responses/NotFound"
-
-  /artworks/{artworkId}/favorites:
-    post:
-      tags: [Artworks]
-      summary: 收藏书画作品
-      operationId: favoriteArtwork
-      security:
-        - BearerAuth: []
-      parameters:
-        - $ref: "#/components/parameters/ArtworkId"
-        - $ref: "#/components/parameters/IdempotencyKey"
-      responses:
-        "204":
-          description: No Content
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "404":
-          $ref: "#/components/responses/NotFound"
-        "409":
-          $ref: "#/components/responses/Conflict"
-    delete:
-      tags: [Artworks]
-      summary: 取消收藏书画作品
-      operationId: unfavoriteArtwork
-      security:
-        - BearerAuth: []
-      parameters:
-        - $ref: "#/components/parameters/ArtworkId"
-        - $ref: "#/components/parameters/IdempotencyKey"
-      responses:
-        "204":
-          description: No Content
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "404":
-          $ref: "#/components/responses/NotFound"
-        "409":
-          $ref: "#/components/responses/Conflict"
-
-  /artworks/{artworkId}/comments:
-    post:
-      tags: [Comments]
-      summary: 创建书画留言/回复
-      operationId: createArtworkComment
-      security:
-        - BearerAuth: []
-      parameters:
-        - $ref: "#/components/parameters/ArtworkId"
-        - $ref: "#/components/parameters/IdempotencyKey"
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/CommentCreateRequest"
-      responses:
-        "201":
-          description: Created
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Comment"
-        "400":
-          $ref: "#/components/responses/BadRequest"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "404":
-          $ref: "#/components/responses/NotFound"
-        "409":
-          $ref: "#/components/responses/Conflict"
-
-  /artworks/{artworkId}/submit:
-    post:
-      tags: [Artworks]
-      summary: 提交审核（发布方）
-      operationId: submitArtwork
-      security:
-        - BearerAuth: []
-      parameters:
-        - $ref: "#/components/parameters/ArtworkId"
-      responses:
-        "200":
-          description: OK
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Artwork"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "403":
-          $ref: "#/components/responses/Forbidden"
-        "404":
-          $ref: "#/components/responses/NotFound"
-
-  /artworks/{artworkId}/off-shelf:
-    post:
-      tags: [Artworks]
-      summary: 下架（发布方）
-      operationId: offShelfArtwork
-      security:
-        - BearerAuth: []
-      parameters:
-        - $ref: "#/components/parameters/ArtworkId"
-      requestBody:
-        required: false
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                reason:
-                  type: string
-                  maxLength: 200
-      responses:
-        "200":
-          description: OK
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Artwork"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "403":
-          $ref: "#/components/responses/Forbidden"
-        "404":
-          $ref: "#/components/responses/NotFound"
-
   /orders:
     post:
       tags: [Orders]
@@ -2378,11 +1744,8 @@ paths:
               type: object
               oneOf:
                 - required: [listingId]
-                - required: [artworkId]
               properties:
                 listingId:
-                  $ref: "#/components/schemas/Uuid"
-                artworkId:
                   $ref: "#/components/schemas/Uuid"
       responses:
         "201":
@@ -2704,30 +2067,6 @@ paths:
         "409":
           $ref: "#/components/responses/Conflict"
 
-  /demands/{demandId}/conversations:
-    post:
-      tags: [Messaging]
-      summary: 创建/获取与该需求相关的会话（咨询）
-      operationId: upsertDemandConversation
-      security:
-        - BearerAuth: []
-      parameters:
-        - $ref: "#/components/parameters/DemandId"
-        - $ref: "#/components/parameters/IdempotencyKey"
-      responses:
-        "200":
-          description: OK
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Conversation"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "404":
-          $ref: "#/components/responses/NotFound"
-        "409":
-          $ref: "#/components/responses/Conflict"
-
   /achievements/{achievementId}/conversations:
     post:
       tags: [Messaging]
@@ -2737,30 +2076,6 @@ paths:
         - BearerAuth: []
       parameters:
         - $ref: "#/components/parameters/AchievementId"
-        - $ref: "#/components/parameters/IdempotencyKey"
-      responses:
-        "200":
-          description: OK
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Conversation"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "404":
-          $ref: "#/components/responses/NotFound"
-        "409":
-          $ref: "#/components/responses/Conflict"
-
-  /artworks/{artworkId}/conversations:
-    post:
-      tags: [Messaging]
-      summary: 创建/获取与该书画相关的会话（咨询）
-      operationId: upsertArtworkConversation
-      security:
-        - BearerAuth: []
-      parameters:
-        - $ref: "#/components/parameters/ArtworkId"
         - $ref: "#/components/parameters/IdempotencyKey"
       responses:
         "200":
@@ -4136,232 +3451,6 @@ paths:
         "409":
           $ref: "#/components/responses/Conflict"
 
-  /admin/demands:
-    get:
-      tags: [Admin]
-      summary: 需求审核/平台内容列表
-      operationId: adminListDemandsForAudit
-      security:
-        - BearerAuth: []
-      parameters:
-        - $ref: "#/components/parameters/Q"
-        - $ref: "#/components/parameters/RegionCode"
-        - $ref: "#/components/parameters/AuditStatus"
-        - $ref: "#/components/parameters/ContentStatus"
-        - $ref: "#/components/parameters/ContentSource"
-        - $ref: "#/components/parameters/Page"
-        - $ref: "#/components/parameters/PageSize"
-      responses:
-        "200":
-          description: OK
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/PagedDemand"
-        "400":
-          $ref: "#/components/responses/BadRequest"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "403":
-          $ref: "#/components/responses/Forbidden"
-    post:
-      tags: [Admin]
-      summary: 创建平台自有需求（P1）
-      operationId: adminCreateDemand
-      security:
-        - BearerAuth: []
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/AdminDemandCreateRequest"
-      responses:
-        "201":
-          description: Created
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Demand"
-        "400":
-          $ref: "#/components/responses/BadRequest"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "403":
-          $ref: "#/components/responses/Forbidden"
-
-  /admin/demands/{demandId}:
-    get:
-      tags: [Admin]
-      summary: 获取需求详情（后台，P1）
-      operationId: adminGetDemandById
-      security:
-        - BearerAuth: []
-      parameters:
-        - $ref: "#/components/parameters/DemandId"
-      responses:
-        "200":
-          description: OK
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Demand"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "403":
-          $ref: "#/components/responses/Forbidden"
-        "404":
-          $ref: "#/components/responses/NotFound"
-    patch:
-      tags: [Admin]
-      summary: 更新平台自有需求（后台，P1）
-      operationId: adminUpdateDemand
-      security:
-        - BearerAuth: []
-      parameters:
-        - $ref: "#/components/parameters/DemandId"
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/AdminDemandUpdateRequest"
-      responses:
-        "200":
-          description: OK
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Demand"
-        "400":
-          $ref: "#/components/responses/BadRequest"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "403":
-          $ref: "#/components/responses/Forbidden"
-        "404":
-          $ref: "#/components/responses/NotFound"
-
-  /admin/demands/{demandId}/publish:
-    post:
-      tags: [Admin]
-      summary: 发布需求（后台，P1）
-      operationId: adminPublishDemand
-      security:
-        - BearerAuth: []
-      parameters:
-        - $ref: "#/components/parameters/DemandId"
-      responses:
-        "200":
-          description: OK
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Demand"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "403":
-          $ref: "#/components/responses/Forbidden"
-        "404":
-          $ref: "#/components/responses/NotFound"
-        "409":
-          $ref: "#/components/responses/Conflict"
-
-  /admin/demands/{demandId}/off-shelf:
-    post:
-      tags: [Admin]
-      summary: 下架需求（后台，P1）
-      operationId: adminOffShelfDemand
-      security:
-        - BearerAuth: []
-      parameters:
-        - $ref: "#/components/parameters/DemandId"
-      requestBody:
-        required: false
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                reason:
-                  type: string
-                  maxLength: 200
-      responses:
-        "200":
-          description: OK
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Demand"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "403":
-          $ref: "#/components/responses/Forbidden"
-        "404":
-          $ref: "#/components/responses/NotFound"
-
-  /admin/demands/{demandId}/approve:
-    post:
-      tags: [Admin]
-      summary: 需求审核通过
-      operationId: adminApproveDemand
-      security:
-        - BearerAuth: []
-      parameters:
-        - $ref: "#/components/parameters/DemandId"
-      responses:
-        "200":
-          description: OK
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Demand"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "403":
-          $ref: "#/components/responses/Forbidden"
-        "404":
-          $ref: "#/components/responses/NotFound"
-        "409":
-          $ref: "#/components/responses/Conflict"
-
-  /admin/demands/{demandId}/reject:
-    post:
-      tags: [Admin]
-      summary: 需求审核驳回
-      operationId: adminRejectDemand
-      security:
-        - BearerAuth: []
-      parameters:
-        - $ref: "#/components/parameters/DemandId"
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              required: [reason]
-              properties:
-                reason:
-                  type: string
-                  minLength: 1
-                  maxLength: 500
-      responses:
-        "200":
-          description: OK
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Demand"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "403":
-          $ref: "#/components/responses/Forbidden"
-        "404":
-          $ref: "#/components/responses/NotFound"
-        "409":
-          $ref: "#/components/responses/Conflict"
-
   /admin/achievements:
     get:
       tags: [Admin]
@@ -4579,230 +3668,6 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Achievement"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "403":
-          $ref: "#/components/responses/Forbidden"
-        "404":
-          $ref: "#/components/responses/NotFound"
-
-  /admin/artworks:
-    get:
-      tags: [Admin]
-      summary: 书画审核/平台内容列表
-      operationId: adminListArtworksForAudit
-      security:
-        - BearerAuth: []
-      parameters:
-        - $ref: "#/components/parameters/Q"
-        - $ref: "#/components/parameters/RegionCode"
-        - $ref: "#/components/parameters/AuditStatus"
-        - $ref: "#/components/parameters/ArtworkStatus"
-        - $ref: "#/components/parameters/ContentSource"
-        - $ref: "#/components/parameters/Page"
-        - $ref: "#/components/parameters/PageSize"
-      responses:
-        "200":
-          description: OK
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/PagedArtwork"
-        "400":
-          $ref: "#/components/responses/BadRequest"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "403":
-          $ref: "#/components/responses/Forbidden"
-    post:
-      tags: [Admin]
-      summary: 创建平台自有书画（P1）
-      operationId: adminCreateArtwork
-      security:
-        - BearerAuth: []
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/AdminArtworkCreateRequest"
-      responses:
-        "201":
-          description: Created
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Artwork"
-        "400":
-          $ref: "#/components/responses/BadRequest"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "403":
-          $ref: "#/components/responses/Forbidden"
-
-  /admin/artworks/{artworkId}:
-    get:
-      tags: [Admin]
-      summary: 获取书画详情（后台，P1）
-      operationId: adminGetArtworkById
-      security:
-        - BearerAuth: []
-      parameters:
-        - $ref: "#/components/parameters/ArtworkId"
-      responses:
-        "200":
-          description: OK
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Artwork"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "403":
-          $ref: "#/components/responses/Forbidden"
-        "404":
-          $ref: "#/components/responses/NotFound"
-    patch:
-      tags: [Admin]
-      summary: 更新平台自有书画（后台，P1）
-      operationId: adminUpdateArtwork
-      security:
-        - BearerAuth: []
-      parameters:
-        - $ref: "#/components/parameters/ArtworkId"
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/AdminArtworkUpdateRequest"
-      responses:
-        "200":
-          description: OK
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Artwork"
-        "400":
-          $ref: "#/components/responses/BadRequest"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "403":
-          $ref: "#/components/responses/Forbidden"
-        "404":
-          $ref: "#/components/responses/NotFound"
-
-  /admin/artworks/{artworkId}/publish:
-    post:
-      tags: [Admin]
-      summary: 发布书画（后台，P1）
-      operationId: adminPublishArtwork
-      security:
-        - BearerAuth: []
-      parameters:
-        - $ref: "#/components/parameters/ArtworkId"
-      responses:
-        "200":
-          description: OK
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Artwork"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "403":
-          $ref: "#/components/responses/Forbidden"
-        "404":
-          $ref: "#/components/responses/NotFound"
-        "409":
-          $ref: "#/components/responses/Conflict"
-
-  /admin/artworks/{artworkId}/off-shelf:
-    post:
-      tags: [Admin]
-      summary: 下架书画（后台，P1）
-      operationId: adminOffShelfArtwork
-      security:
-        - BearerAuth: []
-      parameters:
-        - $ref: "#/components/parameters/ArtworkId"
-      requestBody:
-        required: false
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                reason:
-                  type: string
-                  maxLength: 200
-      responses:
-        "200":
-          description: OK
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Artwork"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "403":
-          $ref: "#/components/responses/Forbidden"
-        "404":
-          $ref: "#/components/responses/NotFound"
-
-  /admin/artworks/{artworkId}/approve:
-    post:
-      tags: [Admin]
-      summary: 书画审核通过
-      operationId: adminApproveArtwork
-      security:
-        - BearerAuth: []
-      parameters:
-        - $ref: "#/components/parameters/ArtworkId"
-      responses:
-        "200":
-          description: OK
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Artwork"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "403":
-          $ref: "#/components/responses/Forbidden"
-        "404":
-          $ref: "#/components/responses/NotFound"
-        "409":
-          $ref: "#/components/responses/Conflict"
-
-  /admin/artworks/{artworkId}/reject:
-    post:
-      tags: [Admin]
-      summary: 书画审核驳回
-      operationId: adminRejectArtwork
-      security:
-        - BearerAuth: []
-      parameters:
-        - $ref: "#/components/parameters/ArtworkId"
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              required: [reason]
-              properties:
-                reason:
-                  type: string
-                  minLength: 1
-                  maxLength: 500
-      responses:
-        "200":
-          description: OK
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Artwork"
         "401":
           $ref: "#/components/responses/Unauthorized"
         "403":
@@ -5969,52 +4834,6 @@ paths:
         "404":
           $ref: "#/components/responses/NotFound"
 
-  /admin/demands/{demandId}/materials:
-    get:
-      tags: [Admin]
-      summary: Get demand audit materials
-      operationId: adminGetDemandMaterials
-      security:
-        - BearerAuth: []
-      parameters:
-        - $ref: "#/components/parameters/DemandId"
-      responses:
-        "200":
-          description: OK
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/AuditMaterialList"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "403":
-          $ref: "#/components/responses/Forbidden"
-        "404":
-          $ref: "#/components/responses/NotFound"
-
-  /admin/demands/{demandId}/audit-logs:
-    get:
-      tags: [Admin]
-      summary: Get demand audit logs
-      operationId: adminGetDemandAuditLogs
-      security:
-        - BearerAuth: []
-      parameters:
-        - $ref: "#/components/parameters/DemandId"
-      responses:
-        "200":
-          description: OK
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/AuditLogList"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "403":
-          $ref: "#/components/responses/Forbidden"
-        "404":
-          $ref: "#/components/responses/NotFound"
-
   /admin/achievements/{achievementId}/materials:
     get:
       tags: [Admin]
@@ -6047,52 +4866,6 @@ paths:
         - BearerAuth: []
       parameters:
         - $ref: "#/components/parameters/AchievementId"
-      responses:
-        "200":
-          description: OK
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/AuditLogList"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "403":
-          $ref: "#/components/responses/Forbidden"
-        "404":
-          $ref: "#/components/responses/NotFound"
-
-  /admin/artworks/{artworkId}/materials:
-    get:
-      tags: [Admin]
-      summary: Get artwork audit materials
-      operationId: adminGetArtworkMaterials
-      security:
-        - BearerAuth: []
-      parameters:
-        - $ref: "#/components/parameters/ArtworkId"
-      responses:
-        "200":
-          description: OK
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/AuditMaterialList"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "403":
-          $ref: "#/components/responses/Forbidden"
-        "404":
-          $ref: "#/components/responses/NotFound"
-
-  /admin/artworks/{artworkId}/audit-logs:
-    get:
-      tags: [Admin]
-      summary: Get artwork audit logs
-      operationId: adminGetArtworkAuditLogs
-      security:
-        - BearerAuth: []
-      parameters:
-        - $ref: "#/components/parameters/ArtworkId"
       responses:
         "200":
           description: OK
@@ -6700,54 +5473,6 @@ components:
         example: "110000"
       description: 行政区划 adcode（6 位字符串）
 
-    ArtworkCategory:
-      name: category
-      in: query
-      required: false
-      schema:
-        $ref: "#/components/schemas/ArtworkCategory"
-      description: 书画类别（书法/绘画）
-
-    CalligraphyScript:
-      name: calligraphyScript
-      in: query
-      required: false
-      schema:
-        $ref: "#/components/schemas/CalligraphyScript"
-
-    PaintingGenre:
-      name: paintingGenre
-      in: query
-      required: false
-      schema:
-        $ref: "#/components/schemas/PaintingGenre"
-
-    Creator:
-      name: creator
-      in: query
-      required: false
-      schema:
-        type: string
-      description: 作者/创作者
-
-    CreationYearStart:
-      name: creationYearStart
-      in: query
-      required: false
-      schema:
-        type: integer
-        minimum: 0
-      description: 创作年份起
-
-    CreationYearEnd:
-      name: creationYearEnd
-      in: query
-      required: false
-      schema:
-        type: integer
-        minimum: 0
-      description: 创作年份止
-
     OrganizationTypes:
       name: types
       in: query
@@ -6897,12 +5622,6 @@ components:
       required: false
       schema:
         $ref: "#/components/schemas/ContentSortBy"
-    ArtworkSortBy:
-      name: sortBy
-      in: query
-      required: false
-      schema:
-        $ref: "#/components/schemas/ArtworkSortBy"
     TechManagerSortBy:
       name: sortBy
       in: query
@@ -6932,13 +5651,6 @@ components:
       required: false
       schema:
         $ref: "#/components/schemas/ContentStatus"
-    ArtworkStatus:
-      name: status
-      in: query
-      required: false
-      schema:
-        $ref: "#/components/schemas/ArtworkStatus"
-
     ContentSource:
       name: source
       in: query
@@ -7167,22 +5879,8 @@ components:
       schema:
         $ref: "#/components/schemas/Uuid"
 
-    DemandId:
-      name: demandId
-      in: path
-      required: true
-      schema:
-        $ref: "#/components/schemas/Uuid"
-
     AchievementId:
       name: achievementId
-      in: path
-      required: true
-      schema:
-        $ref: "#/components/schemas/Uuid"
-
-    ArtworkId:
-      name: artworkId
       in: path
       required: true
       schema:
@@ -8524,10 +7222,6 @@ components:
       type: string
       enum: [AUTO, NUMBER, KEYWORD, APPLICANT, INVENTOR]
 
-    ArtworkSortBy:
-      type: string
-      enum: [RECOMMENDED, NEWEST, PRICE_ASC, PRICE_DESC]
-
     ListingTopic:
       type: string
       enum: [HIGH_TECH_RETIRED, AWARD_WINNING]
@@ -8535,22 +7229,6 @@ components:
     TechManagerSortBy:
       type: string
       enum: [RECOMMENDED, NEWEST]
-
-    ArtworkCategory:
-      type: string
-      enum: [CALLIGRAPHY, PAINTING]
-
-    CalligraphyScript:
-      type: string
-      enum: [KAISHU, XINGSHU, CAOSHU, LISHU, ZHUANSHU]
-
-    PaintingGenre:
-      type: string
-      enum: [FIGURE, LANDSCAPE, BIRD_FLOWER, OTHER]
-
-    ArtworkStatus:
-      type: string
-      enum: [DRAFT, ACTIVE, OFF_SHELF, SOLD]
 
     CooperationMode:
       type: string
@@ -8590,245 +7268,6 @@ components:
         fileName:
           type: string
           readOnly: true
-
-    DemandSummary:
-      type: object
-      required: [id, title, publisher, auditStatus, status, createdAt]
-      properties:
-        id:
-          $ref: "#/components/schemas/Uuid"
-        source:
-          $ref: "#/components/schemas/ContentSource"
-        title:
-          type: string
-          maxLength: 200
-        summary:
-          type: string
-          maxLength: 2000
-        budgetType:
-          $ref: "#/components/schemas/PriceType"
-        budgetMinFen:
-          $ref: "#/components/schemas/MoneyFen"
-        budgetMaxFen:
-          $ref: "#/components/schemas/MoneyFen"
-        cooperationModes:
-          type: array
-          items:
-            $ref: "#/components/schemas/CooperationMode"
-        regionCode:
-          type: string
-        industryTags:
-          type: array
-          items:
-            type: string
-        keywords:
-          type: array
-          maxItems: 30
-          items:
-            type: string
-            maxLength: 50
-        deliveryPeriod:
-          $ref: "#/components/schemas/DeliveryPeriod"
-        publisher:
-          $ref: "#/components/schemas/OrganizationSummary"
-        stats:
-          $ref: "#/components/schemas/ListingStats"
-        auditStatus:
-          $ref: "#/components/schemas/AuditStatus"
-        status:
-          $ref: "#/components/schemas/ContentStatus"
-        coverUrl:
-          type: string
-          format: uri
-        createdAt:
-          type: string
-          format: date-time
-
-    Demand:
-      allOf:
-        - $ref: "#/components/schemas/DemandSummary"
-        - type: object
-          properties:
-            publisherUserId:
-              $ref: "#/components/schemas/Uuid"
-            description:
-              type: string
-              maxLength: 2000
-            keywords:
-              type: array
-              maxItems: 30
-              items:
-                type: string
-                maxLength: 50
-            deliveryPeriod:
-              $ref: "#/components/schemas/DeliveryPeriod"
-            contactName:
-              type: string
-              maxLength: 50
-            contactTitle:
-              type: string
-              maxLength: 100
-            contactPhoneMasked:
-              type: string
-              maxLength: 30
-            coverFileId:
-              $ref: "#/components/schemas/Uuid"
-              nullable: true
-            media:
-              type: array
-              items:
-                $ref: "#/components/schemas/ContentMedia"
-            aiParse:
-              $ref: "#/components/schemas/AiParseResult"
-              nullable: true
-            updatedAt:
-              type: string
-              format: date-time
-
-    DemandPublic:
-      allOf:
-        - $ref: "#/components/schemas/DemandSummary"
-        - type: object
-          properties:
-            description:
-              type: string
-              maxLength: 2000
-            media:
-              type: array
-              items:
-                $ref: "#/components/schemas/ContentMedia"
-            aiParse:
-              $ref: "#/components/schemas/AiParseResult"
-              nullable: true
-
-    PagedDemandSummary:
-      type: object
-      required: [items, page]
-      properties:
-        items:
-          type: array
-          items:
-            $ref: "#/components/schemas/DemandSummary"
-        page:
-          $ref: "#/components/schemas/PageMeta"
-
-    PagedDemand:
-      type: object
-      required: [items, page]
-      properties:
-        items:
-          type: array
-          items:
-            $ref: "#/components/schemas/Demand"
-        page:
-          $ref: "#/components/schemas/PageMeta"
-
-    DemandCreateRequest:
-      type: object
-      required: [title]
-      properties:
-        title:
-          type: string
-          maxLength: 200
-        description:
-          type: string
-          maxLength: 2000
-        summary:
-          type: string
-          maxLength: 2000
-        keywords:
-          type: array
-          maxItems: 30
-          items:
-            type: string
-            maxLength: 50
-        deliveryPeriod:
-          $ref: "#/components/schemas/DeliveryPeriod"
-        budgetType:
-          $ref: "#/components/schemas/PriceType"
-        budgetMinFen:
-          $ref: "#/components/schemas/MoneyFen"
-        budgetMaxFen:
-          $ref: "#/components/schemas/MoneyFen"
-        cooperationModes:
-          type: array
-          items:
-            $ref: "#/components/schemas/CooperationMode"
-        contactName:
-          type: string
-          maxLength: 50
-        contactTitle:
-          type: string
-          maxLength: 100
-        contactPhoneMasked:
-          type: string
-          maxLength: 30
-        regionCode:
-          type: string
-        industryTags:
-          type: array
-          items:
-            type: string
-        coverFileId:
-          $ref: "#/components/schemas/Uuid"
-          nullable: true
-        media:
-          type: array
-          items:
-            $ref: "#/components/schemas/ContentMedia"
-
-    DemandUpdateRequest:
-      type: object
-      properties:
-        title:
-          type: string
-          maxLength: 200
-        description:
-          type: string
-          maxLength: 2000
-        summary:
-          type: string
-          maxLength: 2000
-        keywords:
-          type: array
-          maxItems: 30
-          items:
-            type: string
-            maxLength: 50
-        deliveryPeriod:
-          $ref: "#/components/schemas/DeliveryPeriod"
-        budgetType:
-          $ref: "#/components/schemas/PriceType"
-        budgetMinFen:
-          $ref: "#/components/schemas/MoneyFen"
-        budgetMaxFen:
-          $ref: "#/components/schemas/MoneyFen"
-        cooperationModes:
-          type: array
-          items:
-            $ref: "#/components/schemas/CooperationMode"
-        contactName:
-          type: string
-          maxLength: 50
-        contactTitle:
-          type: string
-          maxLength: 100
-        contactPhoneMasked:
-          type: string
-          maxLength: 30
-        regionCode:
-          type: string
-        industryTags:
-          type: array
-          items:
-            type: string
-        coverFileId:
-          $ref: "#/components/schemas/Uuid"
-          nullable: true
-        media:
-          type: array
-          items:
-            $ref: "#/components/schemas/ContentMedia"
 
     AchievementSummary:
       type: object
@@ -9008,240 +7447,6 @@ components:
           type: array
           items:
             type: string
-        coverFileId:
-          $ref: "#/components/schemas/Uuid"
-          nullable: true
-        media:
-          type: array
-          items:
-            $ref: "#/components/schemas/ContentMedia"
-
-    ArtworkSummary:
-      type: object
-      required: [id, title, category, creatorName, priceType, depositAmountFen, auditStatus, status, createdAt, updatedAt]
-      properties:
-        id:
-          $ref: "#/components/schemas/Uuid"
-        source:
-          $ref: "#/components/schemas/ContentSource"
-        title:
-          type: string
-          maxLength: 200
-        category:
-          $ref: "#/components/schemas/ArtworkCategory"
-        calligraphyScript:
-          $ref: "#/components/schemas/CalligraphyScript"
-        paintingGenre:
-          $ref: "#/components/schemas/PaintingGenre"
-        creatorName:
-          type: string
-          maxLength: 200
-        creationDate:
-          type: string
-          format: date
-        creationYear:
-          type: integer
-          minimum: 0
-        certificateNo:
-          type: string
-          maxLength: 100
-        priceType:
-          $ref: "#/components/schemas/PriceType"
-        priceAmountFen:
-          $ref: "#/components/schemas/MoneyFen"
-        depositAmountFen:
-          $ref: "#/components/schemas/MoneyFen"
-        regionCode:
-          type: string
-        material:
-          type: string
-          maxLength: 200
-        size:
-          type: string
-          maxLength: 100
-        coverUrl:
-          type: string
-          format: uri
-        stats:
-          $ref: "#/components/schemas/ListingStats"
-        auditStatus:
-          $ref: "#/components/schemas/AuditStatus"
-        status:
-          $ref: "#/components/schemas/ArtworkStatus"
-        createdAt:
-          type: string
-          format: date-time
-        updatedAt:
-          type: string
-          format: date-time
-
-    Artwork:
-      allOf:
-        - $ref: "#/components/schemas/ArtworkSummary"
-        - type: object
-          properties:
-            sellerUserId:
-              $ref: "#/components/schemas/Uuid"
-            description:
-              type: string
-              maxLength: 5000
-            certificateFileIds:
-              type: array
-              items:
-                $ref: "#/components/schemas/Uuid"
-            coverFileId:
-              $ref: "#/components/schemas/Uuid"
-              nullable: true
-            media:
-              type: array
-              items:
-                $ref: "#/components/schemas/ContentMedia"
-            aiParse:
-              $ref: "#/components/schemas/AiParseResult"
-              nullable: true
-            updatedAt:
-              type: string
-              format: date-time
-
-    ArtworkPublic:
-      allOf:
-        - $ref: "#/components/schemas/ArtworkSummary"
-        - type: object
-          properties:
-            seller:
-              $ref: "#/components/schemas/UserBrief"
-            description:
-              type: string
-              maxLength: 5000
-            media:
-              type: array
-              items:
-                $ref: "#/components/schemas/ContentMedia"
-            aiParse:
-              $ref: "#/components/schemas/AiParseResult"
-              nullable: true
-
-    PagedArtworkSummary:
-      type: object
-      required: [items, page]
-      properties:
-        items:
-          type: array
-          items:
-            $ref: "#/components/schemas/ArtworkSummary"
-        page:
-          $ref: "#/components/schemas/PageMeta"
-
-    PagedArtwork:
-      type: object
-      required: [items, page]
-      properties:
-        items:
-          type: array
-          items:
-            $ref: "#/components/schemas/Artwork"
-        page:
-          $ref: "#/components/schemas/PageMeta"
-
-    ArtworkCreateRequest:
-      type: object
-      required: [title, category, creatorName, priceType]
-      properties:
-        title:
-          type: string
-          maxLength: 200
-        category:
-          $ref: "#/components/schemas/ArtworkCategory"
-        calligraphyScript:
-          $ref: "#/components/schemas/CalligraphyScript"
-        paintingGenre:
-          $ref: "#/components/schemas/PaintingGenre"
-        creatorName:
-          type: string
-          maxLength: 200
-        creationDate:
-          type: string
-          format: date
-        creationYear:
-          type: integer
-          minimum: 0
-        certificateNo:
-          type: string
-          maxLength: 100
-        certificateFileIds:
-          type: array
-          items:
-            $ref: "#/components/schemas/Uuid"
-        description:
-          type: string
-          maxLength: 5000
-        priceType:
-          $ref: "#/components/schemas/PriceType"
-        priceAmountFen:
-          $ref: "#/components/schemas/MoneyFen"
-        depositAmountFen:
-          $ref: "#/components/schemas/MoneyFen"
-        regionCode:
-          type: string
-        material:
-          type: string
-          maxLength: 200
-        size:
-          type: string
-          maxLength: 100
-        coverFileId:
-          $ref: "#/components/schemas/Uuid"
-          nullable: true
-        media:
-          type: array
-          items:
-            $ref: "#/components/schemas/ContentMedia"
-
-    ArtworkUpdateRequest:
-      type: object
-      properties:
-        title:
-          type: string
-          maxLength: 200
-        category:
-          $ref: "#/components/schemas/ArtworkCategory"
-        calligraphyScript:
-          $ref: "#/components/schemas/CalligraphyScript"
-        paintingGenre:
-          $ref: "#/components/schemas/PaintingGenre"
-        creatorName:
-          type: string
-          maxLength: 200
-        creationDate:
-          type: string
-          format: date
-        creationYear:
-          type: integer
-          minimum: 0
-        certificateNo:
-          type: string
-          maxLength: 100
-        certificateFileIds:
-          type: array
-          items:
-            $ref: "#/components/schemas/Uuid"
-        description:
-          type: string
-          maxLength: 5000
-        priceType:
-          $ref: "#/components/schemas/PriceType"
-        priceAmountFen:
-          $ref: "#/components/schemas/MoneyFen"
-        depositAmountFen:
-          $ref: "#/components/schemas/MoneyFen"
-        regionCode:
-          type: string
-        material:
-          type: string
-          maxLength: 200
-        size:
-          type: string
-          maxLength: 100
         coverFileId:
           $ref: "#/components/schemas/Uuid"
           nullable: true
@@ -9449,9 +7654,6 @@ components:
         id:
           $ref: "#/components/schemas/Uuid"
         listingId:
-          $ref: "#/components/schemas/Uuid"
-          nullable: true
-        artworkId:
           $ref: "#/components/schemas/Uuid"
           nullable: true
         patentId:
@@ -10303,7 +8505,7 @@ components:
 
     CommentContentType:
       type: string
-      enum: [LISTING, DEMAND, ACHIEVEMENT, ARTWORK]
+      enum: [LISTING, ACHIEVEMENT]
 
     CommentStatus:
       type: string
@@ -10403,7 +8605,7 @@ components:
 
     ConversationContentType:
       type: string
-      enum: [LISTING, DEMAND, ACHIEVEMENT, ARTWORK, TECH_MANAGER]
+      enum: [LISTING, ACHIEVEMENT, TECH_MANAGER]
 
     Conversation:
       type: object
@@ -10545,11 +8747,11 @@ components:
 
     AiContentScope:
       type: string
-      enum: [LISTING, DEMAND, ACHIEVEMENT, ARTWORK, ALL]
+      enum: [LISTING, ACHIEVEMENT, ALL]
 
     AiContentType:
       type: string
-      enum: [LISTING, DEMAND, ACHIEVEMENT, ARTWORK]
+      enum: [LISTING, ACHIEVEMENT]
 
     AiParseStatus:
       type: string
@@ -10620,21 +8822,6 @@ components:
           $ref: "#/components/schemas/MoneyFen"
         maturity:
           $ref: "#/components/schemas/AchievementMaturity"
-        category:
-          $ref: "#/components/schemas/ArtworkCategory"
-        calligraphyScript:
-          $ref: "#/components/schemas/CalligraphyScript"
-        paintingGenre:
-          $ref: "#/components/schemas/PaintingGenre"
-        creator:
-          type: string
-        creationYearStart:
-          type: integer
-          minimum: 0
-        creationYearEnd:
-          type: integer
-          minimum: 0
-
     AiAgentParsedQuery:
       type: object
       properties:
@@ -10809,7 +8996,7 @@ components:
 
     AlertTargetType:
       type: string
-      enum: [PATENT, ORDER, LISTING, DEMAND, ACHIEVEMENT, ARTWORK, AI_PARSE, IMPORT, PAYMENT, REFUND, SYSTEM]
+      enum: [PATENT, ORDER, LISTING, ACHIEVEMENT, AI_PARSE, IMPORT, PAYMENT, REFUND, SYSTEM]
 
     AlertRule:
       type: object
@@ -11162,34 +9349,6 @@ components:
             status:
               $ref: "#/components/schemas/ListingStatus"
 
-    AdminDemandCreateRequest:
-      allOf:
-        - $ref: "#/components/schemas/DemandCreateRequest"
-        - type: object
-          properties:
-            source:
-              $ref: "#/components/schemas/ContentSource"
-            publisherUserId:
-              $ref: "#/components/schemas/Uuid"
-            auditStatus:
-              $ref: "#/components/schemas/AuditStatus"
-            status:
-              $ref: "#/components/schemas/ContentStatus"
-
-    AdminDemandUpdateRequest:
-      allOf:
-        - $ref: "#/components/schemas/DemandUpdateRequest"
-        - type: object
-          properties:
-            source:
-              $ref: "#/components/schemas/ContentSource"
-            publisherUserId:
-              $ref: "#/components/schemas/Uuid"
-            auditStatus:
-              $ref: "#/components/schemas/AuditStatus"
-            status:
-              $ref: "#/components/schemas/ContentStatus"
-
     AdminAchievementCreateRequest:
       allOf:
         - $ref: "#/components/schemas/AchievementCreateRequest"
@@ -11217,34 +9376,6 @@ components:
               $ref: "#/components/schemas/AuditStatus"
             status:
               $ref: "#/components/schemas/ContentStatus"
-
-    AdminArtworkCreateRequest:
-      allOf:
-        - $ref: "#/components/schemas/ArtworkCreateRequest"
-        - type: object
-          properties:
-            source:
-              $ref: "#/components/schemas/ContentSource"
-            sellerUserId:
-              $ref: "#/components/schemas/Uuid"
-            auditStatus:
-              $ref: "#/components/schemas/AuditStatus"
-            status:
-              $ref: "#/components/schemas/ArtworkStatus"
-
-    AdminArtworkUpdateRequest:
-      allOf:
-        - $ref: "#/components/schemas/ArtworkUpdateRequest"
-        - type: object
-          properties:
-            source:
-              $ref: "#/components/schemas/ContentSource"
-            sellerUserId:
-              $ref: "#/components/schemas/Uuid"
-            auditStatus:
-              $ref: "#/components/schemas/AuditStatus"
-            status:
-              $ref: "#/components/schemas/ArtworkStatus"
 
     AuditMaterial:
       type: object
@@ -11499,10 +9630,6 @@ components:
         - industries
         - ipcMappings
         - locMappings
-        - artworkCategories
-        - calligraphyStyles
-        - paintingThemes
-        - artworkMaterials
       properties:
         industries:
           type: array
@@ -11516,23 +9643,6 @@ components:
           type: array
           items:
             type: string
-        artworkCategories:
-          type: array
-          items:
-            type: string
-        calligraphyStyles:
-          type: array
-          items:
-            type: string
-        paintingThemes:
-          type: array
-          items:
-            type: string
-        artworkMaterials:
-          type: array
-          items:
-            type: string
-
     SensitiveWordsConfig:
       type: object
       required: [words]

@@ -55,35 +55,6 @@ export class FavoritesService {
     return Array.isArray(value) ? (value as string[]) : [];
   }
 
-  private toDemandSummary(item: any, publisherMap: Record<string, any>) {
-    const publisher = publisherMap[item.publisherUserId] ?? {
-      userId: item.publisherUserId,
-      displayName: 'User',
-      verificationType: 'PERSON',
-      verificationStatus: 'PENDING',
-    };
-    return {
-      id: item.id,
-      source: item.source ?? 'USER',
-      title: item.title,
-      summary: item.summary ?? null,
-      budgetType: item.budgetType ?? null,
-      budgetMinFen: item.budgetMinFen ?? null,
-      budgetMaxFen: item.budgetMaxFen ?? null,
-      cooperationModes: this.asArray(item.cooperationModesJson),
-      regionCode: item.regionCode ?? null,
-      industryTags: sanitizeIndustryTagNames(item.industryTagsJson),
-      keywords: this.asArray(item.keywordsJson),
-      deliveryPeriod: item.deliveryPeriod ?? null,
-      publisher,
-      stats: mapStats(item.stats),
-      auditStatus: item.auditStatus,
-      status: item.status,
-      coverUrl: item.coverFile?.url ?? null,
-      createdAt: item.createdAt.toISOString(),
-    };
-  }
-
   private toAchievementSummary(item: any, publisherMap: Record<string, any>) {
     const publisher = publisherMap[item.publisherUserId] ?? {
       userId: item.publisherUserId,
@@ -107,34 +78,6 @@ export class FavoritesService {
       status: item.status,
       coverUrl: item.coverFile?.url ?? null,
       createdAt: item.createdAt.toISOString(),
-    };
-  }
-
-  private toArtworkSummary(item: any) {
-    const creationDate = item.creationDate ? item.creationDate.toISOString().slice(0, 10) : null;
-    return {
-      id: item.id,
-      source: item.source ?? 'USER',
-      title: item.title,
-      category: item.category,
-      calligraphyScript: item.calligraphyScript ?? null,
-      paintingGenre: item.paintingGenre ?? null,
-      creatorName: item.creatorName,
-      creationDate,
-      creationYear: item.creationYear ?? null,
-      certificateNo: item.certificateNo ?? null,
-      priceType: item.priceType,
-      priceAmountFen: item.priceAmountFen ?? null,
-      depositAmountFen: item.depositAmountFen ?? 0,
-      regionCode: item.regionCode ?? null,
-      material: item.material ?? null,
-      size: item.size ?? null,
-      coverUrl: item.coverFile?.url ?? null,
-      stats: mapStats(item.stats),
-      auditStatus: item.auditStatus,
-      status: item.status,
-      createdAt: item.createdAt.toISOString(),
-      updatedAt: item.updatedAt.toISOString(),
     };
   }
 
@@ -175,33 +118,6 @@ export class FavoritesService {
     return { items: mapped, page: { page, pageSize, total } };
   }
 
-  async listDemandFavorites(req: any, query: any): Promise<Paged<any>> {
-    this.ensureAuth(req);
-    const { page, pageSize } = this.parsePagination(query);
-
-    const [items, total] = await Promise.all([
-      this.prisma.demandFavorite.findMany({
-        where: { userId: req.auth.userId },
-        include: { demand: { include: { coverFile: true, stats: true } } },
-        orderBy: { createdAt: 'desc' },
-        skip: (page - 1) * pageSize,
-        take: pageSize,
-      }),
-      this.prisma.demandFavorite.count({ where: { userId: req.auth.userId } }),
-    ]);
-
-    const demands = items.map((fav) => fav.demand).filter(Boolean);
-    const publisherMap = await buildPublisherMap(
-      this.prisma,
-      demands.map((item: any) => item.publisherUserId),
-    );
-
-    return {
-      items: items.map((fav) => this.toDemandSummary(fav.demand, publisherMap)),
-      page: { page, pageSize, total },
-    };
-  }
-
   async listAchievementFavorites(req: any, query: any): Promise<Paged<any>> {
     this.ensureAuth(req);
     const { page, pageSize } = this.parsePagination(query);
@@ -225,27 +141,6 @@ export class FavoritesService {
 
     return {
       items: items.map((fav) => this.toAchievementSummary(fav.achievement, publisherMap)),
-      page: { page, pageSize, total },
-    };
-  }
-
-  async listArtworkFavorites(req: any, query: any): Promise<Paged<any>> {
-    this.ensureAuth(req);
-    const { page, pageSize } = this.parsePagination(query);
-
-    const [items, total] = await Promise.all([
-      this.prisma.artworkFavorite.findMany({
-        where: { userId: req.auth.userId },
-        include: { artwork: { include: { coverFile: true, stats: true } } },
-        orderBy: { createdAt: 'desc' },
-        skip: (page - 1) * pageSize,
-        take: pageSize,
-      }),
-      this.prisma.artworkFavorite.count({ where: { userId: req.auth.userId } }),
-    ]);
-
-    return {
-      items: items.map((fav) => this.toArtworkSummary(fav.artwork)),
       page: { page, pageSize, total },
     };
   }
@@ -282,38 +177,6 @@ export class FavoritesService {
     return { ok: true };
   }
 
-  async favoriteDemand(req: any, demandId: string) {
-    this.ensureAuth(req);
-    const normalizedDemandId = this.parseUuidStrict(demandId, 'demandId');
-    const demand = await this.prisma.demand.findUnique({ where: { id: normalizedDemandId } });
-    if (!demand) throw new NotFoundException({ code: 'NOT_FOUND', message: '闇€姹備笉瀛樺湪' });
-    try {
-      await this.prisma.demandFavorite.create({
-        data: { demandId: normalizedDemandId, userId: req.auth.userId },
-      });
-      await this.events.adjustFavoriteCount('DEMAND', normalizedDemandId, 1);
-      void this.events.recordFavorite(req, 'DEMAND', normalizedDemandId).catch(() => {});
-    } catch (e: any) {
-      if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2002') {
-        return { ok: true };
-      }
-      throw e;
-    }
-    return { ok: true };
-  }
-
-  async unfavoriteDemand(req: any, demandId: string) {
-    this.ensureAuth(req);
-    const normalizedDemandId = this.parseUuidStrict(demandId, 'demandId');
-    const removed = await this.prisma.demandFavorite.deleteMany({
-      where: { demandId: normalizedDemandId, userId: req.auth.userId },
-    });
-    if (removed.count > 0) {
-      await this.events.adjustFavoriteCount('DEMAND', normalizedDemandId, -1);
-    }
-    return { ok: true };
-  }
-
   async favoriteAchievement(req: any, achievementId: string) {
     this.ensureAuth(req);
     const normalizedAchievementId = this.parseUuidStrict(achievementId, 'achievementId');
@@ -346,36 +209,4 @@ export class FavoritesService {
     return { ok: true };
   }
 
-  async favoriteArtwork(req: any, artworkId: string) {
-    this.ensureAuth(req);
-    const normalizedArtworkId = this.parseUuidStrict(artworkId, 'artworkId');
-    const artwork = await this.prisma.artwork.findUnique({ where: { id: normalizedArtworkId } });
-    if (!artwork) throw new NotFoundException({ code: 'NOT_FOUND', message: '浣滃搧涓嶅瓨鍦?' });
-    try {
-      await this.prisma.artworkFavorite.create({
-        data: { artworkId: normalizedArtworkId, userId: req.auth.userId },
-      });
-      await this.events.adjustFavoriteCount('ARTWORK', normalizedArtworkId, 1);
-      void this.events.recordFavorite(req, 'ARTWORK', normalizedArtworkId).catch(() => {});
-    } catch (e: any) {
-      if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2002') {
-        return { ok: true };
-      }
-      throw e;
-    }
-    return { ok: true };
-  }
-
-  async unfavoriteArtwork(req: any, artworkId: string) {
-    this.ensureAuth(req);
-    const normalizedArtworkId = this.parseUuidStrict(artworkId, 'artworkId');
-    const removed = await this.prisma.artworkFavorite.deleteMany({
-      where: { artworkId: normalizedArtworkId, userId: req.auth.userId },
-    });
-    if (removed.count > 0) {
-      await this.events.adjustFavoriteCount('ARTWORK', normalizedArtworkId, -1);
-    }
-    return { ok: true };
-  }
 }
-

@@ -60,10 +60,6 @@ type TaxonomyConfig = {
   industries: string[];
   ipcMappings: string[];
   locMappings: string[];
-  artworkCategories: string[];
-  calligraphyStyles: string[];
-  paintingThemes: string[];
-  artworkMaterials: string[];
 };
 
 type SensitiveWordsConfig = {
@@ -107,10 +103,6 @@ export function ConfigPage() {
   const [taxonomyIndustries, setTaxonomyIndustries] = useState('');
   const [taxonomyIpc, setTaxonomyIpc] = useState('');
   const [taxonomyLoc, setTaxonomyLoc] = useState('');
-  const [taxonomyArtworkCategories, setTaxonomyArtworkCategories] = useState('');
-  const [taxonomyCalligraphyStyles, setTaxonomyCalligraphyStyles] = useState('');
-  const [taxonomyPaintingThemes, setTaxonomyPaintingThemes] = useState('');
-  const [taxonomyArtworkMaterials, setTaxonomyArtworkMaterials] = useState('');
   const [sensitiveWords, setSensitiveWords] = useState('');
   const [hotSearchKeywords, setHotSearchKeywords] = useState('');
   const [alertJson, setAlertJson] = useState('');
@@ -147,10 +139,6 @@ export function ConfigPage() {
       setTaxonomyIndustries((taxonomy.industries || []).join('，'));
       setTaxonomyIpc((taxonomy.ipcMappings || []).join('，'));
       setTaxonomyLoc((taxonomy.locMappings || []).join('，'));
-      setTaxonomyArtworkCategories((taxonomy.artworkCategories || []).join('，'));
-      setTaxonomyCalligraphyStyles((taxonomy.calligraphyStyles || []).join('，'));
-      setTaxonomyPaintingThemes((taxonomy.paintingThemes || []).join('，'));
-      setTaxonomyArtworkMaterials((taxonomy.artworkMaterials || []).join('，'));
       setSensitiveWords((sensitive.words || []).join('，'));
       setHotSearchKeywords((hotSearch.keywords || []).join('，'));
       setAlertJson(JSON.stringify(alert, null, 2));
@@ -409,30 +397,6 @@ export function ConfigPage() {
             rows={2}
             placeholder="LOC 分类映射"
           />
-          <Input.TextArea
-            value={taxonomyArtworkCategories}
-            onChange={(e) => setTaxonomyArtworkCategories(e.target.value)}
-            rows={2}
-            placeholder="书画类别"
-          />
-          <Input.TextArea
-            value={taxonomyCalligraphyStyles}
-            onChange={(e) => setTaxonomyCalligraphyStyles(e.target.value)}
-            rows={2}
-            placeholder="书法书体"
-          />
-          <Input.TextArea
-            value={taxonomyPaintingThemes}
-            onChange={(e) => setTaxonomyPaintingThemes(e.target.value)}
-            rows={2}
-            placeholder="国画题材"
-          />
-          <Input.TextArea
-            value={taxonomyArtworkMaterials}
-            onChange={(e) => setTaxonomyArtworkMaterials(e.target.value)}
-            rows={2}
-            placeholder="材质字典"
-          />
         </Space>
         <Space style={{ marginTop: 12 }}>
           <Button
@@ -450,10 +414,6 @@ export function ConfigPage() {
                   industries: toList(taxonomyIndustries),
                   ipcMappings: toList(taxonomyIpc),
                   locMappings: toList(taxonomyLoc),
-                  artworkCategories: toList(taxonomyArtworkCategories),
-                  calligraphyStyles: toList(taxonomyCalligraphyStyles),
-                  paintingThemes: toList(taxonomyPaintingThemes),
-                  artworkMaterials: toList(taxonomyArtworkMaterials),
                 });
                 message.success('已保存');
               } catch (e: any) {

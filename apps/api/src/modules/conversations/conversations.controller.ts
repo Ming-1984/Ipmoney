@@ -20,21 +20,9 @@ export class ConversationsController {
   }
 
   @UseGuards(BearerAuthGuard)
-  @Post('/demands/:demandId/conversations')
-  async createDemandConversation(@Req() req: any, @Param('demandId') demandId: string) {
-    return await this.conversations.createDemandConversation(req, demandId);
-  }
-
-  @UseGuards(BearerAuthGuard)
   @Post('/achievements/:achievementId/conversations')
   async createAchievementConversation(@Req() req: any, @Param('achievementId') achievementId: string) {
     return await this.conversations.createAchievementConversation(req, achievementId);
-  }
-
-  @UseGuards(BearerAuthGuard)
-  @Post('/artworks/:artworkId/conversations')
-  async createArtworkConversation(@Req() req: any, @Param('artworkId') artworkId: string) {
-    return await this.conversations.createArtworkConversation(req, artworkId);
   }
 
   @UseGuards(BearerAuthGuard)

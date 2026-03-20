@@ -12,9 +12,7 @@ describe('ConversationsController delegation suite', () => {
     conversations = {
       listMine: vi.fn(),
       createListingConversation: vi.fn(),
-      createDemandConversation: vi.fn(),
       createAchievementConversation: vi.fn(),
-      createArtworkConversation: vi.fn(),
       createTechManagerConversation: vi.fn(),
       listMessages: vi.fn(),
       sendMessage: vi.fn(),
@@ -35,21 +33,15 @@ describe('ConversationsController delegation suite', () => {
   it('delegates all create conversation entry routes', async () => {
     const req: any = { auth: { userId: 'user-1' } };
     conversations.createListingConversation.mockResolvedValue({ ok: true });
-    conversations.createDemandConversation.mockResolvedValue({ ok: true });
     conversations.createAchievementConversation.mockResolvedValue({ ok: true });
-    conversations.createArtworkConversation.mockResolvedValue({ ok: true });
     conversations.createTechManagerConversation.mockResolvedValue({ ok: true });
 
     await controller.createListingConversation(req, VALID_UUID);
-    await controller.createDemandConversation(req, VALID_UUID);
     await controller.createAchievementConversation(req, VALID_UUID);
-    await controller.createArtworkConversation(req, VALID_UUID);
     await controller.createTechManagerConversation(req, VALID_UUID);
 
     expect(conversations.createListingConversation).toHaveBeenCalledWith(req, VALID_UUID);
-    expect(conversations.createDemandConversation).toHaveBeenCalledWith(req, VALID_UUID);
     expect(conversations.createAchievementConversation).toHaveBeenCalledWith(req, VALID_UUID);
-    expect(conversations.createArtworkConversation).toHaveBeenCalledWith(req, VALID_UUID);
     expect(conversations.createTechManagerConversation).toHaveBeenCalledWith(req, VALID_UUID);
   });
 

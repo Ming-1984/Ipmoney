@@ -67,9 +67,7 @@ $demoInputs = @(
   "docs/demo/pages/miniapp/11-user-center.mmd",
   "docs/demo/pages/miniapp/12-publish-chooser.mmd",
   "docs/demo/pages/miniapp/13-publish-patent.mmd",
-  "docs/demo/pages/miniapp/14-publish-demand.mmd",
   "docs/demo/pages/miniapp/15-publish-achievement.mmd",
-  "docs/demo/pages/miniapp/16-publish-artwork.mmd",
   "docs/demo/pages/miniapp/17-tech-managers.mmd",
 
   # Admin pages (from Ipmoney.md)

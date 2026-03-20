@@ -10,8 +10,8 @@
 
 ### Public pages (no login required to view)
 - Tab pages: `pages/home`, `pages/tech-managers`, `pages/me` (read-only state).
-- Discovery/detail: `subpackages/search`, `subpackages/listing/detail`, `subpackages/demand/detail`,
-  `subpackages/achievement/detail`, `subpackages/artwork/detail`, `subpackages/patent/detail`,
+- Discovery/detail: `subpackages/search`, `subpackages/listing/detail`,
+  `subpackages/achievement/detail`, `subpackages/patent/detail`,
   `subpackages/organizations`, `subpackages/organizations/detail`, `subpackages/inventors`,
   `subpackages/patent-map/*`, `subpackages/announcements/*`.
 - Help/legal: `subpackages/about`, `subpackages/support/*`, `subpackages/legal/*`.
@@ -28,11 +28,11 @@
 - Orders + detail: `subpackages/orders`, `subpackages/orders/detail`
 - Contracts: `subpackages/contracts`
 - Invoices: `subpackages/invoices`
-- My content: `subpackages/my-listings`, `subpackages/my-demands`, `subpackages/my-achievements`, `subpackages/my-artworks`
+- My content: `subpackages/my-listings`, `subpackages/my-achievements`
 - Checkout: `subpackages/checkout/deposit-pay`, `subpackages/checkout/final-pay`
 
 ### Action-level approved-required (guarded by `ensureApproved(...)`)
-- Detail actions: favorite, consult, create conversation (listing/demand/achievement/artwork/patent detail).
+- Detail actions: favorite, consult, create conversation (listing/achievement/patent detail).
 - Comments create/edit/delete (public list is open; write actions require verified user).
 - Publish submit + off-shelf actions.
 - Order creation / payment actions.
@@ -55,7 +55,7 @@ This maps backend enforcement (`requirePermission`) to admin modules/pages:
 - `verification.read`, `verification.review`:
   - `/admin/user-verifications` (Verifications)
 - `listing.read`, `listing.audit`:
-  - `/admin/listings`, `/admin/demands`, `/admin/achievements`, `/admin/artworks`
+  - `/admin/listings`, `/admin/achievements`
   - `/admin/patents`, `/admin/tech-managers`
 - `announcement.manage`:
   - `/admin/announcements`

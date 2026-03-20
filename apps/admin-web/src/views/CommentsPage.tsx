@@ -7,7 +7,7 @@ import { RequestErrorAlert } from '../ui/RequestState';
 import { confirmAction } from '../ui/confirm';
 
 type CommentStatus = 'VISIBLE' | 'HIDDEN' | 'DELETED';
-type CommentContentType = 'LISTING' | 'DEMAND' | 'ACHIEVEMENT' | 'ARTWORK';
+type CommentContentType = 'LISTING' | 'ACHIEVEMENT';
 
 type Comment = {
   id: string;
@@ -35,10 +35,8 @@ type PagedComment = {
 
 function contentTypeLabel(type?: CommentContentType | null): string {
   if (!type) return '-';
-  if (type === 'LISTING') return '专利';
-  if (type === 'DEMAND') return '需求';
-  if (type === 'ARTWORK') return '书画';
-  return '成果';
+  if (type === 'LISTING') return '???';
+  return '???';
 }
 
 function statusTag(status?: CommentStatus | null) {
@@ -140,9 +138,7 @@ export function CommentsPage() {
             options={[
               { value: '', label: '全部类型' },
               { value: 'LISTING', label: '专利' },
-              { value: 'DEMAND', label: '需求' },
               { value: 'ACHIEVEMENT', label: '成果' },
-              { value: 'ARTWORK', label: '书画' },
             ]}
           />
           <Input

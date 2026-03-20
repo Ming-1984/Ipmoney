@@ -1,4 +1,4 @@
-﻿import { View, Text, Image, Picker } from '@tarojs/components';
+import { View, Text, Image } from '@tarojs/components';
 import Taro from '@tarojs/taro';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import './index.scss';
@@ -9,23 +9,17 @@ import { getToken } from '../../lib/auth';
 import { apiGet, apiPost } from '../../lib/api';
 import { favorite, getFavoriteListingIds, syncFavorites, unfavorite } from '../../lib/favorites';
 import { ensureApproved } from '../../lib/guard';
-import {
-  artworkCategoryLabel,
-  patentTypeLabel,
-  priceTypeLabel,
-  tradeModeLabel,
-} from '../../lib/labels';
+import { patentTypeLabel, priceTypeLabel, tradeModeLabel } from '../../lib/labels';
 import { sanitizeIndustryTagNames } from '../../lib/industryTags';
-import { fenToYuan, fenToYuanInt } from '../../lib/money';
+import { fenToYuanInt } from '../../lib/money';
 import { resolveLocalAsset } from '../../lib/localAssets';
 import { ensureRegionNamesReady, regionNameByCode } from '../../lib/regions';
 import type { ChipOption } from '../../ui/filters';
-import { ArtworkCard } from '../../ui/ArtworkCard';
 import { ListingCard } from '../../ui/ListingCard';
 import { ListingListSkeleton } from '../../ui/ListingSkeleton';
 import { SearchEntry } from '../../ui/SearchEntry';
 import { EmptyCard, ErrorCard, LoadingCard } from '../../ui/StateCards';
-import { CategoryControl, ChipGroup, FilterSheet, IndustryTagsPicker, RangeInput, SortSheet } from '../../ui/filters';
+import { CategoryControl, ChipGroup, FilterSheet, IndustryTagsPicker, RangeInput } from '../../ui/filters';
 import { CellRow, Surface } from '../../ui/layout';
 import { Button, CellGroup, Input, PullToRefresh, toast } from '../../ui/nutui';
 import { usePagedList } from '../../lib/usePagedList';
@@ -34,7 +28,7 @@ import iconAward from '../../assets/icons/icon-award-teal.svg';
 import emptySearchNone from '../../assets/illustrations/empty-search-none.svg';
 import { STORAGE_KEYS } from '../../constants';
 
-type Tab = 'LISTING' | 'DEMAND' | 'ACHIEVEMENT' | 'ARTWORK';
+type Tab = 'LISTING' | 'ACHIEVEMENT';
 
 type ListingSummary = components['schemas']['ListingSummary'];
 type PagedListingSummary = components['schemas']['PagedListingSummary'];
@@ -47,20 +41,9 @@ type LegalStatus = components['schemas']['LegalStatus'];
 type TransferCountRange = '' | 'ZERO' | 'ONE' | 'TWO_PLUS';
 type ListingTopic = '' | 'HIGH_TECH_RETIRED' | 'AWARD_WINNING';
 
-type PagedDemandSummary = components['schemas']['PagedDemandSummary'];
-type DemandSummary = components['schemas']['DemandSummary'];
-
 type PagedAchievementSummary = components['schemas']['PagedAchievementSummary'];
 type AchievementSummary = components['schemas']['AchievementSummary'];
 type AchievementMaturity = components['schemas']['AchievementMaturity'];
-
-
-type PagedArtworkSummary = components['schemas']['PagedArtworkSummary'];
-type ArtworkSummary = components['schemas']['ArtworkSummary'];
-type ArtworkSortBy = components['schemas']['ArtworkSortBy'];
-type ArtworkSortByLocal = ArtworkSortBy | 'DEPOSIT_ASC' | 'DEPOSIT_DESC' | 'YEAR_ASC' | 'YEAR_DESC';
-type ArtworkPriceRange = '' | 'UNDER_5000' | '5000_10000' | '10000_PLUS' | 'NEGOTIABLE';
-type ArtworkCategory = components['schemas']['ArtworkCategory'];
 
 type ContentSortBy = components['schemas']['ContentSortBy'];
 
@@ -84,29 +67,6 @@ function FilterSection(props: { title: string; children: React.ReactNode }) {
     </View>
   );
 }
-
-function yearRangeSummary(start?: number, end?: number): string | null {
-  if (start === undefined && end === undefined) return null;
-  if (start !== undefined && end !== undefined) return `${start}-${end}`;
-  if (start !== undefined) return `${start}年及以后`;
-  return `${end}年及以前`;
-}
-
-
-function demandBudgetValue(it: Pick<DemandSummary, 'budgetType' | 'budgetMinFen' | 'budgetMaxFen'>): string {
-  const type = it.budgetType as PriceType | undefined;
-  if (!type) return '-';
-  if (type === 'NEGOTIABLE') return '面议';
-  const min = it.budgetMinFen;
-  const max = it.budgetMaxFen;
-  if (min !== undefined && max !== undefined) return `￥${fenToYuan(min)}-￥${fenToYuan(max)}`;
-  if (min !== undefined) return `￥${fenToYuan(min)}以上`;
-  if (max !== undefined) return `￥${fenToYuan(max)}以内`;
-  return '固定预算';
-}
-
-
-
 
 function maturityLabelShort(m?: AchievementMaturity | ''): string | null {
   if (!m) return null;
@@ -178,16 +138,6 @@ type ListingFilters = {
   listingTopic: ListingTopic;
 };
 
-type DemandFilters = {
-  regionCode?: string;
-  regionName?: string;
-  cooperationModes: CooperationMode[];
-  budgetType: PriceType | '';
-  budgetMinFen?: number;
-  budgetMaxFen?: number;
-  industryTags: string[];
-};
-
 type AchievementFilters = {
   regionCode?: string;
   regionName?: string;
@@ -196,15 +146,7 @@ type AchievementFilters = {
   industryTags: string[];
 };
 
-type ArtworkFilters = {
-  category: ArtworkCategory | '';
-  creationYearStart?: number;
-  creationYearEnd?: number;
-  priceType: PriceType | '';
-  priceRange: ArtworkPriceRange;
-};
-
-type SearchPrefill = Partial<ListingFilters & DemandFilters & AchievementFilters & ArtworkFilters> & {
+type SearchPrefill = Partial<ListingFilters & AchievementFilters> & {
   tab?: Tab;
   q?: string;
   reset?: boolean;
@@ -224,22 +166,10 @@ const LISTING_FILTER_DEFAULT: ListingFilters = {
   listingTopic: '',
 };
 
-const DEMAND_FILTER_DEFAULT: DemandFilters = {
-  cooperationModes: [],
-  budgetType: '',
-  industryTags: [],
-};
-
 const ACHIEVEMENT_FILTER_DEFAULT: AchievementFilters = {
   cooperationModes: [],
   maturity: '',
   industryTags: [],
-};
-
-const ARTWORK_FILTER_DEFAULT: ArtworkFilters = {
-  category: '',
-  priceType: '',
-  priceRange: '',
 };
 
 const PATENT_TYPE_OPTIONS: ChipOption<PatentType | ''>[] = [
@@ -272,24 +202,6 @@ const TRANSFER_COUNT_OPTIONS: ChipOption<TransferCountRange>[] = [
 ];
 
 
-const ARTWORK_PRICE_RANGE_OPTIONS: ChipOption<ArtworkPriceRange>[] = [
-  { value: '', label: '不限' },
-  { value: 'UNDER_5000', label: '0-5000' },
-  { value: '5000_10000', label: '5000-10000' },
-  { value: '10000_PLUS', label: '10000以上' },
-  { value: 'NEGOTIABLE', label: '面议' },
-];
-
-
-
-const ARTWORK_CATEGORY_OPTIONS: ChipOption<ArtworkCategory | ''>[] = [
-  { value: '', label: '全部类别' },
-  { value: 'CALLIGRAPHY', label: '书法' },
-  { value: 'PAINTING', label: '绘画' },
-];
-
-
-
 const LEGAL_STATUS_OPTIONS: ChipOption<LegalStatus | ''>[] = [
   { value: '', label: '全部状态' },
   { value: 'PENDING', label: '审中' },
@@ -313,14 +225,6 @@ const CONTENT_SORT_OPTIONS: ChipOption<ContentSortBy>[] = [
 ];
 
 
-type ArtworkSortOptionValue = ArtworkSortByLocal | 'MORE';
-const ARTWORK_SORT_OPTIONS: { value: ArtworkSortOptionValue; label: string }[] = [
-  { value: 'RECOMMENDED', label: '推荐' },
-  { value: 'NEWEST', label: '最新' },
-  { value: 'MORE', label: '更多' },
-];
-
-
 export default function SearchPage() {
   const [tab, setTab] = useState<Tab>('LISTING');
   const [qInput, setQInput] = useState('');
@@ -328,15 +232,11 @@ export default function SearchPage() {
 
   const [sortBy, setSortBy] = useState<SortBy>('RECOMMENDED');
   const [contentSortBy, setContentSortBy] = useState<ContentSortBy>('RECOMMENDED');
-  const [artworkSortBy, setArtworkSortBy] = useState<ArtworkSortByLocal>('RECOMMENDED');
 
   const [listingFilters, setListingFilters] = useState<ListingFilters>(LISTING_FILTER_DEFAULT);
-  const [demandFilters, setDemandFilters] = useState<DemandFilters>(DEMAND_FILTER_DEFAULT);
   const [achievementFilters, setAchievementFilters] = useState<AchievementFilters>(ACHIEVEMENT_FILTER_DEFAULT);
-  const [artworkFilters, setArtworkFilters] = useState<ArtworkFilters>(ARTWORK_FILTER_DEFAULT);
 
   const [filtersOpen, setFiltersOpen] = useState(false);
-  const [artworkSortSheetOpen, setArtworkSortSheetOpen] = useState(false);
 
   const [favoriteIds, setFavoriteIds] = useState<Set<string>>(() => new Set(getFavoriteListingIds()));
 
@@ -348,18 +248,13 @@ export default function SearchPage() {
     const prefill = raw as SearchPrefill;
     const tabCandidate = typeof prefill.tab === 'string' ? prefill.tab : '';
     const nextTab =
-      tabCandidate === 'LISTING' ||
-      tabCandidate === 'DEMAND' ||
-      tabCandidate === 'ACHIEVEMENT' ||
-      tabCandidate === 'ARTWORK'
+      tabCandidate === 'LISTING' || tabCandidate === 'ACHIEVEMENT'
         ? (tabCandidate as Tab)
         : undefined;
 
     if (prefill.reset) {
       setListingFilters(LISTING_FILTER_DEFAULT);
-      setDemandFilters(DEMAND_FILTER_DEFAULT);
       setAchievementFilters(ACHIEVEMENT_FILTER_DEFAULT);
-      setArtworkFilters(ARTWORK_FILTER_DEFAULT);
       if (typeof prefill.q !== 'string') {
         setQInput('');
         setQ('');
@@ -404,28 +299,6 @@ export default function SearchPage() {
       });
     }
 
-    if (targetTab === 'DEMAND') {
-      setDemandFilters((prev) => {
-        const base = prefill.reset ? DEMAND_FILTER_DEFAULT : prev;
-        const nextIndustryTags = Array.isArray(prefill.industryTags)
-          ? sanitizeIndustryTagNames(prefill.industryTags)
-          : sanitizeIndustryTagNames(base.industryTags);
-        const nextCooperationModes = Array.isArray(prefill.cooperationModes)
-          ? prefill.cooperationModes
-          : base.cooperationModes;
-        return {
-          ...base,
-          regionCode: prefill.regionCode ?? base.regionCode,
-          regionName: prefill.regionName ?? base.regionName,
-          cooperationModes: nextCooperationModes,
-          budgetType: prefill.budgetType ?? base.budgetType,
-          budgetMinFen: prefill.budgetMinFen ?? base.budgetMinFen,
-          budgetMaxFen: prefill.budgetMaxFen ?? base.budgetMaxFen,
-          industryTags: nextIndustryTags,
-        };
-      });
-    }
-
     if (targetTab === 'ACHIEVEMENT') {
       setAchievementFilters((prev) => {
         const base = prefill.reset ? ACHIEVEMENT_FILTER_DEFAULT : prev;
@@ -446,21 +319,6 @@ export default function SearchPage() {
       });
     }
 
-    if (targetTab === 'ARTWORK') {
-      setArtworkFilters((prev) => {
-        const base = prefill.reset ? ARTWORK_FILTER_DEFAULT : prev;
-        return {
-          ...base,
-          category: prefill.category ?? base.category,
-          creationYearStart:
-            typeof prefill.creationYearStart === 'number' ? prefill.creationYearStart : base.creationYearStart,
-          creationYearEnd:
-            typeof prefill.creationYearEnd === 'number' ? prefill.creationYearEnd : base.creationYearEnd,
-          priceType: prefill.priceType ?? base.priceType,
-          priceRange: prefill.priceRange ?? base.priceRange,
-        };
-      });
-    }
   }, []);
 
   const fetchListing = useCallback(
@@ -494,25 +352,6 @@ export default function SearchPage() {
 
 
 
-  const fetchDemand = useCallback(
-    async ({ page, pageSize }: { page: number; pageSize: number }) => {
-      await ensureRegionNamesReady();
-      const params: Record<string, any> = { page, pageSize, sortBy: contentSortBy };
-      if (q) params.q = q;
-      if (demandFilters.regionCode) params.regionCode = demandFilters.regionCode;
-      if (demandFilters.cooperationModes.length) params.cooperationModes = demandFilters.cooperationModes;
-      if (demandFilters.budgetType) params.budgetType = demandFilters.budgetType;
-      if (demandFilters.budgetType === 'FIXED') {
-        if (demandFilters.budgetMinFen !== undefined) params.budgetMinFen = demandFilters.budgetMinFen;
-        if (demandFilters.budgetMaxFen !== undefined) params.budgetMaxFen = demandFilters.budgetMaxFen;
-      }
-      const demandIndustryTags = sanitizeIndustryTagNames(demandFilters.industryTags);
-      if (demandIndustryTags.length) params.industryTags = demandIndustryTags;
-      return apiGet<PagedDemandSummary>('/search/demands', params);
-    },
-    [contentSortBy, demandFilters, q],
-  );
-
   const fetchAchievement = useCallback(
     async ({ page, pageSize }: { page: number; pageSize: number }) => {
       await ensureRegionNamesReady();
@@ -528,49 +367,7 @@ export default function SearchPage() {
     [achievementFilters, contentSortBy, q],
   );
 
-  const fetchArtwork = useCallback(
-    async ({ page, pageSize }: { page: number; pageSize: number }) => {
-      const sortByParam: ArtworkSortBy =
-        artworkSortBy === 'DEPOSIT_ASC' ||
-        artworkSortBy === 'DEPOSIT_DESC' ||
-        artworkSortBy === 'YEAR_ASC' ||
-        artworkSortBy === 'YEAR_DESC'
-          ? 'RECOMMENDED'
-          : artworkSortBy;
-      const params: Record<string, any> = { page, pageSize, sortBy: sortByParam };
-      if (q) params.q = q;
-      if (artworkFilters.category) params.category = artworkFilters.category;
-      if (artworkFilters.creationYearStart !== undefined) params.creationYearStart = artworkFilters.creationYearStart;
-      if (artworkFilters.creationYearEnd !== undefined) params.creationYearEnd = artworkFilters.creationYearEnd;
-      if (artworkFilters.priceRange === 'NEGOTIABLE') {
-        params.priceType = 'NEGOTIABLE';
-      } else {
-        if (artworkFilters.priceType) params.priceType = artworkFilters.priceType;
-        if (artworkFilters.priceRange === 'UNDER_5000') {
-          params.priceMinFen = 0;
-          params.priceMaxFen = 5000 * 100;
-        }
-        if (artworkFilters.priceRange === '5000_10000') {
-          params.priceMinFen = 5000 * 100;
-          params.priceMaxFen = 10000 * 100;
-        }
-        if (artworkFilters.priceRange === '10000_PLUS') {
-          params.priceMinFen = 10000 * 100;
-        }
-      }
-      return apiGet<PagedArtworkSummary>('/search/artworks', params);
-    },
-    [artworkFilters, artworkSortBy, q],
-  );
-
   const listingList = usePagedList<ListingSummary>(fetchListing, {
-    pageSize: 10,
-    onError: (message, ctx) => {
-      if (ctx === 'loadMore') toast(message);
-    },
-  });
-
-  const demandList = usePagedList<DemandSummary>(fetchDemand, {
     pageSize: 10,
     onError: (message, ctx) => {
       if (ctx === 'loadMore') toast(message);
@@ -584,32 +381,15 @@ export default function SearchPage() {
     },
   });
 
-  const artworkList = usePagedList<ArtworkSummary>(fetchArtwork, {
-    pageSize: 10,
-    onError: (message, ctx) => {
-      if (ctx === 'loadMore') toast(message);
-    },
-  });
-
   useEffect(() => {
     if (tab !== 'LISTING') return;
     void listingList.reload();
   }, [listingFilters, listingList.reload, q, sortBy, tab]);
 
   useEffect(() => {
-    if (tab !== 'DEMAND') return;
-    void demandList.reload();
-  }, [contentSortBy, demandFilters, demandList.reload, q, tab]);
-
-  useEffect(() => {
     if (tab !== 'ACHIEVEMENT') return;
     void achievementList.reload();
   }, [achievementFilters, achievementList.reload, contentSortBy, q, tab]);
-
-  useEffect(() => {
-    if (tab !== 'ARTWORK') return;
-    void artworkList.reload();
-  }, [artworkFilters, artworkList.reload, artworkSortBy, q, tab]);
 
   useEffect(() => {
     if (!getToken()) return;
@@ -627,20 +407,6 @@ export default function SearchPage() {
     }
     try {
       const conv = await apiPost<Conversation>(`/listings/${listingId}/conversations`, {}, { idempotencyKey: `conv-${listingId}` });
-      Taro.navigateTo({ url: `/subpackages/messages/chat/index?conversationId=${conv.id}` });
-    } catch (e: any) {
-      toast(e?.message || '进入咨询失败');
-    }
-  }, []);
-
-  const startDemandConsult = useCallback(async (demandId: string) => {
-    if (!ensureApproved()) return;
-    try {
-      const conv = await apiPost<Conversation>(
-        `/demands/${demandId}/conversations`,
-        {},
-        { idempotencyKey: `conv-demand-${demandId}` },
-      );
       Taro.navigateTo({ url: `/subpackages/messages/chat/index?conversationId=${conv.id}` });
     } catch (e: any) {
       toast(e?.message || '进入咨询失败');
@@ -712,55 +478,9 @@ export default function SearchPage() {
   }, []);
 
   const listingItems = useMemo(() => listingList.items, [listingList.items]);
-  const demandItems = useMemo(() => demandList.items, [demandList.items]);
   const achievementItems = useMemo(() => achievementList.items, [achievementList.items]);
-  const artworkItems = useMemo(() => {
-    const items = artworkList.items || [];
-    if (!items.length) return items;
-    if (artworkSortBy === 'DEPOSIT_ASC' || artworkSortBy === 'DEPOSIT_DESC') {
-      const fallback = artworkSortBy === 'DEPOSIT_ASC' ? Number.POSITIVE_INFINITY : Number.NEGATIVE_INFINITY;
-      return [...items].sort((a, b) => {
-        const aVal = Number.isFinite(a.depositAmountFen as number) ? Number(a.depositAmountFen) : fallback;
-        const bVal = Number.isFinite(b.depositAmountFen as number) ? Number(b.depositAmountFen) : fallback;
-        return artworkSortBy === 'DEPOSIT_ASC' ? aVal - bVal : bVal - aVal;
-      });
-    }
-    if (artworkSortBy === 'YEAR_ASC' || artworkSortBy === 'YEAR_DESC') {
-      const fallback = artworkSortBy === 'YEAR_ASC' ? Number.POSITIVE_INFINITY : Number.NEGATIVE_INFINITY;
-      return [...items].sort((a, b) => {
-        const aVal = Number.isFinite(a.creationYear as number) ? Number(a.creationYear) : fallback;
-        const bVal = Number.isFinite(b.creationYear as number) ? Number(b.creationYear) : fallback;
-        return artworkSortBy === 'YEAR_ASC' ? aVal - bVal : bVal - aVal;
-      });
-    }
-    return items;
-  }, [artworkList.items, artworkSortBy]);
   const showListingInitialLoading = listingList.loading && listingItems.length === 0;
-  const showDemandInitialLoading = demandList.loading && demandItems.length === 0;
   const showAchievementInitialLoading = achievementList.loading && achievementItems.length === 0;
-  const showArtworkInitialLoading = artworkList.loading && artworkItems.length === 0;
-
-  const artworkYearOptions = useMemo(() => {
-    const years = (artworkList.items || [])
-      .map((it) => (Number.isFinite(it.creationYear as number) ? Number(it.creationYear) : NaN))
-      .filter((v) => Number.isFinite(v)) as number[];
-    const fallbackMax = new Date().getFullYear();
-    const maxYear = years.length ? Math.max(...years) : fallbackMax;
-    const minYear = years.length ? Math.min(...years) : Math.max(fallbackMax - 30, 1900);
-    const list = ['不限', ...Array.from({ length: Math.max(0, maxYear - minYear + 1) }, (_, idx) => String(minYear + idx))];
-    return { minYear, maxYear, options: list };
-  }, [artworkList.items]);
-
-  const isArtworkMoreSort = useCallback(
-    (v: ArtworkSortByLocal) =>
-      v === 'PRICE_ASC' ||
-      v === 'PRICE_DESC' ||
-      v === 'DEPOSIT_ASC' ||
-      v === 'DEPOSIT_DESC' ||
-      v === 'YEAR_DESC' ||
-      v === 'YEAR_ASC',
-    [],
-  );
 
   const listingFilterLabels = useMemo(() => {
     const out: string[] = [];
@@ -797,19 +517,6 @@ export default function SearchPage() {
     return out.filter(Boolean);
   }, [listingFilters]);
 
-  const demandFilterLabels = useMemo(() => {
-    const out: string[] = [];
-    if (demandFilters.regionName || demandFilters.regionCode) out.push(demandFilters.regionName || demandFilters.regionCode || '');
-    if (demandFilters.cooperationModes.length) out.push(`合作方式${demandFilters.cooperationModes.length}`);
-    if (demandFilters.budgetType === 'NEGOTIABLE') out.push('预算面议');
-    if (demandFilters.budgetType === 'FIXED') {
-      const range = fenRangeSummary(demandFilters.budgetMinFen, demandFilters.budgetMaxFen);
-      out.push(range ? `预算${range}` : '固定预算');
-    }
-    if (demandFilters.industryTags.length) out.push(`行业标签${demandFilters.industryTags.length}`);
-    return out.filter(Boolean);
-  }, [demandFilters]);
-
   const achievementFilterLabels = useMemo(() => {
     const out: string[] = [];
     if (achievementFilters.regionName || achievementFilters.regionCode)
@@ -821,39 +528,18 @@ export default function SearchPage() {
     return out.filter(Boolean);
   }, [achievementFilters]);
 
-  const artworkFilterLabels = useMemo(() => {
-    const out: string[] = [];
-    if (artworkFilters.category) out.push(artworkCategoryLabel(artworkFilters.category));
-    const yearRange = yearRangeSummary(artworkFilters.creationYearStart, artworkFilters.creationYearEnd);
-    if (yearRange) out.push(`创作年份${yearRange}`);
-    if (artworkFilters.priceType && artworkFilters.priceRange !== 'NEGOTIABLE') out.push(priceTypeLabel(artworkFilters.priceType));
-    if (artworkFilters.priceRange) {
-      const label =
-        artworkFilters.priceRange === 'UNDER_5000'
-          ? '0-5000'
-          : artworkFilters.priceRange === '5000_10000'
-            ? '5000-10000'
-            : artworkFilters.priceRange === '10000_PLUS'
-              ? '10000以上'
-              : '面议';
-      out.push(`价格区间${label}`);
-    }
-    return out.filter(Boolean);
-  }, [artworkFilters]);
   const selectedSummary = useMemo(() => {
     if (tab === 'LISTING') return listingFilterLabels;
-    if (tab === 'DEMAND') return demandFilterLabels;
     if (tab === 'ACHIEVEMENT') return achievementFilterLabels;
-    if (tab === 'ARTWORK') return artworkFilterLabels;
     return [];
-  }, [tab, listingFilterLabels, demandFilterLabels, achievementFilterLabels, artworkFilterLabels]);
+  }, [tab, listingFilterLabels, achievementFilterLabels]);
 
   return (
     <View className="container search-v4">
       <Surface className="search-hero glass-surface">
         <SearchEntry
           value={qInput}
-          placeholder="输入专利/成果/需求/书画作品"
+          placeholder="输入专利/成果"
           actionText="搜索"
           onChange={(value) => {
             setQInput(value);
@@ -871,9 +557,7 @@ export default function SearchPage() {
           value={tab}
           options={[
             { label: '专利交易', value: 'LISTING' },
-            { label: '\u4ea7\u5b66\u7814\u9700\u6c42', value: 'DEMAND' },
-            { label: '成果展示', value: 'ACHIEVEMENT' },
-            { label: '书画专区', value: 'ARTWORK' },
+            { label: '专利成果', value: 'ACHIEVEMENT' },
           ]}
           onChange={(v) => setTab(v as Tab)}
         />
@@ -902,7 +586,7 @@ export default function SearchPage() {
           </View>
         ) : null}
 
-        {tab === 'DEMAND' || tab === 'ACHIEVEMENT' ? (
+        {tab === 'ACHIEVEMENT' ? (
           <View className="search-sort-row">
             <View className="search-sort-options">
               {CONTENT_SORT_OPTIONS.map((opt) => (
@@ -926,34 +610,6 @@ export default function SearchPage() {
           </View>
         ) : null}
 
-        {tab === 'ARTWORK' ? (
-          <View className="search-sort-row">
-            <View className="search-sort-options">
-              {ARTWORK_SORT_OPTIONS.map((opt) => {
-                const isMore = opt.value === 'MORE';
-                const isActive = isMore ? isArtworkMoreSort(artworkSortBy) : artworkSortBy === opt.value;
-                return (
-                  <Text
-                    key={opt.value}
-                    className={['search-sort-option', isActive ? 'is-active' : ''].filter(Boolean).join(' ')}
-                    onClick={() => {
-                      if (isMore) {
-                        setArtworkSortSheetOpen(true);
-                        return;
-                      }
-                      setArtworkSortBy(opt.value as ArtworkSortByLocal);
-                    }}
-                  >
-                    {opt.label}
-                  </Text>
-                );
-              })}
-            </View>
-            <View className="search-filter-btn" onClick={() => setFiltersOpen(true)}>
-              <Text>筛选</Text>
-            </View>
-          </View>
-        ) : null}
         {selectedSummary.length ? (
           <View className="search-toolbar-row search-toolbar-compact">
             <View className="search-selected-scroll">
@@ -966,9 +622,7 @@ export default function SearchPage() {
                 className="pill pill-strong"
                 onClick={() => {
                   if (tab === 'LISTING') setListingFilters(LISTING_FILTER_DEFAULT);
-                  if (tab === 'DEMAND') setDemandFilters(DEMAND_FILTER_DEFAULT);
                   if (tab === 'ACHIEVEMENT') setAchievementFilters(ACHIEVEMENT_FILTER_DEFAULT);
-                  if (tab === 'ARTWORK') setArtworkFilters(ARTWORK_FILTER_DEFAULT);
                 }}
               >
                 <Text>清空</Text>
@@ -977,24 +631,6 @@ export default function SearchPage() {
           </View>
         ) : null}
       </Surface>
-
-      {tab === 'ARTWORK' ? (
-        <SortSheet
-          visible={artworkSortSheetOpen}
-          title="排序（更多）"
-          value={artworkSortBy}
-          options={[
-            { label: '价格升序', value: 'PRICE_ASC', description: '按固定价由低到高（面议置后）' },
-            { label: '价格降序', value: 'PRICE_DESC', description: '按固定价由高到低（面议置后）' },
-            { label: '订金升序', value: 'DEPOSIT_ASC', description: '按订金由低到高（未填置后）' },
-            { label: '订金降序', value: 'DEPOSIT_DESC', description: '按订金由高到低（未填置后）' },
-            { label: '年份新到旧', value: 'YEAR_DESC', description: '按创作年份从新到旧' },
-            { label: '年份旧到新', value: 'YEAR_ASC', description: '按创作年份从旧到新' },
-          ]}
-          onSelect={(value) => setArtworkSortBy(value as ArtworkSortByLocal)}
-          onClose={() => setArtworkSortSheetOpen(false)}
-        />
-      ) : null}
 
       {tab === 'LISTING' ? (
         <FilterSheet<ListingFilters>
@@ -1192,125 +828,6 @@ export default function SearchPage() {
         </FilterSheet>
       ) : null}
 
-      {tab === 'ARTWORK' ? (
-        <FilterSheet<ArtworkFilters>
-          open={filtersOpen}
-          title="筛选（书画专区）"
-          headerTitle="筛选条件"
-          variant="search"
-          value={artworkFilters}
-          defaultValue={ARTWORK_FILTER_DEFAULT}
-          onClose={() => setFiltersOpen(false)}
-          onApply={(next) => setArtworkFilters(next)}
-          validate={(draft) => {
-            if (
-              draft.creationYearStart !== undefined &&
-              draft.creationYearEnd !== undefined &&
-              draft.creationYearStart > draft.creationYearEnd
-            ) {
-              return "创作年份区间不合法";
-            }
-            return null;
-          }}
-        >
-          {({ draft, setDraft }) => (
-            <View className="search-filter-content">
-              <FilterSection title="类别">
-                <ChipGroup
-                  value={draft.category}
-                  options={ARTWORK_CATEGORY_OPTIONS}
-                  onChange={(v) => setDraft((prev) => ({ ...prev, category: v }))}
-                />
-              </FilterSection>
-
-              <FilterSection title="创作年份">
-                {(() => {
-                  const startOptions = artworkYearOptions.options;
-                  const startLabel = draft.creationYearStart ? String(draft.creationYearStart) : '不限';
-                  const startIndex = Math.max(0, startOptions.indexOf(startLabel));
-                  const minYear = artworkYearOptions.minYear;
-                  const endBase = startOptions.slice(1).filter((val) => {
-                    const year = Number(val);
-                    return !draft.creationYearStart || (Number.isFinite(year) && year >= (draft.creationYearStart || minYear));
-                  });
-                  const endOptions = ['不限', ...endBase];
-                  const endLabel = draft.creationYearEnd ? String(draft.creationYearEnd) : '不限';
-                  const endIndex = Math.max(0, endOptions.indexOf(endLabel));
-                  return (
-                    <View className="row" style={{ gap: '12rpx' }}>
-                      <Picker
-                        mode="selector"
-                        range={startOptions}
-                        value={startIndex}
-                        onChange={(e) => {
-                          const idx = Number((e as any).detail?.value ?? 0);
-                          const nextValue = startOptions[idx];
-                          const nextYear = nextValue === '不限' ? undefined : Number(nextValue);
-                          setDraft((prev) => {
-                            const next = { ...prev, creationYearStart: nextYear };
-                            if (nextYear && prev.creationYearEnd && prev.creationYearEnd < nextYear) {
-                              next.creationYearEnd = undefined;
-                            }
-                            return next;
-                          });
-                        }}
-                      >
-                        <Button className="search-filter-picker" variant="default" size="small" block={false}>
-                          {startLabel}
-                        </Button>
-                      </Picker>
-                      <Picker
-                        mode="selector"
-                        range={endOptions}
-                        value={endIndex}
-                        onChange={(e) => {
-                          const idx = Number((e as any).detail?.value ?? 0);
-                          const nextValue = endOptions[idx];
-                          const nextYear = nextValue === '不限' ? undefined : Number(nextValue);
-                          setDraft((prev) => ({ ...prev, creationYearEnd: nextYear }));
-                        }}
-                      >
-                        <Button className="search-filter-picker" variant="default" size="small" block={false}>
-                          {endLabel}
-                        </Button>
-                      </Picker>
-                    </View>
-                  );
-                })()}
-              </FilterSection>
-
-              <FilterSection title="报价类型">
-                <ChipGroup
-                  value={draft.priceType}
-                  options={PRICE_TYPE_OPTIONS}
-                  onChange={(v) =>
-                    setDraft((prev) => ({
-                      ...prev,
-                      priceType: v,
-                      ...(v === 'NEGOTIABLE' ? { priceRange: 'NEGOTIABLE' } : prev.priceRange === 'NEGOTIABLE' ? { priceRange: '' } : {}),
-                    }))
-                  }
-                />
-              </FilterSection>
-
-              <FilterSection title="价格区间">
-                <ChipGroup
-                  value={draft.priceRange}
-                  options={ARTWORK_PRICE_RANGE_OPTIONS}
-                  onChange={(v) =>
-                    setDraft((prev) => ({
-                      ...prev,
-                      priceRange: v,
-                      ...(v === 'NEGOTIABLE' ? { priceType: 'NEGOTIABLE' } : prev.priceType === 'NEGOTIABLE' ? { priceType: '' } : {}),
-                    }))
-                  }
-                />
-              </FilterSection>
-            </View>
-          )}
-
-        </FilterSheet>
-      ) : null}
 
       {tab === 'LISTING' ? (
         <PullToRefresh type="primary" disabled={showListingInitialLoading || listingList.refreshing} onRefresh={listingList.refresh}>
@@ -1350,71 +867,6 @@ export default function SearchPage() {
 
           {!showListingInitialLoading && listingItems.length ? (
             <ListFooter loadingMore={listingList.loadingMore} hasMore={listingList.hasMore} onLoadMore={listingList.loadMore} showNoMore />
-          ) : null}
-        </PullToRefresh>
-      ) : tab === 'DEMAND' ? (
-        <PullToRefresh type="primary" disabled={showDemandInitialLoading || demandList.refreshing} onRefresh={demandList.refresh}>
-          {showDemandInitialLoading ? (
-            <LoadingCard />
-          ) : demandList.error ? (
-            <ErrorCard message={demandList.error} onRetry={demandList.reload} />
-          ) : demandItems.length ? (
-            <View className="search-card-list">
-              {demandItems.map((it: DemandSummary) => {
-                const location = it.regionCode ? regionNameByCode(it.regionCode) || '' : '';
-                const publisher = it.publisher?.displayName || '';
-                const budgetValue = demandBudgetValue(it);
-                const visibleIndustryTags = sanitizeIndustryTagNames(it.industryTags || []);
-                const primaryTag = it.cooperationModes?.[0]
-                  ? cooperationModeLabel(it.cooperationModes[0])
-                  : visibleIndustryTags[0] || "技术需求";
-
-                return (
-                  <View
-                    className="demand-card-target"
-                    key={it.id}
-                    onClick={() => {
-                      Taro.navigateTo({ url: `/subpackages/demand/detail/index?demandId=${it.id}` });
-                    }}
-                  >
-                    <View className="demand-card-main">
-                      <View className="demand-card-tags">
-                        <Text className="demand-card-tag">{primaryTag}</Text>
-                        {location ? <Text className="demand-card-location">{location}</Text> : null}
-                      </View>
-                      <Text className="demand-card-title clamp-2">{it.title || "未命名需求"}</Text>
-                      <Text className="demand-card-subinfo clamp-1">供给方：{publisher || '-'}</Text>
-                      <View className="demand-card-budget">
-                        <Text className="demand-card-budget-label">预算</Text>
-                        <Text className="demand-card-budget-value">{budgetValue}</Text>
-                      </View>
-                    </View>
-                    <View
-                      className="demand-card-action"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        void startDemandConsult(it.id);
-                      }}
-                    >
-                      立即对接
-                    </View>
-                  </View>
-                );
-              })}
-            </View>
-          ) : (
-            <EmptyCard
-              image={emptySearchNone}
-              title="暂无需求结果"
-              message="请调整关键词或筛选条件后重试。"
-              variant="inline"
-              actionText="刷新"
-              onAction={demandList.reload}
-            />
-          )}
-
-          {!showDemandInitialLoading && demandItems.length ? (
-            <ListFooter loadingMore={demandList.loadingMore} hasMore={demandList.hasMore} onLoadMore={demandList.loadMore} showNoMore />
           ) : null}
         </PullToRefresh>
       ) : tab === 'ACHIEVEMENT' ? (
@@ -1504,44 +956,6 @@ export default function SearchPage() {
               loadingMore={achievementList.loadingMore}
               hasMore={achievementList.hasMore}
               onLoadMore={achievementList.loadMore}
-              showNoMore
-            />
-          ) : null}
-        </PullToRefresh>
-      ) : tab === 'ARTWORK' ? (
-        <PullToRefresh type="primary" disabled={showArtworkInitialLoading || artworkList.refreshing} onRefresh={artworkList.refresh}>
-          {showArtworkInitialLoading ? (
-            <LoadingCard />
-          ) : artworkList.error ? (
-            <ErrorCard message={artworkList.error} onRetry={artworkList.reload} />
-          ) : artworkItems.length ? (
-            <Surface padding="none" className="listing-list">
-              {artworkItems.map((it: ArtworkSummary) => (
-                <ArtworkCard
-                  key={it.id}
-                  item={it}
-                  onClick={() => {
-                    Taro.navigateTo({ url: `/subpackages/artwork/detail/index?artworkId=${it.id}` });
-                  }}
-                />
-              ))}
-            </Surface>
-          ) : (
-            <EmptyCard
-              image={emptySearchNone}
-              title="暂无书画结果"
-              message="请调整关键词或筛选条件后重试。"
-              variant="inline"
-              actionText="刷新"
-              onAction={artworkList.reload}
-            />
-          )}
-
-          {!showArtworkInitialLoading && artworkItems.length ? (
-            <ListFooter
-              loadingMore={artworkList.loadingMore}
-              hasMore={artworkList.hasMore}
-              onLoadMore={artworkList.loadMore}
               showNoMore
             />
           ) : null}

@@ -22,17 +22,9 @@ const ListingsAuditPage = lazy(async () => {
   const mod = await import('./views/ListingsAuditPage');
   return { default: mod.ListingsAuditPage };
 });
-const DemandsAuditPage = lazy(async () => {
-  const mod = await import('./views/DemandsAuditPage');
-  return { default: mod.DemandsAuditPage };
-});
 const AchievementsAuditPage = lazy(async () => {
   const mod = await import('./views/AchievementsAuditPage');
   return { default: mod.AchievementsAuditPage };
-});
-const ArtworksAuditPage = lazy(async () => {
-  const mod = await import('./views/ArtworksAuditPage');
-  return { default: mod.ArtworksAuditPage };
 });
 const TechManagersPage = lazy(async () => {
   const mod = await import('./views/TechManagersPage');
@@ -123,9 +115,7 @@ export const router = createBrowserRouter([
       { index: true, element: <DashboardPage /> },
       { path: 'verifications', element: <VerificationsPage /> },
       { path: 'listings', element: <ListingsAuditPage /> },
-      { path: 'demands', element: <DemandsAuditPage /> },
       { path: 'achievements', element: <AchievementsAuditPage /> },
-      { path: 'artworks', element: <ArtworksAuditPage /> },
       { path: 'tech-managers', element: <TechManagersPage /> },
       { path: 'orders', element: <OrdersPage /> },
       { path: 'orders/:orderId', element: <OrderDetailPage /> },

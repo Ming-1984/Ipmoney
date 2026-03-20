@@ -14,21 +14,9 @@ export class FavoritesController {
   }
 
   @UseGuards(BearerAuthGuard)
-  @Get('/me/favorites/demands')
-  async listDemandFavorites(@Req() req: any, @Query() query: any) {
-    return await this.favorites.listDemandFavorites(req, query);
-  }
-
-  @UseGuards(BearerAuthGuard)
   @Get('/me/favorites/achievements')
   async listAchievementFavorites(@Req() req: any, @Query() query: any) {
     return await this.favorites.listAchievementFavorites(req, query);
-  }
-
-  @UseGuards(BearerAuthGuard)
-  @Get('/me/favorites/artworks')
-  async listArtworkFavorites(@Req() req: any, @Query() query: any) {
-    return await this.favorites.listArtworkFavorites(req, query);
   }
 
   @UseGuards(BearerAuthGuard)
@@ -44,18 +32,6 @@ export class FavoritesController {
   }
 
   @UseGuards(BearerAuthGuard)
-  @Post('/demands/:demandId/favorites')
-  async favoriteDemand(@Req() req: any, @Param('demandId') demandId: string) {
-    return await this.favorites.favoriteDemand(req, demandId);
-  }
-
-  @UseGuards(BearerAuthGuard)
-  @Delete('/demands/:demandId/favorites')
-  async unfavoriteDemand(@Req() req: any, @Param('demandId') demandId: string) {
-    return await this.favorites.unfavoriteDemand(req, demandId);
-  }
-
-  @UseGuards(BearerAuthGuard)
   @Post('/achievements/:achievementId/favorites')
   async favoriteAchievement(@Req() req: any, @Param('achievementId') achievementId: string) {
     return await this.favorites.favoriteAchievement(req, achievementId);
@@ -67,15 +43,4 @@ export class FavoritesController {
     return await this.favorites.unfavoriteAchievement(req, achievementId);
   }
 
-  @UseGuards(BearerAuthGuard)
-  @Post('/artworks/:artworkId/favorites')
-  async favoriteArtwork(@Req() req: any, @Param('artworkId') artworkId: string) {
-    return await this.favorites.favoriteArtwork(req, artworkId);
-  }
-
-  @UseGuards(BearerAuthGuard)
-  @Delete('/artworks/:artworkId/favorites')
-  async unfavoriteArtwork(@Req() req: any, @Param('artworkId') artworkId: string) {
-    return await this.favorites.unfavoriteArtwork(req, artworkId);
-  }
 }

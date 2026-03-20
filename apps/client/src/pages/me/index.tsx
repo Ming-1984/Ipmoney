@@ -30,8 +30,6 @@ import { Avatar, Button, Input, PullToRefresh, toast } from '../../ui/nutui';
 
 import iconUser from '../../assets/icons/icon-user-purple.svg';
 import iconPublishPatent from '../../assets/icons/icon-publish-patent.svg';
-import iconPublishArtwork from '../../assets/icons/icon-publish-artwork.svg';
-import iconPublishDemand from '../../assets/icons/icon-publish-demand.svg';
 import iconPublishAchievement from '../../assets/icons/icon-publish-achievement.svg';
 import iconOrderBuyer from '../../assets/icons/icon-order-buyer.svg';
 import iconOrderSeller from '../../assets/icons/icon-order-seller.svg';
@@ -406,9 +404,7 @@ export default function MePage() {
   const publishItems = useMemo<IconItem[]>(
     () => [
       { key: 'listings', label: '我的专利', icon: iconPublishPatent, onClick: () => Taro.navigateTo({ url: '/subpackages/my-listings/index' }) },
-      { key: 'artworks', label: '我的书画', icon: iconPublishArtwork, onClick: () => Taro.navigateTo({ url: '/subpackages/my-artworks/index' }) },
-      { key: 'demands', label: '技术需求', icon: iconPublishDemand, onClick: () => Taro.navigateTo({ url: '/subpackages/my-demands/index' }) },
-      { key: 'achievements', label: '成果案例', icon: iconPublishAchievement, onClick: () => Taro.navigateTo({ url: '/subpackages/my-achievements/index' }) },
+      { key: 'achievements', label: '专利成果', icon: iconPublishAchievement, onClick: () => Taro.navigateTo({ url: '/subpackages/my-achievements/index' }) },
     ],
     [],
   );
