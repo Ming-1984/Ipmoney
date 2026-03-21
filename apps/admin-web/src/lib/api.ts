@@ -1,3 +1,5 @@
+import { clearAdminToken, getAdminToken } from './auth';
+
 export type ApiErrorShape = { code?: string; message?: string };
 export type FileObject = {
   id: string;
@@ -59,7 +61,7 @@ function buildUrl(path: string, params?: Record<string, any>) {
 }
 
 function getAuthHeader(): Record<string, string> {
-  const token = (localStorage.getItem('ipmoney.adminToken') || '').trim();
+  const token = getAdminToken();
   if (!token) return {};
   return { Authorization: `Bearer ${token}` };
 }
@@ -111,28 +113,63 @@ function normalizeHttpError(status: number, data: unknown): ApiError {
 
   if (status === 401 || status === 403) {
     try {
-      localStorage.removeItem('ipmoney.adminToken');
+      clearAdminToken();
     } catch {
       // ignore storage failures
     }
     if (typeof window !== 'undefined' && window.location.pathname !== '/login') {
       window.location.replace('/login');
     }
-    return new ApiError({ kind: 'auth', status, code, message: '权限不足或登录已失效', retryable: false, debug: data });
+    return new ApiError({
+      kind: 'auth',
+      status,
+      code,
+      message: 'Authentication required or session expired.',
+      retryable: false,
+      debug: data,
+    });
   }
   if (status === 404) {
-    return new ApiError({ kind: 'http', status, code, message: '资源不存在', retryable: false, debug: data });
+    return new ApiError({
+      kind: 'http',
+      status,
+      code,
+      message: 'Resource not found.',
+      retryable: false,
+      debug: data,
+    });
   }
   if (status === 429) {
-    return new ApiError({ kind: 'http', status, code, message: '操作太频繁，请稍后再试', retryable: true, debug: data });
+    return new ApiError({
+      kind: 'http',
+      status,
+      code,
+      message: 'Too many requests. Please try again later.',
+      retryable: true,
+      debug: data,
+    });
   }
   if (status >= 500) {
-    return new ApiError({ kind: 'http', status, code, message: '服务开小差，请稍后再试', retryable: true, debug: data });
+    return new ApiError({
+      kind: 'http',
+      status,
+      code,
+      message: 'Server error. Please try again later.',
+      retryable: true,
+      debug: data,
+    });
   }
   if (err?.message) {
     return new ApiError({ kind: 'business', status, code, message: err.message, retryable: false, debug: data });
   }
-  return new ApiError({ kind: 'http', status, code, message: '请求失败，请稍后再试', retryable: true, debug: data });
+  return new ApiError({
+    kind: 'http',
+    status,
+    code,
+    message: 'Request failed. Please try again later.',
+    retryable: true,
+    debug: data,
+  });
 }
 
 function normalizeFetchError(e: unknown): ApiError {
@@ -142,12 +179,14 @@ function normalizeFetchError(e: unknown): ApiError {
     const isTimeout = msg.toLowerCase().includes('timeout');
     return new ApiError({
       kind: 'network',
-      message: isTimeout ? '请求超时，请检查网络后重试' : '网络异常，请检查网络后重试',
+      message: isTimeout
+        ? 'Request timed out. Please check your network and retry.'
+        : 'Network error. Please check your network and retry.',
       retryable: true,
       debug: { message: msg },
     });
   }
-  return new ApiError({ kind: 'unknown', message: '请求失败，请稍后再试', retryable: true, debug: e });
+  return new ApiError({ kind: 'unknown', message: 'Request failed. Please try again later.', retryable: true, debug: e });
 }
 
 export async function apiGet<TResponse>(

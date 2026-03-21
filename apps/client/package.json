@@ -9,8 +9,9 @@
     "build:h5": "taro build --type h5",
     "lint": "eslint \"src/**/*.{ts,tsx}\"",
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "dev:weapp": "taro build --type weapp --watch",
-    "build:weapp": "taro build --type weapp"
+    "clean:weapp": "node -e \"require('node:fs').rmSync('dist/weapp', { recursive: true, force: true })\"",
+    "dev:weapp": "pnpm run clean:weapp && taro build --type weapp --watch",
+    "build:weapp": "pnpm run clean:weapp && taro build --type weapp"
   },
   "dependencies": {
     "@nutui/icons-react-taro": "3.0.2-cpp.3.beta.3",

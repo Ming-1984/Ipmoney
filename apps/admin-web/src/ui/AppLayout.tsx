@@ -1,26 +1,49 @@
-﻿import {
+import {
   AppstoreOutlined,
+  BellOutlined,
+  BookOutlined,
   EnvironmentOutlined,
   FileDoneOutlined,
-  GiftOutlined,
-  MessageOutlined,
-  TeamOutlined,
-  SettingOutlined,
   FileTextOutlined,
+  GiftOutlined,
   LockOutlined,
-  SolutionOutlined,
-  BookOutlined,
+  MessageOutlined,
   ProfileOutlined,
-  BellOutlined,
   ScheduleOutlined,
+  SettingOutlined,
+  SolutionOutlined,
+  TeamOutlined,
 } from '@ant-design/icons';
 import { Button, Layout, Menu, Typography } from 'antd';
+import type { MenuProps } from 'antd';
 import React, { Suspense, useEffect, useMemo, useState } from 'react';
 import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
 
+import { clearAdminToken, hasAdminToken } from '../lib/auth';
 import logoPng from '../assets/brand/logo.png';
 
 const { Header, Sider, Content } = Layout;
+
+const menuItems: MenuProps['items'] = [
+  { key: 'dashboard', icon: <AppstoreOutlined />, label: <Link to="/">仪表盘</Link> },
+  { key: 'verifications', icon: <FileDoneOutlined />, label: <Link to="/verifications">认证审核</Link> },
+  { key: 'listings', icon: <GiftOutlined />, label: <Link to="/listings">上架审核</Link> },
+  { key: 'tech-managers', icon: <TeamOutlined />, label: <Link to="/tech-managers">技术经理人</Link> },
+  { key: 'comments', icon: <MessageOutlined />, label: <Link to="/comments">留言管理</Link> },
+  { key: 'alerts', icon: <BellOutlined />, label: <Link to="/alerts">告警中心</Link> },
+  { key: 'audit-logs', icon: <ProfileOutlined />, label: <Link to="/audit-logs">审计日志</Link> },
+  { key: 'orders', label: <Link to="/orders">订单管理</Link> },
+  { key: 'cases', icon: <SolutionOutlined />, label: <Link to="/cases">工单/争议</Link> },
+  { key: 'maintenance', icon: <ScheduleOutlined />, label: <Link to="/maintenance">年费托管</Link> },
+  { key: 'refunds', label: <Link to="/refunds">退款管理</Link> },
+  { key: 'settlements', label: <Link to="/settlements">放款/结算</Link> },
+  { key: 'invoices', label: <Link to="/invoices">发票管理</Link> },
+  { key: 'reports', icon: <FileTextOutlined />, label: <Link to="/reports">报表导出</Link> },
+  { key: 'config', icon: <SettingOutlined />, label: <Link to="/config">交易/推荐配置</Link> },
+  { key: 'regions', icon: <EnvironmentOutlined />, label: <Link to="/regions">地区/行业标签</Link> },
+  { key: 'patents', icon: <BookOutlined />, label: <Link to="/patents">专利主数据</Link> },
+  { key: 'rbac', icon: <LockOutlined />, label: <Link to="/rbac">账号权限</Link> },
+];
 
 export function AppLayout() {
   const location = useLocation();
@@ -29,8 +52,7 @@ export function AppLayout() {
   const [hasToken, setHasToken] = useState<boolean | null>(null);
 
   useEffect(() => {
-    const token = String(localStorage.getItem('ipmoney.adminToken') || '').trim();
-    if (!token) {
+    if (!hasAdminToken()) {
       setHasToken(false);
       navigate('/login', { replace: true });
       return;
@@ -41,6 +63,7 @@ export function AppLayout() {
   const selectedKeys = useMemo(() => {
     const path = location.pathname.replace(/^\//, '');
     if (!path) return ['dashboard'];
+    if (path.startsWith('orders/')) return ['orders'];
     return [path];
   }, [location.pathname]);
 
@@ -61,123 +84,31 @@ export function AppLayout() {
             <img src={logoPng} alt="" />
           </div>
           <div className="ipm-logo-text">
-            <span style={{ color: '#fff', fontWeight: 800 }}>Ipmoney 鍚庡彴</span>
+            <span style={{ color: '#fff', fontWeight: 800 }}>Ipmoney 后台</span>
             <span className="ipm-logo-subtitle" style={{ color: 'rgba(255,255,255,0.85)' }}>
               Ipmoney
             </span>
           </div>
         </div>
-        <Menu
-          theme="light"
-          mode="inline"
-          selectedKeys={selectedKeys}
-          items={[
-            {
-              key: 'dashboard',
-              icon: <AppstoreOutlined />,
-              label: <Link to="/">浠〃鐩?/Link>,
-            },
-            {
-              key: 'verifications',
-              icon: <FileDoneOutlined />,
-              label: <Link to="/verifications">璁よ瘉瀹℃牳</Link>,
-            },
-            {
-              key: 'listings',
-              icon: <GiftOutlined />,
-              label: <Link to="/listings">涓婃灦瀹℃牳</Link>,
-            },
-            {
-              key: 'tech-managers',
-              icon: <TeamOutlined />,
-              label: <Link to="/tech-managers">鎶€鏈粡鐞嗕汉</Link>,
-            },
-            {
-              key: 'comments',
-              icon: <MessageOutlined />,
-              label: <Link to="/comments">鐣欒█绠＄悊</Link>,
-            },
-            {
-              key: 'alerts',
-              icon: <BellOutlined />,
-              label: <Link to="/alerts">鍛婅涓績</Link>,
-            },
-            {
-              key: 'audit-logs',
-              icon: <ProfileOutlined />,
-              label: <Link to="/audit-logs">瀹¤鏃ュ織</Link>,
-            },
-
-            {
-              key: 'orders',
-              label: <Link to="/orders">璁㈠崟绠＄悊</Link>,
-            },
-            {
-              key: 'cases',
-              icon: <SolutionOutlined />,
-              label: <Link to="/cases">宸ュ崟/浜夎</Link>,
-            },
-            {
-              key: 'maintenance',
-              icon: <ScheduleOutlined />,
-              label: <Link to="/maintenance">骞磋垂鎵樼</Link>,
-            },
-            {
-              key: 'refunds',
-              label: <Link to="/refunds">閫€娆剧鐞?/Link>,
-            },
-            {
-              key: 'settlements',
-              label: <Link to="/settlements">鏀炬/缁撶畻</Link>,
-            },
-            {
-              key: 'invoices',
-              label: <Link to="/invoices">鍙戠エ绠＄悊</Link>,
-            },
-            {
-              key: 'reports',
-              icon: <FileTextOutlined />,
-              label: <Link to="/reports">鎶ヨ〃瀵煎嚭</Link>,
-            },
-            {
-              key: 'config',
-              icon: <SettingOutlined />,
-              label: <Link to="/config">浜ゆ槗/鎺ㄨ崘閰嶇疆</Link>,
-            },
-            {
-              key: 'regions',
-              icon: <EnvironmentOutlined />,
-              label: <Link to="/regions">鍦板尯/琛屼笟鏍囩</Link>,
-            },
-            {
-              key: 'patents',
-              icon: <BookOutlined />,
-              label: <Link to="/patents">涓撳埄涓绘暟鎹?/Link>,
-            },
-            {
-              key: 'rbac',
-              icon: <LockOutlined />,
-              label: <Link to="/rbac">璐﹀彿鏉冮檺</Link>,
-            },
-          ]}
-        />
+        <Menu theme="light" mode="inline" selectedKeys={selectedKeys} items={menuItems} />
       </Sider>
       <Layout>
         <Header className="ipm-app-header" style={{ padding: '0 16px' }}>
           <div className="ipm-header-inner">
-            <Typography.Text type="secondary">Ipmoney 杩愯惀鍚庡彴</Typography.Text>
+            <Typography.Text type="secondary">Ipmoney 运营后台</Typography.Text>
             <Button
               size="small"
               onClick={() => {
                 try {
-                  localStorage.removeItem('ipmoney.adminToken');
+                  clearAdminToken();
                 } catch {
                   // ignore storage failures
                 }
                 navigate('/login', { replace: true });
               }}
             >
-              閫€鍑虹櫥褰?            </Button>
+              退出登录
+            </Button>
           </div>
         </Header>
         <Content className="ipm-content">
@@ -191,4 +122,3 @@ export function AppLayout() {
     </Layout>
   );
 }
-

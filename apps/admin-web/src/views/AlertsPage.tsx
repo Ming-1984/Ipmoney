@@ -52,7 +52,6 @@ const TARGET_OPTIONS = [
   { value: 'PAYMENT', label: '支付' },
   { value: 'REFUND', label: '退款' },
   { value: 'LISTING', label: '上架' },
-  { value: 'ACHIEVEMENT', label: '成果' },
   { value: 'PATENT', label: '专利' },
   { value: 'AI_PARSE', label: 'AI 解析' },
   { value: 'SYSTEM', label: '系统' },

@@ -306,16 +306,17 @@ $env:DEMO_AUTH_ENABLED = $demoAuthValue
 $env:DEMO_PAYMENT_ENABLED = $demoPaymentValue
 if ($EnableDemoAuth) {
   if ([string]::IsNullOrWhiteSpace($env:DEMO_ADMIN_TOKEN)) {
-    $env:DEMO_ADMIN_TOKEN = "demo-admin-$([guid]::NewGuid().ToString('N'))"
+    # Keep demo credentials stable across restarts for better local DX.
+    $env:DEMO_ADMIN_TOKEN = "demo-admin-local"
   }
   if ([string]::IsNullOrWhiteSpace($env:DEMO_USER_TOKEN)) {
-    $env:DEMO_USER_TOKEN = "demo-user-$([guid]::NewGuid().ToString('N'))"
+    $env:DEMO_USER_TOKEN = "demo-user-local"
   }
   if ([string]::IsNullOrWhiteSpace($env:DEMO_ADMIN_ID)) {
-    $env:DEMO_ADMIN_ID = [guid]::NewGuid().ToString()
+    $env:DEMO_ADMIN_ID = "00000000-0000-4000-8000-000000000001"
   }
   if ([string]::IsNullOrWhiteSpace($env:DEMO_USER_ID)) {
-    $env:DEMO_USER_ID = [guid]::NewGuid().ToString()
+    $env:DEMO_USER_ID = "00000000-0000-4000-8000-000000000002"
   }
   # Default to secure behavior: UUID passthrough is OFF unless explicitly enabled.
   $env:DEMO_AUTH_ALLOW_UUID_TOKENS = if ($AllowDemoUuidTokens) { "true" } else { "false" }

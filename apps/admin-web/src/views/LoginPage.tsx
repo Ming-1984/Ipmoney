@@ -2,11 +2,12 @@ import { Button, Card, Form, Input, Typography } from 'antd';
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 
+import { setAdminToken } from '../lib/auth';
 import logoPng from '../assets/brand/logo.png';
 
 export function LoginPage() {
   const navigate = useNavigate();
-  const [form] = Form.useForm();
+  const [form] = Form.useForm<{ token: string }>();
   const demoToken = String(import.meta.env.VITE_DEMO_ADMIN_TOKEN || '').trim();
 
   return (
@@ -30,26 +31,36 @@ export function LoginPage() {
             <Typography.Title level={3} style={{ marginTop: 0, marginBottom: 0 }}>
               Ipmoney 管理后台
             </Typography.Title>
-            <Typography.Text type="secondary">运营审核与订单管理</Typography.Text>
+            <Typography.Text type="secondary">运营审核与订单结算</Typography.Text>
           </div>
         </div>
+
         <Typography.Paragraph type="secondary">
-          Used for listing and achievement review, verification, and order settlement management.
+          用于认证审核、上架审核和订单履约管理。
         </Typography.Paragraph>
+
         <Form
           form={form}
           layout="vertical"
+          initialValues={demoToken ? { token: demoToken } : undefined}
           onFinish={(values) => {
             const token = String(values?.token || '').trim();
-            if (token) {
-              localStorage.setItem('ipmoney.adminToken', token);
-            }
-            navigate('/');
+            if (!token) return;
+            setAdminToken(token);
+            navigate('/', { replace: true });
           }}
         >
-          <Form.Item label="Access Token" name="token" rules={[{ required: true }]}>
-            <Input placeholder="Paste admin token (without 'Bearer ')" />
+          <Form.Item
+            label="Access Token"
+            name="token"
+            rules={[
+              { required: true, message: '请输入管理端 token' },
+              { min: 8, message: 'token 长度至少 8 位' },
+            ]}
+          >
+            <Input placeholder="Paste admin token (without 'Bearer ')" autoComplete="off" />
           </Form.Item>
+
           {demoToken ? (
             <Button
               block
@@ -61,7 +72,10 @@ export function LoginPage() {
               Use demo token
             </Button>
           ) : null}
-          <Button type="primary" htmlType="submit" block>Sign in</Button>
+
+          <Button type="primary" htmlType="submit" block>
+            Sign in
+          </Button>
         </Form>
       </Card>
     </div>

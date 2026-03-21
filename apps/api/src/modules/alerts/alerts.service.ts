@@ -11,7 +11,6 @@ const TARGET_SET = new Set([
   'PATENT',
   'ORDER',
   'LISTING',
-  'ACHIEVEMENT',
   'AI_PARSE',
   'IMPORT',
   'PAYMENT',
