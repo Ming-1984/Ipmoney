@@ -316,6 +316,42 @@ enum PatentMaintenanceTaskStatus {
   CANCELLED
 }
 
+enum ListingJobStatus {
+  PENDING
+  RUNNING
+  PAUSED
+  SUCCEEDED
+  FAILED
+}
+
+enum ListingBatchAction {
+  APPROVE
+  REJECT
+  PUBLISH
+  OFF_SHELF
+}
+
+enum ListingBatchItemStatus {
+  PENDING
+  SUCCEEDED
+  FAILED
+  SKIPPED
+}
+
+enum ListingImportDuplicatePolicy {
+  SKIP
+  OVERWRITE
+}
+
+enum ListingImportRowStatus {
+  PENDING
+  VALID
+  INVALID
+  SUCCEEDED
+  FAILED
+  SKIPPED
+}
+
 model User {
   id         String   @id @default(uuid()) @db.Uuid
   phone      String?  @unique
@@ -340,6 +376,8 @@ model User {
   listingAuditLogs     ListingAuditLog[]     @relation("ListingAuditLog_Reviewer")
   listingFavorites     ListingFavorite[]
   listingConsultEvents ListingConsultEvent[]
+  listingBatchJobs     ListingBatchJob[]     @relation("ListingBatchJob_Operator")
+  listingImportJobs    ListingImportJob[]    @relation("ListingImportJob_Operator")
   userTagScores        UserTagScore[]
 
   conversationsAsBuyer     Conversation[]            @relation("Conversation_Buyer")
@@ -603,6 +641,9 @@ model File {
   contractFiles      Contract[]         @relation("Contract_File")
   maintenanceEvidenceTasks PatentMaintenanceTask[] @relation("PatentMaintenanceTask_Evidence")
   verificationLogos  UserVerification[]    @relation("UserVerification_LogoFile")
+  listingBatchJobErrorFiles ListingBatchJob[] @relation("ListingBatchJob_ErrorFile")
+  listingImportJobSourceFiles ListingImportJob[] @relation("ListingImportJob_SourceFile")
+  listingImportJobErrorFiles ListingImportJob[] @relation("ListingImportJob_ErrorFile")
 
   @@index([ownerScope, ownerId])
   @@map("files")
@@ -652,6 +693,8 @@ model Listing {
   consultEvents ListingConsultEvent[]
   orders        Order[]
   conversations Conversation[]
+  batchJobItems ListingBatchJobItem[]
+  importJobRows ListingImportJobRow[]
 
   @@index([auditStatus, status])
   @@index([status, auditStatus, createdAt])
@@ -686,6 +729,109 @@ model ListingAuditLog {
 
   @@index([listingId, createdAt])
   @@map("listing_audit_logs")
+}
+
+model ListingBatchJob {
+  id             String             @id @default(uuid()) @db.Uuid
+  operatorUserId String             @map("operator_user_id") @db.Uuid
+  action         ListingBatchAction
+  reason         String?
+  status         ListingJobStatus   @default(PENDING)
+  totalCount     Int                @default(0) @map("total_count")
+  successCount   Int                @default(0) @map("success_count")
+  failedCount    Int                @default(0) @map("failed_count")
+  skippedCount   Int                @default(0) @map("skipped_count")
+  failRate       Float              @default(0) @map("fail_rate")
+  startedAt      DateTime?          @map("started_at")
+  finishedAt     DateTime?          @map("finished_at")
+  pausedAt       DateTime?          @map("paused_at")
+  errorFileId    String?            @map("error_file_id") @db.Uuid
+  createdAt      DateTime           @default(now()) @map("created_at")
+  updatedAt      DateTime           @updatedAt @map("updated_at")
+
+  operator User @relation("ListingBatchJob_Operator", fields: [operatorUserId], references: [id])
+  errorFile File? @relation("ListingBatchJob_ErrorFile", fields: [errorFileId], references: [id])
+  items     ListingBatchJobItem[]
+
+  @@index([operatorUserId, createdAt])
+  @@index([status, createdAt])
+  @@map("listing_batch_jobs")
+}
+
+model ListingBatchJobItem {
+  id           String                 @id @default(uuid()) @db.Uuid
+  jobId        String                 @map("job_id") @db.Uuid
+  listingId    String                 @map("listing_id") @db.Uuid
+  status       ListingBatchItemStatus @default(PENDING)
+  errorCode    String?                @map("error_code")
+  errorMessage String?                @map("error_message")
+  processedAt  DateTime?              @map("processed_at")
+  createdAt    DateTime               @default(now()) @map("created_at")
+  updatedAt    DateTime               @updatedAt @map("updated_at")
+
+  job     ListingBatchJob @relation(fields: [jobId], references: [id])
+  listing Listing         @relation(fields: [listingId], references: [id])
+
+  @@unique([jobId, listingId])
+  @@index([jobId, status])
+  @@index([listingId, createdAt])
+  @@map("listing_batch_job_items")
+}
+
+model ListingImportJob {
+  id              String                       @id @default(uuid()) @db.Uuid
+  operatorUserId  String                       @map("operator_user_id") @db.Uuid
+  fileId          String                       @map("file_id") @db.Uuid
+  duplicatePolicy ListingImportDuplicatePolicy @default(SKIP) @map("duplicate_policy")
+  defaultsJson    Json?                        @map("defaults_json")
+  status          ListingJobStatus             @default(PENDING)
+  totalCount      Int                          @default(0) @map("total_count")
+  validCount      Int                          @default(0) @map("valid_count")
+  invalidCount    Int                          @default(0) @map("invalid_count")
+  successCount    Int                          @default(0) @map("success_count")
+  failedCount     Int                          @default(0) @map("failed_count")
+  skippedCount    Int                          @default(0) @map("skipped_count")
+  failRate        Float                        @default(0) @map("fail_rate")
+  validatedAt     DateTime?                    @map("validated_at")
+  startedAt       DateTime?                    @map("started_at")
+  finishedAt      DateTime?                    @map("finished_at")
+  pausedAt        DateTime?                    @map("paused_at")
+  errorFileId     String?                      @map("error_file_id") @db.Uuid
+  createdAt       DateTime                     @default(now()) @map("created_at")
+  updatedAt       DateTime                     @updatedAt @map("updated_at")
+
+  operator User @relation("ListingImportJob_Operator", fields: [operatorUserId], references: [id])
+  sourceFile File @relation("ListingImportJob_SourceFile", fields: [fileId], references: [id])
+  errorFile  File? @relation("ListingImportJob_ErrorFile", fields: [errorFileId], references: [id])
+  rows       ListingImportJobRow[]
+
+  @@index([operatorUserId, createdAt])
+  @@index([status, createdAt])
+  @@index([fileId])
+  @@map("listing_import_jobs")
+}
+
+model ListingImportJobRow {
+  id             String               @id @default(uuid()) @db.Uuid
+  jobId          String               @map("job_id") @db.Uuid
+  rowNo          Int                  @map("row_no")
+  status         ListingImportRowStatus @default(PENDING)
+  rawJson        Json                 @map("raw_json")
+  normalizedJson Json?                @map("normalized_json")
+  listingId      String?              @map("listing_id") @db.Uuid
+  errorCode      String?              @map("error_code")
+  errorMessage   String?              @map("error_message")
+  processedAt    DateTime?            @map("processed_at")
+  createdAt      DateTime             @default(now()) @map("created_at")
+  updatedAt      DateTime             @updatedAt @map("updated_at")
+
+  job     ListingImportJob @relation(fields: [jobId], references: [id])
+  listing Listing?         @relation(fields: [listingId], references: [id])
+
+  @@unique([jobId, rowNo])
+  @@index([jobId, status])
+  @@index([listingId, createdAt])
+  @@map("listing_import_job_rows")
 }
 
 model ListingStats {

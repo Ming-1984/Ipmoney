@@ -38,6 +38,8 @@ export function buildDefaultRbacRoles(now = new Date()): RbacRole[] {
         'verification.review',
         'listing.read',
         'listing.audit',
+        'listing.batchPublish',
+        'listing.import',
         'order.read',
         'case.manage',
         'maintenance.manage',

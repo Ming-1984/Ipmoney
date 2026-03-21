@@ -8,6 +8,8 @@ export const ADMIN_ROLE_PERMISSIONS: Record<AdminRoleName, string[]> = {
     'verification.review',
     'listing.read',
     'listing.audit',
+    'listing.batchPublish',
+    'listing.import',
     'order.read',
     'case.manage',
     'maintenance.manage',

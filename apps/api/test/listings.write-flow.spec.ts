@@ -1,4 +1,4 @@
-import { BadRequestException, ForbiddenException, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ConflictException, ForbiddenException, NotFoundException } from '@nestjs/common';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { ListingsService } from '../src/modules/listings/listings.service';
@@ -193,18 +193,18 @@ describe('ListingsService write flow suite', () => {
     prisma.listing.findUnique.mockResolvedValueOnce(buildListing({ sellerUserId: 'other-user' }));
     await expect(service.updateListing(USER_REQ, LISTING_ID, {})).rejects.toBeInstanceOf(NotFoundException);
 
-    prisma.listing.findUnique.mockResolvedValueOnce(buildListing());
+    prisma.listing.findUnique.mockResolvedValueOnce(buildListing({ auditStatus: 'APPROVED' }));
     await expect(service.updateListing(USER_REQ, LISTING_ID, { title: ' ' })).rejects.toBeInstanceOf(BadRequestException);
 
-    prisma.listing.findUnique.mockResolvedValueOnce(buildListing());
+    prisma.listing.findUnique.mockResolvedValueOnce(buildListing({ auditStatus: 'APPROVED' }));
     await expect(service.updateListing(USER_REQ, LISTING_ID, { priceType: 'bad' })).rejects.toBeInstanceOf(BadRequestException);
 
-    prisma.listing.findUnique.mockResolvedValueOnce(buildListing());
+    prisma.listing.findUnique.mockResolvedValueOnce(buildListing({ auditStatus: 'APPROVED' }));
     await expect(service.updateListing(USER_REQ, LISTING_ID, { regionCode: '' })).rejects.toBeInstanceOf(BadRequestException);
   });
 
   it('update applies normalized patch fields', async () => {
-    prisma.listing.findUnique.mockResolvedValueOnce(buildListing());
+    prisma.listing.findUnique.mockResolvedValueOnce(buildListing({ auditStatus: 'APPROVED' }));
     prisma.listing.update.mockResolvedValueOnce(
       buildListing({
         title: 'Listing Updated',
@@ -399,10 +399,17 @@ describe('ListingsService write flow suite', () => {
     prisma.listing.findUnique.mockResolvedValueOnce(null);
     await expect(service.adminPublish(ADMIN_REQ, LISTING_ID)).rejects.toBeInstanceOf(NotFoundException);
 
-    prisma.listing.findUnique.mockResolvedValueOnce(buildListing());
+    prisma.listing.findUnique.mockResolvedValueOnce(buildListing({ auditStatus: 'PENDING' }));
+    await expect(service.adminPublish(ADMIN_REQ, LISTING_ID)).rejects.toBeInstanceOf(ConflictException);
+
+    prisma.listing.findUnique.mockResolvedValueOnce(buildListing({ auditStatus: 'APPROVED' }));
     prisma.listing.update.mockResolvedValueOnce(buildListing({ status: 'ACTIVE', auditStatus: 'APPROVED' }));
     const published = await service.adminPublish(ADMIN_REQ, LISTING_ID);
     expect(published).toMatchObject({ id: LISTING_ID, status: 'ACTIVE', auditStatus: 'APPROVED' });
+    expect(prisma.listing.update).toHaveBeenCalledWith({
+      where: { id: LISTING_ID },
+      data: { status: 'ACTIVE' },
+    });
 
     prisma.listing.findUnique.mockResolvedValueOnce(null);
     await expect(service.adminOffShelf(ADMIN_REQ, LISTING_ID)).rejects.toBeInstanceOf(NotFoundException);

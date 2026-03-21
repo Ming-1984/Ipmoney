@@ -41,6 +41,110 @@ export class ListingsController {
   }
 
   @UseGuards(BearerAuthGuard)
+  @Post('/admin/listings/jobs/batch')
+  async createBatchJob(@Req() req: any, @Body() body: any) {
+    this.listings.ensureAdmin(req);
+    requirePermission(req, 'listing.batchPublish');
+    return await this.listings.createBatchJob(req, body || {});
+  }
+
+  @UseGuards(BearerAuthGuard)
+  @Get('/admin/listings/jobs/batch')
+  async listBatchJobs(@Req() req: any, @Query() query: any) {
+    this.listings.ensureAdmin(req);
+    requirePermission(req, 'listing.batchPublish');
+    return await this.listings.listBatchJobs(req, query || {});
+  }
+
+  @UseGuards(BearerAuthGuard)
+  @Get('/admin/listings/jobs/batch/:jobId')
+  async getBatchJob(@Req() req: any, @Param('jobId') jobId: string) {
+    this.listings.ensureAdmin(req);
+    requirePermission(req, 'listing.batchPublish');
+    const normalizedJobId = this.parseUuidParam(jobId, 'jobId');
+    return await this.listings.getBatchJob(req, normalizedJobId);
+  }
+
+  @UseGuards(BearerAuthGuard)
+  @Get('/admin/listings/jobs/batch/:jobId/items')
+  async listBatchJobItems(@Req() req: any, @Param('jobId') jobId: string, @Query() query: any) {
+    this.listings.ensureAdmin(req);
+    requirePermission(req, 'listing.batchPublish');
+    const normalizedJobId = this.parseUuidParam(jobId, 'jobId');
+    return await this.listings.listBatchJobItems(req, normalizedJobId, query || {});
+  }
+
+  @UseGuards(BearerAuthGuard)
+  @Get('/admin/listings/jobs/batch/:jobId/error-file')
+  async getBatchJobErrorFile(@Req() req: any, @Param('jobId') jobId: string) {
+    this.listings.ensureAdmin(req);
+    requirePermission(req, 'listing.batchPublish');
+    const normalizedJobId = this.parseUuidParam(jobId, 'jobId');
+    return await this.listings.getBatchJobErrorFile(req, normalizedJobId);
+  }
+
+  @UseGuards(BearerAuthGuard)
+  @Post('/admin/listings/jobs/import')
+  async createImportJob(@Req() req: any, @Body() body: any) {
+    this.listings.ensureAdmin(req);
+    requirePermission(req, 'listing.import');
+    return await this.listings.createImportJob(req, body || {});
+  }
+
+  @UseGuards(BearerAuthGuard)
+  @Post('/admin/listings/jobs/import/:jobId/validate')
+  async validateImportJob(@Req() req: any, @Param('jobId') jobId: string) {
+    this.listings.ensureAdmin(req);
+    requirePermission(req, 'listing.import');
+    const normalizedJobId = this.parseUuidParam(jobId, 'jobId');
+    return await this.listings.validateImportJob(req, normalizedJobId);
+  }
+
+  @UseGuards(BearerAuthGuard)
+  @Post('/admin/listings/jobs/import/:jobId/execute')
+  async executeImportJob(@Req() req: any, @Param('jobId') jobId: string) {
+    this.listings.ensureAdmin(req);
+    requirePermission(req, 'listing.import');
+    const normalizedJobId = this.parseUuidParam(jobId, 'jobId');
+    return await this.listings.executeImportJob(req, normalizedJobId);
+  }
+
+  @UseGuards(BearerAuthGuard)
+  @Get('/admin/listings/jobs/import')
+  async listImportJobs(@Req() req: any, @Query() query: any) {
+    this.listings.ensureAdmin(req);
+    requirePermission(req, 'listing.import');
+    return await this.listings.listImportJobs(req, query || {});
+  }
+
+  @UseGuards(BearerAuthGuard)
+  @Get('/admin/listings/jobs/import/:jobId')
+  async getImportJob(@Req() req: any, @Param('jobId') jobId: string) {
+    this.listings.ensureAdmin(req);
+    requirePermission(req, 'listing.import');
+    const normalizedJobId = this.parseUuidParam(jobId, 'jobId');
+    return await this.listings.getImportJob(req, normalizedJobId);
+  }
+
+  @UseGuards(BearerAuthGuard)
+  @Get('/admin/listings/jobs/import/:jobId/rows')
+  async listImportJobRows(@Req() req: any, @Param('jobId') jobId: string, @Query() query: any) {
+    this.listings.ensureAdmin(req);
+    requirePermission(req, 'listing.import');
+    const normalizedJobId = this.parseUuidParam(jobId, 'jobId');
+    return await this.listings.listImportJobRows(req, normalizedJobId, query || {});
+  }
+
+  @UseGuards(BearerAuthGuard)
+  @Get('/admin/listings/jobs/import/:jobId/error-file')
+  async getImportJobErrorFile(@Req() req: any, @Param('jobId') jobId: string) {
+    this.listings.ensureAdmin(req);
+    requirePermission(req, 'listing.import');
+    const normalizedJobId = this.parseUuidParam(jobId, 'jobId');
+    return await this.listings.getImportJobErrorFile(req, normalizedJobId);
+  }
+
+  @UseGuards(BearerAuthGuard)
   @Get('/listings')
   async listMine(@Req() req: any, @Query() query: any) {
     return await this.listings.listMine(req, query);

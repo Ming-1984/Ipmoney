@@ -1,4 +1,4 @@
-# OpenAPI
+﻿# OpenAPI
 
 规范文件：`docs/api/openapi.yaml`
 
@@ -36,3 +36,20 @@
   - 首页特色专区跳转到搜索页：通过 `listingTopic` 预填。
   - 搜索筛选：支持按 `listingTopic` 直接筛选。
   - 发布专利：支持写入 `listingTopics`（数组）。
+
+## Batch Publish And Import (Admin)
+- Batch jobs (async):
+  - `POST /admin/listings/jobs/batch`
+  - `GET /admin/listings/jobs/batch`
+  - `GET /admin/listings/jobs/batch/{jobId}`
+  - `GET /admin/listings/jobs/batch/{jobId}/items`
+  - `GET /admin/listings/jobs/batch/{jobId}/error-file`
+- Import jobs (async):
+  - `POST /admin/listings/jobs/import`
+  - `POST /admin/listings/jobs/import/{jobId}/validate`
+  - `POST /admin/listings/jobs/import/{jobId}/execute`
+  - `GET /admin/listings/jobs/import`
+  - `GET /admin/listings/jobs/import/{jobId}`
+  - `GET /admin/listings/jobs/import/{jobId}/rows`
+  - `GET /admin/listings/jobs/import/{jobId}/error-file`
+

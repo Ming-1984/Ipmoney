@@ -1,4 +1,4 @@
-# Permissions Matrix (Admin + Miniapp) (2026-02-19)
+﻿# Permissions Matrix (Admin + Miniapp) (2026-02-19)
 
 ## Sources of truth
 - Admin permission IDs + default role grants: `apps/api/src/common/permissions.ts`
@@ -49,7 +49,11 @@ This maps backend enforcement (`requirePermission`) to admin modules/pages:
 - `verification.read`, `verification.review`:
   - `/admin/user-verifications` (Verifications)
 - `listing.read`, `listing.audit`:
-  - `/admin/patents`, `/admin/tech-managers`
+  - `/admin/listings`, `/admin/patents`, `/admin/tech-managers`
+- `listing.batchPublish`:
+  - `/admin/listings/jobs/batch*`
+- `listing.import`:
+  - `/admin/listings/jobs/import*`
 - `order.read`:
   - `/admin/orders`, `/admin/orders/:id`
 - `payment.manual.confirm`, `milestone.*`, `settlement.read`, `payout.manual.confirm`,
@@ -75,3 +79,4 @@ This maps backend enforcement (`requirePermission`) to admin modules/pages:
 ## Gaps / verify before production
 - `ai.manage` is used in AI admin service but is not in the default permission list.
   If AI admin endpoints are enabled, add `ai.manage` to the permission registry + roles.
+

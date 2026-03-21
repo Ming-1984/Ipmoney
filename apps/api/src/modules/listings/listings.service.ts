@@ -1,5 +1,9 @@
-import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ConflictException, ForbiddenException, Injectable, NotFoundException, Optional } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
+import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import path from 'node:path';
+import crypto from 'node:crypto';
+import * as XLSX from 'xlsx';
 
 type AuditStatus = 'PENDING' | 'APPROVED' | 'REJECTED';
 type ListingStatus = 'DRAFT' | 'ACTIVE' | 'OFF_SHELF' | 'SOLD';
@@ -15,6 +19,7 @@ import { PrismaService } from '../../common/prisma/prisma.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import { mapStats, sanitizeIndustryTagNames } from '../content-utils';
 import { ConfigService, type RecommendationConfig } from '../config/config.service';
+import { FilesService } from '../files/files.service';
 
 const LISTING_TOPIC_VALUE_SET = new Set<ListingTopic>([
   'HIGH_TECH_RETIRED',
@@ -29,6 +34,8 @@ type ListingAdminDto = {
   source?: ContentSource;
   proofFileIds?: string[];
   deliverables?: string[];
+  industryTags?: string[];
+  listingTopics?: ListingTopic[];
   expectedCompletionDays?: number | null;
   negotiableRangeFen?: number | null;
   negotiableRangePercent?: number | null;
@@ -58,6 +65,124 @@ type PagedListingAdmin = {
   page: { page: number; pageSize: number; total: number };
 };
 
+type ListingJobStatus = 'PENDING' | 'RUNNING' | 'PAUSED' | 'SUCCEEDED' | 'FAILED';
+type ListingBatchAction = 'APPROVE' | 'REJECT' | 'PUBLISH' | 'OFF_SHELF';
+type ListingBatchItemStatus = 'PENDING' | 'SUCCEEDED' | 'FAILED' | 'SKIPPED';
+type ListingImportDuplicatePolicy = 'SKIP' | 'OVERWRITE';
+type ListingImportRowStatus = 'PENDING' | 'VALID' | 'INVALID' | 'SUCCEEDED' | 'FAILED' | 'SKIPPED';
+
+type ListingBatchJobDto = {
+  id: string;
+  operatorUserId: string;
+  action: ListingBatchAction;
+  reason?: string | null;
+  status: ListingJobStatus;
+  totalCount: number;
+  successCount: number;
+  failedCount: number;
+  skippedCount: number;
+  failRate: number;
+  startedAt?: string | null;
+  finishedAt?: string | null;
+  pausedAt?: string | null;
+  errorFileId?: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+type ListingBatchJobItemDto = {
+  id: string;
+  jobId: string;
+  listingId: string;
+  status: ListingBatchItemStatus;
+  errorCode?: string | null;
+  errorMessage?: string | null;
+  processedAt?: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+type PagedListingBatchJobs = {
+  items: ListingBatchJobDto[];
+  page: { page: number; pageSize: number; total: number };
+};
+
+type PagedListingBatchJobItems = {
+  items: ListingBatchJobItemDto[];
+  page: { page: number; pageSize: number; total: number };
+};
+
+type ListingImportJobDto = {
+  id: string;
+  operatorUserId: string;
+  fileId: string;
+  duplicatePolicy: ListingImportDuplicatePolicy;
+  defaults?: Record<string, any>;
+  status: ListingJobStatus;
+  totalCount: number;
+  validCount: number;
+  invalidCount: number;
+  successCount: number;
+  failedCount: number;
+  skippedCount: number;
+  failRate: number;
+  validatedAt?: string | null;
+  startedAt?: string | null;
+  finishedAt?: string | null;
+  pausedAt?: string | null;
+  errorFileId?: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+type ListingImportJobRowDto = {
+  id: string;
+  jobId: string;
+  rowNo: number;
+  status: ListingImportRowStatus;
+  raw?: Record<string, any>;
+  normalized?: Record<string, any> | null;
+  listingId?: string | null;
+  errorCode?: string | null;
+  errorMessage?: string | null;
+  processedAt?: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+type PagedListingImportJobs = {
+  items: ListingImportJobDto[];
+  page: { page: number; pageSize: number; total: number };
+};
+
+type PagedListingImportJobRows = {
+  items: ListingImportJobRowDto[];
+  page: { page: number; pageSize: number; total: number };
+};
+
+type ListingImportDefaults = {
+  sellerUserId?: string;
+  source?: ContentSource;
+  tradeMode?: 'ASSIGNMENT' | 'LICENSE';
+  licenseMode?: 'EXCLUSIVE' | 'SOLE' | 'NON_EXCLUSIVE';
+  priceType?: 'FIXED' | 'NEGOTIABLE';
+  priceAmountFen?: number;
+  depositAmountFen?: number;
+  regionCode?: string;
+  listingTopics?: ListingTopic[];
+  industryTags?: string[];
+  status?: ListingStatus;
+  auditStatus?: AuditStatus;
+};
+
+const UPLOAD_DIR = process.env.UPLOAD_DIR || path.resolve(process.cwd(), 'uploads');
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const LISTING_JOB_STATUS_SET = new Set<ListingJobStatus>(['PENDING', 'RUNNING', 'PAUSED', 'SUCCEEDED', 'FAILED']);
+const LISTING_BATCH_ACTION_SET = new Set<ListingBatchAction>(['APPROVE', 'REJECT', 'PUBLISH', 'OFF_SHELF']);
+const LISTING_BATCH_ITEM_STATUS_SET = new Set<ListingBatchItemStatus>(['PENDING', 'SUCCEEDED', 'FAILED', 'SKIPPED']);
+const LISTING_IMPORT_DUPLICATE_POLICY_SET = new Set<ListingImportDuplicatePolicy>(['SKIP', 'OVERWRITE']);
+const LISTING_IMPORT_ROW_STATUS_SET = new Set<ListingImportRowStatus>(['PENDING', 'VALID', 'INVALID', 'SUCCEEDED', 'FAILED', 'SKIPPED']);
+
 @Injectable()
 export class ListingsService {
   constructor(
@@ -66,7 +191,10 @@ export class ListingsService {
     private readonly notifications: NotificationsService,
     private readonly events: ContentEventService,
     private readonly config: ConfigService,
-  ) {}
+    @Optional() private readonly files?: FilesService,
+  ) {
+    mkdirSync(UPLOAD_DIR, { recursive: true });
+  }
 
   ensureAdmin(req: any) {
     if (!req?.auth?.isAdmin) {
@@ -82,6 +210,130 @@ export class ListingsService {
 
   private hasOwn(body: any, key: string) {
     return Object.prototype.hasOwnProperty.call(body || {}, key);
+  }
+
+  private parseUuidStrict(value: unknown, fieldName: string): string {
+    const raw = String(value ?? '').trim();
+    if (!raw || !UUID_RE.test(raw)) {
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: `${fieldName} is invalid` });
+    }
+    return raw;
+  }
+
+  private normalizeListingJobStatus(value: unknown): ListingJobStatus | undefined {
+    const raw = String(value || '').trim().toUpperCase();
+    if (!raw || !LISTING_JOB_STATUS_SET.has(raw as ListingJobStatus)) return undefined;
+    return raw as ListingJobStatus;
+  }
+
+  private parseListingJobStatusStrict(value: unknown, fieldName: string): ListingJobStatus {
+    const normalized = this.normalizeListingJobStatus(value);
+    if (!normalized) {
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: `${fieldName} is invalid` });
+    }
+    return normalized;
+  }
+
+  private normalizeListingBatchAction(value: unknown): ListingBatchAction | undefined {
+    const raw = String(value || '').trim().toUpperCase();
+    if (!raw || !LISTING_BATCH_ACTION_SET.has(raw as ListingBatchAction)) return undefined;
+    return raw as ListingBatchAction;
+  }
+
+  private parseListingBatchActionStrict(value: unknown, fieldName: string): ListingBatchAction {
+    const normalized = this.normalizeListingBatchAction(value);
+    if (!normalized) {
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: `${fieldName} is invalid` });
+    }
+    return normalized;
+  }
+
+  private normalizeListingBatchItemStatus(value: unknown): ListingBatchItemStatus | undefined {
+    const raw = String(value || '').trim().toUpperCase();
+    if (!raw || !LISTING_BATCH_ITEM_STATUS_SET.has(raw as ListingBatchItemStatus)) return undefined;
+    return raw as ListingBatchItemStatus;
+  }
+
+  private normalizeListingImportDuplicatePolicy(value: unknown): ListingImportDuplicatePolicy | undefined {
+    const raw = String(value || '').trim().toUpperCase();
+    if (!raw || !LISTING_IMPORT_DUPLICATE_POLICY_SET.has(raw as ListingImportDuplicatePolicy)) return undefined;
+    return raw as ListingImportDuplicatePolicy;
+  }
+
+  private parseListingImportDuplicatePolicyStrict(value: unknown, fieldName: string): ListingImportDuplicatePolicy {
+    const normalized = this.normalizeListingImportDuplicatePolicy(value);
+    if (!normalized) {
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: `${fieldName} is invalid` });
+    }
+    return normalized;
+  }
+
+  private normalizeListingImportRowStatus(value: unknown): ListingImportRowStatus | undefined {
+    const raw = String(value || '').trim().toUpperCase();
+    if (!raw || !LISTING_IMPORT_ROW_STATUS_SET.has(raw as ListingImportRowStatus)) return undefined;
+    return raw as ListingImportRowStatus;
+  }
+
+  private normalizeOptionalReason(value: unknown): string | undefined {
+    if (value === undefined || value === null) return undefined;
+    const raw = String(value).trim();
+    return raw || undefined;
+  }
+
+  private parseUuidArrayStrict(value: unknown, fieldName: string, opts?: { min?: number; max?: number }): string[] {
+    const list = Array.isArray(value) ? value : [];
+    const out: string[] = [];
+    const seen = new Set<string>();
+    for (const item of list) {
+      const id = this.parseUuidStrict(item, fieldName);
+      if (seen.has(id)) continue;
+      seen.add(id);
+      out.push(id);
+    }
+    const min = opts?.min ?? 0;
+    const max = opts?.max ?? 1000;
+    if (out.length < min || out.length > max) {
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: `${fieldName} is invalid` });
+    }
+    return out;
+  }
+
+  private getIdempotencyKey(req: any) {
+    const raw = req?.headers?.['idempotency-key'];
+    if (!raw) return '';
+    return String(raw).trim();
+  }
+
+  private async withIdempotency<T>(req: any, scope: string, handler: () => Promise<T>): Promise<T> {
+    const key = this.getIdempotencyKey(req);
+    if (!key) return await handler();
+    const userId = req?.auth?.userId ? String(req.auth.userId) : '';
+    if (!userId) return await handler();
+
+    const existing = await this.prisma.idempotencyKey.findUnique({
+      where: { key_scope_userId: { key, scope, userId } },
+    });
+    if (existing) {
+      if (existing.status === 'COMPLETED' && existing.responseJson != null) {
+        return existing.responseJson as T;
+      }
+      throw new ConflictException({ code: 'CONFLICT', message: 'idempotency key already used' });
+    }
+
+    const record = await this.prisma.idempotencyKey.create({
+      data: { key, scope, userId, status: 'IN_PROGRESS' },
+    });
+    try {
+      const result = await handler();
+      await this.prisma.idempotencyKey.update({
+        where: { id: record.id },
+        data: { status: 'COMPLETED', responseJson: result as any },
+      });
+      return result;
+    } catch (error) {
+      await this.prisma.idempotencyKey.delete({ where: { id: record.id } });
+      throw error;
+    }
   }
 
   private parsePositiveIntStrict(value: unknown, fieldName: string): number {
@@ -377,6 +629,8 @@ export class ListingsService {
       source: it.source ?? 'USER',
       proofFileIds: this.normalizeStringArray(it.proofFileIdsJson),
       deliverables: this.normalizeStringArray(it.deliverablesJson),
+      industryTags: sanitizeIndustryTagNames(it.industryTagsJson),
+      listingTopics: this.normalizeListingTopics(it.listingTopicsJson),
       expectedCompletionDays: it.expectedCompletionDays ?? null,
       negotiableRangeFen: it.negotiableRangeFen ?? null,
       negotiableRangePercent: it.negotiableRangePercent ?? null,
@@ -400,6 +654,438 @@ export class ListingsService {
       featuredRank: it.featuredRank ?? undefined,
       featuredUntil: toIso(it.featuredUntil),
     };
+  }
+
+  private toBatchJobDto(it: any): ListingBatchJobDto {
+    const toIso = (d?: Date | null) => (d ? d.toISOString() : null);
+    return {
+      id: it.id,
+      operatorUserId: it.operatorUserId,
+      action: it.action,
+      reason: it.reason ?? null,
+      status: it.status,
+      totalCount: Number(it.totalCount || 0),
+      successCount: Number(it.successCount || 0),
+      failedCount: Number(it.failedCount || 0),
+      skippedCount: Number(it.skippedCount || 0),
+      failRate: Number(it.failRate || 0),
+      startedAt: toIso(it.startedAt),
+      finishedAt: toIso(it.finishedAt),
+      pausedAt: toIso(it.pausedAt),
+      errorFileId: it.errorFileId ?? null,
+      createdAt: toIso(it.createdAt) || new Date().toISOString(),
+      updatedAt: toIso(it.updatedAt) || new Date().toISOString(),
+    };
+  }
+
+  private toBatchJobItemDto(it: any): ListingBatchJobItemDto {
+    const toIso = (d?: Date | null) => (d ? d.toISOString() : null);
+    return {
+      id: it.id,
+      jobId: it.jobId,
+      listingId: it.listingId,
+      status: it.status,
+      errorCode: it.errorCode ?? null,
+      errorMessage: it.errorMessage ?? null,
+      processedAt: toIso(it.processedAt),
+      createdAt: toIso(it.createdAt) || new Date().toISOString(),
+      updatedAt: toIso(it.updatedAt) || new Date().toISOString(),
+    };
+  }
+
+  private toImportJobDto(it: any): ListingImportJobDto {
+    const toIso = (d?: Date | null) => (d ? d.toISOString() : null);
+    return {
+      id: it.id,
+      operatorUserId: it.operatorUserId,
+      fileId: it.fileId,
+      duplicatePolicy: it.duplicatePolicy,
+      defaults: typeof it.defaultsJson === 'object' && it.defaultsJson ? it.defaultsJson : {},
+      status: it.status,
+      totalCount: Number(it.totalCount || 0),
+      validCount: Number(it.validCount || 0),
+      invalidCount: Number(it.invalidCount || 0),
+      successCount: Number(it.successCount || 0),
+      failedCount: Number(it.failedCount || 0),
+      skippedCount: Number(it.skippedCount || 0),
+      failRate: Number(it.failRate || 0),
+      validatedAt: toIso(it.validatedAt),
+      startedAt: toIso(it.startedAt),
+      finishedAt: toIso(it.finishedAt),
+      pausedAt: toIso(it.pausedAt),
+      errorFileId: it.errorFileId ?? null,
+      createdAt: toIso(it.createdAt) || new Date().toISOString(),
+      updatedAt: toIso(it.updatedAt) || new Date().toISOString(),
+    };
+  }
+
+  private toImportJobRowDto(it: any): ListingImportJobRowDto {
+    const toIso = (d?: Date | null) => (d ? d.toISOString() : null);
+    return {
+      id: it.id,
+      jobId: it.jobId,
+      rowNo: Number(it.rowNo || 0),
+      status: it.status,
+      raw: typeof it.rawJson === 'object' && it.rawJson ? it.rawJson : {},
+      normalized: typeof it.normalizedJson === 'object' && it.normalizedJson ? it.normalizedJson : null,
+      listingId: it.listingId ?? null,
+      errorCode: it.errorCode ?? null,
+      errorMessage: it.errorMessage ?? null,
+      processedAt: toIso(it.processedAt),
+      createdAt: toIso(it.createdAt) || new Date().toISOString(),
+      updatedAt: toIso(it.updatedAt) || new Date().toISOString(),
+    };
+  }
+
+  private resolveBaseUrl(req?: any) {
+    return (
+      (process.env.BASE_URL && String(process.env.BASE_URL)) ||
+      (req?.protocol && req?.get ? `${req.protocol}://${req.get('host')}` : 'http://127.0.0.1:3000')
+    );
+  }
+
+  private static escapeCsv(value: any) {
+    if (value === null || value === undefined) return '';
+    const raw = String(value);
+    if (raw.includes('"') || raw.includes(',') || raw.includes('\n')) {
+      return `"${raw.replace(/"/g, '""')}"`;
+    }
+    return raw;
+  }
+
+  private async createOwnedCsvFile(params: {
+    ownerUserId: string;
+    req?: any;
+    filenamePrefix: string;
+    headers: string[];
+    rows: Array<Array<string | number | null | undefined>>;
+  }): Promise<string | null> {
+    if (!params.rows.length) return null;
+    const contentLines: string[] = [];
+    contentLines.push(params.headers.map((h) => ListingsService.escapeCsv(h)).join(','));
+    for (const row of params.rows) {
+      contentLines.push(row.map((v) => ListingsService.escapeCsv(v)).join(','));
+    }
+    const content = `${contentLines.join('\n')}\n`;
+    const fileId = crypto.randomUUID();
+    const fileName = `${params.filenamePrefix}-${fileId}.csv`;
+    const filePath = path.resolve(UPLOAD_DIR, fileName);
+    writeFileSync(filePath, content, 'utf8');
+
+    if (this.files?.isObjectStorageEnabled()) {
+      await this.files.uploadToObjectStorage({
+        key: fileName,
+        filePath,
+        contentType: 'text/csv',
+      });
+    }
+
+    const baseUrl = this.resolveBaseUrl(params.req);
+    if (this.files) {
+      const created = await this.files.createUserFile({
+        fileId,
+        userId: params.ownerUserId,
+        filename: fileName,
+        mimeType: 'text/csv',
+        sizeBytes: Buffer.byteLength(content, 'utf8'),
+        baseUrl,
+      });
+      return created.id;
+    }
+
+    await this.prisma.file.create({
+      data: {
+        id: fileId,
+        url: `${baseUrl}/files/${fileId}`,
+        fileName,
+        mimeType: 'text/csv',
+        sizeBytes: Buffer.byteLength(content, 'utf8'),
+        ownerScope: 'USER',
+        ownerId: params.ownerUserId,
+      },
+    });
+    return fileId;
+  }
+
+  private normalizeWorkbookHeader(value: unknown): string {
+    return String(value || '')
+      .trim()
+      .toLowerCase()
+      .replace(/[()\[\]{}（）]/g, '')
+      .replace(/[\/\\_\-\s]/g, '');
+  }
+
+  private pickWorkbookValue(row: Record<string, any>, aliases: string[]): any {
+    const map = new Map<string, any>();
+    for (const [k, v] of Object.entries(row || {})) {
+      map.set(this.normalizeWorkbookHeader(k), v);
+    }
+    for (const alias of aliases) {
+      const value = map.get(this.normalizeWorkbookHeader(alias));
+      if (value === undefined || value === null) continue;
+      if (typeof value === 'string' && !value.trim()) continue;
+      return value;
+    }
+    return undefined;
+  }
+
+  private splitWorkbookTags(raw: unknown): string[] {
+    if (Array.isArray(raw)) {
+      return raw
+        .map((v) => String(v || '').trim())
+        .filter(Boolean);
+    }
+    const text = String(raw || '').trim();
+    if (!text) return [];
+    return text
+      .split(/[\n,，;；|、/]+/g)
+      .map((v) => v.trim())
+      .filter(Boolean);
+  }
+
+  private parseMoneyYuanToFenOptional(value: unknown, fieldName: string): number | undefined {
+    if (value === undefined || value === null) return undefined;
+    const raw = String(value).trim();
+    if (!raw) return undefined;
+    const normalized = raw.replace(/[,，\s]/g, '');
+    const num = Number(normalized);
+    if (!Number.isFinite(num) || num < 0) {
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: `${fieldName} is invalid` });
+    }
+    return Math.round(num * 100);
+  }
+
+  private parseImportDefaults(body: any): ListingImportDefaults {
+    const defaults = body?.defaults && typeof body.defaults === 'object' ? body.defaults : {};
+    const out: ListingImportDefaults = {};
+    if (this.hasOwn(defaults, 'sellerUserId')) {
+      out.sellerUserId = this.parseNonEmptyFilterStrict(defaults?.sellerUserId, 'defaults.sellerUserId');
+    }
+    if (this.hasOwn(defaults, 'source')) {
+      out.source = this.parseContentSourceStrict(defaults?.source, 'defaults.source');
+    }
+    if (this.hasOwn(defaults, 'tradeMode')) {
+      out.tradeMode = this.parseTradeModeStrict(defaults?.tradeMode, 'defaults.tradeMode');
+    }
+    if (this.hasOwn(defaults, 'licenseMode')) {
+      out.licenseMode = this.parseLicenseModeStrict(defaults?.licenseMode, 'defaults.licenseMode');
+    }
+    if (this.hasOwn(defaults, 'priceType')) {
+      out.priceType = this.parsePriceTypeStrict(defaults?.priceType, 'defaults.priceType');
+    }
+    if (this.hasOwn(defaults, 'priceAmountFen')) {
+      out.priceAmountFen = this.parseOptionalInt(defaults?.priceAmountFen, 'defaults.priceAmountFen', 0);
+    } else if (this.hasOwn(defaults, 'priceAmountYuan')) {
+      out.priceAmountFen = this.parseMoneyYuanToFenOptional(defaults?.priceAmountYuan, 'defaults.priceAmountYuan');
+    }
+    if (this.hasOwn(defaults, 'depositAmountFen')) {
+      out.depositAmountFen = this.parseOptionalInt(defaults?.depositAmountFen, 'defaults.depositAmountFen', 0);
+    } else if (this.hasOwn(defaults, 'depositAmountYuan')) {
+      out.depositAmountFen = this.parseMoneyYuanToFenOptional(defaults?.depositAmountYuan, 'defaults.depositAmountYuan');
+    }
+    if (this.hasOwn(defaults, 'regionCode')) {
+      out.regionCode = this.parseRegionCodeFilterStrict(defaults?.regionCode, 'defaults.regionCode');
+    }
+    if (this.hasOwn(defaults, 'listingTopics')) {
+      out.listingTopics = this.normalizeListingTopics(defaults?.listingTopics);
+    }
+    if (this.hasOwn(defaults, 'industryTags')) {
+      out.industryTags = sanitizeIndustryTagNames(defaults?.industryTags);
+    }
+    if (this.hasOwn(defaults, 'status')) {
+      out.status = this.parseListingStatusStrict(defaults?.status, 'defaults.status');
+    }
+    if (this.hasOwn(defaults, 'auditStatus')) {
+      out.auditStatus = this.parseAuditStatusStrict(defaults?.auditStatus, 'defaults.auditStatus');
+    }
+    return out;
+  }
+
+  private normalizeImportRows(sheetRows: Array<Record<string, any>>, defaults: ListingImportDefaults) {
+    const out: Array<{
+      rowNo: number;
+      status: ListingImportRowStatus;
+      rawJson: Record<string, any>;
+      normalizedJson: Record<string, any> | null;
+      errorCode: string | null;
+      errorMessage: string | null;
+    }> = [];
+
+    for (let i = 0; i < sheetRows.length; i += 1) {
+      const row = sheetRows[i] || {};
+      const rowNo = i + 2;
+      const errors: string[] = [];
+      let payload: Record<string, any> | null = null;
+
+      try {
+        const patentNumberRaw = String(
+          this.pickWorkbookValue(row, [
+            '专利号/申请号/公开号',
+            '专利号/申请号',
+            '专利号',
+            '申请号',
+            '公开号',
+            'patentNumberRaw',
+            'patentNo',
+            'applicationNo',
+            'publicationNo',
+          ]) || '',
+        ).trim();
+        if (!patentNumberRaw) {
+          throw new BadRequestException({ code: 'BAD_REQUEST', message: 'patentNumberRaw is required' });
+        }
+
+        const titleRaw = this.pickWorkbookValue(row, ['专利标题', '标题', 'title']);
+        const summaryRaw = this.pickWorkbookValue(row, ['摘要', 'summary']);
+        const sourceRaw = this.pickWorkbookValue(row, ['source', '来源']);
+        const sellerUserIdRaw = this.pickWorkbookValue(row, ['sellerUserId', '卖家用户ID', '卖家用户']);
+        const tradeModeRaw = this.pickWorkbookValue(row, ['tradeMode', '交易方式', '交易模式']);
+        const licenseModeRaw = this.pickWorkbookValue(row, ['licenseMode', '许可方式', '许可模式']);
+        const priceTypeRaw = this.pickWorkbookValue(row, ['priceType', '价格类型', '报价类型']);
+        const priceAmountFenRaw = this.pickWorkbookValue(row, ['priceAmountFen', '价格分']);
+        const priceAmountYuanRaw = this.pickWorkbookValue(row, ['priceAmountYuan', '价格元', '价格', '报价']);
+        const depositAmountFenRaw = this.pickWorkbookValue(row, ['depositAmountFen', '定金分', '保证金分']);
+        const depositAmountYuanRaw = this.pickWorkbookValue(row, ['depositAmountYuan', '定金元', '保证金元', '保证金']);
+        const regionCodeRaw = this.pickWorkbookValue(row, ['regionCode', '地区编码', '行政区编码']);
+        const listingTopicsRaw = this.pickWorkbookValue(row, ['listingTopics', '特色标签', '标签']);
+        const industryTagsRaw = this.pickWorkbookValue(row, ['industryTags', '行业标签', '行业']);
+        const statusRaw = this.pickWorkbookValue(row, ['status', '上架状态']);
+        const auditStatusRaw = this.pickWorkbookValue(row, ['auditStatus', '审核状态']);
+
+        const source = sourceRaw !== undefined ? this.parseContentSourceStrict(sourceRaw, 'source') : defaults.source;
+        const sellerUserId =
+          sellerUserIdRaw !== undefined
+            ? this.parseNonEmptyFilterStrict(sellerUserIdRaw, 'sellerUserId')
+            : defaults.sellerUserId;
+        const tradeMode =
+          tradeModeRaw !== undefined
+            ? this.parseTradeModeStrict(tradeModeRaw, 'tradeMode')
+            : defaults.tradeMode || 'ASSIGNMENT';
+        const licenseMode =
+          licenseModeRaw !== undefined
+            ? this.parseNullableLicenseModeStrict(licenseModeRaw, 'licenseMode')
+            : defaults.licenseMode ?? null;
+        const priceType =
+          priceTypeRaw !== undefined
+            ? this.parsePriceTypeStrict(priceTypeRaw, 'priceType')
+            : defaults.priceType || 'NEGOTIABLE';
+        const priceAmountFen =
+          priceAmountFenRaw !== undefined
+            ? this.parseOptionalInt(priceAmountFenRaw, 'priceAmountFen', 0)
+            : priceAmountYuanRaw !== undefined
+              ? this.parseMoneyYuanToFenOptional(priceAmountYuanRaw, 'priceAmountYuan')
+              : defaults.priceAmountFen;
+        const depositAmountFen =
+          depositAmountFenRaw !== undefined
+            ? this.parseOptionalInt(depositAmountFenRaw, 'depositAmountFen', 0)
+            : depositAmountYuanRaw !== undefined
+              ? this.parseMoneyYuanToFenOptional(depositAmountYuanRaw, 'depositAmountYuan')
+              : defaults.depositAmountFen ?? 0;
+        const regionCode =
+          regionCodeRaw !== undefined
+            ? this.parseRegionCodeFilterStrict(regionCodeRaw, 'regionCode')
+            : defaults.regionCode;
+        const listingTopics =
+          listingTopicsRaw !== undefined
+            ? this.normalizeListingTopics(this.splitWorkbookTags(listingTopicsRaw))
+            : defaults.listingTopics || [];
+        const industryTags =
+          industryTagsRaw !== undefined ? sanitizeIndustryTagNames(this.splitWorkbookTags(industryTagsRaw)) : defaults.industryTags || [];
+        const status =
+          statusRaw !== undefined ? this.parseListingStatusStrict(statusRaw, 'status') : defaults.status;
+        const auditStatus =
+          auditStatusRaw !== undefined ? this.parseAuditStatusStrict(auditStatusRaw, 'auditStatus') : defaults.auditStatus;
+        const title = titleRaw !== undefined ? String(titleRaw || '').trim() : undefined;
+        const summary = summaryRaw !== undefined ? String(summaryRaw || '').trim() : undefined;
+
+        if (tradeMode !== 'LICENSE' && licenseMode) {
+          throw new BadRequestException({ code: 'BAD_REQUEST', message: 'licenseMode is invalid' });
+        }
+        if (priceType === 'FIXED' && (priceAmountFen === undefined || priceAmountFen === null)) {
+          throw new BadRequestException({ code: 'BAD_REQUEST', message: 'priceAmountFen is required' });
+        }
+
+        payload = {
+          patentNumberRaw,
+          source,
+          sellerUserId,
+          title,
+          summary,
+          tradeMode,
+          licenseMode: tradeMode === 'LICENSE' ? licenseMode : null,
+          priceType,
+          priceAmountFen: priceType === 'NEGOTIABLE' ? undefined : priceAmountFen,
+          depositAmountFen,
+          regionCode,
+          listingTopics,
+          industryTags,
+          status,
+          auditStatus,
+        };
+      } catch (error: any) {
+        errors.push(error?.response?.message || error?.message || 'row is invalid');
+      }
+
+      out.push({
+        rowNo,
+        status: errors.length ? 'INVALID' : 'VALID',
+        rawJson: row,
+        normalizedJson: errors.length ? null : payload,
+        errorCode: errors.length ? 'VALIDATION_FAILED' : null,
+        errorMessage: errors.length ? errors.join('; ') : null,
+      });
+    }
+    return out;
+  }
+
+  private async readFileBufferById(fileId: string): Promise<{ file: any; buffer: Buffer }> {
+    const file = await this.prisma.file.findUnique({ where: { id: fileId } });
+    if (!file) {
+      throw new NotFoundException({ code: 'NOT_FOUND', message: 'file not found' });
+    }
+    const fileName = String(file.fileName || '').trim();
+    if (!fileName) {
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: 'file is invalid' });
+    }
+    const fromService = this.files ? await this.files.getFileBuffer(fileName) : null;
+    if (fromService && fromService.length > 0) {
+      return { file, buffer: fromService };
+    }
+    try {
+      const local = readFileSync(path.resolve(UPLOAD_DIR, path.basename(fileName)));
+      if (!local.length) throw new Error('empty');
+      return { file, buffer: local };
+    } catch {
+      throw new NotFoundException({ code: 'NOT_FOUND', message: 'file not found' });
+    }
+  }
+
+  private async findLatestListingByPatentNumber(patentNumberRaw: string): Promise<{ id: string } | null> {
+    const parsed = this.parsePatentNumber(patentNumberRaw);
+    const patent = await this.prisma.patent.findFirst({
+      where: {
+        OR: [
+          { applicationNoNorm: parsed.applicationNoNorm },
+          {
+            identifiers: {
+              some: {
+                OR: parsed.identifierCandidates.map((c: any) => ({
+                  idType: c.idType,
+                  idValueNorm: c.idValueNorm,
+                })),
+              },
+            },
+          },
+        ],
+      },
+      select: { id: true },
+    });
+    if (!patent) return null;
+    return await this.prisma.listing.findFirst({
+      where: { patentId: patent.id },
+      select: { id: true },
+      orderBy: { createdAt: 'desc' },
+    });
   }
 
   private toHalfWidth(input: string): string {
@@ -1245,9 +1931,15 @@ export class ListingsService {
     if (!listing) {
       throw new NotFoundException({ code: 'NOT_FOUND', message: 'listing not found' });
     }
+    if (listing.auditStatus !== 'APPROVED') {
+      throw new ConflictException({ code: 'CONFLICT', message: 'listing must be approved before publish' });
+    }
+    if (listing.status === 'SOLD') {
+      throw new ConflictException({ code: 'CONFLICT', message: 'listing is sold' });
+    }
     const updated = await this.prisma.listing.update({
       where: { id: listingId },
-      data: { status: 'ACTIVE', auditStatus: 'APPROVED' },
+      data: { status: 'ACTIVE' },
     });
     return this.toAdminDto(updated);
   }
@@ -1263,6 +1955,584 @@ export class ListingsService {
       data: { status: 'OFF_SHELF' },
     });
     return this.toAdminDto(updated);
+  }
+
+  async createBatchJob(req: any, body: any): Promise<ListingBatchJobDto> {
+    this.ensureAdmin(req);
+    const operatorUserId = this.parseUuidStrict(req?.auth?.userId, 'operatorUserId');
+    const action = this.parseListingBatchActionStrict(body?.action, 'action');
+    const listingIds = this.parseUuidArrayStrict(body?.listingIds, 'listingIds', { min: 1, max: 1000 });
+    const reason = this.normalizeOptionalReason(body?.reason);
+    const scope = `listing-batch-job:${action}:${listingIds.join(',')}`;
+
+    return await this.withIdempotency(req, scope, async () => {
+      const created = await this.prisma.$transaction(async (tx) => {
+        const totalExisting = await tx.listing.count({ where: { id: { in: listingIds } } });
+        if (totalExisting !== listingIds.length) {
+          throw new BadRequestException({ code: 'BAD_REQUEST', message: 'listingIds is invalid' });
+        }
+        const job = await tx.listingBatchJob.create({
+          data: {
+            operatorUserId,
+            action,
+            reason: reason || null,
+            totalCount: listingIds.length,
+          },
+        });
+        await tx.listingBatchJobItem.createMany({
+          data: listingIds.map((listingId: string) => ({
+            jobId: job.id,
+            listingId,
+          })),
+          skipDuplicates: true,
+        });
+        return job;
+      });
+
+      setTimeout(() => {
+        void this.processBatchJob(created.id).catch(() => {});
+      }, 0);
+
+      return this.toBatchJobDto(created);
+    });
+  }
+
+  async listBatchJobs(_req: any, query: any): Promise<PagedListingBatchJobs> {
+    const page = this.hasOwn(query, 'page') ? this.parsePositiveIntStrict(query?.page, 'page') : 1;
+    const pageSizeInput = this.hasOwn(query, 'pageSize') ? this.parsePositiveIntStrict(query?.pageSize, 'pageSize') : 20;
+    const pageSize = Math.min(100, pageSizeInput);
+    const status = this.hasOwn(query, 'status') ? this.parseListingJobStatusStrict(query?.status, 'status') : undefined;
+    const action = this.hasOwn(query, 'action') ? this.parseListingBatchActionStrict(query?.action, 'action') : undefined;
+    const where: any = {};
+    if (status) where.status = status;
+    if (action) where.action = action;
+    const [items, total] = await Promise.all([
+      this.prisma.listingBatchJob.findMany({
+        where,
+        orderBy: { createdAt: 'desc' },
+        skip: (page - 1) * pageSize,
+        take: pageSize,
+      }),
+      this.prisma.listingBatchJob.count({ where }),
+    ]);
+    return {
+      items: items.map((it: any) => this.toBatchJobDto(it)),
+      page: { page, pageSize, total },
+    };
+  }
+
+  async getBatchJob(_req: any, jobId: string): Promise<ListingBatchJobDto> {
+    const job = await this.prisma.listingBatchJob.findUnique({ where: { id: jobId } });
+    if (!job) throw new NotFoundException({ code: 'NOT_FOUND', message: 'batch job not found' });
+    return this.toBatchJobDto(job);
+  }
+
+  async listBatchJobItems(_req: any, jobId: string, query: any): Promise<PagedListingBatchJobItems> {
+    const job = await this.prisma.listingBatchJob.findUnique({ where: { id: jobId }, select: { id: true } });
+    if (!job) throw new NotFoundException({ code: 'NOT_FOUND', message: 'batch job not found' });
+    const page = this.hasOwn(query, 'page') ? this.parsePositiveIntStrict(query?.page, 'page') : 1;
+    const pageSizeInput = this.hasOwn(query, 'pageSize') ? this.parsePositiveIntStrict(query?.pageSize, 'pageSize') : 20;
+    const pageSize = Math.min(200, pageSizeInput);
+    const status = this.hasOwn(query, 'status')
+      ? this.normalizeListingBatchItemStatus(query?.status) || (() => {
+          throw new BadRequestException({ code: 'BAD_REQUEST', message: 'status is invalid' });
+        })()
+      : undefined;
+    const where: any = { jobId };
+    if (status) where.status = status;
+    const [items, total] = await Promise.all([
+      this.prisma.listingBatchJobItem.findMany({
+        where,
+        orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
+        skip: (page - 1) * pageSize,
+        take: pageSize,
+      }),
+      this.prisma.listingBatchJobItem.count({ where }),
+    ]);
+    return {
+      items: items.map((it: any) => this.toBatchJobItemDto(it)),
+      page: { page, pageSize, total },
+    };
+  }
+
+  async getBatchJobErrorFile(req: any, jobId: string): Promise<{ fileId: string | null; url: string | null }> {
+    const job = await this.prisma.listingBatchJob.findUnique({ where: { id: jobId } });
+    if (!job) throw new NotFoundException({ code: 'NOT_FOUND', message: 'batch job not found' });
+    if (!job.errorFileId) return { fileId: null, url: null };
+    const file = await this.prisma.file.findUnique({ where: { id: job.errorFileId } });
+    return {
+      fileId: job.errorFileId,
+      url: file?.url || `${this.resolveBaseUrl(req)}/files/${job.errorFileId}`,
+    };
+  }
+
+  private async applyBatchJobAction(job: { action: ListingBatchAction; reason?: string | null; operatorUserId: string }, listingId: string) {
+    const listing = await this.prisma.listing.findUnique({ where: { id: listingId } });
+    if (!listing) {
+      throw new NotFoundException({ code: 'NOT_FOUND', message: 'listing not found' });
+    }
+
+    if (job.action === 'APPROVE') {
+      if (listing.auditStatus === 'APPROVED') return 'SKIPPED' as const;
+      await this.approve(listingId, job.operatorUserId, job.reason || undefined);
+      return 'SUCCEEDED' as const;
+    }
+    if (job.action === 'REJECT') {
+      if (listing.auditStatus === 'REJECTED') return 'SKIPPED' as const;
+      await this.reject(listingId, job.operatorUserId, job.reason || undefined);
+      return 'SUCCEEDED' as const;
+    }
+    if (job.action === 'PUBLISH') {
+      if (listing.status === 'ACTIVE') return 'SKIPPED' as const;
+      if (listing.status === 'SOLD') {
+        throw new BadRequestException({ code: 'BAD_REQUEST', message: 'listing is sold' });
+      }
+      if (listing.auditStatus !== 'APPROVED') {
+        throw new BadRequestException({ code: 'BAD_REQUEST', message: 'listing auditStatus must be APPROVED' });
+      }
+      await this.prisma.listing.update({ where: { id: listingId }, data: { status: 'ACTIVE' } });
+      return 'SUCCEEDED' as const;
+    }
+    if (job.action === 'OFF_SHELF') {
+      if (listing.status === 'OFF_SHELF') return 'SKIPPED' as const;
+      if (listing.status === 'SOLD') {
+        throw new BadRequestException({ code: 'BAD_REQUEST', message: 'listing is sold' });
+      }
+      await this.prisma.listing.update({ where: { id: listingId }, data: { status: 'OFF_SHELF' } });
+      return 'SUCCEEDED' as const;
+    }
+    throw new BadRequestException({ code: 'BAD_REQUEST', message: 'action is invalid' });
+  }
+
+  private extractJobError(error: any): { code: string; message: string } {
+    const code = String(error?.response?.code || error?.code || 'BATCH_JOB_FAILED');
+    const message =
+      String(error?.response?.message || error?.message || 'batch job item failed').slice(0, 1000) ||
+      'batch job item failed';
+    return { code, message };
+  }
+
+  private async processBatchJob(jobId: string): Promise<void> {
+    const startAt = new Date();
+    const lock = await this.prisma.listingBatchJob.updateMany({
+      where: { id: jobId, status: { in: ['PENDING', 'PAUSED'] } },
+      data: { status: 'RUNNING', startedAt: startAt, pausedAt: null, finishedAt: null },
+    });
+    if (!lock.count) return;
+
+    const job = await this.prisma.listingBatchJob.findUnique({ where: { id: jobId } });
+    if (!job) return;
+
+    const pendingItems = await this.prisma.listingBatchJobItem.findMany({
+      where: { jobId, status: 'PENDING' },
+      orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
+    });
+
+    let successCount = Number(job.successCount || 0);
+    let failedCount = Number(job.failedCount || 0);
+    let skippedCount = Number(job.skippedCount || 0);
+    let processedInRun = 0;
+    let paused = false;
+
+    for (const item of pendingItems) {
+      try {
+        const result = await this.applyBatchJobAction(
+          {
+            action: job.action as ListingBatchAction,
+            reason: job.reason,
+            operatorUserId: job.operatorUserId,
+          },
+          item.listingId,
+        );
+        const nextStatus = result === 'SKIPPED' ? 'SKIPPED' : 'SUCCEEDED';
+        if (nextStatus === 'SKIPPED') skippedCount += 1;
+        else successCount += 1;
+        await this.prisma.listingBatchJobItem.update({
+          where: { id: item.id },
+          data: {
+            status: nextStatus,
+            errorCode: null,
+            errorMessage: null,
+            processedAt: new Date(),
+          },
+        });
+      } catch (error: any) {
+        failedCount += 1;
+        const mapped = this.extractJobError(error);
+        await this.prisma.listingBatchJobItem.update({
+          where: { id: item.id },
+          data: {
+            status: 'FAILED',
+            errorCode: mapped.code,
+            errorMessage: mapped.message,
+            processedAt: new Date(),
+          },
+        });
+      }
+
+      processedInRun += 1;
+      const processedTotal = successCount + failedCount + skippedCount;
+      const runtimeFailRate = processedTotal > 0 ? failedCount / processedTotal : 0;
+      if (processedInRun >= 10 && runtimeFailRate > 0.3) {
+        paused = true;
+        break;
+      }
+    }
+
+    const failedItems = await this.prisma.listingBatchJobItem.findMany({
+      where: { jobId, status: 'FAILED' },
+      orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
+    });
+    const errorFileId = await this.createOwnedCsvFile({
+      ownerUserId: job.operatorUserId,
+      filenamePrefix: `listing-batch-job-${jobId}`,
+      headers: ['jobId', 'listingId', 'errorCode', 'errorMessage'],
+      rows: failedItems.map((it: any) => [jobId, it.listingId, it.errorCode, it.errorMessage]),
+    });
+
+    const processedTotal = successCount + failedCount + skippedCount;
+    const failRate = processedTotal > 0 ? failedCount / processedTotal : 0;
+    const nextStatus: ListingJobStatus = paused ? 'PAUSED' : failedCount > 0 ? 'FAILED' : 'SUCCEEDED';
+    await this.prisma.listingBatchJob.update({
+      where: { id: jobId },
+      data: {
+        status: nextStatus,
+        successCount,
+        failedCount,
+        skippedCount,
+        failRate,
+        pausedAt: paused ? new Date() : null,
+        finishedAt: paused ? null : new Date(),
+        errorFileId: errorFileId || null,
+      },
+    });
+  }
+
+  async createImportJob(req: any, body: any): Promise<ListingImportJobDto> {
+    this.ensureAdmin(req);
+    const operatorUserId = this.parseUuidStrict(req?.auth?.userId, 'operatorUserId');
+    const fileId = this.parseUuidStrict(body?.fileId, 'fileId');
+    const duplicatePolicy = this.hasOwn(body, 'duplicatePolicy')
+      ? this.parseListingImportDuplicatePolicyStrict(body?.duplicatePolicy, 'duplicatePolicy')
+      : 'SKIP';
+    const defaults = this.parseImportDefaults(body);
+
+    const file = await this.prisma.file.findUnique({ where: { id: fileId } });
+    if (!file) throw new NotFoundException({ code: 'NOT_FOUND', message: 'file not found' });
+
+    const scope = `listing-import-job:${fileId}:${duplicatePolicy}`;
+    return await this.withIdempotency(req, scope, async () => {
+      const created = await this.prisma.listingImportJob.create({
+        data: {
+          operatorUserId,
+          fileId,
+          duplicatePolicy,
+          defaultsJson: defaults as any,
+          status: 'PENDING',
+        },
+      });
+      return this.toImportJobDto(created);
+    });
+  }
+
+  async validateImportJob(_req: any, jobId: string): Promise<ListingImportJobDto> {
+    const job = await this.prisma.listingImportJob.findUnique({ where: { id: jobId } });
+    if (!job) throw new NotFoundException({ code: 'NOT_FOUND', message: 'import job not found' });
+
+    const { buffer } = await this.readFileBufferById(job.fileId);
+    let workbook: XLSX.WorkBook;
+    try {
+      workbook = XLSX.read(buffer, { type: 'buffer' });
+    } catch {
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: 'import file is invalid' });
+    }
+
+    const sheetName = workbook.SheetNames?.[0];
+    if (!sheetName) {
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: 'import file is empty' });
+    }
+    const sheet = workbook.Sheets[sheetName];
+    const rows = XLSX.utils.sheet_to_json<Record<string, any>>(sheet, { defval: '' });
+    if (!rows.length) {
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: 'import file is empty' });
+    }
+
+    const defaults = this.parseImportDefaults({ defaults: job.defaultsJson || {} });
+    const normalizedRows = this.normalizeImportRows(rows, defaults);
+    const totalCount = normalizedRows.length;
+    const validCount = normalizedRows.filter((it) => it.status === 'VALID').length;
+    const invalidCount = normalizedRows.filter((it) => it.status === 'INVALID').length;
+    const failRate = totalCount > 0 ? invalidCount / totalCount : 0;
+
+    await this.prisma.$transaction([
+      this.prisma.listingImportJobRow.deleteMany({ where: { jobId } }),
+      this.prisma.listingImportJobRow.createMany({
+        data: normalizedRows.map((it) => ({
+          jobId,
+          rowNo: it.rowNo,
+          status: it.status,
+          rawJson: it.rawJson as any,
+          normalizedJson: it.normalizedJson as any,
+          errorCode: it.errorCode,
+          errorMessage: it.errorMessage,
+        })),
+      }),
+      this.prisma.listingImportJob.update({
+        where: { id: jobId },
+        data: {
+          status: 'PENDING',
+          totalCount,
+          validCount,
+          invalidCount,
+          successCount: 0,
+          failedCount: invalidCount,
+          skippedCount: 0,
+          failRate,
+          validatedAt: new Date(),
+          startedAt: null,
+          finishedAt: null,
+          pausedAt: null,
+          errorFileId: null,
+        },
+      }),
+    ]);
+
+    const updated = await this.prisma.listingImportJob.findUnique({ where: { id: jobId } });
+    if (!updated) throw new NotFoundException({ code: 'NOT_FOUND', message: 'import job not found' });
+    return this.toImportJobDto(updated);
+  }
+
+  async executeImportJob(_req: any, jobId: string): Promise<ListingImportJobDto> {
+    const job = await this.prisma.listingImportJob.findUnique({ where: { id: jobId } });
+    if (!job) throw new NotFoundException({ code: 'NOT_FOUND', message: 'import job not found' });
+    if (!job.validatedAt) {
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: 'import job has not been validated' });
+    }
+
+    await this.prisma.listingImportJob.update({
+      where: { id: jobId },
+      data: { status: 'PENDING', pausedAt: null, finishedAt: null },
+    });
+
+    setTimeout(() => {
+      void this.processImportJob(jobId).catch(() => {});
+    }, 0);
+
+    const latest = await this.prisma.listingImportJob.findUnique({ where: { id: jobId } });
+    if (!latest) throw new NotFoundException({ code: 'NOT_FOUND', message: 'import job not found' });
+    return this.toImportJobDto(latest);
+  }
+
+  async listImportJobs(_req: any, query: any): Promise<PagedListingImportJobs> {
+    const page = this.hasOwn(query, 'page') ? this.parsePositiveIntStrict(query?.page, 'page') : 1;
+    const pageSizeInput = this.hasOwn(query, 'pageSize') ? this.parsePositiveIntStrict(query?.pageSize, 'pageSize') : 20;
+    const pageSize = Math.min(100, pageSizeInput);
+    const status = this.hasOwn(query, 'status') ? this.parseListingJobStatusStrict(query?.status, 'status') : undefined;
+    const duplicatePolicy = this.hasOwn(query, 'duplicatePolicy')
+      ? this.parseListingImportDuplicatePolicyStrict(query?.duplicatePolicy, 'duplicatePolicy')
+      : undefined;
+    const where: any = {};
+    if (status) where.status = status;
+    if (duplicatePolicy) where.duplicatePolicy = duplicatePolicy;
+    const [items, total] = await Promise.all([
+      this.prisma.listingImportJob.findMany({
+        where,
+        orderBy: { createdAt: 'desc' },
+        skip: (page - 1) * pageSize,
+        take: pageSize,
+      }),
+      this.prisma.listingImportJob.count({ where }),
+    ]);
+    return {
+      items: items.map((it: any) => this.toImportJobDto(it)),
+      page: { page, pageSize, total },
+    };
+  }
+
+  async getImportJob(_req: any, jobId: string): Promise<ListingImportJobDto> {
+    const job = await this.prisma.listingImportJob.findUnique({ where: { id: jobId } });
+    if (!job) throw new NotFoundException({ code: 'NOT_FOUND', message: 'import job not found' });
+    return this.toImportJobDto(job);
+  }
+
+  async listImportJobRows(_req: any, jobId: string, query: any): Promise<PagedListingImportJobRows> {
+    const job = await this.prisma.listingImportJob.findUnique({ where: { id: jobId }, select: { id: true } });
+    if (!job) throw new NotFoundException({ code: 'NOT_FOUND', message: 'import job not found' });
+    const page = this.hasOwn(query, 'page') ? this.parsePositiveIntStrict(query?.page, 'page') : 1;
+    const pageSizeInput = this.hasOwn(query, 'pageSize') ? this.parsePositiveIntStrict(query?.pageSize, 'pageSize') : 20;
+    const pageSize = Math.min(200, pageSizeInput);
+    const status = this.hasOwn(query, 'status')
+      ? this.normalizeListingImportRowStatus(query?.status) || (() => {
+          throw new BadRequestException({ code: 'BAD_REQUEST', message: 'status is invalid' });
+        })()
+      : undefined;
+    const where: any = { jobId };
+    if (status) where.status = status;
+    const [items, total] = await Promise.all([
+      this.prisma.listingImportJobRow.findMany({
+        where,
+        orderBy: [{ rowNo: 'asc' }, { id: 'asc' }],
+        skip: (page - 1) * pageSize,
+        take: pageSize,
+      }),
+      this.prisma.listingImportJobRow.count({ where }),
+    ]);
+    return {
+      items: items.map((it: any) => this.toImportJobRowDto(it)),
+      page: { page, pageSize, total },
+    };
+  }
+
+  async getImportJobErrorFile(req: any, jobId: string): Promise<{ fileId: string | null; url: string | null }> {
+    const job = await this.prisma.listingImportJob.findUnique({ where: { id: jobId } });
+    if (!job) throw new NotFoundException({ code: 'NOT_FOUND', message: 'import job not found' });
+    if (!job.errorFileId) return { fileId: null, url: null };
+    const file = await this.prisma.file.findUnique({ where: { id: job.errorFileId } });
+    return {
+      fileId: job.errorFileId,
+      url: file?.url || `${this.resolveBaseUrl(req)}/files/${job.errorFileId}`,
+    };
+  }
+
+  private async processImportJob(jobId: string): Promise<void> {
+    const startAt = new Date();
+    const lock = await this.prisma.listingImportJob.updateMany({
+      where: { id: jobId, status: { in: ['PENDING', 'PAUSED'] } },
+      data: { status: 'RUNNING', startedAt: startAt, pausedAt: null, finishedAt: null },
+    });
+    if (!lock.count) return;
+
+    const job = await this.prisma.listingImportJob.findUnique({ where: { id: jobId } });
+    if (!job) return;
+
+    const validRows = await this.prisma.listingImportJobRow.findMany({
+      where: { jobId, status: 'VALID' },
+      orderBy: [{ rowNo: 'asc' }, { id: 'asc' }],
+    });
+
+    let successCount = Number(job.successCount || 0);
+    let failedCount = Math.max(Number(job.failedCount || 0), Number(job.invalidCount || 0));
+    let skippedCount = Number(job.skippedCount || 0);
+    let processedInRun = 0;
+    let paused = false;
+
+    const reqAsAdmin = { auth: { userId: job.operatorUserId, isAdmin: true } };
+    for (const row of validRows) {
+      try {
+        const payload = (row.normalizedJson || {}) as Record<string, any>;
+        const patentNumberRaw = String(payload?.patentNumberRaw || '').trim();
+        if (!patentNumberRaw) {
+          throw new BadRequestException({ code: 'BAD_REQUEST', message: 'patentNumberRaw is required' });
+        }
+
+        let listingId: string | null = null;
+        const existing = await this.findLatestListingByPatentNumber(patentNumberRaw);
+        if (existing && job.duplicatePolicy === 'SKIP') {
+          listingId = existing.id;
+          skippedCount += 1;
+          await this.prisma.listingImportJobRow.update({
+            where: { id: row.id },
+            data: {
+              status: 'SKIPPED',
+              listingId,
+              errorCode: null,
+              errorMessage: null,
+              processedAt: new Date(),
+            },
+          });
+        } else if (existing && job.duplicatePolicy === 'OVERWRITE') {
+          const updated = await this.adminUpdate(reqAsAdmin, existing.id, payload);
+          listingId = updated.id;
+          successCount += 1;
+          await this.prisma.listingImportJobRow.update({
+            where: { id: row.id },
+            data: {
+              status: 'SUCCEEDED',
+              listingId,
+              errorCode: null,
+              errorMessage: null,
+              processedAt: new Date(),
+            },
+          });
+        } else {
+          const created = await this.adminCreate(reqAsAdmin, payload);
+          listingId = created.id;
+          successCount += 1;
+          await this.prisma.listingImportJobRow.update({
+            where: { id: row.id },
+            data: {
+              status: 'SUCCEEDED',
+              listingId,
+              errorCode: null,
+              errorMessage: null,
+              processedAt: new Date(),
+            },
+          });
+        }
+      } catch (error: any) {
+        failedCount += 1;
+        const mapped = this.extractJobError(error);
+        await this.prisma.listingImportJobRow.update({
+          where: { id: row.id },
+          data: {
+            status: 'FAILED',
+            errorCode: mapped.code,
+            errorMessage: mapped.message,
+            processedAt: new Date(),
+          },
+        });
+      }
+
+      processedInRun += 1;
+      const processedTotal = successCount + skippedCount + Math.max(0, failedCount - Number(job.invalidCount || 0));
+      const runtimeFailed = Math.max(0, failedCount - Number(job.invalidCount || 0));
+      const runtimeFailRate = processedTotal > 0 ? runtimeFailed / processedTotal : 0;
+      if (processedInRun >= 10 && runtimeFailRate > 0.3) {
+        paused = true;
+        break;
+      }
+    }
+
+    const failedRows = await this.prisma.listingImportJobRow.findMany({
+      where: {
+        jobId,
+        status: { in: ['FAILED', 'INVALID'] },
+      },
+      orderBy: [{ rowNo: 'asc' }, { id: 'asc' }],
+    });
+
+    const errorFileId = await this.createOwnedCsvFile({
+      ownerUserId: job.operatorUserId,
+      filenamePrefix: `listing-import-job-${jobId}`,
+      headers: ['jobId', 'rowNo', 'status', 'errorCode', 'errorMessage', 'listingId', 'patentNumberRaw', 'title'],
+      rows: failedRows.map((it: any) => [
+        jobId,
+        it.rowNo,
+        it.status,
+        it.errorCode,
+        it.errorMessage,
+        it.listingId,
+        (it.normalizedJson as any)?.patentNumberRaw,
+        (it.normalizedJson as any)?.title,
+      ]),
+    });
+
+    const totalCount = Number(job.totalCount || 0);
+    const failRate = totalCount > 0 ? failedCount / totalCount : 0;
+    const nextStatus: ListingJobStatus = paused ? 'PAUSED' : failedCount > 0 ? 'FAILED' : 'SUCCEEDED';
+    await this.prisma.listingImportJob.update({
+      where: { id: jobId },
+      data: {
+        status: nextStatus,
+        successCount,
+        failedCount,
+        skippedCount,
+        failRate,
+        pausedAt: paused ? new Date() : null,
+        finishedAt: paused ? null : new Date(),
+        errorFileId: errorFileId || null,
+      },
+    });
   }
 
   async approve(listingId: string, reviewerId: string | null, reason?: string) {

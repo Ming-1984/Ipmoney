@@ -940,3 +940,10 @@
 ## 详情页实现规范（最佳实践）【已完成】
 - 专利详情统一为**单页滚动**结构，使用 **Sticky Tab** 作为锚点导航。
 - 评论区与底部操作（收藏/咨询/订金）位于同页，不拆分多路由子页面。
+
+## 2026-03 Batch Listing Ops Refactor
+- 新增后台批量挂牌任务：`/admin/listings/jobs/batch*`。
+- 新增后台导入任务：`/admin/listings/jobs/import*`。
+- 批量上架规则收敛：仅允许 `auditStatus=APPROVED` 的挂牌进入上架动作。
+- 批量与导入均采用异步任务模型，支持明细追踪、失败率暂停和错误文件下载。
+
