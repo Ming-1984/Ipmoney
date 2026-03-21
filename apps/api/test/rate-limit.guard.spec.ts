@@ -12,11 +12,15 @@ function makeContext(req: any) {
 }
 
 describe('RateLimitGuard strictness suite', () => {
+  const originalNodeEnv = process.env.NODE_ENV;
+
   afterEach(() => {
     vi.restoreAllMocks();
+    process.env.NODE_ENV = originalNodeEnv;
   });
 
   it('bypasses health endpoints regardless of request volume', () => {
+    process.env.NODE_ENV = 'production';
     const guard = new RateLimitGuard();
     const ctx = makeContext({ path: '/health', ip: '10.0.0.1' });
 
@@ -26,6 +30,7 @@ describe('RateLimitGuard strictness suite', () => {
   });
 
   it('uses the first x-forwarded-for IP and throws 429 after max requests', () => {
+    process.env.NODE_ENV = 'production';
     const guard = new RateLimitGuard();
     const ctx = makeContext({
       path: '/api/search',
@@ -49,6 +54,7 @@ describe('RateLimitGuard strictness suite', () => {
   });
 
   it('resets an IP counter after the window expires', () => {
+    process.env.NODE_ENV = 'production';
     const guard = new RateLimitGuard() as any;
     const nowSpy = vi.spyOn(Date, 'now');
     const ctx = makeContext({
