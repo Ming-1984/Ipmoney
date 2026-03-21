@@ -69,10 +69,14 @@ function main() {
     minAdminNegative: 430,
     minStatusCounts: {
       400: 200,
-      401: 120,
-      403: 140,
+      401: 80,
+      403: 100,
       404: 50,
       409: 70,
+    },
+    minStatusRatios: {
+      401: 0.06,
+      403: 0.08,
     },
   };
 
@@ -105,8 +109,11 @@ function main() {
   for (const [statusKey, minCount] of Object.entries(floors.minStatusCounts)) {
     const status = Number(statusKey);
     const actual = statusCounts.get(status) || 0;
-    if (actual < minCount) {
-      violations.push(`status ${status} expected >= ${minCount} but got ${actual}`);
+    const ratioFloor = Number(floors.minStatusRatios?.[statusKey] || 0);
+    const ratioMinCount = ratioFloor > 0 ? Math.ceil(Number(summary.total || 0) * ratioFloor) : 0;
+    const required = Math.max(minCount, ratioMinCount);
+    if (actual < required) {
+      violations.push(`status ${status} expected >= ${required} (abs=${minCount}, ratio=${ratioFloor}) but got ${actual}`);
     }
   }
 
