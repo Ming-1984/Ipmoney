@@ -96,4 +96,42 @@ describe('ListingsService search filter strictness suite', () => {
     const args = prisma.listing.findMany.mock.calls[0][0];
     expect(args.where.industryTagsJson).toEqual({ array_contains: ['AI', 'Robotics'] });
   });
+
+  it('supports OPEN_LICENSE listingTopic as tradeMode/license hybrid filter', async () => {
+    prisma.listing.findMany.mockResolvedValueOnce([]);
+    prisma.listing.count.mockResolvedValueOnce(0);
+
+    await service.searchPublic({ listingTopic: 'OPEN_LICENSE' });
+
+    const args = prisma.listing.findMany.mock.calls[0][0];
+    expect(args.where.AND).toEqual([
+      {
+        OR: [{ tradeMode: 'LICENSE' }, { listingTopicsJson: { array_contains: ['OPEN_LICENSE'] } }],
+      },
+    ]);
+  });
+
+  it('supports SLEEPING listingTopic as transferCount/topic hybrid filter', async () => {
+    prisma.listing.findMany.mockResolvedValueOnce([]);
+    prisma.listing.count.mockResolvedValueOnce(0);
+
+    await service.searchPublic({ listingTopic: 'SLEEPING' });
+
+    const args = prisma.listing.findMany.mock.calls[0][0];
+    expect(args.where.AND).toEqual([
+      {
+        OR: [{ patent: { transferCount: 0 } }, { listingTopicsJson: { array_contains: ['SLEEPING'] } }],
+      },
+    ]);
+  });
+
+  it('ignores unsupported listingTopic values', async () => {
+    prisma.listing.findMany.mockResolvedValueOnce([]);
+    prisma.listing.count.mockResolvedValueOnce(0);
+
+    await service.searchPublic({ listingTopic: ['FIVE_STAR', 'foo'] });
+
+    const args = prisma.listing.findMany.mock.calls[0][0];
+    expect(args.where.AND).toEqual([{ listingTopicsJson: { array_contains: ['FIVE_STAR'] } }]);
+  });
 });

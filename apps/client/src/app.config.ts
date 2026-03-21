@@ -14,7 +14,7 @@
     },
     {
       root: 'subpackages/patent',
-      pages: ['detail/index', 'detail/summary/index', 'detail/info/index', 'detail/comments/index'],
+      pages: ['detail/index'],
     },
     {
       root: 'subpackages/orders',

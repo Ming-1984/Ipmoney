@@ -32,7 +32,7 @@ function buildListing(overrides: Record<string, unknown> = {}) {
     encumbranceNote: null,
     regionCode: '440300',
     industryTagsJson: ['AI'],
-    listingTopicsJson: ['AI'],
+    listingTopicsJson: ['FIVE_STAR'],
     proofFileIdsJson: ['file-1'],
     auditStatus: 'PENDING',
     status: 'DRAFT',
@@ -97,7 +97,7 @@ describe('ListingsService write flow suite', () => {
         priceType: 'FIXED',
         priceAmount: 1200,
         depositAmount: 100,
-        listingTopicsJson: ['AI', 'ML'],
+        listingTopicsJson: ['HIGH_TECH_RETIRED', 'AWARD_WINNING'],
         proofFileIdsJson: ['file-1'],
         deliverablesJson: ['deliver-1'],
         expectedCompletionDays: 30,
@@ -116,7 +116,7 @@ describe('ListingsService write flow suite', () => {
       priceType: 'fixed',
       priceAmountFen: '1200',
       depositAmountFen: '100',
-      listingTopics: [' ai ', '', 'ml'],
+      listingTopics: [' high_tech_retired ', '', 'award_winning'],
       proofFileIds: [' file-1 ', ''],
       deliverables: [' deliver-1 '],
       expectedCompletionDays: '30',
@@ -139,7 +139,7 @@ describe('ListingsService write flow suite', () => {
           priceType: 'FIXED',
           priceAmount: 1200,
           depositAmount: 100,
-          listingTopicsJson: ['AI', 'ML'],
+          listingTopicsJson: ['HIGH_TECH_RETIRED', 'AWARD_WINNING'],
           proofFileIdsJson: ['file-1'],
           deliverablesJson: ['deliver-1'],
           expectedCompletionDays: 30,
@@ -158,6 +158,32 @@ describe('ListingsService write flow suite', () => {
       priceType: 'FIXED',
       sellerUserId: USER_ID,
     });
+  });
+
+  it('create filters unsupported listingTopics values', async () => {
+    prisma.listing.create.mockResolvedValueOnce(
+      buildListing({
+        title: 'Listing Topic Strict',
+        tradeMode: 'ASSIGNMENT',
+        priceType: 'NEGOTIABLE',
+        listingTopicsJson: ['FIVE_STAR'],
+      }),
+    );
+
+    await service.createListing(USER_REQ, {
+      title: 'Listing Topic Strict',
+      tradeMode: 'assignment',
+      priceType: 'negotiable',
+      listingTopics: ['five_star', 'foo', 'bar'],
+    });
+
+    expect(prisma.listing.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          listingTopicsJson: ['FIVE_STAR'],
+        }),
+      }),
+    );
   });
 
   it('update validates ownership and strict patch fields', async () => {
@@ -188,7 +214,7 @@ describe('ListingsService write flow suite', () => {
         priceType: 'NEGOTIABLE',
         priceAmount: 0,
         depositAmount: 200,
-        listingTopicsJson: ['BIO'],
+        listingTopicsJson: ['SLEEPING'],
         proofFileIdsJson: ['file-2'],
         deliverablesJson: ['deliver-2'],
         expectedCompletionDays: 45,
@@ -207,7 +233,7 @@ describe('ListingsService write flow suite', () => {
       priceType: 'negotiable',
       priceAmountFen: '0',
       depositAmountFen: '200',
-      listingTopics: [' bio '],
+      listingTopics: [' sleeping '],
       proofFileIds: [' file-2 '],
       deliverables: [' deliver-2 '],
       expectedCompletionDays: '45',
@@ -227,7 +253,7 @@ describe('ListingsService write flow suite', () => {
         priceType: 'NEGOTIABLE',
         priceAmount: 0,
         depositAmount: 200,
-        listingTopicsJson: ['BIO'],
+        listingTopicsJson: ['SLEEPING'],
         proofFileIdsJson: ['file-2'],
         deliverablesJson: ['deliver-2'],
         expectedCompletionDays: 45,

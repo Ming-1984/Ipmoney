@@ -529,7 +529,7 @@ export default function PatentDetailOverviewPage() {
 
           <View id="patent-comments" className="patent-card-stack">
             {listingId ? (
-              <CommentsSection contentType="LISTING" contentId={listingId} title="互动留言" />
+              <CommentsSection contentId={listingId} title="互动留言" />
             ) : (
               <Surface className="detail-section-card">
                 <Text className="muted">暂无关联挂牌，无法展示评论</Text>

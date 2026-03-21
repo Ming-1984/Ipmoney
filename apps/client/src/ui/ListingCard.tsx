@@ -5,12 +5,12 @@ import type { components } from '@ipmoney/api-types';
 
 import { sanitizeIndustryTagNames } from '../lib/industryTags';
 import { patentTypeLabel, tradeModeLabel } from '../lib/labels';
+import { sanitizeListingTopics, type ListingTopic } from '../lib/listingTopics';
 import { fenToYuan } from '../lib/money';
 import { regionDisplayName } from '../lib/regions';
 import iconAward from '../assets/icons/icon-award-teal.svg';
 
 type ListingSummary = components['schemas']['ListingSummary'];
-type ListingTopic = 'FIVE_STAR' | 'HIGH_TECH_RETIRED' | 'AWARD_WINNING';
 type ListingSummaryExtra = ListingSummary & {
   ipcCodes?: string[];
   publisher?: components['schemas']['OrganizationSummary'];
@@ -45,15 +45,28 @@ export function ListingCard(props: {
   const transferBadgeClass = `listing-thumb-badge ${transferCount === 0 ? 'listing-thumb-badge--sleep' : ''}`.trim();
   const tags: { label: string; tone: 'green' | 'slate' }[] = [];
   const specialTags: { label: string; tone: 'green' | 'slate' }[] = [];
-  if (transferCount === 0) specialTags.push({ label: '沉睡专利', tone: 'green' });
-  const listingTopics = Array.isArray(extra.listingTopics)
-    ? extra.listingTopics
-    : extra.listingTopic
-      ? [extra.listingTopic]
-      : [];
-  if (listingTopics.includes('FIVE_STAR')) specialTags.push({ label: '五星专利', tone: 'green' });
-  if (listingTopics.includes('HIGH_TECH_RETIRED')) specialTags.push({ label: '退役专利', tone: 'green' });
-  if (listingTopics.includes('AWARD_WINNING')) specialTags.push({ label: '获奖专利', tone: 'green' });
+  const addSpecialTag = (label: string) => {
+    if (!label) return;
+    if (specialTags.some((it) => it.label === label)) return;
+    specialTags.push({ label, tone: 'green' });
+  };
+  const listingTopics = sanitizeListingTopics(
+    Array.isArray(extra.listingTopics)
+      ? extra.listingTopics
+      : extra.listingTopic
+        ? [extra.listingTopic]
+        : [],
+  );
+  if (transferCount === 0 || listingTopics.includes('SLEEPING')) addSpecialTag('沉睡专利');
+  if (it.tradeMode === 'LICENSE' || listingTopics.includes('OPEN_LICENSE')) addSpecialTag('开放许可');
+  listingTopics
+    .map((topic) => {
+      if (topic === 'FIVE_STAR') return '五星专利';
+      if (topic === 'HIGH_TECH_RETIRED') return '退役专利';
+      if (topic === 'AWARD_WINNING') return '获奖专利';
+      return '';
+    })
+    .forEach((label) => addSpecialTag(label));
   if (it.patentType) tags.push({ label: patentTypeLabel(it.patentType, { empty: '' }), tone: 'slate' });
   if (it.tradeMode) tags.push({ label: tradeModeLabel(it.tradeMode, { empty: '' }), tone: 'green' });
   if (region) tags.push({ label: region, tone: 'slate' });

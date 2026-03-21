@@ -11,6 +11,7 @@ import { favorite, getFavoriteListingIds, syncFavorites, unfavorite } from '../.
 import { ensureApproved } from '../../lib/guard';
 import { patentTypeLabel, priceTypeLabel, tradeModeLabel } from '../../lib/labels';
 import { sanitizeIndustryTagNames } from '../../lib/industryTags';
+import { listingTopicLabel, LISTING_TOPIC_OPTIONS } from '../../lib/listingTopics';
 import { fenToYuanInt } from '../../lib/money';
 import { ensureRegionNamesReady, regionNameByCode } from '../../lib/regions';
 import type { ChipOption } from '../../ui/filters';
@@ -115,6 +116,11 @@ const LEGAL_STATUS_OPTIONS: ChipOption<LegalStatus | ''>[] = [
   { value: 'GRANTED', label: '已授权' },
   { value: 'EXPIRED', label: '已失效' },
   { value: 'INVALIDATED', label: '已无效' },
+];
+
+const LISTING_TOPIC_FILTER_OPTIONS: ChipOption<ListingTopic | ''>[] = [
+  { value: '', label: '不限' },
+  ...LISTING_TOPIC_OPTIONS,
 ];
 
 const LISTING_SORT_OPTIONS: ChipOption<SortBy>[] = [
@@ -354,9 +360,8 @@ export default function SearchPage() {
 
   const listingFilterLabels = useMemo(() => {
     const out: string[] = [];
-    if (listingFilters.listingTopic === 'FIVE_STAR') out.push('五星专利');
-    if (listingFilters.listingTopic === 'HIGH_TECH_RETIRED') out.push('退役专利');
-    if (listingFilters.listingTopic === 'AWARD_WINNING') out.push('获奖专利');
+    const topicLabel = listingTopicLabel(listingFilters.listingTopic);
+    if (topicLabel) out.push(topicLabel);
     if (listingFilters.patentType) out.push(patentTypeLabel(listingFilters.patentType, { empty: '' }));
     if (listingFilters.tradeMode) out.push(tradeModeLabel(listingFilters.tradeMode, { empty: '' }));
     if (listingFilters.priceType) out.push(priceTypeLabel(listingFilters.priceType, { empty: '' }));
@@ -473,6 +478,14 @@ export default function SearchPage() {
           const transferRangeValue = transferCountRangeValue(draft.transferCountMin, draft.transferCountMax);
           return (
             <View className="search-filter-content">
+              <FilterSection title="特色标签">
+                <ChipGroup
+                  value={draft.listingTopic}
+                  options={LISTING_TOPIC_FILTER_OPTIONS}
+                  onChange={(v) => setDraft((prev) => ({ ...prev, listingTopic: v }))}
+                />
+              </FilterSection>
+
               <FilterSection title="技术领域（IPC）">
                 <IndustryTagsPicker
                   value={draft.industryTags}

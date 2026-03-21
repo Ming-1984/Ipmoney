@@ -279,9 +279,9 @@ if (-not $SkipDb) {
   # Prisma on Windows will fail to overwrite the query engine DLL if any existing
   # API process is running and has loaded it. Stop any repo API processes first.
   Stop-RepoNodeByCommandMatch -Needles @("apps\\api", "apps/api") -Reason "prisma generate (engine lock avoidance)"
-  Write-Host "[start] preparing database (prisma generate/migrate)..."
+  Write-Host "[start] preparing database (prisma generate/deploy migrations)..."
   Invoke-External -FilePath "pnpm" -Args @("-C", "apps/api", "prisma:generate")
-  Invoke-External -FilePath "pnpm" -Args @("-C", "apps/api", "db:migrate")
+  Invoke-External -FilePath "pnpm" -Args @("-C", "apps/api", "db:deploy")
   if ($Seed) {
     $env:SEED_DEMO_DATA = "0"
     if ($PurgeDemo) { $env:SEED_DEMO_PURGE_MAP = "1" }

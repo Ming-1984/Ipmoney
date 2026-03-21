@@ -11,7 +11,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** 鍋ュ悍妫€鏌?*/
+        /** 鍋ュ悍妫€鏌? */
         get: operations["getHealth"];
         put?: never;
         post?: never;
@@ -31,8 +31,10 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * 寰俊灏忕▼搴忕櫥褰曪紙code 鈫?token锛?         * @description 灏忕▼搴忕閫氳繃 `wx.login` 鑾峰彇 `code` 鍚庤皟鐢ㄦ湰鎺ュ彛銆?         *
-         *     璇存槑锛?         *     - 鏈嶅姟绔簲浣跨敤寰俊 `code2Session`锛坄/sns/jscode2session`锛夋崲鍙?`openid/session_key`锛屽苟鎸?`openid` 鍋氱敤鎴锋槧灏勫悗绛惧彂骞冲彴 `accessToken`銆?         *     - `wx.login` 涓嶈繑鍥炲ご鍍?鏄电О锛氬ご鍍?鏄电О寤鸿璧?`chooseAvatar + input type="nickname"`锛屽苟閫氳繃 `POST /files` + `PATCH /me` 钀藉簱銆?         */
+         * 寰俊灏忕▼搴忕櫥褰曪紙code 鈫?token锛?
+         * @description 灏忕▼搴忕閫氳繃 `wx.login` 鑾峰彇 `code` 鍚庤皟鐢ㄦ湰鎺ュ彛銆?
+         *     璇存槑锛?        - 鏈嶅姟绔簲浣跨敤寰俊 `code2Session`锛坄/sns/jscode2session`锛夋崲鍙?`openid/session_key`锛屽苟鎸?`openid` 鍋氱敤鎴锋槧灏勫悗绛惧彂骞冲彴 `accessToken`銆?        - `wx.login` 涓嶈繑鍥炲ご鍍?鏄电О锛氬ご鍍?鏄电О寤鸿璧?`chooseAvatar + input type="nickname"`锛屽苟閫氳繃 `POST /files` + `PATCH /me` 钀藉簱銆?
+         */
         post: operations["authWechatMpLogin"];
         delete?: never;
         options?: never;
@@ -90,7 +92,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** 鐭俊楠岃瘉鐮佺櫥褰?*/
+        /** 鐭俊楠岃瘉鐮佺櫥褰? */
         post: operations["authSmsVerify"];
         delete?: never;
         options?: never;
@@ -194,7 +196,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** 鐚滀綘鍠滄锛堜釜鎬у寲鎺ㄨ崘锛?*/
+        /** 鐚滀綘鍠滄锛堜釜鎬у寲鎺ㄨ崘锛? */
         get: operations["getMyRecommendedListings"];
         put?: never;
         post?: never;
@@ -249,7 +251,7 @@ export interface paths {
         put?: never;
         /**
          * 涓婁紶鏂囦欢
-         * @description 鐢ㄤ簬涓婁紶澶村儚/璁よ瘉鏉愭枡/鍚堝悓绛夋枃浠躲€?         *
+         * @description 鐢ㄤ簬涓婁紶澶村儚/璁よ瘉鏉愭枡/鍚堝悓绛夋枃浠躲€?
          *     灏忕▼搴忓ご鍍忓缓璁細
          *     1) `purpose=AVATAR`
          *     2) 涓婁紶鎴愬姛鎷垮埌 `url`
@@ -286,7 +288,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** 棰勮鏂囦欢锛堝甫姘村嵃锛?*/
+        /** 棰勮鏂囦欢锛堝甫姘村嵃锛? */
         get: operations["previewFile"];
         put?: never;
         post?: never;
@@ -337,7 +339,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** 鑾峰彇涓撳埄涓绘暟鎹?*/
+        /** 鑾峰彇涓撳埄涓绘暟鎹? */
         get: operations["getPatentById"];
         put?: never;
         post?: never;
@@ -354,7 +356,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** 鑾峰彇浜ゆ槗瑙勫垯閰嶇疆锛堝墠鍙板睍绀虹敤锛?*/
+        /** 鑾峰彇浜ゆ槗瑙勫垯閰嶇疆锛堝墠鍙板睍绀虹敤锛? */
         get: operations["getPublicTradeRulesConfig"];
         put?: never;
         post?: never;
@@ -371,7 +373,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** 鑾峰彇瀹㈡湇閰嶇疆锛堝墠鍙板睍绀虹敤锛?*/
+        /** 鑾峰彇瀹㈡湇閰嶇疆锛堝墠鍙板睍绀虹敤锛? */
         get: operations["getPublicCustomerServiceConfig"];
         put?: never;
         post?: never;
@@ -388,7 +390,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** 鑾峰彇涓婃灦璇︽儏锛堝叕寮€锛?*/
+        /** 鑾峰彇涓婃灦璇︽儏锛堝叕寮€锛? */
         get: operations["getPublicListingById"];
         put?: never;
         post?: never;
@@ -405,7 +407,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** 鑾峰彇涓婃灦鐣欒█鍒楄〃锛堝叕寮€锛?*/
+        /** 鑾峰彇涓婃灦鐣欒█鍒楄〃锛堝叕寮€锛? */
         get: operations["listPublicListingComments"];
         put?: never;
         post?: never;
@@ -422,7 +424,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** 鑾峰彇鎶€鏈粡鐞嗕汉璇︽儏锛堝叕寮€锛?*/
+        /** 鑾峰彇鎶€鏈粡鐞嗕汉璇︽儏锛堝叕寮€锛? */
         get: operations["getPublicTechManagerById"];
         put?: never;
         post?: never;
@@ -473,7 +475,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** 鑾峰彇鏈烘瀯璇︽儏锛堝叕寮€锛?*/
+        /** 鑾峰彇鏈烘瀯璇︽儏锛堝叕寮€锛? */
         get: operations["getPublicOrganizationById"];
         put?: never;
         post?: never;
@@ -491,8 +493,10 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * 鑾峰彇琛屾斂鍖哄垝鏍戯紙鐢ㄤ簬绛涢€?鍦板浘锛?         * @description 鐢ㄤ簬鍦板尯绛涢€変笌鍦板浘瀹氫綅銆?         *
-         *     灏忕▼搴忋€屼笓鍒╁湴鍥俱€峆0锛堟渶蹇惤鍦帮級浼氱敤 `level=PROVINCE` 鑾峰彇鍚勭渷浠界殑 `centerLat/centerLng` 浣滀负鍦板浘 marker 鍧愭爣銆?         */
+         * 鑾峰彇琛屾斂鍖哄垝鏍戯紙鐢ㄤ簬绛涢€?鍦板浘锛?
+         * @description 鐢ㄤ簬鍦板尯绛涢€変笌鍦板浘瀹氫綅銆?
+         *     灏忕▼搴忋€屼笓鍒╁湴鍥俱€峆0锛堟渶蹇惤鍦帮級浼氱敤 `level=PROVINCE` 鑾峰彇鍚勭渷浠界殑 `centerLat/centerLng` 浣滀负鍦板浘 marker 鍧愭爣銆?
+         */
         get: operations["listRegions"];
         put?: never;
         post?: never;
@@ -509,7 +513,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** 涓撳埄浜ゆ槗妫€绱?*/
+        /** 涓撳埄浜ゆ槗妫€绱? */
         get: operations["searchListings"];
         put?: never;
         post?: never;
@@ -526,7 +530,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** 鎶€鏈粡鐞嗕汉妫€绱?*/
+        /** 鎶€鏈粡鐞嗕汉妫€绱? */
         get: operations["searchTechManagers"];
         put?: never;
         post?: never;
@@ -563,7 +567,9 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * 鏅鸿兘浣撹涔夋绱紙P1锛?         * @description 鏀寔鏂囨湰/璇煶杈撳叆锛岃緭鍑虹粨鏋勫寲妫€绱㈡潯浠朵笌鍖归厤鐞嗙敱銆?         *     灏忕▼搴忔敮鎸佽闊宠緭鍏ワ紱H5 浠呮彁绀哄幓灏忕▼搴忎娇鐢ㄨ闊虫悳绱€?         */
+         * 鏅鸿兘浣撹涔夋绱紙P1锛?
+         * @description 鏀寔鏂囨湰/璇煶杈撳叆锛岃緭鍑虹粨鏋勫寲妫€绱㈡潯浠朵笌鍖归厤鐞嗙敱銆?        灏忕▼搴忔敮鎸佽闊宠緭鍏ワ紱H5 浠呮彁绀哄幓灏忕▼搴忎娇鐢ㄨ闊虫悳绱€?
+         */
         post: operations["createAiAgentQuery"];
         delete?: never;
         options?: never;
@@ -580,7 +586,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** AI 瑙ｆ瀽璇勪环/绾犻敊鍙嶉锛圥1锛?*/
+        /** AI 瑙ｆ瀽璇勪环/绾犻敊鍙嶉锛圥1锛? */
         post: operations["createAiParseFeedback"];
         delete?: never;
         options?: never;
@@ -735,7 +741,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** 鎴戠殑璁㈠崟鍒楄〃锛堜拱瀹?鍗栧锛?*/
+        /** 鎴戠殑璁㈠崟鍒楄〃锛堜拱瀹?鍗栧锛? */
         get: operations["listMyOrders"];
         put?: never;
         /** 鍒涘缓璁㈠崟锛堜拱瀹讹級 */
@@ -772,7 +778,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** 鍒涘缓鏀粯鎰忓浘锛堣閲?灏炬锛?*/
+        /** 鍒涘缓鏀粯鎰忓浘锛堣閲?灏炬锛? */
         post: operations["createPaymentIntent"];
         delete?: never;
         options?: never;
@@ -787,10 +793,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** 鏌ヨ閫€娆剧敵璇峰垪琛?*/
+        /** 鏌ヨ閫€娆剧敵璇峰垪琛? */
         get: operations["listRefundRequestsByOrder"];
         put?: never;
-        /** 鍙戣捣閫€娆剧敵璇?*/
+        /** 鍙戣捣閫€娆剧敵璇? */
         post: operations["createRefundRequest"];
         delete?: never;
         options?: never;
@@ -822,7 +828,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** 鑾峰彇璁㈠崟鐢靛瓙鍙戠エ锛堣鍗曞畬鎴愬悗锛?*/
+        /** 鑾峰彇璁㈠崟鐢靛瓙鍙戠エ锛堣鍗曞畬鎴愬悗锛? */
         get: operations["getOrderInvoice"];
         put?: never;
         post?: never;
@@ -842,7 +848,9 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * 鍙戣捣寮€绁ㄧ敵璇凤紙婕旂ず锛?         * @description P0 鍙ｅ緞锛氬钩鍙版敮鎸佲€滆储鍔＄嚎涓嬪紑绁?+ 鍚庡彴涓婁紶鍙戠エ PDF + 鐢ㄦ埛涓嬭浇鈥濄€?         *     褰撳墠瀹炵幇涓烘紨绀虹敤閫旓紝淇濈暀鐢宠鍏ュ彛浠ヤ究瀵归綈鍓嶇娴佺▼涓庡悗缁墿灞曘€?         */
+         * 鍙戣捣寮€绁ㄧ敵璇凤紙婕旂ず锛?
+         * @description P0 鍙ｅ緞锛氬钩鍙版敮鎸佲€滆储鍔＄嚎涓嬪紑绁?+ 鍚庡彴涓婁紶鍙戠エ PDF + 鐢ㄦ埛涓嬭浇鈥濄€?        褰撳墠瀹炵幇涓烘紨绀虹敤閫旓紝淇濈暀鐢宠鍏ュ彛浠ヤ究瀵归綈鍓嶇娴佺▼涓庡悗缁墿灞曘€?
+         */
         post: operations["requestOrderInvoice"];
         delete?: never;
         options?: never;
@@ -878,7 +886,13 @@ export interface paths {
         put?: never;
         /**
          * 寰俊鏀粯鍥炶皟锛堝唴閮ㄦ帴鍙ｏ級
-         * @description 寰俊鏀粯 v3 鍥炶皟缁熶竴鍏ュ彛锛堟敮浠?閫€娆撅級锛氭湇鍔＄蹇呴』鎵ц **楠岀 + 瑙ｅ瘑 resource**锛屽苟鍋氬箓绛夊鐞嗭紙閬垮厤閲嶅閫氱煡瀵艰嚧閲嶅鍏ヨ处/閲嶅閫€娆撅級銆?         *     鍙傝€冿細寰俊鏀粯 v3 鏂囨。涓殑鍥炶皟 HTTP Header锛圵echatpay-*锛変笌鍥炶皟鎶ユ枃 resource 瑙ｅ瘑娴佺▼銆?         */
+         * @description 寰俊鏀粯 v3 鍥炶皟缁熶竴鍏ュ彛锛堟敮浠?閫€娆撅級锛氭湇鍔＄蹇呴』鎵ц **楠岀 + 瑙ｅ瘑 resource**锛屽苟鍋氬箓绛夊鐞嗭紙閬垮厤閲嶅閫氱煡瀵艰嚧閲嶅鍏ヨ处/閲嶅閫€娆撅級銆?        鍙傝€冿細寰俊鏀粯 v3 鏂囨。涓殑鍥炶皟 HTTP Header锛圵echatpay-*锛変笌鍥炶皟鎶ユ枃 resource 瑙ｅ瘑娴佺▼銆?      parameters:
+         *     - $ref: "#/components/parameters/WechatpayTimestamp"
+         *     - $ref: "#/components/parameters/WechatpayNonce"
+         *     - $ref: "#/components/parameters/WechatpaySignature"
+         *     - $ref: "#/components/parameters/WechatpaySerial"
+         *     - $ref: "#/components/parameters/WechatpaySignatureType"
+         */
         post: operations["wechatPayNotify"];
         delete?: never;
         options?: never;
@@ -912,7 +926,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** 鍒涘缓/鑾峰彇涓庤涓婃灦鐩稿叧鐨勪細璇濓紙鍜ㄨ锛?*/
+        /** 鍒涘缓/鑾峰彇涓庤涓婃灦鐩稿叧鐨勪細璇濓紙鍜ㄨ锛? */
         post: operations["upsertListingConversation"];
         delete?: never;
         options?: never;
@@ -929,7 +943,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** 鍒涘缓/鑾峰彇涓庤鎶€鏈粡鐞嗕汉鐩稿叧鐨勪細璇濓紙鍜ㄨ锛?*/
+        /** 鍒涘缓/鑾峰彇涓庤鎶€鏈粡鐞嗕汉鐩稿叧鐨勪細璇濓紙鍜ㄨ锛? */
         post: operations["upsertTechManagerConversation"];
         delete?: never;
         options?: never;
@@ -947,7 +961,7 @@ export interface paths {
         /** 鑾峰彇浼氳瘽娑堟伅鍒楄〃 */
         get: operations["listConversationMessages"];
         put?: never;
-        /** 鍙戦€佹秷鎭紙鏂囨湰/琛ㄦ儏锛?*/
+        /** 鍙戦€佹秷鎭紙鏂囨湰/琛ㄦ儏锛? */
         post: operations["sendConversationMessage"];
         delete?: never;
         options?: never;
@@ -979,10 +993,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** 鍖哄煙绠＄悊锛氭煡璇㈠尯鍩熷垪琛?*/
+        /** 鍖哄煙绠＄悊锛氭煡璇㈠尯鍩熷垪琛? */
         get: operations["adminListRegions"];
         put?: never;
-        /** 鍖哄煙绠＄悊锛氭柊澧炲尯鍩熻妭鐐?*/
+        /** 鍖哄煙绠＄悊锛氭柊澧炲尯鍩熻妭鐐? */
         post: operations["adminCreateRegion"];
         delete?: never;
         options?: never;
@@ -1003,7 +1017,7 @@ export interface paths {
         delete?: never;
         options?: never;
         head?: never;
-        /** 鍖哄煙绠＄悊锛氭洿鏂板尯鍩熻妭鐐?*/
+        /** 鍖哄煙绠＄悊锛氭洿鏂板尯鍩熻妭鐐? */
         patch: operations["adminUpdateRegion"];
         trace?: never;
     };
@@ -1015,7 +1029,7 @@ export interface paths {
             cookie?: never;
         };
         get?: never;
-        /** 鍖哄煙绠＄悊锛氳缃尯鍩熺壒鑹蹭骇涓氭爣绛?*/
+        /** 鍖哄煙绠＄悊锛氳缃尯鍩熺壒鑹蹭骇涓氭爣绛? */
         put: operations["adminSetRegionIndustryTags"];
         post?: never;
         delete?: never;
@@ -1087,7 +1101,7 @@ export interface paths {
         };
         /**
          * 鍚堝悓涓績鍒楄〃
-         * @description 鍚堝悓鏂囦欢浠呮敮鎸?PDF銆?         *     - 浠呭崠瀹跺彲涓婁紶鍚堝悓锛坄POST /contracts/{contractId}/upload`锛?         *     - 涔板鍙煡闃呭苟纭锛堢‘璁よ兘鍔?P1锛汸0 浠モ€滃緟纭/鍙煡闃呪€濈姸鎬佹紨绀轰负鍑嗭級
+         * @description 鍚堝悓鏂囦欢浠呮敮鎸?PDF銆?        - 浠呭崠瀹跺彲涓婁紶鍚堝悓锛坄POST /contracts/{contractId}/upload`锛?        - 涔板鍙煡闃呭苟纭锛堢‘璁よ兘鍔?P1锛汸0 浠モ€滃緟纭/鍙煡闃呪€濈姸鎬佹紨绀轰负鍑嗭級
          */
         get: operations["listContracts"];
         put?: never;
@@ -1108,8 +1122,10 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * 鍗栧涓婁紶鍚堝悓锛圥DF锛?         * @description 娴佺▼锛?         *     1) `POST /files` 涓婁紶 PDF锛坄purpose=CONTRACT_EVIDENCE`锛?         *     2) 鎷垮埌 `file.id`
-         *     3) 璋冪敤鏈帴鍙ｆ妸 `contractFileId` 鍏宠仈鍒板悎鍚岃褰?         */
+         * 鍗栧涓婁紶鍚堝悓锛圥DF锛?
+         * @description 娴佺▼锛?        1) `POST /files` 涓婁紶 PDF锛坄purpose=CONTRACT_EVIDENCE`锛?        2) 鎷垮埌 `file.id`
+         *     3) 璋冪敤鏈帴鍙ｆ妸 `contractFileId` 鍏宠仈鍒板悎鍚岃褰?
+         */
         post: operations["uploadContractPdf"];
         delete?: never;
         options?: never;
@@ -1142,9 +1158,9 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** 鑾峰彇鍛婅閰嶇疆锛堝悗鍙帮紝P1锛?*/
+        /** 鑾峰彇鍛婅閰嶇疆锛堝悗鍙帮紝P1锛? */
         get: operations["adminGetAlertConfig"];
-        /** 鏇存柊鍛婅閰嶇疆锛堝悗鍙帮紝P1锛?*/
+        /** 鏇存柊鍛婅閰嶇疆锛堝悗鍙帮紝P1锛? */
         put: operations["adminUpdateAlertConfig"];
         post?: never;
         delete?: never;
@@ -1160,7 +1176,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** AI 瑙ｆ瀽澶嶆牳鍒楄〃锛圥1锛?*/
+        /** AI 瑙ｆ瀽澶嶆牳鍒楄〃锛圥1锛? */
         get: operations["adminListAiParseResults"];
         put?: never;
         post?: never;
@@ -1177,14 +1193,14 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** 鑾峰彇 AI 瑙ｆ瀽璇︽儏锛圥1锛?*/
+        /** 鑾峰彇 AI 瑙ｆ瀽璇︽儏锛圥1锛? */
         get: operations["adminGetAiParseResult"];
         put?: never;
         post?: never;
         delete?: never;
         options?: never;
         head?: never;
-        /** 鏇存柊 AI 瑙ｆ瀽缁撴灉锛圥1锛?*/
+        /** 鏇存柊 AI 瑙ｆ瀽缁撴灉锛圥1锛? */
         patch: operations["adminUpdateAiParseResult"];
         trace?: never;
     };
@@ -1195,10 +1211,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** 涓撳埄搴撳垪琛紙鍚庡彴锛孭1锛?*/
+        /** 涓撳埄搴撳垪琛紙鍚庡彴锛孭1锛? */
         get: operations["adminListPatents"];
         put?: never;
-        /** 鏂板缓涓撳埄涓绘暟鎹紙鍚庡彴锛孭1锛?*/
+        /** 鏂板缓涓撳埄涓绘暟鎹紙鍚庡彴锛孭1锛? */
         post: operations["adminCreatePatent"];
         delete?: never;
         options?: never;
@@ -1213,14 +1229,14 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** 鑾峰彇涓撳埄涓绘暟鎹紙鍚庡彴锛孭1锛?*/
+        /** 鑾峰彇涓撳埄涓绘暟鎹紙鍚庡彴锛孭1锛? */
         get: operations["adminGetPatentById"];
         put?: never;
         post?: never;
         delete?: never;
         options?: never;
         head?: never;
-        /** 鏇存柊涓撳埄涓绘暟鎹紙鍚庡彴锛孭1锛?*/
+        /** 鏇存柊涓撳埄涓绘暟鎹紙鍚庡彴锛孭1锛? */
         patch: operations["adminUpdatePatent"];
         trace?: never;
     };
@@ -1231,10 +1247,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** 骞磋垂鏃ョ▼鍒楄〃锛堝悗鍙帮紝P1锛?*/
+        /** 骞磋垂鏃ョ▼鍒楄〃锛堝悗鍙帮紝P1锛? */
         get: operations["adminListPatentMaintenanceSchedules"];
         put?: never;
-        /** 鍒涘缓骞磋垂鏃ョ▼锛堝悗鍙帮紝P1锛?*/
+        /** 鍒涘缓骞磋垂鏃ョ▼锛堝悗鍙帮紝P1锛? */
         post: operations["adminCreatePatentMaintenanceSchedule"];
         delete?: never;
         options?: never;
@@ -1249,14 +1265,14 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** 鑾峰彇骞磋垂鏃ョ▼璇︽儏锛堝悗鍙帮紝P1锛?*/
+        /** 鑾峰彇骞磋垂鏃ョ▼璇︽儏锛堝悗鍙帮紝P1锛? */
         get: operations["adminGetPatentMaintenanceSchedule"];
         put?: never;
         post?: never;
         delete?: never;
         options?: never;
         head?: never;
-        /** 鏇存柊骞磋垂鏃ョ▼锛堝悗鍙帮紝P1锛?*/
+        /** 鏇存柊骞磋垂鏃ョ▼锛堝悗鍙帮紝P1锛? */
         patch: operations["adminUpdatePatentMaintenanceSchedule"];
         trace?: never;
     };
@@ -1267,10 +1283,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** 鎵樼浠诲姟鍒楄〃锛堝悗鍙帮紝P1锛?*/
+        /** 鎵樼浠诲姟鍒楄〃锛堝悗鍙帮紝P1锛? */
         get: operations["adminListPatentMaintenanceTasks"];
         put?: never;
-        /** 鍒涘缓鎵樼浠诲姟锛堝悗鍙帮紝P1锛?*/
+        /** 鍒涘缓鎵樼浠诲姟锛堝悗鍙帮紝P1锛? */
         post: operations["adminCreatePatentMaintenanceTask"];
         delete?: never;
         options?: never;
@@ -1291,7 +1307,7 @@ export interface paths {
         delete?: never;
         options?: never;
         head?: never;
-        /** 鏇存柊鎵樼浠诲姟锛堝悗鍙帮紝P1锛?*/
+        /** 鏇存柊鎵樼浠诲姟锛堝悗鍙帮紝P1锛? */
         patch: operations["adminUpdatePatentMaintenanceTask"];
         trace?: never;
     };
@@ -1302,7 +1318,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** 鍛婅浜嬩欢鍒楄〃锛堝悗鍙帮紝P1锛?*/
+        /** 鍛婅浜嬩欢鍒楄〃锛堝悗鍙帮紝P1锛? */
         get: operations["adminListAlertEvents"];
         put?: never;
         post?: never;
@@ -1321,7 +1337,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** 鍛婅纭锛堝悗鍙帮紝P1锛?*/
+        /** 鍛婅纭锛堝悗鍙帮紝P1锛? */
         post: operations["adminAcknowledgeAlertEvent"];
         delete?: never;
         options?: never;
@@ -1339,7 +1355,7 @@ export interface paths {
         /** 涓婃灦瀹℃牳/骞冲彴鍐呭鍒楄〃 */
         get: operations["adminListListingsForAudit"];
         put?: never;
-        /** 鍒涘缓骞冲彴鑷湁涓婃灦锛圥1锛?*/
+        /** 鍒涘缓骞冲彴鑷湁涓婃灦锛圥1锛? */
         post: operations["adminCreateListing"];
         delete?: never;
         options?: never;
@@ -1354,14 +1370,14 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** 鑾峰彇涓婃灦璇︽儏锛堝悗鍙帮紝P1锛?*/
+        /** 鑾峰彇涓婃灦璇︽儏锛堝悗鍙帮紝P1锛? */
         get: operations["adminGetListingById"];
         put?: never;
         post?: never;
         delete?: never;
         options?: never;
         head?: never;
-        /** 鏇存柊骞冲彴鑷湁涓婃灦锛堝悗鍙帮紝P1锛?*/
+        /** 鏇存柊骞冲彴鑷湁涓婃灦锛堝悗鍙帮紝P1锛? */
         patch: operations["adminUpdateListing"];
         trace?: never;
     };
@@ -1374,7 +1390,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** 鍙戝竷涓婃灦锛堝悗鍙帮紝P1锛?*/
+        /** 鍙戝竷涓婃灦锛堝悗鍙帮紝P1锛? */
         post: operations["adminPublishListing"];
         delete?: never;
         options?: never;
@@ -1391,7 +1407,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** 涓嬫灦锛堝悗鍙帮紝P1锛?*/
+        /** 涓嬫灦锛堝悗鍙帮紝P1锛? */
         post: operations["adminOffShelfListing"];
         delete?: never;
         options?: never;
@@ -1441,7 +1457,7 @@ export interface paths {
             cookie?: never;
         };
         get?: never;
-        /** 鏍囪鐪?甯傜骇鐗硅壊浜т笟涓撳埄锛堢疆椤?鍔犳潈锛?*/
+        /** 鏍囪鐪?甯傜骇鐗硅壊浜т笟涓撳埄锛堢疆椤?鍔犳潈锛? */
         put: operations["adminSetListingFeatured"];
         post?: never;
         delete?: never;
@@ -1514,7 +1530,7 @@ export interface paths {
         delete?: never;
         options?: never;
         head?: never;
-        /** 鏇存柊鐣欒█鐘舵€侊紙闅愯棌/鎭㈠/鍒犻櫎锛?*/
+        /** 鏇存柊鐣欒█鐘舵€侊紙闅愯棌/鎭㈠/鍒犻櫎锛? */
         patch: operations["adminUpdateComment"];
         trace?: never;
     };
@@ -1646,7 +1662,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** 璐㈠姟浜哄伐鏀炬纭锛圥0 榛樿锛?*/
+        /** 璐㈠姟浜哄伐鏀炬纭锛圥0 榛樿锛? */
         post: operations["adminConfirmManualPayout"];
         delete?: never;
         options?: never;
@@ -1699,7 +1715,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** 閫€娆惧鎵归┏鍥?*/
+        /** 閫€娆惧鎵归┏鍥? */
         post: operations["adminRejectRefundRequest"];
         delete?: never;
         options?: never;
@@ -1716,7 +1732,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** 閫€娆惧畬鎴愮‘璁?*/
+        /** 閫€娆惧畬鎴愮‘璁? */
         post: operations["adminCompleteRefundRequest"];
         delete?: never;
         options?: never;
@@ -2160,7 +2176,7 @@ export interface components {
             };
         };
         /** @enum {string} */
-        SmsPurpose: "LOGIN" | "BIND_PHONE";
+        SmsPurpose: "LOGIN" | "BIND_PHONE" | "FIVE_STAR";
         /** @enum {string} */
         UserRole: "buyer" | "seller" | "cs" | "admin";
         /** @enum {string} */
@@ -2177,12 +2193,13 @@ export interface components {
          */
         ContractStatus: "WAIT_UPLOAD" | "WAIT_CONFIRM" | "AVAILABLE";
         /**
-         * @description 鍚堝悓涓婁紶璇锋眰锛堜粎鍗栧鍙皟鐢級銆?         *     `contractFileId` 寤鸿鏉ヨ嚜 `POST /files`锛坄purpose=CONTRACT_EVIDENCE`锛夛紝涓斾粎鍏佽 PDF銆?         */
-        ContractUploadRequest: {
-            contractFileId?: components["schemas"]["Uuid"];
-        };
+         * @description 鍚堝悓涓婁紶璇锋眰锛堜粎鍗栧鍙皟鐢級銆?        `contractFileId` 寤鸿鏉ヨ嚜 `POST /files`锛坄purpose=CONTRACT_EVIDENCE`锛夛紝涓斾粎鍏佽 PDF銆?      properties:
+         *     contractFileId:
+         *       $ref: "#/components/schemas/Uuid"
+         */
+        ContractUploadRequest: Record<string, never>;
         ContractItem: {
-            /** @description 鍚堝悓 ID锛堝綋鍓嶅疄鐜颁负 `contract-{orderId}`锛?*/
+            /** @description 鍚堝悓 ID锛堝綋鍓嶅疄鐜颁负 `contract-{orderId}`锛? */
             id: string;
             orderId: components["schemas"]["Uuid"];
             listingTitle?: string | null;
@@ -2196,11 +2213,12 @@ export interface components {
             signedAt?: string | null;
             /**
              * Format: uri
-             * @description 鍚堝悓 PDF URL锛堟紨绀虹敤锛涚敓浜у缓璁叧鑱?FileObject锛?             */
+             * @description 鍚堝悓 PDF URL锛堟紨绀虹敤锛涚敓浜у缓璁叧鑱?FileObject锛?
+             */
             fileUrl?: string | null;
-            /** @description 姘村嵃/褰掑睘鏍囪瘑锛堟紨绀虹敤锛?*/
+            /** @description 姘村嵃/褰掑睘鏍囪瘑锛堟紨绀虹敤锛? */
             watermarkOwner?: string | null;
-            /** @description 鏄惁鍏佽涓婁紶锛堜粎鍗栧涓?true锛?*/
+            /** @description 鏄惁鍏佽涓婁紶锛堜粎鍗栧涓?true锛? */
             canUpload?: boolean;
         };
         PagedContract: {
@@ -2242,7 +2260,7 @@ export interface components {
             role: components["schemas"]["UserRole"];
             verificationStatus?: components["schemas"]["VerificationStatus"];
             verificationType?: components["schemas"]["VerificationType"];
-            /** @description 鐢ㄦ埛閫夋嫨鐨勮韩浠界被鍨嬶紙鏈€夋嫨/鏈彁浜ゆ椂涓虹┖锛?*/
+            /** @description 鐢ㄦ埛閫夋嫨鐨勮韩浠界被鍨嬶紙鏈€夋嫨/鏈彁浜ゆ椂涓虹┖锛? */
             orgCategory?: components["schemas"]["SupplyType"];
             /** @description 鐢ㄦ埛褰撳墠鍦板尯锛堢敤浜庡湴鍩熸帹鑽愶紱鍙敱灏忕▼搴忓畾浣?鎵嬪姩閫夋嫨鍚庢洿鏂帮級 */
             regionCode?: string;
@@ -2294,13 +2312,13 @@ export interface components {
             unifiedSocialCreditCodeMasked?: string;
             contactName?: string;
             contactPhoneMasked?: string;
-            /** @description 涓汉韬唤璇佸彿/鎶€鏈粡鐞嗕汉璇佷欢鍙凤紙鑴辨晱锛?*/
+            /** @description 涓汉韬唤璇佸彿/鎶€鏈粡鐞嗕汉璇佷欢鍙凤紙鑴辨晱锛? */
             idNumberMasked?: string;
-            /** @description 涓讳綋鎵€鍦ㄥ湴鍖猴紙鐢ㄤ簬灞曠ず/鍦板煙鎺ㄨ崘锛?*/
+            /** @description 涓讳綋鎵€鍦ㄥ湴鍖猴紙鐢ㄤ簬灞曠ず/鍦板煙鎺ㄨ崘锛? */
             regionCode?: string;
-            /** @description 涓讳綋绠€浠嬶紙鐢ㄤ簬鏈烘瀯灞曠ず锛?*/
+            /** @description 涓讳綋绠€浠嬶紙鐢ㄤ簬鏈烘瀯灞曠ず锛? */
             intro?: string;
-            /** @description 鎶€鏈粡鐞嗕汉鏈嶅姟鏍囩锛堜粎 TECH_MANAGER锛?*/
+            /** @description 鎶€鏈粡鐞嗕汉鏈嶅姟鏍囩锛堜粎 TECH_MANAGER锛? */
             serviceTags?: string[];
             logoFileId?: components["schemas"]["Uuid"];
             /** Format: uri */
@@ -2330,9 +2348,9 @@ export interface components {
              * @enum {string}
              */
             type: "COMPANY" | "ACADEMY" | "GOVERNMENT" | "ASSOCIATION";
-            /** @description 涓讳綋鍚嶇О锛堜紒涓?绉戠爺闄㈡牎/鏀垮簻/鍗忎細锛?*/
+            /** @description 涓讳綋鍚嶇О锛堜紒涓?绉戠爺闄㈡牎/鏀垮簻/鍗忎細锛? */
             displayName: string;
-            /** @description 缁熶竴绀句細淇＄敤浠ｇ爜锛堝悗鍙伴渶鍔犲瘑/鑴辨晱灞曠ず锛?*/
+            /** @description 缁熶竴绀句細淇＄敤浠ｇ爜锛堝悗鍙伴渶鍔犲瘑/鑴辨晱灞曠ず锛? */
             unifiedSocialCreditCode?: string;
             contactName?: string;
             contactPhone?: components["schemas"]["PhoneNumber"];
@@ -2347,7 +2365,7 @@ export interface components {
              * @enum {string}
              */
             type: "TECH_MANAGER";
-            /** @description 鎶€鏈粡鐞嗕汉/缁忕邯浜哄睍绀哄悕绉?*/
+            /** @description 鎶€鏈粡鐞嗕汉/缁忕邯浜哄睍绀哄悕绉? */
             displayName: string;
             /** @description 鍙€夛紱濡傞噰闆嗗垯鍚庡彴瀛樺偍闇€鍔犲瘑 */
             idNumber?: string;
@@ -2536,9 +2554,9 @@ export interface components {
             industryTags?: string[];
             listingTopics?: components["schemas"]["ListingTopic"][];
             featuredLevel?: components["schemas"]["FeaturedLevel"];
-            /** @description 鐪?甯傜骇鐗硅壊浜т笟涓撳埄鐨勭敓鏁堝尯鍩燂紙adcode锛?*/
+            /** @description 鐪?甯傜骇鐗硅壊浜т笟涓撳埄鐨勭敓鏁堝尯鍩燂紙adcode锛? */
             featuredRegionCode?: string;
-            /** @description 鐗硅壊缃《浼樺厛绾э紙鏁板€艰秺灏忚秺闈犲墠锛?*/
+            /** @description 鐗硅壊缃《浼樺厛绾э紙鏁板€艰秺灏忚秺闈犲墠锛? */
             featuredRank?: number;
             /**
              * Format: date-time
@@ -2546,11 +2564,12 @@ export interface components {
              */
             featuredUntil?: string;
             stats?: components["schemas"]["ListingStats"];
-            /** @description 杞娆℃暟锛? 琛ㄧず娌夌潯涓撳埄锛?*/
+            /** @description 杞娆℃暟锛? 琛ㄧず娌夌潯涓撳埄锛? */
             transferCount?: number;
             /**
              * Format: double
-             * @description 鏅鸿兘鎺ㄨ崘寰楀垎锛堜粎鍦?sortBy=RECOMMENDED 鎴栫寽浣犲枩娆㈡帴鍙ｄ腑杩斿洖锛?             */
+             * @description 鏅鸿兘鎺ㄨ崘寰楀垎锛堜粎鍦?sortBy=RECOMMENDED 鎴栫寽浣犲枩娆㈡帴鍙ｄ腑杩斿洖锛?
+             */
             recommendationScore?: number;
             auditStatus: components["schemas"]["AuditStatus"];
             status: components["schemas"]["ListingStatus"];
@@ -2566,13 +2585,14 @@ export interface components {
             summary?: string;
             /** @description 鍙氦浠樿祫鏂欐竻鍗曪紙绀轰緥锛氭簮鏂囦欢/鏉冨睘鏉愭枡/鎶€鏈枃妗ｏ級 */
             deliverables?: string[];
-            /** @description 棰勮鍛ㄦ湡锛堝ぉ锛?*/
+            /** @description 棰勮鍛ㄦ湡锛堝ぉ锛? */
             expectedCompletionDays?: number;
-            /** @description 鍙皥绌洪棿锛堥噾棰濅笂闄愶紝鍗曚綅鍒嗭紱涓?negotiableRangePercent 浜岄€変竴锛?*/
+            /** @description 鍙皥绌洪棿锛堥噾棰濅笂闄愶紝鍗曚綅鍒嗭紱涓?negotiableRangePercent 浜岄€変竴锛? */
             negotiableRangeFen?: components["schemas"]["MoneyFen"];
             /**
              * Format: double
-             * @description 鍙皥绌洪棿锛堟瘮渚嬩笂闄?0-100锛涗笌 negotiableRangeFen 浜岄€変竴锛?             */
+             * @description 鍙皥绌洪棿锛堟瘮渚嬩笂闄?0-100锛涗笌 negotiableRangeFen 浜岄€変竴锛?
+             */
             negotiableRangePercent?: number;
             /** @description 鍙皥绌洪棿琛ュ厖璇存槑 */
             negotiableNote?: string;
@@ -2591,13 +2611,14 @@ export interface components {
             summary?: string;
             /** @description 鍙氦浠樿祫鏂欐竻鍗曪紙绀轰緥锛氭簮鏂囦欢/鏉冨睘鏉愭枡/鎶€鏈枃妗ｏ級 */
             deliverables?: string[];
-            /** @description 棰勮鍛ㄦ湡锛堝ぉ锛?*/
+            /** @description 棰勮鍛ㄦ湡锛堝ぉ锛? */
             expectedCompletionDays?: number;
-            /** @description 鍙皥绌洪棿锛堥噾棰濅笂闄愶紝鍗曚綅鍒嗭紱涓?negotiableRangePercent 浜岄€変竴锛?*/
+            /** @description 鍙皥绌洪棿锛堥噾棰濅笂闄愶紝鍗曚綅鍒嗭紱涓?negotiableRangePercent 浜岄€変竴锛? */
             negotiableRangeFen?: components["schemas"]["MoneyFen"];
             /**
              * Format: double
-             * @description 鍙皥绌洪棿锛堟瘮渚嬩笂闄?0-100锛涗笌 negotiableRangeFen 浜岄€変竴锛?             */
+             * @description 鍙皥绌洪棿锛堟瘮渚嬩笂闄?0-100锛涗笌 negotiableRangeFen 浜岄€変竴锛?
+             */
             negotiableRangePercent?: number;
             /** @description 鍙皥绌洪棿琛ュ厖璇存槑 */
             negotiableNote?: string;
@@ -2616,9 +2637,9 @@ export interface components {
             /** @description 鑻ユ棤娉曡嚜鍔ㄨ瘑鍒垯蹇呭～ */
             patentType?: components["schemas"]["PatentType"];
             title?: string;
-            /** @description 鍙戞槑浜猴紙鐢ㄤ簬鍙戞槑浜烘锛汸0 寤鸿濉啓锛?*/
+            /** @description 鍙戞槑浜猴紙鐢ㄤ簬鍙戞槑浜烘锛汸0 寤鸿濉啓锛? */
             inventorNames?: string[];
-            /** @description 鏉冨埄浜?涓撳埄鏉冧汉锛堢敤浜庢绱笌灞曠ず锛汸0 寤鸿濉啓锛?*/
+            /** @description 鏉冨埄浜?涓撳埄鏉冧汉锛堢敤浜庢绱笌灞曠ず锛汸0 寤鸿濉啓锛? */
             assigneeNames?: string[];
             /** @description 鐢宠浜猴紙鍙€夛級 */
             applicantNames?: string[];
@@ -2634,13 +2655,14 @@ export interface components {
             summary?: string;
             /** @description 鍙氦浠樿祫鏂欐竻鍗曪紙绀轰緥锛氭簮鏂囦欢/鏉冨睘鏉愭枡/鎶€鏈枃妗ｏ級 */
             deliverables?: string[];
-            /** @description 棰勮鍛ㄦ湡锛堝ぉ锛?*/
+            /** @description 棰勮鍛ㄦ湡锛堝ぉ锛? */
             expectedCompletionDays?: number;
-            /** @description 鍙皥绌洪棿锛堥噾棰濅笂闄愶紝鍗曚綅鍒嗭紱涓?negotiableRangePercent 浜岄€変竴锛?*/
+            /** @description 鍙皥绌洪棿锛堥噾棰濅笂闄愶紝鍗曚綅鍒嗭紱涓?negotiableRangePercent 浜岄€変竴锛? */
             negotiableRangeFen?: components["schemas"]["MoneyFen"];
             /**
              * Format: double
-             * @description 鍙皥绌洪棿锛堟瘮渚嬩笂闄?0-100锛涗笌 negotiableRangeFen 浜岄€変竴锛?             */
+             * @description 鍙皥绌洪棿锛堟瘮渚嬩笂闄?0-100锛涗笌 negotiableRangeFen 浜岄€変竴锛?
+             */
             negotiableRangePercent?: number;
             /** @description 鍙皥绌洪棿琛ュ厖璇存槑 */
             negotiableNote?: string;
@@ -2651,9 +2673,9 @@ export interface components {
             tradeMode: components["schemas"]["TradeMode"];
             licenseMode?: components["schemas"]["LicenseMode"];
             priceType: components["schemas"]["PriceType"];
-            /** @description FIXED 鏃跺繀濉?*/
+            /** @description FIXED 鏃跺繀濉? */
             priceAmountFen?: components["schemas"]["MoneyFen"];
-            /** @description 鍙€夛紱鑻ヤ笉濉垯鎸夊钩鍙拌閲戠瓥鐣ヨ绠?*/
+            /** @description 鍙€夛紱鑻ヤ笉濉垯鎸夊钩鍙拌閲戠瓥鐣ヨ绠? */
             depositAmountFen?: components["schemas"]["MoneyFen"];
             regionCode?: string;
             industryTags?: string[];
@@ -2681,13 +2703,14 @@ export interface components {
             summary?: string;
             /** @description 鍙氦浠樿祫鏂欐竻鍗曪紙绀轰緥锛氭簮鏂囦欢/鏉冨睘鏉愭枡/鎶€鏈枃妗ｏ級 */
             deliverables?: string[];
-            /** @description 棰勮鍛ㄦ湡锛堝ぉ锛?*/
+            /** @description 棰勮鍛ㄦ湡锛堝ぉ锛? */
             expectedCompletionDays?: number;
-            /** @description 鍙皥绌洪棿锛堥噾棰濅笂闄愶紝鍗曚綅鍒嗭紱涓?negotiableRangePercent 浜岄€変竴锛?*/
+            /** @description 鍙皥绌洪棿锛堥噾棰濅笂闄愶紝鍗曚綅鍒嗭紱涓?negotiableRangePercent 浜岄€変竴锛? */
             negotiableRangeFen?: components["schemas"]["MoneyFen"];
             /**
              * Format: double
-             * @description 鍙皥绌洪棿锛堟瘮渚嬩笂闄?0-100锛涗笌 negotiableRangeFen 浜岄€変竴锛?             */
+             * @description 鍙皥绌洪棿锛堟瘮渚嬩笂闄?0-100锛涗笌 negotiableRangeFen 浜岄€変竴锛?
+             */
             negotiableRangePercent?: number;
             /** @description 鍙皥绌洪棿琛ュ厖璇存槑 */
             negotiableNote?: string;
@@ -2712,7 +2735,7 @@ export interface components {
             featuredLevel: components["schemas"]["FeaturedLevel"];
             /** @description 鐪?甯傜骇鐢熸晥鍖哄煙 adcode锛坒eaturedLevel != NONE 鏃跺繀濉級 */
             featuredRegionCode?: string;
-            /** @description 鐗硅壊缃《浼樺厛绾э紙鏁板€艰秺灏忚秺闈犲墠锛?*/
+            /** @description 鐗硅壊缃《浼樺厛绾э紙鏁板€艰秺灏忚秺闈犲墠锛? */
             featuredRank?: number;
             /**
              * Format: date-time
@@ -2740,19 +2763,31 @@ export interface components {
         /** @enum {string} */
         SearchQType: "AUTO" | "NUMBER" | "KEYWORD" | "APPLICANT" | "INVENTOR";
         /** @enum {string} */
-        /** @enum {string} */
-        ListingTopic: "HIGH_TECH_RETIRED" | "AWARD_WINNING" | "FIVE_STAR";
+        ArtworkSortBy: "RECOMMENDED" | "NEWEST" | "PRICE_ASC" | "PRICE_DESC";
+        /**
+         * @description 专利特色标签统一枚举：
+         *     - HIGH_TECH_RETIRED: 退役专利
+         *     - SLEEPING: 沉睡专利
+         *     - AWARD_WINNING: 获奖专利
+         *     - OPEN_LICENSE: 开放许可
+         *     - FIVE_STAR: 五星专利
+         * @enum {string}
+         */
+        ListingTopic: "HIGH_TECH_RETIRED" | "SLEEPING" | "AWARD_WINNING" | "OPEN_LICENSE" | "FIVE_STAR";
         /** @enum {string} */
         TechManagerSortBy: "RECOMMENDED" | "NEWEST";
         /** @enum {string} */
+        ArtworkCategory: "CALLIGRAPHY" | "PAINTING";
         /** @enum {string} */
         CalligraphyScript: "KAISHU" | "XINGSHU" | "CAOSHU" | "LISHU" | "ZHUANSHU";
         /** @enum {string} */
         PaintingGenre: "FIGURE" | "LANDSCAPE" | "BIRD_FLOWER" | "OTHER";
         /** @enum {string} */
+        ArtworkStatus: "DRAFT" | "ACTIVE" | "OFF_SHELF" | "SOLD";
         /** @enum {string} */
         CooperationMode: "TRANSFER" | "TECH_CONSULTING" | "COMMISSIONED_DEV" | "PLATFORM_CO_BUILD";
         /** @enum {string} */
+        AchievementMaturity: "CONCEPT" | "PROTOTYPE" | "PILOT" | "MASS_PRODUCTION" | "COMMERCIALIZED" | "OTHER";
         /** @enum {string} */
         DeliveryPeriod: "WITHIN_1_MONTH" | "MONTH_1_3" | "MONTH_3_6" | "OVER_6_MONTHS" | "OTHER";
         ContentMedia: {
@@ -2767,48 +2802,219 @@ export interface components {
             readonly sizeBytes?: number;
             readonly fileName?: string;
         };
-            publisherUserId?: components["schemas"]["Uuid"];
-            description?: string;
+        DemandSummary: {
+            id: components["schemas"]["Uuid"];
+            source?: components["schemas"]["ContentSource"];
+            title: string;
+            summary?: string;
+            budgetType?: components["schemas"]["PriceType"];
+            budgetMinFen?: components["schemas"]["MoneyFen"];
+            budgetMaxFen?: components["schemas"]["MoneyFen"];
+            cooperationModes?: components["schemas"]["CooperationMode"][];
+            regionCode?: string;
+            industryTags?: string[];
             keywords?: string[];
             deliveryPeriod?: components["schemas"]["DeliveryPeriod"];
+            publisher: components["schemas"]["OrganizationSummary"];
+            stats?: components["schemas"]["ListingStats"];
+            auditStatus: components["schemas"]["AuditStatus"];
+            status: components["schemas"]["ContentStatus"];
+            /** Format: uri */
+            coverUrl?: string;
+            /** Format: date-time */
+            createdAt: string;
+        };
+        DemandPublic: components["schemas"]["DemandSummary"] & {
+            description?: string;
+            media?: components["schemas"]["ContentMedia"][];
+            aiParse?: components["schemas"]["AiParseResult"];
+        };
+        Demand: components["schemas"]["DemandSummary"];
+        PagedDemandSummary: {
+            items: components["schemas"]["DemandSummary"][];
+            page: components["schemas"]["PageMeta"];
+        };
+        PagedDemand: {
+            items: components["schemas"]["Demand"][];
+            page: components["schemas"]["PageMeta"];
+        };
+        DemandCreateRequest: {
+            title: string;
+            description?: string;
+            summary?: string;
+            keywords?: string[];
+            deliveryPeriod?: components["schemas"]["DeliveryPeriod"];
+            budgetType?: components["schemas"]["PriceType"];
+            budgetMinFen?: components["schemas"]["MoneyFen"];
+            budgetMaxFen?: components["schemas"]["MoneyFen"];
+            cooperationModes?: components["schemas"]["CooperationMode"][];
             contactName?: string;
             contactTitle?: string;
             contactPhoneMasked?: string;
+            regionCode?: string;
+            industryTags?: string[];
             coverFileId?: components["schemas"]["Uuid"];
             media?: components["schemas"]["ContentMedia"][];
-            aiParse?: components["schemas"]["AiParseResult"];
-            /** Format: date-time */
-            updatedAt?: string;
         };
+        DemandUpdateRequest: {
+            title?: string;
             description?: string;
-            media?: components["schemas"]["ContentMedia"][];
-            aiParse?: components["schemas"]["AiParseResult"];
-        };
-            publisherUserId?: components["schemas"]["Uuid"];
-            description?: string;
+            summary?: string;
+            keywords?: string[];
+            deliveryPeriod?: components["schemas"]["DeliveryPeriod"];
+            budgetType?: components["schemas"]["PriceType"];
+            budgetMinFen?: components["schemas"]["MoneyFen"];
+            budgetMaxFen?: components["schemas"]["MoneyFen"];
+            cooperationModes?: components["schemas"]["CooperationMode"][];
+            contactName?: string;
+            contactTitle?: string;
+            contactPhoneMasked?: string;
+            regionCode?: string;
+            industryTags?: string[];
             coverFileId?: components["schemas"]["Uuid"];
             media?: components["schemas"]["ContentMedia"][];
-            aiParse?: components["schemas"]["AiParseResult"];
-            /** Format: date-time */
-            updatedAt?: string;
         };
+        AchievementSummary: {
+            id: components["schemas"]["Uuid"];
+            source?: components["schemas"]["ContentSource"];
+            title: string;
+            summary?: string;
+            maturity?: components["schemas"]["AchievementMaturity"];
+            cooperationModes?: components["schemas"]["CooperationMode"][];
+            regionCode?: string;
+            industryTags?: string[];
+            keywords?: string[];
+            publisher: components["schemas"]["OrganizationSummary"];
+            stats?: components["schemas"]["ListingStats"];
+            auditStatus: components["schemas"]["AuditStatus"];
+            status: components["schemas"]["ContentStatus"];
+            /** Format: uri */
+            coverUrl?: string;
+            /** Format: date-time */
+            createdAt: string;
+        };
+        AchievementPublic: components["schemas"]["AchievementSummary"] & {
             description?: string;
             media?: components["schemas"]["ContentMedia"][];
             aiParse?: components["schemas"]["AiParseResult"];
         };
-            sellerUserId?: components["schemas"]["Uuid"];
+        Achievement: components["schemas"]["AchievementSummary"];
+        PagedAchievementSummary: {
+            items: components["schemas"]["AchievementSummary"][];
+            page: components["schemas"]["PageMeta"];
+        };
+        PagedAchievement: {
+            items: components["schemas"]["Achievement"][];
+            page: components["schemas"]["PageMeta"];
+        };
+        AchievementCreateRequest: {
+            title: string;
             description?: string;
-            certificateFileIds?: components["schemas"]["Uuid"][];
+            summary?: string;
+            keywords?: string[];
+            maturity?: components["schemas"]["AchievementMaturity"];
+            cooperationModes?: components["schemas"]["CooperationMode"][];
+            regionCode?: string;
+            industryTags?: string[];
             coverFileId?: components["schemas"]["Uuid"];
             media?: components["schemas"]["ContentMedia"][];
-            aiParse?: components["schemas"]["AiParseResult"];
-            /** Format: date-time */
-            updatedAt?: string;
         };
+        AchievementUpdateRequest: {
+            title?: string;
+            description?: string;
+            summary?: string;
+            keywords?: string[];
+            maturity?: components["schemas"]["AchievementMaturity"];
+            cooperationModes?: components["schemas"]["CooperationMode"][];
+            regionCode?: string;
+            industryTags?: string[];
+            coverFileId?: components["schemas"]["Uuid"];
+            media?: components["schemas"]["ContentMedia"][];
+        };
+        ArtworkSummary: {
+            id: components["schemas"]["Uuid"];
+            source?: components["schemas"]["ContentSource"];
+            title: string;
+            category: components["schemas"]["ArtworkCategory"];
+            calligraphyScript?: components["schemas"]["CalligraphyScript"];
+            paintingGenre?: components["schemas"]["PaintingGenre"];
+            creatorName: string;
+            /** Format: date */
+            creationDate?: string;
+            creationYear?: number;
+            certificateNo?: string;
+            priceType: components["schemas"]["PriceType"];
+            priceAmountFen?: components["schemas"]["MoneyFen"];
+            depositAmountFen: components["schemas"]["MoneyFen"];
+            regionCode?: string;
+            material?: string;
+            size?: string;
+            /** Format: uri */
+            coverUrl?: string;
+            stats?: components["schemas"]["ListingStats"];
+            auditStatus: components["schemas"]["AuditStatus"];
+            status: components["schemas"]["ArtworkStatus"];
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            updatedAt: string;
+        };
+        ArtworkPublic: components["schemas"]["ArtworkSummary"] & {
             seller?: components["schemas"]["UserBrief"];
             description?: string;
             media?: components["schemas"]["ContentMedia"][];
             aiParse?: components["schemas"]["AiParseResult"];
+        };
+        Artwork: components["schemas"]["ArtworkSummary"];
+        PagedArtworkSummary: {
+            items: components["schemas"]["ArtworkSummary"][];
+            page: components["schemas"]["PageMeta"];
+        };
+        PagedArtwork: {
+            items: components["schemas"]["Artwork"][];
+            page: components["schemas"]["PageMeta"];
+        };
+        ArtworkCreateRequest: {
+            title: string;
+            category: components["schemas"]["ArtworkCategory"];
+            calligraphyScript?: components["schemas"]["CalligraphyScript"];
+            paintingGenre?: components["schemas"]["PaintingGenre"];
+            creatorName: string;
+            /** Format: date */
+            creationDate?: string;
+            creationYear?: number;
+            certificateNo?: string;
+            certificateFileIds?: components["schemas"]["Uuid"][];
+            description?: string;
+            priceType: components["schemas"]["PriceType"];
+            priceAmountFen?: components["schemas"]["MoneyFen"];
+            depositAmountFen?: components["schemas"]["MoneyFen"];
+            regionCode?: string;
+            material?: string;
+            size?: string;
+            coverFileId?: components["schemas"]["Uuid"];
+            media?: components["schemas"]["ContentMedia"][];
+        };
+        ArtworkUpdateRequest: {
+            title?: string;
+            category?: components["schemas"]["ArtworkCategory"];
+            calligraphyScript?: components["schemas"]["CalligraphyScript"];
+            paintingGenre?: components["schemas"]["PaintingGenre"];
+            creatorName?: string;
+            /** Format: date */
+            creationDate?: string;
+            creationYear?: number;
+            certificateNo?: string;
+            certificateFileIds?: components["schemas"]["Uuid"][];
+            description?: string;
+            priceType?: components["schemas"]["PriceType"];
+            priceAmountFen?: components["schemas"]["MoneyFen"];
+            depositAmountFen?: components["schemas"]["MoneyFen"];
+            regionCode?: string;
+            material?: string;
+            size?: string;
+            coverFileId?: components["schemas"]["Uuid"];
+            media?: components["schemas"]["ContentMedia"][];
         };
         OrganizationStats: {
             listingCount: number;
@@ -2869,7 +3075,7 @@ export interface components {
         };
         InventorRankingItem: {
             inventorName: string;
-            /** @description 璇ュ彂鏄庝汉鍦ㄥ钩鍙板唴涓婁紶涓撳埄涓殑鍘婚噸鏁伴噺锛堟寜 patentId锛?*/
+            /** @description 璇ュ彂鏄庝汉鍦ㄥ钩鍙板唴涓婁紶涓撳埄涓殑鍘婚噸鏁伴噺锛堟寜 patentId锛? */
             patentCount: number;
             /** @description 鍏宠仈鍒扮殑涓婃灦鏁伴噺锛堝彲鐢ㄤ簬鍙傝€冿級 */
             listingCount: number;
@@ -2900,12 +3106,12 @@ export interface components {
             sellerUserId?: components["schemas"]["Uuid"];
             assignedCsUserId?: components["schemas"]["Uuid"];
             status: components["schemas"]["OrderStatus"];
-            /** @description 鍚堝悓绛剧讲纭鍚庡啓鍏ワ紙鎴愪氦鎬讳环锛?*/
+            /** @description 鍚堝悓绛剧讲纭鍚庡啓鍏ワ紙鎴愪氦鎬讳环锛? */
             dealAmountFen?: components["schemas"]["MoneyFen"];
             depositAmountFen: components["schemas"]["MoneyFen"];
-            /** @description 鍚堝悓绛剧讲纭鍚庡啓鍏ワ紙灏炬閲戦锛?*/
+            /** @description 鍚堝悓绛剧讲纭鍚庡啓鍏ワ紙灏炬閲戦锛? */
             finalAmountFen?: components["schemas"]["MoneyFen"];
-            /** @description 缁撶畻鏃跺啓鍏ワ紙鍗栧鎵挎媴锛?*/
+            /** @description 缁撶畻鏃跺啓鍏ワ紙鍗栧鎵挎媴锛? */
             commissionAmountFen?: components["schemas"]["MoneyFen"];
             /** @description 璁㈠崟鐢靛瓙鍙戠エ锛堜粎璁㈠崟瀹屾垚鍚庡彲鑳藉瓨鍦級 */
             invoice?: components["schemas"]["OrderInvoice"];
@@ -3159,16 +3365,16 @@ export interface components {
             autoPayoutOnTimeout: boolean;
         };
         /**
-         * @description 瀹㈡湇鍒嗛厤绛栫暐锛堟紨绀虹敤锛涚湡瀹炵敓浜у彲鎺ュ叆鏇村鏉傜殑鍒嗛厤/鎺掔彮锛?         * @enum {string}
+         * @description 瀹㈡湇鍒嗛厤绛栫暐锛堟紨绀虹敤锛涚湡瀹炵敓浜у彲鎺ュ叆鏇村鏉傜殑鍒嗛厤/鎺掔彮锛?
+         * @enum {string}
          */
         CustomerServiceAssignStrategy: "AUTO" | "MANUAL";
-        /** @description 瀹㈡湇閰嶇疆锛堝墠鍙板睍绀?鍚庡彴閰嶇疆锛?*/
+        /** @description 瀹㈡湇閰嶇疆锛堝墠鍙板睍绀?鍚庡彴閰嶇疆锛? */
         CustomerServiceConfig: {
             /** @example 400-000-0000 */
             phone: string;
-            /** @example 鎮ㄥソ锛屽凡鏀跺埌鎮ㄧ殑鍜ㄨ锛屽鏈嶅皢鍦?15 鍒嗛挓鍐呰仈绯绘偍銆?*/
+            /** @example 鎮ㄥソ锛屽凡鏀跺埌鎮ㄧ殑鍜ㄨ锛屽鏈嶅皢鍦?15 鍒嗛挓鍐呰仈绯绘偍銆? assignStrategy: $ref: */
             defaultReply: string;
-            assignStrategy: components["schemas"]["CustomerServiceAssignStrategy"];
         };
         CustomerServiceConfigUpdateRequest: {
             phone: string;
@@ -3176,17 +3382,20 @@ export interface components {
             assignStrategy: components["schemas"]["CustomerServiceAssignStrategy"];
         };
         /**
-         * @description 琛屾斂鍖哄垝灞傜骇锛圥0 鍦板浘涓昏鐢?PROVINCE/CITY锛?         * @enum {string}
+         * @description 琛屾斂鍖哄垝灞傜骇锛圥0 鍦板浘涓昏鐢?PROVINCE/CITY锛?
+         * @enum {string}
          */
         RegionLevel: "PROVINCE" | "CITY" | "DISTRICT";
         RegionNode: {
             /**
-             * @description 琛屾斂鍖哄垝 adcode锛? 浣嶅瓧绗︿覆锛?             * @example 110000
+             * @description 琛屾斂鍖哄垝 adcode锛? 浣嶅瓧绗︿覆锛?
+             * @example 110000
              */
             code: string;
             /**
              * @description 琛屾斂鍖哄垝鍚嶇О
-             * @example 鍖椾含甯?             */
+             * @example 鍖椾含甯?
+             */
             name: string;
             level: components["schemas"]["RegionLevel"];
             /** @description 鐖剁骇琛屾斂鍖哄垝 adcode锛? 浣嶅瓧绗︿覆锛夛紱鐪佺骇涓?null */
@@ -3203,7 +3412,7 @@ export interface components {
              * @example 116.4074
              */
             centerLng?: number | null;
-            /** @description 鍖哄煙鐗硅壊浜т笟鏍囩锛堢敤浜庢帹鑽?鎼滅储鍔犳潈锛?*/
+            /** @description 鍖哄煙鐗硅壊浜т笟鏍囩锛堢敤浜庢帹鑽?鎼滅储鍔犳潈锛? */
             industryTags?: string[];
             /** Format: date-time */
             updatedAt?: string;
@@ -3237,6 +3446,67 @@ export interface components {
         };
         IndustryTagCreateRequest: {
             name: string;
+        };
+        PatentMapIndustryCount: {
+            industryTag: string;
+            count: number;
+        };
+        PatentMapTopAssignee: {
+            name: string;
+            patentCount: number;
+        };
+        PatentMapSummaryItem: {
+            /**
+             * @description 琛屾斂鍖哄垝 adcode锛? 浣嶅瓧绗︿覆锛?
+             * @example 110000
+             */
+            regionCode: string;
+            /**
+             * @description 琛屾斂鍖哄垝鍚嶇О蹇収锛堢敤浜庣洿鎺ュ睍绀猴級
+             * @example 鍖椾含甯?
+             */
+            regionName: string;
+            /**
+             * @description 璇ュ尯鍩熻骞翠唤鐨勪笓鍒╂暟閲忥紙鎸?`level/parentCode` 鑱氬悎鍙ｅ緞锛?
+             * @example 1234
+             */
+            patentCount: number;
+        };
+        PatentMapRegionDetail: {
+            regionCode: string;
+            regionName: string;
+            year: number;
+            patentCount: number;
+            industryBreakdown: components["schemas"]["PatentMapIndustryCount"][];
+            topAssignees: components["schemas"]["PatentMapTopAssignee"][];
+            /** Format: date-time */
+            updatedAt?: string;
+        };
+        PatentMapEntry: {
+            regionCode: string;
+            year: number;
+            patentCount: number;
+            industryBreakdown: components["schemas"]["PatentMapIndustryCount"][];
+            topAssignees: components["schemas"]["PatentMapTopAssignee"][];
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string;
+        };
+        PatentMapEntryUpsertRequest: {
+            patentCount: number;
+            industryBreakdown?: components["schemas"]["PatentMapIndustryCount"][];
+            topAssignees?: components["schemas"]["PatentMapTopAssignee"][];
+        };
+        PatentMapImportError: {
+            rowNumber: number;
+            message: string;
+        };
+        PatentMapImportResult: {
+            dryRun: boolean;
+            importedCount: number;
+            updatedCount: number;
+            errors: components["schemas"]["PatentMapImportError"][];
         };
         UserBrief: {
             id: components["schemas"]["Uuid"];
@@ -3276,7 +3546,7 @@ export interface components {
         };
         CommentCreateRequest: {
             text: string;
-            /** @description 鍥炲鐩爣鐣欒█ ID锛堜负绌鸿〃绀哄彂璧锋柊鐣欒█锛?*/
+            /** @description 鍥炲鐩爣鐣欒█ ID锛堜负绌鸿〃绀哄彂璧锋柊鐣欒█锛? */
             parentCommentId?: components["schemas"]["Uuid"];
         };
         CommentUpdateRequest: {
@@ -3330,7 +3600,8 @@ export interface components {
             page: components["schemas"]["PageMeta"];
         };
         /**
-         * @description 瀹㈡埛绔粎鍏佽鍙戦€?TEXT/EMOJI锛汼YSTEM 涓虹郴缁熸秷鎭?         * @enum {string}
+         * @description 瀹㈡埛绔粎鍏佽鍙戦€?TEXT/EMOJI锛汼YSTEM 涓虹郴缁熸秷鎭?
+         * @enum {string}
          */
         ConversationMessageType: "TEXT" | "EMOJI" | "SYSTEM";
         ConversationMessage: {
@@ -3356,7 +3627,7 @@ export interface components {
         };
         ConversationMessageSendRequest: {
             type: components["schemas"]["ConversationMessageType"];
-            /** @description type=TEXT/EMOJI 鏃跺繀濉?*/
+            /** @description type=TEXT/EMOJI 鏃跺繀濉? */
             text: string;
         };
         PagedConversationMessage: {
@@ -3366,9 +3637,9 @@ export interface components {
         /** @enum {string} */
         AiAgentInputType: "TEXT" | "VOICE";
         /** @enum {string} */
-        AiContentScope: "LISTING" | "ALL";
+        AiContentScope: "LISTING" | "DEMAND" | "ACHIEVEMENT" | "ARTWORK" | "ALL";
         /** @enum {string} */
-        AiContentType: "LISTING";
+        AiContentType: "LISTING" | "DEMAND" | "ACHIEVEMENT" | "ARTWORK";
         /** @enum {string} */
         AiParseStatus: "ACTIVE" | "REVIEW_REQUIRED" | "REPLACED";
         /** @enum {string} */
@@ -3399,6 +3670,8 @@ export interface components {
             budgetType?: components["schemas"]["PriceType"];
             budgetMinFen?: components["schemas"]["MoneyFen"];
             budgetMaxFen?: components["schemas"]["MoneyFen"];
+            maturity?: components["schemas"]["AchievementMaturity"];
+            category?: components["schemas"]["ArtworkCategory"];
             calligraphyScript?: components["schemas"]["CalligraphyScript"];
             paintingGenre?: components["schemas"]["PaintingGenre"];
             creator?: string;
@@ -3482,7 +3755,7 @@ export interface components {
         /** @enum {string} */
         AlertStatus: "PENDING" | "SENT" | "ACKED" | "SUPPRESSED";
         /** @enum {string} */
-        AlertTargetType: "PATENT" | "ORDER" | "LISTING" | "AI_PARSE" | "IMPORT" | "PAYMENT" | "REFUND" | "SYSTEM";
+        AlertTargetType: "PATENT" | "ORDER" | "LISTING" | "DEMAND" | "ACHIEVEMENT" | "ARTWORK" | "AI_PARSE" | "IMPORT" | "PAYMENT" | "REFUND" | "SYSTEM";
         AlertRule: {
             type: string;
             severity: components["schemas"]["AlertSeverity"];
@@ -3643,6 +3916,42 @@ export interface components {
             auditStatus?: components["schemas"]["AuditStatus"];
             status?: components["schemas"]["ListingStatus"];
         };
+        AdminDemandCreateRequest: components["schemas"]["DemandCreateRequest"] & {
+            source?: components["schemas"]["ContentSource"];
+            publisherUserId?: components["schemas"]["Uuid"];
+            auditStatus?: components["schemas"]["AuditStatus"];
+            status?: components["schemas"]["ContentStatus"];
+        };
+        AdminDemandUpdateRequest: components["schemas"]["DemandUpdateRequest"] & {
+            source?: components["schemas"]["ContentSource"];
+            publisherUserId?: components["schemas"]["Uuid"];
+            auditStatus?: components["schemas"]["AuditStatus"];
+            status?: components["schemas"]["ContentStatus"];
+        };
+        AdminAchievementCreateRequest: components["schemas"]["AchievementCreateRequest"] & {
+            source?: components["schemas"]["ContentSource"];
+            publisherUserId?: components["schemas"]["Uuid"];
+            auditStatus?: components["schemas"]["AuditStatus"];
+            status?: components["schemas"]["ContentStatus"];
+        };
+        AdminAchievementUpdateRequest: components["schemas"]["AchievementUpdateRequest"] & {
+            source?: components["schemas"]["ContentSource"];
+            publisherUserId?: components["schemas"]["Uuid"];
+            auditStatus?: components["schemas"]["AuditStatus"];
+            status?: components["schemas"]["ContentStatus"];
+        };
+        AdminArtworkCreateRequest: components["schemas"]["ArtworkCreateRequest"] & {
+            source?: components["schemas"]["ContentSource"];
+            sellerUserId?: components["schemas"]["Uuid"];
+            auditStatus?: components["schemas"]["AuditStatus"];
+            status?: components["schemas"]["ArtworkStatus"];
+        };
+        AdminArtworkUpdateRequest: components["schemas"]["ArtworkUpdateRequest"] & {
+            source?: components["schemas"]["ContentSource"];
+            sellerUserId?: components["schemas"]["Uuid"];
+            auditStatus?: components["schemas"]["AuditStatus"];
+            status?: components["schemas"]["ArtworkStatus"];
+        };
         AuditMaterial: {
             id: components["schemas"]["Uuid"];
             name: string;
@@ -3672,6 +3981,56 @@ export interface components {
             page: components["schemas"]["PageMeta"];
         };
         /** @enum {string} */
+        AnnouncementStatus: "DRAFT" | "PUBLISHED" | "OFF_SHELF";
+        AnnouncementRelatedPatent: {
+            name?: string;
+            patentNo?: string;
+        };
+        Announcement: {
+            id: components["schemas"]["Uuid"];
+            title: string;
+            summary?: string;
+            content?: string;
+            publisherName?: string;
+            issueNo?: string;
+            /** Format: uri */
+            sourceUrl?: string;
+            tags?: string[];
+            relatedPatents?: components["schemas"]["AnnouncementRelatedPatent"][];
+            status: components["schemas"]["AnnouncementStatus"];
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            updatedAt?: string;
+        };
+        PagedAnnouncement: {
+            items: components["schemas"]["Announcement"][];
+            page: components["schemas"]["PageMeta"];
+        };
+        AnnouncementCreateRequest: {
+            title: string;
+            summary?: string;
+            content?: string;
+            publisherName?: string;
+            issueNo?: string;
+            /** Format: uri */
+            sourceUrl?: string;
+            tags?: string[];
+            relatedPatents?: components["schemas"]["AnnouncementRelatedPatent"][];
+            status?: components["schemas"]["AnnouncementStatus"];
+        };
+        AnnouncementUpdateRequest: {
+            title?: string;
+            summary?: string;
+            content?: string;
+            publisherName?: string;
+            issueNo?: string;
+            /** Format: uri */
+            sourceUrl?: string;
+            tags?: string[];
+            relatedPatents?: components["schemas"]["AnnouncementRelatedPatent"][];
+            status?: components["schemas"]["AnnouncementStatus"];
+        };
         /** @enum {string} */
         NotificationKind: "system" | "cs";
         Notification: {
@@ -3901,44 +4260,45 @@ export interface components {
         DepositMax: components["schemas"]["MoneyFen"];
         TransferCountMin: number;
         TransferCountMax: number;
-        /** @description 涓撳埄涓撻鍏ュ彛锛堢壒鑹蹭笓鍖虹瓫閫夛級 */
+        /** @description 专利特色标签筛选（退役/沉睡/获奖/开放许可/五星） */
         ListingTopic: components["schemas"]["ListingTopic"];
-        /** @description 鍙戝竷鏃堕棿璧峰锛圷YYY-MM-DD锛?*/
+        /** @description 鍙戝竷鏃堕棿璧峰锛圷YYY-MM-DD锛? */
         CreatedFrom: string;
-        /** @description 鍙戝竷鏃堕棿鎴锛圷YYY-MM-DD锛?*/
+        /** @description 鍙戝竷鏃堕棿鎴锛圷YYY-MM-DD锛? */
         CreatedTo: string;
-        /** @description 琛屾斂鍖哄垝 adcode锛? 浣嶅瓧绗︿覆锛?*/
+        /** @description 琛屾斂鍖哄垝 adcode锛? 浣嶅瓧绗︿覆锛? */
         RegionCode: string;
-        /** @description 涔︾敾绫诲埆锛堜功娉?缁樼敾锛?*/
+        /** @description 涔︾敾绫诲埆锛堜功娉?缁樼敾锛? */
+        ArtworkCategory: components["schemas"]["ArtworkCategory"];
         CalligraphyScript: components["schemas"]["CalligraphyScript"];
         PaintingGenre: components["schemas"]["PaintingGenre"];
-        /** @description 浣滆€?鍒涗綔鑰?*/
+        /** @description 浣滆€?鍒涗綔鑰? */
         Creator: string;
-        /** @description 鍒涗綔骞翠唤璧?*/
+        /** @description 鍒涗綔骞翠唤璧? */
         CreationYearStart: number;
-        /** @description 鍒涗綔骞翠唤姝?*/
+        /** @description 鍒涗綔骞翠唤姝? */
         CreationYearEnd: number;
-        /** @description 鏈烘瀯绫诲瀷杩囨护锛堥粯璁や粎灞曠ず宸插鏍搁€氳繃鐨勪紒涓?绉戠爺闄㈡牎锛?*/
+        /** @description 鏈烘瀯绫诲瀷杩囨护锛堥粯璁や粎灞曠ず宸插鏍搁€氳繃鐨勪紒涓?绉戠爺闄㈡牎锛? */
         OrganizationTypes: components["schemas"]["VerificationType"][];
-        /** @description 鍙戞槑浜哄鍚嶏紙绮剧‘/妯＄硦鍖归厤锛屽彇鍐充簬瀹炵幇锛涚敤浜庤仛鍚堝叾鐩稿叧涓撳埄锛?*/
+        /** @description 鍙戞槑浜哄鍚嶏紙绮剧‘/妯＄硦鍖归厤锛屽彇鍐充簬瀹炵幇锛涚敤浜庤仛鍚堝叾鐩稿叧涓撳埄锛? */
         Inventor: string;
-        /** @description 鎼滅储绫诲瀷锛圓UTO/NUMBER/KEYWORD/APPLICANT/INVENTOR锛?*/
+        /** @description 鎼滅储绫诲瀷锛圓UTO/NUMBER/KEYWORD/APPLICANT/INVENTOR锛? */
         QType: components["schemas"]["SearchQType"];
-        /** @description 鐢宠浜哄鍚嶏紙绮剧‘/妯＄硦鍖归厤锛屽彇鍐充簬瀹炵幇锛?*/
+        /** @description 鐢宠浜哄鍚嶏紙绮剧‘/妯＄硦鍖归厤锛屽彇鍐充簬瀹炵幇锛? */
         Applicant: string;
-        /** @description 鏉冨埄浜哄鍚嶏紙绮剧‘/妯＄硦鍖归厤锛屽彇鍐充簬瀹炵幇锛?*/
+        /** @description 鏉冨埄浜哄鍚嶏紙绮剧‘/妯＄硦鍖归厤锛屽彇鍐充簬瀹炵幇锛? */
         Assignee: string;
-        /** @description 鐢宠鏃ヨ捣濮嬶紙YYYY-MM-DD锛?*/
+        /** @description 鐢宠鏃ヨ捣濮嬶紙YYYY-MM-DD锛? */
         FilingDateFrom: string;
-        /** @description 鐢宠鏃ユ埅姝紙YYYY-MM-DD锛?*/
+        /** @description 鐢宠鏃ユ埅姝紙YYYY-MM-DD锛? */
         FilingDateTo: string;
-        /** @description 鍏紑/鍏憡鏃ヨ捣濮嬶紙YYYY-MM-DD锛?*/
+        /** @description 鍏紑/鍏憡鏃ヨ捣濮嬶紙YYYY-MM-DD锛? */
         PublicationDateFrom: string;
-        /** @description 鍏紑/鍏憡鏃ユ埅姝紙YYYY-MM-DD锛?*/
+        /** @description 鍏紑/鍏憡鏃ユ埅姝紙YYYY-MM-DD锛? */
         PublicationDateTo: string;
-        /** @description 鎺堟潈鏃ヨ捣濮嬶紙YYYY-MM-DD锛?*/
+        /** @description 鎺堟潈鏃ヨ捣濮嬶紙YYYY-MM-DD锛? */
         GrantDateFrom: string;
-        /** @description 鎺堟潈鏃ユ埅姝紙YYYY-MM-DD锛?*/
+        /** @description 鎺堟潈鏃ユ埅姝紙YYYY-MM-DD锛? */
         GrantDateTo: string;
         /** @description 鍗栧/鏈烘瀯 userId锛堢敤浜庢満鏋勮仛鍚堥〉绛涢€夛級 */
         SellerUserId: components["schemas"]["Uuid"];
@@ -3951,23 +4311,26 @@ export interface components {
         LegalStatus: components["schemas"]["LegalStatus"];
         SortBy: components["schemas"]["SortBy"];
         ContentSortBy: components["schemas"]["ContentSortBy"];
+        ArtworkSortBy: components["schemas"]["ArtworkSortBy"];
         TechManagerSortBy: components["schemas"]["TechManagerSortBy"];
         /** @description 鍚堜綔鏂瑰紡杩囨护锛堝彲澶氶€夛級 */
         CooperationModes: components["schemas"]["CooperationMode"][];
+        AchievementMaturity: components["schemas"]["AchievementMaturity"];
         ContentStatus: components["schemas"]["ContentStatus"];
+        ArtworkStatus: components["schemas"]["ArtworkStatus"];
         /** @description 鍐呭鏉ユ簮杩囨护 */
         ContentSource: components["schemas"]["ContentSource"];
-        /** @description 璁よ瘉鐘舵€佽繃婊?*/
+        /** @description 璁よ瘉鐘舵€佽繃婊? */
         VerificationStatus: components["schemas"]["VerificationStatus"];
         /** @description AI 鍐呭绫诲瀷杩囨护 */
         AiContentType: components["schemas"]["AiContentType"];
-        /** @description AI 瑙ｆ瀽鐘舵€佽繃婊?*/
+        /** @description AI 瑙ｆ瀽鐘舵€佽繃婊? */
         AiParseStatus: components["schemas"]["AiParseStatus"];
-        /** @description 骞磋垂鏃ョ▼鐘舵€佽繃婊?*/
+        /** @description 骞磋垂鏃ョ▼鐘舵€佽繃婊? */
         MaintenanceStatus: components["schemas"]["PatentMaintenanceStatus"];
-        /** @description 鎵樼浠诲姟鐘舵€佽繃婊?*/
+        /** @description 鎵樼浠诲姟鐘舵€佽繃婊? */
         MaintenanceTaskStatus: components["schemas"]["PatentMaintenanceTaskStatus"];
-        /** @description 鍛婅鐘舵€佽繃婊?*/
+        /** @description 鍛婅鐘舵€佽繃婊? */
         AlertStatus: components["schemas"]["AlertStatus"];
         /** @description 鍛婅绾у埆杩囨护 */
         AlertSeverity: components["schemas"]["AlertSeverity"];
@@ -3979,30 +4342,30 @@ export interface components {
         MaintenanceScheduleId: components["schemas"]["Uuid"];
         MaintenanceTaskId: components["schemas"]["Uuid"];
         AlertId: components["schemas"]["Uuid"];
-        /** @description 鐣欒█鎵€灞炲唴瀹圭被鍨嬭繃婊?*/
+        /** @description 鐣欒█鎵€灞炲唴瀹圭被鍨嬭繃婊? */
         CommentContentType: components["schemas"]["CommentContentType"];
         /** @description 鐣欒█鎵€灞炲唴瀹?ID 杩囨护 */
         CommentContentId: components["schemas"]["Uuid"];
-        /** @description 鐣欒█鐘舵€佽繃婊わ紙鍚庡彴绠＄悊锛?*/
+        /** @description 鐣欒█鐘舵€佽繃婊わ紙鍚庡彴绠＄悊锛? */
         CommentStatus: components["schemas"]["CommentStatus"];
         Page: number;
         PageSize: number;
         ListingStatus: components["schemas"]["ListingStatus"];
         AuditStatus: components["schemas"]["AuditStatus"];
         OrderStatus: components["schemas"]["OrderStatus"];
-        /** @description 璁㈠崟鐘舵€佸垎缁勭瓫閫夛紙鐢ㄤ簬鈥滃叏閮?寰呬粯娆?杩涜涓?閫€娆?鍞悗/宸茬粨鏉熲€濈瓑鑱氬悎 Tab锛?*/
+        /** @description 订单状态分组筛选（用于聚合 Tab） */
         OrderStatusGroup: components["schemas"]["OrderStatusGroup"];
-        /** @description 骞傜瓑閿紙寤鸿鐢ㄤ簬鏀粯/閫€娆?鏀炬绛夋湁鍓綔鐢ㄧ殑鎺ュ彛锛涘悓涓€骞傜瓑閿殑閲嶅璇锋眰搴旇繑鍥炲悓涓€缁撴灉锛?*/
+        /** @description 骞傜瓑閿紙寤鸿鐢ㄤ簬鏀粯/閫€娆?鏀炬绛夋湁鍓綔鐢ㄧ殑鎺ュ彛锛涘悓涓€骞傜瓑閿殑閲嶅璇锋眰搴旇繑鍥炲悓涓€缁撴灉锛? */
         IdempotencyKey: string;
         /** @description 寰俊鏀粯鍥炶皟楠岀瀛楁锛坴3锛夛細鏃堕棿鎴冲瓧绗︿覆 */
         WechatpayTimestamp: string;
-        /** @description 寰俊鏀粯鍥炶皟楠岀瀛楁锛坴3锛夛細闅忔満涓?*/
+        /** @description 寰俊鏀粯鍥炶皟楠岀瀛楁锛坴3锛夛細闅忔満涓? */
         WechatpayNonce: string;
         /** @description 寰俊鏀粯鍥炶皟楠岀瀛楁锛坴3锛夛細绛惧悕 */
         WechatpaySignature: string;
-        /** @description 寰俊鏀粯鍥炶皟楠岀瀛楁锛坴3锛夛細骞冲彴璇佷功搴忓垪鍙?*/
+        /** @description 寰俊鏀粯鍥炶皟楠岀瀛楁锛坴3锛夛細骞冲彴璇佷功搴忓垪鍙? */
         WechatpaySerial: string;
-        /** @description 寰俊鏀粯鍥炶皟楠岀瀛楁锛坴3锛夛細绛惧悕绫诲瀷锛堝 WECHATPAY2-SHA256-RSA2048锛?*/
+        /** @description 寰俊鏀粯鍥炶皟楠岀瀛楁锛坴3锛夛細绛惧悕绫诲瀷锛堝 WECHATPAY2-SHA256-RSA2048锛? */
         WechatpaySignatureType: string;
         ListingId: components["schemas"]["Uuid"];
         TechManagerId: components["schemas"]["Uuid"];
@@ -4408,7 +4771,7 @@ export interface operations {
     getMyRecommendedListings: {
         parameters: {
             query?: {
-                /** @description 琛屾斂鍖哄垝 adcode锛? 浣嶅瓧绗︿覆锛?*/
+                /** @description 琛屾斂鍖哄垝 adcode锛? 浣嶅瓧绗︿覆锛? */
                 regionCode?: components["parameters"]["RegionCode"];
                 page?: components["parameters"]["Page"];
                 pageSize?: components["parameters"]["PageSize"];
@@ -4764,9 +5127,9 @@ export interface operations {
             query?: {
                 /** @description 鍏抽敭璇嶏紙鏍囬/鎽樿/鏉冨埄浜?鍙戞槑浜?鏈烘瀯鍚嶇О绛夛級 */
                 q?: components["parameters"]["Q"];
-                /** @description 鏈烘瀯绫诲瀷杩囨护锛堥粯璁や粎灞曠ず宸插鏍搁€氳繃鐨勪紒涓?绉戠爺闄㈡牎锛?*/
+                /** @description 鏈烘瀯绫诲瀷杩囨护锛堥粯璁や粎灞曠ず宸插鏍搁€氳繃鐨勪紒涓?绉戠爺闄㈡牎锛? */
                 types?: components["parameters"]["OrganizationTypes"];
-                /** @description 琛屾斂鍖哄垝 adcode锛? 浣嶅瓧绗︿覆锛?*/
+                /** @description 琛屾斂鍖哄垝 adcode锛? 浣嶅瓧绗︿覆锛? */
                 regionCode?: components["parameters"]["RegionCode"];
                 page?: components["parameters"]["Page"];
                 pageSize?: components["parameters"]["PageSize"];
@@ -4837,7 +5200,7 @@ export interface operations {
         parameters: {
             query?: {
                 level?: components["schemas"]["RegionLevel"];
-                /** @description 鐖剁骇琛屾斂鍖哄垝 adcode锛? 浣嶅瓧绗︿覆锛?*/
+                /** @description 鐖剁骇琛屾斂鍖哄垝 adcode锛? 浣嶅瓧绗︿覆锛? */
                 parentCode?: string;
             };
             header?: never;
@@ -4863,14 +5226,14 @@ export interface operations {
             query?: {
                 /** @description 鍏抽敭璇嶏紙鏍囬/鎽樿/鏉冨埄浜?鍙戞槑浜?鏈烘瀯鍚嶇О绛夛級 */
                 q?: components["parameters"]["Q"];
-                /** @description 鎼滅储绫诲瀷锛圓UTO/NUMBER/KEYWORD/APPLICANT/INVENTOR锛?*/
+                /** @description 鎼滅储绫诲瀷锛圓UTO/NUMBER/KEYWORD/APPLICANT/INVENTOR锛? */
                 qType?: components["parameters"]["QType"];
                 patentType?: components["parameters"]["PatentType"];
-                /** @description 鍙戞槑浜哄鍚嶏紙绮剧‘/妯＄硦鍖归厤锛屽彇鍐充簬瀹炵幇锛涚敤浜庤仛鍚堝叾鐩稿叧涓撳埄锛?*/
+                /** @description 鍙戞槑浜哄鍚嶏紙绮剧‘/妯＄硦鍖归厤锛屽彇鍐充簬瀹炵幇锛涚敤浜庤仛鍚堝叾鐩稿叧涓撳埄锛? */
                 inventor?: components["parameters"]["Inventor"];
-                /** @description 鐢宠浜哄鍚嶏紙绮剧‘/妯＄硦鍖归厤锛屽彇鍐充簬瀹炵幇锛?*/
+                /** @description 鐢宠浜哄鍚嶏紙绮剧‘/妯＄硦鍖归厤锛屽彇鍐充簬瀹炵幇锛? */
                 applicant?: components["parameters"]["Applicant"];
-                /** @description 鏉冨埄浜哄鍚嶏紙绮剧‘/妯＄硦鍖归厤锛屽彇鍐充簬瀹炵幇锛?*/
+                /** @description 鏉冨埄浜哄鍚嶏紙绮剧‘/妯＄硦鍖归厤锛屽彇鍐充簬瀹炵幇锛? */
                 assignee?: components["parameters"]["Assignee"];
                 /** @description 鍗栧/鏈烘瀯 userId锛堢敤浜庢満鏋勮仛鍚堥〉绛涢€夛級 */
                 sellerUserId?: components["parameters"]["SellerUserId"];
@@ -4884,9 +5247,9 @@ export interface operations {
                 depositMax?: components["parameters"]["DepositMax"];
                 transferCountMin?: components["parameters"]["TransferCountMin"];
                 transferCountMax?: components["parameters"]["TransferCountMax"];
-                /** @description 涓撳埄涓撻鍏ュ彛锛堢壒鑹蹭笓鍖虹瓫閫夛級 */
+                /** @description 专利特色标签筛选（退役/沉睡/获奖/开放许可/五星） */
                 listingTopic?: components["parameters"]["ListingTopic"];
-                /** @description 琛屾斂鍖哄垝 adcode锛? 浣嶅瓧绗︿覆锛?*/
+                /** @description 琛屾斂鍖哄垝 adcode锛? 浣嶅瓧绗︿覆锛? */
                 regionCode?: components["parameters"]["RegionCode"];
                 /** @description 浜т笟鏍囩杩囨护锛堝彲澶氶€夛級 */
                 industryTags?: components["parameters"]["IndustryTags"];
@@ -4895,21 +5258,21 @@ export interface operations {
                 /** @description Locarno 缁嗗垎鍒嗙被鍙凤紝渚嬪 12-01 */
                 locarno?: components["parameters"]["Loc"];
                 legalStatus?: components["parameters"]["LegalStatus"];
-                /** @description 鍙戝竷鏃堕棿璧峰锛圷YYY-MM-DD锛?*/
+                /** @description 鍙戝竷鏃堕棿璧峰锛圷YYY-MM-DD锛? */
                 createdFrom?: components["parameters"]["CreatedFrom"];
-                /** @description 鍙戝竷鏃堕棿鎴锛圷YYY-MM-DD锛?*/
+                /** @description 鍙戝竷鏃堕棿鎴锛圷YYY-MM-DD锛? */
                 createdTo?: components["parameters"]["CreatedTo"];
-                /** @description 鐢宠鏃ヨ捣濮嬶紙YYYY-MM-DD锛?*/
+                /** @description 鐢宠鏃ヨ捣濮嬶紙YYYY-MM-DD锛? */
                 filingDateFrom?: components["parameters"]["FilingDateFrom"];
-                /** @description 鐢宠鏃ユ埅姝紙YYYY-MM-DD锛?*/
+                /** @description 鐢宠鏃ユ埅姝紙YYYY-MM-DD锛? */
                 filingDateTo?: components["parameters"]["FilingDateTo"];
-                /** @description 鍏紑/鍏憡鏃ヨ捣濮嬶紙YYYY-MM-DD锛?*/
+                /** @description 鍏紑/鍏憡鏃ヨ捣濮嬶紙YYYY-MM-DD锛? */
                 publicationDateFrom?: components["parameters"]["PublicationDateFrom"];
-                /** @description 鍏紑/鍏憡鏃ユ埅姝紙YYYY-MM-DD锛?*/
+                /** @description 鍏紑/鍏憡鏃ユ埅姝紙YYYY-MM-DD锛? */
                 publicationDateTo?: components["parameters"]["PublicationDateTo"];
-                /** @description 鎺堟潈鏃ヨ捣濮嬶紙YYYY-MM-DD锛?*/
+                /** @description 鎺堟潈鏃ヨ捣濮嬶紙YYYY-MM-DD锛? */
                 grantDateFrom?: components["parameters"]["GrantDateFrom"];
-                /** @description 鎺堟潈鏃ユ埅姝紙YYYY-MM-DD锛?*/
+                /** @description 鎺堟潈鏃ユ埅姝紙YYYY-MM-DD锛? */
                 grantDateTo?: components["parameters"]["GrantDateTo"];
                 sortBy?: components["parameters"]["SortBy"];
                 page?: components["parameters"]["Page"];
@@ -4938,7 +5301,7 @@ export interface operations {
             query?: {
                 /** @description 鍏抽敭璇嶏紙鏍囬/鎽樿/鏉冨埄浜?鍙戞槑浜?鏈烘瀯鍚嶇О绛夛級 */
                 q?: components["parameters"]["Q"];
-                /** @description 琛屾斂鍖哄垝 adcode锛? 浣嶅瓧绗︿覆锛?*/
+                /** @description 琛屾斂鍖哄垝 adcode锛? 浣嶅瓧绗︿覆锛? */
                 regionCode?: components["parameters"]["RegionCode"];
                 sortBy?: components["parameters"]["TechManagerSortBy"];
                 page?: components["parameters"]["Page"];
@@ -4967,7 +5330,7 @@ export interface operations {
             query?: {
                 /** @description 鍏抽敭璇嶏紙鏍囬/鎽樿/鏉冨埄浜?鍙戞槑浜?鏈烘瀯鍚嶇О绛夛級 */
                 q?: components["parameters"]["Q"];
-                /** @description 琛屾斂鍖哄垝 adcode锛? 浣嶅瓧绗︿覆锛?*/
+                /** @description 琛屾斂鍖哄垝 adcode锛? 浣嶅瓧绗︿覆锛? */
                 regionCode?: components["parameters"]["RegionCode"];
                 patentType?: components["parameters"]["PatentType"];
                 page?: components["parameters"]["Page"];
@@ -5020,7 +5383,7 @@ export interface operations {
         parameters: {
             query?: never;
             header?: {
-                /** @description 骞傜瓑閿紙寤鸿鐢ㄤ簬鏀粯/閫€娆?鏀炬绛夋湁鍓綔鐢ㄧ殑鎺ュ彛锛涘悓涓€骞傜瓑閿殑閲嶅璇锋眰搴旇繑鍥炲悓涓€缁撴灉锛?*/
+                /** @description 骞傜瓑閿紙寤鸿鐢ㄤ簬鏀粯/閫€娆?鏀炬绛夋湁鍓綔鐢ㄧ殑鎺ュ彛锛涘悓涓€骞傜瓑閿殑閲嶅璇锋眰搴旇繑鍥炲悓涓€缁撴灉锛? */
                 "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
             };
             path: {
@@ -5160,7 +5523,7 @@ export interface operations {
         parameters: {
             query?: never;
             header?: {
-                /** @description 骞傜瓑閿紙寤鸿鐢ㄤ簬鏀粯/閫€娆?鏀炬绛夋湁鍓綔鐢ㄧ殑鎺ュ彛锛涘悓涓€骞傜瓑閿殑閲嶅璇锋眰搴旇繑鍥炲悓涓€缁撴灉锛?*/
+                /** @description 骞傜瓑閿紙寤鸿鐢ㄤ簬鏀粯/閫€娆?鏀炬绛夋湁鍓綔鐢ㄧ殑鎺ュ彛锛涘悓涓€骞傜瓑閿殑閲嶅璇锋眰搴旇繑鍥炲悓涓€缁撴灉锛? */
                 "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
             };
             path: {
@@ -5186,7 +5549,7 @@ export interface operations {
         parameters: {
             query?: never;
             header?: {
-                /** @description 骞傜瓑閿紙寤鸿鐢ㄤ簬鏀粯/閫€娆?鏀炬绛夋湁鍓綔鐢ㄧ殑鎺ュ彛锛涘悓涓€骞傜瓑閿殑閲嶅璇锋眰搴旇繑鍥炲悓涓€缁撴灉锛?*/
+                /** @description 骞傜瓑閿紙寤鸿鐢ㄤ簬鏀粯/閫€娆?鏀炬绛夋湁鍓綔鐢ㄧ殑鎺ュ彛锛涘悓涓€骞傜瓑閿殑閲嶅璇锋眰搴旇繑鍥炲悓涓€缁撴灉锛? */
                 "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
             };
             path: {
@@ -5212,7 +5575,7 @@ export interface operations {
         parameters: {
             query?: never;
             header?: {
-                /** @description 骞傜瓑閿紙寤鸿鐢ㄤ簬鏀粯/閫€娆?鏀炬绛夋湁鍓綔鐢ㄧ殑鎺ュ彛锛涘悓涓€骞傜瓑閿殑閲嶅璇锋眰搴旇繑鍥炲悓涓€缁撴灉锛?*/
+                /** @description 骞傜瓑閿紙寤鸿鐢ㄤ簬鏀粯/閫€娆?鏀炬绛夋湁鍓綔鐢ㄧ殑鎺ュ彛锛涘悓涓€骞傜瓑閿殑閲嶅璇锋眰搴旇繑鍥炲悓涓€缁撴灉锛? */
                 "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
             };
             path: {
@@ -5246,7 +5609,7 @@ export interface operations {
         parameters: {
             query?: never;
             header?: {
-                /** @description 骞傜瓑閿紙寤鸿鐢ㄤ簬鏀粯/閫€娆?鏀炬绛夋湁鍓綔鐢ㄧ殑鎺ュ彛锛涘悓涓€骞傜瓑閿殑閲嶅璇锋眰搴旇繑鍥炲悓涓€缁撴灉锛?*/
+                /** @description 骞傜瓑閿紙寤鸿鐢ㄤ簬鏀粯/閫€娆?鏀炬绛夋湁鍓綔鐢ㄧ殑鎺ュ彛锛涘悓涓€骞傜瓑閿殑閲嶅璇锋眰搴旇繑鍥炲悓涓€缁撴灉锛? */
                 "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
             };
             path: {
@@ -5335,7 +5698,7 @@ export interface operations {
         parameters: {
             query?: never;
             header?: {
-                /** @description 骞傜瓑閿紙寤鸿鐢ㄤ簬鏀粯/閫€娆?鏀炬绛夋湁鍓綔鐢ㄧ殑鎺ュ彛锛涘悓涓€骞傜瓑閿殑閲嶅璇锋眰搴旇繑鍥炲悓涓€缁撴灉锛?*/
+                /** @description 骞傜瓑閿紙寤鸿鐢ㄤ簬鏀粯/閫€娆?鏀炬绛夋湁鍓綔鐢ㄧ殑鎺ュ彛锛涘悓涓€骞傜瓑閿殑閲嶅璇锋眰搴旇繑鍥炲悓涓€缁撴灉锛? */
                 "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
             };
             path: {
@@ -5362,7 +5725,7 @@ export interface operations {
         parameters: {
             query?: never;
             header?: {
-                /** @description 骞傜瓑閿紙寤鸿鐢ㄤ簬鏀粯/閫€娆?鏀炬绛夋湁鍓綔鐢ㄧ殑鎺ュ彛锛涘悓涓€骞傜瓑閿殑閲嶅璇锋眰搴旇繑鍥炲悓涓€缁撴灉锛?*/
+                /** @description 骞傜瓑閿紙寤鸿鐢ㄤ簬鏀粯/閫€娆?鏀炬绛夋湁鍓綔鐢ㄧ殑鎺ュ彛锛涘悓涓€骞傜瓑閿殑閲嶅璇锋眰搴旇繑鍥炲悓涓€缁撴灉锛? */
                 "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
             };
             path: {
@@ -5397,7 +5760,7 @@ export interface operations {
             query: {
                 asRole: components["schemas"]["OrderListRole"];
                 status?: components["parameters"]["OrderStatus"];
-                /** @description 璁㈠崟鐘舵€佸垎缁勭瓫閫夛紙鐢ㄤ簬鈥滃叏閮?寰呬粯娆?杩涜涓?閫€娆?鍞悗/宸茬粨鏉熲€濈瓑鑱氬悎 Tab锛?*/
+                /** @description 订单状态分组筛选（用于聚合 Tab） */
                 statusGroup?: components["parameters"]["OrderStatusGroup"];
                 page?: components["parameters"]["Page"];
                 pageSize?: components["parameters"]["PageSize"];
@@ -5431,8 +5794,8 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": {
-                    listingId?: components["schemas"]["Uuid"];
-                } & (unknown | unknown);
+                    listingId: components["schemas"]["Uuid"];
+                };
             };
         };
         responses: {
@@ -5479,7 +5842,7 @@ export interface operations {
         parameters: {
             query?: never;
             header?: {
-                /** @description 骞傜瓑閿紙寤鸿鐢ㄤ簬鏀粯/閫€娆?鏀炬绛夋湁鍓綔鐢ㄧ殑鎺ュ彛锛涘悓涓€骞傜瓑閿殑閲嶅璇锋眰搴旇繑鍥炲悓涓€缁撴灉锛?*/
+                /** @description 骞傜瓑閿紙寤鸿鐢ㄤ簬鏀粯/閫€娆?鏀炬绛夋湁鍓綔鐢ㄧ殑鎺ュ彛锛涘悓涓€骞傜瓑閿殑閲嶅璇锋眰搴旇繑鍥炲悓涓€缁撴灉锛? */
                 "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
             };
             path: {
@@ -5537,7 +5900,7 @@ export interface operations {
         parameters: {
             query?: never;
             header?: {
-                /** @description 骞傜瓑閿紙寤鸿鐢ㄤ簬鏀粯/閫€娆?鏀炬绛夋湁鍓綔鐢ㄧ殑鎺ュ彛锛涘悓涓€骞傜瓑閿殑閲嶅璇锋眰搴旇繑鍥炲悓涓€缁撴灉锛?*/
+                /** @description 骞傜瓑閿紙寤鸿鐢ㄤ簬鏀粯/閫€娆?鏀炬绛夋湁鍓綔鐢ㄧ殑鎺ュ彛锛涘悓涓€骞傜瓑閿殑閲嶅璇锋眰搴旇繑鍥炲悓涓€缁撴灉锛? */
                 "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
             };
             path: {
@@ -5618,7 +5981,7 @@ export interface operations {
         parameters: {
             query?: never;
             header?: {
-                /** @description 骞傜瓑閿紙寤鸿鐢ㄤ簬鏀粯/閫€娆?鏀炬绛夋湁鍓綔鐢ㄧ殑鎺ュ彛锛涘悓涓€骞傜瓑閿殑閲嶅璇锋眰搴旇繑鍥炲悓涓€缁撴灉锛?*/
+                /** @description 骞傜瓑閿紙寤鸿鐢ㄤ簬鏀粯/閫€娆?鏀炬绛夋湁鍓綔鐢ㄧ殑鎺ュ彛锛涘悓涓€骞傜瓑閿殑閲嶅璇锋眰搴旇繑鍥炲悓涓€缁撴灉锛? */
                 "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
             };
             path: {
@@ -5645,7 +6008,7 @@ export interface operations {
     listMyInvoices: {
         parameters: {
             query?: {
-                /** @description 鍙戠エ鐘舵€佺瓫閫?*/
+                /** @description 鍙戠エ鐘舵€佺瓫閫? */
                 status?: components["schemas"]["InvoiceStatus"];
                 page?: components["parameters"]["Page"];
                 pageSize?: components["parameters"]["PageSize"];
@@ -5672,18 +6035,7 @@ export interface operations {
     wechatPayNotify: {
         parameters: {
             query?: never;
-            header: {
-                /** @description 寰俊鏀粯鍥炶皟楠岀瀛楁锛坴3锛夛細鏃堕棿鎴冲瓧绗︿覆 */
-                "Wechatpay-Timestamp": components["parameters"]["WechatpayTimestamp"];
-                /** @description 寰俊鏀粯鍥炶皟楠岀瀛楁锛坴3锛夛細闅忔満涓?*/
-                "Wechatpay-Nonce": components["parameters"]["WechatpayNonce"];
-                /** @description 寰俊鏀粯鍥炶皟楠岀瀛楁锛坴3锛夛細绛惧悕 */
-                "Wechatpay-Signature": components["parameters"]["WechatpaySignature"];
-                /** @description 寰俊鏀粯鍥炶皟楠岀瀛楁锛坴3锛夛細骞冲彴璇佷功搴忓垪鍙?*/
-                "Wechatpay-Serial": components["parameters"]["WechatpaySerial"];
-                /** @description 寰俊鏀粯鍥炶皟楠岀瀛楁锛坴3锛夛細绛惧悕绫诲瀷锛堝 WECHATPAY2-SHA256-RSA2048锛?*/
-                "Wechatpay-Signature-Type"?: components["parameters"]["WechatpaySignatureType"];
-            };
+            header?: never;
             path?: never;
             cookie?: never;
         };
@@ -5733,7 +6085,7 @@ export interface operations {
         parameters: {
             query?: never;
             header?: {
-                /** @description 骞傜瓑閿紙寤鸿鐢ㄤ簬鏀粯/閫€娆?鏀炬绛夋湁鍓綔鐢ㄧ殑鎺ュ彛锛涘悓涓€骞傜瓑閿殑閲嶅璇锋眰搴旇繑鍥炲悓涓€缁撴灉锛?*/
+                /** @description 骞傜瓑閿紙寤鸿鐢ㄤ簬鏀粯/閫€娆?鏀炬绛夋湁鍓綔鐢ㄧ殑鎺ュ彛锛涘悓涓€骞傜瓑閿殑閲嶅璇锋眰搴旇繑鍥炲悓涓€缁撴灉锛? */
                 "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
             };
             path: {
@@ -5761,7 +6113,7 @@ export interface operations {
         parameters: {
             query?: never;
             header?: {
-                /** @description 骞傜瓑閿紙寤鸿鐢ㄤ簬鏀粯/閫€娆?鏀炬绛夋湁鍓綔鐢ㄧ殑鎺ュ彛锛涘悓涓€骞傜瓑閿殑閲嶅璇锋眰搴旇繑鍥炲悓涓€缁撴灉锛?*/
+                /** @description 骞傜瓑閿紙寤鸿鐢ㄤ簬鏀粯/閫€娆?鏀炬绛夋湁鍓綔鐢ㄧ殑鎺ュ彛锛涘悓涓€骞傜瓑閿殑閲嶅璇锋眰搴旇繑鍥炲悓涓€缁撴灉锛? */
                 "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
             };
             path: {
@@ -5817,7 +6169,7 @@ export interface operations {
         parameters: {
             query?: never;
             header?: {
-                /** @description 骞傜瓑閿紙寤鸿鐢ㄤ簬鏀粯/閫€娆?鏀炬绛夋湁鍓綔鐢ㄧ殑鎺ュ彛锛涘悓涓€骞傜瓑閿殑閲嶅璇锋眰搴旇繑鍥炲悓涓€缁撴灉锛?*/
+                /** @description 骞傜瓑閿紙寤鸿鐢ㄤ簬鏀粯/閫€娆?鏀炬绛夋湁鍓綔鐢ㄧ殑鎺ュ彛锛涘悓涓€骞傜瓑閿殑閲嶅璇锋眰搴旇繑鍥炲悓涓€缁撴灉锛? */
                 "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
             };
             path: {
@@ -5850,7 +6202,7 @@ export interface operations {
         parameters: {
             query?: never;
             header?: {
-                /** @description 骞傜瓑閿紙寤鸿鐢ㄤ簬鏀粯/閫€娆?鏀炬绛夋湁鍓綔鐢ㄧ殑鎺ュ彛锛涘悓涓€骞傜瓑閿殑閲嶅璇锋眰搴旇繑鍥炲悓涓€缁撴灉锛?*/
+                /** @description 骞傜瓑閿紙寤鸿鐢ㄤ簬鏀粯/閫€娆?鏀炬绛夋湁鍓綔鐢ㄧ殑鎺ュ彛锛涘悓涓€骞傜瓑閿殑閲嶅璇锋眰搴旇繑鍥炲悓涓€缁撴灉锛? */
                 "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
             };
             path: {
@@ -5963,7 +6315,7 @@ export interface operations {
         parameters: {
             query?: never;
             header?: {
-                /** @description 骞傜瓑閿紙寤鸿鐢ㄤ簬鏀粯/閫€娆?鏀炬绛夋湁鍓綔鐢ㄧ殑鎺ュ彛锛涘悓涓€骞傜瓑閿殑閲嶅璇锋眰搴旇繑鍥炲悓涓€缁撴灉锛?*/
+                /** @description 骞傜瓑閿紙寤鸿鐢ㄤ簬鏀粯/閫€娆?鏀炬绛夋湁鍓綔鐢ㄧ殑鎺ュ彛锛涘悓涓€骞傜瓑閿殑閲嶅璇锋眰搴旇繑鍥炲悓涓€缁撴灉锛? */
                 "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
             };
             path: {
@@ -6146,7 +6498,7 @@ export interface operations {
     listContracts: {
         parameters: {
             query?: {
-                /** @description 鍚堝悓鐘舵€佺瓫閫?*/
+                /** @description 鍚堝悓鐘舵€佺瓫閫? */
                 status?: components["schemas"]["ContractStatus"];
                 page?: components["parameters"]["Page"];
                 pageSize?: components["parameters"]["PageSize"];
@@ -6174,11 +6526,11 @@ export interface operations {
         parameters: {
             query?: never;
             header?: {
-                /** @description 骞傜瓑閿紙寤鸿鐢ㄤ簬鏀粯/閫€娆?鏀炬绛夋湁鍓綔鐢ㄧ殑鎺ュ彛锛涘悓涓€骞傜瓑閿殑閲嶅璇锋眰搴旇繑鍥炲悓涓€缁撴灉锛?*/
+                /** @description 骞傜瓑閿紙寤鸿鐢ㄤ簬鏀粯/閫€娆?鏀炬绛夋湁鍓綔鐢ㄧ殑鎺ュ彛锛涘悓涓€骞傜瓑閿殑閲嶅璇锋眰搴旇繑鍥炲悓涓€缁撴灉锛? */
                 "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
             };
             path: {
-                /** @description 鍚堝悓 ID锛堝綋鍓嶅疄鐜颁负 `contract-{orderId}`锛?*/
+                /** @description 鍚堝悓 ID锛堝綋鍓嶅疄鐜颁负 `contract-{orderId}`锛? */
                 contractId: string;
             };
             cookie?: never;
@@ -6307,7 +6659,7 @@ export interface operations {
             query?: {
                 /** @description AI 鍐呭绫诲瀷杩囨护 */
                 contentType?: components["parameters"]["AiContentType"];
-                /** @description AI 瑙ｆ瀽鐘舵€佽繃婊?*/
+                /** @description AI 瑙ｆ瀽鐘舵€佽繃婊? */
                 status?: components["parameters"]["AiParseStatus"];
                 page?: components["parameters"]["Page"];
                 pageSize?: components["parameters"]["PageSize"];
@@ -6503,7 +6855,7 @@ export interface operations {
         parameters: {
             query?: {
                 patentId?: components["schemas"]["Uuid"];
-                /** @description 骞磋垂鏃ョ▼鐘舵€佽繃婊?*/
+                /** @description 骞磋垂鏃ョ▼鐘舵€佽繃婊? */
                 status?: components["parameters"]["MaintenanceStatus"];
                 dueFrom?: string;
                 dueTo?: string;
@@ -6617,7 +6969,7 @@ export interface operations {
             query?: {
                 scheduleId?: components["schemas"]["Uuid"];
                 assignedCsUserId?: components["schemas"]["Uuid"];
-                /** @description 鎵樼浠诲姟鐘舵€佽繃婊?*/
+                /** @description 鎵樼浠诲姟鐘舵€佽繃婊? */
                 status?: components["parameters"]["MaintenanceTaskStatus"];
                 page?: components["parameters"]["Page"];
                 pageSize?: components["parameters"]["PageSize"];
@@ -6702,7 +7054,7 @@ export interface operations {
     adminListAlertEvents: {
         parameters: {
             query?: {
-                /** @description 鍛婅鐘舵€佽繃婊?*/
+                /** @description 鍛婅鐘舵€佽繃婊? */
                 status?: components["parameters"]["AlertStatus"];
                 /** @description 鍛婅绾у埆杩囨护 */
                 severity?: components["parameters"]["AlertSeverity"];
@@ -6767,7 +7119,7 @@ export interface operations {
             query?: {
                 /** @description 鍏抽敭璇嶏紙鏍囬/鎽樿/鏉冨埄浜?鍙戞槑浜?鏈烘瀯鍚嶇О绛夛級 */
                 q?: components["parameters"]["Q"];
-                /** @description 琛屾斂鍖哄垝 adcode锛? 浣嶅瓧绗︿覆锛?*/
+                /** @description 琛屾斂鍖哄垝 adcode锛? 浣嶅瓧绗︿覆锛? */
                 regionCode?: components["parameters"]["RegionCode"];
                 auditStatus?: components["parameters"]["AuditStatus"];
                 status?: components["parameters"]["ListingStatus"];
@@ -6997,7 +7349,7 @@ export interface operations {
         parameters: {
             query?: never;
             header?: {
-                /** @description 骞傜瓑閿紙寤鸿鐢ㄤ簬鏀粯/閫€娆?鏀炬绛夋湁鍓綔鐢ㄧ殑鎺ュ彛锛涘悓涓€骞傜瓑閿殑閲嶅璇锋眰搴旇繑鍥炲悓涓€缁撴灉锛?*/
+                /** @description 骞傜瓑閿紙寤鸿鐢ㄤ簬鏀粯/閫€娆?鏀炬绛夋湁鍓綔鐢ㄧ殑鎺ュ彛锛涘悓涓€骞傜瓑閿殑閲嶅璇锋眰搴旇繑鍥炲悓涓€缁撴灉锛? */
                 "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
             };
             path: {
@@ -7032,9 +7384,9 @@ export interface operations {
             query?: {
                 /** @description 鍏抽敭璇嶏紙鏍囬/鎽樿/鏉冨埄浜?鍙戞槑浜?鏈烘瀯鍚嶇О绛夛級 */
                 q?: components["parameters"]["Q"];
-                /** @description 琛屾斂鍖哄垝 adcode锛? 浣嶅瓧绗︿覆锛?*/
+                /** @description 琛屾斂鍖哄垝 adcode锛? 浣嶅瓧绗︿覆锛? */
                 regionCode?: components["parameters"]["RegionCode"];
-                /** @description 璁よ瘉鐘舵€佽繃婊?*/
+                /** @description 璁よ瘉鐘舵€佽繃婊? */
                 verificationStatus?: components["parameters"]["VerificationStatus"];
                 page?: components["parameters"]["Page"];
                 pageSize?: components["parameters"]["PageSize"];
@@ -7095,11 +7447,11 @@ export interface operations {
             query?: {
                 /** @description 鍏抽敭璇嶏紙鏍囬/鎽樿/鏉冨埄浜?鍙戞槑浜?鏈烘瀯鍚嶇О绛夛級 */
                 q?: components["parameters"]["Q"];
-                /** @description 鐣欒█鎵€灞炲唴瀹圭被鍨嬭繃婊?*/
+                /** @description 鐣欒█鎵€灞炲唴瀹圭被鍨嬭繃婊? */
                 contentType?: components["parameters"]["CommentContentType"];
                 /** @description 鐣欒█鎵€灞炲唴瀹?ID 杩囨护 */
                 contentId?: components["parameters"]["CommentContentId"];
-                /** @description 鐣欒█鐘舵€佽繃婊わ紙鍚庡彴绠＄悊锛?*/
+                /** @description 鐣欒█鐘舵€佽繃婊わ紙鍚庡彴绠＄悊锛? */
                 status?: components["parameters"]["CommentStatus"];
                 page?: components["parameters"]["Page"];
                 pageSize?: components["parameters"]["PageSize"];
@@ -7158,7 +7510,7 @@ export interface operations {
     adminListUserVerifications: {
         parameters: {
             query?: {
-                /** @description 鎸変富浣撳悕绉?鎵嬫満鍙锋ā绯婃悳绱?*/
+                /** @description 鎸変富浣撳悕绉?鎵嬫満鍙锋ā绯婃悳绱? */
                 q?: string;
                 type?: components["schemas"]["VerificationType"];
                 status?: components["schemas"]["VerificationStatus"];
@@ -7378,7 +7730,7 @@ export interface operations {
         parameters: {
             query?: never;
             header?: {
-                /** @description 骞傜瓑閿紙寤鸿鐢ㄤ簬鏀粯/閫€娆?鏀炬绛夋湁鍓綔鐢ㄧ殑鎺ュ彛锛涘悓涓€骞傜瓑閿殑閲嶅璇锋眰搴旇繑鍥炲悓涓€缁撴灉锛?*/
+                /** @description 骞傜瓑閿紙寤鸿鐢ㄤ簬鏀粯/閫€娆?鏀炬绛夋湁鍓綔鐢ㄧ殑鎺ュ彛锛涘悓涓€骞傜瓑閿殑閲嶅璇锋眰搴旇繑鍥炲悓涓€缁撴灉锛? */
                 "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
             };
             path: {
@@ -7412,7 +7764,7 @@ export interface operations {
         parameters: {
             query?: never;
             header?: {
-                /** @description 骞傜瓑閿紙寤鸿鐢ㄤ簬鏀粯/閫€娆?鏀炬绛夋湁鍓綔鐢ㄧ殑鎺ュ彛锛涘悓涓€骞傜瓑閿殑閲嶅璇锋眰搴旇繑鍥炲悓涓€缁撴灉锛?*/
+                /** @description 骞傜瓑閿紙寤鸿鐢ㄤ簬鏀粯/閫€娆?鏀炬绛夋湁鍓綔鐢ㄧ殑鎺ュ彛锛涘悓涓€骞傜瓑閿殑閲嶅璇锋眰搴旇繑鍥炲悓涓€缁撴灉锛? */
                 "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
             };
             path: {
@@ -7446,7 +7798,7 @@ export interface operations {
         parameters: {
             query?: never;
             header?: {
-                /** @description 骞傜瓑閿紙寤鸿鐢ㄤ簬鏀粯/閫€娆?鏀炬绛夋湁鍓綔鐢ㄧ殑鎺ュ彛锛涘悓涓€骞傜瓑閿殑閲嶅璇锋眰搴旇繑鍥炲悓涓€缁撴灉锛?*/
+                /** @description 骞傜瓑閿紙寤鸿鐢ㄤ簬鏀粯/閫€娆?鏀炬绛夋湁鍓綔鐢ㄧ殑鎺ュ彛锛涘悓涓€骞傜瓑閿殑閲嶅璇锋眰搴旇繑鍥炲悓涓€缁撴灉锛? */
                 "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
             };
             path: {
@@ -7480,7 +7832,7 @@ export interface operations {
         parameters: {
             query?: never;
             header?: {
-                /** @description 骞傜瓑閿紙寤鸿鐢ㄤ簬鏀粯/閫€娆?鏀炬绛夋湁鍓綔鐢ㄧ殑鎺ュ彛锛涘悓涓€骞傜瓑閿殑閲嶅璇锋眰搴旇繑鍥炲悓涓€缁撴灉锛?*/
+                /** @description 骞傜瓑閿紙寤鸿鐢ㄤ簬鏀粯/閫€娆?鏀炬绛夋湁鍓綔鐢ㄧ殑鎺ュ彛锛涘悓涓€骞傜瓑閿殑閲嶅璇锋眰搴旇繑鍥炲悓涓€缁撴灉锛? */
                 "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
             };
             path: {
@@ -7507,7 +7859,7 @@ export interface operations {
         parameters: {
             query?: never;
             header?: {
-                /** @description 骞傜瓑閿紙寤鸿鐢ㄤ簬鏀粯/閫€娆?鏀炬绛夋湁鍓綔鐢ㄧ殑鎺ュ彛锛涘悓涓€骞傜瓑閿殑閲嶅璇锋眰搴旇繑鍥炲悓涓€缁撴灉锛?*/
+                /** @description 骞傜瓑閿紙寤鸿鐢ㄤ簬鏀粯/閫€娆?鏀炬绛夋湁鍓綔鐢ㄧ殑鎺ュ彛锛涘悓涓€骞傜瓑閿殑閲嶅璇锋眰搴旇繑鍥炲悓涓€缁撴灉锛? */
                 "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
             };
             path: {
@@ -7536,7 +7888,7 @@ export interface operations {
         parameters: {
             query?: never;
             header?: {
-                /** @description 骞傜瓑閿紙寤鸿鐢ㄤ簬鏀粯/閫€娆?鏀炬绛夋湁鍓綔鐢ㄧ殑鎺ュ彛锛涘悓涓€骞傜瓑閿殑閲嶅璇锋眰搴旇繑鍥炲悓涓€缁撴灉锛?*/
+                /** @description 骞傜瓑閿紙寤鸿鐢ㄤ簬鏀粯/閫€娆?鏀炬绛夋湁鍓綔鐢ㄧ殑鎺ュ彛锛涘悓涓€骞傜瓑閿殑閲嶅璇锋眰搴旇繑鍥炲悓涓€缁撴灉锛? */
                 "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
             };
             path: {
@@ -7571,7 +7923,7 @@ export interface operations {
         parameters: {
             query?: never;
             header?: {
-                /** @description 骞傜瓑閿紙寤鸿鐢ㄤ簬鏀粯/閫€娆?鏀炬绛夋湁鍓綔鐢ㄧ殑鎺ュ彛锛涘悓涓€骞傜瓑閿殑閲嶅璇锋眰搴旇繑鍥炲悓涓€缁撴灉锛?*/
+                /** @description 骞傜瓑閿紙寤鸿鐢ㄤ簬鏀粯/閫€娆?鏀炬绛夋湁鍓綔鐢ㄧ殑鎺ュ彛锛涘悓涓€骞傜瓑閿殑閲嶅璇锋眰搴旇繑鍥炲悓涓€缁撴灉锛? */
                 "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
             };
             path: {
@@ -8274,7 +8626,7 @@ export interface operations {
         parameters: {
             query?: never;
             header?: {
-                /** @description 骞傜瓑閿紙寤鸿鐢ㄤ簬鏀粯/閫€娆?鏀炬绛夋湁鍓綔鐢ㄧ殑鎺ュ彛锛涘悓涓€骞傜瓑閿殑閲嶅璇锋眰搴旇繑鍥炲悓涓€缁撴灉锛?*/
+                /** @description 骞傜瓑閿紙寤鸿鐢ㄤ簬鏀粯/閫€娆?鏀炬绛夋湁鍓綔鐢ㄧ殑鎺ュ彛锛涘悓涓€骞傜瓑閿殑閲嶅璇锋眰搴旇繑鍥炲悓涓€缁撴灉锛? */
                 "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
             };
             path: {

@@ -110,18 +110,6 @@ function formatPriceLabel(priceType?: components['schemas']['PriceType'] | null,
   return `¥ ${fenToYuan(amount)}`;
 }
 
-function formatBudgetLabel(
-  priceType?: components['schemas']['PriceType'] | null,
-  min?: number | null,
-  max?: number | null,
-): string {
-  if (priceType === 'NEGOTIABLE') return '面议';
-  if (min != null && max != null) return `¥ ${fenToYuan(min)} - ¥ ${fenToYuan(max)}`;
-  if (min != null) return `¥ ${fenToYuan(min)} 起`;
-  if (max != null) return `¥ ${fenToYuan(max)} 内`;
-  return '';
-}
-
 function shouldShowTimeDivider(current: UiConversationMessage, prev?: UiConversationMessage): boolean {
   if (!prev) return true;
   const currentAt = Date.parse(current.createdAt || '');

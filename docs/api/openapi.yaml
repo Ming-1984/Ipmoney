@@ -1,4 +1,4 @@
-openapi: 3.0.3
+﻿openapi: 3.0.3
 info:
   title: Ipmoney API
   version: 0.1.0
@@ -6,10 +6,8 @@ info:
     name: Proprietary
     url: https://ipmoney.com
   description: |
-    Ipmoney 涓撳埄浜ゆ槗骞冲彴锛堝皬绋嬪簭 + 鐢ㄦ埛 H5 + 鍚庡彴锛夊澶?API锛圥0锛夈€?
-    涓氬姟绾︽潫锛圥0锛夛細
-    - 鏍囩殑鑼冨洿锛氫粎 CN 涓撳埄锛堟暟鎹互鐢ㄦ埛涓婁紶/鍚庡彴褰曞叆涓哄噯锛?    - 璧勯噾璺緞锛氳閲戜笌灏炬鍧囩嚎涓婃敮浠樺苟鎵樼
-    - 鍚堝悓绛剧讲锛氱嚎涓嬬缃插畬鎴愬悗鐢卞鏈?杩愯惀纭閲岀▼纰戣В閿佸熬娆炬敮浠?    - 浣ｉ噾锛氬崠瀹舵壙鎷咃紱鏀炬鏃朵粠鍗栧搴旀敹涓墸闄?servers:
+    Ipmoney API (P0) for mini-program, H5 and admin console.
+servers:
   - url: https://api.ipmoney.com/v1
 tags:
   - name: Auth
@@ -62,7 +60,8 @@ paths:
   /health:
     get:
       tags: [System]
-      summary: 鍋ュ悍妫€鏌?      operationId: getHealth
+      summary: 鍋ュ悍妫€鏌?
+      operationId: getHealth
       security: []
       responses:
         "200":
@@ -98,9 +97,11 @@ paths:
   /auth/wechat/mp-login:
     post:
       tags: [Auth]
-      summary: 寰俊灏忕▼搴忕櫥褰曪紙code 鈫?token锛?      description: |
+      summary: 寰俊灏忕▼搴忕櫥褰曪紙code 鈫?token锛?
+      description: |
         灏忕▼搴忕閫氳繃 `wx.login` 鑾峰彇 `code` 鍚庤皟鐢ㄦ湰鎺ュ彛銆?
-        璇存槑锛?        - 鏈嶅姟绔簲浣跨敤寰俊 `code2Session`锛坄/sns/jscode2session`锛夋崲鍙?`openid/session_key`锛屽苟鎸?`openid` 鍋氱敤鎴锋槧灏勫悗绛惧彂骞冲彴 `accessToken`銆?        - `wx.login` 涓嶈繑鍥炲ご鍍?鏄电О锛氬ご鍍?鏄电О寤鸿璧?`chooseAvatar + input type="nickname"`锛屽苟閫氳繃 `POST /files` + `PATCH /me` 钀藉簱銆?      operationId: authWechatMpLogin
+        璇存槑锛?        - 鏈嶅姟绔簲浣跨敤寰俊 `code2Session`锛坄/sns/jscode2session`锛夋崲鍙?`openid/session_key`锛屽苟鎸?`openid` 鍋氱敤鎴锋槧灏勫悗绛惧彂骞冲彴 `accessToken`銆?        - `wx.login` 涓嶈繑鍥炲ご鍍?鏄电О锛氬ご鍍?鏄电О寤鸿璧?`chooseAvatar + input type="nickname"`锛屽苟閫氳繃 `POST /files` + `PATCH /me` 钀藉簱銆?
+      operationId: authWechatMpLogin
       security: []
       requestBody:
         required: true
@@ -197,7 +198,8 @@ paths:
   /auth/sms/verify:
     post:
       tags: [Auth]
-      summary: 鐭俊楠岃瘉鐮佺櫥褰?      operationId: authSmsVerify
+      summary: 鐭俊楠岃瘉鐮佺櫥褰?
+      operationId: authSmsVerify
       security: []
       requestBody:
         required: true
@@ -429,7 +431,8 @@ paths:
   /me/recommendations/listings:
     get:
       tags: [Search]
-      summary: 鐚滀綘鍠滄锛堜釜鎬у寲鎺ㄨ崘锛?      operationId: getMyRecommendedListings
+      summary: 鐚滀綘鍠滄锛堜釜鎬у寲鎺ㄨ崘锛?
+      operationId: getMyRecommendedListings
       security:
         - BearerAuth: []
       parameters:
@@ -562,7 +565,8 @@ paths:
   /files/{fileId}/preview:
     get:
       tags: [Files]
-      summary: 棰勮鏂囦欢锛堝甫姘村嵃锛?      operationId: previewFile
+      summary: 棰勮鏂囦欢锛堝甫姘村嵃锛?
+      operationId: previewFile
       security:
         - BearerAuth: []
         - {}
@@ -653,7 +657,8 @@ paths:
   /patents/{patentId}:
     get:
       tags: [Patents]
-      summary: 鑾峰彇涓撳埄涓绘暟鎹?      operationId: getPatentById
+      summary: 鑾峰彇涓撳埄涓绘暟鎹?
+      operationId: getPatentById
       security:
         - BearerAuth: []
       parameters:
@@ -673,7 +678,8 @@ paths:
   /public/config/trade-rules:
     get:
       tags: [Config]
-      summary: 鑾峰彇浜ゆ槗瑙勫垯閰嶇疆锛堝墠鍙板睍绀虹敤锛?      operationId: getPublicTradeRulesConfig
+      summary: 鑾峰彇浜ゆ槗瑙勫垯閰嶇疆锛堝墠鍙板睍绀虹敤锛?
+      operationId: getPublicTradeRulesConfig
       security: []
       responses:
         "200":
@@ -688,7 +694,8 @@ paths:
   /public/config/customer-service:
     get:
       tags: [Config]
-      summary: 鑾峰彇瀹㈡湇閰嶇疆锛堝墠鍙板睍绀虹敤锛?      operationId: getPublicCustomerServiceConfig
+      summary: 鑾峰彇瀹㈡湇閰嶇疆锛堝墠鍙板睍绀虹敤锛?
+      operationId: getPublicCustomerServiceConfig
       security: []
       responses:
         "200":
@@ -703,7 +710,8 @@ paths:
   /public/listings/{listingId}:
     get:
       tags: [Listings]
-      summary: 鑾峰彇涓婃灦璇︽儏锛堝叕寮€锛?      operationId: getPublicListingById
+      summary: 鑾峰彇涓婃灦璇︽儏锛堝叕寮€锛?
+      operationId: getPublicListingById
       security: []
       parameters:
         - $ref: "#/components/parameters/ListingId"
@@ -720,7 +728,8 @@ paths:
   /public/listings/{listingId}/comments:
     get:
       tags: [Comments]
-      summary: 鑾峰彇涓婃灦鐣欒█鍒楄〃锛堝叕寮€锛?      operationId: listPublicListingComments
+      summary: 鑾峰彇涓婃灦鐣欒█鍒楄〃锛堝叕寮€锛?
+      operationId: listPublicListingComments
       security: []
       parameters:
         - $ref: "#/components/parameters/ListingId"
@@ -741,7 +750,8 @@ paths:
   /public/tech-managers/{techManagerId}:
     get:
       tags: [TechManagers]
-      summary: 鑾峰彇鎶€鏈粡鐞嗕汉璇︽儏锛堝叕寮€锛?      operationId: getPublicTechManagerById
+      summary: 鑾峰彇鎶€鏈粡鐞嗕汉璇︽儏锛堝叕寮€锛?
+      operationId: getPublicTechManagerById
       security: []
       parameters:
         - $ref: "#/components/parameters/TechManagerId"
@@ -798,7 +808,8 @@ paths:
   /public/organizations/{orgUserId}:
     get:
       tags: [Organizations]
-      summary: 鑾峰彇鏈烘瀯璇︽儏锛堝叕寮€锛?      operationId: getPublicOrganizationById
+      summary: 鑾峰彇鏈烘瀯璇︽儏锛堝叕寮€锛?
+      operationId: getPublicOrganizationById
       security: []
       parameters:
         - $ref: "#/components/parameters/OrgUserId"
@@ -815,9 +826,11 @@ paths:
   /regions:
     get:
       tags: [Regions]
-      summary: 鑾峰彇琛屾斂鍖哄垝鏍戯紙鐢ㄤ簬绛涢€?鍦板浘锛?      description: |-
+      summary: 鑾峰彇琛屾斂鍖哄垝鏍戯紙鐢ㄤ簬绛涢€?鍦板浘锛?
+      description: |-
         鐢ㄤ簬鍦板尯绛涢€変笌鍦板浘瀹氫綅銆?
-        灏忕▼搴忋€屼笓鍒╁湴鍥俱€峆0锛堟渶蹇惤鍦帮級浼氱敤 `level=PROVINCE` 鑾峰彇鍚勭渷浠界殑 `centerLat/centerLng` 浣滀负鍦板浘 marker 鍧愭爣銆?      operationId: listRegions
+        灏忕▼搴忋€屼笓鍒╁湴鍥俱€峆0锛堟渶蹇惤鍦帮級浼氱敤 `level=PROVINCE` 鑾峰彇鍚勭渷浠界殑 `centerLat/centerLng` 浣滀负鍦板浘 marker 鍧愭爣銆?
+      operationId: listRegions
       security: []
       parameters:
         - name: level
@@ -831,7 +844,8 @@ paths:
           schema:
             type: string
             pattern: "^[0-9]{6}$"
-          description: 鐖剁骇琛屾斂鍖哄垝 adcode锛? 浣嶅瓧绗︿覆锛?      responses:
+          description: 鐖剁骇琛屾斂鍖哄垝 adcode锛? 浣嶅瓧绗︿覆锛?
+      responses:
         "200":
           description: OK
           content:
@@ -846,7 +860,8 @@ paths:
   /search/listings:
     get:
       tags: [Search]
-      summary: 涓撳埄浜ゆ槗妫€绱?      operationId: searchListings
+      summary: 涓撳埄浜ゆ槗妫€绱?
+      operationId: searchListings
       security: []
       parameters:
         - $ref: "#/components/parameters/Q"
@@ -895,7 +910,8 @@ paths:
   /search/tech-managers:
     get:
       tags: [Search, TechManagers]
-      summary: 鎶€鏈粡鐞嗕汉妫€绱?      operationId: searchTechManagers
+      summary: 鎶€鏈粡鐞嗕汉妫€绱?
+      operationId: searchTechManagers
       security: []
       parameters:
         - $ref: "#/components/parameters/Q"
@@ -938,8 +954,10 @@ paths:
   /ai/agent/query:
     post:
       tags: [AI]
-      summary: 鏅鸿兘浣撹涔夋绱紙P1锛?      description: |
-        鏀寔鏂囨湰/璇煶杈撳叆锛岃緭鍑虹粨鏋勫寲妫€绱㈡潯浠朵笌鍖归厤鐞嗙敱銆?        灏忕▼搴忔敮鎸佽闊宠緭鍏ワ紱H5 浠呮彁绀哄幓灏忕▼搴忎娇鐢ㄨ闊虫悳绱€?      operationId: createAiAgentQuery
+      summary: 鏅鸿兘浣撹涔夋绱紙P1锛?
+      description: |
+        鏀寔鏂囨湰/璇煶杈撳叆锛岃緭鍑虹粨鏋勫寲妫€绱㈡潯浠朵笌鍖归厤鐞嗙敱銆?        灏忕▼搴忔敮鎸佽闊宠緭鍏ワ紱H5 浠呮彁绀哄幓灏忕▼搴忎娇鐢ㄨ闊虫悳绱€?
+      operationId: createAiAgentQuery
       security: []
       requestBody:
         required: true
@@ -960,7 +978,8 @@ paths:
   /ai/parse-results/{parseResultId}/feedback:
     post:
       tags: [AI]
-      summary: AI 瑙ｆ瀽璇勪环/绾犻敊鍙嶉锛圥1锛?      operationId: createAiParseFeedback
+      summary: AI 瑙ｆ瀽璇勪环/绾犻敊鍙嶉锛圥1锛?
+      operationId: createAiParseFeedback
       security:
         - BearerAuth: []
       parameters:
@@ -1331,7 +1350,8 @@ paths:
           $ref: "#/components/responses/Conflict"
     get:
       tags: [Orders]
-      summary: 鎴戠殑璁㈠崟鍒楄〃锛堜拱瀹?鍗栧锛?      operationId: listMyOrders
+      summary: 鎴戠殑璁㈠崟鍒楄〃锛堜拱瀹?鍗栧锛?
+      operationId: listMyOrders
       security:
         - BearerAuth: []
       parameters:
@@ -1380,7 +1400,8 @@ paths:
   /orders/{orderId}/payment-intents:
     post:
       tags: [Payments]
-      summary: 鍒涘缓鏀粯鎰忓浘锛堣閲?灏炬锛?      operationId: createPaymentIntent
+      summary: 鍒涘缓鏀粯鎰忓浘锛堣閲?灏炬锛?
+      operationId: createPaymentIntent
       security:
         - BearerAuth: []
       parameters:
@@ -1413,7 +1434,8 @@ paths:
   /orders/{orderId}/refund-requests:
     post:
       tags: [Refunds]
-      summary: 鍙戣捣閫€娆剧敵璇?      operationId: createRefundRequest
+      summary: 鍙戣捣閫€娆剧敵璇?
+      operationId: createRefundRequest
       security:
         - BearerAuth: []
       parameters:
@@ -1442,7 +1464,8 @@ paths:
           $ref: "#/components/responses/Conflict"
     get:
       tags: [Refunds]
-      summary: 鏌ヨ閫€娆剧敵璇峰垪琛?      operationId: listRefundRequestsByOrder
+      summary: 鏌ヨ閫€娆剧敵璇峰垪琛?
+      operationId: listRefundRequestsByOrder
       security:
         - BearerAuth: []
       parameters:
@@ -1485,7 +1508,8 @@ paths:
   /orders/{orderId}/invoice:
     get:
       tags: [Invoices]
-      summary: 鑾峰彇璁㈠崟鐢靛瓙鍙戠エ锛堣鍗曞畬鎴愬悗锛?      operationId: getOrderInvoice
+      summary: 鑾峰彇璁㈠崟鐢靛瓙鍙戠エ锛堣鍗曞畬鎴愬悗锛?
+      operationId: getOrderInvoice
       security:
         - BearerAuth: []
       parameters:
@@ -1505,8 +1529,10 @@ paths:
   /orders/{orderId}/invoice-requests:
     post:
       tags: [Invoices]
-      summary: 鍙戣捣寮€绁ㄧ敵璇凤紙婕旂ず锛?      description: |
-        P0 鍙ｅ緞锛氬钩鍙版敮鎸佲€滆储鍔＄嚎涓嬪紑绁?+ 鍚庡彴涓婁紶鍙戠エ PDF + 鐢ㄦ埛涓嬭浇鈥濄€?        褰撳墠瀹炵幇涓烘紨绀虹敤閫旓紝淇濈暀鐢宠鍏ュ彛浠ヤ究瀵归綈鍓嶇娴佺▼涓庡悗缁墿灞曘€?      operationId: requestOrderInvoice
+      summary: 鍙戣捣寮€绁ㄧ敵璇凤紙婕旂ず锛?
+      description: |
+        P0 鍙ｅ緞锛氬钩鍙版敮鎸佲€滆储鍔＄嚎涓嬪紑绁?+ 鍚庡彴涓婁紶鍙戠エ PDF + 鐢ㄦ埛涓嬭浇鈥濄€?        褰撳墠瀹炵幇涓烘紨绀虹敤閫旓紝淇濈暀鐢宠鍏ュ彛浠ヤ究瀵归綈鍓嶇娴佺▼涓庡悗缁墿灞曘€?
+      operationId: requestOrderInvoice
       security:
         - BearerAuth: []
       parameters:
@@ -1539,7 +1565,8 @@ paths:
           required: false
           schema:
             $ref: "#/components/schemas/InvoiceStatus"
-          description: 鍙戠エ鐘舵€佺瓫閫?        - $ref: "#/components/parameters/Page"
+          description: 鍙戠エ鐘舵€佺瓫閫?
+        - $ref: "#/components/parameters/Page"
         - $ref: "#/components/parameters/PageSize"
       responses:
         "200":
@@ -1602,7 +1629,8 @@ paths:
   /listings/{listingId}/conversations:
     post:
       tags: [Messaging]
-      summary: 鍒涘缓/鑾峰彇涓庤涓婃灦鐩稿叧鐨勪細璇濓紙鍜ㄨ锛?      operationId: upsertListingConversation
+      summary: 鍒涘缓/鑾峰彇涓庤涓婃灦鐩稿叧鐨勪細璇濓紙鍜ㄨ锛?
+      operationId: upsertListingConversation
       security:
         - BearerAuth: []
       parameters:
@@ -1625,7 +1653,8 @@ paths:
   /tech-managers/{techManagerId}/conversations:
     post:
       tags: [Messaging, TechManagers]
-      summary: 鍒涘缓/鑾峰彇涓庤鎶€鏈粡鐞嗕汉鐩稿叧鐨勪細璇濓紙鍜ㄨ锛?      operationId: upsertTechManagerConversation
+      summary: 鍒涘缓/鑾峰彇涓庤鎶€鏈粡鐞嗕汉鐩稿叧鐨勪細璇濓紙鍜ㄨ锛?
+      operationId: upsertTechManagerConversation
       security:
         - BearerAuth: []
       parameters:
@@ -1681,7 +1710,8 @@ paths:
           $ref: "#/components/responses/NotFound"
     post:
       tags: [Messaging]
-      summary: 鍙戦€佹秷鎭紙鏂囨湰/琛ㄦ儏锛?      operationId: sendConversationMessage
+      summary: 鍙戦€佹秷鎭紙鏂囨湰/琛ㄦ儏锛?
+      operationId: sendConversationMessage
       security:
         - BearerAuth: []
       parameters:
@@ -1732,7 +1762,8 @@ paths:
   /admin/regions:
     get:
       tags: [Admin, Regions]
-      summary: 鍖哄煙绠＄悊锛氭煡璇㈠尯鍩熷垪琛?      operationId: adminListRegions
+      summary: 鍖哄煙绠＄悊锛氭煡璇㈠尯鍩熷垪琛?
+      operationId: adminListRegions
       security:
         - BearerAuth: []
       parameters:
@@ -1767,7 +1798,8 @@ paths:
           $ref: "#/components/responses/Forbidden"
     post:
       tags: [Admin, Regions]
-      summary: 鍖哄煙绠＄悊锛氭柊澧炲尯鍩熻妭鐐?      operationId: adminCreateRegion
+      summary: 鍖哄煙绠＄悊锛氭柊澧炲尯鍩熻妭鐐?
+      operationId: adminCreateRegion
       security:
         - BearerAuth: []
       requestBody:
@@ -1795,7 +1827,8 @@ paths:
   /admin/regions/{regionCode}:
     patch:
       tags: [Admin, Regions]
-      summary: 鍖哄煙绠＄悊锛氭洿鏂板尯鍩熻妭鐐?      operationId: adminUpdateRegion
+      summary: 鍖哄煙绠＄悊锛氭洿鏂板尯鍩熻妭鐐?
+      operationId: adminUpdateRegion
       security:
         - BearerAuth: []
       parameters:
@@ -1827,7 +1860,8 @@ paths:
   /admin/regions/{regionCode}/industry-tags:
     put:
       tags: [Admin, Regions]
-      summary: 鍖哄煙绠＄悊锛氳缃尯鍩熺壒鑹蹭骇涓氭爣绛?      operationId: adminSetRegionIndustryTags
+      summary: 鍖哄煙绠＄悊锛氳缃尯鍩熺壒鑹蹭骇涓氭爣绛?
+      operationId: adminSetRegionIndustryTags
       security:
         - BearerAuth: []
       parameters:
@@ -2012,7 +2046,8 @@ paths:
           required: false
           schema:
             $ref: "#/components/schemas/ContractStatus"
-          description: 鍚堝悓鐘舵€佺瓫閫?        - $ref: "#/components/parameters/Page"
+          description: 鍚堝悓鐘舵€佺瓫閫?
+        - $ref: "#/components/parameters/Page"
         - $ref: "#/components/parameters/PageSize"
       responses:
         "200":
@@ -2029,9 +2064,11 @@ paths:
   /contracts/{contractId}/upload:
     post:
       tags: [Contracts]
-      summary: 鍗栧涓婁紶鍚堝悓锛圥DF锛?      description: |
+      summary: 鍗栧涓婁紶鍚堝悓锛圥DF锛?
+      description: |
         娴佺▼锛?        1) `POST /files` 涓婁紶 PDF锛坄purpose=CONTRACT_EVIDENCE`锛?        2) 鎷垮埌 `file.id`
-        3) 璋冪敤鏈帴鍙ｆ妸 `contractFileId` 鍏宠仈鍒板悎鍚岃褰?      operationId: uploadContractPdf
+        3) 璋冪敤鏈帴鍙ｆ妸 `contractFileId` 鍏宠仈鍒板悎鍚岃褰?
+      operationId: uploadContractPdf
       security:
         - BearerAuth: []
       parameters:
@@ -2040,7 +2077,8 @@ paths:
           required: true
           schema:
             type: string
-          description: 鍚堝悓 ID锛堝綋鍓嶅疄鐜颁负 `contract-{orderId}`锛?        - $ref: "#/components/parameters/IdempotencyKey"
+          description: 鍚堝悓 ID锛堝綋鍓嶅疄鐜颁负 `contract-{orderId}`锛?
+        - $ref: "#/components/parameters/IdempotencyKey"
       requestBody:
         required: false
         content:
@@ -2110,7 +2148,8 @@ paths:
   /admin/config/alerts:
     get:
       tags: [Admin, Config, Alerts]
-      summary: 鑾峰彇鍛婅閰嶇疆锛堝悗鍙帮紝P1锛?      operationId: adminGetAlertConfig
+      summary: 鑾峰彇鍛婅閰嶇疆锛堝悗鍙帮紝P1锛?
+      operationId: adminGetAlertConfig
       security:
         - BearerAuth: []
       responses:
@@ -2126,7 +2165,8 @@ paths:
           $ref: "#/components/responses/Forbidden"
     put:
       tags: [Admin, Config, Alerts]
-      summary: 鏇存柊鍛婅閰嶇疆锛堝悗鍙帮紝P1锛?      operationId: adminUpdateAlertConfig
+      summary: 鏇存柊鍛婅閰嶇疆锛堝悗鍙帮紝P1锛?
+      operationId: adminUpdateAlertConfig
       security:
         - BearerAuth: []
       requestBody:
@@ -2152,7 +2192,8 @@ paths:
   /admin/ai/parse-results:
     get:
       tags: [Admin, AI]
-      summary: AI 瑙ｆ瀽澶嶆牳鍒楄〃锛圥1锛?      operationId: adminListAiParseResults
+      summary: AI 瑙ｆ瀽澶嶆牳鍒楄〃锛圥1锛?
+      operationId: adminListAiParseResults
       security:
         - BearerAuth: []
       parameters:
@@ -2177,7 +2218,8 @@ paths:
   /admin/ai/parse-results/{parseResultId}:
     get:
       tags: [Admin, AI]
-      summary: 鑾峰彇 AI 瑙ｆ瀽璇︽儏锛圥1锛?      operationId: adminGetAiParseResult
+      summary: 鑾峰彇 AI 瑙ｆ瀽璇︽儏锛圥1锛?
+      operationId: adminGetAiParseResult
       security:
         - BearerAuth: []
       parameters:
@@ -2197,7 +2239,8 @@ paths:
           $ref: "#/components/responses/NotFound"
     patch:
       tags: [Admin, AI]
-      summary: 鏇存柊 AI 瑙ｆ瀽缁撴灉锛圥1锛?      operationId: adminUpdateAiParseResult
+      summary: 鏇存柊 AI 瑙ｆ瀽缁撴灉锛圥1锛?
+      operationId: adminUpdateAiParseResult
       security:
         - BearerAuth: []
       parameters:
@@ -2227,7 +2270,8 @@ paths:
   /admin/patents:
     get:
       tags: [Admin, Patents]
-      summary: 涓撳埄搴撳垪琛紙鍚庡彴锛孭1锛?      operationId: adminListPatents
+      summary: 涓撳埄搴撳垪琛紙鍚庡彴锛孭1锛?
+      operationId: adminListPatents
       security:
         - BearerAuth: []
       parameters:
@@ -2251,7 +2295,8 @@ paths:
           $ref: "#/components/responses/Forbidden"
     post:
       tags: [Admin, Patents]
-      summary: 鏂板缓涓撳埄涓绘暟鎹紙鍚庡彴锛孭1锛?      operationId: adminCreatePatent
+      summary: 鏂板缓涓撳埄涓绘暟鎹紙鍚庡彴锛孭1锛?
+      operationId: adminCreatePatent
       security:
         - BearerAuth: []
       requestBody:
@@ -2277,7 +2322,8 @@ paths:
   /admin/patents/{patentId}:
     get:
       tags: [Admin, Patents]
-      summary: 鑾峰彇涓撳埄涓绘暟鎹紙鍚庡彴锛孭1锛?      operationId: adminGetPatentById
+      summary: 鑾峰彇涓撳埄涓绘暟鎹紙鍚庡彴锛孭1锛?
+      operationId: adminGetPatentById
       security:
         - BearerAuth: []
       parameters:
@@ -2297,7 +2343,8 @@ paths:
           $ref: "#/components/responses/NotFound"
     patch:
       tags: [Admin, Patents]
-      summary: 鏇存柊涓撳埄涓绘暟鎹紙鍚庡彴锛孭1锛?      operationId: adminUpdatePatent
+      summary: 鏇存柊涓撳埄涓绘暟鎹紙鍚庡彴锛孭1锛?
+      operationId: adminUpdatePatent
       security:
         - BearerAuth: []
       parameters:
@@ -2327,7 +2374,8 @@ paths:
   /admin/patent-maintenance/schedules:
     get:
       tags: [Admin, Maintenance]
-      summary: 骞磋垂鏃ョ▼鍒楄〃锛堝悗鍙帮紝P1锛?      operationId: adminListPatentMaintenanceSchedules
+      summary: 骞磋垂鏃ョ▼鍒楄〃锛堝悗鍙帮紝P1锛?
+      operationId: adminListPatentMaintenanceSchedules
       security:
         - BearerAuth: []
       parameters:
@@ -2366,7 +2414,8 @@ paths:
           $ref: "#/components/responses/Forbidden"
     post:
       tags: [Admin, Maintenance]
-      summary: 鍒涘缓骞磋垂鏃ョ▼锛堝悗鍙帮紝P1锛?      operationId: adminCreatePatentMaintenanceSchedule
+      summary: 鍒涘缓骞磋垂鏃ョ▼锛堝悗鍙帮紝P1锛?
+      operationId: adminCreatePatentMaintenanceSchedule
       security:
         - BearerAuth: []
       requestBody:
@@ -2392,7 +2441,8 @@ paths:
   /admin/patent-maintenance/schedules/{scheduleId}:
     get:
       tags: [Admin, Maintenance]
-      summary: 鑾峰彇骞磋垂鏃ョ▼璇︽儏锛堝悗鍙帮紝P1锛?      operationId: adminGetPatentMaintenanceSchedule
+      summary: 鑾峰彇骞磋垂鏃ョ▼璇︽儏锛堝悗鍙帮紝P1锛?
+      operationId: adminGetPatentMaintenanceSchedule
       security:
         - BearerAuth: []
       parameters:
@@ -2412,7 +2462,8 @@ paths:
           $ref: "#/components/responses/NotFound"
     patch:
       tags: [Admin, Maintenance]
-      summary: 鏇存柊骞磋垂鏃ョ▼锛堝悗鍙帮紝P1锛?      operationId: adminUpdatePatentMaintenanceSchedule
+      summary: 鏇存柊骞磋垂鏃ョ▼锛堝悗鍙帮紝P1锛?
+      operationId: adminUpdatePatentMaintenanceSchedule
       security:
         - BearerAuth: []
       parameters:
@@ -2442,7 +2493,8 @@ paths:
   /admin/patent-maintenance/tasks:
     get:
       tags: [Admin, Maintenance]
-      summary: 鎵樼浠诲姟鍒楄〃锛堝悗鍙帮紝P1锛?      operationId: adminListPatentMaintenanceTasks
+      summary: 鎵樼浠诲姟鍒楄〃锛堝悗鍙帮紝P1锛?
+      operationId: adminListPatentMaintenanceTasks
       security:
         - BearerAuth: []
       parameters:
@@ -2474,7 +2526,8 @@ paths:
           $ref: "#/components/responses/Forbidden"
     post:
       tags: [Admin, Maintenance]
-      summary: 鍒涘缓鎵樼浠诲姟锛堝悗鍙帮紝P1锛?      operationId: adminCreatePatentMaintenanceTask
+      summary: 鍒涘缓鎵樼浠诲姟锛堝悗鍙帮紝P1锛?
+      operationId: adminCreatePatentMaintenanceTask
       security:
         - BearerAuth: []
       requestBody:
@@ -2500,7 +2553,8 @@ paths:
   /admin/patent-maintenance/tasks/{taskId}:
     patch:
       tags: [Admin, Maintenance]
-      summary: 鏇存柊鎵樼浠诲姟锛堝悗鍙帮紝P1锛?      operationId: adminUpdatePatentMaintenanceTask
+      summary: 鏇存柊鎵樼浠诲姟锛堝悗鍙帮紝P1锛?
+      operationId: adminUpdatePatentMaintenanceTask
       security:
         - BearerAuth: []
       parameters:
@@ -2530,7 +2584,8 @@ paths:
   /admin/alerts:
     get:
       tags: [Admin, Alerts]
-      summary: 鍛婅浜嬩欢鍒楄〃锛堝悗鍙帮紝P1锛?      operationId: adminListAlertEvents
+      summary: 鍛婅浜嬩欢鍒楄〃锛堝悗鍙帮紝P1锛?
+      operationId: adminListAlertEvents
       security:
         - BearerAuth: []
       parameters:
@@ -2579,7 +2634,8 @@ paths:
   /admin/alerts/{alertId}/ack:
     post:
       tags: [Admin, Alerts]
-      summary: 鍛婅纭锛堝悗鍙帮紝P1锛?      operationId: adminAcknowledgeAlertEvent
+      summary: 鍛婅纭锛堝悗鍙帮紝P1锛?
+      operationId: adminAcknowledgeAlertEvent
       security:
         - BearerAuth: []
       parameters:
@@ -2628,7 +2684,8 @@ paths:
           $ref: "#/components/responses/Forbidden"
     post:
       tags: [Admin]
-      summary: 鍒涘缓骞冲彴鑷湁涓婃灦锛圥1锛?      operationId: adminCreateListing
+      summary: 鍒涘缓骞冲彴鑷湁涓婃灦锛圥1锛?
+      operationId: adminCreateListing
       security:
         - BearerAuth: []
       requestBody:
@@ -2654,7 +2711,8 @@ paths:
   /admin/listings/{listingId}:
     get:
       tags: [Admin]
-      summary: 鑾峰彇涓婃灦璇︽儏锛堝悗鍙帮紝P1锛?      operationId: adminGetListingById
+      summary: 鑾峰彇涓婃灦璇︽儏锛堝悗鍙帮紝P1锛?
+      operationId: adminGetListingById
       security:
         - BearerAuth: []
       parameters:
@@ -2674,7 +2732,8 @@ paths:
           $ref: "#/components/responses/NotFound"
     patch:
       tags: [Admin]
-      summary: 鏇存柊骞冲彴鑷湁涓婃灦锛堝悗鍙帮紝P1锛?      operationId: adminUpdateListing
+      summary: 鏇存柊骞冲彴鑷湁涓婃灦锛堝悗鍙帮紝P1锛?
+      operationId: adminUpdateListing
       security:
         - BearerAuth: []
       parameters:
@@ -2704,7 +2763,8 @@ paths:
   /admin/listings/{listingId}/publish:
     post:
       tags: [Admin]
-      summary: 鍙戝竷涓婃灦锛堝悗鍙帮紝P1锛?      operationId: adminPublishListing
+      summary: 鍙戝竷涓婃灦锛堝悗鍙帮紝P1锛?
+      operationId: adminPublishListing
       security:
         - BearerAuth: []
       parameters:
@@ -2728,7 +2788,8 @@ paths:
   /admin/listings/{listingId}/off-shelf:
     post:
       tags: [Admin]
-      summary: 涓嬫灦锛堝悗鍙帮紝P1锛?      operationId: adminOffShelfListing
+      summary: 涓嬫灦锛堝悗鍙帮紝P1锛?
+      operationId: adminOffShelfListing
       security:
         - BearerAuth: []
       parameters:
@@ -2822,7 +2883,8 @@ paths:
   /admin/listings/{listingId}/featured:
     put:
       tags: [Admin]
-      summary: 鏍囪鐪?甯傜骇鐗硅壊浜т笟涓撳埄锛堢疆椤?鍔犳潈锛?      operationId: adminSetListingFeatured
+      summary: 鏍囪鐪?甯傜骇鐗硅壊浜т笟涓撳埄锛堢疆椤?鍔犳潈锛?
+      operationId: adminSetListingFeatured
       security:
         - BearerAuth: []
       parameters:
@@ -2943,7 +3005,8 @@ paths:
   /admin/comments/{commentId}:
     patch:
       tags: [Admin]
-      summary: 鏇存柊鐣欒█鐘舵€侊紙闅愯棌/鎭㈠/鍒犻櫎锛?      operationId: adminUpdateComment
+      summary: 鏇存柊鐣欒█鐘舵€侊紙闅愯棌/鎭㈠/鍒犻櫎锛?
+      operationId: adminUpdateComment
       security:
         - BearerAuth: []
       parameters:
@@ -2985,7 +3048,8 @@ paths:
           required: false
           schema:
             type: string
-          description: 鎸変富浣撳悕绉?鎵嬫満鍙锋ā绯婃悳绱?        - name: type
+          description: 鎸変富浣撳悕绉?鎵嬫満鍙锋ā绯婃悳绱?
+        - name: type
           in: query
           required: false
           schema:
@@ -3219,7 +3283,8 @@ paths:
   /admin/orders/{orderId}/payouts/manual:
     post:
       tags: [Admin]
-      summary: 璐㈠姟浜哄伐鏀炬纭锛圥0 榛樿锛?      operationId: adminConfirmManualPayout
+      summary: 璐㈠姟浜哄伐鏀炬纭锛圥0 榛樿锛?
+      operationId: adminConfirmManualPayout
       security:
         - BearerAuth: []
       parameters:
@@ -3364,7 +3429,8 @@ paths:
   /admin/refund-requests/{refundRequestId}/reject:
     post:
       tags: [Admin]
-      summary: 閫€娆惧鎵归┏鍥?      operationId: adminRejectRefundRequest
+      summary: 閫€娆惧鎵归┏鍥?
+      operationId: adminRejectRefundRequest
       security:
         - BearerAuth: []
       parameters:
@@ -3401,7 +3467,8 @@ paths:
   /admin/refund-requests/{refundRequestId}/complete:
     post:
       tags: [Admin]
-      summary: 閫€娆惧畬鎴愮‘璁?      operationId: adminCompleteRefundRequest
+      summary: 閫€娆惧畬鎴愮‘璁?
+      operationId: adminCompleteRefundRequest
       security:
         - BearerAuth: []
       parameters:
@@ -4382,7 +4449,7 @@ components:
       required: false
       schema:
         $ref: "#/components/schemas/ListingTopic"
-      description: 涓撳埄涓撻鍏ュ彛锛堢壒鑹蹭笓鍖虹瓫閫夛級
+      description: 专利特色标签筛选（退役/沉睡/获奖/开放许可/五星）
     CreatedFrom:
       name: createdFrom
       in: query
@@ -4390,14 +4457,16 @@ components:
       schema:
         type: string
         format: date
-      description: 鍙戝竷鏃堕棿璧峰锛圷YYY-MM-DD锛?    CreatedTo:
+      description: 鍙戝竷鏃堕棿璧峰锛圷YYY-MM-DD锛?
+    CreatedTo:
       name: createdTo
       in: query
       required: false
       schema:
         type: string
         format: date
-      description: 鍙戝竷鏃堕棿鎴锛圷YYY-MM-DD锛?    RegionCode:
+      description: 鍙戝竷鏃堕棿鎴锛圷YYY-MM-DD锛?
+    RegionCode:
       name: regionCode
       in: query
       required: false
@@ -4467,60 +4536,69 @@ components:
       required: false
       schema:
         type: string
-      description: 鍙戞槑浜哄鍚嶏紙绮剧‘/妯＄硦鍖归厤锛屽彇鍐充簬瀹炵幇锛涚敤浜庤仛鍚堝叾鐩稿叧涓撳埄锛?    QType:
+      description: 鍙戞槑浜哄鍚嶏紙绮剧‘/妯＄硦鍖归厤锛屽彇鍐充簬瀹炵幇锛涚敤浜庤仛鍚堝叾鐩稿叧涓撳埄锛?
+    QType:
       name: qType
       in: query
       required: false
       schema:
         $ref: "#/components/schemas/SearchQType"
-      description: 鎼滅储绫诲瀷锛圓UTO/NUMBER/KEYWORD/APPLICANT/INVENTOR锛?    Applicant:
+      description: 鎼滅储绫诲瀷锛圓UTO/NUMBER/KEYWORD/APPLICANT/INVENTOR锛?
+    Applicant:
       name: applicant
       in: query
       required: false
       schema:
         type: string
-      description: 鐢宠浜哄鍚嶏紙绮剧‘/妯＄硦鍖归厤锛屽彇鍐充簬瀹炵幇锛?    Assignee:
+      description: 鐢宠浜哄鍚嶏紙绮剧‘/妯＄硦鍖归厤锛屽彇鍐充簬瀹炵幇锛?
+    Assignee:
       name: assignee
       in: query
       required: false
       schema:
         type: string
-      description: 鏉冨埄浜哄鍚嶏紙绮剧‘/妯＄硦鍖归厤锛屽彇鍐充簬瀹炵幇锛?    FilingDateFrom:
+      description: 鏉冨埄浜哄鍚嶏紙绮剧‘/妯＄硦鍖归厤锛屽彇鍐充簬瀹炵幇锛?
+    FilingDateFrom:
       name: filingDateFrom
       in: query
       required: false
       schema:
         type: string
         format: date
-      description: 鐢宠鏃ヨ捣濮嬶紙YYYY-MM-DD锛?    FilingDateTo:
+      description: 鐢宠鏃ヨ捣濮嬶紙YYYY-MM-DD锛?
+    FilingDateTo:
       name: filingDateTo
       in: query
       required: false
       schema:
         type: string
         format: date
-      description: 鐢宠鏃ユ埅姝紙YYYY-MM-DD锛?    PublicationDateFrom:
+      description: 鐢宠鏃ユ埅姝紙YYYY-MM-DD锛?
+    PublicationDateFrom:
       name: publicationDateFrom
       in: query
       required: false
       schema:
         type: string
         format: date
-      description: 鍏紑/鍏憡鏃ヨ捣濮嬶紙YYYY-MM-DD锛?    PublicationDateTo:
+      description: 鍏紑/鍏憡鏃ヨ捣濮嬶紙YYYY-MM-DD锛?
+    PublicationDateTo:
       name: publicationDateTo
       in: query
       required: false
       schema:
         type: string
         format: date
-      description: 鍏紑/鍏憡鏃ユ埅姝紙YYYY-MM-DD锛?    GrantDateFrom:
+      description: 鍏紑/鍏憡鏃ユ埅姝紙YYYY-MM-DD锛?
+    GrantDateFrom:
       name: grantDateFrom
       in: query
       required: false
       schema:
         type: string
         format: date
-      description: 鎺堟潈鏃ヨ捣濮嬶紙YYYY-MM-DD锛?    GrantDateTo:
+      description: 鎺堟潈鏃ヨ捣濮嬶紙YYYY-MM-DD锛?
+    GrantDateTo:
       name: grantDateTo
       in: query
       required: false
@@ -4795,7 +4873,7 @@ components:
       name: statusGroup
       in: query
       required: false
-      description: "璁㈠崟鐘舵€佸垎缁勭瓫閫夛紙鐢ㄤ簬鈥滃叏閮?寰呬粯娆?杩涜涓?閫€娆?鍞悗/宸茬粨鏉熲€濈瓑鑱氬悎 Tab锛?
+      description: 订单状态分组筛选（用于聚合 Tab）
       schema:
         $ref: "#/components/schemas/OrderStatusGroup"
 
@@ -4820,7 +4898,8 @@ components:
       required: true
       schema:
         type: string
-      description: 寰俊鏀粯鍥炶皟楠岀瀛楁锛坴3锛夛細闅忔満涓?    WechatpaySignature:
+      description: 寰俊鏀粯鍥炶皟楠岀瀛楁锛坴3锛夛細闅忔満涓?
+    WechatpaySignature:
       name: Wechatpay-Signature
       in: header
       required: true
@@ -4833,7 +4912,8 @@ components:
       required: true
       schema:
         type: string
-      description: 寰俊鏀粯鍥炶皟楠岀瀛楁锛坴3锛夛細骞冲彴璇佷功搴忓垪鍙?    WechatpaySignatureType:
+      description: 寰俊鏀粯鍥炶皟楠岀瀛楁锛坴3锛夛細骞冲彴璇佷功搴忓垪鍙?
+    WechatpaySignatureType:
       name: Wechatpay-Signature-Type
       in: header
       required: false
@@ -5020,7 +5100,8 @@ components:
       properties:
         id:
           type: string
-          description: 鍚堝悓 ID锛堝綋鍓嶅疄鐜颁负 `contract-{orderId}`锛?        orderId:
+          description: 鍚堝悓 ID锛堝綋鍓嶅疄鐜颁负 `contract-{orderId}`锛?
+        orderId:
           $ref: "#/components/schemas/Uuid"
         listingTitle:
           type: string
@@ -5045,10 +5126,12 @@ components:
           type: string
           format: uri
           nullable: true
-          description: 鍚堝悓 PDF URL锛堟紨绀虹敤锛涚敓浜у缓璁叧鑱?FileObject锛?        watermarkOwner:
+          description: 鍚堝悓 PDF URL锛堟紨绀虹敤锛涚敓浜у缓璁叧鑱?FileObject锛?
+        watermarkOwner:
           type: string
           nullable: true
-          description: 姘村嵃/褰掑睘鏍囪瘑锛堟紨绀虹敤锛?        canUpload:
+          description: 姘村嵃/褰掑睘鏍囪瘑锛堟紨绀虹敤锛?
+        canUpload:
           type: boolean
           description: 鏄惁鍏佽涓婁紶锛堜粎鍗栧涓?true锛?
     PagedContract:
@@ -5141,7 +5224,8 @@ components:
           nullable: true
         orgCategory:
           $ref: "#/components/schemas/SupplyType"
-          description: 鐢ㄦ埛閫夋嫨鐨勮韩浠界被鍨嬶紙鏈€夋嫨/鏈彁浜ゆ椂涓虹┖锛?        regionCode:
+          description: 鐢ㄦ埛閫夋嫨鐨勮韩浠界被鍨嬶紙鏈€夋嫨/鏈彁浜ゆ椂涓虹┖锛?
+        regionCode:
           type: string
           description: 鐢ㄦ埛褰撳墠鍦板尯锛堢敤浜庡湴鍩熸帹鑽愶紱鍙敱灏忕▼搴忓畾浣?鎵嬪姩閫夋嫨鍚庢洿鏂帮級
         createdAt:
@@ -5242,15 +5326,19 @@ components:
           type: string
         idNumberMasked:
           type: string
-          description: 涓汉韬唤璇佸彿/鎶€鏈粡鐞嗕汉璇佷欢鍙凤紙鑴辨晱锛?        regionCode:
+          description: 涓汉韬唤璇佸彿/鎶€鏈粡鐞嗕汉璇佷欢鍙凤紙鑴辨晱锛?
+        regionCode:
           type: string
-          description: 涓讳綋鎵€鍦ㄥ湴鍖猴紙鐢ㄤ簬灞曠ず/鍦板煙鎺ㄨ崘锛?        intro:
+          description: 涓讳綋鎵€鍦ㄥ湴鍖猴紙鐢ㄤ簬灞曠ず/鍦板煙鎺ㄨ崘锛?
+        intro:
           type: string
-          description: 涓讳綋绠€浠嬶紙鐢ㄤ簬鏈烘瀯灞曠ず锛?        serviceTags:
+          description: 涓讳綋绠€浠嬶紙鐢ㄤ簬鏈烘瀯灞曠ず锛?
+        serviceTags:
           type: array
           items:
             type: string
-          description: 鎶€鏈粡鐞嗕汉鏈嶅姟鏍囩锛堜粎 TECH_MANAGER锛?        logoFileId:
+          description: 鎶€鏈粡鐞嗕汉鏈嶅姟鏍囩锛堜粎 TECH_MANAGER锛?
+        logoFileId:
           $ref: "#/components/schemas/Uuid"
         logoUrl:
           type: string
@@ -5310,9 +5398,11 @@ components:
           type: string
           minLength: 1
           maxLength: 200
-          description: 涓讳綋鍚嶇О锛堜紒涓?绉戠爺闄㈡牎/鏀垮簻/鍗忎細锛?        unifiedSocialCreditCode:
+          description: 涓讳綋鍚嶇О锛堜紒涓?绉戠爺闄㈡牎/鏀垮簻/鍗忎細锛?
+        unifiedSocialCreditCode:
           type: string
-          description: 缁熶竴绀句細淇＄敤浠ｇ爜锛堝悗鍙伴渶鍔犲瘑/鑴辨晱灞曠ず锛?        contactName:
+          description: 缁熶竴绀句細淇＄敤浠ｇ爜锛堝悗鍙伴渶鍔犲瘑/鑴辨晱灞曠ず锛?
+        contactName:
           type: string
         contactPhone:
           $ref: "#/components/schemas/PhoneNumber"
@@ -5340,7 +5430,8 @@ components:
           type: string
           minLength: 1
           maxLength: 200
-          description: 鎶€鏈粡鐞嗕汉/缁忕邯浜哄睍绀哄悕绉?        idNumber:
+          description: 鎶€鏈粡鐞嗕汉/缁忕邯浜哄睍绀哄悕绉?
+        idNumber:
           type: string
           description: 鍙€夛紱濡傞噰闆嗗垯鍚庡彴瀛樺偍闇€鍔犲瘑
         contactPhone:
@@ -5736,10 +5827,12 @@ components:
           $ref: "#/components/schemas/FeaturedLevel"
         featuredRegionCode:
           type: string
-          description: 鐪?甯傜骇鐗硅壊浜т笟涓撳埄鐨勭敓鏁堝尯鍩燂紙adcode锛?        featuredRank:
+          description: 鐪?甯傜骇鐗硅壊浜т笟涓撳埄鐨勭敓鏁堝尯鍩燂紙adcode锛?
+        featuredRank:
           type: integer
           minimum: 0
-          description: 鐗硅壊缃《浼樺厛绾э紙鏁板€艰秺灏忚秺闈犲墠锛?        featuredUntil:
+          description: 鐗硅壊缃《浼樺厛绾э紙鏁板€艰秺灏忚秺闈犲墠锛?
+        featuredUntil:
           type: string
           format: date-time
           description: 鐗硅壊缃《杩囨湡鏃堕棿锛堜负绌鸿〃绀洪暱鏈燂級
@@ -5748,10 +5841,12 @@ components:
         transferCount:
           type: integer
           minimum: 0
-          description: 杞娆℃暟锛? 琛ㄧず娌夌潯涓撳埄锛?        recommendationScore:
+          description: 杞娆℃暟锛? 琛ㄧず娌夌潯涓撳埄锛?
+        recommendationScore:
           type: number
           format: double
-          description: 鏅鸿兘鎺ㄨ崘寰楀垎锛堜粎鍦?sortBy=RECOMMENDED 鎴栫寽浣犲枩娆㈡帴鍙ｄ腑杩斿洖锛?        auditStatus:
+          description: 鏅鸿兘鎺ㄨ崘寰楀垎锛堜粎鍦?sortBy=RECOMMENDED 鎴栫寽浣犲枩娆㈡帴鍙ｄ腑杩斿洖锛?
+        auditStatus:
           $ref: "#/components/schemas/AuditStatus"
         status:
           $ref: "#/components/schemas/ListingStatus"
@@ -5782,14 +5877,17 @@ components:
             expectedCompletionDays:
               type: integer
               minimum: 1
-              description: 棰勮鍛ㄦ湡锛堝ぉ锛?            negotiableRangeFen:
+              description: 棰勮鍛ㄦ湡锛堝ぉ锛?
+            negotiableRangeFen:
               $ref: "#/components/schemas/MoneyFen"
-              description: 鍙皥绌洪棿锛堥噾棰濅笂闄愶紝鍗曚綅鍒嗭紱涓?negotiableRangePercent 浜岄€変竴锛?            negotiableRangePercent:
+              description: 鍙皥绌洪棿锛堥噾棰濅笂闄愶紝鍗曚綅鍒嗭紱涓?negotiableRangePercent 浜岄€変竴锛?
+            negotiableRangePercent:
               type: number
               format: double
               minimum: 0
               maximum: 100
-              description: 鍙皥绌洪棿锛堟瘮渚嬩笂闄?0-100锛涗笌 negotiableRangeFen 浜岄€変竴锛?            negotiableNote:
+              description: 鍙皥绌洪棿锛堟瘮渚嬩笂闄?0-100锛涗笌 negotiableRangeFen 浜岄€変竴锛?
+            negotiableNote:
               type: string
               description: 鍙皥绌洪棿琛ュ厖璇存槑
             pledgeStatus:
@@ -5836,14 +5934,17 @@ components:
             expectedCompletionDays:
               type: integer
               minimum: 1
-              description: 棰勮鍛ㄦ湡锛堝ぉ锛?            negotiableRangeFen:
+              description: 棰勮鍛ㄦ湡锛堝ぉ锛?
+            negotiableRangeFen:
               $ref: "#/components/schemas/MoneyFen"
-              description: 鍙皥绌洪棿锛堥噾棰濅笂闄愶紝鍗曚綅鍒嗭紱涓?negotiableRangePercent 浜岄€変竴锛?            negotiableRangePercent:
+              description: 鍙皥绌洪棿锛堥噾棰濅笂闄愶紝鍗曚綅鍒嗭紱涓?negotiableRangePercent 浜岄€変竴锛?
+            negotiableRangePercent:
               type: number
               format: double
               minimum: 0
               maximum: 100
-              description: 鍙皥绌洪棿锛堟瘮渚嬩笂闄?0-100锛涗笌 negotiableRangeFen 浜岄€変竴锛?            negotiableNote:
+              description: 鍙皥绌洪棿锛堟瘮渚嬩笂闄?0-100锛涗笌 negotiableRangeFen 浜岄€変竴锛?
+            negotiableNote:
               type: string
               description: 鍙皥绌洪棿琛ュ厖璇存槑
             pledgeStatus:
@@ -5886,11 +5987,13 @@ components:
           type: array
           items:
             type: string
-          description: 鍙戞槑浜猴紙鐢ㄤ簬鍙戞槑浜烘锛汸0 寤鸿濉啓锛?        assigneeNames:
+          description: 鍙戞槑浜猴紙鐢ㄤ簬鍙戞槑浜烘锛汸0 寤鸿濉啓锛?
+        assigneeNames:
           type: array
           items:
             type: string
-          description: 鏉冨埄浜?涓撳埄鏉冧汉锛堢敤浜庢绱笌灞曠ず锛汸0 寤鸿濉啓锛?        applicantNames:
+          description: 鏉冨埄浜?涓撳埄鏉冧汉锛堢敤浜庢绱笌灞曠ず锛汸0 寤鸿濉啓锛?
+        applicantNames:
           type: array
           items:
             type: string
@@ -5922,14 +6025,17 @@ components:
         expectedCompletionDays:
           type: integer
           minimum: 1
-          description: 棰勮鍛ㄦ湡锛堝ぉ锛?        negotiableRangeFen:
+          description: 棰勮鍛ㄦ湡锛堝ぉ锛?
+        negotiableRangeFen:
           $ref: "#/components/schemas/MoneyFen"
-          description: 鍙皥绌洪棿锛堥噾棰濅笂闄愶紝鍗曚綅鍒嗭紱涓?negotiableRangePercent 浜岄€変竴锛?        negotiableRangePercent:
+          description: 鍙皥绌洪棿锛堥噾棰濅笂闄愶紝鍗曚綅鍒嗭紱涓?negotiableRangePercent 浜岄€変竴锛?
+        negotiableRangePercent:
           type: number
           format: double
           minimum: 0
           maximum: 100
-          description: 鍙皥绌洪棿锛堟瘮渚嬩笂闄?0-100锛涗笌 negotiableRangeFen 浜岄€変竴锛?        negotiableNote:
+          description: 鍙皥绌洪棿锛堟瘮渚嬩笂闄?0-100锛涗笌 negotiableRangeFen 浜岄€変竴锛?
+        negotiableNote:
           type: string
           description: 鍙皥绌洪棿琛ュ厖璇存槑
         pledgeStatus:
@@ -5947,9 +6053,11 @@ components:
           $ref: "#/components/schemas/PriceType"
         priceAmountFen:
           $ref: "#/components/schemas/MoneyFen"
-          description: FIXED 鏃跺繀濉?        depositAmountFen:
+          description: FIXED 鏃跺繀濉?
+        depositAmountFen:
           $ref: "#/components/schemas/MoneyFen"
-          description: 鍙€夛紱鑻ヤ笉濉垯鎸夊钩鍙拌閲戠瓥鐣ヨ绠?        regionCode:
+          description: 鍙€夛紱鑻ヤ笉濉垯鎸夊钩鍙拌閲戠瓥鐣ヨ绠?
+        regionCode:
           type: string
         industryTags:
           type: array
@@ -6023,14 +6131,17 @@ components:
         expectedCompletionDays:
           type: integer
           minimum: 1
-          description: 棰勮鍛ㄦ湡锛堝ぉ锛?        negotiableRangeFen:
+          description: 棰勮鍛ㄦ湡锛堝ぉ锛?
+        negotiableRangeFen:
           $ref: "#/components/schemas/MoneyFen"
-          description: 鍙皥绌洪棿锛堥噾棰濅笂闄愶紝鍗曚綅鍒嗭紱涓?negotiableRangePercent 浜岄€変竴锛?        negotiableRangePercent:
+          description: 鍙皥绌洪棿锛堥噾棰濅笂闄愶紝鍗曚綅鍒嗭紱涓?negotiableRangePercent 浜岄€変竴锛?
+        negotiableRangePercent:
           type: number
           format: double
           minimum: 0
           maximum: 100
-          description: 鍙皥绌洪棿锛堟瘮渚嬩笂闄?0-100锛涗笌 negotiableRangeFen 浜岄€変竴锛?        negotiableNote:
+          description: 鍙皥绌洪棿锛堟瘮渚嬩笂闄?0-100锛涗笌 negotiableRangeFen 浜岄€変竴锛?
+        negotiableNote:
           type: string
           description: 鍙皥绌洪棿琛ュ厖璇存槑
         pledgeStatus:
@@ -6089,7 +6200,8 @@ components:
         featuredRank:
           type: integer
           minimum: 0
-          description: 鐗硅壊缃《浼樺厛绾э紙鏁板€艰秺灏忚秺闈犲墠锛?        featuredUntil:
+          description: 鐗硅壊缃《浼樺厛绾э紙鏁板€艰秺灏忚秺闈犲墠锛?
+        featuredUntil:
           type: string
           format: date-time
           description: 杩囨湡鏃堕棿锛堜负绌鸿〃绀洪暱鏈燂級
@@ -6148,7 +6260,14 @@ components:
 
     ListingTopic:
       type: string
-      enum: [HIGH_TECH_RETIRED, AWARD_WINNING]
+      enum: [HIGH_TECH_RETIRED, SLEEPING, AWARD_WINNING, OPEN_LICENSE, FIVE_STAR]
+      description: |
+        专利特色标签统一枚举：
+        - HIGH_TECH_RETIRED: 退役专利
+        - SLEEPING: 沉睡专利
+        - AWARD_WINNING: 获奖专利
+        - OPEN_LICENSE: 开放许可
+        - FIVE_STAR: 五星专利
 
     TechManagerSortBy:
       type: string
@@ -6277,6 +6396,10 @@ components:
             aiParse:
               $ref: "#/components/schemas/AiParseResult"
               nullable: true
+
+    Demand:
+      allOf:
+        - $ref: "#/components/schemas/DemandSummary"
 
     PagedDemandSummary:
       type: object
@@ -6470,6 +6593,10 @@ components:
               $ref: "#/components/schemas/AiParseResult"
               nullable: true
 
+    Achievement:
+      allOf:
+        - $ref: "#/components/schemas/AchievementSummary"
+
     PagedAchievementSummary:
       type: object
       required: [items, page]
@@ -6645,6 +6772,10 @@ components:
             aiParse:
               $ref: "#/components/schemas/AiParseResult"
               nullable: true
+
+    Artwork:
+      allOf:
+        - $ref: "#/components/schemas/ArtworkSummary"
 
     PagedArtworkSummary:
       type: object
@@ -6919,7 +7050,8 @@ components:
         patentCount:
           type: integer
           minimum: 0
-          description: 璇ュ彂鏄庝汉鍦ㄥ钩鍙板唴涓婁紶涓撳埄涓殑鍘婚噸鏁伴噺锛堟寜 patentId锛?        listingCount:
+          description: 璇ュ彂鏄庝汉鍦ㄥ钩鍙板唴涓婁紶涓撳埄涓殑鍘婚噸鏁伴噺锛堟寜 patentId锛?
+        listingCount:
           type: integer
           minimum: 0
           description: 鍏宠仈鍒扮殑涓婃灦鏁伴噺锛堝彲鐢ㄤ簬鍙傝€冿級
@@ -6987,13 +7119,16 @@ components:
           $ref: "#/components/schemas/OrderStatus"
         dealAmountFen:
           $ref: "#/components/schemas/MoneyFen"
-          description: 鍚堝悓绛剧讲纭鍚庡啓鍏ワ紙鎴愪氦鎬讳环锛?        depositAmountFen:
+          description: 鍚堝悓绛剧讲纭鍚庡啓鍏ワ紙鎴愪氦鎬讳环锛?
+        depositAmountFen:
           $ref: "#/components/schemas/MoneyFen"
         finalAmountFen:
           $ref: "#/components/schemas/MoneyFen"
-          description: 鍚堝悓绛剧讲纭鍚庡啓鍏ワ紙灏炬閲戦锛?        commissionAmountFen:
+          description: 鍚堝悓绛剧讲纭鍚庡啓鍏ワ紙灏炬閲戦锛?
+        commissionAmountFen:
           $ref: "#/components/schemas/MoneyFen"
-          description: 缁撶畻鏃跺啓鍏ワ紙鍗栧鎵挎媴锛?        invoice:
+          description: 缁撶畻鏃跺啓鍏ワ紙鍗栧鎵挎媴锛?
+        invoice:
           $ref: "#/components/schemas/OrderInvoice"
           description: 璁㈠崟鐢靛瓙鍙戠エ锛堜粎璁㈠崟瀹屾垚鍚庡彲鑳藉瓨鍦級
         createdAt:
@@ -7528,7 +7663,8 @@ components:
     CustomerServiceConfig:
       type: object
       required: [phone, defaultReply, assignStrategy]
-      description: 瀹㈡湇閰嶇疆锛堝墠鍙板睍绀?鍚庡彴閰嶇疆锛?      properties:
+      description: 瀹㈡湇閰嶇疆锛堝墠鍙板睍绀?鍚庡彴閰嶇疆锛?
+      properties:
         phone:
           type: string
           example: "400-000-0000"
@@ -7560,11 +7696,13 @@ components:
         code:
           type: string
           pattern: "^[0-9]{6}$"
-          description: 琛屾斂鍖哄垝 adcode锛? 浣嶅瓧绗︿覆锛?          example: "110000"
+          description: 琛屾斂鍖哄垝 adcode锛? 浣嶅瓧绗︿覆锛?
+          example: "110000"
         name:
           type: string
           description: 琛屾斂鍖哄垝鍚嶇О
-          example: 鍖椾含甯?        level:
+          example: 鍖椾含甯?
+        level:
           $ref: "#/components/schemas/RegionLevel"
         parentCode:
           type: string
@@ -7587,7 +7725,8 @@ components:
           type: array
           items:
             type: string
-          description: 鍖哄煙鐗硅壊浜т笟鏍囩锛堢敤浜庢帹鑽?鎼滅储鍔犳潈锛?        updatedAt:
+          description: 鍖哄煙鐗硅壊浜т笟鏍囩锛堢敤浜庢帹鑽?鎼滅储鍔犳潈锛?
+        updatedAt:
           type: string
           format: date-time
 
@@ -7686,14 +7825,17 @@ components:
         regionCode:
           type: string
           pattern: "^[0-9]{6}$"
-          description: 琛屾斂鍖哄垝 adcode锛? 浣嶅瓧绗︿覆锛?          example: "110000"
+          description: 琛屾斂鍖哄垝 adcode锛? 浣嶅瓧绗︿覆锛?
+          example: "110000"
         regionName:
           type: string
           description: 琛屾斂鍖哄垝鍚嶇О蹇収锛堢敤浜庣洿鎺ュ睍绀猴級
-          example: 鍖椾含甯?        patentCount:
+          example: 鍖椾含甯?
+        patentCount:
           type: integer
           minimum: 0
-          description: 璇ュ尯鍩熻骞翠唤鐨勪笓鍒╂暟閲忥紙鎸?`level/parentCode` 鑱氬悎鍙ｅ緞锛?          example: 1234
+          description: 璇ュ尯鍩熻骞翠唤鐨勪笓鍒╂暟閲忥紙鎸?`level/parentCode` 鑱氬悎鍙ｅ緞锛?
+          example: 1234
 
     PatentMapRegionDetail:
       type: object
@@ -7992,7 +8134,8 @@ components:
 
     ConversationMessageType:
       type: string
-      description: 瀹㈡埛绔粎鍏佽鍙戦€?TEXT/EMOJI锛汼YSTEM 涓虹郴缁熸秷鎭?      enum: [TEXT, EMOJI, SYSTEM]
+      description: 瀹㈡埛绔粎鍏佽鍙戦€?TEXT/EMOJI锛汼YSTEM 涓虹郴缁熸秷鎭?
+      enum: [TEXT, EMOJI, SYSTEM]
 
     ConversationMessage:
       type: object
@@ -8827,6 +8970,42 @@ components:
           type: string
         patentNo:
           type: string
+
+    Announcement:
+      type: object
+      required: [id, title, status, createdAt]
+      properties:
+        id:
+          $ref: "#/components/schemas/Uuid"
+        title:
+          type: string
+        summary:
+          type: string
+        content:
+          type: string
+        publisherName:
+          type: string
+        issueNo:
+          type: string
+        sourceUrl:
+          type: string
+          format: uri
+        tags:
+          type: array
+          items:
+            type: string
+        relatedPatents:
+          type: array
+          items:
+            $ref: "#/components/schemas/AnnouncementRelatedPatent"
+        status:
+          $ref: "#/components/schemas/AnnouncementStatus"
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
 
     PagedAnnouncement:
       type: object

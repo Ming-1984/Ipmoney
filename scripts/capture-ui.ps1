@@ -248,8 +248,6 @@ $sample = @{
 $clientPages = @(
   @{ name = "home"; path = "#/pages/home/index"; demoAuth = $false },
   @{ name = "search"; path = "#/pages/search/index"; demoAuth = $false },
-  @{ name = "patent-map"; path = "#/pages/patent-map/index"; demoAuth = $false },
-  @{ name = "patent-map-region-detail"; path = "#/pages/patent-map/region-detail/index?regionCode=$($sample.regionCode)&year=$($sample.year)"; demoAuth = $false },
   @{ name = "inventors"; path = "#/pages/inventors/index"; demoAuth = $false },
   @{ name = "listing-detail"; path = "#/pages/listing/detail/index?listingId=$($sample.listingId)"; demoAuth = $false },
   @{ name = "patent-detail"; path = "#/pages/patent/detail/index?patentId=$($sample.patentId)"; demoAuth = $false },
@@ -267,7 +265,6 @@ $clientPages = @(
   @{ name = "chat"; path = "#/pages/messages/chat/index?conversationId=$($sample.conversationId)"; demoAuth = $true },
   @{ name = "publish"; path = "#/pages/publish/index"; demoAuth = $true },
   @{ name = "publish-patent"; path = "#/pages/publish/patent/index"; demoAuth = $true },
-  @{ name = "publish-achievement"; path = "#/pages/publish/achievement/index"; demoAuth = $true },
   @{ name = "my-listings"; path = "#/pages/my-listings/index"; demoAuth = $true },
   @{ name = "favorites"; path = "#/pages/favorites/index"; demoAuth = $true },
   @{ name = "orders"; path = "#/pages/orders/index"; demoAuth = $true },
@@ -289,8 +286,7 @@ $adminPages = @(
   @{ name = "settlements"; path = "/settlements" },
   @{ name = "invoices"; path = "/invoices" },
   @{ name = "config"; path = "/config" },
-  @{ name = "regions"; path = "/regions" },
-  @{ name = "patent-map"; path = "/patent-map" }
+  @{ name = "regions"; path = "/regions" }
 )
 
 if ($ListOnly) {

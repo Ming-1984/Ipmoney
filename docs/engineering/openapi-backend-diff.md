@@ -4,10 +4,10 @@
 
 ## 1. 汇总
 
-- OpenAPI operations：243
-- OpenAPI paths：191
-- Controller 文件数：39
-- Controller 路由（method + path）：243
+- OpenAPI operations：156
+- OpenAPI paths：122
+- Controller 文件数：32
+- Controller 路由（method + path）：156
 - OpenAPI-only：0
 - Controller-only：0
 

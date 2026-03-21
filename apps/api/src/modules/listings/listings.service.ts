@@ -7,6 +7,7 @@ type FeaturedLevel = 'NONE' | 'CITY' | 'PROVINCE';
 type ContentSource = 'USER' | 'PLATFORM' | 'ADMIN';
 type PledgeStatus = 'NONE' | 'PLEDGED' | 'UNKNOWN';
 type ExistingLicenseStatus = 'NONE' | 'EXCLUSIVE' | 'SOLE' | 'NON_EXCLUSIVE' | 'UNKNOWN';
+type ListingTopic = 'HIGH_TECH_RETIRED' | 'SLEEPING' | 'AWARD_WINNING' | 'OPEN_LICENSE' | 'FIVE_STAR';
 
 import { AuditLogService } from '../../common/audit-log.service';
 import { ContentEventService } from '../../common/content-event.service';
@@ -14,6 +15,14 @@ import { PrismaService } from '../../common/prisma/prisma.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import { mapStats, sanitizeIndustryTagNames } from '../content-utils';
 import { ConfigService, type RecommendationConfig } from '../config/config.service';
+
+const LISTING_TOPIC_VALUE_SET = new Set<ListingTopic>([
+  'HIGH_TECH_RETIRED',
+  'SLEEPING',
+  'AWARD_WINNING',
+  'OPEN_LICENSE',
+  'FIVE_STAR',
+]);
 
 type ListingAdminDto = {
   id: string;
@@ -237,6 +246,16 @@ export class ListingsService {
           .filter((v: any) => v.length > 0),
       ),
     );
+  }
+
+  private normalizeListingTopics(input: unknown): ListingTopic[] {
+    return Array.from(
+      new Set(
+        this.normalizeStringArray(input)
+          .map((v: any) => String(v || '').trim().toUpperCase())
+          .filter((v: any) => LISTING_TOPIC_VALUE_SET.has(v as ListingTopic)),
+      ),
+    ) as ListingTopic[];
   }
 
   private normalizePledgeStatus(value: unknown): PledgeStatus | undefined {
@@ -875,7 +894,7 @@ export class ListingsService {
       depositAmountFen: it.depositAmount,
       regionCode: it.regionCode ?? null,
       industryTags: sanitizeIndustryTagNames(it.industryTagsJson),
-      listingTopics: this.normalizeStringArray(it.listingTopicsJson),
+      listingTopics: this.normalizeListingTopics(it.listingTopicsJson),
       ipcCodes: meta.ipcCodes,
       locCodes: meta.locCodes,
       featuredLevel: it.featuredLevel,
@@ -1048,9 +1067,7 @@ export class ListingsService {
     if (!sellerUserId) {
       throw new BadRequestException({ code: 'BAD_REQUEST', message: 'sellerUserId is required' });
     }
-    const listingTopics = this.normalizeStringArray(body?.listingTopics ?? body?.listingTopic)
-      .map((v: any) => String(v || '').trim().toUpperCase())
-      .filter((v: any) => v.length > 0);
+    const listingTopics = this.normalizeListingTopics(body?.listingTopics ?? body?.listingTopic);
     const proofFileIds = this.normalizeFileIds(body?.proofFileIds);
     const deliverables = this.normalizeStringArray(body?.deliverables);
     const expectedCompletionDays = this.parseOptionalInt(body?.expectedCompletionDays, 'expectedCompletionDays', 1);
@@ -1122,11 +1139,7 @@ export class ListingsService {
     let patentId = listing.patentId;
     const patentBody = this.withPatentSourceFallback(body);
     const hasListingTopics = body?.listingTopics !== undefined || body?.listingTopic !== undefined;
-    const listingTopics = hasListingTopics
-      ? this.normalizeStringArray(body?.listingTopics ?? body?.listingTopic)
-          .map((v: any) => String(v || '').trim().toUpperCase())
-          .filter((v: any) => v.length > 0)
-      : undefined;
+    const listingTopics = hasListingTopics ? this.normalizeListingTopics(body?.listingTopics ?? body?.listingTopic) : undefined;
     const hasProofFileIds = body?.proofFileIds !== undefined;
     const proofFileIds = hasProofFileIds ? this.normalizeFileIds(body?.proofFileIds) : undefined;
     const hasDeliverables = Object.prototype.hasOwnProperty.call(body || {}, 'deliverables');
@@ -1462,7 +1475,7 @@ export class ListingsService {
           ipcCodes: meta.ipcCodes,
           locCodes: meta.locCodes,
           regionCode: it.regionCode ?? null,
-          listingTopics: this.normalizeStringArray(it.listingTopicsJson),
+          listingTopics: this.normalizeListingTopics(it.listingTopicsJson),
           proofFileIds: this.normalizeStringArray(it.proofFileIdsJson),
           createdAt: it.createdAt.toISOString(),
           updatedAt: it.updatedAt.toISOString(),
@@ -1519,7 +1532,7 @@ export class ListingsService {
       ipcCodes: meta.ipcCodes,
       locCodes: meta.locCodes,
       regionCode: it.regionCode ?? null,
-      listingTopics: this.normalizeStringArray(it.listingTopicsJson),
+      listingTopics: this.normalizeListingTopics(it.listingTopicsJson),
       proofFileIds: this.normalizeStringArray(it.proofFileIdsJson),
       summary: it.summary ?? null,
       createdAt: it.createdAt.toISOString(),
@@ -1552,9 +1565,7 @@ export class ListingsService {
       ? this.parseNullableExistingLicenseStatusStrict(body?.existingLicenseStatus, 'existingLicenseStatus')
       : null;
     const regionCode = hasRegionCode ? this.parseNullableRegionCodeStrict(body?.regionCode, 'regionCode') : undefined;
-    const listingTopics = this.normalizeStringArray(body?.listingTopics ?? body?.listingTopic)
-      .map((v: any) => String(v || '').trim().toUpperCase())
-      .filter((v: any) => v.length > 0);
+    const listingTopics = this.normalizeListingTopics(body?.listingTopics ?? body?.listingTopic);
     const proofFileIds = this.normalizeFileIds(body?.proofFileIds);
     const deliverables = this.normalizeStringArray(body?.deliverables);
     const expectedCompletionDays = this.parseOptionalInt(body?.expectedCompletionDays, 'expectedCompletionDays', 1);
@@ -1625,11 +1636,7 @@ export class ListingsService {
     }
     let patentId = listing.patentId;
     const hasListingTopics = body?.listingTopics !== undefined || body?.listingTopic !== undefined;
-    const listingTopics = hasListingTopics
-      ? this.normalizeStringArray(body?.listingTopics ?? body?.listingTopic)
-          .map((v: any) => String(v || '').trim().toUpperCase())
-          .filter((v: any) => v.length > 0)
-      : undefined;
+    const listingTopics = hasListingTopics ? this.normalizeListingTopics(body?.listingTopics ?? body?.listingTopic) : undefined;
     const hasProofFileIds = body?.proofFileIds !== undefined;
     const proofFileIds = hasProofFileIds ? this.normalizeFileIds(body?.proofFileIds) : undefined;
     const hasDeliverables = Object.prototype.hasOwnProperty.call(body || {}, 'deliverables');
@@ -1784,9 +1791,7 @@ export class ListingsService {
     const legalStatus = hasLegalStatus ? this.parseLegalStatusStrict(query?.legalStatus, 'legalStatus') : undefined;
     const hasSortBy = this.hasOwn(query, 'sortBy');
     const sortBy = hasSortBy ? this.parseListingSortByStrict(query?.sortBy, 'sortBy') : 'NEWEST';
-    const listingTopics = this.normalizeStringArray(query?.listingTopics ?? query?.listingTopic)
-      .map((v: any) => String(v || '').trim().toUpperCase())
-      .filter((v: any) => v.length > 0);
+    const listingTopics = this.normalizeListingTopics(query?.listingTopics ?? query?.listingTopic);
     const ipcList = this.normalizeStringArray(query?.ipc)
       .map((v: any) => String(v || '').trim().toUpperCase())
       .filter((v: any) => v.length > 0);
@@ -1832,7 +1837,20 @@ export class ListingsService {
     if (priceType) where.priceType = priceType;
     if (sellerUserId) where.sellerUserId = sellerUserId;
     if (listingTopics.length > 0) {
-      where.listingTopicsJson = { array_contains: listingTopics };
+      const listingTopicFilters = listingTopics.map((topic) => {
+        if (topic === 'OPEN_LICENSE') {
+          return {
+            OR: [{ tradeMode: 'LICENSE' }, { listingTopicsJson: { array_contains: ['OPEN_LICENSE'] } }],
+          };
+        }
+        if (topic === 'SLEEPING') {
+          return {
+            OR: [{ patent: { transferCount: 0 } }, { listingTopicsJson: { array_contains: ['SLEEPING'] } }],
+          };
+        }
+        return { listingTopicsJson: { array_contains: [topic] } };
+      });
+      where.AND = [...(Array.isArray(where.AND) ? where.AND : []), ...listingTopicFilters];
     }
     if (industryTags.length > 0) {
       where.industryTagsJson = { array_contains: industryTags };
@@ -2120,7 +2138,7 @@ export class ListingsService {
       depositAmountFen: it.depositAmount,
       regionCode: it.regionCode ?? null,
       industryTags: sanitizeIndustryTagNames(it.industryTagsJson),
-      listingTopics: this.normalizeStringArray(it.listingTopicsJson),
+      listingTopics: this.normalizeListingTopics(it.listingTopicsJson),
       featuredLevel: it.featuredLevel,
       featuredRegionCode: it.featuredRegionCode ?? null,
       recommendationScore: null,

@@ -10,10 +10,11 @@ import { getToken } from '../../../lib/auth';
 import { apiGet, apiPatch, apiPost } from '../../../lib/api';
 import { ensureApproved, requireLogin } from '../../../lib/guard';
 import { sanitizeIndustryTagNames } from '../../../lib/industryTags';
+import { LISTING_TOPIC_OPTIONS, sanitizeListingTopics, syncListingTopicsWithTradeMode } from '../../../lib/listingTopics';
 import { auditStatusLabel, listingStatusLabel, patentTypeLabel } from '../../../lib/labels';
 import { fenToYuan } from '../../../lib/money';
 import { uploadWithRetry } from '../../../lib/upload';
-import { IndustryTagsPicker } from '../../../ui/filters';
+import { ChipGroup, type ChipOption, IndustryTagsPicker } from '../../../ui/filters';
 import { PageHeader, PopupSheet, StickyBar, Surface } from '../../../ui/layout';
 import { Button, Cell, Input, Popup, TextArea, confirm, toast } from '../../../ui/nutui';
 
@@ -21,6 +22,7 @@ type PatentType = components['schemas']['PatentType'];
 type TradeMode = components['schemas']['TradeMode'];
 type LicenseMode = components['schemas']['LicenseMode'];
 type PriceType = components['schemas']['PriceType'];
+type ListingTopic = components['schemas']['ListingTopic'];
 type AuditStatus = components['schemas']['AuditStatus'];
 type ListingStatus = components['schemas']['ListingStatus'];
 
@@ -56,6 +58,7 @@ const PRICE_TYPE_OPTIONS: Array<{ value: PriceType; label: string }> = [
   { value: 'FIXED', label: '一口价' },
   { value: 'NEGOTIABLE', label: '面议' },
 ];
+const LISTING_TOPIC_CHIP_OPTIONS: ChipOption<ListingTopic>[] = [...LISTING_TOPIC_OPTIONS];
 
 function tradeModeLabel(value: TradeMode): string {
   if (value === 'ASSIGNMENT') return '转让';
@@ -220,6 +223,7 @@ export default function PublishPatentPage() {
 
   const [regionCode, setRegionCode] = useState('');
   const [industryTags, setIndustryTags] = useState<string[]>([]);
+  const [listingTopics, setListingTopics] = useState<ListingTopic[]>([]);
   const [ipcCodesInput, setIpcCodesInput] = useState('');
   const [locCodesInput, setLocCodesInput] = useState('');
 
@@ -236,6 +240,18 @@ export default function PublishPatentPage() {
   const ipcCodes = useMemo(() => splitList(ipcCodesInput), [ipcCodesInput]);
   const locCodes = useMemo(() => splitList(locCodesInput), [locCodesInput]);
   const sanitizedIndustryTags = useMemo(() => sanitizeIndustryTagNames(industryTags), [industryTags]);
+  const effectiveListingTopics = useMemo(
+    () => syncListingTopicsWithTradeMode(listingTopics, tradeMode),
+    [listingTopics, tradeMode],
+  );
+  const listingTopicChipOptions = useMemo<ChipOption<ListingTopic>[]>(
+    () =>
+      LISTING_TOPIC_CHIP_OPTIONS.map((it) => ({
+        ...it,
+        disabled: it.value === 'OPEN_LICENSE' && tradeMode === 'LICENSE',
+      })),
+    [tradeMode],
+  );
 
   const uploadProof = useCallback(async () => {
     if (uploading) return;
@@ -311,6 +327,7 @@ export default function PublishPatentPage() {
 
         setRegionCode(d.regionCode || '');
         setIndustryTags(sanitizeIndustryTagNames(Array.isArray(d.industryTags) ? d.industryTags : []));
+        setListingTopics(sanitizeListingTopics(Array.isArray(d.listingTopics) ? d.listingTopics : []));
         setIpcCodesInput((d.ipcCodes || []).join(', '));
         setLocCodesInput((d.locCodes || []).join(', '));
         setProofFiles(((d.proofFileIds || []) as unknown as string[]).map((id) => ({ id: String(id) })));
@@ -393,6 +410,7 @@ export default function PublishPatentPage() {
         ...(applicantNames.length ? { applicantNames } : {}),
         ...(regionCode.trim() ? { regionCode: regionCode.trim() } : {}),
         ...(sanitizedIndustryTags.length ? { industryTags: sanitizedIndustryTags } : {}),
+        ...(effectiveListingTopics.length ? { listingTopics: effectiveListingTopics } : {}),
         ...(ipcCodes.length ? { ipcCodes } : {}),
         ...(locCodes.length ? { locCodes } : {}),
         ...(proofFiles.length ? { proofFileIds: proofFiles.map((f) => f.id) } : {}),
@@ -407,6 +425,7 @@ export default function PublishPatentPage() {
       expectedCycle,
       inventorNames,
       sanitizedIndustryTags,
+      effectiveListingTopics,
       ipcCodes,
       licenseMode,
       locCodes,
@@ -477,6 +496,7 @@ export default function PublishPatentPage() {
         ...(applicantNames.length ? { applicantNames } : {}),
         ...(regionCode.trim() ? { regionCode: regionCode.trim() } : {}),
         ...(sanitizedIndustryTags.length ? { industryTags: sanitizedIndustryTags } : {}),
+        listingTopics: effectiveListingTopics,
         ...(ipcCodes.length ? { ipcCodes } : {}),
         ...(locCodes.length ? { locCodes } : {}),
         ...(proofFiles.length ? { proofFileIds: proofFiles.map((f) => f.id) } : {}),
@@ -491,6 +511,7 @@ export default function PublishPatentPage() {
       expectedCycle,
       inventorNames,
       sanitizedIndustryTags,
+      effectiveListingTopics,
       ipcCodes,
       licenseMode,
       listingId,
@@ -616,7 +637,9 @@ export default function PublishPatentPage() {
       if (pickerOpen === 'patentType') {
         setPatentType(value as PatentType);
       } else if (pickerOpen === 'tradeMode') {
-        setTradeMode(value as TradeMode);
+        const nextTradeMode = value as TradeMode;
+        setTradeMode(nextTradeMode);
+        setListingTopics((prev) => syncListingTopicsWithTradeMode(prev, nextTradeMode));
         if (value !== 'LICENSE') setLicenseMode('');
       } else if (pickerOpen === 'licenseMode') {
         setLicenseMode(value as LicenseMode);
@@ -860,6 +883,23 @@ export default function PublishPatentPage() {
               max={8}
               onChange={(next) => setIndustryTags(sanitizeIndustryTagNames(next))}
             />
+          </View>
+
+          <View className="form-field">
+            <Text className="form-label">特色标签</Text>
+            <ChipGroup<ListingTopic>
+              multiple
+              value={effectiveListingTopics}
+              options={listingTopicChipOptions}
+              onChange={(next) => {
+                const sanitized = sanitizeListingTopics(next);
+                setListingTopics(sanitized);
+                if (sanitized.includes('OPEN_LICENSE') && tradeMode !== 'LICENSE') {
+                  setTradeMode('LICENSE');
+                }
+              }}
+            />
+            <Text className="form-hint">与首页/搜索筛选保持一致：退役、沉睡、获奖、开放许可、五星。</Text>
           </View>
 
           <Text className="publish-section-subtitle">权属证明材料 *</Text>

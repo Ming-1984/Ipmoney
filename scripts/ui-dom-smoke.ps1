@@ -525,13 +525,6 @@ try {
       textAny = @(); storage = @(); demoAuth = $false
     },
     @{
-      name = "client-achievement-detail"; path = "#/pages/achievement/detail/index?achievementId=$($sample.achievementId)"; base = $clientBase
-      width = $ClientWidth; height = $ClientHeight; waitMs = $ClientWaitMs
-      expectedUrlContains = "#/pages/achievement/detail/index"; minElements = 60
-      selectorsAll = @(".detail-page-compact", "#achievement-summary", "#achievement-info"); selectorsAny = @(".detail-tabs", "#achievement-comments", ".detail-tool-row", ".detail-sticky-buttons")
-      textAny = @(); storage = @(); demoAuth = $false
-    },
-    @{
       name = "client-organizations"; path = "#/pages/organizations/index"; base = $clientBase
       width = $ClientWidth; height = $ClientHeight; waitMs = $ClientWaitMs
       expectedUrlContains = "#/pages/organizations/index"; minElements = 60
@@ -543,13 +536,6 @@ try {
       width = $ClientWidth; height = $ClientHeight; waitMs = $ClientWaitMs
       expectedUrlContains = "#/pages/organizations/detail/index"; minElements = 60
       selectorsAll = @(".detail-page-compact", "#org-overview", "#org-intro"); selectorsAny = @(".detail-tabs", "#org-note", ".detail-tool-row")
-      textAny = @(); storage = @(); demoAuth = $false
-    },
-    @{
-      name = "client-patent-map"; path = "#/pages/patent-map/index"; base = $clientBase
-      width = $ClientWidth; height = $ClientHeight; waitMs = $ClientWaitMs
-      expectedUrlContains = "#/pages/patent-map/index"; minElements = 60
-      selectorsAll = @(".patent-map-page"); selectorsAny = @("#patent-map", ".card", ".tag.tag-gold", ".card-state")
       textAny = @(); storage = @(); demoAuth = $false
     },
     @{
@@ -579,13 +565,6 @@ try {
       expectedUrlContains = "#/pages/notifications/index"; minElements = 60
       selectorsAll = @(".notifications-page", ".notifications-tabs"); selectorsAny = @(".notifications-tab.is-active", ".notification-item", ".notification-empty")
       textAny = @(); storage = $clientApprovedStorage; demoAuth = $true
-    },
-    @{
-      name = "client-announcements"; path = "#/pages/announcements/index"; base = $clientBase
-      width = $ClientWidth; height = $ClientHeight; waitMs = $ClientWaitMs
-      expectedUrlContains = "#/pages/announcements/index"; minElements = 60
-      selectorsAll = @(".announcements-page"); selectorsAny = @(".announcement-list", ".announcement-card", ".announcement-card-title", ".card-state")
-      textAny = @(); storage = @(); demoAuth = $false
     },
     @{
       name = "client-order-detail"; path = "#/pages/orders/detail/index?orderId=$($sample.orderId)"; base = $clientBase
@@ -651,13 +630,6 @@ try {
       textAny = @(); storage = $adminAuthedStorage; demoAuth = $false
     },
     @{
-      name = "admin-patent-map"; path = "/patent-map"; base = $adminBase
-      width = $AdminWidth; height = $AdminHeight; waitMs = $AdminWaitMs
-      expectedUrlContains = "/patent-map"; minElements = 100
-      selectorsAll = @(".admin-patent-map-page", ".ipm-content-inner"); selectorsAny = @(".ant-card", ".ant-upload", ".ant-table", ".ant-empty")
-      textAny = @(); storage = $adminAuthedStorage; demoAuth = $false
-    },
-    @{
       name = "admin-rbac"; path = "/rbac"; base = $adminBase
       width = $AdminWidth; height = $AdminHeight; waitMs = $AdminWaitMs
       expectedUrlContains = "/rbac"; minElements = 80
@@ -680,13 +652,6 @@ try {
       expectedUrlContains = "#/pages/publish/index"; minElements = 60
       selectorsAll = @(".publish-page", ".publish-grid"); selectorsAny = @(".publish-card", ".publish-manage-grid", ".publish-draft-card")
       textAny = @(); storage = $clientApprovedStorage; demoAuth = $true
-    },
-    @{
-      name = "client-patent-map-region-detail"; path = "#/pages/patent-map/region-detail/index?regionCode=$($sample.regionCode)&year=$($sample.year)"; base = $clientBase
-      width = $ClientWidth; height = $ClientHeight; waitMs = $ClientWaitMs
-      expectedUrlContains = "#/pages/patent-map/region-detail/index"; minElements = 60
-      selectorsAll = @(".patent-map-region-detail-page", ".page-bg-plain"); selectorsAny = @(".text-title", ".text-strong", ".card-state")
-      textAny = @(); storage = @(); demoAuth = $false
     },
     @{
       name = "client-tech-manager-detail"; path = "#/pages/tech-managers/detail/index?techManagerId=$($sample.techManagerId)"; base = $clientBase
@@ -715,13 +680,6 @@ try {
       expectedUrlContains = "#/pages/notifications/detail/index"; minElements = 60
       selectorsAll = @(".notification-detail-page", ".notification-detail-card"); selectorsAny = @(".notification-detail-title", ".notification-detail-content", ".notification-detail-source")
       textAny = @(); storage = $clientApprovedStorage; demoAuth = $true
-    },
-    @{
-      name = "client-announcement-detail"; path = "#/pages/announcements/detail/index?announcementId=$($sample.announcementId)"; base = $clientBase
-      width = $ClientWidth; height = $ClientHeight; waitMs = $ClientWaitMs
-      expectedUrlContains = "#/pages/announcements/detail/index"; minElements = 50
-      selectorsAll = @(".announcement-detail-page", ".announcement-detail-card"); selectorsAny = @(".announcement-detail-title", ".announcement-detail-content", ".announcement-detail-time")
-      textAny = @(); storage = @(); demoAuth = $false
     },
     @{
       name = "client-favorites"; path = "#/pages/favorites/index"; base = $clientBase
@@ -792,27 +750,6 @@ try {
       expectedUrlContains = "#/pages/my-listings/index"; minElements = 60
       selectorsAll = @(".my-listings-page"); selectorsAny = @(".card-list", ".list-card", ".card-state", ".audit-pending-card")
       textAny = @(); storage = $clientApprovedStorage; demoAuth = $true
-    },
-    @{
-      name = "client-my-achievements"; path = "#/pages/my-achievements/index"; base = $clientBase
-      width = $ClientWidth; height = $ClientHeight; waitMs = $ClientWaitMs
-      expectedUrlContains = "#/pages/my-achievements/index"; minElements = 60
-      selectorsAll = @(".my-achievements-page"); selectorsAny = @(".card-list", ".list-card", ".card-state", ".audit-pending-card")
-      textAny = @(); storage = $clientApprovedStorage; demoAuth = $true
-    },
-    @{
-      name = "client-publish-achievement"; path = "#/pages/publish/achievement/index"; base = $clientBase
-      width = $ClientWidth; height = $ClientHeight; waitMs = $ClientWaitMs
-      expectedUrlContains = "#/pages/publish/achievement/index"; minElements = 60
-      selectorsAll = @(".publish-achievement-page", ".text-card-title"); selectorsAny = @(".form-label", ".chip-row", ".row-between")
-      textAny = @(); storage = $clientApprovedStorage; demoAuth = $true
-    },
-    @{
-      name = "client-cluster-picker"; path = "#/pages/cluster-picker/index"; base = $clientBase
-      width = $ClientWidth; height = $ClientHeight; waitMs = $ClientWaitMs
-      expectedUrlContains = "#/pages/cluster-picker/index"; minElements = 50
-      selectorsAll = @(".cluster-picker-page", ".cluster-section"); selectorsAny = @(".cluster-card", ".cluster-institution-card", ".pill", ".card-state")
-      textAny = @(); storage = @(); demoAuth = $false
     },
     @{
       name = "client-settings-notifications"; path = "#/pages/settings/notifications/index"; base = $clientBase
@@ -892,13 +829,6 @@ try {
       textAny = @(); storage = $adminAuthedStorage; demoAuth = $false
     },
     @{
-      name = "admin-achievements"; path = "/achievements"; base = $adminBase
-      width = $AdminWidth; height = $AdminHeight; waitMs = $AdminWaitMs
-      expectedUrlContains = "/achievements"; minElements = 100
-      selectorsAll = @(".admin-achievements-page", ".ipm-content-inner"); selectorsAny = @(".ant-table", ".ant-pagination")
-      textAny = @(); storage = $adminAuthedStorage; demoAuth = $false
-    },
-    @{
       name = "admin-tech-managers"; path = "/tech-managers"; base = $adminBase
       width = $AdminWidth; height = $AdminHeight; waitMs = $AdminWaitMs
       expectedUrlContains = "/tech-managers"; minElements = 100
@@ -924,13 +854,6 @@ try {
       width = $AdminWidth; height = $AdminHeight; waitMs = $AdminWaitMs
       expectedUrlContains = "/comments"; minElements = 100
       selectorsAll = @(".admin-comments-page", ".ipm-content-inner"); selectorsAny = @(".ant-table", ".ant-pagination")
-      textAny = @(); storage = $adminAuthedStorage; demoAuth = $false
-    },
-    @{
-      name = "admin-announcements"; path = "/announcements"; base = $adminBase
-      width = $AdminWidth; height = $AdminHeight; waitMs = $AdminWaitMs
-      expectedUrlContains = "/announcements"; minElements = 100
-      selectorsAll = @(".admin-announcements-page", ".ipm-content-inner"); selectorsAny = @(".ant-table", ".ant-pagination")
       textAny = @(); storage = $adminAuthedStorage; demoAuth = $false
     },
     @{

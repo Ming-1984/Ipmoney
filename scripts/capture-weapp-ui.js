@@ -142,18 +142,11 @@ const SAMPLE = {
   conversationId: 'ae127712-cb2f-4526-8520-0dc45528ab8a',
   orderId: '5e238163-ad1e-4830-a74d-944959427ebe',
   paymentId: '28b74a0d-40c2-4af8-87b5-60d1390e46fd',
-  regionCode: '110000',
-  year: 2025,
 };
 
 const PAGES = [
   { name: 'home', url: '/pages/home/index' },
   { name: 'search', url: '/subpackages/search/index' },
-  { name: 'patent-map', url: '/subpackages/patent-map/index' },
-  {
-    name: 'patent-map-region-detail',
-    url: `/subpackages/patent-map/region-detail/index?regionCode=${SAMPLE.regionCode}&year=${SAMPLE.year}`,
-  },
   { name: 'inventors', url: '/subpackages/inventors/index' },
   { name: 'listing-detail', url: `/subpackages/listing/detail/index?listingId=${SAMPLE.listingId}` },
   { name: 'patent-detail', url: `/subpackages/patent/detail/index?patentId=${SAMPLE.patentId}` },
@@ -169,7 +162,6 @@ const PAGES = [
   { name: 'chat', url: `/subpackages/messages/chat/index?conversationId=${SAMPLE.conversationId}` },
   { name: 'publish', url: '/pages/publish/index' },
   { name: 'publish-patent', url: '/subpackages/publish/patent/index' },
-  { name: 'publish-achievement', url: '/subpackages/publish/achievement/index' },
   { name: 'my-listings', url: '/subpackages/my-listings/index' },
   { name: 'favorites', url: '/subpackages/favorites/index' },
   { name: 'orders', url: '/subpackages/orders/index' },

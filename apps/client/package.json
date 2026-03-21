@@ -10,8 +10,9 @@
     "lint": "eslint \"src/**/*.{ts,tsx}\"",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "clean:weapp": "node -e \"require('node:fs').rmSync('dist/weapp', { recursive: true, force: true })\"",
+    "check:weapp-dist-pages": "node ../../scripts/check-weapp-dist-pages.mjs --app-json dist/weapp/app.json",
     "dev:weapp": "pnpm run clean:weapp && taro build --type weapp --watch",
-    "build:weapp": "pnpm run clean:weapp && taro build --type weapp"
+    "build:weapp": "pnpm run clean:weapp && taro build --type weapp && pnpm run check:weapp-dist-pages"
   },
   "dependencies": {
     "@nutui/icons-react-taro": "3.0.2-cpp.3.beta.3",

@@ -34,6 +34,7 @@ import { getToken, onAuthChanged } from '../../lib/auth';
 import { apiGet } from '../../lib/api';
 import { getDetailCache, setDetailCache } from '../../lib/detailCache';
 import { syncFavorites } from '../../lib/favorites';
+import type { ListingTopic } from '../../lib/listingTopics';
 import { EmptyCard, ErrorCard } from '../../ui/StateCards';
 import { toast } from '../../ui/nutui';
 import { ListingCard } from '../../ui/ListingCard';
@@ -211,43 +212,10 @@ export default function HomePage() {
     });
     Taro.navigateTo({ url: '/subpackages/search/index' });
   }, []);
-  const goFiveStarPatents = useCallback(() => {
+  const goTopicSearch = useCallback((listingTopic: ListingTopic) => {
     Taro.setStorageSync(STORAGE_KEYS.searchPrefill, {
       tab: 'LISTING',
-      listingTopic: 'FIVE_STAR',
-      reset: true,
-    });
-    Taro.navigateTo({ url: '/subpackages/search/index' });
-  }, []);
-  const goSleepingPatent = useCallback(() => {
-    Taro.setStorageSync(STORAGE_KEYS.searchPrefill, {
-      tab: 'LISTING',
-      transferCountMin: 0,
-      transferCountMax: 0,
-      reset: true,
-    });
-    Taro.navigateTo({ url: '/subpackages/search/index' });
-  }, []);
-  const goHighTechRetired = useCallback(() => {
-    Taro.setStorageSync(STORAGE_KEYS.searchPrefill, {
-      tab: 'LISTING',
-      listingTopic: 'HIGH_TECH_RETIRED',
-      reset: true,
-    });
-    Taro.navigateTo({ url: '/subpackages/search/index' });
-  }, []);
-  const goAwardWinning = useCallback(() => {
-    Taro.setStorageSync(STORAGE_KEYS.searchPrefill, {
-      tab: 'LISTING',
-      listingTopic: 'AWARD_WINNING',
-      reset: true,
-    });
-    Taro.navigateTo({ url: '/subpackages/search/index' });
-  }, []);
-  const goOpenLicense = useCallback(() => {
-    Taro.setStorageSync(STORAGE_KEYS.searchPrefill, {
-      tab: 'LISTING',
-      tradeMode: 'LICENSE',
+      listingTopic,
       reset: true,
     });
     Taro.navigateTo({ url: '/subpackages/search/index' });
@@ -260,15 +228,15 @@ export default function HomePage() {
       { key: 'utility-patent', label: '实用专利', icon: homeIconUtilityPatent, onClick: goUtilityPatents },
       { key: 'inventor', label: '发明人榜', icon: homeIconInventors, onClick: goInventors },
       { key: 'tech-manager', label: '技术经理', icon: homeIconTechManager, onClick: goTechManagers },
-      { key: 'five-star', label: '五星专利', icon: homeIconFiveStar, onClick: goFiveStarPatents },
+      { key: 'five-star', label: '五星专利', icon: homeIconFiveStar, onClick: () => goTopicSearch('FIVE_STAR') },
     ],
     [
       goDesignPatents,
       goInventors,
       goInventionPatents,
       goUtilityPatents,
-      goFiveStarPatents,
       goTechManagers,
+      goTopicSearch,
     ],
   );
 
@@ -281,7 +249,7 @@ export default function HomePage() {
         icon: iconShield,
         bgImage: bgZoneHighTechRetired,
         tone: 'tone-orange',
-        onClick: goHighTechRetired,
+        onClick: () => goTopicSearch('HIGH_TECH_RETIRED'),
       },
       {
         key: 'sleeping',
@@ -290,7 +258,7 @@ export default function HomePage() {
         icon: iconActivity,
         bgImage: bgZoneSleeping,
         tone: 'tone-blue',
-        onClick: goSleepingPatent,
+        onClick: () => goTopicSearch('SLEEPING'),
       },
       {
         key: 'award-winning',
@@ -299,7 +267,7 @@ export default function HomePage() {
         icon: iconTrending,
         bgImage: bgZoneAward,
         tone: 'tone-green',
-        onClick: goAwardWinning,
+        onClick: () => goTopicSearch('AWARD_WINNING'),
       },
       {
         key: 'open-license',
@@ -308,10 +276,10 @@ export default function HomePage() {
         icon: iconAward,
         bgImage: bgZoneOpenLicense,
         tone: 'tone-teal',
-        onClick: goOpenLicense,
+        onClick: () => goTopicSearch('OPEN_LICENSE'),
       },
     ],
-    [goAwardWinning, goHighTechRetired, goOpenLicense, goSleepingPatent],
+    [goTopicSearch],
   );
 
   return (
