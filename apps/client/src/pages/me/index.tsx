@@ -30,6 +30,7 @@ import { Avatar, Button, Input, PullToRefresh, toast } from '../../ui/nutui';
 
 import iconUser from '../../assets/icons/icon-user-purple.svg';
 import iconPublishPatent from '../../assets/icons/icon-publish-patent.svg';
+import iconPublishAchievement from '../../assets/icons/app/patent-achievement.png';
 import iconOrderBuyer from '../../assets/icons/icon-order-buyer.svg';
 import iconOrderSeller from '../../assets/icons/icon-order-seller.svg';
 import iconContractCenter from '../../assets/icons/icon-contract-center.svg';
@@ -403,6 +404,7 @@ export default function MePage() {
   const publishItems = useMemo<IconItem[]>(
     () => [
       { key: 'listings', label: '我的专利', icon: iconPublishPatent, onClick: () => Taro.navigateTo({ url: '/subpackages/my-listings/index' }) },
+      { key: 'achievements', label: '我的专利成果', icon: iconPublishAchievement, onClick: () => Taro.navigateTo({ url: '/subpackages/my-achievements/index' }) },
     ],
     [],
   );

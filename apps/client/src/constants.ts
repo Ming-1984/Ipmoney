@@ -21,6 +21,7 @@ export const STORAGE_KEYS = {
   verificationType: 'ipmoney.verificationType',
   verificationStatus: 'ipmoney.verificationStatus',
   favoriteListingIds: 'ipmoney.favoriteListingIds',
+  favoriteAchievementIds: 'ipmoney.favoriteAchievementIds',
   regionPickerResult: 'ipmoney.regionPickerResult',
   regionNameMap: 'ipmoney.regionNameMap',
   searchPrefill: 'ipmoney.searchPrefill',

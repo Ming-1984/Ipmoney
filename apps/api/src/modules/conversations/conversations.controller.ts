@@ -20,6 +20,12 @@ export class ConversationsController {
   }
 
   @UseGuards(BearerAuthGuard)
+  @Post('/achievements/:achievementId/conversations')
+  async createAchievementConversation(@Req() req: any, @Param('achievementId') achievementId: string) {
+    return await this.conversations.createAchievementConversation(req, achievementId);
+  }
+
+  @UseGuards(BearerAuthGuard)
   @Post('/tech-managers/:techManagerId/conversations')
   async createTechManagerConversation(@Req() req: any, @Param('techManagerId') techManagerId: string) {
     return await this.conversations.createTechManagerConversation(req, techManagerId);

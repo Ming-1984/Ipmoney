@@ -13,10 +13,21 @@ export class CommentsController {
     return await this.comments.listThreads('LISTING', listingId, query);
   }
 
+  @Get('/public/achievements/:achievementId/comments')
+  async listAchievementComments(@Param('achievementId') achievementId: string, @Query() query: any) {
+    return await this.comments.listThreads('ACHIEVEMENT', achievementId, query);
+  }
+
   @UseGuards(BearerAuthGuard, VerifiedUserGuard)
   @Post('/listings/:listingId/comments')
   async createListingComment(@Req() req: any, @Param('listingId') listingId: string, @Body() body: any) {
     return await this.comments.createComment(req, 'LISTING', listingId, body || {});
+  }
+
+  @UseGuards(BearerAuthGuard, VerifiedUserGuard)
+  @Post('/achievements/:achievementId/comments')
+  async createAchievementComment(@Req() req: any, @Param('achievementId') achievementId: string, @Body() body: any) {
+    return await this.comments.createComment(req, 'ACHIEVEMENT', achievementId, body || {});
   }
 
   @UseGuards(BearerAuthGuard, VerifiedUserGuard)

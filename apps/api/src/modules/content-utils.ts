@@ -1,4 +1,6 @@
-﻿import { PrismaService } from '../common/prisma/prisma.service';
+﻿import { ContentMediaType } from '@prisma/client';
+
+import { PrismaService } from '../common/prisma/prisma.service';
 
 export type OrganizationSummary = {
   userId: string;
@@ -92,17 +94,20 @@ export function sanitizeServiceTagNames(input: unknown): string[] {
   return out;
 }
 
-export function normalizeMediaInput(input: unknown): Array<{ fileId: string; type: string; sort: number }> {
+export function normalizeMediaInput(
+  input: unknown,
+): Array<{ fileId: string; type: ContentMediaType; sort: number }> {
   if (!Array.isArray(input)) return [];
-  return input
-    .map((item, index) => {
-      const fileId = String((item as MediaInput)?.fileId || '').trim();
-      const type = String((item as MediaInput)?.type || '').trim().toUpperCase();
-      const sortValue = (item as MediaInput)?.sort;
-      const sort = Number.isFinite(Number(sortValue)) ? Number(sortValue) : index;
-      return { fileId, type, sort };
-    })
-    .filter((item) => item.fileId && ['IMAGE', 'VIDEO', 'FILE'].includes(item.type));
+  const out: Array<{ fileId: string; type: ContentMediaType; sort: number }> = [];
+  input.forEach((item, index) => {
+    const fileId = String((item as MediaInput)?.fileId || '').trim();
+    const rawType = String((item as MediaInput)?.type || '').trim().toUpperCase();
+    if (!fileId || !['IMAGE', 'VIDEO', 'FILE'].includes(rawType)) return;
+    const sortValue = (item as MediaInput)?.sort;
+    const sort = Number.isFinite(Number(sortValue)) ? Number(sortValue) : index;
+    out.push({ fileId, type: rawType as ContentMediaType, sort });
+  });
+  return out;
 }
 
 export function mapContentMedia(records: Array<{ fileId: string; type: string; sort: number; file?: any }> = []): ContentMediaDto[] {

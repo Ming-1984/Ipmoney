@@ -4,7 +4,7 @@ import { createHash } from 'crypto';
 import { PrismaService } from './prisma/prisma.service';
 import { ConfigService } from '../modules/config/config.service';
 
-type ContentType = 'LISTING';
+type ContentType = 'LISTING' | 'ACHIEVEMENT';
 type EventType = 'VIEW' | 'FAVORITE' | 'CONSULT';
 
 type ActorInfo = {
@@ -105,6 +105,20 @@ export class ContentEventService {
     const data = this.buildStatsIncrement(delta);
     if (Object.keys(data).length === 0) return;
 
+    if (contentType === 'ACHIEVEMENT') {
+      await this.prisma.achievementStats.upsert({
+        where: { achievementId: contentId },
+        create: {
+          achievementId: contentId,
+          viewCount: delta.viewCount ?? 0,
+          favoriteCount: delta.favoriteCount ?? 0,
+          consultCount: delta.consultCount ?? 0,
+        },
+        update: data,
+      });
+      return;
+    }
+
     await this.prisma.listingStats.upsert({
       where: { listingId: contentId },
       create: {
@@ -122,6 +136,15 @@ export class ContentEventService {
 
     if (delta > 0) {
       await this.incrementStats(contentType, contentId, { favoriteCount: delta });
+      return;
+    }
+
+    if (contentType === 'ACHIEVEMENT') {
+      const current = await this.prisma.achievementStats.findUnique({ where: { achievementId: contentId } });
+      if (!current) return;
+      const next = Math.max(0, (current.favoriteCount ?? 0) + delta);
+      if (next === current.favoriteCount) return;
+      await this.prisma.achievementStats.update({ where: { achievementId: contentId }, data: { favoriteCount: next } });
       return;
     }
 

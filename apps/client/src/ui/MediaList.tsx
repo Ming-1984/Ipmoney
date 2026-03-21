@@ -16,17 +16,17 @@ export type MediaItem = {
 };
 
 function fileNameFromUrl(url?: string | null): string {
-  if (!url) return 'File';
+  if (!url) return '??';
   try {
     const u = new URL(url);
     const pathname = u.pathname || '';
     const idx = pathname.lastIndexOf('/');
     const name = idx >= 0 ? pathname.slice(idx + 1) : pathname;
-    return decodeURIComponent(name || 'File');
+    return decodeURIComponent(name || '??');
   } catch {
     const idx = url.lastIndexOf('/');
     const name = idx >= 0 ? url.slice(idx + 1) : url;
-    return name || 'File';
+    return name || '??';
   }
 }
 
@@ -59,7 +59,7 @@ export function MediaList(props: { media: MediaItem[]; coverUrl?: string | null 
         if (url) setTempUrl(key, url);
         return url;
       } catch (e: any) {
-        toast(e?.message || '获取链接失败', { icon: 'fail' });
+        toast(e?.message || '??????', { icon: 'fail' });
         return '';
       } finally {
         pendingRef.current.delete(key);
@@ -83,9 +83,9 @@ export function MediaList(props: { media: MediaItem[]; coverUrl?: string | null 
   const copyLink = useCallback(async (url: string) => {
     try {
       await Taro.setClipboardData({ data: url });
-      toast('Link copied', { icon: 'success' });
+      toast('?????', { icon: 'success' });
     } catch (_) {
-      toast('Copy failed', { icon: 'fail' });
+      toast('????', { icon: 'fail' });
     }
   }, []);
 
@@ -96,9 +96,8 @@ export function MediaList(props: { media: MediaItem[]; coverUrl?: string | null 
   }, []);
 
   const onVideoError = useCallback((e: any) => {
-    // Avoid hard crashes/white screens when media URLs are invalid (e.g. fixtures).
     const err = e?.detail?.errMsg || e?.detail?.msg;
-    toast(err ? `Copy link?${String(err)}` : 'Copy link', { icon: 'fail' });
+    toast(err ? `?????${String(err)}` : '????', { icon: 'fail' });
   }, []);
 
   if (!media.length) return null;
@@ -125,7 +124,7 @@ export function MediaList(props: { media: MediaItem[]; coverUrl?: string | null 
           const handleImagePreview = async () => {
             const tempUrl = await getTempUrl(fileId, 'preview');
             if (!tempUrl) {
-              toast('暂无可预览链接', { icon: 'fail' });
+              toast('???????', { icon: 'fail' });
               return;
             }
             const urls = imageUrls.includes(tempUrl) ? imageUrls : [tempUrl];
@@ -134,7 +133,7 @@ export function MediaList(props: { media: MediaItem[]; coverUrl?: string | null 
           return (
             <View key={key} className="media-item">
               <View className="media-thumb" onClick={() => void handleImagePreview()}>
-                <Text className="muted">点击预览</Text>
+                <Text className="muted">????</Text>
               </View>
             </View>
           );
@@ -145,18 +144,11 @@ export function MediaList(props: { media: MediaItem[]; coverUrl?: string | null 
           const poster = isHttpUrl(coverUrl) ? coverUrl || undefined : undefined;
           return (
             <View key={key} className="media-item">
-              <Video
-                className="media-thumb"
-                src={url}
-                controls
-                autoplay={false}
-                poster={poster}
-                onError={onVideoError}
-              />
+              <Video className="media-thumb" src={url} controls autoplay={false} poster={poster} onError={onVideoError} />
               <View className="row-between" style={{ gap: '12rpx', marginTop: '10rpx' }}>
                 <Text className="muted clamp-1">{name}</Text>
                 <Button block={false} size="small" variant="ghost" onClick={() => void copyLink(url)}>
-                  复制链接
+                  ????
                 </Button>
               </View>
             </View>
@@ -164,7 +156,7 @@ export function MediaList(props: { media: MediaItem[]; coverUrl?: string | null 
         }
 
         if (m.type === 'VIDEO' && fileId) {
-          const name = m.fileName || `视频 ${idx + 1}`;
+          const name = m.fileName || `?? ${idx + 1}`;
           const poster = isHttpUrl(coverUrl) ? coverUrl || undefined : undefined;
           const activeUrl = tempUrls[previewKey] || '';
           return (
@@ -173,9 +165,9 @@ export function MediaList(props: { media: MediaItem[]; coverUrl?: string | null 
                 <Video className="media-thumb" src={activeUrl} controls autoplay={false} poster={poster} onError={onVideoError} />
               ) : (
                 <View className="media-thumb">
-                  <Text className="muted">暂无播放链接</Text>
+                  <Text className="muted">??????</Text>
                   <Button block={false} size="small" variant="ghost" onClick={() => void getTempUrl(fileId, 'preview')}>
-                    获取播放链接
+                    ??????
                   </Button>
                 </View>
               )}
@@ -183,7 +175,7 @@ export function MediaList(props: { media: MediaItem[]; coverUrl?: string | null 
                 <Text className="muted clamp-1">{name}</Text>
                 {activeUrl ? (
                   <Button block={false} size="small" variant="ghost" onClick={() => void copyLink(activeUrl)}>
-                    复制链接
+                    ????
                   </Button>
                 ) : null}
               </View>
@@ -200,14 +192,14 @@ export function MediaList(props: { media: MediaItem[]; coverUrl?: string | null 
                 <Text className="media-file-url clamp-1">{url}</Text>
               </View>
               <Button block={false} size="small" variant="ghost" onClick={() => void copyLink(url)}>
-                复制链接
+                ????
               </Button>
             </View>
           );
         }
 
         if (m.type === 'FILE' && fileId) {
-          const name = m.fileName || `附件 ${idx + 1}`;
+          const name = m.fileName || `?? ${idx + 1}`;
           const activeUrl = tempUrls[downloadKey] || '';
           return (
             <View key={key} className="media-item media-file">
@@ -216,16 +208,16 @@ export function MediaList(props: { media: MediaItem[]; coverUrl?: string | null 
                 {activeUrl ? (
                   <Text className="media-file-url clamp-1">{activeUrl}</Text>
                 ) : (
-                  <Text className="muted">未生成下载链接</Text>
+                  <Text className="muted">???????</Text>
                 )}
               </View>
               {activeUrl ? (
                 <Button block={false} size="small" variant="ghost" onClick={() => void copyLink(activeUrl)}>
-                  复制链接
+                  ????
                 </Button>
               ) : (
                 <Button block={false} size="small" variant="ghost" onClick={() => void getTempUrl(fileId, 'download')}>
-                  获取下载链接
+                  ??????
                 </Button>
               )}
             </View>

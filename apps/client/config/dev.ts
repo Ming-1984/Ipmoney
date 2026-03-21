@@ -6,6 +6,8 @@ export default {
   env: {
     NODE_ENV: '"development"',
   },
+  enableSourceMap: true,
+  sourceMapType: 'source-map',
   h5: {
     devServer: {
       port: h5Port,

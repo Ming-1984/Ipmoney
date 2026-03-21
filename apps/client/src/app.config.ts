@@ -26,7 +26,7 @@
     },
     {
       root: 'subpackages/publish',
-      pages: ['patent/index'],
+      pages: ['patent/index', 'achievement/index'],
     },
     {
       root: 'subpackages/messages',
@@ -50,6 +50,10 @@
     },
     {
       root: 'subpackages/listing',
+      pages: ['detail/index'],
+    },
+    {
+      root: 'subpackages/achievement',
       pages: ['detail/index'],
     },
     {
@@ -89,6 +93,10 @@
       pages: ['index'],
     },
     {
+      root: 'subpackages/my-achievements',
+      pages: ['index'],
+    },
+    {
       root: 'subpackages/settings',
       pages: ['notifications/index'],
     },
@@ -116,7 +124,7 @@
   preloadRule: {
     'pages/home/index': {
       network: 'all',
-      packages: ['subpackages/search', 'subpackages/listing'],
+      packages: ['subpackages/search', 'subpackages/listing', 'subpackages/achievement'],
     },
     'pages/tech-managers/index': {
       network: 'all',
@@ -128,7 +136,13 @@
     },
     'pages/me/index': {
       network: 'all',
-      packages: ['subpackages/orders', 'subpackages/publish', 'subpackages/checkout', 'subpackages/favorites'],
+      packages: [
+        'subpackages/orders',
+        'subpackages/publish',
+        'subpackages/checkout',
+        'subpackages/favorites',
+        'subpackages/my-achievements',
+      ],
     },
   },
   window: {

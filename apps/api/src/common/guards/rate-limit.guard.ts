@@ -15,12 +15,14 @@ export class RateLimitGuard implements CanActivate {
 
   canActivate(context: ExecutionContext): boolean {
     if (!this.enabled) return true;
+    if (process.env.NODE_ENV !== 'production') return true;
 
     const req = context.switchToHttp().getRequest<any>();
     const path = String(req?.path || req?.url || '');
     if (path.startsWith('/health')) return true;
     const ipRaw = String(req?.ip || req?.headers?.['x-forwarded-for'] || req?.socket?.remoteAddress || 'unknown');
     const ip = ipRaw.split(',')[0].trim() || 'unknown';
+    if (ip === '127.0.0.1' || ip === '::1' || ip.startsWith('::ffff:127.')) return true;
 
     const now = Date.now();
     const current = this.store.get(ip);

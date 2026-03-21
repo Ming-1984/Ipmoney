@@ -14,14 +14,32 @@ export class FavoritesController {
   }
 
   @UseGuards(BearerAuthGuard)
+  @Get('/me/favorites/achievements')
+  async listAchievementFavorites(@Req() req: any, @Query() query: any) {
+    return await this.favorites.listAchievementFavorites(req, query);
+  }
+
+  @UseGuards(BearerAuthGuard)
   @Post('/listings/:listingId/favorites')
   async favoriteListing(@Req() req: any, @Param('listingId') listingId: string) {
     return await this.favorites.favoriteListing(req, listingId);
   }
 
   @UseGuards(BearerAuthGuard)
+  @Post('/achievements/:achievementId/favorites')
+  async favoriteAchievement(@Req() req: any, @Param('achievementId') achievementId: string) {
+    return await this.favorites.favoriteAchievement(req, achievementId);
+  }
+
+  @UseGuards(BearerAuthGuard)
   @Delete('/listings/:listingId/favorites')
   async unfavoriteListing(@Req() req: any, @Param('listingId') listingId: string) {
     return await this.favorites.unfavoriteListing(req, listingId);
+  }
+
+  @UseGuards(BearerAuthGuard)
+  @Delete('/achievements/:achievementId/favorites')
+  async unfavoriteAchievement(@Req() req: any, @Param('achievementId') achievementId: string) {
+    return await this.favorites.unfavoriteAchievement(req, achievementId);
   }
 }

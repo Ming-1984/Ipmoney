@@ -33,6 +33,9 @@ export function usePagedList<T>(
   const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const itemsLengthRef = useRef(0);
+  const loadingRef = useRef(false);
+  const refreshingRef = useRef(false);
+  const loadingMoreRef = useRef(false);
 
   useEffect(() => {
     onErrorRef.current = options?.onError;
@@ -42,6 +45,18 @@ export function usePagedList<T>(
   useEffect(() => {
     itemsLengthRef.current = items.length;
   }, [items.length]);
+
+  useEffect(() => {
+    loadingRef.current = loading;
+  }, [loading]);
+
+  useEffect(() => {
+    refreshingRef.current = refreshing;
+  }, [refreshing]);
+
+  useEffect(() => {
+    loadingMoreRef.current = loadingMore;
+  }, [loadingMore]);
 
   const setItems = useCallback((next: T[] | ((prev: T[]) => T[])) => {
     setItemsState((prev) => {
@@ -100,10 +115,12 @@ export function usePagedList<T>(
   );
 
   const reload = useCallback(async () => {
+    if (loadingRef.current || refreshingRef.current || loadingMoreRef.current) return;
     await loadPage(1, 'load', false);
   }, [loadPage]);
 
   const refresh = useCallback(async () => {
+    if (loadingRef.current || refreshingRef.current || loadingMoreRef.current) return;
     await loadPage(1, 'refresh', false);
   }, [loadPage]);
 
@@ -115,10 +132,10 @@ export function usePagedList<T>(
   }, [lastCount, pageInfo, pageSize]);
 
   const loadMore = useCallback(async () => {
-    if (loading || refreshing || loadingMore) return;
+    if (loadingRef.current || refreshingRef.current || loadingMoreRef.current) return;
     if (!hasMore) return;
     await loadPage(page + 1, 'loadMore', true);
-  }, [hasMore, loadPage, loading, loadingMore, page, refreshing]);
+  }, [hasMore, loadPage, page]);
 
   const reset = useCallback(() => {
     requestIdRef.current += 1;

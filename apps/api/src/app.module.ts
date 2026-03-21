@@ -14,6 +14,7 @@ import { PatentsModule } from './modules/patents/patents.module';
 import { RegionsModule } from './modules/regions/regions.module';
 import { UsersModule } from './modules/users/users.module';
 import { ListingsModule } from './modules/listings/listings.module';
+import { AchievementsModule } from './modules/achievements/achievements.module';
 import { OrdersModule } from './modules/orders/orders.module';
 import { WebhooksModule } from './modules/webhooks/webhooks.module';
 import { ConversationsModule } from './modules/conversations/conversations.module';
@@ -46,6 +47,7 @@ import { RateLimitGuard } from './common/guards/rate-limit.guard';
     FilesModule,
     PatentsModule,
     ListingsModule,
+    AchievementsModule,
     OrdersModule,
     WebhooksModule,
     ConversationsModule,

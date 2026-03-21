@@ -75,6 +75,7 @@ enum PatentPartyRole {
 
 enum FileOwnerScope {
   LISTING
+  ACHIEVEMENT
   CASE
   REFUND_REQUEST
   INVOICE
@@ -112,6 +113,26 @@ enum ListingStatus {
   SOLD
 }
 
+enum ContentStatus {
+  DRAFT
+  ACTIVE
+  OFF_SHELF
+}
+
+enum ContentMediaType {
+  IMAGE
+  VIDEO
+  FILE
+}
+
+enum AchievementMaturity {
+  CONCEPT
+  PROTOTYPE
+  PILOT
+  MASS_PRODUCTION
+  COMMERCIALIZED
+  OTHER
+}
 
 enum FeaturedLevel {
   NONE
@@ -160,6 +181,7 @@ enum ConversationMessageType {
 
 enum ConversationContentType {
   LISTING
+  ACHIEVEMENT
   TECH_MANAGER
 }
 
@@ -176,6 +198,7 @@ enum NotificationKind {
 
 enum CommentContentType {
   LISTING
+  ACHIEVEMENT
 }
 
 enum ContentEventType {
@@ -259,6 +282,7 @@ enum SystemConfigScope {
 
 enum AiContentType {
   LISTING
+  ACHIEVEMENT
 }
 
 enum AiParseStatus {
@@ -295,6 +319,7 @@ enum AlertTargetType {
   PATENT
   ORDER
   LISTING
+  ACHIEVEMENT
   AI_PARSE
   IMPORT
   PAYMENT
@@ -370,11 +395,13 @@ model User {
   techManagerProfile    TechManagerProfile?
 
   listings       Listing[] @relation("Listing_Seller")
+  achievements   Achievement[] @relation("Achievement_Publisher")
   orders         Order[]   @relation("Order_Buyer")
   assignedOrders Order[]   @relation("Order_AssignedCs")
 
   listingAuditLogs     ListingAuditLog[]     @relation("ListingAuditLog_Reviewer")
   listingFavorites     ListingFavorite[]
+  achievementFavorites AchievementFavorite[]
   listingConsultEvents ListingConsultEvent[]
   listingBatchJobs     ListingBatchJob[]     @relation("ListingBatchJob_Operator")
   listingImportJobs    ListingImportJob[]    @relation("ListingImportJob_Operator")
@@ -488,6 +515,7 @@ model Region {
 
   users            User[]
   listings         Listing[]
+  achievements     Achievement[]
   verifications    UserVerification[]
 
   @@map("regions")
@@ -633,6 +661,7 @@ model File {
   createdAt  DateTime       @default(now()) @map("created_at")
 
   listingMedia       ListingMedia[]
+  achievementMedia  AchievementMedia[]
   messageAttachments ConversationMessage[]
   milestoneEvidence  CsMilestone[]
   caseEvidences      CsCaseEvidence[]
@@ -644,6 +673,7 @@ model File {
   listingBatchJobErrorFiles ListingBatchJob[] @relation("ListingBatchJob_ErrorFile")
   listingImportJobSourceFiles ListingImportJob[] @relation("ListingImportJob_SourceFile")
   listingImportJobErrorFiles ListingImportJob[] @relation("ListingImportJob_ErrorFile")
+  achievementCovers  Achievement[]        @relation("Achievement_CoverFile")
 
   @@index([ownerScope, ownerId])
   @@map("files")
@@ -700,6 +730,78 @@ model Listing {
   @@index([status, auditStatus, createdAt])
   @@index([regionCode])
   @@map("listings")
+}
+
+model Achievement {
+  id                   String              @id @default(uuid()) @db.Uuid
+  publisherUserId      String              @map("publisher_user_id") @db.Uuid
+  source               ContentSource       @default(USER)
+  title                String
+  summary              String?
+  description          String?
+  keywordsJson         Json?               @map("keywords_json")
+  maturity             AchievementMaturity?
+  cooperationModesJson Json?               @map("cooperation_modes_json")
+  coverFileId          String?             @map("cover_file_id") @db.Uuid
+  regionCode           String?             @map("region_code")
+  industryTagsJson     Json?               @map("industry_tags_json")
+  auditStatus          AuditStatus         @default(PENDING) @map("audit_status")
+  status               ContentStatus       @default(DRAFT)
+  createdAt            DateTime            @default(now()) @map("created_at")
+  updatedAt            DateTime            @updatedAt @map("updated_at")
+
+  publisher  User   @relation("Achievement_Publisher", fields: [publisherUserId], references: [id])
+  coverFile  File?  @relation("Achievement_CoverFile", fields: [coverFileId], references: [id])
+  region     Region? @relation(fields: [regionCode], references: [code])
+  media      AchievementMedia[]
+  stats      AchievementStats?
+  favorites  AchievementFavorite[]
+
+  @@index([publisherUserId, createdAt])
+  @@index([auditStatus, status])
+  @@index([status, auditStatus, createdAt])
+  @@index([regionCode])
+  @@map("achievements")
+}
+
+model AchievementMedia {
+  id            String            @id @default(uuid()) @db.Uuid
+  achievementId String            @map("achievement_id") @db.Uuid
+  fileId        String            @map("file_id") @db.Uuid
+  type          ContentMediaType
+  sort          Int               @default(0)
+
+  achievement Achievement @relation(fields: [achievementId], references: [id])
+  file        File        @relation(fields: [fileId], references: [id])
+
+  @@index([achievementId, sort])
+  @@map("achievement_media")
+}
+
+model AchievementFavorite {
+  id            String   @id @default(uuid()) @db.Uuid
+  achievementId String   @map("achievement_id") @db.Uuid
+  userId        String   @map("user_id") @db.Uuid
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  achievement Achievement @relation(fields: [achievementId], references: [id])
+  user        User        @relation(fields: [userId], references: [id])
+
+  @@unique([achievementId, userId])
+  @@map("achievement_favorites")
+}
+
+model AchievementStats {
+  achievementId String   @id @map("achievement_id") @db.Uuid
+  viewCount     Int      @default(0) @map("view_count")
+  favoriteCount Int      @default(0) @map("favorite_count")
+  consultCount  Int      @default(0) @map("consult_count")
+  commentCount  Int      @default(0) @map("comment_count")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  achievement Achievement @relation(fields: [achievementId], references: [id])
+
+  @@map("achievement_stats")
 }
 
 model ListingMedia {

@@ -1,6 +1,6 @@
 ﻿import { View, Text, Input } from '@tarojs/components';
 import Taro from '@tarojs/taro';
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import './index.scss';
 
 import type { components } from '@ipmoney/api-types';
@@ -15,11 +15,12 @@ import { listingTopicLabel, LISTING_TOPIC_OPTIONS } from '../../lib/listingTopic
 import { fenToYuanInt } from '../../lib/money';
 import { ensureRegionNamesReady, regionNameByCode } from '../../lib/regions';
 import type { ChipOption } from '../../ui/filters';
+import { AchievementCard } from '../../ui/AchievementCard';
 import { ListingCard } from '../../ui/ListingCard';
 import { ListingListSkeleton } from '../../ui/ListingSkeleton';
 import { SearchEntry } from '../../ui/SearchEntry';
 import { EmptyCard, ErrorCard } from '../../ui/StateCards';
-import { ChipGroup, FilterSheet, IndustryTagsPicker, RangeInput } from '../../ui/filters';
+import { CategoryControl, ChipGroup, FilterSheet, IndustryTagsPicker, RangeInput } from '../../ui/filters';
 import { CellRow, Surface } from '../../ui/layout';
 import { Button, CellGroup, PullToRefresh, toast } from '../../ui/nutui';
 import { usePagedList } from '../../lib/usePagedList';
@@ -35,6 +36,10 @@ type TradeMode = components['schemas']['TradeMode'];
 type PriceType = components['schemas']['PriceType'];
 type LegalStatus = components['schemas']['LegalStatus'];
 type ListingTopic = components['schemas']['ListingTopic'];
+type AchievementSummary = components['schemas']['AchievementSummary'];
+type PagedAchievementSummary = components['schemas']['PagedAchievementSummary'];
+type AchievementMaturity = components['schemas']['AchievementMaturity'];
+type ContentSortBy = components['schemas']['ContentSortBy'];
 
 type TransferCountRange = '' | 'ZERO' | 'ONE' | 'TWO_PLUS';
 
@@ -62,8 +67,15 @@ type ListingFilters = {
   clusterName?: string;
 };
 
-type SearchPrefill = Partial<ListingFilters> & {
-  tab?: 'LISTING';
+type AchievementFilters = {
+  maturity: AchievementMaturity | '';
+  regionCode?: string;
+  regionName?: string;
+  industryTags: string[];
+};
+
+type SearchPrefill = Partial<ListingFilters & AchievementFilters> & {
+  tab?: 'LISTING' | 'ACHIEVEMENT';
   q?: string;
   reset?: boolean;
 };
@@ -82,6 +94,13 @@ const LISTING_FILTER_DEFAULT: ListingFilters = {
   listingTopic: '',
   clusterId: undefined,
   clusterName: undefined,
+};
+
+const ACHIEVEMENT_FILTER_DEFAULT: AchievementFilters = {
+  maturity: '',
+  industryTags: [],
+  regionCode: undefined,
+  regionName: undefined,
 };
 
 const PATENT_TYPE_OPTIONS: ChipOption<PatentType | ''>[] = [
@@ -130,6 +149,21 @@ const LISTING_SORT_OPTIONS: ChipOption<SortBy>[] = [
   { value: 'NEWEST', label: '最新发布' },
 ];
 
+const ACHIEVEMENT_SORT_OPTIONS: ChipOption<ContentSortBy>[] = [
+  { value: 'RECOMMENDED', label: '综合推荐' },
+  { value: 'NEWEST', label: '最新发布' },
+];
+
+const ACHIEVEMENT_MATURITY_OPTIONS: ChipOption<AchievementMaturity | ''>[] = [
+  { value: '', label: '不限' },
+  { value: 'CONCEPT', label: '概念验证' },
+  { value: 'PROTOTYPE', label: '样机阶段' },
+  { value: 'PILOT', label: '中试阶段' },
+  { value: 'MASS_PRODUCTION', label: '量产阶段' },
+  { value: 'COMMERCIALIZED', label: '已商业化' },
+  { value: 'OTHER', label: '其他' },
+];
+
 function FilterSection(props: { title: string; children: React.ReactNode }) {
   return (
     <View className="search-filter-section">
@@ -174,13 +208,31 @@ function transferCountSummary(min?: number, max?: number): string | null {
   return null;
 }
 
+function achievementMaturityLabel(value?: AchievementMaturity | ''): string | null {
+  if (!value) return null;
+  if (value === 'CONCEPT') return '概念验证';
+  if (value === 'PROTOTYPE') return '样机阶段';
+  if (value === 'PILOT') return '中试阶段';
+  if (value === 'MASS_PRODUCTION') return '量产阶段';
+  if (value === 'COMMERCIALIZED') return '已商业化';
+  if (value === 'OTHER') return '其他';
+  return String(value);
+}
+
 export default function SearchPage() {
   const [qInput, setQInput] = useState('');
   const [q, setQ] = useState('');
 
+  const [tab, setTab] = useState<'LISTING' | 'ACHIEVEMENT'>('LISTING');
   const [sortBy, setSortBy] = useState<SortBy>('RECOMMENDED');
+  const [achievementSortBy, setAchievementSortBy] = useState<ContentSortBy>('RECOMMENDED');
   const [listingFilters, setListingFilters] = useState<ListingFilters>(LISTING_FILTER_DEFAULT);
+  const [achievementFilters, setAchievementFilters] = useState<AchievementFilters>(ACHIEVEMENT_FILTER_DEFAULT);
   const [filtersOpen, setFiltersOpen] = useState(false);
+  const autoLoadSignatureRef = useRef<{ LISTING: string | null; ACHIEVEMENT: string | null }>({
+    LISTING: null,
+    ACHIEVEMENT: null,
+  });
 
   const [favoriteIds, setFavoriteIds] = useState<Set<string>>(() => new Set(getFavoriteListingIds()));
 
@@ -190,6 +242,9 @@ export default function SearchPage() {
     Taro.removeStorageSync(STORAGE_KEYS.searchPrefill);
 
     const prefill = raw as SearchPrefill;
+
+    if (prefill.tab === 'ACHIEVEMENT') setTab('ACHIEVEMENT');
+    if (prefill.tab === 'LISTING') setTab('LISTING');
 
     if (prefill.reset) {
       setListingFilters(LISTING_FILTER_DEFAULT);
@@ -204,6 +259,20 @@ export default function SearchPage() {
       setQInput(prefill.q);
       setQ(nextQ);
     }
+
+    setAchievementFilters((prev) => {
+      const base = prefill.reset ? ACHIEVEMENT_FILTER_DEFAULT : prev;
+      const nextIndustryTags = Array.isArray(prefill.industryTags)
+        ? sanitizeIndustryTagNames(prefill.industryTags)
+        : sanitizeIndustryTagNames(base.industryTags);
+      return {
+        ...base,
+        maturity: (prefill.maturity as AchievementMaturity | undefined) ?? base.maturity,
+        regionCode: prefill.regionCode ?? base.regionCode,
+        regionName: prefill.regionName ?? base.regionName,
+        industryTags: nextIndustryTags,
+      };
+    });
 
     setListingFilters((prev) => {
       const base = prefill.reset ? LISTING_FILTER_DEFAULT : prev;
@@ -273,6 +342,56 @@ export default function SearchPage() {
   );
 
   const listingList = usePagedList<ListingSummary>(fetchListing, { pageSize: 20 });
+
+  const fetchAchievement = useCallback(
+    async ({ page, pageSize }: { page: number; pageSize: number }) => {
+      await ensureRegionNamesReady();
+      const params: Record<string, any> = { page, pageSize, sortBy: achievementSortBy };
+      if (q) params.q = q;
+      if (achievementFilters.regionCode) params.regionCode = achievementFilters.regionCode;
+      if (achievementFilters.maturity) params.maturity = achievementFilters.maturity;
+      const tags = sanitizeIndustryTagNames(achievementFilters.industryTags);
+      if (tags.length) params.industryTags = tags;
+      return apiGet<PagedAchievementSummary>('/search/achievements', params);
+    },
+    [achievementFilters, achievementSortBy, q],
+  );
+
+  const achievementList = usePagedList<AchievementSummary>(fetchAchievement, { pageSize: 20 });
+
+  const listingSignature = useMemo(() => JSON.stringify({ q, sortBy, listingFilters }), [listingFilters, q, sortBy]);
+  const achievementSignature = useMemo(
+    () => JSON.stringify({ q, achievementSortBy, achievementFilters }),
+    [achievementFilters, achievementSortBy, q],
+  );
+
+  useEffect(() => {
+    if (tab === 'LISTING') {
+      if (autoLoadSignatureRef.current.LISTING === listingSignature) return;
+      if (!listingList.items.length && !listingList.loading && !listingList.error) {
+        autoLoadSignatureRef.current.LISTING = listingSignature;
+        void listingList.reload();
+      }
+      return;
+    }
+    if (autoLoadSignatureRef.current.ACHIEVEMENT === achievementSignature) return;
+    if (!achievementList.items.length && !achievementList.loading && !achievementList.error) {
+      autoLoadSignatureRef.current.ACHIEVEMENT = achievementSignature;
+      void achievementList.reload();
+    }
+  }, [
+    achievementList.error,
+    achievementList.items.length,
+    achievementList.loading,
+    achievementList.reload,
+    achievementSignature,
+    listingList.error,
+    listingList.items.length,
+    listingList.loading,
+    listingList.reload,
+    listingSignature,
+    tab,
+  ]);
 
   const startListingConsult = useCallback(async (listingId: string) => {
     if (!ensureApproved()) return;
@@ -357,6 +476,7 @@ export default function SearchPage() {
   }, []);
 
   const listingItems = useMemo(() => listingList.items, [listingList.items]);
+  const achievementItems = useMemo(() => achievementList.items, [achievementList.items]);
 
   const listingFilterLabels = useMemo(() => {
     const out: string[] = [];
@@ -381,14 +501,25 @@ export default function SearchPage() {
     return out.filter(Boolean);
   }, [listingFilters]);
 
+  const achievementFilterLabels = useMemo(() => {
+    const out: string[] = [];
+    const maturityLabel = achievementMaturityLabel(achievementFilters.maturity);
+    if (maturityLabel) out.push(maturityLabel);
+    const regionLabel = achievementFilters.regionCode ? regionNameByCode(achievementFilters.regionCode) : '';
+    if (regionLabel) out.push(regionLabel);
+    if (achievementFilters.industryTags.length) out.push(...achievementFilters.industryTags.slice(0, 3));
+    return out.filter(Boolean);
+  }, [achievementFilters]);
+
   const showListingInitialLoading = listingList.loading && listingItems.length === 0;
+  const showAchievementInitialLoading = achievementList.loading && achievementItems.length === 0;
 
   return (
     <View className="container search-v4">
       <Surface className="search-hero glass-surface">
         <SearchEntry
           value={qInput}
-          placeholder="输入专利关键词"
+          placeholder={tab === 'LISTING' ? '输入专利关键词' : '输入成果关键词'}
           actionText="搜索"
           onChange={(value) => {
             setQInput(value);
@@ -401,197 +532,321 @@ export default function SearchPage() {
 
         <View style={{ height: '12rpx' }} />
 
-        <View className="search-sort-row">
-          <View className="search-sort-options">
-            {LISTING_SORT_OPTIONS.map((opt) => (
-              <Text
-                key={opt.value}
-                className={['search-sort-option', sortBy === opt.value ? 'is-active' : ''].filter(Boolean).join(' ')}
-                onClick={() => setSortBy(opt.value)}
-              >
-                {opt.label}
-              </Text>
-            ))}
-          </View>
-          <View
-            className="search-filter-btn"
-            onClick={() => {
-              openFilters();
-            }}
-          >
-            <Text>筛选</Text>
-          </View>
-        </View>
+        <CategoryControl
+          value={tab}
+          options={[
+            { label: '专利交易', value: 'LISTING' },
+            { label: '专利成果', value: 'ACHIEVEMENT' },
+          ]}
+          onChange={(value) => setTab(value as 'LISTING' | 'ACHIEVEMENT')}
+        />
 
-        {listingFilterLabels.length ? (
-          <View className="search-selected-wrap">
-            <View className="search-selected-scroll">
-              {listingFilterLabels.map((txt, idx) => (
-                <View key={`${txt}-${idx}`} className="pill">
-                  <Text>{txt}</Text>
-                </View>
-              ))}
-              <View
-                className="pill pill-strong"
-                onClick={() => {
-                  setListingFilters(LISTING_FILTER_DEFAULT);
-                }}
-              >
-                <Text>清空</Text>
+        <View style={{ height: '12rpx' }} />
+
+        {tab === 'LISTING' ? (
+          <>
+            <View className="search-sort-row">
+              <View className="search-sort-options">
+                {LISTING_SORT_OPTIONS.map((opt) => (
+                  <Text
+                    key={opt.value}
+                    className={['search-sort-option', sortBy === opt.value ? 'is-active' : ''].filter(Boolean).join(' ')}
+                    onClick={() => setSortBy(opt.value)}
+                  >
+                    {opt.label}
+                  </Text>
+                ))}
+              </View>
+              <View className="search-filter-btn" onClick={openFilters}>
+                <Text>筛选</Text>
               </View>
             </View>
-          </View>
-        ) : null}
+
+            {listingFilterLabels.length ? (
+              <View className="search-selected-wrap">
+                <View className="search-selected-scroll">
+                  {listingFilterLabels.map((txt, idx) => (
+                    <View key={`${txt}-${idx}`} className="pill">
+                      <Text>{txt}</Text>
+                    </View>
+                  ))}
+                  <View className="pill pill-strong" onClick={() => setListingFilters(LISTING_FILTER_DEFAULT)}>
+                    <Text>清空</Text>
+                  </View>
+                </View>
+              </View>
+            ) : null}
+          </>
+        ) : (
+          <>
+            <View className="search-sort-row">
+              <View className="search-sort-options">
+                {ACHIEVEMENT_SORT_OPTIONS.map((opt) => (
+                  <Text
+                    key={opt.value}
+                    className={[
+                      'search-sort-option',
+                      achievementSortBy === opt.value ? 'is-active' : '',
+                    ]
+                      .filter(Boolean)
+                      .join(' ')}
+                    onClick={() => setAchievementSortBy(opt.value)}
+                  >
+                    {opt.label}
+                  </Text>
+                ))}
+              </View>
+              <View className="search-filter-btn" onClick={openFilters}>
+                <Text>筛选</Text>
+              </View>
+            </View>
+
+            {achievementFilterLabels.length ? (
+              <View className="search-selected-wrap">
+                <View className="search-selected-scroll">
+                  {achievementFilterLabels.map((txt, idx) => (
+                    <View key={`${txt}-${idx}`} className="pill">
+                      <Text>{txt}</Text>
+                    </View>
+                  ))}
+                  <View className="pill pill-strong" onClick={() => setAchievementFilters(ACHIEVEMENT_FILTER_DEFAULT)}>
+                    <Text>清空</Text>
+                  </View>
+                </View>
+              </View>
+            ) : null}
+          </>
+        )}
       </Surface>
 
-      <FilterSheet<ListingFilters>
-        open={filtersOpen}
-        title="筛选（专利）"
-        headerTitle="筛选条件"
-        variant="search"
-        value={listingFilters}
-        defaultValue={LISTING_FILTER_DEFAULT}
-        onClose={() => setFiltersOpen(false)}
-        onApply={(next) => setListingFilters(next)}
-        validate={(draft) => {
-          if (draft.priceMinFen !== undefined && draft.priceMaxFen !== undefined && draft.priceMinFen > draft.priceMaxFen) {
-            return '价格区间不合法';
-          }
-          if (
-            draft.depositMinFen !== undefined &&
-            draft.depositMaxFen !== undefined &&
-            draft.depositMinFen > draft.depositMaxFen
-          ) {
-            return '订金区间不合法';
-          }
-          if (
-            draft.transferCountMin !== undefined &&
-            draft.transferCountMax !== undefined &&
-            draft.transferCountMin > draft.transferCountMax
-          ) {
-            return '转让次数区间不合法';
-          }
-          return null;
-        }}
-      >
-        {({ draft, setDraft }) => {
-          const transferRangeValue = transferCountRangeValue(draft.transferCountMin, draft.transferCountMax);
-          return (
+      {tab === 'LISTING' ? (
+        <FilterSheet<ListingFilters>
+          open={filtersOpen}
+          title="筛选（专利）"
+          headerTitle="筛选条件"
+          variant="search"
+          value={listingFilters}
+          defaultValue={LISTING_FILTER_DEFAULT}
+          onClose={() => setFiltersOpen(false)}
+          onApply={(next) => setListingFilters(next)}
+          validate={(draft) => {
+            if (
+              draft.priceMinFen !== undefined &&
+              draft.priceMaxFen !== undefined &&
+              draft.priceMinFen > draft.priceMaxFen
+            ) {
+              return '价格区间不合法';
+            }
+            if (
+              draft.depositMinFen !== undefined &&
+              draft.depositMaxFen !== undefined &&
+              draft.depositMinFen > draft.depositMaxFen
+            ) {
+              return '订金区间不合法';
+            }
+            if (
+              draft.transferCountMin !== undefined &&
+              draft.transferCountMax !== undefined &&
+              draft.transferCountMin > draft.transferCountMax
+            ) {
+              return '转让次数区间不合法';
+            }
+            return null;
+          }}
+        >
+          {({ draft, setDraft }) => {
+            const transferRangeValue = transferCountRangeValue(draft.transferCountMin, draft.transferCountMax);
+            return (
+              <View className="search-filter-content">
+                <FilterSection title="特色标签">
+                  <ChipGroup
+                    value={draft.listingTopic}
+                    options={LISTING_TOPIC_FILTER_OPTIONS}
+                    onChange={(v) => setDraft((prev) => ({ ...prev, listingTopic: v }))}
+                  />
+                </FilterSection>
+
+                <FilterSection title="技术领域（IPC）">
+                  <IndustryTagsPicker
+                    value={draft.industryTags}
+                    max={8}
+                    onChange={(tags) => setDraft((prev) => ({ ...prev, industryTags: sanitizeIndustryTagNames(tags) }))}
+                  />
+                  <Text className="text-caption muted">标签数据源：公共产业标签库。</Text>
+                  <View className="search-filter-card">
+                    <CellGroup divider>
+                      <CellRow
+                        clickable
+                        title="IPC 分类"
+                        description="支持按 IPC 类别筛选"
+                        extra={<Text className="muted">{draft.ipcName || draft.ipc || '不限'}</Text>}
+                        isLast
+                        onClick={() =>
+                          openIpcPicker(({ code, name }) => {
+                            setDraft((prev) => ({ ...prev, ipc: code, ipcName: name }));
+                          })
+                        }
+                      />
+                    </CellGroup>
+                  </View>
+                  {draft.ipc ? (
+                    <Button
+                      className="search-filter-clear"
+                      variant="ghost"
+                      size="small"
+                      block={false}
+                      onClick={() => setDraft((prev) => ({ ...prev, ipc: '', ipcName: '' }))}
+                    >
+                      清空 IPC
+                    </Button>
+                  ) : null}
+                </FilterSection>
+
+                <FilterSection title="转让次数">
+                  <ChipGroup
+                    value={transferRangeValue}
+                    options={TRANSFER_COUNT_OPTIONS}
+                    onChange={(v) =>
+                      setDraft((prev) => {
+                        if (!v) return { ...prev, transferCountMin: undefined, transferCountMax: undefined };
+                        if (v === 'ZERO') return { ...prev, transferCountMin: 0, transferCountMax: 0 };
+                        if (v === 'ONE') return { ...prev, transferCountMin: 1, transferCountMax: 1 };
+                        return { ...prev, transferCountMin: 2, transferCountMax: undefined };
+                      })
+                    }
+                  />
+                </FilterSection>
+
+                <FilterSection title="专利类型">
+                  <ChipGroup
+                    value={draft.patentType}
+                    options={PATENT_TYPE_OPTIONS}
+                    onChange={(v) => setDraft((prev) => ({ ...prev, patentType: v }))}
+                  />
+                </FilterSection>
+
+                <FilterSection title="法律状态">
+                  <ChipGroup
+                    value={draft.legalStatus}
+                    options={LEGAL_STATUS_OPTIONS}
+                    onChange={(v) => setDraft((prev) => ({ ...prev, legalStatus: v }))}
+                  />
+                </FilterSection>
+
+                <FilterSection title="交易方式">
+                  <ChipGroup
+                    value={draft.tradeMode}
+                    options={TRADE_MODE_OPTIONS}
+                    onChange={(v) => setDraft((prev) => ({ ...prev, tradeMode: v }))}
+                  />
+                </FilterSection>
+
+                <FilterSection title="报价类型">
+                  <ChipGroup
+                    value={draft.priceType}
+                    options={PRICE_TYPE_OPTIONS}
+                    onChange={(v) =>
+                      setDraft((prev) => ({
+                        ...prev,
+                        priceType: v,
+                        ...(v === 'NEGOTIABLE' ? { priceMinFen: undefined, priceMaxFen: undefined } : {}),
+                      }))
+                    }
+                  />
+                </FilterSection>
+
+                <FilterSection title="价格区间">
+                  <RangeInput
+                    minFen={draft.priceMinFen}
+                    maxFen={draft.priceMaxFen}
+                    disabled={draft.priceType === 'NEGOTIABLE'}
+                    onChange={(range) =>
+                      setDraft((prev) => ({ ...prev, priceMinFen: range.minFen, priceMaxFen: range.maxFen }))
+                    }
+                  />
+                  {draft.priceType === 'NEGOTIABLE' ? (
+                    <Text className="text-caption muted">面议时不需要填写价格区间。</Text>
+                  ) : null}
+                </FilterSection>
+
+                <FilterSection title="订金区间">
+                  <RangeInput
+                    minFen={draft.depositMinFen}
+                    maxFen={draft.depositMaxFen}
+                    onChange={(range) =>
+                      setDraft((prev) => ({ ...prev, depositMinFen: range.minFen, depositMaxFen: range.maxFen }))
+                    }
+                  />
+                </FilterSection>
+
+                <FilterSection title="地区">
+                  <View className="search-filter-card">
+                    <CellGroup divider>
+                      <CellRow
+                        clickable
+                        title="地区"
+                        description="按行政区划选择"
+                        extra={<Text className="muted">{draft.regionName || '不限'}</Text>}
+                        isLast
+                        onClick={() =>
+                          openRegionPicker(({ code, name }) => {
+                            setDraft((prev) => ({ ...prev, regionCode: code, regionName: name }));
+                          })
+                        }
+                      />
+                    </CellGroup>
+                  </View>
+                  {draft.regionCode ? (
+                    <Button
+                      className="search-filter-clear"
+                      variant="ghost"
+                      size="small"
+                      block={false}
+                      onClick={() => setDraft((prev) => ({ ...prev, regionCode: undefined, regionName: undefined }))}
+                    >
+                      清空地区
+                    </Button>
+                  ) : null}
+                </FilterSection>
+
+                <FilterSection title="LOC">
+                  <Input
+                    className="search-filter-input"
+                    value={draft.loc}
+                    onInput={(e) => setDraft((prev) => ({ ...prev, loc: e.detail.value }))}
+                    placeholder="LOC 如 A01"
+                  />
+                </FilterSection>
+              </View>
+            );
+          }}
+        </FilterSheet>
+      ) : (
+        <FilterSheet<AchievementFilters>
+          open={filtersOpen}
+          title="筛选（成果）"
+          headerTitle="筛选条件"
+          variant="search"
+          value={achievementFilters}
+          defaultValue={ACHIEVEMENT_FILTER_DEFAULT}
+          onClose={() => setFiltersOpen(false)}
+          onApply={(next) => setAchievementFilters(next)}
+        >
+          {({ draft, setDraft }) => (
             <View className="search-filter-content">
-              <FilterSection title="特色标签">
+              <FilterSection title="成熟度">
                 <ChipGroup
-                  value={draft.listingTopic}
-                  options={LISTING_TOPIC_FILTER_OPTIONS}
-                  onChange={(v) => setDraft((prev) => ({ ...prev, listingTopic: v }))}
+                  value={draft.maturity}
+                  options={ACHIEVEMENT_MATURITY_OPTIONS}
+                  onChange={(v) => setDraft((prev) => ({ ...prev, maturity: v as AchievementMaturity | '' }))}
                 />
               </FilterSection>
 
-              <FilterSection title="技术领域（IPC）">
+              <FilterSection title="行业标签">
                 <IndustryTagsPicker
                   value={draft.industryTags}
                   max={8}
                   onChange={(tags) => setDraft((prev) => ({ ...prev, industryTags: sanitizeIndustryTagNames(tags) }))}
-                />
-                <Text className="text-caption muted">标签数据源：公共产业标签库。</Text>
-                <View className="search-filter-card">
-                  <CellGroup divider>
-                    <CellRow
-                      clickable
-                      title="IPC 分类"
-                      description="支持按 IPC 类别筛选"
-                      extra={<Text className="muted">{draft.ipcName || draft.ipc || '不限'}</Text>}
-                      isLast
-                      onClick={() =>
-                        openIpcPicker(({ code, name }) => {
-                          setDraft((prev) => ({ ...prev, ipc: code, ipcName: name }));
-                        })
-                      }
-                    />
-                  </CellGroup>
-                </View>
-                {draft.ipc ? (
-                  <Button
-                    className="search-filter-clear"
-                    variant="ghost"
-                    size="small"
-                    block={false}
-                    onClick={() => setDraft((prev) => ({ ...prev, ipc: '', ipcName: '' }))}
-                  >
-                    清空 IPC
-                  </Button>
-                ) : null}
-              </FilterSection>
-
-              <FilterSection title="转让次数">
-                <ChipGroup
-                  value={transferRangeValue}
-                  options={TRANSFER_COUNT_OPTIONS}
-                  onChange={(v) =>
-                    setDraft((prev) => {
-                      if (!v) return { ...prev, transferCountMin: undefined, transferCountMax: undefined };
-                      if (v === 'ZERO') return { ...prev, transferCountMin: 0, transferCountMax: 0 };
-                      if (v === 'ONE') return { ...prev, transferCountMin: 1, transferCountMax: 1 };
-                      return { ...prev, transferCountMin: 2, transferCountMax: undefined };
-                    })
-                  }
-                />
-              </FilterSection>
-
-              <FilterSection title="专利类型">
-                <ChipGroup
-                  value={draft.patentType}
-                  options={PATENT_TYPE_OPTIONS}
-                  onChange={(v) => setDraft((prev) => ({ ...prev, patentType: v }))}
-                />
-              </FilterSection>
-
-              <FilterSection title="法律状态">
-                <ChipGroup
-                  value={draft.legalStatus}
-                  options={LEGAL_STATUS_OPTIONS}
-                  onChange={(v) => setDraft((prev) => ({ ...prev, legalStatus: v }))}
-                />
-              </FilterSection>
-
-              <FilterSection title="交易方式">
-                <ChipGroup
-                  value={draft.tradeMode}
-                  options={TRADE_MODE_OPTIONS}
-                  onChange={(v) => setDraft((prev) => ({ ...prev, tradeMode: v }))}
-                />
-              </FilterSection>
-
-              <FilterSection title="报价类型">
-                <ChipGroup
-                  value={draft.priceType}
-                  options={PRICE_TYPE_OPTIONS}
-                  onChange={(v) =>
-                    setDraft((prev) => ({
-                      ...prev,
-                      priceType: v,
-                      ...(v === 'NEGOTIABLE' ? { priceMinFen: undefined, priceMaxFen: undefined } : {}),
-                    }))
-                  }
-                />
-              </FilterSection>
-
-              <FilterSection title="价格区间">
-                <RangeInput
-                  minFen={draft.priceMinFen}
-                  maxFen={draft.priceMaxFen}
-                  disabled={draft.priceType === 'NEGOTIABLE'}
-                  onChange={(range) => setDraft((prev) => ({ ...prev, priceMinFen: range.minFen, priceMaxFen: range.maxFen }))}
-                />
-                {draft.priceType === 'NEGOTIABLE' ? (
-                  <Text className="text-caption muted">面议时不需要填写价格区间。</Text>
-                ) : null}
-              </FilterSection>
-
-              <FilterSection title="订金区间">
-                <RangeInput
-                  minFen={draft.depositMinFen}
-                  maxFen={draft.depositMaxFen}
-                  onChange={(range) => setDraft((prev) => ({ ...prev, depositMinFen: range.minFen, depositMaxFen: range.maxFen }))}
                 />
               </FilterSection>
 
@@ -624,40 +879,62 @@ export default function SearchPage() {
                   </Button>
                 ) : null}
               </FilterSection>
-
-              <FilterSection title="LOC">
-                <Input
-                  className="search-filter-input"
-                  value={draft.loc}
-                  onInput={(e) => setDraft((prev) => ({ ...prev, loc: e.detail.value }))}
-                  placeholder="LOC 如 A01"
-                />
-              </FilterSection>
             </View>
-          );
-        }}
-      </FilterSheet>
+          )}
+        </FilterSheet>
+      )}
 
-      <PullToRefresh type="primary" disabled={showListingInitialLoading || listingList.refreshing} onRefresh={listingList.refresh}>
-        {showListingInitialLoading ? (
+      <PullToRefresh
+        type="primary"
+        disabled={tab === 'LISTING' ? showListingInitialLoading || listingList.refreshing : showAchievementInitialLoading || achievementList.refreshing}
+        onRefresh={tab === 'LISTING' ? listingList.refresh : achievementList.refresh}
+      >
+        {tab === 'LISTING' ? (
+          showListingInitialLoading ? (
+            <ListingListSkeleton />
+          ) : listingList.error ? (
+            <ErrorCard message={listingList.error} onRetry={listingList.reload} />
+          ) : listingItems.length ? (
+            <View className="search-card-list listing-card-list">
+              {listingItems.map((it: ListingSummary) => (
+                <ListingCard
+                  key={it.id}
+                  item={it}
+                  favorited={favoriteIds.has(it.id)}
+                  onClick={() => {
+                    Taro.navigateTo({ url: `/subpackages/listing/detail/index?listingId=${it.id}` });
+                  }}
+                  onFavorite={() => {
+                    void toggleFavorite(it.id);
+                  }}
+                  onConsult={() => {
+                    void startListingConsult(it.id);
+                  }}
+                />
+              ))}
+            </View>
+          ) : (
+            <EmptyCard
+              image={emptySearchNone}
+              title="暂无专利结果"
+              message="请调整关键词或筛选条件后重试。"
+              variant="inline"
+              actionText="刷新"
+              onAction={listingList.reload}
+            />
+          )
+        ) : showAchievementInitialLoading ? (
           <ListingListSkeleton />
-        ) : listingList.error ? (
-          <ErrorCard message={listingList.error} onRetry={listingList.reload} />
-        ) : listingItems.length ? (
+        ) : achievementList.error ? (
+          <ErrorCard message={achievementList.error} onRetry={achievementList.reload} />
+        ) : achievementItems.length ? (
           <View className="search-card-list listing-card-list">
-            {listingItems.map((it: ListingSummary) => (
-              <ListingCard
+            {achievementItems.map((it: AchievementSummary) => (
+              <AchievementCard
                 key={it.id}
                 item={it}
-                favorited={favoriteIds.has(it.id)}
                 onClick={() => {
-                  Taro.navigateTo({ url: `/subpackages/listing/detail/index?listingId=${it.id}` });
-                }}
-                onFavorite={() => {
-                  void toggleFavorite(it.id);
-                }}
-                onConsult={() => {
-                  void startListingConsult(it.id);
+                  Taro.navigateTo({ url: `/subpackages/achievement/detail/index?achievementId=${it.id}` });
                 }}
               />
             ))}
@@ -665,19 +942,28 @@ export default function SearchPage() {
         ) : (
           <EmptyCard
             image={emptySearchNone}
-            title="暂无专利结果"
+            title="暂无成果结果"
             message="请调整关键词或筛选条件后重试。"
             variant="inline"
             actionText="刷新"
-            onAction={listingList.reload}
+            onAction={achievementList.reload}
           />
         )}
 
-        {!showListingInitialLoading && listingItems.length ? (
+        {tab === 'LISTING' ? (
+          !showListingInitialLoading && listingItems.length ? (
+            <ListFooter
+              loadingMore={listingList.loadingMore}
+              hasMore={listingList.hasMore}
+              onLoadMore={listingList.loadMore}
+              showNoMore
+            />
+          ) : null
+        ) : !showAchievementInitialLoading && achievementItems.length ? (
           <ListFooter
-            loadingMore={listingList.loadingMore}
-            hasMore={listingList.hasMore}
-            onLoadMore={listingList.loadMore}
+            loadingMore={achievementList.loadingMore}
+            hasMore={achievementList.hasMore}
+            onLoadMore={achievementList.loadMore}
             showNoMore
           />
         ) : null}

@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 
 import { PrismaService } from './prisma/prisma.service';
 
-type AuditTargetType = 'LISTING' | 'VERIFICATION';
+type AuditTargetType = 'LISTING' | 'ACHIEVEMENT' | 'VERIFICATION';
 
 type AuditMaterialDto = {
   id: string;
@@ -67,6 +67,28 @@ export class ContentAuditService {
         for (const m of media) {
           if (m.file) pushFile(m.file, 'Attachment', String(m.type));
         }
+      }
+
+      return { items };
+    }
+
+    if (targetType === 'ACHIEVEMENT') {
+      const achievement = await this.prisma.achievement.findUnique({
+        where: { id: targetId },
+        select: { coverFileId: true },
+      });
+      if (achievement?.coverFileId) {
+        const cover = await this.prisma.file.findUnique({ where: { id: achievement.coverFileId } });
+        if (cover) pushFile(cover, 'Cover', 'COVER');
+      }
+
+      const media = await this.prisma.achievementMedia.findMany({
+        where: { achievementId: targetId, type: 'FILE' },
+        include: { file: true },
+        orderBy: { sort: 'asc' },
+      });
+      for (const m of media) {
+        if (m.file) pushFile(m.file, 'Attachment', String(m.type));
       }
 
       return { items };

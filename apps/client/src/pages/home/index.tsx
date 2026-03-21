@@ -24,7 +24,7 @@ import homeIconTechManager from '../../assets/icons/home/home-tech-manager.svg';
 import homeIconDesignPatent from '../../assets/icons/home/home-design-patent.svg';
 import homeIconInventionPatent from '../../assets/icons/home/home-invention-patent.svg';
 import homeIconUtilityPatent from '../../assets/icons/home/home-utility-patent.svg';
-import homeIconFiveStar from '../../assets/icons/home/home-five-star.svg';
+import homeIconAchievement from '../../assets/icons/home/home-five-star.svg';
 import logoGif from '../../assets/brand/logo.optim2.gif';
 import logoPng from '../../assets/brand/logo.png';
 import promoCertificateGif from '../../assets/home/promo-certificate.optim3.gif';
@@ -220,6 +220,10 @@ export default function HomePage() {
     });
     Taro.navigateTo({ url: '/subpackages/search/index' });
   }, []);
+  const goAchievementSearch = useCallback(() => {
+    Taro.setStorageSync(STORAGE_KEYS.searchPrefill, { tab: 'ACHIEVEMENT', reset: true });
+    Taro.navigateTo({ url: '/subpackages/search/index' });
+  }, []);
 
   const quickEntries: QuickEntry[] = useMemo(
     () => [
@@ -228,7 +232,7 @@ export default function HomePage() {
       { key: 'utility-patent', label: '实用专利', icon: homeIconUtilityPatent, onClick: goUtilityPatents },
       { key: 'inventor', label: '发明人榜', icon: homeIconInventors, onClick: goInventors },
       { key: 'tech-manager', label: '技术经理', icon: homeIconTechManager, onClick: goTechManagers },
-      { key: 'five-star', label: '五星专利', icon: homeIconFiveStar, onClick: () => goTopicSearch('FIVE_STAR') },
+      { key: 'achievement', label: '成果展示', icon: homeIconAchievement, onClick: goAchievementSearch },
     ],
     [
       goDesignPatents,
@@ -236,7 +240,7 @@ export default function HomePage() {
       goInventionPatents,
       goUtilityPatents,
       goTechManagers,
-      goTopicSearch,
+      goAchievementSearch,
     ],
   );
 

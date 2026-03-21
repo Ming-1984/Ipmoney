@@ -6,8 +6,8 @@ import { requirePermission } from '../../common/permissions';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { sanitizeIndustryTagNames } from '../content-utils';
 
-const CONTENT_TYPES = ['LISTING'] as const;
-const CONTENT_SCOPES = ['LISTING', 'ALL'] as const;
+const CONTENT_TYPES = ['LISTING', 'ACHIEVEMENT'] as const;
+const CONTENT_SCOPES = ['LISTING', 'ACHIEVEMENT', 'ALL'] as const;
 const PARSE_STATUS = ['ACTIVE', 'REVIEW_REQUIRED', 'REPLACED'] as const;
 const REGION_CODE_RE = /^[0-9]{6}$/;
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -207,6 +207,22 @@ export class AiService {
     });
   }
 
+  private async searchAchievements(text: string, limit: number) {
+    const where: any = { status: 'ACTIVE', auditStatus: 'APPROVED' };
+    if (text) {
+      where.OR = [
+        { title: { contains: text, mode: 'insensitive' } },
+        { summary: { contains: text, mode: 'insensitive' } },
+      ];
+    }
+    return await this.prisma.achievement.findMany({
+      where,
+      orderBy: { createdAt: 'desc' },
+      take: limit,
+      select: { id: true, title: true },
+    });
+  }
+
   async createAgentQuery(payload: any) {
     const inputType = String(payload?.inputType || '').trim().toUpperCase();
     if (!inputType || (inputType !== 'TEXT' && inputType !== 'VOICE')) {
@@ -240,6 +256,7 @@ export class AiService {
     for (const type of targetTypes) {
       let rows: Array<{ id: string; title: string }> = [];
       if (type === 'LISTING') rows = await this.searchListings(normalizedText, 3);
+      if (type === 'ACHIEVEMENT') rows = await this.searchAchievements(normalizedText, 3);
 
       rows.forEach((row, idx) => {
         matches.push({
