@@ -10,6 +10,9 @@ export const ADMIN_ROLE_PERMISSIONS: Record<AdminRoleName, string[]> = {
     'listing.audit',
     'listing.batchPublish',
     'listing.import',
+    'patent.import',
+    'patent.claim.review',
+    'conversation.platform.manage',
     'order.read',
     'case.manage',
     'maintenance.manage',
@@ -26,6 +29,7 @@ export const ADMIN_ROLE_PERMISSIONS: Record<AdminRoleName, string[]> = {
   cs: [
     'verification.read',
     'listing.read',
+    'conversation.platform.manage',
     'order.read',
     'case.manage',
     'maintenance.manage',

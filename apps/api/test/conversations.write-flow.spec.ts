@@ -30,6 +30,9 @@ describe('ConversationsService write flow suite', () => {
       conversationMessage: {
         create: vi.fn(),
       },
+      conversationAgent: {
+        findFirst: vi.fn(),
+      },
       conversationParticipant: {
         findFirst: vi.fn(),
         update: vi.fn(),
@@ -153,6 +156,7 @@ describe('ConversationsService write flow suite', () => {
       buyerUserId: 'buyer-2',
       sellerUserId: 'seller-2',
     });
+    prisma.conversationAgent.findFirst.mockResolvedValueOnce(null);
     await expect(service.sendMessage(req, CONVERSATION_ID, { type: 'TEXT', text: 'hello' })).rejects.toBeInstanceOf(
       ForbiddenException,
     );
@@ -202,6 +206,11 @@ describe('ConversationsService write flow suite', () => {
   it('markRead updates existing participant and creates new participant when absent', async () => {
     const req = { auth: { userId: 'buyer-1' } };
 
+    prisma.conversation.findUnique.mockResolvedValueOnce({
+      id: CONVERSATION_ID,
+      buyerUserId: 'buyer-1',
+      sellerUserId: 'seller-1',
+    });
     prisma.conversationParticipant.findFirst.mockResolvedValueOnce({ id: 'participant-1' });
     const result1 = await service.markRead(req, CONVERSATION_ID);
     expect(prisma.conversationParticipant.update).toHaveBeenCalledWith({
@@ -210,6 +219,11 @@ describe('ConversationsService write flow suite', () => {
     });
     expect(result1).toEqual({ ok: true });
 
+    prisma.conversation.findUnique.mockResolvedValueOnce({
+      id: CONVERSATION_ID,
+      buyerUserId: 'buyer-1',
+      sellerUserId: 'seller-1',
+    });
     prisma.conversationParticipant.findFirst.mockResolvedValueOnce(null);
     const result2 = await service.markRead(req, CONVERSATION_ID);
     expect(prisma.conversationParticipant.create).toHaveBeenCalledWith({

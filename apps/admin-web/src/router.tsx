@@ -86,6 +86,18 @@ const PatentsPage = lazy(async () => {
   const mod = await import('./views/PatentsPage');
   return { default: mod.PatentsPage };
 });
+const PatentOperationsPage = lazy(async () => {
+  const mod = await import('./views/PatentOperationsPage');
+  return { default: mod.PatentOperationsPage };
+});
+const PatentClaimsPage = lazy(async () => {
+  const mod = await import('./views/PatentClaimsPage');
+  return { default: mod.PatentClaimsPage };
+});
+const PlatformConversationsPage = lazy(async () => {
+  const mod = await import('./views/PlatformConversationsPage');
+  return { default: mod.PlatformConversationsPage };
+});
 
 export const router = createBrowserRouter([
   {
@@ -119,6 +131,9 @@ export const router = createBrowserRouter([
       { path: 'maintenance', element: <MaintenancePage /> },
       { path: 'regions', element: <RegionsPage /> },
       { path: 'patents', element: <PatentsPage /> },
+      { path: 'patents/operations', element: <PatentOperationsPage /> },
+      { path: 'patents/claims', element: <PatentClaimsPage /> },
+      { path: 'conversations/platform', element: <PlatformConversationsPage /> },
     ],
   },
 ]);

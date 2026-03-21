@@ -40,6 +40,9 @@ export function buildDefaultRbacRoles(now = new Date()): RbacRole[] {
         'listing.audit',
         'listing.batchPublish',
         'listing.import',
+        'patent.import',
+        'patent.claim.review',
+        'conversation.platform.manage',
         'order.read',
         'case.manage',
         'maintenance.manage',
@@ -62,6 +65,7 @@ export function buildDefaultRbacRoles(now = new Date()): RbacRole[] {
       permissionIds: [
         'verification.read',
         'listing.read',
+        'conversation.platform.manage',
         'order.read',
         'case.manage',
         'maintenance.manage',

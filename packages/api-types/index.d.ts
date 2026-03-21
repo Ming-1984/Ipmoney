@@ -986,6 +986,57 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/admin/conversations/platform": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List platform listing consultations */
+        get: operations["adminListPlatformConversations"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/conversations/{conversationId}/agents": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Assign platform conversation agent */
+        post: operations["adminAssignPlatformConversationAgent"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/conversations/{conversationId}/agents/{userId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Remove platform conversation agent */
+        delete: operations["adminRemovePlatformConversationAgent"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/admin/regions": {
         parameters: {
             query?: never;
@@ -1239,6 +1290,195 @@ export interface paths {
         head?: never;
         /** 閺囧瓨鏌婃稉鎾冲焺娑撶粯鏆熼幑顕嗙礄閸氬骸褰撮敍瀛?閿? */
         patch: operations["adminUpdatePatent"];
+        trace?: never;
+    };
+    "/admin/patents/jobs/import": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List patent import jobs */
+        get: operations["adminListPatentImportJobs"];
+        put?: never;
+        /** Create patent import job */
+        post: operations["adminCreatePatentImportJob"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/patents/jobs/import/{jobId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get patent import job detail */
+        get: operations["adminGetPatentImportJob"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/patents/jobs/import/{jobId}/validate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Validate patent import job */
+        post: operations["adminValidatePatentImportJob"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/patents/jobs/import/{jobId}/execute": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Execute patent import job */
+        post: operations["adminExecutePatentImportJob"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/patents/jobs/import/{jobId}/rows": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List patent import job rows */
+        get: operations["adminListPatentImportJobRows"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/patents/jobs/import/{jobId}/error-file": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get patent import job error file */
+        get: operations["adminGetPatentImportJobErrorFile"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/patents/jobs/listings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Generate listings in batch from patent ids */
+        post: operations["adminGeneratePatentListings"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/me/patent-claims": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List my patent claim requests */
+        get: operations["listMyPatentClaims"];
+        put?: never;
+        /** Create patent ownership claim request */
+        post: operations["createMyPatentClaim"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/patent-claims": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List patent claim requests for review */
+        get: operations["adminListPatentClaims"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/patent-claims/{claimId}/approve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Approve patent ownership claim */
+        post: operations["adminApprovePatentClaim"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/patent-claims/{claimId}/reject": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Reject patent ownership claim */
+        post: operations["adminRejectPatentClaim"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
         trace?: never;
     };
     "/admin/patent-maintenance/schedules": {
@@ -2635,6 +2875,10 @@ export interface components {
             sourcePrimary?: "USER" | "ADMIN" | "PROVIDER";
             /** Format: date-time */
             sourceUpdatedAt?: string;
+            ownerUserId?: components["schemas"]["Uuid"];
+            /** Format: date-time */
+            ownerClaimedAt?: string;
+            ownerClaimSource?: components["schemas"]["PatentOwnerClaimSource"];
             media?: components["schemas"]["PatentMedia"][];
             tradeSnapshot?: components["schemas"]["PatentTradeSnapshot"];
             /** Format: date-time */
@@ -2664,6 +2908,10 @@ export interface components {
         LicenseMode: "EXCLUSIVE" | "SOLE" | "NON_EXCLUSIVE";
         /** @enum {string} */
         PriceType: "FIXED" | "NEGOTIABLE";
+        /** @enum {string} */
+        ConsultationRouting: "PLATFORM" | "OWNER";
+        /** @enum {string} */
+        PatentOwnerClaimSource: "PLATFORM_IMPORT" | "USER_CLAIM" | "ADMIN_ASSIGN";
         /** @enum {string} */
         AuditStatus: "PENDING" | "APPROVED" | "REJECTED";
         /** @enum {string} */
@@ -2726,6 +2974,7 @@ export interface components {
             regionCode?: string;
             industryTags?: string[];
             listingTopics?: components["schemas"]["ListingTopic"][];
+            consultationRouting?: components["schemas"]["ConsultationRouting"];
             featuredLevel?: components["schemas"]["FeaturedLevel"];
             /** @description 閻?鐢倻楠囬悧纭呭娴溠傜瑹娑撴挸鍩勯惃鍕晸閺佸牆灏崺鐕傜礄adcode閿? */
             featuredRegionCode?: string;
@@ -2853,6 +3102,7 @@ export interface components {
             regionCode?: string;
             industryTags?: string[];
             listingTopics?: components["schemas"]["ListingTopic"][];
+            consultationRouting?: components["schemas"]["ConsultationRouting"];
             ipcCodes?: string[];
             locCodes?: string[];
             media?: components["schemas"]["ListingMedia"][];
@@ -2899,6 +3149,7 @@ export interface components {
             regionCode?: string;
             industryTags?: string[];
             listingTopics?: components["schemas"]["ListingTopic"][];
+            consultationRouting?: components["schemas"]["ConsultationRouting"];
             ipcCodes?: string[];
             locCodes?: string[];
             media?: components["schemas"]["ListingMedia"][];
@@ -3001,6 +3252,7 @@ export interface components {
         };
         ListingImportDefaults: {
             sellerUserId?: components["schemas"]["Uuid"];
+            consultationRouting?: components["schemas"]["ConsultationRouting"];
             source?: components["schemas"]["ContentSource"];
             tradeMode?: components["schemas"]["TradeMode"];
             licenseMode?: components["schemas"]["LicenseMode"];
@@ -3080,6 +3332,148 @@ export interface components {
             fileId: components["schemas"]["Uuid"];
             /** Format: uri */
             url: string | null;
+        };
+        /** @enum {string} */
+        PatentJobStatus: "PENDING" | "RUNNING" | "PAUSED" | "SUCCEEDED" | "FAILED";
+        /** @enum {string} */
+        PatentImportDuplicatePolicy: "SKIP" | "OVERWRITE";
+        /** @enum {string} */
+        PatentImportRowStatus: "PENDING" | "VALID" | "INVALID" | "SUCCEEDED" | "FAILED" | "SKIPPED";
+        /** @enum {string} */
+        PatentClaimStatus: "PENDING" | "APPROVED" | "REJECTED";
+        PatentImportListingDefaults: {
+            enabled?: boolean;
+            consultationRouting?: components["schemas"]["ConsultationRouting"];
+            sellerUserId?: components["schemas"]["Uuid"];
+            tradeMode?: components["schemas"]["TradeMode"];
+            licenseMode?: components["schemas"]["LicenseMode"];
+            priceType?: components["schemas"]["PriceType"];
+            priceAmountFen?: components["schemas"]["MoneyFen"];
+            depositAmountFen?: components["schemas"]["MoneyFen"];
+            regionCode?: string;
+            listingTopics?: components["schemas"]["ListingTopic"][];
+            industryTags?: string[];
+            auditStatus?: components["schemas"]["AuditStatus"];
+            status?: components["schemas"]["ListingStatus"];
+        };
+        PatentImportDefaults: {
+            listing?: components["schemas"]["PatentImportListingDefaults"];
+        };
+        PatentImportJobCreateRequest: {
+            fileId: components["schemas"]["Uuid"];
+            duplicatePolicy?: components["schemas"]["PatentImportDuplicatePolicy"];
+            defaults?: components["schemas"]["PatentImportDefaults"];
+        };
+        PatentImportJob: {
+            id: components["schemas"]["Uuid"];
+            operatorUserId: components["schemas"]["Uuid"];
+            fileId: components["schemas"]["Uuid"];
+            duplicatePolicy: components["schemas"]["PatentImportDuplicatePolicy"];
+            defaults?: components["schemas"]["PatentImportDefaults"];
+            status: components["schemas"]["PatentJobStatus"];
+            totalCount: number;
+            validCount: number;
+            invalidCount: number;
+            successCount: number;
+            failedCount: number;
+            skippedCount: number;
+            /** Format: double */
+            failRate: number;
+            /** Format: date-time */
+            validatedAt?: string | null;
+            /** Format: date-time */
+            startedAt?: string | null;
+            /** Format: date-time */
+            finishedAt?: string | null;
+            /** Format: date-time */
+            pausedAt?: string | null;
+            errorFileId?: components["schemas"]["Uuid"];
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            updatedAt: string;
+        };
+        PagedPatentImportJob: {
+            items: components["schemas"]["PatentImportJob"][];
+            page: components["schemas"]["PageMeta"];
+        };
+        PatentImportJobRow: {
+            id: components["schemas"]["Uuid"];
+            jobId: components["schemas"]["Uuid"];
+            rowNo: number;
+            status: components["schemas"]["PatentImportRowStatus"];
+            raw?: {
+                [key: string]: unknown;
+            };
+            normalized?: {
+                [key: string]: unknown;
+            } | null;
+            patentId?: components["schemas"]["Uuid"];
+            errorCode?: string | null;
+            errorMessage?: string | null;
+            /** Format: date-time */
+            processedAt?: string | null;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            updatedAt: string;
+        };
+        PagedPatentImportJobRow: {
+            items: components["schemas"]["PatentImportJobRow"][];
+            page: components["schemas"]["PageMeta"];
+        };
+        PatentListingGenerateRequest: {
+            patentIds: components["schemas"]["Uuid"][];
+            duplicatePolicy?: components["schemas"]["PatentImportDuplicatePolicy"];
+            listingDefaults?: components["schemas"]["PatentImportListingDefaults"];
+        };
+        PatentListingGenerateResultRow: {
+            patentId: components["schemas"]["Uuid"];
+            listingId?: components["schemas"]["Uuid"];
+            /** @enum {string} */
+            status: "SUCCEEDED" | "FAILED" | "SKIPPED";
+            errorCode?: string | null;
+            errorMessage?: string | null;
+        };
+        PatentListingGenerateResult: {
+            totalCount: number;
+            successCount: number;
+            failedCount: number;
+            skippedCount: number;
+            rows: components["schemas"]["PatentListingGenerateResultRow"][];
+        };
+        PatentClaimCreateRequest: {
+            patentId: components["schemas"]["Uuid"];
+            claimReason?: string;
+            evidenceFileIds: components["schemas"]["Uuid"][];
+        };
+        PatentClaimReviewRequest: {
+            reviewComment?: string;
+        };
+        PatentClaimRejectRequest: {
+            reviewComment: string;
+        };
+        PatentClaimRequest: {
+            id: components["schemas"]["Uuid"];
+            patentId: components["schemas"]["Uuid"];
+            applicantUserId: components["schemas"]["Uuid"];
+            status: components["schemas"]["PatentClaimStatus"];
+            claimReason?: string | null;
+            evidenceFileIds: components["schemas"]["Uuid"][];
+            reviewerUserId?: components["schemas"]["Uuid"];
+            reviewComment?: string | null;
+            /** Format: date-time */
+            submittedAt: string;
+            /** Format: date-time */
+            reviewedAt?: string | null;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            updatedAt: string;
+        };
+        PagedPatentClaimRequest: {
+            items: components["schemas"]["PatentClaimRequest"][];
+            page: components["schemas"]["PageMeta"];
         };
         /** @enum {string} */
         TechManagerSortBy: "RECOMMENDED" | "NEWEST";
@@ -3602,6 +3996,7 @@ export interface components {
             lastMessageAt: string;
             unreadCount: number;
             counterpart: components["schemas"]["UserBrief"];
+            assignedAgentUserIds?: components["schemas"]["Uuid"][];
         };
         PagedConversationSummary: {
             items: components["schemas"]["ConversationSummary"][];
@@ -3641,6 +4036,21 @@ export interface components {
         PagedConversationMessage: {
             items: components["schemas"]["ConversationMessage"][];
             nextCursor?: string | null;
+        };
+        ConversationAgentAssignmentRequest: {
+            userId?: components["schemas"]["Uuid"];
+        };
+        ConversationAgentAssignment: {
+            id: components["schemas"]["Uuid"];
+            conversationId: components["schemas"]["Uuid"];
+            userId: components["schemas"]["Uuid"];
+            active: boolean;
+            /** Format: date-time */
+            assignedAt: string;
+        };
+        ListingConsultationCreated: {
+            ok: boolean;
+            conversationId: components["schemas"]["Uuid"];
         };
         /** @enum {string} */
         AiAgentInputType: "TEXT" | "VOICE";
@@ -4175,8 +4585,15 @@ export interface components {
         ListingBatchItemStatusParam: components["schemas"]["ListingBatchItemStatus"];
         ListingImportDuplicatePolicyParam: components["schemas"]["ListingImportDuplicatePolicy"];
         ListingImportRowStatusParam: components["schemas"]["ListingImportRowStatus"];
+        PatentJobStatusParam: components["schemas"]["PatentJobStatus"];
+        PatentImportDuplicatePolicyParam: components["schemas"]["PatentImportDuplicatePolicy"];
+        PatentImportRowStatusParam: components["schemas"]["PatentImportRowStatus"];
+        PatentClaimStatusParam: components["schemas"]["PatentClaimStatus"];
         BatchJobId: components["schemas"]["Uuid"];
         ImportJobId: components["schemas"]["Uuid"];
+        PatentImportJobId: components["schemas"]["Uuid"];
+        PatentClaimId: components["schemas"]["Uuid"];
+        ConversationAgentUserId: components["schemas"]["Uuid"];
         /** @description Created date start (YYYY-MM-DD). */
         CreatedFrom: string;
         /** @description Created date end (YYYY-MM-DD). */
@@ -5479,12 +5896,14 @@ export interface operations {
             };
         };
         responses: {
-            /** @description No Content */
-            204: {
+            /** @description OK */
+            200: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["ListingConsultationCreated"];
+                };
             };
             400: components["responses"]["BadRequest"];
             401: components["responses"]["Unauthorized"];
@@ -6109,6 +6528,90 @@ export interface operations {
             401: components["responses"]["Unauthorized"];
             404: components["responses"]["NotFound"];
             409: components["responses"]["Conflict"];
+        };
+    };
+    adminListPlatformConversations: {
+        parameters: {
+            query?: {
+                mineOnly?: boolean;
+                page?: components["parameters"]["Page"];
+                pageSize?: components["parameters"]["PageSize"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PagedConversationSummary"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+        };
+    };
+    adminAssignPlatformConversationAgent: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                conversationId: components["parameters"]["ConversationId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["ConversationAgentAssignmentRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConversationAgentAssignment"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    adminRemovePlatformConversationAgent: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                conversationId: components["parameters"]["ConversationId"];
+                userId: components["parameters"]["ConversationAgentUserId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConversationAgentAssignment"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
         };
     };
     adminListRegions: {
@@ -6736,6 +7239,379 @@ export interface operations {
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
+        };
+    };
+    adminListPatentImportJobs: {
+        parameters: {
+            query?: {
+                status?: components["parameters"]["PatentJobStatusParam"];
+                duplicatePolicy?: components["parameters"]["PatentImportDuplicatePolicyParam"];
+                page?: components["parameters"]["Page"];
+                pageSize?: components["parameters"]["PageSize"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PagedPatentImportJob"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+        };
+    };
+    adminCreatePatentImportJob: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description 楠炲倻鐡戦柨顕嗙礄瀵ら缚顔呴悽銊ょ艾閺€顖欑帛/闁偓濞?閺€鐐儥缁涘婀侀崜顖欑稊閻劎娈戦幒銉ュ經閿涙稑鎮撴稉鈧獮鍌滅搼闁款喚娈戦柌宥咁槻鐠囬攱鐪版惔鏃囩箲閸ョ偛鎮撴稉鈧紒鎾寸亯閿? */
+                "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PatentImportJobCreateRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PatentImportJob"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+        };
+    };
+    adminGetPatentImportJob: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                jobId: components["parameters"]["PatentImportJobId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PatentImportJob"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    adminValidatePatentImportJob: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                jobId: components["parameters"]["PatentImportJobId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PatentImportJob"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    adminExecutePatentImportJob: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                jobId: components["parameters"]["PatentImportJobId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PatentImportJob"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    adminListPatentImportJobRows: {
+        parameters: {
+            query?: {
+                status?: components["parameters"]["PatentImportRowStatusParam"];
+                page?: components["parameters"]["Page"];
+                pageSize?: components["parameters"]["PageSize"];
+            };
+            header?: never;
+            path: {
+                jobId: components["parameters"]["PatentImportJobId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PagedPatentImportJobRow"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    adminGetPatentImportJobErrorFile: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                jobId: components["parameters"]["PatentImportJobId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ListingJobErrorFile"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    adminGeneratePatentListings: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description 楠炲倻鐡戦柨顕嗙礄瀵ら缚顔呴悽銊ょ艾閺€顖欑帛/闁偓濞?閺€鐐儥缁涘婀侀崜顖欑稊閻劎娈戦幒銉ュ經閿涙稑鎮撴稉鈧獮鍌滅搼闁款喚娈戦柌宥咁槻鐠囬攱鐪版惔鏃囩箲閸ョ偛鎮撴稉鈧紒鎾寸亯閿? */
+                "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PatentListingGenerateRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PatentListingGenerateResult"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+        };
+    };
+    listMyPatentClaims: {
+        parameters: {
+            query?: {
+                status?: components["parameters"]["PatentClaimStatusParam"];
+                page?: components["parameters"]["Page"];
+                pageSize?: components["parameters"]["PageSize"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PagedPatentClaimRequest"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+        };
+    };
+    createMyPatentClaim: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description 楠炲倻鐡戦柨顕嗙礄瀵ら缚顔呴悽銊ょ艾閺€顖欑帛/闁偓濞?閺€鐐儥缁涘婀侀崜顖欑稊閻劎娈戦幒銉ュ經閿涙稑鎮撴稉鈧獮鍌滅搼闁款喚娈戦柌宥咁槻鐠囬攱鐪版惔鏃囩箲閸ョ偛鎮撴稉鈧紒鎾寸亯閿? */
+                "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PatentClaimCreateRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PatentClaimRequest"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+        };
+    };
+    adminListPatentClaims: {
+        parameters: {
+            query?: {
+                /** @description 閸忔娊鏁拠宥忕礄閺嶅洭顣?閹芥顩?閺夊啫鍩勬禍?閸欐垶妲戞禍?閺堢儤鐎崥宥囆炵粵澶涚礆 */
+                q?: components["parameters"]["Q"];
+                status?: components["parameters"]["PatentClaimStatusParam"];
+                page?: components["parameters"]["Page"];
+                pageSize?: components["parameters"]["PageSize"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PagedPatentClaimRequest"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+        };
+    };
+    adminApprovePatentClaim: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                claimId: components["parameters"]["PatentClaimId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["PatentClaimReviewRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PatentClaimRequest"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+        };
+    };
+    adminRejectPatentClaim: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                claimId: components["parameters"]["PatentClaimId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PatentClaimRejectRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PatentClaimRequest"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
         };
     };
     adminListPatentMaintenanceSchedules: {

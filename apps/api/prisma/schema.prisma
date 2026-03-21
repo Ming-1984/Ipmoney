@@ -377,6 +377,45 @@ enum ListingImportRowStatus {
   SKIPPED
 }
 
+enum ConsultationRouting {
+  PLATFORM
+  OWNER
+}
+
+enum PatentJobStatus {
+  PENDING
+  RUNNING
+  PAUSED
+  SUCCEEDED
+  FAILED
+}
+
+enum PatentImportDuplicatePolicy {
+  SKIP
+  OVERWRITE
+}
+
+enum PatentImportRowStatus {
+  PENDING
+  VALID
+  INVALID
+  SUCCEEDED
+  FAILED
+  SKIPPED
+}
+
+enum PatentOwnerClaimSource {
+  PLATFORM_IMPORT
+  USER_CLAIM
+  ADMIN_ASSIGN
+}
+
+enum PatentClaimStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
 model User {
   id         String   @id @default(uuid()) @db.Uuid
   phone      String?  @unique
@@ -423,6 +462,12 @@ model User {
   rbacRoles            RbacUserRole[]
   aiParseFeedbacks     AiParseFeedback[] @relation("AiParseFeedback_Actor")
   assignedMaintenanceTasks PatentMaintenanceTask[] @relation("PatentMaintenanceTask_Assignee")
+  patentsOwned         Patent[]          @relation("Patent_Owner")
+  patentImportJobs     PatentImportJob[] @relation("PatentImportJob_Operator")
+  patentClaimRequests  PatentClaimRequest[] @relation("PatentClaimRequest_Applicant")
+  reviewedPatentClaimRequests PatentClaimRequest[] @relation("PatentClaimRequest_Reviewer")
+  conversationAgentAssignments ConversationAgent[] @relation("ConversationAgent_Operator")
+  conversationAgentAssignedBy  ConversationAgent[] @relation("ConversationAgent_AssignedBy")
 
   @@map("users")
 }
@@ -578,6 +623,9 @@ model Patent {
   transferCount        Int                 @default(0) @map("transfer_count")
   sourcePrimary        PatentSourcePrimary @default(USER) @map("source_primary")
   sourceUpdatedAt      DateTime?           @map("source_updated_at")
+  ownerUserId          String?             @map("owner_user_id") @db.Uuid
+  ownerClaimedAt       DateTime?           @map("owner_claimed_at")
+  ownerClaimSource     PatentOwnerClaimSource? @map("owner_claim_source")
   createdAt            DateTime            @default(now()) @map("created_at")
   updatedAt            DateTime            @updatedAt @map("updated_at")
 
@@ -587,9 +635,13 @@ model Patent {
   listings        Listing[]
   legalEvents    PatentLegalEvent[]
   maintenanceSchedules PatentMaintenanceSchedule[]
+  owner          User?                @relation("Patent_Owner", fields: [ownerUserId], references: [id])
+  importRows     PatentImportJobRow[]
+  claimRequests  PatentClaimRequest[]
 
   @@unique([jurisdiction, applicationNoNorm])
   @@index([jurisdiction, applicationNoNorm])
+  @@index([ownerUserId])
   @@map("patents")
 }
 
@@ -673,6 +725,8 @@ model File {
   listingBatchJobErrorFiles ListingBatchJob[] @relation("ListingBatchJob_ErrorFile")
   listingImportJobSourceFiles ListingImportJob[] @relation("ListingImportJob_SourceFile")
   listingImportJobErrorFiles ListingImportJob[] @relation("ListingImportJob_ErrorFile")
+  patentImportJobSourceFiles PatentImportJob[] @relation("PatentImportJob_SourceFile")
+  patentImportJobErrorFiles PatentImportJob[] @relation("PatentImportJob_ErrorFile")
   achievementCovers  Achievement[]        @relation("Achievement_CoverFile")
 
   @@index([ownerScope, ownerId])
@@ -703,6 +757,7 @@ model Listing {
   industryTagsJson   Json?            @map("industry_tags_json")
   listingTopicsJson  Json?            @map("listing_topics_json")
   proofFileIdsJson   Json?            @map("proof_file_ids_json")
+  consultationRouting ConsultationRouting @default(PLATFORM) @map("consultation_routing")
   featuredLevel      FeaturedLevel    @default(NONE) @map("featured_level")
   featuredRegionCode String?          @map("featured_region_code")
   featuredRank       Int?             @map("featured_rank")
@@ -1095,6 +1150,7 @@ model Conversation {
 
   participants ConversationParticipant[]
   messages     ConversationMessage[]
+  agents       ConversationAgent[]
 
   @@index([listingId, updatedAt])
   @@index([contentType, contentId, updatedAt])
@@ -1130,6 +1186,105 @@ model ConversationMessage {
 
   @@index([conversationId, createdAt])
   @@map("conversation_messages")
+}
+
+model ConversationAgent {
+  id               String   @id @default(uuid()) @db.Uuid
+  conversationId   String   @map("conversation_id") @db.Uuid
+  operatorUserId   String   @map("operator_user_id") @db.Uuid
+  assignedByUserId String?  @map("assigned_by_user_id") @db.Uuid
+  active           Boolean  @default(true)
+  assignedAt       DateTime @default(now()) @map("assigned_at")
+  updatedAt        DateTime @updatedAt @map("updated_at")
+
+  conversation Conversation @relation(fields: [conversationId], references: [id])
+  operator     User         @relation("ConversationAgent_Operator", fields: [operatorUserId], references: [id])
+  assignedBy   User?        @relation("ConversationAgent_AssignedBy", fields: [assignedByUserId], references: [id])
+
+  @@unique([conversationId, operatorUserId])
+  @@index([operatorUserId, active, assignedAt])
+  @@index([conversationId, active, assignedAt])
+  @@map("conversation_agents")
+}
+
+model PatentImportJob {
+  id              String                       @id @default(uuid()) @db.Uuid
+  operatorUserId  String                       @map("operator_user_id") @db.Uuid
+  fileId          String                       @map("file_id") @db.Uuid
+  duplicatePolicy PatentImportDuplicatePolicy  @default(SKIP) @map("duplicate_policy")
+  defaultsJson    Json?                        @map("defaults_json")
+  status          PatentJobStatus              @default(PENDING)
+  totalCount      Int                          @default(0) @map("total_count")
+  validCount      Int                          @default(0) @map("valid_count")
+  invalidCount    Int                          @default(0) @map("invalid_count")
+  successCount    Int                          @default(0) @map("success_count")
+  failedCount     Int                          @default(0) @map("failed_count")
+  skippedCount    Int                          @default(0) @map("skipped_count")
+  failRate        Float                        @default(0) @map("fail_rate")
+  validatedAt     DateTime?                    @map("validated_at")
+  startedAt       DateTime?                    @map("started_at")
+  finishedAt      DateTime?                    @map("finished_at")
+  pausedAt        DateTime?                    @map("paused_at")
+  errorFileId     String?                      @map("error_file_id") @db.Uuid
+  createdAt       DateTime                     @default(now()) @map("created_at")
+  updatedAt       DateTime                     @updatedAt @map("updated_at")
+
+  operator   User               @relation("PatentImportJob_Operator", fields: [operatorUserId], references: [id])
+  sourceFile File               @relation("PatentImportJob_SourceFile", fields: [fileId], references: [id])
+  errorFile  File?              @relation("PatentImportJob_ErrorFile", fields: [errorFileId], references: [id])
+  rows       PatentImportJobRow[]
+
+  @@index([operatorUserId, createdAt])
+  @@index([status, createdAt])
+  @@index([fileId])
+  @@map("patent_import_jobs")
+}
+
+model PatentImportJobRow {
+  id             String              @id @default(uuid()) @db.Uuid
+  jobId          String              @map("job_id") @db.Uuid
+  rowNo          Int                 @map("row_no")
+  status         PatentImportRowStatus @default(PENDING)
+  rawJson        Json                @map("raw_json")
+  normalizedJson Json?               @map("normalized_json")
+  patentId       String?             @map("patent_id") @db.Uuid
+  errorCode      String?             @map("error_code")
+  errorMessage   String?             @map("error_message")
+  processedAt    DateTime?           @map("processed_at")
+  createdAt      DateTime            @default(now()) @map("created_at")
+  updatedAt      DateTime            @updatedAt @map("updated_at")
+
+  job    PatentImportJob @relation(fields: [jobId], references: [id])
+  patent Patent?         @relation(fields: [patentId], references: [id])
+
+  @@unique([jobId, rowNo])
+  @@index([jobId, status])
+  @@index([patentId, createdAt])
+  @@map("patent_import_job_rows")
+}
+
+model PatentClaimRequest {
+  id                 String           @id @default(uuid()) @db.Uuid
+  patentId           String           @map("patent_id") @db.Uuid
+  applicantUserId    String           @map("applicant_user_id") @db.Uuid
+  status             PatentClaimStatus @default(PENDING)
+  claimReason        String?          @map("claim_reason")
+  evidenceFileIdsJson Json?           @map("evidence_file_ids_json")
+  reviewerUserId     String?          @map("reviewer_user_id") @db.Uuid
+  reviewComment      String?          @map("review_comment")
+  submittedAt        DateTime         @default(now()) @map("submitted_at")
+  reviewedAt         DateTime?        @map("reviewed_at")
+  createdAt          DateTime         @default(now()) @map("created_at")
+  updatedAt          DateTime         @updatedAt @map("updated_at")
+
+  patent    Patent @relation(fields: [patentId], references: [id])
+  applicant User   @relation("PatentClaimRequest_Applicant", fields: [applicantUserId], references: [id])
+  reviewer  User?  @relation("PatentClaimRequest_Reviewer", fields: [reviewerUserId], references: [id])
+
+  @@index([patentId, status, createdAt])
+  @@index([applicantUserId, status, createdAt])
+  @@index([status, submittedAt])
+  @@map("patent_claim_requests")
 }
 
 model Payment {
