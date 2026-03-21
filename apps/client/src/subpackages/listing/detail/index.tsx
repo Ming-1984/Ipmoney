@@ -194,6 +194,13 @@ export default function ListingDetailPage() {
       setPatentError(null);
       return;
     }
+    // Patent detail API is auth-protected; avoid triggering global auth redirect on public listing page.
+    if (!getToken()) {
+      setPatentLoading(false);
+      setPatentData(null);
+      setPatentError(null);
+      return;
+    }
     let alive = true;
     const cached = getPatentCache<Patent>(patentId);
     if (cached) {

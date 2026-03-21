@@ -86,7 +86,6 @@ export function CommentsSection(props: CommentsSectionProps) {
   const loadPage = useCallback(
     async (page: number) => {
       if (!contentId) return;
-      const basePath = contentType === 'ACHIEVEMENT' ? 'achievements' : 'listings';
       if (page === 1) {
         setLoading(true);
       } else {
@@ -95,7 +94,10 @@ export function CommentsSection(props: CommentsSectionProps) {
       setError(null);
       try {
         const params = { page, pageSize: DEFAULT_PAGE_SIZE };
-        const d = await apiGet<PagedCommentThread>(`/public/${basePath}/${contentId}/comments`, params);
+        const d =
+          contentType === 'ACHIEVEMENT'
+            ? await apiGet<PagedCommentThread>(`/public/achievements/${contentId}/comments`, params)
+            : await apiGet<PagedCommentThread>(`/public/listings/${contentId}/comments`, params);
         setPageMeta(d.page);
         setThreads((prev) => (page === 1 ? d.items : [...prev, ...d.items]));
       } catch (e: any) {
@@ -198,7 +200,6 @@ export function CommentsSection(props: CommentsSectionProps) {
     }
     setSubmitting(true);
     try {
-      const basePath = contentType === 'ACHIEVEMENT' ? 'achievements' : 'listings';
       if (composer.mode === 'edit') {
         const target = commentById.get(composer.targetId);
         if (!target) {
@@ -218,9 +219,15 @@ export function CommentsSection(props: CommentsSectionProps) {
       } else {
         const payload: components['schemas']['CommentCreateRequest'] = { text };
         if (composer.mode === 'reply') payload.parentCommentId = composer.targetId;
-        await apiPost<Comment>(`/${basePath}/${contentId}/comments`, payload, {
-          idempotencyKey: `comment-${contentId}-${Date.now()}`,
-        });
+        if (contentType === 'ACHIEVEMENT') {
+          await apiPost<Comment>(`/achievements/${contentId}/comments`, payload, {
+            idempotencyKey: `comment-${contentId}-${Date.now()}`,
+          });
+        } else {
+          await apiPost<Comment>(`/listings/${contentId}/comments`, payload, {
+            idempotencyKey: `comment-${contentId}-${Date.now()}`,
+          });
+        }
         toast('已发布', { icon: 'success' });
       }
       resetComposer();

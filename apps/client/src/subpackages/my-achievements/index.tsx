@@ -16,8 +16,8 @@ import { AuditPendingCard, EmptyCard, ErrorCard, LoadingCard, PermissionCard } f
 import { PageHeader, Spacer, Surface } from '../../ui/layout';
 import iconAchievement from '../../assets/icons/app/patent-achievement.png';
 
-type PagedAchievement = components['schemas']['PagedAchievement'];
-type Achievement = components['schemas']['Achievement'];
+type PagedAchievement = components['schemas']['PagedAchievementSummary'];
+type Achievement = components['schemas']['AchievementSummary'];
 type ContentStatus = components['schemas']['ContentStatus'];
 type AuditStatus = components['schemas']['AuditStatus'];
 
@@ -191,7 +191,7 @@ export default function MyAchievementsPage() {
                       disabled={it.status !== 'ACTIVE'}
                       onClick={async () => {
                         try {
-                          await apiPost<Achievement>(
+                          await apiPost<components['schemas']['AchievementRecord']>(
                             `/achievements/${it.id}/off-shelf`,
                             { reason: '发布方下架' },
                             { idempotencyKey: `off-ach-${it.id}` },

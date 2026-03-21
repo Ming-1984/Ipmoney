@@ -22,7 +22,7 @@ import { Button, toast } from '../../../ui/nutui';
 import { EmptyCard, ErrorCard, LoadingCard, MissingParamCard } from '../../../ui/StateCards';
 
 
-type AchievementPublic = components['schemas']['AchievementPublic'];
+type AchievementPublic = components['schemas']['AchievementDetail'];
 
 type Conversation = { id: string };
 

@@ -50,7 +50,7 @@ This maps backend enforcement (`requirePermission`) to admin modules/pages:
 - `verification.read`, `verification.review`:
   - `/admin/user-verifications`
 - `listing.read`, `listing.audit`:
-  - `/admin/listings`, `/admin/patents`, `/admin/tech-managers`
+  - `/admin/listings`, `/admin/patents`, `/admin/achievements`, `/admin/tech-managers`
 - `listing.batchPublish`:
   - `/admin/listings/jobs/batch*`
 - `listing.import`:

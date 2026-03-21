@@ -1,51 +1,52 @@
 # OpenAPI
 
-规范文件：`docs/api/openapi.yaml`
+Spec file: `docs/api/openapi.yaml`
 
-## 预览
+## Preview
 
-前置：本机已安装 Node.js（含 `npx`）。
+Prerequisite: local Node.js with `npx`.
 
-- 本地预览（Redocly）：
+- Redoc preview:
   - `npx -y @redocly/cli preview-docs docs/api/openapi.yaml --port 8080`
 
 ## Mock
 
-- 启动 Mock Server（推荐，含场景能力）：
-  - `pnpm mock`（`http://127.0.0.1:4010`）
-- 仅启动 Prism：
+- Scenario mock server:
+  - `pnpm mock` (`http://127.0.0.1:4010`)
+- Prism only:
   - `npx -y @stoplight/prism-cli mock docs/api/openapi.yaml --port 4011 --cors`
 
-场景化 fixtures 见：`docs/engineering/mocking.md`。
+See `docs/engineering/mocking.md` for scenario fixtures.
 
-## 校验与类型
+## Validate And Generate Types
 
-- Lint：
+- Lint:
   - `pnpm openapi:lint`
-- 生成前端/管理台共享类型：
+- Generate shared API types:
   - `pnpm openapi:types`
 
-## 专利特色标签（统一口径）
+## Listing Topic Enum (Unified)
 
-- `ListingTopic` 枚举：
-  - `HIGH_TECH_RETIRED`（退役专利）
-  - `SLEEPING`（沉睡专利）
-  - `AWARD_WINNING`（获奖专利）
-  - `OPEN_LICENSE`（开放许可）
-  - `FIVE_STAR`（五星专利）
-- 统一适用范围：
-  - 首页特色专区跳转搜索页：通过 `listingTopic` 预填
-  - 搜索筛选：支持按 `listingTopic` 直接筛选
-  - 发布专利：支持写入 `listingTopics`（数组）
+- `HIGH_TECH_RETIRED` (retired patent)
+- `SLEEPING` (sleeping patent)
+- `AWARD_WINNING` (award-winning patent)
+- `OPEN_LICENSE` (open license)
+- `FIVE_STAR` (five-star patent)
 
-## 管理后台批量与归属能力（统一口径）
+Use the same enum in:
+- home page quick entry
+- search filters
+- publish payload (`listingTopics`)
 
-- Listing 维度批量作业（保留）：
+## Core Admin Surfaces (Unified)
+
+- Listing batch jobs:
   - `POST /admin/listings/jobs/batch`
   - `GET /admin/listings/jobs/batch`
   - `GET /admin/listings/jobs/batch/{jobId}`
   - `GET /admin/listings/jobs/batch/{jobId}/items`
   - `GET /admin/listings/jobs/batch/{jobId}/error-file`
+- Listing import jobs:
   - `POST /admin/listings/jobs/import`
   - `POST /admin/listings/jobs/import/{jobId}/validate`
   - `POST /admin/listings/jobs/import/{jobId}/execute`
@@ -53,7 +54,7 @@
   - `GET /admin/listings/jobs/import/{jobId}`
   - `GET /admin/listings/jobs/import/{jobId}/rows`
   - `GET /admin/listings/jobs/import/{jobId}/error-file`
-- Patent 主数据导入与批量上架（新增）：
+- Patent master import and listing generation:
   - `POST /admin/patents/jobs/import`
   - `POST /admin/patents/jobs/import/{jobId}/validate`
   - `POST /admin/patents/jobs/import/{jobId}/execute`
@@ -62,23 +63,31 @@
   - `GET /admin/patents/jobs/import/{jobId}/rows`
   - `GET /admin/patents/jobs/import/{jobId}/error-file`
   - `POST /admin/patents/jobs/listings`
-- 专利归属认领与审核（新增）：
+- Patent ownership claim workflow:
   - `POST /me/patent-claims`
   - `GET /me/patent-claims`
   - `GET /admin/patent-claims`
   - `POST /admin/patent-claims/{claimId}/approve`
   - `POST /admin/patent-claims/{claimId}/reject`
-- 平台咨询会话分配（新增）：
+- Platform conversation management:
   - `GET /admin/conversations/platform`
   - `POST /admin/conversations/{conversationId}/agents`
   - `DELETE /admin/conversations/{conversationId}/agents/{userId}`
+- Achievement workflow:
+  - `GET /search/achievements`
+  - `POST /achievements`
+  - `PATCH /achievements/{achievementId}`
+  - `POST /achievements/{achievementId}/submit`
+  - `POST /achievements/{achievementId}/off-shelf`
+  - `POST /achievements/{achievementId}/consultations`
+  - `POST /achievements/{achievementId}/conversations`
+  - `POST /admin/achievements/{achievementId}/approve`
+  - `POST /admin/achievements/{achievementId}/reject`
 
-## 咨询路由规则（统一口径）
+## Consultation Routing
 
-- `ConsultationRouting`：
-  - `PLATFORM`：用户咨询进入平台客服会话
-  - `OWNER`：用户咨询进入专利归属人会话
-- 生效点：
+- `ConsultationRouting = PLATFORM | OWNER`
+- Main usage:
   - `Listing.consultationRouting`
-  - 管理后台批量上架默认项（`listingDefaults.consultationRouting`）
-  - 用户咨询接口返回 `conversationId`，用于直达聊天入口
+  - batch listing defaults (`listingDefaults.consultationRouting`)
+  - consultation API returns `conversationId` for direct chat entry
