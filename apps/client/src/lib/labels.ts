@@ -6,16 +6,16 @@ type PriceType = components['schemas']['PriceType'];
 type LicenseMode = components['schemas']['LicenseMode'];
 type OrderStatus = components['schemas']['OrderStatus'];
 type AuditStatus = components['schemas']['AuditStatus'];
-type ContentStatus = components['schemas']['ContentStatus'];
 type ListingStatus = components['schemas']['ListingStatus'];
-type ArtworkStatus = components['schemas']['ArtworkStatus'];
 type FeaturedLevel = components['schemas']['FeaturedLevel'];
 type VerificationType = components['schemas']['VerificationType'];
 type VerificationStatus = components['schemas']['VerificationStatus'];
-type DeliveryPeriod = components['schemas']['DeliveryPeriod'];
-type ArtworkCategory = components['schemas']['ArtworkCategory'];
-type CalligraphyScript = components['schemas']['CalligraphyScript'];
-type PaintingGenre = components['schemas']['PaintingGenre'];
+type ContentStatus = 'DRAFT' | 'ACTIVE' | 'OFF_SHELF';
+type ArtworkStatus = 'DRAFT' | 'ACTIVE' | 'OFF_SHELF' | 'SOLD';
+type DeliveryPeriod = 'WITHIN_1_MONTH' | 'MONTH_1_3' | 'MONTH_3_6' | 'OVER_6_MONTHS' | 'OTHER';
+type ArtworkCategory = 'CALLIGRAPHY' | 'PAINTING';
+type CalligraphyScript = 'KAISHU' | 'XINGSHU' | 'CAOSHU' | 'LISHU' | 'ZHUANSHU';
+type PaintingGenre = 'FIGURE' | 'LANDSCAPE' | 'BIRD_FLOWER' | 'OTHER';
 
 export function patentTypeLabel(t?: PatentType | null, options?: { empty?: string }): string {
   const empty = options?.empty ?? '-';

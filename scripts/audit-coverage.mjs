@@ -1,4 +1,4 @@
-import { execSync } from 'node:child_process';
+﻿import { execSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -39,15 +39,15 @@ function listFilesRecursive(dirPath, { exts, ignoreDirs }) {
   return out;
 }
 
-function normalizeOpenapiPath(p) {
-  const trimmed = p.replace(/\/+$/, '') || '/';
+function normalizeOpenapiPath(routePath) {
+  const trimmed = String(routePath || '').replace(/\/+$/, '') || '/';
   return trimmed.replace(/\{[^}]+\}/g, ':param');
 }
 
-function normalizeFixturePath(p) {
-  const trimmed = p.replace(/\/+$/, '') || '/';
+function normalizeFixturePath(routePath) {
+  const trimmed = String(routePath || '').replace(/\/+$/, '') || '/';
   const segments = trimmed.split('/').filter(Boolean);
-  if (segments.length === 0) return '/';
+  if (!segments.length) return '/';
 
   const uuidRe =
     /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/;
@@ -56,23 +56,23 @@ function normalizeFixturePath(p) {
   return (
     '/' +
     segments
-      .map((seg) => {
-        if (seg.startsWith(':')) return ':param';
-        if (uuidRe.test(seg)) return ':param';
-        if (digitsRe.test(seg)) return ':param';
-        return seg;
+      .map((segment) => {
+        if (segment.startsWith(':')) return ':param';
+        if (uuidRe.test(segment)) return ':param';
+        if (digitsRe.test(segment)) return ':param';
+        return segment;
       })
       .join('/')
   );
 }
 
-function normalizeUsedPath(p) {
-  const trimmed = p.replace(/\/+$/, '') || '/';
+function normalizeUsedPath(routePath) {
+  const trimmed = String(routePath || '').replace(/\/+$/, '') || '/';
   return trimmed.replace(/\$\{[^}]+\}/g, ':param');
 }
 
-function keyOf(method, p) {
-  return `${method.toUpperCase()} ${p}`;
+function keyOf(method, routePath) {
+  return `${method.toUpperCase()} ${routePath}`;
 }
 
 function collectFixtureKeys() {
@@ -83,19 +83,24 @@ function collectFixtureKeys() {
     .sort();
 
   const byScenario = new Map();
+
   for (const scenario of scenarios) {
     const indexPath = path.join(FIXTURES_DIR, scenario, 'index.json');
     if (!fs.existsSync(indexPath)) continue;
+
     const json = JSON.parse(readUtf8(indexPath));
     const set = new Set();
+
     for (const routeKey of Object.keys(json)) {
       const [method, rawPath] = routeKey.split(' ', 2);
       if (!method || !rawPath) continue;
       set.add(keyOf(method, normalizeFixturePath(rawPath)));
     }
+
     byScenario.set(scenario, set);
   }
-  return { scenarios, byScenario };
+
+  return { byScenario };
 }
 
 function collectUsedApiKeys({ rootDir, mode }) {
@@ -114,7 +119,7 @@ function collectUsedApiKeys({ rootDir, mode }) {
   const apiCallRe = new RegExp(
     '\\b(' +
       apiNames.join('|') +
-      ')\\s*(?:<[^>]*>(?:\\s*>)*\\s*)?\\(\\s*([\"\'`])([^\"\'`]+?)\\2',
+      ')\\s*(?:<[^>]*>(?:\\s*>)*\\s*)?\\(\\s*(["\'`])([^"\'`]+?)\\2',
     'g',
   );
 
@@ -122,10 +127,10 @@ function collectUsedApiKeys({ rootDir, mode }) {
     const text = readUtf8(filePath);
 
     apiCallRe.lastIndex = 0;
-    let m;
-    while ((m = apiCallRe.exec(text))) {
-      const fn = m[1];
-      const raw = m[3];
+    let match;
+    while ((match = apiCallRe.exec(text))) {
+      const fn = match[1];
+      const rawPath = match[3];
       const method =
         fn === 'apiGet'
           ? 'GET'
@@ -137,11 +142,11 @@ function collectUsedApiKeys({ rootDir, mode }) {
                 ? 'PUT'
                 : 'DELETE';
 
-      if (!raw.startsWith('/')) continue;
-      used.add(keyOf(method, normalizeUsedPath(raw)));
+      if (!rawPath.startsWith('/')) continue;
+      used.add(keyOf(method, normalizeUsedPath(rawPath)));
     }
 
-    // Detect file uploads (client uses Taro.uploadFile, admin uses apiUploadFile).
+    // Detect file upload helper usage.
     if (text.includes('/files')) {
       if (mode === 'client' && text.includes('Taro.uploadFile')) {
         used.add('POST /files');
@@ -166,26 +171,21 @@ function collectOpenapiOperations(openapi) {
   const operations = [];
   const paths = openapi?.paths || {};
   const methods = ['get', 'post', 'put', 'patch', 'delete'];
-  for (const [p, item] of Object.entries(paths)) {
+
+  for (const [routePath, item] of Object.entries(paths)) {
     if (!item || typeof item !== 'object') continue;
     for (const method of methods) {
-      const op = item[method];
-      if (!op) continue;
+      const operation = item[method];
+      if (!operation) continue;
       operations.push({
         method: method.toUpperCase(),
-        path: String(p),
-        pathNorm: normalizeOpenapiPath(String(p)),
-        operationId: op.operationId ? String(op.operationId) : '',
-        summary: op.summary ? String(op.summary) : '',
-        tags: Array.isArray(op.tags) ? op.tags.map(String) : [],
+        pathNorm: normalizeOpenapiPath(routePath),
+        operationId: operation.operationId ? String(operation.operationId) : '',
       });
     }
   }
-  operations.sort((a, b) => {
-    const ka = `${a.method} ${a.pathNorm}`;
-    const kb = `${b.method} ${b.pathNorm}`;
-    return ka.localeCompare(kb);
-  });
+
+  operations.sort((a, b) => `${a.method} ${a.pathNorm}`.localeCompare(`${b.method} ${b.pathNorm}`));
   return operations;
 }
 
@@ -193,8 +193,8 @@ function mdEscape(text) {
   return String(text).replace(/\|/g, '\\|').replace(/\n/g, ' ');
 }
 
-function mdBool(v) {
-  return v ? '✓' : '';
+function mdBool(value) {
+  return value ? 'Y' : '';
 }
 
 function applyDerivedFileUsage(used) {
@@ -211,93 +211,105 @@ function writeReport({ operations, clientUsed, adminUsed, fixtures }) {
     .filter((k) => !openapiKeySet.has(k))
     .sort();
 
-  const unusedOps = operations
+  const unusedOpenapiOps = operations
     .filter((op) => !op.pathNorm.startsWith('/webhooks/'))
-    .filter((op) => !clientUsed.has(keyOf(op.method, op.pathNorm)) && !adminUsed.has(keyOf(op.method, op.pathNorm)))
+    .filter((op) => {
+      const key = keyOf(op.method, op.pathNorm);
+      return !clientUsed.has(key) && !adminUsed.has(key);
+    })
     .map((op) => keyOf(op.method, op.pathNorm))
     .sort();
 
   const fixtureMissingForUsed = operations
     .filter((op) => {
-      const k = keyOf(op.method, op.pathNorm);
-      if (!clientUsed.has(k) && !adminUsed.has(k)) return false;
+      const key = keyOf(op.method, op.pathNorm);
+      if (!clientUsed.has(key) && !adminUsed.has(key)) return false;
       const happy = fixtures.byScenario.get('happy');
-      return !(happy && happy.has(k));
+      return !(happy && happy.has(key));
     })
     .map((op) => keyOf(op.method, op.pathNorm))
     .sort();
 
-  const scenarioCols = ['happy', 'empty', 'error', 'edge', 'order_conflict', 'payment_callback_replay', 'refund_failed']
-    .filter((s) => fixtures.byScenario.has(s));
+  const scenarioCols = [
+    'happy',
+    'empty',
+    'error',
+    'edge',
+    'order_conflict',
+    'payment_callback_replay',
+    'refund_failed',
+  ].filter((scenarioName) => fixtures.byScenario.has(scenarioName));
 
   const lines = [];
-  lines.push('# OpenAPI 前端 / Mock 覆盖报告（自动生成）');
+  lines.push('# OpenAPI Frontend/Mock Coverage Audit (Auto-generated)');
   lines.push('');
-  lines.push('> 由 `scripts/audit-coverage.mjs` 生成；用于覆盖度审计与防遗忘。');
+  lines.push('> Generated by `scripts/audit-coverage.mjs`.');
   lines.push('');
-  lines.push('## 1. 汇总');
+  lines.push('## Summary');
   lines.push('');
-  lines.push(`- OpenAPI operations：${operations.length}`);
-  lines.push(`- 前端已使用（Client）：${clientUsed.size}`);
-  lines.push(`- 前端已使用（Admin）：${adminUsed.size}`);
-  lines.push(`- fixtures 场景数：${fixtures.byScenario.size}`);
+  lines.push(`- OpenAPI operations: ${operations.length}`);
+  lines.push(`- Frontend-used operations (client): ${clientUsed.size}`);
+  lines.push(`- Frontend-used operations (admin): ${adminUsed.size}`);
+  lines.push(`- Fixture scenarios: ${fixtures.byScenario.size}`);
   lines.push('');
 
-  lines.push('## 2. 关键差异（需人工确认与回填）');
+  lines.push('## Key Gaps');
   lines.push('');
-  lines.push(`- 前端使用但 OpenAPI 未定义：${usedNotInOpenapi.length}`);
+  lines.push(`- Frontend-used but missing from OpenAPI: ${usedNotInOpenapi.length}`);
   if (usedNotInOpenapi.length) {
-    for (const k of usedNotInOpenapi.slice(0, 50)) lines.push(`  - ${k}`);
-    if (usedNotInOpenapi.length > 50) lines.push(`  - ...（其余 ${usedNotInOpenapi.length - 50} 条略）`);
+    for (const routeKey of usedNotInOpenapi.slice(0, 50)) lines.push(`  - ${routeKey}`);
+    if (usedNotInOpenapi.length > 50) {
+      lines.push(`  - ... (${usedNotInOpenapi.length - 50} more)`);
+    }
   }
-  lines.push(`- OpenAPI 定义但前端未使用：${unusedOps.length}`);
-  if (unusedOps.length) {
-    for (const k of unusedOps.slice(0, 50)) lines.push(`  - ${k}`);
-    if (unusedOps.length > 50) lines.push(`  - ...（其余 ${unusedOps.length - 50} 条略）`);
+
+  lines.push(`- OpenAPI-defined but unused by frontend: ${unusedOpenapiOps.length}`);
+  if (unusedOpenapiOps.length) {
+    for (const routeKey of unusedOpenapiOps.slice(0, 50)) lines.push(`  - ${routeKey}`);
+    if (unusedOpenapiOps.length > 50) {
+      lines.push(`  - ... (${unusedOpenapiOps.length - 50} more)`);
+    }
   }
-  lines.push(`- 前端已使用但 happy fixtures 未覆盖（会回落到 Prism）：${fixtureMissingForUsed.length}`);
+
+  lines.push(`- Frontend-used but missing in happy fixtures: ${fixtureMissingForUsed.length}`);
   if (fixtureMissingForUsed.length) {
-    for (const k of fixtureMissingForUsed.slice(0, 50)) lines.push(`  - ${k}`);
-    if (fixtureMissingForUsed.length > 50) lines.push(`  - ...（其余 ${fixtureMissingForUsed.length - 50} 条略）`);
+    for (const routeKey of fixtureMissingForUsed.slice(0, 50)) lines.push(`  - ${routeKey}`);
+    if (fixtureMissingForUsed.length > 50) {
+      lines.push(`  - ... (${fixtureMissingForUsed.length - 50} more)`);
+    }
   }
   lines.push('');
 
-  lines.push('## 3. 覆盖明细（按 operation）');
+  lines.push('## Coverage Details (by operation)');
   lines.push('');
-  lines.push(
-    `| operationId | method | path | Client | Admin | ${scenarioCols.map((s) => s).join(' | ')} |`,
-  );
-  lines.push(
-    `|---|---|---|---|---|${scenarioCols.map(() => '---').join('|')}|`,
-  );
+  lines.push(`| operationId | method | path | Client | Admin | ${scenarioCols.join(' | ')} |`);
+  lines.push(`|---|---|---|---|---|${scenarioCols.map(() => '---').join('|')}|`);
 
   for (const op of operations) {
-    const k = keyOf(op.method, op.pathNorm);
+    const key = keyOf(op.method, op.pathNorm);
     const row = [
       mdEscape(op.operationId || ''),
       op.method,
       mdEscape(op.pathNorm),
-      mdBool(clientUsed.has(k)),
-      mdBool(adminUsed.has(k)),
-      ...scenarioCols.map((s) => mdBool(fixtures.byScenario.get(s)?.has(k))),
+      mdBool(clientUsed.has(key)),
+      mdBool(adminUsed.has(key)),
+      ...scenarioCols.map((scenarioName) => mdBool(fixtures.byScenario.get(scenarioName)?.has(key))),
     ];
     lines.push(`| ${row.join(' | ')} |`);
   }
 
   lines.push('');
-  lines.push('## 4. 使用说明');
+  lines.push('## Notes');
   lines.push('');
-  lines.push('- 本报告只做“接口层”覆盖审计：OpenAPI -> 前端调用 -> fixtures keys。');
-  lines.push('- PRD 页面/业务规则覆盖请结合 `docs/engineering/traceability-matrix.md` 的“页面能力矩阵”。');
-  lines.push('- 若某接口未在 happy fixtures 覆盖，mock-api 会回落到 Prism 生成响应，但不保证演示数据质量。');
+  lines.push('- This audit is API-layer only: OpenAPI -> frontend usage -> fixture keys.');
+  lines.push('- Product-level feature mapping belongs to `docs/engineering/traceability-matrix.md`.');
+  lines.push('- If a used route is missing from happy fixtures, mock-api may fall back to Prism-generated responses.');
 
   ensureDir(path.dirname(REPORT_PATH));
   fs.writeFileSync(REPORT_PATH, `${lines.join('\n')}\n`, 'utf8');
 
   return {
     usedNotInOpenapi,
-    unusedOps,
-    fixtureMissingForUsed,
     reportPath: path.relative(repoRoot, REPORT_PATH),
   };
 }
@@ -312,6 +324,7 @@ function main() {
   const adminUsedRaw = collectUsedApiKeys({ rootDir: path.join(repoRoot, 'apps', 'admin-web', 'src'), mode: 'admin' });
   const clientUsed = new Set(clientUsedRaw);
   const adminUsed = new Set(adminUsedRaw);
+
   applyDerivedFileUsage(clientUsed);
   applyDerivedFileUsage(adminUsed);
 

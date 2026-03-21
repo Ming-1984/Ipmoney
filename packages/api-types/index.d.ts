@@ -2757,13 +2757,7 @@ export interface components {
             page: components["schemas"]["PageMeta"];
         };
         /** @enum {string} */
-        ContentStatus: "DRAFT" | "ACTIVE" | "OFF_SHELF";
-        /** @enum {string} */
-        ContentSortBy: "RECOMMENDED" | "NEWEST";
-        /** @enum {string} */
         SearchQType: "AUTO" | "NUMBER" | "KEYWORD" | "APPLICANT" | "INVENTOR";
-        /** @enum {string} */
-        ArtworkSortBy: "RECOMMENDED" | "NEWEST" | "PRICE_ASC" | "PRICE_DESC";
         /**
          * @description 专利特色标签统一枚举：
          *     - HIGH_TECH_RETIRED: 退役专利
@@ -2777,245 +2771,7 @@ export interface components {
         /** @enum {string} */
         TechManagerSortBy: "RECOMMENDED" | "NEWEST";
         /** @enum {string} */
-        ArtworkCategory: "CALLIGRAPHY" | "PAINTING";
-        /** @enum {string} */
-        CalligraphyScript: "KAISHU" | "XINGSHU" | "CAOSHU" | "LISHU" | "ZHUANSHU";
-        /** @enum {string} */
-        PaintingGenre: "FIGURE" | "LANDSCAPE" | "BIRD_FLOWER" | "OTHER";
-        /** @enum {string} */
-        ArtworkStatus: "DRAFT" | "ACTIVE" | "OFF_SHELF" | "SOLD";
-        /** @enum {string} */
         CooperationMode: "TRANSFER" | "TECH_CONSULTING" | "COMMISSIONED_DEV" | "PLATFORM_CO_BUILD";
-        /** @enum {string} */
-        AchievementMaturity: "CONCEPT" | "PROTOTYPE" | "PILOT" | "MASS_PRODUCTION" | "COMMERCIALIZED" | "OTHER";
-        /** @enum {string} */
-        DeliveryPeriod: "WITHIN_1_MONTH" | "MONTH_1_3" | "MONTH_3_6" | "OVER_6_MONTHS" | "OTHER";
-        ContentMedia: {
-            fileId: components["schemas"]["Uuid"];
-            /** @enum {string} */
-            type: "IMAGE" | "VIDEO" | "FILE";
-            sort: number;
-            /** Format: uri */
-            readonly url?: string;
-            readonly mimeType?: string;
-            /** Format: int64 */
-            readonly sizeBytes?: number;
-            readonly fileName?: string;
-        };
-        DemandSummary: {
-            id: components["schemas"]["Uuid"];
-            source?: components["schemas"]["ContentSource"];
-            title: string;
-            summary?: string;
-            budgetType?: components["schemas"]["PriceType"];
-            budgetMinFen?: components["schemas"]["MoneyFen"];
-            budgetMaxFen?: components["schemas"]["MoneyFen"];
-            cooperationModes?: components["schemas"]["CooperationMode"][];
-            regionCode?: string;
-            industryTags?: string[];
-            keywords?: string[];
-            deliveryPeriod?: components["schemas"]["DeliveryPeriod"];
-            publisher: components["schemas"]["OrganizationSummary"];
-            stats?: components["schemas"]["ListingStats"];
-            auditStatus: components["schemas"]["AuditStatus"];
-            status: components["schemas"]["ContentStatus"];
-            /** Format: uri */
-            coverUrl?: string;
-            /** Format: date-time */
-            createdAt: string;
-        };
-        DemandPublic: components["schemas"]["DemandSummary"] & {
-            description?: string;
-            media?: components["schemas"]["ContentMedia"][];
-            aiParse?: components["schemas"]["AiParseResult"];
-        };
-        Demand: components["schemas"]["DemandSummary"];
-        PagedDemandSummary: {
-            items: components["schemas"]["DemandSummary"][];
-            page: components["schemas"]["PageMeta"];
-        };
-        PagedDemand: {
-            items: components["schemas"]["Demand"][];
-            page: components["schemas"]["PageMeta"];
-        };
-        DemandCreateRequest: {
-            title: string;
-            description?: string;
-            summary?: string;
-            keywords?: string[];
-            deliveryPeriod?: components["schemas"]["DeliveryPeriod"];
-            budgetType?: components["schemas"]["PriceType"];
-            budgetMinFen?: components["schemas"]["MoneyFen"];
-            budgetMaxFen?: components["schemas"]["MoneyFen"];
-            cooperationModes?: components["schemas"]["CooperationMode"][];
-            contactName?: string;
-            contactTitle?: string;
-            contactPhoneMasked?: string;
-            regionCode?: string;
-            industryTags?: string[];
-            coverFileId?: components["schemas"]["Uuid"];
-            media?: components["schemas"]["ContentMedia"][];
-        };
-        DemandUpdateRequest: {
-            title?: string;
-            description?: string;
-            summary?: string;
-            keywords?: string[];
-            deliveryPeriod?: components["schemas"]["DeliveryPeriod"];
-            budgetType?: components["schemas"]["PriceType"];
-            budgetMinFen?: components["schemas"]["MoneyFen"];
-            budgetMaxFen?: components["schemas"]["MoneyFen"];
-            cooperationModes?: components["schemas"]["CooperationMode"][];
-            contactName?: string;
-            contactTitle?: string;
-            contactPhoneMasked?: string;
-            regionCode?: string;
-            industryTags?: string[];
-            coverFileId?: components["schemas"]["Uuid"];
-            media?: components["schemas"]["ContentMedia"][];
-        };
-        AchievementSummary: {
-            id: components["schemas"]["Uuid"];
-            source?: components["schemas"]["ContentSource"];
-            title: string;
-            summary?: string;
-            maturity?: components["schemas"]["AchievementMaturity"];
-            cooperationModes?: components["schemas"]["CooperationMode"][];
-            regionCode?: string;
-            industryTags?: string[];
-            keywords?: string[];
-            publisher: components["schemas"]["OrganizationSummary"];
-            stats?: components["schemas"]["ListingStats"];
-            auditStatus: components["schemas"]["AuditStatus"];
-            status: components["schemas"]["ContentStatus"];
-            /** Format: uri */
-            coverUrl?: string;
-            /** Format: date-time */
-            createdAt: string;
-        };
-        AchievementPublic: components["schemas"]["AchievementSummary"] & {
-            description?: string;
-            media?: components["schemas"]["ContentMedia"][];
-            aiParse?: components["schemas"]["AiParseResult"];
-        };
-        Achievement: components["schemas"]["AchievementSummary"];
-        PagedAchievementSummary: {
-            items: components["schemas"]["AchievementSummary"][];
-            page: components["schemas"]["PageMeta"];
-        };
-        PagedAchievement: {
-            items: components["schemas"]["Achievement"][];
-            page: components["schemas"]["PageMeta"];
-        };
-        AchievementCreateRequest: {
-            title: string;
-            description?: string;
-            summary?: string;
-            keywords?: string[];
-            maturity?: components["schemas"]["AchievementMaturity"];
-            cooperationModes?: components["schemas"]["CooperationMode"][];
-            regionCode?: string;
-            industryTags?: string[];
-            coverFileId?: components["schemas"]["Uuid"];
-            media?: components["schemas"]["ContentMedia"][];
-        };
-        AchievementUpdateRequest: {
-            title?: string;
-            description?: string;
-            summary?: string;
-            keywords?: string[];
-            maturity?: components["schemas"]["AchievementMaturity"];
-            cooperationModes?: components["schemas"]["CooperationMode"][];
-            regionCode?: string;
-            industryTags?: string[];
-            coverFileId?: components["schemas"]["Uuid"];
-            media?: components["schemas"]["ContentMedia"][];
-        };
-        ArtworkSummary: {
-            id: components["schemas"]["Uuid"];
-            source?: components["schemas"]["ContentSource"];
-            title: string;
-            category: components["schemas"]["ArtworkCategory"];
-            calligraphyScript?: components["schemas"]["CalligraphyScript"];
-            paintingGenre?: components["schemas"]["PaintingGenre"];
-            creatorName: string;
-            /** Format: date */
-            creationDate?: string;
-            creationYear?: number;
-            certificateNo?: string;
-            priceType: components["schemas"]["PriceType"];
-            priceAmountFen?: components["schemas"]["MoneyFen"];
-            depositAmountFen: components["schemas"]["MoneyFen"];
-            regionCode?: string;
-            material?: string;
-            size?: string;
-            /** Format: uri */
-            coverUrl?: string;
-            stats?: components["schemas"]["ListingStats"];
-            auditStatus: components["schemas"]["AuditStatus"];
-            status: components["schemas"]["ArtworkStatus"];
-            /** Format: date-time */
-            createdAt: string;
-            /** Format: date-time */
-            updatedAt: string;
-        };
-        ArtworkPublic: components["schemas"]["ArtworkSummary"] & {
-            seller?: components["schemas"]["UserBrief"];
-            description?: string;
-            media?: components["schemas"]["ContentMedia"][];
-            aiParse?: components["schemas"]["AiParseResult"];
-        };
-        Artwork: components["schemas"]["ArtworkSummary"];
-        PagedArtworkSummary: {
-            items: components["schemas"]["ArtworkSummary"][];
-            page: components["schemas"]["PageMeta"];
-        };
-        PagedArtwork: {
-            items: components["schemas"]["Artwork"][];
-            page: components["schemas"]["PageMeta"];
-        };
-        ArtworkCreateRequest: {
-            title: string;
-            category: components["schemas"]["ArtworkCategory"];
-            calligraphyScript?: components["schemas"]["CalligraphyScript"];
-            paintingGenre?: components["schemas"]["PaintingGenre"];
-            creatorName: string;
-            /** Format: date */
-            creationDate?: string;
-            creationYear?: number;
-            certificateNo?: string;
-            certificateFileIds?: components["schemas"]["Uuid"][];
-            description?: string;
-            priceType: components["schemas"]["PriceType"];
-            priceAmountFen?: components["schemas"]["MoneyFen"];
-            depositAmountFen?: components["schemas"]["MoneyFen"];
-            regionCode?: string;
-            material?: string;
-            size?: string;
-            coverFileId?: components["schemas"]["Uuid"];
-            media?: components["schemas"]["ContentMedia"][];
-        };
-        ArtworkUpdateRequest: {
-            title?: string;
-            category?: components["schemas"]["ArtworkCategory"];
-            calligraphyScript?: components["schemas"]["CalligraphyScript"];
-            paintingGenre?: components["schemas"]["PaintingGenre"];
-            creatorName?: string;
-            /** Format: date */
-            creationDate?: string;
-            creationYear?: number;
-            certificateNo?: string;
-            certificateFileIds?: components["schemas"]["Uuid"][];
-            description?: string;
-            priceType?: components["schemas"]["PriceType"];
-            priceAmountFen?: components["schemas"]["MoneyFen"];
-            depositAmountFen?: components["schemas"]["MoneyFen"];
-            regionCode?: string;
-            material?: string;
-            size?: string;
-            coverFileId?: components["schemas"]["Uuid"];
-            media?: components["schemas"]["ContentMedia"][];
-        };
         OrganizationStats: {
             listingCount: number;
             patentCount: number;
@@ -3447,67 +3203,6 @@ export interface components {
         IndustryTagCreateRequest: {
             name: string;
         };
-        PatentMapIndustryCount: {
-            industryTag: string;
-            count: number;
-        };
-        PatentMapTopAssignee: {
-            name: string;
-            patentCount: number;
-        };
-        PatentMapSummaryItem: {
-            /**
-             * @description 琛屾斂鍖哄垝 adcode锛? 浣嶅瓧绗︿覆锛?
-             * @example 110000
-             */
-            regionCode: string;
-            /**
-             * @description 琛屾斂鍖哄垝鍚嶇О蹇収锛堢敤浜庣洿鎺ュ睍绀猴級
-             * @example 鍖椾含甯?
-             */
-            regionName: string;
-            /**
-             * @description 璇ュ尯鍩熻骞翠唤鐨勪笓鍒╂暟閲忥紙鎸?`level/parentCode` 鑱氬悎鍙ｅ緞锛?
-             * @example 1234
-             */
-            patentCount: number;
-        };
-        PatentMapRegionDetail: {
-            regionCode: string;
-            regionName: string;
-            year: number;
-            patentCount: number;
-            industryBreakdown: components["schemas"]["PatentMapIndustryCount"][];
-            topAssignees: components["schemas"]["PatentMapTopAssignee"][];
-            /** Format: date-time */
-            updatedAt?: string;
-        };
-        PatentMapEntry: {
-            regionCode: string;
-            year: number;
-            patentCount: number;
-            industryBreakdown: components["schemas"]["PatentMapIndustryCount"][];
-            topAssignees: components["schemas"]["PatentMapTopAssignee"][];
-            /** Format: date-time */
-            createdAt?: string;
-            /** Format: date-time */
-            updatedAt?: string;
-        };
-        PatentMapEntryUpsertRequest: {
-            patentCount: number;
-            industryBreakdown?: components["schemas"]["PatentMapIndustryCount"][];
-            topAssignees?: components["schemas"]["PatentMapTopAssignee"][];
-        };
-        PatentMapImportError: {
-            rowNumber: number;
-            message: string;
-        };
-        PatentMapImportResult: {
-            dryRun: boolean;
-            importedCount: number;
-            updatedCount: number;
-            errors: components["schemas"]["PatentMapImportError"][];
-        };
         UserBrief: {
             id: components["schemas"]["Uuid"];
             nickname?: string;
@@ -3637,9 +3332,9 @@ export interface components {
         /** @enum {string} */
         AiAgentInputType: "TEXT" | "VOICE";
         /** @enum {string} */
-        AiContentScope: "LISTING" | "DEMAND" | "ACHIEVEMENT" | "ARTWORK" | "ALL";
+        AiContentScope: "LISTING" | "ALL";
         /** @enum {string} */
-        AiContentType: "LISTING" | "DEMAND" | "ACHIEVEMENT" | "ARTWORK";
+        AiContentType: "LISTING";
         /** @enum {string} */
         AiParseStatus: "ACTIVE" | "REVIEW_REQUIRED" | "REPLACED";
         /** @enum {string} */
@@ -3667,16 +3362,6 @@ export interface components {
             regionCode?: string;
             industryTags?: string[];
             cooperationModes?: components["schemas"]["CooperationMode"][];
-            budgetType?: components["schemas"]["PriceType"];
-            budgetMinFen?: components["schemas"]["MoneyFen"];
-            budgetMaxFen?: components["schemas"]["MoneyFen"];
-            maturity?: components["schemas"]["AchievementMaturity"];
-            category?: components["schemas"]["ArtworkCategory"];
-            calligraphyScript?: components["schemas"]["CalligraphyScript"];
-            paintingGenre?: components["schemas"]["PaintingGenre"];
-            creator?: string;
-            creationYearStart?: number;
-            creationYearEnd?: number;
         };
         AiAgentParsedQuery: {
             contentType?: components["schemas"]["AiContentType"];
@@ -3755,7 +3440,7 @@ export interface components {
         /** @enum {string} */
         AlertStatus: "PENDING" | "SENT" | "ACKED" | "SUPPRESSED";
         /** @enum {string} */
-        AlertTargetType: "PATENT" | "ORDER" | "LISTING" | "DEMAND" | "ACHIEVEMENT" | "ARTWORK" | "AI_PARSE" | "IMPORT" | "PAYMENT" | "REFUND" | "SYSTEM";
+        AlertTargetType: "PATENT" | "ORDER" | "LISTING" | "AI_PARSE" | "IMPORT" | "PAYMENT" | "REFUND" | "SYSTEM";
         AlertRule: {
             type: string;
             severity: components["schemas"]["AlertSeverity"];
@@ -3916,42 +3601,6 @@ export interface components {
             auditStatus?: components["schemas"]["AuditStatus"];
             status?: components["schemas"]["ListingStatus"];
         };
-        AdminDemandCreateRequest: components["schemas"]["DemandCreateRequest"] & {
-            source?: components["schemas"]["ContentSource"];
-            publisherUserId?: components["schemas"]["Uuid"];
-            auditStatus?: components["schemas"]["AuditStatus"];
-            status?: components["schemas"]["ContentStatus"];
-        };
-        AdminDemandUpdateRequest: components["schemas"]["DemandUpdateRequest"] & {
-            source?: components["schemas"]["ContentSource"];
-            publisherUserId?: components["schemas"]["Uuid"];
-            auditStatus?: components["schemas"]["AuditStatus"];
-            status?: components["schemas"]["ContentStatus"];
-        };
-        AdminAchievementCreateRequest: components["schemas"]["AchievementCreateRequest"] & {
-            source?: components["schemas"]["ContentSource"];
-            publisherUserId?: components["schemas"]["Uuid"];
-            auditStatus?: components["schemas"]["AuditStatus"];
-            status?: components["schemas"]["ContentStatus"];
-        };
-        AdminAchievementUpdateRequest: components["schemas"]["AchievementUpdateRequest"] & {
-            source?: components["schemas"]["ContentSource"];
-            publisherUserId?: components["schemas"]["Uuid"];
-            auditStatus?: components["schemas"]["AuditStatus"];
-            status?: components["schemas"]["ContentStatus"];
-        };
-        AdminArtworkCreateRequest: components["schemas"]["ArtworkCreateRequest"] & {
-            source?: components["schemas"]["ContentSource"];
-            sellerUserId?: components["schemas"]["Uuid"];
-            auditStatus?: components["schemas"]["AuditStatus"];
-            status?: components["schemas"]["ArtworkStatus"];
-        };
-        AdminArtworkUpdateRequest: components["schemas"]["ArtworkUpdateRequest"] & {
-            source?: components["schemas"]["ContentSource"];
-            sellerUserId?: components["schemas"]["Uuid"];
-            auditStatus?: components["schemas"]["AuditStatus"];
-            status?: components["schemas"]["ArtworkStatus"];
-        };
         AuditMaterial: {
             id: components["schemas"]["Uuid"];
             name: string;
@@ -3979,57 +3628,6 @@ export interface components {
         PagedAuditLog: {
             items: components["schemas"]["AuditLog"][];
             page: components["schemas"]["PageMeta"];
-        };
-        /** @enum {string} */
-        AnnouncementStatus: "DRAFT" | "PUBLISHED" | "OFF_SHELF";
-        AnnouncementRelatedPatent: {
-            name?: string;
-            patentNo?: string;
-        };
-        Announcement: {
-            id: components["schemas"]["Uuid"];
-            title: string;
-            summary?: string;
-            content?: string;
-            publisherName?: string;
-            issueNo?: string;
-            /** Format: uri */
-            sourceUrl?: string;
-            tags?: string[];
-            relatedPatents?: components["schemas"]["AnnouncementRelatedPatent"][];
-            status: components["schemas"]["AnnouncementStatus"];
-            /** Format: date-time */
-            createdAt: string;
-            /** Format: date-time */
-            updatedAt?: string;
-        };
-        PagedAnnouncement: {
-            items: components["schemas"]["Announcement"][];
-            page: components["schemas"]["PageMeta"];
-        };
-        AnnouncementCreateRequest: {
-            title: string;
-            summary?: string;
-            content?: string;
-            publisherName?: string;
-            issueNo?: string;
-            /** Format: uri */
-            sourceUrl?: string;
-            tags?: string[];
-            relatedPatents?: components["schemas"]["AnnouncementRelatedPatent"][];
-            status?: components["schemas"]["AnnouncementStatus"];
-        };
-        AnnouncementUpdateRequest: {
-            title?: string;
-            summary?: string;
-            content?: string;
-            publisherName?: string;
-            issueNo?: string;
-            /** Format: uri */
-            sourceUrl?: string;
-            tags?: string[];
-            relatedPatents?: components["schemas"]["AnnouncementRelatedPatent"][];
-            status?: components["schemas"]["AnnouncementStatus"];
         };
         /** @enum {string} */
         NotificationKind: "system" | "cs";
@@ -4253,9 +3851,6 @@ export interface components {
         PriceType: components["schemas"]["PriceType"];
         PriceMin: components["schemas"]["MoneyFen"];
         PriceMax: components["schemas"]["MoneyFen"];
-        BudgetType: components["schemas"]["PriceType"];
-        BudgetMin: components["schemas"]["MoneyFen"];
-        BudgetMax: components["schemas"]["MoneyFen"];
         DepositMin: components["schemas"]["MoneyFen"];
         DepositMax: components["schemas"]["MoneyFen"];
         TransferCountMin: number;
@@ -4268,16 +3863,6 @@ export interface components {
         CreatedTo: string;
         /** @description 琛屾斂鍖哄垝 adcode锛? 浣嶅瓧绗︿覆锛? */
         RegionCode: string;
-        /** @description 涔︾敾绫诲埆锛堜功娉?缁樼敾锛? */
-        ArtworkCategory: components["schemas"]["ArtworkCategory"];
-        CalligraphyScript: components["schemas"]["CalligraphyScript"];
-        PaintingGenre: components["schemas"]["PaintingGenre"];
-        /** @description 浣滆€?鍒涗綔鑰? */
-        Creator: string;
-        /** @description 鍒涗綔骞翠唤璧? */
-        CreationYearStart: number;
-        /** @description 鍒涗綔骞翠唤姝? */
-        CreationYearEnd: number;
         /** @description 鏈烘瀯绫诲瀷杩囨护锛堥粯璁や粎灞曠ず宸插鏍搁€氳繃鐨勪紒涓?绉戠爺闄㈡牎锛? */
         OrganizationTypes: components["schemas"]["VerificationType"][];
         /** @description 鍙戞槑浜哄鍚嶏紙绮剧‘/妯＄硦鍖归厤锛屽彇鍐充簬瀹炵幇锛涚敤浜庤仛鍚堝叾鐩稿叧涓撳埄锛? */
@@ -4310,14 +3895,7 @@ export interface components {
         Loc: string[];
         LegalStatus: components["schemas"]["LegalStatus"];
         SortBy: components["schemas"]["SortBy"];
-        ContentSortBy: components["schemas"]["ContentSortBy"];
-        ArtworkSortBy: components["schemas"]["ArtworkSortBy"];
         TechManagerSortBy: components["schemas"]["TechManagerSortBy"];
-        /** @description 鍚堜綔鏂瑰紡杩囨护锛堝彲澶氶€夛級 */
-        CooperationModes: components["schemas"]["CooperationMode"][];
-        AchievementMaturity: components["schemas"]["AchievementMaturity"];
-        ContentStatus: components["schemas"]["ContentStatus"];
-        ArtworkStatus: components["schemas"]["ArtworkStatus"];
         /** @description 鍐呭鏉ユ簮杩囨护 */
         ContentSource: components["schemas"]["ContentSource"];
         /** @description 璁よ瘉鐘舵€佽繃婊? */
@@ -4357,16 +3935,6 @@ export interface components {
         OrderStatusGroup: components["schemas"]["OrderStatusGroup"];
         /** @description 骞傜瓑閿紙寤鸿鐢ㄤ簬鏀粯/閫€娆?鏀炬绛夋湁鍓綔鐢ㄧ殑鎺ュ彛锛涘悓涓€骞傜瓑閿殑閲嶅璇锋眰搴旇繑鍥炲悓涓€缁撴灉锛? */
         IdempotencyKey: string;
-        /** @description 寰俊鏀粯鍥炶皟楠岀瀛楁锛坴3锛夛細鏃堕棿鎴冲瓧绗︿覆 */
-        WechatpayTimestamp: string;
-        /** @description 寰俊鏀粯鍥炶皟楠岀瀛楁锛坴3锛夛細闅忔満涓? */
-        WechatpayNonce: string;
-        /** @description 寰俊鏀粯鍥炶皟楠岀瀛楁锛坴3锛夛細绛惧悕 */
-        WechatpaySignature: string;
-        /** @description 寰俊鏀粯鍥炶皟楠岀瀛楁锛坴3锛夛細骞冲彴璇佷功搴忓垪鍙? */
-        WechatpaySerial: string;
-        /** @description 寰俊鏀粯鍥炶皟楠岀瀛楁锛坴3锛夛細绛惧悕绫诲瀷锛堝 WECHATPAY2-SHA256-RSA2048锛? */
-        WechatpaySignatureType: string;
         ListingId: components["schemas"]["Uuid"];
         TechManagerId: components["schemas"]["Uuid"];
         CommentId: components["schemas"]["Uuid"];
@@ -4374,7 +3942,6 @@ export interface components {
         ConversationId: components["schemas"]["Uuid"];
         /** @description 琛屾斂鍖哄垝鐮?adcode */
         RegionCodePath: string;
-        YearPath: number;
         OrderId: components["schemas"]["Uuid"];
         RefundRequestId: components["schemas"]["Uuid"];
         PatentId: components["schemas"]["Uuid"];

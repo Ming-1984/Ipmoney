@@ -50,7 +50,6 @@ function inferApiDomain(name, area) {
   if (area === 'admin') {
     if (/verifications/.test(name)) return 'admin/verifications';
     if (/listings/.test(name)) return 'admin/listings-audit';
-    if (/achievements/.test(name)) return 'admin/achievements-audit';
     if (/tech-managers/.test(name)) return 'admin/tech-managers';
     if (/orders|order-detail/.test(name)) return 'admin/orders';
     if (/refunds/.test(name)) return 'admin/refunds';
@@ -58,14 +57,12 @@ function inferApiDomain(name, area) {
     if (/invoices/.test(name)) return 'admin/invoices';
     if (/reports/.test(name)) return 'admin/reports';
     if (/comments/.test(name)) return 'admin/comments';
-    if (/announcements/.test(name)) return 'admin/announcements';
     if (/alerts/.test(name)) return 'admin/alerts';
     if (/audit-logs/.test(name)) return 'admin/audit-logs';
     if (/rbac/.test(name)) return 'admin/rbac';
     if (/config/.test(name)) return 'admin/config';
     if (/maintenance/.test(name)) return 'admin/patent-maintenance';
     if (/regions/.test(name)) return 'admin/regions';
-    if (/patent-map/.test(name)) return 'admin/patent-map';
     if (/patents/.test(name)) return 'admin/patents';
     if (/dashboard/.test(name)) return 'admin/dashboard';
     if (/login/.test(name)) return 'demo-auth-boundary';
@@ -75,17 +72,14 @@ function inferApiDomain(name, area) {
   if (/home|search|listing|patent-detail|inventors|tech-managers|organizations/.test(name)) {
     return 'public discovery/search';
   }
-  if (/achievement-detail/.test(name)) return 'public achievement detail + conversation';
-  if (/patent-map|region-detail/.test(name)) return 'patent-map + regions';
   if (/login|onboarding|profile-edit|me$|settings-notifications/.test(name)) return 'auth/me/verification';
   if (/messages|chat|notifications/.test(name)) return 'conversations + notifications';
   if (/orders|checkout|contracts|invoices|addresses/.test(name)) return 'orders/payment/address/invoice';
   if (/favorites/.test(name)) return 'favorites';
-  if (/my-listings|my-achievements|publish/.test(name)) {
+  if (/my-listings|publish/.test(name)) {
     return 'my-content create/update/submit';
   }
-  if (/announcements/.test(name)) return 'public announcements';
-  if (/cluster-picker|region-picker|ipc-picker|about|support|legal|trade-rules/.test(name)) {
+  if (/region-picker|ipc-picker|about|support|legal|trade-rules/.test(name)) {
     return 'static/config (no critical API write)';
   }
   return 'client/misc';
@@ -137,7 +131,6 @@ const httpByPage = new Map([
   ['admin-orders', 'admin-orders'],
   ['admin-verifications', 'admin-verifications'],
   ['admin-config', 'admin-config'],
-  ['admin-patent-map', 'admin-patent-map'],
 ]);
 
 const rows = renderList
@@ -186,7 +179,7 @@ if (hasDomInputs) {
 } else {
   lines.push(`- DOM assertion automation: ${domCovered}/${rows.length} pages (DOM artifact missing).`);
 }
-lines.push('- E2E automation: 0/83 (planned in B03).');
+lines.push(`- E2E automation: 0/${rows.length} (planned in B03).`);
 lines.push('');
 lines.push('## Matrix');
 lines.push('| Page | Area | Route | API Domain | HTTP Smoke | Render Smoke | DOM Assert | E2E | Manual | Owner |');
@@ -212,11 +205,11 @@ if (hasDomInputs) {
       );
     } else {
       lines.push(
-        `- DOM smoke is running in \`${domMode}\` and currently covers ${domCovered}/${rows.length} pages; continue expanding toward full 83-page assertions.`,
+        `- DOM smoke is running in \`${domMode}\` and currently covers ${domCovered}/${rows.length} pages; continue expanding toward full-page assertions.`,
       );
     }
   } else {
-    lines.push('- DOM smoke currently tracks a core subset; next step is extending assertions from core to full 83-page scope.');
+    lines.push('- DOM smoke currently tracks a core subset; next step is extending assertions from core to full-page scope.');
   }
 } else {
   lines.push('- Priority next step: add at least 1-2 stable DOM assertions per high-risk page group (orders, publish, audit, config).');
