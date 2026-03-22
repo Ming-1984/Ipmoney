@@ -188,6 +188,7 @@
   flex-direction: column;
   align-items: center;
   gap: 6rpx;
+  overflow: visible;
 }
 
 .home-quick-icon {
@@ -210,6 +211,26 @@
   color: #4b5563;
   font-weight: 500;
   line-height: 1.2;
+}
+
+.home-quick-item-invention-patent .home-quick-icon {
+  width: 78rpx;
+  height: 78rpx;
+}
+
+.home-quick-item-invention-patent .home-quick-icon-img {
+  transform: translateY(4rpx) scale(1.4);
+  transform-origin: center;
+}
+
+.home-quick-item-utility-patent .home-quick-icon {
+  width: 78rpx;
+  height: 78rpx;
+}
+
+.home-quick-item-utility-patent .home-quick-icon-img {
+  transform: translateY(10rpx) scale(1.15);
+  transform-origin: center;
 }
 
 .home-banner {

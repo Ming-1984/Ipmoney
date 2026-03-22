@@ -229,7 +229,7 @@ export default function HomePage() {
     () => [
       { key: 'design-patent', label: '外观专利', icon: homeIconDesignPatent, onClick: goDesignPatents },
       { key: 'invention-patent', label: '发明专利', icon: homeIconInventionPatent, onClick: goInventionPatents },
-      { key: 'utility-patent', label: '实用专利', icon: homeIconUtilityPatent, onClick: goUtilityPatents },
+      { key: 'utility-patent', label: '实用新型', icon: homeIconUtilityPatent, onClick: goUtilityPatents },
       { key: 'inventor', label: '发明人榜', icon: homeIconInventors, onClick: goInventors },
       { key: 'tech-manager', label: '技术经理', icon: homeIconTechManager, onClick: goTechManagers },
       { key: 'achievement', label: '成果展示', icon: homeIconAchievement, onClick: goAchievementSearch },
@@ -311,7 +311,7 @@ export default function HomePage() {
         <View className="home-hero-tags">
           <Text className="home-hero-tag">0元专利托管</Text>
           <Text className="home-hero-tag">0元代办过户</Text>
-          <Text className="home-hero-tag">0元风险交易</Text>
+          <Text className="home-hero-tag">0风险交易</Text>
         </View>
 
         <View className="home-search">
@@ -360,7 +360,11 @@ export default function HomePage() {
 
       <View className="home-quick">
         {quickEntries.map((entry) => (
-          <View key={entry.key} className="home-quick-item" onClick={entry.onClick}>
+          <View
+            key={entry.key}
+            className={`home-quick-item home-quick-item-${entry.key}`}
+            onClick={entry.onClick}
+          >
             <View className="home-quick-icon">
               <Image src={entry.icon} svg mode="aspectFit" className="home-quick-icon-img" />
             </View>
