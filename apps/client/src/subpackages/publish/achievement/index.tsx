@@ -21,14 +21,7 @@ import { AccessGate } from '../../../ui/PageState';
 import publishLockedArt from '../../../assets/illustrations/publish-locked.png';
 import iconUpload from '../../../assets/icons/icon-image-gray.svg';
 
-type AchievementSummary = components['schemas']['Achievement'];
-type AchievementDraft = AchievementSummary & {
-  description?: string | null;
-  keywords?: string[];
-  cooperationModes?: components['schemas']['CooperationMode'][];
-  coverFileId?: string | null;
-  media?: components['schemas']['ContentMedia'][];
-};
+type AchievementDraft = components['schemas']['AchievementEdit'];
 type ContentMedia = components['schemas']['ContentMedia'];
 type AchievementMaturity = components['schemas']['AchievementMaturity'];
 type CooperationMode = components['schemas']['CooperationMode'];
@@ -150,7 +143,7 @@ export default function PublishAchievementPage() {
           setRegionCode(d.regionCode);
           try {
             await ensureRegionNamesReady();
-            setRegionName(regionNameByCode(d.regionCode));
+            setRegionName(regionNameByCode(d.regionCode) || undefined);
           } catch {
             setRegionName(undefined);
           }
@@ -162,7 +155,7 @@ export default function PublishAchievementPage() {
         if (d.coverFileId || d.coverUrl) {
           setCoverFile({ id: d.coverFileId || '', url: d.coverUrl || null });
         }
-        const media = (d.media || []).map((m, index) => ({
+        const media = (d.media || []).map((m: ContentMedia, index: number) => ({
           id: m.fileId,
           url: m.url || null,
           fileName: m.fileName || null,

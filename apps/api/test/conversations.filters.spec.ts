@@ -14,6 +14,9 @@ describe('ConversationsService pagination and id strictness suite', () => {
         count: vi.fn(),
         findUnique: vi.fn(),
       },
+      conversationAgent: {
+        findFirst: vi.fn(),
+      },
       conversationMessage: {
         findMany: vi.fn(),
       },
@@ -44,9 +47,13 @@ describe('ConversationsService pagination and id strictness suite', () => {
 
     expect(prisma.conversation.findMany).toHaveBeenCalledWith({
       where: {
-        OR: [{ buyerUserId: 'u-1' }, { sellerUserId: 'u-1' }],
+        OR: [
+          { buyerUserId: 'u-1' },
+          { sellerUserId: 'u-1' },
+          { agents: { some: { operatorUserId: 'u-1', active: true } } },
+        ],
       },
-      include: { listing: true, buyer: true, seller: true },
+      include: { listing: true, buyer: true, seller: true, agents: { where: { active: true } } },
       orderBy: { updatedAt: 'desc' },
       skip: 50,
       take: 50,
@@ -68,6 +75,7 @@ describe('ConversationsService pagination and id strictness suite', () => {
       buyerUserId: 'u-2',
       sellerUserId: 'u-3',
     });
+    prisma.conversationAgent.findFirst.mockResolvedValueOnce(null);
     await expect(service.listMessages(req, '11111111-1111-1111-1111-111111111111', {})).rejects.toBeInstanceOf(
       ForbiddenException,
     );

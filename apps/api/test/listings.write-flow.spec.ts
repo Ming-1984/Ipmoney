@@ -59,6 +59,13 @@ describe('ListingsService write flow suite', () => {
         findUnique: vi.fn(),
         update: vi.fn(),
       },
+      conversation: {
+        findFirst: vi.fn(),
+        create: vi.fn(),
+      },
+      listingConsultEvent: {
+        create: vi.fn().mockResolvedValue(undefined),
+      },
       file: {
         findMany: vi.fn(),
       },
@@ -68,7 +75,7 @@ describe('ListingsService write flow suite', () => {
     };
     audit = { log: vi.fn().mockResolvedValue(undefined) };
     notifications = { create: vi.fn().mockResolvedValue(undefined) };
-    const events = { recordView: vi.fn().mockResolvedValue(undefined) };
+    const events = { recordView: vi.fn().mockResolvedValue(undefined), recordConsult: vi.fn().mockResolvedValue(true) };
     const config = { getRecommendation: vi.fn().mockResolvedValue({ enabled: false }) };
     service = new ListingsService(prisma, audit, notifications, events as any, config as any);
   });
@@ -456,5 +463,30 @@ describe('ListingsService write flow suite', () => {
         featuredRank: '9007199254740992',
       }),
     ).rejects.toBeInstanceOf(BadRequestException);
+  });
+
+  it('createConsultation returns conversationId and reuses existing conversation', async () => {
+    const req = { auth: { userId: USER_ID } };
+    prisma.listing.findUnique.mockResolvedValueOnce(buildListing({ sellerUserId: 'seller-1' }));
+    prisma.conversation.findFirst.mockResolvedValueOnce({
+      id: 'conv-1',
+      contentType: 'LISTING',
+      contentId: LISTING_ID,
+      listingId: LISTING_ID,
+      buyerUserId: USER_ID,
+      sellerUserId: 'seller-1',
+    });
+
+    const res = await service.createConsultation(req, LISTING_ID, { channel: 'FORM' });
+
+    expect(res).toEqual({ ok: true, conversationId: 'conv-1' });
+    expect(prisma.conversation.create).not.toHaveBeenCalled();
+    expect(prisma.listingConsultEvent.create).toHaveBeenCalledWith({
+      data: {
+        listingId: LISTING_ID,
+        userId: USER_ID,
+        channel: 'FORM',
+      },
+    });
   });
 });

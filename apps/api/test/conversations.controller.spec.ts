@@ -1,4 +1,5 @@
-﻿import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { BadRequestException, ForbiddenException } from '@nestjs/common';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { ConversationsController } from '../src/modules/conversations/conversations.controller';
 
@@ -16,6 +17,9 @@ describe('ConversationsController delegation suite', () => {
       listMessages: vi.fn(),
       sendMessage: vi.fn(),
       markRead: vi.fn(),
+      listPlatformConversations: vi.fn(),
+      assignPlatformAgent: vi.fn(),
+      removePlatformAgent: vi.fn(),
     };
     controller = new ConversationsController(conversations);
   });
@@ -41,26 +45,65 @@ describe('ConversationsController delegation suite', () => {
     expect(conversations.createTechManagerConversation).toHaveBeenCalledWith(req, VALID_UUID);
   });
 
-  it('delegates listMessages and markRead', async () => {
+  it('delegates listMessages/send/markRead with normalized UUID', async () => {
     const req: any = { auth: { userId: 'user-1' } };
     conversations.listMessages.mockResolvedValueOnce({ items: [{ id: 'm-1' }] });
+    conversations.sendMessage.mockResolvedValueOnce({ id: 'm-2' });
     conversations.markRead.mockResolvedValueOnce({ ok: true });
 
-    await expect(controller.listMessages(req, VALID_UUID, { pageSize: '20' })).resolves.toEqual({
+    await expect(controller.listMessages(req, ` ${VALID_UUID} `, { pageSize: '20' })).resolves.toEqual({
       items: [{ id: 'm-1' }],
     });
-    await expect(controller.markRead(req, VALID_UUID)).resolves.toEqual({ ok: true });
+    await expect(controller.sendMessage(req, ` ${VALID_UUID} `, undefined as any)).resolves.toEqual({ id: 'm-2' });
+    await expect(controller.markRead(req, ` ${VALID_UUID} `)).resolves.toEqual({ ok: true });
 
     expect(conversations.listMessages).toHaveBeenCalledWith(req, VALID_UUID, { pageSize: '20' });
+    expect(conversations.sendMessage).toHaveBeenCalledWith(req, VALID_UUID, {});
     expect(conversations.markRead).toHaveBeenCalledWith(req, VALID_UUID);
   });
 
-  it('delegates sendMessage with fallback empty body', async () => {
-    const req: any = { auth: { userId: 'user-1' } };
-    conversations.sendMessage.mockResolvedValueOnce({ id: 'm-2' });
+  it('delegates admin platform conversation routes when permission exists', async () => {
+    const req: any = { auth: { userId: 'admin-1', isAdmin: true, permissions: new Set(['conversation.platform.manage']) } };
+    conversations.listPlatformConversations.mockResolvedValueOnce({ items: [] });
+    conversations.assignPlatformAgent.mockResolvedValueOnce({ id: 'agent-1', userId: VALID_UUID, active: true });
+    conversations.removePlatformAgent.mockResolvedValueOnce({ id: 'agent-1', userId: VALID_UUID, active: false });
 
-    await expect(controller.sendMessage(req, VALID_UUID, undefined as any)).resolves.toEqual({ id: 'm-2' });
+    await expect(controller.listPlatformConversations(req, { mineOnly: 'true' })).resolves.toEqual({ items: [] });
+    await expect(controller.assignPlatformAgent(req, ` ${VALID_UUID} `, { userId: VALID_UUID })).resolves.toMatchObject({
+      userId: VALID_UUID,
+      active: true,
+    });
+    await expect(controller.removePlatformAgent(req, ` ${VALID_UUID} `, ` ${VALID_UUID} `)).resolves.toMatchObject({
+      userId: VALID_UUID,
+      active: false,
+    });
 
-    expect(conversations.sendMessage).toHaveBeenCalledWith(req, VALID_UUID, {});
+    expect(conversations.listPlatformConversations).toHaveBeenCalledWith(req, { mineOnly: 'true' });
+    expect(conversations.assignPlatformAgent).toHaveBeenCalledWith(req, VALID_UUID, { userId: VALID_UUID });
+    expect(conversations.removePlatformAgent).toHaveBeenCalledWith(req, VALID_UUID, VALID_UUID);
+  });
+
+  it('rejects admin platform routes without admin or permission', async () => {
+    const nonAdminReq: any = { auth: { userId: 'u-1', isAdmin: false, permissions: new Set(['conversation.platform.manage']) } };
+    const noPermReq: any = { auth: { userId: 'admin-1', isAdmin: true, permissions: new Set(['listing.read']) } };
+
+    await expect(controller.listPlatformConversations(nonAdminReq, {})).rejects.toBeInstanceOf(ForbiddenException);
+    await expect(controller.assignPlatformAgent(nonAdminReq, VALID_UUID, {})).rejects.toBeInstanceOf(ForbiddenException);
+    await expect(controller.removePlatformAgent(nonAdminReq, VALID_UUID, VALID_UUID)).rejects.toBeInstanceOf(ForbiddenException);
+
+    await expect(controller.listPlatformConversations(noPermReq, {})).rejects.toBeInstanceOf(ForbiddenException);
+    await expect(controller.assignPlatformAgent(noPermReq, VALID_UUID, {})).rejects.toBeInstanceOf(ForbiddenException);
+    await expect(controller.removePlatformAgent(noPermReq, VALID_UUID, VALID_UUID)).rejects.toBeInstanceOf(ForbiddenException);
+  });
+
+  it('rejects UUID-guarded routes when path params are invalid', async () => {
+    const req: any = { auth: { userId: 'admin-1', isAdmin: true, permissions: new Set(['conversation.platform.manage']) } };
+    await expect(controller.createListingConversation(req, 'bad-id')).rejects.toBeInstanceOf(BadRequestException);
+    await expect(controller.createTechManagerConversation(req, 'bad-id')).rejects.toBeInstanceOf(BadRequestException);
+    await expect(controller.listMessages(req, 'bad-id', {})).rejects.toBeInstanceOf(BadRequestException);
+    await expect(controller.sendMessage(req, 'bad-id', {})).rejects.toBeInstanceOf(BadRequestException);
+    await expect(controller.markRead(req, 'bad-id')).rejects.toBeInstanceOf(BadRequestException);
+    await expect(controller.assignPlatformAgent(req, 'bad-id', {})).rejects.toBeInstanceOf(BadRequestException);
+    await expect(controller.removePlatformAgent(req, VALID_UUID, 'bad-id')).rejects.toBeInstanceOf(BadRequestException);
   });
 });

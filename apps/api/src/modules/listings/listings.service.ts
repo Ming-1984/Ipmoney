@@ -54,6 +54,7 @@ type ListingAdminDto = {
   createdAt: string;
   updatedAt: string;
   sellerUserId?: string | null;
+  consultationRouting?: 'PLATFORM' | 'OWNER';
   featuredLevel?: FeaturedLevel;
   featuredRegionCode?: string | null;
   featuredRank?: number | null;
@@ -162,6 +163,7 @@ type PagedListingImportJobRows = {
 
 type ListingImportDefaults = {
   sellerUserId?: string;
+  consultationRouting?: 'PLATFORM' | 'OWNER';
   source?: ContentSource;
   tradeMode?: 'ASSIGNMENT' | 'LICENSE';
   licenseMode?: 'EXCLUSIVE' | 'SOLE' | 'NON_EXCLUSIVE';
@@ -402,6 +404,23 @@ export class ListingsService {
 
   private parseConsultChannelStrict(value: unknown, fieldName: string): 'FORM' | 'PHONE' | 'WECHAT_CS' {
     const normalized = this.normalizeConsultChannel(value);
+    if (!normalized) {
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: `${fieldName} is invalid` });
+    }
+    return normalized;
+  }
+
+  private normalizeConsultationRouting(value: unknown): 'PLATFORM' | 'OWNER' | undefined {
+    const routing = String(value || '').trim().toUpperCase();
+    if (!routing) return undefined;
+    if (routing === 'PLATFORM' || routing === 'OWNER') {
+      return routing as 'PLATFORM' | 'OWNER';
+    }
+    return undefined;
+  }
+
+  private parseConsultationRoutingStrict(value: unknown, fieldName: string): 'PLATFORM' | 'OWNER' {
+    const normalized = this.normalizeConsultationRouting(value);
     if (!normalized) {
       throw new BadRequestException({ code: 'BAD_REQUEST', message: `${fieldName} is invalid` });
     }
@@ -649,6 +668,7 @@ export class ListingsService {
       createdAt: toIso(it.createdAt) || new Date().toISOString(),
       updatedAt: toIso(it.updatedAt) || new Date().toISOString(),
       sellerUserId: it.sellerUserId ?? undefined,
+      consultationRouting: it.consultationRouting ?? 'PLATFORM',
       featuredLevel: it.featuredLevel,
       featuredRegionCode: it.featuredRegionCode ?? undefined,
       featuredRank: it.featuredRank ?? undefined,
@@ -861,6 +881,9 @@ export class ListingsService {
     if (this.hasOwn(defaults, 'sellerUserId')) {
       out.sellerUserId = this.parseNonEmptyFilterStrict(defaults?.sellerUserId, 'defaults.sellerUserId');
     }
+    if (this.hasOwn(defaults, 'consultationRouting')) {
+      out.consultationRouting = this.parseConsultationRoutingStrict(defaults?.consultationRouting, 'defaults.consultationRouting');
+    }
     if (this.hasOwn(defaults, 'source')) {
       out.source = this.parseContentSourceStrict(defaults?.source, 'defaults.source');
     }
@@ -939,6 +962,7 @@ export class ListingsService {
         const summaryRaw = this.pickWorkbookValue(row, ['摘要', 'summary']);
         const sourceRaw = this.pickWorkbookValue(row, ['source', '来源']);
         const sellerUserIdRaw = this.pickWorkbookValue(row, ['sellerUserId', '卖家用户ID', '卖家用户']);
+        const consultationRoutingRaw = this.pickWorkbookValue(row, ['consultationRouting', '咨询路由', '咨询方式']);
         const tradeModeRaw = this.pickWorkbookValue(row, ['tradeMode', '交易方式', '交易模式']);
         const licenseModeRaw = this.pickWorkbookValue(row, ['licenseMode', '许可方式', '许可模式']);
         const priceTypeRaw = this.pickWorkbookValue(row, ['priceType', '价格类型', '报价类型']);
@@ -957,6 +981,10 @@ export class ListingsService {
           sellerUserIdRaw !== undefined
             ? this.parseNonEmptyFilterStrict(sellerUserIdRaw, 'sellerUserId')
             : defaults.sellerUserId;
+        const consultationRouting =
+          consultationRoutingRaw !== undefined
+            ? this.parseConsultationRoutingStrict(consultationRoutingRaw, 'consultationRouting')
+            : defaults.consultationRouting;
         const tradeMode =
           tradeModeRaw !== undefined
             ? this.parseTradeModeStrict(tradeModeRaw, 'tradeMode')
@@ -1009,6 +1037,7 @@ export class ListingsService {
           patentNumberRaw,
           source,
           sellerUserId,
+          consultationRouting,
           title,
           summary,
           tradeMode,
@@ -1585,6 +1614,7 @@ export class ListingsService {
       locCodes: meta.locCodes,
       featuredLevel: it.featuredLevel,
       featuredRegionCode: it.featuredRegionCode ?? null,
+      consultationRouting: it.consultationRouting ?? 'PLATFORM',
       auditStatus: it.auditStatus,
       status: it.status,
       coverUrl: null,
@@ -1728,6 +1758,7 @@ export class ListingsService {
     const hasRegionCode = this.hasOwn(body, 'regionCode');
     const hasAuditStatus = this.hasOwn(body, 'auditStatus');
     const hasStatus = this.hasOwn(body, 'status');
+    const hasConsultationRouting = this.hasOwn(body, 'consultationRouting');
     const hasSellerUserId = this.hasOwn(body, 'sellerUserId');
     const hasTitle = this.hasOwn(body, 'title');
     const hasSummary = this.hasOwn(body, 'summary');
@@ -1746,6 +1777,9 @@ export class ListingsService {
     const regionCode = hasRegionCode ? this.parseNullableRegionCodeStrict(body?.regionCode, 'regionCode') : undefined;
     const auditStatus = hasAuditStatus ? this.parseAuditStatusStrict(body?.auditStatus, 'auditStatus') : 'PENDING';
     const status = hasStatus ? this.parseListingStatusStrict(body?.status, 'status') : 'DRAFT';
+    const consultationRouting = hasConsultationRouting
+      ? this.parseConsultationRoutingStrict(body?.consultationRouting, 'consultationRouting')
+      : 'PLATFORM';
 
     const sellerUserId = hasSellerUserId
       ? this.parseNonEmptyFilterStrict(body?.sellerUserId, 'sellerUserId')
@@ -1773,6 +1807,14 @@ export class ListingsService {
     const parsedTitle = hasTitle ? this.parseNullableNonEmptyStringStrict(body?.title, 'title') : undefined;
     const parsedSummary = hasSummary ? this.parseNullableNonEmptyStringStrict(body?.summary, 'summary') : undefined;
     const patent = await this.ensurePatent(this.withPatentSourceFallback(body));
+    let resolvedSellerUserId = sellerUserId;
+    if (consultationRouting === 'OWNER') {
+      const ownerUserId = String(patent?.ownerUserId || '').trim();
+      if (!ownerUserId) {
+        throw new BadRequestException({ code: 'BAD_REQUEST', message: 'patent owner is required for OWNER routing' });
+      }
+      resolvedSellerUserId = ownerUserId;
+    }
     if (patent) {
       await Promise.all([
         this.syncPatentParties(patent.id, 'INVENTOR', body?.inventorNames),
@@ -1787,7 +1829,7 @@ export class ListingsService {
     const summary = hasSummary ? parsedSummary : null;
     const listing = await this.prisma.listing.create({
       data: {
-        sellerUserId,
+        sellerUserId: resolvedSellerUserId,
         source,
         patentId: patent?.id ?? null,
         title,
@@ -1809,6 +1851,7 @@ export class ListingsService {
         industryTagsJson: industryTags.length > 0 ? industryTags : Prisma.DbNull,
         listingTopicsJson: listingTopics.length > 0 ? listingTopics : Prisma.DbNull,
         proofFileIdsJson: proofFileIds.length > 0 ? proofFileIds : Prisma.DbNull,
+        consultationRouting,
         auditStatus,
         status,
       },
@@ -1871,17 +1914,39 @@ export class ListingsService {
     const auditStatus = hasAuditStatus ? this.parseAuditStatusStrict(body?.auditStatus, 'auditStatus') : undefined;
     const hasStatus = this.hasOwn(body, 'status');
     const status = hasStatus ? this.parseListingStatusStrict(body?.status, 'status') : undefined;
+    const hasConsultationRouting = this.hasOwn(body, 'consultationRouting');
+    const consultationRouting = hasConsultationRouting
+      ? this.parseConsultationRoutingStrict(body?.consultationRouting, 'consultationRouting')
+      : undefined;
     const hasIndustryTags = this.hasOwn(body, 'industryTags');
     const industryTags = hasIndustryTags ? sanitizeIndustryTagNames(body?.industryTags) : undefined;
     const hasSellerUserId = this.hasOwn(body, 'sellerUserId');
     const hasTitle = this.hasOwn(body, 'title');
     const hasSummary = this.hasOwn(body, 'summary');
-    const sellerUserId = hasSellerUserId ? this.parseNonEmptyFilterStrict(body?.sellerUserId, 'sellerUserId') : listing.sellerUserId;
+    let sellerUserId = hasSellerUserId ? this.parseNonEmptyFilterStrict(body?.sellerUserId, 'sellerUserId') : listing.sellerUserId;
     const parsedTitle = hasTitle ? this.parseNullableNonEmptyStringStrict(body?.title, 'title') : undefined;
     const parsedSummary = hasSummary ? this.parseNullableNonEmptyStringStrict(body?.summary, 'summary') : undefined;
     if (body?.patentNumberRaw) {
       const patent = await this.ensurePatent(patentBody);
       if (patent) patentId = patent.id;
+    }
+    const effectiveConsultationRouting = hasConsultationRouting
+      ? consultationRouting
+      : (listing as any).consultationRouting || 'PLATFORM';
+    if (effectiveConsultationRouting === 'OWNER') {
+      const ownerPatentId = patentId ?? listing.patentId;
+      if (!ownerPatentId) {
+        throw new BadRequestException({ code: 'BAD_REQUEST', message: 'patent owner is required for OWNER routing' });
+      }
+      const ownerPatent = await this.prisma.patent.findUnique({
+        where: { id: ownerPatentId },
+        select: { ownerUserId: true },
+      });
+      const ownerUserId = String(ownerPatent?.ownerUserId || '').trim();
+      if (!ownerUserId) {
+        throw new BadRequestException({ code: 'BAD_REQUEST', message: 'patent owner is required for OWNER routing' });
+      }
+      sellerUserId = ownerUserId;
     }
     const updated = await this.prisma.listing.update({
       where: { id: listingId },
@@ -1910,6 +1975,7 @@ export class ListingsService {
         proofFileIdsJson: hasProofFileIds ? (proofFileIds && proofFileIds.length > 0 ? proofFileIds : Prisma.DbNull) : undefined,
         auditStatus: hasAuditStatus ? auditStatus : listing.auditStatus,
         status: hasStatus ? status : listing.status,
+        consultationRouting: hasConsultationRouting ? consultationRouting : (listing as any).consultationRouting,
       },
     });
     if (patentId) {
@@ -2891,6 +2957,7 @@ export class ListingsService {
         industryTagsJson: industryTags.length > 0 ? industryTags : Prisma.DbNull,
         listingTopicsJson: listingTopics.length > 0 ? listingTopics : Prisma.DbNull,
         proofFileIdsJson: proofFileIds.length > 0 ? proofFileIds : Prisma.DbNull,
+        consultationRouting: 'OWNER',
       },
     });
     return this.toAdminDto(listing);
@@ -3446,6 +3513,25 @@ export class ListingsService {
         },
       });
     }
-    return { ok: true };
+    let conversation = await this.prisma.conversation.findFirst({
+      where: {
+        contentType: 'LISTING',
+        contentId: listingId,
+        buyerUserId: req.auth.userId,
+        sellerUserId: listing.sellerUserId,
+      },
+    });
+    if (!conversation) {
+      conversation = await this.prisma.conversation.create({
+        data: {
+          contentType: 'LISTING',
+          contentId: listingId,
+          listingId: listing.id,
+          buyerUserId: req.auth.userId,
+          sellerUserId: listing.sellerUserId,
+        },
+      });
+    }
+    return { ok: true, conversationId: conversation.id };
   }
 }

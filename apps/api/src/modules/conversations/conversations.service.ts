@@ -37,6 +37,7 @@ type ConversationSummary = {
     avatarUrl?: string | null;
     role?: string | null;
   };
+  assignedAgentUserIds?: string[];
 };
 
 type PagedConversationSummary = {
@@ -91,6 +92,22 @@ export class ConversationsService {
       throw new BadRequestException({ code: 'BAD_REQUEST', message: `${fieldName} is invalid` });
     }
     return raw;
+  }
+
+  private async isConversationAgent(conversationId: string, userId: string): Promise<boolean> {
+    const assignment = await this.prisma.conversationAgent.findFirst({
+      where: { conversationId, operatorUserId: userId, active: true },
+      select: { id: true },
+    });
+    return Boolean(assignment);
+  }
+
+  private async assertConversationAccessible(conv: any, userId: string): Promise<void> {
+    if (conv.buyerUserId === userId || conv.sellerUserId === userId) return;
+    const isAgent = await this.isConversationAgent(conv.id, userId);
+    if (!isAgent) {
+      throw new ForbiddenException({ code: 'FORBIDDEN', message: 'forbidden' });
+    }
   }
 
   private toConversationDto(conv: any, contentTitle?: string | null, listingTitle?: string | null): ConversationDto {
@@ -189,15 +206,25 @@ export class ConversationsService {
     const [items, total] = await Promise.all([
       this.prisma.conversation.findMany({
         where: {
-          OR: [{ buyerUserId: req.auth.userId }, { sellerUserId: req.auth.userId }],
+          OR: [
+            { buyerUserId: req.auth.userId },
+            { sellerUserId: req.auth.userId },
+            { agents: { some: { operatorUserId: req.auth.userId, active: true } } },
+          ],
         },
-        include: { listing: true, buyer: true, seller: true },
+        include: { listing: true, buyer: true, seller: true, agents: { where: { active: true } } },
         orderBy: { updatedAt: 'desc' },
         skip: (page - 1) * pageSize,
         take: pageSize,
       }),
       this.prisma.conversation.count({
-        where: { OR: [{ buyerUserId: req.auth.userId }, { sellerUserId: req.auth.userId }] },
+        where: {
+          OR: [
+            { buyerUserId: req.auth.userId },
+            { sellerUserId: req.auth.userId },
+            { agents: { some: { operatorUserId: req.auth.userId, active: true } } },
+          ],
+        },
       }),
     ]);
 
@@ -264,6 +291,9 @@ export class ConversationsService {
           avatarUrl: counterpart?.avatarUrl ?? null,
           role: counterpart?.role ?? null,
         },
+        assignedAgentUserIds: Array.isArray(it.agents)
+          ? it.agents.map((agent: any) => String(agent.operatorUserId || '')).filter((id: string) => Boolean(id))
+          : [],
       } satisfies ConversationSummary;
     });
 
@@ -290,9 +320,7 @@ export class ConversationsService {
     const normalizedConversationId = this.parseUuidStrict(conversationId, 'conversationId');
     const conv = await this.prisma.conversation.findUnique({ where: { id: normalizedConversationId } });
     if (!conv) throw new NotFoundException({ code: 'NOT_FOUND', message: 'conversation not found' });
-    if (conv.buyerUserId !== req.auth.userId && conv.sellerUserId !== req.auth.userId) {
-      throw new ForbiddenException({ code: 'FORBIDDEN', message: 'forbidden' });
-    }
+    await this.assertConversationAccessible(conv, req.auth.userId);
     const messages = await this.prisma.conversationMessage.findMany({
       where: { conversationId: normalizedConversationId },
       orderBy: { createdAt: 'asc' },
@@ -323,9 +351,7 @@ export class ConversationsService {
 
     const conv = await this.prisma.conversation.findUnique({ where: { id: normalizedConversationId } });
     if (!conv) throw new NotFoundException({ code: 'NOT_FOUND', message: 'conversation not found' });
-    if (conv.buyerUserId !== req.auth.userId && conv.sellerUserId !== req.auth.userId) {
-      throw new ForbiddenException({ code: 'FORBIDDEN', message: 'forbidden' });
-    }
+    await this.assertConversationAccessible(conv, req.auth.userId);
 
     const msg = await this.prisma.conversationMessage.create({
       data: {
@@ -354,6 +380,9 @@ export class ConversationsService {
   async markRead(req: any, conversationId: string) {
     this.ensureAuth(req);
     const normalizedConversationId = this.parseUuidStrict(conversationId, 'conversationId');
+    const conv = await this.prisma.conversation.findUnique({ where: { id: normalizedConversationId } });
+    if (!conv) throw new NotFoundException({ code: 'NOT_FOUND', message: 'conversation not found' });
+    await this.assertConversationAccessible(conv, req.auth.userId);
     const participant = await this.prisma.conversationParticipant.findFirst({
       where: { conversationId: normalizedConversationId, userId: req.auth.userId },
     });
@@ -368,5 +397,127 @@ export class ConversationsService {
       });
     }
     return { ok: true };
+  }
+
+  async listPlatformConversations(req: any, query: any): Promise<PagedConversationSummary> {
+    this.ensureAuth(req);
+    const page = this.hasOwn(query, 'page') ? this.parsePositiveIntStrict(query?.page, 'page') : 1;
+    const pageSizeInput = this.hasOwn(query, 'pageSize') ? this.parsePositiveIntStrict(query?.pageSize, 'pageSize') : 20;
+    const pageSize = Math.min(50, pageSizeInput);
+    const mineOnly = this.hasOwn(query, 'mineOnly') ? String(query?.mineOnly || '').trim() === 'true' : false;
+    const where: any = {
+      contentType: 'LISTING',
+      listing: { consultationRouting: 'PLATFORM' },
+    };
+    if (mineOnly) {
+      where.agents = { some: { operatorUserId: req.auth.userId, active: true } };
+    }
+
+    const [items, total] = await Promise.all([
+      this.prisma.conversation.findMany({
+        where,
+        include: { listing: true, buyer: true, seller: true, agents: { where: { active: true } } },
+        orderBy: { updatedAt: 'desc' },
+        skip: (page - 1) * pageSize,
+        take: pageSize,
+      }),
+      this.prisma.conversation.count({ where }),
+    ]);
+
+    return {
+      items: items.map((it: any) => {
+        const lastMessageAt = (it.lastMessageAt || it.updatedAt || it.createdAt) as Date;
+        return {
+          id: it.id,
+          contentType: 'LISTING',
+          contentId: String(it.contentId || it.listingId || ''),
+          contentTitle: it.listing?.title ?? 'Consultation',
+          listingId: it.listingId ?? null,
+          listingTitle: it.listing?.title ?? null,
+          lastMessagePreview: null,
+          lastMessageAt: lastMessageAt.toISOString(),
+          unreadCount: 0,
+          counterpart: {
+            id: it.buyer?.id || it.buyerUserId,
+            nickname: it.buyer?.nickname ?? 'User',
+            avatarUrl: it.buyer?.avatarUrl ?? null,
+            role: it.buyer?.role ?? null,
+          },
+          assignedAgentUserIds: Array.isArray(it.agents)
+            ? it.agents.map((agent: any) => String(agent.operatorUserId || '')).filter((id: string) => Boolean(id))
+            : [],
+        } satisfies ConversationSummary;
+      }),
+      page: { page, pageSize, total },
+    };
+  }
+
+  async assignPlatformAgent(req: any, conversationId: string, body: any) {
+    this.ensureAuth(req);
+    const normalizedConversationId = this.parseUuidStrict(conversationId, 'conversationId');
+    const operatorUserId = this.hasOwn(body, 'userId')
+      ? this.parseUuidStrict(body?.userId, 'userId')
+      : this.parseUuidStrict(req?.auth?.userId, 'userId');
+    const conv = await this.prisma.conversation.findUnique({
+      where: { id: normalizedConversationId },
+      include: { listing: { select: { consultationRouting: true } } },
+    });
+    if (!conv) throw new NotFoundException({ code: 'NOT_FOUND', message: 'conversation not found' });
+    if (conv.contentType !== 'LISTING' || conv.listing?.consultationRouting !== 'PLATFORM') {
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: 'conversation is not a platform listing consultation' });
+    }
+    const operator = await this.prisma.user.findUnique({ where: { id: operatorUserId }, select: { id: true } });
+    if (!operator) throw new NotFoundException({ code: 'NOT_FOUND', message: 'user not found' });
+    const assigned = await this.prisma.conversationAgent.upsert({
+      where: {
+        conversationId_operatorUserId: {
+          conversationId: normalizedConversationId,
+          operatorUserId,
+        },
+      },
+      create: {
+        conversationId: normalizedConversationId,
+        operatorUserId,
+        assignedByUserId: req.auth.userId,
+        active: true,
+      },
+      update: {
+        assignedByUserId: req.auth.userId,
+        active: true,
+      },
+    });
+    return {
+      id: assigned.id,
+      conversationId: assigned.conversationId,
+      userId: assigned.operatorUserId,
+      active: assigned.active,
+      assignedAt: assigned.assignedAt.toISOString(),
+    };
+  }
+
+  async removePlatformAgent(req: any, conversationId: string, userId: string) {
+    this.ensureAuth(req);
+    const normalizedConversationId = this.parseUuidStrict(conversationId, 'conversationId');
+    const normalizedUserId = this.parseUuidStrict(userId, 'userId');
+    const assignment = await this.prisma.conversationAgent.findUnique({
+      where: {
+        conversationId_operatorUserId: {
+          conversationId: normalizedConversationId,
+          operatorUserId: normalizedUserId,
+        },
+      },
+    });
+    if (!assignment) throw new NotFoundException({ code: 'NOT_FOUND', message: 'agent assignment not found' });
+    const updated = await this.prisma.conversationAgent.update({
+      where: { id: assignment.id },
+      data: { active: false, assignedByUserId: req.auth.userId },
+    });
+    return {
+      id: updated.id,
+      conversationId: updated.conversationId,
+      userId: updated.operatorUserId,
+      active: updated.active,
+      assignedAt: updated.assignedAt.toISOString(),
+    };
   }
 }

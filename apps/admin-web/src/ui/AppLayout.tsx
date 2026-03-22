@@ -1,4 +1,4 @@
-import {
+﻿import {
   AppstoreOutlined,
   BellOutlined,
   BookOutlined,
@@ -42,6 +42,9 @@ const menuItems: MenuProps['items'] = [
   { key: 'config', icon: <SettingOutlined />, label: <Link to="/config">交易/推荐配置</Link> },
   { key: 'regions', icon: <EnvironmentOutlined />, label: <Link to="/regions">地区/行业标签</Link> },
   { key: 'patents', icon: <BookOutlined />, label: <Link to="/patents">专利主数据</Link> },
+  { key: 'patent-ops', icon: <BookOutlined />, label: <Link to="/patents/operations">专利批量运营</Link> },
+  { key: 'patent-claims', icon: <BookOutlined />, label: <Link to="/patents/claims">专利认领审核</Link> },
+  { key: 'platform-conversations', icon: <MessageOutlined />, label: <Link to="/conversations/platform">平台咨询会话</Link> },
   { key: 'rbac', icon: <LockOutlined />, label: <Link to="/rbac">账号权限</Link> },
 ];
 
@@ -64,6 +67,10 @@ export function AppLayout() {
     const path = location.pathname.replace(/^\//, '');
     if (!path) return ['dashboard'];
     if (path.startsWith('orders/')) return ['orders'];
+    if (path.startsWith('patents/operations')) return ['patent-ops'];
+    if (path.startsWith('patents/claims')) return ['patent-claims'];
+    if (path.startsWith('patents/')) return ['patents'];
+    if (path.startsWith('conversations/platform')) return ['platform-conversations'];
     return [path];
   }, [location.pathname]);
 
@@ -71,14 +78,7 @@ export function AppLayout() {
 
   return (
     <Layout style={{ minHeight: '100vh' }}>
-      <Sider
-        className="ipm-sider"
-        theme="light"
-        collapsible
-        collapsed={collapsed}
-        onCollapse={setCollapsed}
-        width={240}
-      >
+      <Sider className="ipm-sider" theme="light" collapsible collapsed={collapsed} onCollapse={setCollapsed} width={240}>
         <div className="ipm-logo">
           <div className="ipm-logo-mark" aria-hidden="true">
             <img src={logoPng} alt="" />

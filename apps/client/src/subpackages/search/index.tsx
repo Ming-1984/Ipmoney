@@ -39,7 +39,7 @@ type ListingTopic = components['schemas']['ListingTopic'];
 type AchievementSummary = components['schemas']['AchievementSummary'];
 type PagedAchievementSummary = components['schemas']['PagedAchievementSummary'];
 type AchievementMaturity = components['schemas']['AchievementMaturity'];
-type ContentSortBy = components['schemas']['ContentSortBy'];
+type AchievementSortBy = components['schemas']['AchievementSortBy'];
 
 type TransferCountRange = '' | 'ZERO' | 'ONE' | 'TWO_PLUS';
 
@@ -149,7 +149,7 @@ const LISTING_SORT_OPTIONS: ChipOption<SortBy>[] = [
   { value: 'NEWEST', label: '最新发布' },
 ];
 
-const ACHIEVEMENT_SORT_OPTIONS: ChipOption<ContentSortBy>[] = [
+const ACHIEVEMENT_SORT_OPTIONS: ChipOption<AchievementSortBy>[] = [
   { value: 'RECOMMENDED', label: '综合推荐' },
   { value: 'NEWEST', label: '最新发布' },
 ];
@@ -225,7 +225,7 @@ export default function SearchPage() {
 
   const [tab, setTab] = useState<'LISTING' | 'ACHIEVEMENT'>('LISTING');
   const [sortBy, setSortBy] = useState<SortBy>('RECOMMENDED');
-  const [achievementSortBy, setAchievementSortBy] = useState<ContentSortBy>('RECOMMENDED');
+  const [achievementSortBy, setAchievementSortBy] = useState<AchievementSortBy>('RECOMMENDED');
   const [listingFilters, setListingFilters] = useState<ListingFilters>(LISTING_FILTER_DEFAULT);
   const [achievementFilters, setAchievementFilters] = useState<AchievementFilters>(ACHIEVEMENT_FILTER_DEFAULT);
   const [filtersOpen, setFiltersOpen] = useState(false);

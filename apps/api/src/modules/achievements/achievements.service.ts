@@ -25,12 +25,14 @@ type AchievementMaturity =
   | 'COMMERCIALIZED'
   | 'OTHER';
 type ContentSortBy = 'RECOMMENDED' | 'NEWEST';
+type ConsultChannel = 'FORM' | 'PHONE' | 'WECHAT_CS';
 
 const STATUS_SET = new Set(['DRAFT', 'ACTIVE', 'OFF_SHELF']);
 const AUDIT_STATUS_SET = new Set(['PENDING', 'APPROVED', 'REJECTED']);
 const SOURCE_SET = new Set(['USER', 'PLATFORM', 'ADMIN']);
 const MATURITY_SET = new Set(['CONCEPT', 'PROTOTYPE', 'PILOT', 'MASS_PRODUCTION', 'COMMERCIALIZED', 'OTHER']);
 const SORT_SET = new Set(['RECOMMENDED', 'NEWEST']);
+const CONSULT_CHANNEL_SET = new Set(['FORM', 'PHONE', 'WECHAT_CS']);
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const REGION_CODE_RE = /^[0-9]{6}$/;
 
@@ -100,6 +102,10 @@ export class AchievementsService {
 
   private parseSortByStrict(value: any, field: string): ContentSortBy {
     return this.parseSetValueStrict(value, SORT_SET, field) as ContentSortBy;
+  }
+
+  private parseConsultChannelStrict(value: unknown, fieldName: string): ConsultChannel {
+    return this.parseSetValueStrict(value, CONSULT_CHANNEL_SET, fieldName) as ConsultChannel;
   }
 
   private parseRegionCodeFilterStrict(value: unknown, fieldName: string): string {
@@ -540,7 +546,15 @@ export class AchievementsService {
       ];
     }
 
-    const orderBy: Prisma.AchievementOrderByWithRelationInput = { createdAt: Prisma.SortOrder.desc };
+    const orderBy: Prisma.AchievementOrderByWithRelationInput[] =
+      sortBy === 'RECOMMENDED'
+        ? [
+            { stats: { consultCount: Prisma.SortOrder.desc } },
+            { stats: { favoriteCount: Prisma.SortOrder.desc } },
+            { stats: { viewCount: Prisma.SortOrder.desc } },
+            { createdAt: Prisma.SortOrder.desc },
+          ]
+        : [{ createdAt: Prisma.SortOrder.desc }];
 
     const [items, total] = await Promise.all([
       this.prisma.achievement.findMany({
@@ -742,6 +756,10 @@ export class AchievementsService {
     this.ensureAuth(req);
     const it = await this.prisma.achievement.findUnique({ where: { id: achievementId } });
     if (!it) throw new NotFoundException({ code: 'NOT_FOUND', message: 'achievement not found' });
+    const hasChannel = this.hasOwn(payload, 'channel');
+    if (hasChannel) {
+      this.parseConsultChannelStrict(payload?.channel, 'channel');
+    }
     await this.events.recordConsult(req, 'ACHIEVEMENT', achievementId);
     return { ok: true };
   }

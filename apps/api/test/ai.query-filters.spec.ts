@@ -10,6 +10,7 @@ describe('AiService query filter strictness suite', () => {
   beforeEach(() => {
     prisma = {
       listing: { findMany: vi.fn() },
+      achievement: { findMany: vi.fn() },
       aiParseResult: {
         count: vi.fn(),
         findMany: vi.fn(),
@@ -34,6 +35,7 @@ describe('AiService query filter strictness suite', () => {
 
   it('sanitizes hidden industry tags and keeps parsed regionCode in query filters', async () => {
     prisma.listing.findMany.mockResolvedValueOnce([{ id: 'l-1', title: 'AI Listing' }]);
+    prisma.achievement.findMany.mockResolvedValueOnce([]);
 
     const result = await service.createAgentQuery({
       inputType: 'text',
@@ -52,6 +54,7 @@ describe('AiService query filter strictness suite', () => {
 
   it('ignores non-array industryTags payload in createAgentQuery filters', async () => {
     prisma.listing.findMany.mockResolvedValueOnce([]);
+    prisma.achievement.findMany.mockResolvedValueOnce([]);
 
     const result = await service.createAgentQuery({
       inputType: 'text',

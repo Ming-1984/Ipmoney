@@ -26,6 +26,8 @@ tags:
     description: Search
   - name: Listings
     description: Listings
+  - name: Achievements
+    description: Achievements
   - name: TechManagers
     description: Tech managers
   - name: Orders
@@ -457,6 +459,27 @@ paths:
                 $ref: '#/components/schemas/PagedListingSummary'
         '401':
           $ref: '#/components/responses/Unauthorized'
+  /me/favorites/achievements:
+    get:
+      tags:
+        - Achievements
+      summary: List my favorite achievements
+      operationId: listMyFavoriteAchievements
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PageSize'
+      responses:
+        '200':
+          description: OK
+
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PagedAchievementSummary'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
   /me/recommendations/listings:
     get:
       tags:
@@ -790,6 +813,49 @@ paths:
           $ref: '#/components/responses/BadRequest'
         '404':
           $ref: '#/components/responses/NotFound'
+  /public/achievements/{achievementId}:
+    get:
+      tags:
+        - Achievements
+      summary: Get public achievement detail
+      operationId: getPublicAchievementById
+      security: []
+      parameters:
+        - $ref: '#/components/parameters/AchievementId'
+      responses:
+        '200':
+          description: OK
+
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AchievementDetail'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /public/achievements/{achievementId}/comments:
+    get:
+      tags:
+        - Comments
+        - Achievements
+      summary: List public achievement comments
+      operationId: listPublicAchievementComments
+      security: []
+      parameters:
+        - $ref: '#/components/parameters/AchievementId'
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PageSize'
+      responses:
+        '200':
+          description: OK
+
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PagedCommentThread'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
   /public/tech-managers/{techManagerId}:
     get:
       tags:
@@ -955,6 +1021,32 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/PagedListingSummary'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+  /search/achievements:
+    get:
+      tags:
+        - Search
+        - Achievements
+      summary: Search public achievements
+      operationId: searchAchievements
+      security: []
+      parameters:
+        - $ref: '#/components/parameters/Q'
+        - $ref: '#/components/parameters/AchievementSortBy'
+        - $ref: '#/components/parameters/RegionCode'
+        - $ref: '#/components/parameters/AchievementMaturity'
+        - $ref: '#/components/parameters/IndustryTags'
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PageSize'
+      responses:
+        '200':
+          description: OK
+
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PagedAchievementSummary'
         '400':
           $ref: '#/components/responses/BadRequest'
   /search/tech-managers:
@@ -1229,8 +1321,13 @@ paths:
                     - PHONE
                     - FORM
       responses:
-        '204':
-          description: No Content
+        '200':
+          description: OK
+
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ListingConsultationCreated'
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -1328,6 +1425,272 @@ paths:
           $ref: '#/components/responses/Unauthorized'
         '403':
           $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /achievements:
+    get:
+      tags:
+        - Achievements
+      summary: List my achievements
+      operationId: listMyAchievements
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/AuditStatus'
+        - $ref: '#/components/parameters/ContentStatusParam'
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PageSize'
+      responses:
+        '200':
+          description: OK
+
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PagedAchievementSummary'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+    post:
+      tags:
+        - Achievements
+      summary: Create achievement
+      operationId: createAchievement
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AchievementCreateRequest'
+      responses:
+        '201':
+          description: Created
+
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AchievementEdit'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+  /achievements/{achievementId}:
+    get:
+      tags:
+        - Achievements
+      summary: Get my achievement detail
+      operationId: getMyAchievementById
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/AchievementId'
+      responses:
+        '200':
+          description: OK
+
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AchievementEdit'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    patch:
+      tags:
+        - Achievements
+      summary: Update my achievement
+      operationId: updateMyAchievement
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/AchievementId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AchievementUpdateRequest'
+      responses:
+        '200':
+          description: OK
+
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AchievementEdit'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /achievements/{achievementId}/submit:
+    post:
+      tags:
+        - Achievements
+      summary: Submit achievement for review
+      operationId: submitAchievement
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/AchievementId'
+      responses:
+        '200':
+          description: OK
+
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AchievementRecord'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /achievements/{achievementId}/off-shelf:
+    post:
+      tags:
+        - Achievements
+      summary: Off-shelf my achievement
+      operationId: offShelfAchievement
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/AchievementId'
+      responses:
+        '200':
+          description: OK
+
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AchievementRecord'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /achievements/{achievementId}/consultations:
+    post:
+      tags:
+        - Achievements
+      summary: Create achievement consultation
+      operationId: createAchievementConsultation
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/AchievementId'
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                channel:
+                  type: string
+                  enum:
+                    - WECHAT_CS
+                    - PHONE
+                    - FORM
+      responses:
+        '200':
+          description: OK
+
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OkResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /achievements/{achievementId}/comments:
+    post:
+      tags:
+        - Comments
+        - Achievements
+      summary: Create achievement comment
+      operationId: createAchievementComment
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/AchievementId'
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CommentCreateRequest'
+      responses:
+        '201':
+          description: Created
+
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Comment'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /achievements/{achievementId}/favorites:
+    post:
+      tags:
+        - Achievements
+      summary: Favorite achievement
+      operationId: favoriteAchievement
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/AchievementId'
+        - $ref: '#/components/parameters/IdempotencyKey'
+      responses:
+        '200':
+          description: OK
+
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OkResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    delete:
+      tags:
+        - Achievements
+      summary: Unfavorite achievement
+      operationId: unfavoriteAchievement
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/AchievementId'
+        - $ref: '#/components/parameters/IdempotencyKey'
+      responses:
+        '200':
+          description: OK
+
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OkResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
         '404':
           $ref: '#/components/responses/NotFound'
   /comments/{commentId}:
@@ -1736,6 +2099,32 @@ paths:
           $ref: '#/components/responses/NotFound'
         '409':
           $ref: '#/components/responses/Conflict'
+  /achievements/{achievementId}/conversations:
+    post:
+      tags:
+        - Messaging
+        - Achievements
+      summary: Create or get achievement conversation
+      operationId: upsertAchievementConversation
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/AchievementId'
+        - $ref: '#/components/parameters/IdempotencyKey'
+      responses:
+        '200':
+          description: OK
+
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Conversation'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
   /tech-managers/{techManagerId}/conversations:
     post:
       tags:
@@ -1850,6 +2239,98 @@ paths:
           $ref: '#/components/responses/NotFound'
         '409':
           $ref: '#/components/responses/Conflict'
+  /admin/conversations/platform:
+    get:
+      tags:
+        - Admin
+        - Messaging
+      summary: List platform listing consultations
+      operationId: adminListPlatformConversations
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: mineOnly
+          in: query
+          required: false
+          schema:
+            type: boolean
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PageSize'
+      responses:
+        '200':
+          description: OK
+
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PagedConversationSummary'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+  /admin/conversations/{conversationId}/agents:
+    post:
+      tags:
+        - Admin
+        - Messaging
+      summary: Assign platform conversation agent
+      operationId: adminAssignPlatformConversationAgent
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/ConversationId'
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ConversationAgentAssignmentRequest'
+      responses:
+        '200':
+          description: OK
+
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConversationAgentAssignment'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /admin/conversations/{conversationId}/agents/{userId}:
+    delete:
+      tags:
+        - Admin
+        - Messaging
+      summary: Remove platform conversation agent
+      operationId: adminRemovePlatformConversationAgent
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/ConversationId'
+        - $ref: '#/components/parameters/ConversationAgentUserId'
+      responses:
+        '200':
+          description: OK
+
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConversationAgentAssignment'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
   /admin/regions:
     get:
       tags:
@@ -2405,6 +2886,299 @@ paths:
           $ref: '#/components/responses/Forbidden'
         '404':
           $ref: '#/components/responses/NotFound'
+  /admin/achievements:
+    get:
+      tags:
+        - Admin
+        - Achievements
+      summary: List achievements for admin
+      operationId: adminListAchievements
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/Q'
+        - $ref: '#/components/parameters/AuditStatus'
+        - $ref: '#/components/parameters/ContentStatusParam'
+        - $ref: '#/components/parameters/ContentSource'
+        - name: publisherUserId
+          in: query
+          required: false
+          schema:
+            $ref: '#/components/schemas/Uuid'
+        - $ref: '#/components/parameters/RegionCode'
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PageSize'
+      responses:
+        '200':
+          description: OK
+
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PagedAchievementSummary'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+    post:
+      tags:
+        - Admin
+        - Achievements
+      summary: Create achievement in admin
+      operationId: adminCreateAchievement
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AchievementAdminCreateRequest'
+      responses:
+        '201':
+          description: Created
+
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AchievementEdit'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+  /admin/achievements/{achievementId}:
+    get:
+      tags:
+        - Admin
+        - Achievements
+      summary: Get achievement detail in admin
+      operationId: adminGetAchievementById
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/AchievementId'
+      responses:
+        '200':
+          description: OK
+
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AchievementEdit'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    patch:
+      tags:
+        - Admin
+        - Achievements
+      summary: Update achievement in admin
+      operationId: adminUpdateAchievement
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/AchievementId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AchievementAdminUpdateRequest'
+      responses:
+        '200':
+          description: OK
+
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AchievementEdit'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /admin/achievements/{achievementId}/publish:
+    post:
+      tags:
+        - Admin
+        - Achievements
+      summary: Publish achievement in admin
+      operationId: adminPublishAchievement
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/AchievementId'
+      responses:
+        '200':
+          description: OK
+
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AchievementRecord'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /admin/achievements/{achievementId}/off-shelf:
+    post:
+      tags:
+        - Admin
+        - Achievements
+      summary: Off-shelf achievement in admin
+      operationId: adminOffShelfAchievement
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/AchievementId'
+      responses:
+        '200':
+          description: OK
+
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AchievementRecord'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /admin/achievements/{achievementId}/materials:
+    get:
+      tags:
+        - Admin
+        - Achievements
+      summary: Get achievement audit materials
+      operationId: adminGetAchievementMaterials
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/AchievementId'
+      responses:
+        '200':
+          description: OK
+
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuditMaterialList'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /admin/achievements/{achievementId}/audit-logs:
+    get:
+      tags:
+        - Admin
+        - Achievements
+      summary: Get achievement audit logs
+      operationId: adminGetAchievementAuditLogs
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/AchievementId'
+      responses:
+        '200':
+          description: OK
+
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuditLogList'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /admin/achievements/{achievementId}/approve:
+    post:
+      tags:
+        - Admin
+        - Achievements
+      summary: Approve achievement
+      operationId: adminApproveAchievement
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/AchievementId'
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                reason:
+                  type: string
+      responses:
+        '200':
+          description: OK
+
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AchievementRecord'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /admin/achievements/{achievementId}/reject:
+    post:
+      tags:
+        - Admin
+        - Achievements
+      summary: Reject achievement
+      operationId: adminRejectAchievement
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/AchievementId'
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                reason:
+                  type: string
+      responses:
+        '200':
+          description: OK
+
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AchievementRecord'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
   /admin/patents:
     get:
       tags:
@@ -2519,6 +3293,392 @@ paths:
           $ref: '#/components/responses/Forbidden'
         '404':
           $ref: '#/components/responses/NotFound'
+  /admin/patents/jobs/import:
+    post:
+      tags:
+        - Admin
+        - Patents
+      summary: Create patent import job
+      operationId: adminCreatePatentImportJob
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatentImportJobCreateRequest'
+      responses:
+        '200':
+          description: OK
+
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PatentImportJob'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+    get:
+      tags:
+        - Admin
+        - Patents
+      summary: List patent import jobs
+      operationId: adminListPatentImportJobs
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/PatentJobStatusParam'
+        - $ref: '#/components/parameters/PatentImportDuplicatePolicyParam'
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PageSize'
+      responses:
+        '200':
+          description: OK
+
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PagedPatentImportJob'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+  /admin/patents/jobs/import/{jobId}:
+    get:
+      tags:
+        - Admin
+        - Patents
+      summary: Get patent import job detail
+      operationId: adminGetPatentImportJob
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/PatentImportJobId'
+      responses:
+        '200':
+          description: OK
+
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PatentImportJob'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /admin/patents/jobs/import/{jobId}/validate:
+    post:
+      tags:
+        - Admin
+        - Patents
+      summary: Validate patent import job
+      operationId: adminValidatePatentImportJob
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/PatentImportJobId'
+      responses:
+        '200':
+          description: OK
+
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PatentImportJob'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /admin/patents/jobs/import/{jobId}/execute:
+    post:
+      tags:
+        - Admin
+        - Patents
+      summary: Execute patent import job
+      operationId: adminExecutePatentImportJob
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/PatentImportJobId'
+      responses:
+        '200':
+          description: OK
+
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PatentImportJob'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /admin/patents/jobs/import/{jobId}/rows:
+    get:
+      tags:
+        - Admin
+        - Patents
+      summary: List patent import job rows
+      operationId: adminListPatentImportJobRows
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/PatentImportJobId'
+        - $ref: '#/components/parameters/PatentImportRowStatusParam'
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PageSize'
+      responses:
+        '200':
+          description: OK
+
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PagedPatentImportJobRow'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /admin/patents/jobs/import/{jobId}/error-file:
+    get:
+      tags:
+        - Admin
+        - Patents
+      summary: Get patent import job error file
+      operationId: adminGetPatentImportJobErrorFile
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/PatentImportJobId'
+      responses:
+        '200':
+          description: OK
+
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ListingJobErrorFile'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /admin/patents/jobs/listings:
+    post:
+      tags:
+        - Admin
+        - Patents
+      summary: Generate listings in batch from patent ids
+      operationId: adminGeneratePatentListings
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatentListingGenerateRequest'
+      responses:
+        '200':
+          description: OK
+
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PatentListingGenerateResult'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+  /me/patent-claims:
+    post:
+      tags:
+        - Patents
+      summary: Create patent ownership claim request
+      operationId: createMyPatentClaim
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatentClaimCreateRequest'
+      responses:
+        '200':
+          description: OK
+
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PatentClaimRequest'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+    get:
+      tags:
+        - Patents
+      summary: List my patent claim requests
+      operationId: listMyPatentClaims
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/PatentClaimStatusParam'
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PageSize'
+      responses:
+        '200':
+          description: OK
+
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PagedPatentClaimRequest'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+  /admin/patent-claims:
+    get:
+      tags:
+        - Admin
+        - Patents
+      summary: List patent claim requests for review
+      operationId: adminListPatentClaims
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/Q'
+        - $ref: '#/components/parameters/PatentClaimStatusParam'
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PageSize'
+      responses:
+        '200':
+          description: OK
+
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PagedPatentClaimRequest'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+  /admin/patent-claims/{claimId}/approve:
+    post:
+      tags:
+        - Admin
+        - Patents
+      summary: Approve patent ownership claim
+      operationId: adminApprovePatentClaim
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/PatentClaimId'
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatentClaimReviewRequest'
+      responses:
+        '200':
+          description: OK
+
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PatentClaimRequest'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+  /admin/patent-claims/{claimId}/reject:
+    post:
+      tags:
+        - Admin
+        - Patents
+      summary: Reject patent ownership claim
+      operationId: adminRejectPatentClaim
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/PatentClaimId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatentClaimRejectRequest'
+      responses:
+        '200':
+          description: OK
+
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PatentClaimRequest'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
   /admin/patent-maintenance/schedules:
     get:
       tags:
@@ -5055,6 +6215,30 @@ components:
       required: false
       schema:
         $ref: '#/components/schemas/ListingImportRowStatus'
+    PatentJobStatusParam:
+      name: status
+      in: query
+      required: false
+      schema:
+        $ref: '#/components/schemas/PatentJobStatus'
+    PatentImportDuplicatePolicyParam:
+      name: duplicatePolicy
+      in: query
+      required: false
+      schema:
+        $ref: '#/components/schemas/PatentImportDuplicatePolicy'
+    PatentImportRowStatusParam:
+      name: status
+      in: query
+      required: false
+      schema:
+        $ref: '#/components/schemas/PatentImportRowStatus'
+    PatentClaimStatusParam:
+      name: status
+      in: query
+      required: false
+      schema:
+        $ref: '#/components/schemas/PatentClaimStatus'
     BatchJobId:
       name: jobId
       in: path
@@ -5063,6 +6247,24 @@ components:
         $ref: '#/components/schemas/Uuid'
     ImportJobId:
       name: jobId
+      in: path
+      required: true
+      schema:
+        $ref: '#/components/schemas/Uuid'
+    PatentImportJobId:
+      name: jobId
+      in: path
+      required: true
+      schema:
+        $ref: '#/components/schemas/Uuid'
+    PatentClaimId:
+      name: claimId
+      in: path
+      required: true
+      schema:
+        $ref: '#/components/schemas/Uuid'
+    ConversationAgentUserId:
+      name: userId
       in: path
       required: true
       schema:
@@ -5249,6 +6451,18 @@ components:
       required: false
       schema:
         $ref: '#/components/schemas/SortBy'
+    AchievementSortBy:
+      name: sortBy
+      in: query
+      required: false
+      schema:
+        $ref: '#/components/schemas/AchievementSortBy'
+    AchievementMaturity:
+      name: maturity
+      in: query
+      required: false
+      schema:
+        $ref: '#/components/schemas/AchievementMaturity'
     TechManagerSortBy:
       name: sortBy
       in: query
@@ -5403,6 +6617,12 @@ components:
       required: false
       schema:
         $ref: '#/components/schemas/ListingStatus'
+    ContentStatusParam:
+      name: status
+      in: query
+      required: false
+      schema:
+        $ref: '#/components/schemas/ContentStatus'
     AuditStatus:
       name: auditStatus
       in: query
@@ -5433,6 +6653,12 @@ components:
 
     ListingId:
       name: listingId
+      in: path
+      required: true
+      schema:
+        $ref: '#/components/schemas/Uuid'
+    AchievementId:
+      name: achievementId
       in: path
       required: true
       schema:
@@ -6219,6 +7445,13 @@ components:
         sourceUpdatedAt:
           type: string
           format: date-time
+        ownerUserId:
+          $ref: '#/components/schemas/Uuid'
+        ownerClaimedAt:
+          type: string
+          format: date-time
+        ownerClaimSource:
+          $ref: '#/components/schemas/PatentOwnerClaimSource'
         media:
           type: array
           items:
@@ -6284,6 +7517,17 @@ components:
       enum:
         - FIXED
         - NEGOTIABLE
+    ConsultationRouting:
+      type: string
+      enum:
+        - PLATFORM
+        - OWNER
+    PatentOwnerClaimSource:
+      type: string
+      enum:
+        - PLATFORM_IMPORT
+        - USER_CLAIM
+        - ADMIN_ASSIGN
     AuditStatus:
       type: string
       enum:
@@ -6296,6 +7540,12 @@ components:
         - USER
         - PLATFORM
         - ADMIN
+    ContentStatus:
+      type: string
+      enum:
+        - DRAFT
+        - ACTIVE
+        - OFF_SHELF
     ListingStatus:
       type: string
       enum:
@@ -6303,6 +7553,20 @@ components:
         - ACTIVE
         - OFF_SHELF
         - SOLD
+    AchievementMaturity:
+      type: string
+      enum:
+        - CONCEPT
+        - PROTOTYPE
+        - PILOT
+        - MASS_PRODUCTION
+        - COMMERCIALIZED
+        - OTHER
+    AchievementSortBy:
+      type: string
+      enum:
+        - RECOMMENDED
+        - NEWEST
     SortBy:
       type: string
       enum:
@@ -6353,6 +7617,39 @@ components:
           type: integer
           format: int64
           minimum: 0
+    ContentMediaType:
+      type: string
+      enum:
+        - IMAGE
+        - VIDEO
+        - FILE
+    ContentMedia:
+      type: object
+      required:
+        - fileId
+        - type
+        - sort
+      properties:
+        fileId:
+          $ref: '#/components/schemas/Uuid'
+        type:
+          $ref: '#/components/schemas/ContentMediaType'
+        sort:
+          type: integer
+          minimum: 0
+        url:
+          type: string
+          format: uri
+          nullable: true
+        mimeType:
+          type: string
+          nullable: true
+        sizeBytes:
+          type: integer
+          nullable: true
+        fileName:
+          type: string
+          nullable: true
     ListingMedia:
       type: object
       required:
@@ -6453,6 +7750,8 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/ListingTopic'
+        consultationRouting:
+          $ref: '#/components/schemas/ConsultationRouting'
         featuredLevel:
           $ref: '#/components/schemas/FeaturedLevel'
         featuredRegionCode:
@@ -6723,6 +8022,8 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/ListingTopic'
+        consultationRouting:
+          $ref: '#/components/schemas/ConsultationRouting'
         ipcCodes:
           type: array
           items:
@@ -6832,6 +8133,8 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/ListingTopic'
+        consultationRouting:
+          $ref: '#/components/schemas/ConsultationRouting'
         ipcCodes:
           type: array
           items:
@@ -6905,6 +8208,264 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/Listing'
+        page:
+          $ref: '#/components/schemas/PageMeta'
+    ContentMediaInput:
+      type: object
+      required:
+        - fileId
+        - type
+      properties:
+        fileId:
+          $ref: '#/components/schemas/Uuid'
+        type:
+          $ref: '#/components/schemas/ContentMediaType'
+        sort:
+          type: integer
+          minimum: 0
+    AchievementSummary:
+      type: object
+      required:
+        - id
+        - title
+        - auditStatus
+        - status
+        - createdAt
+      properties:
+        id:
+          $ref: '#/components/schemas/Uuid'
+        source:
+          $ref: '#/components/schemas/ContentSource'
+        title:
+          type: string
+        summary:
+          type: string
+          nullable: true
+        maturity:
+          $ref: '#/components/schemas/AchievementMaturity'
+          nullable: true
+        cooperationModes:
+          type: array
+          items:
+            type: string
+        regionCode:
+          type: string
+          nullable: true
+        industryTags:
+          type: array
+          items:
+            type: string
+        keywords:
+          type: array
+          items:
+            type: string
+        publisher:
+          $ref: '#/components/schemas/OrganizationSummary'
+          nullable: true
+        stats:
+          $ref: '#/components/schemas/ListingStats'
+        auditStatus:
+          $ref: '#/components/schemas/AuditStatus'
+        status:
+          $ref: '#/components/schemas/ContentStatus'
+        coverUrl:
+          type: string
+          format: uri
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+    AchievementDetail:
+      allOf:
+        - $ref: '#/components/schemas/AchievementSummary'
+        - type: object
+          properties:
+            description:
+              type: string
+              nullable: true
+            media:
+              type: array
+              items:
+                $ref: '#/components/schemas/ContentMedia'
+            aiParse:
+              type: object
+              nullable: true
+              additionalProperties: true
+    AchievementEdit:
+      allOf:
+        - $ref: '#/components/schemas/AchievementSummary'
+        - type: object
+          properties:
+            description:
+              type: string
+              nullable: true
+            coverFileId:
+              $ref: '#/components/schemas/Uuid'
+              nullable: true
+            media:
+              type: array
+              items:
+                $ref: '#/components/schemas/ContentMedia'
+    AchievementRecord:
+      type: object
+      required:
+        - id
+        - publisherUserId
+        - source
+        - title
+        - auditStatus
+        - status
+        - createdAt
+        - updatedAt
+      properties:
+        id:
+          $ref: '#/components/schemas/Uuid'
+        publisherUserId:
+          $ref: '#/components/schemas/Uuid'
+        source:
+          $ref: '#/components/schemas/ContentSource'
+        title:
+          type: string
+        summary:
+          type: string
+          nullable: true
+        description:
+          type: string
+          nullable: true
+        keywordsJson:
+          type: array
+          items:
+            type: string
+          nullable: true
+        maturity:
+          $ref: '#/components/schemas/AchievementMaturity'
+          nullable: true
+        cooperationModesJson:
+          type: array
+          items:
+            type: string
+          nullable: true
+        coverFileId:
+          $ref: '#/components/schemas/Uuid'
+          nullable: true
+        regionCode:
+          type: string
+          nullable: true
+        industryTagsJson:
+          type: array
+          items:
+            type: string
+          nullable: true
+        auditStatus:
+          $ref: '#/components/schemas/AuditStatus'
+        status:
+          $ref: '#/components/schemas/ContentStatus'
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    AchievementCreateRequest:
+      type: object
+      required:
+        - title
+      properties:
+        title:
+          type: string
+        summary:
+          type: string
+        description:
+          type: string
+        maturity:
+          $ref: '#/components/schemas/AchievementMaturity'
+        regionCode:
+          type: string
+        industryTags:
+          type: array
+          items:
+            type: string
+        keywords:
+          type: array
+          items:
+            type: string
+        cooperationModes:
+          type: array
+          items:
+            type: string
+        coverFileId:
+          $ref: '#/components/schemas/Uuid'
+        media:
+          type: array
+          items:
+            $ref: '#/components/schemas/ContentMediaInput'
+    AchievementUpdateRequest:
+      type: object
+      properties:
+        title:
+          type: string
+        summary:
+          type: string
+        description:
+          type: string
+        maturity:
+          $ref: '#/components/schemas/AchievementMaturity'
+        regionCode:
+          type: string
+        industryTags:
+          type: array
+          items:
+            type: string
+        keywords:
+          type: array
+          items:
+            type: string
+        cooperationModes:
+          type: array
+          items:
+            type: string
+        coverFileId:
+          $ref: '#/components/schemas/Uuid'
+        media:
+          type: array
+          items:
+            $ref: '#/components/schemas/ContentMediaInput'
+    AchievementAdminCreateRequest:
+      allOf:
+        - $ref: '#/components/schemas/AchievementCreateRequest'
+        - type: object
+          properties:
+            source:
+              $ref: '#/components/schemas/ContentSource'
+            publisherUserId:
+              $ref: '#/components/schemas/Uuid'
+            auditStatus:
+              $ref: '#/components/schemas/AuditStatus'
+            status:
+              $ref: '#/components/schemas/ContentStatus'
+    AchievementAdminUpdateRequest:
+      allOf:
+        - $ref: '#/components/schemas/AchievementUpdateRequest'
+        - type: object
+          properties:
+            source:
+              $ref: '#/components/schemas/ContentSource'
+            publisherUserId:
+              $ref: '#/components/schemas/Uuid'
+            auditStatus:
+              $ref: '#/components/schemas/AuditStatus'
+            status:
+              $ref: '#/components/schemas/ContentStatus'
+    PagedAchievementSummary:
+      type: object
+      required:
+        - items
+        - page
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/AchievementSummary'
         page:
           $ref: '#/components/schemas/PageMeta'
     SearchQType:
@@ -7106,6 +8667,8 @@ components:
       properties:
         sellerUserId:
           $ref: '#/components/schemas/Uuid'
+        consultationRouting:
+          $ref: '#/components/schemas/ConsultationRouting'
         source:
           $ref: '#/components/schemas/ContentSource'
         tradeMode:
@@ -7303,6 +8866,380 @@ components:
           type: string
           format: uri
           nullable: true
+    PatentJobStatus:
+      type: string
+      enum:
+        - PENDING
+        - RUNNING
+        - PAUSED
+        - SUCCEEDED
+        - FAILED
+    PatentImportDuplicatePolicy:
+      type: string
+      enum:
+        - SKIP
+        - OVERWRITE
+    PatentImportRowStatus:
+      type: string
+      enum:
+        - PENDING
+        - VALID
+        - INVALID
+        - SUCCEEDED
+        - FAILED
+        - SKIPPED
+    PatentClaimStatus:
+      type: string
+      enum:
+        - PENDING
+        - APPROVED
+        - REJECTED
+    PatentImportListingDefaults:
+      type: object
+      properties:
+        enabled:
+          type: boolean
+        consultationRouting:
+          $ref: '#/components/schemas/ConsultationRouting'
+        sellerUserId:
+          $ref: '#/components/schemas/Uuid'
+        tradeMode:
+          $ref: '#/components/schemas/TradeMode'
+        licenseMode:
+          $ref: '#/components/schemas/LicenseMode'
+        priceType:
+          $ref: '#/components/schemas/PriceType'
+        priceAmountFen:
+          $ref: '#/components/schemas/MoneyFen'
+        depositAmountFen:
+          $ref: '#/components/schemas/MoneyFen'
+        regionCode:
+          type: string
+        listingTopics:
+          type: array
+          items:
+            $ref: '#/components/schemas/ListingTopic'
+        industryTags:
+          type: array
+          items:
+            type: string
+        auditStatus:
+          $ref: '#/components/schemas/AuditStatus'
+        status:
+          $ref: '#/components/schemas/ListingStatus'
+    PatentImportDefaults:
+      type: object
+      properties:
+        listing:
+          $ref: '#/components/schemas/PatentImportListingDefaults'
+    PatentImportJobCreateRequest:
+      type: object
+      required:
+        - fileId
+      properties:
+        fileId:
+          $ref: '#/components/schemas/Uuid'
+        duplicatePolicy:
+          $ref: '#/components/schemas/PatentImportDuplicatePolicy'
+        defaults:
+          $ref: '#/components/schemas/PatentImportDefaults'
+    PatentImportJob:
+      type: object
+      required:
+        - id
+        - operatorUserId
+        - fileId
+        - duplicatePolicy
+        - status
+        - totalCount
+        - validCount
+        - invalidCount
+        - successCount
+        - failedCount
+        - skippedCount
+        - failRate
+        - createdAt
+        - updatedAt
+      properties:
+        id:
+          $ref: '#/components/schemas/Uuid'
+        operatorUserId:
+          $ref: '#/components/schemas/Uuid'
+        fileId:
+          $ref: '#/components/schemas/Uuid'
+        duplicatePolicy:
+          $ref: '#/components/schemas/PatentImportDuplicatePolicy'
+        defaults:
+          $ref: '#/components/schemas/PatentImportDefaults'
+        status:
+          $ref: '#/components/schemas/PatentJobStatus'
+        totalCount:
+          type: integer
+          minimum: 0
+        validCount:
+          type: integer
+          minimum: 0
+        invalidCount:
+          type: integer
+          minimum: 0
+        successCount:
+          type: integer
+          minimum: 0
+        failedCount:
+          type: integer
+          minimum: 0
+        skippedCount:
+          type: integer
+          minimum: 0
+        failRate:
+          type: number
+          format: double
+          minimum: 0
+          maximum: 1
+        validatedAt:
+          type: string
+          format: date-time
+          nullable: true
+        startedAt:
+          type: string
+          format: date-time
+          nullable: true
+        finishedAt:
+          type: string
+          format: date-time
+          nullable: true
+        pausedAt:
+          type: string
+          format: date-time
+          nullable: true
+        errorFileId:
+          $ref: '#/components/schemas/Uuid'
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    PagedPatentImportJob:
+      type: object
+      required:
+        - items
+        - page
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/PatentImportJob'
+        page:
+          $ref: '#/components/schemas/PageMeta'
+    PatentImportJobRow:
+      type: object
+      required:
+        - id
+        - jobId
+        - rowNo
+        - status
+        - createdAt
+        - updatedAt
+      properties:
+        id:
+          $ref: '#/components/schemas/Uuid'
+        jobId:
+          $ref: '#/components/schemas/Uuid'
+        rowNo:
+          type: integer
+          minimum: 1
+        status:
+          $ref: '#/components/schemas/PatentImportRowStatus'
+        raw:
+          type: object
+          additionalProperties: true
+        normalized:
+          type: object
+          additionalProperties: true
+          nullable: true
+        patentId:
+          $ref: '#/components/schemas/Uuid'
+          nullable: true
+        errorCode:
+          type: string
+          nullable: true
+        errorMessage:
+          type: string
+          nullable: true
+        processedAt:
+          type: string
+          format: date-time
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    PagedPatentImportJobRow:
+      type: object
+      required:
+        - items
+        - page
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/PatentImportJobRow'
+        page:
+          $ref: '#/components/schemas/PageMeta'
+    PatentListingGenerateRequest:
+      type: object
+      required:
+        - patentIds
+      properties:
+        patentIds:
+          type: array
+          minItems: 1
+          maxItems: 1000
+          items:
+            $ref: '#/components/schemas/Uuid'
+        duplicatePolicy:
+          $ref: '#/components/schemas/PatentImportDuplicatePolicy'
+        listingDefaults:
+          $ref: '#/components/schemas/PatentImportListingDefaults'
+    PatentListingGenerateResultRow:
+      type: object
+      required:
+        - patentId
+        - status
+      properties:
+        patentId:
+          $ref: '#/components/schemas/Uuid'
+        listingId:
+          $ref: '#/components/schemas/Uuid'
+          nullable: true
+        status:
+          type: string
+          enum:
+            - SUCCEEDED
+            - FAILED
+            - SKIPPED
+        errorCode:
+          type: string
+          nullable: true
+        errorMessage:
+          type: string
+          nullable: true
+    PatentListingGenerateResult:
+      type: object
+      required:
+        - totalCount
+        - successCount
+        - failedCount
+        - skippedCount
+        - rows
+      properties:
+        totalCount:
+          type: integer
+          minimum: 0
+        successCount:
+          type: integer
+          minimum: 0
+        failedCount:
+          type: integer
+          minimum: 0
+        skippedCount:
+          type: integer
+          minimum: 0
+        rows:
+          type: array
+          items:
+            $ref: '#/components/schemas/PatentListingGenerateResultRow'
+    PatentClaimCreateRequest:
+      type: object
+      required:
+        - patentId
+        - evidenceFileIds
+      properties:
+        patentId:
+          $ref: '#/components/schemas/Uuid'
+        claimReason:
+          type: string
+        evidenceFileIds:
+          type: array
+          minItems: 1
+          maxItems: 20
+          items:
+            $ref: '#/components/schemas/Uuid'
+    PatentClaimReviewRequest:
+      type: object
+      properties:
+        reviewComment:
+          type: string
+    PatentClaimRejectRequest:
+      type: object
+      required:
+        - reviewComment
+      properties:
+        reviewComment:
+          type: string
+          minLength: 1
+    PatentClaimRequest:
+      type: object
+      required:
+        - id
+        - patentId
+        - applicantUserId
+        - status
+        - evidenceFileIds
+        - submittedAt
+        - createdAt
+        - updatedAt
+      properties:
+        id:
+          $ref: '#/components/schemas/Uuid'
+        patentId:
+          $ref: '#/components/schemas/Uuid'
+        applicantUserId:
+          $ref: '#/components/schemas/Uuid'
+        status:
+          $ref: '#/components/schemas/PatentClaimStatus'
+        claimReason:
+          type: string
+          nullable: true
+        evidenceFileIds:
+          type: array
+          items:
+            $ref: '#/components/schemas/Uuid'
+        reviewerUserId:
+          $ref: '#/components/schemas/Uuid'
+          nullable: true
+        reviewComment:
+          type: string
+          nullable: true
+        submittedAt:
+          type: string
+          format: date-time
+        reviewedAt:
+          type: string
+          format: date-time
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    PagedPatentClaimRequest:
+      type: object
+      required:
+        - items
+        - page
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/PatentClaimRequest'
+        page:
+          $ref: '#/components/schemas/PageMeta'
     TechManagerSortBy:
       type: string
       enum:
@@ -8321,6 +10258,7 @@ components:
       type: string
       enum:
         - LISTING
+        - ACHIEVEMENT
     CommentStatus:
       type: string
       enum:
@@ -8433,6 +10371,7 @@ components:
       type: string
       enum:
         - LISTING
+        - ACHIEVEMENT
         - TECH_MANAGER
     Conversation:
       type: object
@@ -8512,6 +10451,10 @@ components:
           minimum: 0
         counterpart:
           $ref: '#/components/schemas/UserBrief'
+        assignedAgentUserIds:
+          type: array
+          items:
+            $ref: '#/components/schemas/Uuid'
     PagedConversationSummary:
       type: object
       required:
@@ -8593,6 +10536,41 @@ components:
         nextCursor:
           type: string
           nullable: true
+    ConversationAgentAssignmentRequest:
+      type: object
+      properties:
+        userId:
+          $ref: '#/components/schemas/Uuid'
+    ConversationAgentAssignment:
+      type: object
+      required:
+        - id
+        - conversationId
+        - userId
+        - active
+        - assignedAt
+      properties:
+        id:
+          $ref: '#/components/schemas/Uuid'
+        conversationId:
+          $ref: '#/components/schemas/Uuid'
+        userId:
+          $ref: '#/components/schemas/Uuid'
+        active:
+          type: boolean
+        assignedAt:
+          type: string
+          format: date-time
+    ListingConsultationCreated:
+      type: object
+      required:
+        - ok
+        - conversationId
+      properties:
+        ok:
+          type: boolean
+        conversationId:
+          $ref: '#/components/schemas/Uuid'
     AiAgentInputType:
       type: string
       enum:
@@ -9753,12 +11731,3 @@ components:
           $ref: '#/components/schemas/Uuid'
         invoiceNo:
           type: string
-
-
-
-
-
-
-
-
-

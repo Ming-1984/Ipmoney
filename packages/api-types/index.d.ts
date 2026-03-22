@@ -189,6 +189,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/me/favorites/achievements": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List my favorite achievements */
+        get: operations["listMyFavoriteAchievements"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/me/recommendations/listings": {
         parameters: {
             query?: never;
@@ -417,6 +434,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/public/achievements/{achievementId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get public achievement detail */
+        get: operations["getPublicAchievementById"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/public/achievements/{achievementId}/comments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List public achievement comments */
+        get: operations["listPublicAchievementComments"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/public/tech-managers/{techManagerId}": {
         parameters: {
             query?: never;
@@ -515,6 +566,23 @@ export interface paths {
         };
         /** 娑撴挸鍩勬禍銈嗘濡偓缁? */
         get: operations["searchListings"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/search/achievements": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Search public achievements */
+        get: operations["searchAchievements"];
         put?: never;
         post?: never;
         delete?: never;
@@ -711,6 +779,128 @@ export interface paths {
         /** 娑撳鐏﹂敍鍫濆礌鐎硅绱? */
         post: operations["offShelfListing"];
         delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/achievements": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List my achievements */
+        get: operations["listMyAchievements"];
+        put?: never;
+        /** Create achievement */
+        post: operations["createAchievement"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/achievements/{achievementId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get my achievement detail */
+        get: operations["getMyAchievementById"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Update my achievement */
+        patch: operations["updateMyAchievement"];
+        trace?: never;
+    };
+    "/achievements/{achievementId}/submit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Submit achievement for review */
+        post: operations["submitAchievement"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/achievements/{achievementId}/off-shelf": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Off-shelf my achievement */
+        post: operations["offShelfAchievement"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/achievements/{achievementId}/consultations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Create achievement consultation */
+        post: operations["createAchievementConsultation"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/achievements/{achievementId}/comments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Create achievement comment */
+        post: operations["createAchievementComment"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/achievements/{achievementId}/favorites": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Favorite achievement */
+        post: operations["favoriteAchievement"];
+        /** Unfavorite achievement */
+        delete: operations["unfavoriteAchievement"];
         options?: never;
         head?: never;
         patch?: never;
@@ -934,6 +1124,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/achievements/{achievementId}/conversations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Create or get achievement conversation */
+        post: operations["upsertAchievementConversation"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/tech-managers/{techManagerId}/conversations": {
         parameters: {
             query?: never;
@@ -981,6 +1188,57 @@ export interface paths {
         /** 閺嶅洩顔囨导姘崇樈瀹歌尪顕? */
         post: operations["markConversationRead"];
         delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/conversations/platform": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List platform listing consultations */
+        get: operations["adminListPlatformConversations"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/conversations/{conversationId}/agents": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Assign platform conversation agent */
+        post: operations["adminAssignPlatformConversationAgent"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/conversations/{conversationId}/agents/{userId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Remove platform conversation agent */
+        delete: operations["adminRemovePlatformConversationAgent"];
         options?: never;
         head?: never;
         patch?: never;
@@ -1205,6 +1463,144 @@ export interface paths {
         patch: operations["adminUpdateAiParseResult"];
         trace?: never;
     };
+    "/admin/achievements": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List achievements for admin */
+        get: operations["adminListAchievements"];
+        put?: never;
+        /** Create achievement in admin */
+        post: operations["adminCreateAchievement"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/achievements/{achievementId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get achievement detail in admin */
+        get: operations["adminGetAchievementById"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Update achievement in admin */
+        patch: operations["adminUpdateAchievement"];
+        trace?: never;
+    };
+    "/admin/achievements/{achievementId}/publish": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Publish achievement in admin */
+        post: operations["adminPublishAchievement"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/achievements/{achievementId}/off-shelf": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Off-shelf achievement in admin */
+        post: operations["adminOffShelfAchievement"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/achievements/{achievementId}/materials": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get achievement audit materials */
+        get: operations["adminGetAchievementMaterials"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/achievements/{achievementId}/audit-logs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get achievement audit logs */
+        get: operations["adminGetAchievementAuditLogs"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/achievements/{achievementId}/approve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Approve achievement */
+        post: operations["adminApproveAchievement"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/achievements/{achievementId}/reject": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Reject achievement */
+        post: operations["adminRejectAchievement"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/admin/patents": {
         parameters: {
             query?: never;
@@ -1239,6 +1635,195 @@ export interface paths {
         head?: never;
         /** 閺囧瓨鏌婃稉鎾冲焺娑撶粯鏆熼幑顕嗙礄閸氬骸褰撮敍瀛?閿? */
         patch: operations["adminUpdatePatent"];
+        trace?: never;
+    };
+    "/admin/patents/jobs/import": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List patent import jobs */
+        get: operations["adminListPatentImportJobs"];
+        put?: never;
+        /** Create patent import job */
+        post: operations["adminCreatePatentImportJob"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/patents/jobs/import/{jobId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get patent import job detail */
+        get: operations["adminGetPatentImportJob"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/patents/jobs/import/{jobId}/validate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Validate patent import job */
+        post: operations["adminValidatePatentImportJob"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/patents/jobs/import/{jobId}/execute": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Execute patent import job */
+        post: operations["adminExecutePatentImportJob"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/patents/jobs/import/{jobId}/rows": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List patent import job rows */
+        get: operations["adminListPatentImportJobRows"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/patents/jobs/import/{jobId}/error-file": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get patent import job error file */
+        get: operations["adminGetPatentImportJobErrorFile"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/patents/jobs/listings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Generate listings in batch from patent ids */
+        post: operations["adminGeneratePatentListings"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/me/patent-claims": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List my patent claim requests */
+        get: operations["listMyPatentClaims"];
+        put?: never;
+        /** Create patent ownership claim request */
+        post: operations["createMyPatentClaim"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/patent-claims": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List patent claim requests for review */
+        get: operations["adminListPatentClaims"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/patent-claims/{claimId}/approve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Approve patent ownership claim */
+        post: operations["adminApprovePatentClaim"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/patent-claims/{claimId}/reject": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Reject patent ownership claim */
+        post: operations["adminRejectPatentClaim"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
         trace?: never;
     };
     "/admin/patent-maintenance/schedules": {
@@ -2635,6 +3220,10 @@ export interface components {
             sourcePrimary?: "USER" | "ADMIN" | "PROVIDER";
             /** Format: date-time */
             sourceUpdatedAt?: string;
+            ownerUserId?: components["schemas"]["Uuid"];
+            /** Format: date-time */
+            ownerClaimedAt?: string;
+            ownerClaimSource?: components["schemas"]["PatentOwnerClaimSource"];
             media?: components["schemas"]["PatentMedia"][];
             tradeSnapshot?: components["schemas"]["PatentTradeSnapshot"];
             /** Format: date-time */
@@ -2665,11 +3254,21 @@ export interface components {
         /** @enum {string} */
         PriceType: "FIXED" | "NEGOTIABLE";
         /** @enum {string} */
+        ConsultationRouting: "PLATFORM" | "OWNER";
+        /** @enum {string} */
+        PatentOwnerClaimSource: "PLATFORM_IMPORT" | "USER_CLAIM" | "ADMIN_ASSIGN";
+        /** @enum {string} */
         AuditStatus: "PENDING" | "APPROVED" | "REJECTED";
         /** @enum {string} */
         ContentSource: "USER" | "PLATFORM" | "ADMIN";
         /** @enum {string} */
+        ContentStatus: "DRAFT" | "ACTIVE" | "OFF_SHELF";
+        /** @enum {string} */
         ListingStatus: "DRAFT" | "ACTIVE" | "OFF_SHELF" | "SOLD";
+        /** @enum {string} */
+        AchievementMaturity: "CONCEPT" | "PROTOTYPE" | "PILOT" | "MASS_PRODUCTION" | "COMMERCIALIZED" | "OTHER";
+        /** @enum {string} */
+        AchievementSortBy: "RECOMMENDED" | "NEWEST";
         /** @enum {string} */
         SortBy: "RECOMMENDED" | "NEWEST" | "PRICE_ASC" | "PRICE_DESC";
         /** @enum {string} */
@@ -2687,6 +3286,18 @@ export interface components {
             consultCount: number;
             /** Format: int64 */
             commentCount?: number;
+        };
+        /** @enum {string} */
+        ContentMediaType: "IMAGE" | "VIDEO" | "FILE";
+        ContentMedia: {
+            fileId: components["schemas"]["Uuid"];
+            type: components["schemas"]["ContentMediaType"];
+            sort: number;
+            /** Format: uri */
+            url?: string | null;
+            mimeType?: string | null;
+            sizeBytes?: number | null;
+            fileName?: string | null;
         };
         ListingMedia: {
             fileId: components["schemas"]["Uuid"];
@@ -2726,6 +3337,7 @@ export interface components {
             regionCode?: string;
             industryTags?: string[];
             listingTopics?: components["schemas"]["ListingTopic"][];
+            consultationRouting?: components["schemas"]["ConsultationRouting"];
             featuredLevel?: components["schemas"]["FeaturedLevel"];
             /** @description 閻?鐢倻楠囬悧纭呭娴溠傜瑹娑撴挸鍩勯惃鍕晸閺佸牆灏崺鐕傜礄adcode閿? */
             featuredRegionCode?: string;
@@ -2853,6 +3465,7 @@ export interface components {
             regionCode?: string;
             industryTags?: string[];
             listingTopics?: components["schemas"]["ListingTopic"][];
+            consultationRouting?: components["schemas"]["ConsultationRouting"];
             ipcCodes?: string[];
             locCodes?: string[];
             media?: components["schemas"]["ListingMedia"][];
@@ -2899,6 +3512,7 @@ export interface components {
             regionCode?: string;
             industryTags?: string[];
             listingTopics?: components["schemas"]["ListingTopic"][];
+            consultationRouting?: components["schemas"]["ConsultationRouting"];
             ipcCodes?: string[];
             locCodes?: string[];
             media?: components["schemas"]["ListingMedia"][];
@@ -2927,6 +3541,102 @@ export interface components {
         };
         PagedListing: {
             items: components["schemas"]["Listing"][];
+            page: components["schemas"]["PageMeta"];
+        };
+        ContentMediaInput: {
+            fileId: components["schemas"]["Uuid"];
+            type: components["schemas"]["ContentMediaType"];
+            sort?: number;
+        };
+        AchievementSummary: {
+            id: components["schemas"]["Uuid"];
+            source?: components["schemas"]["ContentSource"];
+            title: string;
+            summary?: string | null;
+            maturity?: components["schemas"]["AchievementMaturity"];
+            cooperationModes?: string[];
+            regionCode?: string | null;
+            industryTags?: string[];
+            keywords?: string[];
+            publisher?: components["schemas"]["OrganizationSummary"];
+            stats?: components["schemas"]["ListingStats"];
+            auditStatus: components["schemas"]["AuditStatus"];
+            status: components["schemas"]["ContentStatus"];
+            /** Format: uri */
+            coverUrl?: string | null;
+            /** Format: date-time */
+            createdAt: string;
+        };
+        AchievementDetail: components["schemas"]["AchievementSummary"] & {
+            description?: string | null;
+            media?: components["schemas"]["ContentMedia"][];
+            aiParse?: {
+                [key: string]: unknown;
+            } | null;
+        };
+        AchievementEdit: components["schemas"]["AchievementSummary"] & {
+            description?: string | null;
+            coverFileId?: components["schemas"]["Uuid"];
+            media?: components["schemas"]["ContentMedia"][];
+        };
+        AchievementRecord: {
+            id: components["schemas"]["Uuid"];
+            publisherUserId: components["schemas"]["Uuid"];
+            source: components["schemas"]["ContentSource"];
+            title: string;
+            summary?: string | null;
+            description?: string | null;
+            keywordsJson?: string[] | null;
+            maturity?: components["schemas"]["AchievementMaturity"];
+            cooperationModesJson?: string[] | null;
+            coverFileId?: components["schemas"]["Uuid"];
+            regionCode?: string | null;
+            industryTagsJson?: string[] | null;
+            auditStatus: components["schemas"]["AuditStatus"];
+            status: components["schemas"]["ContentStatus"];
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            updatedAt: string;
+        };
+        AchievementCreateRequest: {
+            title: string;
+            summary?: string;
+            description?: string;
+            maturity?: components["schemas"]["AchievementMaturity"];
+            regionCode?: string;
+            industryTags?: string[];
+            keywords?: string[];
+            cooperationModes?: string[];
+            coverFileId?: components["schemas"]["Uuid"];
+            media?: components["schemas"]["ContentMediaInput"][];
+        };
+        AchievementUpdateRequest: {
+            title?: string;
+            summary?: string;
+            description?: string;
+            maturity?: components["schemas"]["AchievementMaturity"];
+            regionCode?: string;
+            industryTags?: string[];
+            keywords?: string[];
+            cooperationModes?: string[];
+            coverFileId?: components["schemas"]["Uuid"];
+            media?: components["schemas"]["ContentMediaInput"][];
+        };
+        AchievementAdminCreateRequest: components["schemas"]["AchievementCreateRequest"] & {
+            source?: components["schemas"]["ContentSource"];
+            publisherUserId?: components["schemas"]["Uuid"];
+            auditStatus?: components["schemas"]["AuditStatus"];
+            status?: components["schemas"]["ContentStatus"];
+        };
+        AchievementAdminUpdateRequest: components["schemas"]["AchievementUpdateRequest"] & {
+            source?: components["schemas"]["ContentSource"];
+            publisherUserId?: components["schemas"]["Uuid"];
+            auditStatus?: components["schemas"]["AuditStatus"];
+            status?: components["schemas"]["ContentStatus"];
+        };
+        PagedAchievementSummary: {
+            items: components["schemas"]["AchievementSummary"][];
             page: components["schemas"]["PageMeta"];
         };
         /** @enum {string} */
@@ -3001,6 +3711,7 @@ export interface components {
         };
         ListingImportDefaults: {
             sellerUserId?: components["schemas"]["Uuid"];
+            consultationRouting?: components["schemas"]["ConsultationRouting"];
             source?: components["schemas"]["ContentSource"];
             tradeMode?: components["schemas"]["TradeMode"];
             licenseMode?: components["schemas"]["LicenseMode"];
@@ -3080,6 +3791,148 @@ export interface components {
             fileId: components["schemas"]["Uuid"];
             /** Format: uri */
             url: string | null;
+        };
+        /** @enum {string} */
+        PatentJobStatus: "PENDING" | "RUNNING" | "PAUSED" | "SUCCEEDED" | "FAILED";
+        /** @enum {string} */
+        PatentImportDuplicatePolicy: "SKIP" | "OVERWRITE";
+        /** @enum {string} */
+        PatentImportRowStatus: "PENDING" | "VALID" | "INVALID" | "SUCCEEDED" | "FAILED" | "SKIPPED";
+        /** @enum {string} */
+        PatentClaimStatus: "PENDING" | "APPROVED" | "REJECTED";
+        PatentImportListingDefaults: {
+            enabled?: boolean;
+            consultationRouting?: components["schemas"]["ConsultationRouting"];
+            sellerUserId?: components["schemas"]["Uuid"];
+            tradeMode?: components["schemas"]["TradeMode"];
+            licenseMode?: components["schemas"]["LicenseMode"];
+            priceType?: components["schemas"]["PriceType"];
+            priceAmountFen?: components["schemas"]["MoneyFen"];
+            depositAmountFen?: components["schemas"]["MoneyFen"];
+            regionCode?: string;
+            listingTopics?: components["schemas"]["ListingTopic"][];
+            industryTags?: string[];
+            auditStatus?: components["schemas"]["AuditStatus"];
+            status?: components["schemas"]["ListingStatus"];
+        };
+        PatentImportDefaults: {
+            listing?: components["schemas"]["PatentImportListingDefaults"];
+        };
+        PatentImportJobCreateRequest: {
+            fileId: components["schemas"]["Uuid"];
+            duplicatePolicy?: components["schemas"]["PatentImportDuplicatePolicy"];
+            defaults?: components["schemas"]["PatentImportDefaults"];
+        };
+        PatentImportJob: {
+            id: components["schemas"]["Uuid"];
+            operatorUserId: components["schemas"]["Uuid"];
+            fileId: components["schemas"]["Uuid"];
+            duplicatePolicy: components["schemas"]["PatentImportDuplicatePolicy"];
+            defaults?: components["schemas"]["PatentImportDefaults"];
+            status: components["schemas"]["PatentJobStatus"];
+            totalCount: number;
+            validCount: number;
+            invalidCount: number;
+            successCount: number;
+            failedCount: number;
+            skippedCount: number;
+            /** Format: double */
+            failRate: number;
+            /** Format: date-time */
+            validatedAt?: string | null;
+            /** Format: date-time */
+            startedAt?: string | null;
+            /** Format: date-time */
+            finishedAt?: string | null;
+            /** Format: date-time */
+            pausedAt?: string | null;
+            errorFileId?: components["schemas"]["Uuid"];
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            updatedAt: string;
+        };
+        PagedPatentImportJob: {
+            items: components["schemas"]["PatentImportJob"][];
+            page: components["schemas"]["PageMeta"];
+        };
+        PatentImportJobRow: {
+            id: components["schemas"]["Uuid"];
+            jobId: components["schemas"]["Uuid"];
+            rowNo: number;
+            status: components["schemas"]["PatentImportRowStatus"];
+            raw?: {
+                [key: string]: unknown;
+            };
+            normalized?: {
+                [key: string]: unknown;
+            } | null;
+            patentId?: components["schemas"]["Uuid"];
+            errorCode?: string | null;
+            errorMessage?: string | null;
+            /** Format: date-time */
+            processedAt?: string | null;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            updatedAt: string;
+        };
+        PagedPatentImportJobRow: {
+            items: components["schemas"]["PatentImportJobRow"][];
+            page: components["schemas"]["PageMeta"];
+        };
+        PatentListingGenerateRequest: {
+            patentIds: components["schemas"]["Uuid"][];
+            duplicatePolicy?: components["schemas"]["PatentImportDuplicatePolicy"];
+            listingDefaults?: components["schemas"]["PatentImportListingDefaults"];
+        };
+        PatentListingGenerateResultRow: {
+            patentId: components["schemas"]["Uuid"];
+            listingId?: components["schemas"]["Uuid"];
+            /** @enum {string} */
+            status: "SUCCEEDED" | "FAILED" | "SKIPPED";
+            errorCode?: string | null;
+            errorMessage?: string | null;
+        };
+        PatentListingGenerateResult: {
+            totalCount: number;
+            successCount: number;
+            failedCount: number;
+            skippedCount: number;
+            rows: components["schemas"]["PatentListingGenerateResultRow"][];
+        };
+        PatentClaimCreateRequest: {
+            patentId: components["schemas"]["Uuid"];
+            claimReason?: string;
+            evidenceFileIds: components["schemas"]["Uuid"][];
+        };
+        PatentClaimReviewRequest: {
+            reviewComment?: string;
+        };
+        PatentClaimRejectRequest: {
+            reviewComment: string;
+        };
+        PatentClaimRequest: {
+            id: components["schemas"]["Uuid"];
+            patentId: components["schemas"]["Uuid"];
+            applicantUserId: components["schemas"]["Uuid"];
+            status: components["schemas"]["PatentClaimStatus"];
+            claimReason?: string | null;
+            evidenceFileIds: components["schemas"]["Uuid"][];
+            reviewerUserId?: components["schemas"]["Uuid"];
+            reviewComment?: string | null;
+            /** Format: date-time */
+            submittedAt: string;
+            /** Format: date-time */
+            reviewedAt?: string | null;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            updatedAt: string;
+        };
+        PagedPatentClaimRequest: {
+            items: components["schemas"]["PatentClaimRequest"][];
+            page: components["schemas"]["PageMeta"];
         };
         /** @enum {string} */
         TechManagerSortBy: "RECOMMENDED" | "NEWEST";
@@ -3527,7 +4380,7 @@ export interface components {
             orgCategory?: components["schemas"]["SupplyType"];
         };
         /** @enum {string} */
-        CommentContentType: "LISTING";
+        CommentContentType: "LISTING" | "ACHIEVEMENT";
         /** @enum {string} */
         CommentStatus: "VISIBLE" | "HIDDEN" | "DELETED";
         Comment: {
@@ -3568,7 +4421,7 @@ export interface components {
             page: components["schemas"]["PageMeta"];
         };
         /** @enum {string} */
-        ConversationContentType: "LISTING" | "TECH_MANAGER";
+        ConversationContentType: "LISTING" | "ACHIEVEMENT" | "TECH_MANAGER";
         Conversation: {
             id: components["schemas"]["Uuid"];
             contentType: components["schemas"]["ConversationContentType"];
@@ -3602,6 +4455,7 @@ export interface components {
             lastMessageAt: string;
             unreadCount: number;
             counterpart: components["schemas"]["UserBrief"];
+            assignedAgentUserIds?: components["schemas"]["Uuid"][];
         };
         PagedConversationSummary: {
             items: components["schemas"]["ConversationSummary"][];
@@ -3641,6 +4495,21 @@ export interface components {
         PagedConversationMessage: {
             items: components["schemas"]["ConversationMessage"][];
             nextCursor?: string | null;
+        };
+        ConversationAgentAssignmentRequest: {
+            userId?: components["schemas"]["Uuid"];
+        };
+        ConversationAgentAssignment: {
+            id: components["schemas"]["Uuid"];
+            conversationId: components["schemas"]["Uuid"];
+            userId: components["schemas"]["Uuid"];
+            active: boolean;
+            /** Format: date-time */
+            assignedAt: string;
+        };
+        ListingConsultationCreated: {
+            ok: boolean;
+            conversationId: components["schemas"]["Uuid"];
         };
         /** @enum {string} */
         AiAgentInputType: "TEXT" | "VOICE";
@@ -4175,8 +5044,15 @@ export interface components {
         ListingBatchItemStatusParam: components["schemas"]["ListingBatchItemStatus"];
         ListingImportDuplicatePolicyParam: components["schemas"]["ListingImportDuplicatePolicy"];
         ListingImportRowStatusParam: components["schemas"]["ListingImportRowStatus"];
+        PatentJobStatusParam: components["schemas"]["PatentJobStatus"];
+        PatentImportDuplicatePolicyParam: components["schemas"]["PatentImportDuplicatePolicy"];
+        PatentImportRowStatusParam: components["schemas"]["PatentImportRowStatus"];
+        PatentClaimStatusParam: components["schemas"]["PatentClaimStatus"];
         BatchJobId: components["schemas"]["Uuid"];
         ImportJobId: components["schemas"]["Uuid"];
+        PatentImportJobId: components["schemas"]["Uuid"];
+        PatentClaimId: components["schemas"]["Uuid"];
+        ConversationAgentUserId: components["schemas"]["Uuid"];
         /** @description Created date start (YYYY-MM-DD). */
         CreatedFrom: string;
         /** @description Created date end (YYYY-MM-DD). */
@@ -4215,6 +5091,8 @@ export interface components {
         Loc: string[];
         LegalStatus: components["schemas"]["LegalStatus"];
         SortBy: components["schemas"]["SortBy"];
+        AchievementSortBy: components["schemas"]["AchievementSortBy"];
+        AchievementMaturity: components["schemas"]["AchievementMaturity"];
         TechManagerSortBy: components["schemas"]["TechManagerSortBy"];
         /** @description 閸愬懎顔愰弶銉︾爱鏉╁洦鎶? */
         ContentSource: components["schemas"]["ContentSource"];
@@ -4249,6 +5127,7 @@ export interface components {
         Page: number;
         PageSize: number;
         ListingStatus: components["schemas"]["ListingStatus"];
+        ContentStatusParam: components["schemas"]["ContentStatus"];
         AuditStatus: components["schemas"]["AuditStatus"];
         OrderStatus: components["schemas"]["OrderStatus"];
         /** @description 璁㈠崟鐘舵€佸垎缁勭瓫閫夛紙鐢ㄤ簬鑱氬悎 Tab锛? */
@@ -4256,6 +5135,7 @@ export interface components {
         /** @description 楠炲倻鐡戦柨顕嗙礄瀵ら缚顔呴悽銊ょ艾閺€顖欑帛/闁偓濞?閺€鐐儥缁涘婀侀崜顖欑稊閻劎娈戦幒銉ュ經閿涙稑鎮撴稉鈧獮鍌滅搼闁款喚娈戦柌宥咁槻鐠囬攱鐪版惔鏃囩箲閸ョ偛鎮撴稉鈧紒鎾寸亯閿? */
         IdempotencyKey: string;
         ListingId: components["schemas"]["Uuid"];
+        AchievementId: components["schemas"]["Uuid"];
         TechManagerId: components["schemas"]["Uuid"];
         CommentId: components["schemas"]["Uuid"];
         OrgUserId: components["schemas"]["Uuid"];
@@ -4655,6 +5535,30 @@ export interface operations {
             401: components["responses"]["Unauthorized"];
         };
     };
+    listMyFavoriteAchievements: {
+        parameters: {
+            query?: {
+                page?: components["parameters"]["Page"];
+                pageSize?: components["parameters"]["PageSize"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PagedAchievementSummary"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+        };
+    };
     getMyRecommendedListings: {
         parameters: {
             query?: {
@@ -4986,6 +5890,56 @@ export interface operations {
             404: components["responses"]["NotFound"];
         };
     };
+    getPublicAchievementById: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                achievementId: components["parameters"]["AchievementId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AchievementDetail"];
+                };
+            };
+            404: components["responses"]["NotFound"];
+        };
+    };
+    listPublicAchievementComments: {
+        parameters: {
+            query?: {
+                page?: components["parameters"]["Page"];
+                pageSize?: components["parameters"]["PageSize"];
+            };
+            header?: never;
+            path: {
+                achievementId: components["parameters"]["AchievementId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PagedCommentThread"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            404: components["responses"]["NotFound"];
+        };
+    };
     getPublicTechManagerById: {
         parameters: {
             query?: never;
@@ -5178,6 +6132,38 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["PagedListingSummary"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+        };
+    };
+    searchAchievements: {
+        parameters: {
+            query?: {
+                /** @description 閸忔娊鏁拠宥忕礄閺嶅洭顣?閹芥顩?閺夊啫鍩勬禍?閸欐垶妲戞禍?閺堢儤鐎崥宥囆炵粵澶涚礆 */
+                q?: components["parameters"]["Q"];
+                sortBy?: components["parameters"]["AchievementSortBy"];
+                /** @description 鐞涘本鏂傞崠鍝勫灊 adcode閿? 娴ｅ秴鐡х粭锔胯閿? */
+                regionCode?: components["parameters"]["RegionCode"];
+                maturity?: components["parameters"]["AchievementMaturity"];
+                /** @description 娴溠傜瑹閺嶅洨顒锋潻鍥ㄦ姢閿涘牆褰叉径姘垛偓澶涚礆 */
+                industryTags?: components["parameters"]["IndustryTags"];
+                page?: components["parameters"]["Page"];
+                pageSize?: components["parameters"]["PageSize"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PagedAchievementSummary"];
                 };
             };
             400: components["responses"]["BadRequest"];
@@ -5479,12 +6465,14 @@ export interface operations {
             };
         };
         responses: {
-            /** @description No Content */
-            204: {
+            /** @description OK */
+            200: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["ListingConsultationCreated"];
+                };
             };
             400: components["responses"]["BadRequest"];
             401: components["responses"]["Unauthorized"];
@@ -5578,6 +6566,284 @@ export interface operations {
             };
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    listMyAchievements: {
+        parameters: {
+            query?: {
+                auditStatus?: components["parameters"]["AuditStatus"];
+                status?: components["parameters"]["ContentStatusParam"];
+                page?: components["parameters"]["Page"];
+                pageSize?: components["parameters"]["PageSize"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PagedAchievementSummary"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+        };
+    };
+    createAchievement: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AchievementCreateRequest"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AchievementEdit"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+        };
+    };
+    getMyAchievementById: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                achievementId: components["parameters"]["AchievementId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AchievementEdit"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    updateMyAchievement: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                achievementId: components["parameters"]["AchievementId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AchievementUpdateRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AchievementEdit"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    submitAchievement: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                achievementId: components["parameters"]["AchievementId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AchievementRecord"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    offShelfAchievement: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                achievementId: components["parameters"]["AchievementId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AchievementRecord"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    createAchievementConsultation: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description 楠炲倻鐡戦柨顕嗙礄瀵ら缚顔呴悽銊ょ艾閺€顖欑帛/闁偓濞?閺€鐐儥缁涘婀侀崜顖欑稊閻劎娈戦幒銉ュ經閿涙稑鎮撴稉鈧獮鍌滅搼闁款喚娈戦柌宥咁槻鐠囬攱鐪版惔鏃囩箲閸ョ偛鎮撴稉鈧紒鎾寸亯閿? */
+                "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
+            };
+            path: {
+                achievementId: components["parameters"]["AchievementId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": {
+                    /** @enum {string} */
+                    channel?: "WECHAT_CS" | "PHONE" | "FORM";
+                };
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OkResponse"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    createAchievementComment: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description 楠炲倻鐡戦柨顕嗙礄瀵ら缚顔呴悽銊ょ艾閺€顖欑帛/闁偓濞?閺€鐐儥缁涘婀侀崜顖欑稊閻劎娈戦幒銉ュ經閿涙稑鎮撴稉鈧獮鍌滅搼闁款喚娈戦柌宥咁槻鐠囬攱鐪版惔鏃囩箲閸ョ偛鎮撴稉鈧紒鎾寸亯閿? */
+                "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
+            };
+            path: {
+                achievementId: components["parameters"]["AchievementId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CommentCreateRequest"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Comment"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    favoriteAchievement: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description 楠炲倻鐡戦柨顕嗙礄瀵ら缚顔呴悽銊ょ艾閺€顖欑帛/闁偓濞?閺€鐐儥缁涘婀侀崜顖欑稊閻劎娈戦幒銉ュ經閿涙稑鎮撴稉鈧獮鍌滅搼闁款喚娈戦柌宥咁槻鐠囬攱鐪版惔鏃囩箲閸ョ偛鎮撴稉鈧紒鎾寸亯閿? */
+                "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
+            };
+            path: {
+                achievementId: components["parameters"]["AchievementId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OkResponse"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    unfavoriteAchievement: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description 楠炲倻鐡戦柨顕嗙礄瀵ら缚顔呴悽銊ょ艾閺€顖欑帛/闁偓濞?閺€鐐儥缁涘婀侀崜顖欑稊閻劎娈戦幒銉ュ經閿涙稑鎮撴稉鈧獮鍌滅搼闁款喚娈戦柌宥咁槻鐠囬攱鐪版惔鏃囩箲閸ョ偛鎮撴稉鈧紒鎾寸亯閿? */
+                "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
+            };
+            path: {
+                achievementId: components["parameters"]["AchievementId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OkResponse"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
             404: components["responses"]["NotFound"];
         };
     };
@@ -5996,6 +7262,34 @@ export interface operations {
             409: components["responses"]["Conflict"];
         };
     };
+    upsertAchievementConversation: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description 楠炲倻鐡戦柨顕嗙礄瀵ら缚顔呴悽銊ょ艾閺€顖欑帛/闁偓濞?閺€鐐儥缁涘婀侀崜顖欑稊閻劎娈戦幒銉ュ經閿涙稑鎮撴稉鈧獮鍌滅搼闁款喚娈戦柌宥咁槻鐠囬攱鐪版惔鏃囩箲閸ョ偛鎮撴稉鈧紒鎾寸亯閿? */
+                "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
+            };
+            path: {
+                achievementId: components["parameters"]["AchievementId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Conversation"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+        };
+    };
     upsertTechManagerConversation: {
         parameters: {
             query?: never;
@@ -6109,6 +7403,90 @@ export interface operations {
             401: components["responses"]["Unauthorized"];
             404: components["responses"]["NotFound"];
             409: components["responses"]["Conflict"];
+        };
+    };
+    adminListPlatformConversations: {
+        parameters: {
+            query?: {
+                mineOnly?: boolean;
+                page?: components["parameters"]["Page"];
+                pageSize?: components["parameters"]["PageSize"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PagedConversationSummary"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+        };
+    };
+    adminAssignPlatformConversationAgent: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                conversationId: components["parameters"]["ConversationId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["ConversationAgentAssignmentRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConversationAgentAssignment"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    adminRemovePlatformConversationAgent: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                conversationId: components["parameters"]["ConversationId"];
+                userId: components["parameters"]["ConversationAgentUserId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConversationAgentAssignment"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
         };
     };
     adminListRegions: {
@@ -6626,6 +8004,287 @@ export interface operations {
             404: components["responses"]["NotFound"];
         };
     };
+    adminListAchievements: {
+        parameters: {
+            query?: {
+                /** @description 閸忔娊鏁拠宥忕礄閺嶅洭顣?閹芥顩?閺夊啫鍩勬禍?閸欐垶妲戞禍?閺堢儤鐎崥宥囆炵粵澶涚礆 */
+                q?: components["parameters"]["Q"];
+                auditStatus?: components["parameters"]["AuditStatus"];
+                status?: components["parameters"]["ContentStatusParam"];
+                /** @description 閸愬懎顔愰弶銉︾爱鏉╁洦鎶? */
+                source?: components["parameters"]["ContentSource"];
+                publisherUserId?: components["schemas"]["Uuid"];
+                /** @description 鐞涘本鏂傞崠鍝勫灊 adcode閿? 娴ｅ秴鐡х粭锔胯閿? */
+                regionCode?: components["parameters"]["RegionCode"];
+                page?: components["parameters"]["Page"];
+                pageSize?: components["parameters"]["PageSize"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PagedAchievementSummary"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+        };
+    };
+    adminCreateAchievement: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AchievementAdminCreateRequest"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AchievementEdit"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+        };
+    };
+    adminGetAchievementById: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                achievementId: components["parameters"]["AchievementId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AchievementEdit"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    adminUpdateAchievement: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                achievementId: components["parameters"]["AchievementId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AchievementAdminUpdateRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AchievementEdit"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    adminPublishAchievement: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                achievementId: components["parameters"]["AchievementId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AchievementRecord"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    adminOffShelfAchievement: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                achievementId: components["parameters"]["AchievementId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AchievementRecord"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    adminGetAchievementMaterials: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                achievementId: components["parameters"]["AchievementId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AuditMaterialList"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    adminGetAchievementAuditLogs: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                achievementId: components["parameters"]["AchievementId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AuditLogList"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    adminApproveAchievement: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                achievementId: components["parameters"]["AchievementId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": {
+                    reason?: string;
+                };
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AchievementRecord"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    adminRejectAchievement: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                achievementId: components["parameters"]["AchievementId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": {
+                    reason?: string;
+                };
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AchievementRecord"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
     adminListPatents: {
         parameters: {
             query?: {
@@ -6736,6 +8395,379 @@ export interface operations {
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
+        };
+    };
+    adminListPatentImportJobs: {
+        parameters: {
+            query?: {
+                status?: components["parameters"]["PatentJobStatusParam"];
+                duplicatePolicy?: components["parameters"]["PatentImportDuplicatePolicyParam"];
+                page?: components["parameters"]["Page"];
+                pageSize?: components["parameters"]["PageSize"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PagedPatentImportJob"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+        };
+    };
+    adminCreatePatentImportJob: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description 楠炲倻鐡戦柨顕嗙礄瀵ら缚顔呴悽銊ょ艾閺€顖欑帛/闁偓濞?閺€鐐儥缁涘婀侀崜顖欑稊閻劎娈戦幒銉ュ經閿涙稑鎮撴稉鈧獮鍌滅搼闁款喚娈戦柌宥咁槻鐠囬攱鐪版惔鏃囩箲閸ョ偛鎮撴稉鈧紒鎾寸亯閿? */
+                "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PatentImportJobCreateRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PatentImportJob"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+        };
+    };
+    adminGetPatentImportJob: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                jobId: components["parameters"]["PatentImportJobId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PatentImportJob"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    adminValidatePatentImportJob: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                jobId: components["parameters"]["PatentImportJobId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PatentImportJob"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    adminExecutePatentImportJob: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                jobId: components["parameters"]["PatentImportJobId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PatentImportJob"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    adminListPatentImportJobRows: {
+        parameters: {
+            query?: {
+                status?: components["parameters"]["PatentImportRowStatusParam"];
+                page?: components["parameters"]["Page"];
+                pageSize?: components["parameters"]["PageSize"];
+            };
+            header?: never;
+            path: {
+                jobId: components["parameters"]["PatentImportJobId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PagedPatentImportJobRow"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    adminGetPatentImportJobErrorFile: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                jobId: components["parameters"]["PatentImportJobId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ListingJobErrorFile"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    adminGeneratePatentListings: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description 楠炲倻鐡戦柨顕嗙礄瀵ら缚顔呴悽銊ょ艾閺€顖欑帛/闁偓濞?閺€鐐儥缁涘婀侀崜顖欑稊閻劎娈戦幒銉ュ經閿涙稑鎮撴稉鈧獮鍌滅搼闁款喚娈戦柌宥咁槻鐠囬攱鐪版惔鏃囩箲閸ョ偛鎮撴稉鈧紒鎾寸亯閿? */
+                "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PatentListingGenerateRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PatentListingGenerateResult"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+        };
+    };
+    listMyPatentClaims: {
+        parameters: {
+            query?: {
+                status?: components["parameters"]["PatentClaimStatusParam"];
+                page?: components["parameters"]["Page"];
+                pageSize?: components["parameters"]["PageSize"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PagedPatentClaimRequest"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+        };
+    };
+    createMyPatentClaim: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description 楠炲倻鐡戦柨顕嗙礄瀵ら缚顔呴悽銊ょ艾閺€顖欑帛/闁偓濞?閺€鐐儥缁涘婀侀崜顖欑稊閻劎娈戦幒銉ュ經閿涙稑鎮撴稉鈧獮鍌滅搼闁款喚娈戦柌宥咁槻鐠囬攱鐪版惔鏃囩箲閸ョ偛鎮撴稉鈧紒鎾寸亯閿? */
+                "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PatentClaimCreateRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PatentClaimRequest"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+        };
+    };
+    adminListPatentClaims: {
+        parameters: {
+            query?: {
+                /** @description 閸忔娊鏁拠宥忕礄閺嶅洭顣?閹芥顩?閺夊啫鍩勬禍?閸欐垶妲戞禍?閺堢儤鐎崥宥囆炵粵澶涚礆 */
+                q?: components["parameters"]["Q"];
+                status?: components["parameters"]["PatentClaimStatusParam"];
+                page?: components["parameters"]["Page"];
+                pageSize?: components["parameters"]["PageSize"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PagedPatentClaimRequest"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+        };
+    };
+    adminApprovePatentClaim: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                claimId: components["parameters"]["PatentClaimId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["PatentClaimReviewRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PatentClaimRequest"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+        };
+    };
+    adminRejectPatentClaim: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                claimId: components["parameters"]["PatentClaimId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PatentClaimRejectRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PatentClaimRequest"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
         };
     };
     adminListPatentMaintenanceSchedules: {

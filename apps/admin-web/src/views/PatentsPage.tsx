@@ -1,5 +1,6 @@
 ﻿import { Button, Card, Form, Input, Modal, Select, Space, Table, Tag, Typography, message } from 'antd';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 
 import { apiGet, apiPatch, apiPost } from '../lib/api';
 import { formatTimeSmart } from '../lib/format';
@@ -118,6 +119,7 @@ function legalStatusTag(value?: LegalStatus) {
 }
 
 export function PatentsPage() {
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<unknown | null>(null);
   const [data, setData] = useState<PagedPatent | null>(null);
@@ -344,9 +346,15 @@ export function PatentsPage() {
             专利主数据管理
           </Typography.Title>
           <Typography.Paragraph type="secondary" style={{ marginBottom: 0 }}>
-            维护后台专利主数据（录入/更新），并支持号码规范化校验。
+            维护后台专利主数据（录入/更新），并支持号码规范化校验。批量导入、认领审核、平台咨询在专用运营页面。
           </Typography.Paragraph>
         </div>
+
+        <Space wrap>
+          <Button onClick={() => navigate('/patents/operations')}>去批量运营</Button>
+          <Button onClick={() => navigate('/patents/claims')}>去认领审核</Button>
+          <Button onClick={() => navigate('/conversations/platform')}>去平台咨询会话</Button>
+        </Space>
 
         {error ? <RequestErrorAlert error={error} onRetry={load} /> : null}
 
