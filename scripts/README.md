@@ -5,6 +5,7 @@ This directory contains local engineering automation scripts.
 ## Release Gate (must stay green)
 - `verify.ps1`: full quality gate (lint/typecheck/build/smoke/preflight).
   - Supports `-UiSmokeMode core|full` and optional `-RunWeappRouteSmoke` for mini-program route smoke (`noauth` + `auth` when token is available).
+  - Includes H5/WeApp bundle budget gates (`check-h5-bundle-budget.mjs`, `check-weapp-bundle-budget.mjs`) during build stage.
   - WeApp route smoke is retried once on transient non-zero exit.
   - Optional `-RunVulnerabilityAudit` generates `pnpm audit` snapshot + vulnerability ledger, then enforces baseline guard (`check-vulnerability-baseline.mjs`) for new critical/high advisories.
 - `api-real-smoke.ps1`: real API smoke coverage baseline.
@@ -22,6 +23,7 @@ This directory contains local engineering automation scripts.
 
 ## Build / Env Checks
 - `check-weapp-dist-pages.mjs`: verify dist page artifacts.
+- `check-h5-bundle-budget.mjs`: h5 entrypoint and key asset budget checks (requires fresh `apps/client/dist/h5` from `build:h5`).
 - `check-weapp-bundle-budget.mjs`: weapp bundle budget checks.
 - `check-prod-env.mjs`: production env hard checks.
 - `run-with-env.mjs`: run command with `.env`.

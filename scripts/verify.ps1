@@ -158,6 +158,7 @@ Ensure-NodeHeap -MinMb 4096
 Invoke-Step "api:build" { pnpm -C apps/api build }
 Invoke-Step "admin-web:build" { pnpm -C apps/admin-web build }
 Invoke-Step "client:build:h5" { pnpm -C apps/client build:h5 } -MaxAttempts 2 -RetryExitCodes @(134, -1073740791)
+Invoke-Step "check:h5-budget" { pnpm check:h5-budget -- --report-date $ReportDate }
 Invoke-Step "client:build:weapp" { pnpm -C apps/client build:weapp }
 Invoke-Step "check:weapp-budget" { pnpm check:weapp-budget }
 

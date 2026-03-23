@@ -3,6 +3,13 @@
 > Note (2026-03-23): `docs/demo/rendered/` historical screenshots were cleaned from git.
 > Smoke screenshot artifacts are now local-only and may not exist in repository history snapshots after this date.
 
+## Latest (2026-03-23 r326o)
+
+### Commands & Results (dev)
+- `powershell -ExecutionPolicy Bypass -File scripts/verify.ps1 -ReportDate r326o -UiSmokeMode core`
+  - Result: pass
+  - Notes: verify now includes h5 budget gate (`check:h5-budget`) and passed (`vendors.js` `663.8 KiB` / `760 KiB`, app entrypoint `1533.0 KiB` / `1750 KiB`); chain remained green (`api-real-smoke` `1304/1304`, OpenAPI coverage `225/225`, `db-preflight` `9/9`, `ui-render(core)` `3/3`, `ui-dom(core)` `11/11`).
+
 ## Latest (2026-03-23 r326n)
 
 ### Commands & Results (dev)

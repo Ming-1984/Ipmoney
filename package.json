@@ -19,6 +19,7 @@
     "openapi:types": "openapi-typescript docs/api/openapi.yaml -o packages/api-types/index.d.ts",
     "mock": "pnpm -C apps/mock-api dev",
     "check:weapp-budget": "node scripts/check-weapp-bundle-budget.mjs",
+    "check:h5-budget": "node scripts/check-h5-bundle-budget.mjs",
     "audit:ledger": "node scripts/audit-vulnerability-ledger.mjs",
     "check:vulnerability-baseline": "node scripts/check-vulnerability-baseline.mjs",
     "update:vulnerability-baseline": "node scripts/update-vulnerability-baseline.mjs",

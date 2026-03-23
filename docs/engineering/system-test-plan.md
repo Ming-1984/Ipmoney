@@ -46,6 +46,7 @@
   - 当完成一批漏洞修复并确认可更新风险基线时：`pnpm update:vulnerability-baseline -- --report-date <tag> --input .tmp/vulnerability-ledger-<tag>.json`
 - 建议策略：
   - 每次功能重构至少执行一次深度门禁。
+  - 若 `check:h5-budget` 或 `check:weapp-budget` 失败，需先完成包体治理后再进入发布冻结。
   - 版本冻结前执行深度门禁 + 手工关键路径复核（登录、支付、客服会话、年费托管、认领审核）。
 
 ## 3. P0 功能用例清单（必须）
