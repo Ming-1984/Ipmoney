@@ -49,10 +49,11 @@ docker compose up -d
 
 ## 说明
 
-- 全面质量整改 TODO（主执行清单）：`docs/engineering/full-quality-todo-2026-03-05.md`
+- 全面质量整改 TODO（主执行清单）：`docs/engineering/test-report.md`
 - 项目状态：`docs/engineering/project-status.md`
 - 一键自检（lint/typecheck/build/smoke）：`powershell -ExecutionPolicy Bypass -File scripts/verify.ps1`
+- 深度全链路（全量 UI + 小程序路由冒烟）：`powershell -ExecutionPolicy Bypass -File scripts/verify.ps1 -UiSmokeMode full -RunWeappRouteSmoke -WeappCliPath "<微信开发者工具 cli.bat>"`
 - WeApp 路由冒烟（无截图，DevTools 自动化，可选）：`powershell -ExecutionPolicy Bypass -File scripts/weapp-route-smoke.ps1 -NoAuth`
 - Mock/fixtures 的规划见：`docs/engineering/mocking.md`
-- 历史规划归档：`docs/engineering/archive/legacy-roadmaps-2026-02-to-2026-03.md`
+- 历史规划归档：`docs/engineering/README.md`
 - 甲方演示材料见：`docs/demo/README.md`

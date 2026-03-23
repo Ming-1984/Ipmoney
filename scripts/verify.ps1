@@ -3,7 +3,16 @@ param(
   [string]$ApiBaseUrl = "https://staging-api.example.com",
   [int]$ApiPort = 3200,
   [string]$ReportDate = "",
-  [string]$ChaosHistoryPath = ""
+  [string]$ChaosHistoryPath = "",
+  [ValidateSet("core", "full")]
+  [string]$UiSmokeMode = "core",
+  [switch]$RunWeappRouteSmoke,
+  [string]$WeappCliPath = "",
+  [string]$WeappProjectPath = "apps/client",
+  [int]$WeappTimeoutMs = 180000,
+  [int]$WeappLaunchRetries = 3,
+  [int]$WeappLaunchRetryDelayMs = 3000,
+  [string]$WeappUserToken = ""
 )
 
 $ErrorActionPreference = "Stop"
@@ -171,8 +180,42 @@ if (Test-Path $ChaosHistoryPath) {
 }
 Invoke-Step "db-preflight-check" { powershell -ExecutionPolicy Bypass -File scripts/db-preflight-check.ps1 -ReportDate $ReportDate }
 Invoke-Step "ui-http-smoke" { powershell -ExecutionPolicy Bypass -File scripts/ui-http-smoke.ps1 -ReportDate $ReportDate }
-Invoke-Step "ui-render-smoke(core)" { powershell -ExecutionPolicy Bypass -File scripts/ui-render-smoke.ps1 -Mode core -ReportDate $ReportDate }
-Invoke-Step "ui-dom-smoke(core)" { powershell -ExecutionPolicy Bypass -File scripts/ui-dom-smoke.ps1 -Mode core -ReportDate $ReportDate }
+Invoke-Step "ui-render-smoke($UiSmokeMode)" { powershell -ExecutionPolicy Bypass -File scripts/ui-render-smoke.ps1 -Mode $UiSmokeMode -ReportDate $ReportDate }
+Invoke-Step "ui-dom-smoke($UiSmokeMode)" { powershell -ExecutionPolicy Bypass -File scripts/ui-dom-smoke.ps1 -Mode $UiSmokeMode -ReportDate $ReportDate }
+
+if ($RunWeappRouteSmoke) {
+  Invoke-Step "weapp-route-smoke(noauth)" {
+    powershell -ExecutionPolicy Bypass -File scripts/weapp-route-smoke.ps1 `
+      -CliPath $WeappCliPath `
+      -ProjectPath $WeappProjectPath `
+      -NoAuth `
+      -ReportDate "$ReportDate-noauth" `
+      -TimeoutMs $WeappTimeoutMs `
+      -LaunchRetries $WeappLaunchRetries `
+      -LaunchRetryDelayMs $WeappLaunchRetryDelayMs `
+      -KillStaleDevtools
+  }
+
+  $effectiveWeappUserToken = [string]$WeappUserToken
+  if ([string]::IsNullOrWhiteSpace($effectiveWeappUserToken)) {
+    $effectiveWeappUserToken = [string]$env:DEMO_USER_TOKEN
+  }
+  if (-not [string]::IsNullOrWhiteSpace($effectiveWeappUserToken)) {
+    Invoke-Step "weapp-route-smoke(auth)" {
+      powershell -ExecutionPolicy Bypass -File scripts/weapp-route-smoke.ps1 `
+        -CliPath $WeappCliPath `
+        -ProjectPath $WeappProjectPath `
+        -UserToken $effectiveWeappUserToken `
+        -ReportDate "$ReportDate-auth" `
+        -TimeoutMs $WeappTimeoutMs `
+        -LaunchRetries $WeappLaunchRetries `
+        -LaunchRetryDelayMs $WeappLaunchRetryDelayMs `
+        -KillStaleDevtools
+    }
+  } else {
+    Write-Host "[verify] skip weapp-route-smoke(auth): DEMO_USER_TOKEN / -WeappUserToken is empty"
+  }
+}
 
 Write-Host ""
 Write-Host ("[verify] OK (ReportDate={0})" -f $ReportDate)

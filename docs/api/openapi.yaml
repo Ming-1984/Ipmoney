@@ -8,7 +8,7 @@ info:
   description: |
     Ipmoney API (P0) for mini-program, H5 and admin console.
 servers:
-  - url: https://api.ipmoney.com/v1
+  - url: https://api.ipmoney.cn
 tags:
   - name: Auth
     description: Auth

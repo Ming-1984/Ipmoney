@@ -87,9 +87,10 @@
 - P0 仅使用平台内数据源，外部数据源为 P1。
 
 ## 参考
-- 全面质量整改 TODO（主执行清单）：docs/engineering/full-quality-todo-2026-03-05.md
-- 历史规划归档：docs/engineering/archive/legacy-roadmaps-2026-02-to-2026-03.md
+- 全面质量整改 TODO（主执行清单）：docs/engineering/test-report.md
+- 历史规划归档：docs/engineering/README.md
 - 测试报告：docs/engineering/test-report.md
+- 全链路最佳实践审计：docs/engineering/full-chain-best-practice-audit-2026-03-23-r326h.md
 - 生产过渡 runbook：docs/engineering/production-transition.md
 - 权限矩阵：docs/engineering/permissions-matrix.md
 - API 契约：docs/api/openapi.yaml

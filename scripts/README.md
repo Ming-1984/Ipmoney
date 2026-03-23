@@ -4,6 +4,7 @@ This directory contains local engineering automation scripts.
 
 ## Release Gate (must stay green)
 - `verify.ps1`: full quality gate (lint/typecheck/build/smoke/preflight).
+  - Supports `-UiSmokeMode core|full` and optional `-RunWeappRouteSmoke` for mini-program route smoke (`noauth` + `auth` when token is available).
 - `api-real-smoke.ps1`: real API smoke coverage baseline.
 - `ui-http-smoke.ps1`: HTTP-level page smoke.
 - `ui-render-smoke.ps1`: visual render smoke.
@@ -26,9 +27,7 @@ This directory contains local engineering automation scripts.
 
 ## Developer Utilities (non-gate)
 - `start-dev.ps1`, `clean-dev.ps1`, `dev-reset.ps1`: local dev lifecycle.
-- `clean-miniapp-cache.ps1`: clear miniapp cache/dist artifacts.
-- `generate-tabbar-icons.ps1`: generate local tabbar icon set.
 - `weapp-route-smoke.ps1` / `weapp-route-smoke.js`: WeChat route smoke.
-- `capture-ui.ps1`, `ui-capture-full.ps1`, `capture-weapp-ui.js`: screenshot capture.
-- `render-diagrams.ps1`, `merge-ui-screenshots.py`, `merge-miniapp-pages.py`, `normalize-rendered-images.py`: documentation media processing.
+- `capture-ui.ps1`, `capture-weapp-ui.js`: screenshot capture.
+- `render-diagrams.ps1`, `merge-ui-screenshots.py`, `normalize-rendered-images.py`: documentation media processing.
 - `db-backup.ps1`, `db-restore.ps1`: local DB operations.

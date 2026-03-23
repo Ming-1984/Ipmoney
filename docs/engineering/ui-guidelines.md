@@ -54,4 +54,4 @@
 ## 相关文档
 - Token 映射：docs/engineering/token-mapping.md
 - 硬编码白名单：docs/engineering/hardcode-whitelist.md
-- 历史规划归档：docs/engineering/archive/legacy-roadmaps-2026-02-to-2026-03.md
+- 历史规划归档：docs/engineering/README.md

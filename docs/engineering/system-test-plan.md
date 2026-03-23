@@ -33,6 +33,16 @@
   - 小程序手工冒烟：首页/搜索/详情/消息/收藏/个人中心/发布（清单：`docs/engineering/weapp-manual-smoke-checklist.md`）
 - 产出：将结果记录到 `docs/engineering/test-report.md`
 
+## 2.2 全链路自动化推荐命令（Dev / 联调）
+
+- 标准门禁（默认核心 UI 冒烟）：
+  - `powershell -ExecutionPolicy Bypass -File scripts/verify.ps1 -ReportDate <tag>`
+- 深度门禁（全量 UI + 小程序路由冒烟）：
+  - `powershell -ExecutionPolicy Bypass -File scripts/verify.ps1 -ReportDate <tag> -UiSmokeMode full -RunWeappRouteSmoke -WeappCliPath "<微信开发者工具 cli.bat 路径>" -WeappUserToken "<DEMO_USER_TOKEN>"`
+- 建议策略：
+  - 每次功能重构至少执行一次深度门禁。
+  - 版本冻结前执行深度门禁 + 手工关键路径复核（登录、支付、客服会话、年费托管、认领审核）。
+
 ## 3. P0 功能用例清单（必须）
 
 | 模块 | 用例 | 期望结果 | 备注 |

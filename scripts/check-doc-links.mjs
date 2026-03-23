@@ -7,8 +7,6 @@ const docsRoot = path.join(repoRoot, 'docs');
 const reportPath = path.join(repoRoot, '.tmp', 'docs-link-check.json');
 
 const skippedDocMatchers = [
-  /^docs\/engineering\/archive\//,
-  /^docs\/engineering\/full-quality-todo-\d{4}-\d{2}-\d{2}\.md$/,
   /^docs\/engineering\/test-report\.md$/,
 ];
 

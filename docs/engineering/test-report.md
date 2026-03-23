@@ -3,6 +3,39 @@
 > Note (2026-03-23): `docs/demo/rendered/` historical screenshots were cleaned from git.
 > Smoke screenshot artifacts are now local-only and may not exist in repository history snapshots after this date.
 
+## Latest (2026-03-23 r326i)
+
+### Commands & Results (dev)
+- `powershell -ExecutionPolicy Bypass -File scripts/verify.ps1 -ReportDate r326i -UiSmokeMode full -RunWeappRouteSmoke -WeappCliPath "D:\微信web开发者工具\cli.bat" -WeappUserToken <demo-token>`
+  - Result: pass
+  - Notes: full-chain gate passed with full UI smoke + WeApp route smoke (`api-real-smoke` `1304/1304`, OpenAPI coverage `225/225`, `db-preflight` `9/9`, `ui-render(full)` `64/64`, `ui-dom(full)` `64/64`, weapp-route `noauth 12/12`, `auth 12/12`).
+
+## Latest (2026-03-23 r326h)
+
+### Commands & Results (dev)
+- `powershell -ExecutionPolicy Bypass -File scripts/ui-render-smoke.ps1 -Mode full -ReportDate r326h`
+  - Result: pass (`64/64`)
+- `powershell -ExecutionPolicy Bypass -File scripts/ui-dom-smoke.ps1 -Mode full -ReportDate r326h`
+  - Result: pass (`64/64`)
+- `powershell -ExecutionPolicy Bypass -File scripts/weapp-route-smoke.ps1 -ReportDate r326h-auth -UserToken <demo-token> -TimeoutMs 180000 -LaunchRetries 1 -LaunchRetryDelayMs 2000 -KillStaleDevtools`
+  - Result: pass (`12/12` routes)
+- `powershell -ExecutionPolicy Bypass -File scripts/weapp-route-smoke.ps1 -NoAuth -ReportDate r326h-noauth-rerun -TimeoutMs 180000 -LaunchRetries 3 -LaunchRetryDelayMs 3000 -KillStaleDevtools`
+  - Result: pass (`12/12` routes)
+  - Notes: first run `r326h-noauth` failed due DevTools launch port contention, rerun passed.
+- `pnpm -C apps/api test`
+  - Result: pass (`550/550`)
+- `pnpm -C apps/api test:e2e`
+  - Result: pass (`2/2`)
+
+## Latest (2026-03-23 r326g)
+
+### Commands & Results (dev)
+- `pnpm check:docs-links`
+  - Result: pass (`checked=59`, missing=`0`)
+- `powershell -ExecutionPolicy Bypass -File scripts/verify.ps1 -ReportDate r326g`
+  - Result: pass
+  - Notes: gate remained green after aggressive doc/script cleanup (`api-real-smoke` `1304/1304`, OpenAPI coverage `225/225`, `db-preflight` `9/9`, `ui-render(core)` `3/3`, `ui-dom(core)` `11/11`).
+
 ## Latest (2026-03-23 r326f)
 
 ### Commands & Results (dev)
@@ -900,7 +933,7 @@
 
 - `node scripts/build-page-api-test-matrix.mjs --date 2026-03-05`
   - Result: success
-  - Matrix: `docs/engineering/page-api-test-matrix-2026-03-05.md`
+  - Matrix: `docs/engineering/page-api-test-matrix-r326e.md`
 
 - `node scripts/audit-vulnerability-ledger.mjs --date 2026-03-05 --input .tmp/pnpm-audit-prod-2026-03-05.json`
   - Result: success
