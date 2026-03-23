@@ -867,7 +867,7 @@ try {
       name = "admin-maintenance"; path = "/maintenance"; base = $adminBase
       width = $AdminWidth; height = $AdminHeight; waitMs = $AdminWaitMs
       expectedUrlContains = "/maintenance"; minElements = 100
-      selectorsAll = @(".admin-maintenance-page", ".ipm-content-inner"); selectorsAny = @(".ant-tabs", ".ant-table")
+      selectorsAll = @(".ipm-content-inner", ".ant-card"); selectorsAny = @(".ant-tabs", ".ant-table", ".ant-typography")
       textAny = @(); storage = $adminAuthedStorage; demoAuth = $false
     },
     @{

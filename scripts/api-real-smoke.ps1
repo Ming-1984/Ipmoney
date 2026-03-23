@@ -3733,6 +3733,85 @@ try {
   $maintenanceTasksBySchedule = Add-ApiCaseResult -Results $results -Name "admin-maintenance-tasks-list-by-schedule" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/admin/patent-maintenance/tasks?scheduleId=$scheduleId" -Body $null -Headers @{ Authorization = $adminToken } -Expected @(200)
   Assert-ResultJsonArrayItemFieldEquals -Result $maintenanceTasksBySchedule -ArrayField "items" -MatchField "id" -MatchValue $taskId -TargetField "status" -ExpectedValue "DONE" -Assertion "maintenance-task-list-status"
 
+  [void](Add-ApiCaseResult -Results $results -Name "admin-maintenance-orders-list" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/admin/patent-maintenance/orders" -Body $null -Headers @{ Authorization = $adminToken } -Expected @(200))
+  [void](Add-ApiCaseResult -Results $results -Name "admin-maintenance-orders-list-invalid-status" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/admin/patent-maintenance/orders?status=INVALID" -Body $null -Headers @{ Authorization = $adminToken } -Expected @(400))
+  [void](Add-ApiCaseResult -Results $results -Name "admin-maintenance-orders-list-invalid-reconcile-status" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/admin/patent-maintenance/orders?reconcileStatus=INVALID" -Body $null -Headers @{ Authorization = $adminToken } -Expected @(400))
+  [void](Add-ApiCaseResult -Results $results -Name "admin-maintenance-orders-list-empty-schedule-id" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/admin/patent-maintenance/orders?scheduleId=" -Body $null -Headers @{ Authorization = $adminToken } -Expected @(400))
+  [void](Add-ApiCaseResult -Results $results -Name "admin-maintenance-orders-list-invalid-page" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/admin/patent-maintenance/orders?page=abc" -Body $null -Headers @{ Authorization = $adminToken } -Expected @(400))
+
+  $maintenanceOrderYearNo = [int][double]::Parse((Get-Date -UFormat %s)) + (Get-Random -Minimum 20001 -Maximum 49999)
+  $maintenanceOrderScheduleCreate = Add-ApiCaseResult -Results $results -Name "admin-maintenance-schedule-create-for-order" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/admin/patent-maintenance/schedules" -Body @{ patentId = $patentId; yearNo = $maintenanceOrderYearNo; dueDate = (Get-Date).AddDays(58).ToString("o"); status = "DUE" } -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-maintenance-schedule-create-for-order") -Expected @(200, 201)
+  $maintenanceOrderScheduleId = Get-ResultStringField -Result $maintenanceOrderScheduleCreate -Field "id"
+  if ([string]::IsNullOrWhiteSpace($maintenanceOrderScheduleId)) { throw "admin-maintenance-schedule-create-for-order missing id" }
+
+  $maintenanceOrderCreate = Add-ApiCaseResult -Results $results -Name "admin-maintenance-order-create" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/admin/patent-maintenance/orders" -Body @{ scheduleId = $maintenanceOrderScheduleId; applicantUserId = $currentUserId; assignedCsUserId = $currentUserId } -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-maintenance-order-create") -Expected @(200, 201)
+  Assert-ResultJsonFieldEquals -Result $maintenanceOrderCreate -Field "status" -ExpectedValue "REQUESTED" -Assertion "maintenance-order-create-status"
+  $maintenanceOrderCreateJson = Get-ResultJsonObject -Result $maintenanceOrderCreate
+  $maintenanceOrderId = ""
+  if ($maintenanceOrderCreateJson -and $maintenanceOrderCreateJson.id) {
+    $maintenanceOrderId = [string]$maintenanceOrderCreateJson.id
+  }
+  if ([string]::IsNullOrWhiteSpace($maintenanceOrderId)) {
+    throw "admin-maintenance-order-create missing id (status=$($maintenanceOrderCreate.status), body=$($maintenanceOrderCreate.body))"
+  }
+  $maintenanceOrdersBySchedule = Add-ApiCaseResult -Results $results -Name "admin-maintenance-orders-list-by-schedule" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/admin/patent-maintenance/orders?scheduleId=$maintenanceOrderScheduleId" -Body $null -Headers @{ Authorization = $adminToken } -Expected @(200)
+  Assert-ResultJsonItemsContainsId -Result $maintenanceOrdersBySchedule -ItemId $maintenanceOrderId -Assertion "maintenance-orders-list-contains-created-order"
+  $maintenanceOrderDetail = Add-ApiCaseResult -Results $results -Name "admin-maintenance-order-detail" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/admin/patent-maintenance/orders/$maintenanceOrderId" -Body $null -Headers @{ Authorization = $adminToken } -Expected @(200)
+  Assert-ResultJsonFieldEquals -Result $maintenanceOrderDetail -Field "status" -ExpectedValue "REQUESTED" -Assertion "maintenance-order-detail-status"
+  $maintenanceOrderEventsAfterCreate = Add-ApiCaseResult -Results $results -Name "admin-maintenance-order-events-after-create" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/admin/patent-maintenance/orders/$maintenanceOrderId/events" -Body $null -Headers @{ Authorization = $adminToken } -Expected @(200)
+  Assert-ResultJsonArrayItemFieldEquals -Result $maintenanceOrderEventsAfterCreate -ArrayField "items" -MatchField "eventType" -MatchValue "CREATED" -TargetField "toStatus" -ExpectedValue "REQUESTED" -Assertion "maintenance-order-events-created"
+
+  $maintenanceOrderQuote = Add-ApiCaseResult -Results $results -Name "admin-maintenance-order-quote" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/admin/patent-maintenance/orders/$maintenanceOrderId/quote" -Body @{ officialFeeFen = 12000; lateFeeFen = 0; serviceFeeFen = 3000; paymentDeadline = (Get-Date).AddDays(3).ToString("o"); assignedCsUserId = $currentUserId } -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-maintenance-order-quote") -Expected @(200, 201)
+  Assert-ResultJsonFieldEquals -Result $maintenanceOrderQuote -Field "status" -ExpectedValue "AWAITING_PAYMENT" -Assertion "maintenance-order-quote-status"
+  $maintenanceOrderPaymentConfirm = Add-ApiCaseResult -Results $results -Name "admin-maintenance-order-payment-confirm" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/admin/patent-maintenance/orders/$maintenanceOrderId/payment-confirm" -Body @{ paymentChannel = "WECHAT"; paymentTxnNo = "SMOKE-MAINT-PAY-$([guid]::NewGuid().ToString('N').Substring(0, 10))"; paidAt = (Get-Date).ToString("o") } -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-maintenance-order-payment-confirm") -Expected @(200, 201)
+  Assert-ResultJsonFieldEquals -Result $maintenanceOrderPaymentConfirm -Field "status" -ExpectedValue "PAID" -Assertion "maintenance-order-payment-confirm-status"
+  $maintenanceOrderExecution = Add-ApiCaseResult -Results $results -Name "admin-maintenance-order-execution" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/admin/patent-maintenance/orders/$maintenanceOrderId/execution" -Body @{ officialSubmissionNo = "SMOKE-SUB-$([guid]::NewGuid().ToString('N').Substring(0, 10))"; executedAt = (Get-Date).ToString("o") } -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-maintenance-order-execution") -Expected @(200, 201)
+  Assert-ResultJsonFieldEquals -Result $maintenanceOrderExecution -Field "status" -ExpectedValue "EXECUTING" -Assertion "maintenance-order-execution-status"
+  $maintenanceOrderReceipt = Add-ApiCaseResult -Results $results -Name "admin-maintenance-order-receipt" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/admin/patent-maintenance/orders/$maintenanceOrderId/receipt" -Body @{ officialReceiptNo = "SMOKE-RCPT-$([guid]::NewGuid().ToString('N').Substring(0, 10))"; officialReceiptFileId = $evidenceFileId; receiptIssuedAt = (Get-Date).ToString("o") } -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-maintenance-order-receipt") -Expected @(200, 201)
+  Assert-ResultJsonFieldEquals -Result $maintenanceOrderReceipt -Field "status" -ExpectedValue "RECEIPT_UPLOADED" -Assertion "maintenance-order-receipt-status"
+  $maintenanceOrderReconcile = Add-ApiCaseResult -Results $results -Name "admin-maintenance-order-reconcile" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/admin/patent-maintenance/orders/$maintenanceOrderId/reconcile" -Body @{ reconcileStatus = "MATCHED"; reconcileNote = "smoke reconcile matched" } -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-maintenance-order-reconcile") -Expected @(200, 201)
+  Assert-ResultJsonFieldEquals -Result $maintenanceOrderReconcile -Field "status" -ExpectedValue "RECONCILED" -Assertion "maintenance-order-reconcile-status"
+  $maintenanceOrderClose = Add-ApiCaseResult -Results $results -Name "admin-maintenance-order-close" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/admin/patent-maintenance/orders/$maintenanceOrderId/close" -Body @{ closeNote = "smoke close completed" } -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-maintenance-order-close") -Expected @(200, 201)
+  Assert-ResultJsonFieldEquals -Result $maintenanceOrderClose -Field "status" -ExpectedValue "CLOSED" -Assertion "maintenance-order-close-status"
+
+  [void](Add-ApiCaseResult -Results $results -Name "me-maintenance-schedules-list" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/me/patent-maintenance/schedules" -Body $null -Headers @{ Authorization = $userToken } -Expected @(200))
+  [void](Add-ApiCaseResult -Results $results -Name "me-maintenance-tasks-list" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/me/patent-maintenance/tasks" -Body $null -Headers @{ Authorization = $userToken } -Expected @(200))
+  $myMaintenanceOrders = Add-ApiCaseResult -Results $results -Name "me-maintenance-orders-list" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/me/patent-maintenance/orders?orderId=$maintenanceOrderId" -Body $null -Headers @{ Authorization = $userToken } -Expected @(200)
+  Assert-ResultJsonItemsContainsId -Result $myMaintenanceOrders -ItemId $maintenanceOrderId -Assertion "me-maintenance-orders-list-contains-order"
+  $myMaintenanceOrderDetail = Add-ApiCaseResult -Results $results -Name "me-maintenance-order-detail" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/me/patent-maintenance/orders/$maintenanceOrderId" -Body $null -Headers @{ Authorization = $userToken } -Expected @(200)
+  Assert-ResultJsonFieldEquals -Result $myMaintenanceOrderDetail -Field "status" -ExpectedValue "CLOSED" -Assertion "me-maintenance-order-detail-status"
+  $myMaintenanceOrderEvents = Add-ApiCaseResult -Results $results -Name "me-maintenance-order-events" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/me/patent-maintenance/orders/$maintenanceOrderId/events" -Body $null -Headers @{ Authorization = $userToken } -Expected @(200)
+  Assert-ResultJsonArrayItemFieldEquals -Result $myMaintenanceOrderEvents -ArrayField "items" -MatchField "eventType" -MatchValue "CLOSED" -TargetField "toStatus" -ExpectedValue "CLOSED" -Assertion "me-maintenance-order-events-closed"
+  $maintenanceConversationCreate = Add-ApiCaseResult -Results $results -Name "maintenance-order-conversation-create" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/patent-maintenance/orders/$maintenanceOrderId/conversations" -Body @{} -Headers (New-WriteHeaders -AuthorizationToken $userToken -Prefix $idempotencyPrefix -Label "maintenance-order-conversation-create") -Expected @(200, 201)
+  Assert-ResultJsonFieldEquals -Result $maintenanceConversationCreate -Field "contentType" -ExpectedValue "MAINTENANCE" -Assertion "maintenance-conversation-content-type"
+  Assert-ResultJsonFieldEquals -Result $maintenanceConversationCreate -Field "contentId" -ExpectedValue $maintenanceOrderId -Assertion "maintenance-conversation-content-id"
+
+  $myPatentCandidate = @(
+    @($adminPatentsForWrites.items) | Where-Object { $_.ownerUserId -and [string]$_.ownerUserId -eq $currentUserId } | Select-Object -First 1
+  )[0]
+  if ($myPatentCandidate -and $myPatentCandidate.id) {
+    $myMaintenanceYearNo = [int][double]::Parse((Get-Date -UFormat %s)) + (Get-Random -Minimum 30000 -Maximum 60000)
+    $myMaintenanceScheduleCreate = Add-ApiCaseResult -Results $results -Name "admin-maintenance-schedule-create-for-my-order" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/admin/patent-maintenance/schedules" -Body @{ patentId = [string]$myPatentCandidate.id; yearNo = $myMaintenanceYearNo; dueDate = (Get-Date).AddDays(52).ToString("o"); status = "DUE" } -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-maintenance-schedule-create-for-my-order") -Expected @(200, 201)
+    $myMaintenanceScheduleId = Get-ResultStringField -Result $myMaintenanceScheduleCreate -Field "id"
+    if ([string]::IsNullOrWhiteSpace($myMaintenanceScheduleId)) { throw "admin-maintenance-schedule-create-for-my-order missing id" }
+    $myMaintenanceOrderCreate = Add-ApiCaseResult -Results $results -Name "me-maintenance-order-create" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/me/patent-maintenance/orders" -Body @{ scheduleId = $myMaintenanceScheduleId } -Headers (New-WriteHeaders -AuthorizationToken $userToken -Prefix $idempotencyPrefix -Label "me-maintenance-order-create") -Expected @(200, 201, 409)
+    if (@(200, 201) -contains [int]$myMaintenanceOrderCreate.status) {
+      Assert-ResultJsonFieldEquals -Result $myMaintenanceOrderCreate -Field "status" -ExpectedValue "REQUESTED" -Assertion "me-maintenance-order-create-status"
+    }
+  } else {
+    [void](Add-ApiCaseResult -Results $results -Name "me-maintenance-order-create-fallback" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/me/patent-maintenance/orders" -Body @{ scheduleId = $maintenanceOrderScheduleId } -Headers (New-WriteHeaders -AuthorizationToken $userToken -Prefix $idempotencyPrefix -Label "me-maintenance-order-create-fallback") -Expected @(200, 201, 403, 409))
+  }
+
+  $maintenanceCancelYearNo = [int][double]::Parse((Get-Date -UFormat %s)) + (Get-Random -Minimum 60001 -Maximum 90000)
+  $maintenanceCancelScheduleCreate = Add-ApiCaseResult -Results $results -Name "admin-maintenance-schedule-create-for-cancel-order" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/admin/patent-maintenance/schedules" -Body @{ patentId = $patentId; yearNo = $maintenanceCancelYearNo; dueDate = (Get-Date).AddDays(75).ToString("o"); status = "DUE" } -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-maintenance-schedule-create-for-cancel-order") -Expected @(200, 201)
+  $maintenanceCancelScheduleId = Get-ResultStringField -Result $maintenanceCancelScheduleCreate -Field "id"
+  if ([string]::IsNullOrWhiteSpace($maintenanceCancelScheduleId)) { throw "admin-maintenance-schedule-create-for-cancel-order missing id" }
+  $maintenanceCancelOrderCreate = Add-ApiCaseResult -Results $results -Name "admin-maintenance-order-create-for-cancel" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/admin/patent-maintenance/orders" -Body @{ scheduleId = $maintenanceCancelScheduleId; applicantUserId = $currentUserId; assignedCsUserId = $currentUserId } -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-maintenance-order-create-for-cancel") -Expected @(200, 201)
+  $maintenanceCancelOrderId = Get-ResultStringField -Result $maintenanceCancelOrderCreate -Field "id"
+  if ([string]::IsNullOrWhiteSpace($maintenanceCancelOrderId)) { throw "admin-maintenance-order-create-for-cancel missing id" }
+  $maintenanceOrderCancel = Add-ApiCaseResult -Results $results -Name "admin-maintenance-order-cancel" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/admin/patent-maintenance/orders/$maintenanceCancelOrderId/cancel" -Body @{ closeNote = "smoke maintenance cancel" } -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-maintenance-order-cancel") -Expected @(200, 201)
+  Assert-ResultJsonFieldEquals -Result $maintenanceOrderCancel -Field "status" -ExpectedValue "CANCELLED" -Assertion "maintenance-order-cancel-status"
+
   $rbacUsersListBefore = Add-ApiCaseResult -Results $results -Name "admin-rbac-users-list" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/admin/rbac/users" -Body $null -Headers @{ Authorization = $adminToken } -Expected @(200)
   [void](Add-ApiCaseResult -Results $results -Name "admin-rbac-user-create-invalid-body" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/admin/rbac/users" -Body @{} -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-rbac-user-create-invalid-body") -Expected @(400))
   Assert-ResultJsonArrayItemFieldEquals -Result $rbacUsersListBefore -ArrayField "items" -MatchField "id" -MatchValue $adminUserId -TargetField "id" -ExpectedValue $adminUserId -Assertion "rbac-users-list-contains-admin-user"

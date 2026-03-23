@@ -4,15 +4,15 @@
 
 ## Summary
 
-- OpenAPI operations: 215
-- Frontend-used operations (client): 83
-- Frontend-used operations (admin): 111
+- OpenAPI operations: 231
+- Frontend-used operations (client): 88
+- Frontend-used operations (admin): 113
 - Fixture scenarios: 7
 
 ## Key Gaps
 
 - Frontend-used but missing from OpenAPI: 0
-- OpenAPI-defined but unused by frontend: 31
+- OpenAPI-defined but unused by frontend: 40
   - GET /admin/achievements
   - GET /admin/achievements/:param
   - GET /admin/achievements/:param/audit-logs
@@ -26,6 +26,8 @@
   - GET /admin/listings/jobs/batch/:param/error-file
   - GET /admin/listings/jobs/import/:param
   - GET /admin/listings/jobs/import/:param/error-file
+  - GET /admin/patent-maintenance/orders/:param
+  - GET /admin/patent-maintenance/schedules/:param
   - GET /admin/patents/jobs/import/:param
   - GET /admin/patents/jobs/import/:param/error-file
   - PATCH /admin/achievements/:param
@@ -41,10 +43,17 @@
   - POST /admin/listings/:param/off-shelf
   - POST /admin/listings/:param/publish
   - POST /admin/listings/:param/reject
+  - POST /admin/patent-maintenance/orders/:param/cancel
+  - POST /admin/patent-maintenance/orders/:param/close
+  - POST /admin/patent-maintenance/orders/:param/execution
+  - POST /admin/patent-maintenance/orders/:param/payment-confirm
+  - POST /admin/patent-maintenance/orders/:param/quote
+  - POST /admin/patent-maintenance/orders/:param/receipt
+  - POST /admin/patent-maintenance/orders/:param/reconcile
   - POST /ai/agent/query
   - POST /ai/parse-results/:param/feedback
   - PUT /admin/listings/:param/featured
-- Frontend-used but missing in happy fixtures: 183
+- Frontend-used but missing in happy fixtures: 190
   - DELETE /achievements/:param/favorites
   - DELETE /admin/conversations/:param/agents/:param
   - DELETE /admin/orders/:param/invoice
@@ -77,8 +86,9 @@
   - GET /admin/orders/:param
   - GET /admin/orders/:param/settlement
   - GET /admin/patent-claims
+  - GET /admin/patent-maintenance/orders
+  - GET /admin/patent-maintenance/orders/:param/events
   - GET /admin/patent-maintenance/schedules
-  - GET /admin/patent-maintenance/schedules/:param
   - GET /admin/patent-maintenance/tasks
   - GET /admin/patents
   - GET /admin/patents/:param
@@ -94,8 +104,7 @@
   - GET /admin/user-verifications/:param/audit-logs
   - GET /admin/user-verifications/:param/materials
   - GET /auth/session
-  - GET /contracts
-  - ... (133 more)
+  - ... (140 more)
 
 ## Coverage Details (by operation)
 
@@ -146,8 +155,11 @@
 | adminGetOrderById | GET | /admin/orders/:param |  | Y |  |  |  |  |  |  |  |
 | adminGetOrderSettlement | GET | /admin/orders/:param/settlement |  | Y |  |  |  |  |  |  |  |
 | adminListPatentClaims | GET | /admin/patent-claims |  | Y |  |  |  |  |  |  |  |
+| adminListPatentMaintenanceOrders | GET | /admin/patent-maintenance/orders |  | Y |  |  |  |  |  |  |  |
+| adminGetPatentMaintenanceOrder | GET | /admin/patent-maintenance/orders/:param |  |  |  |  |  |  |  |  |  |
+| adminListPatentMaintenanceOrderEvents | GET | /admin/patent-maintenance/orders/:param/events |  | Y |  |  |  |  |  |  |  |
 | adminListPatentMaintenanceSchedules | GET | /admin/patent-maintenance/schedules |  | Y |  |  |  |  |  |  |  |
-| adminGetPatentMaintenanceSchedule | GET | /admin/patent-maintenance/schedules/:param |  | Y |  |  |  |  |  |  |  |
+| adminGetPatentMaintenanceSchedule | GET | /admin/patent-maintenance/schedules/:param |  |  |  |  |  |  |  |  |  |
 | adminListPatentMaintenanceTasks | GET | /admin/patent-maintenance/tasks |  | Y |  |  |  |  |  |  |  |
 | adminListPatents | GET | /admin/patents |  | Y |  |  |  |  |  |  |  |
 | adminGetPatentById | GET | /admin/patents/:param |  | Y |  |  |  |  |  |  |  |
@@ -179,6 +191,9 @@
 | listMyFavoriteListings | GET | /me/favorites | Y |  |  |  |  |  |  |  |  |
 | listMyFavoriteAchievements | GET | /me/favorites/achievements | Y |  |  |  |  |  |  |  |  |
 | listMyPatentClaims | GET | /me/patent-claims | Y |  |  |  |  |  |  |  |  |
+| listMyPatentMaintenanceOrders | GET | /me/patent-maintenance/orders | Y |  |  |  |  |  |  |  |  |
+| getMyPatentMaintenanceOrder | GET | /me/patent-maintenance/orders/:param | Y |  |  |  |  |  |  |  |  |
+| listMyPatentMaintenanceOrderEvents | GET | /me/patent-maintenance/orders/:param/events | Y |  |  |  |  |  |  |  |  |
 | listMyPatentMaintenanceSchedules | GET | /me/patent-maintenance/schedules | Y |  |  |  |  |  |  |  |  |
 | listMyPatentMaintenanceTasks | GET | /me/patent-maintenance/tasks | Y |  |  |  |  |  |  |  |  |
 | getMyRecommendedListings | GET | /me/recommendations/listings | Y |  |  |  |  |  |  |  |  |
@@ -259,6 +274,14 @@
 | adminConfirmManualPayout | POST | /admin/orders/:param/payouts/manual |  | Y |  |  |  |  |  |  |  |
 | adminApprovePatentClaim | POST | /admin/patent-claims/:param/approve |  | Y |  |  |  |  |  |  |  |
 | adminRejectPatentClaim | POST | /admin/patent-claims/:param/reject |  | Y |  |  |  |  |  |  |  |
+| adminCreatePatentMaintenanceOrder | POST | /admin/patent-maintenance/orders |  | Y |  |  |  |  |  |  |  |
+| adminCancelPatentMaintenanceOrder | POST | /admin/patent-maintenance/orders/:param/cancel |  |  |  |  |  |  |  |  |  |
+| adminClosePatentMaintenanceOrder | POST | /admin/patent-maintenance/orders/:param/close |  |  |  |  |  |  |  |  |  |
+| adminSubmitPatentMaintenanceOrderExecution | POST | /admin/patent-maintenance/orders/:param/execution |  |  |  |  |  |  |  |  |  |
+| adminConfirmPatentMaintenanceOrderPayment | POST | /admin/patent-maintenance/orders/:param/payment-confirm |  |  |  |  |  |  |  |  |  |
+| adminQuotePatentMaintenanceOrder | POST | /admin/patent-maintenance/orders/:param/quote |  |  |  |  |  |  |  |  |  |
+| adminUploadPatentMaintenanceOrderReceipt | POST | /admin/patent-maintenance/orders/:param/receipt |  |  |  |  |  |  |  |  |  |
+| adminReconcilePatentMaintenanceOrder | POST | /admin/patent-maintenance/orders/:param/reconcile |  |  |  |  |  |  |  |  |  |
 | adminCreatePatentMaintenanceSchedule | POST | /admin/patent-maintenance/schedules |  | Y |  |  |  |  |  |  |  |
 | adminCreatePatentMaintenanceTask | POST | /admin/patent-maintenance/tasks |  | Y |  |  |  |  |  |  |  |
 | adminCreatePatent | POST | /admin/patents |  | Y |  |  |  |  |  |  |  |
@@ -295,12 +318,14 @@
 | submitListing | POST | /listings/:param/submit | Y |  |  |  |  |  |  |  |  |
 | createMyAddress | POST | /me/addresses | Y |  |  |  |  |  |  |  |  |
 | createMyPatentClaim | POST | /me/patent-claims | Y |  |  |  |  |  |  |  |  |
+| createMyPatentMaintenanceOrder | POST | /me/patent-maintenance/orders | Y |  |  |  |  |  |  |  |  |
 | submitMyVerification | POST | /me/verification | Y |  |  |  |  |  |  |  |  |
 | createOrder | POST | /orders | Y |  |  |  |  |  |  |  |  |
 | upsertOrderDisputeConversation | POST | /orders/:param/dispute-conversations | Y |  |  |  |  |  |  |  |  |
 | requestOrderInvoice | POST | /orders/:param/invoice-requests | Y |  |  |  |  |  |  |  |  |
 | createPaymentIntent | POST | /orders/:param/payment-intents | Y |  |  |  |  |  |  |  |  |
 | createRefundRequest | POST | /orders/:param/refund-requests | Y |  |  |  |  |  |  |  |  |
+| upsertMaintenanceOrderConversation | POST | /patent-maintenance/orders/:param/conversations | Y |  |  |  |  |  |  |  |  |
 | normalizePatentNumber | POST | /patents/normalize |  | Y |  |  |  |  |  |  |  |
 | upsertSupportConversation | POST | /support/conversations | Y |  |  |  |  |  |  |  |  |
 | upsertTechManagerConversation | POST | /tech-managers/:param/conversations | Y |  |  |  |  |  |  |  |  |

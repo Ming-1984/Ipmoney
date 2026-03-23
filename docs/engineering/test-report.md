@@ -1,5 +1,29 @@
 # Test Report (Consolidated)
 
+## Latest (2026-03-23 r326d)
+
+### Commands & Results (dev)
+- `powershell -File scripts/ui-dom-smoke.ps1 -Mode full -ReportDate r326d`
+  - Result: pass (`64/64`)
+  - Notes: fixed stale selector for `/maintenance` admin page in smoke assertions (`.admin-maintenance-page` -> stable current selectors).
+- `powershell -File scripts/ui-render-smoke.ps1 -Mode full -ReportDate r326d`
+  - Result: pass (`64/64`)
+- `powershell -File scripts/verify.ps1 -ReportDate r326d`
+  - Result: pass
+  - Notes: chain gate passed (`api-real-smoke` `1304/1304`, OpenAPI coverage `225/225`, quality-floor `violations=[]`, `db-preflight` `9/9`, `ui-render(core)` `3/3`, `ui-dom(core)` `11/11`).
+- `pnpm -C apps/api test`
+  - Result: pass (`550/550`)
+- `pnpm -C apps/api test:e2e`
+  - Result: pass (`2/2`)
+- `powershell -ExecutionPolicy Bypass -File scripts/weapp-route-smoke.ps1 -NoAuth -ReportDate r326d -TimeoutMs 180000 -LaunchRetries 1 -LaunchRetryDelayMs 2000 -KillStaleDevtools`
+  - Result: pass (`12/12` routes)
+  - Notes: includes `/subpackages/maintenance/index`; no runtime load exception.
+- `powershell -ExecutionPolicy Bypass -File scripts/weapp-route-smoke.ps1 -ReportDate r326d-auth -UserToken demo-user-11111111-1111-4111-8111-111111111111 -TimeoutMs 180000 -LaunchRetries 1 -LaunchRetryDelayMs 2000 -KillStaleDevtools`
+  - Result: pass (`12/12` routes)
+- `$env:STAGE='prod'; node scripts/run-with-env.mjs -- node scripts/check-prod-env.mjs`
+  - Result: fail (expected in local `.env`)
+  - Notes: production secrets/hosts not yet configured (`DEMO_AUTH_ALLOW_UUID_TOKENS`, `BASE_URL`, `PUBLIC_HOST_WHITELIST`, `FILE_TEMP_TOKEN_SECRET`, `JWT_SECRET`).
+
 ## Latest (2026-03-23)
 
 ### Commands & Results (dev)
