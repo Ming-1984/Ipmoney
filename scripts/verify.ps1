@@ -138,6 +138,7 @@ Invoke-Step "typecheck" { pnpm typecheck }
 Invoke-Step "audit-openapi-backend" { node scripts/audit-openapi-backend.mjs }
 Invoke-Step "audit-coverage" { node scripts/audit-coverage.mjs }
 Invoke-Step "scan:banned-words" { pnpm scan:banned-words }
+Invoke-Step "check:docs-links" { pnpm check:docs-links }
 
 # Build artifacts (use a non-local API base so production guards won't trip in CI).
 $env:VITE_API_BASE_URL = $ApiBaseUrl

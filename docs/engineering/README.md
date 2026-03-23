@@ -17,6 +17,7 @@
 - DB 预检：docs/engineering/db-preflight-check.md
 - DB 备份/恢复：docs/engineering/db-backup-restore.md
 - 权限矩阵：docs/engineering/permissions-matrix.md
+- 脚本目录：scripts/README.md
 
 ## API 与契约
 - OpenAPI 契约：docs/api/openapi.yaml

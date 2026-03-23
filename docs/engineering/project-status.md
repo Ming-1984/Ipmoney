@@ -11,7 +11,7 @@
 - 代码与远端：`main` 已与 `origin/main` 对齐。
 - API 自动化：`pnpm -C apps/api test` 通过（`619/619`），`pnpm -C apps/api test:e2e` 通过（`2/2`）。
 - 全链路验证：`scripts/verify.ps1 -ReportDate r324e` 首次因 `client:typecheck` 失败，修复详情页 `boundingClientRect` 联合类型处理后同轮复跑通过（`api-real-smoke 1754/1754`、OpenAPI 覆盖 `238/238`、quality-floor `violations=[]`）。
-- 证据目录：`docs/demo/rendered/ui-smoke-r324e/` 已补齐并纳入版本管理。
+- 证据目录策略已调整：`docs/demo/rendered/` 仅保留本地临时截图，不再纳入版本管理。
 
 ## 范围（P0）
 - 渠道：微信小程序、Taro H5（电脑端可用）、管理后台 Web。

@@ -6,10 +6,11 @@
 - 测试报告（最新结果）：docs/engineering/test-report.md
 - 历史规划归档：docs/engineering/archive/legacy-roadmaps-2026-02-to-2026-03.md
 - Engineering 索引：docs/engineering/README.md
+- 脚本目录：scripts/README.md
 - API 契约：docs/api/openapi.yaml
 - 架构文档：docs/architecture/README.md
 - 法务文档：docs/legal/README.md
-- 演示渲染：docs/demo/rendered/
+- 演示渲染（本地临时产物，不纳入生产交付物）：docs/demo/rendered/
 
 ## QA
 - 测试报告：docs/engineering/test-report.md

@@ -1,5 +1,18 @@
 # Test Report (Consolidated)
 
+> Note (2026-03-23): `docs/demo/rendered/` historical screenshots were cleaned from git.
+> Smoke screenshot artifacts are now local-only and may not exist in repository history snapshots after this date.
+
+## Latest (2026-03-23 r326e)
+
+### Commands & Results (dev)
+- `pnpm check:docs-links`
+  - Result: pass
+  - Notes: active docs link references validated (`checked=62`, missing=`0`).
+- `powershell -File scripts/verify.ps1 -ReportDate r326e`
+  - Result: pass
+  - Notes: gate remained green after doc/script cleanup (`api-real-smoke` `1308/1308`, OpenAPI coverage `225/225`, `db-preflight` `9/9`, `ui-render(core)` `3/3`, `ui-dom(core)` `11/11`).
+
 ## Latest (2026-03-23 r326d)
 
 ### Commands & Results (dev)

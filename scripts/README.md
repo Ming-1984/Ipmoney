@@ -1,0 +1,32 @@
+# Scripts Catalog
+
+This directory contains local engineering automation scripts.
+
+## Release Gate (must stay green)
+- `verify.ps1`: full quality gate (lint/typecheck/build/smoke/preflight).
+- `api-real-smoke.ps1`: real API smoke coverage baseline.
+- `ui-http-smoke.ps1`: HTTP-level page smoke.
+- `ui-render-smoke.ps1`: visual render smoke.
+- `ui-dom-smoke.ps1`: semantic DOM smoke assertions.
+- `db-preflight-check.ps1`: DB integrity checks.
+- `check-doc-links.mjs`: active docs internal link validation.
+
+## API / Contract Audits
+- `audit-openapi-backend.mjs`: OpenAPI vs backend route diff.
+- `audit-coverage.mjs`: OpenAPI test coverage report.
+- `check-api-smoke-openapi-coverage.mjs`: smoke coverage gate.
+- `check-api-smoke-quality-floor.mjs`: smoke quality floor gate.
+
+## Build / Env Checks
+- `check-weapp-dist-pages.mjs`: verify dist page artifacts.
+- `check-weapp-bundle-budget.mjs`: weapp bundle budget checks.
+- `check-prod-env.mjs`: production env hard checks.
+- `run-with-env.mjs`: run command with `.env`.
+- `scan-banned-words.mjs`: forbidden word scan.
+
+## Developer Utilities (non-gate)
+- `start-dev.ps1`, `clean-dev.ps1`, `dev-reset.ps1`: local dev lifecycle.
+- `weapp-route-smoke.ps1` / `weapp-route-smoke.js`: WeChat route smoke.
+- `capture-ui.ps1`, `ui-capture-full.ps1`, `capture-weapp-ui.js`: screenshot capture.
+- `render-diagrams.ps1`, `merge-ui-screenshots.py`, `merge-miniapp-pages.py`, `normalize-rendered-images.py`: documentation media processing.
+- `db-backup.ps1`, `db-restore.ps1`: local DB operations.

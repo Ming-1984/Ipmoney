@@ -71,7 +71,7 @@ Not allowed residual locations:
 
 - OpenAPI vs backend route diff: `OpenAPI-only=0`, `Controller-only=0`
 - Route-level dist artifact check (weapp): passed
-- Remaining cleanup target: remove stale references in auxiliary scripts/docs and keep OpenAPI components lean
+- Remaining cleanup target: remove stale references in auxiliary docs and keep OpenAPI components lean (script index: `scripts/README.md`)
 
 ## 6. Verification Commands
 

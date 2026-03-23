@@ -10,7 +10,7 @@
 需要 Node.js：
 
 - 单个文件：
-  - `npx -y @mermaid-js/mermaid-cli -i docs/architecture/c4-context.mmd -o docs/architecture/rendered/c4-context.svg -b white`
+  - `npx -y @mermaid-js/mermaid-cli -i docs/architecture/c4-context.mmd -o docs/architecture/rendered/<diagram-name>.svg -b white`
 - 批量：
   - `powershell -ExecutionPolicy Bypass -File scripts/render-diagrams.ps1`
 

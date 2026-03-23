@@ -16,8 +16,10 @@ secret/
 .DS_Store
 
 # Docs rendered artifacts
-# Rendered diagrams/images are part of deliverables, keep them tracked.
-# Ignore only local export/temp outputs if needed.
+# Demo screenshot artifacts are local QA evidence and not runtime/deployment assets.
+docs/demo/rendered/**
+!docs/demo/rendered/.gitkeep
+!docs/demo/rendered/README.md
 # Local IPC classification source files (CNIPA/WIPO)
 docs/ipc/
 

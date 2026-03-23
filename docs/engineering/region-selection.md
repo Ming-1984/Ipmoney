@@ -8,9 +8,9 @@
 
 ## 现状
 
-- 小程序 `pages/region-picker` 仅 PROVINCE 列表 + 搜索。
+- 小程序 `subpackages/region-picker` 仅 PROVINCE 列表 + 搜索。
 - 多处表单仍允许手填 regionCode（发布/资料/筛选页）。
-- 管理端 `PatentMapPage` 通过 Input 手输 regionCode。
+- 管理端区域管理页通过 Input 手输 regionCode。
 - 后端 RegionsService 已支持 `q` 过滤，但 public controller 未透传。
 
 ## 方案（成熟组件）
@@ -28,9 +28,9 @@
 
 ## 影响范围
 
-- `apps/client/src/pages/region-picker/index.tsx`
+- `apps/client/src/subpackages/region-picker/index.tsx`
 - 小程序使用 region picker 的页面（search/inventors/organizations/profile/edit/onboarding/publish 等）。
-- `apps/admin-web/src/views/PatentMapPage.tsx`
+- `apps/admin-web/src/views/RegionsPage.tsx`
 - 可选：`apps/api/src/modules/regions/regions.controller.ts`
 
 ## 验收口径
