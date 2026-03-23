@@ -26,6 +26,8 @@ This directory contains local engineering automation scripts.
 
 ## Developer Utilities (non-gate)
 - `start-dev.ps1`, `clean-dev.ps1`, `dev-reset.ps1`: local dev lifecycle.
+- `clean-miniapp-cache.ps1`: clear miniapp cache/dist artifacts.
+- `generate-tabbar-icons.ps1`: generate local tabbar icon set.
 - `weapp-route-smoke.ps1` / `weapp-route-smoke.js`: WeChat route smoke.
 - `capture-ui.ps1`, `ui-capture-full.ps1`, `capture-weapp-ui.js`: screenshot capture.
 - `render-diagrams.ps1`, `merge-ui-screenshots.py`, `merge-miniapp-pages.py`, `normalize-rendered-images.py`: documentation media processing.

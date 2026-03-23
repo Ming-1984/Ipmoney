@@ -3,6 +3,15 @@
 > Note (2026-03-23): `docs/demo/rendered/` historical screenshots were cleaned from git.
 > Smoke screenshot artifacts are now local-only and may not exist in repository history snapshots after this date.
 
+## Latest (2026-03-23 r326f)
+
+### Commands & Results (dev)
+- `node scripts/build-page-api-test-matrix.mjs`
+  - Result: pass
+  - Notes: script now supports fallback to latest available smoke artifacts when default date input is missing; output generated at `docs/engineering/page-api-test-matrix-r326e.md`.
+- `pnpm check:docs-links`
+  - Result: pass (`checked=63`, missing=`0`)
+
 ## Latest (2026-03-23 r326e)
 
 ### Commands & Results (dev)
