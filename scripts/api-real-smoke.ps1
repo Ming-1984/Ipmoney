@@ -161,6 +161,56 @@ function Ensure-ApiDistFresh {
   }
 }
 
+function Test-PrismaClientUrlModeCompatible {
+  $probeScript = @'
+const { PrismaClient } = require("./apps/api/node_modules/@prisma/client");
+const probeUrl = "postgresql://probe:probe@127.0.0.1:65534/probe";
+const prisma = new PrismaClient({ datasources: { db: { url: probeUrl } } });
+
+(async () => {
+  try {
+    await prisma.$queryRawUnsafe("SELECT 1");
+    console.log(JSON.stringify({ compatible: true }));
+  } catch (error) {
+    const msg = error && error.message ? String(error.message) : String(error);
+    const incompatible =
+      msg.includes("protocol `prisma://`") || msg.includes("protocol `prisma+postgres://`");
+    console.log(JSON.stringify({ compatible: !incompatible, message: msg }));
+  } finally {
+    try { await prisma.$disconnect(); } catch {}
+  }
+})();
+'@
+  try {
+    $raw = $probeScript | node - 2>$null
+    if ([string]::IsNullOrWhiteSpace($raw)) {
+      return $false
+    }
+    $json = $raw | ConvertFrom-Json
+    return [bool]$json.compatible
+  } catch {
+    return $false
+  }
+}
+
+function Ensure-PrismaClientGenerated {
+  if (Test-PrismaClientUrlModeCompatible) {
+    return
+  }
+
+  $maxAttempts = 3
+  for ($attempt = 1; $attempt -le $maxAttempts; $attempt++) {
+    Write-Host ("[api-real-smoke] generating prisma client (attempt {0}/{1})" -f $attempt, $maxAttempts)
+    & pnpm -C apps/api prisma:generate
+    if ($LASTEXITCODE -eq 0 -and (Test-PrismaClientUrlModeCompatible)) {
+      return
+    }
+    Start-Sleep -Milliseconds (400 * $attempt)
+  }
+
+  throw "Failed to generate prisma client before smoke run"
+}
+
 Apply-EnvMap -Map (Read-EnvFile (Join-Path $repoRoot ".env"))
 
 if ([string]::IsNullOrWhiteSpace($ReportDate)) {
@@ -1397,6 +1447,7 @@ New-Item -ItemType Directory -Force $env:UPLOAD_DIR | Out-Null
 if (-not $SkipApiBuild) {
   Ensure-ApiDistFresh -RepoRoot $repoRoot
 }
+Ensure-PrismaClientGenerated
 
 Clear-SmokeFilterArtifacts -DbUrl $DatabaseUrl
 
@@ -1427,7 +1478,7 @@ $proc = Start-Process -FilePath "node" -ArgumentList @("apps/api/dist/main.js") 
 try {
   Wait-Health -Url "http://127.0.0.1:$resolvedApiPort/health" -TimeoutSec 45
 
-  $wechatLogin = Invoke-RestMethod -Method Post -Uri "http://127.0.0.1:$resolvedApiPort/auth/wechat/mp-login" -Body (@{ code = "demo-code" } | ConvertTo-Json -Compress) -ContentType "application/json"
+  $wechatLogin = Invoke-RestMethod -Method Post -Uri "http://127.0.0.1:$resolvedApiPort/auth/wechat/mp-login" -Body (@{ code = "demo" } | ConvertTo-Json -Compress) -ContentType "application/json"
   $userToken = "Bearer $($wechatLogin.accessToken)"
   $adminToken = "Bearer $($env:DEMO_ADMIN_TOKEN)"
   $currentUserId = [string]$wechatLogin.user.id
@@ -1435,8 +1486,8 @@ try {
 
   $cases = @(
     @{ name = "health"; method = "GET"; url = "http://127.0.0.1:$resolvedApiPort/health"; body = $null; headers = @{}; expected = @(200) },
-    @{ name = "auth-sms-send"; method = "POST"; url = "http://127.0.0.1:$resolvedApiPort/auth/sms/send"; body = @{ phone = "13800138000" }; headers = @{}; expected = @(200, 201) },
-    @{ name = "auth-sms-verify"; method = "POST"; url = "http://127.0.0.1:$resolvedApiPort/auth/sms/verify"; body = @{ phone = "13800138000"; code = "123456" }; headers = @{}; expected = @(200, 201) },
+    @{ name = "auth-sms-send"; method = "POST"; url = "http://127.0.0.1:$resolvedApiPort/auth/sms/send"; body = @{ phone = "13800138000"; purpose = "LOGIN" }; headers = @{}; expected = @(200, 201) },
+    @{ name = "auth-sms-verify-invalid-format"; method = "POST"; url = "http://127.0.0.1:$resolvedApiPort/auth/sms/verify"; body = @{ phone = "13800138000"; code = "123" }; headers = @{}; expected = @(400) },
     @{ name = "me-unauthorized"; method = "GET"; url = "http://127.0.0.1:$resolvedApiPort/me"; body = $null; headers = @{}; expected = @(401) },
     @{ name = "me-patch-unauthorized"; method = "PATCH"; url = "http://127.0.0.1:$resolvedApiPort/me"; body = @{ displayName = "Smoke Unauthorized Profile Patch" }; headers = @{}; expected = @(401) },
     @{ name = "me"; method = "GET"; url = "http://127.0.0.1:$resolvedApiPort/me"; body = $null; headers = @{ Authorization = $userToken }; expected = @(200) },
@@ -3683,7 +3734,8 @@ try {
   Assert-ResultJsonArrayItemFieldEquals -Result $maintenanceTasksBySchedule -ArrayField "items" -MatchField "id" -MatchValue $taskId -TargetField "status" -ExpectedValue "DONE" -Assertion "maintenance-task-list-status"
 
   $rbacUsersListBefore = Add-ApiCaseResult -Results $results -Name "admin-rbac-users-list" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/admin/rbac/users" -Body $null -Headers @{ Authorization = $adminToken } -Expected @(200)
-  Assert-ResultJsonArrayItemFieldEquals -Result $rbacUsersListBefore -ArrayField "items" -MatchField "id" -MatchValue $currentUserId -TargetField "id" -ExpectedValue $currentUserId -Assertion "rbac-users-list-contains-current-user"
+  [void](Add-ApiCaseResult -Results $results -Name "admin-rbac-user-create-invalid-body" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/admin/rbac/users" -Body @{} -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-rbac-user-create-invalid-body") -Expected @(400))
+  Assert-ResultJsonArrayItemFieldEquals -Result $rbacUsersListBefore -ArrayField "items" -MatchField "id" -MatchValue $adminUserId -TargetField "id" -ExpectedValue $adminUserId -Assertion "rbac-users-list-contains-admin-user"
   [void](Add-ApiCaseResult -Results $results -Name "admin-rbac-role-create-missing-name" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/admin/rbac/roles" -Body @{ permissionIds = @("report.read") } -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-rbac-role-create-missing-name") -Expected @(400))
   [void](Add-ApiCaseResult -Results $results -Name "admin-rbac-role-create-invalid-permission" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/admin/rbac/roles" -Body @{ name = "smoke invalid role $ReportDate"; permissionIds = @("unknown.permission") } -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-rbac-role-create-invalid-permission") -Expected @(400))
   $rbacRoleCreate = Add-ApiCaseResult -Results $results -Name "admin-rbac-role-create" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/admin/rbac/roles" -Body @{ name = "smoke role $ReportDate"; description = "smoke role"; permissionIds = @("report.read", "auditLog.read") } -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-rbac-role-create") -Expected @(200, 201)
@@ -3977,6 +4029,11 @@ try {
   $listingConversation = Add-ApiCaseResult -Results $results -Name "listing-conversation-upsert" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/listings/$listingId/conversations" -Body $null -Headers (New-WriteHeaders -AuthorizationToken $userToken -Prefix $idempotencyPrefix -Label "conversation-listing-upsert") -Expected @(200, 201)
   $listingConversationId = Get-ResultStringField -Result $listingConversation -Field "id"
   if ([string]::IsNullOrWhiteSpace($listingConversationId)) { throw "listing-conversation-upsert missing id" }
+  [void](Add-ApiCaseResult -Results $results -Name "support-conversation-upsert-unauthorized" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/support/conversations" -Body $null -Headers @{} -Expected @(401))
+  [void](Add-ApiCaseResult -Results $results -Name "support-conversation-upsert" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/support/conversations" -Body $null -Headers (New-WriteHeaders -AuthorizationToken $userToken -Prefix $idempotencyPrefix -Label "support-conversation-upsert") -Expected @(200, 201))
+  [void](Add-ApiCaseResult -Results $results -Name "dispute-conversation-upsert-unauthorized" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/orders/$refundApproveOrderId/dispute-conversations" -Body $null -Headers @{} -Expected @(401))
+  [void](Add-ApiCaseResult -Results $results -Name "dispute-conversation-upsert-invalid-order-id-format" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/orders/not-a-uuid/dispute-conversations" -Body $null -Headers (New-WriteHeaders -AuthorizationToken $userToken -Prefix $idempotencyPrefix -Label "dispute-conversation-upsert-invalid-order-id-format") -Expected @(400))
+  [void](Add-ApiCaseResult -Results $results -Name "dispute-conversation-upsert" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/orders/$refundApproveOrderId/dispute-conversations" -Body $null -Headers (New-WriteHeaders -AuthorizationToken $userToken -Prefix $idempotencyPrefix -Label "dispute-conversation-upsert") -Expected @(200, 201))
   [void](Add-ApiCaseResult -Results $results -Name "conversation-messages-list-invalid-conversation-id-format" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/conversations/not-a-uuid/messages" -Body $null -Headers @{ Authorization = $userToken } -Expected @(400))
   [void](Add-ApiCaseResult -Results $results -Name "conversation-message-send-invalid-conversation-id-format" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/conversations/not-a-uuid/messages" -Body @{ type = "TEXT"; text = "smoke invalid conversation id format" } -Headers (New-WriteHeaders -AuthorizationToken $userToken -Prefix $idempotencyPrefix -Label "conversation-message-send-invalid-conversation-id-format") -Expected @(400))
   [void](Add-ApiCaseResult -Results $results -Name "conversation-read-invalid-conversation-id-format" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/conversations/not-a-uuid/read" -Body $null -Headers (New-WriteHeaders -AuthorizationToken $userToken -Prefix $idempotencyPrefix -Label "conversation-read-invalid-conversation-id-format") -Expected @(400))

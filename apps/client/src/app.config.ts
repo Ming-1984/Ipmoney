@@ -97,6 +97,14 @@
       pages: ['index'],
     },
     {
+      root: 'subpackages/patent-claims',
+      pages: ['index'],
+    },
+    {
+      root: 'subpackages/maintenance',
+      pages: ['index'],
+    },
+    {
       root: 'subpackages/settings',
       pages: ['notifications/index'],
     },
@@ -142,6 +150,8 @@
         'subpackages/checkout',
         'subpackages/favorites',
         'subpackages/my-achievements',
+        'subpackages/patent-claims',
+        'subpackages/maintenance',
       ],
     },
   },

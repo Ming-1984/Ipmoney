@@ -129,9 +129,9 @@ describe('ListingsService search filter strictness suite', () => {
     prisma.listing.findMany.mockResolvedValueOnce([]);
     prisma.listing.count.mockResolvedValueOnce(0);
 
-    await service.searchPublic({ listingTopic: ['FIVE_STAR', 'foo'] });
+    await service.searchPublic({ listingTopic: ['legacy_topic', 'foo'] });
 
     const args = prisma.listing.findMany.mock.calls[0][0];
-    expect(args.where.AND).toEqual([{ listingTopicsJson: { array_contains: ['FIVE_STAR'] } }]);
+    expect(args.where.AND).toBeUndefined();
   });
 });

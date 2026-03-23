@@ -40,7 +40,8 @@ export class ConversationsController {
   @UseGuards(BearerAuthGuard)
   @Post('/achievements/:achievementId/conversations')
   async createAchievementConversation(@Req() req: any, @Param('achievementId') achievementId: string) {
-    return await this.conversations.createAchievementConversation(req, achievementId);
+    const normalizedAchievementId = this.parseUuidParam(achievementId, 'achievementId');
+    return await this.conversations.createAchievementConversation(req, normalizedAchievementId);
   }
 
   @UseGuards(BearerAuthGuard)
@@ -48,6 +49,26 @@ export class ConversationsController {
   async createTechManagerConversation(@Req() req: any, @Param('techManagerId') techManagerId: string) {
     const normalizedTechManagerId = this.parseUuidParam(techManagerId, 'techManagerId');
     return await this.conversations.createTechManagerConversation(req, normalizedTechManagerId);
+  }
+
+  @UseGuards(BearerAuthGuard)
+  @Post('/support/conversations')
+  async createSupportConversation(@Req() req: any) {
+    return await this.conversations.createSupportConversation(req);
+  }
+
+  @UseGuards(BearerAuthGuard)
+  @Post('/orders/:orderId/dispute-conversations')
+  async createOrderDisputeConversation(@Req() req: any, @Param('orderId') orderId: string) {
+    const normalizedOrderId = this.parseUuidParam(orderId, 'orderId');
+    return await this.conversations.createOrderDisputeConversation(req, normalizedOrderId);
+  }
+
+  @UseGuards(BearerAuthGuard)
+  @Post('/patent-maintenance/orders/:orderId/conversations')
+  async createMaintenanceConversation(@Req() req: any, @Param('orderId') orderId: string) {
+    const normalizedOrderId = this.parseUuidParam(orderId, 'orderId');
+    return await this.conversations.createMaintenanceConversation(req, normalizedOrderId);
   }
 
   @UseGuards(BearerAuthGuard)

@@ -1,18 +1,44 @@
-﻿import { BadRequestException, ConflictException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ConflictException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 
-import { PatentMaintenanceStatus, PatentMaintenanceTaskStatus, Prisma } from '@prisma/client';
+import {
+  PatentMaintenanceOrderEventType,
+  PatentMaintenanceOrderStatus,
+  PatentMaintenancePaymentChannel,
+  PatentMaintenanceReconcileStatus,
+  PatentMaintenanceStatus,
+  PatentMaintenanceTaskStatus,
+  Prisma,
+} from '@prisma/client';
 import { AuditLogService } from '../../common/audit-log.service';
 import { requirePermission } from '../../common/permissions';
 import { PrismaService } from '../../common/prisma/prisma.service';
 
-const STATUS_SET = new Set<PatentMaintenanceStatus>(['DUE', 'PAID', 'OVERDUE', 'WAIVED']);
-const TASK_STATUS_SET = new Set<PatentMaintenanceTaskStatus>([
-  'OPEN',
-  'IN_PROGRESS',
-  'DONE',
+const SCHEDULE_STATUS_SET = new Set<PatentMaintenanceStatus>(['DUE', 'PAID', 'OVERDUE', 'WAIVED']);
+const TASK_STATUS_SET = new Set<PatentMaintenanceTaskStatus>(['OPEN', 'IN_PROGRESS', 'DONE', 'CANCELLED']);
+const ORDER_STATUS_SET = new Set<PatentMaintenanceOrderStatus>([
+  'REQUESTED',
+  'QUOTED',
+  'AWAITING_PAYMENT',
+  'PAID',
+  'EXECUTING',
+  'RECEIPT_UPLOADED',
+  'RECONCILED',
+  'CLOSED',
   'CANCELLED',
 ]);
+const PAYMENT_CHANNEL_SET = new Set<PatentMaintenancePaymentChannel>(['WECHAT', 'OFFLINE_BANK', 'OFFLINE_OTHER']);
+const RECONCILE_STATUS_SET = new Set<PatentMaintenanceReconcileStatus>(['PENDING', 'MATCHED', 'MISMATCHED']);
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const OPEN_ORDER_STATUSES: PatentMaintenanceOrderStatus[] = [
+  'REQUESTED',
+  'QUOTED',
+  'AWAITING_PAYMENT',
+  'PAID',
+  'EXECUTING',
+  'RECEIPT_UPLOADED',
+  'RECONCILED',
+];
+type MaintenanceUrgency = 'OVERDUE' | 'DUE_SOON' | 'UPCOMING' | 'NORMAL' | 'SETTLED';
 
 @Injectable()
 export class PatentMaintenanceService {
@@ -31,11 +57,19 @@ export class PatentMaintenanceService {
 
   private parsePositiveIntStrict(value: unknown, fieldName: string): number {
     const raw = String(value ?? '').trim();
-    if (!raw) {
-      throw new BadRequestException({ code: 'BAD_REQUEST', message: `${fieldName} is invalid` });
-    }
+    if (!raw) throw new BadRequestException({ code: 'BAD_REQUEST', message: `${fieldName} is invalid` });
     const parsed = Number(raw);
     if (!Number.isSafeInteger(parsed) || parsed <= 0) {
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: `${fieldName} is invalid` });
+    }
+    return parsed;
+  }
+
+  private parseNonNegativeIntStrict(value: unknown, fieldName: string): number {
+    const raw = String(value ?? '').trim();
+    if (!raw) throw new BadRequestException({ code: 'BAD_REQUEST', message: `${fieldName} is invalid` });
+    const parsed = Number(raw);
+    if (!Number.isSafeInteger(parsed) || parsed < 0) {
       throw new BadRequestException({ code: 'BAD_REQUEST', message: `${fieldName} is invalid` });
     }
     return parsed;
@@ -44,62 +78,122 @@ export class PatentMaintenanceService {
   private parseNullableNonEmptyStringStrict(value: unknown, fieldName: string): string | null {
     if (value === null) return null;
     const raw = String(value ?? '').trim();
-    if (!raw) {
+    if (!raw) throw new BadRequestException({ code: 'BAD_REQUEST', message: `${fieldName} is invalid` });
+    return raw;
+  }
+
+  private parseRequiredNonEmptyString(value: unknown, fieldName: string): string {
+    const raw = String(value ?? '').trim();
+    if (!raw) throw new BadRequestException({ code: 'BAD_REQUEST', message: `${fieldName} is invalid` });
+    return raw;
+  }
+
+  private normalizeScheduleStatus(value: unknown): PatentMaintenanceStatus | undefined {
+    const normalized = String(value || '').trim().toUpperCase() as PatentMaintenanceStatus;
+    return SCHEDULE_STATUS_SET.has(normalized) ? normalized : undefined;
+  }
+
+  private normalizeTaskStatus(value: unknown): PatentMaintenanceTaskStatus | undefined {
+    const normalized = String(value || '').trim().toUpperCase() as PatentMaintenanceTaskStatus;
+    return TASK_STATUS_SET.has(normalized) ? normalized : undefined;
+  }
+
+  private normalizeOrderStatus(value: unknown): PatentMaintenanceOrderStatus | undefined {
+    const normalized = String(value || '').trim().toUpperCase() as PatentMaintenanceOrderStatus;
+    return ORDER_STATUS_SET.has(normalized) ? normalized : undefined;
+  }
+
+  private normalizePaymentChannel(value: unknown): PatentMaintenancePaymentChannel | undefined {
+    const normalized = String(value || '').trim().toUpperCase() as PatentMaintenancePaymentChannel;
+    return PAYMENT_CHANNEL_SET.has(normalized) ? normalized : undefined;
+  }
+
+  private normalizeReconcileStatus(value: unknown): PatentMaintenanceReconcileStatus | undefined {
+    const normalized = String(value || '').trim().toUpperCase() as PatentMaintenanceReconcileStatus;
+    return RECONCILE_STATUS_SET.has(normalized) ? normalized : undefined;
+  }
+
+  private parseScheduleStatusStrict(value: unknown, fieldName: string): PatentMaintenanceStatus {
+    const normalized = this.normalizeScheduleStatus(value);
+    if (!normalized) throw new BadRequestException({ code: 'BAD_REQUEST', message: `${fieldName} is invalid` });
+    return normalized;
+  }
+
+  private parseTaskStatusStrict(value: unknown, fieldName: string): PatentMaintenanceTaskStatus {
+    const normalized = this.normalizeTaskStatus(value);
+    if (!normalized) throw new BadRequestException({ code: 'BAD_REQUEST', message: `${fieldName} is invalid` });
+    return normalized;
+  }
+
+  private parseOrderStatusStrict(value: unknown, fieldName: string): PatentMaintenanceOrderStatus {
+    const normalized = this.normalizeOrderStatus(value);
+    if (!normalized) throw new BadRequestException({ code: 'BAD_REQUEST', message: `${fieldName} is invalid` });
+    return normalized;
+  }
+
+  private parsePaymentChannelStrict(value: unknown, fieldName: string): PatentMaintenancePaymentChannel {
+    const normalized = this.normalizePaymentChannel(value);
+    if (!normalized) throw new BadRequestException({ code: 'BAD_REQUEST', message: `${fieldName} is invalid` });
+    return normalized;
+  }
+
+  private parseReconcileStatusStrict(value: unknown, fieldName: string): PatentMaintenanceReconcileStatus {
+    const normalized = this.normalizeReconcileStatus(value);
+    if (!normalized) throw new BadRequestException({ code: 'BAD_REQUEST', message: `${fieldName} is invalid` });
+    return normalized;
+  }
+
+  private parseDate(value: unknown, fieldName: string, strict = false) {
+    if (value === undefined || value === null) return null;
+    if (String(value).trim() === '') {
+      if (strict) throw new BadRequestException({ code: 'BAD_REQUEST', message: `${fieldName} is invalid` });
+      return null;
+    }
+    const parsed = new Date(String(value));
+    if (Number.isNaN(parsed.getTime())) {
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: `${fieldName} is invalid` });
+    }
+    return parsed;
+  }
+
+  private parseDateTimeStrict(value: unknown, fieldName: string): Date {
+    const raw = String(value ?? '').trim();
+    if (!raw) throw new BadRequestException({ code: 'BAD_REQUEST', message: `${fieldName} is invalid` });
+    const parsed = new Date(raw);
+    if (Number.isNaN(parsed.getTime())) {
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: `${fieldName} is invalid` });
+    }
+    return parsed;
+  }
+
+  private parseUuidParam(value: unknown, fieldName: string): string {
+    const raw = String(value || '').trim();
+    if (!raw || !UUID_RE.test(raw)) {
       throw new BadRequestException({ code: 'BAD_REQUEST', message: `${fieldName} is invalid` });
     }
     return raw;
   }
 
-  private normalizeStatus(value: any): PatentMaintenanceStatus | undefined {
-    const v = String(value || '').trim().toUpperCase() as PatentMaintenanceStatus;
-    return STATUS_SET.has(v) ? v : undefined;
+  private parseNullableUuid(value: unknown, fieldName: string): string | null {
+    if (value === null) return null;
+    return this.parseUuidParam(value, fieldName);
   }
 
-  private normalizeTaskStatus(value: any): PatentMaintenanceTaskStatus | undefined {
-    const v = String(value || '').trim().toUpperCase() as PatentMaintenanceTaskStatus;
-    return TASK_STATUS_SET.has(v) ? v : undefined;
+  private dateOnly(date: Date): Date {
+    const next = new Date(date);
+    next.setHours(0, 0, 0, 0);
+    return next;
   }
 
-  private parseStatusStrict(value: any, field: string): PatentMaintenanceStatus {
-    const status = this.normalizeStatus(value);
-    if (!status) {
-      throw new BadRequestException({ code: 'BAD_REQUEST', message: `${field} is invalid` });
-    }
-    return status;
-  }
-
-  private parseTaskStatusStrict(value: any, field: string): PatentMaintenanceTaskStatus {
-    const status = this.normalizeTaskStatus(value);
-    if (!status) {
-      throw new BadRequestException({ code: 'BAD_REQUEST', message: `${field} is invalid` });
-    }
-    return status;
-  }
-
-  private parseDate(value: any, field: string, strict = false) {
-    if (value === undefined || value === null) return null;
-    if (String(value).trim() === '') {
-      if (strict) {
-        throw new BadRequestException({ code: 'BAD_REQUEST', message: `${field} is invalid` });
-      }
-      return null;
-    }
-    const dt = new Date(String(value));
-    if (Number.isNaN(dt.getTime())) {
-      throw new BadRequestException({ code: 'BAD_REQUEST', message: `${field} is invalid` });
-    }
-    return dt;
-  }
-
-  private parseUuidParam(value: string, field: string): string {
-    const raw = String(value || '').trim();
-    if (!raw || !UUID_RE.test(raw)) {
-      throw new BadRequestException({
-        code: 'BAD_REQUEST',
-        message: `${field} is invalid`,
-      });
-    }
-    return raw;
+  private calcUrgency(status: PatentMaintenanceStatus, dueDate: Date): MaintenanceUrgency {
+    if (status === 'PAID' || status === 'WAIVED') return 'SETTLED';
+    const today = this.dateOnly(new Date());
+    const due = this.dateOnly(dueDate);
+    const diffDays = Math.floor((due.getTime() - today.getTime()) / 86400000);
+    if (diffDays < 0) return 'OVERDUE';
+    if (diffDays <= 7) return 'DUE_SOON';
+    if (diffDays <= 30) return 'UPCOMING';
+    return 'NORMAL';
   }
 
   private toScheduleDto(item: any) {
@@ -128,6 +222,153 @@ export class PatentMaintenanceService {
     };
   }
 
+  private toMyScheduleDto(item: any) {
+    const urgency = this.calcUrgency(item.status as PatentMaintenanceStatus, item.dueDate);
+    return {
+      ...this.toScheduleDto(item),
+      patentTitle: item?.patent?.title ?? undefined,
+      applicationNoDisplay: item?.patent?.applicationNoDisplay ?? item?.patent?.applicationNoNorm ?? undefined,
+      urgency,
+      canContactSupport: urgency === 'OVERDUE' || urgency === 'DUE_SOON' || item.status === 'DUE' || item.status === 'OVERDUE',
+    };
+  }
+
+  private toMyTaskDto(item: any) {
+    const schedule = item?.schedule;
+    const patent = schedule?.patent;
+    const urgency = schedule ? this.calcUrgency(schedule.status as PatentMaintenanceStatus, schedule.dueDate) : 'NORMAL';
+    return {
+      ...this.toTaskDto(item),
+      patentId: schedule?.patentId,
+      patentTitle: patent?.title ?? undefined,
+      applicationNoDisplay: patent?.applicationNoDisplay ?? patent?.applicationNoNorm ?? undefined,
+      scheduleYearNo: schedule?.yearNo,
+      scheduleDueDate: schedule?.dueDate ? schedule.dueDate.toISOString().slice(0, 10) : undefined,
+      scheduleStatus: schedule?.status,
+      urgency,
+      canContactSupport: urgency === 'OVERDUE' || urgency === 'DUE_SOON' || item.status === 'OPEN' || item.status === 'IN_PROGRESS',
+    };
+  }
+
+  private toOrderDto(item: any) {
+    const schedule = item?.schedule;
+    const patent = schedule?.patent;
+    return {
+      id: item.id,
+      scheduleId: item.scheduleId,
+      applicantUserId: item.applicantUserId,
+      assignedCsUserId: item.assignedCsUserId ?? undefined,
+      status: item.status,
+      paymentChannel: item.paymentChannel ?? undefined,
+      officialFeeFen: item.officialFeeFen,
+      lateFeeFen: item.lateFeeFen,
+      serviceFeeFen: item.serviceFeeFen,
+      totalAmountFen: item.totalAmountFen,
+      paymentDeadline: item.paymentDeadline ? item.paymentDeadline.toISOString() : undefined,
+      paidAt: item.paidAt ? item.paidAt.toISOString() : undefined,
+      executedAt: item.executedAt ? item.executedAt.toISOString() : undefined,
+      receiptIssuedAt: item.receiptIssuedAt ? item.receiptIssuedAt.toISOString() : undefined,
+      officialSubmissionNo: item.officialSubmissionNo ?? undefined,
+      officialReceiptNo: item.officialReceiptNo ?? undefined,
+      paymentTxnNo: item.paymentTxnNo ?? undefined,
+      officialReceiptFileId: item.officialReceiptFileId ?? undefined,
+      reconcileStatus: item.reconcileStatus,
+      reconcileNote: item.reconcileNote ?? undefined,
+      closeNote: item.closeNote ?? undefined,
+      createdAt: item.createdAt.toISOString(),
+      updatedAt: item.updatedAt ? item.updatedAt.toISOString() : undefined,
+      patentId: schedule?.patentId ?? undefined,
+      scheduleYearNo: schedule?.yearNo ?? undefined,
+      scheduleDueDate: schedule?.dueDate ? schedule.dueDate.toISOString().slice(0, 10) : undefined,
+      patentTitle: patent?.title ?? undefined,
+      applicationNoDisplay: patent?.applicationNoDisplay ?? patent?.applicationNoNorm ?? undefined,
+      canContactSupport: item.status !== 'CLOSED' && item.status !== 'CANCELLED',
+    };
+  }
+
+  private toOrderEventDto(item: any) {
+    return {
+      id: item.id,
+      orderId: item.orderId,
+      actorUserId: item.actorUserId ?? undefined,
+      actorNickname: item?.actorUser?.nickname ?? undefined,
+      actorRole: item?.actorUser?.role ?? undefined,
+      eventType: item.eventType,
+      fromStatus: item.fromStatus ?? undefined,
+      toStatus: item.toStatus,
+      note: item.note ?? undefined,
+      payloadJson: item.payloadJson ?? undefined,
+      createdAt: item.createdAt.toISOString(),
+    };
+  }
+
+  private async assertUserExists(userId: string, fieldName: string) {
+    const user = await this.prisma.user.findUnique({ where: { id: userId }, select: { id: true } });
+    if (!user) throw new BadRequestException({ code: 'BAD_REQUEST', message: `${fieldName} is invalid` });
+  }
+
+  private calcTotalAmount(officialFeeFen: number, lateFeeFen: number, serviceFeeFen: number): number {
+    return officialFeeFen + lateFeeFen + serviceFeeFen;
+  }
+
+  private async appendOrderEvent(params: {
+    orderId: string;
+    actorUserId?: string | null;
+    eventType: PatentMaintenanceOrderEventType;
+    fromStatus?: PatentMaintenanceOrderStatus | null;
+    toStatus: PatentMaintenanceOrderStatus;
+    note?: string | null;
+    payloadJson?: unknown;
+  }) {
+    return await this.prisma.patentMaintenanceOrderEvent.create({
+      data: {
+        orderId: params.orderId,
+        actorUserId: params.actorUserId ?? null,
+        eventType: params.eventType,
+        fromStatus: params.fromStatus ?? null,
+        toStatus: params.toStatus,
+        note: params.note ?? null,
+        payloadJson: params.payloadJson ?? Prisma.JsonNull,
+      },
+      include: {
+        actorUser: {
+          select: {
+            id: true,
+            nickname: true,
+            role: true,
+          },
+        },
+      },
+    });
+  }
+
+  private async getOrderWithContext(orderId: string) {
+    return await this.prisma.patentMaintenanceOrder.findUnique({
+      where: { id: orderId },
+      include: {
+        schedule: {
+          include: {
+            patent: {
+              select: {
+                id: true,
+                ownerUserId: true,
+                title: true,
+                applicationNoDisplay: true,
+                applicationNoNorm: true,
+              },
+            },
+          },
+        },
+      },
+    });
+  }
+
+  private assertMyOrderAccess(req: any, order: any) {
+    if (order.applicantUserId !== req.auth.userId) {
+      throw new ForbiddenException({ code: 'FORBIDDEN', message: '无权限' });
+    }
+  }
+
   async listSchedules(req: any, query: any) {
     this.ensureAuth(req);
     requirePermission(req, 'maintenance.manage');
@@ -136,18 +377,13 @@ export class PatentMaintenanceService {
     const pageSizeInput = this.hasOwn(query, 'pageSize') ? this.parsePositiveIntStrict(query?.pageSize, 'pageSize') : 20;
     const pageSize = Math.min(50, pageSizeInput);
 
-    const where: any = {};
-    const hasPatentId = this.hasOwn(query, 'patentId');
-    if (hasPatentId) {
-      const patentId = String(query?.patentId ?? '').trim();
-      if (!patentId) {
-        throw new BadRequestException({ code: 'BAD_REQUEST', message: 'patentId is invalid' });
-      }
-      where.patentId = patentId;
+    const where: Prisma.PatentMaintenanceScheduleWhereInput = {};
+    if (this.hasOwn(query, 'patentId')) {
+      where.patentId = this.parseUuidParam(query?.patentId, 'patentId');
     }
-    const hasStatus = this.hasOwn(query, 'status');
-    const status = hasStatus ? this.parseStatusStrict(query?.status, 'status') : undefined;
-    if (status) where.status = status;
+    if (this.hasOwn(query, 'status')) {
+      where.status = this.parseScheduleStatusStrict(query?.status, 'status');
+    }
 
     const dueFrom = this.parseDate(query?.dueFrom, 'dueFrom', true);
     const dueTo = this.parseDate(query?.dueTo, 'dueTo', true);
@@ -173,25 +409,68 @@ export class PatentMaintenanceService {
     };
   }
 
+  async listMySchedules(req: any, query: any) {
+    this.ensureAuth(req);
+
+    const page = this.hasOwn(query, 'page') ? this.parsePositiveIntStrict(query?.page, 'page') : 1;
+    const pageSizeInput = this.hasOwn(query, 'pageSize') ? this.parsePositiveIntStrict(query?.pageSize, 'pageSize') : 20;
+    const pageSize = Math.min(50, pageSizeInput);
+
+    const where: Prisma.PatentMaintenanceScheduleWhereInput = {
+      patent: { ownerUserId: req.auth.userId },
+    };
+    if (this.hasOwn(query, 'patentId')) {
+      where.patentId = this.parseUuidParam(query?.patentId, 'patentId');
+    }
+    if (this.hasOwn(query, 'status')) {
+      where.status = this.parseScheduleStatusStrict(query?.status, 'status');
+    }
+
+    const dueFrom = this.parseDate(query?.dueFrom, 'dueFrom', true);
+    const dueTo = this.parseDate(query?.dueTo, 'dueTo', true);
+    if (dueFrom || dueTo) {
+      where.dueDate = {};
+      if (dueFrom) where.dueDate.gte = dueFrom;
+      if (dueTo) where.dueDate.lte = dueTo;
+    }
+
+    const [items, total] = await Promise.all([
+      this.prisma.patentMaintenanceSchedule.findMany({
+        where,
+        include: {
+          patent: {
+            select: {
+              title: true,
+              applicationNoDisplay: true,
+              applicationNoNorm: true,
+            },
+          },
+        },
+        orderBy: { dueDate: 'asc' },
+        skip: (page - 1) * pageSize,
+        take: pageSize,
+      }),
+      this.prisma.patentMaintenanceSchedule.count({ where }),
+    ]);
+
+    return {
+      items: items.map((item) => this.toMyScheduleDto(item)),
+      page: { page, pageSize, total },
+    };
+  }
+
   async createSchedule(req: any, body: any) {
     this.ensureAuth(req);
     requirePermission(req, 'maintenance.manage');
 
-    const patentId = String(body?.patentId || '').trim();
-    if (!patentId) throw new BadRequestException({ code: 'BAD_REQUEST', message: 'patentId is required' });
-
-    const rawYearNo = body?.yearNo;
-    const yearNo = typeof rawYearNo === 'number' ? rawYearNo : Number(rawYearNo);
-    if (!Number.isFinite(yearNo) || !Number.isSafeInteger(yearNo) || yearNo <= 0) {
-      throw new BadRequestException({ code: 'BAD_REQUEST', message: 'yearNo is invalid' });
-    }
-
+    const patentId = this.parseUuidParam(body?.patentId, 'patentId');
+    const yearNo = this.parsePositiveIntStrict(body?.yearNo, 'yearNo');
     const dueDate = this.parseDate(body?.dueDate, 'dueDate', true);
     if (!dueDate) throw new BadRequestException({ code: 'BAD_REQUEST', message: 'dueDate is required' });
-
     const gracePeriodEnd = this.parseDate(body?.gracePeriodEnd, 'gracePeriodEnd', true);
-    const hasStatus = !!body && Object.prototype.hasOwnProperty.call(body, 'status');
-    const status = hasStatus ? this.parseStatusStrict(body?.status, 'status') : PatentMaintenanceStatus.DUE;
+    const status = this.hasOwn(body, 'status')
+      ? this.parseScheduleStatusStrict(body?.status, 'status')
+      : PatentMaintenanceStatus.DUE;
 
     const patent = await this.prisma.patent.findUnique({ where: { id: patentId }, select: { id: true } });
     if (!patent) throw new NotFoundException({ code: 'NOT_FOUND', message: 'Patent not found' });
@@ -248,19 +527,18 @@ export class PatentMaintenanceService {
     const existing = await this.prisma.patentMaintenanceSchedule.findUnique({ where: { id: normalizedScheduleId } });
     if (!existing) throw new NotFoundException({ code: 'NOT_FOUND', message: 'Schedule not found' });
 
-    const next: any = {};
-    if (body?.dueDate !== undefined) {
+    const next: Prisma.PatentMaintenanceScheduleUpdateInput = {};
+    if (this.hasOwn(body, 'dueDate')) {
       const dueDate = this.parseDate(body?.dueDate, 'dueDate', true);
       if (!dueDate) throw new BadRequestException({ code: 'BAD_REQUEST', message: 'dueDate is required' });
       next.dueDate = dueDate;
     }
-    if (body?.gracePeriodEnd !== undefined) {
+    if (this.hasOwn(body, 'gracePeriodEnd')) {
       const grace = this.parseDate(body?.gracePeriodEnd, 'gracePeriodEnd', true);
       next.gracePeriodEnd = grace || null;
     }
-    if (body?.status !== undefined) {
-      const status = this.parseStatusStrict(body?.status, 'status');
-      next.status = status;
+    if (this.hasOwn(body, 'status')) {
+      next.status = this.parseScheduleStatusStrict(body?.status, 'status');
     }
 
     const updated = await this.prisma.patentMaintenanceSchedule.update({
@@ -288,26 +566,16 @@ export class PatentMaintenanceService {
     const pageSizeInput = this.hasOwn(query, 'pageSize') ? this.parsePositiveIntStrict(query?.pageSize, 'pageSize') : 20;
     const pageSize = Math.min(50, pageSizeInput);
 
-    const where: any = {};
-    const hasScheduleId = this.hasOwn(query, 'scheduleId');
-    if (hasScheduleId) {
-      const scheduleId = String(query?.scheduleId ?? '').trim();
-      if (!scheduleId) {
-        throw new BadRequestException({ code: 'BAD_REQUEST', message: 'scheduleId is invalid' });
-      }
-      where.scheduleId = scheduleId;
+    const where: Prisma.PatentMaintenanceTaskWhereInput = {};
+    if (this.hasOwn(query, 'scheduleId')) {
+      where.scheduleId = this.parseUuidParam(query?.scheduleId, 'scheduleId');
     }
-    const hasAssignedCsUserId = this.hasOwn(query, 'assignedCsUserId');
-    if (hasAssignedCsUserId) {
-      const assignedCsUserId = String(query?.assignedCsUserId ?? '').trim();
-      if (!assignedCsUserId) {
-        throw new BadRequestException({ code: 'BAD_REQUEST', message: 'assignedCsUserId is invalid' });
-      }
-      where.assignedCsUserId = assignedCsUserId;
+    if (this.hasOwn(query, 'assignedCsUserId')) {
+      where.assignedCsUserId = this.parseUuidParam(query?.assignedCsUserId, 'assignedCsUserId');
     }
-    const hasStatus = this.hasOwn(query, 'status');
-    const status = hasStatus ? this.parseTaskStatusStrict(query?.status, 'status') : undefined;
-    if (status) where.status = status;
+    if (this.hasOwn(query, 'status')) {
+      where.status = this.parseTaskStatusStrict(query?.status, 'status');
+    }
 
     const [items, total] = await Promise.all([
       this.prisma.patentMaintenanceTask.findMany({
@@ -325,37 +593,94 @@ export class PatentMaintenanceService {
     };
   }
 
+  async listMyTasks(req: any, query: any) {
+    this.ensureAuth(req);
+
+    const page = this.hasOwn(query, 'page') ? this.parsePositiveIntStrict(query?.page, 'page') : 1;
+    const pageSizeInput = this.hasOwn(query, 'pageSize') ? this.parsePositiveIntStrict(query?.pageSize, 'pageSize') : 20;
+    const pageSize = Math.min(50, pageSizeInput);
+
+    const where: Prisma.PatentMaintenanceTaskWhereInput = {
+      schedule: {
+        patent: { ownerUserId: req.auth.userId },
+      },
+    };
+    if (this.hasOwn(query, 'scheduleId')) {
+      where.scheduleId = this.parseUuidParam(query?.scheduleId, 'scheduleId');
+    }
+    if (this.hasOwn(query, 'status')) {
+      where.status = this.parseTaskStatusStrict(query?.status, 'status');
+    }
+
+    const [items, total] = await Promise.all([
+      this.prisma.patentMaintenanceTask.findMany({
+        where,
+        include: {
+          schedule: {
+            select: {
+              patentId: true,
+              yearNo: true,
+              dueDate: true,
+              status: true,
+              patent: {
+                select: {
+                  title: true,
+                  applicationNoDisplay: true,
+                  applicationNoNorm: true,
+                },
+              },
+            },
+          },
+        },
+        orderBy: { createdAt: 'desc' },
+        skip: (page - 1) * pageSize,
+        take: pageSize,
+      }),
+      this.prisma.patentMaintenanceTask.count({ where }),
+    ]);
+
+    return {
+      items: items.map((item) => this.toMyTaskDto(item)),
+      page: { page, pageSize, total },
+    };
+  }
+
   async createTask(req: any, body: any) {
     this.ensureAuth(req);
     requirePermission(req, 'maintenance.manage');
 
-    const scheduleId = String(body?.scheduleId || '').trim();
-    if (!scheduleId) throw new BadRequestException({ code: 'BAD_REQUEST', message: 'scheduleId is required' });
-
+    const scheduleId = this.parseUuidParam(body?.scheduleId, 'scheduleId');
     const schedule = await this.prisma.patentMaintenanceSchedule.findUnique({
       where: { id: scheduleId },
       select: { id: true },
     });
     if (!schedule) throw new NotFoundException({ code: 'NOT_FOUND', message: 'Schedule not found' });
 
-    const hasAssignedCsUserId = this.hasOwn(body, 'assignedCsUserId');
-    const assignedCsUserId = hasAssignedCsUserId
-      ? this.parseNullableNonEmptyStringStrict(body?.assignedCsUserId, 'assignedCsUserId')
-      : undefined;
-    if (assignedCsUserId) {
-      const user = await this.prisma.user.findUnique({ where: { id: assignedCsUserId }, select: { id: true } });
-      if (!user) throw new BadRequestException({ code: 'BAD_REQUEST', message: 'assignedCsUserId is invalid' });
+    let assignedCsUserId: string | null | undefined = undefined;
+    if (this.hasOwn(body, 'assignedCsUserId')) {
+      assignedCsUserId = this.parseNullableUuid(body?.assignedCsUserId, 'assignedCsUserId');
+      if (assignedCsUserId) await this.assertUserExists(assignedCsUserId, 'assignedCsUserId');
     }
 
-    const note = body?.note ? String(body.note).trim() : undefined;
-    const hasStatus = !!body && Object.prototype.hasOwnProperty.call(body, 'status');
+    let note: string | null | undefined = undefined;
+    if (this.hasOwn(body, 'note')) {
+      if (body.note === null) {
+        note = null;
+      } else {
+        const rawNote = String(body?.note || '').trim();
+        note = rawNote || null;
+      }
+    }
+    const status = this.hasOwn(body, 'status')
+      ? this.parseTaskStatusStrict(body?.status, 'status')
+      : PatentMaintenanceTaskStatus.OPEN;
 
     const created = await this.prisma.patentMaintenanceTask.create({
       data: {
         scheduleId,
-        assignedCsUserId: hasAssignedCsUserId ? assignedCsUserId : null,
-        status: hasStatus ? this.parseTaskStatusStrict(body?.status, 'status') : PatentMaintenanceTaskStatus.OPEN,
-        note: note || null,
+        assignedCsUserId: assignedCsUserId === undefined ? null : assignedCsUserId,
+        status,
+        note: note === undefined ? null : note,
       },
     });
 
@@ -378,37 +703,34 @@ export class PatentMaintenanceService {
     const existing = await this.prisma.patentMaintenanceTask.findUnique({ where: { id: normalizedTaskId } });
     if (!existing) throw new NotFoundException({ code: 'NOT_FOUND', message: 'Task not found' });
 
-    const next: any = {};
+    const next: Prisma.PatentMaintenanceTaskUncheckedUpdateInput = {};
 
-    if (body?.assignedCsUserId !== undefined) {
-      const assignedCsUserId = this.parseNullableNonEmptyStringStrict(body.assignedCsUserId, 'assignedCsUserId');
-      if (assignedCsUserId !== null) {
-        const user = await this.prisma.user.findUnique({ where: { id: assignedCsUserId }, select: { id: true } });
-        if (!user) throw new BadRequestException({ code: 'BAD_REQUEST', message: 'assignedCsUserId is invalid' });
-        next.assignedCsUserId = assignedCsUserId;
+    if (this.hasOwn(body, 'assignedCsUserId')) {
+      const assignedCsUserId = this.parseNullableUuid(body.assignedCsUserId, 'assignedCsUserId');
+      if (assignedCsUserId !== null) await this.assertUserExists(assignedCsUserId, 'assignedCsUserId');
+      next.assignedCsUserId = assignedCsUserId;
+    }
+
+    if (this.hasOwn(body, 'status')) {
+      next.status = this.parseTaskStatusStrict(body?.status, 'status');
+    }
+
+    if (this.hasOwn(body, 'note')) {
+      if (body.note === null) {
+        next.note = null;
       } else {
-        next.assignedCsUserId = null;
+        const rawNote = String(body?.note || '').trim();
+        next.note = rawNote || null;
       }
     }
 
-    if (body?.status !== undefined) {
-      const status = this.parseTaskStatusStrict(body?.status, 'status');
-      next.status = status;
-    }
-
-    if (body?.note !== undefined) {
-      next.note = body.note ? String(body.note).trim() : null;
-    }
-
-    if (body?.evidenceFileId !== undefined) {
-      const evidenceFileId = this.parseNullableNonEmptyStringStrict(body.evidenceFileId, 'evidenceFileId');
+    if (this.hasOwn(body, 'evidenceFileId')) {
+      const evidenceFileId = this.parseNullableUuid(body.evidenceFileId, 'evidenceFileId');
       if (evidenceFileId !== null) {
         const file = await this.prisma.file.findUnique({ where: { id: evidenceFileId }, select: { id: true } });
         if (!file) throw new BadRequestException({ code: 'BAD_REQUEST', message: 'evidenceFileId is invalid' });
-        next.evidenceFileId = evidenceFileId;
-      } else {
-        next.evidenceFileId = null;
       }
+      next.evidenceFileId = evidenceFileId;
     }
 
     const updated = await this.prisma.patentMaintenanceTask.update({
@@ -426,5 +748,733 @@ export class PatentMaintenanceService {
     });
 
     return this.toTaskDto(updated);
+  }
+
+  async listOrders(req: any, query: any) {
+    this.ensureAuth(req);
+    requirePermission(req, 'maintenance.manage');
+
+    const page = this.hasOwn(query, 'page') ? this.parsePositiveIntStrict(query?.page, 'page') : 1;
+    const pageSizeInput = this.hasOwn(query, 'pageSize') ? this.parsePositiveIntStrict(query?.pageSize, 'pageSize') : 20;
+    const pageSize = Math.min(50, pageSizeInput);
+
+    const where: Prisma.PatentMaintenanceOrderWhereInput = {};
+    if (this.hasOwn(query, 'scheduleId')) where.scheduleId = this.parseUuidParam(query?.scheduleId, 'scheduleId');
+    if (this.hasOwn(query, 'applicantUserId')) where.applicantUserId = this.parseUuidParam(query?.applicantUserId, 'applicantUserId');
+    if (this.hasOwn(query, 'assignedCsUserId')) where.assignedCsUserId = this.parseUuidParam(query?.assignedCsUserId, 'assignedCsUserId');
+    if (this.hasOwn(query, 'status')) where.status = this.parseOrderStatusStrict(query?.status, 'status');
+    if (this.hasOwn(query, 'reconcileStatus')) {
+      where.reconcileStatus = this.parseReconcileStatusStrict(query?.reconcileStatus, 'reconcileStatus');
+    }
+
+    const dueFrom = this.parseDate(query?.dueFrom, 'dueFrom', true);
+    const dueTo = this.parseDate(query?.dueTo, 'dueTo', true);
+    if (dueFrom || dueTo) {
+      const dueDateFilter: Prisma.DateTimeFilter = {};
+      if (dueFrom) dueDateFilter.gte = dueFrom;
+      if (dueTo) dueDateFilter.lte = dueTo;
+      where.schedule = { is: { dueDate: dueDateFilter } };
+    }
+
+    const [items, total] = await Promise.all([
+      this.prisma.patentMaintenanceOrder.findMany({
+        where,
+        include: {
+          schedule: {
+            include: {
+              patent: {
+                select: {
+                  title: true,
+                  applicationNoDisplay: true,
+                  applicationNoNorm: true,
+                },
+              },
+            },
+          },
+        },
+        orderBy: { createdAt: 'desc' },
+        skip: (page - 1) * pageSize,
+        take: pageSize,
+      }),
+      this.prisma.patentMaintenanceOrder.count({ where }),
+    ]);
+
+    return {
+      items: items.map((item) => this.toOrderDto(item)),
+      page: { page, pageSize, total },
+    };
+  }
+
+  async listMyOrders(req: any, query: any) {
+    this.ensureAuth(req);
+
+    const page = this.hasOwn(query, 'page') ? this.parsePositiveIntStrict(query?.page, 'page') : 1;
+    const pageSizeInput = this.hasOwn(query, 'pageSize') ? this.parsePositiveIntStrict(query?.pageSize, 'pageSize') : 20;
+    const pageSize = Math.min(50, pageSizeInput);
+
+    const where: Prisma.PatentMaintenanceOrderWhereInput = { applicantUserId: req.auth.userId };
+    if (this.hasOwn(query, 'scheduleId')) where.scheduleId = this.parseUuidParam(query?.scheduleId, 'scheduleId');
+    if (this.hasOwn(query, 'status')) where.status = this.parseOrderStatusStrict(query?.status, 'status');
+    if (this.hasOwn(query, 'reconcileStatus')) {
+      where.reconcileStatus = this.parseReconcileStatusStrict(query?.reconcileStatus, 'reconcileStatus');
+    }
+
+    const [items, total] = await Promise.all([
+      this.prisma.patentMaintenanceOrder.findMany({
+        where,
+        include: {
+          schedule: {
+            include: {
+              patent: {
+                select: {
+                  title: true,
+                  applicationNoDisplay: true,
+                  applicationNoNorm: true,
+                },
+              },
+            },
+          },
+        },
+        orderBy: { createdAt: 'desc' },
+        skip: (page - 1) * pageSize,
+        take: pageSize,
+      }),
+      this.prisma.patentMaintenanceOrder.count({ where }),
+    ]);
+
+    return {
+      items: items.map((item) => this.toOrderDto(item)),
+      page: { page, pageSize, total },
+    };
+  }
+
+  async getOrder(req: any, orderId: string) {
+    this.ensureAuth(req);
+    requirePermission(req, 'maintenance.manage');
+    const normalizedOrderId = this.parseUuidParam(orderId, 'orderId');
+
+    const order = await this.getOrderWithContext(normalizedOrderId);
+    if (!order) throw new NotFoundException({ code: 'NOT_FOUND', message: 'Order not found' });
+    return this.toOrderDto(order);
+  }
+
+  async getMyOrder(req: any, orderId: string) {
+    this.ensureAuth(req);
+    const normalizedOrderId = this.parseUuidParam(orderId, 'orderId');
+
+    const order = await this.getOrderWithContext(normalizedOrderId);
+    if (!order) throw new NotFoundException({ code: 'NOT_FOUND', message: 'Order not found' });
+    this.assertMyOrderAccess(req, order);
+    return this.toOrderDto(order);
+  }
+
+  async listOrderEvents(req: any, orderId: string) {
+    this.ensureAuth(req);
+    requirePermission(req, 'maintenance.manage');
+    const normalizedOrderId = this.parseUuidParam(orderId, 'orderId');
+
+    const order = await this.prisma.patentMaintenanceOrder.findUnique({ where: { id: normalizedOrderId }, select: { id: true } });
+    if (!order) throw new NotFoundException({ code: 'NOT_FOUND', message: 'Order not found' });
+
+    const events = await this.prisma.patentMaintenanceOrderEvent.findMany({
+      where: { orderId: normalizedOrderId },
+      include: {
+        actorUser: {
+          select: {
+            id: true,
+            nickname: true,
+            role: true,
+          },
+        },
+      },
+      orderBy: { createdAt: 'asc' },
+    });
+    return { items: events.map((item) => this.toOrderEventDto(item)) };
+  }
+
+  async listMyOrderEvents(req: any, orderId: string) {
+    this.ensureAuth(req);
+    const normalizedOrderId = this.parseUuidParam(orderId, 'orderId');
+    const order = await this.getOrderWithContext(normalizedOrderId);
+    if (!order) throw new NotFoundException({ code: 'NOT_FOUND', message: 'Order not found' });
+    this.assertMyOrderAccess(req, order);
+
+    const events = await this.prisma.patentMaintenanceOrderEvent.findMany({
+      where: { orderId: normalizedOrderId },
+      include: {
+        actorUser: {
+          select: {
+            id: true,
+            nickname: true,
+            role: true,
+          },
+        },
+      },
+      orderBy: { createdAt: 'asc' },
+    });
+    return { items: events.map((item) => this.toOrderEventDto(item)) };
+  }
+
+  async createOrder(req: any, body: any) {
+    this.ensureAuth(req);
+    requirePermission(req, 'maintenance.manage');
+
+    const scheduleId = this.parseUuidParam(body?.scheduleId, 'scheduleId');
+    const schedule = await this.prisma.patentMaintenanceSchedule.findUnique({
+      where: { id: scheduleId },
+      include: {
+        patent: {
+          select: {
+            ownerUserId: true,
+            title: true,
+            applicationNoDisplay: true,
+            applicationNoNorm: true,
+          },
+        },
+      },
+    });
+    if (!schedule) throw new NotFoundException({ code: 'NOT_FOUND', message: 'Schedule not found' });
+
+    const applicantUserId = this.hasOwn(body, 'applicantUserId')
+      ? this.parseUuidParam(body?.applicantUserId, 'applicantUserId')
+      : this.parseUuidParam(schedule?.patent?.ownerUserId, 'applicantUserId');
+    await this.assertUserExists(applicantUserId, 'applicantUserId');
+
+    let assignedCsUserId: string | null = null;
+    if (this.hasOwn(body, 'assignedCsUserId')) {
+      assignedCsUserId = this.parseNullableUuid(body?.assignedCsUserId, 'assignedCsUserId');
+      if (assignedCsUserId) await this.assertUserExists(assignedCsUserId, 'assignedCsUserId');
+    }
+
+    const existingOpen = await this.prisma.patentMaintenanceOrder.findFirst({
+      where: {
+        scheduleId,
+        applicantUserId,
+        status: { in: OPEN_ORDER_STATUSES },
+      },
+      select: { id: true },
+    });
+    if (existingOpen) {
+      throw new ConflictException({ code: 'CONFLICT', message: 'open maintenance order already exists' });
+    }
+
+    const created = await this.prisma.patentMaintenanceOrder.create({
+      data: {
+        scheduleId,
+        applicantUserId,
+        assignedCsUserId,
+        status: 'REQUESTED',
+      },
+      include: {
+        schedule: {
+          include: {
+            patent: {
+              select: {
+                title: true,
+                applicationNoDisplay: true,
+                applicationNoNorm: true,
+              },
+            },
+          },
+        },
+      },
+    });
+    await this.appendOrderEvent({
+      orderId: created.id,
+      actorUserId: req.auth.userId,
+      eventType: 'CREATED',
+      toStatus: 'REQUESTED',
+      note: 'maintenance order created',
+    });
+
+    void this.audit.log({
+      actorUserId: req.auth.userId,
+      action: 'MAINTENANCE_ORDER_CREATE',
+      targetType: 'PATENT_MAINTENANCE_ORDER',
+      targetId: created.id,
+      afterJson: this.toOrderDto(created),
+    });
+
+    return this.toOrderDto(created);
+  }
+
+  async createMyOrder(req: any, body: any) {
+    this.ensureAuth(req);
+    const scheduleId = this.parseUuidParam(body?.scheduleId, 'scheduleId');
+    const schedule = await this.prisma.patentMaintenanceSchedule.findUnique({
+      where: { id: scheduleId },
+      include: {
+        patent: {
+          select: {
+            ownerUserId: true,
+            title: true,
+            applicationNoDisplay: true,
+            applicationNoNorm: true,
+          },
+        },
+      },
+    });
+    if (!schedule) throw new NotFoundException({ code: 'NOT_FOUND', message: 'Schedule not found' });
+    if (schedule?.patent?.ownerUserId !== req.auth.userId) {
+      throw new ForbiddenException({ code: 'FORBIDDEN', message: '无权限' });
+    }
+
+    const existingOpen = await this.prisma.patentMaintenanceOrder.findFirst({
+      where: {
+        scheduleId,
+        applicantUserId: req.auth.userId,
+        status: { in: OPEN_ORDER_STATUSES },
+      },
+      select: { id: true },
+    });
+    if (existingOpen) {
+      throw new ConflictException({ code: 'CONFLICT', message: 'open maintenance order already exists' });
+    }
+
+    const created = await this.prisma.patentMaintenanceOrder.create({
+      data: {
+        scheduleId,
+        applicantUserId: req.auth.userId,
+        status: 'REQUESTED',
+      },
+      include: {
+        schedule: {
+          include: {
+            patent: {
+              select: {
+                title: true,
+                applicationNoDisplay: true,
+                applicationNoNorm: true,
+              },
+            },
+          },
+        },
+      },
+    });
+    await this.appendOrderEvent({
+      orderId: created.id,
+      actorUserId: req.auth.userId,
+      eventType: 'CREATED',
+      toStatus: 'REQUESTED',
+      note: 'maintenance order requested by owner',
+    });
+
+    return this.toOrderDto(created);
+  }
+
+  async quoteOrder(req: any, orderId: string, body: any) {
+    this.ensureAuth(req);
+    requirePermission(req, 'maintenance.manage');
+    const normalizedOrderId = this.parseUuidParam(orderId, 'orderId');
+    const existing = await this.prisma.patentMaintenanceOrder.findUnique({ where: { id: normalizedOrderId } });
+    if (!existing) throw new NotFoundException({ code: 'NOT_FOUND', message: 'Order not found' });
+    if (!['REQUESTED', 'QUOTED', 'AWAITING_PAYMENT'].includes(existing.status)) {
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: 'order status cannot be quoted' });
+    }
+
+    const officialFeeFen = this.parseNonNegativeIntStrict(body?.officialFeeFen, 'officialFeeFen');
+    const lateFeeFen = this.hasOwn(body, 'lateFeeFen') ? this.parseNonNegativeIntStrict(body?.lateFeeFen, 'lateFeeFen') : 0;
+    const serviceFeeFen = this.parseNonNegativeIntStrict(body?.serviceFeeFen, 'serviceFeeFen');
+    const paymentDeadline = this.parseDateTimeStrict(body?.paymentDeadline, 'paymentDeadline');
+
+    let assignedCsUserId: string | null | undefined = undefined;
+    if (this.hasOwn(body, 'assignedCsUserId')) {
+      assignedCsUserId = this.parseNullableUuid(body?.assignedCsUserId, 'assignedCsUserId');
+      if (assignedCsUserId) await this.assertUserExists(assignedCsUserId, 'assignedCsUserId');
+    }
+
+    const totalAmountFen = this.calcTotalAmount(officialFeeFen, lateFeeFen, serviceFeeFen);
+    const next = await this.prisma.patentMaintenanceOrder.update({
+      where: { id: normalizedOrderId },
+      data: {
+        status: 'AWAITING_PAYMENT',
+        officialFeeFen,
+        lateFeeFen,
+        serviceFeeFen,
+        totalAmountFen,
+        paymentDeadline,
+        assignedCsUserId: assignedCsUserId === undefined ? existing.assignedCsUserId : assignedCsUserId,
+      },
+      include: {
+        schedule: {
+          include: {
+            patent: {
+              select: {
+                title: true,
+                applicationNoDisplay: true,
+                applicationNoNorm: true,
+              },
+            },
+          },
+        },
+      },
+    });
+    await this.appendOrderEvent({
+      orderId: normalizedOrderId,
+      actorUserId: req.auth.userId,
+      eventType: 'QUOTE_UPDATED',
+      fromStatus: existing.status,
+      toStatus: next.status,
+      payloadJson: {
+        officialFeeFen,
+        lateFeeFen,
+        serviceFeeFen,
+        totalAmountFen,
+        paymentDeadline: paymentDeadline.toISOString(),
+      },
+    });
+
+    void this.audit.log({
+      actorUserId: req.auth.userId,
+      action: 'MAINTENANCE_ORDER_QUOTE',
+      targetType: 'PATENT_MAINTENANCE_ORDER',
+      targetId: normalizedOrderId,
+      beforeJson: this.toOrderDto(existing),
+      afterJson: this.toOrderDto(next),
+    });
+    return this.toOrderDto(next);
+  }
+
+  async confirmOrderPayment(req: any, orderId: string, body: any) {
+    this.ensureAuth(req);
+    requirePermission(req, 'maintenance.manage');
+    const normalizedOrderId = this.parseUuidParam(orderId, 'orderId');
+    const existing = await this.prisma.patentMaintenanceOrder.findUnique({ where: { id: normalizedOrderId } });
+    if (!existing) throw new NotFoundException({ code: 'NOT_FOUND', message: 'Order not found' });
+    if (existing.status !== 'AWAITING_PAYMENT') {
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: 'order status cannot be marked paid' });
+    }
+
+    const paymentChannel = this.parsePaymentChannelStrict(body?.paymentChannel, 'paymentChannel');
+    const paymentTxnNo = this.parseRequiredNonEmptyString(body?.paymentTxnNo, 'paymentTxnNo');
+    const paidAt = this.hasOwn(body, 'paidAt') ? this.parseDateTimeStrict(body?.paidAt, 'paidAt') : new Date();
+
+    const next = await this.prisma.patentMaintenanceOrder.update({
+      where: { id: normalizedOrderId },
+      data: {
+        status: 'PAID',
+        paymentChannel,
+        paymentTxnNo,
+        paidAt,
+      },
+      include: {
+        schedule: {
+          include: {
+            patent: {
+              select: {
+                title: true,
+                applicationNoDisplay: true,
+                applicationNoNorm: true,
+              },
+            },
+          },
+        },
+      },
+    });
+    await this.appendOrderEvent({
+      orderId: normalizedOrderId,
+      actorUserId: req.auth.userId,
+      eventType: 'PAYMENT_CONFIRMED',
+      fromStatus: existing.status,
+      toStatus: next.status,
+      payloadJson: {
+        paymentChannel,
+        paymentTxnNo,
+        paidAt: paidAt.toISOString(),
+      },
+    });
+
+    void this.audit.log({
+      actorUserId: req.auth.userId,
+      action: 'MAINTENANCE_ORDER_PAYMENT_CONFIRM',
+      targetType: 'PATENT_MAINTENANCE_ORDER',
+      targetId: normalizedOrderId,
+      beforeJson: this.toOrderDto(existing),
+      afterJson: this.toOrderDto(next),
+    });
+    return this.toOrderDto(next);
+  }
+
+  async submitOrderExecution(req: any, orderId: string, body: any) {
+    this.ensureAuth(req);
+    requirePermission(req, 'maintenance.manage');
+    const normalizedOrderId = this.parseUuidParam(orderId, 'orderId');
+    const existing = await this.prisma.patentMaintenanceOrder.findUnique({ where: { id: normalizedOrderId } });
+    if (!existing) throw new NotFoundException({ code: 'NOT_FOUND', message: 'Order not found' });
+    if (existing.status !== 'PAID') {
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: 'order status cannot be executed' });
+    }
+
+    const officialSubmissionNo = this.parseRequiredNonEmptyString(body?.officialSubmissionNo, 'officialSubmissionNo');
+    const executedAt = this.hasOwn(body, 'executedAt') ? this.parseDateTimeStrict(body?.executedAt, 'executedAt') : new Date();
+
+    const next = await this.prisma.patentMaintenanceOrder.update({
+      where: { id: normalizedOrderId },
+      data: {
+        status: 'EXECUTING',
+        officialSubmissionNo,
+        executedAt,
+      },
+      include: {
+        schedule: {
+          include: {
+            patent: {
+              select: {
+                title: true,
+                applicationNoDisplay: true,
+                applicationNoNorm: true,
+              },
+            },
+          },
+        },
+      },
+    });
+    await this.appendOrderEvent({
+      orderId: normalizedOrderId,
+      actorUserId: req.auth.userId,
+      eventType: 'EXECUTION_SUBMITTED',
+      fromStatus: existing.status,
+      toStatus: next.status,
+      payloadJson: {
+        officialSubmissionNo,
+        executedAt: executedAt.toISOString(),
+      },
+    });
+
+    void this.audit.log({
+      actorUserId: req.auth.userId,
+      action: 'MAINTENANCE_ORDER_EXECUTION_SUBMIT',
+      targetType: 'PATENT_MAINTENANCE_ORDER',
+      targetId: normalizedOrderId,
+      beforeJson: this.toOrderDto(existing),
+      afterJson: this.toOrderDto(next),
+    });
+    return this.toOrderDto(next);
+  }
+
+  async uploadOrderReceipt(req: any, orderId: string, body: any) {
+    this.ensureAuth(req);
+    requirePermission(req, 'maintenance.manage');
+    const normalizedOrderId = this.parseUuidParam(orderId, 'orderId');
+    const existing = await this.prisma.patentMaintenanceOrder.findUnique({ where: { id: normalizedOrderId } });
+    if (!existing) throw new NotFoundException({ code: 'NOT_FOUND', message: 'Order not found' });
+    if (existing.status !== 'EXECUTING') {
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: 'order status cannot upload receipt' });
+    }
+
+    const officialReceiptNo = this.parseRequiredNonEmptyString(body?.officialReceiptNo, 'officialReceiptNo');
+    const officialReceiptFileId = this.parseUuidParam(body?.officialReceiptFileId, 'officialReceiptFileId');
+    const receiptIssuedAt = this.hasOwn(body, 'receiptIssuedAt')
+      ? this.parseDateTimeStrict(body?.receiptIssuedAt, 'receiptIssuedAt')
+      : new Date();
+    const receiptFile = await this.prisma.file.findUnique({ where: { id: officialReceiptFileId }, select: { id: true } });
+    if (!receiptFile) throw new BadRequestException({ code: 'BAD_REQUEST', message: 'officialReceiptFileId is invalid' });
+
+    const next = await this.prisma.patentMaintenanceOrder.update({
+      where: { id: normalizedOrderId },
+      data: {
+        status: 'RECEIPT_UPLOADED',
+        officialReceiptNo,
+        officialReceiptFileId,
+        receiptIssuedAt,
+      },
+      include: {
+        schedule: {
+          include: {
+            patent: {
+              select: {
+                title: true,
+                applicationNoDisplay: true,
+                applicationNoNorm: true,
+              },
+            },
+          },
+        },
+      },
+    });
+    await this.appendOrderEvent({
+      orderId: normalizedOrderId,
+      actorUserId: req.auth.userId,
+      eventType: 'RECEIPT_UPLOADED',
+      fromStatus: existing.status,
+      toStatus: next.status,
+      payloadJson: {
+        officialReceiptNo,
+        officialReceiptFileId,
+        receiptIssuedAt: receiptIssuedAt.toISOString(),
+      },
+    });
+
+    void this.audit.log({
+      actorUserId: req.auth.userId,
+      action: 'MAINTENANCE_ORDER_RECEIPT_UPLOAD',
+      targetType: 'PATENT_MAINTENANCE_ORDER',
+      targetId: normalizedOrderId,
+      beforeJson: this.toOrderDto(existing),
+      afterJson: this.toOrderDto(next),
+    });
+    return this.toOrderDto(next);
+  }
+
+  async reconcileOrder(req: any, orderId: string, body: any) {
+    this.ensureAuth(req);
+    requirePermission(req, 'maintenance.manage');
+    const normalizedOrderId = this.parseUuidParam(orderId, 'orderId');
+    const existing = await this.prisma.patentMaintenanceOrder.findUnique({ where: { id: normalizedOrderId } });
+    if (!existing) throw new NotFoundException({ code: 'NOT_FOUND', message: 'Order not found' });
+    if (!['RECEIPT_UPLOADED', 'RECONCILED'].includes(existing.status)) {
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: 'order status cannot reconcile' });
+    }
+
+    const reconcileStatus = this.parseReconcileStatusStrict(body?.reconcileStatus, 'reconcileStatus');
+    const reconcileNote = this.hasOwn(body, 'reconcileNote')
+      ? this.parseNullableNonEmptyStringStrict(body?.reconcileNote, 'reconcileNote')
+      : null;
+    const nextStatus: PatentMaintenanceOrderStatus = reconcileStatus === 'MATCHED' ? 'RECONCILED' : 'RECEIPT_UPLOADED';
+
+    const next = await this.prisma.patentMaintenanceOrder.update({
+      where: { id: normalizedOrderId },
+      data: {
+        status: nextStatus,
+        reconcileStatus,
+        reconcileNote,
+      },
+      include: {
+        schedule: {
+          include: {
+            patent: {
+              select: {
+                title: true,
+                applicationNoDisplay: true,
+                applicationNoNorm: true,
+              },
+            },
+          },
+        },
+      },
+    });
+    await this.appendOrderEvent({
+      orderId: normalizedOrderId,
+      actorUserId: req.auth.userId,
+      eventType: 'RECONCILED',
+      fromStatus: existing.status,
+      toStatus: next.status,
+      payloadJson: {
+        reconcileStatus,
+        reconcileNote,
+      },
+    });
+
+    void this.audit.log({
+      actorUserId: req.auth.userId,
+      action: 'MAINTENANCE_ORDER_RECONCILE',
+      targetType: 'PATENT_MAINTENANCE_ORDER',
+      targetId: normalizedOrderId,
+      beforeJson: this.toOrderDto(existing),
+      afterJson: this.toOrderDto(next),
+    });
+    return this.toOrderDto(next);
+  }
+
+  async closeOrder(req: any, orderId: string, body: any) {
+    this.ensureAuth(req);
+    requirePermission(req, 'maintenance.manage');
+    const normalizedOrderId = this.parseUuidParam(orderId, 'orderId');
+    const existing = await this.prisma.patentMaintenanceOrder.findUnique({ where: { id: normalizedOrderId } });
+    if (!existing) throw new NotFoundException({ code: 'NOT_FOUND', message: 'Order not found' });
+    if (existing.status !== 'RECONCILED' || existing.reconcileStatus !== 'MATCHED') {
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: 'only matched reconciled orders can be closed' });
+    }
+
+    const closeNote = this.hasOwn(body, 'closeNote') ? this.parseNullableNonEmptyStringStrict(body?.closeNote, 'closeNote') : null;
+    const next = await this.prisma.patentMaintenanceOrder.update({
+      where: { id: normalizedOrderId },
+      data: {
+        status: 'CLOSED',
+        closeNote,
+      },
+      include: {
+        schedule: {
+          include: {
+            patent: {
+              select: {
+                title: true,
+                applicationNoDisplay: true,
+                applicationNoNorm: true,
+              },
+            },
+          },
+        },
+      },
+    });
+    await this.appendOrderEvent({
+      orderId: normalizedOrderId,
+      actorUserId: req.auth.userId,
+      eventType: 'CLOSED',
+      fromStatus: existing.status,
+      toStatus: next.status,
+      note: closeNote,
+    });
+
+    void this.audit.log({
+      actorUserId: req.auth.userId,
+      action: 'MAINTENANCE_ORDER_CLOSE',
+      targetType: 'PATENT_MAINTENANCE_ORDER',
+      targetId: normalizedOrderId,
+      beforeJson: this.toOrderDto(existing),
+      afterJson: this.toOrderDto(next),
+    });
+    return this.toOrderDto(next);
+  }
+
+  async cancelOrder(req: any, orderId: string, body: any) {
+    this.ensureAuth(req);
+    requirePermission(req, 'maintenance.manage');
+    const normalizedOrderId = this.parseUuidParam(orderId, 'orderId');
+    const existing = await this.prisma.patentMaintenanceOrder.findUnique({ where: { id: normalizedOrderId } });
+    if (!existing) throw new NotFoundException({ code: 'NOT_FOUND', message: 'Order not found' });
+    if (!['REQUESTED', 'QUOTED', 'AWAITING_PAYMENT', 'PAID'].includes(existing.status)) {
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: 'order status cannot be cancelled' });
+    }
+
+    const closeNote = this.parseRequiredNonEmptyString(body?.closeNote, 'closeNote');
+    const next = await this.prisma.patentMaintenanceOrder.update({
+      where: { id: normalizedOrderId },
+      data: {
+        status: 'CANCELLED',
+        closeNote,
+      },
+      include: {
+        schedule: {
+          include: {
+            patent: {
+              select: {
+                title: true,
+                applicationNoDisplay: true,
+                applicationNoNorm: true,
+              },
+            },
+          },
+        },
+      },
+    });
+    await this.appendOrderEvent({
+      orderId: normalizedOrderId,
+      actorUserId: req.auth.userId,
+      eventType: 'CANCELLED',
+      fromStatus: existing.status,
+      toStatus: next.status,
+      note: closeNote,
+    });
+
+    void this.audit.log({
+      actorUserId: req.auth.userId,
+      action: 'MAINTENANCE_ORDER_CANCEL',
+      targetType: 'PATENT_MAINTENANCE_ORDER',
+      targetId: normalizedOrderId,
+      beforeJson: this.toOrderDto(existing),
+      afterJson: this.toOrderDto(next),
+    });
+    return this.toOrderDto(next);
   }
 }

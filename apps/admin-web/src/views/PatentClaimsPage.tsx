@@ -23,7 +23,7 @@ type ClaimItem = {
 
 type Paged<T> = { items: T[]; page: { page: number; pageSize: number; total: number } };
 
-const statusOptions = [
+const statusOptions: Array<{ value: ClaimStatus | ''; label: string }> = [
   { value: '', label: '全部状态' },
   { value: 'PENDING', label: '待审核' },
   { value: 'APPROVED', label: '已通过' },
@@ -41,8 +41,10 @@ export function PatentClaimsPage() {
   const [error, setError] = useState<unknown | null>(null);
   const [data, setData] = useState<Paged<ClaimItem> | null>(null);
   const [page, setPage] = useState(1);
-  const [status, setStatus] = useState<ClaimStatus | ''>('PENDING');
-  const [q, setQ] = useState('');
+  const [draftStatus, setDraftStatus] = useState<ClaimStatus | ''>('PENDING');
+  const [draftQ, setDraftQ] = useState('');
+  const [appliedStatus, setAppliedStatus] = useState<ClaimStatus | ''>('PENDING');
+  const [appliedQ, setAppliedQ] = useState('');
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -51,8 +53,8 @@ export function PatentClaimsPage() {
       const res = await apiGet<Paged<ClaimItem>>('/admin/patent-claims', {
         page,
         pageSize: 20,
-        status: status || undefined,
-        q: q.trim() || undefined,
+        status: appliedStatus || undefined,
+        q: appliedQ.trim() || undefined,
       });
       setData(res);
     } catch (e: any) {
@@ -62,15 +64,25 @@ export function PatentClaimsPage() {
     } finally {
       setLoading(false);
     }
-  }, [page, q, status]);
+  }, [appliedQ, appliedStatus, page]);
 
   useEffect(() => {
     void load();
   }, [load]);
 
-  useEffect(() => {
+  const applyFilters = useCallback(() => {
     setPage(1);
-  }, [q, status]);
+    setAppliedQ(draftQ);
+    setAppliedStatus(draftStatus);
+  }, [draftQ, draftStatus]);
+
+  const resetFilters = useCallback(() => {
+    setPage(1);
+    setDraftQ('');
+    setDraftStatus('PENDING');
+    setAppliedQ('');
+    setAppliedStatus('PENDING');
+  }, []);
 
   const approve = useCallback(
     async (row: ClaimItem) => {
@@ -126,35 +138,69 @@ export function PatentClaimsPage() {
   return (
     <Space direction="vertical" size={16} style={{ width: '100%' }}>
       <Card>
-        <Typography.Title level={3} style={{ marginTop: 0 }}>专利归属认领审核</Typography.Title>
-        <Typography.Paragraph type="secondary">审核用户认领请求，通过后自动更新专利归属并同步 OWNER 咨询路由。</Typography.Paragraph>
+        <Typography.Title level={3} style={{ marginTop: 0 }}>
+          专利归属认领审核
+        </Typography.Title>
+        <Typography.Paragraph type="secondary">
+          审核用户认领请求；通过后会自动将专利归属到申请用户，并同步 OWNER 咨询路由。
+        </Typography.Paragraph>
         {error ? <RequestErrorAlert error={error} onRetry={load} /> : null}
         <Space wrap style={{ marginBottom: 12 }}>
-          <Input value={q} allowClear style={{ width: 320 }} placeholder="搜索（理由/专利ID）" onChange={(e) => setQ(e.target.value)} onPressEnter={() => void load()} />
-          <Select value={status} style={{ width: 180 }} options={statusOptions} onChange={(v) => setStatus((v as ClaimStatus) || '')} />
+          <Input
+            value={draftQ}
+            allowClear
+            style={{ width: 320 }}
+            placeholder="搜索（认领理由/专利ID）"
+            onChange={(e) => setDraftQ(e.target.value)}
+            onPressEnter={applyFilters}
+          />
+          <Select
+            value={draftStatus}
+            style={{ width: 180 }}
+            options={statusOptions}
+            onChange={(v) => setDraftStatus((v as ClaimStatus) || '')}
+          />
+          <Button type="primary" onClick={applyFilters}>
+            查询
+          </Button>
+          <Button onClick={resetFilters}>
+            重置
+          </Button>
           <Button onClick={() => void load()}>刷新</Button>
         </Space>
         <Table<ClaimItem>
           rowKey="id"
           loading={loading}
           dataSource={data?.items || []}
-          pagination={{ current: data?.page.page || page, pageSize: data?.page.pageSize || 20, total: data?.page.total || 0, onChange: (next) => setPage(next) }}
+          pagination={{
+            current: data?.page.page || page,
+            pageSize: data?.page.pageSize || 20,
+            total: data?.page.total || 0,
+            onChange: (next) => setPage(next),
+          }}
           columns={[
             { title: '认领单ID', dataIndex: 'id', width: 230 },
             { title: '专利ID', dataIndex: 'patentId', width: 230 },
             { title: '申请用户ID', dataIndex: 'applicantUserId', width: 230 },
             { title: '状态', dataIndex: 'status', width: 100, render: (v: ClaimStatus) => statusTag(v) },
-            { title: '说明', dataIndex: 'claimReason', render: (v: string | null | undefined) => v || '-' },
+            { title: '认领说明', dataIndex: 'claimReason', render: (v: string | null | undefined) => v || '-' },
             { title: '证据文件数', render: (_, row) => row.evidenceFileIds?.length || 0, width: 110 },
-            { title: '提交时间', dataIndex: 'submittedAt', width: 150, render: (v: string) => formatTimeSmart(v) },
+            { title: '提交时间', dataIndex: 'submittedAt', width: 160, render: (v: string) => formatTimeSmart(v) },
+            { title: '审核人', dataIndex: 'reviewerUserId', width: 220, render: (v: string | null | undefined) => v || '-' },
+            { title: '审核时间', dataIndex: 'reviewedAt', width: 160, render: (v: string | null | undefined) => (v ? formatTimeSmart(v) : '-') },
+            { title: '审核备注', dataIndex: 'reviewComment', width: 200, render: (v: string | null | undefined) => v || '-' },
             {
               title: '操作',
               width: 170,
               render: (_, row) =>
                 row.status === 'PENDING' ? (
                   <Space>
-                    <Button size="small" type="primary" onClick={() => void approve(row)}>通过</Button>
-                    <Button size="small" danger onClick={() => void reject(row)}>驳回</Button>
+                    <Button size="small" type="primary" onClick={() => void approve(row)}>
+                      通过
+                    </Button>
+                    <Button size="small" danger onClick={() => void reject(row)}>
+                      驳回
+                    </Button>
                   </Space>
                 ) : (
                   <Typography.Text type="secondary">已处理</Typography.Text>

@@ -1,6 +1,7 @@
 import { Suspense, lazy } from 'react';
 import { createBrowserRouter } from 'react-router-dom';
 
+import { RouteErrorPage } from './ui/RouteErrorPage';
 import { LoginPage } from './views/LoginPage';
 
 const fallback = <div style={{ padding: 16, color: 'rgba(0,0,0,0.45)' }}>Loading...</div>;
@@ -103,6 +104,7 @@ export const router = createBrowserRouter([
   {
     path: '/login',
     element: <LoginPage />,
+    errorElement: <RouteErrorPage />,
   },
   {
     path: '/',
@@ -111,6 +113,7 @@ export const router = createBrowserRouter([
         <AppLayout />
       </Suspense>
     ),
+    errorElement: <RouteErrorPage />,
     children: [
       { index: true, element: <DashboardPage /> },
       { path: 'verifications', element: <VerificationsPage /> },

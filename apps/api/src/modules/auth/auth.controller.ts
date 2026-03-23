@@ -1,4 +1,4 @@
-import { Body, Controller, Post, Req, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Post, Req, UseGuards } from '@nestjs/common';
 
 import { BearerAuthGuard } from '../../common/guards/bearer-auth.guard';
 import { AuthService } from './auth.service';
@@ -26,5 +26,22 @@ export class AuthController {
   @Post('/sms/verify')
   async smsVerify(@Body() body: { phone: string; code: string }) {
     return await this.auth.smsVerifyLogin(body?.phone, body?.code);
+  }
+
+  @UseGuards(BearerAuthGuard)
+  @Get('/session')
+  async getSession(@Req() req: any) {
+    const permissions = req?.auth?.permissions instanceof Set ? Array.from(req.auth.permissions).sort() : [];
+    return {
+      userId: req?.auth?.userId || '',
+      isAdmin: Boolean(req?.auth?.isAdmin),
+      role: req?.auth?.role || '',
+      roleNames: Array.isArray(req?.auth?.roleNames) ? req.auth.roleNames : [],
+      roleIds: Array.isArray(req?.auth?.roleIds) ? req.auth.roleIds : [],
+      permissions,
+      nickname: req?.auth?.nickname || undefined,
+      verificationStatus: req?.auth?.verificationStatus || undefined,
+      verificationType: req?.auth?.verificationType || null,
+    };
   }
 }

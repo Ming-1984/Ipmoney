@@ -305,6 +305,7 @@ const P0_ROUTES = [
   { name: 'publish', url: '/pages/publish/index' },
   { name: 'orders', url: '/subpackages/orders/index' },
   { name: 'order-detail', url: `/subpackages/orders/detail/index?orderId=${SAMPLE.orderId}` },
+  { name: 'maintenance', url: '/subpackages/maintenance/index' },
   { name: 'me', url: '/pages/me/index' },
 ];
 

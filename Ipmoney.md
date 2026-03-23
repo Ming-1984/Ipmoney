@@ -185,7 +185,7 @@
 | `ipc` | string[] | IPC 代码数组 | 发明/实用新型过滤；支持主分类/全部分类 |
 | `locarno` | string[] | Locarno(LOC) 代码数组 | 外观过滤；支持主类/子类 |
 | `tradeMode` | enum | `ASSIGNMENT`/`LICENSE` | 转让/许可 |
-| `listingTopic` | enum | `HIGH_TECH_RETIRED`/`AWARD_WINNING`/`FIVE_STAR` | 专利专题入口（用于特色专区筛选；`FIVE_STAR` 规则待定） |
+| `listingTopic` | enum | `HIGH_TECH_RETIRED`/`SLEEPING`/`AWARD_WINNING`/`OPEN_LICENSE` | 专利专题入口（用于特色专区筛选） |
 | `licenseMode` | enum | `EXCLUSIVE`/`SOLE`/`NON_EXCLUSIVE` | 许可方式（仅 `LICENSE` 时出现） |
 | `priceType` | enum | `FIXED`/`NEGOTIABLE` | 一口价/面议 |
 | `priceMin/priceMax` | number | >=0 | 总价区间（单位分/元统一） |
@@ -622,15 +622,15 @@
 - **核心模块：**
   - **全局搜索栏：** 占位符“输入专利号、技术关键词、企业或发明人”。
   - **轮播图 (Banner)：** 后台配置，展示平台活动、政策解读。
-  - **快捷入口 (Grid，移动端 3×2 布局)：** 外观专利、发明专利、实用专利、发明人榜、技术经理、五星专利。
-    - **布局：** 第 1 行（3 个）= 外观专利 / 发明专利 / 实用专利；第 2 行（3 个）= 发明人榜 / 技术经理 / 五星专利
+  - **快捷入口 (Grid，移动端 3×2 布局)：** 外观专利、发明专利、实用专利、发明人榜、技术经理、特色专区。
+    - **布局：** 第 1 行（3 个）= 外观专利 / 发明专利 / 实用专利；第 2 行（3 个）= 发明人榜 / 技术经理 / 特色专区
     - **跳转：**
       - 外观专利 → 搜索/列表页（默认 `patentType=DESIGN`）
       - 发明专利 → 搜索/列表页（默认 `patentType=INVENTION`）
       - 实用专利 → 搜索/列表页（默认 `patentType=UTILITY_MODEL`）
       - 发明人榜 → 发明人榜页面
       - 技术经理 → 咨询页“技术经理人”列表
-      - 五星专利 → 搜索/列表页（`listingTopic=FIVE_STAR`，规则待定）
+      - 特色专区 → 搜索/列表页（可进入“退役/沉睡/获奖/开放许可”筛选）
   - **特色专区（专利专区组件）：**
     - 2×2 卡片：**退役专利 / 沉睡专利 / 获奖专利 / 开放许可**。
     - 标题右侧“更多”进入搜索页（LISTING），用于替代原“全部分类”入口。

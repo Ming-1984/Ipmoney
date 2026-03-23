@@ -7,11 +7,13 @@ import { PatentMaintenanceService } from '../src/modules/patent-maintenance/pate
 const REQ = { auth: { userId: 'admin-1', permissions: new Set(['maintenance.manage']) } };
 const SCHEDULE_ID = '11111111-1111-1111-1111-111111111111';
 const TASK_ID = '22222222-2222-2222-2222-222222222222';
+const PATENT_ID = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
+const CS_USER_ID = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';
 
 function buildSchedule(overrides: Record<string, unknown> = {}) {
   return {
     id: SCHEDULE_ID,
-    patentId: 'pat-1',
+    patentId: PATENT_ID,
     yearNo: 3,
     dueDate: new Date('2026-06-01T00:00:00.000Z'),
     gracePeriodEnd: new Date('2026-08-31T00:00:00.000Z'),
@@ -26,7 +28,7 @@ function buildTask(overrides: Record<string, unknown> = {}) {
   return {
     id: TASK_ID,
     scheduleId: SCHEDULE_ID,
-    assignedCsUserId: 'cs-1',
+    assignedCsUserId: CS_USER_ID,
     status: 'OPEN',
     note: 'todo',
     evidenceFileId: null,
@@ -62,39 +64,39 @@ describe('PatentMaintenanceService write flow suite', () => {
   });
 
   it('createSchedule validates payload and not-found/conflict branches', async () => {
-    await expect(service.createSchedule(REQ, { patentId: 'pat-1', yearNo: '1.5', dueDate: '2026-06-01' })).rejects.toBeInstanceOf(
+    await expect(service.createSchedule(REQ, { patentId: PATENT_ID, yearNo: '1.5', dueDate: '2026-06-01' })).rejects.toBeInstanceOf(
       BadRequestException,
     );
     await expect(
-      service.createSchedule(REQ, { patentId: 'pat-1', yearNo: '9007199254740992', dueDate: '2026-06-01' }),
+      service.createSchedule(REQ, { patentId: PATENT_ID, yearNo: '9007199254740992', dueDate: '2026-06-01' }),
     ).rejects.toBeInstanceOf(BadRequestException);
-    await expect(service.createSchedule(REQ, { patentId: 'pat-1', yearNo: 1, dueDate: '' })).rejects.toBeInstanceOf(
+    await expect(service.createSchedule(REQ, { patentId: PATENT_ID, yearNo: 1, dueDate: '' })).rejects.toBeInstanceOf(
       BadRequestException,
     );
-    await expect(service.createSchedule(REQ, { patentId: 'pat-1', yearNo: 1, dueDate: '2026-06-01', status: 'bad' })).rejects.toBeInstanceOf(
+    await expect(service.createSchedule(REQ, { patentId: PATENT_ID, yearNo: 1, dueDate: '2026-06-01', status: 'bad' })).rejects.toBeInstanceOf(
       BadRequestException,
     );
 
     prisma.patent.findUnique.mockResolvedValueOnce(null);
-    await expect(service.createSchedule(REQ, { patentId: 'pat-1', yearNo: 1, dueDate: '2026-06-01' })).rejects.toBeInstanceOf(
+    await expect(service.createSchedule(REQ, { patentId: PATENT_ID, yearNo: 1, dueDate: '2026-06-01' })).rejects.toBeInstanceOf(
       NotFoundException,
     );
 
-    prisma.patent.findUnique.mockResolvedValueOnce({ id: 'pat-1' });
+    prisma.patent.findUnique.mockResolvedValueOnce({ id: PATENT_ID });
     prisma.patentMaintenanceSchedule.create.mockRejectedValueOnce(
       new Prisma.PrismaClientKnownRequestError('dup', { code: 'P2002', clientVersion: 'test' }),
     );
-    await expect(service.createSchedule(REQ, { patentId: 'pat-1', yearNo: 1, dueDate: '2026-06-01' })).rejects.toBeInstanceOf(
+    await expect(service.createSchedule(REQ, { patentId: PATENT_ID, yearNo: 1, dueDate: '2026-06-01' })).rejects.toBeInstanceOf(
       ConflictException,
     );
   });
 
   it('createSchedule creates schedule and writes audit', async () => {
-    prisma.patent.findUnique.mockResolvedValueOnce({ id: 'pat-1' });
+    prisma.patent.findUnique.mockResolvedValueOnce({ id: PATENT_ID });
     prisma.patentMaintenanceSchedule.create.mockResolvedValueOnce(buildSchedule({ status: 'PAID' }));
 
     const result = await service.createSchedule(REQ, {
-      patentId: 'pat-1',
+      patentId: PATENT_ID,
       yearNo: '3',
       dueDate: '2026-06-01',
       gracePeriodEnd: '2026-08-31',
@@ -104,7 +106,7 @@ describe('PatentMaintenanceService write flow suite', () => {
     expect(prisma.patentMaintenanceSchedule.create).toHaveBeenCalledWith(
       expect.objectContaining({
         data: expect.objectContaining({
-          patentId: 'pat-1',
+          patentId: PATENT_ID,
           yearNo: 3,
           dueDate: expect.any(Date),
           gracePeriodEnd: expect.any(Date),
@@ -159,19 +161,19 @@ describe('PatentMaintenanceService write flow suite', () => {
 
     prisma.patentMaintenanceSchedule.findUnique.mockResolvedValueOnce({ id: SCHEDULE_ID });
     prisma.user.findUnique.mockResolvedValueOnce(null);
-    await expect(service.createTask(REQ, { scheduleId: SCHEDULE_ID, assignedCsUserId: 'cs-1' })).rejects.toBeInstanceOf(
+    await expect(service.createTask(REQ, { scheduleId: SCHEDULE_ID, assignedCsUserId: CS_USER_ID })).rejects.toBeInstanceOf(
       BadRequestException,
     );
   });
 
   it('createTask creates task with normalized payload and audit', async () => {
     prisma.patentMaintenanceSchedule.findUnique.mockResolvedValueOnce({ id: SCHEDULE_ID });
-    prisma.user.findUnique.mockResolvedValueOnce({ id: 'cs-1' });
+    prisma.user.findUnique.mockResolvedValueOnce({ id: CS_USER_ID });
     prisma.patentMaintenanceTask.create.mockResolvedValueOnce(buildTask({ status: 'IN_PROGRESS', note: 'check files' }));
 
     const result = await service.createTask(REQ, {
       scheduleId: SCHEDULE_ID,
-      assignedCsUserId: 'cs-1',
+      assignedCsUserId: CS_USER_ID,
       status: 'in_progress',
       note: '  check files  ',
     });
@@ -179,7 +181,7 @@ describe('PatentMaintenanceService write flow suite', () => {
     expect(prisma.patentMaintenanceTask.create).toHaveBeenCalledWith({
       data: {
         scheduleId: SCHEDULE_ID,
-        assignedCsUserId: 'cs-1',
+        assignedCsUserId: CS_USER_ID,
         status: 'IN_PROGRESS',
         note: 'check files',
       },

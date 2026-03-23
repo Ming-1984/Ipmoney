@@ -31,9 +31,11 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * 瀵邦喕淇婄亸蹇曗柤鎼村繒娅ヨぐ鏇礄code 閳?token閿?
-         * @description 鐏忓繒鈻兼惔蹇曨伂闁俺绻?`wx.login` 閼惧嘲褰?`code` 閸氬氦鐨熼悽銊︽拱閹恒儱褰涢妴?
-         *     鐠囧瓨妲戦敍?        - 閺堝秴濮熺粩顖氱安娴ｈ法鏁ゅ顔讳繆 `code2Session`閿涘潉/sns/jscode2session`閿涘宕查崣?`openid/session_key`閿涘苯鑻熼幐?`openid` 閸嬫氨鏁ら幋閿嬫Ё鐏忓嫬鎮楃粵鎯у絺楠炲啿褰?`accessToken`閵?        - `wx.login` 娑撳秷绻戦崶鐐层仈閸?閺勭數袨閿涙艾銇旈崓?閺勭數袨瀵ら缚顔呯挧?`chooseAvatar + input type="nickname"`閿涘苯鑻熼柅姘崇箖 `POST /files` + `PATCH /me` 閽€钘夌氨閵?
+         * Mini Program login via wx.login code2Session
+         * @description Exchange `wx.login` code with WeChat `code2Session`, map `openid` to platform user,
+         *     and issue platform `accessToken`.
+         *     - Request body requires `code`.
+         *     - Demo-only code (`demo`) is accepted only when demo auth is enabled in non-release env.
          */
         post: operations["authWechatMpLogin"];
         delete?: never;
@@ -57,7 +59,7 @@ export interface paths {
          *
          *     Notes:
          *     - Requires BearerAuth.
-         *     - Real implementation should call WeChat `phonenumber.getPhoneNumber` and persist the phone to the user profile.
+         *     - Server validates WeChat signature chain and persists bound phone on current user.
          */
         post: operations["authWechatPhoneBind"];
         delete?: never;
@@ -75,7 +77,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** 閸欐垿鈧胶鐓穱锟犵崣鐠囦胶鐖? */
+        /** Send SMS code */
         post: operations["authSmsSend"];
         delete?: never;
         options?: never;
@@ -92,8 +94,25 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** 閻厺淇婃宀冪槈閻胶娅ヨぐ? */
+        /** Verify SMS code and login */
         post: operations["authSmsVerify"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/auth/session": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get current auth session */
+        get: operations["authGetSession"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -968,7 +987,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** 閸掓稑缂撻弨顖欑帛閹板繐娴橀敍鍫ｎ吂闁?鐏忕偓顑欓敍? */
+        /** Create WeChat JSAPI payment intent */
         post: operations["createPaymentIntent"];
         delete?: never;
         options?: never;
@@ -1075,13 +1094,10 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * 瀵邦喕淇婇弨顖欑帛閸ョ偠鐨熼敍鍫濆敶闁劍甯撮崣锝忕礆
-         * @description 瀵邦喕淇婇弨顖欑帛 v3 閸ョ偠鐨熺紒鐔剁閸忋儱褰涢敍鍫熸暜娴?闁偓濞嗘拝绱氶敍姘箛閸旓紕顏箛鍛淬€忛幍褑顢?**妤犲瞼顒?+ 鐟欙絽鐦?resource**閿涘苯鑻熼崑姘畵缁涘顦╅悶鍡礄闁灝鍘ら柌宥咁槻闁氨鐓＄€佃壈鍤ч柌宥咁槻閸忋儴澶?闁插秴顦查柅鈧▎鎾呯礆閵?        閸欏倽鈧喛绱板顔讳繆閺€顖欑帛 v3 閺傚洦銆傛稉顓犳畱閸ョ偠鐨?HTTP Header閿涘湹echatpay-*閿涘绗岄崶鐐剁殶閹躲儲鏋?resource 鐟欙絽鐦戝ù浣衡柤閵?      parameters:
-         *     - $ref: "#/components/parameters/WechatpayTimestamp"
-         *     - $ref: "#/components/parameters/WechatpayNonce"
-         *     - $ref: "#/components/parameters/WechatpaySignature"
-         *     - $ref: "#/components/parameters/WechatpaySerial"
-         *     - $ref: "#/components/parameters/WechatpaySignatureType"
+         * WeChat Pay v3 notify callback
+         * @description Handle WeChat Pay v3 payment/refund notifications.
+         *     Server verifies `Wechatpay-*` signature headers, decrypts `resource`,
+         *     deduplicates by provider event id, and updates order/payment states.
          */
         post: operations["wechatPayNotify"];
         delete?: never;
@@ -1158,6 +1174,57 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/support/conversations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Create or get support conversation */
+        post: operations["upsertSupportConversation"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/orders/{orderId}/dispute-conversations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Create or get order dispute conversation */
+        post: operations["upsertOrderDisputeConversation"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/patent-maintenance/orders/{orderId}/conversations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Create or get maintenance order conversation */
+        post: operations["upsertMaintenanceOrderConversation"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/conversations/{conversationId}/messages": {
         parameters: {
             query?: never;
@@ -1200,7 +1267,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** List platform listing consultations */
+        /** List platform managed conversations */
         get: operations["adminListPlatformConversations"];
         put?: never;
         post?: never;
@@ -1895,6 +1962,263 @@ export interface paths {
         head?: never;
         /** 閺囧瓨鏌婇幍妯碱吀娴犺濮熼敍鍫濇倵閸欏府绱漃1閿? */
         patch: operations["adminUpdatePatentMaintenanceTask"];
+        trace?: never;
+    };
+    "/admin/patent-maintenance/orders": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List maintenance orders */
+        get: operations["adminListPatentMaintenanceOrders"];
+        put?: never;
+        /** Create maintenance order */
+        post: operations["adminCreatePatentMaintenanceOrder"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/patent-maintenance/orders/{orderId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get maintenance order detail */
+        get: operations["adminGetPatentMaintenanceOrder"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/patent-maintenance/orders/{orderId}/events": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List maintenance order events */
+        get: operations["adminListPatentMaintenanceOrderEvents"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/patent-maintenance/orders/{orderId}/quote": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Quote maintenance order */
+        post: operations["adminQuotePatentMaintenanceOrder"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/patent-maintenance/orders/{orderId}/payment-confirm": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Confirm maintenance order payment */
+        post: operations["adminConfirmPatentMaintenanceOrderPayment"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/patent-maintenance/orders/{orderId}/execution": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Submit maintenance order execution */
+        post: operations["adminSubmitPatentMaintenanceOrderExecution"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/patent-maintenance/orders/{orderId}/receipt": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Upload maintenance order receipt */
+        post: operations["adminUploadPatentMaintenanceOrderReceipt"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/patent-maintenance/orders/{orderId}/reconcile": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Reconcile maintenance order */
+        post: operations["adminReconcilePatentMaintenanceOrder"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/patent-maintenance/orders/{orderId}/close": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Close maintenance order */
+        post: operations["adminClosePatentMaintenanceOrder"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/patent-maintenance/orders/{orderId}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Cancel maintenance order */
+        post: operations["adminCancelPatentMaintenanceOrder"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/me/patent-maintenance/schedules": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List my patent maintenance schedules */
+        get: operations["listMyPatentMaintenanceSchedules"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/me/patent-maintenance/tasks": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List my patent maintenance tasks */
+        get: operations["listMyPatentMaintenanceTasks"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/me/patent-maintenance/orders": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List my patent maintenance orders */
+        get: operations["listMyPatentMaintenanceOrders"];
+        put?: never;
+        /** Create my patent maintenance order */
+        post: operations["createMyPatentMaintenanceOrder"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/me/patent-maintenance/orders/{orderId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get my patent maintenance order detail */
+        get: operations["getMyPatentMaintenanceOrder"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/me/patent-maintenance/orders/{orderId}/events": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List my patent maintenance order events */
+        get: operations["listMyPatentMaintenanceOrderEvents"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
         trace?: never;
     };
     "/admin/alerts": {
@@ -2855,7 +3179,8 @@ export interface paths {
         /** List RBAC users */
         get: operations["adminListRbacUsers"];
         put?: never;
-        post?: never;
+        /** Create RBAC user */
+        post: operations["adminCreateRbacUser"];
         delete?: never;
         options?: never;
         head?: never;
@@ -2934,7 +3259,7 @@ export interface components {
             };
         };
         /** @enum {string} */
-        SmsPurpose: "LOGIN" | "BIND_PHONE" | "FIVE_STAR";
+        SmsPurpose: "LOGIN" | "BIND_PHONE";
         /** @enum {string} */
         UserRole: "buyer" | "seller" | "cs" | "admin";
         /** @enum {string} */
@@ -3059,6 +3384,17 @@ export interface components {
             refreshToken?: string;
             expiresInSeconds: number;
             user: components["schemas"]["UserProfile"];
+        };
+        AuthSession: {
+            userId: components["schemas"]["Uuid"];
+            isAdmin: boolean;
+            role?: string;
+            roleNames: string[];
+            roleIds: string[];
+            permissions: string[];
+            nickname?: string;
+            verificationStatus?: string;
+            verificationType?: string | null;
         };
         UserVerification: {
             id: components["schemas"]["Uuid"];
@@ -3642,12 +3978,14 @@ export interface components {
         /** @enum {string} */
         SearchQType: "AUTO" | "NUMBER" | "KEYWORD" | "APPLICANT" | "INVENTOR";
         /**
-         * @description 涓撳埄鐗硅壊鏍囩缁熶竴鏋氫妇锛?        - HIGH_TECH_RETIRED: 閫€褰逛笓鍒?        - SLEEPING: 娌夌潯涓撳埄
-         *     - AWARD_WINNING: 鑾峰涓撳埄
-         *     - OPEN_LICENSE: 寮€鏀捐鍙?        - FIVE_STAR: 浜旀槦涓撳埄
+         * @description Unified listing topic enum.
+         *     - HIGH_TECH_RETIRED: retired patent
+         *     - SLEEPING: sleeping patent
+         *     - AWARD_WINNING: award-winning patent
+         *     - OPEN_LICENSE: open license
          * @enum {string}
          */
-        ListingTopic: "HIGH_TECH_RETIRED" | "SLEEPING" | "AWARD_WINNING" | "OPEN_LICENSE" | "FIVE_STAR";
+        ListingTopic: "HIGH_TECH_RETIRED" | "SLEEPING" | "AWARD_WINNING" | "OPEN_LICENSE";
         /** @enum {string} */
         ListingJobStatus: "PENDING" | "RUNNING" | "PAUSED" | "SUCCEEDED" | "FAILED";
         /** @enum {string} */
@@ -4421,7 +4759,7 @@ export interface components {
             page: components["schemas"]["PageMeta"];
         };
         /** @enum {string} */
-        ConversationContentType: "LISTING" | "ACHIEVEMENT" | "TECH_MANAGER";
+        ConversationContentType: "LISTING" | "ACHIEVEMENT" | "TECH_MANAGER" | "SUPPORT" | "DISPUTE" | "MAINTENANCE";
         Conversation: {
             id: components["schemas"]["Uuid"];
             contentType: components["schemas"]["ConversationContentType"];
@@ -4450,6 +4788,7 @@ export interface components {
             listingId?: components["schemas"]["Uuid"];
             /** @deprecated */
             listingTitle?: string;
+            listingTopics?: components["schemas"]["ListingTopic"][];
             lastMessagePreview?: string;
             /** Format: date-time */
             lastMessageAt: string;
@@ -4494,6 +4833,7 @@ export interface components {
         };
         PagedConversationMessage: {
             items: components["schemas"]["ConversationMessage"][];
+            /** Format: uuid */
             nextCursor?: string | null;
         };
         ConversationAgentAssignmentRequest: {
@@ -4664,6 +5004,14 @@ export interface components {
         PatentMaintenanceStatus: "DUE" | "PAID" | "OVERDUE" | "WAIVED";
         /** @enum {string} */
         PatentMaintenanceTaskStatus: "OPEN" | "IN_PROGRESS" | "DONE" | "CANCELLED";
+        /** @enum {string} */
+        PatentMaintenanceOrderStatus: "REQUESTED" | "QUOTED" | "AWAITING_PAYMENT" | "PAID" | "EXECUTING" | "RECEIPT_UPLOADED" | "RECONCILED" | "CLOSED" | "CANCELLED";
+        /** @enum {string} */
+        PatentMaintenancePaymentChannel: "WECHAT" | "OFFLINE_BANK" | "OFFLINE_OTHER";
+        /** @enum {string} */
+        PatentMaintenanceReconcileStatus: "PENDING" | "MATCHED" | "MISMATCHED";
+        /** @enum {string} */
+        PatentMaintenanceOrderEventType: "CREATED" | "QUOTE_UPDATED" | "PAYMENT_CONFIRMED" | "EXECUTION_SUBMITTED" | "RECEIPT_UPLOADED" | "RECONCILED" | "CLOSED" | "CANCELLED";
         PatentMaintenanceSchedule: {
             id: components["schemas"]["Uuid"];
             patentId: components["schemas"]["Uuid"];
@@ -4706,6 +5054,79 @@ export interface components {
             /** Format: date-time */
             updatedAt?: string;
         };
+        PatentMaintenanceOrder: {
+            id: components["schemas"]["Uuid"];
+            scheduleId: components["schemas"]["Uuid"];
+            applicantUserId: components["schemas"]["Uuid"];
+            assignedCsUserId?: components["schemas"]["Uuid"];
+            status: components["schemas"]["PatentMaintenanceOrderStatus"];
+            paymentChannel?: components["schemas"]["PatentMaintenancePaymentChannel"];
+            officialFeeFen: number;
+            lateFeeFen: number;
+            serviceFeeFen: number;
+            totalAmountFen: number;
+            /** Format: date-time */
+            paymentDeadline?: string;
+            /** Format: date-time */
+            paidAt?: string;
+            /** Format: date-time */
+            executedAt?: string;
+            /** Format: date-time */
+            receiptIssuedAt?: string;
+            officialSubmissionNo?: string;
+            officialReceiptNo?: string;
+            paymentTxnNo?: string;
+            officialReceiptFileId?: components["schemas"]["Uuid"];
+            reconcileStatus: components["schemas"]["PatentMaintenanceReconcileStatus"];
+            reconcileNote?: string;
+            closeNote?: string;
+            patentId?: components["schemas"]["Uuid"];
+            patentTitle?: string;
+            applicationNoDisplay?: string;
+            scheduleYearNo?: number;
+            /** Format: date */
+            scheduleDueDate?: string;
+            canContactSupport?: boolean;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            updatedAt?: string;
+        };
+        PatentMaintenanceOrderEvent: {
+            id: components["schemas"]["Uuid"];
+            orderId: components["schemas"]["Uuid"];
+            actorUserId?: components["schemas"]["Uuid"];
+            actorNickname?: string;
+            actorRole?: string;
+            eventType: components["schemas"]["PatentMaintenanceOrderEventType"];
+            fromStatus?: components["schemas"]["PatentMaintenanceOrderStatus"];
+            toStatus: components["schemas"]["PatentMaintenanceOrderStatus"];
+            note?: string;
+            payloadJson?: {
+                [key: string]: unknown;
+            };
+            /** Format: date-time */
+            createdAt: string;
+        };
+        /** @enum {string} */
+        MaintenanceUrgency: "OVERDUE" | "DUE_SOON" | "UPCOMING" | "NORMAL" | "SETTLED";
+        MyPatentMaintenanceSchedule: components["schemas"]["PatentMaintenanceSchedule"] & {
+            patentTitle?: string;
+            applicationNoDisplay?: string;
+            urgency?: components["schemas"]["MaintenanceUrgency"];
+            canContactSupport?: boolean;
+        };
+        MyPatentMaintenanceTask: components["schemas"]["PatentMaintenanceTask"] & {
+            patentId?: components["schemas"]["Uuid"];
+            patentTitle?: string;
+            applicationNoDisplay?: string;
+            scheduleYearNo?: number;
+            /** Format: date */
+            scheduleDueDate?: string;
+            scheduleStatus?: components["schemas"]["PatentMaintenanceStatus"];
+            urgency?: components["schemas"]["MaintenanceUrgency"];
+            canContactSupport?: boolean;
+        };
         PatentMaintenanceTaskCreateRequest: {
             scheduleId: components["schemas"]["Uuid"];
             assignedCsUserId?: components["schemas"]["Uuid"];
@@ -4717,6 +5138,49 @@ export interface components {
             note?: string;
             evidenceFileId?: components["schemas"]["Uuid"];
         };
+        PatentMaintenanceOrderCreateRequest: {
+            scheduleId: components["schemas"]["Uuid"];
+            applicantUserId?: components["schemas"]["Uuid"];
+            assignedCsUserId?: components["schemas"]["Uuid"];
+        };
+        PatentMaintenanceOrderMyCreateRequest: {
+            scheduleId: components["schemas"]["Uuid"];
+        };
+        PatentMaintenanceOrderQuoteRequest: {
+            officialFeeFen: number;
+            lateFeeFen?: number;
+            serviceFeeFen: number;
+            /** Format: date-time */
+            paymentDeadline: string;
+            assignedCsUserId?: components["schemas"]["Uuid"];
+        };
+        PatentMaintenanceOrderPaymentConfirmRequest: {
+            paymentChannel: components["schemas"]["PatentMaintenancePaymentChannel"];
+            paymentTxnNo: string;
+            /** Format: date-time */
+            paidAt?: string;
+        };
+        PatentMaintenanceOrderExecutionRequest: {
+            officialSubmissionNo: string;
+            /** Format: date-time */
+            executedAt?: string;
+        };
+        PatentMaintenanceOrderReceiptRequest: {
+            officialReceiptNo: string;
+            officialReceiptFileId: components["schemas"]["Uuid"];
+            /** Format: date-time */
+            receiptIssuedAt?: string;
+        };
+        PatentMaintenanceOrderReconcileRequest: {
+            reconcileStatus: components["schemas"]["PatentMaintenanceReconcileStatus"];
+            reconcileNote?: string;
+        };
+        PatentMaintenanceOrderCloseRequest: {
+            closeNote?: string;
+        };
+        PatentMaintenanceOrderCancelRequest: {
+            closeNote: string;
+        };
         PagedPatentMaintenanceSchedule: {
             items: components["schemas"]["PatentMaintenanceSchedule"][];
             page: components["schemas"]["PageMeta"];
@@ -4724,6 +5188,25 @@ export interface components {
         PagedPatentMaintenanceTask: {
             items: components["schemas"]["PatentMaintenanceTask"][];
             page: components["schemas"]["PageMeta"];
+        };
+        PagedMyPatentMaintenanceSchedule: {
+            items: components["schemas"]["MyPatentMaintenanceSchedule"][];
+            page: components["schemas"]["PageMeta"];
+        };
+        PagedMyPatentMaintenanceTask: {
+            items: components["schemas"]["MyPatentMaintenanceTask"][];
+            page: components["schemas"]["PageMeta"];
+        };
+        PagedPatentMaintenanceOrder: {
+            items: components["schemas"]["PatentMaintenanceOrder"][];
+            page: components["schemas"]["PageMeta"];
+        };
+        PagedMyPatentMaintenanceOrder: {
+            items: components["schemas"]["PatentMaintenanceOrder"][];
+            page: components["schemas"]["PageMeta"];
+        };
+        PatentMaintenanceOrderEventList: {
+            items: components["schemas"]["PatentMaintenanceOrderEvent"][];
         };
         PatentCreateRequest: {
             jurisdiction?: components["schemas"]["Jurisdiction"];
@@ -4913,6 +5396,12 @@ export interface components {
             roleIds: string[];
             reason?: string;
         };
+        RbacUserCreateRequest: {
+            phone: components["schemas"]["PhoneNumber"];
+            name: string;
+            roleIds: string[];
+            reason?: string;
+        };
         OkResponse: {
             ok: boolean;
         };
@@ -5022,6 +5511,15 @@ export interface components {
                 "application/json": components["schemas"]["ErrorResponse"];
             };
         };
+        /** @description Not Implemented */
+        NotImplemented: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": components["schemas"]["ErrorResponse"];
+            };
+        };
     };
     parameters: {
         /** @description 閸忔娊鏁拠宥忕礄閺嶅洭顣?閹芥顩?閺夊啫鍩勬禍?閸欐垶妲戞禍?閺堢儤鐎崥宥囆炵粵澶涚礆 */
@@ -5090,6 +5588,7 @@ export interface components {
         /** @description Locarno 缂佸棗鍨庨崚鍡欒閸欏嚖绱濇笟瀣洤 12-01 */
         Loc: string[];
         LegalStatus: components["schemas"]["LegalStatus"];
+        PatentSourcePrimary: "USER" | "ADMIN" | "PROVIDER";
         SortBy: components["schemas"]["SortBy"];
         AchievementSortBy: components["schemas"]["AchievementSortBy"];
         AchievementMaturity: components["schemas"]["AchievementMaturity"];
@@ -5106,6 +5605,10 @@ export interface components {
         MaintenanceStatus: components["schemas"]["PatentMaintenanceStatus"];
         /** @description 閹垫顓告禒璇插閻樿埖鈧浇绻冨? */
         MaintenanceTaskStatus: components["schemas"]["PatentMaintenanceTaskStatus"];
+        /** @description Maintenance order lifecycle status */
+        MaintenanceOrderStatus: components["schemas"]["PatentMaintenanceOrderStatus"];
+        /** @description Maintenance order reconcile status */
+        MaintenanceReconcileStatus: components["schemas"]["PatentMaintenanceReconcileStatus"];
         /** @description 閸涘﹨顒熼悩鑸碘偓浣界箖濠? */
         AlertStatus: components["schemas"]["AlertStatus"];
         /** @description 閸涘﹨顒熺痪褍鍩嗘潻鍥ㄦ姢 */
@@ -5117,6 +5620,7 @@ export interface components {
         ParseResultId: components["schemas"]["Uuid"];
         MaintenanceScheduleId: components["schemas"]["Uuid"];
         MaintenanceTaskId: components["schemas"]["Uuid"];
+        MaintenanceOrderId: components["schemas"]["Uuid"];
         AlertId: components["schemas"]["Uuid"];
         /** @description 閻ｆ瑨鈻堥幍鈧仦鐐插敶鐎瑰湱琚崹瀣箖濠? */
         CommentContentType: components["schemas"]["CommentContentType"];
@@ -5134,6 +5638,16 @@ export interface components {
         OrderStatusGroup: components["schemas"]["OrderStatusGroup"];
         /** @description 楠炲倻鐡戦柨顕嗙礄瀵ら缚顔呴悽銊ょ艾閺€顖欑帛/闁偓濞?閺€鐐儥缁涘婀侀崜顖欑稊閻劎娈戦幒銉ュ經閿涙稑鎮撴稉鈧獮鍌滅搼闁款喚娈戦柌宥咁槻鐠囬攱鐪版惔鏃囩箲閸ョ偛鎮撴稉鈧紒鎾寸亯閿? */
         IdempotencyKey: string;
+        /** @description WeChat Pay notify timestamp. */
+        WechatpayTimestamp: string;
+        /** @description WeChat Pay notify nonce. */
+        WechatpayNonce: string;
+        /** @description WeChat Pay notify signature. */
+        WechatpaySignature: string;
+        /** @description WeChat Pay platform certificate serial. */
+        WechatpaySerial: string;
+        /** @description WeChat Pay signature algorithm, usually `WECHATPAY2-SHA256-RSA2048`. */
+        WechatpaySignatureType: string;
         ListingId: components["schemas"]["Uuid"];
         AchievementId: components["schemas"]["Uuid"];
         TechManagerId: components["schemas"]["Uuid"];
@@ -5189,6 +5703,7 @@ export interface operations {
                 };
             };
             400: components["responses"]["BadRequest"];
+            501: components["responses"]["NotImplemented"];
         };
     };
     authWechatMpLogin: {
@@ -5246,6 +5761,7 @@ export interface operations {
             };
             400: components["responses"]["BadRequest"];
             401: components["responses"]["Unauthorized"];
+            409: components["responses"]["Conflict"];
         };
     };
     authSmsSend: {
@@ -5272,6 +5788,8 @@ export interface operations {
                 content: {
                     "application/json": {
                         cooldownSeconds: number;
+                        /** @description Development-only debug field. Not returned in production. */
+                        debugCode?: string;
                     };
                 };
             };
@@ -5304,6 +5822,27 @@ export interface operations {
                 };
             };
             400: components["responses"]["BadRequest"];
+        };
+    };
+    authGetSession: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AuthSession"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
         };
     };
     getMe: {
@@ -7188,7 +7727,18 @@ export interface operations {
     wechatPayNotify: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                /** @description WeChat Pay notify timestamp. */
+                "Wechatpay-Timestamp"?: components["parameters"]["WechatpayTimestamp"];
+                /** @description WeChat Pay notify nonce. */
+                "Wechatpay-Nonce"?: components["parameters"]["WechatpayNonce"];
+                /** @description WeChat Pay notify signature. */
+                "Wechatpay-Signature"?: components["parameters"]["WechatpaySignature"];
+                /** @description WeChat Pay platform certificate serial. */
+                "Wechatpay-Serial"?: components["parameters"]["WechatpaySerial"];
+                /** @description WeChat Pay signature algorithm, usually `WECHATPAY2-SHA256-RSA2048`. */
+                "Wechatpay-Signature-Type"?: components["parameters"]["WechatpaySignatureType"];
+            };
             path?: never;
             cookie?: never;
         };
@@ -7200,12 +7750,17 @@ export interface operations {
             };
         };
         responses: {
-            /** @description No Content */
-            204: {
+            /** @description OK */
+            200: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": {
+                        code: string;
+                        message: string;
+                    };
+                };
             };
             400: components["responses"]["BadRequest"];
         };
@@ -7318,6 +7873,87 @@ export interface operations {
             409: components["responses"]["Conflict"];
         };
     };
+    upsertSupportConversation: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description 楠炲倻鐡戦柨顕嗙礄瀵ら缚顔呴悽銊ょ艾閺€顖欑帛/闁偓濞?閺€鐐儥缁涘婀侀崜顖欑稊閻劎娈戦幒銉ュ經閿涙稑鎮撴稉鈧獮鍌滅搼闁款喚娈戦柌宥咁槻鐠囬攱鐪版惔鏃囩箲閸ョ偛鎮撴稉鈧紒鎾寸亯閿? */
+                "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Conversation"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            409: components["responses"]["Conflict"];
+        };
+    };
+    upsertOrderDisputeConversation: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description 楠炲倻鐡戦柨顕嗙礄瀵ら缚顔呴悽銊ょ艾閺€顖欑帛/闁偓濞?閺€鐐儥缁涘婀侀崜顖欑稊閻劎娈戦幒銉ュ經閿涙稑鎮撴稉鈧獮鍌滅搼闁款喚娈戦柌宥咁槻鐠囬攱鐪版惔鏃囩箲閸ョ偛鎮撴稉鈧紒鎾寸亯閿? */
+                "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
+            };
+            path: {
+                orderId: components["parameters"]["OrderId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Conversation"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    upsertMaintenanceOrderConversation: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description 楠炲倻鐡戦柨顕嗙礄瀵ら缚顔呴悽銊ょ艾閺€顖欑帛/闁偓濞?閺€鐐儥缁涘婀侀崜顖欑稊閻劎娈戦幒銉ュ經閿涙稑鎮撴稉鈧獮鍌滅搼闁款喚娈戦柌宥咁槻鐠囬攱鐪版惔鏃囩箲閸ョ偛鎮撴稉鈧紒鎾寸亯閿? */
+                "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
+            };
+            path: {
+                orderId: components["parameters"]["MaintenanceOrderId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Conversation"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
     listConversationMessages: {
         parameters: {
             query?: {
@@ -7408,6 +8044,19 @@ export interface operations {
     adminListPlatformConversations: {
         parameters: {
             query?: {
+                /** @description 閸忔娊鏁拠宥忕礄閺嶅洭顣?閹芥顩?閺夊啫鍩勬禍?閸欐垶妲戞禍?閺堢儤鐎崥宥囆炵粵澶涚礆 */
+                q?: components["parameters"]["Q"];
+                /** @description Conversation channel filter. */
+                channel?: "ALL" | "CONSULTATION" | "SUPPORT" | "DISPUTE";
+                /** @description Assignment scope filter. */
+                assigned?: "ALL" | "MINE" | "ASSIGNED" | "UNASSIGNED";
+                /** @description Listing topic filter. */
+                listingTopic?: components["parameters"]["ListingTopic"];
+                /** @description Updated time start (inclusive). */
+                updatedFrom?: string;
+                /** @description Updated time end (inclusive). */
+                updatedTo?: string;
+                /** @description Legacy flag. Prefer `assigned=MINE`. */
                 mineOnly?: boolean;
                 page?: components["parameters"]["Page"];
                 pageSize?: components["parameters"]["PageSize"];
@@ -8292,6 +8941,7 @@ export interface operations {
                 q?: components["parameters"]["Q"];
                 patentType?: components["parameters"]["PatentType"];
                 legalStatus?: components["parameters"]["LegalStatus"];
+                sourcePrimary?: components["parameters"]["PatentSourcePrimary"];
                 page?: components["parameters"]["Page"];
                 pageSize?: components["parameters"]["PageSize"];
             };
@@ -8506,6 +9156,7 @@ export interface operations {
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
         };
     };
     adminExecutePatentImportJob: {
@@ -8532,6 +9183,7 @@ export interface operations {
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
         };
     };
     adminListPatentImportJobRows: {
@@ -8970,6 +9622,500 @@ export interface operations {
             404: components["responses"]["NotFound"];
         };
     };
+    adminListPatentMaintenanceOrders: {
+        parameters: {
+            query?: {
+                scheduleId?: components["schemas"]["Uuid"];
+                applicantUserId?: components["schemas"]["Uuid"];
+                assignedCsUserId?: components["schemas"]["Uuid"];
+                /** @description Maintenance order lifecycle status */
+                status?: components["parameters"]["MaintenanceOrderStatus"];
+                /** @description Maintenance order reconcile status */
+                reconcileStatus?: components["parameters"]["MaintenanceReconcileStatus"];
+                page?: components["parameters"]["Page"];
+                pageSize?: components["parameters"]["PageSize"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PagedPatentMaintenanceOrder"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+        };
+    };
+    adminCreatePatentMaintenanceOrder: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PatentMaintenanceOrderCreateRequest"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PatentMaintenanceOrder"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            409: components["responses"]["Conflict"];
+        };
+    };
+    adminGetPatentMaintenanceOrder: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                orderId: components["parameters"]["MaintenanceOrderId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PatentMaintenanceOrder"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    adminListPatentMaintenanceOrderEvents: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                orderId: components["parameters"]["MaintenanceOrderId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PatentMaintenanceOrderEventList"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    adminQuotePatentMaintenanceOrder: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                orderId: components["parameters"]["MaintenanceOrderId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PatentMaintenanceOrderQuoteRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PatentMaintenanceOrder"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    adminConfirmPatentMaintenanceOrderPayment: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                orderId: components["parameters"]["MaintenanceOrderId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PatentMaintenanceOrderPaymentConfirmRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PatentMaintenanceOrder"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    adminSubmitPatentMaintenanceOrderExecution: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                orderId: components["parameters"]["MaintenanceOrderId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PatentMaintenanceOrderExecutionRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PatentMaintenanceOrder"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    adminUploadPatentMaintenanceOrderReceipt: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                orderId: components["parameters"]["MaintenanceOrderId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PatentMaintenanceOrderReceiptRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PatentMaintenanceOrder"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    adminReconcilePatentMaintenanceOrder: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                orderId: components["parameters"]["MaintenanceOrderId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PatentMaintenanceOrderReconcileRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PatentMaintenanceOrder"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    adminClosePatentMaintenanceOrder: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                orderId: components["parameters"]["MaintenanceOrderId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["PatentMaintenanceOrderCloseRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PatentMaintenanceOrder"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    adminCancelPatentMaintenanceOrder: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                orderId: components["parameters"]["MaintenanceOrderId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PatentMaintenanceOrderCancelRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PatentMaintenanceOrder"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    listMyPatentMaintenanceSchedules: {
+        parameters: {
+            query?: {
+                patentId?: components["schemas"]["Uuid"];
+                /** @description 楠炵鍨傞弮銉р柤閻樿埖鈧浇绻冨? */
+                status?: components["parameters"]["MaintenanceStatus"];
+                dueFrom?: string;
+                dueTo?: string;
+                page?: components["parameters"]["Page"];
+                pageSize?: components["parameters"]["PageSize"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PagedMyPatentMaintenanceSchedule"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+        };
+    };
+    listMyPatentMaintenanceTasks: {
+        parameters: {
+            query?: {
+                scheduleId?: components["schemas"]["Uuid"];
+                /** @description 閹垫顓告禒璇插閻樿埖鈧浇绻冨? */
+                status?: components["parameters"]["MaintenanceTaskStatus"];
+                page?: components["parameters"]["Page"];
+                pageSize?: components["parameters"]["PageSize"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PagedMyPatentMaintenanceTask"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+        };
+    };
+    listMyPatentMaintenanceOrders: {
+        parameters: {
+            query?: {
+                scheduleId?: components["schemas"]["Uuid"];
+                /** @description Maintenance order lifecycle status */
+                status?: components["parameters"]["MaintenanceOrderStatus"];
+                /** @description Maintenance order reconcile status */
+                reconcileStatus?: components["parameters"]["MaintenanceReconcileStatus"];
+                page?: components["parameters"]["Page"];
+                pageSize?: components["parameters"]["PageSize"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PagedMyPatentMaintenanceOrder"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+        };
+    };
+    createMyPatentMaintenanceOrder: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PatentMaintenanceOrderMyCreateRequest"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PatentMaintenanceOrder"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            409: components["responses"]["Conflict"];
+        };
+    };
+    getMyPatentMaintenanceOrder: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                orderId: components["parameters"]["MaintenanceOrderId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PatentMaintenanceOrder"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    listMyPatentMaintenanceOrderEvents: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                orderId: components["parameters"]["MaintenanceOrderId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PatentMaintenanceOrderEventList"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
     adminListAlertEvents: {
         parameters: {
             query?: {
@@ -9044,6 +10190,8 @@ export interface operations {
                 status?: components["parameters"]["ListingStatus"];
                 /** @description 閸愬懎顔愰弶銉︾爱鏉╁洦鎶? */
                 source?: components["parameters"]["ContentSource"];
+                /** @description Listing topic filter. */
+                listingTopic?: components["parameters"]["ListingTopic"];
                 page?: components["parameters"]["Page"];
                 pageSize?: components["parameters"]["PageSize"];
             };
@@ -10931,7 +12079,12 @@ export interface operations {
     };
     adminListRbacUsers: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description Search keyword against user id, phone, or nickname. */
+                q?: string;
+                /** @description Default `STAFF` to focus on backoffice employees. */
+                scope?: "ALL" | "STAFF";
+            };
             header?: never;
             path?: never;
             cookie?: never;
@@ -10949,6 +12102,34 @@ export interface operations {
             };
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
+        };
+    };
+    adminCreateRbacUser: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RbacUserCreateRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RbacUser"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            409: components["responses"]["Conflict"];
         };
     };
     adminUpdateRbacUserRoles: {

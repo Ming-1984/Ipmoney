@@ -1,5 +1,60 @@
 # Test Report (Consolidated)
 
+## Latest (2026-03-23)
+
+### Commands & Results (dev)
+- `pnpm -C apps/api test`
+  - Result: pass (`537/537`)
+  - Notes: includes新增年费托管用户侧接口测试（`/me/patent-maintenance/*`）与原有全量回归。
+- `pnpm -C apps/api test -- test/patent-maintenance.controller.spec.ts test/patent-maintenance.filters.spec.ts test/patent-maintenance.write-flow.spec.ts test/patent-maintenance.me.controller.spec.ts test/patent-maintenance.me.spec.ts`
+  - Result: pass (`20/20`)
+- `pnpm -C apps/api typecheck`
+  - Result: pass
+- `pnpm -C apps/admin-web typecheck`
+  - Result: pass
+- `pnpm -C apps/client typecheck`
+  - Result: pass
+- `pnpm -C apps/client build:h5`
+  - Result: pass（仅资源体积告警，无编译错误）
+- `pnpm -C apps/client build:weapp`
+  - Result: pass
+  - Notes: `check-weapp-dist-pages` 通过，当前路由校验 `49` 个页面。
+- `powershell -ExecutionPolicy Bypass -File scripts/weapp-route-smoke.ps1 -NoAuth -ReportDate 2026-03-23 -TimeoutMs 180000 -LaunchRetries 1 -LaunchRetryDelayMs 2000 -KillStaleDevtools`
+  - Result: pass (`12/12` routes)
+  - Notes: 已将 `maintenance -> /subpackages/maintenance/index` 纳入路由冒烟，无 runtime exception。
+- `$env:VITE_API_BASE_URL='http://127.0.0.1:3200'; pnpm -C apps/admin-web build`
+  - Result: pass
+  - Notes: 后台生产构建需要显式 `VITE_API_BASE_URL`。
+- `pnpm openapi:lint`
+  - Result: pass
+- `pnpm openapi:types`
+  - Result: pass
+- `node scripts/audit-openapi-backend.mjs`
+  - Result: pass (`OpenAPI-only=0`, `Controller-only=0`, `Controllers=215`, `OpenAPI=215`)
+- `node scripts/audit-coverage.mjs`
+  - Result: pass（覆盖报告已更新）
+- `node scripts/build-page-api-test-matrix.mjs`
+  - Result: fail（缺少 `.tmp/ui-render-smoke-2026-03-23.json` 输入文件，未生成当日矩阵）
+
+## Latest (2026-03-22)
+
+### Commands & Results (dev)
+- `powershell -ExecutionPolicy Bypass -File scripts/verify.ps1 -ApiBaseUrl https://api.ipmoney.cn -ApiPort 3200 -ReportDate 2026-03-22`
+  - Result: pass
+  - Notes: full-chain gate passed (`api-real-smoke` `1281/1281`, OpenAPI coverage `207/207`, quality-floor `violations=[]`, `db-preflight` `9/9`, `ui-render(core)` `3/3`, `ui-dom(core)` `11/11`).
+- `pnpm -C apps/api test`
+  - Result: pass (`531/531`)
+- `pnpm -C apps/api test:e2e`
+  - Result: pass (`2/2`)
+- `powershell -ExecutionPolicy Bypass -File scripts/ui-render-smoke.ps1 -Mode full -ReportDate 2026-03-22`
+  - Result: pass (`64/64`)
+- `powershell -ExecutionPolicy Bypass -File scripts/ui-dom-smoke.ps1 -Mode full -ReportDate 2026-03-22`
+  - Result: fail -> pass (`63/64` -> `64/64`)
+  - Notes: fixed outdated selector for `/listings` page smoke assertion (`.admin-listings-page` -> stable container selectors).
+- `node scripts/run-with-env.mjs -- node scripts/check-prod-env.mjs` (with `STAGE=prod`)
+  - Result: fail (expected in current local `.env`)
+  - Notes: local env still contains non-production defaults (`BASE_URL/PUBLIC_HOST_WHITELIST` local host, default secrets, demo flag).
+
 ## Latest (2026-03-15)
 
 ### Commands & Results (dev)

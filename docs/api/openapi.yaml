@@ -98,14 +98,18 @@ paths:
                             type: string
         '400':
           $ref: '#/components/responses/BadRequest'
+        '501':
+          $ref: '#/components/responses/NotImplemented'
   /auth/wechat/mp-login:
     post:
       tags:
         - Auth
-      summary: 瀵邦喕淇婄亸蹇曗柤鎼村繒娅ヨぐ鏇礄code 閳?token閿?
+      summary: Mini Program login via wx.login code2Session
       description: |
-        鐏忓繒鈻兼惔蹇曨伂闁俺绻?`wx.login` 閼惧嘲褰?`code` 閸氬氦鐨熼悽銊︽拱閹恒儱褰涢妴?
-        鐠囧瓨妲戦敍?        - 閺堝秴濮熺粩顖氱安娴ｈ法鏁ゅ顔讳繆 `code2Session`閿涘潉/sns/jscode2session`閿涘宕查崣?`openid/session_key`閿涘苯鑻熼幐?`openid` 閸嬫氨鏁ら幋閿嬫Ё鐏忓嫬鎮楃粵鎯у絺楠炲啿褰?`accessToken`閵?        - `wx.login` 娑撳秷绻戦崶鐐层仈閸?閺勭數袨閿涙艾銇旈崓?閺勭數袨瀵ら缚顔呯挧?`chooseAvatar + input type="nickname"`閿涘苯鑻熼柅姘崇箖 `POST /files` + `PATCH /me` 閽€钘夌氨閵?
+        Exchange `wx.login` code with WeChat `code2Session`, map `openid` to platform user,
+        and issue platform `accessToken`.
+        - Request body requires `code`.
+        - Demo-only code (`demo`) is accepted only when demo auth is enabled in non-release env.
       operationId: authWechatMpLogin
       security: []
       requestBody:
@@ -139,7 +143,7 @@ paths:
 
         Notes:
         - Requires BearerAuth.
-        - Real implementation should call WeChat `phonenumber.getPhoneNumber` and persist the phone to the user profile.
+        - Server validates WeChat signature chain and persists bound phone on current user.
       operationId: authWechatPhoneBind
       security:
         - BearerAuth: []
@@ -171,11 +175,13 @@ paths:
           $ref: '#/components/responses/BadRequest'
         '401':
           $ref: '#/components/responses/Unauthorized'
+        '409':
+          $ref: '#/components/responses/Conflict'
   /auth/sms/send:
     post:
       tags:
         - Auth
-      summary: 閸欐垿鈧胶鐓穱锟犵崣鐠囦胶鐖?
+      summary: Send SMS code
       operationId: authSmsSend
       security: []
       requestBody:
@@ -206,13 +212,16 @@ paths:
                   cooldownSeconds:
                     type: integer
                     minimum: 0
+                  debugCode:
+                    type: string
+                    description: Development-only debug field. Not returned in production.
         '400':
           $ref: '#/components/responses/BadRequest'
   /auth/sms/verify:
     post:
       tags:
         - Auth
-      summary: 閻厺淇婃宀冪槈閻胶娅ヨぐ?
+      summary: Verify SMS code and login
       operationId: authSmsVerify
       security: []
       requestBody:
@@ -241,6 +250,24 @@ paths:
                 $ref: '#/components/schemas/AuthTokenResponse'
         '400':
           $ref: '#/components/responses/BadRequest'
+  /auth/session:
+    get:
+      tags:
+        - Auth
+      summary: Get current auth session
+      operationId: authGetSession
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: OK
+
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthSession'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
   /me:
     get:
       tags:
@@ -1839,7 +1866,7 @@ paths:
     post:
       tags:
         - Payments
-      summary: 閸掓稑缂撻弨顖欑帛閹板繐娴橀敍鍫ｎ吂闁?鐏忕偓顑欓敍?
+      summary: Create WeChat JSAPI payment intent
       operationId: createPaymentIntent
       security:
         - BearerAuth: []
@@ -2031,11 +2058,14 @@ paths:
     post:
       tags:
         - Payments
-      summary: 瀵邦喕淇婇弨顖欑帛閸ョ偠鐨熼敍鍫濆敶闁劍甯撮崣锝忕礆
+      summary: WeChat Pay v3 notify callback
       operationId: wechatPayNotify
       security: []
       description: |-
-        瀵邦喕淇婇弨顖欑帛 v3 閸ョ偠鐨熺紒鐔剁閸忋儱褰涢敍鍫熸暜娴?闁偓濞嗘拝绱氶敍姘箛閸旓紕顏箛鍛淬€忛幍褑顢?**妤犲瞼顒?+ 鐟欙絽鐦?resource**閿涘苯鑻熼崑姘畵缁涘顦╅悶鍡礄闁灝鍘ら柌宥咁槻闁氨鐓＄€佃壈鍤ч柌宥咁槻閸忋儴澶?闁插秴顦查柅鈧▎鎾呯礆閵?        閸欏倽鈧喛绱板顔讳繆閺€顖欑帛 v3 閺傚洦銆傛稉顓犳畱閸ョ偠鐨?HTTP Header閿涘湹echatpay-*閿涘绗岄崶鐐剁殶閹躲儲鏋?resource 鐟欙絽鐦戝ù浣衡柤閵?      parameters:
+        Handle WeChat Pay v3 payment/refund notifications.
+        Server verifies `Wechatpay-*` signature headers, decrypts `resource`,
+        deduplicates by provider event id, and updates order/payment states.
+      parameters:
         - $ref: "#/components/parameters/WechatpayTimestamp"
         - $ref: "#/components/parameters/WechatpayNonce"
         - $ref: "#/components/parameters/WechatpaySignature"
@@ -2049,8 +2079,20 @@ paths:
               type: object
               additionalProperties: true
       responses:
-        '204':
-          description: No Content
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - code
+                  - message
+                properties:
+                  code:
+                    type: string
+                  message:
+                    type: string
         '400':
           $ref: '#/components/responses/BadRequest'
   /me/conversations:
@@ -2151,6 +2193,80 @@ paths:
           $ref: '#/components/responses/NotFound'
         '409':
           $ref: '#/components/responses/Conflict'
+  /support/conversations:
+    post:
+      tags:
+        - Messaging
+      summary: Create or get support conversation
+      operationId: upsertSupportConversation
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      responses:
+        '200':
+          description: OK
+
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Conversation'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '409':
+          $ref: '#/components/responses/Conflict'
+  /orders/{orderId}/dispute-conversations:
+    post:
+      tags:
+        - Messaging
+        - Orders
+      summary: Create or get order dispute conversation
+      operationId: upsertOrderDisputeConversation
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/OrderId'
+        - $ref: '#/components/parameters/IdempotencyKey'
+      responses:
+        '200':
+          description: OK
+
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Conversation'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /patent-maintenance/orders/{orderId}/conversations:
+    post:
+      tags:
+        - Messaging
+        - Maintenance
+      summary: Create or get maintenance order conversation
+      operationId: upsertMaintenanceOrderConversation
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/MaintenanceOrderId'
+        - $ref: '#/components/parameters/IdempotencyKey'
+      responses:
+        '200':
+          description: OK
+
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Conversation'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
   /conversations/{conversationId}/messages:
     get:
       tags:
@@ -2166,6 +2282,7 @@ paths:
           required: false
           schema:
             type: string
+            format: uuid
           description: 濞撳憡鐖ｉ崚鍡涖€夐敍鍫滆礋缁岄缚銆冪粈杞扮矤閺堚偓閺傛澘绱戞慨瀣剁礆
         - name: limit
           in: query
@@ -2244,16 +2361,55 @@ paths:
       tags:
         - Admin
         - Messaging
-      summary: List platform listing consultations
+      summary: List platform managed conversations
       operationId: adminListPlatformConversations
       security:
         - BearerAuth: []
       parameters:
+        - $ref: '#/components/parameters/Q'
+        - name: channel
+          in: query
+          required: false
+          schema:
+            type: string
+            enum:
+              - ALL
+              - CONSULTATION
+              - SUPPORT
+              - DISPUTE
+          description: Conversation channel filter.
+        - name: assigned
+          in: query
+          required: false
+          schema:
+            type: string
+            enum:
+              - ALL
+              - MINE
+              - ASSIGNED
+              - UNASSIGNED
+          description: Assignment scope filter.
+        - $ref: '#/components/parameters/ListingTopic'
+        - name: updatedFrom
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date-time
+          description: Updated time start (inclusive).
+        - name: updatedTo
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date-time
+          description: Updated time end (inclusive).
         - name: mineOnly
           in: query
           required: false
           schema:
             type: boolean
+          description: Legacy flag. Prefer `assigned=MINE`.
         - $ref: '#/components/parameters/Page'
         - $ref: '#/components/parameters/PageSize'
       responses:
@@ -3192,6 +3348,7 @@ paths:
         - $ref: '#/components/parameters/Q'
         - $ref: '#/components/parameters/PatentType'
         - $ref: '#/components/parameters/LegalStatus'
+        - $ref: '#/components/parameters/PatentSourcePrimary'
         - $ref: '#/components/parameters/Page'
         - $ref: '#/components/parameters/PageSize'
       responses:
@@ -3407,6 +3564,8 @@ paths:
           $ref: '#/components/responses/Forbidden'
         '404':
           $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
   /admin/patents/jobs/import/{jobId}/execute:
     post:
       tags:
@@ -3434,6 +3593,8 @@ paths:
           $ref: '#/components/responses/Forbidden'
         '404':
           $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
   /admin/patents/jobs/import/{jobId}/rows:
     get:
       tags:
@@ -3906,6 +4067,551 @@ paths:
           $ref: '#/components/responses/Forbidden'
         '404':
           $ref: '#/components/responses/NotFound'
+  /admin/patent-maintenance/orders:
+    get:
+      tags:
+        - Admin
+        - Maintenance
+      summary: List maintenance orders
+      operationId: adminListPatentMaintenanceOrders
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: scheduleId
+          in: query
+          required: false
+          schema:
+            $ref: '#/components/schemas/Uuid'
+        - name: applicantUserId
+          in: query
+          required: false
+          schema:
+            $ref: '#/components/schemas/Uuid'
+        - name: assignedCsUserId
+          in: query
+          required: false
+          schema:
+            $ref: '#/components/schemas/Uuid'
+        - $ref: '#/components/parameters/MaintenanceOrderStatus'
+        - $ref: '#/components/parameters/MaintenanceReconcileStatus'
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PageSize'
+      responses:
+        '200':
+          description: OK
+
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PagedPatentMaintenanceOrder'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+    post:
+      tags:
+        - Admin
+        - Maintenance
+      summary: Create maintenance order
+      operationId: adminCreatePatentMaintenanceOrder
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatentMaintenanceOrderCreateRequest'
+      responses:
+        '201':
+          description: Created
+
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PatentMaintenanceOrder'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '409':
+          $ref: '#/components/responses/Conflict'
+  /admin/patent-maintenance/orders/{orderId}:
+    get:
+      tags:
+        - Admin
+        - Maintenance
+      summary: Get maintenance order detail
+      operationId: adminGetPatentMaintenanceOrder
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/MaintenanceOrderId'
+      responses:
+        '200':
+          description: OK
+
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PatentMaintenanceOrder'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /admin/patent-maintenance/orders/{orderId}/events:
+    get:
+      tags:
+        - Admin
+        - Maintenance
+      summary: List maintenance order events
+      operationId: adminListPatentMaintenanceOrderEvents
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/MaintenanceOrderId'
+      responses:
+        '200':
+          description: OK
+
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PatentMaintenanceOrderEventList'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /admin/patent-maintenance/orders/{orderId}/quote:
+    post:
+      tags:
+        - Admin
+        - Maintenance
+      summary: Quote maintenance order
+      operationId: adminQuotePatentMaintenanceOrder
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/MaintenanceOrderId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatentMaintenanceOrderQuoteRequest'
+      responses:
+        '200':
+          description: OK
+
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PatentMaintenanceOrder'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /admin/patent-maintenance/orders/{orderId}/payment-confirm:
+    post:
+      tags:
+        - Admin
+        - Maintenance
+      summary: Confirm maintenance order payment
+      operationId: adminConfirmPatentMaintenanceOrderPayment
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/MaintenanceOrderId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatentMaintenanceOrderPaymentConfirmRequest'
+      responses:
+        '200':
+          description: OK
+
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PatentMaintenanceOrder'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /admin/patent-maintenance/orders/{orderId}/execution:
+    post:
+      tags:
+        - Admin
+        - Maintenance
+      summary: Submit maintenance order execution
+      operationId: adminSubmitPatentMaintenanceOrderExecution
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/MaintenanceOrderId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatentMaintenanceOrderExecutionRequest'
+      responses:
+        '200':
+          description: OK
+
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PatentMaintenanceOrder'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /admin/patent-maintenance/orders/{orderId}/receipt:
+    post:
+      tags:
+        - Admin
+        - Maintenance
+      summary: Upload maintenance order receipt
+      operationId: adminUploadPatentMaintenanceOrderReceipt
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/MaintenanceOrderId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatentMaintenanceOrderReceiptRequest'
+      responses:
+        '200':
+          description: OK
+
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PatentMaintenanceOrder'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /admin/patent-maintenance/orders/{orderId}/reconcile:
+    post:
+      tags:
+        - Admin
+        - Maintenance
+      summary: Reconcile maintenance order
+      operationId: adminReconcilePatentMaintenanceOrder
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/MaintenanceOrderId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatentMaintenanceOrderReconcileRequest'
+      responses:
+        '200':
+          description: OK
+
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PatentMaintenanceOrder'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /admin/patent-maintenance/orders/{orderId}/close:
+    post:
+      tags:
+        - Admin
+        - Maintenance
+      summary: Close maintenance order
+      operationId: adminClosePatentMaintenanceOrder
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/MaintenanceOrderId'
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatentMaintenanceOrderCloseRequest'
+      responses:
+        '200':
+          description: OK
+
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PatentMaintenanceOrder'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /admin/patent-maintenance/orders/{orderId}/cancel:
+    post:
+      tags:
+        - Admin
+        - Maintenance
+      summary: Cancel maintenance order
+      operationId: adminCancelPatentMaintenanceOrder
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/MaintenanceOrderId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatentMaintenanceOrderCancelRequest'
+      responses:
+        '200':
+          description: OK
+
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PatentMaintenanceOrder'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /me/patent-maintenance/schedules:
+    get:
+      tags:
+        - Maintenance
+      summary: List my patent maintenance schedules
+      operationId: listMyPatentMaintenanceSchedules
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: patentId
+          in: query
+          required: false
+          schema:
+            $ref: '#/components/schemas/Uuid'
+        - $ref: '#/components/parameters/MaintenanceStatus'
+        - name: dueFrom
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date
+        - name: dueTo
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PageSize'
+      responses:
+        '200':
+          description: OK
+
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PagedMyPatentMaintenanceSchedule'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+  /me/patent-maintenance/tasks:
+    get:
+      tags:
+        - Maintenance
+      summary: List my patent maintenance tasks
+      operationId: listMyPatentMaintenanceTasks
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: scheduleId
+          in: query
+          required: false
+          schema:
+            $ref: '#/components/schemas/Uuid'
+        - $ref: '#/components/parameters/MaintenanceTaskStatus'
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PageSize'
+      responses:
+        '200':
+          description: OK
+
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PagedMyPatentMaintenanceTask'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+  /me/patent-maintenance/orders:
+    get:
+      tags:
+        - Maintenance
+      summary: List my patent maintenance orders
+      operationId: listMyPatentMaintenanceOrders
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: scheduleId
+          in: query
+          required: false
+          schema:
+            $ref: '#/components/schemas/Uuid'
+        - $ref: '#/components/parameters/MaintenanceOrderStatus'
+        - $ref: '#/components/parameters/MaintenanceReconcileStatus'
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PageSize'
+      responses:
+        '200':
+          description: OK
+
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PagedMyPatentMaintenanceOrder'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+    post:
+      tags:
+        - Maintenance
+      summary: Create my patent maintenance order
+      operationId: createMyPatentMaintenanceOrder
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatentMaintenanceOrderMyCreateRequest'
+      responses:
+        '201':
+          description: Created
+
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PatentMaintenanceOrder'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '409':
+          $ref: '#/components/responses/Conflict'
+  /me/patent-maintenance/orders/{orderId}:
+    get:
+      tags:
+        - Maintenance
+      summary: Get my patent maintenance order detail
+      operationId: getMyPatentMaintenanceOrder
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/MaintenanceOrderId'
+      responses:
+        '200':
+          description: OK
+
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PatentMaintenanceOrder'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /me/patent-maintenance/orders/{orderId}/events:
+    get:
+      tags:
+        - Maintenance
+      summary: List my patent maintenance order events
+      operationId: listMyPatentMaintenanceOrderEvents
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/MaintenanceOrderId'
+      responses:
+        '200':
+          description: OK
+
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PatentMaintenanceOrderEventList'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
   /admin/alerts:
     get:
       tags:
@@ -3997,6 +4703,7 @@ paths:
         - $ref: '#/components/parameters/AuditStatus'
         - $ref: '#/components/parameters/ListingStatus'
         - $ref: '#/components/parameters/ContentSource'
+        - $ref: '#/components/parameters/ListingTopic'
         - $ref: '#/components/parameters/Page'
         - $ref: '#/components/parameters/PageSize'
       responses:
@@ -5972,6 +6679,21 @@ paths:
       operationId: adminListRbacUsers
       security:
         - BearerAuth: []
+      parameters:
+        - name: q
+          in: query
+          schema:
+            type: string
+          description: Search keyword against user id, phone, or nickname.
+        - name: scope
+          in: query
+          schema:
+            type: string
+            enum:
+              - ALL
+              - STAFF
+            default: STAFF
+          description: Default `STAFF` to focus on backoffice employees.
       responses:
         '200':
           description: OK
@@ -5984,6 +6706,35 @@ paths:
           $ref: '#/components/responses/Unauthorized'
         '403':
           $ref: '#/components/responses/Forbidden'
+    post:
+      tags:
+        - Admin
+      summary: Create RBAC user
+      operationId: adminCreateRbacUser
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RbacUserCreateRequest'
+      responses:
+        '200':
+          description: OK
+
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RbacUser'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '409':
+          $ref: '#/components/responses/Conflict'
   /admin/rbac/users/{userId}:
     patch:
       tags:
@@ -6099,6 +6850,13 @@ components:
             $ref: '#/components/schemas/ErrorResponse'
     Conflict:
       description: Conflict
+
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    NotImplemented:
+      description: Not Implemented
 
       content:
         application/json:
@@ -6445,6 +7203,16 @@ components:
       required: false
       schema:
         $ref: '#/components/schemas/LegalStatus'
+    PatentSourcePrimary:
+      name: sourcePrimary
+      in: query
+      required: false
+      schema:
+        type: string
+        enum:
+          - USER
+          - ADMIN
+          - PROVIDER
     SortBy:
       name: sortBy
       in: query
@@ -6516,6 +7284,22 @@ components:
         $ref: '#/components/schemas/PatentMaintenanceTaskStatus'
       description: 閹垫顓告禒璇插閻樿埖鈧浇绻冨?
 
+    MaintenanceOrderStatus:
+      name: status
+      in: query
+      required: false
+      schema:
+        $ref: '#/components/schemas/PatentMaintenanceOrderStatus'
+      description: Maintenance order lifecycle status
+
+    MaintenanceReconcileStatus:
+      name: reconcileStatus
+      in: query
+      required: false
+      schema:
+        $ref: '#/components/schemas/PatentMaintenanceReconcileStatus'
+      description: Maintenance order reconcile status
+
     AlertStatus:
       name: status
       in: query
@@ -6561,6 +7345,12 @@ components:
         $ref: '#/components/schemas/Uuid'
     MaintenanceTaskId:
       name: taskId
+      in: path
+      required: true
+      schema:
+        $ref: '#/components/schemas/Uuid'
+    MaintenanceOrderId:
+      name: orderId
       in: path
       required: true
       schema:
@@ -6650,6 +7440,42 @@ components:
         type: string
         maxLength: 64
       description: 楠炲倻鐡戦柨顕嗙礄瀵ら缚顔呴悽銊ょ艾閺€顖欑帛/闁偓濞?閺€鐐儥缁涘婀侀崜顖欑稊閻劎娈戦幒銉ュ經閿涙稑鎮撴稉鈧獮鍌滅搼闁款喚娈戦柌宥咁槻鐠囬攱鐪版惔鏃囩箲閸ョ偛鎮撴稉鈧紒鎾寸亯閿?
+
+    WechatpayTimestamp:
+      name: Wechatpay-Timestamp
+      in: header
+      required: false
+      schema:
+        type: string
+      description: WeChat Pay notify timestamp.
+    WechatpayNonce:
+      name: Wechatpay-Nonce
+      in: header
+      required: false
+      schema:
+        type: string
+      description: WeChat Pay notify nonce.
+    WechatpaySignature:
+      name: Wechatpay-Signature
+      in: header
+      required: false
+      schema:
+        type: string
+      description: WeChat Pay notify signature.
+    WechatpaySerial:
+      name: Wechatpay-Serial
+      in: header
+      required: false
+      schema:
+        type: string
+      description: WeChat Pay platform certificate serial.
+    WechatpaySignatureType:
+      name: Wechatpay-Signature-Type
+      in: header
+      required: false
+      schema:
+        type: string
+      description: WeChat Pay signature algorithm, usually `WECHATPAY2-SHA256-RSA2048`.
 
     ListingId:
       name: listingId
@@ -6780,7 +7606,6 @@ components:
       enum:
         - LOGIN
         - BIND_PHONE
-        - FIVE_STAR
     UserRole:
       type: string
       enum:
@@ -7071,6 +7896,40 @@ components:
           minimum: 1
         user:
           $ref: '#/components/schemas/UserProfile'
+    AuthSession:
+      type: object
+      required:
+        - userId
+        - isAdmin
+        - roleNames
+        - roleIds
+        - permissions
+      properties:
+        userId:
+          $ref: '#/components/schemas/Uuid'
+        isAdmin:
+          type: boolean
+        role:
+          type: string
+        roleNames:
+          type: array
+          items:
+            type: string
+        roleIds:
+          type: array
+          items:
+            type: string
+        permissions:
+          type: array
+          items:
+            type: string
+        nickname:
+          type: string
+        verificationStatus:
+          type: string
+        verificationType:
+          type: string
+          nullable: true
     UserVerification:
       type: object
       required:
@@ -8483,11 +9342,12 @@ components:
         - SLEEPING
         - AWARD_WINNING
         - OPEN_LICENSE
-        - FIVE_STAR
       description: |
-        涓撳埄鐗硅壊鏍囩缁熶竴鏋氫妇锛?        - HIGH_TECH_RETIRED: 閫€褰逛笓鍒?        - SLEEPING: 娌夌潯涓撳埄
-        - AWARD_WINNING: 鑾峰涓撳埄
-        - OPEN_LICENSE: 寮€鏀捐鍙?        - FIVE_STAR: 浜旀槦涓撳埄
+        Unified listing topic enum.
+        - HIGH_TECH_RETIRED: retired patent
+        - SLEEPING: sleeping patent
+        - AWARD_WINNING: award-winning patent
+        - OPEN_LICENSE: open license
     ListingJobStatus:
       type: string
       enum:
@@ -10373,6 +11233,9 @@ components:
         - LISTING
         - ACHIEVEMENT
         - TECH_MANAGER
+        - SUPPORT
+        - DISPUTE
+        - MAINTENANCE
     Conversation:
       type: object
       required:
@@ -10441,6 +11304,10 @@ components:
         listingTitle:
           type: string
           deprecated: true
+        listingTopics:
+          type: array
+          items:
+            $ref: '#/components/schemas/ListingTopic'
         lastMessagePreview:
           type: string
         lastMessageAt:
@@ -10535,6 +11402,7 @@ components:
             $ref: '#/components/schemas/ConversationMessage'
         nextCursor:
           type: string
+          format: uuid
           nullable: true
     ConversationAgentAssignmentRequest:
       type: object
@@ -10963,6 +11831,41 @@ components:
         - IN_PROGRESS
         - DONE
         - CANCELLED
+    PatentMaintenanceOrderStatus:
+      type: string
+      enum:
+        - REQUESTED
+        - QUOTED
+        - AWAITING_PAYMENT
+        - PAID
+        - EXECUTING
+        - RECEIPT_UPLOADED
+        - RECONCILED
+        - CLOSED
+        - CANCELLED
+    PatentMaintenancePaymentChannel:
+      type: string
+      enum:
+        - WECHAT
+        - OFFLINE_BANK
+        - OFFLINE_OTHER
+    PatentMaintenanceReconcileStatus:
+      type: string
+      enum:
+        - PENDING
+        - MATCHED
+        - MISMATCHED
+    PatentMaintenanceOrderEventType:
+      type: string
+      enum:
+        - CREATED
+        - QUOTE_UPDATED
+        - PAYMENT_CONFIRMED
+        - EXECUTION_SUBMITTED
+        - RECEIPT_UPLOADED
+        - RECONCILED
+        - CLOSED
+        - CANCELLED
     PatentMaintenanceSchedule:
       type: object
       required:
@@ -11054,6 +11957,168 @@ components:
         updatedAt:
           type: string
           format: date-time
+    PatentMaintenanceOrder:
+      type: object
+      required:
+        - id
+        - scheduleId
+        - applicantUserId
+        - status
+        - officialFeeFen
+        - lateFeeFen
+        - serviceFeeFen
+        - totalAmountFen
+        - reconcileStatus
+        - createdAt
+      properties:
+        id:
+          $ref: '#/components/schemas/Uuid'
+        scheduleId:
+          $ref: '#/components/schemas/Uuid'
+        applicantUserId:
+          $ref: '#/components/schemas/Uuid'
+        assignedCsUserId:
+          $ref: '#/components/schemas/Uuid'
+          nullable: true
+        status:
+          $ref: '#/components/schemas/PatentMaintenanceOrderStatus'
+        paymentChannel:
+          $ref: '#/components/schemas/PatentMaintenancePaymentChannel'
+        officialFeeFen:
+          type: integer
+          minimum: 0
+        lateFeeFen:
+          type: integer
+          minimum: 0
+        serviceFeeFen:
+          type: integer
+          minimum: 0
+        totalAmountFen:
+          type: integer
+          minimum: 0
+        paymentDeadline:
+          type: string
+          format: date-time
+        paidAt:
+          type: string
+          format: date-time
+        executedAt:
+          type: string
+          format: date-time
+        receiptIssuedAt:
+          type: string
+          format: date-time
+        officialSubmissionNo:
+          type: string
+        officialReceiptNo:
+          type: string
+        paymentTxnNo:
+          type: string
+        officialReceiptFileId:
+          $ref: '#/components/schemas/Uuid'
+        reconcileStatus:
+          $ref: '#/components/schemas/PatentMaintenanceReconcileStatus'
+        reconcileNote:
+          type: string
+        closeNote:
+          type: string
+        patentId:
+          $ref: '#/components/schemas/Uuid'
+        patentTitle:
+          type: string
+        applicationNoDisplay:
+          type: string
+        scheduleYearNo:
+          type: integer
+          minimum: 1
+        scheduleDueDate:
+          type: string
+          format: date
+        canContactSupport:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    PatentMaintenanceOrderEvent:
+      type: object
+      required:
+        - id
+        - orderId
+        - eventType
+        - toStatus
+        - createdAt
+      properties:
+        id:
+          $ref: '#/components/schemas/Uuid'
+        orderId:
+          $ref: '#/components/schemas/Uuid'
+        actorUserId:
+          $ref: '#/components/schemas/Uuid'
+        actorNickname:
+          type: string
+        actorRole:
+          type: string
+        eventType:
+          $ref: '#/components/schemas/PatentMaintenanceOrderEventType'
+        fromStatus:
+          $ref: '#/components/schemas/PatentMaintenanceOrderStatus'
+        toStatus:
+          $ref: '#/components/schemas/PatentMaintenanceOrderStatus'
+        note:
+          type: string
+        payloadJson:
+          type: object
+          additionalProperties: true
+        createdAt:
+          type: string
+          format: date-time
+    MaintenanceUrgency:
+      type: string
+      enum:
+        - OVERDUE
+        - DUE_SOON
+        - UPCOMING
+        - NORMAL
+        - SETTLED
+    MyPatentMaintenanceSchedule:
+      allOf:
+        - $ref: '#/components/schemas/PatentMaintenanceSchedule'
+        - type: object
+          properties:
+            patentTitle:
+              type: string
+            applicationNoDisplay:
+              type: string
+            urgency:
+              $ref: '#/components/schemas/MaintenanceUrgency'
+            canContactSupport:
+              type: boolean
+    MyPatentMaintenanceTask:
+      allOf:
+        - $ref: '#/components/schemas/PatentMaintenanceTask'
+        - type: object
+          properties:
+            patentId:
+              $ref: '#/components/schemas/Uuid'
+            patentTitle:
+              type: string
+            applicationNoDisplay:
+              type: string
+            scheduleYearNo:
+              type: integer
+              minimum: 1
+            scheduleDueDate:
+              type: string
+              format: date
+            scheduleStatus:
+              $ref: '#/components/schemas/PatentMaintenanceStatus'
+            urgency:
+              $ref: '#/components/schemas/MaintenanceUrgency'
+            canContactSupport:
+              type: boolean
     PatentMaintenanceTaskCreateRequest:
       type: object
       required:
@@ -11076,6 +12141,102 @@ components:
           type: string
         evidenceFileId:
           $ref: '#/components/schemas/Uuid'
+    PatentMaintenanceOrderCreateRequest:
+      type: object
+      required:
+        - scheduleId
+      properties:
+        scheduleId:
+          $ref: '#/components/schemas/Uuid'
+        applicantUserId:
+          $ref: '#/components/schemas/Uuid'
+        assignedCsUserId:
+          $ref: '#/components/schemas/Uuid'
+    PatentMaintenanceOrderMyCreateRequest:
+      type: object
+      required:
+        - scheduleId
+      properties:
+        scheduleId:
+          $ref: '#/components/schemas/Uuid'
+    PatentMaintenanceOrderQuoteRequest:
+      type: object
+      required:
+        - officialFeeFen
+        - serviceFeeFen
+        - paymentDeadline
+      properties:
+        officialFeeFen:
+          type: integer
+          minimum: 0
+        lateFeeFen:
+          type: integer
+          minimum: 0
+        serviceFeeFen:
+          type: integer
+          minimum: 0
+        paymentDeadline:
+          type: string
+          format: date-time
+        assignedCsUserId:
+          $ref: '#/components/schemas/Uuid'
+    PatentMaintenanceOrderPaymentConfirmRequest:
+      type: object
+      required:
+        - paymentChannel
+        - paymentTxnNo
+      properties:
+        paymentChannel:
+          $ref: '#/components/schemas/PatentMaintenancePaymentChannel'
+        paymentTxnNo:
+          type: string
+        paidAt:
+          type: string
+          format: date-time
+    PatentMaintenanceOrderExecutionRequest:
+      type: object
+      required:
+        - officialSubmissionNo
+      properties:
+        officialSubmissionNo:
+          type: string
+        executedAt:
+          type: string
+          format: date-time
+    PatentMaintenanceOrderReceiptRequest:
+      type: object
+      required:
+        - officialReceiptNo
+        - officialReceiptFileId
+      properties:
+        officialReceiptNo:
+          type: string
+        officialReceiptFileId:
+          $ref: '#/components/schemas/Uuid'
+        receiptIssuedAt:
+          type: string
+          format: date-time
+    PatentMaintenanceOrderReconcileRequest:
+      type: object
+      required:
+        - reconcileStatus
+      properties:
+        reconcileStatus:
+          $ref: '#/components/schemas/PatentMaintenanceReconcileStatus'
+        reconcileNote:
+          type: string
+    PatentMaintenanceOrderCloseRequest:
+      type: object
+      properties:
+        closeNote:
+          type: string
+    PatentMaintenanceOrderCancelRequest:
+      type: object
+      required:
+        - closeNote
+      properties:
+        closeNote:
+          type: string
     PagedPatentMaintenanceSchedule:
       type: object
       required:
@@ -11100,6 +12261,63 @@ components:
             $ref: '#/components/schemas/PatentMaintenanceTask'
         page:
           $ref: '#/components/schemas/PageMeta'
+    PagedMyPatentMaintenanceSchedule:
+      type: object
+      required:
+        - items
+        - page
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/MyPatentMaintenanceSchedule'
+        page:
+          $ref: '#/components/schemas/PageMeta'
+    PagedMyPatentMaintenanceTask:
+      type: object
+      required:
+        - items
+        - page
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/MyPatentMaintenanceTask'
+        page:
+          $ref: '#/components/schemas/PageMeta'
+    PagedPatentMaintenanceOrder:
+      type: object
+      required:
+        - items
+        - page
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/PatentMaintenanceOrder'
+        page:
+          $ref: '#/components/schemas/PageMeta'
+    PagedMyPatentMaintenanceOrder:
+      type: object
+      required:
+        - items
+        - page
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/PatentMaintenanceOrder'
+        page:
+          $ref: '#/components/schemas/PageMeta'
+    PatentMaintenanceOrderEventList:
+      type: object
+      required:
+        - items
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/PatentMaintenanceOrderEvent'
     PatentCreateRequest:
       type: object
       required:
@@ -11575,6 +12793,25 @@ components:
           type: array
           items:
             type: string
+        reason:
+          type: string
+    RbacUserCreateRequest:
+      type: object
+      required:
+        - phone
+        - name
+        - roleIds
+      properties:
+        phone:
+          $ref: '#/components/schemas/PhoneNumber'
+        name:
+          type: string
+          maxLength: 64
+        roleIds:
+          type: array
+          items:
+            type: string
+          minItems: 1
         reason:
           type: string
     OkResponse:

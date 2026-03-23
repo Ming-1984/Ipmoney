@@ -36,7 +36,7 @@
 | client-about | client | /pages/about/index | static/config (no critical API write) | N | Y | Y | N | pending | client |
 | client-address-edit | client | /pages/addresses/edit/index | client/misc | N | Y | Y | N | pending | client |
 | client-addresses | client | /pages/addresses/index | orders/payment/address/invoice | N | Y | Y | N | pending | client |
-| client-chat | client | /pages/messages/chat/index?conversationId=127a267b-d5f8-4b39-acf8-855dff7258b0 | conversations + notifications | N | Y | Y | N | pending | client |
+| client-chat | client | /subpackages/messages/chat/index?conversationId=127a267b-d5f8-4b39-acf8-855dff7258b0 | conversations + notifications | N | Y | Y | N | pending | client |
 | client-contracts | client | /pages/contracts/index | orders/payment/address/invoice | N | Y | Y | N | pending | client |
 | client-deposit-pay | client | /pages/checkout/deposit-pay/index?listingId=7a490e63-8173-41e7-b4f0-0d0bb5ce7d20 | client/misc | N | Y | Y | N | pending | client |
 | client-deposit-success | client | /pages/checkout/deposit-success/index?orderId=e9032d03-9b23-40ba-84a3-ac681f21c41b | client/misc | N | Y | Y | N | pending | client |
@@ -59,7 +59,7 @@
 | client-notifications | client | /pages/notifications/index | conversations + notifications | N | Y | Y | N | pending | client |
 | client-onboarding-choose-identity | client | /pages/onboarding/choose-identity/index | auth/me/verification | N | Y | Y | N | pending | client |
 | client-onboarding-verification-form | client | /pages/onboarding/verification-form/index | auth/me/verification | N | Y | Y | N | pending | client |
-| client-order-detail | client | /pages/orders/detail/index?orderId=e9032d03-9b23-40ba-84a3-ac681f21c41b | client/misc | N | Y | Y | N | pending | client |
+| client-order-detail | client | /subpackages/orders/detail/index?orderId=e9032d03-9b23-40ba-84a3-ac681f21c41b | orders + refunds + dispute-conversations | N | Y | Y | N | pending | client |
 | client-orders | client | /pages/orders/index | orders/payment/address/invoice | N | Y | Y | N | pending | client |
 | client-organization-detail | client | /pages/organizations/detail/index?orgUserId=c5b6438a-f3a7-4590-a484-0f2a2991c613 | client/misc | N | Y | Y | N | pending | client |
 | client-organizations | client | /pages/organizations/index | public discovery/search | N | Y | Y | N | pending | client |
@@ -70,10 +70,10 @@
 | client-region-picker | client | /pages/region-picker/index | static/config (no critical API write) | N | Y | Y | N | pending | client |
 | client-search | client | /pages/search/index | public discovery/search | N | Y | Y | N | pending | client |
 | client-settings-notifications | client | /pages/settings/notifications/index | auth/me/verification | N | Y | Y | N | pending | client |
-| client-support | client | /pages/support/index | static/config (no critical API write) | N | Y | Y | N | pending | client |
-| client-support-contact | client | /pages/support/contact/index | static/config (no critical API write) | N | Y | Y | N | pending | client |
-| client-support-faq | client | /pages/support/faq/index | static/config (no critical API write) | N | Y | Y | N | pending | client |
-| client-support-faq-detail | client | /pages/support/faq/detail/index?id=faq-1 | static/config (no critical API write) | N | Y | Y | N | pending | client |
+| client-support | client | /subpackages/support/index | support conversations + message send | N | Y | Y | N | pending | client |
+| client-support-contact | client | /subpackages/support/contact/index | support conversations + public config | N | Y | Y | N | pending | client |
+| client-support-faq | client | /subpackages/support/faq/index | support navigation + static faq | N | Y | Y | N | pending | client |
+| client-support-faq-detail | client | /subpackages/support/faq/detail/index?id=faq-1 | support navigation + static faq | N | Y | Y | N | pending | client |
 | client-tech-manager-detail | client | /pages/tech-managers/detail/index?techManagerId=c05d27bc-c739-47ad-91f7-53ccf8517a4e | client/misc | N | Y | Y | N | pending | client |
 | client-tech-managers | client | /pages/tech-managers/index | public discovery/search | N | Y | Y | N | pending | client |
 | client-trade-rules | client | /pages/trade-rules/index | static/config (no critical API write) | N | Y | Y | N | pending | client |

@@ -124,9 +124,14 @@ export function PatentsPage() {
   const [error, setError] = useState<unknown | null>(null);
   const [data, setData] = useState<PagedPatent | null>(null);
   const [page, setPage] = useState(1);
-  const [q, setQ] = useState('');
-  const [patentType, setPatentType] = useState<PatentType | ''>('');
-  const [legalStatus, setLegalStatus] = useState<LegalStatus | ''>('');
+  const [draftQ, setDraftQ] = useState('');
+  const [draftPatentType, setDraftPatentType] = useState<PatentType | ''>('');
+  const [draftLegalStatus, setDraftLegalStatus] = useState<LegalStatus | ''>('');
+  const [draftSourcePrimary, setDraftSourcePrimary] = useState<SourcePrimary | ''>('');
+  const [appliedQ, setAppliedQ] = useState('');
+  const [appliedPatentType, setAppliedPatentType] = useState<PatentType | ''>('');
+  const [appliedLegalStatus, setAppliedLegalStatus] = useState<LegalStatus | ''>('');
+  const [appliedSourcePrimary, setAppliedSourcePrimary] = useState<SourcePrimary | ''>('');
 
   const [modalOpen, setModalOpen] = useState(false);
   const [modalMode, setModalMode] = useState<ModalMode>('create');
@@ -141,9 +146,10 @@ export function PatentsPage() {
     setError(null);
     try {
       const d = await apiGet<PagedPatent>('/admin/patents', {
-        q: q.trim() || undefined,
-        patentType: patentType || undefined,
-        legalStatus: legalStatus || undefined,
+        q: appliedQ.trim() || undefined,
+        patentType: appliedPatentType || undefined,
+        legalStatus: appliedLegalStatus || undefined,
+        sourcePrimary: appliedSourcePrimary || undefined,
         page,
         pageSize: 20,
       });
@@ -155,15 +161,31 @@ export function PatentsPage() {
     } finally {
       setLoading(false);
     }
-  }, [legalStatus, page, patentType, q]);
+  }, [appliedLegalStatus, appliedPatentType, appliedQ, appliedSourcePrimary, page]);
 
   useEffect(() => {
     void load();
   }, [load]);
 
-  useEffect(() => {
+  const applyFilters = useCallback(() => {
     setPage(1);
-  }, [q, patentType, legalStatus]);
+    setAppliedQ(draftQ);
+    setAppliedPatentType(draftPatentType);
+    setAppliedLegalStatus(draftLegalStatus);
+    setAppliedSourcePrimary(draftSourcePrimary);
+  }, [draftLegalStatus, draftPatentType, draftQ, draftSourcePrimary]);
+
+  const resetFilters = useCallback(() => {
+    setPage(1);
+    setDraftQ('');
+    setDraftPatentType('');
+    setDraftLegalStatus('');
+    setDraftSourcePrimary('');
+    setAppliedQ('');
+    setAppliedPatentType('');
+    setAppliedLegalStatus('');
+    setAppliedSourcePrimary('');
+  }, []);
 
   const rows = useMemo(() => data?.items || [], [data?.items]);
 
@@ -360,28 +382,38 @@ export function PatentsPage() {
 
         <Space wrap size={12}>
           <Input
-            value={q}
+            value={draftQ}
             style={{ width: 260 }}
             placeholder="关键词（标题/申请号/权利人）"
             allowClear
-            onChange={(e) => setQ(e.target.value)}
-            onPressEnter={() => void load()}
+            onChange={(e) => setDraftQ(e.target.value)}
+            onPressEnter={applyFilters}
           />
           <Select
-            value={patentType}
+            value={draftPatentType}
             style={{ width: 180 }}
             placeholder="专利类型"
-            onChange={(v) => setPatentType((v as PatentType) || '')}
+            onChange={(v) => setDraftPatentType((v as PatentType) || '')}
             options={[{ value: '', label: '全部类型' }, ...patentTypeOptions]}
           />
           <Select
-            value={legalStatus}
+            value={draftLegalStatus}
             style={{ width: 180 }}
             placeholder="法律状态"
-            onChange={(v) => setLegalStatus((v as LegalStatus) || '')}
+            onChange={(v) => setDraftLegalStatus((v as LegalStatus) || '')}
             options={legalStatusOptions}
           />
-          <Button onClick={() => void load()}>查询</Button>
+          <Select
+            value={draftSourcePrimary}
+            style={{ width: 180 }}
+            placeholder="数据来源"
+            onChange={(v) => setDraftSourcePrimary((v as SourcePrimary) || '')}
+            options={[{ value: '', label: '全部来源' }, ...sourcePrimaryOptions]}
+          />
+          <Button onClick={applyFilters}>查询</Button>
+          <Button onClick={resetFilters}>
+            重置
+          </Button>
           <Button type="primary" onClick={openCreate}>
             新建专利
           </Button>

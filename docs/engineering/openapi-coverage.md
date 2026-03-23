@@ -4,15 +4,15 @@
 
 ## Summary
 
-- OpenAPI operations: 209
-- Frontend-used operations (client): 77
-- Frontend-used operations (admin): 107
+- OpenAPI operations: 215
+- Frontend-used operations (client): 83
+- Frontend-used operations (admin): 111
 - Fixture scenarios: 7
 
 ## Key Gaps
 
 - Frontend-used but missing from OpenAPI: 0
-- OpenAPI-defined but unused by frontend: 33
+- OpenAPI-defined but unused by frontend: 31
   - GET /admin/achievements
   - GET /admin/achievements/:param
   - GET /admin/achievements/:param/audit-logs
@@ -28,7 +28,6 @@
   - GET /admin/listings/jobs/import/:param/error-file
   - GET /admin/patents/jobs/import/:param
   - GET /admin/patents/jobs/import/:param/error-file
-  - GET /me/patent-claims
   - PATCH /admin/achievements/:param
   - PATCH /admin/ai/parse-results/:param
   - PATCH /admin/listings/:param
@@ -44,9 +43,8 @@
   - POST /admin/listings/:param/reject
   - POST /ai/agent/query
   - POST /ai/parse-results/:param/feedback
-  - POST /me/patent-claims
   - PUT /admin/listings/:param/featured
-- Frontend-used but missing in happy fixtures: 175
+- Frontend-used but missing in happy fixtures: 183
   - DELETE /achievements/:param/favorites
   - DELETE /admin/conversations/:param/agents/:param
   - DELETE /admin/orders/:param/invoice
@@ -95,9 +93,9 @@
   - GET /admin/user-verifications
   - GET /admin/user-verifications/:param/audit-logs
   - GET /admin/user-verifications/:param/materials
+  - GET /auth/session
   - GET /contracts
-  - GET /conversations/:param/messages
-  - ... (125 more)
+  - ... (133 more)
 
 ## Coverage Details (by operation)
 
@@ -166,6 +164,7 @@
 | adminListUserVerifications | GET | /admin/user-verifications |  | Y |  |  |  |  |  |  |  |
 | adminGetVerificationAuditLogs | GET | /admin/user-verifications/:param/audit-logs |  | Y |  |  |  |  |  |  |  |
 | adminGetVerificationMaterials | GET | /admin/user-verifications/:param/materials |  | Y |  |  |  |  |  |  |  |
+| authGetSession | GET | /auth/session |  | Y |  |  |  |  |  |  |  |
 | listContracts | GET | /contracts | Y |  |  |  |  |  |  |  |  |
 | listConversationMessages | GET | /conversations/:param/messages | Y | Y |  |  |  |  |  |  |  |
 | downloadFile | GET | /files/:param | Y | Y |  |  |  |  |  |  |  |
@@ -179,7 +178,9 @@
 | listMyConversations | GET | /me/conversations | Y |  |  |  |  |  |  |  |  |
 | listMyFavoriteListings | GET | /me/favorites | Y |  |  |  |  |  |  |  |  |
 | listMyFavoriteAchievements | GET | /me/favorites/achievements | Y |  |  |  |  |  |  |  |  |
-| listMyPatentClaims | GET | /me/patent-claims |  |  |  |  |  |  |  |  |  |
+| listMyPatentClaims | GET | /me/patent-claims | Y |  |  |  |  |  |  |  |  |
+| listMyPatentMaintenanceSchedules | GET | /me/patent-maintenance/schedules | Y |  |  |  |  |  |  |  |  |
+| listMyPatentMaintenanceTasks | GET | /me/patent-maintenance/tasks | Y |  |  |  |  |  |  |  |  |
 | getMyRecommendedListings | GET | /me/recommendations/listings | Y |  |  |  |  |  |  |  |  |
 | getMyVerification | GET | /me/verification | Y |  |  |  |  |  |  |  |  |
 | listMyNotifications | GET | /notifications | Y |  |  |  |  |  |  |  |  |
@@ -266,6 +267,7 @@
 | adminValidatePatentImportJob | POST | /admin/patents/jobs/import/:param/validate |  | Y |  |  |  |  |  |  |  |
 | adminGeneratePatentListings | POST | /admin/patents/jobs/listings |  | Y |  |  |  |  |  |  |  |
 | adminCreateRbacRole | POST | /admin/rbac/roles |  | Y |  |  |  |  |  |  |  |
+| adminCreateRbacUser | POST | /admin/rbac/users |  | Y |  |  |  |  |  |  |  |
 | adminApproveRefundRequest | POST | /admin/refund-requests/:param/approve |  | Y |  |  |  |  |  |  |  |
 | adminCompleteRefundRequest | POST | /admin/refund-requests/:param/complete |  | Y |  |  |  |  |  |  |  |
 | adminRejectRefundRequest | POST | /admin/refund-requests/:param/reject |  | Y |  |  |  |  |  |  |  |
@@ -275,8 +277,8 @@
 | adminRejectUserVerification | POST | /admin/user-verifications/:param/reject |  | Y |  |  |  |  |  |  |  |
 | createAiAgentQuery | POST | /ai/agent/query |  |  |  |  |  |  |  |  |  |
 | createAiParseFeedback | POST | /ai/parse-results/:param/feedback |  |  |  |  |  |  |  |  |  |
-| authSmsSend | POST | /auth/sms/send | Y |  |  |  |  |  |  |  |  |
-| authSmsVerify | POST | /auth/sms/verify | Y |  |  |  |  |  |  |  |  |
+| authSmsSend | POST | /auth/sms/send | Y | Y |  |  |  |  |  |  |  |
+| authSmsVerify | POST | /auth/sms/verify | Y | Y |  |  |  |  |  |  |  |
 | authWechatMpLogin | POST | /auth/wechat/mp-login | Y |  |  |  |  |  |  |  |  |
 | authWechatPhoneBind | POST | /auth/wechat/phone-bind | Y |  |  |  |  |  |  |  |  |
 | uploadContractPdf | POST | /contracts/:param/upload | Y |  |  |  |  |  |  |  |  |
@@ -292,13 +294,15 @@
 | offShelfListing | POST | /listings/:param/off-shelf | Y |  |  |  |  |  |  |  |  |
 | submitListing | POST | /listings/:param/submit | Y |  |  |  |  |  |  |  |  |
 | createMyAddress | POST | /me/addresses | Y |  |  |  |  |  |  |  |  |
-| createMyPatentClaim | POST | /me/patent-claims |  |  |  |  |  |  |  |  |  |
+| createMyPatentClaim | POST | /me/patent-claims | Y |  |  |  |  |  |  |  |  |
 | submitMyVerification | POST | /me/verification | Y |  |  |  |  |  |  |  |  |
 | createOrder | POST | /orders | Y |  |  |  |  |  |  |  |  |
+| upsertOrderDisputeConversation | POST | /orders/:param/dispute-conversations | Y |  |  |  |  |  |  |  |  |
 | requestOrderInvoice | POST | /orders/:param/invoice-requests | Y |  |  |  |  |  |  |  |  |
 | createPaymentIntent | POST | /orders/:param/payment-intents | Y |  |  |  |  |  |  |  |  |
 | createRefundRequest | POST | /orders/:param/refund-requests | Y |  |  |  |  |  |  |  |  |
 | normalizePatentNumber | POST | /patents/normalize |  | Y |  |  |  |  |  |  |  |
+| upsertSupportConversation | POST | /support/conversations | Y |  |  |  |  |  |  |  |  |
 | upsertTechManagerConversation | POST | /tech-managers/:param/conversations | Y |  |  |  |  |  |  |  |  |
 | wechatPayNotify | POST | /webhooks/wechatpay/notify |  |  |  |  |  |  |  |  |  |
 | adminUpdateAlertConfig | PUT | /admin/config/alerts |  | Y |  |  |  |  |  |  |  |

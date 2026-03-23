@@ -8,7 +8,6 @@ export const LISTING_TOPIC_OPTIONS: ReadonlyArray<{ value: ListingTopic; label: 
   { value: 'SLEEPING', label: '沉睡专利' },
   { value: 'AWARD_WINNING', label: '获奖专利' },
   { value: 'OPEN_LICENSE', label: '开放许可' },
-  { value: 'FIVE_STAR', label: '五星专利' },
 ] as const;
 
 const LISTING_TOPIC_VALUE_SET = new Set<ListingTopic>(LISTING_TOPIC_OPTIONS.map((it) => it.value));

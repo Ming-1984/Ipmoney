@@ -576,7 +576,7 @@ async function seedListings() {
       existingLicenseStatus: 'NONE',
       regionCode: '310000',
       industryTagsJson: ['新能源', '储能', '汽车'],
-      listingTopicsJson: ['FIVE_STAR', 'OPEN_LICENSE'],
+      listingTopicsJson: ['AWARD_WINNING', 'OPEN_LICENSE'],
       featuredLevel: 'PROVINCE',
       featuredRegionCode: '310000',
       featuredRank: 1,

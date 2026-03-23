@@ -31,6 +31,7 @@ type RefundRequest = components['schemas']['RefundRequest'];
 type RefundReasonCode = components['schemas']['RefundReasonCode'];
 type RefundRequestCreate = components['schemas']['RefundRequestCreate'];
 type OrderInvoice = components['schemas']['OrderInvoice'];
+type Conversation = components['schemas']['Conversation'];
 
 const REFUNDABLE_STATUSES = new Set<OrderBase['status']>(['DEPOSIT_PAID', 'WAIT_FINAL_PAYMENT', 'FINAL_PAID_ESCROW']);
 const BLOCKING_REFUND_REQUEST_STATUSES = new Set<RefundRequest['status']>(['PENDING', 'APPROVED', 'REFUNDING']);
@@ -110,6 +111,7 @@ export default function OrderDetailPage() {
 
   const [refundOpen, setRefundOpen] = useState(false);
   const [refundSubmitting, setRefundSubmitting] = useState(false);
+  const [openingDisputeChat, setOpeningDisputeChat] = useState(false);
   const [reasonCode, setReasonCode] = useState<RefundReasonCode>('BUYER_CHANGED_MIND');
   const [reasonText, setReasonText] = useState('');
 
@@ -371,6 +373,25 @@ export default function OrderDetailPage() {
     }
   }, [orderId, refundSubmitting, canSubmitRefund, refundBlockedHint, reasonCode, reasonText, load, loadRefunds]);
 
+  const openDisputeConversation = useCallback(async () => {
+    if (!ensureApproved()) return;
+    if (!orderId) return;
+    if (openingDisputeChat) return;
+    setOpeningDisputeChat(true);
+    try {
+      const conversation = await apiPost<Conversation>(
+        `/orders/${orderId}/dispute-conversations`,
+        {},
+        { idempotencyKey: `order-dispute-conv-${orderId}` },
+      );
+      Taro.navigateTo({ url: `/subpackages/messages/chat/index?conversationId=${conversation.id}` });
+    } catch (e: any) {
+      toast(e?.message || '打开争议会话失败');
+    } finally {
+      setOpeningDisputeChat(false);
+    }
+  }, [openingDisputeChat, orderId]);
+
   const hasInvoiceFile = Boolean(order?.invoiceFileId || invoice?.invoiceFile?.url);
   const hasInvoiceRequest = Boolean(order?.invoiceNo || invoiceRequested);
 
@@ -518,21 +539,26 @@ export default function OrderDetailPage() {
           <Surface id="order-refund">
             <View className="row-between" style={{ gap: '12rpx' }}>
               <Text className="text-card-title">退款申请</Text>
-              <Button
-                variant="danger"
-                size="small"
-                disabled={!canSubmitRefund || refundSubmitting}
-                onClick={() => {
-                  if (!ensureApproved()) return;
-                  if (!canSubmitRefund) {
-                    toast(refundBlockedHint || '当前不可申请退款');
-                    return;
-                  }
-                  setRefundOpen(true);
-                }}
-              >
-                申请退款
-              </Button>
+              <View style={{ display: 'flex', gap: '8rpx' }}>
+                <Button variant="ghost" size="small" loading={openingDisputeChat} onClick={() => void openDisputeConversation()}>
+                  争议沟通
+                </Button>
+                <Button
+                  variant="danger"
+                  size="small"
+                  disabled={!canSubmitRefund || refundSubmitting}
+                  onClick={() => {
+                    if (!ensureApproved()) return;
+                    if (!canSubmitRefund) {
+                      toast(refundBlockedHint || '当前不可申请退款');
+                      return;
+                    }
+                    setRefundOpen(true);
+                  }}
+                >
+                  申请退款
+                </Button>
+              </View>
             </View>
             <View style={{ height: '10rpx' }} />
             {!canSubmitRefund && refundBlockedHint ? <Text className="muted">{refundBlockedHint}</Text> : null}

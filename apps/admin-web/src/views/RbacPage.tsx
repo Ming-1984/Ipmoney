@@ -1,9 +1,7 @@
-﻿import { Button, Card, Descriptions, Form, Input, Modal, Select, Space, Table, Tag, Typography, message } from 'antd';
+import { Alert, Button, Card, Form, Input, Modal, Select, Space, Table, Tag, Typography, message } from 'antd';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 
-void Descriptions;
-
-import { apiGet, apiPatch, apiPost, apiDelete } from '../lib/api';
+import { apiDelete, apiGet, apiPatch, apiPost } from '../lib/api';
 import { formatTimeSmart } from '../lib/format';
 import { RequestErrorAlert } from '../ui/RequestState';
 import { confirmActionWithReason } from '../ui/confirm';
@@ -30,8 +28,10 @@ type UserRole = {
 };
 
 type PagedRoles = { items: Role[] };
-
 type PagedUsers = { items: UserRole[] };
+type UserScope = 'STAFF' | 'ALL';
+
+const PHONE_RE = /^[0-9]{6,20}$/;
 
 export function RbacPage() {
   const [loading, setLoading] = useState(false);
@@ -40,6 +40,10 @@ export function RbacPage() {
   const [permissions, setPermissions] = useState<Permission[]>([]);
   const [users, setUsers] = useState<UserRole[]>([]);
 
+  const [newUserName, setNewUserName] = useState('');
+  const [newUserPhone, setNewUserPhone] = useState('');
+  const [newUserRoleIds, setNewUserRoleIds] = useState<string[]>([]);
+
   const [roleName, setRoleName] = useState('');
   const [roleDesc, setRoleDesc] = useState('');
   const [rolePerms, setRolePerms] = useState<string[]>([]);
@@ -47,13 +51,19 @@ export function RbacPage() {
   const [editingRole, setEditingRole] = useState<Role | null>(null);
   const [editForm] = Form.useForm();
 
+  const [userScope, setUserScope] = useState<UserScope>('STAFF');
+  const [userKeyword, setUserKeyword] = useState('');
+
   const load = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
       const roleRes = await apiGet<PagedRoles>('/admin/rbac/roles');
       const permRes = await apiGet<{ items: Permission[] }>('/admin/rbac/permissions');
-      const userRes = await apiGet<PagedUsers>('/admin/rbac/users');
+      const userRes = await apiGet<PagedUsers>('/admin/rbac/users', {
+        scope: userScope,
+        q: userKeyword.trim() || undefined,
+      });
       setRoles(roleRes.items || []);
       setPermissions(permRes.items || []);
       setUsers(userRes.items || []);
@@ -63,16 +73,58 @@ export function RbacPage() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [userKeyword, userScope]);
 
   useEffect(() => {
     void load();
   }, [load]);
 
+  const roleOptions = useMemo(() => roles.map((r) => ({ value: r.id, label: r.name })), [roles]);
   const permOptions = useMemo(
     () => permissions.map((p) => ({ value: p.id, label: `${p.name}${p.description ? `（${p.description}）` : ''}` })),
     [permissions],
   );
+
+  const handleCreateStaff = useCallback(async () => {
+    const name = newUserName.trim();
+    const phone = newUserPhone.trim();
+    if (!name) {
+      message.error('请输入员工姓名');
+      return;
+    }
+    if (!PHONE_RE.test(phone)) {
+      message.error('手机号格式不合法');
+      return;
+    }
+    if (!newUserRoleIds.length) {
+      message.error('请至少选择一个角色');
+      return;
+    }
+
+    const { ok, reason } = await confirmActionWithReason({
+      title: '确认开通员工账号？',
+      content: '将创建新员工账号并立即生效角色权限。',
+      okText: '开通',
+      reasonLabel: '开通说明（建议填写）',
+    });
+    if (!ok) return;
+
+    try {
+      await apiPost('/admin/rbac/users', {
+        name,
+        phone,
+        roleIds: newUserRoleIds,
+        reason: reason || undefined,
+      });
+      message.success('员工账号已开通');
+      setNewUserName('');
+      setNewUserPhone('');
+      setNewUserRoleIds([]);
+      void load();
+    } catch (e: any) {
+      message.error(e?.message || '开通失败');
+    }
+  }, [load, newUserName, newUserPhone, newUserRoleIds]);
 
   return (
     <Space className="admin-rbac-page" direction="vertical" size={16} style={{ width: '100%' }}>
@@ -85,6 +137,13 @@ export function RbacPage() {
         </Typography.Paragraph>
       </Card>
 
+      <Alert
+        type="info"
+        showIcon
+        message="员工注册最佳实践"
+        description="员工不自助注册；由 RBAC 管理员统一开通账号并分配最小权限，员工再通过“手机号验证码登录”进入后台。"
+      />
+
       {error ? <RequestErrorAlert error={error} onRetry={load} /> : null}
 
       <Card loading={loading}>
@@ -92,22 +151,17 @@ export function RbacPage() {
           角色管理
         </Typography.Title>
         <Space wrap size={12} style={{ marginBottom: 12 }}>
-          <Input
-            value={roleName}
-            style={{ width: 200 }}
-            placeholder="角色名称"
-            onChange={(e) => setRoleName(e.target.value)}
-          />
+          <Input value={roleName} style={{ width: 220 }} placeholder="角色名称" onChange={(e) => setRoleName(e.target.value)} />
           <Input
             value={roleDesc}
-            style={{ width: 260 }}
+            style={{ width: 280 }}
             placeholder="角色说明（可选）"
             onChange={(e) => setRoleDesc(e.target.value)}
           />
           <Select
             mode="multiple"
             value={rolePerms}
-            style={{ minWidth: 360 }}
+            style={{ minWidth: 420 }}
             placeholder="权限点"
             options={permOptions}
             onChange={(v) => setRolePerms(v as string[])}
@@ -263,25 +317,85 @@ export function RbacPage() {
 
       <Card loading={loading}>
         <Typography.Title level={4} style={{ marginTop: 0 }}>
+          员工账号开通
+        </Typography.Title>
+        <Typography.Paragraph type="secondary">
+          开通后员工可通过“手机号验证码”登录后台。建议仅赋予最小必要权限，后续再按岗位调整。
+        </Typography.Paragraph>
+        <Space wrap size={12} style={{ marginBottom: 12 }}>
+          <Input
+            value={newUserName}
+            style={{ width: 180 }}
+            placeholder="员工姓名"
+            onChange={(e) => setNewUserName(e.target.value)}
+          />
+          <Input
+            value={newUserPhone}
+            style={{ width: 220 }}
+            placeholder="手机号（登录账号）"
+            onChange={(e) => setNewUserPhone(e.target.value)}
+          />
+          <Select
+            mode="multiple"
+            value={newUserRoleIds}
+            style={{ minWidth: 320 }}
+            placeholder="初始角色"
+            options={roleOptions}
+            onChange={(v) => setNewUserRoleIds(v as string[])}
+          />
+          <Button type="primary" disabled={!newUserName.trim() || !newUserPhone.trim() || !newUserRoleIds.length} onClick={() => void handleCreateStaff()}>
+            开通账号
+          </Button>
+        </Space>
+      </Card>
+
+      <Card loading={loading}>
+        <Typography.Title level={4} style={{ marginTop: 0 }}>
           账号角色分配
         </Typography.Title>
+        <Space wrap size={12} style={{ marginBottom: 12 }}>
+          <Select<UserScope>
+            value={userScope}
+            style={{ width: 160 }}
+            options={[
+              { value: 'STAFF', label: '仅员工账号' },
+              { value: 'ALL', label: '全部账号' },
+            ]}
+            onChange={setUserScope}
+          />
+          <Input.Search
+            value={userKeyword}
+            style={{ width: 300 }}
+            allowClear
+            placeholder="搜索用户ID / 姓名 / 手机号"
+            onChange={(e) => setUserKeyword(e.target.value)}
+            onSearch={() => void load()}
+          />
+          <Button onClick={() => void load()}>刷新</Button>
+        </Space>
 
         <Table<UserRole>
           rowKey="id"
           dataSource={users}
-          pagination={false}
+          pagination={{ pageSize: 20, showSizeChanger: false }}
           columns={[
+            {
+              title: '用户ID',
+              dataIndex: 'id',
+              width: 280,
+              render: (v: string) => <Typography.Text copyable>{v}</Typography.Text>,
+            },
             { title: '账号', dataIndex: 'name' },
-            { title: '邮箱', dataIndex: 'email', render: (v) => v || '-' },
+            { title: '手机号', dataIndex: 'email', render: (v) => v || '-' },
             {
               title: '角色',
               dataIndex: 'roleIds',
               render: (ids: string[], row) => (
                 <Select
                   mode="multiple"
-                  style={{ minWidth: 260 }}
+                  style={{ minWidth: 300 }}
                   value={ids}
-                  options={roles.map((r) => ({ value: r.id, label: r.name }))}
+                  options={roleOptions}
                   onChange={async (next) => {
                     const { ok, reason } = await confirmActionWithReason({
                       title: '确认变更角色？',
@@ -318,4 +432,3 @@ export function RbacPage() {
     </Space>
   );
 }
-

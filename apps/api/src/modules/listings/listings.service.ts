@@ -11,7 +11,7 @@ type FeaturedLevel = 'NONE' | 'CITY' | 'PROVINCE';
 type ContentSource = 'USER' | 'PLATFORM' | 'ADMIN';
 type PledgeStatus = 'NONE' | 'PLEDGED' | 'UNKNOWN';
 type ExistingLicenseStatus = 'NONE' | 'EXCLUSIVE' | 'SOLE' | 'NON_EXCLUSIVE' | 'UNKNOWN';
-type ListingTopic = 'HIGH_TECH_RETIRED' | 'SLEEPING' | 'AWARD_WINNING' | 'OPEN_LICENSE' | 'FIVE_STAR';
+type ListingTopic = 'HIGH_TECH_RETIRED' | 'SLEEPING' | 'AWARD_WINNING' | 'OPEN_LICENSE';
 
 import { AuditLogService } from '../../common/audit-log.service';
 import { ContentEventService } from '../../common/content-event.service';
@@ -26,7 +26,6 @@ const LISTING_TOPIC_VALUE_SET = new Set<ListingTopic>([
   'SLEEPING',
   'AWARD_WINNING',
   'OPEN_LICENSE',
-  'FIVE_STAR',
 ]);
 
 type ListingAdminDto = {
@@ -1709,9 +1708,14 @@ export class ListingsService {
     const hasAuditStatus = this.hasOwn(query, 'auditStatus');
     const hasStatus = this.hasOwn(query, 'status');
     const hasSource = this.hasOwn(query, 'source');
+    const hasListingTopic = this.hasOwn(query, 'listingTopic') || this.hasOwn(query, 'listingTopics');
     const auditStatus = hasAuditStatus ? this.parseAuditStatusStrict(query?.auditStatus, 'auditStatus') : undefined;
     const status = hasStatus ? this.parseListingStatusStrict(query?.status, 'status') : undefined;
     const source = hasSource ? this.parseContentSourceStrict(query?.source, 'source') : undefined;
+    const listingTopics = this.normalizeListingTopics(query?.listingTopics ?? query?.listingTopic);
+    if (hasListingTopic && listingTopics.length === 0 && String(query?.listingTopics ?? query?.listingTopic ?? '').trim()) {
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: 'listingTopic is invalid' });
+    }
 
     const where: any = {};
     if (q) {
@@ -1721,6 +1725,9 @@ export class ListingsService {
     if (auditStatus) where.auditStatus = auditStatus;
     if (status) where.status = status;
     if (source) where.source = source;
+    if (listingTopics.length > 0) {
+      where.AND = listingTopics.map((topic) => ({ listingTopicsJson: { array_contains: [topic] } }));
+    }
 
     const [items, total] = await Promise.all([
       this.prisma.listing.findMany({

@@ -1,4 +1,4 @@
-import { BadRequestException, ForbiddenException, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ConflictException, ForbiddenException, NotFoundException } from '@nestjs/common';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { RbacService } from '../src/modules/rbac/rbac.service';
@@ -29,6 +29,8 @@ describe('RbacService write flow suite', () => {
         findUnique: vi.fn(),
       },
       user: {
+        findUnique: vi.fn(),
+        create: vi.fn(),
         findMany: vi.fn(),
       },
       $transaction: vi.fn().mockResolvedValue(undefined),
@@ -183,5 +185,65 @@ describe('RbacService write flow suite', () => {
       }),
     );
     expect(result).toEqual({ ok: true });
+  });
+
+  it('createUser validates phone/name/roleIds strictly', async () => {
+    await expect(service.createUser(USER_REQ, { phone: '', name: 'A', roleIds: ['role-operator'] })).rejects.toBeInstanceOf(
+      BadRequestException,
+    );
+    await expect(service.createUser(USER_REQ, { phone: '13800138000', name: '', roleIds: ['role-operator'] })).rejects.toBeInstanceOf(
+      BadRequestException,
+    );
+    await expect(service.createUser(USER_REQ, { phone: '13800138000', name: 'Alice', roleIds: [] })).rejects.toBeInstanceOf(
+      BadRequestException,
+    );
+  });
+
+  it('createUser rejects unknown roleIds and duplicate phone', async () => {
+    prisma.rbacRole.findMany.mockResolvedValueOnce([{ id: 'role-operator' }]);
+    await expect(
+      service.createUser(USER_REQ, {
+        phone: '13800138000',
+        name: 'Alice',
+        roleIds: ['role-operator', 'role-missing'],
+      }),
+    ).rejects.toBeInstanceOf(BadRequestException);
+
+    prisma.rbacRole.findMany.mockResolvedValueOnce([{ id: 'role-operator' }]);
+    prisma.user.findUnique.mockResolvedValueOnce({ id: 'u-1' });
+    await expect(
+      service.createUser(USER_REQ, {
+        phone: '13800138000',
+        name: 'Alice',
+        roleIds: ['role-operator'],
+      }),
+    ).rejects.toBeInstanceOf(ConflictException);
+  });
+
+  it('createUser persists account and role assignments', async () => {
+    prisma.rbacRole.findMany.mockResolvedValueOnce([{ id: 'role-operator' }]);
+    prisma.user.findUnique.mockResolvedValueOnce(null);
+    prisma.user.create.mockReturnValueOnce('create-user-op');
+    prisma.rbacUserRole.createMany.mockReturnValueOnce('create-user-role-op');
+
+    const result = await service.createUser(USER_REQ, {
+      phone: '13800138000',
+      name: 'Alice',
+      roleIds: ['role-operator'],
+    });
+
+    expect(prisma.$transaction).toHaveBeenCalledWith(['create-user-op', 'create-user-role-op']);
+    expect(prisma.user.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          phone: '13800138000',
+          nickname: 'Alice',
+          role: 'operator',
+        }),
+      }),
+    );
+    expect(result.email).toBe('13800138000');
+    expect(result.roleIds).toEqual(['role-operator']);
+    expect(audit.log).toHaveBeenCalledWith(expect.objectContaining({ action: 'RBAC_USER_CREATE' }));
   });
 });

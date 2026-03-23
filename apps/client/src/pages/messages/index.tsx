@@ -162,6 +162,10 @@ export default function MessagesPage() {
   }
 
   const getConversationCategory = useCallback((c: ConversationSummary): ConversationCategory => {
+    const contentType = String((c as any)?.contentType || '').toUpperCase();
+    if (contentType === 'SUPPORT') return 'cs';
+    if (contentType === 'DISPUTE') return 'trade';
+
     const role = c.counterpart?.role || '';
     if (role === 'cs') return 'cs';
     if (role === 'admin') return 'trade';
@@ -179,6 +183,9 @@ export default function MessagesPage() {
   }, []);
 
   const getConversationDisplayName = useCallback((c: ConversationSummary, category: ConversationCategory): string => {
+    const contentType = String((c as any)?.contentType || '').toUpperCase();
+    if (contentType === 'SUPPORT') return '平台客服助手';
+    if (contentType === 'DISPUTE') return c.contentTitle || '订单争议';
     if (category === 'cs') return '平台客服助手';
     if (category === 'trade') return '交易通知';
     return c.counterpart?.nickname || '对方';
@@ -196,7 +203,7 @@ export default function MessagesPage() {
   }, [convoList.items, getConversationCategory, getConversationDisplayName]);
 
   const consultItems = useMemo(() => {
-    return viewItems.filter((c) => c._category === 'user');
+    return viewItems;
   }, [viewItems]);
 
   const filteredItems = useMemo(() => {
@@ -290,7 +297,7 @@ export default function MessagesPage() {
   }, [filteredItems, consultItems, trimmedSearch, convoList.setItems]);
 
   const emptyTitle = '暂无消息';
-  const emptyMessage = '从详情页点击“咨询”即可创建会话。';
+  const emptyMessage = '从详情页点击“咨询”或在客服中心进入在线客服即可创建会话。';
 
   return (
     <View className="container messages-page messages-new">

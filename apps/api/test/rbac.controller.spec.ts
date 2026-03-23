@@ -59,14 +59,15 @@ describe('RbacController delegation suite', () => {
 
   it('delegates listPermissions and listUsers with request context', async () => {
     const req: any = { auth: { userId: 'admin-1' } };
+    const query = { scope: 'STAFF', q: 'alice' };
     rbac.listPermissions.mockResolvedValueOnce({ items: [{ id: 'perm-1' }] });
     rbac.listUsers.mockResolvedValueOnce({ items: [{ id: VALID_UUID }] });
 
     await expect(controller.listPermissions(req)).resolves.toEqual({ items: [{ id: 'perm-1' }] });
-    await expect(controller.listUsers(req)).resolves.toEqual({ items: [{ id: VALID_UUID }] });
+    await expect(controller.listUsers(req, query)).resolves.toEqual({ items: [{ id: VALID_UUID }] });
 
     expect(rbac.listPermissions).toHaveBeenCalledWith(req);
-    expect(rbac.listUsers).toHaveBeenCalledWith(req);
+    expect(rbac.listUsers).toHaveBeenCalledWith(req, query);
   });
 
   it('delegates updateUserRoles with fallback empty body', async () => {

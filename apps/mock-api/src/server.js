@@ -18,6 +18,16 @@ const UPSTREAM_FALLBACK_STATUSES = (process.env.UPSTREAM_FALLBACK_STATUSES || '4
   .map((s) => Number(s.trim()))
   .filter((n) => Number.isFinite(n));
 
+const MOCK_ADMIN_SESSION = {
+  userId: '804b7a04-aafe-409a-bee4-e84f953cb4c0',
+  isAdmin: true,
+  role: 'admin',
+  roleNames: ['admin'],
+  roleIds: ['role-admin'],
+  permissions: ['*'],
+  nickname: 'DOM Smoke Admin',
+};
+
 const OPENAPI_PATH = path.resolve(__dirname, '../../../docs/api/openapi.yaml');
 const FIXTURES_DIR = path.resolve(__dirname, '../../../packages/fixtures/scenarios');
 
@@ -759,6 +769,11 @@ function adminUpdateComment({ commentId, requestBody }) {
 function maybeSendDynamic(req, res, { method, url, scenario, requestBody }) {
   if (scenario !== 'happy') return false;
   const pathname = url.pathname;
+
+  if (method.toUpperCase() === 'GET' && pathname === '/auth/session') {
+    sendFixture(res, { status: 200, body: MOCK_ADMIN_SESSION });
+    return true;
+  }
 
   if (method.toUpperCase() === 'POST' && pathname === '/files') {
     const id = randomUUID();

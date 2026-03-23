@@ -61,7 +61,6 @@ export function ListingCard(props: {
   if (it.tradeMode === 'LICENSE' || listingTopics.includes('OPEN_LICENSE')) addSpecialTag('开放许可');
   listingTopics
     .map((topic) => {
-      if (topic === 'FIVE_STAR') return '五星专利';
       if (topic === 'HIGH_TECH_RETIRED') return '退役专利';
       if (topic === 'AWARD_WINNING') return '获奖专利';
       return '';

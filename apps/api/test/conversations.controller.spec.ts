@@ -13,7 +13,11 @@ describe('ConversationsController delegation suite', () => {
     conversations = {
       listMine: vi.fn(),
       createListingConversation: vi.fn(),
+      createAchievementConversation: vi.fn(),
       createTechManagerConversation: vi.fn(),
+      createSupportConversation: vi.fn(),
+      createOrderDisputeConversation: vi.fn(),
+      createMaintenanceConversation: vi.fn(),
       listMessages: vi.fn(),
       sendMessage: vi.fn(),
       markRead: vi.fn(),
@@ -36,13 +40,25 @@ describe('ConversationsController delegation suite', () => {
   it('delegates create conversation entry routes', async () => {
     const req: any = { auth: { userId: 'user-1' } };
     conversations.createListingConversation.mockResolvedValue({ ok: true });
+    conversations.createAchievementConversation.mockResolvedValue({ ok: true });
     conversations.createTechManagerConversation.mockResolvedValue({ ok: true });
+    conversations.createSupportConversation.mockResolvedValue({ ok: true });
+    conversations.createOrderDisputeConversation.mockResolvedValue({ ok: true });
+    conversations.createMaintenanceConversation.mockResolvedValue({ ok: true });
 
     await controller.createListingConversation(req, VALID_UUID);
+    await controller.createAchievementConversation(req, VALID_UUID);
     await controller.createTechManagerConversation(req, VALID_UUID);
+    await controller.createSupportConversation(req);
+    await controller.createOrderDisputeConversation(req, VALID_UUID);
+    await controller.createMaintenanceConversation(req, VALID_UUID);
 
     expect(conversations.createListingConversation).toHaveBeenCalledWith(req, VALID_UUID);
+    expect(conversations.createAchievementConversation).toHaveBeenCalledWith(req, VALID_UUID);
     expect(conversations.createTechManagerConversation).toHaveBeenCalledWith(req, VALID_UUID);
+    expect(conversations.createSupportConversation).toHaveBeenCalledWith(req);
+    expect(conversations.createOrderDisputeConversation).toHaveBeenCalledWith(req, VALID_UUID);
+    expect(conversations.createMaintenanceConversation).toHaveBeenCalledWith(req, VALID_UUID);
   });
 
   it('delegates listMessages/send/markRead with normalized UUID', async () => {
@@ -99,7 +115,10 @@ describe('ConversationsController delegation suite', () => {
   it('rejects UUID-guarded routes when path params are invalid', async () => {
     const req: any = { auth: { userId: 'admin-1', isAdmin: true, permissions: new Set(['conversation.platform.manage']) } };
     await expect(controller.createListingConversation(req, 'bad-id')).rejects.toBeInstanceOf(BadRequestException);
+    await expect(controller.createAchievementConversation(req, 'bad-id')).rejects.toBeInstanceOf(BadRequestException);
     await expect(controller.createTechManagerConversation(req, 'bad-id')).rejects.toBeInstanceOf(BadRequestException);
+    await expect(controller.createOrderDisputeConversation(req, 'bad-id')).rejects.toBeInstanceOf(BadRequestException);
+    await expect(controller.createMaintenanceConversation(req, 'bad-id')).rejects.toBeInstanceOf(BadRequestException);
     await expect(controller.listMessages(req, 'bad-id', {})).rejects.toBeInstanceOf(BadRequestException);
     await expect(controller.sendMessage(req, 'bad-id', {})).rejects.toBeInstanceOf(BadRequestException);
     await expect(controller.markRead(req, 'bad-id')).rejects.toBeInstanceOf(BadRequestException);

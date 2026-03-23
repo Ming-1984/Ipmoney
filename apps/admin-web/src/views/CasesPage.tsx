@@ -46,8 +46,13 @@ type PagedCases = {
 type RbacUser = {
   id: string;
   name: string;
-  roleNames: string[];
+  roleIds: string[];
 };
+
+function normalizeStringArray(value: unknown): string[] {
+  if (!Array.isArray(value)) return [];
+  return value.filter((item): item is string => typeof item === 'string' && item.trim().length > 0);
+}
 
 const statusOptions: { value: CaseStatus | ''; label: string }[] = [
   { value: '', label: '全部状态' },
@@ -90,6 +95,7 @@ export function CasesPage() {
   const [detailOpen, setDetailOpen] = useState(false);
   const [detail, setDetail] = useState<CaseDetail | null>(null);
   const [assignees, setAssignees] = useState<RbacUser[]>([]);
+  const [roleNameMap, setRoleNameMap] = useState<Record<string, string>>({});
   const [noteInput, setNoteInput] = useState('');
   const [slaDueAt, setSlaDueAt] = useState('');
   const [evidenceUploading, setEvidenceUploading] = useState(false);
@@ -117,10 +123,36 @@ export function CasesPage() {
 
   const loadAssignees = useCallback(async () => {
     try {
-      const d = await apiGet<{ items: RbacUser[] }>('/admin/rbac/users');
-      setAssignees(d.items || []);
+      const [usersRes, rolesRes] = await Promise.all([
+        apiGet<{ items?: any[] }>('/admin/rbac/users', { scope: 'STAFF' }),
+        apiGet<{ items?: any[] }>('/admin/rbac/roles').catch(() => ({ items: [] as any[] })),
+      ]);
+
+      const nextRoleNameMap: Record<string, string> = {};
+      const roleItems = Array.isArray(rolesRes?.items) ? rolesRes.items : [];
+      for (const rawRole of roleItems) {
+        const roleId = typeof rawRole?.id === 'string' ? rawRole.id : '';
+        const roleName = typeof rawRole?.name === 'string' ? rawRole.name.trim() : '';
+        if (roleId && roleName) nextRoleNameMap[roleId] = roleName;
+      }
+      setRoleNameMap(nextRoleNameMap);
+
+      const next: RbacUser[] = (Array.isArray(usersRes?.items) ? usersRes.items : []).flatMap((raw) => {
+        const id = typeof raw?.id === 'string' ? raw.id : '';
+        if (!id) return [];
+        const displayName = typeof raw?.name === 'string' && raw.name.trim().length ? raw.name.trim() : id;
+        return [
+          {
+            id,
+            name: displayName,
+            roleIds: normalizeStringArray(raw?.roleIds),
+          },
+        ];
+      });
+      setAssignees(next);
     } catch {
       setAssignees([]);
+      setRoleNameMap({});
     }
   }, []);
 
@@ -130,6 +162,29 @@ export function CasesPage() {
   }, [load, loadAssignees]);
 
   const rows = useMemo(() => data?.items || [], [data?.items]);
+  const formatAssigneeLabel = useCallback(
+    (user: RbacUser, separator = ' / ') => {
+      const roles = normalizeStringArray(user.roleIds).map((roleId) => roleNameMap[roleId] || roleId);
+      return roles.length ? `${user.name}（${roles.join(separator)}）` : user.name;
+    },
+    [roleNameMap],
+  );
+  const createAssigneeOptions = useMemo(
+    () =>
+      assignees.map((u) => ({
+        value: u.id,
+        label: formatAssigneeLabel(u, ' / '),
+      })),
+    [assignees, formatAssigneeLabel],
+  );
+  const detailAssigneeOptions = useMemo(
+    () =>
+      assignees.map((u) => ({
+        value: u.id,
+        label: formatAssigneeLabel(u, '、'),
+      })),
+    [assignees, formatAssigneeLabel],
+  );
 
   const openDetail = useCallback(async (id: string) => {
     try {
@@ -290,10 +345,9 @@ export function CasesPage() {
             <Form.Item label="跟单客服" name="assigneeId">
               <Select
                 allowClear
-                options={assignees.map((u) => ({
-                  value: u.id,
-                  label: u.roleNames?.length ? `${u.name}（${u.roleNames.join(' / ')}）` : u.name,
-                }))}
+                showSearch
+                optionFilterProp="label"
+                options={createAssigneeOptions}
                 placeholder="可选"
               />
             </Form.Item>
@@ -351,8 +405,10 @@ export function CasesPage() {
               <Space style={{ marginTop: 8 }}>
                 <Select
                   style={{ width: 240 }}
+                  showSearch
+                  optionFilterProp="label"
                   placeholder="选择客服/运营"
-                  options={assignees.map((u) => ({ value: u.id, label: `${u.name}（${u.roleNames.join('、')}）` }))}
+                  options={detailAssigneeOptions}
                   value={detail.assigneeId || undefined}
                   onChange={async (v) => {
                     const { ok, reason } = await confirmActionWithReason({
