@@ -41,6 +41,9 @@
   - `powershell -ExecutionPolicy Bypass -File scripts/verify.ps1 -ReportDate <tag> -UiSmokeMode full -RunWeappRouteSmoke -WeappCliPath "<微信开发者工具 cli.bat 路径>" -WeappUserToken "<DEMO_USER_TOKEN>"`
 - 深度门禁 + 安全审计台账：
   - `powershell -ExecutionPolicy Bypass -File scripts/verify.ps1 -ReportDate <tag> -UiSmokeMode full -RunWeappRouteSmoke -RunVulnerabilityAudit -WeappCliPath "<微信开发者工具 cli.bat 路径>" -WeappUserToken "<DEMO_USER_TOKEN>"`
+- 漏洞基线治理（建议每周执行）：
+  - `pnpm check:vulnerability-baseline -- --report-date <tag> --input .tmp/vulnerability-ledger-<tag>.json`
+  - 当完成一批漏洞修复并确认可更新风险基线时：`pnpm update:vulnerability-baseline -- --report-date <tag> --input .tmp/vulnerability-ledger-<tag>.json`
 - 建议策略：
   - 每次功能重构至少执行一次深度门禁。
   - 版本冻结前执行深度门禁 + 手工关键路径复核（登录、支付、客服会话、年费托管、认领审核）。

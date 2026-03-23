@@ -3,6 +3,13 @@
 > Note (2026-03-23): `docs/demo/rendered/` historical screenshots were cleaned from git.
 > Smoke screenshot artifacts are now local-only and may not exist in repository history snapshots after this date.
 
+## Latest (2026-03-23 r326n)
+
+### Commands & Results (dev)
+- `powershell -ExecutionPolicy Bypass -File scripts/verify.ps1 -ReportDate r326n -UiSmokeMode core -RunVulnerabilityAudit`
+  - Result: pass
+  - Notes: baseline guard enabled in verify (`api-real-smoke` `1308/1308`, OpenAPI coverage `225/225`, `db-preflight` `9/9`, `ui-render(core)` `3/3`, `ui-dom(core)` `11/11`, vulnerability baseline `critical/high = 2/22` matched, ledger: `docs/engineering/vulnerability-ledger-2026-03-23.md`).
+
 ## Latest (2026-03-23 r326m)
 
 ### Commands & Results (dev)

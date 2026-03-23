@@ -236,10 +236,15 @@ if ($RunVulnerabilityAudit) {
       throw ("audit-vulnerability-ledger failed (exit={0})" -f [int]$LASTEXITCODE)
     }
 
+    node scripts/check-vulnerability-baseline.mjs --report-date $ReportDate --input ".tmp/vulnerability-ledger-$ReportDate.json"
+    if ($LASTEXITCODE -ne 0) {
+      throw ("check-vulnerability-baseline failed (exit={0})" -f [int]$LASTEXITCODE)
+    }
+
     if ($auditExitCode -eq 1) {
-      Write-Host "[verify] vulnerability audit found issues; ledger generated for triage"
+      Write-Host "[verify] vulnerability audit found issues; ledger generated and baseline guard passed"
     } else {
-      Write-Host "[verify] vulnerability audit clean; ledger generated"
+      Write-Host "[verify] vulnerability audit clean; ledger generated and baseline guard passed"
     }
   }
 }

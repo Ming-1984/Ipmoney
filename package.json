@@ -20,6 +20,8 @@
     "mock": "pnpm -C apps/mock-api dev",
     "check:weapp-budget": "node scripts/check-weapp-bundle-budget.mjs",
     "audit:ledger": "node scripts/audit-vulnerability-ledger.mjs",
+    "check:vulnerability-baseline": "node scripts/check-vulnerability-baseline.mjs",
+    "update:vulnerability-baseline": "node scripts/update-vulnerability-baseline.mjs",
     "matrix:page-api-test": "node scripts/build-page-api-test-matrix.mjs",
     "scan:banned-words": "node scripts/scan-banned-words.mjs",
     "check:prod-env": "node scripts/run-with-env.mjs -- node scripts/check-prod-env.mjs",

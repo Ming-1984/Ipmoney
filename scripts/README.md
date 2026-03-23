@@ -6,7 +6,7 @@ This directory contains local engineering automation scripts.
 - `verify.ps1`: full quality gate (lint/typecheck/build/smoke/preflight).
   - Supports `-UiSmokeMode core|full` and optional `-RunWeappRouteSmoke` for mini-program route smoke (`noauth` + `auth` when token is available).
   - WeApp route smoke is retried once on transient non-zero exit.
-  - Optional `-RunVulnerabilityAudit` generates `pnpm audit` snapshot + vulnerability ledger (does not hard-fail on known vulnerability baseline).
+  - Optional `-RunVulnerabilityAudit` generates `pnpm audit` snapshot + vulnerability ledger, then enforces baseline guard (`check-vulnerability-baseline.mjs`) for new critical/high advisories.
 - `api-real-smoke.ps1`: real API smoke coverage baseline.
 - `ui-http-smoke.ps1`: HTTP-level page smoke.
 - `ui-render-smoke.ps1`: visual render smoke.
@@ -26,6 +26,8 @@ This directory contains local engineering automation scripts.
 - `check-prod-env.mjs`: production env hard checks.
 - `run-with-env.mjs`: run command with `.env`.
 - `scan-banned-words.mjs`: forbidden word scan.
+- `check-vulnerability-baseline.mjs`: fail on newly introduced critical/high advisories vs baseline.
+- `update-vulnerability-baseline.mjs`: refresh baseline from current vulnerability ledger when risk acceptance changes.
 
 ## Developer Utilities (non-gate)
 - `start-dev.ps1`, `clean-dev.ps1`, `dev-reset.ps1`: local dev lifecycle.
