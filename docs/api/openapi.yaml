@@ -2377,6 +2377,7 @@ paths:
               - CONSULTATION
               - SUPPORT
               - DISPUTE
+              - MAINTENANCE
           description: Conversation channel filter.
         - name: assigned
           in: query
@@ -3979,6 +3980,11 @@ paths:
       security:
         - BearerAuth: []
       parameters:
+        - name: orderId
+          in: query
+          required: false
+          schema:
+            $ref: '#/components/schemas/Uuid'
         - name: scheduleId
           in: query
           required: false

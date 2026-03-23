@@ -17,6 +17,7 @@
 ### 1) Backend Domain and Workflow
 
 - Added full maintenance order domain model and event log.
+- Added Prisma migration to register `ConversationContentType.MAINTENANCE` at database level.
 - Added strict lifecycle operations:
   - `quote`
   - `payment-confirm`
@@ -55,6 +56,8 @@
 
 - Added maintenance order paths (admin + me) and schemas.
 - Added maintenance conversation path and `ConversationContentType.MAINTENANCE`.
+- Added explicit platform conversation channel filter `MAINTENANCE`.
+- Added owner maintenance order query filter `orderId` for deep-link and contextual entry.
 - Regenerated shared API types from OpenAPI.
 
 ## API Coverage Added

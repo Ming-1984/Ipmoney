@@ -8047,7 +8047,7 @@ export interface operations {
                 /** @description 閸忔娊鏁拠宥忕礄閺嶅洭顣?閹芥顩?閺夊啫鍩勬禍?閸欐垶妲戞禍?閺堢儤鐎崥宥囆炵粵澶涚礆 */
                 q?: components["parameters"]["Q"];
                 /** @description Conversation channel filter. */
-                channel?: "ALL" | "CONSULTATION" | "SUPPORT" | "DISPUTE";
+                channel?: "ALL" | "CONSULTATION" | "SUPPORT" | "DISPUTE" | "MAINTENANCE";
                 /** @description Assignment scope filter. */
                 assigned?: "ALL" | "MINE" | "ASSIGNED" | "UNASSIGNED";
                 /** @description Listing topic filter. */
@@ -9538,6 +9538,7 @@ export interface operations {
     adminListPatentMaintenanceTasks: {
         parameters: {
             query?: {
+                orderId?: components["schemas"]["Uuid"];
                 scheduleId?: components["schemas"]["Uuid"];
                 assignedCsUserId?: components["schemas"]["Uuid"];
                 /** @description 閹垫顓告禒璇插閻樿埖鈧浇绻冨? */

@@ -813,6 +813,7 @@ export class PatentMaintenanceService {
     const pageSize = Math.min(50, pageSizeInput);
 
     const where: Prisma.PatentMaintenanceOrderWhereInput = { applicantUserId: req.auth.userId };
+    if (this.hasOwn(query, 'orderId')) where.id = this.parseUuidParam(query?.orderId, 'orderId');
     if (this.hasOwn(query, 'scheduleId')) where.scheduleId = this.parseUuidParam(query?.scheduleId, 'scheduleId');
     if (this.hasOwn(query, 'status')) where.status = this.parseOrderStatusStrict(query?.status, 'status');
     if (this.hasOwn(query, 'reconcileStatus')) {

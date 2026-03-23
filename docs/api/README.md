@@ -79,6 +79,7 @@ Use the same enum in:
   - `GET /me/patent-maintenance/schedules`
   - `GET /me/patent-maintenance/tasks`
   - `GET /me/patent-maintenance/orders`
+    - Query options: `orderId` / `scheduleId` / `status` / `reconcileStatus` / `page` / `pageSize`
   - `POST /me/patent-maintenance/orders`
   - `GET /me/patent-maintenance/orders/{orderId}`
   - `GET /me/patent-maintenance/orders/{orderId}/events`
@@ -108,7 +109,7 @@ Use the same enum in:
   - `DELETE /admin/conversations/{conversationId}/agents/{userId}`
   - Query options on `GET /admin/conversations/platform`:
     - `q`
-    - `channel=ALL|CONSULTATION|SUPPORT|DISPUTE`
+    - `channel=ALL|CONSULTATION|SUPPORT|DISPUTE|MAINTENANCE`
     - `assigned=ALL|MINE|ASSIGNED|UNASSIGNED`
     - `listingTopic`
     - `updatedFrom` / `updatedTo`

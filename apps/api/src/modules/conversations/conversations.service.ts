@@ -8,7 +8,7 @@ type UpsertableConversationContentType = 'LISTING' | 'ACHIEVEMENT' | 'TECH_MANAG
 type ConversationMessageType = 'TEXT' | 'EMOJI' | 'IMAGE' | 'FILE' | 'SYSTEM';
 type ListingTopic = 'HIGH_TECH_RETIRED' | 'SLEEPING' | 'AWARD_WINNING' | 'OPEN_LICENSE';
 type PlatformAssignedFilter = 'ALL' | 'MINE' | 'ASSIGNED' | 'UNASSIGNED';
-type PlatformConversationChannel = 'ALL' | 'CONSULTATION' | 'SUPPORT' | 'DISPUTE';
+type PlatformConversationChannel = 'ALL' | 'CONSULTATION' | 'SUPPORT' | 'DISPUTE' | 'MAINTENANCE';
 
 type ConversationDto = {
   id: string;
@@ -138,7 +138,13 @@ export class ConversationsService {
 
   private parsePlatformConversationChannelStrict(value: unknown, fieldName: string): PlatformConversationChannel {
     const normalized = String(value ?? '').trim().toUpperCase();
-    if (normalized === 'ALL' || normalized === 'CONSULTATION' || normalized === 'SUPPORT' || normalized === 'DISPUTE') {
+    if (
+      normalized === 'ALL' ||
+      normalized === 'CONSULTATION' ||
+      normalized === 'SUPPORT' ||
+      normalized === 'DISPUTE' ||
+      normalized === 'MAINTENANCE'
+    ) {
       return normalized as PlatformConversationChannel;
     }
     throw new BadRequestException({ code: 'BAD_REQUEST', message: `${fieldName} is invalid` });
@@ -832,7 +838,7 @@ export class ConversationsService {
     if (updatedFrom && updatedTo && updatedFrom.getTime() > updatedTo.getTime()) {
       throw new BadRequestException({ code: 'BAD_REQUEST', message: 'updatedFrom must be earlier than updatedTo' });
     }
-    if (listingTopic && (channel === 'SUPPORT' || channel === 'DISPUTE')) {
+    if (listingTopic && channel !== 'ALL' && channel !== 'CONSULTATION') {
       throw new BadRequestException({ code: 'BAD_REQUEST', message: 'listingTopic is only valid for consultation channel' });
     }
 
@@ -846,11 +852,11 @@ export class ConversationsService {
             },
           }
         : channel === 'SUPPORT'
-          ? {
-              OR: [{ contentType: 'SUPPORT' }, { contentType: 'MAINTENANCE' }],
-            }
+          ? { contentType: 'SUPPORT' }
           : channel === 'DISPUTE'
             ? { contentType: 'DISPUTE' }
+            : channel === 'MAINTENANCE'
+              ? { contentType: 'MAINTENANCE' }
             : {
                 OR: [
                   { contentType: 'SUPPORT' },

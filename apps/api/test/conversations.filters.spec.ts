@@ -318,6 +318,22 @@ describe('ConversationsService pagination and id strictness suite', () => {
     });
   });
 
+  it('supports maintenance channel in platform conversation filters', async () => {
+    const req = { auth: { userId: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa' } };
+    prisma.conversation.findMany.mockResolvedValueOnce([]);
+    prisma.conversation.count.mockResolvedValueOnce(0);
+
+    await service.listPlatformConversations(req, { channel: 'MAINTENANCE' });
+
+    expect(prisma.conversation.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: {
+          AND: [{ contentType: 'MAINTENANCE' }],
+        },
+      }),
+    );
+  });
+
   it('rejects invalid platform conversation filters strictly', async () => {
     const req = { auth: { userId: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa' } };
 
@@ -335,6 +351,9 @@ describe('ConversationsService pagination and id strictness suite', () => {
     );
     await expect(
       service.listPlatformConversations(req, { channel: 'SUPPORT', listingTopic: 'OPEN_LICENSE' }),
+    ).rejects.toBeInstanceOf(BadRequestException);
+    await expect(
+      service.listPlatformConversations(req, { channel: 'MAINTENANCE', listingTopic: 'OPEN_LICENSE' }),
     ).rejects.toBeInstanceOf(BadRequestException);
     await expect(service.listPlatformConversations(req, { updatedFrom: 'bad-date' })).rejects.toBeInstanceOf(
       BadRequestException,

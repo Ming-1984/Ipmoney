@@ -25,12 +25,12 @@ import { confirmAction } from '../ui/confirm';
 
 type ListingTopic = 'HIGH_TECH_RETIRED' | 'SLEEPING' | 'AWARD_WINNING' | 'OPEN_LICENSE';
 type AssignedFilter = 'ALL' | 'MINE' | 'ASSIGNED' | 'UNASSIGNED';
-type ConversationChannelFilter = 'ALL' | 'CONSULTATION' | 'SUPPORT' | 'DISPUTE';
+type ConversationChannelFilter = 'ALL' | 'CONSULTATION' | 'SUPPORT' | 'DISPUTE' | 'MAINTENANCE';
 type DateRangeValue = [any, any] | null;
 
 type ConversationSummary = {
   id: string;
-  contentType: 'LISTING' | 'TECH_MANAGER' | 'SUPPORT' | 'DISPUTE';
+  contentType: 'LISTING' | 'TECH_MANAGER' | 'SUPPORT' | 'DISPUTE' | 'MAINTENANCE';
   contentId: string;
   contentTitle: string;
   listingId?: string | null;
@@ -90,6 +90,7 @@ const CHANNEL_FILTER_OPTIONS: Array<{ value: ConversationChannelFilter; label: s
   { value: 'CONSULTATION', label: '咨询' },
   { value: 'SUPPORT', label: '客服' },
   { value: 'DISPUTE', label: '争议' },
+  { value: 'MAINTENANCE', label: '年费托管' },
 ];
 
 function shortId(value: string): string {
@@ -123,6 +124,7 @@ function topicColor(topic: ListingTopic): string {
 function channelLabel(contentType: ConversationSummary['contentType']): string {
   if (contentType === 'SUPPORT') return '客服';
   if (contentType === 'DISPUTE') return '争议';
+  if (contentType === 'MAINTENANCE') return '年费托管';
   if (contentType === 'LISTING') return '咨询';
   return '会话';
 }
@@ -130,6 +132,7 @@ function channelLabel(contentType: ConversationSummary['contentType']): string {
 function channelTagColor(contentType: ConversationSummary['contentType']): string {
   if (contentType === 'SUPPORT') return 'cyan';
   if (contentType === 'DISPUTE') return 'volcano';
+  if (contentType === 'MAINTENANCE') return 'purple';
   if (contentType === 'LISTING') return 'blue';
   return 'default';
 }
@@ -299,7 +302,7 @@ export function PlatformConversationsPage() {
   }, [activeConversationId, loadingOlder, nextCursor]);
 
   const applyFilters = useCallback(() => {
-    const shouldDropListingTopic = draftChannel === 'SUPPORT' || draftChannel === 'DISPUTE';
+    const shouldDropListingTopic = draftChannel !== 'ALL' && draftChannel !== 'CONSULTATION';
     setPage(1);
     setAppliedQ(draftQ);
     setAppliedAssigned(draftAssigned);
@@ -490,7 +493,7 @@ export function PlatformConversationsPage() {
                 options={CHANNEL_FILTER_OPTIONS}
                 onChange={(value) => {
                   setDraftChannel(value);
-                  if (value === 'SUPPORT' || value === 'DISPUTE') {
+                  if (value !== 'ALL' && value !== 'CONSULTATION') {
                     setDraftListingTopic('');
                   }
                 }}
@@ -501,7 +504,7 @@ export function PlatformConversationsPage() {
                 options={[{ value: '', label: '全部标签' }, ...LISTING_TOPIC_OPTIONS]}
                 onChange={(value) => setDraftListingTopic((value as ListingTopic) || '')}
                 placeholder="特色标签"
-                disabled={draftChannel === 'SUPPORT' || draftChannel === 'DISPUTE'}
+                disabled={draftChannel !== 'ALL' && draftChannel !== 'CONSULTATION'}
               />
             </Space>
             <DatePicker.RangePicker

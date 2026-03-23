@@ -1,0 +1,1 @@
+ALTER TYPE "ConversationContentType" ADD VALUE IF NOT EXISTS 'MAINTENANCE';

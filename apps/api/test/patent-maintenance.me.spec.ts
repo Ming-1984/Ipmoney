@@ -6,6 +6,7 @@ import { PatentMaintenanceService } from '../src/modules/patent-maintenance/pate
 const USER_ID = '99999999-9999-4999-8999-999999999999';
 const PATENT_ID = '88888888-8888-4888-8888-888888888888';
 const SCHEDULE_ID = '77777777-7777-4777-8777-777777777777';
+const ORDER_ID = '66666666-6666-4666-8666-666666666666';
 
 describe('PatentMaintenanceService me-scope suite', () => {
   let prisma: any;
@@ -19,6 +20,10 @@ describe('PatentMaintenanceService me-scope suite', () => {
         count: vi.fn(),
       },
       patentMaintenanceTask: {
+        findMany: vi.fn(),
+        count: vi.fn(),
+      },
+      patentMaintenanceOrder: {
         findMany: vi.fn(),
         count: vi.fn(),
       },
@@ -145,6 +150,87 @@ describe('PatentMaintenanceService me-scope suite', () => {
         patentTitle: '测试专利',
         scheduleYearNo: 5,
         scheduleDueDate: '2099-01-01',
+        canContactSupport: true,
+      }),
+    );
+  });
+
+  it('rejects invalid listMyOrders filters strictly', async () => {
+    await expect(service.listMyOrders(authReq, { page: '0' })).rejects.toBeInstanceOf(BadRequestException);
+    await expect(service.listMyOrders(authReq, { pageSize: '1.5' })).rejects.toBeInstanceOf(BadRequestException);
+    await expect(service.listMyOrders(authReq, { orderId: 'bad-id' })).rejects.toBeInstanceOf(BadRequestException);
+    await expect(service.listMyOrders(authReq, { scheduleId: 'bad-id' })).rejects.toBeInstanceOf(BadRequestException);
+    await expect(service.listMyOrders(authReq, { status: 'bad' })).rejects.toBeInstanceOf(BadRequestException);
+    await expect(service.listMyOrders(authReq, { reconcileStatus: 'bad' })).rejects.toBeInstanceOf(BadRequestException);
+  });
+
+  it('listMyOrders enforces applicant scope and supports orderId filter', async () => {
+    prisma.patentMaintenanceOrder.findMany.mockResolvedValueOnce([
+      {
+        id: ORDER_ID,
+        scheduleId: SCHEDULE_ID,
+        applicantUserId: USER_ID,
+        assignedCsUserId: null,
+        status: 'AWAITING_PAYMENT',
+        paymentChannel: null,
+        officialFeeFen: 20000,
+        lateFeeFen: 0,
+        serviceFeeFen: 3000,
+        totalAmountFen: 23000,
+        paymentDeadline: new Date('2026-04-01T00:00:00.000Z'),
+        paidAt: null,
+        executedAt: null,
+        receiptIssuedAt: null,
+        officialSubmissionNo: null,
+        officialReceiptNo: null,
+        paymentTxnNo: null,
+        officialReceiptFileId: null,
+        reconcileStatus: 'PENDING',
+        reconcileNote: null,
+        closeNote: null,
+        createdAt: new Date('2026-03-01T00:00:00.000Z'),
+        updatedAt: new Date('2026-03-02T00:00:00.000Z'),
+        schedule: {
+          patentId: PATENT_ID,
+          yearNo: 5,
+          dueDate: new Date('2026-05-01T00:00:00.000Z'),
+          patent: {
+            title: '测试专利',
+            applicationNoDisplay: 'CN200000000000.X',
+            applicationNoNorm: '200000000000',
+          },
+        },
+      },
+    ]);
+    prisma.patentMaintenanceOrder.count.mockResolvedValueOnce(1);
+
+    const result = await service.listMyOrders(authReq, {
+      page: '1',
+      pageSize: '20',
+      orderId: ORDER_ID,
+      status: 'awaiting_payment',
+      reconcileStatus: 'pending',
+    });
+
+    expect(prisma.patentMaintenanceOrder.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: {
+          applicantUserId: USER_ID,
+          id: ORDER_ID,
+          status: 'AWAITING_PAYMENT',
+          reconcileStatus: 'PENDING',
+        },
+        skip: 0,
+        take: 20,
+      }),
+    );
+    expect(result.page).toEqual({ page: 1, pageSize: 20, total: 1 });
+    expect(result.items[0]).toEqual(
+      expect.objectContaining({
+        id: ORDER_ID,
+        patentId: PATENT_ID,
+        patentTitle: '测试专利',
+        applicationNoDisplay: 'CN200000000000.X',
         canContactSupport: true,
       }),
     );

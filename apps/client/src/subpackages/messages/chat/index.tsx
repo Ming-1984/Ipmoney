@@ -50,6 +50,7 @@ type PagedConversationSummary = components['schemas']['PagedConversationSummary'
 type ListingPublic = components['schemas']['ListingPublic'];
 type TechManagerPublic = components['schemas']['TechManagerPublic'];
 type OrderDetail = components['schemas']['Order'] & { listingTitle?: string | null };
+type MaintenanceOrder = components['schemas']['PatentMaintenanceOrder'];
 
 type ContextCard = {
   title: string;
@@ -215,6 +216,7 @@ export default function ChatPage() {
     const contentType = String(c.contentType || '').toUpperCase();
     if (contentType === 'SUPPORT') return '平台客服助手';
     if (contentType === 'DISPUTE') return c.contentTitle || '订单争议';
+    if (contentType === 'MAINTENANCE') return c.contentTitle || '年费托管';
     const role = c.counterpart?.role;
     if (role === 'cs') return '平台客服助手';
     if (role === 'admin') return '交易通知';
@@ -349,6 +351,15 @@ export default function ChatPage() {
           const order = await apiGet<OrderDetail>(`/orders/${summary.contentId}`);
           title = order.listingTitle ? `订单争议 · ${order.listingTitle}` : summary.contentTitle || '订单争议';
           tag = '订单争议';
+        } else if (String(summary.contentType || '').toUpperCase() === 'MAINTENANCE') {
+          const order = await apiGet<MaintenanceOrder>(`/me/patent-maintenance/orders/${summary.contentId}`);
+          const orderShortId = String(order.id || '').slice(0, 8);
+          const yearLabel = Number(order.scheduleYearNo || 0) > 0 ? `第${order.scheduleYearNo}年` : '';
+          title =
+            summary.contentTitle ||
+            ['年费托管', orderShortId ? `#${orderShortId}` : '', order.patentTitle || '', yearLabel].filter(Boolean).join(' · ');
+          tag = '年费托管';
+          price = order.totalAmountFen != null ? `￥${fenToYuan(order.totalAmountFen)}` : '';
         } else if (summary.contentType === 'TECH_MANAGER') {
           const manager = await apiGet<TechManagerPublic>(`/public/tech-managers/${summary.contentId}`);
           title = manager.displayName || title;
@@ -559,6 +570,10 @@ export default function ChatPage() {
     }
     if (contentType === 'DISPUTE') {
       Taro.navigateTo({ url: `/subpackages/orders/detail/index?orderId=${id}` });
+      return;
+    }
+    if (contentType === 'MAINTENANCE') {
+      Taro.navigateTo({ url: `/subpackages/maintenance/index?tab=orders&orderId=${id}` });
       return;
     }
     if (contentType === 'TECH_MANAGER') {

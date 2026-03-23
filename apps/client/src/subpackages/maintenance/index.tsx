@@ -5,6 +5,7 @@ import './index.scss';
 
 import { apiGet, apiPost } from '../../lib/api';
 import { usePageAccess } from '../../lib/guard';
+import { useRouteStringParam, useRouteUuidParam } from '../../lib/routeParams';
 import { usePagedList } from '../../lib/usePagedList';
 import { CategoryControl } from '../../ui/filters/TabsControl';
 import { ListFooter } from '../../ui/ListFooter';
@@ -190,12 +191,17 @@ function shouldCreateOrderButtonShow(schedule: PatentMaintenanceSchedule): boole
 }
 
 export default function MaintenancePage() {
+  const routeOrderId = useRouteUuidParam('orderId') || '';
+  const routeTab = useRouteStringParam('tab');
   const loadedOnceRef = useRef(false);
   const scheduleFilterMountedRef = useRef(false);
   const taskFilterMountedRef = useRef(false);
   const orderFilterMountedRef = useRef(false);
 
-  const [tab, setTab] = useState<'schedules' | 'tasks' | 'orders'>('orders');
+  const [tab, setTab] = useState<'schedules' | 'tasks' | 'orders'>(() => {
+    if (routeTab === 'schedules' || routeTab === 'tasks' || routeTab === 'orders') return routeTab;
+    return 'orders';
+  });
   const [scheduleFilter, setScheduleFilter] = useState<ScheduleFilter>('');
   const [taskFilter, setTaskFilter] = useState<TaskFilter>('');
   const [orderFilter, setOrderFilter] = useState<OrderFilter>('');
@@ -241,9 +247,10 @@ export default function MaintenancePage() {
       await apiGet<Paged<PatentMaintenanceOrder>>('/me/patent-maintenance/orders', {
         page,
         pageSize,
+        ...(routeOrderId ? { orderId: routeOrderId } : {}),
         ...(orderFilter ? { status: orderFilter } : {}),
       }),
-    [orderFilter],
+    [orderFilter, routeOrderId],
   );
 
   const schedules = usePagedList<PatentMaintenanceSchedule>(scheduleFetcher, {
@@ -307,6 +314,11 @@ export default function MaintenancePage() {
     }
     void orders.reload();
   }, [access.state, orderFilter, orders.reload]);
+
+  useEffect(() => {
+    if (!routeOrderId) return;
+    if (tab !== 'orders') setTab('orders');
+  }, [routeOrderId, tab]);
 
   const openOrderConversation = useCallback(async (orderId: string) => {
     if (!orderId || openingConversationOrderId) return;
@@ -549,6 +561,22 @@ export default function MaintenancePage() {
 
             {tab === 'orders' ? (
               <>
+                {routeOrderId ? (
+                  <>
+                    <TipBanner tone="info" title="会话上下文">
+                      当前展示会话关联订单：{routeOrderId.slice(0, 8)}…
+                      <Text
+                        className="maintenance-link"
+                        onClick={() => {
+                          Taro.redirectTo({ url: '/subpackages/maintenance/index?tab=orders' });
+                        }}
+                      >
+                        查看全部订单
+                      </Text>
+                    </TipBanner>
+                    <Spacer size={10} />
+                  </>
+                ) : null}
                 <Surface className="maintenance-filter-card" padding="sm">
                   <CategoryControl value={orderFilter} options={ORDER_FILTER_OPTIONS} onChange={setOrderFilter} />
                 </Surface>
