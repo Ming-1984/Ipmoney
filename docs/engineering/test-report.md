@@ -3,10 +3,34 @@
 > Note (2026-03-23): `docs/demo/rendered/` historical screenshots were cleaned from git.
 > Smoke screenshot artifacts are now local-only and may not exist in repository history snapshots after this date.
 
+## Latest (2026-03-23 r326m)
+
+### Commands & Results (dev)
+- `powershell -ExecutionPolicy Bypass -File scripts/verify.ps1 -ReportDate r326m -UiSmokeMode full -RunWeappRouteSmoke -RunVulnerabilityAudit -WeappCliPath "<WeAppCliPath>"`
+  - Result: pass
+  - Notes: full-chain gate passed with security ledger (`api-real-smoke` `1304/1304`, OpenAPI coverage `225/225`, `db-preflight` `9/9`, `ui-render(full)` `64/64`, `ui-dom(full)` `64/64`, weapp-route `noauth 12/12`, auth skipped due no token, ledger: `docs/engineering/vulnerability-ledger-2026-03-23.md`).
+
+## Latest (2026-03-23 r326l)
+
+### Commands & Results (dev)
+- `powershell -ExecutionPolicy Bypass -File scripts/verify.ps1 -ReportDate r326l -UiSmokeMode core -RunVulnerabilityAudit`
+  - Result: pass
+  - Notes: quality gate passed and vulnerability ledger generated (`api-real-smoke` `1304/1304`, OpenAPI coverage `225/225`, `db-preflight` `9/9`, `ui-render(core)` `3/3`, `ui-dom(core)` `11/11`, ledger: `docs/engineering/vulnerability-ledger-2026-03-23.md`).
+- `$env:STAGE='prod'; node scripts/run-with-env.mjs -- node scripts/check-prod-env.mjs`
+  - Result: fail (expected in local `.env`)
+  - Notes: production hard checks still block local defaults (`DEMO_AUTH_ALLOW_UUID_TOKENS`, `BASE_URL`, `PUBLIC_HOST_WHITELIST`, `FILE_TEMP_TOKEN_SECRET`, `JWT_SECRET`).
+
+## Latest (2026-03-23 r326k)
+
+### Commands & Results (dev)
+- `powershell -ExecutionPolicy Bypass -File scripts/verify.ps1 -ReportDate r326k -UiSmokeMode full -RunWeappRouteSmoke -WeappCliPath "<WeAppCliPath>" -WeappUserToken <demo-token>`
+  - Result: pass
+  - Notes: full-chain gate passed after enabling one-step retry for WeApp route smoke (`api-real-smoke` `1308/1308`, OpenAPI coverage `225/225`, `db-preflight` `9/9`, `ui-render(full)` `64/64`, `ui-dom(full)` `64/64`, weapp-route `noauth 12/12`, `auth 12/12`).
+
 ## Latest (2026-03-23 r326i)
 
 ### Commands & Results (dev)
-- `powershell -ExecutionPolicy Bypass -File scripts/verify.ps1 -ReportDate r326i -UiSmokeMode full -RunWeappRouteSmoke -WeappCliPath "D:\微信web开发者工具\cli.bat" -WeappUserToken <demo-token>`
+- `powershell -ExecutionPolicy Bypass -File scripts/verify.ps1 -ReportDate r326i -UiSmokeMode full -RunWeappRouteSmoke -WeappCliPath "<WeAppCliPath>" -WeappUserToken <demo-token>`
   - Result: pass
   - Notes: full-chain gate passed with full UI smoke + WeApp route smoke (`api-real-smoke` `1304/1304`, OpenAPI coverage `225/225`, `db-preflight` `9/9`, `ui-render(full)` `64/64`, `ui-dom(full)` `64/64`, weapp-route `noauth 12/12`, `auth 12/12`).
 

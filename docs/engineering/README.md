@@ -5,7 +5,7 @@
 - 测试报告（最新结果）：docs/engineering/test-report.md
 - 全链路最佳实践审计（2026-03-23）：docs/engineering/full-chain-best-practice-audit-2026-03-23-r326h.md
 - 页面-接口-测试矩阵（最新）：docs/engineering/page-api-test-matrix-r326e.md
-- 漏洞台账（2026-03-05）：docs/engineering/vulnerability-ledger-2026-03-05.md
+- 漏洞台账（2026-03-23）：docs/engineering/vulnerability-ledger-2026-03-23.md
 
 ## 发布与运维
 - 生产过渡：docs/engineering/production-transition.md

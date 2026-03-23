@@ -8,6 +8,10 @@
 
 ## 自动化执行结果
 
+- `powershell -ExecutionPolicy Bypass -File scripts/verify.ps1 -ReportDate r326m -UiSmokeMode full -RunWeappRouteSmoke -RunVulnerabilityAudit -WeappCliPath "<WeAppCliPath>"`
+  - 结果：通过（聚合门禁 + 安全台账）
+  - 关键指标：`api-real-smoke 1304/1304`、OpenAPI 覆盖 `225/225`、`ui-render(full) 64/64`、`ui-dom(full) 64/64`、WeApp 路由 `noauth 12/12`（未传 token 跳过 auth 路由）、漏洞台账输出：`docs/engineering/vulnerability-ledger-2026-03-23.md`
+
 - `powershell -ExecutionPolicy Bypass -File scripts/verify.ps1 -ReportDate r326i -UiSmokeMode full -RunWeappRouteSmoke -WeappCliPath "D:\微信web开发者工具\cli.bat" -WeappUserToken <demo-token>`
   - 结果：通过（聚合门禁）
   - 关键指标：`api-real-smoke 1304/1304`、`ui-render(full) 64/64`、`ui-dom(full) 64/64`、WeApp 路由 `noauth 12/12` + `auth 12/12`
@@ -31,6 +35,8 @@
 - `scripts/verify.ps1`
   - 新增 `-UiSmokeMode core|full`，支持按阶段切换核心/全量 UI 冒烟
   - 新增 `-RunWeappRouteSmoke`，可在门禁中执行小程序路由冒烟（无登录 + 登录态）
+  - 新增 `-RunVulnerabilityAudit`，可在门禁中落盘 `pnpm audit` 快照并生成漏洞台账（用于基线治理，不阻断现有已知风险）
+  - WeApp 路由冒烟在 `verify` 中增加一次重试，降低 DevTools 短暂抖动导致的假失败
 - `docs/api/openapi.yaml`
   - `servers[0].url` 统一为 `https://api.ipmoney.cn`，与当前生产域名口径一致
 - `docs/engineering/system-test-plan.md`

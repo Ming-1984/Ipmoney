@@ -5,6 +5,8 @@ This directory contains local engineering automation scripts.
 ## Release Gate (must stay green)
 - `verify.ps1`: full quality gate (lint/typecheck/build/smoke/preflight).
   - Supports `-UiSmokeMode core|full` and optional `-RunWeappRouteSmoke` for mini-program route smoke (`noauth` + `auth` when token is available).
+  - WeApp route smoke is retried once on transient non-zero exit.
+  - Optional `-RunVulnerabilityAudit` generates `pnpm audit` snapshot + vulnerability ledger (does not hard-fail on known vulnerability baseline).
 - `api-real-smoke.ps1`: real API smoke coverage baseline.
 - `ui-http-smoke.ps1`: HTTP-level page smoke.
 - `ui-render-smoke.ps1`: visual render smoke.

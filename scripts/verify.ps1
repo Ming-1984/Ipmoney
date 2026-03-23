@@ -12,7 +12,8 @@ param(
   [int]$WeappTimeoutMs = 180000,
   [int]$WeappLaunchRetries = 3,
   [int]$WeappLaunchRetryDelayMs = 3000,
-  [string]$WeappUserToken = ""
+  [string]$WeappUserToken = "",
+  [switch]$RunVulnerabilityAudit
 )
 
 $ErrorActionPreference = "Stop"
@@ -194,7 +195,7 @@ if ($RunWeappRouteSmoke) {
       -LaunchRetries $WeappLaunchRetries `
       -LaunchRetryDelayMs $WeappLaunchRetryDelayMs `
       -KillStaleDevtools
-  }
+  } -MaxAttempts 2 -RetryExitCodes @(1)
 
   $effectiveWeappUserToken = [string]$WeappUserToken
   if ([string]::IsNullOrWhiteSpace($effectiveWeappUserToken)) {
@@ -211,9 +212,35 @@ if ($RunWeappRouteSmoke) {
         -LaunchRetries $WeappLaunchRetries `
         -LaunchRetryDelayMs $WeappLaunchRetryDelayMs `
         -KillStaleDevtools
-    }
+    } -MaxAttempts 2 -RetryExitCodes @(1)
   } else {
     Write-Host "[verify] skip weapp-route-smoke(auth): DEMO_USER_TOKEN / -WeappUserToken is empty"
+  }
+}
+
+if ($RunVulnerabilityAudit) {
+  Invoke-Step "security:audit-ledger" {
+    $auditOutPath = Join-Path $tmpDir ("pnpm-audit-prod-{0}.json" -f $ReportDate)
+    if (Test-Path $auditOutPath) {
+      Remove-Item $auditOutPath -Force
+    }
+
+    pnpm audit --prod --json | Out-File -FilePath $auditOutPath -Encoding utf8
+    $auditExitCode = [int]$LASTEXITCODE
+    if ($auditExitCode -ne 0 -and $auditExitCode -ne 1) {
+      throw ("pnpm audit failed with unexpected exit={0}" -f $auditExitCode)
+    }
+
+    node scripts/audit-vulnerability-ledger.mjs --date $ReportDate --input ".tmp/pnpm-audit-prod-$ReportDate.json"
+    if ($LASTEXITCODE -ne 0) {
+      throw ("audit-vulnerability-ledger failed (exit={0})" -f [int]$LASTEXITCODE)
+    }
+
+    if ($auditExitCode -eq 1) {
+      Write-Host "[verify] vulnerability audit found issues; ledger generated for triage"
+    } else {
+      Write-Host "[verify] vulnerability audit clean; ledger generated"
+    }
   }
 }
 

@@ -39,6 +39,8 @@
   - `powershell -ExecutionPolicy Bypass -File scripts/verify.ps1 -ReportDate <tag>`
 - 深度门禁（全量 UI + 小程序路由冒烟）：
   - `powershell -ExecutionPolicy Bypass -File scripts/verify.ps1 -ReportDate <tag> -UiSmokeMode full -RunWeappRouteSmoke -WeappCliPath "<微信开发者工具 cli.bat 路径>" -WeappUserToken "<DEMO_USER_TOKEN>"`
+- 深度门禁 + 安全审计台账：
+  - `powershell -ExecutionPolicy Bypass -File scripts/verify.ps1 -ReportDate <tag> -UiSmokeMode full -RunWeappRouteSmoke -RunVulnerabilityAudit -WeappCliPath "<微信开发者工具 cli.bat 路径>" -WeappUserToken "<DEMO_USER_TOKEN>"`
 - 建议策略：
   - 每次功能重构至少执行一次深度门禁。
   - 版本冻结前执行深度门禁 + 手工关键路径复核（登录、支付、客服会话、年费托管、认领审核）。
