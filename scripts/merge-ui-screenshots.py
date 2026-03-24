@@ -11,8 +11,6 @@ from PIL import Image
 CLIENT_ORDER = [
     "home",
     "search",
-    "patent-map",
-    "patent-map-region-detail",
     "inventors",
     "listing-detail",
     "patent-detail",
@@ -51,7 +49,6 @@ ADMIN_ORDER = [
     "invoices",
     "config",
     "regions",
-    "patent-map",
 ]
 
 

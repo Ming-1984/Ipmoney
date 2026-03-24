@@ -56,7 +56,6 @@ $demoInputs = @(
   # Miniapp pages (from Ipmoney.md)
   "docs/demo/pages/miniapp/01-login.mmd",
   "docs/demo/pages/miniapp/02-home.mmd",
-  "docs/demo/pages/miniapp/03-patent-map.mmd",
   "docs/demo/pages/miniapp/04-search.mmd",
   "docs/demo/pages/miniapp/05-detail.mmd",
   "docs/demo/pages/miniapp/06-message.mmd",
@@ -72,7 +71,6 @@ $demoInputs = @(
 
   # Admin pages (from Ipmoney.md)
   "docs/demo/pages/admin/01-dashboard.mmd",
-  "docs/demo/pages/admin/02-map-cms.mmd",
   "docs/demo/pages/admin/03-order-list.mmd",
   "docs/demo/pages/admin/04-order-detail.mmd",
   "docs/demo/pages/admin/05-content-audit.mmd",

@@ -93,7 +93,6 @@
 - `DEMO_PAYMENT_ENABLED`：是否允许演示支付意图（仅 dev 建议开启；staging/prod 必须关闭；服务端在 staging/prod 下强制禁用）
 - `SEED_BASE_DATA`：是否写入基础配置/地区（默认 true；生产推荐 true）
 - `SEED_DEMO_DATA`：是否写入演示数据（默认 false；生产必须 false）
-- `SEED_DEMO_PURGE_MAP`：是否清理专利地图演示数据（默认 false；仅在 `SEED_DEMO_DATA=false` 时生效）
 - `RATE_LIMIT_ENABLED`：是否启用全局限流（默认 true）
 - `RATE_LIMIT_WINDOW_SECONDS`：限流窗口（秒）
 - `RATE_LIMIT_MAX`：窗口内最大请求数

@@ -1601,7 +1601,7 @@ try {
     @{ name = "search-listings-invalid-page"; method = "GET"; url = "http://127.0.0.1:$resolvedApiPort/search/listings?page=abc"; body = $null; headers = @{}; expected = @(400) },
     @{ name = "search-listings-empty-page-size"; method = "GET"; url = "http://127.0.0.1:$resolvedApiPort/search/listings?pageSize="; body = $null; headers = @{}; expected = @(400) },
     @{ name = "search-listings-invalid-price-min"; method = "GET"; url = "http://127.0.0.1:$resolvedApiPort/search/listings?priceMin=abc"; body = $null; headers = @{}; expected = @(400) },
-    @{ name = "search-listings-empty-deposit-max-fen"; method = "GET"; url = "http://127.0.0.1:$resolvedApiPort/search/listings?depositMaxFen="; body = $null; headers = @{}; expected = @(400) },
+    @{ name = "search-listings-empty-deposit-max"; method = "GET"; url = "http://127.0.0.1:$resolvedApiPort/search/listings?depositMax="; body = $null; headers = @{}; expected = @(400) },
     @{ name = "search-listings-invalid-transfer-count-min-decimal"; method = "GET"; url = "http://127.0.0.1:$resolvedApiPort/search/listings?transferCountMin=1.5"; body = $null; headers = @{}; expected = @(400) },
     @{ name = "search-listings-empty-created-from"; method = "GET"; url = "http://127.0.0.1:$resolvedApiPort/search/listings?createdFrom="; body = $null; headers = @{}; expected = @(400) },
     @{ name = "search-listings-empty-created-to"; method = "GET"; url = "http://127.0.0.1:$resolvedApiPort/search/listings?createdTo="; body = $null; headers = @{}; expected = @(400) },

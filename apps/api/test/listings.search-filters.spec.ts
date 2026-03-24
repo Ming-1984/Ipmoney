@@ -60,7 +60,7 @@ describe('ListingsService search filter strictness suite', () => {
     await expect(service.searchPublic({ transferCountMax: '9007199254740992' })).rejects.toBeInstanceOf(
       BadRequestException,
     );
-    await expect(service.searchPublic({ priceMaxFen: '-1' })).rejects.toBeInstanceOf(BadRequestException);
+    await expect(service.searchPublic({ priceMax: '-1' })).rejects.toBeInstanceOf(BadRequestException);
   });
 
   it('caps pageSize to 50 for public search', async () => {

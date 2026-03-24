@@ -181,7 +181,7 @@ describe('ListingsService write flow suite', () => {
       title: 'Listing Topic Strict',
       tradeMode: 'assignment',
       priceType: 'negotiable',
-      listingTopics: ['five_star', 'open_license', 'foo', 'bar'],
+      listingTopics: ['legacy_retired_tag', 'open_license', 'foo', 'bar'],
     });
 
     expect(prisma.listing.create).toHaveBeenCalledWith(

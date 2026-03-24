@@ -63,12 +63,12 @@ describe('ListingsService admin list filter strictness suite', () => {
     expect(result.page).toEqual({ page: 2, pageSize: 50, total: 0 });
   });
 
-  it('supports deduped multiple listingTopics in admin query', async () => {
+  it('supports deduped multiple listingTopic values in admin query', async () => {
     prisma.listing.findMany.mockResolvedValueOnce([]);
     prisma.listing.count.mockResolvedValueOnce(0);
 
     await service.listAdmin({
-      listingTopics: ['open_license', 'SLEEPING', 'open_license', 'bad'],
+      listingTopic: ['open_license', 'SLEEPING', 'open_license', 'bad'],
     });
 
     expect(prisma.listing.findMany).toHaveBeenCalledWith(
@@ -83,4 +83,3 @@ describe('ListingsService admin list filter strictness suite', () => {
     );
   });
 });
-

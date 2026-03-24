@@ -1189,9 +1189,8 @@ function maybeSendDynamic(req, res, { method, url, scenario, requestBody }) {
     const tradeMode = String(url.searchParams.get('tradeMode') || '').trim();
     const priceType = String(url.searchParams.get('priceType') || '').trim();
     const regionCode = String(url.searchParams.get('regionCode') || '').trim();
-    const listingTopic = String(url.searchParams.get('listingTopic') || '').trim().toUpperCase();
     const listingTopics = url.searchParams
-      .getAll('listingTopics')
+      .getAll('listingTopic')
       .map((v) => String(v || '').trim().toUpperCase())
       .filter(Boolean);
     const ipc = String(url.searchParams.get('ipc') || '').trim().toLowerCase().replace(/\s+/g, '');
@@ -1200,10 +1199,10 @@ function maybeSendDynamic(req, res, { method, url, scenario, requestBody }) {
     const industryTags = url.searchParams.getAll('industryTags').filter(Boolean);
 
     const sortBy = String(url.searchParams.get('sortBy') || 'RECOMMENDED').trim();
-    const priceMinFen = readNum('priceMinFen');
-    const priceMaxFen = readNum('priceMaxFen');
-    const depositMinFen = readNum('depositMinFen');
-    const depositMaxFen = readNum('depositMaxFen');
+    const priceMin = readNum('priceMin');
+    const priceMax = readNum('priceMax');
+    const depositMin = readNum('depositMin');
+    const depositMax = readNum('depositMax');
     const transferCountMin = readNum('transferCountMin');
     const transferCountMax = readNum('transferCountMax');
 
@@ -1239,19 +1238,33 @@ function maybeSendDynamic(req, res, { method, url, scenario, requestBody }) {
       const itTopics = Array.isArray(it.listingTopics)
         ? it.listingTopics.map((v) => String(v || '').trim().toUpperCase()).filter(Boolean)
         : [];
-      const expectedTopics = [
-        ...(listingTopic ? [listingTopic] : []),
-        ...(listingTopics.length ? listingTopics : []),
-      ].filter(Boolean);
+      const expectedTopics = listingTopics.filter(Boolean);
       if (expectedTopics.length) {
-        let ok = false;
+        const listingTransferCount = Number.isFinite(Number(it.transferCount)) ? Number(it.transferCount) : null;
+        let allMatched = true;
         for (const t of expectedTopics) {
-          if (itTopics.includes(t)) {
-            ok = true;
+          if (t === 'OPEN_LICENSE') {
+            const openLicenseMatched = String(it.tradeMode || '').toUpperCase() === 'LICENSE' || itTopics.includes('OPEN_LICENSE');
+            if (!openLicenseMatched) {
+              allMatched = false;
+              break;
+            }
+            continue;
+          }
+          if (t === 'SLEEPING') {
+            const sleepingMatched = listingTransferCount === 0 || itTopics.includes('SLEEPING');
+            if (!sleepingMatched) {
+              allMatched = false;
+              break;
+            }
+            continue;
+          }
+          if (!itTopics.includes(t)) {
+            allMatched = false;
             break;
           }
         }
-        if (!ok) return false;
+        if (!allMatched) return false;
       }
 
       if (transferCountMin !== null || transferCountMax !== null) {
@@ -1261,18 +1274,18 @@ function maybeSendDynamic(req, res, { method, url, scenario, requestBody }) {
         if (transferCountMax !== null && tc > transferCountMax) return false;
       }
 
-      if (priceMinFen !== null || priceMaxFen !== null) {
+      if (priceMin !== null || priceMax !== null) {
         const price = it.priceAmountFen;
         if (price === undefined || price === null) return false;
-        if (priceMinFen !== null && Number(price) < priceMinFen) return false;
-        if (priceMaxFen !== null && Number(price) > priceMaxFen) return false;
+        if (priceMin !== null && Number(price) < priceMin) return false;
+        if (priceMax !== null && Number(price) > priceMax) return false;
       }
 
-      if (depositMinFen !== null || depositMaxFen !== null) {
+      if (depositMin !== null || depositMax !== null) {
         const deposit = it.depositAmountFen;
         if (deposit === undefined || deposit === null) return false;
-        if (depositMinFen !== null && Number(deposit) < depositMinFen) return false;
-        if (depositMaxFen !== null && Number(deposit) > depositMaxFen) return false;
+        if (depositMin !== null && Number(deposit) < depositMin) return false;
+        if (depositMax !== null && Number(deposit) > depositMax) return false;
       }
 
       if (industryTags.length) {

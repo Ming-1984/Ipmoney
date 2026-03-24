@@ -4877,10 +4877,10 @@ export interface components {
             patentType?: components["schemas"]["PatentType"];
             tradeMode?: components["schemas"]["TradeMode"];
             priceType?: components["schemas"]["PriceType"];
-            priceMinFen?: components["schemas"]["MoneyFen"];
-            priceMaxFen?: components["schemas"]["MoneyFen"];
-            depositMinFen?: components["schemas"]["MoneyFen"];
-            depositMaxFen?: components["schemas"]["MoneyFen"];
+            priceMin?: components["schemas"]["MoneyFen"];
+            priceMax?: components["schemas"]["MoneyFen"];
+            depositMin?: components["schemas"]["MoneyFen"];
+            depositMax?: components["schemas"]["MoneyFen"];
             regionCode?: string;
             industryTags?: string[];
             cooperationModes?: components["schemas"]["CooperationMode"][];
@@ -6636,7 +6636,7 @@ export interface operations {
                 /** @description IPC 缂佸棗鍨庨崚鍡欒閸欏嚖绱濇笟瀣洤 H04L */
                 ipc?: components["parameters"]["Ipc"];
                 /** @description Locarno 缂佸棗鍨庨崚鍡欒閸欏嚖绱濇笟瀣洤 12-01 */
-                locarno?: components["parameters"]["Loc"];
+                loc?: components["parameters"]["Loc"];
                 legalStatus?: components["parameters"]["LegalStatus"];
                 /** @description Created date start (YYYY-MM-DD). */
                 createdFrom?: components["parameters"]["CreatedFrom"];
