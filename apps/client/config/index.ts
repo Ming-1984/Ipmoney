@@ -123,7 +123,16 @@ export default ((merge, env) => {
     },
     // For WeChat mini-program, rely on subpackages + lazyCodeLoading.
     // Custom splitChunks on mini can cause unstable startup chunk loading.
-    mini: {},
+    mini: {
+      copy: {
+        patterns: [
+          {
+            from: path.resolve(__dirname, '..', 'src/assets/home/banner-local.mp4'),
+            to: 'assets/home/banner-local.mp4',
+          },
+        ],
+      },
+    },
     h5: {
       webpackChain(chain) {
         try {

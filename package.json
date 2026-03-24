@@ -6,7 +6,9 @@
     "node": ">=20"
   },
   "scripts": {
+    "predev": "powershell -ExecutionPolicy Bypass -File scripts/download-local-banner.ps1",
     "dev": "turbo run dev --no-daemon --parallel --filter=mock-api --filter=client --filter=admin-web",
+    "predev:all": "powershell -ExecutionPolicy Bypass -File scripts/download-local-banner.ps1",
     "dev:all": "turbo run dev --no-daemon --parallel",
     "dev:infra": "docker compose up -d",
     "dev:api": "docker compose up -d && pnpm -C apps/api dev",

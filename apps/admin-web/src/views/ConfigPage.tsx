@@ -39,6 +39,16 @@ type RecommendationConfig = {
   updatedAt?: string;
 };
 
+type BannerMediaType = 'IMAGE' | 'VIDEO';
+
+type BannerVideoMeta = {
+  durationMs?: number;
+  loop?: boolean;
+  muted?: boolean;
+  autoplay?: boolean;
+  objectFit?: 'contain' | 'cover' | 'fill';
+};
+
 type BannerConfig = {
   items: {
     id: string;
@@ -47,6 +57,10 @@ type BannerConfig = {
     linkUrl?: string;
     enabled: boolean;
     order: number;
+    mediaType?: BannerMediaType;
+    videoUrl?: string;
+    posterUrl?: string;
+    videoMeta?: BannerVideoMeta;
   }[];
 };
 

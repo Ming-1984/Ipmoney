@@ -44,15 +44,31 @@ export type RecommendationConfig = {
   updatedAt: string;
 };
 
+export type BannerMediaType = 'IMAGE' | 'VIDEO';
+
+export type BannerVideoMeta = {
+  durationMs?: number;
+  loop?: boolean;
+  muted?: boolean;
+  autoplay?: boolean;
+  objectFit?: 'contain' | 'cover' | 'fill';
+};
+
+export type BannerItem = {
+  id: string;
+  title: string;
+  imageUrl: string;
+  linkUrl?: string;
+  enabled: boolean;
+  order: number;
+  mediaType?: BannerMediaType;
+  videoUrl?: string;
+  posterUrl?: string;
+  videoMeta?: BannerVideoMeta;
+};
+
 export type BannerConfig = {
-  items: {
-    id: string;
-    title: string;
-    imageUrl: string;
-    linkUrl?: string;
-    enabled: boolean;
-    order: number;
-  }[];
+  items: BannerItem[];
 };
 
 export type CustomerServiceConfig = {
@@ -129,15 +145,21 @@ function buildDefaultRecommendation(): RecommendationConfig {
 }
 
 function buildDefaultBanner(): BannerConfig {
+  const isDev = process.env.NODE_ENV !== 'production';
+  const localVideoUrl = 'http://127.0.0.1:8099/home/banner/banner.mp4';
+  const localPosterUrl = 'http://127.0.0.1:8099/home/banner/banner-poster.png';
   return {
     items: [
       {
         id: 'banner-1',
         title: 'Platform Campaign',
-        imageUrl: 'https://example.com/banner-1.png',
+        imageUrl: isDev ? localPosterUrl : 'https://example.com/banner-1.png',
         linkUrl: '',
         enabled: true,
         order: 1,
+        mediaType: isDev ? 'VIDEO' : 'IMAGE',
+        videoUrl: isDev ? localVideoUrl : undefined,
+        posterUrl: isDev ? localPosterUrl : undefined,
       },
     ],
   };

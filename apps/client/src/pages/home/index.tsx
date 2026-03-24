@@ -1,4 +1,4 @@
-﻿import { View, Text, Image, Input } from '@tarojs/components';
+﻿import { View, Text, Image, Input, Video } from '@tarojs/components';
 import Taro from '@tarojs/taro';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import './index.scss';
@@ -27,6 +27,7 @@ import homeIconUtilityPatent from '../../assets/icons/home/home-utility-patent.s
 import homeIconAchievement from '../../assets/icons/home/home-five-star.svg';
 import logoGif from '../../assets/brand/logo.optim2.gif';
 import logoPng from '../../assets/brand/logo.png';
+import bannerLocalMp4 from '../../assets/home/banner-local.mp4';
 import promoCertificateGif from '../../assets/home/promo-certificate.optim3.gif';
 import promoCertificatePng from '../../assets/home/promo-certificate.png';
 import { STORAGE_KEYS } from '../../constants';
@@ -65,18 +66,124 @@ const HOME_FAVORITES_SYNC_DELAY_MS = 800;
 const HOME_LISTINGS_CACHE_SCOPE = 'home-listings';
 
 const HomeBanner = React.memo(function HomeBanner() {
+  const [videoFailed, setVideoFailed] = useState(false);
+  const [videoSrc, setVideoSrc] = useState<string>(() => {
+    if (process.env.TARO_ENV === 'weapp') return '';
+    return bannerLocalMp4;
+  });
+  const [videoCopyError, setVideoCopyError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (process.env.TARO_ENV !== 'weapp') return;
+    let cancelled = false;
+    const fs = Taro.getFileSystemManager();
+    const userVideoPath = `${Taro.env.USER_DATA_PATH}/banner-local.mp4`;
+
+    const accessFile = (path: string) =>
+      new Promise<boolean>((resolve) => {
+        fs.access({
+          path,
+          success: () => resolve(true),
+          fail: () => resolve(false),
+        });
+      });
+
+    const copyFile = (src: string, dest: string) =>
+      new Promise<void>((resolve, reject) => {
+        fs.copyFile({
+          src,
+          dest,
+          success: () => resolve(),
+          fail: (err) => reject(err),
+        });
+      });
+
+    const readFile = (path: string) =>
+      new Promise<ArrayBuffer>((resolve, reject) => {
+        fs.readFile({
+          filePath: path,
+          success: (res) => resolve(res.data as ArrayBuffer),
+          fail: (err) => reject(err),
+        });
+      });
+
+    const writeFile = (path: string, data: ArrayBuffer) =>
+      new Promise<void>((resolve, reject) => {
+        fs.writeFile({
+          filePath: path,
+          data,
+          success: () => resolve(),
+          fail: (err) => reject(err),
+        });
+      });
+
+    (async () => {
+      const exists = await accessFile(userVideoPath);
+      if (!exists) {
+        try {
+          await copyFile(bannerLocalMp4, userVideoPath);
+        } catch (copyErr) {
+          try {
+            const data = await readFile(bannerLocalMp4);
+            await writeFile(userVideoPath, data);
+          } catch (rwErr) {
+            if (!cancelled) {
+              setVideoCopyError(
+                `copy-failed:${(copyErr as any)?.errMsg || 'unknown'}|readwrite-failed:${(rwErr as any)?.errMsg || 'unknown'}`,
+              );
+            }
+            return;
+          }
+        }
+      }
+      if (!cancelled) {
+        setVideoSrc(userVideoPath);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const resolvedVideoSrc = process.env.TARO_ENV === 'weapp' ? videoSrc : bannerLocalMp4;
+
+  useEffect(() => {
+    setVideoFailed(false);
+  }, [resolvedVideoSrc]);
+
   return (
     <View className="home-banner">
       <View className="home-banner-item">
-        <GifImage
-          src={promoCertificateGif}
-          fallbackSrc={promoCertificatePng}
-          deferOnWeapp
-          deferMs={1600}
-          lazyLoad
-          mode="aspectFill"
-          className="home-banner-img"
-        />
+        {!videoFailed && resolvedVideoSrc ? (
+          <Video
+            className="home-banner-img"
+            src={resolvedVideoSrc}
+            autoplay
+            loop
+            muted
+            controls={false}
+            objectFit="cover"
+            onError={(e) => {
+              setVideoFailed(true);
+              if (process.env.TARO_ENV === 'weapp') {
+                // Surface errors in dev tooling; avoid crashing production flows.
+                // eslint-disable-next-line no-console
+                console.warn('Home banner video error', e, { src: resolvedVideoSrc, videoCopyError });
+              }
+            }}
+          />
+        ) : (
+          <GifImage
+            src={promoCertificateGif}
+            fallbackSrc={promoCertificatePng}
+            deferOnWeapp
+            deferMs={1600}
+            lazyLoad
+            mode="aspectFill"
+            className="home-banner-img"
+          />
+        )}
       </View>
     </View>
   );
