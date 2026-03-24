@@ -75,6 +75,7 @@ type ImportTemplateField = {
 type PatentMapRegionScopeLevel = 'PROVINCE' | 'CITY' | 'DISTRICT';
 type PatentMapRegionLevel = PatentMapRegionScopeLevel | 'UNKNOWN';
 type PatentMapFeaturedLevel = 'NONE' | 'CITY' | 'PROVINCE';
+type PatentMapDataScope = 'ACTIVE_APPROVED' | 'ALL';
 
 type PatentMapRegionItem = {
   regionCode: string;
@@ -92,11 +93,14 @@ type PatentMapRegionItem = {
 
 type PatentMapOverview = {
   generatedAt: string;
-  filters: { regionLevel: PatentMapRegionScopeLevel; top: number };
+  filters: { regionLevel: PatentMapRegionScopeLevel; top: number; scope: PatentMapDataScope };
   summary: {
     totalListingCount: number;
     totalPatentCount: number;
     totalRegionCount: number;
+    regionsWithListingsCount: number;
+    regionsWithPatentsCount: number;
+    regionsWithActiveRankedCount: number;
     rankedListingCount: number;
     activeRankedListingCount: number;
     unassignedListingCount: number;
@@ -108,6 +112,7 @@ type PatentMapOverview = {
 
 type PatentMapRegionDetail = {
   generatedAt: string;
+  filters: { scope: PatentMapDataScope };
   region: {
     code: string;
     name: string;
@@ -206,6 +211,11 @@ const patentMapRegionLevelOptions: Array<{ value: PatentMapRegionScopeLevel; lab
   { value: 'PROVINCE', label: '按省聚合' },
   { value: 'CITY', label: '按市聚合' },
   { value: 'DISTRICT', label: '按区县聚合' },
+];
+
+const patentMapDataScopeOptions: Array<{ value: PatentMapDataScope; label: string }> = [
+  { value: 'ACTIVE_APPROVED', label: 'Active + Approved' },
+  { value: 'ALL', label: 'All Listings' },
 ];
 
 const patentMapFeaturedLevelPatchOptions: Array<{ value: PatentMapFeaturedLevel | ''; label: string }> = [
@@ -364,6 +374,7 @@ export function PatentOperationsPage() {
   const [mapOverviewError, setMapOverviewError] = useState<unknown | null>(null);
   const [mapOverview, setMapOverview] = useState<PatentMapOverview | null>(null);
   const [mapOverviewRegionLevel, setMapOverviewRegionLevel] = useState<PatentMapRegionScopeLevel>('PROVINCE');
+  const [mapDataScope, setMapDataScope] = useState<PatentMapDataScope>('ACTIVE_APPROVED');
   const [mapOverviewTop, setMapOverviewTop] = useState(100);
   const [mapSelectedRegionCode, setMapSelectedRegionCode] = useState('');
 
@@ -443,6 +454,7 @@ export function PatentOperationsPage() {
       const data = await apiGet<PatentMapOverview>('/search/patent-map/overview', {
         regionLevel: mapOverviewRegionLevel,
         top: Math.max(1, Math.min(100, Number(mapOverviewTop) || 100)),
+        scope: mapDataScope,
       });
       setMapOverview(data);
       let nextRegionCode = '';
@@ -462,7 +474,7 @@ export function PatentOperationsPage() {
     } finally {
       setMapOverviewLoading(false);
     }
-  }, [mapOverviewRegionLevel, mapOverviewTop]);
+  }, [mapDataScope, mapOverviewRegionLevel, mapOverviewTop]);
 
   const loadPatentMapRegionDetail = useCallback(async () => {
     const regionCode = String(mapSelectedRegionCode || '').trim();
@@ -477,6 +489,7 @@ export function PatentOperationsPage() {
       const data = await apiGet<PatentMapRegionDetail>(`/search/patent-map/regions/${regionCode}`, {
         page: mapRegionPage,
         pageSize: mapRegionPageSize,
+        scope: mapDataScope,
       });
       setMapRegionDetail(data);
     } catch (e: any) {
@@ -486,7 +499,7 @@ export function PatentOperationsPage() {
     } finally {
       setMapRegionDetailLoading(false);
     }
-  }, [mapRegionPage, mapRegionPageSize, mapSelectedRegionCode]);
+  }, [mapDataScope, mapRegionPage, mapRegionPageSize, mapSelectedRegionCode]);
 
   const appendMapManualListingIds = useCallback(
     (listingIds: string[]) => {
@@ -995,6 +1008,15 @@ export function PatentOperationsPage() {
                 setMapRegionPage(1);
               }}
             />
+            <Select
+              value={mapDataScope}
+              style={{ width: 180 }}
+              options={patentMapDataScopeOptions}
+              onChange={(value) => {
+                setMapDataScope(value as PatentMapDataScope);
+                setMapRegionPage(1);
+              }}
+            />
             <InputNumber
               min={1}
               max={100}
@@ -1011,11 +1033,13 @@ export function PatentOperationsPage() {
 
           {mapOverview ? (
             <Space wrap>
-              <Tag color="blue">挂牌 {mapOverview.summary.totalListingCount}</Tag>
-              <Tag color="green">专利 {mapOverview.summary.totalPatentCount}</Tag>
-              <Tag color="gold">活跃上榜 {mapOverview.summary.activeRankedListingCount}</Tag>
-              <Tag>覆盖区域 {mapOverview.summary.totalRegionCount}</Tag>
-              <Tag>未归属挂牌 {mapOverview.summary.unassignedListingCount}</Tag>
+              <Tag color="purple">scope {mapOverview.filters.scope}</Tag>
+              <Tag color="blue">listings {mapOverview.summary.totalListingCount}</Tag>
+              <Tag color="green">patents {mapOverview.summary.totalPatentCount}</Tag>
+              <Tag color="gold">active ranked {mapOverview.summary.activeRankedListingCount}</Tag>
+              <Tag>regions {mapOverview.summary.totalRegionCount}</Tag>
+              <Tag color="cyan">regions with listings {mapOverview.summary.regionsWithListingsCount}</Tag>
+              <Tag>unassigned listings {mapOverview.summary.unassignedListingCount}</Tag>
             </Space>
           ) : null}
 

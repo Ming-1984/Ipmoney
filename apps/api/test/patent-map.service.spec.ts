@@ -115,10 +115,18 @@ describe('PatentMapService suite', () => {
 
     const result = await service.getOverview({ regionLevel: 'PROVINCE', top: '2' });
 
+    expect(result.filters).toMatchObject({
+      regionLevel: 'PROVINCE',
+      top: 2,
+      scope: 'ACTIVE_APPROVED',
+    });
     expect(result.summary).toMatchObject({
       totalListingCount: 4,
       totalPatentCount: 3,
-      totalRegionCount: 3,
+      totalRegionCount: 34,
+      regionsWithListingsCount: 2,
+      regionsWithPatentsCount: 2,
+      regionsWithActiveRankedCount: 1,
       rankedListingCount: 2,
       activeRankedListingCount: 1,
       unassignedListingCount: 0,
@@ -142,7 +150,6 @@ describe('PatentMapService suite', () => {
       regionCode: '510000',
       listingCount: 0,
       patentCount: 0,
-      rankPosition: 3,
     });
   });
 
@@ -225,7 +232,7 @@ describe('PatentMapService suite', () => {
 
   it('throws not found when querying unknown region', async () => {
     prisma.region.findMany.mockResolvedValueOnce([]);
-    await expect(service.getRegionDetails('110000', {})).rejects.toBeInstanceOf(NotFoundException);
+    await expect(service.getRegionDetails('990000', {})).rejects.toBeInstanceOf(NotFoundException);
   });
 
   it('batch updates listings and reports missing ids', async () => {

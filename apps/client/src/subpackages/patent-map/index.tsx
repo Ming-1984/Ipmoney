@@ -8,6 +8,7 @@ import { EmptyCard, ErrorCard, LoadingCard } from '../../ui/StateCards';
 
 type PatentMapRegionLevel = 'PROVINCE' | 'CITY' | 'DISTRICT' | 'UNKNOWN';
 type PatentMapFeaturedLevel = 'NONE' | 'CITY' | 'PROVINCE';
+type PatentMapDataScope = 'ACTIVE_APPROVED' | 'ALL';
 
 type PatentMapRegionItem = {
   regionCode: string;
@@ -25,11 +26,14 @@ type PatentMapRegionItem = {
 
 type PatentMapOverviewResponse = {
   generatedAt: string;
-  filters: { regionLevel: 'PROVINCE' | 'CITY' | 'DISTRICT'; top: number };
+  filters: { regionLevel: 'PROVINCE' | 'CITY' | 'DISTRICT'; top: number; scope: PatentMapDataScope };
   summary: {
     totalListingCount: number;
     totalPatentCount: number;
     totalRegionCount: number;
+    regionsWithListingsCount: number;
+    regionsWithPatentsCount: number;
+    regionsWithActiveRankedCount: number;
     rankedListingCount: number;
     activeRankedListingCount: number;
     unassignedListingCount: number;
@@ -41,6 +45,7 @@ type PatentMapOverviewResponse = {
 
 type PatentMapRegionDetailResponse = {
   generatedAt: string;
+  filters: { scope: PatentMapDataScope };
   region: {
     code: string;
     name: string;
@@ -167,10 +172,16 @@ function featuredLabel(item: PatentMapRegionDetailResponse['items'][number]) {
   return `${levelLabel}${rankLabel}${item.isFeaturedActive ? '' : '（已过期）'}`;
 }
 
+const DATA_SCOPE_OPTIONS: Array<{ value: PatentMapDataScope; label: string }> = [
+  { value: 'ACTIVE_APPROVED', label: '在售挂牌' },
+  { value: 'ALL', label: '全部交易数据' },
+];
+
 export default function PatentMapPage() {
   const [overviewLoading, setOverviewLoading] = useState(true);
   const [overviewError, setOverviewError] = useState<string | null>(null);
   const [overview, setOverview] = useState<PatentMapOverviewResponse | null>(null);
+  const [dataScope, setDataScope] = useState<PatentMapDataScope>('ACTIVE_APPROVED');
 
   const [selectedRegionCode, setSelectedRegionCode] = useState('');
   const [detailLoading, setDetailLoading] = useState(false);
@@ -185,6 +196,7 @@ export default function PatentMapPage() {
       const data = await apiGet<PatentMapOverviewResponse>('/search/patent-map/overview', {
         regionLevel: 'PROVINCE',
         top: 100,
+        scope: dataScope,
       });
       setOverview(data);
       detailCacheRef.current.clear();
@@ -198,7 +210,7 @@ export default function PatentMapPage() {
     } finally {
       setOverviewLoading(false);
     }
-  }, [selectedRegionCode]);
+  }, [dataScope, selectedRegionCode]);
 
   const loadRegionDetail = useCallback(async () => {
     const code = String(selectedRegionCode || '').trim();
@@ -208,7 +220,8 @@ export default function PatentMapPage() {
       return;
     }
 
-    const cached = detailCacheRef.current.get(code);
+    const cacheKey = `${dataScope}:${code}`;
+    const cached = detailCacheRef.current.get(cacheKey);
     if (cached) {
       setDetail(cached);
       setDetailError(null);
@@ -221,8 +234,9 @@ export default function PatentMapPage() {
       const data = await apiGet<PatentMapRegionDetailResponse>(`/search/patent-map/regions/${code}`, {
         page: 1,
         pageSize: 20,
+        scope: dataScope,
       });
-      detailCacheRef.current.set(code, data);
+      detailCacheRef.current.set(cacheKey, data);
       setDetail(data);
     } catch (e: any) {
       setDetail(null);
@@ -230,7 +244,7 @@ export default function PatentMapPage() {
     } finally {
       setDetailLoading(false);
     }
-  }, [selectedRegionCode]);
+  }, [dataScope, selectedRegionCode]);
 
   useEffect(() => {
     void loadOverview();
@@ -276,12 +290,12 @@ export default function PatentMapPage() {
           borderRadius: 8,
           padding: 4,
           bgColor: '#ffffff',
-          display: 'BYCLICK' as const,
+          display: (item.listingCount > 0 ? 'ALWAYS' : 'BYCLICK') as 'ALWAYS' | 'BYCLICK',
         },
         label:
-          item.rankPosition <= 15
+          item.listingCount > 0
             ? {
-                content: `${item.regionName} #${item.rankPosition} 挂${item.listingCount}`,
+                content: `${item.regionName} 挂${item.listingCount}`,
                 color: '#334155',
                 fontSize: 10,
                 borderRadius: 6,
@@ -346,6 +360,22 @@ export default function PatentMapPage() {
         <Text className="patent-map-hero-subtitle">查看平台挂牌专利的区域分布与上榜状态</Text>
       </View>
 
+      <View className="patent-map-section">
+        <Text className="patent-map-section-title">数据范围</Text>
+        <View className="patent-map-scope-actions">
+          {DATA_SCOPE_OPTIONS.map((option) => (
+            <View
+              key={option.value}
+              className={`patent-map-scope-pill ${option.value === dataScope ? 'is-active' : ''}`}
+              onClick={() => setDataScope(option.value)}
+            >
+              <Text>{option.label}</Text>
+            </View>
+          ))}
+        </View>
+        <Text className="patent-map-section-tip">该范围会统一作用于地图、区域排名和区域明细。</Text>
+      </View>
+
       {overviewLoading ? (
         <LoadingCard text="正在加载专利地图..." />
       ) : overviewError ? (
@@ -372,9 +402,19 @@ export default function PatentMapPage() {
               <Text className="patent-map-kpi-label">覆盖区域</Text>
             </View>
             <View className="patent-map-kpi">
+              <Text className="patent-map-kpi-num">{overview.summary.regionsWithListingsCount}</Text>
+              <Text className="patent-map-kpi-label">有挂牌区域</Text>
+            </View>
+            <View className="patent-map-kpi">
               <Text className="patent-map-kpi-num">{overview.summary.unassignedListingCount}</Text>
               <Text className="patent-map-kpi-label">未归属地区</Text>
             </View>
+          </View>
+
+          <View className="patent-map-section">
+            <Text className="patent-map-section-tip">
+              当前范围共 {overview.summary.totalRegionCount} 个区域，其中 {overview.summary.regionsWithListingsCount} 个区域有挂牌，{overview.summary.regionsWithPatentsCount} 个区域有专利。
+            </Text>
           </View>
 
           {overview.summary.unassignedListingCount > 0 ? (
@@ -395,6 +435,11 @@ export default function PatentMapPage() {
 
           <View className="patent-map-section">
             <Text className="patent-map-section-title">区域分布</Text>
+            {selectedRegion ? (
+              <Text className="patent-map-section-tip">
+                当前选中：{selectedRegion.regionName}（挂牌 {selectedRegion.listingCount}，专利 {selectedRegion.patentCount}，排名 #{selectedRegion.rankPosition}）
+              </Text>
+            ) : null}
             {process.env.TARO_ENV === 'weapp' ? (
               markers.length > 0 ? (
                 <TaroMap
@@ -464,7 +509,11 @@ export default function PatentMapPage() {
                 ))}
               </View>
             ) : (
-              <EmptyCard message="该区域暂无可展示挂牌" actionText="刷新" onAction={loadRegionDetail} />
+              <EmptyCard
+                message={selectedRegion ? `${selectedRegion.regionName} 在当前范围暂无可展示挂牌` : '该区域暂无可展示挂牌'}
+                actionText="刷新"
+                onAction={loadRegionDetail}
+              />
             )}
           </View>
         </>

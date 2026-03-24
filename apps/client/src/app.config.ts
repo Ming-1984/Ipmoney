@@ -1,4 +1,33 @@
-﻿export default defineAppConfig({
+﻿const isDev = process.env.NODE_ENV !== 'production';
+
+const preloadRule: Record<string, { network: 'all' | 'wifi'; packages: string[] }> = {
+  'pages/home/index': {
+    network: 'all',
+    packages: ['subpackages/search', 'subpackages/listing', 'subpackages/achievement'],
+  },
+  'pages/tech-managers/index': {
+    network: 'all',
+    packages: ['subpackages/organizations'],
+  },
+  'pages/messages/index': {
+    network: 'all',
+    packages: ['subpackages/messages', 'subpackages/notifications'],
+  },
+  'pages/me/index': {
+    network: 'all',
+    packages: [
+      'subpackages/orders',
+      'subpackages/publish',
+      'subpackages/checkout',
+      'subpackages/favorites',
+      'subpackages/my-achievements',
+      'subpackages/patent-claims',
+      'subpackages/maintenance',
+    ],
+  },
+};
+
+export default defineAppConfig({
   pages: [
     'pages/home/index',
     'pages/tech-managers/index',
@@ -137,32 +166,7 @@
       pages: ['video-preview/index'],
     },
   ],
-  preloadRule: {
-    'pages/home/index': {
-      network: 'all',
-      packages: ['subpackages/search', 'subpackages/listing', 'subpackages/achievement'],
-    },
-    'pages/tech-managers/index': {
-      network: 'all',
-      packages: ['subpackages/organizations'],
-    },
-    'pages/messages/index': {
-      network: 'all',
-      packages: ['subpackages/messages', 'subpackages/notifications'],
-    },
-    'pages/me/index': {
-      network: 'all',
-      packages: [
-        'subpackages/orders',
-        'subpackages/publish',
-        'subpackages/checkout',
-        'subpackages/favorites',
-        'subpackages/my-achievements',
-        'subpackages/patent-claims',
-        'subpackages/maintenance',
-      ],
-    },
-  },
+  preloadRule: isDev ? undefined : preloadRule,
   window: {
     backgroundColor: '#f7f3ec',
     backgroundTextStyle: 'light',

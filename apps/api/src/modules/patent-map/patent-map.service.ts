@@ -5,9 +5,46 @@ import { PrismaService } from '../../common/prisma/prisma.service';
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const REGION_CODE_RE = /^[0-9]{6}$/;
+const PROVINCE_BASELINES = [
+  { code: '110000', name: 'Beijing', centerLat: 39.9042, centerLng: 116.4074 },
+  { code: '120000', name: 'Tianjin', centerLat: 39.3434, centerLng: 117.3616 },
+  { code: '130000', name: 'Hebei', centerLat: 38.0428, centerLng: 114.5149 },
+  { code: '140000', name: 'Shanxi', centerLat: 37.8706, centerLng: 112.5489 },
+  { code: '150000', name: 'Inner Mongolia', centerLat: 40.8175, centerLng: 111.7652 },
+  { code: '210000', name: 'Liaoning', centerLat: 41.8057, centerLng: 123.4315 },
+  { code: '220000', name: 'Jilin', centerLat: 43.8171, centerLng: 125.3235 },
+  { code: '230000', name: 'Heilongjiang', centerLat: 45.8038, centerLng: 126.5349 },
+  { code: '310000', name: 'Shanghai', centerLat: 31.2304, centerLng: 121.4737 },
+  { code: '320000', name: 'Jiangsu', centerLat: 32.0603, centerLng: 118.7969 },
+  { code: '330000', name: 'Zhejiang', centerLat: 30.2741, centerLng: 120.1551 },
+  { code: '340000', name: 'Anhui', centerLat: 31.8612, centerLng: 117.2857 },
+  { code: '350000', name: 'Fujian', centerLat: 26.0745, centerLng: 119.2965 },
+  { code: '360000', name: 'Jiangxi', centerLat: 28.682, centerLng: 115.8582 },
+  { code: '370000', name: 'Shandong', centerLat: 36.6512, centerLng: 117.1201 },
+  { code: '410000', name: 'Henan', centerLat: 34.7655, centerLng: 113.7536 },
+  { code: '420000', name: 'Hubei', centerLat: 30.5928, centerLng: 114.3055 },
+  { code: '430000', name: 'Hunan', centerLat: 28.2282, centerLng: 112.9388 },
+  { code: '440000', name: 'Guangdong', centerLat: 23.1291, centerLng: 113.2644 },
+  { code: '450000', name: 'Guangxi', centerLat: 22.817, centerLng: 108.3669 },
+  { code: '460000', name: 'Hainan', centerLat: 20.044, centerLng: 110.1999 },
+  { code: '500000', name: 'Chongqing', centerLat: 29.563, centerLng: 106.5516 },
+  { code: '510000', name: 'Sichuan', centerLat: 30.5728, centerLng: 104.0668 },
+  { code: '520000', name: 'Guizhou', centerLat: 26.647, centerLng: 106.6302 },
+  { code: '530000', name: 'Yunnan', centerLat: 25.0389, centerLng: 102.7183 },
+  { code: '540000', name: 'Tibet', centerLat: 29.652, centerLng: 91.1721 },
+  { code: '610000', name: 'Shaanxi', centerLat: 34.3416, centerLng: 108.9398 },
+  { code: '620000', name: 'Gansu', centerLat: 36.0611, centerLng: 103.8343 },
+  { code: '630000', name: 'Qinghai', centerLat: 36.6209, centerLng: 101.7801 },
+  { code: '640000', name: 'Ningxia', centerLat: 38.4872, centerLng: 106.2309 },
+  { code: '650000', name: 'Xinjiang', centerLat: 43.8256, centerLng: 87.6168 },
+  { code: '710000', name: 'Taiwan', centerLat: 25.033, centerLng: 121.5654 },
+  { code: '810000', name: 'Hong Kong', centerLat: 22.3193, centerLng: 114.1694 },
+  { code: '820000', name: 'Macau', centerLat: 22.1987, centerLng: 113.5439 },
+] as const;
 
 type RegionLevel = 'PROVINCE' | 'CITY' | 'DISTRICT';
 type FeaturedLevel = 'NONE' | 'CITY' | 'PROVINCE';
+type MapDataScope = 'ACTIVE_APPROVED' | 'ALL';
 
 type RegionRecord = {
   code: string;
@@ -186,6 +223,21 @@ export class PatentMapService {
     throw new BadRequestException({ code: 'BAD_REQUEST', message: `${fieldName} is invalid` });
   }
 
+  private parseMapDataScope(value: unknown, fieldName: string): MapDataScope {
+    const normalized = String(value ?? '')
+      .trim()
+      .toUpperCase()
+      .replace(/[-\s]+/g, '_');
+    if (!normalized || normalized === 'ACTIVE_APPROVED') return 'ACTIVE_APPROVED';
+    if (normalized === 'ALL') return 'ALL';
+    throw new BadRequestException({ code: 'BAD_REQUEST', message: `${fieldName} is invalid` });
+  }
+
+  private listingWhereByScope(scope: MapDataScope): Record<string, any> {
+    if (scope === 'ALL') return {};
+    return { auditStatus: 'APPROVED', status: 'ACTIVE' };
+  }
+
   private parseNullableDateTime(value: unknown, fieldName: string): Date | null {
     if (value === null) return null;
     const raw = String(value ?? '').trim();
@@ -243,6 +295,31 @@ export class PatentMapService {
     if (regionMap.has(inferred)) return inferred;
     if (regionMap.has(raw)) return raw;
     return inferred;
+  }
+
+  private ensureProvinceBaselines(regionMap: Map<string, RegionRecord>) {
+    for (const baseline of PROVINCE_BASELINES) {
+      const existing = regionMap.get(baseline.code);
+      if (!existing) {
+        regionMap.set(baseline.code, {
+          code: baseline.code,
+          name: baseline.name,
+          level: 'PROVINCE',
+          parentCode: null,
+          centerLat: baseline.centerLat,
+          centerLng: baseline.centerLng,
+        });
+        continue;
+      }
+      if (existing.level !== 'PROVINCE') continue;
+      if (existing.centerLat === null || existing.centerLng === null) {
+        existing.centerLat = baseline.centerLat;
+        existing.centerLng = baseline.centerLng;
+      }
+      if (!String(existing.name || '').trim()) {
+        existing.name = baseline.name;
+      }
+    }
   }
 
   private buildChildrenMap(regions: RegionRecord[]): Map<string, string[]> {
@@ -303,6 +380,7 @@ export class PatentMapService {
     const regionLevel = this.hasOwn(query, 'regionLevel')
       ? this.parseRegionLevelStrict(query?.regionLevel, 'regionLevel')
       : 'PROVINCE';
+    const scope = this.hasOwn(query, 'scope') ? this.parseMapDataScope(query?.scope, 'scope') : 'ACTIVE_APPROVED';
     const topInput = this.hasOwn(query, 'top') ? this.parsePositiveIntStrict(query?.top, 'top') : 10;
     const top = Math.min(100, topInput);
 
@@ -318,7 +396,7 @@ export class PatentMapService {
         },
       }),
       this.prisma.listing.findMany({
-        where: { auditStatus: 'APPROVED', status: 'ACTIVE' },
+        where: this.listingWhereByScope(scope),
         select: {
           id: true,
           patentId: true,
@@ -343,6 +421,9 @@ export class PatentMapService {
         },
       ]),
     );
+    if (regionLevel === 'PROVINCE') {
+      this.ensureProvinceBaselines(regionMap);
+    }
 
     const targetRegions = Array.from(regionMap.values()).filter((region) => region.level === regionLevel);
 
@@ -437,11 +518,14 @@ export class PatentMapService {
 
     return {
       generatedAt: new Date().toISOString(),
-      filters: { regionLevel, top },
+      filters: { regionLevel, top, scope },
       summary: {
         totalListingCount: listings.length,
         totalPatentCount: totalPatentIds.size,
         totalRegionCount: rankedRegions.length,
+        regionsWithListingsCount: rankedRegions.filter((item) => item.listingCount > 0).length,
+        regionsWithPatentsCount: rankedRegions.filter((item) => item.patentCount > 0).length,
+        regionsWithActiveRankedCount: rankedRegions.filter((item) => item.activeRankedListingCount > 0).length,
         rankedListingCount,
         activeRankedListingCount,
         unassignedListingCount,
@@ -456,6 +540,7 @@ export class PatentMapService {
     const page = this.hasOwn(query, 'page') ? this.parsePositiveIntStrict(query?.page, 'page') : 1;
     const pageSizeInput = this.hasOwn(query, 'pageSize') ? this.parsePositiveIntStrict(query?.pageSize, 'pageSize') : 20;
     const pageSize = Math.min(50, pageSizeInput);
+    const scope = this.hasOwn(query, 'scope') ? this.parseMapDataScope(query?.scope, 'scope') : 'ACTIVE_APPROVED';
 
     const regions = await this.prisma.region.findMany({
       select: {
@@ -480,18 +565,30 @@ export class PatentMapService {
         },
       ]),
     );
+    this.ensureProvinceBaselines(regionMap);
     const root = regionMap.get(regionCode);
     if (!root) {
       throw new NotFoundException({ code: 'NOT_FOUND', message: 'region not found' });
     }
 
-    const childrenMap = this.buildChildrenMap(Array.from(regionMap.values()));
-    const descendantCodes = this.collectDescendantCodes(regionCode, childrenMap);
+    const rootExistsInDb = regions.some((item) => item.code === regionCode);
+    let descendantRegionCodeCount = 1;
+    let regionCodeWhere: any = { equals: regionCode };
+    if (rootExistsInDb) {
+      const childrenMap = this.buildChildrenMap(Array.from(regionMap.values()));
+      const descendantCodes = this.collectDescendantCodes(regionCode, childrenMap);
+      descendantRegionCodeCount = descendantCodes.length;
+      regionCodeWhere = { in: descendantCodes };
+    } else if (root.level === 'PROVINCE') {
+      const provincePrefix = regionCode.slice(0, 2);
+      const descendantCodes = Array.from(regionMap.keys()).filter((code) => code.startsWith(provincePrefix));
+      descendantRegionCodeCount = Math.max(1, descendantCodes.length);
+      regionCodeWhere = { startsWith: provincePrefix };
+    }
 
     const where: any = {
-      auditStatus: 'APPROVED',
-      status: 'ACTIVE',
-      regionCode: { in: descendantCodes },
+      ...this.listingWhereByScope(scope),
+      regionCode: regionCodeWhere,
     };
     const now = new Date();
     const activeFeaturedWhere: any = {
@@ -572,6 +669,7 @@ export class PatentMapService {
 
     return {
       generatedAt: new Date().toISOString(),
+      filters: { scope },
       region: {
         code: root.code,
         name: root.name,
@@ -579,7 +677,7 @@ export class PatentMapService {
         parentCode: root.parentCode,
         centerLat: root.centerLat,
         centerLng: root.centerLng,
-        descendantRegionCodeCount: descendantCodes.length,
+        descendantRegionCodeCount,
       },
       summary: {
         listingCount: total,
