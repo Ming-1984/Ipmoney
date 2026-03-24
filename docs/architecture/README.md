@@ -2,6 +2,9 @@
 
 本目录包含 `.mmd` 源文件，用于架构/流程/时序/ER 对齐与演示。
 
+## 图表清单
+- `home-banner-local-media.mmd`：小程序首页本地视频（wxfile）模拟与预览页交互流程
+
 ## 查看与编辑
 - 在 Cursor / VS Code 安装 Mermaid 插件可直接预览 `.mmd`
 - 或使用 Mermaid Live Editor 在线预览

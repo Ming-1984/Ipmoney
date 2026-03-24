@@ -1,4 +1,4 @@
-import { BadRequestException, ConflictException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+﻿import { BadRequestException, ConflictException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 
 import {
   PatentMaintenanceOrderEventType,
@@ -404,7 +404,7 @@ export class PatentMaintenanceService {
     ]);
 
     return {
-      items: items.map((item) => this.toScheduleDto(item)),
+      items: items.map((item: any) => this.toScheduleDto(item)),
       page: { page, pageSize, total },
     };
   }
@@ -454,7 +454,7 @@ export class PatentMaintenanceService {
     ]);
 
     return {
-      items: items.map((item) => this.toMyScheduleDto(item)),
+      items: items.map((item: any) => this.toMyScheduleDto(item)),
       page: { page, pageSize, total },
     };
   }
@@ -588,7 +588,7 @@ export class PatentMaintenanceService {
     ]);
 
     return {
-      items: items.map((item) => this.toTaskDto(item)),
+      items: items.map((item: any) => this.toTaskDto(item)),
       page: { page, pageSize, total },
     };
   }
@@ -640,7 +640,7 @@ export class PatentMaintenanceService {
     ]);
 
     return {
-      items: items.map((item) => this.toMyTaskDto(item)),
+      items: items.map((item: any) => this.toMyTaskDto(item)),
       page: { page, pageSize, total },
     };
   }
@@ -800,7 +800,7 @@ export class PatentMaintenanceService {
     ]);
 
     return {
-      items: items.map((item) => this.toOrderDto(item)),
+      items: items.map((item: any) => this.toOrderDto(item)),
       page: { page, pageSize, total },
     };
   }
@@ -844,7 +844,7 @@ export class PatentMaintenanceService {
     ]);
 
     return {
-      items: items.map((item) => this.toOrderDto(item)),
+      items: items.map((item: any) => this.toOrderDto(item)),
       page: { page, pageSize, total },
     };
   }
@@ -890,7 +890,7 @@ export class PatentMaintenanceService {
       },
       orderBy: { createdAt: 'asc' },
     });
-    return { items: events.map((item) => this.toOrderEventDto(item)) };
+    return { items: events.map((item: any) => this.toOrderEventDto(item)) };
   }
 
   async listMyOrderEvents(req: any, orderId: string) {
@@ -913,7 +913,7 @@ export class PatentMaintenanceService {
       },
       orderBy: { createdAt: 'asc' },
     });
-    return { items: events.map((item) => this.toOrderEventDto(item)) };
+    return { items: events.map((item: any) => this.toOrderEventDto(item)) };
   }
 
   async createOrder(req: any, body: any) {

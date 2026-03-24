@@ -95,6 +95,28 @@
 - 失败兜底：`videoUrl` 为空或加载失败 -> 回退 `Image` + `imageUrl`
 - 保留本地 `promo-certificate.png` 为最终兜底
 
+## 交互增强（当前实现）
+- Banner 支持左右滑动（两条视频）。
+- 点击 Banner 进入全屏预览页：`subpackages/media/video-preview/index`。
+
+## 本地模拟（开发环境，无 URL）
+用于无对象存储资源时的演示，**仅开发环境**生效。
+
+- 本地资源：
+  - `apps/client/src/assets/home/banner-local-1.mp4`
+  - `apps/client/src/assets/home/banner-local-2.mp4`
+- 启动前自动下载（临时公开视频）：
+  - 脚本：`scripts/download-local-banner.ps1`
+  - 环境变量覆盖：
+    - `BANNER_VIDEO_URL_1`
+    - `BANNER_VIDEO_URL_2`
+- 小程序构建拷贝：
+  - `apps/client/config/index.ts` 使用 `mini.copy.patterns` 将 mp4 拷贝到 `dist/weapp/assets/home/`
+- 小程序运行时拷贝（wxfile）：
+  - `apps/client/src/lib/localMedia.ts` 将包内资源拷贝到 `wx.env.USER_DATA_PATH` 并返回 `wxfile://` 路径
+- 注意：
+  - 小程序 `Video` 的 `poster` 仅支持网络 URL，本地模拟不设置 `poster`，由首帧作为封面。
+
 ## 访问策略与白名单
 - 视频 URL 必须**公开可访问**（不依赖 token）。
 - 小程序后台需添加 `media.ipmoney.cn` 为媒体域名白名单（HTTPS 必须有效）。
@@ -115,5 +137,8 @@
 - [ ] 未登录用户首页可正常播放视频
 - [ ] 视频自动循环且无控件
 - [ ] 视频加载失败可回退到海报
+- [ ] Banner 支持左右滑动两条视频
+- [ ] 点击 Banner 可进入全屏预览页
+- [ ] 开发环境可通过本地视频（wxfile）完成无 URL 演示
 - [ ] 运营可通过后台替换视频
 - [ ] 配置可回滚为图片模式

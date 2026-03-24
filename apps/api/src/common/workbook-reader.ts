@@ -40,7 +40,7 @@ async function loadXlsxWorkbook(buffer: Buffer): Promise<ExcelJS.Workbook> {
 async function loadCsvWorkbook(buffer: Buffer): Promise<ExcelJS.Workbook> {
   const workbook = new ExcelJS.Workbook();
   await workbook.csv.read(Readable.from(buffer), {
-    map(value) {
+    map(value: string) {
       return value;
     },
   });

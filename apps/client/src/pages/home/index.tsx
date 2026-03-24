@@ -188,7 +188,6 @@ const HomeBanner = React.memo(function HomeBanner() {
     </View>
   );
 });
-
 export default function HomePage() {
   const initialAuthed = Boolean(getToken());
   const initialListings = getDetailCache<PagedListingSummary>(

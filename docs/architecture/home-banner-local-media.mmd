@@ -1,0 +1,15 @@
+flowchart LR
+  subgraph Build[Build Time]
+    A[Local videos\nbanner-local-1.mp4/2.mp4] --> B[Taro mini.copy\n-> dist/weapp/assets/home]
+  end
+
+  subgraph Weapp[Weapp Runtime]
+    C[Home Banner Swiper]
+    D[ensureWeappVideoSrc\ncopy to USER_DATA_PATH]
+    E[Video src=wxfile://...]
+    F[Tap banner]
+    G[Video Preview Page\nsubpackages/media/video-preview]
+  end
+
+  B --> D --> E --> C
+  C --> F --> G
