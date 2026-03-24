@@ -17,6 +17,7 @@ import iconActivity from '../../assets/icons/icon-activity-blue.svg';
 import iconAward from '../../assets/icons/icon-award-teal.svg';
 import iconShield from '../../assets/icons/icon-shield-orange.svg';
 import iconTrending from '../../assets/icons/icon-trending-red.svg';
+import iconMapGreen from '../../assets/icons/icon-map-green.svg';
 
 // Home quick entry icons (provided by you in repo root, copied into assets)
 import homeIconInventors from '../../assets/icons/home/home-inventors.svg';
@@ -38,6 +39,7 @@ import { getDetailCache, setDetailCache } from '../../lib/detailCache';
 import { syncFavorites } from '../../lib/favorites';
 import { ensureWeappVideoSrc } from '../../lib/localMedia';
 import type { ListingTopic } from '../../lib/listingTopics';
+import { isTabPageUrl, normalizePageUrl } from '../../lib/navigation';
 import { EmptyCard, ErrorCard } from '../../ui/StateCards';
 import { toast } from '../../ui/nutui';
 import { ListingCard } from '../../ui/ListingCard';
@@ -46,6 +48,21 @@ import GifImage from '../../ui/GifImage';
 
 type PagedListingSummary = components['schemas']['PagedListingSummary'];
 type ListingSummary = components['schemas']['ListingSummary'];
+type PublicHomeAnnouncementItem = {
+  id: string;
+  title: string;
+  content: string;
+  tag: string | null;
+  linkUrl: string | null;
+  pinned: boolean;
+  order: number;
+  publishedAt: string | null;
+};
+
+type PublicHomeAnnouncementFeed = {
+  generatedAt: string;
+  items: PublicHomeAnnouncementItem[];
+};
 
 type QuickEntry = {
   key: string;
@@ -66,6 +83,7 @@ type PatentZoneEntry = {
 
 const HOME_FAVORITES_SYNC_DELAY_MS = 800;
 const HOME_LISTINGS_CACHE_SCOPE = 'home-listings';
+const HOME_ANNOUNCEMENTS_MAX = 6;
 
 const bannerVideos = [
   { id: 'banner-local-1', title: 'Local Banner 1', asset: bannerLocal1Mp4, fileName: 'banner-local-1.mp4' },
@@ -186,6 +204,7 @@ export default function HomePage() {
   );
   const [isAuthed, setIsAuthed] = useState(initialAuthed);
   const [keyword, setKeyword] = useState('');
+  const [announcements, setAnnouncements] = useState<PublicHomeAnnouncementItem[]>([]);
 
   const statusBarHeight = useMemo(() => {
     if (process.env.TARO_ENV !== 'weapp') return 0;
@@ -203,6 +222,17 @@ export default function HomePage() {
   }, [statusBarHeight]);
 
   useEffect(() => onAuthChanged(() => setIsAuthed(Boolean(getToken()))), []);
+
+  const loadAnnouncements = useCallback(async () => {
+    try {
+      const feed = await apiGet<PublicHomeAnnouncementFeed>('/public/config/home-announcements');
+      const next = Array.isArray(feed?.items) ? feed.items.slice(0, HOME_ANNOUNCEMENTS_MAX) : [];
+      setAnnouncements(next);
+    } catch {
+      // Announcement loading should never block the homepage core experience.
+      setAnnouncements([]);
+    }
+  }, []);
 
   const load = useCallback(async () => {
     const cacheKey = isAuthed ? 'recommend' : 'newest';
@@ -250,6 +280,10 @@ export default function HomePage() {
   }, [load]);
 
   useEffect(() => {
+    void loadAnnouncements();
+  }, [loadAnnouncements]);
+
+  useEffect(() => {
     if (!getToken()) return;
     const timer = setTimeout(() => {
       syncFavorites().catch(() => {});
@@ -272,6 +306,7 @@ export default function HomePage() {
   }, []);
 
   const goInventors = useCallback(() => Taro.navigateTo({ url: '/subpackages/inventors/index' }), []);
+  const goPatentMap = useCallback(() => Taro.navigateTo({ url: '/subpackages/patent-map/index' }), []);
   const goTechManagers = useCallback(() => Taro.switchTab({ url: '/pages/tech-managers/index' }), []);
   const goPatentExplore = useCallback(() => {
     Taro.setStorageSync(STORAGE_KEYS.searchPrefill, { tab: 'LISTING', reset: true });
@@ -314,18 +349,34 @@ export default function HomePage() {
     Taro.navigateTo({ url: '/subpackages/search/index' });
   }, []);
 
+  const goAnnouncementLink = useCallback(async (item: PublicHomeAnnouncementItem) => {
+    const target = normalizePageUrl(item.linkUrl || '');
+    if (!target) return;
+    try {
+      if (isTabPageUrl(target)) {
+        await Taro.switchTab({ url: target });
+        return;
+      }
+      await Taro.navigateTo({ url: target });
+    } catch {
+      toast('公告链接暂不可用');
+    }
+  }, []);
+
   const quickEntries: QuickEntry[] = useMemo(
     () => [
       { key: 'design-patent', label: '外观专利', icon: homeIconDesignPatent, onClick: goDesignPatents },
       { key: 'invention-patent', label: '发明专利', icon: homeIconInventionPatent, onClick: goInventionPatents },
       { key: 'utility-patent', label: '实用新型', icon: homeIconUtilityPatent, onClick: goUtilityPatents },
       { key: 'inventor', label: '发明人榜', icon: homeIconInventors, onClick: goInventors },
+      { key: 'patent-map', label: '专利地图', icon: iconMapGreen, onClick: goPatentMap },
       { key: 'tech-manager', label: '技术经理', icon: homeIconTechManager, onClick: goTechManagers },
       { key: 'achievement', label: '成果展示', icon: homeIconAchievement, onClick: goAchievementSearch },
     ],
     [
       goDesignPatents,
       goInventors,
+      goPatentMap,
       goInventionPatents,
       goUtilityPatents,
       goTechManagers,
@@ -444,6 +495,36 @@ export default function HomePage() {
           ))}
         </View>
       </View>
+
+      {announcements.length ? (
+        <View className="home-section home-announcement-section">
+          <View className="home-section-header">
+            <View className="home-section-title-wrap">
+              <View className="home-section-accent" />
+              <Text className="home-section-title">平台公告</Text>
+            </View>
+          </View>
+          <View className="home-announcement-list">
+            {announcements.map((item) => (
+              <View
+                key={item.id}
+                className={`home-announcement-item${item.linkUrl ? ' home-announcement-item-clickable' : ''}`}
+                onClick={() => {
+                  void goAnnouncementLink(item);
+                }}
+              >
+                <View className="home-announcement-head">
+                  {item.pinned ? <Text className="home-announcement-pinned">置顶</Text> : null}
+                  {item.tag ? <Text className="home-announcement-tag">{item.tag}</Text> : null}
+                  <Text className="home-announcement-title">{item.title}</Text>
+                </View>
+                <Text className="home-announcement-content">{item.content}</Text>
+                {item.linkUrl ? <Text className="home-announcement-link">查看详情</Text> : null}
+              </View>
+            ))}
+          </View>
+        </View>
+      ) : null}
 
       <HomeBanner />
 

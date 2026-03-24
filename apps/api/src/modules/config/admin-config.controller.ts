@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Put, Req, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Post, Put, Req, UseGuards } from '@nestjs/common';
 
 import { BearerAuthGuard } from '../../common/guards/bearer-auth.guard';
 import { AuditLogService } from '../../common/audit-log.service';
@@ -8,6 +8,11 @@ import {
   ConfigService,
   type BannerConfig,
   type CustomerServiceConfig,
+  type HomeAnnouncementConfig,
+  type HomeAnnouncementItemCreateInput,
+  type HomeAnnouncementItemUpdateInput,
+  type HomeAnnouncementTemplateCreateInput,
+  type HomeAnnouncementTemplateUpdateInput,
   type HotSearchConfig,
   type RecommendationConfig,
   type SensitiveWordsConfig,
@@ -24,6 +29,7 @@ const SYSTEM_CONFIG_AUDIT_TARGET_IDS = {
   sensitiveWords: '0aca260f-4c11-42e6-ad9b-c7a7ca45f6a1',
   hotSearch: '8dd52cb6-7fae-492d-8c8f-8a6ca6f74f42',
   alerts: 'e92da947-d8e6-4648-a550-6f2fc0e933f3',
+  homeAnnouncements: '3c5b1f79-bf5a-4e4e-8b9a-2a520e9fd80e',
 } as const;
 
 @UseGuards(BearerAuthGuard)
@@ -198,5 +204,131 @@ export class AdminConfigController {
       afterJson: next,
     });
     return next;
+  }
+
+  @Get('/home-announcements')
+  async getHomeAnnouncementConfig(@Req() req: any): Promise<HomeAnnouncementConfig> {
+    requirePermission(req, 'config.manage');
+    return await this.config.getHomeAnnouncementConfig();
+  }
+
+  @Post('/home-announcements/templates')
+  async createHomeAnnouncementTemplate(@Req() req: any, @Body() body: HomeAnnouncementTemplateCreateInput) {
+    requirePermission(req, 'config.manage');
+    const next = await this.config.createHomeAnnouncementTemplate(body || ({} as HomeAnnouncementTemplateCreateInput));
+    await this.audit.log({
+      actorUserId: req.auth.userId,
+      action: 'CONFIG_HOME_ANNOUNCEMENT_TEMPLATE_CREATE',
+      targetType: 'SYSTEM_CONFIG',
+      targetId: SYSTEM_CONFIG_AUDIT_TARGET_IDS.homeAnnouncements,
+      afterJson: next,
+    });
+    return next;
+  }
+
+  @Put('/home-announcements/templates/:templateId')
+  async updateHomeAnnouncementTemplate(
+    @Req() req: any,
+    @Param('templateId') templateId: string,
+    @Body() body: HomeAnnouncementTemplateUpdateInput,
+  ) {
+    requirePermission(req, 'config.manage');
+    const next = await this.config.updateHomeAnnouncementTemplate(templateId, body || {});
+    await this.audit.log({
+      actorUserId: req.auth.userId,
+      action: 'CONFIG_HOME_ANNOUNCEMENT_TEMPLATE_UPDATE',
+      targetType: 'SYSTEM_CONFIG',
+      targetId: SYSTEM_CONFIG_AUDIT_TARGET_IDS.homeAnnouncements,
+      afterJson: next,
+    });
+    return next;
+  }
+
+  @Delete('/home-announcements/templates/:templateId')
+  async deleteHomeAnnouncementTemplate(@Req() req: any, @Param('templateId') templateId: string) {
+    requirePermission(req, 'config.manage');
+    const result = await this.config.deleteHomeAnnouncementTemplate(templateId);
+    await this.audit.log({
+      actorUserId: req.auth.userId,
+      action: 'CONFIG_HOME_ANNOUNCEMENT_TEMPLATE_DELETE',
+      targetType: 'SYSTEM_CONFIG',
+      targetId: SYSTEM_CONFIG_AUDIT_TARGET_IDS.homeAnnouncements,
+      afterJson: result,
+    });
+    return result;
+  }
+
+  @Post('/home-announcements/items')
+  async createHomeAnnouncementItem(@Req() req: any, @Body() body: HomeAnnouncementItemCreateInput) {
+    requirePermission(req, 'config.manage');
+    const next = await this.config.createHomeAnnouncementItem(body || ({} as HomeAnnouncementItemCreateInput));
+    await this.audit.log({
+      actorUserId: req.auth.userId,
+      action: 'CONFIG_HOME_ANNOUNCEMENT_ITEM_CREATE',
+      targetType: 'SYSTEM_CONFIG',
+      targetId: SYSTEM_CONFIG_AUDIT_TARGET_IDS.homeAnnouncements,
+      afterJson: next,
+    });
+    return next;
+  }
+
+  @Put('/home-announcements/items/:itemId')
+  async updateHomeAnnouncementItem(
+    @Req() req: any,
+    @Param('itemId') itemId: string,
+    @Body() body: HomeAnnouncementItemUpdateInput,
+  ) {
+    requirePermission(req, 'config.manage');
+    const next = await this.config.updateHomeAnnouncementItem(itemId, body || {});
+    await this.audit.log({
+      actorUserId: req.auth.userId,
+      action: 'CONFIG_HOME_ANNOUNCEMENT_ITEM_UPDATE',
+      targetType: 'SYSTEM_CONFIG',
+      targetId: SYSTEM_CONFIG_AUDIT_TARGET_IDS.homeAnnouncements,
+      afterJson: next,
+    });
+    return next;
+  }
+
+  @Post('/home-announcements/items/:itemId/publish')
+  async publishHomeAnnouncementItem(@Req() req: any, @Param('itemId') itemId: string) {
+    requirePermission(req, 'config.manage');
+    const next = await this.config.publishHomeAnnouncementItem(itemId);
+    await this.audit.log({
+      actorUserId: req.auth.userId,
+      action: 'CONFIG_HOME_ANNOUNCEMENT_ITEM_PUBLISH',
+      targetType: 'SYSTEM_CONFIG',
+      targetId: SYSTEM_CONFIG_AUDIT_TARGET_IDS.homeAnnouncements,
+      afterJson: next,
+    });
+    return next;
+  }
+
+  @Post('/home-announcements/items/:itemId/offline')
+  async offlineHomeAnnouncementItem(@Req() req: any, @Param('itemId') itemId: string) {
+    requirePermission(req, 'config.manage');
+    const next = await this.config.offlineHomeAnnouncementItem(itemId);
+    await this.audit.log({
+      actorUserId: req.auth.userId,
+      action: 'CONFIG_HOME_ANNOUNCEMENT_ITEM_OFFLINE',
+      targetType: 'SYSTEM_CONFIG',
+      targetId: SYSTEM_CONFIG_AUDIT_TARGET_IDS.homeAnnouncements,
+      afterJson: next,
+    });
+    return next;
+  }
+
+  @Delete('/home-announcements/items/:itemId')
+  async deleteHomeAnnouncementItem(@Req() req: any, @Param('itemId') itemId: string) {
+    requirePermission(req, 'config.manage');
+    const result = await this.config.deleteHomeAnnouncementItem(itemId);
+    await this.audit.log({
+      actorUserId: req.auth.userId,
+      action: 'CONFIG_HOME_ANNOUNCEMENT_ITEM_DELETE',
+      targetType: 'SYSTEM_CONFIG',
+      targetId: SYSTEM_CONFIG_AUDIT_TARGET_IDS.homeAnnouncements,
+      afterJson: result,
+    });
+    return result;
   }
 }

@@ -59,6 +59,13 @@ const menuConfig: AppMenuItem[] = [
   { key: 'invoices', label: '发票管理', to: '/invoices', permission: 'invoice.manage' },
   { key: 'reports', icon: <FileTextOutlined />, label: '报表导出', to: '/reports', permission: 'report.read' },
   { key: 'config', icon: <SettingOutlined />, label: '交易/推荐配置', to: '/config', permission: 'config.manage' },
+  {
+    key: 'home-announcements',
+    icon: <BellOutlined />,
+    label: '首页公告',
+    to: '/home-announcements',
+    permission: 'config.manage',
+  },
   { key: 'regions', icon: <EnvironmentOutlined />, label: '地区/行业标签', to: '/regions', permission: 'config.manage' },
   { key: 'patents', icon: <BookOutlined />, label: '专利主数据', to: '/patents', permission: 'listing.read' },
   { key: 'patent-ops', icon: <BookOutlined />, label: '专利批量运营', to: '/patents/operations', permission: 'patent.import' },

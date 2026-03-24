@@ -1,4 +1,5 @@
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { randomUUID } from 'node:crypto';
 const SystemConfigScope = {
   GLOBAL: 'GLOBAL',
   REGION: 'REGION',
@@ -106,6 +107,103 @@ export type AlertConfig = {
   rules: AlertRule[];
 };
 
+export type HomeAnnouncementTemplate = {
+  id: string;
+  name: string;
+  title: string;
+  content: string;
+  tag: string | null;
+  linkUrl: string | null;
+  enabled: boolean;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type HomeAnnouncementStatus = 'DRAFT' | 'PUBLISHED' | 'OFFLINE';
+
+export type HomeAnnouncementItem = {
+  id: string;
+  templateId: string | null;
+  title: string;
+  content: string;
+  tag: string | null;
+  linkUrl: string | null;
+  pinned: boolean;
+  order: number;
+  status: HomeAnnouncementStatus;
+  startAt: string | null;
+  endAt: string | null;
+  publishedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type HomeAnnouncementConfig = {
+  schemaVersion: number;
+  templates: HomeAnnouncementTemplate[];
+  items: HomeAnnouncementItem[];
+};
+
+export type HomeAnnouncementTemplateCreateInput = {
+  name: string;
+  title: string;
+  content: string;
+  tag?: string | null;
+  linkUrl?: string | null;
+  enabled?: boolean;
+};
+
+export type HomeAnnouncementTemplateUpdateInput = {
+  name?: string;
+  title?: string;
+  content?: string;
+  tag?: string | null;
+  linkUrl?: string | null;
+  enabled?: boolean;
+};
+
+export type HomeAnnouncementItemCreateInput = {
+  templateId?: string | null;
+  title?: string;
+  content?: string;
+  tag?: string | null;
+  linkUrl?: string | null;
+  pinned?: boolean;
+  order?: number;
+  startAt?: string | null;
+  endAt?: string | null;
+  status?: HomeAnnouncementStatus;
+};
+
+export type HomeAnnouncementItemUpdateInput = {
+  templateId?: string | null;
+  title?: string;
+  content?: string;
+  tag?: string | null;
+  linkUrl?: string | null;
+  pinned?: boolean;
+  order?: number;
+  startAt?: string | null;
+  endAt?: string | null;
+  status?: HomeAnnouncementStatus;
+};
+
+export type PublicHomeAnnouncementItem = {
+  id: string;
+  title: string;
+  content: string;
+  tag: string | null;
+  linkUrl: string | null;
+  pinned: boolean;
+  order: number;
+  publishedAt: string | null;
+};
+
+export type PublicHomeAnnouncementFeed = {
+  generatedAt: string;
+  items: PublicHomeAnnouncementItem[];
+};
+
 const KEY_TRADE_RULES = 'trade_rules';
 const KEY_RECOMMENDATION = 'recommendation_config';
 const KEY_BANNER = 'banner_config';
@@ -114,6 +212,7 @@ const KEY_TAXONOMY = 'taxonomy_config';
 const KEY_SENSITIVE = 'sensitive_words_config';
 const KEY_HOT_SEARCH = 'hot_search_config';
 const KEY_ALERT_CONFIG = 'alert_config';
+const KEY_HOME_ANNOUNCEMENT_CONFIG = 'home_announcement_config';
 
 const DEFAULT_TRADE_RULES: TradeRulesConfig = {
   version: 1,
@@ -215,6 +314,14 @@ function buildDefaultAlertConfig(): AlertConfig {
         cooldownMinutes: 60,
       },
     ],
+  };
+}
+
+function buildDefaultHomeAnnouncementConfig(): HomeAnnouncementConfig {
+  return {
+    schemaVersion: 1,
+    templates: [],
+    items: [],
   };
 }
 
@@ -459,5 +566,415 @@ export class ConfigService {
       },
     });
     return payload;
+  }
+
+  private normalizeRequiredText(value: unknown, fieldName: string, maxLength: number): string {
+    const normalized = String(value ?? '').trim();
+    if (!normalized) {
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: `${fieldName} is invalid` });
+    }
+    if (normalized.length > maxLength) {
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: `${fieldName} is invalid` });
+    }
+    return normalized;
+  }
+
+  private normalizeOptionalText(value: unknown, maxLength: number): string | null {
+    if (value === undefined || value === null) return null;
+    const normalized = String(value).trim();
+    if (!normalized) return null;
+    if (normalized.length > maxLength) {
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: 'payload is invalid' });
+    }
+    return normalized;
+  }
+
+  private normalizeAnnouncementStatus(value: unknown, fallback: HomeAnnouncementStatus = 'DRAFT'): HomeAnnouncementStatus {
+    const normalized = String(value ?? '').trim().toUpperCase();
+    if (!normalized) return fallback;
+    if (normalized === 'DRAFT' || normalized === 'PUBLISHED' || normalized === 'OFFLINE') {
+      return normalized;
+    }
+    throw new BadRequestException({ code: 'BAD_REQUEST', message: 'status is invalid' });
+  }
+
+  private parseDateTimeNullable(value: unknown, fieldName: string, opts?: { strict?: boolean }): string | null {
+    if (value === undefined || value === null) return null;
+    const normalized = String(value).trim();
+    if (!normalized) return null;
+    const parsed = new Date(normalized);
+    if (Number.isNaN(parsed.getTime())) {
+      if (opts?.strict === false) return null;
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: `${fieldName} is invalid` });
+    }
+    return parsed.toISOString();
+  }
+
+  private normalizeAnnouncementOrder(value: unknown, fallback = 100): number {
+    if (value === undefined || value === null || value === '') return fallback;
+    const parsed = Number(value);
+    if (!Number.isSafeInteger(parsed) || parsed < 0 || parsed > 100000) {
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: 'order is invalid' });
+    }
+    return parsed;
+  }
+
+  private normalizeHomeAnnouncementConfig(input: unknown): HomeAnnouncementConfig {
+    const source = input && typeof input === 'object' ? (input as any) : {};
+    const now = new Date().toISOString();
+    const templateList = Array.isArray(source.templates) ? source.templates : [];
+    const templates: HomeAnnouncementTemplate[] = templateList
+      .map((item: any) => {
+        const id = String(item?.id || '').trim() || randomUUID();
+        const name = String(item?.name || '').trim();
+        const title = String(item?.title || '').trim();
+        const content = String(item?.content || '').trim();
+        if (!name || !title || !content) return null;
+        const createdAt = this.parseDateTimeNullable(item?.createdAt, 'createdAt', { strict: false }) || now;
+        const updatedAt = this.parseDateTimeNullable(item?.updatedAt, 'updatedAt', { strict: false }) || createdAt;
+        return {
+          id,
+          name: name.slice(0, 80),
+          title: title.slice(0, 120),
+          content: content.slice(0, 2000),
+          tag: String(item?.tag || '').trim().slice(0, 32) || null,
+          linkUrl: String(item?.linkUrl || '').trim().slice(0, 1000) || null,
+          enabled: item?.enabled !== false,
+          createdAt,
+          updatedAt,
+        };
+      })
+      .filter(Boolean) as HomeAnnouncementTemplate[];
+
+    const templateSet = new Set(templates.map((item) => item.id));
+    const itemList = Array.isArray(source.items) ? source.items : [];
+    const announcements: HomeAnnouncementItem[] = itemList
+      .map((item: any) => {
+        const id = String(item?.id || '').trim() || randomUUID();
+        const title = String(item?.title || '').trim();
+        const content = String(item?.content || '').trim();
+        if (!title || !content) return null;
+        const createdAt = this.parseDateTimeNullable(item?.createdAt, 'createdAt') || now;
+        const updatedAt = this.parseDateTimeNullable(item?.updatedAt, 'updatedAt') || createdAt;
+        const templateIdRaw = String(item?.templateId || '').trim();
+        const templateId = templateIdRaw && templateSet.has(templateIdRaw) ? templateIdRaw : null;
+        let publishedAt = this.parseDateTimeNullable(item?.publishedAt, 'publishedAt', { strict: false });
+        const status = this.normalizeAnnouncementStatus(item?.status, publishedAt ? 'PUBLISHED' : 'DRAFT');
+        if (status !== 'PUBLISHED') publishedAt = null;
+        const startAt = this.parseDateTimeNullable(item?.startAt, 'startAt', { strict: false });
+        const endAt = this.parseDateTimeNullable(item?.endAt, 'endAt', { strict: false });
+        if (startAt && endAt && new Date(endAt).getTime() < new Date(startAt).getTime()) {
+          return null;
+        }
+        const parsedOrder = Number(item?.order);
+        const order = Number.isSafeInteger(parsedOrder) && parsedOrder >= 0 && parsedOrder <= 100000 ? parsedOrder : 100;
+        return {
+          id,
+          templateId,
+          title: title.slice(0, 120),
+          content: content.slice(0, 2000),
+          tag: String(item?.tag || '').trim().slice(0, 32) || null,
+          linkUrl: String(item?.linkUrl || '').trim().slice(0, 1000) || null,
+          pinned: item?.pinned === true,
+          order,
+          status,
+          startAt,
+          endAt,
+          publishedAt,
+          createdAt,
+          updatedAt,
+        };
+      })
+      .filter(Boolean) as HomeAnnouncementItem[];
+
+    return {
+      schemaVersion: 1,
+      templates: templates.slice(0, 200),
+      items: announcements.slice(0, 500),
+    };
+  }
+
+  private async getHomeAnnouncementState() {
+    const row = await this.ensureJsonConfig(KEY_HOME_ANNOUNCEMENT_CONFIG, buildDefaultHomeAnnouncementConfig());
+    try {
+      const parsed = JSON.parse(row.value);
+      return { row, config: this.normalizeHomeAnnouncementConfig(parsed) };
+    } catch {
+      return { row, config: buildDefaultHomeAnnouncementConfig() };
+    }
+  }
+
+  private async saveHomeAnnouncementConfig(rowVersion: number, config: HomeAnnouncementConfig) {
+    await this.prisma.systemConfig.update({
+      where: { key: KEY_HOME_ANNOUNCEMENT_CONFIG },
+      data: {
+        valueType: SystemConfigValueType.JSON,
+        scope: SystemConfigScope.GLOBAL,
+        value: JSON.stringify(config),
+        version: rowVersion + 1,
+      },
+    });
+  }
+
+  async getHomeAnnouncementConfig(): Promise<HomeAnnouncementConfig> {
+    const { config } = await this.getHomeAnnouncementState();
+    return config;
+  }
+
+  async createHomeAnnouncementTemplate(input: HomeAnnouncementTemplateCreateInput): Promise<HomeAnnouncementTemplate> {
+    const { row, config } = await this.getHomeAnnouncementState();
+    const now = new Date().toISOString();
+    const template: HomeAnnouncementTemplate = {
+      id: randomUUID(),
+      name: this.normalizeRequiredText(input?.name, 'name', 80),
+      title: this.normalizeRequiredText(input?.title, 'title', 120),
+      content: this.normalizeRequiredText(input?.content, 'content', 2000),
+      tag: this.normalizeOptionalText(input?.tag, 32),
+      linkUrl: this.normalizeOptionalText(input?.linkUrl, 1000),
+      enabled: input?.enabled !== false,
+      createdAt: now,
+      updatedAt: now,
+    };
+    config.templates.unshift(template);
+    config.templates = config.templates.slice(0, 200);
+    await this.saveHomeAnnouncementConfig(row.version, config);
+    return template;
+  }
+
+  async updateHomeAnnouncementTemplate(
+    templateId: string,
+    input: HomeAnnouncementTemplateUpdateInput,
+  ): Promise<HomeAnnouncementTemplate> {
+    const normalizedId = String(templateId || '').trim();
+    if (!normalizedId) {
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: 'templateId is invalid' });
+    }
+    const { row, config } = await this.getHomeAnnouncementState();
+    const target = config.templates.find((item) => item.id === normalizedId);
+    if (!target) {
+      throw new NotFoundException({ code: 'NOT_FOUND', message: 'template not found' });
+    }
+    if (input?.name !== undefined) {
+      target.name = this.normalizeRequiredText(input.name, 'name', 80);
+    }
+    if (input?.title !== undefined) {
+      target.title = this.normalizeRequiredText(input.title, 'title', 120);
+    }
+    if (input?.content !== undefined) {
+      target.content = this.normalizeRequiredText(input.content, 'content', 2000);
+    }
+    if (input?.tag !== undefined) {
+      target.tag = this.normalizeOptionalText(input.tag, 32);
+    }
+    if (input?.linkUrl !== undefined) {
+      target.linkUrl = this.normalizeOptionalText(input.linkUrl, 1000);
+    }
+    if (input?.enabled !== undefined) {
+      target.enabled = input.enabled === true;
+    }
+    target.updatedAt = new Date().toISOString();
+    await this.saveHomeAnnouncementConfig(row.version, config);
+    return target;
+  }
+
+  async deleteHomeAnnouncementTemplate(templateId: string): Promise<{ ok: true; deletedTemplateId: string }> {
+    const normalizedId = String(templateId || '').trim();
+    if (!normalizedId) {
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: 'templateId is invalid' });
+    }
+    const { row, config } = await this.getHomeAnnouncementState();
+    const index = config.templates.findIndex((item) => item.id === normalizedId);
+    if (index < 0) {
+      throw new NotFoundException({ code: 'NOT_FOUND', message: 'template not found' });
+    }
+    const inUse = config.items.some((item) => item.templateId === normalizedId);
+    if (inUse) {
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: 'template is in use' });
+    }
+    config.templates.splice(index, 1);
+    await this.saveHomeAnnouncementConfig(row.version, config);
+    return { ok: true, deletedTemplateId: normalizedId };
+  }
+
+  async createHomeAnnouncementItem(input: HomeAnnouncementItemCreateInput): Promise<HomeAnnouncementItem> {
+    const { row, config } = await this.getHomeAnnouncementState();
+    const now = new Date().toISOString();
+    const templateIdRaw = String(input?.templateId || '').trim();
+    const template = templateIdRaw ? config.templates.find((item) => item.id === templateIdRaw) || null : null;
+    if (templateIdRaw && !template) {
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: 'templateId is invalid' });
+    }
+    const title = input?.title !== undefined ? input.title : template?.title;
+    const content = input?.content !== undefined ? input.content : template?.content;
+    const tag = input?.tag !== undefined ? input.tag : template?.tag;
+    const linkUrl = input?.linkUrl !== undefined ? input.linkUrl : template?.linkUrl;
+    const status = this.normalizeAnnouncementStatus(input?.status, 'DRAFT');
+    const startAt = this.parseDateTimeNullable(input?.startAt, 'startAt');
+    const endAt = this.parseDateTimeNullable(input?.endAt, 'endAt');
+    if (startAt && endAt && new Date(endAt).getTime() < new Date(startAt).getTime()) {
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: 'time window is invalid' });
+    }
+    const item: HomeAnnouncementItem = {
+      id: randomUUID(),
+      templateId: template?.id || null,
+      title: this.normalizeRequiredText(title, 'title', 120),
+      content: this.normalizeRequiredText(content, 'content', 2000),
+      tag: this.normalizeOptionalText(tag, 32),
+      linkUrl: this.normalizeOptionalText(linkUrl, 1000),
+      pinned: input?.pinned === true,
+      order: this.normalizeAnnouncementOrder(input?.order, 100),
+      status,
+      startAt,
+      endAt,
+      publishedAt: status === 'PUBLISHED' ? now : null,
+      createdAt: now,
+      updatedAt: now,
+    };
+    config.items.unshift(item);
+    config.items = config.items.slice(0, 500);
+    await this.saveHomeAnnouncementConfig(row.version, config);
+    return item;
+  }
+
+  async updateHomeAnnouncementItem(itemId: string, input: HomeAnnouncementItemUpdateInput): Promise<HomeAnnouncementItem> {
+    const normalizedId = String(itemId || '').trim();
+    if (!normalizedId) {
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: 'itemId is invalid' });
+    }
+    const { row, config } = await this.getHomeAnnouncementState();
+    const target = config.items.find((item) => item.id === normalizedId);
+    if (!target) {
+      throw new NotFoundException({ code: 'NOT_FOUND', message: 'announcement not found' });
+    }
+
+    if (input?.templateId !== undefined) {
+      const templateIdRaw = String(input.templateId || '').trim();
+      if (!templateIdRaw) {
+        target.templateId = null;
+      } else {
+        const template = config.templates.find((item) => item.id === templateIdRaw);
+        if (!template) {
+          throw new BadRequestException({ code: 'BAD_REQUEST', message: 'templateId is invalid' });
+        }
+        target.templateId = template.id;
+      }
+    }
+    if (input?.title !== undefined) {
+      target.title = this.normalizeRequiredText(input.title, 'title', 120);
+    }
+    if (input?.content !== undefined) {
+      target.content = this.normalizeRequiredText(input.content, 'content', 2000);
+    }
+    if (input?.tag !== undefined) {
+      target.tag = this.normalizeOptionalText(input.tag, 32);
+    }
+    if (input?.linkUrl !== undefined) {
+      target.linkUrl = this.normalizeOptionalText(input.linkUrl, 1000);
+    }
+    if (input?.pinned !== undefined) {
+      target.pinned = input.pinned === true;
+    }
+    if (input?.order !== undefined) {
+      target.order = this.normalizeAnnouncementOrder(input.order, target.order);
+    }
+    if (input?.startAt !== undefined) {
+      target.startAt = this.parseDateTimeNullable(input.startAt, 'startAt');
+    }
+    if (input?.endAt !== undefined) {
+      target.endAt = this.parseDateTimeNullable(input.endAt, 'endAt');
+    }
+    if (target.startAt && target.endAt && new Date(target.endAt).getTime() < new Date(target.startAt).getTime()) {
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: 'time window is invalid' });
+    }
+    if (input?.status !== undefined) {
+      target.status = this.normalizeAnnouncementStatus(input.status, target.status);
+      if (target.status !== 'PUBLISHED') {
+        target.publishedAt = null;
+      } else if (!target.publishedAt) {
+        target.publishedAt = new Date().toISOString();
+      }
+    }
+
+    target.updatedAt = new Date().toISOString();
+    await this.saveHomeAnnouncementConfig(row.version, config);
+    return target;
+  }
+
+  async publishHomeAnnouncementItem(itemId: string): Promise<HomeAnnouncementItem> {
+    const { row, config } = await this.getHomeAnnouncementState();
+    const normalizedId = String(itemId || '').trim();
+    const target = config.items.find((item) => item.id === normalizedId);
+    if (!target) {
+      throw new NotFoundException({ code: 'NOT_FOUND', message: 'announcement not found' });
+    }
+    const now = new Date().toISOString();
+    target.status = 'PUBLISHED';
+    target.publishedAt = now;
+    target.updatedAt = now;
+    await this.saveHomeAnnouncementConfig(row.version, config);
+    return target;
+  }
+
+  async offlineHomeAnnouncementItem(itemId: string): Promise<HomeAnnouncementItem> {
+    const { row, config } = await this.getHomeAnnouncementState();
+    const normalizedId = String(itemId || '').trim();
+    const target = config.items.find((item) => item.id === normalizedId);
+    if (!target) {
+      throw new NotFoundException({ code: 'NOT_FOUND', message: 'announcement not found' });
+    }
+    target.status = 'OFFLINE';
+    target.updatedAt = new Date().toISOString();
+    await this.saveHomeAnnouncementConfig(row.version, config);
+    return target;
+  }
+
+  async deleteHomeAnnouncementItem(itemId: string): Promise<{ ok: true; deletedItemId: string }> {
+    const { row, config } = await this.getHomeAnnouncementState();
+    const normalizedId = String(itemId || '').trim();
+    const index = config.items.findIndex((item) => item.id === normalizedId);
+    if (index < 0) {
+      throw new NotFoundException({ code: 'NOT_FOUND', message: 'announcement not found' });
+    }
+    config.items.splice(index, 1);
+    await this.saveHomeAnnouncementConfig(row.version, config);
+    return { ok: true, deletedItemId: normalizedId };
+  }
+
+  async getPublicHomeAnnouncementFeed(): Promise<PublicHomeAnnouncementFeed> {
+    const config = await this.getHomeAnnouncementConfig();
+    const now = Date.now();
+    const items = config.items
+      .filter((item) => {
+        if (item.status !== 'PUBLISHED') return false;
+        const startMs = item.startAt ? new Date(item.startAt).getTime() : null;
+        const endMs = item.endAt ? new Date(item.endAt).getTime() : null;
+        if (startMs !== null && startMs > now) return false;
+        if (endMs !== null && endMs < now) return false;
+        return true;
+      })
+      .sort((a, b) => {
+        if (a.pinned !== b.pinned) return a.pinned ? -1 : 1;
+        if (a.order !== b.order) return a.order - b.order;
+        const aPub = a.publishedAt ? new Date(a.publishedAt).getTime() : 0;
+        const bPub = b.publishedAt ? new Date(b.publishedAt).getTime() : 0;
+        if (aPub !== bPub) return bPub - aPub;
+        return b.updatedAt.localeCompare(a.updatedAt);
+      })
+      .slice(0, 20)
+      .map((item) => ({
+        id: item.id,
+        title: item.title,
+        content: item.content,
+        tag: item.tag,
+        linkUrl: item.linkUrl,
+        pinned: item.pinned,
+        order: item.order,
+        publishedAt: item.publishedAt,
+      }));
+
+    return {
+      generatedAt: new Date().toISOString(),
+      items,
+    };
   }
 }

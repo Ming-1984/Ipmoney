@@ -26,6 +26,15 @@ describe('AdminConfigController permission and audit suite', () => {
       updateHotSearch: vi.fn(),
       getAlertConfig: vi.fn(),
       updateAlertConfig: vi.fn(),
+      getHomeAnnouncementConfig: vi.fn(),
+      createHomeAnnouncementTemplate: vi.fn(),
+      updateHomeAnnouncementTemplate: vi.fn(),
+      deleteHomeAnnouncementTemplate: vi.fn(),
+      createHomeAnnouncementItem: vi.fn(),
+      updateHomeAnnouncementItem: vi.fn(),
+      publishHomeAnnouncementItem: vi.fn(),
+      offlineHomeAnnouncementItem: vi.fn(),
+      deleteHomeAnnouncementItem: vi.fn(),
     };
     audit = { log: vi.fn().mockResolvedValue(undefined) };
     controller = new AdminConfigController(config, audit);
@@ -51,6 +60,15 @@ describe('AdminConfigController permission and audit suite', () => {
       () => controller.updateHotSearch(req, {} as any),
       () => controller.getAlertConfig(req),
       () => controller.updateAlertConfig(req, {} as any),
+      () => controller.getHomeAnnouncementConfig(req),
+      () => controller.createHomeAnnouncementTemplate(req, {} as any),
+      () => controller.updateHomeAnnouncementTemplate(req, 'tpl-1', {} as any),
+      () => controller.deleteHomeAnnouncementTemplate(req, 'tpl-1'),
+      () => controller.createHomeAnnouncementItem(req, {} as any),
+      () => controller.updateHomeAnnouncementItem(req, 'item-1', {} as any),
+      () => controller.publishHomeAnnouncementItem(req, 'item-1'),
+      () => controller.offlineHomeAnnouncementItem(req, 'item-1'),
+      () => controller.deleteHomeAnnouncementItem(req, 'item-1'),
     ];
 
     for (const call of calls) {
@@ -68,6 +86,7 @@ describe('AdminConfigController permission and audit suite', () => {
     config.getSensitiveWords.mockResolvedValueOnce({ words: [] });
     config.getHotSearch.mockResolvedValueOnce({ keywords: [] });
     config.getAlertConfig.mockResolvedValueOnce({ enabled: false, rules: [] });
+    config.getHomeAnnouncementConfig.mockResolvedValueOnce({ schemaVersion: 1, templates: [], items: [] });
 
     await expect(controller.getTradeRules(req)).resolves.toEqual({ version: 2 });
     await expect(controller.getRecommendation(req)).resolves.toEqual({ enabled: true });
@@ -77,6 +96,7 @@ describe('AdminConfigController permission and audit suite', () => {
     await expect(controller.getSensitiveWords(req)).resolves.toEqual({ words: [] });
     await expect(controller.getHotSearch(req)).resolves.toEqual({ keywords: [] });
     await expect(controller.getAlertConfig(req)).resolves.toEqual({ enabled: false, rules: [] });
+    await expect(controller.getHomeAnnouncementConfig(req)).resolves.toEqual({ schemaVersion: 1, templates: [], items: [] });
   });
 
   it('writes audit logs with expected action and target ids on updates', async () => {
@@ -138,6 +158,13 @@ describe('AdminConfigController permission and audit suite', () => {
         mock: config.updateAlertConfig,
         action: 'CONFIG_ALERT_UPDATE',
         targetId: 'e92da947-d8e6-4648-a550-6f2fc0e933f3',
+      },
+      {
+        label: 'home-announcement-template-create',
+        call: () => controller.createHomeAnnouncementTemplate(req, { name: 'default', title: 't', content: 'c' } as any),
+        mock: config.createHomeAnnouncementTemplate,
+        action: 'CONFIG_HOME_ANNOUNCEMENT_TEMPLATE_CREATE',
+        targetId: '3c5b1f79-bf5a-4e4e-8b9a-2a520e9fd80e',
       },
     ];
 

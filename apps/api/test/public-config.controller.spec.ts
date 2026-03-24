@@ -10,6 +10,7 @@ describe('PublicConfigController suite', () => {
     config = {
       getTradeRules: vi.fn(),
       getCustomerService: vi.fn(),
+      getPublicHomeAnnouncementFeed: vi.fn(),
     };
     controller = new PublicConfigController(config);
   });
@@ -37,6 +38,21 @@ describe('PublicConfigController suite', () => {
       phone: '400-000-0000',
       defaultReply: 'ok',
       assignStrategy: 'AUTO',
+    });
+  });
+
+  it('returns home announcement feed from config service', async () => {
+    config.getPublicHomeAnnouncementFeed.mockResolvedValueOnce({
+      generatedAt: '2026-03-24T00:00:00.000Z',
+      items: [{ id: 'a1', title: 'Top', content: 'Hello' }],
+    });
+
+    const result = await controller.getHomeAnnouncements();
+
+    expect(config.getPublicHomeAnnouncementFeed).toHaveBeenCalledTimes(1);
+    expect(result).toEqual({
+      generatedAt: '2026-03-24T00:00:00.000Z',
+      items: [{ id: 'a1', title: 'Top', content: 'Hello' }],
     });
   });
 });

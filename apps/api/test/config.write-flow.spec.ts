@@ -202,4 +202,92 @@ describe('ConfigService extended write flow suite', () => {
     });
   });
 
+  it('creates home announcement item from template and can publish/offline', async () => {
+    const configPayload = {
+      schemaVersion: 1,
+      templates: [
+        {
+          id: 'tpl-1',
+          name: 'default',
+          title: 'Template title',
+          content: 'Template content',
+          tag: 'SYSTEM',
+          linkUrl: null,
+          enabled: true,
+          createdAt: '2026-03-24T00:00:00.000Z',
+          updatedAt: '2026-03-24T00:00:00.000Z',
+        },
+      ],
+      items: [],
+    };
+
+    prisma.systemConfig.findUnique
+      .mockResolvedValueOnce({
+        key: 'home_announcement_config',
+        value: JSON.stringify(configPayload),
+        version: 3,
+      })
+      .mockResolvedValueOnce({
+        key: 'home_announcement_config',
+        value: JSON.stringify({
+          ...configPayload,
+          items: [
+            {
+              id: 'item-1',
+              templateId: 'tpl-1',
+              title: 'Template title',
+              content: 'Template content',
+              tag: 'SYSTEM',
+              linkUrl: null,
+              pinned: false,
+              order: 100,
+              status: 'DRAFT',
+              startAt: null,
+              endAt: null,
+              publishedAt: null,
+              createdAt: '2026-03-24T00:00:00.000Z',
+              updatedAt: '2026-03-24T00:00:00.000Z',
+            },
+          ],
+        }),
+        version: 4,
+      })
+      .mockResolvedValueOnce({
+        key: 'home_announcement_config',
+        value: JSON.stringify({
+          ...configPayload,
+          items: [
+            {
+              id: 'item-1',
+              templateId: 'tpl-1',
+              title: 'Template title',
+              content: 'Template content',
+              tag: 'SYSTEM',
+              linkUrl: null,
+              pinned: false,
+              order: 100,
+              status: 'PUBLISHED',
+              startAt: null,
+              endAt: null,
+              publishedAt: '2026-03-24T00:00:00.000Z',
+              createdAt: '2026-03-24T00:00:00.000Z',
+              updatedAt: '2026-03-24T00:00:00.000Z',
+            },
+          ],
+        }),
+        version: 5,
+      });
+    prisma.systemConfig.update.mockResolvedValue({});
+
+    const created = await service.createHomeAnnouncementItem({ templateId: 'tpl-1' });
+    expect(created.title).toBe('Template title');
+    expect(created.content).toBe('Template content');
+
+    const published = await service.publishHomeAnnouncementItem('item-1');
+    expect(published.status).toBe('PUBLISHED');
+
+    const offline = await service.offlineHomeAnnouncementItem('item-1');
+    expect(offline.status).toBe('OFFLINE');
+  });
+
 });

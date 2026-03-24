@@ -134,4 +134,115 @@ describe('ConfigService behavior suite', () => {
       rules: [{ type: 'order.refund', severity: 'HIGH', channels: ['IN_APP'], enabled: true }],
     });
   });
+
+  it('creates home announcement template and persists config with version increment', async () => {
+    prisma.systemConfig.findUnique.mockResolvedValueOnce({
+      key: 'home_announcement_config',
+      value: JSON.stringify({ schemaVersion: 1, templates: [], items: [] }),
+      version: 9,
+    });
+    prisma.systemConfig.update.mockResolvedValueOnce({});
+
+    const result = await service.createHomeAnnouncementTemplate({
+      name: 'default',
+      title: 'Platform notice',
+      content: 'Welcome',
+      enabled: true,
+    });
+
+    expect(result.id).toBeTruthy();
+    expect(result.name).toBe('default');
+    expect(result.title).toBe('Platform notice');
+    expect(prisma.systemConfig.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { key: 'home_announcement_config' },
+        data: expect.objectContaining({
+          valueType: 'JSON',
+          scope: 'GLOBAL',
+          version: 10,
+        }),
+      }),
+    );
+  });
+
+  it('public home announcement feed only returns active published items in sorted order', async () => {
+    const now = new Date('2026-03-24T10:00:00.000Z');
+    vi.useFakeTimers();
+    vi.setSystemTime(now);
+    prisma.systemConfig.findUnique.mockResolvedValueOnce({
+      key: 'home_announcement_config',
+      value: JSON.stringify({
+        schemaVersion: 1,
+        templates: [],
+        items: [
+          {
+            id: 'a1',
+            title: 'Pinned First',
+            content: 'p1',
+            tag: 'HOT',
+            linkUrl: null,
+            pinned: true,
+            order: 10,
+            status: 'PUBLISHED',
+            startAt: null,
+            endAt: null,
+            publishedAt: '2026-03-24T09:00:00.000Z',
+            createdAt: '2026-03-24T09:00:00.000Z',
+            updatedAt: '2026-03-24T09:00:00.000Z',
+          },
+          {
+            id: 'a2',
+            title: 'Second',
+            content: 'p2',
+            tag: null,
+            linkUrl: null,
+            pinned: false,
+            order: 1,
+            status: 'PUBLISHED',
+            startAt: null,
+            endAt: null,
+            publishedAt: '2026-03-24T08:00:00.000Z',
+            createdAt: '2026-03-24T08:00:00.000Z',
+            updatedAt: '2026-03-24T08:00:00.000Z',
+          },
+          {
+            id: 'a3',
+            title: 'Future',
+            content: 'p3',
+            tag: null,
+            linkUrl: null,
+            pinned: false,
+            order: 0,
+            status: 'PUBLISHED',
+            startAt: '2026-03-25T00:00:00.000Z',
+            endAt: null,
+            publishedAt: '2026-03-24T08:00:00.000Z',
+            createdAt: '2026-03-24T08:00:00.000Z',
+            updatedAt: '2026-03-24T08:00:00.000Z',
+          },
+          {
+            id: 'a4',
+            title: 'Draft',
+            content: 'p4',
+            tag: null,
+            linkUrl: null,
+            pinned: false,
+            order: 0,
+            status: 'DRAFT',
+            startAt: null,
+            endAt: null,
+            publishedAt: null,
+            createdAt: '2026-03-24T08:00:00.000Z',
+            updatedAt: '2026-03-24T08:00:00.000Z',
+          },
+        ],
+      }),
+      version: 1,
+    });
+
+    const result = await service.getPublicHomeAnnouncementFeed();
+
+    expect(result.items.map((item) => item.id)).toEqual(['a1', 'a2']);
+    vi.useRealTimers();
+  });
 });
