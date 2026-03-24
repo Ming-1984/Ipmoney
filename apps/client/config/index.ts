@@ -121,21 +121,18 @@ export default ((merge, env) => {
     csso: {
       enable: !isDev,
     },
-    // For WeChat mini-program, rely on subpackages + lazyCodeLoading.
-    // Custom splitChunks on mini can cause unstable startup chunk loading.
-    mini: {
-      copy: {
-        patterns: [
-          {
-            from: path.resolve(__dirname, '..', 'src/assets/home/banner-local-1.mp4'),
-            to: 'assets/home/banner-local-1.mp4',
-          },
-          {
-            from: path.resolve(__dirname, '..', 'src/assets/home/banner-local-2.mp4'),
-            to: 'assets/home/banner-local-2.mp4',
-          },
-        ],
-      },
+    copy: {
+      patterns: [
+        {
+          from: path.resolve(__dirname, '..', 'src/assets/home/banner-local-1.mp4'),
+          to: 'assets/home/banner-local-1.mp4',
+        },
+        {
+          from: path.resolve(__dirname, '..', 'src/assets/home/banner-local-2.mp4'),
+          to: 'assets/home/banner-local-2.mp4',
+        },
+      ],
+      options: {},
     },
     h5: {
       webpackChain(chain) {

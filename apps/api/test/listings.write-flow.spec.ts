@@ -85,6 +85,7 @@ describe('ListingsService write flow suite', () => {
     await expect(service.createListing(USER_REQ, { licenseMode: '' })).rejects.toBeInstanceOf(BadRequestException);
     await expect(service.createListing(USER_REQ, { priceType: 'bad' })).rejects.toBeInstanceOf(BadRequestException);
     await expect(service.createListing(USER_REQ, { regionCode: '   ' })).rejects.toBeInstanceOf(BadRequestException);
+    await expect(service.createListing(USER_REQ, { regionCode: 'abc' })).rejects.toBeInstanceOf(BadRequestException);
     await expect(service.createListing(USER_REQ, { title: '   ' })).rejects.toBeInstanceOf(BadRequestException);
     await expect(
       service.createListing(USER_REQ, { patentNumberRaw: 'CN202410123456.7', transferCount: '9007199254740992' }),
@@ -211,7 +212,7 @@ describe('ListingsService write flow suite', () => {
   });
 
   it('update applies normalized patch fields', async () => {
-    prisma.listing.findUnique.mockResolvedValueOnce(buildListing({ auditStatus: 'APPROVED' }));
+    prisma.listing.findUnique.mockResolvedValueOnce(buildListing({ auditStatus: 'PENDING', status: 'DRAFT' }));
     prisma.listing.update.mockResolvedValueOnce(
       buildListing({
         title: 'Listing Updated',
@@ -296,6 +297,10 @@ describe('ListingsService write flow suite', () => {
     prisma.file.findMany.mockResolvedValueOnce([{ id: 'file-1', ownerId: 'other-user' }]);
     await expect(service.submitListing(USER_REQ, LISTING_ID)).rejects.toBeInstanceOf(ForbiddenException);
 
+    prisma.listing.findUnique.mockResolvedValueOnce(buildListing({ regionCode: null }));
+    prisma.file.findMany.mockResolvedValueOnce([{ id: 'file-1', ownerId: USER_ID }]);
+    await expect(service.submitListing(USER_REQ, LISTING_ID)).rejects.toBeInstanceOf(BadRequestException);
+
     prisma.listing.findUnique
       .mockResolvedValueOnce(buildListing())
       .mockResolvedValueOnce(buildListing({ sellerUserId: USER_ID }));
@@ -325,6 +330,9 @@ describe('ListingsService write flow suite', () => {
     await expect(service.adminCreate(ADMIN_REQ, { title: 'A', sellerUserId: '' })).rejects.toBeInstanceOf(
       BadRequestException,
     );
+    await expect(service.adminCreate(ADMIN_REQ, { title: 'A', status: 'active' })).rejects.toBeInstanceOf(
+      BadRequestException,
+    );
 
     prisma.listing.create.mockResolvedValueOnce(
       buildListing({
@@ -343,6 +351,7 @@ describe('ListingsService write flow suite', () => {
       sellerUserId: ' owner-2 ',
       tradeMode: 'license',
       priceType: 'fixed',
+      regionCode: '110000',
       auditStatus: 'approved',
       status: 'active',
     });
@@ -355,6 +364,7 @@ describe('ListingsService write flow suite', () => {
           title: 'Admin Listing',
           tradeMode: 'LICENSE',
           priceType: 'FIXED',
+          regionCode: '110000',
           auditStatus: 'APPROVED',
           status: 'ACTIVE',
         }),
@@ -400,6 +410,9 @@ describe('ListingsService write flow suite', () => {
       source: 'ADMIN',
       status: 'OFF_SHELF',
     });
+
+    prisma.listing.findUnique.mockResolvedValueOnce(buildListing({ status: 'OFF_SHELF', auditStatus: 'PENDING', regionCode: null }));
+    await expect(service.adminUpdate(ADMIN_REQ, LISTING_ID, { status: 'active' })).rejects.toBeInstanceOf(BadRequestException);
   });
 
   it('admin publish/off-shelf and approve/reject apply expected transitions', async () => {
@@ -408,6 +421,9 @@ describe('ListingsService write flow suite', () => {
 
     prisma.listing.findUnique.mockResolvedValueOnce(buildListing({ auditStatus: 'PENDING' }));
     await expect(service.adminPublish(ADMIN_REQ, LISTING_ID)).rejects.toBeInstanceOf(ConflictException);
+
+    prisma.listing.findUnique.mockResolvedValueOnce(buildListing({ auditStatus: 'APPROVED', regionCode: null }));
+    await expect(service.adminPublish(ADMIN_REQ, LISTING_ID)).rejects.toBeInstanceOf(BadRequestException);
 
     prisma.listing.findUnique.mockResolvedValueOnce(buildListing({ auditStatus: 'APPROVED' }));
     prisma.listing.update.mockResolvedValueOnce(buildListing({ status: 'ACTIVE', auditStatus: 'APPROVED' }));

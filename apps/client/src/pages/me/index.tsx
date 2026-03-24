@@ -43,6 +43,7 @@ import iconMeIdentity from '../../assets/icons/icon-me-identity.svg';
 import iconMeProfile from '../../assets/icons/icon-me-profile.svg';
 import iconMeAbout from '../../assets/icons/icon-me-about.svg';
 import iconMeTradeRules from '../../assets/icons/icon-me-trade-rules.svg';
+import brandLogoPng from '../../assets/brand/logo.png';
 
 type Me = {
   id: string;
@@ -499,7 +500,7 @@ export default function MePage() {
     return (
       <View className="container me-page me-page-locked page-locked">
         <View className="me-login-wrap">
-          <View className="me-login-ill" />
+          <Image className="me-login-ill" src={brandLogoPng} mode="aspectFit" />
           <Text className="me-login-title">登录解锁专利点金台</Text>
           <View className={`me-login-actions ${showSms ? 'is-expanded' : ''}`}>
             {DEMO_LOGIN_ENABLED ? (

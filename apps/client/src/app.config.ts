@@ -69,6 +69,10 @@
       pages: ['index'],
     },
     {
+      root: 'subpackages/patent-map',
+      pages: ['index'],
+    },
+    {
       root: 'subpackages/tech-managers',
       pages: ['detail/index'],
     },

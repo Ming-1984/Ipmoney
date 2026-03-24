@@ -1,4 +1,4 @@
-import { Alert, Button, Card, Drawer, Form, Input, InputNumber, Select, Space, Table, Tag, Typography, Upload, message } from 'antd';
+import { Alert, Button, Card, Drawer, Form, Input, InputNumber, Select, Space, Switch, Table, Tag, Typography, Upload, message } from 'antd';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 
 import { apiGet, apiPost, apiUploadFile, type FileObject } from '../lib/api';
@@ -72,6 +72,103 @@ type ImportTemplateField = {
   example: string;
 };
 
+type PatentMapRegionScopeLevel = 'PROVINCE' | 'CITY' | 'DISTRICT';
+type PatentMapRegionLevel = PatentMapRegionScopeLevel | 'UNKNOWN';
+type PatentMapFeaturedLevel = 'NONE' | 'CITY' | 'PROVINCE';
+
+type PatentMapRegionItem = {
+  regionCode: string;
+  regionName: string;
+  regionLevel: PatentMapRegionLevel;
+  centerLat: number | null;
+  centerLng: number | null;
+  listingCount: number;
+  patentCount: number;
+  rankedListingCount: number;
+  activeRankedListingCount: number;
+  topActiveRank: number | null;
+  rankPosition: number;
+};
+
+type PatentMapOverview = {
+  generatedAt: string;
+  filters: { regionLevel: PatentMapRegionScopeLevel; top: number };
+  summary: {
+    totalListingCount: number;
+    totalPatentCount: number;
+    totalRegionCount: number;
+    rankedListingCount: number;
+    activeRankedListingCount: number;
+    unassignedListingCount: number;
+    mappableRegionCount: number;
+  };
+  ranking: PatentMapRegionItem[];
+  regions: PatentMapRegionItem[];
+};
+
+type PatentMapRegionDetail = {
+  generatedAt: string;
+  region: {
+    code: string;
+    name: string;
+    level: PatentMapRegionScopeLevel;
+    parentCode: string | null;
+    centerLat: number | null;
+    centerLng: number | null;
+    descendantRegionCodeCount: number;
+  };
+  summary: {
+    listingCount: number;
+    patentCount: number;
+    rankedListingCount: number;
+    activeRankedListingCount: number;
+    topActiveRank: number | null;
+  };
+  items: Array<{
+    listingId: string;
+    patentId: string | null;
+    title: string;
+    patentTitle: string;
+    patentType: 'INVENTION' | 'UTILITY_MODEL' | 'DESIGN' | null;
+    applicationNoDisplay: string | null;
+    regionCode: string | null;
+    tradeMode: 'ASSIGNMENT' | 'LICENSE';
+    priceType: 'FIXED' | 'NEGOTIABLE';
+    priceAmountFen: number | null;
+    depositAmountFen: number;
+    featuredLevel: PatentMapFeaturedLevel;
+    featuredRegionCode: string | null;
+    featuredRank: number | null;
+    featuredUntil: string | null;
+    isFeaturedActive: boolean;
+    createdAt: string;
+    updatedAt: string;
+  }>;
+  page: { page: number; pageSize: number; total: number };
+};
+
+type PatentMapBatchUpdateResult = {
+  ok: true;
+  totalRequested: number;
+  updatedCount: number;
+  missingListingIds: string[];
+  patchApplied: Record<string, unknown>;
+  reason: string | null;
+};
+
+function patentMapRegionLevelLabel(level: PatentMapRegionLevel) {
+  if (level === 'PROVINCE') return '省';
+  if (level === 'CITY') return '市';
+  if (level === 'DISTRICT') return '区县';
+  return '未知';
+}
+
+function patentMapFeaturedLevelLabel(level: PatentMapFeaturedLevel) {
+  if (level === 'PROVINCE') return '省级';
+  if (level === 'CITY') return '市级';
+  return '未上榜';
+}
+
 const duplicatePolicyOptions = [
   { value: 'SKIP', label: '跳过重复' },
   { value: 'OVERWRITE', label: '覆盖重复' },
@@ -103,6 +200,19 @@ const listingTopicOptions = [
   { value: 'SLEEPING', label: '沉睡专利' },
   { value: 'AWARD_WINNING', label: '获奖专利' },
   { value: 'OPEN_LICENSE', label: '开放许可' },
+];
+
+const patentMapRegionLevelOptions: Array<{ value: PatentMapRegionScopeLevel; label: string }> = [
+  { value: 'PROVINCE', label: '按省聚合' },
+  { value: 'CITY', label: '按市聚合' },
+  { value: 'DISTRICT', label: '按区县聚合' },
+];
+
+const patentMapFeaturedLevelPatchOptions: Array<{ value: PatentMapFeaturedLevel | ''; label: string }> = [
+  { value: '', label: '不调整上榜层级' },
+  { value: 'CITY', label: '市级上榜' },
+  { value: 'PROVINCE', label: '省级上榜' },
+  { value: 'NONE', label: '取消上榜' },
 ];
 
 const rowStatusOptions: Array<{ value: ImportRowStatus | ''; label: string }> = [
@@ -250,7 +360,45 @@ export function PatentOperationsPage() {
   const [appliedJobDuplicatePolicyFilter, setAppliedJobDuplicatePolicyFilter] = useState<DuplicatePolicy | ''>('');
   const [form] = Form.useForm<DefaultsFormValues>();
 
+  const [mapOverviewLoading, setMapOverviewLoading] = useState(false);
+  const [mapOverviewError, setMapOverviewError] = useState<unknown | null>(null);
+  const [mapOverview, setMapOverview] = useState<PatentMapOverview | null>(null);
+  const [mapOverviewRegionLevel, setMapOverviewRegionLevel] = useState<PatentMapRegionScopeLevel>('PROVINCE');
+  const [mapOverviewTop, setMapOverviewTop] = useState(100);
+  const [mapSelectedRegionCode, setMapSelectedRegionCode] = useState('');
+
+  const [mapRegionPage, setMapRegionPage] = useState(1);
+  const [mapRegionPageSize, setMapRegionPageSize] = useState(20);
+  const [mapRegionDetailLoading, setMapRegionDetailLoading] = useState(false);
+  const [mapRegionDetailError, setMapRegionDetailError] = useState<unknown | null>(null);
+  const [mapRegionDetail, setMapRegionDetail] = useState<PatentMapRegionDetail | null>(null);
+  const [mapSelectedListingRowKeys, setMapSelectedListingRowKeys] = useState<React.Key[]>([]);
+
+  const [mapManualListingIdsText, setMapManualListingIdsText] = useState('');
+  const [mapPatchRegionCode, setMapPatchRegionCode] = useState('');
+  const [mapPatchFeaturedLevel, setMapPatchFeaturedLevel] = useState<PatentMapFeaturedLevel | ''>('');
+  const [mapPatchFeaturedRegionCode, setMapPatchFeaturedRegionCode] = useState('');
+  const [mapPatchFeaturedRank, setMapPatchFeaturedRank] = useState<number | null>(null);
+  const [mapPatchFeaturedUntil, setMapPatchFeaturedUntil] = useState('');
+  const [mapPatchClearRanking, setMapPatchClearRanking] = useState(false);
+  const [mapPatchReason, setMapPatchReason] = useState('');
+  const [mapBatchSubmitting, setMapBatchSubmitting] = useState(false);
+  const [mapBatchResult, setMapBatchResult] = useState<PatentMapBatchUpdateResult | null>(null);
+
   const parsedPatentIdsCount = useMemo(() => parseTextList(patentIdsText).length, [patentIdsText]);
+  const mapManualListingIds = useMemo(() => parseTextList(mapManualListingIdsText), [mapManualListingIdsText]);
+  const mapSelectedListingIds = useMemo(
+    () => mapSelectedListingRowKeys.map((it) => String(it)).filter(Boolean),
+    [mapSelectedListingRowKeys],
+  );
+  const mapTargetListingIds = useMemo(
+    () => Array.from(new Set([...mapSelectedListingIds, ...mapManualListingIds])),
+    [mapManualListingIds, mapSelectedListingIds],
+  );
+  const mapSelectedRegion = useMemo(
+    () => (mapOverview?.regions || []).find((it) => it.regionCode === mapSelectedRegionCode) || null,
+    [mapOverview?.regions, mapSelectedRegionCode],
+  );
 
   const loadJobs = useCallback(async () => {
     setLoading(true);
@@ -288,6 +436,141 @@ export function PatentOperationsPage() {
     }
   }, [activeJobId, rowsAppliedStatus, rowsOpen, rowsPage, rowsPageSize]);
 
+  const loadPatentMapOverview = useCallback(async () => {
+    setMapOverviewLoading(true);
+    setMapOverviewError(null);
+    try {
+      const data = await apiGet<PatentMapOverview>('/search/patent-map/overview', {
+        regionLevel: mapOverviewRegionLevel,
+        top: Math.max(1, Math.min(100, Number(mapOverviewTop) || 100)),
+      });
+      setMapOverview(data);
+      let nextRegionCode = '';
+      setMapSelectedRegionCode((prev) => {
+        const current = String(prev || '').trim();
+        const existed = (data.regions || []).some((item) => item.regionCode === current);
+        nextRegionCode = existed ? current : data.ranking[0]?.regionCode || data.regions[0]?.regionCode || '';
+        return nextRegionCode;
+      });
+      if (!nextRegionCode) {
+        setMapRegionDetail(null);
+      }
+    } catch (e: any) {
+      setMapOverview(null);
+      setMapOverviewError(e);
+      message.error(e?.message || '加载专利地图总览失败');
+    } finally {
+      setMapOverviewLoading(false);
+    }
+  }, [mapOverviewRegionLevel, mapOverviewTop]);
+
+  const loadPatentMapRegionDetail = useCallback(async () => {
+    const regionCode = String(mapSelectedRegionCode || '').trim();
+    if (!regionCode) {
+      setMapRegionDetail(null);
+      setMapRegionDetailError(null);
+      return;
+    }
+    setMapRegionDetailLoading(true);
+    setMapRegionDetailError(null);
+    try {
+      const data = await apiGet<PatentMapRegionDetail>(`/search/patent-map/regions/${regionCode}`, {
+        page: mapRegionPage,
+        pageSize: mapRegionPageSize,
+      });
+      setMapRegionDetail(data);
+    } catch (e: any) {
+      setMapRegionDetail(null);
+      setMapRegionDetailError(e);
+      message.error(e?.message || '加载区域挂牌明细失败');
+    } finally {
+      setMapRegionDetailLoading(false);
+    }
+  }, [mapRegionPage, mapRegionPageSize, mapSelectedRegionCode]);
+
+  const appendMapManualListingIds = useCallback(
+    (listingIds: string[]) => {
+      const merged = Array.from(
+        new Set([
+          ...mapManualListingIds,
+          ...listingIds
+            .map((item) => String(item || '').trim())
+            .filter(Boolean),
+        ]),
+      );
+      setMapManualListingIdsText(merged.join('\n'));
+    },
+    [mapManualListingIds],
+  );
+
+  const resetMapPatchFields = useCallback(() => {
+    setMapPatchRegionCode('');
+    setMapPatchFeaturedLevel('');
+    setMapPatchFeaturedRegionCode('');
+    setMapPatchFeaturedRank(null);
+    setMapPatchFeaturedUntil('');
+    setMapPatchClearRanking(false);
+    setMapPatchReason('');
+    setMapBatchResult(null);
+  }, []);
+
+  const runPatentMapBatchUpdate = useCallback(async () => {
+    if (!mapTargetListingIds.length) {
+      message.warning('请先选择或输入挂牌ID');
+      return;
+    }
+
+    const patch: Record<string, unknown> = {};
+    const regionCode = String(mapPatchRegionCode || '').trim();
+    const featuredRegionCode = String(mapPatchFeaturedRegionCode || '').trim();
+    const featuredUntil = String(mapPatchFeaturedUntil || '').trim();
+
+    if (regionCode) patch.regionCode = regionCode;
+    if (mapPatchFeaturedLevel) patch.featuredLevel = mapPatchFeaturedLevel;
+    if (featuredRegionCode) patch.featuredRegionCode = featuredRegionCode;
+    if (mapPatchFeaturedRank !== null && Number.isFinite(Number(mapPatchFeaturedRank))) {
+      patch.featuredRank = Number(mapPatchFeaturedRank);
+    }
+    if (featuredUntil) patch.featuredUntil = featuredUntil;
+    if (mapPatchClearRanking) patch.clearRanking = true;
+
+    if (!Object.keys(patch).length) {
+      message.warning('请至少设置一个变更字段');
+      return;
+    }
+
+    try {
+      setMapBatchSubmitting(true);
+      const result = await apiPost<PatentMapBatchUpdateResult>(
+        '/admin/patent-map/listings/batch',
+        {
+          listingIds: mapTargetListingIds,
+          patch,
+          reason: String(mapPatchReason || '').trim() || undefined,
+        },
+        { idempotencyKey: `admin-patent-map-listings-batch-${Date.now()}` },
+      );
+      setMapBatchResult(result);
+      message.success(`批量更新完成：已更新 ${result.updatedCount} 条，缺失 ${result.missingListingIds.length} 条`);
+      await Promise.all([loadPatentMapOverview(), loadPatentMapRegionDetail()]);
+    } catch (e: any) {
+      message.error(e?.message || '专利地图批量更新失败');
+    } finally {
+      setMapBatchSubmitting(false);
+    }
+  }, [
+    loadPatentMapOverview,
+    loadPatentMapRegionDetail,
+    mapPatchClearRanking,
+    mapPatchFeaturedLevel,
+    mapPatchFeaturedRank,
+    mapPatchFeaturedRegionCode,
+    mapPatchFeaturedUntil,
+    mapPatchReason,
+    mapPatchRegionCode,
+    mapTargetListingIds,
+  ]);
+
   useEffect(() => {
     form.setFieldsValue({
       duplicatePolicy: 'SKIP',
@@ -306,6 +589,18 @@ export function PatentOperationsPage() {
   useEffect(() => {
     void loadRows();
   }, [loadRows]);
+
+  useEffect(() => {
+    void loadPatentMapOverview();
+  }, [loadPatentMapOverview]);
+
+  useEffect(() => {
+    void loadPatentMapRegionDetail();
+  }, [loadPatentMapRegionDetail]);
+
+  useEffect(() => {
+    setMapSelectedListingRowKeys([]);
+  }, [mapSelectedRegionCode, mapRegionPage, mapRegionPageSize]);
 
   useEffect(() => {
     if (!activeJobId) return;
@@ -680,6 +975,268 @@ export function PatentOperationsPage() {
             },
           ]}
         />
+      </Card>
+
+      <Card title="专利地图批量管理">
+        <Space direction="vertical" size={12} style={{ width: '100%' }}>
+          <Typography.Paragraph type="secondary" style={{ margin: 0 }}>
+            先按区域查看地图分布与排名，再批量调整挂牌地区与上榜参数。地图数据直接复用挂牌与地区主数据，不新增冗余表。
+          </Typography.Paragraph>
+
+          {mapOverviewError ? <RequestErrorAlert error={mapOverviewError} onRetry={loadPatentMapOverview} /> : null}
+
+          <Space wrap>
+            <Select
+              value={mapOverviewRegionLevel}
+              style={{ width: 160 }}
+              options={patentMapRegionLevelOptions}
+              onChange={(value) => {
+                setMapOverviewRegionLevel(value as PatentMapRegionScopeLevel);
+                setMapRegionPage(1);
+              }}
+            />
+            <InputNumber
+              min={1}
+              max={100}
+              value={mapOverviewTop}
+              onChange={(value) => setMapOverviewTop(value == null ? 100 : Number(value))}
+            />
+            <Button loading={mapOverviewLoading} onClick={() => void loadPatentMapOverview()}>
+              加载地图总览
+            </Button>
+            <Typography.Text type="secondary">
+              {mapOverview?.generatedAt ? `总览时间：${formatTimeSmart(mapOverview.generatedAt)}` : '尚未加载总览'}
+            </Typography.Text>
+          </Space>
+
+          {mapOverview ? (
+            <Space wrap>
+              <Tag color="blue">挂牌 {mapOverview.summary.totalListingCount}</Tag>
+              <Tag color="green">专利 {mapOverview.summary.totalPatentCount}</Tag>
+              <Tag color="gold">活跃上榜 {mapOverview.summary.activeRankedListingCount}</Tag>
+              <Tag>覆盖区域 {mapOverview.summary.totalRegionCount}</Tag>
+              <Tag>未归属挂牌 {mapOverview.summary.unassignedListingCount}</Tag>
+            </Space>
+          ) : null}
+
+          <Table<PatentMapRegionItem>
+            rowKey="regionCode"
+            size="small"
+            loading={mapOverviewLoading}
+            dataSource={mapOverview?.ranking || []}
+            pagination={false}
+            columns={[
+              {
+                title: '排名',
+                dataIndex: 'rankPosition',
+                width: 80,
+                render: (value: number) => <Typography.Text strong>#{value}</Typography.Text>,
+              },
+              {
+                title: '区域',
+                render: (_, row) => (
+                  <Space size={4}>
+                    <Typography.Text>{row.regionName}</Typography.Text>
+                    <Tag>{row.regionCode}</Tag>
+                    <Tag color="purple">{patentMapRegionLevelLabel(row.regionLevel)}</Tag>
+                  </Space>
+                ),
+              },
+              { title: '挂牌数', dataIndex: 'listingCount', width: 100 },
+              { title: '专利数', dataIndex: 'patentCount', width: 100 },
+              { title: '活跃上榜', dataIndex: 'activeRankedListingCount', width: 110 },
+              {
+                title: '最佳名次',
+                dataIndex: 'topActiveRank',
+                width: 110,
+                render: (value: number | null) => (value === null ? '-' : `#${value}`),
+              },
+              {
+                title: '操作',
+                width: 120,
+                render: (_, row) => (
+                  <Button
+                    size="small"
+                    type={row.regionCode === mapSelectedRegionCode ? 'primary' : 'default'}
+                    onClick={() => {
+                      setMapSelectedRegionCode(row.regionCode);
+                      setMapRegionPage(1);
+                    }}
+                  >
+                    查看挂牌
+                  </Button>
+                ),
+              },
+            ]}
+          />
+
+          <Space wrap>
+            <Typography.Text strong>
+              当前区域：{mapSelectedRegion ? `${mapSelectedRegion.regionName}（${mapSelectedRegion.regionCode}）` : '未选择'}
+            </Typography.Text>
+            <Button
+              size="small"
+              onClick={() => appendMapManualListingIds((mapRegionDetail?.items || []).map((item) => item.listingId))}
+              disabled={!mapRegionDetail?.items?.length}
+            >
+              将当前页挂牌ID加入批量输入
+            </Button>
+            <Button
+              size="small"
+              onClick={() => {
+                if (!mapSelectedRegionCode) return;
+                setMapPatchRegionCode(mapSelectedRegionCode);
+                setMapPatchFeaturedRegionCode(mapSelectedRegionCode);
+              }}
+              disabled={!mapSelectedRegionCode}
+            >
+              使用当前区域编码
+            </Button>
+            <Button size="small" onClick={() => void loadPatentMapRegionDetail()} disabled={!mapSelectedRegionCode}>
+              刷新区域明细
+            </Button>
+          </Space>
+
+          {mapRegionDetailError ? <RequestErrorAlert error={mapRegionDetailError} onRetry={loadPatentMapRegionDetail} /> : null}
+
+          <Table<PatentMapRegionDetail['items'][number]>
+            rowKey="listingId"
+            size="small"
+            loading={mapRegionDetailLoading}
+            dataSource={mapRegionDetail?.items || []}
+            rowSelection={{
+              selectedRowKeys: mapSelectedListingRowKeys,
+              onChange: setMapSelectedListingRowKeys,
+            }}
+            pagination={{
+              current: mapRegionDetail?.page.page || mapRegionPage,
+              pageSize: mapRegionDetail?.page.pageSize || mapRegionPageSize,
+              total: mapRegionDetail?.page.total || 0,
+              showSizeChanger: true,
+              pageSizeOptions: ['10', '20', '50'],
+              onChange: (nextPage, nextPageSize) => {
+                setMapRegionPage(nextPage);
+                if (nextPageSize && nextPageSize !== mapRegionPageSize) {
+                  setMapRegionPageSize(nextPageSize);
+                }
+              },
+            }}
+            columns={[
+              { title: '挂牌ID', dataIndex: 'listingId', width: 240 },
+              { title: '标题', dataIndex: 'title', ellipsis: true },
+              {
+                title: '专利类型',
+                dataIndex: 'patentType',
+                width: 110,
+                render: (value: PatentMapRegionDetail['items'][number]['patentType']) => value || '-',
+              },
+              { title: '申请号', dataIndex: 'applicationNoDisplay', width: 160, render: (value: string | null) => value || '-' },
+              {
+                title: '上榜状态',
+                width: 220,
+                render: (_, row) =>
+                  row.featuredLevel === 'NONE' ? (
+                    <Typography.Text type="secondary">未上榜</Typography.Text>
+                  ) : (
+                    <Space size={4}>
+                      <Tag color={row.isFeaturedActive ? 'green' : 'default'}>
+                        {patentMapFeaturedLevelLabel(row.featuredLevel)}
+                        {row.featuredRank !== null ? ` #${row.featuredRank}` : ''}
+                      </Tag>
+                      {!row.isFeaturedActive ? <Tag>已过期</Tag> : null}
+                    </Space>
+                  ),
+              },
+              { title: '更新时间', dataIndex: 'updatedAt', width: 160, render: (value: string) => formatTimeSmart(value) },
+            ]}
+          />
+
+          <Input.TextArea
+            rows={4}
+            value={mapManualListingIdsText}
+            onChange={(e) => setMapManualListingIdsText(e.target.value)}
+            placeholder="手工补充挂牌ID（每行一个或逗号分隔）"
+          />
+          <Typography.Text type="secondary">
+            选择 {mapSelectedListingIds.length} 条 + 手工输入 {mapManualListingIds.length} 条 = 合计 {mapTargetListingIds.length} 条（自动去重）
+          </Typography.Text>
+
+          <Space wrap>
+            <Input
+              value={mapPatchRegionCode}
+              onChange={(e) => setMapPatchRegionCode(e.target.value)}
+              placeholder="挂牌地区编码（如 110000）"
+              style={{ width: 180 }}
+              allowClear
+            />
+            <Select
+              value={mapPatchFeaturedLevel}
+              style={{ width: 180 }}
+              options={patentMapFeaturedLevelPatchOptions}
+              onChange={(value) => setMapPatchFeaturedLevel((value as PatentMapFeaturedLevel) || '')}
+            />
+            <Input
+              value={mapPatchFeaturedRegionCode}
+              onChange={(e) => setMapPatchFeaturedRegionCode(e.target.value)}
+              placeholder="上榜地区编码（如 110000）"
+              style={{ width: 190 }}
+              allowClear
+            />
+            <InputNumber
+              min={0}
+              precision={0}
+              value={mapPatchFeaturedRank}
+              onChange={(value) => setMapPatchFeaturedRank(value == null ? null : Number(value))}
+              placeholder="上榜名次"
+            />
+            <Input
+              value={mapPatchFeaturedUntil}
+              onChange={(e) => setMapPatchFeaturedUntil(e.target.value)}
+              placeholder="上榜截止时间（ISO 8601）"
+              style={{ width: 220 }}
+              allowClear
+            />
+            <Space size={4}>
+              <Typography.Text>清除上榜</Typography.Text>
+              <Switch checked={mapPatchClearRanking} onChange={setMapPatchClearRanking} />
+            </Space>
+          </Space>
+
+          <Input
+            value={mapPatchReason}
+            onChange={(e) => setMapPatchReason(e.target.value)}
+            placeholder="变更原因（选填，建议记录批量操作目的）"
+            allowClear
+          />
+
+          <Space>
+            <Button type="primary" loading={mapBatchSubmitting} onClick={() => void runPatentMapBatchUpdate()}>
+              执行地图批量更新
+            </Button>
+            <Button onClick={resetMapPatchFields}>清空变更字段</Button>
+            <Button onClick={() => setMapManualListingIdsText('')}>清空手工挂牌ID</Button>
+          </Space>
+
+          {mapBatchResult ? (
+            <Alert
+              showIcon
+              type="success"
+              message={`批量处理完成：请求 ${mapBatchResult.totalRequested}，更新 ${mapBatchResult.updatedCount}，缺失 ${mapBatchResult.missingListingIds.length}`}
+              description={
+                <Space direction="vertical" size={2}>
+                  <Typography.Text type="secondary">
+                    patch: {JSON.stringify(mapBatchResult.patchApplied)}
+                  </Typography.Text>
+                  {mapBatchResult.missingListingIds.length ? (
+                    <Typography.Text type="secondary">
+                      missing: {mapBatchResult.missingListingIds.join(', ')}
+                    </Typography.Text>
+                  ) : null}
+                </Space>
+              }
+            />
+          ) : null}
+        </Space>
       </Card>
 
       <Drawer

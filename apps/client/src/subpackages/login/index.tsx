@@ -1,4 +1,4 @@
-﻿import { View, Text } from '@tarojs/components';
+﻿import { View, Text, Image } from '@tarojs/components';
 import Taro from '@tarojs/taro';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import './index.scss';
@@ -21,6 +21,7 @@ import { useRouteStringParam } from '../../lib/routeParams';
 import { PageHeader, Spacer, Surface } from '../../ui/layout';
 import { WechatPhoneBindPopup } from '../../ui/WechatPhoneBindPopup';
 import { Button, Input, toast } from '../../ui/nutui';
+import brandLogoPng from '../../assets/brand/logo.png';
 
 type AuthTokenResponse = components['schemas']['AuthTokenResponse'];
 type VerificationStatus = components['schemas']['VerificationStatus'];
@@ -218,7 +219,7 @@ export default function LoginPage() {
       <PageHeader title="登录" subtitle="欢迎回来" />
       <View className="login-hero">
         <View className="login-hero-bg" />
-        <View className="login-hero-ill" />
+        <Image className="login-hero-ill" src={brandLogoPng} mode="aspectFit" />
         <Text className="login-hero-title">登录解锁专利点金台</Text>
         <Text className="login-hero-desc">登录后可收藏、咨询、下单；主体需审核通过后可交易。</Text>
       </View>
@@ -345,5 +346,6 @@ export default function LoginPage() {
     </View>
   );
 }
+
 
 

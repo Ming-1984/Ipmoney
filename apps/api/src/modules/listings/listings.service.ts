@@ -178,6 +178,7 @@ type ListingImportDefaults = {
 
 const UPLOAD_DIR = process.env.UPLOAD_DIR || path.resolve(process.cwd(), 'uploads');
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const REGION_CODE_RE = /^[0-9]{6}$/;
 const LISTING_JOB_STATUS_SET = new Set<ListingJobStatus>(['PENDING', 'RUNNING', 'PAUSED', 'SUCCEEDED', 'FAILED']);
 const LISTING_BATCH_ACTION_SET = new Set<ListingBatchAction>(['APPROVE', 'REJECT', 'PUBLISH', 'OFF_SHELF']);
 const LISTING_BATCH_ITEM_STATUS_SET = new Set<ListingBatchItemStatus>(['PENDING', 'SUCCEEDED', 'FAILED', 'SKIPPED']);
@@ -571,7 +572,7 @@ export class ListingsService {
   private parseNullableRegionCodeStrict(value: unknown, fieldName: string): string | null {
     if (value === null) return null;
     const raw = String(value ?? '').trim();
-    if (!raw) {
+    if (!raw || !REGION_CODE_RE.test(raw)) {
       throw new BadRequestException({ code: 'BAD_REQUEST', message: `${fieldName} is invalid` });
     }
     return raw;
@@ -579,10 +580,24 @@ export class ListingsService {
 
   private parseRegionCodeFilterStrict(value: unknown, fieldName: string): string {
     const raw = String(value ?? '').trim();
-    if (!raw) {
+    if (!raw || !REGION_CODE_RE.test(raw)) {
       throw new BadRequestException({ code: 'BAD_REQUEST', message: `${fieldName} is invalid` });
     }
     return raw;
+  }
+
+  private assertRegionCodeRequiredForActiveStatus(regionCode: string | null | undefined, status: ListingStatus | null | undefined) {
+    const statusRaw = String(status || '').trim().toUpperCase();
+    const requiresRegionCode = statusRaw === 'ACTIVE';
+    if (!requiresRegionCode) return;
+
+    const code = String(regionCode || '').trim();
+    if (!code || !REGION_CODE_RE.test(code)) {
+      throw new BadRequestException({
+        code: 'BAD_REQUEST',
+        message: 'regionCode is required when status is ACTIVE',
+      });
+    }
   }
 
   private parseNonEmptyFilterStrict(value: unknown, fieldName: string): string {
@@ -1031,6 +1046,7 @@ export class ListingsService {
         if (priceType === 'FIXED' && (priceAmountFen === undefined || priceAmountFen === null)) {
           throw new BadRequestException({ code: 'BAD_REQUEST', message: 'priceAmountFen is required' });
         }
+        this.assertRegionCodeRequiredForActiveStatus(regionCode ?? null, status);
 
         payload = {
           patentNumberRaw,
@@ -1805,6 +1821,7 @@ export class ListingsService {
       : null;
     const parsedTitle = hasTitle ? this.parseNullableNonEmptyStringStrict(body?.title, 'title') : undefined;
     const parsedSummary = hasSummary ? this.parseNullableNonEmptyStringStrict(body?.summary, 'summary') : undefined;
+    this.assertRegionCodeRequiredForActiveStatus(hasRegionCode ? regionCode : null, status);
     const patent = await this.ensurePatent(body);
     let resolvedSellerUserId = sellerUserId;
     if (consultationRouting === 'OWNER') {
@@ -1947,6 +1964,11 @@ export class ListingsService {
       }
       sellerUserId = ownerUserId;
     }
+    const nextStatus = hasStatus ? status : listing.status;
+    if (hasStatus || hasRegionCode) {
+      const nextRegionCode = hasRegionCode ? regionCode : listing.regionCode;
+      this.assertRegionCodeRequiredForActiveStatus(nextRegionCode, nextStatus);
+    }
     const updated = await this.prisma.listing.update({
       where: { id: listingId },
       data: {
@@ -2002,6 +2024,7 @@ export class ListingsService {
     if (listing.status === 'SOLD') {
       throw new ConflictException({ code: 'CONFLICT', message: 'listing is sold' });
     }
+    this.assertRegionCodeRequiredForActiveStatus(listing.regionCode, 'ACTIVE');
     const updated = await this.prisma.listing.update({
       where: { id: listingId },
       data: { status: 'ACTIVE' },
@@ -2155,6 +2178,7 @@ export class ListingsService {
       if (listing.auditStatus !== 'APPROVED') {
         throw new BadRequestException({ code: 'BAD_REQUEST', message: 'listing auditStatus must be APPROVED' });
       }
+      this.assertRegionCodeRequiredForActiveStatus(listing.regionCode, 'ACTIVE');
       await this.prisma.listing.update({ where: { id: listingId }, data: { status: 'ACTIVE' } });
       return 'SUCCEEDED' as const;
     }
@@ -3015,6 +3039,9 @@ export class ListingsService {
       const patent = await this.ensurePatent(body);
       if (patent) patentId = patent.id;
     }
+    if (hasRegionCode) {
+      this.assertRegionCodeRequiredForActiveStatus(regionCode, listing.status as ListingStatus);
+    }
     const updated = await this.prisma.listing.update({
       where: { id: listingId },
       data: {
@@ -3063,6 +3090,7 @@ export class ListingsService {
     }
     const proofFileIds = this.normalizeFileIds((listing as any).proofFileIdsJson);
     await this.assertOwnedFiles(req.auth.userId, proofFileIds, 'proofFileIds');
+    this.assertRegionCodeRequiredForActiveStatus(listing.regionCode, 'ACTIVE');
     const updated = await this.prisma.listing.update({
       where: { id: listingId },
       data: { auditStatus: 'PENDING', status: 'ACTIVE' },

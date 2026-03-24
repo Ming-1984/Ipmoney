@@ -27,6 +27,7 @@
     "update:vulnerability-baseline": "node scripts/update-vulnerability-baseline.mjs",
     "matrix:page-api-test": "node scripts/build-page-api-test-matrix.mjs",
     "scan:banned-words": "node scripts/scan-banned-words.mjs",
+    "listing:region-backfill": "node scripts/run-with-env.mjs -- node scripts/listing-region-backfill.mjs",
     "check:prod-env": "node scripts/run-with-env.mjs -- node scripts/check-prod-env.mjs",
     "check:docs-links": "node scripts/check-doc-links.mjs"
   },

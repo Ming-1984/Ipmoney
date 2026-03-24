@@ -4,9 +4,9 @@
 
 ## Summary
 
-- OpenAPI operations: 231
-- Frontend-used operations (client): 88
-- Frontend-used operations (admin): 113
+- OpenAPI operations: 234
+- Frontend-used operations (client): 90
+- Frontend-used operations (admin): 116
 - Fixture scenarios: 7
 
 ## Key Gaps
@@ -53,7 +53,7 @@
   - POST /ai/agent/query
   - POST /ai/parse-results/:param/feedback
   - PUT /admin/listings/:param/featured
-- Frontend-used but missing in happy fixtures: 190
+- Frontend-used but missing in happy fixtures: 193
   - DELETE /achievements/:param/favorites
   - DELETE /admin/conversations/:param/agents/:param
   - DELETE /admin/orders/:param/invoice
@@ -104,7 +104,7 @@
   - GET /admin/user-verifications/:param/audit-logs
   - GET /admin/user-verifications/:param/materials
   - GET /auth/session
-  - ... (140 more)
+  - ... (143 more)
 
 ## Coverage Details (by operation)
 
@@ -220,6 +220,8 @@
 | searchAchievements | GET | /search/achievements | Y |  |  |  |  |  |  |  |  |
 | searchInventorRankings | GET | /search/inventors | Y |  |  |  |  |  |  |  |  |
 | searchListings | GET | /search/listings | Y |  |  |  |  |  |  |  |  |
+| searchPatentMapOverview | GET | /search/patent-map/overview | Y | Y |  |  |  |  |  |  |  |
+| searchPatentMapRegionDetail | GET | /search/patent-map/regions/:param | Y | Y |  |  |  |  |  |  |  |
 | searchTechManagers | GET | /search/tech-managers | Y |  |  |  |  |  |  |  |  |
 | updateMyAchievement | PATCH | /achievements/:param | Y |  |  |  |  |  |  |  |  |
 | adminUpdateAchievement | PATCH | /admin/achievements/:param |  |  |  |  |  |  |  |  |  |
@@ -284,6 +286,7 @@
 | adminReconcilePatentMaintenanceOrder | POST | /admin/patent-maintenance/orders/:param/reconcile |  |  |  |  |  |  |  |  |  |
 | adminCreatePatentMaintenanceSchedule | POST | /admin/patent-maintenance/schedules |  | Y |  |  |  |  |  |  |  |
 | adminCreatePatentMaintenanceTask | POST | /admin/patent-maintenance/tasks |  | Y |  |  |  |  |  |  |  |
+| adminBatchUpdatePatentMapListings | POST | /admin/patent-map/listings/batch |  | Y |  |  |  |  |  |  |  |
 | adminCreatePatent | POST | /admin/patents |  | Y |  |  |  |  |  |  |  |
 | adminCreatePatentImportJob | POST | /admin/patents/jobs/import |  | Y |  |  |  |  |  |  |  |
 | adminExecutePatentImportJob | POST | /admin/patents/jobs/import/:param/execute |  | Y |  |  |  |  |  |  |  |

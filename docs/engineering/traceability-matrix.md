@@ -1,13 +1,13 @@
 ﻿# PRD -> API -> Implementation Traceability Matrix (P0 Baseline)
 
-> Last updated: 2026-03-23
+> Last updated: 2026-03-24
 > Source of truth: `Ipmoney.md`, `docs/api/openapi.yaml`, `apps/client/src`, `apps/admin-web/src`, `apps/api/src`
 > This file tracks active scope only. Removed domains are listed in section 4.
 
 ## 1. Scope Definition
 
 ### 1.1 Active P0 scope
-- Mobile (client): home/search/listing detail/patent detail/chat/orders/checkout/me/publish/favorites/organizations/inventors/tech managers/maintenance
+- Mobile (client): home/search/listing detail/patent detail/patent map/chat/orders/checkout/me/publish/favorites/organizations/inventors/tech managers/maintenance
 - Admin web: dashboard/verifications/listings audit/orders/refunds/settlements/invoices/comments/reports/rbac/config/maintenance/regions/patents
 - API: OpenAPI operations and backend controller routes are aligned by path+method (see section 5 audit result)
 
@@ -48,13 +48,13 @@
 | RBAC and config | System settings | `/rbac`, `/config` | `/admin/rbac/*`, `/admin/config/*` | Aligned |
 | Platform conversation inbox | Customer service / dispute ops | `/conversations/platform` | `/admin/conversations/platform`, `/admin/conversations/{conversationId}/agents*` | Aligned |
 | Maintenance / regions / patents | Ops | `/maintenance`, `/regions`, `/patents` | `/admin/patent-maintenance/*`, `/admin/regions*`, `/admin/patents*` | Aligned |
+| Patent map operations | Ops | `/patents` | `/search/patent-map/*`, `/admin/patent-map/listings/batch` | Aligned |
 
 ## 4. Removed Domains (Must Stay Removed)
 
 The following domains were intentionally removed from active product scope and should not reappear in client/admin route maps:
 - Achievement (separate channel)
 - Announcement (separate channel)
-- Patent-map (legacy map module)
 - Demand / Artwork (legacy content types)
 
 Allowed residual locations:
@@ -67,11 +67,11 @@ Not allowed residual locations:
 - Active OpenAPI paths used for release scope
 - Active smoke scripts for P0 acceptance
 
-## 5. Current Audit Result (2026-03-21)
+## 5. Current Audit Result (2026-03-24)
 
 - OpenAPI vs backend route diff: `OpenAPI-only=0`, `Controller-only=0`
 - Route-level dist artifact check (weapp): passed
-- Remaining cleanup target: remove stale references in auxiliary docs and keep OpenAPI components lean (script index: `scripts/README.md`)
+- Patent-map domain restored with single-source aggregation (`listings + regions + patents`) and no extra map table.
 
 ## 6. Verification Commands
 

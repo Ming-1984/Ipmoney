@@ -17,8 +17,8 @@ export async function ensureWeappVideoSrc(assetPath: string, fileName: string): 
   const copyFile = (src: string, dest: string) =>
     new Promise<void>((resolve, reject) => {
       fs.copyFile({
-        src,
-        dest,
+        srcPath: src,
+        destPath: dest,
         success: () => resolve(),
         fail: (err) => reject(err),
       });

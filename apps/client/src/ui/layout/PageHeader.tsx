@@ -1,10 +1,11 @@
 import { ArrowLeft } from '../icons';
 import { NavBar } from '@nutui/nutui-react-taro/dist/es/packages/navbar/navbar';
-import { View, Text } from '@tarojs/components';
+import { View, Text, Image } from '@tarojs/components';
 import Taro from '@tarojs/taro';
 import React, { useCallback, useEffect, useMemo } from 'react';
 
 import { isTabPageUrl, safeNavigateBack } from '../../lib/navigation';
+import brandLogoPng from '../../assets/brand/logo.png';
 
 export type PageHeaderVariant = 'header' | 'hero';
 export type PageHeaderBackMode = boolean | 'auto';
@@ -91,7 +92,7 @@ export function PageHeader(props: {
         left={
           showBrand ? (
             <View className={`page-navbar-logo${showBack ? ' page-navbar-logo-with-back' : ''}`}>
-              <View className="page-navbar-logo-img" />
+              <Image className="page-navbar-logo-img" src={brandLogoPng} mode="aspectFit" />
             </View>
           ) : undefined
         }

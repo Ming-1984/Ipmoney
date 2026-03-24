@@ -798,6 +798,23 @@ paths:
                 $ref: '#/components/schemas/CustomerServiceConfig'
         '400':
           $ref: '#/components/responses/BadRequest'
+  /public/config/home-announcements:
+    get:
+      tags:
+        - Config
+      summary: Get homepage announcements feed (public)
+      operationId: getPublicHomeAnnouncementsFeed
+      security: []
+      responses:
+        '200':
+          description: OK
+
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PublicHomeAnnouncementFeed'
+        '400':
+          $ref: '#/components/responses/BadRequest'
   /public/listings/{listingId}:
     get:
       tags:
@@ -3686,6 +3703,90 @@ paths:
           $ref: '#/components/responses/NotFound'
         '409':
           $ref: '#/components/responses/Conflict'
+  /search/patent-map/overview:
+    get:
+      tags:
+        - Search
+      summary: Get patent map overview by region level
+      operationId: searchPatentMapOverview
+      security: []
+      parameters:
+        - name: regionLevel
+          in: query
+          required: false
+          schema:
+            $ref: '#/components/schemas/PatentMapOverviewRegionLevel'
+        - name: top
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+      responses:
+        '200':
+          description: OK
+
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PatentMapOverviewResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+  /search/patent-map/regions/{regionCode}:
+    get:
+      tags:
+        - Search
+      summary: Get patent map region detail
+      operationId: searchPatentMapRegionDetail
+      security: []
+      parameters:
+        - $ref: '#/components/parameters/RegionCodePath'
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PageSize'
+      responses:
+        '200':
+          description: OK
+
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PatentMapRegionDetailResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /admin/patent-map/listings/batch:
+    post:
+      tags:
+        - Admin
+        - Listings
+      summary: Batch update listing map fields
+      operationId: adminBatchUpdatePatentMapListings
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatentMapBatchUpdateRequest'
+      responses:
+        '200':
+          description: OK
+
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PatentMapBatchUpdateResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
   /me/patent-claims:
     post:
       tags:
@@ -6554,6 +6655,277 @@ paths:
           $ref: '#/components/responses/Unauthorized'
         '403':
           $ref: '#/components/responses/Forbidden'
+  /admin/config/home-announcements:
+    get:
+      tags:
+        - Admin
+        - Config
+      summary: Get homepage announcements config (admin)
+      operationId: adminGetHomeAnnouncementsConfig
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: OK
+
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HomeAnnouncementConfig'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+  /admin/config/home-announcements/templates:
+    post:
+      tags:
+        - Admin
+        - Config
+      summary: Create homepage announcement template (admin)
+      operationId: adminCreateHomeAnnouncementTemplate
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/HomeAnnouncementTemplateCreateRequest'
+      responses:
+        '200':
+          description: OK
+
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HomeAnnouncementTemplate'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+  /admin/config/home-announcements/templates/{templateId}:
+    put:
+      tags:
+        - Admin
+        - Config
+      summary: Update homepage announcement template (admin)
+      operationId: adminUpdateHomeAnnouncementTemplate
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: templateId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/HomeAnnouncementTemplateUpdateRequest'
+      responses:
+        '200':
+          description: OK
+
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HomeAnnouncementTemplate'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    delete:
+      tags:
+        - Admin
+        - Config
+      summary: Delete homepage announcement template (admin)
+      operationId: adminDeleteHomeAnnouncementTemplate
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: templateId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OK
+
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HomeAnnouncementTemplateDeleteResult'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /admin/config/home-announcements/items:
+    post:
+      tags:
+        - Admin
+        - Config
+      summary: Create homepage announcement item (admin)
+      operationId: adminCreateHomeAnnouncementItem
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/HomeAnnouncementItemCreateRequest'
+      responses:
+        '200':
+          description: OK
+
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HomeAnnouncementItem'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+  /admin/config/home-announcements/items/{itemId}:
+    put:
+      tags:
+        - Admin
+        - Config
+      summary: Update homepage announcement item (admin)
+      operationId: adminUpdateHomeAnnouncementItem
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: itemId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/HomeAnnouncementItemUpdateRequest'
+      responses:
+        '200':
+          description: OK
+
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HomeAnnouncementItem'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    delete:
+      tags:
+        - Admin
+        - Config
+      summary: Delete homepage announcement item (admin)
+      operationId: adminDeleteHomeAnnouncementItem
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: itemId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OK
+
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HomeAnnouncementItemDeleteResult'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /admin/config/home-announcements/items/{itemId}/publish:
+    post:
+      tags:
+        - Admin
+        - Config
+      summary: Publish homepage announcement item (admin)
+      operationId: adminPublishHomeAnnouncementItem
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: itemId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OK
+
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HomeAnnouncementItem'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /admin/config/home-announcements/items/{itemId}/offline:
+    post:
+      tags:
+        - Admin
+        - Config
+      summary: Offline homepage announcement item (admin)
+      operationId: adminOfflineHomeAnnouncementItem
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: itemId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OK
+
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HomeAnnouncementItem'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
   /admin/rbac/permissions:
     get:
       tags:
@@ -7525,6 +7897,7 @@ components:
       required: true
       schema:
         type: string
+        pattern: ^[0-9]{6}$
       description: 鐞涘本鏂傞崠鍝勫灊閻?adcode
 
     OrderId:
@@ -10019,6 +10392,341 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/PatentListingGenerateResultRow'
+    PatentMapOverviewRegionLevel:
+      type: string
+      enum:
+        - PROVINCE
+        - CITY
+        - DISTRICT
+    PatentMapRegionLevel:
+      type: string
+      enum:
+        - PROVINCE
+        - CITY
+        - DISTRICT
+        - UNKNOWN
+    PatentMapRegionItem:
+      type: object
+      required:
+        - regionCode
+        - regionName
+        - regionLevel
+        - listingCount
+        - patentCount
+        - rankedListingCount
+        - activeRankedListingCount
+        - rankPosition
+      properties:
+        regionCode:
+          type: string
+          pattern: ^[0-9]{6}$
+        regionName:
+          type: string
+        regionLevel:
+          $ref: '#/components/schemas/PatentMapRegionLevel'
+        centerLat:
+          type: number
+          format: double
+          nullable: true
+        centerLng:
+          type: number
+          format: double
+          nullable: true
+        listingCount:
+          type: integer
+          minimum: 0
+        patentCount:
+          type: integer
+          minimum: 0
+        rankedListingCount:
+          type: integer
+          minimum: 0
+        activeRankedListingCount:
+          type: integer
+          minimum: 0
+        topActiveRank:
+          type: integer
+          minimum: 0
+          nullable: true
+        rankPosition:
+          type: integer
+          minimum: 1
+    PatentMapOverviewSummary:
+      type: object
+      required:
+        - totalListingCount
+        - totalPatentCount
+        - totalRegionCount
+        - rankedListingCount
+        - activeRankedListingCount
+        - unassignedListingCount
+        - mappableRegionCount
+      properties:
+        totalListingCount:
+          type: integer
+          minimum: 0
+        totalPatentCount:
+          type: integer
+          minimum: 0
+        totalRegionCount:
+          type: integer
+          minimum: 0
+        rankedListingCount:
+          type: integer
+          minimum: 0
+        activeRankedListingCount:
+          type: integer
+          minimum: 0
+        unassignedListingCount:
+          type: integer
+          minimum: 0
+        mappableRegionCount:
+          type: integer
+          minimum: 0
+    PatentMapOverviewResponse:
+      type: object
+      required:
+        - generatedAt
+        - filters
+        - summary
+        - ranking
+        - regions
+      properties:
+        generatedAt:
+          type: string
+          format: date-time
+        filters:
+          type: object
+          required:
+            - regionLevel
+            - top
+          properties:
+            regionLevel:
+              $ref: '#/components/schemas/PatentMapOverviewRegionLevel'
+            top:
+              type: integer
+              minimum: 1
+              maximum: 100
+        summary:
+          $ref: '#/components/schemas/PatentMapOverviewSummary'
+        ranking:
+          type: array
+          items:
+            $ref: '#/components/schemas/PatentMapRegionItem'
+        regions:
+          type: array
+          items:
+            $ref: '#/components/schemas/PatentMapRegionItem'
+    PatentMapRegionDetailRegion:
+      type: object
+      required:
+        - code
+        - name
+        - level
+        - descendantRegionCodeCount
+      properties:
+        code:
+          type: string
+          pattern: ^[0-9]{6}$
+        name:
+          type: string
+        level:
+          $ref: '#/components/schemas/PatentMapOverviewRegionLevel'
+        parentCode:
+          type: string
+          pattern: ^[0-9]{6}$
+          nullable: true
+        centerLat:
+          type: number
+          format: double
+          nullable: true
+        centerLng:
+          type: number
+          format: double
+          nullable: true
+        descendantRegionCodeCount:
+          type: integer
+          minimum: 1
+    PatentMapRegionDetailSummary:
+      type: object
+      required:
+        - listingCount
+        - patentCount
+        - rankedListingCount
+        - activeRankedListingCount
+      properties:
+        listingCount:
+          type: integer
+          minimum: 0
+        patentCount:
+          type: integer
+          minimum: 0
+        rankedListingCount:
+          type: integer
+          minimum: 0
+        activeRankedListingCount:
+          type: integer
+          minimum: 0
+        topActiveRank:
+          type: integer
+          minimum: 0
+          nullable: true
+    PatentMapRegionDetailItem:
+      type: object
+      required:
+        - listingId
+        - title
+        - patentTitle
+        - tradeMode
+        - priceType
+        - depositAmountFen
+        - featuredLevel
+        - isFeaturedActive
+        - createdAt
+        - updatedAt
+      properties:
+        listingId:
+          $ref: '#/components/schemas/Uuid'
+        patentId:
+          $ref: '#/components/schemas/Uuid'
+          nullable: true
+        title:
+          type: string
+        patentTitle:
+          type: string
+        patentType:
+          $ref: '#/components/schemas/PatentType'
+          nullable: true
+        applicationNoDisplay:
+          type: string
+          nullable: true
+        regionCode:
+          type: string
+          pattern: ^[0-9]{6}$
+          nullable: true
+        tradeMode:
+          $ref: '#/components/schemas/TradeMode'
+        priceType:
+          $ref: '#/components/schemas/PriceType'
+        priceAmountFen:
+          type: integer
+          minimum: 0
+          nullable: true
+        depositAmountFen:
+          type: integer
+          minimum: 0
+        featuredLevel:
+          $ref: '#/components/schemas/FeaturedLevel'
+        featuredRegionCode:
+          type: string
+          pattern: ^[0-9]{6}$
+          nullable: true
+        featuredRank:
+          type: integer
+          minimum: 0
+          nullable: true
+        featuredUntil:
+          type: string
+          format: date-time
+          nullable: true
+        isFeaturedActive:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    PatentMapRegionDetailResponse:
+      type: object
+      required:
+        - generatedAt
+        - region
+        - summary
+        - items
+        - page
+      properties:
+        generatedAt:
+          type: string
+          format: date-time
+        region:
+          $ref: '#/components/schemas/PatentMapRegionDetailRegion'
+        summary:
+          $ref: '#/components/schemas/PatentMapRegionDetailSummary'
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/PatentMapRegionDetailItem'
+        page:
+          $ref: '#/components/schemas/PageMeta'
+    PatentMapListingPatch:
+      type: object
+      properties:
+        regionCode:
+          type: string
+          pattern: ^[0-9]{6}$
+          nullable: true
+        featuredLevel:
+          $ref: '#/components/schemas/FeaturedLevel'
+        featuredRegionCode:
+          type: string
+          pattern: ^[0-9]{6}$
+          nullable: true
+        featuredRank:
+          type: integer
+          minimum: 0
+          nullable: true
+        featuredUntil:
+          type: string
+          format: date-time
+          nullable: true
+        clearRanking:
+          type: boolean
+    PatentMapBatchUpdateRequest:
+      type: object
+      required:
+        - listingIds
+        - patch
+      properties:
+        listingIds:
+          type: array
+          minItems: 1
+          maxItems: 500
+          items:
+            $ref: '#/components/schemas/Uuid'
+        patch:
+          $ref: '#/components/schemas/PatentMapListingPatch'
+        reason:
+          type: string
+          maxLength: 500
+    PatentMapBatchUpdateResponse:
+      type: object
+      required:
+        - ok
+        - totalRequested
+        - updatedCount
+        - missingListingIds
+        - patchApplied
+        - reason
+      properties:
+        ok:
+          type: boolean
+        totalRequested:
+          type: integer
+          minimum: 0
+        updatedCount:
+          type: integer
+          minimum: 0
+        missingListingIds:
+          type: array
+          items:
+            $ref: '#/components/schemas/Uuid'
+        patchApplied:
+          type: object
+          additionalProperties: true
+        reason:
+          type: string
+          nullable: true
     PatentClaimCreateRequest:
       type: object
       required:
@@ -12634,6 +13342,273 @@ components:
           type: array
           items:
             type: string
+    HomeAnnouncementStatus:
+      type: string
+      enum:
+        - DRAFT
+        - PUBLISHED
+        - OFFLINE
+    HomeAnnouncementTemplate:
+      type: object
+      required:
+        - id
+        - name
+        - title
+        - content
+        - enabled
+        - createdAt
+        - updatedAt
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        title:
+          type: string
+        content:
+          type: string
+        tag:
+          type: string
+          nullable: true
+        linkUrl:
+          type: string
+          nullable: true
+        enabled:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    HomeAnnouncementItem:
+      type: object
+      required:
+        - id
+        - title
+        - content
+        - pinned
+        - order
+        - status
+        - createdAt
+        - updatedAt
+      properties:
+        id:
+          type: string
+        templateId:
+          type: string
+          nullable: true
+        title:
+          type: string
+        content:
+          type: string
+        tag:
+          type: string
+          nullable: true
+        linkUrl:
+          type: string
+          nullable: true
+        pinned:
+          type: boolean
+        order:
+          type: integer
+        status:
+          $ref: '#/components/schemas/HomeAnnouncementStatus'
+        startAt:
+          type: string
+          format: date-time
+          nullable: true
+        endAt:
+          type: string
+          format: date-time
+          nullable: true
+        publishedAt:
+          type: string
+          format: date-time
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    HomeAnnouncementConfig:
+      type: object
+      required:
+        - schemaVersion
+        - templates
+        - items
+      properties:
+        schemaVersion:
+          type: integer
+        templates:
+          type: array
+          items:
+            $ref: '#/components/schemas/HomeAnnouncementTemplate'
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/HomeAnnouncementItem'
+    HomeAnnouncementTemplateCreateRequest:
+      type: object
+      required:
+        - name
+        - title
+        - content
+      properties:
+        name:
+          type: string
+        title:
+          type: string
+        content:
+          type: string
+        tag:
+          type: string
+          nullable: true
+        linkUrl:
+          type: string
+          nullable: true
+        enabled:
+          type: boolean
+    HomeAnnouncementTemplateUpdateRequest:
+      type: object
+      properties:
+        name:
+          type: string
+        title:
+          type: string
+        content:
+          type: string
+        tag:
+          type: string
+          nullable: true
+        linkUrl:
+          type: string
+          nullable: true
+        enabled:
+          type: boolean
+    HomeAnnouncementItemCreateRequest:
+      type: object
+      properties:
+        templateId:
+          type: string
+          nullable: true
+        title:
+          type: string
+        content:
+          type: string
+        tag:
+          type: string
+          nullable: true
+        linkUrl:
+          type: string
+          nullable: true
+        pinned:
+          type: boolean
+        order:
+          type: integer
+        startAt:
+          type: string
+          format: date-time
+          nullable: true
+        endAt:
+          type: string
+          format: date-time
+          nullable: true
+        status:
+          $ref: '#/components/schemas/HomeAnnouncementStatus'
+    HomeAnnouncementItemUpdateRequest:
+      type: object
+      properties:
+        templateId:
+          type: string
+          nullable: true
+        title:
+          type: string
+        content:
+          type: string
+        tag:
+          type: string
+          nullable: true
+        linkUrl:
+          type: string
+          nullable: true
+        pinned:
+          type: boolean
+        order:
+          type: integer
+        startAt:
+          type: string
+          format: date-time
+          nullable: true
+        endAt:
+          type: string
+          format: date-time
+          nullable: true
+        status:
+          $ref: '#/components/schemas/HomeAnnouncementStatus'
+    HomeAnnouncementTemplateDeleteResult:
+      type: object
+      required:
+        - ok
+        - deletedTemplateId
+      properties:
+        ok:
+          type: boolean
+        deletedTemplateId:
+          type: string
+    HomeAnnouncementItemDeleteResult:
+      type: object
+      required:
+        - ok
+        - deletedItemId
+      properties:
+        ok:
+          type: boolean
+        deletedItemId:
+          type: string
+    PublicHomeAnnouncementItem:
+      type: object
+      required:
+        - id
+        - title
+        - content
+        - pinned
+        - order
+      properties:
+        id:
+          type: string
+        title:
+          type: string
+        content:
+          type: string
+        tag:
+          type: string
+          nullable: true
+        linkUrl:
+          type: string
+          nullable: true
+        pinned:
+          type: boolean
+        order:
+          type: integer
+        publishedAt:
+          type: string
+          format: date-time
+          nullable: true
+    PublicHomeAnnouncementFeed:
+      type: object
+      required:
+        - generatedAt
+        - items
+      properties:
+        generatedAt:
+          type: string
+          format: date-time
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/PublicHomeAnnouncementItem'
     FinanceReportRange:
       type: object
       required:
