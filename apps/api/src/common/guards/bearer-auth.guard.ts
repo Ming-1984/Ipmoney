@@ -1,5 +1,6 @@
 import { CanActivate, ExecutionContext, Injectable, UnauthorizedException } from '@nestjs/common';
 import type { Prisma } from '@prisma/client';
+import { verifyAccessToken } from '../access-token';
 import { resolvePermissions, resolvePermissionsFromRoleIds, type AdminRoleName } from '../permissions';
 import { PrismaService } from '../prisma/prisma.service';
 import { ROLE_ID_TO_NAME, SYSTEM_ROLE_IDS, buildDefaultRbacRoles } from '../rbac';
@@ -20,6 +21,7 @@ export class BearerAuthGuard implements CanActivate {
     }
 
     const token = auth.slice('Bearer '.length).trim();
+    const signedPayload = verifyAccessToken(token);
     const demoConfig = getDemoAuthConfig();
     const demoAuthEnabled = demoConfig.enabled;
     const allowUuidToken = demoAuthEnabled && isDemoUuidTokenEnabled();
@@ -59,7 +61,13 @@ export class BearerAuthGuard implements CanActivate {
     }
 
     const isDemoUserToken = demoAuthEnabled && demoConfig.userToken && token === demoConfig.userToken;
-    const userId = isDemoUserToken ? (demoConfig.userId as string) : allowUuidToken && UUID_RE.test(token) ? token : null;
+    const userId = signedPayload?.sub
+      ? signedPayload.sub
+      : isDemoUserToken
+        ? (demoConfig.userId as string)
+        : allowUuidToken && UUID_RE.test(token)
+          ? token
+          : null;
     if (!userId) {
       throw new UnauthorizedException({ code: 'UNAUTHORIZED', message: '未登录' });
     }

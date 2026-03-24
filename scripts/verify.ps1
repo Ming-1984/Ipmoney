@@ -3,7 +3,17 @@ param(
   [string]$ApiBaseUrl = "https://staging-api.example.com",
   [int]$ApiPort = 3200,
   [string]$ReportDate = "",
-  [string]$ChaosHistoryPath = ""
+  [string]$ChaosHistoryPath = "",
+  [ValidateSet("core", "full")]
+  [string]$UiSmokeMode = "core",
+  [switch]$RunWeappRouteSmoke,
+  [string]$WeappCliPath = "",
+  [string]$WeappProjectPath = "apps/client",
+  [int]$WeappTimeoutMs = 180000,
+  [int]$WeappLaunchRetries = 3,
+  [int]$WeappLaunchRetryDelayMs = 3000,
+  [string]$WeappUserToken = "",
+  [switch]$RunVulnerabilityAudit
 )
 
 $ErrorActionPreference = "Stop"
@@ -138,6 +148,7 @@ Invoke-Step "typecheck" { pnpm typecheck }
 Invoke-Step "audit-openapi-backend" { node scripts/audit-openapi-backend.mjs }
 Invoke-Step "audit-coverage" { node scripts/audit-coverage.mjs }
 Invoke-Step "scan:banned-words" { pnpm scan:banned-words }
+Invoke-Step "check:docs-links" { pnpm check:docs-links }
 
 # Build artifacts (use a non-local API base so production guards won't trip in CI).
 $env:VITE_API_BASE_URL = $ApiBaseUrl
@@ -147,6 +158,7 @@ Ensure-NodeHeap -MinMb 4096
 Invoke-Step "api:build" { pnpm -C apps/api build }
 Invoke-Step "admin-web:build" { pnpm -C apps/admin-web build }
 Invoke-Step "client:build:h5" { pnpm -C apps/client build:h5 } -MaxAttempts 2 -RetryExitCodes @(134, -1073740791)
+Invoke-Step "check:h5-budget" { pnpm check:h5-budget -- --report-date $ReportDate }
 Invoke-Step "client:build:weapp" { pnpm -C apps/client build:weapp }
 Invoke-Step "check:weapp-budget" { pnpm check:weapp-budget }
 
@@ -170,8 +182,73 @@ if (Test-Path $ChaosHistoryPath) {
 }
 Invoke-Step "db-preflight-check" { powershell -ExecutionPolicy Bypass -File scripts/db-preflight-check.ps1 -ReportDate $ReportDate }
 Invoke-Step "ui-http-smoke" { powershell -ExecutionPolicy Bypass -File scripts/ui-http-smoke.ps1 -ReportDate $ReportDate }
-Invoke-Step "ui-render-smoke(core)" { powershell -ExecutionPolicy Bypass -File scripts/ui-render-smoke.ps1 -Mode core -ReportDate $ReportDate }
-Invoke-Step "ui-dom-smoke(core)" { powershell -ExecutionPolicy Bypass -File scripts/ui-dom-smoke.ps1 -Mode core -ReportDate $ReportDate }
+Invoke-Step "ui-render-smoke($UiSmokeMode)" { powershell -ExecutionPolicy Bypass -File scripts/ui-render-smoke.ps1 -Mode $UiSmokeMode -ReportDate $ReportDate }
+Invoke-Step "ui-dom-smoke($UiSmokeMode)" { powershell -ExecutionPolicy Bypass -File scripts/ui-dom-smoke.ps1 -Mode $UiSmokeMode -ReportDate $ReportDate }
+
+if ($RunWeappRouteSmoke) {
+  Invoke-Step "weapp-route-smoke(noauth)" {
+    powershell -ExecutionPolicy Bypass -File scripts/weapp-route-smoke.ps1 `
+      -CliPath $WeappCliPath `
+      -ProjectPath $WeappProjectPath `
+      -NoAuth `
+      -ReportDate "$ReportDate-noauth" `
+      -TimeoutMs $WeappTimeoutMs `
+      -LaunchRetries $WeappLaunchRetries `
+      -LaunchRetryDelayMs $WeappLaunchRetryDelayMs `
+      -KillStaleDevtools
+  } -MaxAttempts 2 -RetryExitCodes @(1)
+
+  $effectiveWeappUserToken = [string]$WeappUserToken
+  if ([string]::IsNullOrWhiteSpace($effectiveWeappUserToken)) {
+    $effectiveWeappUserToken = [string]$env:DEMO_USER_TOKEN
+  }
+  if (-not [string]::IsNullOrWhiteSpace($effectiveWeappUserToken)) {
+    Invoke-Step "weapp-route-smoke(auth)" {
+      powershell -ExecutionPolicy Bypass -File scripts/weapp-route-smoke.ps1 `
+        -CliPath $WeappCliPath `
+        -ProjectPath $WeappProjectPath `
+        -UserToken $effectiveWeappUserToken `
+        -ReportDate "$ReportDate-auth" `
+        -TimeoutMs $WeappTimeoutMs `
+        -LaunchRetries $WeappLaunchRetries `
+        -LaunchRetryDelayMs $WeappLaunchRetryDelayMs `
+        -KillStaleDevtools
+    } -MaxAttempts 2 -RetryExitCodes @(1)
+  } else {
+    Write-Host "[verify] skip weapp-route-smoke(auth): DEMO_USER_TOKEN / -WeappUserToken is empty"
+  }
+}
+
+if ($RunVulnerabilityAudit) {
+  Invoke-Step "security:audit-ledger" {
+    $auditOutPath = Join-Path $tmpDir ("pnpm-audit-prod-{0}.json" -f $ReportDate)
+    if (Test-Path $auditOutPath) {
+      Remove-Item $auditOutPath -Force
+    }
+
+    pnpm audit --prod --json | Out-File -FilePath $auditOutPath -Encoding utf8
+    $auditExitCode = [int]$LASTEXITCODE
+    if ($auditExitCode -ne 0 -and $auditExitCode -ne 1) {
+      throw ("pnpm audit failed with unexpected exit={0}" -f $auditExitCode)
+    }
+
+    node scripts/audit-vulnerability-ledger.mjs --date $ReportDate --input ".tmp/pnpm-audit-prod-$ReportDate.json"
+    if ($LASTEXITCODE -ne 0) {
+      throw ("audit-vulnerability-ledger failed (exit={0})" -f [int]$LASTEXITCODE)
+    }
+
+    node scripts/check-vulnerability-baseline.mjs --report-date $ReportDate --input ".tmp/vulnerability-ledger-$ReportDate.json"
+    if ($LASTEXITCODE -ne 0) {
+      throw ("check-vulnerability-baseline failed (exit={0})" -f [int]$LASTEXITCODE)
+    }
+
+    if ($auditExitCode -eq 1) {
+      Write-Host "[verify] vulnerability audit found issues; ledger generated and baseline guard passed"
+    } else {
+      Write-Host "[verify] vulnerability audit clean; ledger generated and baseline guard passed"
+    }
+  }
+}
 
 Write-Host ""
 Write-Host ("[verify] OK (ReportDate={0})" -f $ReportDate)

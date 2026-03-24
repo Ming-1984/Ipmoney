@@ -1,5 +1,208 @@
 # Test Report (Consolidated)
 
+> Note (2026-03-23): `docs/demo/rendered/` historical screenshots were cleaned from git.
+> Smoke screenshot artifacts are now local-only and may not exist in repository history snapshots after this date.
+
+## Latest (2026-03-24 r327b3)
+
+### Commands & Results (dev)
+- `powershell -ExecutionPolicy Bypass -File scripts/verify.ps1 -ReportDate 2026-03-24-r327b3 -UiSmokeMode core -RunVulnerabilityAudit`
+  - Result: pass
+  - Notes: full verify chain passed (`api-real-smoke` `1308/1308`, OpenAPI coverage `225/225`, `db-preflight` `9/9`, `ui-render(core)` `3/3`, `ui-dom(core)` `11/11`, vulnerability baseline `critical/high=1/11`).
+- `pnpm -C apps/api typecheck`
+  - Result: pass
+- `pnpm -C apps/api lint`
+  - Result: pass
+- `pnpm -C apps/api test`
+  - Result: pass (`553/553`)
+  - Notes: includes new `test/workbook-reader.spec.ts` covering xlsx/csv import parsing and Excel serial date conversion.
+- `pnpm -C apps/api test:e2e`
+  - Result: pass (`2/2`)
+- `pnpm audit --prod --json | Out-File .tmp/pnpm-audit-prod-2026-03-24.json -Encoding utf8`
+  - Result: pass (ledger input generated)
+- `node scripts/audit-vulnerability-ledger.mjs --date 2026-03-24 --input .tmp/pnpm-audit-prod-2026-03-24.json`
+  - Result: pass
+  - Notes: generated `docs/engineering/vulnerability-ledger-2026-03-24.md` and `.tmp/vulnerability-ledger-2026-03-24.json`.
+- `node scripts/check-vulnerability-baseline.mjs --report-date 2026-03-24 --input .tmp/vulnerability-ledger-2026-03-24.json`
+  - Result: pass
+  - Notes: initial comparison showed `current critical/high=1/11`, resolved vs old baseline `2/22`.
+- `node scripts/update-vulnerability-baseline.mjs --report-date 2026-03-24 --input .tmp/vulnerability-ledger-2026-03-24.json`
+  - Result: pass
+  - Notes: baseline tightened to `allowed critical/high=1/11` after Batch-1 remediation.
+- `pnpm check:docs-links`
+  - Result: pass (`checked=62`, missing=`0`)
+- `pnpm openapi:lint`
+  - Result: pass
+
+## Latest (2026-03-23 r326o)
+
+### Commands & Results (dev)
+- `powershell -ExecutionPolicy Bypass -File scripts/verify.ps1 -ReportDate r326o -UiSmokeMode core`
+  - Result: pass
+  - Notes: verify now includes h5 budget gate (`check:h5-budget`) and passed (`vendors.js` `663.8 KiB` / `760 KiB`, app entrypoint `1533.0 KiB` / `1750 KiB`); chain remained green (`api-real-smoke` `1304/1304`, OpenAPI coverage `225/225`, `db-preflight` `9/9`, `ui-render(core)` `3/3`, `ui-dom(core)` `11/11`).
+
+## Latest (2026-03-23 r326n)
+
+### Commands & Results (dev)
+- `powershell -ExecutionPolicy Bypass -File scripts/verify.ps1 -ReportDate r326n -UiSmokeMode core -RunVulnerabilityAudit`
+  - Result: pass
+  - Notes: baseline guard enabled in verify (`api-real-smoke` `1308/1308`, OpenAPI coverage `225/225`, `db-preflight` `9/9`, `ui-render(core)` `3/3`, `ui-dom(core)` `11/11`, vulnerability baseline `critical/high = 2/22` matched, ledger: `docs/engineering/vulnerability-ledger-2026-03-23.md`).
+
+## Latest (2026-03-23 r326m)
+
+### Commands & Results (dev)
+- `powershell -ExecutionPolicy Bypass -File scripts/verify.ps1 -ReportDate r326m -UiSmokeMode full -RunWeappRouteSmoke -RunVulnerabilityAudit -WeappCliPath "<WeAppCliPath>"`
+  - Result: pass
+  - Notes: full-chain gate passed with security ledger (`api-real-smoke` `1304/1304`, OpenAPI coverage `225/225`, `db-preflight` `9/9`, `ui-render(full)` `64/64`, `ui-dom(full)` `64/64`, weapp-route `noauth 12/12`, auth skipped due no token, ledger: `docs/engineering/vulnerability-ledger-2026-03-23.md`).
+
+## Latest (2026-03-23 r326l)
+
+### Commands & Results (dev)
+- `powershell -ExecutionPolicy Bypass -File scripts/verify.ps1 -ReportDate r326l -UiSmokeMode core -RunVulnerabilityAudit`
+  - Result: pass
+  - Notes: quality gate passed and vulnerability ledger generated (`api-real-smoke` `1304/1304`, OpenAPI coverage `225/225`, `db-preflight` `9/9`, `ui-render(core)` `3/3`, `ui-dom(core)` `11/11`, ledger: `docs/engineering/vulnerability-ledger-2026-03-23.md`).
+- `$env:STAGE='prod'; node scripts/run-with-env.mjs -- node scripts/check-prod-env.mjs`
+  - Result: fail (expected in local `.env`)
+  - Notes: production hard checks still block local defaults (`DEMO_AUTH_ALLOW_UUID_TOKENS`, `BASE_URL`, `PUBLIC_HOST_WHITELIST`, `FILE_TEMP_TOKEN_SECRET`, `JWT_SECRET`).
+
+## Latest (2026-03-23 r326k)
+
+### Commands & Results (dev)
+- `powershell -ExecutionPolicy Bypass -File scripts/verify.ps1 -ReportDate r326k -UiSmokeMode full -RunWeappRouteSmoke -WeappCliPath "<WeAppCliPath>" -WeappUserToken <demo-token>`
+  - Result: pass
+  - Notes: full-chain gate passed after enabling one-step retry for WeApp route smoke (`api-real-smoke` `1308/1308`, OpenAPI coverage `225/225`, `db-preflight` `9/9`, `ui-render(full)` `64/64`, `ui-dom(full)` `64/64`, weapp-route `noauth 12/12`, `auth 12/12`).
+
+## Latest (2026-03-23 r326i)
+
+### Commands & Results (dev)
+- `powershell -ExecutionPolicy Bypass -File scripts/verify.ps1 -ReportDate r326i -UiSmokeMode full -RunWeappRouteSmoke -WeappCliPath "<WeAppCliPath>" -WeappUserToken <demo-token>`
+  - Result: pass
+  - Notes: full-chain gate passed with full UI smoke + WeApp route smoke (`api-real-smoke` `1304/1304`, OpenAPI coverage `225/225`, `db-preflight` `9/9`, `ui-render(full)` `64/64`, `ui-dom(full)` `64/64`, weapp-route `noauth 12/12`, `auth 12/12`).
+
+## Latest (2026-03-23 r326h)
+
+### Commands & Results (dev)
+- `powershell -ExecutionPolicy Bypass -File scripts/ui-render-smoke.ps1 -Mode full -ReportDate r326h`
+  - Result: pass (`64/64`)
+- `powershell -ExecutionPolicy Bypass -File scripts/ui-dom-smoke.ps1 -Mode full -ReportDate r326h`
+  - Result: pass (`64/64`)
+- `powershell -ExecutionPolicy Bypass -File scripts/weapp-route-smoke.ps1 -ReportDate r326h-auth -UserToken <demo-token> -TimeoutMs 180000 -LaunchRetries 1 -LaunchRetryDelayMs 2000 -KillStaleDevtools`
+  - Result: pass (`12/12` routes)
+- `powershell -ExecutionPolicy Bypass -File scripts/weapp-route-smoke.ps1 -NoAuth -ReportDate r326h-noauth-rerun -TimeoutMs 180000 -LaunchRetries 3 -LaunchRetryDelayMs 3000 -KillStaleDevtools`
+  - Result: pass (`12/12` routes)
+  - Notes: first run `r326h-noauth` failed due DevTools launch port contention, rerun passed.
+- `pnpm -C apps/api test`
+  - Result: pass (`550/550`)
+- `pnpm -C apps/api test:e2e`
+  - Result: pass (`2/2`)
+
+## Latest (2026-03-23 r326g)
+
+### Commands & Results (dev)
+- `pnpm check:docs-links`
+  - Result: pass (`checked=59`, missing=`0`)
+- `powershell -ExecutionPolicy Bypass -File scripts/verify.ps1 -ReportDate r326g`
+  - Result: pass
+  - Notes: gate remained green after aggressive doc/script cleanup (`api-real-smoke` `1304/1304`, OpenAPI coverage `225/225`, `db-preflight` `9/9`, `ui-render(core)` `3/3`, `ui-dom(core)` `11/11`).
+
+## Latest (2026-03-23 r326f)
+
+### Commands & Results (dev)
+- `node scripts/build-page-api-test-matrix.mjs`
+  - Result: pass
+  - Notes: script now supports fallback to latest available smoke artifacts when default date input is missing; output generated at `docs/engineering/page-api-test-matrix-r326e.md`.
+- `pnpm check:docs-links`
+  - Result: pass (`checked=63`, missing=`0`)
+
+## Latest (2026-03-23 r326e)
+
+### Commands & Results (dev)
+- `pnpm check:docs-links`
+  - Result: pass
+  - Notes: active docs link references validated (`checked=62`, missing=`0`).
+- `powershell -File scripts/verify.ps1 -ReportDate r326e`
+  - Result: pass
+  - Notes: gate remained green after doc/script cleanup (`api-real-smoke` `1308/1308`, OpenAPI coverage `225/225`, `db-preflight` `9/9`, `ui-render(core)` `3/3`, `ui-dom(core)` `11/11`).
+
+## Latest (2026-03-23 r326d)
+
+### Commands & Results (dev)
+- `powershell -File scripts/ui-dom-smoke.ps1 -Mode full -ReportDate r326d`
+  - Result: pass (`64/64`)
+  - Notes: fixed stale selector for `/maintenance` admin page in smoke assertions (`.admin-maintenance-page` -> stable current selectors).
+- `powershell -File scripts/ui-render-smoke.ps1 -Mode full -ReportDate r326d`
+  - Result: pass (`64/64`)
+- `powershell -File scripts/verify.ps1 -ReportDate r326d`
+  - Result: pass
+  - Notes: chain gate passed (`api-real-smoke` `1304/1304`, OpenAPI coverage `225/225`, quality-floor `violations=[]`, `db-preflight` `9/9`, `ui-render(core)` `3/3`, `ui-dom(core)` `11/11`).
+- `pnpm -C apps/api test`
+  - Result: pass (`550/550`)
+- `pnpm -C apps/api test:e2e`
+  - Result: pass (`2/2`)
+- `powershell -ExecutionPolicy Bypass -File scripts/weapp-route-smoke.ps1 -NoAuth -ReportDate r326d -TimeoutMs 180000 -LaunchRetries 1 -LaunchRetryDelayMs 2000 -KillStaleDevtools`
+  - Result: pass (`12/12` routes)
+  - Notes: includes `/subpackages/maintenance/index`; no runtime load exception.
+- `powershell -ExecutionPolicy Bypass -File scripts/weapp-route-smoke.ps1 -ReportDate r326d-auth -UserToken demo-user-11111111-1111-4111-8111-111111111111 -TimeoutMs 180000 -LaunchRetries 1 -LaunchRetryDelayMs 2000 -KillStaleDevtools`
+  - Result: pass (`12/12` routes)
+- `$env:STAGE='prod'; node scripts/run-with-env.mjs -- node scripts/check-prod-env.mjs`
+  - Result: fail (expected in local `.env`)
+  - Notes: production secrets/hosts not yet configured (`DEMO_AUTH_ALLOW_UUID_TOKENS`, `BASE_URL`, `PUBLIC_HOST_WHITELIST`, `FILE_TEMP_TOKEN_SECRET`, `JWT_SECRET`).
+
+## Latest (2026-03-23)
+
+### Commands & Results (dev)
+- `pnpm -C apps/api test`
+  - Result: pass (`537/537`)
+  - Notes: includes新增年费托管用户侧接口测试（`/me/patent-maintenance/*`）与原有全量回归。
+- `pnpm -C apps/api test -- test/patent-maintenance.controller.spec.ts test/patent-maintenance.filters.spec.ts test/patent-maintenance.write-flow.spec.ts test/patent-maintenance.me.controller.spec.ts test/patent-maintenance.me.spec.ts`
+  - Result: pass (`20/20`)
+- `pnpm -C apps/api typecheck`
+  - Result: pass
+- `pnpm -C apps/admin-web typecheck`
+  - Result: pass
+- `pnpm -C apps/client typecheck`
+  - Result: pass
+- `pnpm -C apps/client build:h5`
+  - Result: pass（仅资源体积告警，无编译错误）
+- `pnpm -C apps/client build:weapp`
+  - Result: pass
+  - Notes: `check-weapp-dist-pages` 通过，当前路由校验 `49` 个页面。
+- `powershell -ExecutionPolicy Bypass -File scripts/weapp-route-smoke.ps1 -NoAuth -ReportDate 2026-03-23 -TimeoutMs 180000 -LaunchRetries 1 -LaunchRetryDelayMs 2000 -KillStaleDevtools`
+  - Result: pass (`12/12` routes)
+  - Notes: 已将 `maintenance -> /subpackages/maintenance/index` 纳入路由冒烟，无 runtime exception。
+- `$env:VITE_API_BASE_URL='http://127.0.0.1:3200'; pnpm -C apps/admin-web build`
+  - Result: pass
+  - Notes: 后台生产构建需要显式 `VITE_API_BASE_URL`。
+- `pnpm openapi:lint`
+  - Result: pass
+- `pnpm openapi:types`
+  - Result: pass
+- `node scripts/audit-openapi-backend.mjs`
+  - Result: pass (`OpenAPI-only=0`, `Controller-only=0`, `Controllers=215`, `OpenAPI=215`)
+- `node scripts/audit-coverage.mjs`
+  - Result: pass（覆盖报告已更新）
+- `node scripts/build-page-api-test-matrix.mjs`
+  - Result: fail（缺少 `.tmp/ui-render-smoke-2026-03-23.json` 输入文件，未生成当日矩阵）
+
+## Latest (2026-03-22)
+
+### Commands & Results (dev)
+- `powershell -ExecutionPolicy Bypass -File scripts/verify.ps1 -ApiBaseUrl https://api.ipmoney.cn -ApiPort 3200 -ReportDate 2026-03-22`
+  - Result: pass
+  - Notes: full-chain gate passed (`api-real-smoke` `1281/1281`, OpenAPI coverage `207/207`, quality-floor `violations=[]`, `db-preflight` `9/9`, `ui-render(core)` `3/3`, `ui-dom(core)` `11/11`).
+- `pnpm -C apps/api test`
+  - Result: pass (`531/531`)
+- `pnpm -C apps/api test:e2e`
+  - Result: pass (`2/2`)
+- `powershell -ExecutionPolicy Bypass -File scripts/ui-render-smoke.ps1 -Mode full -ReportDate 2026-03-22`
+  - Result: pass (`64/64`)
+- `powershell -ExecutionPolicy Bypass -File scripts/ui-dom-smoke.ps1 -Mode full -ReportDate 2026-03-22`
+  - Result: fail -> pass (`63/64` -> `64/64`)
+  - Notes: fixed outdated selector for `/listings` page smoke assertion (`.admin-listings-page` -> stable container selectors).
+- `node scripts/run-with-env.mjs -- node scripts/check-prod-env.mjs` (with `STAGE=prod`)
+  - Result: fail (expected in current local `.env`)
+  - Notes: local env still contains non-production defaults (`BASE_URL/PUBLIC_HOST_WHITELIST` local host, default secrets, demo flag).
+
 ## Latest (2026-03-15)
 
 ### Commands & Results (dev)
@@ -799,7 +1002,7 @@
 
 - `node scripts/build-page-api-test-matrix.mjs --date 2026-03-05`
   - Result: success
-  - Matrix: `docs/engineering/page-api-test-matrix-2026-03-05.md`
+  - Matrix: `docs/engineering/page-api-test-matrix-r326e.md`
 
 - `node scripts/audit-vulnerability-ledger.mjs --date 2026-03-05 --input .tmp/pnpm-audit-prod-2026-03-05.json`
   - Result: success

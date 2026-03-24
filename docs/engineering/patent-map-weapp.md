@@ -1,45 +1,13 @@
+# 专利地图能力状态说明（已下线）
 
-## 目标与范围
-- **目标（最小可用）**：在小程序端真实地图底图上展示“省级专利数量”，支持点击查看区域详情。
-- **范围**：仅小程序端（weapp）；仅省级（`PROVINCE`）；**不引入外部地图 Key**；不做省市面填色（choropleth）。
+## 当前状态
+- 2026-03 起，专利地图功能不在当前 P0/P0.5 交付范围。
+- 小程序端无地图页面路由，后端无专利地图聚合接口，数据库不再维护 `patent_map_entries`。
 
-## 现状
-- 后端已有接口：
-- 行政区中心点已入库：`GET /regions?level=PROVINCE` 返回 `centerLat/centerLng`。
+## 统一口径
+- 专利导入（专利主数据、挂牌批量导入）不会触发“地图数据更新”。
+- 区域数据仅用于筛选、统计与后台区域配置，不用于独立地图页面渲染。
 
-## 组件选择（成熟组件）
-- 地图：Taro `Map`（小程序原生 map 组件），支持 `markers/label/callout`，无需外部 Key。
-- 建议别名：`TaroMap`（避免与全局 `Map` 冲突）。
-- 交互：复用 `PageHeader/Surface/CellRow`，地图下方展示选中区域卡片 + “查看详情”入口。
-
-## 实施计划（待对齐）
-1) 年份 + summary + 省级中心点 join，生成 markers（缺中心点只展示列表）。
-2) 地图渲染 markers，点击 marker 更新“选中区域卡片”。
-4) 可选：使用 `MapContext.includePoints` 适配视野。
-
-## 数据来源（P0.1）
-小程序端只需把两个接口结果做一次 join：
-3) 省级中心点：`GET /regions?level=PROVINCE`
-
-Join 规则：
-- key：`regionCode`（summary 为 `code`，region 为 `code`）
-- 若某省 `centerLat/centerLng` 缺失：不出 marker，但保留列表展示。
-
-## UI 与交互（P0.1）
-- 顶部：年份 Segmented（保持现有交互）。
-- 地图：使用小程序 `Map` 组件在真实底图上渲染省级 markers。
-  - marker 文案：展示 `patentCount`（或在 callout 中展示“省名 + 数量”）。
-  - marker 点击：弹出底部卡片，包含 `regionName`、`patentCount`、按钮“查看详情”。
-- 列表：保留当前省级列表作为兜底（方便快速进入详情）。
-
-## 技术要点（实现提示）
-- marker `id`：建议使用 `Number(regionCode)`（如 `110000`）确保为 number。
-- Map 命名冲突：数据结构使用 `globalThis.Map` 或组件别名，避免 `Map is not a constructor`。
-- 初始视野：
-  - 方案 A（最省事）：固定中国中心点 + scale（如 `lat=35.8617,lng=104.1954`）。
-  - 方案 B（体验更好）：markers 生成后用 `includePoints` 自动适配视野（可选）。
-- 权限：不展示用户定位（`showLocation=false`），无需额外定位授权。
-
-## 非目标（本轮不做）
-- 省/市区下钻（地图层级切换）。
-- 省市面填色/热力图。
+## 后续恢复原则（如重启地图功能）
+- 先补齐单一数据源与聚合接口，再上线前端地图页。
+- OpenAPI、测试矩阵、运营文档必须同版本同步。

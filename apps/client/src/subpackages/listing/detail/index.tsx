@@ -302,7 +302,6 @@ export default function ListingDetailPage() {
   const visibleIndustryTags = sanitizeIndustryTagNames(data?.industryTags || []);
   const transferCount =
     (data as any)?.transferCount ??
-    (data as any)?.transferTimes ??
     ((data as any)?.stats as { transferCount?: number } | undefined)?.transferCount;
   const mediaList = ((patentData as any)?.media ?? []) as PatentMediaItem[];
   const coverUrl = mediaList.find((item) => item?.type === 'COVER' && item?.url)?.url ?? null;

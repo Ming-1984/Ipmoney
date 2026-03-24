@@ -24,7 +24,7 @@ import homeIconTechManager from '../../assets/icons/home/home-tech-manager.svg';
 import homeIconDesignPatent from '../../assets/icons/home/home-design-patent.svg';
 import homeIconInventionPatent from '../../assets/icons/home/home-invention-patent.svg';
 import homeIconUtilityPatent from '../../assets/icons/home/home-utility-patent.svg';
-import homeIconAchievement from '../../assets/icons/home/home-five-star.svg';
+import homeIconAchievement from '../../assets/icons/home/home-achievement.svg';
 import logoGif from '../../assets/brand/logo.optim2.gif';
 import logoPng from '../../assets/brand/logo.png';
 import bannerLocalMp4 from '../../assets/home/banner-local.mp4';

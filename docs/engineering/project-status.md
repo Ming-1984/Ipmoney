@@ -11,7 +11,7 @@
 - 代码与远端：`main` 已与 `origin/main` 对齐。
 - API 自动化：`pnpm -C apps/api test` 通过（`619/619`），`pnpm -C apps/api test:e2e` 通过（`2/2`）。
 - 全链路验证：`scripts/verify.ps1 -ReportDate r324e` 首次因 `client:typecheck` 失败，修复详情页 `boundingClientRect` 联合类型处理后同轮复跑通过（`api-real-smoke 1754/1754`、OpenAPI 覆盖 `238/238`、quality-floor `violations=[]`）。
-- 证据目录：`docs/demo/rendered/ui-smoke-r324e/` 已补齐并纳入版本管理。
+- 证据目录策略已调整：`docs/demo/rendered/` 仅保留本地临时截图，不再纳入版本管理。
 
 ## 范围（P0）
 - 渠道：微信小程序、Taro H5（电脑端可用）、管理后台 Web。
@@ -26,13 +26,12 @@
 - 订单开票申请入口（订单详情）。
 - 收藏、消息/聊天、通知、公告。
 - 附件临时授权链路（fileId -> 临时 URL -> 预览/下载）。
-- 专利地图、机构、发明人榜、技术经理人。
+- 机构、发明人榜、技术经理人。
 - 地址管理。
 
 ### 管理后台
 - 仪表盘、用户认证、内容审核、上架审核。
 - 订单与里程碑；退款、放款、发票（含下发开票）。
-- 地图 CMS（含 Excel 导入）。
 - 配置中心（banner/客服/字典/热门搜索/敏感词）。
 - 评论、工单/争议、报表导出。
 - RBAC（角色/权限/账号绑定）。
@@ -78,7 +77,6 @@
 
 ## P1 / 可选
 - 非 H5 的独立 PC Web（如有需求）。
-- 多地图扩展与高级分析。
 - AI/告警进一步自动化。
 
 ## 关键决策
@@ -87,9 +85,10 @@
 - P0 仅使用平台内数据源，外部数据源为 P1。
 
 ## 参考
-- 全面质量整改 TODO（主执行清单）：docs/engineering/full-quality-todo-2026-03-05.md
-- 历史规划归档：docs/engineering/archive/legacy-roadmaps-2026-02-to-2026-03.md
+- 全面质量整改 TODO（主执行清单）：docs/engineering/test-report.md
+- 历史规划归档：docs/engineering/README.md
 - 测试报告：docs/engineering/test-report.md
+- 全链路最佳实践审计：docs/engineering/full-chain-best-practice-audit-2026-03-23-r326h.md
 - 生产过渡 runbook：docs/engineering/production-transition.md
 - 权限矩阵：docs/engineering/permissions-matrix.md
 - API 契约：docs/api/openapi.yaml

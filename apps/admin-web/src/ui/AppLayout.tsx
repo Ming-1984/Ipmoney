@@ -1,4 +1,4 @@
-﻿import {
+import {
   AppstoreOutlined,
   BellOutlined,
   BookOutlined,
@@ -13,55 +13,142 @@
   SettingOutlined,
   SolutionOutlined,
   TeamOutlined,
+  UserOutlined,
 } from '@ant-design/icons';
-import { Button, Layout, Menu, Typography } from 'antd';
+import { Avatar, Button, Layout, Menu, Spin, Typography, message } from 'antd';
 import type { MenuProps } from 'antd';
 import React, { Suspense, useEffect, useMemo, useState } from 'react';
 import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
 
+import { apiGet } from '../lib/api';
 import { clearAdminToken, hasAdminToken } from '../lib/auth';
 import logoPng from '../assets/brand/logo.png';
 
 const { Header, Sider, Content } = Layout;
 
-const menuItems: MenuProps['items'] = [
-  { key: 'dashboard', icon: <AppstoreOutlined />, label: <Link to="/">仪表盘</Link> },
-  { key: 'verifications', icon: <FileDoneOutlined />, label: <Link to="/verifications">认证审核</Link> },
-  { key: 'listings', icon: <GiftOutlined />, label: <Link to="/listings">上架审核</Link> },
-  { key: 'tech-managers', icon: <TeamOutlined />, label: <Link to="/tech-managers">技术经理人</Link> },
-  { key: 'comments', icon: <MessageOutlined />, label: <Link to="/comments">留言管理</Link> },
-  { key: 'alerts', icon: <BellOutlined />, label: <Link to="/alerts">告警中心</Link> },
-  { key: 'audit-logs', icon: <ProfileOutlined />, label: <Link to="/audit-logs">审计日志</Link> },
-  { key: 'orders', label: <Link to="/orders">订单管理</Link> },
-  { key: 'cases', icon: <SolutionOutlined />, label: <Link to="/cases">工单/争议</Link> },
-  { key: 'maintenance', icon: <ScheduleOutlined />, label: <Link to="/maintenance">年费托管</Link> },
-  { key: 'refunds', label: <Link to="/refunds">退款管理</Link> },
-  { key: 'settlements', label: <Link to="/settlements">放款/结算</Link> },
-  { key: 'invoices', label: <Link to="/invoices">发票管理</Link> },
-  { key: 'reports', icon: <FileTextOutlined />, label: <Link to="/reports">报表导出</Link> },
-  { key: 'config', icon: <SettingOutlined />, label: <Link to="/config">交易/推荐配置</Link> },
-  { key: 'regions', icon: <EnvironmentOutlined />, label: <Link to="/regions">地区/行业标签</Link> },
-  { key: 'patents', icon: <BookOutlined />, label: <Link to="/patents">专利主数据</Link> },
-  { key: 'patent-ops', icon: <BookOutlined />, label: <Link to="/patents/operations">专利批量运营</Link> },
-  { key: 'patent-claims', icon: <BookOutlined />, label: <Link to="/patents/claims">专利认领审核</Link> },
-  { key: 'platform-conversations', icon: <MessageOutlined />, label: <Link to="/conversations/platform">平台咨询会话</Link> },
-  { key: 'rbac', icon: <LockOutlined />, label: <Link to="/rbac">账号权限</Link> },
+type SessionInfo = {
+  userId: string;
+  isAdmin: boolean;
+  role?: string;
+  roleNames?: string[];
+  permissions?: string[];
+  nickname?: string;
+};
+
+type AppMenuItem = {
+  key: string;
+  icon?: React.ReactNode;
+  label: string;
+  to: string;
+  permission?: string;
+};
+
+const menuConfig: AppMenuItem[] = [
+  { key: 'dashboard', icon: <AppstoreOutlined />, label: '仪表盘', to: '/' },
+  { key: 'verifications', icon: <FileDoneOutlined />, label: '认证审核', to: '/verifications', permission: 'verification.read' },
+  { key: 'listings', icon: <GiftOutlined />, label: '上架审核', to: '/listings', permission: 'listing.read' },
+  { key: 'tech-managers', icon: <TeamOutlined />, label: '技术经理人', to: '/tech-managers', permission: 'listing.read' },
+  { key: 'comments', icon: <MessageOutlined />, label: '留言管理', to: '/comments', permission: 'listing.read' },
+  { key: 'alerts', icon: <BellOutlined />, label: '告警中心', to: '/alerts', permission: 'alert.manage' },
+  { key: 'audit-logs', icon: <ProfileOutlined />, label: '审计日志', to: '/audit-logs', permission: 'auditLog.read' },
+  { key: 'orders', label: '订单管理', to: '/orders', permission: 'order.read' },
+  { key: 'cases', icon: <SolutionOutlined />, label: '工单/争议', to: '/cases', permission: 'case.manage' },
+  { key: 'maintenance', icon: <ScheduleOutlined />, label: '年费托管', to: '/maintenance', permission: 'maintenance.manage' },
+  { key: 'refunds', label: '退款管理', to: '/refunds', permission: 'refund.read' },
+  { key: 'settlements', label: '放款/结算', to: '/settlements', permission: 'settlement.read' },
+  { key: 'invoices', label: '发票管理', to: '/invoices', permission: 'invoice.manage' },
+  { key: 'reports', icon: <FileTextOutlined />, label: '报表导出', to: '/reports', permission: 'report.read' },
+  { key: 'config', icon: <SettingOutlined />, label: '交易/推荐配置', to: '/config', permission: 'config.manage' },
+  { key: 'regions', icon: <EnvironmentOutlined />, label: '地区/行业标签', to: '/regions', permission: 'config.manage' },
+  { key: 'patents', icon: <BookOutlined />, label: '专利主数据', to: '/patents', permission: 'listing.read' },
+  { key: 'patent-ops', icon: <BookOutlined />, label: '专利批量运营', to: '/patents/operations', permission: 'patent.import' },
+  { key: 'patent-claims', icon: <BookOutlined />, label: '专利认领审核', to: '/patents/claims', permission: 'patent.claim.review' },
+  {
+    key: 'platform-conversations',
+    icon: <MessageOutlined />,
+    label: '平台咨询会话',
+    to: '/conversations/platform',
+    permission: 'conversation.platform.manage',
+  },
+  { key: 'rbac', icon: <LockOutlined />, label: '账号权限', to: '/rbac', permission: 'rbac.manage' },
 ];
+
+function hasPermission(perms: Set<string>, permission?: string): boolean {
+  if (!permission) return true;
+  if (perms.has('*')) return true;
+  return perms.has(permission);
+}
 
 export function AppLayout() {
   const location = useLocation();
   const navigate = useNavigate();
   const [collapsed, setCollapsed] = useState(false);
-  const [hasToken, setHasToken] = useState<boolean | null>(null);
+  const [loadingSession, setLoadingSession] = useState(true);
+  const [session, setSession] = useState<SessionInfo | null>(null);
 
-  useEffect(() => {
+  const loadSession = async () => {
     if (!hasAdminToken()) {
-      setHasToken(false);
+      clearAdminToken();
       navigate('/login', { replace: true });
       return;
     }
-    setHasToken(true);
-  }, [location.pathname, navigate]);
+    try {
+      const data = await apiGet<SessionInfo>('/auth/session');
+      if (!data?.isAdmin) {
+        throw new Error('当前账号未开通后台权限');
+      }
+      setSession(data);
+    } catch (e: any) {
+      setSession(null);
+      clearAdminToken();
+      message.error(e?.message || '登录态失效，请重新登录');
+      navigate('/login', { replace: true });
+    } finally {
+      setLoadingSession(false);
+    }
+  };
+
+  useEffect(() => {
+    void loadSession();
+  }, []);
+
+  const permissionSet = useMemo(() => new Set(session?.permissions || []), [session?.permissions]);
+
+  const menuItems = useMemo<MenuProps['items']>(
+    () =>
+      menuConfig
+        .filter((item) => hasPermission(permissionSet, item.permission))
+        .map((item) => ({
+          key: item.key,
+          icon: item.icon,
+          label: <Link to={item.to}>{item.label}</Link>,
+        })),
+    [permissionSet],
+  );
+
+  useEffect(() => {
+    if (loadingSession || !session) return;
+    const availableKeys = new Set((menuItems || []).map((item: any) => String(item?.key || '')));
+    const currentKey = location.pathname.replace(/^\//, '') || 'dashboard';
+    const normalizedCurrentKey =
+      currentKey.startsWith('orders/')
+        ? 'orders'
+        : currentKey.startsWith('patents/operations')
+          ? 'patent-ops'
+          : currentKey.startsWith('patents/claims')
+            ? 'patent-claims'
+            : currentKey.startsWith('patents/')
+              ? 'patents'
+              : currentKey.startsWith('conversations/platform')
+                ? 'platform-conversations'
+                : currentKey;
+    if (normalizedCurrentKey === 'login') return;
+    if (availableKeys.has(normalizedCurrentKey)) return;
+    const firstItem = menuConfig.find((item) => hasPermission(permissionSet, item.permission));
+    if (firstItem) {
+      navigate(firstItem.to, { replace: true });
+    }
+  }, [loadingSession, location.pathname, menuItems, navigate, permissionSet, session]);
 
   const selectedKeys = useMemo(() => {
     const path = location.pathname.replace(/^\//, '');
@@ -74,7 +161,15 @@ export function AppLayout() {
     return [path];
   }, [location.pathname]);
 
-  if (hasToken === false) return null;
+  if (loadingSession) {
+    return (
+      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <Spin size="large" />
+      </div>
+    );
+  }
+
+  if (!session) return null;
 
   return (
     <Layout style={{ minHeight: '100vh' }}>
@@ -95,15 +190,19 @@ export function AppLayout() {
       <Layout>
         <Header className="ipm-app-header" style={{ padding: '0 16px' }}>
           <div className="ipm-header-inner">
-            <Typography.Text type="secondary">Ipmoney 运营后台</Typography.Text>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <Avatar size={30} icon={<UserOutlined />} />
+              <div style={{ display: 'flex', flexDirection: 'column', lineHeight: 1.2 }}>
+                <Typography.Text>{session.nickname || session.userId}</Typography.Text>
+                <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+                  角色：{(session.roleNames || []).join(' / ') || session.role || 'unknown'}
+                </Typography.Text>
+              </div>
+            </div>
             <Button
               size="small"
               onClick={() => {
-                try {
-                  clearAdminToken();
-                } catch {
-                  // ignore storage failures
-                }
+                clearAdminToken();
                 navigate('/login', { replace: true });
               }}
             >

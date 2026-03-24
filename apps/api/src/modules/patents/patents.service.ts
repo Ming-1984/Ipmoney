@@ -2,7 +2,7 @@
 import crypto from 'node:crypto';
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
-import * as XLSX from 'xlsx';
+import { parseExcelSerialDate, readWorkbookRowsFromBuffer } from '../../common/workbook-reader';
 
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { FilesService } from '../files/files.service';
@@ -66,7 +66,7 @@ type ConsultationRouting = 'PLATFORM' | 'OWNER';
 type ListingTradeMode = 'ASSIGNMENT' | 'LICENSE';
 type LicenseMode = 'EXCLUSIVE' | 'SOLE' | 'NON_EXCLUSIVE';
 type PriceType = 'FIXED' | 'NEGOTIABLE';
-type ListingTopic = 'HIGH_TECH_RETIRED' | 'SLEEPING' | 'AWARD_WINNING' | 'OPEN_LICENSE' | 'FIVE_STAR';
+type ListingTopic = 'HIGH_TECH_RETIRED' | 'SLEEPING' | 'AWARD_WINNING' | 'OPEN_LICENSE';
 type AuditStatus = 'PENDING' | 'APPROVED' | 'REJECTED';
 type ListingStatus = 'DRAFT' | 'ACTIVE' | 'OFF_SHELF' | 'SOLD';
 type PatentClaimStatus = 'PENDING' | 'APPROVED' | 'REJECTED';
@@ -169,6 +169,7 @@ const UPLOAD_DIR = process.env.UPLOAD_DIR || path.resolve(process.cwd(), 'upload
 const PATENT_JOB_STATUS_SET = new Set<PatentJobStatus>(['PENDING', 'RUNNING', 'PAUSED', 'SUCCEEDED', 'FAILED']);
 const PATENT_IMPORT_DUPLICATE_POLICY_SET = new Set<PatentImportDuplicatePolicy>(['SKIP', 'OVERWRITE']);
 const PATENT_IMPORT_ROW_STATUS_SET = new Set<PatentImportRowStatus>(['PENDING', 'VALID', 'INVALID', 'SUCCEEDED', 'FAILED', 'SKIPPED']);
+const PATENT_IMPORT_MAX_ROWS = 5000;
 const PATENT_CLAIM_STATUS_SET = new Set<PatentClaimStatus>(['PENDING', 'APPROVED', 'REJECTED']);
 const CONSULTATION_ROUTING_SET = new Set<ConsultationRouting>(['PLATFORM', 'OWNER']);
 const LISTING_TOPIC_VALUE_SET = new Set<ListingTopic>([
@@ -176,7 +177,6 @@ const LISTING_TOPIC_VALUE_SET = new Set<ListingTopic>([
   'SLEEPING',
   'AWARD_WINNING',
   'OPEN_LICENSE',
-  'FIVE_STAR',
 ]);
 const ORDER_BLOCKING_STATUS_SET = new Set<string>([
   'DEPOSIT_PENDING',
@@ -777,12 +777,15 @@ export class PatentsService {
     const q = String(query?.q || '').trim();
     const hasPatentType = this.hasOwn(query, 'patentType');
     const hasLegalStatus = this.hasOwn(query, 'legalStatus');
+    const hasSourcePrimary = this.hasOwn(query, 'sourcePrimary');
     const patentType = hasPatentType ? this.parsePatentTypeStrict(query?.patentType, 'patentType') : undefined;
     const legalStatus = hasLegalStatus ? this.parseLegalStatusStrict(query?.legalStatus, 'legalStatus') : undefined;
+    const sourcePrimary = hasSourcePrimary ? this.normalizeSourcePrimary(query?.sourcePrimary) : undefined;
 
     const where: any = {};
     if (patentType) where.patentType = patentType;
     if (legalStatus) where.legalStatus = legalStatus;
+    if (sourcePrimary) where.sourcePrimary = sourcePrimary;
     if (q) {
       where.OR = [
         { title: { contains: q, mode: 'insensitive' } },
@@ -1057,7 +1060,7 @@ export class PatentsService {
     return fileId;
   }
 
-  private async readFileBufferById(fileId: string): Promise<Buffer> {
+  private async readFileBufferById(fileId: string): Promise<{ file: any; buffer: Buffer }> {
     const file = await this.prisma.file.findUnique({ where: { id: fileId } });
     if (!file) {
       throw new NotFoundException({ code: 'NOT_FOUND', message: 'file not found' });
@@ -1068,12 +1071,12 @@ export class PatentsService {
     }
     const fromService = this.files ? await this.files.getFileBuffer(fileName) : null;
     if (fromService && fromService.length > 0) {
-      return fromService;
+      return { file, buffer: fromService };
     }
     try {
       const local = readFileSync(path.resolve(UPLOAD_DIR, path.basename(fileName)));
       if (!local.length) throw new Error('empty');
-      return local;
+      return { file, buffer: local };
     } catch {
       throw new NotFoundException({ code: 'NOT_FOUND', message: 'file not found' });
     }
@@ -1124,12 +1127,11 @@ export class PatentsService {
       return new Date(value.toISOString().slice(0, 10));
     }
     if (typeof value === 'number' && Number.isFinite(value)) {
-      const parsed = XLSX.SSF.parse_date_code(value);
-      if (!parsed || !parsed.y || !parsed.m || !parsed.d) {
+      const parsed = parseExcelSerialDate(value);
+      if (!parsed) {
         throw new BadRequestException({ code: 'BAD_REQUEST', message: `${fieldName} is invalid` });
       }
-      const utcDate = new Date(Date.UTC(parsed.y, parsed.m - 1, parsed.d));
-      return new Date(utcDate.toISOString().slice(0, 10));
+      return new Date(parsed.toISOString().slice(0, 10));
     }
     const raw = String(value || '').trim();
     if (!raw) return undefined;
@@ -1599,21 +1601,24 @@ export class PatentsService {
   async validateImportJob(_req: any, jobId: string): Promise<PatentImportJobDto> {
     const job = await this.prisma.patentImportJob.findUnique({ where: { id: jobId } });
     if (!job) throw new NotFoundException({ code: 'NOT_FOUND', message: 'import job not found' });
-    const buffer = await this.readFileBufferById(job.fileId);
-    let workbook: XLSX.WorkBook;
+    if (job.status === 'RUNNING') {
+      throw new ConflictException({ code: 'CONFLICT', message: 'import job is running' });
+    }
+    const { file, buffer } = await this.readFileBufferById(job.fileId);
+    let rows: Array<Record<string, any>>;
     try {
-      workbook = XLSX.read(buffer, { type: 'buffer' });
+      rows = await readWorkbookRowsFromBuffer(buffer, { fileName: String(file?.fileName || '') });
     } catch {
       throw new BadRequestException({ code: 'BAD_REQUEST', message: 'import file is invalid' });
     }
-    const sheetName = workbook.SheetNames?.[0];
-    if (!sheetName) {
-      throw new BadRequestException({ code: 'BAD_REQUEST', message: 'import file is empty' });
-    }
-    const sheet = workbook.Sheets[sheetName];
-    const rows = XLSX.utils.sheet_to_json<Record<string, any>>(sheet, { defval: '' });
     if (!rows.length) {
       throw new BadRequestException({ code: 'BAD_REQUEST', message: 'import file is empty' });
+    }
+    if (rows.length > PATENT_IMPORT_MAX_ROWS) {
+      throw new BadRequestException({
+        code: 'BAD_REQUEST',
+        message: `import file rows exceed limit (${PATENT_IMPORT_MAX_ROWS})`,
+      });
     }
 
     const normalizedRows = this.normalizeImportRows(rows);
@@ -1661,6 +1666,9 @@ export class PatentsService {
   async executeImportJob(_req: any, jobId: string): Promise<PatentImportJobDto> {
     const job = await this.prisma.patentImportJob.findUnique({ where: { id: jobId } });
     if (!job) throw new NotFoundException({ code: 'NOT_FOUND', message: 'import job not found' });
+    if (job.status === 'RUNNING') {
+      throw new ConflictException({ code: 'CONFLICT', message: 'import job is running' });
+    }
     if (!job.validatedAt) {
       throw new BadRequestException({ code: 'BAD_REQUEST', message: 'import job has not been validated' });
     }
@@ -2116,5 +2124,3 @@ export class PatentsService {
     return this.toClaimDto(updated);
   }
 }
-
-

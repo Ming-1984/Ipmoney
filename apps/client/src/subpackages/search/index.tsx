@@ -49,10 +49,10 @@ type ListingFilters = {
   patentType: PatentType | '';
   tradeMode: TradeMode | '';
   priceType: PriceType | '';
-  priceMinFen?: number;
-  priceMaxFen?: number;
-  depositMinFen?: number;
-  depositMaxFen?: number;
+  priceMin?: number;
+  priceMax?: number;
+  depositMin?: number;
+  depositMax?: number;
   transferCountMin?: number;
   transferCountMax?: number;
   regionCode?: string;
@@ -284,10 +284,10 @@ export default function SearchPage() {
         patentType: prefill.patentType ?? base.patentType,
         tradeMode: prefill.tradeMode ?? base.tradeMode,
         priceType: prefill.priceType ?? base.priceType,
-        priceMinFen: prefill.priceMinFen ?? base.priceMinFen,
-        priceMaxFen: prefill.priceMaxFen ?? base.priceMaxFen,
-        depositMinFen: prefill.depositMinFen ?? base.depositMinFen,
-        depositMaxFen: prefill.depositMaxFen ?? base.depositMaxFen,
+        priceMin: prefill.priceMin ?? base.priceMin,
+        priceMax: prefill.priceMax ?? base.priceMax,
+        depositMin: prefill.depositMin ?? base.depositMin,
+        depositMax: prefill.depositMax ?? base.depositMax,
         transferCountMin: prefill.transferCountMin ?? base.transferCountMin,
         transferCountMax: prefill.transferCountMax ?? base.transferCountMax,
         regionCode: prefill.regionCode ?? base.regionCode,
@@ -322,11 +322,11 @@ export default function SearchPage() {
       if (listingFilters.tradeMode) params.tradeMode = listingFilters.tradeMode;
       if (listingFilters.priceType) params.priceType = listingFilters.priceType;
       if (listingFilters.priceType === 'FIXED') {
-        if (listingFilters.priceMinFen !== undefined) params.priceMinFen = listingFilters.priceMinFen;
-        if (listingFilters.priceMaxFen !== undefined) params.priceMaxFen = listingFilters.priceMaxFen;
+        if (listingFilters.priceMin !== undefined) params.priceMin = listingFilters.priceMin;
+        if (listingFilters.priceMax !== undefined) params.priceMax = listingFilters.priceMax;
       }
-      if (listingFilters.depositMinFen !== undefined) params.depositMinFen = listingFilters.depositMinFen;
-      if (listingFilters.depositMaxFen !== undefined) params.depositMaxFen = listingFilters.depositMaxFen;
+      if (listingFilters.depositMin !== undefined) params.depositMin = listingFilters.depositMin;
+      if (listingFilters.depositMax !== undefined) params.depositMax = listingFilters.depositMax;
       if (listingFilters.transferCountMin !== undefined) params.transferCountMin = listingFilters.transferCountMin;
       if (listingFilters.transferCountMax !== undefined) params.transferCountMax = listingFilters.transferCountMax;
       if (listingFilters.ipc.trim()) params.ipc = listingFilters.ipc.trim();
@@ -485,9 +485,9 @@ export default function SearchPage() {
     if (listingFilters.patentType) out.push(patentTypeLabel(listingFilters.patentType, { empty: '' }));
     if (listingFilters.tradeMode) out.push(tradeModeLabel(listingFilters.tradeMode, { empty: '' }));
     if (listingFilters.priceType) out.push(priceTypeLabel(listingFilters.priceType, { empty: '' }));
-    const priceLabel = fenRangeSummary(listingFilters.priceMinFen, listingFilters.priceMaxFen);
+    const priceLabel = fenRangeSummary(listingFilters.priceMin, listingFilters.priceMax);
     if (priceLabel) out.push(`价格${priceLabel}`);
-    const depositLabel = fenRangeSummary(listingFilters.depositMinFen, listingFilters.depositMaxFen);
+    const depositLabel = fenRangeSummary(listingFilters.depositMin, listingFilters.depositMax);
     if (depositLabel) out.push(`订金${depositLabel}`);
     const transferLabel = transferCountSummary(listingFilters.transferCountMin, listingFilters.transferCountMax);
     if (transferLabel) out.push(`转让${transferLabel}`);
@@ -631,16 +631,16 @@ export default function SearchPage() {
           onApply={(next) => setListingFilters(next)}
           validate={(draft) => {
             if (
-              draft.priceMinFen !== undefined &&
-              draft.priceMaxFen !== undefined &&
-              draft.priceMinFen > draft.priceMaxFen
+              draft.priceMin !== undefined &&
+              draft.priceMax !== undefined &&
+              draft.priceMin > draft.priceMax
             ) {
               return '价格区间不合法';
             }
             if (
-              draft.depositMinFen !== undefined &&
-              draft.depositMaxFen !== undefined &&
-              draft.depositMinFen > draft.depositMaxFen
+              draft.depositMin !== undefined &&
+              draft.depositMax !== undefined &&
+              draft.depositMin > draft.depositMax
             ) {
               return '订金区间不合法';
             }
@@ -749,7 +749,7 @@ export default function SearchPage() {
                       setDraft((prev) => ({
                         ...prev,
                         priceType: v,
-                        ...(v === 'NEGOTIABLE' ? { priceMinFen: undefined, priceMaxFen: undefined } : {}),
+                        ...(v === 'NEGOTIABLE' ? { priceMin: undefined, priceMax: undefined } : {}),
                       }))
                     }
                   />
@@ -757,11 +757,11 @@ export default function SearchPage() {
 
                 <FilterSection title="价格区间">
                   <RangeInput
-                    minFen={draft.priceMinFen}
-                    maxFen={draft.priceMaxFen}
+                    minFen={draft.priceMin}
+                    maxFen={draft.priceMax}
                     disabled={draft.priceType === 'NEGOTIABLE'}
                     onChange={(range) =>
-                      setDraft((prev) => ({ ...prev, priceMinFen: range.minFen, priceMaxFen: range.maxFen }))
+                      setDraft((prev) => ({ ...prev, priceMin: range.minFen, priceMax: range.maxFen }))
                     }
                   />
                   {draft.priceType === 'NEGOTIABLE' ? (
@@ -771,10 +771,10 @@ export default function SearchPage() {
 
                 <FilterSection title="订金区间">
                   <RangeInput
-                    minFen={draft.depositMinFen}
-                    maxFen={draft.depositMaxFen}
+                    minFen={draft.depositMin}
+                    maxFen={draft.depositMax}
                     onChange={(range) =>
-                      setDraft((prev) => ({ ...prev, depositMinFen: range.minFen, depositMaxFen: range.maxFen }))
+                      setDraft((prev) => ({ ...prev, depositMin: range.minFen, depositMax: range.maxFen }))
                     }
                   />
                 </FilterSection>

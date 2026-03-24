@@ -5,8 +5,7 @@ param(
   [int]$MockPort = 4010,
   [int]$ApiPort = 3200,
   [switch]$Force,
-  [switch]$SeedDemo,
-  [switch]$PurgeDemo
+  [switch]$SeedDemo
 )
 
 $ErrorActionPreference = "Stop"
@@ -86,7 +85,6 @@ if ($Target -eq "api" -or $Target -eq "all") {
     Invoke-External -FilePath "pnpm" -Args @("prisma", "migrate", "reset", "--force", "--skip-seed")
 
     $env:SEED_DEMO_DATA = if ($SeedDemo) { "true" } else { "false" }
-    if ($PurgeDemo) { $env:SEED_DEMO_PURGE_MAP = "true" }
 
     Write-Host "[reset] prisma seed..."
     Invoke-External -FilePath "pnpm" -Args @("db:seed")

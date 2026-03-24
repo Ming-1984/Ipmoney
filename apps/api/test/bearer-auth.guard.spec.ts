@@ -1,6 +1,7 @@
 import { UnauthorizedException } from '@nestjs/common';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { createAccessToken } from '../src/common/access-token';
 import { BearerAuthGuard } from '../src/common/guards/bearer-auth.guard';
 
 type Req = { headers?: Record<string, string>; auth?: any };
@@ -16,6 +17,7 @@ function makeContext(req: Req) {
 describe('BearerAuthGuard strictness suite', () => {
   const envKeys = [
     'NODE_ENV',
+    'ACCESS_TOKEN_SECRET',
     'DEMO_AUTH_ENABLED',
     'DEMO_AUTH_ALLOW_UUID_TOKENS',
     'DEMO_ADMIN_TOKEN',
@@ -37,6 +39,7 @@ describe('BearerAuthGuard strictness suite', () => {
   beforeEach(() => {
     envBackup = Object.fromEntries(envKeys.map((k) => [k, process.env[k]]));
     process.env.NODE_ENV = 'test';
+    process.env.ACCESS_TOKEN_SECRET = 'guard-unit-secret';
     process.env.DEMO_AUTH_ENABLED = 'true';
     process.env.DEMO_ADMIN_TOKEN = 'demo-admin-token';
     process.env.DEMO_USER_TOKEN = 'demo-user-token';
@@ -122,6 +125,28 @@ describe('BearerAuthGuard strictness suite', () => {
     };
 
     await expect(guard.canActivate(makeContext(req))).rejects.toBeInstanceOf(UnauthorizedException);
+  });
+
+  it('accepts signed access token without demo uuid-token mode', async () => {
+    const userId = '44444444-4444-4444-8444-444444444444';
+    const token = createAccessToken(userId, 7200);
+    prisma.user.findUnique.mockResolvedValueOnce({
+      id: userId,
+      role: 'operator',
+      nickname: 'Signed Op',
+    });
+    prisma.rbacUserRole.findMany.mockResolvedValueOnce([]);
+    prisma.rbacRole.findMany.mockResolvedValueOnce([]);
+    prisma.userVerification.findFirst.mockResolvedValueOnce({
+      verificationStatus: 'APPROVED',
+      verificationType: 'PERSON',
+    });
+    const req: Req = { headers: { authorization: `Bearer ${token}` } };
+
+    await expect(guard.canActivate(makeContext(req))).resolves.toBe(true);
+    expect(req.auth.userId).toBe(userId);
+    expect(req.auth.isAdmin).toBe(true);
+    expect(req.auth.roleNames).toEqual(['operator']);
   });
 
   it('accepts uuid token when enabled and derives fallback operator permissions', async () => {

@@ -16,8 +16,6 @@ type ListingSummaryExtra = ListingSummary & {
   publisher?: components['schemas']['OrganizationSummary'];
   seller?: components['schemas']['UserBrief'];
   transferCount?: number;
-  transferTimes?: number;
-  listingTopic?: ListingTopic | '';
   listingTopics?: ListingTopic[];
 };
 
@@ -39,8 +37,7 @@ export function ListingCard(props: {
   const viewCount = stats?.viewCount;
   const favoriteCount = stats?.favoriteCount;
   const hasStats = viewCount !== undefined || favoriteCount !== undefined;
-  const transferCount =
-    (extra.transferCount ?? extra.transferTimes ?? (extra.stats as { transferCount?: number } | undefined)?.transferCount) || 0;
+  const transferCount = (extra.transferCount ?? (extra.stats as { transferCount?: number } | undefined)?.transferCount) || 0;
   const transferBadgeText = transferCount === 0 ? '沉睡专利' : `转让 ${transferCount} 次`;
   const transferBadgeClass = `listing-thumb-badge ${transferCount === 0 ? 'listing-thumb-badge--sleep' : ''}`.trim();
   const tags: { label: string; tone: 'green' | 'slate' }[] = [];
@@ -50,18 +47,11 @@ export function ListingCard(props: {
     if (specialTags.some((it) => it.label === label)) return;
     specialTags.push({ label, tone: 'green' });
   };
-  const listingTopics = sanitizeListingTopics(
-    Array.isArray(extra.listingTopics)
-      ? extra.listingTopics
-      : extra.listingTopic
-        ? [extra.listingTopic]
-        : [],
-  );
+  const listingTopics = sanitizeListingTopics(Array.isArray(extra.listingTopics) ? extra.listingTopics : []);
   if (transferCount === 0 || listingTopics.includes('SLEEPING')) addSpecialTag('沉睡专利');
   if (it.tradeMode === 'LICENSE' || listingTopics.includes('OPEN_LICENSE')) addSpecialTag('开放许可');
   listingTopics
     .map((topic) => {
-      if (topic === 'FIVE_STAR') return '五星专利';
       if (topic === 'HIGH_TECH_RETIRED') return '退役专利';
       if (topic === 'AWARD_WINNING') return '获奖专利';
       return '';

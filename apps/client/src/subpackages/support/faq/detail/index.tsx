@@ -34,12 +34,12 @@ export default function SupportFaqDetailPage() {
         <Spacer />
         <Surface className="faq-detail-card">
           <Text className="faq-detail-q">该问题不存在或已下线</Text>
-          <Text className="faq-detail-meta">你可以返回列表重新选择，或直接电话联系客服。</Text>
+          <Text className="faq-detail-meta">你可以返回列表重新选择，或进入在线客服会话继续咨询。</Text>
         </Surface>
         <Spacer size={12} />
         <Surface className="faq-detail-actions">
           <Cell title="返回常见问题" extra="返回" onClick={() => Taro.navigateBack()} />
-          <Cell title="联系客服" extra="电话" onClick={() => Taro.navigateTo({ url: '/subpackages/support/contact/index' })} />
+          <Cell title="在线客服" extra="进入" onClick={() => Taro.navigateTo({ url: '/subpackages/support/contact/index' })} />
         </Surface>
       </View>
     );
@@ -60,7 +60,7 @@ export default function SupportFaqDetailPage() {
 
       <Surface className="faq-detail-actions">
         <Cell title="交易规则" extra="查看" onClick={() => Taro.navigateTo({ url: '/subpackages/trade-rules/index' })} />
-        <Cell title="联系客服" extra="电话" onClick={() => Taro.navigateTo({ url: '/subpackages/support/contact/index' })} />
+        <Cell title="在线客服" extra="进入" onClick={() => Taro.navigateTo({ url: '/subpackages/support/contact/index' })} />
       </Surface>
     </View>
   );

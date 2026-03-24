@@ -3,7 +3,6 @@ import { Prisma } from '@prisma/client';
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
-import * as XLSX from 'xlsx';
 
 type AuditStatus = 'PENDING' | 'APPROVED' | 'REJECTED';
 type ListingStatus = 'DRAFT' | 'ACTIVE' | 'OFF_SHELF' | 'SOLD';
@@ -11,7 +10,7 @@ type FeaturedLevel = 'NONE' | 'CITY' | 'PROVINCE';
 type ContentSource = 'USER' | 'PLATFORM' | 'ADMIN';
 type PledgeStatus = 'NONE' | 'PLEDGED' | 'UNKNOWN';
 type ExistingLicenseStatus = 'NONE' | 'EXCLUSIVE' | 'SOLE' | 'NON_EXCLUSIVE' | 'UNKNOWN';
-type ListingTopic = 'HIGH_TECH_RETIRED' | 'SLEEPING' | 'AWARD_WINNING' | 'OPEN_LICENSE' | 'FIVE_STAR';
+type ListingTopic = 'HIGH_TECH_RETIRED' | 'SLEEPING' | 'AWARD_WINNING' | 'OPEN_LICENSE';
 
 import { AuditLogService } from '../../common/audit-log.service';
 import { ContentEventService } from '../../common/content-event.service';
@@ -20,13 +19,13 @@ import { NotificationsService } from '../notifications/notifications.service';
 import { mapStats, sanitizeIndustryTagNames } from '../content-utils';
 import { ConfigService, type RecommendationConfig } from '../config/config.service';
 import { FilesService } from '../files/files.service';
+import { readWorkbookRowsFromBuffer } from '../../common/workbook-reader';
 
 const LISTING_TOPIC_VALUE_SET = new Set<ListingTopic>([
   'HIGH_TECH_RETIRED',
   'SLEEPING',
   'AWARD_WINNING',
   'OPEN_LICENSE',
-  'FIVE_STAR',
 ]);
 
 type ListingAdminDto = {
@@ -1364,14 +1363,6 @@ export class ListingsService {
     });
   }
 
-  private withPatentSourceFallback(body: any) {
-    const payload = { ...(body || {}) };
-    if (!this.hasOwn(payload, 'sourcePrimary') && this.hasOwn(body, 'source')) {
-      payload.sourcePrimary = body?.source;
-    }
-    return payload;
-  }
-
   private async ensurePatent(body: any) {
     const patentNumberRaw = String(body?.patentNumberRaw || '').trim();
     if (!patentNumberRaw) return null;
@@ -1709,9 +1700,14 @@ export class ListingsService {
     const hasAuditStatus = this.hasOwn(query, 'auditStatus');
     const hasStatus = this.hasOwn(query, 'status');
     const hasSource = this.hasOwn(query, 'source');
+    const hasListingTopic = this.hasOwn(query, 'listingTopic');
     const auditStatus = hasAuditStatus ? this.parseAuditStatusStrict(query?.auditStatus, 'auditStatus') : undefined;
     const status = hasStatus ? this.parseListingStatusStrict(query?.status, 'status') : undefined;
     const source = hasSource ? this.parseContentSourceStrict(query?.source, 'source') : undefined;
+    const listingTopics = this.normalizeListingTopics(query?.listingTopic);
+    if (hasListingTopic && listingTopics.length === 0 && String(query?.listingTopic ?? '').trim()) {
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: 'listingTopic is invalid' });
+    }
 
     const where: any = {};
     if (q) {
@@ -1721,6 +1717,9 @@ export class ListingsService {
     if (auditStatus) where.auditStatus = auditStatus;
     if (status) where.status = status;
     if (source) where.source = source;
+    if (listingTopics.length > 0) {
+      where.AND = listingTopics.map((topic) => ({ listingTopicsJson: { array_contains: [topic] } }));
+    }
 
     const [items, total] = await Promise.all([
       this.prisma.listing.findMany({
@@ -1787,7 +1786,7 @@ export class ListingsService {
     if (!sellerUserId) {
       throw new BadRequestException({ code: 'BAD_REQUEST', message: 'sellerUserId is required' });
     }
-    const listingTopics = this.normalizeListingTopics(body?.listingTopics ?? body?.listingTopic);
+    const listingTopics = this.normalizeListingTopics(body?.listingTopics);
     const proofFileIds = this.normalizeFileIds(body?.proofFileIds);
     const deliverables = this.normalizeStringArray(body?.deliverables);
     const expectedCompletionDays = this.parseOptionalInt(body?.expectedCompletionDays, 'expectedCompletionDays', 1);
@@ -1806,7 +1805,7 @@ export class ListingsService {
       : null;
     const parsedTitle = hasTitle ? this.parseNullableNonEmptyStringStrict(body?.title, 'title') : undefined;
     const parsedSummary = hasSummary ? this.parseNullableNonEmptyStringStrict(body?.summary, 'summary') : undefined;
-    const patent = await this.ensurePatent(this.withPatentSourceFallback(body));
+    const patent = await this.ensurePatent(body);
     let resolvedSellerUserId = sellerUserId;
     if (consultationRouting === 'OWNER') {
       const ownerUserId = String(patent?.ownerUserId || '').trim();
@@ -1866,9 +1865,9 @@ export class ListingsService {
       throw new NotFoundException({ code: 'NOT_FOUND', message: 'listing not found' });
     }
     let patentId = listing.patentId;
-    const patentBody = this.withPatentSourceFallback(body);
-    const hasListingTopics = body?.listingTopics !== undefined || body?.listingTopic !== undefined;
-    const listingTopics = hasListingTopics ? this.normalizeListingTopics(body?.listingTopics ?? body?.listingTopic) : undefined;
+    const patentBody = body;
+    const hasListingTopics = body?.listingTopics !== undefined;
+    const listingTopics = hasListingTopics ? this.normalizeListingTopics(body?.listingTopics) : undefined;
     const hasProofFileIds = body?.proofFileIds !== undefined;
     const proofFileIds = hasProofFileIds ? this.normalizeFileIds(body?.proofFileIds) : undefined;
     const hasDeliverables = Object.prototype.hasOwnProperty.call(body || {}, 'deliverables');
@@ -2305,20 +2304,13 @@ export class ListingsService {
     const job = await this.prisma.listingImportJob.findUnique({ where: { id: jobId } });
     if (!job) throw new NotFoundException({ code: 'NOT_FOUND', message: 'import job not found' });
 
-    const { buffer } = await this.readFileBufferById(job.fileId);
-    let workbook: XLSX.WorkBook;
+    const { file, buffer } = await this.readFileBufferById(job.fileId);
+    let rows: Array<Record<string, any>>;
     try {
-      workbook = XLSX.read(buffer, { type: 'buffer' });
+      rows = await readWorkbookRowsFromBuffer(buffer, { fileName: String(file?.fileName || '') });
     } catch {
       throw new BadRequestException({ code: 'BAD_REQUEST', message: 'import file is invalid' });
     }
-
-    const sheetName = workbook.SheetNames?.[0];
-    if (!sheetName) {
-      throw new BadRequestException({ code: 'BAD_REQUEST', message: 'import file is empty' });
-    }
-    const sheet = workbook.Sheets[sheetName];
-    const rows = XLSX.utils.sheet_to_json<Record<string, any>>(sheet, { defval: '' });
     if (!rows.length) {
       throw new BadRequestException({ code: 'BAD_REQUEST', message: 'import file is empty' });
     }
@@ -2901,7 +2893,7 @@ export class ListingsService {
       ? this.parseNullableExistingLicenseStatusStrict(body?.existingLicenseStatus, 'existingLicenseStatus')
       : null;
     const regionCode = hasRegionCode ? this.parseNullableRegionCodeStrict(body?.regionCode, 'regionCode') : undefined;
-    const listingTopics = this.normalizeListingTopics(body?.listingTopics ?? body?.listingTopic);
+    const listingTopics = this.normalizeListingTopics(body?.listingTopics);
     const proofFileIds = this.normalizeFileIds(body?.proofFileIds);
     const deliverables = this.normalizeStringArray(body?.deliverables);
     const expectedCompletionDays = this.parseOptionalInt(body?.expectedCompletionDays, 'expectedCompletionDays', 1);
@@ -2972,8 +2964,8 @@ export class ListingsService {
       throw new NotFoundException({ code: 'NOT_FOUND', message: 'listing not found' });
     }
     let patentId = listing.patentId;
-    const hasListingTopics = body?.listingTopics !== undefined || body?.listingTopic !== undefined;
-    const listingTopics = hasListingTopics ? this.normalizeListingTopics(body?.listingTopics ?? body?.listingTopic) : undefined;
+    const hasListingTopics = body?.listingTopics !== undefined;
+    const listingTopics = hasListingTopics ? this.normalizeListingTopics(body?.listingTopics) : undefined;
     const hasProofFileIds = body?.proofFileIds !== undefined;
     const proofFileIds = hasProofFileIds ? this.normalizeFileIds(body?.proofFileIds) : undefined;
     const hasDeliverables = Object.prototype.hasOwnProperty.call(body || {}, 'deliverables');
@@ -3112,8 +3104,8 @@ export class ListingsService {
     const hasPatentType = this.hasOwn(query, 'patentType');
     const patentType = hasPatentType ? this.parsePatentTypeStrict(query?.patentType, 'patentType') : undefined;
     const inventor = String(query?.inventor || '').trim();
-    const applicant = String(query?.applicant || query?.applicantName || '').trim();
-    const assignee = String(query?.assignee || query?.assigneeName || '').trim();
+    const applicant = String(query?.applicant || '').trim();
+    const assignee = String(query?.assignee || '').trim();
     const hasSellerUserId = this.hasOwn(query, 'sellerUserId');
     const sellerUserId = hasSellerUserId ? this.parseNonEmptyFilterStrict(query?.sellerUserId, 'sellerUserId') : '';
     const hasTradeMode = this.hasOwn(query, 'tradeMode');
@@ -3128,20 +3120,19 @@ export class ListingsService {
     const legalStatus = hasLegalStatus ? this.parseLegalStatusStrict(query?.legalStatus, 'legalStatus') : undefined;
     const hasSortBy = this.hasOwn(query, 'sortBy');
     const sortBy = hasSortBy ? this.parseListingSortByStrict(query?.sortBy, 'sortBy') : 'NEWEST';
-    const listingTopics = this.normalizeListingTopics(query?.listingTopics ?? query?.listingTopic);
+    const listingTopics = this.normalizeListingTopics(query?.listingTopic);
     const ipcList = this.normalizeStringArray(query?.ipc)
       .map((v: any) => String(v || '').trim().toUpperCase())
       .filter((v: any) => v.length > 0);
-    const locList = this.normalizeStringArray(query?.loc ?? query?.locarno)
+    const locList = this.normalizeStringArray(query?.loc)
       .map((v: any) => String(v || '').trim().toUpperCase())
       .filter((v: any) => v.length > 0);
 
-    const parseStrictQueryIntFilter = (primaryKey: string, fallbackKey?: string) => {
+    const parseStrictQueryIntFilter = (primaryKey: string) => {
       const hasPrimary = this.hasOwn(query, primaryKey);
-      const hasFallback = fallbackKey ? this.hasOwn(query, fallbackKey) : false;
-      if (!hasPrimary && !hasFallback) return undefined;
-      const key = hasPrimary ? primaryKey : (fallbackKey as string);
-      const raw = hasPrimary ? query?.[primaryKey] : query?.[fallbackKey as string];
+      if (!hasPrimary) return undefined;
+      const key = primaryKey;
+      const raw = query?.[primaryKey];
       const parsed = this.parseOptionalInt(raw, key, 0);
       if (parsed === undefined) {
         throw new BadRequestException({ code: 'BAD_REQUEST', message: `${key} is invalid` });
@@ -3149,10 +3140,10 @@ export class ListingsService {
       return parsed;
     };
 
-    const priceMin = parseStrictQueryIntFilter('priceMin', 'priceMinFen');
-    const priceMax = parseStrictQueryIntFilter('priceMax', 'priceMaxFen');
-    const depositMin = parseStrictQueryIntFilter('depositMin', 'depositMinFen');
-    const depositMax = parseStrictQueryIntFilter('depositMax', 'depositMaxFen');
+    const priceMin = parseStrictQueryIntFilter('priceMin');
+    const priceMax = parseStrictQueryIntFilter('priceMax');
+    const depositMin = parseStrictQueryIntFilter('depositMin');
+    const depositMax = parseStrictQueryIntFilter('depositMax');
     const transferCountMin = parseStrictQueryIntFilter('transferCountMin');
     const transferCountMax = parseStrictQueryIntFilter('transferCountMax');
 

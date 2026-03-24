@@ -60,7 +60,7 @@ describe('ListingsService search filter strictness suite', () => {
     await expect(service.searchPublic({ transferCountMax: '9007199254740992' })).rejects.toBeInstanceOf(
       BadRequestException,
     );
-    await expect(service.searchPublic({ priceMaxFen: '-1' })).rejects.toBeInstanceOf(BadRequestException);
+    await expect(service.searchPublic({ priceMax: '-1' })).rejects.toBeInstanceOf(BadRequestException);
   });
 
   it('caps pageSize to 50 for public search', async () => {
@@ -129,9 +129,9 @@ describe('ListingsService search filter strictness suite', () => {
     prisma.listing.findMany.mockResolvedValueOnce([]);
     prisma.listing.count.mockResolvedValueOnce(0);
 
-    await service.searchPublic({ listingTopic: ['FIVE_STAR', 'foo'] });
+    await service.searchPublic({ listingTopic: ['legacy_topic', 'foo'] });
 
     const args = prisma.listing.findMany.mock.calls[0][0];
-    expect(args.where.AND).toEqual([{ listingTopicsJson: { array_contains: ['FIVE_STAR'] } }]);
+    expect(args.where.AND).toBeUndefined();
   });
 });

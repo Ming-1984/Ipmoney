@@ -1,0 +1,25 @@
+﻿\documentclass[12pt]{ctexart}
+\usepackage{xurl}
+\begin{document}
+\begin{enumerate}
+  \item WX\_MP\_SECRET（对应 \texttt{wxa053408fad6ab1df}）
+  \item 微信支付参数
+  \begin{itemize}
+    \item WX\_PAY\_MCHID
+    \item WX\_PAY\_MCH\_CERT\_SERIAL\_NO
+    \item WX\_PAY\_API\_V3\_KEY
+    \item WX\_PAY\_MCH\_PRIVATE\_KEY
+    \item WX\_PAY\_PLATFORM\_CERT\_SERIAL\_NO
+    \item WX\_PAY\_PLATFORM\_CERT（与 WX\_PAY\_PLATFORM\_CERTS 二选一）
+    \item WX\_PAY\_PLATFORM\_CERTS（与 WX\_PAY\_PLATFORM\_CERT 二选一）
+  \end{itemize}
+  \item 确认支付回调地址
+  \begin{itemize}
+    \item \url{WX_PAY_NOTIFY_URL=https://api.ipmoney.cn/webhooks/wechatpay/notify}
+  \end{itemize}
+  \item 生产 CORS\_ORIGINS 最终名单（前台域名、后台域名）
+  \begin{itemize}
+    \item \url{CORS_ORIGINS=https://ipmoney.cn,https://www.ipmoney.cn,<ADMIN_DOMAIN>}
+  \end{itemize}
+\end{enumerate}
+\end{document}

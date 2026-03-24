@@ -60,6 +60,10 @@ function sourcePrimaryLabel(source?: Patent['sourcePrimary']): string {
   return '未知';
 }
 
+function isPlatformUnifiedPatent(source?: Patent['sourcePrimary']): boolean {
+  return source === 'ADMIN' || source === 'PROVIDER';
+}
+
 function supplyTypeLabel(type?: string | null): string {
   if (!type) return '-';
   if (type === 'UNIVERSITY') return '高校';
@@ -159,6 +163,20 @@ export default function PatentDetailOverviewPage() {
     (data as any)?.specFigureCount,
   ].some((value) => value !== undefined && value !== null);
   const hasTrade = Boolean(tradeSnapshot);
+  const claimEnabled = Boolean(data && isPlatformUnifiedPatent(data.sourcePrimary) && !data.ownerUserId);
+  const claimBlockedReason = data?.ownerUserId ? '该专利已归属个人，不支持认领' : '';
+
+  const openClaimPage = useCallback(() => {
+    if (!patentId) return;
+    if (!claimEnabled) {
+      if (claimBlockedReason) toast(claimBlockedReason);
+      return;
+    }
+    const title = data?.title || '';
+    Taro.navigateTo({
+      url: `/subpackages/patent-claims/index?patentId=${encodeURIComponent(patentId)}&title=${encodeURIComponent(title)}`,
+    });
+  }, [claimBlockedReason, claimEnabled, data?.title, patentId]);
 
   const startConsult = useCallback(async () => {
     if (!listingId) {
@@ -537,8 +555,22 @@ export default function PatentDetailOverviewPage() {
             )}
           </View>
 
-          <Spacer size={12} />
+          {claimEnabled ? (
+            <>
+              <Spacer size={12} />
+              <View id="patent-claim" className="patent-card-stack">
+                <SectionHeader title="专利认领" density="compact" />
+                <Surface className="detail-section-card patent-claim-card">
+                  <Text className="patent-claim-desc">该专利为平台统一发布。如你为权利主体，可提交认领并上传权属证明。</Text>
+                  <Button variant="primary" onClick={openClaimPage}>
+                    我要认领
+                  </Button>
+                </Surface>
+              </View>
+            </>
+          ) : null}
 
+          <Spacer size={12} />
 
           {data.sourcePrimary || data.sourceUpdatedAt ? (
             <>

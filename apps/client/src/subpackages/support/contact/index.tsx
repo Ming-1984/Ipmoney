@@ -3,7 +3,9 @@ import Taro from '@tarojs/taro';
 import React, { useCallback, useEffect, useState } from 'react';
 import './index.scss';
 
-import { apiGet } from '../../../lib/api';
+import type { components } from '@ipmoney/api-types';
+
+import { apiGet, apiPost } from '../../../lib/api';
 import { getDetailCache, setDetailCache } from '../../../lib/detailCache';
 import { PageHeader, Spacer, Surface, TipBanner } from '../../../ui/layout';
 import { Cell, toast } from '../../../ui/nutui';
@@ -14,12 +16,15 @@ type CustomerServiceConfig = {
   assignStrategy?: 'AUTO' | 'MANUAL';
 };
 
+type Conversation = components['schemas']['Conversation'];
+
 const FALLBACK_PHONE = '400-000-0000';
 const CS_CONFIG_CACHE_SCOPE = 'public-config';
 const CS_CONFIG_CACHE_KEY = 'customer-service';
 
 export default function SupportContactPage() {
   const [phone, setPhone] = useState(FALLBACK_PHONE);
+  const [openingChat, setOpeningChat] = useState(false);
 
   const load = useCallback(async () => {
     const cached = getDetailCache<CustomerServiceConfig>(CS_CONFIG_CACHE_SCOPE, CS_CONFIG_CACHE_KEY);
@@ -42,6 +47,23 @@ export default function SupportContactPage() {
     void load();
   }, [load]);
 
+  const openSupportConversation = useCallback(async () => {
+    if (openingChat) return;
+    setOpeningChat(true);
+    try {
+      const conversation = await apiPost<Conversation>(
+        '/support/conversations',
+        {},
+        { idempotencyKey: `support-contact-open-${Date.now()}` },
+      );
+      Taro.navigateTo({ url: `/subpackages/messages/chat/index?conversationId=${conversation.id}` });
+    } catch (e: any) {
+      toast(e?.message || '进入会话失败');
+    } finally {
+      setOpeningChat(false);
+    }
+  }, [openingChat]);
+
   const makeCall = useCallback(async () => {
     try {
       await Taro.makePhoneCall({ phoneNumber: phone });
@@ -61,19 +83,20 @@ export default function SupportContactPage() {
 
   return (
     <View className="container settings-page">
-      <PageHeader weapp back title="联系客服" subtitle="电话咨询与售后支持" />
+      <PageHeader weapp back title="联系客服" subtitle="在线咨询与售后支持" />
       <Spacer />
 
       <TipBanner tone="info" title="服务提示">
-        客服工作时间：工作日 09:00-18:00；非工作时间可提交意见反馈，我们会尽快处理。
+        优先使用在线客服会话，可持续跟进问题；紧急情况可拨打客服热线。
       </TipBanner>
 
       <Spacer size={12} />
 
       <Surface className="settings-card">
+        <Cell title="在线客服会话" extra={openingChat ? '连接中' : '进入'} onClick={() => void openSupportConversation()} />
         <Cell title="客服热线" extra={phone} onClick={() => void makeCall()} />
         <Cell title="复制号码" extra="复制" onClick={() => void copyPhone()} />
-        <Text className="cs-hint">如遇交易纠纷或紧急问题，建议优先电话沟通并保留相关材料。</Text>
+        <Text className="cs-hint">如遇交易纠纷，建议进入订单详情发起“争议沟通”，便于平台关联订单处理。</Text>
       </Surface>
     </View>
   );

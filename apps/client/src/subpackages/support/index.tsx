@@ -3,22 +3,67 @@ import Taro from '@tarojs/taro';
 import React, { useCallback, useState } from 'react';
 import './index.scss';
 
+import type { components } from '@ipmoney/api-types';
+
+import { apiPost } from '../../lib/api';
 import { PageHeader, Spacer, Surface, TipBanner } from '../../ui/layout';
 import { Button, Cell, Input, TextArea } from '../../ui/nutui';
+
+type Conversation = components['schemas']['Conversation'];
 
 export default function SupportPage() {
   const [contact, setContact] = useState('');
   const [content, setContent] = useState('');
+  const [submitting, setSubmitting] = useState(false);
 
-  const submitFeedback = useCallback(() => {
+  const openSupportConversation = useCallback(async () => {
+    if (submitting) return;
+    setSubmitting(true);
+    try {
+      const conversation = await apiPost<Conversation>(
+        '/support/conversations',
+        {},
+        { idempotencyKey: `support-open-${Date.now()}` },
+      );
+      Taro.navigateTo({ url: `/subpackages/messages/chat/index?conversationId=${conversation.id}` });
+    } catch (e: any) {
+      Taro.showToast({ title: e?.message || '进入客服会话失败', icon: 'none' });
+    } finally {
+      setSubmitting(false);
+    }
+  }, [submitting]);
+
+  const submitFeedback = useCallback(async () => {
     if (!content.trim()) {
       Taro.showToast({ title: '请填写反馈内容', icon: 'none' });
       return;
     }
-    Taro.showToast({ title: '已提交反馈', icon: 'success' });
-    setContent('');
-    setContact('');
-  }, [content]);
+    if (submitting) return;
+    setSubmitting(true);
+    try {
+      const conversation = await apiPost<Conversation>(
+        '/support/conversations',
+        {},
+        { idempotencyKey: `support-feedback-open-${Date.now()}` },
+      );
+      const feedbackText = contact.trim()
+        ? `联系方式：${contact.trim()}\n反馈内容：${content.trim()}`
+        : content.trim();
+      await apiPost(
+        `/conversations/${conversation.id}/messages`,
+        { type: 'TEXT', text: feedbackText },
+        { idempotencyKey: `support-feedback-send-${Date.now()}` },
+      );
+      setContent('');
+      setContact('');
+      Taro.showToast({ title: '已提交，正在进入会话', icon: 'success' });
+      Taro.navigateTo({ url: `/subpackages/messages/chat/index?conversationId=${conversation.id}` });
+    } catch (e: any) {
+      Taro.showToast({ title: e?.message || '提交失败', icon: 'none' });
+    } finally {
+      setSubmitting(false);
+    }
+  }, [contact, content, submitting]);
 
   return (
     <View className="container settings-page">
@@ -33,7 +78,8 @@ export default function SupportPage() {
 
       <Surface className="settings-card">
         <Cell title="常见问题" extra="查看" onClick={() => Taro.navigateTo({ url: '/subpackages/support/faq/index' })} />
-        <Cell title="联系客服" extra="电话" onClick={() => Taro.navigateTo({ url: '/subpackages/support/contact/index' })} />
+        <Cell title="在线客服会话" extra="进入" onClick={() => void openSupportConversation()} />
+        <Cell title="电话客服" extra="热线" onClick={() => Taro.navigateTo({ url: '/subpackages/support/contact/index' })} />
         <Cell title="交易规则" extra="查看" onClick={() => Taro.navigateTo({ url: '/subpackages/trade-rules/index' })} />
       </Surface>
 
@@ -55,10 +101,10 @@ export default function SupportPage() {
           placeholder="请描述你遇到的问题或建议"
           maxLength={500}
         />
-        <Button variant="primary" onClick={submitFeedback}>
+        <Button variant="primary" loading={submitting} disabled={submitting} onClick={() => void submitFeedback()}>
           提交反馈
         </Button>
-        <Text className="settings-tip-text">请尽量描述问题环境与操作步骤，便于我们更快定位。</Text>
+        <Text className="settings-tip-text">提交后会自动进入持续会话，后续可在消息页继续沟通。</Text>
       </Surface>
     </View>
   );

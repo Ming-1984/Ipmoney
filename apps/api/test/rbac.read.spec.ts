@@ -77,12 +77,27 @@ describe('RbacService read/update strictness suite', () => {
 
     const result = await service.listUsers(req);
 
+    expect(prisma.user.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          AND: expect.arrayContaining([
+            expect.objectContaining({
+              OR: expect.any(Array),
+            }),
+          ]),
+        }),
+      }),
+    );
     expect(result.items[0]).toEqual({
       id: 'u-1',
       name: 'Alice',
       email: '13800000000',
       roleIds: ['role-operator'],
     });
+  });
+
+  it('validates listUsers scope strictly', async () => {
+    await expect(service.listUsers(req, { scope: 'BAD' })).rejects.toBeInstanceOf(BadRequestException);
   });
 
   it('validates updateUserRoles userId/roleIds strictly', async () => {

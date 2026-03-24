@@ -1,4 +1,4 @@
-import { View, Text, Input, ScrollView, Image } from '@tarojs/components';
+import { Image, Input, ScrollView, Text, View } from '@tarojs/components';
 import Taro, { useDidHide, useDidShow } from '@tarojs/taro';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import './index.scss';
@@ -16,12 +16,17 @@ import { fenToYuan } from '../../../lib/money';
 import { safeNavigateBack } from '../../../lib/navigation';
 import { useRouteUuidParam } from '../../../lib/routeParams';
 import { Avatar, Button, PullToRefresh, toast } from '../../../ui/nutui';
-import { AuditPendingCard, EmptyCard, ErrorCard, LoadingCard, MissingParamCard, PermissionCard } from '../../../ui/StateCards';
+import {
+  AuditPendingCard,
+  EmptyCard,
+  ErrorCard,
+  LoadingCard,
+  MissingParamCard,
+  PermissionCard,
+} from '../../../ui/StateCards';
 
 type Me = { id: string };
-
 type LocalMessageStatus = 'sending' | 'failed';
-
 type ReferenceType = 'MATERIAL' | 'CONTRACT';
 
 type ConversationMessage = {
@@ -39,13 +44,13 @@ type ConversationMessage = {
 };
 
 type UiConversationMessage = ConversationMessage & { localStatus?: LocalMessageStatus };
-
 type PagedConversationMessage = { items: UiConversationMessage[]; nextCursor?: string | null };
-
 type ConversationSummary = components['schemas']['ConversationSummary'];
 type PagedConversationSummary = components['schemas']['PagedConversationSummary'];
 type ListingPublic = components['schemas']['ListingPublic'];
 type TechManagerPublic = components['schemas']['TechManagerPublic'];
+type OrderDetail = components['schemas']['Order'] & { listingTitle?: string | null };
+type MaintenanceOrder = components['schemas']['PatentMaintenanceOrder'];
 
 type ContextCard = {
   title: string;
@@ -67,26 +72,26 @@ const CHAT_ME_CACHE_SCOPE = 'chat-meta';
 function fileNameFromUrl(url?: string | null): string {
   if (!url) return 'File';
   try {
-    const u = new URL(url);
-    const pathname = u.pathname || '';
+    const parsed = new URL(url);
+    const pathname = parsed.pathname || '';
     const idx = pathname.lastIndexOf('/');
-    const name = idx >= 0 ? pathname.slice(idx + 1) : pathname;
-    return name || 'File';
+    const fileName = idx >= 0 ? pathname.slice(idx + 1) : pathname;
+    return fileName || 'File';
   } catch {
     const idx = url.lastIndexOf('/');
-    const name = idx >= 0 ? url.slice(idx + 1) : url;
-    return name || 'File';
+    const fileName = idx >= 0 ? url.slice(idx + 1) : url;
+    return fileName || 'File';
   }
 }
 
-function mergeMessages(prepend: UiConversationMessage[], existing: UiConversationMessage[]): UiConversationMessage[] {
+function mergeMessages(incoming: UiConversationMessage[], existing: UiConversationMessage[]): UiConversationMessage[] {
   const seen = new Set<string>();
   const out: UiConversationMessage[] = [];
-  for (const m of [...prepend, ...existing]) {
-    if (!m?.id) continue;
-    if (seen.has(m.id)) continue;
-    seen.add(m.id);
-    out.push(m);
+  for (const item of [...incoming, ...existing]) {
+    if (!item?.id) continue;
+    if (seen.has(item.id)) continue;
+    seen.add(item.id);
+    out.push(item);
   }
   return out;
 }
@@ -107,7 +112,7 @@ function isSameMessageSnapshot(a: UiConversationMessage[], b: UiConversationMess
 function formatPriceLabel(priceType?: components['schemas']['PriceType'] | null, amount?: number | null): string {
   if (priceType === 'NEGOTIABLE') return '面议';
   if (amount == null) return '';
-  return `¥ ${fenToYuan(amount)}`;
+  return `￥${fenToYuan(amount)}`;
 }
 
 function shouldShowTimeDivider(current: UiConversationMessage, prev?: UiConversationMessage): boolean {
@@ -130,7 +135,31 @@ export default function ChatPage() {
   const onboardingDone = auth.onboardingDone;
   const verificationStatus = auth.verificationStatus;
   const canChat = Boolean(token) && onboardingDone && verificationStatus === 'APPROVED';
+
   const [pageVisible, setPageVisible] = useState(true);
+  const [meId, setMeId] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [data, setData] = useState<PagedConversationMessage | null>(null);
+  const [conversation, setConversation] = useState<ConversationSummary | null>(null);
+  const [contextCard, setContextCard] = useState<ContextCard | null>(null);
+  const [showSafety, setShowSafety] = useState(true);
+  const [scrollTop, setScrollTop] = useState(0);
+  const [scrollIntoView, setScrollIntoView] = useState('');
+  const [text, setText] = useState('');
+  const [sending, setSending] = useState(false);
+
+  const scrollTopRef = useRef(0);
+  const scrollSyncAtRef = useRef(0);
+
+  useDidShow(() => {
+    setPageVisible(true);
+  });
+
+  useDidHide(() => {
+    setPageVisible(false);
+  });
 
   useEffect(() => {
     const off = onAuthChanged(() => {
@@ -152,29 +181,6 @@ export default function ChatPage() {
     });
     return () => off();
   }, []);
-
-  const [meId, setMeId] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [loadingMore, setLoadingMore] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [data, setData] = useState<PagedConversationMessage | null>(null);
-  const [conversation, setConversation] = useState<ConversationSummary | null>(null);
-  const [contextCard, setContextCard] = useState<ContextCard | null>(null);
-  const [showSafety, setShowSafety] = useState(true);
-  const [scrollTop, setScrollTop] = useState(0);
-  const [scrollIntoView, setScrollIntoView] = useState('');
-  const [text, setText] = useState('');
-  const [sending, setSending] = useState(false);
-  const scrollTopRef = useRef(0);
-  const scrollSyncAtRef = useRef(0);
-
-  useDidShow(() => {
-    setPageVisible(true);
-  });
-
-  useDidHide(() => {
-    setPageVisible(false);
-  });
 
   const items = useMemo(() => data?.items || [], [data?.items]);
   const nextCursor = useMemo(() => data?.nextCursor ?? null, [data?.nextCursor]);
@@ -205,22 +211,12 @@ export default function ChatPage() {
     [scrollToTarget],
   );
 
-  const loadMe = useCallback(async () => {
-    const cached = getDetailCache<Me>(CHAT_ME_CACHE_SCOPE, 'me');
-    if (cached?.id) {
-      setMeId(cached.id);
-    }
-    try {
-      const d = await apiGet<Me>('/me');
-      setMeId(d.id);
-      setDetailCache(CHAT_ME_CACHE_SCOPE, 'me', d);
-    } catch (_) {
-      if (!cached) setMeId(null);
-    }
-  }, []);
-
   const getConversationDisplayName = useCallback((c: ConversationSummary | null): string => {
     if (!c) return '咨询会话';
+    const contentType = String(c.contentType || '').toUpperCase();
+    if (contentType === 'SUPPORT') return '平台客服助手';
+    if (contentType === 'DISPUTE') return c.contentTitle || '订单争议';
+    if (contentType === 'MAINTENANCE') return c.contentTitle || '年费托管';
     const role = c.counterpart?.role;
     if (role === 'cs') return '平台客服助手';
     if (role === 'admin') return '交易通知';
@@ -230,8 +226,23 @@ export default function ChatPage() {
   const displayName = useMemo(() => getConversationDisplayName(conversation), [conversation, getConversationDisplayName]);
   const counterpartAvatar = useMemo(() => conversation?.counterpart?.avatarUrl || '', [conversation?.counterpart?.avatarUrl]);
 
-  const load = useCallback(async () => {
+  const loadMe = useCallback(async () => {
+    const cached = getDetailCache<Me>(CHAT_ME_CACHE_SCOPE, 'me');
+    if (cached?.id) {
+      setMeId(cached.id);
+    }
+    try {
+      const current = await apiGet<Me>('/me');
+      setMeId(current.id);
+      setDetailCache(CHAT_ME_CACHE_SCOPE, 'me', current);
+    } catch {
+      if (!cached) setMeId(null);
+    }
+  }, []);
+
+  const loadMessages = useCallback(async () => {
     if (!conversationId) return;
+
     const cached = getDetailCache<PagedConversationMessage>(CHAT_MESSAGES_CACHE_SCOPE, conversationId);
     if (cached) {
       setData(cached);
@@ -242,24 +253,20 @@ export default function ChatPage() {
       setLoading(true);
       setError(null);
     }
+
     try {
-      const d = await apiGet<PagedConversationMessage>(
-        `/conversations/${conversationId}/messages`,
-        { limit: 50 },
-      );
-      setData(d);
-      setDetailCache(CHAT_MESSAGES_CACHE_SCOPE, conversationId, d);
+      const response = await apiGet<PagedConversationMessage>(`/conversations/${conversationId}/messages`, { limit: 50 });
+      setData(response);
+      setDetailCache(CHAT_MESSAGES_CACHE_SCOPE, conversationId, response);
       scrollToBottom();
       try {
-        await apiPost<any>(
-          `/conversations/${conversationId}/read`,
-          {},
-          { idempotencyKey: `read-${conversationId}` },
-        );
-      } catch (_) {}
-    } catch (e: any) {
+        await apiPost(`/conversations/${conversationId}/read`, {}, { idempotencyKey: `read-${conversationId}` });
+      } catch {
+        // ignore read marker failures
+      }
+    } catch (err: any) {
       if (!cached) {
-        setError(e?.message || '加载失败');
+        setError(err?.message || '消息加载失败');
         setData(null);
       }
     } finally {
@@ -271,122 +278,144 @@ export default function ChatPage() {
     if (!conversationId || !canChat) return;
     if (loading || loadingMore || sending) return;
     try {
-      const d = await apiGet<PagedConversationMessage>(
-        `/conversations/${conversationId}/messages`,
-        { limit: 50 },
-      );
-      let nextSnapshot: PagedConversationMessage | null = null;
+      const response = await apiGet<PagedConversationMessage>(`/conversations/${conversationId}/messages`, { limit: 50 });
+      let snapshot: PagedConversationMessage | null = null;
       setData((prev) => {
-        const localPending = (prev?.items || []).filter(
-          (m) => Boolean(m.localStatus) && !(d.items || []).some((r) => r.id === m.id),
+        const pending = (prev?.items || []).filter(
+          (item) => Boolean(item.localStatus) && !(response.items || []).some((serverItem) => serverItem.id === item.id),
         );
-        const merged = mergeMessages(d.items || [], localPending);
-        const next = d.nextCursor ?? null;
-        nextSnapshot = { items: merged, nextCursor: next };
-        if (prev && prev.nextCursor === next && isSameMessageSnapshot(prev.items || [], merged)) {
+        const merged = mergeMessages(response.items || [], pending);
+        const cursor = response.nextCursor ?? null;
+        snapshot = { items: merged, nextCursor: cursor };
+        if (prev && prev.nextCursor === cursor && isSameMessageSnapshot(prev.items || [], merged)) {
           return prev;
         }
-        return { items: merged, nextCursor: next };
+        return snapshot;
       });
-      if (nextSnapshot) {
-        setDetailCache(CHAT_MESSAGES_CACHE_SCOPE, conversationId, nextSnapshot);
+      if (snapshot) {
+        setDetailCache(CHAT_MESSAGES_CACHE_SCOPE, conversationId, snapshot);
       }
-    } catch (_) {
-      // poll is best-effort; keep current UI state
+    } catch {
+      // poll should not break UI
     }
   }, [canChat, conversationId, loading, loadingMore, sending]);
 
   const loadMore = useCallback(async () => {
-    if (!conversationId) return;
-    if (!nextCursor) return;
-    if (loadingMore) return;
+    if (!conversationId || !nextCursor || loadingMore) return;
 
     const anchorId = items[0]?.id;
     setLoadingMore(true);
     try {
-      const d = await apiGet<PagedConversationMessage>(
-        `/conversations/${conversationId}/messages`,
-        { limit: 50, cursor: nextCursor },
-      );
-      let nextSnapshot: PagedConversationMessage | null = null;
-      setData((prev) => {
-        nextSnapshot = {
-          items: mergeMessages(d.items || [], prev?.items || []),
-          nextCursor: d.nextCursor ?? null,
-        };
-        return nextSnapshot;
+      const response = await apiGet<PagedConversationMessage>(`/conversations/${conversationId}/messages`, {
+        limit: 50,
+        cursor: nextCursor,
       });
-      if (nextSnapshot) {
-        setDetailCache(CHAT_MESSAGES_CACHE_SCOPE, conversationId, nextSnapshot);
+      let snapshot: PagedConversationMessage | null = null;
+      setData((prev) => {
+        snapshot = {
+          items: mergeMessages(response.items || [], prev?.items || []),
+          nextCursor: response.nextCursor ?? null,
+        };
+        return snapshot;
+      });
+      if (snapshot) {
+        setDetailCache(CHAT_MESSAGES_CACHE_SCOPE, conversationId, snapshot);
       }
-      if (anchorId) scrollToMessage(anchorId);
-    } catch (e: any) {
-      toast(e?.message || '加载失败');
+      if (anchorId) {
+        scrollToMessage(anchorId);
+      }
+    } catch (err: any) {
+      toast(err?.message || '加载失败');
     } finally {
       setLoadingMore(false);
     }
   }, [conversationId, items, loadingMore, nextCursor, scrollToMessage]);
 
-  const buildContextCard = useCallback(async (c: ConversationSummary) => {
-    let title = c.contentTitle || c.listingTitle || '咨询内容';
-    let tag = '';
-    let price = '';
-    let thumbUrl = '';
-    try {
-      if (c.contentType === 'LISTING') {
-        const d = await apiGet<ListingPublic>(`/public/listings/${c.contentId}`);
-        title = d.title || title;
-        tag = [patentTypeLabel(d.patentType, { empty: '' }), tradeModeLabel(d.tradeMode, { empty: '' })]
-          .filter(Boolean)
-          .join('·');
-        price = formatPriceLabel(d.priceType, d.priceAmountFen);
-        thumbUrl = d.coverUrl || '';
-      } else if (c.contentType === 'TECH_MANAGER') {
-        const d = await apiGet<TechManagerPublic>(`/public/tech-managers/${c.contentId}`);
-        title = d.displayName || title;
-        tag = '技术经理人';
-        thumbUrl = d.avatarUrl || '';
-      }
-    } catch (_) {
-      // ignore detail errors, fallback to base info
-    }
+  const buildContextCard = useCallback(
+    async (summary: ConversationSummary) => {
+      let title = summary.contentTitle || summary.listingTitle || '咨询内容';
+      let tag = '';
+      let price = '';
+      let thumbUrl = '';
 
-    const card: ContextCard = {
-      title,
-      tag,
-      price,
-      thumbUrl,
-      contentType: c.contentType,
-      contentId: c.contentId,
-    };
-    setContextCard(card);
-    if (conversationId) {
-      setDetailCache(CHAT_CONTEXT_CACHE_SCOPE, conversationId, card);
-    }
-  }, [conversationId]);
+      try {
+        if (summary.contentType === 'LISTING') {
+          const listing = await apiGet<ListingPublic>(`/public/listings/${summary.contentId}`);
+          title = listing.title || title;
+          tag = [patentTypeLabel(listing.patentType, { empty: '' }), tradeModeLabel(listing.tradeMode, { empty: '' })]
+            .filter(Boolean)
+            .join(' · ');
+          price = formatPriceLabel(listing.priceType, listing.priceAmountFen);
+          thumbUrl = listing.coverUrl || '';
+        } else if (String(summary.contentType || '').toUpperCase() === 'DISPUTE') {
+          const order = await apiGet<OrderDetail>(`/orders/${summary.contentId}`);
+          title = order.listingTitle ? `订单争议 · ${order.listingTitle}` : summary.contentTitle || '订单争议';
+          tag = '订单争议';
+        } else if (String(summary.contentType || '').toUpperCase() === 'MAINTENANCE') {
+          const order = await apiGet<MaintenanceOrder>(`/me/patent-maintenance/orders/${summary.contentId}`);
+          const orderShortId = String(order.id || '').slice(0, 8);
+          const yearLabel = Number(order.scheduleYearNo || 0) > 0 ? `第${order.scheduleYearNo}年` : '';
+          title =
+            summary.contentTitle ||
+            ['年费托管', orderShortId ? `#${orderShortId}` : '', order.patentTitle || '', yearLabel].filter(Boolean).join(' · ');
+          tag = '年费托管';
+          price = order.totalAmountFen != null ? `￥${fenToYuan(order.totalAmountFen)}` : '';
+        } else if (summary.contentType === 'TECH_MANAGER') {
+          const manager = await apiGet<TechManagerPublic>(`/public/tech-managers/${summary.contentId}`);
+          title = manager.displayName || title;
+          tag = '技术经理';
+          thumbUrl = manager.avatarUrl || '';
+        } else if (String(summary.contentType || '').toUpperCase() === 'SUPPORT') {
+          title = summary.contentTitle || '平台客服';
+          tag = '客服会话';
+        }
+      } catch {
+        // ignore and use summary fallback
+      }
+
+      const card: ContextCard = {
+        title,
+        tag,
+        price,
+        thumbUrl,
+        contentType: summary.contentType,
+        contentId: summary.contentId,
+      };
+      setContextCard(card);
+      if (conversationId) {
+        setDetailCache(CHAT_CONTEXT_CACHE_SCOPE, conversationId, card);
+      }
+    },
+    [conversationId],
+  );
 
   const loadConversationSummary = useCallback(async () => {
     if (!conversationId) return;
+
     const cachedSummary = getDetailCache<ConversationSummary>(CHAT_SUMMARY_CACHE_SCOPE, conversationId);
     if (cachedSummary) {
       setConversation(cachedSummary);
       void Taro.setNavigationBarTitle({ title: getConversationDisplayName(cachedSummary) });
     }
+
     const cachedContext = getDetailCache<ContextCard>(CHAT_CONTEXT_CACHE_SCOPE, conversationId);
     if (cachedContext) {
       setContextCard(cachedContext);
     }
+
     try {
-      const d = await apiGet<PagedConversationSummary>('/me/conversations', { page: 1, pageSize: 50 });
-      const found = (d.items || []).find((item) => item.id === conversationId) || null;
+      const list = await apiGet<PagedConversationSummary>('/me/conversations', { page: 1, pageSize: 100 });
+      const found = (list.items || []).find((item) => item.id === conversationId) || null;
       setConversation(found);
       if (found) {
         setDetailCache(CHAT_SUMMARY_CACHE_SCOPE, conversationId, found);
         void Taro.setNavigationBarTitle({ title: getConversationDisplayName(found) });
         void buildContextCard(found);
       }
-    } catch (_) {
-      if (!cachedSummary) setConversation(null);
+    } catch {
+      if (!cachedSummary) {
+        setConversation(null);
+      }
     }
   }, [buildContextCard, conversationId, getConversationDisplayName]);
 
@@ -398,8 +427,8 @@ export default function ChatPage() {
   useEffect(() => {
     if (!canChat) return;
     void loadMe();
-    void load();
-  }, [canChat, load, loadMe]);
+    void loadMessages();
+  }, [canChat, loadMe, loadMessages]);
 
   useEffect(() => {
     if (!canChat || !conversationId || !pageVisible) return;
@@ -410,10 +439,9 @@ export default function ChatPage() {
   }, [canChat, conversationId, pageVisible, pollMessages]);
 
   const send = useCallback(async () => {
-    if (!canChat) return;
-    if (!conversationId) return;
-    const v = text.trim();
-    if (!v) {
+    if (!canChat || !conversationId) return;
+    const value = text.trim();
+    if (!value) {
       toast('请输入内容');
       return;
     }
@@ -424,7 +452,7 @@ export default function ChatPage() {
       conversationId,
       senderUserId: meId || 'me',
       type: 'TEXT',
-      text: v,
+      text: value,
       createdAt: new Date().toISOString(),
       localStatus: 'sending',
     };
@@ -436,59 +464,94 @@ export default function ChatPage() {
     scrollToBottom();
     setText('');
     setSending(true);
+
     try {
       const created = await apiPost<ConversationMessage>(
         `/conversations/${conversationId}/messages`,
-        { type: 'TEXT', text: v },
+        { type: 'TEXT', text: value },
         { idempotencyKey: `msg-${conversationId}-${Date.now()}` },
       );
       setData((prev) => ({
-        items: (prev?.items || []).map((m) => (m.id === optimisticId ? (created as UiConversationMessage) : m)),
+        items: (prev?.items || []).map((item) => (item.id === optimisticId ? (created as UiConversationMessage) : item)),
         nextCursor: prev?.nextCursor ?? null,
       }));
       scrollToBottom();
-    } catch (e: any) {
+    } catch (err: any) {
       setData((prev) => ({
-        items: (prev?.items || []).map((m) => (m.id === optimisticId ? { ...m, localStatus: 'failed' } : m)),
+        items: (prev?.items || []).map((item) =>
+          item.id === optimisticId ? { ...item, localStatus: 'failed' as LocalMessageStatus } : item,
+        ),
         nextCursor: prev?.nextCursor ?? null,
       }));
-      toast(e?.message || '发送失败');
-      setText((prevText) => (prevText ? prevText : v));
+      toast(err?.message || '发送失败');
+      setText((prevText) => (prevText ? prevText : value));
     } finally {
       setSending(false);
     }
   }, [canChat, conversationId, meId, scrollToBottom, text]);
 
+  const retry = useCallback(
+    async (messageItem: UiConversationMessage) => {
+      if (!canChat || !conversationId) return;
+      if (messageItem.type !== 'TEXT' || !messageItem.text?.trim()) return;
+
+      setData((prev) => ({
+        items: (prev?.items || []).map((item) =>
+          item.id === messageItem.id ? { ...item, localStatus: 'sending' as LocalMessageStatus } : item,
+        ),
+        nextCursor: prev?.nextCursor ?? null,
+      }));
+      scrollToBottom();
+
+      try {
+        const created = await apiPost<ConversationMessage>(
+          `/conversations/${conversationId}/messages`,
+          { type: 'TEXT', text: messageItem.text },
+          { idempotencyKey: `msg-${conversationId}-${Date.now()}` },
+        );
+        setData((prev) => ({
+          items: (prev?.items || []).map((item) => (item.id === messageItem.id ? (created as UiConversationMessage) : item)),
+          nextCursor: prev?.nextCursor ?? null,
+        }));
+        scrollToBottom();
+      } catch (err: any) {
+        setData((prev) => ({
+          items: (prev?.items || []).map((item) =>
+            item.id === messageItem.id ? { ...item, localStatus: 'failed' as LocalMessageStatus } : item,
+          ),
+          nextCursor: prev?.nextCursor ?? null,
+        }));
+        toast(err?.message || '发送失败');
+      }
+    },
+    [canChat, conversationId, scrollToBottom],
+  );
+
   const openEmojiSheet = useCallback(() => {
     if (!canChat) return;
-    void Taro.showActionSheet({
-      itemList: EMOJI_PRESETS,
-    })
-      .then((res) => {
-        const emoji = EMOJI_PRESETS[res.tapIndex];
+    void Taro.showActionSheet({ itemList: EMOJI_PRESETS })
+      .then((result) => {
+        const emoji = EMOJI_PRESETS[result.tapIndex];
         if (!emoji) return;
-        setText((prevText) => `${prevText}${emoji}`);
+        setText((prev) => `${prev}${emoji}`);
       })
       .catch(() => {});
   }, [canChat]);
 
   const sendReference = useCallback(
     (referenceType: ReferenceType) => {
-      if (!canChat) return;
-      if (!conversationId) return;
+      if (!canChat || !conversationId) return;
       void referenceType;
-      toast('请先在发布/合同中心上传后再引用');
+      toast('请先在材料库或合同中心上传内容后再引用');
     },
     [canChat, conversationId],
   );
 
   const openReferenceSheet = useCallback(() => {
     if (!canChat) return;
-    void Taro.showActionSheet({
-      itemList: ['引用材料', '引用合同'],
-    })
-      .then((res) => {
-        if (res.tapIndex === 1) {
+    void Taro.showActionSheet({ itemList: ['引用材料', '引用合同'] })
+      .then((result) => {
+        if (result.tapIndex === 1) {
           sendReference('CONTRACT');
           return;
         }
@@ -497,49 +560,23 @@ export default function ChatPage() {
       .catch(() => {});
   }, [canChat, sendReference]);
 
-  const retry = useCallback(
-    async (msg: UiConversationMessage) => {
-      if (!canChat) return;
-      if (!conversationId) return;
-      if (msg.type !== 'TEXT') return;
-      if (!msg.text?.trim()) return;
-
-      setData((prev) => ({
-        items: (prev?.items || []).map((m) => (m.id === msg.id ? { ...m, localStatus: 'sending' } : m)),
-        nextCursor: prev?.nextCursor ?? null,
-      }));
-      scrollToBottom();
-
-      try {
-        const created = await apiPost<ConversationMessage>(
-          `/conversations/${conversationId}/messages`,
-          { type: 'TEXT', text: msg.text },
-          { idempotencyKey: `msg-${conversationId}-${Date.now()}` },
-        );
-        setData((prev) => ({
-          items: (prev?.items || []).map((m) => (m.id === msg.id ? (created as UiConversationMessage) : m)),
-          nextCursor: prev?.nextCursor ?? null,
-        }));
-        scrollToBottom();
-      } catch (e: any) {
-        setData((prev) => ({
-          items: (prev?.items || []).map((m) => (m.id === msg.id ? { ...m, localStatus: 'failed' } : m)),
-          nextCursor: prev?.nextCursor ?? null,
-        }));
-        toast(e?.message || '发送失败');
-      }
-    },
-    [canChat, conversationId, scrollToBottom],
-  );
-
   const openContextDetail = useCallback(() => {
     if (!contextCard?.contentType || !contextCard?.contentId) return;
     const id = contextCard.contentId;
-    if (contextCard.contentType === 'LISTING') {
+    const contentType = String(contextCard.contentType || '').toUpperCase();
+    if (contentType === 'LISTING') {
       Taro.navigateTo({ url: `/subpackages/listing/detail/index?listingId=${id}` });
       return;
     }
-    if (contextCard.contentType === 'TECH_MANAGER') {
+    if (contentType === 'DISPUTE') {
+      Taro.navigateTo({ url: `/subpackages/orders/detail/index?orderId=${id}` });
+      return;
+    }
+    if (contentType === 'MAINTENANCE') {
+      Taro.navigateTo({ url: `/subpackages/maintenance/index?tab=orders&orderId=${id}` });
+      return;
+    }
+    if (contentType === 'TECH_MANAGER') {
       Taro.navigateTo({ url: `/subpackages/tech-managers/detail/index?techManagerId=${id}` });
     }
   }, [contextCard]);
@@ -556,7 +593,7 @@ export default function ChatPage() {
     <View className="container chat-page">
       <View className="chat-header">
         <View className="chat-header-left" onClick={() => void safeNavigateBack()}>
-          <Text className="chat-header-back">‹</Text>
+          <Text className="chat-header-back">←</Text>
         </View>
         <Text className="chat-header-title">{displayName}</Text>
         <View className="chat-header-right">
@@ -568,7 +605,7 @@ export default function ChatPage() {
         <View className="chat-safety">
           <View className="chat-safety-left">
             <Text className="chat-safety-icon">!</Text>
-            <Text className="chat-safety-text">系统提醒：请勿私下转账或添加私人联系方式。所有交易请通过平台进行，以保障资金安全。</Text>
+            <Text className="chat-safety-text">系统提醒：请勿私下转账或交换联系方式，交易请通过平台完成。</Text>
           </View>
           <Text className="chat-safety-close" onClick={() => setShowSafety(false)}>
             ×
@@ -597,23 +634,32 @@ export default function ChatPage() {
       ) : null}
 
       {!token ? (
-        <PermissionCard title="需要登录" message="登录并审核通过后才能查看咨询会话。" actionText="去登录" onAction={() => Taro.navigateTo({ url: '/subpackages/login/index' })} />
+        <PermissionCard
+          title="需要登录"
+          message="登录并审核通过后才能查看咨询会话。"
+          actionText="去登录"
+          onAction={() => Taro.navigateTo({ url: '/subpackages/login/index' })}
+        />
       ) : !onboardingDone ? (
         <PermissionCard
           title="需要选择身份"
-          message="首次进入需完成身份选择；审核通过后才能咨询与交易。"
+          message="首次进入需先完成身份选择，审核通过后可咨询与交易。"
           actionText="去选择身份"
           onAction={() => Taro.navigateTo({ url: '/subpackages/onboarding/choose-identity/index' })}
         />
       ) : verificationStatus !== 'APPROVED' ? (
         <AuditPendingCard
-          title={verificationStatus === 'REJECTED' ? '资料已驳回' : '资料审核中'}
-          message={verificationStatus === 'REJECTED' ? '请重新提交资料，审核通过后才能咨询与交易。' : '审核通过后才能咨询与交易。'}
+          title={verificationStatus === 'REJECTED' ? '资料审核未通过' : '资料审核中'}
+          message={
+            verificationStatus === 'REJECTED'
+              ? '请完善并重新提交资料，审核通过后可继续咨询与交易。'
+              : '资料审核通过后即可继续咨询与交易。'
+          }
         />
       ) : loading ? (
         <LoadingCard />
       ) : error ? (
-        <ErrorCard message={error} onRetry={load} />
+        <ErrorCard message={error} onRetry={loadMessages} />
       ) : data?.items?.length ? (
         <PullToRefresh
           className="chat-content"
@@ -628,7 +674,7 @@ export default function ChatPage() {
             scrollIntoView={scrollIntoView}
             scrollWithAnimation
             style={{ height: '100%' }}
-            onScroll={(e) => syncScrollTop(e.detail.scrollTop)}
+            onScroll={(event) => syncScrollTop(event.detail.scrollTop)}
           >
             <View className="chat-scroll-inner">
               {canLoadMore ? (
@@ -645,29 +691,30 @@ export default function ChatPage() {
                   </Button>
                 </View>
               ) : null}
-              {items.map((m, index) => {
+
+              {items.map((item, index) => {
                 const prev = index > 0 ? items[index - 1] : undefined;
-                const showTimeDivider = shouldShowTimeDivider(m, prev);
-                const isMe = Boolean(meId) && m.senderUserId === meId;
-                const isSystem = m.type === 'SYSTEM';
-                const isReference = m.type === 'REFERENCE';
+                const showTimeDivider = shouldShowTimeDivider(item, prev);
+                const isMe = Boolean(meId) && item.senderUserId === meId;
+                const isSystem = item.type === 'SYSTEM';
+                const isReference = item.type === 'REFERENCE';
                 const bubbleClass = `chat-bubble${isMe ? ' chat-bubble-me' : ''}${isReference ? ' chat-bubble-ref' : ''}`;
 
                 if (isSystem) {
                   return (
-                    <React.Fragment key={m.id}>
-                      {showTimeDivider ? <View className="chat-time-divider">{formatTimeSmart(m.createdAt)}</View> : null}
-                      <View id={`msg-${m.id}`} className="chat-system-row">
-                        <Text className="chat-system-text">{m.text || '系统消息'}</Text>
+                    <React.Fragment key={item.id}>
+                      {showTimeDivider ? <View className="chat-time-divider">{formatTimeSmart(item.createdAt)}</View> : null}
+                      <View id={`msg-${item.id}`} className="chat-system-row">
+                        <Text className="chat-system-text">{item.text || '系统消息'}</Text>
                       </View>
                     </React.Fragment>
                   );
                 }
 
                 return (
-                  <React.Fragment key={m.id}>
-                    {showTimeDivider ? <View className="chat-time-divider">{formatTimeSmart(m.createdAt)}</View> : null}
-                    <View id={`msg-${m.id}`} className={`chat-row ${isMe ? 'chat-row-me' : ''}`}>
+                  <React.Fragment key={item.id}>
+                    {showTimeDivider ? <View className="chat-time-divider">{formatTimeSmart(item.createdAt)}</View> : null}
+                    <View id={`msg-${item.id}`} className={`chat-row ${isMe ? 'chat-row-me' : ''}`}>
                       {!isMe ? (
                         <Avatar size="40" src={counterpartAvatar} background="var(--c-divider)" color="var(--c-muted)">
                           {(displayName || 'T').slice(0, 1)}
@@ -678,51 +725,52 @@ export default function ChatPage() {
                         {isReference ? (
                           <View className="chat-ref">
                             <Text className="chat-ref-label">
-                              {m.referenceType === 'CONTRACT' ? '合同引用' : '材料引用'}
+                              {item.referenceType === 'CONTRACT' ? '合同引用' : '材料引用'}
                             </Text>
-                            <Text className="chat-ref-title">{m.referenceTitle || '已引用材料'}</Text>
-                            {m.referenceNote ? <Text className="chat-ref-note clamp-1">{m.referenceNote}</Text> : null}
+                            <Text className="chat-ref-title">{item.referenceTitle || '已引用内容'}</Text>
+                            {item.referenceNote ? <Text className="chat-ref-note clamp-1">{item.referenceNote}</Text> : null}
                             <Text className="chat-ref-action">查看</Text>
                           </View>
-                        ) : m.type === 'IMAGE' && m.fileUrl ? (
+                        ) : item.type === 'IMAGE' && item.fileUrl ? (
                           <Image
                             className="chat-image"
-                            src={m.fileUrl}
+                            src={item.fileUrl}
                             mode="aspectFill"
                             onClick={() => {
-                              void Taro.previewImage({ urls: [m.fileUrl as string] });
+                              void Taro.previewImage({ urls: [item.fileUrl as string] });
                             }}
                           />
-                        ) : m.type === 'FILE' && m.fileUrl ? (
+                        ) : item.type === 'FILE' && item.fileUrl ? (
                           <View
                             className="chat-file"
                             onClick={() => {
-                              void Taro.setClipboardData({ data: m.fileUrl as string });
+                              void Taro.setClipboardData({ data: item.fileUrl as string });
                               toast('链接已复制', { icon: 'success' });
                             }}
                           >
-                            <Text className="chat-file-name">{fileNameFromUrl(m.fileUrl)}</Text>
-                            <Text className="chat-file-url clamp-1">{m.fileUrl}</Text>
+                            <Text className="chat-file-name">{fileNameFromUrl(item.fileUrl)}</Text>
+                            <Text className="chat-file-url clamp-1">{item.fileUrl}</Text>
                           </View>
-                        ) : m.type === 'TEXT' || m.type === 'EMOJI' ? (
-                          <Text>{m.text || '（空）'}</Text>
+                        ) : item.type === 'TEXT' || item.type === 'EMOJI' ? (
+                          <Text>{item.text || '（空）'}</Text>
                         ) : (
-                          <Text>{m.text || m.fileUrl || '（空）'}</Text>
+                          <Text>{item.text || item.fileUrl || '（空）'}</Text>
                         )}
-                      {m.localStatus ? (
-                        <View className="chat-meta-row">
-                          {m.localStatus === 'sending' ? (
-                            <Text className={`chat-meta ${isMe ? 'chat-meta-me' : ''}`}>发送中…</Text>
-                          ) : m.localStatus === 'failed' ? (
-                            <Text
-                              className={`chat-meta chat-meta-action ${isMe ? 'chat-meta-action-me' : ''}`}
-                              onClick={() => void retry(m)}
-                            >
-                              重试
-                            </Text>
-                          ) : null}
-                        </View>
-                      ) : null}
+
+                        {item.localStatus ? (
+                          <View className="chat-meta-row">
+                            {item.localStatus === 'sending' ? (
+                              <Text className={`chat-meta ${isMe ? 'chat-meta-me' : ''}`}>发送中...</Text>
+                            ) : item.localStatus === 'failed' ? (
+                              <Text
+                                className={`chat-meta chat-meta-action ${isMe ? 'chat-meta-action-me' : ''}`}
+                                onClick={() => void retry(item)}
+                              >
+                                重试
+                              </Text>
+                            ) : null}
+                          </View>
+                        ) : null}
                       </View>
 
                       {isMe ? (
@@ -739,7 +787,7 @@ export default function ChatPage() {
           </ScrollView>
         </PullToRefresh>
       ) : (
-        <EmptyCard title="暂无会话消息" message="可发送一条消息开始沟通。" image={emptyChat} />
+        <EmptyCard title="暂无会话消息" message="发送第一条消息开始沟通。" image={emptyChat} />
       )}
 
       {canChat ? (
@@ -749,9 +797,9 @@ export default function ChatPage() {
               <Input
                 className="input"
                 value={text}
-                onInput={(e) => setText(e.detail.value)}
-                placeholder="发送消息…"
-                onConfirm={send}
+                onInput={(event) => setText(event.detail.value)}
+                placeholder="发送消息..."
+                onConfirm={() => void send()}
                 confirmType="send"
               />
             </View>
@@ -762,8 +810,8 @@ export default function ChatPage() {
               <View className="chat-input-icon" onClick={openReferenceSheet}>
                 <Image className="chat-input-icon-img" src={plusIcon} mode="aspectFit" svg />
               </View>
-              <View className={`chat-send-btn ${sending ? 'is-loading' : ''}`} onClick={send}>
-                <Text className="chat-send-text">{sending ? '…' : '发送'}</Text>
+              <View className={`chat-send-btn ${sending ? 'is-loading' : ''}`} onClick={() => void send()}>
+                <Text className="chat-send-text">{sending ? '...' : '发送'}</Text>
               </View>
             </View>
           </View>
@@ -772,4 +820,3 @@ export default function ChatPage() {
     </View>
   );
 }
-

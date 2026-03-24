@@ -49,9 +49,9 @@
 
 ## 当前状态
 - 已完成：状态机、错误归一化、背景 token、H5 clamp、筛选/排序收口、导航规则、核心模板。
-- 待完成：硬编码 token 最终清扫、弹层/滚动回归、H5 桌面密度验证、P1 多地图扩展。
+- 待完成：硬编码 token 最终清扫、弹层/滚动回归、H5 桌面密度验证。
 
 ## 相关文档
 - Token 映射：docs/engineering/token-mapping.md
 - 硬编码白名单：docs/engineering/hardcode-whitelist.md
-- 历史规划归档：docs/engineering/archive/legacy-roadmaps-2026-02-to-2026-03.md
+- 历史规划归档：docs/engineering/README.md

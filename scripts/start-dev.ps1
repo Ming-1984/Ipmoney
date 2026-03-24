@@ -8,7 +8,6 @@ param(
   [switch]$SkipInfra,
   [switch]$SkipDb,   
   [switch]$Seed,
-  [switch]$PurgeDemo,
   [switch]$EnableDemoAuth = $true,
   [switch]$EnableDemoPayment,
   [switch]$AllowDemoUuidTokens,
@@ -284,7 +283,6 @@ if (-not $SkipDb) {
   Invoke-External -FilePath "pnpm" -Args @("-C", "apps/api", "db:deploy")
   if ($Seed) {
     $env:SEED_DEMO_DATA = "0"
-    if ($PurgeDemo) { $env:SEED_DEMO_PURGE_MAP = "1" }
     Write-Host "[start] seeding database (demo data disabled)..."
     Invoke-External -FilePath "pnpm" -Args @("-C", "apps/api", "db:seed")
   }

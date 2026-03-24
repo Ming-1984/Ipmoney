@@ -76,12 +76,22 @@ This maps backend enforcement (`requirePermission`) to admin modules/pages:
 - `alert.manage`:
   - `/admin/alerts`
 - `rbac.manage`:
-  - `/admin/rbac/*`
+  - `/admin/rbac/*` (role/permission/user management, staff onboarding)
 - `auditLog.read`:
   - `/admin/audit-logs`
 
 ## Admin endpoints gated by `isAdmin` (no permission ID)
 - `/admin/comments` list/update currently requires admin login but does not check a dedicated permission ID
+
+## Admin login + staff onboarding baseline
+- Admin login is SMS-first (`POST /auth/sms/send` + `POST /auth/sms/verify`), then session check (`GET /auth/session`).
+- Backoffice access must pass both checks:
+  - `isAdmin=true`
+  - permission-based route gating in admin web (menu + page access)
+- Staff onboarding is centralized in RBAC:
+  - `POST /admin/rbac/users` creates employee account with phone + roleIds
+  - `GET /admin/rbac/users` defaults to `scope=STAFF` and supports `q` search
+  - `PATCH /admin/rbac/users/{userId}` updates role assignments
 
 ## Notes
 - `ai.manage` is used by AI admin service but is still not in default permission grants.

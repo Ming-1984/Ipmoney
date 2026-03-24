@@ -4,13 +4,13 @@
 
 - 支持省/市/区全量选择（6 位 adcode），可停留在任意层级提交。
 - 统一小程序端区域选择体验，减少手输 regionCode。
-- 管理端地图 CMS 使用级联组件，降低输入错误。
+- 管理端区域配置使用级联组件，降低输入错误。
 
 ## 现状
 
-- 小程序 `pages/region-picker` 仅 PROVINCE 列表 + 搜索。
+- 小程序 `subpackages/region-picker` 仅 PROVINCE 列表 + 搜索。
 - 多处表单仍允许手填 regionCode（发布/资料/筛选页）。
-- 管理端 `PatentMapPage` 通过 Input 手输 regionCode。
+- 管理端区域管理页通过 Input 手输 regionCode。
 - 后端 RegionsService 已支持 `q` 过滤，但 public controller 未透传。
 
 ## 方案（成熟组件）
@@ -24,17 +24,17 @@
 ## 数据与接口
 
 - 小程序端区域选择不再依赖 `/regions`，使用系统内置区域库。
-- `/regions` 继续用于地图中心点与后台管理场景。
+- `/regions` 继续用于后台管理与筛选场景。
 
 ## 影响范围
 
-- `apps/client/src/pages/region-picker/index.tsx`
+- `apps/client/src/subpackages/region-picker/index.tsx`
 - 小程序使用 region picker 的页面（search/inventors/organizations/profile/edit/onboarding/publish 等）。
-- `apps/admin-web/src/views/PatentMapPage.tsx`
+- `apps/admin-web/src/views/RegionsPage.tsx`
 - 可选：`apps/api/src/modules/regions/regions.controller.ts`
 
 ## 验收口径
 
 - 省/市/区任意层级均可选择并返回对应 6 位 code，名称展示正确。
 - 现有页面入口统一使用新的 region picker，不需要手输 code。
-- 管理端地图 CMS 不再手输 regionCode。
+- 管理端区域配置不再手输 regionCode。

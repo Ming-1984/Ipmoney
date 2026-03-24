@@ -899,7 +899,7 @@ export default function PublishPatentPage() {
                 }
               }}
             />
-            <Text className="form-hint">与首页/搜索筛选保持一致：退役、沉睡、获奖、开放许可、五星。</Text>
+            <Text className="form-hint">与首页/搜索筛选保持一致：退役、沉睡、获奖、开放许可。</Text>
           </View>
 
           <Text className="publish-section-subtitle">权属证明材料 *</Text>

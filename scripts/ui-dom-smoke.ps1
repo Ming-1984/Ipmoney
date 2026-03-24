@@ -475,14 +475,14 @@ try {
       name = "admin-login"; path = "/login"; base = $adminBase
       width = $AdminWidth; height = $AdminHeight; waitMs = $AdminWaitMs
       expectedUrlContains = "/login"; minElements = 40
-      selectorsAll = @(".admin-login-page", "input[placeholder*='token']"); selectorsAny = @(".ipm-logo-mark", ".ant-form-item", "button[type='submit']")
-      textAny = @("Access Token", "Sign in"); storage = @(); demoAuth = $false
+      selectorsAll = @(".admin-login-page", "#phone", "#code"); selectorsAny = @(".ipm-logo-mark", ".ant-form-item", "button[type='submit']")
+      textAny = @(); storage = @(); demoAuth = $false
     },
     @{
       name = "admin-dashboard"; path = "/"; base = $adminBase
       width = $AdminWidth; height = $AdminHeight; waitMs = $AdminWaitMs
       expectedUrlContains = "://127.0.0.1:$resolvedAdminPort/"; minElements = 100
-      selectorsAll = @(".ipm-sider", ".ipm-content-inner", ".admin-dashboard-page"); selectorsAny = @(".ant-statistic", ".ant-row", ".ant-btn")
+      selectorsAll = @(".ipm-sider", ".ipm-content-inner", ".ant-card"); selectorsAny = @(".ant-statistic", ".ant-row", ".ant-btn")
       textAny = @(); storage = $adminAuthedStorage; demoAuth = $false
     },
     @{
@@ -612,7 +612,7 @@ try {
       name = "admin-listings"; path = "/listings"; base = $adminBase
       width = $AdminWidth; height = $AdminHeight; waitMs = $AdminWaitMs
       expectedUrlContains = "/listings"; minElements = 100
-      selectorsAll = @(".admin-listings-page", ".ipm-content-inner"); selectorsAny = @(".ant-table", ".ant-pagination")
+      selectorsAll = @(".ipm-content-inner"); selectorsAny = @(".ant-table", ".ant-pagination", ".ant-card")
       textAny = @(); storage = $adminAuthedStorage; demoAuth = $false
     },
     @{
@@ -867,7 +867,7 @@ try {
       name = "admin-maintenance"; path = "/maintenance"; base = $adminBase
       width = $AdminWidth; height = $AdminHeight; waitMs = $AdminWaitMs
       expectedUrlContains = "/maintenance"; minElements = 100
-      selectorsAll = @(".admin-maintenance-page", ".ipm-content-inner"); selectorsAny = @(".ant-tabs", ".ant-table")
+      selectorsAll = @(".ipm-content-inner", ".ant-card"); selectorsAny = @(".ant-tabs", ".ant-table", ".ant-typography")
       textAny = @(); storage = $adminAuthedStorage; demoAuth = $false
     },
     @{

@@ -183,6 +183,9 @@ enum ConversationContentType {
   LISTING
   ACHIEVEMENT
   TECH_MANAGER
+  SUPPORT
+  DISPUTE
+  MAINTENANCE
 }
 
 enum ContractStatus {
@@ -341,6 +344,42 @@ enum PatentMaintenanceTaskStatus {
   CANCELLED
 }
 
+enum PatentMaintenanceOrderStatus {
+  REQUESTED
+  QUOTED
+  AWAITING_PAYMENT
+  PAID
+  EXECUTING
+  RECEIPT_UPLOADED
+  RECONCILED
+  CLOSED
+  CANCELLED
+}
+
+enum PatentMaintenancePaymentChannel {
+  WECHAT
+  OFFLINE_BANK
+  OFFLINE_OTHER
+}
+
+enum PatentMaintenanceReconcileStatus {
+  PENDING
+  MATCHED
+  MISMATCHED
+}
+
+enum PatentMaintenanceOrderEventType {
+  CREATED
+  QUOTE_UPDATED
+  PAYMENT_CONFIRMED
+  EXECUTION_SUBMITTED
+  RECEIPT_UPLOADED
+  RECONCILED
+  CLOSED
+  CANCELLED
+  UPDATED
+}
+
 enum ListingJobStatus {
   PENDING
   RUNNING
@@ -462,6 +501,9 @@ model User {
   rbacRoles            RbacUserRole[]
   aiParseFeedbacks     AiParseFeedback[] @relation("AiParseFeedback_Actor")
   assignedMaintenanceTasks PatentMaintenanceTask[] @relation("PatentMaintenanceTask_Assignee")
+  maintenanceOrdersAsApplicant PatentMaintenanceOrder[] @relation("PatentMaintenanceOrder_Applicant")
+  assignedMaintenanceOrders PatentMaintenanceOrder[] @relation("PatentMaintenanceOrder_Assignee")
+  maintenanceOrderEvents  PatentMaintenanceOrderEvent[] @relation("PatentMaintenanceOrderEvent_Actor")
   patentsOwned         Patent[]          @relation("Patent_Owner")
   patentImportJobs     PatentImportJob[] @relation("PatentImportJob_Operator")
   patentClaimRequests  PatentClaimRequest[] @relation("PatentClaimRequest_Applicant")
@@ -721,6 +763,7 @@ model File {
   invoiceOrders      Order[]
   contractFiles      Contract[]         @relation("Contract_File")
   maintenanceEvidenceTasks PatentMaintenanceTask[] @relation("PatentMaintenanceTask_Evidence")
+  maintenanceReceiptOrders PatentMaintenanceOrder[] @relation("PatentMaintenanceOrder_ReceiptFile")
   verificationLogos  UserVerification[]    @relation("UserVerification_LogoFile")
   listingBatchJobErrorFiles ListingBatchJob[] @relation("ListingBatchJob_ErrorFile")
   listingImportJobSourceFiles ListingImportJob[] @relation("ListingImportJob_SourceFile")
@@ -1587,6 +1630,7 @@ model PatentMaintenanceSchedule {
 
   patent Patent @relation(fields: [patentId], references: [id])
   tasks  PatentMaintenanceTask[]
+  orders PatentMaintenanceOrder[]
 
   @@unique([patentId, yearNo])
   @@index([status, dueDate])
@@ -1610,4 +1654,60 @@ model PatentMaintenanceTask {
   @@index([scheduleId, status])
   @@index([assignedCsUserId])
   @@map("patent_maintenance_tasks")
+}
+
+model PatentMaintenanceOrder {
+  id                  String                          @id @default(uuid()) @db.Uuid
+  scheduleId          String                          @map("schedule_id") @db.Uuid
+  applicantUserId     String                          @map("applicant_user_id") @db.Uuid
+  assignedCsUserId    String?                         @map("assigned_cs_user_id") @db.Uuid
+  status              PatentMaintenanceOrderStatus    @default(REQUESTED)
+  paymentChannel      PatentMaintenancePaymentChannel? @map("payment_channel")
+  officialFeeFen      Int                             @default(0) @map("official_fee_fen")
+  lateFeeFen          Int                             @default(0) @map("late_fee_fen")
+  serviceFeeFen       Int                             @default(0) @map("service_fee_fen")
+  totalAmountFen      Int                             @default(0) @map("total_amount_fen")
+  paymentDeadline     DateTime?                       @map("payment_deadline")
+  paidAt              DateTime?                       @map("paid_at")
+  executedAt          DateTime?                       @map("executed_at")
+  receiptIssuedAt     DateTime?                       @map("receipt_issued_at")
+  officialSubmissionNo String?                        @map("official_submission_no")
+  officialReceiptNo   String?                         @map("official_receipt_no")
+  paymentTxnNo        String?                         @map("payment_txn_no")
+  officialReceiptFileId String?                       @map("official_receipt_file_id") @db.Uuid
+  reconcileStatus     PatentMaintenanceReconcileStatus @default(PENDING) @map("reconcile_status")
+  reconcileNote       String?                         @map("reconcile_note")
+  closeNote           String?                         @map("close_note")
+  createdAt           DateTime                        @default(now()) @map("created_at")
+  updatedAt           DateTime                        @updatedAt @map("updated_at")
+
+  schedule            PatentMaintenanceSchedule       @relation(fields: [scheduleId], references: [id])
+  applicantUser       User                            @relation("PatentMaintenanceOrder_Applicant", fields: [applicantUserId], references: [id])
+  assignedCsUser      User?                           @relation("PatentMaintenanceOrder_Assignee", fields: [assignedCsUserId], references: [id])
+  officialReceiptFile File?                           @relation("PatentMaintenanceOrder_ReceiptFile", fields: [officialReceiptFileId], references: [id])
+  events              PatentMaintenanceOrderEvent[]
+
+  @@index([scheduleId, status])
+  @@index([applicantUserId, createdAt])
+  @@index([assignedCsUserId, status])
+  @@map("patent_maintenance_orders")
+}
+
+model PatentMaintenanceOrderEvent {
+  id         String                       @id @default(uuid()) @db.Uuid
+  orderId    String                       @map("order_id") @db.Uuid
+  actorUserId String?                     @map("actor_user_id") @db.Uuid
+  eventType  PatentMaintenanceOrderEventType @map("event_type")
+  fromStatus PatentMaintenanceOrderStatus? @map("from_status")
+  toStatus   PatentMaintenanceOrderStatus @map("to_status")
+  note       String?
+  payloadJson Json?                       @map("payload_json")
+  createdAt  DateTime                     @default(now()) @map("created_at")
+
+  order     PatentMaintenanceOrder @relation(fields: [orderId], references: [id])
+  actorUser User?                  @relation("PatentMaintenanceOrderEvent_Actor", fields: [actorUserId], references: [id])
+
+  @@index([orderId, createdAt])
+  @@index([actorUserId, createdAt])
+  @@map("patent_maintenance_order_events")
 }

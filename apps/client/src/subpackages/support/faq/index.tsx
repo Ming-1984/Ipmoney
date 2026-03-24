@@ -68,7 +68,7 @@ export default function SupportFaqPage() {
 
       <Surface className="faq-bottom-card">
         <Cell title="交易规则" extra="查看" onClick={() => Taro.navigateTo({ url: '/subpackages/trade-rules/index' })} />
-        <Cell title="联系客服" extra="电话" onClick={() => Taro.navigateTo({ url: '/subpackages/support/contact/index' })} />
+        <Cell title="在线客服" extra="进入" onClick={() => Taro.navigateTo({ url: '/subpackages/support/contact/index' })} />
       </Surface>
     </View>
   );

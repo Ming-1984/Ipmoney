@@ -7,6 +7,9 @@ describe('PatentMaintenanceService list filter strictness suite', () => {
   let prisma: any;
   let service: PatentMaintenanceService;
   const authReq = { auth: { userId: 'admin-1', permissions: new Set(['maintenance.manage']) } };
+  const PATENT_ID = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
+  const SCHEDULE_ID = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';
+  const CS_USER_ID = 'cccccccc-cccc-4ccc-8ccc-cccccccccccc';
 
   beforeEach(() => {
     prisma = {
@@ -48,14 +51,14 @@ describe('PatentMaintenanceService list filter strictness suite', () => {
     const result = await service.listSchedules(authReq, {
       page: '2',
       pageSize: '120',
-      patentId: 'pat-1',
+      patentId: PATENT_ID,
       status: 'due',
       dueFrom: '2026-01-01',
       dueTo: '2026-12-31',
     });
 
     const args = prisma.patentMaintenanceSchedule.findMany.mock.calls[0][0];
-    expect(args.where.patentId).toBe('pat-1');
+    expect(args.where.patentId).toBe(PATENT_ID);
     expect(args.where.status).toBe('DUE');
     expect(args.where.dueDate.gte).toBeInstanceOf(Date);
     expect(args.where.dueDate.lte).toBeInstanceOf(Date);
@@ -81,16 +84,16 @@ describe('PatentMaintenanceService list filter strictness suite', () => {
     const result = await service.listTasks(authReq, {
       page: '2',
       pageSize: '88',
-      scheduleId: 'sch-1',
-      assignedCsUserId: 'cs-1',
+      scheduleId: SCHEDULE_ID,
+      assignedCsUserId: CS_USER_ID,
       status: 'in_progress',
     });
 
     expect(prisma.patentMaintenanceTask.findMany).toHaveBeenCalledWith(
       expect.objectContaining({
         where: {
-          scheduleId: 'sch-1',
-          assignedCsUserId: 'cs-1',
+          scheduleId: SCHEDULE_ID,
+          assignedCsUserId: CS_USER_ID,
           status: 'IN_PROGRESS',
         },
         skip: 50,

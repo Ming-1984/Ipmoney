@@ -170,6 +170,28 @@ export default function DepositPayPage() {
         { idempotencyKey: `pay-deposit-${order.id}` },
       );
 
+      const payParams = intent?.wechatPayParams;
+      const isDemoIntent =
+        String(payParams?.package || '').includes('prepay_id=demo-') || String(payParams?.paySign || '').trim() === 'demo-sign';
+      if (!isDemoIntent) {
+        try {
+          await Taro.requestPayment({
+            timeStamp: String(payParams?.timeStamp || ''),
+            nonceStr: String(payParams?.nonceStr || ''),
+            package: String(payParams?.package || ''),
+            signType: 'RSA',
+            paySign: String(payParams?.paySign || ''),
+          });
+        } catch (paymentError: any) {
+          const rawMessage = String(paymentError?.errMsg || paymentError?.message || '').toLowerCase();
+          if (rawMessage.includes('cancel')) {
+            toast('已取消支付');
+            return;
+          }
+          throw paymentError;
+        }
+      }
+
       Taro.navigateTo({
         url: `/subpackages/checkout/deposit-success/index?orderId=${order.id}&paymentId=${intent.paymentId}`,
       });

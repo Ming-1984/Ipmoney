@@ -32,7 +32,7 @@ function buildListing(overrides: Record<string, unknown> = {}) {
     encumbranceNote: null,
     regionCode: '440300',
     industryTagsJson: ['AI'],
-    listingTopicsJson: ['FIVE_STAR'],
+    listingTopicsJson: ['AWARD_WINNING'],
     proofFileIdsJson: ['file-1'],
     auditStatus: 'PENDING',
     status: 'DRAFT',
@@ -173,7 +173,7 @@ describe('ListingsService write flow suite', () => {
         title: 'Listing Topic Strict',
         tradeMode: 'ASSIGNMENT',
         priceType: 'NEGOTIABLE',
-        listingTopicsJson: ['FIVE_STAR'],
+        listingTopicsJson: ['OPEN_LICENSE'],
       }),
     );
 
@@ -181,13 +181,13 @@ describe('ListingsService write flow suite', () => {
       title: 'Listing Topic Strict',
       tradeMode: 'assignment',
       priceType: 'negotiable',
-      listingTopics: ['five_star', 'foo', 'bar'],
+      listingTopics: ['legacy_retired_tag', 'open_license', 'foo', 'bar'],
     });
 
     expect(prisma.listing.create).toHaveBeenCalledWith(
       expect.objectContaining({
         data: expect.objectContaining({
-          listingTopicsJson: ['FIVE_STAR'],
+          listingTopicsJson: ['OPEN_LICENSE'],
         }),
       }),
     );

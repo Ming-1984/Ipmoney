@@ -1,4 +1,4 @@
-﻿import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+﻿import { BadRequestException, ConflictException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { randomUUID } from 'crypto';
 
 import { Prisma } from '@prisma/client';
@@ -33,6 +33,8 @@ type UserRole = {
   email?: string;
   roleIds: string[];
 };
+
+type UserListScope = 'ALL' | 'STAFF';
 
 const PERMISSIONS: Permission[] = [
   { id: 'verification.read', name: 'Verification Read', description: 'View verification details' },
@@ -76,6 +78,8 @@ const PERMISSIONS: Permission[] = [
 const PERMISSION_ID_SET = new Set([...PERMISSIONS.map((item) => item.id), '*']);
 const SYSTEM_ROLE_ID_SET = new Set(Object.values(SYSTEM_ROLE_IDS));
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const PHONE_RE = /^[0-9]{6,20}$/;
+const STAFF_ROLE_NAMES = new Set(['admin', 'operator', 'finance', 'cs']);
 
 @Injectable()
 export class RbacService {
@@ -85,6 +89,10 @@ export class RbacService {
 
   private ensureAuth(request: any) {
     if (!request?.auth?.userId) throw new ForbiddenException({ code: 'FORBIDDEN', message: '无权限' });
+  }
+
+  private hasOwn(input: any, key: string) {
+    return !!input && Object.prototype.hasOwnProperty.call(input, key);
   }
 
   private normalizePermissionIds(input: any): string[] {
@@ -132,6 +140,60 @@ export class RbacService {
       });
     }
     return raw;
+  }
+
+  private parsePhoneStrict(value: unknown, fieldName: string): string {
+    const raw = String(value || '').trim();
+    if (!raw) {
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: `${fieldName} is required` });
+    }
+    if (!PHONE_RE.test(raw)) {
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: `${fieldName} is invalid` });
+    }
+    return raw;
+  }
+
+  private parseDisplayNameStrict(value: unknown, fieldName: string): string {
+    const raw = String(value || '').trim();
+    if (!raw) {
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: `${fieldName} is required` });
+    }
+    if (raw.length > 64) {
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: `${fieldName} is too long` });
+    }
+    return raw;
+  }
+
+  private parseRoleIdsStrict(input: unknown, fieldName: string): string[] {
+    if (!Array.isArray(input) || input.length === 0) {
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: `${fieldName} is required` });
+    }
+    const roleIds = Array.from(
+      new Set(
+        input
+          .map((item) => String(item || '').trim())
+          .filter((item) => Boolean(item)),
+      ),
+    );
+    if (!roleIds.length) {
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: `${fieldName} is required` });
+    }
+    return roleIds;
+  }
+
+  private parseUserListScopeStrict(value: unknown, fieldName: string): UserListScope {
+    const normalized = String(value ?? '').trim().toUpperCase();
+    if (normalized === 'ALL' || normalized === 'STAFF') {
+      return normalized as UserListScope;
+    }
+    throw new BadRequestException({ code: 'BAD_REQUEST', message: `${fieldName} is invalid` });
+  }
+
+  private deriveUserRole(roleIds: string[]): 'admin' | 'operator' | 'finance' | 'cs' {
+    if (roleIds.includes(SYSTEM_ROLE_IDS.admin)) return 'admin';
+    if (roleIds.includes(SYSTEM_ROLE_IDS.finance)) return 'finance';
+    if (roleIds.includes(SYSTEM_ROLE_IDS.cs)) return 'cs';
+    return 'operator';
   }
 
   private toRoleDto(role: any): Role {
@@ -329,12 +391,38 @@ export class RbacService {
     return { items: PERMISSIONS };
   }
 
-  async listUsers(request: any) {
+  async listUsers(request: any, query: any = {}) {
     this.ensureAuth(request);
     requirePermission(request, 'rbac.manage');
     await this.ensureSeeded();
 
+    const scope = this.hasOwn(query, 'scope') ? this.parseUserListScopeStrict(query?.scope, 'scope') : 'STAFF';
+    const q = String(query?.q || '').trim();
+    const where: Prisma.UserWhereInput = {};
+    const andFilters: Prisma.UserWhereInput[] = [];
+    if (scope === 'STAFF') {
+      andFilters.push({
+        OR: [{ role: { in: Array.from(STAFF_ROLE_NAMES) as any } }, { rbacRoles: { some: {} } }],
+      });
+    }
+    if (q) {
+      const qOrFilters: Prisma.UserWhereInput[] = [
+        { phone: { contains: q, mode: 'insensitive' } },
+        { nickname: { contains: q, mode: 'insensitive' } },
+      ];
+      if (UUID_RE.test(q)) {
+        qOrFilters.push({ id: q });
+      }
+      andFilters.push({
+        OR: qOrFilters,
+      });
+    }
+    if (andFilters.length) {
+      where.AND = andFilters;
+    }
+
     const userRecords = await this.prisma.user.findMany({
+      where,
       orderBy: { createdAt: 'desc' },
       include: { rbacRoles: true },
     });
@@ -355,6 +443,62 @@ export class RbacService {
     });
 
     return { items };
+  }
+
+  async createUser(request: any, payload: any) {
+    this.ensureAuth(request);
+    requirePermission(request, 'rbac.manage');
+    await this.ensureSeeded();
+
+    const phone = this.parsePhoneStrict(payload?.phone, 'phone');
+    const name = this.parseDisplayNameStrict(payload?.name, 'name');
+    const roleIds = this.parseRoleIdsStrict(payload?.roleIds, 'roleIds');
+
+    const existingRoles = await this.prisma.rbacRole.findMany({
+      where: { id: { in: roleIds } },
+      select: { id: true },
+    });
+    const existingRoleSet = new Set(existingRoles.map((item) => item.id));
+    const missing = roleIds.filter((roleId) => !existingRoleSet.has(roleId));
+    if (missing.length) {
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: `Unknown roleIds: ${missing.join(', ')}` });
+    }
+
+    const existingUser = await this.prisma.user.findUnique({ where: { phone } });
+    if (existingUser) {
+      throw new ConflictException({ code: 'CONFLICT', message: 'phone already exists' });
+    }
+
+    const userId = randomUUID();
+    const role = this.deriveUserRole(roleIds);
+    await this.prisma.$transaction([
+      this.prisma.user.create({
+        data: {
+          id: userId,
+          phone,
+          nickname: name,
+          role,
+        },
+      }),
+      this.prisma.rbacUserRole.createMany({
+        data: roleIds.map((roleId) => ({ userId, roleId })),
+      }),
+    ]);
+
+    void this.audit.log({
+      actorUserId: request.auth.userId,
+      action: 'RBAC_USER_CREATE',
+      targetType: 'RBAC_USER',
+      targetId: userId,
+      afterJson: { id: userId, phone, name, roleIds },
+    });
+
+    return {
+      id: userId,
+      name,
+      email: phone,
+      roleIds,
+    };
   }
 
   async updateUserRoles(request: any, userId: string, payload: any) {
@@ -422,3 +566,4 @@ export class RbacService {
     };
   }
 }
+

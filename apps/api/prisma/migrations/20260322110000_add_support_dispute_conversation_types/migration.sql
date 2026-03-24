@@ -1,0 +1,2 @@
+ALTER TYPE "ConversationContentType" ADD VALUE IF NOT EXISTS 'SUPPORT';
+ALTER TYPE "ConversationContentType" ADD VALUE IF NOT EXISTS 'DISPUTE';

@@ -8,10 +8,8 @@
 - **开关**：
   - `SEED_BASE_DATA=true|false`（默认 true，仅基础配置/地区）
   - `SEED_DEMO_DATA=true|false`（默认 false，演示数据）
-  - `SEED_DEMO_PURGE_MAP=true|false`
 - **硬编码内容**（仅用于 demo/开发）：
   - 系统配置：`trade_rules`、`recommendation_config`
-  - 专利地图示例：`patent_map_entries`（2024/2025 示例数据）
   - Demo 用户：`DEMO_USER_ID` / `DEMO_ADMIN_ID`
   - 通知/地址等示例记录
 - **替代方案**：
@@ -28,7 +26,7 @@
 
 ### 2.2 筛选/表单枚举（静态选项）
 - 位置：`apps/client/src/subpackages/search/index.tsx`、`subpackages/publish/*/index.tsx`
-- 内容：tradeMode/patentType/priceType 等枚举选项；`listingTopics` 统一 5 类：`HIGH_TECH_RETIRED`、`SLEEPING`、`AWARD_WINNING`、`OPEN_LICENSE`、`FIVE_STAR`
+- 内容：tradeMode/patentType/priceType 等枚举选项；`listingTopics` 统一 4 类：`HIGH_TECH_RETIRED`、`SLEEPING`、`AWARD_WINNING`、`OPEN_LICENSE`
 - 方案：
   - 继续使用 OpenAPI enum（通过 `apps/client/src/lib/listingTopics.ts` 与 `lib/labels` 统一映射）
   - 若需后台可配置，考虑引入字典/枚举配置接口

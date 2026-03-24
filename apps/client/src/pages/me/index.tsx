@@ -441,6 +441,18 @@ export default function MePage() {
         icon: iconMeAddress,
         onClick: () => Taro.navigateTo({ url: '/subpackages/addresses/index' }),
       },
+      {
+        key: 'patent-claims',
+        label: '专利认领记录',
+        icon: iconPublishPatent,
+        onClick: () => Taro.navigateTo({ url: '/subpackages/patent-claims/index' }),
+      },
+      {
+        key: 'maintenance',
+        label: '年费托管',
+        icon: iconContractCenter,
+        onClick: () => Taro.navigateTo({ url: '/subpackages/maintenance/index' }),
+      },
     ],
     [],
   );

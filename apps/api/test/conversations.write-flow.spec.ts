@@ -18,8 +18,29 @@ describe('ConversationsService write flow suite', () => {
       listing: {
         findUnique: vi.fn(),
       },
+      order: {
+        findUnique: vi.fn(),
+        update: vi.fn(),
+      },
+      patentMaintenanceOrder: {
+        findUnique: vi.fn(),
+        update: vi.fn(),
+      },
+      csCase: {
+        findFirst: vi.fn(),
+        create: vi.fn(),
+        update: vi.fn(),
+      },
+      user: {
+        findFirst: vi.fn(),
+        upsert: vi.fn(),
+        findUnique: vi.fn(),
+      },
       userVerification: {
         findFirst: vi.fn(),
+      },
+      achievement: {
+        findUnique: vi.fn(),
       },
       conversation: {
         findFirst: vi.fn(),
@@ -29,6 +50,7 @@ describe('ConversationsService write flow suite', () => {
       },
       conversationMessage: {
         create: vi.fn(),
+        count: vi.fn(),
       },
       conversationAgent: {
         findFirst: vi.fn(),
@@ -45,6 +67,8 @@ describe('ConversationsService write flow suite', () => {
 
   it('requires auth for create/send/mark write endpoints', async () => {
     await expect(service.createListingConversation({}, LISTING_ID)).rejects.toBeInstanceOf(ForbiddenException);
+    await expect(service.createSupportConversation({})).rejects.toBeInstanceOf(ForbiddenException);
+    await expect(service.createOrderDisputeConversation({}, LISTING_ID)).rejects.toBeInstanceOf(ForbiddenException);
     await expect(service.sendMessage({}, CONVERSATION_ID, { text: 'hi' })).rejects.toBeInstanceOf(ForbiddenException);
     await expect(service.markRead({}, CONVERSATION_ID)).rejects.toBeInstanceOf(ForbiddenException);
   });
@@ -138,6 +162,242 @@ describe('ConversationsService write flow suite', () => {
       contentId: TECH_MANAGER_ID,
       contentTitle: 'Manager A',
       sellerUserId: TECH_MANAGER_ID,
+    });
+  });
+
+  it('creates support conversation and writes default system greeting', async () => {
+    const req = { auth: { userId: '11111111-1111-1111-1111-111111111111' } };
+    const csUserId = '22222222-2222-2222-2222-222222222222';
+    prisma.user.findFirst.mockResolvedValueOnce({ id: csUserId });
+    prisma.conversation.findFirst.mockResolvedValueOnce(null).mockResolvedValueOnce({
+      id: CONVERSATION_ID,
+      contentType: 'SUPPORT',
+      contentId: req.auth.userId,
+      listingId: null,
+      orderId: null,
+      buyerUserId: req.auth.userId,
+      sellerUserId: csUserId,
+      lastMessageAt: new Date('2026-03-13T00:01:00.000Z'),
+      createdAt: new Date('2026-03-13T00:00:00.000Z'),
+      updatedAt: new Date('2026-03-13T00:01:00.000Z'),
+    });
+    prisma.conversation.create.mockResolvedValueOnce({
+      id: CONVERSATION_ID,
+      contentType: 'SUPPORT',
+      contentId: req.auth.userId,
+      listingId: null,
+      orderId: null,
+      buyerUserId: req.auth.userId,
+      sellerUserId: csUserId,
+      lastMessageAt: null,
+      createdAt: new Date('2026-03-13T00:00:00.000Z'),
+      updatedAt: new Date('2026-03-13T00:00:00.000Z'),
+    });
+    prisma.conversationMessage.create.mockResolvedValueOnce({ createdAt: new Date('2026-03-13T00:01:00.000Z') });
+    prisma.conversation.update.mockResolvedValueOnce({});
+    prisma.conversation.findUnique.mockResolvedValueOnce({
+      id: CONVERSATION_ID,
+      contentType: 'SUPPORT',
+      contentId: req.auth.userId,
+      listingId: null,
+      orderId: null,
+      buyerUserId: req.auth.userId,
+      sellerUserId: csUserId,
+      lastMessageAt: new Date('2026-03-13T00:01:00.000Z'),
+      createdAt: new Date('2026-03-13T00:00:00.000Z'),
+      updatedAt: new Date('2026-03-13T00:01:00.000Z'),
+    });
+
+    const result = await service.createSupportConversation(req);
+
+    expect(prisma.conversation.create).toHaveBeenCalledWith({
+      data: {
+        contentType: 'SUPPORT',
+        contentId: req.auth.userId,
+        buyerUserId: req.auth.userId,
+        sellerUserId: csUserId,
+      },
+    });
+    expect(prisma.conversationMessage.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          conversationId: CONVERSATION_ID,
+          senderUserId: csUserId,
+          type: 'SYSTEM',
+        }),
+      }),
+    );
+    expect(result).toMatchObject({
+      id: CONVERSATION_ID,
+      contentType: 'SUPPORT',
+      contentTitle: '平台客服',
+    });
+  });
+
+  it('creates order dispute conversation and binds dispute case', async () => {
+    const req = {
+      auth: {
+        userId: '11111111-1111-1111-1111-111111111111',
+      },
+    };
+    const orderId = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
+    const buyerUserId = req.auth.userId;
+    const csUserId = '22222222-2222-2222-2222-222222222222';
+    prisma.order.findUnique.mockResolvedValueOnce({
+      id: orderId,
+      listingId: LISTING_ID,
+      buyerUserId,
+      assignedCsUserId: csUserId,
+      listing: { id: LISTING_ID, title: 'Listing A', sellerUserId: 'seller-1' },
+    });
+    prisma.conversation.findFirst.mockResolvedValueOnce(null).mockResolvedValueOnce({
+      id: CONVERSATION_ID,
+      contentType: 'DISPUTE',
+      contentId: orderId,
+      listingId: LISTING_ID,
+      orderId,
+      buyerUserId,
+      sellerUserId: csUserId,
+      lastMessageAt: new Date('2026-03-13T00:02:00.000Z'),
+      createdAt: new Date('2026-03-13T00:00:00.000Z'),
+      updatedAt: new Date('2026-03-13T00:02:00.000Z'),
+    });
+    prisma.conversation.create.mockResolvedValueOnce({
+      id: CONVERSATION_ID,
+      contentType: 'DISPUTE',
+      contentId: orderId,
+      listingId: LISTING_ID,
+      orderId,
+      buyerUserId,
+      sellerUserId: csUserId,
+      lastMessageAt: null,
+      createdAt: new Date('2026-03-13T00:00:00.000Z'),
+      updatedAt: new Date('2026-03-13T00:00:00.000Z'),
+    });
+    prisma.csCase.findFirst.mockResolvedValueOnce(null);
+    prisma.csCase.create.mockResolvedValueOnce({ id: 'case-1' });
+    prisma.conversationMessage.create.mockResolvedValueOnce({ createdAt: new Date('2026-03-13T00:02:00.000Z') });
+    prisma.conversation.update.mockResolvedValueOnce({});
+    prisma.conversation.findUnique.mockResolvedValueOnce({
+      id: CONVERSATION_ID,
+      contentType: 'DISPUTE',
+      contentId: orderId,
+      listingId: LISTING_ID,
+      orderId,
+      buyerUserId,
+      sellerUserId: csUserId,
+      lastMessageAt: new Date('2026-03-13T00:02:00.000Z'),
+      createdAt: new Date('2026-03-13T00:00:00.000Z'),
+      updatedAt: new Date('2026-03-13T00:02:00.000Z'),
+    });
+
+    const result = await service.createOrderDisputeConversation(req, orderId);
+
+    expect(prisma.conversation.create).toHaveBeenCalledWith({
+      data: {
+        contentType: 'DISPUTE',
+        contentId: orderId,
+        listingId: LISTING_ID,
+        orderId,
+        buyerUserId,
+        sellerUserId: csUserId,
+      },
+    });
+    expect(prisma.csCase.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          orderId,
+          type: 'DISPUTE',
+          csUserId: csUserId,
+        }),
+      }),
+    );
+    expect(result).toMatchObject({
+      id: CONVERSATION_ID,
+      contentType: 'DISPUTE',
+      orderId,
+    });
+  });
+
+  it('creates maintenance conversation and binds cs assignee when missing', async () => {
+    const req = {
+      auth: {
+        userId: '11111111-1111-1111-1111-111111111111',
+      },
+    };
+    const maintenanceOrderId = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';
+    const csUserId = '22222222-2222-2222-2222-222222222222';
+    prisma.patentMaintenanceOrder.findUnique.mockResolvedValueOnce({
+      id: maintenanceOrderId,
+      applicantUserId: req.auth.userId,
+      assignedCsUserId: null,
+      schedule: {
+        yearNo: 3,
+        patent: {
+          ownerUserId: req.auth.userId,
+          title: 'Patent A',
+        },
+      },
+    });
+    prisma.user.findFirst.mockResolvedValueOnce({ id: csUserId });
+    prisma.patentMaintenanceOrder.update.mockResolvedValueOnce({ id: maintenanceOrderId, assignedCsUserId: csUserId });
+    prisma.conversation.findFirst.mockResolvedValueOnce(null).mockResolvedValueOnce({
+      id: CONVERSATION_ID,
+      contentType: 'MAINTENANCE',
+      contentId: maintenanceOrderId,
+      listingId: null,
+      orderId: null,
+      buyerUserId: req.auth.userId,
+      sellerUserId: csUserId,
+      lastMessageAt: new Date('2026-03-13T00:04:00.000Z'),
+      createdAt: new Date('2026-03-13T00:00:00.000Z'),
+      updatedAt: new Date('2026-03-13T00:04:00.000Z'),
+    });
+    prisma.conversation.create.mockResolvedValueOnce({
+      id: CONVERSATION_ID,
+      contentType: 'MAINTENANCE',
+      contentId: maintenanceOrderId,
+      listingId: null,
+      orderId: null,
+      buyerUserId: req.auth.userId,
+      sellerUserId: csUserId,
+      lastMessageAt: null,
+      createdAt: new Date('2026-03-13T00:00:00.000Z'),
+      updatedAt: new Date('2026-03-13T00:00:00.000Z'),
+    });
+    prisma.conversationMessage.create.mockResolvedValueOnce({ createdAt: new Date('2026-03-13T00:04:00.000Z') });
+    prisma.conversation.update.mockResolvedValueOnce({});
+    prisma.conversation.findUnique.mockResolvedValueOnce({
+      id: CONVERSATION_ID,
+      contentType: 'MAINTENANCE',
+      contentId: maintenanceOrderId,
+      listingId: null,
+      orderId: null,
+      buyerUserId: req.auth.userId,
+      sellerUserId: csUserId,
+      lastMessageAt: new Date('2026-03-13T00:04:00.000Z'),
+      createdAt: new Date('2026-03-13T00:00:00.000Z'),
+      updatedAt: new Date('2026-03-13T00:04:00.000Z'),
+    });
+
+    const result = await service.createMaintenanceConversation(req, maintenanceOrderId);
+
+    expect(prisma.patentMaintenanceOrder.update).toHaveBeenCalledWith({
+      where: { id: maintenanceOrderId },
+      data: { assignedCsUserId: csUserId },
+    });
+    expect(prisma.conversation.create).toHaveBeenCalledWith({
+      data: {
+        contentType: 'MAINTENANCE',
+        contentId: maintenanceOrderId,
+        buyerUserId: req.auth.userId,
+        sellerUserId: csUserId,
+      },
+    });
+    expect(result).toMatchObject({
+      id: CONVERSATION_ID,
+      contentType: 'MAINTENANCE',
+      contentId: maintenanceOrderId,
     });
   });
 

@@ -24,7 +24,8 @@ import { RequestErrorAlert } from '../ui/RequestState';
 
 type AuditStatus = 'PENDING' | 'APPROVED' | 'REJECTED';
 type ListingStatus = 'DRAFT' | 'ACTIVE' | 'OFF_SHELF' | 'SOLD';
-type ListingTopic = 'HIGH_TECH_RETIRED' | 'SLEEPING' | 'AWARD_WINNING' | 'OPEN_LICENSE' | 'FIVE_STAR';
+type ListingTopic = 'HIGH_TECH_RETIRED' | 'SLEEPING' | 'AWARD_WINNING' | 'OPEN_LICENSE';
+type ContentSource = 'USER' | 'ADMIN' | 'PLATFORM';
 type BatchAction = 'APPROVE' | 'REJECT' | 'PUBLISH' | 'OFF_SHELF';
 type JobStatus = 'PENDING' | 'RUNNING' | 'PAUSED' | 'SUCCEEDED' | 'FAILED';
 type BatchItemStatus = 'PENDING' | 'SUCCEEDED' | 'FAILED' | 'SKIPPED';
@@ -37,6 +38,7 @@ type Paged<T> = { items: T[]; page: PageMeta };
 type Listing = {
   id: string;
   title: string;
+  source?: ContentSource;
   auditStatus: AuditStatus;
   status: ListingStatus;
   tradeMode: 'ASSIGNMENT' | 'LICENSE';
@@ -102,7 +104,6 @@ const LISTING_TOPIC_OPTIONS: Array<{ value: ListingTopic; label: string }> = [
   { value: 'SLEEPING', label: '沉睡专利' },
   { value: 'AWARD_WINNING', label: '获奖专利' },
   { value: 'OPEN_LICENSE', label: '开放许可' },
-  { value: 'FIVE_STAR', label: '五星专利' },
 ];
 
 function actionLabel(action: BatchAction) {
@@ -128,17 +129,25 @@ function topicLabel(topic?: ListingTopic | null) {
   if (topic === 'SLEEPING') return '沉睡专利';
   if (topic === 'AWARD_WINNING') return '获奖专利';
   if (topic === 'OPEN_LICENSE') return '开放许可';
-  return '五星专利';
+  return topic;
 }
 
 export function ListingsAuditPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<unknown | null>(null);
   const [listings, setListings] = useState<Paged<Listing> | null>(null);
-  const [q, setQ] = useState('');
-  const [auditStatus, setAuditStatus] = useState<AuditStatus | ''>('');
-  const [status, setStatus] = useState<ListingStatus | ''>('');
-  const [listingTopic, setListingTopic] = useState<ListingTopic | ''>('');
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(20);
+  const [draftQ, setDraftQ] = useState('');
+  const [draftAuditStatus, setDraftAuditStatus] = useState<AuditStatus | ''>('');
+  const [draftStatus, setDraftStatus] = useState<ListingStatus | ''>('');
+  const [draftListingTopic, setDraftListingTopic] = useState<ListingTopic | ''>('');
+  const [draftSource, setDraftSource] = useState<ContentSource | ''>('');
+  const [appliedQ, setAppliedQ] = useState('');
+  const [appliedAuditStatus, setAppliedAuditStatus] = useState<AuditStatus | ''>('');
+  const [appliedStatus, setAppliedStatus] = useState<ListingStatus | ''>('');
+  const [appliedListingTopic, setAppliedListingTopic] = useState<ListingTopic | ''>('');
+  const [appliedSource, setAppliedSource] = useState<ContentSource | ''>('');
   const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
 
   const [batchJobsLoading, setBatchJobsLoading] = useState(false);
@@ -175,16 +184,15 @@ export function ListingsAuditPage() {
     setError(null);
     try {
       const data = await apiGet<Paged<Listing>>('/admin/listings', {
-        page: 1,
-        pageSize: 50,
-        q: q.trim() || undefined,
-        auditStatus: auditStatus || undefined,
-        status: status || undefined,
+        page,
+        pageSize,
+        q: appliedQ.trim() || undefined,
+        auditStatus: appliedAuditStatus || undefined,
+        status: appliedStatus || undefined,
+        source: appliedSource || undefined,
+        listingTopic: appliedListingTopic || undefined,
       });
-      const items = Array.isArray(data.items)
-        ? data.items.filter((it) => (listingTopic ? (it.listingTopics || []).includes(listingTopic) : true))
-        : [];
-      setListings({ ...data, items, page: { ...data.page, total: items.length } });
+      setListings(data);
     } catch (e: any) {
       setError(e);
       setListings(null);
@@ -192,7 +200,7 @@ export function ListingsAuditPage() {
     } finally {
       setLoading(false);
     }
-  }, [auditStatus, listingTopic, q, status]);
+  }, [appliedAuditStatus, appliedListingTopic, appliedQ, appliedSource, appliedStatus, page, pageSize]);
 
   const loadBatchJobs = useCallback(async () => {
     setBatchJobsLoading(true);
@@ -227,8 +235,39 @@ export function ListingsAuditPage() {
   }, []);
 
   useEffect(() => {
-    void Promise.all([loadListings(), loadBatchJobs(), loadImportJobs()]);
-  }, [loadBatchJobs, loadImportJobs, loadListings]);
+    void loadListings();
+  }, [loadListings]);
+
+  useEffect(() => {
+    void Promise.all([loadBatchJobs(), loadImportJobs()]);
+  }, [loadBatchJobs, loadImportJobs]);
+
+  useEffect(() => {
+    setSelectedRowKeys([]);
+  }, [appliedAuditStatus, appliedListingTopic, appliedQ, appliedSource, appliedStatus, page, pageSize]);
+
+  const applyFilters = useCallback(() => {
+    setPage(1);
+    setAppliedQ(draftQ);
+    setAppliedAuditStatus(draftAuditStatus);
+    setAppliedStatus(draftStatus);
+    setAppliedListingTopic(draftListingTopic);
+    setAppliedSource(draftSource);
+  }, [draftAuditStatus, draftListingTopic, draftQ, draftSource, draftStatus]);
+
+  const resetFilters = useCallback(() => {
+    setPage(1);
+    setDraftQ('');
+    setDraftAuditStatus('');
+    setDraftStatus('');
+    setDraftListingTopic('');
+    setDraftSource('');
+    setAppliedQ('');
+    setAppliedAuditStatus('');
+    setAppliedStatus('');
+    setAppliedListingTopic('');
+    setAppliedSource('');
+  }, []);
 
   const openFileById = useCallback(async (fileId?: string | null) => {
     if (!fileId) {
@@ -378,17 +417,17 @@ export function ListingsAuditPage() {
 
           <Space wrap>
             <Input
-              value={q}
-              onChange={(e) => setQ(e.target.value)}
+              value={draftQ}
+              onChange={(e) => setDraftQ(e.target.value)}
               placeholder="关键词（标题）"
               style={{ width: 220 }}
               allowClear
-              onPressEnter={() => void loadListings()}
+              onPressEnter={applyFilters}
             />
             <Select
-              value={auditStatus}
+              value={draftAuditStatus}
               style={{ width: 160 }}
-              onChange={(v) => setAuditStatus((v as AuditStatus) || '')}
+              onChange={(v) => setDraftAuditStatus((v as AuditStatus) || '')}
               options={[
                 { value: '', label: '全部审核状态' },
                 { value: 'PENDING', label: '待审核' },
@@ -397,9 +436,9 @@ export function ListingsAuditPage() {
               ]}
             />
             <Select
-              value={status}
+              value={draftStatus}
               style={{ width: 160 }}
-              onChange={(v) => setStatus((v as ListingStatus) || '')}
+              onChange={(v) => setDraftStatus((v as ListingStatus) || '')}
               options={[
                 { value: '', label: '全部上架状态' },
                 { value: 'DRAFT', label: '草稿' },
@@ -409,13 +448,27 @@ export function ListingsAuditPage() {
               ]}
             />
             <Select
-              value={listingTopic}
+              value={draftListingTopic}
               style={{ width: 180 }}
-              onChange={(v) => setListingTopic((v as ListingTopic) || '')}
+              onChange={(v) => setDraftListingTopic((v as ListingTopic) || '')}
               options={[{ value: '', label: '全部特色标签' }, ...LISTING_TOPIC_OPTIONS]}
             />
-            <Button type="primary" onClick={() => void loadListings()}>
+            <Select
+              value={draftSource}
+              style={{ width: 160 }}
+              onChange={(v) => setDraftSource((v as ContentSource) || '')}
+              options={[
+                { value: '', label: '全部来源' },
+                { value: 'ADMIN', label: '后台录入' },
+                { value: 'USER', label: '用户发布' },
+                { value: 'PLATFORM', label: '平台导入' },
+              ]}
+            />
+            <Button type="primary" onClick={applyFilters}>
               查询
+            </Button>
+            <Button onClick={resetFilters}>
+              重置
             </Button>
           </Space>
 
@@ -437,7 +490,19 @@ export function ListingsAuditPage() {
               selectedRowKeys,
               onChange: setSelectedRowKeys,
             }}
-            pagination={false}
+            pagination={{
+              current: listings?.page.page || page,
+              pageSize: listings?.page.pageSize || pageSize,
+              total: listings?.page.total || 0,
+              showSizeChanger: true,
+              pageSizeOptions: ['10', '20', '50'],
+              onChange: (nextPage, nextPageSize) => {
+                setPage(nextPage);
+                if (nextPageSize && nextPageSize !== pageSize) {
+                  setPageSize(nextPageSize);
+                }
+              },
+            }}
             columns={[
               { title: 'ID', dataIndex: 'id', width: 220 },
               { title: '标题', dataIndex: 'title', ellipsis: true },
@@ -467,6 +532,17 @@ export function ListingsAuditPage() {
                 dataIndex: 'auditStatus',
                 width: 120,
                 render: (v: AuditStatus) => <Tag>{auditStatusLabel(v)}</Tag>,
+              },
+              {
+                title: '来源',
+                dataIndex: 'source',
+                width: 110,
+                render: (v: ContentSource | undefined) => {
+                  if (v === 'ADMIN') return '后台录入';
+                  if (v === 'USER') return '用户发布';
+                  if (v === 'PLATFORM') return '平台导入';
+                  return '-';
+                },
               },
               {
                 title: '上架状态',

@@ -1,20 +1,19 @@
 ﻿# PRD -> API -> Implementation Traceability Matrix (P0 Baseline)
 
-> Last updated: 2026-03-21
+> Last updated: 2026-03-23
 > Source of truth: `Ipmoney.md`, `docs/api/openapi.yaml`, `apps/client/src`, `apps/admin-web/src`, `apps/api/src`
 > This file tracks active scope only. Removed domains are listed in section 4.
 
 ## 1. Scope Definition
 
 ### 1.1 Active P0 scope
-- Mobile (client): home/search/listing detail/patent detail/chat/orders/checkout/me/publish/favorites/organizations/inventors/tech managers
+- Mobile (client): home/search/listing detail/patent detail/chat/orders/checkout/me/publish/favorites/organizations/inventors/tech managers/maintenance
 - Admin web: dashboard/verifications/listings audit/orders/refunds/settlements/invoices/comments/reports/rbac/config/maintenance/regions/patents
-- API: 156 operations (OpenAPI) and 156 controller routes (backend) are aligned by path+method
+- API: OpenAPI operations and backend controller routes are aligned by path+method (see section 5 audit result)
 
 ### 1.2 P1 reserved scope
 - AI parse review and feedback
 - Alert center
-- Patent maintenance deep workflow
 - Expanded analytics
 
 ## 2. Client Matrix (`apps/client`)
@@ -25,9 +24,10 @@
 | Search and advanced filters | Search Results | `subpackages/search/index` | `GET /search/listings` | Aligned |
 | Listing detail and consultation | Detail Page / Message | `subpackages/listing/detail/index` | `GET /public/listings/{listingId}`, `POST /listings/{listingId}/conversations` | Aligned |
 | Patent detail single-page tabs | Detail Page best-practice section | `subpackages/patent/detail/index` | `GET /patents/{patentId}` | Aligned |
-| Messaging and chat | Message | `pages/messages/index`, `subpackages/messages/chat/index` | `/me/conversations`, `/conversations/{conversationId}/messages`, `/conversations/{conversationId}/read` | Aligned |
+| Messaging and chat | Message | `pages/messages/index`, `subpackages/messages/chat/index` | `/me/conversations`, `/conversations/{conversationId}/messages`, `/conversations/{conversationId}/read`, `/support/conversations`, `/orders/{orderId}/dispute-conversations` | Aligned |
 | Orders and checkout | Checkout | `subpackages/orders/*`, `subpackages/checkout/*` | `/orders`, `/orders/{orderId}`, `/orders/{orderId}/payment-intents` | Aligned |
 | Me/profile/verification | User Center | `pages/me/index`, onboarding/profile/settings subpackages | `/me`, `/me/verification`, `/me/addresses` | Aligned |
+| My patent maintenance | User Center | `subpackages/maintenance/index` | `/me/patent-maintenance/schedules`, `/me/patent-maintenance/tasks` | Aligned |
 | Publish listing | Publish | `pages/publish/index`, `subpackages/publish/patent/index` | `/patents/normalize`, `/files`, `/listings`, `/listings/{listingId}` | Aligned |
 | Favorites | User Center | `subpackages/favorites/index` | `/me/favorites`, `/listings/{listingId}/favorites` | Aligned |
 | Organizations / inventors / tech managers | Home + Search extension | `subpackages/organizations/*`, `subpackages/inventors/index`, `pages/tech-managers/index` | `/public/organizations*`, `/search/inventors`, `/search/tech-managers` | Aligned |
@@ -46,7 +46,8 @@
 | Comments moderation | Content Audit | `/comments` | `/admin/comments*` | Aligned |
 | Reports | Finance | `/reports` | `/admin/reports/finance/*` | Aligned |
 | RBAC and config | System settings | `/rbac`, `/config` | `/admin/rbac/*`, `/admin/config/*` | Aligned |
-| Maintenance / regions / patents | P1 reserved + ops | `/maintenance`, `/regions`, `/patents` | `/admin/patent-maintenance/*`, `/admin/regions*`, `/admin/patents*` | Aligned |
+| Platform conversation inbox | Customer service / dispute ops | `/conversations/platform` | `/admin/conversations/platform`, `/admin/conversations/{conversationId}/agents*` | Aligned |
+| Maintenance / regions / patents | Ops | `/maintenance`, `/regions`, `/patents` | `/admin/patent-maintenance/*`, `/admin/regions*`, `/admin/patents*` | Aligned |
 
 ## 4. Removed Domains (Must Stay Removed)
 
@@ -70,7 +71,7 @@ Not allowed residual locations:
 
 - OpenAPI vs backend route diff: `OpenAPI-only=0`, `Controller-only=0`
 - Route-level dist artifact check (weapp): passed
-- Remaining cleanup target: remove stale references in auxiliary scripts/docs and keep OpenAPI components lean
+- Remaining cleanup target: remove stale references in auxiliary docs and keep OpenAPI components lean (script index: `scripts/README.md`)
 
 ## 6. Verification Commands
 

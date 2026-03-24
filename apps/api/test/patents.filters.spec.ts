@@ -29,6 +29,7 @@ describe('PatentsService admin list filter strictness suite', () => {
     await expect(service.adminList(req, { pageSize: '9007199254740992' })).rejects.toBeInstanceOf(BadRequestException);
     await expect(service.adminList(req, { patentType: 'bad' })).rejects.toBeInstanceOf(BadRequestException);
     await expect(service.adminList(req, { legalStatus: 'bad' })).rejects.toBeInstanceOf(BadRequestException);
+    await expect(service.adminList(req, { sourcePrimary: 'bad' })).rejects.toBeInstanceOf(BadRequestException);
   });
 
   it('caps pageSize and applies normalized admin filters', async () => {
@@ -41,6 +42,7 @@ describe('PatentsService admin list filter strictness suite', () => {
       pageSize: '120',
       patentType: 'invention',
       legalStatus: 'granted',
+      sourcePrimary: 'admin',
       q: '  CN202400000001.1  ',
     });
 
@@ -49,6 +51,7 @@ describe('PatentsService admin list filter strictness suite', () => {
         where: {
           patentType: 'INVENTION',
           legalStatus: 'GRANTED',
+          sourcePrimary: 'ADMIN',
           OR: [
             { title: { contains: 'CN202400000001.1', mode: 'insensitive' } },
             { applicationNoNorm: { contains: 'CN202400000001.1', mode: 'insensitive' } },

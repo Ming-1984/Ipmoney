@@ -73,4 +73,14 @@
   color: var(--c-text);
 }
 
+.patent-claim-card {
+  display: flex;
+  flex-direction: column;
+  gap: 14rpx;
+}
 
+.patent-claim-desc {
+  font-size: 24rpx;
+  line-height: 1.6;
+  color: var(--c-text);
+}
