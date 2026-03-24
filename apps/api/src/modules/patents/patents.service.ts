@@ -2,7 +2,7 @@
 import crypto from 'node:crypto';
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
-import * as XLSX from 'xlsx';
+import { parseExcelSerialDate, readWorkbookRowsFromBuffer } from '../../common/workbook-reader';
 
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { FilesService } from '../files/files.service';
@@ -1060,7 +1060,7 @@ export class PatentsService {
     return fileId;
   }
 
-  private async readFileBufferById(fileId: string): Promise<Buffer> {
+  private async readFileBufferById(fileId: string): Promise<{ file: any; buffer: Buffer }> {
     const file = await this.prisma.file.findUnique({ where: { id: fileId } });
     if (!file) {
       throw new NotFoundException({ code: 'NOT_FOUND', message: 'file not found' });
@@ -1071,12 +1071,12 @@ export class PatentsService {
     }
     const fromService = this.files ? await this.files.getFileBuffer(fileName) : null;
     if (fromService && fromService.length > 0) {
-      return fromService;
+      return { file, buffer: fromService };
     }
     try {
       const local = readFileSync(path.resolve(UPLOAD_DIR, path.basename(fileName)));
       if (!local.length) throw new Error('empty');
-      return local;
+      return { file, buffer: local };
     } catch {
       throw new NotFoundException({ code: 'NOT_FOUND', message: 'file not found' });
     }
@@ -1127,12 +1127,11 @@ export class PatentsService {
       return new Date(value.toISOString().slice(0, 10));
     }
     if (typeof value === 'number' && Number.isFinite(value)) {
-      const parsed = XLSX.SSF.parse_date_code(value);
-      if (!parsed || !parsed.y || !parsed.m || !parsed.d) {
+      const parsed = parseExcelSerialDate(value);
+      if (!parsed) {
         throw new BadRequestException({ code: 'BAD_REQUEST', message: `${fieldName} is invalid` });
       }
-      const utcDate = new Date(Date.UTC(parsed.y, parsed.m - 1, parsed.d));
-      return new Date(utcDate.toISOString().slice(0, 10));
+      return new Date(parsed.toISOString().slice(0, 10));
     }
     const raw = String(value || '').trim();
     if (!raw) return undefined;
@@ -1605,19 +1604,13 @@ export class PatentsService {
     if (job.status === 'RUNNING') {
       throw new ConflictException({ code: 'CONFLICT', message: 'import job is running' });
     }
-    const buffer = await this.readFileBufferById(job.fileId);
-    let workbook: XLSX.WorkBook;
+    const { file, buffer } = await this.readFileBufferById(job.fileId);
+    let rows: Array<Record<string, any>>;
     try {
-      workbook = XLSX.read(buffer, { type: 'buffer' });
+      rows = await readWorkbookRowsFromBuffer(buffer, { fileName: String(file?.fileName || '') });
     } catch {
       throw new BadRequestException({ code: 'BAD_REQUEST', message: 'import file is invalid' });
     }
-    const sheetName = workbook.SheetNames?.[0];
-    if (!sheetName) {
-      throw new BadRequestException({ code: 'BAD_REQUEST', message: 'import file is empty' });
-    }
-    const sheet = workbook.Sheets[sheetName];
-    const rows = XLSX.utils.sheet_to_json<Record<string, any>>(sheet, { defval: '' });
     if (!rows.length) {
       throw new BadRequestException({ code: 'BAD_REQUEST', message: 'import file is empty' });
     }

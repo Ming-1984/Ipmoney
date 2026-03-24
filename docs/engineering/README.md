@@ -5,7 +5,7 @@
 - 测试报告（最新结果）：docs/engineering/test-report.md
 - 全链路最佳实践审计（2026-03-23）：docs/engineering/full-chain-best-practice-audit-2026-03-23-r326h.md
 - 页面-接口-测试矩阵（最新）：docs/engineering/page-api-test-matrix-r326e.md
-- 漏洞台账（2026-03-23）：docs/engineering/vulnerability-ledger-2026-03-23.md
+- 漏洞台账（2026-03-24）：docs/engineering/vulnerability-ledger-2026-03-24.md
 - 漏洞基线（critical/high 允许集）：docs/engineering/vulnerability-baseline.json
 
 ## 发布与运维

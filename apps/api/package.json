@@ -18,15 +18,15 @@
     "test:e2e": "vitest run test/health.e2e-spec.ts"
   },
   "dependencies": {
-    "@aws-sdk/client-s3": "^3.990.0",
+    "@aws-sdk/client-s3": "^3.1015.0",
     "@nestjs/common": "^11.1.11",
     "@nestjs/core": "^11.1.11",
     "@nestjs/platform-express": "^11.1.11",
     "@prisma/client": "^6.3.1",
-    "multer": "^2.0.2",
+    "exceljs": "^4.4.0",
+    "multer": "^2.1.1",
     "reflect-metadata": "^0.2.2",
-    "rxjs": "^7.8.1",
-    "xlsx": "^0.18.5"
+    "rxjs": "^7.8.1"
   },
   "devDependencies": {
     "@nestjs/cli": "^11.0.14",

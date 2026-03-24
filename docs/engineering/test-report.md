@@ -3,6 +3,37 @@
 > Note (2026-03-23): `docs/demo/rendered/` historical screenshots were cleaned from git.
 > Smoke screenshot artifacts are now local-only and may not exist in repository history snapshots after this date.
 
+## Latest (2026-03-24 r327b3)
+
+### Commands & Results (dev)
+- `powershell -ExecutionPolicy Bypass -File scripts/verify.ps1 -ReportDate 2026-03-24-r327b3 -UiSmokeMode core -RunVulnerabilityAudit`
+  - Result: pass
+  - Notes: full verify chain passed (`api-real-smoke` `1308/1308`, OpenAPI coverage `225/225`, `db-preflight` `9/9`, `ui-render(core)` `3/3`, `ui-dom(core)` `11/11`, vulnerability baseline `critical/high=1/11`).
+- `pnpm -C apps/api typecheck`
+  - Result: pass
+- `pnpm -C apps/api lint`
+  - Result: pass
+- `pnpm -C apps/api test`
+  - Result: pass (`553/553`)
+  - Notes: includes new `test/workbook-reader.spec.ts` covering xlsx/csv import parsing and Excel serial date conversion.
+- `pnpm -C apps/api test:e2e`
+  - Result: pass (`2/2`)
+- `pnpm audit --prod --json | Out-File .tmp/pnpm-audit-prod-2026-03-24.json -Encoding utf8`
+  - Result: pass (ledger input generated)
+- `node scripts/audit-vulnerability-ledger.mjs --date 2026-03-24 --input .tmp/pnpm-audit-prod-2026-03-24.json`
+  - Result: pass
+  - Notes: generated `docs/engineering/vulnerability-ledger-2026-03-24.md` and `.tmp/vulnerability-ledger-2026-03-24.json`.
+- `node scripts/check-vulnerability-baseline.mjs --report-date 2026-03-24 --input .tmp/vulnerability-ledger-2026-03-24.json`
+  - Result: pass
+  - Notes: initial comparison showed `current critical/high=1/11`, resolved vs old baseline `2/22`.
+- `node scripts/update-vulnerability-baseline.mjs --report-date 2026-03-24 --input .tmp/vulnerability-ledger-2026-03-24.json`
+  - Result: pass
+  - Notes: baseline tightened to `allowed critical/high=1/11` after Batch-1 remediation.
+- `pnpm check:docs-links`
+  - Result: pass (`checked=62`, missing=`0`)
+- `pnpm openapi:lint`
+  - Result: pass
+
 ## Latest (2026-03-23 r326o)
 
 ### Commands & Results (dev)
