@@ -1,19 +1,31 @@
 $ErrorActionPreference = 'Stop'
 
-$defaultUrl = 'https://samplelib.com/lib/preview/mp4/sample-5s.mp4'
-$videoUrl = if ($env:BANNER_VIDEO_URL) { $env:BANNER_VIDEO_URL } else { $defaultUrl }
-$targetPath = 'G:\study\code2\3\Ipmoney\apps\client\src\assets\home\banner-local.mp4'
-$targetDir = Split-Path -Parent $targetPath
+$defaultUrl1 = 'https://samplelib.com/lib/preview/mp4/sample-5s.mp4'
+$defaultUrl2 = 'https://samplelib.com/lib/preview/mp4/sample-10s.mp4'
+$videoUrl1 = if ($env:BANNER_VIDEO_URL_1) { $env:BANNER_VIDEO_URL_1 } else { $defaultUrl1 }
+$videoUrl2 = if ($env:BANNER_VIDEO_URL_2) { $env:BANNER_VIDEO_URL_2 } else { $defaultUrl2 }
+$targetPath1 = 'G:\study\code2\3\Ipmoney\apps\client\src\assets\home\banner-local-1.mp4'
+$targetPath2 = 'G:\study\code2\3\Ipmoney\apps\client\src\assets\home\banner-local-2.mp4'
+$targetDir = Split-Path -Parent $targetPath1
 
 if (-not (Test-Path $targetDir)) {
   New-Item -ItemType Directory -Force $targetDir | Out-Null
 }
 
-if (Test-Path $targetPath) {
-  $size = (Get-Item $targetPath).Length
+$hasVideo1 = $false
+$hasVideo2 = $false
+if (Test-Path $targetPath1) {
+  $size = (Get-Item $targetPath1).Length
   if ($size -gt 0) {
-    Write-Host "Local banner video already exists: $targetPath ($size bytes)."
-    exit 0
+    $hasVideo1 = $true
+    Write-Host "Local banner video already exists: $targetPath1 ($size bytes)."
+  }
+}
+if (Test-Path $targetPath2) {
+  $size = (Get-Item $targetPath2).Length
+  if ($size -gt 0) {
+    $hasVideo2 = $true
+    Write-Host "Local banner video already exists: $targetPath2 ($size bytes)."
   }
 }
 
@@ -25,6 +37,14 @@ try {
   # ignore if TLS setting is unavailable
 }
 
-Write-Host "Downloading local banner video from $videoUrl ..."
-Invoke-WebRequest -Uri $videoUrl -OutFile $targetPath
-Write-Host "Saved local banner video to $targetPath."
+if (-not $hasVideo1) {
+  Write-Host "Downloading local banner video 1 from $videoUrl1 ..."
+  Invoke-WebRequest -Uri $videoUrl1 -OutFile $targetPath1
+  Write-Host "Saved local banner video to $targetPath1."
+}
+
+if (-not $hasVideo2) {
+  Write-Host "Downloading local banner video 2 from $videoUrl2 ..."
+  Invoke-WebRequest -Uri $videoUrl2 -OutFile $targetPath2
+  Write-Host "Saved local banner video to $targetPath2."
+}

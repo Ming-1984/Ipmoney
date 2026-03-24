@@ -128,6 +128,10 @@
       root: 'subpackages/ipc-picker',
       pages: ['index'],
     },
+    {
+      root: 'subpackages/media',
+      pages: ['video-preview/index'],
+    },
   ],
   preloadRule: {
     'pages/home/index': {
