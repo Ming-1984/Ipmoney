@@ -214,8 +214,8 @@ const patentMapRegionLevelOptions: Array<{ value: PatentMapRegionScopeLevel; lab
 ];
 
 const patentMapDataScopeOptions: Array<{ value: PatentMapDataScope; label: string }> = [
-  { value: 'ACTIVE_APPROVED', label: 'Active + Approved' },
-  { value: 'ALL', label: 'All Listings' },
+  { value: 'ACTIVE_APPROVED', label: '\u5728\u552e\u6302\u724c' },
+  { value: 'ALL', label: '\u5168\u90e8\u4ea4\u6613\u6570\u636e' },
 ];
 
 const patentMapFeaturedLevelPatchOptions: Array<{ value: PatentMapFeaturedLevel | ''; label: string }> = [
@@ -1033,13 +1033,13 @@ export function PatentOperationsPage() {
 
           {mapOverview ? (
             <Space wrap>
-              <Tag color="purple">scope {mapOverview.filters.scope}</Tag>
-              <Tag color="blue">listings {mapOverview.summary.totalListingCount}</Tag>
-              <Tag color="green">patents {mapOverview.summary.totalPatentCount}</Tag>
-              <Tag color="gold">active ranked {mapOverview.summary.activeRankedListingCount}</Tag>
-              <Tag>regions {mapOverview.summary.totalRegionCount}</Tag>
-              <Tag color="cyan">regions with listings {mapOverview.summary.regionsWithListingsCount}</Tag>
-              <Tag>unassigned listings {mapOverview.summary.unassignedListingCount}</Tag>
+              <Tag color="purple">\u8303\u56f4 {mapOverview.filters.scope}</Tag>
+              <Tag color="blue">\u6302\u724c {mapOverview.summary.totalListingCount}</Tag>
+              <Tag color="green">\u4e13\u5229 {mapOverview.summary.totalPatentCount}</Tag>
+              <Tag color="gold">\u6d3b\u8dc3\u4e0a\u699c {mapOverview.summary.activeRankedListingCount}</Tag>
+              <Tag>\u533a\u57df {mapOverview.summary.totalRegionCount}</Tag>
+              <Tag color="cyan">\u6709\u6302\u724c\u533a\u57df {mapOverview.summary.regionsWithListingsCount}</Tag>
+              <Tag>\u672a\u5f52\u5c5e\u6302\u724c {mapOverview.summary.unassignedListingCount}</Tag>
             </Space>
           ) : null}
 
