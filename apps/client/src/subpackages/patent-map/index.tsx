@@ -92,7 +92,12 @@ type MappableRegion = PatentMapRegionItem & {
   centerSource: 'db' | 'fallback';
 };
 
+const MAP_CONTEXT_ID = 'patent-map-canvas';
 const MAP_DEFAULT_CENTER: MapCenter = { latitude: 35.86166, longitude: 104.195397 };
+const MAP_SCALE_MIN = 3;
+const MAP_SCALE_MAX = 10;
+const MAP_SCALE_DEFAULT = 4;
+const MAP_SCALE_DETAIL_THRESHOLD = 6;
 
 // Province-level center fallback to keep map usable even when region center is missing in DB.
 const PROVINCE_CENTER_FALLBACK: Record<string, MapCenter> = {
@@ -183,6 +188,9 @@ export default function PatentMapPage() {
   const [overviewError, setOverviewError] = useState<string | null>(null);
   const [overview, setOverview] = useState<PatentMapOverviewResponse | null>(null);
   const [dataScope, setDataScope] = useState<PatentMapDataScope>('ACTIVE_APPROVED');
+  const [mapScale, setMapScale] = useState<number>(MAP_SCALE_DEFAULT);
+  const [mapViewport, setMapViewport] = useState<MapCenter>(MAP_DEFAULT_CENTER);
+  const mapContextRef = useRef<any>(null);
 
   const [selectedRegionCode, setSelectedRegionCode] = useState('');
   const [detailLoading, setDetailLoading] = useState(false);
@@ -255,6 +263,11 @@ export default function PatentMapPage() {
     void loadRegionDetail();
   }, [loadRegionDetail]);
 
+  useEffect(() => {
+    if (process.env.TARO_ENV !== 'weapp') return;
+    mapContextRef.current = Taro.createMapContext(MAP_CONTEXT_ID);
+  }, []);
+
   const rankedRegions = useMemo(() => overview?.regions || [], [overview?.regions]);
 
   const mappableRegions = useMemo<MappableRegion[]>(() => {
@@ -279,44 +292,48 @@ export default function PatentMapPage() {
   const markers = useMemo(
     () =>
       mappableRegions.map((item, index) => {
+        const showDetail = mapScale >= MAP_SCALE_DETAIL_THRESHOLD;
         const hasListings = item.listingCount > 0;
+        const calloutContent = showDetail
+          ? `${item.regionName}｜挂牌${item.listingCount}｜专利${item.patentCount}｜排名#${item.rankPosition}`
+          : `${item.regionName}｜#${item.rankPosition}`;
+        const labelContent = showDetail
+          ? `#${item.rankPosition} ${item.regionName} 挂${item.listingCount} 专${item.patentCount}`
+          : hasListings
+            ? `#${item.rankPosition} ${item.regionName}`
+            : '';
+        const showLabel = Boolean(labelContent);
         return {
           id: Number(item.regionCode) || index + 1,
           latitude: item.mapCenter.latitude,
           longitude: item.mapCenter.longitude,
           iconPath: patentMapMarkerIcon,
-          width: 28,
-          height: 28,
+          width: showDetail ? 30 : 24,
+          height: showDetail ? 30 : 24,
           callout: {
-            content: `${item.regionName}｜挂牌${item.listingCount}｜专利${item.patentCount}｜排名#${item.rankPosition}`,
+            content: calloutContent,
             color: '#111827',
-            fontSize: 12,
+            fontSize: showDetail ? 12 : 10,
             borderRadius: 8,
             padding: 4,
             bgColor: '#ffffff',
-            display: (hasListings ? 'ALWAYS' : 'BYCLICK') as 'ALWAYS' | 'BYCLICK',
+            display: (showDetail && hasListings ? 'ALWAYS' : 'BYCLICK') as 'ALWAYS' | 'BYCLICK',
           },
-          // Show all mappable regions directly on map so zero-listing regions are also visible.
-          label: {
-            content: `#${item.rankPosition} ${item.regionName} 挂${item.listingCount} 专${item.patentCount}`,
-            color: hasListings ? '#334155' : '#64748b',
-            fontSize: hasListings ? 10 : 9,
-            borderRadius: 6,
-            bgColor: hasListings ? '#ffffff' : '#f8fafc',
-            padding: 3,
-          },
+          ...(showLabel
+            ? {
+                label: {
+                  content: labelContent,
+                  color: hasListings ? '#334155' : '#64748b',
+                  fontSize: showDetail ? 10 : 9,
+                  borderRadius: 6,
+                  bgColor: hasListings ? '#ffffff' : '#f8fafc',
+                  padding: 3,
+                },
+              }
+            : {}),
         };
       }),
-    [mappableRegions],
-  );
-
-  const includePoints = useMemo(
-    () =>
-      mappableRegions.map((item) => ({
-        latitude: item.mapCenter.latitude,
-        longitude: item.mapCenter.longitude,
-      })),
-    [mappableRegions],
+    [mapScale, mappableRegions],
   );
 
   const markerRegionCodeMap = useMemo(() => {
@@ -333,15 +350,46 @@ export default function PatentMapPage() {
     [rankedRegions, selectedRegionCode],
   );
 
-  const mapCenter = useMemo(() => {
+  useEffect(() => {
     if (selectedRegion) {
       const selectedCenter = resolveRegionCenter(selectedRegion).center;
-      if (selectedCenter) return selectedCenter;
+      if (selectedCenter) {
+        setMapViewport(selectedCenter);
+        return;
+      }
     }
     const first = mappableRegions[0]?.mapCenter;
-    if (first) return first;
-    return MAP_DEFAULT_CENTER;
-  }, [mappableRegions, selectedRegion]);
+    if (first) {
+      setMapViewport(first);
+      return;
+    }
+    setMapViewport(MAP_DEFAULT_CENTER);
+  }, [selectedRegion?.regionCode, mappableRegions]);
+
+  const syncMapScale = useCallback(() => {
+    if (process.env.TARO_ENV !== 'weapp') return;
+    const ctx = mapContextRef.current;
+    if (!ctx || typeof ctx.getScale !== 'function') return;
+    try {
+      ctx.getScale({
+        success: (res: any) => {
+          const next = asFiniteNumber(res?.scale);
+          if (next === null) return;
+          setMapScale((prev) => (Math.abs(prev - next) >= 0.05 ? next : prev));
+        },
+      });
+    } catch {
+      // Ignore scale sync errors; map interaction should remain available.
+    }
+  }, []);
+
+  useEffect(() => {
+    if (process.env.TARO_ENV !== 'weapp' || markers.length === 0) return;
+    const timer = setTimeout(() => {
+      syncMapScale();
+    }, 160);
+    return () => clearTimeout(timer);
+  }, [markers.length, syncMapScale]);
 
   const handleMarkerTap = useCallback(
     (e: any) => {
@@ -350,6 +398,14 @@ export default function PatentMapPage() {
       if (regionCode) setSelectedRegionCode(regionCode);
     },
     [markerRegionCodeMap],
+  );
+
+  const handleRegionChange = useCallback(
+    (e: any) => {
+      if (String(e?.type || '').toLowerCase() !== 'end') return;
+      syncMapScale();
+    },
+    [syncMapScale],
   );
 
   const goListingDetail = useCallback((listingId: string) => {
@@ -443,18 +499,26 @@ export default function PatentMapPage() {
                 当前选中：{selectedRegion.regionName}（挂牌 {selectedRegion.listingCount}，专利 {selectedRegion.patentCount}，排名 #{selectedRegion.rankPosition}）
               </Text>
             ) : null}
-            <Text className="patent-map-section-tip">地图会展示全部可定位区域；有挂牌区域默认展开气泡，其它区域可点标记查看详情。</Text>
+            <Text className="patent-map-section-tip">
+              当前缩放 {mapScale.toFixed(1)}：{mapScale >= MAP_SCALE_DETAIL_THRESHOLD ? '详细模式（显示挂牌/专利/排名）' : '简略模式（优先显示区域与排名）'}。
+            </Text>
+            <Text className="patent-map-section-tip">可在中国及周边自由拖动；缩小时看全局，放大后自动展示更详细信息。</Text>
             {process.env.TARO_ENV === 'weapp' ? (
               markers.length > 0 ? (
                 <TaroMap
+                  id={MAP_CONTEXT_ID}
                   className="patent-map-canvas"
-                  latitude={mapCenter.latitude}
-                  longitude={mapCenter.longitude}
-                  scale={4}
-                  includePoints={includePoints as any}
+                  latitude={mapViewport.latitude}
+                  longitude={mapViewport.longitude}
+                  scale={Math.max(MAP_SCALE_MIN, Math.min(MAP_SCALE_MAX, mapScale))}
+                  minScale={MAP_SCALE_MIN}
+                  maxScale={MAP_SCALE_MAX}
+                  enableScroll
+                  enableZoom
                   markers={markers as any}
                   showLocation
                   onMarkerTap={handleMarkerTap}
+                  onRegionChange={handleRegionChange}
                   onError={() => {}}
                 />
               ) : (
