@@ -1,15 +1,51 @@
-# 专利地图能力状态说明（已恢复）
+# 专利地图（小程序端）能力说明（2026-03-25）
 
-## 当前状态
-- 2026-03-24 起，专利地图已恢复到当前 P0 交付范围。
-- 小程序端已接入页面路由 `subpackages/patent-map/index`，首页快捷入口“专利地图”可直达。
-- 后端已提供地图聚合接口：`GET /search/patent-map/overview`、`GET /search/patent-map/regions/{regionCode}`。
-- 后台已提供批量管理入口与接口：`POST /admin/patent-map/listings/batch`（专利批量运营页）。
+## 1. 当前能力范围
+- 首页入口：`pages/home/index` 中提供“专利地图”快捷入口，跳转 `subpackages/patent-map/index`。
+- 小程序地图页：
+  - 地图点位展示（含区域标签、挂牌数、专利数、排名）。
+  - 区域排名列表与明细联动。
+  - 数据范围切换：`ACTIVE_APPROVED` / `ALL`。
+- 后台批量管理：
+  - 管理端“专利批量运营”提供地图聚合、区域明细、批量 patch。
+  - API：`POST /admin/patent-map/listings/batch`。
 
-## 数据与流程口径
-- 地图统计以 `listings + regions + patents` 为单一数据源，不新增独立地图冗余表。
-- 仅统计 `auditStatus=APPROVED` 且 `status=ACTIVE` 的挂牌，口径与线上可见数据一致。
-- 运营流程：先看地图总览与区域排名，再下钻区域挂牌明细，最后按挂牌 ID 执行批量更新。
+## 2. 数据口径（单一数据源）
+- 地图聚合不引入独立冗余表，统一来源：
+  - `listings`
+  - `regions`
+  - `patents`
+- 区域归属解析顺序：
+  1. `listing.regionCode`
+  2. `seller.regionCode`（当 listing 区域缺失时回退）
+- `unassignedListingCount` 含义：
+  - listing 与 seller 都无法提供有效地区编码时计入。
 
-## 同步要求
-- OpenAPI、前后端类型检查、API 单测与运营文档必须同版本提交。
+## 3. 排名规则
+- 当前区域排名优先级：
+  1. `listingCount`（降序）
+  2. `patentCount`（降序）
+  3. `activeRankedListingCount`（降序）
+  4. `rankedListingCount`（降序）
+  5. `topActiveRank`（升序）
+  6. `regionCode`（升序）
+
+## 4. API 对齐
+- 小程序地图读取：
+  - `GET /search/patent-map/overview?regionLevel=PROVINCE&top=100&scope=...`
+  - `GET /search/patent-map/regions/{regionCode}?page=1&pageSize=20&scope=...`
+- 后台批量写入：
+  - `POST /admin/patent-map/listings/batch`
+- 公告链路（首页关联）：
+  - `GET /public/config/home-announcements`
+  - `GET/POST/PUT/DELETE /admin/config/home-announcements*`
+
+## 5. 验收建议
+- 页面链路：
+  - 首页入口可达地图页。
+  - 地图 marker 可见、可点、可联动区域明细。
+  - 数据范围切换后 KPI/排名/明细一致刷新。
+- 运维链路：
+  - 批量 patch 后总览与区域明细同步变化。
+  - OpenAPI 与后端路由差异为 0。
+  - smoke 覆盖包含专利地图与公告接口。

@@ -48,6 +48,7 @@ function inferArea(name) {
 
 function inferApiDomain(name, area) {
   if (area === 'admin') {
+    if (/home-announcements/.test(name)) return 'admin/config-home-announcements';
     if (/verifications/.test(name)) return 'admin/verifications';
     if (/listings/.test(name)) return 'admin/listings-audit';
     if (/tech-managers/.test(name)) return 'admin/tech-managers';
@@ -72,6 +73,7 @@ function inferApiDomain(name, area) {
   if (/home|search|listing|patent-detail|inventors|tech-managers|organizations/.test(name)) {
     return 'public discovery/search';
   }
+  if (/patent-map/.test(name)) return 'public discovery/patent-map';
   if (/login|onboarding|profile-edit|me$|settings-notifications/.test(name)) return 'auth/me/verification';
   if (/messages|chat|notifications/.test(name)) return 'conversations + notifications';
   if (/orders|checkout|contracts|invoices|addresses/.test(name)) return 'orders/payment/address/invoice';

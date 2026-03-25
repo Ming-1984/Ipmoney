@@ -3740,6 +3740,12 @@ paths:
             type: integer
             minimum: 1
             maximum: 100
+        - name: scope
+          in: query
+          required: false
+          schema:
+            $ref: '#/components/schemas/PatentMapDataScope'
+          description: Data scope. `ACTIVE_APPROVED` limits to active approved listings; `ALL` includes all listings.
       responses:
         '200':
           description: OK
@@ -3761,6 +3767,12 @@ paths:
         - $ref: '#/components/parameters/RegionCodePath'
         - $ref: '#/components/parameters/Page'
         - $ref: '#/components/parameters/PageSize'
+        - name: scope
+          in: query
+          required: false
+          schema:
+            $ref: '#/components/schemas/PatentMapDataScope'
+          description: Data scope. `ACTIVE_APPROVED` limits to active approved listings; `ALL` includes all listings.
       responses:
         '200':
           description: OK
@@ -10415,6 +10427,12 @@ components:
         - PROVINCE
         - CITY
         - DISTRICT
+    PatentMapDataScope:
+      type: string
+      enum:
+        - ACTIVE_APPROVED
+        - ALL
+      default: ACTIVE_APPROVED
     PatentMapRegionLevel:
       type: string
       enum:
@@ -10517,6 +10535,7 @@ components:
           required:
             - regionLevel
             - top
+            - scope
           properties:
             regionLevel:
               $ref: '#/components/schemas/PatentMapOverviewRegionLevel'
@@ -10524,6 +10543,8 @@ components:
               type: integer
               minimum: 1
               maximum: 100
+            scope:
+              $ref: '#/components/schemas/PatentMapDataScope'
         summary:
           $ref: '#/components/schemas/PatentMapOverviewSummary'
         ranking:
@@ -10658,6 +10679,7 @@ components:
       type: object
       required:
         - generatedAt
+        - filters
         - region
         - summary
         - items
@@ -10666,6 +10688,13 @@ components:
         generatedAt:
           type: string
           format: date-time
+        filters:
+          type: object
+          required:
+            - scope
+          properties:
+            scope:
+              $ref: '#/components/schemas/PatentMapDataScope'
         region:
           $ref: '#/components/schemas/PatentMapRegionDetailRegion'
         summary:

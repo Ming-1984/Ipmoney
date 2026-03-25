@@ -622,15 +622,16 @@
 - **核心模块：**
   - **全局搜索栏：** 占位符“输入专利号、技术关键词、企业或发明人”。
   - **轮播图 (Banner)：** 后台配置，展示平台活动、政策解读。
-  - **快捷入口 (Grid，移动端 3×2 布局)：** 外观专利、发明专利、实用专利、发明人榜、技术经理、特色专区。
-    - **布局：** 第 1 行（3 个）= 外观专利 / 发明专利 / 实用专利；第 2 行（3 个）= 发明人榜 / 技术经理 / 特色专区
+  - **快捷入口 (Grid)：** P0 默认入口为外观专利、发明专利、实用专利、发明人榜、专利地图、技术经理、成果展示（可按运营配置扩展，不与“特色专区”重复）。
+    - **布局：** 采用移动端多行栅格；首行固定为三种专利类型入口，其余入口按运营优先级排序。
     - **跳转：**
       - 外观专利 → 搜索/列表页（默认 `patentType=DESIGN`）
       - 发明专利 → 搜索/列表页（默认 `patentType=INVENTION`）
       - 实用专利 → 搜索/列表页（默认 `patentType=UTILITY_MODEL`）
       - 发明人榜 → 发明人榜页面
+      - 专利地图 → 专利地图页（区域分布 + 区域排名 + 区域明细）
       - 技术经理 → 咨询页“技术经理人”列表
-      - 特色专区 → 搜索/列表页（可进入“退役/沉睡/获奖/开放许可”筛选）
+      - 成果展示 → 搜索页成果 Tab（`ACHIEVEMENT`）
   - **特色专区（专利专区组件）：**
     - 2×2 卡片：**退役专利 / 沉睡专利 / 获奖专利 / 开放许可**。
     - 标题右侧“更多”进入搜索页（LISTING），用于替代原“全部分类”入口。
@@ -703,6 +704,34 @@
   - **获奖专利：** 进入搜索页，预填 `listingTopic=AWARD_WINNING`（平台标记的获奖专利）。
   - **开放许可：** 进入搜索页，预填 `tradeMode=LICENSE`。
 - **视觉要求：** 卡片样式、字体层级、圆角、阴影统一当前设计风格（不得引入新视觉体系）。
+
+##### 2.5 首页公告（新增，P0）【已完成】
+
+> 目标：建立“后台发布 -> 前台展示 -> 可追溯下线”的公告链路，保证运营发布效率与线上展示稳定性。
+
+- **前台数据源：** `GET /public/config/home-announcements`（首页加载失败不阻塞主链路）。
+- **前台展示规则（系统口径）：**
+  - 仅展示 `PUBLISHED` 状态且在生效时间窗内（`startAt/endAt`）的公告。
+  - 按 `pinned`（置顶优先）-> `order`（小值优先）-> `publishedAt`（新优先）排序。
+  - 服务端最多返回 20 条，小程序首页最多展示前 6 条。
+- **展示字段：** 标题、内容、标签、置顶标识、可选站内跳转链接。
+- **跳转约束：** 链接仅允许小程序内页面路径（`/pages/*`、`/subpackages/*`）；异常时前端降级提示，不中断首页。
+
+##### 2.6 专利地图（新增，P0）【已完成】
+
+> 目标：在首页提供“专利地图”入口，统一展示平台交易专利的区域分布、上榜状态与区域明细。
+
+- **前台入口：** 首页快捷入口“专利地图”。
+- **前台查询接口：**
+  - 总览：`GET /search/patent-map/overview`
+  - 区域明细：`GET /search/patent-map/regions/{regionCode}`
+- **统一数据范围：** 支持 `scope=ACTIVE_APPROVED | ALL`，并统一作用于地图、区域排名、区域明细。
+- **区域归属规则：** 优先 `listing.regionCode`，缺失时回退 `seller.regionCode`；仍缺失则计入“未归属地区”统计。
+- **排名规则（默认）：** `listingCount` -> `patentCount` -> `activeRankedListingCount` -> `rankedListingCount` -> `topActiveRank` -> `regionCode`。
+- **地图展示规则：**
+  - 展示全部可定位区域（含挂牌数为 0 的区域）。
+  - 无坐标区域仍在榜单展示，并给出“暂无法标点”提示。
+- **数据治理：** 地图统计直接复用挂牌、专利、地区主数据，不新增冗余地图业务表。
 
 #### 4. 搜索结果页 (Search Results)【已完成】
 
@@ -929,6 +958,33 @@
 - **AI/语音配置（P1 预留）：** ASR 供应商、热词库、解析模板/提示词、置信度阈值。
 - **告警配置（P1 预留）：** 告警渠道、接收人、阈值与升级规则。
 
+#### 12. 首页公告运营（新增，P0）【已完成】
+
+- **路由与权限：** 后台路由 `/home-announcements`，接口权限 `config.manage`。
+- **模板管理：** 支持模板创建/编辑/删除；已被公告引用的模板不可删除；模板可启用/停用。
+- **公告管理：**
+  - 支持草稿创建、编辑、发布、下线、删除。
+  - 支持标签、置顶、排序、生效时间窗、站内跳转链接配置。
+  - 发布后进入前台可见池；下线后前台不可见。
+- **接口链路：**
+  - `GET /admin/config/home-announcements`
+  - `POST|PUT|DELETE /admin/config/home-announcements/templates*`
+  - `POST|PUT|DELETE /admin/config/home-announcements/items*`
+  - `POST /admin/config/home-announcements/items/{itemId}/publish`
+  - `POST /admin/config/home-announcements/items/{itemId}/offline`
+
+#### 13. 专利地图运营（新增，P0）【已完成】
+
+- **路由与权限：** 后台运营页 `/patents`；批量更新接口权限 `listing.audit`。
+- **运营能力：**
+  - 查看地图总览与区域榜单（支持 `scope=ACTIVE_APPROVED|ALL`）。
+  - 查看区域挂牌明细并批量圈选挂牌。
+  - 批量更新挂牌的地区与上榜信息（含清空上榜）。
+- **批量接口：** `POST /admin/patent-map/listings/batch`
+  - 入参：`listingIds`（1~500） + `patch`（`regionCode/featuredLevel/featuredRegionCode/featuredRank/featuredUntil/clearRanking`）+ `reason`（可选）。
+  - 返回：`updatedCount`、`missingListingIds`、`patchApplied`，用于运营复核与审计追踪。
+- **治理要求：** 批量更新直接写入挂牌主链路字段，不建立独立“地图状态表”，确保交易链路与地图链路口径一致。
+
 
 ## 附录：辅助页面（纳入交付范围）【已完成】
 - 通知中心（列表/详情）：系统与客服通知
@@ -946,4 +1002,3 @@
 - 新增后台导入任务：`/admin/listings/jobs/import*`。
 - 批量上架规则收敛：仅允许 `auditStatus=APPROVED` 的挂牌进入上架动作。
 - 批量与导入均采用异步任务模型，支持明细追踪、失败率暂停和错误文件下载。
-

@@ -1,14 +1,14 @@
 ﻿# PRD -> API -> Implementation Traceability Matrix (P0 Baseline)
 
-> Last updated: 2026-03-24
+> Last updated: 2026-03-25
 > Source of truth: `Ipmoney.md`, `docs/api/openapi.yaml`, `apps/client/src`, `apps/admin-web/src`, `apps/api/src`
 > This file tracks active scope only. Removed domains are listed in section 4.
 
 ## 1. Scope Definition
 
 ### 1.1 Active P0 scope
-- Mobile (client): home/search/listing detail/patent detail/patent map/chat/orders/checkout/me/publish/favorites/organizations/inventors/tech managers/maintenance
-- Admin web: dashboard/verifications/listings audit/orders/refunds/settlements/invoices/comments/reports/rbac/config/maintenance/regions/patents
+- Mobile (client): home/search/listing detail/patent detail/patent map/home announcements/chat/orders/checkout/me/publish/favorites/organizations/inventors/tech managers/maintenance
+- Admin web: dashboard/verifications/listings audit/orders/refunds/settlements/invoices/comments/reports/rbac/config/home announcements/maintenance/regions/patents
 - API: OpenAPI operations and backend controller routes are aligned by path+method (see section 5 audit result)
 
 ### 1.2 P1 reserved scope
@@ -21,9 +21,11 @@
 | Capability | PRD reference (`Ipmoney.md`) | Client entry | API contract (OpenAPI) | Status |
 | --- | --- | --- | --- | --- |
 | Home recommendations and quick entries | Home / Search / Featured zones | `pages/home/index` | `GET /search/listings` | Aligned |
+| Home announcements feed | Home / Announcement operations | `pages/home/index` | `GET /public/config/home-announcements` | Aligned |
 | Search and advanced filters | Search Results | `subpackages/search/index` | `GET /search/listings` | Aligned |
 | Listing detail and consultation | Detail Page / Message | `subpackages/listing/detail/index` | `GET /public/listings/{listingId}`, `POST /listings/{listingId}/conversations` | Aligned |
 | Patent detail single-page tabs | Detail Page best-practice section | `subpackages/patent/detail/index` | `GET /patents/{patentId}` | Aligned |
+| Patent map visualization and ranking | Home extension / Regional operations | `subpackages/patent-map/index` | `GET /search/patent-map/overview`, `GET /search/patent-map/regions/{regionCode}` | Aligned |
 | Messaging and chat | Message | `pages/messages/index`, `subpackages/messages/chat/index` | `/me/conversations`, `/conversations/{conversationId}/messages`, `/conversations/{conversationId}/read`, `/support/conversations`, `/orders/{orderId}/dispute-conversations` | Aligned |
 | Orders and checkout | Checkout | `subpackages/orders/*`, `subpackages/checkout/*` | `/orders`, `/orders/{orderId}`, `/orders/{orderId}/payment-intents` | Aligned |
 | Me/profile/verification | User Center | `pages/me/index`, onboarding/profile/settings subpackages | `/me`, `/me/verification`, `/me/addresses` | Aligned |
@@ -46,6 +48,7 @@
 | Comments moderation | Content Audit | `/comments` | `/admin/comments*` | Aligned |
 | Reports | Finance | `/reports` | `/admin/reports/finance/*` | Aligned |
 | RBAC and config | System settings | `/rbac`, `/config` | `/admin/rbac/*`, `/admin/config/*` | Aligned |
+| Home announcements operations | System settings | `/home-announcements` | `/admin/config/home-announcements*` | Aligned |
 | Platform conversation inbox | Customer service / dispute ops | `/conversations/platform` | `/admin/conversations/platform`, `/admin/conversations/{conversationId}/agents*` | Aligned |
 | Maintenance / regions / patents | Ops | `/maintenance`, `/regions`, `/patents` | `/admin/patent-maintenance/*`, `/admin/regions*`, `/admin/patents*` | Aligned |
 | Patent map operations | Ops | `/patents` | `/search/patent-map/*`, `/admin/patent-map/listings/batch` | Aligned |
@@ -54,7 +57,6 @@
 
 The following domains were intentionally removed from active product scope and should not reappear in client/admin route maps:
 - Achievement (separate channel)
-- Announcement (separate channel)
 - Demand / Artwork (legacy content types)
 
 Allowed residual locations:
@@ -67,11 +69,12 @@ Not allowed residual locations:
 - Active OpenAPI paths used for release scope
 - Active smoke scripts for P0 acceptance
 
-## 5. Current Audit Result (2026-03-24)
+## 5. Current Audit Result (2026-03-25)
 
 - OpenAPI vs backend route diff: `OpenAPI-only=0`, `Controller-only=0`
 - Route-level dist artifact check (weapp): passed
 - Patent-map domain restored with single-source aggregation (`listings + regions + patents`) and no extra map table.
+- Announcement domain is active in P0 (`/public/config/home-announcements`, `/admin/config/home-announcements*`) with published/offline workflow.
 
 ## 6. Verification Commands
 
