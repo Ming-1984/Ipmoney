@@ -798,6 +798,23 @@ paths:
                 $ref: '#/components/schemas/CustomerServiceConfig'
         '400':
           $ref: '#/components/responses/BadRequest'
+  /public/config/banner:
+    get:
+      tags:
+        - Config
+      summary: Get banner config (public)
+      operationId: getPublicBannerConfig
+      security: []
+      responses:
+        '200':
+          description: OK
+
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BannerConfig'
+        '400':
+          $ref: '#/components/responses/BadRequest'
   /public/config/home-announcements:
     get:
       tags:

@@ -297,6 +297,7 @@ const SAMPLE = {
 const P0_ROUTES = [
   { name: 'home', url: '/pages/home/index' },
   { name: 'search', url: '/subpackages/search/index' },
+  { name: 'patent-map', url: '/subpackages/patent-map/index' },
   { name: 'listing-detail', url: `/subpackages/listing/detail/index?listingId=${SAMPLE.listingId}` },
   { name: 'patent-detail', url: `/subpackages/patent/detail/index?patentId=${SAMPLE.patentId}` },
   { name: 'messages', url: '/pages/messages/index' },

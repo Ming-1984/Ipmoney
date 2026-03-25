@@ -317,6 +317,7 @@ try {
     @{ name = "admin-verifications"; path = "/verifications" },
     @{ name = "admin-rbac"; path = "/rbac" },
     @{ name = "admin-config"; path = "/config" },
+    @{ name = "admin-home-announcements"; path = "/home-announcements" },
     @{ name = "admin-maintenance"; path = "/maintenance" },
     @{ name = "admin-regions"; path = "/regions" },
     @{ name = "admin-audit-logs"; path = "/audit-logs" },
@@ -329,8 +330,16 @@ try {
       expectedContentType = "application/json"; minBodyLength = 8
     },
     @{
-      name = "mock-orders"; url = "http://127.0.0.1:$resolvedMockPort/orders"; headers = @{ "X-Mock-Scenario" = "happy" }
+      name = "mock-home-announcements-public"; url = "http://127.0.0.1:$resolvedMockPort/public/config/home-announcements"; headers = @{ "X-Mock-Scenario" = "happy" }
       expectedContentType = "application/json"; minBodyLength = 16
+    },
+    @{
+      name = "mock-patent-map-overview-active"; url = "http://127.0.0.1:$resolvedMockPort/search/patent-map/overview?regionLevel=PROVINCE&top=100&scope=ACTIVE_APPROVED"; headers = @{ "X-Mock-Scenario" = "happy" }
+      expectedContentType = "application/json"; minBodyLength = 64
+    },
+    @{
+      name = "mock-patent-map-overview-all"; url = "http://127.0.0.1:$resolvedMockPort/search/patent-map/overview?regionLevel=PROVINCE&top=100&scope=ALL"; headers = @{ "X-Mock-Scenario" = "happy" }
+      expectedContentType = "application/json"; minBodyLength = 64
     },
     @{
       name = "client-home"; url = "http://127.0.0.1:$resolvedClientPort/"; headers = @{}
@@ -409,9 +418,9 @@ try {
   }
 
   $summary = [pscustomobject]@{
-    total  = $results.Count
-    passed = ($results | Where-Object { $_.pass }).Count
-    failed = ($results | Where-Object { -not $_.pass }).Count
+    total  = @($results).Count
+    passed = @($results | Where-Object { $_.pass }).Count
+    failed = @($results | Where-Object { -not $_.pass }).Count
   }
 
   $resultPath = Join-Path $logDir "ui-http-smoke-$ReportDate.json"

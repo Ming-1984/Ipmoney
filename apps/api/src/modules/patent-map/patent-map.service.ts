@@ -59,6 +59,7 @@ type OverviewListingRow = {
   id: string;
   patentId: string | null;
   regionCode: string | null;
+  seller: { regionCode: string | null } | null;
   featuredLevel: FeaturedLevel;
   featuredRank: number | null;
   featuredUntil: Date | null;
@@ -297,6 +298,17 @@ export class PatentMapService {
     return inferred;
   }
 
+  private resolveListingRegionCode(
+    listingRegionCode: string | null,
+    sellerRegionCode: string | null,
+    targetLevel: RegionLevel,
+    regionMap: Map<string, RegionRecord>,
+  ): string | null {
+    const listingResolved = this.resolveRegionCodeByLevel(listingRegionCode, targetLevel, regionMap);
+    if (listingResolved) return listingResolved;
+    return this.resolveRegionCodeByLevel(sellerRegionCode, targetLevel, regionMap);
+  }
+
   private ensureProvinceBaselines(regionMap: Map<string, RegionRecord>) {
     for (const baseline of PROVINCE_BASELINES) {
       const existing = regionMap.get(baseline.code);
@@ -356,17 +368,17 @@ export class PatentMapService {
   }
 
   private sortRegionRankings(a: PatentMapOverviewRegionDto, b: PatentMapOverviewRegionDto): number {
+    if (b.listingCount !== a.listingCount) {
+      return b.listingCount - a.listingCount;
+    }
+    if (b.patentCount !== a.patentCount) {
+      return b.patentCount - a.patentCount;
+    }
     if (b.activeRankedListingCount !== a.activeRankedListingCount) {
       return b.activeRankedListingCount - a.activeRankedListingCount;
     }
     if (b.rankedListingCount !== a.rankedListingCount) {
       return b.rankedListingCount - a.rankedListingCount;
-    }
-    if (b.patentCount !== a.patentCount) {
-      return b.patentCount - a.patentCount;
-    }
-    if (b.listingCount !== a.listingCount) {
-      return b.listingCount - a.listingCount;
     }
     const aRank = a.topActiveRank;
     const bRank = b.topActiveRank;
@@ -401,6 +413,11 @@ export class PatentMapService {
           id: true,
           patentId: true,
           regionCode: true,
+          seller: {
+            select: {
+              regionCode: true,
+            },
+          },
           featuredLevel: true,
           featuredRank: true,
           featuredUntil: true,
@@ -454,7 +471,12 @@ export class PatentMapService {
       const patentId = String(listing.patentId || '').trim();
       if (patentId) totalPatentIds.add(patentId);
 
-      const resolvedRegionCode = this.resolveRegionCodeByLevel(listing.regionCode, regionLevel, regionMap);
+      const resolvedRegionCode = this.resolveListingRegionCode(
+        listing.regionCode,
+        listing.seller?.regionCode ?? null,
+        regionLevel,
+        regionMap,
+      );
       if (!resolvedRegionCode) {
         unassignedListingCount += 1;
         continue;
@@ -588,7 +610,13 @@ export class PatentMapService {
 
     const where: any = {
       ...this.listingWhereByScope(scope),
-      regionCode: regionCodeWhere,
+      OR: [
+        { regionCode: regionCodeWhere },
+        {
+          regionCode: null,
+          seller: { regionCode: regionCodeWhere },
+        },
+      ],
     };
     const now = new Date();
     const activeFeaturedWhere: any = {
@@ -621,6 +649,11 @@ export class PatentMapService {
           priceAmount: true,
           depositAmount: true,
           regionCode: true,
+          seller: {
+            select: {
+              regionCode: true,
+            },
+          },
           featuredLevel: true,
           featuredRegionCode: true,
           featuredRank: true,
@@ -650,7 +683,7 @@ export class PatentMapService {
       patentTitle: String(item.patent?.title || item.title),
       patentType: item.patent?.patentType ?? null,
       applicationNoDisplay: item.patent?.applicationNoDisplay || item.patent?.applicationNoNorm || null,
-      regionCode: item.regionCode ?? null,
+      regionCode: item.regionCode ?? item.seller?.regionCode ?? null,
       tradeMode: item.tradeMode,
       priceType: item.priceType,
       priceAmountFen: item.priceAmount ?? null,

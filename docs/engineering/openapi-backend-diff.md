@@ -4,10 +4,10 @@
 
 ## Summary
 
-- OpenAPI operations: 234
-- OpenAPI paths: 188
+- OpenAPI operations: 245
+- OpenAPI paths: 197
 - Controller files: 35
-- Controller routes (method + path): 234
+- Controller routes (method + path): 245
 - OpenAPI-only: 0
 - Controller-only: 0
 

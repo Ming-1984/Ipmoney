@@ -4,15 +4,15 @@
 
 ## Summary
 
-- OpenAPI operations: 234
-- Frontend-used operations (client): 90
-- Frontend-used operations (admin): 116
+- OpenAPI operations: 245
+- Frontend-used operations (client): 91
+- Frontend-used operations (admin): 125
 - Fixture scenarios: 7
 
 ## Key Gaps
 
 - Frontend-used but missing from OpenAPI: 0
-- OpenAPI-defined but unused by frontend: 40
+- OpenAPI-defined but unused by frontend: 41
   - GET /admin/achievements
   - GET /admin/achievements/:param
   - GET /admin/achievements/:param/audit-logs
@@ -30,6 +30,7 @@
   - GET /admin/patent-maintenance/schedules/:param
   - GET /admin/patents/jobs/import/:param
   - GET /admin/patents/jobs/import/:param/error-file
+  - GET /public/config/banner
   - PATCH /admin/achievements/:param
   - PATCH /admin/ai/parse-results/:param
   - PATCH /admin/listings/:param
@@ -53,8 +54,10 @@
   - POST /ai/agent/query
   - POST /ai/parse-results/:param/feedback
   - PUT /admin/listings/:param/featured
-- Frontend-used but missing in happy fixtures: 193
+- Frontend-used but missing in happy fixtures: 203
   - DELETE /achievements/:param/favorites
+  - DELETE /admin/config/home-announcements/items/:param
+  - DELETE /admin/config/home-announcements/templates/:param
   - DELETE /admin/conversations/:param/agents/:param
   - DELETE /admin/orders/:param/invoice
   - DELETE /admin/rbac/roles/:param
@@ -71,6 +74,7 @@
   - GET /admin/config/alerts
   - GET /admin/config/banner
   - GET /admin/config/customer-service
+  - GET /admin/config/home-announcements
   - GET /admin/config/hot-search
   - GET /admin/config/recommendation
   - GET /admin/config/sensitive-words
@@ -101,16 +105,15 @@
   - GET /admin/reports/finance/summary
   - GET /admin/tech-managers
   - GET /admin/user-verifications
-  - GET /admin/user-verifications/:param/audit-logs
-  - GET /admin/user-verifications/:param/materials
-  - GET /auth/session
-  - ... (143 more)
+  - ... (153 more)
 
 ## Coverage Details (by operation)
 
 | operationId | method | path | Client | Admin | happy | empty | error | edge | order_conflict | payment_callback_replay | refund_failed |
 |---|---|---|---|---|---|---|---|---|---|---|---|
 | unfavoriteAchievement | DELETE | /achievements/:param/favorites | Y |  |  |  |  |  |  |  |  |
+| adminDeleteHomeAnnouncementItem | DELETE | /admin/config/home-announcements/items/:param |  | Y |  |  |  |  |  |  |  |
+| adminDeleteHomeAnnouncementTemplate | DELETE | /admin/config/home-announcements/templates/:param |  | Y |  |  |  |  |  |  |  |
 | adminRemovePlatformConversationAgent | DELETE | /admin/conversations/:param/agents/:param |  | Y |  |  |  |  |  |  |  |
 | adminDeleteOrderInvoice | DELETE | /admin/orders/:param/invoice |  | Y |  |  |  |  |  |  |  |
 | adminDeleteRbacRole | DELETE | /admin/rbac/roles/:param |  | Y |  |  |  |  |  |  |  |
@@ -133,6 +136,7 @@
 | adminGetAlertConfig | GET | /admin/config/alerts |  | Y |  |  |  |  |  |  |  |
 | adminGetBannerConfig | GET | /admin/config/banner |  | Y |  |  |  |  |  |  |  |
 | adminGetCustomerServiceConfig | GET | /admin/config/customer-service |  | Y |  |  |  |  |  |  |  |
+| adminGetHomeAnnouncementsConfig | GET | /admin/config/home-announcements |  | Y |  |  |  |  |  |  |  |
 | adminGetHotSearchConfig | GET | /admin/config/hot-search |  | Y |  |  |  |  |  |  |  |
 | adminGetRecommendationConfig | GET | /admin/config/recommendation |  | Y |  |  |  |  |  |  |  |
 | adminGetSensitiveWordsConfig | GET | /admin/config/sensitive-words |  | Y |  |  |  |  |  |  |  |
@@ -208,7 +212,9 @@
 | getPatentById | GET | /patents/:param | Y |  |  |  |  |  |  |  |  |
 | getPublicAchievementById | GET | /public/achievements/:param | Y |  |  |  |  |  |  |  |  |
 | listPublicAchievementComments | GET | /public/achievements/:param/comments | Y |  |  |  |  |  |  |  |  |
+| getPublicBannerConfig | GET | /public/config/banner |  |  |  |  |  |  |  |  |  |
 | getPublicCustomerServiceConfig | GET | /public/config/customer-service | Y |  |  |  |  |  |  |  |  |
+| getPublicHomeAnnouncementsFeed | GET | /public/config/home-announcements | Y |  |  |  |  |  |  |  |  |
 | getPublicTradeRulesConfig | GET | /public/config/trade-rules | Y |  |  |  |  |  |  |  |  |
 | listPublicIndustryTags | GET | /public/industry-tags | Y |  |  |  |  |  |  |  |  |
 | getPublicListingById | GET | /public/listings/:param | Y |  |  |  |  |  |  |  |  |
@@ -258,6 +264,10 @@
 | adminAddCaseNote | POST | /admin/cases/:param/notes |  | Y |  |  |  |  |  |  |  |
 | adminUpdateCaseSla | POST | /admin/cases/:param/sla |  | Y |  |  |  |  |  |  |  |
 | adminUpdateCaseStatus | POST | /admin/cases/:param/status |  | Y |  |  |  |  |  |  |  |
+| adminCreateHomeAnnouncementItem | POST | /admin/config/home-announcements/items |  | Y |  |  |  |  |  |  |  |
+| adminOfflineHomeAnnouncementItem | POST | /admin/config/home-announcements/items/:param/offline |  | Y |  |  |  |  |  |  |  |
+| adminPublishHomeAnnouncementItem | POST | /admin/config/home-announcements/items/:param/publish |  | Y |  |  |  |  |  |  |  |
+| adminCreateHomeAnnouncementTemplate | POST | /admin/config/home-announcements/templates |  | Y |  |  |  |  |  |  |  |
 | adminAssignPlatformConversationAgent | POST | /admin/conversations/:param/agents |  | Y |  |  |  |  |  |  |  |
 | adminCreateIndustryTag | POST | /admin/industry-tags |  | Y |  |  |  |  |  |  |  |
 | adminCreateListing | POST | /admin/listings |  |  |  |  |  |  |  |  |  |
@@ -336,6 +346,8 @@
 | adminUpdateAlertConfig | PUT | /admin/config/alerts |  | Y |  |  |  |  |  |  |  |
 | adminUpdateBannerConfig | PUT | /admin/config/banner |  | Y |  |  |  |  |  |  |  |
 | adminUpdateCustomerServiceConfig | PUT | /admin/config/customer-service |  | Y |  |  |  |  |  |  |  |
+| adminUpdateHomeAnnouncementItem | PUT | /admin/config/home-announcements/items/:param |  | Y |  |  |  |  |  |  |  |
+| adminUpdateHomeAnnouncementTemplate | PUT | /admin/config/home-announcements/templates/:param |  | Y |  |  |  |  |  |  |  |
 | adminUpdateHotSearchConfig | PUT | /admin/config/hot-search |  | Y |  |  |  |  |  |  |  |
 | adminUpdateRecommendationConfig | PUT | /admin/config/recommendation |  | Y |  |  |  |  |  |  |  |
 | adminUpdateSensitiveWordsConfig | PUT | /admin/config/sensitive-words |  | Y |  |  |  |  |  |  |  |

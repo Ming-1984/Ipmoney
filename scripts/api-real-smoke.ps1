@@ -1580,6 +1580,7 @@ try {
     @{ name = "admin-config-taxonomy-get"; method = "GET"; url = "http://127.0.0.1:$resolvedApiPort/admin/config/taxonomy"; body = $null; headers = @{ Authorization = $adminToken }; expected = @(200) },
     @{ name = "admin-config-sensitive-words-get"; method = "GET"; url = "http://127.0.0.1:$resolvedApiPort/admin/config/sensitive-words"; body = $null; headers = @{ Authorization = $adminToken }; expected = @(200) },
     @{ name = "admin-config-hot-search-get"; method = "GET"; url = "http://127.0.0.1:$resolvedApiPort/admin/config/hot-search"; body = $null; headers = @{ Authorization = $adminToken }; expected = @(200) },
+    @{ name = "admin-config-home-announcements-get"; method = "GET"; url = "http://127.0.0.1:$resolvedApiPort/admin/config/home-announcements"; body = $null; headers = @{ Authorization = $adminToken }; expected = @(200) },
     @{ name = "public-organizations"; method = "GET"; url = "http://127.0.0.1:$resolvedApiPort/public/organizations"; body = $null; headers = @{}; expected = @(200) },
     @{ name = "public-organizations-invalid-type"; method = "GET"; url = "http://127.0.0.1:$resolvedApiPort/public/organizations?type=UNKNOWN"; body = $null; headers = @{}; expected = @(400) },
     @{ name = "public-organizations-empty-type"; method = "GET"; url = "http://127.0.0.1:$resolvedApiPort/public/organizations?type="; body = $null; headers = @{}; expected = @(400) },
@@ -1588,8 +1589,13 @@ try {
     @{ name = "public-organizations-empty-page-size"; method = "GET"; url = "http://127.0.0.1:$resolvedApiPort/public/organizations?pageSize="; body = $null; headers = @{}; expected = @(400) },
     @{ name = "public-config-trade-rules"; method = "GET"; url = "http://127.0.0.1:$resolvedApiPort/public/config/trade-rules"; body = $null; headers = @{}; expected = @(200) },
     @{ name = "public-config-customer-service"; method = "GET"; url = "http://127.0.0.1:$resolvedApiPort/public/config/customer-service"; body = $null; headers = @{}; expected = @(200) },
+    @{ name = "public-config-banner"; method = "GET"; url = "http://127.0.0.1:$resolvedApiPort/public/config/banner"; body = $null; headers = @{}; expected = @(200) },
+    @{ name = "public-config-home-announcements"; method = "GET"; url = "http://127.0.0.1:$resolvedApiPort/public/config/home-announcements"; body = $null; headers = @{}; expected = @(200) },
     @{ name = "regions"; method = "GET"; url = "http://127.0.0.1:$resolvedApiPort/regions"; body = $null; headers = @{}; expected = @(200) },
     @{ name = "regions-empty-level"; method = "GET"; url = "http://127.0.0.1:$resolvedApiPort/regions?level="; body = $null; headers = @{}; expected = @(400) },
+    @{ name = "search-patent-map-overview"; method = "GET"; url = "http://127.0.0.1:$resolvedApiPort/search/patent-map/overview?regionLevel=PROVINCE&top=20"; body = $null; headers = @{}; expected = @(200) },
+    @{ name = "search-patent-map-overview-all"; method = "GET"; url = "http://127.0.0.1:$resolvedApiPort/search/patent-map/overview?regionLevel=PROVINCE&top=20&scope=ALL"; body = $null; headers = @{}; expected = @(200) },
+    @{ name = "search-patent-map-region-detail"; method = "GET"; url = "http://127.0.0.1:$resolvedApiPort/search/patent-map/regions/110000?page=1&pageSize=20"; body = $null; headers = @{}; expected = @(200) },
     @{ name = "search-listings"; method = "GET"; url = "http://127.0.0.1:$resolvedApiPort/search/listings"; body = $null; headers = @{}; expected = @(200) },
     @{ name = "search-listings-invalid-qtype"; method = "GET"; url = "http://127.0.0.1:$resolvedApiPort/search/listings?qType=UNKNOWN"; body = $null; headers = @{}; expected = @(400) },
     @{ name = "search-listings-invalid-patent-type"; method = "GET"; url = "http://127.0.0.1:$resolvedApiPort/search/listings?patentType=UNKNOWN"; body = $null; headers = @{}; expected = @(400) },
@@ -1762,6 +1768,22 @@ try {
   [void](Add-ApiCaseResult -Results $results -Name "admin-user-verification-materials-invalid-verification-id-format" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/admin/user-verifications/not-a-uuid/materials" -Body $null -Headers @{ Authorization = $adminToken } -Expected @(400))
   [void](Add-ApiCaseResult -Results $results -Name "admin-user-verification-audit-logs-invalid-verification-id-format" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/admin/user-verifications/not-a-uuid/audit-logs" -Body $null -Headers @{ Authorization = $adminToken } -Expected @(400))
 
+  $regionCandidates = @()
+  if ($regionsForWrites -is [System.Array]) {
+    $regionCandidates = @($regionsForWrites)
+  } elseif ($regionsForWrites -and $regionsForWrites.items) {
+    $regionCandidates = @($regionsForWrites.items)
+  }
+  $regionItem = $regionCandidates | Select-Object -First 1
+  $importRegionCode = ""
+  if ($regionItem) {
+    if ($regionItem.code) { $importRegionCode = [string]$regionItem.code }
+    elseif ($regionItem.regionCode) { $importRegionCode = [string]$regionItem.regionCode }
+  }
+  if ([string]::IsNullOrWhiteSpace($importRegionCode)) {
+    throw "No valid region code available for smoke write/order cases"
+  }
+
   $listingCandidates = @($adminListingsForWrites.items)
   if ($listingCandidates.Count -le 0) {
     throw "No listing items found for smoke write/order cases"
@@ -1851,18 +1873,6 @@ try {
     Assert-ResultJsonFieldEquals -Result $prepareOrderableDeposit -Field "depositAmountFen" -ExpectedValue 1000 -Assertion "orderable-listing-deposit-updated"
   }
   $patentId = Select-ContentId -Items @($adminPatentsForWrites.items) -OwnerField "" -CurrentUserId $currentUserId -Label "patent"
-  $regionCandidates = @()
-  if ($regionsForWrites -is [System.Array]) {
-    $regionCandidates = @($regionsForWrites)
-  } elseif ($regionsForWrites -and $regionsForWrites.items) {
-    $regionCandidates = @($regionsForWrites.items)
-  }
-  $regionItem = $regionCandidates | Select-Object -First 1
-  $importRegionCode = ""
-  if ($regionItem) {
-    if ($regionItem.code) { $importRegionCode = [string]$regionItem.code }
-    elseif ($regionItem.regionCode) { $importRegionCode = [string]$regionItem.regionCode }
-  }
   if ([string]::IsNullOrWhiteSpace($importRegionCode)) {
   }
   $industryTagCandidates = @()
@@ -2483,8 +2493,7 @@ try {
   Assert-ResultJsonFieldEquals -Result $adminListingUpdate -Field "depositAmountFen" -ExpectedValue 2000 -Assertion "admin-listing-update-deposit-amount"
   Assert-ResultJsonFieldEquals -Result $adminListingUpdate -Field "pledgeStatus" -ExpectedValue "UNKNOWN" -Assertion "admin-listing-update-pledge-status"
   Assert-ResultJsonFieldEquals -Result $adminListingUpdate -Field "existingLicenseStatus" -ExpectedValue "UNKNOWN" -Assertion "admin-listing-update-existing-license-status"
-  $adminListingUpdateClearNullRegionCode = Add-ApiCaseResult -Results $results -Name "admin-listing-update-clear-null-region-code" -Method "PATCH" -Url "http://127.0.0.1:$resolvedApiPort/admin/listings/$smokeAdminListingId" -Body @{ regionCode = $null } -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-listing-update-clear-null-region-code") -Expected @(200)
-  Assert-ResultJsonFieldMissing -Result $adminListingUpdateClearNullRegionCode -Field "regionCode" -Assertion "admin-listing-update-clear-null-region-code-null"
+  [void](Add-ApiCaseResult -Results $results -Name "admin-listing-update-clear-null-region-code" -Method "PATCH" -Url "http://127.0.0.1:$resolvedApiPort/admin/listings/$smokeAdminListingId" -Body @{ regionCode = $null } -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-listing-update-clear-null-region-code") -Expected @(400))
   [void](Add-ApiCaseResult -Results $results -Name "admin-listing-update-empty-region-code" -Method "PATCH" -Url "http://127.0.0.1:$resolvedApiPort/admin/listings/$smokeAdminListingId" -Body @{ regionCode = "" } -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-listing-update-empty-region-code") -Expected @(400))
   [void](Add-ApiCaseResult -Results $results -Name "admin-listing-update-empty-seller-user-id" -Method "PATCH" -Url "http://127.0.0.1:$resolvedApiPort/admin/listings/$smokeAdminListingId" -Body @{ sellerUserId = "" } -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-listing-update-empty-seller-user-id") -Expected @(400))
   [void](Add-ApiCaseResult -Results $results -Name "admin-listing-update-empty-title" -Method "PATCH" -Url "http://127.0.0.1:$resolvedApiPort/admin/listings/$smokeAdminListingId" -Body @{ title = "" } -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-listing-update-empty-title") -Expected @(400))
@@ -2578,6 +2587,9 @@ try {
   [void](Add-ApiCaseResult -Results $results -Name "admin-listing-featured-set-city-invalid-until" -Method "PUT" -Url "http://127.0.0.1:$resolvedApiPort/admin/listings/$listingId/featured" -Body @{ featuredLevel = "CITY"; featuredRegionCode = $importRegionCode; featuredUntil = "not-a-date" } -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-listing-featured-set-city-invalid-until") -Expected @(400))
   [void](Add-ApiCaseResult -Results $results -Name "admin-listing-featured-set-missing" -Method "PUT" -Url "http://127.0.0.1:$resolvedApiPort/admin/listings/$([guid]::NewGuid().ToString())/featured" -Body @{ featuredLevel = "NONE" } -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-listing-featured-set-missing") -Expected @(404))
   [void](Add-ApiCaseResult -Results $results -Name "admin-listing-featured-set-invalid-listing-id-format" -Method "PUT" -Url "http://127.0.0.1:$resolvedApiPort/admin/listings/not-a-uuid/featured" -Body @{ featuredLevel = "NONE" } -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-listing-featured-set-invalid-listing-id-format") -Expected @(400))
+  $adminPatentMapBatchUpdate = Add-ApiCaseResult -Results $results -Name "admin-patent-map-listings-batch-update" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/admin/patent-map/listings/batch" -Body @{ listingIds = @($listingId); patch = @{ clearRanking = $true }; reason = "smoke patent map batch $ReportDate" } -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-patent-map-listings-batch-update") -Expected @(200, 201)
+  Assert-ResultJsonFieldEquals -Result $adminPatentMapBatchUpdate -Field "ok" -ExpectedValue $true -Assertion "admin-patent-map-listings-batch-update-ok"
+  Assert-ResultJsonFieldEquals -Result $adminPatentMapBatchUpdate -Field "updatedCount" -ExpectedValue 1 -Assertion "admin-patent-map-listings-batch-update-count"
   $missingListingAuditId = [guid]::NewGuid().ToString()
   [void](Add-ApiCaseResult -Results $results -Name "admin-listing-approve-missing" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/admin/listings/$missingListingAuditId/approve" -Body @{} -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-listing-approve-missing") -Expected @(404))
   [void](Add-ApiCaseResult -Results $results -Name "admin-listing-reject-missing" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/admin/listings/$missingListingAuditId/reject" -Body @{ reason = "smoke reject missing listing" } -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-listing-reject-missing") -Expected @(404))
@@ -2621,6 +2633,24 @@ try {
   [void](Add-AdminConfigPutCaseResult -Results $results -Name "admin-config-taxonomy-put" -Url "http://127.0.0.1:$resolvedApiPort/admin/config/taxonomy" -Body $adminTaxonomyConfig -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-config-taxonomy-put") -Action "CONFIG_TAXONOMY_UPDATE" -ApiPort $resolvedApiPort -AuthorizationToken $adminToken)
   [void](Add-AdminConfigPutCaseResult -Results $results -Name "admin-config-sensitive-words-put" -Url "http://127.0.0.1:$resolvedApiPort/admin/config/sensitive-words" -Body $adminSensitiveWordsConfig -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-config-sensitive-words-put") -Action "CONFIG_SENSITIVE_UPDATE" -ApiPort $resolvedApiPort -AuthorizationToken $adminToken)
   [void](Add-AdminConfigPutCaseResult -Results $results -Name "admin-config-hot-search-put" -Url "http://127.0.0.1:$resolvedApiPort/admin/config/hot-search" -Body $adminHotSearchConfig -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-config-hot-search-put") -Action "CONFIG_HOT_SEARCH_UPDATE" -ApiPort $resolvedApiPort -AuthorizationToken $adminToken)
+  $homeAnnouncementTemplateSuffix = [guid]::NewGuid().ToString('N').Substring(0, 8)
+  $homeAnnouncementTemplateName = "Smoke Template $ReportDate $homeAnnouncementTemplateSuffix"
+  $homeAnnouncementTemplateCreate = Add-ApiCaseResult -Results $results -Name "admin-home-announcement-template-create" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/admin/config/home-announcements/templates" -Body @{ name = $homeAnnouncementTemplateName; title = "Smoke Template Title $homeAnnouncementTemplateSuffix"; content = "Smoke template content $ReportDate"; tag = "SMOKE"; enabled = $true } -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-home-announcement-template-create") -Expected @(200, 201)
+  $homeAnnouncementTemplateId = Get-ResultStringField -Result $homeAnnouncementTemplateCreate -Field "id"
+  if ([string]::IsNullOrWhiteSpace($homeAnnouncementTemplateId)) { throw "admin-home-announcement-template-create missing id" }
+  [void](Add-ApiCaseResult -Results $results -Name "admin-home-announcement-template-update" -Method "PUT" -Url "http://127.0.0.1:$resolvedApiPort/admin/config/home-announcements/templates/$homeAnnouncementTemplateId" -Body @{ title = "Smoke Template Title Updated $homeAnnouncementTemplateSuffix"; content = "Smoke template content updated $ReportDate"; enabled = $true } -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-home-announcement-template-update") -Expected @(200))
+  $homeAnnouncementItemCreate = Add-ApiCaseResult -Results $results -Name "admin-home-announcement-item-create" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/admin/config/home-announcements/items" -Body @{ templateId = $homeAnnouncementTemplateId; title = "Smoke Announcement $homeAnnouncementTemplateSuffix"; content = "Smoke announcement content $ReportDate"; tag = "SMOKE"; pinned = $true; order = 1; status = "DRAFT" } -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-home-announcement-item-create") -Expected @(200, 201)
+  $homeAnnouncementItemId = Get-ResultStringField -Result $homeAnnouncementItemCreate -Field "id"
+  if ([string]::IsNullOrWhiteSpace($homeAnnouncementItemId)) { throw "admin-home-announcement-item-create missing id" }
+  [void](Add-ApiCaseResult -Results $results -Name "admin-home-announcement-item-update" -Method "PUT" -Url "http://127.0.0.1:$resolvedApiPort/admin/config/home-announcements/items/$homeAnnouncementItemId" -Body @{ title = "Smoke Announcement Updated $homeAnnouncementTemplateSuffix"; content = "Smoke announcement content updated $ReportDate"; order = 2; status = "DRAFT" } -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-home-announcement-item-update") -Expected @(200))
+  $homeAnnouncementItemPublish = Add-ApiCaseResult -Results $results -Name "admin-home-announcement-item-publish" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/admin/config/home-announcements/items/$homeAnnouncementItemId/publish" -Body @{} -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-home-announcement-item-publish") -Expected @(200, 201)
+  Assert-ResultJsonFieldEquals -Result $homeAnnouncementItemPublish -Field "status" -ExpectedValue "PUBLISHED" -Assertion "admin-home-announcement-item-publish-status"
+  $publicHomeAnnouncementFeedAfterPublish = Add-ApiCaseResult -Results $results -Name "public-config-home-announcements-after-publish" -Method "GET" -Url "http://127.0.0.1:$resolvedApiPort/public/config/home-announcements" -Body $null -Headers @{} -Expected @(200)
+  Assert-ResultJsonItemsContainsId -Result $publicHomeAnnouncementFeedAfterPublish -ItemId $homeAnnouncementItemId -Assertion "public-home-announcement-feed-contains-published-item"
+  $homeAnnouncementItemOffline = Add-ApiCaseResult -Results $results -Name "admin-home-announcement-item-offline" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/admin/config/home-announcements/items/$homeAnnouncementItemId/offline" -Body @{} -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-home-announcement-item-offline") -Expected @(200, 201)
+  Assert-ResultJsonFieldEquals -Result $homeAnnouncementItemOffline -Field "status" -ExpectedValue "OFFLINE" -Assertion "admin-home-announcement-item-offline-status"
+  [void](Add-ApiCaseResult -Results $results -Name "admin-home-announcement-item-delete" -Method "DELETE" -Url "http://127.0.0.1:$resolvedApiPort/admin/config/home-announcements/items/$homeAnnouncementItemId" -Body $null -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-home-announcement-item-delete") -Expected @(200))
+  [void](Add-ApiCaseResult -Results $results -Name "admin-home-announcement-template-delete" -Method "DELETE" -Url "http://127.0.0.1:$resolvedApiPort/admin/config/home-announcements/templates/$homeAnnouncementTemplateId" -Body $null -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-home-announcement-template-delete") -Expected @(200))
   [void](Add-ApiCaseResult -Results $results -Name "admin-order-manual-payment-missing" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/admin/orders/$missingOrderId/payments/manual" -Body @{ payType = "DEPOSIT"; amount = 100 } -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-order-manual-payment-missing") -Expected @(404))
   [void](Add-ApiCaseResult -Results $results -Name "admin-order-contract-signed-missing" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/admin/orders/$missingOrderId/milestones/contract-signed" -Body @{ dealAmountFen = 100 } -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-order-contract-signed-missing") -Expected @(404))
   [void](Add-ApiCaseResult -Results $results -Name "admin-order-transfer-completed-missing" -Method "POST" -Url "http://127.0.0.1:$resolvedApiPort/admin/orders/$missingOrderId/milestones/transfer-completed" -Body @{} -Headers (New-WriteHeaders -AuthorizationToken $adminToken -Prefix $idempotencyPrefix -Label "admin-order-transfer-completed-missing") -Expected @(404))

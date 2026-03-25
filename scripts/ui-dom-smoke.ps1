@@ -654,6 +654,13 @@ try {
       textAny = @(); storage = $clientApprovedStorage; demoAuth = $true
     },
     @{
+      name = "client-patent-map"; path = "#/pages/patent-map/index"; base = $clientBase
+      width = $ClientWidth; height = $ClientHeight; waitMs = $ClientWaitMs
+      expectedUrlContains = "#/pages/patent-map/index"; minElements = 80
+      selectorsAll = @(".patent-map-page", ".patent-map-ranking-list"); selectorsAny = @(".patent-map-summary", ".patent-map-section", ".patent-map-h5-fallback", ".patent-map-detail-list")
+      textAny = @(); storage = @(); demoAuth = $false
+    },
+    @{
       name = "client-tech-manager-detail"; path = "#/pages/tech-managers/detail/index?techManagerId=$($sample.techManagerId)"; base = $clientBase
       width = $ClientWidth; height = $ClientHeight; waitMs = $ClientWaitMs
       expectedUrlContains = "#/pages/tech-managers/detail/index"; minElements = 60
@@ -868,6 +875,13 @@ try {
       width = $AdminWidth; height = $AdminHeight; waitMs = $AdminWaitMs
       expectedUrlContains = "/maintenance"; minElements = 100
       selectorsAll = @(".ipm-content-inner", ".ant-card"); selectorsAny = @(".ant-tabs", ".ant-table", ".ant-typography")
+      textAny = @(); storage = $adminAuthedStorage; demoAuth = $false
+    },
+    @{
+      name = "admin-home-announcements"; path = "/home-announcements"; base = $adminBase
+      width = $AdminWidth; height = $AdminHeight; waitMs = $AdminWaitMs
+      expectedUrlContains = "/home-announcements"; minElements = 100
+      selectorsAll = @(".admin-home-announcements-page", ".ipm-content-inner"); selectorsAny = @(".ant-card", ".ant-form", ".ant-table")
       textAny = @(); storage = $adminAuthedStorage; demoAuth = $false
     },
     @{

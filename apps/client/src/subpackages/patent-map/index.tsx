@@ -5,6 +5,7 @@ import './index.scss';
 
 import { apiGet } from '../../lib/api';
 import { EmptyCard, ErrorCard, LoadingCard } from '../../ui/StateCards';
+import patentMapMarkerIcon from '../../assets/icons/app/patent-map.png';
 
 type PatentMapRegionLevel = 'PROVINCE' | 'CITY' | 'DISTRICT' | 'UNKNOWN';
 type PatentMapFeaturedLevel = 'NONE' | 'CITY' | 'PROVINCE';
@@ -277,33 +278,35 @@ export default function PatentMapPage() {
 
   const markers = useMemo(
     () =>
-      mappableRegions.map((item, index) => ({
-        id: Number(item.regionCode) || index + 1,
-        latitude: item.mapCenter.latitude,
-        longitude: item.mapCenter.longitude,
-        width: 28,
-        height: 28,
-        callout: {
-          content: `${item.regionName}｜挂牌${item.listingCount}｜专利${item.patentCount}｜排名#${item.rankPosition}`,
-          color: '#111827',
-          fontSize: 12,
-          borderRadius: 8,
-          padding: 4,
-          bgColor: '#ffffff',
-          display: (item.listingCount > 0 ? 'ALWAYS' : 'BYCLICK') as 'ALWAYS' | 'BYCLICK',
-        },
-        label:
-          item.listingCount > 0
-            ? {
-                content: `${item.regionName} 挂${item.listingCount}`,
-                color: '#334155',
-                fontSize: 10,
-                borderRadius: 6,
-                bgColor: '#ffffff',
-                padding: 3,
-              }
-            : undefined,
-      })),
+      mappableRegions.map((item, index) => {
+        const hasListings = item.listingCount > 0;
+        return {
+          id: Number(item.regionCode) || index + 1,
+          latitude: item.mapCenter.latitude,
+          longitude: item.mapCenter.longitude,
+          iconPath: patentMapMarkerIcon,
+          width: 28,
+          height: 28,
+          callout: {
+            content: `${item.regionName}｜挂牌${item.listingCount}｜专利${item.patentCount}｜排名#${item.rankPosition}`,
+            color: '#111827',
+            fontSize: 12,
+            borderRadius: 8,
+            padding: 4,
+            bgColor: '#ffffff',
+            display: (hasListings ? 'ALWAYS' : 'BYCLICK') as 'ALWAYS' | 'BYCLICK',
+          },
+          // Show all mappable regions directly on map so zero-listing regions are also visible.
+          label: {
+            content: `#${item.rankPosition} ${item.regionName} 挂${item.listingCount} 专${item.patentCount}`,
+            color: hasListings ? '#334155' : '#64748b',
+            fontSize: hasListings ? 10 : 9,
+            borderRadius: 6,
+            bgColor: hasListings ? '#ffffff' : '#f8fafc',
+            padding: 3,
+          },
+        };
+      }),
     [mappableRegions],
   );
 
@@ -440,6 +443,7 @@ export default function PatentMapPage() {
                 当前选中：{selectedRegion.regionName}（挂牌 {selectedRegion.listingCount}，专利 {selectedRegion.patentCount}，排名 #{selectedRegion.rankPosition}）
               </Text>
             ) : null}
+            <Text className="patent-map-section-tip">地图会展示全部可定位区域；有挂牌区域默认展开气泡，其它区域可点标记查看详情。</Text>
             {process.env.TARO_ENV === 'weapp' ? (
               markers.length > 0 ? (
                 <TaroMap

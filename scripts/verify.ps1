@@ -186,16 +186,25 @@ Invoke-Step "ui-render-smoke($UiSmokeMode)" { powershell -ExecutionPolicy Bypass
 Invoke-Step "ui-dom-smoke($UiSmokeMode)" { powershell -ExecutionPolicy Bypass -File scripts/ui-dom-smoke.ps1 -Mode $UiSmokeMode -ReportDate $ReportDate }
 
 if ($RunWeappRouteSmoke) {
+  $weappRouteSmokeBaseArgs = @(
+    "-ExecutionPolicy", "Bypass",
+    "-File", "scripts/weapp-route-smoke.ps1",
+    "-ProjectPath", $WeappProjectPath,
+    "-TimeoutMs", "$WeappTimeoutMs",
+    "-LaunchRetries", "$WeappLaunchRetries",
+    "-LaunchRetryDelayMs", "$WeappLaunchRetryDelayMs",
+    "-KillStaleDevtools"
+  )
+  if (-not [string]::IsNullOrWhiteSpace($WeappCliPath)) {
+    $weappRouteSmokeBaseArgs += @("-CliPath", $WeappCliPath)
+  }
+
   Invoke-Step "weapp-route-smoke(noauth)" {
-    powershell -ExecutionPolicy Bypass -File scripts/weapp-route-smoke.ps1 `
-      -CliPath $WeappCliPath `
-      -ProjectPath $WeappProjectPath `
-      -NoAuth `
-      -ReportDate "$ReportDate-noauth" `
-      -TimeoutMs $WeappTimeoutMs `
-      -LaunchRetries $WeappLaunchRetries `
-      -LaunchRetryDelayMs $WeappLaunchRetryDelayMs `
-      -KillStaleDevtools
+    $noAuthArgs = @($weappRouteSmokeBaseArgs + @(
+        "-NoAuth",
+        "-ReportDate", "$ReportDate-noauth"
+      ))
+    & powershell @noAuthArgs
   } -MaxAttempts 2 -RetryExitCodes @(1)
 
   $effectiveWeappUserToken = [string]$WeappUserToken
@@ -204,15 +213,11 @@ if ($RunWeappRouteSmoke) {
   }
   if (-not [string]::IsNullOrWhiteSpace($effectiveWeappUserToken)) {
     Invoke-Step "weapp-route-smoke(auth)" {
-      powershell -ExecutionPolicy Bypass -File scripts/weapp-route-smoke.ps1 `
-        -CliPath $WeappCliPath `
-        -ProjectPath $WeappProjectPath `
-        -UserToken $effectiveWeappUserToken `
-        -ReportDate "$ReportDate-auth" `
-        -TimeoutMs $WeappTimeoutMs `
-        -LaunchRetries $WeappLaunchRetries `
-        -LaunchRetryDelayMs $WeappLaunchRetryDelayMs `
-        -KillStaleDevtools
+      $authArgs = @($weappRouteSmokeBaseArgs + @(
+          "-UserToken", $effectiveWeappUserToken,
+          "-ReportDate", "$ReportDate-auth"
+        ))
+      & powershell @authArgs
     } -MaxAttempts 2 -RetryExitCodes @(1)
   } else {
     Write-Host "[verify] skip weapp-route-smoke(auth): DEMO_USER_TOKEN / -WeappUserToken is empty"
