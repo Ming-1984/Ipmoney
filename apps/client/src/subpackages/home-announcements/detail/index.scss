@@ -1,0 +1,39 @@
+.home-announcement-detail-page {
+  background: var(--bg-page-plain);
+}
+
+.home-announcement-detail-card {
+  border-radius: 20rpx;
+}
+
+.home-announcement-detail-body {
+  padding: 24rpx 24rpx 26rpx;
+  display: flex;
+  flex-direction: column;
+  gap: 14rpx;
+}
+
+.home-announcement-detail-title {
+  font-size: 30rpx;
+  font-weight: 700;
+  color: #0f172a;
+  line-height: 1.35;
+}
+
+.home-announcement-detail-time {
+  font-size: 22rpx;
+  color: #94a3b8;
+}
+
+.home-announcement-detail-content {
+  font-size: 24rpx;
+  color: #475569;
+  line-height: 1.6;
+  white-space: pre-wrap;
+}
+
+.home-announcement-detail-link {
+  font-size: 24rpx;
+  color: #2563eb;
+  align-self: flex-start;
+}

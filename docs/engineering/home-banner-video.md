@@ -25,17 +25,19 @@
 - **音频**：静音（自动播放成功率更高）
 - **海报**：单独上传 `poster` 图片
 
-## 对象存储资源与上传
-- **媒体域名**：`https://media.ipmoney.cn`
+## 对象存储资源与上传（公共读 + CDN，推荐）
+- **媒体域名**：`https://media.ipmoney.cn`（CDN 域名）
 - **资源路径**：`/home/banner/`
 - **默认文件名**：
   - `banner.mp4`
   - `banner-poster.png`
-- **访问要求**：
+- **访问策略（确定）**：
+  - Bucket 公共读 + CDN 直链
   - HTTPS 可访问
   - 支持 Range 请求
-  - Referer 白名单包含 `h5.ipmoney.cn`、`admin2.ipmoney.cn`
-  - 允许空 Referer，避免小程序或部分客户端取流失败
+  - **轻量防盗链**：Referer 白名单包含 `h5.ipmoney.cn`、`admin2.ipmoney.cn`，并允许空 Referer
+
+> 说明：首页 Banner 需要未登录可访问，公共读 + CDN 最稳定；签名 URL 不适合首页常驻播放（易过期、缓存命中低）。
 
 ### 上传方式（对象存储）
 1. 登录阿里云 OSS 控制台，进入对应 Bucket。
@@ -87,6 +89,10 @@
   - `mediaType: VIDEO`
   - `videoUrl: https://media.ipmoney.cn/home/banner/banner.mp4`
   - `posterUrl: https://media.ipmoney.cn/home/banner/banner-poster.png`
+
+## 封面策略（确定）
+- **封面自行上传**：后台上传封面图到对象存储，获得 `posterUrl`
+- 不依赖自动截图/转码；封面与视频同域名，利于缓存与统一管理
 
 ## 前端接入（小程序）
 - `HomeBanner` 改为读取 `bannerConfig.items` 渲染。
@@ -142,3 +148,18 @@
 - [ ] 开发环境可通过本地视频（wxfile）完成无 URL 演示
 - [ ] 运营可通过后台替换视频
 - [ ] 配置可回滚为图片模式
+
+## 任务更新（当前）
+- [x] 小程序首页读取 `/public/config/banner` 渲染 Banner，失败回退本地素材。
+- [x] 视频预览页改为读取同一配置并上下滑动切换。
+- [x] 管理后台 Banner 配置增加“上传视频/封面”入口并自动写入 JSON。
+- [x] 文档补充公共读 + CDN + 轻量防盗链与封面自行上传策略。
+- [ ] **对接内容（1：待完成）**  
+  上传接口需要返回**可公开访问的 CDN 直链**（或新增 Banner 专用上传接口返回公链），以满足未登录用户播放：
+  - `/files` 当前返回的是鉴权 URL（`/files/{id}`），首页不可直接用；需返回 `https://media.ipmoney.cn/...` 这类直链。
+  - 后台上传完成后自动写入 `videoUrl/posterUrl`（使用 CDN 公网 URL）。
+  - 确保 OSS Bucket 公共读 + CDN 域名生效（支持 Range 与 Referer 白名单/空 Referer）。
+
+
+
+

@@ -1,0 +1,45 @@
+.home-announcements-page {
+  background: var(--bg-page-plain);
+}
+
+.home-announcements-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16rpx;
+  padding-bottom: 24rpx;
+}
+
+.home-announcement-card {
+  border-radius: 20rpx;
+}
+
+.home-announcement-card-body {
+  padding: 20rpx 22rpx 18rpx;
+  display: flex;
+  flex-direction: column;
+  gap: 10rpx;
+}
+
+.home-announcement-card-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 8rpx;
+}
+
+.home-announcement-card-title {
+  font-size: 28rpx;
+  font-weight: 700;
+  color: #0f172a;
+  line-height: 1.35;
+}
+
+.home-announcement-card-summary {
+  font-size: 24rpx;
+  color: #475569;
+  line-height: 1.55;
+}
+
+.home-announcement-card-time {
+  font-size: 22rpx;
+  color: #94a3b8;
+}

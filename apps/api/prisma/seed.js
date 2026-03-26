@@ -17,9 +17,9 @@ const DEFAULT_DEMO_ADMIN_ID = '804b7a04-aafe-409a-bee4-e84f953cb4c0';
 const DEMO_USER_ID = String(process.env.DEMO_USER_ID || DEFAULT_DEMO_USER_ID).trim() || DEFAULT_DEMO_USER_ID;
 const DEMO_ADMIN_ID = String(process.env.DEMO_ADMIN_ID || DEFAULT_DEMO_ADMIN_ID).trim() || DEFAULT_DEMO_ADMIN_ID;
 const DEMO_USER_NICKNAME =
-  String(process.env.DEMO_USER_NICKNAME || '').trim() || '演示用户';
+  String(process.env.DEMO_USER_NICKNAME || '').trim() || '\u6f14\u793a\u7528\u6237';
 const DEMO_ADMIN_NICKNAME =
-  String(process.env.DEMO_ADMIN_NICKNAME || '').trim() || '平台管理员';
+  String(process.env.DEMO_ADMIN_NICKNAME || '').trim() || '\u5e73\u53f0\u7ba1\u7406\u5458';
 
 const SEED_SELLER_ID = String(process.env.SEED_SELLER_ID || '').trim() || '20c2466b-2ba2-44c1-8357-55bf2585fc88';
 const SEED_ORG_USER_ID = String(process.env.SEED_ORG_USER_ID || '').trim() || '982bb394-283b-418d-aec4-9e69568576b3';

@@ -31,6 +31,14 @@ function isNonDevEnv(): boolean {
   return values.some((v) => isReleaseLike(v));
 }
 
+function sanitizeDemoNickname(value: string | undefined): string | undefined {
+  const raw = String(value || '').trim();
+  if (!raw) return undefined;
+  if (raw.includes('DEMO_ADMIN_NICKNAME') || raw.includes('DEMO_USER_NICKNAME')) return undefined;
+  if (raw.includes('=') || raw.includes('\n') || raw.includes('\r')) return undefined;
+  return raw;
+}
+
 export function getDemoAuthConfig(): DemoAuthConfig {
   if (isNonDevEnv()) return { enabled: false };
   const enabled = parseBool(process.env.DEMO_AUTH_ENABLED);
@@ -53,8 +61,8 @@ export function getDemoAuthConfig(): DemoAuthConfig {
     userId,
     adminPhone: String(process.env.DEMO_ADMIN_PHONE || '').trim() || undefined,
     userPhone: String(process.env.DEMO_USER_PHONE || '').trim() || undefined,
-    adminNickname: String(process.env.DEMO_ADMIN_NICKNAME || '').trim() || undefined,
-    userNickname: String(process.env.DEMO_USER_NICKNAME || '').trim() || undefined,
+    adminNickname: sanitizeDemoNickname(process.env.DEMO_ADMIN_NICKNAME),
+    userNickname: sanitizeDemoNickname(process.env.DEMO_USER_NICKNAME),
     adminRegionCode: String(process.env.DEMO_ADMIN_REGION_CODE || '').trim() || undefined,
     userRegionCode: String(process.env.DEMO_USER_REGION_CODE || '').trim() || undefined,
   };

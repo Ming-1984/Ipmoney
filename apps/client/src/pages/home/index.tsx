@@ -1,4 +1,4 @@
-﻿import { View, Text, Image, Input, Swiper, SwiperItem, Video } from '@tarojs/components';
+﻿import { View, Text, Image, Input, Swiper, SwiperItem } from '@tarojs/components';
 import Taro from '@tarojs/taro';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import './index.scss';
@@ -15,9 +15,11 @@ import bgZoneAward from '../../assets/home/zones/zone-award.jpg';
 import iconSearch from '../../assets/icons/icon-search-gray.svg';
 import iconActivity from '../../assets/icons/icon-activity-blue.svg';
 import iconAward from '../../assets/icons/icon-award-teal.svg';
+import iconFiveStarBadge from '../../assets/icons/icon-five-star-badge.svg';
 import iconShield from '../../assets/icons/icon-shield-orange.svg';
 import iconTrending from '../../assets/icons/icon-trending-red.svg';
 import iconMapGreen from '../../assets/icons/icon-map-green.svg';
+import iconNotification from '../../assets/icons/icon-notification.svg';
 
 // Home quick entry icons (provided by you in repo root, copied into assets)
 import homeIconInventors from '../../assets/icons/home/home-inventors.svg';
@@ -28,18 +30,14 @@ import homeIconUtilityPatent from '../../assets/icons/home/home-utility-patent.s
 import homeIconAchievement from '../../assets/icons/home/home-achievement.svg';
 import logoGif from '../../assets/brand/logo.optim2.gif';
 import logoPng from '../../assets/brand/logo.png';
-import bannerLocal1Mp4 from '../../assets/home/banner-local-1.mp4';
-import bannerLocal2Mp4 from '../../assets/home/banner-local-2.mp4';
-import promoCertificateGif from '../../assets/home/promo-certificate.optim3.gif';
-import promoCertificatePng from '../../assets/home/promo-certificate.png';
 import { STORAGE_KEYS } from '../../constants';
 import { getToken, onAuthChanged } from '../../lib/auth';
 import { apiGet } from '../../lib/api';
 import { getDetailCache, setDetailCache } from '../../lib/detailCache';
 import { syncFavorites } from '../../lib/favorites';
-import { ensureWeappVideoSrc } from '../../lib/localMedia';
+import { fetchHomeAnnouncements, type PublicHomeAnnouncementItem } from '../../lib/homeAnnouncements';
+import { buildHomeBannerItems, type BannerConfig, type HomeBannerItem } from '../../lib/homeBannerConfig';
 import type { ListingTopic } from '../../lib/listingTopics';
-import { isTabPageUrl, normalizePageUrl } from '../../lib/navigation';
 import { EmptyCard, ErrorCard } from '../../ui/StateCards';
 import { toast } from '../../ui/nutui';
 import { ListingCard } from '../../ui/ListingCard';
@@ -48,22 +46,6 @@ import GifImage from '../../ui/GifImage';
 
 type PagedListingSummary = components['schemas']['PagedListingSummary'];
 type ListingSummary = components['schemas']['ListingSummary'];
-type PublicHomeAnnouncementItem = {
-  id: string;
-  title: string;
-  content: string;
-  tag: string | null;
-  linkUrl: string | null;
-  pinned: boolean;
-  order: number;
-  publishedAt: string | null;
-};
-
-type PublicHomeAnnouncementFeed = {
-  generatedAt: string;
-  items: PublicHomeAnnouncementItem[];
-};
-
 type QuickEntry = {
   key: string;
   label: string;
@@ -83,107 +65,37 @@ type PatentZoneEntry = {
 
 const HOME_FAVORITES_SYNC_DELAY_MS = 800;
 const HOME_LISTINGS_CACHE_SCOPE = 'home-listings';
-const HOME_ANNOUNCEMENTS_MAX = 6;
-
-const bannerVideos = [
-  { id: 'banner-local-1', title: 'Local Banner 1', asset: bannerLocal1Mp4, fileName: 'banner-local-1.mp4' },
-  { id: 'banner-local-2', title: 'Local Banner 2', asset: bannerLocal2Mp4, fileName: 'banner-local-2.mp4' },
-];
-
-const HomeBanner = React.memo(function HomeBanner() {
-  const [activeIndex, setActiveIndex] = useState(0);
-  const [videoSources, setVideoSources] = useState<string[]>(() => {
-    if (process.env.TARO_ENV === 'weapp') return bannerVideos.map(() => '');
-    return bannerVideos.map((item) => item.asset);
-  });
-  const [videoErrors, setVideoErrors] = useState<Record<number, string>>({});
-
-  useEffect(() => {
-    let cancelled = false;
-    if (process.env.TARO_ENV !== 'weapp') return () => {};
-
-    (async () => {
-      const results: string[] = [];
-      const errors: Record<number, string> = {};
-      for (let i = 0; i < bannerVideos.length; i += 1) {
-        const item = bannerVideos[i];
-        try {
-          const src = await ensureWeappVideoSrc(item.asset, item.fileName);
-          results[i] = src;
-        } catch (e: any) {
-          results[i] = '';
-          errors[i] = e?.message || 'copy-failed';
-        }
-      }
-      if (!cancelled) {
-        setVideoSources(results);
-        setVideoErrors(errors);
-      }
-    })();
-
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+const HomeBanner = React.memo(function HomeBanner({ items }: { items: HomeBannerItem[] }) {
+  if (!items.length) return null;
+  const shouldAutoplay = items.length > 1;
 
   return (
     <View className="home-banner">
       <Swiper
         className="home-banner-swiper"
-        circular
-        indicatorDots
-        autoplay={false}
-        onChange={(e) => setActiveIndex(e.detail.current)}
+        circular={shouldAutoplay}
+        indicatorDots={shouldAutoplay}
+        autoplay={shouldAutoplay}
+        interval={3000}
+        duration={520}
       >
-        {bannerVideos.map((item, index) => {
-          const src = videoSources[index];
-          const canPlay = Boolean(src);
-          const isActive = index === activeIndex;
-          return (
-            <SwiperItem key={item.id}>
-              <View
-                className="home-banner-item"
-                onClick={() =>
-                  Taro.navigateTo({
-                    url: `/subpackages/media/video-preview/index?i=${index}`,
-                  })
-                }
-              >
-                {canPlay ? (
-                  <Video
-                    className="home-banner-img"
-                    src={src}
-                    autoplay={isActive}
-                    loop={isActive}
-                    muted
-                    controls={false}
-                    objectFit="cover"
-                    onError={(e) => {
-                      if (process.env.TARO_ENV === 'weapp') {
-                        // eslint-disable-next-line no-console
-                        console.warn('Home banner video error', e, {
-                          index,
-                          src,
-                          videoCopyError: videoErrors[index],
-                        });
-                      }
-                    }}
-                  />
-                ) : (
-                  <GifImage
-                    src={promoCertificateGif}
-                    fallbackSrc={promoCertificatePng}
-                    deferOnWeapp
-                    deferMs={1600}
-                    lazyLoad
-                    mode="aspectFill"
-                    className="home-banner-img"
-                  />
-                )}
+        {items.map((item, index) => (
+          <SwiperItem key={item.id}>
+            <View
+              className="home-banner-item"
+              onClick={() =>
+                Taro.navigateTo({
+                  url: `/subpackages/media/video-preview/index?i=${index}`,
+                })
+              }
+            >
+              <Image src={item.cover} mode="aspectFill" className="home-banner-img" lazyLoad />
+              <View className="home-banner-overlay">
+                <Text className="home-banner-caption">点击观看</Text>
               </View>
-            </SwiperItem>
-          );
-        })}
+            </View>
+          </SwiperItem>
+        ))}
       </Swiper>
     </View>
   );
@@ -204,6 +116,8 @@ export default function HomePage() {
   const [isAuthed, setIsAuthed] = useState(initialAuthed);
   const [keyword, setKeyword] = useState('');
   const [announcements, setAnnouncements] = useState<PublicHomeAnnouncementItem[]>([]);
+  const [activeAnnouncementIndex, setActiveAnnouncementIndex] = useState(0);
+  const [bannerItems, setBannerItems] = useState<HomeBannerItem[]>(() => buildHomeBannerItems());
 
   const statusBarHeight = useMemo(() => {
     if (process.env.TARO_ENV !== 'weapp') return 0;
@@ -224,12 +138,20 @@ export default function HomePage() {
 
   const loadAnnouncements = useCallback(async () => {
     try {
-      const feed = await apiGet<PublicHomeAnnouncementFeed>('/public/config/home-announcements');
-      const next = Array.isArray(feed?.items) ? feed.items.slice(0, HOME_ANNOUNCEMENTS_MAX) : [];
+      const next = await fetchHomeAnnouncements();
       setAnnouncements(next);
     } catch {
       // Announcement loading should never block the homepage core experience.
       setAnnouncements([]);
+    }
+  }, []);
+
+  const loadBanner = useCallback(async () => {
+    try {
+      const banner = await apiGet<BannerConfig>('/public/config/banner');
+      setBannerItems(buildHomeBannerItems(banner));
+    } catch {
+      // keep fallback banner when config request fails
     }
   }, []);
 
@@ -281,6 +203,18 @@ export default function HomePage() {
   useEffect(() => {
     void loadAnnouncements();
   }, [loadAnnouncements]);
+
+  useEffect(() => {
+    void loadBanner();
+  }, [loadBanner]);
+
+  useEffect(() => {
+    if (announcements.length <= 1) return undefined;
+    const timer = setInterval(() => {
+      setActiveAnnouncementIndex((prev) => (prev + 1) % announcements.length);
+    }, 4500);
+    return () => clearInterval(timer);
+  }, [announcements.length]);
 
   useEffect(() => {
     if (!getToken()) return;
@@ -348,18 +282,8 @@ export default function HomePage() {
     Taro.navigateTo({ url: '/subpackages/search/index' });
   }, []);
 
-  const goAnnouncementLink = useCallback(async (item: PublicHomeAnnouncementItem) => {
-    const target = normalizePageUrl(item.linkUrl || '');
-    if (!target) return;
-    try {
-      if (isTabPageUrl(target)) {
-        await Taro.switchTab({ url: target });
-        return;
-      }
-      await Taro.navigateTo({ url: target });
-    } catch {
-      toast('公告链接暂不可用');
-    }
+  const goAnnouncements = useCallback(() => {
+    Taro.navigateTo({ url: '/subpackages/home-announcements/index' });
   }, []);
 
   const quickEntries: QuickEntry[] = useMemo(
@@ -367,7 +291,7 @@ export default function HomePage() {
       { key: 'design-patent', label: '外观专利', icon: homeIconDesignPatent, onClick: goDesignPatents },
       { key: 'invention-patent', label: '发明专利', icon: homeIconInventionPatent, onClick: goInventionPatents },
       { key: 'utility-patent', label: '实用新型', icon: homeIconUtilityPatent, onClick: goUtilityPatents },
-      { key: 'five-star', label: '五星专利', icon: iconTrending, onClick: () => goTopicSearch('FIVE_STAR') },
+      { key: 'five-star', label: '五星专利', icon: iconFiveStarBadge, onClick: () => goTopicSearch('FIVE_STAR') },
       { key: 'inventor', label: '发明人榜', icon: homeIconInventors, onClick: goInventors },
       { key: 'patent-map', label: '专利地图', icon: iconMapGreen, onClick: goPatentMap },
       { key: 'tech-manager', label: '技术经理', icon: homeIconTechManager, onClick: goTechManagers },
@@ -498,36 +422,19 @@ export default function HomePage() {
       </View>
 
       {announcements.length ? (
-        <View className="home-section home-announcement-section">
-          <View className="home-section-header">
-            <View className="home-section-title-wrap">
-              <View className="home-section-accent" />
-              <Text className="home-section-title">平台公告</Text>
-            </View>
+        <View className="home-announcement-bar" onClick={goAnnouncements}>
+          <View className="home-announcement-bar-icon">
+            <Image src={iconNotification} svg mode="aspectFit" className="home-announcement-bar-icon-img" />
           </View>
-          <View className="home-announcement-list">
-            {announcements.map((item) => (
-              <View
-                key={item.id}
-                className={`home-announcement-item${item.linkUrl ? ' home-announcement-item-clickable' : ''}`}
-                onClick={() => {
-                  void goAnnouncementLink(item);
-                }}
-              >
-                <View className="home-announcement-head">
-                  {item.pinned ? <Text className="home-announcement-pinned">置顶</Text> : null}
-                  {item.tag ? <Text className="home-announcement-tag">{item.tag}</Text> : null}
-                  <Text className="home-announcement-title">{item.title}</Text>
-                </View>
-                <Text className="home-announcement-content">{item.content}</Text>
-                {item.linkUrl ? <Text className="home-announcement-link">查看详情</Text> : null}
-              </View>
-            ))}
+          <View className="home-announcement-bar-text">
+            <Text className="home-announcement-bar-title">
+              {announcements[activeAnnouncementIndex]?.title || announcements[0]?.title || ''}
+            </Text>
           </View>
         </View>
       ) : null}
 
-      <HomeBanner />
+      <HomeBanner items={bannerItems} />
 
       <View className="home-quick">
         {quickEntries.map((entry) => (

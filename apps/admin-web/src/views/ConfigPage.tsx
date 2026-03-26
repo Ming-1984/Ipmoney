@@ -1,7 +1,7 @@
-﻿import { Button, Card, Form, Input, InputNumber, Select, Space, Switch, Typography, message } from 'antd';
-import React, { useCallback, useEffect, useState } from 'react';
+﻿import { Button, Card, Form, Input, InputNumber, Select, Space, Switch, Typography, Upload, message } from 'antd';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 
-import { apiGet, apiPut } from '../lib/api';
+import { apiGet, apiPut, apiUploadFile, type FileObject } from '../lib/api';
 import { fenToYuanNumber, yuanToFen } from '../lib/format';
 import { confirmActionWithReason } from '../ui/confirm';
 
@@ -111,6 +111,8 @@ export function ConfigPage() {
   const [tradeForm] = Form.useForm();
   const [recForm] = Form.useForm();
   const [bannerJson, setBannerJson] = useState('');
+  const [bannerVideoFile, setBannerVideoFile] = useState<FileObject | null>(null);
+  const [bannerPosterFile, setBannerPosterFile] = useState<FileObject | null>(null);
   const [csPhone, setCsPhone] = useState('');
   const [csDefaultReply, setCsDefaultReply] = useState('');
   const [csAssignStrategy, setCsAssignStrategy] = useState<CustomerServiceConfig['assignStrategy']>('AUTO');
@@ -166,6 +168,122 @@ export function ConfigPage() {
   useEffect(() => {
     void load();
   }, [load]);
+
+
+  const parseBannerJson = useCallback(() => {
+    try {
+      return JSON.parse(bannerJson) as BannerConfig;
+    } catch (e: any) {
+      message.error(e?.message || '\u4fdd\u5b58\u5931\u8d25\uff0c\u68c0\u67e5 JSON \u683c\u5f0f');
+      return null;
+    }
+  }, [bannerJson]);
+
+  const normalizeBannerConfig = useCallback((input: BannerConfig | null) => {
+    const base: BannerConfig = input && typeof input === 'object' ? input : { items: [] };
+    const items = Array.isArray(base.items) ? [...base.items] : [];
+    if (!items.length) {
+      items.push({
+        id: `banner-${Date.now()}`,
+        title: '\u9996\u9875\u89c6\u9891',
+        imageUrl: '',
+        linkUrl: '',
+        enabled: true,
+        order: 1,
+        mediaType: 'VIDEO',
+      });
+    }
+    const first = { ...items[0] };
+    items[0] = first;
+    return { ...base, items };
+  }, []);
+
+  const updateBannerJson = useCallback(
+    (updater: (config: BannerConfig) => BannerConfig) => {
+      const parsed = parseBannerJson();
+      if (!parsed) return;
+      const normalized = normalizeBannerConfig(parsed);
+      const next = updater(normalized);
+      setBannerJson(JSON.stringify(next, null, 2));
+    },
+    [normalizeBannerConfig, parseBannerJson],
+  );
+
+  const applyBannerUpload = useCallback(
+    (kind: 'video' | 'poster', url: string) => {
+      updateBannerJson((config) => {
+        const items = [...config.items];
+        const current = { ...items[0] };
+        current.mediaType = 'VIDEO';
+        current.enabled = current.enabled !== false;
+        current.order = Number.isFinite(current.order) ? current.order : 1;
+        if (kind === 'video') {
+          current.videoUrl = url;
+        } else {
+          current.posterUrl = url;
+          current.imageUrl = url;
+        }
+        items[0] = current;
+        return { ...config, items };
+      });
+    },
+    [updateBannerJson],
+  );
+
+  const validateFileSize = useCallback((file: File, maxMb: number) => {
+    const sizeMb = file.size / 1024 / 1024;
+    if (sizeMb > maxMb) {
+      message.error(`\u6587\u4ef6\u8fc7\u5927\uff0c\u9700\u5c0f\u4e8e ${maxMb}MB`);
+      return false;
+    }
+    return true;
+  }, []);
+
+  const bannerConfigDraft = useMemo(() => {
+    try {
+      return JSON.parse(bannerJson) as BannerConfig;
+    } catch {
+      return null;
+    }
+  }, [bannerJson]);
+
+  const bannerItemsView = useMemo(() => {
+    const normalized = normalizeBannerConfig(bannerConfigDraft);
+    return [...normalized.items].sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+  }, [bannerConfigDraft, normalizeBannerConfig]);
+
+  const updateBannerItem = useCallback(
+    (id: string, patch: Partial<BannerConfig['items'][number]>) => {
+      updateBannerJson((config) => {
+        const items = [...config.items];
+        const idx = items.findIndex((item) => item.id === id);
+        if (idx < 0) return config;
+        items[idx] = { ...items[idx], ...patch };
+        return { ...config, items };
+      });
+    },
+    [updateBannerJson],
+  );
+
+  const moveBannerItem = useCallback(
+    (id: string, direction: 'up' | 'down') => {
+      updateBannerJson((config) => {
+        const items = [...config.items];
+        const idx = items.findIndex((item) => item.id === id);
+        if (idx < 0) return config;
+        const target = direction === 'up' ? idx - 1 : idx + 1;
+        if (target < 0 || target >= items.length) return config;
+        const next = [...items];
+        const currentOrder = Number.isFinite(next[idx].order) ? next[idx].order : idx + 1;
+        const targetOrder = Number.isFinite(next[target].order) ? next[target].order : target + 1;
+        [next[idx], next[target]] = [next[target], next[idx]];
+        next[idx].order = targetOrder;
+        next[target].order = currentOrder;
+        return { ...config, items: next };
+      });
+    },
+    [updateBannerJson],
+  );
 
   return (
     <Space className="admin-config-page" direction="vertical" size={16} style={{ width: '100%' }}>
@@ -293,11 +411,113 @@ export function ConfigPage() {
 
       <Card loading={loading}>
         <Typography.Title level={3} style={{ marginTop: 0 }}>
-          Banner 配置
+          {'Banner \u914d\u7f6e'}
         </Typography.Title>
         <Typography.Paragraph type="secondary">
-          维护首页轮播图（建议 JSON 编辑；保存前请确保格式正确）。
+          {'\u7ef4\u62a4\u9996\u9875\u8f6e\u64ad\u56fe\uff08\u5efa\u8bae JSON \u7f16\u8f91\uff1b\u4fdd\u5b58\u524d\u8bf7\u786e\u4fdd\u683c\u5f0f\u6b63\u786e\uff09\u3002'}
         </Typography.Paragraph>
+        <Space direction="vertical" size={12} style={{ width: '100%' }}>
+          <Space wrap size={12}>
+            <Upload
+              maxCount={1}
+              showUploadList={false}
+              accept="video/*"
+              beforeUpload={(file) => (validateFileSize(file as File, 30) ? true : Upload.LIST_IGNORE)}
+              customRequest={async (options: any) => {
+                try {
+                  const uploaded = await apiUploadFile(options.file as File, 'BANNER_VIDEO');
+                  setBannerVideoFile(uploaded);
+                  applyBannerUpload('video', uploaded.url);
+                  message.success('\u89c6\u9891\u5df2\u4e0a\u4f20\u5e76\u5199\u5165 Banner \u914d\u7f6e');
+                  options.onSuccess?.(uploaded);
+                } catch (e: any) {
+                  options.onError?.(e);
+                  message.error(e?.message || '\u89c6\u9891\u4e0a\u4f20\u5931\u8d25');
+                }
+              }}
+            >
+              <Button>{'\u4e0a\u4f20\u89c6\u9891'}</Button>
+            </Upload>
+            <Upload
+              maxCount={1}
+              showUploadList={false}
+              accept="image/*"
+              beforeUpload={(file) => (validateFileSize(file as File, 10) ? true : Upload.LIST_IGNORE)}
+              customRequest={async (options: any) => {
+                try {
+                  const uploaded = await apiUploadFile(options.file as File, 'BANNER_POSTER');
+                  setBannerPosterFile(uploaded);
+                  applyBannerUpload('poster', uploaded.url);
+                  message.success('\u5c01\u9762\u5df2\u4e0a\u4f20\u5e76\u5199\u5165 Banner \u914d\u7f6e');
+                  options.onSuccess?.(uploaded);
+                } catch (e: any) {
+                  options.onError?.(e);
+                  message.error(e?.message || '\u5c01\u9762\u4e0a\u4f20\u5931\u8d25');
+                }
+              }}
+            >
+              <Button>{'\u4e0a\u4f20\u5c01\u9762'}</Button>
+            </Upload>
+          </Space>
+          <Typography.Text type="secondary">
+            {'\u4e0a\u4f20\u4f1a\u5199\u5165 Banner JSON\uff1b\u5982\u9700\u516c\u7f51 CDN \u76f4\u94fe\uff0c\u8bf7\u5728 JSON \u4e2d\u66ff\u6362 videoUrl/posterUrl\u3002'}
+          </Typography.Text>
+          {bannerVideoFile ? (
+            <Typography.Text type="secondary">{`\u89c6\u9891\u6587\u4ef6\uff1a${bannerVideoFile.url}`}</Typography.Text>
+          ) : null}
+          {bannerPosterFile ? (
+            <Typography.Text type="secondary">{`\u5c01\u9762\u6587\u4ef6\uff1a${bannerPosterFile.url}`}</Typography.Text>
+          ) : null}
+        </Space>
+
+        {bannerConfigDraft ? (
+          <Space direction="vertical" size={12} style={{ width: '100%' }}>
+            {bannerItemsView.map((item, idx) => (
+              <Card key={item.id} size="small">
+                <Space direction="vertical" size={8} style={{ width: '100%' }}>
+                  <Space wrap size={12} align="center">
+                    <Input
+                      value={item.title}
+                      onChange={(e) => updateBannerItem(item.id, { title: e.target.value })}
+                      placeholder={`\u6807\u9898`} 
+                      style={{ width: 220 }}
+                    />
+                    <Switch
+                      checked={item.enabled !== false}
+                      onChange={(checked) => updateBannerItem(item.id, { enabled: checked })}
+                      checkedChildren={`\u4e0a\u67b6`} 
+                      unCheckedChildren={`\u4e0b\u67b6`} 
+                    />
+                    <InputNumber
+                      min={0}
+                      value={item.order}
+                      onChange={(val) => updateBannerItem(item.id, { order: typeof val === 'number' ? val : 0 })}
+                    />
+                    <Button disabled={idx === 0} onClick={() => moveBannerItem(item.id, 'up')}>
+                      {'\u4e0a\u79fb'}
+                    </Button>
+                    <Button
+                      disabled={idx === bannerItemsView.length - 1}
+                      onClick={() => moveBannerItem(item.id, 'down')}
+                    >
+                      {'\u4e0b\u79fb'}
+                    </Button>
+                  </Space>
+                  <Typography.Text type="secondary">
+                    {`\u89c6\u9891\u94fe\u63a5\uff1a${item.videoUrl || '-'}`}
+                  </Typography.Text>
+                  <Typography.Text type="secondary">
+                    {`\u5c01\u9762\u94fe\u63a5\uff1a${item.posterUrl || item.imageUrl || '-'}`}
+                  </Typography.Text>
+                </Space>
+              </Card>
+            ))}
+          </Space>
+        ) : (
+          <Typography.Text type="danger">
+            {'\u65e0\u6cd5\u89e3\u6790 Banner JSON\uff0c\u8bf7\u5148\u4fee\u6b63\u683c\u5f0f\u3002'}
+          </Typography.Text>
+        )}
         <Input.TextArea
           value={bannerJson}
           onChange={(e) => setBannerJson(e.target.value)}
@@ -308,26 +528,32 @@ export function ConfigPage() {
             type="primary"
             onClick={async () => {
               const { ok } = await confirmActionWithReason({
-                title: '确认保存 Banner 配置？',
-                content: '保存后将影响首页轮播图展示。',
-                okText: '保存',
-                reasonLabel: '变更原因（建议填写）',
+                title: '\u786e\u8ba4\u4fdd\u5b58 Banner \u914d\u7f6e\uff1f',
+                content: '\u4fdd\u5b58\u540e\u5c06\u5f71\u54cd\u9996\u9875\u8f6e\u64ad\u56fe\u5c55\u793a\u3002',
+                okText: '\u4fdd\u5b58',
+                reasonLabel: '\u53d8\u66f4\u539f\u56e0\uff08\u5efa\u8bae\u586b\u5199\uff09',
               });
               if (!ok) return;
               try {
                 const payload = JSON.parse(bannerJson) as BannerConfig;
                 await apiPut<BannerConfig>('/admin/config/banner', payload);
-                message.success('已保存');
+                message.success('\u4fdd\u5b58');
                 void load();
               } catch (e: any) {
-                message.error(e?.message || '保存失败，检查 JSON 格式');
+                message.error(e?.message || '\u4fdd\u5b58\u5931\u8d25\uff0c\u68c0\u67e5 JSON \u683c\u5f0f');
               }
             }}
           >
-            保存 Banner
+            {'\u4fdd\u5b58 Banner'}
           </Button>
         </Space>
       </Card>
+
+
+      
+
+
+      
 
       <Card loading={loading}>
         <Typography.Title level={3} style={{ marginTop: 0 }}>

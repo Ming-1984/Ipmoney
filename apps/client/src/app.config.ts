@@ -78,6 +78,10 @@ export default defineAppConfig({
       pages: ['index', 'detail/index'],
     },
     {
+      root: 'subpackages/home-announcements',
+      pages: ['index', 'detail/index'],
+    },
+    {
       root: 'subpackages/listing',
       pages: ['detail/index'],
     },
