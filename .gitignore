@@ -25,3 +25,4 @@ docs/ipc/
 
 # API local upload temp artifacts from smoke/verify
 apps/api/uploads/*.csv
+*.mp4
