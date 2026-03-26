@@ -54,6 +54,7 @@ export function ListingCard(props: {
     .map((topic) => {
       if (topic === 'HIGH_TECH_RETIRED') return '退役专利';
       if (topic === 'AWARD_WINNING') return '获奖专利';
+      if (topic === 'FIVE_STAR') return '五星专利';
       return '';
     })
     .forEach((label) => addSpecialTag(label));

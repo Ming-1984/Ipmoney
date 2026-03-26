@@ -3982,10 +3982,11 @@ export interface components {
          *     - HIGH_TECH_RETIRED: retired patent
          *     - SLEEPING: sleeping patent
          *     - AWARD_WINNING: award-winning patent
+         *     - FIVE_STAR: five-star patent
          *     - OPEN_LICENSE: open license
          * @enum {string}
          */
-        ListingTopic: "HIGH_TECH_RETIRED" | "SLEEPING" | "AWARD_WINNING" | "OPEN_LICENSE";
+        ListingTopic: "HIGH_TECH_RETIRED" | "SLEEPING" | "AWARD_WINNING" | "FIVE_STAR" | "OPEN_LICENSE";
         /** @enum {string} */
         ListingJobStatus: "PENDING" | "RUNNING" | "PAUSED" | "SUCCEEDED" | "FAILED";
         /** @enum {string} */

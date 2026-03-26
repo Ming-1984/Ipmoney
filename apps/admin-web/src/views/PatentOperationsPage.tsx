@@ -9,7 +9,7 @@ type ConsultationRouting = 'PLATFORM' | 'OWNER';
 type ListingTradeMode = 'ASSIGNMENT' | 'LICENSE';
 type LicenseMode = 'EXCLUSIVE' | 'SOLE' | 'NON_EXCLUSIVE';
 type PriceType = 'FIXED' | 'NEGOTIABLE';
-type ListingTopic = 'HIGH_TECH_RETIRED' | 'SLEEPING' | 'AWARD_WINNING' | 'OPEN_LICENSE';
+type ListingTopic = 'HIGH_TECH_RETIRED' | 'SLEEPING' | 'AWARD_WINNING' | 'FIVE_STAR' | 'OPEN_LICENSE';
 type DuplicatePolicy = 'SKIP' | 'OVERWRITE';
 type JobStatus = 'PENDING' | 'RUNNING' | 'PAUSED' | 'SUCCEEDED' | 'FAILED';
 type ImportRowStatus = 'PENDING' | 'VALID' | 'INVALID' | 'SUCCEEDED' | 'FAILED' | 'SKIPPED';
@@ -204,6 +204,7 @@ const listingTopicOptions = [
   { value: 'HIGH_TECH_RETIRED', label: '退役专利' },
   { value: 'SLEEPING', label: '沉睡专利' },
   { value: 'AWARD_WINNING', label: '获奖专利' },
+  { value: 'FIVE_STAR', label: '五星专利' },
   { value: 'OPEN_LICENSE', label: '开放许可' },
 ];
 

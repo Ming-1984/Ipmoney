@@ -23,7 +23,7 @@ import { formatTimeSmart } from '../lib/format';
 import { RequestErrorAlert } from '../ui/RequestState';
 import { confirmAction } from '../ui/confirm';
 
-type ListingTopic = 'HIGH_TECH_RETIRED' | 'SLEEPING' | 'AWARD_WINNING' | 'OPEN_LICENSE';
+type ListingTopic = 'HIGH_TECH_RETIRED' | 'SLEEPING' | 'AWARD_WINNING' | 'FIVE_STAR' | 'OPEN_LICENSE';
 type AssignedFilter = 'ALL' | 'MINE' | 'ASSIGNED' | 'UNASSIGNED';
 type ConversationChannelFilter = 'ALL' | 'CONSULTATION' | 'SUPPORT' | 'DISPUTE' | 'MAINTENANCE';
 type DateRangeValue = [any, any] | null;
@@ -75,6 +75,7 @@ const LISTING_TOPIC_OPTIONS: Array<{ value: ListingTopic; label: string }> = [
   { value: 'HIGH_TECH_RETIRED', label: '退役专利' },
   { value: 'SLEEPING', label: '沉睡专利' },
   { value: 'AWARD_WINNING', label: '获奖专利' },
+  { value: 'FIVE_STAR', label: '五星专利' },
   { value: 'OPEN_LICENSE', label: '开放许可' },
 ];
 
@@ -117,6 +118,7 @@ function topicColor(topic: ListingTopic): string {
   if (topic === 'HIGH_TECH_RETIRED') return 'blue';
   if (topic === 'SLEEPING') return 'gold';
   if (topic === 'AWARD_WINNING') return 'green';
+  if (topic === 'FIVE_STAR') return 'magenta';
   if (topic === 'OPEN_LICENSE') return 'geekblue';
   return 'default';
 }

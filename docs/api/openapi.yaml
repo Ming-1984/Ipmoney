@@ -9749,12 +9749,14 @@ components:
         - HIGH_TECH_RETIRED
         - SLEEPING
         - AWARD_WINNING
+        - FIVE_STAR
         - OPEN_LICENSE
       description: |
         Unified listing topic enum.
         - HIGH_TECH_RETIRED: retired patent
         - SLEEPING: sleeping patent
         - AWARD_WINNING: award-winning patent
+        - FIVE_STAR: five-star patent
         - OPEN_LICENSE: open license
     ListingJobStatus:
       type: string

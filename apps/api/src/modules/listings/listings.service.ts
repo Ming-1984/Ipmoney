@@ -10,7 +10,7 @@ type FeaturedLevel = 'NONE' | 'CITY' | 'PROVINCE';
 type ContentSource = 'USER' | 'PLATFORM' | 'ADMIN';
 type PledgeStatus = 'NONE' | 'PLEDGED' | 'UNKNOWN';
 type ExistingLicenseStatus = 'NONE' | 'EXCLUSIVE' | 'SOLE' | 'NON_EXCLUSIVE' | 'UNKNOWN';
-type ListingTopic = 'HIGH_TECH_RETIRED' | 'SLEEPING' | 'AWARD_WINNING' | 'OPEN_LICENSE';
+type ListingTopic = 'HIGH_TECH_RETIRED' | 'SLEEPING' | 'AWARD_WINNING' | 'FIVE_STAR' | 'OPEN_LICENSE';
 
 import { AuditLogService } from '../../common/audit-log.service';
 import { ContentEventService } from '../../common/content-event.service';
@@ -25,6 +25,7 @@ const LISTING_TOPIC_VALUE_SET = new Set<ListingTopic>([
   'HIGH_TECH_RETIRED',
   'SLEEPING',
   'AWARD_WINNING',
+  'FIVE_STAR',
   'OPEN_LICENSE',
 ]);
 

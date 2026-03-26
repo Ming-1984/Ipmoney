@@ -66,7 +66,7 @@ type ConsultationRouting = 'PLATFORM' | 'OWNER';
 type ListingTradeMode = 'ASSIGNMENT' | 'LICENSE';
 type LicenseMode = 'EXCLUSIVE' | 'SOLE' | 'NON_EXCLUSIVE';
 type PriceType = 'FIXED' | 'NEGOTIABLE';
-type ListingTopic = 'HIGH_TECH_RETIRED' | 'SLEEPING' | 'AWARD_WINNING' | 'OPEN_LICENSE';
+type ListingTopic = 'HIGH_TECH_RETIRED' | 'SLEEPING' | 'AWARD_WINNING' | 'FIVE_STAR' | 'OPEN_LICENSE';
 type AuditStatus = 'PENDING' | 'APPROVED' | 'REJECTED';
 type ListingStatus = 'DRAFT' | 'ACTIVE' | 'OFF_SHELF' | 'SOLD';
 type PatentClaimStatus = 'PENDING' | 'APPROVED' | 'REJECTED';
@@ -176,6 +176,7 @@ const LISTING_TOPIC_VALUE_SET = new Set<ListingTopic>([
   'HIGH_TECH_RETIRED',
   'SLEEPING',
   'AWARD_WINNING',
+  'FIVE_STAR',
   'OPEN_LICENSE',
 ]);
 const ORDER_BLOCKING_STATUS_SET = new Set<string>([

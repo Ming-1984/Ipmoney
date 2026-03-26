@@ -26,7 +26,7 @@
 
 ### 2.2 筛选/表单枚举（静态选项）
 - 位置：`apps/client/src/subpackages/search/index.tsx`、`subpackages/publish/*/index.tsx`
-- 内容：tradeMode/patentType/priceType 等枚举选项；`listingTopics` 统一 4 类：`HIGH_TECH_RETIRED`、`SLEEPING`、`AWARD_WINNING`、`OPEN_LICENSE`
+- 内容：tradeMode/patentType/priceType 等枚举选项；`listingTopics` 统一 5 类：`HIGH_TECH_RETIRED`、`SLEEPING`、`AWARD_WINNING`、`FIVE_STAR`、`OPEN_LICENSE`
 - 方案：
   - 继续使用 OpenAPI enum（通过 `apps/client/src/lib/listingTopics.ts` 与 `lib/labels` 统一映射）
   - 若需后台可配置，考虑引入字典/枚举配置接口

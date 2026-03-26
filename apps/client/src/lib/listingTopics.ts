@@ -7,6 +7,7 @@ export const LISTING_TOPIC_OPTIONS: ReadonlyArray<{ value: ListingTopic; label: 
   { value: 'HIGH_TECH_RETIRED', label: '退役专利' },
   { value: 'SLEEPING', label: '沉睡专利' },
   { value: 'AWARD_WINNING', label: '获奖专利' },
+  { value: 'FIVE_STAR', label: '五星专利' },
   { value: 'OPEN_LICENSE', label: '开放许可' },
 ] as const;
 

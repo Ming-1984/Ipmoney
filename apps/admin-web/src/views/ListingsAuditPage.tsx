@@ -24,7 +24,7 @@ import { RequestErrorAlert } from '../ui/RequestState';
 
 type AuditStatus = 'PENDING' | 'APPROVED' | 'REJECTED';
 type ListingStatus = 'DRAFT' | 'ACTIVE' | 'OFF_SHELF' | 'SOLD';
-type ListingTopic = 'HIGH_TECH_RETIRED' | 'SLEEPING' | 'AWARD_WINNING' | 'OPEN_LICENSE';
+type ListingTopic = 'HIGH_TECH_RETIRED' | 'SLEEPING' | 'AWARD_WINNING' | 'FIVE_STAR' | 'OPEN_LICENSE';
 type ContentSource = 'USER' | 'ADMIN' | 'PLATFORM';
 type BatchAction = 'APPROVE' | 'REJECT' | 'PUBLISH' | 'OFF_SHELF';
 type JobStatus = 'PENDING' | 'RUNNING' | 'PAUSED' | 'SUCCEEDED' | 'FAILED';
@@ -103,6 +103,7 @@ const LISTING_TOPIC_OPTIONS: Array<{ value: ListingTopic; label: string }> = [
   { value: 'HIGH_TECH_RETIRED', label: '退役专利' },
   { value: 'SLEEPING', label: '沉睡专利' },
   { value: 'AWARD_WINNING', label: '获奖专利' },
+  { value: 'FIVE_STAR', label: '五星专利' },
   { value: 'OPEN_LICENSE', label: '开放许可' },
 ];
 
@@ -128,6 +129,7 @@ function topicLabel(topic?: ListingTopic | null) {
   if (topic === 'HIGH_TECH_RETIRED') return '退役专利';
   if (topic === 'SLEEPING') return '沉睡专利';
   if (topic === 'AWARD_WINNING') return '获奖专利';
+  if (topic === 'FIVE_STAR') return '五星专利';
   if (topic === 'OPEN_LICENSE') return '开放许可';
   return topic;
 }
@@ -832,4 +834,3 @@ export function ListingsAuditPage() {
     </Space>
   );
 }
-

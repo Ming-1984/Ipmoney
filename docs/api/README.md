@@ -30,6 +30,7 @@ See `docs/engineering/mocking.md` for scenario fixtures.
 - `HIGH_TECH_RETIRED` (retired patent)
 - `SLEEPING` (sleeping patent)
 - `AWARD_WINNING` (award-winning patent)
+- `FIVE_STAR` (five-star patent)
 - `OPEN_LICENSE` (open license)
 
 Use the same enum in:

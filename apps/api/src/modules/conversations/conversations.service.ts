@@ -6,7 +6,7 @@ import { PrismaService } from '../../common/prisma/prisma.service';
 type ConversationContentType = 'LISTING' | 'ACHIEVEMENT' | 'TECH_MANAGER' | 'SUPPORT' | 'DISPUTE' | 'MAINTENANCE';
 type UpsertableConversationContentType = 'LISTING' | 'ACHIEVEMENT' | 'TECH_MANAGER';
 type ConversationMessageType = 'TEXT' | 'EMOJI' | 'IMAGE' | 'FILE' | 'SYSTEM';
-type ListingTopic = 'HIGH_TECH_RETIRED' | 'SLEEPING' | 'AWARD_WINNING' | 'OPEN_LICENSE';
+type ListingTopic = 'HIGH_TECH_RETIRED' | 'SLEEPING' | 'AWARD_WINNING' | 'FIVE_STAR' | 'OPEN_LICENSE';
 type PlatformAssignedFilter = 'ALL' | 'MINE' | 'ASSIGNED' | 'UNASSIGNED';
 type PlatformConversationChannel = 'ALL' | 'CONSULTATION' | 'SUPPORT' | 'DISPUTE' | 'MAINTENANCE';
 
@@ -62,7 +62,13 @@ type ConversationMessageDto = {
 type PagedConversationMessage = { items: ConversationMessageDto[]; nextCursor?: string | null };
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const DEFAULT_CS_USER_ID = '00000000-0000-0000-0000-000000000002';
-const LISTING_TOPIC_SET = new Set<ListingTopic>(['HIGH_TECH_RETIRED', 'SLEEPING', 'AWARD_WINNING', 'OPEN_LICENSE']);
+const LISTING_TOPIC_SET = new Set<ListingTopic>([
+  'HIGH_TECH_RETIRED',
+  'SLEEPING',
+  'AWARD_WINNING',
+  'FIVE_STAR',
+  'OPEN_LICENSE',
+]);
 
 @Injectable()
 export class ConversationsService {
