@@ -1,4 +1,4 @@
-﻿import { View, Text, Image } from '@tarojs/components';
+import { View, Text, Image, Picker } from '@tarojs/components';
 import Taro from '@tarojs/taro';
 import React, { useCallback, useMemo, useState } from 'react';
 import './index.scss';
@@ -9,6 +9,7 @@ import { API_BASE_URL } from '../../../constants';
 import { getToken, getVerificationType, setOnboardingDone, setVerificationStatus } from '../../../lib/auth';
 import { apiPost } from '../../../lib/api';
 import { requireLogin } from '../../../lib/guard';
+import { parseRegionPickerSelection, regionDisplayName } from '../../../lib/regions';
 import { uploadWithRetry } from '../../../lib/upload';
 import { PageHeader, SectionHeader, Spacer, Surface, TipBanner } from '../../../ui/layout';
 import { Button, Input, TextArea, confirm, toast } from '../../../ui/nutui';
@@ -203,18 +204,11 @@ export default function VerificationFormPage() {
     setEvidenceFiles((prev) => prev.filter((x) => x.id !== f.id));
   }, []);
 
-  const handleRegionPick = useCallback(() => {
-    Taro.navigateTo({
-      url: '/subpackages/region-picker/index',
-      success: (res) => {
-        res.eventChannel.on('regionSelected', (v: any) => {
-          const code = String(v?.code || '').trim();
-          const name = String(v?.name || '').trim();
-          if (code) setRegionCode(code);
-          if (name) setRegionName(name);
-        });
-      },
-    });
+  const handleRegionPick = useCallback((event: any) => {
+    const selected = parseRegionPickerSelection(event);
+    if (!selected) return;
+    setRegionCode(selected.code);
+    setRegionName(selected.name);
   }, []);
 
   const submit = useCallback(async () => {
@@ -309,7 +303,7 @@ export default function VerificationFormPage() {
     );
   }
 
-  const regionLabel = regionName || regionCode;
+  const regionLabel = regionDisplayName(regionCode, regionName, '');
   const introTip = isOrgType(type)
     ? '企业/科研院校通过后将展示在「机构展示」。请确保信息真实、完整、可追溯。'
     : isTechManager(type)
@@ -415,24 +409,14 @@ export default function VerificationFormPage() {
 
             <View className="form-field">
               <Text className="form-label">所在地区（可选）</Text>
-              <View className="form-row">
-                <View className="form-col">
-                  <FormInput
-                    value={regionLabel}
-                    onChange={(v) => {
-                      setRegionName(v);
-                      setRegionCode(v);
-                    }}
-                    placeholder="请选择地区"
-                    clearable
-                  />
+              <Picker mode="region" level="region" onChange={handleRegionPick}>
+                <View className="verification-region-select">
+                  <Text className={regionLabel ? 'verification-region-value' : 'verification-region-placeholder'}>
+                    {regionLabel || '请选择地区'}
+                  </Text>
+                  <Text className="verification-region-arrow">›</Text>
                 </View>
-                <View style={{ width: '180rpx' }}>
-                  <Button variant="ghost" size="small" onClick={handleRegionPick}>
-                    选择
-                  </Button>
-                </View>
-              </View>
+              </Picker>
             </View>
 
             <View className="form-field">

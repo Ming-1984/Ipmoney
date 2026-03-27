@@ -808,13 +808,6 @@ try {
       textAny = @(); storage = $clientApprovedStorage; demoAuth = $true
     },
     @{
-      name = "client-region-picker"; path = "#/pages/region-picker/index"; base = $clientBase
-      width = $ClientWidth; height = $ClientHeight; waitMs = $ClientWaitMs
-      expectedUrlContains = "#/pages/region-picker/index"; minElements = 50
-      selectorsAll = @(".region-picker-page", ".region-picker-card"); selectorsAny = @(".region-picker-current", ".region-picker-confirm", ".region-picker-actions")
-      textAny = @(); storage = @(); demoAuth = $false
-    },
-    @{
       name = "client-ipc-picker"; path = "#/pages/ipc-picker/index"; base = $clientBase
       width = $ClientWidth; height = $ClientHeight; waitMs = $ClientWaitMs
       expectedUrlContains = "#/pages/ipc-picker/index"; minElements = 50

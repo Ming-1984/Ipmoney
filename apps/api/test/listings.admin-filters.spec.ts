@@ -82,4 +82,19 @@ describe('ListingsService admin list filter strictness suite', () => {
       }),
     );
   });
+
+  it('supports FIVE_STAR listingTopic filter in admin query', async () => {
+    prisma.listing.findMany.mockResolvedValueOnce([]);
+    prisma.listing.count.mockResolvedValueOnce(0);
+
+    await service.listAdmin({ listingTopic: 'five_star' });
+
+    expect(prisma.listing.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: {
+          AND: [{ listingTopicsJson: { array_contains: ['FIVE_STAR'] } }],
+        },
+      }),
+    );
+  });
 });

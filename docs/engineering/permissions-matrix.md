@@ -12,7 +12,7 @@
 - Tab pages: `pages/home`, `pages/tech-managers`, `pages/me` (read-only state)
 - Public subpackages: `subpackages/organizations`, `subpackages/organizations/detail`, `subpackages/inventors`
 - Help/legal: `subpackages/about`, `subpackages/support/*`, `subpackages/legal/*`
-- Auth flows: `subpackages/login`, `subpackages/onboarding/*`, `subpackages/region-picker`, `subpackages/ipc-picker`
+- Auth flows: `subpackages/login`, `subpackages/onboarding/*`, `subpackages/ipc-picker`
 
 ### Login-required pages (`usePageAccess('login-required')`)
 - `subpackages/addresses` (list/edit)

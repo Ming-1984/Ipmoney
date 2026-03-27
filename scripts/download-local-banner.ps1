@@ -4,8 +4,9 @@ $defaultUrl1 = 'https://samplelib.com/lib/preview/mp4/sample-5s.mp4'
 $defaultUrl2 = 'https://samplelib.com/lib/preview/mp4/sample-10s.mp4'
 $videoUrl1 = if ($env:BANNER_VIDEO_URL_1) { $env:BANNER_VIDEO_URL_1 } else { $defaultUrl1 }
 $videoUrl2 = if ($env:BANNER_VIDEO_URL_2) { $env:BANNER_VIDEO_URL_2 } else { $defaultUrl2 }
-$targetPath1 = 'G:\study\code2\3\Ipmoney\apps\client\src\assets\home\banner-local-1.mp4'
-$targetPath2 = 'G:\study\code2\3\Ipmoney\apps\client\src\assets\home\banner-local-2.mp4'
+$repoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..')).Path
+$targetPath1 = Join-Path $repoRoot 'apps\client\src\assets\home\banner-local-1.mp4'
+$targetPath2 = Join-Path $repoRoot 'apps\client\src\assets\home\banner-local-2.mp4'
 $targetDir = Split-Path -Parent $targetPath1
 
 if (-not (Test-Path $targetDir)) {

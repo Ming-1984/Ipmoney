@@ -137,7 +137,8 @@ body {
 
 html,
 body,
-#app {
+#app,
+.taro_router {
   height: 100%;
 }
 
@@ -194,6 +195,7 @@ scroll-view::-webkit-scrollbar {
 }
 
 #app,
+.taro_router,
 .taro_page {
   font-size: inherit;
   line-height: inherit;
@@ -205,6 +207,14 @@ scroll-view::-webkit-scrollbar {
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
 }
+
+/* #ifdef H5 */
+.taro_router,
+.taro_page {
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
+}
+/* #endif */
 
 /* 底部导航（H5/小程序统一轻量样式） */
 .taro-tabbar__container {
@@ -1082,7 +1092,11 @@ scroll-view {
 }
 
 .tabs-control .nut-tabs-content-wrap {
-  display: none;
+  height: 0 !important;
+  min-height: 0 !important;
+  overflow: hidden !important;
+  visibility: hidden;
+  pointer-events: none;
 }
 
 .chip {

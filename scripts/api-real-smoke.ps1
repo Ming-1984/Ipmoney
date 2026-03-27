@@ -1437,6 +1437,17 @@ if ([string]::IsNullOrWhiteSpace($env:DEMO_USER_ID)) {
 $env:DEMO_AUTH_ALLOW_UUID_TOKENS = "false"
 # Keep smoke focused on business behavior instead of local rate-limit noise.
 $env:RATE_LIMIT_ENABLED = "false"
+# Keep smoke deterministic: always use demo payment branch.
+# Real WeChat Pay credential/network checks should be validated separately.
+$env:WX_PAY_MCHID = ""
+$env:WX_PAY_MCH_CERT_SERIAL_NO = ""
+$env:WX_PAY_API_V3_KEY = ""
+$env:WX_PAY_MCH_PRIVATE_KEY = ""
+$env:WX_PAY_PLATFORM_CERT_SERIAL_NO = ""
+$env:WX_PAY_PLATFORM_CERT = ""
+$env:WX_PAY_PLATFORM_CERTS = ""
+$env:WX_PAY_NOTIFY_URL = ""
+$env:WX_PAY_TEST_OPENID = ""
 # Keep file upload smoke local-only to avoid external object storage dependency.
 $env:S3_BUCKET = ""
 $env:S3_ACCESS_KEY_ID = ""

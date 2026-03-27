@@ -1,10 +1,11 @@
-import { Switch, Text, View } from '@tarojs/components';
+import { Picker, Switch, Text, View } from '@tarojs/components';
 import Taro from '@tarojs/taro';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import './index.scss';
 
 import { apiDelete, apiGet, apiPatch, apiPost } from '../../../lib/api';
 import { usePageAccess } from '../../../lib/guard';
+import { parseRegionPickerSelection, regionDisplayName } from '../../../lib/regions';
 import { AccessGate } from '../../../ui/PageState';
 import { PageHeader, Spacer, Surface } from '../../../ui/layout';
 import { Button, Input, confirm, toast } from '../../../ui/nutui';
@@ -30,6 +31,7 @@ export default function AddressEditPage() {
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
   const [regionCode, setRegionCode] = useState('');
+  const [regionName, setRegionName] = useState('');
   const [addressLine, setAddressLine] = useState('');
   const [isDefault, setIsDefault] = useState(false);
 
@@ -47,6 +49,7 @@ export default function AddressEditPage() {
       setName(current.name || '');
       setPhone(current.phone || '');
       setRegionCode(current.regionCode || '');
+      setRegionName('');
       setAddressLine(current.addressLine || '');
       setIsDefault(Boolean(current.isDefault));
     } catch (e: any) {
@@ -97,6 +100,15 @@ export default function AddressEditPage() {
     }
     return true;
   }, [payload]);
+
+  const regionLabel = useMemo(() => regionDisplayName(regionCode, regionName, ''), [regionCode, regionName]);
+
+  const handleRegionPick = useCallback((event: any) => {
+    const selected = parseRegionPickerSelection(event);
+    if (!selected) return;
+    setRegionCode(selected.code);
+    setRegionName(selected.name);
+  }, []);
 
   const save = useCallback(async () => {
     if (!validate()) return;
@@ -166,8 +178,26 @@ export default function AddressEditPage() {
           <Input value={phone} onChange={setPhone} placeholder="请填写手机号" type="digit" clearable />
         </View>
         <View className="form-field">
-          <Text className="form-label">地区编码（可选）</Text>
-          <Input value={regionCode} onChange={setRegionCode} placeholder="例如：310000" clearable />
+          <Text className="form-label">地区（可选）</Text>
+          <Picker mode="region" level="region" onChange={handleRegionPick}>
+            <View className="address-region-select">
+              <Text className={regionLabel ? 'address-region-value' : 'address-region-placeholder'}>
+                {regionLabel || '请选择地区'}
+              </Text>
+              <Text className="address-region-arrow">›</Text>
+            </View>
+          </Picker>
+          {regionCode ? (
+            <Text
+              className="address-region-clear"
+              onClick={() => {
+                setRegionCode('');
+                setRegionName('');
+              }}
+            >
+              清空地区
+            </Text>
+          ) : null}
         </View>
         <View className="form-field">
           <Text className="form-label">详细地址</Text>

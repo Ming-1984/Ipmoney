@@ -5,14 +5,14 @@
 ## Summary
 
 - OpenAPI operations: 245
-- Frontend-used operations (client): 91
+- Frontend-used operations (client): 92
 - Frontend-used operations (admin): 125
 - Fixture scenarios: 7
 
 ## Key Gaps
 
 - Frontend-used but missing from OpenAPI: 0
-- OpenAPI-defined but unused by frontend: 41
+- OpenAPI-defined but unused by frontend: 40
   - GET /admin/achievements
   - GET /admin/achievements/:param
   - GET /admin/achievements/:param/audit-logs
@@ -30,7 +30,6 @@
   - GET /admin/patent-maintenance/schedules/:param
   - GET /admin/patents/jobs/import/:param
   - GET /admin/patents/jobs/import/:param/error-file
-  - GET /public/config/banner
   - PATCH /admin/achievements/:param
   - PATCH /admin/ai/parse-results/:param
   - PATCH /admin/listings/:param
@@ -54,7 +53,7 @@
   - POST /ai/agent/query
   - POST /ai/parse-results/:param/feedback
   - PUT /admin/listings/:param/featured
-- Frontend-used but missing in happy fixtures: 203
+- Frontend-used but missing in happy fixtures: 204
   - DELETE /achievements/:param/favorites
   - DELETE /admin/config/home-announcements/items/:param
   - DELETE /admin/config/home-announcements/templates/:param
@@ -105,7 +104,7 @@
   - GET /admin/reports/finance/summary
   - GET /admin/tech-managers
   - GET /admin/user-verifications
-  - ... (153 more)
+  - ... (154 more)
 
 ## Coverage Details (by operation)
 
@@ -212,7 +211,7 @@
 | getPatentById | GET | /patents/:param | Y |  |  |  |  |  |  |  |  |
 | getPublicAchievementById | GET | /public/achievements/:param | Y |  |  |  |  |  |  |  |  |
 | listPublicAchievementComments | GET | /public/achievements/:param/comments | Y |  |  |  |  |  |  |  |  |
-| getPublicBannerConfig | GET | /public/config/banner |  |  |  |  |  |  |  |  |  |
+| getPublicBannerConfig | GET | /public/config/banner | Y |  |  |  |  |  |  |  |  |
 | getPublicCustomerServiceConfig | GET | /public/config/customer-service | Y |  |  |  |  |  |  |  |  |
 | getPublicHomeAnnouncementsFeed | GET | /public/config/home-announcements | Y |  |  |  |  |  |  |  |  |
 | getPublicTradeRulesConfig | GET | /public/config/trade-rules | Y |  |  |  |  |  |  |  |  |

@@ -404,6 +404,7 @@ export class WechatPayClient {
 
     const headers: Record<string, string> = {
       Accept: 'application/json',
+      'Accept-Language': 'zh-CN',
       Authorization: authorization,
       'User-Agent': 'ipmoney-api/1.0',
     };

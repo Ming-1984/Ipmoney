@@ -1,4 +1,4 @@
-﻿import { View, Text, Input } from '@tarojs/components';
+import { View, Text, Input, Picker } from '@tarojs/components';
 import Taro from '@tarojs/taro';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import './index.scss';
@@ -13,7 +13,7 @@ import { patentTypeLabel, priceTypeLabel, tradeModeLabel } from '../../lib/label
 import { sanitizeIndustryTagNames } from '../../lib/industryTags';
 import { listingTopicLabel, LISTING_TOPIC_OPTIONS } from '../../lib/listingTopics';
 import { fenToYuanInt } from '../../lib/money';
-import { ensureRegionNamesReady, regionNameByCode } from '../../lib/regions';
+import { ensureRegionNamesReady, parseRegionPickerSelection, regionDisplayName } from '../../lib/regions';
 import type { ChipOption } from '../../ui/filters';
 import { AchievementCard } from '../../ui/AchievementCard';
 import { ListingCard } from '../../ui/ListingCard';
@@ -439,24 +439,6 @@ export default function SearchPage() {
 
   const openFilters = useCallback(() => setFiltersOpen(true), []);
 
-  const openRegionPicker = useCallback((onPicked: (payload: { code: string; name: string }) => void) => {
-    try {
-      Taro.navigateTo({
-        url: '/subpackages/region-picker/index',
-        events: {
-          regionSelected: (payload: any) => {
-            const code = String(payload?.code || '').trim();
-            if (!code) return;
-            const name = String(payload?.name || code).trim();
-            onPicked({ code, name });
-          },
-        },
-      } as any);
-    } catch (e: any) {
-      toast(e?.message || '操作失败');
-    }
-  }, []);
-
   const openIpcPicker = useCallback((onPicked: (payload: { code: string; name: string }) => void) => {
     try {
       Taro.navigateTo({
@@ -491,7 +473,7 @@ export default function SearchPage() {
     if (depositLabel) out.push(`订金${depositLabel}`);
     const transferLabel = transferCountSummary(listingFilters.transferCountMin, listingFilters.transferCountMax);
     if (transferLabel) out.push(`转让${transferLabel}`);
-    const regionLabel = listingFilters.regionCode ? regionNameByCode(listingFilters.regionCode) : '';
+    const regionLabel = regionDisplayName(listingFilters.regionCode, listingFilters.regionName, '');
     if (regionLabel) out.push(regionLabel);
     const legalLabel = legalStatusLabelShort(listingFilters.legalStatus);
     if (legalLabel) out.push(legalLabel);
@@ -505,7 +487,7 @@ export default function SearchPage() {
     const out: string[] = [];
     const maturityLabel = achievementMaturityLabel(achievementFilters.maturity);
     if (maturityLabel) out.push(maturityLabel);
-    const regionLabel = achievementFilters.regionCode ? regionNameByCode(achievementFilters.regionCode) : '';
+    const regionLabel = regionDisplayName(achievementFilters.regionCode, achievementFilters.regionName, '');
     if (regionLabel) out.push(regionLabel);
     if (achievementFilters.industryTags.length) out.push(...achievementFilters.industryTags.slice(0, 3));
     return out.filter(Boolean);
@@ -782,18 +764,27 @@ export default function SearchPage() {
                 <FilterSection title="地区">
                   <View className="search-filter-card">
                     <CellGroup divider>
-                      <CellRow
-                        clickable
-                        title="地区"
-                        description="按行政区划选择"
-                        extra={<Text className="muted">{draft.regionName || '不限'}</Text>}
-                        isLast
-                        onClick={() =>
-                          openRegionPicker(({ code, name }) => {
-                            setDraft((prev) => ({ ...prev, regionCode: code, regionName: name }));
-                          })
-                        }
-                      />
+                      <Picker
+                        mode="region"
+                        level="region"
+                        onChange={(event) => {
+                          const selected = parseRegionPickerSelection(event);
+                          if (!selected) return;
+                          setDraft((prev) => ({ ...prev, regionCode: selected.code, regionName: selected.name }));
+                        }}
+                      >
+                        <CellRow
+                          clickable
+                          title="地区"
+                          description="按行政区划选择"
+                          extra={
+                            <Text className="muted">
+                              {regionDisplayName(draft.regionCode, draft.regionName, '不限')}
+                            </Text>
+                          }
+                          isLast
+                        />
+                      </Picker>
                     </CellGroup>
                   </View>
                   {draft.regionCode ? (
@@ -853,18 +844,25 @@ export default function SearchPage() {
               <FilterSection title="地区">
                 <View className="search-filter-card">
                   <CellGroup divider>
-                    <CellRow
-                      clickable
-                      title="地区"
-                      description="按行政区划选择"
-                      extra={<Text className="muted">{draft.regionName || '不限'}</Text>}
-                      isLast
-                      onClick={() =>
-                        openRegionPicker(({ code, name }) => {
-                          setDraft((prev) => ({ ...prev, regionCode: code, regionName: name }));
-                        })
-                      }
-                    />
+                    <Picker
+                      mode="region"
+                      level="region"
+                      onChange={(event) => {
+                        const selected = parseRegionPickerSelection(event);
+                        if (!selected) return;
+                        setDraft((prev) => ({ ...prev, regionCode: selected.code, regionName: selected.name }));
+                      }}
+                    >
+                      <CellRow
+                        clickable
+                        title="地区"
+                        description="按行政区划选择"
+                        extra={
+                          <Text className="muted">{regionDisplayName(draft.regionCode, draft.regionName, '不限')}</Text>
+                        }
+                        isLast
+                      />
+                    </Picker>
                   </CellGroup>
                 </View>
                 {draft.regionCode ? (

@@ -1,4 +1,4 @@
-﻿import { View, Text } from '@tarojs/components';
+import { View, Text, Picker } from '@tarojs/components';
 import Taro, { useRouter } from '@tarojs/taro';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import './index.scss';
@@ -13,6 +13,7 @@ import { sanitizeIndustryTagNames } from '../../../lib/industryTags';
 import { LISTING_TOPIC_OPTIONS, sanitizeListingTopics, syncListingTopicsWithTradeMode } from '../../../lib/listingTopics';
 import { auditStatusLabel, listingStatusLabel, patentTypeLabel } from '../../../lib/labels';
 import { fenToYuan } from '../../../lib/money';
+import { parseRegionPickerSelection, regionDisplayName } from '../../../lib/regions';
 import { uploadWithRetry } from '../../../lib/upload';
 import { ChipGroup, type ChipOption, IndustryTagsPicker } from '../../../ui/filters';
 import { PageHeader, PopupSheet, StickyBar, Surface } from '../../../ui/layout';
@@ -291,6 +292,12 @@ export default function PublishPatentPage() {
     const ok = await confirm({ title: '移除材料', content: '确定移除该材料？', confirmText: '移除', cancelText: '取消' });
     if (!ok) return;
     setProofFiles((prev) => prev.filter((x) => x.id !== f.id));
+  }, []);
+
+  const handleRegionPick = useCallback((event: any) => {
+    const selected = parseRegionPickerSelection(event);
+    if (!selected) return;
+    setRegionCode(selected.code);
   }, []);
 
   useEffect(() => {
@@ -846,34 +853,14 @@ export default function PublishPatentPage() {
 
           <View className="form-field">
             <Text className="form-label">所在地区</Text>
-            <View className="form-row">
-              <View className="form-flex">
-                <PublishInput
-                  className="publish-input"
-                  value={regionCode}
-                  onChange={setRegionCode}
-                  placeholder="省/市/区"
-                  clearable
-                />
+            <Picker mode="region" level="region" onChange={handleRegionPick}>
+              <View className="form-select">
+                <Text className={regionCode.trim() ? 'form-select-value' : 'form-select-placeholder'}>
+                  {regionDisplayName(regionCode, undefined, '省/市/区')}
+                </Text>
+                <Text className="form-select-arrow">▾</Text>
               </View>
-              <Button
-                className="form-inline-btn"
-                variant="ghost"
-                size="small"
-                onClick={() => {
-                  Taro.navigateTo({
-                    url: '/subpackages/region-picker/index',
-                    success: (res) => {
-                      res.eventChannel.on('regionSelected', (v: any) => {
-                        if (v?.code) setRegionCode(String(v.code));
-                      });
-                    },
-                  });
-                }}
-              >
-                选择
-              </Button>
-            </View>
+            </Picker>
           </View>
 
           <View className="form-field">
@@ -899,7 +886,7 @@ export default function PublishPatentPage() {
                 }
               }}
             />
-            <Text className="form-hint">与首页/搜索筛选保持一致：退役、沉睡、获奖、开放许可。</Text>
+            <Text className="form-hint">与首页/搜索筛选保持一致：退役、沉睡、获奖、五星、开放许可。</Text>
           </View>
 
           <Text className="publish-section-subtitle">权属证明材料 *</Text>

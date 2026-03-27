@@ -9,6 +9,13 @@ import { STORAGE_KEYS } from '../constants';
 
 type RegionNode = components['schemas']['RegionNode'];
 type RegionLevel = components['schemas']['RegionLevel'];
+type RegionPickerEventLike = {
+  detail?: {
+    value?: unknown;
+    code?: unknown;
+    postcode?: unknown;
+  } | null;
+};
 
 type RegionNameMap = Record<string, string>;
 const HIDDEN_TEST_REGION_NAME_PATTERNS = [
@@ -87,6 +94,81 @@ export function cacheRegionNames(nodes: Array<Pick<RegionNode, 'code' | 'name'> 
   }
 
   if (changed) writeRegionNameMap(map);
+}
+
+function normalizeRegionPath(raw: unknown): string[] {
+  if (Array.isArray(raw)) {
+    return raw
+      .map((item) => String(item || '').trim())
+      .filter(Boolean);
+  }
+  const text = String(raw || '').trim();
+  if (!text) return [];
+  if (text.includes(',')) {
+    return text
+      .split(',')
+      .map((item) => item.trim())
+      .filter(Boolean);
+  }
+  return [text];
+}
+
+function looksLikeRegionCode(value: string): boolean {
+  return /^\d{2,}$/.test(value);
+}
+
+export type RegionPickerSelection = {
+  code: string;
+  name: string;
+  level: RegionLevel;
+  pathCodes: string[];
+  pathNames: string[];
+};
+
+export function parseRegionPickerSelection(input: unknown): RegionPickerSelection | null {
+  const detail =
+    (input as RegionPickerEventLike | null | undefined)?.detail &&
+    typeof (input as RegionPickerEventLike).detail === 'object'
+      ? (input as RegionPickerEventLike).detail
+      : (input as RegionPickerEventLike['detail']);
+
+  const rawPathNames = normalizeRegionPath(detail?.value);
+  const rawPathCodesFromCode = normalizeRegionPath(detail?.code);
+  const rawPathCodesFromPostcode = normalizeRegionPath(detail?.postcode);
+  let pathCodes = rawPathCodesFromCode.length ? rawPathCodesFromCode : rawPathCodesFromPostcode;
+  let pathNames = rawPathNames;
+
+  if (!pathCodes.length && rawPathNames.length && rawPathNames.every(looksLikeRegionCode)) {
+    pathCodes = rawPathNames;
+    pathNames = [];
+  }
+
+  if (!pathCodes.length) return null;
+
+  cacheRegionNames(
+    pathCodes.map((code, index) => ({
+      code,
+      name: pathNames[index] || '',
+    })),
+  );
+
+  if (!pathNames.length) {
+    pathNames = pathCodes.map((code) => regionNameByCode(code) || '');
+  }
+
+  const code = pathCodes[pathCodes.length - 1] || '';
+  if (!code) return null;
+
+  const name = (pathNames[pathNames.length - 1] || regionNameByCode(code) || code).trim();
+  const level: RegionLevel = pathCodes.length >= 3 ? 'DISTRICT' : pathCodes.length === 2 ? 'CITY' : 'PROVINCE';
+
+  return {
+    code,
+    name: name || code,
+    level,
+    pathCodes,
+    pathNames,
+  };
 }
 
 export function regionNameByCode(code?: string | null): string | null {

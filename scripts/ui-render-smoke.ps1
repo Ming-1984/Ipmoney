@@ -419,7 +419,6 @@ try {
       @{ name = "client-profile-edit"; path = "#/pages/profile/edit/index"; demoAuth = $true; width = $ClientWidth; height = $ClientHeight; waitMs = $ClientWaitMs },
       @{ name = "client-onboarding-choose-identity"; path = "#/pages/onboarding/choose-identity/index"; demoAuth = $true; width = $ClientWidth; height = $ClientHeight; waitMs = $ClientWaitMs },
       @{ name = "client-onboarding-verification-form"; path = "#/pages/onboarding/verification-form/index"; demoAuth = $true; width = $ClientWidth; height = $ClientHeight; waitMs = $ClientWaitMs },
-      @{ name = "client-region-picker"; path = "#/pages/region-picker/index"; demoAuth = $false; width = $ClientWidth; height = $ClientHeight; waitMs = $ClientWaitMs },
       @{ name = "client-ipc-picker"; path = "#/pages/ipc-picker/index"; demoAuth = $false; width = $ClientWidth; height = $ClientHeight; waitMs = $ClientWaitMs },
       @{ name = "client-me"; path = "#/pages/me/index"; demoAuth = $true; width = $ClientWidth; height = $ClientHeight; waitMs = $ClientWaitMs },
 

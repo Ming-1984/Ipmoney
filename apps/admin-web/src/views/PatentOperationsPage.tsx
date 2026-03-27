@@ -1,5 +1,6 @@
 import { Alert, Button, Card, Drawer, Form, Input, InputNumber, Select, Space, Switch, Table, Tag, Typography, Upload, message } from 'antd';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import type { components } from '@ipmoney/api-types';
 
 import { apiGet, apiPost, apiUploadFile, type FileObject } from '../lib/api';
 import { formatTimeSmart, yuanToFen } from '../lib/format';
@@ -9,7 +10,7 @@ type ConsultationRouting = 'PLATFORM' | 'OWNER';
 type ListingTradeMode = 'ASSIGNMENT' | 'LICENSE';
 type LicenseMode = 'EXCLUSIVE' | 'SOLE' | 'NON_EXCLUSIVE';
 type PriceType = 'FIXED' | 'NEGOTIABLE';
-type ListingTopic = 'HIGH_TECH_RETIRED' | 'SLEEPING' | 'AWARD_WINNING' | 'FIVE_STAR' | 'OPEN_LICENSE';
+type ListingTopic = components['schemas']['ListingTopic'];
 type DuplicatePolicy = 'SKIP' | 'OVERWRITE';
 type JobStatus = 'PENDING' | 'RUNNING' | 'PAUSED' | 'SUCCEEDED' | 'FAILED';
 type ImportRowStatus = 'PENDING' | 'VALID' | 'INVALID' | 'SUCCEEDED' | 'FAILED' | 'SKIPPED';

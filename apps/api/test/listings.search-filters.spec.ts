@@ -125,6 +125,16 @@ describe('ListingsService search filter strictness suite', () => {
     ]);
   });
 
+  it('supports FIVE_STAR listingTopic as direct topic filter', async () => {
+    prisma.listing.findMany.mockResolvedValueOnce([]);
+    prisma.listing.count.mockResolvedValueOnce(0);
+
+    await service.searchPublic({ listingTopic: 'FIVE_STAR' });
+
+    const args = prisma.listing.findMany.mock.calls[0][0];
+    expect(args.where.AND).toEqual([{ listingTopicsJson: { array_contains: ['FIVE_STAR'] } }]);
+  });
+
   it('ignores unsupported listingTopic values', async () => {
     prisma.listing.findMany.mockResolvedValueOnce([]);
     prisma.listing.count.mockResolvedValueOnce(0);

@@ -1,4 +1,4 @@
-import { View, Text, Image } from '@tarojs/components';
+import { View, Text, Image, Picker } from '@tarojs/components';
 import Taro from '@tarojs/taro';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import './index.scss';
@@ -10,7 +10,7 @@ import { apiGet, apiPatch, apiPost } from '../../../lib/api';
 import { getToken } from '../../../lib/auth';
 import { ensureApproved, usePageAccess } from '../../../lib/guard';
 import { sanitizeIndustryTagNames } from '../../../lib/industryTags';
-import { ensureRegionNamesReady, regionNameByCode } from '../../../lib/regions';
+import { ensureRegionNamesReady, parseRegionPickerSelection, regionDisplayName, regionNameByCode } from '../../../lib/regions';
 import { useRouteUuidParam } from '../../../lib/routeParams';
 import { uploadWithRetry } from '../../../lib/upload';
 import type { ChipOption } from '../../../ui/filters';
@@ -171,20 +171,11 @@ export default function PublishAchievementPage() {
     })();
   }, [initialAchievementId, resetForm]);
 
-  const openRegionPicker = useCallback(() => {
-    Taro.navigateTo({
-      url: '/subpackages/region-picker/index',
-      events: {
-        regionSelected: (payload: any) => {
-          const code = payload?.code;
-          const name = payload?.name;
-          if (code) {
-            setRegionCode(code);
-            setRegionName(name || '');
-          }
-        },
-      },
-    });
+  const handleRegionPick = useCallback((event: any) => {
+    const selected = parseRegionPickerSelection(event);
+    if (!selected) return;
+    setRegionCode(selected.code);
+    setRegionName(selected.name);
   }, []);
 
   const uploadCover = useCallback(async () => {
@@ -406,11 +397,13 @@ export default function PublishAchievementPage() {
               <Text className="publish-section-title">区域与标签</Text>
               <View className="form-field">
                 <Text className="form-label">所在地区</Text>
-                <View className="form-row" onClick={openRegionPicker}>
-                  <Text className={regionName ? 'form-select-value' : 'form-select-placeholder'}>
-                    {regionName || '请选择地区'}
+                <Picker mode="region" level="region" onChange={handleRegionPick}>
+                  <View className="form-row">
+                  <Text className={regionCode ? 'form-select-value' : 'form-select-placeholder'}>
+                    {regionDisplayName(regionCode, regionName, '请选择地区')}
                   </Text>
-                </View>
+                  </View>
+                </Picker>
               </View>
               <View className="form-field">
                 <Text className="form-label">行业标签</Text>

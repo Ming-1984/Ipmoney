@@ -6,6 +6,7 @@ import './index.scss';
 import { apiGet, apiPatch } from '../../lib/api';
 import { getDetailCache, setDetailCache } from '../../lib/detailCache';
 import { usePageAccess } from '../../lib/guard';
+import { regionDisplayName } from '../../lib/regions';
 import { PageHeader, Spacer, Surface } from '../../ui/layout';
 import { Button, toast } from '../../ui/nutui';
 import { EmptyCard, ErrorCard, LoadingCard } from '../../ui/StateCards';
@@ -126,7 +127,7 @@ export default function AddressManagePage() {
                     {addr.isDefault ? <Text className="address-tag">默认</Text> : null}
                   </View>
                   <Text className="muted">{addr.phone}</Text>
-                  <Text className="muted">{addr.regionCode || '-'}</Text>
+                  <Text className="muted">{regionDisplayName(addr.regionCode, undefined, '-')}</Text>
                   <Text className="muted">{addr.addressLine}</Text>
                   <View className="address-actions">
                     <Button

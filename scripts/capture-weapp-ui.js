@@ -156,7 +156,6 @@ const PAGES = [
   { name: 'login', url: '/subpackages/login/index' },
   { name: 'onboarding-choose-identity', url: '/subpackages/onboarding/choose-identity/index' },
   { name: 'onboarding-verification-form', url: '/subpackages/onboarding/verification-form/index' },
-  { name: 'region-picker', url: '/subpackages/region-picker/index' },
   { name: 'profile-edit', url: '/subpackages/profile/edit/index' },
   { name: 'messages', url: '/pages/messages/index' },
   { name: 'chat', url: `/subpackages/messages/chat/index?conversationId=${SAMPLE.conversationId}` },

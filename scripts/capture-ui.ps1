@@ -258,7 +258,6 @@ $clientPages = @(
 
   @{ name = "onboarding-choose-identity"; path = "#/pages/onboarding/choose-identity/index"; demoAuth = $true },
   @{ name = "onboarding-verification-form"; path = "#/pages/onboarding/verification-form/index"; demoAuth = $true },
-  @{ name = "region-picker"; path = "#/pages/region-picker/index"; demoAuth = $true },
   @{ name = "profile-edit"; path = "#/pages/profile/edit/index"; demoAuth = $true },
 
   @{ name = "messages"; path = "#/pages/messages/index"; demoAuth = $true },

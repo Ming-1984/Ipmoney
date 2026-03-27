@@ -11,7 +11,7 @@ import { apiGet, apiPatch, apiPost } from '../../../lib/api';
 import { getDetailCache, setDetailCache } from '../../../lib/detailCache';
 import { requireLogin } from '../../../lib/guard';
 import { normalizePageUrl } from '../../../lib/navigation';
-import { cacheRegionNames, regionDisplayName } from '../../../lib/regions';
+import { parseRegionPickerSelection, regionDisplayName } from '../../../lib/regions';
 import { uploadWithRetry } from '../../../lib/upload';
 import { ErrorCard, LoadingCard } from '../../../ui/StateCards';
 import { Photograph } from '../../../ui/icons';
@@ -255,23 +255,11 @@ export default function ProfileEditPage() {
 
   const regionText = useMemo(() => regionDisplayName(regionCode, regionName, ''), [regionCode, regionName]);
 
-  const handleRegionPick = useCallback((e: any) => {
-    const names = Array.isArray(e?.detail?.value) ? e.detail.value : [];
-    const codes = Array.isArray(e?.detail?.code) ? e.detail.code : [];
-    const normalizedNames = names.map((name: any) => String(name || '').trim()).filter(Boolean);
-    const normalizedCodes = codes.map((code: any) => String(code || '').trim()).filter(Boolean);
-
-    const code = normalizedCodes[normalizedCodes.length - 1] || '';
-    const name = normalizedNames[normalizedNames.length - 1] || '';
-    if (code) setRegionCode(code);
-    if (name) setRegionName(name);
-
-    cacheRegionNames(
-      normalizedCodes.map((c: string, idx: number) => ({
-        code: c,
-        name: normalizedNames[idx] || '',
-      })),
-    );
+  const handleRegionPick = useCallback((event: any) => {
+    const selected = parseRegionPickerSelection(event);
+    if (!selected) return;
+    setRegionCode(selected.code);
+    setRegionName(selected.name);
   }, []);
 
   return (
@@ -341,36 +329,14 @@ export default function ProfileEditPage() {
 
               <View className="form-field">
                 <Text className="form-label">地区</Text>
-                {isWeapp ? (
-                  <Picker mode="region" level="region" onChange={handleRegionPick}>
-                    <View className="form-select">
-                      <Text className={regionCode.trim() ? 'form-select-value' : 'form-select-placeholder'}>
-                        {regionCode.trim() ? regionText : '请选择'}
-                      </Text>
-                      <Text className="form-select-arrow">›</Text>
-                    </View>
-                  </Picker>
-                ) : (
-                  <View
-                    className="form-select"
-                    onClick={() => {
-                      Taro.navigateTo({
-                        url: '/subpackages/region-picker/index',
-                        success: (res) => {
-                          res.eventChannel.on('regionSelected', (v: any) => {
-                            if (v?.code) setRegionCode(String(v.code));
-                            if (v?.name) setRegionName(String(v.name));
-                          });
-                        },
-                      });
-                    }}
-                  >
+                <Picker mode="region" level="region" onChange={handleRegionPick}>
+                  <View className="form-select">
                     <Text className={regionCode.trim() ? 'form-select-value' : 'form-select-placeholder'}>
                       {regionCode.trim() ? regionText : '请选择'}
                     </Text>
                     <Text className="form-select-arrow">›</Text>
                   </View>
-                )}
+                </Picker>
               </View>
             </View>
           </Surface>

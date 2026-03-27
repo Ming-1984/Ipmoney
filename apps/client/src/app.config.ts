@@ -3,11 +3,19 @@
 const preloadRule: Record<string, { network: 'all' | 'wifi'; packages: string[] }> = {
   'pages/home/index': {
     network: 'all',
-    packages: ['subpackages/search', 'subpackages/listing', 'subpackages/achievement'],
+    packages: [
+      'subpackages/search',
+      'subpackages/listing',
+      'subpackages/achievement',
+      'subpackages/inventors',
+      'subpackages/patent-map',
+      'subpackages/home-announcements',
+      'subpackages/media',
+    ],
   },
   'pages/tech-managers/index': {
     network: 'all',
-    packages: ['subpackages/organizations'],
+    packages: ['subpackages/organizations', 'subpackages/tech-managers'],
   },
   'pages/messages/index': {
     network: 'all',
@@ -158,10 +166,6 @@ export default defineAppConfig({
       pages: ['index'],
     },
     {
-      root: 'subpackages/region-picker',
-      pages: ['index'],
-    },
-    {
       root: 'subpackages/ipc-picker',
       pages: ['index'],
     },
@@ -172,7 +176,7 @@ export default defineAppConfig({
   ],
   preloadRule: isDev ? undefined : preloadRule,
   window: {
-    backgroundColor: '#f7f3ec',
+    backgroundColor: '#f5f6f8',
     backgroundTextStyle: 'light',
     navigationBarBackgroundColor: '#ffffff',
     navigationBarTitleText: 'Ipmoney',

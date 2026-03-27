@@ -25,6 +25,7 @@ export default function TechManagersPage() {
   const [activeTab, setActiveTab] = useState<ConsultTab>('TECH');
   const techQueryKeyRef = useRef<string | null>(null);
   const orgQueryKeyRef = useRef<string | null>(null);
+  const tabPrefetchScheduledRef = useRef(false);
 
   const [techQInput, setTechQInput] = useState('');
   const [techQ, setTechQ] = useState('');
@@ -80,6 +81,28 @@ export default function TechManagersPage() {
     orgQueryKeyRef.current = queryKey;
     void orgList.reload();
   }, [activeTab, orgList.reload, orgQ]);
+
+  useEffect(() => {
+    if (tabPrefetchScheduledRef.current) return;
+    tabPrefetchScheduledRef.current = true;
+    // Warm up the inactive tab once so first manual switch is less likely to flash a blocking loader.
+    const timer = setTimeout(() => {
+      if (activeTab === 'TECH') {
+        const queryKey = orgQ.trim();
+        if (orgQueryKeyRef.current !== queryKey) {
+          orgQueryKeyRef.current = queryKey;
+          void orgList.reload();
+        }
+        return;
+      }
+      const queryKey = techQ.trim();
+      if (techQueryKeyRef.current !== queryKey) {
+        techQueryKeyRef.current = queryKey;
+        void techList.reload();
+      }
+    }, 280);
+    return () => clearTimeout(timer);
+  }, [activeTab, orgList.reload, orgQ, techList.reload, techQ]);
 
   const techItems = useMemo(() => techList.items, [techList.items]);
   const orgItems = useMemo(

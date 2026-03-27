@@ -1,40 +1,39 @@
-﻿# Region Selection 升级方案（P0.2）
+﻿# Region Selection 对齐说明（2026-03-27）
 
 ## 目标
 
-- 支持省/市/区全量选择（6 位 adcode），可停留在任意层级提交。
-- 统一小程序端区域选择体验，减少手输 regionCode。
-- 管理端区域配置使用级联组件，降低输入错误。
+- 小程序端所有地区选择统一为同一交互：`Picker mode="region" level="region"`（省/市/区一步弹窗选择）。
+- 去除旧的跳页式 `subpackages/region-picker` 选择链路。
+- 统一前端地区值处理与缓存，避免页面各自解析事件。
 
-## 现状
+## 当前实现
 
-- 小程序 `subpackages/region-picker` 仅 PROVINCE 列表 + 搜索。
-- 多处表单仍允许手填 regionCode（发布/资料/筛选页）。
-- 管理端区域管理页通过 Input 手输 regionCode。
-- 后端 RegionsService 已支持 `q` 过滤，但 public controller 未透传。
+- 统一服务层：`apps/client/src/lib/regions.ts`
+  - `parseRegionPickerSelection(input)`：统一解析 `Picker` 返回值。
+  - 返回结构：`{ code, name, level, pathCodes, pathNames }`。
+  - 内部自动调用 `cacheRegionNames(...)`，同步地区名称缓存。
+- 统一页面交互：
+  - `apps/client/src/subpackages/search/index.tsx`
+  - `apps/client/src/subpackages/organizations/index.tsx`
+  - `apps/client/src/subpackages/publish/patent/index.tsx`
+  - `apps/client/src/subpackages/publish/achievement/index.tsx`
+  - `apps/client/src/subpackages/onboarding/verification-form/index.tsx`
+  - `apps/client/src/subpackages/profile/edit/index.tsx`
+  - `apps/client/src/subpackages/addresses/edit/index.tsx`
+- 地址展示补齐：`apps/client/src/subpackages/addresses/index.tsx` 使用 `regionDisplayName(...)` 展示名称优先。
 
-## 方案（成熟组件）
+## 路由与脚本
 
-- 小程序：Taro `Picker`（`mode="region"`，使用内置行政区数据）。
-  - 提供层级切换（省/市/区），由 `level` 控制：`province` / `city` / `region`。
-  - 选中后返回 `{ code, name, level, pathCodes, pathNames }`，其中 `code/name` 为当前层级最后节点。
-- 管理端：Ant Design `Cascader`（`loadData` 动态加载）。
-  - 支持省/市/区选择，默认显示名称 + code。
+- 已从 `apps/client/src/app.config.ts` 移除 `subpackages/region-picker` 页面路由。
+- UI 采集/冒烟脚本已移除 `region-picker` 页面项，避免冗余检查。
 
-## 数据与接口
+## 管理后台
 
-- 小程序端区域选择不再依赖 `/regions`，使用系统内置区域库。
-- `/regions` 继续用于后台管理与筛选场景。
+- 管理后台地区管理仍使用级联管理方案，不受本次小程序交互统一改造影响。
+- 小程序与后台在地区编码层保持一致：均以行政区划 code 作为持久化主键。
 
-## 影响范围
+## 验收标准
 
-- `apps/client/src/subpackages/region-picker/index.tsx`
-- 小程序使用 region picker 的页面（search/inventors/organizations/profile/edit/onboarding/publish 等）。
-- `apps/admin-web/src/views/RegionsPage.tsx`
-- 可选：`apps/api/src/modules/regions/regions.controller.ts`
-
-## 验收口径
-
-- 省/市/区任意层级均可选择并返回对应 6 位 code，名称展示正确。
-- 现有页面入口统一使用新的 region picker，不需要手输 code。
-- 管理端区域配置不再手输 regionCode。
+- 全部页面地区选择均为同一弹窗直选体验，不再存在“先点省市县再二次确认跳页”的旧流程。
+- 表单提交统一持久化 `regionCode`，展示统一通过 `regionDisplayName(...)` 回显。
+- 文档、路由、脚本中不再引用 `subpackages/region-picker`。

@@ -20,7 +20,6 @@ CLIENT_ORDER = [
     "login",
     "onboarding-choose-identity",
     "onboarding-verification-form",
-    "region-picker",
     "profile-edit",
     "messages",
     "chat",

@@ -1,10 +1,10 @@
-import { View, Text, Image } from '@tarojs/components';
+import { View, Text, Image, Picker } from '@tarojs/components';
 import Taro from '@tarojs/taro';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import './index.scss';
 
 import { apiGet } from '../../lib/api';
-import { regionDisplayName } from '../../lib/regions';
+import { parseRegionPickerSelection, regionDisplayName } from '../../lib/regions';
 import { usePagedList } from '../../lib/usePagedList';
 import { ListFooter } from '../../ui/ListFooter';
 import type { ChipOption } from '../../ui/filters';
@@ -94,27 +94,19 @@ export default function OrganizationsPage() {
 
   const openFilters = useCallback(() => setFiltersOpen(true), []);
 
-  const openRegionPicker = useCallback((onPicked: (payload: { code: string; name: string }) => void) => {
-    try {
-      Taro.navigateTo({
-        url: '/subpackages/region-picker/index',
-        events: {
-          regionSelected: (payload: any) => {
-            const code = String(payload?.code || '').trim();
-            if (!code) return;
-            const name = String(payload?.name || code).trim();
-            onPicked({ code, name });
-          },
-        },
-      } as any);
-    } catch {
-      // ignore
-    }
-  }, []);
+  const openRegionPicker = useCallback(
+    (event: any, onPicked: (payload: { code: string; name: string }) => void) => {
+      const selected = parseRegionPickerSelection(event);
+      if (!selected) return;
+      onPicked({ code: selected.code, name: selected.name });
+    },
+    [],
+  );
 
   const filterLabels = useMemo(() => {
     const out: string[] = [];
-    if (filters.regionName || filters.regionCode) out.push(filters.regionName || filters.regionCode || '');
+    const regionLabel = regionDisplayName(filters.regionCode, filters.regionName, '');
+    if (regionLabel) out.push(regionLabel);
     if (filters.types.length === 1) out.push(verificationTypeLabel(filters.types[0]));
     if (filters.types.length > 1) out.push(`类型${filters.types.length}`);
     return out.filter(Boolean);
@@ -243,6 +235,15 @@ export default function OrganizationsPage() {
           <Surface>
             <Text className="text-strong">地区</Text>
             <View style={{ height: '10rpx' }} />
+            <Picker
+              mode="region"
+              level="region"
+              onChange={(event) =>
+                openRegionPicker(event, ({ code, name }) => {
+                  setDraft((prev) => ({ ...prev, regionCode: code, regionName: name }));
+                })
+              }
+            >
             <Surface padding="none">
               <CellGroup divider>
                 <CellRow
@@ -251,14 +252,10 @@ export default function OrganizationsPage() {
                   description="用于地域推荐/检索过滤"
                   extra={<Text className="muted">{draft.regionName || draft.regionCode || '不限'}</Text>}
                   isLast
-                  onClick={() =>
-                    openRegionPicker(({ code, name }) => {
-                      setDraft((prev) => ({ ...prev, regionCode: code, regionName: name }));
-                    })
-                  }
                 />
               </CellGroup>
             </Surface>
+            </Picker>
             {draft.regionCode ? (
               <>
                 <View style={{ height: '10rpx' }} />

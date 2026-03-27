@@ -419,6 +419,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/public/config/banner": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get banner config (public) */
+        get: operations["getPublicBannerConfig"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/public/config/home-announcements": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get homepage announcements feed (public) */
+        get: operations["getPublicHomeAnnouncementsFeed"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/public/listings/{listingId}": {
         parameters: {
             query?: never;
@@ -1824,6 +1858,57 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/search/patent-map/overview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get patent map overview by region level */
+        get: operations["searchPatentMapOverview"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/search/patent-map/regions/{regionCode}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get patent map region detail */
+        get: operations["searchPatentMapRegionDetail"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/patent-map/listings/batch": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Batch update listing map fields */
+        post: operations["adminBatchUpdatePatentMapListings"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/me/patent-claims": {
         parameters: {
             query?: never;
@@ -3116,6 +3201,127 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/admin/config/home-announcements": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get homepage announcements config (admin) */
+        get: operations["adminGetHomeAnnouncementsConfig"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/config/home-announcements/templates": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Create homepage announcement template (admin) */
+        post: operations["adminCreateHomeAnnouncementTemplate"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/config/home-announcements/templates/{templateId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Update homepage announcement template (admin) */
+        put: operations["adminUpdateHomeAnnouncementTemplate"];
+        post?: never;
+        /** Delete homepage announcement template (admin) */
+        delete: operations["adminDeleteHomeAnnouncementTemplate"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/config/home-announcements/items": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Create homepage announcement item (admin) */
+        post: operations["adminCreateHomeAnnouncementItem"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/config/home-announcements/items/{itemId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Update homepage announcement item (admin) */
+        put: operations["adminUpdateHomeAnnouncementItem"];
+        post?: never;
+        /** Delete homepage announcement item (admin) */
+        delete: operations["adminDeleteHomeAnnouncementItem"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/config/home-announcements/items/{itemId}/publish": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Publish homepage announcement item (admin) */
+        post: operations["adminPublishHomeAnnouncementItem"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/config/home-announcements/items/{itemId}/offline": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Offline homepage announcement item (admin) */
+        post: operations["adminOfflineHomeAnnouncementItem"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/admin/rbac/permissions": {
         parameters: {
             query?: never;
@@ -4240,6 +4446,127 @@ export interface components {
             skippedCount: number;
             rows: components["schemas"]["PatentListingGenerateResultRow"][];
         };
+        /** @enum {string} */
+        PatentMapOverviewRegionLevel: "PROVINCE" | "CITY" | "DISTRICT";
+        /**
+         * @default ACTIVE_APPROVED
+         * @enum {string}
+         */
+        PatentMapDataScope: "ACTIVE_APPROVED" | "ALL";
+        /** @enum {string} */
+        PatentMapRegionLevel: "PROVINCE" | "CITY" | "DISTRICT" | "UNKNOWN";
+        PatentMapRegionItem: {
+            regionCode: string;
+            regionName: string;
+            regionLevel: components["schemas"]["PatentMapRegionLevel"];
+            /** Format: double */
+            centerLat?: number | null;
+            /** Format: double */
+            centerLng?: number | null;
+            listingCount: number;
+            patentCount: number;
+            rankedListingCount: number;
+            activeRankedListingCount: number;
+            topActiveRank?: number | null;
+            rankPosition: number;
+        };
+        PatentMapOverviewSummary: {
+            totalListingCount: number;
+            totalPatentCount: number;
+            totalRegionCount: number;
+            rankedListingCount: number;
+            activeRankedListingCount: number;
+            unassignedListingCount: number;
+            mappableRegionCount: number;
+        };
+        PatentMapOverviewResponse: {
+            /** Format: date-time */
+            generatedAt: string;
+            filters: {
+                regionLevel: components["schemas"]["PatentMapOverviewRegionLevel"];
+                top: number;
+                scope: components["schemas"]["PatentMapDataScope"];
+            };
+            summary: components["schemas"]["PatentMapOverviewSummary"];
+            ranking: components["schemas"]["PatentMapRegionItem"][];
+            regions: components["schemas"]["PatentMapRegionItem"][];
+        };
+        PatentMapRegionDetailRegion: {
+            code: string;
+            name: string;
+            level: components["schemas"]["PatentMapOverviewRegionLevel"];
+            parentCode?: string | null;
+            /** Format: double */
+            centerLat?: number | null;
+            /** Format: double */
+            centerLng?: number | null;
+            descendantRegionCodeCount: number;
+        };
+        PatentMapRegionDetailSummary: {
+            listingCount: number;
+            patentCount: number;
+            rankedListingCount: number;
+            activeRankedListingCount: number;
+            topActiveRank?: number | null;
+        };
+        PatentMapRegionDetailItem: {
+            listingId: components["schemas"]["Uuid"];
+            patentId?: components["schemas"]["Uuid"];
+            title: string;
+            patentTitle: string;
+            patentType?: components["schemas"]["PatentType"];
+            applicationNoDisplay?: string | null;
+            regionCode?: string | null;
+            tradeMode: components["schemas"]["TradeMode"];
+            priceType: components["schemas"]["PriceType"];
+            priceAmountFen?: number | null;
+            depositAmountFen: number;
+            featuredLevel: components["schemas"]["FeaturedLevel"];
+            featuredRegionCode?: string | null;
+            featuredRank?: number | null;
+            /** Format: date-time */
+            featuredUntil?: string | null;
+            isFeaturedActive: boolean;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            updatedAt: string;
+        };
+        PatentMapRegionDetailResponse: {
+            /** Format: date-time */
+            generatedAt: string;
+            filters: {
+                scope: components["schemas"]["PatentMapDataScope"];
+            };
+            region: components["schemas"]["PatentMapRegionDetailRegion"];
+            summary: components["schemas"]["PatentMapRegionDetailSummary"];
+            items: components["schemas"]["PatentMapRegionDetailItem"][];
+            page: components["schemas"]["PageMeta"];
+        };
+        PatentMapListingPatch: {
+            regionCode?: string | null;
+            featuredLevel?: components["schemas"]["FeaturedLevel"];
+            featuredRegionCode?: string | null;
+            featuredRank?: number | null;
+            /** Format: date-time */
+            featuredUntil?: string | null;
+            clearRanking?: boolean;
+        };
+        PatentMapBatchUpdateRequest: {
+            listingIds: components["schemas"]["Uuid"][];
+            patch: components["schemas"]["PatentMapListingPatch"];
+            reason?: string;
+        };
+        PatentMapBatchUpdateResponse: {
+            ok: boolean;
+            totalRequested: number;
+            updatedCount: number;
+            missingListingIds: components["schemas"]["Uuid"][];
+            patchApplied: {
+                [key: string]: unknown;
+            };
+            reason: string | null;
+        };
         PatentClaimCreateRequest: {
             patentId: components["schemas"]["Uuid"];
             claimReason?: string;
@@ -5334,6 +5661,115 @@ export interface components {
         HotSearchConfig: {
             keywords: string[];
         };
+        /** @enum {string} */
+        HomeAnnouncementStatus: "DRAFT" | "PUBLISHED" | "OFFLINE";
+        HomeAnnouncementTemplate: {
+            id: string;
+            name: string;
+            title: string;
+            content: string;
+            tag?: string | null;
+            linkUrl?: string | null;
+            enabled: boolean;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            updatedAt: string;
+        };
+        HomeAnnouncementItem: {
+            id: string;
+            templateId?: string | null;
+            title: string;
+            content: string;
+            tag?: string | null;
+            linkUrl?: string | null;
+            pinned: boolean;
+            order: number;
+            status: components["schemas"]["HomeAnnouncementStatus"];
+            /** Format: date-time */
+            startAt?: string | null;
+            /** Format: date-time */
+            endAt?: string | null;
+            /** Format: date-time */
+            publishedAt?: string | null;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            updatedAt: string;
+        };
+        HomeAnnouncementConfig: {
+            schemaVersion: number;
+            templates: components["schemas"]["HomeAnnouncementTemplate"][];
+            items: components["schemas"]["HomeAnnouncementItem"][];
+        };
+        HomeAnnouncementTemplateCreateRequest: {
+            name: string;
+            title: string;
+            content: string;
+            tag?: string | null;
+            linkUrl?: string | null;
+            enabled?: boolean;
+        };
+        HomeAnnouncementTemplateUpdateRequest: {
+            name?: string;
+            title?: string;
+            content?: string;
+            tag?: string | null;
+            linkUrl?: string | null;
+            enabled?: boolean;
+        };
+        HomeAnnouncementItemCreateRequest: {
+            templateId?: string | null;
+            title?: string;
+            content?: string;
+            tag?: string | null;
+            linkUrl?: string | null;
+            pinned?: boolean;
+            order?: number;
+            /** Format: date-time */
+            startAt?: string | null;
+            /** Format: date-time */
+            endAt?: string | null;
+            status?: components["schemas"]["HomeAnnouncementStatus"];
+        };
+        HomeAnnouncementItemUpdateRequest: {
+            templateId?: string | null;
+            title?: string;
+            content?: string;
+            tag?: string | null;
+            linkUrl?: string | null;
+            pinned?: boolean;
+            order?: number;
+            /** Format: date-time */
+            startAt?: string | null;
+            /** Format: date-time */
+            endAt?: string | null;
+            status?: components["schemas"]["HomeAnnouncementStatus"];
+        };
+        HomeAnnouncementTemplateDeleteResult: {
+            ok: boolean;
+            deletedTemplateId: string;
+        };
+        HomeAnnouncementItemDeleteResult: {
+            ok: boolean;
+            deletedItemId: string;
+        };
+        PublicHomeAnnouncementItem: {
+            id: string;
+            title: string;
+            content: string;
+            tag?: string | null;
+            linkUrl?: string | null;
+            pinned: boolean;
+            order: number;
+            /** Format: date-time */
+            publishedAt?: string | null;
+        };
+        PublicHomeAnnouncementFeed: {
+            /** Format: date-time */
+            generatedAt: string;
+            items: components["schemas"]["PublicHomeAnnouncementItem"][];
+        };
         FinanceReportRange: {
             /** Format: date-time */
             start: string;
@@ -6375,6 +6811,48 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["CustomerServiceConfig"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+        };
+    };
+    getPublicBannerConfig: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BannerConfig"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+        };
+    };
+    getPublicHomeAnnouncementsFeed: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublicHomeAnnouncementFeed"];
                 };
             };
             400: components["responses"]["BadRequest"];
@@ -9274,6 +9752,92 @@ export interface operations {
             409: components["responses"]["Conflict"];
         };
     };
+    searchPatentMapOverview: {
+        parameters: {
+            query?: {
+                regionLevel?: components["schemas"]["PatentMapOverviewRegionLevel"];
+                top?: number;
+                /** @description Data scope. `ACTIVE_APPROVED` limits to active approved listings; `ALL` includes all listings. */
+                scope?: components["schemas"]["PatentMapDataScope"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PatentMapOverviewResponse"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+        };
+    };
+    searchPatentMapRegionDetail: {
+        parameters: {
+            query?: {
+                page?: components["parameters"]["Page"];
+                pageSize?: components["parameters"]["PageSize"];
+                /** @description Data scope. `ACTIVE_APPROVED` limits to active approved listings; `ALL` includes all listings. */
+                scope?: components["schemas"]["PatentMapDataScope"];
+            };
+            header?: never;
+            path: {
+                /** @description 鐞涘本鏂傞崠鍝勫灊閻?adcode */
+                regionCode: components["parameters"]["RegionCodePath"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PatentMapRegionDetailResponse"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    adminBatchUpdatePatentMapListings: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description 楠炲倻鐡戦柨顕嗙礄瀵ら缚顔呴悽銊ょ艾閺€顖欑帛/闁偓濞?閺€鐐儥缁涘婀侀崜顖欑稊閻劎娈戦幒銉ュ經閿涙稑鎮撴稉鈧獮鍌滅搼闁款喚娈戦柌宥咁槻鐠囬攱鐪版惔鏃囩箲閸ョ偛鎮撴稉鈧紒鎾寸亯閿? */
+                "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PatentMapBatchUpdateRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PatentMapBatchUpdateResponse"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+        };
+    };
     listMyPatentClaims: {
         parameters: {
             query?: {
@@ -11948,6 +12512,244 @@ export interface operations {
             400: components["responses"]["BadRequest"];
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
+        };
+    };
+    adminGetHomeAnnouncementsConfig: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HomeAnnouncementConfig"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+        };
+    };
+    adminCreateHomeAnnouncementTemplate: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["HomeAnnouncementTemplateCreateRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HomeAnnouncementTemplate"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+        };
+    };
+    adminUpdateHomeAnnouncementTemplate: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                templateId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["HomeAnnouncementTemplateUpdateRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HomeAnnouncementTemplate"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    adminDeleteHomeAnnouncementTemplate: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                templateId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HomeAnnouncementTemplateDeleteResult"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    adminCreateHomeAnnouncementItem: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["HomeAnnouncementItemCreateRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HomeAnnouncementItem"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+        };
+    };
+    adminUpdateHomeAnnouncementItem: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                itemId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["HomeAnnouncementItemUpdateRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HomeAnnouncementItem"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    adminDeleteHomeAnnouncementItem: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                itemId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HomeAnnouncementItemDeleteResult"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    adminPublishHomeAnnouncementItem: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                itemId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HomeAnnouncementItem"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    adminOfflineHomeAnnouncementItem: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                itemId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HomeAnnouncementItem"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
         };
     };
     adminListRbacPermissions: {

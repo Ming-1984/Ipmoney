@@ -16,6 +16,7 @@
   message,
 } from 'antd';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import type { components } from '@ipmoney/api-types';
 
 import { apiGet, apiPost, apiUploadFile } from '../lib/api';
 import { formatTimeSmart, yuanToFen } from '../lib/format';
@@ -24,7 +25,7 @@ import { RequestErrorAlert } from '../ui/RequestState';
 
 type AuditStatus = 'PENDING' | 'APPROVED' | 'REJECTED';
 type ListingStatus = 'DRAFT' | 'ACTIVE' | 'OFF_SHELF' | 'SOLD';
-type ListingTopic = 'HIGH_TECH_RETIRED' | 'SLEEPING' | 'AWARD_WINNING' | 'FIVE_STAR' | 'OPEN_LICENSE';
+type ListingTopic = components['schemas']['ListingTopic'];
 type ContentSource = 'USER' | 'ADMIN' | 'PLATFORM';
 type BatchAction = 'APPROVE' | 'REJECT' | 'PUBLISH' | 'OFF_SHELF';
 type JobStatus = 'PENDING' | 'RUNNING' | 'PAUSED' | 'SUCCEEDED' | 'FAILED';

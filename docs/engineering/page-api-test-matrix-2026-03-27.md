@@ -1,13 +1,13 @@
-# Page-API-Test Matrix (2026-03-25-alignment-r2c)
+# Page-API-Test Matrix (2026-03-27)
 
 > Scope: client + admin-web pages; excludes real login/payment integrations.
-> Data sources: `.tmp/ui-render-smoke-2026-03-25-alignment-r2c.json`, `.tmp/ui-http-smoke-2026-03-25-alignment-r2c.json`, `.tmp/ui-dom-smoke-2026-03-25-alignment-r2c.json`, `docs/engineering/traceability-matrix.md`.
+> Data sources: `.tmp/ui-render-smoke-2026-03-27.json`, `.tmp/ui-http-smoke-2026-03-27.json`, `.tmp/ui-dom-smoke-2026-03-27.json`, `docs/engineering/traceability-matrix.md`.
 
 ## Snapshot
-- UI render smoke (full): 66/66 pass.
+- UI render smoke (full): 65/65 pass.
 - Coverage split: client 44/44, admin 21/21.
 - UI HTTP smoke: 22/65 pages have route-level HTTP checks (root-focused).
-- DOM assertion automation: 65/65 pages (66/66 in current DOM smoke run).
+- DOM assertion automation: 65/65 pages (65/65 in current DOM smoke run).
 - E2E automation: 0/65 (planned in B03).
 
 ## Matrix

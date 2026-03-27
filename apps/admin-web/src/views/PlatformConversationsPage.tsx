@@ -17,13 +17,14 @@ import {
   message,
 } from 'antd';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import type { components } from '@ipmoney/api-types';
 
 import { apiDelete, apiGet, apiPost } from '../lib/api';
 import { formatTimeSmart } from '../lib/format';
 import { RequestErrorAlert } from '../ui/RequestState';
 import { confirmAction } from '../ui/confirm';
 
-type ListingTopic = 'HIGH_TECH_RETIRED' | 'SLEEPING' | 'AWARD_WINNING' | 'FIVE_STAR' | 'OPEN_LICENSE';
+type ListingTopic = components['schemas']['ListingTopic'];
 type AssignedFilter = 'ALL' | 'MINE' | 'ASSIGNED' | 'UNASSIGNED';
 type ConversationChannelFilter = 'ALL' | 'CONSULTATION' | 'SUPPORT' | 'DISPUTE' | 'MAINTENANCE';
 type DateRangeValue = [any, any] | null;

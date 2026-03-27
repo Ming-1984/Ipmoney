@@ -27,6 +27,8 @@ function BaseTabsControl<T extends string | number>(props: TabsControlProps<T>) 
     <Tabs
       activeType="line"
       value={activeKey}
+      autoHeight={false}
+      duration={0}
       className={props.className}
       onChange={(next) => {
         const idx = Number(next);
@@ -52,4 +54,3 @@ export function SortControl<T extends string | number>(props: TabsControlProps<T
   const className = ['tabs-control', 'tabs-control-sort', props.className].filter(Boolean).join(' ');
   return <BaseTabsControl {...props} className={className} />;
 }
-

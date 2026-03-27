@@ -318,6 +318,30 @@ describe('ConversationsService pagination and id strictness suite', () => {
     });
   });
 
+  it('supports FIVE_STAR listingTopic filter for consultation channel', async () => {
+    const req = { auth: { userId: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa' } };
+    prisma.conversation.findMany.mockResolvedValueOnce([]);
+    prisma.conversation.count.mockResolvedValueOnce(0);
+
+    await service.listPlatformConversations(req, {
+      channel: 'CONSULTATION',
+      listingTopic: 'five_star',
+    });
+
+    expect(prisma.conversation.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: {
+          AND: [
+            {
+              contentType: 'LISTING',
+              listing: { consultationRouting: 'PLATFORM', listingTopicsJson: { array_contains: ['FIVE_STAR'] } },
+            },
+          ],
+        },
+      }),
+    );
+  });
+
   it('supports maintenance channel in platform conversation filters', async () => {
     const req = { auth: { userId: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa' } };
     prisma.conversation.findMany.mockResolvedValueOnce([]);

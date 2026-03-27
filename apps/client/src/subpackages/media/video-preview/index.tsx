@@ -65,10 +65,11 @@ export default function VideoPreviewPage() {
       const item = bannerItems[idx];
       if (!item || item.source !== 'local') return;
       if (videoSources[idx]) return;
-      if (!item.asset || !item.fileName) return;
+      const { asset, fileName } = item;
+      if (!asset || !fileName) return;
       (async () => {
         try {
-          const resolved = await ensureWeappVideoSrc(item.asset, item.fileName);
+          const resolved = await ensureWeappVideoSrc(asset, fileName);
           if (cancelled) return;
           setVideoSources((prev) => {
             if (prev[idx]) return prev;

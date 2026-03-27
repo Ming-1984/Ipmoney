@@ -399,7 +399,7 @@
   - Result: pass (`83/83`)
 - `powershell -ExecutionPolicy Bypass -File scripts/ui-dom-smoke.ps1 -Mode full -ReportDate r306b`
   - Result: fail (`81/83`)
-  - Notes: two transient DOM dump WebSocket handshake/non-101 network failures (`client-onboarding-verification-form`, `client-region-picker`).
+  - Notes: transient DOM dump WebSocket handshake/non-101 network failure (`client-onboarding-verification-form`).
 - `powershell -ExecutionPolicy Bypass -File scripts/ui-dom-smoke.ps1 -Mode full -ReportDate r306b2`
   - Result: pass (`83/83`)
   - Notes: immediate rerun fully green, confirming no persistent page/DOM regression.
