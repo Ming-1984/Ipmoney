@@ -1,0 +1,45 @@
+@page {
+  margin: 18mm 14mm;
+}
+
+body {
+  font-family: "Microsoft YaHei", "PingFang SC", "Noto Sans CJK SC", "SimSun",
+    sans-serif;
+  font-size: 12px;
+  line-height: 1.55;
+  color: #1f2937;
+}
+
+h1,
+h2,
+h3 {
+  color: #0f172a;
+  page-break-after: avoid;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+  word-break: break-word;
+  font-size: 10px;
+}
+
+th,
+td {
+  border: 1px solid #d1d5db;
+  padding: 4px 6px;
+  vertical-align: top;
+}
+
+th {
+  background: #f8fafc;
+  font-weight: 700;
+}
+
+code {
+  font-family: "Consolas", "Courier New", monospace;
+  font-size: 10px;
+  white-space: pre-wrap;
+  word-break: break-all;
+}

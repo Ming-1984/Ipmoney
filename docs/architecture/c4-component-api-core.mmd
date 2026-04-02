@@ -1,0 +1,61 @@
+﻿%%{init: {'theme':'base','flowchart': {'htmlLabels': true, 'curve': 'linear'},'themeVariables': {'fontFamily': 'Microsoft YaHei, PingFang SC, Noto Sans CJK SC, Helvetica Neue, Arial, sans-serif','lineColor':'#64748B','primaryTextColor':'#0F172A','primaryBorderColor':'#CBD5E1','primaryColor':'#F8FAFC','secondaryColor':'#EFF6FF','tertiaryColor':'#FFF7ED'}}}%%
+flowchart TB
+  subgraph Entry[入口层]
+    direction LR
+    Controllers["HTTP Controllers<br/>REST API"]
+    Guards["Guards<br/>BearerAuth / VerifiedUser / RBAC"]
+    Middlewares["中间件与过滤器<br/>requestId / access-log / exception-filter"]
+  end
+
+  subgraph Domains[领域模块层（apps/api/src/modules）]
+    direction LR
+    DomainAuth["身份与组织域<br/>auth / users / rbac / addresses / organizations<br/>tech-managers / inventors"]
+    DomainTrade["内容与交易域<br/>patents / listings / orders / contracts / files<br/>favorites / achievements"]
+    DomainService["客服与运营域<br/>conversations / cases / comments / notifications<br/>reports / regions / config / audit-logs"]
+    DomainExt["扩展能力域<br/>alerts / ai / patent-map / patent-maintenance / webhooks"]
+  end
+
+  subgraph Common[通用能力层]
+    direction LR
+    Prisma[PrismaService]
+    Audit[AuditLogService]
+    ContentEvent[ContentEventModule]
+    RedisProbe[RedisProbeService]
+    Idempotency[IdempotencyKey]
+  end
+
+  subgraph Infra[基础设施]
+    direction LR
+    PG[(PostgreSQL)]
+    Redis[(Redis)]
+    ObjectStore[(对象存储 + 本地上传)]
+  end
+
+  Controllers --> Guards --> Middlewares
+  Middlewares --> DomainAuth
+  Middlewares --> DomainTrade
+  Middlewares --> DomainService
+  Middlewares --> DomainExt
+
+  DomainAuth --> Prisma
+  DomainTrade --> Prisma
+  DomainService --> Prisma
+  DomainExt --> Prisma
+
+  DomainTrade --> Audit
+  DomainService --> Audit
+  DomainExt --> Audit
+
+  DomainTrade --> ContentEvent
+  DomainService --> ContentEvent
+  DomainTrade --> RedisProbe
+  DomainService --> RedisProbe
+  DomainExt --> RedisProbe
+
+  DomainTrade --> Idempotency
+  DomainService --> Idempotency
+
+  Prisma --> PG
+  RedisProbe --> Redis
+  DomainTrade --> ObjectStore
+  DomainService --> ObjectStore

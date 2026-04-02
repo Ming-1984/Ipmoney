@@ -1,4 +1,4 @@
-﻿%%{init: {'theme':'base','flowchart': {'htmlLabels': true},'themeVariables': {'fontFamily': 'Inter, Microsoft YaHei, sans-serif','lineColor':'#64748B','primaryTextColor':'#0F172A','primaryBorderColor':'#CBD5E1','primaryColor':'#F8FAFC'}}}%%
+﻿%%{init: {'theme':'base','flowchart': {'htmlLabels': true, 'curve': 'linear'},'themeVariables': {'fontFamily': 'Microsoft YaHei, PingFang SC, Noto Sans CJK SC, Helvetica Neue, Arial, sans-serif','lineColor':'#64748B','primaryTextColor':'#0F172A','primaryBorderColor':'#CBD5E1','primaryColor':'#F8FAFC','secondaryColor':'#EFF6FF','tertiaryColor':'#FFF7ED'}}}%%
 flowchart TD
   Entry[用户进入客服中心<br/>我的 → 客服中心] --> Support[帮助与反馈<br/>/subpackages/support/index]
 
@@ -30,3 +30,5 @@ flowchart TD
   ChatPage --> AdminInbox[后台会话中心<br/>/conversations/platform]
   AdminInbox --> Assign[POST /admin/conversations/:conversationId/agents]
   AdminInbox --> Reply[POST /conversations/:conversationId/messages]
+
+

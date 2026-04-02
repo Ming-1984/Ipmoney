@@ -1,0 +1,75 @@
+﻿%%{init: {'theme':'base','flowchart': {'htmlLabels': true, 'curve': 'linear'},'themeVariables': {'fontFamily': 'Microsoft YaHei, PingFang SC, Noto Sans CJK SC, Helvetica Neue, Arial, sans-serif','lineColor':'#64748B','primaryTextColor':'#0F172A','primaryBorderColor':'#CBD5E1','primaryColor':'#F8FAFC','secondaryColor':'#EFF6FF','tertiaryColor':'#FFF7ED'}}}%%
+flowchart TB
+  User([买家/卖家])
+  Admin([运营/财务])
+
+  subgraph Tx[交易与资金流]
+    direction LR
+    OrderCreate[创建订单<br/>DEPOSIT_PENDING]
+    DepositPay[订金支付<br/>支付意图 + 回调]
+    ContractConfirm[合同确认<br/>WAIT_FINAL_PAYMENT]
+    FinalPay[尾款支付<br/>FINAL_PAID_ESCROW]
+    TransferDone[过户完成确认<br/>READY_TO_SETTLE]
+    SettlementDone[人工放款确认<br/>COMPLETED]
+  end
+
+  subgraph Security[安全与合规控制点]
+    direction TB
+    Auth[JWT + RBAC + VerifiedUser]
+    Idem[幂等键<br/>idempotency_keys]
+    Audit[审计日志<br/>audit_logs]
+    FileCtrl[文件鉴权 + 临时链接 + 水印]
+    Sensitive[敏感字段保护<br/>证件/联系方式脱敏或加密]
+  end
+
+  subgraph Storage[数据落盘]
+    direction LR
+    Orders[(orders)]
+    Payments[(payments)]
+    Refunds[(refund_requests)]
+    Settlements[(settlements)]
+    Files[(files)]
+    Cases[(cs_cases / milestones)]
+    Notifications[(notifications)]
+  end
+
+  subgraph ThirdParty[第三方交互]
+    direction LR
+    WxPay[微信支付 v3]
+    Msg[短信/邮件]
+    OSS[对象存储]
+  end
+
+  User --> OrderCreate --> DepositPay --> ContractConfirm --> FinalPay --> TransferDone --> SettlementDone
+  Admin --> ContractConfirm
+  Admin --> TransferDone
+  Admin --> SettlementDone
+
+  DepositPay <--> WxPay
+  FinalPay <--> WxPay
+  SettlementDone --> Msg
+
+  OrderCreate --> Auth
+  DepositPay --> Idem
+  FinalPay --> Idem
+  ContractConfirm --> Audit
+  TransferDone --> Audit
+  SettlementDone --> Audit
+
+  OrderCreate --> Orders
+  DepositPay --> Payments
+  FinalPay --> Payments
+  ContractConfirm --> Cases
+  TransferDone --> Cases
+  SettlementDone --> Settlements
+
+  OrderCreate --> Notifications
+  ContractConfirm --> Notifications
+  SettlementDone --> Notifications
+
+  User --> FileCtrl --> Files
+  Admin --> FileCtrl --> Files
+  FileCtrl --> OSS
+  Auth --> Sensitive
+
+

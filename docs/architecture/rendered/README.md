@@ -1,8 +1,12 @@
-# Rendered Diagrams
+﻿# 架构图导出目录
 
-Optional rendered output for Mermaid sources under `docs/architecture/`.
+本目录用于存放 `docs/architecture/*.mmd` 的渲染产物（`png` / `pdf` / `svg`）。
 
-Example:
-- `c4-context.svg`
+- 源文件：`docs/architecture/`
+- 批量导出命令：
 
-The source of truth remains the `.mmd` files.
+```bash
+powershell -ExecutionPolicy Bypass -File scripts/render-diagrams.ps1
+```
+
+说明：`.mmd` 源文件是唯一真实来源，图片为对外沟通与归档产物。

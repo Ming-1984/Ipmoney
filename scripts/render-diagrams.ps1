@@ -1,10 +1,11 @@
-param(
+﻿param(
   [string]$ArchitectureOutDir = "docs/architecture/rendered",
   [string]$DemoOutDir = "docs/demo/rendered",
+  [switch]$IncludeDemo,
   [string]$PngBackground = "white",
-  [int]$PngWidth = 2000,
-  [int]$PngHeight = 2000,
-  [int]$PngScale = 6,
+  [int]$PngWidth = 2200,
+  [int]$PngHeight = 2200,
+  [int]$PngScale = 4,
   [int]$NormalizeTolerance = 4,
   [int]$NormalizeCropPadding = 6,
   [int]$NormalizeOuterMargin = 48,
@@ -19,75 +20,19 @@ $NormalizePng = -not $NoNormalizePng
 $PdfFit = -not $NoPdfFit
 $Svg = -not $NoSvg
 
-New-Item -ItemType Directory -Force $ArchitectureOutDir | Out-Null
-New-Item -ItemType Directory -Force $DemoOutDir | Out-Null
-
-$architectureInputs = @(
-  "docs/architecture/c4-context.mmd",
-  "docs/architecture/c4-container.mmd",
-  "docs/architecture/c4-component-order.mmd",
-  "docs/architecture/sequence-deposit-payment.mmd",
-  "docs/architecture/sequence-refund.mmd",
-  "docs/architecture/sequence-settlement.mmd",
-  "docs/architecture/sequence-wechat-phone-bind.mmd",
-  "docs/architecture/sequence-wechat-login-onboarding.mmd",
-  "docs/architecture/er-diagram.mmd",
-  "docs/architecture/flow-listing-publish.mmd",
-  "docs/architecture/flow-user-center.mmd",
-  "docs/architecture/flow-order-list-tabs.mmd",
-  "docs/architecture/flow-support.mmd",
-  "docs/architecture/flow-contract-invoice-upload.mmd",
-  "docs/architecture/flow-trade-end2end.mmd",
-  "docs/architecture/flow-refund-dispute.mmd",
-  "docs/architecture/state-order.mmd"
-)
-
-$demoInputs = @(
-  # Demo high-level diagrams
-  "docs/demo/diagrams/business-core-swimlane.mmd",
-  "docs/demo/diagrams/business-refund-dispute-swimlane.mmd",
-  "docs/demo/diagrams/architecture-p0-logical.mmd",
-  "docs/demo/diagrams/architecture-target-microservices.mmd",
-  "docs/demo/diagrams/deployment-prod.mmd",
-  "docs/demo/diagrams/dataflow-money-pii-security.mmd",
-  "docs/demo/diagrams/event-model.mmd",
-  "docs/demo/diagrams/requirements-phase-summary.mmd",
-
-  # Miniapp pages (from Ipmoney.md)
-  "docs/demo/pages/miniapp/01-login.mmd",
-  "docs/demo/pages/miniapp/02-home.mmd",
-  "docs/demo/pages/miniapp/04-search.mmd",
-  "docs/demo/pages/miniapp/05-detail.mmd",
-  "docs/demo/pages/miniapp/06-message.mmd",
-  "docs/demo/pages/miniapp/07-checkout-deposit-pay.mmd",
-  "docs/demo/pages/miniapp/08-checkout-deposit-success.mmd",
-  "docs/demo/pages/miniapp/09-checkout-final-pay.mmd",
-  "docs/demo/pages/miniapp/10-checkout-final-success.mmd",
-  "docs/demo/pages/miniapp/11-user-center.mmd",
-  "docs/demo/pages/miniapp/12-publish-chooser.mmd",
-  "docs/demo/pages/miniapp/13-publish-patent.mmd",
-  "docs/demo/pages/miniapp/15-publish-achievement.mmd",
-  "docs/demo/pages/miniapp/17-tech-managers.mmd",
-
-  # Admin pages (from Ipmoney.md)
-  "docs/demo/pages/admin/01-dashboard.mmd",
-  "docs/demo/pages/admin/03-order-list.mmd",
-  "docs/demo/pages/admin/04-order-detail.mmd",
-  "docs/demo/pages/admin/05-content-audit.mmd",
-  "docs/demo/pages/admin/06-user-auth.mmd",
-  "docs/demo/pages/admin/07-finance.mmd",
-  "docs/demo/pages/admin/08-system-settings.mmd",
-  "docs/demo/pages/admin/09-platform-cms.mmd",
-  "docs/demo/pages/admin/10-ai-parse-review.mmd",
-  "docs/demo/pages/admin/11-maintenance.mmd",
-  "docs/demo/pages/admin/12-alert-center.mmd"
-)
+function ResolveExistingDiagrams([string[]]$paths, [string]$label) {
+  $existing = @()
+  foreach ($path in $paths) {
+    if (Test-Path $path) {
+      $existing += $path
+    } else {
+      Write-Warning "[$label] skip missing diagram: $path"
+    }
+  }
+  return $existing
+}
 
 function RenderDiagram([string]$diagramPath, [string]$outDir) {
-  if (-not (Test-Path $diagramPath)) {
-    throw "Missing diagram file: $diagramPath"
-  }
-
   $baseName = [IO.Path]::GetFileNameWithoutExtension($diagramPath)
   $pngOut = Join-Path $outDir "$baseName.png"
   $pdfOut = Join-Path $outDir "$baseName.pdf"
@@ -141,7 +86,8 @@ function NormalizePngDir([string]$outDir) {
   }
 
   if (-not (Test-Path "scripts/normalize-rendered-images.py")) {
-    throw "Missing normalizer: scripts/normalize-rendered-images.py"
+    Write-Warning "Skip normalize: scripts/normalize-rendered-images.py not found"
+    return
   }
 
   Write-Host "Normalize PNGs in: $outDir"
@@ -168,17 +114,53 @@ function NormalizePngDir([string]$outDir) {
   }
 }
 
+$architectureInputs = Get-ChildItem -Path "docs/architecture" -Filter "*.mmd" -File |
+  Sort-Object Name |
+  ForEach-Object { $_.FullName }
+
+if (-not $architectureInputs -or $architectureInputs.Count -eq 0) {
+  throw "No architecture diagrams found under docs/architecture"
+}
+
+New-Item -ItemType Directory -Force $ArchitectureOutDir | Out-Null
+
+$demoInputs = @()
+if ($IncludeDemo) {
+  New-Item -ItemType Directory -Force $DemoOutDir | Out-Null
+
+  $demoCandidates = @(
+    "docs/demo/diagrams/business-core-swimlane.mmd",
+    "docs/demo/diagrams/business-refund-dispute-swimlane.mmd",
+    "docs/demo/diagrams/architecture-p0-logical.mmd",
+    "docs/demo/diagrams/architecture-target-microservices.mmd",
+    "docs/demo/diagrams/deployment-prod.mmd",
+    "docs/demo/diagrams/dataflow-money-pii-security.mmd",
+    "docs/demo/diagrams/event-model.mmd",
+    "docs/demo/diagrams/requirements-phase-summary.mmd"
+  )
+
+  $demoInputs = ResolveExistingDiagrams -paths $demoCandidates -label "demo"
+}
+
 foreach ($diagramPath in $architectureInputs) {
   RenderDiagram $diagramPath $ArchitectureOutDir
 }
 
-foreach ($diagramPath in $demoInputs) {
-  RenderDiagram $diagramPath $DemoOutDir
+if ($demoInputs.Count -gt 0) {
+  foreach ($diagramPath in $demoInputs) {
+    RenderDiagram $diagramPath $DemoOutDir
+  }
 }
 
 NormalizePngDir $ArchitectureOutDir
-NormalizePngDir $DemoOutDir
+if ($demoInputs.Count -gt 0) {
+  NormalizePngDir $DemoOutDir
+}
 
 Write-Host "Done."
-Write-Host "Architecture outputs: $ArchitectureOutDir"
-Write-Host "Demo outputs:         $DemoOutDir"
+Write-Host "Architecture diagrams rendered: $($architectureInputs.Count)"
+Write-Host "Architecture outputs:          $ArchitectureOutDir"
+if ($demoInputs.Count -gt 0) {
+  Write-Host "Demo diagrams rendered:         $($demoInputs.Count)"
+  Write-Host "Demo outputs:                   $DemoOutDir"
+}

@@ -1,9 +1,10 @@
+﻿%%{init: {'theme':'base','themeVariables': {'fontFamily': 'Microsoft YaHei, PingFang SC, Noto Sans CJK SC, Helvetica Neue, Arial, sans-serif','lineColor':'#64748B','primaryTextColor':'#0F172A','primaryBorderColor':'#CBD5E1','primaryColor':'#F8FAFC','secondaryColor':'#EFF6FF','tertiaryColor':'#FFF7ED'}}}%%
 erDiagram
   USERS {
     uuid id PK
     string phone
     string nickname
-    string role "buyer/seller/admin/cs"
+    string role
     string region_code
     datetime created_at
     datetime updated_at
@@ -13,7 +14,6 @@ erDiagram
     string id PK
     string name
     string description
-    string permission_ids_json "json"
     datetime created_at
     datetime updated_at
   }
@@ -24,170 +24,45 @@ erDiagram
     datetime created_at
   }
 
+  USER_VERIFICATIONS {
+    uuid id PK
+    uuid user_id FK
+    string type
+    string status
+    string display_name
+    string region_code
+    datetime submitted_at
+    datetime reviewed_at
+    uuid reviewed_by FK
+    datetime created_at
+    datetime updated_at
+  }
+
   REGIONS {
     string code PK
     string name
-    string level "PROVINCE/CITY/DISTRICT"
+    string level
     string parent_code
-    float center_lat
-    float center_lng
-    string industry_tags_json "json"
     datetime updated_at
   }
 
   INDUSTRY_TAGS {
     uuid id PK
-    string name "unique"
-    datetime created_at
-    datetime updated_at
-  }
-
-
-
-    uuid id PK
-    string type "PATENT"
-    string title
-    string subtitle
-    string period "YYYYMM"
-    string tags_json "json"
-    string publisher_name
-    uuid publisher_user_id FK
-    string status "DRAFT/PUBLISHED/ARCHIVED"
-    datetime publish_at
-    string content
-    string source_url
-    datetime created_at
-    datetime updated_at
-  }
-
-  NOTIFICATIONS {
-    uuid id PK
-    uuid user_id FK
-    string kind
-    string title
-    string summary
-    string source
-    datetime read_at
-    datetime created_at
-  }
-
-  ADDRESSES {
-    uuid id PK
-    uuid user_id FK
     string name
-    string phone
-    string region_code
-    string address_line
-    boolean is_default
-    datetime created_at
-    datetime updated_at
-  }
-
-
-  USER_VERIFICATIONS {
-    uuid id PK
-    uuid user_id FK
-    string type "PERSON/COMPANY/ACADEMY/GOVERNMENT/ASSOCIATION/TECH_MANAGER"
-    string org_category "UNIVERSITY/UNIVERSITY_985/UNIVERSITY_211/RESEARCH_INSTITUTE/OTHER"
-    string status "PENDING/APPROVED/REJECTED"
-    string display_name
-    string unified_social_credit_code_enc
-    string contact_name
-    string contact_phone
-    string region_code
-    string intro
-    uuid logo_file_id FK
-    string evidence_file_ids_json "json"
-    datetime submitted_at
-    datetime reviewed_at
-    uuid reviewed_by FK
-    string review_comment
-    datetime created_at
-    datetime updated_at
-  }
-
-  TECH_MANAGER_PROFILES {
-    uuid user_id PK
-    string intro
-    string service_tags_json "json"
-    int featured_rank
-    datetime featured_until
-    int consult_count
-    int deal_count
-    double rating_score
-    int rating_count
     datetime created_at
     datetime updated_at
   }
 
   PATENTS {
     uuid id PK
-    string jurisdiction "CN"
     string application_no_norm
-    string application_no_display
-    string patent_no_display
-    string publication_no_display
-    string grant_publication_no_display
-    string patent_type "INVENTION/UTILITY_MODEL/DESIGN"
+    string patent_type
     string title
-    string abstract
-    string case_status
-    string main_ipc_code
-    int claim_count
-    int spec_page_count
-    int spec_word_count
-    int spec_figure_count
-    date filing_date
-    date publication_date
-    date grant_date
     string legal_status
-    string source_primary "USER/ADMIN/PROVIDER"
+    string source_primary
     datetime source_updated_at
     datetime created_at
     datetime updated_at
-  }
-
-  PATENT_IDENTIFIERS {
-    uuid id PK
-    uuid patent_id FK
-    string id_type "APPLICATION/PATENT/PUBLICATION"
-    string id_value_norm
-    string kind_code
-    date date_ref
-  }
-
-  PATENT_CLASSIFICATIONS {
-    uuid id PK
-    uuid patent_id FK
-    string system "IPC/LOC/CPC"
-    string code
-    boolean is_main
-  }
-
-  PATENT_PARTIES {
-    uuid id PK
-    uuid patent_id FK
-    string role "APPLICANT/INVENTOR/ASSIGNEE"
-    string name
-    string country_code
-  }
-
-  PATENT_LEGAL_EVENTS {
-    uuid id PK
-    uuid patent_id FK
-    date event_date
-    string event_code
-    string event_text_raw
-    string source
-    datetime created_at
-  }
-
-  PATENT_MEDIA {
-    uuid id PK
-    uuid patent_id FK
-    uuid file_id FK
-    string type "COVER/SPEC_FIGURE"
-    int sort
   }
 
   FILES {
@@ -195,7 +70,7 @@ erDiagram
     string url
     string mime_type
     int size_bytes
-    uuid owner_id
+    uuid owner_id FK
     datetime created_at
   }
 
@@ -204,154 +79,14 @@ erDiagram
     uuid seller_user_id FK
     uuid patent_id FK
     string title
-    string summary
-    string source "USER/PLATFORM/ADMIN"
-    string trade_mode "ASSIGNMENT/LICENSE"
-    string license_mode "EXCLUSIVE/SOLE/NON_EXCLUSIVE"
-    string price_type "FIXED/NEGOTIABLE"
-    int price_amount
-    int deposit_amount
-    string deliverables_json "json: string[]"
-    int expected_completion_days
-    int negotiable_range_fen
-    float negotiable_range_percent
-    string negotiable_note
-    string pledge_status "NONE/PLEDGED/UNKNOWN"
-    string existing_license_status "NONE/EXCLUSIVE/SOLE/NON_EXCLUSIVE/UNKNOWN"
-    string encumbrance_note
-    int transfer_count "0=娌夌潯涓撳埄"
-    string region_code
-    string industry_tags_json "json"
-    string listing_topics_json "json: HIGH_TECH_RETIRED/AWARD_WINNING锛堟矇鐫′笓鍒╃敱 transfer_count=0 鍒ゅ畾锛?
-    string featured_level "NONE/CITY/PROVINCE"
-    string featured_region_code
-    int featured_rank
-    datetime featured_until
-    string audit_status "PENDING/APPROVED/REJECTED"
-    string status "DRAFT/ACTIVE/OFF_SHELF/SOLD"
-    datetime created_at
-    datetime updated_at
-  }
-
-    uuid id PK
-    uuid publisher_user_id FK
-    string title
-    string summary
-    string description
-    string keywords_json "json"
-    string delivery_period
-    string cooperation_modes_json "json"
-    string budget_type "FIXED/NEGOTIABLE"
-    int budget_min
-    int budget_max
-    string contact_name
-    string contact_title
-    string contact_phone_masked
-    uuid cover_file_id FK
-    string region_code
-    string industry_tags_json "json"
-    string audit_status "PENDING/APPROVED/REJECTED"
-    string status "DRAFT/ACTIVE/OFF_SHELF"
-    string source "USER/PLATFORM/ADMIN"
-    datetime created_at
-    datetime updated_at
-  }
-
-    uuid id PK
-    uuid file_id FK
-    string type "IMAGE/VIDEO/FILE"
-    int sort
-  }
-
-    uuid id PK
-    uuid user_id FK
-    datetime created_at
-  }
-
-    int view_count
-    int favorite_count
-    int consult_count
-    int comment_count
-    datetime updated_at
-  }
-
-    uuid id PK
-    uuid publisher_user_id FK
-    string title
-    string summary
-    string description
-    string keywords_json "json"
-    string maturity "CONCEPT/PROTOTYPE/PILOT/MASS_PRODUCTION/COMMERCIALIZED/OTHER"
-    string cooperation_modes_json "json"
-    uuid cover_file_id FK
-    string region_code
-    string industry_tags_json "json"
-    string audit_status "PENDING/APPROVED/REJECTED"
-    string status "DRAFT/ACTIVE/OFF_SHELF"
-    string source "USER/PLATFORM/ADMIN"
-    datetime created_at
-    datetime updated_at
-  }
-
-    uuid id PK
-    uuid file_id FK
-    string type "IMAGE/VIDEO/FILE"
-    int sort
-  }
-
-
-    uuid id PK
-    uuid user_id FK
-    datetime created_at
-  }
-
-    int view_count
-    int favorite_count
-    int consult_count
-    int comment_count
-    datetime updated_at
-  }
-
-    uuid id PK
-    uuid seller_user_id FK
-    string title
-    string description
-    string category "CALLIGRAPHY/PAINTING"
-    string calligraphy_script
-    string painting_genre
-    string creator_name
-    date creation_date
-    int creation_year
-    string certificate_no
-    string price_type "FIXED/NEGOTIABLE"
+    string trade_mode
+    string price_type
     int price_amount
     int deposit_amount
     string region_code
-    string material
-    string size
-    uuid cover_file_id FK
-    string audit_status "PENDING/APPROVED/REJECTED"
-    string status "DRAFT/ACTIVE/OFF_SHELF/SOLD"
-    string source "USER/PLATFORM/ADMIN"
+    string audit_status
+    string status
     datetime created_at
-    datetime updated_at
-  }
-
-    uuid id PK
-    uuid file_id FK
-    string type "IMAGE/VIDEO/FILE"
-    int sort
-  }
-
-    uuid id PK
-    uuid user_id FK
-    datetime created_at
-  }
-
-    int view_count
-    int favorite_count
-    int consult_count
-    int comment_count
     datetime updated_at
   }
 
@@ -359,7 +94,7 @@ erDiagram
     uuid id PK
     uuid listing_id FK
     uuid file_id FK
-    string type "IMAGE/FILE"
+    string type
     int sort
   }
 
@@ -367,8 +102,15 @@ erDiagram
     uuid id PK
     uuid listing_id FK
     uuid reviewer_id FK
-    string action "APPROVE/REJECT"
+    string action
     string reason
+    datetime created_at
+  }
+
+  LISTING_FAVORITES {
+    uuid id PK
+    uuid listing_id FK
+    uuid user_id FK
     datetime created_at
   }
 
@@ -381,47 +123,14 @@ erDiagram
     datetime updated_at
   }
 
-  LISTING_FAVORITES {
-    uuid id PK
-    uuid listing_id FK
-    uuid user_id FK
-    datetime created_at
-  }
-
-  LISTING_CONSULT_EVENTS {
-    uuid id PK
-    uuid listing_id FK
-    uuid user_id FK
-    string channel "WECHAT_CS/PHONE/FORM"
-    datetime created_at
-  }
-
-  CONTENT_EVENTS {
-    uuid id PK
-    uuid content_id
-    string event_type "VIEW/FAVORITE/CONSULT"
-    string actor_key
-    uuid actor_user_id
-    string device_id
-    datetime created_at
-  }
-
-  USER_TAG_SCORES {
-    uuid id PK
-    uuid user_id FK
-    string tag
-    int score
-    datetime updated_at
-  }
-
   ORDERS {
     uuid id PK
     uuid listing_id FK
     uuid buyer_user_id FK
     uuid assigned_cs_user_id FK
     string status
-    int deal_amount
     int deposit_amount
+    int deal_amount
     int final_amount
     int commission_amount
     string invoice_no
@@ -431,83 +140,15 @@ erDiagram
     datetime updated_at
   }
 
-  CONTRACTS {
-    uuid order_id PK
-    string status "WAIT_UPLOAD/WAIT_CONFIRM/AVAILABLE"
-    uuid contract_file_id FK
-    string file_url
-    datetime uploaded_at
-    datetime signed_at
-    string watermark_owner
-    datetime created_at
-    datetime updated_at
-  }
-
-  CONVERSATIONS {
-    uuid id PK
-    uuid content_id FK
-    uuid order_id FK
-    uuid buyer_user_id FK
-    uuid seller_user_id FK
-    datetime last_message_at
-    datetime created_at
-    datetime updated_at
-  }
-
-  CONVERSATION_PARTICIPANTS {
-    uuid id PK
-    uuid conversation_id FK
-    uuid user_id FK
-    datetime last_read_at
-    datetime updated_at
-  }
-
-  CONVERSATION_MESSAGES {
-    uuid id PK
-    uuid conversation_id FK
-    uuid sender_user_id FK
-    string type "TEXT/EMOJI/SYSTEM"
-    string text
-    string reference_type "MATERIAL/CONTRACT"
-    uuid file_id FK
-    datetime created_at
-  }
-
-  COMMENTS {
-    uuid id PK
-    uuid content_id FK
-    uuid parent_comment_id FK
-    uuid user_id FK
-    string status "VISIBLE/HIDDEN/DELETED"
-    string text
-    datetime created_at
-    datetime updated_at
-  }
-
   PAYMENTS {
     uuid id PK
     uuid order_id FK
-    string pay_type "DEPOSIT/FINAL/REFUND/PAYOUT"
-    string channel "WECHAT"
-    string trade_no
+    string pay_type
+    string channel
     int amount
     string status
+    string transaction_no
     datetime paid_at
-    datetime created_at
-  }
-
-  PAYMENT_WEBHOOK_EVENTS {
-    uuid id PK
-    string provider
-    string event_id
-    string event_type
-    uuid order_id FK
-    uuid refund_request_id FK
-    string pay_type "DEPOSIT/FINAL"
-    string trade_no
-    int amount
-    string status "RECEIVED/PROCESSED/FAILED"
-    datetime processed_at
     datetime created_at
   }
 
@@ -516,46 +157,21 @@ erDiagram
     uuid order_id FK
     string reason_code
     string reason_text
-    string status "PENDING/APPROVED/REJECTED/REFUNDING/REFUNDED"
+    string status
     datetime created_at
     datetime updated_at
   }
 
-  CS_CASES {
+  CONTRACTS {
     uuid id PK
     uuid order_id FK
-    uuid cs_user_id FK
-    string type "FOLLOWUP/REFUND/DISPUTE"
+    uuid buyer_user_id FK
+    uuid seller_user_id FK
     string status
+    uuid contract_file_id FK
+    datetime signed_at
     datetime created_at
     datetime updated_at
-  }
-
-  CS_CASE_NOTES {
-    uuid id PK
-    uuid case_id FK
-    uuid author_id FK
-    string author_name
-    string content
-    datetime created_at
-  }
-
-  CS_CASE_EVIDENCES {
-    uuid id PK
-    uuid case_id FK
-    uuid file_id FK
-    string file_name
-    string url
-    datetime created_at
-  }
-
-  CS_MILESTONES {
-    uuid id PK
-    uuid case_id FK
-    string name "CONTRACT_SIGNED/TRANSFER_SUBMITTED/TRANSFER_COMPLETED"
-    string status
-    uuid evidence_file_id FK
-    datetime created_at
   }
 
   SETTLEMENTS {
@@ -564,104 +180,101 @@ erDiagram
     int gross_amount
     int commission_amount
     int payout_amount
-    string payout_method "MANUAL/WECHAT/..."
-    string payout_status "PENDING/SUCCEEDED/FAILED"
+    string payout_status
     string payout_ref
     uuid payout_evidence_file_id FK
     datetime payout_at
+    datetime created_at
+    datetime updated_at
+  }
+
+  CS_CASES {
+    uuid id PK
+    uuid order_id FK
+    uuid cs_user_id FK
+    string type
+    string status
+    string priority
+    datetime due_at
+    datetime created_at
+    datetime updated_at
+  }
+
+  CS_MILESTONES {
+    uuid id PK
+    uuid case_id FK
+    string name
     string status
     datetime created_at
     datetime updated_at
   }
 
-  AI_PARSE_RESULTS {
+  CS_CASE_NOTES {
     uuid id PK
-    uuid content_id FK
-    string summary_plain
-    string features_plain
-    string keywords_json "json"
-    float confidence
-    string model_version
-    string status "ACTIVE/REVIEW_REQUIRED/REPLACED"
-    datetime created_at
-    datetime updated_at
-  }
-
-  AI_PARSE_FEEDBACKS {
-    uuid id PK
-    uuid parse_result_id FK
-    uuid actor_user_id FK
-    string actor_type "USER/ADMIN"
-    int score
-    string reason_tags_json "json"
-    string comment
+    uuid case_id FK
+    uuid author_user_id FK
+    string content
     datetime created_at
   }
 
-  PATENT_MAINTENANCE_SCHEDULES {
+  CS_CASE_EVIDENCES {
     uuid id PK
-    uuid patent_id FK
-    int year_no
-    date due_date
-    date grace_period_end
-    string status "DUE/PAID/OVERDUE/WAIVED"
-    datetime created_at
-    datetime updated_at
-  }
-
-  PATENT_MAINTENANCE_TASKS {
-    uuid id PK
-    uuid schedule_id FK
-    uuid assigned_cs_user_id FK
-    string status "OPEN/IN_PROGRESS/DONE/CANCELLED"
+    uuid case_id FK
+    uuid file_id FK
     string note
-    uuid evidence_file_id FK
+    datetime created_at
+  }
+
+  CONVERSATIONS {
+    uuid id PK
+    uuid order_id FK
+    string channel
+    string status
     datetime created_at
     datetime updated_at
   }
 
-  ALERT_EVENTS {
+  CONVERSATION_PARTICIPANTS {
     uuid id PK
-    string type
-    string severity "LOW/MEDIUM/HIGH"
-    string channel "SMS/EMAIL/IN_APP"
-    string status "PENDING/SENT/ACKED/SUPPRESSED"
-    uuid target_id
-    datetime triggered_at
-    datetime sent_at
+    uuid conversation_id FK
+    uuid user_id FK
+    string role
+    datetime joined_at
   }
 
-  PATENT_MAP_ENTRIES {
+  CONVERSATION_MESSAGES {
     uuid id PK
-    string region_code FK
-    int year
-    int patent_count
-    string industry_breakdown_json "json"
-    string top_assignees_json "json"
+    uuid conversation_id FK
+    uuid sender_user_id FK
+    string content_type
+    string content
     datetime created_at
-    datetime updated_at
+  }
+
+  NOTIFICATIONS {
+    uuid id PK
+    uuid user_id FK
+    string kind
+    string title
+    string summary
+    datetime read_at
+    datetime created_at
   }
 
   SYSTEM_CONFIGS {
-    uuid id PK
-    string key "unique"
-    string value_type "INT/DECIMAL/STRING/JSON/BOOL"
-    string value
-    string scope "GLOBAL/TENANT"
-    int version
-    uuid updated_by FK
-    datetime created_at
+    string key PK
+    string scope PK
+    string value_type
+    string value_json
     datetime updated_at
   }
 
   IDEMPOTENCY_KEYS {
     uuid id PK
-    string idempotency_key "unique per scope+user"
+    string key
     string scope
     uuid user_id FK
-    string request_hash
-    string status "IN_PROGRESS/COMPLETED"
-    string response_json "json"
+    string status
     datetime created_at
     datetime updated_at
   }
@@ -670,98 +283,102 @@ erDiagram
     uuid id PK
     uuid actor_user_id FK
     string action
-    string target_type "LISTING/ORDER/REFUND_REQUEST/SYSTEM_CONFIG/..."
-    uuid target_id
-    string before_json "json"
-    string after_json "json"
-    string request_id
-    string ip
-    string user_agent
+    string target_type
+    string target_id
+    string before_json
+    string after_json
     datetime created_at
   }
 
-  USERS ||--o{ USER_VERIFICATIONS : verifies
-  USERS ||--|| TECH_MANAGER_PROFILES : profiles
-  REGIONS ||--o{ USERS : located_in
-  USERS ||--o{ LISTINGS : publishes
-  USERS ||--o{ ORDERS : places
-  USERS ||--o{ LISTING_FAVORITES : favorites
-  USERS ||--o{ LISTING_CONSULT_EVENTS : consults
-  USERS ||--o{ USER_TAG_SCORES : prefers
-  USERS ||--o{ CONVERSATION_PARTICIPANTS : participates
-  USERS ||--o{ CONVERSATION_MESSAGES : sends
-  USERS ||--o{ NOTIFICATIONS : receives
-  USERS ||--o{ ADDRESSES : owns
-  USERS ||--o{ CS_CASE_NOTES : writes
-  USERS ||--o{ SYSTEM_CONFIGS : updates
-  USERS ||--o{ IDEMPOTENCY_KEYS : idempotency
-  USERS ||--o{ AUDIT_LOGS : audits
-  USERS ||--o{ AI_PARSE_FEEDBACKS : reviews
-  USERS ||--o{ RBAC_USER_ROLES : roles
-  USERS ||--o{ PATENT_MAINTENANCE_TASKS : assigned
+  PATENT_MAINTENANCE_SCHEDULES {
+    uuid id PK
+    uuid patent_id FK
+    uuid owner_user_id FK
+    string status
+    date due_date
+    datetime created_at
+    datetime updated_at
+  }
 
-  RBAC_ROLES ||--o{ RBAC_USER_ROLES : members
+  PATENT_MAINTENANCE_TASKS {
+    uuid id PK
+    uuid schedule_id FK
+    string status
+    uuid assignee_user_id FK
+    datetime created_at
+    datetime updated_at
+  }
 
-  PATENTS ||--o{ PATENT_IDENTIFIERS : has
-  PATENTS ||--o{ PATENT_CLASSIFICATIONS : has
-  PATENTS ||--o{ PATENT_PARTIES : has
-  PATENTS ||--o{ PATENT_LEGAL_EVENTS : legal_events
-  PATENTS ||--o{ PATENT_MEDIA : has
+  PATENT_MAINTENANCE_ORDERS {
+    uuid id PK
+    uuid task_id FK
+    uuid buyer_user_id FK
+    string status
+    int amount
+    string payment_channel
+    datetime created_at
+    datetime updated_at
+  }
+
+  USERS ||--o{ RBAC_USER_ROLES : has
+  RBAC_ROLES ||--o{ RBAC_USER_ROLES : assigned_to
+
+  USERS ||--o{ USER_VERIFICATIONS : submits
+  USERS ||--o{ USER_VERIFICATIONS : reviews
+  REGIONS ||--o{ USERS : belongs_to
+  REGIONS ||--o{ USER_VERIFICATIONS : applies_in
+
+  USERS ||--o{ FILES : owns
+
   PATENTS ||--o{ LISTINGS : referenced_by
-  PATENTS ||--o{ PATENT_MAINTENANCE_SCHEDULES : schedules
-
-  LISTINGS ||--o{ LISTING_MEDIA : has
-  LISTINGS ||--o{ LISTING_AUDIT_LOGS : audited
-  LISTINGS ||--o{ ORDERS : generates
-  LISTINGS ||--|| LISTING_STATS : stats
-  LISTINGS ||--o{ LISTING_FAVORITES : favored
-  LISTINGS ||--o{ LISTING_CONSULT_EVENTS : consulted
+  USERS ||--o{ LISTINGS : publishes
   REGIONS ||--o{ LISTINGS : located_in
 
+  LISTINGS ||--o{ LISTING_MEDIA : has
+  FILES ||--o{ LISTING_MEDIA : attached_as
+  LISTINGS ||--o{ LISTING_AUDIT_LOGS : audited_by
+  USERS ||--o{ LISTING_AUDIT_LOGS : reviews
+  LISTINGS ||--|| LISTING_STATS : aggregates
 
+  LISTINGS ||--o{ LISTING_FAVORITES : favored
+  USERS ||--o{ LISTING_FAVORITES : favorites
 
+  LISTINGS ||--o{ ORDERS : traded_as
+  USERS ||--o{ ORDERS : buys
+  USERS ||--o{ ORDERS : assigned_cs
+  FILES ||--o{ ORDERS : invoice_file
 
-
-  %% Polymorphic links via content_type/content_id
-  USERS ||--o{ CONTENT_EVENTS : events
-  LISTINGS ||--o{ CONTENT_EVENTS : events
-  LISTINGS ||--o{ CONVERSATIONS : discussed_in
-  LISTINGS ||--o{ COMMENTS : commented_in
-
-  AI_PARSE_RESULTS ||--o{ AI_PARSE_FEEDBACKS : feedback
-  LISTINGS ||--o{ AI_PARSE_RESULTS : parsed
-
-  PATENT_MAINTENANCE_SCHEDULES ||--o{ PATENT_MAINTENANCE_TASKS : tasks
-
-  FILES ||--o{ LISTING_MEDIA : stored_as
-  FILES ||--o{ PATENT_MEDIA : stored_as
-  FILES ||--o{ CONVERSATION_MESSAGES : attached
-  FILES ||--o{ CONTRACTS : contract_file
-  FILES ||--o{ CS_CASE_EVIDENCES : evidence
-  FILES ||--o{ CS_MILESTONES : evidence
-  FILES ||--o{ SETTLEMENTS : payout_evidence
-  FILES ||--o{ PATENT_MAINTENANCE_TASKS : evidence
-  ORDERS ||--o| FILES : invoice_file
-  REFUND_REQUESTS ||--o{ FILES : evidence
-  USER_VERIFICATIONS ||--o{ FILES : evidence
-  USER_VERIFICATIONS ||--o| FILES : logo
-
-  ORDERS ||--o{ PAYMENTS : has
-  ORDERS ||--o{ PAYMENT_WEBHOOK_EVENTS : has
-  ORDERS ||--o{ REFUND_REQUESTS : has
-  ORDERS ||--o{ CS_CASES : tracked_by
+  ORDERS ||--o{ PAYMENTS : paid_by
+  ORDERS ||--o{ REFUND_REQUESTS : requests
+  ORDERS ||--o{ CONTRACTS : signs
   ORDERS ||--|| SETTLEMENTS : settles
-  ORDERS ||--o{ CONVERSATIONS : links
-  ORDERS ||--o| CONTRACTS : has
 
-  REFUND_REQUESTS ||--o{ PAYMENT_WEBHOOK_EVENTS : has
+  FILES ||--o{ CONTRACTS : contract_file
+  FILES ||--o{ SETTLEMENTS : payout_evidence
 
+  ORDERS ||--o{ CS_CASES : follows
+  USERS ||--o{ CS_CASES : handles
+  CS_CASES ||--o{ CS_MILESTONES : includes
   CS_CASES ||--o{ CS_CASE_NOTES : notes
   CS_CASES ||--o{ CS_CASE_EVIDENCES : evidences
-  CS_CASES ||--o{ CS_MILESTONES : contains
+  USERS ||--o{ CS_CASE_NOTES : writes
+  FILES ||--o{ CS_CASE_EVIDENCES : uploads
 
-  USERS ||--o{ COMMENTS : writes
-  COMMENTS ||--o{ COMMENTS : replies
-  CONVERSATIONS ||--o{ CONVERSATION_PARTICIPANTS : has
+  ORDERS ||--o{ CONVERSATIONS : discusses
+  CONVERSATIONS ||--o{ CONVERSATION_PARTICIPANTS : contains
   CONVERSATIONS ||--o{ CONVERSATION_MESSAGES : contains
-  PATENT_MAP_ENTRIES }o--|| REGIONS : for_region
+  USERS ||--o{ CONVERSATION_PARTICIPANTS : joins
+  USERS ||--o{ CONVERSATION_MESSAGES : sends
+
+  USERS ||--o{ NOTIFICATIONS : receives
+  USERS ||--o{ IDEMPOTENCY_KEYS : uses
+  USERS ||--o{ AUDIT_LOGS : acts
+
+  PATENTS ||--o{ PATENT_MAINTENANCE_SCHEDULES : maintains
+  USERS ||--o{ PATENT_MAINTENANCE_SCHEDULES : owns
+  PATENT_MAINTENANCE_SCHEDULES ||--o{ PATENT_MAINTENANCE_TASKS : generates
+  USERS ||--o{ PATENT_MAINTENANCE_TASKS : assigned_to
+  PATENT_MAINTENANCE_TASKS ||--o{ PATENT_MAINTENANCE_ORDERS : creates
+  USERS ||--o{ PATENT_MAINTENANCE_ORDERS : purchases
+
+

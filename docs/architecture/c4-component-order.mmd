@@ -1,43 +1,80 @@
-%%{init: {'theme':'base','flowchart': {'htmlLabels': true},'themeVariables': {'fontFamily': 'Inter, Microsoft YaHei, sans-serif','lineColor':'#64748B','primaryTextColor':'#0F172A','primaryBorderColor':'#CBD5E1','primaryColor':'#F8FAFC'}}}%%
+﻿%%{init: {'theme':'base','flowchart': {'htmlLabels': true, 'curve': 'linear'},'themeVariables': {'fontFamily': 'Microsoft YaHei, PingFang SC, Noto Sans CJK SC, Helvetica Neue, Arial, sans-serif','lineColor':'#64748B','primaryTextColor':'#0F172A','primaryBorderColor':'#CBD5E1','primaryColor':'#F8FAFC','secondaryColor':'#EFF6FF','tertiaryColor':'#FFF7ED'}}}%%
 flowchart TB
-  subgraph OS[Order Service（订单域容器）]
-    API["Order API<br/>REST/gRPC"]
-    App["Order Application Service<br/>用例编排"]
-    Domain["Order Domain<br/>状态机/校验"]
-    Refund["Refund Policy Engine<br/>退款规则判定"]
-    Repo["Repositories<br/>Order/Refund/Outbox"]
-    Outbox["Outbox Publisher<br/>事件可靠投递"]
-    Consumer["Event Consumer<br/>订阅支付/里程碑事件"]
+  subgraph Entry[接口与鉴权]
+    direction LR
+    Controller[OrdersController<br/>用户端 + 管理端订单接口]
+    Guard[BearerAuthGuard / VerifiedUserGuard<br/>权限校验]
   end
 
-  DB[(order-db)]
-  Bus[(Event Bus)]
-
-  subgraph Ext[外部依赖服务]
-    Pay[Payment Service]
-    Case[Case/Workflow Service]
-    Settle[Settlement Service]
-    Notif[Notification Service]
+  subgraph AppService[应用服务：OrdersService]
+    direction TB
+    Validation[参数校验与幂等控制<br/>page/pageSize/status/idempotency-key]
+    StateMachine[订单状态机<br/>DEPOSIT_PENDING -> COMPLETED]
+    PaymentIntent[支付意图编排<br/>订金/尾款]
+    RefundEngine[退款规则引擎<br/>自动退 / 人工审核]
+    SettlementEngine[结算引擎<br/>佣金计算 + 手工放款确认]
+    InvoiceEngine[发票流程<br/>申请/开具/绑定/撤销]
+    NotifyAdapter[通知适配器<br/>NotificationsService]
+    AuditAdapter[审计适配器<br/>AuditLogService]
+    ConfigAdapter[规则适配器<br/>ConfigService]
+    WechatPayAdapter[微信支付适配器<br/>WechatPayClient]
   end
 
-  API --> App
-  App --> Domain
-  App --> Refund
-  App --> Repo
-  Domain --> Repo
-  Refund --> Repo
-  Repo --> DB
+  subgraph Repo[持久化层（Prisma）]
+    direction LR
+    OrdersRepo[(orders)]
+    PaymentsRepo[(payments)]
+    RefundRepo[(refund_requests)]
+    CasesRepo[(cs_cases / cs_milestones)]
+    SettlementRepo[(settlements)]
+    InvoiceRepo[(files + order.invoice_*)]
+    IdempotencyRepo[(idempotency_keys)]
+    AuditRepo[(audit_logs)]
+  end
 
-  App --> Outbox
-  Outbox --> DB
-  Outbox --> Bus
+  subgraph Collaborators[协作模块]
+    direction LR
+    ConfigModule[ConfigModule]
+    NotifModule[NotificationsModule]
+  end
 
-  Bus --> Consumer
-  Consumer --> Domain
+  Controller --> Guard
+  Guard --> Validation
 
-  App <--> Pay
-  Case --> Bus
-  Pay --> Bus
-  Domain --> Bus
-  Bus --> Settle
-  Bus --> Notif
+  Validation --> StateMachine
+  Validation --> PaymentIntent
+  Validation --> RefundEngine
+  Validation --> SettlementEngine
+  Validation --> InvoiceEngine
+
+  PaymentIntent --> WechatPayAdapter
+  RefundEngine --> StateMachine
+  SettlementEngine --> StateMachine
+  InvoiceEngine --> StateMachine
+
+  StateMachine --> OrdersRepo
+  PaymentIntent --> PaymentsRepo
+  RefundEngine --> RefundRepo
+  RefundEngine --> CasesRepo
+  SettlementEngine --> SettlementRepo
+  InvoiceEngine --> InvoiceRepo
+  Validation --> IdempotencyRepo
+
+  AuditAdapter --> AuditRepo
+  StateMachine --> AuditAdapter
+  PaymentIntent --> AuditAdapter
+  RefundEngine --> AuditAdapter
+  SettlementEngine --> AuditAdapter
+  InvoiceEngine --> AuditAdapter
+
+  StateMachine --> NotifyAdapter
+  RefundEngine --> NotifyAdapter
+  SettlementEngine --> NotifyAdapter
+  InvoiceEngine --> NotifyAdapter
+
+  NotifyAdapter --> NotifModule
+  ConfigAdapter --> ConfigModule
+  SettlementEngine --> ConfigAdapter
+  RefundEngine --> ConfigAdapter
+
+

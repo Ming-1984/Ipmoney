@@ -1,37 +1,46 @@
-%%{init: {'theme':'base','flowchart': {'htmlLabels': true},'themeVariables': {'fontFamily': 'Inter, Microsoft YaHei, sans-serif','lineColor':'#64748B','primaryTextColor':'#0F172A','primaryBorderColor':'#CBD5E1','primaryColor':'#F8FAFC'}}}%%
+﻿%%{init: {'theme':'base','flowchart': {'htmlLabels': true, 'curve': 'linear'},'themeVariables': {'fontFamily': 'Microsoft YaHei, PingFang SC, Noto Sans CJK SC, Helvetica Neue, Arial, sans-serif','lineColor':'#64748B','primaryTextColor':'#0F172A','primaryBorderColor':'#CBD5E1','primaryColor':'#F8FAFC','secondaryColor':'#EFF6FF','tertiaryColor':'#FFF7ED'}}}%%
 flowchart TB
-  Buyer([买家])
-  Seller([卖家/供给方])
-  CS([平台客服])
-  Ops([平台运营/审核/财务])
+  subgraph Roles[参与角色]
+    direction LR
+    Buyer([买家])
+    Seller([卖家])
+    CS([客服])
+    Ops([运营/审核/财务])
+  end
 
-  MP["微信小程序<br/>（买家/卖家）"]
-  H5["用户 H5<br/>（Taro；电脑端可用）"]
-  Admin["PC Web 后台<br/>（运营/客服/财务）"]
+  subgraph Channels[访问终端]
+    direction LR
+    MP["微信小程序<br/>买家/卖家共用"]
+    H5["用户 H5<br/>浏览与咨询（电脑端可用）"]
+    Admin["运营后台 Web<br/>审核/跟单/财务处理"]
+  end
 
-  System["Ipmoney 专利交易平台<br/>订金+尾款托管 / 客服介入 / 线下签约 / 线上结算"]
+  System["Ipmoney 交易平台<br/>模块化单体（NestJS）<br/>主链路：上架 -> 订金 -> 合同确认 -> 尾款 -> 过户 -> 结算"]
 
-  Wx([微信开放平台<br/>登录/消息])
-  WxPay([微信支付])
-  SMS([短信/模板消息服务])
-  Mail([邮件服务])
-  AiProvider([AI/ASR/LLM 提供方])
-  OSS([对象存储<br/>图片/合同/附件])
+  subgraph External[外部系统]
+    direction LR
+    Wx([微信开放平台<br/>登录/消息能力])
+    WxPay([微信支付 v3<br/>支付/退款])
+    Notify([短信/邮件通道])
+    Storage([对象存储/CDN<br/>附件与媒体分发])
+    AI([AI 服务提供方<br/>解析/智能体，P1])
+  end
 
   Buyer --> MP
-  Buyer --> H5
   Seller --> MP
+  Buyer --> H5
   Seller --> H5
   CS --> Admin
   Ops --> Admin
 
-  MP --> System
-  H5 --> System
-  Admin --> System
+  MP -->|HTTPS API| System
+  H5 -->|HTTPS API| System
+  Admin -->|HTTPS API| System
 
-  System --> Wx
-  System --> WxPay
-  System --> SMS
-  System --> Mail
-  System --> AiProvider
-  System --> OSS
+  System -->|OAuth/消息| Wx
+  System -->|支付下单/回调| WxPay
+  System -->|通知发送| Notify
+  System -->|上传/下载| Storage
+  System -.->|能力预留| AI
+
+

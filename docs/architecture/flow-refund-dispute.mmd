@@ -1,4 +1,4 @@
-﻿%%{init: {'theme':'base','flowchart': {'htmlLabels': true},'themeVariables': {'fontFamily': 'Inter, Microsoft YaHei, sans-serif','lineColor':'#64748B','primaryTextColor':'#0F172A','primaryBorderColor':'#CBD5E1','primaryColor':'#F8FAFC'}}}%%
+﻿%%{init: {'theme':'base','flowchart': {'htmlLabels': true, 'curve': 'linear'},'themeVariables': {'fontFamily': 'Microsoft YaHei, PingFang SC, Noto Sans CJK SC, Helvetica Neue, Arial, sans-serif','lineColor':'#64748B','primaryTextColor':'#0F172A','primaryBorderColor':'#CBD5E1','primaryColor':'#F8FAFC','secondaryColor':'#EFF6FF','tertiaryColor':'#FFF7ED'}}}%%
 flowchart TB
   Buyer([买家])
   Seller([卖家])
@@ -43,3 +43,5 @@ flowchart TB
   Chat -->|客服介入分配| CS
   CS -->|上传证据/补充说明| Case
   Case -->|裁定（全退/部分退/不退）| Payment
+
+

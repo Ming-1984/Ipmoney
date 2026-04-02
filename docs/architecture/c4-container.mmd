@@ -1,139 +1,72 @@
-﻿%%{init: {'theme':'base','flowchart': {'htmlLabels': true},'themeVariables': {'fontFamily': 'Inter, Microsoft YaHei, sans-serif','fontSize': '18px','lineColor':'#64748B','primaryTextColor':'#0F172A','primaryBorderColor':'#CBD5E1','primaryColor':'#F8FAFC'}}}%%
+﻿%%{init: {'theme':'base','flowchart': {'htmlLabels': true, 'curve': 'linear'},'themeVariables': {'fontFamily': 'Microsoft YaHei, PingFang SC, Noto Sans CJK SC, Helvetica Neue, Arial, sans-serif','lineColor':'#64748B','primaryTextColor':'#0F172A','primaryBorderColor':'#CBD5E1','primaryColor':'#F8FAFC','secondaryColor':'#EFF6FF','tertiaryColor':'#FFF7ED'}}}%%
 flowchart LR
-  subgraph Clients[客户端]
+  subgraph Client[接入端]
     direction LR
-    MP[微信小程序]
-    UserH5[用户 H5（Taro；电脑端可用）]
-    AdminWeb[后台管理 Web]
+    MP[微信小程序<br/>Taro]
+    H5[用户 H5<br/>Taro H5]
+    AdminWeb[后台 Web<br/>React + AntD]
   end
 
-  subgraph Edge[边界层]
-    Gateway[API Gateway / BFF]
+  subgraph Edge[接入层]
+    direction TB
+    APIGW[API 入口<br/>NestJS Controller + Guard + Filter]
+    Mock[Mock API（可选）<br/>Prism + Fixtures]
   end
 
-  subgraph Services[可拆分微服务（核心域）]
-    direction LR
-
-    subgraph Core[业务服务]
-      direction TB
-      Auth["Auth Service<br/>登录/鉴权/RBAC"]
-      User["User Service<br/>用户资料/认证主体"]
-      Patent["Patent Service<br/>专利主数据/号码规范化"]
-      Listing["Listing Service<br/>上架/下架/定价/材料"]
-      Search["Search/Recommend Service<br/>检索/猜你喜欢/排序"]
-      Order["Order Service<br/>订单状态机/退款规则/发票"]
-      Payment["Payment Service<br/>支付/退款/回调幂等"]
-      Settlement["Settlement Service<br/>佣金/放款/台账"]
-      Case["Case/Workflow Service<br/>跟单工单/里程碑/证据"]
-      Maintenance["Maintenance Service<br/>年费日程/托管工单（P1）"]
-    end
-
-    subgraph Support[支撑服务]
-      direction TB
-      Audit["Audit Service<br/>内容审核/风控"]
-      Msg["Messaging Service<br/>IM/会话"]
-      File["File Service<br/>上传/下载/水印"]
-      Content["Content Service<br/>公告/专题"]
-      Notif["Notification Service<br/>站内信/短信/模板消息"]
-      AiAgent["AI Agent Service<br/>语音/意图解析/匹配（P1）"]
-      AiParse["AI Parsing Service<br/>内容解析/评分闭环（P1）"]
-      Alert["Alerting Service<br/>告警规则/升级（P1）"]
-      Analytics["Analytics Service<br/>统计/报表/告警触发（P1）<br/>交易库/成果库/产学研库"]
-    end
+  subgraph Monolith[应用层：模块化单体（apps/api）]
+    direction TB
+    AuthUser["身份与权限域<br/>auth / users / rbac / addresses"]
+    Trading["交易主域<br/>patents / listings / orders / contracts / files"]
+    ServiceDesk["客服与运营域<br/>conversations / cases / comments / notifications"]
+    OpsDomain["运营扩展域<br/>reports / regions / config / patent-map / patent-maintenance / alerts / ai"]
+    Common["通用支撑<br/>audit-log / idempotency / content-event / webhook"]
   end
 
   subgraph Data[数据与基础设施]
     direction LR
-    PG[(PostgreSQL<br/>主库（按域分 schema / 可演进到拆库）)]
-    Redis[(Redis<br/>缓存/限流/任务队列（BullMQ）)]
-    MQ[(Event Bus<br/>Kafka/RabbitMQ（P1）)]
-    ES[(Search Index<br/>ES/OpenSearch（P1）)]
-    OSS[(Object Storage<br/>图片/合同/附件)]
+    PG[(PostgreSQL 16<br/>主交易库)]
+    Redis[(Redis 7<br/>缓存/限流/任务队列)]
+    Upload[(本地 uploads 目录<br/>开发与演示环境)]
+    OSS[(对象存储 S3 兼容<br/>MinIO/COS/OSS)]
   end
 
-  subgraph External[第三方]
+  subgraph External[第三方能力]
     direction LR
-    WxLogin[微信开放平台<br/>登录/消息]
-    WxPay[微信支付]
-    SMS[短信/模板消息]
-    Email[邮件服务]
-    AiProvider[AI/ASR/LLM 提供方]
-    PatentProvider[外部专利数据源<br/>CNIPA/第三方（P1 可选）]
+    WxAuth[微信开放平台<br/>登录/消息]
+    WxPay[微信支付 v3]
+    MsgProvider[短信/邮件通道]
+    AIProvider[AI 服务商（P1）]
   end
 
-  MP -->|HTTPS| Gateway
-  UserH5 -->|HTTPS| Gateway
-  AdminWeb -->|HTTPS| Gateway
+  MP -->|HTTPS| APIGW
+  H5 -->|HTTPS| APIGW
+  AdminWeb -->|HTTPS| APIGW
+  Mock -.联调/演示.-> APIGW
 
-  Gateway --> Auth
-  Gateway --> User
-  Gateway --> Patent
-  Gateway --> Listing
-  Gateway --> Search
-  Gateway --> Order
-  Gateway --> Payment
-  Gateway --> Settlement
-  Gateway --> Case
-  Gateway --> Maintenance
-  Gateway --> Audit
-  Gateway --> Msg
-  Gateway --> File
-  Gateway --> Content
-  Gateway --> AiAgent
-  Gateway --> AiParse
-  Gateway --> Alert
-  Gateway --> Analytics
+  APIGW --> AuthUser
+  APIGW --> Trading
+  APIGW --> ServiceDesk
+  APIGW --> OpsDomain
+  APIGW --> Common
 
-  %% Data
-  Gateway --> Redis
-  Auth --> Redis
-  Search --> Redis
-  Order --> Redis
-  AiAgent --> Redis
+  AuthUser --> PG
+  Trading --> PG
+  ServiceDesk --> PG
+  OpsDomain --> PG
+  Common --> PG
 
-  Auth --> PG
-  User --> PG
-  Patent --> PG
-  Listing --> PG
-  Search --> PG
-  Order --> PG
-  Payment --> PG
-  Settlement --> PG
-  Case --> PG
-  Maintenance --> PG
-  Audit --> PG
-  Msg --> PG
-  Content --> PG
-  AiAgent --> PG
-  AiParse --> PG
-  Alert --> PG
-  Analytics --> PG
+  APIGW --> Redis
+  Trading --> Redis
+  ServiceDesk --> Redis
+  OpsDomain --> Redis
 
-  %% P0：使用 PG FTS；P1：接入 ES/OpenSearch
-  Search -.-> ES
-  File --> OSS
+  Trading --> Upload
+  Trading --> OSS
+  OpsDomain --> OSS
 
-  %% 事件驱动（典型：支付确认/退款完成/合同签署确认/变更完成/上架变更等）
-  %% P0：用 BullMQ/Outbox 做可靠异步；P1：可升级 Event Bus
-  Listing -.-> MQ
-  Order -.-> MQ
-  Payment -.-> MQ
-  Settlement -.-> MQ
-  Case -.-> MQ
-  Audit -.-> MQ
-  Search -.-> MQ
-  Notif -.-> MQ
-  Maintenance -.-> MQ
-  Alert -.-> MQ
-  Analytics -.-> MQ
+  AuthUser --> WxAuth
+  Trading --> WxPay
+  ServiceDesk --> MsgProvider
+  OpsDomain -.能力预留.-> AIProvider
 
-  Auth --> WxLogin
-  Payment --> WxPay
-  Notif --> SMS
-  Notif --> Email
-  AiAgent --> AiProvider
-  AiParse --> AiProvider
-  Alert --> Notif
 
-  %% P0：不接外部专利数据源；P1 可通过适配层/任务刷新接入
-  PatentProvider -.-> Patent

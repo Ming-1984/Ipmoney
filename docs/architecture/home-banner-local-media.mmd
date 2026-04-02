@@ -1,15 +1,17 @@
+﻿%%{init: {'theme':'base','flowchart': {'htmlLabels': true, 'curve': 'linear'},'themeVariables': {'fontFamily': 'Microsoft YaHei, PingFang SC, Noto Sans CJK SC, Helvetica Neue, Arial, sans-serif','lineColor':'#64748B','primaryTextColor':'#0F172A','primaryBorderColor':'#CBD5E1','primaryColor':'#F8FAFC','secondaryColor':'#EFF6FF','tertiaryColor':'#FFF7ED'}}}%%
 flowchart LR
-  subgraph Build[Build Time]
-    A[Local videos\nbanner-local-1.mp4/2.mp4] --> B[Taro mini.copy\n-> dist/weapp/assets/home]
+  subgraph Build[构建阶段]
+    A[本地视频文件<br/>banner-local-1.mp4 / banner-local-2.mp4] --> B[Taro mini.copy<br/>写入 dist/weapp/assets/home]
   end
 
-  subgraph Weapp[Weapp Runtime]
-    C[Home Banner Swiper]
-    D[ensureWeappVideoSrc\ncopy to USER_DATA_PATH]
-    E[Video src=wxfile://...]
-    F[Tap banner]
-    G[Video Preview Page\nsubpackages/media/video-preview]
+  subgraph Weapp[小程序运行阶段]
+    C[首页 Banner 轮播]
+    D[ensureWeappVideoSrc<br/>复制到 USER_DATA_PATH]
+    E[视频地址：wxfile://...]
+    F[点击 Banner]
+    G[视频预览页<br/>subpackages/media/video-preview]
   end
 
   B --> D --> E --> C
   C --> F --> G
+

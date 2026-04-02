@@ -1,0 +1,64 @@
+﻿%%{init: {'theme':'base','flowchart': {'htmlLabels': true, 'curve': 'linear'},'themeVariables': {'fontFamily': 'Microsoft YaHei, PingFang SC, Noto Sans CJK SC, Helvetica Neue, Arial, sans-serif','lineColor':'#64748B','primaryTextColor':'#0F172A','primaryBorderColor':'#CBD5E1','primaryColor':'#F8FAFC','secondaryColor':'#EFF6FF','tertiaryColor':'#FFF7ED'}}}%%
+flowchart TB
+  Internet([互联网用户])
+
+  subgraph Access[访问层]
+    direction LR
+    CDN[CDN / 静态资源域名]
+    WAF[WAF / 反向代理]
+  end
+
+  subgraph Frontend[前端运行时]
+    direction LR
+    MiniProgram[微信小程序包<br/>Taro 构建产物]
+    H5App[H5 静态站点]
+    AdminApp[后台管理站点]
+  end
+
+  subgraph Backend[应用服务层]
+    direction TB
+    API[apps/api<br/>NestJS 模块化单体]
+    Worker[异步任务处理<br/>Redis 队列/BullMQ]
+  end
+
+  subgraph Data[数据层]
+    direction LR
+    PG[(PostgreSQL 16)]
+    Redis[(Redis 7)]
+    Upload[(UPLOAD_DIR 本地目录)]
+    OSS[(S3 对象存储 + CDN)]
+  end
+
+  subgraph External[外部能力]
+    direction LR
+    WxOpen[微信开放平台]
+    WxPay[微信支付 v3]
+    SmsMail[短信/邮件通道]
+  end
+
+  Internet --> CDN
+  Internet --> WAF
+
+  CDN --> H5App
+  CDN --> AdminApp
+  Internet --> MiniProgram
+
+  MiniProgram --> WAF
+  H5App --> WAF
+  AdminApp --> WAF
+
+  WAF --> API
+  API --> Worker
+
+  API --> PG
+  API --> Redis
+  Worker --> Redis
+
+  API --> Upload
+  API --> OSS
+
+  API --> WxOpen
+  API --> WxPay
+  API --> SmsMail
+
+

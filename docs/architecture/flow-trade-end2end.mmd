@@ -1,60 +1,62 @@
-﻿%%{init: {'theme':'base','flowchart': {'htmlLabels': true},'themeVariables': {'fontFamily': 'Inter, Microsoft YaHei, sans-serif','lineColor':'#64748B','primaryTextColor':'#0F172A','primaryBorderColor':'#CBD5E1','primaryColor':'#F8FAFC'}}}%%
-flowchart LR
-  %% UI note: Chat/consult page adds safety banner + context card; service interactions unchanged.
-  %% 主链路：搜索→订金→线下签约→尾款→变更→结算放款（P0）
-  Buyer(["买家<br/>小程序 + H5（电脑端可用）"])
-  Seller(["卖家<br/>小程序 + H5（电脑端可用）"])
-  CS(["客服/运营<br/>PC 后台"])
-  Finance(["财务<br/>PC 后台"])
+﻿%%{init: {'theme':'base','flowchart': {'htmlLabels': true, 'curve': 'linear'},'themeVariables': {'fontFamily': 'Microsoft YaHei, PingFang SC, Noto Sans CJK SC, Helvetica Neue, Arial, sans-serif','lineColor':'#64748B','primaryTextColor':'#0F172A','primaryBorderColor':'#CBD5E1','primaryColor':'#F8FAFC','secondaryColor':'#EFF6FF','tertiaryColor':'#FFF7ED'}}}%%
+flowchart TB
+  Buyer([买家])
+  Seller([卖家])
+  CS([客服/运营])
+  Finance([财务])
   WxPay([微信支付])
 
-  subgraph Platform[平台服务]
-    Search["Search Service<br/>检索"]
-    Listing["Listing Service<br/>上架商品"]
-    Order["Order Service<br/>订单状态机"]
-    Case["Case/Workflow Service<br/>跟单工单/里程碑"]
-    Payment["Payment Service<br/>支付/退款回调"]
-    Settlement["Settlement Service<br/>佣金/放款/台账"]
-    Notif["Notification Service<br/>模板消息/站内通知"]
-    File["File Service<br/>上传/下载"]
+  subgraph ClientFlow[用户动作]
+    direction LR
+    C1[搜索与查看详情]
+    C2[创建订单]
+    C3[支付订金]
+    C4[线下签约后支付尾款]
+    C5[等待过户与结算]
+    C6[下载发票/查看完成状态]
   end
 
-  Buyer -->|搜索/筛选| Search
-  Search -->|返回列表| Buyer
-  Buyer -->|查看详情| Listing
-  Listing -->|返回商品详情| Buyer
+  subgraph PlatformFlow[平台主链路（P0）]
+    direction LR
+    P1[Order Service<br/>创建订单（待付订金）]
+    P2[Payment Service<br/>订金支付确认（订金已付）]
+    P3[Case Service<br/>客服跟单/合同确认（待付尾款）]
+    P4[Payment Service<br/>尾款托管（待过户）]
+    P5[Case Service<br/>过户完成（待结算）]
+    P6[Settlement Service<br/>人工放款（已完成）]
+  end
 
-  Buyer -->|创建订单| Order
-  Buyer -->|支付订金（小程序）| Payment
-  Payment -->|JSAPI 下单（P1）| WxPay
-  WxPay -->|支付回调（P1）| Payment
-  Payment -->|支付确认事件（P0 手工确认 / P1 回调）| Order
-  Order -->|状态 DEPOSIT_PAID| Case
-  Case -->|分配客服| CS
-  Notif -->|通知买家/卖家| Buyer
-  Notif -->|通知买家/卖家| Seller
+  subgraph SupportSvc[支撑服务]
+    direction LR
+    Listing[Listing/Search Service]
+    Notif[Notification Service]
+    File[File Service]
+  end
 
-  CS -->|线下跟单：材料核验/尽调清单| Seller
-  CS -->|线下跟单：签署合同| Buyer
+  Buyer --> C1 --> C2 --> C3 --> C4 --> C5 --> C6
+  Seller --> C1
+  CS --> P3
+  CS --> P5
+  Finance --> P6
 
-  CS -->|后台确认：合同已签署 + 成交价| Case
-  Case -->|ContractSignedConfirmed| Order
-  Order -->|状态 WAIT_FINAL_PAYMENT| Notif
-  Notif -->|解锁尾款支付通知| Buyer
+  C1 --> Listing
+  C2 --> P1
+  C3 --> P2
+  C4 --> P4
+  C5 --> P5
 
-  Buyer -->|支付尾款（托管；小程序）| Payment
-  Payment -->|JSAPI 下单（P1）| WxPay
-  WxPay -->|支付回调（P1）| Payment
-  Payment -->|支付确认事件（P0 手工确认 / P1 回调）| Order
-  Order -->|状态 FINAL_PAID_ESCROW| Case
+  P1 --> P2 --> P3 --> P4 --> P5 --> P6
 
-  CS -->|线下办理权属变更/备案| Seller
-  CS -->|线下办理权属变更/备案| Buyer
-  CS -->|后台确认：变更完成| Case
-  Case -->|TransferCompletedConfirmed| Order
-  Order -->|OrderReadyToSettle| Settlement
+  P2 <--> WxPay
+  P4 <--> WxPay
 
-  Settlement -->|计算佣金（卖家承担）| Settlement
-  Settlement -->|生成待放款台账| Finance
-  Finance -->|线下转账/打款（P0 默认）并回传凭证| Settlement
-  Settlement -->|SettlementCompleted| Order
+  P2 --> Notif
+  P3 --> Notif
+  P4 --> Notif
+  P6 --> Notif
+  P6 --> File
+
+  Notif --> Buyer
+  Notif --> Seller
+  File --> C6
+

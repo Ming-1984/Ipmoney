@@ -294,6 +294,28 @@ $env:BASE_URL = $apiBaseUrl
 $env:PUBLIC_HOST_WHITELIST = "localhost:$ApiPort,127.0.0.1:$ApiPort"
 $env:TARO_APP_API_BASE_URL = $apiBaseUrl
 $env:VITE_API_BASE_URL = $apiBaseUrl
+$localCorsOrigins = @(
+  "http://127.0.0.1:$AdminPort",
+  "http://localhost:$AdminPort",
+  "http://127.0.0.1:$ApiPort",
+  "http://localhost:$ApiPort"
+)
+if ($Client -eq "h5") {
+  $localCorsOrigins += @(
+    "http://127.0.0.1:$ClientPort",
+    "http://localhost:$ClientPort"
+  )
+}
+
+$mergedCorsOrigins = @()
+$rawCorsOrigins = ([string]$env:CORS_ORIGINS).Trim()
+if (-not [string]::IsNullOrWhiteSpace($rawCorsOrigins) -and $rawCorsOrigins -ne "*") {
+  $mergedCorsOrigins += $rawCorsOrigins.Split(",") | ForEach-Object { $_.Trim() } | Where-Object { $_ }
+}
+$mergedCorsOrigins += $localCorsOrigins
+$mergedCorsOrigins = $mergedCorsOrigins | Select-Object -Unique
+$env:CORS_ORIGINS = $mergedCorsOrigins -join ","
+
 $mockToolsValue = if ($EnableMockTools) { "1" } else { "0" }
 $env:TARO_APP_ENABLE_MOCK_TOOLS = $mockToolsValue
 $env:VITE_ENABLE_MOCK_TOOLS = $mockToolsValue
@@ -324,7 +346,7 @@ if ($EnableDemoAuth) {
 
 $psExe = (Get-Command powershell).Source
 
-$apiCommand = "cd `"$repoRoot`"; `$env:PORT='$ApiPort'; `$env:BASE_URL='$apiBaseUrl'; `$env:PUBLIC_HOST_WHITELIST='localhost:$ApiPort,127.0.0.1:$ApiPort'; `$env:DEMO_AUTH_ENABLED='$demoAuthValue'; `$env:DEMO_PAYMENT_ENABLED='$demoPaymentValue'; `$env:DEMO_AUTH_ALLOW_UUID_TOKENS='$($env:DEMO_AUTH_ALLOW_UUID_TOKENS)'; `$env:DEMO_ADMIN_TOKEN='$($env:DEMO_ADMIN_TOKEN)'; `$env:DEMO_USER_TOKEN='$($env:DEMO_USER_TOKEN)'; `$env:DEMO_ADMIN_ID='$($env:DEMO_ADMIN_ID)'; `$env:DEMO_USER_ID='$($env:DEMO_USER_ID)'; pnpm -C apps/api dev"
+$apiCommand = "cd `"$repoRoot`"; `$env:PORT='$ApiPort'; `$env:BASE_URL='$apiBaseUrl'; `$env:PUBLIC_HOST_WHITELIST='localhost:$ApiPort,127.0.0.1:$ApiPort'; `$env:CORS_ORIGINS='$($env:CORS_ORIGINS)'; `$env:DEMO_AUTH_ENABLED='$demoAuthValue'; `$env:DEMO_PAYMENT_ENABLED='$demoPaymentValue'; `$env:DEMO_AUTH_ALLOW_UUID_TOKENS='$($env:DEMO_AUTH_ALLOW_UUID_TOKENS)'; `$env:DEMO_ADMIN_TOKEN='$($env:DEMO_ADMIN_TOKEN)'; `$env:DEMO_USER_TOKEN='$($env:DEMO_USER_TOKEN)'; `$env:DEMO_ADMIN_ID='$($env:DEMO_ADMIN_ID)'; `$env:DEMO_USER_ID='$($env:DEMO_USER_ID)'; pnpm -C apps/api dev"
 $adminCommand = "cd `"$repoRoot`"; `$env:VITE_API_BASE_URL='$apiBaseUrl'; `$env:VITE_ENABLE_MOCK_TOOLS='$mockToolsValue'; `$env:VITE_DEMO_ADMIN_TOKEN='$($env:DEMO_ADMIN_TOKEN)'; `$env:VITE_DEMO_AUTH_ENABLED='$demoAuthValue'; `$env:ADMIN_WEB_PORT='$AdminPort'; pnpm -C apps/admin-web dev"
 
 $clientCommand = $null
@@ -356,6 +378,7 @@ Write-Host "[start] Admin:     http://127.0.0.1:$AdminPort"
 if ($Client -eq "h5") {
   Write-Host "[start] Client H5: http://127.0.0.1:$ClientPort"
 }
+Write-Host "[start] CORS:      $($env:CORS_ORIGINS)"
 if ($Client -eq "weapp") {
   Write-Host "[start] Client:    apps/client (miniprogramRoot dist/weapp)"
 }
