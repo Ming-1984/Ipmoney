@@ -1,6 +1,7 @@
 param(
-  [string]$MdPath = "docs/architecture/client-handover-mini-admin.md",
-  [string]$CssPath = "docs/architecture/pdf-cn.css"
+  [string]$MdPath = "docs/architecture/client-handover-mini-program-admin.md",
+  [string]$CssPath = "docs/architecture/pdf-cn.css",
+  [switch]$Regenerate
 )
 
 $ErrorActionPreference = "Stop"
@@ -14,6 +15,15 @@ if (-not (Test-Path -LiteralPath $CssPath)) {
 }
 
 $resolvedMd = (Resolve-Path -LiteralPath $MdPath).Path
+
+if ($Regenerate) {
+  $generator = "scripts/generate-party-a-handover.py"
+  if (-not (Test-Path -LiteralPath $generator)) {
+    throw "未找到文档生成脚本：$generator"
+  }
+  Write-Host "[handover] regenerating markdown from source"
+  python $generator | Out-Host
+}
 
 Write-Host "[handover] exporting PDF from $MdPath"
 npx -y md-to-pdf $MdPath --stylesheet $CssPath | Out-Host

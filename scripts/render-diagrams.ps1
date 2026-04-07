@@ -32,8 +32,12 @@ function ResolveExistingDiagrams([string[]]$paths, [string]$label) {
   return $existing
 }
 
-function RenderDiagram([string]$diagramPath, [string]$outDir) {
-  $baseName = [IO.Path]::GetFileNameWithoutExtension($diagramPath)
+function RenderDiagram([string]$diagramPath, [string]$outDir, [string]$outputBaseName = "") {
+  $baseName = if ([string]::IsNullOrWhiteSpace($outputBaseName)) {
+    [IO.Path]::GetFileNameWithoutExtension($diagramPath)
+  } else {
+    $outputBaseName
+  }
   $pngOut = Join-Path $outDir "$baseName.png"
   $pdfOut = Join-Path $outDir "$baseName.pdf"
   $svgOut = Join-Path $outDir "$baseName.svg"
@@ -114,15 +118,37 @@ function NormalizePngDir([string]$outDir) {
   }
 }
 
-$architectureInputs = Get-ChildItem -Path "docs/architecture" -Filter "*.mmd" -File |
-  Sort-Object Name |
-  ForEach-Object { $_.FullName }
+$architectureFiles = Get-ChildItem -Path "docs/architecture" -Filter "*.mmd" -File
 
-if (-not $architectureInputs -or $architectureInputs.Count -eq 0) {
+$hasErCn = $architectureFiles | Where-Object { $_.Name -ieq "er-diagram-cn.mmd" }
+if ($hasErCn) {
+  # Keep Chinese ER source as the canonical render input and skip the English source.
+  $architectureFiles = $architectureFiles | Where-Object { $_.Name -ine "er-diagram.mmd" }
+}
+
+$architectureDiagrams = $architectureFiles |
+  Sort-Object Name |
+  ForEach-Object {
+    $outputBaseName = if ($_.Name -ieq "er-diagram-cn.mmd") { "er-diagram" } else { $_.BaseName }
+    [PSCustomObject]@{
+      InputPath = $_.FullName
+      OutputBaseName = $outputBaseName
+    }
+  }
+
+if (-not $architectureDiagrams -or $architectureDiagrams.Count -eq 0) {
   throw "No architecture diagrams found under docs/architecture"
 }
 
 New-Item -ItemType Directory -Force $ArchitectureOutDir | Out-Null
+
+# Clean up legacy ER CN outputs to avoid duplicated artifacts in rendered directory.
+foreach ($legacyName in @("er-diagram-cn.png", "er-diagram-cn.pdf", "er-diagram-cn.svg")) {
+  $legacyPath = Join-Path $ArchitectureOutDir $legacyName
+  if (Test-Path $legacyPath) {
+    Remove-Item -Path $legacyPath -Force
+  }
+}
 
 $demoInputs = @()
 if ($IncludeDemo) {
@@ -142,8 +168,8 @@ if ($IncludeDemo) {
   $demoInputs = ResolveExistingDiagrams -paths $demoCandidates -label "demo"
 }
 
-foreach ($diagramPath in $architectureInputs) {
-  RenderDiagram $diagramPath $ArchitectureOutDir
+foreach ($diagram in $architectureDiagrams) {
+  RenderDiagram $diagram.InputPath $ArchitectureOutDir $diagram.OutputBaseName
 }
 
 if ($demoInputs.Count -gt 0) {
@@ -158,7 +184,7 @@ if ($demoInputs.Count -gt 0) {
 }
 
 Write-Host "Done."
-Write-Host "Architecture diagrams rendered: $($architectureInputs.Count)"
+Write-Host "Architecture diagrams rendered: $($architectureDiagrams.Count)"
 Write-Host "Architecture outputs:          $ArchitectureOutDir"
 if ($demoInputs.Count -gt 0) {
   Write-Host "Demo diagrams rendered:         $($demoInputs.Count)"

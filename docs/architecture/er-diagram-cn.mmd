@@ -1,0 +1,370 @@
+﻿%%{init: {'theme':'base','themeVariables': {'fontFamily': 'Microsoft YaHei, PingFang SC, Noto Sans CJK SC, Helvetica Neue, Arial, sans-serif','lineColor':'#64748B','primaryTextColor':'#0F172A','primaryBorderColor':'#CBD5E1','primaryColor':'#F8FAFC','secondaryColor':'#EFF6FF','tertiaryColor':'#FFF7ED'}}}%%
+erDiagram
+  USERS_用户表 {
+    uuid id_ID PK
+    string phone_手机号
+    string nickname_昵称
+    string role_角色
+    string region_code_地区编码
+    datetime created_at_创建时间
+    datetime updated_at_更新时间
+  }
+
+  RBAC_ROLES_权限角色表 {
+    string id_ID PK
+    string name_名称
+    string description_说明
+    datetime created_at_创建时间
+    datetime updated_at_更新时间
+  }
+
+  RBAC_USER_ROLES_用户角色关联表 {
+    uuid user_id_用户ID PK
+    string role_id_角色ID PK
+    datetime created_at_创建时间
+  }
+
+  USER_VERIFICATIONS_用户认证表 {
+    uuid id_ID PK
+    uuid user_id_用户ID FK
+    string type_类型
+    string status_状态
+    string display_name_展示名称
+    string region_code_地区编码
+    datetime submitted_at_提交时间
+    datetime reviewed_at_审核时间
+    uuid reviewed_by_审核人用户ID FK
+    datetime created_at_创建时间
+    datetime updated_at_更新时间
+  }
+
+  REGIONS_地区字典表 {
+    string code_编码 PK
+    string name_名称
+    string level_层级
+    string parent_code_上级地区编码
+    datetime updated_at_更新时间
+  }
+
+  INDUSTRY_TAGS_行业标签表 {
+    uuid id_ID PK
+    string name_名称
+    datetime created_at_创建时间
+    datetime updated_at_更新时间
+  }
+
+  PATENTS_专利主表 {
+    uuid id_ID PK
+    string application_no_norm_申请号标准化
+    string patent_type_专利类型
+    string title_标题
+    string legal_status_法律状态
+    string source_primary_主数据来源
+    datetime source_updated_at_来源更新时间
+    datetime created_at_创建时间
+    datetime updated_at_更新时间
+  }
+
+  FILES_文件资源表 {
+    uuid id_ID PK
+    string url_地址
+    string mime_type_媒体类型
+    int size_bytes_文件大小字节
+    uuid owner_id_归属人ID FK
+    datetime created_at_创建时间
+  }
+
+  LISTINGS_挂牌主表 {
+    uuid id_ID PK
+    uuid seller_user_id_卖方用户ID FK
+    uuid patent_id_专利ID FK
+    string title_标题
+    string trade_mode_交易模式
+    string price_type_价格类型
+    int price_amount_挂牌价格分
+    int deposit_amount_订金金额分
+    string region_code_地区编码
+    string audit_status_审核状态
+    string status_状态
+    datetime created_at_创建时间
+    datetime updated_at_更新时间
+  }
+
+  LISTING_MEDIA_挂牌媒体表 {
+    uuid id_ID PK
+    uuid listing_id_挂牌ID FK
+    uuid file_id_文件ID FK
+    string type_类型
+    int sort_排序
+  }
+
+  LISTING_AUDIT_LOGS_挂牌审核日志表 {
+    uuid id_ID PK
+    uuid listing_id_挂牌ID FK
+    uuid reviewer_id_审核人用户ID FK
+    string action_动作
+    string reason_原因
+    datetime created_at_创建时间
+  }
+
+  LISTING_FAVORITES_挂牌收藏表 {
+    uuid id_ID PK
+    uuid listing_id_挂牌ID FK
+    uuid user_id_用户ID FK
+    datetime created_at_创建时间
+  }
+
+  LISTING_STATS_挂牌统计表 {
+    uuid listing_id_挂牌ID PK
+    int view_count_浏览次数
+    int favorite_count_收藏次数
+    int consult_count_咨询次数
+    int comment_count_评论次数
+    datetime updated_at_更新时间
+  }
+
+  ORDERS_订单主表 {
+    uuid id_ID PK
+    uuid listing_id_挂牌ID FK
+    uuid buyer_user_id_买方用户ID FK
+    uuid assigned_cs_user_id_分配客服用户ID FK
+    string status_状态
+    int deposit_amount_订金金额分
+    int deal_amount_成交金额分
+    int final_amount_尾款金额分
+    int commission_amount_佣金金额分
+    string invoice_no_发票号
+    uuid invoice_file_id_发票文件ID FK
+    datetime invoice_issued_at_发票开具时间
+    datetime created_at_创建时间
+    datetime updated_at_更新时间
+  }
+
+  PAYMENTS_支付流水表 {
+    uuid id_ID PK
+    uuid order_id_订单ID FK
+    string pay_type_支付类型
+    string channel_渠道
+    int amount_金额
+    string status_状态
+    string transaction_no_交易流水号
+    datetime paid_at_支付完成时间
+    datetime created_at_创建时间
+  }
+
+  REFUND_REQUESTS_退款申请表 {
+    uuid id_ID PK
+    uuid order_id_订单ID FK
+    string reason_code_退款原因编码
+    string reason_text_退款原因说明
+    string status_状态
+    datetime created_at_创建时间
+    datetime updated_at_更新时间
+  }
+
+  CONTRACTS_合同表 {
+    uuid id_ID PK
+    uuid order_id_订单ID FK
+    uuid buyer_user_id_买方用户ID FK
+    uuid seller_user_id_卖方用户ID FK
+    string status_状态
+    uuid contract_file_id_合同文件ID FK
+    datetime signed_at_签署时间
+    datetime created_at_创建时间
+    datetime updated_at_更新时间
+  }
+
+  SETTLEMENTS_结算表 {
+    uuid id_ID PK
+    uuid order_id_订单ID FK
+    int gross_amount_结算毛额分
+    int commission_amount_佣金金额分
+    int payout_amount_放款金额分
+    string payout_status_放款状态
+    string payout_ref_放款参考号
+    uuid payout_evidence_file_id_放款凭证文件ID FK
+    datetime payout_at_放款时间
+    datetime created_at_创建时间
+    datetime updated_at_更新时间
+  }
+
+  CS_CASES_客服工单表 {
+    uuid id_ID PK
+    uuid order_id_订单ID FK
+    uuid cs_user_id_客服用户ID FK
+    string type_类型
+    string status_状态
+    string priority_优先级
+    datetime due_at_工单截止时间
+    datetime created_at_创建时间
+    datetime updated_at_更新时间
+  }
+
+  CS_MILESTONES_工单里程碑表 {
+    uuid id_ID PK
+    uuid case_id_工单ID FK
+    string name_名称
+    string status_状态
+    datetime created_at_创建时间
+    datetime updated_at_更新时间
+  }
+
+  CS_CASE_NOTES_工单备注表 {
+    uuid id_ID PK
+    uuid case_id_工单ID FK
+    uuid author_user_id_备注作者用户ID FK
+    string content_内容
+    datetime created_at_创建时间
+  }
+
+  CS_CASE_EVIDENCES_工单凭证表 {
+    uuid id_ID PK
+    uuid case_id_工单ID FK
+    uuid file_id_文件ID FK
+    string note_备注
+    datetime created_at_创建时间
+  }
+
+  CONVERSATIONS_会话表 {
+    uuid id_ID PK
+    uuid order_id_订单ID FK
+    string channel_渠道
+    string status_状态
+    datetime created_at_创建时间
+    datetime updated_at_更新时间
+  }
+
+  CONVERSATION_PARTICIPANTS_会话参与人表 {
+    uuid id_ID PK
+    uuid conversation_id_会话ID FK
+    uuid user_id_用户ID FK
+    string role_角色
+    datetime joined_at_加入时间
+  }
+
+  CONVERSATION_MESSAGES_会话消息表 {
+    uuid id_ID PK
+    uuid conversation_id_会话ID FK
+    uuid sender_user_id_消息发送用户ID FK
+    string content_type_内容类型
+    string content_内容
+    datetime created_at_创建时间
+  }
+
+  NOTIFICATIONS_通知表 {
+    uuid id_ID PK
+    uuid user_id_用户ID FK
+    string kind_类别
+    string title_标题
+    string summary_摘要
+    datetime read_at_阅读时间
+    datetime created_at_创建时间
+  }
+
+  SYSTEM_CONFIGS_系统配置表 {
+    string key_键 PK
+    string scope_作用域 PK
+    string value_type_配置值类型
+    string value_json_配置值JSON
+    datetime updated_at_更新时间
+  }
+
+  IDEMPOTENCY_KEYS_幂等键表 {
+    uuid id_ID PK
+    string key_键
+    string scope_作用域
+    uuid user_id_用户ID FK
+    string status_状态
+    datetime created_at_创建时间
+    datetime updated_at_更新时间
+  }
+
+  AUDIT_LOGS_审计日志表 {
+    uuid id_ID PK
+    uuid actor_user_id_操作人用户ID FK
+    string action_动作
+    string target_type_目标对象类型
+    string target_id_目标对象ID
+    string before_json_变更前快照JSON
+    string after_json_变更后快照JSON
+    datetime created_at_创建时间
+  }
+
+  PATENT_MAINTENANCE_SCHEDULES_专利维保日程表 {
+    uuid id_ID PK
+    uuid patent_id_专利ID FK
+    uuid owner_user_id_维保归属用户ID FK
+    string status_状态
+    date due_date_维保到期日期
+    datetime created_at_创建时间
+    datetime updated_at_更新时间
+  }
+
+  PATENT_MAINTENANCE_TASKS_专利维保任务表 {
+    uuid id_ID PK
+    uuid schedule_id_维保日程ID FK
+    string status_状态
+    uuid assignee_user_id_执行人用户ID FK
+    datetime created_at_创建时间
+    datetime updated_at_更新时间
+  }
+
+  PATENT_MAINTENANCE_ORDERS_专利维保订单表 {
+    uuid id_ID PK
+    uuid task_id_维保任务ID FK
+    uuid buyer_user_id_买方用户ID FK
+    string status_状态
+    int amount_金额
+    string payment_channel_支付渠道
+    datetime created_at_创建时间
+    datetime updated_at_更新时间
+  }
+
+  USERS_用户表 ||--o{ RBAC_USER_ROLES_用户角色关联表 : 拥有
+  RBAC_ROLES_权限角色表 ||--o{ RBAC_USER_ROLES_用户角色关联表 : 分配给
+  USERS_用户表 ||--o{ USER_VERIFICATIONS_用户认证表 : 提交
+  USERS_用户表 ||--o{ USER_VERIFICATIONS_用户认证表 : 审核
+  REGIONS_地区字典表 ||--o{ USERS_用户表 : 归属
+  REGIONS_地区字典表 ||--o{ USER_VERIFICATIONS_用户认证表 : 适用地区
+  USERS_用户表 ||--o{ FILES_文件资源表 : 拥有
+  PATENTS_专利主表 ||--o{ LISTINGS_挂牌主表 : 被引用
+  USERS_用户表 ||--o{ LISTINGS_挂牌主表 : 发布
+  REGIONS_地区字典表 ||--o{ LISTINGS_挂牌主表 : 所在地区
+  LISTINGS_挂牌主表 ||--o{ LISTING_MEDIA_挂牌媒体表 : 拥有
+  FILES_文件资源表 ||--o{ LISTING_MEDIA_挂牌媒体表 : 挂载文件
+  LISTINGS_挂牌主表 ||--o{ LISTING_AUDIT_LOGS_挂牌审核日志表 : 审核记录
+  USERS_用户表 ||--o{ LISTING_AUDIT_LOGS_挂牌审核日志表 : 审核
+  LISTINGS_挂牌主表 ||--|| LISTING_STATS_挂牌统计表 : 统计聚合
+  LISTINGS_挂牌主表 ||--o{ LISTING_FAVORITES_挂牌收藏表 : 被收藏
+  USERS_用户表 ||--o{ LISTING_FAVORITES_挂牌收藏表 : 收藏
+  LISTINGS_挂牌主表 ||--o{ ORDERS_订单主表 : 形成交易
+  USERS_用户表 ||--o{ ORDERS_订单主表 : 购买
+  USERS_用户表 ||--o{ ORDERS_订单主表 : 分配客服
+  FILES_文件资源表 ||--o{ ORDERS_订单主表 : 发票附件
+  ORDERS_订单主表 ||--o{ PAYMENTS_支付流水表 : 支付记录
+  ORDERS_订单主表 ||--o{ REFUND_REQUESTS_退款申请表 : 发起申请
+  ORDERS_订单主表 ||--o{ CONTRACTS_合同表 : 签署合同
+  ORDERS_订单主表 ||--|| SETTLEMENTS_结算表 : 结算
+  FILES_文件资源表 ||--o{ CONTRACTS_合同表 : 合同附件
+  FILES_文件资源表 ||--o{ SETTLEMENTS_结算表 : 放款凭证
+  ORDERS_订单主表 ||--o{ CS_CASES_客服工单表 : 跟进工单
+  USERS_用户表 ||--o{ CS_CASES_客服工单表 : 处理
+  CS_CASES_客服工单表 ||--o{ CS_MILESTONES_工单里程碑表 : 包含
+  CS_CASES_客服工单表 ||--o{ CS_CASE_NOTES_工单备注表 : 备注记录
+  CS_CASES_客服工单表 ||--o{ CS_CASE_EVIDENCES_工单凭证表 : 凭证记录
+  USERS_用户表 ||--o{ CS_CASE_NOTES_工单备注表 : 撰写
+  FILES_文件资源表 ||--o{ CS_CASE_EVIDENCES_工单凭证表 : 上传
+  ORDERS_订单主表 ||--o{ CONVERSATIONS_会话表 : 关联会话
+  CONVERSATIONS_会话表 ||--o{ CONVERSATION_PARTICIPANTS_会话参与人表 : 包含
+  CONVERSATIONS_会话表 ||--o{ CONVERSATION_MESSAGES_会话消息表 : 包含
+  USERS_用户表 ||--o{ CONVERSATION_PARTICIPANTS_会话参与人表 : 参与
+  USERS_用户表 ||--o{ CONVERSATION_MESSAGES_会话消息表 : 发送
+  USERS_用户表 ||--o{ NOTIFICATIONS_通知表 : 接收
+  USERS_用户表 ||--o{ IDEMPOTENCY_KEYS_幂等键表 : 使用
+  USERS_用户表 ||--o{ AUDIT_LOGS_审计日志表 : 操作
+  PATENTS_专利主表 ||--o{ PATENT_MAINTENANCE_SCHEDULES_专利维保日程表 : 维保计划
+  USERS_用户表 ||--o{ PATENT_MAINTENANCE_SCHEDULES_专利维保日程表 : 拥有
+  PATENT_MAINTENANCE_SCHEDULES_专利维保日程表 ||--o{ PATENT_MAINTENANCE_TASKS_专利维保任务表 : 生成任务
+  USERS_用户表 ||--o{ PATENT_MAINTENANCE_TASKS_专利维保任务表 : 分配给
+  PATENT_MAINTENANCE_TASKS_专利维保任务表 ||--o{ PATENT_MAINTENANCE_ORDERS_专利维保订单表 : 生成订单
+  USERS_用户表 ||--o{ PATENT_MAINTENANCE_ORDERS_专利维保订单表 : 下单购买

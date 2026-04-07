@@ -29,7 +29,8 @@
 - `sequence-wechat-login-onboarding.mmd`：微信登录与新手引导时序
 - `sequence-wechat-phone-bind.mmd`：微信手机号绑定时序
 - `state-order.mmd`：订单状态机
-- `er-diagram.mmd`：核心域 ER 图（P0 口径）
+- `er-diagram-cn.mmd`：核心域 ER 图（中文对外版，统一对接口径）
+- `er-diagram-client-brief.md`：ER 图甲方讲解文档（含中英实体对照、关系翻译、全量字段中文注释）
 
 ## 二、中文显示与换行规范
 
@@ -61,8 +62,8 @@ powershell -ExecutionPolicy Bypass -File scripts/render-diagrams.ps1
 
 ## 五、甲方对接文档（唯一版本）
 
-- Markdown：`docs/architecture/client-handover-mini-admin.md`
-- PDF：`docs/architecture/client-handover-mini-admin.pdf`
+- Markdown：`docs/architecture/client-handover-mini-program-admin.md`
+- PDF：`docs/architecture/client-handover-mini-program-admin.pdf`
 - 说明：上述 `md` 与 `pdf` 属于同一份文档的两种格式，请仅以这组文件作为对外对接版本。
 
 ### 重新导出 PDF
