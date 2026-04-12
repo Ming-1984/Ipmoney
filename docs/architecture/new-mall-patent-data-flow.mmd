@@ -1,0 +1,121 @@
+%%{init: {
+  'theme': 'base',
+  'flowchart': {
+    'htmlLabels': true,
+    'curve': 'linear',
+    'nodeSpacing': 62,
+    'rankSpacing': 90
+  },
+  'themeVariables': {
+    'fontFamily': 'Microsoft YaHei, PingFang SC, Noto Sans CJK SC, Arial, sans-serif',
+    'fontSize': '18px',
+    'lineColor': '#475569',
+    'primaryTextColor': '#0f172a',
+    'primaryBorderColor': '#94a3b8',
+    'primaryColor': '#f8fafc',
+    'secondaryColor': '#ecfeff',
+    'tertiaryColor': '#fff7ed'
+  }
+}}%%
+flowchart TB
+  subgraph E["一、数据入口"]
+    direction LR
+    E1["用户端入口<br/>发布专利 / 专利认领 / 专利地图 / 年费托管"]
+    E2["运营端入口<br/>主数据管理 / 批量运营 / 认领审核 / 维保运营"]
+  end
+
+  subgraph S["二、业务服务层"]
+    direction LR
+    S0["专利业务 API 层<br/>OpenAPI 245/245 与后端实现一致"]
+    S1["主数据与挂牌子域<br/>/patents /admin/patents /listings"]
+    S2["认领子域<br/>/me|admin/patent-claims/*"]
+    S3["导入与地图子域<br/>/admin/patents/jobs/import/*<br/>/search|admin/patent-map/*"]
+    S4["维保子域<br/>/me|admin/patent-maintenance/*"]
+    S5["文件与会话子域<br/>/files /conversations"]
+  end
+
+  subgraph D["三、数据域（专利相关数据库）"]
+    direction LR
+    D1["专利主档域<br/>patents / patent_identifiers<br/>patent_classifications / patent_parties<br/>patent_legal_events"]
+    D2["挂牌交易域<br/>listings / listing_media<br/>listing_audit_logs / listing_consult_events"]
+    D3["认领域<br/>patent_claim_requests"]
+    D4["导入任务域<br/>patent_import_jobs / patent_import_job_rows"]
+    D5["维保域<br/>patent_maintenance_schedules / patent_maintenance_tasks<br/>patent_maintenance_orders / patent_maintenance_order_events"]
+    D6["公共支撑域<br/>files / regions / users / conversations"]
+    D7["资金域<br/>orders -> payments -> settlements"]
+  end
+
+  subgraph V["四、页面展示层（业务视图）"]
+    direction LR
+    V1["小程序专利展示<br/>发布专利 / 专利详情 / 专利认领 / 专利地图"]
+    V2["小程序维保展示<br/>年费托管（排期/任务/订单/时间线）"]
+    V3["后台专利运营展示<br/>主数据管理 / 批量运营 / 认领审核"]
+    V4["后台维保运营展示<br/>排期 / 任务 / 订单 / 状态动作"]
+  end
+
+  subgraph K["五、核心字段口径"]
+    direction LR
+    K1["专利主档字段<br/>申请号（规范/展示）、标题、类型、法律状态、来源、归属"]
+    K2["挂牌展示字段<br/>交易方式、价格、订金、地区、标签、上榜字段、证明材料"]
+    K3["维保字段<br/>年度、应缴日、宽限期、金额、支付、回执、对账、状态流转"]
+  end
+
+  E1 -->|"业务请求"| S0
+  E2 -->|"业务请求"| S0
+  E1 -->|"上传证明/认领材料"| S5
+  E2 -->|"上传导入文件"| S5
+
+  S0 --> S1
+  S0 --> S2
+  S0 --> S3
+  S0 --> S4
+
+  S1 --> D1
+  S1 --> D2
+  S1 --> D7
+
+  S2 --> D3
+  S2 -->|"认领通过同步归属"| D1
+  S2 -->|"权利人路由同步卖方"| D2
+
+  S3 --> D4
+  S3 --> D1
+  S3 --> D2
+  S3 --> D6
+
+  S4 --> D5
+  S4 --> D6
+  S5 --> D6
+
+  D1 --> V1
+  D2 --> V1
+  D3 --> V1
+  D6 --> V1
+
+  D5 --> V2
+  D6 --> V2
+
+  D1 --> V3
+  D2 --> V3
+  D3 --> V3
+  D4 --> V3
+  D6 --> V3
+
+  D5 --> V4
+  D6 --> V4
+
+  D1 -.字段口径.-> K1
+  D2 -.字段口径.-> K2
+  D5 -.字段口径.-> K3
+
+  classDef entry fill:#e0f2fe,stroke:#0284c7,color:#0c4a6e;
+  classDef service fill:#ecfdf5,stroke:#10b981,color:#065f46;
+  classDef domain fill:#fef3c7,stroke:#d97706,color:#7c2d12;
+  classDef view fill:#fce7f3,stroke:#db2777,color:#831843;
+  classDef key fill:#ede9fe,stroke:#7c3aed,color:#4c1d95;
+
+  class E1,E2 entry;
+  class S0,S1,S2,S3,S4,S5 service;
+  class D1,D2,D3,D4,D5,D6,D7 domain;
+  class V1,V2,V3,V4 view;
+  class K1,K2,K3 key;

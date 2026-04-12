@@ -31,6 +31,8 @@
 - `state-order.mmd`：订单状态机
 - `er-diagram-cn.mmd`：核心域 ER 图（中文对外版，统一对接口径）
 - `er-diagram-client-brief.md`：ER 图甲方讲解文档（含中英实体对照、关系翻译、全量字段中文注释）
+- `new-mall-patent-data-flow.mmd`：新商城专利数据流转图（用户上传、后台导入、认领审核、挂牌交易、维保链路）
+- `patent-data-handover-focus.md`：专利字段口径与页面/接口/落库对齐说明（甲方评审重点版）
 
 ## 二、中文显示与换行规范
 
