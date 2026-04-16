@@ -8,7 +8,7 @@ export function PlaceholderPage(props: { title: string }) {
         {props.title}
       </Typography.Title>
       <Typography.Paragraph type="secondary" style={{ marginBottom: 0 }}>
-        页面建设中：后续接入业务表格与接口数据。
+        页面建设中：后续将接入完整业务表格与真实接口数据。
       </Typography.Paragraph>
     </Card>
   );

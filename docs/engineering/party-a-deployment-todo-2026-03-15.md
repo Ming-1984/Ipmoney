@@ -7,7 +7,7 @@
 
 - 真实微信登录链路已支持：`wx.login -> /auth/wechat/mp-login -> code2Session`。
 - 手机号绑定链路已支持：`getPhoneNumber -> /auth/wechat/phone-bind`。
-- 微信支付下单/回调接口已接入，回调地址已固定为：`https://api.ipmoney.cn/webhooks/wechatpay/notify`。
+- 微信支付下单/回调接口已接入，回调地址已固定为：`https://api.笋嘢.com/webhooks/wechatpay/notify`。
 - 当前上线阻塞点主要是生产密钥与域名白名单配置（非代码缺口）。
 
 ## 1. 线下交付物（不入仓库）
@@ -33,22 +33,32 @@
 - [ ] `WX_PAY_MCH_PRIVATE_KEY`
 - [ ] `WX_PAY_PLATFORM_CERT_SERIAL_NO`
 - [ ] `WX_PAY_PLATFORM_CERT` 或 `WX_PAY_PLATFORM_CERTS`（二选一）
-- [x] `WX_PAY_NOTIFY_URL=https://api.ipmoney.cn/webhooks/wechatpay/notify`
+- [x] `WX_PAY_NOTIFY_URL=https://api.笋嘢.com/webhooks/wechatpay/notify`
 
 ### 2.3 生产域名与安全
 
 - [ ] `CORS_ORIGINS` 最终名单（前台域名、后台域名）
-- [ ] `BASE_URL=https://api.ipmoney.cn`
+- [ ] `BASE_URL=https://api.笋嘢.com`
 - [ ] `PUBLIC_HOST_WHITELIST`（公网域名）
 - [ ] `JWT_SECRET`（强密钥）
 - [ ] `FILE_TEMP_TOKEN_SECRET`（强密钥）
 - [ ] `TRUST_PROXY=true`（有网关/反向代理时）
 
+### 2.4 短信登录（阿里云）
+
+- [ ] `SMS_PROVIDER=ALIYUN`
+- [ ] `SMS_SIGN_NAME`
+- [ ] `SMS_TEMPLATE_ID`（推荐，兼容 `SMS_TEMPLATE_ID_LOGIN`）
+- [ ] `SMS_ACCESS_KEY`（推荐，需配对 `SMS_SECRET_KEY`）
+- [ ] `SMS_SECRET_KEY`
+- [ ] （兼容）`SMS_ACCESS_KEY_ID` / `SMS_ACCESS_KEY_SECRET`
+- [ ] （可选）`SMS_TEMPLATE_ID_BIND_PHONE`
+
 ## 3. 项目内已固定配置（当前仓库）
 
 - 小程序 AppID：`wxa053408fad6ab1df`
-- 小程序生产 API 基址：`https://api.ipmoney.cn`
-- 管理后台生产 API 基址：`https://api.ipmoney.cn`
+- 小程序生产 API 基址：`https://api.笋嘢.com`
+- 管理后台生产 API 基址：`https://api.笋嘢.com`
 - 微信支付回调路径：`/webhooks/wechatpay/notify`
 
 ## 4. 甲方部署步骤（执行方：甲方，我方配合）
@@ -58,6 +68,7 @@
 - [ ] 启动后端并完成反向代理/TLS
 - [ ] 微信商户平台配置回调地址
 - [ ] 小程序后台确认域名白名单（request/socket/upload/download）
+- [ ] 如使用 web-view，补齐业务域名白名单
 - [ ] 执行生产门禁：`STAGE=prod node scripts/run-with-env.mjs -- node scripts/check-prod-env.mjs`
 
 ## 5. 联调验收（甲方环境）

@@ -1,12 +1,20 @@
 import react from '@vitejs/plugin-react';
 import { defineConfig } from 'vite';
 
+function isReleaseLike(value: string | undefined): boolean {
+  const raw = String(value || '').trim().toLowerCase();
+  if (!raw) return false;
+  if (raw === 'prod' || raw === 'production') return true;
+  if (raw === 'staging' || raw === 'stage') return true;
+  if (/(^|[-_])prod($|[-_])/.test(raw)) return true;
+  if (/(^|[-_])staging($|[-_])/.test(raw)) return true;
+  return false;
+}
+
 export default defineConfig(({ mode, command }) => {
   const port = Number(process.env.ADMIN_WEB_PORT || 5174);
-  const deployEnvValues = [process.env.DEPLOY_ENV, process.env.APP_MODE, process.env.STAGE, process.env.ENV]
-    .filter(Boolean)
-    .map((v) => String(v).trim().toLowerCase());
-  const isProdDeploy = deployEnvValues.some((v) => v.includes('prod'));
+  const deployEnvValues = [process.env.DEPLOY_ENV, process.env.APP_MODE, process.env.STAGE, process.env.ENV].filter(Boolean);
+  const isProdDeploy = deployEnvValues.some((v) => isReleaseLike(v));
   const isProdBuild = command === 'build' && mode === 'production' && isProdDeploy;
   const demoToken = String(process.env.VITE_DEMO_ADMIN_TOKEN || '').trim();
   const mockTools = String(process.env.VITE_ENABLE_MOCK_TOOLS || '').trim().toLowerCase();

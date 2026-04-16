@@ -2,9 +2,9 @@
   "miniprogramRoot": "dist/weapp/",
   "projectname": "ipmoney-client",
   "description": "Ipmoney 用户端（小程序 + H5）",
-  "appid": "wxb28558294857b19b",
+  "appid": "wxa053408fad6ab1df",
   "setting": {
-    "urlCheck": false,
+    "urlCheck": true,
     "es6": false,
     "postcss": false,
     "compileWorklet": false,

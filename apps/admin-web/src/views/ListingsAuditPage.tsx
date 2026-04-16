@@ -20,6 +20,11 @@ import type { components } from '@ipmoney/api-types';
 
 import { apiGet, apiPost, apiUploadFile } from '../lib/api';
 import { formatTimeSmart, yuanToFen } from '../lib/format';
+import {
+  DEFAULT_LISTING_TOPIC_OPTIONS,
+  fetchAdminListingTopicOptions,
+  topicLabelFromOptions,
+} from '../lib/homeLandingConfig';
 import { auditStatusLabel, listingStatusLabel, tradeModeLabel } from '../lib/labels';
 import { RequestErrorAlert } from '../ui/RequestState';
 
@@ -100,14 +105,6 @@ type ImportRow = {
   normalized?: Record<string, any> | null;
 };
 
-const LISTING_TOPIC_OPTIONS: Array<{ value: ListingTopic; label: string }> = [
-  { value: 'HIGH_TECH_RETIRED', label: '退役专利' },
-  { value: 'SLEEPING', label: '沉睡专利' },
-  { value: 'AWARD_WINNING', label: '获奖专利' },
-  { value: 'FIVE_STAR', label: '五星专利' },
-  { value: 'OPEN_LICENSE', label: '开放许可' },
-];
-
 function actionLabel(action: BatchAction) {
   if (action === 'APPROVE') return '批量通过';
   if (action === 'REJECT') return '批量驳回';
@@ -123,16 +120,6 @@ function statusTag(status: JobStatus | BatchItemStatus | ImportRowStatus) {
   if (text === 'PAUSED') return <Tag color="orange">{text}</Tag>;
   if (text === 'SKIPPED') return <Tag>{text}</Tag>;
   return <Tag>{text}</Tag>;
-}
-
-function topicLabel(topic?: ListingTopic | null) {
-  if (!topic) return '';
-  if (topic === 'HIGH_TECH_RETIRED') return '退役专利';
-  if (topic === 'SLEEPING') return '沉睡专利';
-  if (topic === 'AWARD_WINNING') return '获奖专利';
-  if (topic === 'FIVE_STAR') return '五星专利';
-  if (topic === 'OPEN_LICENSE') return '开放许可';
-  return topic;
 }
 
 export function ListingsAuditPage() {
@@ -169,6 +156,8 @@ export function ListingsAuditPage() {
   const [importPriceType, setImportPriceType] = useState<'' | 'NEGOTIABLE' | 'FIXED'>('');
   const [importDepositAmountYuan, setImportDepositAmountYuan] = useState<number | null>(null);
   const [importListingTopics, setImportListingTopics] = useState<ListingTopic[]>([]);
+  const [listingTopicOptions, setListingTopicOptions] =
+    useState<Array<{ value: ListingTopic; label: string }>>(DEFAULT_LISTING_TOPIC_OPTIONS);
 
   const [importJobsLoading, setImportJobsLoading] = useState(false);
   const [importJobs, setImportJobs] = useState<Paged<ImportJob> | null>(null);
@@ -248,6 +237,29 @@ export function ListingsAuditPage() {
   useEffect(() => {
     setSelectedRowKeys([]);
   }, [appliedAuditStatus, appliedListingTopic, appliedQ, appliedSource, appliedStatus, page, pageSize]);
+
+  useEffect(() => {
+    (async () => {
+      const options = await fetchAdminListingTopicOptions();
+      setListingTopicOptions(options);
+    })();
+  }, []);
+
+  const enabledTopicSet = useMemo(
+    () => new Set<ListingTopic>(listingTopicOptions.map((item) => item.value)),
+    [listingTopicOptions],
+  );
+
+  useEffect(() => {
+    setDraftListingTopic((prev) => (prev && !enabledTopicSet.has(prev) ? '' : prev));
+    setAppliedListingTopic((prev) => (prev && !enabledTopicSet.has(prev) ? '' : prev));
+    setImportListingTopics((prev) => prev.filter((topic) => enabledTopicSet.has(topic)));
+  }, [enabledTopicSet]);
+
+  const topicLabel = useCallback(
+    (topic?: ListingTopic | null) => topicLabelFromOptions(topic, listingTopicOptions),
+    [listingTopicOptions],
+  );
 
   const applyFilters = useCallback(() => {
     setPage(1);
@@ -454,7 +466,7 @@ export function ListingsAuditPage() {
               value={draftListingTopic}
               style={{ width: 180 }}
               onChange={(v) => setDraftListingTopic((v as ListingTopic) || '')}
-              options={[{ value: '', label: '全部特色标签' }, ...LISTING_TOPIC_OPTIONS]}
+              options={[{ value: '', label: '全部特色标签' }, ...listingTopicOptions]}
             />
             <Select
               value={draftSource}
@@ -706,7 +718,7 @@ export function ListingsAuditPage() {
                     mode="multiple"
                     value={importListingTopics}
                     onChange={(v) => setImportListingTopics(v as ListingTopic[])}
-                    options={LISTING_TOPIC_OPTIONS}
+                    options={listingTopicOptions}
                     placeholder="可选"
                   />
                 </Form.Item>

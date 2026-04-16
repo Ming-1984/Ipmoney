@@ -10,6 +10,8 @@ describe('PublicConfigController suite', () => {
     config = {
       getTradeRules: vi.fn(),
       getCustomerService: vi.fn(),
+      getBanner: vi.fn(),
+      getHomeLandingConfig: vi.fn(),
       getPublicHomeAnnouncementFeed: vi.fn(),
     };
     controller = new PublicConfigController(config);
@@ -39,6 +41,35 @@ describe('PublicConfigController suite', () => {
       defaultReply: 'ok',
       assignStrategy: 'AUTO',
     });
+  });
+
+  it('returns banner config from config service', async () => {
+    config.getBanner.mockResolvedValueOnce({
+      items: [{ id: 'b1', title: 'banner', imageUrl: 'https://a', enabled: true, order: 1 }],
+    });
+
+    const result = await controller.getBanner();
+
+    expect(config.getBanner).toHaveBeenCalledTimes(1);
+    expect(result).toEqual({
+      items: [{ id: 'b1', title: 'banner', imageUrl: 'https://a', enabled: true, order: 1 }],
+    });
+  });
+
+  it('returns home landing config from config service', async () => {
+    config.getHomeLandingConfig.mockResolvedValueOnce({
+      schemaVersion: 1,
+      hero: { tags: ['a'], searchPlaceholder: 's' },
+      sectionTexts: { featuredTitle: 't', featuredMoreText: 'm' },
+      featuredZones: { enabled: true, displayCount: 4, items: [] },
+      listingTopicUi: { items: [] },
+    });
+
+    const result = await controller.getHomeLanding();
+
+    expect(config.getHomeLandingConfig).toHaveBeenCalledTimes(1);
+    expect(result.schemaVersion).toBe(1);
+    expect(result.featuredZones.displayCount).toBe(4);
   });
 
   it('returns home announcement feed from config service', async () => {

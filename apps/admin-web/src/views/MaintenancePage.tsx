@@ -132,41 +132,41 @@ type OrderFilters = {
 type ActionType = 'QUOTE' | 'PAY' | 'EXECUTE' | 'RECEIPT' | 'RECONCILE' | 'CLOSE' | 'CANCEL';
 
 const SCHEDULE_STATUS_OPTIONS: Array<{ value: ScheduleStatus; label: string }> = [
-  { value: 'DUE', label: 'Due' },
-  { value: 'PAID', label: 'Paid' },
-  { value: 'OVERDUE', label: 'Overdue' },
-  { value: 'WAIVED', label: 'Waived' },
+  { value: 'DUE', label: '应缴' },
+  { value: 'PAID', label: '已缴' },
+  { value: 'OVERDUE', label: '逾期' },
+  { value: 'WAIVED', label: '豁免' },
 ];
 
 const TASK_STATUS_OPTIONS: Array<{ value: TaskStatus; label: string }> = [
-  { value: 'OPEN', label: 'Open' },
-  { value: 'IN_PROGRESS', label: 'In Progress' },
-  { value: 'DONE', label: 'Done' },
-  { value: 'CANCELLED', label: 'Cancelled' },
+  { value: 'OPEN', label: '待处理' },
+  { value: 'IN_PROGRESS', label: '处理中' },
+  { value: 'DONE', label: '已完成' },
+  { value: 'CANCELLED', label: '已取消' },
 ];
 
 const ORDER_STATUS_OPTIONS: Array<{ value: OrderStatus; label: string }> = [
-  { value: 'REQUESTED', label: 'Requested' },
-  { value: 'QUOTED', label: 'Quoted' },
-  { value: 'AWAITING_PAYMENT', label: 'Awaiting Payment' },
-  { value: 'PAID', label: 'Paid' },
-  { value: 'EXECUTING', label: 'Executing' },
-  { value: 'RECEIPT_UPLOADED', label: 'Receipt Uploaded' },
-  { value: 'RECONCILED', label: 'Reconciled' },
-  { value: 'CLOSED', label: 'Closed' },
-  { value: 'CANCELLED', label: 'Cancelled' },
+  { value: 'REQUESTED', label: '已发起' },
+  { value: 'QUOTED', label: '已报价' },
+  { value: 'AWAITING_PAYMENT', label: '待支付' },
+  { value: 'PAID', label: '已支付' },
+  { value: 'EXECUTING', label: '办理中' },
+  { value: 'RECEIPT_UPLOADED', label: '回执已上传' },
+  { value: 'RECONCILED', label: '已对账' },
+  { value: 'CLOSED', label: '已关闭' },
+  { value: 'CANCELLED', label: '已取消' },
 ];
 
 const RECONCILE_STATUS_OPTIONS: Array<{ value: ReconcileStatus; label: string }> = [
-  { value: 'PENDING', label: 'Pending' },
-  { value: 'MATCHED', label: 'Matched' },
-  { value: 'MISMATCHED', label: 'Mismatched' },
+  { value: 'PENDING', label: '待对账' },
+  { value: 'MATCHED', label: '已匹配' },
+  { value: 'MISMATCHED', label: '不一致' },
 ];
 
 const PAYMENT_CHANNEL_OPTIONS: Array<{ value: PaymentChannel; label: string }> = [
-  { value: 'WECHAT', label: 'Wechat Pay' },
-  { value: 'OFFLINE_BANK', label: 'Offline Bank' },
-  { value: 'OFFLINE_OTHER', label: 'Offline Other' },
+  { value: 'WECHAT', label: '微信支付' },
+  { value: 'OFFLINE_BANK', label: '线下银行转账' },
+  { value: 'OFFLINE_OTHER', label: '线下其他' },
 ];
 
 function formatMoneyFen(value?: number): string {
@@ -184,35 +184,35 @@ function statusLabel<T extends string>(value: T | undefined, options: Array<{ va
 }
 
 function scheduleStatusTag(status: ScheduleStatus) {
-  if (status === 'PAID') return <Tag color="green">Paid</Tag>;
-  if (status === 'OVERDUE') return <Tag color="red">Overdue</Tag>;
-  if (status === 'WAIVED') return <Tag color="default">Waived</Tag>;
-  return <Tag color="gold">Due</Tag>;
+  if (status === 'PAID') return <Tag color="green">已缴</Tag>;
+  if (status === 'OVERDUE') return <Tag color="red">逾期</Tag>;
+  if (status === 'WAIVED') return <Tag color="default">豁免</Tag>;
+  return <Tag color="gold">应缴</Tag>;
 }
 
 function taskStatusTag(status: TaskStatus) {
-  if (status === 'DONE') return <Tag color="green">Done</Tag>;
-  if (status === 'IN_PROGRESS') return <Tag color="blue">In Progress</Tag>;
-  if (status === 'CANCELLED') return <Tag color="default">Cancelled</Tag>;
-  return <Tag color="gold">Open</Tag>;
+  if (status === 'DONE') return <Tag color="green">已完成</Tag>;
+  if (status === 'IN_PROGRESS') return <Tag color="blue">处理中</Tag>;
+  if (status === 'CANCELLED') return <Tag color="default">已取消</Tag>;
+  return <Tag color="gold">待处理</Tag>;
 }
 
 function orderStatusTag(status: OrderStatus) {
-  if (status === 'CLOSED') return <Tag color="green">Closed</Tag>;
-  if (status === 'CANCELLED') return <Tag color="default">Cancelled</Tag>;
-  if (status === 'RECONCILED') return <Tag color="cyan">Reconciled</Tag>;
-  if (status === 'RECEIPT_UPLOADED') return <Tag color="blue">Receipt Uploaded</Tag>;
-  if (status === 'EXECUTING') return <Tag color="processing">Executing</Tag>;
-  if (status === 'PAID') return <Tag color="geekblue">Paid</Tag>;
-  if (status === 'AWAITING_PAYMENT') return <Tag color="orange">Awaiting Payment</Tag>;
-  if (status === 'QUOTED') return <Tag color="purple">Quoted</Tag>;
-  return <Tag color="gold">Requested</Tag>;
+  if (status === 'CLOSED') return <Tag color="green">已关闭</Tag>;
+  if (status === 'CANCELLED') return <Tag color="default">已取消</Tag>;
+  if (status === 'RECONCILED') return <Tag color="cyan">已对账</Tag>;
+  if (status === 'RECEIPT_UPLOADED') return <Tag color="blue">回执已上传</Tag>;
+  if (status === 'EXECUTING') return <Tag color="processing">办理中</Tag>;
+  if (status === 'PAID') return <Tag color="geekblue">已支付</Tag>;
+  if (status === 'AWAITING_PAYMENT') return <Tag color="orange">待支付</Tag>;
+  if (status === 'QUOTED') return <Tag color="purple">已报价</Tag>;
+  return <Tag color="gold">已发起</Tag>;
 }
 
 function reconcileStatusTag(status: ReconcileStatus) {
-  if (status === 'MATCHED') return <Tag color="green">Matched</Tag>;
-  if (status === 'MISMATCHED') return <Tag color="red">Mismatched</Tag>;
-  return <Tag color="default">Pending</Tag>;
+  if (status === 'MATCHED') return <Tag color="green">已匹配</Tag>;
+  if (status === 'MISMATCHED') return <Tag color="red">不一致</Tag>;
+  return <Tag color="default">待对账</Tag>;
 }
 
 function calcScheduleUrgency(row: Schedule): 'OVERDUE' | 'DUE_SOON' | 'UPCOMING' | 'NORMAL' | 'SETTLED' {
@@ -229,11 +229,11 @@ function calcScheduleUrgency(row: Schedule): 'OVERDUE' | 'DUE_SOON' | 'UPCOMING'
 }
 
 function urgencyTag(value: 'OVERDUE' | 'DUE_SOON' | 'UPCOMING' | 'NORMAL' | 'SETTLED') {
-  if (value === 'OVERDUE') return <Tag color="red">Overdue</Tag>;
-  if (value === 'DUE_SOON') return <Tag color="orange">Within 7 days</Tag>;
-  if (value === 'UPCOMING') return <Tag color="blue">Within 30 days</Tag>;
-  if (value === 'SETTLED') return <Tag color="green">Settled</Tag>;
-  return <Tag color="default">Normal</Tag>;
+  if (value === 'OVERDUE') return <Tag color="red">已逾期</Tag>;
+  if (value === 'DUE_SOON') return <Tag color="orange">7天内到期</Tag>;
+  if (value === 'UPCOMING') return <Tag color="blue">30天内到期</Tag>;
+  if (value === 'SETTLED') return <Tag color="green">已结清</Tag>;
+  return <Tag color="default">正常</Tag>;
 }
 
 function getOrderActionCandidates(order: MaintenanceOrder): ActionType[] {
@@ -249,13 +249,31 @@ function getOrderActionCandidates(order: MaintenanceOrder): ActionType[] {
 }
 
 function actionLabel(action: ActionType): string {
-  if (action === 'QUOTE') return 'Quote';
-  if (action === 'PAY') return 'Mark Paid';
-  if (action === 'EXECUTE') return 'Submit Execution';
-  if (action === 'RECEIPT') return 'Upload Receipt';
-  if (action === 'RECONCILE') return 'Reconcile';
-  if (action === 'CLOSE') return 'Close';
-  return 'Cancel';
+  if (action === 'QUOTE') return '报价';
+  if (action === 'PAY') return '标记已支付';
+  if (action === 'EXECUTE') return '提交办理';
+  if (action === 'RECEIPT') return '上传回执';
+  if (action === 'RECONCILE') return '对账';
+  if (action === 'CLOSE') return '关闭订单';
+  return '取消订单';
+}
+
+function orderStatusCn(status?: string): string {
+  if (!status) return '-';
+  return ORDER_STATUS_OPTIONS.find((it) => it.value === status)?.label || status;
+}
+
+function orderEventTypeCn(eventType?: string): string {
+  if (!eventType) return '-';
+  if (eventType === 'CREATED') return '已创建';
+  if (eventType === 'QUOTE_UPDATED') return '报价更新';
+  if (eventType === 'PAYMENT_CONFIRMED') return '支付已确认';
+  if (eventType === 'EXECUTION_SUBMITTED') return '办理已提交';
+  if (eventType === 'RECEIPT_UPLOADED') return '回执已上传';
+  if (eventType === 'RECONCILED') return '已对账';
+  if (eventType === 'CLOSED') return '已关闭';
+  if (eventType === 'CANCELLED') return '已取消';
+  return eventType;
 }
 
 function MaintenanceSchedules() {
@@ -287,7 +305,7 @@ function MaintenanceSchedules() {
     } catch (e: any) {
       setError(e);
       setData(null);
-      message.error(e?.message || 'Failed to load schedules');
+      message.error(e?.message || '加载缴费计划失败');
     } finally {
       setLoading(false);
     }
@@ -311,31 +329,31 @@ function MaintenanceSchedules() {
             setModalOpen(true);
           }}
         >
-          New Schedule
+          新建计划
         </Button>
         <Input
           style={{ width: 240 }}
-          placeholder="Patent ID"
+          placeholder="专利ID"
           value={draftFilters.patentId}
           onChange={(e) => setDraftFilters((prev) => ({ ...prev, patentId: e.target.value.trim() }))}
         />
         <Select
           allowClear
           style={{ width: 180 }}
-          placeholder="Status"
+          placeholder="状态"
           value={draftFilters.status}
           options={SCHEDULE_STATUS_OPTIONS}
           onChange={(value) => setDraftFilters((prev) => ({ ...prev, status: value as ScheduleStatus | undefined }))}
         />
         <Input
           style={{ width: 180 }}
-          placeholder="Due from (YYYY-MM-DD)"
+          placeholder="到期开始（YYYY-MM-DD）"
           value={draftFilters.dueFrom}
           onChange={(e) => setDraftFilters((prev) => ({ ...prev, dueFrom: e.target.value.trim() }))}
         />
         <Input
           style={{ width: 180 }}
-          placeholder="Due to (YYYY-MM-DD)"
+          placeholder="到期结束（YYYY-MM-DD）"
           value={draftFilters.dueTo}
           onChange={(e) => setDraftFilters((prev) => ({ ...prev, dueTo: e.target.value.trim() }))}
         />
@@ -346,7 +364,7 @@ function MaintenanceSchedules() {
             setFilters(draftFilters);
           }}
         >
-          Apply
+          应用
         </Button>
         <Button
           onClick={() => {
@@ -355,9 +373,9 @@ function MaintenanceSchedules() {
             setFilters(emptyFilters);
           }}
         >
-          Reset
+          重置
         </Button>
-        <Button onClick={() => void load()}>Refresh</Button>
+        <Button onClick={() => void load()}>刷新</Button>
       </Space>
 
       <Table<Schedule>
@@ -371,12 +389,12 @@ function MaintenanceSchedules() {
           onChange: (next) => setPage(next),
         }}
         columns={[
-          { title: 'Patent ID', dataIndex: 'patentId', width: 250, ellipsis: true },
-          { title: 'Year', dataIndex: 'yearNo', width: 90 },
-          { title: 'Due Date', dataIndex: 'dueDate', width: 130 },
-          { title: 'Grace End', dataIndex: 'gracePeriodEnd', width: 130, render: (v) => v || '-' },
+          { title: '专利ID', dataIndex: 'patentId', width: 250, ellipsis: true },
+          { title: '年次', dataIndex: 'yearNo', width: 90 },
+          { title: '到期日', dataIndex: 'dueDate', width: 130 },
+          { title: '宽限期结束', dataIndex: 'gracePeriodEnd', width: 130, render: (v) => v || '-' },
           {
-            title: 'Status',
+            title: '状态',
             key: 'status',
             width: 220,
             render: (_, row) => (
@@ -386,9 +404,9 @@ function MaintenanceSchedules() {
               </Space>
             ),
           },
-          { title: 'Updated At', dataIndex: 'updatedAt', width: 180, render: (v: string) => (v ? formatTimeSmart(v) : '-') },
+          { title: '更新时间', dataIndex: 'updatedAt', width: 180, render: (v: string) => (v ? formatTimeSmart(v) : '-') },
           {
-            title: 'Actions',
+            title: '操作',
             key: 'actions',
             width: 90,
             render: (_, row) => (
@@ -406,7 +424,7 @@ function MaintenanceSchedules() {
                   setModalOpen(true);
                 }}
               >
-                Edit
+                编辑
               </Button>
             ),
           },
@@ -415,17 +433,17 @@ function MaintenanceSchedules() {
 
       <Modal
         open={modalOpen}
-        title={editing ? 'Edit Schedule' : 'New Schedule'}
+        title={editing ? '编辑计划' : '新建计划'}
         destroyOnClose
         onCancel={() => setModalOpen(false)}
         onOk={async () => {
           try {
             const values = await form.validateFields();
             const { ok } = await confirmActionWithReason({
-              title: editing ? 'Confirm schedule update?' : 'Confirm schedule creation?',
-              content: 'This operation will update maintenance schedule data.',
-              okText: 'Confirm',
-              reasonLabel: 'Note (optional)',
+              title: editing ? '确认更新缴费计划？' : '确认创建缴费计划？',
+              content: '该操作将更新年费托管缴费计划数据。',
+              okText: '确认',
+              reasonLabel: '备注（选填）',
             });
             if (!ok) return;
 
@@ -444,29 +462,29 @@ function MaintenanceSchedules() {
                 status: values.status,
               });
             }
-            message.success('Saved');
+            message.success('保存成功');
             setModalOpen(false);
             void load();
           } catch (e: any) {
             if (e?.errorFields) return;
-            message.error(e?.message || 'Failed to save schedule');
+            message.error(e?.message || '保存缴费计划失败');
           }
         }}
       >
         <Form form={form} layout="vertical">
-          <Form.Item label="Patent ID" name="patentId" rules={[{ required: true, message: 'Patent ID is required' }]}>
+          <Form.Item label="专利ID" name="patentId" rules={[{ required: true, message: '请输入专利ID' }]}>
             <Input disabled={Boolean(editing)} />
           </Form.Item>
-          <Form.Item label="Year No" name="yearNo" rules={[{ required: true, message: 'Year No is required' }]}>
+          <Form.Item label="年次" name="yearNo" rules={[{ required: true, message: '请输入年次' }]}>
             <InputNumber min={1} style={{ width: '100%' }} disabled={Boolean(editing)} />
           </Form.Item>
-          <Form.Item label="Due Date" name="dueDate" rules={[{ required: true, message: 'Due date is required' }]}>
+          <Form.Item label="到期日" name="dueDate" rules={[{ required: true, message: '请输入到期日' }]}>
             <Input placeholder="YYYY-MM-DD" />
           </Form.Item>
-          <Form.Item label="Grace Period End" name="gracePeriodEnd">
+          <Form.Item label="宽限期结束" name="gracePeriodEnd">
             <Input placeholder="YYYY-MM-DD" />
           </Form.Item>
-          <Form.Item label="Status" name="status" rules={[{ required: true, message: 'Status is required' }]}>
+          <Form.Item label="状态" name="status" rules={[{ required: true, message: '请选择状态' }]}>
             <Select options={SCHEDULE_STATUS_OPTIONS} />
           </Form.Item>
         </Form>
@@ -504,7 +522,7 @@ function MaintenanceTasks() {
     } catch (e: any) {
       setError(e);
       setData(null);
-      message.error(e?.message || 'Failed to load tasks');
+      message.error(e?.message || '加载任务失败');
     } finally {
       setLoading(false);
     }
@@ -529,24 +547,24 @@ function MaintenanceTasks() {
             setModalOpen(true);
           }}
         >
-          New Task
+          新建任务
         </Button>
         <Input
           style={{ width: 250 }}
-          placeholder="Schedule ID"
+          placeholder="计划ID"
           value={draftFilters.scheduleId}
           onChange={(e) => setDraftFilters((prev) => ({ ...prev, scheduleId: e.target.value.trim() }))}
         />
         <Input
           style={{ width: 230 }}
-          placeholder="Assigned CS User ID"
+          placeholder="分配客服用户ID"
           value={draftFilters.assignedCsUserId}
           onChange={(e) => setDraftFilters((prev) => ({ ...prev, assignedCsUserId: e.target.value.trim() }))}
         />
         <Select
           allowClear
           style={{ width: 180 }}
-          placeholder="Task status"
+          placeholder="任务状态"
           value={draftFilters.status}
           options={TASK_STATUS_OPTIONS}
           onChange={(value) => setDraftFilters((prev) => ({ ...prev, status: value as TaskStatus | undefined }))}
@@ -558,7 +576,7 @@ function MaintenanceTasks() {
             setFilters(draftFilters);
           }}
         >
-          Apply
+          应用
         </Button>
         <Button
           onClick={() => {
@@ -567,9 +585,9 @@ function MaintenanceTasks() {
             setFilters(emptyFilters);
           }}
         >
-          Reset
+          重置
         </Button>
-        <Button onClick={() => void load()}>Refresh</Button>
+        <Button onClick={() => void load()}>刷新</Button>
       </Space>
 
       <Table<Task>
@@ -583,15 +601,15 @@ function MaintenanceTasks() {
           onChange: (next) => setPage(next),
         }}
         columns={[
-          { title: 'Task ID', dataIndex: 'id', width: 230, ellipsis: true },
-          { title: 'Schedule ID', dataIndex: 'scheduleId', width: 220, ellipsis: true },
-          { title: 'Assigned CS', dataIndex: 'assignedCsUserId', width: 220, render: (v) => v || '-' },
-          { title: 'Status', dataIndex: 'status', width: 130, render: (v: TaskStatus) => taskStatusTag(v) },
-          { title: 'Note', dataIndex: 'note', ellipsis: true, render: (v) => v || '-' },
-          { title: 'Evidence File', dataIndex: 'evidenceFileId', width: 230, ellipsis: true, render: (v) => v || '-' },
-          { title: 'Updated At', dataIndex: 'updatedAt', width: 180, render: (v: string) => (v ? formatTimeSmart(v) : '-') },
+          { title: '任务ID', dataIndex: 'id', width: 230, ellipsis: true },
+          { title: '计划ID', dataIndex: 'scheduleId', width: 220, ellipsis: true },
+          { title: '分配客服', dataIndex: 'assignedCsUserId', width: 220, render: (v) => v || '-' },
+          { title: '状态', dataIndex: 'status', width: 130, render: (v: TaskStatus) => taskStatusTag(v) },
+          { title: '备注', dataIndex: 'note', ellipsis: true, render: (v) => v || '-' },
+          { title: '证据文件', dataIndex: 'evidenceFileId', width: 230, ellipsis: true, render: (v) => v || '-' },
+          { title: '更新时间', dataIndex: 'updatedAt', width: 180, render: (v: string) => (v ? formatTimeSmart(v) : '-') },
           {
-            title: 'Actions',
+            title: '操作',
             key: 'actions',
             width: 90,
             render: (_, row) => (
@@ -610,7 +628,7 @@ function MaintenanceTasks() {
                   setModalOpen(true);
                 }}
               >
-                Edit
+                编辑
               </Button>
             ),
           },
@@ -619,17 +637,17 @@ function MaintenanceTasks() {
 
       <Modal
         open={modalOpen}
-        title={editing ? 'Edit Task' : 'New Task'}
+        title={editing ? '编辑任务' : '新建任务'}
         destroyOnClose
         onCancel={() => setModalOpen(false)}
         onOk={async () => {
           try {
             const values = await form.validateFields();
             const { ok } = await confirmActionWithReason({
-              title: editing ? 'Confirm task update?' : 'Confirm task creation?',
-              content: 'This operation will update maintenance task data.',
-              okText: 'Confirm',
-              reasonLabel: 'Note (optional)',
+              title: editing ? '确认更新任务？' : '确认创建任务？',
+              content: '该操作将更新年费托管任务数据。',
+              okText: '确认',
+              reasonLabel: '备注（选填）',
             });
             if (!ok) return;
 
@@ -646,31 +664,31 @@ function MaintenanceTasks() {
             } else {
               await apiPost('/admin/patent-maintenance/tasks', payload);
             }
-            message.success('Saved');
+            message.success('保存成功');
             setModalOpen(false);
             void load();
           } catch (e: any) {
             if (e?.errorFields) return;
-            message.error(e?.message || 'Failed to save task');
+            message.error(e?.message || '保存任务失败');
           }
         }}
       >
         <Form form={form} layout="vertical">
-          <Form.Item label="Schedule ID" name="scheduleId" rules={[{ required: true, message: 'Schedule ID is required' }]}>
+          <Form.Item label="计划ID" name="scheduleId" rules={[{ required: true, message: '请输入计划ID' }]}>
             <Input disabled={Boolean(editing)} />
           </Form.Item>
-          <Form.Item label="Assigned CS User ID" name="assignedCsUserId">
+          <Form.Item label="分配客服用户ID" name="assignedCsUserId">
             <Input />
           </Form.Item>
-          <Form.Item label="Status" name="status" rules={[{ required: true, message: 'Status is required' }]}>
+          <Form.Item label="状态" name="status" rules={[{ required: true, message: '请选择状态' }]}>
             <Select options={TASK_STATUS_OPTIONS} />
           </Form.Item>
-          <Form.Item label="Note" name="note">
+          <Form.Item label="备注" name="note">
             <Input.TextArea rows={2} />
           </Form.Item>
-          <Form.Item label="Evidence File ID" name="evidenceFileId">
+          <Form.Item label="证据文件ID" name="evidenceFileId">
             <Space style={{ width: '100%' }} direction="vertical" size={8}>
-              <Input placeholder="Input existing file ID or upload below" />
+              <Input placeholder="输入已有文件ID，或在下方上传" />
               <Space wrap>
                 <Upload
                   maxCount={1}
@@ -680,15 +698,15 @@ function MaintenanceTasks() {
                       const uploaded = await apiUploadFile(options.file as File, 'MAINTENANCE_EVIDENCE');
                       setEvidenceFile(uploaded);
                       form.setFieldsValue({ evidenceFileId: uploaded.id });
-                      message.success('Evidence file uploaded');
+                      message.success('证据文件上传成功');
                       options.onSuccess?.(uploaded);
                     } catch (e: any) {
                       options.onError?.(e);
-                      message.error(e?.message || 'Evidence upload failed');
+                      message.error(e?.message || '证据文件上传失败');
                     }
                   }}
                 >
-                  <Button>Upload Evidence</Button>
+                  <Button>上传证据</Button>
                 </Upload>
                 <Button
                   onClick={() => {
@@ -696,10 +714,10 @@ function MaintenanceTasks() {
                     form.setFieldsValue({ evidenceFileId: '' });
                   }}
                 >
-                  Clear
+                  清空
                 </Button>
               </Space>
-              {evidenceFile?.id ? <Typography.Text type="secondary">Uploaded: {evidenceFile.id}</Typography.Text> : null}
+              {evidenceFile?.id ? <Typography.Text type="secondary">已上传：{evidenceFile.id}</Typography.Text> : null}
             </Space>
           </Form.Item>
         </Form>
@@ -751,7 +769,7 @@ function MaintenanceOrders() {
     } catch (e: any) {
       setError(e);
       setData(null);
-      message.error(e?.message || 'Failed to load orders');
+      message.error(e?.message || '加载订单失败');
     } finally {
       setLoading(false);
     }
@@ -770,7 +788,7 @@ function MaintenanceOrders() {
       const res = await apiGet<{ items: MaintenanceOrderEvent[] }>(`/admin/patent-maintenance/orders/${order.id}/events`);
       setEvents(res?.items || []);
     } catch (e: any) {
-      message.error(e?.message || 'Failed to load order events');
+      message.error(e?.message || '加载订单时间线失败');
     } finally {
       setEventLoading(false);
     }
@@ -830,10 +848,10 @@ function MaintenanceOrders() {
       setActionSubmitting(true);
       const values = await actionForm.validateFields();
       const { ok, reason } = await confirmActionWithReason({
-        title: `Confirm ${actionLabel(activeAction)}?`,
-        content: `Order ${activeOrder.id} will enter the next lifecycle state.`,
-        okText: 'Confirm',
-        reasonLabel: 'Operation note (optional)',
+        title: `确认执行「${actionLabel(activeAction)}」？`,
+        content: `订单 ${activeOrder.id} 将流转到下一状态。`,
+        okText: '确认',
+        reasonLabel: '操作备注（选填）',
       });
       if (!ok) return;
 
@@ -888,12 +906,12 @@ function MaintenanceOrders() {
       }
 
       await apiPost(path, payload);
-      message.success(`${actionLabel(activeAction)} success`);
+      message.success(`${actionLabel(activeAction)}成功`);
       setActionOpen(false);
       void load();
     } catch (e: any) {
       if (e?.errorFields) return;
-      message.error(e?.message || `${actionLabel(activeAction)} failed`);
+      message.error(e?.message || `${actionLabel(activeAction)}失败`);
     } finally {
       setActionSubmitting(false);
     }
@@ -911,30 +929,30 @@ function MaintenanceOrders() {
             setCreateOpen(true);
           }}
         >
-          New Order
+          新建订单
         </Button>
         <Input
           style={{ width: 230 }}
-          placeholder="Schedule ID"
+          placeholder="计划ID"
           value={draftFilters.scheduleId}
           onChange={(e) => setDraftFilters((prev) => ({ ...prev, scheduleId: e.target.value.trim() }))}
         />
         <Input
           style={{ width: 220 }}
-          placeholder="Applicant User ID"
+          placeholder="申请人用户ID"
           value={draftFilters.applicantUserId}
           onChange={(e) => setDraftFilters((prev) => ({ ...prev, applicantUserId: e.target.value.trim() }))}
         />
         <Input
           style={{ width: 220 }}
-          placeholder="Assigned CS User ID"
+          placeholder="分配客服用户ID"
           value={draftFilters.assignedCsUserId}
           onChange={(e) => setDraftFilters((prev) => ({ ...prev, assignedCsUserId: e.target.value.trim() }))}
         />
         <Select
           allowClear
           style={{ width: 180 }}
-          placeholder="Order status"
+          placeholder="订单状态"
           value={draftFilters.status}
           options={ORDER_STATUS_OPTIONS}
           onChange={(value) => setDraftFilters((prev) => ({ ...prev, status: value as OrderStatus | undefined }))}
@@ -942,7 +960,7 @@ function MaintenanceOrders() {
         <Select
           allowClear
           style={{ width: 180 }}
-          placeholder="Reconcile status"
+          placeholder="对账状态"
           value={draftFilters.reconcileStatus}
           options={RECONCILE_STATUS_OPTIONS}
           onChange={(value) => setDraftFilters((prev) => ({ ...prev, reconcileStatus: value as ReconcileStatus | undefined }))}
@@ -954,7 +972,7 @@ function MaintenanceOrders() {
             setFilters(draftFilters);
           }}
         >
-          Apply
+          应用
         </Button>
         <Button
           onClick={() => {
@@ -963,9 +981,9 @@ function MaintenanceOrders() {
             setFilters(emptyFilters);
           }}
         >
-          Reset
+          重置
         </Button>
-        <Button onClick={() => void load()}>Refresh</Button>
+        <Button onClick={() => void load()}>刷新</Button>
       </Space>
 
       <Table<MaintenanceOrder>
@@ -980,9 +998,9 @@ function MaintenanceOrders() {
           onChange: (next) => setPage(next),
         }}
         columns={[
-          { title: 'Order ID', dataIndex: 'id', width: 230, ellipsis: true },
+          { title: '订单ID', dataIndex: 'id', width: 230, ellipsis: true },
           {
-            title: 'Patent',
+            title: '专利',
             width: 260,
             render: (_, row) => (
               <Space direction="vertical" size={2}>
@@ -993,22 +1011,22 @@ function MaintenanceOrders() {
               </Space>
             ),
           },
-          { title: 'Schedule', dataIndex: 'scheduleId', width: 220, ellipsis: true },
-          { title: 'Year', dataIndex: 'scheduleYearNo', width: 70, render: (v) => v || '-' },
-          { title: 'Due Date', dataIndex: 'scheduleDueDate', width: 130, render: (v) => v || '-' },
-          { title: 'Applicant', dataIndex: 'applicantUserId', width: 220, ellipsis: true },
-          { title: 'Assigned CS', dataIndex: 'assignedCsUserId', width: 220, ellipsis: true, render: (v) => v || '-' },
-          { title: 'Status', dataIndex: 'status', width: 150, render: (v: OrderStatus) => orderStatusTag(v) },
-          { title: 'Reconcile', dataIndex: 'reconcileStatus', width: 130, render: (v: ReconcileStatus) => reconcileStatusTag(v) },
-          { title: 'Total Amount', dataIndex: 'totalAmountFen', width: 120, render: (v: number) => formatMoneyFen(v) },
-          { title: 'Payment Channel', dataIndex: 'paymentChannel', width: 130, render: (v: PaymentChannel) => statusLabel(v, PAYMENT_CHANNEL_OPTIONS) },
-          { title: 'Payment Txn', dataIndex: 'paymentTxnNo', width: 200, ellipsis: true, render: (v) => v || '-' },
-          { title: 'Payment Deadline', dataIndex: 'paymentDeadline', width: 180, render: (v: string) => formatDateTime(v) },
-          { title: 'Paid At', dataIndex: 'paidAt', width: 180, render: (v: string) => formatDateTime(v) },
-          { title: 'Executed At', dataIndex: 'executedAt', width: 180, render: (v: string) => formatDateTime(v) },
-          { title: 'Updated At', dataIndex: 'updatedAt', width: 180, render: (v: string) => formatDateTime(v) },
+          { title: '计划ID', dataIndex: 'scheduleId', width: 220, ellipsis: true },
+          { title: '年次', dataIndex: 'scheduleYearNo', width: 70, render: (v) => v || '-' },
+          { title: '到期日', dataIndex: 'scheduleDueDate', width: 130, render: (v) => v || '-' },
+          { title: '申请人', dataIndex: 'applicantUserId', width: 220, ellipsis: true },
+          { title: '分配客服', dataIndex: 'assignedCsUserId', width: 220, ellipsis: true, render: (v) => v || '-' },
+          { title: '状态', dataIndex: 'status', width: 150, render: (v: OrderStatus) => orderStatusTag(v) },
+          { title: '对账', dataIndex: 'reconcileStatus', width: 130, render: (v: ReconcileStatus) => reconcileStatusTag(v) },
+          { title: '总金额', dataIndex: 'totalAmountFen', width: 120, render: (v: number) => formatMoneyFen(v) },
+          { title: '支付渠道', dataIndex: 'paymentChannel', width: 130, render: (v: PaymentChannel) => statusLabel(v, PAYMENT_CHANNEL_OPTIONS) },
+          { title: '支付流水号', dataIndex: 'paymentTxnNo', width: 200, ellipsis: true, render: (v) => v || '-' },
+          { title: '支付截止', dataIndex: 'paymentDeadline', width: 180, render: (v: string) => formatDateTime(v) },
+          { title: '支付时间', dataIndex: 'paidAt', width: 180, render: (v: string) => formatDateTime(v) },
+          { title: '办理时间', dataIndex: 'executedAt', width: 180, render: (v: string) => formatDateTime(v) },
+          { title: '更新时间', dataIndex: 'updatedAt', width: 180, render: (v: string) => formatDateTime(v) },
           {
-            title: 'Actions',
+            title: '操作',
             key: 'actions',
             width: 360,
             fixed: 'right',
@@ -1020,7 +1038,7 @@ function MaintenanceOrders() {
                   </Button>
                 ))}
                 <Button size="small" onClick={() => void openEvents(row)}>
-                  Timeline
+                  时间线
                 </Button>
               </Space>
             ),
@@ -1030,17 +1048,17 @@ function MaintenanceOrders() {
 
       <Modal
         open={createOpen}
-        title="Create Maintenance Order"
+        title="创建年费托管订单"
         destroyOnClose
         onCancel={() => setCreateOpen(false)}
         onOk={async () => {
           try {
             const values = await createForm.validateFields();
             const { ok } = await confirmActionWithReason({
-              title: 'Confirm maintenance order creation?',
-              content: 'A new order will be created in REQUESTED status.',
-              okText: 'Confirm',
-              reasonLabel: 'Note (optional)',
+              title: '确认创建年费托管订单？',
+              content: '将创建一笔状态为“已发起”的新订单。',
+              okText: '确认',
+              reasonLabel: '备注（选填）',
             });
             if (!ok) return;
             await apiPost('/admin/patent-maintenance/orders', {
@@ -1048,23 +1066,23 @@ function MaintenanceOrders() {
               ...(values.applicantUserId ? { applicantUserId: values.applicantUserId } : {}),
               ...(values.assignedCsUserId ? { assignedCsUserId: values.assignedCsUserId } : {}),
             });
-            message.success('Order created');
+            message.success('订单创建成功');
             setCreateOpen(false);
             void load();
           } catch (e: any) {
             if (e?.errorFields) return;
-            message.error(e?.message || 'Create order failed');
+            message.error(e?.message || '创建订单失败');
           }
         }}
       >
         <Form form={createForm} layout="vertical">
-          <Form.Item label="Schedule ID" name="scheduleId" rules={[{ required: true, message: 'Schedule ID is required' }]}>
+          <Form.Item label="计划ID" name="scheduleId" rules={[{ required: true, message: '请输入计划ID' }]}>
             <Input />
           </Form.Item>
-          <Form.Item label="Applicant User ID (optional)" name="applicantUserId">
+          <Form.Item label="申请人用户ID（选填）" name="applicantUserId">
             <Input />
           </Form.Item>
-          <Form.Item label="Assigned CS User ID (optional)" name="assignedCsUserId">
+          <Form.Item label="分配客服用户ID（选填）" name="assignedCsUserId">
             <Input />
           </Form.Item>
         </Form>
@@ -1081,19 +1099,19 @@ function MaintenanceOrders() {
         <Form form={actionForm} layout="vertical">
           {activeAction === 'QUOTE' ? (
             <>
-              <Form.Item label="Official Fee (fen)" name="officialFeeFen" rules={[{ required: true, message: 'Required' }]}>
+              <Form.Item label="官费（分）" name="officialFeeFen" rules={[{ required: true, message: '必填' }]}>
                 <InputNumber min={0} style={{ width: '100%' }} />
               </Form.Item>
-              <Form.Item label="Late Fee (fen)" name="lateFeeFen">
+              <Form.Item label="滞纳金（分）" name="lateFeeFen">
                 <InputNumber min={0} style={{ width: '100%' }} />
               </Form.Item>
-              <Form.Item label="Service Fee (fen)" name="serviceFeeFen" rules={[{ required: true, message: 'Required' }]}>
+              <Form.Item label="服务费（分）" name="serviceFeeFen" rules={[{ required: true, message: '必填' }]}>
                 <InputNumber min={0} style={{ width: '100%' }} />
               </Form.Item>
-              <Form.Item label="Payment Deadline (ISO8601)" name="paymentDeadline" rules={[{ required: true, message: 'Required' }]}>
+              <Form.Item label="支付截止时间（ISO8601）" name="paymentDeadline" rules={[{ required: true, message: '必填' }]}>
                 <Input placeholder="2026-03-31T23:59:59.000Z" />
               </Form.Item>
-              <Form.Item label="Assigned CS User ID" name="assignedCsUserId">
+              <Form.Item label="分配客服用户ID" name="assignedCsUserId">
                 <Input />
               </Form.Item>
             </>
@@ -1101,13 +1119,13 @@ function MaintenanceOrders() {
 
           {activeAction === 'PAY' ? (
             <>
-              <Form.Item label="Payment Channel" name="paymentChannel" rules={[{ required: true, message: 'Required' }]}>
+              <Form.Item label="支付渠道" name="paymentChannel" rules={[{ required: true, message: '必填' }]}>
                 <Select options={PAYMENT_CHANNEL_OPTIONS} />
               </Form.Item>
-              <Form.Item label="Payment Transaction No" name="paymentTxnNo" rules={[{ required: true, message: 'Required' }]}>
+              <Form.Item label="支付流水号" name="paymentTxnNo" rules={[{ required: true, message: '必填' }]}>
                 <Input />
               </Form.Item>
-              <Form.Item label="Paid At (ISO8601, optional)" name="paidAt">
+              <Form.Item label="支付时间（ISO8601，可选）" name="paidAt">
                 <Input placeholder="2026-03-31T23:59:59.000Z" />
               </Form.Item>
             </>
@@ -1115,10 +1133,10 @@ function MaintenanceOrders() {
 
           {activeAction === 'EXECUTE' ? (
             <>
-              <Form.Item label="Official Submission No" name="officialSubmissionNo" rules={[{ required: true, message: 'Required' }]}>
+              <Form.Item label="官方提交编号" name="officialSubmissionNo" rules={[{ required: true, message: '必填' }]}>
                 <Input />
               </Form.Item>
-              <Form.Item label="Executed At (ISO8601, optional)" name="executedAt">
+              <Form.Item label="办理时间（ISO8601，可选）" name="executedAt">
                 <Input placeholder="2026-03-31T23:59:59.000Z" />
               </Form.Item>
             </>
@@ -1126,12 +1144,12 @@ function MaintenanceOrders() {
 
           {activeAction === 'RECEIPT' ? (
             <>
-              <Form.Item label="Official Receipt No" name="officialReceiptNo" rules={[{ required: true, message: 'Required' }]}>
+              <Form.Item label="官方回执编号" name="officialReceiptNo" rules={[{ required: true, message: '必填' }]}>
                 <Input />
               </Form.Item>
-              <Form.Item label="Receipt File ID" name="officialReceiptFileId" rules={[{ required: true, message: 'Required' }]}>
+              <Form.Item label="回执文件ID" name="officialReceiptFileId" rules={[{ required: true, message: '必填' }]}>
                 <Space style={{ width: '100%' }} direction="vertical" size={8}>
-                  <Input placeholder="Input existing file ID or upload below" />
+                  <Input placeholder="输入已有文件ID，或在下方上传" />
                   <Space wrap>
                     <Upload
                       maxCount={1}
@@ -1141,15 +1159,15 @@ function MaintenanceOrders() {
                           const uploaded = await apiUploadFile(options.file as File, 'MAINTENANCE_RECEIPT');
                           setReceiptFile(uploaded);
                           actionForm.setFieldsValue({ officialReceiptFileId: uploaded.id });
-                          message.success('Receipt file uploaded');
+                          message.success('回执文件上传成功');
                           options.onSuccess?.(uploaded);
                         } catch (e: any) {
                           options.onError?.(e);
-                          message.error(e?.message || 'Receipt upload failed');
+                          message.error(e?.message || '回执文件上传失败');
                         }
                       }}
                     >
-                      <Button>Upload Receipt</Button>
+                      <Button>上传回执</Button>
                     </Upload>
                     <Button
                       onClick={() => {
@@ -1157,13 +1175,13 @@ function MaintenanceOrders() {
                         actionForm.setFieldsValue({ officialReceiptFileId: '' });
                       }}
                     >
-                      Clear
+                      清空
                     </Button>
                   </Space>
-                  {receiptFile?.id ? <Typography.Text type="secondary">Uploaded: {receiptFile.id}</Typography.Text> : null}
+                  {receiptFile?.id ? <Typography.Text type="secondary">已上传：{receiptFile.id}</Typography.Text> : null}
                 </Space>
               </Form.Item>
-              <Form.Item label="Receipt Issued At (ISO8601, optional)" name="receiptIssuedAt">
+              <Form.Item label="回执出具时间（ISO8601，可选）" name="receiptIssuedAt">
                 <Input placeholder="2026-03-31T23:59:59.000Z" />
               </Form.Item>
             </>
@@ -1171,23 +1189,23 @@ function MaintenanceOrders() {
 
           {activeAction === 'RECONCILE' ? (
             <>
-              <Form.Item label="Reconcile Status" name="reconcileStatus" rules={[{ required: true, message: 'Required' }]}>
+              <Form.Item label="对账状态" name="reconcileStatus" rules={[{ required: true, message: '必填' }]}>
                 <Select options={RECONCILE_STATUS_OPTIONS} />
               </Form.Item>
-              <Form.Item label="Reconcile Note (optional)" name="reconcileNote">
+              <Form.Item label="对账备注（选填）" name="reconcileNote">
                 <Input.TextArea rows={3} />
               </Form.Item>
             </>
           ) : null}
 
           {activeAction === 'CLOSE' ? (
-            <Form.Item label="Close Note (optional)" name="closeNote">
+            <Form.Item label="关闭备注（选填）" name="closeNote">
               <Input.TextArea rows={3} />
             </Form.Item>
           ) : null}
 
           {activeAction === 'CANCEL' ? (
-            <Form.Item label="Cancel Reason" name="closeNote" rules={[{ required: true, message: 'Cancel reason is required' }]}>
+            <Form.Item label="取消原因" name="closeNote" rules={[{ required: true, message: '请输入取消原因' }]}>
               <Input.TextArea rows={3} />
             </Form.Item>
           ) : null}
@@ -1196,13 +1214,13 @@ function MaintenanceOrders() {
 
       <Modal
         open={eventsOpen}
-        title={`Order Timeline${activeOrder ? ` - ${activeOrder.id}` : ''}`}
+        title={`订单时间线${activeOrder ? ` - ${activeOrder.id}` : ''}`}
         footer={null}
         width={860}
         onCancel={() => setEventsOpen(false)}
       >
         {eventLoading ? (
-          <Typography.Text>Loading...</Typography.Text>
+          <Typography.Text>加载中...</Typography.Text>
         ) : events.length ? (
           <Timeline
             items={events.map((evt) => ({
@@ -1210,22 +1228,24 @@ function MaintenanceOrders() {
               children: (
                 <Space direction="vertical" size={4} style={{ width: '100%' }}>
                   <Space size={8} wrap>
-                    <Tag color="default">{evt.eventType}</Tag>
-                    <Typography.Text strong>{evt.fromStatus ? `${evt.fromStatus} -> ${evt.toStatus}` : evt.toStatus}</Typography.Text>
+                    <Tag color="default">{orderEventTypeCn(evt.eventType)}</Tag>
+                    <Typography.Text strong>
+                      {evt.fromStatus ? `${orderStatusCn(evt.fromStatus)} -> ${orderStatusCn(evt.toStatus)}` : orderStatusCn(evt.toStatus)}
+                    </Typography.Text>
                     <Typography.Text type="secondary">{formatTimeSmart(evt.createdAt)}</Typography.Text>
                   </Space>
                   <Typography.Text type="secondary">
-                    Actor: {evt.actorNickname || evt.actorUserId || 'System'}
+                    操作人：{evt.actorNickname || evt.actorUserId || '系统'}
                     {evt.actorRole ? ` (${evt.actorRole})` : ''}
                   </Typography.Text>
-                  {evt.note ? <Typography.Text>Note: {evt.note}</Typography.Text> : null}
-                  {evt.payloadJson ? <Typography.Text type="secondary">Payload: {JSON.stringify(evt.payloadJson)}</Typography.Text> : null}
+                  {evt.note ? <Typography.Text>备注：{evt.note}</Typography.Text> : null}
+                  {evt.payloadJson ? <Typography.Text type="secondary">负载：{JSON.stringify(evt.payloadJson)}</Typography.Text> : null}
                 </Space>
               ),
             }))}
           />
         ) : (
-          <Typography.Text type="secondary">No timeline events.</Typography.Text>
+          <Typography.Text type="secondary">暂无时间线记录。</Typography.Text>
         )}
       </Modal>
     </Space>
@@ -1237,27 +1257,27 @@ export function MaintenancePage() {
     <Card>
       <Space direction="vertical" size={12} style={{ width: '100%' }}>
         <Typography.Title level={3} style={{ margin: 0 }}>
-          Patent Maintenance Operations
+          年费托管运营
         </Typography.Title>
         <Typography.Paragraph type="secondary" style={{ marginBottom: 0 }}>
-          Unified management for schedules, tasks, and payment-execution-reconciliation lifecycle orders.
+          统一管理缴费计划、执行任务，以及支付-办理-回执-对账全流程订单。
         </Typography.Paragraph>
         <Tabs
           defaultActiveKey="schedules"
           items={[
             {
               key: 'schedules',
-              label: 'Schedules',
+              label: '缴费计划',
               children: <MaintenanceSchedules />,
             },
             {
               key: 'tasks',
-              label: 'Tasks',
+              label: '执行任务',
               children: <MaintenanceTasks />,
             },
             {
               key: 'orders',
-              label: 'Orders',
+              label: '托管订单',
               children: <MaintenanceOrders />,
             },
           ]}

@@ -21,6 +21,11 @@ import type { components } from '@ipmoney/api-types';
 
 import { apiDelete, apiGet, apiPost } from '../lib/api';
 import { formatTimeSmart } from '../lib/format';
+import {
+  DEFAULT_LISTING_TOPIC_OPTIONS,
+  fetchAdminListingTopicOptions,
+  topicLabelFromOptions,
+} from '../lib/homeLandingConfig';
 import { RequestErrorAlert } from '../ui/RequestState';
 import { confirmAction } from '../ui/confirm';
 
@@ -72,14 +77,6 @@ type PagedMessages = { items: ConversationMessage[]; nextCursor?: string | null 
 type UserListResponse = { items: StaffUser[] };
 type TimelineLine = { kind: 'divider'; key: string; label: string } | { kind: 'message'; key: string; message: ConversationMessage };
 
-const LISTING_TOPIC_OPTIONS: Array<{ value: ListingTopic; label: string }> = [
-  { value: 'HIGH_TECH_RETIRED', label: '退役专利' },
-  { value: 'SLEEPING', label: '沉睡专利' },
-  { value: 'AWARD_WINNING', label: '获奖专利' },
-  { value: 'FIVE_STAR', label: '五星专利' },
-  { value: 'OPEN_LICENSE', label: '开放许可' },
-];
-
 const ASSIGNED_FILTER_OPTIONS: Array<{ value: AssignedFilter; label: string }> = [
   { value: 'ALL', label: '全部会话' },
   { value: 'MINE', label: '仅我负责' },
@@ -108,11 +105,6 @@ function toDateKey(value: string): string {
   const m = String(date.getMonth() + 1).padStart(2, '0');
   const d = String(date.getDate()).padStart(2, '0');
   return `${y}-${m}-${d}`;
-}
-
-function topicLabel(topic: ListingTopic): string {
-  const option = LISTING_TOPIC_OPTIONS.find((item) => item.value === topic);
-  return option?.label || topic;
 }
 
 function topicColor(topic: ListingTopic): string {
@@ -175,6 +167,8 @@ export function PlatformConversationsPage() {
   const [staffUsers, setStaffUsers] = useState<StaffUser[]>([]);
   const [currentUserId, setCurrentUserId] = useState('');
   const [autoRefresh, setAutoRefresh] = useState(true);
+  const [listingTopicOptions, setListingTopicOptions] =
+    useState<Array<{ value: ListingTopic; label: string }>>(DEFAULT_LISTING_TOPIC_OPTIONS);
 
   const messageListRef = useRef<HTMLDivElement | null>(null);
   const olderAnchorRef = useRef<number | null>(null);
@@ -205,6 +199,15 @@ export function PlatformConversationsPage() {
     }
     return out;
   }, [messages]);
+
+  const enabledTopicSet = useMemo(
+    () => new Set<ListingTopic>(listingTopicOptions.map((item) => item.value)),
+    [listingTopicOptions],
+  );
+  const topicLabel = useCallback(
+    (topic: ListingTopic) => topicLabelFromOptions(topic, listingTopicOptions),
+    [listingTopicOptions],
+  );
 
   const loadStaffContext = useCallback(async () => {
     try {
@@ -420,6 +423,18 @@ export function PlatformConversationsPage() {
   }, [loadStaffContext]);
 
   useEffect(() => {
+    (async () => {
+      const options = await fetchAdminListingTopicOptions();
+      setListingTopicOptions(options);
+    })();
+  }, []);
+
+  useEffect(() => {
+    setDraftListingTopic((prev) => (prev && !enabledTopicSet.has(prev) ? '' : prev));
+    setAppliedListingTopic((prev) => (prev && !enabledTopicSet.has(prev) ? '' : prev));
+  }, [enabledTopicSet]);
+
+  useEffect(() => {
     void loadConversations();
   }, [loadConversations]);
 
@@ -504,7 +519,7 @@ export function PlatformConversationsPage() {
               <Select
                 value={draftListingTopic}
                 style={{ width: 180 }}
-                options={[{ value: '', label: '全部标签' }, ...LISTING_TOPIC_OPTIONS]}
+                options={[{ value: '', label: '全部标签' }, ...listingTopicOptions]}
                 onChange={(value) => setDraftListingTopic((value as ListingTopic) || '')}
                 placeholder="特色标签"
                 disabled={draftChannel !== 'ALL' && draftChannel !== 'CONSULTATION'}

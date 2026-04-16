@@ -8,7 +8,7 @@ info:
   description: |
     Ipmoney API (P0) for mini-program, H5 and admin console.
 servers:
-  - url: https://api.ipmoney.cn
+  - url: https://api.xn--m5rv27f.com
 tags:
   - name: Auth
     description: Auth
@@ -182,6 +182,10 @@ paths:
       tags:
         - Auth
       summary: Send SMS code
+      description: |
+        Send verification code by configured SMS provider.
+        - In release-like environments (production/staging), `SMS_PROVIDER` and provider credentials must be configured.
+        - In non-release environments, server may return `debugCode` for local debugging.
       operationId: authSmsSend
       security: []
       requestBody:
@@ -192,12 +196,12 @@ paths:
               type: object
               required:
                 - phone
-                - purpose
               properties:
                 phone:
                   $ref: '#/components/schemas/PhoneNumber'
                 purpose:
                   $ref: '#/components/schemas/SmsPurpose'
+                  description: Optional, defaults to `LOGIN` when omitted.
       responses:
         '200':
           description: OK
@@ -830,6 +834,23 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/PublicHomeAnnouncementFeed'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+  /public/config/home-landing:
+    get:
+      tags:
+        - Config
+      summary: Get homepage landing config (public)
+      operationId: getPublicHomeLandingConfig
+      security: []
+      responses:
+        '200':
+          description: OK
+
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HomeLandingConfig'
         '400':
           $ref: '#/components/responses/BadRequest'
   /public/listings/{listingId}:
@@ -5659,6 +5680,45 @@ paths:
           $ref: '#/components/responses/Forbidden'
         '404':
           $ref: '#/components/responses/NotFound'
+  /admin/user-verifications/{verificationId}/logo:
+    patch:
+      tags:
+        - Admin
+      summary: 更新认证主体 Logo
+      operationId: adminUpdateUserVerificationLogo
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/VerificationId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - logoFileId
+              properties:
+                logoFileId:
+                  oneOf:
+                    - $ref: '#/components/schemas/Uuid'
+                    - type: string
+                      nullable: true
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserVerification'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
   /admin/orders/{orderId}/payments/manual:
     post:
       tags:
@@ -6701,6 +6761,55 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/HomeAnnouncementConfig'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+  /admin/config/home-landing:
+    get:
+      tags:
+        - Admin
+        - Config
+      summary: Get homepage landing config (admin)
+      operationId: adminGetHomeLandingConfig
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: OK
+
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HomeLandingConfig'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+    put:
+      tags:
+        - Admin
+        - Config
+      summary: Update homepage landing config (admin)
+      operationId: adminUpdateHomeLandingConfig
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/HomeLandingConfig'
+      responses:
+        '200':
+          description: OK
+
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HomeLandingConfig'
+        '400':
+          $ref: '#/components/responses/BadRequest'
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
@@ -11001,6 +11110,10 @@ components:
     TechManagerUpdateRequest:
       type: object
       properties:
+        avatarUrl:
+          type: string
+          format: uri
+          nullable: true
         intro:
           type: string
           maxLength: 2000
@@ -13390,6 +13503,157 @@ components:
           type: array
           items:
             type: string
+    HomeLandingActionType:
+      type: string
+      enum:
+        - SEARCH_PREFILL
+        - PAGE_ROUTE
+    HomeLandingSearchTab:
+      type: string
+      enum:
+        - LISTING
+        - ACHIEVEMENT
+    HomeLandingSearchPrefillAction:
+      type: object
+      properties:
+        tab:
+          $ref: '#/components/schemas/HomeLandingSearchTab'
+        q:
+          type: string
+        reset:
+          type: boolean
+        listingTopic:
+          $ref: '#/components/schemas/ListingTopic'
+        patentType:
+          $ref: '#/components/schemas/PatentType'
+    HomeLandingPageRouteAction:
+      type: object
+      required:
+        - url
+      properties:
+        url:
+          type: string
+          maxLength: 1000
+    HomeLandingFeaturedZoneItem:
+      type: object
+      required:
+        - id
+        - title
+        - subtitle
+        - imageUrl
+        - enabled
+        - order
+        - actionType
+        - actionPayload
+      properties:
+        id:
+          type: string
+          minLength: 1
+        title:
+          type: string
+          maxLength: 24
+        subtitle:
+          type: string
+          maxLength: 40
+        imageUrl:
+          type: string
+          maxLength: 1000
+        enabled:
+          type: boolean
+        order:
+          type: integer
+          minimum: 0
+        actionType:
+          $ref: '#/components/schemas/HomeLandingActionType'
+        actionPayload:
+          oneOf:
+            - $ref: '#/components/schemas/HomeLandingSearchPrefillAction'
+            - $ref: '#/components/schemas/HomeLandingPageRouteAction'
+    HomeLandingListingTopicUiItem:
+      type: object
+      required:
+        - value
+        - label
+        - enabled
+        - order
+      properties:
+        value:
+          $ref: '#/components/schemas/ListingTopic'
+        label:
+          type: string
+          maxLength: 20
+        enabled:
+          type: boolean
+        order:
+          type: integer
+          minimum: 0
+    HomeLandingConfig:
+      type: object
+      required:
+        - schemaVersion
+        - hero
+        - sectionTexts
+        - featuredZones
+        - listingTopicUi
+      properties:
+        schemaVersion:
+          type: integer
+          enum:
+            - 1
+        hero:
+          type: object
+          required:
+            - tags
+            - searchPlaceholder
+          properties:
+            tags:
+              type: array
+              items:
+                type: string
+              minItems: 1
+              maxItems: 3
+            searchPlaceholder:
+              type: string
+              maxLength: 40
+        sectionTexts:
+          type: object
+          required:
+            - featuredTitle
+            - featuredMoreText
+          properties:
+            featuredTitle:
+              type: string
+              maxLength: 20
+            featuredMoreText:
+              type: string
+              maxLength: 10
+        featuredZones:
+          type: object
+          required:
+            - enabled
+            - displayCount
+            - items
+          properties:
+            enabled:
+              type: boolean
+            displayCount:
+              type: integer
+              enum:
+                - 4
+                - 6
+            items:
+              type: array
+              items:
+                $ref: '#/components/schemas/HomeLandingFeaturedZoneItem'
+        listingTopicUi:
+          type: object
+          required:
+            - items
+          properties:
+            items:
+              type: array
+              items:
+                $ref: '#/components/schemas/HomeLandingListingTopicUiItem'
     HomeAnnouncementStatus:
       type: string
       enum:

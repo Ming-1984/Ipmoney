@@ -444,6 +444,35 @@ export class UsersService {
     return this.toUserVerificationDto(updated);
   }
 
+  async adminUpdateVerificationLogo(id: string, logoFileId: string | null | undefined, reviewerId: string) {
+    const normalizedLogoFileId = this.parseNullableNonEmptyStringStrict(logoFileId, 'logoFileId');
+    const data: any = {
+      logoFileId: normalizedLogoFileId,
+    };
+    let updated: any;
+    try {
+      updated = await this.prisma.userVerification.update({
+        where: { id },
+        data,
+        include: { logoFile: true },
+      });
+    } catch (error: any) {
+      if (error?.code === 'P2025') {
+        throw new NotFoundException({ code: 'NOT_FOUND', message: 'verification not found' });
+      }
+      throw error;
+    }
+
+    await this.audit.log({
+      actorUserId: reviewerId || updated.userId,
+      action: 'VERIFICATION_LOGO_UPDATE',
+      targetType: 'USER_VERIFICATION',
+      targetId: id,
+      afterJson: { logoFileId: normalizedLogoFileId },
+    });
+    return this.toUserVerificationDto(updated);
+  }
+
   getUserIdFromReq(request: any): string {
     const userId = request?.auth?.userId ? String(request.auth.userId) : null;
     if (!userId) throw new UnauthorizedException({ code: 'UNAUTHORIZED', message: 'login required' });

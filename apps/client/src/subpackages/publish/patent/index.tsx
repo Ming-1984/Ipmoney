@@ -9,8 +9,13 @@ import { API_BASE_URL } from '../../../constants';
 import { getToken } from '../../../lib/auth';
 import { apiGet, apiPatch, apiPost } from '../../../lib/api';
 import { ensureApproved, requireLogin } from '../../../lib/guard';
+import {
+  buildEnabledListingTopicOptions,
+  fetchHomeLandingConfig,
+  normalizeHomeLandingConfig,
+} from '../../../lib/homeLandingConfig';
 import { sanitizeIndustryTagNames } from '../../../lib/industryTags';
-import { LISTING_TOPIC_OPTIONS, sanitizeListingTopics, syncListingTopicsWithTradeMode } from '../../../lib/listingTopics';
+import { sanitizeListingTopics, syncListingTopicsWithTradeMode } from '../../../lib/listingTopics';
 import { auditStatusLabel, listingStatusLabel, patentTypeLabel } from '../../../lib/labels';
 import { fenToYuan } from '../../../lib/money';
 import { parseRegionPickerSelection, regionDisplayName } from '../../../lib/regions';
@@ -59,7 +64,6 @@ const PRICE_TYPE_OPTIONS: Array<{ value: PriceType; label: string }> = [
   { value: 'FIXED', label: '一口价' },
   { value: 'NEGOTIABLE', label: '面议' },
 ];
-const LISTING_TOPIC_CHIP_OPTIONS: ChipOption<ListingTopic>[] = [...LISTING_TOPIC_OPTIONS];
 
 function tradeModeLabel(value: TradeMode): string {
   if (value === 'ASSIGNMENT') return '转让';
@@ -225,6 +229,9 @@ export default function PublishPatentPage() {
   const [regionCode, setRegionCode] = useState('');
   const [industryTags, setIndustryTags] = useState<string[]>([]);
   const [listingTopics, setListingTopics] = useState<ListingTopic[]>([]);
+  const [listingTopicOptions, setListingTopicOptions] = useState<Array<{ value: ListingTopic; label: string }>>(() =>
+    buildEnabledListingTopicOptions(normalizeHomeLandingConfig(null)),
+  );
   const [ipcCodesInput, setIpcCodesInput] = useState('');
   const [locCodesInput, setLocCodesInput] = useState('');
 
@@ -241,17 +248,26 @@ export default function PublishPatentPage() {
   const ipcCodes = useMemo(() => splitList(ipcCodesInput), [ipcCodesInput]);
   const locCodes = useMemo(() => splitList(locCodesInput), [locCodesInput]);
   const sanitizedIndustryTags = useMemo(() => sanitizeIndustryTagNames(industryTags), [industryTags]);
+  const enabledListingTopicSet = useMemo(
+    () => new Set<ListingTopic>(listingTopicOptions.map((item) => item.value)),
+    [listingTopicOptions],
+  );
   const effectiveListingTopics = useMemo(
-    () => syncListingTopicsWithTradeMode(listingTopics, tradeMode),
-    [listingTopics, tradeMode],
+    () =>
+      syncListingTopicsWithTradeMode(listingTopics, tradeMode).filter((topic) => enabledListingTopicSet.has(topic)),
+    [enabledListingTopicSet, listingTopics, tradeMode],
   );
   const listingTopicChipOptions = useMemo<ChipOption<ListingTopic>[]>(
     () =>
-      LISTING_TOPIC_CHIP_OPTIONS.map((it) => ({
+      listingTopicOptions.map((it) => ({
         ...it,
         disabled: it.value === 'OPEN_LICENSE' && tradeMode === 'LICENSE',
       })),
-    [tradeMode],
+    [listingTopicOptions, tradeMode],
+  );
+  const listingTopicHint = useMemo(
+    () => listingTopicOptions.map((item) => item.label).filter(Boolean).join('、'),
+    [listingTopicOptions],
   );
 
   const uploadProof = useCallback(async () => {
@@ -299,6 +315,21 @@ export default function PublishPatentPage() {
     if (!selected) return;
     setRegionCode(selected.code);
   }, []);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const config = await fetchHomeLandingConfig();
+        setListingTopicOptions(buildEnabledListingTopicOptions(config));
+      } catch {
+        setListingTopicOptions(buildEnabledListingTopicOptions(normalizeHomeLandingConfig(null)));
+      }
+    })();
+  }, []);
+
+  useEffect(() => {
+    setListingTopics((prev) => sanitizeListingTopics(prev).filter((topic) => enabledListingTopicSet.has(topic)));
+  }, [enabledListingTopicSet]);
 
   useEffect(() => {
     if (!initialListingId) return;
@@ -666,7 +697,9 @@ export default function PublishPatentPage() {
         {submitted ? (
           <Surface className="publish-card publish-status-card" padding="none">
             <Text className="publish-section-title">已提交审核</Text>
-            <Text className="form-hint">资料已提交，审核通过后将自动上架，请留意消息通知。</Text>
+            <Text className="form-hint">
+              {'\u8d44\u6599\u5df2\u63d0\u4ea4\uff0c\u5ba1\u6838\u901a\u8fc7\u540e\u5c06\u81ea\u52a8\u4e0a\u67b6\uff0c\u8bf7\u7559\u610f\u6d88\u606f\u901a\u77e5\u3002'}
+            </Text>
             <Text className="form-hint">上架 ID：{listingId || '-'}</Text>
           </Surface>
         ) : null}
@@ -879,14 +912,19 @@ export default function PublishPatentPage() {
               value={effectiveListingTopics}
               options={listingTopicChipOptions}
               onChange={(next) => {
-                const sanitized = sanitizeListingTopics(next);
+                const sanitized = sanitizeListingTopics(next).filter((topic) => enabledListingTopicSet.has(topic));
                 setListingTopics(sanitized);
                 if (sanitized.includes('OPEN_LICENSE') && tradeMode !== 'LICENSE') {
                   setTradeMode('LICENSE');
                 }
               }}
             />
-            <Text className="form-hint">与首页/搜索筛选保持一致：退役、沉睡、获奖、五星、开放许可。</Text>
+            <Text className="form-hint">
+              {'\u4e0e\u9996\u9875/\u641c\u7d22\u7b5b\u9009\u4fdd\u6301\u4e00\u81f4\uff1a'}
+              {listingTopicHint ||
+                '\u9000\u5f79\u4e13\u5229\u3001\u6c89\u7761\u4e13\u5229\u3001\u83b7\u5956\u4e13\u5229\u3001\u4e94\u661f\u4e13\u5229\u3001\u5f00\u653e\u8bb8\u53ef'}
+              {'\u3002'}
+            </Text>
           </View>
 
           <Text className="publish-section-subtitle">权属证明材料 *</Text>

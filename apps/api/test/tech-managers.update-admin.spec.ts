@@ -13,11 +13,15 @@ describe('TechManagersService update/public detail suite', () => {
 
   beforeEach(() => {
     prisma = {
+      user: {
+        update: vi.fn(),
+      },
       userVerification: {
         findFirst: vi.fn(),
         update: vi.fn(),
       },
       techManagerProfile: {
+        findUnique: vi.fn(),
         upsert: vi.fn(),
       },
     };
@@ -115,6 +119,9 @@ describe('TechManagersService update/public detail suite', () => {
     await expect(service.updateAdmin(ADMIN_REQ, VALID_ID, { featuredUntil: 'not-a-date' })).rejects.toBeInstanceOf(
       BadRequestException,
     );
+    await expect(service.updateAdmin(ADMIN_REQ, VALID_ID, { avatarUrl: 'x'.repeat(1001) })).rejects.toBeInstanceOf(
+      BadRequestException,
+    );
   });
 
   it('updates intro/profile fields and writes audit log on success', async () => {
@@ -194,5 +201,69 @@ describe('TechManagersService update/public detail suite', () => {
     });
     expect(result.serviceTags).toEqual(['Patent Drafting']);
     expect(result.intro).toBe('New intro');
+  });
+
+  it('updates avatarUrl on user profile and supports clearing', async () => {
+    prisma.userVerification.findFirst.mockResolvedValue({
+      id: 'verification-1',
+      userId: VALID_ID,
+      displayName: 'Tech Manager A',
+      verificationType: 'TECH_MANAGER',
+      verificationStatus: 'APPROVED',
+      regionCode: '110000',
+      intro: 'old intro',
+      reviewedAt: new Date('2026-03-12T00:00:00.000Z'),
+      user: { avatarUrl: 'https://example.com/old.png' },
+    });
+    prisma.techManagerProfile.upsert.mockResolvedValue({
+      userId: VALID_ID,
+      intro: 'old intro',
+      serviceTagsJson: [],
+      consultCount: 0,
+      dealCount: 0,
+      ratingScore: 0,
+      ratingCount: 0,
+      featuredRank: null,
+      featuredUntil: null,
+    });
+    prisma.techManagerProfile.findUnique.mockResolvedValue({
+      userId: VALID_ID,
+      intro: 'old intro',
+      serviceTagsJson: [],
+      consultCount: 0,
+      dealCount: 0,
+      ratingScore: 0,
+      ratingCount: 0,
+      featuredRank: null,
+      featuredUntil: null,
+    });
+
+    prisma.user.update.mockResolvedValueOnce({});
+    const updated = await service.updateAdmin(ADMIN_REQ, VALID_ID, { avatarUrl: ' https://example.com/new.png ' });
+    expect(prisma.user.update).toHaveBeenCalledWith({
+      where: { id: VALID_ID },
+      data: { avatarUrl: 'https://example.com/new.png' },
+    });
+    expect(updated.avatarUrl).toBe('https://example.com/new.png');
+    expect(audit.log).toHaveBeenLastCalledWith({
+      actorUserId: 'admin-1',
+      action: 'TECH_MANAGER_UPDATE',
+      targetType: 'TECH_MANAGER',
+      targetId: 'verification-1',
+      afterJson: { avatarUrl: 'https://example.com/new.png' },
+    });
+    expect(prisma.techManagerProfile.upsert).not.toHaveBeenCalled();
+    expect(prisma.techManagerProfile.findUnique).toHaveBeenCalledWith({
+      where: { userId: VALID_ID },
+    });
+
+    prisma.user.update.mockResolvedValueOnce({});
+    const cleared = await service.updateAdmin(ADMIN_REQ, VALID_ID, { avatarUrl: '' });
+    expect(prisma.user.update).toHaveBeenLastCalledWith({
+      where: { id: VALID_ID },
+      data: { avatarUrl: null },
+    });
+    expect(cleared.avatarUrl).toBeUndefined();
+    expect(prisma.techManagerProfile.upsert).not.toHaveBeenCalled();
   });
 });

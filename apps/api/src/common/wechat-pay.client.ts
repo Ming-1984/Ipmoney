@@ -141,7 +141,7 @@ export class WechatPayClient {
   private dynamicPlatformCertMap = new Map<string, string>();
 
   private getConfig(): WechatPayConfig {
-    const appId = String(process.env.WX_MP_APPID || '').trim() || undefined;
+    const appId = String(process.env.WX_MP_APPID || process.env.WX_MP_ID || '').trim() || undefined;
     const mchId = String(process.env.WX_PAY_MCHID || '').trim() || undefined;
     const mchCertSerialNo = String(process.env.WX_PAY_MCH_CERT_SERIAL_NO || '').trim() || undefined;
     const apiV3Key = String(process.env.WX_PAY_API_V3_KEY || '').trim() || undefined;

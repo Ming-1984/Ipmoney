@@ -97,6 +97,46 @@ if (!jwtSecret) {
   errors.push('JWT_SECRET must not be the default "change-me" in production.');
 }
 
+const smsProvider = read('SMS_PROVIDER').toUpperCase();
+if (!smsProvider) {
+  errors.push('SMS_PROVIDER is required in production (expected: ALIYUN).');
+} else if (smsProvider !== 'ALIYUN') {
+  errors.push(`SMS_PROVIDER=${smsProvider} is not supported in production (expected: ALIYUN).`);
+}
+
+if (smsProvider === 'ALIYUN') {
+  const keyPairs = [
+    { key: read('SMS_ACCESS_KEY'), secret: read('SMS_SECRET_KEY'), label: 'SMS_ACCESS_KEY/SMS_SECRET_KEY' },
+    { key: read('SMS_ACCESS_KEY_ID'), secret: read('SMS_ACCESS_KEY_SECRET'), label: 'SMS_ACCESS_KEY_ID/SMS_ACCESS_KEY_SECRET' },
+    { key: read('SMS_API_KEY'), secret: read('SMS_API_SECRET'), label: 'SMS_API_KEY/SMS_API_SECRET' },
+  ];
+  const hasCompletePair = keyPairs.some((pair) => pair.key && pair.secret);
+  const hasAnyKey = keyPairs.some((pair) => pair.key);
+  const hasAnySecret = keyPairs.some((pair) => pair.secret);
+  const legacyPair = keyPairs.find((pair) => pair.label === 'SMS_ACCESS_KEY_ID/SMS_ACCESS_KEY_SECRET');
+  const shortPair = keyPairs.find((pair) => pair.label === 'SMS_ACCESS_KEY/SMS_SECRET_KEY');
+  if (!hasCompletePair) {
+    if (!hasAnyKey && !hasAnySecret) {
+      errors.push(
+        'One SMS key pair is required for ALIYUN in production: SMS_ACCESS_KEY/SMS_SECRET_KEY (recommended), or SMS_ACCESS_KEY_ID/SMS_ACCESS_KEY_SECRET, or SMS_API_KEY/SMS_API_SECRET.',
+      );
+    } else {
+      errors.push('SMS key/secret must be configured as a matched pair. Do not mix values across different variable names.');
+    }
+  }
+  if (shortPair?.key && shortPair?.secret && legacyPair?.key && legacyPair?.secret && (shortPair.key !== legacyPair.key || shortPair.secret !== legacyPair.secret)) {
+    warn.push('Both SMS_ACCESS_KEY/SMS_SECRET_KEY and SMS_ACCESS_KEY_ID/SMS_ACCESS_KEY_SECRET are set with different values. Runtime will prefer SMS_ACCESS_KEY/SMS_SECRET_KEY.');
+  }
+  if (!read('SMS_SIGN_NAME')) {
+    errors.push('SMS_SIGN_NAME is required for ALIYUN SMS in production.');
+  } else if (/^\?+$/.test(read('SMS_SIGN_NAME'))) {
+    errors.push('SMS_SIGN_NAME appears corrupted (all "?"), please fix encoding or env value.');
+  }
+  if (!read('SMS_TEMPLATE_ID') && !read('SMS_TEMPLATE_ID_LOGIN')) {
+    errors.push('SMS_TEMPLATE_ID (or SMS_TEMPLATE_ID_LOGIN) is required for ALIYUN SMS in production.');
+  }
+}
+
 if (errors.length) {
   console.error('[check-prod-env] failed:');
   for (const e of errors) console.error(`- ${e}`);

@@ -225,18 +225,22 @@ export class TechManagersService {
     });
     if (!verification) throw new NotFoundException({ code: 'NOT_FOUND', message: 'tech manager not found' });
 
-    const updates: any = {};
+    const profileUpdates: any = {};
+    const auditAfter: any = {};
     const hasIntro = this.hasOwn(body, 'intro');
     const hasServiceTags = this.hasOwn(body, 'serviceTags');
     const hasFeaturedRank = this.hasOwn(body, 'featuredRank');
     const hasFeaturedUntil = this.hasOwn(body, 'featuredUntil');
+    const hasAvatarUrl = this.hasOwn(body, 'avatarUrl');
+    let avatarUrlUpdate: string | null | undefined = undefined;
 
     if (hasIntro) {
       const introValue = body?.intro === null ? null : String(body?.intro ?? '').trim();
       if (introValue !== null && introValue.length > 2000) {
         throw new BadRequestException({ code: 'BAD_REQUEST', message: 'intro is too long' });
       }
-      updates.intro = introValue;
+      profileUpdates.intro = introValue;
+      auditAfter.intro = introValue;
     }
 
     if (hasServiceTags) {
@@ -250,7 +254,8 @@ export class TechManagersService {
         }
       }
       const serviceTags = sanitizeServiceTagNames(serviceTagsRaw);
-      updates.serviceTagsJson = serviceTags;
+      profileUpdates.serviceTagsJson = serviceTags;
+      auditAfter.serviceTagsJson = serviceTags;
     }
 
     if (hasFeaturedRank) {
@@ -262,12 +267,14 @@ export class TechManagersService {
       if (!Number.isFinite(featuredRankValue) || !Number.isSafeInteger(featuredRankValue) || featuredRankValue < 0) {
         throw new BadRequestException({ code: 'BAD_REQUEST', message: 'featuredRank is invalid' });
       }
-      updates.featuredRank = featuredRankValue;
+      profileUpdates.featuredRank = featuredRankValue;
+      auditAfter.featuredRank = featuredRankValue;
     }
 
     if (hasFeaturedUntil) {
       if (body?.featuredUntil === null) {
-        updates.featuredUntil = null;
+        profileUpdates.featuredUntil = null;
+        auditAfter.featuredUntil = null;
       } else {
         if (typeof body?.featuredUntil === 'string' && body.featuredUntil.trim() === '') {
           throw new BadRequestException({ code: 'BAD_REQUEST', message: 'featuredUntil is invalid' });
@@ -276,31 +283,64 @@ export class TechManagersService {
         if (Number.isNaN(featuredUntil.getTime())) {
           throw new BadRequestException({ code: 'BAD_REQUEST', message: 'featuredUntil is invalid' });
         }
-        updates.featuredUntil = featuredUntil;
+        profileUpdates.featuredUntil = featuredUntil;
+        auditAfter.featuredUntil = featuredUntil;
       }
+    }
+
+    if (hasAvatarUrl) {
+      if (body?.avatarUrl === null) {
+        avatarUrlUpdate = null;
+      } else {
+        const rawAvatarUrl = String(body?.avatarUrl ?? '').trim();
+        if (rawAvatarUrl.length > 1000) {
+          throw new BadRequestException({ code: 'BAD_REQUEST', message: 'avatarUrl is too long' });
+        }
+        avatarUrlUpdate = rawAvatarUrl || null;
+      }
+      auditAfter.avatarUrl = avatarUrlUpdate;
     }
 
     let updatedVerification = verification;
     if (hasIntro) {
       updatedVerification = await this.prisma.userVerification.update({
         where: { id: verification.id },
-        data: { intro: updates.intro },
+        data: { intro: profileUpdates.intro },
         include: { user: true },
       });
     }
 
-    const profile = await this.prisma.techManagerProfile.upsert({
-      where: { userId: normalizedTechManagerId },
-      create: { userId: normalizedTechManagerId, ...updates },
-      update: updates,
-    });
+    if (hasAvatarUrl) {
+      await this.prisma.user.update({
+        where: { id: normalizedTechManagerId },
+        data: { avatarUrl: avatarUrlUpdate },
+      });
+      updatedVerification = {
+        ...updatedVerification,
+        user: {
+          ...(updatedVerification?.user || {}),
+          avatarUrl: avatarUrlUpdate,
+        },
+      } as any;
+    }
+
+    const hasProfileUpdates = Object.keys(profileUpdates).length > 0;
+    const profile = hasProfileUpdates
+      ? await this.prisma.techManagerProfile.upsert({
+          where: { userId: normalizedTechManagerId },
+          create: { userId: normalizedTechManagerId, ...profileUpdates },
+          update: profileUpdates,
+        })
+      : await this.prisma.techManagerProfile.findUnique({
+          where: { userId: normalizedTechManagerId },
+        });
 
     await this.audit.log({
       actorUserId: request.auth.userId,
       action: 'TECH_MANAGER_UPDATE',
       targetType: 'TECH_MANAGER',
       targetId: verification.id,
-      afterJson: updates,
+      afterJson: auditAfter,
     });
 
     return this.toSummary(updatedVerification, profile, { includeTestArtifacts: true });

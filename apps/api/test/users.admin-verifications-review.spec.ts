@@ -189,6 +189,60 @@ describe('UsersService admin verification review suite', () => {
     expect(result.reviewComment).toBe('material missing');
   });
 
+  it('updates verification logo and writes audit log', async () => {
+    prisma.userVerification.update.mockResolvedValueOnce(
+      buildVerification({
+        logoFileId: 'file-logo-2',
+        logoFile: { url: 'https://cdn/logo-2.png' },
+      }),
+    );
+
+    const result = await service.adminUpdateVerificationLogo('verify-1', ' file-logo-2 ', 'admin-1');
+
+    expect(prisma.userVerification.update).toHaveBeenCalledWith({
+      where: { id: 'verify-1' },
+      data: { logoFileId: 'file-logo-2' },
+      include: { logoFile: true },
+    });
+    expect(audit.log).toHaveBeenCalledWith(
+      expect.objectContaining({
+        actorUserId: 'admin-1',
+        action: 'VERIFICATION_LOGO_UPDATE',
+        targetType: 'USER_VERIFICATION',
+        targetId: 'verify-1',
+        afterJson: { logoFileId: 'file-logo-2' },
+      }),
+    );
+    expect(result.logoFileId).toBe('file-logo-2');
+    expect(result.logoUrl).toBe('https://cdn/logo-2.png');
+  });
+
+  it('supports clearing verification logo and validates strict input', async () => {
+    prisma.userVerification.update.mockResolvedValueOnce(
+      buildVerification({
+        logoFileId: null,
+        logoFile: null,
+      }),
+    );
+
+    const result = await service.adminUpdateVerificationLogo('verify-1', null, 'admin-1');
+    expect(prisma.userVerification.update).toHaveBeenCalledWith({
+      where: { id: 'verify-1' },
+      data: { logoFileId: null },
+      include: { logoFile: true },
+    });
+    expect(result.logoFileId).toBeUndefined();
+    expect(result.logoUrl).toBeUndefined();
+
+    await expect(service.adminUpdateVerificationLogo('verify-1', '', 'admin-1')).rejects.toBeInstanceOf(
+      BadRequestException,
+    );
+    prisma.userVerification.update.mockRejectedValueOnce({ code: 'P2025' });
+    await expect(service.adminUpdateVerificationLogo('missing-id', 'file-1', 'admin-1')).rejects.toBeInstanceOf(
+      NotFoundException,
+    );
+  });
+
   it('getUserIdFromReq enforces auth boundary', () => {
     expect(() => service.getUserIdFromReq({ auth: { userId: 'u-1' } })).not.toThrow();
     expect(() => service.getUserIdFromReq({})).toThrow(UnauthorizedException);

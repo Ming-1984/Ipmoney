@@ -4,20 +4,28 @@ import path from 'path';
 import devConfig from './dev';
 import prodConfig from './prod';
 
+function isReleaseLike(value: string | undefined): boolean {
+  const raw = String(value || '').trim().toLowerCase();
+  if (!raw) return false;
+  if (raw === 'prod' || raw === 'production') return true;
+  if (raw === 'staging' || raw === 'stage') return true;
+  if (/(^|[-_])prod($|[-_])/.test(raw)) return true;
+  if (/(^|[-_])staging($|[-_])/.test(raw)) return true;
+  return false;
+}
+
 export default ((merge, env) => {
   const isDev = env.mode === 'development';
   // Taro/webpack typically run builds with env.mode=production even for staging.
-  // Only enforce "no demo/mock + non-local API base" when an explicit deploy env
-  // indicates a real production release.
+  // Enforce "no demo/mock + non-local API base" for all release-like environments.
   const deployEnvValues = [
     process.env.DEPLOY_ENV,
     process.env.APP_MODE,
     process.env.STAGE,
     process.env.ENV,
   ]
-    .filter(Boolean)
-    .map((v) => String(v).trim().toLowerCase());
-  const isProdDeploy = deployEnvValues.some((v) => v.includes('prod'));
+    .filter(Boolean);
+  const isProdDeploy = deployEnvValues.some((v) => isReleaseLike(v));
   const isProdBuild = env.mode === 'production' && isProdDeploy;
   const rawApiBaseUrl = process.env.TARO_APP_API_BASE_URL ?? 'http://127.0.0.1:3200';
   const apiBaseUrl = rawApiBaseUrl.replace('http://localhost', 'http://127.0.0.1');

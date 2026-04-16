@@ -13,6 +13,7 @@ type User = {
 };
 
 import { PrismaService } from '../../common/prisma/prisma.service';
+import { AliyunSmsClient, AliyunSmsError, isReleaseLikeEnv, type SmsPurpose } from '../../common/aliyun-sms.client';
 import { createAccessToken } from '../../common/access-token';
 import { getDemoAuthConfig } from '../../common/demo';
 import { WechatMpClient, WechatMpError } from '../../common/wechat-mp.client';
@@ -56,6 +57,7 @@ export type AuthTokenResponseDto = {
 @Injectable()
 export class AuthService {
   private readonly wechatMp = new WechatMpClient();
+  private readonly aliyunSms = new AliyunSmsClient();
 
   constructor(private readonly prisma: PrismaService) {}
 
@@ -76,9 +78,12 @@ export class AuthService {
     return p;
   }
 
-  private normalizeSmsPurpose(value: string): 'LOGIN' | 'BIND_PHONE' {
+  private normalizeSmsPurpose(value: string | undefined): 'LOGIN' | 'BIND_PHONE' {
     const purpose = String(value || '').trim().toUpperCase();
-    if (!purpose || !SMS_PURPOSE_SET.has(purpose)) {
+    if (!purpose) {
+      return 'LOGIN';
+    }
+    if (!SMS_PURPOSE_SET.has(purpose)) {
       throw new BadRequestException({ code: 'BAD_REQUEST', message: 'purpose is invalid' });
     }
     return purpose as 'LOGIN' | 'BIND_PHONE';
@@ -86,6 +91,68 @@ export class AuthService {
 
   private smsCodeKey(phone: string, purpose: 'LOGIN' | 'BIND_PHONE') {
     return `${phone}:${purpose}`;
+  }
+
+  private isReleaseEnv(): boolean {
+    return isReleaseLikeEnv();
+  }
+
+  private resolveSmsProvider(): 'NONE' | 'ALIYUN' {
+    const raw = String(process.env.SMS_PROVIDER || '').trim().toUpperCase();
+    if (!raw || raw === 'NONE') return 'NONE';
+    if (raw === 'ALIYUN') return 'ALIYUN';
+    throw new NotImplementedException({
+      code: 'NOT_IMPLEMENTED',
+      message: `sms provider is not supported: ${raw}`,
+    });
+  }
+
+  private async dispatchSmsCode(phone: string, purpose: SmsPurpose, code: string) {
+    const provider = this.resolveSmsProvider();
+    if (provider === 'NONE') {
+      if (this.isReleaseEnv()) {
+        throw new NotImplementedException({
+          code: 'NOT_IMPLEMENTED',
+          message: 'sms provider is not configured',
+          details: {
+            required: [
+              'SMS_PROVIDER=ALIYUN',
+              'SMS_SIGN_NAME',
+              'SMS_TEMPLATE_ID (or SMS_TEMPLATE_ID_LOGIN)',
+              'SMS_ACCESS_KEY/SMS_SECRET_KEY (recommended) or SMS_ACCESS_KEY_ID/SMS_ACCESS_KEY_SECRET',
+            ],
+          },
+        });
+      }
+      return;
+    }
+
+    try {
+      await this.aliyunSms.sendCode({ phone, purpose, code });
+    } catch (error) {
+      if (error instanceof AliyunSmsError) {
+        if (error.code === 'ALIYUN_SMS_NOT_CONFIGURED') {
+          throw new NotImplementedException({
+            code: 'NOT_IMPLEMENTED',
+            message: 'sms provider is not configured',
+            details: error.details,
+          });
+        }
+        const upstream = error.details && typeof error.details === 'object' ? (error.details as Record<string, any>) : null;
+        throw new BadRequestException({
+          code: 'SMS_SEND_FAILED',
+          message: error.message || 'sms send failed',
+          details: {
+            provider: 'ALIYUN',
+            reason: error.code,
+            upstreamCode: typeof upstream?.Code === 'string' ? upstream.Code : undefined,
+            upstreamMessage: typeof upstream?.Message === 'string' ? upstream.Message : undefined,
+            upstreamRequestId: typeof upstream?.RequestId === 'string' ? upstream.RequestId : undefined,
+          },
+        });
+      }
+      throw error;
+    }
   }
 
   private resolveSmsCodeSecret(): string {
@@ -165,7 +232,7 @@ export class AuthService {
     };
   }
 
-  async sendSmsCode(phone: string, purpose: string) {
+  async sendSmsCode(phone: string, purpose?: string) {
     const normalizedPhone = this.assertPhone(phone);
     const normalizedPurpose = this.normalizeSmsPurpose(purpose);
     const now = Date.now();
@@ -177,6 +244,7 @@ export class AuthService {
       return response;
     }
     const code = String(Math.floor(100000 + Math.random() * 900000));
+    await this.dispatchSmsCode(normalizedPhone, normalizedPurpose, code);
     const expiresAt = now + SMS_CODE_TTL_SECONDS * 1000;
     const cooldownUntil = now + SMS_CODE_COOLDOWN_SECONDS * 1000;
     smsCodeStore.set(key, {
@@ -188,7 +256,7 @@ export class AuthService {
       attempts: 0,
     });
     const response: Record<string, any> = { cooldownSeconds: SMS_CODE_COOLDOWN_SECONDS };
-    if (String(process.env.NODE_ENV || '').trim().toLowerCase() !== 'production') {
+    if (!this.isReleaseEnv()) {
       response.debugCode = code;
     }
     return response;

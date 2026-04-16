@@ -1,9 +1,10 @@
 import { Button, Card, Descriptions, Divider, Drawer, Space, Table, Tag, Typography, message } from 'antd';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 
-import { apiGet, apiPost } from '../lib/api';
+import { apiGet, apiPatch, apiPost, type FileObject } from '../lib/api';
 import { formatTimeSmart } from '../lib/format';
 import { verificationTypeLabel } from '../lib/labels';
+import { ImageUrlUploadField } from '../ui/ImageUrlUploadField';
 import { RequestErrorAlert, AuditHint } from '../ui/RequestState';
 import { confirmActionWithReason } from '../ui/confirm';
 
@@ -25,6 +26,8 @@ type UserVerification = {
   contactName?: string;
   contactPhoneMasked?: string;
   regionCode?: string;
+  logoFileId?: string;
+  logoUrl?: string;
   submittedAt: string;
   reviewedAt?: string;
   reviewComment?: string;
@@ -65,6 +68,7 @@ export function VerificationsPage() {
   const [active, setActive] = useState<UserVerification | null>(null);
   const [materials, setMaterials] = useState<AuditMaterial[]>([]);
   const [auditLogs, setAuditLogs] = useState<AuditLog[]>([]);
+  const [logoSaving, setLogoSaving] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -90,6 +94,55 @@ export function VerificationsPage() {
 
   const rows = useMemo(() => data?.items || [], [data?.items]);
 
+  const updateActiveLogo = useCallback((verificationId: string, next: { id?: string; url?: string }) => {
+    setActive((prev) =>
+      prev && prev.id === verificationId
+        ? {
+            ...prev,
+            logoFileId: next.id,
+            logoUrl: next.url,
+          }
+        : prev,
+    );
+    setData((prev) =>
+      prev
+        ? {
+            ...prev,
+            items: prev.items.map((it) =>
+              it.id === verificationId
+                ? {
+                    ...it,
+                    logoFileId: next.id,
+                    logoUrl: next.url,
+                  }
+                : it,
+            ),
+          }
+        : prev,
+    );
+  }, []);
+
+  const applyLogoPatch = useCallback(
+    async (verificationId: string, logoFileId: string | null, file?: FileObject) => {
+      setLogoSaving(true);
+      try {
+        await apiPatch<UserVerification>(`/admin/user-verifications/${verificationId}/logo`, {
+          logoFileId,
+        });
+        updateActiveLogo(verificationId, {
+          id: logoFileId || undefined,
+          url: file?.url,
+        });
+        message.success(logoFileId ? 'Logo 已更新' : 'Logo 已清除');
+      } catch (e: any) {
+        message.error(e?.message || (logoFileId ? 'Logo 更新失败' : 'Logo 清除失败'));
+      } finally {
+        setLogoSaving(false);
+      }
+    },
+    [updateActiveLogo],
+  );
+
   return (
     <Card className="admin-verifications-page">
       <Space direction="vertical" size={16} style={{ width: '100%' }}>
@@ -102,7 +155,7 @@ export function VerificationsPage() {
           </Typography.Paragraph>
         </div>
 
-        {error ? <RequestErrorAlert error={error} onRetry={load} /> : <AuditHint text="通过/驳回将影响小程序端机构展示；建议二次确认并记录原因。" />}
+        {error ? <RequestErrorAlert error={error} onRetry={load} /> : <AuditHint text="通过/驳回将影响小程序端展示，建议二次确认并记录原因。" />}
 
         <Table<UserVerification>
           rowKey="id"
@@ -112,11 +165,7 @@ export function VerificationsPage() {
           columns={[
             { title: '主体名称', dataIndex: 'displayName' },
             { title: '类型', dataIndex: 'type', render: (v) => verificationTypeLabel(v) },
-            {
-              title: '状态',
-              dataIndex: 'status',
-              render: (_, r) => statusTag(r.status),
-            },
+            { title: '状态', dataIndex: 'status', render: (_, r) => statusTag(r.status) },
             { title: '地区', dataIndex: 'regionCode' },
             { title: '提交时间', dataIndex: 'submittedAt', render: (v) => formatTimeSmart(v) },
             {
@@ -144,26 +193,23 @@ export function VerificationsPage() {
                     >
                       详情
                     </Button>
-                     <Button
-                       type="primary"
-                       disabled={disabled}
-                       onClick={async () => {
-                         const { ok, reason } = await confirmActionWithReason({
-                           title: '确认通过该认证？',
-                           content: '通过后，该主体可在小程序端展示；该操作应记录审计留痕。',
-                           okText: '通过',
-                           defaultReason: '通过',
-                           reasonLabel: '审批备注（建议填写）',
-                           reasonHint: '建议写明核验点：主体信息、联系人、材料完整性等。',
-                         });
-                         if (!ok) return;
-                         try {
-                           await apiPost<UserVerification>(
-                             `/admin/user-verifications/${r.id}/approve`,
-                             {
-                               comment: reason || '通过',
-                            },
-                          );
+                    <Button
+                      type="primary"
+                      disabled={disabled}
+                      onClick={async () => {
+                        const { ok, reason } = await confirmActionWithReason({
+                          title: '确认通过该认证？',
+                          content: '通过后，该主体可在小程序端展示；该操作应记录审计留痕。',
+                          okText: '通过',
+                          defaultReason: '通过',
+                          reasonLabel: '审批备注（建议填写）',
+                          reasonHint: '建议写明核验点：主体信息、联系人、材料完整性等。',
+                        });
+                        if (!ok) return;
+                        try {
+                          await apiPost<UserVerification>(`/admin/user-verifications/${r.id}/approve`, {
+                            comment: reason || '通过',
+                          });
                           message.success('已通过');
                           void load();
                         } catch (e: any) {
@@ -173,27 +219,24 @@ export function VerificationsPage() {
                     >
                       通过
                     </Button>
-                     <Button
-                       danger
-                       disabled={disabled}
-                       onClick={async () => {
-                         const { ok, reason } = await confirmActionWithReason({
-                           title: '确认驳回该认证？',
-                           content: '驳回后该主体无法交易/咨询；驳回原因会对提交者可见。',
-                           okText: '驳回',
-                           danger: true,
-                           reasonLabel: '驳回原因',
-                           reasonPlaceholder: '例：主体证明材料不清晰；联系人/手机号不一致；缺少盖章文件等。',
-                           reasonRequired: true,
-                         });
-                         if (!ok) return;
-                         try {
-                           await apiPost<UserVerification>(
-                             `/admin/user-verifications/${r.id}/reject`,
-                             {
-                               reason: reason || '材料不完整',
-                            },
-                          );
+                    <Button
+                      danger
+                      disabled={disabled}
+                      onClick={async () => {
+                        const { ok, reason } = await confirmActionWithReason({
+                          title: '确认驳回该认证？',
+                          content: '驳回后该主体无法交易/咨询；驳回原因会对提交者可见。',
+                          okText: '驳回',
+                          danger: true,
+                          reasonLabel: '驳回原因',
+                          reasonPlaceholder: '例如：主体证明材料不清晰；联系电话不一致；缺少盖章文件等。',
+                          reasonRequired: true,
+                        });
+                        if (!ok) return;
+                        try {
+                          await apiPost<UserVerification>(`/admin/user-verifications/${r.id}/reject`, {
+                            reason: reason || '材料不完整',
+                          });
                           message.success('已驳回');
                           void load();
                         } catch (e: any) {
@@ -229,14 +272,40 @@ export function VerificationsPage() {
               <Descriptions.Item label="状态">{statusTag(active.status)}</Descriptions.Item>
               <Descriptions.Item label="地区">{active.regionCode || '-'}</Descriptions.Item>
               <Descriptions.Item label="提交时间">{formatTimeSmart(active.submittedAt)}</Descriptions.Item>
-              <Descriptions.Item label="审核时间">
-                {active.reviewedAt ? formatTimeSmart(active.reviewedAt) : '-'}
-              </Descriptions.Item>
+              <Descriptions.Item label="审核时间">{active.reviewedAt ? formatTimeSmart(active.reviewedAt) : '-'}</Descriptions.Item>
               <Descriptions.Item label="审核备注">{active.reviewComment || '-'}</Descriptions.Item>
             </Descriptions>
 
-            <Divider />
+            {active.type !== 'PERSON' ? (
+              <>
+                <Divider />
+                <Typography.Text strong>机构 Logo</Typography.Text>
+                <ImageUrlUploadField
+                  value={active.logoUrl || ''}
+                  onChange={(next) => updateActiveLogo(active.id, { id: active.logoFileId, url: next })}
+                  onUploaded={async (uploaded) => {
+                    await applyLogoPatch(active.id, uploaded.id, uploaded);
+                  }}
+                  uploadPurpose="VERIFICATION_LOGO"
+                  maxSizeMb={10}
+                  uploadButtonText="上传并替换 Logo"
+                  allowUrlInput={false}
+                  previewObjectFit="contain"
+                  disabled={logoSaving}
+                />
+                <Button
+                  danger
+                  loading={logoSaving}
+                  onClick={async () => {
+                    await applyLogoPatch(active.id, null);
+                  }}
+                >
+                  清除 Logo
+                </Button>
+              </>
+            ) : null}
 
+            <Divider />
             <Typography.Text strong>材料/附件</Typography.Text>
             {materials.length ? (
               <Space direction="vertical" size={8} style={{ width: '100%', marginTop: 8 }}>
@@ -245,7 +314,7 @@ export function VerificationsPage() {
                     <Space direction="vertical" size={4}>
                       <Typography.Text>{m.name}</Typography.Text>
                       <Typography.Text type="secondary">
-                        {m.kind || '-'} · {m.uploadedAt ? formatTimeSmart(m.uploadedAt) : '-'}
+                        {m.kind || '-'} | {m.uploadedAt ? formatTimeSmart(m.uploadedAt) : '-'}
                       </Typography.Text>
                       {m.url ? (
                         <a href={m.url} target="_blank" rel="noreferrer">
@@ -261,7 +330,6 @@ export function VerificationsPage() {
             )}
 
             <Divider />
-
             <Typography.Text strong>审核记录</Typography.Text>
             {auditLogs.length ? (
               <Space direction="vertical" size={8} style={{ width: '100%', marginTop: 8 }}>
@@ -271,7 +339,7 @@ export function VerificationsPage() {
                       <Typography.Text>{log.action}</Typography.Text>
                       {log.reason ? <Typography.Text>{log.reason}</Typography.Text> : null}
                       <Typography.Text type="secondary">
-                        {log.operatorName || '管理员'} · {log.createdAt ? formatTimeSmart(log.createdAt) : '-'}
+                        {log.operatorName || '管理员'} | {log.createdAt ? formatTimeSmart(log.createdAt) : '-'}
                       </Typography.Text>
                     </Space>
                   </Card>

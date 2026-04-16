@@ -77,7 +77,12 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Send SMS code */
+        /**
+         * Send SMS code
+         * @description Send verification code by configured SMS provider.
+         *     - In release-like environments (production/staging), `SMS_PROVIDER` and provider credentials must be configured.
+         *     - In non-release environments, server may return `debugCode` for local debugging.
+         */
         post: operations["authSmsSend"];
         delete?: never;
         options?: never;
@@ -445,6 +450,23 @@ export interface paths {
         };
         /** Get homepage announcements feed (public) */
         get: operations["getPublicHomeAnnouncementsFeed"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/public/config/home-landing": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get homepage landing config (public) */
+        get: operations["getPublicHomeLandingConfig"];
         put?: never;
         post?: never;
         delete?: never;
@@ -2752,6 +2774,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/admin/user-verifications/{verificationId}/logo": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** 更新认证主体 Logo */
+        patch: operations["adminUpdateUserVerificationLogo"];
+        trace?: never;
+    };
     "/admin/orders/{orderId}/payments/manual": {
         parameters: {
             query?: never;
@@ -3211,6 +3250,24 @@ export interface paths {
         /** Get homepage announcements config (admin) */
         get: operations["adminGetHomeAnnouncementsConfig"];
         put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/config/home-landing": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get homepage landing config (admin) */
+        get: operations["adminGetHomeLandingConfig"];
+        /** Update homepage landing config (admin) */
+        put: operations["adminUpdateHomeLandingConfig"];
         post?: never;
         delete?: never;
         options?: never;
@@ -4655,6 +4712,8 @@ export interface components {
             page: components["schemas"]["PageMeta"];
         };
         TechManagerUpdateRequest: {
+            /** Format: uri */
+            avatarUrl?: string | null;
             intro?: string;
             serviceTags?: string[];
             featuredRank?: number;
@@ -5660,6 +5719,57 @@ export interface components {
         };
         HotSearchConfig: {
             keywords: string[];
+        };
+        /** @enum {string} */
+        HomeLandingActionType: "SEARCH_PREFILL" | "PAGE_ROUTE";
+        /** @enum {string} */
+        HomeLandingSearchTab: "LISTING" | "ACHIEVEMENT";
+        HomeLandingSearchPrefillAction: {
+            tab?: components["schemas"]["HomeLandingSearchTab"];
+            q?: string;
+            reset?: boolean;
+            listingTopic?: components["schemas"]["ListingTopic"];
+            patentType?: components["schemas"]["PatentType"];
+        };
+        HomeLandingPageRouteAction: {
+            url: string;
+        };
+        HomeLandingFeaturedZoneItem: {
+            id: string;
+            title: string;
+            subtitle: string;
+            imageUrl: string;
+            enabled: boolean;
+            order: number;
+            actionType: components["schemas"]["HomeLandingActionType"];
+            actionPayload: components["schemas"]["HomeLandingSearchPrefillAction"] | components["schemas"]["HomeLandingPageRouteAction"];
+        };
+        HomeLandingListingTopicUiItem: {
+            value: components["schemas"]["ListingTopic"];
+            label: string;
+            enabled: boolean;
+            order: number;
+        };
+        HomeLandingConfig: {
+            /** @enum {integer} */
+            schemaVersion: 1;
+            hero: {
+                tags: string[];
+                searchPlaceholder: string;
+            };
+            sectionTexts: {
+                featuredTitle: string;
+                featuredMoreText: string;
+            };
+            featuredZones: {
+                enabled: boolean;
+                /** @enum {integer} */
+                displayCount: 4 | 6;
+                items: components["schemas"]["HomeLandingFeaturedZoneItem"][];
+            };
+            listingTopicUi: {
+                items: components["schemas"]["HomeLandingListingTopicUiItem"][];
+            };
         };
         /** @enum {string} */
         HomeAnnouncementStatus: "DRAFT" | "PUBLISHED" | "OFFLINE";
@@ -6853,6 +6963,27 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["PublicHomeAnnouncementFeed"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+        };
+    };
+    getPublicHomeLandingConfig: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HomeLandingConfig"];
                 };
             };
             400: components["responses"]["BadRequest"];
@@ -11562,6 +11693,38 @@ export interface operations {
             404: components["responses"]["NotFound"];
         };
     };
+    adminUpdateUserVerificationLogo: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                verificationId: components["parameters"]["VerificationId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    logoFileId: components["schemas"]["Uuid"] | (string | null);
+                };
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UserVerification"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
     adminManualConfirmPayment: {
         parameters: {
             query?: never;
@@ -12532,6 +12695,55 @@ export interface operations {
                     "application/json": components["schemas"]["HomeAnnouncementConfig"];
                 };
             };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+        };
+    };
+    adminGetHomeLandingConfig: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HomeLandingConfig"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+        };
+    };
+    adminUpdateHomeLandingConfig: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["HomeLandingConfig"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HomeLandingConfig"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
         };

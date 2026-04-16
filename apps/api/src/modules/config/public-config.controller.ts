@@ -1,6 +1,12 @@
 import { Controller, Get } from '@nestjs/common';
 
-import { ConfigService, type BannerConfig, type CustomerServiceConfig, type PublicHomeAnnouncementFeed } from './config.service';
+import {
+  ConfigService,
+  type BannerConfig,
+  type CustomerServiceConfig,
+  type HomeLandingConfig,
+  type PublicHomeAnnouncementFeed,
+} from './config.service';
 
 @Controller('/public/config')
 export class PublicConfigController {
@@ -24,5 +30,10 @@ export class PublicConfigController {
   @Get('/home-announcements')
   async getHomeAnnouncements(): Promise<PublicHomeAnnouncementFeed> {
     return await this.config.getPublicHomeAnnouncementFeed();
+  }
+
+  @Get('/home-landing')
+  async getHomeLanding(): Promise<HomeLandingConfig> {
+    return await this.config.getHomeLandingConfig();
   }
 }

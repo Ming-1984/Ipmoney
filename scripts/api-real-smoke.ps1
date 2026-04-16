@@ -1470,6 +1470,10 @@ $resultsPath = Join-Path $logDir "api-real-smoke-$ReportDate.json"
 $summaryPath = Join-Path $logDir "api-real-smoke-$ReportDate-summary.json"
 $smokeEvidencePath = Join-Path $logDir "api-real-smoke-evidence-$ReportDate.txt"
 $smokeContractPdfPath = Join-Path $logDir "api-real-smoke-contract-$ReportDate.pdf"
+$smsSmokePhone = [string]$env:SMS_SMOKE_PHONE
+if ([string]::IsNullOrWhiteSpace($smsSmokePhone)) {
+  $smsSmokePhone = "13925106699"
+}
 "api smoke evidence $ReportDate" | Out-File -Encoding ASCII $smokeEvidencePath
 @"
 %PDF-1.1
@@ -1497,7 +1501,7 @@ try {
 
   $cases = @(
     @{ name = "health"; method = "GET"; url = "http://127.0.0.1:$resolvedApiPort/health"; body = $null; headers = @{}; expected = @(200) },
-    @{ name = "auth-sms-send"; method = "POST"; url = "http://127.0.0.1:$resolvedApiPort/auth/sms/send"; body = @{ phone = "13800138000"; purpose = "LOGIN" }; headers = @{}; expected = @(200, 201) },
+    @{ name = "auth-sms-send"; method = "POST"; url = "http://127.0.0.1:$resolvedApiPort/auth/sms/send"; body = @{ phone = $smsSmokePhone; purpose = "LOGIN" }; headers = @{}; expected = @(200, 201) },
     @{ name = "auth-sms-verify-invalid-format"; method = "POST"; url = "http://127.0.0.1:$resolvedApiPort/auth/sms/verify"; body = @{ phone = "13800138000"; code = "123" }; headers = @{}; expected = @(400) },
     @{ name = "me-unauthorized"; method = "GET"; url = "http://127.0.0.1:$resolvedApiPort/me"; body = $null; headers = @{}; expected = @(401) },
     @{ name = "me-patch-unauthorized"; method = "PATCH"; url = "http://127.0.0.1:$resolvedApiPort/me"; body = @{ displayName = "Smoke Unauthorized Profile Patch" }; headers = @{}; expected = @(401) },

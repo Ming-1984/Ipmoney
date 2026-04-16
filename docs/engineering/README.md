@@ -3,6 +3,14 @@
 ## 状态
 - 项目状态：docs/engineering/project-status.md
 - 测试报告（最新结果）：docs/engineering/test-report.md
+- 首页运营配置直发版 TODO（2026-04-14）：docs/engineering/home-landing-config-todo-2026-04-14.md
+- 首页运营配置后台入口可见性说明（2026-04-14）：docs/engineering/admin-home-landing-entry-visibility-2026-04-14.md
+- 首页运营配置低代码化说明（2026-04-14）：docs/engineering/admin-home-landing-lowcode-2026-04-14.md
+- 管理后台图片上传交互统一（2026-04-15）：docs/engineering/admin-image-upload-unification-2026-04-15.md
+- 生产部署与验收记录（2026-04-15）：docs/engineering/deploy-acceptance-2026-04-15.md
+- 首页特色专区跳转与样式修复（2026-04-14）：docs/engineering/home-featured-square-fix-2026-04-14.md
+- 小程序域名/TLS/证书排查清单（2026-04-14）：docs/engineering/weapp-domain-tls-checklist-2026-04-14.md
+- 小程序部署与短信登录联调清单（2026-04-14）：docs/engineering/miniprogram-deploy-sms-runbook-2026-04-14.md
 - 全链路最佳实践审计（2026-03-23）：docs/engineering/full-chain-best-practice-audit-2026-03-23-r326h.md
 - 管理后台链路审计（2026-03-24）：docs/engineering/admin-backoffice-chain-audit-2026-03-24.md
 - 管理后台运营说明书（简版 V1）：docs/engineering/admin-backoffice-operator-manual-v1.md

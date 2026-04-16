@@ -1,4 +1,4 @@
-import { BadRequestException, Body, Controller, Get, Param, Post, Query, Req, UseGuards } from '@nestjs/common';
+import { BadRequestException, Body, Controller, Get, Param, Patch, Post, Query, Req, UseGuards } from '@nestjs/common';
 
 import { BearerAuthGuard } from '../../common/guards/bearer-auth.guard';
 import { ContentAuditService } from '../../common/content-audit.service';
@@ -41,6 +41,20 @@ export class AdminUserVerificationsController {
     requirePermission(req, 'verification.review');
     const normalizedVerificationId = this.parseUuidParam(verificationId, 'verificationId');
     return await this.users.adminRejectVerification(normalizedVerificationId, body?.reason, req?.auth?.userId || '');
+  }
+
+  @Patch('/:verificationId/logo')
+  async updateLogo(
+    @Req() req: any,
+    @Param('verificationId') verificationId: string,
+    @Body() body: { logoFileId?: string | null },
+  ) {
+    requirePermission(req, 'verification.review');
+    const normalizedVerificationId = this.parseUuidParam(verificationId, 'verificationId');
+    if (!Object.prototype.hasOwnProperty.call(body || {}, 'logoFileId')) {
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: 'logoFileId is required' });
+    }
+    return await this.users.adminUpdateVerificationLogo(normalizedVerificationId, body?.logoFileId, req?.auth?.userId || '');
   }
 
   @Get('/:verificationId/materials')

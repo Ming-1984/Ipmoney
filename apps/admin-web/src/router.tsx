@@ -75,6 +75,10 @@ const ConfigPage = lazy(async () => {
   const mod = await import('./views/ConfigPage');
   return { default: mod.ConfigPage };
 });
+const HomeLandingConfigPage = lazy(async () => {
+  const mod = await import('./views/HomeLandingConfigPage');
+  return { default: mod.HomeLandingConfigPage };
+});
 const HomeAnnouncementsPage = lazy(async () => {
   const mod = await import('./views/HomeAnnouncementsPage');
   return { default: mod.HomeAnnouncementsPage };
@@ -135,6 +139,7 @@ export const router = createBrowserRouter([
       { path: 'audit-logs', element: <AuditLogsPage /> },
       { path: 'rbac', element: <RbacPage /> },
       { path: 'config', element: <ConfigPage /> },
+      { path: 'config/home-landing', element: <HomeLandingConfigPage /> },
       { path: 'home-announcements', element: <HomeAnnouncementsPage /> },
       { path: 'maintenance', element: <MaintenancePage /> },
       { path: 'regions', element: <RegionsPage /> },

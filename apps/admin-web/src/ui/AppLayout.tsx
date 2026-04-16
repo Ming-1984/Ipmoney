@@ -60,6 +60,13 @@ const menuConfig: AppMenuItem[] = [
   { key: 'reports', icon: <FileTextOutlined />, label: '报表导出', to: '/reports', permission: 'report.read' },
   { key: 'config', icon: <SettingOutlined />, label: '交易/推荐配置', to: '/config', permission: 'config.manage' },
   {
+    key: 'home-landing-config',
+    icon: <SettingOutlined />,
+    label: '\u9996\u9875\u8fd0\u8425\u914d\u7f6e',
+    to: '/config/home-landing',
+    permission: 'config.manage',
+  },
+  {
     key: 'home-announcements',
     icon: <BellOutlined />,
     label: '首页公告',
@@ -140,6 +147,8 @@ export function AppLayout() {
     const normalizedCurrentKey =
       currentKey.startsWith('orders/')
         ? 'orders'
+        : currentKey.startsWith('config/home-landing')
+          ? 'home-landing-config'
         : currentKey.startsWith('patents/operations')
           ? 'patent-ops'
           : currentKey.startsWith('patents/claims')
@@ -161,6 +170,7 @@ export function AppLayout() {
     const path = location.pathname.replace(/^\//, '');
     if (!path) return ['dashboard'];
     if (path.startsWith('orders/')) return ['orders'];
+    if (path.startsWith('config/home-landing')) return ['home-landing-config'];
     if (path.startsWith('patents/operations')) return ['patent-ops'];
     if (path.startsWith('patents/claims')) return ['patent-claims'];
     if (path.startsWith('patents/')) return ['patents'];

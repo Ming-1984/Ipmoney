@@ -4,6 +4,10 @@ import type { components } from '@ipmoney/api-types';
 
 import { apiGet, apiPost, apiUploadFile, type FileObject } from '../lib/api';
 import { formatTimeSmart, yuanToFen } from '../lib/format';
+import {
+  DEFAULT_LISTING_TOPIC_OPTIONS,
+  fetchAdminListingTopicOptions,
+} from '../lib/homeLandingConfig';
 import { RequestErrorAlert } from '../ui/RequestState';
 
 type ConsultationRouting = 'PLATFORM' | 'OWNER';
@@ -201,14 +205,6 @@ const priceTypeOptions = [
   { value: 'FIXED', label: '一口价' },
 ];
 
-const listingTopicOptions = [
-  { value: 'HIGH_TECH_RETIRED', label: '退役专利' },
-  { value: 'SLEEPING', label: '沉睡专利' },
-  { value: 'AWARD_WINNING', label: '获奖专利' },
-  { value: 'FIVE_STAR', label: '五星专利' },
-  { value: 'OPEN_LICENSE', label: '开放许可' },
-];
-
 const patentMapRegionLevelOptions: Array<{ value: PatentMapRegionScopeLevel; label: string }> = [
   { value: 'PROVINCE', label: '按省聚合' },
   { value: 'CITY', label: '按市聚合' },
@@ -371,6 +367,8 @@ export function PatentOperationsPage() {
   const [appliedJobStatusFilter, setAppliedJobStatusFilter] = useState<JobStatus | ''>('');
   const [appliedJobDuplicatePolicyFilter, setAppliedJobDuplicatePolicyFilter] = useState<DuplicatePolicy | ''>('');
   const [form] = Form.useForm<DefaultsFormValues>();
+  const [listingTopicOptions, setListingTopicOptions] =
+    useState<Array<{ value: ListingTopic; label: string }>>(DEFAULT_LISTING_TOPIC_OPTIONS);
 
   const [mapOverviewLoading, setMapOverviewLoading] = useState(false);
   const [mapOverviewError, setMapOverviewError] = useState<unknown | null>(null);
@@ -411,6 +409,10 @@ export function PatentOperationsPage() {
   const mapSelectedRegion = useMemo(
     () => (mapOverview?.regions || []).find((it) => it.regionCode === mapSelectedRegionCode) || null,
     [mapOverview?.regions, mapSelectedRegionCode],
+  );
+  const enabledTopicSet = useMemo(
+    () => new Set<ListingTopic>(listingTopicOptions.map((item) => item.value)),
+    [listingTopicOptions],
   );
 
   const loadJobs = useCallback(async () => {
@@ -596,6 +598,21 @@ export function PatentOperationsPage() {
       listingTopics: [],
     });
   }, [form]);
+
+  useEffect(() => {
+    (async () => {
+      const options = await fetchAdminListingTopicOptions();
+      setListingTopicOptions(options);
+    })();
+  }, []);
+
+  useEffect(() => {
+    const current = form.getFieldValue('listingTopics') as ListingTopic[] | undefined;
+    if (!Array.isArray(current) || !current.length) return;
+    const next = current.filter((topic) => enabledTopicSet.has(topic));
+    if (next.length === current.length) return;
+    form.setFieldsValue({ listingTopics: next });
+  }, [enabledTopicSet, form]);
 
   useEffect(() => {
     void loadJobs();

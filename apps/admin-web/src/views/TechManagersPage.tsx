@@ -7,6 +7,7 @@ import { apiGet, apiPatch } from '../lib/api';
 import { formatTimeSmart } from '../lib/format';
 import { verificationStatusLabel, verificationTypeLabel } from '../lib/labels';
 import { RequestErrorAlert } from '../ui/RequestState';
+import { ImageUrlUploadField } from '../ui/ImageUrlUploadField';
 
 type TechManagerSummary = components['schemas']['TechManagerSummary'];
 type PagedTechManagerSummary = components['schemas']['PagedTechManagerSummary'];
@@ -24,6 +25,7 @@ export function TechManagersPage() {
   const [editOpen, setEditOpen] = useState(false);
   const [editTarget, setEditTarget] = useState<TechManagerSummary | null>(null);
   const [intro, setIntro] = useState('');
+  const [avatarUrl, setAvatarUrl] = useState('');
   const [serviceTagsInput, setServiceTagsInput] = useState('');
   const [featuredRank, setFeaturedRank] = useState<number | null>(null);
   const [featuredUntil, setFeaturedUntil] = useState('');
@@ -59,6 +61,7 @@ export function TechManagersPage() {
   const openEdit = useCallback((r: TechManagerSummary) => {
     setEditTarget(r);
     setIntro(r.intro || '');
+    setAvatarUrl(r.avatarUrl || '');
     setServiceTagsInput((r.serviceTags || []).join('，'));
     setFeaturedRank(null);
     setFeaturedUntil('');
@@ -74,6 +77,7 @@ export function TechManagersPage() {
       .filter(Boolean);
     const payload: TechManagerUpdateRequest = {
       ...(intro.trim() ? { intro: intro.trim() } : {}),
+      avatarUrl: avatarUrl.trim() || null,
       ...(tags.length ? { serviceTags: tags } : {}),
       ...(featuredRank !== null ? { featuredRank } : {}),
       ...(featuredUntil.trim() ? { featuredUntil: featuredUntil.trim() } : {}),
@@ -92,7 +96,7 @@ export function TechManagersPage() {
     } finally {
       setSaving(false);
     }
-  }, [editTarget, featuredRank, featuredUntil, intro, load, saving, serviceTagsInput]);
+  }, [avatarUrl, editTarget, featuredRank, featuredUntil, intro, load, saving, serviceTagsInput]);
 
   return (
     <Card className="admin-tech-managers-page">
@@ -222,6 +226,19 @@ export function TechManagersPage() {
                 autoSize={{ minRows: 3, maxRows: 6 }}
                 style={{ marginTop: 8 }}
               />
+            </div>
+
+            <div>
+              <Typography.Text strong>头像</Typography.Text>
+              <div style={{ marginTop: 8 }}>
+                <ImageUrlUploadField
+                  value={avatarUrl}
+                  uploadPurpose="ADMIN_AVATAR"
+                  maxSizeMb={5}
+                  placeholder="请输入头像 URL 或直接上传图片"
+                  onChange={(next) => setAvatarUrl(next)}
+                />
+              </div>
             </div>
 
             <div>

@@ -15,6 +15,7 @@ describe('AdminUserVerificationsController strictness suite', () => {
       adminListUserVerifications: vi.fn(),
       adminApproveVerification: vi.fn(),
       adminRejectVerification: vi.fn(),
+      adminUpdateVerificationLogo: vi.fn(),
     };
     contentAudit = {
       listMaterials: vi.fn(),
@@ -29,6 +30,9 @@ describe('AdminUserVerificationsController strictness suite', () => {
     await expect(controller.list(req, {})).rejects.toBeInstanceOf(ForbiddenException);
     await expect(controller.approve(req, VERIFICATION_ID, {})).rejects.toBeInstanceOf(ForbiddenException);
     await expect(controller.reject(req, VERIFICATION_ID, { reason: 'x' })).rejects.toBeInstanceOf(ForbiddenException);
+    await expect(controller.updateLogo(req, VERIFICATION_ID, { logoFileId: 'file-1' })).rejects.toBeInstanceOf(
+      ForbiddenException,
+    );
     await expect(controller.materials(req, VERIFICATION_ID)).rejects.toBeInstanceOf(ForbiddenException);
     await expect(controller.auditLogs(req, VERIFICATION_ID)).rejects.toBeInstanceOf(ForbiddenException);
   });
@@ -39,6 +43,9 @@ describe('AdminUserVerificationsController strictness suite', () => {
 
     await expect(controller.approve(reviewReq, 'bad-id', {})).rejects.toBeInstanceOf(BadRequestException);
     await expect(controller.reject(reviewReq, 'bad-id', { reason: 'x' })).rejects.toBeInstanceOf(BadRequestException);
+    await expect(controller.updateLogo(reviewReq, 'bad-id', { logoFileId: 'file-1' })).rejects.toBeInstanceOf(
+      BadRequestException,
+    );
     await expect(controller.materials(readReq, 'bad-id')).rejects.toBeInstanceOf(BadRequestException);
     await expect(controller.auditLogs(readReq, 'bad-id')).rejects.toBeInstanceOf(BadRequestException);
   });
@@ -65,6 +72,16 @@ describe('AdminUserVerificationsController strictness suite', () => {
     expect(users.adminRejectVerification).toHaveBeenCalledWith(VERIFICATION_ID, 'missing file', 'admin-1');
     expect(approved).toMatchObject({ id: VERIFICATION_ID, status: 'APPROVED' });
     expect(rejected).toMatchObject({ id: VERIFICATION_ID, status: 'REJECTED' });
+  });
+
+  it('requires logoFileId in updateLogo body and forwards on valid payload', async () => {
+    const req = { auth: { userId: 'admin-1', permissions: new Set(['verification.review']) } };
+    await expect(controller.updateLogo(req, VERIFICATION_ID, {} as any)).rejects.toBeInstanceOf(BadRequestException);
+
+    users.adminUpdateVerificationLogo.mockResolvedValueOnce({ id: VERIFICATION_ID, logoFileId: 'file-2' });
+    const updated = await controller.updateLogo(req, ` ${VERIFICATION_ID} `, { logoFileId: 'file-2' });
+    expect(users.adminUpdateVerificationLogo).toHaveBeenCalledWith(VERIFICATION_ID, 'file-2', 'admin-1');
+    expect(updated).toMatchObject({ id: VERIFICATION_ID, logoFileId: 'file-2' });
   });
 
   it('forwards materials and audit logs lookup with normalized id', async () => {

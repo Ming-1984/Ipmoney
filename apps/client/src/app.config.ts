@@ -9,6 +9,7 @@ const preloadRule: Record<string, { network: 'all' | 'wifi'; packages: string[] 
       'subpackages/achievement',
       'subpackages/inventors',
       'subpackages/patent-map',
+      'subpackages/patent-square',
       'subpackages/home-announcements',
       'subpackages/media',
     ],
@@ -111,6 +112,10 @@ export default defineAppConfig({
     },
     {
       root: 'subpackages/patent-map',
+      pages: ['index'],
+    },
+    {
+      root: 'subpackages/patent-square',
       pages: ['index'],
     },
     {

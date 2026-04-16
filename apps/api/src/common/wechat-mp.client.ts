@@ -74,7 +74,7 @@ export class WechatMpClient {
   private accessTokenCache: AccessTokenCache | null = null;
 
   private getConfig(): WechatMpConfig {
-    const appId = trim(process.env.WX_MP_APPID) || undefined;
+    const appId = trim(process.env.WX_MP_APPID) || trim(process.env.WX_MP_ID) || undefined;
     const appSecret = trim(process.env.WX_MP_SECRET) || undefined;
     return { appId, appSecret };
   }
@@ -82,7 +82,7 @@ export class WechatMpClient {
   getMissingFields(): string[] {
     const config = this.getConfig();
     const missing: string[] = [];
-    if (!config.appId) missing.push('WX_MP_APPID');
+    if (!config.appId) missing.push('WX_MP_APPID (or WX_MP_ID)');
     if (!config.appSecret) missing.push('WX_MP_SECRET');
     return missing;
   }

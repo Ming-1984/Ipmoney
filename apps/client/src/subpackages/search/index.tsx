@@ -9,9 +9,13 @@ import { getToken } from '../../lib/auth';
 import { apiGet, apiPost } from '../../lib/api';
 import { favorite, getFavoriteListingIds, syncFavorites, unfavorite } from '../../lib/favorites';
 import { ensureApproved } from '../../lib/guard';
+import {
+  buildEnabledListingTopicOptions,
+  fetchHomeLandingConfig,
+  normalizeHomeLandingConfig,
+} from '../../lib/homeLandingConfig';
 import { patentTypeLabel, priceTypeLabel, tradeModeLabel } from '../../lib/labels';
 import { sanitizeIndustryTagNames } from '../../lib/industryTags';
-import { listingTopicLabel, LISTING_TOPIC_OPTIONS } from '../../lib/listingTopics';
 import { fenToYuanInt } from '../../lib/money';
 import { ensureRegionNamesReady, parseRegionPickerSelection, regionDisplayName } from '../../lib/regions';
 import type { ChipOption } from '../../ui/filters';
@@ -137,11 +141,6 @@ const LEGAL_STATUS_OPTIONS: ChipOption<LegalStatus | ''>[] = [
   { value: 'INVALIDATED', label: '已无效' },
 ];
 
-const LISTING_TOPIC_FILTER_OPTIONS: ChipOption<ListingTopic | ''>[] = [
-  { value: '', label: '不限' },
-  ...LISTING_TOPIC_OPTIONS,
-];
-
 const LISTING_SORT_OPTIONS: ChipOption<SortBy>[] = [
   { value: 'RECOMMENDED', label: '综合推荐' },
   { value: 'PRICE_ASC', label: '价格升序' },
@@ -235,6 +234,40 @@ export default function SearchPage() {
   });
 
   const [favoriteIds, setFavoriteIds] = useState<Set<string>>(() => new Set(getFavoriteListingIds()));
+  const [listingTopicOptions, setListingTopicOptions] = useState<Array<{ value: ListingTopic; label: string }>>(() =>
+    buildEnabledListingTopicOptions(normalizeHomeLandingConfig(null)),
+  );
+  const listingTopicFilterOptions = useMemo<ChipOption<ListingTopic | ''>[]>(
+    () => [{ value: '', label: '\u4e0d\u9650' }, ...listingTopicOptions],
+    [listingTopicOptions],
+  );
+  const listingTopicLabelMap = useMemo(
+    () => new Map<ListingTopic, string>(listingTopicOptions.map((item) => [item.value, item.label])),
+    [listingTopicOptions],
+  );
+  const enabledListingTopicSet = useMemo(
+    () => new Set<ListingTopic>(listingTopicOptions.map((item) => item.value)),
+    [listingTopicOptions],
+  );
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const config = await fetchHomeLandingConfig();
+        setListingTopicOptions(buildEnabledListingTopicOptions(config));
+      } catch {
+        setListingTopicOptions(buildEnabledListingTopicOptions(normalizeHomeLandingConfig(null)));
+      }
+    })();
+  }, []);
+
+  useEffect(() => {
+    setListingFilters((prev) => {
+      if (!prev.listingTopic) return prev;
+      if (enabledListingTopicSet.has(prev.listingTopic)) return prev;
+      return { ...prev, listingTopic: '' };
+    });
+  }, [enabledListingTopicSet]);
 
   useEffect(() => {
     const raw = Taro.getStorageSync(STORAGE_KEYS.searchPrefill);
@@ -334,11 +367,13 @@ export default function SearchPage() {
       if (listingFilters.legalStatus) params.legalStatus = listingFilters.legalStatus;
       const listingIndustryTags = sanitizeIndustryTagNames(listingFilters.industryTags);
       if (listingIndustryTags.length) params.industryTags = listingIndustryTags;
-      if (listingFilters.listingTopic) params.listingTopic = listingFilters.listingTopic;
+      if (listingFilters.listingTopic && enabledListingTopicSet.has(listingFilters.listingTopic)) {
+        params.listingTopic = listingFilters.listingTopic;
+      }
       if (listingFilters.clusterId) params.clusterId = listingFilters.clusterId;
       return apiGet<PagedListingSummary>('/search/listings', params);
     },
-    [listingFilters, q, sortBy],
+    [enabledListingTopicSet, listingFilters, q, sortBy],
   );
 
   const listingList = usePagedList<ListingSummary>(fetchListing, { pageSize: 20 });
@@ -462,7 +497,7 @@ export default function SearchPage() {
 
   const listingFilterLabels = useMemo(() => {
     const out: string[] = [];
-    const topicLabel = listingTopicLabel(listingFilters.listingTopic);
+    const topicLabel = listingFilters.listingTopic ? listingTopicLabelMap.get(listingFilters.listingTopic) || '' : '';
     if (topicLabel) out.push(topicLabel);
     if (listingFilters.patentType) out.push(patentTypeLabel(listingFilters.patentType, { empty: '' }));
     if (listingFilters.tradeMode) out.push(tradeModeLabel(listingFilters.tradeMode, { empty: '' }));
@@ -481,7 +516,7 @@ export default function SearchPage() {
     if (listingFilters.ipcName || listingFilters.ipc) out.push(`IPC ${listingFilters.ipcName || listingFilters.ipc}`);
     if (listingFilters.loc) out.push(`LOC ${listingFilters.loc}`);
     return out.filter(Boolean);
-  }, [listingFilters]);
+  }, [listingFilters, listingTopicLabelMap]);
 
   const achievementFilterLabels = useMemo(() => {
     const out: string[] = [];
@@ -643,7 +678,7 @@ export default function SearchPage() {
                 <FilterSection title="特色标签">
                   <ChipGroup
                     value={draft.listingTopic}
-                    options={LISTING_TOPIC_FILTER_OPTIONS}
+                    options={listingTopicFilterOptions}
                     onChange={(v) => setDraft((prev) => ({ ...prev, listingTopic: v }))}
                   />
                 </FilterSection>

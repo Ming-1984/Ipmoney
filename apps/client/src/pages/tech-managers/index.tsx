@@ -5,6 +5,7 @@ import './index.scss';
 
 import type { components } from '@ipmoney/api-types';
 
+import { STORAGE_KEYS } from '../../constants';
 import { apiGet } from '../../lib/api';
 import { regionDisplayName } from '../../lib/regions';
 import { usePagedList } from '../../lib/usePagedList';
@@ -65,6 +66,15 @@ export default function TechManagersPage() {
       if (ctx === 'loadMore') toast(message);
     },
   });
+
+  useEffect(() => {
+    const intent = String(Taro.getStorageSync(STORAGE_KEYS.consultLandingTab) || '')
+      .trim()
+      .toUpperCase();
+    if (intent === 'ORG') setActiveTab('ORG');
+    if (intent === 'TECH') setActiveTab('TECH');
+    if (intent) Taro.removeStorageSync(STORAGE_KEYS.consultLandingTab);
+  }, []);
 
   useEffect(() => {
     if (activeTab !== 'TECH') return;

@@ -245,4 +245,184 @@ describe('ConfigService behavior suite', () => {
     expect(result.items.map((item) => item.id)).toEqual(['a1', 'a2']);
     vi.useRealTimers();
   });
+
+  it('getHomeLandingConfig falls back to defaults when stored json is invalid', async () => {
+    prisma.systemConfig.findUnique.mockResolvedValueOnce({
+      key: 'home_landing_config',
+      value: '{bad-json',
+      version: 1,
+    });
+
+    const result = await service.getHomeLandingConfig();
+
+    expect(result.schemaVersion).toBe(1);
+    expect(result.hero.tags.length).toBeGreaterThan(0);
+    expect(result.featuredZones.items.length).toBeGreaterThan(0);
+    expect(result.listingTopicUi.items.map((item) => item.value)).toEqual([
+      'HIGH_TECH_RETIRED',
+      'SLEEPING',
+      'AWARD_WINNING',
+      'FIVE_STAR',
+      'OPEN_LICENSE',
+    ]);
+  });
+
+  it('updateHomeLandingConfig rejects when enabled featured cards are less than displayCount', async () => {
+    prisma.systemConfig.findUnique.mockResolvedValueOnce({
+      key: 'home_landing_config',
+      value: JSON.stringify({ schemaVersion: 1 }),
+      version: 1,
+    });
+
+    await expect(
+      service.updateHomeLandingConfig({
+        schemaVersion: 1,
+        hero: { tags: ['A', 'B', 'C'], searchPlaceholder: '搜索' },
+        sectionTexts: { featuredTitle: '特色专区', featuredMoreText: '更多' },
+        featuredZones: {
+          enabled: true,
+          displayCount: 6,
+          items: [
+            {
+              id: 'z1',
+              title: '退役',
+              subtitle: 's1',
+              imageUrl: 'builtin://z1',
+              enabled: true,
+              order: 10,
+              actionType: 'SEARCH_PREFILL',
+              actionPayload: { tab: 'LISTING', listingTopic: 'HIGH_TECH_RETIRED', reset: true },
+            },
+            {
+              id: 'z2',
+              title: '沉睡',
+              subtitle: 's2',
+              imageUrl: 'builtin://z2',
+              enabled: true,
+              order: 20,
+              actionType: 'SEARCH_PREFILL',
+              actionPayload: { tab: 'LISTING', listingTopic: 'SLEEPING', reset: true },
+            },
+            {
+              id: 'z3',
+              title: '获奖',
+              subtitle: 's3',
+              imageUrl: 'builtin://z3',
+              enabled: true,
+              order: 30,
+              actionType: 'SEARCH_PREFILL',
+              actionPayload: { tab: 'LISTING', listingTopic: 'AWARD_WINNING', reset: true },
+            },
+            {
+              id: 'z4',
+              title: '五星',
+              subtitle: 's4',
+              imageUrl: 'builtin://z4',
+              enabled: true,
+              order: 40,
+              actionType: 'SEARCH_PREFILL',
+              actionPayload: { tab: 'LISTING', listingTopic: 'FIVE_STAR', reset: true },
+            },
+          ],
+        },
+        listingTopicUi: {
+          items: [
+            { value: 'HIGH_TECH_RETIRED', label: '退役专利', enabled: true, order: 10 },
+            { value: 'SLEEPING', label: '沉睡专利', enabled: true, order: 20 },
+            { value: 'AWARD_WINNING', label: '获奖专利', enabled: true, order: 30 },
+            { value: 'FIVE_STAR', label: '五星专利', enabled: true, order: 40 },
+            { value: 'OPEN_LICENSE', label: '开放许可', enabled: true, order: 50 },
+          ],
+        },
+      }),
+    ).rejects.toMatchObject({
+      response: expect.objectContaining({
+        code: 'BAD_REQUEST',
+      }),
+    });
+  });
+
+  it('updateHomeLandingConfig persists normalized payload', async () => {
+    prisma.systemConfig.findUnique.mockResolvedValueOnce({
+      key: 'home_landing_config',
+      value: JSON.stringify({ schemaVersion: 1 }),
+      version: 3,
+    });
+    prisma.systemConfig.update.mockResolvedValueOnce({});
+
+    const result = await service.updateHomeLandingConfig({
+      schemaVersion: 1,
+      hero: { tags: ['零手续费', '快速成交'], searchPlaceholder: '搜专利/机构/技术经理' },
+      sectionTexts: { featuredTitle: '特色专区', featuredMoreText: '查看更多' },
+      featuredZones: {
+        enabled: true,
+        displayCount: 4,
+        items: [
+          {
+            id: 'retired',
+            title: '退役专利',
+            subtitle: '平台审核通过',
+            imageUrl: 'builtin://zone-retired',
+            enabled: true,
+            order: 10,
+            actionType: 'SEARCH_PREFILL',
+            actionPayload: { tab: 'LISTING', listingTopic: 'HIGH_TECH_RETIRED', reset: true },
+          },
+          {
+            id: 'sleeping',
+            title: '沉睡专利',
+            subtitle: '转让次数为0',
+            imageUrl: 'builtin://zone-sleeping',
+            enabled: true,
+            order: 20,
+            actionType: 'SEARCH_PREFILL',
+            actionPayload: { tab: 'LISTING', listingTopic: 'SLEEPING', reset: true },
+          },
+          {
+            id: 'award',
+            title: '获奖专利',
+            subtitle: '平台标记获奖',
+            imageUrl: 'builtin://zone-award',
+            enabled: true,
+            order: 30,
+            actionType: 'SEARCH_PREFILL',
+            actionPayload: { tab: 'LISTING', listingTopic: 'AWARD_WINNING', reset: true },
+          },
+          {
+            id: 'five-star',
+            title: '五星专利',
+            subtitle: '优选高质量专利',
+            imageUrl: 'builtin://zone-five-star',
+            enabled: true,
+            order: 40,
+            actionType: 'SEARCH_PREFILL',
+            actionPayload: { tab: 'LISTING', listingTopic: 'FIVE_STAR', reset: true },
+          },
+        ],
+      },
+      listingTopicUi: {
+        items: [
+          { value: 'HIGH_TECH_RETIRED', label: '退役专利', enabled: true, order: 10 },
+          { value: 'SLEEPING', label: '沉睡专利', enabled: true, order: 20 },
+          { value: 'AWARD_WINNING', label: '获奖专利', enabled: true, order: 30 },
+          { value: 'FIVE_STAR', label: '五星专利', enabled: true, order: 40 },
+          { value: 'OPEN_LICENSE', label: '开放许可', enabled: false, order: 50 },
+        ],
+      },
+    });
+
+    expect(prisma.systemConfig.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { key: 'home_landing_config' },
+        data: expect.objectContaining({
+          valueType: 'JSON',
+          scope: 'GLOBAL',
+          version: 4,
+        }),
+      }),
+    );
+    expect(result.hero.searchPlaceholder).toBe('搜专利/机构/技术经理');
+    expect(result.featuredZones.displayCount).toBe(4);
+    expect(result.listingTopicUi.items.find((item) => item.value === 'OPEN_LICENSE')?.enabled).toBe(false);
+  });
 });

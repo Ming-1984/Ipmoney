@@ -1,9 +1,11 @@
 ﻿import { Button, Card, Form, Input, InputNumber, Select, Space, Switch, Typography, Upload, message } from 'antd';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 
 import { apiGet, apiPut, apiUploadFile, type FileObject } from '../lib/api';
 import { fenToYuanNumber, yuanToFen } from '../lib/format';
 import { confirmActionWithReason } from '../ui/confirm';
+import { ImageUrlUploadField } from '../ui/ImageUrlUploadField';
 
 type TradeRulesConfig = {
   version: number;
@@ -99,6 +101,8 @@ type AlertConfig = {
   rules: AlertRule[];
 };
 
+type HomeLandingConfig = Record<string, unknown>;
+
 function toList(value: string) {
   return value
     .split(/[,，\n]/)
@@ -107,6 +111,7 @@ function toList(value: string) {
 }
 
 export function ConfigPage() {
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [tradeForm] = Form.useForm();
   const [recForm] = Form.useForm();
@@ -122,6 +127,7 @@ export function ConfigPage() {
   const [sensitiveWords, setSensitiveWords] = useState('');
   const [hotSearchKeywords, setHotSearchKeywords] = useState('');
   const [alertJson, setAlertJson] = useState('');
+  const [homeLandingJson, setHomeLandingJson] = useState('');
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -139,13 +145,14 @@ export function ConfigPage() {
       const rec = await apiGet<RecommendationConfig>('/admin/config/recommendation');
       recForm.setFieldsValue(rec);
 
-      const [banner, cs, taxonomy, sensitive, hotSearch, alert] = await Promise.all([
+      const [banner, cs, taxonomy, sensitive, hotSearch, alert, homeLanding] = await Promise.all([
         apiGet<BannerConfig>('/admin/config/banner'),
         apiGet<CustomerServiceConfig>('/admin/config/customer-service'),
         apiGet<TaxonomyConfig>('/admin/config/taxonomy'),
         apiGet<SensitiveWordsConfig>('/admin/config/sensitive-words'),
         apiGet<HotSearchConfig>('/admin/config/hot-search'),
         apiGet<AlertConfig>('/admin/config/alerts'),
+        apiGet<HomeLandingConfig>('/admin/config/home-landing'),
       ]);
 
       setBannerJson(JSON.stringify(banner, null, 2));
@@ -158,6 +165,7 @@ export function ConfigPage() {
       setSensitiveWords((sensitive.words || []).join('，'));
       setHotSearchKeywords((hotSearch.keywords || []).join('，'));
       setAlertJson(JSON.stringify(alert, null, 2));
+      setHomeLandingJson(JSON.stringify(homeLanding, null, 2));
     } catch (e: any) {
       message.error(e?.message || '加载失败');
     } finally {
@@ -506,9 +514,19 @@ export function ConfigPage() {
                   <Typography.Text type="secondary">
                     {`\u89c6\u9891\u94fe\u63a5\uff1a${item.videoUrl || '-'}`}
                   </Typography.Text>
-                  <Typography.Text type="secondary">
-                    {`\u5c01\u9762\u94fe\u63a5\uff1a${item.posterUrl || item.imageUrl || '-'}`}
-                  </Typography.Text>
+                  <Space direction="vertical" size={6} style={{ width: '100%' }}>
+                    <Typography.Text type="secondary">
+                      {'封面（可上传或粘贴 URL）'}
+                    </Typography.Text>
+                    <ImageUrlUploadField
+                      value={item.posterUrl || item.imageUrl || ''}
+                      uploadPurpose="BANNER_POSTER"
+                      maxSizeMb={10}
+                      onChange={(next) => {
+                        updateBannerItem(item.id, { posterUrl: next, imageUrl: next });
+                      }}
+                    />
+                  </Space>
                 </Space>
               </Card>
             ))}
@@ -545,6 +563,23 @@ export function ConfigPage() {
             }}
           >
             {'\u4fdd\u5b58 Banner'}
+          </Button>
+        </Space>
+      </Card>
+
+      <Card loading={loading}>
+        <Typography.Title level={3} style={{ marginTop: 0 }}>
+          首页运营配置
+        </Typography.Title>
+        <Typography.Paragraph type="secondary">
+          已升级为可视化编辑（上传图片、内置图选择、卡片排序、标签联动）。建议在专用页面维护，避免直接改 JSON。
+        </Typography.Paragraph>
+        <Space style={{ marginTop: 8 }}>
+          <Button type="primary" onClick={() => navigate('/config/home-landing')}>
+            打开可视化运营配置页
+          </Button>
+          <Button onClick={() => setHomeLandingJson('')} disabled>
+            JSON 直改已下线
           </Button>
         </Space>
       </Card>

@@ -73,48 +73,72 @@ function normalizeHttpError(statusCode: number, data: unknown): ApiError {
   const code = err?.code;
 
   if (statusCode === 401 || statusCode === 403) {
-    return new ApiError({ kind: 'auth', statusCode, code, message: '请先登录后再操作', retryable: false, debug: data });
+    return new ApiError({ kind: 'auth', statusCode, code, message: 'Please sign in first', retryable: false, debug: data });
   }
   if (statusCode === 404) {
-    return new ApiError({ kind: 'http', statusCode, code, message: '内容不存在或已下架', retryable: false, debug: data });
+    return new ApiError({ kind: 'http', statusCode, code, message: 'Content not found', retryable: false, debug: data });
   }
   if (statusCode === 429) {
-    return new ApiError({ kind: 'http', statusCode, code, message: '操作过于频繁，请稍后再试', retryable: true, debug: data });
+    return new ApiError({ kind: 'http', statusCode, code, message: 'Too many requests, try again later', retryable: true, debug: data });
   }
   if (statusCode >= 500) {
-    return new ApiError({ kind: 'http', statusCode, code, message: '服务开小差，请稍后再试', retryable: true, debug: data });
+    return new ApiError({ kind: 'http', statusCode, code, message: 'Server is temporarily unavailable', retryable: true, debug: data });
   }
 
-  // 4xx 通常是参数/业务态问题，不做自动重试，避免放大 409/422 噪音。
+  // 4xx are usually validation/business errors. Do not auto-retry.
   if (statusCode >= 400 && statusCode < 500) {
     if (err?.message) {
       return new ApiError({ kind: 'business', statusCode, code, message: err.message, retryable: false, debug: data });
     }
-    return new ApiError({ kind: 'http', statusCode, code, message: '请求失败，请检查参数后重试', retryable: false, debug: data });
+    return new ApiError({ kind: 'http', statusCode, code, message: 'Request failed, please check your input', retryable: false, debug: data });
   }
 
   if (err?.message) {
     return new ApiError({ kind: 'business', statusCode, code, message: err.message, retryable: false, debug: data });
   }
-  return new ApiError({ kind: 'http', statusCode, code, message: '请求失败，请稍后重试', retryable: true, debug: data });
+  return new ApiError({ kind: 'http', statusCode, code, message: 'Request failed, please try again later', retryable: true, debug: data });
 }
 function normalizeRequestError(e: unknown): ApiError {
   if (e instanceof ApiError) return e;
 
   const errMsg = (e as any)?.errMsg || (e as any)?.message;
   const message = typeof errMsg === 'string' ? errMsg : '';
-  const isTimeout = message.toLowerCase().includes('timeout');
+  const lower = message.toLowerCase();
+  const isTimeout = lower.includes('timeout');
+  const isDomainBlocked =
+    lower.includes('url not in domain list') ||
+    lower.includes('domain list') ||
+    lower.includes('not in domain') ||
+    message.includes('domain list') ||
+    message.includes('legal domain') ||
+    message.includes('business domain');
+  const isTlsOrCertIssue =
+    lower.includes('ssl') ||
+    lower.includes('tls') ||
+    lower.includes('certificate') ||
+    message.includes('TLS') ||
+    message.includes('HTTPS');
 
   if (message) {
+    if (isDomainBlocked || isTlsOrCertIssue) {
+      return new ApiError({
+        kind: 'network',
+        message:
+          'Domain/TLS validation failed. Please configure legal request domain and web-view business domain in WeChat MP console, and ensure HTTPS cert is valid (TLS1.2+).',
+        retryable: false,
+        debug: { errMsg: message },
+      });
+    }
+
     return new ApiError({
       kind: 'network',
-      message: isTimeout ? '请求超时，请检查网络后重试' : '网络异常，请检查网络后重试',
+      message: isTimeout ? 'Network timeout, please try again later' : 'Network request failed, please check your connection',
       retryable: true,
       debug: { errMsg: message },
     });
   }
 
-  return new ApiError({ kind: 'unknown', message: '请求失败，请稍后再试', retryable: true, debug: e });
+  return new ApiError({ kind: 'unknown', message: 'Unexpected request error, please try again later', retryable: true, debug: e });
 }
 
 function getDeviceId(): string {

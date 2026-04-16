@@ -4,9 +4,9 @@
 
 ## Summary
 
-- OpenAPI operations: 245
-- Frontend-used operations (client): 92
-- Frontend-used operations (admin): 125
+- OpenAPI operations: 249
+- Frontend-used operations (client): 93
+- Frontend-used operations (admin): 128
 - Fixture scenarios: 7
 
 ## Key Gaps
@@ -53,7 +53,7 @@
   - POST /ai/agent/query
   - POST /ai/parse-results/:param/feedback
   - PUT /admin/listings/:param/featured
-- Frontend-used but missing in happy fixtures: 204
+- Frontend-used but missing in happy fixtures: 208
   - DELETE /achievements/:param/favorites
   - DELETE /admin/config/home-announcements/items/:param
   - DELETE /admin/config/home-announcements/templates/:param
@@ -74,6 +74,7 @@
   - GET /admin/config/banner
   - GET /admin/config/customer-service
   - GET /admin/config/home-announcements
+  - GET /admin/config/home-landing
   - GET /admin/config/hot-search
   - GET /admin/config/recommendation
   - GET /admin/config/sensitive-words
@@ -103,8 +104,7 @@
   - GET /admin/regions
   - GET /admin/reports/finance/summary
   - GET /admin/tech-managers
-  - GET /admin/user-verifications
-  - ... (154 more)
+  - ... (158 more)
 
 ## Coverage Details (by operation)
 
@@ -136,6 +136,7 @@
 | adminGetBannerConfig | GET | /admin/config/banner |  | Y |  |  |  |  |  |  |  |
 | adminGetCustomerServiceConfig | GET | /admin/config/customer-service |  | Y |  |  |  |  |  |  |  |
 | adminGetHomeAnnouncementsConfig | GET | /admin/config/home-announcements |  | Y |  |  |  |  |  |  |  |
+| adminGetHomeLandingConfig | GET | /admin/config/home-landing |  | Y |  |  |  |  |  |  |  |
 | adminGetHotSearchConfig | GET | /admin/config/hot-search |  | Y |  |  |  |  |  |  |  |
 | adminGetRecommendationConfig | GET | /admin/config/recommendation |  | Y |  |  |  |  |  |  |  |
 | adminGetSensitiveWordsConfig | GET | /admin/config/sensitive-words |  | Y |  |  |  |  |  |  |  |
@@ -214,6 +215,7 @@
 | getPublicBannerConfig | GET | /public/config/banner | Y |  |  |  |  |  |  |  |  |
 | getPublicCustomerServiceConfig | GET | /public/config/customer-service | Y |  |  |  |  |  |  |  |  |
 | getPublicHomeAnnouncementsFeed | GET | /public/config/home-announcements | Y |  |  |  |  |  |  |  |  |
+| getPublicHomeLandingConfig | GET | /public/config/home-landing | Y |  |  |  |  |  |  |  |  |
 | getPublicTradeRulesConfig | GET | /public/config/trade-rules | Y |  |  |  |  |  |  |  |  |
 | listPublicIndustryTags | GET | /public/industry-tags | Y |  |  |  |  |  |  |  |  |
 | getPublicListingById | GET | /public/listings/:param | Y |  |  |  |  |  |  |  |  |
@@ -240,6 +242,7 @@
 | adminUpdateRbacUserRoles | PATCH | /admin/rbac/users/:param |  | Y |  |  |  |  |  |  |  |
 | adminUpdateRegion | PATCH | /admin/regions/:param |  | Y |  |  |  |  |  |  |  |
 | adminUpdateTechManager | PATCH | /admin/tech-managers/:param |  | Y |  |  |  |  |  |  |  |
+| adminUpdateUserVerificationLogo | PATCH | /admin/user-verifications/:param/logo |  | Y |  |  |  |  |  |  |  |
 | updateComment | PATCH | /comments/:param | Y |  |  |  |  |  |  |  |  |
 | updateListing | PATCH | /listings/:param | Y |  |  |  |  |  |  |  |  |
 | updateMe | PATCH | /me | Y |  |  |  |  |  |  |  |  |
@@ -347,6 +350,7 @@
 | adminUpdateCustomerServiceConfig | PUT | /admin/config/customer-service |  | Y |  |  |  |  |  |  |  |
 | adminUpdateHomeAnnouncementItem | PUT | /admin/config/home-announcements/items/:param |  | Y |  |  |  |  |  |  |  |
 | adminUpdateHomeAnnouncementTemplate | PUT | /admin/config/home-announcements/templates/:param |  | Y |  |  |  |  |  |  |  |
+| adminUpdateHomeLandingConfig | PUT | /admin/config/home-landing |  | Y |  |  |  |  |  |  |  |
 | adminUpdateHotSearchConfig | PUT | /admin/config/hot-search |  | Y |  |  |  |  |  |  |  |
 | adminUpdateRecommendationConfig | PUT | /admin/config/recommendation |  | Y |  |  |  |  |  |  |  |
 | adminUpdateSensitiveWordsConfig | PUT | /admin/config/sensitive-words |  | Y |  |  |  |  |  |  |  |

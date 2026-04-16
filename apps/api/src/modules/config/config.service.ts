@@ -204,6 +204,73 @@ export type PublicHomeAnnouncementFeed = {
   items: PublicHomeAnnouncementItem[];
 };
 
+export type ListingTopic = 'HIGH_TECH_RETIRED' | 'SLEEPING' | 'AWARD_WINNING' | 'FIVE_STAR' | 'OPEN_LICENSE';
+export type PatentType = 'INVENTION' | 'UTILITY_MODEL' | 'DESIGN';
+
+export type HomeLandingSearchPrefillAction = {
+  tab?: 'LISTING' | 'ACHIEVEMENT';
+  q?: string;
+  reset?: boolean;
+  listingTopic?: ListingTopic;
+  patentType?: PatentType;
+};
+
+export type HomeLandingPageRouteAction = {
+  url: string;
+};
+
+export type HomeLandingActionType = 'SEARCH_PREFILL' | 'PAGE_ROUTE';
+
+export type HomeLandingFeaturedZoneItem = {
+  id: string;
+  title: string;
+  subtitle: string;
+  imageUrl: string;
+  enabled: boolean;
+  order: number;
+  actionType: HomeLandingActionType;
+  actionPayload: HomeLandingSearchPrefillAction | HomeLandingPageRouteAction;
+};
+
+export type HomeLandingListingTopicUiItem = {
+  value: ListingTopic;
+  label: string;
+  enabled: boolean;
+  order: number;
+};
+
+export type HomeLandingConfig = {
+  schemaVersion: 1;
+  hero: {
+    tags: string[];
+    searchPlaceholder: string;
+  };
+  sectionTexts: {
+    featuredTitle: string;
+    featuredMoreText: string;
+  };
+  featuredZones: {
+    enabled: boolean;
+    displayCount: 4 | 6;
+    items: HomeLandingFeaturedZoneItem[];
+  };
+  listingTopicUi: {
+    items: HomeLandingListingTopicUiItem[];
+  };
+};
+
+const LISTING_TOPIC_ORDER_DEFAULTS: ReadonlyArray<{ value: ListingTopic; label: string; order: number }> = [
+  { value: 'HIGH_TECH_RETIRED', label: '退役专利', order: 10 },
+  { value: 'SLEEPING', label: '沉睡专利', order: 20 },
+  { value: 'AWARD_WINNING', label: '获奖专利', order: 30 },
+  { value: 'FIVE_STAR', label: '五星专利', order: 40 },
+  { value: 'OPEN_LICENSE', label: '开放许可', order: 50 },
+];
+
+const LISTING_TOPIC_SET = new Set<ListingTopic>(LISTING_TOPIC_ORDER_DEFAULTS.map((item) => item.value));
+const PATENT_TYPE_SET = new Set<PatentType>(['INVENTION', 'UTILITY_MODEL', 'DESIGN']);
+const HOME_LANDING_ACTION_TYPE_SET = new Set<HomeLandingActionType>(['SEARCH_PREFILL', 'PAGE_ROUTE']);
+
 const KEY_TRADE_RULES = 'trade_rules';
 const KEY_RECOMMENDATION = 'recommendation_config';
 const KEY_BANNER = 'banner_config';
@@ -213,6 +280,7 @@ const KEY_SENSITIVE = 'sensitive_words_config';
 const KEY_HOT_SEARCH = 'hot_search_config';
 const KEY_ALERT_CONFIG = 'alert_config';
 const KEY_HOME_ANNOUNCEMENT_CONFIG = 'home_announcement_config';
+const KEY_HOME_LANDING_CONFIG = 'home_landing_config';
 
 const DEFAULT_TRADE_RULES: TradeRulesConfig = {
   version: 1,
@@ -322,6 +390,84 @@ function buildDefaultHomeAnnouncementConfig(): HomeAnnouncementConfig {
     schemaVersion: 1,
     templates: [],
     items: [],
+  };
+}
+
+function buildDefaultHomeLandingConfig(): HomeLandingConfig {
+  return {
+    schemaVersion: 1,
+    hero: {
+      tags: ['0元专利托管', '0元代办过户', '0风险交易'],
+      searchPlaceholder: '开始寻找被你发现的IP',
+    },
+    sectionTexts: {
+      featuredTitle: '特色专区',
+      featuredMoreText: '更多',
+    },
+    featuredZones: {
+      enabled: true,
+      displayCount: 4,
+      items: [
+        {
+          id: 'retired',
+          title: '退役专利',
+          subtitle: '平台审核通过的退役专利',
+          imageUrl: 'builtin://zone-retired',
+          enabled: true,
+          order: 10,
+          actionType: 'SEARCH_PREFILL',
+          actionPayload: { tab: 'LISTING', listingTopic: 'HIGH_TECH_RETIRED', reset: true },
+        },
+        {
+          id: 'sleeping',
+          title: '沉睡专利',
+          subtitle: '转让次数为 0 的专利',
+          imageUrl: 'builtin://zone-sleeping',
+          enabled: true,
+          order: 20,
+          actionType: 'SEARCH_PREFILL',
+          actionPayload: { tab: 'LISTING', listingTopic: 'SLEEPING', reset: true },
+        },
+        {
+          id: 'award-winning',
+          title: '获奖专利',
+          subtitle: '平台标记的获奖专利',
+          imageUrl: 'builtin://zone-award-winning',
+          enabled: true,
+          order: 30,
+          actionType: 'SEARCH_PREFILL',
+          actionPayload: { tab: 'LISTING', listingTopic: 'AWARD_WINNING', reset: true },
+        },
+        {
+          id: 'five-star',
+          title: '五星专利',
+          subtitle: '平台优选的高质量专利',
+          imageUrl: 'builtin://zone-five-star',
+          enabled: true,
+          order: 40,
+          actionType: 'SEARCH_PREFILL',
+          actionPayload: { tab: 'LISTING', listingTopic: 'FIVE_STAR', reset: true },
+        },
+        {
+          id: 'open-license',
+          title: '开放许可',
+          subtitle: '交易方式为许可',
+          imageUrl: 'builtin://zone-open-license',
+          enabled: true,
+          order: 50,
+          actionType: 'SEARCH_PREFILL',
+          actionPayload: { tab: 'LISTING', listingTopic: 'OPEN_LICENSE', reset: true },
+        },
+      ],
+    },
+    listingTopicUi: {
+      items: LISTING_TOPIC_ORDER_DEFAULTS.map((item) => ({
+        value: item.value,
+        label: item.label,
+        enabled: true,
+        order: item.order,
+      })),
+    },
   };
 }
 
@@ -558,6 +704,271 @@ export class ConfigService {
     };
     await this.prisma.systemConfig.update({
       where: { key: KEY_ALERT_CONFIG },
+      data: {
+        valueType: SystemConfigValueType.JSON,
+        scope: SystemConfigScope.GLOBAL,
+        value: JSON.stringify(payload),
+        version: row.version + 1,
+      },
+    });
+    return payload;
+  }
+
+  private normalizePositiveInt(value: unknown, fallback: number, min: number, max: number): number {
+    const parsed = Number(value);
+    if (!Number.isSafeInteger(parsed)) return fallback;
+    if (parsed < min || parsed > max) return fallback;
+    return parsed;
+  }
+
+  private normalizeHomeLandingListingTopicUi(
+    input: unknown,
+    strict: boolean,
+  ): HomeLandingConfig['listingTopicUi']['items'] {
+    const list = Array.isArray(input) ? input : [];
+    const byValue = new Map<ListingTopic, any>();
+    for (const raw of list) {
+      const value = String((raw as any)?.value || '')
+        .trim()
+        .toUpperCase();
+      if (!LISTING_TOPIC_SET.has(value as ListingTopic)) continue;
+      if (byValue.has(value as ListingTopic)) continue;
+      byValue.set(value as ListingTopic, raw);
+    }
+
+    return LISTING_TOPIC_ORDER_DEFAULTS.map((base) => {
+      const raw = byValue.get(base.value) || {};
+      const labelRaw = String(raw?.label || '').trim();
+      if (strict && raw?.label !== undefined && !labelRaw) {
+        throw new BadRequestException({ code: 'BAD_REQUEST', message: `listingTopicUi.label(${base.value}) is invalid` });
+      }
+      const label = (labelRaw || base.label).slice(0, 20);
+      if (strict && !label) {
+        throw new BadRequestException({ code: 'BAD_REQUEST', message: `listingTopicUi.label(${base.value}) is invalid` });
+      }
+      return {
+        value: base.value,
+        label,
+        enabled: raw?.enabled !== false,
+        order: this.normalizePositiveInt(raw?.order, base.order, 0, 100000),
+      };
+    }).sort((a, b) => a.order - b.order);
+  }
+
+  private normalizeHomeLandingAction(
+    actionTypeRaw: unknown,
+    payloadRaw: unknown,
+    strict: boolean,
+    topicEnabledSet: Set<ListingTopic>,
+  ): { actionType: HomeLandingActionType; actionPayload: HomeLandingFeaturedZoneItem['actionPayload'] } {
+    const actionType = String(actionTypeRaw || 'SEARCH_PREFILL')
+      .trim()
+      .toUpperCase() as HomeLandingActionType;
+    if (!HOME_LANDING_ACTION_TYPE_SET.has(actionType)) {
+      if (strict) {
+        throw new BadRequestException({ code: 'BAD_REQUEST', message: 'featuredZones.actionType is invalid' });
+      }
+    }
+    const resolvedActionType: HomeLandingActionType = HOME_LANDING_ACTION_TYPE_SET.has(actionType)
+      ? actionType
+      : 'SEARCH_PREFILL';
+
+    const payload = payloadRaw && typeof payloadRaw === 'object' ? (payloadRaw as Record<string, unknown>) : {};
+    if (resolvedActionType === 'PAGE_ROUTE') {
+      const url = String(payload.url || '').trim();
+      if (strict && (!url || url.length > 1000)) {
+        throw new BadRequestException({ code: 'BAD_REQUEST', message: 'featuredZones.actionPayload.url is invalid' });
+      }
+      return {
+        actionType: resolvedActionType,
+        actionPayload: {
+          url: url || '/subpackages/search/index',
+        },
+      };
+    }
+
+    const tabRaw = String(payload.tab || '').trim().toUpperCase();
+    const tab = tabRaw === 'LISTING' || tabRaw === 'ACHIEVEMENT' ? (tabRaw as 'LISTING' | 'ACHIEVEMENT') : undefined;
+    if (strict && tabRaw && !tab) {
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: 'featuredZones.actionPayload.tab is invalid' });
+    }
+
+    const listingTopicRaw = String(payload.listingTopic || '')
+      .trim()
+      .toUpperCase();
+    const listingTopic = LISTING_TOPIC_SET.has(listingTopicRaw as ListingTopic)
+      ? (listingTopicRaw as ListingTopic)
+      : undefined;
+    if (strict && listingTopicRaw && !listingTopic) {
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: 'featuredZones.actionPayload.listingTopic is invalid' });
+    }
+    if (strict && listingTopic && !topicEnabledSet.has(listingTopic)) {
+      throw new BadRequestException({
+        code: 'BAD_REQUEST',
+        message: `listingTopic(${listingTopic}) is disabled in listingTopicUi`,
+      });
+    }
+
+    const patentTypeRaw = String(payload.patentType || '')
+      .trim()
+      .toUpperCase();
+    const patentType = PATENT_TYPE_SET.has(patentTypeRaw as PatentType) ? (patentTypeRaw as PatentType) : undefined;
+    if (strict && patentTypeRaw && !patentType) {
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: 'featuredZones.actionPayload.patentType is invalid' });
+    }
+
+    const q = String(payload.q || '').trim().slice(0, 120);
+    const reset = payload.reset === undefined ? true : Boolean(payload.reset);
+    return {
+      actionType: resolvedActionType,
+      actionPayload: {
+        ...(tab ? { tab } : {}),
+        ...(q ? { q } : {}),
+        ...(listingTopic ? { listingTopic } : {}),
+        ...(patentType ? { patentType } : {}),
+        reset,
+      },
+    };
+  }
+
+  private normalizeHomeLandingFeaturedItems(
+    input: unknown,
+    strict: boolean,
+    topicEnabledSet: Set<ListingTopic>,
+  ): HomeLandingFeaturedZoneItem[] {
+    const list = Array.isArray(input) ? input : [];
+    const out: HomeLandingFeaturedZoneItem[] = [];
+    const seenIds = new Set<string>();
+    for (let idx = 0; idx < list.length; idx += 1) {
+      const raw = list[idx] as Record<string, unknown>;
+      const id = String(raw?.id || '').trim();
+      const title = String(raw?.title || '').trim();
+      const subtitle = String(raw?.subtitle || '').trim();
+      const imageUrl = String(raw?.imageUrl || '').trim();
+      if (strict) {
+        if (!id || seenIds.has(id)) {
+          throw new BadRequestException({ code: 'BAD_REQUEST', message: `featuredZones.items[${idx}].id is invalid` });
+        }
+        if (!title || title.length > 24) {
+          throw new BadRequestException({ code: 'BAD_REQUEST', message: `featuredZones.items[${idx}].title is invalid` });
+        }
+        if (!subtitle || subtitle.length > 40) {
+          throw new BadRequestException({ code: 'BAD_REQUEST', message: `featuredZones.items[${idx}].subtitle is invalid` });
+        }
+        if (!imageUrl || imageUrl.length > 1000) {
+          throw new BadRequestException({ code: 'BAD_REQUEST', message: `featuredZones.items[${idx}].imageUrl is invalid` });
+        }
+      }
+      if (!id || seenIds.has(id)) continue;
+      seenIds.add(id);
+      const action = this.normalizeHomeLandingAction(raw?.actionType, raw?.actionPayload, strict, topicEnabledSet);
+      out.push({
+        id,
+        title: title.slice(0, 24),
+        subtitle: subtitle.slice(0, 40),
+        imageUrl: imageUrl.slice(0, 1000),
+        enabled: raw?.enabled !== false,
+        order: this.normalizePositiveInt(raw?.order, (idx + 1) * 10, 0, 100000),
+        actionType: action.actionType,
+        actionPayload: action.actionPayload,
+      });
+    }
+    return out.sort((a, b) => a.order - b.order);
+  }
+
+  private normalizeHomeLandingConfig(input: unknown, strict: boolean): HomeLandingConfig {
+    const fallback = buildDefaultHomeLandingConfig();
+    const source = input && typeof input === 'object' ? (input as Record<string, unknown>) : {};
+    const heroRaw = source.hero && typeof source.hero === 'object' ? (source.hero as Record<string, unknown>) : {};
+    const sectionRaw =
+      source.sectionTexts && typeof source.sectionTexts === 'object'
+        ? (source.sectionTexts as Record<string, unknown>)
+        : {};
+    const featuredRaw =
+      source.featuredZones && typeof source.featuredZones === 'object'
+        ? (source.featuredZones as Record<string, unknown>)
+        : {};
+    const listingTopicUiRaw =
+      source.listingTopicUi && typeof source.listingTopicUi === 'object'
+        ? (source.listingTopicUi as Record<string, unknown>)
+        : {};
+
+    const heroTags = (Array.isArray(heroRaw.tags) ? heroRaw.tags : fallback.hero.tags)
+      .map((item) => String(item || '').trim())
+      .filter(Boolean)
+      .slice(0, 3);
+    if (strict && heroTags.length < 1) {
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: 'hero.tags is invalid' });
+    }
+    if (strict && heroTags.some((item) => item.length > 20)) {
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: 'hero.tags is invalid' });
+    }
+
+    const searchPlaceholder = String(heroRaw.searchPlaceholder || fallback.hero.searchPlaceholder).trim().slice(0, 40);
+    if (strict && !searchPlaceholder) {
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: 'hero.searchPlaceholder is invalid' });
+    }
+
+    const listingTopicUiItems = this.normalizeHomeLandingListingTopicUi(listingTopicUiRaw.items, strict);
+    const topicEnabledSet = new Set(listingTopicUiItems.filter((item) => item.enabled).map((item) => item.value));
+    const displayCountRaw = Number(featuredRaw.displayCount);
+    if (strict && displayCountRaw !== 4 && displayCountRaw !== 6) {
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: 'featuredZones.displayCount must be 4 or 6' });
+    }
+    const displayCount: 4 | 6 = displayCountRaw === 6 ? 6 : 4;
+    const featuredItems = this.normalizeHomeLandingFeaturedItems(featuredRaw.items, strict, topicEnabledSet);
+    if (strict && (featuredRaw.enabled !== false ? featuredItems.filter((item) => item.enabled).length < displayCount : false)) {
+      throw new BadRequestException({
+        code: 'BAD_REQUEST',
+        message: `featuredZones enabled items must be >= displayCount(${displayCount})`,
+      });
+    }
+
+    const featuredTitle = String(sectionRaw.featuredTitle || fallback.sectionTexts.featuredTitle).trim().slice(0, 20);
+    const featuredMoreText = String(sectionRaw.featuredMoreText || fallback.sectionTexts.featuredMoreText)
+      .trim()
+      .slice(0, 10);
+    if (strict && (!featuredTitle || !featuredMoreText)) {
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: 'sectionTexts is invalid' });
+    }
+
+    return {
+      schemaVersion: 1,
+      hero: {
+        tags: heroTags.length ? heroTags : [...fallback.hero.tags],
+        searchPlaceholder: searchPlaceholder || fallback.hero.searchPlaceholder,
+      },
+      sectionTexts: {
+        featuredTitle: featuredTitle || fallback.sectionTexts.featuredTitle,
+        featuredMoreText: featuredMoreText || fallback.sectionTexts.featuredMoreText,
+      },
+      featuredZones: {
+        enabled: featuredRaw.enabled !== false,
+        displayCount,
+        items: featuredItems.length ? featuredItems : [...fallback.featuredZones.items],
+      },
+      listingTopicUi: {
+        items: listingTopicUiItems,
+      },
+    };
+  }
+
+  async getHomeLandingConfig(): Promise<HomeLandingConfig> {
+    const fallback = buildDefaultHomeLandingConfig();
+    const row = await this.ensureJsonConfig(KEY_HOME_LANDING_CONFIG, fallback);
+    try {
+      const parsed = JSON.parse(row.value);
+      return this.normalizeHomeLandingConfig(parsed, false);
+    } catch {
+      return fallback;
+    }
+  }
+
+  async updateHomeLandingConfig(next: unknown): Promise<HomeLandingConfig> {
+    const row = await this.ensureJsonConfig(KEY_HOME_LANDING_CONFIG, buildDefaultHomeLandingConfig());
+    const payload = this.normalizeHomeLandingConfig(next, true);
+    await this.prisma.systemConfig.update({
+      where: { key: KEY_HOME_LANDING_CONFIG },
       data: {
         valueType: SystemConfigValueType.JSON,
         scope: SystemConfigScope.GLOBAL,

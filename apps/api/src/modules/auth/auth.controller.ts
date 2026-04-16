@@ -19,7 +19,7 @@ export class AuthController {
   }
 
   @Post('/sms/send')
-  async smsSend(@Body() body: { phone: string; purpose: string }) {
+  async smsSend(@Body() body: { phone: string; purpose?: string }) {
     return await this.auth.sendSmsCode(body?.phone, body?.purpose);
   }
 

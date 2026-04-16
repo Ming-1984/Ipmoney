@@ -53,7 +53,7 @@
 
 ## 微信小程序登录
 
-- `WX_MP_APPID`
+- `WX_MP_APPID`（兼容别名：`WX_MP_ID`）
 - `WX_MP_SECRET`
 
 ## 微信支付（v3）
@@ -79,10 +79,17 @@
 
 ## 短信/通知（可选）
 
-- `SMS_PROVIDER`（如 `TENCENT`/`ALIYUN`）
-- `SMS_API_KEY` / `SMS_API_SECRET`
+- `SMS_PROVIDER`（生产建议固定 `ALIYUN`）
 - `SMS_SIGN_NAME`
-- `SMS_TEMPLATE_ID_LOGIN`
+- `SMS_TEMPLATE_ID`（推荐）
+- `SMS_TEMPLATE_ID_LOGIN`（兼容旧名）
+- `SMS_TEMPLATE_ID_BIND_PHONE`（可选）
+- `SMS_ACCESS_KEY` / `SMS_SECRET_KEY`（推荐）
+- `SMS_ACCESS_KEY_ID` / `SMS_ACCESS_KEY_SECRET`（兼容旧名）
+- `SMS_API_KEY` / `SMS_API_SECRET`（兼容旧名）
+- `SMS_ALIYUN_ENDPOINT`（可选）
+- `SMS_REGION_ID`（可选，默认 `cn-hangzhou`）
+- `SMS_TEMPLATE_PARAM_KEY`（可选，默认 `code`）
 
 ## 运行开关（Feature Flags）
 

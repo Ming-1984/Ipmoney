@@ -26,6 +26,8 @@ describe('AdminConfigController permission and audit suite', () => {
       updateHotSearch: vi.fn(),
       getAlertConfig: vi.fn(),
       updateAlertConfig: vi.fn(),
+      getHomeLandingConfig: vi.fn(),
+      updateHomeLandingConfig: vi.fn(),
       getHomeAnnouncementConfig: vi.fn(),
       createHomeAnnouncementTemplate: vi.fn(),
       updateHomeAnnouncementTemplate: vi.fn(),
@@ -60,6 +62,8 @@ describe('AdminConfigController permission and audit suite', () => {
       () => controller.updateHotSearch(req, {} as any),
       () => controller.getAlertConfig(req),
       () => controller.updateAlertConfig(req, {} as any),
+      () => controller.getHomeLandingConfig(req),
+      () => controller.updateHomeLandingConfig(req, {} as any),
       () => controller.getHomeAnnouncementConfig(req),
       () => controller.createHomeAnnouncementTemplate(req, {} as any),
       () => controller.updateHomeAnnouncementTemplate(req, 'tpl-1', {} as any),
@@ -86,6 +90,7 @@ describe('AdminConfigController permission and audit suite', () => {
     config.getSensitiveWords.mockResolvedValueOnce({ words: [] });
     config.getHotSearch.mockResolvedValueOnce({ keywords: [] });
     config.getAlertConfig.mockResolvedValueOnce({ enabled: false, rules: [] });
+    config.getHomeLandingConfig.mockResolvedValueOnce({ schemaVersion: 1 });
     config.getHomeAnnouncementConfig.mockResolvedValueOnce({ schemaVersion: 1, templates: [], items: [] });
 
     await expect(controller.getTradeRules(req)).resolves.toEqual({ version: 2 });
@@ -96,6 +101,7 @@ describe('AdminConfigController permission and audit suite', () => {
     await expect(controller.getSensitiveWords(req)).resolves.toEqual({ words: [] });
     await expect(controller.getHotSearch(req)).resolves.toEqual({ keywords: [] });
     await expect(controller.getAlertConfig(req)).resolves.toEqual({ enabled: false, rules: [] });
+    await expect(controller.getHomeLandingConfig(req)).resolves.toEqual({ schemaVersion: 1 });
     await expect(controller.getHomeAnnouncementConfig(req)).resolves.toEqual({ schemaVersion: 1, templates: [], items: [] });
   });
 
@@ -158,6 +164,13 @@ describe('AdminConfigController permission and audit suite', () => {
         mock: config.updateAlertConfig,
         action: 'CONFIG_ALERT_UPDATE',
         targetId: 'e92da947-d8e6-4648-a550-6f2fc0e933f3',
+      },
+      {
+        label: 'home-landing',
+        call: () => controller.updateHomeLandingConfig(req, {} as any),
+        mock: config.updateHomeLandingConfig,
+        action: 'CONFIG_HOME_LANDING_UPDATE',
+        targetId: 'c1b9ce6a-5fe2-4d64-a770-0e5cabff8a0d',
       },
       {
         label: 'home-announcement-template-create',
