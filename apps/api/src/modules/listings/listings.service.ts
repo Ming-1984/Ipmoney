@@ -185,6 +185,7 @@ const LISTING_BATCH_ACTION_SET = new Set<ListingBatchAction>(['APPROVE', 'REJECT
 const LISTING_BATCH_ITEM_STATUS_SET = new Set<ListingBatchItemStatus>(['PENDING', 'SUCCEEDED', 'FAILED', 'SKIPPED']);
 const LISTING_IMPORT_DUPLICATE_POLICY_SET = new Set<ListingImportDuplicatePolicy>(['SKIP', 'OVERWRITE']);
 const LISTING_IMPORT_ROW_STATUS_SET = new Set<ListingImportRowStatus>(['PENDING', 'VALID', 'INVALID', 'SUCCEEDED', 'FAILED', 'SKIPPED']);
+const PLATFORM_BRAND_NAME = 'ipmoney';
 
 @Injectable()
 export class ListingsService {
@@ -689,6 +690,18 @@ export class ListingsService {
       featuredRank: it.featuredRank ?? undefined,
       featuredUntil: toIso(it.featuredUntil),
     };
+  }
+
+  private isPlatformBrandedListing(listing: any): boolean {
+    const source = String(listing?.source || '').trim().toUpperCase();
+    const consultationRouting = String(listing?.consultationRouting || '').trim().toUpperCase();
+    return (source === 'ADMIN' || source === 'PLATFORM') && consultationRouting === 'PLATFORM';
+  }
+
+  private resolvePublicSellerNickname(listing: any): string | null {
+    if (this.isPlatformBrandedListing(listing)) return PLATFORM_BRAND_NAME;
+    const nickname = String(listing?.seller?.nickname || '').trim();
+    return nickname || null;
   }
 
   private toBatchJobDto(it: any): ListingBatchJobDto {
@@ -3508,7 +3521,7 @@ export class ListingsService {
       seller: it.seller
         ? {
             id: it.seller.id,
-            nickname: it.seller.nickname,
+            nickname: this.resolvePublicSellerNickname(it),
             avatarUrl: it.seller.avatarUrl,
             verificationType: null,
           }

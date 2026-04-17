@@ -184,7 +184,7 @@ export default defineAppConfig({
     backgroundColor: '#f5f6f8',
     backgroundTextStyle: 'light',
     navigationBarBackgroundColor: '#ffffff',
-    navigationBarTitleText: 'Ipmoney',
+    navigationBarTitleText: '首页-IPMONEY聚智诚知识产权服务平台',
     navigationBarTextStyle: 'black',
   },
   tabBar: {

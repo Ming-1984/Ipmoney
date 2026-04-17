@@ -299,6 +299,11 @@ export default function ListingDetailPage() {
   }
 
   const regionLabel = data ? regionDisplayName(data.regionCode) || '-' : '-';
+  const sellerDisplayName =
+    data?.seller?.nickname ||
+    ((data?.source === 'ADMIN' || data?.source === 'PLATFORM') && data?.consultationRouting === 'PLATFORM'
+      ? 'ipmoney'
+      : '-');
   const visibleIndustryTags = sanitizeIndustryTagNames(data?.industryTags || []);
   const transferCount =
     (data as any)?.transferCount ??
@@ -412,10 +417,10 @@ export default function ListingDetailPage() {
                   background="rgba(15, 23, 42, 0.06)"
                   color="var(--c-muted)"
                 >
-                  {(data.seller?.nickname || 'U').slice(0, 1)}
+                  {(sellerDisplayName || 'U').slice(0, 1)}
                 </Avatar>
                 <View className="detail-seller-meta">
-                  <Text className="detail-seller-name">{data.seller?.nickname || '-'}</Text>
+                  <Text className="detail-seller-name">{sellerDisplayName}</Text>
                   <View className="detail-seller-tags">
                     <Text className="detail-seller-tag">
                       {data.seller?.verificationType ? verificationTypeLabel(data.seller.verificationType) : '未认证'}

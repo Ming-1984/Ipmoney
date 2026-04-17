@@ -7,6 +7,7 @@
 - 首页运营配置后台入口可见性说明（2026-04-14）：docs/engineering/admin-home-landing-entry-visibility-2026-04-14.md
 - 首页运营配置低代码化说明（2026-04-14）：docs/engineering/admin-home-landing-lowcode-2026-04-14.md
 - 管理后台图片上传交互统一（2026-04-15）：docs/engineering/admin-image-upload-unification-2026-04-15.md
+- 管理后台统一上传与展示名对齐（2026-04-16）：docs/engineering/admin-upload-and-branding-unification-2026-04-16.md
 - 生产部署与验收记录（2026-04-15）：docs/engineering/deploy-acceptance-2026-04-15.md
 - 首页特色专区跳转与样式修复（2026-04-14）：docs/engineering/home-featured-square-fix-2026-04-14.md
 - 小程序域名/TLS/证书排查清单（2026-04-14）：docs/engineering/weapp-domain-tls-checklist-2026-04-14.md

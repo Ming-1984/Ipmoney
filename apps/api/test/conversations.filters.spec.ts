@@ -80,6 +80,67 @@ describe('ConversationsService pagination and id strictness suite', () => {
     expect(result.page).toEqual({ page: 2, pageSize: 50, total: 0 });
   });
 
+  it('normalizes platform listing counterpart nickname to ipmoney in listMine', async () => {
+    const req = { auth: { userId: 'buyer-1' } };
+    prisma.conversation.findMany.mockResolvedValueOnce([
+      {
+        id: '11111111-1111-1111-1111-111111111111',
+        contentType: 'LISTING',
+        contentId: '22222222-2222-2222-2222-222222222222',
+        listingId: '22222222-2222-2222-2222-222222222222',
+        buyerUserId: 'buyer-1',
+        sellerUserId: 'seller-platform',
+        listing: {
+          id: '22222222-2222-2222-2222-222222222222',
+          title: '平台挂牌',
+          consultationRouting: 'PLATFORM',
+          source: 'ADMIN',
+          listingTopicsJson: [],
+        },
+        buyer: { id: 'buyer-1', nickname: 'Buyer', avatarUrl: null, role: 'buyer' },
+        seller: { id: 'seller-platform', nickname: 'Ming', avatarUrl: null, role: 'seller' },
+        order: null,
+        agents: [],
+        participants: [{ lastReadAt: null }],
+        messages: [{ id: 'm-1', text: 'hello', type: 'TEXT', createdAt: new Date('2026-03-14T01:10:00.000Z') }],
+        lastMessageAt: new Date('2026-03-14T01:10:00.000Z'),
+        updatedAt: new Date('2026-03-14T01:10:00.000Z'),
+        createdAt: new Date('2026-03-14T01:00:00.000Z'),
+      },
+      {
+        id: '33333333-3333-3333-3333-333333333333',
+        contentType: 'LISTING',
+        contentId: '44444444-4444-4444-4444-444444444444',
+        listingId: '44444444-4444-4444-4444-444444444444',
+        buyerUserId: 'buyer-1',
+        sellerUserId: 'seller-user',
+        listing: {
+          id: '44444444-4444-4444-4444-444444444444',
+          title: '用户挂牌',
+          consultationRouting: 'OWNER',
+          source: 'USER',
+          listingTopicsJson: [],
+        },
+        buyer: { id: 'buyer-1', nickname: 'Buyer', avatarUrl: null, role: 'buyer' },
+        seller: { id: 'seller-user', nickname: 'Seller Nick', avatarUrl: null, role: 'seller' },
+        order: null,
+        agents: [],
+        participants: [{ lastReadAt: null }],
+        messages: [{ id: 'm-2', text: 'hi', type: 'TEXT', createdAt: new Date('2026-03-14T01:11:00.000Z') }],
+        lastMessageAt: new Date('2026-03-14T01:11:00.000Z'),
+        updatedAt: new Date('2026-03-14T01:11:00.000Z'),
+        createdAt: new Date('2026-03-14T01:01:00.000Z'),
+      },
+    ]);
+    prisma.conversation.count.mockResolvedValueOnce(2);
+    prisma.conversationMessage.count.mockResolvedValueOnce(0).mockResolvedValueOnce(0);
+
+    const result = await service.listMine(req, { page: '1', pageSize: '20' });
+
+    expect(result.items[0]?.counterpart?.nickname).toBe('ipmoney');
+    expect(result.items[1]?.counterpart?.nickname).toBe('Seller Nick');
+  });
+
   it('validates conversationId format and participant boundary in listMessages', async () => {
     const req = { auth: { userId: 'u-1' } };
     await expect(service.listMessages(req, 'bad-id', {})).rejects.toBeInstanceOf(BadRequestException);
@@ -288,12 +349,8 @@ describe('ConversationsService pagination and id strictness suite', () => {
           { agents: { none: { active: true } } },
           {
             OR: [
-              { id: { contains: 'buyer-keyword', mode: 'insensitive' } },
-              { contentId: { contains: 'buyer-keyword', mode: 'insensitive' } },
-              { buyerUserId: { contains: 'buyer-keyword', mode: 'insensitive' } },
               { listing: { title: { contains: 'buyer-keyword', mode: 'insensitive' } } },
               { buyer: { nickname: { contains: 'buyer-keyword', mode: 'insensitive' } } },
-              { orderId: { contains: 'buyer-keyword', mode: 'insensitive' } },
             ],
           },
           { updatedAt: { gte: new Date('2026-03-01T00:00:00.000Z') } },
@@ -342,6 +399,42 @@ describe('ConversationsService pagination and id strictness suite', () => {
     );
   });
 
+  it('uses exact UUID matching for id fields when q looks like UUID', async () => {
+    const req = { auth: { userId: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa' } };
+    prisma.conversation.findMany.mockResolvedValueOnce([]);
+    prisma.conversation.count.mockResolvedValueOnce(0);
+
+    const q = '11111111-1111-1111-1111-111111111111';
+    await service.listPlatformConversations(req, { q });
+
+    expect(prisma.conversation.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: {
+          AND: [
+            {
+              OR: [
+                { contentType: 'SUPPORT' },
+                { contentType: 'DISPUTE' },
+                { contentType: 'MAINTENANCE' },
+                { contentType: 'LISTING', listing: { consultationRouting: 'PLATFORM' } },
+              ],
+            },
+            {
+              OR: [
+                { listing: { title: { contains: q, mode: 'insensitive' } } },
+                { buyer: { nickname: { contains: q, mode: 'insensitive' } } },
+                { id: q },
+                { contentId: q },
+                { buyerUserId: q },
+                { orderId: q },
+              ],
+            },
+          ],
+        },
+      }),
+    );
+  });
+
   it('supports maintenance channel in platform conversation filters', async () => {
     const req = { auth: { userId: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa' } };
     prisma.conversation.findMany.mockResolvedValueOnce([]);
@@ -356,6 +449,41 @@ describe('ConversationsService pagination and id strictness suite', () => {
         },
       }),
     );
+  });
+
+  it('keeps buyer nickname in platform inbox list (not overridden to brand)', async () => {
+    const req = { auth: { userId: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa' } };
+    prisma.conversation.findMany.mockResolvedValueOnce([
+      {
+        id: '11111111-1111-1111-1111-111111111111',
+        contentType: 'LISTING',
+        contentId: '22222222-2222-2222-2222-222222222222',
+        listingId: '22222222-2222-2222-2222-222222222222',
+        buyerUserId: 'buyer-1',
+        sellerUserId: 'seller-platform',
+        listing: {
+          id: '22222222-2222-2222-2222-222222222222',
+          title: '平台挂牌',
+          consultationRouting: 'PLATFORM',
+          source: 'ADMIN',
+          listingTopicsJson: [],
+        },
+        buyer: { id: 'buyer-1', nickname: 'Buyer Nick', avatarUrl: null, role: 'buyer' },
+        seller: { id: 'seller-platform', nickname: 'Ming', avatarUrl: null, role: 'seller' },
+        order: null,
+        agents: [],
+        participants: [{ lastReadAt: null }],
+        messages: [{ id: 'm-1', text: 'hello', type: 'TEXT', createdAt: new Date('2026-03-14T01:10:00.000Z') }],
+        lastMessageAt: new Date('2026-03-14T01:10:00.000Z'),
+        updatedAt: new Date('2026-03-14T01:10:00.000Z'),
+        createdAt: new Date('2026-03-14T01:00:00.000Z'),
+      },
+    ]);
+    prisma.conversation.count.mockResolvedValueOnce(1);
+    prisma.conversationMessage.count.mockResolvedValueOnce(0);
+
+    const result = await service.listPlatformConversations(req, { channel: 'CONSULTATION' });
+    expect(result.items[0]?.counterpart?.nickname).toBe('Buyer Nick');
   });
 
   it('rejects invalid platform conversation filters strictly', async () => {

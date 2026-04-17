@@ -54,7 +54,7 @@ export default function PatentSquarePage() {
       <View className="patent-square-head">
         <Text className="patent-square-title">特色专区</Text>
         <Text className="patent-square-subtitle">
-          汇总展示全部特色专区，超出首页 4/6 张限制的卡片可在此进入。
+          汇聚平台特色专利内容，支持查看全部专区。
         </Text>
       </View>
 

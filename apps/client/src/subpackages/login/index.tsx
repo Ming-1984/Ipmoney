@@ -282,7 +282,13 @@ export default function LoginPage() {
             </View>
 
             <Spacer size={10} />
-            <Button variant="ghost" loading={busy} disabled={busy || cooldown > 0} onClick={() => void sendSms()}>
+            <Button
+              className="login-code-btn"
+              variant="ghost"
+              loading={busy}
+              disabled={busy || cooldown > 0}
+              onClick={() => void sendSms()}
+            >
               {cooldown > 0 ? `重新发送(${cooldown}s)` : '发送验证码'}
             </Button>
 
@@ -303,9 +309,9 @@ export default function LoginPage() {
 
         <Spacer size={10} />
         <View className="login-agreement">
-          <Text className="login-agreement-check" onClick={() => setAgree((v) => !v)}>
-            {agree ? '[x]' : '[ ]'}
-          </Text>
+          <View className={`login-agreement-check ${agree ? 'is-checked' : ''}`} onClick={() => setAgree((v) => !v)}>
+            <Text className="login-agreement-check-mark">{agree ? '✓' : ''}</Text>
+          </View>
           <Text className="login-agreement-text">我已阅读并同意</Text>
           <Text className="login-agreement-link" onClick={() => Taro.navigateTo({ url: '/subpackages/legal/terms/index' })}>
             《用户协议》
@@ -346,6 +352,5 @@ export default function LoginPage() {
     </View>
   );
 }
-
 
 

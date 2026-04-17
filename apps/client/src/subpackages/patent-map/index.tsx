@@ -5,6 +5,7 @@ import './index.scss';
 
 import { apiGet } from '../../lib/api';
 import { EmptyCard, ErrorCard, LoadingCard } from '../../ui/StateCards';
+import { toast } from '../../ui/nutui';
 import patentMapMarkerIcon from '../../assets/icons/app/patent-map.png';
 
 type PatentMapRegionLevel = 'PROVINCE' | 'CITY' | 'DISTRICT' | 'UNKNOWN';
@@ -412,6 +413,10 @@ export default function PatentMapPage() {
     Taro.navigateTo({ url: `/subpackages/listing/detail/index?listingId=${listingId}` });
   }, []);
 
+  const handleMapError = useCallback(() => {
+    toast('地图加载异常，请下拉刷新后重试');
+  }, []);
+
   return (
     <View className="container patent-map-page">
       <View className="patent-map-section patent-map-hero">
@@ -519,7 +524,7 @@ export default function PatentMapPage() {
                   showLocation
                   onMarkerTap={handleMarkerTap}
                   onRegionChange={handleRegionChange}
-                  onError={() => {}}
+                  onError={handleMapError}
                 />
               ) : (
                 <EmptyCard message="暂无可定位区域" actionText="刷新" onAction={loadOverview} />

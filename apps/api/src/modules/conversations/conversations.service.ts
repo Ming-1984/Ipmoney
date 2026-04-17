@@ -62,6 +62,7 @@ type ConversationMessageDto = {
 type PagedConversationMessage = { items: ConversationMessageDto[]; nextCursor?: string | null };
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const DEFAULT_CS_USER_ID = '00000000-0000-0000-0000-000000000002';
+const PLATFORM_BRAND_NAME = 'ipmoney';
 const LISTING_TOPIC_SET = new Set<ListingTopic>([
   'HIGH_TECH_RETIRED',
   'SLEEPING',
@@ -119,6 +120,10 @@ export class ConversationsService {
     return parsed;
   }
 
+  private isUuidLike(value: string): boolean {
+    return UUID_RE.test(String(value || '').trim());
+  }
+
   private parseBooleanStrict(value: unknown, fieldName: string): boolean {
     const normalized = String(value ?? '').trim().toLowerCase();
     if (normalized === 'true' || normalized === '1') return true;
@@ -165,6 +170,28 @@ export class ConversationsService {
           .filter((it) => LISTING_TOPIC_SET.has(it as ListingTopic)),
       ),
     ) as ListingTopic[];
+  }
+
+  private resolveCounterpartNickname(params: {
+    conversation: any;
+    viewerUserId: string;
+    counterpart: any;
+  }): string {
+    const conversation = params.conversation;
+    const viewerUserId = String(params.viewerUserId || '').trim();
+    const counterpart = params.counterpart;
+    const contentType = String(conversation?.contentType || '').trim().toUpperCase();
+    const isListing = contentType === 'LISTING';
+    const listingRouting = String(conversation?.listing?.consultationRouting || '').trim().toUpperCase();
+    const listingSource = String(conversation?.listing?.source || '').trim().toUpperCase();
+    const isPlatformListing = isListing && listingRouting === 'PLATFORM' && (listingSource === 'ADMIN' || listingSource === 'PLATFORM');
+    const counterpartId = String(counterpart?.id || '').trim();
+    const sellerUserId = String(conversation?.sellerUserId || '').trim();
+    if (isPlatformListing && sellerUserId && counterpartId === sellerUserId && sellerUserId !== viewerUserId) {
+      return PLATFORM_BRAND_NAME;
+    }
+    const nickname = String(counterpart?.nickname || '').trim();
+    return nickname || 'User';
   }
 
   private summarizeLastMessage(message: any): string | null {
@@ -508,7 +535,11 @@ export class ConversationsService {
         unreadCount: unreadCounts[index] ?? 0,
         counterpart: {
           id: counterpartId,
-          nickname: counterpart?.nickname ?? 'User',
+          nickname: this.resolveCounterpartNickname({
+            conversation: it,
+            viewerUserId: req.auth.userId,
+            counterpart,
+          }),
           avatarUrl: counterpart?.avatarUrl ?? null,
           role: counterpart?.role ?? null,
         },
@@ -882,15 +913,18 @@ export class ConversationsService {
       andFilters.push({ agents: { none: { active: true } } });
     }
     if (q) {
+      const qOrFilters: any[] = [
+        { listing: { title: { contains: q, mode: 'insensitive' } } },
+        { buyer: { nickname: { contains: q, mode: 'insensitive' } } },
+      ];
+      if (this.isUuidLike(q)) {
+        qOrFilters.push({ id: q });
+        qOrFilters.push({ contentId: q });
+        qOrFilters.push({ buyerUserId: q });
+        qOrFilters.push({ orderId: q });
+      }
       andFilters.push({
-        OR: [
-          { id: { contains: q, mode: 'insensitive' } },
-          { contentId: { contains: q, mode: 'insensitive' } },
-          { buyerUserId: { contains: q, mode: 'insensitive' } },
-          { listing: { title: { contains: q, mode: 'insensitive' } } },
-          { buyer: { nickname: { contains: q, mode: 'insensitive' } } },
-          { orderId: { contains: q, mode: 'insensitive' } },
-        ],
+        OR: qOrFilters,
       });
     }
     if (updatedFrom) {
@@ -988,7 +1022,11 @@ export class ConversationsService {
           unreadCount: unreadCounts[index] ?? 0,
           counterpart: {
             id: it.buyer?.id || it.buyerUserId,
-            nickname: it.buyer?.nickname ?? 'User',
+            nickname: this.resolveCounterpartNickname({
+              conversation: it,
+              viewerUserId: req.auth.userId,
+              counterpart: it.buyer,
+            }),
             avatarUrl: it.buyer?.avatarUrl ?? null,
             role: it.buyer?.role ?? null,
           },

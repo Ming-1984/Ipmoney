@@ -351,8 +351,14 @@
 
 .home-section-title-wrap {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 12rpx;
+}
+
+.home-section-title-stack {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
 }
 
 .home-section-accent {
@@ -360,17 +366,36 @@
   height: 28rpx;
   border-radius: 999rpx;
   background: linear-gradient(180deg, var(--c-primary), var(--c-gold));
+  margin-top: 6rpx;
 }
 
 .home-section-title {
   font-size: 30rpx;
   font-weight: 700;
   color: #111827;
+  line-height: 1.2;
 }
 
 .home-section-subtitle {
+  margin-top: 6rpx;
   font-size: 20rpx;
-  color: #9ca3af;
+  color: #6b7280;
+  line-height: 1.35;
+}
+
+.home-recommend-tip {
+  margin: 0 0 14rpx;
+  padding: 12rpx 14rpx;
+  border-radius: 14rpx;
+  background: rgba(245, 158, 11, 0.1);
+  border: 1rpx solid rgba(245, 158, 11, 0.26);
+}
+
+.home-recommend-tip-text {
+  display: block;
+  font-size: 22rpx;
+  line-height: 1.35;
+  color: #9a6700;
 }
 
 .home-section-more {
