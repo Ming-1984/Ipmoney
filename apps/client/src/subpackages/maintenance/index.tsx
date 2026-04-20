@@ -4,6 +4,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import './index.scss';
 
 import { apiGet, apiPost } from '../../lib/api';
+import { formatTimeSmart } from '../../lib/format';
 import { usePageAccess } from '../../lib/guard';
 import { useRouteStringParam, useRouteUuidParam } from '../../lib/routeParams';
 import { usePagedList } from '../../lib/usePagedList';
@@ -116,46 +117,46 @@ type TaskFilter = '' | PatentMaintenanceTaskStatus;
 type OrderFilter = '' | PatentMaintenanceOrderStatus;
 
 const SCHEDULE_FILTER_OPTIONS: Array<{ value: ScheduleFilter; label: string }> = [
-  { value: '', label: 'All schedules' },
-  { value: 'DUE', label: 'Due' },
-  { value: 'OVERDUE', label: 'Overdue' },
-  { value: 'PAID', label: 'Paid' },
-  { value: 'WAIVED', label: 'Waived' },
+  { value: '', label: '全部计划' },
+  { value: 'DUE', label: '待缴费' },
+  { value: 'OVERDUE', label: '已逾期' },
+  { value: 'PAID', label: '已缴费' },
+  { value: 'WAIVED', label: '已豁免' },
 ];
 
 const TASK_FILTER_OPTIONS: Array<{ value: TaskFilter; label: string }> = [
-  { value: '', label: 'All tasks' },
-  { value: 'OPEN', label: 'Open' },
-  { value: 'IN_PROGRESS', label: 'In progress' },
-  { value: 'DONE', label: 'Done' },
-  { value: 'CANCELLED', label: 'Cancelled' },
+  { value: '', label: '全部任务' },
+  { value: 'OPEN', label: '待处理' },
+  { value: 'IN_PROGRESS', label: '处理中' },
+  { value: 'DONE', label: '已完成' },
+  { value: 'CANCELLED', label: '已取消' },
 ];
 
 const ORDER_FILTER_OPTIONS: Array<{ value: OrderFilter; label: string }> = [
-  { value: '', label: 'All orders' },
-  { value: 'REQUESTED', label: 'Requested' },
-  { value: 'AWAITING_PAYMENT', label: 'Awaiting payment' },
-  { value: 'PAID', label: 'Paid' },
-  { value: 'EXECUTING', label: 'Executing' },
-  { value: 'RECEIPT_UPLOADED', label: 'Receipt uploaded' },
-  { value: 'RECONCILED', label: 'Reconciled' },
-  { value: 'CLOSED', label: 'Closed' },
-  { value: 'CANCELLED', label: 'Cancelled' },
+  { value: '', label: '全部订单' },
+  { value: 'REQUESTED', label: '已创建' },
+  { value: 'AWAITING_PAYMENT', label: '待支付' },
+  { value: 'PAID', label: '已支付' },
+  { value: 'EXECUTING', label: '执行中' },
+  { value: 'RECEIPT_UPLOADED', label: '回执已上传' },
+  { value: 'RECONCILED', label: '已对账' },
+  { value: 'CLOSED', label: '已关闭' },
+  { value: 'CANCELLED', label: '已取消' },
 ];
 
 function scheduleStatusLabel(status?: PatentMaintenanceStatus): string {
-  if (status === 'DUE') return 'Due';
-  if (status === 'PAID') return 'Paid';
-  if (status === 'OVERDUE') return 'Overdue';
-  if (status === 'WAIVED') return 'Waived';
+  if (status === 'DUE') return '待缴费';
+  if (status === 'PAID') return '已缴费';
+  if (status === 'OVERDUE') return '已逾期';
+  if (status === 'WAIVED') return '已豁免';
   return '-';
 }
 
 function taskStatusLabel(status?: PatentMaintenanceTaskStatus): string {
-  if (status === 'OPEN') return 'Open';
-  if (status === 'IN_PROGRESS') return 'In progress';
-  if (status === 'DONE') return 'Done';
-  if (status === 'CANCELLED') return 'Cancelled';
+  if (status === 'OPEN') return '待处理';
+  if (status === 'IN_PROGRESS') return '处理中';
+  if (status === 'DONE') return '已完成';
+  if (status === 'CANCELLED') return '已取消';
   return '-';
 }
 
@@ -165,12 +166,40 @@ function orderStatusLabel(status?: PatentMaintenanceOrderStatus): string {
   return option?.label || status;
 }
 
+function orderStatusText(status?: string): string {
+  if (!status) return '-';
+  return orderStatusLabel(status as PatentMaintenanceOrderStatus);
+}
+
+function orderEventTypeLabel(value?: string): string {
+  const type = String(value || '').trim().toUpperCase();
+  if (!type) return '-';
+  if (type === 'CREATED') return '已创建';
+  if (type === 'QUOTE_UPDATED') return '报价已更新';
+  if (type === 'PAYMENT_CONFIRMED') return '已确认支付';
+  if (type === 'EXECUTION_SUBMITTED') return '已提交办理';
+  if (type === 'RECEIPT_UPLOADED') return '已上传回执';
+  if (type === 'RECONCILED') return '已完成对账';
+  if (type === 'CLOSED') return '已关闭';
+  if (type === 'CANCELLED') return '已取消';
+  return type;
+}
+
+function reconcileStatusLabel(value?: string): string {
+  const status = String(value || '').trim().toUpperCase();
+  if (!status) return '-';
+  if (status === 'PENDING') return '待对账';
+  if (status === 'MATCHED') return '已匹配';
+  if (status === 'MISMATCHED') return '不一致';
+  return status;
+}
+
 function urgencyLabel(value?: MaintenanceUrgency): string {
-  if (value === 'OVERDUE') return 'Overdue';
-  if (value === 'DUE_SOON') return 'Due in 7 days';
-  if (value === 'UPCOMING') return 'Due in 30 days';
-  if (value === 'SETTLED') return 'Settled';
-  if (value === 'NORMAL') return 'Normal';
+  if (value === 'OVERDUE') return '已逾期';
+  if (value === 'DUE_SOON') return '7天内到期';
+  if (value === 'UPCOMING') return '30天内到期';
+  if (value === 'SETTLED') return '已结清';
+  if (value === 'NORMAL') return '正常';
   return '-';
 }
 
@@ -331,7 +360,7 @@ export default function MaintenancePage() {
       );
       Taro.navigateTo({ url: `/subpackages/messages/chat/index?conversationId=${conversation.id}` });
     } catch (e: any) {
-      toast(e?.message || 'Failed to open maintenance conversation');
+      toast(e?.message || '打开会话失败');
     } finally {
       setOpeningConversationOrderId('');
     }
@@ -346,12 +375,12 @@ export default function MaintenancePage() {
         { scheduleId },
         { idempotencyKey: `maintenance-order-${scheduleId}-${Date.now()}` },
       );
-      toast('Maintenance order created');
+      toast('年费托管订单已创建');
       setTab('orders');
       await orders.reload();
       await openOrderConversation(order.id);
     } catch (e: any) {
-      toast(e?.message || 'Failed to create maintenance order');
+      toast(e?.message || '创建订单失败');
     } finally {
       setCreatingOrderScheduleId('');
     }
@@ -372,7 +401,7 @@ export default function MaintenancePage() {
       const res = await apiGet<{ items: PatentMaintenanceOrderEvent[] }>(`/me/patent-maintenance/orders/${orderId}/events`);
       setOrderEventsById((prev) => ({ ...prev, [orderId]: res?.items || [] }));
     } catch (e: any) {
-      toast(e?.message || 'Failed to load order timeline');
+      toast(e?.message || '加载时间线失败');
     } finally {
       setLoadingTimelineOrderId('');
     }
@@ -392,8 +421,8 @@ export default function MaintenancePage() {
     <PullToRefresh type="primary" disabled={refreshing} onRefresh={refreshAll}>
       <View className="container maintenance-page">
         <PageHeader
-          title="Patent Maintenance"
-          subtitle="Manage annual-fee schedules, execution tasks, and service orders in one place"
+          title="年费托管"
+          subtitle="统一管理年费计划、执行任务与服务订单"
         />
         <Spacer />
 
@@ -401,28 +430,27 @@ export default function MaintenancePage() {
           <AccessGate access={access} />
         ) : (
           <>
-            <TipBanner tone="info" title="Workflow rule">
-              Start support conversations from maintenance orders to keep a single continuous history for payment,
-              execution, receipt, and reconciliation.
+            <TipBanner tone="info" title="流程说明">
+              建议从托管订单发起咨询，确保支付、执行、回执与对账记录在同一会话中连续留痕。
             </TipBanner>
 
             <Spacer size={12} />
 
             <View className="maintenance-summary-grid">
               <Surface className="maintenance-summary-card">
-                <Text className="maintenance-summary-label">Overdue schedules</Text>
+                <Text className="maintenance-summary-label">逾期计划</Text>
                 <Text className="maintenance-summary-value is-danger">{summary.overdue}</Text>
               </Surface>
               <Surface className="maintenance-summary-card">
-                <Text className="maintenance-summary-label">Due in 7 days</Text>
+                <Text className="maintenance-summary-label">7天内到期</Text>
                 <Text className="maintenance-summary-value is-warn">{summary.dueSoon}</Text>
               </Surface>
               <Surface className="maintenance-summary-card">
-                <Text className="maintenance-summary-label">Open tasks</Text>
+                <Text className="maintenance-summary-label">待办任务</Text>
                 <Text className="maintenance-summary-value">{summary.openTasks}</Text>
               </Surface>
               <Surface className="maintenance-summary-card">
-                <Text className="maintenance-summary-label">Open orders</Text>
+                <Text className="maintenance-summary-label">未关闭订单</Text>
                 <Text className="maintenance-summary-value">{summary.openOrders}</Text>
               </Surface>
             </View>
@@ -431,13 +459,13 @@ export default function MaintenancePage() {
 
             <View className="maintenance-tabs">
               <View className={`maintenance-tab ${tab === 'schedules' ? 'is-active' : ''}`} onClick={() => setTab('schedules')}>
-                <Text>Schedules</Text>
+                <Text>缴费计划</Text>
               </View>
               <View className={`maintenance-tab ${tab === 'tasks' ? 'is-active' : ''}`} onClick={() => setTab('tasks')}>
-                <Text>Tasks</Text>
+                <Text>执行任务</Text>
               </View>
               <View className={`maintenance-tab ${tab === 'orders' ? 'is-active' : ''}`} onClick={() => setTab('orders')}>
-                <Text>Orders</Text>
+                <Text>托管订单</Text>
               </View>
             </View>
 
@@ -452,11 +480,11 @@ export default function MaintenancePage() {
                 <Spacer size={12} />
 
                 {schedules.loading && schedules.items.length === 0 ? (
-                  <LoadingCard text="Loading schedules..." />
+                  <LoadingCard text="加载缴费计划中..." />
                 ) : schedules.error ? (
                   <ErrorCard message={schedules.error} onRetry={() => void schedules.reload()} />
                 ) : schedules.items.length === 0 ? (
-                  <EmptyCard title="No schedules" message="No maintenance schedules found for your claimed patents." />
+                  <EmptyCard title="暂无缴费计划" message="当前暂无可处理的年费缴费计划。" />
                 ) : (
                   <View className="maintenance-list">
                     {schedules.items.map((item) => (
@@ -466,19 +494,19 @@ export default function MaintenancePage() {
                           <Text className="maintenance-status">{scheduleStatusLabel(item.status)}</Text>
                         </View>
                         <View className="maintenance-row">
-                          <Text className="maintenance-label">Application No</Text>
+                          <Text className="maintenance-label">申请号</Text>
                           <Text className="maintenance-value">{item.applicationNoDisplay || '-'}</Text>
                         </View>
                         <View className="maintenance-row">
-                          <Text className="maintenance-label">Fee Year</Text>
-                          <Text className="maintenance-value">Year {item.yearNo}</Text>
+                          <Text className="maintenance-label">缴费年度</Text>
+                          <Text className="maintenance-value">第{item.yearNo}年</Text>
                         </View>
                         <View className="maintenance-row">
-                          <Text className="maintenance-label">Due Date</Text>
+                          <Text className="maintenance-label">到期日</Text>
                           <Text className="maintenance-value">{item.dueDate}</Text>
                         </View>
                         <View className="maintenance-row">
-                          <Text className="maintenance-label">Grace End</Text>
+                          <Text className="maintenance-label">宽限截止</Text>
                           <Text className="maintenance-value">{item.gracePeriodEnd || '-'}</Text>
                         </View>
                         <View className="maintenance-foot">
@@ -491,7 +519,7 @@ export default function MaintenancePage() {
                               loading={creatingOrderScheduleId === item.id}
                               onClick={() => void createOrderFromSchedule(item.id)}
                             >
-                              Create Order
+                              创建订单
                             </Button>
                           ) : null}
                         </View>
@@ -516,11 +544,11 @@ export default function MaintenancePage() {
                 <Spacer size={12} />
 
                 {tasks.loading && tasks.items.length === 0 ? (
-                  <LoadingCard text="Loading tasks..." />
+                  <LoadingCard text="加载任务中..." />
                 ) : tasks.error ? (
                   <ErrorCard message={tasks.error} onRetry={() => void tasks.reload()} />
                 ) : tasks.items.length === 0 ? (
-                  <EmptyCard title="No tasks" message="No maintenance task is assigned right now." />
+                  <EmptyCard title="暂无任务" message="当前暂无待处理的年费托管任务。" />
                 ) : (
                   <View className="maintenance-list">
                     {tasks.items.map((item) => (
@@ -530,25 +558,25 @@ export default function MaintenancePage() {
                           <Text className="maintenance-status">{taskStatusLabel(item.status)}</Text>
                         </View>
                         <View className="maintenance-row">
-                          <Text className="maintenance-label">Application No</Text>
+                          <Text className="maintenance-label">申请号</Text>
                           <Text className="maintenance-value">{item.applicationNoDisplay || '-'}</Text>
                         </View>
                         <View className="maintenance-row">
-                          <Text className="maintenance-label">Related Year</Text>
-                          <Text className="maintenance-value">{item.scheduleYearNo ? `Year ${item.scheduleYearNo}` : '-'}</Text>
+                          <Text className="maintenance-label">关联年度</Text>
+                          <Text className="maintenance-value">{item.scheduleYearNo ? `第${item.scheduleYearNo}年` : '-'}</Text>
                         </View>
                         <View className="maintenance-row">
-                          <Text className="maintenance-label">Schedule Due</Text>
+                          <Text className="maintenance-label">计划到期</Text>
                           <Text className="maintenance-value">{item.scheduleDueDate || '-'}</Text>
                         </View>
                         <View className="maintenance-row">
-                          <Text className="maintenance-label">Task Note</Text>
+                          <Text className="maintenance-label">任务备注</Text>
                           <Text className="maintenance-value">{item.note || '-'}</Text>
                         </View>
                         <View className="maintenance-foot">
                           <Text className={`maintenance-urgency ${urgencyClass(item.urgency)}`}>{urgencyLabel(item.urgency)}</Text>
                           <Button variant="ghost" size="small" block={false} onClick={() => setTab('orders')}>
-                            View Orders
+                            查看订单
                           </Button>
                         </View>
                       </Surface>
@@ -584,13 +612,13 @@ export default function MaintenancePage() {
                 <Spacer size={12} />
 
                 {orders.loading && orders.items.length === 0 ? (
-                  <LoadingCard text="Loading orders..." />
+                  <LoadingCard text="加载订单中..." />
                 ) : orders.error ? (
                   <ErrorCard message={orders.error} onRetry={() => void orders.reload()} />
                 ) : orders.items.length === 0 ? (
                   <EmptyCard
-                    title="No maintenance orders"
-                    message="Create an order from schedules first, then keep communication in order conversation."
+                    title="暂无托管订单"
+                    message="请先从缴费计划创建订单，再在订单会话中保持沟通记录连续。"
                   />
                 ) : (
                   <View className="maintenance-list">
@@ -606,37 +634,39 @@ export default function MaintenancePage() {
                           </View>
 
                           <View className="maintenance-row">
-                            <Text className="maintenance-label">Application No</Text>
+                            <Text className="maintenance-label">申请号</Text>
                             <Text className="maintenance-value">{item.applicationNoDisplay || '-'}</Text>
                           </View>
                           <View className="maintenance-row">
-                            <Text className="maintenance-label">Order ID</Text>
+                            <Text className="maintenance-label">订单号</Text>
                             <Text className="maintenance-value">{item.id}</Text>
                           </View>
                           <View className="maintenance-row">
-                            <Text className="maintenance-label">Fee Year</Text>
-                            <Text className="maintenance-value">{item.scheduleYearNo ? `Year ${item.scheduleYearNo}` : '-'}</Text>
+                            <Text className="maintenance-label">缴费年度</Text>
+                            <Text className="maintenance-value">{item.scheduleYearNo ? `第${item.scheduleYearNo}年` : '-'}</Text>
                           </View>
                           <View className="maintenance-row">
-                            <Text className="maintenance-label">Due Date</Text>
+                            <Text className="maintenance-label">到期日</Text>
                             <Text className="maintenance-value">{item.scheduleDueDate || '-'}</Text>
                           </View>
                           <View className="maintenance-row">
-                            <Text className="maintenance-label">Amount</Text>
+                            <Text className="maintenance-label">订单金额</Text>
                             <Text className="maintenance-value">{formatFen(item.totalAmountFen)}</Text>
                           </View>
                           <View className="maintenance-row">
-                            <Text className="maintenance-label">Payment Deadline</Text>
-                            <Text className="maintenance-value">{item.paymentDeadline || '-'}</Text>
+                            <Text className="maintenance-label">支付截止</Text>
+                            <Text className="maintenance-value">
+                              {item.paymentDeadline ? formatTimeSmart(item.paymentDeadline) : '-'}
+                            </Text>
                           </View>
                           <View className="maintenance-row">
-                            <Text className="maintenance-label">Reconcile</Text>
-                            <Text className="maintenance-value">{item.reconcileStatus || '-'}</Text>
+                            <Text className="maintenance-label">对账状态</Text>
+                            <Text className="maintenance-value">{reconcileStatusLabel(item.reconcileStatus)}</Text>
                           </View>
 
                           <View className="maintenance-foot">
                             <Button variant="ghost" size="small" block={false} onClick={() => void toggleOrderTimeline(item.id)}>
-                              {isTimelineOpen ? 'Hide Timeline' : 'View Timeline'}
+                              {isTimelineOpen ? '收起时间线' : '查看时间线'}
                             </Button>
                             {item.canContactSupport ? (
                               <Button
@@ -646,7 +676,7 @@ export default function MaintenancePage() {
                                 loading={openingConversationOrderId === item.id}
                                 onClick={() => void openOrderConversation(item.id)}
                               >
-                                Contact Support
+                                联系客服
                               </Button>
                             ) : null}
                           </View>
@@ -654,21 +684,24 @@ export default function MaintenancePage() {
                           {isTimelineOpen ? (
                             <View className="maintenance-timeline">
                               {timelineLoading ? (
-                                <Text className="maintenance-timeline-empty">Loading timeline...</Text>
+                                <Text className="maintenance-timeline-empty">加载时间线中...</Text>
                               ) : timelineItems.length ? (
                                 timelineItems.map((event) => (
                                   <View key={event.id} className="maintenance-timeline-item">
                                     <Text className="maintenance-timeline-title">
-                                      {event.fromStatus ? `${event.fromStatus} -> ${event.toStatus}` : event.toStatus}
+                                      {event.fromStatus
+                                        ? `${orderStatusText(event.fromStatus)} → ${orderStatusText(event.toStatus)}`
+                                        : orderStatusText(event.toStatus)}
                                     </Text>
                                     <Text className="maintenance-timeline-meta">
-                                      {event.eventType} · {event.actorNickname || event.actorUserId || 'System'} · {event.createdAt}
+                                      {orderEventTypeLabel(event.eventType)} · {event.actorNickname || event.actorUserId || '系统'} ·{' '}
+                                      {formatTimeSmart(event.createdAt)}
                                     </Text>
                                     {event.note ? <Text className="maintenance-timeline-note">{event.note}</Text> : null}
                                   </View>
                                 ))
                               ) : (
-                                <Text className="maintenance-timeline-empty">No timeline records</Text>
+                                <Text className="maintenance-timeline-empty">暂无时间线记录</Text>
                               )}
                             </View>
                           ) : null}

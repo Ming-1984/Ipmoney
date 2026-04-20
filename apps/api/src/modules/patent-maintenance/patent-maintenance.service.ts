@@ -985,7 +985,7 @@ export class PatentMaintenanceService {
       actorUserId: req.auth.userId,
       eventType: 'CREATED',
       toStatus: 'REQUESTED',
-      note: 'maintenance order created',
+      note: '年费托管订单已创建',
     });
 
     void this.audit.log({
@@ -1057,7 +1057,7 @@ export class PatentMaintenanceService {
       actorUserId: req.auth.userId,
       eventType: 'CREATED',
       toStatus: 'REQUESTED',
-      note: 'maintenance order requested by owner',
+      note: '专利权人已发起年费托管订单',
     });
 
     return this.toOrderDto(created);

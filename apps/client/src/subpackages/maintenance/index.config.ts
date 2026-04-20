@@ -1,3 +1,3 @@
-﻿export default definePageConfig({
-  navigationBarTitleText: 'Patent Maintenance',
+export default definePageConfig({
+  navigationBarTitleText: '年费托管',
 });

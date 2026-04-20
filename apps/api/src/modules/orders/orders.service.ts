@@ -529,18 +529,18 @@ export class OrdersService {
         targetId: order.id,
         afterJson: { status: order.status, listingId, buyerUserId: order.buyerUserId },
       });
-      const listingTitle = listing.title || '??';
+      const listingTitle = listing.title || '未知专利';
       await this.notifyUser(
         order.buyerUserId,
-        '??????',
-        `?${listingTitle}???????????????????????`,
-        '????',
+        '订单创建成功',
+        `你已成功创建《${listingTitle}》的交易订单，请尽快支付定金。`,
+        '订单',
       );
       await this.notifyUser(
         listing.sellerUserId,
-        '??????',
-        `??????${listingTitle}???????????????`,
-        '????',
+        '收到新订单',
+        `你的专利《${listingTitle}》收到新的交易订单，请及时跟进。`,
+        '订单',
       );
       return this.toOrderDto(order, listing, listing.patent);
     });
@@ -946,15 +946,15 @@ export class OrdersService {
       if (ctx) {
         await this.notifyUser(
           ctx.buyerUserId,
-          '???????',
-          `?${ctx.listingTitle}?????????????????`,
-          '????',
+          '退款申请已提交',
+          `你的订单《${ctx.listingTitle}》退款申请已提交，正在等待审核。`,
+          '退款',
         );
         await this.notifyUser(
           ctx.sellerUserId,
-          '??????',
-          `?${ctx.listingTitle}??????????????????`,
-          '????',
+          '收到退款申请',
+          `订单《${ctx.listingTitle}》有新的退款申请，请尽快处理。`,
+          '退款',
         );
       }
 
@@ -1260,9 +1260,9 @@ export class OrdersService {
       if (ctx) {
         await this.notifyUser(
           ctx.buyerUserId,
-          '???????',
-          `?${ctx.listingTitle}???????????????`,
-          '????',
+          '发票申请已提交',
+          `订单《${ctx.listingTitle}》发票申请已提交，请耐心等待开票。`,
+          '发票',
         );
       }
       return { orderId: updated.id, status: 'APPLYING' };

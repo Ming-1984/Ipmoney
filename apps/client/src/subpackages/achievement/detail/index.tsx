@@ -35,12 +35,12 @@ type MediaItem = {
 
 function maturityLabel(value?: components['schemas']['AchievementMaturity'] | null) {
   if (!value) return '';
-  if (value === 'CONCEPT') return '????';
-  if (value === 'PROTOTYPE') return '????';
-  if (value === 'PILOT') return '????';
-  if (value === 'MASS_PRODUCTION') return '????';
-  if (value === 'COMMERCIALIZED') return '????';
-  if (value === 'OTHER') return '??';
+  if (value === 'CONCEPT') return '概念阶段';
+  if (value === 'PROTOTYPE') return '原型阶段';
+  if (value === 'PILOT') return '中试阶段';
+  if (value === 'MASS_PRODUCTION') return '量产阶段';
+  if (value === 'COMMERCIALIZED') return '已商业化';
+  if (value === 'OTHER') return '其他';
   return String(value);
 }
 
@@ -53,7 +53,7 @@ export default function AchievementDetailPage() {
   const [favoritedState, setFavoritedState] = useState(false);
 
   useShareAppMessage(() => ({
-    title: data?.title ? `?????${data.title}` : '??????',
+    title: data?.title ? `成果详情：${data.title}` : '成果详情',
     path: achievementId ? `/subpackages/achievement/detail/index?achievementId=${achievementId}` : '/pages/home/index',
     imageUrl: data?.coverUrl || undefined,
   }));
@@ -80,7 +80,7 @@ export default function AchievementDetailPage() {
       setDetailCache('achievement-public', achievementId, d);
     } catch (e: any) {
       if (!cached) {
-        setError(e?.message || '????');
+        setError(e?.message || '加载失败');
         setData(null);
       }
     } finally {
@@ -109,15 +109,15 @@ export default function AchievementDetailPage() {
       if (favoritedState) {
         await unfavoriteAchievement(achievementId);
         setFavoritedState(false);
-        toast('?????', { icon: 'success' });
+        toast('已取消收藏', { icon: 'success' });
       } else {
         await favoriteAchievement(achievementId);
         setFavoritedState(true);
-        toast('???', { icon: 'success' });
+        toast('已收藏', { icon: 'success' });
       }
       void syncAchievementFavorites().catch(() => {});
     } catch (e: any) {
-      toast(e?.message || '????');
+      toast(e?.message || '操作失败');
     }
   }, [achievementId, favoritedState]);
 
@@ -141,14 +141,14 @@ export default function AchievementDetailPage() {
       );
       Taro.navigateTo({ url: `/subpackages/messages/chat/index?conversationId=${conv.id}` });
     } catch (e: any) {
-      toast(e?.message || '??????');
+      toast(e?.message || '发起咨询失败');
     }
   }, [achievementId]);
 
   if (!achievementId) {
     return (
       <View className="container detail-page-compact">
-        <PageHeader title="????" subtitle="????" />
+        <PageHeader title="成果详情" subtitle="参数错误" />
         <Spacer />
         <MissingParamCard />
       </View>
@@ -157,7 +157,7 @@ export default function AchievementDetailPage() {
 
   return (
     <View className="container detail-page-compact">
-      <PageHeader title="????" subtitle="?????????" />
+      <PageHeader title="成果详情" subtitle="平台审核通过后展示" />
       <Spacer />
 
       {loading ? (
@@ -165,7 +165,7 @@ export default function AchievementDetailPage() {
       ) : error ? (
         <ErrorCard message={error} onRetry={load} />
       ) : !data ? (
-        <EmptyCard message="??????" />
+        <EmptyCard message="暂无成果信息" />
       ) : (
         <View>
           {data.coverUrl ? (
@@ -175,10 +175,10 @@ export default function AchievementDetailPage() {
           ) : null}
 
           <Surface className="detail-compact-header">
-            <Text className="detail-compact-title">{data.title || '?????'}</Text>
+            <Text className="detail-compact-title">{data.title || '未命名成果'}</Text>
             <View className="detail-compact-subline">
-              <Text>?? {formatTimeSmart(data.createdAt)}</Text>
-              {data.publisher?.displayName ? <Text>????{data.publisher.displayName}</Text> : null}
+              <Text>发布时间 {formatTimeSmart(data.createdAt)}</Text>
+              {data.publisher?.displayName ? <Text>发布方：{data.publisher.displayName}</Text> : null}
             </View>
             <View className="detail-compact-tags">
               {maturityLabel(data.maturity) ? (
@@ -196,22 +196,22 @@ export default function AchievementDetailPage() {
           </Surface>
 
           <View className="detail-section">
-            <SectionHeader title="????" />
+            <SectionHeader title="成果简介" />
             <Surface className="listing-detail-block">
-              <Text className="muted">{data.summary || '????'}</Text>
+              <Text className="muted">{data.summary || '暂无简介'}</Text>
             </Surface>
           </View>
 
           <View className="detail-section">
-            <SectionHeader title="????" />
+            <SectionHeader title="成果说明" />
             <Surface className="listing-detail-block">
-              <Text className="muted">{data.description || '??????'}</Text>
+              <Text className="muted">{data.description || '暂无详细说明'}</Text>
             </Surface>
           </View>
 
           {mediaItems.length ? (
             <View className="detail-section">
-              <SectionHeader title="????" />
+              <SectionHeader title="附件资料" />
               <Surface className="listing-detail-block">
                 <MediaList media={mediaItems} coverUrl={data.coverUrl || undefined} />
               </Surface>
@@ -227,10 +227,10 @@ export default function AchievementDetailPage() {
       {data ? (
         <StickyBar>
           <Button variant="ghost" icon={favoritedState ? <HeartFill size={18} /> : <Heart size={18} />} onClick={toggleFavorite}>
-            {favoritedState ? '???' : '??'}
+            {favoritedState ? '已收藏' : '收藏'}
           </Button>
           <Button variant="primary" onClick={startConsult}>
-            ????
+            发起咨询
           </Button>
         </StickyBar>
       ) : null}

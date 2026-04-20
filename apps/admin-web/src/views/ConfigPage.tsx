@@ -127,7 +127,7 @@ export function ConfigPage() {
   const [sensitiveWords, setSensitiveWords] = useState('');
   const [hotSearchKeywords, setHotSearchKeywords] = useState('');
   const [alertJson, setAlertJson] = useState('');
-  const [homeLandingJson, setHomeLandingJson] = useState('');
+  const [, setHomeLandingJson] = useState('');
 
   const load = useCallback(async () => {
     setLoading(true);

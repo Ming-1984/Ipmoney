@@ -440,4 +440,28 @@ describe('AuthService auth suite', () => {
       response: { code: 'NOT_IMPLEMENTED' },
     });
   });
+
+  it('rate limits sms send by phone within window', async () => {
+    const { service } = createService();
+    const phone = '13800991111';
+    for (let i = 0; i < 8; i += 1) {
+      await service.sendSmsCode(phone, 'LOGIN', { ip: '10.0.0.1' });
+    }
+    await expect(service.sendSmsCode(phone, 'LOGIN', { ip: '10.0.0.1' })).rejects.toMatchObject({
+      response: { code: 'TOO_MANY_REQUESTS' },
+    });
+  });
+
+  it('rate limits wechat login by ip within window', async () => {
+    const { service } = createService();
+    for (let i = 0; i < 60; i += 1) {
+      mockFetchJson({ errcode: 40029, errmsg: 'invalid code' });
+      await expect(service.wechatMpLogin('invalid-code', { ip: '10.0.0.2' })).rejects.toMatchObject({
+        response: { code: 'WECHAT_MP_CODE2SESSION_FAILED' },
+      });
+    }
+    await expect(service.wechatMpLogin('invalid-code', { ip: '10.0.0.2' })).rejects.toMatchObject({
+      response: { code: 'TOO_MANY_REQUESTS' },
+    });
+  });
 });

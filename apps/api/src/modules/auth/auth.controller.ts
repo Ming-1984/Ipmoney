@@ -8,8 +8,11 @@ export class AuthController {
   constructor(private readonly auth: AuthService) {}
 
   @Post('/wechat/mp-login')
-  async wechatMpLogin(@Body() body: { code: string }) {
-    return await this.auth.wechatMpLogin(body?.code);
+  async wechatMpLogin(@Req() req: any, @Body() body: { code: string }) {
+    return await this.auth.wechatMpLogin(body?.code, {
+      ip: req?.ip,
+      userAgent: req?.headers?.['user-agent'],
+    });
   }
 
   @Post('/wechat/phone-bind')
@@ -19,13 +22,19 @@ export class AuthController {
   }
 
   @Post('/sms/send')
-  async smsSend(@Body() body: { phone: string; purpose?: string }) {
-    return await this.auth.sendSmsCode(body?.phone, body?.purpose);
+  async smsSend(@Req() req: any, @Body() body: { phone: string; purpose?: string }) {
+    return await this.auth.sendSmsCode(body?.phone, body?.purpose, {
+      ip: req?.ip,
+      userAgent: req?.headers?.['user-agent'],
+    });
   }
 
   @Post('/sms/verify')
-  async smsVerify(@Body() body: { phone: string; code: string }) {
-    return await this.auth.smsVerifyLogin(body?.phone, body?.code);
+  async smsVerify(@Req() req: any, @Body() body: { phone: string; code: string }) {
+    return await this.auth.smsVerifyLogin(body?.phone, body?.code, {
+      ip: req?.ip,
+      userAgent: req?.headers?.['user-agent'],
+    });
   }
 
   @UseGuards(BearerAuthGuard)

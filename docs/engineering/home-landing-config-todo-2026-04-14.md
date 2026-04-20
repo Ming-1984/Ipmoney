@@ -103,94 +103,94 @@
 
 ## 后端规划 TODO（apps/api）
 
-- [ ] `ConfigService` 新增 `KEY_HOME_LANDING = 'home_landing_config'`。
-- [ ] 新增 `HomeLandingConfig` 类型与默认值构建函数（保证首启可用）。
-- [ ] 新增配置标准化与字段校验：
-  - [ ] `displayCount` 仅允许 `4 | 6`。
-  - [ ] `featuredZones.items` 启用数量必须 `>= displayCount`（强制补齐规则）。
-  - [ ] `title/subtitle` 长度限制。
-  - [ ] `imageUrl` 非空与长度限制。
-  - [ ] `actionType` 白名单：`SEARCH_PREFILL | PAGE_ROUTE`。
-  - [ ] `actionPayload` 按 `actionType` 分支校验。
-  - [ ] `listingTopic` 必须属于后端枚举集合。
-- [ ] `PublicConfigController` 新增 `GET /public/config/home-landing`。
-- [ ] `AdminConfigController` 新增：
-  - [ ] `GET /admin/config/home-landing`
-  - [ ] `PUT /admin/config/home-landing`
-- [ ] 审计日志：新增 `CONFIG_HOME_LANDING_UPDATE`。
-- [ ] 单测补齐：
-  - [ ] `config.service.spec.ts`
-  - [ ] `admin-config.controller.spec.ts`
-  - [ ] `public-config.controller.spec.ts`
+- [x] `ConfigService` 新增 `KEY_HOME_LANDING = 'home_landing_config'`。
+- [x] 新增 `HomeLandingConfig` 类型与默认值构建函数（保证首启可用）。
+- [x] 新增配置标准化与字段校验：
+  - [x] `displayCount` 仅允许 `4 | 6`。
+  - [x] `featuredZones.items` 启用数量必须 `>= displayCount`（强制补齐规则）。
+  - [x] `title/subtitle` 长度限制。
+  - [x] `imageUrl` 非空与长度限制。
+  - [x] `actionType` 白名单：`SEARCH_PREFILL | PAGE_ROUTE`。
+  - [x] `actionPayload` 按 `actionType` 分支校验。
+  - [x] `listingTopic` 必须属于后端枚举集合。
+- [x] `PublicConfigController` 新增 `GET /public/config/home-landing`。
+- [x] `AdminConfigController` 新增：
+  - [x] `GET /admin/config/home-landing`
+  - [x] `PUT /admin/config/home-landing`
+- [x] 审计日志：新增 `CONFIG_HOME_LANDING_UPDATE`。
+- [x] 单测补齐：
+  - [x] `config.service.spec.ts`
+  - [x] `admin-config.controller.spec.ts`
+  - [x] `public-config.controller.spec.ts`
 
 ## 管理后台规划 TODO（apps/admin-web）
 
-- [ ] 在 `ConfigPage` 增加“首页运营配置（直发）”卡片（本期不拆新路由）。
-- [ ] 表单化编辑能力：
-  - [ ] Hero 标签（最多 3 条）与搜索占位文案。
-  - [ ] 特色专区卡片增删改、排序、启用、图片上传、动作配置。
-  - [ ] 特色专区 `displayCount` 单选（4/6）。
-  - [ ] `listingTopicUi` 顺序/名称/开关。
-- [ ] 表单校验与即时错误提示（禁止提交非法配置）。
-- [ ] 保存后调用 `PUT /admin/config/home-landing` 直发生效。
-- [ ] 文案统一中文，不出现英文状态标签。
+- [x] 在 `ConfigPage` 增加“首页运营配置（直发）”卡片（本期不拆新路由）。
+- [x] 表单化编辑能力：
+  - [x] Hero 标签（最多 3 条）与搜索占位文案。
+  - [x] 特色专区卡片增删改、排序、启用、图片上传、动作配置。
+  - [x] 特色专区 `displayCount` 单选（4/6）。
+  - [x] `listingTopicUi` 顺序/名称/开关。
+- [x] 表单校验与即时错误提示（禁止提交非法配置）。
+- [x] 保存后调用 `PUT /admin/config/home-landing` 直发生效。
+- [x] 文案统一中文，不出现英文状态标签。
 
 ## 小程序端规划 TODO（apps/client）
 
-- [ ] 新增 `homeLandingConfig.ts`：
-  - [ ] 类型定义与解析函数。
-  - [ ] `fetchHomeLandingConfig()`。
-  - [ ] 轻量兜底：仅兜底到后端默认配置结构，不再兜底为“演示假数据”。
-- [ ] 首页 `pages/home/index.tsx` 改造：
-  - [ ] Hero 标签与搜索占位文案使用配置值。
-  - [ ] 特色专区卡片数据使用配置值。
-  - [ ] 根据 `displayCount` 渲染 4 或 6 张卡片。
-  - [ ] 快捷入口保持固定实现（不读取配置），但点击链路统一：
-    - [ ] 技术经理 -> 咨询页 `TECH` Tab
-    - [ ] 机构 -> 咨询页 `ORG` Tab
-  - [ ] 卡片点击动作使用配置定义（优先 `SEARCH_PREFILL`）。
-- [ ] 图片加载失败降级处理（单图失败不影响全页）。
-- [ ] 保留现有 Banner 与公告加载链路，不回退到本地 mock 入口。
-- [ ] 新增“咨询页默认 Tab”意图传递（如 storage 一次性标记），避免 TabBar 页面无法直接带 query 参数。
+- [x] 新增 `homeLandingConfig.ts`：
+  - [x] 类型定义与解析函数。
+  - [x] `fetchHomeLandingConfig()`。
+  - [x] 轻量兜底：仅兜底到后端默认配置结构，不再兜底为“演示假数据”。
+- [x] 首页 `pages/home/index.tsx` 改造：
+  - [x] Hero 标签与搜索占位文案使用配置值。
+  - [x] 特色专区卡片数据使用配置值。
+  - [x] 根据 `displayCount` 渲染 4 或 6 张卡片。
+  - [x] 快捷入口保持固定实现（不读取配置），但点击链路统一：
+    - [x] 技术经理 -> 咨询页 `TECH` Tab
+    - [x] 机构 -> 咨询页 `ORG` Tab
+  - [x] 卡片点击动作使用配置定义（优先 `SEARCH_PREFILL`）。
+- [x] 图片加载失败降级处理（单图失败不影响全页）。
+- [x] 保留现有 Banner 与公告加载链路，不回退到本地 mock 入口。
+- [x] 新增“咨询页默认 Tab”意图传递（如 storage 一次性标记），避免 TabBar 页面无法直接带 query 参数。
 
 ## 搜索与标签一致性 TODO（apps/client + apps/api）
 
-- [ ] 搜索页“特色标签”选项读取 `listingTopicUi`（按 `enabled/order/label`）。
-- [ ] 若 `listingTopicUi` 缺失某枚举，前端按枚举默认中文补齐（保证筛选可用，不制造假标签）。
-- [ ] 首页专区卡片与搜索筛选共用同一 `listingTopic` 值域。
-- [ ] 管理后台涉及 `ListingTopic` 的页面同步统一配置（减少多处重复常量）。
+- [x] 搜索页“特色标签”选项读取 `listingTopicUi`（按 `enabled/order/label`）。
+- [x] 若 `listingTopicUi` 缺失某枚举，前端按枚举默认中文补齐（保证筛选可用，不制造假标签）。
+- [x] 首页专区卡片与搜索筛选共用同一 `listingTopic` 值域。
+- [x] 管理后台涉及 `ListingTopic` 的页面同步统一配置（减少多处重复常量）。
 
 ### `listingTopicUi.enabled` 开关同步范围（本期）
 
-- [ ] 小程序首页：
-  - [ ] 特色专区卡片绑定 `listingTopic` 时，若该标签关闭则不可上架该卡或前台不展示。
-- [ ] 小程序搜索：
-  - [ ] “特色标签”筛选项跟随开关展示/隐藏。
-- [ ] 小程序发布页：
-  - [ ] 发布专利时 `listingTopic` 选项跟随开关展示/隐藏。
-- [ ] 管理后台：
-  - [ ] `ListingsAuditPage` 标签筛选/编辑选项跟随开关。
-  - [ ] `PlatformConversationsPage` 标签筛选跟随开关。
+- [x] 小程序首页：
+  - [x] 特色专区卡片绑定 `listingTopic` 时，若该标签关闭则不可上架该卡或前台不展示。
+- [x] 小程序搜索：
+  - [x] “特色标签”筛选项跟随开关展示/隐藏。
+- [x] 小程序发布页：
+  - [x] 发布专利时 `listingTopic` 选项跟随开关展示/隐藏。
+- [x] 管理后台：
+  - [x] `ListingsAuditPage` 标签筛选/编辑选项跟随开关。
+  - [x] `PlatformConversationsPage` 标签筛选跟随开关。
 
 ## 无“虚拟占位/假打通”治理 TODO
 
-- [ ] 首页相关链路不再使用本地演示卡片数据作为业务兜底。
-- [ ] 配置读取失败时展示“可恢复空态 + 重试”，不展示与真实配置无关的占位内容。
-- [ ] 管理后台配置页面保存后可立即通过公开接口验证生效结果。
-- [ ] 对“demo-only”开关继续保持生产门禁，不允许 release 环境开启。
+- [x] 首页相关链路不再使用本地演示卡片数据作为业务兜底。
+- [x] 配置读取失败时展示“可恢复空态 + 重试”，不展示与真实配置无关的占位内容。
+- [x] 管理后台配置页面保存后可立即通过公开接口验证生效结果。
+- [x] 对“demo-only”开关继续保持生产门禁，不允许 release 环境开启。
 
 ## 联调与验收清单（DoD）
 
-- [ ] 后台修改 `displayCount=4`，首页稳定展示 4 张专区卡片。
-- [ ] 后台修改 `displayCount=6`，首页稳定展示 6 张专区卡片。
-- [ ] 当 `displayCount=4/6` 时，后台保存校验会阻止“启用卡片不足”配置（强制补齐）。
-- [ ] 后台下线某卡片，首页不展示且点击链路不存在。
-- [ ] 首页卡片点击后，搜索页筛选条件正确预填（`listingTopic/patentType/tab/reset`）。
-- [ ] 搜索页“特色标签”名称与顺序与后台配置一致。
-- [ ] 关闭任一 `listingTopic` 后，首页特色专区/搜索/发布/后台相关标签入口同步隐藏。
-- [ ] 首页 8 宫格不再承载任何单一特色标签入口（避免与上方特色专区语义重叠）。
-- [ ] 年费托管页面文案抽检为中文（本次不回归英文残留）。
-- [ ] `api/admin-web/client` 相关 lint + typecheck + 关键测试通过。
+- [x] 后台修改 `displayCount=4`，首页稳定展示 4 张专区卡片。
+- [x] 后台修改 `displayCount=6`，首页稳定展示 6 张专区卡片。
+- [x] 当 `displayCount=4/6` 时，后台保存校验会阻止“启用卡片不足”配置（强制补齐）。
+- [x] 后台下线某卡片，首页不展示且点击链路不存在。
+- [x] 首页卡片点击后，搜索页筛选条件正确预填（`listingTopic/patentType/tab/reset`）。
+- [x] 搜索页“特色标签”名称与顺序与后台配置一致。
+- [x] 关闭任一 `listingTopic` 后，首页特色专区/搜索/发布/后台相关标签入口同步隐藏。
+- [x] 首页 8 宫格不再承载任何单一特色标签入口（避免与上方特色专区语义重叠）。
+- [x] 年费托管页面文案抽检为中文（本次已补齐时间线中文化）。
+- [x] `api/admin-web/client` 相关 lint + typecheck + 关键测试通过。
 
 ## 风险与处理
 
@@ -203,11 +203,11 @@
 
 ## 实施顺序（建议）
 
-- [ ] 第1步：后端配置模型 + 接口 + 测试。
-- [ ] 第2步：后台配置 UI（直发）。
-- [ ] 第3步：首页配置驱动改造。
-- [ ] 第4步：搜索标签一致性改造。
-- [ ] 第5步：联调验收 + 文档回填（将本文待办改为已完成）。
+- [x] 第1步：后端配置模型 + 接口 + 测试。
+- [x] 第2步：后台配置 UI（直发）。
+- [x] 第3步：首页配置驱动改造。
+- [x] 第4步：搜索标签一致性改造。
+- [x] 第5步：联调验收 + 文档回填（将本文待办改为已完成）。
 
 ## 边界确认结论（已回填）
 

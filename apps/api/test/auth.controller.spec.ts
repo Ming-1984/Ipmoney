@@ -19,8 +19,13 @@ describe('AuthController delegation suite', () => {
   it('delegates wechat mp login code', async () => {
     auth.wechatMpLogin.mockResolvedValueOnce({ accessToken: 'demo' });
 
-    await expect(controller.wechatMpLogin({ code: 'abc' })).resolves.toEqual({ accessToken: 'demo' });
-    expect(auth.wechatMpLogin).toHaveBeenCalledWith('abc');
+    await expect(controller.wechatMpLogin({ ip: '1.1.1.1', headers: { 'user-agent': 'ua' } } as any, { code: 'abc' })).resolves.toEqual({
+      accessToken: 'demo',
+    });
+    expect(auth.wechatMpLogin).toHaveBeenCalledWith('abc', {
+      ip: '1.1.1.1',
+      userAgent: 'ua',
+    });
   });
 
   it('delegates wechat phone bind with auth user id', async () => {
@@ -35,18 +40,34 @@ describe('AuthController delegation suite', () => {
   it('delegates sms send args', async () => {
     auth.sendSmsCode.mockResolvedValueOnce({ cooldownSeconds: 60 });
 
-    await expect(controller.smsSend({ phone: '13800138000', purpose: 'login' })).resolves.toEqual({
+    await expect(
+      controller.smsSend({ ip: '2.2.2.2', headers: { 'user-agent': 'ua2' } } as any, {
+        phone: '13800138000',
+        purpose: 'login',
+      }),
+    ).resolves.toEqual({
       cooldownSeconds: 60,
     });
-    expect(auth.sendSmsCode).toHaveBeenCalledWith('13800138000', 'login');
+    expect(auth.sendSmsCode).toHaveBeenCalledWith('13800138000', 'login', {
+      ip: '2.2.2.2',
+      userAgent: 'ua2',
+    });
   });
 
   it('delegates sms verify args', async () => {
     auth.smsVerifyLogin.mockResolvedValueOnce({ accessToken: 'token-1' });
 
-    await expect(controller.smsVerify({ phone: '13800138000', code: '1234' })).resolves.toEqual({
+    await expect(
+      controller.smsVerify({ ip: '3.3.3.3', headers: { 'user-agent': 'ua3' } } as any, {
+        phone: '13800138000',
+        code: '1234',
+      }),
+    ).resolves.toEqual({
       accessToken: 'token-1',
     });
-    expect(auth.smsVerifyLogin).toHaveBeenCalledWith('13800138000', '1234');
+    expect(auth.smsVerifyLogin).toHaveBeenCalledWith('13800138000', '1234', {
+      ip: '3.3.3.3',
+      userAgent: 'ua3',
+    });
   });
 });

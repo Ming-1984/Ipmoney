@@ -1,6 +1,6 @@
 ﻿import { View, Text, Image, Input, Swiper, SwiperItem } from '@tarojs/components';
 import Taro, { usePullDownRefresh, useReachBottom } from '@tarojs/taro';
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import './index.scss';
 
 import type { components } from '@ipmoney/api-types';
@@ -131,6 +131,7 @@ export default function HomePage() {
   const [activeAnnouncementIndex, setActiveAnnouncementIndex] = useState(0);
   const [bannerItems, setBannerItems] = useState<HomeBannerItem[]>(() => buildHomeBannerItems());
   const [homeLandingConfig, setHomeLandingConfig] = useState<HomeLandingConfig>(() => normalizeHomeLandingConfig(null));
+  const itemCountRef = useRef(items.length);
 
   const statusBarHeight = useMemo(() => {
     if (process.env.TARO_ENV !== 'weapp') return 0;
@@ -148,6 +149,10 @@ export default function HomePage() {
   }, [statusBarHeight]);
 
   useEffect(() => onAuthChanged(() => setIsAuthed(Boolean(getToken()))), []);
+
+  useEffect(() => {
+    itemCountRef.current = items.length;
+  }, [items.length]);
 
   const loadAnnouncements = useCallback(async () => {
     try {
@@ -222,7 +227,7 @@ export default function HomePage() {
           setLoading(false);
           setError(null);
         } else {
-          setLoading(items.length === 0);
+          setLoading(itemCountRef.current === 0);
           setError(null);
         }
       }
@@ -263,7 +268,7 @@ export default function HomePage() {
           setDetailCache(HOME_LISTINGS_CACHE_SCOPE, 'newest', newest);
         }
       } catch (e: any) {
-        if (!cached && items.length === 0) {
+        if (!cached && itemCountRef.current === 0) {
           setError(e?.message || '加载失败');
           setItems([]);
           setPageInfo(null);
@@ -276,7 +281,7 @@ export default function HomePage() {
         if (ctx === 'refresh') setRefreshing(false);
       }
     },
-    [applyRecommendPage, fetchNewestPage, fetchRecommendPage, isAuthed, items.length],
+    [applyRecommendPage, fetchNewestPage, fetchRecommendPage, isAuthed],
   );
 
   useEffect(() => {

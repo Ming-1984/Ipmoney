@@ -25,6 +25,11 @@ const SMS_CODE_COOLDOWN_SECONDS = 60;
 const SMS_CODE_MAX_ATTEMPTS = 5;
 const SMS_CODE_RE = /^[0-9]{4,8}$/;
 const SMS_CODE_SIGN_SALT = 'ipmoney-sms-code-v1';
+const AUTH_RATE_WINDOW_MS = 10 * 60 * 1000;
+const AUTH_SEND_MAX_PER_IP = 30;
+const AUTH_SEND_MAX_PER_PHONE = 8;
+const AUTH_VERIFY_MAX_PER_IP = 60;
+const AUTH_VERIFY_MAX_PER_PHONE = 20;
 
 type SmsCodeRecord = {
   phone: string;
@@ -36,6 +41,7 @@ type SmsCodeRecord = {
 };
 
 const smsCodeStore = new Map<string, SmsCodeRecord>();
+const authRateCounters = new Map<string, { count: number; resetAt: number }>();
 
 export type AuthTokenResponseDto = {
   accessToken: string;
@@ -60,6 +66,39 @@ export class AuthService {
   private readonly aliyunSms = new AliyunSmsClient();
 
   constructor(private readonly prisma: PrismaService) {}
+
+  private readIpMeta(meta?: { ip?: string | null; userAgent?: string | null }): string {
+    const ip = String(meta?.ip || '').trim();
+    return ip || 'unknown';
+  }
+
+  private rateKey(prefix: string, subject: string) {
+    return `${prefix}:${subject}`;
+  }
+
+  private rateLimit(key: string, max: number, windowMs = AUTH_RATE_WINDOW_MS) {
+    const now = Date.now();
+    const current = authRateCounters.get(key);
+    if (!current || current.resetAt <= now) {
+      authRateCounters.set(key, { count: 1, resetAt: now + windowMs });
+      return;
+    }
+    current.count += 1;
+    if (current.count > max) {
+      throw new BadRequestException({ code: 'TOO_MANY_REQUESTS', message: 'too many attempts, please retry later' });
+    }
+    authRateCounters.set(key, current);
+  }
+
+  private cleanupRateCounters() {
+    if (authRateCounters.size < 20_000) return;
+    const now = Date.now();
+    for (const [key, value] of authRateCounters.entries()) {
+      if (value.resetAt <= now) {
+        authRateCounters.delete(key);
+      }
+    }
+  }
 
   private ensureDemoAuthEnabled() {
     const config = getDemoAuthConfig();
@@ -232,9 +271,13 @@ export class AuthService {
     };
   }
 
-  async sendSmsCode(phone: string, purpose?: string) {
+  async sendSmsCode(phone: string, purpose?: string, requestMeta?: { ip?: string | null; userAgent?: string | null }) {
     const normalizedPhone = this.assertPhone(phone);
     const normalizedPurpose = this.normalizeSmsPurpose(purpose);
+    const ip = this.readIpMeta(requestMeta);
+    this.rateLimit(this.rateKey('sms_send_ip', ip), AUTH_SEND_MAX_PER_IP);
+    this.rateLimit(this.rateKey('sms_send_phone', normalizedPhone), AUTH_SEND_MAX_PER_PHONE);
+    this.cleanupRateCounters();
     const now = Date.now();
     const key = this.smsCodeKey(normalizedPhone, normalizedPurpose);
     const existing = smsCodeStore.get(key);
@@ -282,9 +325,13 @@ export class AuthService {
     };
   }
 
-  async smsVerifyLogin(phone: string, code: string): Promise<AuthTokenResponseDto> {
+  async smsVerifyLogin(phone: string, code: string, requestMeta?: { ip?: string | null; userAgent?: string | null }): Promise<AuthTokenResponseDto> {
     const p = this.assertPhone(phone);
     const c = String(code || '').trim();
+    const ip = this.readIpMeta(requestMeta);
+    this.rateLimit(this.rateKey('sms_verify_ip', ip), AUTH_VERIFY_MAX_PER_IP);
+    this.rateLimit(this.rateKey('sms_verify_phone', p), AUTH_VERIFY_MAX_PER_PHONE);
+    this.cleanupRateCounters();
     if (!SMS_CODE_RE.test(c)) {
       throw new BadRequestException({ code: 'BAD_REQUEST', message: 'invalid code format' });
     }
@@ -329,9 +376,12 @@ export class AuthService {
     };
   }
 
-  async wechatMpLogin(code: string): Promise<AuthTokenResponseDto> {
+  async wechatMpLogin(code: string, requestMeta?: { ip?: string | null; userAgent?: string | null }): Promise<AuthTokenResponseDto> {
     const c = String(code || '').trim();
     if (!c) throw new BadRequestException({ code: 'BAD_REQUEST', message: 'code is required' });
+    const ip = this.readIpMeta(requestMeta);
+    this.rateLimit(this.rateKey('wechat_login_ip', ip), AUTH_VERIFY_MAX_PER_IP);
+    this.cleanupRateCounters();
 
     // Keep a strict, explicit demo entrypoint for non-prod smoke tools.
     if (c.toLowerCase() === 'demo') {

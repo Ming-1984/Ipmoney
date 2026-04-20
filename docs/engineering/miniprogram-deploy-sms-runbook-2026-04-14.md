@@ -2,7 +2,7 @@
 
 ## 当前结论（本次故障）
 - `/auth/sms/send` 的 400 根因是阿里云上游返回 `InvalidAccessKeyId.NotFound`，即生产 `SMS_ACCESS_KEY_ID` 无效。
-- 生产环境同时存在 `SMS_SIGN_NAME` 变为 `????` 的编码污染风险。
+- 生产环境同时存在 `SMS_SIGN_NAME` 变为乱码占位的编码污染风险。
 
 ## 本次改动
 1. 后端兼容旧端：`/auth/sms/send` 未传 `purpose` 时默认按 `LOGIN` 处理。
@@ -16,7 +16,7 @@
   - `SMS_SECRET_KEY`（推荐）
   - （兼容）`SMS_ACCESS_KEY_ID` / `SMS_ACCESS_KEY_SECRET`
 - 修正短信签名：
-  - `SMS_SIGN_NAME=东聚智诚`（确保 UTF-8 写入，不是 `????`）
+  - `SMS_SIGN_NAME=东聚智诚`（确保 UTF-8 写入，不是乱码占位）
 - 保持模板：
   - `SMS_TEMPLATE_ID=SMS_326726272`
 

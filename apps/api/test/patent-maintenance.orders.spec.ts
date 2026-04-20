@@ -142,7 +142,7 @@ describe('PatentMaintenanceService order lifecycle suite', () => {
       eventType: 'CREATED',
       fromStatus: null,
       toStatus: 'REQUESTED',
-      note: 'maintenance order created',
+      note: '年费托管订单已创建',
       payloadJson: null,
       createdAt: new Date('2026-03-20T00:00:01.000Z'),
       actorUser: null,

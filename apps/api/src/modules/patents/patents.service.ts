@@ -500,7 +500,7 @@ export class PatentsService {
       return Array.from(
         new Set(
           input
-            .split(/[,\n锛岋紱;]/g)
+            .split(/[,\n，；;]/g)
             .map((value) => value.trim())
             .filter((value) => value.length > 0),
         ),
@@ -710,7 +710,7 @@ export class PatentsService {
 
   normalizeNumber(raw?: string): PatentNormalizeResponseDto {
     const cleanedInput = cleanRaw(String(raw || ''));
-    if (!cleanedInput) throw new BadRequestException({ code: 'BAD_REQUEST', message: 'raw 涓嶈兘涓虹┖' });
+    if (!cleanedInput) throw new BadRequestException({ code: 'BAD_REQUEST', message: 'raw 不能为空' });
 
     const warnings: string[] = [];
 
@@ -727,7 +727,7 @@ export class PatentsService {
           ? cleanedDigits.slice(4, 5)
           : cleanedDigits.slice(2, 3);
       const patentType = digitToPatentType(patentTypeDigit);
-      if (!patentType) warnings.push('鏃犳硶浠庡彿鐮佺被鍨嬩綅鎺ㄦ柇涓撳埄绫诲瀷');
+      if (!patentType) warnings.push('无法从号码类型位推断专利类型');
 
       const applicationNoNorm = cleanedDigits;
       const applicationNoDisplay = toApplicationDisplay(cleanedDigits);
@@ -767,7 +767,7 @@ export class PatentsService {
       };
     }
 
-    throw new BadRequestException({ code: 'BAD_REQUEST', message: '鏃犳硶璇嗗埆涓撳埄鍙风爜鏍煎紡' });
+    throw new BadRequestException({ code: 'BAD_REQUEST', message: '无法识别专利号码格式' });
   }
 
   async adminList(req: any, query: any): Promise<PagedPatentDto> {
@@ -1087,7 +1087,7 @@ export class PatentsService {
     return String(value || '')
       .trim()
       .toLowerCase()
-      .replace(/[()\[\]{}锛堬級]/g, '')
+      .replace(/[()\[\]{}（）]/g, '')
       .replace(/[\/\\_\-\s]/g, '');
   }
 
@@ -1152,9 +1152,9 @@ export class PatentsService {
     if (value === undefined || value === null) return undefined;
     const raw = String(value || '').trim().toUpperCase();
     if (!raw) return undefined;
-    if (raw === 'INVENTION' || raw.includes('鍙戞槑')) return 'INVENTION';
-    if (raw === 'UTILITY_MODEL' || raw.includes('瀹炵敤鏂板瀷')) return 'UTILITY_MODEL';
-    if (raw === 'DESIGN' || raw.includes('澶栬')) return 'DESIGN';
+    if (raw === 'INVENTION' || raw.includes('发明')) return 'INVENTION';
+    if (raw === 'UTILITY_MODEL' || raw.includes('实用新型')) return 'UTILITY_MODEL';
+    if (raw === 'DESIGN' || raw.includes('外观')) return 'DESIGN';
     return this.normalizePatentType(raw);
   }
 
@@ -1164,9 +1164,9 @@ export class PatentsService {
     if (!raw) return undefined;
     const upper = raw.toUpperCase();
     if (upper === 'PENDING' || raw.includes('审中') || raw.includes('公开') || raw.includes('受理')) return 'PENDING';
-    if (upper === 'GRANTED' || raw.includes('鏈夋晥') || raw.includes('鎺堟潈') || raw.includes('缁存寔')) return 'GRANTED';
-    if (upper === 'EXPIRED' || raw.includes('澶辨晥') || raw.includes('缁堟') || raw.includes('灞婃弧')) return 'EXPIRED';
-    if (upper === 'INVALIDATED' || raw.includes('鏃犳晥')) return 'INVALIDATED';
+    if (upper === 'GRANTED' || raw.includes('有效') || raw.includes('授权') || raw.includes('维持')) return 'GRANTED';
+    if (upper === 'EXPIRED' || raw.includes('失效') || raw.includes('终止') || raw.includes('届满')) return 'EXPIRED';
+    if (upper === 'INVALIDATED' || raw.includes('无效')) return 'INVALIDATED';
     if (upper === 'UNKNOWN') return 'UNKNOWN';
     return 'UNKNOWN';
   }

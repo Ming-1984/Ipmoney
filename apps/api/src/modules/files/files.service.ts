@@ -34,7 +34,7 @@ const FILE_TEMP_TOKEN_TTL_SECONDS_RAW = Number(process.env.FILE_TEMP_TOKEN_TTL_S
 const FILE_TEMP_TOKEN_TTL_SECONDS = Number.isFinite(FILE_TEMP_TOKEN_TTL_SECONDS_RAW)
   ? Math.max(60, Math.floor(FILE_TEMP_TOKEN_TTL_SECONDS_RAW))
   : 900;
-const FILE_WATERMARK_TEXT = process.env.FILE_WATERMARK_TEXT || 'Ipmoney Preview';
+const FILE_WATERMARK_TEXT = process.env.FILE_WATERMARK_TEXT || 'ipmoney';
 const PUBLIC_HOST_WHITELIST = (process.env.PUBLIC_HOST_WHITELIST || '')
   .split(',')
   .map((v) => v.trim())

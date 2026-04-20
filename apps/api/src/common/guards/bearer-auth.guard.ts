@@ -151,3 +151,4 @@ export class BearerAuthGuard implements CanActivate {
     return true;
   }
 }
+
