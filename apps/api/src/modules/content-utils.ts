@@ -27,6 +27,100 @@ export type ContentMediaDto = {
 
 export type MediaInput = { fileId?: string; type?: string; sort?: number };
 
+type PublicFileLike = {
+  url?: string | null;
+  fileName?: string | null;
+};
+
+export function resolvePublicAvatarUrl(raw: unknown): string | null {
+  const normalized = String(raw || '').trim();
+  if (!normalized) return null;
+  return resolvePublicFileUrl({ url: normalized }) ?? null;
+}
+
+const LOCAL_HOST_SET = new Set(['127.0.0.1', 'localhost', '0.0.0.0']);
+
+function normalizeBaseUrl(raw?: string): string {
+  const value = String(raw || process.env.BASE_URL || '').trim();
+  if (!value) return '';
+  return value.replace(/\/$/, '');
+}
+
+function runtimePublicBaseUrl(): string {
+  const configured = normalizeBaseUrl();
+  if (configured) return configured;
+  return 'https://api.xn--m5rv27f.com';
+}
+
+function buildUploadsUrl(baseUrl: string, fileName: string): string {
+  if (!baseUrl) return `/uploads/${encodeURIComponent(fileName)}`;
+  return `${baseUrl}/uploads/${encodeURIComponent(fileName)}`;
+}
+
+function normalizePathLikeUrl(baseUrl: string, raw: string): string {
+  if (!raw) return '';
+  const pathLike = String(raw || '').trim();
+  if (!pathLike) return '';
+  if (!baseUrl) {
+    if (pathLike.startsWith('/')) return pathLike;
+    return `/${pathLike}`;
+  }
+  if (pathLike.startsWith('/')) return `${baseUrl}${pathLike}`;
+  return `${baseUrl}/${pathLike}`;
+}
+
+export function extractFileIdFromFileUrl(rawUrl: unknown): string | null {
+  const input = String(rawUrl || '').trim();
+  if (!input) return null;
+  let pathname = input;
+  try {
+    pathname = new URL(input).pathname || input;
+  } catch {
+    pathname = input.split('?')[0] || input;
+  }
+  const match = pathname.match(/\/files\/([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})(?:$|\/)/i);
+  return match?.[1] || null;
+}
+
+export function resolvePublicFileUrl(file?: PublicFileLike | null, opts?: { baseUrl?: string }): string | null {
+  if (!file) return null;
+  const configuredBaseUrl = normalizeBaseUrl(opts?.baseUrl);
+  const rawUrl = String(file.url || '').trim();
+  const fileName = String(file.fileName || '').trim();
+
+  if (!rawUrl) {
+    if (!fileName) return null;
+    return buildUploadsUrl(configuredBaseUrl || runtimePublicBaseUrl(), fileName);
+  }
+
+  try {
+    const parsed = new URL(rawUrl);
+    const runtimeBaseUrl = configuredBaseUrl || `${parsed.protocol}//${parsed.host}`.replace(/\/$/, '');
+    const pathname = String(parsed.pathname || '').trim();
+
+    if (pathname.startsWith('/files/')) {
+      if (fileName) return buildUploadsUrl(runtimeBaseUrl, fileName);
+      if (runtimeBaseUrl) return `${runtimeBaseUrl}${pathname}`;
+      return rawUrl;
+    }
+    if (pathname.startsWith('/uploads/')) {
+      if (LOCAL_HOST_SET.has(parsed.hostname) && runtimeBaseUrl) return `${runtimeBaseUrl}${pathname}`;
+      return rawUrl;
+    }
+    return rawUrl;
+  } catch {
+    if (rawUrl.startsWith('/files/')) {
+      const base = configuredBaseUrl || runtimePublicBaseUrl();
+      if (fileName) return buildUploadsUrl(base, fileName);
+      return normalizePathLikeUrl(base, rawUrl);
+    }
+    if (rawUrl.startsWith('/uploads/') || rawUrl.startsWith('uploads/')) {
+      return normalizePathLikeUrl(configuredBaseUrl || runtimePublicBaseUrl(), rawUrl);
+    }
+    return rawUrl;
+  }
+}
+
 export function normalizeStringArray(input: unknown): string[] {
   if (Array.isArray(input)) {
     return input
@@ -117,7 +211,7 @@ export function mapContentMedia(records: Array<{ fileId: string; type: string; s
       fileId: item.fileId,
       type: item.type,
       sort: item.sort ?? 0,
-      url: item.file?.url ?? null,
+      url: resolvePublicFileUrl(item.file) ?? null,
       mimeType: item.file?.mimeType ?? null,
       sizeBytes: item.file?.sizeBytes ?? null,
       fileName: item.file?.fileName ?? null,
@@ -145,7 +239,7 @@ function toPublisherSummary(user: any, verification?: any): OrganizationSummary 
     verificationStatus,
     orgCategory: null,
     regionCode: verification?.regionCode ?? user.regionCode ?? null,
-    logoUrl: verification?.logoFile?.url ?? null,
+    logoUrl: resolvePublicFileUrl(verification?.logoFile) ?? null,
     intro: verification?.intro ?? null,
     stats: undefined,
     verifiedAt: verification?.reviewedAt ? verification.reviewedAt.toISOString() : null,
@@ -174,4 +268,3 @@ export async function buildPublisherMap(prisma: PrismaService, userIds: string[]
   }
   return map;
 }
-

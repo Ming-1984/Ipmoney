@@ -4,7 +4,7 @@ import { Prisma } from '@prisma/client';
 
 import { ContentEventService } from '../../common/content-event.service';
 import { PrismaService } from '../../common/prisma/prisma.service';
-import { buildPublisherMap, mapStats, sanitizeIndustryTagNames } from '../content-utils';
+import { buildPublisherMap, mapStats, resolvePublicFileUrl, sanitizeIndustryTagNames } from '../content-utils';
 
 type Paged<T> = { items: T[]; page: { page: number; pageSize: number; total: number } };
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -57,7 +57,7 @@ export class FavoritesService {
     const [items, total] = await Promise.all([
       this.prisma.listingFavorite.findMany({
         where: { userId: req.auth.userId },
-        include: { listing: { include: { patent: true, stats: true } } },
+        include: { listing: { include: { patent: true, stats: true, media: { include: { file: true } } } } },
         orderBy: { createdAt: 'desc' },
         skip: (page - 1) * pageSize,
         take: pageSize,
@@ -67,10 +67,13 @@ export class FavoritesService {
 
     const mapped = items.map((fav) => {
       const listing = fav.listing;
+      const coverFile = Array.isArray(listing?.media)
+        ? listing.media.find((mediaItem: any) => String(mediaItem?.type || '').toUpperCase() === 'IMAGE' && mediaItem?.file)?.file
+        : null;
       return {
         id: listing.id,
         title: listing.title,
-        coverUrl: null,
+        coverUrl: resolvePublicFileUrl(coverFile),
         patentType: listing.patent?.patentType,
         tradeMode: listing.tradeMode,
         priceType: listing.priceType,
@@ -124,7 +127,7 @@ export class FavoritesService {
         stats: mapStats(achievement.stats),
         auditStatus: achievement.auditStatus,
         status: achievement.status,
-        coverUrl: achievement.coverFile?.url ?? null,
+        coverUrl: resolvePublicFileUrl(achievement.coverFile),
         createdAt: achievement.createdAt.toISOString(),
       }));
 

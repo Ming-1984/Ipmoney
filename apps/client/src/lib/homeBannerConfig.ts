@@ -1,5 +1,3 @@
-import { homeBannerVideos } from './homeBannerVideos';
-
 export type BannerMediaType = 'IMAGE' | 'VIDEO';
 
 export type BannerVideoMeta = {
@@ -35,9 +33,7 @@ export type HomeBannerItem = {
   videoUrl?: string;
   linkUrl?: string;
   order: number;
-  source: 'remote' | 'local';
-  asset?: string;
-  fileName?: string;
+  source: 'remote';
 };
 
 export function buildHomeBannerItems(config?: BannerConfig | null): HomeBannerItem[] {
@@ -63,17 +59,7 @@ export function buildHomeBannerItems(config?: BannerConfig | null): HomeBannerIt
     .sort((a, b) => a.order - b.order);
 
   if (remoteItems.length) return remoteItems;
-
-  return homeBannerVideos.map((item, index) => ({
-    id: item.id,
-    title: item.title,
-    cover: item.cover,
-    mediaType: 'VIDEO',
-    order: index + 1,
-    source: 'local' as const,
-    asset: item.asset,
-    fileName: item.fileName,
-  }));
+  return [];
 }
 
 export function clampBannerIndex(rawIndex: number, length: number) {

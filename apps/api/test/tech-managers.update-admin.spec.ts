@@ -18,10 +18,12 @@ describe('TechManagersService update/public detail suite', () => {
       },
       userVerification: {
         findFirst: vi.fn(),
+        findMany: vi.fn(),
         update: vi.fn(),
       },
       techManagerProfile: {
         findUnique: vi.fn(),
+        findMany: vi.fn(),
         upsert: vi.fn(),
       },
     };
@@ -84,6 +86,95 @@ describe('TechManagersService update/public detail suite', () => {
     });
   });
 
+  it('falls back to verification intro/workHighlights when profile intro is blank and normalizes empty rating to zero', async () => {
+    prisma.userVerification.findFirst.mockResolvedValueOnce({
+      id: 'verification-1',
+      userId: VALID_ID,
+      displayName: 'Tech Manager A',
+      verificationType: 'TECH_MANAGER',
+      verificationStatus: 'APPROVED',
+      regionCode: '110000',
+      intro: 'verification intro',
+      reviewedAt: new Date('2026-03-12T00:00:00.000Z'),
+      evidenceFileIdsJson: [],
+      user: {
+        avatarUrl: 'https://example.com/avatar.png',
+        techManagerProfile: {
+          intro: '   ',
+          workHighlights: 'profile highlights',
+          serviceTagsJson: ['Patent Drafting'],
+          consultCount: 3,
+          dealCount: 1,
+          ratingScore: 4.8,
+          ratingCount: 0,
+        },
+      },
+    });
+
+    const result = await service.getPublic(VALID_ID);
+
+    expect(result.intro).toBe('verification intro');
+    expect(result.stats?.ratingScore).toBe(0);
+    expect(result.stats?.ratingCount).toBe(0);
+
+    prisma.userVerification.findFirst.mockResolvedValueOnce({
+      id: 'verification-1',
+      userId: VALID_ID,
+      displayName: 'Tech Manager A',
+      verificationType: 'TECH_MANAGER',
+      verificationStatus: 'APPROVED',
+      regionCode: '110000',
+      intro: '   ',
+      reviewedAt: new Date('2026-03-12T00:00:00.000Z'),
+      evidenceFileIdsJson: [],
+      user: {
+        avatarUrl: 'https://example.com/avatar.png',
+        techManagerProfile: {
+          intro: '   ',
+          workHighlights: 'profile highlights',
+          serviceTagsJson: ['Patent Drafting'],
+          consultCount: 3,
+          dealCount: 1,
+          ratingScore: 0,
+          ratingCount: 0,
+        },
+      },
+    });
+
+    const result2 = await service.getPublic(VALID_ID);
+    expect(result2.intro).toBe('profile highlights');
+  });
+
+  it('prefers workHighlights when intro is organization-like short text', async () => {
+    prisma.userVerification.findFirst.mockResolvedValueOnce({
+      id: 'verification-1',
+      userId: VALID_ID,
+      displayName: 'Tech Manager A',
+      verificationType: 'TECH_MANAGER',
+      verificationStatus: 'APPROVED',
+      regionCode: '110000',
+      intro: '广东聚智诚科技有限公司',
+      reviewedAt: new Date('2026-03-12T00:00:00.000Z'),
+      evidenceFileIdsJson: [],
+      user: {
+        avatarUrl: 'https://example.com/avatar.png',
+        techManagerProfile: {
+          intro: '广东聚智诚科技有限公司',
+          organization: '广东聚智诚科技有限公司',
+          workHighlights: '从事技术转移转化服务 15 年，累计服务企业超 500 家。',
+          serviceTagsJson: ['Patent Drafting'],
+          consultCount: 3,
+          dealCount: 1,
+          ratingScore: 0,
+          ratingCount: 0,
+        },
+      },
+    });
+
+    const result = await service.getPublic(VALID_ID);
+    expect(result.intro).toBe('从事技术转移转化服务 15 年，累计服务企业超 500 家。');
+  });
+
   it('validates updateAdmin payload fields strictly', async () => {
     prisma.userVerification.findFirst.mockResolvedValue({
       id: 'verification-1',
@@ -120,6 +211,21 @@ describe('TechManagersService update/public detail suite', () => {
       BadRequestException,
     );
     await expect(service.updateAdmin(ADMIN_REQ, VALID_ID, { avatarUrl: 'x'.repeat(1001) })).rejects.toBeInstanceOf(
+      BadRequestException,
+    );
+    await expect(service.updateAdmin(ADMIN_REQ, VALID_ID, { ratingScore: '5.1' })).rejects.toBeInstanceOf(
+      BadRequestException,
+    );
+    await expect(service.updateAdmin(ADMIN_REQ, VALID_ID, { ratingScore: '-0.1' })).rejects.toBeInstanceOf(
+      BadRequestException,
+    );
+    await expect(service.updateAdmin(ADMIN_REQ, VALID_ID, { ratingCount: '-1' })).rejects.toBeInstanceOf(
+      BadRequestException,
+    );
+    await expect(service.updateAdmin(ADMIN_REQ, VALID_ID, { ratingCount: '1.2' })).rejects.toBeInstanceOf(
+      BadRequestException,
+    );
+    await expect(service.updateAdmin(ADMIN_REQ, VALID_ID, { ratingScore: 4.8, ratingCount: 0 })).rejects.toBeInstanceOf(
       BadRequestException,
     );
   });
@@ -164,6 +270,8 @@ describe('TechManagersService update/public detail suite', () => {
       serviceTags: ['Patent Drafting', 'smoke-service-tag-1'],
       featuredRank: '3',
       featuredUntil: null,
+      ratingScore: '4.8',
+      ratingCount: '17',
     });
 
     expect(prisma.userVerification.update).toHaveBeenCalledWith({
@@ -179,12 +287,16 @@ describe('TechManagersService update/public detail suite', () => {
         serviceTagsJson: ['Patent Drafting'],
         featuredRank: 3,
         featuredUntil: null,
+        ratingScore: 4.8,
+        ratingCount: 17,
       },
       update: {
         intro: 'New intro',
         serviceTagsJson: ['Patent Drafting'],
         featuredRank: 3,
         featuredUntil: null,
+        ratingScore: 4.8,
+        ratingCount: 17,
       },
     });
     expect(audit.log).toHaveBeenCalledWith({
@@ -197,6 +309,8 @@ describe('TechManagersService update/public detail suite', () => {
         serviceTagsJson: ['Patent Drafting'],
         featuredRank: 3,
         featuredUntil: null,
+        ratingScore: 4.8,
+        ratingCount: 17,
       },
     });
     expect(result.serviceTags).toEqual(['Patent Drafting']);
@@ -265,5 +379,91 @@ describe('TechManagersService update/public detail suite', () => {
     });
     expect(cleared.avatarUrl).toBeUndefined();
     expect(prisma.techManagerProfile.upsert).not.toHaveBeenCalled();
+  });
+
+  it('batch updates ratings for multiple tech managers with audit logs', async () => {
+    const id2 = '22222222-2222-2222-2222-222222222222';
+    prisma.userVerification.findMany.mockResolvedValueOnce([
+      {
+        id: 'verification-1',
+        userId: VALID_ID,
+        displayName: 'Tech Manager A',
+        verificationType: 'TECH_MANAGER',
+        verificationStatus: 'APPROVED',
+        regionCode: '110000',
+        intro: 'old intro',
+        reviewedAt: new Date('2026-03-12T00:00:00.000Z'),
+        user: { avatarUrl: 'https://example.com/a.png' },
+      },
+      {
+        id: 'verification-2',
+        userId: id2,
+        displayName: 'Tech Manager B',
+        verificationType: 'TECH_MANAGER',
+        verificationStatus: 'APPROVED',
+        regionCode: '110000',
+        intro: 'old intro b',
+        reviewedAt: new Date('2026-03-12T00:00:00.000Z'),
+        user: { avatarUrl: 'https://example.com/b.png' },
+      },
+    ]);
+    prisma.techManagerProfile.findMany.mockResolvedValueOnce([
+      { userId: VALID_ID, ratingScore: 3.2, ratingCount: 4 },
+      { userId: id2, ratingScore: 0, ratingCount: 0 },
+    ]);
+    prisma.techManagerProfile.upsert.mockResolvedValueOnce({
+      userId: VALID_ID,
+      ratingScore: 4.7,
+      ratingCount: 22,
+    });
+    prisma.techManagerProfile.upsert.mockResolvedValueOnce({
+      userId: id2,
+      ratingScore: 4.7,
+      ratingCount: 22,
+    });
+
+    const result = await service.batchUpdateRating(ADMIN_REQ, {
+      techManagerIds: [VALID_ID, id2],
+      ratingScore: '4.7',
+      ratingCount: '22',
+    });
+
+    expect(prisma.userVerification.findMany).toHaveBeenCalledWith({
+      where: {
+        userId: { in: [VALID_ID, id2] },
+        verificationType: 'TECH_MANAGER',
+      },
+      include: { user: true },
+    });
+    expect(prisma.techManagerProfile.upsert).toHaveBeenCalledTimes(2);
+    expect(result.updatedCount).toBe(2);
+    expect(result.ratingScore).toBe(4.7);
+    expect(result.ratingCount).toBe(22);
+    expect(audit.log).toHaveBeenCalledTimes(2);
+    expect(audit.log).toHaveBeenNthCalledWith(
+      1,
+      expect.objectContaining({
+        actorUserId: 'admin-1',
+        action: 'TECH_MANAGER_BATCH_RATING_UPDATE',
+        targetType: 'TECH_MANAGER',
+      }),
+    );
+  });
+
+  it('validates batch rating payload and rejects missing managers', async () => {
+    await expect(
+      service.batchUpdateRating(ADMIN_REQ, { techManagerIds: [], ratingScore: 4.6, ratingCount: 10 }),
+    ).rejects.toBeInstanceOf(BadRequestException);
+    await expect(
+      service.batchUpdateRating(ADMIN_REQ, { techManagerIds: [VALID_ID], ratingScore: 4.6, ratingCount: -1 }),
+    ).rejects.toBeInstanceOf(BadRequestException);
+    await expect(
+      service.batchUpdateRating(ADMIN_REQ, { techManagerIds: [VALID_ID], ratingScore: 4.6, ratingCount: 0 }),
+    ).rejects.toBeInstanceOf(BadRequestException);
+
+    prisma.userVerification.findMany.mockResolvedValueOnce([]);
+    await expect(
+      service.batchUpdateRating(ADMIN_REQ, { techManagerIds: [VALID_ID], ratingScore: 4.6, ratingCount: 12 }),
+    ).rejects.toBeInstanceOf(NotFoundException);
   });
 });

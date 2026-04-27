@@ -33,20 +33,22 @@ if (!existsSync(h5Root)) {
 }
 
 const checks = [
-  { name: 'vendors.js', file: 'js/vendors.js', maxBytes: 760 * 1024 },
-  { name: 'app.css', file: 'css/app.css', maxBytes: 180 * 1024 },
-  { name: 'logo.optim2.gif', file: 'static/images/assets/brand/logo.optim2.gif', maxBytes: 1000 * 1024 },
+  { name: 'vendors.js', file: 'js/vendors.js', maxBytes: 760 * 1024, required: true },
+  { name: 'app.css', file: 'css/app.css', maxBytes: 180 * 1024, required: true },
+  { name: 'logo.optim2.gif', file: 'static/images/assets/brand/logo.optim2.gif', maxBytes: 1000 * 1024, required: true },
+  // Legacy promotional asset is optional now. Missing file should not fail budget gate.
   {
     name: 'promo-certificate.optim3.gif',
     file: 'static/images/assets/home/promo-certificate.optim3.gif',
     maxBytes: 1050 * 1024,
+    required: false,
   },
 ];
 
 const results = checks.map((check) => {
   const fullPath = path.join(h5Root, check.file);
   if (!existsSync(fullPath)) {
-    return { ...check, exists: false, pass: false, sizeBytes: null };
+    return { ...check, exists: false, pass: check.required === false, sizeBytes: null };
   }
   const sizeBytes = statSync(fullPath).size;
   return { ...check, exists: true, pass: sizeBytes <= check.maxBytes, sizeBytes };
@@ -74,7 +76,8 @@ entrypoint.pass = entrypoint.missingFiles.length === 0 && entrypoint.sizeBytes <
 const failedChecks = results.filter((item) => !item.pass);
 for (const item of results) {
   if (!item.exists) {
-    console.log(`[h5-budget] missing ${item.file}`);
+    const status = item.required === false ? 'skip' : 'missing';
+    console.log(`[h5-budget] ${status} ${item.file}`);
     continue;
   }
   const status = item.pass ? 'ok' : 'fail';

@@ -27,6 +27,8 @@ export default function TechManagersPage() {
   const techQueryKeyRef = useRef<string | null>(null);
   const orgQueryKeyRef = useRef<string | null>(null);
   const tabPrefetchScheduledRef = useRef(false);
+  const [techSearchSeq, setTechSearchSeq] = useState(0);
+  const [orgSearchSeq, setOrgSearchSeq] = useState(0);
 
   const [techQInput, setTechQInput] = useState('');
   const [techQ, setTechQ] = useState('');
@@ -78,19 +80,19 @@ export default function TechManagersPage() {
 
   useEffect(() => {
     if (activeTab !== 'TECH') return;
-    const queryKey = techQ.trim();
+    const queryKey = `${techQ.trim()}::${techSearchSeq}`;
     if (techQueryKeyRef.current === queryKey) return;
     techQueryKeyRef.current = queryKey;
     void techList.reload();
-  }, [activeTab, techQ, techList.reload]);
+  }, [activeTab, techQ, techList.reload, techSearchSeq]);
 
   useEffect(() => {
     if (activeTab !== 'ORG') return;
-    const queryKey = orgQ.trim();
+    const queryKey = `${orgQ.trim()}::${orgSearchSeq}`;
     if (orgQueryKeyRef.current === queryKey) return;
     orgQueryKeyRef.current = queryKey;
     void orgList.reload();
-  }, [activeTab, orgList.reload, orgQ]);
+  }, [activeTab, orgList.reload, orgQ, orgSearchSeq]);
 
   useEffect(() => {
     if (tabPrefetchScheduledRef.current) return;
@@ -153,6 +155,7 @@ export default function TechManagersPage() {
               }}
               onSearch={(value) => {
                 setTechQ((value || '').trim());
+                setTechSearchSeq((prev) => prev + 1);
               }}
             />
           </View>
@@ -167,8 +170,12 @@ export default function TechManagersPage() {
                 {techItems.map((it: TechManagerSummary) => {
                   const avatar = it.avatarUrl && !it.avatarUrl.includes('example.com') ? it.avatarUrl : '';
                   const ratingScore = it.stats?.ratingScore;
+                  const ratingCount = it.stats?.ratingCount ?? 0;
                   const ratingText =
-                    typeof ratingScore === 'number' && !Number.isNaN(ratingScore) ? ratingScore.toFixed(1) : '';
+                    ratingCount > 0 && typeof ratingScore === 'number' && !Number.isNaN(ratingScore)
+                      ? ratingScore.toFixed(1)
+                      : '';
+                  const ratingDisplay = ratingText ? `${ratingText}分` : '暂无评分';
                   let experienceYears: number | null = null;
                   if (it.verifiedAt) {
                     const verifiedDate = new Date(it.verifiedAt);
@@ -199,7 +206,17 @@ export default function TechManagersPage() {
                           </View>
                           <View className="consult-meta-row">
                             {experienceYears ? <Text className="consult-meta">从业 {experienceYears} 年</Text> : null}
-                            {ratingText ? <Text className="consult-meta consult-rating">{ratingText}分</Text> : null}
+                            <Text
+                              className={[
+                                'consult-meta',
+                                'consult-rating',
+                                ratingText ? '' : 'is-empty',
+                              ]
+                                .filter(Boolean)
+                                .join(' ')}
+                            >
+                              {ratingDisplay}
+                            </Text>
                           </View>
                           {it.intro ? <Text className="consult-intro clamp-1">{it.intro}</Text> : null}
                         </View>
@@ -231,6 +248,7 @@ export default function TechManagersPage() {
               }}
               onSearch={(value) => {
                 setOrgQ((value || '').trim());
+                setOrgSearchSeq((prev) => prev + 1);
               }}
             />
           </View>

@@ -15,6 +15,7 @@ describe('TechManagersController delegation suite', () => {
       getPublic: vi.fn(),
       listAdmin: vi.fn(),
       updateAdmin: vi.fn(),
+      batchUpdateRating: vi.fn(),
     };
     controller = new TechManagersController(techManagers);
   });
@@ -48,5 +49,24 @@ describe('TechManagersController delegation suite', () => {
 
     expect(techManagers.listAdmin).toHaveBeenCalledWith(req, { pageSize: '20' });
     expect(techManagers.updateAdmin).toHaveBeenCalledWith(req, VALID_UUID, {});
+  });
+
+  it('delegates batchUpdateRating with permission', async () => {
+    const req: any = { auth: { permissions: new Set(['listing.audit']) } };
+    techManagers.batchUpdateRating.mockResolvedValueOnce({ updatedCount: 2 });
+
+    await expect(
+      controller.batchUpdateRating(req, {
+        techManagerIds: [VALID_UUID],
+        ratingScore: 4.8,
+        ratingCount: 16,
+      }),
+    ).resolves.toEqual({ updatedCount: 2 });
+
+    expect(techManagers.batchUpdateRating).toHaveBeenCalledWith(req, {
+      techManagerIds: [VALID_UUID],
+      ratingScore: 4.8,
+      ratingCount: 16,
+    });
   });
 });

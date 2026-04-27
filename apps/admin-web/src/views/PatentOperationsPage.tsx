@@ -395,6 +395,10 @@ export function PatentOperationsPage() {
   const [mapPatchReason, setMapPatchReason] = useState('');
   const [mapBatchSubmitting, setMapBatchSubmitting] = useState(false);
   const [mapBatchResult, setMapBatchResult] = useState<PatentMapBatchUpdateResult | null>(null);
+  const [templateTablePage, setTemplateTablePage] = useState(1);
+  const [templateTablePageSize, setTemplateTablePageSize] = useState(10);
+  const [mapRankingTablePage, setMapRankingTablePage] = useState(1);
+  const [mapRankingTablePageSize, setMapRankingTablePageSize] = useState(20);
 
   const parsedPatentIdsCount = useMemo(() => parseTextList(patentIdsText).length, [patentIdsText]);
   const mapManualListingIds = useMemo(() => parseTextList(mapManualListingIdsText), [mapManualListingIdsText]);
@@ -846,7 +850,20 @@ export function PatentOperationsPage() {
           <Table<ImportTemplateField>
             rowKey="header"
             size="small"
-            pagination={false}
+            pagination={{
+              current: templateTablePage,
+              pageSize: templateTablePageSize,
+              total: patentImportTemplateFields.length,
+              showSizeChanger: true,
+              pageSizeOptions: ['10', '20', '50'],
+              onChange: (nextPage, nextPageSize) => {
+                setTemplateTablePage(nextPage);
+                if (nextPageSize && nextPageSize !== templateTablePageSize) {
+                  setTemplateTablePageSize(nextPageSize);
+                  setTemplateTablePage(1);
+                }
+              },
+            }}
             dataSource={patentImportTemplateFields}
             columns={[
               { title: '模板列名', dataIndex: 'header', width: 180 },
@@ -1067,7 +1084,20 @@ export function PatentOperationsPage() {
             size="small"
             loading={mapOverviewLoading}
             dataSource={mapOverview?.ranking || []}
-            pagination={false}
+            pagination={{
+              current: mapRankingTablePage,
+              pageSize: mapRankingTablePageSize,
+              total: (mapOverview?.ranking || []).length,
+              showSizeChanger: true,
+              pageSizeOptions: ['10', '20', '50'],
+              onChange: (nextPage, nextPageSize) => {
+                setMapRankingTablePage(nextPage);
+                if (nextPageSize && nextPageSize !== mapRankingTablePageSize) {
+                  setMapRankingTablePageSize(nextPageSize);
+                  setMapRankingTablePage(1);
+                }
+              },
+            }}
             columns={[
               {
                 title: '排名',

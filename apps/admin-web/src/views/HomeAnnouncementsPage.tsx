@@ -87,6 +87,8 @@ export function HomeAnnouncementsPage() {
   const [config, setConfig] = useState<HomeAnnouncementConfig | null>(null);
   const [editingTemplateId, setEditingTemplateId] = useState<string | null>(null);
   const [editingItemId, setEditingItemId] = useState<string | null>(null);
+  const [templateTablePage, setTemplateTablePage] = useState(1);
+  const [templateTablePageSize, setTemplateTablePageSize] = useState(10);
 
   const [templateForm] = Form.useForm<TemplateFormValues>();
   const [itemForm] = Form.useForm<AnnouncementFormValues>();
@@ -252,7 +254,20 @@ export function HomeAnnouncementsPage() {
           rowKey="id"
           size="small"
           dataSource={config?.templates || []}
-          pagination={false}
+          pagination={{
+            current: templateTablePage,
+            pageSize: templateTablePageSize,
+            total: config?.templates?.length || 0,
+            showSizeChanger: true,
+            pageSizeOptions: ['10', '20', '50'],
+            onChange: (nextPage, nextPageSize) => {
+              setTemplateTablePage(nextPage);
+              if (nextPageSize && nextPageSize !== templateTablePageSize) {
+                setTemplateTablePageSize(nextPageSize);
+                setTemplateTablePage(1);
+              }
+            },
+          }}
           columns={[
             { title: '名称', dataIndex: 'name', width: 180 },
             { title: '标题', dataIndex: 'title', width: 260 },

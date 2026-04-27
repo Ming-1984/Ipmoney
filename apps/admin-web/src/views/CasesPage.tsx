@@ -89,6 +89,8 @@ export function CasesPage() {
   const [q, setQ] = useState('');
   const [status, setStatus] = useState<CaseStatus | ''>('');
   const [type, setType] = useState<CaseType | ''>('');
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(20);
   const [createOpen, setCreateOpen] = useState(false);
   const [createForm] = Form.useForm();
 
@@ -100,7 +102,9 @@ export function CasesPage() {
   const [slaDueAt, setSlaDueAt] = useState('');
   const [evidenceUploading, setEvidenceUploading] = useState(false);
 
-  const load = useCallback(async () => {
+  const load = useCallback(async (opts?: { page?: number; pageSize?: number }) => {
+    const nextPage = opts?.page ?? page;
+    const nextPageSize = opts?.pageSize ?? pageSize;
     setLoading(true);
     setError(null);
     try {
@@ -108,8 +112,8 @@ export function CasesPage() {
         q: q.trim() || undefined,
         status: status || undefined,
         type: type || undefined,
-        page: 1,
-        pageSize: 20,
+        page: nextPage,
+        pageSize: nextPageSize,
       });
       setData(d);
     } catch (e: any) {
@@ -119,7 +123,7 @@ export function CasesPage() {
     } finally {
       setLoading(false);
     }
-  }, [q, status, type]);
+  }, [page, pageSize, q, status, type]);
 
   const loadAssignees = useCallback(async () => {
     try {
@@ -160,6 +164,11 @@ export function CasesPage() {
     void load();
     void loadAssignees();
   }, [load, loadAssignees]);
+
+  const handleSearch = useCallback(() => {
+    setPage(1);
+    void load({ page: 1 });
+  }, [load]);
 
   const rows = useMemo(() => data?.items || [], [data?.items]);
   const formatAssigneeLabel = useCallback(
@@ -223,7 +232,7 @@ export function CasesPage() {
             placeholder="关键词（订单号/标题/用户）"
             allowClear
             onChange={(e) => setQ(e.target.value)}
-            onPressEnter={() => void load()}
+            onPressEnter={handleSearch}
           />
           <Select
             value={type}
@@ -239,7 +248,7 @@ export function CasesPage() {
             onChange={(v) => setStatus((v as CaseStatus) || '')}
             options={statusOptions}
           />
-          <Button onClick={load}>查询</Button>
+          <Button onClick={handleSearch}>查询</Button>
           <Button
             type="primary"
             onClick={() => {
@@ -256,7 +265,22 @@ export function CasesPage() {
           rowKey="id"
           loading={loading}
           dataSource={rows}
-          pagination={false}
+          pagination={{
+            current: data?.page.page || page,
+            pageSize: data?.page.pageSize || pageSize,
+            total: data?.page.total || 0,
+            showSizeChanger: true,
+            pageSizeOptions: ['10', '20', '50'],
+            onChange: (nextPage, nextPageSize) => {
+              const normalizedPageSize = nextPageSize || pageSize;
+              if (normalizedPageSize !== pageSize) {
+                setPageSize(normalizedPageSize);
+                setPage(1);
+                return;
+              }
+              setPage(nextPage);
+            },
+          }}
           columns={[
             { title: '工单号', dataIndex: 'id' },
             { title: '类型', dataIndex: 'type' },
@@ -600,4 +624,3 @@ export function CasesPage() {
     </Card>
   );
 }
-

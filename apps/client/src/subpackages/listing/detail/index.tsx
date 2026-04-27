@@ -429,7 +429,9 @@ export default function ListingDetailPage() {
                   </View>
                 </View>
               </View>
-              <View className="detail-seller-btn">联系</View>
+              <View className="detail-seller-btn" onClick={() => void startConsult()}>
+                联系
+              </View>
             </View>
           </Surface>
 

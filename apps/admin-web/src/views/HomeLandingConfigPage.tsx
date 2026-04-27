@@ -79,6 +79,7 @@ const TOPIC_SET = new Set<ListingTopic>(TOPIC_DEFAULTS.map((item) => item.value)
 const PATENT_TYPE_SET = new Set<PatentType>(['INVENTION', 'UTILITY_MODEL', 'DESIGN']);
 const FEATURED_BUILTIN_IMAGE_OPTIONS = [
   { label: '内置-退役专利', value: 'builtin://zone-retired' },
+  { label: '内置-高新退役专利', value: 'builtin://zone-high-tech-retired' },
   { label: '内置-沉睡专利', value: 'builtin://zone-sleeping' },
   { label: '内置-获奖专利', value: 'builtin://zone-award-winning' },
   { label: '内置-五星专利', value: 'builtin://zone-five-star' },

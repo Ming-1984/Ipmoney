@@ -22,10 +22,11 @@ import path from 'node:path';
 import crypto from 'node:crypto';
 
 import { AuditLogService } from '../../common/audit-log.service';
+import { resolveUploadDir } from '../../common/upload-dir';
 import { FilesService } from './files.service';
 import { FileAccessGuard } from './file-access.guard';
 
-const UPLOAD_DIR = process.env.UPLOAD_DIR || path.resolve(process.cwd(), 'uploads');
+const UPLOAD_DIR = resolveUploadDir();
 mkdirSync(UPLOAD_DIR, { recursive: true });
 
 @UseGuards(FileAccessGuard)

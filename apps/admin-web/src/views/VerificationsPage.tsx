@@ -64,19 +64,23 @@ export function VerificationsPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<unknown | null>(null);
   const [data, setData] = useState<PagedUserVerification | null>(null);
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
   const [detailOpen, setDetailOpen] = useState(false);
   const [active, setActive] = useState<UserVerification | null>(null);
   const [materials, setMaterials] = useState<AuditMaterial[]>([]);
   const [auditLogs, setAuditLogs] = useState<AuditLog[]>([]);
   const [logoSaving, setLogoSaving] = useState(false);
 
-  const load = useCallback(async () => {
+  const load = useCallback(async (opts?: { page?: number; pageSize?: number }) => {
+    const nextPage = opts?.page ?? page;
+    const nextPageSize = opts?.pageSize ?? pageSize;
     setLoading(true);
     setError(null);
     try {
       const d = await apiGet<PagedUserVerification>('/admin/user-verifications', {
-        page: 1,
-        pageSize: 10,
+        page: nextPage,
+        pageSize: nextPageSize,
       });
       setData(d);
     } catch (e: any) {
@@ -86,7 +90,7 @@ export function VerificationsPage() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [page, pageSize]);
 
   useEffect(() => {
     void load();
@@ -161,7 +165,22 @@ export function VerificationsPage() {
           rowKey="id"
           loading={loading}
           dataSource={rows}
-          pagination={false}
+          pagination={{
+            current: data?.page.page || page,
+            pageSize: data?.page.pageSize || pageSize,
+            total: data?.page.total || 0,
+            showSizeChanger: true,
+            pageSizeOptions: ['10', '20', '50'],
+            onChange: (nextPage, nextPageSize) => {
+              const normalizedPageSize = nextPageSize || pageSize;
+              if (normalizedPageSize !== pageSize) {
+                setPageSize(normalizedPageSize);
+                setPage(1);
+                return;
+              }
+              setPage(nextPage);
+            },
+          }}
           columns={[
             { title: '主体名称', dataIndex: 'displayName' },
             { title: '类型', dataIndex: 'type', render: (v) => verificationTypeLabel(v) },

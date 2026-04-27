@@ -1,11 +1,12 @@
-import { Picker, Switch, Text, View } from '@tarojs/components';
+import { Switch, Text, View } from '@tarojs/components';
 import Taro from '@tarojs/taro';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import './index.scss';
 
 import { apiDelete, apiGet, apiPatch, apiPost } from '../../../lib/api';
 import { usePageAccess } from '../../../lib/guard';
-import { parseRegionPickerSelection, regionDisplayName } from '../../../lib/regions';
+import { regionDisplayName } from '../../../lib/regions';
+import { openRegionPickerPage } from '../../../lib/regionPicker';
 import { AccessGate } from '../../../ui/PageState';
 import { PageHeader, Spacer, Surface } from '../../../ui/layout';
 import { Button, Input, confirm, toast } from '../../../ui/nutui';
@@ -103,13 +104,6 @@ export default function AddressEditPage() {
 
   const regionLabel = useMemo(() => regionDisplayName(regionCode, regionName, ''), [regionCode, regionName]);
 
-  const handleRegionPick = useCallback((event: any) => {
-    const selected = parseRegionPickerSelection(event);
-    if (!selected) return;
-    setRegionCode(selected.code);
-    setRegionName(selected.name);
-  }, []);
-
   const save = useCallback(async () => {
     if (!validate()) return;
     try {
@@ -179,14 +173,20 @@ export default function AddressEditPage() {
         </View>
         <View className="form-field">
           <Text className="form-label">地区（可选）</Text>
-          <Picker mode="region" level="region" onChange={handleRegionPick}>
-            <View className="address-region-select">
-              <Text className={regionLabel ? 'address-region-value' : 'address-region-placeholder'}>
-                {regionLabel || '请选择地区'}
-              </Text>
-              <Text className="address-region-arrow">›</Text>
-            </View>
-          </Picker>
+          <View
+            className="address-region-select"
+            onClick={() =>
+              openRegionPickerPage(({ code, name }) => {
+                setRegionCode(code);
+                setRegionName(name);
+              })
+            }
+          >
+            <Text className={regionLabel ? 'address-region-value' : 'address-region-placeholder'}>
+              {regionLabel || '请选择地区'}
+            </Text>
+            <Text className="address-region-arrow">›</Text>
+          </View>
           {regionCode ? (
             <Text
               className="address-region-clear"

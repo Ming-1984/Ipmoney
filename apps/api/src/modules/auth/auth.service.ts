@@ -17,6 +17,7 @@ import { AliyunSmsClient, AliyunSmsError, isReleaseLikeEnv, type SmsPurpose } fr
 import { createAccessToken } from '../../common/access-token';
 import { getDemoAuthConfig } from '../../common/demo';
 import { WechatMpClient, WechatMpError } from '../../common/wechat-mp.client';
+import { resolvePublicFileUrl } from '../content-utils';
 
 const PHONE_RE = /^[0-9]{6,20}$/;
 const SMS_PURPOSE_SET = new Set(['LOGIN', 'BIND_PHONE']);
@@ -315,7 +316,7 @@ export class AuthService {
       id: user.id,
       phone: user.phone ?? undefined,
       nickname: user.nickname ?? undefined,
-      avatarUrl: user.avatarUrl ?? undefined,
+      avatarUrl: resolvePublicFileUrl({ url: user.avatarUrl }) ?? undefined,
       role: user.role,
       verificationStatus: verification?.verificationStatus ?? undefined,
       verificationType: verification?.verificationType ?? undefined,

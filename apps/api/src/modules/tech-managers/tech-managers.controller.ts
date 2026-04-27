@@ -31,4 +31,11 @@ export class TechManagersController {
     requirePermission(req, 'listing.audit');
     return await this.techManagers.updateAdmin(req, techManagerId, body || {});
   }
+
+  @UseGuards(BearerAuthGuard)
+  @Patch('/admin/tech-managers/batch/rating')
+  async batchUpdateRating(@Req() req: any, @Body() body: any) {
+    requirePermission(req, 'listing.audit');
+    return await this.techManagers.batchUpdateRating(req, body || {});
+  }
 }

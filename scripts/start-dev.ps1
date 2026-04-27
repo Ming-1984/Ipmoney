@@ -229,6 +229,33 @@ function Test-DockerAvailable {
   }
 }
 
+function Wait-HttpReady {
+  param(
+    [Parameter(Mandatory = $true)][string]$Url,
+    [int]$TimeoutSeconds = 120,
+    [int]$IntervalMs = 500,
+    [int]$ConsecutiveSuccesses = 4
+  )
+
+  $deadline = (Get-Date).AddSeconds($TimeoutSeconds)
+  $successCount = 0
+  while ((Get-Date) -lt $deadline) {
+    try {
+      $resp = Invoke-WebRequest -Uri $Url -UseBasicParsing -TimeoutSec 2
+      if ($resp.StatusCode -ge 200 -and $resp.StatusCode -lt 300) {
+        $successCount += 1
+        if ($successCount -ge [Math]::Max(1, $ConsecutiveSuccesses)) { return $true }
+      } else {
+        $successCount = 0
+      }
+    } catch {
+      $successCount = 0
+    }
+    Start-Sleep -Milliseconds $IntervalMs
+  }
+  return $false
+}
+
 $envPath = Join-Path $repoRoot ".env"
 if (-not (Test-Path $envPath)) {
   Copy-Item -Path (Join-Path $repoRoot ".env.example") -Destination $envPath -Force
@@ -357,8 +384,20 @@ if ($Client -eq "h5") {
   $clientCommand = "cd `"$repoRoot`"; `$env:TARO_APP_API_BASE_URL='$apiBaseUrl'; `$env:TARO_APP_ENABLE_MOCK_TOOLS='$mockToolsValue'; `$env:CLIENT_H5_PORT='$ClientPort'; pnpm -C apps/client dev:h5"
 }
 
+if (-not $SplitWindows -and $Client -eq "weapp") {
+  Write-Host "[start] weapp mode detected; auto-enabling split windows to avoid API cold-start race."
+  $SplitWindows = $true
+}
+
 if ($SplitWindows) {
   Start-Process $psExe -ArgumentList @("-NoExit", "-ExecutionPolicy", "Bypass", "-Command", $apiCommand) | Out-Null
+  Write-Host "[start] waiting for API health check..."
+  $apiReady = Wait-HttpReady -Url "$apiBaseUrl/health"
+  if ($apiReady) {
+    Write-Host "[start] API health check OK."
+  } else {
+    Write-Warning "[start] API health check timed out. Frontend may see temporary ERR_CONNECTION_REFUSED until API is ready."
+  }
   Start-Process $psExe -ArgumentList @("-NoExit", "-ExecutionPolicy", "Bypass", "-Command", $adminCommand) | Out-Null
   if ($clientCommand) {
     Start-Process $psExe -ArgumentList @("-NoExit", "-ExecutionPolicy", "Bypass", "-Command", $clientCommand) | Out-Null

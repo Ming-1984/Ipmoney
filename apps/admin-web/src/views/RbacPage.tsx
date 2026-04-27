@@ -39,6 +39,8 @@ export function RbacPage() {
   const [roles, setRoles] = useState<Role[]>([]);
   const [permissions, setPermissions] = useState<Permission[]>([]);
   const [users, setUsers] = useState<UserRole[]>([]);
+  const [rolesTablePage, setRolesTablePage] = useState(1);
+  const [rolesTablePageSize, setRolesTablePageSize] = useState(20);
 
   const [newUserName, setNewUserName] = useState('');
   const [newUserPhone, setNewUserPhone] = useState('');
@@ -201,7 +203,20 @@ export function RbacPage() {
         <Table<Role>
           rowKey="id"
           dataSource={roles}
-          pagination={false}
+          pagination={{
+            current: rolesTablePage,
+            pageSize: rolesTablePageSize,
+            total: roles.length,
+            showSizeChanger: true,
+            pageSizeOptions: ['10', '20', '50'],
+            onChange: (nextPage, nextPageSize) => {
+              setRolesTablePage(nextPage);
+              if (nextPageSize && nextPageSize !== rolesTablePageSize) {
+                setRolesTablePageSize(nextPageSize);
+                setRolesTablePage(1);
+              }
+            },
+          }}
           columns={[
             { title: '角色名称', dataIndex: 'name' },
             { title: '说明', dataIndex: 'description', render: (v) => v || '-' },

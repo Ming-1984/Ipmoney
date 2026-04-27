@@ -9,6 +9,7 @@ import {
 import { AuditLogService } from '../../common/audit-log.service';
 import { getDemoAuthConfig } from '../../common/demo';
 import { PrismaService } from '../../common/prisma/prisma.service';
+import { resolvePublicFileUrl } from '../content-utils';
 import { NotificationsService } from '../notifications/notifications.service';
 
 type UserVerificationWhereInput = any;
@@ -179,7 +180,7 @@ export class UsersService {
       id: userRecord.id,
       phone: userRecord.phone ?? undefined,
       nickname: userRecord.nickname ?? undefined,
-      avatarUrl: userRecord.avatarUrl ?? undefined,
+      avatarUrl: resolvePublicFileUrl({ url: userRecord.avatarUrl }) ?? undefined,
       role: userRecord.role,
       verificationStatus: latestVerification?.verificationStatus ?? 'PENDING',
       verificationType: latestVerification?.verificationType ?? null,
@@ -253,7 +254,7 @@ export class UsersService {
       regionCode: verificationRecord.regionCode ?? undefined,
       intro: verificationRecord.intro ?? undefined,
       logoFileId: verificationRecord.logoFileId ?? undefined,
-      logoUrl: verificationRecord.logoFile?.url ?? undefined,
+      logoUrl: resolvePublicFileUrl(verificationRecord.logoFile) ?? undefined,
       evidenceFileIds,
       submittedAt: verificationRecord.submittedAt.toISOString(),
       reviewedAt: verificationRecord.reviewedAt ? verificationRecord.reviewedAt.toISOString() : undefined,

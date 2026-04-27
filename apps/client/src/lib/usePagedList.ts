@@ -79,9 +79,18 @@ export function usePagedList<T>(
   const loadPage = useCallback(
     async (targetPage: number, ctx: ErrorContext, append: boolean) => {
       const requestId = ++requestIdRef.current;
-      if (ctx === 'load') setLoading(true);
-      if (ctx === 'refresh') setRefreshing(true);
-      if (ctx === 'loadMore') setLoadingMore(true);
+      if (ctx === 'load') {
+        loadingRef.current = true;
+        setLoading(true);
+      }
+      if (ctx === 'refresh') {
+        refreshingRef.current = true;
+        setRefreshing(true);
+      }
+      if (ctx === 'loadMore') {
+        loadingMoreRef.current = true;
+        setLoadingMore(true);
+      }
       if (ctx !== 'loadMore') setError(null);
 
       try {
@@ -105,9 +114,18 @@ export function usePagedList<T>(
         }
       } finally {
         if (requestId === requestIdRef.current) {
-          if (ctx === 'load') setLoading(false);
-          if (ctx === 'refresh') setRefreshing(false);
-          if (ctx === 'loadMore') setLoadingMore(false);
+          if (ctx === 'load') {
+            loadingRef.current = false;
+            setLoading(false);
+          }
+          if (ctx === 'refresh') {
+            refreshingRef.current = false;
+            setRefreshing(false);
+          }
+          if (ctx === 'loadMore') {
+            loadingMoreRef.current = false;
+            setLoadingMore(false);
+          }
         }
       }
     },
@@ -115,7 +133,15 @@ export function usePagedList<T>(
   );
 
   const reload = useCallback(async () => {
-    if (loadingRef.current || refreshingRef.current || loadingMoreRef.current) return;
+    // Force a fresh first-page load: cancel stale inflight requests and bypass
+    // transient loading flags so route-prefill auto search can reliably trigger.
+    requestIdRef.current += 1;
+    loadingRef.current = false;
+    refreshingRef.current = false;
+    loadingMoreRef.current = false;
+    setLoading(false);
+    setRefreshing(false);
+    setLoadingMore(false);
     await loadPage(1, 'load', false);
   }, [loadPage]);
 
@@ -139,6 +165,10 @@ export function usePagedList<T>(
 
   const reset = useCallback(() => {
     requestIdRef.current += 1;
+    loadingRef.current = false;
+    refreshingRef.current = false;
+    loadingMoreRef.current = false;
+    itemsLengthRef.current = 0;
     setItems([]);
     setPage(1);
     setPageInfo(null);

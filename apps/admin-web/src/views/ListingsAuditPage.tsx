@@ -142,9 +142,13 @@ export function ListingsAuditPage() {
 
   const [batchJobsLoading, setBatchJobsLoading] = useState(false);
   const [batchJobs, setBatchJobs] = useState<Paged<BatchJob> | null>(null);
+  const [batchJobsPage, setBatchJobsPage] = useState(1);
+  const [batchJobsPageSize, setBatchJobsPageSize] = useState(20);
   const [activeBatchJob, setActiveBatchJob] = useState<BatchJob | null>(null);
   const [batchItemsLoading, setBatchItemsLoading] = useState(false);
   const [batchItems, setBatchItems] = useState<Paged<BatchJobItem> | null>(null);
+  const [batchItemsPage, setBatchItemsPage] = useState(1);
+  const [batchItemsPageSize, setBatchItemsPageSize] = useState(20);
   const [batchDrawerOpen, setBatchDrawerOpen] = useState(false);
 
   const [importing, setImporting] = useState(false);
@@ -161,9 +165,13 @@ export function ListingsAuditPage() {
 
   const [importJobsLoading, setImportJobsLoading] = useState(false);
   const [importJobs, setImportJobs] = useState<Paged<ImportJob> | null>(null);
+  const [importJobsPage, setImportJobsPage] = useState(1);
+  const [importJobsPageSize, setImportJobsPageSize] = useState(20);
   const [activeImportJob, setActiveImportJob] = useState<ImportJob | null>(null);
   const [importRowsLoading, setImportRowsLoading] = useState(false);
   const [importRows, setImportRows] = useState<Paged<ImportRow> | null>(null);
+  const [importRowsPage, setImportRowsPage] = useState(1);
+  const [importRowsPageSize, setImportRowsPageSize] = useState(20);
   const [importDrawerOpen, setImportDrawerOpen] = useState(false);
 
   const selectedListingIds = useMemo(
@@ -194,12 +202,14 @@ export function ListingsAuditPage() {
     }
   }, [appliedAuditStatus, appliedListingTopic, appliedQ, appliedSource, appliedStatus, page, pageSize]);
 
-  const loadBatchJobs = useCallback(async () => {
+  const loadBatchJobs = useCallback(async (opts?: { page?: number; pageSize?: number }) => {
+    const nextPage = opts?.page ?? batchJobsPage;
+    const nextPageSize = opts?.pageSize ?? batchJobsPageSize;
     setBatchJobsLoading(true);
     try {
       const data = await apiGet<Paged<BatchJob>>('/admin/listings/jobs/batch', {
-        page: 1,
-        pageSize: 20,
+        page: nextPage,
+        pageSize: nextPageSize,
       });
       setBatchJobs(data);
     } catch (e: any) {
@@ -208,14 +218,16 @@ export function ListingsAuditPage() {
     } finally {
       setBatchJobsLoading(false);
     }
-  }, []);
+  }, [batchJobsPage, batchJobsPageSize]);
 
-  const loadImportJobs = useCallback(async () => {
+  const loadImportJobs = useCallback(async (opts?: { page?: number; pageSize?: number }) => {
+    const nextPage = opts?.page ?? importJobsPage;
+    const nextPageSize = opts?.pageSize ?? importJobsPageSize;
     setImportJobsLoading(true);
     try {
       const data = await apiGet<Paged<ImportJob>>('/admin/listings/jobs/import', {
-        page: 1,
-        pageSize: 20,
+        page: nextPage,
+        pageSize: nextPageSize,
       });
       setImportJobs(data);
     } catch (e: any) {
@@ -224,15 +236,19 @@ export function ListingsAuditPage() {
     } finally {
       setImportJobsLoading(false);
     }
-  }, []);
+  }, [importJobsPage, importJobsPageSize]);
 
   useEffect(() => {
     void loadListings();
   }, [loadListings]);
 
   useEffect(() => {
-    void Promise.all([loadBatchJobs(), loadImportJobs()]);
-  }, [loadBatchJobs, loadImportJobs]);
+    void loadBatchJobs();
+  }, [batchJobsPage, batchJobsPageSize, loadBatchJobs]);
+
+  useEffect(() => {
+    void loadImportJobs();
+  }, [importJobsPage, importJobsPageSize, loadImportJobs]);
 
   useEffect(() => {
     setSelectedRowKeys([]);
@@ -332,11 +348,13 @@ export function ListingsAuditPage() {
   const openBatchJobItems = useCallback(async (job: BatchJob) => {
     setBatchDrawerOpen(true);
     setActiveBatchJob(job);
+    setBatchItemsPage(1);
+    setBatchItemsPageSize(20);
     setBatchItemsLoading(true);
     try {
       const data = await apiGet<Paged<BatchJobItem>>(`/admin/listings/jobs/batch/${job.id}/items`, {
         page: 1,
-        pageSize: 500,
+        pageSize: 20,
       });
       setBatchItems(data);
     } catch (e: any) {
@@ -347,14 +365,37 @@ export function ListingsAuditPage() {
     }
   }, []);
 
+  const loadBatchJobItems = useCallback(
+    async (job: BatchJob, opts?: { page?: number; pageSize?: number }) => {
+      const nextPage = opts?.page ?? batchItemsPage;
+      const nextPageSize = opts?.pageSize ?? batchItemsPageSize;
+      setBatchItemsLoading(true);
+      try {
+        const data = await apiGet<Paged<BatchJobItem>>(`/admin/listings/jobs/batch/${job.id}/items`, {
+          page: nextPage,
+          pageSize: nextPageSize,
+        });
+        setBatchItems(data);
+      } catch (e: any) {
+        message.error(e?.message || '加载批量任务明细失败');
+        setBatchItems(null);
+      } finally {
+        setBatchItemsLoading(false);
+      }
+    },
+    [batchItemsPage, batchItemsPageSize],
+  );
+
   const openImportJobRows = useCallback(async (job: ImportJob) => {
     setImportDrawerOpen(true);
     setActiveImportJob(job);
+    setImportRowsPage(1);
+    setImportRowsPageSize(20);
     setImportRowsLoading(true);
     try {
       const data = await apiGet<Paged<ImportRow>>(`/admin/listings/jobs/import/${job.id}/rows`, {
         page: 1,
-        pageSize: 500,
+        pageSize: 20,
       });
       setImportRows(data);
     } catch (e: any) {
@@ -364,6 +405,37 @@ export function ListingsAuditPage() {
       setImportRowsLoading(false);
     }
   }, []);
+
+  const loadImportJobRows = useCallback(
+    async (job: ImportJob, opts?: { page?: number; pageSize?: number }) => {
+      const nextPage = opts?.page ?? importRowsPage;
+      const nextPageSize = opts?.pageSize ?? importRowsPageSize;
+      setImportRowsLoading(true);
+      try {
+        const data = await apiGet<Paged<ImportRow>>(`/admin/listings/jobs/import/${job.id}/rows`, {
+          page: nextPage,
+          pageSize: nextPageSize,
+        });
+        setImportRows(data);
+      } catch (e: any) {
+        message.error(e?.message || '加载导入明细失败');
+        setImportRows(null);
+      } finally {
+        setImportRowsLoading(false);
+      }
+    },
+    [importRowsPage, importRowsPageSize],
+  );
+
+  useEffect(() => {
+    if (!activeBatchJob || !batchDrawerOpen) return;
+    void loadBatchJobItems(activeBatchJob, { page: batchItemsPage, pageSize: batchItemsPageSize });
+  }, [activeBatchJob, batchDrawerOpen, batchItemsPage, batchItemsPageSize, loadBatchJobItems]);
+
+  useEffect(() => {
+    if (!activeImportJob || !importDrawerOpen) return;
+    void loadImportJobRows(activeImportJob, { page: importRowsPage, pageSize: importRowsPageSize });
+  }, [activeImportJob, importDrawerOpen, importRowsPage, importRowsPageSize, loadImportJobRows]);
 
   const runImport = useCallback(async () => {
     const file = uploadFileList?.[0]?.originFileObj as File | undefined;
@@ -512,10 +584,12 @@ export function ListingsAuditPage() {
               showSizeChanger: true,
               pageSizeOptions: ['10', '20', '50'],
               onChange: (nextPage, nextPageSize) => {
-                setPage(nextPage);
                 if (nextPageSize && nextPageSize !== pageSize) {
                   setPageSize(nextPageSize);
+                  setPage(1);
+                  return;
                 }
+                setPage(nextPage);
               },
             }}
             columns={[
@@ -581,7 +655,22 @@ export function ListingsAuditPage() {
           rowKey="id"
           loading={batchJobsLoading}
           dataSource={batchJobs?.items || []}
-          pagination={false}
+          pagination={{
+            current: batchJobs?.page.page || batchJobsPage,
+            pageSize: batchJobs?.page.pageSize || batchJobsPageSize,
+            total: batchJobs?.page.total || 0,
+            showSizeChanger: true,
+            pageSizeOptions: ['10', '20', '50'],
+            onChange: (nextPage, nextPageSize) => {
+              const normalizedPageSize = nextPageSize || batchJobsPageSize;
+              if (normalizedPageSize !== batchJobsPageSize) {
+                setBatchJobsPageSize(normalizedPageSize);
+                setBatchJobsPage(1);
+                return;
+              }
+              setBatchJobsPage(nextPage);
+            },
+          }}
           columns={[
             { title: '任务ID', dataIndex: 'id', width: 220 },
             { title: '动作', dataIndex: 'action', width: 120, render: (v: BatchAction) => actionLabel(v) },
@@ -739,7 +828,22 @@ export function ListingsAuditPage() {
           rowKey="id"
           loading={importJobsLoading}
           dataSource={importJobs?.items || []}
-          pagination={false}
+          pagination={{
+            current: importJobs?.page.page || importJobsPage,
+            pageSize: importJobs?.page.pageSize || importJobsPageSize,
+            total: importJobs?.page.total || 0,
+            showSizeChanger: true,
+            pageSizeOptions: ['10', '20', '50'],
+            onChange: (nextPage, nextPageSize) => {
+              const normalizedPageSize = nextPageSize || importJobsPageSize;
+              if (normalizedPageSize !== importJobsPageSize) {
+                setImportJobsPageSize(normalizedPageSize);
+                setImportJobsPage(1);
+                return;
+              }
+              setImportJobsPage(nextPage);
+            },
+          }}
           columns={[
             { title: '任务ID', dataIndex: 'id', width: 220 },
             { title: '重复策略', dataIndex: 'duplicatePolicy', width: 110 },
@@ -791,7 +895,22 @@ export function ListingsAuditPage() {
           rowKey="id"
           loading={batchItemsLoading}
           dataSource={batchItems?.items || []}
-          pagination={false}
+          pagination={{
+            current: batchItems?.page.page || batchItemsPage,
+            pageSize: batchItems?.page.pageSize || batchItemsPageSize,
+            total: batchItems?.page.total || 0,
+            showSizeChanger: true,
+            pageSizeOptions: ['10', '20', '50', '100'],
+            onChange: (nextPage, nextPageSize) => {
+              const normalizedPageSize = nextPageSize || batchItemsPageSize;
+              if (normalizedPageSize !== batchItemsPageSize) {
+                setBatchItemsPageSize(normalizedPageSize);
+                setBatchItemsPage(1);
+                return;
+              }
+              setBatchItemsPage(nextPage);
+            },
+          }}
           columns={[
             { title: '挂牌ID', dataIndex: 'listingId', width: 220 },
             { title: '状态', dataIndex: 'status', width: 120, render: (v: BatchItemStatus) => statusTag(v) },
@@ -817,7 +936,22 @@ export function ListingsAuditPage() {
           rowKey="id"
           loading={importRowsLoading}
           dataSource={importRows?.items || []}
-          pagination={false}
+          pagination={{
+            current: importRows?.page.page || importRowsPage,
+            pageSize: importRows?.page.pageSize || importRowsPageSize,
+            total: importRows?.page.total || 0,
+            showSizeChanger: true,
+            pageSizeOptions: ['10', '20', '50', '100'],
+            onChange: (nextPage, nextPageSize) => {
+              const normalizedPageSize = nextPageSize || importRowsPageSize;
+              if (normalizedPageSize !== importRowsPageSize) {
+                setImportRowsPageSize(normalizedPageSize);
+                setImportRowsPage(1);
+                return;
+              }
+              setImportRowsPage(nextPage);
+            },
+          }}
           columns={[
             { title: '行号', dataIndex: 'rowNo', width: 90 },
             { title: '状态', dataIndex: 'status', width: 120, render: (v: ImportRowStatus) => statusTag(v) },

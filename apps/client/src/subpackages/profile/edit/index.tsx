@@ -1,4 +1,4 @@
-﻿import { Button as TaroButton, Picker, Text, View } from '@tarojs/components';
+﻿import { Button as TaroButton, Text, View } from '@tarojs/components';
 import Taro from '@tarojs/taro';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import './index.scss';
@@ -11,7 +11,8 @@ import { apiGet, apiPatch, apiPost } from '../../../lib/api';
 import { getDetailCache, setDetailCache } from '../../../lib/detailCache';
 import { requireLogin } from '../../../lib/guard';
 import { normalizePageUrl } from '../../../lib/navigation';
-import { parseRegionPickerSelection, regionDisplayName } from '../../../lib/regions';
+import { openRegionPickerPage } from '../../../lib/regionPicker';
+import { regionDisplayName } from '../../../lib/regions';
 import { uploadWithRetry } from '../../../lib/upload';
 import { ErrorCard, LoadingCard } from '../../../ui/StateCards';
 import { Photograph } from '../../../ui/icons';
@@ -255,13 +256,6 @@ export default function ProfileEditPage() {
 
   const regionText = useMemo(() => regionDisplayName(regionCode, regionName, ''), [regionCode, regionName]);
 
-  const handleRegionPick = useCallback((event: any) => {
-    const selected = parseRegionPickerSelection(event);
-    if (!selected) return;
-    setRegionCode(selected.code);
-    setRegionName(selected.name);
-  }, []);
-
   return (
     <View className="container profile-edit-page">
       <PageHeader title="资料设置" subtitle="更新头像、昵称和地区，用于展示与推荐" />
@@ -329,14 +323,20 @@ export default function ProfileEditPage() {
 
               <View className="form-field">
                 <Text className="form-label">地区</Text>
-                <Picker mode="region" level="region" onChange={handleRegionPick}>
-                  <View className="form-select">
-                    <Text className={regionCode.trim() ? 'form-select-value' : 'form-select-placeholder'}>
-                      {regionCode.trim() ? regionText : '请选择'}
-                    </Text>
-                    <Text className="form-select-arrow">›</Text>
-                  </View>
-                </Picker>
+                <View
+                  className="form-select"
+                  onClick={() =>
+                    openRegionPickerPage(({ code, name }) => {
+                      setRegionCode(code);
+                      setRegionName(name);
+                    })
+                  }
+                >
+                  <Text className={regionCode.trim() ? 'form-select-value' : 'form-select-placeholder'}>
+                    {regionCode.trim() ? regionText : '请选择'}
+                  </Text>
+                  <Text className="form-select-arrow">›</Text>
+                </View>
               </View>
             </View>
           </Surface>

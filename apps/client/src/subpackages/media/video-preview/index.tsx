@@ -5,21 +5,13 @@ import './index.scss';
 
 import { apiGet } from '../../../lib/api';
 import { buildHomeBannerItems, clampBannerIndex, type BannerConfig, type HomeBannerItem } from '../../../lib/homeBannerConfig';
-import { ensureWeappVideoSrc } from '../../../lib/localMedia';
 
 export default function VideoPreviewPage() {
   const params = Taro.getCurrentInstance().router?.params;
   const [bannerItems, setBannerItems] = useState<HomeBannerItem[]>(() => buildHomeBannerItems());
   const [activeIndex, setActiveIndex] = useState(0);
   const previousIndexRef = useRef(0);
-  const [videoSources, setVideoSources] = useState<string[]>(() =>
-    bannerItems.map((item) => {
-      if (process.env.TARO_ENV !== 'weapp') {
-        return item.source === 'local' ? item.asset || '' : item.videoUrl || '';
-      }
-      return item.source === 'remote' ? item.videoUrl || '' : '';
-    }),
-  );
+  const [videoSources, setVideoSources] = useState<string[]>(() => bannerItems.map((item) => item.videoUrl || ''));
 
   useEffect(() => {
     let cancelled = false;
@@ -37,14 +29,7 @@ export default function VideoPreviewPage() {
   }, []);
 
   useEffect(() => {
-    setVideoSources(
-      bannerItems.map((item) => {
-        if (process.env.TARO_ENV !== 'weapp') {
-          return item.source === 'local' ? item.asset || '' : item.videoUrl || '';
-        }
-        return item.source === 'remote' ? item.videoUrl || '' : '';
-      }),
-    );
+    setVideoSources(bannerItems.map((item) => item.videoUrl || ''));
   }, [bannerItems]);
 
   useEffect(() => {
@@ -53,41 +38,6 @@ export default function VideoPreviewPage() {
     setActiveIndex(nextIndex);
     previousIndexRef.current = nextIndex;
   }, [params?.i, bannerItems.length]);
-
-  useEffect(() => {
-    if (process.env.TARO_ENV !== 'weapp') return () => {};
-    if (!bannerItems.length) return () => {};
-    let cancelled = false;
-    const loadIndexes = Array.from(
-      new Set([activeIndex, (activeIndex + 1) % bannerItems.length]),
-    );
-    loadIndexes.forEach((idx) => {
-      const item = bannerItems[idx];
-      if (!item || item.source !== 'local') return;
-      if (videoSources[idx]) return;
-      const { asset, fileName } = item;
-      if (!asset || !fileName) return;
-      (async () => {
-        try {
-          const resolved = await ensureWeappVideoSrc(asset, fileName);
-          if (cancelled) return;
-          setVideoSources((prev) => {
-            if (prev[idx]) return prev;
-            const next = [...prev];
-            next[idx] = resolved;
-            return next;
-          });
-        } catch (e) {
-          if (cancelled) return;
-          // eslint-disable-next-line no-console
-          console.warn('Video preview load failed', e);
-        }
-      })();
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, [activeIndex, bannerItems, videoSources]);
 
   useEffect(() => {
     if (process.env.TARO_ENV !== 'weapp') return;

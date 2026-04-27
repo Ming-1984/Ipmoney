@@ -175,6 +175,10 @@ export default defineAppConfig({
       pages: ['index'],
     },
     {
+      root: 'subpackages/region-picker',
+      pages: ['index'],
+    },
+    {
       root: 'subpackages/media',
       pages: ['video-preview/index'],
     },

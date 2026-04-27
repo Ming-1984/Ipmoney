@@ -1,4 +1,4 @@
-import { View, Text, Image, Picker } from '@tarojs/components';
+import { View, Text, Image } from '@tarojs/components';
 import Taro from '@tarojs/taro';
 import React, { useCallback, useMemo, useState } from 'react';
 import './index.scss';
@@ -9,7 +9,8 @@ import { API_BASE_URL } from '../../../constants';
 import { getToken, getVerificationType, setOnboardingDone, setVerificationStatus } from '../../../lib/auth';
 import { apiPost } from '../../../lib/api';
 import { requireLogin } from '../../../lib/guard';
-import { parseRegionPickerSelection, regionDisplayName } from '../../../lib/regions';
+import { openRegionPickerPage } from '../../../lib/regionPicker';
+import { regionDisplayName } from '../../../lib/regions';
 import { uploadWithRetry } from '../../../lib/upload';
 import { PageHeader, SectionHeader, Spacer, Surface, TipBanner } from '../../../ui/layout';
 import { Button, Input, TextArea, confirm, toast } from '../../../ui/nutui';
@@ -202,13 +203,6 @@ export default function VerificationFormPage() {
     const ok = await confirm({ title: '移除材料', content: '确定移除该材料？', confirmText: '移除', cancelText: '取消' });
     if (!ok) return;
     setEvidenceFiles((prev) => prev.filter((x) => x.id !== f.id));
-  }, []);
-
-  const handleRegionPick = useCallback((event: any) => {
-    const selected = parseRegionPickerSelection(event);
-    if (!selected) return;
-    setRegionCode(selected.code);
-    setRegionName(selected.name);
   }, []);
 
   const submit = useCallback(async () => {
@@ -409,14 +403,20 @@ export default function VerificationFormPage() {
 
             <View className="form-field">
               <Text className="form-label">所在地区（可选）</Text>
-              <Picker mode="region" level="region" onChange={handleRegionPick}>
-                <View className="verification-region-select">
-                  <Text className={regionLabel ? 'verification-region-value' : 'verification-region-placeholder'}>
-                    {regionLabel || '请选择地区'}
-                  </Text>
-                  <Text className="verification-region-arrow">›</Text>
-                </View>
-              </Picker>
+              <View
+                className="verification-region-select"
+                onClick={() =>
+                  openRegionPickerPage(({ code, name }) => {
+                    setRegionCode(code);
+                    setRegionName(name);
+                  })
+                }
+              >
+                <Text className={regionLabel ? 'verification-region-value' : 'verification-region-placeholder'}>
+                  {regionLabel || '请选择地区'}
+                </Text>
+                <Text className="verification-region-arrow">›</Text>
+              </View>
             </View>
 
             <View className="form-field">

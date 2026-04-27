@@ -4,10 +4,11 @@ import path from 'node:path';
 import crypto from 'node:crypto';
 
 import { PrismaService } from '../../common/prisma/prisma.service';
+import { resolveUploadDir } from '../../common/upload-dir';
 import { requirePermission } from '../../common/permissions';
 import { FilesService } from '../files/files.service';
 
-const UPLOAD_DIR = process.env.UPLOAD_DIR || path.resolve(process.cwd(), 'uploads');
+const UPLOAD_DIR = resolveUploadDir();
 
 @Injectable()
 export class ReportsService {

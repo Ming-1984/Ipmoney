@@ -517,6 +517,12 @@ model User {
 model TechManagerProfile {
   userId         String   @id @map("user_id") @db.Uuid
   intro          String?
+  position       String?  @map("position")
+  organization   String?  @map("organization")
+  serviceDirectionsJson Json? @map("service_directions_json")
+  workHighlights String?  @map("work_highlights")
+  contactName    String?  @map("contact_name")
+  contactPhone   String?  @map("contact_phone")
   serviceTagsJson Json?   @map("service_tags_json")
   featuredRank   Int?     @map("featured_rank")
   featuredUntil  DateTime? @map("featured_until")
@@ -834,6 +840,12 @@ model Achievement {
   id                   String              @id @default(uuid()) @db.Uuid
   publisherUserId      String              @map("publisher_user_id") @db.Uuid
   source               ContentSource       @default(USER)
+  externalId           String?             @unique @map("external_id")
+  sourceRawCategory    String?             @map("source_raw_category")
+  sourceRawStatus      String?             @map("source_raw_status")
+  sourceBatch          String?             @map("source_batch")
+  sourceRawRegion      String?             @map("source_raw_region")
+  sourceOrgName        String?             @map("source_org_name")
   title                String
   summary              String?
   description          String?
@@ -859,6 +871,7 @@ model Achievement {
   @@index([auditStatus, status])
   @@index([status, auditStatus, createdAt])
   @@index([regionCode])
+  @@index([sourceBatch, createdAt])
   @@map("achievements")
 }
 

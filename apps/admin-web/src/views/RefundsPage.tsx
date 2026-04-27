@@ -33,6 +33,8 @@ export function RefundsPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<unknown | null>(null);
   const [data, setData] = useState<RefundRequest[] | null>(null);
+  const [tablePage, setTablePage] = useState(1);
+  const [tablePageSize, setTablePageSize] = useState(20);
 
   const load = useCallback(async () => {
     if (!orderId) return;
@@ -94,7 +96,20 @@ export function RefundsPage() {
           rowKey="id"
           loading={loading}
           dataSource={rows}
-          pagination={false}
+          pagination={{
+            current: tablePage,
+            pageSize: tablePageSize,
+            total: rows.length,
+            showSizeChanger: true,
+            pageSizeOptions: ['10', '20', '50'],
+            onChange: (nextPage, nextPageSize) => {
+              setTablePage(nextPage);
+              if (nextPageSize && nextPageSize !== tablePageSize) {
+                setTablePageSize(nextPageSize);
+                setTablePage(1);
+              }
+            },
+          }}
           columns={[
             { title: '退款单号', dataIndex: 'id' },
             { title: '订单号', dataIndex: 'orderId' },

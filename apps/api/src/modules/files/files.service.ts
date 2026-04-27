@@ -6,6 +6,7 @@ import { GetObjectCommand, PutObjectCommand, S3Client } from '@aws-sdk/client-s3
 import crypto from 'node:crypto';
 
 import { PrismaService } from '../../common/prisma/prisma.service';
+import { resolveUploadDir } from '../../common/upload-dir';
 
 type FileObjectDto = {
   id: string;
@@ -16,7 +17,7 @@ type FileObjectDto = {
   createdAt: string;
 };
 
-const UPLOAD_DIR = process.env.UPLOAD_DIR || path.resolve(process.cwd(), 'uploads');
+const UPLOAD_DIR = resolveUploadDir();
 const S3_ENDPOINT = process.env.S3_ENDPOINT || '';
 const S3_REGION = process.env.S3_REGION || 'auto';
 const S3_ACCESS_KEY_ID = process.env.S3_ACCESS_KEY_ID || '';

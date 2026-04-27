@@ -1,10 +1,9 @@
 import { NestFactory } from '@nestjs/core';
 import { NestExpressApplication } from '@nestjs/platform-express';
 import { mkdirSync } from 'node:fs';
-import path from 'node:path';
-
 import { AppModule } from './app.module';
 import { AllExceptionsFilter } from './common/filters/all-exceptions.filter';
+import { resolveUploadDir } from './common/upload-dir';
 import { requestIdMiddleware } from './common/request-id.middleware';
 import { requestLoggerMiddleware } from './common/request-logger.middleware';
 
@@ -151,7 +150,7 @@ async function bootstrap() {
   app.use(requestLoggerMiddleware);
   app.useGlobalFilters(new AllExceptionsFilter());
 
-  const uploadDir = process.env.UPLOAD_DIR || path.resolve(process.cwd(), 'uploads');
+  const uploadDir = resolveUploadDir();
   mkdirSync(uploadDir, { recursive: true });
   app.useStaticAssets(uploadDir, { prefix: '/uploads' });
 

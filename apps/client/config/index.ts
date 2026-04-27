@@ -130,16 +130,7 @@ export default ((merge, env) => {
       enable: !isDev,
     },
     copy: {
-      patterns: [
-        {
-          from: path.resolve(__dirname, '..', 'src/assets/home/banner-local-1.mp4'),
-          to: 'assets/home/banner-local-1.mp4',
-        },
-        {
-          from: path.resolve(__dirname, '..', 'src/assets/home/banner-local-2.mp4'),
-          to: 'assets/home/banner-local-2.mp4',
-        },
-      ],
+      patterns: [],
       options: {},
     },
     h5: {

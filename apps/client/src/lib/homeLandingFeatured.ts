@@ -1,26 +1,27 @@
 import Taro from '@tarojs/taro';
 
-import bgZoneSleeping from '../assets/home/zones/zone-sleeping.jpg';
-import bgZoneHighTechRetired from '../assets/home/zones/zone-high-tech-retired.jpg';
-import bgZoneOpenLicense from '../assets/home/zones/zone-open-license.jpg';
-import bgZoneAward from '../assets/home/zones/zone-award.jpg';
+import zoneAward from '../assets/home/zones/zone-award.weapp.jpg';
+import zoneHighTechRetired from '../assets/home/zones/zone-high-tech-retired.weapp.jpg';
+import zoneOpenLicense from '../assets/home/zones/zone-open-license.weapp.jpg';
+import zoneSleeping from '../assets/home/zones/zone-sleeping.weapp.jpg';
 import { STORAGE_KEYS } from '../constants';
 import type { HomeLandingActionType, HomeLandingFeaturedItem } from './homeLandingConfig';
 
 const BUILTIN_ZONE_IMAGE_MAP: Record<string, string> = {
-  'builtin://zone-retired': bgZoneHighTechRetired,
-  'builtin://zone-sleeping': bgZoneSleeping,
-  'builtin://zone-award-winning': bgZoneAward,
-  'builtin://zone-award': bgZoneAward,
-  'builtin://zone-five-star': bgZoneAward,
-  'builtin://zone-open-license': bgZoneOpenLicense,
+  'builtin://zone-retired': zoneHighTechRetired,
+  'builtin://zone-high-tech-retired': zoneHighTechRetired,
+  'builtin://zone-sleeping': zoneSleeping,
+  'builtin://zone-award-winning': zoneAward,
+  'builtin://zone-award': zoneAward,
+  'builtin://zone-five-star': zoneAward,
+  'builtin://zone-open-license': zoneOpenLicense,
 };
 
 export const HOME_ZONE_TONES = ['tone-orange', 'tone-blue', 'tone-green', 'tone-teal', 'tone-orange', 'tone-blue'] as const;
 
 export function resolveHomeLandingZoneImage(imageUrl: string): string {
   const normalized = String(imageUrl || '').trim();
-  return BUILTIN_ZONE_IMAGE_MAP[normalized] || normalized || bgZoneAward;
+  return BUILTIN_ZONE_IMAGE_MAP[normalized] || normalized || zoneHighTechRetired;
 }
 
 export function executeHomeLandingAction(
@@ -42,6 +43,7 @@ export function executeHomeLandingAction(
     ...(actionPayload.q ? { q: actionPayload.q } : {}),
     ...(actionPayload.listingTopic ? { listingTopic: actionPayload.listingTopic } : {}),
     ...(actionPayload.patentType ? { patentType: actionPayload.patentType } : {}),
+    prefillSource: 'FEATURED_ZONE',
     reset: actionPayload.reset !== false,
   });
   Taro.navigateTo({ url: '/subpackages/search/index' });

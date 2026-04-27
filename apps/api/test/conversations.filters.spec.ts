@@ -416,6 +416,7 @@ describe('ConversationsService pagination and id strictness suite', () => {
                 { contentType: 'SUPPORT' },
                 { contentType: 'DISPUTE' },
                 { contentType: 'MAINTENANCE' },
+                { contentType: 'ACHIEVEMENT' },
                 { contentType: 'LISTING', listing: { consultationRouting: 'PLATFORM' } },
               ],
             },

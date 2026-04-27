@@ -22,6 +22,7 @@ docs/demo/rendered/**
 !docs/demo/rendered/README.md
 # Local IPC classification source files (CNIPA/WIPO)
 docs/ipc/
+docs/patent
 
 # API local upload temp artifacts from smoke/verify
 apps/api/uploads/*.csv

@@ -204,6 +204,7 @@ export function DashboardPage() {
         { label: '上架审核', to: '/listings', tone: 'gold' as const, permission: 'listing.read' },
         { label: '平台会话', to: '/conversations/platform', tone: 'cyan' as const, permission: 'conversation.platform.manage' },
         { label: '专利批量运营', to: '/patents/operations', tone: 'green' as const, permission: 'patent.import' },
+        { label: '统一批量导入', to: '/imports/bulk', tone: 'volcano' as const, permission: 'patent.import' },
         { label: '\u9996\u9875\u8fd0\u8425\u914d\u7f6e', to: '/config/home-landing', tone: 'purple' as const, permission: 'config.manage' },
         { label: '账号权限', to: '/rbac', tone: 'blue' as const, permission: 'rbac.manage' },
         { label: '审计日志', to: '/audit-logs', tone: 'default' as const, permission: 'auditLog.read' },

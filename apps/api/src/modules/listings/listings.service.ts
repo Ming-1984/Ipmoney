@@ -15,8 +15,9 @@ type ListingTopic = 'HIGH_TECH_RETIRED' | 'SLEEPING' | 'AWARD_WINNING' | 'FIVE_S
 import { AuditLogService } from '../../common/audit-log.service';
 import { ContentEventService } from '../../common/content-event.service';
 import { PrismaService } from '../../common/prisma/prisma.service';
+import { resolveUploadDir } from '../../common/upload-dir';
 import { NotificationsService } from '../notifications/notifications.service';
-import { mapStats, sanitizeIndustryTagNames } from '../content-utils';
+import { mapStats, resolvePublicFileUrl, sanitizeIndustryTagNames } from '../content-utils';
 import { ConfigService, type RecommendationConfig } from '../config/config.service';
 import { FilesService } from '../files/files.service';
 import { readWorkbookRowsFromBuffer } from '../../common/workbook-reader';
@@ -177,7 +178,7 @@ type ListingImportDefaults = {
   auditStatus?: AuditStatus;
 };
 
-const UPLOAD_DIR = process.env.UPLOAD_DIR || path.resolve(process.cwd(), 'uploads');
+const UPLOAD_DIR = resolveUploadDir();
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const REGION_CODE_RE = /^[0-9]{6}$/;
 const LISTING_JOB_STATUS_SET = new Set<ListingJobStatus>(['PENDING', 'RUNNING', 'PAUSED', 'SUCCEEDED', 'FAILED']);
@@ -1593,6 +1594,10 @@ export class ListingsService {
 
   private toListingSummary(it: any, recommendationScore?: number | null) {
     const meta = this.extractPatentMeta(it.patent);
+    const coverFile = Array.isArray(it.media)
+      ? it.media.find((mediaItem: any) => String(mediaItem?.type || '').toUpperCase() === 'IMAGE' && mediaItem?.file)
+          ?.file
+      : null;
     return {
       id: it.id,
       source: it.source ?? 'USER',
@@ -1638,7 +1643,7 @@ export class ListingsService {
       consultationRouting: it.consultationRouting ?? 'PLATFORM',
       auditStatus: it.auditStatus,
       status: it.status,
-      coverUrl: null,
+      coverUrl: resolvePublicFileUrl(coverFile),
       createdAt: it.createdAt.toISOString(),
       updatedAt: it.updatedAt.toISOString(),
       stats: mapStats(it.stats),
@@ -3218,6 +3223,30 @@ export class ListingsService {
             OR: [{ patent: { transferCount: 0 } }, { listingTopicsJson: { array_contains: ['SLEEPING'] } }],
           };
         }
+        if (topic === 'HIGH_TECH_RETIRED') {
+          return {
+            OR: [
+              { listingTopicsJson: { array_contains: ['HIGH_TECH_RETIRED'] } },
+              { patent: { legalStatus: { in: ['EXPIRED', 'INVALIDATED'] } } },
+            ],
+          };
+        }
+        if (topic === 'AWARD_WINNING') {
+          return {
+            OR: [
+              { listingTopicsJson: { array_contains: ['AWARD_WINNING'] } },
+              { featuredLevel: { not: 'NONE' } },
+            ],
+          };
+        }
+        if (topic === 'FIVE_STAR') {
+          return {
+            OR: [
+              { listingTopicsJson: { array_contains: ['FIVE_STAR'] } },
+              { featuredLevel: { not: 'NONE' } },
+            ],
+          };
+        }
         return { listingTopicsJson: { array_contains: [topic] } };
       });
       where.AND = [...(Array.isArray(where.AND) ? where.AND : []), ...listingTopicFilters];
@@ -3325,12 +3354,19 @@ export class ListingsService {
       } else if (qType == 'KEYWORD') {
         if (ftsIds.length > 0) {
           orFilters.push({ id: { in: ftsIds } });
-        } else {
-          orFilters.push({ title: { contains: q, mode: 'insensitive' } });
-          orFilters.push({ summary: { contains: q, mode: 'insensitive' } });
-          orFilters.push({ patent: { title: { contains: q, mode: 'insensitive' } } });
-          orFilters.push({ patent: { abstract: { contains: q, mode: 'insensitive' } } });
         }
+        orFilters.push({ title: { contains: q, mode: 'insensitive' } });
+        orFilters.push({ summary: { contains: q, mode: 'insensitive' } });
+        orFilters.push({ patent: { title: { contains: q, mode: 'insensitive' } } });
+        orFilters.push({ patent: { abstract: { contains: q, mode: 'insensitive' } } });
+        orFilters.push({ patent: { applicationNoDisplay: { contains: q, mode: 'insensitive' } } });
+        orFilters.push({ patent: { publicationNoDisplay: { contains: q, mode: 'insensitive' } } });
+        orFilters.push({ patent: { patentNoDisplay: { contains: q, mode: 'insensitive' } } });
+        orFilters.push({
+          patent: {
+            classifications: { some: { code: { contains: q.toUpperCase() } } },
+          },
+        });
       } else {
         if (ftsIds.length > 0) {
           orFilters.push({ id: { in: ftsIds } });
@@ -3339,6 +3375,14 @@ export class ListingsService {
         orFilters.push({ summary: { contains: q, mode: 'insensitive' } });
         orFilters.push({ patent: { title: { contains: q, mode: 'insensitive' } } });
         orFilters.push({ patent: { abstract: { contains: q, mode: 'insensitive' } } });
+        orFilters.push({ patent: { applicationNoDisplay: { contains: q, mode: 'insensitive' } } });
+        orFilters.push({ patent: { publicationNoDisplay: { contains: q, mode: 'insensitive' } } });
+        orFilters.push({ patent: { patentNoDisplay: { contains: q, mode: 'insensitive' } } });
+        orFilters.push({
+          patent: {
+            classifications: { some: { code: { contains: q.toUpperCase() } } },
+          },
+        });
         orFilters.push({ patent: { parties: { some: { name: { contains: q, mode: 'insensitive' } } } } });
         try {
           const parsed = this.parsePatentNumber(q);
@@ -3353,7 +3397,7 @@ export class ListingsService {
       where.OR = orFilters;
     }
 
-    const include = { patent: { include: { parties: true, classifications: true } }, stats: true };
+    const include = { patent: { include: { parties: true, classifications: true } }, stats: true, media: { include: { file: true } } };
 
     if (sortBy == 'RECOMMENDED') {
       const recommendation = await this.config.getRecommendation();
@@ -3464,11 +3508,15 @@ export class ListingsService {
   async getPublicById(req: any, listingId: string) {
     const it = await this.prisma.listing.findUnique({
       where: { id: listingId },
-      include: { patent: { include: { parties: true, classifications: true } }, seller: true, stats: true },
+      include: { patent: { include: { parties: true, classifications: true } }, seller: true, stats: true, media: { include: { file: true } } },
     });
     if (!it) throw new NotFoundException({ code: 'NOT_FOUND', message: 'listing not found' });
     void this.events.recordView(req, 'LISTING', listingId).catch(() => {});
     const meta = this.extractPatentMeta(it.patent);
+    const detailCoverFile = Array.isArray(it.media)
+      ? it.media.find((mediaItem: any) => String(mediaItem?.type || '').toUpperCase() === 'IMAGE' && mediaItem?.file)
+          ?.file
+      : null;
     return {
       id: it.id,
       source: it.source ?? 'USER',
@@ -3514,7 +3562,7 @@ export class ListingsService {
       recommendationScore: null,
       auditStatus: it.auditStatus,
       status: it.status,
-      coverUrl: null,
+      coverUrl: resolvePublicFileUrl(detailCoverFile),
       createdAt: it.createdAt.toISOString(),
       updatedAt: it.updatedAt.toISOString(),
       stats: mapStats(it.stats),
@@ -3522,7 +3570,7 @@ export class ListingsService {
         ? {
             id: it.seller.id,
             nickname: this.resolvePublicSellerNickname(it),
-            avatarUrl: it.seller.avatarUrl,
+            avatarUrl: resolvePublicFileUrl({ url: it.seller.avatarUrl }),
             verificationType: null,
           }
         : null,

@@ -2,6 +2,7 @@ import { BadRequestException, Injectable } from '@nestjs/common';
 import { Prisma, PatentType } from '@prisma/client';
 
 import { PrismaService } from '../../common/prisma/prisma.service';
+import { resolvePublicFileUrl } from '../content-utils';
 
 const REGION_CODE_RE = /^[0-9]{6}$/;
 
@@ -74,6 +75,8 @@ export class InventorsService {
       JOIN patents pa ON pa.id = p.patent_id
       JOIN listings l ON l.patent_id = pa.id
       WHERE p.role = 'INVENTOR'
+        AND l.audit_status = 'APPROVED'
+        AND l.status = 'ACTIVE'
         AND (${qLike}::text IS NULL OR p.name ILIKE ${qLike})
         AND (${regionCode}::text IS NULL OR l.region_code = ${regionCode})
         AND (${patentType}::text IS NULL OR pa.patent_type = ${patentType})
@@ -105,6 +108,8 @@ export class InventorsService {
         LIMIT 1
       ) av ON true
       WHERE p.role = 'INVENTOR'
+        AND l.audit_status = 'APPROVED'
+        AND l.status = 'ACTIVE'
         AND (${qLike}::text IS NULL OR p.name ILIKE ${qLike})
         AND (${regionCode}::text IS NULL OR l.region_code = ${regionCode})
         AND (${patentType}::text IS NULL OR pa.patent_type = ${patentType})
@@ -113,6 +118,11 @@ export class InventorsService {
       OFFSET ${offset} LIMIT ${limit}
     `);
 
-    return { items: rows, page: { page, pageSize, total } };
+    const mapped = rows.map((row) => ({
+      ...row,
+      avatarUrl: resolvePublicFileUrl({ url: row.avatarUrl }) ?? null,
+    }));
+
+    return { items: mapped, page: { page, pageSize, total } };
   }
 }

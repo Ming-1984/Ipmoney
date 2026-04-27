@@ -1,10 +1,11 @@
-import { View, Text, Image, Picker } from '@tarojs/components';
+import { View, Text, Image } from '@tarojs/components';
 import Taro from '@tarojs/taro';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import './index.scss';
 
 import { apiGet } from '../../lib/api';
-import { parseRegionPickerSelection, regionDisplayName } from '../../lib/regions';
+import { regionDisplayName } from '../../lib/regions';
+import { openRegionPickerPage } from '../../lib/regionPicker';
 import { usePagedList } from '../../lib/usePagedList';
 import { ListFooter } from '../../ui/ListFooter';
 import type { ChipOption } from '../../ui/filters';
@@ -62,6 +63,7 @@ const ORG_TYPE_OPTIONS: ChipOption<OrganizationSummary['verificationType']>[] = 
 export default function OrganizationsPage() {
   const [qInput, setQInput] = useState('');
   const [q, setQ] = useState('');
+  const [searchSeq, setSearchSeq] = useState(0);
   const [filters, setFilters] = useState<OrgFilters>(ORG_FILTER_DEFAULT);
   const [filtersOpen, setFiltersOpen] = useState(false);
 
@@ -89,19 +91,15 @@ export default function OrganizationsPage() {
     void reload();
   }, [reload]);
 
+  useEffect(() => {
+    if (searchSeq <= 0) return;
+    void reload();
+  }, [reload, searchSeq]);
+
   const items = useMemo(() => rawItems.filter((x) => x.verificationStatus === 'APPROVED'), [rawItems]);
   const showInitialLoading = loading && rawItems.length === 0;
 
   const openFilters = useCallback(() => setFiltersOpen(true), []);
-
-  const openRegionPicker = useCallback(
-    (event: any, onPicked: (payload: { code: string; name: string }) => void) => {
-      const selected = parseRegionPickerSelection(event);
-      if (!selected) return;
-      onPicked({ code: selected.code, name: selected.name });
-    },
-    [],
-  );
 
   const filterLabels = useMemo(() => {
     const out: string[] = [];
@@ -129,6 +127,7 @@ export default function OrganizationsPage() {
           }}
           onSearch={(value) => {
             setQ((value || '').trim());
+            setSearchSeq((prev) => prev + 1);
           }}
         />
 
@@ -235,15 +234,6 @@ export default function OrganizationsPage() {
           <Surface>
             <Text className="text-strong">地区</Text>
             <View style={{ height: '10rpx' }} />
-            <Picker
-              mode="region"
-              level="region"
-              onChange={(event) =>
-                openRegionPicker(event, ({ code, name }) => {
-                  setDraft((prev) => ({ ...prev, regionCode: code, regionName: name }));
-                })
-              }
-            >
             <Surface padding="none">
               <CellGroup divider>
                 <CellRow
@@ -252,10 +242,14 @@ export default function OrganizationsPage() {
                   description="用于地域推荐/检索过滤"
                   extra={<Text className="muted">{draft.regionName || draft.regionCode || '不限'}</Text>}
                   isLast
+                  onClick={() =>
+                    openRegionPickerPage(({ code, name }) => {
+                      setDraft((prev) => ({ ...prev, regionCode: code, regionName: name }));
+                    })
+                  }
                 />
               </CellGroup>
             </Surface>
-            </Picker>
             {draft.regionCode ? (
               <>
                 <View style={{ height: '10rpx' }} />

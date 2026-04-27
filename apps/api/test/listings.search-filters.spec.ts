@@ -9,6 +9,7 @@ describe('ListingsService search filter strictness suite', () => {
 
   beforeEach(() => {
     prisma = {
+      $queryRaw: vi.fn().mockResolvedValue([]),
       listing: {
         findMany: vi.fn(),
         count: vi.fn(),
@@ -132,7 +133,42 @@ describe('ListingsService search filter strictness suite', () => {
     await service.searchPublic({ listingTopic: 'FIVE_STAR' });
 
     const args = prisma.listing.findMany.mock.calls[0][0];
-    expect(args.where.AND).toEqual([{ listingTopicsJson: { array_contains: ['FIVE_STAR'] } }]);
+    expect(args.where.AND).toEqual([
+      {
+        OR: [{ listingTopicsJson: { array_contains: ['FIVE_STAR'] } }, { featuredLevel: { not: 'NONE' } }],
+      },
+    ]);
+  });
+
+  it('supports HIGH_TECH_RETIRED listingTopic via topic/legalStatus hybrid filter', async () => {
+    prisma.listing.findMany.mockResolvedValueOnce([]);
+    prisma.listing.count.mockResolvedValueOnce(0);
+
+    await service.searchPublic({ listingTopic: 'HIGH_TECH_RETIRED' });
+
+    const args = prisma.listing.findMany.mock.calls[0][0];
+    expect(args.where.AND).toEqual([
+      {
+        OR: [
+          { listingTopicsJson: { array_contains: ['HIGH_TECH_RETIRED'] } },
+          { patent: { legalStatus: { in: ['EXPIRED', 'INVALIDATED'] } } },
+        ],
+      },
+    ]);
+  });
+
+  it('supports AWARD_WINNING listingTopic via topic/featured hybrid filter', async () => {
+    prisma.listing.findMany.mockResolvedValueOnce([]);
+    prisma.listing.count.mockResolvedValueOnce(0);
+
+    await service.searchPublic({ listingTopic: 'AWARD_WINNING' });
+
+    const args = prisma.listing.findMany.mock.calls[0][0];
+    expect(args.where.AND).toEqual([
+      {
+        OR: [{ listingTopicsJson: { array_contains: ['AWARD_WINNING'] } }, { featuredLevel: { not: 'NONE' } }],
+      },
+    ]);
   });
 
   it('ignores unsupported listingTopic values', async () => {
@@ -143,5 +179,94 @@ describe('ListingsService search filter strictness suite', () => {
 
     const args = prisma.listing.findMany.mock.calls[0][0];
     expect(args.where.AND).toBeUndefined();
+  });
+
+  it('applies inventor + IPC + LOC filters into patent AND conditions', async () => {
+    prisma.listing.findMany.mockResolvedValueOnce([]);
+    prisma.listing.count.mockResolvedValueOnce(0);
+
+    await service.searchPublic({ inventor: '张三', ipc: 'A01', loc: '01' });
+
+    const args = prisma.listing.findMany.mock.calls[0][0];
+    expect(args.where.patent).toEqual({
+      AND: expect.arrayContaining([
+        { parties: { some: { role: 'INVENTOR', name: { contains: '张三', mode: 'insensitive' } } } },
+        { OR: [{ classifications: { some: { system: 'IPC', code: { startsWith: 'A01' } } } }] },
+        { OR: [{ classifications: { some: { system: 'LOC', code: { startsWith: '01' } } } }] },
+      ]),
+    });
+  });
+
+  it('supports inventor-only keyword mode via qType=INVENTOR', async () => {
+    prisma.listing.findMany.mockResolvedValueOnce([]);
+    prisma.listing.count.mockResolvedValueOnce(0);
+
+    await service.searchPublic({ qType: 'INVENTOR', q: '王伟' });
+
+    const args = prisma.listing.findMany.mock.calls[0][0];
+    expect(args.where.OR).toEqual([
+      { patent: { parties: { some: { role: 'INVENTOR', name: { contains: '王伟', mode: 'insensitive' } } } } },
+    ]);
+  });
+
+  it('supports publication number search via qType=NUMBER', async () => {
+    prisma.listing.findMany.mockResolvedValueOnce([]);
+    prisma.listing.count.mockResolvedValueOnce(0);
+
+    await service.searchPublic({ qType: 'NUMBER', q: 'CN1234567A' });
+
+    const args = prisma.listing.findMany.mock.calls[0][0];
+    expect(args.where.OR).toEqual(
+      expect.arrayContaining([
+        { patent: { applicationNoNorm: '1234567' } },
+        {
+          patent: {
+            identifiers: { some: { idType: 'PUBLICATION', idValueNorm: 'CN1234567A' } },
+          },
+        },
+      ]),
+    );
+  });
+
+  it('uses AUTO keyword mode to include FTS ids and fallback text fields', async () => {
+    prisma.$queryRaw.mockResolvedValueOnce([{ id: 'listing-1' }]);
+    prisma.listing.findMany.mockResolvedValueOnce([]);
+    prisma.listing.count.mockResolvedValueOnce(0);
+
+    await service.searchPublic({ q: '机器人' });
+
+    const args = prisma.listing.findMany.mock.calls[0][0];
+    expect(args.where.OR).toEqual(
+      expect.arrayContaining([
+        { id: { in: ['listing-1'] } },
+        { title: { contains: '机器人', mode: 'insensitive' } },
+        { summary: { contains: '机器人', mode: 'insensitive' } },
+        { patent: { title: { contains: '机器人', mode: 'insensitive' } } },
+        { patent: { abstract: { contains: '机器人', mode: 'insensitive' } } },
+        { patent: { applicationNoDisplay: { contains: '机器人', mode: 'insensitive' } } },
+        { patent: { publicationNoDisplay: { contains: '机器人', mode: 'insensitive' } } },
+        { patent: { patentNoDisplay: { contains: '机器人', mode: 'insensitive' } } },
+        { patent: { classifications: { some: { code: { contains: '机器人'.toUpperCase() } } } } },
+        { patent: { parties: { some: { name: { contains: '机器人', mode: 'insensitive' } } } } },
+      ]),
+    );
+  });
+
+  it('includes display number and classification matching in qType=KEYWORD mode', async () => {
+    prisma.$queryRaw.mockResolvedValueOnce([]);
+    prisma.listing.findMany.mockResolvedValueOnce([]);
+    prisma.listing.count.mockResolvedValueOnce(0);
+
+    await service.searchPublic({ qType: 'KEYWORD', q: 'A01' });
+
+    const args = prisma.listing.findMany.mock.calls[0][0];
+    expect(args.where.OR).toEqual(
+      expect.arrayContaining([
+        { patent: { applicationNoDisplay: { contains: 'A01', mode: 'insensitive' } } },
+        { patent: { publicationNoDisplay: { contains: 'A01', mode: 'insensitive' } } },
+        { patent: { patentNoDisplay: { contains: 'A01', mode: 'insensitive' } } },
+        { patent: { classifications: { some: { code: { contains: 'A01' } } } } },
+      ]),
+    );
   });
 });

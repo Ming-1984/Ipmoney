@@ -5454,6 +5454,9 @@ paths:
         - $ref: '#/components/parameters/Q'
         - $ref: '#/components/parameters/RegionCode'
         - $ref: '#/components/parameters/VerificationStatus'
+        - $ref: '#/components/parameters/MissingIntro'
+        - $ref: '#/components/parameters/MissingContact'
+        - $ref: '#/components/parameters/MissingRating'
         - $ref: '#/components/parameters/Page'
         - $ref: '#/components/parameters/PageSize'
       responses:
@@ -5505,6 +5508,36 @@ paths:
           $ref: '#/components/responses/NotFound'
         '409':
           $ref: '#/components/responses/Conflict'
+  /admin/tech-managers/batch/rating:
+    patch:
+      tags:
+        - Admin
+        - TechManagers
+      summary: 批量更新技术经理评分
+      operationId: adminBatchUpdateTechManagerRating
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TechManagerBatchRatingRequest'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TechManagerBatchRatingResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
   /admin/comments:
     get:
       tags:
@@ -7767,6 +7800,27 @@ components:
       schema:
         $ref: '#/components/schemas/VerificationStatus'
       description: 鐠併倛鐦夐悩鑸碘偓浣界箖濠?
+    MissingIntro:
+      name: missingIntro
+      in: query
+      required: false
+      schema:
+        type: boolean
+      description: 是否仅筛选简介缺失的技术经理
+    MissingContact:
+      name: missingContact
+      in: query
+      required: false
+      schema:
+        type: boolean
+      description: 是否仅筛选联系方式缺失的技术经理
+    MissingRating:
+      name: missingRating
+      in: query
+      required: false
+      schema:
+        type: boolean
+      description: 是否仅筛选评分缺失的技术经理
 
     AiContentType:
       name: contentType
@@ -11077,6 +11131,20 @@ components:
           format: uri
         intro:
           type: string
+        position:
+          type: string
+        organization:
+          type: string
+        serviceDirections:
+          type: array
+          items:
+            type: string
+        workHighlights:
+          type: string
+        contactName:
+          type: string
+        contactPhone:
+          type: string
         serviceTags:
           type: array
           items:
@@ -11122,12 +11190,94 @@ components:
           items:
             type: string
             maxLength: 50
+        position:
+          type: string
+          maxLength: 100
+          nullable: true
+        organization:
+          type: string
+          maxLength: 200
+          nullable: true
+        serviceDirections:
+          type: array
+          items:
+            type: string
+            maxLength: 100
+        workHighlights:
+          type: string
+          maxLength: 4000
+          nullable: true
+        contactName:
+          type: string
+          maxLength: 50
+          nullable: true
+        contactPhone:
+          type: string
+          maxLength: 30
+          nullable: true
         featuredRank:
           type: integer
           minimum: 0
         featuredUntil:
           type: string
           format: date-time
+        ratingScore:
+          type: number
+          format: double
+          minimum: 0
+          maximum: 5
+        ratingCount:
+          type: integer
+          minimum: 0
+    TechManagerBatchRatingRequest:
+      type: object
+      required:
+        - techManagerIds
+        - ratingScore
+        - ratingCount
+      properties:
+        techManagerIds:
+          type: array
+          items:
+            $ref: '#/components/schemas/Uuid'
+          minItems: 1
+          maxItems: 500
+        ratingScore:
+          type: number
+          format: double
+          minimum: 0
+          maximum: 5
+        ratingCount:
+          type: integer
+          minimum: 0
+    TechManagerBatchRatingResponse:
+      type: object
+      required:
+        - updatedCount
+        - ratingScore
+        - ratingCount
+        - techManagerIds
+        - items
+      properties:
+        updatedCount:
+          type: integer
+          minimum: 0
+        ratingScore:
+          type: number
+          format: double
+          minimum: 0
+          maximum: 5
+        ratingCount:
+          type: integer
+          minimum: 0
+        techManagerIds:
+          type: array
+          items:
+            $ref: '#/components/schemas/Uuid'
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/TechManagerSummary'
     InventorRankingItem:
       type: object
       required:

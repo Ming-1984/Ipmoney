@@ -2689,6 +2689,23 @@ export interface paths {
         patch: operations["adminUpdateTechManager"];
         trace?: never;
     };
+    "/admin/tech-managers/batch/rating": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** 批量更新技术经理评分 */
+        patch: operations["adminBatchUpdateTechManagerRating"];
+        trace?: never;
+    };
     "/admin/comments": {
         parameters: {
             query?: never;
@@ -4699,6 +4716,12 @@ export interface components {
             /** Format: uri */
             avatarUrl?: string;
             intro?: string;
+            position?: string;
+            organization?: string;
+            serviceDirections?: string[];
+            workHighlights?: string;
+            contactName?: string;
+            contactPhone?: string;
             serviceTags?: string[];
             stats?: components["schemas"]["TechManagerStats"];
             /** Format: date-time */
@@ -4716,9 +4739,32 @@ export interface components {
             avatarUrl?: string | null;
             intro?: string;
             serviceTags?: string[];
+            position?: string | null;
+            organization?: string | null;
+            serviceDirections?: string[];
+            workHighlights?: string | null;
+            contactName?: string | null;
+            contactPhone?: string | null;
             featuredRank?: number;
             /** Format: date-time */
             featuredUntil?: string;
+            /** Format: double */
+            ratingScore?: number;
+            ratingCount?: number;
+        };
+        TechManagerBatchRatingRequest: {
+            techManagerIds: components["schemas"]["Uuid"][];
+            /** Format: double */
+            ratingScore: number;
+            ratingCount: number;
+        };
+        TechManagerBatchRatingResponse: {
+            updatedCount: number;
+            /** Format: double */
+            ratingScore: number;
+            ratingCount: number;
+            techManagerIds: components["schemas"]["Uuid"][];
+            items: components["schemas"]["TechManagerSummary"][];
         };
         InventorRankingItem: {
             inventorName: string;
@@ -6144,6 +6190,12 @@ export interface components {
         ContentSource: components["schemas"]["ContentSource"];
         /** @description 鐠併倛鐦夐悩鑸碘偓浣界箖濠? */
         VerificationStatus: components["schemas"]["VerificationStatus"];
+        /** @description 是否仅筛选简介缺失的技术经理 */
+        MissingIntro: boolean;
+        /** @description 是否仅筛选联系方式缺失的技术经理 */
+        MissingContact: boolean;
+        /** @description 是否仅筛选评分缺失的技术经理 */
+        MissingRating: boolean;
         /** @description AI 閸愬懎顔愮猾璇茬€锋潻鍥ㄦ姢 */
         AiContentType: components["schemas"]["AiContentType"];
         /** @description AI 鐟欙絾鐎介悩鑸碘偓浣界箖濠? */
@@ -6322,7 +6374,8 @@ export interface operations {
             content: {
                 "application/json": {
                     phone: components["schemas"]["PhoneNumber"];
-                    purpose: components["schemas"]["SmsPurpose"];
+                    /** @description Optional, defaults to `LOGIN` when omitted. */
+                    purpose?: components["schemas"]["SmsPurpose"];
                 };
             };
         };
@@ -11482,6 +11535,12 @@ export interface operations {
                 regionCode?: components["parameters"]["RegionCode"];
                 /** @description 鐠併倛鐦夐悩鑸碘偓浣界箖濠? */
                 verificationStatus?: components["parameters"]["VerificationStatus"];
+                /** @description 是否仅筛选简介缺失的技术经理 */
+                missingIntro?: components["parameters"]["MissingIntro"];
+                /** @description 是否仅筛选联系方式缺失的技术经理 */
+                missingContact?: components["parameters"]["MissingContact"];
+                /** @description 是否仅筛选评分缺失的技术经理 */
+                missingRating?: components["parameters"]["MissingRating"];
                 page?: components["parameters"]["Page"];
                 pageSize?: components["parameters"]["PageSize"];
             };
@@ -11534,6 +11593,34 @@ export interface operations {
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
             409: components["responses"]["Conflict"];
+        };
+    };
+    adminBatchUpdateTechManagerRating: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TechManagerBatchRatingRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TechManagerBatchRatingResponse"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
         };
     };
     adminListComments: {

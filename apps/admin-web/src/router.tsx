@@ -27,6 +27,10 @@ const TechManagersPage = lazy(async () => {
   const mod = await import('./views/TechManagersPage');
   return { default: mod.TechManagersPage };
 });
+const AchievementsPage = lazy(async () => {
+  const mod = await import('./views/AchievementsPage');
+  return { default: mod.AchievementsPage };
+});
 const OrdersPage = lazy(async () => {
   const mod = await import('./views/OrdersPage');
   return { default: mod.OrdersPage };
@@ -99,6 +103,10 @@ const PatentOperationsPage = lazy(async () => {
   const mod = await import('./views/PatentOperationsPage');
   return { default: mod.PatentOperationsPage };
 });
+const BulkImportPage = lazy(async () => {
+  const mod = await import('./views/BulkImportPage');
+  return { default: mod.BulkImportPage };
+});
 const PatentClaimsPage = lazy(async () => {
   const mod = await import('./views/PatentClaimsPage');
   return { default: mod.PatentClaimsPage };
@@ -127,6 +135,7 @@ export const router = createBrowserRouter([
       { path: 'verifications', element: <VerificationsPage /> },
       { path: 'listings', element: <ListingsAuditPage /> },
       { path: 'tech-managers', element: <TechManagersPage /> },
+      { path: 'achievements', element: <AchievementsPage /> },
       { path: 'orders', element: <OrdersPage /> },
       { path: 'orders/:orderId', element: <OrderDetailPage /> },
       { path: 'cases', element: <CasesPage /> },
@@ -145,6 +154,7 @@ export const router = createBrowserRouter([
       { path: 'regions', element: <RegionsPage /> },
       { path: 'patents', element: <PatentsPage /> },
       { path: 'patents/operations', element: <PatentOperationsPage /> },
+      { path: 'imports/bulk', element: <BulkImportPage /> },
       { path: 'patents/claims', element: <PatentClaimsPage /> },
       { path: 'conversations/platform', element: <PlatformConversationsPage /> },
     ],

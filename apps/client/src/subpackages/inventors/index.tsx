@@ -1,4 +1,5 @@
 import { View, Text, Image } from '@tarojs/components';
+import Taro from '@tarojs/taro';
 import React, { useCallback, useEffect } from 'react';
 import './index.scss';
 
@@ -7,6 +8,7 @@ import { usePagedList } from '../../lib/usePagedList';
 import { ListFooter } from '../../ui/ListFooter';
 import { PullToRefresh, toast } from '../../ui/nutui';
 import { EmptyCard, ErrorCard, LoadingCard } from '../../ui/StateCards';
+import { STORAGE_KEYS } from '../../constants';
 
 type InventorRankingItem = {
   inventorName: string;
@@ -29,6 +31,18 @@ const LABEL_EMPTY = '\u6682\u65e0\u6570\u636e';
 const LABEL_REFRESH = '\u5237\u65b0';
 
 export default function InventorsPage() {
+  const openInventor = useCallback((inventorName: string) => {
+    const name = String(inventorName || '').trim();
+    if (!name) return;
+    Taro.setStorageSync(STORAGE_KEYS.searchPrefill, {
+      tab: 'LISTING',
+      q: name,
+      qType: 'INVENTOR',
+      reset: true,
+    });
+    void Taro.navigateTo({ url: '/subpackages/search/index' });
+  }, []);
+
   const fetcher = useCallback(
     async ({ page, pageSize }: { page: number; pageSize: number }) =>
       apiGet<PagedInventorRanking>('/search/inventors', {
@@ -71,7 +85,11 @@ export default function InventorsPage() {
                       const avatar = String(it.avatarUrl || '').trim();
                       const initial = (it.inventorName || '').trim().slice(0, 1) || '发';
                       return (
-                        <View key={`${it.inventorName}-${rank}`} className={`inventor-podium-card rank-${rank}`}>
+                        <View
+                          key={`${it.inventorName}-${rank}`}
+                          className={`inventor-podium-card rank-${rank}`}
+                          onClick={() => openInventor(it.inventorName)}
+                        >
                           <View className={`inventor-podium-badge rank-${rank}`}>
                             <Text className="inventor-podium-badge-text">{rank}</Text>
                           </View>
@@ -104,7 +122,7 @@ export default function InventorsPage() {
                       const avatar = String(it.avatarUrl || '').trim();
                       const initial = (it.inventorName || '').trim().slice(0, 1) || '发';
                       return (
-                        <View key={`${it.inventorName}-${rank}`} className="inventor-rank-row">
+                        <View key={`${it.inventorName}-${rank}`} className="inventor-rank-row" onClick={() => openInventor(it.inventorName)}>
                           <View className={`inventor-rank-row-badge rank-${rank}`}>
                             <Text className="inventor-rank-row-badge-text">{rank}</Text>
                           </View>

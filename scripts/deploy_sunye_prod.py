@@ -230,9 +230,20 @@ def main() -> int:
     repo_root = Path(__file__).resolve().parents[1]
     print(f"[info] repo_root={repo_root}")
 
+    api_tar: Path | None = None
+    admin_tar: Path | None = None
+    client_tar: Path | None = None
+    if not args.deploy_cert_only:
+      api_dist, admin_dist, client_dist = build_artifacts(repo_root)
+      api_tar = tar_dir(api_dist, "api-dist", repo_root)
+      admin_tar = tar_dir(admin_dist, "admin-dist", repo_root)
+      client_tar = tar_dir(client_dist, "client-h5-dist", repo_root)
+
     ssh = paramiko.SSHClient()
     ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
     ssh.connect(args.host, username=args.user, password=args.password, timeout=15, banner_timeout=20, auth_timeout=20)
+    if ssh.get_transport():
+        ssh.get_transport().set_keepalive(20)
 
     try:
         run_remote(ssh, "hostname && uname -a")
@@ -240,10 +251,8 @@ def main() -> int:
         run_remote(ssh, "pm2 ls | head -n 40")
         update_remote_certs(ssh, args)
         if not args.deploy_cert_only:
-            api_dist, admin_dist, client_dist = build_artifacts(repo_root)
-            api_tar = tar_dir(api_dist, "api-dist", repo_root)
-            admin_tar = tar_dir(admin_dist, "admin-dist", repo_root)
-            client_tar = tar_dir(client_dist, "client-h5-dist", repo_root)
+            if not api_tar or not admin_tar or not client_tar:
+                raise RuntimeError("build artifacts are missing")
             deploy_remote(ssh, api_tar, admin_tar, client_tar)
         verify_remote(ssh)
         print("[done] deploy + cert + verify completed")

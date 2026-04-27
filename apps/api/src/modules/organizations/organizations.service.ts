@@ -4,6 +4,7 @@ import { VerificationType } from '@prisma/client';
 type VerificationStatus = 'PENDING' | 'APPROVED' | 'REJECTED';
 
 import { PrismaService } from '../../common/prisma/prisma.service';
+import { resolvePublicFileUrl } from '../content-utils';
 
 const VerificationStatus = {
   PENDING: 'PENDING',
@@ -23,6 +24,19 @@ const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
 @Injectable()
 export class OrganizationsService {
   constructor(private readonly prisma: PrismaService) {}
+
+  private normalizeOptionalString(value: unknown): string | undefined {
+    const normalized = String(value ?? '').trim();
+    return normalized || undefined;
+  }
+
+  private resolveOrganizationLogoUrl(verification: { logoFile?: any; logoUrl?: string | null }) {
+    return (
+      resolvePublicFileUrl(verification?.logoFile) ??
+      resolvePublicFileUrl({ url: verification?.logoUrl ?? null }) ??
+      undefined
+    );
+  }
 
   private hasOwn(input: any, key: string) {
     return !!input && Object.prototype.hasOwnProperty.call(input, key);
@@ -168,8 +182,8 @@ export class OrganizationsService {
         verificationStatus: v.verificationStatus,
         orgCategory: undefined,
         regionCode: v.regionCode ?? undefined,
-        logoUrl: v.logoFile?.url ?? undefined,
-        intro: v.intro ?? undefined,
+        logoUrl: this.resolveOrganizationLogoUrl(v),
+        intro: this.normalizeOptionalString(v.intro),
         stats: {
           listingCount: listingCountMap.get(v.userId) ?? 0,
           patentCount: patentCountMap.get(v.userId) ?? 0,
@@ -218,9 +232,9 @@ export class OrganizationsService {
       verificationType: v.verificationType,
       verificationStatus: v.verificationStatus,
       orgCategory: undefined,
-      logoUrl: v.logoFile?.url ?? undefined,
+      logoUrl: this.resolveOrganizationLogoUrl(v),
       regionCode: v.regionCode ?? undefined,
-      intro: v.intro ?? undefined,
+      intro: this.normalizeOptionalString(v.intro),
       stats: {
         listingCount,
         patentCount,

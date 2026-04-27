@@ -35,6 +35,10 @@ function levelLabel(level: RegionLevel): string {
 
 export function RegionsPage() {
   const [tab, setTab] = useState<'regions' | 'tags'>('regions');
+  const [regionsTablePage, setRegionsTablePage] = useState(1);
+  const [regionsTablePageSize, setRegionsTablePageSize] = useState(20);
+  const [tagsTablePage, setTagsTablePage] = useState(1);
+  const [tagsTablePageSize, setTagsTablePageSize] = useState(20);
 
   const [tagsLoading, setTagsLoading] = useState(false);
   const [tagsError, setTagsError] = useState<string | null>(null);
@@ -306,7 +310,20 @@ export function RegionsPage() {
                     rowKey="code"
                     loading={regionsLoading}
                     dataSource={regions}
-                    pagination={false}
+                    pagination={{
+                      current: regionsTablePage,
+                      pageSize: regionsTablePageSize,
+                      total: regions.length,
+                      showSizeChanger: true,
+                      pageSizeOptions: ['10', '20', '50'],
+                      onChange: (nextPage, nextPageSize) => {
+                        setRegionsTablePage(nextPage);
+                        if (nextPageSize && nextPageSize !== regionsTablePageSize) {
+                          setRegionsTablePageSize(nextPageSize);
+                          setRegionsTablePage(1);
+                        }
+                      },
+                    }}
                     columns={[
                       { title: 'code', dataIndex: 'code', width: 120 },
                       { title: '名称', dataIndex: 'name' },
@@ -427,7 +444,20 @@ export function RegionsPage() {
                     rowKey="id"
                     loading={tagsLoading}
                     dataSource={tags}
-                    pagination={false}
+                    pagination={{
+                      current: tagsTablePage,
+                      pageSize: tagsTablePageSize,
+                      total: tags.length,
+                      showSizeChanger: true,
+                      pageSizeOptions: ['10', '20', '50'],
+                      onChange: (nextPage, nextPageSize) => {
+                        setTagsTablePage(nextPage);
+                        if (nextPageSize && nextPageSize !== tagsTablePageSize) {
+                          setTagsTablePageSize(nextPageSize);
+                          setTagsTablePage(1);
+                        }
+                      },
+                    }}
                     columns={[
                       { title: 'name', dataIndex: 'name' },
                       { title: 'id', dataIndex: 'id', width: 260 },

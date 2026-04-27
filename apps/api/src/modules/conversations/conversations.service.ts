@@ -2,6 +2,7 @@
 
 import { ContentEventService } from '../../common/content-event.service';
 import { PrismaService } from '../../common/prisma/prisma.service';
+import { resolvePublicAvatarUrl } from '../content-utils';
 
 type ConversationContentType = 'LISTING' | 'ACHIEVEMENT' | 'TECH_MANAGER' | 'SUPPORT' | 'DISPUTE' | 'MAINTENANCE';
 type UpsertableConversationContentType = 'LISTING' | 'ACHIEVEMENT' | 'TECH_MANAGER';
@@ -63,6 +64,7 @@ type PagedConversationMessage = { items: ConversationMessageDto[]; nextCursor?: 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const DEFAULT_CS_USER_ID = '00000000-0000-0000-0000-000000000002';
 const PLATFORM_BRAND_NAME = 'ipmoney';
+const PLATFORM_SUPPORT_TITLE = '\u5e73\u53f0\u5ba2\u670d';
 const LISTING_TOPIC_SET = new Set<ListingTopic>([
   'HIGH_TECH_RETIRED',
   'SLEEPING',
@@ -397,7 +399,8 @@ export class ConversationsService {
     });
     if (!conversation) throw new NotFoundException({ code: 'NOT_FOUND', message: 'conversation not found' });
     const isPlatformConsultation =
-      conversation.contentType === 'LISTING' && conversation.listing?.consultationRouting === 'PLATFORM';
+      (conversation.contentType === 'LISTING' && conversation.listing?.consultationRouting === 'PLATFORM') ||
+      conversation.contentType === 'ACHIEVEMENT';
     const isPlatformSupport =
       conversation.contentType === 'SUPPORT' ||
       conversation.contentType === 'DISPUTE' ||
@@ -540,7 +543,7 @@ export class ConversationsService {
             viewerUserId: req.auth.userId,
             counterpart,
           }),
-          avatarUrl: counterpart?.avatarUrl ?? null,
+          avatarUrl: resolvePublicAvatarUrl(counterpart?.avatarUrl),
           role: counterpart?.role ?? null,
         },
         assignedAgentUserIds: Array.isArray(it.agents)
@@ -595,7 +598,7 @@ export class ConversationsService {
       conversation = await this.prisma.conversation.findUnique({ where: { id: conversation.id } });
       if (!conversation) throw new NotFoundException({ code: 'NOT_FOUND', message: 'conversation not found' });
     }
-    return this.toConversationDto(conversation, '平台客服', null);
+    return this.toConversationDto(conversation, PLATFORM_SUPPORT_TITLE, null);
   }
 
   async createOrderDisputeConversation(req: any, orderId: string) {
@@ -881,13 +884,17 @@ export class ConversationsService {
 
     const managedScopeFilter: any =
       channel === 'CONSULTATION' || listingTopic
-        ? {
-            contentType: 'LISTING',
-            listing: {
-              consultationRouting: 'PLATFORM',
-              ...(listingTopic ? { listingTopicsJson: { array_contains: [listingTopic] } } : {}),
-            },
-          }
+        ? listingTopic
+          ? {
+              contentType: 'LISTING',
+              listing: {
+                consultationRouting: 'PLATFORM',
+                listingTopicsJson: { array_contains: [listingTopic] },
+              },
+            }
+          : {
+              OR: [{ contentType: 'ACHIEVEMENT' }, { contentType: 'LISTING', listing: { consultationRouting: 'PLATFORM' } }],
+            }
         : channel === 'SUPPORT'
           ? { contentType: 'SUPPORT' }
           : channel === 'DISPUTE'
@@ -899,6 +906,7 @@ export class ConversationsService {
                   { contentType: 'SUPPORT' },
                   { contentType: 'DISPUTE' },
                   { contentType: 'MAINTENANCE' },
+                  { contentType: 'ACHIEVEMENT' },
                   { contentType: 'LISTING', listing: { consultationRouting: 'PLATFORM' } },
                 ],
               };
@@ -960,10 +968,14 @@ export class ConversationsService {
     ]);
 
     const maintenanceIds = new Set<string>();
+    const achievementIds = new Set<string>();
     for (const it of items as any[]) {
       if (String(it.contentType || '').toUpperCase() === 'MAINTENANCE') {
         const contentId = String(it.contentId || '');
         if (contentId) maintenanceIds.add(contentId);
+      } else if (String(it.contentType || '').toUpperCase() === 'ACHIEVEMENT') {
+        const contentId = String(it.contentId || '');
+        if (contentId) achievementIds.add(contentId);
       }
     }
 
@@ -988,6 +1000,13 @@ export class ConversationsService {
     const maintenanceTitleMap = new Map(
       maintenanceOrders.map((item: any) => [item.id, this.resolveMaintenanceTitle(item)]),
     );
+    const achievements = achievementIds.size
+      ? await this.prisma.achievement.findMany({
+          where: { id: { in: Array.from(achievementIds) } },
+          select: { id: true, title: true },
+        })
+      : [];
+    const achievementTitleMap = new Map(achievements.map((item: any) => [item.id, item.title || '成果咨询']));
 
     const unreadCounts = await Promise.all(
       items.map((item: any) => {
@@ -1004,6 +1023,8 @@ export class ConversationsService {
         const contentTitle =
           contentType === 'LISTING'
             ? it.listing?.title ?? 'Consultation'
+            : contentType === 'ACHIEVEMENT'
+              ? achievementTitleMap.get(String(it.contentId || '')) ?? '成果咨询'
             : contentType === 'SUPPORT'
               ? '平台客服'
               : contentType === 'MAINTENANCE'
@@ -1027,7 +1048,7 @@ export class ConversationsService {
               viewerUserId: req.auth.userId,
               counterpart: it.buyer,
             }),
-            avatarUrl: it.buyer?.avatarUrl ?? null,
+            avatarUrl: resolvePublicAvatarUrl(it.buyer?.avatarUrl),
             role: it.buyer?.role ?? null,
           },
           assignedAgentUserIds: Array.isArray(it.agents)
@@ -1102,3 +1123,5 @@ export class ConversationsService {
     };
   }
 }
+
+

@@ -1,6 +1,7 @@
-Ôªøimport { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 
 import { PrismaService } from '../../common/prisma/prisma.service';
+import { resolvePublicAvatarUrl } from '../content-utils';
 
 const CONTENT_TYPES = ['LISTING', 'ACHIEVEMENT'] as const;
 const STATUS_TYPES = ['VISIBLE', 'HIDDEN', 'DELETED'] as const;
@@ -40,13 +41,13 @@ export class CommentsService {
 
   private ensureAuth(req: any) {
     if (!req?.auth?.userId) {
-      throw new ForbiddenException({ code: 'FORBIDDEN', message: 'Êó†ÊùÉÈôê' });
+      throw new ForbiddenException({ code: 'FORBIDDEN', message: 'Œﬁ»®œﬁ' });
     }
   }
 
   private ensureAdmin(req: any) {
     if (!req?.auth?.isAdmin) {
-      throw new ForbiddenException({ code: 'FORBIDDEN', message: 'Êó†ÊùÉÈôê' });
+      throw new ForbiddenException({ code: 'FORBIDDEN', message: 'Œﬁ»®œﬁ' });
     }
   }
 
@@ -108,7 +109,7 @@ export class CommentsService {
       userMap.set(user.id, {
         id: user.id,
         nickname: user.nickname ?? null,
-        avatarUrl: user.avatarUrl ?? null,
+        avatarUrl: resolvePublicAvatarUrl(user.avatarUrl),
         role: user.role ?? null,
         verificationStatus: verification?.verificationStatus ?? null,
         verificationType: verification?.verificationType ?? null,
@@ -189,7 +190,7 @@ export class CommentsService {
     this.ensureAuth(req);
     const normalizedContentId = this.parseUuidStrict(contentId, 'contentId');
     const text = String(body?.text || '').trim();
-    if (!text) throw new BadRequestException({ code: 'BAD_REQUEST', message: 'ÂÜÖÂÆπ‰∏çËÉΩ‰∏∫Á©∫' });
+    if (!text) throw new BadRequestException({ code: 'BAD_REQUEST', message: 'ƒ⁄»›≤ªƒ‹Œ™ø’' });
     const hasParentCommentId = this.hasOwn(body, 'parentCommentId');
     const parentCommentId = hasParentCommentId
       ? this.parseNullableIdStrict(body?.parentCommentId, 'parentCommentId')
@@ -198,7 +199,7 @@ export class CommentsService {
     if (parentCommentId) {
       const parent = await this.prisma.comment.findUnique({ where: { id: parentCommentId } });
       if (!parent || parent.status === 'DELETED') {
-        throw new NotFoundException({ code: 'NOT_FOUND', message: 'ËØÑËÆ∫‰∏çÂ≠òÂú®' });
+        throw new NotFoundException({ code: 'NOT_FOUND', message: '∆¿¬€≤ª¥Ê‘⁄' });
       }
       if (parent.contentType !== contentType || parent.contentId !== normalizedContentId) {
         throw new BadRequestException({ code: 'BAD_REQUEST', message: 'parentCommentId is invalid' });
@@ -225,13 +226,13 @@ export class CommentsService {
     const normalizedCommentId = this.parseUuidStrict(commentId, 'commentId');
     const comment = await this.prisma.comment.findUnique({ where: { id: normalizedCommentId } });
     if (!comment || comment.status === 'DELETED') {
-      throw new NotFoundException({ code: 'NOT_FOUND', message: 'ËØÑËÆ∫‰∏çÂ≠òÂú®' });
+      throw new NotFoundException({ code: 'NOT_FOUND', message: '∆¿¬€≤ª¥Ê‘⁄' });
     }
     if (comment.userId !== req.auth.userId) {
-      throw new ForbiddenException({ code: 'FORBIDDEN', message: 'Êó†ÊùÉÈôê' });
+      throw new ForbiddenException({ code: 'FORBIDDEN', message: 'Œﬁ»®œﬁ' });
     }
     const text = String(body?.text || '').trim();
-    if (!text) throw new BadRequestException({ code: 'BAD_REQUEST', message: 'ÂÜÖÂÆπ‰∏çËÉΩ‰∏∫Á©∫' });
+    if (!text) throw new BadRequestException({ code: 'BAD_REQUEST', message: 'ƒ⁄»›≤ªƒ‹Œ™ø’' });
     const updated = await this.prisma.comment.update({ where: { id: normalizedCommentId }, data: { text } });
     const userMap = await this.buildUserBriefMap([comment.userId]);
     return this.toDto(updated, userMap.get(comment.userId));
@@ -242,10 +243,10 @@ export class CommentsService {
     const normalizedCommentId = this.parseUuidStrict(commentId, 'commentId');
     const comment = await this.prisma.comment.findUnique({ where: { id: normalizedCommentId } });
     if (!comment || comment.status === 'DELETED') {
-      throw new NotFoundException({ code: 'NOT_FOUND', message: 'ËØÑËÆ∫‰∏çÂ≠òÂú®' });
+      throw new NotFoundException({ code: 'NOT_FOUND', message: '∆¿¬€≤ª¥Ê‘⁄' });
     }
     if (comment.userId !== req.auth.userId) {
-      throw new ForbiddenException({ code: 'FORBIDDEN', message: 'Êó†ÊùÉÈôê' });
+      throw new ForbiddenException({ code: 'FORBIDDEN', message: 'Œﬁ»®œﬁ' });
     }
     await this.prisma.comment.update({ where: { id: normalizedCommentId }, data: { status: 'DELETED' } });
     return { ok: true };
@@ -306,9 +307,10 @@ export class CommentsService {
     const status = this.normalizeStatus(body?.status);
     if (!status) throw new BadRequestException({ code: 'BAD_REQUEST', message: 'status is invalid' });
     const existing = await this.prisma.comment.findUnique({ where: { id: normalizedCommentId } });
-    if (!existing) throw new NotFoundException({ code: 'NOT_FOUND', message: 'ËØÑËÆ∫‰∏çÂ≠òÂú®' });
+    if (!existing) throw new NotFoundException({ code: 'NOT_FOUND', message: '∆¿¬€≤ª¥Ê‘⁄' });
     const updated = await this.prisma.comment.update({ where: { id: normalizedCommentId }, data: { status } });
     const userMap = await this.buildUserBriefMap([updated.userId]);
     return this.toDto(updated, userMap.get(updated.userId));
   }
 }
+

@@ -1,4 +1,4 @@
-import { View, Text, Input, Picker } from '@tarojs/components';
+import { View, Text, Input } from '@tarojs/components';
 import Taro from '@tarojs/taro';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import './index.scss';
@@ -17,7 +17,7 @@ import {
 import { patentTypeLabel, priceTypeLabel, tradeModeLabel } from '../../lib/labels';
 import { sanitizeIndustryTagNames } from '../../lib/industryTags';
 import { fenToYuanInt } from '../../lib/money';
-import { ensureRegionNamesReady, parseRegionPickerSelection, regionDisplayName } from '../../lib/regions';
+import { ensureRegionNamesReady, regionDisplayName } from '../../lib/regions';
 import type { ChipOption } from '../../ui/filters';
 import { AchievementCard } from '../../ui/AchievementCard';
 import { ListingCard } from '../../ui/ListingCard';
@@ -31,6 +31,7 @@ import { usePagedList } from '../../lib/usePagedList';
 import { ListFooter } from '../../ui/ListFooter';
 import emptySearchNone from '../../assets/illustrations/empty-search-none.svg';
 import { STORAGE_KEYS } from '../../constants';
+import { openRegionPickerPage } from '../../lib/regionPicker';
 
 type ListingSummary = components['schemas']['ListingSummary'];
 type PagedListingSummary = components['schemas']['PagedListingSummary'];
@@ -81,6 +82,8 @@ type AchievementFilters = {
 type SearchPrefill = Partial<ListingFilters & AchievementFilters> & {
   tab?: 'LISTING' | 'ACHIEVEMENT';
   q?: string;
+  qType?: 'AUTO' | 'NUMBER' | 'KEYWORD' | 'APPLICANT' | 'INVENTOR';
+  prefillSource?: 'FEATURED_ZONE';
   reset?: boolean;
 };
 
@@ -130,7 +133,7 @@ const TRANSFER_COUNT_OPTIONS: ChipOption<TransferCountRange>[] = [
   { value: '', label: '不限' },
   { value: 'ZERO', label: '0次（沉睡）' },
   { value: 'ONE', label: '1次' },
-  { value: 'TWO_PLUS', label: '2次以上' },
+  { value: 'TWO_PLUS', label: '2次及以上' },
 ];
 
 const LEGAL_STATUS_OPTIONS: ChipOption<LegalStatus | ''>[] = [
@@ -177,9 +180,9 @@ function FilterSection(props: { title: string; children: React.ReactNode }) {
 
 function fenRangeSummary(minFen?: number, maxFen?: number): string | null {
   if (minFen === undefined && maxFen === undefined) return null;
-  if (minFen !== undefined && maxFen !== undefined) return `￥${fenToYuanInt(minFen)}-￥${fenToYuanInt(maxFen)}`;
-  if (minFen !== undefined) return `￥${fenToYuanInt(minFen)}以上`;
-  return `￥${fenToYuanInt(maxFen)}以内`;
+  if (minFen !== undefined && maxFen !== undefined) return `¥${fenToYuanInt(minFen)}-¥${fenToYuanInt(maxFen)}`;
+  if (minFen !== undefined) return `¥${fenToYuanInt(minFen)}以上`;
+  return `¥${fenToYuanInt(maxFen)}以内`;
 }
 
 function legalStatusLabelShort(s?: LegalStatus | ''): string | null {
@@ -221,6 +224,8 @@ function achievementMaturityLabel(value?: AchievementMaturity | ''): string | nu
 export default function SearchPage() {
   const [qInput, setQInput] = useState('');
   const [q, setQ] = useState('');
+  const [qType, setQType] = useState<'AUTO' | 'NUMBER' | 'KEYWORD' | 'APPLICANT' | 'INVENTOR'>('AUTO');
+  const [searchSeq, setSearchSeq] = useState(0);
 
   const [tab, setTab] = useState<'LISTING' | 'ACHIEVEMENT'>('LISTING');
   const [sortBy, setSortBy] = useState<SortBy>('RECOMMENDED');
@@ -238,7 +243,7 @@ export default function SearchPage() {
     buildEnabledListingTopicOptions(normalizeHomeLandingConfig(null)),
   );
   const listingTopicFilterOptions = useMemo<ChipOption<ListingTopic | ''>[]>(
-    () => [{ value: '', label: '\u4e0d\u9650' }, ...listingTopicOptions],
+    () => [{ value: '', label: '不限' }, ...listingTopicOptions],
     [listingTopicOptions],
   );
   const listingTopicLabelMap = useMemo(
@@ -273,6 +278,10 @@ export default function SearchPage() {
     const raw = Taro.getStorageSync(STORAGE_KEYS.searchPrefill);
     if (!raw || typeof raw !== 'object') return;
     Taro.removeStorageSync(STORAGE_KEYS.searchPrefill);
+    // Force a fresh query when entering from external prefill sources
+    // (inventor rank / featured zone / home shortcuts), so first render
+    // always reflects the latest injected conditions.
+    autoLoadSignatureRef.current = { LISTING: null, ACHIEVEMENT: null };
 
     const prefill = raw as SearchPrefill;
 
@@ -286,11 +295,21 @@ export default function SearchPage() {
         setQ('');
       }
     }
-
     if (typeof prefill.q === 'string') {
       const nextQ = prefill.q.trim();
       setQInput(prefill.q);
       setQ(nextQ);
+    }
+    if (
+      prefill.qType === 'AUTO' ||
+      prefill.qType === 'NUMBER' ||
+      prefill.qType === 'KEYWORD' ||
+      prefill.qType === 'APPLICANT' ||
+      prefill.qType === 'INVENTOR'
+    ) {
+      setQType(prefill.qType);
+    } else {
+      setQType('AUTO');
     }
 
     setAchievementFilters((prev) => {
@@ -335,6 +354,7 @@ export default function SearchPage() {
         clusterName: prefill.clusterName ?? base.clusterName,
       };
     });
+    setSearchSeq((prev) => prev + 1);
   }, []);
 
   useEffect(() => {
@@ -350,6 +370,7 @@ export default function SearchPage() {
       await ensureRegionNamesReady();
       const params: Record<string, any> = { page, pageSize, sortBy };
       if (q) params.q = q;
+      if (q) params.qType = qType;
       if (listingFilters.regionCode) params.regionCode = listingFilters.regionCode;
       if (listingFilters.patentType) params.patentType = listingFilters.patentType;
       if (listingFilters.tradeMode) params.tradeMode = listingFilters.tradeMode;
@@ -373,7 +394,7 @@ export default function SearchPage() {
       if (listingFilters.clusterId) params.clusterId = listingFilters.clusterId;
       return apiGet<PagedListingSummary>('/search/listings', params);
     },
-    [enabledListingTopicSet, listingFilters, q, sortBy],
+    [enabledListingTopicSet, listingFilters, q, qType, sortBy],
   );
 
   const listingList = usePagedList<ListingSummary>(fetchListing, { pageSize: 20 });
@@ -394,35 +415,32 @@ export default function SearchPage() {
 
   const achievementList = usePagedList<AchievementSummary>(fetchAchievement, { pageSize: 20 });
 
-  const listingSignature = useMemo(() => JSON.stringify({ q, sortBy, listingFilters }), [listingFilters, q, sortBy]);
+  const listingSignature = useMemo(
+    () => JSON.stringify({ q, qType, sortBy, listingFilters, searchSeq }),
+    [listingFilters, q, qType, searchSeq, sortBy],
+  );
   const achievementSignature = useMemo(
-    () => JSON.stringify({ q, achievementSortBy, achievementFilters }),
-    [achievementFilters, achievementSortBy, q],
+    () => JSON.stringify({ q, achievementSortBy, achievementFilters, searchSeq }),
+    [achievementFilters, achievementSortBy, q, searchSeq],
   );
 
   useEffect(() => {
     if (tab === 'LISTING') {
       if (autoLoadSignatureRef.current.LISTING === listingSignature) return;
-      if (!listingList.items.length && !listingList.loading && !listingList.error) {
-        autoLoadSignatureRef.current.LISTING = listingSignature;
-        void listingList.reload();
-      }
+      autoLoadSignatureRef.current.LISTING = listingSignature;
+      listingList.reset();
+      void listingList.reload();
       return;
     }
     if (autoLoadSignatureRef.current.ACHIEVEMENT === achievementSignature) return;
-    if (!achievementList.items.length && !achievementList.loading && !achievementList.error) {
-      autoLoadSignatureRef.current.ACHIEVEMENT = achievementSignature;
-      void achievementList.reload();
-    }
+    autoLoadSignatureRef.current.ACHIEVEMENT = achievementSignature;
+    achievementList.reset();
+    void achievementList.reload();
   }, [
-    achievementList.error,
-    achievementList.items.length,
-    achievementList.loading,
+    achievementList.reset,
     achievementList.reload,
     achievementSignature,
-    listingList.error,
-    listingList.items.length,
-    listingList.loading,
+    listingList.reset,
     listingList.reload,
     listingSignature,
     tab,
@@ -544,6 +562,8 @@ export default function SearchPage() {
           }}
           onSearch={(value) => {
             setQ((value || '').trim());
+            setQType('AUTO');
+            setSearchSeq((prev) => prev + 1);
           }}
         />
 
@@ -695,7 +715,7 @@ export default function SearchPage() {
                       <CellRow
                         clickable
                         title="IPC 分类"
-                        description="支持按 IPC 类别筛选"
+                        description="支持按 IPC 类别 筛选"
                         extra={<Text className="muted">{draft.ipcName || draft.ipc || '不限'}</Text>}
                         isLast
                         onClick={() =>
@@ -796,32 +816,27 @@ export default function SearchPage() {
                   />
                 </FilterSection>
 
-                <FilterSection title="地区">
-                  <View className="search-filter-card">
-                    <CellGroup divider>
-                      <Picker
-                        mode="region"
-                        level="region"
-                        onChange={(event) => {
-                          const selected = parseRegionPickerSelection(event);
-                          if (!selected) return;
-                          setDraft((prev) => ({ ...prev, regionCode: selected.code, regionName: selected.name }));
-                        }}
-                      >
-                        <CellRow
-                          clickable
-                          title="地区"
-                          description="按行政区划选择"
-                          extra={
-                            <Text className="muted">
-                              {regionDisplayName(draft.regionCode, draft.regionName, '不限')}
-                            </Text>
-                          }
-                          isLast
-                        />
-                      </Picker>
-                    </CellGroup>
-                  </View>
+              <FilterSection title="地区">
+                <View className="search-filter-card">
+                  <CellGroup divider>
+                    <CellRow
+                      clickable
+                      title="地区"
+                      description="按行政区划选择"
+                      extra={
+                        <Text className="muted">
+                          {regionDisplayName(draft.regionCode, draft.regionName, '不限')}
+                        </Text>
+                      }
+                      isLast
+                      onClick={() =>
+                        openRegionPickerPage(({ code, name }) => {
+                          setDraft((prev) => ({ ...prev, regionCode: code, regionName: name }));
+                        })
+                      }
+                    />
+                  </CellGroup>
+                </View>
                   {draft.regionCode ? (
                     <Button
                       className="search-filter-clear"
@@ -879,25 +894,20 @@ export default function SearchPage() {
               <FilterSection title="地区">
                 <View className="search-filter-card">
                   <CellGroup divider>
-                    <Picker
-                      mode="region"
-                      level="region"
-                      onChange={(event) => {
-                        const selected = parseRegionPickerSelection(event);
-                        if (!selected) return;
-                        setDraft((prev) => ({ ...prev, regionCode: selected.code, regionName: selected.name }));
-                      }}
-                    >
-                      <CellRow
-                        clickable
-                        title="地区"
-                        description="按行政区划选择"
-                        extra={
-                          <Text className="muted">{regionDisplayName(draft.regionCode, draft.regionName, '不限')}</Text>
-                        }
-                        isLast
-                      />
-                    </Picker>
+                    <CellRow
+                      clickable
+                      title="地区"
+                      description="按行政区划选择"
+                      extra={
+                        <Text className="muted">{regionDisplayName(draft.regionCode, draft.regionName, '不限')}</Text>
+                      }
+                      isLast
+                      onClick={() =>
+                        openRegionPickerPage(({ code, name }) => {
+                          setDraft((prev) => ({ ...prev, regionCode: code, regionName: name }));
+                        })
+                      }
+                    />
                   </CellGroup>
                 </View>
                 {draft.regionCode ? (

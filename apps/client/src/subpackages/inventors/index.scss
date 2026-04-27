@@ -63,6 +63,7 @@
   text-align: center;
   background: #ffffff;
   box-shadow: 0 12rpx 22rpx rgba(15, 23, 42, 0.08);
+  cursor: pointer;
 }
 
 .inventor-podium-card.rank-1 {
@@ -182,6 +183,7 @@
   background: #ffffff;
   border: 1rpx solid rgba(15, 23, 42, 0.06);
   box-shadow: 0 8rpx 16rpx rgba(15, 23, 42, 0.04);
+  cursor: pointer;
 }
 
 .inventor-rank-row-badge {
@@ -407,4 +409,3 @@
   font-size: 20rpx;
   color: #9ca3af;
 }
-

@@ -53,8 +53,12 @@ export function CommentsPage() {
   const [contentType, setContentType] = useState<CommentContentType | ''>('');
   const [contentId, setContentId] = useState('');
   const [status, setStatus] = useState<CommentStatus | ''>('');
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(20);
 
-  const load = useCallback(async () => {
+  const load = useCallback(async (opts?: { page?: number; pageSize?: number }) => {
+    const nextPage = opts?.page ?? page;
+    const nextPageSize = opts?.pageSize ?? pageSize;
     setLoading(true);
     setError(null);
     try {
@@ -63,8 +67,8 @@ export function CommentsPage() {
         contentType: contentType || undefined,
         contentId: contentId.trim() || undefined,
         status: status || undefined,
-        page: 1,
-        pageSize: 20,
+        page: nextPage,
+        pageSize: nextPageSize,
       });
       setData(d);
     } catch (e: any) {
@@ -74,10 +78,15 @@ export function CommentsPage() {
     } finally {
       setLoading(false);
     }
-  }, [contentId, contentType, q, status]);
+  }, [contentId, contentType, page, pageSize, q, status]);
 
   useEffect(() => {
     void load();
+  }, [load]);
+
+  const handleSearch = useCallback(() => {
+    setPage(1);
+    void load({ page: 1 });
   }, [load]);
 
   const rows = useMemo(() => data?.items || [], [data?.items]);
@@ -127,7 +136,7 @@ export function CommentsPage() {
             placeholder="关键词（留言内容/用户）"
             allowClear
             onChange={(e) => setQ(e.target.value)}
-            onPressEnter={() => void load()}
+            onPressEnter={handleSearch}
           />
           <Select
             value={contentType}
@@ -145,7 +154,7 @@ export function CommentsPage() {
             placeholder="内容 ID"
             allowClear
             onChange={(e) => setContentId(e.target.value)}
-            onPressEnter={() => void load()}
+            onPressEnter={handleSearch}
           />
           <Select
             value={status}
@@ -159,14 +168,29 @@ export function CommentsPage() {
               { value: 'DELETED', label: '已删除' },
             ]}
           />
-          <Button onClick={load}>查询</Button>
+          <Button onClick={handleSearch}>查询</Button>
         </Space>
 
         <Table<Comment>
           rowKey="id"
           loading={loading}
           dataSource={rows}
-          pagination={false}
+          pagination={{
+            current: data?.page.page || page,
+            pageSize: data?.page.pageSize || pageSize,
+            total: data?.page.total || 0,
+            showSizeChanger: true,
+            pageSizeOptions: ['10', '20', '50'],
+            onChange: (nextPage, nextPageSize) => {
+              const normalizedPageSize = nextPageSize || pageSize;
+              if (normalizedPageSize !== pageSize) {
+                setPageSize(normalizedPageSize);
+                setPage(1);
+                return;
+              }
+              setPage(nextPage);
+            },
+          }}
           columns={[
             { title: '内容类型', dataIndex: 'contentType', render: (v) => contentTypeLabel(v) },
             { title: '内容 ID', dataIndex: 'contentId', ellipsis: true },

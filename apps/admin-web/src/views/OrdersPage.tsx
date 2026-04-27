@@ -42,16 +42,20 @@ export function OrdersPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<unknown | null>(null);
   const [data, setData] = useState<PagedOrder | null>(null);
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
   const [contractModalOpen, setContractModalOpen] = useState(false);
   const [contractSubmitting, setContractSubmitting] = useState(false);
   const [contractTarget, setContractTarget] = useState<Order | null>(null);
   const [contractForm] = Form.useForm();
 
-  const load = useCallback(async () => {
+  const load = useCallback(async (opts?: { page?: number; pageSize?: number }) => {
+    const nextPage = opts?.page ?? page;
+    const nextPageSize = opts?.pageSize ?? pageSize;
     setLoading(true);
     setError(null);
     try {
-      const d = await apiGet<PagedOrder>('/orders', { asRole: 'BUYER', page: 1, pageSize: 10 });
+      const d = await apiGet<PagedOrder>('/orders', { asRole: 'BUYER', page: nextPage, pageSize: nextPageSize });
       setData(d);
     } catch (e: any) {
       setError(e);
@@ -60,7 +64,7 @@ export function OrdersPage() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [page, pageSize]);
 
   useEffect(() => {
     void load();
@@ -90,7 +94,22 @@ export function OrdersPage() {
           rowKey="id"
           loading={loading}
           dataSource={rows}
-          pagination={false}
+          pagination={{
+            current: data?.page.page || page,
+            pageSize: data?.page.pageSize || pageSize,
+            total: data?.page.total || 0,
+            showSizeChanger: true,
+            pageSizeOptions: ['10', '20', '50'],
+            onChange: (nextPage, nextPageSize) => {
+              const normalizedPageSize = nextPageSize || pageSize;
+              if (normalizedPageSize !== pageSize) {
+                setPageSize(normalizedPageSize);
+                setPage(1);
+                return;
+              }
+              setPage(nextPage);
+            },
+          }}
           columns={[
             { title: '订单号', dataIndex: 'id' },
             { title: '状态', dataIndex: 'status', render: (v) => orderStatusLabel(v) },

@@ -5,6 +5,7 @@ import path from 'node:path';
 import { parseExcelSerialDate, readWorkbookRowsFromBuffer } from '../../common/workbook-reader';
 
 import { PrismaService } from '../../common/prisma/prisma.service';
+import { resolveUploadDir } from '../../common/upload-dir';
 import { FilesService } from '../files/files.service';
 
 type PatentNumberInputType = 'APPLICATION_NO' | 'PATENT_NO' | 'PUBLICATION_NO';
@@ -165,7 +166,7 @@ type PatentListingGenerateResultDto = {
   }>;
 };
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-const UPLOAD_DIR = process.env.UPLOAD_DIR || path.resolve(process.cwd(), 'uploads');
+const UPLOAD_DIR = resolveUploadDir();
 const PATENT_JOB_STATUS_SET = new Set<PatentJobStatus>(['PENDING', 'RUNNING', 'PAUSED', 'SUCCEEDED', 'FAILED']);
 const PATENT_IMPORT_DUPLICATE_POLICY_SET = new Set<PatentImportDuplicatePolicy>(['SKIP', 'OVERWRITE']);
 const PATENT_IMPORT_ROW_STATUS_SET = new Set<PatentImportRowStatus>(['PENDING', 'VALID', 'INVALID', 'SUCCEEDED', 'FAILED', 'SKIPPED']);

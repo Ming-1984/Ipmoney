@@ -11,6 +11,7 @@ import {
   mapStats,
   normalizeMediaInput,
   normalizeStringArray,
+  resolvePublicFileUrl,
   sanitizeIndustryTagNames,
 } from '../content-utils';
 
@@ -156,6 +157,12 @@ export class AchievementsService {
     return {
       id: it.id,
       source: it.source ?? 'USER',
+      externalId: it.externalId ?? null,
+      sourceRawCategory: it.sourceRawCategory ?? null,
+      sourceRawStatus: it.sourceRawStatus ?? null,
+      sourceBatch: it.sourceBatch ?? null,
+      sourceRawRegion: it.sourceRawRegion ?? null,
+      sourceOrgName: it.sourceOrgName ?? null,
       title: it.title,
       summary: it.summary ?? null,
       maturity: it.maturity ?? null,
@@ -167,7 +174,7 @@ export class AchievementsService {
       stats: mapStats(it.stats),
       auditStatus: it.auditStatus,
       status: it.status,
-      coverUrl: it.coverFile?.url ?? null,
+      coverUrl: resolvePublicFileUrl(it.coverFile),
       createdAt: it.createdAt.toISOString(),
     };
   }
@@ -272,6 +279,14 @@ export class AchievementsService {
     const keywords = this.normalizeKeywords(body?.keywords);
     const cooperationModes = this.normalizeCooperationModes(body?.cooperationModes);
     const coverFileId = this.hasOwn(body, 'coverFileId') ? this.parseUuidStrict(body?.coverFileId, 'coverFileId') : null;
+    const externalId = this.hasOwn(body, 'externalId') ? String(body?.externalId || '').trim() || null : null;
+    const sourceRawCategory = this.hasOwn(body, 'sourceRawCategory')
+      ? String(body?.sourceRawCategory || '').trim() || null
+      : null;
+    const sourceRawStatus = this.hasOwn(body, 'sourceRawStatus') ? String(body?.sourceRawStatus || '').trim() || null : null;
+    const sourceBatch = this.hasOwn(body, 'sourceBatch') ? String(body?.sourceBatch || '').trim() || null : null;
+    const sourceRawRegion = this.hasOwn(body, 'sourceRawRegion') ? String(body?.sourceRawRegion || '').trim() || null : null;
+    const sourceOrgName = this.hasOwn(body, 'sourceOrgName') ? String(body?.sourceOrgName || '').trim() || null : null;
     const mediaInput: Array<{ fileId: string; type: ContentMediaType; sort: number }> = this.hasOwn(body, 'media')
       ? normalizeMediaInput(body?.media)
       : [];
@@ -280,6 +295,12 @@ export class AchievementsService {
       data: {
         publisherUserId,
         source,
+        externalId: externalId ?? undefined,
+        sourceRawCategory: sourceRawCategory ?? undefined,
+        sourceRawStatus: sourceRawStatus ?? undefined,
+        sourceBatch: sourceBatch ?? undefined,
+        sourceRawRegion: sourceRawRegion ?? undefined,
+        sourceOrgName: sourceOrgName ?? undefined,
         title,
         summary,
         description,
@@ -640,10 +661,34 @@ export class AchievementsService {
       ? this.parseAuditStatusStrict(body?.auditStatus, 'auditStatus')
       : it.auditStatus;
     const status = this.hasOwn(body, 'status') ? this.parseStatusStrict(body?.status, 'status') : it.status;
+    const externalId = this.hasOwn(body, 'externalId')
+      ? String(body?.externalId || '').trim() || null
+      : it.externalId ?? null;
+    const sourceRawCategory = this.hasOwn(body, 'sourceRawCategory')
+      ? String(body?.sourceRawCategory || '').trim() || null
+      : it.sourceRawCategory ?? null;
+    const sourceRawStatus = this.hasOwn(body, 'sourceRawStatus')
+      ? String(body?.sourceRawStatus || '').trim() || null
+      : it.sourceRawStatus ?? null;
+    const sourceBatch = this.hasOwn(body, 'sourceBatch')
+      ? String(body?.sourceBatch || '').trim() || null
+      : it.sourceBatch ?? null;
+    const sourceRawRegion = this.hasOwn(body, 'sourceRawRegion')
+      ? String(body?.sourceRawRegion || '').trim() || null
+      : it.sourceRawRegion ?? null;
+    const sourceOrgName = this.hasOwn(body, 'sourceOrgName')
+      ? String(body?.sourceOrgName || '').trim() || null
+      : it.sourceOrgName ?? null;
 
     const updated = await this.prisma.achievement.update({
       where: { id: achievementId },
       data: {
+        externalId: externalId ?? undefined,
+        sourceRawCategory: sourceRawCategory ?? undefined,
+        sourceRawStatus: sourceRawStatus ?? undefined,
+        sourceBatch: sourceBatch ?? undefined,
+        sourceRawRegion: sourceRawRegion ?? undefined,
+        sourceOrgName: sourceOrgName ?? undefined,
         title,
         summary,
         description,

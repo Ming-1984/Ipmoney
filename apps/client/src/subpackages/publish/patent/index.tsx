@@ -1,4 +1,4 @@
-import { View, Text, Picker } from '@tarojs/components';
+﻿import { View, Text } from '@tarojs/components';
 import Taro, { useRouter } from '@tarojs/taro';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import './index.scss';
@@ -18,7 +18,8 @@ import { sanitizeIndustryTagNames } from '../../../lib/industryTags';
 import { sanitizeListingTopics, syncListingTopicsWithTradeMode } from '../../../lib/listingTopics';
 import { auditStatusLabel, listingStatusLabel, patentTypeLabel } from '../../../lib/labels';
 import { fenToYuan } from '../../../lib/money';
-import { parseRegionPickerSelection, regionDisplayName } from '../../../lib/regions';
+import { openRegionPickerPage } from '../../../lib/regionPicker';
+import { regionDisplayName } from '../../../lib/regions';
 import { uploadWithRetry } from '../../../lib/upload';
 import { ChipGroup, type ChipOption, IndustryTagsPicker } from '../../../ui/filters';
 import { PageHeader, PopupSheet, StickyBar, Surface } from '../../../ui/layout';
@@ -308,12 +309,6 @@ export default function PublishPatentPage() {
     const ok = await confirm({ title: '移除材料', content: '确定移除该材料？', confirmText: '移除', cancelText: '取消' });
     if (!ok) return;
     setProofFiles((prev) => prev.filter((x) => x.id !== f.id));
-  }, []);
-
-  const handleRegionPick = useCallback((event: any) => {
-    const selected = parseRegionPickerSelection(event);
-    if (!selected) return;
-    setRegionCode(selected.code);
   }, []);
 
   useEffect(() => {
@@ -886,14 +881,19 @@ export default function PublishPatentPage() {
 
           <View className="form-field">
             <Text className="form-label">所在地区</Text>
-            <Picker mode="region" level="region" onChange={handleRegionPick}>
-              <View className="form-select">
-                <Text className={regionCode.trim() ? 'form-select-value' : 'form-select-placeholder'}>
-                  {regionDisplayName(regionCode, undefined, '省/市/区')}
-                </Text>
-                <Text className="form-select-arrow">▾</Text>
-              </View>
-            </Picker>
+            <View
+              className="form-select"
+              onClick={() =>
+                openRegionPickerPage(({ code }) => {
+                  setRegionCode(code);
+                })
+              }
+            >
+              <Text className={regionCode.trim() ? 'form-select-value' : 'form-select-placeholder'}>
+                {regionDisplayName(regionCode, undefined, '省/市/区')}
+              </Text>
+              <Text className="form-select-arrow">▾</Text>
+            </View>
           </View>
 
           <View className="form-field">

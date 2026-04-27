@@ -23,7 +23,6 @@ type DetailMeta = {
   experienceYears: string | number;
   orgName: string;
   expertiseText: string;
-  honorTitles: string[];
 };
 
 export default function TechManagerDetailPage() {
@@ -105,24 +104,24 @@ export default function TechManagerDetailPage() {
 
   const meta: DetailMeta = useMemo(() => {
     const ratingScore = data?.stats?.ratingScore;
+    const ratingCount = data?.stats?.ratingCount ?? 0;
     const ratingText =
-      typeof ratingScore === 'number' && !Number.isNaN(ratingScore) ? ratingScore.toFixed(1) : '-';
+      ratingCount > 0 && typeof ratingScore === 'number' && !Number.isNaN(ratingScore) ? ratingScore.toFixed(1) : '-';
+    const ratingDisplay = ratingText === '-' ? '暂无评分' : `${ratingText}分`;
     const levelLabel =
-      typeof ratingScore === 'number'
+      ratingCount > 0 && typeof ratingScore === 'number'
         ? ratingScore >= 4.9
           ? '高级'
           : ratingScore >= 4.6
           ? '中级'
           : '初级'
         : '认证';
-    const orgName =
-      (data as any)?.organizationName || (data as any)?.companyName || (data as any)?.organization || '';
+    const orgName = data?.organization || '';
     const visibleServiceTags = sanitizeServiceTagNames(data?.serviceTags || []);
     const expertiseText =
-      (data as any)?.expertiseSummary ||
+      (data?.serviceDirections?.length ? data.serviceDirections.join('、') : '') ||
       (visibleServiceTags.length ? visibleServiceTags.join('、') : '') ||
       '暂无';
-    const honorTitles = ((data as any)?.honorTitles as string[]) || [];
     let experienceYears: string | number = '-';
     if (data?.verifiedAt) {
       const verifiedDate = new Date(data.verifiedAt);
@@ -132,7 +131,7 @@ export default function TechManagerDetailPage() {
       }
     }
 
-    return { ratingText, levelLabel, experienceYears, orgName, expertiseText, honorTitles };
+    return { ratingText: ratingDisplay, levelLabel, experienceYears, orgName, expertiseText };
   }, [data]);
 
   return (
@@ -172,7 +171,7 @@ export default function TechManagerDetailPage() {
             <View className="consult-detail-stat-divider" />
             <View className="consult-detail-stat">
               <Text className="consult-detail-stat-num is-accent">
-                {meta.ratingText === '-' ? '-' : `${meta.ratingText}分`}
+                {meta.ratingText}
               </Text>
               <Text className="consult-detail-stat-label">综合评分</Text>
             </View>
@@ -191,24 +190,24 @@ export default function TechManagerDetailPage() {
               <View className="consult-detail-section-bar" />
               <Text className="consult-detail-section-title">个人简介</Text>
             </View>
-            <Text className="consult-detail-section-text">{data.intro || '暂无简介'}</Text>
+            <Text className="consult-detail-section-text">{data.intro || data.workHighlights || '暂无简介'}</Text>
           </View>
 
           <View className="consult-detail-section">
             <View className="consult-detail-section-head">
               <View className="consult-detail-section-bar" />
-              <Text className="consult-detail-section-title">荣誉称号</Text>
+              <Text className="consult-detail-section-title">服务标签</Text>
             </View>
-            {meta.honorTitles.length ? (
+            {Array.isArray(data.serviceTags) && data.serviceTags.length ? (
               <View className="consult-detail-honors">
-                {meta.honorTitles.map((title) => (
+                {data.serviceTags.map((title) => (
                   <Text key={title} className="consult-detail-honor">
                     {title}
                   </Text>
                 ))}
               </View>
             ) : (
-              <Text className="consult-detail-section-text">暂无荣誉</Text>
+              <Text className="consult-detail-section-text">暂无标签</Text>
             )}
           </View>
 
