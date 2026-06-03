@@ -1,3 +1,5 @@
+import bannerFallbackCover from '../assets/home/promo-certificate.png';
+
 export type BannerMediaType = 'IMAGE' | 'VIDEO';
 
 export type BannerVideoMeta = {
@@ -33,7 +35,17 @@ export type HomeBannerItem = {
   videoUrl?: string;
   linkUrl?: string;
   order: number;
-  source: 'remote';
+  source: 'remote' | 'fallback';
+};
+
+const DEFAULT_FALLBACK_BANNER: HomeBannerItem = {
+  id: 'banner-fallback-default',
+  title: '首页推荐',
+  cover: bannerFallbackCover,
+  mediaType: 'IMAGE',
+  linkUrl: '/subpackages/search/index',
+  order: 1,
+  source: 'fallback',
 };
 
 export function buildHomeBannerItems(config?: BannerConfig | null): HomeBannerItem[] {
@@ -54,12 +66,12 @@ export function buildHomeBannerItems(config?: BannerConfig | null): HomeBannerIt
         source: 'remote' as const,
       };
     })
-    .filter((item) => item.mediaType === 'VIDEO' && Boolean(item.videoUrl))
     .filter((item) => Boolean(item.cover))
+    .filter((item) => (item.mediaType === 'VIDEO' ? Boolean(item.videoUrl) : true))
     .sort((a, b) => a.order - b.order);
 
   if (remoteItems.length) return remoteItems;
-  return [];
+  return [DEFAULT_FALLBACK_BANNER];
 }
 
 export function clampBannerIndex(rawIndex: number, length: number) {

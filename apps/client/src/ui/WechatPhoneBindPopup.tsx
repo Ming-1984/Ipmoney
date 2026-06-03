@@ -18,7 +18,7 @@ export function WechatPhoneBindPopup(props: WechatPhoneBindPopupProps) {
       const code = String(e?.detail?.code || '').trim();
       const errMsg = String(e?.detail?.errMsg || '').toLowerCase();
 
-      // 用户拒绝/取消：直接视为跳过，继续后续流程。
+      // User denied or cancelled the phone capability; continue the flow without blocking.
       if (!code) {
         if (errMsg.includes('user deny') || errMsg.includes('fail')) {
           props.onSkip();
@@ -44,8 +44,8 @@ export function WechatPhoneBindPopup(props: WechatPhoneBindPopupProps) {
       className="wechat-phone-popup-wrap"
     >
       <View className="wechat-phone-popup">
-        <Text className="wechat-phone-title">授权手机号</Text>
-        <Text className="wechat-phone-subtitle">用于咨询与交易沟通，可稍后在资料设置中绑定。</Text>
+        <Text className="wechat-phone-title">手机号快捷登录</Text>
+        <Text className="wechat-phone-subtitle">用于绑定手机号，便于咨询沟通、账号登录与交易联系。</Text>
 
         <View className="wechat-phone-actions">
           <TaroButton
@@ -54,7 +54,7 @@ export function WechatPhoneBindPopup(props: WechatPhoneBindPopupProps) {
             onGetPhoneNumber={onGetPhoneNumber}
             disabled={Boolean(props.loading)}
           >
-            一键授权手机号
+            立即验证手机号
           </TaroButton>
 
           <TaroButton
@@ -62,7 +62,7 @@ export function WechatPhoneBindPopup(props: WechatPhoneBindPopupProps) {
             onClick={props.onSkip}
             disabled={Boolean(props.loading)}
           >
-            暂不授权
+            暂不验证
           </TaroButton>
         </View>
       </View>

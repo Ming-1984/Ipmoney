@@ -1,0 +1,686 @@
+﻿import { View, Text, Image, Input, Swiper, SwiperItem } from '@tarojs/components';
+import Taro, { usePullDownRefresh, useReachBottom } from '@tarojs/taro';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import './index.scss';
+
+import type { components } from '@ipmoney/api-types';
+
+
+import iconSearch from '../../assets/icons/icon-search-gray.svg';
+import iconMapGreen from '../../assets/icons/icon-map-green.svg';
+import iconNotification from '../../assets/icons/icon-notification.svg';
+
+// Home quick entry icons (provided by you in repo root, copied into assets)
+import homeIconInventors from '../../assets/icons/home/home-inventors.svg';
+import homeIconTechManager from '../../assets/icons/home/home-tech-manager.svg';
+import homeIconDesignPatent from '../../assets/icons/home/home-design-patent.svg';
+import homeIconInventionPatent from '../../assets/icons/home/home-invention-patent.svg';
+import homeIconOrganization from '../../assets/icons/home/home-organization.svg';
+import homeIconUtilityPatent from '../../assets/icons/home/home-utility-patent.svg';
+import homeIconAchievement from '../../assets/icons/home/home-achievement.svg';
+import logoGif from '../../assets/brand/logo.optim2.gif';
+import logoPng from '../../assets/brand/logo.png';
+import { STORAGE_KEYS } from '../../constants';
+import { getToken, onAuthChanged } from '../../lib/auth';
+import { apiGet, apiPost } from '../../lib/api';
+import { getDetailCache, setDetailCache } from '../../lib/detailCache';
+import { ensureApproved } from '../../lib/guard';
+import { favorite, getFavoriteListingIds, syncFavorites, unfavorite } from '../../lib/favorites';
+import {
+  fetchHomeLandingConfig,
+  normalizeHomeLandingConfig,
+  type HomeLandingConfig,
+} from '../../lib/homeLandingConfig';
+import {
+  executeHomeLandingAction,
+  HOME_ZONE_TONES,
+  resolveHomeLandingZoneImage,
+} from '../../lib/homeLandingFeatured';
+import { fetchHomeAnnouncements, type PublicHomeAnnouncementItem } from '../../lib/homeAnnouncements';
+import { buildHomeBannerItems, type BannerConfig, type HomeBannerItem } from '../../lib/homeBannerConfig';
+import { EmptyCard, ErrorCard } from '../../ui/StateCards';
+import { PullToRefresh, toast } from '../../ui/nutui';
+import { ListingCard } from '../../ui/ListingCard';
+import { ListingListSkeleton } from '../../ui/ListingSkeleton';
+import { ListFooter } from '../../ui/ListFooter';
+import GifImage from '../../ui/GifImage';
+
+type PagedListingSummary = components['schemas']['PagedListingSummary'];
+type ListingSummary = components['schemas']['ListingSummary'];
+type ListingPageInfo = NonNullable<PagedListingSummary['page']>;
+type QuickEntry = {
+  key: string;
+  label: string;
+  icon: string;
+  onClick: () => void;
+};
+
+type PatentZoneEntry = {
+  id: string;
+  title: string;
+  subtitle: string;
+  bgImage: string;
+  tone: string;
+  onClick: () => void;
+};
+type Conversation = { id: string };
+
+const HOME_FAVORITES_SYNC_DELAY_MS = 800;
+const HOME_LISTINGS_CACHE_SCOPE = 'home-listings';
+const HOME_RECOMMEND_PAGE_SIZE = 10;
+type HomeRecommendMode = 'RECOMMEND' | 'NEWEST';
+
+const HomeBanner = React.memo(function HomeBanner({ items }: { items: HomeBannerItem[] }) {
+  if (!items.length) return null;
+  const shouldAutoplay = items.length > 1;
+
+  return (
+    <View className="home-banner">
+      <Swiper
+        className="home-banner-swiper"
+        circular={shouldAutoplay}
+        indicatorDots={shouldAutoplay}
+        autoplay={shouldAutoplay}
+        interval={3000}
+        duration={520}
+      >
+        {items.map((item, index) => (
+          <SwiperItem key={item.id}>
+            <View
+              className="home-banner-item"
+              onClick={() =>
+                Taro.navigateTo({
+                  url: `/subpackages/media/video-preview/index?i=${index}`,
+                })
+              }
+            >
+              <Image src={item.cover} mode="aspectFill" className="home-banner-img" lazyLoad />
+              <View className="home-banner-overlay">
+                <Text className="home-banner-caption">点击观看</Text>
+              </View>
+            </View>
+          </SwiperItem>
+        ))}
+      </Swiper>
+    </View>
+  );
+});
+export default function HomePage() {
+  const initialAuthed = Boolean(getToken());
+  const initialRecommendListings = getDetailCache<PagedListingSummary>(HOME_LISTINGS_CACHE_SCOPE, 'recommend');
+  const initialNewestListings = getDetailCache<PagedListingSummary>(HOME_LISTINGS_CACHE_SCOPE, 'newest');
+  const initialListings = initialAuthed
+    ? initialRecommendListings || initialNewestListings
+    : initialNewestListings;
+  const initialRecommendMode: HomeRecommendMode =
+    initialAuthed && initialRecommendListings ? 'RECOMMEND' : 'NEWEST';
+
+  const [loading, setLoading] = useState(!initialListings);
+  const [refreshing, setRefreshing] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [items, setItems] = useState<ListingSummary[]>(() => initialListings?.items || []);
+  const [pageInfo, setPageInfo] = useState<ListingPageInfo | null>(() => (initialListings?.page as ListingPageInfo) || null);
+  const [lastCount, setLastCount] = useState<number>(() => initialListings?.items?.length || 0);
+  const [recommendMode, setRecommendMode] = useState<HomeRecommendMode>(initialRecommendMode);
+  const [recommendFallback, setRecommendFallback] = useState<boolean>(initialAuthed && !initialRecommendListings);
+  const [isAuthed, setIsAuthed] = useState(initialAuthed);
+  const [favoriteIds, setFavoriteIds] = useState<Set<string>>(() => new Set(getFavoriteListingIds()));
+  const [keyword, setKeyword] = useState('');
+  const [announcements, setAnnouncements] = useState<PublicHomeAnnouncementItem[]>([]);
+  const [activeAnnouncementIndex, setActiveAnnouncementIndex] = useState(0);
+  const [bannerItems, setBannerItems] = useState<HomeBannerItem[]>(() => buildHomeBannerItems());
+  const [homeLandingConfig, setHomeLandingConfig] = useState<HomeLandingConfig>(() => normalizeHomeLandingConfig(null));
+  const itemCountRef = useRef(items.length);
+
+  const statusBarHeight = useMemo(() => {
+    if (process.env.TARO_ENV !== 'weapp') return 0;
+    try {
+      return Taro.getSystemInfoSync().statusBarHeight || 0;
+    } catch {
+      return 0;
+    }
+  }, []);
+
+  const heroStyle = useMemo(() => {
+    if (process.env.TARO_ENV !== 'weapp') return undefined;
+    const top = statusBarHeight ? statusBarHeight + 8 : 8;
+    return { paddingTop: `${top}px` };
+  }, [statusBarHeight]);
+
+  useEffect(() => onAuthChanged(() => setIsAuthed(Boolean(getToken()))), []);
+
+  useEffect(() => {
+    itemCountRef.current = items.length;
+  }, [items.length]);
+
+  const loadAnnouncements = useCallback(async () => {
+    try {
+      const next = await fetchHomeAnnouncements();
+      setAnnouncements(next);
+    } catch {
+      // Announcement loading should never block the homepage core experience.
+      setAnnouncements([]);
+    }
+  }, []);
+
+  const loadBanner = useCallback(async () => {
+    try {
+      const banner = await apiGet<BannerConfig>('/public/config/banner');
+      setBannerItems(buildHomeBannerItems(banner));
+    } catch {
+      // keep fallback banner when config request fails
+    }
+  }, []);
+
+  const loadHomeLanding = useCallback(async () => {
+    try {
+      const config = await fetchHomeLandingConfig();
+      setHomeLandingConfig(config);
+    } catch {
+      setHomeLandingConfig((prev) => normalizeHomeLandingConfig(prev));
+    }
+  }, []);
+
+  const applyRecommendPage = useCallback((result: PagedListingSummary, append: boolean) => {
+    const nextItems = Array.isArray(result?.items) ? result.items : [];
+    setLastCount(nextItems.length);
+    setPageInfo((result?.page as ListingPageInfo) || null);
+    setItems((prev) => (append ? [...prev, ...nextItems] : nextItems));
+  }, []);
+
+  const fetchRecommendPage = useCallback(
+    async (page: number) =>
+      apiGet<PagedListingSummary>('/me/recommendations/listings', {
+        page,
+        pageSize: HOME_RECOMMEND_PAGE_SIZE,
+      }),
+    [],
+  );
+
+  const fetchNewestPage = useCallback(
+    async (page: number) =>
+      apiGet<PagedListingSummary>('/search/listings', {
+        sortBy: 'NEWEST',
+        page,
+        pageSize: HOME_RECOMMEND_PAGE_SIZE,
+      }),
+    [],
+  );
+
+  const load = useCallback(
+    async (ctx: 'load' | 'refresh' = 'load') => {
+      const cachedRecommend = getDetailCache<PagedListingSummary>(HOME_LISTINGS_CACHE_SCOPE, 'recommend');
+      const cachedNewest = getDetailCache<PagedListingSummary>(HOME_LISTINGS_CACHE_SCOPE, 'newest');
+      const cached = isAuthed ? cachedRecommend || cachedNewest : cachedNewest;
+
+      if (ctx === 'load') {
+        if (cached) {
+          applyRecommendPage(cached, false);
+          if (isAuthed && cachedRecommend) {
+            setRecommendMode('RECOMMEND');
+            setRecommendFallback(false);
+          } else {
+            setRecommendMode('NEWEST');
+            setRecommendFallback(isAuthed);
+          }
+          setLoading(false);
+          setError(null);
+        } else {
+          setLoading(itemCountRef.current === 0);
+          setError(null);
+        }
+      }
+
+      if (ctx === 'refresh') {
+        setRefreshing(true);
+        setError(null);
+      }
+
+      try {
+        if (isAuthed) {
+          let recommendResult: PagedListingSummary | null = null;
+          let recommendFailed = false;
+
+          try {
+            recommendResult = await fetchRecommendPage(1);
+            setDetailCache(HOME_LISTINGS_CACHE_SCOPE, 'recommend', recommendResult);
+          } catch {
+            recommendFailed = true;
+          }
+
+          if (recommendResult?.items?.length) {
+            applyRecommendPage(recommendResult, false);
+            setRecommendMode('RECOMMEND');
+            setRecommendFallback(false);
+          } else {
+            const newest = await fetchNewestPage(1);
+            applyRecommendPage(newest, false);
+            setRecommendMode('NEWEST');
+            setRecommendFallback(recommendFailed || Boolean(recommendResult));
+            setDetailCache(HOME_LISTINGS_CACHE_SCOPE, 'newest', newest);
+          }
+        } else {
+          const newest = await fetchNewestPage(1);
+          applyRecommendPage(newest, false);
+          setRecommendMode('NEWEST');
+          setRecommendFallback(false);
+          setDetailCache(HOME_LISTINGS_CACHE_SCOPE, 'newest', newest);
+        }
+      } catch (e: any) {
+        if (!cached && itemCountRef.current === 0) {
+          setError(e?.message || '加载失败');
+          setItems([]);
+          setPageInfo(null);
+          setLastCount(0);
+        } else if (ctx === 'refresh') {
+          toast(e?.message || '刷新失败');
+        }
+      } finally {
+        if (ctx === 'load') setLoading(false);
+        if (ctx === 'refresh') setRefreshing(false);
+      }
+    },
+    [applyRecommendPage, fetchNewestPage, fetchRecommendPage, isAuthed],
+  );
+
+  useEffect(() => {
+    void load('load');
+  }, [load]);
+
+  useEffect(() => {
+    void loadAnnouncements();
+  }, [loadAnnouncements]);
+
+  useEffect(() => {
+    void loadBanner();
+  }, [loadBanner]);
+
+  useEffect(() => {
+    void loadHomeLanding();
+  }, [loadHomeLanding]);
+
+  useEffect(() => {
+    if (announcements.length <= 1) return undefined;
+    const timer = setInterval(() => {
+      setActiveAnnouncementIndex((prev) => (prev + 1) % announcements.length);
+    }, 4500);
+    return () => clearInterval(timer);
+  }, [announcements.length]);
+
+  useEffect(() => {
+    if (!isAuthed) {
+      setFavoriteIds(new Set(getFavoriteListingIds()));
+      return;
+    }
+    const timer = setTimeout(() => {
+      void syncFavorites()
+        .then((ids) => setFavoriteIds(new Set(ids)))
+        .catch(() => setFavoriteIds(new Set(getFavoriteListingIds())));
+    }, HOME_FAVORITES_SYNC_DELAY_MS);
+    return () => clearTimeout(timer);
+  }, [isAuthed]);
+
+
+  const hasMore = useMemo(() => {
+    if (pageInfo) return pageInfo.page * pageInfo.pageSize < pageInfo.total;
+    return lastCount >= HOME_RECOMMEND_PAGE_SIZE;
+  }, [lastCount, pageInfo]);
+
+  const loadRecommendMore = useCallback(async () => {
+    if (loading || refreshing || loadingMore || !hasMore) return;
+    setLoadingMore(true);
+    try {
+      const currentPage = Math.max(1, Number(pageInfo?.page || 1));
+      const nextPage = currentPage + 1;
+      const next =
+        isAuthed && recommendMode === 'RECOMMEND'
+          ? await fetchRecommendPage(nextPage)
+          : await fetchNewestPage(nextPage);
+      applyRecommendPage(next, true);
+    } catch (e: any) {
+      toast(e?.message || '加载更多失败');
+    } finally {
+      setLoadingMore(false);
+    }
+  }, [
+    applyRecommendPage,
+    fetchNewestPage,
+    fetchRecommendPage,
+    hasMore,
+    isAuthed,
+    loading,
+    loadingMore,
+    pageInfo?.page,
+    recommendMode,
+    refreshing,
+  ]);
+
+  useReachBottom(() => {
+    void loadRecommendMore();
+  });
+
+  usePullDownRefresh(() => {
+    void load('refresh').finally(() => {
+      try {
+        Taro.stopPullDownRefresh();
+      } catch {
+        // ignore non-weapp stop refresh errors
+      }
+    });
+  });
+
+  const goSearch = useCallback((value?: string) => {
+    const q = typeof value === 'string' ? value.trim() : '';
+    if (typeof value === 'string' && !q) {
+      toast('请输入关键词');
+      return;
+    }
+    if (q) {
+      Taro.setStorageSync(STORAGE_KEYS.searchPrefill, { q, tab: 'LISTING' });
+    }
+    Taro.navigateTo({ url: '/subpackages/search/index' });
+  }, []);
+
+  const goInventors = useCallback(() => Taro.navigateTo({ url: '/subpackages/inventors/index' }), []);
+  const goPatentMap = useCallback(() => Taro.navigateTo({ url: '/subpackages/patent-map/index' }), []);
+  const openConsultTab = useCallback((tab: 'TECH' | 'ORG') => {
+    Taro.setStorageSync(STORAGE_KEYS.consultLandingTab, tab);
+    Taro.switchTab({ url: '/pages/tech-managers/index' });
+  }, []);
+  const goTechManagers = useCallback(() => openConsultTab('TECH'), [openConsultTab]);
+  const goOrganizations = useCallback(() => openConsultTab('ORG'), [openConsultTab]);
+  const goPatentExplore = useCallback(() => {
+    Taro.navigateTo({ url: '/subpackages/patent-square/index' });
+  }, []);
+  const goDesignPatents = useCallback(() => {
+    Taro.setStorageSync(STORAGE_KEYS.searchPrefill, {
+      tab: 'LISTING',
+      patentType: 'DESIGN',
+      reset: true,
+    });
+    Taro.navigateTo({ url: '/subpackages/search/index' });
+  }, []);
+  const goInventionPatents = useCallback(() => {
+    Taro.setStorageSync(STORAGE_KEYS.searchPrefill, {
+      tab: 'LISTING',
+      patentType: 'INVENTION',
+      reset: true,
+    });
+    Taro.navigateTo({ url: '/subpackages/search/index' });
+  }, []);
+  const goUtilityPatents = useCallback(() => {
+    Taro.setStorageSync(STORAGE_KEYS.searchPrefill, {
+      tab: 'LISTING',
+      patentType: 'UTILITY_MODEL',
+      reset: true,
+    });
+    Taro.navigateTo({ url: '/subpackages/search/index' });
+  }, []);
+  const goAchievementSearch = useCallback(() => {
+    Taro.setStorageSync(STORAGE_KEYS.searchPrefill, { tab: 'ACHIEVEMENT', reset: true });
+    Taro.navigateTo({ url: '/subpackages/search/index' });
+  }, []);
+
+  const goAnnouncements = useCallback(() => {
+    Taro.navigateTo({ url: '/subpackages/home-announcements/index' });
+  }, []);
+
+  const startListingConsult = useCallback(async (listingId: string) => {
+    if (!ensureApproved()) return;
+    try {
+      await apiPost<void>(`/listings/${listingId}/consultations`, { channel: 'FORM' }, { idempotencyKey: `c-${listingId}` });
+    } catch {
+      // ignore heat event failure
+    }
+    try {
+      const conv = await apiPost<Conversation>(
+        `/listings/${listingId}/conversations`,
+        {},
+        { idempotencyKey: `conv-${listingId}` },
+      );
+      Taro.navigateTo({ url: `/subpackages/messages/chat/index?conversationId=${conv.id}` });
+    } catch (e: any) {
+      toast(e?.message || '进入咨询失败');
+    }
+  }, []);
+
+  const toggleFavorite = useCallback(
+    async (listingId: string) => {
+      if (!ensureApproved()) return;
+      const isFavorited = favoriteIds.has(listingId);
+      try {
+        if (isFavorited) {
+          await unfavorite(listingId);
+          setFavoriteIds((prev) => {
+            const next = new Set(prev);
+            next.delete(listingId);
+            return next;
+          });
+          toast('已取消收藏', { icon: 'success' });
+          return;
+        }
+        await favorite(listingId);
+        setFavoriteIds((prev) => new Set(prev).add(listingId));
+        toast('已收藏', { icon: 'success' });
+      } catch (e: any) {
+        toast(e?.message || '操作失败');
+      }
+    },
+    [favoriteIds],
+  );
+
+  const goRecommendMore = useCallback(() => {
+    Taro.setStorageSync(STORAGE_KEYS.searchPrefill, { tab: 'LISTING', reset: true });
+    Taro.navigateTo({ url: '/subpackages/search/index' });
+  }, []);
+
+  const quickEntries: QuickEntry[] = useMemo(
+    () => [
+      { key: 'design-patent', label: '外观专利', icon: homeIconDesignPatent, onClick: goDesignPatents },
+      { key: 'invention-patent', label: '发明专利', icon: homeIconInventionPatent, onClick: goInventionPatents },
+      { key: 'utility-patent', label: '实用新型', icon: homeIconUtilityPatent, onClick: goUtilityPatents },
+      { key: 'organization', label: '机构', icon: homeIconOrganization, onClick: goOrganizations },
+      { key: 'inventor', label: '发明人榜', icon: homeIconInventors, onClick: goInventors },
+      { key: 'patent-map', label: '专利地图', icon: iconMapGreen, onClick: goPatentMap },
+      { key: 'tech-manager', label: '技术经理', icon: homeIconTechManager, onClick: goTechManagers },
+      { key: 'achievement', label: '成果展示', icon: homeIconAchievement, onClick: goAchievementSearch },
+    ],
+    [
+      goDesignPatents,
+      goInventors,
+      goPatentMap,
+      goInventionPatents,
+      goUtilityPatents,
+      goOrganizations,
+      goTechManagers,
+      goAchievementSearch,
+    ],
+  );
+
+  const patentZoneEntries: PatentZoneEntry[] = useMemo(
+    () =>
+      (homeLandingConfig.featuredZones.enabled ? homeLandingConfig.featuredZones.items : [])
+        .filter((item) => item.enabled)
+        .slice(0, homeLandingConfig.featuredZones.displayCount)
+        .map((item, idx) => ({
+          id: item.id,
+          title: item.title,
+          subtitle: item.subtitle,
+          bgImage: resolveHomeLandingZoneImage(item.imageUrl),
+          tone: HOME_ZONE_TONES[idx % HOME_ZONE_TONES.length],
+          onClick: () => executeHomeLandingAction(item.actionType, item.actionPayload),
+        })),
+    [homeLandingConfig],
+  );
+
+  return (
+    <View className="home-page">
+      <View className="home-hero" style={heroStyle}>
+        <View className="home-hero-top">
+          <View className="home-hero-brand">
+            <View className="home-hero-logo">
+              <GifImage
+                src={logoGif}
+                fallbackSrc={logoPng}
+                deferOnWeapp
+                deferMs={1200}
+                mode="aspectFill"
+                className="home-hero-logo-img"
+              />
+            </View>
+            <View className="home-hero-text">
+              <Text className="home-hero-title">IPMONEY</Text>
+              <Text className="home-hero-subtitle">专利 & 商标交易</Text>
+            </View>
+          </View>
+        </View>
+
+        <View className="home-hero-tags">
+          {homeLandingConfig.hero.tags.map((tag) => (
+            <Text key={tag} className="home-hero-tag">
+              {tag}
+            </Text>
+          ))}
+        </View>
+
+        <View className="home-search">
+          <Image src={iconSearch} svg mode="aspectFit" className="home-search-icon" />
+          <Input
+            className="home-search-input"
+            value={keyword}
+            onInput={(e) => setKeyword(e.detail.value)}
+            onFocus={() => goSearch()}
+            onConfirm={() => goSearch(keyword)}
+            placeholder={homeLandingConfig.hero.searchPlaceholder}
+            placeholderClass="home-search-placeholder"
+          />
+          <View className="home-search-btn" onClick={() => goSearch(keyword)}>
+            <Text>搜索</Text>
+          </View>
+        </View>
+      </View>
+
+      <View className="home-section">
+        <View className="home-section-header">
+          <View className="home-section-title-wrap">
+            <View className="home-section-accent" />
+            <Text className="home-section-title">{homeLandingConfig.sectionTexts.featuredTitle}</Text>
+          </View>
+          <Text className="home-section-more" onClick={goPatentExplore}>
+            {homeLandingConfig.sectionTexts.featuredMoreText}
+          </Text>
+        </View>
+        <View className="home-zone-grid">
+          {patentZoneEntries.map((entry) => (
+            <View key={entry.id} className={`home-zone-card ${entry.tone}`} onClick={entry.onClick}>
+              <Image src={entry.bgImage} mode="aspectFill" className="home-zone-bg" lazyLoad />
+              <View className="home-zone-scrim" />
+
+              <View className="home-zone-content">
+                <Text className="home-zone-title">{entry.title}</Text>
+                <Text className="home-zone-desc">{entry.subtitle}</Text>
+              </View>
+            </View>
+          ))}
+        </View>
+      </View>
+
+      {announcements.length ? (
+        <View className="home-announcement-bar" onClick={goAnnouncements}>
+          <View className="home-announcement-bar-icon">
+            <Image src={iconNotification} svg mode="aspectFit" className="home-announcement-bar-icon-img" />
+          </View>
+          <View className="home-announcement-bar-text">
+            <Text className="home-announcement-bar-title">
+              {announcements[activeAnnouncementIndex]?.title || announcements[0]?.title || ''}
+            </Text>
+          </View>
+        </View>
+      ) : null}
+
+      <HomeBanner items={bannerItems} />
+
+      <View className="home-quick">
+        {quickEntries.map((entry) => (
+          <View
+            key={entry.key}
+            className={`home-quick-item home-quick-item-${entry.key}`}
+            onClick={entry.onClick}
+          >
+            <View className="home-quick-icon">
+              <Image src={entry.icon} svg mode="aspectFit" className="home-quick-icon-img" />
+            </View>
+            <Text className="home-quick-label">{entry.label}</Text>
+          </View>
+        ))}
+      </View>
+
+      <View className="home-section">
+        <View className="home-section-header">
+          <View className="home-section-title-wrap">
+            <View className="home-section-accent" />
+            <Text className="home-section-title">高价值低金额</Text>
+          </View>
+          <Text className="home-section-more" onClick={goRecommendMore}>
+            更多
+          </Text>
+        </View>
+
+        {recommendFallback ? (
+          <View className="home-recommend-tip">
+            <Text className="home-recommend-tip-text">个性化推荐暂不可用，当前为最新上架内容。</Text>
+          </View>
+        ) : null}
+
+        <PullToRefresh
+          type="primary"
+          disabled={loading || refreshing || loadingMore}
+          onRefresh={() => load('refresh')}
+        >
+          {loading ? (
+            <ListingListSkeleton count={3} />
+          ) : error ? (
+            <ErrorCard message={error} onRetry={() => load('load')} />
+          ) : !items.length ? (
+            <EmptyCard
+              message={recommendMode === 'RECOMMEND' ? '当前暂无匹配推荐专利' : '当前暂无最新上架专利'}
+              actionText="重新加载"
+              onAction={() => load('load')}
+            />
+          ) : (
+            <View className="search-card-list">
+              {items.map((it: ListingSummary) => (
+                <ListingCard
+                  key={it.id}
+                  item={it}
+                  favorited={favoriteIds.has(it.id)}
+                  onClick={() => {
+                    Taro.navigateTo({ url: `/subpackages/listing/detail/index?listingId=${it.id}` });
+                  }}
+                  onFavorite={() => {
+                    void toggleFavorite(it.id);
+                  }}
+                  onConsult={() => {
+                    void startListingConsult(it.id);
+                  }}
+                />
+              ))}
+            </View>
+          )}
+
+          {!loading && !error && items.length ? (
+            <ListFooter
+              loadingMore={loadingMore}
+              hasMore={hasMore}
+              onLoadMore={() => {
+                void loadRecommendMore();
+              }}
+              showNoMore
+            />
+          ) : null}
+        </PullToRefresh>
+      </View>
+    </View>
+  );
+}

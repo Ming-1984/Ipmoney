@@ -1,16 +1,16 @@
 #!/usr/bin/env python3
 """
-Deploy sunye production artifacts and switch TLS certs on aliyun host.
+Deploy ipmoney production artifacts and switch TLS certs on aliyun host.
 
 Usage:
   python scripts/deploy_sunye_prod.py \
     --host 8.134.124.134 --user root --password '***' \
-    --api-cert 'docs/secret/笋嘢.com_SSL证书/api.笋嘢.com_nginx/api.笋嘢.com_bundle.pem' \
-    --api-key  'docs/secret/笋嘢.com_SSL证书/api.笋嘢.com_nginx/api.笋嘢.com.key' \
-    --admin-cert 'docs/secret/笋嘢.com_SSL证书/admin.笋嘢.com_nginx/admin.笋嘢.com_bundle.pem' \
-    --admin-key  'docs/secret/笋嘢.com_SSL证书/admin.笋嘢.com_nginx/admin.笋嘢.com.key' \
-    --root-cert 'docs/secret/笋嘢.com_SSL证书/笋嘢.com_nginx/笋嘢.com_bundle.pem' \
-    --root-key  'docs/secret/笋嘢.com_SSL证书/笋嘢.com_nginx/笋嘢.com.key' \
+    --api-cert 'docs/secret/SSL_certs_ipmoney.cn/api.ipmoney.cn_nginx/api.ipmoney.cn_bundle.pem' \
+    --api-key  'docs/secret/SSL_certs_ipmoney.cn/api.ipmoney.cn_nginx/api.ipmoney.cn.key' \
+    --admin-cert 'docs/secret/SSL_certs_ipmoney.cn/admin.ipmoney.cn_nginx/admin.ipmoney.cn_bundle.pem' \
+    --admin-key  'docs/secret/SSL_certs_ipmoney.cn/admin.ipmoney.cn_nginx/admin.ipmoney.cn.key' \
+    --root-cert 'docs/secret/SSL_certs_ipmoney.cn/ipmoney.cn_nginx/ipmoney.cn_bundle.pem' \
+    --root-key  'docs/secret/SSL_certs_ipmoney.cn/ipmoney.cn_nginx/ipmoney.cn.key' \
     --deploy-cert-only
 """
 
@@ -22,6 +22,7 @@ import shlex
 import shutil
 import sys
 import time
+import zipfile
 from pathlib import Path
 
 import paramiko
@@ -81,6 +82,29 @@ def sftp_put(ssh: paramiko.SSHClient, local_path: Path, remote_path: str) -> Non
         sftp.close()
 
 
+def ensure_ssl_cert_tree(repo_root: Path) -> None:
+    cert_root = repo_root / "docs" / "secret" / "SSL_certs_ipmoney.cn"
+    required = [
+        cert_root / "api.ipmoney.cn_nginx" / "api.ipmoney.cn_bundle.pem",
+        cert_root / "api.ipmoney.cn_nginx" / "api.ipmoney.cn.key",
+        cert_root / "admin.ipmoney.cn_nginx" / "admin.ipmoney.cn_bundle.pem",
+        cert_root / "admin.ipmoney.cn_nginx" / "admin.ipmoney.cn.key",
+        cert_root / "ipmoney.cn_nginx" / "ipmoney.cn_bundle.pem",
+        cert_root / "ipmoney.cn_nginx" / "ipmoney.cn.key",
+    ]
+    if all(path.exists() for path in required):
+        return
+    zip_path = repo_root / "docs" / "secret" / "SSL_certs_ipmoney.cn.zip"
+    if not zip_path.exists():
+        raise RuntimeError(f"missing certificate archive: {zip_path}")
+    cert_root.parent.mkdir(parents=True, exist_ok=True)
+    with zipfile.ZipFile(zip_path, "r") as zf:
+        zf.extractall(cert_root.parent)
+    missing = [str(path) for path in required if not path.exists()]
+    if missing:
+        raise RuntimeError(f"certificate files missing after extract: {missing}")
+
+
 def build_artifacts(repo_root: Path) -> tuple[Path, Path, Path]:
     env_api = os.environ.copy()
     env_api["DEPLOY_ENV"] = "prod"
@@ -88,10 +112,10 @@ def build_artifacts(repo_root: Path) -> tuple[Path, Path, Path]:
     env_api["NODE_ENV"] = "production"
 
     env_admin = env_api.copy()
-    env_admin["VITE_API_BASE_URL"] = "https://api.xn--m5rv27f.com"
+    env_admin["VITE_API_BASE_URL"] = "https://api.ipmoney.cn"
 
     env_client = env_api.copy()
-    env_client["TARO_APP_API_BASE_URL"] = "https://api.xn--m5rv27f.com"
+    env_client["TARO_APP_API_BASE_URL"] = "https://api.ipmoney.cn"
 
     run_local(["pnpm", "-C", "apps/api", "build"], env=env_api)
     run_local(["pnpm", "-C", "apps/admin-web", "build"], env=env_admin)
@@ -119,20 +143,49 @@ def tar_dir(src: Path, prefix: str, repo_root: Path) -> Path:
     return tar_path
 
 
+def detect_remote_layout(ssh: paramiko.SSHClient) -> dict[str, str]:
+    layout_cmd = r"""
+if pm2 describe ipmoney-api >/dev/null 2>&1; then pm2_name=ipmoney-api; else pm2_name=sunye-api; fi
+exec_cwd=$(pm2 jlist 2>/dev/null | python3 -c 'import json,sys; target=sys.argv[1]; data=json.load(sys.stdin); proc=next((item for item in data if item.get("name")==target), {}); env=proc.get("pm2_env", {}); print(env.get("cwd") or env.get("pm_cwd") or "")' "$pm2_name")
+if [ -n "$exec_cwd" ] && [ -d "$exec_cwd/apps/api" ]; then
+  api_root="$exec_cwd/apps/api"
+elif [ -d /opt/ipmoney/current/apps/api ]; then
+  api_root=/opt/ipmoney/current/apps/api
+else
+  api_root=/opt/sunye/current/apps/api
+fi
+admin_root=/www/wwwroot/admin.ipmoney.cn
+h5_root=/www/wwwroot/ipmoney.cn
+printf "API_ROOT=%s\nADMIN_ROOT=%s\nH5_ROOT=%s\nPM2_NAME=%s\n" "$api_root" "$admin_root" "$h5_root" "$pm2_name"
+"""
+    output = run_remote(ssh, layout_cmd)
+    result: dict[str, str] = {}
+    for line in output.splitlines():
+        if "=" not in line:
+            continue
+        key, value = line.split("=", 1)
+        result[key.strip()] = value.strip()
+    required_keys = ["API_ROOT", "ADMIN_ROOT", "H5_ROOT", "PM2_NAME"]
+    missing = [key for key in required_keys if not result.get(key)]
+    if missing:
+        raise RuntimeError(f"failed to detect remote layout: missing {missing}")
+    return result
+
+
 def update_remote_certs(ssh: paramiko.SSHClient, args: argparse.Namespace) -> None:
     mapping = [
         (
-            "api.xn--m5rv27f.com",
+            "api.ipmoney.cn",
             Path(args.api_cert),
             Path(args.api_key),
         ),
         (
-            "admin.xn--m5rv27f.com",
+            "admin.ipmoney.cn",
             Path(args.admin_cert),
             Path(args.admin_key),
         ),
         (
-            "xn--m5rv27f.com",
+            "ipmoney.cn",
             Path(args.root_cert),
             Path(args.root_key),
         ),
@@ -158,8 +211,12 @@ def update_remote_certs(ssh: paramiko.SSHClient, args: argparse.Namespace) -> No
     run_remote(ssh, "echo 'cert switched at:' && date")
 
 
-def deploy_remote(ssh: paramiko.SSHClient, api_tar: Path, admin_tar: Path, client_tar: Path) -> None:
-    remote_tmp = "/opt/sunye/deploy-tmp"
+def deploy_remote(ssh: paramiko.SSHClient, api_tar: Path, admin_tar: Path, client_tar: Path, layout: dict[str, str]) -> None:
+    api_root = layout["API_ROOT"]
+    admin_root = layout["ADMIN_ROOT"]
+    h5_root = layout["H5_ROOT"]
+    pm2_name = layout["PM2_NAME"]
+    remote_tmp = "/opt/ipmoney/deploy-tmp" if api_root.startswith("/opt/ipmoney/") else "/opt/sunye/deploy-tmp"
     run_remote(ssh, f"mkdir -p {shlex.quote(remote_tmp)}")
 
     api_tar_remote = f"{remote_tmp}/{api_tar.name}"
@@ -169,23 +226,25 @@ def deploy_remote(ssh: paramiko.SSHClient, api_tar: Path, admin_tar: Path, clien
     sftp_put(ssh, admin_tar, admin_tar_remote)
     sftp_put(ssh, client_tar, client_tar_remote)
 
-    run_remote(ssh, "mkdir -p /opt/sunye/current/apps/api")
-    run_remote(ssh, "mkdir -p /www/wwwroot/admin.xn--m5rv27f.com")
-    run_remote(ssh, "mkdir -p /www/wwwroot/xn--m5rv27f.com")
+    run_remote(ssh, f"mkdir -p {shlex.quote(api_root)}")
+    run_remote(ssh, f"mkdir -p {shlex.quote(admin_root)}")
+    run_remote(ssh, f"mkdir -p {shlex.quote(h5_root)}")
 
     # Keep dist/ directory under apps/api so pm2 entrypoint remains apps/api/dist/main.js
-    run_remote(ssh, "mkdir -p /opt/sunye/current/apps/api/dist")
-    run_remote(ssh, "find /opt/sunye/current/apps/api/dist -mindepth 1 -maxdepth 1 -exec rm -rf {} +")
-    run_remote(ssh, f"tar -xzf {shlex.quote(api_tar_remote)} -C /opt/sunye/current/apps/api")
-    run_remote(ssh, f"tar -xzf {shlex.quote(admin_tar_remote)} -C /www/wwwroot/admin.xn--m5rv27f.com --strip-components=1")
-    run_remote(ssh, f"tar -xzf {shlex.quote(client_tar_remote)} -C /www/wwwroot/xn--m5rv27f.com --strip-components=1")
-    run_remote(ssh, "find /www/wwwroot/admin.xn--m5rv27f.com -type d -exec chmod 755 {} +")
-    run_remote(ssh, "find /www/wwwroot/admin.xn--m5rv27f.com -type f -exec chmod 644 {} +")
-    run_remote(ssh, "find /www/wwwroot/xn--m5rv27f.com -type d -exec chmod 755 {} +")
-    run_remote(ssh, "find /www/wwwroot/xn--m5rv27f.com -type f -exec chmod 644 {} +")
-    run_remote(ssh, "chown -R www:www /www/wwwroot/admin.xn--m5rv27f.com /www/wwwroot/xn--m5rv27f.com")
+    run_remote(ssh, f"mkdir -p {shlex.quote(api_root)}/dist")
+    run_remote(ssh, f"find {shlex.quote(api_root)}/dist -mindepth 1 -maxdepth 1 -exec rm -rf {{}} +")
+    run_remote(ssh, f"tar -xzf {shlex.quote(api_tar_remote)} -C {shlex.quote(api_root)}")
+    run_remote(ssh, f"tar -xzf {shlex.quote(admin_tar_remote)} -C {shlex.quote(admin_root)} --strip-components=1")
+    run_remote(ssh, f"tar -xzf {shlex.quote(client_tar_remote)} -C {shlex.quote(h5_root)} --strip-components=1")
+    run_remote(ssh, f"find {shlex.quote(admin_root)} -type d -exec chmod 755 {{}} +")
+    run_remote(ssh, f"find {shlex.quote(admin_root)} -type f ! -name '.user.ini' -exec chmod 644 {{}} +")
+    run_remote(ssh, f"find {shlex.quote(h5_root)} -type d -exec chmod 755 {{}} +")
+    run_remote(ssh, f"find {shlex.quote(h5_root)} -type f ! -name '.user.ini' -exec chmod 644 {{}} +")
+    run_remote(ssh, f"chown www:www {shlex.quote(admin_root)} {shlex.quote(h5_root)} || true")
+    run_remote(ssh, f"find {shlex.quote(admin_root)} -mindepth 1 ! -name '.user.ini' -exec chown www:www {{}} +")
+    run_remote(ssh, f"find {shlex.quote(h5_root)} -mindepth 1 ! -name '.user.ini' -exec chown www:www {{}} +")
 
-    run_remote(ssh, "pm2 restart sunye-api")
+    run_remote(ssh, f"pm2 restart {shlex.quote(pm2_name)}")
     run_remote(ssh, "pm2 save || true")
 
 
@@ -204,13 +263,22 @@ def wait_for_api_ready(ssh: paramiko.SSHClient, retries: int = 30, interval_sec:
 def verify_remote(ssh: paramiko.SSHClient) -> None:
     wait_for_api_ready(ssh)
     run_remote(ssh, "curl -fsS http://127.0.0.1:3010/health")
-    run_remote(ssh, "curl -fsS https://api.xn--m5rv27f.com/health")
-    run_remote(ssh, "curl -fsS https://api.xn--m5rv27f.com/public/config/home-landing | head -c 400")
-    run_remote(ssh, "curl -I -fsS https://admin.xn--m5rv27f.com | head -n 20")
-    run_remote(ssh, "curl -I -fsS https://xn--m5rv27f.com | head -n 20")
-    run_remote(ssh, "openssl s_client -connect api.xn--m5rv27f.com:443 -servername api.xn--m5rv27f.com </dev/null 2>/dev/null | openssl x509 -noout -subject -issuer -dates")
-    run_remote(ssh, "openssl s_client -connect admin.xn--m5rv27f.com:443 -servername admin.xn--m5rv27f.com </dev/null 2>/dev/null | openssl x509 -noout -subject -issuer -dates")
-    run_remote(ssh, "openssl s_client -connect xn--m5rv27f.com:443 -servername xn--m5rv27f.com </dev/null 2>/dev/null | openssl x509 -noout -subject -issuer -dates")
+    run_remote(ssh, "curl -fsS https://api.ipmoney.cn/health")
+    run_remote(ssh, "bash -lc \"set -o pipefail; curl -fsS https://api.ipmoney.cn/public/config/home-landing | head -c 400\"")
+    run_remote(ssh, "bash -lc \"set -o pipefail; curl -I -fsS https://admin.ipmoney.cn | head -n 20\"")
+    run_remote(ssh, "bash -lc \"set -o pipefail; curl -I -fsS https://ipmoney.cn | head -n 20\"")
+    run_remote(
+        ssh,
+        "bash -lc \"set -o pipefail; openssl s_client -connect api.ipmoney.cn:443 -servername api.ipmoney.cn </dev/null 2>/dev/null | openssl x509 -noout -subject -issuer -dates\"",
+    )
+    run_remote(
+        ssh,
+        "bash -lc \"set -o pipefail; openssl s_client -connect admin.ipmoney.cn:443 -servername admin.ipmoney.cn </dev/null 2>/dev/null | openssl x509 -noout -subject -issuer -dates\"",
+    )
+    run_remote(
+        ssh,
+        "bash -lc \"set -o pipefail; openssl s_client -connect ipmoney.cn:443 -servername ipmoney.cn </dev/null 2>/dev/null | openssl x509 -noout -subject -issuer -dates\"",
+    )
 
 
 def main() -> int:
@@ -229,15 +297,16 @@ def main() -> int:
 
     repo_root = Path(__file__).resolve().parents[1]
     print(f"[info] repo_root={repo_root}")
+    ensure_ssl_cert_tree(repo_root)
 
     api_tar: Path | None = None
     admin_tar: Path | None = None
     client_tar: Path | None = None
     if not args.deploy_cert_only:
-      api_dist, admin_dist, client_dist = build_artifacts(repo_root)
-      api_tar = tar_dir(api_dist, "api-dist", repo_root)
-      admin_tar = tar_dir(admin_dist, "admin-dist", repo_root)
-      client_tar = tar_dir(client_dist, "client-h5-dist", repo_root)
+        api_dist, admin_dist, client_dist = build_artifacts(repo_root)
+        api_tar = tar_dir(api_dist, "api-dist", repo_root)
+        admin_tar = tar_dir(admin_dist, "admin-dist", repo_root)
+        client_tar = tar_dir(client_dist, "client-h5-dist", repo_root)
 
     ssh = paramiko.SSHClient()
     ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
@@ -249,11 +318,12 @@ def main() -> int:
         run_remote(ssh, "hostname && uname -a")
         run_remote(ssh, "which nginx && nginx -v")
         run_remote(ssh, "pm2 ls | head -n 40")
+        layout = detect_remote_layout(ssh)
         update_remote_certs(ssh, args)
         if not args.deploy_cert_only:
             if not api_tar or not admin_tar or not client_tar:
                 raise RuntimeError("build artifacts are missing")
-            deploy_remote(ssh, api_tar, admin_tar, client_tar)
+            deploy_remote(ssh, api_tar, admin_tar, client_tar, layout)
         verify_remote(ssh)
         print("[done] deploy + cert + verify completed")
     finally:

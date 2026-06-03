@@ -1,0 +1,36 @@
+/* Minimal NutUI CSS bundle (component-level, no Sass imports) */
+@import '@nutui/nutui-react-taro/dist/styles/themes/default.css';
+
+@import '@nutui/nutui-react-taro/dist/es/packages/overlay/style/style.css';
+@import '@nutui/nutui-react-taro/dist/es/packages/popup/style/style.css';
+@import '@nutui/nutui-react-taro/dist/es/packages/dialog/style/style.css';
+@import '@nutui/nutui-react-taro/dist/es/packages/toast/style/style.css';
+
+@import '@nutui/nutui-react-taro/dist/es/packages/navbar/style/style.css';
+@import '@nutui/nutui-react-taro/dist/es/packages/button/style/style.css';
+@import '@nutui/nutui-react-taro/dist/es/packages/cell/style/style.css';
+@import '@nutui/nutui-react-taro/dist/es/packages/cellgroup/style/style.css';
+@import '@nutui/nutui-react-taro/dist/es/packages/avatar/style/style.css';
+@import '@nutui/nutui-react-taro/dist/es/packages/avatargroup/style/style.css';
+@import '@nutui/nutui-react-taro/dist/es/packages/badge/style/style.css';
+@import '@nutui/nutui-react-taro/dist/es/packages/divider/style/style.css';
+@import '@nutui/nutui-react-taro/dist/es/packages/cascader/style/style.css';
+@import '@nutui/nutui-react-taro/dist/es/packages/empty/style/style.css';
+@import '@nutui/nutui-react-taro/dist/es/packages/form/style/style.css';
+@import '@nutui/nutui-react-taro/dist/es/packages/formitem/style/style.css';
+@import '@nutui/nutui-react-taro/dist/es/packages/input/style/style.css';
+@import '@nutui/nutui-react-taro/dist/es/packages/textarea/style/style.css';
+@import '@nutui/nutui-react-taro/dist/es/packages/grid/style/style.css';
+@import '@nutui/nutui-react-taro/dist/es/packages/griditem/style/style.css';
+@import '@nutui/nutui-react-taro/dist/es/packages/searchbar/style/style.css';
+@import '@nutui/nutui-react-taro/dist/es/packages/segmented/style/style.css';
+@import '@nutui/nutui-react-taro/dist/es/packages/skeleton/style/style.css';
+@import '@nutui/nutui-react-taro/dist/es/packages/step/style/style.css';
+@import '@nutui/nutui-react-taro/dist/es/packages/steps/style/style.css';
+@import '@nutui/nutui-react-taro/dist/es/packages/tag/style/style.css';
+@import '@nutui/nutui-react-taro/dist/es/packages/tabs/style/style.css';
+@import '@nutui/nutui-react-taro/dist/es/packages/tabpane/style/style.css';
+@import '@nutui/nutui-react-taro/dist/es/packages/uploader/style/style.css';
+@import '@nutui/nutui-react-taro/dist/es/packages/pulltorefresh/style/style.css';
+@import '@nutui/nutui-react-taro/dist/es/packages/space/style/style.css';
+@import '@nutui/nutui-react-taro/dist/es/packages/loading/style/style.css';

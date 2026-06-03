@@ -1,0 +1,151 @@
+{
+  "size": {
+    "total": 2744813,
+    "packages": [
+      {
+        "name": "TOTAL",
+        "size": 2744813
+      },
+      {
+        "name": "main",
+        "size": 1954245
+      },
+      {
+        "name": "/subpackages/about/",
+        "size": 3252
+      },
+      {
+        "name": "/subpackages/achievement/",
+        "size": 39044
+      },
+      {
+        "name": "/subpackages/addresses/",
+        "size": 12447
+      },
+      {
+        "name": "/subpackages/checkout/",
+        "size": 38660
+      },
+      {
+        "name": "/subpackages/contracts/",
+        "size": 10141
+      },
+      {
+        "name": "/subpackages/favorites/",
+        "size": 20431
+      },
+      {
+        "name": "/subpackages/home-announcements/",
+        "size": 8610
+      },
+      {
+        "name": "/subpackages/inventors/",
+        "size": 11541
+      },
+      {
+        "name": "/subpackages/invoices/",
+        "size": 7811
+      },
+      {
+        "name": "/subpackages/ipc-picker/",
+        "size": 14168
+      },
+      {
+        "name": "/subpackages/legal/",
+        "size": 33465
+      },
+      {
+        "name": "/subpackages/listing/",
+        "size": 53537
+      },
+      {
+        "name": "/subpackages/login/",
+        "size": 15344
+      },
+      {
+        "name": "/subpackages/maintenance/",
+        "size": 25791
+      },
+      {
+        "name": "/subpackages/media/",
+        "size": 3683
+      },
+      {
+        "name": "/subpackages/messages/",
+        "size": 29925
+      },
+      {
+        "name": "/subpackages/my-achievements/",
+        "size": 20401
+      },
+      {
+        "name": "/subpackages/my-listings/",
+        "size": 20511
+      },
+      {
+        "name": "/subpackages/notifications/",
+        "size": 12988
+      },
+      {
+        "name": "/subpackages/onboarding/",
+        "size": 26274
+      },
+      {
+        "name": "/subpackages/orders/",
+        "size": 47296
+      },
+      {
+        "name": "/subpackages/organizations/",
+        "size": 40189
+      },
+      {
+        "name": "/subpackages/patent-claims/",
+        "size": 29413
+      },
+      {
+        "name": "/subpackages/patent-map/",
+        "size": 19874
+      },
+      {
+        "name": "/subpackages/patent-square/",
+        "size": 4577
+      },
+      {
+        "name": "/subpackages/patent/",
+        "size": 56975
+      },
+      {
+        "name": "/subpackages/profile/",
+        "size": 16522
+      },
+      {
+        "name": "/subpackages/publish/",
+        "size": 67972
+      },
+      {
+        "name": "/subpackages/region-picker/",
+        "size": 9962
+      },
+      {
+        "name": "/subpackages/search/",
+        "size": 45637
+      },
+      {
+        "name": "/subpackages/settings/",
+        "size": 3976
+      },
+      {
+        "name": "/subpackages/support/",
+        "size": 20213
+      },
+      {
+        "name": "/subpackages/tech-managers/",
+        "size": 12433
+      },
+      {
+        "name": "/subpackages/trade-rules/",
+        "size": 7505
+      }
+    ]
+  }
+}

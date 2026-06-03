@@ -1,8 +1,8 @@
 # 合规与协议文档清单（P0 版）
 
-> 说明：以下为平台 P0 口径的协议/规则文档占位稿，供产品/法务对齐与前台展示使用；最终以法务确认版本为准。
+> 说明：以下为平台当前口径的协议/规则文档草稿，供产品、法务与前台展示对齐使用；最终以法务确认版本为准。
 
-- 《用户协议》：`docs/legal/user-agreement.md`
+- 《用户服务协议》：`docs/legal/user-agreement.md`
 - 《隐私政策》：`docs/legal/privacy-policy.md`
 - 《专利交易居间服务协议》：`docs/legal/trade-intermediary-service-agreement.md`
 - 《订金支付与退款规则》：`docs/legal/deposit-refund-rules.md`

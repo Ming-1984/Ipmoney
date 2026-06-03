@@ -1,0 +1,63 @@
+.address-edit-page {
+  .address-form-card {
+    display: flex;
+    flex-direction: column;
+    gap: 20rpx;
+  }
+
+  .form-field {
+    display: flex;
+    flex-direction: column;
+    gap: 12rpx;
+  }
+
+  .form-label {
+    font-size: 26rpx;
+    color: #475569;
+  }
+
+  .address-region-select {
+    min-height: 80rpx;
+    border: 1rpx solid #e5e7eb;
+    border-radius: 12rpx;
+    background: #f6f7f9;
+    padding: 0 18rpx;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .address-region-value {
+    font-size: 22rpx;
+    color: #111827;
+  }
+
+  .address-region-placeholder {
+    font-size: 20rpx;
+    color: #c0c4cc;
+  }
+
+  .address-region-arrow {
+    font-size: 28rpx;
+    color: #9ca3af;
+  }
+
+  .address-region-clear {
+    margin-top: 8rpx;
+    font-size: 22rpx;
+    color: #2563eb;
+  }
+
+  .form-switch {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .address-form-actions {
+    margin-top: 24rpx;
+    display: flex;
+    flex-direction: column;
+    gap: 12rpx;
+  }
+}

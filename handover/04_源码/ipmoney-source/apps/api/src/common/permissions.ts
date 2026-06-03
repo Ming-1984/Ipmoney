@@ -1,0 +1,97 @@
+﻿import { ForbiddenException } from '@nestjs/common';
+
+export type AdminRoleName = 'admin' | 'cs' | 'operator' | 'finance';
+export const ADMIN_ROLE_PERMISSIONS: Record<AdminRoleName, string[]> = {
+  admin: ['*'],
+  operator: [
+    'verification.read',
+    'verification.review',
+    'listing.read',
+    'listing.audit',
+    'listing.batchPublish',
+    'listing.import',
+    'patent.import',
+    'patent.claim.review',
+    'conversation.platform.manage',
+    'order.read',
+    'case.manage',
+    'maintenance.manage',
+    'refund.read',
+    'refund.approve',
+    'refund.reject',
+    'settlement.read',
+    'config.manage',
+    'report.read',
+    'report.export',
+    'alert.manage',
+    'auditLog.read',
+  ],
+  cs: [
+    'verification.read',
+    'listing.read',
+    'conversation.platform.manage',
+    'order.read',
+    'case.manage',
+    'maintenance.manage',
+    'milestone.contractSigned.confirm',
+    'milestone.transferCompleted.confirm',
+    'refund.read',
+    'settlement.read',
+    'auditLog.read',
+  ],
+  finance: [
+    'verification.read',
+    'order.read',
+    'refund.read',
+    'refund.approve',
+    'refund.reject',
+    'refund.complete',
+    'payment.manual.confirm',
+    'settlement.read',
+    'payout.manual.confirm',
+    'invoice.manage',
+    'report.read',
+    'report.export',
+    'alert.manage',
+    'auditLog.read',
+  ],
+};
+
+export function resolvePermissions(roleNames: AdminRoleName[]) {
+  const out = new Set<string>();
+  roleNames.forEach((r) => {
+    (ADMIN_ROLE_PERMISSIONS[r] || []).forEach((p) => out.add(p));
+  });
+  return out;
+}
+
+export function resolvePermissionsFromRoleIds(
+  roleIds: string[],
+  roles: Array<{ id: string; permissionIds?: unknown }>,
+) {
+  const out = new Set<string>();
+  const roleMap = new Map<string, string[]>();
+  roles.forEach((role) => {
+    if (role?.id) {
+      const raw = role.permissionIds;
+      const normalized = Array.isArray(raw)
+        ? raw.filter((item): item is string => typeof item === 'string')
+        : [];
+      roleMap.set(role.id, normalized);
+    }
+  });
+
+  roleIds.forEach((id) => {
+    const perms = roleMap.get(id) || [];
+    perms.forEach((p) => out.add(p));
+  });
+
+  return out;
+}
+
+export function requirePermission(req: any, permission: string) {
+  const perms: Set<string> | undefined = req?.auth?.permissions;
+  if (!perms || (!perms.has('*') && !perms.has(permission))) {
+    throw new ForbiddenException({ code: 'FORBIDDEN', message: '无权限' });
+  }
+}

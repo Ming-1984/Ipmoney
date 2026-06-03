@@ -158,7 +158,7 @@ export default function MePage() {
 
   const ensureAgreement = useCallback(() => {
     if (agree) return true;
-    toast('请先阅读并同意《用户协议》和《隐私政策》');
+    toast('请先阅读并同意《用户服务协议》和《隐私政策》');
     return false;
   }, [agree]);
 
@@ -312,7 +312,7 @@ export default function MePage() {
       } catch (_) {
         // non-weapp env: fallback to demo code
       }
-      if (!code) throw new Error('无法获取微信登录凭证');
+      if (!code) throw new Error('无法获取登录凭证');
 
       const authToken = await apiPost<AuthTokenResponse>('/auth/wechat/mp-login', { code });
       afterLogin(authToken, { fromWechat: true });
@@ -529,7 +529,7 @@ export default function MePage() {
                 disabled={busy}
                 onClick={() => void wechatLogin()}
               >
-                微信登录
+                快捷登录
               </Button>
             ) : null}
           </View>
@@ -573,7 +573,7 @@ export default function MePage() {
             </Text>
             <Text className="me-login-agreement-text">我已阅读并同意</Text>
             <Text className="me-login-agreement-link" onClick={() => Taro.navigateTo({ url: '/subpackages/legal/terms/index' })}>
-              《用户协议》
+              《用户服务协议》
             </Text>
             <Text className="me-login-agreement-text">和</Text>
             <Text className="me-login-agreement-link" onClick={() => Taro.navigateTo({ url: '/subpackages/legal/privacy/index' })}>

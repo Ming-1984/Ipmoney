@@ -4,11 +4,11 @@ info:
   version: 0.1.0
   license:
     name: Proprietary
-    url: https://ipmoney.com
+    url: https://ipmoney.cn
   description: |
     Ipmoney API (P0) for mini-program, H5 and admin console.
 servers:
-  - url: https://api.xn--m5rv27f.com
+  - url: https://api.ipmoney.cn
 tags:
   - name: Auth
     description: Auth
@@ -5441,6 +5441,109 @@ paths:
           $ref: '#/components/responses/Forbidden'
         '404':
           $ref: '#/components/responses/NotFound'
+  /admin/imports/people-achievements/preview:
+    post:
+      tags:
+        - Admin
+      summary: Preview people and achievements bulk import
+      operationId: adminPreviewPeopleAchievementsImport
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PeopleAchievementsImportRequest'
+      responses:
+        '200':
+          description: OK
+
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PeopleAchievementsImportPreviewResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '409':
+          $ref: '#/components/responses/Conflict'
+  /admin/imports/people-achievements/execute:
+    post:
+      tags:
+        - Admin
+      summary: Execute people and achievements bulk import
+      operationId: adminExecutePeopleAchievementsImport
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PeopleAchievementsImportRequest'
+      responses:
+        '200':
+          description: OK
+
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PeopleAchievementsImportExecuteResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '409':
+          $ref: '#/components/responses/Conflict'
+  /admin/imports/people-achievements/history:
+    get:
+      tags:
+        - Admin
+      summary: List people and achievements bulk import history
+      operationId: adminListPeopleAchievementsImportHistory
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: action
+          in: query
+          required: false
+          schema:
+            type: string
+            enum:
+              - ALL
+              - PREVIEW
+              - EXECUTE
+        - name: actorUserId
+          in: query
+          required: false
+          schema:
+            $ref: '#/components/schemas/Uuid'
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PageSize'
+      responses:
+        '200':
+          description: OK
+
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PagedPeopleAchievementsImportHistory'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
   /admin/tech-managers:
     get:
       tags:
@@ -10299,6 +10402,219 @@ components:
           type: string
           format: uri
           nullable: true
+    PeopleAchievementsImportRatingPolicy:
+      type: string
+      enum:
+        - KEEP_EXISTING
+        - FILL_MISSING
+        - FORCE_SET
+    PeopleAchievementsImportRequest:
+      type: object
+      properties:
+        peopleFileId:
+          $ref: '#/components/schemas/Uuid'
+        achievementsFileId:
+          $ref: '#/components/schemas/Uuid'
+        sourceBatch:
+          type: string
+          maxLength: 100
+          description: Optional source batch marker. Defaults to `people-achievements-manual`.
+        defaultRegionCode:
+          type: string
+          pattern: ^[0-9]{6}$
+          description: Fallback region code for imported records.
+        ratingPolicy:
+          $ref: '#/components/schemas/PeopleAchievementsImportRatingPolicy'
+        defaultRatingScore:
+          type: number
+          format: double
+          minimum: 0
+          maximum: 5
+        defaultRatingCount:
+          type: integer
+          minimum: 0
+      description: At least one of `peopleFileId` or `achievementsFileId` is required.
+    PeopleAchievementsImportInput:
+      type: object
+      required:
+        - sourceBatch
+        - defaultRegionCode
+        - ratingPolicy
+        - defaultRatingScore
+        - defaultRatingCount
+      properties:
+        peopleFileId:
+          $ref: '#/components/schemas/Uuid'
+          nullable: true
+        achievementsFileId:
+          $ref: '#/components/schemas/Uuid'
+          nullable: true
+        sourceBatch:
+          type: string
+        defaultRegionCode:
+          type: string
+        ratingPolicy:
+          $ref: '#/components/schemas/PeopleAchievementsImportRatingPolicy'
+        defaultRatingScore:
+          type: number
+          format: double
+        defaultRatingCount:
+          type: integer
+          minimum: 0
+    PeopleAchievementsImportRowError:
+      type: object
+      required:
+        - rowNo
+        - reason
+      properties:
+        rowNo:
+          type: integer
+          minimum: 1
+        reason:
+          type: string
+    PeopleAchievementsImportPreviewSection:
+      type: object
+      required:
+        - totalRows
+        - validRows
+        - invalidRows
+        - sampleErrors
+      properties:
+        totalRows:
+          type: integer
+          minimum: 0
+        validRows:
+          type: integer
+          minimum: 0
+        invalidRows:
+          type: integer
+          minimum: 0
+        sampleErrors:
+          type: array
+          items:
+            $ref: '#/components/schemas/PeopleAchievementsImportRowError'
+    PeopleAchievementsImportExecuteSection:
+      type: object
+      required:
+        - totalRows
+        - validRows
+        - invalidRows
+        - sampleErrors
+        - created
+        - updated
+        - skipped
+        - failed
+      properties:
+        totalRows:
+          type: integer
+          minimum: 0
+        validRows:
+          type: integer
+          minimum: 0
+        invalidRows:
+          type: integer
+          minimum: 0
+        sampleErrors:
+          type: array
+          items:
+            $ref: '#/components/schemas/PeopleAchievementsImportRowError'
+        created:
+          type: integer
+          minimum: 0
+        updated:
+          type: integer
+          minimum: 0
+        skipped:
+          type: integer
+          minimum: 0
+        failed:
+          type: integer
+          minimum: 0
+    PeopleAchievementsImportPreviewResponse:
+      type: object
+      required:
+        - scope
+        - input
+        - people
+        - achievements
+      properties:
+        scope:
+          type: string
+          enum:
+            - PEOPLE_ACHIEVEMENTS
+        input:
+          $ref: '#/components/schemas/PeopleAchievementsImportInput'
+        people:
+          $ref: '#/components/schemas/PeopleAchievementsImportPreviewSection'
+        achievements:
+          $ref: '#/components/schemas/PeopleAchievementsImportPreviewSection'
+    PeopleAchievementsImportExecuteResponse:
+      type: object
+      required:
+        - scope
+        - input
+        - people
+        - achievements
+      properties:
+        scope:
+          type: string
+          enum:
+            - PEOPLE_ACHIEVEMENTS
+        input:
+          $ref: '#/components/schemas/PeopleAchievementsImportInput'
+        people:
+          $ref: '#/components/schemas/PeopleAchievementsImportExecuteSection'
+        achievements:
+          $ref: '#/components/schemas/PeopleAchievementsImportExecuteSection'
+    PeopleAchievementsImportHistoryAction:
+      type: string
+      enum:
+        - BULK_IMPORT_PREVIEW
+        - BULK_IMPORT_EXECUTE
+    PeopleAchievementsImportHistoryItem:
+      type: object
+      required:
+        - id
+        - action
+        - actorUserId
+        - createdAt
+        - input
+        - people
+        - achievements
+      properties:
+        id:
+          $ref: '#/components/schemas/Uuid'
+        action:
+          $ref: '#/components/schemas/PeopleAchievementsImportHistoryAction'
+        actorUserId:
+          $ref: '#/components/schemas/Uuid'
+        actorName:
+          type: string
+          nullable: true
+        actorPhone:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+        input:
+          $ref: '#/components/schemas/PeopleAchievementsImportInput'
+        people:
+          $ref: '#/components/schemas/PeopleAchievementsImportExecuteSection'
+        achievements:
+          $ref: '#/components/schemas/PeopleAchievementsImportExecuteSection'
+    PagedPeopleAchievementsImportHistory:
+      type: object
+      required:
+        - items
+        - page
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/PeopleAchievementsImportHistoryItem'
+        page:
+          $ref: '#/components/schemas/PageMeta'
     PatentJobStatus:
       type: string
       enum:

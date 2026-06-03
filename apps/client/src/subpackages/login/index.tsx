@@ -68,7 +68,7 @@ export default function LoginPage() {
 
   const ensureAgreement = useCallback(() => {
     if (agree) return true;
-    toast('请先阅读并同意《用户协议》和《隐私政策》');
+    toast('请先阅读并同意《用户服务协议》和《隐私政策》');
     return false;
   }, [agree]);
 
@@ -145,7 +145,7 @@ export default function LoginPage() {
       } catch (_) {
         // non-weapp env: fallback to demo code
       }
-      if (!code) throw new Error('无法获取微信登录凭证');
+      if (!code) throw new Error('无法获取登录凭证');
 
       const auth = await apiPost<AuthTokenResponse>('/auth/wechat/mp-login', { code });
       afterLogin(auth, { fromWechat: true });
@@ -244,7 +244,7 @@ export default function LoginPage() {
               className={`login-tab ${activeTab === 'wechat' ? 'is-active' : ''}`}
               onClick={() => setActiveTab('wechat')}
             >
-              微信登录
+              快捷登录
             </Text>
             <Text
               className={`login-tab ${activeTab === 'sms' ? 'is-active' : ''}`}
@@ -259,11 +259,11 @@ export default function LoginPage() {
 
         {activeTab === 'wechat' && canWechatLogin ? (
           <View className="login-panel">
-            <Text className="login-panel-title">微信一键登录</Text>
-            <Text className="login-panel-subtitle">授权后可同步头像昵称</Text>
+            <Text className="login-panel-title">快捷登录</Text>
+            <Text className="login-panel-subtitle">登录后可继续完善头像、昵称与资料信息</Text>
             <Spacer size={10} />
             <Button className="login-primary-btn" loading={busy} disabled={busy} onClick={() => void wechatLogin()}>
-              微信一键登录
+              立即登录
             </Button>
           </View>
         ) : null}
@@ -314,7 +314,7 @@ export default function LoginPage() {
           </View>
           <Text className="login-agreement-text">我已阅读并同意</Text>
           <Text className="login-agreement-link" onClick={() => Taro.navigateTo({ url: '/subpackages/legal/terms/index' })}>
-            《用户协议》
+            《用户服务协议》
           </Text>
           <Text className="login-agreement-text">和</Text>
           <Text className="login-agreement-link" onClick={() => Taro.navigateTo({ url: '/subpackages/legal/privacy/index' })}>
@@ -352,5 +352,3 @@ export default function LoginPage() {
     </View>
   );
 }
-
-

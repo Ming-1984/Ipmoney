@@ -38,6 +38,7 @@ import {
 } from '../../lib/homeLandingFeatured';
 import { fetchHomeAnnouncements, type PublicHomeAnnouncementItem } from '../../lib/homeAnnouncements';
 import { buildHomeBannerItems, type BannerConfig, type HomeBannerItem } from '../../lib/homeBannerConfig';
+import { isTabPageUrl, normalizePageUrl } from '../../lib/navigation';
 import { EmptyCard, ErrorCard } from '../../ui/StateCards';
 import { PullToRefresh, toast } from '../../ui/nutui';
 import { ListingCard } from '../../ui/ListingCard';
@@ -70,6 +71,21 @@ const HOME_LISTINGS_CACHE_SCOPE = 'home-listings';
 const HOME_RECOMMEND_PAGE_SIZE = 10;
 type HomeRecommendMode = 'RECOMMEND' | 'NEWEST';
 
+async function openBannerLink(linkUrl?: string) {
+  const target = normalizePageUrl(linkUrl);
+  if (!target) return false;
+  try {
+    if (isTabPageUrl(target)) {
+      await Taro.switchTab({ url: target });
+      return true;
+    }
+    await Taro.navigateTo({ url: target });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 const HomeBanner = React.memo(function HomeBanner({ items }: { items: HomeBannerItem[] }) {
   if (!items.length) return null;
   const shouldAutoplay = items.length > 1;
@@ -88,15 +104,24 @@ const HomeBanner = React.memo(function HomeBanner({ items }: { items: HomeBanner
           <SwiperItem key={item.id}>
             <View
               className="home-banner-item"
-              onClick={() =>
-                Taro.navigateTo({
-                  url: `/subpackages/media/video-preview/index?i=${index}`,
-                })
-              }
+              onClick={async () => {
+                if (item.mediaType === 'VIDEO' && item.videoUrl) {
+                  await Taro.navigateTo({
+                    url: `/subpackages/media/video-preview/index?i=${index}`,
+                  });
+                  return;
+                }
+                const opened = await openBannerLink(item.linkUrl);
+                if (!opened && item.linkUrl) {
+                  toast('当前轮播暂不可打开');
+                }
+              }}
             >
               <Image src={item.cover} mode="aspectFill" className="home-banner-img" lazyLoad />
               <View className="home-banner-overlay">
-                <Text className="home-banner-caption">点击观看</Text>
+                <Text className="home-banner-caption">
+                  {item.mediaType === 'VIDEO' && item.videoUrl ? '点击观看' : item.linkUrl ? '点击查看' : item.title}
+                </Text>
               </View>
             </View>
           </SwiperItem>

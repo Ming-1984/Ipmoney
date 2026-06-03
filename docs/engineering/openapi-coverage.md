@@ -4,17 +4,15 @@
 
 ## Summary
 
-- OpenAPI operations: 249
+- OpenAPI operations: 253
 - Frontend-used operations (client): 93
-- Frontend-used operations (admin): 128
+- Frontend-used operations (admin): 138
 - Fixture scenarios: 7
 
 ## Key Gaps
 
 - Frontend-used but missing from OpenAPI: 0
-- OpenAPI-defined but unused by frontend: 40
-  - GET /admin/achievements
-  - GET /admin/achievements/:param
+- OpenAPI-defined but unused by frontend: 34
   - GET /admin/achievements/:param/audit-logs
   - GET /admin/achievements/:param/materials
   - GET /admin/ai/parse-results
@@ -30,13 +28,9 @@
   - GET /admin/patent-maintenance/schedules/:param
   - GET /admin/patents/jobs/import/:param
   - GET /admin/patents/jobs/import/:param/error-file
-  - PATCH /admin/achievements/:param
   - PATCH /admin/ai/parse-results/:param
   - PATCH /admin/listings/:param
-  - POST /admin/achievements
   - POST /admin/achievements/:param/approve
-  - POST /admin/achievements/:param/off-shelf
-  - POST /admin/achievements/:param/publish
   - POST /admin/achievements/:param/reject
   - POST /admin/listings
   - POST /admin/listings/:param/approve
@@ -53,7 +47,7 @@
   - POST /ai/agent/query
   - POST /ai/parse-results/:param/feedback
   - PUT /admin/listings/:param/featured
-- Frontend-used but missing in happy fixtures: 208
+- Frontend-used but missing in happy fixtures: 218
   - DELETE /achievements/:param/favorites
   - DELETE /admin/config/home-announcements/items/:param
   - DELETE /admin/config/home-announcements/templates/:param
@@ -65,6 +59,8 @@
   - DELETE /me/addresses/:param
   - GET /achievements
   - GET /achievements/:param
+  - GET /admin/achievements
+  - GET /admin/achievements/:param
   - GET /admin/alerts
   - GET /admin/audit-logs
   - GET /admin/cases
@@ -81,6 +77,7 @@
   - GET /admin/config/taxonomy
   - GET /admin/config/trade-rules
   - GET /admin/conversations/platform
+  - GET /admin/imports/people-achievements/history
   - GET /admin/industry-tags
   - GET /admin/listings
   - GET /admin/listings/jobs/batch
@@ -101,10 +98,7 @@
   - GET /admin/rbac/permissions
   - GET /admin/rbac/roles
   - GET /admin/rbac/users
-  - GET /admin/regions
-  - GET /admin/reports/finance/summary
-  - GET /admin/tech-managers
-  - ... (158 more)
+  - ... (168 more)
 
 ## Coverage Details (by operation)
 
@@ -121,8 +115,8 @@
 | deleteMyAddress | DELETE | /me/addresses/:param | Y |  |  |  |  |  |  |  |  |
 | listMyAchievements | GET | /achievements | Y |  |  |  |  |  |  |  |  |
 | getMyAchievementById | GET | /achievements/:param | Y |  |  |  |  |  |  |  |  |
-| adminListAchievements | GET | /admin/achievements |  |  |  |  |  |  |  |  |  |
-| adminGetAchievementById | GET | /admin/achievements/:param |  |  |  |  |  |  |  |  |  |
+| adminListAchievements | GET | /admin/achievements |  | Y |  |  |  |  |  |  |  |
+| adminGetAchievementById | GET | /admin/achievements/:param |  | Y |  |  |  |  |  |  |  |
 | adminGetAchievementAuditLogs | GET | /admin/achievements/:param/audit-logs |  |  |  |  |  |  |  |  |  |
 | adminGetAchievementMaterials | GET | /admin/achievements/:param/materials |  |  |  |  |  |  |  |  |  |
 | adminListAiParseResults | GET | /admin/ai/parse-results |  |  |  |  |  |  |  |  |  |
@@ -143,6 +137,7 @@
 | adminGetTaxonomyConfig | GET | /admin/config/taxonomy |  | Y |  |  |  |  |  |  |  |
 | adminGetTradeRulesConfig | GET | /admin/config/trade-rules |  | Y |  |  |  |  |  |  |  |
 | adminListPlatformConversations | GET | /admin/conversations/platform |  | Y |  |  |  |  |  |  |  |
+| adminListPeopleAchievementsImportHistory | GET | /admin/imports/people-achievements/history |  | Y |  |  |  |  |  |  |  |
 | adminListIndustryTags | GET | /admin/industry-tags |  | Y |  |  |  |  |  |  |  |
 | adminListListingsForAudit | GET | /admin/listings |  | Y |  |  |  |  |  |  |  |
 | adminGetListingById | GET | /admin/listings/:param |  |  |  |  |  |  |  |  |  |
@@ -231,7 +226,7 @@
 | searchPatentMapRegionDetail | GET | /search/patent-map/regions/:param | Y | Y |  |  |  |  |  |  |  |
 | searchTechManagers | GET | /search/tech-managers | Y |  |  |  |  |  |  |  |  |
 | updateMyAchievement | PATCH | /achievements/:param | Y |  |  |  |  |  |  |  |  |
-| adminUpdateAchievement | PATCH | /admin/achievements/:param |  |  |  |  |  |  |  |  |  |
+| adminUpdateAchievement | PATCH | /admin/achievements/:param |  | Y |  |  |  |  |  |  |  |
 | adminUpdateAiParseResult | PATCH | /admin/ai/parse-results/:param |  |  |  |  |  |  |  |  |  |
 | adminUpdateComment | PATCH | /admin/comments/:param |  | Y |  |  |  |  |  |  |  |
 | adminUpdateListing | PATCH | /admin/listings/:param |  |  |  |  |  |  |  |  |  |
@@ -242,6 +237,7 @@
 | adminUpdateRbacUserRoles | PATCH | /admin/rbac/users/:param |  | Y |  |  |  |  |  |  |  |
 | adminUpdateRegion | PATCH | /admin/regions/:param |  | Y |  |  |  |  |  |  |  |
 | adminUpdateTechManager | PATCH | /admin/tech-managers/:param |  | Y |  |  |  |  |  |  |  |
+| adminBatchUpdateTechManagerRating | PATCH | /admin/tech-managers/batch/rating |  | Y |  |  |  |  |  |  |  |
 | adminUpdateUserVerificationLogo | PATCH | /admin/user-verifications/:param/logo |  | Y |  |  |  |  |  |  |  |
 | updateComment | PATCH | /comments/:param | Y |  |  |  |  |  |  |  |  |
 | updateListing | PATCH | /listings/:param | Y |  |  |  |  |  |  |  |  |
@@ -254,10 +250,10 @@
 | favoriteAchievement | POST | /achievements/:param/favorites | Y |  |  |  |  |  |  |  |  |
 | offShelfAchievement | POST | /achievements/:param/off-shelf | Y |  |  |  |  |  |  |  |  |
 | submitAchievement | POST | /achievements/:param/submit | Y |  |  |  |  |  |  |  |  |
-| adminCreateAchievement | POST | /admin/achievements |  |  |  |  |  |  |  |  |  |
+| adminCreateAchievement | POST | /admin/achievements |  | Y |  |  |  |  |  |  |  |
 | adminApproveAchievement | POST | /admin/achievements/:param/approve |  |  |  |  |  |  |  |  |  |
-| adminOffShelfAchievement | POST | /admin/achievements/:param/off-shelf |  |  |  |  |  |  |  |  |  |
-| adminPublishAchievement | POST | /admin/achievements/:param/publish |  |  |  |  |  |  |  |  |  |
+| adminOffShelfAchievement | POST | /admin/achievements/:param/off-shelf |  | Y |  |  |  |  |  |  |  |
+| adminPublishAchievement | POST | /admin/achievements/:param/publish |  | Y |  |  |  |  |  |  |  |
 | adminRejectAchievement | POST | /admin/achievements/:param/reject |  |  |  |  |  |  |  |  |  |
 | adminAcknowledgeAlertEvent | POST | /admin/alerts/:param/ack |  | Y |  |  |  |  |  |  |  |
 | adminCreateCase | POST | /admin/cases |  | Y |  |  |  |  |  |  |  |
@@ -271,6 +267,8 @@
 | adminPublishHomeAnnouncementItem | POST | /admin/config/home-announcements/items/:param/publish |  | Y |  |  |  |  |  |  |  |
 | adminCreateHomeAnnouncementTemplate | POST | /admin/config/home-announcements/templates |  | Y |  |  |  |  |  |  |  |
 | adminAssignPlatformConversationAgent | POST | /admin/conversations/:param/agents |  | Y |  |  |  |  |  |  |  |
+| adminExecutePeopleAchievementsImport | POST | /admin/imports/people-achievements/execute |  | Y |  |  |  |  |  |  |  |
+| adminPreviewPeopleAchievementsImport | POST | /admin/imports/people-achievements/preview |  | Y |  |  |  |  |  |  |  |
 | adminCreateIndustryTag | POST | /admin/industry-tags |  | Y |  |  |  |  |  |  |  |
 | adminCreateListing | POST | /admin/listings |  |  |  |  |  |  |  |  |  |
 | adminApproveListing | POST | /admin/listings/:param/approve |  |  |  |  |  |  |  |  |  |

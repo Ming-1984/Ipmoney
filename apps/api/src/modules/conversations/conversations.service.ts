@@ -2,7 +2,7 @@
 
 import { ContentEventService } from '../../common/content-event.service';
 import { PrismaService } from '../../common/prisma/prisma.service';
-import { resolvePublicAvatarUrl } from '../content-utils';
+import { resolvePublicAvatarUrl, resolvePublicFileUrl } from '../content-utils';
 
 type ConversationContentType = 'LISTING' | 'ACHIEVEMENT' | 'TECH_MANAGER' | 'SUPPORT' | 'DISPUTE' | 'MAINTENANCE';
 type UpsertableConversationContentType = 'LISTING' | 'ACHIEVEMENT' | 'TECH_MANAGER';
@@ -774,6 +774,9 @@ export class ConversationsService {
 
     const messagesDesc = await this.prisma.conversationMessage.findMany({
       where,
+      include: {
+        file: true,
+      },
       orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
       take: limit + 1,
     });
@@ -789,6 +792,8 @@ export class ConversationsService {
         senderUserId: m.senderUserId,
         type: m.type as ConversationMessageType,
         text: m.text ?? undefined,
+        fileId: m.fileId ?? undefined,
+        fileUrl: resolvePublicFileUrl(m.file, { baseUrl: process.env.BASE_URL }) ?? undefined,
         createdAt: m.createdAt.toISOString(),
       })),
       nextCursor,

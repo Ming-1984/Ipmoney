@@ -1,0 +1,29 @@
+node_modules
+dist
+build
+.turbo
+.tmp
+.taro
+.next
+coverage
+.swc
+release/
+secret/
+.env
+.env.*
+!.env.example
+*.log
+.DS_Store
+
+# Docs rendered artifacts
+# Demo screenshot artifacts are local QA evidence and not runtime/deployment assets.
+docs/demo/rendered/**
+!docs/demo/rendered/.gitkeep
+!docs/demo/rendered/README.md
+# Local IPC classification source files (CNIPA/WIPO)
+docs/ipc/
+docs/patent
+
+# API local upload temp artifacts from smoke/verify
+apps/api/uploads/*.csv
+*.mp4

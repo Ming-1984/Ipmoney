@@ -50,6 +50,7 @@
 - `JWT_SECRET`
 - `JWT_EXPIRES_IN_SECONDS`（建议如 7200）
 - `JWT_REFRESH_EXPIRES_IN_SECONDS`（可选）
+- `SMS_CODE_SECRET`（短信验证码签名密钥；生产建议独立于 JWT/Access Token 密钥）
 
 ## 微信小程序登录
 
@@ -84,6 +85,7 @@
 - `SMS_TEMPLATE_ID`（推荐）
 - `SMS_TEMPLATE_ID_LOGIN`（兼容旧名）
 - `SMS_TEMPLATE_ID_BIND_PHONE`（可选）
+- `SMS_CODE_SECRET`（推荐单独配置；未设置时运行时会回退到 `ACCESS_TOKEN_SECRET` / `JWT_SECRET`）
 - `SMS_ACCESS_KEY` / `SMS_SECRET_KEY`（推荐）
 - `SMS_ACCESS_KEY_ID` / `SMS_ACCESS_KEY_SECRET`（兼容旧名）
 - `SMS_API_KEY` / `SMS_API_SECRET`（兼容旧名）

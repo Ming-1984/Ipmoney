@@ -1,0 +1,42 @@
+{
+  "name": "api",
+  "private": true,
+  "version": "0.0.0",
+  "scripts": {
+    "dev": "nest start --watch",
+    "build": "nest build",
+    "start": "node dist/main.js",
+    "prisma:generate": "node ../../scripts/run-with-env.mjs -- prisma generate",
+    "db:push": "node ../../scripts/run-with-env.mjs -- prisma db push",
+    "db:migrate": "node ../../scripts/run-with-env.mjs -- prisma migrate dev",
+    "db:deploy": "node ../../scripts/run-with-env.mjs -- prisma migrate deploy",
+    "db:seed": "node ../../scripts/run-with-env.mjs -- prisma db seed",
+    "lint": "eslint \"src/**/*.ts\"",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:e2e": "vitest run test/health.e2e-spec.ts"
+  },
+  "dependencies": {
+    "@aws-sdk/client-s3": "^3.1015.0",
+    "@nestjs/common": "^11.1.11",
+    "@nestjs/core": "^11.1.11",
+    "@nestjs/platform-express": "^11.1.11",
+    "@prisma/client": "^6.3.1",
+    "exceljs": "^4.4.0",
+    "multer": "^2.1.1",
+    "reflect-metadata": "^0.2.2",
+    "rxjs": "^7.8.1"
+  },
+  "devDependencies": {
+    "@nestjs/cli": "^11.0.14",
+    "@nestjs/testing": "^11.1.11",
+    "@types/multer": "^2.0.0",
+    "@types/node": "^22.13.10",
+    "@types/supertest": "^6.0.3",
+    "prisma": "^6.3.1",
+    "supertest": "^7.1.1",
+    "typescript": "^5.7.3",
+    "vitest": "^3.2.4"
+  }
+}

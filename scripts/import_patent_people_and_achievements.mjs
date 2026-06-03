@@ -26,7 +26,7 @@ const DEFAULT_ADMIN_PHONE = process.env.IMPORT_ADMIN_PHONE || '13925106699';
 const DEFAULT_ADMIN_NICKNAME = process.env.IMPORT_ADMIN_NICKNAME || 'ipmoney';
 const DEFAULT_BATCH = process.env.IMPORT_SOURCE_BATCH || 'people-achievements-2026-04-22';
 const DEFAULT_REGION_CODE = process.env.IMPORT_DEFAULT_REGION_CODE || '440000';
-const BASE_URL = String(process.env.BASE_URL || 'https://api.xn--m5rv27f.com').replace(/\/$/, '');
+const BASE_URL = String(process.env.BASE_URL || 'https://api.ipmoney.cn').replace(/\/$/, '');
 const configuredUploadDir = String(process.env.UPLOAD_DIR || './uploads').trim();
 const UPLOAD_DIR = path.isAbsolute(configuredUploadDir)
   ? configuredUploadDir

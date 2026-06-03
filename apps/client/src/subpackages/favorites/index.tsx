@@ -25,6 +25,7 @@ type Conversation = { id: string };
 
 export default function FavoritesPage() {
   const loadedOnceRef = useRef(false);
+  const initialLoadRef = useRef({ LISTING: false, ACHIEVEMENT: false });
   const [tab, setTab] = useState<'LISTING' | 'ACHIEVEMENT'>('LISTING');
   const listingList = usePagedList<ListingSummary>(
     useCallback(async ({ page, pageSize }: { page: number; pageSize: number }) => listFavorites(page, pageSize), []),
@@ -54,6 +55,7 @@ export default function FavoritesPage() {
       return;
     }
     loadedOnceRef.current = false;
+    initialLoadRef.current = { LISTING: false, ACHIEVEMENT: false };
     listingList.reset();
     achievementList.reset();
   });
@@ -61,25 +63,14 @@ export default function FavoritesPage() {
   useEffect(() => {
     if (access.state !== 'ok') return;
     loadedOnceRef.current = true;
+    if (initialLoadRef.current[tab]) return;
+    initialLoadRef.current[tab] = true;
     if (tab === 'LISTING') {
-      if (!listingList.items.length && !listingList.loading) {
-        void listingList.reload();
-      }
+      void listingList.reload();
       return;
     }
-    if (!achievementList.items.length && !achievementList.loading) {
-      void achievementList.reload();
-    }
-  }, [
-    access.state,
-    listingList.items.length,
-    listingList.loading,
-    listingList.reload,
-    achievementList.items.length,
-    achievementList.loading,
-    achievementList.reload,
-    tab,
-  ]);
+    void achievementList.reload();
+  }, [access.state, achievementList.reload, listingList.reload, tab]);
 
   const listingItems = useMemo(() => listingList.items, [listingList.items]);
   const achievementItems = useMemo(() => achievementList.items, [achievementList.items]);

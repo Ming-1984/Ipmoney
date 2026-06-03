@@ -1,0 +1,33 @@
+@use '../../../styles/detail-compact' as *;
+
+.detail-page-compact .nut-button__text {
+  font-size: 0.5em;
+}
+
+.detail-page-compact .detail-tool text {
+  font-size: 0.5em;
+}
+
+.refund-reason-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10rpx;
+}
+
+.refund-reason-item {
+  min-width: 140rpx;
+  padding: 10rpx 14rpx;
+  border-radius: 999rpx;
+  border: 1rpx solid rgba(15, 23, 42, 0.14);
+  color: #64748b;
+  background: #fff;
+  text-align: center;
+}
+
+.refund-reason-item.is-active {
+  border-color: rgba(235, 92, 32, 0.4);
+  color: var(--c-primary);
+  background: rgba(235, 92, 32, 0.1);
+}
+
+

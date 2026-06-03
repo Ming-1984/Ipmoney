@@ -39,6 +39,16 @@ export function resolvePublicAvatarUrl(raw: unknown): string | null {
 }
 
 const LOCAL_HOST_SET = new Set(['127.0.0.1', 'localhost', '0.0.0.0']);
+const LEGACY_API_HOST_SET = new Set([
+  'api.ipmoney.cn',
+  'www.ipmoney.cn',
+  'ipmoney.cn',
+  'admin.ipmoney.cn',
+  'api.xn--m5rv27f.com',
+  'www.xn--m5rv27f.com',
+  'xn--m5rv27f.com',
+  'admin.xn--m5rv27f.com',
+]);
 
 function normalizeBaseUrl(raw?: string): string {
   const value = String(raw || process.env.BASE_URL || '').trim();
@@ -49,7 +59,7 @@ function normalizeBaseUrl(raw?: string): string {
 function runtimePublicBaseUrl(): string {
   const configured = normalizeBaseUrl();
   if (configured) return configured;
-  return 'https://api.xn--m5rv27f.com';
+  return 'https://api.ipmoney.cn';
 }
 
 function buildUploadsUrl(baseUrl: string, fileName: string): string {
@@ -95,7 +105,11 @@ export function resolvePublicFileUrl(file?: PublicFileLike | null, opts?: { base
 
   try {
     const parsed = new URL(rawUrl);
-    const runtimeBaseUrl = configuredBaseUrl || `${parsed.protocol}//${parsed.host}`.replace(/\/$/, '');
+    const preferredBaseUrl = configuredBaseUrl || runtimePublicBaseUrl();
+    const shouldRewriteLegacyHost = LOCAL_HOST_SET.has(parsed.hostname) || LEGACY_API_HOST_SET.has(parsed.hostname);
+    const runtimeBaseUrl = shouldRewriteLegacyHost
+      ? preferredBaseUrl
+      : `${parsed.protocol}//${parsed.host}`.replace(/\/$/, '');
     const pathname = String(parsed.pathname || '').trim();
 
     if (pathname.startsWith('/files/')) {
@@ -104,8 +118,11 @@ export function resolvePublicFileUrl(file?: PublicFileLike | null, opts?: { base
       return rawUrl;
     }
     if (pathname.startsWith('/uploads/')) {
-      if (LOCAL_HOST_SET.has(parsed.hostname) && runtimeBaseUrl) return `${runtimeBaseUrl}${pathname}`;
+      if (shouldRewriteLegacyHost && runtimeBaseUrl) return `${runtimeBaseUrl}${pathname}`;
       return rawUrl;
+    }
+    if (shouldRewriteLegacyHost && runtimeBaseUrl) {
+      return `${runtimeBaseUrl}${pathname}${parsed.search || ''}${parsed.hash || ''}`;
     }
     return rawUrl;
   } catch {

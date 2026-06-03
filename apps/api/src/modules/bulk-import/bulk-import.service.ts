@@ -769,7 +769,7 @@ export class BulkImportService {
     const requestHash = this.hashPayload(input);
 
     return await this.withIdempotency(request, 'bulk-import:people-achievements:execute', requestHash, async () => {
-      const baseUrl = String(process.env.BASE_URL || 'https://api.xn--m5rv27f.com').replace(/\/$/, '');
+      const baseUrl = String(process.env.BASE_URL || 'https://api.ipmoney.cn').replace(/\/$/, '');
       const regionRecords = await this.prisma.region.findMany({ select: { code: true, name: true } });
       const regionMatchers = this.buildRegionMatchers(regionRecords);
 

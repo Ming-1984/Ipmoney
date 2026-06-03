@@ -60,6 +60,11 @@
 - `.env.example` 中 `WX_MP_APPID=wxa053408fad6ab1df`
 - `apps/project.config.json` 中 `appid` 已设置为 `wxa053408fad6ab1df`
 
+注意：
+
+- 服务端 `WX_MP_APPID` / `WX_MP_ID` / `WX_MP_SECRET` 必须与当前发布的小程序账号保持一致。
+- 若小程序前端已切换到新 AppID，但服务端仍保留旧 AppID 或旧 AppSecret，`/auth/wechat/mp-login` 会稳定失败。
+
 ## 生产联调检查
 
 1. 小程序调用 `wx.login` 拿到 `code`，`/auth/wechat/mp-login` 返回 200 且 `user.id` 稳定复用。

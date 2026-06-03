@@ -312,21 +312,18 @@ function buildDefaultRecommendation(): RecommendationConfig {
 }
 
 function buildDefaultBanner(): BannerConfig {
-  const isDev = process.env.NODE_ENV !== 'production';
-  const localVideoUrl = 'http://127.0.0.1:8099/home/banner/banner.mp4';
-  const localPosterUrl = 'http://127.0.0.1:8099/home/banner/banner-poster.png';
+  const prodFallbackCover = 'https://ipmoney.cn/static/images/assets/home/promo-certificate.png';
   return {
     items: [
       {
         id: 'banner-1',
-        title: 'Platform Campaign',
-        imageUrl: isDev ? localPosterUrl : 'https://example.com/banner-1.png',
-        linkUrl: '',
+        title: '首页推荐',
+        imageUrl: prodFallbackCover,
+        linkUrl: '/subpackages/search/index',
         enabled: true,
         order: 1,
-        mediaType: isDev ? 'VIDEO' : 'IMAGE',
-        videoUrl: isDev ? localVideoUrl : undefined,
-        posterUrl: isDev ? localPosterUrl : undefined,
+        mediaType: 'IMAGE',
+        posterUrl: prodFallbackCover,
       },
     ],
   };

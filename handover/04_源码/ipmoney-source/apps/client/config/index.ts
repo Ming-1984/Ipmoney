@@ -1,0 +1,164 @@
+import type { UserConfigExport, UserConfigFn } from '@tarojs/cli';
+import path from 'path';
+
+import devConfig from './dev';
+import prodConfig from './prod';
+
+function isReleaseLike(value: string | undefined): boolean {
+  const raw = String(value || '').trim().toLowerCase();
+  if (!raw) return false;
+  if (raw === 'prod' || raw === 'production') return true;
+  if (raw === 'staging' || raw === 'stage') return true;
+  if (/(^|[-_])prod($|[-_])/.test(raw)) return true;
+  if (/(^|[-_])staging($|[-_])/.test(raw)) return true;
+  return false;
+}
+
+export default ((merge, env) => {
+  const isDev = env.mode === 'development';
+  // Taro/webpack typically run builds with env.mode=production even for staging.
+  // Enforce "no demo/mock + non-local API base" for all release-like environments.
+  const deployEnvValues = [
+    process.env.DEPLOY_ENV,
+    process.env.APP_MODE,
+    process.env.STAGE,
+    process.env.ENV,
+  ]
+    .filter(Boolean);
+  const isProdDeploy = deployEnvValues.some((v) => isReleaseLike(v));
+  const isProdBuild = env.mode === 'production' && isProdDeploy;
+  const rawApiBaseUrl = process.env.TARO_APP_API_BASE_URL ?? 'http://127.0.0.1:3200';
+  const apiBaseUrl = rawApiBaseUrl.replace('http://localhost', 'http://127.0.0.1');
+  const rawMockTools = String(process.env.TARO_APP_ENABLE_MOCK_TOOLS || '').trim().toLowerCase();
+  const rawDemoAuth = String(process.env.DEMO_AUTH_ENABLED || '').trim().toLowerCase();
+  if (isProdBuild) {
+    if (rawMockTools === '1' || rawMockTools === 'true') {
+      throw new Error('TARO_APP_ENABLE_MOCK_TOOLS must be disabled in production build.');
+    }
+    if (rawDemoAuth === 'true') {
+      throw new Error('DEMO_AUTH_ENABLED must be disabled in production build.');
+    }
+    if (apiBaseUrl.includes('localhost') || apiBaseUrl.includes('127.0.0.1')) {
+      throw new Error('TARO_APP_API_BASE_URL must not use localhost/127.0.0.1 in production build.');
+    }
+  }
+  const demoAuthEnabledRaw = String(process.env.DEMO_AUTH_ENABLED || '').trim().toLowerCase() === 'true';
+  const demoAuthEnabled = demoAuthEnabledRaw && !isProdBuild;
+  const taroEnv = process.env.TARO_ENV;
+  const enablePrebundle = isDev && taroEnv === 'h5';
+  const outputRoot = taroEnv ? `dist/${taroEnv}` : 'dist';
+  const inlineImageLimit = taroEnv === 'weapp' ? 0 : 2048;
+  // Webpack's default performance budgets are extremely low for modern apps and
+  // create noisy warnings. Set explicit budgets (still warning) so regressions
+  // remain visible.
+  const h5PerformanceBudget = {
+    maxAssetSize: 650 * 1024,
+    maxEntrypointSize: 1200 * 1024,
+  };
+  const applySplitChunks = (chain: any) => {
+    chain.optimization.splitChunks({
+      chunks: 'all',
+      minSize: 24 * 1024,
+      maxInitialRequests: 25,
+      maxAsyncRequests: 30,
+      cacheGroups: {
+        framework: {
+          name: 'framework',
+          test: /[\\/]node_modules[\\/](react|react-dom|@tarojs)[\\/]/,
+          priority: 40,
+          reuseExistingChunk: true,
+        },
+        ui: {
+          name: 'ui-kit',
+          test: /[\\/]node_modules[\\/](@nutui|swiper)[\\/]/,
+          priority: 30,
+          reuseExistingChunk: true,
+        },
+        vendors: {
+          name: 'vendors',
+          test: /[\\/]node_modules[\\/]/,
+          priority: 20,
+          reuseExistingChunk: true,
+        },
+        common: {
+          name: 'common',
+          minChunks: 2,
+          priority: 10,
+          reuseExistingChunk: true,
+        },
+      },
+    });
+  };
+
+  const baseConfig: UserConfigExport = {
+    projectName: 'ipmoney-client',
+    date: '2026-01-11',
+    designWidth: 750,
+    deviceRatio: {
+      750: 1,
+    },
+    sourceRoot: 'src',
+    outputRoot,
+    plugins: ['@tarojs/plugin-framework-react'],
+    defineConstants: {
+      __API_BASE_URL__: JSON.stringify(apiBaseUrl),
+      __APP_MODE__: JSON.stringify(env.mode),
+      __DEMO_AUTH_ENABLED__: JSON.stringify(demoAuthEnabled),
+      __IS_PROD_DEPLOY__: JSON.stringify(isProdDeploy),
+    },
+    alias: {
+      // Keep H5 bundles lean: NutUI's icon entry is marked as side-effectful and
+      // can pull in the whole icon set. Alias to a local shim that re-exports
+      // only the icons we actually need.
+      '@nutui/icons-react-taro$': path.resolve(__dirname, '..', 'src/shims/nutui-icons.ts'),
+    },
+    framework: 'react',
+    cache: {
+      enable: isDev,
+    },
+    imageUrlLoaderOption: {
+      limit: inlineImageLimit,
+    },
+    compiler: {
+      type: 'webpack5',
+      prebundle: {
+        enable: enablePrebundle,
+        cacheDir: path.join(__dirname, '..', 'node_modules/.taro'),
+      },
+    },
+    csso: {
+      enable: !isDev,
+    },
+    copy: {
+      patterns: [],
+      options: {},
+    },
+    h5: {
+      webpackChain(chain) {
+        try {
+          applySplitChunks(chain);
+          chain.performance
+            .maxAssetSize(h5PerformanceBudget.maxAssetSize)
+            .maxEntrypointSize(h5PerformanceBudget.maxEntrypointSize);
+        } catch {
+          // Ignore if webpack-chain API changes; budgets are best-effort.
+        }
+      },
+      router: {
+        mode: 'hash',
+      },
+      postcss: {
+        pxtransform: {
+          config: {
+            baseFontSize: 20,
+            minRootSize: 18,
+            maxRootSize: 22,
+          },
+        },
+      },
+    },
+  };
+
+  if (isDev) return merge({}, baseConfig, devConfig);
+  return merge({}, baseConfig, prodConfig);
+}) satisfies UserConfigFn;

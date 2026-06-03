@@ -65,6 +65,9 @@ assertEmpty('DEMO_USER_TOKEN');
 assertEmpty('VITE_DEMO_ADMIN_TOKEN');
 
 assertNotLocal('BASE_URL');
+assertNotLocal('ADMIN_BASE_URL');
+assertNotLocal('H5_BASE_URL');
+assertNotLocal('WEB_BASE_URL');
 assertNotLocal('PUBLIC_HOST_WHITELIST');
 assertNotLocal('TARO_APP_API_BASE_URL');
 assertNotLocal('VITE_API_BASE_URL');
@@ -83,6 +86,11 @@ if (!corsOrigins || corsOrigins === '*') {
   warn.push('CORS_ORIGINS should be explicitly set (comma-separated) in production (avoid "*").');
 }
 
+const trustProxy = read('TRUST_PROXY').toLowerCase();
+if (!truthy.has(trustProxy)) {
+  warn.push('TRUST_PROXY should be enabled in production when TLS is terminated by nginx/load balancer.');
+}
+
 const fileTempTokenSecret = read('FILE_TEMP_TOKEN_SECRET');
 if (!fileTempTokenSecret) {
   errors.push('FILE_TEMP_TOKEN_SECRET is required in production.');
@@ -95,6 +103,52 @@ if (!jwtSecret) {
   errors.push('JWT_SECRET is required in production.');
 } else if (jwtSecret.toLowerCase() === 'change-me') {
   errors.push('JWT_SECRET must not be the default "change-me" in production.');
+}
+
+const smsCodeSecret = read('SMS_CODE_SECRET');
+if (!smsCodeSecret) {
+  warn.push('SMS_CODE_SECRET is not set. Runtime will fall back to ACCESS_TOKEN_SECRET/JWT_SECRET; production should use a dedicated secret.');
+} else if (smsCodeSecret.toLowerCase() === 'change-me') {
+  errors.push('SMS_CODE_SECRET must not be the default "change-me" in production.');
+}
+
+const databaseUrl = read('DATABASE_URL');
+if (!databaseUrl) {
+  errors.push('DATABASE_URL is required in production.');
+}
+
+const redisUrl = read('REDIS_URL');
+const redisHost = read('REDIS_HOST');
+if (!redisUrl && !redisHost) {
+  errors.push('REDIS_URL or REDIS_HOST/REDIS_PORT must be set in production.');
+}
+
+const wxMpAppId = read('WX_MP_APPID') || read('WX_MP_ID');
+if (!wxMpAppId) {
+  errors.push('WX_MP_APPID (or WX_MP_ID) is required in production.');
+}
+if (!read('WX_MP_SECRET')) {
+  errors.push('WX_MP_SECRET is required in production.');
+}
+
+const wxPayFields = [
+  'WX_PAY_MCHID',
+  'WX_PAY_MCH_CERT_SERIAL_NO',
+  'WX_PAY_API_V3_KEY',
+  'WX_PAY_MCH_PRIVATE_KEY',
+  'WX_PAY_NOTIFY_URL',
+];
+const missingWxPayFields = wxPayFields.filter((key) => !read(key));
+if (missingWxPayFields.length) {
+  warn.push(`Wechat Pay fields are missing: ${missingWxPayFields.join(', ')}.`);
+}
+if (!read('WX_PAY_PLATFORM_CERT') && !read('WX_PAY_PLATFORM_CERTS')) {
+  warn.push('WX_PAY_PLATFORM_CERT or WX_PAY_PLATFORM_CERTS should be set for Wechat Pay callback verification.');
+}
+
+const s3PublicBaseUrl = read('S3_PUBLIC_BASE_URL');
+if (s3PublicBaseUrl && (s3PublicBaseUrl.includes('127.0.0.1') || s3PublicBaseUrl.includes('localhost'))) {
+  warn.push('S3_PUBLIC_BASE_URL points to localhost/127.0.0.1 and may break H5/public file access.');
 }
 
 const smsProvider = read('SMS_PROVIDER').toUpperCase();

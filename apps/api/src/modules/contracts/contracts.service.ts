@@ -2,6 +2,7 @@
 import { ContractStatus } from '@prisma/client';
 
 import { PrismaService } from '../../common/prisma/prisma.service';
+import { resolvePublicFileUrl } from '../content-utils';
 
 type ContractItem = {
   id: string;
@@ -69,7 +70,10 @@ export class ContractsService {
     const createdAt = (contract?.createdAt || order.createdAt) as Date;
     const uploadedAt = contract?.uploadedAt ? contract.uploadedAt.toISOString() : null;
     const signedAt = contract?.signedAt ? contract.signedAt.toISOString() : null;
-    const fileUrl = contract?.fileUrl ?? contract?.contractFile?.url ?? null;
+    const fileUrl =
+      resolvePublicFileUrl(contract?.contractFile, { baseUrl: process.env.BASE_URL }) ??
+      resolvePublicFileUrl({ url: contract?.fileUrl ?? null }, { baseUrl: process.env.BASE_URL }) ??
+      null;
 
     return {
       id: `${CONTRACT_ID_PREFIX}${order.id}`,
@@ -162,7 +166,7 @@ export class ContractsService {
     if (String(file.mimeType || '') !== 'application/pdf') {
       throw new BadRequestException({ code: 'BAD_REQUEST', message: '仅支持上传 PDF 合同' });
     }
-    const fileUrl = file.url;
+    const fileUrl = resolvePublicFileUrl(file, { baseUrl: process.env.BASE_URL }) ?? file.url;
 
     const contract = await this.prisma.contract.upsert({
       where: { orderId },
