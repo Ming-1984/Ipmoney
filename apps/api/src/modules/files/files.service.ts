@@ -1,5 +1,5 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
-import { FileOwnerScope } from '@prisma/client';
+import { FileModerationStatus, FileOwnerScope } from '@prisma/client';
 import { createReadStream, mkdirSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import { GetObjectCommand, PutObjectCommand, S3Client } from '@aws-sdk/client-s3';
@@ -14,6 +14,7 @@ type FileObjectDto = {
   fileName?: string | null;
   mimeType: string;
   sizeBytes: number;
+  moderationStatus?: string;
   createdAt: string;
 };
 
@@ -208,6 +209,9 @@ export class FilesService {
         sizeBytes: Number(params.sizeBytes) || 0,
         ownerScope: FileOwnerScope.USER,
         ownerId: params.userId,
+        moderationStatus: String(params.mimeType || '').toLowerCase().startsWith('image/')
+          ? FileModerationStatus.PENDING
+          : FileModerationStatus.NOT_REQUIRED,
       },
     });
 
@@ -218,12 +222,19 @@ export class FilesService {
       mimeType: created.mimeType,
       sizeBytes: created.sizeBytes,
       createdAt: created.createdAt.toISOString(),
+      moderationStatus: created.moderationStatus,
     };
   }
 
   async getFileById(fileId: string) {
     const normalizedFileId = this.parseUuidStrict(fileId, 'fileId');
     return await this.prisma.file.findUnique({ where: { id: normalizedFileId } });
+  }
+
+  async getFileByIds(fileIds: string[]) {
+    const normalized = Array.from(new Set(fileIds.map((item) => this.parseUuidStrict(item, 'fileId'))));
+    if (!normalized.length) return [];
+    return await this.prisma.file.findMany({ where: { id: { in: normalized } } });
   }
 
   async canAccessFile(fileId: string, userId: string, isAdmin: boolean) {

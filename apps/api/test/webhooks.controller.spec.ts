@@ -18,7 +18,7 @@ describe('WebhooksController delegation suite', () => {
     const req = { headers: { 'x-request-id': 'rid-1' }, rawBody: Buffer.from(rawBody, 'utf8') };
     const body = { id: 'evt-1', eventType: 'TRANSACTION.SUCCESS' };
 
-    await expect(controller.wechatpayNotify(req, body)).resolves.toEqual({ code: 'SUCCESS', message: '成功' });
+    await expect(controller.wechatpayNotify(req, body)).resolves.toEqual({ code: 'SUCCESS', message: 'success' });
     expect(webhooks.handleWechatPayNotify).toHaveBeenCalledWith(req, body, rawBody);
   });
 });

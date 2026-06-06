@@ -5,6 +5,7 @@ import { ContentMediaType, Prisma } from '@prisma/client';
 import { AuditLogService } from '../../common/audit-log.service';
 import { ContentEventService } from '../../common/content-event.service';
 import { PrismaService } from '../../common/prisma/prisma.service';
+import { WechatContentSecurityService } from '../../common/wechat-content-security.service';
 import {
   buildPublisherMap,
   mapContentMedia,
@@ -43,6 +44,7 @@ export class AchievementsService {
     private readonly prisma: PrismaService,
     private readonly audit: AuditLogService,
     private readonly events: ContentEventService,
+    private readonly contentSecurity: WechatContentSecurityService,
   ) {}
 
   ensureAdmin(req: any) {
@@ -400,6 +402,23 @@ export class AchievementsService {
       ...mediaInput.map((m) => m.fileId),
     ];
     await this.assertOwnedFiles(req.auth.userId, ownedFileIds, 'media');
+    await this.contentSecurity.assertSafeTexts([title, summary, description, ...keywords], {
+      requestMeta: {
+        actorUserId: req.auth.userId,
+        targetType: 'ACHIEVEMENT',
+        targetId: req.auth.userId,
+      },
+    });
+    await this.contentSecurity.ensureReferencedFilesReady({
+      userId: req.auth.userId,
+      fileIds: ownedFileIds,
+      label: 'achievement media',
+      requestMeta: {
+        actorUserId: req.auth.userId,
+        targetType: 'ACHIEVEMENT',
+        targetId: req.auth.userId,
+      },
+    });
 
     const created = await this.prisma.achievement.create({
       data: {
@@ -472,6 +491,23 @@ export class AchievementsService {
       ...(mediaInput ? mediaInput.map((m) => m.fileId) : []),
     ];
     await this.assertOwnedFiles(req.auth.userId, ownedFileIds, 'media');
+    await this.contentSecurity.assertSafeTexts([title, summary, description, ...keywords], {
+      requestMeta: {
+        actorUserId: req.auth.userId,
+        targetType: 'ACHIEVEMENT',
+        targetId: achievementId,
+      },
+    });
+    await this.contentSecurity.ensureReferencedFilesReady({
+      userId: req.auth.userId,
+      fileIds: ownedFileIds,
+      label: 'achievement media',
+      requestMeta: {
+        actorUserId: req.auth.userId,
+        targetType: 'ACHIEVEMENT',
+        targetId: achievementId,
+      },
+    });
 
     const updated = await this.prisma.achievement.update({
       where: { id: achievementId },
@@ -516,6 +552,40 @@ export class AchievementsService {
     if (!it || it.publisherUserId !== req.auth.userId) {
       throw new NotFoundException({ code: 'NOT_FOUND', message: 'achievement not found' });
     }
+    const media = await this.prisma.achievement.findUnique({
+      where: { id: achievementId },
+      select: {
+        coverFileId: true,
+        media: { select: { fileId: true } },
+        title: true,
+        summary: true,
+        description: true,
+        keywordsJson: true,
+      },
+    });
+    await this.contentSecurity.assertSafeTexts(
+      [media?.title, media?.summary, media?.description, ...normalizeStringArray(media?.keywordsJson)],
+      {
+        requestMeta: {
+          actorUserId: req.auth.userId,
+          targetType: 'ACHIEVEMENT',
+          targetId: achievementId,
+        },
+      },
+    );
+    await this.contentSecurity.ensureReferencedFilesReady({
+      userId: req.auth.userId,
+      fileIds: [
+        ...(media?.coverFileId ? [media.coverFileId] : []),
+        ...((media?.media || []).map((item: any) => String(item.fileId || ''))),
+      ],
+      label: 'achievement media',
+      requestMeta: {
+        actorUserId: req.auth.userId,
+        targetType: 'ACHIEVEMENT',
+        targetId: achievementId,
+      },
+    });
 
     const updated = await this.prisma.achievement.update({
       where: { id: achievementId },

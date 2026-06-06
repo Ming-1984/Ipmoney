@@ -45,7 +45,7 @@ export function WechatPhoneBindPopup(props: WechatPhoneBindPopupProps) {
     >
       <View className="wechat-phone-popup">
         <Text className="wechat-phone-title">手机号快捷登录</Text>
-        <Text className="wechat-phone-subtitle">用于绑定手机号，便于咨询沟通、账号登录与交易联系。</Text>
+        <Text className="wechat-phone-subtitle">用于补充手机号，便于咨询沟通、账号登录与交易联系。</Text>
 
         <View className="wechat-phone-actions">
           <TaroButton
@@ -62,7 +62,7 @@ export function WechatPhoneBindPopup(props: WechatPhoneBindPopupProps) {
             onClick={props.onSkip}
             disabled={Boolean(props.loading)}
           >
-            暂不验证
+            稍后再说
           </TaroButton>
         </View>
       </View>

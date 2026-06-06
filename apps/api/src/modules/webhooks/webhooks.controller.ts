@@ -16,6 +16,19 @@ export class WebhooksController {
           ? req.rawBody.toString('utf8')
           : undefined;
     await this.webhooks.handleWechatPayNotify(req, body, rawBody);
-    return { code: 'SUCCESS', message: '成功' };
+    return { code: 'SUCCESS', message: 'success' };
+  }
+
+  @Post('/wechat/content-security')
+  @HttpCode(200)
+  async wechatContentSecurityNotify(@Req() req: any, @Body() body: any) {
+    const rawBody =
+      typeof req?.rawBody === 'string'
+        ? req.rawBody
+        : Buffer.isBuffer(req?.rawBody)
+          ? req.rawBody.toString('utf8')
+          : undefined;
+    await this.webhooks.handleWechatContentSecurityNotify(req, body, rawBody);
+    return { code: 'SUCCESS', message: 'ok' };
   }
 }

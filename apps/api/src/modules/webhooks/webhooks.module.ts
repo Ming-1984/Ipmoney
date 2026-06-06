@@ -1,11 +1,12 @@
 import { Module } from '@nestjs/common';
 
+import { AuditLogModule } from '../../common/audit-log.module';
 import { NotificationsModule } from '../notifications/notifications.module';
 import { WebhooksController } from './webhooks.controller';
 import { WebhooksService } from './webhooks.service';
 
 @Module({
-  imports: [NotificationsModule],
+  imports: [NotificationsModule, AuditLogModule],
   controllers: [WebhooksController],
   providers: [WebhooksService],
 })

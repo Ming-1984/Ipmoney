@@ -9,6 +9,7 @@ import {
 import { AuditLogService } from '../../common/audit-log.service';
 import { getDemoAuthConfig } from '../../common/demo';
 import { PrismaService } from '../../common/prisma/prisma.service';
+import { WechatContentSecurityService } from '../../common/wechat-content-security.service';
 import { resolvePublicFileUrl } from '../content-utils';
 import { NotificationsService } from '../notifications/notifications.service';
 
@@ -83,6 +84,7 @@ export class UsersService {
     private readonly prisma: PrismaService,
     private readonly audit: AuditLogService,
     private readonly notifications: NotificationsService,
+    private readonly contentSecurity: WechatContentSecurityService,
   ) {}
 
   private hasOwn(input: any, key: string) {
@@ -205,6 +207,15 @@ export class UsersService {
     if (patch.nickname !== undefined && String(patch.nickname).length > 50) {
       throw new BadRequestException({ code: 'BAD_REQUEST', message: 'nickname is too long' });
     }
+    if (patch.nickname !== undefined) {
+      await this.contentSecurity.assertSafeText(String(patch.nickname || '').trim(), {
+        requestMeta: {
+          actorUserId: userId,
+          targetType: 'USER',
+          targetId: userId,
+        },
+      });
+    }
 
     try {
       await this.prisma.user.update({
@@ -285,6 +296,31 @@ export class UsersService {
     if (existing) {
       throw new ConflictException({ code: 'CONFLICT', message: 'verification already submitted' });
     }
+
+    await this.contentSecurity.assertSafeTexts(
+      [displayName, input.contactName, input.intro],
+      {
+        requestMeta: {
+          actorUserId: userId,
+          targetType: 'USER_VERIFICATION',
+          targetId: userId,
+        },
+      },
+    );
+    const referencedFileIds = [
+      ...(this.hasOwn(input, 'logoFileId') && input.logoFileId ? [String(input.logoFileId)] : []),
+      ...evidenceFileIds,
+    ];
+    await this.contentSecurity.ensureReferencedFilesReady({
+      userId,
+      fileIds: referencedFileIds,
+      label: 'verification files',
+      requestMeta: {
+        actorUserId: userId,
+        targetType: 'USER_VERIFICATION',
+        targetId: userId,
+      },
+    });
 
     const now = new Date();
     const autoApprove = verificationType === 'PERSON';

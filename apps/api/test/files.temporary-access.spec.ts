@@ -13,6 +13,7 @@ const FILE_ID = '11111111-1111-4111-8111-111111111111';
 describe('FilesController temporary-access strictness suite', () => {
   let files: any;
   let audit: any;
+  let contentSecurity: any;
   let controller: FilesController;
 
   beforeEach(() => {
@@ -23,7 +24,8 @@ describe('FilesController temporary-access strictness suite', () => {
       resolvePublicBaseUrl: vi.fn(),
     };
     audit = { log: vi.fn().mockResolvedValue(undefined) };
-    controller = new FilesController(files, audit);
+    contentSecurity = { scheduleFileModeration: vi.fn().mockResolvedValue(undefined) };
+    controller = new FilesController(files, audit, contentSecurity);
   });
 
   it('requires auth and existing file', async () => {

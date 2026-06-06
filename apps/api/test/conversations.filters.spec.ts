@@ -5,6 +5,7 @@ import { ConversationsService } from '../src/modules/conversations/conversations
 
 describe('ConversationsService pagination and id strictness suite', () => {
   let prisma: any;
+  let contentSecurity: any;
   let service: ConversationsService;
 
   beforeEach(() => {
@@ -30,7 +31,8 @@ describe('ConversationsService pagination and id strictness suite', () => {
       },
     };
     const events = { recordConsult: vi.fn().mockResolvedValue(undefined) };
-    service = new ConversationsService(prisma, events as any);
+    contentSecurity = { assertSafeText: vi.fn().mockResolvedValue(undefined) };
+    service = new ConversationsService(prisma, events as any, contentSecurity);
   });
 
   it('requires auth for listMine', async () => {
@@ -192,6 +194,7 @@ describe('ConversationsService pagination and id strictness suite', () => {
 
     expect(prisma.conversationMessage.findMany).toHaveBeenCalledWith({
       where: { conversationId: id },
+      include: { file: true },
       orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
       take: 51,
     });
@@ -203,6 +206,8 @@ describe('ConversationsService pagination and id strictness suite', () => {
           senderUserId: 'u-2',
           type: 'EMOJI',
           text: undefined,
+          fileId: undefined,
+          fileUrl: undefined,
           createdAt: '2026-03-14T01:05:00.000Z',
         },
         {
@@ -211,6 +216,8 @@ describe('ConversationsService pagination and id strictness suite', () => {
           senderUserId: 'u-1',
           type: 'TEXT',
           text: 'hello',
+          fileId: undefined,
+          fileUrl: undefined,
           createdAt: '2026-03-14T01:00:00.000Z',
         },
       ],
@@ -281,6 +288,7 @@ describe('ConversationsService pagination and id strictness suite', () => {
           },
         ],
       },
+      include: { file: true },
       orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
       take: 3,
     });
@@ -292,6 +300,8 @@ describe('ConversationsService pagination and id strictness suite', () => {
           senderUserId: 'u-2',
           type: 'TEXT',
           text: 'older',
+          fileId: undefined,
+          fileUrl: undefined,
           createdAt: '2026-03-14T01:08:00.000Z',
         },
         {
@@ -300,6 +310,8 @@ describe('ConversationsService pagination and id strictness suite', () => {
           senderUserId: 'u-1',
           type: 'TEXT',
           text: 'newest',
+          fileId: undefined,
+          fileUrl: undefined,
           createdAt: '2026-03-14T01:09:00.000Z',
         },
       ],

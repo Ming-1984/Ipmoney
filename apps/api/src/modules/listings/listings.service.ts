@@ -15,6 +15,7 @@ type ListingTopic = 'HIGH_TECH_RETIRED' | 'SLEEPING' | 'AWARD_WINNING' | 'FIVE_S
 import { AuditLogService } from '../../common/audit-log.service';
 import { ContentEventService } from '../../common/content-event.service';
 import { PrismaService } from '../../common/prisma/prisma.service';
+import { WechatContentSecurityService } from '../../common/wechat-content-security.service';
 import { resolveUploadDir } from '../../common/upload-dir';
 import { NotificationsService } from '../notifications/notifications.service';
 import { mapStats, resolvePublicFileUrl, sanitizeIndustryTagNames } from '../content-utils';
@@ -196,6 +197,7 @@ export class ListingsService {
     private readonly notifications: NotificationsService,
     private readonly events: ContentEventService,
     private readonly config: ConfigService,
+    private readonly contentSecurity: WechatContentSecurityService,
     @Optional() private readonly files?: FilesService,
   ) {
     mkdirSync(UPLOAD_DIR, { recursive: true });
@@ -1862,6 +1864,31 @@ export class ListingsService {
     const fallbackTitle = patent?.title || 'Listing';
     const title = hasTitle ? (parsedTitle ?? fallbackTitle) : fallbackTitle;
     const summary = hasSummary ? parsedSummary : null;
+    if (proofFileIds.length > 0) {
+      await this.assertOwnedFiles(req.auth.userId, proofFileIds, 'proofFileIds');
+    }
+    await this.contentSecurity.assertSafeTexts(
+      [title, summary, negotiableNote, encumbranceNote],
+      {
+        requestMeta: {
+          actorUserId: req.auth.userId,
+          targetType: 'LISTING',
+          targetId: req.auth.userId,
+        },
+      },
+    );
+    if (proofFileIds.length > 0) {
+      await this.contentSecurity.ensureReferencedFilesReady({
+        userId: req.auth.userId,
+        fileIds: proofFileIds,
+        label: 'proofFileIds',
+        requestMeta: {
+          actorUserId: req.auth.userId,
+          targetType: 'LISTING',
+          targetId: req.auth.userId,
+        },
+      });
+    }
     const listing = await this.prisma.listing.create({
       data: {
         sellerUserId: resolvedSellerUserId,
@@ -2968,6 +2995,31 @@ export class ListingsService {
     const fallbackTitle = patent?.title || 'Listing';
     const title = hasTitle ? (parsedTitle ?? fallbackTitle) : fallbackTitle;
     const summary = hasSummary ? parsedSummary : null;
+    if (proofFileIds.length > 0) {
+      await this.assertOwnedFiles(req.auth.userId, proofFileIds, 'proofFileIds');
+    }
+    await this.contentSecurity.assertSafeTexts(
+      [title, summary, negotiableNote, encumbranceNote],
+      {
+        requestMeta: {
+          actorUserId: req.auth.userId,
+          targetType: 'LISTING',
+          targetId: req.auth.userId,
+        },
+      },
+    );
+    if (proofFileIds.length > 0) {
+      await this.contentSecurity.ensureReferencedFilesReady({
+        userId: req.auth.userId,
+        fileIds: proofFileIds,
+        label: 'proofFileIds',
+        requestMeta: {
+          actorUserId: req.auth.userId,
+          targetType: 'LISTING',
+          targetId: req.auth.userId,
+        },
+      });
+    }
     const listing = await this.prisma.listing.create({
       data: {
         sellerUserId: req.auth.userId,
@@ -3061,6 +3113,35 @@ export class ListingsService {
     if (hasRegionCode) {
       this.assertRegionCodeRequiredForActiveStatus(regionCode, listing.status as ListingStatus);
     }
+    await this.contentSecurity.assertSafeTexts(
+      [
+        hasTitle ? (parsedTitle ?? listing.title) : listing.title,
+        hasSummary ? (parsedSummary ?? listing.summary) : listing.summary,
+        hasNegotiableNote ? negotiableNote : listing.negotiableNote,
+        hasEncumbranceNote ? encumbranceNote : listing.encumbranceNote,
+      ],
+      {
+        requestMeta: {
+          actorUserId: req.auth.userId,
+          targetType: 'LISTING',
+          targetId: listingId,
+        },
+      },
+    );
+    const effectiveProofFileIds = hasProofFileIds ? proofFileIds ?? [] : this.normalizeFileIds((listing as any).proofFileIdsJson);
+    if (effectiveProofFileIds.length > 0) {
+      await this.assertOwnedFiles(req.auth.userId, effectiveProofFileIds, 'proofFileIds');
+      await this.contentSecurity.ensureReferencedFilesReady({
+        userId: req.auth.userId,
+        fileIds: effectiveProofFileIds,
+        label: 'proofFileIds',
+        requestMeta: {
+          actorUserId: req.auth.userId,
+          targetType: 'LISTING',
+          targetId: listingId,
+        },
+      });
+    }
     const updated = await this.prisma.listing.update({
       where: { id: listingId },
       data: {
@@ -3109,6 +3190,26 @@ export class ListingsService {
     }
     const proofFileIds = this.normalizeFileIds((listing as any).proofFileIdsJson);
     await this.assertOwnedFiles(req.auth.userId, proofFileIds, 'proofFileIds');
+    await this.contentSecurity.assertSafeTexts(
+      [listing.title, listing.summary, listing.negotiableNote, listing.encumbranceNote],
+      {
+        requestMeta: {
+          actorUserId: req.auth.userId,
+          targetType: 'LISTING',
+          targetId: listingId,
+        },
+      },
+    );
+    await this.contentSecurity.ensureReferencedFilesReady({
+      userId: req.auth.userId,
+      fileIds: proofFileIds,
+      label: 'proofFileIds',
+      requestMeta: {
+        actorUserId: req.auth.userId,
+        targetType: 'LISTING',
+        targetId: listingId,
+      },
+    });
     this.assertRegionCodeRequiredForActiveStatus(listing.regionCode, 'ACTIVE');
     const updated = await this.prisma.listing.update({
       where: { id: listingId },

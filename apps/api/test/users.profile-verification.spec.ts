@@ -7,6 +7,7 @@ describe('UsersService profile and verification strictness suite', () => {
   let prisma: any;
   let audit: any;
   let notifications: any;
+  let contentSecurity: any;
   let service: UsersService;
 
   beforeEach(() => {
@@ -23,7 +24,12 @@ describe('UsersService profile and verification strictness suite', () => {
     };
     audit = { log: vi.fn().mockResolvedValue(undefined) };
     notifications = { create: vi.fn().mockResolvedValue(undefined) };
-    service = new UsersService(prisma, audit, notifications);
+    contentSecurity = {
+      assertSafeText: vi.fn().mockResolvedValue(undefined),
+      assertSafeTexts: vi.fn().mockResolvedValue(undefined),
+      ensureReferencedFilesReady: vi.fn().mockResolvedValue(undefined),
+    };
+    service = new UsersService(prisma, audit, notifications, contentSecurity);
   });
 
   it('validates updateUserProfile patch fields strictly', async () => {
@@ -59,6 +65,7 @@ describe('UsersService profile and verification strictness suite', () => {
 
     const result = await service.updateUserProfile('u-1', { avatarUrl: '   ', regionCode: null } as any);
 
+    expect(contentSecurity.assertSafeText).not.toHaveBeenCalled();
     expect(prisma.user.update).toHaveBeenCalledWith({
       where: { id: 'u-1' },
       data: { nickname: undefined, avatarUrl: null, regionCode: null },
@@ -149,6 +156,10 @@ describe('UsersService profile and verification strictness suite', () => {
           reviewComment: 'auto approved for personal verification',
         }),
       }),
+    );
+    expect(contentSecurity.assertSafeTexts).toHaveBeenCalled();
+    expect(contentSecurity.ensureReferencedFilesReady).toHaveBeenCalledWith(
+      expect.objectContaining({ userId: 'u-1', fileIds: [], label: 'verification files' }),
     );
     expect(audit.log).toHaveBeenCalledWith(
       expect.objectContaining({

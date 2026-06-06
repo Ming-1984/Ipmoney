@@ -5,6 +5,7 @@ import { ListingsService } from '../src/modules/listings/listings.service';
 
 describe('ListingsService admin list filter strictness suite', () => {
   let prisma: any;
+  let contentSecurity: any;
   let service: ListingsService;
 
   beforeEach(() => {
@@ -21,8 +22,12 @@ describe('ListingsService admin list filter strictness suite', () => {
     const notifications = { create: vi.fn().mockResolvedValue(undefined) };
     const events = { adjustFavoriteCount: vi.fn().mockResolvedValue(undefined) };
     const config = { getRecommendation: vi.fn().mockResolvedValue({ enabled: false }) };
+    contentSecurity = {
+      assertSafeTexts: vi.fn().mockResolvedValue(undefined),
+      ensureReferencedFilesReady: vi.fn().mockResolvedValue(undefined),
+    };
 
-    service = new ListingsService(prisma, audit as any, notifications as any, events as any, config as any);
+    service = new ListingsService(prisma, audit as any, notifications as any, events as any, config as any, contentSecurity);
   });
 
   it('rejects invalid admin filters strictly', async () => {

@@ -84,6 +84,14 @@ enum FileOwnerScope {
   MESSAGE
 }
 
+enum FileModerationStatus {
+  NOT_REQUIRED
+  PENDING
+  APPROVED
+  REJECTED
+  FAILED
+}
+
 enum ListingTradeMode {
   ASSIGNMENT
   LICENSE
@@ -751,14 +759,21 @@ model PatentLegalEvent {
 
 
 model File {
-  id         String         @id @default(uuid()) @db.Uuid
-  url        String
-  fileName   String?        @map("file_name")
-  mimeType   String         @map("mime_type")
-  sizeBytes  Int            @map("size_bytes")
-  ownerScope FileOwnerScope @map("owner_scope")
-  ownerId    String         @map("owner_id") @db.Uuid
-  createdAt  DateTime       @default(now()) @map("created_at")
+  id                 String               @id @default(uuid()) @db.Uuid
+  url                String
+  fileName           String?              @map("file_name")
+  mimeType           String               @map("mime_type")
+  sizeBytes          Int                  @map("size_bytes")
+  ownerScope         FileOwnerScope       @map("owner_scope")
+  ownerId            String               @map("owner_id") @db.Uuid
+  moderationStatus   FileModerationStatus @default(NOT_REQUIRED) @map("moderation_status")
+  moderationProvider String?              @map("moderation_provider")
+  moderationTraceId  String?              @map("moderation_trace_id")
+  moderationLabel    String?              @map("moderation_label")
+  moderationReason   String?              @map("moderation_reason")
+  moderationRequestedAt DateTime?         @map("moderation_requested_at")
+  moderationCheckedAt DateTime?           @map("moderation_checked_at")
+  createdAt          DateTime             @default(now()) @map("created_at")
 
   listingMedia       ListingMedia[]
   achievementMedia  AchievementMedia[]
@@ -779,6 +794,8 @@ model File {
   achievementCovers  Achievement[]        @relation("Achievement_CoverFile")
 
   @@index([ownerScope, ownerId])
+  @@index([moderationStatus, createdAt])
+  @@index([moderationTraceId])
   @@map("files")
 }
 

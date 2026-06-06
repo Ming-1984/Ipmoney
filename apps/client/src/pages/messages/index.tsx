@@ -26,7 +26,7 @@ type PagedNotification = components['schemas']['PagedNotification'];
 
 type ConversationCategory = 'cs' | 'trade' | 'user';
 
-const CS_NAME_KEYWORDS = ['平台客服', '客服助手', '官方客服', '客服'];
+const CS_NAME_KEYWORDS = ['平台客服', '客服助手', '平台服务', '客服'];
 const TRADE_NAME_KEYWORDS = ['交易通知', '系统通知', '订单通知', '支付通知'];
 const TRADE_MESSAGE_KEYWORDS = ['订单', '订金', '支付', '退款', '合同', '尾款', '托管', '结算', '发票', '仲裁', '争议', '审核'];
 const CONVERSATION_POLL_INTERVAL_MS = 15000;
@@ -401,7 +401,7 @@ export default function MessagesPage() {
                       <Text className="message-title-new ellipsis">{c._displayName}</Text>
                       {c._category !== 'user' ? (
                         <Text className={`message-tag message-tag--${c._category}`}>
-                          {c._category === 'cs' ? '官方' : '系统'}
+                          {c._category === 'cs' ? '平台' : '系统'}
                         </Text>
                       ) : null}
                     </View>
@@ -472,4 +472,3 @@ export default function MessagesPage() {
     </View>
   );
 }
-

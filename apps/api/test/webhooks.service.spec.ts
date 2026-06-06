@@ -35,8 +35,9 @@ describe('WebhooksService strictness suite', () => {
 
     const audit = { log: vi.fn().mockResolvedValue(undefined) } as any;
     const notifications = { createMany: vi.fn().mockResolvedValue(undefined) } as any;
+    const contentSecurity = { handleMediaModerationCallback: vi.fn().mockResolvedValue(undefined) } as any;
 
-    const service = new WebhooksService(prisma, audit, notifications);
+    const service = new WebhooksService(prisma, audit, notifications, contentSecurity);
     const wechatPay = {
       isWebhookVerificationEnabled: vi.fn().mockReturnValue(false),
       verifyNotifySignature: vi.fn().mockResolvedValue(undefined),
@@ -48,6 +49,7 @@ describe('WebhooksService strictness suite', () => {
       prisma,
       audit,
       notifications,
+      contentSecurity,
       wechatPay,
       service,
     };

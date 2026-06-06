@@ -27,13 +27,13 @@ type AuthTokenResponse = components['schemas']['AuthTokenResponse'];
 type VerificationStatus = components['schemas']['VerificationStatus'];
 type VerificationType = components['schemas']['VerificationType'];
 
-type LoginTab = 'wechat' | 'sms';
+type LoginTab = 'quick' | 'sms';
 
 export default function LoginPage() {
   const env = useMemo(() => Taro.getEnv(), []);
   const canWechatLogin = env === Taro.ENV_TYPE.WEAPP;
 
-  const [activeTab, setActiveTab] = useState<LoginTab>(canWechatLogin ? 'wechat' : 'sms');
+  const [activeTab, setActiveTab] = useState<LoginTab>(canWechatLogin ? 'quick' : 'sms');
   const [busy, setBusy] = useState(false);
   const [agree, setAgree] = useState(false);
   const [phoneBindOpen, setPhoneBindOpen] = useState(false);
@@ -133,7 +133,7 @@ export default function LoginPage() {
     [canWechatLogin],
   );
 
-  const wechatLogin = useCallback(async () => {
+  const quickLogin = useCallback(async () => {
     if (busy) return;
     if (!ensureAgreement()) return;
     setBusy(true);
@@ -241,37 +241,37 @@ export default function LoginPage() {
         {canWechatLogin ? (
           <View className="login-tabs">
             <Text
-              className={`login-tab ${activeTab === 'wechat' ? 'is-active' : ''}`}
-              onClick={() => setActiveTab('wechat')}
+              className={`login-tab ${activeTab === 'quick' ? 'is-active' : ''}`}
+              onClick={() => setActiveTab('quick')}
             >
-              快捷登录
+              手机号快捷登录
             </Text>
             <Text
               className={`login-tab ${activeTab === 'sms' ? 'is-active' : ''}`}
               onClick={() => setActiveTab('sms')}
             >
-              短信登录
+              短信验证码登录
             </Text>
           </View>
         ) : null}
 
         <Spacer size={12} />
 
-        {activeTab === 'wechat' && canWechatLogin ? (
+        {activeTab === 'quick' && canWechatLogin ? (
           <View className="login-panel">
-            <Text className="login-panel-title">快捷登录</Text>
+            <Text className="login-panel-title">手机号快捷登录</Text>
             <Text className="login-panel-subtitle">登录后可继续完善头像、昵称与资料信息</Text>
             <Spacer size={10} />
-            <Button className="login-primary-btn" loading={busy} disabled={busy} onClick={() => void wechatLogin()}>
-              立即登录
+            <Button className="login-primary-btn" loading={busy} disabled={busy} onClick={() => void quickLogin()}>
+              继续登录
             </Button>
           </View>
         ) : null}
 
         {activeTab === 'sms' ? (
           <View className="login-panel">
-            <Text className="login-panel-title">手机号登录</Text>
-            <Text className="login-panel-subtitle">用于电脑端/浏览器登录</Text>
+            <Text className="login-panel-title">短信验证码登录</Text>
+            <Text className="login-panel-subtitle">输入手机号和验证码完成登录</Text>
             <Spacer size={12} />
 
             <View className="login-field">

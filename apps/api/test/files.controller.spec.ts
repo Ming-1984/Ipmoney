@@ -8,6 +8,7 @@ const FILE_ID = '16161616-1616-4161-8161-161616161616';
 describe('FilesController delegation suite', () => {
   let files: any;
   let audit: any;
+  let contentSecurity: any;
   let controller: FilesController;
 
   beforeEach(() => {
@@ -21,7 +22,8 @@ describe('FilesController delegation suite', () => {
       buildWatermarkedPreview: vi.fn(),
     };
     audit = { log: vi.fn().mockResolvedValue(undefined) };
-    controller = new FilesController(files, audit);
+    contentSecurity = { scheduleFileModeration: vi.fn().mockResolvedValue(undefined) };
+    controller = new FilesController(files, audit, contentSecurity);
   });
 
   it('delegates uploadFile to createUserFile with normalized metadata', async () => {
@@ -34,9 +36,11 @@ describe('FilesController delegation suite', () => {
     const file: any = { filename: `${FILE_ID}.png`, mimetype: 'image/png', size: 1234, path: 'unused' };
     files.createUserFile.mockResolvedValueOnce({ id: FILE_ID });
     files.isObjectStorageEnabled.mockReturnValueOnce(false);
+    files.resolvePublicBaseUrl = vi.fn().mockReturnValue('https://api.example.com');
 
     await expect(controller.uploadFile(req, file)).resolves.toEqual({ id: FILE_ID });
 
+    expect(contentSecurity.scheduleFileModeration).toHaveBeenCalledWith(FILE_ID, expect.any(String), undefined);
     expect(files.createUserFile).toHaveBeenCalledWith(
       expect.objectContaining({
         fileId: FILE_ID,

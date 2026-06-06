@@ -2,6 +2,7 @@
 
 import { ContentEventService } from '../../common/content-event.service';
 import { PrismaService } from '../../common/prisma/prisma.service';
+import { WechatContentSecurityService } from '../../common/wechat-content-security.service';
 import { resolvePublicAvatarUrl, resolvePublicFileUrl } from '../content-utils';
 
 type ConversationContentType = 'LISTING' | 'ACHIEVEMENT' | 'TECH_MANAGER' | 'SUPPORT' | 'DISPUTE' | 'MAINTENANCE';
@@ -78,6 +79,7 @@ export class ConversationsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly events: ContentEventService,
+    private readonly contentSecurity: WechatContentSecurityService,
   ) {}
 
   private ensureAuth(req: any) {
@@ -814,6 +816,13 @@ export class ConversationsService {
     const conv = await this.prisma.conversation.findUnique({ where: { id: normalizedConversationId } });
     if (!conv) throw new NotFoundException({ code: 'NOT_FOUND', message: 'conversation not found' });
     await this.assertConversationAccessible(conv, req.auth.userId);
+    await this.contentSecurity.assertSafeText(text, {
+      requestMeta: {
+        actorUserId: req.auth.userId,
+        targetType: 'CONVERSATION',
+        targetId: normalizedConversationId,
+      },
+    });
 
     const msg = await this.prisma.conversationMessage.create({
       data: {

@@ -36,6 +36,28 @@ export type WechatPhoneNumberResult = {
   countryCode?: string;
 };
 
+export type WechatMsgSecCheckParams = {
+  content: string;
+  openid?: string;
+  scene?: number;
+  version?: number;
+  title?: string;
+  nickname?: string;
+  signature?: string;
+};
+
+export type WechatMediaCheckAsyncParams = {
+  mediaUrl: string;
+  mediaType: number;
+  openid?: string;
+  scene?: number;
+  version?: number;
+};
+
+export type WechatMediaCheckAsyncResult = {
+  traceId: string;
+};
+
 export class WechatMpError extends Error {
   code: string;
   statusCode?: number;
@@ -123,6 +145,51 @@ export class WechatMpClient {
       throw new WechatMpError(errorCode, message, undefined, { cause });
     } finally {
       clearTimeout(timer);
+    }
+  }
+
+  private async requestWithAccessToken<T>(
+    path: string,
+    body: Record<string, unknown>,
+    errorPrefix: string,
+    parse: (result: JsonResult) => T,
+  ): Promise<T> {
+    const execute = async (accessToken: string) => {
+      const url = `${WECHAT_API_BASE}${path}?access_token=${encodeURIComponent(accessToken)}`;
+      const result = await this.requestJson(
+        url,
+        {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify(body),
+        },
+        `${errorPrefix}_REQUEST_FAILED`,
+      );
+      if (result.status < 200 || result.status >= 300) {
+        throw new WechatMpError(
+          `${errorPrefix}_HTTP_FAILED`,
+          `wechat request failed with status ${result.status}`,
+          result.status,
+          result.json || result.text,
+        );
+      }
+      const errCode = parseWechatErrCode(result.json);
+      if (errCode !== 0) {
+        throw new WechatMpError(`${errorPrefix}_FAILED`, parseWechatErrMsg(result.json), result.status, result.json);
+      }
+      return parse(result);
+    };
+
+    const accessToken = await this.getAccessToken(false);
+    try {
+      return await execute(accessToken);
+    } catch (error) {
+      if (!(error instanceof WechatMpError)) throw error;
+      if (!error.code.endsWith('_FAILED')) throw error;
+      const errCode = parseWechatErrCode(error.details);
+      if (![40001, 40014, 42001].includes(errCode)) throw error;
+      const refreshedToken = await this.getAccessToken(true);
+      return await execute(refreshedToken);
     }
   }
 
@@ -255,6 +322,69 @@ export class WechatMpClient {
       const refreshedToken = await this.getAccessToken(true);
       return await this.getPhoneNumberWithToken(refreshedToken, normalizedPhoneCode);
     }
+  }
+
+  async msgSecCheck(params: WechatMsgSecCheckParams): Promise<void> {
+    this.assertConfigured();
+    const content = trim(params.content);
+    if (!content) {
+      throw new WechatMpError('WECHAT_MP_MSG_SEC_CHECK_CONTENT_REQUIRED', 'content is required');
+    }
+
+    const payload: Record<string, unknown> = {
+      content,
+    };
+    const openid = trim(params.openid);
+    if (openid) payload.openid = openid;
+    if (Number.isFinite(params.scene)) payload.scene = Math.trunc(Number(params.scene));
+    if (Number.isFinite(params.version)) payload.version = Math.trunc(Number(params.version));
+    const title = trim(params.title);
+    if (title) payload.title = title;
+    const nickname = trim(params.nickname);
+    if (nickname) payload.nickname = nickname;
+    const signature = trim(params.signature);
+    if (signature) payload.signature = signature;
+
+    await this.requestWithAccessToken('/wxa/msg_sec_check', payload, 'WECHAT_MP_MSG_SEC_CHECK', () => undefined);
+  }
+
+  async mediaCheckAsync(params: WechatMediaCheckAsyncParams): Promise<WechatMediaCheckAsyncResult> {
+    this.assertConfigured();
+    const mediaUrl = trim(params.mediaUrl);
+    if (!mediaUrl) {
+      throw new WechatMpError('WECHAT_MP_MEDIA_CHECK_MEDIA_URL_REQUIRED', 'mediaUrl is required');
+    }
+    const mediaType = Number(params.mediaType);
+    if (!Number.isFinite(mediaType) || mediaType < 1) {
+      throw new WechatMpError('WECHAT_MP_MEDIA_CHECK_MEDIA_TYPE_REQUIRED', 'mediaType is invalid');
+    }
+
+    const payload: Record<string, unknown> = {
+      media_url: mediaUrl,
+      media_type: Math.trunc(mediaType),
+    };
+    const openid = trim(params.openid);
+    if (openid) payload.openid = openid;
+    if (Number.isFinite(params.scene)) payload.scene = Math.trunc(Number(params.scene));
+    if (Number.isFinite(params.version)) payload.version = Math.trunc(Number(params.version));
+
+    return await this.requestWithAccessToken(
+      '/wxa/media_check_async',
+      payload,
+      'WECHAT_MP_MEDIA_CHECK_ASYNC',
+      (result) => {
+        const traceId = trim(result.json?.trace_id ?? result.json?.traceId);
+        if (!traceId) {
+          throw new WechatMpError(
+            'WECHAT_MP_MEDIA_CHECK_ASYNC_PAYLOAD_INVALID',
+            'trace_id missing in media_check_async response',
+            result.status,
+            result.json,
+          );
+        }
+        return { traceId };
+      },
+    );
   }
 }
 

@@ -300,7 +300,7 @@ export default function MePage() {
     [canWechatLogin],
   );
 
-  const wechatLogin = useCallback(async () => {
+  const quickLogin = useCallback(async () => {
     if (busy) return;
     if (!ensureAgreement()) return;
     setBusy(true);
@@ -519,17 +519,17 @@ export default function MePage() {
               variant="default"
               onClick={() => setShowSms((v) => !v)}
             >
-              手机号登录
+              短信验证码登录
             </Button>
             {canWechatLogin ? (
               <Button
-                className="me-login-btn me-login-btn-wechat"
+                className="me-login-btn me-login-btn-quick"
                 variant="default"
                 loading={busy}
                 disabled={busy}
-                onClick={() => void wechatLogin()}
+                onClick={() => void quickLogin()}
               >
-                快捷登录
+                手机号快捷登录
               </Button>
             ) : null}
           </View>

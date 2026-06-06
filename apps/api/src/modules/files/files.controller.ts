@@ -22,6 +22,7 @@ import path from 'node:path';
 import crypto from 'node:crypto';
 
 import { AuditLogService } from '../../common/audit-log.service';
+import { WechatContentSecurityService } from '../../common/wechat-content-security.service';
 import { resolveUploadDir } from '../../common/upload-dir';
 import { FilesService } from './files.service';
 import { FileAccessGuard } from './file-access.guard';
@@ -35,6 +36,7 @@ export class FilesController {
   constructor(
     private readonly files: FilesService,
     private readonly audit: AuditLogService,
+    private readonly contentSecurity: WechatContentSecurityService,
   ) {}
 
   @Post('/files')
@@ -75,6 +77,10 @@ export class FilesController {
       const filePath = file.path || path.resolve(UPLOAD_DIR, file.filename);
       await this.files.uploadToObjectStorage({ key: file.filename, filePath, contentType: file.mimetype });
     }
+
+    void this.contentSecurity
+      .scheduleFileModeration(created.id, this.files.resolvePublicBaseUrl(baseUrl), req?.auth?.wechatOpenid)
+      .catch(() => {});
 
     return created;
   }

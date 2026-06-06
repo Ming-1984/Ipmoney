@@ -40,6 +40,7 @@ describe('UsersService profile readback suite', () => {
   let prisma: any;
   let audit: any;
   let notifications: any;
+  let contentSecurity: any;
   let service: UsersService;
   let originalEnv: Record<string, string | undefined>;
 
@@ -58,7 +59,12 @@ describe('UsersService profile readback suite', () => {
     };
     audit = { log: vi.fn().mockResolvedValue(undefined) };
     notifications = { create: vi.fn().mockResolvedValue(undefined) };
-    service = new UsersService(prisma, audit, notifications);
+    contentSecurity = {
+      assertSafeText: vi.fn().mockResolvedValue(undefined),
+      assertSafeTexts: vi.fn().mockResolvedValue(undefined),
+      ensureReferencedFilesReady: vi.fn().mockResolvedValue(undefined),
+    };
+    service = new UsersService(prisma, audit, notifications, contentSecurity);
   });
 
   afterEach(() => {
@@ -213,6 +219,9 @@ describe('UsersService profile readback suite', () => {
           reviewComment: null,
         }),
       }),
+    );
+    expect(contentSecurity.ensureReferencedFilesReady).toHaveBeenCalledWith(
+      expect.objectContaining({ userId: 'user-1', fileIds: ['file-logo-1', 'file-a'], label: 'verification files' }),
     );
     expect(audit.log).toHaveBeenCalledWith(
       expect.objectContaining({

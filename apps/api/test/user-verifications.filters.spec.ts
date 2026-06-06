@@ -5,6 +5,7 @@ import { UsersService } from '../src/modules/users/users.service';
 
 describe('UsersService admin verification list filter strictness suite', () => {
   let prisma: any;
+  let contentSecurity: any;
   let service: UsersService;
 
   beforeEach(() => {
@@ -16,7 +17,12 @@ describe('UsersService admin verification list filter strictness suite', () => {
     };
     const audit = { log: vi.fn().mockResolvedValue(undefined) };
     const notifications = { create: vi.fn().mockResolvedValue(undefined) };
-    service = new UsersService(prisma, audit as any, notifications as any);
+    contentSecurity = {
+      assertSafeText: vi.fn().mockResolvedValue(undefined),
+      assertSafeTexts: vi.fn().mockResolvedValue(undefined),
+      ensureReferencedFilesReady: vi.fn().mockResolvedValue(undefined),
+    };
+    service = new UsersService(prisma, audit as any, notifications as any, contentSecurity);
   });
 
   it('rejects invalid pagination/type/status filters', async () => {

@@ -50,6 +50,7 @@ describe('ListingsService write flow suite', () => {
   let prisma: any;
   let audit: any;
   let notifications: any;
+  let contentSecurity: any;
   let service: ListingsService;
 
   beforeEach(() => {
@@ -77,7 +78,11 @@ describe('ListingsService write flow suite', () => {
     notifications = { create: vi.fn().mockResolvedValue(undefined) };
     const events = { recordView: vi.fn().mockResolvedValue(undefined), recordConsult: vi.fn().mockResolvedValue(true) };
     const config = { getRecommendation: vi.fn().mockResolvedValue({ enabled: false }) };
-    service = new ListingsService(prisma, audit, notifications, events as any, config as any);
+    contentSecurity = {
+      assertSafeTexts: vi.fn().mockResolvedValue(undefined),
+      ensureReferencedFilesReady: vi.fn().mockResolvedValue(undefined),
+    };
+    service = new ListingsService(prisma, audit, notifications, events as any, config as any, contentSecurity);
   });
 
   it('validates create payload strictly', async () => {
@@ -96,6 +101,7 @@ describe('ListingsService write flow suite', () => {
   });
 
   it('create normalizes payload and persists expected fields', async () => {
+    prisma.file.findMany.mockResolvedValueOnce([{ id: 'file-1', ownerId: USER_ID }]);
     prisma.listing.create.mockResolvedValueOnce(
       buildListing({
         title: 'Listing Create',
@@ -159,6 +165,10 @@ describe('ListingsService write flow suite', () => {
         }),
       }),
     );
+    expect(contentSecurity.assertSafeTexts).toHaveBeenCalled();
+    expect(contentSecurity.ensureReferencedFilesReady).toHaveBeenCalledWith(
+      expect.objectContaining({ userId: USER_ID, fileIds: ['file-1'], label: 'proofFileIds' }),
+    );
     expect(result).toMatchObject({
       id: LISTING_ID,
       title: 'Listing Create',
@@ -213,6 +223,7 @@ describe('ListingsService write flow suite', () => {
 
   it('update applies normalized patch fields', async () => {
     prisma.listing.findUnique.mockResolvedValueOnce(buildListing({ auditStatus: 'PENDING', status: 'DRAFT' }));
+    prisma.file.findMany.mockResolvedValueOnce([{ id: 'file-2', ownerId: USER_ID }]);
     prisma.listing.update.mockResolvedValueOnce(
       buildListing({
         title: 'Listing Updated',
@@ -271,6 +282,9 @@ describe('ListingsService write flow suite', () => {
         regionCode: null,
       }),
     });
+    expect(contentSecurity.ensureReferencedFilesReady).toHaveBeenCalledWith(
+      expect.objectContaining({ userId: USER_ID, fileIds: ['file-2'], label: 'proofFileIds' }),
+    );
     expect(result).toMatchObject({
       id: LISTING_ID,
       title: 'Listing Updated',
@@ -356,6 +370,7 @@ describe('ListingsService write flow suite', () => {
       status: 'active',
     });
 
+    expect(contentSecurity.ensureReferencedFilesReady).not.toHaveBeenCalled();
     expect(prisma.listing.create).toHaveBeenCalledWith(
       expect.objectContaining({
         data: expect.objectContaining({

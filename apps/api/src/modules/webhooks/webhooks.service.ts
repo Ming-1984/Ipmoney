@@ -3,6 +3,7 @@ import { Prisma } from '@prisma/client';
 import { createHash } from 'crypto';
 
 import { AuditLogService } from '../../common/audit-log.service';
+import { WechatContentSecurityService } from '../../common/wechat-content-security.service';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { WechatPayClient, WechatPayError } from '../../common/wechat-pay.client';
 import { NotificationsService } from '../notifications/notifications.service';
@@ -28,6 +29,7 @@ export class WebhooksService {
     private readonly prisma: PrismaService,
     private readonly audit: AuditLogService,
     private readonly notifications: NotificationsService,
+    private readonly contentSecurity: WechatContentSecurityService,
   ) {}
 
   private pickString(...values: Array<unknown>) {
@@ -298,6 +300,22 @@ export class WebhooksService {
         throw error;
       }
     });
+  }
+
+  async handleWechatContentSecurityNotify(_req: any, body: any, rawBody?: string | Buffer) {
+    const payload = body && typeof body === 'object' && !Array.isArray(body) ? body : this.tryParseRawJson(rawBody);
+    if (!payload || typeof payload !== 'object') return;
+    await this.contentSecurity.handleMediaModerationCallback(payload);
+  }
+
+  private tryParseRawJson(rawBody?: string | Buffer): any {
+    const raw = this.toRawBodyString(rawBody);
+    if (!raw) return null;
+    try {
+      return JSON.parse(raw);
+    } catch {
+      return null;
+    }
   }
 
   private async handlePaymentSuccess(req: any, event: WebhookEvent) {

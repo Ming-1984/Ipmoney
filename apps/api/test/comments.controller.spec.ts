@@ -6,6 +6,7 @@ const VALID_UUID = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';
 
 describe('CommentsController delegation suite', () => {
   let comments: any;
+  let contentSecurity: any;
   let controller: CommentsController;
 
   beforeEach(() => {
@@ -17,7 +18,8 @@ describe('CommentsController delegation suite', () => {
       adminList: vi.fn(),
       adminUpdate: vi.fn(),
     };
-    controller = new CommentsController(comments);
+    contentSecurity = { assertSafeText: vi.fn().mockResolvedValue(undefined) };
+    controller = new CommentsController(comments, contentSecurity);
   });
 
   it('delegates public list route to listThreads with correct content type', async () => {
@@ -34,6 +36,7 @@ describe('CommentsController delegation suite', () => {
 
     await controller.createListingComment(req, VALID_UUID, undefined as any);
 
+    expect(contentSecurity.assertSafeText).toHaveBeenCalledWith('', expect.any(Object));
     expect(comments.createComment).toHaveBeenCalledWith(req, 'LISTING', VALID_UUID, {});
   });
 
@@ -51,6 +54,7 @@ describe('CommentsController delegation suite', () => {
     });
     await expect(controller.adminUpdate(req, VALID_UUID, null as any)).resolves.toEqual({ ok: true });
 
+    expect(contentSecurity.assertSafeText).toHaveBeenCalledWith('', expect.any(Object));
     expect(comments.editComment).toHaveBeenCalledWith(req, VALID_UUID, {});
     expect(comments.deleteComment).toHaveBeenCalledWith(req, VALID_UUID);
     expect(comments.adminList).toHaveBeenCalledWith(req, { contentType: 'LISTING' });

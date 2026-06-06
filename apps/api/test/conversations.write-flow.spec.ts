@@ -11,6 +11,7 @@ const MESSAGE_ID = '44444444-4444-4444-4444-444444444444';
 describe('ConversationsService write flow suite', () => {
   let prisma: any;
   let events: any;
+  let contentSecurity: any;
   let service: ConversationsService;
 
   beforeEach(() => {
@@ -62,7 +63,8 @@ describe('ConversationsService write flow suite', () => {
       },
     };
     events = { recordConsult: vi.fn().mockResolvedValue(undefined) };
-    service = new ConversationsService(prisma, events);
+    contentSecurity = { assertSafeText: vi.fn().mockResolvedValue(undefined) };
+    service = new ConversationsService(prisma, events, contentSecurity);
   });
 
   it('requires auth for create/send/mark write endpoints', async () => {
@@ -441,6 +443,12 @@ describe('ConversationsService write flow suite', () => {
 
     const result = await service.sendMessage(req, CONVERSATION_ID, { text: '  hello  ' });
 
+    expect(contentSecurity.assertSafeText).toHaveBeenCalledWith(
+      'hello',
+      expect.objectContaining({
+        requestMeta: expect.objectContaining({ actorUserId: 'buyer-1', targetId: CONVERSATION_ID }),
+      }),
+    );
     expect(prisma.conversationMessage.create).toHaveBeenCalledWith({
       data: {
         conversationId: CONVERSATION_ID,

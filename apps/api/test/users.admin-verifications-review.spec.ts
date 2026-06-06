@@ -29,6 +29,7 @@ describe('UsersService admin verification review suite', () => {
   let prisma: any;
   let audit: any;
   let notifications: any;
+  let contentSecurity: any;
   let service: UsersService;
 
   beforeEach(() => {
@@ -41,7 +42,12 @@ describe('UsersService admin verification review suite', () => {
     };
     audit = { log: vi.fn().mockResolvedValue(undefined) };
     notifications = { create: vi.fn().mockResolvedValue(undefined) };
-    service = new UsersService(prisma, audit, notifications);
+    contentSecurity = {
+      assertSafeText: vi.fn().mockResolvedValue(undefined),
+      assertSafeTexts: vi.fn().mockResolvedValue(undefined),
+      ensureReferencedFilesReady: vi.fn().mockResolvedValue(undefined),
+    };
+    service = new UsersService(prisma, audit, notifications, contentSecurity);
   });
 
   it('validates admin list query strictly', async () => {
