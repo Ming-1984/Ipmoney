@@ -1,5 +1,5 @@
 ﻿import { View, Text, Image, Button as TaroButton } from '@tarojs/components';
-import Taro, { usePageScroll, useShareAppMessage } from '@tarojs/taro';
+import Taro, { useDidHide, useDidShow, usePageScroll, useShareAppMessage } from '@tarojs/taro';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import './index.scss';
 
@@ -9,6 +9,7 @@ import { Heart, HeartFill, Share2 } from '../../../ui/icons';
 
 import { apiGet, apiPost } from '../../../lib/api';
 import { getToken } from '../../../lib/auth';
+import { displayInfoOrPlaceholder, displayTitleOrFallback, normalizeDisplayText } from '../../../lib/displayText';
 import { favorite, isFavorited, syncFavorites, unfavorite } from '../../../lib/favorites';
 import { ensureApproved } from '../../../lib/guard';
 import { formatTimeSmart } from '../../../lib/format';
@@ -28,41 +29,24 @@ import { EmptyCard, ErrorCard, LoadingCard, MissingParamCard } from '../../../ui
 
 type ListingPublic = components['schemas']['ListingPublic'];
 type Patent = components['schemas']['Patent'];
-
-type PatentMediaItem = {
-  url?: string | null;
-  type?: string | null;
-  sort?: number | null;
-  fileId?: string | null;
-};
+type PatentMediaItem = components['schemas']['PatentMedia'];
 
 type Conversation = { id: string };
 
 function legalStatusLabel(status?: Patent['legalStatus']): string {
-  if (!status) return '-';
+  if (!status) return '待确认';
   if (status === 'PENDING') return '审中';
   if (status === 'GRANTED') return '已授权';
   if (status === 'EXPIRED') return '已失效';
   if (status === 'INVALIDATED') return '已无效';
-  return '未知';
-}
-
-function remainingYears(filingDate?: string | null, patentType?: Patent['patentType']): string {
-  if (!filingDate || !patentType) return '-';
-  const start = new Date(filingDate);
-  if (Number.isNaN(start.getTime())) return '-';
-  const termYears = patentType === 'INVENTION' ? 20 : patentType === 'UTILITY_MODEL' ? 10 : patentType === 'DESIGN' ? 15 : 20;
-  const end = new Date(start);
-  end.setFullYear(end.getFullYear() + termYears);
-  const now = new Date();
-  const diff = end.getTime() - now.getTime();
-  if (diff <= 0) return '0 年';
-  const years = Math.ceil(diff / (365 * 24 * 60 * 60 * 1000));
-  return `${years} 年`;
+  return '待确认';
 }
 
 export default function ListingDetailPage() {
   const listingId = useRouteUuidParam('listingId');
+  const listingIdRef = useRef(listingId);
+  const pageVisibleRef = useRef(true);
+  const consultSeqRef = useRef(0);
   const initialCachedData = listingId ? getDetailCache<ListingPublic>('listing-public', listingId) : null;
   const [loading, setLoading] = useState(!initialCachedData);
   const [error, setError] = useState<string | null>(null);
@@ -86,6 +70,15 @@ export default function ListingDetailPage() {
     [],
   );
 
+  useDidShow(() => {
+    pageVisibleRef.current = true;
+  });
+
+  useDidHide(() => {
+    pageVisibleRef.current = false;
+    consultSeqRef.current += 1;
+  });
+
   const scrollToTab = useCallback((id: string) => {
     setActiveTab(id);
     const selector = `#listing-${id}`;
@@ -103,26 +96,42 @@ export default function ListingDetailPage() {
   }, []);
 
   useEffect(() => {
+    listingIdRef.current = listingId;
     if (!listingId) return;
     setFavoritedState(isFavorited(listingId));
   }, [listingId]);
 
   useEffect(() => {
+    listingIdRef.current = listingId;
     if (!listingId) {
       setData(null);
       setLoading(false);
       setError(null);
+      setPatentData(null);
+      setPatentLoading(false);
+      setPatentError(null);
+      setFavoritedState(false);
+      setActiveTab('overview');
+      setTabsStuck(false);
+      tabsOffsetTopRef.current = null;
       return;
     }
     const cached = getDetailCache<ListingPublic>('listing-public', listingId);
     setData(cached || null);
     setLoading(!cached);
     setError(null);
+    setPatentData(null);
+    setPatentLoading(false);
+    setPatentError(null);
+    setActiveTab('overview');
+    setTabsStuck(false);
+    tabsOffsetTopRef.current = null;
   }, [listingId]);
 
   const load = useCallback(async () => {
-    if (!listingId) return;
-    const cached = getDetailCache<ListingPublic>('listing-public', listingId);
+    const targetListingId = listingId;
+    if (!targetListingId) return;
+    const cached = getDetailCache<ListingPublic>('listing-public', targetListingId);
     if (cached) {
       setData(cached);
       setLoading(false);
@@ -132,16 +141,18 @@ export default function ListingDetailPage() {
       setError(null);
     }
     try {
-      const d = await apiGet<ListingPublic>(`/public/listings/${listingId}`);
+      const d = await apiGet<ListingPublic>(`/public/listings/${targetListingId}`);
+      if (listingIdRef.current !== targetListingId) return;
       setData(d);
-      setDetailCache('listing-public', listingId, d);
+      setDetailCache('listing-public', targetListingId, d);
     } catch (e: any) {
+      if (listingIdRef.current !== targetListingId) return;
       if (!cached) {
         setError(e?.message || '加载失败');
         setData(null);
       }
     } finally {
-      setLoading(false);
+      if (listingIdRef.current === targetListingId) setLoading(false);
     }
   }, [listingId]);
 
@@ -191,6 +202,7 @@ export default function ListingDetailPage() {
     const patentId = data?.patentId;
     if (!patentId) {
       setPatentData(null);
+      setPatentLoading(false);
       setPatentError(null);
       return;
     }
@@ -208,6 +220,7 @@ export default function ListingDetailPage() {
       setPatentLoading(false);
       setPatentError(null);
     } else {
+      setPatentData(null);
       setPatentLoading(true);
       setPatentError(null);
     }
@@ -237,7 +250,10 @@ export default function ListingDetailPage() {
     if (!listingId) return;
     if (!getToken()) return;
     syncFavorites()
-      .then((ids) => setFavoritedState(ids.includes(listingId)))
+      .then((ids) => {
+        if (listingIdRef.current !== listingId) return;
+        setFavoritedState(ids.includes(listingId));
+      })
       .catch(() => {});
   }, [listingId]);
 
@@ -250,6 +266,7 @@ export default function ListingDetailPage() {
   const startConsult = useCallback(async () => {
     if (!listingId) return;
     if (!ensureApproved()) return;
+    const seq = ++consultSeqRef.current;
     try {
       await apiPost<void>(
         `/listings/${listingId}/consultations`,
@@ -265,8 +282,10 @@ export default function ListingDetailPage() {
         {},
         { idempotencyKey: `conv-${listingId}` },
       );
+      if (seq !== consultSeqRef.current || !pageVisibleRef.current) return;
       Taro.navigateTo({ url: `/subpackages/messages/chat/index?conversationId=${conv.id}` });
     } catch (e: any) {
+      if (seq !== consultSeqRef.current || !pageVisibleRef.current) return;
       toast(e?.message || '进入咨询失败');
     }
   }, [listingId]);
@@ -298,17 +317,11 @@ export default function ListingDetailPage() {
     );
   }
 
-  const regionLabel = data ? regionDisplayName(data.regionCode) || '-' : '-';
-  const sellerDisplayName =
-    data?.seller?.nickname ||
-    ((data?.source === 'ADMIN' || data?.source === 'PLATFORM') && data?.consultationRouting === 'PLATFORM'
-      ? 'ipmoney'
-      : '-');
+  const regionLabel = data ? normalizeDisplayText(regionDisplayName(data.regionCode)) : '';
+  const sellerDisplayName = normalizeDisplayText(data?.seller?.nickname);
   const visibleIndustryTags = sanitizeIndustryTagNames(data?.industryTags || []);
-  const transferCount =
-    (data as any)?.transferCount ??
-    ((data as any)?.stats as { transferCount?: number } | undefined)?.transferCount;
-  const mediaList = ((patentData as any)?.media ?? []) as PatentMediaItem[];
+  const transferCount = typeof data?.transferCount === 'number' ? data.transferCount : null;
+  const mediaList = (Array.isArray(patentData?.media) ? patentData.media : []) as PatentMediaItem[];
   const coverUrl = mediaList.find((item) => item?.type === 'COVER' && item?.url)?.url ?? null;
   const specFigures = mediaList
     .filter((item) => item?.type === 'SPEC_FIGURE' && (item?.url || item?.fileId))
@@ -333,7 +346,7 @@ export default function ListingDetailPage() {
       ) : data ? (
         <View>
           <Surface className="detail-meta-card detail-compact-header" id="listing-overview">
-            <Text className="detail-compact-title clamp-2">{data.title || '未命名专利'}</Text>
+            <Text className="detail-compact-title clamp-2">{displayTitleOrFallback(data.title, '未命名专利')}</Text>
             <Spacer size={8} />
 
             <Text className="detail-compact-price">
@@ -420,12 +433,11 @@ export default function ListingDetailPage() {
                   {(sellerDisplayName || 'U').slice(0, 1)}
                 </Avatar>
                 <View className="detail-seller-meta">
-                  <Text className="detail-seller-name">{sellerDisplayName}</Text>
+                  <Text className="detail-seller-name">{sellerDisplayName || '供给方信息待补充'}</Text>
                   <View className="detail-seller-tags">
-                    <Text className="detail-seller-tag">
-                      {data.seller?.verificationType ? verificationTypeLabel(data.seller.verificationType) : '未认证'}
-                    </Text>
-                    <Text className="detail-seller-tag">企业</Text>
+                    {data.seller?.verificationType ? (
+                      <Text className="detail-seller-tag">{verificationTypeLabel(data.seller.verificationType)}</Text>
+                    ) : null}
                   </View>
                 </View>
               </View>
@@ -441,10 +453,10 @@ export default function ListingDetailPage() {
               {[
                 { label: '交易方式', value: tradeModeLabel(data.tradeMode) },
                 { label: '价格方式', value: priceTypeLabel(data.priceType) },
-                { label: '行业', value: visibleIndustryTags.length ? visibleIndustryTags.join(' / ') : '-' },
-                { label: '地区', value: regionLabel },
-                { label: '转让次数', value: transferCount != null ? `${transferCount} 次` : '-' },
-                { label: 'IPC 分类', value: data.ipcCodes?.length ? data.ipcCodes.join(' / ') : '-' },
+                { label: '行业', value: visibleIndustryTags.length ? visibleIndustryTags.join(' / ') : '待补充' },
+                { label: '地区', value: displayInfoOrPlaceholder(regionLabel, '待补充') },
+                { label: '转让次数', value: transferCount != null ? `${transferCount} 次` : '待补充' },
+                { label: 'IPC 分类', value: data.ipcCodes?.length ? data.ipcCodes.join(' / ') : '待补充' },
               ].map((item) => (
                 <View key={item.label} className="detail-field-row">
                   <Text className="detail-field-label">{item.label}</Text>
@@ -460,8 +472,10 @@ export default function ListingDetailPage() {
               <Text className="muted">专利摘要加载中...</Text>
             ) : patentError ? (
               <Text className="muted">{patentError}</Text>
+            ) : normalizeDisplayText(patentData?.abstract) ? (
+              <Text className="muted break-word">{normalizeDisplayText(patentData?.abstract)}</Text>
             ) : (
-              <Text className="muted break-word">{patentData?.abstract || data.summary || '暂无摘要'}</Text>
+              <Text className="muted break-word">{displayInfoOrPlaceholder(data.summary)}</Text>
             )}
           </Surface>
 
@@ -496,16 +510,23 @@ export default function ListingDetailPage() {
                       <View className="detail-field-row">
                         <Text className="detail-field-label">申请号</Text>
                         <Text className="detail-field-value break-word">
-                          {patentData.applicationNoDisplay || patentData.applicationNoNorm || data.applicationNoDisplay || '-'}
+                          {displayInfoOrPlaceholder(
+                            patentData.applicationNoDisplay || patentData.applicationNoNorm || data.applicationNoDisplay,
+                            '待补充',
+                          )}
                         </Text>
                       </View>
                       <View className="detail-field-row">
                         <Text className="detail-field-label">专利号</Text>
-                        <Text className="detail-field-value break-word">{(patentData as any)?.patentNoDisplay || '-'}</Text>
+                        <Text className="detail-field-value break-word">
+                          {displayInfoOrPlaceholder(patentData.patentNoDisplay, '待补充')}
+                        </Text>
                       </View>
                       <View className="detail-field-row">
                         <Text className="detail-field-label">类型</Text>
-                        <Text className="detail-field-value break-word">{patentTypeLabel(patentData.patentType) || '-'}</Text>
+                        <Text className="detail-field-value break-word">
+                          {patentTypeLabel(patentData.patentType, { empty: '待补充' })}
+                        </Text>
                       </View>
                       <View className="detail-field-row">
                         <Text className="detail-field-label">法律状态</Text>
@@ -513,12 +534,14 @@ export default function ListingDetailPage() {
                       </View>
                       <View className="detail-field-row">
                         <Text className="detail-field-label">IPC分类</Text>
-                        <Text className="detail-field-value break-word">{(patentData as any)?.mainIpcCode || '-'}</Text>
+                        <Text className="detail-field-value break-word">
+                          {displayInfoOrPlaceholder(patentData.mainIpcCode, '待补充')}
+                        </Text>
                       </View>
                       <View className="detail-field-row">
                         <Text className="detail-field-label">Locarno分类</Text>
                         <Text className="detail-field-value break-word">
-                          {(patentData as any)?.locCodes?.length ? (patentData as any).locCodes.join(' / ') : '-'}
+                          {data.locCodes?.length ? data.locCodes.join(' / ') : '待补充'}
                         </Text>
                       </View>
                     </View>
@@ -529,20 +552,26 @@ export default function ListingDetailPage() {
                     <View className="detail-field-list">
                       <View className="detail-field-row">
                         <Text className="detail-field-label">申请日</Text>
-                        <Text className="detail-field-value break-word">{patentData.filingDate || '-'}</Text>
+                        <Text className="detail-field-value break-word">
+                          {displayInfoOrPlaceholder(patentData.filingDate, '待补充')}
+                        </Text>
                       </View>
                       <View className="detail-field-row">
                         <Text className="detail-field-label">公开日</Text>
-                        <Text className="detail-field-value break-word">{patentData.publicationDate || '-'}</Text>
+                        <Text className="detail-field-value break-word">
+                          {displayInfoOrPlaceholder(patentData.publicationDate, '待补充')}
+                        </Text>
                       </View>
                       <View className="detail-field-row">
                         <Text className="detail-field-label">授权日</Text>
-                        <Text className="detail-field-value break-word">{patentData.grantDate || '-'}</Text>
+                        <Text className="detail-field-value break-word">
+                          {displayInfoOrPlaceholder(patentData.grantDate, '待补充')}
+                        </Text>
                       </View>
                       <View className="detail-field-row">
-                        <Text className="detail-field-label">剩余年限</Text>
+                        <Text className="detail-field-label">保护期限</Text>
                         <Text className="detail-field-value break-word">
-                          {remainingYears(patentData.filingDate, patentData.patentType)}
+                          {typeof patentData.patentTermYears === 'number' ? `${patentData.patentTermYears} 年` : '待补充'}
                         </Text>
                       </View>
                     </View>

@@ -1,6 +1,6 @@
 ﻿import { View, Text } from '@tarojs/components';
 import Taro from '@tarojs/taro';
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import './index.scss';
 
 import type { components } from '@ipmoney/api-types';
@@ -8,6 +8,7 @@ import type { components } from '@ipmoney/api-types';
 import { getToken } from '../../../lib/auth';
 import { apiGet } from '../../../lib/api';
 import { getDetailCache, setDetailCache } from '../../../lib/detailCache';
+import { displayInfoOrPlaceholder } from '../../../lib/displayText';
 import { orderStatusLabel } from '../../../lib/labels';
 import { fenToYuan } from '../../../lib/money';
 import { safeNavigateBack } from '../../../lib/navigation';
@@ -18,25 +19,29 @@ import { LoadingCard, MissingParamCard, PermissionCard } from '../../../ui/State
 
 type Order = components['schemas']['Order'];
 const ORDER_DETAIL_CACHE_SCOPE = 'order-detail';
+const FINAL_PAYMENT_SUCCESS_STATUS_VALUES = [
+  'FINAL_PAID_ESCROW',
+  'READY_TO_SETTLE',
+  'COMPLETED',
+  'REFUNDING',
+  'REFUNDED',
+] as const;
+const FINAL_PAYMENT_SUCCESS_STATUSES = new Set<string>(FINAL_PAYMENT_SUCCESS_STATUS_VALUES);
 
 export default function FinalSuccessPage() {
   const orderId = useRouteStringParam('orderId') || '';
   const paymentId = useRouteStringParam('paymentId') || '';
+  const orderIdRef = useRef(orderId);
+  const loadSeqRef = useRef(0);
   const token = getToken();
   const initialCachedOrder = orderId ? getDetailCache<Order>(ORDER_DETAIL_CACHE_SCOPE, orderId) : null;
-
-  if (!orderId) {
-    return (
-      <View className="container">
-        <MissingParamCard onAction={() => void safeNavigateBack()} />
-      </View>
-    );
-  }
 
   const [loading, setLoading] = useState(!initialCachedOrder);
   const [order, setOrder] = useState<Order | null>(initialCachedOrder);
 
   useEffect(() => {
+    orderIdRef.current = orderId;
+    loadSeqRef.current += 1;
     if (!orderId) {
       setOrder(null);
       setLoading(false);
@@ -48,7 +53,10 @@ export default function FinalSuccessPage() {
   }, [orderId]);
 
   const load = useCallback(async () => {
-    const cached = getDetailCache<Order>(ORDER_DETAIL_CACHE_SCOPE, orderId);
+    const targetOrderId = orderId;
+    if (!targetOrderId) return;
+    const seq = ++loadSeqRef.current;
+    const cached = getDetailCache<Order>(ORDER_DETAIL_CACHE_SCOPE, targetOrderId);
     if (cached) {
       setOrder(cached);
       setLoading(false);
@@ -56,13 +64,15 @@ export default function FinalSuccessPage() {
       setLoading(true);
     }
     try {
-      const d = await apiGet<Order>(`/orders/${orderId}`);
+      const d = await apiGet<Order>(`/orders/${targetOrderId}`);
+      if (seq !== loadSeqRef.current || orderIdRef.current !== targetOrderId) return;
       setOrder(d);
-      setDetailCache(ORDER_DETAIL_CACHE_SCOPE, orderId, d);
+      setDetailCache(ORDER_DETAIL_CACHE_SCOPE, targetOrderId, d);
     } catch (_) {
+      if (seq !== loadSeqRef.current || orderIdRef.current !== targetOrderId) return;
       if (!cached) setOrder(null);
     } finally {
-      setLoading(false);
+      if (seq === loadSeqRef.current && orderIdRef.current === targetOrderId) setLoading(false);
     }
   }, [orderId]);
 
@@ -70,6 +80,16 @@ export default function FinalSuccessPage() {
     if (!token) return;
     void load();
   }, [load, token]);
+
+  const paymentConfirmed = Boolean(order?.status && FINAL_PAYMENT_SUCCESS_STATUSES.has(order.status));
+
+  if (!orderId) {
+    return (
+      <View className="container">
+        <MissingParamCard onAction={() => void safeNavigateBack()} />
+      </View>
+    );
+  }
 
   return (
     <View className="container pay-page pay-result-page">
@@ -87,12 +107,12 @@ export default function FinalSuccessPage() {
         <LoadingCard text="加载订单中…" />
       ) : (
         <View className="pay-result">
-          <View className="pay-result-icon">{order?.status && order.status !== 'WAIT_FINAL_PAYMENT' ? '✓' : '⏳'}</View>
+          <View className="pay-result-icon">{paymentConfirmed ? '✓' : '⏳'}</View>
           <Text className="pay-result-title">
-            {order?.status && order.status !== 'WAIT_FINAL_PAYMENT' ? '尾款支付成功' : '尾款支付待确认'}
+            {paymentConfirmed ? '尾款支付成功' : '尾款支付待确认'}
           </Text>
           <Text className="pay-result-subtitle">
-            {order?.status && order.status !== 'WAIT_FINAL_PAYMENT' ? '支付单号' : '支付申请单号'}：{paymentId || '-'}
+            {paymentConfirmed ? '支付单号' : '支付申请单号'}：{displayInfoOrPlaceholder(paymentId, '待补充')}
           </Text>
 
           {order ? (
@@ -105,7 +125,7 @@ export default function FinalSuccessPage() {
                 </View>
                 <View className="pay-summary-item">
                   <Text className="pay-summary-label">状态</Text>
-                  <Text className="pay-summary-value">{order.status ? orderStatusLabel(order.status) : '未知'}</Text>
+                  <Text className="pay-summary-value">{order.status ? orderStatusLabel(order.status) : '待确认'}</Text>
                 </View>
                 <View className="pay-summary-item">
                   <Text className="pay-summary-label">订金</Text>
@@ -113,7 +133,7 @@ export default function FinalSuccessPage() {
                 </View>
                 <View className="pay-summary-item">
                   <Text className="pay-summary-label">尾款</Text>
-                  <Text className="pay-summary-value">{order.finalAmountFen ? `¥${fenToYuan(order.finalAmountFen)}` : '待确认'}</Text>
+                  <Text className="pay-summary-value">{order.finalAmountFen != null ? `¥${fenToYuan(order.finalAmountFen)}` : '待确认'}</Text>
                 </View>
               </View>
             </Surface>
@@ -121,7 +141,7 @@ export default function FinalSuccessPage() {
 
           <Surface className="pay-result-card" padding="md">
             <View className="pay-result-bullets">
-              {order?.status && order.status !== 'WAIT_FINAL_PAYMENT' ? (
+              {paymentConfirmed ? (
                 <>
                   <View className="pay-result-bullet">
                     <View className="pay-result-dot" />

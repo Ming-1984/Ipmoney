@@ -8,6 +8,7 @@ import type { components } from '@ipmoney/api-types';
 import { API_BASE_URL } from '../../constants';
 import { getToken } from '../../lib/auth';
 import { apiGet, apiPost } from '../../lib/api';
+import { displayInfoOrPlaceholder, normalizeDisplayText } from '../../lib/displayText';
 import { ensureApproved, usePageAccess } from '../../lib/guard';
 import { useRouteStringParam, useRouteUuidParam } from '../../lib/routeParams';
 import { usePagedList } from '../../lib/usePagedList';
@@ -46,7 +47,7 @@ function claimStatusLabel(status?: PatentClaimStatus): string {
   if (status === 'PENDING') return '待审核';
   if (status === 'APPROVED') return '已通过';
   if (status === 'REJECTED') return '已驳回';
-  return '-';
+  return '待确认';
 }
 
 function claimStatusClass(status?: PatentClaimStatus): string {
@@ -58,8 +59,8 @@ function claimStatusClass(status?: PatentClaimStatus): string {
 function sourcePrimaryLabel(value?: Patent['sourcePrimary']): string {
   if (value === 'ADMIN') return '平台统一发布';
   if (value === 'PROVIDER') return '平台数据导入';
-  if (value === 'USER') return '用户自发布';
-  return '未知来源';
+  if (value === 'USER') return '用户自主发布';
+  return '来源待补充';
 }
 
 function isPlatformUnifiedPatent(patent?: Patent | null): boolean {
@@ -81,9 +82,14 @@ export default function PatentClaimsPage() {
   const claimMode = Boolean(patentId);
   const loadedOnceRef = useRef(false);
   const statusFilterMountedRef = useRef(false);
+  const filterKeyRef = useRef('');
+  const patentIdRef = useRef(patentId);
   const access = usePageAccess('approved-required', (a) => {
     if (a.state !== 'ok') {
       loadedOnceRef.current = false;
+      setPatent(null);
+      setPatentError(null);
+      setPatentLoading(false);
       return;
     }
     if (loadedOnceRef.current) {
@@ -101,29 +107,17 @@ export default function PatentClaimsPage() {
   const [patent, setPatent] = useState<Patent | null>(null);
 
   const fetcher = useCallback(
-    async ({ page, pageSize }: { page: number; pageSize: number }) => {
-      const queryPageSize = claimMode ? 100 : pageSize;
-      const res = await apiGet<PagedPatentClaimRequest>('/me/patent-claims', {
+    async ({ page, pageSize }: { page: number; pageSize: number }) =>
+      await apiGet<PagedPatentClaimRequest>('/me/patent-claims', {
         page,
-        pageSize: queryPageSize,
+        pageSize,
         ...(statusFilter ? { status: statusFilter } : {}),
-      });
-      const filteredItems = claimMode ? res.items.filter((item) => item.patentId === patentId) : res.items;
-      if (claimMode) {
-        return {
-          items: filteredItems,
-          page: { page: 1, pageSize: queryPageSize, total: filteredItems.length },
-        };
-      }
-      return {
-        items: filteredItems,
-        page: res.page,
-      };
-    },
+        ...(claimMode ? { patentId } : {}),
+      }),
     [claimMode, patentId, statusFilter],
   );
 
-  const { items, loading, error, refreshing, loadingMore, hasMore, reload, refresh, loadMore } =
+  const { items, loading, error, refreshing, loadingMore, hasMore, reload, refresh, loadMore, reset } =
     usePagedList<PatentClaimRequest>(fetcher, {
       pageSize: 20,
       onError: (message, ctx) => {
@@ -132,19 +126,43 @@ export default function PatentClaimsPage() {
     });
 
   const loadPatent = useCallback(async () => {
-    if (!claimMode) return;
+    const targetPatentId = patentId;
+    if (!claimMode || !targetPatentId) return;
     setPatentLoading(true);
     setPatentError(null);
     try {
-      const data = await apiGet<Patent>(`/patents/${patentId}`);
-      setPatent(data);
+      const next = await apiGet<Patent>(`/patents/${targetPatentId}`);
+      if (patentIdRef.current !== targetPatentId) return;
+      setPatent(next);
     } catch (e: any) {
+      if (patentIdRef.current !== targetPatentId) return;
       setPatent(null);
       setPatentError(e?.message || '专利信息加载失败');
     } finally {
-      setPatentLoading(false);
+      if (patentIdRef.current === targetPatentId) setPatentLoading(false);
     }
   }, [claimMode, patentId]);
+
+  useEffect(() => {
+    patentIdRef.current = patentId;
+    setClaimReason('');
+    setEvidenceFiles([]);
+    setPatentError(null);
+    if (!claimMode) {
+      setPatent(null);
+      setPatentLoading(false);
+      return;
+    }
+    setPatent(null);
+    setPatentLoading(true);
+  }, [claimMode, patentId]);
+
+  useEffect(() => {
+    const nextKey = `${patentId}:${statusFilter}`;
+    if (filterKeyRef.current === nextKey) return;
+    filterKeyRef.current = nextKey;
+    reset();
+  }, [patentId, reset, statusFilter]);
 
   useEffect(() => {
     if (access.state !== 'ok') return;
@@ -176,7 +194,7 @@ export default function PatentClaimsPage() {
   const removeEvidence = useCallback(async (fileId: string) => {
     const ok = await confirm({
       title: '移除证明材料',
-      content: '确定移除该材料？',
+      content: '确定移除这份材料？',
       confirmText: '移除',
       cancelText: '取消',
     });
@@ -289,7 +307,9 @@ export default function PatentClaimsPage() {
   }, [claimMode, claimReason, disabledReason, evidenceFiles, loadPatent, patentId, reload]);
 
   const title = claimMode ? '专利认领' : '专利认领记录';
-  const subtitle = claimMode ? '上传权属证明并提交审核，审核通过后自动切换归属与咨询路由。' : '查看你的专利认领申请状态与审核意见。';
+  const subtitle = claimMode
+    ? '上传权属证明并提交审核，审核通过后会同步归属与咨询路由。'
+    : '查看你的专利认领申请状态与审核意见。';
   const modeTitle = patent?.title || patentTitleFromRoute || patentId;
   const showInitialLoading = loading && items.length === 0;
 
@@ -305,7 +325,7 @@ export default function PatentClaimsPage() {
           <>
             {claimMode ? (
               <>
-                {patentLoading ? <LoadingCard text="正在加载专利信息…" /> : null}
+                {patentLoading ? <LoadingCard text="正在加载专利信息..." /> : null}
                 {patentError ? <ErrorCard message={patentError} onRetry={() => void loadPatent()} /> : null}
 
                 {patent ? (
@@ -315,8 +335,14 @@ export default function PatentClaimsPage() {
                       <Text className="claim-target-pill">{sourcePrimaryLabel(patent.sourcePrimary)}</Text>
                       {patent.ownerUserId ? <Text className="claim-target-pill is-owner">已归属个人</Text> : null}
                     </View>
-                    <Text className="claim-target-number">申请号：{patent.applicationNoDisplay || patent.applicationNoNorm || '-'}</Text>
-                    {disabledReason ? <TipBanner tone="warning" title={disabledReason}>请在“我的-专利认领记录”查看历史申请。</TipBanner> : null}
+                    <Text className="claim-target-number">
+                      申请号：{displayInfoOrPlaceholder(patent.applicationNoDisplay || patent.applicationNoNorm, '待补充')}
+                    </Text>
+                    {disabledReason ? (
+                      <TipBanner tone="warning" title={disabledReason}>
+                        请在“我的专利认领记录”里查看历史申请。
+                      </TipBanner>
+                    ) : null}
                   </Surface>
                 ) : null}
 
@@ -324,7 +350,7 @@ export default function PatentClaimsPage() {
 
                 <Surface className="claim-form-card">
                   <Text className="claim-form-title">提交认领申请</Text>
-                  <Text className="claim-form-tip">需上传真实可核验的权属证明材料，平台将进行审核。</Text>
+                  <Text className="claim-form-tip">请上传真实可核验的权属证明材料，平台会进行审核。</Text>
 
                   <View className="claim-form-block">
                     <Text className="claim-form-label">认领说明（可选）</Text>
@@ -333,7 +359,7 @@ export default function PatentClaimsPage() {
                       onChange={setClaimReason}
                       rows={4}
                       maxLength={300}
-                      placeholder="补充你与该专利的关系说明、授权链路等信息（选填）"
+                      placeholder="补充你与该专利的关系说明、授权链路等信息"
                     />
                   </View>
 
@@ -346,7 +372,7 @@ export default function PatentClaimsPage() {
                     </View>
                     <View className="claim-upload-box" onClick={() => void uploadEvidence()}>
                       <Image className="claim-upload-icon" src={iconUpload} svg mode="aspectFit" />
-                      <Text className="claim-upload-title">{uploading ? '上传中…' : '上传证明材料'}</Text>
+                      <Text className="claim-upload-title">{uploading ? '上传中...' : '上传证明材料'}</Text>
                       <Text className="claim-upload-subtitle">支持图片，至少 1 份</Text>
                     </View>
                     {evidenceFiles.length ? (
@@ -387,7 +413,7 @@ export default function PatentClaimsPage() {
             <Spacer size={12} />
 
             {showInitialLoading ? (
-              <LoadingCard text="正在加载认领记录…" />
+              <LoadingCard text="正在加载认领记录..." />
             ) : error ? (
               <ErrorCard message={error} onRetry={() => void reload()} />
             ) : items.length ? (
@@ -399,23 +425,25 @@ export default function PatentClaimsPage() {
                       <Text className={`claim-status ${claimStatusClass(item.status)}`}>{claimStatusLabel(item.status)}</Text>
                     </View>
                     <View className="claim-record-row">
-                      <Text className="claim-record-label">专利ID</Text>
+                      <Text className="claim-record-label">专利 ID</Text>
                       <Text className="claim-record-value">{item.patentId}</Text>
                     </View>
                     <View className="claim-record-row">
                       <Text className="claim-record-label">提交时间</Text>
-                      <Text className="claim-record-value">{item.submittedAt?.slice(0, 19).replace('T', ' ') || '-'}</Text>
+                      <Text className="claim-record-value">
+                        {displayInfoOrPlaceholder(item.submittedAt?.slice(0, 19).replace('T', ' '), '待补充')}
+                      </Text>
                     </View>
-                    {item.claimReason ? (
+                    {normalizeDisplayText(item.claimReason) ? (
                       <View className="claim-record-row">
                         <Text className="claim-record-label">认领说明</Text>
-                        <Text className="claim-record-value">{item.claimReason}</Text>
+                        <Text className="claim-record-value">{normalizeDisplayText(item.claimReason)}</Text>
                       </View>
                     ) : null}
-                    {item.reviewComment ? (
+                    {normalizeDisplayText(item.reviewComment) ? (
                       <View className="claim-record-row">
                         <Text className="claim-record-label">审核意见</Text>
-                        <Text className="claim-record-value">{item.reviewComment}</Text>
+                        <Text className="claim-record-value">{normalizeDisplayText(item.reviewComment)}</Text>
                       </View>
                     ) : null}
                     <View className="claim-record-foot">

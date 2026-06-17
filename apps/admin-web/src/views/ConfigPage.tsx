@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 
 import { apiGet, apiPut, apiUploadFile, type FileObject } from '../lib/api';
 import { fenToYuanNumber, yuanToFen } from '../lib/format';
+import { displayAdminInfo } from '../lib/userFacingText';
 import { confirmActionWithReason } from '../ui/confirm';
 import { ImageUrlUploadField } from '../ui/ImageUrlUploadField';
 
@@ -512,7 +513,7 @@ export function ConfigPage() {
                     </Button>
                   </Space>
                   <Typography.Text type="secondary">
-                    {`\u89c6\u9891\u94fe\u63a5\uff1a${item.videoUrl || '-'}`}
+                    {`\u89c6\u9891\u94fe\u63a5\uff1a${displayAdminInfo(item.videoUrl)}`}
                   </Typography.Text>
                   <Space direction="vertical" size={6} style={{ width: '100%' }}>
                     <Typography.Text type="secondary">
