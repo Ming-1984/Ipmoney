@@ -3,33 +3,24 @@ import React from 'react';
 
 import type { components } from '@ipmoney/api-types';
 
+import { displayTitleOrFallback, normalizeDisplayText } from '../lib/displayText';
 import { sanitizeIndustryTagNames } from '../lib/industryTags';
+import { achievementMaturityLabel } from '../lib/labels';
 import { regionDisplayName } from '../lib/regions';
 import iconAchievement from '../assets/icons/app/patent-achievement.png';
 
 type AchievementSummary = components['schemas']['AchievementSummary'];
-
-function maturityLabel(value?: components['schemas']['AchievementMaturity'] | null) {
-  if (!value) return '';
-  if (value === 'CONCEPT') return '概念验证';
-  if (value === 'PROTOTYPE') return '样机阶段';
-  if (value === 'PILOT') return '中试阶段';
-  if (value === 'MASS_PRODUCTION') return '量产阶段';
-  if (value === 'COMMERCIALIZED') return '已商业化';
-  if (value === 'OTHER') return '其他';
-  return String(value);
-}
 
 export function AchievementCard(props: {
   item: AchievementSummary;
   onClick: () => void;
 }) {
   const it = props.item;
-  const title = it.title || '未命名成果';
+  const title = displayTitleOrFallback(it.title, '未命名成果');
   const cover = it.coverUrl || '';
-  const publisher = it.publisher?.displayName || '-';
+  const publisher = normalizeDisplayText(it.publisher?.displayName) || '发布方信息待补充';
   const region = it.regionCode ? regionDisplayName(it.regionCode) : '';
-  const maturity = maturityLabel(it.maturity);
+  const maturity = achievementMaturityLabel(it.maturity);
   const stats = it.stats as { viewCount?: number; favoriteCount?: number } | undefined;
   const viewCount = stats?.viewCount;
   const favoriteCount = stats?.favoriteCount;
@@ -68,7 +59,9 @@ export function AchievementCard(props: {
           </View>
         </View>
         <Text className="list-card-subinfo clamp-1">发布方：{publisher}</Text>
-        {it.summary ? <Text className="list-card-desc clamp-2">{it.summary}</Text> : null}
+        {normalizeDisplayText(it.summary) ? (
+          <Text className="list-card-desc clamp-2">{normalizeDisplayText(it.summary)}</Text>
+        ) : null}
         {hasStats ? (
           <View className="list-card-stats">
             {viewCount !== undefined ? <Text className="list-card-stat">浏览 {viewCount}</Text> : null}

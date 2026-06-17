@@ -1,5 +1,5 @@
 ﻿import { View, Text, Image } from '@tarojs/components';
-import Taro, { useDidShow } from '@tarojs/taro';
+import Taro, { useDidHide, useDidShow } from '@tarojs/taro';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import './index.scss';
 
@@ -22,6 +22,7 @@ import {
 import { DEMO_LOGIN_ENABLED } from '../../constants';
 import { apiGet, apiPost } from '../../lib/api';
 import { getDetailCache, setDetailCache } from '../../lib/detailCache';
+import { verificationStatusLabel, verificationTypeLabel } from '../../lib/labels';
 import { regionDisplayName } from '../../lib/regions';
 import { ErrorCard, LoadingCard } from '../../ui/StateCards';
 import { WechatPhoneBindPopup } from '../../ui/WechatPhoneBindPopup';
@@ -85,25 +86,6 @@ function readAuthState(): AuthState {
   };
 }
 
-function verificationTypeLabel(t?: string | null): string {
-  if (!t) return '-';
-  if (t === 'PERSON') return '个人';
-  if (t === 'COMPANY') return '企业';
-  if (t === 'ACADEMY') return '科研院校';
-  if (t === 'GOVERNMENT') return '政府';
-  if (t === 'ASSOCIATION') return '行业协会/学会';
-  if (t === 'TECH_MANAGER') return '技术经理人';
-  return t;
-}
-
-function verificationStatusLabel(s?: string | null): string {
-  if (!s) return '-';
-  if (s === 'PENDING') return '审核中';
-  if (s === 'APPROVED') return '已通过';
-  if (s === 'REJECTED') return '已驳回';
-  return s;
-}
-
 export default function MePage() {
   const env = useMemo(() => Taro.getEnv(), []);
   const canWechatLogin = env === Taro.ENV_TYPE.WEAPP;
@@ -124,7 +106,21 @@ export default function MePage() {
   }, []);
 
   useDidShow(() => {
+    pageVisibleRef.current = true;
     syncAuthState();
+  });
+
+  useDidHide(() => {
+    pageVisibleRef.current = false;
+    loadMeSeqRef.current += 1;
+    verificationSeqRef.current += 1;
+    loginActionSeqRef.current += 1;
+    phoneBindSeqRef.current += 1;
+    logoutSeqRef.current += 1;
+    postLoginNextRef.current = null;
+    setBusy(false);
+    setPhoneBindBusy(false);
+    setRefreshing(false);
   });
 
   useEffect(() => {
@@ -149,6 +145,17 @@ export default function MePage() {
   const [phoneBindOpen, setPhoneBindOpen] = useState(false);
   const [phoneBindBusy, setPhoneBindBusy] = useState(false);
   const postLoginNextRef = useRef<null | (() => void)>(null);
+  const authTokenRef = useRef<string | null>(auth.token);
+  const pageVisibleRef = useRef(true);
+  const loadMeSeqRef = useRef(0);
+  const verificationSeqRef = useRef(0);
+  const loginActionSeqRef = useRef(0);
+  const phoneBindSeqRef = useRef(0);
+  const logoutSeqRef = useRef(0);
+
+  useEffect(() => {
+    authTokenRef.current = auth.token;
+  }, [auth.token]);
 
   useEffect(() => {
     if (cooldown <= 0) return;
@@ -164,6 +171,8 @@ export default function MePage() {
 
   const loadMe = useCallback(async (options?: { silent?: boolean }) => {
     if (!auth.token) return;
+    const currentToken = auth.token;
+    const seq = ++loadMeSeqRef.current;
     const silent = Boolean(options?.silent);
     const cached = !silent ? getDetailCache<Me>(ME_PROFILE_CACHE_SCOPE, ME_PROFILE_CACHE_KEY) : null;
     const hasCached = Boolean(cached);
@@ -178,21 +187,27 @@ export default function MePage() {
     setMeError(null);
     try {
       const d = await apiGet<Me>('/me');
+      if (seq !== loadMeSeqRef.current || !pageVisibleRef.current || authTokenRef.current !== currentToken) return;
       setMe(d);
       setDetailCache(ME_PROFILE_CACHE_SCOPE, ME_PROFILE_CACHE_KEY, d);
     } catch (e: any) {
+      if (seq !== loadMeSeqRef.current || !pageVisibleRef.current || authTokenRef.current !== currentToken) return;
       if (!hasCached) {
         setMeError(e?.message || '加载失败');
         setMe(null);
       }
     } finally {
+      if (seq !== loadMeSeqRef.current || !pageVisibleRef.current || authTokenRef.current !== currentToken) return;
       if (!silent) setMeLoading(false);
     }
   }, [auth.token]);
 
   const syncVerification = useCallback(async () => {
     if (!auth.token) return;
+    const currentToken = auth.token;
+    const seq = ++verificationSeqRef.current;
     if (!auth.onboardingDone) {
+      if (seq !== verificationSeqRef.current || !pageVisibleRef.current || authTokenRef.current !== currentToken) return;
       clearVerificationType();
       clearVerificationStatus();
       setOnboardingDone(false);
@@ -201,10 +216,12 @@ export default function MePage() {
     }
     try {
       const v = await apiGet<UserVerification>('/me/verification');
+      if (seq !== verificationSeqRef.current || !pageVisibleRef.current || authTokenRef.current !== currentToken) return;
       if (v?.type) setVerificationType(v.type);
       if (v?.status) setVerificationStatus(v.status);
       setOnboardingDone(true);
     } catch (e: any) {
+      if (seq !== verificationSeqRef.current || !pageVisibleRef.current || authTokenRef.current !== currentToken) return;
       const statusCode = Number(e?.statusCode || 0);
       const code = String(e?.code || '');
       if (statusCode === 404 || code === 'NOT_FOUND') {
@@ -213,6 +230,7 @@ export default function MePage() {
         setOnboardingDone(false);
       }
     } finally {
+      if (seq !== verificationSeqRef.current || !pageVisibleRef.current || authTokenRef.current !== currentToken) return;
       syncAuthState();
     }
   }, [auth.onboardingDone, auth.token, syncAuthState]);
@@ -230,6 +248,8 @@ export default function MePage() {
 
   useEffect(() => {
     if (!auth.token) {
+      loadMeSeqRef.current += 1;
+      verificationSeqRef.current += 1;
       setMe(null);
       return;
     }
@@ -248,6 +268,7 @@ export default function MePage() {
         toast('登录失败，请稍后重试');
         return;
       }
+      if (!pageVisibleRef.current) return;
       setToken(token);
 
       const vt = (authToken.user?.verificationType || null) as VerificationType | null;
@@ -290,12 +311,22 @@ export default function MePage() {
 
       const shouldPromptPhone = Boolean(opts?.fromWechat) && canWechatLogin && !phoneFromAuth;
       if (shouldPromptPhone) {
-        postLoginNextRef.current = () => setTimeout(goNext, 200);
+        const bindSeq = ++phoneBindSeqRef.current;
+        postLoginNextRef.current = () => {
+          setTimeout(() => {
+            if (bindSeq !== phoneBindSeqRef.current || !pageVisibleRef.current) return;
+            goNext();
+          }, 200);
+        };
         setPhoneBindOpen(true);
         return;
       }
 
-      setTimeout(goNext, 200);
+      const nextSeq = loginActionSeqRef.current;
+      setTimeout(() => {
+        if (nextSeq !== loginActionSeqRef.current || !pageVisibleRef.current) return;
+        goNext();
+      }, 200);
     },
     [canWechatLogin],
   );
@@ -303,6 +334,7 @@ export default function MePage() {
   const quickLogin = useCallback(async () => {
     if (busy) return;
     if (!ensureAgreement()) return;
+    const seq = ++loginActionSeqRef.current;
     setBusy(true);
     try {
       let code = '';
@@ -315,25 +347,34 @@ export default function MePage() {
       if (!code) throw new Error('无法获取登录凭证');
 
       const authToken = await apiPost<AuthTokenResponse>('/auth/wechat/mp-login', { code });
+      if (seq !== loginActionSeqRef.current || !pageVisibleRef.current) return;
       afterLogin(authToken, { fromWechat: true });
     } catch (e: any) {
+      if (seq !== loginActionSeqRef.current || !pageVisibleRef.current) return;
       toast(e?.message || '登录失败');
     } finally {
-      setBusy(false);
+      if (seq === loginActionSeqRef.current && pageVisibleRef.current) {
+        setBusy(false);
+      }
     }
   }, [afterLogin, busy, ensureAgreement]);
 
   const demoLogin = useCallback(async () => {
     if (!DEMO_LOGIN_ENABLED || busy) return;
     if (!ensureAgreement()) return;
+    const seq = ++loginActionSeqRef.current;
     setBusy(true);
     try {
       const authToken = await apiPost<AuthTokenResponse>('/auth/wechat/mp-login', { code: 'demo' });
+      if (seq !== loginActionSeqRef.current || !pageVisibleRef.current) return;
       afterLogin(authToken);
     } catch (e: any) {
+      if (seq !== loginActionSeqRef.current || !pageVisibleRef.current) return;
       toast(e?.message || '登录失败');
     } finally {
-      setBusy(false);
+      if (seq === loginActionSeqRef.current && pageVisibleRef.current) {
+        setBusy(false);
+      }
     }
   }, [afterLogin, busy, ensureAgreement]);
 
@@ -345,15 +386,20 @@ export default function MePage() {
       toast('请输入手机号');
       return;
     }
+    const seq = ++loginActionSeqRef.current;
     setBusy(true);
     try {
       const res = await apiPost<{ cooldownSeconds: number }>('/auth/sms/send', { phone: p, purpose: 'LOGIN' });
+      if (seq !== loginActionSeqRef.current || !pageVisibleRef.current) return;
       setCooldown(Number(res?.cooldownSeconds || 60));
       toast('验证码已发送', { icon: 'success' });
     } catch (e: any) {
+      if (seq !== loginActionSeqRef.current || !pageVisibleRef.current) return;
       toast(e?.message || '发送失败');
     } finally {
-      setBusy(false);
+      if (seq === loginActionSeqRef.current && pageVisibleRef.current) {
+        setBusy(false);
+      }
     }
   }, [busy, ensureAgreement, phone]);
 
@@ -370,14 +416,19 @@ export default function MePage() {
       toast('请输入验证码');
       return;
     }
+    const seq = ++loginActionSeqRef.current;
     setBusy(true);
     try {
       const authToken = await apiPost<AuthTokenResponse>('/auth/sms/verify', { phone: p, code: c });
+      if (seq !== loginActionSeqRef.current || !pageVisibleRef.current) return;
       afterLogin(authToken);
     } catch (e: any) {
+      if (seq !== loginActionSeqRef.current || !pageVisibleRef.current) return;
       toast(e?.message || '登录失败');
     } finally {
-      setBusy(false);
+      if (seq === loginActionSeqRef.current && pageVisibleRef.current) {
+        setBusy(false);
+      }
     }
   }, [afterLogin, busy, ensureAgreement, phone, smsCode]);
 
@@ -730,9 +781,13 @@ export default function MePage() {
             <Button
               variant="ghost"
               onClick={() => {
+                const seq = ++logoutSeqRef.current;
                 clearToken();
                 toast('已退出登录', { icon: 'success' });
-                setTimeout(() => Taro.reLaunch({ url: '/pages/home/index' }), 200);
+                setTimeout(() => {
+                  if (seq !== logoutSeqRef.current || !pageVisibleRef.current) return;
+                  Taro.reLaunch({ url: '/pages/home/index' });
+                }, 200);
               }}
             >
               退出登录
@@ -751,18 +806,23 @@ export default function MePage() {
         }}
         onRequestBind={async (phoneCode) => {
           if (phoneBindBusy) return;
+          const seq = ++phoneBindSeqRef.current;
           setPhoneBindBusy(true);
           try {
             await apiPost('/auth/wechat/phone-bind', { phoneCode });
+            if (seq !== phoneBindSeqRef.current || !pageVisibleRef.current) return;
             toast('手机号绑定成功', { icon: 'success' });
             setPhoneBindOpen(false);
             const next = postLoginNextRef.current;
             postLoginNextRef.current = null;
             next?.();
           } catch (e: any) {
+            if (seq !== phoneBindSeqRef.current || !pageVisibleRef.current) return;
             toast(e?.message || '绑定失败');
           } finally {
-            setPhoneBindBusy(false);
+            if (seq === phoneBindSeqRef.current && pageVisibleRef.current) {
+              setPhoneBindBusy(false);
+            }
           }
         }}
       />

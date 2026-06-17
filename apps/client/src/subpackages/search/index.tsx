@@ -14,7 +14,7 @@ import {
   fetchHomeLandingConfig,
   normalizeHomeLandingConfig,
 } from '../../lib/homeLandingConfig';
-import { patentTypeLabel, priceTypeLabel, tradeModeLabel } from '../../lib/labels';
+import { achievementMaturityLabel, patentTypeLabel, priceTypeLabel, tradeModeLabel } from '../../lib/labels';
 import { sanitizeIndustryTagNames } from '../../lib/industryTags';
 import { fenToYuanInt } from '../../lib/money';
 import { ensureRegionNamesReady, regionDisplayName } from '../../lib/regions';
@@ -208,17 +208,6 @@ function transferCountSummary(min?: number, max?: number): string | null {
   if (min !== undefined) return `${min}次以上`;
   if (max !== undefined) return `${max}次以内`;
   return null;
-}
-
-function achievementMaturityLabel(value?: AchievementMaturity | ''): string | null {
-  if (!value) return null;
-  if (value === 'CONCEPT') return '概念验证';
-  if (value === 'PROTOTYPE') return '样机阶段';
-  if (value === 'PILOT') return '中试阶段';
-  if (value === 'MASS_PRODUCTION') return '量产阶段';
-  if (value === 'COMMERCIALIZED') return '已商业化';
-  if (value === 'OTHER') return '其他';
-  return String(value);
 }
 
 export default function SearchPage() {

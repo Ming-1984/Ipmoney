@@ -127,7 +127,7 @@ export default function DepositSuccessPage() {
                 </View>
                 <View className="pay-summary-item">
                   <Text className="pay-summary-label">状态</Text>
-                  <Text className="pay-summary-value">{order.status ? orderStatusLabel(order.status) : '未知'}</Text>
+                  <Text className="pay-summary-value">{order.status ? orderStatusLabel(order.status) : '待确认'}</Text>
                 </View>
                 <View className="pay-summary-item">
                   <Text className="pay-summary-label">订金</Text>

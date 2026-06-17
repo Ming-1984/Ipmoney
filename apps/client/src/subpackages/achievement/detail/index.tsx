@@ -1,6 +1,6 @@
 import { View, Text, Image } from '@tarojs/components';
-import Taro, { useShareAppMessage } from '@tarojs/taro';
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import Taro, { useDidHide, useDidShow, useShareAppMessage } from '@tarojs/taro';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import './index.scss';
 
 import type { components } from '@ipmoney/api-types';
@@ -8,11 +8,13 @@ import type { components } from '@ipmoney/api-types';
 import { Heart, HeartFill } from '../../../ui/icons';
 
 import { apiGet, apiPost } from '../../../lib/api';
+import { displayInfoOrPlaceholder, displayTitleOrFallback, normalizeDisplayText } from '../../../lib/displayText';
 import { favoriteAchievement, isAchievementFavorited, syncAchievementFavorites, unfavoriteAchievement } from '../../../lib/favorites';
 import { ensureApproved } from '../../../lib/guard';
 import { formatTimeSmart } from '../../../lib/format';
 import { getDetailCache, setDetailCache } from '../../../lib/detailCache';
 import { sanitizeIndustryTagNames } from '../../../lib/industryTags';
+import { achievementMaturityLabel } from '../../../lib/labels';
 import { regionDisplayName } from '../../../lib/regions';
 import { useRouteUuidParam } from '../../../lib/routeParams';
 import { CommentsSection } from '../../../ui/CommentsSection';
@@ -32,25 +34,25 @@ type MediaItem = {
   fileId?: string | null;
   fileName?: string | null;
 };
-
-function maturityLabel(value?: components['schemas']['AchievementMaturity'] | null) {
-  if (!value) return '';
-  if (value === 'CONCEPT') return '概念阶段';
-  if (value === 'PROTOTYPE') return '原型阶段';
-  if (value === 'PILOT') return '中试阶段';
-  if (value === 'MASS_PRODUCTION') return '量产阶段';
-  if (value === 'COMMERCIALIZED') return '已商业化';
-  if (value === 'OTHER') return '其他';
-  return String(value);
-}
-
 export default function AchievementDetailPage() {
   const achievementId = useRouteUuidParam('achievementId');
+  const achievementIdRef = useRef(achievementId);
+  const pageVisibleRef = useRef(true);
+  const consultSeqRef = useRef(0);
   const initialCachedData = achievementId ? getDetailCache<AchievementPublic>('achievement-public', achievementId) : null;
   const [loading, setLoading] = useState(!initialCachedData);
   const [error, setError] = useState<string | null>(null);
   const [data, setData] = useState<AchievementPublic | null>(initialCachedData);
   const [favoritedState, setFavoritedState] = useState(false);
+
+  useDidShow(() => {
+    pageVisibleRef.current = true;
+  });
+
+  useDidHide(() => {
+    pageVisibleRef.current = false;
+    consultSeqRef.current += 1;
+  });
 
   useShareAppMessage(() => ({
     title: data?.title ? `成果详情：${data.title}` : '成果详情',
@@ -59,13 +61,29 @@ export default function AchievementDetailPage() {
   }));
 
   useEffect(() => {
+    achievementIdRef.current = achievementId;
     if (!achievementId) return;
     setFavoritedState(isAchievementFavorited(achievementId));
   }, [achievementId]);
 
-  const load = useCallback(async () => {
-    if (!achievementId) return;
+  useEffect(() => {
+    achievementIdRef.current = achievementId;
+    if (!achievementId) {
+      setData(null);
+      setLoading(false);
+      setError(null);
+      return;
+    }
     const cached = getDetailCache<AchievementPublic>('achievement-public', achievementId);
+    setData(cached || null);
+    setLoading(!cached);
+    setError(null);
+  }, [achievementId]);
+
+  const load = useCallback(async () => {
+    const targetAchievementId = achievementId;
+    if (!targetAchievementId) return;
+    const cached = getDetailCache<AchievementPublic>('achievement-public', targetAchievementId);
     if (cached) {
       setData(cached);
       setLoading(false);
@@ -75,16 +93,18 @@ export default function AchievementDetailPage() {
       setError(null);
     }
     try {
-      const d = await apiGet<AchievementPublic>(`/public/achievements/${achievementId}`);
+      const d = await apiGet<AchievementPublic>(`/public/achievements/${targetAchievementId}`);
+      if (achievementIdRef.current !== targetAchievementId) return;
       setData(d);
-      setDetailCache('achievement-public', achievementId, d);
+      setDetailCache('achievement-public', targetAchievementId, d);
     } catch (e: any) {
+      if (achievementIdRef.current !== targetAchievementId) return;
       if (!cached) {
         setError(e?.message || '加载失败');
         setData(null);
       }
     } finally {
-      setLoading(false);
+      if (achievementIdRef.current === targetAchievementId) setLoading(false);
     }
   }, [achievementId]);
 
@@ -124,6 +144,7 @@ export default function AchievementDetailPage() {
   const startConsult = useCallback(async () => {
     if (!achievementId) return;
     if (!ensureApproved()) return;
+    const seq = ++consultSeqRef.current;
     try {
       await apiPost<void>(
         `/achievements/${achievementId}/consultations`,
@@ -139,6 +160,7 @@ export default function AchievementDetailPage() {
         {},
         { idempotencyKey: `ach-conv-${achievementId}` },
       );
+      if (seq !== consultSeqRef.current || !pageVisibleRef.current) return;
       Taro.navigateTo({ url: `/subpackages/messages/chat/index?conversationId=${conv.id}` });
     } catch (e: any) {
       toast(e?.message || '发起咨询失败');
@@ -175,14 +197,14 @@ export default function AchievementDetailPage() {
           ) : null}
 
           <Surface className="detail-compact-header">
-            <Text className="detail-compact-title">{data.title || '未命名成果'}</Text>
+            <Text className="detail-compact-title">{displayTitleOrFallback(data.title, '未命名成果')}</Text>
             <View className="detail-compact-subline">
               <Text>发布时间 {formatTimeSmart(data.createdAt)}</Text>
-              {data.publisher?.displayName ? <Text>发布方：{data.publisher.displayName}</Text> : null}
+              {normalizeDisplayText(data.publisher?.displayName) ? <Text>发布方：{normalizeDisplayText(data.publisher?.displayName)}</Text> : null}
             </View>
             <View className="detail-compact-tags">
-              {maturityLabel(data.maturity) ? (
-                <Text className="detail-compact-tag detail-compact-tag-strong">{maturityLabel(data.maturity)}</Text>
+              {achievementMaturityLabel(data.maturity) ? (
+                <Text className="detail-compact-tag detail-compact-tag-strong">{achievementMaturityLabel(data.maturity)}</Text>
               ) : null}
               {data.regionCode ? <Text className="detail-compact-tag">{regionDisplayName(data.regionCode)}</Text> : null}
               {sanitizeIndustryTagNames(data.industryTags || [])
@@ -198,14 +220,14 @@ export default function AchievementDetailPage() {
           <View className="detail-section">
             <SectionHeader title="成果简介" />
             <Surface className="listing-detail-block">
-              <Text className="muted">{data.summary || '暂无简介'}</Text>
+              <Text className="muted">{displayInfoOrPlaceholder(data.summary)}</Text>
             </Surface>
           </View>
 
           <View className="detail-section">
             <SectionHeader title="成果说明" />
             <Surface className="listing-detail-block">
-              <Text className="muted">{data.description || '暂无详细说明'}</Text>
+              <Text className="muted">{displayInfoOrPlaceholder(data.description)}</Text>
             </Surface>
           </View>
 

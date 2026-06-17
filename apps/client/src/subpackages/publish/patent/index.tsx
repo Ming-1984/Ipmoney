@@ -1,6 +1,6 @@
 ﻿import { View, Text } from '@tarojs/components';
-import Taro, { useRouter } from '@tarojs/taro';
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import Taro, { useDidHide, useDidShow } from '@tarojs/taro';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import './index.scss';
 
 import type { components } from '@ipmoney/api-types';
@@ -15,11 +15,12 @@ import {
   normalizeHomeLandingConfig,
 } from '../../../lib/homeLandingConfig';
 import { sanitizeIndustryTagNames } from '../../../lib/industryTags';
-import { sanitizeListingTopics, syncListingTopicsWithTradeMode } from '../../../lib/listingTopics';
-import { auditStatusLabel, listingStatusLabel, patentTypeLabel } from '../../../lib/labels';
+import { sanitizeListingTopics } from '../../../lib/listingTopics';
+import { auditStatusLabel, listingStatusLabel, patentTypeLabel, priceTypeLabel, tradeModeLabel, licenseModeLabel } from '../../../lib/labels';
 import { fenToYuan } from '../../../lib/money';
 import { openRegionPickerPage } from '../../../lib/regionPicker';
 import { regionDisplayName } from '../../../lib/regions';
+import { useRouteStringParam } from '../../../lib/routeParams';
 import { uploadWithRetry } from '../../../lib/upload';
 import { ChipGroup, type ChipOption, IndustryTagsPicker } from '../../../ui/filters';
 import { PageHeader, PopupSheet, StickyBar, Surface } from '../../../ui/layout';
@@ -65,25 +66,6 @@ const PRICE_TYPE_OPTIONS: Array<{ value: PriceType; label: string }> = [
   { value: 'FIXED', label: '一口价' },
   { value: 'NEGOTIABLE', label: '面议' },
 ];
-
-function tradeModeLabel(value: TradeMode): string {
-  if (value === 'ASSIGNMENT') return '转让';
-  if (value === 'LICENSE') return '许可';
-  return String(value);
-}
-
-function licenseModeLabel(value: LicenseMode): string {
-  if (value === 'EXCLUSIVE') return '独占许可';
-  if (value === 'SOLE') return '排他许可';
-  if (value === 'NON_EXCLUSIVE') return '普通许可';
-  return String(value);
-}
-
-function priceTypeLabel(value: PriceType): string {
-  if (value === 'FIXED') return '一口价';
-  if (value === 'NEGOTIABLE') return '面议';
-  return String(value);
-}
 
 function splitList(input: string): string[] {
   return (input || '')
@@ -200,8 +182,14 @@ function PublishTextArea(props: React.ComponentProps<typeof TextArea>) {
 }
 
 export default function PublishPatentPage() {
-  const router = useRouter();
-  const initialListingId = useMemo(() => String(router?.params?.listingId || ''), [router?.params?.listingId]);
+  const initialListingId = useRouteStringParam('listingId') || '';
+  const listingRouteIdRef = useRef(initialListingId);
+  const pageVisibleRef = useRef(true);
+  const configLoadSeqRef = useRef(0);
+  const listingLoadSeqRef = useRef(0);
+  const uploadSeqRef = useRef(0);
+  const saveSeqRef = useRef(0);
+  const submitSeqRef = useRef(0);
 
   const [listingId, setListingId] = useState<string | null>(null);
   const [auditStatus, setAuditStatus] = useState<AuditStatus | null>(null);
@@ -243,6 +231,22 @@ export default function PublishPatentPage() {
   const [submitting, setSubmitting] = useState(false);
   const [pickerOpen, setPickerOpen] = useState<PickerKey | null>(null);
 
+  useDidShow(() => {
+    pageVisibleRef.current = true;
+  });
+
+  useDidHide(() => {
+    pageVisibleRef.current = false;
+    configLoadSeqRef.current += 1;
+    listingLoadSeqRef.current += 1;
+    uploadSeqRef.current += 1;
+    saveSeqRef.current += 1;
+    submitSeqRef.current += 1;
+    setUploading(false);
+    setSaving(false);
+    setSubmitting(false);
+  });
+
   const inventorNames = useMemo(() => splitList(inventorNamesInput), [inventorNamesInput]);
   const assigneeNames = useMemo(() => splitList(assigneeNamesInput), [assigneeNamesInput]);
   const applicantNames = useMemo(() => splitList(applicantNamesInput), [applicantNamesInput]);
@@ -254,26 +258,52 @@ export default function PublishPatentPage() {
     [listingTopicOptions],
   );
   const effectiveListingTopics = useMemo(
-    () =>
-      syncListingTopicsWithTradeMode(listingTopics, tradeMode).filter((topic) => enabledListingTopicSet.has(topic)),
-    [enabledListingTopicSet, listingTopics, tradeMode],
+    () => sanitizeListingTopics(listingTopics).filter((topic) => enabledListingTopicSet.has(topic)),
+    [enabledListingTopicSet, listingTopics],
   );
   const listingTopicChipOptions = useMemo<ChipOption<ListingTopic>[]>(
-    () =>
-      listingTopicOptions.map((it) => ({
-        ...it,
-        disabled: it.value === 'OPEN_LICENSE' && tradeMode === 'LICENSE',
-      })),
-    [listingTopicOptions, tradeMode],
+    () => listingTopicOptions,
+    [listingTopicOptions],
   );
   const listingTopicHint = useMemo(
     () => listingTopicOptions.map((item) => item.label).filter(Boolean).join('、'),
     [listingTopicOptions],
   );
 
+  const resetForm = useCallback(() => {
+    setListingId(null);
+    setAuditStatus(null);
+    setListingStatus(null);
+    setSubmitted(false);
+    setPatentNumberRaw('');
+    setPatentType('');
+    setTitle('');
+    setInventorNamesInput('');
+    setAssigneeNamesInput('');
+    setApplicantNamesInput('');
+    setSummary('');
+    setDeliverables('');
+    setExpectedCycle('');
+    setNegotiableSpace('');
+    setPledgeStatus('');
+    setTradeMode('');
+    setLicenseMode('');
+    setPriceType('');
+    setPriceYuan('');
+    setDepositYuan('');
+    setRegionCode('');
+    setIndustryTags([]);
+    setListingTopics([]);
+    setIpcCodesInput('');
+    setLocCodesInput('');
+    setProofFiles([]);
+  }, []);
+
   const uploadProof = useCallback(async () => {
     if (uploading) return;
     if (!requireLogin()) return;
+    const targetListingId = listingRouteIdRef.current || '';
+    const seq = ++uploadSeqRef.current;
 
     setUploading(true);
     try {
@@ -295,13 +325,17 @@ export default function PublishPatentPage() {
 
       const json = JSON.parse(String(uploadRes.data || '{}')) as Partial<FileObject>;
       if (!json.id) throw new Error('上传失败');
+      if (seq !== uploadSeqRef.current || !pageVisibleRef.current || listingRouteIdRef.current !== targetListingId) return;
       setProofFiles((prev) => [...prev, json as UploadedFile]);
       toast('已上传', { icon: 'success' });
     } catch (e: any) {
+      if (seq !== uploadSeqRef.current || !pageVisibleRef.current || listingRouteIdRef.current !== targetListingId) return;
       if (e?.errMsg?.includes('cancel')) return;
       toast(e?.message || '上传失败');
     } finally {
-      setUploading(false);
+      if (seq === uploadSeqRef.current && pageVisibleRef.current && listingRouteIdRef.current === targetListingId) {
+        setUploading(false);
+      }
     }
   }, [uploading]);
 
@@ -313,10 +347,13 @@ export default function PublishPatentPage() {
 
   useEffect(() => {
     (async () => {
+      const seq = ++configLoadSeqRef.current;
       try {
         const config = await fetchHomeLandingConfig();
+        if (seq !== configLoadSeqRef.current || !pageVisibleRef.current) return;
         setListingTopicOptions(buildEnabledListingTopicOptions(config));
       } catch {
+        if (seq !== configLoadSeqRef.current || !pageVisibleRef.current) return;
         setListingTopicOptions(buildEnabledListingTopicOptions(normalizeHomeLandingConfig(null)));
       }
     })();
@@ -327,13 +364,20 @@ export default function PublishPatentPage() {
   }, [enabledListingTopicSet]);
 
   useEffect(() => {
-    if (!initialListingId) return;
-    if (listingId) return;
+    listingRouteIdRef.current = initialListingId;
+    if (!initialListingId) {
+      resetForm();
+      return;
+    }
+    resetForm();
 
     (async () => {
       if (!ensureApproved()) return;
+      const targetListingId = initialListingId;
+      const seq = ++listingLoadSeqRef.current;
       try {
-        const d = await apiGet<Listing>(`/listings/${initialListingId}`);
+        const d = await apiGet<Listing>(`/listings/${targetListingId}`);
+        if (seq !== listingLoadSeqRef.current || !pageVisibleRef.current || listingRouteIdRef.current !== targetListingId) return;
         setListingId(d.id);
         setAuditStatus(d.auditStatus);
         setListingStatus(d.status);
@@ -368,6 +412,7 @@ export default function PublishPatentPage() {
         if (d.patentId) {
           try {
             const p = await apiGet<Patent>(`/patents/${d.patentId}`);
+            if (seq !== listingLoadSeqRef.current || !pageVisibleRef.current || listingRouteIdRef.current !== targetListingId) return;
             setAssigneeNamesInput((p.assigneeNames || []).join(', '));
             setApplicantNamesInput((p.applicantNames || []).join(', '));
           } catch (_) {
@@ -375,10 +420,11 @@ export default function PublishPatentPage() {
           }
         }
       } catch (e: any) {
+        if (seq !== listingLoadSeqRef.current || !pageVisibleRef.current || listingRouteIdRef.current !== targetListingId) return;
         toast(e?.message || '加载草稿失败');
       }
     })();
-  }, [ensureApproved, initialListingId, listingId]);
+  }, [ensureApproved, initialListingId, resetForm]);
 
   const validateAndBuildCreate = useCallback(
     (mode: 'save' | 'submit'): ListingCreateRequest | null => {
@@ -564,6 +610,8 @@ export default function PublishPatentPage() {
   const saveDraft = useCallback(async () => {
     if (saving || submitting) return;
     if (!ensureApproved()) return;
+    const targetListingId = listingRouteIdRef.current || '';
+    const seq = ++saveSeqRef.current;
     setSaving(true);
     try {
       let res: Listing;
@@ -571,20 +619,26 @@ export default function PublishPatentPage() {
         const req = validateAndBuildCreate('save');
         if (!req) return;
         res = await apiPost<Listing>('/listings', req, { idempotencyKey: `listing-create-${req.patentNumberRaw}` });
+        if (seq !== saveSeqRef.current || !pageVisibleRef.current || listingRouteIdRef.current !== targetListingId) return;
         setListingId(res.id);
       } else {
         const req = buildUpdate('save');
         if (!req) return;
         res = await apiPatch<Listing>(`/listings/${listingId}`, req, { idempotencyKey: `listing-patch-${listingId}` });
+        if (seq !== saveSeqRef.current || !pageVisibleRef.current || listingRouteIdRef.current !== targetListingId) return;
       }
+      if (seq !== saveSeqRef.current || !pageVisibleRef.current || listingRouteIdRef.current !== targetListingId) return;
       setAuditStatus(res.auditStatus);
       setListingStatus(res.status);
       setSubmitted(false);
       toast('草稿已保存', { icon: 'success' });
     } catch (e: any) {
+      if (seq !== saveSeqRef.current || !pageVisibleRef.current || listingRouteIdRef.current !== targetListingId) return;
       toast(e?.message || '保存失败');
     } finally {
-      setSaving(false);
+      if (seq === saveSeqRef.current && pageVisibleRef.current && listingRouteIdRef.current === targetListingId) {
+        setSaving(false);
+      }
     }
   }, [buildUpdate, listingId, saving, submitting, validateAndBuildCreate]);
 
@@ -600,6 +654,8 @@ export default function PublishPatentPage() {
     });
     if (!ok) return;
 
+    const targetListingId = listingRouteIdRef.current || '';
+    const seq = ++submitSeqRef.current;
     setSubmitting(true);
     try {
       let id = listingId;
@@ -607,6 +663,7 @@ export default function PublishPatentPage() {
         const req = validateAndBuildCreate('submit');
         if (!req) return;
         const created = await apiPost<Listing>('/listings', req, { idempotencyKey: `listing-create-${req.patentNumberRaw}` });
+        if (seq !== submitSeqRef.current || !pageVisibleRef.current || listingRouteIdRef.current !== targetListingId) return;
         id = created.id;
         setListingId(created.id);
         setAuditStatus(created.auditStatus);
@@ -615,19 +672,24 @@ export default function PublishPatentPage() {
         const req = buildUpdate('submit');
         if (!req) return;
         const updated = await apiPatch<Listing>(`/listings/${id}`, req, { idempotencyKey: `listing-patch-${id}` });
+        if (seq !== submitSeqRef.current || !pageVisibleRef.current || listingRouteIdRef.current !== targetListingId) return;
         setAuditStatus(updated.auditStatus);
         setListingStatus(updated.status);
       }
 
       const res = await apiPost<Listing>(`/listings/${id}/submit`, {}, { idempotencyKey: `listing-submit-${id}` });
+      if (seq !== submitSeqRef.current || !pageVisibleRef.current || listingRouteIdRef.current !== targetListingId) return;
       setAuditStatus(res.auditStatus);
       setListingStatus(res.status);
       setSubmitted(true);
       toast('已提交审核', { icon: 'success' });
     } catch (e: any) {
+      if (seq !== submitSeqRef.current || !pageVisibleRef.current || listingRouteIdRef.current !== targetListingId) return;
       toast(e?.message || '提交失败');
     } finally {
-      setSubmitting(false);
+      if (seq === submitSeqRef.current && pageVisibleRef.current && listingRouteIdRef.current === targetListingId) {
+        setSubmitting(false);
+      }
     }
   }, [buildUpdate, listingId, saving, submitting, validateAndBuildCreate]);
 
@@ -672,7 +734,6 @@ export default function PublishPatentPage() {
       } else if (pickerOpen === 'tradeMode') {
         const nextTradeMode = value as TradeMode;
         setTradeMode(nextTradeMode);
-        setListingTopics((prev) => syncListingTopicsWithTradeMode(prev, nextTradeMode));
         if (value !== 'LICENSE') setLicenseMode('');
       } else if (pickerOpen === 'licenseMode') {
         setLicenseMode(value as LicenseMode);
@@ -695,7 +756,7 @@ export default function PublishPatentPage() {
             <Text className="form-hint">
               {'\u8d44\u6599\u5df2\u63d0\u4ea4\uff0c\u5ba1\u6838\u901a\u8fc7\u540e\u5c06\u81ea\u52a8\u4e0a\u67b6\uff0c\u8bf7\u7559\u610f\u6d88\u606f\u901a\u77e5\u3002'}
             </Text>
-            <Text className="form-hint">上架 ID：{listingId || '-'}</Text>
+            <Text className="form-hint">上架 ID：{listingId || '待生成'}</Text>
           </Surface>
         ) : null}
 
@@ -914,9 +975,6 @@ export default function PublishPatentPage() {
               onChange={(next) => {
                 const sanitized = sanitizeListingTopics(next).filter((topic) => enabledListingTopicSet.has(topic));
                 setListingTopics(sanitized);
-                if (sanitized.includes('OPEN_LICENSE') && tradeMode !== 'LICENSE') {
-                  setTradeMode('LICENSE');
-                }
               }}
             />
             <Text className="form-hint">

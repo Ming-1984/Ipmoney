@@ -10,6 +10,7 @@ type ListingStatus = components['schemas']['ListingStatus'];
 type FeaturedLevel = components['schemas']['FeaturedLevel'];
 type VerificationType = components['schemas']['VerificationType'];
 type VerificationStatus = components['schemas']['VerificationStatus'];
+type AchievementMaturity = components['schemas']['AchievementMaturity'];
 type ContentStatus = 'DRAFT' | 'ACTIVE' | 'OFF_SHELF';
 type ArtworkStatus = 'DRAFT' | 'ACTIVE' | 'OFF_SHELF' | 'SOLD';
 type DeliveryPeriod = 'WITHIN_1_MONTH' | 'MONTH_1_3' | 'MONTH_3_6' | 'OVER_6_MONTHS' | 'OTHER';
@@ -18,24 +19,28 @@ type CalligraphyScript = 'KAISHU' | 'XINGSHU' | 'CAOSHU' | 'LISHU' | 'ZHUANSHU';
 type PaintingGenre = 'FIGURE' | 'LANDSCAPE' | 'BIRD_FLOWER' | 'OTHER';
 
 export function patentTypeLabel(t?: PatentType | null, options?: { empty?: string }): string {
-  const empty = options?.empty ?? '-';
+  const empty = options?.empty ?? '';
   if (!t) return empty;
   if (t === 'INVENTION') return '发明';
   if (t === 'UTILITY_MODEL') return '实用新型';
   if (t === 'DESIGN') return '外观设计';
-  return String(t);
+  return '类型待确认';
 }
 
 export function tradeModeLabel(t?: TradeMode | null, options?: { empty?: string }): string {
-  const empty = options?.empty ?? '-';
+  const empty = options?.empty ?? '';
   if (!t) return empty;
-  return t === 'ASSIGNMENT' ? '转让' : '许可';
+  if (t === 'ASSIGNMENT') return '转让';
+  if (t === 'LICENSE') return '许可';
+  return '交易方式待确认';
 }
 
 export function priceTypeLabel(t?: PriceType | null, options?: { empty?: string }): string {
-  const empty = options?.empty ?? '-';
+  const empty = options?.empty ?? '';
   if (!t) return empty;
-  return t === 'NEGOTIABLE' ? '面议' : '一口价';
+  if (t === 'NEGOTIABLE') return '面议';
+  if (t === 'FIXED') return '一口价';
+  return '报价待确认';
 }
 
 export function artworkCategoryLabel(t?: ArtworkCategory | null, options?: { empty?: string }): string {
@@ -43,7 +48,7 @@ export function artworkCategoryLabel(t?: ArtworkCategory | null, options?: { emp
   if (!t) return empty;
   if (t === 'CALLIGRAPHY') return '书法';
   if (t === 'PAINTING') return '绘画';
-  return String(t);
+  return '类别待确认';
 }
 
 export function calligraphyScriptLabel(t?: CalligraphyScript | null, options?: { empty?: string }): string {
@@ -54,7 +59,7 @@ export function calligraphyScriptLabel(t?: CalligraphyScript | null, options?: {
   if (t === 'CAOSHU') return '草书';
   if (t === 'LISHU') return '隶书';
   if (t === 'ZHUANSHU') return '篆书';
-  return String(t);
+  return '书体待确认';
 }
 
 export function paintingGenreLabel(t?: PaintingGenre | null, options?: { empty?: string }): string {
@@ -64,7 +69,7 @@ export function paintingGenreLabel(t?: PaintingGenre | null, options?: { empty?:
   if (t === 'LANDSCAPE') return '山水';
   if (t === 'BIRD_FLOWER') return '花鸟';
   if (t === 'OTHER') return '其他';
-  return String(t);
+  return '题材待确认';
 }
 
 export function licenseModeLabel(t?: LicenseMode | null, options?: { empty?: string }): string {
@@ -73,7 +78,7 @@ export function licenseModeLabel(t?: LicenseMode | null, options?: { empty?: str
   if (t === 'EXCLUSIVE') return '独占许可';
   if (t === 'SOLE') return '排他许可';
   if (t === 'NON_EXCLUSIVE') return '普通许可';
-  return String(t);
+  return '许可方式待确认';
 }
 
 export function orderStatusLabel(status: OrderStatus): string {
@@ -86,7 +91,7 @@ export function orderStatusLabel(status: OrderStatus): string {
   if (status === 'CANCELLED') return '已取消';
   if (status === 'REFUNDING') return '退款中';
   if (status === 'REFUNDED') return '已退款';
-  return String(status);
+  return '状态待确认';
 }
 
 export function orderStatusTagClass(status: OrderStatus): string {
@@ -112,7 +117,7 @@ export function contentStatusLabel(status: ContentStatus): string {
   if (status === 'DRAFT') return '草稿';
   if (status === 'ACTIVE') return '已上架';
   if (status === 'OFF_SHELF') return '已下架';
-  return String(status);
+  return '状态待确认';
 }
 
 export function listingStatusLabel(status: ListingStatus): string {
@@ -120,7 +125,7 @@ export function listingStatusLabel(status: ListingStatus): string {
   if (status === 'ACTIVE') return '已上架';
   if (status === 'OFF_SHELF') return '已下架';
   if (status === 'SOLD') return '已成交';
-  return String(status);
+  return '状态待确认';
 }
 
 export function artworkStatusLabel(status?: ArtworkStatus | null, options?: { empty?: string }): string {
@@ -130,18 +135,18 @@ export function artworkStatusLabel(status?: ArtworkStatus | null, options?: { em
   if (status === 'ACTIVE') return '已上架';
   if (status === 'OFF_SHELF') return '已下架';
   if (status === 'SOLD') return '已成交';
-  return String(status);
+  return '状态待确认';
 }
 
 export function featuredLevelLabel(level?: FeaturedLevel | null): string {
   if (!level || level === 'NONE') return '无';
   if (level === 'PROVINCE') return '省级特色';
   if (level === 'CITY') return '市级特色';
-  return String(level);
+  return '特色待确认';
 }
 
 export function verificationTypeLabel(type?: VerificationType | null, options?: { empty?: string }): string {
-  const empty = options?.empty ?? '-';
+  const empty = options?.empty ?? '';
   if (!type) return empty;
   if (type === 'PERSON') return '个人';
   if (type === 'COMPANY') return '企业';
@@ -149,11 +154,11 @@ export function verificationTypeLabel(type?: VerificationType | null, options?: 
   if (type === 'GOVERNMENT') return '政府';
   if (type === 'ASSOCIATION') return '行业协会/学会';
   if (type === 'TECH_MANAGER') return '技术经理人';
-  return String(type);
+  return '认证类型待确认';
 }
 
 export function verificationStatusLabel(status?: VerificationStatus | null, options?: { empty?: string }): string {
-  const empty = options?.empty ?? '-';
+  const empty = options?.empty ?? '';
   if (!status) return empty;
   if (status === 'APPROVED') return '已通过';
   if (status === 'REJECTED') return '已驳回';
@@ -168,5 +173,17 @@ export function deliveryPeriodLabel(period?: DeliveryPeriod | null, options?: { 
   if (period === 'MONTH_3_6') return '3-6月';
   if (period === 'OVER_6_MONTHS') return '≥6月';
   if (period === 'OTHER') return '其他';
-  return String(period);
+  return '周期待确认';
+}
+
+export function achievementMaturityLabel(value?: AchievementMaturity | null, options?: { empty?: string }): string {
+  const empty = options?.empty ?? '';
+  if (!value) return empty;
+  if (value === 'CONCEPT') return '概念验证';
+  if (value === 'PROTOTYPE') return '样机阶段';
+  if (value === 'PILOT') return '中试阶段';
+  if (value === 'MASS_PRODUCTION') return '量产阶段';
+  if (value === 'COMMERCIALIZED') return '已商业化';
+  if (value === 'OTHER') return '其他';
+  return '成熟度待确认';
 }
