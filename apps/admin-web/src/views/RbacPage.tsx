@@ -3,6 +3,7 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 
 import { apiDelete, apiGet, apiPatch, apiPost } from '../lib/api';
 import { formatTimeSmart } from '../lib/format';
+import { displayAdminInfo, normalizeUserFacingText } from '../lib/userFacingText';
 import { RequestErrorAlert } from '../ui/RequestState';
 import { confirmActionWithReason } from '../ui/confirm';
 
@@ -219,7 +220,7 @@ export function RbacPage() {
           }}
           columns={[
             { title: '角色名称', dataIndex: 'name' },
-            { title: '说明', dataIndex: 'description', render: (v) => v || '-' },
+            { title: '说明', dataIndex: 'description', render: (v) => displayAdminInfo(v) },
             {
               title: '权限点',
               dataIndex: 'permissionIds',
@@ -401,7 +402,7 @@ export function RbacPage() {
               render: (v: string) => <Typography.Text copyable>{v}</Typography.Text>,
             },
             { title: '账号', dataIndex: 'name' },
-            { title: '手机号', dataIndex: 'email', render: (v) => v || '-' },
+            { title: '手机号', dataIndex: 'email', render: (v) => displayAdminInfo(v) },
             {
               title: '角色',
               dataIndex: 'roleIds',

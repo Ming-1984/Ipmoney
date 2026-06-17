@@ -1,8 +1,9 @@
 import { Button, Card, Drawer, Form, Input, Select, Space, Table, Tag, Typography, message } from 'antd';
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { apiGet, apiPatch, apiPost } from '../lib/api';
 import { formatTimeSmart } from '../lib/format';
+import { displayAdminInfo, displayAdminTitle, normalizeUserFacingText } from '../lib/userFacingText';
 import { auditStatusLabel, contentStatusLabel } from '../lib/labels';
 import { ImageUrlUploadField } from '../ui/ImageUrlUploadField';
 import { RequestErrorAlert } from '../ui/RequestState';
@@ -98,12 +99,16 @@ export function AchievementsPage() {
   const [sourceRawRegion, setSourceRawRegion] = useState('');
   const [sourceOrgName, setSourceOrgName] = useState('');
   const [externalId, setExternalId] = useState('');
+  const loadSeqRef = useRef(0);
+  const detailSeqRef = useRef(0);
+  const detailIdRef = useRef<string | null>(null);
 
   const rows = useMemo(() => data?.items || [], [data?.items]);
 
   const load = useCallback(async (opts?: { page?: number; pageSize?: number }) => {
     const nextPage = opts?.page ?? page;
     const nextPageSize = opts?.pageSize ?? pageSize;
+    const seq = ++loadSeqRef.current;
     setLoading(true);
     setError(null);
     try {
@@ -115,12 +120,15 @@ export function AchievementsPage() {
         page: nextPage,
         pageSize: nextPageSize,
       });
+      if (seq !== loadSeqRef.current) return;
       setData(d);
     } catch (e: any) {
+      if (seq !== loadSeqRef.current) return;
       setError(e);
       setData(null);
       message.error(e?.message || '加载成果列表失败');
     } finally {
+      if (seq !== loadSeqRef.current) return;
       setLoading(false);
     }
   }, [auditStatus, page, pageSize, q, source, status]);
@@ -155,18 +163,23 @@ export function AchievementsPage() {
   };
 
   const openCreate = () => {
+    detailSeqRef.current += 1;
+    detailIdRef.current = null;
     setActive(null);
     resetEditor();
     setDrawerOpen(true);
   };
 
   const openEdit = async (id: string) => {
+    const seq = ++detailSeqRef.current;
+    detailIdRef.current = id;
     try {
       const detail = await apiGet<AchievementEdit>(`/admin/achievements/${id}`);
+      if (seq !== detailSeqRef.current || detailIdRef.current !== id) return;
       setActive(detail);
-      setTitle(detail.title || '');
-      setSummary(detail.summary || '');
-      setDescription(detail.description || '');
+      setTitle(normalizeUserFacingText(detail.title));
+      setSummary(normalizeUserFacingText(detail.summary));
+      setDescription(normalizeUserFacingText(detail.description));
       setMaturity((detail.maturity || '') as AchievementMaturity | '');
       setRegionCode(detail.regionCode || '');
       setIndustryTagsInput((detail.industryTags || []).join('，'));
@@ -183,6 +196,7 @@ export function AchievementsPage() {
       setExternalId(detail.externalId || '');
       setDrawerOpen(true);
     } catch (e: any) {
+      if (seq !== detailSeqRef.current || detailIdRef.current !== id) return;
       message.error(e?.message || '加载成果详情失败');
     }
   };
@@ -360,15 +374,15 @@ export function AchievementsPage() {
             },
           }}
           columns={[
-            { title: '标题', dataIndex: 'title', ellipsis: true },
+            { title: '标题', dataIndex: 'title', ellipsis: true, render: (value) => displayAdminTitle(value, '未命名成果') },
             {
               title: '来源',
               dataIndex: 'source',
               width: 120,
-              render: (v: ContentSource | undefined) => SOURCE_OPTIONS.find((it) => it.value === v)?.label || '-',
+              render: (v: ContentSource | undefined) => displayAdminInfo(SOURCE_OPTIONS.find((it) => it.value === v)?.label),
             },
-            { title: '外部ID', dataIndex: 'externalId', width: 120, render: (v) => v || '-' },
-            { title: '来源批次', dataIndex: 'sourceBatch', width: 120, render: (v) => v || '-' },
+            { title: '外部ID', dataIndex: 'externalId', width: 120, render: (v) => displayAdminInfo(v) },
+            { title: '来源批次', dataIndex: 'sourceBatch', width: 120, render: (v) => displayAdminInfo(v) },
             {
               title: '审核状态',
               dataIndex: 'auditStatus',
@@ -410,7 +424,7 @@ export function AchievementsPage() {
       </Space>
 
       <Drawer
-        title={active?.id ? `编辑成果：${active.title || active.id}` : '新建成果'}
+        title={active?.id ? `编辑成果：${normalizeUserFacingText(active.title) || active.id}` : '新建成果'}
         open={drawerOpen}
         onClose={() => setDrawerOpen(false)}
         width={780}
@@ -458,6 +472,7 @@ export function AchievementsPage() {
               value={coverUrl}
               uploadPurpose="ACHIEVEMENT_COVER"
               maxSizeMb={10}
+              allowUrlInput={false}
               placeholder="上传或填写封面图片地址"
               onChange={(next) => setCoverUrl(next)}
               onUploaded={async (uploaded) => {
@@ -465,6 +480,16 @@ export function AchievementsPage() {
                 setCoverUrl(uploaded.url);
               }}
             />
+            <Button
+              danger
+              style={{ marginTop: 8 }}
+              onClick={() => {
+                setCoverFileId('');
+                setCoverUrl('');
+              }}
+            >
+              清除封面
+            </Button>
           </div>
 
           <Typography.Title level={5}>来源治理</Typography.Title>

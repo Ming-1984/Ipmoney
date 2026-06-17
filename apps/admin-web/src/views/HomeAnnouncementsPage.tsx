@@ -1,8 +1,9 @@
 ﻿import { Button, Card, Form, Input, InputNumber, Select, Space, Switch, Table, Tag, Typography, message } from 'antd';
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { apiDelete, apiGet, apiPost, apiPut } from '../lib/api';
 import { formatTimeSmart } from '../lib/format';
+import { displayAdminInfo, normalizeUserFacingText } from '../lib/userFacingText';
 import { confirmAction } from '../ui/confirm';
 
 type HomeAnnouncementStatus = 'DRAFT' | 'PUBLISHED' | 'OFFLINE';
@@ -89,19 +90,30 @@ export function HomeAnnouncementsPage() {
   const [editingItemId, setEditingItemId] = useState<string | null>(null);
   const [templateTablePage, setTemplateTablePage] = useState(1);
   const [templateTablePageSize, setTemplateTablePageSize] = useState(10);
+  const loadSeqRef = useRef(0);
+  const templateSubmitSeqRef = useRef(0);
+  const itemSubmitSeqRef = useRef(0);
+  const templateDeleteSeqRef = useRef(0);
+  const itemPublishSeqRef = useRef(0);
+  const itemDeleteSeqRef = useRef(0);
 
   const [templateForm] = Form.useForm<TemplateFormValues>();
   const [itemForm] = Form.useForm<AnnouncementFormValues>();
 
   const load = useCallback(async () => {
+    const seq = ++loadSeqRef.current;
     setLoading(true);
     try {
       const data = await apiGet<HomeAnnouncementConfig>('/admin/config/home-announcements');
+      if (seq !== loadSeqRef.current) return;
       setConfig(data);
     } catch (e: any) {
+      if (seq !== loadSeqRef.current) return;
       message.error(e?.message || '加载首页公告配置失败');
     } finally {
-      setLoading(false);
+      if (seq === loadSeqRef.current) {
+        setLoading(false);
+      }
     }
   }, []);
 
@@ -182,6 +194,7 @@ export function HomeAnnouncementsPage() {
           layout="vertical"
           initialValues={{ enabled: true }}
           onFinish={async (values) => {
+            const seq = ++templateSubmitSeqRef.current;
             setSubmitting(true);
             try {
               const payload = {
@@ -194,17 +207,22 @@ export function HomeAnnouncementsPage() {
               };
               if (editingTemplateId) {
                 await apiPut(`/admin/config/home-announcements/templates/${editingTemplateId}`, payload);
+                if (seq !== templateSubmitSeqRef.current) return;
                 message.success('模板已更新');
               } else {
                 await apiPost('/admin/config/home-announcements/templates', payload);
+                if (seq !== templateSubmitSeqRef.current) return;
                 message.success('模板已创建');
               }
               resetTemplateForm();
               await load();
             } catch (e: any) {
+              if (seq !== templateSubmitSeqRef.current) return;
               message.error(e?.message || '模板保存失败');
             } finally {
-              setSubmitting(false);
+              if (seq === templateSubmitSeqRef.current) {
+                setSubmitting(false);
+              }
             }
           }}
         >
@@ -270,8 +288,8 @@ export function HomeAnnouncementsPage() {
           }}
           columns={[
             { title: '名称', dataIndex: 'name', width: 180 },
-            { title: '标题', dataIndex: 'title', width: 260 },
-            { title: '标签', dataIndex: 'tag', width: 120, render: (v) => v || '-' },
+            { title: '标题', dataIndex: 'title', width: 260, render: (value) => normalizeUserFacingText(value) || '未命名模板' },
+            { title: '标签', dataIndex: 'tag', width: 120, render: (v) => displayAdminInfo(v) },
             { title: '启用', dataIndex: 'enabled', width: 100, render: (v: boolean) => (v ? <Tag color="green">ON</Tag> : <Tag>OFF</Tag>) },
             { title: '更新时间', dataIndex: 'updatedAt', width: 160, render: (v: string) => formatTimeSmart(v) },
             {
@@ -284,9 +302,9 @@ export function HomeAnnouncementsPage() {
                     onClick={() => {
                       setEditingTemplateId(row.id);
                       templateForm.setFieldsValue({
-                        name: row.name,
-                        title: row.title,
-                        content: row.content,
+                        name: normalizeUserFacingText(row.name),
+                        title: normalizeUserFacingText(row.title),
+                        content: normalizeUserFacingText(row.content),
                         tag: row.tag || '',
                         linkUrl: row.linkUrl || '',
                         enabled: row.enabled,
@@ -300,8 +318,8 @@ export function HomeAnnouncementsPage() {
                     onClick={() => {
                       itemForm.setFieldsValue({
                         templateId: row.id,
-                        title: row.title,
-                        content: row.content,
+                        title: normalizeUserFacingText(row.title),
+                        content: normalizeUserFacingText(row.content),
                         tag: row.tag || '',
                         linkUrl: row.linkUrl || '',
                       });
@@ -321,12 +339,15 @@ export function HomeAnnouncementsPage() {
                         okText: '删除',
                       });
                       if (!ok) return;
+                      const seq = ++templateDeleteSeqRef.current;
                       try {
                         await apiDelete(`/admin/config/home-announcements/templates/${row.id}`);
+                        if (seq !== templateDeleteSeqRef.current) return;
                         message.success('模板已删除');
                         if (editingTemplateId === row.id) resetTemplateForm();
                         await load();
                       } catch (e: any) {
+                        if (seq !== templateDeleteSeqRef.current) return;
                         message.error(e?.message || '删除模板失败');
                       }
                     }}
@@ -353,10 +374,10 @@ export function HomeAnnouncementsPage() {
             const currentTitle = String(values.title || '').trim();
             const currentContent = String(values.content || '').trim();
             if (!currentTitle) {
-              itemForm.setFieldValue('title', template.title);
+              itemForm.setFieldValue('title', normalizeUserFacingText(template.title));
             }
             if (!currentContent) {
-              itemForm.setFieldValue('content', template.content);
+              itemForm.setFieldValue('content', normalizeUserFacingText(template.content));
             }
             if (!values.tag) {
               itemForm.setFieldValue('tag', template.tag || '');
@@ -366,6 +387,7 @@ export function HomeAnnouncementsPage() {
             }
           }}
           onFinish={async (values) => {
+            const seq = ++itemSubmitSeqRef.current;
             setSubmitting(true);
             try {
               const payload = {
@@ -381,17 +403,22 @@ export function HomeAnnouncementsPage() {
               };
               if (editingItemId) {
                 await apiPut(`/admin/config/home-announcements/items/${editingItemId}`, payload);
+                if (seq !== itemSubmitSeqRef.current) return;
                 message.success('公告已更新');
               } else {
                 await apiPost('/admin/config/home-announcements/items', payload);
+                if (seq !== itemSubmitSeqRef.current) return;
                 message.success('公告草稿已创建');
               }
               resetItemForm();
               await load();
             } catch (e: any) {
+              if (seq !== itemSubmitSeqRef.current) return;
               message.error(e?.message || '公告保存失败');
             } finally {
-              setSubmitting(false);
+              if (seq === itemSubmitSeqRef.current) {
+                setSubmitting(false);
+              }
             }
           }}
         >
@@ -487,8 +514,8 @@ export function HomeAnnouncementsPage() {
           pagination={{ pageSize: 10 }}
           columns={[
             { title: '状态', dataIndex: 'status', width: 120, render: (v: HomeAnnouncementStatus) => statusTag(v) },
-            { title: '标题', dataIndex: 'title', width: 260 },
-            { title: '标签', dataIndex: 'tag', width: 100, render: (v) => v || '-' },
+            { title: '标题', dataIndex: 'title', width: 260, render: (value) => normalizeUserFacingText(value) || '未命名公告' },
+            { title: '标签', dataIndex: 'tag', width: 100, render: (v) => displayAdminInfo(v) },
             { title: '置顶', dataIndex: 'pinned', width: 80, render: (v: boolean) => (v ? '是' : '否') },
             { title: '排序', dataIndex: 'order', width: 80 },
             { title: '发布时间', dataIndex: 'publishedAt', width: 160, render: (v: string | null) => (v ? formatTimeSmart(v) : '-') },
@@ -528,11 +555,14 @@ export function HomeAnnouncementsPage() {
                         okText: '发布',
                       });
                       if (!ok) return;
+                      const seq = ++itemPublishSeqRef.current;
                       try {
                         await apiPost(`/admin/config/home-announcements/items/${row.id}/publish`);
+                        if (seq !== itemPublishSeqRef.current) return;
                         message.success('公告已发布');
                         await load();
                       } catch (e: any) {
+                        if (seq !== itemPublishSeqRef.current) return;
                         message.error(e?.message || '发布失败');
                       }
                     }}
@@ -549,11 +579,14 @@ export function HomeAnnouncementsPage() {
                         okText: '下线',
                       });
                       if (!ok) return;
+                      const seq = ++itemPublishSeqRef.current;
                       try {
                         await apiPost(`/admin/config/home-announcements/items/${row.id}/offline`);
+                        if (seq !== itemPublishSeqRef.current) return;
                         message.success('公告已下线');
                         await load();
                       } catch (e: any) {
+                        if (seq !== itemPublishSeqRef.current) return;
                         message.error(e?.message || '下线失败');
                       }
                     }}
@@ -571,12 +604,15 @@ export function HomeAnnouncementsPage() {
                         okText: '删除',
                       });
                       if (!ok) return;
+                      const seq = ++itemDeleteSeqRef.current;
                       try {
                         await apiDelete(`/admin/config/home-announcements/items/${row.id}`);
+                        if (seq !== itemDeleteSeqRef.current) return;
                         message.success('公告已删除');
                         if (editingItemId === row.id) resetItemForm();
                         await load();
                       } catch (e: any) {
+                        if (seq !== itemDeleteSeqRef.current) return;
                         message.error(e?.message || '删除失败');
                       }
                     }}

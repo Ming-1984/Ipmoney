@@ -20,6 +20,7 @@ import type { components } from '@ipmoney/api-types';
 
 import { apiGet, apiPost, apiUploadFile } from '../lib/api';
 import { formatTimeSmart, yuanToFen } from '../lib/format';
+import { displayAdminInfo, normalizeUserFacingText } from '../lib/userFacingText';
 import {
   DEFAULT_LISTING_TOPIC_OPTIONS,
   fetchAdminListingTopicOptions,
@@ -173,6 +174,7 @@ export function ListingsAuditPage() {
   const [importRowsPage, setImportRowsPage] = useState(1);
   const [importRowsPageSize, setImportRowsPageSize] = useState(20);
   const [importDrawerOpen, setImportDrawerOpen] = useState(false);
+  const [autoRefreshImportJobIds, setAutoRefreshImportJobIds] = useState<string[]>([]);
 
   const selectedListingIds = useMemo(
     () => selectedRowKeys.map((it) => String(it)).filter(Boolean),
@@ -350,6 +352,7 @@ export function ListingsAuditPage() {
     setActiveBatchJob(job);
     setBatchItemsPage(1);
     setBatchItemsPageSize(20);
+    setBatchItems(null);
     setBatchItemsLoading(true);
     try {
       const data = await apiGet<Paged<BatchJobItem>>(`/admin/listings/jobs/batch/${job.id}/items`, {
@@ -391,6 +394,7 @@ export function ListingsAuditPage() {
     setActiveImportJob(job);
     setImportRowsPage(1);
     setImportRowsPageSize(20);
+    setImportRows(null);
     setImportRowsLoading(true);
     try {
       const data = await apiGet<Paged<ImportRow>>(`/admin/listings/jobs/import/${job.id}/rows`, {
@@ -426,6 +430,37 @@ export function ListingsAuditPage() {
     },
     [importRowsPage, importRowsPageSize],
   );
+
+  useEffect(() => {
+    if (!autoRefreshImportJobIds.length) return;
+    const timer = window.setInterval(() => {
+      void loadImportJobs();
+      if (activeImportJob && importDrawerOpen) {
+        void loadImportJobRows(activeImportJob, { page: importRowsPage, pageSize: importRowsPageSize });
+      }
+    }, 4000);
+    return () => window.clearInterval(timer);
+  }, [
+    activeImportJob,
+    autoRefreshImportJobIds.length,
+    importDrawerOpen,
+    importRowsPage,
+    importRowsPageSize,
+    loadImportJobRows,
+    loadImportJobs,
+  ]);
+
+  useEffect(() => {
+    if (!autoRefreshImportJobIds.length || !importJobs?.items?.length) return;
+    const runningIds = new Set(
+      importJobs.items
+        .filter((job) => autoRefreshImportJobIds.includes(job.id))
+        .filter((job) => job.status === 'PENDING' || job.status === 'RUNNING' || job.status === 'PAUSED')
+        .map((job) => job.id),
+    );
+    if (runningIds.size === autoRefreshImportJobIds.length) return;
+    setAutoRefreshImportJobIds(Array.from(runningIds));
+  }, [autoRefreshImportJobIds, importJobs]);
 
   useEffect(() => {
     if (!activeBatchJob || !batchDrawerOpen) return;
@@ -469,6 +504,7 @@ export function ListingsAuditPage() {
       await apiPost(`/admin/listings/jobs/import/${job.id}/execute`, undefined, {
         idempotencyKey: `admin-listing-import-execute-${job.id}`,
       });
+      setAutoRefreshImportJobIds((prev) => Array.from(new Set([...prev, job.id])));
       message.success('导入任务已提交并开始执行');
       setUploadFileList([]);
       await loadImportJobs();
@@ -594,7 +630,7 @@ export function ListingsAuditPage() {
             }}
             columns={[
               { title: 'ID', dataIndex: 'id', width: 220 },
-              { title: '标题', dataIndex: 'title', ellipsis: true },
+              { title: '标题', dataIndex: 'title', ellipsis: true, render: (value) => normalizeUserFacingText(value) || '未命名挂牌' },
               {
                 title: '交易方式',
                 dataIndex: 'tradeMode',
@@ -955,13 +991,13 @@ export function ListingsAuditPage() {
           columns={[
             { title: '行号', dataIndex: 'rowNo', width: 90 },
             { title: '状态', dataIndex: 'status', width: 120, render: (v: ImportRowStatus) => statusTag(v) },
-            { title: '挂牌ID', dataIndex: 'listingId', width: 220, render: (v) => v || '-' },
-            { title: '错误码', dataIndex: 'errorCode', width: 160, render: (v) => v || '-' },
+            { title: '挂牌ID', dataIndex: 'listingId', width: 220, render: (v) => displayAdminInfo(v) },
+            { title: '错误码', dataIndex: 'errorCode', width: 160, render: (v) => displayAdminInfo(v) },
             {
               title: '错误信息',
               dataIndex: 'errorMessage',
               width: 260,
-              render: (v) => v || '-',
+              render: (v) => displayAdminInfo(v),
             },
             {
               title: '标准化结果',

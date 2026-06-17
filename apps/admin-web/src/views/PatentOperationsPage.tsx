@@ -8,6 +8,7 @@ import {
   DEFAULT_LISTING_TOPIC_OPTIONS,
   fetchAdminListingTopicOptions,
 } from '../lib/homeLandingConfig';
+import { displayAdminInfo, normalizeUserFacingText } from '../lib/userFacingText';
 import { RequestErrorAlert } from '../ui/RequestState';
 
 type ConsultationRouting = 'PLATFORM' | 'OWNER';
@@ -319,6 +320,9 @@ function buildListingDefaults(values: DefaultsFormValues): { payload?: Record<st
     if (!values.licenseMode) return { error: '许可模式不能为空' };
     listingDefaults.licenseMode = values.licenseMode;
   }
+  if (values.tradeMode !== 'LICENSE' && Array.isArray(values.listingTopics) && values.listingTopics.includes('OPEN_LICENSE')) {
+    return { error: '开放许可标签仅可用于许可交易模式' };
+  }
   if (values.priceType === 'FIXED') {
     if (!values.priceAmountYuan || Number(values.priceAmountYuan) <= 0) {
       return { error: '一口价模式必须填写挂牌价格（元）' };
@@ -367,6 +371,7 @@ export function PatentOperationsPage() {
   const [appliedJobStatusFilter, setAppliedJobStatusFilter] = useState<JobStatus | ''>('');
   const [appliedJobDuplicatePolicyFilter, setAppliedJobDuplicatePolicyFilter] = useState<DuplicatePolicy | ''>('');
   const [form] = Form.useForm<DefaultsFormValues>();
+  const tradeModeValue = Form.useWatch('tradeMode', form);
   const [listingTopicOptions, setListingTopicOptions] =
     useState<Array<{ value: ListingTopic; label: string }>>(DEFAULT_LISTING_TOPIC_OPTIONS);
 
@@ -387,10 +392,13 @@ export function PatentOperationsPage() {
 
   const [mapManualListingIdsText, setMapManualListingIdsText] = useState('');
   const [mapPatchRegionCode, setMapPatchRegionCode] = useState('');
+  const [mapPatchClearRegionCode, setMapPatchClearRegionCode] = useState(false);
   const [mapPatchFeaturedLevel, setMapPatchFeaturedLevel] = useState<PatentMapFeaturedLevel | ''>('');
   const [mapPatchFeaturedRegionCode, setMapPatchFeaturedRegionCode] = useState('');
+  const [mapPatchClearFeaturedRegionCode, setMapPatchClearFeaturedRegionCode] = useState(false);
   const [mapPatchFeaturedRank, setMapPatchFeaturedRank] = useState<number | null>(null);
   const [mapPatchFeaturedUntil, setMapPatchFeaturedUntil] = useState('');
+  const [mapPatchClearFeaturedUntil, setMapPatchClearFeaturedUntil] = useState(false);
   const [mapPatchClearRanking, setMapPatchClearRanking] = useState(false);
   const [mapPatchReason, setMapPatchReason] = useState('');
   const [mapBatchSubmitting, setMapBatchSubmitting] = useState(false);
@@ -526,10 +534,13 @@ export function PatentOperationsPage() {
 
   const resetMapPatchFields = useCallback(() => {
     setMapPatchRegionCode('');
+    setMapPatchClearRegionCode(false);
     setMapPatchFeaturedLevel('');
     setMapPatchFeaturedRegionCode('');
+    setMapPatchClearFeaturedRegionCode(false);
     setMapPatchFeaturedRank(null);
     setMapPatchFeaturedUntil('');
+    setMapPatchClearFeaturedUntil(false);
     setMapPatchClearRanking(false);
     setMapPatchReason('');
     setMapBatchResult(null);
@@ -546,13 +557,29 @@ export function PatentOperationsPage() {
     const featuredRegionCode = String(mapPatchFeaturedRegionCode || '').trim();
     const featuredUntil = String(mapPatchFeaturedUntil || '').trim();
 
-    if (regionCode) patch.regionCode = regionCode;
+    if (mapPatchClearRegionCode) {
+      patch.regionCode = null;
+    } else if (regionCode) {
+      patch.regionCode = regionCode;
+    }
     if (mapPatchFeaturedLevel) patch.featuredLevel = mapPatchFeaturedLevel;
-    if (featuredRegionCode) patch.featuredRegionCode = featuredRegionCode;
+    if (mapPatchFeaturedLevel && mapPatchFeaturedLevel !== 'NONE' && mapPatchClearFeaturedRegionCode) {
+      message.warning('设置上榜级别时，不能同时清空上榜地区。');
+      return;
+    }
+    if (mapPatchClearFeaturedRegionCode) {
+      patch.featuredRegionCode = null;
+    } else if (featuredRegionCode) {
+      patch.featuredRegionCode = featuredRegionCode;
+    }
     if (mapPatchFeaturedRank !== null && Number.isFinite(Number(mapPatchFeaturedRank))) {
       patch.featuredRank = Number(mapPatchFeaturedRank);
     }
-    if (featuredUntil) patch.featuredUntil = featuredUntil;
+    if (mapPatchClearFeaturedUntil) {
+      patch.featuredUntil = null;
+    } else if (featuredUntil) {
+      patch.featuredUntil = featuredUntil;
+    }
     if (mapPatchClearRanking) patch.clearRanking = true;
 
     if (!Object.keys(patch).length) {
@@ -583,6 +610,9 @@ export function PatentOperationsPage() {
     loadPatentMapOverview,
     loadPatentMapRegionDetail,
     mapPatchClearRanking,
+    mapPatchClearFeaturedRegionCode,
+    mapPatchClearFeaturedUntil,
+    mapPatchClearRegionCode,
     mapPatchFeaturedLevel,
     mapPatchFeaturedRank,
     mapPatchFeaturedRegionCode,
@@ -613,10 +643,12 @@ export function PatentOperationsPage() {
   useEffect(() => {
     const current = form.getFieldValue('listingTopics') as ListingTopic[] | undefined;
     if (!Array.isArray(current) || !current.length) return;
-    const next = current.filter((topic) => enabledTopicSet.has(topic));
+    const next = current.filter(
+      (topic) => enabledTopicSet.has(topic) && (tradeModeValue === 'LICENSE' || topic !== 'OPEN_LICENSE'),
+    );
     if (next.length === current.length) return;
     form.setFieldsValue({ listingTopics: next });
-  }, [enabledTopicSet, form]);
+  }, [enabledTopicSet, form, tradeModeValue]);
 
   useEffect(() => {
     void loadJobs();
@@ -802,6 +834,7 @@ export function PatentOperationsPage() {
   const openRows = useCallback((job: PatentImportJob) => {
     setActiveJobId(job.id);
     setActiveJob(job);
+    setRows(null);
     setRowsPage(1);
     setRowsPageSize(50);
     setRowsDraftStatus('');
@@ -1196,14 +1229,19 @@ export function PatentOperationsPage() {
             }}
             columns={[
               { title: '挂牌ID', dataIndex: 'listingId', width: 240 },
-              { title: '标题', dataIndex: 'title', ellipsis: true },
+              { title: '标题', dataIndex: 'title', ellipsis: true, render: (value) => normalizeUserFacingText(value) || '未命名挂牌' },
               {
                 title: '专利类型',
                 dataIndex: 'patentType',
                 width: 110,
-                render: (value: PatentMapRegionDetail['items'][number]['patentType']) => value || '-',
+                render: (value: PatentMapRegionDetail['items'][number]['patentType']) => displayAdminInfo(value),
               },
-              { title: '申请号', dataIndex: 'applicationNoDisplay', width: 160, render: (value: string | null) => value || '-' },
+              {
+                title: '申请号',
+                dataIndex: 'applicationNoDisplay',
+                width: 160,
+                render: (value: string | null) => displayAdminInfo(value),
+              },
               {
                 title: '上榜状态',
                 width: 220,
@@ -1242,6 +1280,10 @@ export function PatentOperationsPage() {
               style={{ width: 180 }}
               allowClear
             />
+            <Space size={4}>
+              <Typography.Text>清除挂牌地区</Typography.Text>
+              <Switch checked={mapPatchClearRegionCode} onChange={setMapPatchClearRegionCode} />
+            </Space>
             <Select
               value={mapPatchFeaturedLevel}
               style={{ width: 180 }}
@@ -1255,6 +1297,10 @@ export function PatentOperationsPage() {
               style={{ width: 190 }}
               allowClear
             />
+            <Space size={4}>
+              <Typography.Text>清除上榜地区</Typography.Text>
+              <Switch checked={mapPatchClearFeaturedRegionCode} onChange={setMapPatchClearFeaturedRegionCode} />
+            </Space>
             <InputNumber
               min={0}
               precision={0}
@@ -1269,6 +1315,10 @@ export function PatentOperationsPage() {
               style={{ width: 220 }}
               allowClear
             />
+            <Space size={4}>
+              <Typography.Text>清除截止时间</Typography.Text>
+              <Switch checked={mapPatchClearFeaturedUntil} onChange={setMapPatchClearFeaturedUntil} />
+            </Space>
             <Space size={4}>
               <Typography.Text>清除上榜</Typography.Text>
               <Switch checked={mapPatchClearRanking} onChange={setMapPatchClearRanking} />
@@ -1357,11 +1407,11 @@ export function PatentOperationsPage() {
             columns={[
               { title: '行号', dataIndex: 'rowNo', width: 80 },
               { title: '状态', dataIndex: 'status', width: 120, render: (v: ImportRowStatus) => statusTag(v) },
-              { title: '申请号', render: (_, r) => String(r.normalized?.applicationNoNorm || '-') },
-              { title: '标题', render: (_, r) => String(r.normalized?.title || '-') },
-              { title: '专利ID', dataIndex: 'patentId', render: (v: string | null | undefined) => v || '-' },
-              { title: '错误码', dataIndex: 'errorCode', width: 160, render: (v: string | null | undefined) => v || '-' },
-              { title: '错误信息', dataIndex: 'errorMessage', render: (v: string | null | undefined) => v || '-' },
+              { title: '申请号', render: (_, r) => displayAdminInfo(r.normalized?.applicationNoNorm) },
+              { title: '标题', render: (_, r) => displayAdminInfo(r.normalized?.title) },
+              { title: '专利ID', dataIndex: 'patentId', render: (v: string | null | undefined) => displayAdminInfo(v) },
+              { title: '错误码', dataIndex: 'errorCode', width: 160, render: (v: string | null | undefined) => displayAdminInfo(v) },
+              { title: '错误信息', dataIndex: 'errorMessage', render: (v: string | null | undefined) => displayAdminInfo(v) },
             ]}
           />
         </Space>
