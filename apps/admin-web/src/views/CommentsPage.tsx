@@ -3,6 +3,7 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 
 import { apiGet, apiPatch } from '../lib/api';
 import { formatTimeSmart } from '../lib/format';
+import { normalizeUserFacingText } from '../lib/userFacingText';
 import { RequestErrorAlert } from '../ui/RequestState';
 import { confirmAction } from '../ui/confirm';
 
@@ -43,6 +44,10 @@ function statusTag(status?: CommentStatus | null) {
   if (value === 'VISIBLE') return <Tag color="green">可见</Tag>;
   if (value === 'HIDDEN') return <Tag color="orange">已隐藏</Tag>;
   return <Tag color="red">已删除</Tag>;
+}
+
+function displayCommentText(value: unknown, fallback = '-'): string {
+  return normalizeUserFacingText(value) || fallback;
 }
 
 export function CommentsPage() {
@@ -201,7 +206,7 @@ export function CommentsPage() {
                 <Space direction="vertical" size={2}>
                   {r.parentCommentId ? <Tag>回复</Tag> : <Tag color="blue">根留言</Tag>}
                   <Typography.Paragraph style={{ marginBottom: 0 }} ellipsis={{ rows: 2 }}>
-                    {v || '-'}
+                    {displayCommentText(v)}
                   </Typography.Paragraph>
                 </Space>
               ),
@@ -209,12 +214,16 @@ export function CommentsPage() {
             {
               title: '用户',
               key: 'user',
-              render: (_, r) => (
-                <Space direction="vertical" size={0}>
-                  <Typography.Text>{r.user?.nickname || r.user?.id || '-'}</Typography.Text>
-                  {r.user?.id ? <Typography.Text type="secondary">{r.user.id}</Typography.Text> : null}
-                </Space>
-              ),
+              render: (_, r) => {
+                const nickname = normalizeUserFacingText(r.user?.nickname);
+                const userId = normalizeUserFacingText(r.user?.id);
+                return (
+                  <Space direction="vertical" size={0}>
+                    <Typography.Text>{nickname || userId || '用户待补充'}</Typography.Text>
+                    {userId ? <Typography.Text type="secondary">{userId}</Typography.Text> : null}
+                  </Space>
+                );
+              },
             },
             { title: '状态', dataIndex: 'status', render: (v) => statusTag(v) },
             { title: '创建时间', dataIndex: 'createdAt', render: (v) => formatTimeSmart(v) },
