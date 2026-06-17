@@ -1,9 +1,10 @@
 import { Button, Card, Form, Input, InputNumber, Modal, Space, Table, Typography, message } from 'antd';
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 import { apiGet, apiPost } from '../lib/api';
 import { fenToYuan, formatTimeSmart } from '../lib/format';
+import { normalizeUserFacingText } from '../lib/userFacingText';
 import { orderStatusLabel } from '../lib/labels';
 import { AuditHint, RequestErrorAlert } from '../ui/RequestState';
 import { confirmActionWithReason } from '../ui/confirm';
@@ -21,21 +22,73 @@ type OrderStatus =
 
 type Order = {
   id: string;
-  listingId: string;
-  buyerUserId: string;
-  sellerUserId?: string;
+  listingId?: string | null;
+  buyerUserId?: string | null;
+  sellerUserId?: string | null;
   status: OrderStatus;
   depositAmountFen: number;
-  dealAmountFen?: number;
-  finalAmountFen?: number;
+  dealAmountFen?: number | null;
+  finalAmountFen?: number | null;
   createdAt: string;
   updatedAt?: string;
+  listingTitle?: string | null;
+  applicationNoDisplay?: string | null;
 };
 
 type PagedOrder = {
   items: Order[];
   page: { page: number; pageSize: number; total: number };
 };
+
+type ContractFormValues = {
+  dealAmountYuan?: number;
+  remark?: string;
+};
+
+const TEXT = {
+  loadFailed: '\u52a0\u8f7d\u5931\u8d25',
+  title: '\u8ba2\u5355\u7ba1\u7406',
+  subtitle: '\u5904\u7406\u8ba2\u5355\u72b6\u6001\u6d41\u8f6c\u3001\u5408\u540c\u786e\u8ba4\u4e0e\u6743\u5c5e\u53d8\u66f4\u5b8c\u6210\u7b49\u5173\u952e\u8282\u70b9\u3002',
+  auditHint:
+    '\u5408\u540c\u786e\u8ba4\u548c\u6743\u5c5e\u53d8\u66f4\u5b8c\u6210\u4f1a\u76f4\u63a5\u5f71\u54cd\u8ba2\u5355\u72b6\u6001\u4e0e\u540e\u7eed\u7ed3\u7b97\uff0c\u8bf7\u6838\u9a8c\u4f9d\u636e\u540e\u518d\u64cd\u4f5c\u3002',
+  orderId: '\u8ba2\u5355\u53f7',
+  listing: '\u6807\u7684',
+  status: '\u72b6\u6001',
+  deposit: '\u8ba2\u91d1',
+  dealAmount: '\u6210\u4ea4\u4ef7',
+  createdAt: '\u521b\u5efa\u65f6\u95f4',
+  actions: '\u64cd\u4f5c',
+  detail: '\u8be6\u60c5',
+  contractConfirm: '\u5408\u540c\u786e\u8ba4',
+  transferCompleted: '\u53d8\u66f4\u5b8c\u6210',
+  transferTitle: '\u786e\u8ba4\u6743\u5c5e\u53d8\u66f4\u5df2\u5b8c\u6210\uff1f',
+  transferContent:
+    '\u786e\u8ba4\u540e\u8ba2\u5355\u4f1a\u8fdb\u5165\u5f85\u7ed3\u7b97\u9636\u6bb5\uff0c\u8bf7\u786e\u4fdd\u5df2\u6838\u9a8c\u5b8c\u6210\u51ed\u8bc1\u5e76\u4fdd\u7559\u8bb0\u5f55\u3002',
+  transferOk: '\u786e\u8ba4\u5b8c\u6210',
+  transferDefaultReason: '\u6743\u5c5e\u53d8\u66f4\u5df2\u5b8c\u6210',
+  transferReasonLabel: '\u5907\u6ce8/\u4f9d\u636e',
+  transferReasonHint:
+    '\u5efa\u8bae\u586b\u5199\u53d8\u66f4\u5b8c\u6210\u51ed\u8bc1\u3001\u767b\u8bb0\u4fe1\u606f\u3001\u6838\u9a8c\u6e20\u9053\u4e0e\u65f6\u95f4\u3002',
+  transferSuccess: '\u5df2\u786e\u8ba4\u6743\u5c5e\u53d8\u66f4\u5b8c\u6210',
+  actionFailed: '\u64cd\u4f5c\u5931\u8d25',
+  refresh: '\u5237\u65b0',
+  contractModalTitle: '\u5408\u540c\u786e\u8ba4',
+  contractOk: '\u786e\u8ba4\u5408\u540c',
+  amountRequired: '\u6210\u4ea4\u4ef7\u5fc5\u987b\u5927\u4e8e 0',
+  contractSuccess: '\u5408\u540c\u786e\u8ba4\u6210\u529f',
+  dealAmountYuan: '\u6210\u4ea4\u4ef7\uff08\u5143\uff09',
+  dealAmountPlaceholder: '\u4f8b\u5982 288000',
+  dealAmountRule: '\u8bf7\u8f93\u5165\u6210\u4ea4\u4ef7',
+  remark: '\u5907\u6ce8/\u4f9d\u636e',
+  remarkPlaceholder:
+    '\u5efa\u8bae\u586b\u5199\u5408\u540c\u7f16\u53f7\u3001\u7b7e\u7f72\u65b9\u3001\u7b7e\u7f72\u65f6\u95f4\u3001\u5f52\u6863\u4f4d\u7f6e\u7b49\u4fe1\u606f\u3002',
+  currentDepositPrefix: '\u5f53\u524d\u8ba2\u5355\u8ba2\u91d1\uff1a',
+  contractSignedDefault: '\u5408\u540c\u5df2\u7b7e\u7f72',
+} as const;
+
+function displayOrderText(value: unknown, fallback = '-'): string {
+  return normalizeUserFacingText(value) || fallback;
+}
 
 export function OrdersPage() {
   const navigate = useNavigate();
@@ -47,24 +100,39 @@ export function OrdersPage() {
   const [contractModalOpen, setContractModalOpen] = useState(false);
   const [contractSubmitting, setContractSubmitting] = useState(false);
   const [contractTarget, setContractTarget] = useState<Order | null>(null);
-  const [contractForm] = Form.useForm();
+  const [contractForm] = Form.useForm<ContractFormValues>();
+  const loadSeqRef = useRef(0);
+  const transferActionSeqRef = useRef(0);
+  const contractActionSeqRef = useRef(0);
+  const contractTargetIdRef = useRef<string | null>(null);
 
-  const load = useCallback(async (opts?: { page?: number; pageSize?: number }) => {
-    const nextPage = opts?.page ?? page;
-    const nextPageSize = opts?.pageSize ?? pageSize;
-    setLoading(true);
-    setError(null);
-    try {
-      const d = await apiGet<PagedOrder>('/orders', { asRole: 'BUYER', page: nextPage, pageSize: nextPageSize });
-      setData(d);
-    } catch (e: any) {
-      setError(e);
-      message.error(e?.message || '加载失败');
-      setData(null);
-    } finally {
-      setLoading(false);
-    }
-  }, [page, pageSize]);
+  useEffect(() => {
+    contractTargetIdRef.current = contractTarget?.id || null;
+  }, [contractTarget?.id]);
+
+  const load = useCallback(
+    async (opts?: { page?: number; pageSize?: number }) => {
+      const nextPage = opts?.page ?? page;
+      const nextPageSize = opts?.pageSize ?? pageSize;
+      const seq = ++loadSeqRef.current;
+      setLoading(true);
+      setError(null);
+      try {
+        const next = await apiGet<PagedOrder>('/admin/orders', { page: nextPage, pageSize: nextPageSize });
+        if (seq !== loadSeqRef.current) return;
+        setData(next);
+      } catch (e: any) {
+        if (seq !== loadSeqRef.current) return;
+        setError(e);
+        setData(null);
+        message.error(e?.message || TEXT.loadFailed);
+      } finally {
+        if (seq !== loadSeqRef.current) return;
+        setLoading(false);
+      }
+    },
+    [page, pageSize],
+  );
 
   useEffect(() => {
     void load();
@@ -77,17 +145,17 @@ export function OrdersPage() {
       <Space direction="vertical" size={16} style={{ width: '100%' }}>
         <div>
           <Typography.Title level={3} style={{ marginTop: 0 }}>
-            订单管理
+            {TEXT.title}
           </Typography.Title>
           <Typography.Paragraph type="secondary" style={{ marginBottom: 0 }}>
-            用于处理订单状态流转、里程碑确认与履约信息归档。
+            {TEXT.subtitle}
           </Typography.Paragraph>
         </div>
 
         {error ? (
-          <RequestErrorAlert error={error} onRetry={load} />
+          <RequestErrorAlert error={error} onRetry={() => void load()} />
         ) : (
-          <AuditHint text="合同确认/变更完成将影响订单状态与放款条件；建议二次确认并归档证据材料。" />
+          <AuditHint text={TEXT.auditHint} />
         )}
 
         <Table<Order>
@@ -111,69 +179,93 @@ export function OrdersPage() {
             },
           }}
           columns={[
-            { title: '订单号', dataIndex: 'id' },
-            { title: '状态', dataIndex: 'status', render: (v) => orderStatusLabel(v) },
             {
-              title: '订金',
+              title: TEXT.orderId,
+              dataIndex: 'id',
+              render: (value: string) => <Typography.Text copyable>{value}</Typography.Text>,
+            },
+            {
+              title: TEXT.listing,
+              key: 'listing',
+              render: (_, row) => (
+                <Space direction="vertical" size={2}>
+                  <Typography.Text>{displayOrderText(row.listingTitle, '未命名内容')}</Typography.Text>
+                  <Typography.Text type="secondary">
+                    {displayOrderText(row.applicationNoDisplay || row.listingId)}
+                  </Typography.Text>
+                </Space>
+              ),
+            },
+            { title: TEXT.status, dataIndex: 'status', render: (value: OrderStatus) => orderStatusLabel(value) },
+            {
+              title: TEXT.deposit,
               dataIndex: 'depositAmountFen',
-              render: (v) => `¥${fenToYuan(v)}`,
+              render: (value: number) => `\u00a5${fenToYuan(value)}`,
             },
             {
-              title: '成交价',
+              title: TEXT.dealAmount,
               dataIndex: 'dealAmountFen',
-              render: (v) => (v ? `¥${fenToYuan(v)}` : '-'),
+              render: (value?: number | null) => (value != null ? `\u00a5${fenToYuan(value)}` : '-'),
             },
-            { title: '创建时间', dataIndex: 'createdAt', render: (v) => formatTimeSmart(v) },
             {
-              title: '操作',
+              title: TEXT.createdAt,
+              dataIndex: 'createdAt',
+              render: (value: string) => formatTimeSmart(value),
+            },
+            {
+              title: TEXT.actions,
               key: 'actions',
-              render: (_, r) => (
-                <Space>
-                  <Button onClick={() => navigate(`/orders/${r.id}`)}>详情</Button>
+              render: (_, row) => (
+                <Space wrap>
+                  <Button onClick={() => navigate(`/orders/${row.id}`)}>{TEXT.detail}</Button>
                   <Button
                     type="primary"
-                    disabled={r.status !== 'DEPOSIT_PAID'}
+                    disabled={row.status !== 'DEPOSIT_PAID'}
                     onClick={() => {
-                      setContractTarget(r);
+                      setContractTarget(row);
                       contractForm.resetFields();
                       contractForm.setFieldsValue({
-                        dealAmountYuan: r.dealAmountFen != null ? r.dealAmountFen / 100 : undefined,
-                        remark: '合同已签署',
+                        dealAmountYuan: row.dealAmountFen != null ? row.dealAmountFen / 100 : undefined,
+                        remark: TEXT.contractSignedDefault,
                       });
                       setContractModalOpen(true);
                     }}
                   >
-                    合同确认
+                    {TEXT.contractConfirm}
                   </Button>
                   <Button
-                    disabled={r.status !== 'FINAL_PAID_ESCROW'}
+                    disabled={row.status !== 'FINAL_PAID_ESCROW'}
                     onClick={async () => {
+                      const targetOrderId = row.id;
                       const { ok, reason } = await confirmActionWithReason({
-                        title: '确认权属变更已完成？',
-                        content: '确认后订单将进入可放款/结算阶段；请确保已核验变更完成凭证并留痕。',
-                        okText: '确认变更完成',
-                        defaultReason: '权属变更已完成',
-                        reasonLabel: '备注/依据（建议填写）',
-                        reasonHint: '建议填写：变更完成凭证/登记号/核验渠道与时间等。',
+                        title: TEXT.transferTitle,
+                        content: TEXT.transferContent,
+                        okText: TEXT.transferOk,
+                        defaultReason: TEXT.transferDefaultReason,
+                        reasonLabel: TEXT.transferReasonLabel,
+                        reasonHint: TEXT.transferReasonHint,
                       });
                       if (!ok) return;
+                      const requestSeq = ++transferActionSeqRef.current;
                       try {
-                        await apiPost<Order>(
-                          `/admin/orders/${r.id}/milestones/transfer-completed`,
+                        await apiPost(
+                          `/admin/orders/${targetOrderId}/milestones/transfer-completed`,
                           {
                             completedAt: new Date().toISOString(),
                             remark: reason || undefined,
                           },
-                          { idempotencyKey: `transfer-completed-${r.id}` },
+                          { idempotencyKey: `transfer-completed-${targetOrderId}` },
                         );
-                        message.success('变更完成确认成功');
+                        if (transferActionSeqRef.current !== requestSeq) return;
+                        message.success(TEXT.transferSuccess);
                         void load();
                       } catch (e: any) {
-                        message.error(e?.message || '操作失败');
+                        if (transferActionSeqRef.current !== requestSeq) return;
+                        message.error(e?.message || TEXT.actionFailed);
                       }
                     }}
                   >
-                    变更完成
+                    {TEXT.transferCompleted}
                   </Button>
                 </Space>
               ),
@@ -181,71 +273,74 @@ export function OrdersPage() {
           ]}
         />
 
-        <Button onClick={() => void load()}>刷新</Button>
+        <Button onClick={() => void load()}>{TEXT.refresh}</Button>
       </Space>
+
       <Modal
         open={contractModalOpen}
-        title="合同确认"
-        okText="确认合同"
+        title={TEXT.contractModalTitle}
+        okText={TEXT.contractOk}
         okButtonProps={{ loading: contractSubmitting }}
         onCancel={() => {
           setContractModalOpen(false);
           setContractTarget(null);
+          contractForm.resetFields();
         }}
         onOk={async () => {
           if (!contractTarget) {
             setContractModalOpen(false);
             return;
           }
+          const targetOrderId = contractTarget.id;
+          const requestSeq = ++contractActionSeqRef.current;
           try {
             const values = await contractForm.validateFields();
             const dealAmountYuan = Number(values?.dealAmountYuan || 0);
             if (!Number.isFinite(dealAmountYuan) || dealAmountYuan <= 0) {
-              message.error('成交价需大于 0');
+              if (contractActionSeqRef.current !== requestSeq || contractTargetIdRef.current !== targetOrderId) return;
+              message.error(TEXT.amountRequired);
               return;
             }
-            const dealAmountFen = Math.round(dealAmountYuan * 100);
+            if (contractActionSeqRef.current !== requestSeq || contractTargetIdRef.current !== targetOrderId) return;
             setContractSubmitting(true);
-            await apiPost<Order>(
-              `/admin/orders/${contractTarget.id}/milestones/contract-signed`,
+            await apiPost(
+              `/admin/orders/${targetOrderId}/milestones/contract-signed`,
               {
-                dealAmountFen,
+                dealAmountFen: Math.round(dealAmountYuan * 100),
                 signedAt: new Date().toISOString(),
                 remark: values?.remark ? String(values.remark).trim() : undefined,
               },
-              { idempotencyKey: `contract-signed-${contractTarget.id}` },
+              { idempotencyKey: `contract-signed-${targetOrderId}` },
             );
-            message.success('合同确认成功');
+            if (contractActionSeqRef.current !== requestSeq || contractTargetIdRef.current !== targetOrderId) return;
+            message.success(TEXT.contractSuccess);
             setContractModalOpen(false);
             setContractTarget(null);
             contractForm.resetFields();
             void load();
           } catch (e: any) {
             if (e?.errorFields) return;
-            message.error(e?.message || '操作失败');
+            if (contractActionSeqRef.current !== requestSeq || contractTargetIdRef.current !== targetOrderId) return;
+            message.error(e?.message || TEXT.actionFailed);
           } finally {
+            if (contractActionSeqRef.current !== requestSeq || contractTargetIdRef.current !== targetOrderId) return;
             setContractSubmitting(false);
           }
         }}
       >
         <Form form={contractForm} layout="vertical">
           <Form.Item
-            label="成交价（元）"
+            label={TEXT.dealAmountYuan}
             name="dealAmountYuan"
-            rules={[{ required: true, message: '请输入成交价' }]}
+            rules={[{ required: true, message: TEXT.dealAmountRule }]}
           >
-            <InputNumber min={0} precision={2} style={{ width: '100%' }} placeholder="例如 288000" />
+            <InputNumber min={0} precision={2} style={{ width: '100%' }} placeholder={TEXT.dealAmountPlaceholder} />
           </Form.Item>
-          <Form.Item label="备注/依据（建议填写）" name="remark">
-            <Input.TextArea
-              rows={3}
-              placeholder="建议填写：合同编号/签署方/签署时间/证据归档位置等。"
-            />
+          <Form.Item label={TEXT.remark} name="remark">
+            <Input.TextArea rows={3} placeholder={TEXT.remarkPlaceholder} />
           </Form.Item>
           {contractTarget ? (
-            <Typography.Text type="secondary">
-              当前订单订金：¥{fenToYuan(contractTarget.depositAmountFen)}
-            </Typography.Text>
+            <Typography.Text type="secondary">{TEXT.currentDepositPrefix}\u00a5{fenToYuan(contractTarget.depositAmountFen)}</Typography.Text>
           ) : null}
         </Form>
       </Modal>

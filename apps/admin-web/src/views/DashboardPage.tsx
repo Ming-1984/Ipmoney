@@ -56,6 +56,10 @@ function can(permissionSet: Set<string>, permission: string): boolean {
   return permissionSet.has('*') || permissionSet.has(permission);
 }
 
+function metricCount(value: unknown): number {
+  return Number(value ?? 0);
+}
+
 export function DashboardPage() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
@@ -83,7 +87,7 @@ export function DashboardPage() {
       const results = await Promise.allSettled([
         canVerificationRead ? apiGet<PagedUserVerification>('/admin/user-verifications', { status: 'PENDING', page: 1, pageSize: 1 }) : Promise.resolve(null),
         canListingRead ? apiGet<PagedListing>('/admin/listings', { auditStatus: 'PENDING', page: 1, pageSize: 1 }) : Promise.resolve(null),
-        canOrderRead ? apiGet<PagedOrder>('/orders', { page: 1, pageSize: 1 }) : Promise.resolve(null),
+        canOrderRead ? apiGet<PagedOrder>('/admin/orders', { page: 1, pageSize: 1 }) : Promise.resolve(null),
         canConversationManage
           ? apiGet<PagedConversationSummary>('/admin/conversations/platform', {
               assigned: 'UNASSIGNED',
@@ -110,23 +114,23 @@ export function DashboardPage() {
 
       const [verRes, listingRes, orderRes, convRes, caseRes, financeRes, healthRes] = results;
       if (canVerificationRead) {
-        if (verRes.status === 'fulfilled') next.pendingVerifications = Number(verRes.value?.page?.total || 0);
+        if (verRes.status === 'fulfilled') next.pendingVerifications = metricCount(verRes.value?.page?.total);
         else errors.push('认证审核');
       }
       if (canListingRead) {
-        if (listingRes.status === 'fulfilled') next.pendingListings = Number(listingRes.value?.page?.total || 0);
+        if (listingRes.status === 'fulfilled') next.pendingListings = metricCount(listingRes.value?.page?.total);
         else errors.push('上架审核');
       }
       if (canOrderRead) {
-        if (orderRes.status === 'fulfilled') next.ordersTotal = Number(orderRes.value?.page?.total || 0);
+        if (orderRes.status === 'fulfilled') next.ordersTotal = metricCount(orderRes.value?.page?.total);
         else errors.push('订单统计');
       }
       if (canConversationManage) {
-        if (convRes.status === 'fulfilled') next.unassignedConversations = Number(convRes.value?.page?.total || 0);
+        if (convRes.status === 'fulfilled') next.unassignedConversations = metricCount(convRes.value?.page?.total);
         else errors.push('平台会话');
       }
       if (canCaseManage) {
-        if (caseRes.status === 'fulfilled') next.openCases = Number(caseRes.value?.page?.total || 0);
+        if (caseRes.status === 'fulfilled') next.openCases = metricCount(caseRes.value?.page?.total);
         else errors.push('工单统计');
       }
       if (canReportRead) {
@@ -212,8 +216,8 @@ export function DashboardPage() {
     [permissionSet],
   );
 
-  const payoutRate = Number(state.finance?.payoutSuccessRate || 0);
-  const refundRate = Number(state.finance?.refundRate || 0);
+  const payoutRate = metricCount(state.finance?.payoutSuccessRate);
+  const refundRate = metricCount(state.finance?.refundRate);
   const healthItems = Object.entries(state.healthChecks || {});
   const canViewFinance = can(permissionSet, 'report.read');
 
@@ -269,13 +273,13 @@ export function DashboardPage() {
               <Space direction="vertical" size={14} style={{ width: '100%' }}>
                 <Row gutter={[16, 12]}>
                   <Col span={12}>
-                    <Statistic title="成交金额" value={`¥${fenToYuan(state.finance.dealAmountFen || 0)}`} />
+                    <Statistic title="成交金额" value={`¥${fenToYuan(state.finance.dealAmountFen ?? 0)}`} />
                   </Col>
                   <Col span={12}>
-                    <Statistic title="佣金收入" value={`¥${fenToYuan(state.finance.commissionAmountFen || 0)}`} />
+                    <Statistic title="佣金收入" value={`¥${fenToYuan(state.finance.commissionAmountFen ?? 0)}`} />
                   </Col>
                   <Col span={12}>
-                    <Statistic title="订单总量" value={state.finance.ordersTotal || 0} />
+                    <Statistic title="订单总量" value={state.finance.ordersTotal ?? 0} />
                   </Col>
                 </Row>
                 <div>
