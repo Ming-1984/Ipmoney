@@ -1,6 +1,6 @@
 ﻿import { Text, View } from '@tarojs/components';
-import Taro from '@tarojs/taro';
-import React, { useCallback, useEffect, useState } from 'react';
+import Taro, { useDidHide, useDidShow } from '@tarojs/taro';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import './index.scss';
 
 import type { components } from '@ipmoney/api-types';
@@ -25,6 +25,18 @@ const CS_CONFIG_CACHE_KEY = 'customer-service';
 export default function SupportContactPage() {
   const [phone, setPhone] = useState(FALLBACK_PHONE);
   const [openingChat, setOpeningChat] = useState(false);
+  const pageVisibleRef = useRef(true);
+  const openChatSeqRef = useRef(0);
+
+  useDidShow(() => {
+    pageVisibleRef.current = true;
+  });
+
+  useDidHide(() => {
+    pageVisibleRef.current = false;
+    openChatSeqRef.current += 1;
+    setOpeningChat(false);
+  });
 
   const load = useCallback(async () => {
     const cached = getDetailCache<CustomerServiceConfig>(CS_CONFIG_CACHE_SCOPE, CS_CONFIG_CACHE_KEY);
@@ -49,6 +61,7 @@ export default function SupportContactPage() {
 
   const openSupportConversation = useCallback(async () => {
     if (openingChat) return;
+    const seq = ++openChatSeqRef.current;
     setOpeningChat(true);
     try {
       const conversation = await apiPost<Conversation>(
@@ -56,11 +69,15 @@ export default function SupportContactPage() {
         {},
         { idempotencyKey: `support-contact-open-${Date.now()}` },
       );
+      if (seq !== openChatSeqRef.current || !pageVisibleRef.current) return;
       Taro.navigateTo({ url: `/subpackages/messages/chat/index?conversationId=${conversation.id}` });
     } catch (e: any) {
+      if (seq !== openChatSeqRef.current || !pageVisibleRef.current) return;
       toast(e?.message || '进入会话失败');
     } finally {
-      setOpeningChat(false);
+      if (seq === openChatSeqRef.current && pageVisibleRef.current) {
+        setOpeningChat(false);
+      }
     }
   }, [openingChat]);
 

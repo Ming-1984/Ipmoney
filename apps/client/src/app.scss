@@ -1320,6 +1320,10 @@ scroll-view {
 }
 
 /* #ifdef H5 */
+.h5-hide-tabbar .taro-tabbar__container {
+  display: none !important;
+}
+
 .taro-tabbar__container,
 .page-navbar .nut-navbar,
 .sticky-bar {

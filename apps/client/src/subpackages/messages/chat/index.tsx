@@ -9,7 +9,9 @@ import plusIcon from '../../../assets/icons/icon-plus-gray.svg';
 import emptyChat from '../../../assets/illustrations/empty-chat.svg';
 import { getToken, getVerificationStatus, isOnboardingDone, onAuthChanged } from '../../../lib/auth';
 import { apiGet, apiPost } from '../../../lib/api';
+import { resolveConversationEntityDisplayName } from '../../../lib/conversationDisplay';
 import { getDetailCache, setDetailCache } from '../../../lib/detailCache';
+import { displayTitleOrFallback, normalizeDisplayText } from '../../../lib/displayText';
 import { formatTimeSmart } from '../../../lib/format';
 import { patentTypeLabel, tradeModeLabel } from '../../../lib/labels';
 import { fenToYuan } from '../../../lib/money';
@@ -46,8 +48,8 @@ type ConversationMessage = {
 type UiConversationMessage = ConversationMessage & { localStatus?: LocalMessageStatus };
 type PagedConversationMessage = { items: UiConversationMessage[]; nextCursor?: string | null };
 type ConversationSummary = components['schemas']['ConversationSummary'];
-type PagedConversationSummary = components['schemas']['PagedConversationSummary'];
 type ListingPublic = components['schemas']['ListingPublic'];
+type AchievementPublic = components['schemas']['AchievementDetail'];
 type TechManagerPublic = components['schemas']['TechManagerPublic'];
 type OrderDetail = components['schemas']['Order'] & { listingTitle?: string | null };
 type MaintenanceOrder = components['schemas']['PatentMaintenanceOrder'];
@@ -123,8 +125,13 @@ function shouldShowTimeDivider(current: UiConversationMessage, prev?: UiConversa
   return currentAt - prevAt >= TIME_SECTION_GAP_MS;
 }
 
+function resolveConversationContentTitle(summary?: Pick<ConversationSummary, 'contentTitle'> | null): string {
+  return normalizeDisplayText(summary?.contentTitle);
+}
+
 export default function ChatPage() {
   const conversationId = useRouteUuidParam('conversationId') || '';
+  const conversationIdRef = useRef(conversationId);
 
   const [auth, setAuth] = useState(() => ({
     token: getToken(),
@@ -149,6 +156,8 @@ export default function ChatPage() {
   const [scrollIntoView, setScrollIntoView] = useState('');
   const [text, setText] = useState('');
   const [sending, setSending] = useState(false);
+  const authTokenRef = useRef<string | null>(token);
+  const meLoadSeqRef = useRef(0);
 
   const scrollTopRef = useRef(0);
   const scrollSyncAtRef = useRef(0);
@@ -181,6 +190,10 @@ export default function ChatPage() {
     });
     return () => off();
   }, []);
+
+  useEffect(() => {
+    authTokenRef.current = token;
+  }, [token]);
 
   const items = useMemo(() => data?.items || [], [data?.items]);
   const nextCursor = useMemo(() => data?.nextCursor ?? null, [data?.nextCursor]);
@@ -215,35 +228,74 @@ export default function ChatPage() {
     if (!c) return '咨询会话';
     const contentType = String(c.contentType || '').toUpperCase();
     if (contentType === 'SUPPORT') return '平台客服助手';
-    if (contentType === 'DISPUTE') return c.contentTitle || '订单争议';
-    if (contentType === 'MAINTENANCE') return c.contentTitle || '年费托管';
+    if (contentType === 'DISPUTE') return resolveConversationContentTitle(c) || '订单争议';
+    if (contentType === 'MAINTENANCE') return resolveConversationContentTitle(c) || '年费托管';
     const role = c.counterpart?.role;
     if (role === 'cs') return '平台客服助手';
     if (role === 'admin') return '交易通知';
-    return c.counterpart?.nickname || '对方';
+    return resolveConversationEntityDisplayName(c);
   }, []);
 
   const displayName = useMemo(() => getConversationDisplayName(conversation), [conversation, getConversationDisplayName]);
   const counterpartAvatar = useMemo(() => conversation?.counterpart?.avatarUrl || '', [conversation?.counterpart?.avatarUrl]);
 
+  useEffect(() => {
+    conversationIdRef.current = conversationId;
+    setError(null);
+    setLoadingMore(false);
+    setText('');
+    setSending(false);
+    setScrollIntoView('');
+    scrollTopRef.current = 0;
+    scrollSyncAtRef.current = 0;
+    setScrollTop(0);
+    if (!conversationId) {
+      setLoading(false);
+      setData(null);
+      setConversation(null);
+      setContextCard(null);
+      return;
+    }
+
+    const cachedMessages = getDetailCache<PagedConversationMessage>(CHAT_MESSAGES_CACHE_SCOPE, conversationId);
+    const cachedSummary = getDetailCache<ConversationSummary>(CHAT_SUMMARY_CACHE_SCOPE, conversationId);
+    const cachedContext = getDetailCache<ContextCard>(CHAT_CONTEXT_CACHE_SCOPE, conversationId);
+
+    setData(cachedMessages || null);
+    setConversation(cachedSummary || null);
+    setContextCard(cachedContext || null);
+    setLoading(!cachedMessages);
+
+    if (cachedSummary) {
+      void Taro.setNavigationBarTitle({ title: getConversationDisplayName(cachedSummary) });
+    } else {
+      void Taro.setNavigationBarTitle({ title: '咨询会话' });
+    }
+  }, [conversationId, getConversationDisplayName]);
+
   const loadMe = useCallback(async () => {
+    const currentToken = token;
+    const seq = ++meLoadSeqRef.current;
     const cached = getDetailCache<Me>(CHAT_ME_CACHE_SCOPE, 'me');
     if (cached?.id) {
       setMeId(cached.id);
     }
     try {
       const current = await apiGet<Me>('/me');
+      if (seq !== meLoadSeqRef.current || authTokenRef.current !== currentToken) return;
       setMeId(current.id);
       setDetailCache(CHAT_ME_CACHE_SCOPE, 'me', current);
     } catch {
+      if (seq !== meLoadSeqRef.current || authTokenRef.current !== currentToken) return;
       if (!cached) setMeId(null);
     }
-  }, []);
+  }, [token]);
 
   const loadMessages = useCallback(async () => {
-    if (!conversationId) return;
+    const targetConversationId = conversationId;
+    if (!targetConversationId) return;
 
-    const cached = getDetailCache<PagedConversationMessage>(CHAT_MESSAGES_CACHE_SCOPE, conversationId);
+    const cached = getDetailCache<PagedConversationMessage>(CHAT_MESSAGES_CACHE_SCOPE, targetConversationId);
     if (cached) {
       setData(cached);
       setLoading(false);
@@ -255,30 +307,36 @@ export default function ChatPage() {
     }
 
     try {
-      const response = await apiGet<PagedConversationMessage>(`/conversations/${conversationId}/messages`, { limit: 50 });
+      const response = await apiGet<PagedConversationMessage>(`/conversations/${targetConversationId}/messages`, { limit: 50 });
+      if (conversationIdRef.current !== targetConversationId) return;
       setData(response);
-      setDetailCache(CHAT_MESSAGES_CACHE_SCOPE, conversationId, response);
+      setDetailCache(CHAT_MESSAGES_CACHE_SCOPE, targetConversationId, response);
       scrollToBottom();
       try {
-        await apiPost(`/conversations/${conversationId}/read`, {}, { idempotencyKey: `read-${conversationId}` });
+        await apiPost(`/conversations/${targetConversationId}/read`, {}, { idempotencyKey: `read-${targetConversationId}` });
       } catch {
         // ignore read marker failures
       }
     } catch (err: any) {
+      if (conversationIdRef.current !== targetConversationId) return;
       if (!cached) {
         setError(err?.message || '消息加载失败');
         setData(null);
       }
     } finally {
-      setLoading(false);
+      if (conversationIdRef.current === targetConversationId) {
+        setLoading(false);
+      }
     }
   }, [conversationId, scrollToBottom]);
 
   const pollMessages = useCallback(async () => {
-    if (!conversationId || !canChat) return;
+    const targetConversationId = conversationId;
+    if (!targetConversationId || !canChat) return;
     if (loading || loadingMore || sending) return;
     try {
-      const response = await apiGet<PagedConversationMessage>(`/conversations/${conversationId}/messages`, { limit: 50 });
+      const response = await apiGet<PagedConversationMessage>(`/conversations/${targetConversationId}/messages`, { limit: 50 });
+      if (conversationIdRef.current !== targetConversationId) return;
       let snapshot: PagedConversationMessage | null = null;
       setData((prev) => {
         const pending = (prev?.items || []).filter(
@@ -293,7 +351,7 @@ export default function ChatPage() {
         return snapshot;
       });
       if (snapshot) {
-        setDetailCache(CHAT_MESSAGES_CACHE_SCOPE, conversationId, snapshot);
+        setDetailCache(CHAT_MESSAGES_CACHE_SCOPE, targetConversationId, snapshot);
       }
     } catch {
       // poll should not break UI
@@ -301,15 +359,17 @@ export default function ChatPage() {
   }, [canChat, conversationId, loading, loadingMore, sending]);
 
   const loadMore = useCallback(async () => {
-    if (!conversationId || !nextCursor || loadingMore) return;
+    const targetConversationId = conversationId;
+    if (!targetConversationId || !nextCursor || loadingMore) return;
 
     const anchorId = items[0]?.id;
     setLoadingMore(true);
     try {
-      const response = await apiGet<PagedConversationMessage>(`/conversations/${conversationId}/messages`, {
+      const response = await apiGet<PagedConversationMessage>(`/conversations/${targetConversationId}/messages`, {
         limit: 50,
         cursor: nextCursor,
       });
+      if (conversationIdRef.current !== targetConversationId) return;
       let snapshot: PagedConversationMessage | null = null;
       setData((prev) => {
         snapshot = {
@@ -319,7 +379,7 @@ export default function ChatPage() {
         return snapshot;
       });
       if (snapshot) {
-        setDetailCache(CHAT_MESSAGES_CACHE_SCOPE, conversationId, snapshot);
+        setDetailCache(CHAT_MESSAGES_CACHE_SCOPE, targetConversationId, snapshot);
       }
       if (anchorId) {
         scrollToMessage(anchorId);
@@ -327,46 +387,61 @@ export default function ChatPage() {
     } catch (err: any) {
       toast(err?.message || '加载失败');
     } finally {
-      setLoadingMore(false);
+      if (conversationIdRef.current === targetConversationId) {
+        setLoadingMore(false);
+      }
     }
   }, [conversationId, items, loadingMore, nextCursor, scrollToMessage]);
 
   const buildContextCard = useCallback(
     async (summary: ConversationSummary) => {
-      let title = summary.contentTitle || summary.listingTitle || '咨询内容';
+      let title = resolveConversationContentTitle(summary) || '咨询内容';
       let tag = '';
       let price = '';
       let thumbUrl = '';
+      const summaryTitle = resolveConversationContentTitle(summary);
+      if (summaryTitle) title = summaryTitle;
 
       try {
         if (summary.contentType === 'LISTING') {
           const listing = await apiGet<ListingPublic>(`/public/listings/${summary.contentId}`);
           title = listing.title || title;
+          const listingTitle = normalizeDisplayText(listing.title);
+          if (listingTitle) title = listingTitle;
           tag = [patentTypeLabel(listing.patentType, { empty: '' }), tradeModeLabel(listing.tradeMode, { empty: '' })]
             .filter(Boolean)
             .join(' · ');
           price = formatPriceLabel(listing.priceType, listing.priceAmountFen);
           thumbUrl = listing.coverUrl || '';
+        } else if (summary.contentType === 'ACHIEVEMENT') {
+          const achievement = await apiGet<AchievementPublic>(`/public/achievements/${summary.contentId}`);
+          title = displayTitleOrFallback(achievement.title, title);
+          tag = normalizeDisplayText(achievement.publisher?.displayName) || '成果咨询';
+          thumbUrl = achievement.coverUrl || '';
         } else if (String(summary.contentType || '').toUpperCase() === 'DISPUTE') {
           const order = await apiGet<OrderDetail>(`/orders/${summary.contentId}`);
-          title = order.listingTitle ? `订单争议 · ${order.listingTitle}` : summary.contentTitle || '订单争议';
+          title = normalizeDisplayText(order.listingTitle)
+            ? `订单争议 · ${normalizeDisplayText(order.listingTitle)}`
+            : summaryTitle || '订单争议';
           tag = '订单争议';
         } else if (String(summary.contentType || '').toUpperCase() === 'MAINTENANCE') {
           const order = await apiGet<MaintenanceOrder>(`/me/patent-maintenance/orders/${summary.contentId}`);
           const orderShortId = String(order.id || '').slice(0, 8);
           const yearLabel = Number(order.scheduleYearNo || 0) > 0 ? `第${order.scheduleYearNo}年` : '';
           title =
-            summary.contentTitle ||
-            ['年费托管', orderShortId ? `#${orderShortId}` : '', order.patentTitle || '', yearLabel].filter(Boolean).join(' · ');
+            summaryTitle ||
+            ['年费托管', orderShortId ? `#${orderShortId}` : '', displayTitleOrFallback(order.patentTitle, ''), yearLabel]
+              .filter(Boolean)
+              .join(' · ');
           tag = '年费托管';
           price = order.totalAmountFen != null ? `￥${fenToYuan(order.totalAmountFen)}` : '';
         } else if (summary.contentType === 'TECH_MANAGER') {
           const manager = await apiGet<TechManagerPublic>(`/public/tech-managers/${summary.contentId}`);
-          title = manager.displayName || title;
+          title = displayTitleOrFallback(manager.displayName, title);
           tag = '技术经理';
           thumbUrl = manager.avatarUrl || '';
         } else if (String(summary.contentType || '').toUpperCase() === 'SUPPORT') {
-          title = summary.contentTitle || '平台客服';
+          title = summaryTitle || '平台客服';
           tag = '客服会话';
         }
       } catch {
@@ -381,6 +456,7 @@ export default function ChatPage() {
         contentType: summary.contentType,
         contentId: summary.contentId,
       };
+      if (conversationIdRef.current !== conversationId) return;
       setContextCard(card);
       if (conversationId) {
         setDetailCache(CHAT_CONTEXT_CACHE_SCOPE, conversationId, card);
@@ -390,29 +466,31 @@ export default function ChatPage() {
   );
 
   const loadConversationSummary = useCallback(async () => {
-    if (!conversationId) return;
+    const targetConversationId = conversationId;
+    if (!targetConversationId) return;
 
-    const cachedSummary = getDetailCache<ConversationSummary>(CHAT_SUMMARY_CACHE_SCOPE, conversationId);
+    const cachedSummary = getDetailCache<ConversationSummary>(CHAT_SUMMARY_CACHE_SCOPE, targetConversationId);
     if (cachedSummary) {
       setConversation(cachedSummary);
       void Taro.setNavigationBarTitle({ title: getConversationDisplayName(cachedSummary) });
     }
 
-    const cachedContext = getDetailCache<ContextCard>(CHAT_CONTEXT_CACHE_SCOPE, conversationId);
+    const cachedContext = getDetailCache<ContextCard>(CHAT_CONTEXT_CACHE_SCOPE, targetConversationId);
     if (cachedContext) {
       setContextCard(cachedContext);
     }
 
     try {
-      const list = await apiGet<PagedConversationSummary>('/me/conversations', { page: 1, pageSize: 100 });
-      const found = (list.items || []).find((item) => item.id === conversationId) || null;
+      const found = await apiGet<ConversationSummary>(`/me/conversations/${targetConversationId}`);
+      if (conversationIdRef.current !== targetConversationId) return;
       setConversation(found);
       if (found) {
-        setDetailCache(CHAT_SUMMARY_CACHE_SCOPE, conversationId, found);
+        setDetailCache(CHAT_SUMMARY_CACHE_SCOPE, targetConversationId, found);
         void Taro.setNavigationBarTitle({ title: getConversationDisplayName(found) });
         void buildContextCard(found);
       }
     } catch {
+      if (conversationIdRef.current !== targetConversationId) return;
       if (!cachedSummary) {
         setConversation(null);
       }
@@ -440,6 +518,7 @@ export default function ChatPage() {
 
   const send = useCallback(async () => {
     if (!canChat || !conversationId) return;
+    const targetConversationId = conversationId;
     const value = text.trim();
     if (!value) {
       toast('请输入内容');
@@ -449,7 +528,7 @@ export default function ChatPage() {
     const optimisticId = `local-${Date.now()}`;
     const optimistic: UiConversationMessage = {
       id: optimisticId,
-      conversationId,
+      conversationId: targetConversationId,
       senderUserId: meId || 'me',
       type: 'TEXT',
       text: value,
@@ -467,16 +546,18 @@ export default function ChatPage() {
 
     try {
       const created = await apiPost<ConversationMessage>(
-        `/conversations/${conversationId}/messages`,
+        `/conversations/${targetConversationId}/messages`,
         { type: 'TEXT', text: value },
-        { idempotencyKey: `msg-${conversationId}-${Date.now()}` },
+        { idempotencyKey: `msg-${targetConversationId}-${Date.now()}` },
       );
+      if (conversationIdRef.current !== targetConversationId) return;
       setData((prev) => ({
         items: (prev?.items || []).map((item) => (item.id === optimisticId ? (created as UiConversationMessage) : item)),
         nextCursor: prev?.nextCursor ?? null,
       }));
       scrollToBottom();
     } catch (err: any) {
+      if (conversationIdRef.current !== targetConversationId) return;
       setData((prev) => ({
         items: (prev?.items || []).map((item) =>
           item.id === optimisticId ? { ...item, localStatus: 'failed' as LocalMessageStatus } : item,
@@ -486,13 +567,16 @@ export default function ChatPage() {
       toast(err?.message || '发送失败');
       setText((prevText) => (prevText ? prevText : value));
     } finally {
-      setSending(false);
+      if (conversationIdRef.current === targetConversationId) {
+        setSending(false);
+      }
     }
   }, [canChat, conversationId, meId, scrollToBottom, text]);
 
   const retry = useCallback(
     async (messageItem: UiConversationMessage) => {
       if (!canChat || !conversationId) return;
+      const targetConversationId = conversationId;
       if (messageItem.type !== 'TEXT' || !messageItem.text?.trim()) return;
 
       setData((prev) => ({
@@ -505,16 +589,18 @@ export default function ChatPage() {
 
       try {
         const created = await apiPost<ConversationMessage>(
-          `/conversations/${conversationId}/messages`,
+          `/conversations/${targetConversationId}/messages`,
           { type: 'TEXT', text: messageItem.text },
-          { idempotencyKey: `msg-${conversationId}-${Date.now()}` },
+          { idempotencyKey: `msg-${targetConversationId}-${Date.now()}` },
         );
+        if (conversationIdRef.current !== targetConversationId) return;
         setData((prev) => ({
           items: (prev?.items || []).map((item) => (item.id === messageItem.id ? (created as UiConversationMessage) : item)),
           nextCursor: prev?.nextCursor ?? null,
         }));
         scrollToBottom();
       } catch (err: any) {
+        if (conversationIdRef.current !== targetConversationId) return;
         setData((prev) => ({
           items: (prev?.items || []).map((item) =>
             item.id === messageItem.id ? { ...item, localStatus: 'failed' as LocalMessageStatus } : item,
@@ -578,6 +664,10 @@ export default function ChatPage() {
     }
     if (contentType === 'TECH_MANAGER') {
       Taro.navigateTo({ url: `/subpackages/tech-managers/detail/index?techManagerId=${id}` });
+      return;
+    }
+    if (contentType === 'ACHIEVEMENT') {
+      Taro.navigateTo({ url: `/subpackages/achievement/detail/index?achievementId=${id}` });
     }
   }, [contextCard]);
 

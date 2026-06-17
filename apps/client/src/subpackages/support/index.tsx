@@ -1,6 +1,6 @@
 ﻿import { Text, View } from '@tarojs/components';
-import Taro from '@tarojs/taro';
-import React, { useCallback, useState } from 'react';
+import Taro, { useDidHide, useDidShow } from '@tarojs/taro';
+import React, { useCallback, useRef, useState } from 'react';
 import './index.scss';
 
 import type { components } from '@ipmoney/api-types';
@@ -15,9 +15,22 @@ export default function SupportPage() {
   const [contact, setContact] = useState('');
   const [content, setContent] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const pageVisibleRef = useRef(true);
+  const actionSeqRef = useRef(0);
+
+  useDidShow(() => {
+    pageVisibleRef.current = true;
+  });
+
+  useDidHide(() => {
+    pageVisibleRef.current = false;
+    actionSeqRef.current += 1;
+    setSubmitting(false);
+  });
 
   const openSupportConversation = useCallback(async () => {
     if (submitting) return;
+    const seq = ++actionSeqRef.current;
     setSubmitting(true);
     try {
       const conversation = await apiPost<Conversation>(
@@ -25,11 +38,15 @@ export default function SupportPage() {
         {},
         { idempotencyKey: `support-open-${Date.now()}` },
       );
+      if (seq !== actionSeqRef.current || !pageVisibleRef.current) return;
       Taro.navigateTo({ url: `/subpackages/messages/chat/index?conversationId=${conversation.id}` });
     } catch (e: any) {
+      if (seq !== actionSeqRef.current || !pageVisibleRef.current) return;
       Taro.showToast({ title: e?.message || '进入客服会话失败', icon: 'none' });
     } finally {
-      setSubmitting(false);
+      if (seq === actionSeqRef.current && pageVisibleRef.current) {
+        setSubmitting(false);
+      }
     }
   }, [submitting]);
 
@@ -39,6 +56,7 @@ export default function SupportPage() {
       return;
     }
     if (submitting) return;
+    const seq = ++actionSeqRef.current;
     setSubmitting(true);
     try {
       const conversation = await apiPost<Conversation>(
@@ -54,14 +72,18 @@ export default function SupportPage() {
         { type: 'TEXT', text: feedbackText },
         { idempotencyKey: `support-feedback-send-${Date.now()}` },
       );
+      if (seq !== actionSeqRef.current || !pageVisibleRef.current) return;
       setContent('');
       setContact('');
       Taro.showToast({ title: '已提交，正在进入会话', icon: 'success' });
       Taro.navigateTo({ url: `/subpackages/messages/chat/index?conversationId=${conversation.id}` });
     } catch (e: any) {
+      if (seq !== actionSeqRef.current || !pageVisibleRef.current) return;
       Taro.showToast({ title: e?.message || '提交失败', icon: 'none' });
     } finally {
-      setSubmitting(false);
+      if (seq === actionSeqRef.current && pageVisibleRef.current) {
+        setSubmitting(false);
+      }
     }
   }, [contact, content, submitting]);
 

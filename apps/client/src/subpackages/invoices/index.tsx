@@ -6,10 +6,12 @@ import './index.scss';
 import type { components } from '@ipmoney/api-types';
 
 import { apiGet } from '../../lib/api';
+import { displayInfoOrPlaceholder, displayTitleOrFallback, normalizeDisplayText } from '../../lib/displayText';
 import { usePageAccess } from '../../lib/guard';
 import { formatTimeSmart } from '../../lib/format';
 import { fenToYuan } from '../../lib/money';
 import { useRouteStringParam } from '../../lib/routeParams';
+import { normalizeInvoiceItemName } from '../../lib/userFacingText';
 import { usePagedList } from '../../lib/usePagedList';
 import { PageState } from '../../ui/PageState';
 import { ListFooter } from '../../ui/ListFooter';
@@ -57,19 +59,25 @@ function invoiceStatusClass(status: InvoiceStatus): string {
 
 export default function InvoiceCenterPage() {
   const loadedOnceRef = useRef(false);
+  const filterKeyRef = useRef('');
   const tabParam = useRouteStringParam('tab');
+  const orderIdParam = useRouteStringParam('orderId') || '';
   const [activeTab, setActiveTab] = useState<InvoiceStatus>('WAIT_APPLY');
 
   useEffect(() => {
-    if (tabParam && TABS.some((tab) => tab.id === tabParam)) {
-      setActiveTab(tabParam as InvoiceStatus);
-    }
+    const nextTab = TABS.some((tab) => tab.id === tabParam) ? (tabParam as InvoiceStatus) : 'WAIT_APPLY';
+    setActiveTab(nextTab);
   }, [tabParam]);
 
   const fetcher = useCallback(
     async ({ page, pageSize }: { page: number; pageSize: number }) =>
-      apiGet<InvoiceListResponse>('/invoices', { status: activeTab, page, pageSize }),
-    [activeTab],
+      apiGet<InvoiceListResponse>('/invoices', {
+        status: activeTab,
+        orderId: orderIdParam || undefined,
+        page,
+        pageSize,
+      }),
+    [activeTab, orderIdParam],
   );
 
   const { items: rawItems, loading, error, refreshing, loadingMore, hasMore, reload, refresh, loadMore, reset } =
@@ -92,10 +100,17 @@ export default function InvoiceCenterPage() {
   });
 
   useEffect(() => {
+    const nextKey = `${activeTab}:${orderIdParam}`;
+    if (filterKeyRef.current === nextKey) return;
+    filterKeyRef.current = nextKey;
+    reset();
+  }, [activeTab, orderIdParam, reset]);
+
+  useEffect(() => {
     if (access.state !== 'ok') return;
     loadedOnceRef.current = true;
     void reload();
-  }, [access.state, reload, activeTab]);
+  }, [access.state, reload, activeTab, orderIdParam]);
 
   const items = useMemo(() => {
     const list = rawItems || [];
@@ -105,6 +120,9 @@ export default function InvoiceCenterPage() {
     return list.filter((it) => it.invoiceStatus === activeTab);
   }, [rawItems, activeTab]);
   const showInitialLoading = loading && items.length === 0;
+  const pageTitle = orderIdParam ? '订单发票' : '发票管理中心';
+  const pageSubtitle = orderIdParam ? '查看当前订单的开票进度与下载信息' : '发票由平台财务线下开具，开具后可下载';
+  const emptyMessage = orderIdParam ? '当前订单在该分类下暂无发票记录。' : '当前分类下暂无发票记录。';
 
   const copyInvoiceLink = useCallback((item: InvoiceItem) => {
     const url = item.invoiceFileUrl || '';
@@ -118,7 +136,7 @@ export default function InvoiceCenterPage() {
 
   return (
     <View className="container invoices-page">
-      <PageHeader weapp title="发票管理中心" subtitle="发票由平台财务线下开具，开具后可下载" />
+      <PageHeader weapp title={pageTitle} subtitle={pageSubtitle} />
       <Spacer />
 
       <View className="invoice-tabs">
@@ -140,7 +158,7 @@ export default function InvoiceCenterPage() {
         error={error}
         empty={!showInitialLoading && !error && items.length === 0}
         emptyTitle="暂无发票"
-        emptyMessage="当前分类下暂无发票记录。"
+        emptyMessage={emptyMessage}
         emptyImage={emptyInvoices}
         onRetry={reload}
       >
@@ -155,12 +173,15 @@ export default function InvoiceCenterPage() {
                   </Text>
                 </View>
                 <View className="invoice-meta">
-                  {item.listingTitle ? <Text className="muted clamp-1">交易标的：{item.listingTitle}</Text> : null}
-                  {item.applicationNoDisplay ? <Text className="muted">申请号：{item.applicationNoDisplay}</Text> : null}
-                  <Text className="muted">开票金额：￥{fenToYuan(item.amountFen || 0)}</Text>
+                  <Text className="muted clamp-1">交易标的：{displayTitleOrFallback(item.listingTitle, '交易标的待补充')}</Text>
+                  <Text className="muted">申请号：{displayInfoOrPlaceholder(item.applicationNoDisplay, '待补充')}</Text>
+                  <Text className="muted">项目名称：{normalizeInvoiceItemName(item.itemName)}</Text>
+                  <Text className="muted">
+                    开票金额：{item.amountFen != null ? `￥${fenToYuan(item.amountFen)}` : '待确认'}
+                  </Text>
                   <Text className="muted">订单时间：{formatTimeSmart(item.createdAt)}</Text>
                   {item.invoiceStatus !== 'ISSUED' ? <Text className="muted">开票方式：平台财务线下处理</Text> : null}
-                  {item.invoiceNo ? <Text className="muted">发票号：{item.invoiceNo}</Text> : null}
+                  <Text className="muted">发票号：{displayInfoOrPlaceholder(item.invoiceNo, '待补充')}</Text>
                   {item.issuedAt ? <Text className="muted">开票时间：{formatTimeSmart(item.issuedAt)}</Text> : null}
                 </View>
                 <View className="invoice-actions">

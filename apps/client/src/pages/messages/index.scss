@@ -305,6 +305,18 @@
   color: #6b7280;
 }
 
+.messages-toolbar {
+  margin: 0 32rpx 12rpx;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.messages-toolbar-action {
+  font-size: 24rpx;
+  color: var(--c-primary);
+  font-weight: 600;
+}
+
 .messages-alert {
   margin: 0 32rpx 12rpx;
   padding: 10rpx 14rpx;
@@ -538,4 +550,3 @@
   color: #1f2937;
   text-align: center;
 }
-

@@ -1,5 +1,5 @@
 import { View, Text, Input } from '@tarojs/components';
-import Taro from '@tarojs/taro';
+import Taro, { useDidHide, useDidShow } from '@tarojs/taro';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import './index.scss';
 
@@ -131,7 +131,7 @@ const PRICE_TYPE_OPTIONS: ChipOption<PriceType | ''>[] = [
 
 const TRANSFER_COUNT_OPTIONS: ChipOption<TransferCountRange>[] = [
   { value: '', label: '不限' },
-  { value: 'ZERO', label: '0次（沉睡）' },
+  { value: 'ZERO', label: '0次转让' },
   { value: 'ONE', label: '1次' },
   { value: 'TWO_PLUS', label: '2次及以上' },
 ];
@@ -191,7 +191,7 @@ function legalStatusLabelShort(s?: LegalStatus | ''): string | null {
   if (s === 'GRANTED') return '已授权';
   if (s === 'EXPIRED') return '已失效';
   if (s === 'INVALIDATED') return '已无效';
-  return '未知';
+  return null;
 }
 
 function transferCountRangeValue(min?: number, max?: number): TransferCountRange {
@@ -237,6 +237,8 @@ export default function SearchPage() {
     LISTING: null,
     ACHIEVEMENT: null,
   });
+  const pageVisibleRef = useRef(true);
+  const consultSeqRef = useRef(0);
 
   const [favoriteIds, setFavoriteIds] = useState<Set<string>>(() => new Set(getFavoriteListingIds()));
   const [listingTopicOptions, setListingTopicOptions] = useState<Array<{ value: ListingTopic; label: string }>>(() =>
@@ -254,6 +256,15 @@ export default function SearchPage() {
     () => new Set<ListingTopic>(listingTopicOptions.map((item) => item.value)),
     [listingTopicOptions],
   );
+
+  useDidShow(() => {
+    pageVisibleRef.current = true;
+  });
+
+  useDidHide(() => {
+    pageVisibleRef.current = false;
+    consultSeqRef.current += 1;
+  });
 
   useEffect(() => {
     (async () => {
@@ -448,6 +459,7 @@ export default function SearchPage() {
 
   const startListingConsult = useCallback(async (listingId: string) => {
     if (!ensureApproved()) return;
+    const seq = ++consultSeqRef.current;
     try {
       await apiPost<void>(`/listings/${listingId}/consultations`, { channel: 'FORM' }, { idempotencyKey: `c-${listingId}` });
     } catch (_) {
@@ -459,8 +471,10 @@ export default function SearchPage() {
         {},
         { idempotencyKey: `conv-${listingId}` },
       );
+      if (seq !== consultSeqRef.current || !pageVisibleRef.current) return;
       Taro.navigateTo({ url: `/subpackages/messages/chat/index?conversationId=${conv.id}` });
     } catch (e: any) {
+      if (seq !== consultSeqRef.current || !pageVisibleRef.current) return;
       toast(e?.message || '进入咨询失败');
     }
   }, []);

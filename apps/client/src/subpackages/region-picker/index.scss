@@ -15,9 +15,48 @@
   line-height: 1.5;
 }
 
+.region-picker-field {
+  display: flex;
+  flex-direction: column;
+  gap: 10rpx;
+}
+
+.region-picker-field-main {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24rpx;
+}
+
+.region-picker-value {
+  color: #1f2329;
+  font-size: 28rpx;
+  line-height: 1.5;
+  word-break: break-all;
+}
+
+.region-picker-placeholder {
+  color: #9aa1ac;
+  font-size: 28rpx;
+  line-height: 1.5;
+}
+
+.region-picker-arrow {
+  color: #9aa1ac;
+  font-size: 34rpx;
+  line-height: 1;
+}
+
 .region-picker-tip {
   font-size: 20rpx;
   line-height: 1.5;
+}
+
+.region-picker-clear {
+  color: #2f6bff;
+  display: inline-block;
+  font-size: 22rpx;
+  margin-top: 12rpx;
 }
 
 .region-picker-confirm {
@@ -26,4 +65,3 @@
   font-size: 30rpx;
   font-weight: 700;
 }
-

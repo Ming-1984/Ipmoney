@@ -1,5 +1,5 @@
 ﻿import { View, Text, Image, Input, Swiper, SwiperItem } from '@tarojs/components';
-import Taro, { usePullDownRefresh, useReachBottom } from '@tarojs/taro';
+import Taro, { useDidHide, useDidShow, usePullDownRefresh, useReachBottom } from '@tarojs/taro';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import './index.scss';
 
@@ -24,6 +24,7 @@ import { STORAGE_KEYS } from '../../constants';
 import { getToken, onAuthChanged } from '../../lib/auth';
 import { apiGet, apiPost } from '../../lib/api';
 import { getDetailCache, setDetailCache } from '../../lib/detailCache';
+import { normalizeDisplayText } from '../../lib/displayText';
 import { ensureApproved } from '../../lib/guard';
 import { favorite, getFavoriteListingIds, syncFavorites, unfavorite } from '../../lib/favorites';
 import {
@@ -120,7 +121,7 @@ const HomeBanner = React.memo(function HomeBanner({ items }: { items: HomeBanner
               <Image src={item.cover} mode="aspectFill" className="home-banner-img" lazyLoad />
               <View className="home-banner-overlay">
                 <Text className="home-banner-caption">
-                  {item.mediaType === 'VIDEO' && item.videoUrl ? '点击观看' : item.linkUrl ? '点击查看' : item.title}
+                  {item.mediaType === 'VIDEO' && item.videoUrl ? '点击观看' : item.linkUrl ? '点击查看' : normalizeDisplayText(item.title) || '查看内容'}
                 </Text>
               </View>
             </View>
@@ -157,6 +158,12 @@ export default function HomePage() {
   const [bannerItems, setBannerItems] = useState<HomeBannerItem[]>(() => buildHomeBannerItems());
   const [homeLandingConfig, setHomeLandingConfig] = useState<HomeLandingConfig>(() => normalizeHomeLandingConfig(null));
   const itemCountRef = useRef(items.length);
+  const authStateRef = useRef(isAuthed);
+  const recommendModeRef = useRef(recommendMode);
+  const loadRequestSeqRef = useRef(0);
+  const favoriteSyncSeqRef = useRef(0);
+  const pageVisibleRef = useRef(true);
+  const consultSeqRef = useRef(0);
 
   const statusBarHeight = useMemo(() => {
     if (process.env.TARO_ENV !== 'weapp') return 0;
@@ -178,6 +185,23 @@ export default function HomePage() {
   useEffect(() => {
     itemCountRef.current = items.length;
   }, [items.length]);
+
+  useEffect(() => {
+    authStateRef.current = isAuthed;
+  }, [isAuthed]);
+
+  useEffect(() => {
+    recommendModeRef.current = recommendMode;
+  }, [recommendMode]);
+
+  useDidShow(() => {
+    pageVisibleRef.current = true;
+  });
+
+  useDidHide(() => {
+    pageVisibleRef.current = false;
+    consultSeqRef.current += 1;
+  });
 
   const loadAnnouncements = useCallback(async () => {
     try {
@@ -235,19 +259,23 @@ export default function HomePage() {
 
   const load = useCallback(
     async (ctx: 'load' | 'refresh' = 'load') => {
+      const requestSeq = ++loadRequestSeqRef.current;
+      const targetAuthed = isAuthed;
       const cachedRecommend = getDetailCache<PagedListingSummary>(HOME_LISTINGS_CACHE_SCOPE, 'recommend');
       const cachedNewest = getDetailCache<PagedListingSummary>(HOME_LISTINGS_CACHE_SCOPE, 'newest');
-      const cached = isAuthed ? cachedRecommend || cachedNewest : cachedNewest;
+      const cached = targetAuthed ? cachedRecommend || cachedNewest : cachedNewest;
+
+      setLoadingMore(false);
 
       if (ctx === 'load') {
         if (cached) {
           applyRecommendPage(cached, false);
-          if (isAuthed && cachedRecommend) {
+          if (targetAuthed && cachedRecommend) {
             setRecommendMode('RECOMMEND');
             setRecommendFallback(false);
           } else {
             setRecommendMode('NEWEST');
-            setRecommendFallback(isAuthed);
+            setRecommendFallback(targetAuthed);
           }
           setLoading(false);
           setError(null);
@@ -263,23 +291,26 @@ export default function HomePage() {
       }
 
       try {
-        if (isAuthed) {
+        if (targetAuthed) {
           let recommendResult: PagedListingSummary | null = null;
           let recommendFailed = false;
 
           try {
             recommendResult = await fetchRecommendPage(1);
+            if (loadRequestSeqRef.current !== requestSeq || authStateRef.current !== targetAuthed) return;
             setDetailCache(HOME_LISTINGS_CACHE_SCOPE, 'recommend', recommendResult);
           } catch {
             recommendFailed = true;
           }
 
           if (recommendResult?.items?.length) {
+            if (loadRequestSeqRef.current !== requestSeq || authStateRef.current !== targetAuthed) return;
             applyRecommendPage(recommendResult, false);
             setRecommendMode('RECOMMEND');
             setRecommendFallback(false);
           } else {
             const newest = await fetchNewestPage(1);
+            if (loadRequestSeqRef.current !== requestSeq || authStateRef.current !== targetAuthed) return;
             applyRecommendPage(newest, false);
             setRecommendMode('NEWEST');
             setRecommendFallback(recommendFailed || Boolean(recommendResult));
@@ -287,12 +318,14 @@ export default function HomePage() {
           }
         } else {
           const newest = await fetchNewestPage(1);
+          if (loadRequestSeqRef.current !== requestSeq || authStateRef.current !== targetAuthed) return;
           applyRecommendPage(newest, false);
           setRecommendMode('NEWEST');
           setRecommendFallback(false);
           setDetailCache(HOME_LISTINGS_CACHE_SCOPE, 'newest', newest);
         }
       } catch (e: any) {
+        if (loadRequestSeqRef.current !== requestSeq || authStateRef.current !== targetAuthed) return;
         if (!cached && itemCountRef.current === 0) {
           setError(e?.message || '加载失败');
           setItems([]);
@@ -302,6 +335,7 @@ export default function HomePage() {
           toast(e?.message || '刷新失败');
         }
       } finally {
+        if (loadRequestSeqRef.current !== requestSeq || authStateRef.current !== targetAuthed) return;
         if (ctx === 'load') setLoading(false);
         if (ctx === 'refresh') setRefreshing(false);
       }
@@ -334,14 +368,21 @@ export default function HomePage() {
   }, [announcements.length]);
 
   useEffect(() => {
+    const syncSeq = ++favoriteSyncSeqRef.current;
     if (!isAuthed) {
       setFavoriteIds(new Set(getFavoriteListingIds()));
       return;
     }
     const timer = setTimeout(() => {
       void syncFavorites()
-        .then((ids) => setFavoriteIds(new Set(ids)))
-        .catch(() => setFavoriteIds(new Set(getFavoriteListingIds())));
+        .then((ids) => {
+          if (favoriteSyncSeqRef.current !== syncSeq || !authStateRef.current) return;
+          setFavoriteIds(new Set(ids));
+        })
+        .catch(() => {
+          if (favoriteSyncSeqRef.current !== syncSeq) return;
+          setFavoriteIds(new Set(getFavoriteListingIds()));
+        });
     }, HOME_FAVORITES_SYNC_DELAY_MS);
     return () => clearTimeout(timer);
   }, [isAuthed]);
@@ -354,18 +395,42 @@ export default function HomePage() {
 
   const loadRecommendMore = useCallback(async () => {
     if (loading || refreshing || loadingMore || !hasMore) return;
+    const requestSeq = loadRequestSeqRef.current;
+    const targetAuthed = isAuthed;
+    const targetMode = recommendMode;
+    const currentPage = Math.max(1, Number(pageInfo?.page || 1));
+    const nextPage = currentPage + 1;
     setLoadingMore(true);
     try {
-      const currentPage = Math.max(1, Number(pageInfo?.page || 1));
-      const nextPage = currentPage + 1;
       const next =
-        isAuthed && recommendMode === 'RECOMMEND'
+        targetAuthed && targetMode === 'RECOMMEND'
           ? await fetchRecommendPage(nextPage)
           : await fetchNewestPage(nextPage);
+      if (
+        loadRequestSeqRef.current !== requestSeq ||
+        authStateRef.current !== targetAuthed ||
+        recommendModeRef.current !== targetMode
+      ) {
+        return;
+      }
       applyRecommendPage(next, true);
     } catch (e: any) {
+      if (
+        loadRequestSeqRef.current !== requestSeq ||
+        authStateRef.current !== targetAuthed ||
+        recommendModeRef.current !== targetMode
+      ) {
+        return;
+      }
       toast(e?.message || '加载更多失败');
     } finally {
+      if (
+        loadRequestSeqRef.current !== requestSeq ||
+        authStateRef.current !== targetAuthed ||
+        recommendModeRef.current !== targetMode
+      ) {
+        return;
+      }
       setLoadingMore(false);
     }
   }, [
@@ -453,6 +518,7 @@ export default function HomePage() {
 
   const startListingConsult = useCallback(async (listingId: string) => {
     if (!ensureApproved()) return;
+    const seq = ++consultSeqRef.current;
     try {
       await apiPost<void>(`/listings/${listingId}/consultations`, { channel: 'FORM' }, { idempotencyKey: `c-${listingId}` });
     } catch {
@@ -464,8 +530,10 @@ export default function HomePage() {
         {},
         { idempotencyKey: `conv-${listingId}` },
       );
+      if (seq !== consultSeqRef.current || !pageVisibleRef.current) return;
       Taro.navigateTo({ url: `/subpackages/messages/chat/index?conversationId=${conv.id}` });
     } catch (e: any) {
+      if (seq !== consultSeqRef.current || !pageVisibleRef.current) return;
       toast(e?.message || '进入咨询失败');
     }
   }, []);
@@ -530,8 +598,8 @@ export default function HomePage() {
         .slice(0, homeLandingConfig.featuredZones.displayCount)
         .map((item, idx) => ({
           id: item.id,
-          title: item.title,
-          subtitle: item.subtitle,
+          title: normalizeDisplayText(item.title) || '未命名专区',
+          subtitle: normalizeDisplayText(item.subtitle) || '查看专区内容',
           bgImage: resolveHomeLandingZoneImage(item.imageUrl),
           tone: HOME_ZONE_TONES[idx % HOME_ZONE_TONES.length],
           onClick: () => executeHomeLandingAction(item.actionType, item.actionPayload),

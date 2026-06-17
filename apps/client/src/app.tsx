@@ -8,6 +8,7 @@ import { useLaunch } from '@tarojs/taro';
 import { ErrorBoundary } from './ui/ErrorBoundary';
 import { AppOverlays, OVERLAY_IDS, toast } from './ui/nutui';
 import { installH5DomGuard } from './lib/h5DomGuard';
+import { isTabPageUrl, normalizePageUrl } from './lib/navigation';
 import { ensureRegionNamesReady } from './lib/regions';
 import type { components } from '@ipmoney/api-types';
 import { clearVerificationStatus, clearVerificationType, getToken, isOnboardingDone, onAuthRequired, setOnboardingDone, setToken, setVerificationStatus, setVerificationType } from './lib/auth';
@@ -20,6 +21,7 @@ type AuthTokenResponse = components['schemas']['AuthTokenResponse'];
 type VerificationStatus = components['schemas']['VerificationStatus'];
 type VerificationType = components['schemas']['VerificationType'];
 const REGION_WARMUP_DELAY_MS = 1200;
+const H5_HIDE_TABBAR_CLASS = 'h5-hide-tabbar';
 let regionWarmupScheduled = false;
 
 function scheduleRegionWarmup() {
@@ -29,6 +31,21 @@ function scheduleRegionWarmup() {
   setTimeout(() => {
     void ensureRegionNamesReady();
   }, REGION_WARMUP_DELAY_MS);
+}
+
+function getH5RoutePath() {
+  if (process.env.TARO_ENV !== 'h5' || typeof window === 'undefined') return '';
+  const hash = String(window.location.hash || '').trim();
+  const route = hash.startsWith('#') ? hash.slice(1) : hash;
+  return normalizePageUrl(route, '/pages/home/index');
+}
+
+function syncH5RouteShell() {
+  if (process.env.TARO_ENV !== 'h5' || typeof document === 'undefined') return;
+  const routePath = getH5RoutePath();
+  const shouldHideTabbar = Boolean(routePath) && !isTabPageUrl(routePath);
+  document.documentElement.classList.toggle(H5_HIDE_TABBAR_CLASS, shouldHideTabbar);
+  document.body.classList.toggle(H5_HIDE_TABBAR_CLASS, shouldHideTabbar);
 }
 
 if (process.env.TARO_ENV === 'weapp') {
@@ -49,6 +66,7 @@ export default function App(props: { children: ReactNode }) {
     if (!hash || hash === '#' || hash === '#/' || hash === '#/pages' || hash === '#/pages/') {
       window.location.hash = '#/pages/home/index';
     }
+    syncH5RouteShell();
 
     installH5DomGuard({ overlayIds: Object.values(OVERLAY_IDS) });
 
@@ -94,6 +112,22 @@ export default function App(props: { children: ReactNode }) {
       // ignore URL parsing errors
     }
   });
+
+  useEffect(() => {
+    if (process.env.TARO_ENV !== 'h5' || typeof window === 'undefined') return;
+    syncH5RouteShell();
+    const onRouteChange = () => syncH5RouteShell();
+    window.addEventListener('hashchange', onRouteChange);
+    window.addEventListener('popstate', onRouteChange);
+    return () => {
+      window.removeEventListener('hashchange', onRouteChange);
+      window.removeEventListener('popstate', onRouteChange);
+      if (typeof document !== 'undefined') {
+        document.documentElement.classList.remove(H5_HIDE_TABBAR_CLASS);
+        document.body.classList.remove(H5_HIDE_TABBAR_CLASS);
+      }
+    };
+  }, []);
 
   useEffect(() => {
     let lastNoticeAt = 0;
