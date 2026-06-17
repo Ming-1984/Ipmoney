@@ -26,6 +26,7 @@ import {
   fetchAdminListingTopicOptions,
   topicLabelFromOptions,
 } from '../lib/homeLandingConfig';
+import { normalizeUserFacingText } from '../lib/userFacingText';
 import { RequestErrorAlert } from '../ui/RequestState';
 import { confirmAction } from '../ui/confirm';
 
@@ -36,7 +37,7 @@ type DateRangeValue = [any, any] | null;
 
 type ConversationSummary = {
   id: string;
-  contentType: 'LISTING' | 'TECH_MANAGER' | 'SUPPORT' | 'DISPUTE' | 'MAINTENANCE';
+  contentType: 'LISTING' | 'ACHIEVEMENT' | 'TECH_MANAGER' | 'SUPPORT' | 'DISPUTE' | 'MAINTENANCE';
   contentId: string;
   contentTitle: string;
   listingId?: string | null;
@@ -133,7 +134,29 @@ function channelTagColor(contentType: ConversationSummary['contentType']): strin
 }
 
 function conversationTitle(item: ConversationSummary): string {
-  return item.contentTitle || item.listingTitle || '未命名会话';
+  return normalizeUserFacingText(item.contentTitle) || '未命名会话';
+}
+
+function safeChannelLabel(contentType: ConversationSummary['contentType']): string {
+  if (contentType === 'ACHIEVEMENT') return '成果咨询';
+  return channelLabel(contentType);
+}
+
+function safeChannelTagColor(contentType: ConversationSummary['contentType']): string {
+  if (contentType === 'ACHIEVEMENT') return 'green';
+  return channelTagColor(contentType);
+}
+
+function conversationCounterpartName(item: Pick<ConversationSummary, 'counterpart'>): string {
+  return normalizeUserFacingText(item.counterpart?.nickname) || '未设置昵称';
+}
+
+function conversationPreviewText(item: Pick<ConversationSummary, 'lastMessagePreview'>): string {
+  return normalizeUserFacingText(item.lastMessagePreview) || '暂无消息';
+}
+
+function resolvedConversationTitle(item: ConversationSummary): string {
+  return normalizeUserFacingText(item.contentTitle) || conversationTitle(item);
 }
 
 export function PlatformConversationsPage() {
@@ -172,6 +195,9 @@ export function PlatformConversationsPage() {
 
   const messageListRef = useRef<HTMLDivElement | null>(null);
   const olderAnchorRef = useRef<number | null>(null);
+  const activeConversationIdRef = useRef<string | null>(null);
+  const latestMessageLoadIdRef = useRef(0);
+  const conversationsLoadIdRef = useRef(0);
 
   const activeConversation = useMemo(
     () => (data?.items || []).find((item) => item.id === activeConversationId) || null,
@@ -231,6 +257,8 @@ export function PlatformConversationsPage() {
   }, []);
 
   const loadConversations = useCallback(async () => {
+    const requestId = conversationsLoadIdRef.current + 1;
+    conversationsLoadIdRef.current = requestId;
     setLoading(true);
     setError(null);
     try {
@@ -245,23 +273,29 @@ export function PlatformConversationsPage() {
         updatedTo: appliedUpdatedRange?.[1]?.endOf('day').toISOString(),
       };
       const res = await apiGet<Paged<ConversationSummary>>('/admin/conversations/platform', params);
+      if (conversationsLoadIdRef.current !== requestId) return null;
       setData(res);
       return res;
     } catch (err: any) {
+      if (conversationsLoadIdRef.current !== requestId) return null;
       setError(err);
-      setData(null);
       message.error(err?.message || '会话加载失败');
       return null;
     } finally {
-      setLoading(false);
+      if (conversationsLoadIdRef.current === requestId) {
+        setLoading(false);
+      }
     }
   }, [appliedAssigned, appliedChannel, appliedListingTopic, appliedQ, appliedUpdatedRange, page]);
 
   const loadLatestMessages = useCallback(
     async (conversationId: string) => {
+      const requestId = latestMessageLoadIdRef.current + 1;
+      latestMessageLoadIdRef.current = requestId;
       setMessagesLoading(true);
       try {
         const res = await apiGet<PagedMessages>(`/conversations/${conversationId}/messages`, { limit: 50 });
+        if (activeConversationIdRef.current !== conversationId || latestMessageLoadIdRef.current !== requestId) return;
         setMessages(res.items || []);
         setNextCursor(res.nextCursor || null);
         try {
@@ -273,7 +307,9 @@ export function PlatformConversationsPage() {
       } catch (err: any) {
         message.error(err?.message || '消息加载失败');
       } finally {
-        setMessagesLoading(false);
+        if (latestMessageLoadIdRef.current === requestId) {
+          setMessagesLoading(false);
+        }
       }
     },
     [scrollToBottom],
@@ -281,14 +317,16 @@ export function PlatformConversationsPage() {
 
   const loadOlderMessages = useCallback(async () => {
     if (!activeConversationId || !nextCursor || loadingOlder) return;
+    const requestedConversationId = activeConversationId;
     const box = messageListRef.current;
     olderAnchorRef.current = box ? box.scrollHeight - box.scrollTop : null;
     setLoadingOlder(true);
     try {
-      const res = await apiGet<PagedMessages>(`/conversations/${activeConversationId}/messages`, {
+      const res = await apiGet<PagedMessages>(`/conversations/${requestedConversationId}/messages`, {
         cursor: nextCursor,
         limit: 50,
       });
+      if (activeConversationIdRef.current !== requestedConversationId) return;
       const older = res.items || [];
       if (older.length) {
         setMessages((prev) => [...older, ...prev]);
@@ -439,6 +477,10 @@ export function PlatformConversationsPage() {
   }, [loadConversations]);
 
   useEffect(() => {
+    activeConversationIdRef.current = activeConversationId;
+  }, [activeConversationId]);
+
+  useEffect(() => {
     const list = data?.items || [];
     if (!list.length) {
       if (activeConversationId) setActiveConversationId(null);
@@ -456,6 +498,8 @@ export function PlatformConversationsPage() {
       setMessageText('');
       return;
     }
+    setMessages([]);
+    setNextCursor(null);
     setTargetUserId('');
     setMessageText('');
     void loadLatestMessages(activeConversationId);
@@ -494,7 +538,7 @@ export function PlatformConversationsPage() {
             <Input.Search
               value={draftQ}
               allowClear
-              placeholder="关键词（标题/用户昵称/会话ID）"
+              placeholder="关键词（标题/用户昵称/会话 ID）"
               onChange={(event) => setDraftQ(event.target.value)}
               onSearch={applyFilters}
             />
@@ -570,26 +614,26 @@ export function PlatformConversationsPage() {
                     <Space align="start" style={{ width: '100%' }}>
                       <Badge count={unread > 99 ? '99+' : unread} size="small" offset={[-2, 2]}>
                         <Avatar src={item.counterpart.avatarUrl || undefined}>
-                          {(item.counterpart.nickname || 'U').slice(0, 1)}
+                          {conversationCounterpartName(item).slice(0, 1)}
                         </Avatar>
                       </Badge>
                       <Space direction="vertical" size={4} style={{ width: '100%' }}>
                         <Space style={{ width: '100%', justifyContent: 'space-between' }}>
                           <Typography.Text strong ellipsis style={{ maxWidth: 220 }}>
-                            {conversationTitle(item)}
+                            {resolvedConversationTitle(item)}
                           </Typography.Text>
                           <Typography.Text type="secondary" style={{ fontSize: 12 }}>
                             {formatTimeSmart(item.lastMessageAt)}
                           </Typography.Text>
                         </Space>
                         <Typography.Text type="secondary" style={{ fontSize: 12 }}>
-                          咨询人：{item.counterpart.nickname || '用户'}（{shortId(item.counterpart.id)}）
+                          咨询人：{conversationCounterpartName(item)}（{shortId(item.counterpart.id)}）
                         </Typography.Text>
                         <Typography.Paragraph type="secondary" style={{ margin: 0, fontSize: 12 }} ellipsis={{ rows: 1 }}>
-                          {item.lastMessagePreview || '暂无消息'}
+                          {conversationPreviewText(item)}
                         </Typography.Paragraph>
                         <Space size={[4, 4]} wrap>
-                          <Tag color={channelTagColor(item.contentType)}>{channelLabel(item.contentType)}</Tag>
+                          <Tag color={safeChannelTagColor(item.contentType)}>{safeChannelLabel(item.contentType)}</Tag>
                           {(item.listingTopics || []).map((topic) => (
                             <Tag key={`${item.id}-${topic}`} color={topicColor(topic)}>
                               {topicLabel(topic)}
@@ -628,7 +672,7 @@ export function PlatformConversationsPage() {
                 <Space direction="vertical" size={8} style={{ width: '100%' }}>
                   <Space style={{ width: '100%', justifyContent: 'space-between' }} wrap>
                     <Typography.Text strong style={{ fontSize: 16 }}>
-                      {conversationTitle(activeConversation)}
+                      {resolvedConversationTitle(activeConversation)}
                     </Typography.Text>
                     <Space>
                       <Typography.Text type="secondary">自动刷新</Typography.Text>
@@ -638,8 +682,8 @@ export function PlatformConversationsPage() {
                   </Space>
 
                   <Space size={[6, 6]} wrap>
-                    <Tag color={channelTagColor(activeConversation.contentType)}>{channelLabel(activeConversation.contentType)}</Tag>
-                    <Tag color="processing">咨询人：{activeConversation.counterpart.nickname || '用户'}</Tag>
+                    <Tag color={safeChannelTagColor(activeConversation.contentType)}>{safeChannelLabel(activeConversation.contentType)}</Tag>
+                    <Tag color="processing">咨询人：{conversationCounterpartName(activeConversation)}</Tag>
                     <Tag>{shortId(activeConversation.counterpart.id)}</Tag>
                     {(activeConversation.listingTopics || []).map((topic) => (
                       <Tag key={`active-topic-${topic}`} color={topicColor(topic)}>
@@ -722,7 +766,7 @@ export function PlatformConversationsPage() {
                       const isCounterpart = msg.senderUserId === activeConversation.counterpart.id;
                       const isMine = Boolean(currentUserId) && msg.senderUserId === currentUserId;
                       const senderName = isCounterpart
-                        ? activeConversation.counterpart.nickname || '咨询用户'
+                        ? conversationCounterpartName(activeConversation)
                         : isMine
                           ? '我'
                           : staffNameMap.get(msg.senderUserId) || shortId(msg.senderUserId);

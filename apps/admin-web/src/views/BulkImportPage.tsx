@@ -2,6 +2,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 
 import { apiGet, apiPost, apiUploadFile, type FileObject } from '../lib/api';
+import { displayAdminInfo } from '../lib/userFacingText';
 
 type RatingPolicy = 'KEEP_EXISTING' | 'FILL_MISSING' | 'FORCE_SET';
 
@@ -417,7 +418,7 @@ export function BulkImportPage() {
                 dataIndex: ['input', 'sourceBatch'],
                 width: 180,
                 ellipsis: true,
-                render: (v: string | null) => v || '-',
+                render: (v: string | null) => displayAdminInfo(v),
               },
               {
                 title: '技术经理人',

@@ -1,8 +1,9 @@
 ﻿import { Button, Card, Input, Select, Space, Table, Tag, Typography, message } from 'antd';
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { apiGet, apiPost } from '../lib/api';
 import { formatTimeSmart } from '../lib/format';
+import { displayAdminInfo } from '../lib/userFacingText';
 import { RequestErrorAlert } from '../ui/RequestState';
 import { confirmActionWithReason } from '../ui/confirm';
 
@@ -62,6 +63,8 @@ export function AlertsPage() {
   const [error, setError] = useState<unknown | null>(null);
   const [data, setData] = useState<PagedAlertEvent | null>(null);
   const [page, setPage] = useState(1);
+  const loadSeqRef = useRef(0);
+  const ackSeqRef = useRef(0);
 
   const [status, setStatus] = useState('');
   const [severity, setSeverity] = useState('');
@@ -71,6 +74,7 @@ export function AlertsPage() {
   const [targetId, setTargetId] = useState('');
 
   const load = useCallback(async () => {
+    const seq = ++loadSeqRef.current;
     setLoading(true);
     setError(null);
     try {
@@ -84,13 +88,17 @@ export function AlertsPage() {
         page,
         pageSize: 20,
       });
+      if (seq !== loadSeqRef.current) return;
       setData(d);
     } catch (e: any) {
+      if (seq !== loadSeqRef.current) return;
       setError(e);
       setData(null);
       message.error(e?.message || '加载失败');
     } finally {
-      setLoading(false);
+      if (seq === loadSeqRef.current) {
+        setLoading(false);
+      }
     }
   }, [channel, page, severity, status, targetId, targetType, type]);
 
@@ -168,9 +176,9 @@ export function AlertsPage() {
             { title: '级别', dataIndex: 'severity', width: 100 },
             { title: '通道', dataIndex: 'channel', width: 100 },
             { title: '状态', dataIndex: 'status', width: 120 },
-            { title: '对象', dataIndex: 'targetType', width: 120, render: (v) => v || '-' },
-            { title: '对象ID', dataIndex: 'targetId', ellipsis: true, render: (v) => v || '-' },
-            { title: '内容', dataIndex: 'message', ellipsis: true, render: (v) => v || '-' },
+            { title: '对象', dataIndex: 'targetType', width: 120, render: (v) => displayAdminInfo(v) },
+            { title: '对象ID', dataIndex: 'targetId', ellipsis: true, render: (v) => displayAdminInfo(v) },
+            { title: '内容', dataIndex: 'message', ellipsis: true, render: (v) => displayAdminInfo(v) },
             {
               title: '操作',
               key: 'actions',
@@ -188,11 +196,14 @@ export function AlertsPage() {
                         reasonLabel: '备注（建议填写）',
                       });
                       if (!ok) return;
+                      const seq = ++ackSeqRef.current;
                       try {
                         await apiPost(`/admin/alerts/${r.id}/ack`, { reason: reason || undefined });
+                        if (seq !== ackSeqRef.current) return;
                         message.success('已确认');
                         void load();
                       } catch (e: any) {
+                        if (seq !== ackSeqRef.current) return;
                         message.error(e?.message || '操作失败');
                       }
                     }}

@@ -3,6 +3,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 
 import { apiGet, apiPost } from '../lib/api';
 import { formatTimeSmart } from '../lib/format';
+import { displayAdminInfo, normalizeUserFacingText } from '../lib/userFacingText';
 import { RequestErrorAlert } from '../ui/RequestState';
 import { confirmActionWithReason } from '../ui/confirm';
 
@@ -183,12 +184,12 @@ export function PatentClaimsPage() {
             { title: '专利ID', dataIndex: 'patentId', width: 230 },
             { title: '申请用户ID', dataIndex: 'applicantUserId', width: 230 },
             { title: '状态', dataIndex: 'status', width: 100, render: (v: ClaimStatus) => statusTag(v) },
-            { title: '认领说明', dataIndex: 'claimReason', render: (v: string | null | undefined) => v || '-' },
+            { title: '认领说明', dataIndex: 'claimReason', render: (v: string | null | undefined) => normalizeUserFacingText(v) || '待补充' },
             { title: '证据文件数', render: (_, row) => row.evidenceFileIds?.length || 0, width: 110 },
             { title: '提交时间', dataIndex: 'submittedAt', width: 160, render: (v: string) => formatTimeSmart(v) },
-            { title: '审核人', dataIndex: 'reviewerUserId', width: 220, render: (v: string | null | undefined) => v || '-' },
+            { title: '审核人', dataIndex: 'reviewerUserId', width: 220, render: (v: string | null | undefined) => displayAdminInfo(v) },
             { title: '审核时间', dataIndex: 'reviewedAt', width: 160, render: (v: string | null | undefined) => (v ? formatTimeSmart(v) : '-') },
-            { title: '审核备注', dataIndex: 'reviewComment', width: 200, render: (v: string | null | undefined) => v || '-' },
+            { title: '审核备注', dataIndex: 'reviewComment', width: 200, render: (v: string | null | undefined) => normalizeUserFacingText(v) || '待补充' },
             {
               title: '操作',
               width: 170,

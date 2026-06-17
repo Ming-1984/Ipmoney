@@ -3,6 +3,7 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 
 import { apiGet } from '../lib/api';
 import { formatTimeSmart } from '../lib/format';
+import { displayAdminInfo } from '../lib/userFacingText';
 import { RequestErrorAlert } from '../ui/RequestState';
 
 type AuditLog = {
@@ -160,7 +161,7 @@ export function AuditLogsPage() {
               title: 'requestId',
               dataIndex: 'requestId',
               ellipsis: true,
-              render: (v?: string) => v || '-',
+              render: (v?: string) => displayAdminInfo(v),
             },
             {
               title: '操作',
@@ -197,18 +198,18 @@ export function AuditLogsPage() {
                 <Typography.Text type="secondary">
                   target：{active.targetType} / {active.targetId}
                 </Typography.Text>
-                <Typography.Text type="secondary">requestId：{active.requestId || '-'}</Typography.Text>
-                <Typography.Text type="secondary">ip：{active.ip || '-'}</Typography.Text>
-                <Typography.Text type="secondary">ua：{active.userAgent || '-'}</Typography.Text>
+                <Typography.Text type="secondary">requestId：{displayAdminInfo(active.requestId)}</Typography.Text>
+                <Typography.Text type="secondary">ip：{displayAdminInfo(active.ip)}</Typography.Text>
+                <Typography.Text type="secondary">ua：{displayAdminInfo(active.userAgent)}</Typography.Text>
               </Space>
             </Card>
 
             <Card size="small" title="beforeJson">
-              <pre style={{ margin: 0, whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>{safeJson(active.beforeJson) || '-'}</pre>
+              <pre style={{ margin: 0, whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>{displayAdminInfo(safeJson(active.beforeJson))}</pre>
             </Card>
 
             <Card size="small" title="afterJson">
-              <pre style={{ margin: 0, whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>{safeJson(active.afterJson) || '-'}</pre>
+              <pre style={{ margin: 0, whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>{displayAdminInfo(safeJson(active.afterJson))}</pre>
             </Card>
           </Space>
         ) : null}
