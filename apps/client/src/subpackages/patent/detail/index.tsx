@@ -34,7 +34,7 @@ function legalStatusLabel(status?: Patent['legalStatus']): string {
   if (status === 'GRANTED') return '已授权';
   if (status === 'EXPIRED') return '已失效';
   if (status === 'INVALIDATED') return '已无效';
-  return '未知';
+  return '待确认';
 }
 
 function sourcePrimaryLabel(source?: Patent['sourcePrimary']): string {
@@ -42,7 +42,7 @@ function sourcePrimaryLabel(source?: Patent['sourcePrimary']): string {
   if (source === 'USER') return '用户提交';
   if (source === 'ADMIN') return '后台录入';
   if (source === 'PROVIDER') return '服务商导入';
-  return '未知';
+  return '来源待补充';
 }
 
 function isPlatformUnifiedPatent(source?: Patent['sourcePrimary']): boolean {
@@ -389,7 +389,7 @@ export default function PatentDetailOverviewPage() {
                   </Button>
                 </View>
               ) : (
-                <Text className="muted">{displayInfoOrPlaceholder(null)}</Text>
+                <Text className="muted">当前暂无可展示的供给方信息。</Text>
               )}
             </Surface>
           </View>

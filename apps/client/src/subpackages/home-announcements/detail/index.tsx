@@ -1,10 +1,11 @@
 import { View, Text } from '@tarojs/components';
 import Taro from '@tarojs/taro';
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import './index.scss';
 
 import type { PublicHomeAnnouncementItem } from '../../../lib/homeAnnouncements';
 
+import { displayInfoOrPlaceholder, displayTitleOrFallback } from '../../../lib/displayText';
 import { formatTimeSmart } from '../../../lib/format';
 import { usePageAccess } from '../../../lib/guard';
 import { fetchHomeAnnouncements } from '../../../lib/homeAnnouncements';
@@ -20,9 +21,19 @@ export default function HomeAnnouncementDetailPage() {
   const [item, setItem] = useState<PublicHomeAnnouncementItem | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const idRef = useRef(id);
+
+  useEffect(() => {
+    idRef.current = id;
+    setItem(null);
+    setLoading(Boolean(id));
+    setError(null);
+  }, [id]);
 
   const loadDetail = useCallback(async () => {
-    if (!id) {
+    const currentId = id;
+    idRef.current = currentId;
+    if (!currentId) {
       setError('公告不存在');
       setLoading(false);
       return;
@@ -31,7 +42,8 @@ export default function HomeAnnouncementDetailPage() {
     setError(null);
     try {
       const items = await fetchHomeAnnouncements({ max: 50 });
-      const found = items.find((entry) => entry.id === id) || null;
+      if (idRef.current !== currentId) return;
+      const found = items.find((entry) => entry.id === currentId) || null;
       if (!found) {
         setError('公告不存在');
         setItem(null);
@@ -39,9 +51,11 @@ export default function HomeAnnouncementDetailPage() {
         setItem(found);
       }
     } catch (err: any) {
+      if (idRef.current !== currentId) return;
       setError(err?.message || '加载失败');
       setItem(null);
     } finally {
+      if (idRef.current !== currentId) return;
       setLoading(false);
     }
   }, [id]);
@@ -54,6 +68,8 @@ export default function HomeAnnouncementDetailPage() {
     if (!item?.publishedAt) return '';
     return formatTimeSmart(item.publishedAt);
   }, [item?.publishedAt]);
+  const titleText = displayTitleOrFallback(item?.title, '未命名公告');
+  const contentText = displayInfoOrPlaceholder(item?.content, '暂未更新');
 
   const openLink = useCallback(async () => {
     if (!item?.linkUrl) return;
@@ -92,9 +108,9 @@ export default function HomeAnnouncementDetailPage() {
         {item ? (
           <Surface className="home-announcement-detail-card" padding="none">
             <View className="home-announcement-detail-body">
-              <Text className="home-announcement-detail-title">{item.title}</Text>
+              <Text className="home-announcement-detail-title">{titleText}</Text>
               {timeText ? <Text className="home-announcement-detail-time">{timeText}</Text> : null}
-              <Text className="home-announcement-detail-content">{item.content || '暂无内容'}</Text>
+              <Text className="home-announcement-detail-content">{contentText}</Text>
               {item.linkUrl ? (
                 <Text className="home-announcement-detail-link" onClick={openLink}>
                   查看详情
