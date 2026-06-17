@@ -1,9 +1,10 @@
-export function fenToYuan(fen?: number | null, options?: { empty?: string }): string {
+export function fenToYuan(fen?: number | null, options?: { empty?: string; digits?: number }): string {
   const empty = options?.empty ?? '-';
+  const digits = options?.digits ?? 2;
   if (fen === undefined || fen === null) return empty;
   const n = Number(fen);
   if (!Number.isFinite(n)) return empty;
-  return String(Math.round(n / 100));
+  return (n / 100).toFixed(digits);
 }
 
 export function fenToYuanNumber(fen?: number | null, options?: { empty?: number }): number {

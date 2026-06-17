@@ -15,10 +15,11 @@
   Upload,
   message,
 } from 'antd';
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { apiGet, apiPatch, apiPost, apiUploadFile, type FileObject } from '../lib/api';
 import { formatTimeSmart } from '../lib/format';
+import { normalizeUserFacingText } from '../lib/userFacingText';
 import { RequestErrorAlert } from '../ui/RequestState';
 import { confirmActionWithReason } from '../ui/confirm';
 
@@ -170,17 +171,21 @@ const PAYMENT_CHANNEL_OPTIONS: Array<{ value: PaymentChannel; label: string }> =
 ];
 
 function formatMoneyFen(value?: number): string {
-  return `¥${((Number(value) || 0) / 100).toFixed(2)}`;
+  return `¥${((Number(value ?? 0)) / 100).toFixed(2)}`;
 }
 
 function formatDateTime(value?: string | null): string {
-  if (!value) return '-';
+  if (!value) return '待确认';
   return formatTimeSmart(value);
 }
 
+function displayUserFacingText(value: unknown, fallback = '待补充'): string {
+  return normalizeUserFacingText(value) || fallback;
+}
+
 function statusLabel<T extends string>(value: T | undefined, options: Array<{ value: T; label: string }>): string {
-  if (!value) return '-';
-  return options.find((it) => it.value === value)?.label || value;
+  if (!value) return '待确认';
+  return options.find((it) => it.value === value)?.label || '待确认';
 }
 
 function scheduleStatusTag(status: ScheduleStatus) {
@@ -259,12 +264,12 @@ function actionLabel(action: ActionType): string {
 }
 
 function orderStatusCn(status?: string): string {
-  if (!status) return '-';
-  return ORDER_STATUS_OPTIONS.find((it) => it.value === status)?.label || status;
+  if (!status) return '状态待确认';
+  return ORDER_STATUS_OPTIONS.find((it) => it.value === status)?.label || '状态待确认';
 }
 
 function orderEventTypeCn(eventType?: string): string {
-  if (!eventType) return '-';
+  if (!eventType) return '状态更新';
   if (eventType === 'CREATED') return '已创建';
   if (eventType === 'QUOTE_UPDATED') return '报价更新';
   if (eventType === 'PAYMENT_CONFIRMED') return '支付已确认';
@@ -273,7 +278,90 @@ function orderEventTypeCn(eventType?: string): string {
   if (eventType === 'RECONCILED') return '已对账';
   if (eventType === 'CLOSED') return '已关闭';
   if (eventType === 'CANCELLED') return '已取消';
-  return eventType;
+  return '状态更新';
+}
+
+function actorRoleCn(role?: string): string {
+  const normalized = String(role || '')
+    .trim()
+    .toLowerCase();
+  if (normalized === 'admin') return '管理员';
+  if (normalized === 'cs') return '客服';
+  if (normalized === 'operator') return '运营';
+  if (normalized === 'finance') return '财务';
+  return '平台';
+}
+
+function readPayloadField(payload: unknown, key: string): unknown {
+  if (!payload || typeof payload !== 'object' || Array.isArray(payload)) return undefined;
+  return (payload as Record<string, unknown>)[key];
+}
+
+function formatPayloadMoney(value: unknown): string {
+  const amount = typeof value === 'number' ? value : Number(value);
+  if (!Number.isFinite(amount)) return '';
+  return formatMoneyFen(amount);
+}
+
+function formatPayloadDateTime(value: unknown): string {
+  if (typeof value !== 'string') return '';
+  return formatDateTime(value);
+}
+
+function summarizeOrderEventPayload(event: MaintenanceOrderEvent): string[] {
+  const lines: string[] = [];
+  if (event.eventType === 'QUOTE_UPDATED') {
+    const officialFee = formatPayloadMoney(readPayloadField(event.payloadJson, 'officialFeeFen'));
+    const lateFee = formatPayloadMoney(readPayloadField(event.payloadJson, 'lateFeeFen'));
+    const serviceFee = formatPayloadMoney(readPayloadField(event.payloadJson, 'serviceFeeFen'));
+    const totalAmount = formatPayloadMoney(readPayloadField(event.payloadJson, 'totalAmountFen'));
+    const paymentDeadline = formatPayloadDateTime(readPayloadField(event.payloadJson, 'paymentDeadline'));
+    if (officialFee) lines.push(`官费：${officialFee}`);
+    if (lateFee) lines.push(`滞纳金：${lateFee}`);
+    if (serviceFee) lines.push(`服务费：${serviceFee}`);
+    if (totalAmount) lines.push(`总金额：${totalAmount}`);
+    if (paymentDeadline) lines.push(`支付截止：${paymentDeadline}`);
+    return lines;
+  }
+
+  if (event.eventType === 'PAYMENT_CONFIRMED') {
+    const paymentChannel = statusLabel(readPayloadField(event.payloadJson, 'paymentChannel') as PaymentChannel | undefined, PAYMENT_CHANNEL_OPTIONS);
+    const paymentTxnNo = displayUserFacingText(readPayloadField(event.payloadJson, 'paymentTxnNo'), '');
+    const paidAt = formatPayloadDateTime(readPayloadField(event.payloadJson, 'paidAt'));
+    if (paymentChannel && paymentChannel !== '待确认') lines.push(`支付渠道：${paymentChannel}`);
+    if (paymentTxnNo) lines.push(`支付流水号：${paymentTxnNo}`);
+    if (paidAt) lines.push(`支付时间：${paidAt}`);
+    return lines;
+  }
+
+  if (event.eventType === 'EXECUTION_SUBMITTED') {
+    const officialSubmissionNo = displayUserFacingText(readPayloadField(event.payloadJson, 'officialSubmissionNo'), '');
+    const executedAt = formatPayloadDateTime(readPayloadField(event.payloadJson, 'executedAt'));
+    if (officialSubmissionNo) lines.push(`官方提交编号：${officialSubmissionNo}`);
+    if (executedAt) lines.push(`办理时间：${executedAt}`);
+    return lines;
+  }
+
+  if (event.eventType === 'RECEIPT_UPLOADED') {
+    const officialReceiptNo = displayUserFacingText(readPayloadField(event.payloadJson, 'officialReceiptNo'), '');
+    const officialReceiptFileId = displayUserFacingText(readPayloadField(event.payloadJson, 'officialReceiptFileId'), '');
+    const receiptIssuedAt = formatPayloadDateTime(readPayloadField(event.payloadJson, 'receiptIssuedAt'));
+    if (officialReceiptNo) lines.push(`官方回执编号：${officialReceiptNo}`);
+    if (officialReceiptFileId) lines.push('回执文件：已上传');
+    if (receiptIssuedAt) lines.push(`回执时间：${receiptIssuedAt}`);
+    return lines;
+  }
+
+  if (event.eventType === 'RECONCILED') {
+    const reconcileStatus = statusLabel(
+      readPayloadField(event.payloadJson, 'reconcileStatus') as ReconcileStatus | undefined,
+      RECONCILE_STATUS_OPTIONS,
+    );
+    const reconcileNote = displayUserFacingText(readPayloadField(event.payloadJson, 'reconcileNote'), '');
+    if (reconcileStatus) lines.push(`对账结果：${reconcileStatus}`);
+    if (reconcileNote) lines.push(`对账备注：${reconcileNote}`);
+  }
+  return lines;
 }
 
 function MaintenanceSchedules() {
@@ -284,12 +372,14 @@ function MaintenanceSchedules() {
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState<Schedule | null>(null);
   const [form] = Form.useForm();
+  const loadSeqRef = useRef(0);
 
   const emptyFilters = useMemo<ScheduleFilters>(() => ({ patentId: '', status: undefined, dueFrom: '', dueTo: '' }), []);
   const [filters, setFilters] = useState<ScheduleFilters>(emptyFilters);
   const [draftFilters, setDraftFilters] = useState<ScheduleFilters>(emptyFilters);
 
   const load = useCallback(async () => {
+    const seq = ++loadSeqRef.current;
     setLoading(true);
     setError(null);
     try {
@@ -301,12 +391,15 @@ function MaintenanceSchedules() {
         ...(filters.dueFrom ? { dueFrom: filters.dueFrom } : {}),
         ...(filters.dueTo ? { dueTo: filters.dueTo } : {}),
       });
+      if (seq !== loadSeqRef.current) return;
       setData(res);
     } catch (e: any) {
+      if (seq !== loadSeqRef.current) return;
       setError(e);
       setData(null);
       message.error(e?.message || '加载缴费计划失败');
     } finally {
+      if (seq !== loadSeqRef.current) return;
       setLoading(false);
     }
   }, [filters, page]);
@@ -392,7 +485,7 @@ function MaintenanceSchedules() {
           { title: '专利ID', dataIndex: 'patentId', width: 250, ellipsis: true },
           { title: '年次', dataIndex: 'yearNo', width: 90 },
           { title: '到期日', dataIndex: 'dueDate', width: 130 },
-          { title: '宽限期结束', dataIndex: 'gracePeriodEnd', width: 130, render: (v) => v || '-' },
+          { title: '宽限期结束', dataIndex: 'gracePeriodEnd', width: 130, render: (v) => displayUserFacingText(v) },
           {
             title: '状态',
             key: 'status',
@@ -404,7 +497,7 @@ function MaintenanceSchedules() {
               </Space>
             ),
           },
-          { title: '更新时间', dataIndex: 'updatedAt', width: 180, render: (v: string) => (v ? formatTimeSmart(v) : '-') },
+          { title: '更新时间', dataIndex: 'updatedAt', width: 180, render: (v: string) => formatDateTime(v) },
           {
             title: '操作',
             key: 'actions',
@@ -502,12 +595,23 @@ function MaintenanceTasks() {
   const [editing, setEditing] = useState<Task | null>(null);
   const [evidenceFile, setEvidenceFile] = useState<FileObject | null>(null);
   const [form] = Form.useForm();
+  const loadSeqRef = useRef(0);
+  const editingTargetKeyRef = useRef('__closed__');
+  const submitSeqRef = useRef(0);
+  const uploadSeqRef = useRef(0);
+
+  useEffect(() => {
+    editingTargetKeyRef.current = modalOpen ? editing?.id || '__new__' : '__closed__';
+    submitSeqRef.current += 1;
+    uploadSeqRef.current += 1;
+  }, [editing?.id, modalOpen]);
 
   const emptyFilters = useMemo<TaskFilters>(() => ({ scheduleId: '', assignedCsUserId: '', status: undefined }), []);
   const [filters, setFilters] = useState<TaskFilters>(emptyFilters);
   const [draftFilters, setDraftFilters] = useState<TaskFilters>(emptyFilters);
 
   const load = useCallback(async () => {
+    const seq = ++loadSeqRef.current;
     setLoading(true);
     setError(null);
     try {
@@ -518,12 +622,15 @@ function MaintenanceTasks() {
         ...(filters.assignedCsUserId ? { assignedCsUserId: filters.assignedCsUserId } : {}),
         ...(filters.status ? { status: filters.status } : {}),
       });
+      if (seq !== loadSeqRef.current) return;
       setData(res);
     } catch (e: any) {
+      if (seq !== loadSeqRef.current) return;
       setError(e);
       setData(null);
       message.error(e?.message || '加载任务失败');
     } finally {
+      if (seq !== loadSeqRef.current) return;
       setLoading(false);
     }
   }, [filters, page]);
@@ -603,11 +710,11 @@ function MaintenanceTasks() {
         columns={[
           { title: '任务ID', dataIndex: 'id', width: 230, ellipsis: true },
           { title: '计划ID', dataIndex: 'scheduleId', width: 220, ellipsis: true },
-          { title: '分配客服', dataIndex: 'assignedCsUserId', width: 220, render: (v) => v || '-' },
+          { title: '分配客服', dataIndex: 'assignedCsUserId', width: 220, render: (v) => displayUserFacingText(v) },
           { title: '状态', dataIndex: 'status', width: 130, render: (v: TaskStatus) => taskStatusTag(v) },
-          { title: '备注', dataIndex: 'note', ellipsis: true, render: (v) => v || '-' },
-          { title: '证据文件', dataIndex: 'evidenceFileId', width: 230, ellipsis: true, render: (v) => v || '-' },
-          { title: '更新时间', dataIndex: 'updatedAt', width: 180, render: (v: string) => (v ? formatTimeSmart(v) : '-') },
+          { title: '备注', dataIndex: 'note', ellipsis: true, render: (v) => displayUserFacingText(v) },
+          { title: '证据文件', dataIndex: 'evidenceFileId', width: 230, ellipsis: true, render: (v) => displayUserFacingText(v) },
+          { title: '更新时间', dataIndex: 'updatedAt', width: 180, render: (v: string) => formatDateTime(v) },
           {
             title: '操作',
             key: 'actions',
@@ -620,9 +727,9 @@ function MaintenanceTasks() {
                   setEvidenceFile(null);
                   form.setFieldsValue({
                     scheduleId: row.scheduleId,
-                    assignedCsUserId: row.assignedCsUserId || '',
+                    assignedCsUserId: normalizeUserFacingText(row.assignedCsUserId),
                     status: row.status,
-                    note: row.note || '',
+                    note: normalizeUserFacingText(row.note),
                     evidenceFileId: row.evidenceFileId || '',
                   });
                   setModalOpen(true);
@@ -639,10 +746,19 @@ function MaintenanceTasks() {
         open={modalOpen}
         title={editing ? '编辑任务' : '新建任务'}
         destroyOnClose
-        onCancel={() => setModalOpen(false)}
+        onCancel={() => {
+          setModalOpen(false);
+          setEditing(null);
+          setEvidenceFile(null);
+          form.resetFields();
+        }}
         onOk={async () => {
+          const editingId = editing?.id || '';
+          const targetKey = editingId || '__new__';
+          const requestSeq = ++submitSeqRef.current;
           try {
             const values = await form.validateFields();
+            if (submitSeqRef.current !== requestSeq || editingTargetKeyRef.current !== targetKey) return;
             const { ok } = await confirmActionWithReason({
               title: editing ? '确认更新任务？' : '确认创建任务？',
               content: '该操作将更新年费托管任务数据。',
@@ -650,25 +766,31 @@ function MaintenanceTasks() {
               reasonLabel: '备注（选填）',
             });
             if (!ok) return;
+            if (submitSeqRef.current !== requestSeq || editingTargetKeyRef.current !== targetKey) return;
 
             const payload = {
-              ...(editing ? {} : { scheduleId: values.scheduleId }),
+              ...(editingId ? {} : { scheduleId: values.scheduleId }),
               assignedCsUserId: values.assignedCsUserId || null,
               status: values.status,
               note: values.note || undefined,
               evidenceFileId: values.evidenceFileId || undefined,
             };
 
-            if (editing) {
-              await apiPatch(`/admin/patent-maintenance/tasks/${editing.id}`, payload);
+            if (editingId) {
+              await apiPatch(`/admin/patent-maintenance/tasks/${editingId}`, payload);
             } else {
               await apiPost('/admin/patent-maintenance/tasks', payload);
             }
+            if (submitSeqRef.current !== requestSeq || editingTargetKeyRef.current !== targetKey) return;
             message.success('保存成功');
             setModalOpen(false);
+            setEditing(null);
+            setEvidenceFile(null);
+            form.resetFields();
             void load();
           } catch (e: any) {
             if (e?.errorFields) return;
+            if (submitSeqRef.current !== requestSeq || editingTargetKeyRef.current !== targetKey) return;
             message.error(e?.message || '保存任务失败');
           }
         }}
@@ -694,13 +816,17 @@ function MaintenanceTasks() {
                   maxCount={1}
                   showUploadList={false}
                   customRequest={async (options: any) => {
+                    const targetKey = editingTargetKeyRef.current;
+                    const requestSeq = ++uploadSeqRef.current;
                     try {
                       const uploaded = await apiUploadFile(options.file as File, 'MAINTENANCE_EVIDENCE');
+                      if (uploadSeqRef.current !== requestSeq || editingTargetKeyRef.current !== targetKey) return;
                       setEvidenceFile(uploaded);
                       form.setFieldsValue({ evidenceFileId: uploaded.id });
                       message.success('证据文件上传成功');
                       options.onSuccess?.(uploaded);
                     } catch (e: any) {
+                      if (uploadSeqRef.current !== requestSeq || editingTargetKeyRef.current !== targetKey) return;
                       options.onError?.(e);
                       message.error(e?.message || '证据文件上传失败');
                     }
@@ -744,6 +870,26 @@ function MaintenanceOrders() {
 
   const [createForm] = Form.useForm();
   const [actionForm] = Form.useForm();
+  const loadSeqRef = useRef(0);
+  const eventsSeqRef = useRef(0);
+  const eventsOrderIdRef = useRef<string | null>(null);
+  const activeOrderIdRef = useRef<string | null>(null);
+  const createOrderSeqRef = useRef(0);
+  const actionSeqRef = useRef(0);
+  const receiptUploadSeqRef = useRef(0);
+
+  useEffect(() => {
+    activeOrderIdRef.current = activeOrder?.id || null;
+  }, [activeOrder?.id]);
+
+  useEffect(() => {
+    createOrderSeqRef.current += 1;
+  }, [createOpen]);
+
+  useEffect(() => {
+    actionSeqRef.current += 1;
+    receiptUploadSeqRef.current += 1;
+  }, [actionOpen, activeAction, activeOrder?.id]);
 
   const emptyFilters = useMemo<OrderFilters>(
     () => ({ scheduleId: '', applicantUserId: '', assignedCsUserId: '', status: undefined, reconcileStatus: undefined }),
@@ -753,6 +899,7 @@ function MaintenanceOrders() {
   const [draftFilters, setDraftFilters] = useState<OrderFilters>(emptyFilters);
 
   const load = useCallback(async () => {
+    const seq = ++loadSeqRef.current;
     setLoading(true);
     setError(null);
     try {
@@ -765,12 +912,15 @@ function MaintenanceOrders() {
         ...(filters.status ? { status: filters.status } : {}),
         ...(filters.reconcileStatus ? { reconcileStatus: filters.reconcileStatus } : {}),
       });
+      if (seq !== loadSeqRef.current) return;
       setData(res);
     } catch (e: any) {
+      if (seq !== loadSeqRef.current) return;
       setError(e);
       setData(null);
       message.error(e?.message || '加载订单失败');
     } finally {
+      if (seq !== loadSeqRef.current) return;
       setLoading(false);
     }
   }, [filters, page]);
@@ -780,16 +930,21 @@ function MaintenanceOrders() {
   }, [load]);
 
   const openEvents = useCallback(async (order: MaintenanceOrder) => {
+    const seq = ++eventsSeqRef.current;
+    eventsOrderIdRef.current = order.id;
     setActiveOrder(order);
     setEventsOpen(true);
     setEventLoading(true);
     setEvents([]);
     try {
       const res = await apiGet<{ items: MaintenanceOrderEvent[] }>(`/admin/patent-maintenance/orders/${order.id}/events`);
+      if (seq !== eventsSeqRef.current || eventsOrderIdRef.current !== order.id) return;
       setEvents(res?.items || []);
     } catch (e: any) {
+      if (seq !== eventsSeqRef.current || eventsOrderIdRef.current !== order.id) return;
       message.error(e?.message || '加载订单时间线失败');
     } finally {
+      if (seq !== eventsSeqRef.current || eventsOrderIdRef.current !== order.id) return;
       setEventLoading(false);
     }
   }, []);
@@ -807,34 +962,34 @@ function MaintenanceOrders() {
           lateFeeFen: order.lateFeeFen || 0,
           serviceFeeFen: order.serviceFeeFen || 0,
           paymentDeadline: order.paymentDeadline || '',
-          assignedCsUserId: order.assignedCsUserId || '',
+          assignedCsUserId: normalizeUserFacingText(order.assignedCsUserId),
         });
       } else if (action === 'PAY') {
         actionForm.setFieldsValue({
           paymentChannel: order.paymentChannel || 'WECHAT',
-          paymentTxnNo: order.paymentTxnNo || '',
+          paymentTxnNo: normalizeUserFacingText(order.paymentTxnNo),
           paidAt: order.paidAt || '',
         });
       } else if (action === 'EXECUTE') {
         actionForm.setFieldsValue({
-          officialSubmissionNo: order.officialSubmissionNo || '',
+          officialSubmissionNo: normalizeUserFacingText(order.officialSubmissionNo),
           executedAt: order.executedAt || '',
         });
       } else if (action === 'RECEIPT') {
         actionForm.setFieldsValue({
-          officialReceiptNo: order.officialReceiptNo || '',
+          officialReceiptNo: normalizeUserFacingText(order.officialReceiptNo),
           officialReceiptFileId: order.officialReceiptFileId || '',
           receiptIssuedAt: order.receiptIssuedAt || '',
         });
       } else if (action === 'RECONCILE') {
         actionForm.setFieldsValue({
           reconcileStatus: order.reconcileStatus || 'MATCHED',
-          reconcileNote: order.reconcileNote || '',
+          reconcileNote: normalizeUserFacingText(order.reconcileNote),
         });
       } else if (action === 'CLOSE') {
-        actionForm.setFieldsValue({ closeNote: order.closeNote || '' });
+        actionForm.setFieldsValue({ closeNote: normalizeUserFacingText(order.closeNote) });
       } else if (action === 'CANCEL') {
-        actionForm.setFieldsValue({ closeNote: order.closeNote || '' });
+        actionForm.setFieldsValue({ closeNote: normalizeUserFacingText(order.closeNote) });
       }
 
       setActionOpen(true);
@@ -844,22 +999,27 @@ function MaintenanceOrders() {
 
   const submitAction = useCallback(async () => {
     if (!activeOrder) return;
+    const targetOrderId = activeOrder.id;
+    const targetAction = activeAction;
+    const requestSeq = ++actionSeqRef.current;
     try {
       setActionSubmitting(true);
       const values = await actionForm.validateFields();
+      if (actionSeqRef.current !== requestSeq || activeOrderIdRef.current !== targetOrderId || activeAction !== targetAction) return;
       const { ok, reason } = await confirmActionWithReason({
-        title: `确认执行「${actionLabel(activeAction)}」？`,
-        content: `订单 ${activeOrder.id} 将流转到下一状态。`,
+        title: `确认执行「${actionLabel(targetAction)}」？`,
+        content: `订单 ${targetOrderId} 将流转到下一状态。`,
         okText: '确认',
         reasonLabel: '操作备注（选填）',
       });
       if (!ok) return;
+      if (actionSeqRef.current !== requestSeq || activeOrderIdRef.current !== targetOrderId || activeAction !== targetAction) return;
 
       let path = '';
       let payload: Record<string, any> = {};
 
-      if (activeAction === 'QUOTE') {
-        path = `/admin/patent-maintenance/orders/${activeOrder.id}/quote`;
+      if (targetAction === 'QUOTE') {
+        path = `/admin/patent-maintenance/orders/${targetOrderId}/quote`;
         payload = {
           officialFeeFen: values.officialFeeFen,
           lateFeeFen: values.lateFeeFen ?? 0,
@@ -867,52 +1027,58 @@ function MaintenanceOrders() {
           paymentDeadline: values.paymentDeadline,
           ...(values.assignedCsUserId ? { assignedCsUserId: values.assignedCsUserId } : {}),
         };
-      } else if (activeAction === 'PAY') {
-        path = `/admin/patent-maintenance/orders/${activeOrder.id}/payment-confirm`;
+      } else if (targetAction === 'PAY') {
+        path = `/admin/patent-maintenance/orders/${targetOrderId}/payment-confirm`;
         payload = {
           paymentChannel: values.paymentChannel,
           paymentTxnNo: values.paymentTxnNo,
           ...(values.paidAt ? { paidAt: values.paidAt } : {}),
         };
-      } else if (activeAction === 'EXECUTE') {
-        path = `/admin/patent-maintenance/orders/${activeOrder.id}/execution`;
+      } else if (targetAction === 'EXECUTE') {
+        path = `/admin/patent-maintenance/orders/${targetOrderId}/execution`;
         payload = {
           officialSubmissionNo: values.officialSubmissionNo,
           ...(values.executedAt ? { executedAt: values.executedAt } : {}),
         };
-      } else if (activeAction === 'RECEIPT') {
-        path = `/admin/patent-maintenance/orders/${activeOrder.id}/receipt`;
+      } else if (targetAction === 'RECEIPT') {
+        path = `/admin/patent-maintenance/orders/${targetOrderId}/receipt`;
         payload = {
           officialReceiptNo: values.officialReceiptNo,
           officialReceiptFileId: values.officialReceiptFileId,
           ...(values.receiptIssuedAt ? { receiptIssuedAt: values.receiptIssuedAt } : {}),
         };
-      } else if (activeAction === 'RECONCILE') {
-        path = `/admin/patent-maintenance/orders/${activeOrder.id}/reconcile`;
+      } else if (targetAction === 'RECONCILE') {
+        path = `/admin/patent-maintenance/orders/${targetOrderId}/reconcile`;
         payload = {
           reconcileStatus: values.reconcileStatus,
           reconcileNote: values.reconcileNote || reason || undefined,
         };
-      } else if (activeAction === 'CLOSE') {
-        path = `/admin/patent-maintenance/orders/${activeOrder.id}/close`;
+      } else if (targetAction === 'CLOSE') {
+        path = `/admin/patent-maintenance/orders/${targetOrderId}/close`;
         payload = {
           closeNote: values.closeNote || reason || undefined,
         };
-      } else if (activeAction === 'CANCEL') {
-        path = `/admin/patent-maintenance/orders/${activeOrder.id}/cancel`;
+      } else if (targetAction === 'CANCEL') {
+        path = `/admin/patent-maintenance/orders/${targetOrderId}/cancel`;
         payload = {
           closeNote: values.closeNote || reason,
         };
       }
 
       await apiPost(path, payload);
-      message.success(`${actionLabel(activeAction)}成功`);
+      if (actionSeqRef.current !== requestSeq || activeOrderIdRef.current !== targetOrderId || activeAction !== targetAction) return;
+      message.success(`${actionLabel(targetAction)}成功`);
       setActionOpen(false);
+      setActiveOrder(null);
+      setReceiptFile(null);
+      actionForm.resetFields();
       void load();
     } catch (e: any) {
       if (e?.errorFields) return;
-      message.error(e?.message || `${actionLabel(activeAction)}失败`);
+      if (actionSeqRef.current !== requestSeq || activeOrderIdRef.current !== targetOrderId || activeAction !== targetAction) return;
+      message.error(e?.message || `${actionLabel(targetAction)}失败`);
     } finally {
+      if (actionSeqRef.current !== requestSeq || activeOrderIdRef.current !== targetOrderId || activeAction !== targetAction) return;
       setActionSubmitting(false);
     }
   }, [actionForm, activeAction, activeOrder, load]);
@@ -1005,22 +1171,22 @@ function MaintenanceOrders() {
             render: (_, row) => (
               <Space direction="vertical" size={2}>
                 <Typography.Text ellipsis style={{ maxWidth: 240 }}>
-                  {row.patentTitle || '-'}
+                  {displayUserFacingText(row.patentTitle)}
                 </Typography.Text>
-                <Typography.Text type="secondary">{row.applicationNoDisplay || '-'}</Typography.Text>
+                <Typography.Text type="secondary">{displayUserFacingText(row.applicationNoDisplay)}</Typography.Text>
               </Space>
             ),
           },
           { title: '计划ID', dataIndex: 'scheduleId', width: 220, ellipsis: true },
-          { title: '年次', dataIndex: 'scheduleYearNo', width: 70, render: (v) => v || '-' },
-          { title: '到期日', dataIndex: 'scheduleDueDate', width: 130, render: (v) => v || '-' },
-          { title: '申请人', dataIndex: 'applicantUserId', width: 220, ellipsis: true },
-          { title: '分配客服', dataIndex: 'assignedCsUserId', width: 220, ellipsis: true, render: (v) => v || '-' },
+          { title: '年次', dataIndex: 'scheduleYearNo', width: 70, render: (v) => (typeof v === 'number' ? v : '待补充') },
+          { title: '到期日', dataIndex: 'scheduleDueDate', width: 130, render: (v) => displayUserFacingText(v) },
+          { title: '申请人', dataIndex: 'applicantUserId', width: 220, ellipsis: true, render: (v) => displayUserFacingText(v) },
+          { title: '分配客服', dataIndex: 'assignedCsUserId', width: 220, ellipsis: true, render: (v) => displayUserFacingText(v) },
           { title: '状态', dataIndex: 'status', width: 150, render: (v: OrderStatus) => orderStatusTag(v) },
           { title: '对账', dataIndex: 'reconcileStatus', width: 130, render: (v: ReconcileStatus) => reconcileStatusTag(v) },
           { title: '总金额', dataIndex: 'totalAmountFen', width: 120, render: (v: number) => formatMoneyFen(v) },
           { title: '支付渠道', dataIndex: 'paymentChannel', width: 130, render: (v: PaymentChannel) => statusLabel(v, PAYMENT_CHANNEL_OPTIONS) },
-          { title: '支付流水号', dataIndex: 'paymentTxnNo', width: 200, ellipsis: true, render: (v) => v || '-' },
+          { title: '支付流水号', dataIndex: 'paymentTxnNo', width: 200, ellipsis: true, render: (v) => displayUserFacingText(v) },
           { title: '支付截止', dataIndex: 'paymentDeadline', width: 180, render: (v: string) => formatDateTime(v) },
           { title: '支付时间', dataIndex: 'paidAt', width: 180, render: (v: string) => formatDateTime(v) },
           { title: '办理时间', dataIndex: 'executedAt', width: 180, render: (v: string) => formatDateTime(v) },
@@ -1050,10 +1216,15 @@ function MaintenanceOrders() {
         open={createOpen}
         title="创建年费托管订单"
         destroyOnClose
-        onCancel={() => setCreateOpen(false)}
+        onCancel={() => {
+          setCreateOpen(false);
+          createForm.resetFields();
+        }}
         onOk={async () => {
+          const requestSeq = ++createOrderSeqRef.current;
           try {
             const values = await createForm.validateFields();
+            if (createOrderSeqRef.current !== requestSeq || !createOpen) return;
             const { ok } = await confirmActionWithReason({
               title: '确认创建年费托管订单？',
               content: '将创建一笔状态为“已发起”的新订单。',
@@ -1061,16 +1232,20 @@ function MaintenanceOrders() {
               reasonLabel: '备注（选填）',
             });
             if (!ok) return;
+            if (createOrderSeqRef.current !== requestSeq || !createOpen) return;
             await apiPost('/admin/patent-maintenance/orders', {
               scheduleId: values.scheduleId,
               ...(values.applicantUserId ? { applicantUserId: values.applicantUserId } : {}),
               ...(values.assignedCsUserId ? { assignedCsUserId: values.assignedCsUserId } : {}),
             });
+            if (createOrderSeqRef.current !== requestSeq || !createOpen) return;
             message.success('订单创建成功');
             setCreateOpen(false);
+            createForm.resetFields();
             void load();
           } catch (e: any) {
             if (e?.errorFields) return;
+            if (createOrderSeqRef.current !== requestSeq || !createOpen) return;
             message.error(e?.message || '创建订单失败');
           }
         }}
@@ -1092,7 +1267,13 @@ function MaintenanceOrders() {
         open={actionOpen}
         title={`${actionLabel(activeAction)}${activeOrder ? ` - ${activeOrder.id}` : ''}`}
         destroyOnClose
-        onCancel={() => setActionOpen(false)}
+        onCancel={() => {
+          setActionOpen(false);
+          setActiveOrder(null);
+          setReceiptFile(null);
+          setActionSubmitting(false);
+          actionForm.resetFields();
+        }}
         onOk={() => void submitAction()}
         confirmLoading={actionSubmitting}
       >
@@ -1155,13 +1336,30 @@ function MaintenanceOrders() {
                       maxCount={1}
                       showUploadList={false}
                       customRequest={async (options: any) => {
+                        const targetOrderId = activeOrderIdRef.current;
+                        const targetAction = activeAction;
+                        const requestSeq = ++receiptUploadSeqRef.current;
                         try {
                           const uploaded = await apiUploadFile(options.file as File, 'MAINTENANCE_RECEIPT');
+                          if (
+                            receiptUploadSeqRef.current !== requestSeq ||
+                            activeOrderIdRef.current !== targetOrderId ||
+                            activeAction !== targetAction
+                          ) {
+                            return;
+                          }
                           setReceiptFile(uploaded);
                           actionForm.setFieldsValue({ officialReceiptFileId: uploaded.id });
                           message.success('回执文件上传成功');
                           options.onSuccess?.(uploaded);
                         } catch (e: any) {
+                          if (
+                            receiptUploadSeqRef.current !== requestSeq ||
+                            activeOrderIdRef.current !== targetOrderId ||
+                            activeAction !== targetAction
+                          ) {
+                            return;
+                          }
                           options.onError?.(e);
                           message.error(e?.message || '回执文件上传失败');
                         }
@@ -1217,32 +1415,48 @@ function MaintenanceOrders() {
         title={`订单时间线${activeOrder ? ` - ${activeOrder.id}` : ''}`}
         footer={null}
         width={860}
-        onCancel={() => setEventsOpen(false)}
+        onCancel={() => {
+          eventsSeqRef.current += 1;
+          eventsOrderIdRef.current = null;
+          setEventsOpen(false);
+          setActiveOrder(null);
+          setEvents([]);
+          setEventLoading(false);
+        }}
       >
         {eventLoading ? (
           <Typography.Text>加载中...</Typography.Text>
         ) : events.length ? (
           <Timeline
-            items={events.map((evt) => ({
-              color: evt.toStatus === 'CANCELLED' ? 'gray' : evt.toStatus === 'CLOSED' ? 'green' : 'blue',
-              children: (
-                <Space direction="vertical" size={4} style={{ width: '100%' }}>
-                  <Space size={8} wrap>
-                    <Tag color="default">{orderEventTypeCn(evt.eventType)}</Tag>
-                    <Typography.Text strong>
-                      {evt.fromStatus ? `${orderStatusCn(evt.fromStatus)} -> ${orderStatusCn(evt.toStatus)}` : orderStatusCn(evt.toStatus)}
+            items={events.map((evt) => {
+              const actorName = displayUserFacingText(evt.actorNickname || evt.actorUserId, '系统');
+              const actorRole = normalizeUserFacingText(evt.actorRole);
+              const payloadLines = summarizeOrderEventPayload(evt);
+              return {
+                color: evt.toStatus === 'CANCELLED' ? 'gray' : evt.toStatus === 'CLOSED' ? 'green' : 'blue',
+                children: (
+                  <Space direction="vertical" size={4} style={{ width: '100%' }}>
+                    <Space size={8} wrap>
+                      <Tag color="default">{orderEventTypeCn(evt.eventType)}</Tag>
+                      <Typography.Text strong>
+                        {evt.fromStatus ? `${orderStatusCn(evt.fromStatus)} -> ${orderStatusCn(evt.toStatus)}` : orderStatusCn(evt.toStatus)}
+                      </Typography.Text>
+                      <Typography.Text type="secondary">{formatTimeSmart(evt.createdAt)}</Typography.Text>
+                    </Space>
+                    <Typography.Text type="secondary">
+                      操作人：{actorName}
+                      {actorRole ? `（${actorRoleCn(actorRole)}）` : ''}
                     </Typography.Text>
-                    <Typography.Text type="secondary">{formatTimeSmart(evt.createdAt)}</Typography.Text>
+                    {normalizeUserFacingText(evt.note) ? <Typography.Text>备注：{normalizeUserFacingText(evt.note)}</Typography.Text> : null}
+                    {payloadLines.map((line) => (
+                      <Typography.Text key={`${evt.id}-${line}`} type="secondary">
+                        {line}
+                      </Typography.Text>
+                    ))}
                   </Space>
-                  <Typography.Text type="secondary">
-                    操作人：{evt.actorNickname || evt.actorUserId || '系统'}
-                    {evt.actorRole ? ` (${evt.actorRole})` : ''}
-                  </Typography.Text>
-                  {evt.note ? <Typography.Text>备注：{evt.note}</Typography.Text> : null}
-                  {evt.payloadJson ? <Typography.Text type="secondary">负载：{JSON.stringify(evt.payloadJson)}</Typography.Text> : null}
-                </Space>
-              ),
-            }))}
+                ),
+              };
+            })}
           />
         ) : (
           <Typography.Text type="secondary">暂无时间线记录。</Typography.Text>
