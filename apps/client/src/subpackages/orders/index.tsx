@@ -6,6 +6,7 @@ import './index.scss';
 import type { components } from '@ipmoney/api-types';
 
 import { apiGet } from '../../lib/api';
+import { displayInfoOrPlaceholder, displayTitleOrFallback, normalizeDisplayText } from '../../lib/displayText';
 import { usePagedList } from '../../lib/usePagedList';
 import { goLogin, goOnboarding, usePageAccess } from '../../lib/guard';
 import { formatTimeSmart } from '../../lib/format';
@@ -52,6 +53,7 @@ const TABS: Array<{ id: OrderListTab; label: string }> = [
 
 export default function OrdersPage() {
   const loadedOnceRef = useRef(false);
+  const filterKeyRef = useRef('');
   const routeRole = useRouteStringParam('role');
   const routeStatus = useRouteStringParam('status');
   const routeTab = useRouteStringParam('tab');
@@ -82,15 +84,15 @@ export default function OrdersPage() {
   const [status, setStatus] = useState<OrderStatusFilter>(() => normalizeStatus(routeStatus));
 
   useEffect(() => {
-    if (routeRole) setAsRole(normalizeRole(routeRole));
+    setAsRole(normalizeRole(routeRole));
   }, [normalizeRole, routeRole]);
 
   useEffect(() => {
-    if (routeStatus !== null) setStatus(normalizeStatus(routeStatus));
+    setStatus(normalizeStatus(routeStatus));
   }, [normalizeStatus, routeStatus]);
 
   useEffect(() => {
-    if (routeTab !== null) setTab(normalizeTab(routeTab));
+    setTab(normalizeTab(routeTab));
   }, [routeTab]);
 
   const statusFilterLabels = useMemo(() => {
@@ -142,10 +144,17 @@ export default function OrdersPage() {
   });
 
   useEffect(() => {
+    const nextKey = `${asRole}:${status}:${tab}`;
+    if (filterKeyRef.current === nextKey) return;
+    filterKeyRef.current = nextKey;
+    reset();
+  }, [asRole, reset, status, tab]);
+
+  useEffect(() => {
     if (access.state !== 'ok') return;
     loadedOnceRef.current = true;
     void reload();
-  }, [access.state, reload]);
+  }, [access.state, asRole, reload, status, tab]);
 
   const showInitialLoading = loading && items.length === 0;
   const showBlockingError = Boolean(error && items.length === 0);
@@ -259,7 +268,14 @@ export default function OrdersPage() {
                   <Text className={orderStatusTagClass(it.status)}>{orderStatusLabel(it.status)}</Text>
                 </View>
                 <View style={{ height: '8rpx' }} />
-                <Text className="muted">订金：¥{fenToYuan(it.depositAmountFen)} · 尾款：¥{fenToYuan(it.finalAmountFen)}</Text>
+                <Text className="muted">
+                  订金：¥{fenToYuan(it.depositAmountFen, { empty: '待确认' })} · 尾款：¥{fenToYuan(it.finalAmountFen, { empty: '待确认' })}
+                </Text>
+                <View style={{ height: '6rpx' }} />
+                <Text className="muted">
+                  {displayTitleOrFallback(it.listingTitle, '交易标的待补充')}
+                  {normalizeDisplayText(it.applicationNoDisplay) ? ` · 申请号：${displayInfoOrPlaceholder(it.applicationNoDisplay, '待补充')}` : ''}
+                </Text>
                 <View style={{ height: '6rpx' }} />
                 <Text className="muted">创建时间：{formatTimeSmart(it.createdAt)}</Text>
               </Surface>

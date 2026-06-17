@@ -1,71 +1,96 @@
 import { View, Text, Image } from '@tarojs/components';
 import Taro from '@tarojs/taro';
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import './index.scss';
 
+import type { components } from '@ipmoney/api-types';
+
 import { apiGet } from '../../lib/api';
+import { displayInfoOrPlaceholder, displayTitleOrFallback, normalizeDisplayText } from '../../lib/displayText';
 import { regionDisplayName } from '../../lib/regions';
 import { openRegionPickerPage } from '../../lib/regionPicker';
 import { usePagedList } from '../../lib/usePagedList';
 import { ListFooter } from '../../ui/ListFooter';
 import type { ChipOption } from '../../ui/filters';
-import { CellRow, PageHeader, SectionHeader, Spacer, Surface } from '../../ui/layout';
-import { SearchEntry } from '../../ui/SearchEntry';
 import { ChipGroup, FilterSheet } from '../../ui/filters';
-import { Button, CellGroup, PullToRefresh, toast } from '../../ui/nutui';
+import { SearchEntry } from '../../ui/SearchEntry';
 import { EmptyCard, ErrorCard, LoadingCard } from '../../ui/StateCards';
+import { CellRow, PageHeader, SectionHeader, Spacer, Surface } from '../../ui/layout';
+import { Button, CellGroup, PullToRefresh, toast } from '../../ui/nutui';
 import iconMap from '../../assets/icons/icon-map-green.svg';
 
-type OrganizationSummary = {
-  userId: string;
-  displayName: string;
-  verificationType: 'COMPANY' | 'ACADEMY' | 'GOVERNMENT' | 'ASSOCIATION' | 'TECH_MANAGER';
-  verificationStatus: 'PENDING' | 'APPROVED' | 'REJECTED';
-  regionCode?: string;
-  logoUrl?: string;
-  intro?: string;
-  stats?: { listingCount: number; patentCount: number };
-  verifiedAt?: string;
-};
-
-type PagedOrganizationSummary = {
-  items: OrganizationSummary[];
-  page: { page: number; pageSize: number; total: number };
-};
-
-function verificationTypeLabel(t: OrganizationSummary['verificationType']): string {
-  if (t === 'COMPANY') return '企业';
-  if (t === 'ACADEMY') return '科研院校';
-  if (t === 'GOVERNMENT') return '政府';
-  if (t === 'ASSOCIATION') return '行业协会/学会';
-  if (t === 'TECH_MANAGER') return '技术经理人';
-  return t;
-}
+type OrganizationSummary = components['schemas']['OrganizationSummary'];
+type PagedOrganizationSummary = components['schemas']['PagedOrganizationSummary'];
+type OrganizationVerificationType = Extract<
+  components['schemas']['VerificationType'],
+  'COMPANY' | 'ACADEMY' | 'GOVERNMENT' | 'ASSOCIATION'
+>;
 
 type OrgFilters = {
   regionCode?: string;
   regionName?: string;
-  types: OrganizationSummary['verificationType'][];
+  types: OrganizationVerificationType[];
 };
+
+const TEXT = {
+  title: '\u673a\u6784\u5c55\u793a',
+  subtitle: '\u5c55\u793a\u5df2\u5ba1\u6838\u901a\u8fc7\u7684\u4f01\u4e1a\u3001\u79d1\u7814\u9662\u6821\u4e0e\u673a\u6784\u4e3b\u4f53',
+  searchTitle: '\u641c\u7d22',
+  searchPlaceholder: '\u641c\u7d22\u673a\u6784\u540d\u79f0\u6216\u5173\u952e\u8bcd',
+  searchAction: '\u67e5\u8be2',
+  sortLabel: '\u7efc\u5408\u6392\u5e8f',
+  filterButton: '\u7b5b\u9009',
+  typeCountPrefix: '\u7c7b\u578b ',
+  clear: '\u6e05\u7a7a',
+  emptyMessage: '\u6682\u65e0\u673a\u6784\u6570\u636e\u3002',
+  refresh: '\u5237\u65b0',
+  regionTitle: '\u5730\u533a',
+  regionDescription: '\u7528\u4e8e\u5730\u533a\u5c55\u793a\u4e0e\u68c0\u7d22\u8fc7\u6ee4',
+  unlimited: '\u4e0d\u9650',
+  clearRegion: '\u6e05\u9664\u5730\u533a',
+  typeTitle: '\u673a\u6784\u7c7b\u578b',
+  typeHint: '\u4e0d\u9009\u62e9\u7c7b\u578b\u65f6\u9ed8\u8ba4\u5c55\u793a\u5168\u90e8\u673a\u6784\u3002',
+  filterTitle: '\u7b5b\u9009\u673a\u6784',
+  company: '\u4f01\u4e1a',
+  academy: '\u79d1\u7814\u9662\u6821',
+  government: '\u653f\u5e9c\u673a\u6784',
+  association: '\u534f\u4f1a\u5b66\u4f1a',
+  listings: '\u4e0a\u67b6',
+  patents: '\u4e13\u5229',
+} as const;
 
 const ORG_FILTER_DEFAULT: OrgFilters = {
   types: [],
 };
 
-const ORG_TYPE_OPTIONS: ChipOption<OrganizationSummary['verificationType']>[] = [
-  { value: 'COMPANY', label: '企业' },
-  { value: 'ACADEMY', label: '科研院校' },
-  { value: 'GOVERNMENT', label: '政府' },
-  { value: 'ASSOCIATION', label: '行业协会/学会' },
-  { value: 'TECH_MANAGER', label: '技术经理人' },
+const ORG_TYPE_OPTIONS: ChipOption<OrganizationVerificationType>[] = [
+  { value: 'COMPANY', label: TEXT.company },
+  { value: 'ACADEMY', label: TEXT.academy },
+  { value: 'GOVERNMENT', label: TEXT.government },
+  { value: 'ASSOCIATION', label: TEXT.association },
 ];
+
+function verificationTypeLabel(type: OrganizationVerificationType): string {
+  if (type === 'COMPANY') return TEXT.company;
+  if (type === 'ACADEMY') return TEXT.academy;
+  if (type === 'GOVERNMENT') return TEXT.government;
+  return TEXT.association;
+}
+
+function asOrganizationVerificationType(value: OrganizationSummary['verificationType']): OrganizationVerificationType | null {
+  if (value === 'COMPANY' || value === 'ACADEMY' || value === 'GOVERNMENT' || value === 'ASSOCIATION') {
+    return value;
+  }
+  return null;
+}
 
 export default function OrganizationsPage() {
   const [qInput, setQInput] = useState('');
   const [q, setQ] = useState('');
-  const [searchSeq, setSearchSeq] = useState(0);
   const [filters, setFilters] = useState<OrgFilters>(ORG_FILTER_DEFAULT);
   const [filtersOpen, setFiltersOpen] = useState(false);
+  const didInitRef = useRef(false);
+  const filterKeyRef = useRef('');
 
   const fetcher = useCallback(
     async ({ page, pageSize }: { page: number; pageSize: number }) =>
@@ -79,7 +104,7 @@ export default function OrganizationsPage() {
     [filters.regionCode, filters.types, q],
   );
 
-  const { items: rawItems, loading, error, refreshing, loadingMore, hasMore, reload, refresh, loadMore } =
+  const { items: rawItems, loading, error, refreshing, loadingMore, hasMore, reload, refresh, loadMore, reset } =
     usePagedList<OrganizationSummary>(fetcher, {
       pageSize: 20,
       onError: (message, ctx) => {
@@ -87,69 +112,74 @@ export default function OrganizationsPage() {
       },
     });
 
-  useEffect(() => {
-    void reload();
-  }, [reload]);
-
-  useEffect(() => {
-    if (searchSeq <= 0) return;
-    void reload();
-  }, [reload, searchSeq]);
-
-  const items = useMemo(() => rawItems.filter((x) => x.verificationStatus === 'APPROVED'), [rawItems]);
+  const items = useMemo(() => rawItems, [rawItems]);
   const showInitialLoading = loading && rawItems.length === 0;
 
-  const openFilters = useCallback(() => setFiltersOpen(true), []);
-
   const filterLabels = useMemo(() => {
-    const out: string[] = [];
+    const result: string[] = [];
     const regionLabel = regionDisplayName(filters.regionCode, filters.regionName, '');
-    if (regionLabel) out.push(regionLabel);
-    if (filters.types.length === 1) out.push(verificationTypeLabel(filters.types[0]));
-    if (filters.types.length > 1) out.push(`类型${filters.types.length}`);
-    return out.filter(Boolean);
+    if (regionLabel) result.push(regionLabel);
+    if (filters.types.length === 1) result.push(verificationTypeLabel(filters.types[0]));
+    if (filters.types.length > 1) result.push(`${TEXT.typeCountPrefix}${filters.types.length}`);
+    return result;
   }, [filters.regionCode, filters.regionName, filters.types]);
+
+  useEffect(() => {
+    const nextKey = JSON.stringify({ q, regionCode: filters.regionCode || '', types: filters.types });
+    if (filterKeyRef.current === nextKey) return;
+    filterKeyRef.current = nextKey;
+    reset();
+  }, [filters.regionCode, filters.types, q, reset]);
+
+  useEffect(() => {
+    if (!didInitRef.current) {
+      didInitRef.current = true;
+      void reload();
+      return;
+    }
+    void reload();
+  }, [filters.regionCode, filters.types, q, reload]);
 
   return (
     <View className="container organizations-page">
-      <PageHeader title="机构展示" subtitle="企业/科研院校等审核通过后，对外展示。" brand={false} />
+      <PageHeader title={TEXT.title} subtitle={TEXT.subtitle} brand={false} />
       <Spacer />
 
       <Surface padding="sm">
-        <SectionHeader title="搜索" accent="none" density="compact" />
+        <SectionHeader title={TEXT.searchTitle} accent="none" density="compact" />
         <SearchEntry
           value={qInput}
-          placeholder="名称关键词（可选）"
-          actionText="查询"
+          placeholder={TEXT.searchPlaceholder}
+          actionText={TEXT.searchAction}
           onChange={(value) => {
             setQInput(value);
             if (!value) setQ('');
           }}
           onSearch={(value) => {
             setQ((value || '').trim());
-            setSearchSeq((prev) => prev + 1);
           }}
         />
 
         <View style={{ height: '12rpx' }} />
         <View className="search-sort-row">
           <View className="search-sort-options">
-            <Text className="search-sort-option is-active">综合排序</Text>
+            <Text className="search-sort-option is-active">{TEXT.sortLabel}</Text>
           </View>
-          <View className="search-filter-btn" onClick={openFilters}>
-            <Text>筛选</Text>
+          <View className="search-filter-btn" onClick={() => setFiltersOpen(true)}>
+            <Text>{TEXT.filterButton}</Text>
           </View>
         </View>
+
         {filterLabels.length ? (
           <View className="search-toolbar-row search-toolbar-compact">
             <View className="search-selected-scroll">
-              {filterLabels.map((txt, idx) => (
-                <View key={`${txt}-${idx}`} className="pill">
-                  <Text>{txt}</Text>
+              {filterLabels.map((label, idx) => (
+                <View key={`${label}-${idx}`} className="pill">
+                  <Text>{label}</Text>
                 </View>
               ))}
               <View className="pill pill-strong" onClick={() => setFilters(ORG_FILTER_DEFAULT)}>
-                <Text>清空</Text>
+                <Text>{TEXT.clear}</Text>
               </View>
             </View>
           </View>
@@ -165,15 +195,18 @@ export default function OrganizationsPage() {
           <ErrorCard message={error} onRetry={reload} />
         ) : items.length ? (
           <View className="search-card-list">
-            {items.map((it) => {
-              const logo = it.logoUrl && !it.logoUrl.includes('example.com') ? it.logoUrl : '';
-              const location = it.regionCode ? regionDisplayName(it.regionCode) : '';
+            {items.map((item) => {
+              const logo = item.logoUrl && !item.logoUrl.includes('example.com') ? item.logoUrl : '';
+              const location = item.regionCode ? regionDisplayName(item.regionCode) : '';
+              const orgType = asOrganizationVerificationType(item.verificationType);
+              const titleText = displayTitleOrFallback(item.displayName, '机构名称待补充');
+              const introText = normalizeDisplayText(item.intro);
               return (
                 <View
-                  key={it.userId}
+                  key={item.userId}
                   className="list-card org-card"
                   onClick={() => {
-                    Taro.navigateTo({ url: `/subpackages/organizations/detail/index?orgUserId=${it.userId}` });
+                    Taro.navigateTo({ url: `/subpackages/organizations/detail/index?orgUserId=${item.userId}` });
                   }}
                 >
                   <View className="list-card-thumb org-thumb">
@@ -183,38 +216,37 @@ export default function OrganizationsPage() {
                       <Image className="list-card-thumb-img" src={iconMap} svg mode="aspectFit" />
                     )}
                   </View>
+
                   <View className="list-card-body">
                     <View className="list-card-head">
                       <View className="list-card-head-main">
-                        <Text className="list-card-title clamp-1">{it.displayName}</Text>
+                        <Text className="list-card-title clamp-1">{titleText}</Text>
                         <View className="list-card-tags">
-                          <Text className="tag tag-gold">{verificationTypeLabel(it.verificationType)}</Text>
+                          {orgType ? <Text className="tag tag-gold">{verificationTypeLabel(orgType)}</Text> : null}
                           {location ? <Text className="tag">{location}</Text> : null}
                         </View>
                       </View>
                     </View>
+
                     <View className="org-stats">
                       <View className="org-stat">
-                        <Text className="org-stat-num">{it.stats?.listingCount ?? 0}</Text>
-                        <Text className="org-stat-label">上架</Text>
+                        <Text className="org-stat-num">{item.stats?.listingCount ?? 0}</Text>
+                        <Text className="org-stat-label">{TEXT.listings}</Text>
                       </View>
                       <View className="org-stat">
-                        <Text className="org-stat-num">{it.stats?.patentCount ?? 0}</Text>
-                        <Text className="org-stat-label">专利</Text>
+                        <Text className="org-stat-num">{item.stats?.patentCount ?? 0}</Text>
+                        <Text className="org-stat-label">{TEXT.patents}</Text>
                       </View>
                     </View>
-                    {it.intro ? <Text className="list-card-desc clamp-2">{it.intro}</Text> : null}
+
+                    <Text className="list-card-desc clamp-2">{displayInfoOrPlaceholder(introText, '暂未公开简介')}</Text>
                   </View>
                 </View>
               );
             })}
           </View>
         ) : (
-          <EmptyCard
-            message="暂无机构数据（可能尚未有审核通过的企业/科研院校）。"
-            actionText="刷新"
-            onAction={reload}
-          />
+          <EmptyCard message={TEXT.emptyMessage} actionText={TEXT.refresh} onAction={reload} />
         )}
 
         {!showInitialLoading && items.length ? (
@@ -224,7 +256,7 @@ export default function OrganizationsPage() {
 
       <FilterSheet<OrgFilters>
         open={filtersOpen}
-        title="筛选（机构）"
+        title={TEXT.filterTitle}
         value={filters}
         defaultValue={ORG_FILTER_DEFAULT}
         onClose={() => setFiltersOpen(false)}
@@ -232,15 +264,15 @@ export default function OrganizationsPage() {
       >
         {({ draft, setDraft }) => (
           <Surface>
-            <Text className="text-strong">地区</Text>
+            <Text className="text-strong">{TEXT.regionTitle}</Text>
             <View style={{ height: '10rpx' }} />
             <Surface padding="none">
               <CellGroup divider>
                 <CellRow
                   clickable
-                  title="地区"
-                  description="用于地域推荐/检索过滤"
-                  extra={<Text className="muted">{draft.regionName || draft.regionCode || '不限'}</Text>}
+                  title={TEXT.regionTitle}
+                  description={TEXT.regionDescription}
+                  extra={<Text className="muted">{draft.regionName || draft.regionCode || TEXT.unlimited}</Text>}
                   isLast
                   onClick={() =>
                     openRegionPickerPage(({ code, name }) => {
@@ -250,6 +282,7 @@ export default function OrganizationsPage() {
                 />
               </CellGroup>
             </Surface>
+
             {draft.regionCode ? (
               <>
                 <View style={{ height: '10rpx' }} />
@@ -259,22 +292,22 @@ export default function OrganizationsPage() {
                   block={false}
                   onClick={() => setDraft((prev) => ({ ...prev, regionCode: undefined, regionName: undefined }))}
                 >
-                  清除地区
+                  {TEXT.clearRegion}
                 </Button>
               </>
             ) : null}
 
             <View style={{ height: '8rpx' }} />
-            <Text className="text-strong">机构类型（多选）</Text>
+            <Text className="text-strong">{TEXT.typeTitle}</Text>
             <View style={{ height: '10rpx' }} />
-            <ChipGroup<OrganizationSummary['verificationType']>
+            <ChipGroup<OrganizationVerificationType>
               multiple
               value={draft.types}
               options={ORG_TYPE_OPTIONS}
-              onChange={(v) => setDraft((prev) => ({ ...prev, types: v }))}
+              onChange={(value) => setDraft((prev) => ({ ...prev, types: value }))}
             />
             <View style={{ height: '8rpx' }} />
-            <Text className="text-caption muted">不选择类型表示全部机构类型。</Text>
+            <Text className="text-caption muted">{TEXT.typeHint}</Text>
           </Surface>
         )}
       </FilterSheet>

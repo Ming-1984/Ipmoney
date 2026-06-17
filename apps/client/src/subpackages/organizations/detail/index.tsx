@@ -1,25 +1,27 @@
 import { View, Text, Button as TaroButton } from '@tarojs/components';
 import Taro, { useShareAppMessage } from '@tarojs/taro';
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import './index.scss';
 
 import type { components } from '@ipmoney/api-types';
 
-import { Heart, Share2 } from '../../../ui/icons';
 import { apiGet } from '../../../lib/api';
 import { getDetailCache, setDetailCache } from '../../../lib/detailCache';
+import { displayInfoOrPlaceholder, displayTitleOrFallback, normalizeDisplayText } from '../../../lib/displayText';
 import { verificationTypeLabel } from '../../../lib/labels';
 import { safeNavigateBack } from '../../../lib/navigation';
 import { regionDisplayName } from '../../../lib/regions';
 import { useRouteUuidParam } from '../../../lib/routeParams';
 import { PageHeader, Spacer, Surface, TipBanner } from '../../../ui/layout';
 import { Avatar } from '../../../ui/nutui';
+import { Heart, Share2 } from '../../../ui/icons';
 import { EmptyCard, ErrorCard, LoadingCard, MissingParamCard } from '../../../ui/StateCards';
 
 type OrganizationSummary = components['schemas']['OrganizationSummary'];
 
 export default function OrganizationDetailPage() {
   const orgUserId = useRouteUuidParam('orgUserId') || '';
+  const orgUserIdRef = useRef(orgUserId);
 
   const initialCachedData = orgUserId ? getDetailCache<OrganizationSummary>('organization-summary', orgUserId) : null;
   const [loading, setLoading] = useState(!initialCachedData);
@@ -28,6 +30,7 @@ export default function OrganizationDetailPage() {
   const [activeTab, setActiveTab] = useState('org-overview');
 
   useEffect(() => {
+    orgUserIdRef.current = orgUserId;
     if (!orgUserId) {
       setData(null);
       setLoading(false);
@@ -41,8 +44,9 @@ export default function OrganizationDetailPage() {
   }, [orgUserId]);
 
   const load = useCallback(async () => {
-    if (!orgUserId) return;
-    const cached = getDetailCache<OrganizationSummary>('organization-summary', orgUserId);
+    const targetOrgUserId = orgUserId;
+    if (!targetOrgUserId) return;
+    const cached = getDetailCache<OrganizationSummary>('organization-summary', targetOrgUserId);
     if (cached) {
       setData(cached);
       setLoading(false);
@@ -52,16 +56,18 @@ export default function OrganizationDetailPage() {
       setError(null);
     }
     try {
-      const d = await apiGet<OrganizationSummary>(`/public/organizations/${orgUserId}`);
-      setData(d);
-      setDetailCache('organization-summary', orgUserId, d);
+      const next = await apiGet<OrganizationSummary>(`/public/organizations/${targetOrgUserId}`);
+      if (orgUserIdRef.current !== targetOrgUserId) return;
+      setData(next);
+      setDetailCache('organization-summary', targetOrgUserId, next);
     } catch (e: any) {
+      if (orgUserIdRef.current !== targetOrgUserId) return;
       if (!cached) {
         setError(e?.message || '加载失败');
         setData(null);
       }
     } finally {
-      setLoading(false);
+      if (orgUserIdRef.current === targetOrgUserId) setLoading(false);
     }
   }, [orgUserId]);
 
@@ -70,7 +76,7 @@ export default function OrganizationDetailPage() {
   }, [load]);
 
   useShareAppMessage(() => ({
-    title: data?.displayName ? `${data.displayName}` : '机构详情',
+    title: displayTitleOrFallback(data?.displayName, '机构详情'),
     path: orgUserId ? `/subpackages/organizations/detail/index?orgUserId=${orgUserId}` : '/pages/home/index',
     imageUrl: data?.logoUrl || undefined,
   }));
@@ -102,9 +108,14 @@ export default function OrganizationDetailPage() {
     return data.logoUrl.includes('example.com') ? '' : data.logoUrl;
   }, [data?.logoUrl]);
 
+  const displayName = normalizeDisplayText(data?.displayName);
+  const regionText = normalizeDisplayText(regionDisplayName(data?.regionCode));
+  const titleText = displayTitleOrFallback(data?.displayName, '机构名称待补充');
+  const introText = displayInfoOrPlaceholder(data?.intro, '暂未公开简介');
+
   return (
     <View className="container detail-page-compact">
-      <PageHeader weapp title="机构详情" subtitle="已认证机构信息" brand={false} />
+      <PageHeader weapp title="机构详情" brand={false} />
       <Spacer />
 
       {loading ? (
@@ -116,16 +127,16 @@ export default function OrganizationDetailPage() {
           <Surface className="detail-compact-header" id="org-overview">
             <View className="detail-compact-row">
               <Avatar size="48" src={logo} background="rgba(15, 23, 42, 0.06)" color="var(--c-muted)">
-                {(data.displayName || '-').slice(0, 1)}
+                {(displayName || '机').slice(0, 1)}
               </Avatar>
               <View style={{ flex: 1, minWidth: 0 }}>
-                <Text className="detail-compact-title clamp-2">{data.displayName || '-'}</Text>
+                <Text className="detail-compact-title clamp-2">{titleText}</Text>
                 <Spacer size={8} />
                 <View className="detail-compact-tags">
                   <Text className="detail-compact-tag detail-compact-tag-strong">
                     {verificationTypeLabel(data.verificationType)}
                   </Text>
-                  <Text className="detail-compact-tag">地区：{regionDisplayName(data.regionCode)}</Text>
+                  {regionText ? <Text className="detail-compact-tag">地区：{regionText}</Text> : null}
                   <Text className="detail-compact-tag">挂牌：{data.stats?.listingCount ?? 0}</Text>
                   <Text className="detail-compact-tag">专利：{data.stats?.patentCount ?? 0}</Text>
                 </View>
@@ -153,7 +164,7 @@ export default function OrganizationDetailPage() {
             <View className="detail-field-list">
               <View className="detail-field-row">
                 <Text className="detail-field-label">机构简介</Text>
-                <Text className="detail-field-value break-word">{data.intro || '暂无机构简介'}</Text>
+                <Text className="detail-field-value break-word">{introText}</Text>
               </View>
             </View>
           </View>
@@ -161,10 +172,11 @@ export default function OrganizationDetailPage() {
           <Spacer size={12} />
 
           <TipBanner id="org-note" tone="info" title="说明">
-            机构信息由账号主体提交，经平台审核后对外展示。
+            机构信息由账号主体提交，并经平台审核后对外展示。
           </TipBanner>
 
           <Spacer size={12} />
+
           <View className="detail-bottom-tools">
             <View className="detail-tool-row">
               <TaroButton className="detail-tool" openType="share" hoverClass="none">
