@@ -1,9 +1,10 @@
 ﻿import { Text, View } from '@tarojs/components';
-import Taro from '@tarojs/taro';
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import Taro, { useDidHide, useDidShow } from '@tarojs/taro';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import './index.scss';
 
 import { apiGet, apiPost } from '../../lib/api';
+import { normalizeDisplayText } from '../../lib/displayText';
 import { formatTimeSmart } from '../../lib/format';
 import { usePageAccess } from '../../lib/guard';
 import { useRouteStringParam, useRouteUuidParam } from '../../lib/routeParams';
@@ -111,6 +112,12 @@ type Paged<T> = {
   items: T[];
   page: { page: number; pageSize: number; total: number };
 };
+type MaintenanceSummary = {
+  overdue: number;
+  dueSoon: number;
+  openTasks: number;
+  openOrders: number;
+};
 
 type ScheduleFilter = '' | PatentMaintenanceStatus;
 type TaskFilter = '' | PatentMaintenanceTaskStatus;
@@ -149,7 +156,7 @@ function scheduleStatusLabel(status?: PatentMaintenanceStatus): string {
   if (status === 'PAID') return '已缴费';
   if (status === 'OVERDUE') return '已逾期';
   if (status === 'WAIVED') return '已豁免';
-  return '-';
+  return '待确认';
 }
 
 function taskStatusLabel(status?: PatentMaintenanceTaskStatus): string {
@@ -157,23 +164,23 @@ function taskStatusLabel(status?: PatentMaintenanceTaskStatus): string {
   if (status === 'IN_PROGRESS') return '处理中';
   if (status === 'DONE') return '已完成';
   if (status === 'CANCELLED') return '已取消';
-  return '-';
+  return '待确认';
 }
 
 function orderStatusLabel(status?: PatentMaintenanceOrderStatus): string {
-  if (!status) return '-';
+  if (!status) return '待确认';
   const option = ORDER_FILTER_OPTIONS.find((it) => it.value === status);
-  return option?.label || status;
+  return option?.label || '状态待确认';
 }
 
 function orderStatusText(status?: string): string {
-  if (!status) return '-';
+  if (!status) return '待确认';
   return orderStatusLabel(status as PatentMaintenanceOrderStatus);
 }
 
 function orderEventTypeLabel(value?: string): string {
   const type = String(value || '').trim().toUpperCase();
-  if (!type) return '-';
+  if (!type) return '状态更新';
   if (type === 'CREATED') return '已创建';
   if (type === 'QUOTE_UPDATED') return '报价已更新';
   if (type === 'PAYMENT_CONFIRMED') return '已确认支付';
@@ -182,16 +189,16 @@ function orderEventTypeLabel(value?: string): string {
   if (type === 'RECONCILED') return '已完成对账';
   if (type === 'CLOSED') return '已关闭';
   if (type === 'CANCELLED') return '已取消';
-  return type;
+  return '状态更新';
 }
 
 function reconcileStatusLabel(value?: string): string {
   const status = String(value || '').trim().toUpperCase();
-  if (!status) return '-';
+  if (!status) return '待确认';
   if (status === 'PENDING') return '待对账';
   if (status === 'MATCHED') return '已匹配';
   if (status === 'MISMATCHED') return '不一致';
-  return status;
+  return '待确认';
 }
 
 function urgencyLabel(value?: MaintenanceUrgency): string {
@@ -200,7 +207,7 @@ function urgencyLabel(value?: MaintenanceUrgency): string {
   if (value === 'UPCOMING') return '30天内到期';
   if (value === 'SETTLED') return '已结清';
   if (value === 'NORMAL') return '正常';
-  return '-';
+  return '待确认';
 }
 
 function urgencyClass(value?: MaintenanceUrgency): string {
@@ -212,7 +219,12 @@ function urgencyClass(value?: MaintenanceUrgency): string {
 }
 
 function formatFen(value?: number): string {
+  if (value === undefined || value === null || !Number.isFinite(Number(value))) return '待确认';
   return `¥${((Number(value) || 0) / 100).toFixed(2)}`;
+}
+
+function displayText(value: unknown, fallback = '待补充'): string {
+  return normalizeDisplayText(value) || fallback;
 }
 
 function shouldCreateOrderButtonShow(schedule: PatentMaintenanceSchedule): boolean {
@@ -226,6 +238,13 @@ export default function MaintenancePage() {
   const scheduleFilterMountedRef = useRef(false);
   const taskFilterMountedRef = useRef(false);
   const orderFilterMountedRef = useRef(false);
+  const scheduleFilterKeyRef = useRef('');
+  const taskFilterKeyRef = useRef('');
+  const orderRouteKeyRef = useRef('');
+  const timelineRequestOrderIdRef = useRef('');
+  const conversationRequestOrderIdRef = useRef('');
+  const createOrderSeqRef = useRef(0);
+  const pageVisibleRef = useRef(true);
 
   const [tab, setTab] = useState<'schedules' | 'tasks' | 'orders'>(() => {
     if (routeTab === 'schedules' || routeTab === 'tasks' || routeTab === 'orders') return routeTab;
@@ -240,10 +259,33 @@ export default function MaintenancePage() {
   const [expandedTimelineOrderId, setExpandedTimelineOrderId] = useState('');
   const [loadingTimelineOrderId, setLoadingTimelineOrderId] = useState('');
   const [orderEventsById, setOrderEventsById] = useState<Record<string, PatentMaintenanceOrderEvent[]>>({});
+  const [summary, setSummary] = useState<MaintenanceSummary>({
+    overdue: 0,
+    dueSoon: 0,
+    openTasks: 0,
+    openOrders: 0,
+  });
+
+  useDidShow(() => {
+    pageVisibleRef.current = true;
+  });
+
+  useDidHide(() => {
+    pageVisibleRef.current = false;
+    conversationRequestOrderIdRef.current = '';
+    createOrderSeqRef.current += 1;
+    setOpeningConversationOrderId('');
+    setCreatingOrderScheduleId('');
+  });
 
   const access = usePageAccess('approved-required', (next) => {
     if (next.state !== 'ok') {
       loadedOnceRef.current = false;
+      setOpeningConversationOrderId('');
+      setCreatingOrderScheduleId('');
+      setExpandedTimelineOrderId('');
+      setLoadingTimelineOrderId('');
+      setOrderEventsById({});
       return;
     }
     if (loadedOnceRef.current) {
@@ -303,13 +345,23 @@ export default function MaintenancePage() {
     },
   });
 
+  const loadSummary = useCallback(async () => {
+    const next = await apiGet<MaintenanceSummary>('/me/patent-maintenance/summary');
+    setSummary({
+      overdue: Number(next?.overdue) || 0,
+      dueSoon: Number(next?.dueSoon) || 0,
+      openTasks: Number(next?.openTasks) || 0,
+      openOrders: Number(next?.openOrders) || 0,
+    });
+  }, []);
+
   const reloadAll = useCallback(async () => {
-    await Promise.all([schedules.reload(), tasks.reload(), orders.reload()]);
-  }, [orders.reload, schedules.reload, tasks.reload]);
+    await Promise.all([schedules.reload(), tasks.reload(), orders.reload(), loadSummary()]);
+  }, [loadSummary, orders.reload, schedules.reload, tasks.reload]);
 
   const refreshAll = useCallback(async () => {
-    await Promise.all([schedules.refresh(), tasks.refresh(), orders.refresh()]);
-  }, [orders.refresh, schedules.refresh, tasks.refresh]);
+    await Promise.all([schedules.refresh(), tasks.refresh(), orders.refresh(), loadSummary()]);
+  }, [loadSummary, orders.refresh, schedules.refresh, tasks.refresh]);
 
   useEffect(() => {
     if (access.state !== 'ok') return;
@@ -345,12 +397,37 @@ export default function MaintenancePage() {
   }, [access.state, orderFilter, orders.reload]);
 
   useEffect(() => {
+    const nextKey = scheduleFilter;
+    if (scheduleFilterKeyRef.current === nextKey) return;
+    scheduleFilterKeyRef.current = nextKey;
+    schedules.reset();
+  }, [scheduleFilter, schedules.reset]);
+
+  useEffect(() => {
+    const nextKey = taskFilter;
+    if (taskFilterKeyRef.current === nextKey) return;
+    taskFilterKeyRef.current = nextKey;
+    tasks.reset();
+  }, [taskFilter, tasks.reset]);
+
+  useEffect(() => {
+    const nextKey = `${routeOrderId}:${orderFilter}`;
+    if (orderRouteKeyRef.current === nextKey) return;
+    orderRouteKeyRef.current = nextKey;
+    setExpandedTimelineOrderId('');
+    setLoadingTimelineOrderId('');
+    setOrderEventsById({});
+    orders.reset();
+  }, [orderFilter, orders.reset, routeOrderId]);
+
+  useEffect(() => {
     if (!routeOrderId) return;
     if (tab !== 'orders') setTab('orders');
   }, [routeOrderId, tab]);
 
   const openOrderConversation = useCallback(async (orderId: string) => {
     if (!orderId || openingConversationOrderId) return;
+    conversationRequestOrderIdRef.current = orderId;
     setOpeningConversationOrderId(orderId);
     try {
       const conversation = await apiPost<Conversation>(
@@ -358,16 +435,20 @@ export default function MaintenancePage() {
         {},
         { idempotencyKey: `maintenance-conversation-${orderId}-${Date.now()}` },
       );
+      if (conversationRequestOrderIdRef.current !== orderId || !pageVisibleRef.current) return;
       Taro.navigateTo({ url: `/subpackages/messages/chat/index?conversationId=${conversation.id}` });
     } catch (e: any) {
+      if (conversationRequestOrderIdRef.current !== orderId || !pageVisibleRef.current) return;
       toast(e?.message || '打开会话失败');
     } finally {
+      if (conversationRequestOrderIdRef.current !== orderId || !pageVisibleRef.current) return;
       setOpeningConversationOrderId('');
     }
   }, [openingConversationOrderId]);
 
   const createOrderFromSchedule = useCallback(async (scheduleId: string) => {
     if (!scheduleId || creatingOrderScheduleId) return;
+    const requestSeq = ++createOrderSeqRef.current;
     setCreatingOrderScheduleId(scheduleId);
     try {
       const order = await apiPost<PatentMaintenanceOrder>(
@@ -375,13 +456,17 @@ export default function MaintenancePage() {
         { scheduleId },
         { idempotencyKey: `maintenance-order-${scheduleId}-${Date.now()}` },
       );
+      if (createOrderSeqRef.current !== requestSeq || !pageVisibleRef.current) return;
       toast('年费托管订单已创建');
       setTab('orders');
       await orders.reload();
+      if (createOrderSeqRef.current !== requestSeq || !pageVisibleRef.current) return;
       await openOrderConversation(order.id);
     } catch (e: any) {
+      if (createOrderSeqRef.current !== requestSeq || !pageVisibleRef.current) return;
       toast(e?.message || '创建订单失败');
     } finally {
+      if (createOrderSeqRef.current !== requestSeq || !pageVisibleRef.current) return;
       setCreatingOrderScheduleId('');
     }
   }, [creatingOrderScheduleId, openOrderConversation, orders.reload]);
@@ -390,30 +475,27 @@ export default function MaintenancePage() {
     if (!orderId) return;
     if (expandedTimelineOrderId === orderId) {
       setExpandedTimelineOrderId('');
+      setLoadingTimelineOrderId('');
       return;
     }
 
     setExpandedTimelineOrderId(orderId);
 
     if (orderEventsById[orderId]) return;
+    timelineRequestOrderIdRef.current = orderId;
     setLoadingTimelineOrderId(orderId);
     try {
       const res = await apiGet<{ items: PatentMaintenanceOrderEvent[] }>(`/me/patent-maintenance/orders/${orderId}/events`);
+      if (timelineRequestOrderIdRef.current !== orderId) return;
       setOrderEventsById((prev) => ({ ...prev, [orderId]: res?.items || [] }));
     } catch (e: any) {
+      if (timelineRequestOrderIdRef.current !== orderId) return;
       toast(e?.message || '加载时间线失败');
     } finally {
+      if (timelineRequestOrderIdRef.current !== orderId) return;
       setLoadingTimelineOrderId('');
     }
   }, [expandedTimelineOrderId, orderEventsById]);
-
-  const summary = useMemo(() => {
-    const overdue = schedules.items.filter((it) => it.urgency === 'OVERDUE').length;
-    const dueSoon = schedules.items.filter((it) => it.urgency === 'DUE_SOON').length;
-    const openTasks = tasks.items.filter((it) => it.status === 'OPEN' || it.status === 'IN_PROGRESS').length;
-    const openOrders = orders.items.filter((it) => it.status !== 'CLOSED' && it.status !== 'CANCELLED').length;
-    return { overdue, dueSoon, openTasks, openOrders };
-  }, [orders.items, schedules.items, tasks.items]);
 
   const refreshing = schedules.refreshing || tasks.refreshing || orders.refreshing;
 
@@ -490,12 +572,14 @@ export default function MaintenancePage() {
                     {schedules.items.map((item) => (
                       <Surface key={item.id} className="maintenance-card">
                         <View className="maintenance-card-head">
-                          <Text className="maintenance-card-title clamp-2">{item.patentTitle || item.patentId}</Text>
+                          <Text className="maintenance-card-title clamp-2">
+                            {displayText(item.patentTitle, '') || displayText(item.patentId)}
+                          </Text>
                           <Text className="maintenance-status">{scheduleStatusLabel(item.status)}</Text>
                         </View>
                         <View className="maintenance-row">
                           <Text className="maintenance-label">申请号</Text>
-                          <Text className="maintenance-value">{item.applicationNoDisplay || '-'}</Text>
+                          <Text className="maintenance-value">{displayText(item.applicationNoDisplay)}</Text>
                         </View>
                         <View className="maintenance-row">
                           <Text className="maintenance-label">缴费年度</Text>
@@ -507,7 +591,7 @@ export default function MaintenancePage() {
                         </View>
                         <View className="maintenance-row">
                           <Text className="maintenance-label">宽限截止</Text>
-                          <Text className="maintenance-value">{item.gracePeriodEnd || '-'}</Text>
+                          <Text className="maintenance-value">{displayText(item.gracePeriodEnd)}</Text>
                         </View>
                         <View className="maintenance-foot">
                           <Text className={`maintenance-urgency ${urgencyClass(item.urgency)}`}>{urgencyLabel(item.urgency)}</Text>
@@ -554,24 +638,26 @@ export default function MaintenancePage() {
                     {tasks.items.map((item) => (
                       <Surface key={item.id} className="maintenance-card">
                         <View className="maintenance-card-head">
-                          <Text className="maintenance-card-title clamp-2">{item.patentTitle || item.patentId || item.scheduleId}</Text>
+                          <Text className="maintenance-card-title clamp-2">
+                            {displayText(item.patentTitle, '') || displayText(item.patentId, '') || displayText(item.scheduleId)}
+                          </Text>
                           <Text className="maintenance-status">{taskStatusLabel(item.status)}</Text>
                         </View>
                         <View className="maintenance-row">
                           <Text className="maintenance-label">申请号</Text>
-                          <Text className="maintenance-value">{item.applicationNoDisplay || '-'}</Text>
+                          <Text className="maintenance-value">{displayText(item.applicationNoDisplay)}</Text>
                         </View>
                         <View className="maintenance-row">
                           <Text className="maintenance-label">关联年度</Text>
-                          <Text className="maintenance-value">{item.scheduleYearNo ? `第${item.scheduleYearNo}年` : '-'}</Text>
+                          <Text className="maintenance-value">{item.scheduleYearNo ? `第${item.scheduleYearNo}年` : '待补充'}</Text>
                         </View>
                         <View className="maintenance-row">
                           <Text className="maintenance-label">计划到期</Text>
-                          <Text className="maintenance-value">{item.scheduleDueDate || '-'}</Text>
+                          <Text className="maintenance-value">{displayText(item.scheduleDueDate)}</Text>
                         </View>
                         <View className="maintenance-row">
                           <Text className="maintenance-label">任务备注</Text>
-                          <Text className="maintenance-value">{item.note || '-'}</Text>
+                          <Text className="maintenance-value">{displayText(item.note)}</Text>
                         </View>
                         <View className="maintenance-foot">
                           <Text className={`maintenance-urgency ${urgencyClass(item.urgency)}`}>{urgencyLabel(item.urgency)}</Text>
@@ -629,13 +715,15 @@ export default function MaintenancePage() {
                       return (
                         <Surface key={item.id} className="maintenance-card">
                           <View className="maintenance-card-head">
-                            <Text className="maintenance-card-title clamp-2">{item.patentTitle || item.scheduleId}</Text>
+                            <Text className="maintenance-card-title clamp-2">
+                              {displayText(item.patentTitle, '') || displayText(item.scheduleId)}
+                            </Text>
                             <Text className="maintenance-status">{orderStatusLabel(item.status)}</Text>
                           </View>
 
                           <View className="maintenance-row">
                             <Text className="maintenance-label">申请号</Text>
-                            <Text className="maintenance-value">{item.applicationNoDisplay || '-'}</Text>
+                            <Text className="maintenance-value">{displayText(item.applicationNoDisplay)}</Text>
                           </View>
                           <View className="maintenance-row">
                             <Text className="maintenance-label">订单号</Text>
@@ -643,11 +731,13 @@ export default function MaintenancePage() {
                           </View>
                           <View className="maintenance-row">
                             <Text className="maintenance-label">缴费年度</Text>
-                            <Text className="maintenance-value">{item.scheduleYearNo ? `第${item.scheduleYearNo}年` : '-'}</Text>
+                            <Text className="maintenance-value">
+                              {typeof item.scheduleYearNo === 'number' ? `第${item.scheduleYearNo}年` : '待补充'}
+                            </Text>
                           </View>
                           <View className="maintenance-row">
                             <Text className="maintenance-label">到期日</Text>
-                            <Text className="maintenance-value">{item.scheduleDueDate || '-'}</Text>
+                            <Text className="maintenance-value">{displayText(item.scheduleDueDate)}</Text>
                           </View>
                           <View className="maintenance-row">
                             <Text className="maintenance-label">订单金额</Text>
@@ -656,7 +746,7 @@ export default function MaintenancePage() {
                           <View className="maintenance-row">
                             <Text className="maintenance-label">支付截止</Text>
                             <Text className="maintenance-value">
-                              {item.paymentDeadline ? formatTimeSmart(item.paymentDeadline) : '-'}
+                              {item.paymentDeadline ? formatTimeSmart(item.paymentDeadline) : '待确认'}
                             </Text>
                           </View>
                           <View className="maintenance-row">
@@ -694,10 +784,13 @@ export default function MaintenancePage() {
                                         : orderStatusText(event.toStatus)}
                                     </Text>
                                     <Text className="maintenance-timeline-meta">
-                                      {orderEventTypeLabel(event.eventType)} · {event.actorNickname || event.actorUserId || '系统'} ·{' '}
+                                      {orderEventTypeLabel(event.eventType)} ·{' '}
+                                      {displayText(event.actorNickname, '') || displayText(event.actorUserId, '操作方待补充')} ·{' '}
                                       {formatTimeSmart(event.createdAt)}
                                     </Text>
-                                    {event.note ? <Text className="maintenance-timeline-note">{event.note}</Text> : null}
+                                    {normalizeDisplayText(event.note) ? (
+                                      <Text className="maintenance-timeline-note">{normalizeDisplayText(event.note)}</Text>
+                                    ) : null}
                                   </View>
                                 ))
                               ) : (

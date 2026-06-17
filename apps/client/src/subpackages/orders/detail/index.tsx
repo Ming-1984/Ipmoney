@@ -7,6 +7,7 @@ import type { components } from '@ipmoney/api-types';
 
 import { apiGet, apiPost } from '../../../lib/api';
 import { getDetailCache, setDetailCache } from '../../../lib/detailCache';
+import { normalizeDisplayText } from '../../../lib/displayText';
 import { ensureApproved, usePageAccess } from '../../../lib/guard';
 import { formatTimeSmart } from '../../../lib/format';
 import { orderStatusLabel, orderStatusTagClass } from '../../../lib/labels';
@@ -55,22 +56,23 @@ function reasonLabel(code: RefundReasonCode): string {
 }
 
 function milestoneNameLabel(name?: string | null): string {
-  if (!name) return '里程碑';
+  if (!name) return '里程碑待补充';
   if (name === 'CONTRACT_SIGNED') return '合同签署';
   if (name === 'TRANSFER_SUBMITTED') return '权属提交';
   if (name === 'TRANSFER_COMPLETED') return '权属变更完成';
   if (name === 'SETTLEMENT_READY') return '结算准备';
   if (name === 'SETTLEMENT_PAID') return '结算放款';
-  return name;
+  return '里程碑待确认';
 }
 
 function milestoneStatusLabel(status?: string | null): string {
   if (!status) return '待处理';
   if (status === 'DONE') return '已完成';
   if (status === 'PENDING') return '待处理';
+  if (status === 'SKIPPED') return '已跳过';
   if (status === 'IN_PROGRESS') return '进行中';
   if (status === 'FAILED') return '失败';
-  return status;
+  return '处理中';
 }
 
 function refundStatusLabel(status?: string | null): string {
@@ -80,12 +82,24 @@ function refundStatusLabel(status?: string | null): string {
   if (status === 'REJECTED') return '已拒绝';
   if (status === 'REFUNDING') return '退款中';
   if (status === 'REFUNDED') return '已退款';
-  return status;
+  return '处理中';
+}
+
+function displayOrderInfo(value: unknown, fallback = '待确认'): string {
+  return normalizeDisplayText(value) || fallback;
 }
 
 export default function OrderDetailPage() {
   const orderId = useRouteStringParam('orderId') || '';
   const loadedOnceRef = useRef(false);
+  const orderIdRef = useRef(orderId);
+  const orderLoadSeqRef = useRef(0);
+  const caseLoadSeqRef = useRef(0);
+  const refundLoadSeqRef = useRef(0);
+  const invoiceLoadSeqRef = useRef(0);
+  const invoiceActionSeqRef = useRef(0);
+  const refundActionSeqRef = useRef(0);
+  const disputeActionSeqRef = useRef(0);
   const initialCachedOrder = orderId ? getDetailCache<OrderDetail>(ORDER_DETAIL_CACHE_SCOPE, orderId) : null;
   const initialCachedCase = orderId ? getDetailCache<CaseWithMilestones>(ORDER_CASE_CACHE_SCOPE, orderId) : null;
   const initialCachedRefunds = orderId ? getDetailCache<RefundRequest[]>(ORDER_REFUNDS_CACHE_SCOPE, orderId) : null;
@@ -119,8 +133,10 @@ export default function OrderDetailPage() {
 
   const load = useCallback(async (options?: { silent?: boolean }): Promise<OrderDetail | null> => {
     const silent = Boolean(options?.silent);
-    if (!orderId) return null;
-    const cached = silent ? null : getDetailCache<OrderDetail>(ORDER_DETAIL_CACHE_SCOPE, orderId);
+    const targetOrderId = orderId;
+    if (!targetOrderId) return null;
+    const seq = ++orderLoadSeqRef.current;
+    const cached = silent ? null : getDetailCache<OrderDetail>(ORDER_DETAIL_CACHE_SCOPE, targetOrderId);
     if (cached) {
       setOrder(cached);
       setLoading(false);
@@ -130,25 +146,29 @@ export default function OrderDetailPage() {
       setError(null);
     }
     try {
-      const d = await apiGet<OrderDetail>(`/orders/${orderId}`);
+      const d = await apiGet<OrderDetail>(`/orders/${targetOrderId}`);
+      if (seq !== orderLoadSeqRef.current || orderIdRef.current !== targetOrderId) return null;
       setOrder(d);
-      setDetailCache(ORDER_DETAIL_CACHE_SCOPE, orderId, d);
+      setDetailCache(ORDER_DETAIL_CACHE_SCOPE, targetOrderId, d);
       return d;
     } catch (e: any) {
+      if (seq !== orderLoadSeqRef.current || orderIdRef.current !== targetOrderId) return null;
       if (!silent && !cached) {
         setError(e?.message || '加载失败');
         setOrder(null);
       }
       return null;
     } finally {
-      if (!silent) setLoading(false);
+      if (!silent && seq === orderLoadSeqRef.current && orderIdRef.current === targetOrderId) setLoading(false);
     }
   }, [orderId]);
 
   const loadCase = useCallback(async (options?: { silent?: boolean }) => {
-    if (!orderId) return;
+    const targetOrderId = orderId;
+    if (!targetOrderId) return;
+    const seq = ++caseLoadSeqRef.current;
     const silent = Boolean(options?.silent);
-    const cached = getDetailCache<CaseWithMilestones>(ORDER_CASE_CACHE_SCOPE, orderId);
+    const cached = getDetailCache<CaseWithMilestones>(ORDER_CASE_CACHE_SCOPE, targetOrderId);
     const hasCached = Boolean(cached);
     if (cached) {
       setCaseData(cached);
@@ -159,24 +179,28 @@ export default function OrderDetailPage() {
       setCaseError(null);
     }
     try {
-      const d = await apiGet<CaseWithMilestones>(`/orders/${orderId}/case`);
+      const d = await apiGet<CaseWithMilestones>(`/orders/${targetOrderId}/case`);
+      if (seq !== caseLoadSeqRef.current || orderIdRef.current !== targetOrderId) return;
       setCaseData(d);
       setCaseError(null);
-      setDetailCache(ORDER_CASE_CACHE_SCOPE, orderId, d);
+      setDetailCache(ORDER_CASE_CACHE_SCOPE, targetOrderId, d);
     } catch (e: any) {
+      if (seq !== caseLoadSeqRef.current || orderIdRef.current !== targetOrderId) return;
       if (!hasCached) {
         setCaseError(e?.message || '加载失败');
         setCaseData(null);
       }
     } finally {
-      if (!hasCached) setCaseLoading(false);
+      if (!hasCached && seq === caseLoadSeqRef.current && orderIdRef.current === targetOrderId) setCaseLoading(false);
     }
   }, [orderId]);
 
   const loadRefunds = useCallback(async (options?: { silent?: boolean }) => {
-    if (!orderId) return;
+    const targetOrderId = orderId;
+    if (!targetOrderId) return;
+    const seq = ++refundLoadSeqRef.current;
     const silent = Boolean(options?.silent);
-    const cached = getDetailCache<RefundRequest[]>(ORDER_REFUNDS_CACHE_SCOPE, orderId);
+    const cached = getDetailCache<RefundRequest[]>(ORDER_REFUNDS_CACHE_SCOPE, targetOrderId);
     const hasCached = Array.isArray(cached);
     if (hasCached) {
       setRefunds(cached);
@@ -187,24 +211,28 @@ export default function OrderDetailPage() {
       setRefundsError(null);
     }
     try {
-      const d = await apiGet<RefundRequest[]>(`/orders/${orderId}/refund-requests`);
+      const d = await apiGet<RefundRequest[]>(`/orders/${targetOrderId}/refund-requests`);
+      if (seq !== refundLoadSeqRef.current || orderIdRef.current !== targetOrderId) return;
       const normalized = Array.isArray(d) ? d : [];
       setRefunds(normalized);
       setRefundsError(null);
-      setDetailCache(ORDER_REFUNDS_CACHE_SCOPE, orderId, normalized);
+      setDetailCache(ORDER_REFUNDS_CACHE_SCOPE, targetOrderId, normalized);
     } catch (e: any) {
+      if (seq !== refundLoadSeqRef.current || orderIdRef.current !== targetOrderId) return;
       if (!hasCached) {
         setRefundsError(e?.message || '加载失败');
         setRefunds([]);
       }
     } finally {
-      if (!hasCached) setRefundsLoading(false);
-      setRefundsReady(true);
+      if (!hasCached && seq === refundLoadSeqRef.current && orderIdRef.current === targetOrderId) setRefundsLoading(false);
+      if (seq === refundLoadSeqRef.current && orderIdRef.current === targetOrderId) setRefundsReady(true);
     }
   }, [orderId]);
 
   const loadInvoice = useCallback(async () => {
-    if (!orderId) return;
+    const targetOrderId = orderId;
+    if (!targetOrderId) return;
+    const seq = ++invoiceLoadSeqRef.current;
     if (!canFetchInvoiceDetail) {
       setInvoiceLoading(false);
       setInvoiceError(null);
@@ -214,9 +242,11 @@ export default function OrderDetailPage() {
     setInvoiceLoading(true);
     setInvoiceError(null);
     try {
-      const inv = await apiGet<OrderInvoice>(`/orders/${orderId}/invoice`);
+      const inv = await apiGet<OrderInvoice>(`/orders/${targetOrderId}/invoice`);
+      if (seq !== invoiceLoadSeqRef.current || orderIdRef.current !== targetOrderId) return;
       setInvoice(inv);
     } catch (e: any) {
+      if (seq !== invoiceLoadSeqRef.current || orderIdRef.current !== targetOrderId) return;
       const statusCode = Number(e?.statusCode || 0);
       if (statusCode === 404) {
         setInvoice(null);
@@ -226,7 +256,9 @@ export default function OrderDetailPage() {
         setInvoice(null);
       }
     } finally {
-      setInvoiceLoading(false);
+      if (seq === invoiceLoadSeqRef.current && orderIdRef.current === targetOrderId) {
+        setInvoiceLoading(false);
+      }
     }
   }, [canFetchInvoiceDetail, orderId]);
 
@@ -237,8 +269,26 @@ export default function OrderDetailPage() {
   }, [load, loadCase, loadRefunds]);
 
   useEffect(() => {
+    orderIdRef.current = orderId;
     loadedOnceRef.current = false;
+    orderLoadSeqRef.current += 1;
+    caseLoadSeqRef.current += 1;
+    refundLoadSeqRef.current += 1;
+    invoiceLoadSeqRef.current += 1;
+    invoiceActionSeqRef.current += 1;
+    refundActionSeqRef.current += 1;
+    disputeActionSeqRef.current += 1;
+    setActiveTab('order-overview');
     setInvoiceRequested(false);
+    setInvoiceRequesting(false);
+    setInvoiceLoading(false);
+    setInvoiceError(null);
+    setInvoice(null);
+    setRefundOpen(false);
+    setRefundSubmitting(false);
+    setOpeningDisputeChat(false);
+    setReasonCode('BUYER_CHANGED_MIND');
+    setReasonText('');
     setError(null);
     if (!orderId) {
       setOrder(null);
@@ -250,6 +300,7 @@ export default function OrderDetailPage() {
       setRefundsError(null);
       setRefunds([]);
       setRefundsReady(false);
+      setInvoiceRequested(false);
       return;
     }
     const cachedOrder = getDetailCache<OrderDetail>(ORDER_DETAIL_CACHE_SCOPE, orderId);
@@ -291,6 +342,13 @@ export default function OrderDetailPage() {
       return;
     }
     loadedOnceRef.current = false;
+    orderLoadSeqRef.current += 1;
+    caseLoadSeqRef.current += 1;
+    refundLoadSeqRef.current += 1;
+    invoiceLoadSeqRef.current += 1;
+    invoiceActionSeqRef.current += 1;
+    refundActionSeqRef.current += 1;
+    disputeActionSeqRef.current += 1;
     setLoading(false);
     setError(null);
     setOrder(null);
@@ -309,18 +367,24 @@ export default function OrderDetailPage() {
 
   const requestInvoice = useCallback(async () => {
     if (!ensureApproved()) return;
-    if (!orderId) return;
+    const targetOrderId = orderId;
+    if (!targetOrderId) return;
     if (invoiceRequesting) return;
+    const seq = ++invoiceActionSeqRef.current;
     setInvoiceRequesting(true);
     try {
-      await apiPost(`/orders/${orderId}/invoice-requests`, {}, { idempotencyKey: `invoice-${orderId}` });
+      await apiPost(`/orders/${targetOrderId}/invoice-requests`, {}, { idempotencyKey: `invoice-${targetOrderId}` });
+      if (seq !== invoiceActionSeqRef.current || orderIdRef.current !== targetOrderId) return;
       setInvoiceRequested(true);
       toast('已提交开票申请', { icon: 'success' });
       void load();
     } catch (e: any) {
+      if (seq !== invoiceActionSeqRef.current || orderIdRef.current !== targetOrderId) return;
       toast(e?.message || '申请开票失败', { icon: 'fail' });
     } finally {
-      setInvoiceRequesting(false);
+      if (seq === invoiceActionSeqRef.current && orderIdRef.current === targetOrderId) {
+        setInvoiceRequesting(false);
+      }
     }
   }, [orderId, invoiceRequesting, load]);
 
@@ -337,8 +401,10 @@ export default function OrderDetailPage() {
 
   const submitRefund = useCallback(async () => {
     if (!ensureApproved()) return;
-    if (!orderId) return;
+    const targetOrderId = orderId;
+    if (!targetOrderId) return;
     if (refundSubmitting) return;
+    const seq = ++refundActionSeqRef.current;
     if (!canSubmitRefund) {
       toast(refundBlockedHint || '当前不可申请退款');
       return;
@@ -349,15 +415,17 @@ export default function OrderDetailPage() {
     };
     setRefundSubmitting(true);
     try {
-      await apiPost<RefundRequest>(`/orders/${orderId}/refund-requests`, payload, {
-        idempotencyKey: `refund-${orderId}-${reasonCode}`,
+      await apiPost<RefundRequest>(`/orders/${targetOrderId}/refund-requests`, payload, {
+        idempotencyKey: `refund-${targetOrderId}-${reasonCode}`,
       });
+      if (seq !== refundActionSeqRef.current || orderIdRef.current !== targetOrderId) return;
       toast('已提交退款申请', { icon: 'success' });
       setRefundOpen(false);
       setReasonText('');
       void loadRefunds();
       void load();
     } catch (e: any) {
+      if (seq !== refundActionSeqRef.current || orderIdRef.current !== targetOrderId) return;
       const statusCode = Number(e?.statusCode || 0);
       const code = String(e?.code || '').toUpperCase();
       if (statusCode === 409 || code === 'CONFLICT') {
@@ -369,47 +437,56 @@ export default function OrderDetailPage() {
         toast(e?.message || '提交失败');
       }
     } finally {
-      setRefundSubmitting(false);
+      if (seq === refundActionSeqRef.current && orderIdRef.current === targetOrderId) {
+        setRefundSubmitting(false);
+      }
     }
   }, [orderId, refundSubmitting, canSubmitRefund, refundBlockedHint, reasonCode, reasonText, load, loadRefunds]);
 
   const openDisputeConversation = useCallback(async () => {
     if (!ensureApproved()) return;
-    if (!orderId) return;
+    const targetOrderId = orderId;
+    if (!targetOrderId) return;
     if (openingDisputeChat) return;
+    const seq = ++disputeActionSeqRef.current;
     setOpeningDisputeChat(true);
     try {
       const conversation = await apiPost<Conversation>(
-        `/orders/${orderId}/dispute-conversations`,
+        `/orders/${targetOrderId}/dispute-conversations`,
         {},
-        { idempotencyKey: `order-dispute-conv-${orderId}` },
+        { idempotencyKey: `order-dispute-conv-${targetOrderId}` },
       );
+      if (seq !== disputeActionSeqRef.current || orderIdRef.current !== targetOrderId) return;
       Taro.navigateTo({ url: `/subpackages/messages/chat/index?conversationId=${conversation.id}` });
     } catch (e: any) {
+      if (seq !== disputeActionSeqRef.current || orderIdRef.current !== targetOrderId) return;
       toast(e?.message || '打开争议会话失败');
     } finally {
-      setOpeningDisputeChat(false);
+      if (seq === disputeActionSeqRef.current && orderIdRef.current === targetOrderId) {
+        setOpeningDisputeChat(false);
+      }
     }
   }, [openingDisputeChat, orderId]);
 
   const hasInvoiceFile = Boolean(order?.invoiceFileId || invoice?.invoiceFile?.url);
   const hasInvoiceRequest = Boolean(order?.invoiceNo || invoiceRequested);
+  const hasInvoiceDownloadUrl = Boolean(invoice?.invoiceFile?.url);
 
   const openInvoiceCenter = useCallback(() => {
-    const tab = hasInvoiceFile ? 'ISSUED' : hasInvoiceRequest ? 'APPLYING' : 'WAIT_APPLY';
+    const tab = hasInvoiceFile ? 'ISSUED' : 'WAIT_APPLY';
     Taro.navigateTo({ url: `/subpackages/invoices/index?tab=${tab}&orderId=${orderId}` });
-  }, [hasInvoiceFile, hasInvoiceRequest, orderId]);
+  }, [hasInvoiceFile, orderId]);
 
   const canRequestInvoice = order?.status === 'COMPLETED' && !hasInvoiceFile && !hasInvoiceRequest;
-  const invoiceHint = hasInvoiceFile
-    ? canFetchInvoiceDetail
-      ? '电子发票已上传，可复制下载链接'
-      : '电子发票处理中，请到发票中心查看'
+  const invoiceHint = hasInvoiceDownloadUrl
+    ? '电子发票已上传，可复制下载链接'
+    : hasInvoiceFile
+      ? '电子发票已上传，请点击刷新或前往发票中心查看'
     : hasInvoiceRequest
-    ? '已提交开票申请，财务处理中'
-    : order?.status === 'COMPLETED'
-      ? '订单已完成，可申请开票'
-      : '订单完成后由财务上传';
+      ? '已提交开票申请，财务处理中'
+      : order?.status === 'COMPLETED'
+        ? '订单已完成，可申请开票'
+        : '订单完成后由财务上传';
 
   const detailTabs = useMemo(
     () => [
@@ -454,21 +531,21 @@ export default function OrderDetailPage() {
               <Text className={orderStatusTagClass(order.status)}>{orderStatusLabel(order.status)}</Text>
             </View>
             <View style={{ height: '10rpx' }} />
-            <Text className="muted">订金：¥{fenToYuan(order.depositAmountFen)}</Text>
+            <Text className="muted">订金：¥{fenToYuan(order.depositAmountFen, { empty: '待确认' })}</Text>
             <View style={{ height: '6rpx' }} />
-            <Text className="muted">成交总价：¥{fenToYuan(order.dealAmountFen)}</Text>
+            <Text className="muted">成交总价：¥{fenToYuan(order.dealAmountFen, { empty: '待确认' })}</Text>
             <View style={{ height: '6rpx' }} />
-            <Text className="muted">尾款：¥{fenToYuan(order.finalAmountFen)}</Text>
-            {order.listingTitle ? (
+            <Text className="muted">尾款：¥{fenToYuan(order.finalAmountFen, { empty: '待确认' })}</Text>
+            {normalizeDisplayText(order.listingTitle) ? (
               <>
                 <View style={{ height: '6rpx' }} />
-                <Text className="muted">交易标的：{order.listingTitle}</Text>
+                <Text className="muted">交易标的：{normalizeDisplayText(order.listingTitle)}</Text>
               </>
             ) : null}
-            {order.applicationNoDisplay ? (
+            {normalizeDisplayText(order.applicationNoDisplay) ? (
               <>
                 <View style={{ height: '6rpx' }} />
-                <Text className="muted">申请号：{order.applicationNoDisplay}</Text>
+                <Text className="muted">申请号：{displayOrderInfo(order.applicationNoDisplay)}</Text>
               </>
             ) : null}
           </Surface>
@@ -503,7 +580,7 @@ export default function OrderDetailPage() {
                     Taro.navigateTo({ url: `/subpackages/checkout/final-pay/index?orderId=${orderId}` });
                   }}
                 >
-                  支付尾款{order.finalAmountFen ? ` ¥${fenToYuan(order.finalAmountFen)}` : ''}
+                  支付尾款{order.finalAmountFen != null ? ` ¥${fenToYuan(order.finalAmountFen)}` : ''}
                 </Button>
               </Surface>
               <View style={{ height: '16rpx' }} />
