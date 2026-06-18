@@ -7,6 +7,7 @@ import {
   normalizeHomeLandingConfig,
   type HomeLandingConfig,
 } from '../../lib/homeLandingConfig';
+import { normalizeDisplayText } from '../../lib/displayText';
 import {
   executeHomeLandingAction,
   resolveHomeLandingZoneImage,
@@ -41,8 +42,8 @@ export default function PatentSquarePage() {
         .filter((item) => item.enabled)
         .map((item) => ({
           id: item.id,
-          title: item.title,
-          subtitle: item.subtitle,
+          title: normalizeDisplayText(item.title) || '专区标题待确认',
+          subtitle: normalizeDisplayText(item.subtitle) || '查看专区内容',
           bgImage: resolveHomeLandingZoneImage(item.imageUrl),
           onClick: () => executeHomeLandingAction(item.actionType, item.actionPayload),
         })),

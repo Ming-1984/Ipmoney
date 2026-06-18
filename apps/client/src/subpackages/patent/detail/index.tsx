@@ -8,7 +8,7 @@ import type { components } from '@ipmoney/api-types';
 import { Heart, HeartFill, Share2 } from '../../../ui/icons';
 import { apiGet, apiPost } from '../../../lib/api';
 import { getToken } from '../../../lib/auth';
-import { displayInfoOrPlaceholder, normalizeDisplayText } from '../../../lib/displayText';
+import { displayInfoOrPlaceholder, displayInitial, displayTitleWithSecondary, displayUserName, normalizeDisplayText } from '../../../lib/displayText';
 import { favorite, isFavorited, syncFavorites, unfavorite } from '../../../lib/favorites';
 import { formatTimeSmart } from '../../../lib/format';
 import { ensureApproved } from '../../../lib/guard';
@@ -38,11 +38,11 @@ function legalStatusLabel(status?: Patent['legalStatus']): string {
 }
 
 function sourcePrimaryLabel(source?: Patent['sourcePrimary']): string {
-  if (!source) return '来源待补充';
+  if (!source) return '来源待确认';
   if (source === 'USER') return '用户提交';
   if (source === 'ADMIN') return '后台录入';
   if (source === 'PROVIDER') return '服务商导入';
-  return '来源待补充';
+  return '来源待确认';
 }
 
 function isPlatformUnifiedPatent(source?: Patent['sourcePrimary']): boolean {
@@ -50,7 +50,7 @@ function isPlatformUnifiedPatent(source?: Patent['sourcePrimary']): boolean {
 }
 
 function supplyTypeLabel(type?: string | null): string {
-  if (!type) return '待补充';
+  if (!type) return '待确认';
   if (type === 'UNIVERSITY') return '高校';
   if (type === 'UNIVERSITY_985') return '985高校';
   if (type === 'UNIVERSITY_211') return '211高校';
@@ -59,14 +59,14 @@ function supplyTypeLabel(type?: string | null): string {
 }
 
 function formatCount(value?: number | null, unit?: string): string {
-  if (value == null) return '待补充';
+  if (value == null) return '待确认';
   return unit ? `${value} ${unit}` : String(value);
 }
 
 function remainingYears(filingDate?: string | null, patentType?: Patent['patentType']): string {
-  if (!filingDate || !patentType) return '待补充';
+  if (!filingDate || !patentType) return '待确认';
   const start = new Date(filingDate);
-  if (Number.isNaN(start.getTime())) return '待补充';
+  if (Number.isNaN(start.getTime())) return '待确认';
   const termYears = patentType === 'INVENTION' ? 20 : patentType === 'UTILITY_MODEL' ? 10 : patentType === 'DESIGN' ? 15 : 20;
   const expiry = new Date(start);
   expiry.setFullYear(start.getFullYear() + termYears);
@@ -74,6 +74,14 @@ function remainingYears(filingDate?: string | null, patentType?: Patent['patentT
   if (diffMs <= 0) return '0 年';
   const years = Math.ceil(diffMs / (1000 * 60 * 60 * 24 * 365.25));
   return `${years} 年`;
+}
+
+function patentTermLabel(patentType?: Patent['patentType']): string {
+  if (!patentType) return '待确认';
+  if (patentType === 'INVENTION') return '20 年';
+  if (patentType === 'UTILITY_MODEL') return '10 年';
+  if (patentType === 'DESIGN') return '15 年';
+  return '待确认';
 }
 
 export default function PatentDetailOverviewPage() {
@@ -155,11 +163,13 @@ export default function PatentDetailOverviewPage() {
   }, [load]);
 
   const tradeSnapshot = data?.tradeSnapshot ?? null;
-  const sellerDisplayName = normalizeDisplayText(tradeSnapshot?.seller?.nickname);
+  const sellerDisplayName = displayUserName(tradeSnapshot?.seller, '');
+  const sellerDisplayInitial = displayInitial(sellerDisplayName, '供');
+  const sellerTitle = sellerDisplayName || '平台认证供给方';
   const listingId = tradeSnapshot?.listingId || '';
   const depositAmountFen = tradeSnapshot?.depositAmountFen ?? null;
   const canTrade = Boolean(listingId);
-  const depositLabel = depositAmountFen != null ? `订金 ￥${fenToYuan(depositAmountFen)}` : '订金待补充';
+  const depositLabel = depositAmountFen != null ? `订金 ￥${fenToYuan(depositAmountFen)}` : '订金待确认';
   const hasTrade = Boolean(tradeSnapshot);
   const claimEnabled = Boolean(data && isPlatformUnifiedPatent(data.sourcePrimary) && !data.ownerUserId);
   const claimBlockedReason = data?.ownerUserId ? '该专利已归属个人，不支持认领' : '';
@@ -183,6 +193,10 @@ export default function PatentDetailOverviewPage() {
     [specFigures],
   );
   const hasMedia = Boolean(coverUrl || specMedia.length);
+  const patentTitleText = displayTitleWithSecondary(data?.title, '专利信息待确认', {
+    secondary: data?.applicationNoDisplay || data?.applicationNoNorm,
+    secondaryPrefix: '专利申请号 ',
+  });
 
   const openClaimPage = useCallback(() => {
     if (!patentId) return;
@@ -190,11 +204,12 @@ export default function PatentDetailOverviewPage() {
       if (claimBlockedReason) toast(claimBlockedReason);
       return;
     }
-    const title = data?.title || '';
     Taro.navigateTo({
-      url: `/subpackages/patent-claims/index?patentId=${encodeURIComponent(patentId)}&title=${encodeURIComponent(title)}`,
+      url: `/subpackages/patent-claims/index?patentId=${encodeURIComponent(patentId)}&title=${encodeURIComponent(
+        patentTitleText,
+      )}`,
     });
-  }, [claimBlockedReason, claimEnabled, data?.title, patentId]);
+  }, [claimBlockedReason, claimEnabled, patentId, patentTitleText]);
 
   const startConsult = useCallback(async () => {
     if (!listingId) {
@@ -276,7 +291,7 @@ export default function PatentDetailOverviewPage() {
   }, [tradeSnapshot?.seller?.id]);
 
   useShareAppMessage(() => ({
-    title: data?.title ? `专利：${data.title}` : '专利详情',
+    title: `专利：${patentTitleText}`,
     path: patentId ? `/subpackages/patent/detail/index?patentId=${patentId}` : '/pages/home/index',
     imageUrl: coverUrl || undefined,
   }));
@@ -301,7 +316,9 @@ export default function PatentDetailOverviewPage() {
       ) : data ? (
         <View>
           <Surface className="detail-meta-card detail-compact-header" id="patent-overview">
-            <Text className="detail-compact-title clamp-2">{normalizeDisplayText(data.title) || '未命名专利'}</Text>
+            <Text className="detail-compact-title clamp-2">
+              {patentTitleText}
+            </Text>
             <Spacer size={8} />
             <View className="detail-compact-tags">
               <Text className="detail-compact-tag detail-compact-tag-strong">类型 {patentTypeLabel(data.patentType)}</Text>
@@ -311,7 +328,7 @@ export default function PatentDetailOverviewPage() {
             <Spacer size={10} />
             <View className="detail-compact-row">
               <Text className="muted ellipsis" style={{ flex: 1, minWidth: 0 }}>
-                申请号 {displayInfoOrPlaceholder(data.applicationNoDisplay || data.applicationNoNorm, '待补充')}
+                申请号 {displayInfoOrPlaceholder(data.applicationNoDisplay || data.applicationNoNorm, '待确认')}
               </Text>
               {normalizeDisplayText(data.applicationNoDisplay || data.applicationNoNorm) ? (
                 <Button
@@ -367,10 +384,10 @@ export default function PatentDetailOverviewPage() {
                     background="rgba(15, 23, 42, 0.06)"
                     color="var(--c-muted)"
                   >
-                    {(sellerDisplayName || '供').slice(0, 1)}
+                    {sellerDisplayInitial}
                   </Avatar>
                   <View className="patent-provider-meta">
-                    <Text className="patent-provider-name">{sellerDisplayName || '供给方信息待补充'}</Text>
+                    <Text className="patent-provider-name">{sellerTitle}</Text>
                     <View className="patent-provider-tags">
                       {tradeSnapshot?.supplyType || tradeSnapshot?.seller?.orgCategory ? (
                         <Text className="patent-provider-tag">
@@ -389,7 +406,7 @@ export default function PatentDetailOverviewPage() {
                   </Button>
                 </View>
               ) : (
-                <Text className="muted">当前暂无可展示的供给方信息。</Text>
+                <Text className="muted">当前暂未公开供给方信息。</Text>
               )}
             </Surface>
           </View>
@@ -401,11 +418,11 @@ export default function PatentDetailOverviewPage() {
             <View className="detail-field-list">
               <View className="detail-field-row">
                 <Text className="detail-field-label">专利号</Text>
-                <Text className="detail-field-value break-word">{displayInfoOrPlaceholder(data.patentNoDisplay, '待补充')}</Text>
+                <Text className="detail-field-value break-word">{displayInfoOrPlaceholder(data.patentNoDisplay, '待确认')}</Text>
               </View>
               <View className="detail-field-row">
                 <Text className="detail-field-label">类型</Text>
-                <Text className="detail-field-value break-word">{displayInfoOrPlaceholder(patentTypeLabel(data.patentType), '待补充')}</Text>
+                <Text className="detail-field-value break-word">{displayInfoOrPlaceholder(patentTypeLabel(data.patentType), '待确认')}</Text>
               </View>
               <View className="detail-field-row">
                 <Text className="detail-field-label">法律状态</Text>
@@ -413,17 +430,15 @@ export default function PatentDetailOverviewPage() {
               </View>
               <View className="detail-field-row">
                 <Text className="detail-field-label">主 IPC 分类</Text>
-                <Text className="detail-field-value break-word">{displayInfoOrPlaceholder(data.mainIpcCode, '待补充')}</Text>
+                <Text className="detail-field-value break-word">{displayInfoOrPlaceholder(data.mainIpcCode, '待确认')}</Text>
               </View>
               <View className="detail-field-row">
                 <Text className="detail-field-label">申请日</Text>
-                <Text className="detail-field-value break-word">{displayInfoOrPlaceholder(data.filingDate, '待补充')}</Text>
+                <Text className="detail-field-value break-word">{displayInfoOrPlaceholder(data.filingDate, '待确认')}</Text>
               </View>
               <View className="detail-field-row">
                 <Text className="detail-field-label">保护期限</Text>
-                <Text className="detail-field-value break-word">
-                  {typeof data.patentTermYears === 'number' ? `${data.patentTermYears} 年` : '待补充'}
-                </Text>
+                <Text className="detail-field-value break-word">{patentTermLabel(data.patentType)}</Text>
               </View>
             </View>
           </View>
@@ -435,15 +450,15 @@ export default function PatentDetailOverviewPage() {
             <View className="detail-field-list">
               <View className="detail-field-row">
                 <Text className="detail-field-label">发明人</Text>
-                <Text className="detail-field-value break-word">{data.inventorNames?.length ? data.inventorNames.join(' / ') : '待补充'}</Text>
+                <Text className="detail-field-value break-word">{data.inventorNames?.length ? data.inventorNames.join(' / ') : '待确认'}</Text>
               </View>
               <View className="detail-field-row">
                 <Text className="detail-field-label">权利人</Text>
-                <Text className="detail-field-value break-word">{data.assigneeNames?.length ? data.assigneeNames.join(' / ') : '待补充'}</Text>
+                <Text className="detail-field-value break-word">{data.assigneeNames?.length ? data.assigneeNames.join(' / ') : '待确认'}</Text>
               </View>
               <View className="detail-field-row">
                 <Text className="detail-field-label">申请人</Text>
-                <Text className="detail-field-value break-word">{data.applicantNames?.length ? data.applicantNames.join(' / ') : '待补充'}</Text>
+                <Text className="detail-field-value break-word">{data.applicantNames?.length ? data.applicantNames.join(' / ') : '待确认'}</Text>
               </View>
             </View>
           </View>
@@ -455,11 +470,11 @@ export default function PatentDetailOverviewPage() {
             <View className="detail-field-list">
               <View className="detail-field-row">
                 <Text className="detail-field-label">公开日</Text>
-                <Text className="detail-field-value is-muted">{displayInfoOrPlaceholder(data.publicationDate, '待补充')}</Text>
+                <Text className="detail-field-value is-muted">{displayInfoOrPlaceholder(data.publicationDate, '待确认')}</Text>
               </View>
               <View className="detail-field-row">
                 <Text className="detail-field-label">授权日</Text>
-                <Text className="detail-field-value is-muted">{displayInfoOrPlaceholder(data.grantDate, '待补充')}</Text>
+                <Text className="detail-field-value is-muted">{displayInfoOrPlaceholder(data.grantDate, '待确认')}</Text>
               </View>
             </View>
           </View>
@@ -511,13 +526,13 @@ export default function PatentDetailOverviewPage() {
                         ? '面议'
                         : tradeSnapshot?.priceAmountFen != null
                           ? `￥${fenToYuan(tradeSnapshot.priceAmountFen)}`
-                          : '待补充'}
+                          : '待确认'}
                     </Text>
                   </View>
                   <View className="detail-field-row">
                     <Text className="detail-field-label">订金</Text>
                     <Text className="detail-field-value">
-                      {tradeSnapshot?.depositAmountFen != null ? `￥${fenToYuan(tradeSnapshot.depositAmountFen)}` : '待补充'}
+                      {tradeSnapshot?.depositAmountFen != null ? `￥${fenToYuan(tradeSnapshot.depositAmountFen)}` : '待确认'}
                     </Text>
                   </View>
                   <View className="detail-field-row">
@@ -525,13 +540,13 @@ export default function PatentDetailOverviewPage() {
                     <Text className="detail-field-value">
                       {tradeSnapshot?.supplyType || tradeSnapshot?.seller?.orgCategory
                         ? supplyTypeLabel(tradeSnapshot?.supplyType || tradeSnapshot?.seller?.orgCategory)
-                        : '待补充'}
+                        : '待确认'}
                     </Text>
                   </View>
                   <View className="detail-field-row">
                     <Text className="detail-field-label">供给方</Text>
                     <Text className="detail-field-value">
-                      {sellerDisplayName || '供给方信息待补充'}
+                      {sellerTitle}
                       {tradeSnapshot?.seller?.verificationType
                         ? `（${verificationTypeLabel(tradeSnapshot.seller.verificationType)}）`
                         : ''}

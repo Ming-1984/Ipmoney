@@ -83,16 +83,22 @@ describe('CasesService write flow suite', () => {
     await expect(service.create(REQ, { orderId: ORDER_ID, assigneeId: ASSIGNEE_ID })).rejects.toBeInstanceOf(
       BadRequestException,
     );
+
+    prisma.order.findUnique.mockResolvedValueOnce({ id: ORDER_ID });
+    prisma.user.findUnique.mockResolvedValueOnce({ id: ASSIGNEE_ID, role: 'user', rbacRoles: [] });
+    await expect(service.create(REQ, { orderId: ORDER_ID, assigneeId: ASSIGNEE_ID })).rejects.toBeInstanceOf(
+      BadRequestException,
+    );
   });
 
   it('create applies normalization/defaults and returns mapped case', async () => {
     prisma.order.findUnique.mockResolvedValueOnce({ id: ORDER_ID });
-    prisma.user.findUnique.mockResolvedValueOnce({ id: ASSIGNEE_ID });
+    prisma.user.findUnique.mockResolvedValueOnce({ id: ASSIGNEE_ID, role: 'cs', rbacRoles: [] });
     prisma.csCase.create.mockResolvedValueOnce(
       buildCase({
         type: 'REFUND',
         status: 'OPEN',
-        requesterName: '系统',
+        requesterName: null,
         title: '退款争议',
       }),
     );
@@ -114,7 +120,7 @@ describe('CasesService write flow suite', () => {
           csUserId: ASSIGNEE_ID,
           type: 'REFUND',
           status: 'OPEN',
-          requesterName: '系统',
+          requesterName: null,
           priority: 'HIGH',
           dueAt: expect.any(Date),
         }),
@@ -127,6 +133,23 @@ describe('CasesService write flow suite', () => {
       assigneeId: ASSIGNEE_ID,
       assigneeName: 'CS User',
     });
+  });
+
+  it('does not auto-fill requesterName with system placeholder when omitted', async () => {
+    prisma.csCase.create.mockResolvedValueOnce(buildCase({ requesterName: null }));
+
+    await service.create(REQ, {
+      type: 'followup',
+      title: '跟单处理',
+    });
+
+    expect(prisma.csCase.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          requesterName: null,
+        }),
+      }),
+    );
   });
 
   it('assign validates assignee/case/user branches and updates owner', async () => {
@@ -142,7 +165,13 @@ describe('CasesService write flow suite', () => {
     );
 
     prisma.csCase.findUnique.mockResolvedValueOnce({ id: CASE_ID });
-    prisma.user.findUnique.mockResolvedValueOnce({ id: ASSIGNEE_ID });
+    prisma.user.findUnique.mockResolvedValueOnce({ id: ASSIGNEE_ID, role: 'user', rbacRoles: [] });
+    await expect(service.assign(REQ, CASE_ID, { assigneeId: ASSIGNEE_ID })).rejects.toBeInstanceOf(
+      BadRequestException,
+    );
+
+    prisma.csCase.findUnique.mockResolvedValueOnce({ id: CASE_ID });
+    prisma.user.findUnique.mockResolvedValueOnce({ id: ASSIGNEE_ID, role: 'cs', rbacRoles: [] });
     prisma.csCase.update.mockResolvedValueOnce(buildCase({ csUserId: ASSIGNEE_ID, csUser: { nickname: 'CS User' } }));
 
     const result = await service.assign(REQ, CASE_ID, { assigneeId: ASSIGNEE_ID });
@@ -187,6 +216,25 @@ describe('CasesService write flow suite', () => {
       },
     });
     expect(result.id).toBe(CASE_ID);
+  });
+
+  it('addNote does not synthesize admin authorName when nickname is missing', async () => {
+    const noNicknameReq = {
+      auth: { userId: 'admin-1', permissions: new Set(['case.manage']) },
+    };
+    prisma.csCase.findUnique.mockResolvedValueOnce({ id: CASE_ID }).mockResolvedValueOnce(buildCase());
+    prisma.csCaseNote.create.mockResolvedValueOnce({ id: 'note-3' });
+
+    await service.addNote(noNicknameReq as any, CASE_ID, { note: ' follow up ' });
+
+    expect(prisma.csCaseNote.create).toHaveBeenCalledWith({
+      data: {
+        caseId: CASE_ID,
+        authorId: 'admin-1',
+        authorName: null,
+        content: 'follow up',
+      },
+    });
   });
 
   it('addEvidence validates file relation and supports create/no-op branches', async () => {

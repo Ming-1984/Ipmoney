@@ -756,7 +756,7 @@ export default function PublishPatentPage() {
             <Text className="form-hint">
               {'\u8d44\u6599\u5df2\u63d0\u4ea4\uff0c\u5ba1\u6838\u901a\u8fc7\u540e\u5c06\u81ea\u52a8\u4e0a\u67b6\uff0c\u8bf7\u7559\u610f\u6d88\u606f\u901a\u77e5\u3002'}
             </Text>
-            <Text className="form-hint">上架 ID：{listingId || '待生成'}</Text>
+            <Text className="form-hint">资料已生成挂牌草稿，审核通过后将自动上架。</Text>
           </Surface>
         ) : null}
 

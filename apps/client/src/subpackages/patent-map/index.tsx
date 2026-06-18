@@ -3,89 +3,20 @@ import Taro from '@tarojs/taro';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import './index.scss';
 
+import type { components } from '@ipmoney/api-types';
+
 import { apiGet } from '../../lib/api';
+import { normalizeDisplayText } from '../../lib/displayText';
 import { EmptyCard, ErrorCard, LoadingCard } from '../../ui/StateCards';
 import { toast } from '../../ui/nutui';
 import patentMapMarkerIcon from '../../assets/icons/app/patent-map.png';
 
-type PatentMapRegionLevel = 'PROVINCE' | 'CITY' | 'DISTRICT' | 'UNKNOWN';
-type PatentMapFeaturedLevel = 'NONE' | 'CITY' | 'PROVINCE';
-type PatentMapDataScope = 'ACTIVE_APPROVED' | 'ALL';
-
-type PatentMapRegionItem = {
-  regionCode: string;
-  regionName: string;
-  regionLevel: PatentMapRegionLevel;
-  centerLat: number | null;
-  centerLng: number | null;
-  listingCount: number;
-  patentCount: number;
-  rankedListingCount: number;
-  activeRankedListingCount: number;
-  topActiveRank: number | null;
-  rankPosition: number;
-};
-
-type PatentMapOverviewResponse = {
-  generatedAt: string;
-  filters: { regionLevel: 'PROVINCE' | 'CITY' | 'DISTRICT'; top: number; scope: PatentMapDataScope };
-  summary: {
-    totalListingCount: number;
-    totalPatentCount: number;
-    totalRegionCount: number;
-    regionsWithListingsCount: number;
-    regionsWithPatentsCount: number;
-    regionsWithActiveRankedCount: number;
-    rankedListingCount: number;
-    activeRankedListingCount: number;
-    unassignedListingCount: number;
-    mappableRegionCount: number;
-  };
-  ranking: PatentMapRegionItem[];
-  regions: PatentMapRegionItem[];
-};
-
-type PatentMapRegionDetailResponse = {
-  generatedAt: string;
-  filters: { scope: PatentMapDataScope };
-  region: {
-    code: string;
-    name: string;
-    level: 'PROVINCE' | 'CITY' | 'DISTRICT';
-    parentCode: string | null;
-    centerLat: number | null;
-    centerLng: number | null;
-    descendantRegionCodeCount: number;
-  };
-  summary: {
-    listingCount: number;
-    patentCount: number;
-    rankedListingCount: number;
-    activeRankedListingCount: number;
-    topActiveRank: number | null;
-  };
-  items: Array<{
-    listingId: string;
-    patentId: string | null;
-    title: string;
-    patentTitle: string;
-    patentType: 'INVENTION' | 'UTILITY_MODEL' | 'DESIGN' | null;
-    applicationNoDisplay: string | null;
-    regionCode: string | null;
-    tradeMode: 'ASSIGNMENT' | 'LICENSE';
-    priceType: 'FIXED' | 'NEGOTIABLE';
-    priceAmountFen: number | null;
-    depositAmountFen: number;
-    featuredLevel: PatentMapFeaturedLevel;
-    featuredRegionCode: string | null;
-    featuredRank: number | null;
-    featuredUntil: string | null;
-    isFeaturedActive: boolean;
-    createdAt: string;
-    updatedAt: string;
-  }>;
-  page: { page: number; pageSize: number; total: number };
-};
+type PatentMapRegionLevel = components['schemas']['PatentMapRegionLevel'];
+type PatentMapDataScope = components['schemas']['PatentMapDataScope'];
+type PatentMapRegionItem = components['schemas']['PatentMapRegionItem'];
+type PatentMapOverviewResponse = components['schemas']['PatentMapOverviewResponse'];
+type PatentMapRegionDetailResponse = components['schemas']['PatentMapRegionDetailResponse'];
+type PatentMapRegionDetailItem = components['schemas']['PatentMapRegionDetailItem'];
 
 type MapCenter = { latitude: number; longitude: number };
 type MappableRegion = PatentMapRegionItem & {
@@ -158,21 +89,21 @@ function resolveRegionCenter(item: PatentMapRegionItem): { center: MapCenter | n
   return { center: null, source: null };
 }
 
-function patentTypeLabel(value: PatentMapRegionDetailResponse['items'][number]['patentType']) {
+function patentTypeLabel(value: PatentMapRegionDetailItem['patentType']) {
   if (value === 'INVENTION') return '发明';
   if (value === 'UTILITY_MODEL') return '实用新型';
   if (value === 'DESIGN') return '外观设计';
   return '未知类型';
 }
 
-function priceLabel(item: PatentMapRegionDetailResponse['items'][number]) {
+function priceLabel(item: PatentMapRegionDetailItem) {
   if (item.priceType === 'NEGOTIABLE') return '面议';
   const priceFen = Number(item.priceAmountFen || 0);
   if (!Number.isFinite(priceFen) || priceFen <= 0) return '价格待定';
   return `¥${(priceFen / 100).toLocaleString('zh-CN')}`;
 }
 
-function featuredLabel(item: PatentMapRegionDetailResponse['items'][number]) {
+function featuredLabel(item: PatentMapRegionDetailItem) {
   if (item.featuredLevel === 'NONE') return '未上榜';
   const levelLabel = item.featuredLevel === 'PROVINCE' ? '省级' : '市级';
   const rankLabel = Number.isFinite(Number(item.featuredRank)) ? `#${item.featuredRank}` : '#-';
@@ -484,7 +415,7 @@ export default function PatentMapPage() {
           {overview.summary.unassignedListingCount > 0 ? (
             <View className="patent-map-section">
               <Text className="patent-map-section-tip">
-                当前有 {overview.summary.unassignedListingCount} 条挂牌缺少地区编码，已计入总量但无法定位到地图点位。
+                当前有 {overview.summary.unassignedListingCount} 条挂牌暂未补充地区信息，已计入总量但暂时无法定位到地图点位。
               </Text>
             </View>
           ) : null}
@@ -492,7 +423,7 @@ export default function PatentMapPage() {
           {nonMappableRegions.length > 0 ? (
             <View className="patent-map-section">
               <Text className="patent-map-section-tip">
-                仍有 {nonMappableRegions.length} 个区域缺少坐标（已在榜单展示，暂无法在地图上标点）。
+                仍有 {nonMappableRegions.length} 个区域暂未补充地图定位信息（已在榜单展示，暂无法在地图上标点）。
               </Text>
             </View>
           ) : null}
@@ -571,11 +502,13 @@ export default function PatentMapPage() {
                 {detail.items.map((item) => (
                   <View key={item.listingId} className="patent-map-detail-item" onClick={() => goListingDetail(item.listingId)}>
                     <View className="patent-map-detail-header">
-                      <Text className="patent-map-detail-title">{item.title}</Text>
+                      <Text className="patent-map-detail-title">
+                        {normalizeDisplayText(item.title) || normalizeDisplayText(item.applicationNoDisplay) || '挂牌信息待确认'}
+                      </Text>
                       <Text className="patent-map-detail-price">{priceLabel(item)}</Text>
                     </View>
                     <Text className="patent-map-detail-sub">
-                      {patentTypeLabel(item.patentType)} | {item.applicationNoDisplay || '申请号缺失'}
+                      {patentTypeLabel(item.patentType)} | {normalizeDisplayText(item.applicationNoDisplay) || '申请号待确认'}
                     </Text>
                     <Text className="patent-map-detail-tag">{featuredLabel(item)}</Text>
                   </View>

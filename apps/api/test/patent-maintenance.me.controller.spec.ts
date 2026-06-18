@@ -11,6 +11,7 @@ describe('PatentMaintenanceMeController delegation suite', () => {
       listMySchedules: vi.fn(),
       listMyTasks: vi.fn(),
       listMyOrders: vi.fn(),
+      getMySummary: vi.fn(),
       createMyOrder: vi.fn(),
       getMyOrder: vi.fn(),
       listMyOrderEvents: vi.fn(),
@@ -23,6 +24,7 @@ describe('PatentMaintenanceMeController delegation suite', () => {
     maintenance.listMySchedules.mockResolvedValueOnce({ items: [] });
     maintenance.listMyTasks.mockResolvedValueOnce({ items: [] });
     maintenance.listMyOrders.mockResolvedValueOnce({ items: [] });
+    maintenance.getMySummary.mockResolvedValueOnce({ overdue: 1, dueSoon: 2, openTasks: 3, openOrders: 4 });
     maintenance.createMyOrder.mockResolvedValueOnce({ id: '11111111-1111-4111-8111-111111111111' });
     maintenance.getMyOrder.mockResolvedValueOnce({ id: '22222222-2222-4222-8222-222222222222' });
     maintenance.listMyOrderEvents.mockResolvedValueOnce({ items: [] });
@@ -30,6 +32,7 @@ describe('PatentMaintenanceMeController delegation suite', () => {
     await expect(controller.listSchedules(req, undefined as any)).resolves.toEqual({ items: [] });
     await expect(controller.listTasks(req, null as any)).resolves.toEqual({ items: [] });
     await expect(controller.listOrders(req, undefined as any)).resolves.toEqual({ items: [] });
+    await expect(controller.getSummary(req)).resolves.toEqual({ overdue: 1, dueSoon: 2, openTasks: 3, openOrders: 4 });
     await expect(controller.createOrder(req, undefined as any)).resolves.toMatchObject({
       id: '11111111-1111-4111-8111-111111111111',
     });
@@ -43,6 +46,7 @@ describe('PatentMaintenanceMeController delegation suite', () => {
     expect(maintenance.listMySchedules).toHaveBeenCalledWith(req, {});
     expect(maintenance.listMyTasks).toHaveBeenCalledWith(req, {});
     expect(maintenance.listMyOrders).toHaveBeenCalledWith(req, {});
+    expect(maintenance.getMySummary).toHaveBeenCalledWith(req);
     expect(maintenance.createMyOrder).toHaveBeenCalledWith(req, {});
     expect(maintenance.getMyOrder).toHaveBeenCalledWith(req, '22222222-2222-4222-8222-222222222222');
     expect(maintenance.listMyOrderEvents).toHaveBeenCalledWith(req, '22222222-2222-4222-8222-222222222222');

@@ -1240,25 +1240,8 @@ function maybeSendDynamic(req, res, { method, url, scenario, requestBody }) {
         : [];
       const expectedTopics = listingTopics.filter(Boolean);
       if (expectedTopics.length) {
-        const listingTransferCount = Number.isFinite(Number(it.transferCount)) ? Number(it.transferCount) : null;
         let allMatched = true;
         for (const t of expectedTopics) {
-          if (t === 'OPEN_LICENSE') {
-            const openLicenseMatched = String(it.tradeMode || '').toUpperCase() === 'LICENSE' || itTopics.includes('OPEN_LICENSE');
-            if (!openLicenseMatched) {
-              allMatched = false;
-              break;
-            }
-            continue;
-          }
-          if (t === 'SLEEPING') {
-            const sleepingMatched = listingTransferCount === 0 || itTopics.includes('SLEEPING');
-            if (!sleepingMatched) {
-              allMatched = false;
-              break;
-            }
-            continue;
-          }
           if (!itTopics.includes(t)) {
             allMatched = false;
             break;

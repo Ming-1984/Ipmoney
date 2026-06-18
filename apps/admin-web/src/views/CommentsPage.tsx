@@ -3,17 +3,18 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 
 import { apiGet, apiPatch } from '../lib/api';
 import { formatTimeSmart } from '../lib/format';
-import { normalizeUserFacingText } from '../lib/userFacingText';
+import { displayUserName, normalizeUserFacingText } from '../lib/userFacingText';
 import { RequestErrorAlert } from '../ui/RequestState';
 import { confirmAction } from '../ui/confirm';
 
 type CommentStatus = 'VISIBLE' | 'HIDDEN' | 'DELETED';
-type CommentContentType = 'LISTING';
+type CommentContentType = 'LISTING' | 'ACHIEVEMENT';
 
 type Comment = {
   id: string;
   contentType: CommentContentType;
   contentId: string;
+  contentTitle?: string | null;
   parentCommentId?: string | null;
   status?: CommentStatus;
   text: string;
@@ -21,6 +22,7 @@ type Comment = {
   updatedAt?: string | null;
   user: {
     id: string;
+    displayName?: string;
     nickname?: string;
     role?: string;
     verificationStatus?: string;
@@ -36,7 +38,8 @@ type PagedComment = {
 
 function contentTypeLabel(type?: CommentContentType | null): string {
   if (!type) return '-';
-  return '专利';
+  if (type === 'ACHIEVEMENT') return '成果内容';
+  return '挂牌内容';
 }
 
 function statusTag(status?: CommentStatus | null) {
@@ -48,6 +51,17 @@ function statusTag(status?: CommentStatus | null) {
 
 function displayCommentText(value: unknown, fallback = '-'): string {
   return normalizeUserFacingText(value) || fallback;
+}
+
+function userRoleLabel(value: unknown): string {
+  const role = normalizeUserFacingText(value)?.toUpperCase();
+  if (!role) return '';
+  if (role === 'ADMIN') return '管理员';
+  if (role === 'CS') return '客服';
+  if (role === 'OPERATOR') return '运营';
+  if (role === 'SELLER') return '卖方';
+  if (role === 'BUYER') return '买方';
+  return role;
 }
 
 export function CommentsPage() {
@@ -128,7 +142,7 @@ export function CommentsPage() {
             留言管理
           </Typography.Title>
           <Typography.Paragraph type="secondary" style={{ marginBottom: 0 }}>
-            支持按内容类型、内容 ID、状态与关键词检索；可隐藏/恢复/删除留言。
+            支持按内容类型、关联内容编号、状态与关键词检索；可隐藏/恢复/删除留言。
           </Typography.Paragraph>
         </div>
 
@@ -150,13 +164,14 @@ export function CommentsPage() {
             onChange={(v) => setContentType((v as CommentContentType) || '')}
             options={[
               { value: '', label: '全部类型' },
-              { value: 'LISTING', label: '专利' },
+              { value: 'LISTING', label: '挂牌内容' },
+              { value: 'ACHIEVEMENT', label: '成果内容' },
             ]}
           />
           <Input
             value={contentId}
             style={{ width: 260 }}
-            placeholder="内容 ID"
+            placeholder="关联内容编号"
             allowClear
             onChange={(e) => setContentId(e.target.value)}
             onPressEnter={handleSearch}
@@ -198,7 +213,16 @@ export function CommentsPage() {
           }}
           columns={[
             { title: '内容类型', dataIndex: 'contentType', render: (v) => contentTypeLabel(v) },
-            { title: '内容 ID', dataIndex: 'contentId', ellipsis: true },
+            {
+              title: '关联内容',
+              key: 'content',
+              render: (_, r) => (
+                <Space direction="vertical" size={0}>
+                  <Typography.Text>{displayCommentText(r.contentTitle, '内容信息待确认')}</Typography.Text>
+                  <Typography.Text type="secondary">{displayCommentText(r.contentId)}</Typography.Text>
+                </Space>
+              ),
+            },
             {
               title: '留言内容',
               dataIndex: 'text',
@@ -215,12 +239,11 @@ export function CommentsPage() {
               title: '用户',
               key: 'user',
               render: (_, r) => {
-                const nickname = normalizeUserFacingText(r.user?.nickname);
-                const userId = normalizeUserFacingText(r.user?.id);
+                const nickname = displayUserName(r.user, '平台用户');
                 return (
                   <Space direction="vertical" size={0}>
-                    <Typography.Text>{nickname || userId || '用户待补充'}</Typography.Text>
-                    {userId ? <Typography.Text type="secondary">{userId}</Typography.Text> : null}
+                    <Typography.Text>{nickname}</Typography.Text>
+                    {userRoleLabel(r.user?.role) ? <Typography.Text type="secondary">{userRoleLabel(r.user?.role)}</Typography.Text> : null}
                   </Space>
                 );
               },

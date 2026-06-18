@@ -89,4 +89,48 @@ describe('InventorsService query branch suite', () => {
       page: { page: 1, pageSize: 50, total: 2 },
     });
   });
+
+  it('passes exact and prefix name filters into ranking query for better person-name ordering', async () => {
+    const spy = vi.spyOn(service as any, 'queryRankings').mockResolvedValue({
+      items: [],
+      page: { page: 1, pageSize: 20, total: 0 },
+    });
+
+    await service.search({
+      q: '王伟',
+      page: '1',
+      pageSize: '20',
+    });
+
+    expect(spy).toHaveBeenCalledWith('王伟', '王伟%', '%王伟%', null, null, 0, 20, 1, 20);
+  });
+
+  it('prioritizes exact inventor names before prefix contains matches and count ranking', async () => {
+    prisma.$queryRaw
+      .mockResolvedValueOnce([{ total: 3n }])
+      .mockResolvedValueOnce([
+        {
+          inventorName: '王伟',
+          patentCount: 3,
+          listingCount: 2,
+          avatarUrl: null,
+        },
+        {
+          inventorName: '王伟权',
+          patentCount: 20,
+          listingCount: 20,
+          avatarUrl: null,
+        },
+        {
+          inventorName: '王伟成',
+          patentCount: 8,
+          listingCount: 7,
+          avatarUrl: null,
+        },
+      ]);
+
+    const result = await service.search({ q: '王伟', page: '1', pageSize: '20' });
+
+    expect(result.items.map((item: any) => item.inventorName)).toEqual(['王伟', '王伟权', '王伟成']);
+  });
 });

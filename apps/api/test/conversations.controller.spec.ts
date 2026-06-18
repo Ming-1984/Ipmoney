@@ -12,6 +12,7 @@ describe('ConversationsController delegation suite', () => {
   beforeEach(() => {
     conversations = {
       listMine: vi.fn(),
+      getMineConversation: vi.fn(),
       createListingConversation: vi.fn(),
       createAchievementConversation: vi.fn(),
       createTechManagerConversation: vi.fn(),
@@ -31,10 +32,13 @@ describe('ConversationsController delegation suite', () => {
   it('delegates listMine with query', async () => {
     const req: any = { auth: { userId: 'user-1' } };
     conversations.listMine.mockResolvedValueOnce({ items: [] });
+    conversations.getMineConversation.mockResolvedValueOnce({ id: VALID_UUID });
 
     await expect(controller.listMine(req, { page: '1' })).resolves.toEqual({ items: [] });
+    await expect(controller.getMineConversation(req, ` ${VALID_UUID} `)).resolves.toEqual({ id: VALID_UUID });
 
     expect(conversations.listMine).toHaveBeenCalledWith(req, { page: '1' });
+    expect(conversations.getMineConversation).toHaveBeenCalledWith(req, VALID_UUID);
   });
 
   it('delegates create conversation entry routes', async () => {
@@ -123,6 +127,7 @@ describe('ConversationsController delegation suite', () => {
     await expect(controller.sendMessage(req, 'bad-id', {})).rejects.toBeInstanceOf(BadRequestException);
     await expect(controller.markRead(req, 'bad-id')).rejects.toBeInstanceOf(BadRequestException);
     await expect(controller.assignPlatformAgent(req, 'bad-id', {})).rejects.toBeInstanceOf(BadRequestException);
+    await expect(controller.getMineConversation(req, 'bad-id')).rejects.toBeInstanceOf(BadRequestException);
     await expect(controller.removePlatformAgent(req, VALID_UUID, 'bad-id')).rejects.toBeInstanceOf(BadRequestException);
   });
 });

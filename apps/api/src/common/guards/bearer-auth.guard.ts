@@ -54,6 +54,7 @@ export class BearerAuthGuard implements CanActivate {
         permissions: resolvePermissions(roleNames),
         role: adminUser.role,
         nickname: adminUser.nickname,
+        displayName: null,
         verificationStatus: 'APPROVED',
         verificationType: null,
       };
@@ -145,10 +146,10 @@ export class BearerAuthGuard implements CanActivate {
       permissions,
       role: user.role,
       nickname: user.nickname,
-      verificationStatus: verification?.verificationStatus ?? 'PENDING',
+      displayName: verification?.displayName ?? null,
+      verificationStatus: verification?.verificationStatus ?? null,
       verificationType: verification?.verificationType ?? null,
     };
     return true;
   }
 }
-

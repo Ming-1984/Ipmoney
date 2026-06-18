@@ -1,7 +1,6 @@
 import type { components } from '@ipmoney/api-types';
 
 export type ListingTopic = components['schemas']['ListingTopic'];
-type TradeMode = components['schemas']['TradeMode'];
 
 export const LISTING_TOPIC_OPTIONS: ReadonlyArray<{ value: ListingTopic; label: string }> = [
   { value: 'HIGH_TECH_RETIRED', label: '退役专利' },
@@ -16,7 +15,7 @@ const LISTING_TOPIC_LABEL_MAP = new Map<ListingTopic, string>(LISTING_TOPIC_OPTI
 
 export function listingTopicLabel(value: ListingTopic | '' | null | undefined): string {
   if (!value) return '';
-  return LISTING_TOPIC_LABEL_MAP.get(value) || value;
+  return LISTING_TOPIC_LABEL_MAP.get(value) || '专题待确认';
 }
 
 export function sanitizeListingTopics(input: unknown): ListingTopic[] {
@@ -33,13 +32,4 @@ export function sanitizeListingTopics(input: unknown): ListingTopic[] {
       out.push(it as ListingTopic);
     });
   return out;
-}
-
-export function syncListingTopicsWithTradeMode(topics: readonly ListingTopic[], tradeMode: TradeMode | ''): ListingTopic[] {
-  const sanitized = sanitizeListingTopics(topics);
-  if (tradeMode === 'LICENSE') {
-    if (sanitized.includes('OPEN_LICENSE')) return sanitized;
-    return [...sanitized, 'OPEN_LICENSE'];
-  }
-  return sanitized.filter((it) => it !== 'OPEN_LICENSE');
 }

@@ -28,6 +28,31 @@ type Paged<T> = {
   page: { page: number; pageSize: number; total: number };
 };
 
+type StaffUser = {
+  id: string;
+  name?: string;
+  email?: string;
+};
+
+type StaffUserListResponse = {
+  items?: StaffUser[];
+};
+
+type ApplicantVerification = {
+  userId: string;
+  displayName?: string;
+  contactPhoneMasked?: string;
+};
+
+type ApplicantVerificationListResponse = {
+  items?: ApplicantVerification[];
+};
+
+type SelectOption = {
+  value: string;
+  label: string;
+};
+
 type ScheduleStatus = 'DUE' | 'PAID' | 'OVERDUE' | 'WAIVED';
 type TaskStatus = 'OPEN' | 'IN_PROGRESS' | 'DONE' | 'CANCELLED';
 type OrderStatus =
@@ -58,6 +83,7 @@ type Task = {
   id: string;
   scheduleId: string;
   assignedCsUserId?: string | null;
+  assignedCsDisplayName?: string | null;
   status: TaskStatus;
   note?: string | null;
   evidenceFileId?: string | null;
@@ -69,7 +95,9 @@ type MaintenanceOrder = {
   id: string;
   scheduleId: string;
   applicantUserId: string;
+  applicantDisplayName?: string | null;
   assignedCsUserId?: string | null;
+  assignedCsDisplayName?: string | null;
   status: OrderStatus;
   paymentChannel?: PaymentChannel | null;
   officialFeeFen: number;
@@ -99,6 +127,7 @@ type MaintenanceOrderEvent = {
   id: string;
   orderId: string;
   actorUserId?: string;
+  actorDisplayName?: string | null;
   actorNickname?: string;
   actorRole?: string;
   eventType: string;
@@ -179,13 +208,114 @@ function formatDateTime(value?: string | null): string {
   return formatTimeSmart(value);
 }
 
-function displayUserFacingText(value: unknown, fallback = '待补充'): string {
+function displayUserFacingText(value: unknown, fallback = '待确认'): string {
   return normalizeUserFacingText(value) || fallback;
+}
+
+function displayPersonText(name?: string | null, id?: string | null, fallback = '待确认'): string {
+  void id;
+  return normalizeUserFacingText(name) || fallback;
+}
+
+function staffDisplayName(user: StaffUser | null | undefined, fallback = '未命名员工'): string {
+  return normalizeUserFacingText(user?.name) || normalizeUserFacingText(user?.email) || fallback;
+}
+
+function mergeSelectOptions(current: SelectOption[], incoming: SelectOption[]): SelectOption[] {
+  const merged = new Map<string, SelectOption>();
+  current.forEach((option) => merged.set(option.value, option));
+  incoming.forEach((option) => merged.set(option.value, option));
+  return Array.from(merged.values());
+}
+
+function applicantOptionLabel(item: ApplicantVerification): string {
+  const displayName = normalizeUserFacingText(item.displayName);
+  const phoneMasked = normalizeUserFacingText(item.contactPhoneMasked);
+  if (displayName && phoneMasked) return `${displayName} · ${phoneMasked}`;
+  return displayName || phoneMasked || '申请人待确认';
+}
+
+function useStaffOptions() {
+  const [staffUsers, setStaffUsers] = useState<StaffUser[]>([]);
+
+  const loadStaffUsers = useCallback(async () => {
+    try {
+      const res = await apiGet<StaffUserListResponse>('/admin/rbac/users', { scope: 'STAFF' });
+      setStaffUsers(Array.isArray(res?.items) ? res.items : []);
+    } catch {
+      setStaffUsers([]);
+    }
+  }, []);
+
+  useEffect(() => {
+    void loadStaffUsers();
+  }, [loadStaffUsers]);
+
+  const staffOptions = useMemo(
+    () =>
+      staffUsers.map((user) => ({
+        value: user.id,
+        label: staffDisplayName(user),
+      })),
+    [staffUsers],
+  );
+
+  return { staffUsers, staffOptions };
+}
+
+function useApplicantOptions() {
+  const [applicantOptions, setApplicantOptions] = useState<SelectOption[]>([]);
+  const [loading, setLoading] = useState(false);
+  const requestSeqRef = useRef(0);
+
+  const loadApplicants = useCallback(async (keyword?: string) => {
+    const q = String(keyword || '').trim();
+    const requestSeq = ++requestSeqRef.current;
+    setLoading(true);
+    try {
+      const res = await apiGet<ApplicantVerificationListResponse>('/admin/user-verifications', {
+        page: 1,
+        pageSize: 20,
+        status: 'APPROVED',
+        ...(q ? { q } : {}),
+      });
+      if (requestSeqRef.current !== requestSeq) return;
+
+      const deduped = new Map<string, SelectOption>();
+      for (const item of Array.isArray(res?.items) ? res.items : []) {
+        const userId = normalizeUserFacingText(item?.userId);
+        if (!userId || deduped.has(userId)) continue;
+        deduped.set(userId, { value: userId, label: applicantOptionLabel(item) });
+      }
+
+      const nextOptions = Array.from(deduped.values());
+      setApplicantOptions((prev) => (q ? mergeSelectOptions(prev, nextOptions) : nextOptions));
+    } catch {
+      if (requestSeqRef.current !== requestSeq) return;
+      if (!q) setApplicantOptions([]);
+    } finally {
+      if (requestSeqRef.current !== requestSeq) return;
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    void loadApplicants();
+  }, [loadApplicants]);
+
+  return { applicantOptions, applicantLoading: loading, loadApplicants };
 }
 
 function statusLabel<T extends string>(value: T | undefined, options: Array<{ value: T; label: string }>): string {
   if (!value) return '待确认';
   return options.find((it) => it.value === value)?.label || '待确认';
+}
+
+function maintenanceScheduleTitle(schedule?: Pick<Schedule, 'patentId' | 'yearNo'> | null, fallback = '缴费计划待确认') {
+  const patentId = normalizeUserFacingText(schedule?.patentId);
+  const yearLabel = typeof schedule?.yearNo === 'number' ? `第 ${schedule.yearNo} 年` : '';
+  if (patentId && yearLabel) return `${patentId} · ${yearLabel}`;
+  return patentId || yearLabel || fallback;
 }
 
 function scheduleStatusTag(status: ScheduleStatus) {
@@ -261,6 +391,10 @@ function actionLabel(action: ActionType): string {
   if (action === 'RECONCILE') return '对账';
   if (action === 'CLOSE') return '关闭订单';
   return '取消订单';
+}
+
+function maintenanceOrderTitle(order?: Pick<MaintenanceOrder, 'patentTitle' | 'applicationNoDisplay'> | null, fallback = '年费托管订单') {
+  return normalizeUserFacingText(order?.patentTitle) || normalizeUserFacingText(order?.applicationNoDisplay) || fallback;
 }
 
 function orderStatusCn(status?: string): string {
@@ -426,7 +560,7 @@ function MaintenanceSchedules() {
         </Button>
         <Input
           style={{ width: 240 }}
-          placeholder="专利ID"
+          placeholder="专利记录编号"
           value={draftFilters.patentId}
           onChange={(e) => setDraftFilters((prev) => ({ ...prev, patentId: e.target.value.trim() }))}
         />
@@ -482,8 +616,23 @@ function MaintenanceSchedules() {
           onChange: (next) => setPage(next),
         }}
         columns={[
-          { title: '专利ID', dataIndex: 'patentId', width: 250, ellipsis: true },
-          { title: '年次', dataIndex: 'yearNo', width: 90 },
+          {
+            title: '缴费计划',
+            key: 'schedule',
+            width: 330,
+            render: (_, row) => (
+              <Space direction="vertical" size={2}>
+                <Typography.Text>{maintenanceScheduleTitle(row)}</Typography.Text>
+                <Typography.Text type="secondary">
+                  到期日：{displayUserFacingText(row.dueDate)}
+                  {normalizeUserFacingText(row.gracePeriodEnd) ? ` · 宽限期截止：${displayUserFacingText(row.gracePeriodEnd)}` : ''}
+                </Typography.Text>
+                <Typography.Text type="secondary" copyable={{ text: row.id }}>
+                  计划编号：{row.id}
+                </Typography.Text>
+              </Space>
+            ),
+          },
           { title: '到期日', dataIndex: 'dueDate', width: 130 },
           { title: '宽限期结束', dataIndex: 'gracePeriodEnd', width: 130, render: (v) => displayUserFacingText(v) },
           {
@@ -565,7 +714,7 @@ function MaintenanceSchedules() {
         }}
       >
         <Form form={form} layout="vertical">
-          <Form.Item label="专利ID" name="patentId" rules={[{ required: true, message: '请输入专利ID' }]}>
+          <Form.Item label="专利记录编号" name="patentId" rules={[{ required: true, message: '请输入专利记录编号' }]}>
             <Input disabled={Boolean(editing)} />
           </Form.Item>
           <Form.Item label="年次" name="yearNo" rules={[{ required: true, message: '请输入年次' }]}>
@@ -587,6 +736,7 @@ function MaintenanceSchedules() {
 }
 
 function MaintenanceTasks() {
+  const { staffOptions } = useStaffOptions();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<unknown | null>(null);
   const [data, setData] = useState<Paged<Task> | null>(null);
@@ -658,15 +808,19 @@ function MaintenanceTasks() {
         </Button>
         <Input
           style={{ width: 250 }}
-          placeholder="计划ID"
+          placeholder="关联计划编号"
           value={draftFilters.scheduleId}
           onChange={(e) => setDraftFilters((prev) => ({ ...prev, scheduleId: e.target.value.trim() }))}
         />
-        <Input
-          style={{ width: 230 }}
-          placeholder="分配客服用户ID"
-          value={draftFilters.assignedCsUserId}
-          onChange={(e) => setDraftFilters((prev) => ({ ...prev, assignedCsUserId: e.target.value.trim() }))}
+        <Select
+          allowClear
+          showSearch
+          optionFilterProp="label"
+          style={{ width: 240 }}
+          placeholder="选择客服人员"
+          value={draftFilters.assignedCsUserId || undefined}
+          options={staffOptions}
+          onChange={(value) => setDraftFilters((prev) => ({ ...prev, assignedCsUserId: String(value || '').trim() }))}
         />
         <Select
           allowClear
@@ -708,12 +862,37 @@ function MaintenanceTasks() {
           onChange: (next) => setPage(next),
         }}
         columns={[
-          { title: '任务ID', dataIndex: 'id', width: 230, ellipsis: true },
-          { title: '计划ID', dataIndex: 'scheduleId', width: 220, ellipsis: true },
-          { title: '分配客服', dataIndex: 'assignedCsUserId', width: 220, render: (v) => displayUserFacingText(v) },
+          {
+            title: '任务摘要',
+            key: 'task',
+            width: 330,
+            render: (_, row) => (
+              <Space direction="vertical" size={2}>
+                <Typography.Text>{`关联计划：${displayUserFacingText(row.scheduleId)}`}</Typography.Text>
+                <Typography.Text type="secondary">{displayUserFacingText(row.note, '暂无处理备注')}</Typography.Text>
+                <Typography.Text type="secondary" copyable={{ text: row.id }}>
+                  任务单号：{row.id}
+                </Typography.Text>
+              </Space>
+            ),
+          },
+          {
+            title: '分配客服',
+            width: 220,
+            render: (_, row) => displayPersonText(row.assignedCsDisplayName, row.assignedCsUserId),
+          },
           { title: '状态', dataIndex: 'status', width: 130, render: (v: TaskStatus) => taskStatusTag(v) },
-          { title: '备注', dataIndex: 'note', ellipsis: true, render: (v) => displayUserFacingText(v) },
-          { title: '证据文件', dataIndex: 'evidenceFileId', width: 230, ellipsis: true, render: (v) => displayUserFacingText(v) },
+          {
+            title: '证据材料',
+            dataIndex: 'evidenceFileId',
+            width: 220,
+            render: (v) => (
+              <Space direction="vertical" size={2}>
+                <Typography.Text>{normalizeUserFacingText(v) ? '已上传证据材料' : '未上传证据材料'}</Typography.Text>
+                {normalizeUserFacingText(v) ? <Typography.Text type="secondary">文件标识：{displayUserFacingText(v)}</Typography.Text> : null}
+              </Space>
+            ),
+          },
           { title: '更新时间', dataIndex: 'updatedAt', width: 180, render: (v: string) => formatDateTime(v) },
           {
             title: '操作',
@@ -796,11 +975,11 @@ function MaintenanceTasks() {
         }}
       >
         <Form form={form} layout="vertical">
-          <Form.Item label="计划ID" name="scheduleId" rules={[{ required: true, message: '请输入计划ID' }]}>
+          <Form.Item label="关联计划" name="scheduleId" rules={[{ required: true, message: '请输入关联计划编号' }]}>
             <Input disabled={Boolean(editing)} />
           </Form.Item>
-          <Form.Item label="分配客服用户ID" name="assignedCsUserId">
-            <Input />
+          <Form.Item label="分配客服" name="assignedCsUserId">
+            <Select allowClear showSearch optionFilterProp="label" options={staffOptions} placeholder="请选择客服人员" />
           </Form.Item>
           <Form.Item label="状态" name="status" rules={[{ required: true, message: '请选择状态' }]}>
             <Select options={TASK_STATUS_OPTIONS} />
@@ -808,9 +987,9 @@ function MaintenanceTasks() {
           <Form.Item label="备注" name="note">
             <Input.TextArea rows={2} />
           </Form.Item>
-          <Form.Item label="证据文件ID" name="evidenceFileId">
+          <Form.Item label="证据文件" name="evidenceFileId">
             <Space style={{ width: '100%' }} direction="vertical" size={8}>
-              <Input placeholder="输入已有文件ID，或在下方上传" />
+              <Input placeholder="可填写已有文件标识，或直接在下方上传" />
               <Space wrap>
                 <Upload
                   maxCount={1}
@@ -843,7 +1022,7 @@ function MaintenanceTasks() {
                   清空
                 </Button>
               </Space>
-              {evidenceFile?.id ? <Typography.Text type="secondary">已上传：{evidenceFile.id}</Typography.Text> : null}
+              {evidenceFile?.id ? <Typography.Text type="secondary">已上传证据文件</Typography.Text> : null}
             </Space>
           </Form.Item>
         </Form>
@@ -853,6 +1032,8 @@ function MaintenanceTasks() {
 }
 
 function MaintenanceOrders() {
+  const { staffOptions } = useStaffOptions();
+  const { applicantOptions, applicantLoading, loadApplicants } = useApplicantOptions();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<unknown | null>(null);
   const [data, setData] = useState<Paged<MaintenanceOrder> | null>(null);
@@ -1008,7 +1189,7 @@ function MaintenanceOrders() {
       if (actionSeqRef.current !== requestSeq || activeOrderIdRef.current !== targetOrderId || activeAction !== targetAction) return;
       const { ok, reason } = await confirmActionWithReason({
         title: `确认执行「${actionLabel(targetAction)}」？`,
-        content: `订单 ${targetOrderId} 将流转到下一状态。`,
+        content: `该托管订单将流转到下一状态。`,
         okText: '确认',
         reasonLabel: '操作备注（选填）',
       });
@@ -1099,21 +1280,33 @@ function MaintenanceOrders() {
         </Button>
         <Input
           style={{ width: 230 }}
-          placeholder="计划ID"
+          placeholder="关联计划编号"
           value={draftFilters.scheduleId}
           onChange={(e) => setDraftFilters((prev) => ({ ...prev, scheduleId: e.target.value.trim() }))}
         />
-        <Input
-          style={{ width: 220 }}
-          placeholder="申请人用户ID"
-          value={draftFilters.applicantUserId}
-          onChange={(e) => setDraftFilters((prev) => ({ ...prev, applicantUserId: e.target.value.trim() }))}
+        <Select
+          allowClear
+          showSearch
+          filterOption={false}
+          optionFilterProp="label"
+          style={{ width: 260 }}
+          placeholder="搜索申请人名称 / 手机号"
+          value={draftFilters.applicantUserId || undefined}
+          options={applicantOptions}
+          loading={applicantLoading}
+          onFocus={() => void loadApplicants('')}
+          onSearch={(value) => void loadApplicants(value)}
+          onChange={(value) => setDraftFilters((prev) => ({ ...prev, applicantUserId: String(value || '').trim() }))}
         />
-        <Input
-          style={{ width: 220 }}
-          placeholder="分配客服用户ID"
-          value={draftFilters.assignedCsUserId}
-          onChange={(e) => setDraftFilters((prev) => ({ ...prev, assignedCsUserId: e.target.value.trim() }))}
+        <Select
+          allowClear
+          showSearch
+          optionFilterProp="label"
+          style={{ width: 240 }}
+          placeholder="选择客服人员"
+          value={draftFilters.assignedCsUserId || undefined}
+          options={staffOptions}
+          onChange={(value) => setDraftFilters((prev) => ({ ...prev, assignedCsUserId: String(value || '').trim() }))}
         />
         <Select
           allowClear
@@ -1164,24 +1357,40 @@ function MaintenanceOrders() {
           onChange: (next) => setPage(next),
         }}
         columns={[
-          { title: '订单ID', dataIndex: 'id', width: 230, ellipsis: true },
           {
-            title: '专利',
-            width: 260,
+            title: '订单摘要',
+            width: 320,
             render: (_, row) => (
               <Space direction="vertical" size={2}>
-                <Typography.Text ellipsis style={{ maxWidth: 240 }}>
-                  {displayUserFacingText(row.patentTitle)}
+                <Typography.Text ellipsis style={{ maxWidth: 300 }}>
+                  {maintenanceOrderTitle(row)}
                 </Typography.Text>
-                <Typography.Text type="secondary">{displayUserFacingText(row.applicationNoDisplay)}</Typography.Text>
+                <Typography.Text type="secondary">
+                  {typeof row.scheduleYearNo === 'number' ? `第 ${row.scheduleYearNo} 年` : '年次待确认'}
+                  {' · '}
+                  到期日：{displayUserFacingText(row.scheduleDueDate)}
+                </Typography.Text>
+                <Typography.Text type="secondary" copyable={{ text: row.id }}>
+                  订单单号：{row.id}
+                </Typography.Text>
               </Space>
             ),
           },
-          { title: '计划ID', dataIndex: 'scheduleId', width: 220, ellipsis: true },
-          { title: '年次', dataIndex: 'scheduleYearNo', width: 70, render: (v) => (typeof v === 'number' ? v : '待补充') },
+          { title: '关联计划', dataIndex: 'scheduleId', width: 220, ellipsis: true },
+          { title: '年次', dataIndex: 'scheduleYearNo', width: 70, render: (v) => (typeof v === 'number' ? v : '待确认') },
           { title: '到期日', dataIndex: 'scheduleDueDate', width: 130, render: (v) => displayUserFacingText(v) },
-          { title: '申请人', dataIndex: 'applicantUserId', width: 220, ellipsis: true, render: (v) => displayUserFacingText(v) },
-          { title: '分配客服', dataIndex: 'assignedCsUserId', width: 220, ellipsis: true, render: (v) => displayUserFacingText(v) },
+          {
+            title: '申请人',
+            width: 220,
+            ellipsis: true,
+            render: (_, row) => displayPersonText(row.applicantDisplayName, row.applicantUserId),
+          },
+          {
+            title: '分配客服',
+            width: 220,
+            ellipsis: true,
+            render: (_, row) => displayPersonText(row.assignedCsDisplayName, row.assignedCsUserId),
+          },
           { title: '状态', dataIndex: 'status', width: 150, render: (v: OrderStatus) => orderStatusTag(v) },
           { title: '对账', dataIndex: 'reconcileStatus', width: 130, render: (v: ReconcileStatus) => reconcileStatusTag(v) },
           { title: '总金额', dataIndex: 'totalAmountFen', width: 120, render: (v: number) => formatMoneyFen(v) },
@@ -1251,21 +1460,31 @@ function MaintenanceOrders() {
         }}
       >
         <Form form={createForm} layout="vertical">
-          <Form.Item label="计划ID" name="scheduleId" rules={[{ required: true, message: '请输入计划ID' }]}>
+          <Form.Item label="关联计划" name="scheduleId" rules={[{ required: true, message: '请输入关联计划编号' }]}>
             <Input />
           </Form.Item>
-          <Form.Item label="申请人用户ID（选填）" name="applicantUserId">
-            <Input />
+          <Form.Item label="申请人（选填）" name="applicantUserId">
+            <Select
+              allowClear
+              showSearch
+              filterOption={false}
+              optionFilterProp="label"
+              options={applicantOptions}
+              loading={applicantLoading}
+              placeholder="默认自动使用专利权属主体"
+              onFocus={() => void loadApplicants('')}
+              onSearch={(value) => void loadApplicants(value)}
+            />
           </Form.Item>
-          <Form.Item label="分配客服用户ID（选填）" name="assignedCsUserId">
-            <Input />
+          <Form.Item label="分配客服（选填）" name="assignedCsUserId">
+            <Select allowClear showSearch optionFilterProp="label" options={staffOptions} placeholder="请选择客服人员" />
           </Form.Item>
         </Form>
       </Modal>
 
       <Modal
         open={actionOpen}
-        title={`${actionLabel(activeAction)}${activeOrder ? ` - ${activeOrder.id}` : ''}`}
+        title={`${actionLabel(activeAction)}${activeOrder ? ` - ${maintenanceOrderTitle(activeOrder)}` : ''}`}
         destroyOnClose
         onCancel={() => {
           setActionOpen(false);
@@ -1289,11 +1508,11 @@ function MaintenanceOrders() {
               <Form.Item label="服务费（分）" name="serviceFeeFen" rules={[{ required: true, message: '必填' }]}>
                 <InputNumber min={0} style={{ width: '100%' }} />
               </Form.Item>
-              <Form.Item label="支付截止时间（ISO8601）" name="paymentDeadline" rules={[{ required: true, message: '必填' }]}>
-                <Input placeholder="2026-03-31T23:59:59.000Z" />
+              <Form.Item label="支付截止时间" name="paymentDeadline" rules={[{ required: true, message: '必填' }]}>
+                <Input placeholder="例如 2026-03-31T23:59:59.000Z" />
               </Form.Item>
-              <Form.Item label="分配客服用户ID" name="assignedCsUserId">
-                <Input />
+              <Form.Item label="分配客服" name="assignedCsUserId">
+                <Select allowClear showSearch optionFilterProp="label" options={staffOptions} placeholder="请选择客服人员" />
               </Form.Item>
             </>
           ) : null}
@@ -1306,8 +1525,8 @@ function MaintenanceOrders() {
               <Form.Item label="支付流水号" name="paymentTxnNo" rules={[{ required: true, message: '必填' }]}>
                 <Input />
               </Form.Item>
-              <Form.Item label="支付时间（ISO8601，可选）" name="paidAt">
-                <Input placeholder="2026-03-31T23:59:59.000Z" />
+              <Form.Item label="支付时间（选填）" name="paidAt">
+                <Input placeholder="例如 2026-03-31T23:59:59.000Z" />
               </Form.Item>
             </>
           ) : null}
@@ -1317,8 +1536,8 @@ function MaintenanceOrders() {
               <Form.Item label="官方提交编号" name="officialSubmissionNo" rules={[{ required: true, message: '必填' }]}>
                 <Input />
               </Form.Item>
-              <Form.Item label="办理时间（ISO8601，可选）" name="executedAt">
-                <Input placeholder="2026-03-31T23:59:59.000Z" />
+              <Form.Item label="办理时间（选填）" name="executedAt">
+                <Input placeholder="例如 2026-03-31T23:59:59.000Z" />
               </Form.Item>
             </>
           ) : null}
@@ -1328,9 +1547,9 @@ function MaintenanceOrders() {
               <Form.Item label="官方回执编号" name="officialReceiptNo" rules={[{ required: true, message: '必填' }]}>
                 <Input />
               </Form.Item>
-              <Form.Item label="回执文件ID" name="officialReceiptFileId" rules={[{ required: true, message: '必填' }]}>
+              <Form.Item label="回执文件" name="officialReceiptFileId" rules={[{ required: true, message: '必填' }]}>
                 <Space style={{ width: '100%' }} direction="vertical" size={8}>
-                  <Input placeholder="输入已有文件ID，或在下方上传" />
+                  <Input placeholder="可填写已有文件标识，或直接在下方上传" />
                   <Space wrap>
                     <Upload
                       maxCount={1}
@@ -1376,11 +1595,11 @@ function MaintenanceOrders() {
                       清空
                     </Button>
                   </Space>
-                  {receiptFile?.id ? <Typography.Text type="secondary">已上传：{receiptFile.id}</Typography.Text> : null}
+                  {receiptFile?.id ? <Typography.Text type="secondary">已上传回执文件</Typography.Text> : null}
                 </Space>
               </Form.Item>
-              <Form.Item label="回执出具时间（ISO8601，可选）" name="receiptIssuedAt">
-                <Input placeholder="2026-03-31T23:59:59.000Z" />
+              <Form.Item label="回执出具时间（选填）" name="receiptIssuedAt">
+                <Input placeholder="例如 2026-03-31T23:59:59.000Z" />
               </Form.Item>
             </>
           ) : null}
@@ -1412,7 +1631,7 @@ function MaintenanceOrders() {
 
       <Modal
         open={eventsOpen}
-        title={`订单时间线${activeOrder ? ` - ${activeOrder.id}` : ''}`}
+        title={`订单时间线${activeOrder ? ` - ${maintenanceOrderTitle(activeOrder)}` : ''}`}
         footer={null}
         width={860}
         onCancel={() => {
@@ -1429,7 +1648,7 @@ function MaintenanceOrders() {
         ) : events.length ? (
           <Timeline
             items={events.map((evt) => {
-              const actorName = displayUserFacingText(evt.actorNickname || evt.actorUserId, '系统');
+              const actorName = displayPersonText(evt.actorDisplayName, evt.actorNickname, '系统');
               const actorRole = normalizeUserFacingText(evt.actorRole);
               const payloadLines = summarizeOrderEventPayload(evt);
               return {

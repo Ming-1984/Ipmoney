@@ -1,5 +1,10 @@
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+
 import react from '@vitejs/plugin-react';
-import { defineConfig } from 'vite';
+import { defineConfig, loadEnv } from 'vite';
+
+const workspaceRoot = path.resolve(fileURLToPath(new URL('../..', import.meta.url)));
 
 function isReleaseLike(value: string | undefined): boolean {
   const raw = String(value || '').trim().toLowerCase();
@@ -12,13 +17,14 @@ function isReleaseLike(value: string | undefined): boolean {
 }
 
 export default defineConfig(({ mode, command }) => {
-  const port = Number(process.env.ADMIN_WEB_PORT || 5174);
-  const deployEnvValues = [process.env.DEPLOY_ENV, process.env.APP_MODE, process.env.STAGE, process.env.ENV].filter(Boolean);
+  const env = { ...loadEnv(mode, workspaceRoot, ''), ...process.env };
+  const port = Number(env.ADMIN_WEB_PORT || 5174);
+  const deployEnvValues = [env.DEPLOY_ENV, env.APP_MODE, env.STAGE, env.ENV].filter(Boolean);
   const isProdDeploy = deployEnvValues.some((v) => isReleaseLike(v));
   const isProdBuild = command === 'build' && mode === 'production' && isProdDeploy;
-  const demoToken = String(process.env.VITE_DEMO_ADMIN_TOKEN || '').trim();
-  const mockTools = String(process.env.VITE_ENABLE_MOCK_TOOLS || '').trim().toLowerCase();
-  const apiBaseUrl = String(process.env.VITE_API_BASE_URL || '').trim();
+  const demoToken = String(env.VITE_DEMO_ADMIN_TOKEN || '').trim();
+  const mockTools = String(env.VITE_ENABLE_MOCK_TOOLS || '').trim().toLowerCase();
+  const apiBaseUrl = String(env.VITE_API_BASE_URL || '').trim();
 
   if (command === 'build' && !apiBaseUrl) {
     throw new Error('VITE_API_BASE_URL is required for build.');
@@ -37,6 +43,7 @@ export default defineConfig(({ mode, command }) => {
   }
 
   return {
+    envDir: workspaceRoot,
     plugins: [react()],
     build: {
       // The default vendor chunking is fine here; adjust warning threshold based on gzip size.

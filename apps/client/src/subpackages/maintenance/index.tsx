@@ -51,6 +51,7 @@ type PatentMaintenanceTask = {
   id: string;
   scheduleId: string;
   assignedCsUserId?: string | null;
+  assignedCsDisplayName?: string | null;
   status: PatentMaintenanceTaskStatus;
   note?: string | null;
   evidenceFileId?: string | null;
@@ -70,7 +71,9 @@ type PatentMaintenanceOrder = {
   id: string;
   scheduleId: string;
   applicantUserId: string;
+  applicantDisplayName?: string | null;
   assignedCsUserId?: string | null;
+  assignedCsDisplayName?: string | null;
   status: PatentMaintenanceOrderStatus;
   officialFeeFen: number;
   lateFeeFen: number;
@@ -99,6 +102,7 @@ type PatentMaintenanceOrder = {
 type PatentMaintenanceOrderEvent = {
   id: string;
   orderId: string;
+  actorDisplayName?: string | null;
   actorNickname?: string;
   actorUserId?: string;
   eventType: string;
@@ -223,8 +227,16 @@ function formatFen(value?: number): string {
   return `¥${((Number(value) || 0) / 100).toFixed(2)}`;
 }
 
-function displayText(value: unknown, fallback = '待补充'): string {
+function displayText(value: unknown, fallback = '待确认'): string {
   return normalizeDisplayText(value) || fallback;
+}
+
+function resolveMaintenanceTitle(title: unknown, applicationNoDisplay?: string | null): string {
+  return normalizeDisplayText(title) || normalizeDisplayText(applicationNoDisplay) || '专利信息待确认';
+}
+
+function timelineActorText(actorDisplayName?: string | null, actorNickname?: string, actorUserId?: string): string {
+  return normalizeDisplayText(actorDisplayName) || normalizeDisplayText(actorNickname) || '平台服务';
 }
 
 function shouldCreateOrderButtonShow(schedule: PatentMaintenanceSchedule): boolean {
@@ -573,7 +585,7 @@ export default function MaintenancePage() {
                       <Surface key={item.id} className="maintenance-card">
                         <View className="maintenance-card-head">
                           <Text className="maintenance-card-title clamp-2">
-                            {displayText(item.patentTitle, '') || displayText(item.patentId)}
+                            {resolveMaintenanceTitle(item.patentTitle, item.applicationNoDisplay)}
                           </Text>
                           <Text className="maintenance-status">{scheduleStatusLabel(item.status)}</Text>
                         </View>
@@ -639,7 +651,7 @@ export default function MaintenancePage() {
                       <Surface key={item.id} className="maintenance-card">
                         <View className="maintenance-card-head">
                           <Text className="maintenance-card-title clamp-2">
-                            {displayText(item.patentTitle, '') || displayText(item.patentId, '') || displayText(item.scheduleId)}
+                            {resolveMaintenanceTitle(item.patentTitle, item.applicationNoDisplay)}
                           </Text>
                           <Text className="maintenance-status">{taskStatusLabel(item.status)}</Text>
                         </View>
@@ -649,7 +661,9 @@ export default function MaintenancePage() {
                         </View>
                         <View className="maintenance-row">
                           <Text className="maintenance-label">关联年度</Text>
-                          <Text className="maintenance-value">{item.scheduleYearNo ? `第${item.scheduleYearNo}年` : '待补充'}</Text>
+                          <Text className="maintenance-value">
+                            {typeof item.scheduleYearNo === 'number' ? `第${item.scheduleYearNo}年` : '待确认'}
+                          </Text>
                         </View>
                         <View className="maintenance-row">
                           <Text className="maintenance-label">计划到期</Text>
@@ -678,7 +692,7 @@ export default function MaintenancePage() {
                 {routeOrderId ? (
                   <>
                     <TipBanner tone="info" title="会话上下文">
-                      当前展示会话关联订单：{routeOrderId.slice(0, 8)}…
+                      当前展示的是本次会话关联的托管订单
                       <Text
                         className="maintenance-link"
                         onClick={() => {
@@ -716,7 +730,7 @@ export default function MaintenancePage() {
                         <Surface key={item.id} className="maintenance-card">
                           <View className="maintenance-card-head">
                             <Text className="maintenance-card-title clamp-2">
-                              {displayText(item.patentTitle, '') || displayText(item.scheduleId)}
+                              {resolveMaintenanceTitle(item.patentTitle, item.applicationNoDisplay)}
                             </Text>
                             <Text className="maintenance-status">{orderStatusLabel(item.status)}</Text>
                           </View>
@@ -726,13 +740,13 @@ export default function MaintenancePage() {
                             <Text className="maintenance-value">{displayText(item.applicationNoDisplay)}</Text>
                           </View>
                           <View className="maintenance-row">
-                            <Text className="maintenance-label">订单号</Text>
-                            <Text className="maintenance-value">{item.id}</Text>
+                            <Text className="maintenance-label">订单进度</Text>
+                            <Text className="maintenance-value">已生成，可在订单沟通与处理记录中继续跟进</Text>
                           </View>
                           <View className="maintenance-row">
                             <Text className="maintenance-label">缴费年度</Text>
                             <Text className="maintenance-value">
-                              {typeof item.scheduleYearNo === 'number' ? `第${item.scheduleYearNo}年` : '待补充'}
+                              {typeof item.scheduleYearNo === 'number' ? `第${item.scheduleYearNo}年` : '待确认'}
                             </Text>
                           </View>
                           <View className="maintenance-row">
@@ -785,7 +799,7 @@ export default function MaintenancePage() {
                                     </Text>
                                     <Text className="maintenance-timeline-meta">
                                       {orderEventTypeLabel(event.eventType)} ·{' '}
-                                      {displayText(event.actorNickname, '') || displayText(event.actorUserId, '操作方待补充')} ·{' '}
+                                      {timelineActorText(event.actorDisplayName, event.actorNickname, event.actorUserId)} ·{' '}
                                       {formatTimeSmart(event.createdAt)}
                                     </Text>
                                     {normalizeDisplayText(event.note) ? (

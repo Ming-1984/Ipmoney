@@ -11,7 +11,7 @@ import iconBellWhite from '../../assets/icons/icon-bell-white.svg';
 import { apiGet, apiPost } from '../../lib/api';
 import { getToken } from '../../lib/auth';
 import { resolveConversationEntityDisplayName } from '../../lib/conversationDisplay';
-import { normalizeDisplayText } from '../../lib/displayText';
+import { displayInitial, displayUserName, normalizeDisplayText } from '../../lib/displayText';
 import { usePagedList } from '../../lib/usePagedList';
 import { usePageAccess } from '../../lib/guard';
 import { formatTimeSmart } from '../../lib/format';
@@ -38,6 +38,42 @@ function includesAny(text: string, keywords: string[]): boolean {
 
 function resolveConversationPreviewText(conversation: Pick<ConversationSummary, 'lastMessagePreview'>): string {
   return normalizeDisplayText(conversation.lastMessagePreview);
+}
+
+function resolveAvatarFallbackText(value: unknown, fallback: string): string {
+  return displayInitial(value, fallback, { uppercase: true });
+}
+
+function scoreConversationSearch(item: {
+  _displayName?: string;
+  contentTitle?: string | null;
+  listingTitle?: string | null;
+  lastMessagePreview?: string | null;
+}, keyword: string): number {
+  const normalizedKeyword = String(keyword || '').trim().toLowerCase();
+  if (!normalizedKeyword) return 0;
+
+  const displayName = normalizeDisplayText(item._displayName).toLowerCase();
+  const contentTitle = normalizeDisplayText(item.contentTitle).toLowerCase();
+  const listingTitle = normalizeDisplayText(item.listingTitle).toLowerCase();
+  const preview = normalizeDisplayText(item.lastMessagePreview).toLowerCase();
+
+  let score = 0;
+  if (displayName === normalizedKeyword) score += 1000;
+  else if (displayName.startsWith(normalizedKeyword)) score += 800;
+  else if (displayName.includes(normalizedKeyword)) score += 600;
+
+  if (contentTitle === normalizedKeyword) score += 320;
+  else if (contentTitle.startsWith(normalizedKeyword)) score += 240;
+  else if (contentTitle.includes(normalizedKeyword)) score += 160;
+
+  if (listingTitle === normalizedKeyword) score += 240;
+  else if (listingTitle.startsWith(normalizedKeyword)) score += 180;
+  else if (listingTitle.includes(normalizedKeyword)) score += 120;
+
+  if (preview.includes(normalizedKeyword)) score += 60;
+
+  return score;
 }
 
 export default function MessagesPage() {
@@ -162,7 +198,7 @@ export default function MessagesPage() {
     if (role === 'cs') return 'cs';
     if (role === 'admin') return 'trade';
 
-    const name = (c.counterpart?.nickname || '').trim();
+    const name = displayUserName(c.counterpart, '');
     if (name) {
       if (includesAny(name, CS_NAME_KEYWORDS)) return 'cs';
       if (includesAny(name, TRADE_NAME_KEYWORDS)) return 'trade';
@@ -179,7 +215,9 @@ export default function MessagesPage() {
     if (contentType === 'SUPPORT') return '平台客服助手';
     if (contentType === 'DISPUTE') return normalizeDisplayText(c.contentTitle) || '订单争议';
     if (category === 'cs') return '平台客服助手';
-    if (category === 'trade') return '交易通知';
+    if (category === 'trade') {
+      return normalizeDisplayText(c.contentTitle) || normalizeDisplayText(c.listingTitle) || '交易通知';
+    }
     return resolveConversationEntityDisplayName(c);
   }, []);
 
@@ -200,14 +238,16 @@ export default function MessagesPage() {
 
   const filteredItems = useMemo(() => {
     if (!trimmedSearch) return consultItems;
-    return consultItems.filter((c) => {
-      const counterpartName = c._displayName || '';
-      const contentTitle = normalizeDisplayText(c.contentTitle);
-      const listingTitle = normalizeDisplayText(c.listingTitle);
-      const preview = normalizeDisplayText(c.lastMessagePreview);
-      const merged = `${counterpartName} ${contentTitle} ${listingTitle} ${preview}`.toLowerCase();
-      return merged.includes(trimmedSearch);
-    });
+    return consultItems
+      .filter((c) => {
+        const counterpartName = c._displayName || '';
+        const contentTitle = normalizeDisplayText(c.contentTitle);
+        const listingTitle = normalizeDisplayText(c.listingTitle);
+        const preview = normalizeDisplayText(c.lastMessagePreview);
+        const merged = `${counterpartName} ${contentTitle} ${listingTitle} ${preview}`.toLowerCase();
+        return merged.includes(trimmedSearch);
+      })
+      .sort((a, b) => scoreConversationSearch(b, trimmedSearch) - scoreConversationSearch(a, trimmedSearch));
   }, [consultItems, trimmedSearch]);
   const showInitialLoading = convoList.loading && convoList.items.length === 0;
 
@@ -362,7 +402,7 @@ export default function MessagesPage() {
                       background="var(--c-soft)"
                       color="var(--c-primary)"
                     >
-                      {(c._displayName || 'U').slice(0, 1).toUpperCase()}
+                      {resolveAvatarFallbackText(c._displayName, 'U')}
                     </Avatar>
                     {c.unreadCount ? (
                       <View className="message-unread-badge">

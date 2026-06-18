@@ -129,7 +129,7 @@ export default function NotificationsPage() {
                 const display = normalizeNotificationDisplay(item);
                 const titleText = displayTitleOrFallback(display.title, '通知');
                 const summaryText = displayInfoOrPlaceholder(display.summary, '暂无详情');
-                const sourceText = displayInfoOrPlaceholder(display.source, '来源待补充');
+                const sourceText = displayInfoOrPlaceholder(display.source, '平台通知');
                 return (
                   <Surface
                     key={item.id}

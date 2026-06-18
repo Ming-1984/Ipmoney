@@ -36,7 +36,7 @@ describe('NotificationsService write-path suite', () => {
     expect(prisma.notification.create).not.toHaveBeenCalled();
   });
 
-  it('create persists with default kind/source/summary normalization', async () => {
+  it('create persists with default kind/source and nullable summary normalization', async () => {
     prisma.notification.create.mockResolvedValueOnce({ id: 'n-1' });
 
     await service.create({
@@ -50,7 +50,7 @@ describe('NotificationsService write-path suite', () => {
         userId: 'user-1',
         kind: 'system',
         title: 'New message',
-        summary: '',
+        summary: null,
         source: 'SYSTEM',
       },
     });
@@ -72,17 +72,38 @@ describe('NotificationsService write-path suite', () => {
           userId: 'user-1',
           kind: 'system',
           title: 'Broadcast',
-          summary: '',
+          summary: null,
           source: 'SYSTEM',
         },
         {
           userId: 'user-2',
           kind: 'system',
           title: 'Broadcast',
-          summary: '',
+          summary: null,
           source: 'SYSTEM',
         },
       ],
+    });
+  });
+
+  it('create trims non-empty summary text before persisting', async () => {
+    prisma.notification.create.mockResolvedValueOnce({ id: 'n-2' });
+
+    await service.create({
+      userId: 'user-1',
+      title: 'With Summary',
+      summary: '  hello world  ',
+      source: 'SYSTEM',
+    });
+
+    expect(prisma.notification.create).toHaveBeenCalledWith({
+      data: {
+        userId: 'user-1',
+        kind: 'system',
+        title: 'With Summary',
+        summary: 'hello world',
+        source: 'SYSTEM',
+      },
     });
   });
 

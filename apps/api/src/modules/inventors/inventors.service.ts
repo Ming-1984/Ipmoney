@@ -52,15 +52,19 @@ export class InventorsService {
     const hasRegionCode = this.hasOwn(query, 'regionCode');
     const regionCode = hasRegionCode ? this.parseRegionCodeFilterStrict(query?.regionCode, 'regionCode') : '';
     const hasPatentType = this.hasOwn(query, 'patentType');
+    const qExact = q || null;
+    const qPrefixLike = q ? `${q}%` : null;
     const qLike = q ? `%${q}%` : null;
     const region = regionCode || null;
     const type = hasPatentType ? this.parsePatentTypeStrict(query?.patentType, 'patentType') : null;
     const offset = (page - 1) * pageSize;
 
-    return this.queryRankings(qLike, region, type, offset, pageSize, page, pageSize);
+    return this.queryRankings(qExact, qPrefixLike, qLike, region, type, offset, pageSize, page, pageSize);
   }
 
   private async queryRankings(
+    qExact: string | null,
+    qPrefixLike: string | null,
     qLike: string | null,
     regionCode: string | null,
     patentType: PatentType | null,
@@ -114,7 +118,16 @@ export class InventorsService {
         AND (${regionCode}::text IS NULL OR l.region_code = ${regionCode})
         AND (${patentType}::text IS NULL OR pa.patent_type = ${patentType})
       GROUP BY p.name
-      ORDER BY "patentCount" DESC, "listingCount" DESC, "inventorName" ASC
+      ORDER BY
+        CASE
+          WHEN ${qExact}::text IS NULL THEN 0
+          WHEN p.name = ${qExact} THEN 0
+          WHEN ${qPrefixLike}::text IS NOT NULL AND p.name ILIKE ${qPrefixLike} THEN 1
+          ELSE 2
+        END ASC,
+        "patentCount" DESC,
+        "listingCount" DESC,
+        "inventorName" ASC
       OFFSET ${offset} LIMIT ${limit}
     `);
 

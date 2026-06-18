@@ -6,7 +6,7 @@ import './index.scss';
 import type { components } from '@ipmoney/api-types';
 
 import { apiGet } from '../../lib/api';
-import { displayInfoOrPlaceholder, displayTitleOrFallback, normalizeDisplayText } from '../../lib/displayText';
+import { displayInfoOrPlaceholder, displayTitleWithSecondary, normalizeDisplayText } from '../../lib/displayText';
 import { usePagedList } from '../../lib/usePagedList';
 import { goLogin, goOnboarding, usePageAccess } from '../../lib/guard';
 import { formatTimeSmart } from '../../lib/format';
@@ -21,7 +21,10 @@ import { PullToRefresh, toast } from '../../ui/nutui';
 import emptyOrders from '../../assets/illustrations/empty-orders.svg';
 
 type PagedOrder = components['schemas']['PagedOrder'];
-type Order = components['schemas']['Order'];
+type Order = components['schemas']['Order'] & {
+  listingTitle?: string | null;
+  applicationNoDisplay?: string | null;
+};
 type OrderListRole = components['schemas']['OrderListRole'];
 type OrderStatus = components['schemas']['OrderStatus'];
 
@@ -264,7 +267,12 @@ export default function OrdersPage() {
                 }}
               >
                 <View className="row-between" style={{ gap: '12rpx' }}>
-                  <Text className="text-card-title clamp-1">订单 {it.id.slice(0, 8)}…</Text>
+                  <Text className="text-card-title clamp-1">
+                    {displayTitleWithSecondary(it.listingTitle, '订单信息待确认', {
+                      secondary: it.applicationNoDisplay,
+                      secondaryPrefix: '专利申请号 ',
+                    })}
+                  </Text>
                   <Text className={orderStatusTagClass(it.status)}>{orderStatusLabel(it.status)}</Text>
                 </View>
                 <View style={{ height: '8rpx' }} />
@@ -272,10 +280,12 @@ export default function OrdersPage() {
                   订金：¥{fenToYuan(it.depositAmountFen, { empty: '待确认' })} · 尾款：¥{fenToYuan(it.finalAmountFen, { empty: '待确认' })}
                 </Text>
                 <View style={{ height: '6rpx' }} />
-                <Text className="muted">
-                  {displayTitleOrFallback(it.listingTitle, '交易标的待补充')}
-                  {normalizeDisplayText(it.applicationNoDisplay) ? ` · 申请号：${displayInfoOrPlaceholder(it.applicationNoDisplay, '待补充')}` : ''}
-                </Text>
+                {normalizeDisplayText(it.listingTitle) && normalizeDisplayText(it.applicationNoDisplay) ? (
+                  <>
+                    <Text className="muted">申请号：{displayInfoOrPlaceholder(it.applicationNoDisplay, '待确认')}</Text>
+                    <View style={{ height: '6rpx' }} />
+                  </>
+                ) : null}
                 <View style={{ height: '6rpx' }} />
                 <Text className="muted">创建时间：{formatTimeSmart(it.createdAt)}</Text>
               </Surface>

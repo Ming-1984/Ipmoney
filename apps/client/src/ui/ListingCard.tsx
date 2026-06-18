@@ -3,21 +3,16 @@ import React from 'react';
 
 import type { components } from '@ipmoney/api-types';
 
+import { displayTitleWithSecondary, displayUserName, normalizeDisplayText } from '../lib/displayText';
 import { sanitizeIndustryTagNames } from '../lib/industryTags';
 import { patentTypeLabel, tradeModeLabel } from '../lib/labels';
-import { sanitizeListingTopics, type ListingTopic } from '../lib/listingTopics';
+import { sanitizeListingTopics } from '../lib/listingTopics';
 import { fenToYuan } from '../lib/money';
 import { regionDisplayName } from '../lib/regions';
 import iconAward from '../assets/icons/icon-award-teal.svg';
 
 type ListingSummary = components['schemas']['ListingSummary'];
-type ListingSummaryExtra = ListingSummary & {
-  ipcCodes?: string[];
-  publisher?: components['schemas']['OrganizationSummary'];
-  seller?: components['schemas']['UserBrief'];
-  transferCount?: number;
-  listingTopics?: ListingTopic[];
-};
+type ListingSeller = NonNullable<ListingSummary['seller']>;
 
 export function ListingCard(props: {
   item: ListingSummary;
@@ -27,19 +22,22 @@ export function ListingCard(props: {
   favorited?: boolean;
 }) {
   const it = props.item;
-  const title = it.title || '未命名专利';
+  const title = displayTitleWithSecondary(it.title, '专利信息待确认', {
+    secondary: (it as { applicationNoDisplay?: string | null }).applicationNoDisplay,
+    secondaryPrefix: '专利申请号 ',
+  });
   const cover = it.coverUrl || '';
-  const extra = it as ListingSummaryExtra;
-  const supplier = extra.publisher?.displayName || extra.seller?.nickname || it.inventorNames?.[0] || '-';
+  const seller = (it.seller ?? null) as ListingSeller | null;
+  const supplier = displayUserName(seller, '平台认证供给方');
   const region = it.regionCode ? regionDisplayName(it.regionCode) : '';
   const priceLabel = it.priceType === 'NEGOTIABLE' ? '面议' : `￥${fenToYuan(it.priceAmountFen)}`;
-  const stats = it.stats as { viewCount?: number; favoriteCount?: number } | undefined;
+  const stats = it.stats as { viewCount?: number; favoriteCount?: number; transferCount?: number } | undefined;
   const viewCount = stats?.viewCount;
   const favoriteCount = stats?.favoriteCount;
   const hasStats = viewCount !== undefined || favoriteCount !== undefined;
-  const transferCount = (extra.transferCount ?? (extra.stats as { transferCount?: number } | undefined)?.transferCount) || 0;
-  const transferBadgeText = transferCount === 0 ? '沉睡专利' : `转让 ${transferCount} 次`;
-  const transferBadgeClass = `listing-thumb-badge ${transferCount === 0 ? 'listing-thumb-badge--sleep' : ''}`.trim();
+  const transferCount = typeof it.transferCount === 'number' ? it.transferCount : null;
+  const transferBadgeText = transferCount !== null ? `转让 ${transferCount} 次` : '';
+  const transferBadgeClass = 'listing-thumb-badge';
   const tags: { label: string; tone: 'green' | 'slate' }[] = [];
   const specialTags: { label: string; tone: 'green' | 'slate' }[] = [];
   const addSpecialTag = (label: string) => {
@@ -47,9 +45,9 @@ export function ListingCard(props: {
     if (specialTags.some((it) => it.label === label)) return;
     specialTags.push({ label, tone: 'green' });
   };
-  const listingTopics = sanitizeListingTopics(Array.isArray(extra.listingTopics) ? extra.listingTopics : []);
-  if (transferCount === 0 || listingTopics.includes('SLEEPING')) addSpecialTag('沉睡专利');
-  if (it.tradeMode === 'LICENSE' || listingTopics.includes('OPEN_LICENSE')) addSpecialTag('开放许可');
+  const listingTopics = sanitizeListingTopics(Array.isArray(it.listingTopics) ? it.listingTopics : []);
+  if (listingTopics.includes('SLEEPING')) addSpecialTag('沉睡专利');
+  if (listingTopics.includes('OPEN_LICENSE')) addSpecialTag('开放许可');
   listingTopics
     .map((topic) => {
       if (topic === 'HIGH_TECH_RETIRED') return '退役专利';
@@ -74,9 +72,11 @@ export function ListingCard(props: {
         ) : (
           <Image className="list-card-thumb-img" src={iconAward} svg mode="aspectFit" />
         )}
-        <View className={transferBadgeClass}>
-          <Text>{transferBadgeText}</Text>
-        </View>
+        {transferBadgeText ? (
+          <View className={transferBadgeClass}>
+            <Text>{transferBadgeText}</Text>
+          </View>
+        ) : null}
       </View>
       <View className="list-card-body listing-body--compact">
         <View className="list-card-head">
@@ -91,7 +91,7 @@ export function ListingCard(props: {
             <Text className="list-card-title clamp-2">{title}</Text>
           </View>
         </View>
-        <Text className="list-card-subinfo clamp-1">供给方：{supplier || '-'}</Text>
+        <Text className="list-card-subinfo clamp-1">供给方：{supplier}</Text>
         <View className="list-card-footer listing-footer-stacked">
           <View className="list-card-price-block">
             <Text className="list-card-price">

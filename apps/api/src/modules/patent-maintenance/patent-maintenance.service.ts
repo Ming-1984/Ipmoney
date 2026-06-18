@@ -12,6 +12,7 @@ import {
 import { AuditLogService } from '../../common/audit-log.service';
 import { requirePermission } from '../../common/permissions';
 import { PrismaService } from '../../common/prisma/prisma.service';
+import { normalizeDisplayText } from '../content-utils';
 
 const SCHEDULE_STATUS_SET = new Set<PatentMaintenanceStatus>(['DUE', 'PAID', 'OVERDUE', 'WAIVED']);
 const TASK_STATUS_SET = new Set<PatentMaintenanceTaskStatus>(['OPEN', 'IN_PROGRESS', 'DONE', 'CANCELLED']);
@@ -29,6 +30,7 @@ const ORDER_STATUS_SET = new Set<PatentMaintenanceOrderStatus>([
 const PAYMENT_CHANNEL_SET = new Set<PatentMaintenancePaymentChannel>(['WECHAT', 'OFFLINE_BANK', 'OFFLINE_OTHER']);
 const RECONCILE_STATUS_SET = new Set<PatentMaintenanceReconcileStatus>(['PENDING', 'MATCHED', 'MISMATCHED']);
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const STAFF_ROLE_NAMES = new Set(['admin', 'operator', 'finance', 'cs']);
 const OPEN_ORDER_STATUSES: PatentMaintenanceOrderStatus[] = [
   'REQUESTED',
   'QUOTED',
@@ -39,6 +41,12 @@ const OPEN_ORDER_STATUSES: PatentMaintenanceOrderStatus[] = [
   'RECONCILED',
 ];
 type MaintenanceUrgency = 'OVERDUE' | 'DUE_SOON' | 'UPCOMING' | 'NORMAL' | 'SETTLED';
+type MyMaintenanceSummaryDto = {
+  overdue: number;
+  dueSoon: number;
+  openTasks: number;
+  openOrders: number;
+};
 
 @Injectable()
 export class PatentMaintenanceService {
@@ -210,10 +218,15 @@ export class PatentMaintenanceService {
   }
 
   private toTaskDto(item: any) {
+    const assignedCsDisplayName =
+      normalizeDisplayText(item?.assignedCsUser?.verifications?.[0]?.displayName) ??
+      normalizeDisplayText(item?.assignedCsUser?.nickname) ??
+      null;
     return {
       id: item.id,
       scheduleId: item.scheduleId,
       assignedCsUserId: item.assignedCsUserId ?? undefined,
+      assignedCsDisplayName,
       status: item.status,
       note: item.note ?? undefined,
       evidenceFileId: item.evidenceFileId ?? undefined,
@@ -253,11 +266,21 @@ export class PatentMaintenanceService {
   private toOrderDto(item: any) {
     const schedule = item?.schedule;
     const patent = schedule?.patent;
+    const applicantDisplayName =
+      normalizeDisplayText(item?.applicantUser?.verifications?.[0]?.displayName) ??
+      normalizeDisplayText(item?.applicantUser?.nickname) ??
+      null;
+    const assignedCsDisplayName =
+      normalizeDisplayText(item?.assignedCsUser?.verifications?.[0]?.displayName) ??
+      normalizeDisplayText(item?.assignedCsUser?.nickname) ??
+      null;
     return {
       id: item.id,
       scheduleId: item.scheduleId,
       applicantUserId: item.applicantUserId,
+      applicantDisplayName,
       assignedCsUserId: item.assignedCsUserId ?? undefined,
+      assignedCsDisplayName,
       status: item.status,
       paymentChannel: item.paymentChannel ?? undefined,
       officialFeeFen: item.officialFeeFen,
@@ -287,10 +310,15 @@ export class PatentMaintenanceService {
   }
 
   private toOrderEventDto(item: any) {
+    const actorDisplayName =
+      normalizeDisplayText(item?.actorUser?.verifications?.[0]?.displayName) ??
+      normalizeDisplayText(item?.actorUser?.nickname) ??
+      null;
     return {
       id: item.id,
       orderId: item.orderId,
       actorUserId: item.actorUserId ?? undefined,
+      actorDisplayName,
       actorNickname: item?.actorUser?.nickname ?? undefined,
       actorRole: item?.actorUser?.role ?? undefined,
       eventType: item.eventType,
@@ -305,6 +333,26 @@ export class PatentMaintenanceService {
   private async assertUserExists(userId: string, fieldName: string) {
     const user = await this.prisma.user.findUnique({ where: { id: userId }, select: { id: true } });
     if (!user) throw new BadRequestException({ code: 'BAD_REQUEST', message: `${fieldName} is invalid` });
+  }
+
+  private async assertStaffUserAssignable(userId: string, fieldName: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        id: true,
+        role: true,
+        rbacRoles: {
+          select: { roleId: true },
+        },
+      },
+    });
+    if (!user) throw new BadRequestException({ code: 'BAD_REQUEST', message: `${fieldName} is invalid` });
+    const isStaff =
+      STAFF_ROLE_NAMES.has(String(user.role || '').trim().toLowerCase()) ||
+      (Array.isArray(user.rbacRoles) && user.rbacRoles.length > 0);
+    if (!isStaff) {
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: `${fieldName} is invalid` });
+    }
   }
 
   private calcTotalAmount(officialFeeFen: number, lateFeeFen: number, serviceFeeFen: number): number {
@@ -346,6 +394,26 @@ export class PatentMaintenanceService {
     return await this.prisma.patentMaintenanceOrder.findUnique({
       where: { id: orderId },
       include: {
+        applicantUser: {
+          select: {
+            nickname: true,
+            verifications: {
+              orderBy: { submittedAt: 'desc' },
+              take: 1,
+              select: { displayName: true },
+            },
+          },
+        },
+        assignedCsUser: {
+          select: {
+            nickname: true,
+            verifications: {
+              orderBy: { submittedAt: 'desc' },
+              take: 1,
+              select: { displayName: true },
+            },
+          },
+        },
         schedule: {
           include: {
             patent: {
@@ -457,6 +525,45 @@ export class PatentMaintenanceService {
       items: items.map((item: any) => this.toMyScheduleDto(item)),
       page: { page, pageSize, total },
     };
+  }
+
+  async getMySummary(req: any): Promise<MyMaintenanceSummaryDto> {
+    this.ensureAuth(req);
+    const ownerUserId = this.parseUuidParam(req?.auth?.userId, 'userId');
+    const today = this.dateOnly(new Date());
+    const dueSoonEnd = new Date(today);
+    dueSoonEnd.setDate(dueSoonEnd.getDate() + 7);
+
+    const [overdue, dueSoon, openTasks, openOrders] = await Promise.all([
+      this.prisma.patentMaintenanceSchedule.count({
+        where: {
+          patent: { ownerUserId },
+          status: { in: ['DUE', 'OVERDUE'] },
+          dueDate: { lt: today },
+        },
+      }),
+      this.prisma.patentMaintenanceSchedule.count({
+        where: {
+          patent: { ownerUserId },
+          status: { in: ['DUE', 'OVERDUE'] },
+          dueDate: { gte: today, lte: dueSoonEnd },
+        },
+      }),
+      this.prisma.patentMaintenanceTask.count({
+        where: {
+          schedule: { patent: { ownerUserId } },
+          status: { in: ['OPEN', 'IN_PROGRESS'] },
+        },
+      }),
+      this.prisma.patentMaintenanceOrder.count({
+        where: {
+          applicantUserId: ownerUserId,
+          status: { in: OPEN_ORDER_STATUSES },
+        },
+      }),
+    ]);
+
+    return { overdue, dueSoon, openTasks, openOrders };
   }
 
   async createSchedule(req: any, body: any) {
@@ -580,6 +687,18 @@ export class PatentMaintenanceService {
     const [items, total] = await Promise.all([
       this.prisma.patentMaintenanceTask.findMany({
         where,
+        include: {
+          assignedCsUser: {
+            select: {
+              nickname: true,
+              verifications: {
+                orderBy: { submittedAt: 'desc' },
+                take: 1,
+                select: { displayName: true },
+              },
+            },
+          },
+        },
         orderBy: { createdAt: 'desc' },
         skip: (page - 1) * pageSize,
         take: pageSize,
@@ -616,6 +735,16 @@ export class PatentMaintenanceService {
       this.prisma.patentMaintenanceTask.findMany({
         where,
         include: {
+          assignedCsUser: {
+            select: {
+              nickname: true,
+              verifications: {
+                orderBy: { submittedAt: 'desc' },
+                take: 1,
+                select: { displayName: true },
+              },
+            },
+          },
           schedule: {
             select: {
               patentId: true,
@@ -659,7 +788,7 @@ export class PatentMaintenanceService {
     let assignedCsUserId: string | null | undefined = undefined;
     if (this.hasOwn(body, 'assignedCsUserId')) {
       assignedCsUserId = this.parseNullableUuid(body?.assignedCsUserId, 'assignedCsUserId');
-      if (assignedCsUserId) await this.assertUserExists(assignedCsUserId, 'assignedCsUserId');
+      if (assignedCsUserId) await this.assertStaffUserAssignable(assignedCsUserId, 'assignedCsUserId');
     }
 
     let note: string | null | undefined = undefined;
@@ -682,6 +811,18 @@ export class PatentMaintenanceService {
         status,
         note: note === undefined ? null : note,
       },
+      include: {
+        assignedCsUser: {
+          select: {
+            nickname: true,
+            verifications: {
+              orderBy: { submittedAt: 'desc' },
+              take: 1,
+              select: { displayName: true },
+            },
+          },
+        },
+      },
     });
 
     void this.audit.log({
@@ -700,14 +841,28 @@ export class PatentMaintenanceService {
     requirePermission(req, 'maintenance.manage');
     const normalizedTaskId = this.parseUuidParam(taskId, 'taskId');
 
-    const existing = await this.prisma.patentMaintenanceTask.findUnique({ where: { id: normalizedTaskId } });
+    const existing = await this.prisma.patentMaintenanceTask.findUnique({
+      where: { id: normalizedTaskId },
+      include: {
+        assignedCsUser: {
+          select: {
+            nickname: true,
+            verifications: {
+              orderBy: { submittedAt: 'desc' },
+              take: 1,
+              select: { displayName: true },
+            },
+          },
+        },
+      },
+    });
     if (!existing) throw new NotFoundException({ code: 'NOT_FOUND', message: 'Task not found' });
 
     const next: Prisma.PatentMaintenanceTaskUncheckedUpdateInput = {};
 
     if (this.hasOwn(body, 'assignedCsUserId')) {
       const assignedCsUserId = this.parseNullableUuid(body.assignedCsUserId, 'assignedCsUserId');
-      if (assignedCsUserId !== null) await this.assertUserExists(assignedCsUserId, 'assignedCsUserId');
+      if (assignedCsUserId !== null) await this.assertStaffUserAssignable(assignedCsUserId, 'assignedCsUserId');
       next.assignedCsUserId = assignedCsUserId;
     }
 
@@ -736,6 +891,18 @@ export class PatentMaintenanceService {
     const updated = await this.prisma.patentMaintenanceTask.update({
       where: { id: normalizedTaskId },
       data: next,
+      include: {
+        assignedCsUser: {
+          select: {
+            nickname: true,
+            verifications: {
+              orderBy: { submittedAt: 'desc' },
+              take: 1,
+              select: { displayName: true },
+            },
+          },
+        },
+      },
     });
 
     void this.audit.log({
@@ -780,6 +947,26 @@ export class PatentMaintenanceService {
       this.prisma.patentMaintenanceOrder.findMany({
         where,
         include: {
+          applicantUser: {
+            select: {
+              nickname: true,
+              verifications: {
+                orderBy: { submittedAt: 'desc' },
+                take: 1,
+                select: { displayName: true },
+              },
+            },
+          },
+          assignedCsUser: {
+            select: {
+              nickname: true,
+              verifications: {
+                orderBy: { submittedAt: 'desc' },
+                take: 1,
+                select: { displayName: true },
+              },
+            },
+          },
           schedule: {
             include: {
               patent: {
@@ -824,6 +1011,26 @@ export class PatentMaintenanceService {
       this.prisma.patentMaintenanceOrder.findMany({
         where,
         include: {
+          applicantUser: {
+            select: {
+              nickname: true,
+              verifications: {
+                orderBy: { submittedAt: 'desc' },
+                take: 1,
+                select: { displayName: true },
+              },
+            },
+          },
+          assignedCsUser: {
+            select: {
+              nickname: true,
+              verifications: {
+                orderBy: { submittedAt: 'desc' },
+                take: 1,
+                select: { displayName: true },
+              },
+            },
+          },
           schedule: {
             include: {
               patent: {
@@ -885,6 +1092,11 @@ export class PatentMaintenanceService {
             id: true,
             nickname: true,
             role: true,
+            verifications: {
+              orderBy: { submittedAt: 'desc' },
+              take: 1,
+              select: { displayName: true },
+            },
           },
         },
       },
@@ -908,6 +1120,11 @@ export class PatentMaintenanceService {
             id: true,
             nickname: true,
             role: true,
+            verifications: {
+              orderBy: { submittedAt: 'desc' },
+              take: 1,
+              select: { displayName: true },
+            },
           },
         },
       },
@@ -944,7 +1161,7 @@ export class PatentMaintenanceService {
     let assignedCsUserId: string | null = null;
     if (this.hasOwn(body, 'assignedCsUserId')) {
       assignedCsUserId = this.parseNullableUuid(body?.assignedCsUserId, 'assignedCsUserId');
-      if (assignedCsUserId) await this.assertUserExists(assignedCsUserId, 'assignedCsUserId');
+      if (assignedCsUserId) await this.assertStaffUserAssignable(assignedCsUserId, 'assignedCsUserId');
     }
 
     const existingOpen = await this.prisma.patentMaintenanceOrder.findFirst({
@@ -967,6 +1184,26 @@ export class PatentMaintenanceService {
         status: 'REQUESTED',
       },
       include: {
+        applicantUser: {
+          select: {
+            nickname: true,
+            verifications: {
+              orderBy: { submittedAt: 'desc' },
+              take: 1,
+              select: { displayName: true },
+            },
+          },
+        },
+        assignedCsUser: {
+          select: {
+            nickname: true,
+            verifications: {
+              orderBy: { submittedAt: 'desc' },
+              take: 1,
+              select: { displayName: true },
+            },
+          },
+        },
         schedule: {
           include: {
             patent: {
@@ -1081,7 +1318,7 @@ export class PatentMaintenanceService {
     let assignedCsUserId: string | null | undefined = undefined;
     if (this.hasOwn(body, 'assignedCsUserId')) {
       assignedCsUserId = this.parseNullableUuid(body?.assignedCsUserId, 'assignedCsUserId');
-      if (assignedCsUserId) await this.assertUserExists(assignedCsUserId, 'assignedCsUserId');
+      if (assignedCsUserId) await this.assertStaffUserAssignable(assignedCsUserId, 'assignedCsUserId');
     }
 
     const totalAmountFen = this.calcTotalAmount(officialFeeFen, lateFeeFen, serviceFeeFen);

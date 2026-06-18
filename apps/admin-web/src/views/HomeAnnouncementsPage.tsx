@@ -65,9 +65,9 @@ type AnnouncementFormValues = {
 };
 
 function statusTag(status: HomeAnnouncementStatus) {
-  if (status === 'PUBLISHED') return <Tag color="green">PUBLISHED</Tag>;
-  if (status === 'OFFLINE') return <Tag>OFFLINE</Tag>;
-  return <Tag color="blue">DRAFT</Tag>;
+  if (status === 'PUBLISHED') return <Tag color="green">已发布</Tag>;
+  if (status === 'OFFLINE') return <Tag>已下线</Tag>;
+  return <Tag color="blue">草稿</Tag>;
 }
 
 function isValidDateTimeOrEmpty(value: unknown) {
@@ -179,11 +179,11 @@ export function HomeAnnouncementsPage() {
             首页公告管理
           </Typography.Title>
           <Typography.Paragraph type="secondary" style={{ marginBottom: 0 }}>
-            支持模板复用、草稿编辑、发布/下线。首页仅展示状态为 PUBLISHED 且生效时间窗口内的公告。
+            支持模板复用、草稿编辑、发布和下线。首页仅展示“已发布”且处于生效时间内的公告。
           </Typography.Paragraph>
           <Space>
             <Button onClick={() => void load()} loading={loading}>刷新配置</Button>
-            <Typography.Text type="secondary">schemaVersion: {config?.schemaVersion ?? '-'}</Typography.Text>
+            <Typography.Text type="secondary">配置版本：{config?.schemaVersion ?? '-'}</Typography.Text>
           </Space>
         </Space>
       </Card>
@@ -290,7 +290,7 @@ export function HomeAnnouncementsPage() {
             { title: '名称', dataIndex: 'name', width: 180 },
             { title: '标题', dataIndex: 'title', width: 260, render: (value) => normalizeUserFacingText(value) || '未命名模板' },
             { title: '标签', dataIndex: 'tag', width: 120, render: (v) => displayAdminInfo(v) },
-            { title: '启用', dataIndex: 'enabled', width: 100, render: (v: boolean) => (v ? <Tag color="green">ON</Tag> : <Tag>OFF</Tag>) },
+            { title: '启用', dataIndex: 'enabled', width: 100, render: (v: boolean) => (v ? <Tag color="green">启用</Tag> : <Tag>停用</Tag>) },
             { title: '更新时间', dataIndex: 'updatedAt', width: 160, render: (v: string) => formatTimeSmart(v) },
             {
               title: '操作',
@@ -457,7 +457,7 @@ export function HomeAnnouncementsPage() {
           </Space>
           <Space wrap size={16} align="start">
             <Form.Item
-              label="生效开始(ISO8601)"
+              label="生效开始时间"
               name="startAt"
               style={{ width: 280 }}
               rules={[
@@ -473,7 +473,7 @@ export function HomeAnnouncementsPage() {
               <Input placeholder="例如 2026-03-24T00:00:00Z" />
             </Form.Item>
             <Form.Item
-              label="生效结束(ISO8601)"
+              label="生效结束时间"
               name="endAt"
               style={{ width: 280 }}
               dependencies={['startAt']}
@@ -514,7 +514,7 @@ export function HomeAnnouncementsPage() {
           pagination={{ pageSize: 10 }}
           columns={[
             { title: '状态', dataIndex: 'status', width: 120, render: (v: HomeAnnouncementStatus) => statusTag(v) },
-            { title: '标题', dataIndex: 'title', width: 260, render: (value) => normalizeUserFacingText(value) || '未命名公告' },
+            { title: '标题', dataIndex: 'title', width: 260, render: (value) => normalizeUserFacingText(value) || '公告标题待确认' },
             { title: '标签', dataIndex: 'tag', width: 100, render: (v) => displayAdminInfo(v) },
             { title: '置顶', dataIndex: 'pinned', width: 80, render: (v: boolean) => (v ? '是' : '否') },
             { title: '排序', dataIndex: 'order', width: 80 },

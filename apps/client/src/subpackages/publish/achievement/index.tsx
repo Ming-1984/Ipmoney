@@ -1,6 +1,6 @@
 import { View, Text, Image } from '@tarojs/components';
-import Taro from '@tarojs/taro';
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import Taro, { useDidHide, useDidShow } from '@tarojs/taro';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import './index.scss';
 
 import type { components } from '@ipmoney/api-types';
@@ -10,6 +10,7 @@ import { apiGet, apiPatch, apiPost } from '../../../lib/api';
 import { getToken } from '../../../lib/auth';
 import { ensureApproved, usePageAccess } from '../../../lib/guard';
 import { sanitizeIndustryTagNames } from '../../../lib/industryTags';
+import { auditStatusLabel, contentStatusLabel } from '../../../lib/labels';
 import { openRegionPickerPage } from '../../../lib/regionPicker';
 import { ensureRegionNamesReady, regionDisplayName, regionNameByCode } from '../../../lib/regions';
 import { useRouteUuidParam } from '../../../lib/routeParams';
@@ -74,6 +75,11 @@ function toMediaInput(files: UploadedFile[]): ContentMedia[] {
 export default function PublishAchievementPage() {
   const access = usePageAccess('approved-required');
   const initialAchievementId = useRouteUuidParam('achievementId');
+  const achievementRouteIdRef = useRef(initialAchievementId);
+  const pageVisibleRef = useRef(true);
+  const uploadSeqRef = useRef(0);
+  const saveSeqRef = useRef(0);
+  const submitSeqRef = useRef(0);
 
   const [achievementId, setAchievementId] = useState<string | null>(null);
   const [auditStatus, setAuditStatus] = useState<AuditStatus | null>(null);
@@ -100,6 +106,20 @@ export default function PublishAchievementPage() {
   const keywords = useMemo(() => splitList(keywordsInput), [keywordsInput]);
   const sanitizedIndustryTags = useMemo(() => sanitizeIndustryTagNames(industryTags), [industryTags]);
 
+  useDidShow(() => {
+    pageVisibleRef.current = true;
+  });
+
+  useDidHide(() => {
+    pageVisibleRef.current = false;
+    uploadSeqRef.current += 1;
+    saveSeqRef.current += 1;
+    submitSeqRef.current += 1;
+    setUploading(false);
+    setSaving(false);
+    setSubmitting(false);
+  });
+
   const resetForm = useCallback(() => {
     setAchievementId(null);
     setAuditStatus(null);
@@ -119,14 +139,20 @@ export default function PublishAchievementPage() {
   }, []);
 
   useEffect(() => {
+    achievementRouteIdRef.current = initialAchievementId;
+    saveSeqRef.current += 1;
+    submitSeqRef.current += 1;
     if (!initialAchievementId) {
       resetForm();
       return;
     }
+    resetForm();
     (async () => {
       if (!ensureApproved()) return;
+      const targetAchievementId = initialAchievementId;
       try {
-        const d = await apiGet<AchievementDraft>(`/achievements/${initialAchievementId}`);
+        const d = await apiGet<AchievementDraft>(`/achievements/${targetAchievementId}`);
+        if (achievementRouteIdRef.current !== targetAchievementId) return;
         setAchievementId(d.id);
         setAuditStatus(d.auditStatus || null);
         setContentStatus(d.status || null);
@@ -144,8 +170,10 @@ export default function PublishAchievementPage() {
           setRegionCode(d.regionCode);
           try {
             await ensureRegionNamesReady();
+            if (achievementRouteIdRef.current !== targetAchievementId) return;
             setRegionName(regionNameByCode(d.regionCode) || undefined);
           } catch {
+            if (achievementRouteIdRef.current !== targetAchievementId) return;
             setRegionName(undefined);
           }
         } else {
@@ -165,16 +193,30 @@ export default function PublishAchievementPage() {
           type: m.type,
           sort: typeof m.sort === 'number' ? m.sort : index,
         }));
+        if (achievementRouteIdRef.current !== targetAchievementId) return;
         setMediaFiles(media);
       } catch (e: any) {
+        if (achievementRouteIdRef.current !== targetAchievementId) return;
         toast(e?.message || '加载失败');
       }
     })();
   }, [initialAchievementId, resetForm]);
 
+  useEffect(() => {
+    if (access.state === 'ok') return;
+    uploadSeqRef.current += 1;
+    saveSeqRef.current += 1;
+    submitSeqRef.current += 1;
+    setUploading(false);
+    setSaving(false);
+    setSubmitting(false);
+  }, [access.state]);
+
   const uploadCover = useCallback(async () => {
     if (uploading) return;
-    if (!ensureApproved()) return;
+    if (!ensureApproved()) return null;
+    const targetAchievementId = achievementRouteIdRef.current || '';
+    const seq = ++uploadSeqRef.current;
     setUploading(true);
     try {
       const chosen = await Taro.chooseImage({ count: 1, sizeType: ['compressed'], sourceType: ['album', 'camera'] });
@@ -193,13 +235,17 @@ export default function PublishAchievementPage() {
       });
       const json = JSON.parse(String(uploadRes.data || '{}')) as UploadedFile;
       if (!json.id) throw new Error('上传失败');
+      if (seq !== uploadSeqRef.current || !pageVisibleRef.current || achievementRouteIdRef.current !== targetAchievementId) return;
       setCoverFile({ ...json });
       toast('已上传', { icon: 'success' });
     } catch (e: any) {
+      if (seq !== uploadSeqRef.current || !pageVisibleRef.current || achievementRouteIdRef.current !== targetAchievementId) return;
       if (e?.errMsg?.includes('cancel')) return;
       toast(e?.message || '上传失败');
     } finally {
-      setUploading(false);
+      if (seq === uploadSeqRef.current && pageVisibleRef.current && achievementRouteIdRef.current === targetAchievementId) {
+        setUploading(false);
+      }
     }
   }, [uploading]);
 
@@ -214,6 +260,8 @@ export default function PublishAchievementPage() {
     if (uploading) return;
     if (!ensureApproved()) return;
     const remain = Math.max(1, 6 - mediaFiles.length);
+    const targetAchievementId = achievementRouteIdRef.current || '';
+    const seq = ++uploadSeqRef.current;
     setUploading(true);
     try {
       const chosen = await Taro.chooseImage({ count: remain, sizeType: ['compressed'], sourceType: ['album', 'camera'] });
@@ -236,14 +284,18 @@ export default function PublishAchievementPage() {
         if (json.id) uploaded.push({ ...json, type: 'IMAGE' });
       }
       if (uploaded.length) {
+        if (seq !== uploadSeqRef.current || !pageVisibleRef.current || achievementRouteIdRef.current !== targetAchievementId) return;
         setMediaFiles((prev) => [...prev, ...uploaded]);
         toast('已上传', { icon: 'success' });
       }
     } catch (e: any) {
+      if (seq !== uploadSeqRef.current || !pageVisibleRef.current || achievementRouteIdRef.current !== targetAchievementId) return;
       if (e?.errMsg?.includes('cancel')) return;
       toast(e?.message || '上传失败');
     } finally {
-      setUploading(false);
+      if (seq === uploadSeqRef.current && pageVisibleRef.current && achievementRouteIdRef.current === targetAchievementId) {
+        setUploading(false);
+      }
     }
   }, [mediaFiles.length, uploading]);
 
@@ -268,13 +320,15 @@ export default function PublishAchievementPage() {
     };
   }, [title, summary, description, keywords, maturity, cooperationModes, regionCode, sanitizedIndustryTags, coverFile, mediaFiles]);
 
-  const saveDraft = useCallback(async () => {
-    if (!ensureApproved()) return;
+  const saveDraft = useCallback(async (): Promise<AchievementDraft | null> => {
+    if (!ensureApproved()) return null;
     if (!title.trim()) {
       toast('请填写成果名称');
-      return;
+      return null;
     }
-    if (saving) return;
+    if (saving) return null;
+    const targetAchievementId = achievementRouteIdRef.current || '';
+    const seq = ++saveSeqRef.current;
     setSaving(true);
     try {
       const payload = buildPayload();
@@ -282,39 +336,56 @@ export default function PublishAchievementPage() {
         const created = await apiPost<AchievementDraft>('/achievements', payload, {
           idempotencyKey: `ach-create-${Date.now()}`,
         });
+        if (seq !== saveSeqRef.current || !pageVisibleRef.current || achievementRouteIdRef.current !== targetAchievementId) return null;
         setAchievementId(created.id);
+        achievementRouteIdRef.current = created.id;
         setAuditStatus(created.auditStatus || null);
         setContentStatus(created.status || null);
         toast('已保存', { icon: 'success' });
+        return created;
       } else {
         const updated = await apiPatch<AchievementDraft>(`/achievements/${achievementId}`, payload, {
           idempotencyKey: `ach-update-${achievementId}`,
         });
+        if (seq !== saveSeqRef.current || !pageVisibleRef.current || achievementRouteIdRef.current !== targetAchievementId) return null;
         setAuditStatus(updated.auditStatus || null);
         setContentStatus(updated.status || null);
         toast('已保存', { icon: 'success' });
+        return updated;
       }
     } catch (e: any) {
+      if (seq !== saveSeqRef.current || !pageVisibleRef.current || achievementRouteIdRef.current !== targetAchievementId) return null;
       toast(e?.message || '保存失败');
+      return null;
     } finally {
-      setSaving(false);
+      if (seq === saveSeqRef.current && pageVisibleRef.current && achievementRouteIdRef.current === targetAchievementId) {
+        setSaving(false);
+      }
     }
   }, [achievementId, buildPayload, saving, title]);
 
   const submit = useCallback(async () => {
     if (submitting) return;
+    if (!ensureApproved()) return;
+    const targetAchievementId = achievementRouteIdRef.current || '';
+    const seq = ++submitSeqRef.current;
     setSubmitting(true);
     try {
-      await saveDraft();
-      const id = achievementId;
+      const saved = await saveDraft();
+      if (seq !== submitSeqRef.current || !pageVisibleRef.current || achievementRouteIdRef.current !== targetAchievementId) return;
+      const id = saved?.id || achievementId || achievementRouteIdRef.current || null;
       if (!id) return;
       await apiPost(`/achievements/${id}/submit`, {}, { idempotencyKey: `ach-submit-${id}` });
+      if (seq !== submitSeqRef.current || !pageVisibleRef.current || achievementRouteIdRef.current !== targetAchievementId) return;
       setSubmitted(true);
       toast('已提交审核', { icon: 'success' });
     } catch (e: any) {
+      if (seq !== submitSeqRef.current || !pageVisibleRef.current || achievementRouteIdRef.current !== targetAchievementId) return;
       toast(e?.message || '提交失败');
     } finally {
-      setSubmitting(false);
+      if (seq === submitSeqRef.current && pageVisibleRef.current && achievementRouteIdRef.current === targetAchievementId) {
+        setSubmitting(false);
+      }
     }
   }, [achievementId, saveDraft, submitting]);
 
@@ -480,10 +551,10 @@ export default function PublishAchievementPage() {
                 </Button>
               </View>
               {auditStatus ? (
-                <Text className="form-hint">当前审核状态：{auditStatus}</Text>
+                <Text className="form-hint">当前审核状态：{auditStatusLabel(auditStatus)}</Text>
               ) : null}
               {contentStatus ? (
-                <Text className="form-hint">当前上架状态：{contentStatus}</Text>
+                <Text className="form-hint">当前上架状态：{contentStatusLabel(contentStatus)}</Text>
               ) : null}
             </Surface>
           </View>

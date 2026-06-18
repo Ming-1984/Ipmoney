@@ -4,8 +4,8 @@
 
 ## Summary
 
-- OpenAPI operations: 253
-- Frontend-used operations (client): 93
+- OpenAPI operations: 258
+- Frontend-used operations (client): 95
 - Frontend-used operations (admin): 138
 - Fixture scenarios: 7
 
@@ -47,7 +47,7 @@
   - POST /ai/agent/query
   - POST /ai/parse-results/:param/feedback
   - PUT /admin/listings/:param/featured
-- Frontend-used but missing in happy fixtures: 218
+- Frontend-used but missing in happy fixtures: 222
   - DELETE /achievements/:param/favorites
   - DELETE /admin/config/home-announcements/items/:param
   - DELETE /admin/config/home-announcements/templates/:param
@@ -84,7 +84,9 @@
   - GET /admin/listings/jobs/batch/:param/items
   - GET /admin/listings/jobs/import
   - GET /admin/listings/jobs/import/:param/rows
+  - GET /admin/orders
   - GET /admin/orders/:param
+  - GET /admin/orders/:param/invoice
   - GET /admin/orders/:param/settlement
   - GET /admin/patent-claims
   - GET /admin/patent-maintenance/orders
@@ -96,9 +98,7 @@
   - GET /admin/patents/jobs/import
   - GET /admin/patents/jobs/import/:param/rows
   - GET /admin/rbac/permissions
-  - GET /admin/rbac/roles
-  - GET /admin/rbac/users
-  - ... (168 more)
+  - ... (172 more)
 
 ## Coverage Details (by operation)
 
@@ -151,7 +151,9 @@
 | adminGetListingImportJob | GET | /admin/listings/jobs/import/:param |  |  |  |  |  |  |  |  |  |
 | adminGetListingImportJobErrorFile | GET | /admin/listings/jobs/import/:param/error-file |  |  |  |  |  |  |  |  |  |
 | adminListListingImportJobRows | GET | /admin/listings/jobs/import/:param/rows |  | Y |  |  |  |  |  |  |  |
+| adminListOrders | GET | /admin/orders |  | Y |  |  |  |  |  |  |  |
 | adminGetOrderById | GET | /admin/orders/:param |  | Y |  |  |  |  |  |  |  |
+| adminGetOrderInvoice | GET | /admin/orders/:param/invoice |  | Y |  |  |  |  |  |  |  |
 | adminGetOrderSettlement | GET | /admin/orders/:param/settlement |  | Y |  |  |  |  |  |  |  |
 | adminListPatentClaims | GET | /admin/patent-claims |  | Y |  |  |  |  |  |  |  |
 | adminListPatentMaintenanceOrders | GET | /admin/patent-maintenance/orders |  | Y |  |  |  |  |  |  |  |
@@ -187,6 +189,7 @@
 | getMe | GET | /me | Y |  |  |  |  |  |  |  |  |
 | listMyAddresses | GET | /me/addresses | Y |  |  |  |  |  |  |  |  |
 | listMyConversations | GET | /me/conversations | Y |  |  |  |  |  |  |  |  |
+| getMyConversation | GET | /me/conversations/:param | Y |  |  |  |  |  |  |  |  |
 | listMyFavoriteListings | GET | /me/favorites | Y |  |  |  |  |  |  |  |  |
 | listMyFavoriteAchievements | GET | /me/favorites/achievements | Y |  |  |  |  |  |  |  |  |
 | listMyPatentClaims | GET | /me/patent-claims | Y |  |  |  |  |  |  |  |  |
@@ -194,15 +197,16 @@
 | getMyPatentMaintenanceOrder | GET | /me/patent-maintenance/orders/:param | Y |  |  |  |  |  |  |  |  |
 | listMyPatentMaintenanceOrderEvents | GET | /me/patent-maintenance/orders/:param/events | Y |  |  |  |  |  |  |  |  |
 | listMyPatentMaintenanceSchedules | GET | /me/patent-maintenance/schedules | Y |  |  |  |  |  |  |  |  |
+| getMyMaintenanceSummary | GET | /me/patent-maintenance/summary | Y |  |  |  |  |  |  |  |  |
 | listMyPatentMaintenanceTasks | GET | /me/patent-maintenance/tasks | Y |  |  |  |  |  |  |  |  |
 | getMyRecommendedListings | GET | /me/recommendations/listings | Y |  |  |  |  |  |  |  |  |
 | getMyVerification | GET | /me/verification | Y |  |  |  |  |  |  |  |  |
 | listMyNotifications | GET | /notifications | Y |  |  |  |  |  |  |  |  |
 | getNotificationById | GET | /notifications/:param | Y |  |  |  |  |  |  |  |  |
-| listMyOrders | GET | /orders | Y | Y |  |  |  |  |  |  |  |
+| listMyOrders | GET | /orders | Y |  |  |  |  |  |  |  |  |
 | getOrderById | GET | /orders/:param | Y |  |  |  |  |  |  |  |  |
 | getOrderCase | GET | /orders/:param/case | Y |  |  |  |  |  |  |  |  |
-| getOrderInvoice | GET | /orders/:param/invoice | Y | Y |  |  |  |  |  |  |  |
+| getOrderInvoice | GET | /orders/:param/invoice | Y |  |  |  |  |  |  |  |  |
 | listRefundRequestsByOrder | GET | /orders/:param/refund-requests | Y | Y |  |  |  |  |  |  |  |
 | getPatentById | GET | /patents/:param | Y |  |  |  |  |  |  |  |  |
 | getPublicAchievementById | GET | /public/achievements/:param | Y |  |  |  |  |  |  |  |  |
@@ -342,6 +346,7 @@
 | normalizePatentNumber | POST | /patents/normalize |  | Y |  |  |  |  |  |  |  |
 | upsertSupportConversation | POST | /support/conversations | Y |  |  |  |  |  |  |  |  |
 | upsertTechManagerConversation | POST | /tech-managers/:param/conversations | Y |  |  |  |  |  |  |  |  |
+| wechatContentSecurityNotify | POST | /webhooks/wechat/content-security |  |  |  |  |  |  |  |  |  |
 | wechatPayNotify | POST | /webhooks/wechatpay/notify |  |  |  |  |  |  |  |  |  |
 | adminUpdateAlertConfig | PUT | /admin/config/alerts |  | Y |  |  |  |  |  |  |  |
 | adminUpdateBannerConfig | PUT | /admin/config/banner |  | Y |  |  |  |  |  |  |  |

@@ -6,6 +6,7 @@ import './index.scss';
 import type { components } from '@ipmoney/api-types';
 
 import { apiGet, apiPost } from '../../lib/api';
+import { displayTitleWithSecondary, normalizeDisplayText } from '../../lib/displayText';
 import { usePagedList } from '../../lib/usePagedList';
 import { ensureApproved, goLogin, goOnboarding, usePageAccess } from '../../lib/guard';
 import { auditStatusLabel, auditStatusTagClass, listingStatusLabel } from '../../lib/labels';
@@ -23,6 +24,7 @@ type AuditStatus = components['schemas']['AuditStatus'];
 
 export default function MyListingsPage() {
   const loadedOnceRef = useRef(false);
+  const filterKeyRef = useRef('');
   const [status, setStatus] = useState<ListingStatus | ''>('');
   const [auditStatusFilter, setAuditStatusFilter] = useState<AuditStatus | ''>('');
 
@@ -57,10 +59,17 @@ export default function MyListingsPage() {
   });
 
   useEffect(() => {
+    const nextKey = `${status}:${auditStatusFilter}`;
+    if (filterKeyRef.current === nextKey) return;
+    filterKeyRef.current = nextKey;
+    reset();
+  }, [auditStatusFilter, reset, status]);
+
+  useEffect(() => {
     if (access.state !== 'ok') return;
     loadedOnceRef.current = true;
     void reload();
-  }, [access.state, reload]);
+  }, [access.state, auditStatusFilter, reload, status]);
   const showInitialLoading = loading && items.length === 0;
 
   const goCreate = useCallback(() => {
@@ -170,11 +179,18 @@ export default function MyListingsPage() {
                 <View className="list-card-body">
                   <View className="list-card-head">
                     <View className="list-card-head-main">
-                      <Text className="list-card-title clamp-2">{it.title || '未命名专利'}</Text>
+                      <Text className="list-card-title clamp-2">
+                        {displayTitleWithSecondary(it.title, '专利信息待确认', {
+                          secondary: it.applicationNoDisplay,
+                          secondaryPrefix: '专利申请号 ',
+                        })}
+                      </Text>
                       <View className="list-card-tags">
                         <Text className="tag">{listingStatusLabel(it.status)}</Text>
                         <Text className={auditStatusTagClass(it.auditStatus)}>{auditStatusLabel(it.auditStatus)}</Text>
-                        {it.applicationNoDisplay ? <Text className="tag">{it.applicationNoDisplay}</Text> : null}
+                        {normalizeDisplayText(it.applicationNoDisplay) ? (
+                          <Text className="tag">{normalizeDisplayText(it.applicationNoDisplay)}</Text>
+                        ) : null}
                       </View>
                     </View>
                   </View>
@@ -223,4 +239,3 @@ export default function MyListingsPage() {
     </View>
   );
 }
-

@@ -4,11 +4,17 @@ import { Prisma } from '@prisma/client';
 
 import { ContentEventService } from '../../common/content-event.service';
 import { PrismaService } from '../../common/prisma/prisma.service';
-import { buildPublisherMap, mapStats, resolvePublicFileUrl, sanitizeIndustryTagNames } from '../content-utils';
+import {
+  buildPublisherMap,
+  mapStats,
+  normalizeDisplayText,
+  resolvePublicFileUrl,
+  sanitizeIndustryTagNames,
+  toPublicSellerSummary,
+} from '../content-utils';
 
 type Paged<T> = { items: T[]; page: { page: number; pageSize: number; total: number } };
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-
 @Injectable()
 export class FavoritesService {
   constructor(
@@ -51,18 +57,72 @@ export class FavoritesService {
     return { page, pageSize };
   }
 
+  private normalizeStringArray(input: unknown): string[] {
+    if (!Array.isArray(input)) return [];
+    return input
+      .map((item) => String(item || '').trim())
+      .filter(Boolean);
+  }
+
+  private normalizeListingTopics(input: unknown): Array<'HIGH_TECH_RETIRED' | 'SLEEPING' | 'AWARD_WINNING' | 'FIVE_STAR' | 'OPEN_LICENSE'> {
+    const allowed = new Set(['HIGH_TECH_RETIRED', 'SLEEPING', 'AWARD_WINNING', 'FIVE_STAR', 'OPEN_LICENSE']);
+    const out: Array<'HIGH_TECH_RETIRED' | 'SLEEPING' | 'AWARD_WINNING' | 'FIVE_STAR' | 'OPEN_LICENSE'> = [];
+    const seen = new Set<string>();
+    for (const value of this.normalizeStringArray(input)) {
+      const normalized = value.toUpperCase();
+      if (!allowed.has(normalized) || seen.has(normalized)) continue;
+      seen.add(normalized);
+      out.push(normalized as 'HIGH_TECH_RETIRED' | 'SLEEPING' | 'AWARD_WINNING' | 'FIVE_STAR' | 'OPEN_LICENSE');
+    }
+    return out;
+  }
+
+  private async assertPublicListingVisible(listingId: string) {
+    const listing = await this.prisma.listing.findFirst({
+      where: { id: listingId, auditStatus: 'APPROVED', status: 'ACTIVE' },
+      select: { id: true },
+    });
+    if (!listing) throw new NotFoundException({ code: 'NOT_FOUND', message: 'listing not found' });
+  }
+
+  private async assertPublicAchievementVisible(achievementId: string) {
+    const achievement = await this.prisma.achievement.findFirst({
+      where: { id: achievementId, auditStatus: 'APPROVED', status: 'ACTIVE' },
+      select: { id: true },
+    });
+    if (!achievement) throw new NotFoundException({ code: 'NOT_FOUND', message: 'achievement not found' });
+  }
+
   async listListingFavorites(req: any, query: any): Promise<Paged<any>> {
     this.ensureAuth(req);
     const { page, pageSize } = this.parsePagination(query);
+    const where = {
+      userId: req.auth.userId,
+      listing: {
+        is: {
+          auditStatus: 'APPROVED',
+          status: 'ACTIVE',
+        },
+      },
+    } as const;
     const [items, total] = await Promise.all([
       this.prisma.listingFavorite.findMany({
-        where: { userId: req.auth.userId },
-        include: { listing: { include: { patent: true, stats: true, media: { include: { file: true } } } } },
+        where,
+        include: {
+          listing: {
+            include: {
+              patent: true,
+              seller: { include: { verifications: { orderBy: { submittedAt: 'desc' }, take: 1 } } },
+              stats: true,
+              media: { include: { file: true } },
+            },
+          },
+        },
         orderBy: { createdAt: 'desc' },
         skip: (page - 1) * pageSize,
         take: pageSize,
       }),
-      this.prisma.listingFavorite.count({ where: { userId: req.auth.userId } }),
+      this.prisma.listingFavorite.count({ where }),
     ]);
 
     const mapped = items.map((fav) => {
@@ -75,15 +135,25 @@ export class FavoritesService {
         title: listing.title,
         coverUrl: resolvePublicFileUrl(coverFile),
         patentType: listing.patent?.patentType,
+        transferCount: (() => {
+          const patentTransferCount = listing.patent?.transferCount;
+          if (patentTransferCount === null || patentTransferCount === undefined || String(patentTransferCount).trim() === '') {
+            return undefined;
+          }
+          if (typeof patentTransferCount === 'number') return patentTransferCount;
+          return Number.isFinite(Number(patentTransferCount)) ? Number(patentTransferCount) : undefined;
+        })(),
         tradeMode: listing.tradeMode,
         priceType: listing.priceType,
         priceAmountFen: listing.priceAmount ?? null,
         depositAmountFen: listing.depositAmount,
         regionCode: listing.regionCode ?? null,
         industryTags: sanitizeIndustryTagNames(listing.industryTagsJson),
+        listingTopics: this.normalizeListingTopics(listing.listingTopicsJson),
         featuredLevel: listing.featuredLevel,
         featuredRegionCode: listing.featuredRegionCode ?? null,
         inventorNames: [],
+        seller: toPublicSellerSummary(listing),
         stats: mapStats(listing.stats),
       };
     });
@@ -94,15 +164,24 @@ export class FavoritesService {
   async listAchievementFavorites(req: any, query: any): Promise<Paged<any>> {
     this.ensureAuth(req);
     const { page, pageSize } = this.parsePagination(query);
+    const where = {
+      userId: req.auth.userId,
+      achievement: {
+        is: {
+          auditStatus: 'APPROVED',
+          status: 'ACTIVE',
+        },
+      },
+    } as const;
     const [items, total] = await Promise.all([
       this.prisma.achievementFavorite.findMany({
-        where: { userId: req.auth.userId },
+        where,
         include: { achievement: { include: { stats: true, coverFile: true } } },
         orderBy: { createdAt: 'desc' },
         skip: (page - 1) * pageSize,
         take: pageSize,
       }),
-      this.prisma.achievementFavorite.count({ where: { userId: req.auth.userId } }),
+      this.prisma.achievementFavorite.count({ where }),
     ]);
 
     const publisherMap = await buildPublisherMap(
@@ -113,23 +192,33 @@ export class FavoritesService {
     const mapped = items
       .map((fav) => fav.achievement)
       .filter(Boolean)
-      .map((achievement: any) => ({
-        id: achievement.id,
-        source: achievement.source ?? 'USER',
-        title: achievement.title,
-        summary: achievement.summary ?? null,
-        maturity: achievement.maturity ?? null,
-        cooperationModes: Array.isArray(achievement.cooperationModesJson) ? achievement.cooperationModesJson : [],
-        regionCode: achievement.regionCode ?? null,
-        industryTags: sanitizeIndustryTagNames(achievement.industryTagsJson),
-        keywords: Array.isArray(achievement.keywordsJson) ? achievement.keywordsJson : [],
-        publisher: publisherMap[achievement.publisherUserId],
-        stats: mapStats(achievement.stats),
-        auditStatus: achievement.auditStatus,
-        status: achievement.status,
-        coverUrl: resolvePublicFileUrl(achievement.coverFile),
-        createdAt: achievement.createdAt.toISOString(),
-      }));
+      .map((achievement: any) => {
+        const publisher = publisherMap[achievement.publisherUserId];
+        const fallbackDisplayName = normalizeDisplayText(achievement?.sourceOrgName);
+        return {
+          id: achievement.id,
+          source: achievement.source ?? 'USER',
+          title: achievement.title,
+          summary: achievement.summary ?? null,
+          maturity: achievement.maturity ?? null,
+          cooperationModes: Array.isArray(achievement.cooperationModesJson) ? achievement.cooperationModesJson : [],
+          regionCode: achievement.regionCode ?? null,
+          industryTags: sanitizeIndustryTagNames(achievement.industryTagsJson),
+          keywords: Array.isArray(achievement.keywordsJson) ? achievement.keywordsJson : [],
+          publisher:
+            publisher?.displayName || !fallbackDisplayName
+              ? publisher
+              : {
+                  ...publisher,
+                  displayName: fallbackDisplayName,
+                },
+          stats: mapStats(achievement.stats),
+          auditStatus: achievement.auditStatus,
+          status: achievement.status,
+          coverUrl: resolvePublicFileUrl(achievement.coverFile),
+          createdAt: achievement.createdAt.toISOString(),
+        };
+      });
 
     return { items: mapped, page: { page, pageSize, total } };
   }
@@ -137,8 +226,7 @@ export class FavoritesService {
   async favoriteListing(req: any, listingId: string) {
     this.ensureAuth(req);
     const normalizedListingId = this.parseUuidStrict(listingId, 'listingId');
-    const listing = await this.prisma.listing.findUnique({ where: { id: normalizedListingId } });
-    if (!listing) throw new NotFoundException({ code: 'NOT_FOUND', message: 'listing not found' });
+    await this.assertPublicListingVisible(normalizedListingId);
     try {
       await this.prisma.listingFavorite.create({
         data: { listingId: normalizedListingId, userId: req.auth.userId },
@@ -157,8 +245,7 @@ export class FavoritesService {
   async favoriteAchievement(req: any, achievementId: string) {
     this.ensureAuth(req);
     const normalizedAchievementId = this.parseUuidStrict(achievementId, 'achievementId');
-    const achievement = await this.prisma.achievement.findUnique({ where: { id: normalizedAchievementId } });
-    if (!achievement) throw new NotFoundException({ code: 'NOT_FOUND', message: 'achievement not found' });
+    await this.assertPublicAchievementVisible(normalizedAchievementId);
     try {
       await this.prisma.achievementFavorite.create({
         data: { achievementId: normalizedAchievementId, userId: req.auth.userId },
@@ -198,3 +285,4 @@ export class FavoritesService {
     return { ok: true };
   }
 }
+

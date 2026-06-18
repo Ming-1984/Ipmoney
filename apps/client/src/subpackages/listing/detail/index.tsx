@@ -9,7 +9,7 @@ import { Heart, HeartFill, Share2 } from '../../../ui/icons';
 
 import { apiGet, apiPost } from '../../../lib/api';
 import { getToken } from '../../../lib/auth';
-import { displayInfoOrPlaceholder, displayTitleOrFallback, normalizeDisplayText } from '../../../lib/displayText';
+import { displayInfoOrPlaceholder, displayInitial, displayTitleOrFallback, displayTitleWithSecondary, displayUserName, normalizeDisplayText } from '../../../lib/displayText';
 import { favorite, isFavorited, syncFavorites, unfavorite } from '../../../lib/favorites';
 import { ensureApproved } from '../../../lib/guard';
 import { formatTimeSmart } from '../../../lib/format';
@@ -39,6 +39,14 @@ function legalStatusLabel(status?: Patent['legalStatus']): string {
   if (status === 'GRANTED') return '已授权';
   if (status === 'EXPIRED') return '已失效';
   if (status === 'INVALIDATED') return '已无效';
+  return '待确认';
+}
+
+function patentTermLabel(patentType?: Patent['patentType']): string {
+  if (!patentType) return '待确认';
+  if (patentType === 'INVENTION') return '20 年';
+  if (patentType === 'UTILITY_MODEL') return '10 年';
+  if (patentType === 'DESIGN') return '15 年';
   return '待确认';
 }
 
@@ -318,8 +326,10 @@ export default function ListingDetailPage() {
   }
 
   const regionLabel = data ? normalizeDisplayText(regionDisplayName(data.regionCode)) : '';
-  const sellerDisplayName = normalizeDisplayText(data?.seller?.nickname);
+  const sellerDisplayName = displayUserName(data?.seller, '');
+  const sellerDisplayInitial = displayInitial(sellerDisplayName, '供');
   const visibleIndustryTags = sanitizeIndustryTagNames(data?.industryTags || []);
+  const sellerTitle = sellerDisplayName || '平台认证供给方';
   const transferCount = typeof data?.transferCount === 'number' ? data.transferCount : null;
   const mediaList = (Array.isArray(patentData?.media) ? patentData.media : []) as PatentMediaItem[];
   const coverUrl = mediaList.find((item) => item?.type === 'COVER' && item?.url)?.url ?? null;
@@ -346,7 +356,12 @@ export default function ListingDetailPage() {
       ) : data ? (
         <View>
           <Surface className="detail-meta-card detail-compact-header" id="listing-overview">
-            <Text className="detail-compact-title clamp-2">{displayTitleOrFallback(data.title, '未命名专利')}</Text>
+            <Text className="detail-compact-title clamp-2">
+              {displayTitleWithSecondary(data.title, '专利信息待确认', {
+                secondary: data.applicationNoDisplay,
+                secondaryPrefix: '专利申请号 ',
+              })}
+            </Text>
             <Spacer size={8} />
 
             <Text className="detail-compact-price">
@@ -430,10 +445,10 @@ export default function ListingDetailPage() {
                   background="rgba(15, 23, 42, 0.06)"
                   color="var(--c-muted)"
                 >
-                  {(sellerDisplayName || 'U').slice(0, 1)}
+                  {sellerDisplayInitial}
                 </Avatar>
                 <View className="detail-seller-meta">
-                  <Text className="detail-seller-name">{sellerDisplayName || '供给方信息待补充'}</Text>
+                  <Text className="detail-seller-name">{sellerTitle}</Text>
                   <View className="detail-seller-tags">
                     {data.seller?.verificationType ? (
                       <Text className="detail-seller-tag">{verificationTypeLabel(data.seller.verificationType)}</Text>
@@ -453,10 +468,10 @@ export default function ListingDetailPage() {
               {[
                 { label: '交易方式', value: tradeModeLabel(data.tradeMode) },
                 { label: '价格方式', value: priceTypeLabel(data.priceType) },
-                { label: '行业', value: visibleIndustryTags.length ? visibleIndustryTags.join(' / ') : '待补充' },
-                { label: '地区', value: displayInfoOrPlaceholder(regionLabel, '待补充') },
-                { label: '转让次数', value: transferCount != null ? `${transferCount} 次` : '待补充' },
-                { label: 'IPC 分类', value: data.ipcCodes?.length ? data.ipcCodes.join(' / ') : '待补充' },
+                { label: '行业', value: visibleIndustryTags.length ? visibleIndustryTags.join(' / ') : '待确认' },
+                { label: '地区', value: displayInfoOrPlaceholder(regionLabel, '待确认') },
+                { label: '转让次数', value: transferCount != null ? `${transferCount} 次` : '待确认' },
+                { label: 'IPC 分类', value: data.ipcCodes?.length ? data.ipcCodes.join(' / ') : '待确认' },
               ].map((item) => (
                 <View key={item.label} className="detail-field-row">
                   <Text className="detail-field-label">{item.label}</Text>
@@ -512,20 +527,20 @@ export default function ListingDetailPage() {
                         <Text className="detail-field-value break-word">
                           {displayInfoOrPlaceholder(
                             patentData.applicationNoDisplay || patentData.applicationNoNorm || data.applicationNoDisplay,
-                            '待补充',
+                            '待确认',
                           )}
                         </Text>
                       </View>
                       <View className="detail-field-row">
                         <Text className="detail-field-label">专利号</Text>
                         <Text className="detail-field-value break-word">
-                          {displayInfoOrPlaceholder(patentData.patentNoDisplay, '待补充')}
+                          {displayInfoOrPlaceholder(patentData.patentNoDisplay, '待确认')}
                         </Text>
                       </View>
                       <View className="detail-field-row">
                         <Text className="detail-field-label">类型</Text>
                         <Text className="detail-field-value break-word">
-                          {patentTypeLabel(patentData.patentType, { empty: '待补充' })}
+                          {patentTypeLabel(patentData.patentType, { empty: '待确认' })}
                         </Text>
                       </View>
                       <View className="detail-field-row">
@@ -535,13 +550,13 @@ export default function ListingDetailPage() {
                       <View className="detail-field-row">
                         <Text className="detail-field-label">IPC分类</Text>
                         <Text className="detail-field-value break-word">
-                          {displayInfoOrPlaceholder(patentData.mainIpcCode, '待补充')}
+                          {displayInfoOrPlaceholder(patentData.mainIpcCode, '待确认')}
                         </Text>
                       </View>
                       <View className="detail-field-row">
                         <Text className="detail-field-label">Locarno分类</Text>
                         <Text className="detail-field-value break-word">
-                          {data.locCodes?.length ? data.locCodes.join(' / ') : '待补充'}
+                          {data.locCodes?.length ? data.locCodes.join(' / ') : '待确认'}
                         </Text>
                       </View>
                     </View>
@@ -553,26 +568,24 @@ export default function ListingDetailPage() {
                       <View className="detail-field-row">
                         <Text className="detail-field-label">申请日</Text>
                         <Text className="detail-field-value break-word">
-                          {displayInfoOrPlaceholder(patentData.filingDate, '待补充')}
+                          {displayInfoOrPlaceholder(patentData.filingDate, '待确认')}
                         </Text>
                       </View>
                       <View className="detail-field-row">
                         <Text className="detail-field-label">公开日</Text>
                         <Text className="detail-field-value break-word">
-                          {displayInfoOrPlaceholder(patentData.publicationDate, '待补充')}
+                          {displayInfoOrPlaceholder(patentData.publicationDate, '待确认')}
                         </Text>
                       </View>
                       <View className="detail-field-row">
                         <Text className="detail-field-label">授权日</Text>
                         <Text className="detail-field-value break-word">
-                          {displayInfoOrPlaceholder(patentData.grantDate, '待补充')}
+                          {displayInfoOrPlaceholder(patentData.grantDate, '待确认')}
                         </Text>
                       </View>
                       <View className="detail-field-row">
                         <Text className="detail-field-label">保护期限</Text>
-                        <Text className="detail-field-value break-word">
-                          {typeof patentData.patentTermYears === 'number' ? `${patentData.patentTermYears} 年` : '待补充'}
-                        </Text>
+                        <Text className="detail-field-value break-word">{patentTermLabel(patentData.patentType)}</Text>
                       </View>
                     </View>
                   </View>

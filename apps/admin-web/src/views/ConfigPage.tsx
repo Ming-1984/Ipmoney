@@ -183,7 +183,7 @@ export function ConfigPage() {
     try {
       return JSON.parse(bannerJson) as BannerConfig;
     } catch (e: any) {
-      message.error(e?.message || '\u4fdd\u5b58\u5931\u8d25\uff0c\u68c0\u67e5 JSON \u683c\u5f0f');
+      message.error(e?.message || '保存失败，请检查配置文本格式');
       return null;
     }
   }, [bannerJson]);
@@ -420,10 +420,10 @@ export function ConfigPage() {
 
       <Card loading={loading}>
         <Typography.Title level={3} style={{ marginTop: 0 }}>
-          {'Banner \u914d\u7f6e'}
+          {'首页轮播配置'}
         </Typography.Title>
         <Typography.Paragraph type="secondary">
-          {'\u7ef4\u62a4\u9996\u9875\u8f6e\u64ad\u56fe\uff08\u5efa\u8bae JSON \u7f16\u8f91\uff1b\u4fdd\u5b58\u524d\u8bf7\u786e\u4fdd\u683c\u5f0f\u6b63\u786e\uff09\u3002'}
+          {'维护首页轮播图。支持直接上传视频与封面；如需批量调整，可编辑下方结构化配置文本。'}
         </Typography.Paragraph>
         <Space direction="vertical" size={12} style={{ width: '100%' }}>
           <Space wrap size={12}>
@@ -437,7 +437,7 @@ export function ConfigPage() {
                   const uploaded = await apiUploadFile(options.file as File, 'BANNER_VIDEO');
                   setBannerVideoFile(uploaded);
                   applyBannerUpload('video', uploaded.url);
-                  message.success('\u89c6\u9891\u5df2\u4e0a\u4f20\u5e76\u5199\u5165 Banner \u914d\u7f6e');
+                  message.success('\u89c6\u9891\u5df2\u4e0a\u4f20并写入首页轮播配置');
                   options.onSuccess?.(uploaded);
                 } catch (e: any) {
                   options.onError?.(e);
@@ -457,7 +457,7 @@ export function ConfigPage() {
                   const uploaded = await apiUploadFile(options.file as File, 'BANNER_POSTER');
                   setBannerPosterFile(uploaded);
                   applyBannerUpload('poster', uploaded.url);
-                  message.success('\u5c01\u9762\u5df2\u4e0a\u4f20\u5e76\u5199\u5165 Banner \u914d\u7f6e');
+                  message.success('\u5c01\u9762\u5df2\u4e0a\u4f20并写入首页轮播配置');
                   options.onSuccess?.(uploaded);
                 } catch (e: any) {
                   options.onError?.(e);
@@ -469,7 +469,7 @@ export function ConfigPage() {
             </Upload>
           </Space>
           <Typography.Text type="secondary">
-            {'\u4e0a\u4f20\u4f1a\u5199\u5165 Banner JSON\uff1b\u5982\u9700\u516c\u7f51 CDN \u76f4\u94fe\uff0c\u8bf7\u5728 JSON \u4e2d\u66ff\u6362 videoUrl/posterUrl\u3002'}
+            {'上传后会同步写入下方配置文本；如需替换为公网地址，可在配置文本里调整视频地址和封面地址。'}
           </Typography.Text>
           {bannerVideoFile ? (
             <Typography.Text type="secondary">{`\u89c6\u9891\u6587\u4ef6\uff1a${bannerVideoFile.url}`}</Typography.Text>
@@ -534,7 +534,7 @@ export function ConfigPage() {
           </Space>
         ) : (
           <Typography.Text type="danger">
-            {'\u65e0\u6cd5\u89e3\u6790 Banner JSON\uff0c\u8bf7\u5148\u4fee\u6b63\u683c\u5f0f\u3002'}
+            {'当前轮播配置文本无法解析，请先修正格式。'}
           </Typography.Text>
         )}
         <Input.TextArea
@@ -547,8 +547,8 @@ export function ConfigPage() {
             type="primary"
             onClick={async () => {
               const { ok } = await confirmActionWithReason({
-                title: '\u786e\u8ba4\u4fdd\u5b58 Banner \u914d\u7f6e\uff1f',
-                content: '\u4fdd\u5b58\u540e\u5c06\u5f71\u54cd\u9996\u9875\u8f6e\u64ad\u56fe\u5c55\u793a\u3002',
+                title: '\u786e\u8ba4保存首页轮播配置？',
+                content: '\u4fdd\u5b58\u540e将影响首页轮播图展示。',
                 okText: '\u4fdd\u5b58',
                 reasonLabel: '\u53d8\u66f4\u539f\u56e0\uff08\u5efa\u8bae\u586b\u5199\uff09',
               });
@@ -559,11 +559,11 @@ export function ConfigPage() {
                 message.success('\u4fdd\u5b58');
                 void load();
               } catch (e: any) {
-                message.error(e?.message || '\u4fdd\u5b58\u5931\u8d25\uff0c\u68c0\u67e5 JSON \u683c\u5f0f');
+                message.error(e?.message || '\u4fdd\u5b58\u5931\u8d25，请检查配置文本格式');
               }
             }}
           >
-            {'\u4fdd\u5b58 Banner'}
+            {'保存首页轮播配置'}
           </Button>
         </Space>
       </Card>
@@ -573,14 +573,14 @@ export function ConfigPage() {
           首页运营配置
         </Typography.Title>
         <Typography.Paragraph type="secondary">
-          已升级为可视化编辑（上传图片、内置图选择、卡片排序、标签联动）。建议在专用页面维护，避免直接改 JSON。
+          已升级为可视化编辑（上传图片、内置图选择、卡片排序、标签联动）。建议在专用页面维护，避免直接修改结构化配置文本。
         </Typography.Paragraph>
         <Space style={{ marginTop: 8 }}>
           <Button type="primary" onClick={() => navigate('/config/home-landing')}>
             打开可视化运营配置页
           </Button>
           <Button onClick={() => setHomeLandingJson('')} disabled>
-            JSON 直改已下线
+            文本直改已下线
           </Button>
         </Space>
       </Card>
@@ -779,7 +779,7 @@ export function ConfigPage() {
           告警配置
         </Typography.Title>
         <Typography.Paragraph type="secondary">
-          建议使用 JSON 编辑，保存前请确保格式正确；变更需留痕。
+          建议使用结构化配置文本编辑，保存前请确保格式正确；变更需留痕。
         </Typography.Paragraph>
         <Input.TextArea
           value={alertJson}
@@ -804,7 +804,7 @@ export function ConfigPage() {
                 message.success('已保存');
                 void load();
               } catch (e: any) {
-                message.error(e?.message || '保存失败，检查 JSON 格式');
+                message.error(e?.message || '保存失败，请检查配置文本格式');
               }
             }}
           >

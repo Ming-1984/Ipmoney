@@ -6,7 +6,7 @@ import './index.scss';
 import type { components } from '@ipmoney/api-types';
 
 import { apiGet } from '../../lib/api';
-import { displayInfoOrPlaceholder, displayTitleOrFallback, normalizeDisplayText } from '../../lib/displayText';
+import { displayInfoOrPlaceholder, displayTitleWithSecondary, normalizeDisplayText } from '../../lib/displayText';
 import { usePageAccess } from '../../lib/guard';
 import { formatTimeSmart } from '../../lib/format';
 import { fenToYuan } from '../../lib/money';
@@ -55,6 +55,13 @@ function invoiceStatusClass(status: InvoiceStatus): string {
   if (status === 'WAIT_APPLY') return 'is-wait';
   if (status === 'APPLYING') return 'is-applying';
   return 'is-issued';
+}
+
+function resolveInvoiceCardTitle(item: Pick<InvoiceItem, 'listingTitle' | 'applicationNoDisplay'>): string {
+  return displayTitleWithSecondary(item.listingTitle, '发票信息待确认', {
+    secondary: item.applicationNoDisplay,
+    secondaryPrefix: '专利申请号 ',
+  });
 }
 
 export default function InvoiceCenterPage() {
@@ -120,7 +127,7 @@ export default function InvoiceCenterPage() {
     return list.filter((it) => it.invoiceStatus === activeTab);
   }, [rawItems, activeTab]);
   const showInitialLoading = loading && items.length === 0;
-  const pageTitle = orderIdParam ? '订单发票' : '发票管理中心';
+  const pageTitle = orderIdParam ? '当前订单发票' : '发票管理中心';
   const pageSubtitle = orderIdParam ? '查看当前订单的开票进度与下载信息' : '发票由平台财务线下开具，开具后可下载';
   const emptyMessage = orderIdParam ? '当前订单在该分类下暂无发票记录。' : '当前分类下暂无发票记录。';
 
@@ -167,21 +174,25 @@ export default function InvoiceCenterPage() {
             {items.map((item) => (
               <Surface key={item.id} className="invoice-card" padding="none">
                 <View className="row-between" style={{ gap: '12rpx' }}>
-                  <Text className="text-card-title">订单 {item.id.slice(0, 8)}...</Text>
+                  <Text className="text-card-title">{resolveInvoiceCardTitle(item)}</Text>
                   <Text className={`invoice-status ${invoiceStatusClass(item.invoiceStatus)}`}>
                     {invoiceStatusLabel(item.invoiceStatus)}
                   </Text>
                 </View>
                 <View className="invoice-meta">
-                  <Text className="muted clamp-1">交易标的：{displayTitleOrFallback(item.listingTitle, '交易标的待补充')}</Text>
-                  <Text className="muted">申请号：{displayInfoOrPlaceholder(item.applicationNoDisplay, '待补充')}</Text>
+                  {normalizeDisplayText(item.listingTitle) ? (
+                    <Text className="muted clamp-1">交易标的：{normalizeDisplayText(item.listingTitle)}</Text>
+                  ) : null}
+                  {normalizeDisplayText(item.applicationNoDisplay) ? (
+                    <Text className="muted">申请号：{displayInfoOrPlaceholder(item.applicationNoDisplay, '待确认')}</Text>
+                  ) : null}
                   <Text className="muted">项目名称：{normalizeInvoiceItemName(item.itemName)}</Text>
                   <Text className="muted">
                     开票金额：{item.amountFen != null ? `￥${fenToYuan(item.amountFen)}` : '待确认'}
                   </Text>
                   <Text className="muted">订单时间：{formatTimeSmart(item.createdAt)}</Text>
                   {item.invoiceStatus !== 'ISSUED' ? <Text className="muted">开票方式：平台财务线下处理</Text> : null}
-                  <Text className="muted">发票号：{displayInfoOrPlaceholder(item.invoiceNo, '待补充')}</Text>
+                  <Text className="muted">发票号：{displayInfoOrPlaceholder(item.invoiceNo, '待确认')}</Text>
                   {item.issuedAt ? <Text className="muted">开票时间：{formatTimeSmart(item.issuedAt)}</Text> : null}
                 </View>
                 <View className="invoice-actions">

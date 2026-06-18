@@ -1,4 +1,4 @@
-import Taro, { useDidShow } from '@tarojs/taro';
+import Taro, { useDidHide, useDidShow } from '@tarojs/taro';
 import { useEffect, useRef, useState } from 'react';
 
 import { getToken, getVerificationStatus, isOnboardingDone, onAuthChanged } from './auth';
@@ -39,21 +39,30 @@ export function usePageAccess(
 ): PageAccessState {
   const [access, setAccess] = useState<PageAccessState>(() => getPageAccess(policy));
   const onShowRef = useRef<typeof onShow>(onShow);
+  const visibleRef = useRef(true);
 
   useEffect(() => {
     onShowRef.current = onShow;
   }, [onShow]);
 
   useDidShow(() => {
+    visibleRef.current = true;
     const next = getPageAccess(policy);
     setAccess((prev) => (prev.state === next.state ? prev : next));
     onShowRef.current?.(next);
+  });
+
+  useDidHide(() => {
+    visibleRef.current = false;
   });
 
   useEffect(() => {
     const off = onAuthChanged(() => {
       const next = getPageAccess(policy);
       setAccess((prev) => (prev.state === next.state ? prev : next));
+      if (visibleRef.current) {
+        onShowRef.current?.(next);
+      }
     });
     return () => off();
   }, [policy]);

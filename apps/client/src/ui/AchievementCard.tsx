@@ -3,7 +3,7 @@ import React from 'react';
 
 import type { components } from '@ipmoney/api-types';
 
-import { displayTitleOrFallback, normalizeDisplayText } from '../lib/displayText';
+import { displayTitleOrFallback, displayUserName, normalizeDisplayText } from '../lib/displayText';
 import { sanitizeIndustryTagNames } from '../lib/industryTags';
 import { achievementMaturityLabel } from '../lib/labels';
 import { regionDisplayName } from '../lib/regions';
@@ -16,9 +16,9 @@ export function AchievementCard(props: {
   onClick: () => void;
 }) {
   const it = props.item;
-  const title = displayTitleOrFallback(it.title, '未命名成果');
+  const title = displayTitleOrFallback(it.title, '成果标题待确认');
   const cover = it.coverUrl || '';
-  const publisher = normalizeDisplayText(it.publisher?.displayName) || '发布方信息待补充';
+  const publisher = displayUserName(it.publisher, '平台认证发布方');
   const region = it.regionCode ? regionDisplayName(it.regionCode) : '';
   const maturity = achievementMaturityLabel(it.maturity);
   const stats = it.stats as { viewCount?: number; favoriteCount?: number } | undefined;

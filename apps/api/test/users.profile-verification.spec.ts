@@ -21,6 +21,9 @@ describe('UsersService profile and verification strictness suite', () => {
         findFirst: vi.fn(),
         create: vi.fn(),
       },
+      techManagerProfile: {
+        upsert: vi.fn(),
+      },
     };
     audit = { log: vi.fn().mockResolvedValue(undefined) };
     notifications = { create: vi.fn().mockResolvedValue(undefined) };
@@ -73,7 +76,7 @@ describe('UsersService profile and verification strictness suite', () => {
     expect(result).toMatchObject({
       id: 'u-1',
       avatarUrl: undefined,
-      verificationStatus: 'PENDING',
+      verificationStatus: null,
       verificationType: null,
     });
   });
@@ -175,6 +178,71 @@ describe('UsersService profile and verification strictness suite', () => {
       status: 'APPROVED',
       displayName: 'Alice',
       evidenceFileIds: [],
+    });
+  });
+
+  it('persists tech manager profile fields when submitting TECH_MANAGER verification', async () => {
+    prisma.userVerification.findFirst.mockResolvedValueOnce(null);
+    prisma.userVerification.create.mockImplementationOnce(async ({ data }: any) => ({
+      id: 'v-tech-1',
+      userId: data.userId,
+      verificationType: data.verificationType,
+      verificationStatus: data.verificationStatus,
+      displayName: data.displayName,
+      unifiedSocialCreditCodeEnc: data.unifiedSocialCreditCodeEnc,
+      contactName: data.contactName,
+      contactPhone: data.contactPhone,
+      regionCode: data.regionCode,
+      intro: data.intro,
+      logoFileId: data.logoFileId,
+      logoFile: null,
+      evidenceFileIdsJson: data.evidenceFileIdsJson,
+      submittedAt: data.submittedAt,
+      reviewedAt: data.reviewedAt,
+      reviewComment: data.reviewComment,
+    }));
+    prisma.techManagerProfile.upsert.mockResolvedValueOnce({ userId: 'u-1' });
+
+    await service.submitMyVerification('u-1', {
+      type: 'TECH_MANAGER',
+      displayName: 'Tech A',
+      contactPhone: '13800138000',
+      intro: 'profile intro',
+      evidenceFileIds: ['file-a'],
+      serviceTags: ['专利布局', '成果转化'],
+      position: '负责人',
+      organization: '示例机构',
+      serviceDirections: ['专利运营', '成果转化'],
+      workHighlights: '服务过多个项目',
+      experienceLabel: '10年从业经验',
+      levelLabel: '资深顾问',
+    } as any);
+
+    expect(prisma.techManagerProfile.upsert).toHaveBeenCalledWith({
+      where: { userId: 'u-1' },
+      create: expect.objectContaining({
+        userId: 'u-1',
+        intro: 'profile intro',
+        contactPhone: '13800138000',
+        serviceTagsJson: ['专利布局', '成果转化'],
+        position: '负责人',
+        organization: '示例机构',
+        serviceDirectionsJson: ['专利运营', '成果转化'],
+        workHighlights: '服务过多个项目',
+        experienceLabel: '10年从业经验',
+        levelLabel: '资深顾问',
+      }),
+      update: expect.objectContaining({
+        intro: 'profile intro',
+        contactPhone: '13800138000',
+        serviceTagsJson: ['专利布局', '成果转化'],
+        position: '负责人',
+        organization: '示例机构',
+        serviceDirectionsJson: ['专利运营', '成果转化'],
+        workHighlights: '服务过多个项目',
+        experienceLabel: '10年从业经验',
+        levelLabel: '资深顾问',
+      }),
     });
   });
 });

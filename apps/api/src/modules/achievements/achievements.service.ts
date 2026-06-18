@@ -11,6 +11,7 @@ import {
   mapContentMedia,
   mapStats,
   normalizeMediaInput,
+  normalizeDisplayText,
   normalizeStringArray,
   resolvePublicFileUrl,
   sanitizeIndustryTagNames,
@@ -79,6 +80,15 @@ export class AchievementsService {
     return raw;
   }
 
+  private parseNullableUuidStrict(value: unknown, fieldName: string): string | null {
+    const raw = String(value ?? '').trim();
+    if (!raw) return null;
+    if (!UUID_RE.test(raw)) {
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: `${fieldName} is invalid` });
+    }
+    return raw;
+  }
+
   private parseSetValueStrict(value: any, set: Set<string>, field: string) {
     const v = String(value || '').trim().toUpperCase();
     if (!set.has(v)) {
@@ -103,6 +113,12 @@ export class AchievementsService {
     return this.parseSetValueStrict(value, MATURITY_SET, field) as AchievementMaturity;
   }
 
+  private parseNullableMaturityStrict(value: unknown, field: string): AchievementMaturity | null {
+    const raw = String(value ?? '').trim();
+    if (!raw) return null;
+    return this.parseSetValueStrict(raw, MATURITY_SET, field) as AchievementMaturity;
+  }
+
   private parseSortByStrict(value: any, field: string): ContentSortBy {
     return this.parseSetValueStrict(value, SORT_SET, field) as ContentSortBy;
   }
@@ -118,6 +134,20 @@ export class AchievementsService {
       throw new BadRequestException({ code: 'BAD_REQUEST', message: `${fieldName} is invalid` });
     }
     return raw;
+  }
+
+  private parseNullableRegionCodeStrict(value: unknown, fieldName: string): string | null {
+    const raw = String(value ?? '').trim();
+    if (!raw) return null;
+    if (!REGION_CODE_RE.test(raw)) {
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: `${fieldName} is invalid` });
+    }
+    return raw;
+  }
+
+  private parseNullableTrimmedString(value: unknown): string | null {
+    const raw = String(value ?? '').trim();
+    return raw || null;
   }
 
   private normalizeKeywords(input: unknown) {
@@ -143,15 +173,25 @@ export class AchievementsService {
   private buildPublisherFallback(userId: string) {
     return {
       userId,
-      displayName: 'User',
-      verificationType: 'PERSON',
-      verificationStatus: 'PENDING',
+      displayName: '',
+      verificationType: null,
+      verificationStatus: null,
       orgCategory: null,
       regionCode: null,
       logoUrl: null,
       intro: null,
       stats: undefined,
       verifiedAt: null,
+    };
+  }
+
+  private resolvePublisherSummary(it: any, publisherMap: Record<string, any>) {
+    const publisher = publisherMap[it.publisherUserId] ?? this.buildPublisherFallback(it.publisherUserId);
+    const fallbackDisplayName = normalizeDisplayText(it?.sourceOrgName) ?? null;
+    if (publisher?.displayName || !fallbackDisplayName) return publisher;
+    return {
+      ...publisher,
+      displayName: fallbackDisplayName,
     };
   }
 
@@ -164,7 +204,7 @@ export class AchievementsService {
       sourceRawStatus: it.sourceRawStatus ?? null,
       sourceBatch: it.sourceBatch ?? null,
       sourceRawRegion: it.sourceRawRegion ?? null,
-      sourceOrgName: it.sourceOrgName ?? null,
+      sourceOrgName: normalizeDisplayText(it.sourceOrgName) ?? null,
       title: it.title,
       summary: it.summary ?? null,
       maturity: it.maturity ?? null,
@@ -172,7 +212,7 @@ export class AchievementsService {
       regionCode: it.regionCode ?? null,
       industryTags: sanitizeIndustryTagNames(it.industryTagsJson),
       keywords: normalizeStringArray(it.keywordsJson),
-      publisher: publisherMap[it.publisherUserId] ?? this.buildPublisherFallback(it.publisherUserId),
+      publisher: this.resolvePublisherSummary(it, publisherMap),
       stats: mapStats(it.stats),
       auditStatus: it.auditStatus,
       status: it.status,
@@ -199,6 +239,124 @@ export class AchievementsService {
       coverFileId: it.coverFileId ?? null,
       media: mapContentMedia(it.media),
     };
+  }
+
+  private matchesSearchSummary(summary: any, keyword: string): boolean {
+    const normalizedKeyword = String(keyword || '')
+      .trim()
+      .toLowerCase();
+    if (!normalizedKeyword) return true;
+
+    const candidates = [
+      normalizeDisplayText(summary?.title),
+      normalizeDisplayText(summary?.summary),
+      normalizeDisplayText(summary?.sourceOrgName),
+      normalizeDisplayText(summary?.publisher?.displayName),
+      normalizeDisplayText(summary?.publisher?.intro),
+      normalizeDisplayText(summary?.externalId),
+      normalizeDisplayText(summary?.sourceRawCategory),
+      normalizeDisplayText(summary?.sourceRawStatus),
+      normalizeDisplayText(summary?.sourceBatch),
+      normalizeDisplayText(summary?.sourceRawRegion),
+      normalizeDisplayText(summary?.regionCode),
+      normalizeDisplayText(summary?.maturity),
+      ...normalizeStringArray(summary?.keywords),
+      ...normalizeStringArray(summary?.industryTags),
+      ...normalizeStringArray(summary?.cooperationModes),
+    ]
+      .filter(Boolean)
+      .map((value) => String(value).toLowerCase());
+
+    return candidates.some((candidate) => candidate.includes(normalizedKeyword));
+  }
+
+  private scoreSearchSummary(summary: any, keyword: string): number {
+    const normalizedKeyword = String(keyword || '')
+      .trim()
+      .toLowerCase();
+    if (!normalizedKeyword) return 0;
+
+    const title = normalizeDisplayText(summary?.title)?.toLowerCase() ?? '';
+    const sourceOrgName = normalizeDisplayText(summary?.sourceOrgName)?.toLowerCase() ?? '';
+    const publisherDisplayName = normalizeDisplayText(summary?.publisher?.displayName)?.toLowerCase() ?? '';
+    const summaryText = normalizeDisplayText(summary?.summary)?.toLowerCase() ?? '';
+    const externalId = normalizeDisplayText(summary?.externalId)?.toLowerCase() ?? '';
+    const keywords = normalizeStringArray(summary?.keywords).map((item) => item.toLowerCase());
+    const industryTags = normalizeStringArray(summary?.industryTags).map((item) => item.toLowerCase());
+    const cooperationModes = normalizeStringArray(summary?.cooperationModes).map((item) => item.toLowerCase());
+
+    let score = 0;
+
+    if (title === normalizedKeyword) score += 1200;
+    else if (title.startsWith(normalizedKeyword)) score += 1000;
+    else if (title.includes(normalizedKeyword)) score += 800;
+
+    const shouldScorePublisherDisplayName = Boolean(publisherDisplayName) && publisherDisplayName !== sourceOrgName;
+    if (shouldScorePublisherDisplayName) {
+      if (publisherDisplayName === normalizedKeyword) score += 900;
+      else if (publisherDisplayName.startsWith(normalizedKeyword)) score += 760;
+      else if (publisherDisplayName.includes(normalizedKeyword)) score += 580;
+    }
+
+    if (sourceOrgName === normalizedKeyword) score += 860;
+    else if (sourceOrgName.startsWith(normalizedKeyword)) score += 720;
+    else if (sourceOrgName.includes(normalizedKeyword)) score += 520;
+
+    if (externalId === normalizedKeyword) score += 320;
+    else if (externalId.includes(normalizedKeyword)) score += 220;
+
+    if (summaryText.includes(normalizedKeyword)) score += 120;
+    if (keywords.some((item) => item === normalizedKeyword)) score += 220;
+    else if (keywords.some((item) => item.includes(normalizedKeyword))) score += 140;
+
+    if (industryTags.some((item) => item === normalizedKeyword)) score += 180;
+    else if (industryTags.some((item) => item.includes(normalizedKeyword))) score += 100;
+
+    if (cooperationModes.some((item) => item.includes(normalizedKeyword))) score += 70;
+
+    return score;
+  }
+
+  private hasStrongSearchMatch(summary: any, keyword: string): boolean {
+    const normalizedKeyword = String(keyword || '')
+      .trim()
+      .toLowerCase();
+    if (!normalizedKeyword) return false;
+
+    const title = normalizeDisplayText(summary?.title)?.toLowerCase() ?? '';
+    const sourceOrgName = normalizeDisplayText(summary?.sourceOrgName)?.toLowerCase() ?? '';
+    const publisherDisplayName = normalizeDisplayText(summary?.publisher?.displayName)?.toLowerCase() ?? '';
+
+    return (
+      (Boolean(title) && (title === normalizedKeyword || title.startsWith(normalizedKeyword))) ||
+      (Boolean(sourceOrgName) && (sourceOrgName === normalizedKeyword || sourceOrgName.startsWith(normalizedKeyword))) ||
+      (Boolean(publisherDisplayName) &&
+        (publisherDisplayName === normalizedKeyword || publisherDisplayName.startsWith(normalizedKeyword)))
+    );
+  }
+
+  private paginateItems<T>(items: T[], page: number, pageSize: number): { items: T[]; total: number } {
+    const total = items.length;
+    const start = (page - 1) * pageSize;
+    return { items: items.slice(start, start + pageSize), total };
+  }
+
+  private compareCreatedAtDesc(a: { createdAt?: string | null }, b: { createdAt?: string | null }): number {
+    const aTime = a?.createdAt ? new Date(a.createdAt).getTime() : 0;
+    const bTime = b?.createdAt ? new Date(b.createdAt).getTime() : 0;
+    return bTime - aTime;
+  }
+
+  private comparePublicBaseOrder(a: any, b: any, sortBy: ContentSortBy): number {
+    if (sortBy === 'RECOMMENDED') {
+      const consultDiff = (b?.stats?.consultCount ?? 0) - (a?.stats?.consultCount ?? 0);
+      if (consultDiff !== 0) return consultDiff;
+      const favoriteDiff = (b?.stats?.favoriteCount ?? 0) - (a?.stats?.favoriteCount ?? 0);
+      if (favoriteDiff !== 0) return favoriteDiff;
+      const viewDiff = (b?.stats?.viewCount ?? 0) - (a?.stats?.viewCount ?? 0);
+      if (viewDiff !== 0) return viewDiff;
+    }
+    return this.compareCreatedAtDesc(a, b);
   }
 
   async listAdmin(query: any) {
@@ -228,10 +386,29 @@ export class AchievementsService {
     if (publisherUserId) where.publisherUserId = publisherUserId;
     if (regionCode) where.regionCode = regionCode;
     if (q) {
-      where.OR = [
-        { title: { contains: q, mode: 'insensitive' } },
-        { summary: { contains: q, mode: 'insensitive' } },
-      ];
+      const rows = await this.prisma.achievement.findMany({
+        where,
+        include: { stats: true, coverFile: true },
+        orderBy: { createdAt: 'desc' },
+      });
+      const publisherMap = await buildPublisherMap(
+        this.prisma,
+        rows.map((item) => item.publisherUserId),
+      );
+      const summaries = rows.map((item) => this.toSummaryDto(item, publisherMap));
+      const matched = summaries.filter((item) => this.matchesSearchSummary(item, q));
+      const strongMatches = matched.filter((item) => this.hasStrongSearchMatch(item, q));
+      const searchPool = strongMatches.length ? strongMatches : matched;
+      const ordered = [...searchPool].sort((a, b) => {
+        const scoreDiff = this.scoreSearchSummary(b, q) - this.scoreSearchSummary(a, q);
+        if (scoreDiff !== 0) return scoreDiff;
+        return this.compareCreatedAtDesc(a, b);
+      });
+      const paginated = this.paginateItems(ordered, page, pageSize);
+      return {
+        items: paginated.items,
+        page: { page, pageSize, total: paginated.total },
+      };
     }
 
     const [items, total] = await Promise.all([
@@ -270,25 +447,31 @@ export class AchievementsService {
       : 'PENDING';
     const status = this.hasOwn(body, 'status') ? this.parseStatusStrict(body?.status, 'status') : 'DRAFT';
 
-    const summary = String(body?.summary || '').trim() || null;
-    const description = String(body?.description || '').trim() || null;
-    const maturity = this.hasOwn(body, 'maturity') ? this.parseMaturityStrict(body?.maturity, 'maturity') : null;
+    const summary = this.parseNullableTrimmedString(body?.summary);
+    const description = this.parseNullableTrimmedString(body?.description);
+    const maturity = this.hasOwn(body, 'maturity') ? this.parseNullableMaturityStrict(body?.maturity, 'maturity') : null;
     const regionCode = this.hasOwn(body, 'regionCode')
-      ? this.parseRegionCodeFilterStrict(body?.regionCode, 'regionCode')
+      ? this.parseNullableRegionCodeStrict(body?.regionCode, 'regionCode')
       : null;
 
     const industryTags = sanitizeIndustryTagNames(body?.industryTags);
     const keywords = this.normalizeKeywords(body?.keywords);
     const cooperationModes = this.normalizeCooperationModes(body?.cooperationModes);
-    const coverFileId = this.hasOwn(body, 'coverFileId') ? this.parseUuidStrict(body?.coverFileId, 'coverFileId') : null;
-    const externalId = this.hasOwn(body, 'externalId') ? String(body?.externalId || '').trim() || null : null;
-    const sourceRawCategory = this.hasOwn(body, 'sourceRawCategory')
-      ? String(body?.sourceRawCategory || '').trim() || null
+    const coverFileId = this.hasOwn(body, 'coverFileId')
+      ? this.parseNullableUuidStrict(body?.coverFileId, 'coverFileId')
       : null;
-    const sourceRawStatus = this.hasOwn(body, 'sourceRawStatus') ? String(body?.sourceRawStatus || '').trim() || null : null;
-    const sourceBatch = this.hasOwn(body, 'sourceBatch') ? String(body?.sourceBatch || '').trim() || null : null;
-    const sourceRawRegion = this.hasOwn(body, 'sourceRawRegion') ? String(body?.sourceRawRegion || '').trim() || null : null;
-    const sourceOrgName = this.hasOwn(body, 'sourceOrgName') ? String(body?.sourceOrgName || '').trim() || null : null;
+    const externalId = this.hasOwn(body, 'externalId') ? this.parseNullableTrimmedString(body?.externalId) : null;
+    const sourceRawCategory = this.hasOwn(body, 'sourceRawCategory')
+      ? this.parseNullableTrimmedString(body?.sourceRawCategory)
+      : null;
+    const sourceRawStatus = this.hasOwn(body, 'sourceRawStatus')
+      ? this.parseNullableTrimmedString(body?.sourceRawStatus)
+      : null;
+    const sourceBatch = this.hasOwn(body, 'sourceBatch') ? this.parseNullableTrimmedString(body?.sourceBatch) : null;
+    const sourceRawRegion = this.hasOwn(body, 'sourceRawRegion')
+      ? this.parseNullableTrimmedString(body?.sourceRawRegion)
+      : null;
+    const sourceOrgName = this.hasOwn(body, 'sourceOrgName') ? this.parseNullableTrimmedString(body?.sourceOrgName) : null;
     const mediaInput: Array<{ fileId: string; type: ContentMediaType; sort: number }> = this.hasOwn(body, 'media')
       ? normalizeMediaInput(body?.media)
       : [];
@@ -306,11 +489,11 @@ export class AchievementsService {
         title,
         summary,
         description,
-        maturity: maturity ?? undefined,
-        regionCode: regionCode || undefined,
+        maturity,
+        regionCode,
         auditStatus,
         status,
-        coverFileId: coverFileId ?? undefined,
+        coverFileId,
         industryTagsJson: industryTags.length ? industryTags : Prisma.DbNull,
         keywordsJson: keywords.length ? keywords : Prisma.DbNull,
         cooperationModesJson: cooperationModes.length ? cooperationModes : Prisma.DbNull,
@@ -383,16 +566,18 @@ export class AchievementsService {
     const title = String(body?.title || '').trim();
     if (!title) throw new BadRequestException({ code: 'BAD_REQUEST', message: 'title is required' });
 
-    const summary = String(body?.summary || '').trim() || null;
-    const description = String(body?.description || '').trim() || null;
-    const maturity = this.hasOwn(body, 'maturity') ? this.parseMaturityStrict(body?.maturity, 'maturity') : null;
+    const summary = this.parseNullableTrimmedString(body?.summary);
+    const description = this.parseNullableTrimmedString(body?.description);
+    const maturity = this.hasOwn(body, 'maturity') ? this.parseNullableMaturityStrict(body?.maturity, 'maturity') : null;
     const regionCode = this.hasOwn(body, 'regionCode')
-      ? this.parseRegionCodeFilterStrict(body?.regionCode, 'regionCode')
+      ? this.parseNullableRegionCodeStrict(body?.regionCode, 'regionCode')
       : null;
     const industryTags = sanitizeIndustryTagNames(body?.industryTags);
     const keywords = this.normalizeKeywords(body?.keywords);
     const cooperationModes = this.normalizeCooperationModes(body?.cooperationModes);
-    const coverFileId = this.hasOwn(body, 'coverFileId') ? this.parseUuidStrict(body?.coverFileId, 'coverFileId') : null;
+    const coverFileId = this.hasOwn(body, 'coverFileId')
+      ? this.parseNullableUuidStrict(body?.coverFileId, 'coverFileId')
+      : null;
     const mediaInput: Array<{ fileId: string; type: ContentMediaType; sort: number }> = this.hasOwn(body, 'media')
       ? normalizeMediaInput(body?.media)
       : [];
@@ -427,11 +612,11 @@ export class AchievementsService {
         title,
         summary,
         description,
-        maturity: maturity ?? undefined,
-        regionCode: regionCode || undefined,
+        maturity,
+        regionCode,
         auditStatus: 'PENDING',
         status: 'DRAFT',
-        coverFileId: coverFileId ?? undefined,
+        coverFileId,
         industryTagsJson: industryTags.length ? industryTags : Prisma.DbNull,
         keywordsJson: keywords.length ? keywords : Prisma.DbNull,
         cooperationModesJson: cooperationModes.length ? cooperationModes : Prisma.DbNull,
@@ -461,13 +646,15 @@ export class AchievementsService {
     const title = hasTitle ? String(body?.title || '').trim() : it.title;
     if (hasTitle && !title) throw new BadRequestException({ code: 'BAD_REQUEST', message: 'title is required' });
 
-    const summary = this.hasOwn(body, 'summary') ? String(body?.summary || '').trim() || null : it.summary ?? null;
+    const summary = this.hasOwn(body, 'summary') ? this.parseNullableTrimmedString(body?.summary) : it.summary ?? null;
     const description = this.hasOwn(body, 'description')
-      ? String(body?.description || '').trim() || null
+      ? this.parseNullableTrimmedString(body?.description)
       : it.description ?? null;
-    const maturity = this.hasOwn(body, 'maturity') ? this.parseMaturityStrict(body?.maturity, 'maturity') : it.maturity ?? null;
+    const maturity = this.hasOwn(body, 'maturity')
+      ? this.parseNullableMaturityStrict(body?.maturity, 'maturity')
+      : it.maturity ?? null;
     const regionCode = this.hasOwn(body, 'regionCode')
-      ? this.parseRegionCodeFilterStrict(body?.regionCode, 'regionCode')
+      ? this.parseNullableRegionCodeStrict(body?.regionCode, 'regionCode')
       : it.regionCode ?? null;
     const industryTags = this.hasOwn(body, 'industryTags')
       ? sanitizeIndustryTagNames(body?.industryTags)
@@ -477,7 +664,7 @@ export class AchievementsService {
       ? this.normalizeCooperationModes(body?.cooperationModes)
       : normalizeStringArray(it.cooperationModesJson);
     const coverFileId = this.hasOwn(body, 'coverFileId')
-      ? this.parseUuidStrict(body?.coverFileId, 'coverFileId')
+      ? this.parseNullableUuidStrict(body?.coverFileId, 'coverFileId')
       : it.coverFileId ?? null;
     const mediaInput: Array<{ fileId: string; type: ContentMediaType; sort: number }> | undefined = this.hasOwn(
       body,
@@ -515,9 +702,9 @@ export class AchievementsService {
         title,
         summary,
         description,
-        maturity: maturity ?? undefined,
-        regionCode: regionCode || undefined,
-        coverFileId: coverFileId ?? undefined,
+        maturity,
+        regionCode,
+        coverFileId,
         industryTagsJson: industryTags.length ? industryTags : Prisma.DbNull,
         keywordsJson: keywords.length ? keywords : Prisma.DbNull,
         cooperationModesJson: cooperationModes.length ? cooperationModes : Prisma.DbNull,
@@ -630,13 +817,6 @@ export class AchievementsService {
     if (regionCode) where.regionCode = regionCode;
     if (maturity) where.maturity = maturity;
     if (industryTags.length > 0) where.industryTagsJson = { array_contains: industryTags };
-    if (q) {
-      where.OR = [
-        { title: { contains: q, mode: 'insensitive' } },
-        { summary: { contains: q, mode: 'insensitive' } },
-      ];
-    }
-
     const orderBy: Prisma.AchievementOrderByWithRelationInput[] =
       sortBy === 'RECOMMENDED'
         ? [
@@ -646,6 +826,32 @@ export class AchievementsService {
             { createdAt: Prisma.SortOrder.desc },
           ]
         : [{ createdAt: Prisma.SortOrder.desc }];
+
+    if (q) {
+      const rows = await this.prisma.achievement.findMany({
+        where,
+        include: { stats: true, coverFile: true },
+        orderBy,
+      });
+      const publisherMap = await buildPublisherMap(
+        this.prisma,
+        rows.map((item) => item.publisherUserId),
+      );
+      const summaries = rows.map((item) => this.toSummaryDto(item, publisherMap));
+      const matched = summaries.filter((item) => this.matchesSearchSummary(item, q));
+      const strongMatches = matched.filter((item) => this.hasStrongSearchMatch(item, q));
+      const searchPool = strongMatches.length ? strongMatches : matched;
+      const ordered = [...searchPool].sort((a, b) => {
+        const scoreDiff = this.scoreSearchSummary(b, q) - this.scoreSearchSummary(a, q);
+        if (scoreDiff !== 0) return scoreDiff;
+        return this.comparePublicBaseOrder(a, b, sortBy);
+      });
+      const paginated = this.paginateItems(ordered, page, pageSize);
+      return {
+        items: paginated.items,
+        page: { page, pageSize, total: paginated.total },
+      };
+    }
 
     const [items, total] = await Promise.all([
       this.prisma.achievement.findMany({
@@ -670,8 +876,12 @@ export class AchievementsService {
   }
 
   async getPublicById(req: any, achievementId: string) {
-    const it = await this.prisma.achievement.findUnique({
-      where: { id: achievementId },
+    const it = await this.prisma.achievement.findFirst({
+      where: {
+        id: achievementId,
+        auditStatus: 'APPROVED',
+        status: 'ACTIVE',
+      },
       include: { stats: true, coverFile: true, media: { include: { file: true } } },
     });
     if (!it) throw new NotFoundException({ code: 'NOT_FOUND', message: 'achievement not found' });
@@ -699,13 +909,15 @@ export class AchievementsService {
     const title = hasTitle ? String(body?.title || '').trim() : it.title;
     if (hasTitle && !title) throw new BadRequestException({ code: 'BAD_REQUEST', message: 'title is required' });
 
-    const summary = this.hasOwn(body, 'summary') ? String(body?.summary || '').trim() || null : it.summary ?? null;
+    const summary = this.hasOwn(body, 'summary') ? this.parseNullableTrimmedString(body?.summary) : it.summary ?? null;
     const description = this.hasOwn(body, 'description')
-      ? String(body?.description || '').trim() || null
+      ? this.parseNullableTrimmedString(body?.description)
       : it.description ?? null;
-    const maturity = this.hasOwn(body, 'maturity') ? this.parseMaturityStrict(body?.maturity, 'maturity') : it.maturity ?? null;
+    const maturity = this.hasOwn(body, 'maturity')
+      ? this.parseNullableMaturityStrict(body?.maturity, 'maturity')
+      : it.maturity ?? null;
     const regionCode = this.hasOwn(body, 'regionCode')
-      ? this.parseRegionCodeFilterStrict(body?.regionCode, 'regionCode')
+      ? this.parseNullableRegionCodeStrict(body?.regionCode, 'regionCode')
       : it.regionCode ?? null;
     const industryTags = this.hasOwn(body, 'industryTags')
       ? sanitizeIndustryTagNames(body?.industryTags)
@@ -715,7 +927,7 @@ export class AchievementsService {
       ? this.normalizeCooperationModes(body?.cooperationModes)
       : normalizeStringArray(it.cooperationModesJson);
     const coverFileId = this.hasOwn(body, 'coverFileId')
-      ? this.parseUuidStrict(body?.coverFileId, 'coverFileId')
+      ? this.parseNullableUuidStrict(body?.coverFileId, 'coverFileId')
       : it.coverFileId ?? null;
     const mediaInput: Array<{ fileId: string; type: ContentMediaType; sort: number }> | undefined = this.hasOwn(
       body,
@@ -732,39 +944,39 @@ export class AchievementsService {
       : it.auditStatus;
     const status = this.hasOwn(body, 'status') ? this.parseStatusStrict(body?.status, 'status') : it.status;
     const externalId = this.hasOwn(body, 'externalId')
-      ? String(body?.externalId || '').trim() || null
+      ? this.parseNullableTrimmedString(body?.externalId)
       : it.externalId ?? null;
     const sourceRawCategory = this.hasOwn(body, 'sourceRawCategory')
-      ? String(body?.sourceRawCategory || '').trim() || null
+      ? this.parseNullableTrimmedString(body?.sourceRawCategory)
       : it.sourceRawCategory ?? null;
     const sourceRawStatus = this.hasOwn(body, 'sourceRawStatus')
-      ? String(body?.sourceRawStatus || '').trim() || null
+      ? this.parseNullableTrimmedString(body?.sourceRawStatus)
       : it.sourceRawStatus ?? null;
     const sourceBatch = this.hasOwn(body, 'sourceBatch')
-      ? String(body?.sourceBatch || '').trim() || null
+      ? this.parseNullableTrimmedString(body?.sourceBatch)
       : it.sourceBatch ?? null;
     const sourceRawRegion = this.hasOwn(body, 'sourceRawRegion')
-      ? String(body?.sourceRawRegion || '').trim() || null
+      ? this.parseNullableTrimmedString(body?.sourceRawRegion)
       : it.sourceRawRegion ?? null;
     const sourceOrgName = this.hasOwn(body, 'sourceOrgName')
-      ? String(body?.sourceOrgName || '').trim() || null
+      ? this.parseNullableTrimmedString(body?.sourceOrgName)
       : it.sourceOrgName ?? null;
 
     const updated = await this.prisma.achievement.update({
       where: { id: achievementId },
       data: {
-        externalId: externalId ?? undefined,
-        sourceRawCategory: sourceRawCategory ?? undefined,
-        sourceRawStatus: sourceRawStatus ?? undefined,
-        sourceBatch: sourceBatch ?? undefined,
-        sourceRawRegion: sourceRawRegion ?? undefined,
-        sourceOrgName: sourceOrgName ?? undefined,
+        externalId,
+        sourceRawCategory,
+        sourceRawStatus,
+        sourceBatch,
+        sourceRawRegion,
+        sourceOrgName,
         title,
         summary,
         description,
-        maturity: maturity ?? undefined,
-        regionCode: regionCode || undefined,
-        coverFileId: coverFileId ?? undefined,
+        maturity,
+        regionCode,
+        coverFileId,
         industryTagsJson: industryTags.length ? industryTags : Prisma.DbNull,
         keywordsJson: keywords.length ? keywords : Prisma.DbNull,
         cooperationModesJson: cooperationModes.length ? cooperationModes : Prisma.DbNull,
@@ -869,7 +1081,13 @@ export class AchievementsService {
 
   async createConsultation(req: any, achievementId: string, payload: any) {
     this.ensureAuth(req);
-    const it = await this.prisma.achievement.findUnique({ where: { id: achievementId } });
+    const it = await this.prisma.achievement.findFirst({
+      where: {
+        id: achievementId,
+        auditStatus: 'APPROVED',
+        status: 'ACTIVE',
+      },
+    });
     if (!it) throw new NotFoundException({ code: 'NOT_FOUND', message: 'achievement not found' });
     const hasChannel = this.hasOwn(payload, 'channel');
     if (hasChannel) {

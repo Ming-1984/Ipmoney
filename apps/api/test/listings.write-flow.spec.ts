@@ -57,6 +57,7 @@ describe('ListingsService write flow suite', () => {
     prisma = {
       listing: {
         create: vi.fn(),
+        findFirst: vi.fn(),
         findUnique: vi.fn(),
         update: vi.fn(),
       },
@@ -178,11 +179,12 @@ describe('ListingsService write flow suite', () => {
     });
   });
 
-  it('create filters unsupported listingTopics values', async () => {
+  it('create keeps supported listingTopics values only when semantics are valid', async () => {
     prisma.listing.create.mockResolvedValueOnce(
       buildListing({
         title: 'Listing Topic Strict',
-        tradeMode: 'ASSIGNMENT',
+        tradeMode: 'LICENSE',
+        licenseMode: 'NON_EXCLUSIVE',
         priceType: 'NEGOTIABLE',
         listingTopicsJson: ['OPEN_LICENSE'],
       }),
@@ -190,7 +192,8 @@ describe('ListingsService write flow suite', () => {
 
     await service.createListing(USER_REQ, {
       title: 'Listing Topic Strict',
-      tradeMode: 'assignment',
+      tradeMode: 'license',
+      licenseMode: 'non_exclusive',
       priceType: 'negotiable',
       listingTopics: ['legacy_retired_tag', 'open_license', 'foo', 'bar'],
     });
@@ -199,6 +202,62 @@ describe('ListingsService write flow suite', () => {
       expect.objectContaining({
         data: expect.objectContaining({
           listingTopicsJson: ['OPEN_LICENSE'],
+        }),
+      }),
+    );
+  });
+
+  it('create rejects OPEN_LICENSE when tradeMode is not LICENSE', async () => {
+    await expect(
+      service.createListing(USER_REQ, {
+        title: 'Listing Topic Strict',
+        tradeMode: 'assignment',
+        priceType: 'negotiable',
+        listingTopics: ['open_license'],
+      }),
+    ).rejects.toBeInstanceOf(BadRequestException);
+  });
+
+  it('create falls back to patent display number instead of synthetic english title', async () => {
+    prisma.patent = {
+      findFirst: vi.fn().mockResolvedValueOnce(null),
+      create: vi.fn().mockResolvedValueOnce({
+        id: 'patent-1',
+        title: '202410123456.7',
+        applicationNoDisplay: '202410123456.7',
+        publicationNoDisplay: null,
+        patentNoDisplay: null,
+        grantPublicationNoDisplay: null,
+      }),
+    };
+    prisma.patentIdentifier = {
+      findUnique: vi.fn(),
+      createMany: vi.fn().mockResolvedValueOnce({ count: 1 }),
+    };
+    prisma.listing.create.mockResolvedValueOnce(
+      buildListing({
+        patentId: 'patent-1',
+        title: '202410123456.7',
+      }),
+    );
+
+    await service.createListing(USER_REQ, {
+      patentNumberRaw: '202410123456.7',
+      patentType: 'invention',
+      priceType: 'negotiable',
+    });
+
+    expect(prisma.patent.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          title: '202410123456.7',
+        }),
+      }),
+    );
+    expect(prisma.listing.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          title: '202410123456.7',
         }),
       }),
     );
@@ -293,6 +352,63 @@ describe('ListingsService write flow suite', () => {
     });
   });
 
+  it('update rejects OPEN_LICENSE when effective tradeMode is not LICENSE', async () => {
+    prisma.listing.findUnique.mockResolvedValueOnce(buildListing({ tradeMode: 'ASSIGNMENT', listingTopicsJson: [] }));
+
+    await expect(
+      service.updateListing(USER_REQ, LISTING_ID, {
+        listingTopics: ['open_license'],
+      }),
+    ).rejects.toBeInstanceOf(BadRequestException);
+  });
+
+  it('update allows clearing nullable text and amount fields', async () => {
+    prisma.listing.findUnique.mockResolvedValueOnce(
+      buildListing({
+        summary: 'summary to clear',
+        priceAmount: 500,
+        depositAmount: 100,
+        negotiableNote: 'note to clear',
+        encumbranceNote: 'encumbrance to clear',
+      }),
+    );
+    prisma.file.findMany.mockResolvedValueOnce([{ id: 'file-1', ownerId: USER_ID }]);
+    prisma.listing.update.mockResolvedValueOnce(
+      buildListing({
+        summary: null,
+        priceAmount: null,
+        depositAmount: 0,
+        negotiableNote: null,
+        encumbranceNote: null,
+      }),
+    );
+
+    const result = await service.updateListing(USER_REQ, LISTING_ID, {
+      summary: '',
+      priceAmountFen: null,
+      depositAmountFen: null,
+      negotiableNote: '',
+      encumbranceNote: '',
+    });
+
+    expect(prisma.listing.update).toHaveBeenCalledWith({
+      where: { id: LISTING_ID },
+      data: expect.objectContaining({
+        summary: null,
+        priceAmount: null,
+        depositAmount: 0,
+        negotiableNote: null,
+        encumbranceNote: null,
+      }),
+    });
+    expect(result).toMatchObject({
+      id: LISTING_ID,
+      depositAmountFen: 0,
+      negotiableNote: null,
+      encumbranceNote: null,
+    });
+  });
+
   it('submit and offShelf enforce ownership/file checks and transitions', async () => {
     prisma.listing.findUnique.mockResolvedValueOnce(null);
     await expect(service.submitListing(USER_REQ, LISTING_ID)).rejects.toBeInstanceOf(NotFoundException);
@@ -353,6 +469,7 @@ describe('ListingsService write flow suite', () => {
         sellerUserId: 'owner-2',
         source: 'PLATFORM',
         tradeMode: 'LICENSE',
+        licenseMode: 'EXCLUSIVE',
         priceType: 'FIXED',
         auditStatus: 'APPROVED',
         status: 'ACTIVE',
@@ -364,6 +481,7 @@ describe('ListingsService write flow suite', () => {
       source: 'platform',
       sellerUserId: ' owner-2 ',
       tradeMode: 'license',
+      licenseMode: 'exclusive',
       priceType: 'fixed',
       regionCode: '110000',
       auditStatus: 'approved',
@@ -428,6 +546,92 @@ describe('ListingsService write flow suite', () => {
 
     prisma.listing.findUnique.mockResolvedValueOnce(buildListing({ status: 'OFF_SHELF', auditStatus: 'PENDING', regionCode: null }));
     await expect(service.adminUpdate(ADMIN_REQ, LISTING_ID, { status: 'active' })).rejects.toBeInstanceOf(BadRequestException);
+  });
+
+  it('adminCreate falls back to patent metadata instead of synthetic listing title', async () => {
+    prisma.patent = {
+      findFirst: vi.fn().mockResolvedValueOnce(null),
+      create: vi.fn().mockResolvedValueOnce({
+        id: 'patent-2',
+        title: '202410000000.1',
+        applicationNoDisplay: '202410000000.1',
+        publicationNoDisplay: null,
+        patentNoDisplay: null,
+        grantPublicationNoDisplay: null,
+      }),
+    };
+    prisma.patentIdentifier = {
+      findUnique: vi.fn(),
+      createMany: vi.fn().mockResolvedValueOnce({ count: 1 }),
+    };
+    prisma.listing.create.mockResolvedValueOnce(
+      buildListing({
+        title: '202410000000.1',
+        patentId: 'patent-2',
+      }),
+    );
+
+    await service.adminCreate(ADMIN_REQ, {
+      sellerUserId: USER_ID,
+      patentNumberRaw: '202410000000.1',
+      patentType: 'invention',
+      auditStatus: 'pending',
+      status: 'draft',
+    });
+
+    expect(prisma.listing.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          title: '202410000000.1',
+        }),
+      }),
+    );
+  });
+
+  it('adminUpdate allows clearing nullable text and amount fields', async () => {
+    prisma.listing.findUnique.mockResolvedValueOnce(
+      buildListing({
+        summary: 'summary to clear',
+        priceAmount: 800,
+        depositAmount: 300,
+        negotiableNote: 'note to clear',
+        encumbranceNote: 'encumbrance to clear',
+      }),
+    );
+    prisma.listing.update.mockResolvedValueOnce(
+      buildListing({
+        summary: null,
+        priceAmount: null,
+        depositAmount: 0,
+        negotiableNote: null,
+        encumbranceNote: null,
+      }),
+    );
+
+    const result = await service.adminUpdate(ADMIN_REQ, LISTING_ID, {
+      summary: '',
+      priceAmountFen: null,
+      depositAmountFen: null,
+      negotiableNote: '',
+      encumbranceNote: '',
+    });
+
+    expect(prisma.listing.update).toHaveBeenCalledWith({
+      where: { id: LISTING_ID },
+      data: expect.objectContaining({
+        summary: null,
+        priceAmount: null,
+        depositAmount: 0,
+        negotiableNote: null,
+        encumbranceNote: null,
+      }),
+    });
+    expect(result).toMatchObject({
+      id: LISTING_ID,
+      depositAmountFen: 0,
+      negotiableNote: null,
+      encumbranceNote: null,
+    });
   });
 
   it('admin publish/off-shelf and approve/reject apply expected transitions', async () => {
@@ -498,7 +702,9 @@ describe('ListingsService write flow suite', () => {
 
   it('createConsultation returns conversationId and reuses existing conversation', async () => {
     const req = { auth: { userId: USER_ID } };
-    prisma.listing.findUnique.mockResolvedValueOnce(buildListing({ sellerUserId: 'seller-1' }));
+    prisma.listing.findFirst.mockResolvedValueOnce(
+      buildListing({ sellerUserId: 'seller-1', auditStatus: 'APPROVED', status: 'ACTIVE' }),
+    );
     prisma.conversation.findFirst.mockResolvedValueOnce({
       id: 'conv-1',
       contentType: 'LISTING',
@@ -519,5 +725,135 @@ describe('ListingsService write flow suite', () => {
         channel: 'FORM',
       },
     });
+  });
+
+  it('createConsultation hides non-public listings', async () => {
+    const req = { auth: { userId: USER_ID } };
+    prisma.listing.findFirst.mockResolvedValueOnce(null);
+
+    await expect(service.createConsultation(req, LISTING_ID, { channel: 'FORM' })).rejects.toBeInstanceOf(NotFoundException);
+    expect(prisma.listing.findFirst).toHaveBeenCalledWith({
+      where: {
+        id: LISTING_ID,
+        auditStatus: 'APPROVED',
+        status: 'ACTIVE',
+      },
+    });
+    expect(prisma.listingConsultEvent.create).not.toHaveBeenCalled();
+    expect(prisma.conversation.create).not.toHaveBeenCalled();
+  });
+
+  it('getPublicById uses formal seller displayName and does not fall back to nickname', async () => {
+    prisma.listing.findFirst.mockResolvedValueOnce({
+      ...buildListing({
+        source: 'USER',
+        auditStatus: 'APPROVED',
+        status: 'ACTIVE',
+      }),
+      patent: {
+        parties: [],
+        classifications: [],
+      },
+      seller: {
+        id: 'seller-public-1',
+        nickname: 'Fallback Nick',
+        avatarUrl: 'https://example.com/seller-public-1.png',
+        verifications: [{ displayName: '正式机构名', verificationType: 'COMPANY', verificationStatus: 'APPROVED' }],
+      },
+      stats: null,
+      media: [],
+    });
+
+    const result = await service.getPublicById({}, LISTING_ID);
+
+    expect(result.seller).toMatchObject({
+      id: 'seller-public-1',
+      nickname: '正式机构名',
+      avatarUrl: 'https://example.com/seller-public-1.png',
+      verificationType: 'COMPANY',
+      verificationStatus: 'APPROVED',
+      orgCategory: 'OTHER',
+    });
+  });
+
+  it('getPublicById leaves seller nickname empty when no formal displayName exists', async () => {
+    prisma.listing.findFirst.mockResolvedValueOnce({
+      ...buildListing({
+        source: 'USER',
+        auditStatus: 'APPROVED',
+        status: 'ACTIVE',
+      }),
+      patent: {
+        parties: [],
+        classifications: [],
+      },
+      seller: {
+        id: 'seller-public-2',
+        nickname: 'Fallback Nick',
+        avatarUrl: 'https://example.com/seller-public-2.png',
+        verifications: [],
+      },
+      stats: null,
+      media: [],
+    });
+
+    const result = await service.getPublicById({}, LISTING_ID);
+
+    expect(result.seller).toMatchObject({
+      id: 'seller-public-2',
+      avatarUrl: 'https://example.com/seller-public-2.png',
+    });
+    expect(result.seller?.nickname).toBeUndefined();
+    expect(result.seller?.verificationType).toBeUndefined();
+    expect(result.seller?.verificationStatus).toBeUndefined();
+  });
+
+  it('getPublicById hides personal verification metadata for platform-branded seller summary', async () => {
+    prisma.listing.findFirst.mockResolvedValueOnce({
+      ...buildListing({
+        source: 'ADMIN',
+        consultationRouting: 'PLATFORM',
+        auditStatus: 'APPROVED',
+        status: 'ACTIVE',
+      }),
+      patent: {
+        parties: [],
+        classifications: [],
+      },
+      seller: {
+        id: 'seller-platform',
+        nickname: 'Raw Platform User',
+        avatarUrl: null,
+        verifications: [{ displayName: '个人主体', verificationType: 'PERSON', verificationStatus: 'APPROVED' }],
+      },
+      stats: null,
+      media: [],
+    });
+
+    const result = await service.getPublicById({}, LISTING_ID);
+
+    expect(result.seller).toMatchObject({
+      id: 'seller-platform',
+      nickname: 'ipmoney',
+      avatarUrl: null,
+    });
+    expect(result.seller?.verificationType).toBeUndefined();
+    expect(result.seller?.verificationStatus).toBeUndefined();
+    expect(result.seller?.orgCategory).toBeUndefined();
+  });
+
+  it('getPublicById hides non-public listings', async () => {
+    prisma.listing.findFirst = vi.fn().mockResolvedValueOnce(null);
+
+    await expect(service.getPublicById({}, LISTING_ID)).rejects.toBeInstanceOf(NotFoundException);
+    expect(prisma.listing.findFirst).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          id: LISTING_ID,
+          auditStatus: 'APPROVED',
+          status: 'ACTIVE',
+        }),
+      }),
+    );
   });
 });

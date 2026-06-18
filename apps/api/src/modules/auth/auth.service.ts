@@ -51,6 +51,7 @@ export type AuthTokenResponseDto = {
     id: string;
     phone?: string;
     nickname?: string;
+    displayName?: string;
     avatarUrl?: string;
     role: string;
     verificationStatus?: string;
@@ -316,6 +317,7 @@ export class AuthService {
       id: user.id,
       phone: user.phone ?? undefined,
       nickname: user.nickname ?? undefined,
+      displayName: verification?.displayName ?? undefined,
       avatarUrl: resolvePublicFileUrl({ url: user.avatarUrl }) ?? undefined,
       role: user.role,
       verificationStatus: verification?.verificationStatus ?? undefined,

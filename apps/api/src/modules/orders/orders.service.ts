@@ -23,8 +23,10 @@ import { ConfigService, TradeRulesConfig } from '../config/config.service';
 import { isDemoPaymentEnabled } from '../../common/demo';
 import { NotificationsService } from '../notifications/notifications.service';
 import { WechatPayClient, WechatPayError } from '../../common/wechat-pay.client';
+import { normalizeDisplayText } from '../content-utils';
 
 const DEFAULT_CS_USER_ID = '00000000-0000-0000-0000-000000000002';
+const DEFAULT_CS_NICKNAME = '平台客服';
 const REFUND_REASON_CODES = [
   'BUYER_CHANGED_MIND',
   'SELLER_MISSING_MATERIALS',
@@ -66,7 +68,9 @@ type OrderDto = {
   id: string;
   listingId?: string | null;
   buyerUserId?: string | null;
+  buyerDisplayName?: string | null;
   sellerUserId?: string | null;
+  sellerDisplayName?: string | null;
   status: OrderStatus;
   depositAmountFen: number;
   dealAmountFen?: number | null;
@@ -83,6 +87,17 @@ type OrderDto = {
 type PagedOrder = {
   items: OrderDto[];
   page: { page: number; pageSize: number; total: number };
+};
+
+type AdminOrderMilestoneDto = {
+  id: string;
+  name: string;
+  status: string;
+  createdAt: string;
+};
+
+type AdminOrderDetailDto = OrderDto & {
+  milestones: AdminOrderMilestoneDto[];
 };
 
 type CaseWithMilestones = {
@@ -319,12 +334,12 @@ export class OrdersService {
       where: { id: DEFAULT_CS_USER_ID },
       update: {
         role: 'cs',
-        nickname: 'Default CS',
+        nickname: DEFAULT_CS_NICKNAME,
       },
       create: {
         id: DEFAULT_CS_USER_ID,
         role: 'cs',
-        nickname: 'Default CS',
+        nickname: DEFAULT_CS_NICKNAME,
       },
     });
     return created.id;
@@ -477,11 +492,21 @@ export class OrdersService {
 
   private toOrderDto(order: any, listing?: any, patent?: any): OrderDto {
     const toIso = (d?: Date | null) => (d ? d.toISOString() : undefined);
+    const buyerDisplayName =
+      normalizeDisplayText(order?.buyer?.verifications?.[0]?.displayName) ??
+      normalizeDisplayText(order?.buyer?.nickname) ??
+      null;
+    const sellerDisplayName =
+      normalizeDisplayText(listing?.seller?.verifications?.[0]?.displayName) ??
+      normalizeDisplayText(listing?.seller?.nickname) ??
+      null;
     return {
       id: order.id,
       listingId: order.listingId,
       buyerUserId: order.buyerUserId,
+      buyerDisplayName,
       sellerUserId: listing?.sellerUserId ?? undefined,
+      sellerDisplayName,
       status: order.status as OrderStatus,
       depositAmountFen: order.depositAmount,
       dealAmountFen: order.dealAmount ?? undefined,
@@ -493,6 +518,15 @@ export class OrdersService {
       invoiceNo: order.invoiceNo ?? null,
       invoiceFileId: order.invoiceFileId ?? null,
       invoiceIssuedAt: toIso(order.invoiceIssuedAt) ?? null,
+    };
+  }
+
+  private toAdminOrderMilestoneDto(milestone: any): AdminOrderMilestoneDto {
+    return {
+      id: String(milestone?.id || ''),
+      name: String(milestone?.name || ''),
+      status: String(milestone?.status || 'PENDING'),
+      createdAt: milestone?.createdAt instanceof Date ? milestone.createdAt.toISOString() : new Date().toISOString(),
     };
   }
 
@@ -597,7 +631,110 @@ export class OrdersService {
     const [items, total] = await Promise.all([
       this.prisma.order.findMany({
         where,
-        include: { listing: true },
+        include: {
+          buyer: {
+            select: {
+              nickname: true,
+              verifications: {
+                orderBy: { submittedAt: 'desc' },
+                take: 1,
+                select: { displayName: true },
+              },
+            },
+          },
+          listing: {
+            include: {
+              seller: {
+                select: {
+                  nickname: true,
+                  verifications: {
+                    orderBy: { submittedAt: 'desc' },
+                    take: 1,
+                    select: { displayName: true },
+                  },
+                },
+              },
+            },
+          },
+        },
+        orderBy: { createdAt: 'desc' },
+        skip: (page - 1) * pageSize,
+        take: pageSize,
+      }),
+      this.prisma.order.count({ where }),
+    ]);
+
+    return {
+      items: items.map((it: any) => this.toOrderDto(it, it.listing)),
+      page: { page, pageSize, total },
+    };
+  }
+
+  async listAdminOrders(req: any, query: any): Promise<PagedOrder> {
+    this.ensureAdmin(req);
+    const hasPage = this.hasOwn(query, 'page');
+    const hasPageSize = this.hasOwn(query, 'pageSize');
+    const page = hasPage ? this.parsePositiveIntStrict(query?.page, 'page') : 1;
+    const pageSizeInput = hasPageSize ? this.parsePositiveIntStrict(query?.pageSize, 'pageSize') : 20;
+    const pageSize = Math.min(50, pageSizeInput);
+    const hasStatus = this.hasOwn(query, 'status');
+    const hasStatusGroup = this.hasOwn(query, 'statusGroup');
+    const status = hasStatus ? this.normalizeOrderStatus(query?.status) : undefined;
+    const statusGroup = hasStatusGroup ? this.normalizeOrderStatusGroup(query?.statusGroup) : undefined;
+
+    if (hasStatus && !status) {
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: 'status is invalid' });
+    }
+    if (hasStatusGroup && !statusGroup) {
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: 'statusGroup is invalid' });
+    }
+
+    const where: any = {};
+    if (status) {
+      where.status = status;
+    } else if (statusGroup) {
+      const inStatuses =
+        statusGroup === 'PAYMENT_PENDING'
+          ? ['DEPOSIT_PENDING', 'WAIT_FINAL_PAYMENT']
+          : statusGroup === 'IN_PROGRESS'
+            ? ['DEPOSIT_PAID', 'FINAL_PAID_ESCROW', 'READY_TO_SETTLE']
+            : statusGroup === 'REFUND'
+              ? ['REFUNDING', 'REFUNDED']
+              : statusGroup === 'DONE'
+                ? ['COMPLETED', 'CANCELLED']
+                : [];
+      if (inStatuses.length) where.status = { in: inStatuses };
+    }
+
+    const [items, total] = await Promise.all([
+      this.prisma.order.findMany({
+        where,
+        include: {
+          buyer: {
+            select: {
+              nickname: true,
+              verifications: {
+                orderBy: { submittedAt: 'desc' },
+                take: 1,
+                select: { displayName: true },
+              },
+            },
+          },
+          listing: {
+            include: {
+              seller: {
+                select: {
+                  nickname: true,
+                  verifications: {
+                    orderBy: { submittedAt: 'desc' },
+                    take: 1,
+                    select: { displayName: true },
+                  },
+                },
+              },
+            },
+          },
+        },
         orderBy: { createdAt: 'desc' },
         skip: (page - 1) * pageSize,
         take: pageSize,
@@ -616,7 +753,33 @@ export class OrdersService {
     const normalizedOrderId = this.parseUuidStrict(orderId, 'orderId');
     const order = await this.prisma.order.findUnique({
       where: { id: normalizedOrderId },
-      include: { listing: { include: { patent: true } } },
+      include: {
+        buyer: {
+          select: {
+            nickname: true,
+            verifications: {
+              orderBy: { submittedAt: 'desc' },
+              take: 1,
+              select: { displayName: true },
+            },
+          },
+        },
+        listing: {
+          include: {
+            patent: true,
+            seller: {
+              select: {
+                nickname: true,
+                verifications: {
+                  orderBy: { submittedAt: 'desc' },
+                  take: 1,
+                  select: { displayName: true },
+                },
+              },
+            },
+          },
+        },
+      },
     });
     if (!order) throw new NotFoundException({ code: 'NOT_FOUND', message: 'order not found' });
     if (order.buyerUserId !== req.auth.userId && order.listing?.sellerUserId !== req.auth.userId && !req.auth.isAdmin) {
@@ -1278,25 +1441,56 @@ export class OrdersService {
     const pageSizeInput = hasPageSize ? this.parsePositiveIntStrict(query?.pageSize, 'pageSize') : 20;
     const pageSize = Math.min(50, pageSizeInput);
     const hasStatus = this.hasOwn(query, 'status');
+    const hasOrderId = this.hasOwn(query, 'orderId');
     const status = hasStatus ? this.normalizeInvoiceStatus(query?.status) : undefined;
     if (hasStatus && !status) {
       throw new BadRequestException({ code: 'BAD_REQUEST', message: 'status is invalid' });
     }
 
     const where: any = { buyerUserId: req.auth.userId };
+    if (hasOrderId) {
+      where.id = this.parseUuidStrict(query?.orderId, 'orderId');
+    }
     if (status === 'ISSUED') {
       where.invoiceIssuedAt = { not: null };
     } else if (status === 'APPLYING') {
       where.invoiceIssuedAt = null;
       where.invoiceNo = { not: null };
     } else if (status === 'WAIT_APPLY') {
-      where.invoiceNo = null;
+      where.invoiceIssuedAt = null;
     }
 
     const [items, total] = await Promise.all([
       this.prisma.order.findMany({
         where,
-        include: { listing: { include: { patent: true } }, invoiceFile: true },
+        include: {
+          buyer: {
+            select: {
+              nickname: true,
+              verifications: {
+                orderBy: { submittedAt: 'desc' },
+                take: 1,
+                select: { displayName: true },
+              },
+            },
+          },
+          listing: {
+            include: {
+              patent: true,
+              seller: {
+                select: {
+                  nickname: true,
+                  verifications: {
+                    orderBy: { submittedAt: 'desc' },
+                    take: 1,
+                    select: { displayName: true },
+                  },
+                },
+              },
+            },
+          },
+          invoiceFile: true,
+        },
         orderBy: { createdAt: 'desc' },
         skip: (page - 1) * pageSize,
         take: pageSize,
@@ -1332,12 +1526,49 @@ export class OrdersService {
     };
   }
 
-  async getAdminOrderDetail(req: any, orderId: string) {
+  async getAdminOrderDetail(req: any, orderId: string): Promise<AdminOrderDetailDto> {
     this.ensureAdmin(req);
     const normalizedOrderId = this.parseUuidStrict(orderId, 'orderId');
-    const order = await this.prisma.order.findUnique({ where: { id: normalizedOrderId }, include: { listing: true } });
+    const order = await this.prisma.order.findUnique({
+      where: { id: normalizedOrderId },
+      include: {
+        buyer: {
+          select: {
+            nickname: true,
+            verifications: {
+              orderBy: { submittedAt: 'desc' },
+              take: 1,
+              select: { displayName: true },
+            },
+          },
+        },
+        listing: {
+          include: {
+            patent: true,
+            seller: {
+              select: {
+                nickname: true,
+                verifications: {
+                  orderBy: { submittedAt: 'desc' },
+                  take: 1,
+                  select: { displayName: true },
+                },
+              },
+            },
+          },
+        },
+      },
+    });
     if (!order) throw new NotFoundException({ code: 'NOT_FOUND', message: 'order not found' });
-    return this.toOrderDto(order, order.listing);
+    const csCase = await this.ensureCaseForOrder(order);
+    const milestones = await this.prisma.csMilestone.findMany({
+      where: { caseId: csCase.id },
+      orderBy: { createdAt: 'asc' },
+    });
+    return {
+      ...this.toOrderDto(order, order.listing, order.listing?.patent),
+      milestones: milestones.map((milestone: any) => this.toAdminOrderMilestoneDto(milestone)),
+    };
   }
 
   async adminContractSigned(req: any, orderId: string, body: any) {

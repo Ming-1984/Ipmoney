@@ -1271,9 +1271,52 @@ describe('OrdersService write-first suite', () => {
 
     prisma.order.findUnique.mockResolvedValueOnce(
       makeOrder({
+        assignedCsUserId: 'cs-1',
         listing: { sellerUserId: SELLER_ID, title: 'Patent Listing', patent: { applicationNoDisplay: 'CN123' } },
       }),
     );
+    prisma.csCase.findFirst.mockResolvedValueOnce({
+      id: 'case-1',
+      orderId: ORDER_ID,
+      csUserId: 'cs-1',
+      type: 'FOLLOWUP',
+      status: 'OPEN',
+      createdAt: new Date('2026-03-12T00:00:00.000Z'),
+    });
+    prisma.csMilestone.findMany
+      .mockResolvedValueOnce([
+        {
+          id: 'milestone-1',
+          caseId: 'case-1',
+          name: 'CONTRACT_SIGNED',
+          status: 'DONE',
+          createdAt: new Date('2026-03-12T01:00:00.000Z'),
+        },
+        {
+          id: 'milestone-2',
+          caseId: 'case-1',
+          name: 'TRANSFER_SUBMITTED',
+          status: 'PENDING',
+          createdAt: new Date('2026-03-12T02:00:00.000Z'),
+        },
+        {
+          id: 'milestone-3',
+          caseId: 'case-1',
+          name: 'TRANSFER_COMPLETED',
+          status: 'PENDING',
+          createdAt: new Date('2026-03-12T03:00:00.000Z'),
+        },
+      ])
+      .mockResolvedValueOnce([
+        {
+          id: 'milestone-1',
+          caseId: 'case-1',
+          name: 'CONTRACT_SIGNED',
+          status: 'DONE',
+          createdAt: new Date('2026-03-12T01:00:00.000Z'),
+        },
+      ]);
+
     const result = await service.getAdminOrderDetail(adminReq, ORDER_ID);
 
     expect(result).toMatchObject({
@@ -1281,6 +1324,15 @@ describe('OrdersService write-first suite', () => {
       listingId: LISTING_ID,
       sellerUserId: SELLER_ID,
       listingTitle: 'Patent Listing',
+      applicationNoDisplay: 'CN123',
+      milestones: [
+        {
+          id: 'milestone-1',
+          name: 'CONTRACT_SIGNED',
+          status: 'DONE',
+          createdAt: '2026-03-12T01:00:00.000Z',
+        },
+      ],
     });
   });
 });

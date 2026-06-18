@@ -26,7 +26,9 @@ type OrderDetail = {
   id: string;
   listingId?: string | null;
   buyerUserId?: string | null;
+  buyerDisplayName?: string | null;
   sellerUserId?: string | null;
+  sellerDisplayName?: string | null;
   status: OrderStatus;
   depositAmountFen?: number;
   dealAmountFen?: number | null;
@@ -60,11 +62,11 @@ const TEXT = {
   deposit: '\u8ba2\u91d1',
   dealAmount: '\u6210\u4ea4\u4ef7',
   finalAmount: '\u5c3e\u6b3e',
-  listingId: '\u6302\u724c ID',
+  listingId: '\u6302\u724c\u8bb0\u5f55\u7f16\u53f7',
   listingTitle: '\u6807\u7684\u6807\u9898',
   applicationNo: '\u7533\u8bf7\u53f7',
-  buyerId: '\u4e70\u5bb6 ID',
-  sellerId: '\u5356\u5bb6 ID',
+  buyerId: '\u4e70\u65b9\u4e3b\u4f53',
+  sellerId: '\u5356\u65b9\u4e3b\u4f53',
   createdAt: '\u521b\u5efa\u65f6\u95f4',
   updatedAt: '\u66f4\u65b0\u65f6\u95f4',
   milestones: '\u5173\u952e\u91cc\u7a0b\u7891',
@@ -153,6 +155,12 @@ function displayDetailText(value: unknown, fallback = '-'): string {
   return normalizeUserFacingText(value) || fallback;
 }
 
+function orderSummaryText(order?: Pick<OrderDetail, 'listingTitle' | 'applicationNoDisplay' | 'id'> | null): string {
+  const title = displayDetailText(order?.listingTitle, '交易标的待确认');
+  const applicationNo = normalizeUserFacingText(order?.applicationNoDisplay);
+  return applicationNo ? `${title} · 申请号：${applicationNo}` : title;
+}
+
 export function OrderDetailPage() {
   const navigate = useNavigate();
   const params = useParams();
@@ -232,7 +240,18 @@ export function OrderDetailPage() {
 
       <Card loading={loading}>
         <Descriptions column={2} bordered size="small">
-          <Descriptions.Item label={TEXT.orderId}>{displayDetailText(data?.id)}</Descriptions.Item>
+          <Descriptions.Item label="订单摘要" span={2}>
+            <Space direction="vertical" size={2}>
+              <Typography.Text strong>{orderSummaryText(data)}</Typography.Text>
+              <Typography.Text type="secondary">
+                买方：{displayDetailText(data?.buyerDisplayName, '买方待确认')} · 卖方：{displayDetailText(data?.sellerDisplayName, '卖方待确认')}
+              </Typography.Text>
+              <Typography.Text type="secondary" copyable={{ text: displayDetailText(data?.id, '') }}>
+                订单号：{displayDetailText(data?.id)}
+                {normalizeUserFacingText(data?.listingId) ? ` · 挂牌记录编号：${displayDetailText(data?.listingId)}` : ''}
+              </Typography.Text>
+            </Space>
+          </Descriptions.Item>
           <Descriptions.Item label={TEXT.status}>{data?.status ? statusTag(data.status) : '-'}</Descriptions.Item>
           <Descriptions.Item label={TEXT.deposit}>
             {data?.depositAmountFen != null ? `\u00a5${fenToYuan(data.depositAmountFen)}` : '-'}
@@ -243,11 +262,10 @@ export function OrderDetailPage() {
           <Descriptions.Item label={TEXT.finalAmount}>
             {data?.finalAmountFen != null ? `\u00a5${fenToYuan(data.finalAmountFen)}` : '-'}
           </Descriptions.Item>
-          <Descriptions.Item label={TEXT.listingId}>{displayDetailText(data?.listingId)}</Descriptions.Item>
-          <Descriptions.Item label={TEXT.listingTitle}>{displayDetailText(data?.listingTitle, '未命名内容')}</Descriptions.Item>
+          <Descriptions.Item label={TEXT.listingTitle}>{displayDetailText(data?.listingTitle, '交易标的待确认')}</Descriptions.Item>
           <Descriptions.Item label={TEXT.applicationNo}>{displayDetailText(data?.applicationNoDisplay)}</Descriptions.Item>
-          <Descriptions.Item label={TEXT.buyerId}>{displayDetailText(data?.buyerUserId)}</Descriptions.Item>
-          <Descriptions.Item label={TEXT.sellerId}>{displayDetailText(data?.sellerUserId)}</Descriptions.Item>
+          <Descriptions.Item label={TEXT.buyerId}>{displayDetailText(data?.buyerDisplayName, '买方待确认')}</Descriptions.Item>
+          <Descriptions.Item label={TEXT.sellerId}>{displayDetailText(data?.sellerDisplayName, '卖方待确认')}</Descriptions.Item>
           <Descriptions.Item label={TEXT.createdAt}>{data?.createdAt ? formatTimeSmart(data.createdAt) : '-'}</Descriptions.Item>
           <Descriptions.Item label={TEXT.updatedAt}>{data?.updatedAt ? formatTimeSmart(data.updatedAt) : '-'}</Descriptions.Item>
         </Descriptions>

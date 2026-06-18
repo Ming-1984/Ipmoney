@@ -16,17 +16,17 @@ export type MediaItem = {
 };
 
 function fileNameFromUrl(url?: string | null): string {
-  if (!url) return '未命名文件';
+  if (!url) return '文件名称待确认';
   try {
     const u = new URL(url);
     const pathname = u.pathname || '';
     const idx = pathname.lastIndexOf('/');
     const name = idx >= 0 ? pathname.slice(idx + 1) : pathname;
-    return decodeURIComponent(name || '未命名文件');
+    return decodeURIComponent(name || '文件名称待确认');
   } catch {
     const idx = url.lastIndexOf('/');
     const name = idx >= 0 ? url.slice(idx + 1) : url;
-    return name || '未命名文件';
+    return name || '文件名称待确认';
   }
 }
 

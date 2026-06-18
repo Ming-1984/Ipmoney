@@ -17,7 +17,7 @@ function envLabel(env?: string): string {
 export default function AboutPage() {
   const versionLabel = useMemo(() => {
     if (Taro.getEnv() !== Taro.ENV_TYPE.WEAPP) {
-      return '-';
+      return '非小程序环境';
     }
 
     try {
@@ -32,7 +32,7 @@ export default function AboutPage() {
     } catch (_) {
       // ignore
     }
-    return '-';
+    return '未识别版本';
   }, []);
 
   return (

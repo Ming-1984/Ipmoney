@@ -3,12 +3,13 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 
 import { apiGet } from '../lib/api';
 import { formatTimeSmart } from '../lib/format';
-import { displayAdminInfo } from '../lib/userFacingText';
+import { displayAdminInfo, normalizeUserFacingText } from '../lib/userFacingText';
 import { RequestErrorAlert } from '../ui/RequestState';
 
 type AuditLog = {
   id: string;
   actorUserId: string;
+  actorDisplayName?: string;
   action: string;
   targetType: string;
   targetId: string;
@@ -25,6 +26,32 @@ type PagedAuditLog = {
   page: { page: number; pageSize: number; total: number };
 };
 
+function auditActionLabel(value: string): string {
+  const text = String(value || '').trim().toUpperCase();
+  if (text === 'ORDER_UPDATE') return '订单更新';
+  if (text === 'ORDER_CREATE') return '创建订单';
+  if (text === 'ORDER_REFUND') return '退款处理';
+  if (text === 'LISTING_UPDATE') return '挂牌更新';
+  if (text === 'LISTING_CREATE') return '创建挂牌';
+  if (text === 'USER_UPDATE') return '用户更新';
+  if (text === 'TECH_MANAGER_UPDATE') return '技术经理人更新';
+  if (text === 'PATENT_UPDATE') return '专利更新';
+  if (text === 'CONFIG_UPDATE') return '配置更新';
+  return text || '操作待确认';
+}
+
+function auditTargetTypeLabel(value: string): string {
+  const text = String(value || '').trim().toUpperCase();
+  if (text === 'ORDER') return '订单';
+  if (text === 'LISTING') return '挂牌';
+  if (text === 'USER') return '用户';
+  if (text === 'TECH_MANAGER') return '技术经理人';
+  if (text === 'PATENT') return '专利';
+  if (text === 'CONFIG') return '配置';
+  if (text === 'CONVERSATION') return '会话';
+  return text || '对象待确认';
+}
+
 function safeJson(value: unknown): string {
   if (value === undefined) return '';
   try {
@@ -32,6 +59,10 @@ function safeJson(value: unknown): string {
   } catch {
     return String(value);
   }
+}
+
+function operatorDisplayName(name?: string, userId?: string): string {
+  return normalizeUserFacingText(name) || normalizeUserFacingText(userId) || '平台成员';
 }
 
 export function AuditLogsPage() {
@@ -99,7 +130,7 @@ export function AuditLogsPage() {
           <Input
             value={action}
             style={{ width: 200 }}
-            placeholder="action（如 ORDER_UPDATE）"
+            placeholder="操作类型（如 订单更新）"
             allowClear
             onChange={(e) => setAction(e.target.value)}
             onPressEnter={() => void load()}
@@ -107,7 +138,7 @@ export function AuditLogsPage() {
           <Input
             value={targetType}
             style={{ width: 200 }}
-            placeholder="targetType（如 ORDER）"
+            placeholder="对象类型（如 订单）"
             allowClear
             onChange={(e) => setTargetType(e.target.value)}
             onPressEnter={() => void load()}
@@ -115,7 +146,7 @@ export function AuditLogsPage() {
           <Input
             value={targetId}
             style={{ width: 240 }}
-            placeholder="targetId（UUID/订单号等）"
+            placeholder="对象编号（如订单号）"
             allowClear
             onChange={(e) => setTargetId(e.target.value)}
             onPressEnter={() => void load()}
@@ -123,7 +154,7 @@ export function AuditLogsPage() {
           <Input
             value={actorUserId}
             style={{ width: 240 }}
-            placeholder="actorUserId（UUID）"
+            placeholder="操作人标识"
             allowClear
             onChange={(e) => setActorUserId(e.target.value)}
             onPressEnter={() => void load()}
@@ -149,16 +180,25 @@ export function AuditLogsPage() {
               render: (v: string) => formatTimeSmart(v),
             },
             {
-              title: 'action',
+              title: '操作类型',
               dataIndex: 'action',
-              width: 160,
-              render: (v: string) => <Tag>{v}</Tag>,
+              width: 220,
+              render: (v: string) => <Tag>{auditActionLabel(v)}</Tag>,
             },
-            { title: 'targetType', dataIndex: 'targetType', width: 140 },
-            { title: 'targetId', dataIndex: 'targetId', ellipsis: true },
-            { title: 'actorUserId', dataIndex: 'actorUserId', ellipsis: true },
             {
-              title: 'requestId',
+              title: '对象类型',
+              dataIndex: 'targetType',
+              width: 180,
+              render: (v: string) => <span>{auditTargetTypeLabel(v)}</span>,
+            },
+            { title: '对象编号', dataIndex: 'targetId', ellipsis: true },
+            {
+              title: '操作人',
+              ellipsis: true,
+              render: (_, row) => operatorDisplayName(row.actorDisplayName, row.actorUserId),
+            },
+            {
+              title: '请求流水',
               dataIndex: 'requestId',
               ellipsis: true,
               render: (v?: string) => displayAdminInfo(v),
@@ -186,7 +226,7 @@ export function AuditLogsPage() {
         open={detailOpen}
         onClose={() => setDetailOpen(false)}
         width={760}
-        title={active ? `审计详情：${active.action}` : '审计详情'}
+        title={active ? `审计详情：${auditActionLabel(active.action)}` : '审计详情'}
         destroyOnClose
       >
         {active ? (
@@ -194,21 +234,22 @@ export function AuditLogsPage() {
             <Card size="small">
               <Space direction="vertical" size={8} style={{ width: '100%' }}>
                 <Typography.Text type="secondary">时间：{formatTimeSmart(active.createdAt)}</Typography.Text>
-                <Typography.Text type="secondary">actorUserId：{active.actorUserId}</Typography.Text>
+                <Typography.Text type="secondary">操作类型：{auditActionLabel(active.action)}</Typography.Text>
+                <Typography.Text type="secondary">操作人：{operatorDisplayName(active.actorDisplayName, active.actorUserId)}</Typography.Text>
                 <Typography.Text type="secondary">
-                  target：{active.targetType} / {active.targetId}
+                  操作对象：{auditTargetTypeLabel(active.targetType)} / 编号 {active.targetId}
                 </Typography.Text>
-                <Typography.Text type="secondary">requestId：{displayAdminInfo(active.requestId)}</Typography.Text>
-                <Typography.Text type="secondary">ip：{displayAdminInfo(active.ip)}</Typography.Text>
-                <Typography.Text type="secondary">ua：{displayAdminInfo(active.userAgent)}</Typography.Text>
+                <Typography.Text type="secondary">请求流水：{displayAdminInfo(active.requestId)}</Typography.Text>
+                <Typography.Text type="secondary">IP：{displayAdminInfo(active.ip)}</Typography.Text>
+                <Typography.Text type="secondary">User-Agent：{displayAdminInfo(active.userAgent)}</Typography.Text>
               </Space>
             </Card>
 
-            <Card size="small" title="beforeJson">
+            <Card size="small" title="变更前">
               <pre style={{ margin: 0, whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>{displayAdminInfo(safeJson(active.beforeJson))}</pre>
             </Card>
 
-            <Card size="small" title="afterJson">
+            <Card size="small" title="变更后">
               <pre style={{ margin: 0, whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>{displayAdminInfo(safeJson(active.afterJson))}</pre>
             </Card>
           </Space>

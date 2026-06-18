@@ -3,7 +3,7 @@ import { Prisma } from '@prisma/client';
 
 import { AuditLogService } from '../../common/audit-log.service';
 import { PrismaService } from '../../common/prisma/prisma.service';
-import { resolvePublicFileUrl, sanitizeServiceTagNames } from '../content-utils';
+import { normalizeDisplayText, resolvePublicFileUrl, sanitizeServiceTagNames } from '../content-utils';
 
 const VERIFICATION_STATUS = {
   APPROVED: 'APPROVED',
@@ -17,6 +17,41 @@ const VERIFICATION_TYPE = {
 } as const;
 const REGION_CODE_RE = /^[0-9]{6}$/;
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const SUSPECT_EXPERIENCE_LABEL_PATTERNS = [
+  /^1\s*年$/u,
+  /^一\s*年$/u,
+  /^从业\s*1\s*年$/u,
+  /^从业\s*一\s*年$/u,
+  /^1\s*年(?:经验|从业经验|服务经验)?$/u,
+  /^一\s*年(?:经验|从业经验|服务经验)?$/u,
+] as const;
+const LEVEL_LABEL_PATTERNS = [
+  /技术经纪高级工程师/u,
+  /技术经纪工程师/u,
+  /资深顾问/u,
+  /高级(?:经理人|顾问|工程师)/u,
+  /中级(?:经理人|顾问|工程师)/u,
+  /初级(?:经理人|顾问|工程师)/u,
+  /专家/u,
+  /顾问/u,
+  /经理人/u,
+  /工程师/u,
+  /研究员/u,
+  /主任/u,
+  /总监/u,
+] as const;
+const POSITION_PATTERNS = [
+  /总经理/u,
+  /副总经理/u,
+  /负责人/u,
+  /总监/u,
+  /主任/u,
+  /院长/u,
+  /所长/u,
+  /创始人/u,
+  /合伙人/u,
+  /经理/u,
+] as const;
 
 type UserVerificationWhereInput = any;
 
@@ -25,8 +60,7 @@ export class TechManagersService {
   constructor(private readonly prisma: PrismaService, private readonly audit: AuditLogService) {}
 
   private normalizeOptionalString(value: unknown): string | undefined {
-    const normalized = String(value ?? '').trim();
-    return normalized || undefined;
+    return normalizeDisplayText(value);
   }
 
   private pickFirstNonEmptyString(...values: unknown[]): string | undefined {
@@ -37,27 +71,87 @@ export class TechManagersService {
     return undefined;
   }
 
-  private resolveDisplayIntro(verificationRecord: any, profile?: any): string | undefined {
+  private isOrgLikeIntro(intro: unknown, organization: unknown): boolean {
+    const normalizedIntro = this.normalizeOptionalString(intro);
+    const normalizedOrganization = this.normalizeOptionalString(organization);
+    if (!normalizedIntro || !normalizedOrganization) return false;
+    if (normalizedIntro === normalizedOrganization) return true;
+    if (normalizedIntro.length <= 30 && normalizedOrganization.includes(normalizedIntro)) return true;
+    return false;
+  }
+
+  private deriveExperienceLabel(...values: unknown[]): string | undefined {
+    const patterns = [
+      /(?:从事|从业|服务|执业|工作)[^。；，,\n]{0,24}?(?:超|近|约|达|至少)?\d{1,2}\s*年(?:[^。；，,\n]{0,16})?/u,
+      /\d{1,2}\s*年(?:从业经验|服务经验|行业经验)/u,
+    ];
+
+    for (const value of values) {
+      const normalized = this.normalizeOptionalString(value);
+      if (!normalized) continue;
+      for (const pattern of patterns) {
+        const matched = normalized.match(pattern)?.[0]?.trim();
+        if (matched) {
+          return this.normalizeDerivedExperienceLabel(matched);
+        }
+      }
+    }
+    return undefined;
+  }
+
+  private normalizeDerivedExperienceLabel(value: string): string {
+    const normalized = String(value || '')
+      .trim()
+      .replace(/[，。；、,\s]+$/u, '');
+    if (!normalized) return '';
+    if (/^从业(?:超过|至少|超|近|约|达)?\d{1,2}\s*年以上?$/u.test(normalized)) {
+      return normalized.replace(/^从业(?:超过|至少|超|近|约|达)?/u, '');
+    }
+    return normalized;
+  }
+
+  private deriveLevelLabel(...values: unknown[]): string | undefined {
+    for (const value of values) {
+      const normalized = this.normalizeOptionalString(value);
+      if (!normalized) continue;
+      for (const pattern of LEVEL_LABEL_PATTERNS) {
+        const matched = normalized.match(pattern)?.[0]?.trim();
+        if (matched) return matched;
+      }
+    }
+    return undefined;
+  }
+
+  private derivePosition(...values: unknown[]): string | undefined {
+    for (const value of values) {
+      const normalized = this.normalizeOptionalString(value);
+      if (!normalized) continue;
+      for (const pattern of POSITION_PATTERNS) {
+        const matched = normalized.match(pattern)?.[0]?.trim();
+        if (matched) return matched;
+      }
+    }
+    return undefined;
+  }
+
+  private resolveSummaryIntro(
+    verificationRecord: any,
+    profile: any,
+    opts?: { derivePresentationFields?: boolean },
+  ): string | undefined {
     const profileIntro = this.normalizeOptionalString(profile?.intro);
     const verificationIntro = this.normalizeOptionalString(verificationRecord?.intro);
     const workHighlights = this.normalizeOptionalString(profile?.workHighlights);
     const organization = this.normalizeOptionalString(profile?.organization);
-    const orgLikeKeywords = ['公司', '集团', '研究院', '研究所', '协会', '学院', '大学', '事务所', '中心'];
+    const derivePresentationFields = opts?.derivePresentationFields ?? false;
 
-    const shouldPreferHighlights = (candidate?: string) => {
-      if (!candidate || !workHighlights) return false;
-      if (organization && candidate === organization) return true;
-      if (candidate.length <= 24 && orgLikeKeywords.some((keyword) => candidate.includes(keyword))) return true;
-      return false;
-    };
-
-    const candidates = [profileIntro, verificationIntro].filter((item): item is string => Boolean(item));
-    for (const candidate of candidates) {
-      if (!shouldPreferHighlights(candidate)) {
-        return candidate;
-      }
+    if (!derivePresentationFields) {
+      return this.pickFirstNonEmptyString(profileIntro, verificationIntro);
     }
-    return workHighlights || profileIntro || verificationIntro;
+
+    const preferredProfileIntro = this.isOrgLikeIntro(profileIntro, organization) ? undefined : profileIntro;
+    const preferredVerificationIntro = this.isOrgLikeIntro(verificationIntro, organization) ? undefined : verificationIntro;
+    return this.pickFirstNonEmptyString(preferredProfileIntro, preferredVerificationIntro, workHighlights);
   }
 
   private ensureAdmin(request: any) {
@@ -231,10 +325,49 @@ export class TechManagersService {
     };
   }
 
+  private buildMissingExperienceLabelPredicate(): UserVerificationWhereInput {
+    return {
+      OR: [
+        { user: { techManagerProfile: { is: null } } },
+        {
+          user: {
+            techManagerProfile: {
+              is: {
+                OR: [{ experienceLabel: null }, { experienceLabel: '' }],
+              },
+            },
+          },
+        },
+      ],
+    };
+  }
+
+  private buildMissingLevelLabelPredicate(): UserVerificationWhereInput {
+    return {
+      OR: [
+        { user: { techManagerProfile: { is: null } } },
+        {
+          user: {
+            techManagerProfile: {
+              is: {
+                OR: [{ levelLabel: null }, { levelLabel: '' }],
+              },
+            },
+          },
+        },
+      ],
+    };
+  }
+
   private applyCompletenessFilter(
     andConditions: UserVerificationWhereInput[],
     query: any,
-    fieldName: 'missingIntro' | 'missingContact' | 'missingRating',
+    fieldName:
+      | 'missingIntro'
+      | 'missingContact'
+      | 'missingRating'
+      | 'missingExperienceLabel'
+      | 'missingLevelLabel',
     predicate: UserVerificationWhereInput,
   ) {
     if (!this.hasOwn(query, fieldName)) return;
@@ -242,9 +375,37 @@ export class TechManagersService {
     andConditions.push(missing ? predicate : { NOT: predicate });
   }
 
-  private toSummary(verificationRecord: any, profile?: any, opts?: { includeTestArtifacts?: boolean }) {
+  private isSuspectExperienceLabel(value: unknown): boolean {
+    const normalized = this.normalizeOptionalString(value);
+    if (!normalized) return false;
+    return SUSPECT_EXPERIENCE_LABEL_PATTERNS.some((pattern) => pattern.test(normalized));
+  }
+
+  private toPublicSummary(
+    verificationRecord: any,
+    profile?: any,
+    opts?: { includeTestArtifacts?: boolean; derivePresentationFields?: boolean },
+  ) {
     const serviceTags = this.normalizeServiceTags(profile?.serviceTagsJson, opts);
     const serviceDirections = this.normalizeStringArray(profile?.serviceDirectionsJson);
+    const intro = this.resolveSummaryIntro(verificationRecord, profile, opts);
+    const derivePresentationFields = opts?.derivePresentationFields ?? false;
+    const explicitExperienceLabel = this.normalizeOptionalString(profile?.experienceLabel);
+    const explicitLevelLabel = this.normalizeOptionalString(profile?.levelLabel);
+    const explicitPosition = this.normalizeOptionalString(profile?.position);
+    const derivedExperienceLabel = derivePresentationFields
+      ? this.deriveExperienceLabel(profile?.workHighlights, profile?.intro, verificationRecord?.intro)
+      : undefined;
+    const derivedLevelLabel = derivePresentationFields
+      ? this.deriveLevelLabel(profile?.position, profile?.workHighlights, profile?.intro, verificationRecord?.intro)
+      : undefined;
+    const derivedPosition = derivePresentationFields
+      ? this.derivePosition(profile?.workHighlights, profile?.intro, verificationRecord?.intro)
+      : undefined;
+    const experienceLabel =
+      explicitExperienceLabel && (!this.isSuspectExperienceLabel(explicitExperienceLabel) || !derivedExperienceLabel)
+        ? explicitExperienceLabel
+        : derivedExperienceLabel || explicitExperienceLabel || '';
     const ratingCountRaw = Number(profile?.ratingCount ?? 0);
     const ratingCount = Number.isFinite(ratingCountRaw) && ratingCountRaw > 0 ? Math.floor(ratingCountRaw) : 0;
     const ratingScoreRaw = Number(profile?.ratingScore ?? 0);
@@ -255,17 +416,15 @@ export class TechManagersService {
     return {
       userId: verificationRecord.userId,
       displayName: verificationRecord.displayName,
-      verificationType: verificationRecord.verificationType,
-      verificationStatus: verificationRecord.verificationStatus,
       regionCode: verificationRecord.regionCode ?? verificationRecord.user?.regionCode ?? undefined,
       avatarUrl: resolvePublicFileUrl({ url: verificationRecord.user?.avatarUrl ?? null }) ?? undefined,
-      intro: this.resolveDisplayIntro(verificationRecord, profile),
-      position: this.normalizeOptionalString(profile?.position),
+      intro,
+      position: explicitPosition || derivedPosition,
       organization: this.normalizeOptionalString(profile?.organization),
+      experienceLabel,
+      levelLabel: explicitLevelLabel || derivedLevelLabel || '',
       serviceDirections: serviceDirections.length ? serviceDirections : undefined,
       workHighlights: this.normalizeOptionalString(profile?.workHighlights),
-      contactName: this.pickFirstNonEmptyString(profile?.contactName, verificationRecord.contactName),
-      contactPhone: this.pickFirstNonEmptyString(profile?.contactPhone, verificationRecord.contactPhone),
       serviceTags: serviceTags.length ? serviceTags : undefined,
       stats: {
         consultCount: profile?.consultCount ?? 0,
@@ -274,6 +433,29 @@ export class TechManagersService {
         ratingCount,
       },
       verifiedAt: verificationRecord.reviewedAt ? verificationRecord.reviewedAt.toISOString() : undefined,
+    };
+  }
+
+  private toPublicDetail(
+    verificationRecord: any,
+    profile?: any,
+    opts?: { includeTestArtifacts?: boolean; derivePresentationFields?: boolean },
+  ) {
+    return this.toPublicSummary(verificationRecord, profile, opts);
+  }
+
+  private toAdminSummary(
+    verificationRecord: any,
+    profile?: any,
+    opts?: { includeTestArtifacts?: boolean; derivePresentationFields?: boolean },
+  ) {
+    return {
+      ...this.toPublicDetail(verificationRecord, profile, opts),
+      verificationType: verificationRecord.verificationType,
+      verificationStatus: verificationRecord.verificationStatus,
+      contactName: this.pickFirstNonEmptyString(profile?.contactName, verificationRecord.contactName),
+      contactPhone: this.pickFirstNonEmptyString(profile?.contactPhone, verificationRecord.contactPhone),
+      featuredUntil: profile?.featuredUntil instanceof Date ? profile.featuredUntil.toISOString() : undefined,
     };
   }
 
@@ -300,6 +482,49 @@ export class TechManagersService {
     for (const item of this.normalizeStringArray(summary?.serviceTags)) pushCandidate(item);
 
     return candidates.some((candidate) => candidate.includes(normalizedKeyword));
+  }
+
+  private scoreSearchSummary(summary: any, keyword: string): number {
+    const normalizedKeyword = String(keyword || '')
+      .trim()
+      .toLowerCase();
+    if (!normalizedKeyword) return 0;
+
+    const displayName = this.normalizeOptionalString(summary?.displayName)?.toLowerCase() ?? '';
+    const contactName = this.normalizeOptionalString(summary?.contactName)?.toLowerCase() ?? '';
+    const organization = this.normalizeOptionalString(summary?.organization)?.toLowerCase() ?? '';
+    const position = this.normalizeOptionalString(summary?.position)?.toLowerCase() ?? '';
+    const intro = this.normalizeOptionalString(summary?.intro)?.toLowerCase() ?? '';
+    const workHighlights = this.normalizeOptionalString(summary?.workHighlights)?.toLowerCase() ?? '';
+    const serviceDirections = this.normalizeStringArray(summary?.serviceDirections).map((item) => item.toLowerCase());
+    const serviceTags = this.normalizeStringArray(summary?.serviceTags).map((item) => item.toLowerCase());
+
+    let score = 0;
+    if (displayName === normalizedKeyword) score += 1000;
+    else if (displayName.startsWith(normalizedKeyword)) score += 800;
+    else if (displayName.includes(normalizedKeyword)) score += 600;
+
+    if (contactName === normalizedKeyword) score += 400;
+    else if (contactName.startsWith(normalizedKeyword)) score += 280;
+    else if (contactName.includes(normalizedKeyword)) score += 180;
+
+    if (organization.includes(normalizedKeyword)) score += 120;
+    if (position.includes(normalizedKeyword)) score += 100;
+    if (serviceDirections.some((item) => item.includes(normalizedKeyword))) score += 80;
+    if (serviceTags.some((item) => item.includes(normalizedKeyword))) score += 60;
+    if (intro.includes(normalizedKeyword)) score += 30;
+    if (workHighlights.includes(normalizedKeyword)) score += 20;
+
+    return score;
+  }
+
+  private hasStrongDisplayNameMatch(summary: any, keyword: string): boolean {
+    const displayName = this.normalizeOptionalString(summary?.displayName)?.toLowerCase() ?? '';
+    const normalizedKeyword = String(keyword || '')
+      .trim()
+      .toLowerCase();
+    if (!displayName || !normalizedKeyword) return false;
+    return displayName === normalizedKeyword || displayName.startsWith(normalizedKeyword);
   }
 
   private paginateItems<T>(items: T[], page: number, pageSize: number): { items: T[]; total: number } {
@@ -361,6 +586,13 @@ export class TechManagersService {
       this.applyCompletenessFilter(andConditions, query, 'missingIntro', this.buildMissingIntroPredicate());
       this.applyCompletenessFilter(andConditions, query, 'missingContact', this.buildMissingContactPredicate());
       this.applyCompletenessFilter(andConditions, query, 'missingRating', this.buildMissingRatingPredicate());
+      this.applyCompletenessFilter(
+        andConditions,
+        query,
+        'missingExperienceLabel',
+        this.buildMissingExperienceLabelPredicate(),
+      );
+      this.applyCompletenessFilter(andConditions, query, 'missingLevelLabel', this.buildMissingLevelLabelPredicate());
     }
     if (andConditions.length) {
       where.AND = andConditions;
@@ -397,9 +629,17 @@ export class TechManagersService {
         orderBy,
       });
       const summaries = rows.map((verificationRecord: any) =>
-        this.toSummary(verificationRecord, verificationRecord.user?.techManagerProfile, { includeTestArtifacts: false }),
+        this.toPublicSummary(verificationRecord, verificationRecord.user?.techManagerProfile, {
+          includeTestArtifacts: false,
+          derivePresentationFields: true,
+        }),
       );
-      const filtered = summaries.filter((summary) => this.matchesSearchSummary(summary, searchText));
+      const matched = summaries.filter((summary) => this.matchesSearchSummary(summary, searchText));
+      const strongDisplayNameMatches = matched.filter((summary) => this.hasStrongDisplayNameMatch(summary, searchText));
+      const searchPool = strongDisplayNameMatches.length ? strongDisplayNameMatches : matched;
+      const filtered = searchPool
+        .filter((summary) => this.matchesSearchSummary(summary, searchText))
+        .sort((a, b) => this.scoreSearchSummary(b, searchText) - this.scoreSearchSummary(a, searchText));
       const paged = this.paginateItems(filtered, page, pageSize);
       return {
         items: paged.items,
@@ -420,7 +660,10 @@ export class TechManagersService {
 
     return {
       items: items.map((verificationRecord: any) =>
-        this.toSummary(verificationRecord, verificationRecord.user?.techManagerProfile, { includeTestArtifacts: false }),
+        this.toPublicSummary(verificationRecord, verificationRecord.user?.techManagerProfile, {
+          includeTestArtifacts: false,
+          derivePresentationFields: true,
+        }),
       ),
       page: { page, pageSize, total },
     };
@@ -438,11 +681,10 @@ export class TechManagersService {
     });
     if (!verification) throw new NotFoundException({ code: 'NOT_FOUND', message: 'tech manager not found' });
 
-    const summary = this.toSummary(verification, verification.user?.techManagerProfile, { includeTestArtifacts: false });
-    const evidenceFileIds = Array.isArray(verification.evidenceFileIdsJson)
-      ? verification.evidenceFileIdsJson.filter((fileId: any) => typeof fileId === 'string')
-      : [];
-    return { ...summary, evidenceFileIds };
+    return this.toPublicDetail(verification, verification.user?.techManagerProfile, {
+      includeTestArtifacts: false,
+      derivePresentationFields: true,
+    });
   }
 
   async listAdmin(request: any, query: any) {
@@ -453,22 +695,38 @@ export class TechManagersService {
     const pageSizeInput = hasPageSize ? this.parsePositiveIntStrict(query?.pageSize, 'pageSize') : 20;
     const pageSize = Math.min(50, pageSizeInput);
     const searchText = String(query?.q || '').trim();
+    const hasSuspectExperienceLabel = this.hasOwn(query, 'suspectExperienceLabel');
+    const suspectExperienceLabel = hasSuspectExperienceLabel
+      ? this.parseBooleanStrict(query?.suspectExperienceLabel, 'suspectExperienceLabel')
+      : null;
     const where = this.buildWhere(query, {
       forceApproved: false,
       allowCompletenessFilters: true,
       ignoreSearch: Boolean(searchText),
     });
 
-    if (searchText) {
+    if (searchText || suspectExperienceLabel !== null) {
       const rows = await this.prisma.userVerification.findMany({
         where,
         include: { user: { include: { techManagerProfile: true } } },
         orderBy: { submittedAt: 'desc' },
       });
       const summaries = rows.map((verificationRecord: any) =>
-        this.toSummary(verificationRecord, verificationRecord.user?.techManagerProfile, { includeTestArtifacts: true }),
+        this.toAdminSummary(verificationRecord, verificationRecord.user?.techManagerProfile, { includeTestArtifacts: true }),
       );
-      const filtered = summaries.filter((summary) => this.matchesSearchSummary(summary, searchText));
+      const matched = summaries.filter((summary) => (searchText ? this.matchesSearchSummary(summary, searchText) : true));
+      const strongDisplayNameMatches =
+        searchText && matched.length ? matched.filter((summary) => this.hasStrongDisplayNameMatch(summary, searchText)) : [];
+      const searchPool = strongDisplayNameMatches.length ? strongDisplayNameMatches : matched;
+      const filtered = searchPool
+        .filter((summary) =>
+          suspectExperienceLabel === null
+            ? true
+            : suspectExperienceLabel
+              ? this.isSuspectExperienceLabel(summary?.experienceLabel)
+              : !this.isSuspectExperienceLabel(summary?.experienceLabel),
+        )
+        .sort((a, b) => (searchText ? this.scoreSearchSummary(b, searchText) - this.scoreSearchSummary(a, searchText) : 0));
       const paged = this.paginateItems(filtered, page, pageSize);
       return {
         items: paged.items,
@@ -489,7 +747,7 @@ export class TechManagersService {
 
     return {
       items: items.map((verificationRecord: any) =>
-        this.toSummary(verificationRecord, verificationRecord.user?.techManagerProfile, { includeTestArtifacts: true }),
+        this.toAdminSummary(verificationRecord, verificationRecord.user?.techManagerProfile, { includeTestArtifacts: true }),
       ),
       page: { page, pageSize, total },
     };
@@ -513,6 +771,8 @@ export class TechManagersService {
     const hasAvatarUrl = this.hasOwn(body, 'avatarUrl');
     const hasPosition = this.hasOwn(body, 'position');
     const hasOrganization = this.hasOwn(body, 'organization');
+    const hasExperienceLabel = this.hasOwn(body, 'experienceLabel');
+    const hasLevelLabel = this.hasOwn(body, 'levelLabel');
     const hasServiceDirections = this.hasOwn(body, 'serviceDirections');
     const hasWorkHighlights = this.hasOwn(body, 'workHighlights');
     const hasContactName = this.hasOwn(body, 'contactName');
@@ -561,6 +821,24 @@ export class TechManagersService {
       }
       profileUpdates.organization = organizationValue;
       auditAfter.organization = organizationValue;
+    }
+
+    if (hasExperienceLabel) {
+      const experienceLabelValue = body?.experienceLabel === null ? null : String(body?.experienceLabel ?? '').trim();
+      if (experienceLabelValue !== null && experienceLabelValue.length > 100) {
+        throw new BadRequestException({ code: 'BAD_REQUEST', message: 'experienceLabel is too long' });
+      }
+      profileUpdates.experienceLabel = experienceLabelValue;
+      auditAfter.experienceLabel = experienceLabelValue;
+    }
+
+    if (hasLevelLabel) {
+      const levelLabelValue = body?.levelLabel === null ? null : String(body?.levelLabel ?? '').trim();
+      if (levelLabelValue !== null && levelLabelValue.length > 50) {
+        throw new BadRequestException({ code: 'BAD_REQUEST', message: 'levelLabel is too long' });
+      }
+      profileUpdates.levelLabel = levelLabelValue;
+      auditAfter.levelLabel = levelLabelValue;
     }
 
     if (hasServiceDirections) {
@@ -728,7 +1006,7 @@ export class TechManagersService {
       afterJson: auditAfter,
     });
 
-    return this.toSummary(updatedVerification, profile, { includeTestArtifacts: true });
+    return this.toAdminSummary(updatedVerification, profile, { includeTestArtifacts: true });
   }
 
   async batchUpdateRating(request: any, body: any) {
@@ -779,7 +1057,7 @@ export class TechManagersService {
           : undefined,
         afterJson: { ratingScore, ratingCount, mode: 'batch' },
       });
-      updatedItems.push(this.toSummary(verification, updatedProfile, { includeTestArtifacts: true }));
+      updatedItems.push(this.toAdminSummary(verification, updatedProfile, { includeTestArtifacts: true }));
     }
 
     return {

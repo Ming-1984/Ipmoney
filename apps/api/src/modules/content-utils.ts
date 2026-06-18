@@ -5,14 +5,24 @@ import { PrismaService } from '../common/prisma/prisma.service';
 export type OrganizationSummary = {
   userId: string;
   displayName: string;
-  verificationType: string;
-  verificationStatus: string;
+  verificationType?: string | null;
+  verificationStatus?: string | null;
   orgCategory?: string | null;
   regionCode?: string | null;
   logoUrl?: string | null;
   intro?: string | null;
   stats?: unknown;
   verifiedAt?: string | null;
+};
+
+export type PublicSellerSummary = {
+  id: string;
+  displayName?: string | null;
+  nickname?: string | null;
+  avatarUrl?: string | null;
+  verificationStatus?: string | null;
+  verificationType?: string | null;
+  orgCategory?: string | null;
 };
 
 export type ContentMediaDto = {
@@ -32,8 +42,33 @@ type PublicFileLike = {
   fileName?: string | null;
 };
 
+const EMPTY_DISPLAY_TEXT_SET = new Set([
+  '-',
+  '--',
+  '—',
+  '——',
+  '无',
+  '暂无',
+  '待补充',
+  '未填写',
+  '未提供',
+  'N/A',
+  'NA',
+  'null',
+  'NULL',
+  'None',
+  'none',
+]);
+
+export function normalizeDisplayText(value: unknown): string | undefined {
+  const normalized = String(value ?? '').trim();
+  if (!normalized) return undefined;
+  if (EMPTY_DISPLAY_TEXT_SET.has(normalized)) return undefined;
+  return normalized;
+}
+
 export function resolvePublicAvatarUrl(raw: unknown): string | null {
-  const normalized = String(raw || '').trim();
+  const normalized = normalizeDisplayText(raw);
   if (!normalized) return null;
   return resolvePublicFileUrl({ url: normalized }) ?? null;
 }
@@ -246,18 +281,67 @@ export function mapStats(
   };
 }
 
+const PLATFORM_BRAND_NAME = 'ipmoney';
+
+export function isPlatformBrandedSellerListing(listing: any): boolean {
+  const source = String(listing?.source || '').trim().toUpperCase();
+  const consultationRouting = String(listing?.consultationRouting || '').trim().toUpperCase();
+  return (source === 'ADMIN' || source === 'PLATFORM') && consultationRouting === 'PLATFORM';
+}
+
+export function resolvePublicSellerNickname(listing: any): string | undefined {
+  if (isPlatformBrandedSellerListing(listing)) return PLATFORM_BRAND_NAME;
+  const verificationDisplayName = normalizeDisplayText(listing?.seller?.verifications?.[0]?.displayName);
+  return verificationDisplayName || undefined;
+}
+
+export function resolvePublicSellerVerificationType(listing: any): string | undefined {
+  if (isPlatformBrandedSellerListing(listing)) return undefined;
+  const verificationType = normalizeDisplayText(listing?.seller?.verifications?.[0]?.verificationType)?.toUpperCase();
+  return verificationType || undefined;
+}
+
+export function resolvePublicSellerVerificationStatus(listing: any): string | undefined {
+  if (isPlatformBrandedSellerListing(listing)) return undefined;
+  const verificationStatus = normalizeDisplayText(listing?.seller?.verifications?.[0]?.verificationStatus)?.toUpperCase();
+  return verificationStatus || undefined;
+}
+
+export function resolvePublicSellerOrgCategory(listing: any): 'RESEARCH_INSTITUTE' | 'OTHER' | undefined {
+  const verificationType = resolvePublicSellerVerificationType(listing);
+  if (verificationType === 'ACADEMY') return 'RESEARCH_INSTITUTE';
+  if (verificationType === 'COMPANY' || verificationType === 'GOVERNMENT' || verificationType === 'ASSOCIATION') {
+    return 'OTHER';
+  }
+  return undefined;
+}
+
+export function toPublicSellerSummary(listing: any): PublicSellerSummary | null {
+  if (!listing?.seller) return null;
+  const displayName = resolvePublicSellerNickname(listing);
+  return {
+    id: listing.seller.id,
+    displayName,
+    nickname: displayName,
+    avatarUrl: resolvePublicFileUrl({ url: listing.seller.avatarUrl }),
+    verificationStatus: resolvePublicSellerVerificationStatus(listing),
+    verificationType: resolvePublicSellerVerificationType(listing),
+    orgCategory: resolvePublicSellerOrgCategory(listing),
+  };
+}
+
 function toPublisherSummary(user: any, verification?: any): OrganizationSummary {
-  const verificationType = verification?.verificationType ?? 'PERSON';
-  const verificationStatus = verification?.verificationStatus ?? 'PENDING';
+  const verificationType = normalizeDisplayText(verification?.verificationType) ?? null;
+  const verificationStatus = normalizeDisplayText(verification?.verificationStatus) ?? null;
   return {
     userId: user.id,
-    displayName: verification?.displayName ?? user.nickname ?? 'User',
+    displayName: normalizeDisplayText(verification?.displayName) ?? '',
     verificationType,
     verificationStatus,
     orgCategory: null,
     regionCode: verification?.regionCode ?? user.regionCode ?? null,
     logoUrl: resolvePublicFileUrl(verification?.logoFile) ?? null,
-    intro: verification?.intro ?? null,
+    intro: normalizeDisplayText(verification?.intro) ?? null,
     stats: undefined,
     verifiedAt: verification?.reviewedAt ? verification.reviewedAt.toISOString() : null,
   };

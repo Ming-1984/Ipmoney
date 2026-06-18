@@ -86,6 +86,31 @@ describe('AddressesService write-first suite', () => {
     ).rejects.toBeInstanceOf(BadRequestException);
   });
 
+  it('rejects create when required business fields are omitted instead of auto-filling placeholders', async () => {
+    await expect(
+      service.create(authedReq, {
+        phone: '13800138000',
+        addressLine: 'Road 1',
+      }),
+    ).rejects.toBeInstanceOf(BadRequestException);
+
+    await expect(
+      service.create(authedReq, {
+        name: 'Alice',
+        addressLine: 'Road 1',
+      }),
+    ).rejects.toBeInstanceOf(BadRequestException);
+
+    await expect(
+      service.create(authedReq, {
+        name: 'Alice',
+        phone: '13800138000',
+      }),
+    ).rejects.toBeInstanceOf(BadRequestException);
+
+    expect(prisma.address.create).not.toHaveBeenCalled();
+  });
+
   it('rejects invalid addressId on update', async () => {
     await expect(service.update(authedReq, 'bad-id', { name: 'B' })).rejects.toBeInstanceOf(BadRequestException);
   });

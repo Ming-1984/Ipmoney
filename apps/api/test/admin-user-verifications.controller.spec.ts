@@ -16,6 +16,7 @@ describe('AdminUserVerificationsController strictness suite', () => {
       adminApproveVerification: vi.fn(),
       adminRejectVerification: vi.fn(),
       adminUpdateVerificationLogo: vi.fn(),
+      adminUpdateVerificationProfile: vi.fn(),
     };
     contentAudit = {
       listMaterials: vi.fn(),
@@ -33,6 +34,9 @@ describe('AdminUserVerificationsController strictness suite', () => {
     await expect(controller.updateLogo(req, VERIFICATION_ID, { logoFileId: 'file-1' })).rejects.toBeInstanceOf(
       ForbiddenException,
     );
+    await expect(controller.updateProfile(req, VERIFICATION_ID, { displayName: 'Org' })).rejects.toBeInstanceOf(
+      ForbiddenException,
+    );
     await expect(controller.materials(req, VERIFICATION_ID)).rejects.toBeInstanceOf(ForbiddenException);
     await expect(controller.auditLogs(req, VERIFICATION_ID)).rejects.toBeInstanceOf(ForbiddenException);
   });
@@ -44,6 +48,9 @@ describe('AdminUserVerificationsController strictness suite', () => {
     await expect(controller.approve(reviewReq, 'bad-id', {})).rejects.toBeInstanceOf(BadRequestException);
     await expect(controller.reject(reviewReq, 'bad-id', { reason: 'x' })).rejects.toBeInstanceOf(BadRequestException);
     await expect(controller.updateLogo(reviewReq, 'bad-id', { logoFileId: 'file-1' })).rejects.toBeInstanceOf(
+      BadRequestException,
+    );
+    await expect(controller.updateProfile(reviewReq, 'bad-id', { displayName: 'Org' })).rejects.toBeInstanceOf(
       BadRequestException,
     );
     await expect(controller.materials(readReq, 'bad-id')).rejects.toBeInstanceOf(BadRequestException);
@@ -82,6 +89,30 @@ describe('AdminUserVerificationsController strictness suite', () => {
     const updated = await controller.updateLogo(req, ` ${VERIFICATION_ID} `, { logoFileId: 'file-2' });
     expect(users.adminUpdateVerificationLogo).toHaveBeenCalledWith(VERIFICATION_ID, 'file-2', 'admin-1');
     expect(updated).toMatchObject({ id: VERIFICATION_ID, logoFileId: 'file-2' });
+  });
+
+  it('forwards profile updates with normalized id', async () => {
+    const req = { auth: { userId: 'admin-1', permissions: new Set(['verification.review']) } };
+    users.adminUpdateVerificationProfile.mockResolvedValueOnce({ id: VERIFICATION_ID, displayName: 'Updated Org' });
+
+    const updated = await controller.updateProfile(req, ` ${VERIFICATION_ID} `, {
+      displayName: 'Updated Org',
+      contactName: 'Bob',
+      regionCode: '440000',
+      intro: 'updated intro',
+    });
+
+    expect(users.adminUpdateVerificationProfile).toHaveBeenCalledWith(
+      VERIFICATION_ID,
+      {
+        displayName: 'Updated Org',
+        contactName: 'Bob',
+        regionCode: '440000',
+        intro: 'updated intro',
+      },
+      'admin-1',
+    );
+    expect(updated).toMatchObject({ id: VERIFICATION_ID, displayName: 'Updated Org' });
   });
 
   it('forwards materials and audit logs lookup with normalized id', async () => {

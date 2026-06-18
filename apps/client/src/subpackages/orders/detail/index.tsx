@@ -56,7 +56,7 @@ function reasonLabel(code: RefundReasonCode): string {
 }
 
 function milestoneNameLabel(name?: string | null): string {
-  if (!name) return '里程碑待补充';
+  if (!name) return '关键节点';
   if (name === 'CONTRACT_SIGNED') return '合同签署';
   if (name === 'TRANSFER_SUBMITTED') return '权属提交';
   if (name === 'TRANSFER_COMPLETED') return '权属变更完成';
@@ -514,7 +514,7 @@ export default function OrderDetailPage() {
 
   return (
     <View className="container detail-page-compact">
-      <PageHeader weapp title="订单详情" subtitle={`订单号：${orderId.slice(0, 8)}…`} />
+      <PageHeader weapp title="订单详情" subtitle="查看交易进度、退款与发票信息" />
       <Spacer />
 
       {access.state !== 'ok' ? (

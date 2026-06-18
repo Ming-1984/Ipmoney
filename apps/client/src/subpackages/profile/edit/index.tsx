@@ -1,6 +1,6 @@
 ﻿import { Button as TaroButton, Text, View } from '@tarojs/components';
-import Taro from '@tarojs/taro';
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import Taro, { useDidHide, useDidShow } from '@tarojs/taro';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import './index.scss';
 
 import type { components } from '@ipmoney/api-types';
@@ -9,10 +9,12 @@ import { API_BASE_URL } from '../../../constants';
 import { getToken, setOnboardingDone, setVerificationStatus, setVerificationType } from '../../../lib/auth';
 import { apiGet, apiPatch, apiPost } from '../../../lib/api';
 import { getDetailCache, setDetailCache } from '../../../lib/detailCache';
+import { displayInitial, displayUserName, normalizeDisplayText } from '../../../lib/displayText';
 import { requireLogin } from '../../../lib/guard';
 import { normalizePageUrl } from '../../../lib/navigation';
 import { openRegionPickerPage } from '../../../lib/regionPicker';
 import { regionDisplayName } from '../../../lib/regions';
+import { useRouteStringParam } from '../../../lib/routeParams';
 import { uploadWithRetry } from '../../../lib/upload';
 import { ErrorCard, LoadingCard } from '../../../ui/StateCards';
 import { Photograph } from '../../../ui/icons';
@@ -26,7 +28,6 @@ const PROFILE_CACHE_SCOPE = 'me-profile';
 const PROFILE_CACHE_KEY = 'self';
 
 export default function ProfileEditPage() {
-  const params = useMemo(() => Taro.getCurrentInstance().router?.params || {}, []);
   const env = useMemo(() => Taro.getEnv(), []);
   const isWeapp = env === Taro.ENV_TYPE.WEAPP;
   const canChooseAvatar = useMemo(
@@ -34,11 +35,12 @@ export default function ProfileEditPage() {
     [isWeapp],
   );
 
-  const from = String((params as any)?.from || '');
-  const nextType = String((params as any)?.nextType || '');
-  const rawNextUrl = ((params as any)?.nextUrl ? decodeURIComponent(String((params as any)?.nextUrl)) : '') || '';
+  const from = useRouteStringParam('from') || '';
+  const nextType = useRouteStringParam('nextType') || '';
+  const nextUrlParam = useRouteStringParam('nextUrl') || '';
+  const rawNextUrl = nextUrlParam ? decodeURIComponent(String(nextUrlParam)) : '';
   const nextUrl = useMemo(() => normalizePageUrl(rawNextUrl), [rawNextUrl]);
-  const verifyType = String((params as any)?.verifyType || '').trim();
+  const verifyType = (useRouteStringParam('verifyType') || '').trim();
   const isOnboarding = from === 'login';
   const initialCachedProfile = getDetailCache<UserProfile>(PROFILE_CACHE_SCOPE, PROFILE_CACHE_KEY);
 
@@ -50,6 +52,23 @@ export default function ProfileEditPage() {
   const [nickname, setNickname] = useState(initialCachedProfile?.nickname || '');
   const [regionCode, setRegionCode] = useState(initialCachedProfile?.regionCode || '');
   const [regionName, setRegionName] = useState('');
+  const pageVisibleRef = useRef(true);
+  const loadSeqRef = useRef(0);
+  const uploadSeqRef = useRef(0);
+  const saveSeqRef = useRef(0);
+  const skipSeqRef = useRef(0);
+
+  useDidShow(() => {
+    pageVisibleRef.current = true;
+  });
+
+  useDidHide(() => {
+    pageVisibleRef.current = false;
+    loadSeqRef.current += 1;
+    uploadSeqRef.current += 1;
+    saveSeqRef.current += 1;
+    skipSeqRef.current += 1;
+  });
 
   const goNext = useCallback(() => {
     if (nextType === 'redirectTo' && nextUrl) {
@@ -67,23 +86,35 @@ export default function ProfileEditPage() {
     Taro.navigateBack();
   }, [nextType, nextUrl]);
 
+  const resolvedDisplayName = useMemo(() => displayUserName(me, ''), [me]);
+  const displayInitialText = useMemo(
+    () => displayInitial(normalizeDisplayText(nickname) || resolvedDisplayName, '平'),
+    [nickname, resolvedDisplayName],
+  );
+
   const skip = useCallback(async () => {
+    const seq = ++skipSeqRef.current;
     if (verifyType === 'PERSON') {
       try {
-        const displayName = nickname.trim() || me?.nickname || '个人用户';
-        const res = await apiPost<any>('/me/verification', { type: 'PERSON', displayName });
-        setVerificationType('PERSON');
-        setVerificationStatus(res?.status || 'APPROVED');
-        setOnboardingDone(true);
+        const displayName = normalizeDisplayText(nickname) || resolvedDisplayName;
+        if (displayName) {
+          const res = await apiPost<any>('/me/verification', { type: 'PERSON', displayName });
+          if (seq !== skipSeqRef.current || !pageVisibleRef.current) return;
+          setVerificationType('PERSON');
+          if (res?.status) setVerificationStatus(res.status);
+          setOnboardingDone(true);
+        }
       } catch {
         // Keep skip available even when backend isn't ready.
       }
     }
+    if (seq !== skipSeqRef.current || !pageVisibleRef.current) return;
     goNext();
-  }, [goNext, me?.nickname, nickname, verifyType]);
+  }, [goNext, nickname, resolvedDisplayName, verifyType]);
 
   const load = useCallback(async () => {
     if (!requireLogin()) return;
+    const seq = ++loadSeqRef.current;
     const cached = getDetailCache<UserProfile>(PROFILE_CACHE_SCOPE, PROFILE_CACHE_KEY);
     if (cached) {
       setMe(cached);
@@ -99,6 +130,7 @@ export default function ProfileEditPage() {
     }
     try {
       const d = await apiGet<UserProfile>('/me');
+      if (seq !== loadSeqRef.current) return;
       setMe(d);
       setAvatarUrl(d.avatarUrl || '');
       setNickname(d.nickname || '');
@@ -106,12 +138,15 @@ export default function ProfileEditPage() {
       setRegionName('');
       setDetailCache(PROFILE_CACHE_SCOPE, PROFILE_CACHE_KEY, d);
     } catch (e: any) {
+      if (seq !== loadSeqRef.current) return;
       if (!cached) {
         setError(e?.message || '加载失败');
         setMe(null);
       }
     } finally {
-      setLoading(false);
+      if (seq === loadSeqRef.current) {
+        setLoading(false);
+      }
     }
   }, []);
 
@@ -120,6 +155,7 @@ export default function ProfileEditPage() {
   }, [load]);
 
   const uploadAvatarFromPath = useCallback(async (tempPath: string) => {
+    const seq = ++uploadSeqRef.current;
     let trimmed = String(tempPath || '').trim();
     if (!trimmed) return false;
 
@@ -156,6 +192,7 @@ export default function ProfileEditPage() {
       if (uploadRes.statusCode >= 200 && uploadRes.statusCode < 300) {
         const parsed = JSON.parse(String(uploadRes.data || '{}')) as Partial<FileObject>;
         if (typeof parsed.url === 'string' && parsed.url && String(parsed.mimeType || '').startsWith('image/')) {
+          if (seq !== uploadSeqRef.current || !pageVisibleRef.current) return false;
           setAvatarUrl(parsed.url);
           return true;
         }
@@ -164,6 +201,7 @@ export default function ProfileEditPage() {
       // ignore upload failure and use local path fallback
     }
 
+    if (seq !== uploadSeqRef.current || !pageVisibleRef.current) return false;
     setAvatarUrl(localPath);
     return true;
   }, []);
@@ -208,9 +246,10 @@ export default function ProfileEditPage() {
 
   const save = useCallback(async () => {
     if (!requireLogin()) return;
-    const nick = nickname.trim();
-    const avatar = avatarUrl.trim();
-    const region = regionCode.trim();
+    const seq = ++saveSeqRef.current;
+    const nick = normalizeDisplayText(nickname);
+    const avatar = normalizeDisplayText(avatarUrl);
+    const region = normalizeDisplayText(regionCode);
 
     if (!avatar) {
       toast('请先选择头像');
@@ -235,24 +274,31 @@ export default function ProfileEditPage() {
         avatarUrl: avatar,
         regionCode: region,
       });
+      if (seq !== saveSeqRef.current || !pageVisibleRef.current) return;
       setMe(d);
       setDetailCache(PROFILE_CACHE_SCOPE, PROFILE_CACHE_KEY, d);
 
       if (verifyType === 'PERSON') {
-        const res = await apiPost<any>('/me/verification', { type: 'PERSON', displayName: nick });
+        const verificationDisplayName = nick || resolvedDisplayName;
+        const res = await apiPost<any>('/me/verification', { type: 'PERSON', displayName: verificationDisplayName });
+        if (seq !== saveSeqRef.current || !pageVisibleRef.current) return;
         setVerificationType('PERSON');
-        setVerificationStatus(res?.status || 'APPROVED');
+        if (res?.status) setVerificationStatus(res.status);
         setOnboardingDone(true);
         toast('注册成功', { icon: 'success' });
       } else {
         toast('已保存', { icon: 'success' });
       }
 
-      setTimeout(() => goNext(), 200);
+      setTimeout(() => {
+        if (seq !== saveSeqRef.current || !pageVisibleRef.current) return;
+        goNext();
+      }, 200);
     } catch (e: any) {
+      if (seq !== saveSeqRef.current || !pageVisibleRef.current) return;
       toast(e?.message || '保存失败');
     }
-  }, [avatarUrl, goNext, nickname, regionCode, verifyType]);
+  }, [avatarUrl, goNext, nickname, regionCode, resolvedDisplayName, verifyType]);
 
   const regionText = useMemo(() => regionDisplayName(regionCode, regionName, ''), [regionCode, regionName]);
 
@@ -294,7 +340,7 @@ export default function ProfileEditPage() {
                     <Avatar
                       size="96"
                       src={avatarUrl}
-                      icon={<Text className="text-strong">{(nickname.trim() || me?.nickname || 'U').slice(0, 1)}</Text>}
+                      icon={<Text className="text-strong">{displayInitialText}</Text>}
                     />
                     {isWeapp && canChooseAvatar ? (
                       <TaroButton className="profile-avatar-choose" openType="chooseAvatar" onChooseAvatar={handleChooseAvatar} />

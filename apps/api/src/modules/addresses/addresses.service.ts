@@ -27,6 +27,14 @@ export class AddressesService {
     return raw;
   }
 
+  private parseRequiredStringStrict(value: unknown, fieldName: string): string {
+    const raw = String(value ?? '').trim();
+    if (!raw) {
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: `${fieldName} is invalid` });
+    }
+    return raw;
+  }
+
   private parseUuidStrict(value: unknown, fieldName: string): string {
     const raw = String(value ?? '').trim();
     if (!raw || !UUID_RE.test(raw)) {
@@ -62,9 +70,9 @@ export class AddressesService {
     this.ensureAuth(req);
     const userId = req.auth.userId;
     const isDefault = Boolean(body?.isDefault);
-    const name = String(body?.name || '收货人');
-    const phone = String(body?.phone || '');
-    const addressLine = String(body?.addressLine || '');
+    const name = this.parseRequiredStringStrict(body?.name, 'name');
+    const phone = this.parseRequiredStringStrict(body?.phone, 'phone');
+    const addressLine = this.parseRequiredStringStrict(body?.addressLine, 'addressLine');
     const hasRegionCode = this.hasOwn(body, 'regionCode');
     const regionCode = hasRegionCode ? this.parseNullableRegionCodeStrict(body?.regionCode, 'regionCode') : null;
 

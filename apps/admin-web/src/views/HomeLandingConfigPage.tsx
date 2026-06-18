@@ -114,7 +114,7 @@ function defaultHomeLandingConfig(): HomeLandingConfig {
         {
           id: 'sleeping',
           title: '沉睡专利',
-          subtitle: '转让次数为 0 的专利',
+          subtitle: '平台标记的沉睡专利',
           imageUrl: 'builtin://zone-sleeping',
           enabled: true,
           order: 20,
@@ -345,7 +345,7 @@ export function HomeLandingConfigPage() {
     }
 
     for (const item of payload.featuredZones.items || []) {
-      if (!item.id.trim()) return '特色卡片 ID 不能为空。';
+      if (!item.id.trim()) return '特色卡片标识不能为空。';
       if (!item.title.trim()) return `特色卡片(${item.id})标题不能为空。`;
       if (!item.subtitle.trim()) return `特色卡片(${item.id})副标题不能为空。`;
       if (!item.imageUrl.trim()) return `特色卡片(${item.id})图片地址不能为空。`;
@@ -406,7 +406,7 @@ export function HomeLandingConfigPage() {
       setJsonText(JSON.stringify(normalized, null, 2));
       message.success('已同步到可视化编辑区');
     } catch (e: any) {
-      message.error(e?.message || 'JSON 格式错误，无法应用');
+      message.error(e?.message || '高级文本格式错误，无法应用');
     }
   }, [form, jsonText]);
 
@@ -416,7 +416,7 @@ export function HomeLandingConfigPage() {
       const normalized = normalizeHomeLandingConfig(parsed);
       await persist(normalized);
     } catch (e: any) {
-      message.error(e?.message || 'JSON 格式错误，无法保存');
+      message.error(e?.message || '高级文本格式错误，无法保存');
     }
   }, [jsonText, persist]);
 
@@ -537,7 +537,7 @@ export function HomeLandingConfigPage() {
                     >
                       <Space direction="vertical" size={10} style={{ width: '100%' }}>
                         <Space wrap size={12}>
-                          <Form.Item label="ID" name={[field.name, 'id']} style={{ width: 220 }}>
+                          <Form.Item label="卡片标识" name={[field.name, 'id']} style={{ width: 220 }}>
                             <Input maxLength={40} placeholder="例如：retired" />
                           </Form.Item>
                           <Form.Item label="标题" name={[field.name, 'title']} style={{ width: 220 }}>
@@ -660,7 +660,7 @@ export function HomeLandingConfigPage() {
               重新加载
             </Button>
             <Button onClick={syncJsonFromForm} disabled={saving}>
-              同步 JSON 预览
+              同步文本预览
             </Button>
             <Button type="primary" loading={saving} onClick={() => void saveVisual()}>
               保存可视化配置
@@ -671,7 +671,7 @@ export function HomeLandingConfigPage() {
     },
     {
       key: 'json',
-      label: 'JSON模式',
+      label: '高级文本模式',
       children: (
         <Card>
           <Space direction="vertical" size={12} style={{ width: '100%' }}>
@@ -682,7 +682,7 @@ export function HomeLandingConfigPage() {
               rows={26}
               value={jsonText}
               onChange={(e) => setJsonText(e.target.value)}
-              placeholder="请输入 /admin/config/home-landing JSON"
+              placeholder="请输入首页运营配置文本"
             />
             <Space>
               <Button onClick={() => void load()} disabled={saving}>
@@ -692,7 +692,7 @@ export function HomeLandingConfigPage() {
                 应用到可视化
               </Button>
               <Button type="primary" loading={saving} onClick={() => void saveJson()}>
-                保存 JSON
+                保存高级文本配置
               </Button>
             </Space>
           </Space>
@@ -708,7 +708,7 @@ export function HomeLandingConfigPage() {
           首页运营配置
         </Typography.Title>
         <Typography.Paragraph type="secondary" style={{ marginBottom: 0 }}>
-          可视化编辑优先，JSON 模式作为高级兜底。保存后实时生效。
+          可视化编辑优先，高级文本模式作为兜底。保存后实时生效。
         </Typography.Paragraph>
       </Card>
 

@@ -164,11 +164,17 @@ describe('PatentMaintenanceService write flow suite', () => {
     await expect(service.createTask(REQ, { scheduleId: SCHEDULE_ID, assignedCsUserId: CS_USER_ID })).rejects.toBeInstanceOf(
       BadRequestException,
     );
+
+    prisma.patentMaintenanceSchedule.findUnique.mockResolvedValueOnce({ id: SCHEDULE_ID });
+    prisma.user.findUnique.mockResolvedValueOnce({ id: CS_USER_ID, role: 'user', rbacRoles: [] });
+    await expect(service.createTask(REQ, { scheduleId: SCHEDULE_ID, assignedCsUserId: CS_USER_ID })).rejects.toBeInstanceOf(
+      BadRequestException,
+    );
   });
 
   it('createTask creates task with normalized payload and audit', async () => {
     prisma.patentMaintenanceSchedule.findUnique.mockResolvedValueOnce({ id: SCHEDULE_ID });
-    prisma.user.findUnique.mockResolvedValueOnce({ id: CS_USER_ID });
+    prisma.user.findUnique.mockResolvedValueOnce({ id: CS_USER_ID, role: 'cs', rbacRoles: [] });
     prisma.patentMaintenanceTask.create.mockResolvedValueOnce(buildTask({ status: 'IN_PROGRESS', note: 'check files' }));
 
     const result = await service.createTask(REQ, {
@@ -184,6 +190,18 @@ describe('PatentMaintenanceService write flow suite', () => {
         assignedCsUserId: CS_USER_ID,
         status: 'IN_PROGRESS',
         note: 'check files',
+      },
+      include: {
+        assignedCsUser: {
+          select: {
+            nickname: true,
+            verifications: {
+              orderBy: { submittedAt: 'desc' },
+              take: 1,
+              select: { displayName: true },
+            },
+          },
+        },
       },
     });
     expect(audit.log).toHaveBeenCalledWith(expect.objectContaining({ action: 'MAINTENANCE_TASK_CREATE' }));
@@ -202,6 +220,12 @@ describe('PatentMaintenanceService write flow suite', () => {
     prisma.patentMaintenanceTask.findUnique.mockResolvedValueOnce(buildTask());
     prisma.user.findUnique.mockResolvedValueOnce(null);
     await expect(service.updateTask(REQ, TASK_ID, { assignedCsUserId: 'cs-x' })).rejects.toBeInstanceOf(
+      BadRequestException,
+    );
+
+    prisma.patentMaintenanceTask.findUnique.mockResolvedValueOnce(buildTask());
+    prisma.user.findUnique.mockResolvedValueOnce({ id: CS_USER_ID, role: 'user', rbacRoles: [] });
+    await expect(service.updateTask(REQ, TASK_ID, { assignedCsUserId: CS_USER_ID })).rejects.toBeInstanceOf(
       BadRequestException,
     );
 
@@ -235,6 +259,18 @@ describe('PatentMaintenanceService write flow suite', () => {
         status: 'DONE',
         note: null,
         evidenceFileId: null,
+      },
+      include: {
+        assignedCsUser: {
+          select: {
+            nickname: true,
+            verifications: {
+              orderBy: { submittedAt: 'desc' },
+              take: 1,
+              select: { displayName: true },
+            },
+          },
+        },
       },
     });
     expect(audit.log).toHaveBeenCalledWith(expect.objectContaining({ action: 'MAINTENANCE_TASK_UPDATE' }));

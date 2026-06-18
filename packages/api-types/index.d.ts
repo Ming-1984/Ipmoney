@@ -1162,6 +1162,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/webhooks/wechat/content-security": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** WeChat content security callback */
+        post: operations["wechatContentSecurityNotify"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/me/conversations": {
         parameters: {
             query?: never;
@@ -1171,6 +1188,23 @@ export interface paths {
         };
         /** 閼惧嘲褰囬幋鎴犳畱娴兼俺鐦介崚妤勩€? */
         get: operations["listMyConversations"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/me/conversations/{conversationId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get my conversation detail */
+        get: operations["getMyConversation"];
         put?: never;
         post?: never;
         delete?: never;
@@ -2294,6 +2328,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/me/patent-maintenance/summary": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get my maintenance summary */
+        get: operations["getMyMaintenanceSummary"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/me/patent-maintenance/orders/{orderId}": {
         parameters: {
             query?: never;
@@ -2655,6 +2706,57 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/admin/imports/people-achievements/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Preview people and achievements bulk import */
+        post: operations["adminPreviewPeopleAchievementsImport"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/imports/people-achievements/execute": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Execute people and achievements bulk import */
+        post: operations["adminExecutePeopleAchievementsImport"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/imports/people-achievements/history": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List people and achievements bulk import history */
+        get: operations["adminListPeopleAchievementsImportHistory"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/admin/tech-managers": {
         parameters: {
             query?: never;
@@ -2900,7 +3002,8 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get?: never;
+        /** Get order invoice (admin) */
+        get: operations["adminGetOrderInvoice"];
         /** 娑撳﹣绱?閺囨寧宕茬拋銏犲礋閻㈤潧鐡欓崣鎴犮偍閿涘牐鍌ㄩ崝鈽呯礆 */
         put: operations["adminUpsertOrderInvoice"];
         /** Issue order invoice (admin demo) */
@@ -2972,6 +3075,23 @@ export interface paths {
         };
         /** List audit logs */
         get: operations["adminListAuditLogs"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/orders": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List orders (admin) */
+        get: operations["adminListOrders"];
         put?: never;
         post?: never;
         delete?: never;
@@ -3618,6 +3738,7 @@ export interface components {
             /** @description 閹靛婧€閸欏嚖绱欓崣顖炩偓澶涚幢閺堫亞绮︾€规碍澧滈張鍝勫娇閻ㄥ嫬浜曟穱锛勬暏閹村嘲褰查懗鎴掕礋缁岀尨绱? */
             phone?: components["schemas"]["PhoneNumber"];
             nickname?: string;
+            displayName?: string;
             /** Format: uri */
             avatarUrl?: string;
             role: components["schemas"]["UserRole"];
@@ -3673,6 +3794,7 @@ export interface components {
             roleIds: string[];
             permissions: string[];
             nickname?: string;
+            displayName?: string;
             verificationStatus?: string;
             verificationType?: string | null;
         };
@@ -3965,6 +4087,7 @@ export interface components {
              */
             featuredUntil?: string;
             stats?: components["schemas"]["ListingStats"];
+            seller?: components["schemas"]["UserBrief"];
             /** @description 鏉烆剝顔€濞嗏剝鏆熼敍? 鐞涖劎銇氬▽澶屾蒋娑撴挸鍩勯敍? */
             transferCount?: number;
             /**
@@ -4008,7 +4131,6 @@ export interface components {
             proofFileIds?: components["schemas"]["Uuid"][];
         };
         ListingPublic: components["schemas"]["ListingSummary"] & {
-            seller?: components["schemas"]["UserBrief"];
             summary?: string;
             /** @description 閸欘垯姘︽禒妯跨カ閺傛瑦绔婚崡鏇礄缁€杞扮伐閿涙碍绨弬鍥︽/閺夊啫鐫橀弶鎰灐/閹垛偓閺堫垱鏋冨锝忕礆 */
             deliverables?: string[];
@@ -4412,6 +4534,83 @@ export interface components {
             url: string | null;
         };
         /** @enum {string} */
+        PeopleAchievementsImportRatingPolicy: "KEEP_EXISTING" | "FILL_MISSING" | "FORCE_SET";
+        /** @description At least one of `peopleFileId` or `achievementsFileId` is required. */
+        PeopleAchievementsImportRequest: {
+            peopleFileId?: components["schemas"]["Uuid"];
+            achievementsFileId?: components["schemas"]["Uuid"];
+            /** @description Optional source batch marker. Defaults to `people-achievements-manual`. */
+            sourceBatch?: string;
+            /** @description Fallback region code for imported records. */
+            defaultRegionCode?: string;
+            ratingPolicy?: components["schemas"]["PeopleAchievementsImportRatingPolicy"];
+            /** Format: double */
+            defaultRatingScore?: number;
+            defaultRatingCount?: number;
+        };
+        PeopleAchievementsImportInput: {
+            peopleFileId?: components["schemas"]["Uuid"];
+            achievementsFileId?: components["schemas"]["Uuid"];
+            sourceBatch: string;
+            defaultRegionCode: string;
+            ratingPolicy: components["schemas"]["PeopleAchievementsImportRatingPolicy"];
+            /** Format: double */
+            defaultRatingScore: number;
+            defaultRatingCount: number;
+        };
+        PeopleAchievementsImportRowError: {
+            rowNo: number;
+            reason: string;
+        };
+        PeopleAchievementsImportPreviewSection: {
+            totalRows: number;
+            validRows: number;
+            invalidRows: number;
+            sampleErrors: components["schemas"]["PeopleAchievementsImportRowError"][];
+        };
+        PeopleAchievementsImportExecuteSection: {
+            totalRows: number;
+            validRows: number;
+            invalidRows: number;
+            sampleErrors: components["schemas"]["PeopleAchievementsImportRowError"][];
+            created: number;
+            updated: number;
+            skipped: number;
+            failed: number;
+        };
+        PeopleAchievementsImportPreviewResponse: {
+            /** @enum {string} */
+            scope: "PEOPLE_ACHIEVEMENTS";
+            input: components["schemas"]["PeopleAchievementsImportInput"];
+            people: components["schemas"]["PeopleAchievementsImportPreviewSection"];
+            achievements: components["schemas"]["PeopleAchievementsImportPreviewSection"];
+        };
+        PeopleAchievementsImportExecuteResponse: {
+            /** @enum {string} */
+            scope: "PEOPLE_ACHIEVEMENTS";
+            input: components["schemas"]["PeopleAchievementsImportInput"];
+            people: components["schemas"]["PeopleAchievementsImportExecuteSection"];
+            achievements: components["schemas"]["PeopleAchievementsImportExecuteSection"];
+        };
+        /** @enum {string} */
+        PeopleAchievementsImportHistoryAction: "BULK_IMPORT_PREVIEW" | "BULK_IMPORT_EXECUTE";
+        PeopleAchievementsImportHistoryItem: {
+            id: components["schemas"]["Uuid"];
+            action: components["schemas"]["PeopleAchievementsImportHistoryAction"];
+            actorUserId: components["schemas"]["Uuid"];
+            actorName?: string | null;
+            actorPhone?: string | null;
+            /** Format: date-time */
+            createdAt: string;
+            input: components["schemas"]["PeopleAchievementsImportInput"];
+            people: components["schemas"]["PeopleAchievementsImportExecuteSection"];
+            achievements: components["schemas"]["PeopleAchievementsImportExecuteSection"];
+        };
+        PagedPeopleAchievementsImportHistory: {
+            items: components["schemas"]["PeopleAchievementsImportHistoryItem"][];
+            page: components["schemas"]["PageMeta"];
+        };
+        /** @enum {string} */
         PatentJobStatus: "PENDING" | "RUNNING" | "PAUSED" | "SUCCEEDED" | "FAILED";
         /** @enum {string} */
         PatentImportDuplicatePolicy: "SKIP" | "OVERWRITE";
@@ -4548,6 +4747,9 @@ export interface components {
             totalListingCount: number;
             totalPatentCount: number;
             totalRegionCount: number;
+            regionsWithListingsCount: number;
+            regionsWithPatentsCount: number;
+            regionsWithActiveRankedCount: number;
             rankedListingCount: number;
             activeRankedListingCount: number;
             unassignedListingCount: number;
@@ -4710,28 +4912,37 @@ export interface components {
         TechManagerSummary: {
             userId: components["schemas"]["Uuid"];
             displayName: string;
-            verificationType: components["schemas"]["VerificationType"];
-            verificationStatus: components["schemas"]["VerificationStatus"];
             regionCode?: string;
             /** Format: uri */
             avatarUrl?: string;
             intro?: string;
             position?: string;
             organization?: string;
+            experienceLabel?: string;
+            levelLabel?: string;
             serviceDirections?: string[];
             workHighlights?: string;
-            contactName?: string;
-            contactPhone?: string;
             serviceTags?: string[];
             stats?: components["schemas"]["TechManagerStats"];
             /** Format: date-time */
             verifiedAt?: string;
         };
-        TechManagerPublic: components["schemas"]["TechManagerSummary"] & {
-            evidenceFileIds?: components["schemas"]["Uuid"][];
+        AdminTechManagerSummary: components["schemas"]["TechManagerSummary"] & {
+            verificationType: components["schemas"]["VerificationType"];
+            verificationStatus: components["schemas"]["VerificationStatus"];
+            contactName?: string;
+            contactPhone?: string;
+            featuredRank?: number;
+            /** Format: date-time */
+            featuredUntil?: string;
         };
+        TechManagerPublic: components["schemas"]["TechManagerSummary"];
         PagedTechManagerSummary: {
             items: components["schemas"]["TechManagerSummary"][];
+            page: components["schemas"]["PageMeta"];
+        };
+        PagedAdminTechManagerSummary: {
+            items: components["schemas"]["AdminTechManagerSummary"][];
             page: components["schemas"]["PageMeta"];
         };
         TechManagerUpdateRequest: {
@@ -4741,6 +4952,8 @@ export interface components {
             serviceTags?: string[];
             position?: string | null;
             organization?: string | null;
+            experienceLabel?: string | null;
+            levelLabel?: string | null;
             serviceDirections?: string[];
             workHighlights?: string | null;
             contactName?: string | null;
@@ -5142,6 +5355,7 @@ export interface components {
         };
         UserBrief: {
             id: components["schemas"]["Uuid"];
+            displayName?: string;
             nickname?: string;
             /** Format: uri */
             avatarUrl?: string;
@@ -5154,6 +5368,18 @@ export interface components {
         CommentContentType: "LISTING" | "ACHIEVEMENT";
         /** @enum {string} */
         CommentStatus: "VISIBLE" | "HIDDEN" | "DELETED";
+        PublicCommentUser: {
+            id: components["schemas"]["Uuid"];
+            displayName?: string;
+            nickname?: string;
+            /** Format: uri */
+            avatarUrl?: string;
+            role?: components["schemas"]["UserRole"];
+        };
+        AdminCommentUser: components["schemas"]["PublicCommentUser"] & {
+            verificationStatus?: components["schemas"]["VerificationStatus"];
+            verificationType?: components["schemas"]["VerificationType"];
+        };
         Comment: {
             id: components["schemas"]["Uuid"];
             contentType: components["schemas"]["CommentContentType"];
@@ -5161,7 +5387,7 @@ export interface components {
             /** @description 娑撹櫣鈹栫悰銊с仛閺嶅湱鏆€鐟封偓閿涙盯娼粚楦裤€冪粈鍝勬礀婢跺秵鐓囬弶锛勬殌鐟封偓 */
             parentCommentId?: components["schemas"]["Uuid"];
             status?: components["schemas"]["CommentStatus"];
-            user: components["schemas"]["UserBrief"];
+            user: components["schemas"]["PublicCommentUser"];
             text: string;
             /** Format: date-time */
             createdAt: string;
@@ -5171,6 +5397,10 @@ export interface components {
         CommentThread: {
             root: components["schemas"]["Comment"];
             replies: components["schemas"]["Comment"][];
+        };
+        AdminComment: components["schemas"]["Comment"] & {
+            contentTitle?: string | null;
+            user?: components["schemas"]["AdminCommentUser"];
         };
         PagedCommentThread: {
             items: components["schemas"]["CommentThread"][];
@@ -5188,7 +5418,7 @@ export interface components {
             status: components["schemas"]["CommentStatus"];
         };
         PagedComment: {
-            items: components["schemas"]["Comment"][];
+            items: components["schemas"]["AdminComment"][];
             page: components["schemas"]["PageMeta"];
         };
         /** @enum {string} */
@@ -8428,6 +8658,36 @@ export interface operations {
             400: components["responses"]["BadRequest"];
         };
     };
+    wechatContentSecurityNotify: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": {
+                    [key: string]: unknown;
+                };
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        code: string;
+                        message: string;
+                    };
+                };
+            };
+            400: components["responses"]["BadRequest"];
+        };
+    };
     listMyConversations: {
         parameters: {
             query?: {
@@ -8450,6 +8710,31 @@ export interface operations {
                 };
             };
             401: components["responses"]["Unauthorized"];
+        };
+    };
+    getMyConversation: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                conversationId: components["parameters"]["ConversationId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConversationSummary"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            404: components["responses"]["NotFound"];
         };
     };
     upsertListingConversation: {
@@ -10814,6 +11099,32 @@ export interface operations {
             409: components["responses"]["Conflict"];
         };
     };
+    getMyMaintenanceSummary: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        overdue: number;
+                        dueSoon: number;
+                        openTasks: number;
+                        openOrders: number;
+                    };
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+        };
+    };
     getMyPatentMaintenanceOrder: {
         parameters: {
             query?: never;
@@ -11526,6 +11837,96 @@ export interface operations {
             404: components["responses"]["NotFound"];
         };
     };
+    adminPreviewPeopleAchievementsImport: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description 楠炲倻鐡戦柨顕嗙礄瀵ら缚顔呴悽銊ょ艾閺€顖欑帛/闁偓濞?閺€鐐儥缁涘婀侀崜顖欑稊閻劎娈戦幒銉ュ經閿涙稑鎮撴稉鈧獮鍌滅搼闁款喚娈戦柌宥咁槻鐠囬攱鐪版惔鏃囩箲閸ョ偛鎮撴稉鈧紒鎾寸亯閿? */
+                "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PeopleAchievementsImportRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PeopleAchievementsImportPreviewResponse"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            409: components["responses"]["Conflict"];
+        };
+    };
+    adminExecutePeopleAchievementsImport: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description 楠炲倻鐡戦柨顕嗙礄瀵ら缚顔呴悽銊ょ艾閺€顖欑帛/闁偓濞?閺€鐐儥缁涘婀侀崜顖欑稊閻劎娈戦幒銉ュ經閿涙稑鎮撴稉鈧獮鍌滅搼闁款喚娈戦柌宥咁槻鐠囬攱鐪版惔鏃囩箲閸ョ偛鎮撴稉鈧紒鎾寸亯閿? */
+                "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PeopleAchievementsImportRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PeopleAchievementsImportExecuteResponse"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            409: components["responses"]["Conflict"];
+        };
+    };
+    adminListPeopleAchievementsImportHistory: {
+        parameters: {
+            query?: {
+                action?: "ALL" | "PREVIEW" | "EXECUTE";
+                actorUserId?: components["schemas"]["Uuid"];
+                page?: components["parameters"]["Page"];
+                pageSize?: components["parameters"]["PageSize"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PagedPeopleAchievementsImportHistory"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+        };
+    };
     adminListTechManagers: {
         parameters: {
             query?: {
@@ -11556,7 +11957,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["PagedTechManagerSummary"];
+                    "application/json": components["schemas"]["PagedAdminTechManagerSummary"];
                 };
             };
             400: components["responses"]["BadRequest"];
@@ -11585,7 +11986,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["TechManagerPublic"];
+                    "application/json": components["schemas"]["AdminTechManagerSummary"];
                 };
             };
             400: components["responses"]["BadRequest"];
@@ -11973,6 +12374,31 @@ export interface operations {
             409: components["responses"]["Conflict"];
         };
     };
+    adminGetOrderInvoice: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                orderId: components["parameters"]["OrderId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OrderInvoice"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
     adminUpsertOrderInvoice: {
         parameters: {
             query?: never;
@@ -12191,6 +12617,41 @@ export interface operations {
                     "application/json": components["schemas"]["PagedAuditLog"];
                 };
             };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+        };
+    };
+    adminListOrders: {
+        parameters: {
+            query?: {
+                /** @description 閸忔娊鏁拠宥忕礄閺嶅洭顣?閹芥顩?閺夊啫鍩勬禍?閸欐垶妲戞禍?閺堢儤鐎崥宥囆炵粵澶涚礆 */
+                q?: components["parameters"]["Q"];
+                status?: components["schemas"]["OrderStatus"];
+                buyerUserId?: components["schemas"]["Uuid"];
+                sellerUserId?: components["schemas"]["Uuid"];
+                techManagerUserId?: components["schemas"]["Uuid"];
+                listingId?: components["schemas"]["Uuid"];
+                createdFrom?: string;
+                createdTo?: string;
+                page?: components["parameters"]["Page"];
+                pageSize?: components["parameters"]["PageSize"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PagedOrder"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
         };

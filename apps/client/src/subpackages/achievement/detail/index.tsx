@@ -8,7 +8,7 @@ import type { components } from '@ipmoney/api-types';
 import { Heart, HeartFill } from '../../../ui/icons';
 
 import { apiGet, apiPost } from '../../../lib/api';
-import { displayInfoOrPlaceholder, displayTitleOrFallback, normalizeDisplayText } from '../../../lib/displayText';
+import { displayInfoOrPlaceholder, displayTitleOrFallback, displayUserName, normalizeDisplayText } from '../../../lib/displayText';
 import { favoriteAchievement, isAchievementFavorited, syncAchievementFavorites, unfavoriteAchievement } from '../../../lib/favorites';
 import { ensureApproved } from '../../../lib/guard';
 import { formatTimeSmart } from '../../../lib/format';
@@ -54,8 +54,10 @@ export default function AchievementDetailPage() {
     consultSeqRef.current += 1;
   });
 
+  const achievementTitleText = displayTitleOrFallback(data?.title, '成果详情');
+
   useShareAppMessage(() => ({
-    title: data?.title ? `成果详情：${data.title}` : '成果详情',
+    title: `成果详情：${achievementTitleText}`,
     path: achievementId ? `/subpackages/achievement/detail/index?achievementId=${achievementId}` : '/pages/home/index',
     imageUrl: data?.coverUrl || undefined,
   }));
@@ -197,10 +199,10 @@ export default function AchievementDetailPage() {
           ) : null}
 
           <Surface className="detail-compact-header">
-            <Text className="detail-compact-title">{displayTitleOrFallback(data.title, '未命名成果')}</Text>
+            <Text className="detail-compact-title">{displayTitleOrFallback(data.title, '成果标题待确认')}</Text>
             <View className="detail-compact-subline">
               <Text>发布时间 {formatTimeSmart(data.createdAt)}</Text>
-              {normalizeDisplayText(data.publisher?.displayName) ? <Text>发布方：{normalizeDisplayText(data.publisher?.displayName)}</Text> : null}
+              <Text>发布方：{displayUserName(data.publisher, '平台认证发布方')}</Text>
             </View>
             <View className="detail-compact-tags">
               {achievementMaturityLabel(data.maturity) ? (

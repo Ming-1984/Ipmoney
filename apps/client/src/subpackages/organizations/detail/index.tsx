@@ -7,7 +7,7 @@ import type { components } from '@ipmoney/api-types';
 
 import { apiGet } from '../../../lib/api';
 import { getDetailCache, setDetailCache } from '../../../lib/detailCache';
-import { displayInfoOrPlaceholder, displayTitleOrFallback, normalizeDisplayText } from '../../../lib/displayText';
+import { displayInfoOrPlaceholder, displayInitial, displayTitleOrFallback, normalizeDisplayText } from '../../../lib/displayText';
 import { verificationTypeLabel } from '../../../lib/labels';
 import { safeNavigateBack } from '../../../lib/navigation';
 import { regionDisplayName } from '../../../lib/regions';
@@ -18,6 +18,10 @@ import { Heart, Share2 } from '../../../ui/icons';
 import { EmptyCard, ErrorCard, LoadingCard, MissingParamCard } from '../../../ui/StateCards';
 
 type OrganizationSummary = components['schemas']['OrganizationSummary'];
+
+function resolveAvatarFallbackText(value: unknown, fallback: string): string {
+  return displayInitial(value, fallback);
+}
 
 export default function OrganizationDetailPage() {
   const orgUserId = useRouteUuidParam('orgUserId') || '';
@@ -95,14 +99,6 @@ export default function OrganizationDetailPage() {
     Taro.pageScrollTo({ selector: `#${id}`, duration: 300 });
   }, []);
 
-  if (!orgUserId) {
-    return (
-      <View className="container">
-        <MissingParamCard onAction={() => void safeNavigateBack()} />
-      </View>
-    );
-  }
-
   const logo = useMemo(() => {
     if (!data?.logoUrl) return '';
     return data.logoUrl.includes('example.com') ? '' : data.logoUrl;
@@ -110,8 +106,16 @@ export default function OrganizationDetailPage() {
 
   const displayName = normalizeDisplayText(data?.displayName);
   const regionText = normalizeDisplayText(regionDisplayName(data?.regionCode));
-  const titleText = displayTitleOrFallback(data?.displayName, '机构名称待补充');
-  const introText = displayInfoOrPlaceholder(data?.intro, '暂未公开简介');
+  const titleText = displayTitleOrFallback(data?.displayName, '平台认证机构');
+  const introText = displayInfoOrPlaceholder(data?.intro, displayName ? `${displayName}暂未公开简介` : '机构暂未公开简介');
+
+  if (!orgUserId) {
+    return (
+      <View className="container">
+        <MissingParamCard onAction={() => void safeNavigateBack()} />
+      </View>
+    );
+  }
 
   return (
     <View className="container detail-page-compact">
@@ -127,7 +131,7 @@ export default function OrganizationDetailPage() {
           <Surface className="detail-compact-header" id="org-overview">
             <View className="detail-compact-row">
               <Avatar size="48" src={logo} background="rgba(15, 23, 42, 0.06)" color="var(--c-muted)">
-                {(displayName || '机').slice(0, 1)}
+                {resolveAvatarFallbackText(displayName, '构')}
               </Avatar>
               <View style={{ flex: 1, minWidth: 0 }}>
                 <Text className="detail-compact-title clamp-2">{titleText}</Text>

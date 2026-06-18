@@ -3,7 +3,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
 import { apiGet, apiPatch, apiPost } from '../lib/api';
 import { formatTimeSmart } from '../lib/format';
-import { displayAdminInfo, displayAdminTitle, normalizeUserFacingText } from '../lib/userFacingText';
+import { displayAdminInfo, displayAdminTitle, formatRegionCodeDisplay, normalizeUserFacingText } from '../lib/userFacingText';
 import { auditStatusLabel, contentStatusLabel } from '../lib/labels';
 import { ImageUrlUploadField } from '../ui/ImageUrlUploadField';
 import { RequestErrorAlert } from '../ui/RequestState';
@@ -50,6 +50,13 @@ const SOURCE_OPTIONS: Array<{ value: ContentSource; label: string }> = [
   { value: 'PLATFORM', label: '平台导入' },
   { value: 'USER', label: '用户发布' },
 ];
+
+function achievementSourceLabel(value?: ContentSource | null): string {
+  if (value === 'ADMIN') return '后台录入';
+  if (value === 'PLATFORM') return '平台导入';
+  if (value === 'USER') return '用户发布';
+  return '来源待确认';
+}
 
 const MATURITY_OPTIONS: Array<{ value: AchievementMaturity; label: string }> = [
   { value: 'CONCEPT', label: '概念验证' },
@@ -374,14 +381,14 @@ export function AchievementsPage() {
             },
           }}
           columns={[
-            { title: '标题', dataIndex: 'title', ellipsis: true, render: (value) => displayAdminTitle(value, '未命名成果') },
+            { title: '标题', dataIndex: 'title', ellipsis: true, render: (value) => displayAdminTitle(value, '成果标题待确认') },
             {
               title: '来源',
               dataIndex: 'source',
               width: 120,
-              render: (v: ContentSource | undefined) => displayAdminInfo(SOURCE_OPTIONS.find((it) => it.value === v)?.label),
+              render: (v: ContentSource | undefined) => displayAdminInfo(achievementSourceLabel(v)),
             },
-            { title: '外部ID', dataIndex: 'externalId', width: 120, render: (v) => displayAdminInfo(v) },
+            { title: '外部来源编号', dataIndex: 'externalId', width: 120, render: (v) => displayAdminInfo(v) },
             { title: '来源批次', dataIndex: 'sourceBatch', width: 120, render: (v) => displayAdminInfo(v) },
             {
               title: '审核状态',
@@ -424,7 +431,7 @@ export function AchievementsPage() {
       </Space>
 
       <Drawer
-        title={active?.id ? `编辑成果：${normalizeUserFacingText(active.title) || active.id}` : '新建成果'}
+        title={active?.id ? `编辑成果：${normalizeUserFacingText(active.title) || '成果标题待确认'}` : '新建成果'}
         open={drawerOpen}
         onClose={() => setDrawerOpen(false)}
         width={780}
@@ -451,8 +458,12 @@ export function AchievementsPage() {
                 options={[{ value: '', label: '未设置' }, ...MATURITY_OPTIONS]}
               />
             </Form.Item>
-            <Form.Item label="地区编码" style={{ flex: 1 }}>
-              <Input value={regionCode} onChange={(e) => setRegionCode(e.target.value)} placeholder="如 440600" />
+            <Form.Item label="地区" style={{ flex: 1 }}>
+              <Input
+                value={regionCode}
+                onChange={(e) => setRegionCode(e.target.value)}
+                placeholder="可填写地区名称或地区代码"
+              />
             </Form.Item>
           </Space>
 
@@ -497,8 +508,8 @@ export function AchievementsPage() {
             <Form.Item label="来源类型" style={{ flex: 1 }}>
               <Select value={editSource} onChange={(v) => setEditSource(v as ContentSource)} options={SOURCE_OPTIONS} />
             </Form.Item>
-            <Form.Item label="外部ID" style={{ flex: 1 }}>
-              <Input value={externalId} onChange={(e) => setExternalId(e.target.value)} placeholder="如 成果ID" />
+            <Form.Item label="外部来源编号" style={{ flex: 1 }}>
+              <Input value={externalId} onChange={(e) => setExternalId(e.target.value)} placeholder="如 外部成果编号" />
             </Form.Item>
           </Space>
 

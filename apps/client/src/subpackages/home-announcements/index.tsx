@@ -5,6 +5,7 @@ import './index.scss';
 
 import type { PublicHomeAnnouncementItem } from '../../lib/homeAnnouncements';
 
+import { normalizeDisplayText } from '../../lib/displayText';
 import { formatTimeSmart } from '../../lib/format';
 import { usePageAccess } from '../../lib/guard';
 import { fetchHomeAnnouncements } from '../../lib/homeAnnouncements';
@@ -81,9 +82,11 @@ export default function HomeAnnouncementsPage() {
                 >
                   <View className="home-announcement-card-body">
                     <View className="home-announcement-card-header">
-                      <Text className="home-announcement-card-title clamp-2">{item.title}</Text>
+                      <Text className="home-announcement-card-title clamp-2">{normalizeDisplayText(item.title) || '公告标题待确认'}</Text>
                     </View>
-                    <Text className="home-announcement-card-summary clamp-2">{item.content || '暂无内容'}</Text>
+                    <Text className="home-announcement-card-summary clamp-2">
+                      {normalizeDisplayText(item.content) || '暂未更新'}
+                    </Text>
                     {time ? <Text className="home-announcement-card-time">{time}</Text> : null}
                   </View>
                 </Surface>

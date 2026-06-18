@@ -49,6 +49,7 @@ export class AuthController {
       roleIds: Array.isArray(req?.auth?.roleIds) ? req.auth.roleIds : [],
       permissions,
       nickname: req?.auth?.nickname || undefined,
+      displayName: req?.auth?.displayName || undefined,
       verificationStatus: req?.auth?.verificationStatus || undefined,
       verificationType: req?.auth?.verificationType || null,
     };

@@ -24,7 +24,9 @@ type Order = {
   id: string;
   listingId?: string | null;
   buyerUserId?: string | null;
+  buyerDisplayName?: string | null;
   sellerUserId?: string | null;
+  sellerDisplayName?: string | null;
   status: OrderStatus;
   depositAmountFen: number;
   dealAmountFen?: number | null;
@@ -56,6 +58,7 @@ const TEXT = {
   status: '\u72b6\u6001',
   deposit: '\u8ba2\u91d1',
   dealAmount: '\u6210\u4ea4\u4ef7',
+  recordId: '\u6302\u724c\u8bb0\u5f55',
   createdAt: '\u521b\u5efa\u65f6\u95f4',
   actions: '\u64cd\u4f5c',
   detail: '\u8be6\u60c5',
@@ -180,18 +183,22 @@ export function OrdersPage() {
           }}
           columns={[
             {
-              title: TEXT.orderId,
-              dataIndex: 'id',
-              render: (value: string) => <Typography.Text copyable>{value}</Typography.Text>,
-            },
-            {
-              title: TEXT.listing,
-              key: 'listing',
+              title: '订单摘要',
+              key: 'order',
+              width: 340,
               render: (_, row) => (
                 <Space direction="vertical" size={2}>
-                  <Typography.Text>{displayOrderText(row.listingTitle, '未命名内容')}</Typography.Text>
+                  <Typography.Text>{displayOrderText(row.listingTitle, '交易标的待确认')}</Typography.Text>
                   <Typography.Text type="secondary">
-                    {displayOrderText(row.applicationNoDisplay || row.listingId)}
+                    {row.applicationNoDisplay
+                      ? `申请号：${displayOrderText(row.applicationNoDisplay)}`
+                      : '挂牌信息待确认'}
+                  </Typography.Text>
+                  <Typography.Text type="secondary">
+                    买方：{displayOrderText(row.buyerDisplayName, '买方待确认')} · 卖方：{displayOrderText(row.sellerDisplayName, '卖方待确认')}
+                  </Typography.Text>
+                  <Typography.Text type="secondary" copyable={{ text: row.id }}>
+                    订单号：{row.id}
                   </Typography.Text>
                 </Space>
               ),

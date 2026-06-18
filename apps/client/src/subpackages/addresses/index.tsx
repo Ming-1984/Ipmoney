@@ -111,41 +111,42 @@ export default function AddressManagePage() {
         <AccessGate access={access} />
       ) : (
         <>
-          <Button onClick={addAddress}>新增地址</Button>
-          <Spacer size={12} />
-
           {loading ? (
             <LoadingCard text="地址加载中" />
           ) : error ? (
             <ErrorCard message={error} onRetry={load} />
           ) : list.length ? (
-            <View className="address-list">
-              {list.map((addr) => (
-                <Surface key={addr.id} className="address-card" padding="none">
-                  <View className="row-between">
-                    <Text className="text-strong">{addr.name}</Text>
-                    {addr.isDefault ? <Text className="address-tag">默认</Text> : null}
-                  </View>
-                  <Text className="muted">{addr.phone}</Text>
-                  <Text className="muted">{regionDisplayName(addr.regionCode, undefined, '-')}</Text>
-                  <Text className="muted">{addr.addressLine}</Text>
-                  <View className="address-actions">
-                    <Button
-                      size="small"
-                      variant="ghost"
-                      onClick={() => Taro.navigateTo({ url: `/subpackages/addresses/edit/index?id=${addr.id}` })}
-                    >
-                      编辑
-                    </Button>
-                    {!addr.isDefault ? (
-                      <Button size="small" variant="ghost" onClick={() => void setDefault(addr.id)}>
-                        设为默认
+            <>
+              <Button onClick={addAddress}>新增地址</Button>
+              <Spacer size={12} />
+              <View className="address-list">
+                {list.map((addr) => (
+                  <Surface key={addr.id} className="address-card" padding="none">
+                    <View className="row-between">
+                      <Text className="text-strong">{addr.name}</Text>
+                      {addr.isDefault ? <Text className="address-tag">默认</Text> : null}
+                    </View>
+                    <Text className="muted">{addr.phone}</Text>
+                    <Text className="muted">{regionDisplayName(addr.regionCode, undefined, '-')}</Text>
+                    <Text className="muted">{addr.addressLine}</Text>
+                    <View className="address-actions">
+                      <Button
+                        size="small"
+                        variant="ghost"
+                        onClick={() => Taro.navigateTo({ url: `/subpackages/addresses/edit/index?id=${addr.id}` })}
+                      >
+                        编辑
                       </Button>
-                    ) : null}
-                  </View>
-                </Surface>
-              ))}
-            </View>
+                      {!addr.isDefault ? (
+                        <Button size="small" variant="ghost" onClick={() => void setDefault(addr.id)}>
+                          设为默认
+                        </Button>
+                      ) : null}
+                    </View>
+                  </Surface>
+                ))}
+              </View>
+            </>
           ) : (
             <EmptyCard message="暂无地址" actionText="新增地址" onAction={addAddress} />
           )}

@@ -19,7 +19,7 @@ describe('InventorsService filter strictness', () => {
 
     await service.search({});
 
-    expect(spy).toHaveBeenCalledWith(null, null, null, 0, 20, 1, 20);
+    expect(spy).toHaveBeenCalledWith(null, null, null, null, null, 0, 20, 1, 20);
   });
 
   it('applies strict query values and caps pageSize', async () => {
@@ -36,7 +36,7 @@ describe('InventorsService filter strictness', () => {
       pageSize: '100',
     });
 
-    expect(spy).toHaveBeenCalledWith('%Alice%', '110000', 'INVENTION', 50, 50, 2, 50);
+    expect(spy).toHaveBeenCalledWith('Alice', 'Alice%', '%Alice%', '110000', 'INVENTION', 50, 50, 2, 50);
   });
 
   it('rejects invalid inventor query params', async () => {
@@ -103,7 +103,8 @@ describe('OrganizationsService filter strictness', () => {
 
   it('caps pageSize and applies approved org type filters', async () => {
     prisma.userVerification.findMany.mockResolvedValueOnce([]);
-    prisma.userVerification.count.mockResolvedValueOnce(0);
+    prisma.listing.groupBy.mockResolvedValueOnce([]);
+    prisma.listing.findMany.mockResolvedValueOnce([]);
 
     const result = await service.list({
       page: '2',
@@ -118,16 +119,67 @@ describe('OrganizationsService filter strictness', () => {
         where: expect.objectContaining({
           verificationStatus: 'APPROVED',
           verificationType: { in: ['COMPANY'] },
-          displayName: { contains: 'Lab' },
           regionCode: '440100',
         }),
-        skip: 50,
-        take: 50,
+        include: { logoFile: true },
+        orderBy: { reviewedAt: 'desc' },
       }),
     );
-    expect(prisma.listing.groupBy).not.toHaveBeenCalled();
-    expect(prisma.listing.findMany).not.toHaveBeenCalled();
     expect(result.page).toEqual({ page: 2, pageSize: 50, total: 0 });
+  });
+
+  it('reorders organization search results to prioritize strong displayName matches', async () => {
+    prisma.userVerification.findMany.mockResolvedValueOnce([
+      {
+        userId: 'user-1',
+        displayName: '华南科创研究院',
+        verificationType: 'ACADEMY',
+        verificationStatus: 'APPROVED',
+        regionCode: '440100',
+        intro: '聚焦成果转化与专利运营',
+        reviewedAt: new Date('2026-03-12T00:00:00.000Z'),
+        logoFile: null,
+      },
+      {
+        userId: 'user-2',
+        displayName: '成果转化服务中心',
+        verificationType: 'COMPANY',
+        verificationStatus: 'APPROVED',
+        regionCode: '110000',
+        intro: '服务华南高校与研究院',
+        reviewedAt: new Date('2026-03-13T00:00:00.000Z'),
+        logoFile: null,
+      },
+      {
+        userId: 'user-3',
+        displayName: '华南技术交易院',
+        verificationType: 'ASSOCIATION',
+        verificationStatus: 'APPROVED',
+        regionCode: '440300',
+        intro: '华南区域专利交易撮合',
+        reviewedAt: new Date('2026-03-11T00:00:00.000Z'),
+        logoFile: null,
+      },
+    ]);
+    prisma.listing.groupBy.mockResolvedValueOnce([]);
+    prisma.listing.findMany.mockResolvedValueOnce([]);
+
+    const result = await service.list({
+      q: '华南',
+      page: '1',
+      pageSize: '20',
+    });
+
+    expect(prisma.userVerification.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          verificationStatus: 'APPROVED',
+          verificationType: { in: ['COMPANY', 'ACADEMY', 'GOVERNMENT', 'ASSOCIATION'] },
+        }),
+      }),
+    );
+    expect(result.items.map((item: any) => item.displayName)).toEqual(['华南技术交易院', '华南科创研究院']);
+    expect(result.page).toEqual({ page: 1, pageSize: 20, total: 2 });
   });
 
   it('maps organization rows with derived listing/patent stats', async () => {

@@ -22,6 +22,7 @@ import {
 import { DEMO_LOGIN_ENABLED } from '../../constants';
 import { apiGet, apiPost } from '../../lib/api';
 import { getDetailCache, setDetailCache } from '../../lib/detailCache';
+import { displayInitial, displayUserName, normalizeDisplayText } from '../../lib/displayText';
 import { verificationStatusLabel, verificationTypeLabel } from '../../lib/labels';
 import { regionDisplayName } from '../../lib/regions';
 import { ErrorCard, LoadingCard } from '../../ui/StateCards';
@@ -50,6 +51,7 @@ type Me = {
   id: string;
   phone?: string;
   nickname?: string;
+  displayName?: string;
   avatarUrl?: string;
   role?: string;
   verificationStatus?: string;
@@ -540,7 +542,8 @@ export default function MePage() {
     [verification.status],
   );
 
-  const displayName = me?.nickname || '未设置昵称';
+  const displayName = displayUserName(me, '平台用户');
+  const displayInitialText = displayInitial(displayName, '平');
   const displayPhone = me?.phone || '未绑定手机号';
   const rawRegion = regionDisplayName(me?.regionCode);
   const displayRegion = rawRegion && rawRegion !== me?.regionCode && !/^\d+$/.test(rawRegion) ? rawRegion : '';
@@ -646,7 +649,7 @@ export default function MePage() {
               <Avatar
                 size="72"
                 src={me.avatarUrl || ''}
-                icon={<Text className="me-avatar-text">{displayName.slice(0, 1)}</Text>}
+                icon={<Text className="me-avatar-text">{displayInitialText}</Text>}
               />
             ) : (
               <View className="me-avatar-placeholder">

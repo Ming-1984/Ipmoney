@@ -6,6 +6,7 @@ import './index.scss';
 import type { components } from '@ipmoney/api-types';
 
 import { apiGet, apiPost } from '../../lib/api';
+import { displayTitleOrFallback, normalizeDisplayText } from '../../lib/displayText';
 import { usePagedList } from '../../lib/usePagedList';
 import { ensureApproved, goLogin, goOnboarding, usePageAccess } from '../../lib/guard';
 import { auditStatusLabel, auditStatusTagClass, contentStatusLabel } from '../../lib/labels';
@@ -21,8 +22,12 @@ type Achievement = components['schemas']['AchievementSummary'];
 type ContentStatus = components['schemas']['ContentStatus'];
 type AuditStatus = components['schemas']['AuditStatus'];
 
+const PAGE_TITLE = '我的专利成果';
+const PAGE_SUBTITLE = '发布方查看、编辑、下架自己的成果展示信息';
+
 export default function MyAchievementsPage() {
   const loadedOnceRef = useRef(false);
+  const filterKeyRef = useRef('');
   const [status, setStatus] = useState<ContentStatus | ''>('');
   const [auditStatusFilter, setAuditStatusFilter] = useState<AuditStatus | ''>('');
 
@@ -57,10 +62,18 @@ export default function MyAchievementsPage() {
   });
 
   useEffect(() => {
+    const nextKey = `${status}:${auditStatusFilter}`;
+    if (filterKeyRef.current === nextKey) return;
+    filterKeyRef.current = nextKey;
+    reset();
+  }, [auditStatusFilter, reset, status]);
+
+  useEffect(() => {
     if (access.state !== 'ok') return;
     loadedOnceRef.current = true;
     void reload();
-  }, [access.state, reload]);
+  }, [access.state, auditStatusFilter, reload, status]);
+
   const showInitialLoading = loading && items.length === 0;
 
   const goCreate = useCallback(() => {
@@ -71,7 +84,7 @@ export default function MyAchievementsPage() {
   if (access.state === 'need-login') {
     return (
       <View className="container my-achievements-page">
-        <PageHeader title="我的专利成果" subtitle="发布方查看/编辑/下架自己的成果展示" />
+        <PageHeader title={PAGE_TITLE} subtitle={PAGE_SUBTITLE} />
         <Spacer />
         <PermissionCard title="需要登录" message="登录后才能查看成果信息。" actionText="去登录" onAction={goLogin} />
       </View>
@@ -80,7 +93,7 @@ export default function MyAchievementsPage() {
   if (access.state === 'need-onboarding') {
     return (
       <View className="container my-achievements-page">
-        <PageHeader title="我的专利成果" subtitle="发布方查看/编辑/下架自己的成果展示" />
+        <PageHeader title={PAGE_TITLE} subtitle={PAGE_SUBTITLE} />
         <Spacer />
         <PermissionCard title="需要选择身份" message="完成身份选择后才能继续。" actionText="去选择" onAction={goOnboarding} />
       </View>
@@ -89,7 +102,7 @@ export default function MyAchievementsPage() {
   if (access.state === 'audit-pending') {
     return (
       <View className="container my-achievements-page">
-        <PageHeader title="我的专利成果" subtitle="发布方查看/编辑/下架自己的成果展示" />
+        <PageHeader title={PAGE_TITLE} subtitle={PAGE_SUBTITLE} />
         <Spacer />
         <AuditPendingCard title="资料审核中" message="审核通过后才能发布与管理成果信息。" actionText="查看进度" onAction={goOnboarding} />
       </View>
@@ -98,7 +111,7 @@ export default function MyAchievementsPage() {
   if (access.state === 'audit-rejected') {
     return (
       <View className="container my-achievements-page">
-        <PageHeader title="我的专利成果" subtitle="发布方查看/编辑/下架自己的成果展示" />
+        <PageHeader title={PAGE_TITLE} subtitle={PAGE_SUBTITLE} />
         <Spacer />
         <AuditPendingCard title="资料已驳回" message="请重新提交资料，审核通过后才能继续。" actionText="重新提交" onAction={goOnboarding} />
       </View>
@@ -107,7 +120,7 @@ export default function MyAchievementsPage() {
   if (access.state === 'audit-required') {
     return (
       <View className="container my-achievements-page">
-        <PageHeader title="我的专利成果" subtitle="发布方查看/编辑/下架自己的成果展示" />
+        <PageHeader title={PAGE_TITLE} subtitle={PAGE_SUBTITLE} />
         <Spacer />
         <AuditPendingCard title="需要认证" message="完成认证并审核通过后才能继续。" actionText="去认证" onAction={goOnboarding} />
       </View>
@@ -116,7 +129,7 @@ export default function MyAchievementsPage() {
 
   return (
     <View className="container my-achievements-page">
-      <PageHeader title="我的专利成果" subtitle="发布方查看/编辑/下架自己的成果展示" />
+      <PageHeader title={PAGE_TITLE} subtitle={PAGE_SUBTITLE} />
       <Spacer />
 
       <Surface>
@@ -169,7 +182,7 @@ export default function MyAchievementsPage() {
                 <View className="list-card-body">
                   <View className="list-card-head">
                     <View className="list-card-head-main">
-                      <Text className="list-card-title clamp-2">{it.title || '未命名成果'}</Text>
+                      <Text className="list-card-title clamp-2">{displayTitleOrFallback(it.title, '成果标题待确认')}</Text>
                       <View className="list-card-tags">
                         <Text className="tag">{contentStatusLabel(it.status)}</Text>
                         <Text className={auditStatusTagClass(it.auditStatus)}>{auditStatusLabel(it.auditStatus)}</Text>

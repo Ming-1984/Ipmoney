@@ -92,6 +92,7 @@ describe('UsersService profile readback suite', () => {
     prisma.userVerification.findFirst.mockResolvedValueOnce({
       verificationStatus: 'APPROVED',
       verificationType: 'PERSON',
+      displayName: '示例主体',
     });
 
     const result = await service.getUserProfileById('user-1');
@@ -101,6 +102,7 @@ describe('UsersService profile readback suite', () => {
       id: 'user-1',
       phone: '13800138000',
       nickname: 'Alice',
+      displayName: '示例主体',
       avatarUrl: 'https://cdn/avatar.png',
       role: 'buyer',
       verificationStatus: 'APPROVED',
@@ -153,7 +155,7 @@ describe('UsersService profile readback suite', () => {
       id: 'demo-user-1',
       phone: '13900001111',
       nickname: 'DemoUser',
-      verificationStatus: 'PENDING',
+      verificationStatus: null,
       verificationType: null,
     });
   });

@@ -12,6 +12,7 @@ describe('OrdersController delegation suite', () => {
   beforeEach(() => {
     orders = {
       createOrder: vi.fn(),
+      listAdminOrders: vi.fn(),
       getAdminOrderDetail: vi.fn(),
       adminManualConfirmPayment: vi.fn(),
       adminDeleteOrderInvoice: vi.fn(),
@@ -37,6 +38,15 @@ describe('OrdersController delegation suite', () => {
     await expect(controller.getAdminOrder(req, VALID_UUID)).rejects.toBeInstanceOf(ForbiddenException);
 
     expect(orders.getAdminOrderDetail).not.toHaveBeenCalled();
+  });
+
+  it('delegates listAdminOrders when order.read permission is present', async () => {
+    const req: any = { auth: { permissions: new Set(['order.read']) } };
+    orders.listAdminOrders.mockResolvedValueOnce({ items: [] });
+
+    await expect(controller.listAdminOrders(req, { page: '2' })).resolves.toEqual({ items: [] });
+
+    expect(orders.listAdminOrders).toHaveBeenCalledWith(req, { page: '2' });
   });
 
   it('delegates adminManualPayment with fallback empty body', async () => {

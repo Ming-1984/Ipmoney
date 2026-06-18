@@ -4,7 +4,7 @@ import { VerificationType } from '@prisma/client';
 type VerificationStatus = 'PENDING' | 'APPROVED' | 'REJECTED';
 
 import { PrismaService } from '../../common/prisma/prisma.service';
-import { resolvePublicFileUrl } from '../content-utils';
+import { normalizeDisplayText, resolvePublicFileUrl } from '../content-utils';
 
 const VerificationStatus = {
   PENDING: 'PENDING',
@@ -26,8 +26,92 @@ export class OrganizationsService {
   constructor(private readonly prisma: PrismaService) {}
 
   private normalizeOptionalString(value: unknown): string | undefined {
-    const normalized = String(value ?? '').trim();
-    return normalized || undefined;
+    return normalizeDisplayText(value);
+  }
+
+  private toPublicSummary(
+    verification: any,
+    stats?: {
+      listingCountMap?: Map<string, number>;
+      patentCountMap?: Map<string, number>;
+      listingCount?: number;
+      patentCount?: number;
+    },
+  ) {
+    const listingCount =
+      typeof stats?.listingCount === 'number' ? stats.listingCount : (stats?.listingCountMap?.get(verification.userId) ?? 0);
+    const patentCount =
+      typeof stats?.patentCount === 'number' ? stats.patentCount : (stats?.patentCountMap?.get(verification.userId) ?? 0);
+    return {
+      userId: verification.userId,
+      displayName: this.normalizeOptionalString(verification.displayName),
+      verificationType: verification.verificationType,
+      verificationStatus: verification.verificationStatus,
+      orgCategory: undefined,
+      regionCode: verification.regionCode ?? undefined,
+      logoUrl: this.resolveOrganizationLogoUrl(verification),
+      intro: this.normalizeOptionalString(verification.intro),
+      stats: {
+        listingCount,
+        patentCount,
+      },
+      verifiedAt: verification.reviewedAt ? verification.reviewedAt.toISOString() : undefined,
+    };
+  }
+
+  private matchesSearchSummary(summary: any, keyword: string): boolean {
+    const normalizedKeyword = String(keyword || '')
+      .trim()
+      .toLowerCase();
+    if (!normalizedKeyword) return true;
+
+    const candidates: string[] = [];
+    const pushCandidate = (value: unknown) => {
+      const normalized = this.normalizeOptionalString(value);
+      if (normalized) candidates.push(normalized.toLowerCase());
+    };
+
+    pushCandidate(summary?.displayName);
+    pushCandidate(summary?.intro);
+    pushCandidate(summary?.regionCode);
+
+    return candidates.some((candidate) => candidate.includes(normalizedKeyword));
+  }
+
+  private scoreSearchSummary(summary: any, keyword: string): number {
+    const normalizedKeyword = String(keyword || '')
+      .trim()
+      .toLowerCase();
+    if (!normalizedKeyword) return 0;
+
+    const displayName = this.normalizeOptionalString(summary?.displayName)?.toLowerCase() ?? '';
+    const intro = this.normalizeOptionalString(summary?.intro)?.toLowerCase() ?? '';
+    const regionCode = this.normalizeOptionalString(summary?.regionCode)?.toLowerCase() ?? '';
+
+    let score = 0;
+    if (displayName === normalizedKeyword) score += 1000;
+    else if (displayName.startsWith(normalizedKeyword)) score += 800;
+    else if (displayName.includes(normalizedKeyword)) score += 600;
+
+    if (intro.includes(normalizedKeyword)) score += 80;
+    if (regionCode.includes(normalizedKeyword)) score += 20;
+
+    return score;
+  }
+
+  private hasStrongDisplayNameMatch(summary: any, keyword: string): boolean {
+    const displayName = this.normalizeOptionalString(summary?.displayName)?.toLowerCase() ?? '';
+    const normalizedKeyword = String(keyword || '')
+      .trim()
+      .toLowerCase();
+    if (!displayName || !normalizedKeyword) return false;
+    return displayName === normalizedKeyword || displayName.startsWith(normalizedKeyword);
+  }
+
+  private paginateItems<T>(items: T[], page: number, pageSize: number): { items: T[]; total: number } {
+    const total = items.length;
+    const start = (page - 1) * pageSize;
+    return { items: items.slice(start, start + pageSize), total };
   }
 
   private resolveOrganizationLogoUrl(verification: { logoFile?: any; logoUrl?: string | null }) {
@@ -157,10 +241,32 @@ export class OrganizationsService {
       verificationStatus: VerificationStatus.APPROVED,
       verificationType: { in: orgTypes.length ? orgTypes : ORG_TYPES },
     };
-    if (q) where.displayName = { contains: q };
     if (regionCode) where.regionCode = regionCode;
 
-    const [items, total] = await Promise.all([
+    let items: any[] = [];
+    let total = 0;
+
+    if (q) {
+      const rows = await this.prisma.userVerification.findMany({
+        where,
+        include: { logoFile: true },
+        orderBy: { reviewedAt: 'desc' },
+      });
+      const userIds = rows.map((item: any) => item.userId);
+      const { listingCountMap, patentCountMap } = await this.buildStats(userIds);
+      const summaries = rows.map((item: any) => this.toPublicSummary(item, { listingCountMap, patentCountMap }));
+      const matched = summaries.filter((summary) => this.matchesSearchSummary(summary, q));
+      const strongDisplayNameMatches = matched.filter((summary) => this.hasStrongDisplayNameMatch(summary, q));
+      const searchPool = strongDisplayNameMatches.length ? strongDisplayNameMatches : matched;
+      const filtered = searchPool.sort((a, b) => this.scoreSearchSummary(b, q) - this.scoreSearchSummary(a, q));
+      const paged = this.paginateItems(filtered, page, pageSize);
+      return {
+        items: paged.items,
+        page: { page, pageSize, total: paged.total },
+      };
+    }
+
+    [items, total] = await Promise.all([
       this.prisma.userVerification.findMany({
         where,
         include: { logoFile: true },
@@ -175,21 +281,7 @@ export class OrganizationsService {
     const { listingCountMap, patentCountMap } = await this.buildStats(userIds);
 
     return {
-      items: items.map((v: any) => ({
-        userId: v.userId,
-        displayName: v.displayName,
-        verificationType: v.verificationType,
-        verificationStatus: v.verificationStatus,
-        orgCategory: undefined,
-        regionCode: v.regionCode ?? undefined,
-        logoUrl: this.resolveOrganizationLogoUrl(v),
-        intro: this.normalizeOptionalString(v.intro),
-        stats: {
-          listingCount: listingCountMap.get(v.userId) ?? 0,
-          patentCount: patentCountMap.get(v.userId) ?? 0,
-        },
-        verifiedAt: v.reviewedAt ? v.reviewedAt.toISOString() : undefined,
-      })),
+      items: items.map((v: any) => this.toPublicSummary(v, { listingCountMap, patentCountMap })),
       page: { page, pageSize, total },
     };
   }
@@ -227,19 +319,7 @@ export class OrganizationsService {
         .then((rows) => rows.length),
     ]);
     return {
-      userId: v.userId,
-      displayName: v.displayName,
-      verificationType: v.verificationType,
-      verificationStatus: v.verificationStatus,
-      orgCategory: undefined,
-      logoUrl: this.resolveOrganizationLogoUrl(v),
-      regionCode: v.regionCode ?? undefined,
-      intro: this.normalizeOptionalString(v.intro),
-      stats: {
-        listingCount,
-        patentCount,
-      },
-      verifiedAt: v.reviewedAt ? v.reviewedAt.toISOString() : undefined,
+      ...this.toPublicSummary(v, { listingCount, patentCount }),
     };
   }
 }

@@ -8,7 +8,7 @@ import {
   DEFAULT_LISTING_TOPIC_OPTIONS,
   fetchAdminListingTopicOptions,
 } from '../lib/homeLandingConfig';
-import { displayAdminInfo, normalizeUserFacingText } from '../lib/userFacingText';
+import { displayAdminInfo, formatRegionCodeDisplay, normalizeUserFacingText } from '../lib/userFacingText';
 import { RequestErrorAlert } from '../ui/RequestState';
 
 type ConsultationRouting = 'PLATFORM' | 'OWNER';
@@ -21,6 +21,16 @@ type JobStatus = 'PENDING' | 'RUNNING' | 'PAUSED' | 'SUCCEEDED' | 'FAILED';
 type ImportRowStatus = 'PENDING' | 'VALID' | 'INVALID' | 'SUCCEEDED' | 'FAILED' | 'SKIPPED';
 
 type Paged<T> = { items: T[]; page: { page: number; pageSize: number; total: number } };
+
+type StaffUser = {
+  id: string;
+  name?: string;
+  email?: string;
+};
+
+type StaffUserListResponse = {
+  items?: StaffUser[];
+};
 
 type PatentImportJob = {
   id: string;
@@ -158,6 +168,21 @@ type PatentMapRegionDetail = {
   page: { page: number; pageSize: number; total: number };
 };
 
+function staffDisplayName(user: StaffUser | null | undefined, fallback = '未命名员工'): string {
+  return normalizeUserFacingText(user?.name) || normalizeUserFacingText(user?.email) || fallback;
+}
+
+function patentImportJobSummary(job: PatentImportJob): string {
+  return `总 ${job.totalCount} / 有效 ${job.validCount} / 无效 ${job.invalidCount} / 成功 ${job.successCount} / 失败 ${job.failedCount} / 跳过 ${job.skippedCount}`;
+}
+
+function patentMapListingSummary(item: PatentMapRegionDetail['items'][number]): string {
+  const title = normalizeUserFacingText(item.title) || '挂牌标题待确认';
+  const patentTitle = normalizeUserFacingText(item.patentTitle);
+  const applicationNo = normalizeUserFacingText(item.applicationNoDisplay);
+  return [title, patentTitle, applicationNo ? `申请号：${applicationNo}` : ''].filter(Boolean).join(' · ');
+}
+
 type PatentMapBatchUpdateResult = {
   ok: true;
   totalRequested: number;
@@ -171,7 +196,7 @@ function patentMapRegionLevelLabel(level: PatentMapRegionLevel) {
   if (level === 'PROVINCE') return '省';
   if (level === 'CITY') return '市';
   if (level === 'DISTRICT') return '区县';
-  return '未知';
+  return '层级待确认';
 }
 
 function patentMapFeaturedLevelLabel(level: PatentMapFeaturedLevel) {
@@ -226,12 +251,12 @@ const patentMapFeaturedLevelPatchOptions: Array<{ value: PatentMapFeaturedLevel 
 
 const rowStatusOptions: Array<{ value: ImportRowStatus | ''; label: string }> = [
   { value: '', label: '全部状态' },
-  { value: 'VALID', label: 'VALID' },
-  { value: 'INVALID', label: 'INVALID' },
-  { value: 'SUCCEEDED', label: 'SUCCEEDED' },
-  { value: 'FAILED', label: 'FAILED' },
-  { value: 'SKIPPED', label: 'SKIPPED' },
-  { value: 'PENDING', label: 'PENDING' },
+  { value: 'VALID', label: '校验通过' },
+  { value: 'INVALID', label: '校验失败' },
+  { value: 'SUCCEEDED', label: '已完成' },
+  { value: 'FAILED', label: '失败' },
+  { value: 'SKIPPED', label: '已跳过' },
+  { value: 'PENDING', label: '待处理' },
 ];
 
 const patentImportTemplateFields: ImportTemplateField[] = [
@@ -338,13 +363,116 @@ function buildListingDefaults(values: DefaultsFormValues): { payload?: Record<st
 
 function statusTag(status: JobStatus | ImportRowStatus) {
   const text = String(status || '');
-  if (text === 'SUCCEEDED' || text === 'VALID') return <Tag color="green">{text}</Tag>;
-  if (text === 'FAILED' || text === 'INVALID') return <Tag color="red">{text}</Tag>;
-  if (text === 'RUNNING') return <Tag color="blue">{text}</Tag>;
-  if (text === 'PAUSED') return <Tag color="orange">{text}</Tag>;
-  if (text === 'SKIPPED') return <Tag>{text}</Tag>;
-  return <Tag>{text}</Tag>;
+  const label =
+    text === 'SUCCEEDED'
+      ? '已完成'
+      : text === 'VALID'
+        ? '校验通过'
+        : text === 'FAILED'
+          ? '失败'
+          : text === 'INVALID'
+            ? '校验失败'
+            : text === 'RUNNING'
+              ? '执行中'
+              : text === 'PAUSED'
+                ? '已暂停'
+                : text === 'SKIPPED'
+                  ? '已跳过'
+                  : '状态待确认';
+  if (text === 'SUCCEEDED' || text === 'VALID') return <Tag color="green">{label}</Tag>;
+  if (text === 'FAILED' || text === 'INVALID') return <Tag color="red">{label}</Tag>;
+  if (text === 'RUNNING') return <Tag color="blue">{label}</Tag>;
+  if (text === 'PAUSED') return <Tag color="orange">{label}</Tag>;
+  if (text === 'SKIPPED') return <Tag>{label}</Tag>;
+  return <Tag>{label}</Tag>;
 }
+
+function duplicatePolicyLabel(policy?: DuplicatePolicy | null): string {
+  if (policy === 'OVERWRITE') return '覆盖更新';
+  if (policy === 'SKIP') return '跳过重复';
+  return '策略待确认';
+}
+
+function summarizeDisplayValue(value: unknown): string {
+  if (value === null) return '清空';
+  if (value === undefined) return '';
+  if (typeof value === 'boolean') return value ? '是' : '否';
+  if (typeof value === 'number') return Number.isFinite(value) ? String(value) : '';
+  if (Array.isArray(value)) {
+    return value
+      .map((item) => summarizeDisplayValue(item))
+      .filter(Boolean)
+      .join('、');
+  }
+  if (typeof value === 'object') {
+    return Object.entries(value as Record<string, unknown>)
+      .map(([key, item]) => {
+        const text = summarizeDisplayValue(item);
+        return text ? `${key}：${text}` : '';
+      })
+      .filter(Boolean)
+      .join('；');
+  }
+  return normalizeUserFacingText(value);
+}
+
+function patentMapPatchLabel(key: string): string {
+  if (key === 'regionCode') return '挂牌地区';
+  if (key === 'featuredLevel') return '上榜层级';
+  if (key === 'featuredRegionCode') return '上榜地区';
+  if (key === 'featuredRank') return '上榜名次';
+  if (key === 'featuredUntil') return '上榜截止时间';
+  if (key === 'clearRanking') return '清除上榜';
+  return key;
+}
+
+function patentMapPatchSummary(patch: Record<string, unknown>): string {
+  return (
+    Object.entries(patch)
+      .map(([key, value]) => {
+        const text = summarizeDisplayValue(value);
+        return text ? `${patentMapPatchLabel(key)}：${text}` : '';
+      })
+      .filter(Boolean)
+      .join('；') || '未返回变更字段'
+  );
+}
+
+function patentImportRowSummary(row: PatentImportJobRow): string {
+  const normalized = row.normalized;
+  if (!normalized) return '';
+  const fields: Array<[string, unknown]> = [
+    ['申请号', normalized.applicationNoDisplay || normalized.applicationNoNorm],
+    ['标题', normalized.title],
+    ['专利类型', normalized.patentType],
+    ['法律状态', normalized.legalStatus],
+    ['申请人', normalized.applicants],
+    ['发明人', normalized.inventors],
+  ];
+  const summary = fields
+    .map(([label, value]) => {
+      const text = summarizeDisplayValue(value);
+      return text ? `${label}：${text}` : '';
+    })
+    .filter(Boolean)
+    .join('；');
+  return summary || '已生成标准化字段';
+}
+
+const jobStatusFilterOptions: Array<{ value: JobStatus | ''; label: string }> = [
+  { value: '', label: '全部状态' },
+  { value: 'PENDING', label: '待处理' },
+  { value: 'RUNNING', label: '执行中' },
+  { value: 'PAUSED', label: '已暂停' },
+  { value: 'SUCCEEDED', label: '已完成' },
+  { value: 'FAILED', label: '失败' },
+];
+
+const duplicatePolicyFilterOptions: Array<{ value: DuplicatePolicy | ''; label: string }> = [
+  { value: '', label: '全部策略' },
+  { value: 'SKIP', label: '跳过重复' },
+  { value: 'OVERWRITE', label: '覆盖更新' },
+];
 
 export function PatentOperationsPage() {
   const [error, setError] = useState<unknown | null>(null);
@@ -374,6 +502,7 @@ export function PatentOperationsPage() {
   const tradeModeValue = Form.useWatch('tradeMode', form);
   const [listingTopicOptions, setListingTopicOptions] =
     useState<Array<{ value: ListingTopic; label: string }>>(DEFAULT_LISTING_TOPIC_OPTIONS);
+  const [staffUsers, setStaffUsers] = useState<StaffUser[]>([]);
 
   const [mapOverviewLoading, setMapOverviewLoading] = useState(false);
   const [mapOverviewError, setMapOverviewError] = useState<unknown | null>(null);
@@ -425,6 +554,14 @@ export function PatentOperationsPage() {
   const enabledTopicSet = useMemo(
     () => new Set<ListingTopic>(listingTopicOptions.map((item) => item.value)),
     [listingTopicOptions],
+  );
+  const staffOptions = useMemo(
+    () =>
+      staffUsers.map((user) => ({
+        value: user.id,
+        label: staffDisplayName(user),
+      })),
+    [staffUsers],
   );
 
   const loadJobs = useCallback(async () => {
@@ -548,7 +685,7 @@ export function PatentOperationsPage() {
 
   const runPatentMapBatchUpdate = useCallback(async () => {
     if (!mapTargetListingIds.length) {
-      message.warning('请先选择或输入挂牌ID');
+      message.warning('请先选择或输入挂牌记录编号');
       return;
     }
 
@@ -653,6 +790,17 @@ export function PatentOperationsPage() {
   useEffect(() => {
     void loadJobs();
   }, [loadJobs]);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await apiGet<StaffUserListResponse>('/admin/rbac/users', { scope: 'STAFF' });
+        setStaffUsers(Array.isArray(res?.items) ? res.items : []);
+      } catch {
+        setStaffUsers([]);
+      }
+    })();
+  }, []);
 
   useEffect(() => {
     void loadRows();
@@ -806,7 +954,7 @@ export function PatentOperationsPage() {
   const runBatchGenerate = useCallback(async () => {
     const patentIds = parseTextList(patentIdsText);
     if (!patentIds.length) {
-      message.warning('请先输入专利ID列表');
+      message.warning('请先输入专利记录编号列表');
       return;
     }
     const values = await form.validateFields();
@@ -877,7 +1025,7 @@ export function PatentOperationsPage() {
             >
               <Button loading={uploading}>上传导入文件</Button>
             </Upload>
-            <Typography.Text type="secondary">{file?.id ? `文件ID：${file.id}` : '未上传文件'}</Typography.Text>
+            <Typography.Text type="secondary">{file?.id ? '已选择导入文件' : '未上传文件'}</Typography.Text>
           </Space>
 
           <Table<ImportTemplateField>
@@ -929,8 +1077,8 @@ export function PatentOperationsPage() {
               <Form.Item label="保证金(元)" name="depositAmountYuan">
                 <InputNumber min={0} precision={2} />
               </Form.Item>
-              <Form.Item label="平台卖家用户ID" name="sellerUserId">
-                <Input style={{ width: 220 }} />
+              <Form.Item label="平台承接人员" name="sellerUserId">
+                <Select style={{ width: 220 }} allowClear showSearch optionFilterProp="label" options={staffOptions} />
               </Form.Item>
             </Space>
             <Form.Item label="特色标签" name="listingTopics">
@@ -953,15 +1101,15 @@ export function PatentOperationsPage() {
         </Space>
       </Card>
 
-      <Card title="按专利ID批量上架">
+      <Card title="按专利记录编号批量上架">
         <Space direction="vertical" size={12} style={{ width: '100%' }}>
           <Input.TextArea
             rows={4}
             value={patentIdsText}
             onChange={(e) => setPatentIdsText(e.target.value)}
-            placeholder="每行一个专利ID，或逗号分隔"
+            placeholder="每行一个专利记录编号，或逗号分隔"
           />
-          <Typography.Text type="secondary">已识别 {parsedPatentIdsCount} 个专利ID（自动去重）</Typography.Text>
+          <Typography.Text type="secondary">已识别 {parsedPatentIdsCount} 个专利记录编号（自动去重）</Typography.Text>
           <Button type="primary" loading={submitting} onClick={() => void runBatchGenerate()}>
             执行批量上架
           </Button>
@@ -979,24 +1127,13 @@ export function PatentOperationsPage() {
             value={draftJobStatusFilter}
             style={{ width: 160 }}
             onChange={(v) => setDraftJobStatusFilter((v as JobStatus) || '')}
-            options={[
-              { value: '', label: '全部状态' },
-              { value: 'PENDING', label: 'PENDING' },
-              { value: 'RUNNING', label: 'RUNNING' },
-              { value: 'PAUSED', label: 'PAUSED' },
-              { value: 'SUCCEEDED', label: 'SUCCEEDED' },
-              { value: 'FAILED', label: 'FAILED' },
-            ]}
+            options={jobStatusFilterOptions}
           />
           <Select
             value={draftJobDuplicatePolicyFilter}
             style={{ width: 160 }}
             onChange={(v) => setDraftJobDuplicatePolicyFilter((v as DuplicatePolicy) || '')}
-            options={[
-              { value: '', label: '全部策略' },
-              { value: 'SKIP', label: 'SKIP' },
-              { value: 'OVERWRITE', label: 'OVERWRITE' },
-            ]}
+            options={duplicatePolicyFilterOptions}
           />
           <Button onClick={applyJobFilters}>查询</Button>
           <Button onClick={resetJobFilters}>重置</Button>
@@ -1019,13 +1156,24 @@ export function PatentOperationsPage() {
             },
           }}
           columns={[
-            { title: '任务ID', dataIndex: 'id', width: 260 },
-            { title: '状态', dataIndex: 'status', width: 110, render: (v: JobStatus) => statusTag(v) },
-            { title: '策略', dataIndex: 'duplicatePolicy', width: 90 },
             {
-              title: '统计',
-              render: (_, r) => `总 ${r.totalCount}/有效 ${r.validCount}/无效 ${r.invalidCount}/成功 ${r.successCount}/失败 ${r.failedCount}/跳过 ${r.skippedCount}`,
+              title: '任务摘要',
+              key: 'summary',
+              width: 360,
+              render: (_, row) => (
+                <Space direction="vertical" size={2}>
+                  <Typography.Text>{patentImportJobSummary(row)}</Typography.Text>
+                  <Typography.Text type="secondary">
+                    策略：{duplicatePolicyLabel(row.duplicatePolicy)} · 状态：{statusTag(row.status)}
+                  </Typography.Text>
+                  <Typography.Text type="secondary" copyable={{ text: row.id }}>
+                    任务单号：{row.id}
+                  </Typography.Text>
+                </Space>
+              ),
             },
+            { title: '状态', dataIndex: 'status', width: 110, render: (v: JobStatus) => statusTag(v) },
+            { title: '策略', dataIndex: 'duplicatePolicy', width: 90, render: (v: DuplicatePolicy) => duplicatePolicyLabel(v) },
             { title: '失败率', dataIndex: 'failRate', width: 100, render: (v: number) => `${Math.round((Number(v) || 0) * 100)}%` },
             { title: '已校验', dataIndex: 'validatedAt', width: 160, render: (v: string | null | undefined) => (v ? formatTimeSmart(v) : '-') },
             { title: '创建时间', dataIndex: 'createdAt', width: 150, render: (v: string) => formatTimeSmart(v) },
@@ -1143,7 +1291,7 @@ export function PatentOperationsPage() {
                 render: (_, row) => (
                   <Space size={4}>
                     <Typography.Text>{row.regionName}</Typography.Text>
-                    <Tag>{row.regionCode}</Tag>
+                    <Tag>{formatRegionCodeDisplay(row.regionCode, '地区待完善')}</Tag>
                     <Tag color="purple">{patentMapRegionLevelLabel(row.regionLevel)}</Tag>
                   </Space>
                 ),
@@ -1178,14 +1326,14 @@ export function PatentOperationsPage() {
 
           <Space wrap>
             <Typography.Text strong>
-              当前区域：{mapSelectedRegion ? `${mapSelectedRegion.regionName}（${mapSelectedRegion.regionCode}）` : '未选择'}
+              当前区域：{mapSelectedRegion ? `${mapSelectedRegion.regionName}（${formatRegionCodeDisplay(mapSelectedRegion.regionCode, '地区待完善')}）` : '未选择'}
             </Typography.Text>
             <Button
               size="small"
               onClick={() => appendMapManualListingIds((mapRegionDetail?.items || []).map((item) => item.listingId))}
               disabled={!mapRegionDetail?.items?.length}
             >
-              将当前页挂牌ID加入批量输入
+              将当前页挂牌记录编号加入批量输入
             </Button>
             <Button
               size="small"
@@ -1228,19 +1376,25 @@ export function PatentOperationsPage() {
               },
             }}
             columns={[
-              { title: '挂牌ID', dataIndex: 'listingId', width: 240 },
-              { title: '标题', dataIndex: 'title', ellipsis: true, render: (value) => normalizeUserFacingText(value) || '未命名挂牌' },
+              {
+                title: '挂牌摘要',
+                key: 'listing',
+                width: 360,
+                render: (_, row) => (
+                  <Space direction="vertical" size={2}>
+                    <Typography.Text>{normalizeUserFacingText(row.title) || '挂牌标题待确认'}</Typography.Text>
+                    <Typography.Text type="secondary">{patentMapListingSummary(row)}</Typography.Text>
+                    <Typography.Text type="secondary" copyable={{ text: row.listingId }}>
+                      挂牌记录编号：{row.listingId}
+                    </Typography.Text>
+                  </Space>
+                ),
+              },
               {
                 title: '专利类型',
                 dataIndex: 'patentType',
                 width: 110,
                 render: (value: PatentMapRegionDetail['items'][number]['patentType']) => displayAdminInfo(value),
-              },
-              {
-                title: '申请号',
-                dataIndex: 'applicationNoDisplay',
-                width: 160,
-                render: (value: string | null) => displayAdminInfo(value),
               },
               {
                 title: '上榜状态',
@@ -1266,7 +1420,7 @@ export function PatentOperationsPage() {
             rows={4}
             value={mapManualListingIdsText}
             onChange={(e) => setMapManualListingIdsText(e.target.value)}
-            placeholder="手工补充挂牌ID（每行一个或逗号分隔）"
+            placeholder="手工补充挂牌记录编号（每行一个或逗号分隔）"
           />
           <Typography.Text type="secondary">
             选择 {mapSelectedListingIds.length} 条 + 手工输入 {mapManualListingIds.length} 条 = 合计 {mapTargetListingIds.length} 条（自动去重）
@@ -1276,7 +1430,7 @@ export function PatentOperationsPage() {
             <Input
               value={mapPatchRegionCode}
               onChange={(e) => setMapPatchRegionCode(e.target.value)}
-              placeholder="挂牌地区编码（如 110000）"
+              placeholder="挂牌地区名称或代码"
               style={{ width: 180 }}
               allowClear
             />
@@ -1293,7 +1447,7 @@ export function PatentOperationsPage() {
             <Input
               value={mapPatchFeaturedRegionCode}
               onChange={(e) => setMapPatchFeaturedRegionCode(e.target.value)}
-              placeholder="上榜地区编码（如 110000）"
+              placeholder="上榜地区名称或代码"
               style={{ width: 190 }}
               allowClear
             />
@@ -1337,7 +1491,7 @@ export function PatentOperationsPage() {
               执行地图批量更新
             </Button>
             <Button onClick={resetMapPatchFields}>清空变更字段</Button>
-            <Button onClick={() => setMapManualListingIdsText('')}>清空手工挂牌ID</Button>
+            <Button onClick={() => setMapManualListingIdsText('')}>清空手工挂牌记录编号</Button>
           </Space>
 
           {mapBatchResult ? (
@@ -1348,11 +1502,11 @@ export function PatentOperationsPage() {
               description={
                 <Space direction="vertical" size={2}>
                   <Typography.Text type="secondary">
-                    patch: {JSON.stringify(mapBatchResult.patchApplied)}
+                    变更内容：{patentMapPatchSummary(mapBatchResult.patchApplied)}
                   </Typography.Text>
                   {mapBatchResult.missingListingIds.length ? (
                     <Typography.Text type="secondary">
-                      missing: {mapBatchResult.missingListingIds.join(', ')}
+                      缺失挂牌记录编号：{mapBatchResult.missingListingIds.join(', ')}
                     </Typography.Text>
                   ) : null}
                 </Space>
@@ -1407,11 +1561,28 @@ export function PatentOperationsPage() {
             columns={[
               { title: '行号', dataIndex: 'rowNo', width: 80 },
               { title: '状态', dataIndex: 'status', width: 120, render: (v: ImportRowStatus) => statusTag(v) },
-              { title: '申请号', render: (_, r) => displayAdminInfo(r.normalized?.applicationNoNorm) },
-              { title: '标题', render: (_, r) => displayAdminInfo(r.normalized?.title) },
-              { title: '专利ID', dataIndex: 'patentId', render: (v: string | null | undefined) => displayAdminInfo(v) },
-              { title: '错误码', dataIndex: 'errorCode', width: 160, render: (v: string | null | undefined) => displayAdminInfo(v) },
+              {
+                title: '行摘要',
+                width: 360,
+                render: (_, r) => (
+                  <Space direction="vertical" size={2}>
+                    <Typography.Text>{displayAdminInfo(r.normalized?.title, '挂牌标题待确认')}</Typography.Text>
+                    <Typography.Text type="secondary">
+                      申请号：{displayAdminInfo(r.normalized?.applicationNoNorm)}
+                    </Typography.Text>
+                    <Typography.Text type="secondary">
+                      专利记录编号：{displayAdminInfo(r.patentId)}
+                    </Typography.Text>
+                  </Space>
+                ),
+              },
+              { title: '失败原因代码', dataIndex: 'errorCode', width: 160, render: (v: string | null | undefined) => displayAdminInfo(v) },
               { title: '错误信息', dataIndex: 'errorMessage', render: (v: string | null | undefined) => displayAdminInfo(v) },
+              {
+                title: '标准化预览',
+                width: 360,
+                render: (_, row) => displayAdminInfo(patentImportRowSummary(row)),
+              },
             ]}
           />
         </Space>

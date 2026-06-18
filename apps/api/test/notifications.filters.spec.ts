@@ -29,6 +29,7 @@ describe('NotificationsService filter and id strictness suite', () => {
     await expect(service.list(req, { pageSize: '1.2' })).rejects.toBeInstanceOf(BadRequestException);
     await expect(service.list(req, { page: '9007199254740992' })).rejects.toBeInstanceOf(BadRequestException);
     await expect(service.list(req, { pageSize: '9007199254740992' })).rejects.toBeInstanceOf(BadRequestException);
+    await expect(service.list(req, { kind: 'other' })).rejects.toBeInstanceOf(BadRequestException);
 
     prisma.notification.findMany.mockResolvedValueOnce([]);
     prisma.notification.count.mockResolvedValueOnce(0);
@@ -41,6 +42,22 @@ describe('NotificationsService filter and id strictness suite', () => {
       take: 50,
     });
     expect(result.page).toEqual({ page: 2, pageSize: 50, total: 0 });
+  });
+
+  it('filters by notification kind when provided', async () => {
+    const req = { auth: { userId: 'u-1' } };
+    prisma.notification.findMany.mockResolvedValueOnce([]);
+    prisma.notification.count.mockResolvedValueOnce(0);
+
+    await service.list(req, { kind: 'cs' });
+
+    expect(prisma.notification.findMany).toHaveBeenCalledWith({
+      where: { userId: 'u-1', kind: 'cs' },
+      orderBy: { createdAt: 'desc' },
+      skip: 0,
+      take: 20,
+    });
+    expect(prisma.notification.count).toHaveBeenCalledWith({ where: { userId: 'u-1', kind: 'cs' } });
   });
 
   it('uses default pagination and fallback dto time when createdAt is missing', async () => {

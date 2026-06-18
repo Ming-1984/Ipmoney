@@ -4,6 +4,8 @@ export function fenToYuan(fen?: number | null, options?: { digits?: 0 | 2; empty
   const n = Number(fen);
   if (!Number.isFinite(n)) return empty;
   const yuan = n / 100;
+  const digits = options?.digits ?? 2;
+  if (digits === 2) return yuan.toFixed(2);
   return String(Math.round(yuan));
 }
 

@@ -14,14 +14,18 @@ describe('FavoritesService write-first suite', () => {
 
   beforeEach(() => {
     prisma = {
-      listing: { findUnique: vi.fn() },
+      listing: { findFirst: vi.fn() },
+      achievement: { findFirst: vi.fn() },
       listingFavorite: { create: vi.fn(), deleteMany: vi.fn() },
+      achievementFavorite: { create: vi.fn(), deleteMany: vi.fn() },
     };
     events = {
       adjustFavoriteCount: vi.fn().mockResolvedValue(undefined),
       recordFavorite: vi.fn().mockResolvedValue(undefined),
     };
     service = new FavoritesService(prisma, events);
+    prisma.listing.findFirst.mockResolvedValue({ id: VALID_UUID });
+    prisma.achievement.findFirst.mockResolvedValue({ id: VALID_UUID });
   });
 
   const authedReq = { auth: { userId: USER_ID } };
@@ -31,13 +35,12 @@ describe('FavoritesService write-first suite', () => {
   });
 
   it('rejects missing target on favorite', async () => {
-    prisma.listing.findUnique.mockResolvedValueOnce(null);
+    prisma.listing.findFirst.mockResolvedValueOnce(null);
 
     await expect(service.favoriteListing(authedReq, VALID_UUID)).rejects.toBeInstanceOf(NotFoundException);
   });
 
   it('creates favorite and emits counters on favorite success', async () => {
-    prisma.listing.findUnique.mockResolvedValueOnce({ id: VALID_UUID });
     prisma.listingFavorite.create.mockResolvedValueOnce({ id: 'fav-1' });
 
     const result = await service.favoriteListing(authedReq, VALID_UUID);
@@ -51,7 +54,6 @@ describe('FavoritesService write-first suite', () => {
   });
 
   it('treats duplicate as idempotent success on favorite', async () => {
-    prisma.listing.findUnique.mockResolvedValueOnce({ id: VALID_UUID });
     prisma.listingFavorite.create.mockRejectedValueOnce(
       new Prisma.PrismaClientKnownRequestError('duplicate', { code: 'P2002', clientVersion: 'test' }),
     );
@@ -90,5 +92,24 @@ describe('FavoritesService write-first suite', () => {
 
   it('rejects unauthenticated favorite', async () => {
     await expect(service.favoriteListing({}, VALID_UUID)).rejects.toBeInstanceOf(ForbiddenException);
+  });
+
+  it('rejects missing achievement target on favorite', async () => {
+    prisma.achievement.findFirst.mockResolvedValueOnce(null);
+
+    await expect(service.favoriteAchievement(authedReq, VALID_UUID)).rejects.toBeInstanceOf(NotFoundException);
+  });
+
+  it('creates achievement favorite and emits counters on success', async () => {
+    prisma.achievementFavorite.create.mockResolvedValueOnce({ id: 'fav-a-1' });
+
+    const result = await service.favoriteAchievement(authedReq, VALID_UUID);
+
+    expect(result).toEqual({ ok: true });
+    expect(prisma.achievementFavorite.create).toHaveBeenCalledWith({
+      data: { achievementId: VALID_UUID, userId: USER_ID },
+    });
+    expect(events.adjustFavoriteCount).toHaveBeenCalledWith('ACHIEVEMENT', VALID_UUID, 1);
+    expect(events.recordFavorite).toHaveBeenCalledWith(authedReq, 'ACHIEVEMENT', VALID_UUID);
   });
 });

@@ -168,10 +168,10 @@ export function verificationStatusLabel(status?: VerificationStatus | null, opti
 export function deliveryPeriodLabel(period?: DeliveryPeriod | null, options?: { empty?: string }): string {
   const empty = options?.empty ?? '-';
   if (!period) return empty;
-  if (period === 'WITHIN_1_MONTH') return '≤1月';
-  if (period === 'MONTH_1_3') return '1-3月';
-  if (period === 'MONTH_3_6') return '3-6月';
-  if (period === 'OVER_6_MONTHS') return '≥6月';
+  if (period === 'WITHIN_1_MONTH') return '1个月内';
+  if (period === 'MONTH_1_3') return '1-3个月';
+  if (period === 'MONTH_3_6') return '3-6个月';
+  if (period === 'OVER_6_MONTHS') return '6个月以上';
   if (period === 'OTHER') return '其他';
   return '周期待确认';
 }

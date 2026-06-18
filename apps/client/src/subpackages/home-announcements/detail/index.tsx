@@ -68,7 +68,7 @@ export default function HomeAnnouncementDetailPage() {
     if (!item?.publishedAt) return '';
     return formatTimeSmart(item.publishedAt);
   }, [item?.publishedAt]);
-  const titleText = displayTitleOrFallback(item?.title, '未命名公告');
+  const titleText = displayTitleOrFallback(item?.title, '公告标题待确认');
   const contentText = displayInfoOrPlaceholder(item?.content, '暂未更新');
 
   const openLink = useCallback(async () => {

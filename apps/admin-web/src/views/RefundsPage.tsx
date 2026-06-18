@@ -174,14 +174,25 @@ export function RefundsPage() {
             },
           }}
           columns={[
-            { title: TEXT.refundId, dataIndex: 'id', render: (value) => displayAdminInfo(value) },
-            { title: TEXT.orderId, dataIndex: 'orderId', render: (value) => displayAdminInfo(value) },
+            {
+              title: '退款摘要',
+              key: 'summary',
+              width: 360,
+              render: (_, record) => (
+                <Space direction="vertical" size={2}>
+                  <Typography.Text>{displayAdminInfo(record.reasonText, '退款原因待确认')}</Typography.Text>
+                  <Typography.Text type="secondary">订单号：{displayAdminInfo(record.orderId)}</Typography.Text>
+                  <Typography.Text type="secondary" copyable={{ text: record.id }}>
+                    退款单号：{record.id}
+                  </Typography.Text>
+                </Space>
+              ),
+            },
             {
               title: TEXT.status,
               dataIndex: 'status',
               render: (_, record) => statusTag(record.status),
             },
-            { title: TEXT.reason, dataIndex: 'reasonText', render: (value) => displayAdminInfo(value, '待补充') },
             { title: TEXT.createdAt, dataIndex: 'createdAt', render: (value) => formatTimeSmart(value) },
             {
               title: TEXT.actions,

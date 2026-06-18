@@ -115,7 +115,7 @@ describe('BearerAuthGuard strictness suite', () => {
       userId: '00000000-0000-0000-0000-000000000002',
       isAdmin: false,
       role: 'buyer',
-      verificationStatus: 'PENDING',
+      verificationStatus: null,
     });
   });
 

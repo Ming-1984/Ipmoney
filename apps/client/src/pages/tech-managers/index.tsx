@@ -7,7 +7,13 @@ import type { components } from '@ipmoney/api-types';
 
 import { STORAGE_KEYS } from '../../constants';
 import { apiGet } from '../../lib/api';
+import { displayInitial, displayTitleOrFallback, normalizeDisplayText } from '../../lib/displayText';
 import { regionDisplayName } from '../../lib/regions';
+import {
+  resolveTechManagerDisplayName,
+  resolveTechManagerExperienceLabel,
+  resolveTechManagerRatingDisplay,
+} from '../../lib/techManagerDisplay';
 import { usePagedList } from '../../lib/usePagedList';
 import { ListFooter } from '../../ui/ListFooter';
 import { SearchEntry } from '../../ui/SearchEntry';
@@ -22,11 +28,17 @@ type TechManagerSummary = components['schemas']['TechManagerSummary'];
 type OrganizationSummary = components['schemas']['OrganizationSummary'];
 type PagedOrganizationSummary = components['schemas']['PagedOrganizationSummary'];
 
+function resolveAvatarFallbackText(value: unknown, fallback: string): string {
+  return displayInitial(value, fallback);
+}
+
 export default function TechManagersPage() {
   const [activeTab, setActiveTab] = useState<ConsultTab>('TECH');
   const techQueryKeyRef = useRef<string | null>(null);
   const orgQueryKeyRef = useRef<string | null>(null);
   const tabPrefetchScheduledRef = useRef(false);
+  const techFilterKeyRef = useRef('');
+  const orgFilterKeyRef = useRef('');
   const [techSearchSeq, setTechSearchSeq] = useState(0);
   const [orgSearchSeq, setOrgSearchSeq] = useState(0);
 
@@ -68,6 +80,20 @@ export default function TechManagersPage() {
       if (ctx === 'loadMore') toast(message);
     },
   });
+
+  useEffect(() => {
+    const nextKey = `${techQ.trim()}::${techSearchSeq}`;
+    if (techFilterKeyRef.current === nextKey) return;
+    techFilterKeyRef.current = nextKey;
+    techList.reset();
+  }, [techList.reset, techQ, techSearchSeq]);
+
+  useEffect(() => {
+    const nextKey = `${orgQ.trim()}::${orgSearchSeq}`;
+    if (orgFilterKeyRef.current === nextKey) return;
+    orgFilterKeyRef.current = nextKey;
+    orgList.reset();
+  }, [orgList.reset, orgQ, orgSearchSeq]);
 
   useEffect(() => {
     const intent = String(Taro.getStorageSync(STORAGE_KEYS.consultLandingTab) || '')
@@ -117,10 +143,7 @@ export default function TechManagersPage() {
   }, [activeTab, orgList.reload, orgQ, techList.reload, techQ]);
 
   const techItems = useMemo(() => techList.items, [techList.items]);
-  const orgItems = useMemo(
-    () => orgList.items.filter((x) => x.verificationStatus === 'APPROVED'),
-    [orgList.items],
-  );
+  const orgItems = useMemo(() => orgList.items, [orgList.items]);
   const showTechInitialLoading = techList.loading && techItems.length === 0;
   const showOrgInitialLoading = orgList.loading && orgItems.length === 0;
 
@@ -169,21 +192,10 @@ export default function TechManagersPage() {
               <View className="consult-list">
                 {techItems.map((it: TechManagerSummary) => {
                   const avatar = it.avatarUrl && !it.avatarUrl.includes('example.com') ? it.avatarUrl : '';
-                  const ratingScore = it.stats?.ratingScore;
-                  const ratingCount = it.stats?.ratingCount ?? 0;
-                  const ratingText =
-                    ratingCount > 0 && typeof ratingScore === 'number' && !Number.isNaN(ratingScore)
-                      ? ratingScore.toFixed(1)
-                      : '';
-                  const ratingDisplay = ratingText ? `${ratingText}分` : '暂无评分';
-                  let experienceYears: number | null = null;
-                  if (it.verifiedAt) {
-                    const verifiedDate = new Date(it.verifiedAt);
-                    if (!Number.isNaN(verifiedDate.getTime())) {
-                      const diffYears = Math.floor((Date.now() - verifiedDate.getTime()) / (365.25 * 24 * 60 * 60 * 1000));
-                      experienceYears = Math.max(1, diffYears);
-                    }
-                  }
+                  const displayName = resolveTechManagerDisplayName(it);
+                  const ratingDisplay = resolveTechManagerRatingDisplay(it);
+                  const experienceLabel = resolveTechManagerExperienceLabel(it);
+                  const introText = normalizeDisplayText(it.intro);
                   return (
                     <View
                       key={it.userId}
@@ -197,28 +209,28 @@ export default function TechManagersPage() {
                           {avatar ? (
                             <Image src={avatar} mode="aspectFill" className="consult-avatar-img" />
                           ) : (
-                            <Text className="consult-avatar-text">{(it.displayName || 'T').slice(0, 1)}</Text>
+                            <Text className="consult-avatar-text">{resolveAvatarFallbackText(displayName, '专')}</Text>
                           )}
                         </View>
                         <View className="consult-info">
                           <View className="consult-name-row">
-                            <Text className="consult-name">{it.displayName || '-'}</Text>
+                            <Text className="consult-name">{displayName}</Text>
                           </View>
                           <View className="consult-meta-row">
-                            {experienceYears ? <Text className="consult-meta">从业 {experienceYears} 年</Text> : null}
+                            {experienceLabel ? <Text className="consult-meta">{experienceLabel}</Text> : null}
                             <Text
                               className={[
                                 'consult-meta',
                                 'consult-rating',
-                                ratingText ? '' : 'is-empty',
+                                ratingDisplay.isEmpty ? 'is-empty' : '',
                               ]
                                 .filter(Boolean)
                                 .join(' ')}
                             >
-                              {ratingDisplay}
+                              {ratingDisplay.text}
                             </Text>
                           </View>
-                          {it.intro ? <Text className="consult-intro clamp-1">{it.intro}</Text> : null}
+                          {introText ? <Text className="consult-intro clamp-1">{introText}</Text> : null}
                         </View>
                       </View>
                       <View className="consult-action">咨询</View>
@@ -262,7 +274,9 @@ export default function TechManagersPage() {
               <View className="consult-list">
                 {orgItems.map((it: OrganizationSummary) => {
                   const logo = it.logoUrl && !it.logoUrl.includes('example.com') ? it.logoUrl : '';
+                  const displayName = displayTitleOrFallback(it.displayName, '平台认证机构');
                   const location = it.regionCode ? regionDisplayName(it.regionCode) : '';
+                  const introText = normalizeDisplayText(it.intro);
                   return (
                     <View
                       key={it.userId}
@@ -276,17 +290,17 @@ export default function TechManagersPage() {
                           {logo ? (
                             <Image src={logo} mode="aspectFill" className="consult-avatar-img" />
                           ) : (
-                            <Text className="consult-avatar-text">{(it.displayName || '机').slice(0, 1)}</Text>
+                            <Text className="consult-avatar-text">{resolveAvatarFallbackText(displayName, '机')}</Text>
                           )}
                         </View>
                         <View className="consult-info">
                           <View className="consult-name-row">
-                            <Text className="consult-name">{it.displayName || '-'}</Text>
+                            <Text className="consult-name">{displayName}</Text>
                           </View>
                           <View className="consult-meta-row">
                             {location ? <Text className="consult-meta">{location}</Text> : null}
                           </View>
-                          {it.intro ? <Text className="consult-intro clamp-1">{it.intro}</Text> : null}
+                          {introText ? <Text className="consult-intro clamp-1">{introText}</Text> : null}
                         </View>
                       </View>
                       <View className="consult-action">咨询</View>

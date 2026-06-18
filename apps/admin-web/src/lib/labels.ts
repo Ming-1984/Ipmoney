@@ -23,7 +23,7 @@ export function patentTypeLabel(t?: PatentType | null, options?: { empty?: strin
   if (t === 'INVENTION') return '发明';
   if (t === 'UTILITY_MODEL') return '实用新型';
   if (t === 'DESIGN') return '外观设计';
-  return String(t);
+  return '类型待确认';
 }
 
 export function tradeModeLabel(t?: TradeMode | null, options?: { empty?: string }): string {
@@ -44,7 +44,7 @@ export function licenseModeLabel(t?: LicenseMode | null, options?: { empty?: str
   if (t === 'EXCLUSIVE') return '独占许可';
   if (t === 'SOLE') return '排他许可';
   if (t === 'NON_EXCLUSIVE') return '普通许可';
-  return String(t);
+  return '许可方式待确认';
 }
 
 export function auditStatusLabel(status?: AuditStatus | null, options?: { empty?: string }): string {
@@ -86,7 +86,7 @@ export function artworkCategoryLabel(t?: ArtworkCategory | null, options?: { emp
   if (!t) return empty;
   if (t === 'CALLIGRAPHY') return '书法';
   if (t === 'PAINTING') return '绘画';
-  return String(t);
+  return '类别待确认';
 }
 
 export function calligraphyScriptLabel(t?: CalligraphyScript | null, options?: { empty?: string }): string {
@@ -97,7 +97,7 @@ export function calligraphyScriptLabel(t?: CalligraphyScript | null, options?: {
   if (t === 'CAOSHU') return '草书';
   if (t === 'LISHU') return '隶书';
   if (t === 'ZHUANSHU') return '篆书';
-  return String(t);
+  return '书体待确认';
 }
 
 export function paintingGenreLabel(t?: PaintingGenre | null, options?: { empty?: string }): string {
@@ -107,7 +107,7 @@ export function paintingGenreLabel(t?: PaintingGenre | null, options?: { empty?:
   if (t === 'LANDSCAPE') return '山水';
   if (t === 'BIRD_FLOWER') return '花鸟';
   if (t === 'OTHER') return '其他';
-  return String(t);
+  return '题材待确认';
 }
 
 export function orderStatusLabel(status?: OrderStatus | null, options?: { empty?: string }): string {
@@ -122,7 +122,7 @@ export function orderStatusLabel(status?: OrderStatus | null, options?: { empty?
   if (status === 'CANCELLED') return '已取消';
   if (status === 'REFUNDING') return '退款中';
   if (status === 'REFUNDED') return '已退款';
-  return String(status);
+  return '状态待确认';
 }
 
 export function featuredLevelLabel(level?: FeaturedLevel | null, options?: { empty?: string }): string {
@@ -130,7 +130,7 @@ export function featuredLevelLabel(level?: FeaturedLevel | null, options?: { emp
   if (!level || level === 'NONE') return empty;
   if (level === 'PROVINCE') return '省级特色';
   if (level === 'CITY') return '市级特色';
-  return String(level);
+  return '特色待确认';
 }
 
 export function verificationTypeLabel(type?: VerificationType | null, options?: { empty?: string }): string {
@@ -142,7 +142,7 @@ export function verificationTypeLabel(type?: VerificationType | null, options?: 
   if (type === 'GOVERNMENT') return '政府';
   if (type === 'ASSOCIATION') return '行业协会/学会';
   if (type === 'TECH_MANAGER') return '技术经理人';
-  return String(type);
+  return '认证类型待确认';
 }
 
 export function verificationStatusLabel(status?: VerificationStatus | null, options?: { empty?: string }): string {
@@ -156,10 +156,10 @@ export function verificationStatusLabel(status?: VerificationStatus | null, opti
 export function deliveryPeriodLabel(period?: DeliveryPeriod | null, options?: { empty?: string }): string {
   const empty = options?.empty ?? '-';
   if (!period) return empty;
-  if (period === 'WITHIN_1_MONTH') return '≤1月';
-  if (period === 'MONTH_1_3') return '1-3月';
-  if (period === 'MONTH_3_6') return '3-6月';
-  if (period === 'OVER_6_MONTHS') return '≥6月';
+  if (period === 'WITHIN_1_MONTH') return '1个月内';
+  if (period === 'MONTH_1_3') return '1-3个月';
+  if (period === 'MONTH_3_6') return '3-6个月';
+  if (period === 'OVER_6_MONTHS') return '6个月以上';
   if (period === 'OTHER') return '其他';
-  return String(period);
+  return '周期待确认';
 }

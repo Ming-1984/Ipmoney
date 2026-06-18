@@ -3,7 +3,7 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 
 import { apiGet, apiPatch, apiPost, type FileObject } from '../lib/api';
 import { formatTimeSmart } from '../lib/format';
-import { normalizeUserFacingText } from '../lib/userFacingText';
+import { formatRegionCodeDisplay, normalizeUserFacingText } from '../lib/userFacingText';
 import { verificationTypeLabel } from '../lib/labels';
 import { ImageUrlUploadField } from '../ui/ImageUrlUploadField';
 import { RequestErrorAlert, AuditHint } from '../ui/RequestState';
@@ -63,7 +63,7 @@ function statusTag(status: VerificationStatus) {
   return <Tag color="orange">待审核</Tag>;
 }
 
-function displayFieldText(value: unknown, fallback = '待补充'): string {
+function displayFieldText(value: unknown, fallback = '未设置'): string {
   return normalizeUserFacingText(value) || fallback;
 }
 
@@ -71,12 +71,12 @@ function reviewCommentText(record: UserVerification): string {
   const comment = normalizeUserFacingText(record.reviewComment);
   if (comment) return comment;
   if (record.status === 'PENDING') return '待审核';
-  return '未填写';
+  return '暂无备注';
 }
 
 function auditActionLabel(value: unknown): string {
   const action = normalizeUserFacingText(value);
-  if (!action) return '记录待补充';
+  if (!action) return '审核记录待确认';
   if (action === 'APPROVED') return '已通过';
   if (action === 'REJECTED') return '已驳回';
   if (action === 'SUBMITTED') return '已提交';
@@ -84,6 +84,18 @@ function auditActionLabel(value: unknown): string {
   if (action === 'LOGO_UPDATED') return 'Logo 已更新';
   if (action === 'LOGO_CLEARED') return 'Logo 已清除';
   return action;
+}
+
+function materialKindLabel(value: unknown): string {
+  const kind = normalizeUserFacingText(value);
+  if (!kind) return '材料类型待确认';
+  if (kind === 'ID_FRONT') return '身份证正面';
+  if (kind === 'ID_BACK') return '身份证反面';
+  if (kind === 'BUSINESS_LICENSE') return '营业执照';
+  if (kind === 'QUALIFICATION') return '资质材料';
+  if (kind === 'AUTHORIZATION') return '授权文件';
+  if (kind === 'LOGO') return 'Logo';
+  return kind;
 }
 
 export function VerificationsPage() {
@@ -279,7 +291,7 @@ export function VerificationsPage() {
             { title: '主体名称', dataIndex: 'displayName', render: (value) => displayFieldText(value) },
             { title: '类型', dataIndex: 'type', render: (v) => verificationTypeLabel(v) },
             { title: '状态', dataIndex: 'status', render: (_, r) => statusTag(r.status) },
-            { title: '地区', dataIndex: 'regionCode', render: (value) => displayFieldText(value) },
+            { title: '地区', dataIndex: 'regionCode', render: (value) => formatRegionCodeDisplay(value) },
             { title: '提交时间', dataIndex: 'submittedAt', render: (v) => formatTimeSmart(v) },
             {
               title: '操作',
@@ -385,11 +397,11 @@ export function VerificationsPage() {
         {active ? (
           <Space direction="vertical" size={16} style={{ width: '100%' }}>
             <Descriptions size="small" column={1} bordered>
-              <Descriptions.Item label="认证ID">{active.id}</Descriptions.Item>
+              <Descriptions.Item label="认证编号">{active.id}</Descriptions.Item>
               <Descriptions.Item label="主体名称">{displayFieldText(active.displayName)}</Descriptions.Item>
               <Descriptions.Item label="类型">{verificationTypeLabel(active.type)}</Descriptions.Item>
               <Descriptions.Item label="状态">{statusTag(active.status)}</Descriptions.Item>
-              <Descriptions.Item label="地区">{displayFieldText(active.regionCode)}</Descriptions.Item>
+              <Descriptions.Item label="地区">{formatRegionCodeDisplay(active.regionCode)}</Descriptions.Item>
               <Descriptions.Item label="联系人">{displayFieldText(active.contactName)}</Descriptions.Item>
               <Descriptions.Item label="联系电话">{displayFieldText(active.contactPhoneMasked)}</Descriptions.Item>
               <Descriptions.Item label="提交时间">{formatTimeSmart(active.submittedAt)}</Descriptions.Item>
@@ -409,8 +421,13 @@ export function VerificationsPage() {
                 <Input value={editContactName} onChange={(e) => setEditContactName(e.target.value)} style={{ marginTop: 8 }} />
               </div>
               <div>
-                <Typography.Text>地区编码</Typography.Text>
-                <Input value={editRegionCode} onChange={(e) => setEditRegionCode(e.target.value)} style={{ marginTop: 8 }} />
+                <Typography.Text>所属地区</Typography.Text>
+                <Input
+                  value={editRegionCode}
+                  onChange={(e) => setEditRegionCode(e.target.value)}
+                  placeholder="可填写地区名称或地区代码"
+                  style={{ marginTop: 8 }}
+                />
               </div>
               <div>
                 <Typography.Text>主体简介</Typography.Text>
@@ -466,7 +483,7 @@ export function VerificationsPage() {
                     <Space direction="vertical" size={4}>
                       <Typography.Text>{m.name}</Typography.Text>
                       <Typography.Text type="secondary">
-                        {displayFieldText(m.kind)} | {m.uploadedAt ? formatTimeSmart(m.uploadedAt) : '待确认'}
+                        {materialKindLabel(m.kind)} | {m.uploadedAt ? formatTimeSmart(m.uploadedAt) : '待确认'}
                       </Typography.Text>
                       {m.url ? (
                         <a href={m.url} target="_blank" rel="noreferrer">
@@ -491,7 +508,7 @@ export function VerificationsPage() {
                       <Typography.Text>{auditActionLabel(log.action)}</Typography.Text>
                       {normalizeUserFacingText(log.reason) ? <Typography.Text>{normalizeUserFacingText(log.reason)}</Typography.Text> : null}
                       <Typography.Text type="secondary">
-                        {normalizeUserFacingText(log.operatorName) || normalizeUserFacingText(log.operatorUserId) || '操作方待补充'} |{' '}
+                        {normalizeUserFacingText(log.operatorName) || '操作方待确认'} |{' '}
                         {log.createdAt ? formatTimeSmart(log.createdAt) : '待确认'}
                       </Typography.Text>
                     </Space>

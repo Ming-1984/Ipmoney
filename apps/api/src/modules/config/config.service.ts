@@ -418,7 +418,7 @@ function buildDefaultHomeLandingConfig(): HomeLandingConfig {
         {
           id: 'sleeping',
           title: '沉睡专利',
-          subtitle: '转让次数为 0 的专利',
+          subtitle: '平台标记的沉睡专利',
           imageUrl: 'builtin://zone-sleeping',
           enabled: true,
           order: 20,
@@ -448,7 +448,7 @@ function buildDefaultHomeLandingConfig(): HomeLandingConfig {
         {
           id: 'open-license',
           title: '开放许可',
-          subtitle: '交易方式为许可',
+          subtitle: '平台标记的开放许可',
           imageUrl: 'builtin://zone-open-license',
           enabled: true,
           order: 50,

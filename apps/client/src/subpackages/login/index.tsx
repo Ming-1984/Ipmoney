@@ -1,5 +1,5 @@
 ﻿import { View, Text, Image } from '@tarojs/components';
-import Taro from '@tarojs/taro';
+import Taro, { useDidHide, useDidShow } from '@tarojs/taro';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import './index.scss';
 
@@ -39,6 +39,9 @@ export default function LoginPage() {
   const [phoneBindOpen, setPhoneBindOpen] = useState(false);
   const [phoneBindBusy, setPhoneBindBusy] = useState(false);
   const postLoginNextRef = useRef<null | (() => void)>(null);
+  const pageVisibleRef = useRef(true);
+  const actionSeqRef = useRef(0);
+  const phoneBindSeqRef = useRef(0);
   const redirectParam = useRouteStringParam('redirect');
   const redirectUrl = useMemo(() => {
     if (!redirectParam) return '';
@@ -53,6 +56,19 @@ export default function LoginPage() {
   const [phone, setPhone] = useState('');
   const [smsCode, setSmsCode] = useState('');
   const [cooldown, setCooldown] = useState(0);
+
+  useDidShow(() => {
+    pageVisibleRef.current = true;
+  });
+
+  useDidHide(() => {
+    pageVisibleRef.current = false;
+    actionSeqRef.current += 1;
+    phoneBindSeqRef.current += 1;
+    postLoginNextRef.current = null;
+    setBusy(false);
+    setPhoneBindBusy(false);
+  });
 
   useEffect(() => {
     if (!canWechatLogin && activeTab !== 'sms') {
@@ -73,7 +89,9 @@ export default function LoginPage() {
   }, [agree]);
 
   const afterLogin = useCallback(
-    (auth: AuthTokenResponse, opts?: { fromWechat?: boolean }) => {
+    (auth: AuthTokenResponse, opts?: { fromWechat?: boolean; seq?: number }) => {
+      if (opts?.seq !== undefined && opts.seq !== actionSeqRef.current) return;
+      if (!pageVisibleRef.current) return;
       const token = auth.accessToken || '';
       if (!token) {
         toast('登录失败，请稍后重试');
@@ -123,12 +141,22 @@ export default function LoginPage() {
 
       const shouldPromptPhone = Boolean(opts?.fromWechat) && canWechatLogin && !phoneFromAuth;
       if (shouldPromptPhone) {
-        postLoginNextRef.current = () => setTimeout(goNext, 200);
+        const bindSeq = ++phoneBindSeqRef.current;
+        postLoginNextRef.current = () => {
+          setTimeout(() => {
+            if (bindSeq !== phoneBindSeqRef.current || !pageVisibleRef.current) return;
+            goNext();
+          }, 200);
+        };
         setPhoneBindOpen(true);
         return;
       }
 
-      setTimeout(goNext, 200);
+      const nextSeq = opts?.seq ?? actionSeqRef.current;
+      setTimeout(() => {
+        if (nextSeq !== actionSeqRef.current || !pageVisibleRef.current) return;
+        goNext();
+      }, 200);
     },
     [canWechatLogin],
   );
@@ -136,6 +164,7 @@ export default function LoginPage() {
   const quickLogin = useCallback(async () => {
     if (busy) return;
     if (!ensureAgreement()) return;
+    const seq = ++actionSeqRef.current;
     setBusy(true);
     try {
       let code = '';
@@ -148,25 +177,34 @@ export default function LoginPage() {
       if (!code) throw new Error('无法获取登录凭证');
 
       const auth = await apiPost<AuthTokenResponse>('/auth/wechat/mp-login', { code });
-      afterLogin(auth, { fromWechat: true });
+      if (seq !== actionSeqRef.current || !pageVisibleRef.current) return;
+      afterLogin(auth, { fromWechat: true, seq });
     } catch (e: any) {
+      if (seq !== actionSeqRef.current || !pageVisibleRef.current) return;
       toast(e?.message || '登录失败');
     } finally {
-      setBusy(false);
+      if (seq === actionSeqRef.current && pageVisibleRef.current) {
+        setBusy(false);
+      }
     }
   }, [afterLogin, busy, ensureAgreement]);
 
   const demoLogin = useCallback(async () => {
     if (!DEMO_LOGIN_ENABLED || busy) return;
     if (!ensureAgreement()) return;
+    const seq = ++actionSeqRef.current;
     setBusy(true);
     try {
       const auth = await apiPost<AuthTokenResponse>('/auth/wechat/mp-login', { code: 'demo' });
-      afterLogin(auth);
+      if (seq !== actionSeqRef.current || !pageVisibleRef.current) return;
+      afterLogin(auth, { seq });
     } catch (e: any) {
+      if (seq !== actionSeqRef.current || !pageVisibleRef.current) return;
       toast(e?.message || '登录失败');
     } finally {
-      setBusy(false);
+      if (seq === actionSeqRef.current && pageVisibleRef.current) {
+        setBusy(false);
+      }
     }
   }, [afterLogin, busy, ensureAgreement]);
 
@@ -178,15 +216,20 @@ export default function LoginPage() {
       toast('请输入手机号');
       return;
     }
+    const seq = ++actionSeqRef.current;
     setBusy(true);
     try {
       const res = await apiPost<{ cooldownSeconds: number }>('/auth/sms/send', { phone: p, purpose: 'LOGIN' });
+      if (seq !== actionSeqRef.current || !pageVisibleRef.current) return;
       setCooldown(Number(res?.cooldownSeconds || 60));
       toast('验证码已发送', { icon: 'success' });
     } catch (e: any) {
+      if (seq !== actionSeqRef.current || !pageVisibleRef.current) return;
       toast(e?.message || '发送失败');
     } finally {
-      setBusy(false);
+      if (seq === actionSeqRef.current && pageVisibleRef.current) {
+        setBusy(false);
+      }
     }
   }, [busy, ensureAgreement, phone]);
 
@@ -203,14 +246,19 @@ export default function LoginPage() {
       toast('请输入验证码');
       return;
     }
+    const seq = ++actionSeqRef.current;
     setBusy(true);
     try {
       const auth = await apiPost<AuthTokenResponse>('/auth/sms/verify', { phone: p, code: c });
-      afterLogin(auth);
+      if (seq !== actionSeqRef.current || !pageVisibleRef.current) return;
+      afterLogin(auth, { seq });
     } catch (e: any) {
+      if (seq !== actionSeqRef.current || !pageVisibleRef.current) return;
       toast(e?.message || '登录失败');
     } finally {
-      setBusy(false);
+      if (seq === actionSeqRef.current && pageVisibleRef.current) {
+        setBusy(false);
+      }
     }
   }, [afterLogin, busy, ensureAgreement, phone, smsCode]);
 
@@ -296,7 +344,13 @@ export default function LoginPage() {
             <View className="login-field">
               <Text className="login-field-label">验证码</Text>
               <View className="login-field-input">
-                <Input value={smsCode} onChange={setSmsCode} placeholder="请输入短信验证码" type="digit" clearable />
+                <Input
+                  value={smsCode}
+                  onChange={setSmsCode}
+                  placeholder="请输入短信验证码"
+                  type="digit"
+                  clearable
+                />
               </View>
             </View>
 
@@ -334,18 +388,23 @@ export default function LoginPage() {
         }}
         onRequestBind={async (phoneCode) => {
           if (phoneBindBusy) return;
+          const seq = ++phoneBindSeqRef.current;
           setPhoneBindBusy(true);
           try {
             await apiPost('/auth/wechat/phone-bind', { phoneCode });
+            if (seq !== phoneBindSeqRef.current || !pageVisibleRef.current) return;
             toast('手机号绑定成功', { icon: 'success' });
             setPhoneBindOpen(false);
             const next = postLoginNextRef.current;
             postLoginNextRef.current = null;
             next?.();
           } catch (e: any) {
+            if (seq !== phoneBindSeqRef.current || !pageVisibleRef.current) return;
             toast(e?.message || '绑定失败');
           } finally {
-            setPhoneBindBusy(false);
+            if (seq === phoneBindSeqRef.current && pageVisibleRef.current) {
+              setPhoneBindBusy(false);
+            }
           }
         }}
       />

@@ -24,6 +24,7 @@ import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import logoPng from '../assets/brand/logo.png';
 import { apiGet } from '../lib/api';
 import { clearAdminToken, hasAdminToken } from '../lib/auth';
+import { displayUserName, normalizeUserFacingText } from '../lib/userFacingText';
 
 const { Header, Sider, Content } = Layout;
 
@@ -34,6 +35,7 @@ type SessionInfo = {
   roleNames?: string[];
   permissions?: string[];
   nickname?: string;
+  displayName?: string;
 };
 
 type AppMenuItem = {
@@ -112,6 +114,15 @@ export function AppLayout() {
   }, []);
 
   const permissionSet = useMemo(() => new Set(session?.permissions || []), [session?.permissions]);
+  const sessionDisplayName = useMemo(
+    () => displayUserName(session, '平台成员'),
+    [session?.displayName, session?.nickname],
+  );
+  const sessionRoleLabel = useMemo(() => {
+    const roleNames = (session?.roleNames || []).map((item) => normalizeUserFacingText(item)).filter(Boolean);
+    if (roleNames.length > 0) return roleNames.join(' / ');
+    return normalizeUserFacingText(session?.role) || '待配置角色';
+  }, [session?.role, session?.roleNames]);
 
   const menuItems = useMemo<MenuProps['items']>(
     () =>
@@ -198,9 +209,9 @@ export function AppLayout() {
             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
               <Avatar size={30} icon={<UserOutlined />} />
               <div style={{ display: 'flex', flexDirection: 'column', lineHeight: 1.2 }}>
-                <Typography.Text>{session.nickname || session.userId}</Typography.Text>
+                <Typography.Text>{sessionDisplayName}</Typography.Text>
                 <Typography.Text type="secondary" style={{ fontSize: 12 }}>
-                  角色：{(session.roleNames || []).join(' / ') || session.role || 'unknown'}
+                  角色：{sessionRoleLabel}
                 </Typography.Text>
               </div>
             </div>

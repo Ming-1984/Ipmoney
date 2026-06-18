@@ -30,6 +30,8 @@ describe('CommentsService write-first suite', () => {
 
   beforeEach(() => {
     prisma = {
+      listing: { findFirst: vi.fn(), findMany: vi.fn() },
+      achievement: { findFirst: vi.fn(), findMany: vi.fn() },
       comment: {
         findMany: vi.fn(),
         count: vi.fn(),
@@ -43,6 +45,10 @@ describe('CommentsService write-first suite', () => {
     service = new CommentsService(prisma);
     prisma.user.findMany.mockResolvedValue([{ id: USER_ID, nickname: 'Alice' }]);
     prisma.userVerification.findMany.mockResolvedValue([]);
+    prisma.listing.findFirst.mockResolvedValue({ id: CONTENT_ID });
+    prisma.achievement.findFirst.mockResolvedValue({ id: CONTENT_ID });
+    prisma.listing.findMany.mockResolvedValue([]);
+    prisma.achievement.findMany.mockResolvedValue([]);
   });
 
   const authedReq = { auth: { userId: USER_ID } };
@@ -50,6 +56,11 @@ describe('CommentsService write-first suite', () => {
 
   it('rejects invalid contentId in listThreads', async () => {
     await expect(service.listThreads('LISTING', 'bad-id', {})).rejects.toBeInstanceOf(BadRequestException);
+  });
+
+  it('rejects listThreads when target public content is not visible', async () => {
+    prisma.listing.findFirst.mockResolvedValueOnce(null);
+    await expect(service.listThreads('LISTING', CONTENT_ID, {})).rejects.toBeInstanceOf(NotFoundException);
   });
 
   it('rejects non-positive page in listThreads', async () => {
@@ -84,9 +95,31 @@ describe('CommentsService write-first suite', () => {
     expect(result.items[0].replies).toHaveLength(1);
   });
 
+  it('does not expose verification metadata in public comment threads', async () => {
+    prisma.user.findMany.mockResolvedValueOnce([{ id: USER_ID, nickname: 'Alice', role: 'USER' }]);
+    prisma.userVerification.findMany.mockResolvedValueOnce([
+      { userId: USER_ID, verificationStatus: 'APPROVED', verificationType: 'COMPANY' },
+    ]);
+    prisma.comment.findMany.mockResolvedValueOnce([makeComment()]).mockResolvedValueOnce([]);
+    prisma.comment.count.mockResolvedValueOnce(1);
+
+    const result = await service.listThreads('LISTING', CONTENT_ID, { page: '1', pageSize: '20' });
+
+    expect(result.items[0].root.user.nickname).toBe('Alice');
+    expect(result.items[0].root.user).not.toHaveProperty('verificationStatus');
+    expect(result.items[0].root.user).not.toHaveProperty('verificationType');
+  });
+
   it('rejects unauthenticated createComment', async () => {
     await expect(service.createComment({}, 'LISTING', CONTENT_ID, { text: 'a' })).rejects.toBeInstanceOf(
       ForbiddenException,
+    );
+  });
+
+  it('rejects createComment when target public content is not visible', async () => {
+    prisma.listing.findFirst.mockResolvedValueOnce(null);
+    await expect(service.createComment(authedReq, 'LISTING', CONTENT_ID, { text: 'a' })).rejects.toBeInstanceOf(
+      NotFoundException,
     );
   });
 
@@ -243,7 +276,12 @@ describe('CommentsService write-first suite', () => {
   });
 
   it('lists admin comments with normalized filters and capped pageSize', async () => {
+    prisma.user.findMany.mockResolvedValueOnce([{ id: USER_ID, nickname: 'Alice', role: 'USER' }]);
+    prisma.userVerification.findMany.mockResolvedValueOnce([
+      { userId: USER_ID, verificationStatus: 'APPROVED', verificationType: 'COMPANY' },
+    ]);
     prisma.comment.findMany.mockResolvedValueOnce([makeComment()]);
+    prisma.listing.findMany.mockResolvedValueOnce([{ id: CONTENT_ID, title: '挂牌 A' }]);
     prisma.comment.count.mockResolvedValueOnce(1);
 
     const result = await service.adminList(adminReq, {
@@ -263,12 +301,66 @@ describe('CommentsService write-first suite', () => {
           contentId: CONTENT_ID,
         }),
         include: { user: true },
-        skip: 0,
-        take: 50,
+        orderBy: { createdAt: 'desc' },
       }),
     );
     expect(result.page).toEqual({ page: 1, pageSize: 50, total: 1 });
     expect(result.items).toHaveLength(1);
+    expect(result.items[0].contentTitle).toBe('挂牌 A');
+    expect(result.items[0].user.verificationStatus).toBe('APPROVED');
+    expect(result.items[0].user.verificationType).toBe('COMPANY');
+  });
+
+  it('supports ACHIEVEMENT contentType in adminList filters', async () => {
+    prisma.user.findMany.mockResolvedValueOnce([{ id: USER_ID, nickname: 'Alice', role: 'USER' }]);
+    prisma.userVerification.findMany.mockResolvedValueOnce([]);
+    prisma.comment.findMany.mockResolvedValueOnce([makeComment({ contentType: 'ACHIEVEMENT' })]);
+    prisma.achievement.findMany.mockResolvedValueOnce([{ id: CONTENT_ID, title: '成果 A' }]);
+    prisma.comment.count.mockResolvedValueOnce(1);
+
+    const result = await service.adminList(adminReq, {
+      contentType: ' achievement ',
+      page: '1',
+      pageSize: '20',
+    });
+
+    expect(prisma.comment.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          contentType: 'ACHIEVEMENT',
+        }),
+      }),
+    );
+    expect(result.items[0].contentType).toBe('ACHIEVEMENT');
+    expect(result.items[0].contentTitle).toBe('成果 A');
+    expect(result.page).toEqual({ page: 1, pageSize: 20, total: 1 });
+  });
+
+  it('reorders admin comments search results to prioritize strong user name matches', async () => {
+    prisma.user.findMany.mockResolvedValueOnce([
+      { id: 'user-1', nickname: '普通用户', role: 'USER' },
+      { id: 'user-2', nickname: '华南顾问', role: 'USER' },
+      { id: 'user-3', nickname: '昵称用户', role: 'USER' },
+    ]);
+    prisma.userVerification.findMany.mockResolvedValueOnce([
+      { userId: 'user-1', displayName: null, verificationStatus: null, verificationType: null },
+      { userId: 'user-2', displayName: '成果顾问中心', verificationStatus: 'APPROVED', verificationType: 'COMPANY' },
+      { userId: 'user-3', displayName: '华南技术经理人', verificationStatus: 'APPROVED', verificationType: 'TECH_MANAGER' },
+    ]);
+    prisma.comment.findMany.mockResolvedValueOnce([
+      makeComment({ id: 'comment-1', userId: 'user-1', text: '我想咨询华南相关业务' }),
+      makeComment({ id: 'comment-2', userId: 'user-2', text: '请查看成果转化方案' }),
+      makeComment({ id: 'comment-3', userId: 'user-3', text: '技术经理人服务介绍' }),
+    ]);
+
+    const result = await service.adminList(adminReq, {
+      q: '华南',
+      page: '1',
+      pageSize: '20',
+    });
+
+    expect(result.items.map((item) => item.user.displayName || item.user.nickname)).toEqual(['华南技术经理人', '成果顾问中心']);
+    expect(result.page).toEqual({ page: 1, pageSize: 20, total: 2 });
   });
 
   it('validates adminUpdate id and status strictly', async () => {

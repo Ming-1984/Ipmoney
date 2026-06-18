@@ -2,7 +2,7 @@
 import { ContractStatus } from '@prisma/client';
 
 import { PrismaService } from '../../common/prisma/prisma.service';
-import { resolvePublicFileUrl } from '../content-utils';
+import { normalizeDisplayText, resolvePublicFileUrl } from '../content-utils';
 
 type ContractItem = {
   id: string;
@@ -75,11 +75,14 @@ export class ContractsService {
       resolvePublicFileUrl({ url: contract?.fileUrl ?? null }, { baseUrl: process.env.BASE_URL }) ??
       null;
 
+    const counterpartVerificationDisplayName = normalizeDisplayText(counterpart?.verifications?.[0]?.displayName);
+    const counterpartNickname = normalizeDisplayText(counterpart?.nickname);
+
     return {
       id: `${CONTRACT_ID_PREFIX}${order.id}`,
       orderId: order.id,
       listingTitle: order.listing?.title ?? null,
-      counterpartName: counterpart?.nickname ?? null,
+      counterpartName: counterpartVerificationDisplayName ?? counterpartNickname ?? null,
       status: (contract?.status ?? 'WAIT_UPLOAD') as ContractStatus,
       createdAt: createdAt.toISOString(),
       uploadedAt,
@@ -123,8 +126,8 @@ export class ContractsService {
       this.prisma.order.findMany({
         where: baseWhere,
         include: {
-          listing: { include: { seller: true } },
-          buyer: true,
+          listing: { include: { seller: { include: { verifications: { orderBy: { submittedAt: 'desc' }, take: 1 } } } } },
+          buyer: { include: { verifications: { orderBy: { submittedAt: 'desc' }, take: 1 } } },
           contract: { include: { contractFile: true } },
         },
         orderBy: { createdAt: 'desc' },
@@ -145,7 +148,11 @@ export class ContractsService {
     const orderId = this.parseOrderId(contractId);
     const order = await this.prisma.order.findUnique({
       where: { id: orderId },
-      include: { listing: { include: { seller: true } }, buyer: true, contract: { include: { contractFile: true } } },
+      include: {
+        listing: { include: { seller: { include: { verifications: { orderBy: { submittedAt: 'desc' }, take: 1 } } } } },
+        buyer: { include: { verifications: { orderBy: { submittedAt: 'desc' }, take: 1 } } },
+        contract: { include: { contractFile: true } },
+      },
     });
     if (!order) throw new NotFoundException({ code: 'NOT_FOUND', message: '订单不存在' });
 

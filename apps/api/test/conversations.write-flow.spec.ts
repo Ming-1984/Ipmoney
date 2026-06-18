@@ -17,6 +17,7 @@ describe('ConversationsService write flow suite', () => {
   beforeEach(() => {
     prisma = {
       listing: {
+        findFirst: vi.fn(),
         findUnique: vi.fn(),
       },
       order: {
@@ -41,6 +42,7 @@ describe('ConversationsService write flow suite', () => {
         findFirst: vi.fn(),
       },
       achievement: {
+        findFirst: vi.fn(),
         findUnique: vi.fn(),
       },
       conversation: {
@@ -55,6 +57,9 @@ describe('ConversationsService write flow suite', () => {
       },
       conversationAgent: {
         findFirst: vi.fn(),
+        findUnique: vi.fn(),
+        upsert: vi.fn(),
+        update: vi.fn(),
       },
       conversationParticipant: {
         findFirst: vi.fn(),
@@ -65,6 +70,16 @@ describe('ConversationsService write flow suite', () => {
     events = { recordConsult: vi.fn().mockResolvedValue(undefined) };
     contentSecurity = { assertSafeText: vi.fn().mockResolvedValue(undefined) };
     service = new ConversationsService(prisma, events, contentSecurity);
+    prisma.listing.findFirst.mockResolvedValue({
+      id: LISTING_ID,
+      title: 'Listing A',
+      sellerUserId: 'seller-1',
+    });
+    prisma.achievement.findFirst.mockResolvedValue({
+      id: LISTING_ID,
+      title: 'Achievement A',
+      publisherUserId: 'seller-1',
+    });
   });
 
   it('requires auth for create/send/mark write endpoints', async () => {
@@ -84,18 +99,13 @@ describe('ConversationsService write flow suite', () => {
 
   it('returns not found when listing does not exist', async () => {
     const req = { auth: { userId: 'buyer-1' } };
-    prisma.listing.findUnique.mockResolvedValueOnce(null);
+    prisma.listing.findFirst.mockResolvedValueOnce(null);
 
     await expect(service.createListingConversation(req, LISTING_ID)).rejects.toBeInstanceOf(NotFoundException);
   });
 
   it('creates listing conversation and records consult event when absent', async () => {
     const req = { auth: { userId: 'buyer-1' } };
-    prisma.listing.findUnique.mockResolvedValueOnce({
-      id: LISTING_ID,
-      title: 'Listing A',
-      sellerUserId: 'seller-1',
-    });
     prisma.conversation.findFirst.mockResolvedValueOnce(null);
     prisma.conversation.create.mockResolvedValueOnce({
       id: CONVERSATION_ID,
@@ -167,6 +177,60 @@ describe('ConversationsService write flow suite', () => {
     });
   });
 
+  it('uses neutral fallback titles when source content lacks business title fields', async () => {
+    const req = { auth: { userId: 'buyer-1' } };
+
+    prisma.listing.findFirst.mockResolvedValueOnce({
+      id: LISTING_ID,
+      title: null,
+      sellerUserId: 'seller-1',
+    });
+    prisma.conversation.findFirst.mockResolvedValueOnce(null);
+    prisma.conversation.create.mockResolvedValueOnce({
+      id: CONVERSATION_ID,
+      contentType: 'LISTING',
+      contentId: LISTING_ID,
+      listingId: LISTING_ID,
+      orderId: null,
+      buyerUserId: 'buyer-1',
+      sellerUserId: 'seller-1',
+      lastMessageAt: null,
+      createdAt: new Date('2026-03-13T00:00:00.000Z'),
+      updatedAt: new Date('2026-03-13T00:00:00.000Z'),
+    });
+
+    const listingResult = await service.createListingConversation(req, LISTING_ID);
+    expect(listingResult.contentTitle).toBe('咨询内容');
+
+    prisma.userVerification.findFirst.mockResolvedValueOnce({
+      userId: TECH_MANAGER_ID,
+      displayName: null,
+      user: { nickname: null },
+    });
+    prisma.conversation.findFirst.mockResolvedValueOnce({
+      id: CONVERSATION_ID,
+      contentType: 'TECH_MANAGER',
+      contentId: TECH_MANAGER_ID,
+      listingId: null,
+      orderId: null,
+      buyerUserId: 'buyer-1',
+      sellerUserId: TECH_MANAGER_ID,
+      lastMessageAt: null,
+      createdAt: new Date('2026-03-13T00:00:00.000Z'),
+      updatedAt: new Date('2026-03-13T00:00:00.000Z'),
+    });
+
+    const techManagerResult = await service.createTechManagerConversation(req, TECH_MANAGER_ID);
+    expect(techManagerResult.contentTitle).toBe('技术经理人');
+  });
+
+  it('returns not found when achievement is not publicly visible', async () => {
+    const req = { auth: { userId: 'buyer-1' } };
+    prisma.achievement.findFirst.mockResolvedValueOnce(null);
+
+    await expect(service.createAchievementConversation(req, LISTING_ID)).rejects.toBeInstanceOf(NotFoundException);
+  });
+
   it('creates support conversation and writes default system greeting', async () => {
     const req = { auth: { userId: '11111111-1111-1111-1111-111111111111' } };
     const csUserId = '22222222-2222-2222-2222-222222222222';
@@ -234,6 +298,34 @@ describe('ConversationsService write flow suite', () => {
       contentType: 'SUPPORT',
       contentTitle: '平台客服',
     });
+  });
+
+  it('creates fallback cs user with platform support nickname instead of internal placeholder name', async () => {
+    const req = { auth: { userId: '11111111-1111-1111-1111-111111111111' } };
+    const csUserId = '22222222-2222-2222-2222-222222222222';
+    prisma.user.findFirst.mockResolvedValueOnce(null);
+    prisma.user.upsert.mockResolvedValueOnce({ id: csUserId });
+    prisma.conversation.findFirst.mockResolvedValueOnce({
+      id: CONVERSATION_ID,
+      contentType: 'SUPPORT',
+      contentId: req.auth.userId,
+      listingId: null,
+      orderId: null,
+      buyerUserId: req.auth.userId,
+      sellerUserId: csUserId,
+      lastMessageAt: null,
+      createdAt: new Date('2026-03-13T00:00:00.000Z'),
+      updatedAt: new Date('2026-03-13T00:00:00.000Z'),
+    });
+
+    await service.createSupportConversation(req);
+
+    expect(prisma.user.upsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        update: expect.objectContaining({ nickname: '平台客服' }),
+        create: expect.objectContaining({ nickname: '平台客服' }),
+      }),
+    );
   });
 
   it('creates order dispute conversation and binds dispute case', async () => {
@@ -498,5 +590,123 @@ describe('ConversationsService write flow suite', () => {
       data: { conversationId: CONVERSATION_ID, userId: 'buyer-1', lastReadAt: expect.any(Date) },
     });
     expect(result2).toEqual({ ok: true });
+  });
+
+  it('assignPlatformAgent only allows staff users and persists active assignment', async () => {
+    const req = { auth: { userId: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa' } };
+    const operatorUserId = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';
+    prisma.conversation.findUnique.mockResolvedValueOnce({
+      id: CONVERSATION_ID,
+      contentType: 'SUPPORT',
+      listing: null,
+    });
+    prisma.user.findUnique.mockResolvedValueOnce({
+      id: operatorUserId,
+      role: 'cs',
+      rbacRoles: [],
+    });
+    prisma.conversationAgent.upsert.mockResolvedValueOnce({
+      id: 'agent-1',
+      conversationId: CONVERSATION_ID,
+      operatorUserId,
+      active: true,
+      assignedAt: new Date('2026-03-13T02:00:00.000Z'),
+    });
+
+    const result = await service.assignPlatformAgent(req, CONVERSATION_ID, { userId: operatorUserId });
+
+    expect(prisma.user.findUnique).toHaveBeenCalledWith({
+      where: { id: operatorUserId },
+      select: {
+        id: true,
+        role: true,
+        rbacRoles: {
+          select: { roleId: true },
+        },
+      },
+    });
+    expect(prisma.conversationAgent.upsert).toHaveBeenCalledWith({
+      where: {
+        conversationId_operatorUserId: {
+          conversationId: CONVERSATION_ID,
+          operatorUserId,
+        },
+      },
+      create: {
+        conversationId: CONVERSATION_ID,
+        operatorUserId,
+        assignedByUserId: req.auth.userId,
+        active: true,
+      },
+      update: {
+        assignedByUserId: req.auth.userId,
+        active: true,
+      },
+    });
+    expect(result).toEqual({
+      id: 'agent-1',
+      conversationId: CONVERSATION_ID,
+      userId: operatorUserId,
+      active: true,
+      assignedAt: '2026-03-13T02:00:00.000Z',
+    });
+  });
+
+  it('assignPlatformAgent rejects non-staff users even when they exist', async () => {
+    const req = { auth: { userId: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa' } };
+    const operatorUserId = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';
+    prisma.conversation.findUnique.mockResolvedValueOnce({
+      id: CONVERSATION_ID,
+      contentType: 'SUPPORT',
+      listing: null,
+    });
+    prisma.user.findUnique.mockResolvedValueOnce({
+      id: operatorUserId,
+      role: 'user',
+      rbacRoles: [],
+    });
+
+    await expect(service.assignPlatformAgent(req, CONVERSATION_ID, { userId: operatorUserId })).rejects.toBeInstanceOf(
+      BadRequestException,
+    );
+    expect(prisma.conversationAgent.upsert).not.toHaveBeenCalled();
+  });
+
+  it('removePlatformAgent deactivates existing assignment', async () => {
+    const req = { auth: { userId: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa' } };
+    const operatorUserId = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';
+    prisma.conversation.findUnique.mockResolvedValueOnce({
+      id: CONVERSATION_ID,
+      contentType: 'SUPPORT',
+      listing: null,
+    });
+    prisma.conversationAgent.findUnique.mockResolvedValueOnce({
+      id: 'agent-1',
+      conversationId: CONVERSATION_ID,
+      operatorUserId,
+      active: true,
+      assignedAt: new Date('2026-03-13T02:00:00.000Z'),
+    });
+    prisma.conversationAgent.update.mockResolvedValueOnce({
+      id: 'agent-1',
+      conversationId: CONVERSATION_ID,
+      operatorUserId,
+      active: false,
+      assignedAt: new Date('2026-03-13T02:00:00.000Z'),
+    });
+
+    const result = await service.removePlatformAgent(req, CONVERSATION_ID, operatorUserId);
+
+    expect(prisma.conversationAgent.update).toHaveBeenCalledWith({
+      where: { id: 'agent-1' },
+      data: { active: false, assignedByUserId: req.auth.userId },
+    });
+    expect(result).toEqual({
+      id: 'agent-1',
+      conversationId: CONVERSATION_ID,
+      userId: operatorUserId,
+      active: false,
+      assignedAt: '2026-03-13T02:00:00.000Z',
+    });
   });
 });

@@ -10,8 +10,19 @@ Usage:
     --admin-cert 'docs/secret/SSL_certs_ipmoney.cn/admin.ipmoney.cn_nginx/admin.ipmoney.cn_bundle.pem' \
     --admin-key  'docs/secret/SSL_certs_ipmoney.cn/admin.ipmoney.cn_nginx/admin.ipmoney.cn.key' \
     --root-cert 'docs/secret/SSL_certs_ipmoney.cn/ipmoney.cn_nginx/ipmoney.cn_bundle.pem' \
-    --root-key  'docs/secret/SSL_certs_ipmoney.cn/ipmoney.cn_nginx/ipmoney.cn.key' \
+    --root-key  'docs/secret/SSL_certs_ipmoney.cn/ipmoney.cn.key' \
     --deploy-cert-only
+
+  python scripts/deploy_sunye_prod.py \
+    --host 8.134.124.134 --user root --password '***' \
+    --api-cert 'docs/secret/SSL_certs_ipmoney.cn/api.ipmoney.cn_nginx/api.ipmoney.cn_bundle.pem' \
+    --api-key  'docs/secret/SSL_certs_ipmoney.cn/api.ipmoney.cn_nginx/api.ipmoney.cn.key' \
+    --admin-cert 'docs/secret/SSL_certs_ipmoney.cn/admin.ipmoney.cn_nginx/admin.ipmoney.cn_bundle.pem' \
+    --admin-key  'docs/secret/SSL_certs_ipmoney.cn/admin.ipmoney.cn_nginx/admin.ipmoney.cn.key' \
+    --root-cert 'docs/secret/SSL_certs_ipmoney.cn/ipmoney.cn_nginx/ipmoney.cn_bundle.pem' \
+    --root-key  'docs/secret/SSL_certs_ipmoney.cn/ipmoney.cn.key' \
+    --deploy-api-only \
+    --skip-cert-update
 """
 
 from __future__ import annotations
@@ -68,6 +79,77 @@ def run_remote(ssh: paramiko.SSHClient, cmd: str) -> str:
     return out
 
 
+def check_remote_tech_manager_public_fields(ssh: paramiko.SSHClient, api_root: str) -> None:
+    cmd = (
+        f"cd {shlex.quote(api_root)} && "
+        "DATABASE_URL=$(grep '^DATABASE_URL=' ../../.env | head -n 1 | cut -d= -f2-) "
+        "node <<'NODE'\n"
+        "const { PrismaClient } = require('./node_modules/@prisma/client');\n"
+        "const prisma = new PrismaClient();\n"
+        "const required = ['experience_label', 'level_label'];\n"
+        "(async () => {\n"
+        "  const rows = await prisma.$queryRawUnsafe(`\n"
+        "    select column_name\n"
+        "    from information_schema.columns\n"
+        "    where table_schema = 'public' and table_name = 'tech_manager_profiles'\n"
+        "  `);\n"
+        "  const columns = new Set((rows || []).map((item) => String(item?.column_name || '').trim()).filter(Boolean));\n"
+        "  const missing = required.filter((column) => !columns.has(column));\n"
+        "  if (missing.length) {\n"
+        "    console.error(`[remote-schema-check] missing columns: ${missing.join(', ')}`);\n"
+        "    process.exit(1);\n"
+        "  }\n"
+        "  console.log('[remote-schema-check] tech_manager_profiles ok');\n"
+        "  await prisma.$disconnect();\n"
+        "})().catch(async (error) => {\n"
+        "  console.error(error);\n"
+        "  try { await prisma.$disconnect(); } catch {}\n"
+        "  process.exit(1);\n"
+        "});\n"
+        "NODE"
+    )
+    run_remote(ssh, cmd)
+
+
+def check_remote_tech_manager_public_payload(ssh: paramiko.SSHClient, api_port: int = 3010) -> None:
+    cmd = (
+        "node <<'NODE'\n"
+        f"const url = 'http://127.0.0.1:{api_port}/search/tech-managers?page=1&pageSize=3';\n"
+        "fetch(url, { headers: { accept: 'application/json' } })\n"
+        "  .then(async (res) => {\n"
+        "    if (!res.ok) {\n"
+        "      throw new Error(`request failed: ${res.status} ${res.statusText}`);\n"
+        "    }\n"
+        "    return await res.json();\n"
+        "  })\n"
+        "  .then((payload) => {\n"
+        "    const items = Array.isArray(payload?.items) ? payload.items : [];\n"
+        "    const missing = [];\n"
+        "    for (const item of items) {\n"
+        "      const keys = item && typeof item === 'object' ? Object.keys(item) : [];\n"
+        "      if (!keys.includes('experienceLabel')) missing.push(`experienceLabel@${String(item?.userId || 'unknown')}`);\n"
+        "      if (!keys.includes('levelLabel')) missing.push(`levelLabel@${String(item?.userId || 'unknown')}`);\n"
+        "    }\n"
+        "    if (missing.length) {\n"
+        "      console.error(`[remote-payload-check] missing fields: ${missing.join(', ')}`);\n"
+        "      process.exit(1);\n"
+        "    }\n"
+        "    console.log('[remote-payload-check] tech manager public payload ok');\n"
+        "  })\n"
+        "  .catch((error) => {\n"
+        "    console.error(error);\n"
+        "    process.exit(1);\n"
+        "  });\n"
+        "NODE"
+    )
+    run_remote(ssh, cmd)
+
+
+def run_remote_api_migrations(ssh: paramiko.SSHClient, api_root: str) -> None:
+    cmd = f"cd {shlex.quote(api_root)} && pnpm db:deploy"
+    run_remote(ssh, cmd)
+
+
 def sftp_put(ssh: paramiko.SSHClient, local_path: Path, remote_path: str) -> None:
     print(f"[upload] {local_path} -> {remote_path}")
     sftp = ssh.open_sftp()
@@ -105,29 +187,38 @@ def ensure_ssl_cert_tree(repo_root: Path) -> None:
         raise RuntimeError(f"certificate files missing after extract: {missing}")
 
 
-def build_artifacts(repo_root: Path) -> tuple[Path, Path, Path]:
+def build_artifacts(repo_root: Path, *, include_web: bool = True) -> tuple[Path, Path, Path | None, Path | None]:
     env_api = os.environ.copy()
     env_api["DEPLOY_ENV"] = "prod"
     env_api["STAGE"] = "prod"
     env_api["NODE_ENV"] = "production"
 
-    env_admin = env_api.copy()
-    env_admin["VITE_API_BASE_URL"] = "https://api.ipmoney.cn"
-
-    env_client = env_api.copy()
-    env_client["TARO_APP_API_BASE_URL"] = "https://api.ipmoney.cn"
-
     run_local(["pnpm", "-C", "apps/api", "build"], env=env_api)
-    run_local(["pnpm", "-C", "apps/admin-web", "build"], env=env_admin)
-    run_local(["pnpm", "-C", "apps/client", "build:h5"], env=env_client)
 
     api_dist = repo_root / "apps" / "api" / "dist"
-    admin_dist = repo_root / "apps" / "admin-web" / "dist"
-    client_dist = repo_root / "apps" / "client" / "dist" / "h5"
-    for p in (api_dist, admin_dist, client_dist):
+    api_prisma = repo_root / "apps" / "api" / "prisma"
+    admin_dist: Path | None = None
+    client_dist: Path | None = None
+    required_paths: list[Path] = [api_dist, api_prisma]
+
+    if include_web:
+        env_admin = env_api.copy()
+        env_admin["VITE_API_BASE_URL"] = "https://api.ipmoney.cn"
+
+        env_client = env_api.copy()
+        env_client["TARO_APP_API_BASE_URL"] = "https://api.ipmoney.cn"
+
+        run_local(["pnpm", "-C", "apps/admin-web", "build"], env=env_admin)
+        run_local(["pnpm", "-C", "apps/client", "build:h5"], env=env_client)
+
+        admin_dist = repo_root / "apps" / "admin-web" / "dist"
+        client_dist = repo_root / "apps" / "client" / "dist" / "h5"
+        required_paths.extend([admin_dist, client_dist])
+
+    for p in required_paths:
         if not p.exists():
             raise RuntimeError(f"build output not found: {p}")
-    return api_dist, admin_dist, client_dist
+    return api_dist, api_prisma, admin_dist, client_dist
 
 
 def tar_dir(src: Path, prefix: str, repo_root: Path) -> Path:
@@ -211,7 +302,14 @@ def update_remote_certs(ssh: paramiko.SSHClient, args: argparse.Namespace) -> No
     run_remote(ssh, "echo 'cert switched at:' && date")
 
 
-def deploy_remote(ssh: paramiko.SSHClient, api_tar: Path, admin_tar: Path, client_tar: Path, layout: dict[str, str]) -> None:
+def deploy_remote(
+    ssh: paramiko.SSHClient,
+    api_tar: Path,
+    api_prisma_tar: Path,
+    admin_tar: Path | None,
+    client_tar: Path | None,
+    layout: dict[str, str],
+) -> None:
     api_root = layout["API_ROOT"]
     admin_root = layout["ADMIN_ROOT"]
     h5_root = layout["H5_ROOT"]
@@ -220,30 +318,49 @@ def deploy_remote(ssh: paramiko.SSHClient, api_tar: Path, admin_tar: Path, clien
     run_remote(ssh, f"mkdir -p {shlex.quote(remote_tmp)}")
 
     api_tar_remote = f"{remote_tmp}/{api_tar.name}"
-    admin_tar_remote = f"{remote_tmp}/{admin_tar.name}"
-    client_tar_remote = f"{remote_tmp}/{client_tar.name}"
+    api_prisma_tar_remote = f"{remote_tmp}/{api_prisma_tar.name}"
+    admin_tar_remote = f"{remote_tmp}/{admin_tar.name}" if admin_tar else ""
+    client_tar_remote = f"{remote_tmp}/{client_tar.name}" if client_tar else ""
     sftp_put(ssh, api_tar, api_tar_remote)
-    sftp_put(ssh, admin_tar, admin_tar_remote)
-    sftp_put(ssh, client_tar, client_tar_remote)
+    sftp_put(ssh, api_prisma_tar, api_prisma_tar_remote)
+    if admin_tar and admin_tar_remote:
+        sftp_put(ssh, admin_tar, admin_tar_remote)
+    if client_tar and client_tar_remote:
+        sftp_put(ssh, client_tar, client_tar_remote)
 
     run_remote(ssh, f"mkdir -p {shlex.quote(api_root)}")
-    run_remote(ssh, f"mkdir -p {shlex.quote(admin_root)}")
-    run_remote(ssh, f"mkdir -p {shlex.quote(h5_root)}")
+    if admin_tar:
+        run_remote(ssh, f"mkdir -p {shlex.quote(admin_root)}")
+    if client_tar:
+        run_remote(ssh, f"mkdir -p {shlex.quote(h5_root)}")
 
     # Keep dist/ directory under apps/api so pm2 entrypoint remains apps/api/dist/main.js
     run_remote(ssh, f"mkdir -p {shlex.quote(api_root)}/dist")
+    run_remote(ssh, f"mkdir -p {shlex.quote(api_root)}/prisma")
     run_remote(ssh, f"find {shlex.quote(api_root)}/dist -mindepth 1 -maxdepth 1 -exec rm -rf {{}} +")
+    run_remote(ssh, f"find {shlex.quote(api_root)}/prisma -mindepth 1 -maxdepth 1 -exec rm -rf {{}} +")
     run_remote(ssh, f"tar -xzf {shlex.quote(api_tar_remote)} -C {shlex.quote(api_root)}")
-    run_remote(ssh, f"tar -xzf {shlex.quote(admin_tar_remote)} -C {shlex.quote(admin_root)} --strip-components=1")
-    run_remote(ssh, f"tar -xzf {shlex.quote(client_tar_remote)} -C {shlex.quote(h5_root)} --strip-components=1")
-    run_remote(ssh, f"find {shlex.quote(admin_root)} -type d -exec chmod 755 {{}} +")
-    run_remote(ssh, f"find {shlex.quote(admin_root)} -type f ! -name '.user.ini' -exec chmod 644 {{}} +")
-    run_remote(ssh, f"find {shlex.quote(h5_root)} -type d -exec chmod 755 {{}} +")
-    run_remote(ssh, f"find {shlex.quote(h5_root)} -type f ! -name '.user.ini' -exec chmod 644 {{}} +")
-    run_remote(ssh, f"chown www:www {shlex.quote(admin_root)} {shlex.quote(h5_root)} || true")
-    run_remote(ssh, f"find {shlex.quote(admin_root)} -mindepth 1 ! -name '.user.ini' -exec chown www:www {{}} +")
-    run_remote(ssh, f"find {shlex.quote(h5_root)} -mindepth 1 ! -name '.user.ini' -exec chown www:www {{}} +")
+    run_remote(ssh, f"tar -xzf {shlex.quote(api_prisma_tar_remote)} -C {shlex.quote(api_root)}")
+    if admin_tar and admin_tar_remote:
+        run_remote(ssh, f"tar -xzf {shlex.quote(admin_tar_remote)} -C {shlex.quote(admin_root)} --strip-components=1")
+        run_remote(ssh, f"find {shlex.quote(admin_root)} -type d -exec chmod 755 {{}} +")
+        run_remote(ssh, f"find {shlex.quote(admin_root)} -type f ! -name '.user.ini' -exec chmod 644 {{}} +")
+    if client_tar and client_tar_remote:
+        run_remote(ssh, f"tar -xzf {shlex.quote(client_tar_remote)} -C {shlex.quote(h5_root)} --strip-components=1")
+        run_remote(ssh, f"find {shlex.quote(h5_root)} -type d -exec chmod 755 {{}} +")
+        run_remote(ssh, f"find {shlex.quote(h5_root)} -type f ! -name '.user.ini' -exec chmod 644 {{}} +")
+    if admin_tar and client_tar:
+        run_remote(ssh, f"chown www:www {shlex.quote(admin_root)} {shlex.quote(h5_root)} || true")
+        run_remote(ssh, f"find {shlex.quote(admin_root)} -mindepth 1 ! -name '.user.ini' -exec chown www:www {{}} +")
+        run_remote(ssh, f"find {shlex.quote(h5_root)} -mindepth 1 ! -name '.user.ini' -exec chown www:www {{}} +")
+    elif admin_tar:
+        run_remote(ssh, f"chown www:www {shlex.quote(admin_root)} || true")
+        run_remote(ssh, f"find {shlex.quote(admin_root)} -mindepth 1 ! -name '.user.ini' -exec chown www:www {{}} +")
+    elif client_tar:
+        run_remote(ssh, f"chown www:www {shlex.quote(h5_root)} || true")
+        run_remote(ssh, f"find {shlex.quote(h5_root)} -mindepth 1 ! -name '.user.ini' -exec chown www:www {{}} +")
 
+    run_remote_api_migrations(ssh, api_root)
     run_remote(ssh, f"pm2 restart {shlex.quote(pm2_name)}")
     run_remote(ssh, "pm2 save || true")
 
@@ -260,25 +377,28 @@ def wait_for_api_ready(ssh: paramiko.SSHClient, retries: int = 30, interval_sec:
             time.sleep(interval_sec)
 
 
-def verify_remote(ssh: paramiko.SSHClient) -> None:
+def verify_remote(ssh: paramiko.SSHClient, *, include_web: bool = True) -> None:
     wait_for_api_ready(ssh)
+    check_remote_tech_manager_public_payload(ssh)
     run_remote(ssh, "curl -fsS http://127.0.0.1:3010/health")
     run_remote(ssh, "curl -fsS https://api.ipmoney.cn/health")
     run_remote(ssh, "bash -lc \"set -o pipefail; curl -fsS https://api.ipmoney.cn/public/config/home-landing | head -c 400\"")
-    run_remote(ssh, "bash -lc \"set -o pipefail; curl -I -fsS https://admin.ipmoney.cn | head -n 20\"")
-    run_remote(ssh, "bash -lc \"set -o pipefail; curl -I -fsS https://ipmoney.cn | head -n 20\"")
+    if include_web:
+        run_remote(ssh, "bash -lc \"set -o pipefail; curl -I -fsS https://admin.ipmoney.cn | head -n 20\"")
+        run_remote(ssh, "bash -lc \"set -o pipefail; curl -I -fsS https://ipmoney.cn | head -n 20\"")
     run_remote(
         ssh,
         "bash -lc \"set -o pipefail; openssl s_client -connect api.ipmoney.cn:443 -servername api.ipmoney.cn </dev/null 2>/dev/null | openssl x509 -noout -subject -issuer -dates\"",
     )
-    run_remote(
-        ssh,
-        "bash -lc \"set -o pipefail; openssl s_client -connect admin.ipmoney.cn:443 -servername admin.ipmoney.cn </dev/null 2>/dev/null | openssl x509 -noout -subject -issuer -dates\"",
-    )
-    run_remote(
-        ssh,
-        "bash -lc \"set -o pipefail; openssl s_client -connect ipmoney.cn:443 -servername ipmoney.cn </dev/null 2>/dev/null | openssl x509 -noout -subject -issuer -dates\"",
-    )
+    if include_web:
+        run_remote(
+            ssh,
+            "bash -lc \"set -o pipefail; openssl s_client -connect admin.ipmoney.cn:443 -servername admin.ipmoney.cn </dev/null 2>/dev/null | openssl x509 -noout -subject -issuer -dates\"",
+        )
+        run_remote(
+            ssh,
+            "bash -lc \"set -o pipefail; openssl s_client -connect ipmoney.cn:443 -servername ipmoney.cn </dev/null 2>/dev/null | openssl x509 -noout -subject -issuer -dates\"",
+        )
 
 
 def main() -> int:
@@ -293,20 +413,45 @@ def main() -> int:
     parser.add_argument("--root-cert", required=True)
     parser.add_argument("--root-key", required=True)
     parser.add_argument("--deploy-cert-only", action="store_true")
+    parser.add_argument("--deploy-api-only", action="store_true")
+    parser.add_argument("--skip-cert-update", action="store_true")
     args = parser.parse_args()
+
+    if args.deploy_cert_only and args.deploy_api_only:
+        raise RuntimeError("--deploy-cert-only and --deploy-api-only cannot be used together")
+    if args.deploy_cert_only and args.skip_cert_update:
+        raise RuntimeError("--deploy-cert-only cannot be used with --skip-cert-update")
+
+    if args.deploy_api_only:
+        if args.skip_cert_update:
+            safe_print(
+                "[mode] deploy-api-only: will build/upload API dist + prisma migrations, run db:deploy, restart pm2, and verify API only."
+            )
+        else:
+            safe_print(
+                "[mode] deploy-api-only: will build/upload API dist + prisma migrations, switch certs, restart pm2, and verify API only."
+            )
+    elif args.deploy_cert_only:
+        safe_print("[mode] deploy-cert-only: will only update nginx certificates and run verification.")
+    else:
+        safe_print("[mode] full deploy: will build/upload API + admin + h5, run db:deploy, restart pm2, and verify all endpoints.")
 
     repo_root = Path(__file__).resolve().parents[1]
     print(f"[info] repo_root={repo_root}")
     ensure_ssl_cert_tree(repo_root)
 
     api_tar: Path | None = None
+    api_prisma_tar: Path | None = None
     admin_tar: Path | None = None
     client_tar: Path | None = None
     if not args.deploy_cert_only:
-        api_dist, admin_dist, client_dist = build_artifacts(repo_root)
+        api_dist, api_prisma, admin_dist, client_dist = build_artifacts(repo_root, include_web=not args.deploy_api_only)
         api_tar = tar_dir(api_dist, "api-dist", repo_root)
-        admin_tar = tar_dir(admin_dist, "admin-dist", repo_root)
-        client_tar = tar_dir(client_dist, "client-h5-dist", repo_root)
+        api_prisma_tar = tar_dir(api_prisma, "api-prisma", repo_root)
+        if admin_dist:
+            admin_tar = tar_dir(admin_dist, "admin-dist", repo_root)
+        if client_dist:
+            client_tar = tar_dir(client_dist, "client-h5-dist", repo_root)
 
     ssh = paramiko.SSHClient()
     ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
@@ -319,12 +464,18 @@ def main() -> int:
         run_remote(ssh, "which nginx && nginx -v")
         run_remote(ssh, "pm2 ls | head -n 40")
         layout = detect_remote_layout(ssh)
-        update_remote_certs(ssh, args)
+        if not args.deploy_cert_only and not args.deploy_api_only:
+            check_remote_tech_manager_public_fields(ssh, layout["API_ROOT"])
+        if not args.skip_cert_update:
+            update_remote_certs(ssh, args)
         if not args.deploy_cert_only:
-            if not api_tar or not admin_tar or not client_tar:
-                raise RuntimeError("build artifacts are missing")
-            deploy_remote(ssh, api_tar, admin_tar, client_tar, layout)
-        verify_remote(ssh)
+            if not api_tar or not api_prisma_tar or not admin_tar or not client_tar:
+                if not args.deploy_api_only:
+                    raise RuntimeError("build artifacts are missing")
+            if args.deploy_api_only and (not api_tar or not api_prisma_tar):
+                raise RuntimeError("api build artifacts are missing")
+            deploy_remote(ssh, api_tar, api_prisma_tar, admin_tar, client_tar, layout)
+        verify_remote(ssh, include_web=not args.deploy_api_only)
         print("[done] deploy + cert + verify completed")
     finally:
         ssh.close()

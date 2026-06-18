@@ -13,10 +13,12 @@ type ClaimItem = {
   id: string;
   patentId: string;
   applicantUserId: string;
+  applicantDisplayName?: string | null;
   status: ClaimStatus;
   claimReason?: string | null;
   evidenceFileIds?: string[];
   reviewerUserId?: string | null;
+  reviewerDisplayName?: string | null;
   reviewComment?: string | null;
   submittedAt: string;
   reviewedAt?: string | null;
@@ -35,6 +37,10 @@ function statusTag(status: ClaimStatus) {
   if (status === 'APPROVED') return <Tag color="green">已通过</Tag>;
   if (status === 'REJECTED') return <Tag color="red">已驳回</Tag>;
   return <Tag color="gold">待审核</Tag>;
+}
+
+function displayClaimText(value: unknown, fallback = '待确认'): string {
+  return normalizeUserFacingText(value) || fallback;
 }
 
 export function PatentClaimsPage() {
@@ -87,9 +93,10 @@ export function PatentClaimsPage() {
 
   const approve = useCallback(
     async (row: ClaimItem) => {
+      const applicantName = displayClaimText(row.applicantDisplayName, '申请人待确认');
       const { ok, reason } = await confirmActionWithReason({
         title: '确认通过认领？',
-        content: `专利 ${row.patentId} 将归属给 ${row.applicantUserId}`,
+        content: `通过后将把该专利记录归属到申请人 ${applicantName}。`,
         okText: '通过',
         reasonLabel: '审核备注（可选）',
       });
@@ -151,7 +158,7 @@ export function PatentClaimsPage() {
             value={draftQ}
             allowClear
             style={{ width: 320 }}
-            placeholder="搜索（认领理由/专利ID）"
+            placeholder="搜索（认领理由/专利记录编号）"
             onChange={(e) => setDraftQ(e.target.value)}
             onPressEnter={applyFilters}
           />
@@ -180,16 +187,30 @@ export function PatentClaimsPage() {
             onChange: (next) => setPage(next),
           }}
           columns={[
-            { title: '认领单ID', dataIndex: 'id', width: 230 },
-            { title: '专利ID', dataIndex: 'patentId', width: 230 },
-            { title: '申请用户ID', dataIndex: 'applicantUserId', width: 230 },
+            {
+              title: '认领摘要',
+              width: 360,
+              render: (_, row) => (
+                <Space direction="vertical" size={2}>
+                  <Typography.Text>{displayClaimText(row.applicantDisplayName, '申请人待确认')}</Typography.Text>
+                  <Typography.Text type="secondary">专利记录：{displayClaimText(row.patentId)}</Typography.Text>
+                  <Typography.Text type="secondary">{displayClaimText(row.claimReason, '暂无认领说明')}</Typography.Text>
+                  <Typography.Text type="secondary" copyable={{ text: row.id }}>
+                    认领单号：{row.id}
+                  </Typography.Text>
+                </Space>
+              ),
+            },
             { title: '状态', dataIndex: 'status', width: 100, render: (v: ClaimStatus) => statusTag(v) },
-            { title: '认领说明', dataIndex: 'claimReason', render: (v: string | null | undefined) => normalizeUserFacingText(v) || '待补充' },
-            { title: '证据文件数', render: (_, row) => row.evidenceFileIds?.length || 0, width: 110 },
+            { title: '证据材料', render: (_, row) => `${row.evidenceFileIds?.length || 0} 份`, width: 110 },
             { title: '提交时间', dataIndex: 'submittedAt', width: 160, render: (v: string) => formatTimeSmart(v) },
-            { title: '审核人', dataIndex: 'reviewerUserId', width: 220, render: (v: string | null | undefined) => displayAdminInfo(v) },
+            {
+              title: '审核人',
+              width: 220,
+              render: (_, row) => displayClaimText(row.reviewerDisplayName, '待处理'),
+            },
             { title: '审核时间', dataIndex: 'reviewedAt', width: 160, render: (v: string | null | undefined) => (v ? formatTimeSmart(v) : '-') },
-            { title: '审核备注', dataIndex: 'reviewComment', width: 200, render: (v: string | null | undefined) => normalizeUserFacingText(v) || '待补充' },
+            { title: '审核备注', dataIndex: 'reviewComment', width: 200, render: (v: string | null | undefined) => displayClaimText(v) },
             {
               title: '操作',
               width: 170,

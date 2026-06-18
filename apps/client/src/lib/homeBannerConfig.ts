@@ -1,4 +1,5 @@
 import bannerFallbackCover from '../assets/home/promo-certificate.png';
+import { normalizeDisplayText } from './displayText';
 
 export type BannerMediaType = 'IMAGE' | 'VIDEO';
 
@@ -57,7 +58,7 @@ export function buildHomeBannerItems(config?: BannerConfig | null): HomeBannerIt
       const cover = String(item.posterUrl || item.imageUrl || '').trim();
       return {
         id: String(item.id || '').trim() || item.videoUrl || item.imageUrl || `banner-${Date.now()}`,
-        title: String(item.title || '').trim() || '\u9996\u9875\u89c6\u9891',
+        title: normalizeDisplayText(item.title) || '\u9996\u9875\u89c6\u9891',
         cover,
         mediaType,
         videoUrl: item.videoUrl,

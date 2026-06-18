@@ -51,6 +51,13 @@ function normalizePersonName(raw) {
   return PERSON_NAME_ALIASES.get(value) || value;
 }
 
+function normalizeDisplayText(raw) {
+  const value = String(raw || '').trim();
+  if (!value) return '';
+  if (['-', '--', '—', '——', '无', '暂无', '待补充', '未填写', '未提供', 'N/A', 'NA'].includes(value)) return '';
+  return value;
+}
+
 function pickWorkbookPath(dir) {
   const files = fs.readdirSync(dir).filter((name) => /\.xlsx$/i.test(name));
   if (!files.length) throw new Error(`xlsx not found in ${dir}`);
@@ -170,11 +177,17 @@ async function importPeople(adminUser) {
     const row = rows[i];
     const name = normalizePersonName(row[0] || '');
     if (!name) continue;
-    const position = row[1] || '';
-    const organization = row[2] || '';
+    const position = normalizeDisplayText(row[1]);
+    const organization = normalizeDisplayText(row[2]);
     const serviceDirections = splitTags(row[3] || '');
-    const workHighlights = row[4] || '';
+    const workHighlights = normalizeDisplayText(row[4]);
     const photoRaw = row[5] || '';
+    const experienceLabel = normalizeDisplayText(row[6]);
+    const levelLabel = normalizeDisplayText(row[7]);
+    const serviceTags = splitTags(row[8] || '');
+    const contactName = normalizeDisplayText(row[9]);
+    const contactPhone = normalizeDisplayText(row[10]);
+    const intro = normalizeDisplayText(row[11] || '');
     const avatarPath = toImageFullPath(PEOPLE_DIR, photoRaw) || toImageFullPath(PEOPLE_AVATAR_DIR, photoRaw);
     if (!avatarPath) report.missingAvatar += 1;
 
@@ -208,7 +221,7 @@ async function importPeople(adminUser) {
         data: {
           verificationStatus: 'APPROVED',
           displayName: name,
-          intro: organization || verification.intro || null,
+          intro: intro || null,
         },
       });
     } else {
@@ -218,7 +231,7 @@ async function importPeople(adminUser) {
           verificationType: 'TECH_MANAGER',
           verificationStatus: 'APPROVED',
           displayName: name,
-          intro: organization || null,
+          intro: intro || null,
           regionCode: DEFAULT_REGION_CODE,
           submittedAt: new Date(),
           reviewedAt: new Date(),
@@ -230,20 +243,28 @@ async function importPeople(adminUser) {
       where: { userId: user.id },
       create: {
         userId: user.id,
-        intro: organization || workHighlights || null,
+        intro: intro || null,
         position: position || null,
         organization: organization || null,
         serviceDirectionsJson: serviceDirections.length ? serviceDirections : null,
-        serviceTagsJson: serviceDirections.length ? serviceDirections : null,
+        serviceTagsJson: serviceTags.length ? serviceTags : null,
         workHighlights: workHighlights || null,
+        experienceLabel: experienceLabel || null,
+        levelLabel: levelLabel || null,
+        contactName: contactName || null,
+        contactPhone: contactPhone || null,
       },
       update: {
-        intro: organization || workHighlights || null,
+        intro: intro || null,
         position: position || null,
         organization: organization || null,
         serviceDirectionsJson: serviceDirections.length ? serviceDirections : null,
-        serviceTagsJson: serviceDirections.length ? serviceDirections : null,
+        serviceTagsJson: serviceTags.length ? serviceTags : null,
         workHighlights: workHighlights || null,
+        experienceLabel: experienceLabel || null,
+        levelLabel: levelLabel || null,
+        contactName: contactName || null,
+        contactPhone: contactPhone || null,
       },
     });
 
@@ -253,7 +274,19 @@ async function importPeople(adminUser) {
         action: 'TECH_MANAGER_IMPORT_UPSERT',
         targetType: 'TECH_MANAGER_PROFILE',
         targetId: user.id,
-        afterJson: { name, position, organization, serviceDirections, workHighlights },
+        afterJson: {
+          name,
+          position,
+          organization,
+          serviceDirections,
+          serviceTags,
+          workHighlights,
+          intro,
+          experienceLabel,
+          levelLabel,
+          contactName,
+          contactPhone,
+        },
       },
     });
 

@@ -58,6 +58,37 @@ const TARGET_OPTIONS = [
   { value: 'SYSTEM', label: '系统' },
 ];
 
+function alertSeverityTag(value: AlertEvent['severity']) {
+  if (value === 'HIGH') return <Tag color="red">高</Tag>;
+  if (value === 'MEDIUM') return <Tag color="orange">中</Tag>;
+  return <Tag>低</Tag>;
+}
+
+function alertChannelLabel(value?: AlertEvent['channel']): string {
+  if (value === 'SMS') return '短信';
+  if (value === 'EMAIL') return '邮件';
+  if (value === 'IN_APP') return '站内';
+  return '待确认';
+}
+
+function alertStatusTag(value: AlertEvent['status']) {
+  if (value === 'ACKED') return <Tag color="green">已确认</Tag>;
+  if (value === 'SENT') return <Tag color="blue">已发送</Tag>;
+  if (value === 'SUPPRESSED') return <Tag color="default">已抑制</Tag>;
+  return <Tag color="orange">待处理</Tag>;
+}
+
+function alertTargetTypeLabel(value?: string): string {
+  if (value === 'ORDER') return '订单';
+  if (value === 'PAYMENT') return '支付';
+  if (value === 'REFUND') return '退款';
+  if (value === 'LISTING') return '挂牌';
+  if (value === 'PATENT') return '专利';
+  if (value === 'AI_PARSE') return 'AI 解析';
+  if (value === 'SYSTEM') return '系统';
+  return displayAdminInfo(value, '对象待确认');
+}
+
 export function AlertsPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<unknown | null>(null);
@@ -134,7 +165,7 @@ export function AlertsPage() {
           <Input
             value={type}
             style={{ width: 200 }}
-            placeholder="类型（如 order.refund）"
+            placeholder="类型关键词（如 退款告警）"
             allowClear
             onChange={(e) => setType(e.target.value)}
             onPressEnter={() => void load()}
@@ -142,7 +173,7 @@ export function AlertsPage() {
           <Input
             value={targetId}
             style={{ width: 240 }}
-            placeholder="targetId（UUID）"
+            placeholder="对象编号（如订单号）"
             allowClear
             onChange={(e) => setTargetId(e.target.value)}
             onPressEnter={() => void load()}
@@ -171,14 +202,14 @@ export function AlertsPage() {
               title: '类型',
               dataIndex: 'type',
               width: 180,
-              render: (v: string) => <Tag>{v}</Tag>,
+              render: (v: string) => <Tag>{displayAdminInfo(v, '告警类型待确认')}</Tag>,
             },
-            { title: '级别', dataIndex: 'severity', width: 100 },
-            { title: '通道', dataIndex: 'channel', width: 100 },
-            { title: '状态', dataIndex: 'status', width: 120 },
-            { title: '对象', dataIndex: 'targetType', width: 120, render: (v) => displayAdminInfo(v) },
-            { title: '对象ID', dataIndex: 'targetId', ellipsis: true, render: (v) => displayAdminInfo(v) },
-            { title: '内容', dataIndex: 'message', ellipsis: true, render: (v) => displayAdminInfo(v) },
+            { title: '级别', dataIndex: 'severity', width: 100, render: (v: AlertEvent['severity']) => alertSeverityTag(v) },
+            { title: '通道', dataIndex: 'channel', width: 100, render: (v: AlertEvent['channel']) => alertChannelLabel(v) },
+            { title: '状态', dataIndex: 'status', width: 120, render: (v: AlertEvent['status']) => alertStatusTag(v) },
+            { title: '对象', dataIndex: 'targetType', width: 120, render: (v) => alertTargetTypeLabel(v) },
+            { title: '对象编号', dataIndex: 'targetId', ellipsis: true, render: (v) => displayAdminInfo(v, '未设置') },
+            { title: '内容', dataIndex: 'message', ellipsis: true, render: (v) => displayAdminInfo(v, '告警内容待确认') },
             {
               title: '操作',
               key: 'actions',

@@ -527,6 +527,8 @@ model TechManagerProfile {
   intro          String?
   position       String?  @map("position")
   organization   String?  @map("organization")
+  experienceLabel String? @map("experience_label")
+  levelLabel     String?  @map("level_label")
   serviceDirectionsJson Json? @map("service_directions_json")
   workHighlights String?  @map("work_highlights")
   contactName    String?  @map("contact_name")
@@ -552,7 +554,7 @@ model Notification {
   userId    String           @map("user_id") @db.Uuid
   kind      NotificationKind
   title     String
-  summary   String
+  summary   String?
   source    String
   readAt    DateTime?        @map("read_at")
   createdAt DateTime         @default(now()) @map("created_at")
@@ -1462,7 +1464,7 @@ model CsCaseNote {
   id         String   @id @default(uuid()) @db.Uuid
   caseId     String   @map("case_id") @db.Uuid
   authorId   String   @map("author_id") @db.Uuid
-  authorName String   @map("author_name")
+  authorName String?  @map("author_name")
   content    String
   createdAt  DateTime @default(now()) @map("created_at")
 

@@ -5,9 +5,10 @@ import './index.scss';
 
 import { apiGet } from '../../../lib/api';
 import { buildHomeBannerItems, clampBannerIndex, type BannerConfig, type HomeBannerItem } from '../../../lib/homeBannerConfig';
+import { useRouteNumberParam } from '../../../lib/routeParams';
 
 export default function VideoPreviewPage() {
-  const params = Taro.getCurrentInstance().router?.params;
+  const routeIndex = useRouteNumberParam('i');
   const [bannerItems, setBannerItems] = useState<HomeBannerItem[]>(() => buildHomeBannerItems());
   const [activeIndex, setActiveIndex] = useState(0);
   const previousIndexRef = useRef(0);
@@ -33,11 +34,11 @@ export default function VideoPreviewPage() {
   }, [bannerItems]);
 
   useEffect(() => {
-    const raw = Number(params?.i ?? 0);
+    const raw = Number(routeIndex ?? 0);
     const nextIndex = clampBannerIndex(raw, bannerItems.length);
     setActiveIndex(nextIndex);
     previousIndexRef.current = nextIndex;
-  }, [params?.i, bannerItems.length]);
+  }, [bannerItems.length, routeIndex]);
 
   useEffect(() => {
     if (process.env.TARO_ENV !== 'weapp') return;

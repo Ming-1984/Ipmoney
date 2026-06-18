@@ -146,6 +146,41 @@ describe('UsersService admin verification review suite', () => {
     expect(result.status).toBe('APPROVED');
   });
 
+  it('does not fabricate subject names in review notifications when displayName is empty', async () => {
+    prisma.userVerification.update
+      .mockResolvedValueOnce(
+        buildVerification({
+          displayName: '   ',
+          verificationStatus: 'APPROVED',
+          reviewedAt: new Date('2026-03-14T00:10:00.000Z'),
+        }),
+      )
+      .mockResolvedValueOnce(
+        buildVerification({
+          displayName: '',
+          verificationStatus: 'REJECTED',
+          reviewedAt: new Date('2026-03-14T00:20:00.000Z'),
+          reviewComment: 'material missing',
+        }),
+      );
+
+    await service.adminApproveVerification('verify-1', 'ok', 'admin-1');
+    await service.adminRejectVerification('verify-1', 'material missing', 'admin-1');
+
+    expect(notifications.create).toHaveBeenNthCalledWith(
+      1,
+      expect.objectContaining({
+        summary: '你的认证已通过审核，可正常发布与交易。',
+      }),
+    );
+    expect(notifications.create).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({
+        summary: '你的认证审核未通过，原因：material missing。',
+      }),
+    );
+  });
+
   it('validates reject reason strictly', async () => {
     await expect(service.adminRejectVerification('verify-1', '   ', 'admin-1')).rejects.toBeInstanceOf(
       BadRequestException,
@@ -247,6 +282,76 @@ describe('UsersService admin verification review suite', () => {
     await expect(service.adminUpdateVerificationLogo('missing-id', 'file-1', 'admin-1')).rejects.toBeInstanceOf(
       NotFoundException,
     );
+  });
+
+  it('updates verification public profile fields and writes audit log', async () => {
+    prisma.userVerification.update.mockResolvedValueOnce(
+      buildVerification({
+        displayName: 'Updated Org',
+        contactName: 'Bob',
+        regionCode: '440000',
+        intro: 'updated intro',
+      }),
+    );
+
+    const result = await service.adminUpdateVerificationProfile(
+      'verify-1',
+      {
+        displayName: ' Updated Org ',
+        contactName: ' Bob ',
+        regionCode: '440000',
+        intro: ' updated intro ',
+      },
+      'admin-1',
+    );
+
+    expect(prisma.userVerification.update).toHaveBeenCalledWith({
+      where: { id: 'verify-1' },
+      data: {
+        displayName: 'Updated Org',
+        contactName: 'Bob',
+        regionCode: '440000',
+        intro: 'updated intro',
+      },
+      include: { logoFile: true },
+    });
+    expect(audit.log).toHaveBeenCalledWith(
+      expect.objectContaining({
+        actorUserId: 'admin-1',
+        action: 'VERIFICATION_PROFILE_UPDATE',
+        targetType: 'USER_VERIFICATION',
+        targetId: 'verify-1',
+        afterJson: {
+          displayName: 'Updated Org',
+          contactName: 'Bob',
+          regionCode: '440000',
+          intro: 'updated intro',
+        },
+      }),
+    );
+    expect(result.displayName).toBe('Updated Org');
+    expect(result.contactName).toBe('Bob');
+    expect(result.regionCode).toBe('440000');
+    expect(result.intro).toBe('updated intro');
+  });
+
+  it('validates verification public profile updates strictly', async () => {
+    await expect(service.adminUpdateVerificationProfile('verify-1', {}, 'admin-1')).rejects.toBeInstanceOf(
+      BadRequestException,
+    );
+    await expect(
+      service.adminUpdateVerificationProfile('verify-1', { displayName: 'x'.repeat(101) }, 'admin-1'),
+    ).rejects.toBeInstanceOf(BadRequestException);
+    await expect(
+      service.adminUpdateVerificationProfile('verify-1', { contactName: 'x'.repeat(101) }, 'admin-1'),
+    ).rejects.toBeInstanceOf(BadRequestException);
+    await expect(
+      service.adminUpdateVerificationProfile('verify-1', { intro: 'x'.repeat(2001) }, 'admin-1'),
+    ).rejects.toBeInstanceOf(BadRequestException);
+    prisma.userVerification.update.mockRejectedValueOnce({ code: 'P2025' });
+    await expect(
+      service.adminUpdateVerificationProfile('missing-id', { displayName: 'Org' }, 'admin-1'),
+    ).rejects.toBeInstanceOf(NotFoundException);
   });
 
   it('getUserIdFromReq enforces auth boundary', () => {

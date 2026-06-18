@@ -6,6 +6,7 @@ import type { components } from '@ipmoney/api-types';
 
 import { apiDelete, apiGet, apiPatch, apiPost } from '../lib/api';
 import { getToken } from '../lib/auth';
+import { displayInitial, displayUserName as resolveUserDisplayName } from '../lib/displayText';
 import { formatTimeSmart } from '../lib/format';
 import { ensureApproved } from '../lib/guard';
 import { SectionHeader, Spacer, Surface } from './layout';
@@ -41,12 +42,11 @@ function normalizeStatus(status?: CommentStatus | null): CommentStatus {
 }
 
 function displayUserName(user?: Comment['user']): string {
-  return user?.nickname || '用户';
+  return resolveUserDisplayName(user, '平台用户');
 }
 
 function displayUserInitial(user?: Comment['user']): string {
-  const name = displayUserName(user);
-  return name ? name.slice(0, 1) : 'U';
+  return displayInitial(displayUserName(user), '平');
 }
 
 export function CommentsSection(props: CommentsSectionProps) {

@@ -46,8 +46,8 @@ describe('ContractsService upload suite', () => {
     const req = { auth: { userId: 'buyer-1' } };
     prisma.order.findUnique.mockResolvedValueOnce({
       id: ORDER_ID,
-      listing: { sellerUserId: 'seller-1', title: 'Listing A', seller: { nickname: 'Seller' } },
-      buyer: { nickname: 'Buyer' },
+      listing: { sellerUserId: 'seller-1', title: 'Listing A', seller: { nickname: 'Seller', verifications: [] } },
+      buyer: { nickname: 'Buyer', verifications: [] },
       contract: null,
       createdAt: new Date('2026-03-13T00:00:00.000Z'),
     });
@@ -59,8 +59,8 @@ describe('ContractsService upload suite', () => {
     const req = { auth: { userId: 'seller-1' } };
     prisma.order.findUnique.mockResolvedValue({
       id: ORDER_ID,
-      listing: { sellerUserId: 'seller-1', title: 'Listing A', seller: { nickname: 'Seller' } },
-      buyer: { nickname: 'Buyer' },
+      listing: { sellerUserId: 'seller-1', title: 'Listing A', seller: { nickname: 'Seller', verifications: [] } },
+      buyer: { nickname: 'Buyer', verifications: [] },
       contract: null,
       createdAt: new Date('2026-03-13T00:00:00.000Z'),
     });
@@ -75,8 +75,8 @@ describe('ContractsService upload suite', () => {
     const req = { auth: { userId: 'seller-1' } };
     prisma.order.findUnique.mockResolvedValue({
       id: ORDER_ID,
-      listing: { sellerUserId: 'seller-1', title: 'Listing A', seller: { nickname: 'Seller' } },
-      buyer: { nickname: 'Buyer' },
+      listing: { sellerUserId: 'seller-1', title: 'Listing A', seller: { nickname: 'Seller', verifications: [] } },
+      buyer: { nickname: 'Buyer', verifications: [] },
       contract: null,
       createdAt: new Date('2026-03-13T00:00:00.000Z'),
     });
@@ -100,8 +100,8 @@ describe('ContractsService upload suite', () => {
     const req = { auth: { userId: 'seller-1' } };
     prisma.order.findUnique.mockResolvedValueOnce({
       id: ORDER_ID,
-      listing: { sellerUserId: 'seller-1', title: 'Listing A', seller: { nickname: 'Seller' } },
-      buyer: { nickname: 'Buyer' },
+      listing: { sellerUserId: 'seller-1', title: 'Listing A', seller: { nickname: 'Seller', verifications: [] } },
+      buyer: { nickname: 'Buyer', verifications: [] },
       contract: null,
       createdAt: new Date('2026-03-13T00:00:00.000Z'),
     });

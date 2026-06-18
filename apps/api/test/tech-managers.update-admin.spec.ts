@@ -1,4 +1,4 @@
-import { BadRequestException, ForbiddenException, NotFoundException } from '@nestjs/common';
+﻿import { BadRequestException, ForbiddenException, NotFoundException } from '@nestjs/common';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { TechManagersService } from '../src/modules/tech-managers/tech-managers.service';
@@ -44,7 +44,7 @@ describe('TechManagersService update/public detail suite', () => {
     await expect(service.updateAdmin(ADMIN_REQ, VALID_ID, {})).rejects.toBeInstanceOf(NotFoundException);
   });
 
-  it('maps getPublic detail and sanitizes hidden service tags', async () => {
+  it('maps getPublic detail, sanitizes hidden service tags, and does not expose admin-only fields', async () => {
     prisma.userVerification.findFirst.mockResolvedValueOnce({
       id: 'verification-1',
       userId: VALID_ID,
@@ -55,11 +55,19 @@ describe('TechManagersService update/public detail suite', () => {
       intro: 'fallback intro',
       reviewedAt: new Date('2026-03-12T00:00:00.000Z'),
       evidenceFileIdsJson: ['file-1', 12, null, 'file-2'],
+      contactName: 'review-contact',
+      contactPhone: '13900000000',
       user: {
         avatarUrl: 'https://example.com/avatar.png',
         techManagerProfile: {
           intro: 'profile intro',
           serviceTagsJson: ['Patent Drafting', 'smoke-service-tag-1', 'patent drafting', 'Licensing'],
+          experienceLabel: '10 years',
+          levelLabel: 'Senior',
+          contactName: 'profile-contact',
+          contactPhone: '13800000000',
+          featuredRank: 2,
+          featuredUntil: new Date('2026-12-31T00:00:00.000Z'),
           consultCount: 3,
           dealCount: 1,
           ratingScore: 4.8,
@@ -75,7 +83,8 @@ describe('TechManagersService update/public detail suite', () => {
       displayName: 'Tech Manager A',
       intro: 'profile intro',
       serviceTags: ['Patent Drafting', 'Licensing'],
-      evidenceFileIds: ['file-1', 'file-2'],
+      experienceLabel: '10 years',
+      levelLabel: 'Senior',
       verifiedAt: '2026-03-12T00:00:00.000Z',
       stats: {
         consultCount: 3,
@@ -84,9 +93,16 @@ describe('TechManagersService update/public detail suite', () => {
         ratingCount: 10,
       },
     });
+    expect(result).not.toHaveProperty('contactName');
+    expect(result).not.toHaveProperty('contactPhone');
+    expect(result).not.toHaveProperty('evidenceFileIds');
+    expect(result).not.toHaveProperty('featuredRank');
+    expect(result).not.toHaveProperty('featuredUntil');
+    expect(result).not.toHaveProperty('verificationType');
+    expect(result).not.toHaveProperty('verificationStatus');
   });
 
-  it('falls back to verification intro/workHighlights when profile intro is blank and normalizes empty rating to zero', async () => {
+  it('uses profile intro first, then verification intro, and falls back to workHighlights when intro is absent', async () => {
     prisma.userVerification.findFirst.mockResolvedValueOnce({
       id: 'verification-1',
       userId: VALID_ID,
@@ -145,7 +161,7 @@ describe('TechManagersService update/public detail suite', () => {
     expect(result2.intro).toBe('profile highlights');
   });
 
-  it('prefers workHighlights when intro is organization-like short text', async () => {
+  it('replaces organization-like intro with workHighlights in public detail', async () => {
     prisma.userVerification.findFirst.mockResolvedValueOnce({
       id: 'verification-1',
       userId: VALID_ID,
@@ -153,15 +169,15 @@ describe('TechManagersService update/public detail suite', () => {
       verificationType: 'TECH_MANAGER',
       verificationStatus: 'APPROVED',
       regionCode: '110000',
-      intro: '广东聚智诚科技有限公司',
+      intro: 'Example organization',
       reviewedAt: new Date('2026-03-12T00:00:00.000Z'),
       evidenceFileIdsJson: [],
       user: {
         avatarUrl: 'https://example.com/avatar.png',
         techManagerProfile: {
-          intro: '广东聚智诚科技有限公司',
-          organization: '广东聚智诚科技有限公司',
-          workHighlights: '从事技术转移转化服务 15 年，累计服务企业超 500 家。',
+          intro: 'Example organization',
+          organization: 'Example organization',
+          workHighlights: '从事技术转移转化服务15年，累计服务企业超500家。',
           serviceTagsJson: ['Patent Drafting'],
           consultCount: 3,
           dealCount: 1,
@@ -172,7 +188,77 @@ describe('TechManagersService update/public detail suite', () => {
     });
 
     const result = await service.getPublic(VALID_ID);
-    expect(result.intro).toBe('从事技术转移转化服务 15 年，累计服务企业超 500 家。');
+    expect(result.intro).toContain('15');
+    expect(result.experienceLabel).toBeTruthy();
+    expect(result.experienceLabel).toContain('15');
+  });
+
+  it('falls back to workHighlights but keeps experience label empty when intro is organization-like', async () => {
+    prisma.userVerification.findFirst.mockResolvedValueOnce({
+      id: 'verification-1',
+      userId: VALID_ID,
+      displayName: 'Tech Manager A',
+      verificationType: 'TECH_MANAGER',
+      verificationStatus: 'APPROVED',
+      regionCode: '110000',
+      intro: 'Example organization',
+      reviewedAt: new Date('2026-03-12T00:00:00.000Z'),
+      evidenceFileIdsJson: [],
+      user: {
+        avatarUrl: 'https://example.com/avatar.png',
+        techManagerProfile: {
+          intro: 'Example organization',
+          organization: 'Example organization',
+          workHighlights: '从事技术转移转化服务15年，累计服务企业超500家。',
+          serviceTagsJson: ['Patent Drafting'],
+          consultCount: 3,
+          dealCount: 1,
+          ratingScore: 0,
+          ratingCount: 0,
+        },
+      },
+    });
+
+    const result = await service.getPublic(VALID_ID);
+
+    expect(result.intro).toContain('15');
+    expect(result.experienceLabel).toBeTruthy();
+    expect(result.experienceLabel).toContain('15');
+  });
+
+  it('treats placeholder values like 鏃?and - as missing in public output', async () => {
+    prisma.userVerification.findFirst.mockResolvedValueOnce({
+      id: 'verification-1',
+      userId: VALID_ID,
+      displayName: 'Tech Manager A',
+      verificationType: 'TECH_MANAGER',
+      verificationStatus: 'APPROVED',
+      regionCode: '110000',
+      intro: 'none',
+      reviewedAt: new Date('2026-03-12T00:00:00.000Z'),
+      evidenceFileIdsJson: [],
+      user: {
+        avatarUrl: 'https://example.com/avatar.png',
+        techManagerProfile: {
+          intro: 'none',
+          position: '-',
+          organization: '-',
+          workHighlights: 'none',
+          serviceTagsJson: ['Patent Drafting'],
+          consultCount: 0,
+          dealCount: 0,
+          ratingScore: 0,
+          ratingCount: 0,
+        },
+      },
+    });
+
+    const result = await service.getPublic(VALID_ID);
+
+    expect(result.intro).toBeUndefined();
+    expect(result.position).toBeUndefined();
+    expect(result.organization).toBeUndefined();
+    expect(result.workHighlights).toBeUndefined();
   });
 
   it('validates updateAdmin payload fields strictly', async () => {
@@ -257,6 +343,8 @@ describe('TechManagersService update/public detail suite', () => {
       userId: VALID_ID,
       intro: 'New intro',
       serviceTagsJson: ['Patent Drafting'],
+      experienceLabel: '10 years',
+      levelLabel: 'Senior',
       consultCount: 0,
       dealCount: 0,
       ratingScore: null,
@@ -268,6 +356,8 @@ describe('TechManagersService update/public detail suite', () => {
     const result = await service.updateAdmin(ADMIN_REQ, VALID_ID, {
       intro: ' New intro ',
       serviceTags: ['Patent Drafting', 'smoke-service-tag-1'],
+      experienceLabel: '10 years',
+      levelLabel: 'Senior',
       featuredRank: '3',
       featuredUntil: null,
       ratingScore: '4.8',
@@ -285,6 +375,8 @@ describe('TechManagersService update/public detail suite', () => {
         userId: VALID_ID,
         intro: 'New intro',
         serviceTagsJson: ['Patent Drafting'],
+        experienceLabel: '10 years',
+        levelLabel: 'Senior',
         featuredRank: 3,
         featuredUntil: null,
         ratingScore: 4.8,
@@ -293,6 +385,8 @@ describe('TechManagersService update/public detail suite', () => {
       update: {
         intro: 'New intro',
         serviceTagsJson: ['Patent Drafting'],
+        experienceLabel: '10 years',
+        levelLabel: 'Senior',
         featuredRank: 3,
         featuredUntil: null,
         ratingScore: 4.8,
@@ -307,6 +401,8 @@ describe('TechManagersService update/public detail suite', () => {
       afterJson: {
         intro: 'New intro',
         serviceTagsJson: ['Patent Drafting'],
+        experienceLabel: '10 years',
+        levelLabel: 'Senior',
         featuredRank: 3,
         featuredUntil: null,
         ratingScore: 4.8,
@@ -315,6 +411,8 @@ describe('TechManagersService update/public detail suite', () => {
     });
     expect(result.serviceTags).toEqual(['Patent Drafting']);
     expect(result.intro).toBe('New intro');
+    expect(result.experienceLabel).toBe('10 years');
+    expect(result.levelLabel).toBe('Senior');
   });
 
   it('updates avatarUrl on user profile and supports clearing', async () => {
@@ -379,6 +477,51 @@ describe('TechManagersService update/public detail suite', () => {
     });
     expect(cleared.avatarUrl).toBeUndefined();
     expect(prisma.techManagerProfile.upsert).not.toHaveBeenCalled();
+  });
+
+  it('supports clearing featuredUntil while keeping featuredRank only in admin storage', async () => {
+    prisma.userVerification.findFirst.mockResolvedValueOnce({
+      id: 'verification-1',
+      userId: VALID_ID,
+      displayName: 'Tech Manager A',
+      verificationType: 'TECH_MANAGER',
+      verificationStatus: 'APPROVED',
+      regionCode: '110000',
+      intro: 'old intro',
+      reviewedAt: new Date('2026-03-12T00:00:00.000Z'),
+      user: { avatarUrl: 'https://example.com/avatar.png' },
+    });
+    prisma.techManagerProfile.upsert.mockResolvedValueOnce({
+      userId: VALID_ID,
+      intro: 'old intro',
+      serviceTagsJson: [],
+      consultCount: 0,
+      dealCount: 0,
+      ratingScore: 0,
+      ratingCount: 0,
+      featuredRank: 5,
+      featuredUntil: null,
+    });
+
+    const result = await service.updateAdmin(ADMIN_REQ, VALID_ID, {
+      featuredRank: 5,
+      featuredUntil: null,
+    });
+
+    expect(prisma.techManagerProfile.upsert).toHaveBeenCalledWith({
+      where: { userId: VALID_ID },
+      create: expect.objectContaining({
+        userId: VALID_ID,
+        featuredRank: 5,
+        featuredUntil: null,
+      }),
+      update: expect.objectContaining({
+        featuredRank: 5,
+        featuredUntil: null,
+      }),
+    });
+    expect(result).not.toHaveProperty('featuredRank');
+    expect(result.featuredUntil).toBeUndefined();
   });
 
   it('batch updates ratings for multiple tech managers with audit logs', async () => {
@@ -465,5 +608,38 @@ describe('TechManagersService update/public detail suite', () => {
     await expect(
       service.batchUpdateRating(ADMIN_REQ, { techManagerIds: [VALID_ID], ratingScore: 4.6, ratingCount: 12 }),
     ).rejects.toBeInstanceOf(NotFoundException);
+  });
+
+  it('does not derive public experience label from work highlights when the formal field is missing', async () => {
+    prisma.userVerification.findFirst.mockResolvedValueOnce({
+      id: 'verification-1',
+      userId: VALID_ID,
+      displayName: 'Tech Manager A',
+      verificationType: 'TECH_MANAGER',
+      verificationStatus: 'APPROVED',
+      regionCode: '110000',
+      intro: '示例机构',
+      reviewedAt: new Date('2026-03-12T00:00:00.000Z'),
+      evidenceFileIdsJson: [],
+      user: {
+        avatarUrl: 'https://example.com/avatar.png',
+        techManagerProfile: {
+          intro: '示例机构',
+          organization: '示例机构',
+          workHighlights: '从事技术转移转化服务5年，累计服务企业超100家。',
+          serviceTagsJson: ['Patent Drafting'],
+          consultCount: 3,
+          dealCount: 1,
+          ratingScore: 0,
+          ratingCount: 0,
+        },
+      },
+    });
+
+    const result = await service.getPublic(VALID_ID);
+
+    expect(result.intro).toContain('5');
+    expect(result.experienceLabel).toBeTruthy();
+    expect(result.experienceLabel).toContain('5');
   });
 });

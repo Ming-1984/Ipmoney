@@ -2150,6 +2150,37 @@ paths:
                     type: string
         '400':
           $ref: '#/components/responses/BadRequest'
+  /webhooks/wechat/content-security:
+    post:
+      tags:
+        - System
+      summary: WeChat content security callback
+      operationId: wechatContentSecurityNotify
+      security: []
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: true
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - code
+                  - message
+                properties:
+                  code:
+                    type: string
+                  message:
+                    type: string
+        '400':
+          $ref: '#/components/responses/BadRequest'
   /me/conversations:
     get:
       tags:
@@ -2171,6 +2202,30 @@ paths:
                 $ref: '#/components/schemas/PagedConversationSummary'
         '401':
           $ref: '#/components/responses/Unauthorized'
+  /me/conversations/{conversationId}:
+    get:
+      tags:
+        - Messaging
+      summary: Get my conversation detail
+      operationId: getMyConversation
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/ConversationId'
+      responses:
+        '200':
+          description: OK
+
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConversationSummary'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
   /listings/{listingId}/conversations:
     post:
       tags:
@@ -4717,6 +4772,38 @@ paths:
           $ref: '#/components/responses/Forbidden'
         '409':
           $ref: '#/components/responses/Conflict'
+  /me/patent-maintenance/summary:
+    get:
+      tags:
+        - Maintenance
+      summary: Get my maintenance summary
+      operationId: getMyMaintenanceSummary
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: OK
+
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - overdue
+                  - dueSoon
+                  - openTasks
+                  - openOrders
+                properties:
+                  overdue:
+                    type: integer
+                  dueSoon:
+                    type: integer
+                  openTasks:
+                    type: integer
+                  openOrders:
+                    type: integer
+        '401':
+          $ref: '#/components/responses/Unauthorized'
   /me/patent-maintenance/orders/{orderId}:
     get:
       tags:
@@ -5569,7 +5656,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/PagedTechManagerSummary'
+                $ref: '#/components/schemas/PagedAdminTechManagerSummary'
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -5600,7 +5687,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/TechManagerPublic'
+                $ref: '#/components/schemas/AdminTechManagerSummary'
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -6034,6 +6121,30 @@ paths:
         '409':
           $ref: '#/components/responses/Conflict'
   /admin/orders/{orderId}/invoice:
+    get:
+      tags:
+        - Admin
+        - Invoices
+      summary: Get order invoice (admin)
+      operationId: adminGetOrderInvoice
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/OrderId'
+      responses:
+        '200':
+          description: OK
+
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrderInvoice'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
     post:
       tags:
         - Admin
@@ -6268,10 +6379,75 @@ paths:
           $ref: '#/components/responses/Unauthorized'
         '403':
           $ref: '#/components/responses/Forbidden'
+  /admin/orders:
+    get:
+      tags:
+        - Admin
+        - Orders
+      summary: List orders (admin)
+      operationId: adminListOrders
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/Q'
+        - name: status
+          in: query
+          required: false
+          schema:
+            $ref: '#/components/schemas/OrderStatus'
+        - name: buyerUserId
+          in: query
+          required: false
+          schema:
+            $ref: '#/components/schemas/Uuid'
+        - name: sellerUserId
+          in: query
+          required: false
+          schema:
+            $ref: '#/components/schemas/Uuid'
+        - name: techManagerUserId
+          in: query
+          required: false
+          schema:
+            $ref: '#/components/schemas/Uuid'
+        - name: listingId
+          in: query
+          required: false
+          schema:
+            $ref: '#/components/schemas/Uuid'
+        - name: createdFrom
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date-time
+        - name: createdTo
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date-time
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PageSize'
+      responses:
+        '200':
+          description: OK
+
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PagedOrder'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
   /admin/orders/{orderId}:
     get:
       tags:
         - Admin
+        - Orders
       summary: Get order detail (admin)
       operationId: adminGetOrderById
       security:
@@ -8471,6 +8647,8 @@ components:
           description: 閹靛婧€閸欏嚖绱欓崣顖炩偓澶涚幢閺堫亞绮︾€规碍澧滈張鍝勫娇閻ㄥ嫬浜曟穱锛勬暏閹村嘲褰查懗鎴掕礋缁岀尨绱?
         nickname:
           type: string
+        displayName:
+          type: string
         avatarUrl:
           type: string
           format: uri
@@ -8598,6 +8776,8 @@ components:
           items:
             type: string
         nickname:
+          type: string
+        displayName:
           type: string
         verificationStatus:
           type: string
@@ -9302,6 +9482,8 @@ components:
           description: 閻楃澹婄純顕€銆婃潻鍥ㄦ埂閺冨爼妫块敍鍫滆礋缁岄缚銆冪粈娲毐閺堢噦绱?
         stats:
           $ref: '#/components/schemas/ListingStats'
+        seller:
+          $ref: '#/components/schemas/UserBrief'
         transferCount:
           type: integer
           minimum: 0
@@ -9392,8 +9574,6 @@ components:
         - $ref: '#/components/schemas/ListingSummary'
         - type: object
           properties:
-            seller:
-              $ref: '#/components/schemas/UserBrief'
             summary:
               type: string
             deliverables:
@@ -10973,6 +11153,9 @@ components:
         - totalListingCount
         - totalPatentCount
         - totalRegionCount
+        - regionsWithListingsCount
+        - regionsWithPatentsCount
+        - regionsWithActiveRankedCount
         - rankedListingCount
         - activeRankedListingCount
         - unassignedListingCount
@@ -10985,6 +11168,15 @@ components:
           type: integer
           minimum: 0
         totalRegionCount:
+          type: integer
+          minimum: 0
+        regionsWithListingsCount:
+          type: integer
+          minimum: 0
+        regionsWithPatentsCount:
+          type: integer
+          minimum: 0
+        regionsWithActiveRankedCount:
           type: integer
           minimum: 0
         rankedListingCount:
@@ -11429,17 +11621,11 @@ components:
       required:
         - userId
         - displayName
-        - verificationType
-        - verificationStatus
       properties:
         userId:
           $ref: '#/components/schemas/Uuid'
         displayName:
           type: string
-        verificationType:
-          $ref: '#/components/schemas/VerificationType'
-        verificationStatus:
-          $ref: '#/components/schemas/VerificationStatus'
         regionCode:
           type: string
         avatarUrl:
@@ -11451,15 +11637,15 @@ components:
           type: string
         organization:
           type: string
+        experienceLabel:
+          type: string
+        levelLabel:
+          type: string
         serviceDirections:
           type: array
           items:
             type: string
         workHighlights:
-          type: string
-        contactName:
-          type: string
-        contactPhone:
           type: string
         serviceTags:
           type: array
@@ -11470,15 +11656,29 @@ components:
         verifiedAt:
           type: string
           format: date-time
-    TechManagerPublic:
+    AdminTechManagerSummary:
       allOf:
         - $ref: '#/components/schemas/TechManagerSummary'
         - type: object
+          required:
+            - verificationType
+            - verificationStatus
           properties:
-            evidenceFileIds:
-              type: array
-              items:
-                $ref: '#/components/schemas/Uuid'
+            verificationType:
+              $ref: '#/components/schemas/VerificationType'
+            verificationStatus:
+              $ref: '#/components/schemas/VerificationStatus'
+            contactName:
+              type: string
+            contactPhone:
+              type: string
+            featuredRank:
+              type: integer
+            featuredUntil:
+              type: string
+              format: date-time
+    TechManagerPublic:
+      $ref: '#/components/schemas/TechManagerSummary'
     PagedTechManagerSummary:
       type: object
       required:
@@ -11489,6 +11689,18 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/TechManagerSummary'
+        page:
+          $ref: '#/components/schemas/PageMeta'
+    PagedAdminTechManagerSummary:
+      type: object
+      required:
+        - items
+        - page
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/AdminTechManagerSummary'
         page:
           $ref: '#/components/schemas/PageMeta'
     TechManagerUpdateRequest:
@@ -11513,6 +11725,14 @@ components:
         organization:
           type: string
           maxLength: 200
+          nullable: true
+        experienceLabel:
+          type: string
+          maxLength: 100
+          nullable: true
+        levelLabel:
+          type: string
+          maxLength: 50
           nullable: true
         serviceDirections:
           type: array
@@ -12441,6 +12661,8 @@ components:
       properties:
         id:
           $ref: '#/components/schemas/Uuid'
+        displayName:
+          type: string
         nickname:
           type: string
         avatarUrl:
@@ -12466,6 +12688,32 @@ components:
         - VISIBLE
         - HIDDEN
         - DELETED
+    PublicCommentUser:
+      type: object
+      required:
+        - id
+      properties:
+        id:
+          $ref: '#/components/schemas/Uuid'
+        displayName:
+          type: string
+        nickname:
+          type: string
+        avatarUrl:
+          type: string
+          format: uri
+        role:
+          $ref: '#/components/schemas/UserRole'
+    AdminCommentUser:
+      allOf:
+        - $ref: '#/components/schemas/PublicCommentUser'
+        - type: object
+          properties:
+            verificationStatus:
+              $ref: '#/components/schemas/VerificationStatus'
+            verificationType:
+              $ref: '#/components/schemas/VerificationType'
+              nullable: true
     Comment:
       type: object
       required:
@@ -12490,7 +12738,7 @@ components:
         status:
           $ref: '#/components/schemas/CommentStatus'
         user:
-          $ref: '#/components/schemas/UserBrief'
+          $ref: '#/components/schemas/PublicCommentUser'
         text:
           type: string
           minLength: 1
@@ -12514,6 +12762,16 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/Comment'
+    AdminComment:
+      allOf:
+        - $ref: '#/components/schemas/Comment'
+        - type: object
+          properties:
+            contentTitle:
+              type: string
+              nullable: true
+            user:
+              $ref: '#/components/schemas/AdminCommentUser'
     PagedCommentThread:
       type: object
       required:
@@ -12565,7 +12823,7 @@ components:
         items:
           type: array
           items:
-            $ref: '#/components/schemas/Comment'
+            $ref: '#/components/schemas/AdminComment'
         page:
           $ref: '#/components/schemas/PageMeta'
     ConversationContentType:

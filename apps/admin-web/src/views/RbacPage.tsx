@@ -83,6 +83,14 @@ export function RbacPage() {
   }, [load]);
 
   const roleOptions = useMemo(() => roles.map((r) => ({ value: r.id, label: r.name })), [roles]);
+  const permissionNameMap = useMemo(
+    () =>
+      permissions.reduce<Record<string, string>>((acc, item) => {
+        acc[item.id] = item.name;
+        return acc;
+      }, {}),
+    [permissions],
+  );
   const permOptions = useMemo(
     () => permissions.map((p) => ({ value: p.id, label: `${p.name}${p.description ? `（${p.description}）` : ''}` })),
     [permissions],
@@ -133,10 +141,10 @@ export function RbacPage() {
     <Space className="admin-rbac-page" direction="vertical" size={16} style={{ width: '100%' }}>
       <Card>
         <Typography.Title level={3} style={{ marginTop: 0 }}>
-          账号与权限（RBAC）
+          后台账号与权限
         </Typography.Title>
         <Typography.Paragraph type="secondary" style={{ marginBottom: 0 }}>
-          配置后台角色与权限点，敏感操作需记录审计日志。
+          维护后台角色、账号授权与权限范围，敏感操作需记录审计日志。
         </Typography.Paragraph>
       </Card>
 
@@ -144,7 +152,7 @@ export function RbacPage() {
         type="info"
         showIcon
         message="员工注册最佳实践"
-        description="员工不自助注册；由 RBAC 管理员统一开通账号并分配最小权限，员工再通过“手机号验证码登录”进入后台。"
+        description="员工不自助注册；由权限管理员统一开通账号并分配最小必要权限，员工再通过“手机号验证码登录”进入后台。"
       />
 
       {error ? <RequestErrorAlert error={error} onRetry={load} /> : null}
@@ -165,7 +173,7 @@ export function RbacPage() {
             mode="multiple"
             value={rolePerms}
             style={{ minWidth: 420 }}
-            placeholder="权限点"
+            placeholder="权限范围"
             options={permOptions}
             onChange={(v) => setRolePerms(v as string[])}
           />
@@ -222,12 +230,12 @@ export function RbacPage() {
             { title: '角色名称', dataIndex: 'name' },
             { title: '说明', dataIndex: 'description', render: (v) => displayAdminInfo(v) },
             {
-              title: '权限点',
+              title: '权限范围',
               dataIndex: 'permissionIds',
               render: (ids: string[]) => (
                 <Space wrap>
                   {ids?.slice(0, 6).map((id) => (
-                    <Tag key={id}>{id}</Tag>
+                    <Tag key={id}>{permissionNameMap[id] || id}</Tag>
                   ))}
                 </Space>
               ),
@@ -324,8 +332,8 @@ export function RbacPage() {
             <Form.Item label="角色说明" name="description">
               <Input />
             </Form.Item>
-            <Form.Item label="权限点" name="permissionIds">
-              <Select mode="multiple" options={permOptions} placeholder="选择权限点" />
+            <Form.Item label="权限范围" name="permissionIds">
+              <Select mode="multiple" options={permOptions} placeholder="选择权限范围" />
             </Form.Item>
           </Form>
         </Modal>
@@ -383,7 +391,7 @@ export function RbacPage() {
             value={userKeyword}
             style={{ width: 300 }}
             allowClear
-            placeholder="搜索用户ID / 姓名 / 手机号"
+            placeholder="搜索账号编号 / 姓名 / 手机号"
             onChange={(e) => setUserKeyword(e.target.value)}
             onSearch={() => void load()}
           />
@@ -396,7 +404,7 @@ export function RbacPage() {
           pagination={{ pageSize: 20, showSizeChanger: false }}
           columns={[
             {
-              title: '用户ID',
+              title: '账号编号',
               dataIndex: 'id',
               width: 280,
               render: (v: string) => <Typography.Text copyable>{v}</Typography.Text>,
@@ -437,7 +445,7 @@ export function RbacPage() {
 
       <Card loading={loading}>
         <Typography.Title level={4} style={{ marginTop: 0 }}>
-          权限点
+          权限范围清单
         </Typography.Title>
         <Space wrap size={8}>
           {permissions.map((p) => (

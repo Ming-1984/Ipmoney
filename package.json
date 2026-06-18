@@ -29,6 +29,11 @@
     "scan:banned-words": "node scripts/scan-banned-words.mjs",
     "listing:region-backfill": "node scripts/run-with-env.mjs -- node scripts/listing-region-backfill.mjs",
     "check:prod-env": "node scripts/run-with-env.mjs -- node scripts/check-prod-env.mjs",
+    "check:tech-manager-public-fields": "node scripts/run-with-env.mjs -- node scripts/check-tech-manager-public-fields.mjs",
+    "check:tech-manager-public-payload": "node scripts/run-with-env.mjs -- node scripts/check-tech-manager-public-payload.mjs",
+    "audit:tech-manager-public-content": "node scripts/run-with-env.mjs -- node scripts/audit-tech-manager-public-content.mjs",
+    "audit:tech-manager-profile-field-misalignment": "node scripts/run-with-env.mjs -- node scripts/audit-tech-manager-profile-field-misalignment.mjs",
+    "check:remote-tech-manager-migration": "node scripts/run-with-env.mjs -- python scripts/check_remote_tech_manager_migration.py",
     "check:docs-links": "node scripts/check-doc-links.mjs"
   },
   "devDependencies": {

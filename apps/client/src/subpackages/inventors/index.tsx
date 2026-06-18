@@ -7,7 +7,7 @@ import type { components } from '@ipmoney/api-types';
 
 import { STORAGE_KEYS } from '../../constants';
 import { apiGet } from '../../lib/api';
-import { displayTitleOrFallback } from '../../lib/displayText';
+import { displayInitial, displayTitleOrFallback } from '../../lib/displayText';
 import { usePagedList } from '../../lib/usePagedList';
 import { ListFooter } from '../../ui/ListFooter';
 import { PullToRefresh, toast } from '../../ui/nutui';
@@ -22,12 +22,11 @@ const LABEL_EMPTY = '暂无数据';
 const LABEL_REFRESH = '刷新';
 
 function renderInitial(name: string): string {
-  const first = String(name || '').trim().slice(0, 1);
-  return first || '发';
+  return displayInitial(inventorNameText(name), '发');
 }
 
 function inventorNameText(name: unknown): string {
-  return displayTitleOrFallback(name, '发明人待补充');
+  return displayTitleOrFallback(name, '平台发明人');
 }
 
 export default function InventorsPage() {

@@ -23,6 +23,11 @@ export class PatentMaintenanceMeController {
     return await this.maintenance.listMyOrders(req, query || {});
   }
 
+  @Get('/summary')
+  async getSummary(@Req() req: any) {
+    return await this.maintenance.getMySummary(req);
+  }
+
   @Post('/orders')
   async createOrder(@Req() req: any, @Body() body: any) {
     return await this.maintenance.createMyOrder(req, body || {});

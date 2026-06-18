@@ -42,6 +42,16 @@ type ImportRowStatus = 'PENDING' | 'VALID' | 'INVALID' | 'SUCCEEDED' | 'FAILED' 
 type PageMeta = { page: number; pageSize: number; total: number };
 type Paged<T> = { items: T[]; page: PageMeta };
 
+type StaffUser = {
+  id: string;
+  name?: string;
+  email?: string;
+};
+
+type StaffUserListResponse = {
+  items?: StaffUser[];
+};
+
 type Listing = {
   id: string;
   title: string;
@@ -113,14 +123,88 @@ function actionLabel(action: BatchAction) {
   return '批量下架';
 }
 
+function duplicatePolicyLabel(policy?: ImportDuplicatePolicy | null): string {
+  if (policy === 'OVERWRITE') return '覆盖更新';
+  if (policy === 'SKIP') return '跳过重复';
+  return '策略待确认';
+}
+
+function jobStatusLabel(status?: JobStatus | BatchItemStatus | ImportRowStatus | null): string {
+  const text = String(status || '').trim().toUpperCase();
+  if (text === 'PENDING') return '待处理';
+  if (text === 'RUNNING') return '执行中';
+  if (text === 'PAUSED') return '已暂停';
+  if (text === 'SUCCEEDED') return '已完成';
+  if (text === 'FAILED') return '失败';
+  if (text === 'SKIPPED') return '已跳过';
+  if (text === 'VALID') return '校验通过';
+  if (text === 'INVALID') return '校验失败';
+  return '状态待确认';
+}
+
 function statusTag(status: JobStatus | BatchItemStatus | ImportRowStatus) {
   const text = String(status || '');
-  if (text === 'SUCCEEDED' || text === 'VALID') return <Tag color="green">{text}</Tag>;
-  if (text === 'FAILED' || text === 'INVALID') return <Tag color="red">{text}</Tag>;
-  if (text === 'RUNNING') return <Tag color="blue">{text}</Tag>;
-  if (text === 'PAUSED') return <Tag color="orange">{text}</Tag>;
-  if (text === 'SKIPPED') return <Tag>{text}</Tag>;
-  return <Tag>{text}</Tag>;
+  const label = jobStatusLabel(status);
+  if (text === 'SUCCEEDED' || text === 'VALID') return <Tag color="green">{label}</Tag>;
+  if (text === 'FAILED' || text === 'INVALID') return <Tag color="red">{label}</Tag>;
+  if (text === 'RUNNING') return <Tag color="blue">{label}</Tag>;
+  if (text === 'PAUSED') return <Tag color="orange">{label}</Tag>;
+  if (text === 'SKIPPED') return <Tag>{label}</Tag>;
+  return <Tag>{label}</Tag>;
+}
+
+function summarizeImportValue(value: unknown): string {
+  if (value === null || value === undefined) return '';
+  if (typeof value === 'boolean') return value ? '是' : '否';
+  if (typeof value === 'number') return Number.isFinite(value) ? String(value) : '';
+  if (Array.isArray(value)) {
+    return value
+      .map((item) => summarizeImportValue(item))
+      .filter(Boolean)
+      .join('、');
+  }
+  if (typeof value === 'object') {
+    return Object.entries(value as Record<string, unknown>)
+      .map(([key, item]) => {
+        const text = summarizeImportValue(item);
+        return text ? `${key}：${text}` : '';
+      })
+      .filter(Boolean)
+      .join('；');
+  }
+  return normalizeUserFacingText(value);
+}
+
+function importRowNormalizedSummary(value: Record<string, any> | null | undefined): string {
+  if (!value) return '';
+  const fields: Array<[string, unknown]> = [
+    ['标题', value.title],
+    ['申请号', value.applicationNoDisplay || value.applicationNoNorm],
+    ['地区', value.regionCode],
+    ['交易模式', value.tradeMode],
+    ['价格方式', value.priceType],
+    ['专题标签', value.listingTopics],
+  ];
+  const summary = fields
+    .map(([label, raw]) => {
+      const text = summarizeImportValue(raw);
+      return text ? `${label}：${text}` : '';
+    })
+    .filter(Boolean)
+    .join('；');
+  return summary || '已生成标准化字段';
+}
+
+function batchJobSummary(job: BatchJob): string {
+  return `总 ${job.totalCount} / 成功 ${job.successCount} / 失败 ${job.failedCount} / 跳过 ${job.skippedCount}`;
+}
+
+function importJobSummary(job: ImportJob): string {
+  return `总 ${job.totalCount} / 有效 ${job.validCount} / 无效 ${job.invalidCount} / 成功 ${job.successCount} / 失败 ${job.failedCount} / 跳过 ${job.skippedCount}`;
+}
+
+function staffDisplayName(user: StaffUser | null | undefined, fallback = '未命名员工'): string {
+  return normalizeUserFacingText(user?.name) || normalizeUserFacingText(user?.email) || fallback;
 }
 
 export function ListingsAuditPage() {
@@ -156,6 +240,7 @@ export function ListingsAuditPage() {
   const [uploadFileList, setUploadFileList] = useState<any[]>([]);
   const [duplicatePolicy, setDuplicatePolicy] = useState<ImportDuplicatePolicy>('SKIP');
   const [importSellerUserId, setImportSellerUserId] = useState('');
+  const [staffUsers, setStaffUsers] = useState<StaffUser[]>([]);
   const [importRegionCode, setImportRegionCode] = useState('');
   const [importTradeMode, setImportTradeMode] = useState<'' | 'ASSIGNMENT' | 'LICENSE'>('');
   const [importPriceType, setImportPriceType] = useState<'' | 'NEGOTIABLE' | 'FIXED'>('');
@@ -263,6 +348,17 @@ export function ListingsAuditPage() {
     })();
   }, []);
 
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await apiGet<StaffUserListResponse>('/admin/rbac/users', { scope: 'STAFF' });
+        setStaffUsers(Array.isArray(res?.items) ? res.items : []);
+      } catch {
+        setStaffUsers([]);
+      }
+    })();
+  }, []);
+
   const enabledTopicSet = useMemo(
     () => new Set<ListingTopic>(listingTopicOptions.map((item) => item.value)),
     [listingTopicOptions],
@@ -277,6 +373,15 @@ export function ListingsAuditPage() {
   const topicLabel = useCallback(
     (topic?: ListingTopic | null) => topicLabelFromOptions(topic, listingTopicOptions),
     [listingTopicOptions],
+  );
+
+  const staffOptions = useMemo(
+    () =>
+      staffUsers.map((user) => ({
+        value: user.id,
+        label: staffDisplayName(user),
+      })),
+    [staffUsers],
   );
 
   const applyFilters = useCallback(() => {
@@ -629,8 +734,23 @@ export function ListingsAuditPage() {
               },
             }}
             columns={[
-              { title: 'ID', dataIndex: 'id', width: 220 },
-              { title: '标题', dataIndex: 'title', ellipsis: true, render: (value) => normalizeUserFacingText(value) || '未命名挂牌' },
+              {
+                title: '挂牌摘要',
+                key: 'summary',
+                width: 360,
+                render: (_, row) => (
+                  <Space direction="vertical" size={2}>
+                    <Typography.Text>{normalizeUserFacingText(row.title) || '挂牌标题待确认'}</Typography.Text>
+                    <Typography.Text type="secondary">
+                      交易方式：{tradeModeLabel(row.tradeMode)} · 来源：
+                      {row.source === 'ADMIN' ? '后台录入' : row.source === 'USER' ? '用户发布' : row.source === 'PLATFORM' ? '平台导入' : '-'}
+                    </Typography.Text>
+                    <Typography.Text type="secondary" copyable={{ text: row.id }}>
+                      挂牌记录编号：{row.id}
+                    </Typography.Text>
+                  </Space>
+                ),
+              },
               {
                 title: '交易方式',
                 dataIndex: 'tradeMode',
@@ -708,13 +828,24 @@ export function ListingsAuditPage() {
             },
           }}
           columns={[
-            { title: '任务ID', dataIndex: 'id', width: 220 },
+            {
+              title: '任务摘要',
+              key: 'summary',
+              width: 360,
+              render: (_, row) => (
+                <Space direction="vertical" size={2}>
+                  <Typography.Text>{batchJobSummary(row)}</Typography.Text>
+                  <Typography.Text type="secondary">
+                    动作：{actionLabel(row.action)} · 状态：{statusTag(row.status)}
+                  </Typography.Text>
+                  <Typography.Text type="secondary" copyable={{ text: row.id }}>
+                    任务单号：{row.id}
+                  </Typography.Text>
+                </Space>
+              ),
+            },
             { title: '动作', dataIndex: 'action', width: 120, render: (v: BatchAction) => actionLabel(v) },
             { title: '状态', dataIndex: 'status', width: 110, render: (v: JobStatus) => statusTag(v) },
-            { title: '总数', dataIndex: 'totalCount', width: 80 },
-            { title: '成功', dataIndex: 'successCount', width: 80 },
-            { title: '失败', dataIndex: 'failedCount', width: 80 },
-            { title: '跳过', dataIndex: 'skippedCount', width: 80 },
             {
               title: '失败率',
               dataIndex: 'failRate',
@@ -818,21 +949,24 @@ export function ListingsAuditPage() {
             </Row>
             <Row gutter={12}>
               <Col span={6}>
-                <Form.Item label="默认卖家用户ID">
-                  <Input
-                    value={importSellerUserId}
-                    onChange={(e) => setImportSellerUserId(e.target.value)}
+                <Form.Item label="平台承接人员">
+                  <Select
+                    value={importSellerUserId || undefined}
+                    onChange={(value) => setImportSellerUserId(String(value || '').trim())}
+                    options={staffOptions}
                     placeholder="可选"
                     allowClear
+                    showSearch
+                    optionFilterProp="label"
                   />
                 </Form.Item>
               </Col>
               <Col span={6}>
-                <Form.Item label="默认地区编码">
+                <Form.Item label="默认地区">
                   <Input
                     value={importRegionCode}
                     onChange={(e) => setImportRegionCode(e.target.value)}
-                    placeholder="如 110000"
+                    placeholder="可填写地区名称或地区代码"
                     allowClear
                   />
                 </Form.Item>
@@ -881,15 +1015,24 @@ export function ListingsAuditPage() {
             },
           }}
           columns={[
-            { title: '任务ID', dataIndex: 'id', width: 220 },
-            { title: '重复策略', dataIndex: 'duplicatePolicy', width: 110 },
+            {
+              title: '任务摘要',
+              key: 'summary',
+              width: 360,
+              render: (_, row) => (
+                <Space direction="vertical" size={2}>
+                  <Typography.Text>{importJobSummary(row)}</Typography.Text>
+                  <Typography.Text type="secondary">
+                    重复策略：{duplicatePolicyLabel(row.duplicatePolicy)} · 状态：{statusTag(row.status)}
+                  </Typography.Text>
+                  <Typography.Text type="secondary" copyable={{ text: row.id }}>
+                    任务单号：{row.id}
+                  </Typography.Text>
+                </Space>
+              ),
+            },
+            { title: '重复策略', dataIndex: 'duplicatePolicy', width: 110, render: (v: ImportDuplicatePolicy) => duplicatePolicyLabel(v) },
             { title: '状态', dataIndex: 'status', width: 110, render: (v: JobStatus) => statusTag(v) },
-            { title: '总数', dataIndex: 'totalCount', width: 80 },
-            { title: '有效', dataIndex: 'validCount', width: 80 },
-            { title: '无效', dataIndex: 'invalidCount', width: 80 },
-            { title: '成功', dataIndex: 'successCount', width: 80 },
-            { title: '失败', dataIndex: 'failedCount', width: 80 },
-            { title: '跳过', dataIndex: 'skippedCount', width: 80 },
             {
               title: '失败率',
               dataIndex: 'failRate',
@@ -948,10 +1091,22 @@ export function ListingsAuditPage() {
             },
           }}
           columns={[
-            { title: '挂牌ID', dataIndex: 'listingId', width: 220 },
+            {
+              title: '处理对象',
+              key: 'listing',
+              width: 300,
+              render: (_, row) => (
+                <Space direction="vertical" size={2}>
+                  <Typography.Text>{displayAdminInfo(row.errorMessage, '挂牌记录处理结果')}</Typography.Text>
+                  <Typography.Text type="secondary" copyable={{ text: row.listingId }}>
+                    挂牌记录编号：{displayAdminInfo(row.listingId)}
+                  </Typography.Text>
+                </Space>
+              ),
+            },
             { title: '状态', dataIndex: 'status', width: 120, render: (v: BatchItemStatus) => statusTag(v) },
-            { title: '错误码', dataIndex: 'errorCode', width: 160 },
-            { title: '错误信息', dataIndex: 'errorMessage', ellipsis: true },
+            { title: '失败原因代码', dataIndex: 'errorCode', width: 160, render: (v) => displayAdminInfo(v) },
+            { title: '错误信息', dataIndex: 'errorMessage', ellipsis: true, render: (v) => displayAdminInfo(v) },
             {
               title: '处理时间',
               dataIndex: 'processedAt',
@@ -991,8 +1146,23 @@ export function ListingsAuditPage() {
           columns={[
             { title: '行号', dataIndex: 'rowNo', width: 90 },
             { title: '状态', dataIndex: 'status', width: 120, render: (v: ImportRowStatus) => statusTag(v) },
-            { title: '挂牌ID', dataIndex: 'listingId', width: 220, render: (v) => displayAdminInfo(v) },
-            { title: '错误码', dataIndex: 'errorCode', width: 160, render: (v) => displayAdminInfo(v) },
+            {
+              title: '行摘要',
+              key: 'summary',
+              width: 360,
+              render: (_, row) => (
+                <Space direction="vertical" size={2}>
+                  <Typography.Text>{displayAdminInfo(row.normalized?.title, '挂牌标题待确认')}</Typography.Text>
+                  <Typography.Text type="secondary">
+                    申请号：{displayAdminInfo(row.normalized?.applicationNoDisplay || row.normalized?.applicationNoNorm)}
+                  </Typography.Text>
+                  <Typography.Text type="secondary" copyable={{ text: String(row.listingId || '') }}>
+                    挂牌记录编号：{displayAdminInfo(row.listingId)}
+                  </Typography.Text>
+                </Space>
+              ),
+            },
+            { title: '失败原因代码', dataIndex: 'errorCode', width: 160, render: (v) => displayAdminInfo(v) },
             {
               title: '错误信息',
               dataIndex: 'errorMessage',
@@ -1005,7 +1175,7 @@ export function ListingsAuditPage() {
               render: (v: Record<string, any> | null | undefined) =>
                 v ? (
                   <Typography.Text code style={{ whiteSpace: 'pre-wrap' }}>
-                    {JSON.stringify(v)}
+                    {importRowNormalizedSummary(v)}
                   </Typography.Text>
                 ) : (
                   '-'

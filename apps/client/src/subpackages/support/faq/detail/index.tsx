@@ -19,7 +19,7 @@ export default function SupportFaqDetailPage() {
         <PageHeader weapp back title="常见问题" subtitle="问题详情" />
         <Spacer />
         <MissingParamCard
-          message="缺少问题编号，请返回常见问题列表重新进入。"
+          message="页面信息不完整，请返回常见问题列表重新进入。"
           actionText="返回列表"
           onAction={() => Taro.navigateBack()}
         />

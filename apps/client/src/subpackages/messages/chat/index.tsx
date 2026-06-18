@@ -11,12 +11,13 @@ import { getToken, getVerificationStatus, isOnboardingDone, onAuthChanged } from
 import { apiGet, apiPost } from '../../../lib/api';
 import { resolveConversationEntityDisplayName } from '../../../lib/conversationDisplay';
 import { getDetailCache, setDetailCache } from '../../../lib/detailCache';
-import { displayTitleOrFallback, normalizeDisplayText } from '../../../lib/displayText';
+import { displayInitial, displayTitleOrFallback, displayUserName, normalizeDisplayText } from '../../../lib/displayText';
 import { formatTimeSmart } from '../../../lib/format';
 import { patentTypeLabel, tradeModeLabel } from '../../../lib/labels';
 import { fenToYuan } from '../../../lib/money';
 import { safeNavigateBack } from '../../../lib/navigation';
 import { useRouteUuidParam } from '../../../lib/routeParams';
+import { resolveTechManagerDisplayName } from '../../../lib/techManagerDisplay';
 import { Avatar, Button, PullToRefresh, toast } from '../../../ui/nutui';
 import {
   AuditPendingCard,
@@ -129,6 +130,10 @@ function resolveConversationContentTitle(summary?: Pick<ConversationSummary, 'co
   return normalizeDisplayText(summary?.contentTitle);
 }
 
+function resolveAvatarFallbackText(value: unknown, fallback: string): string {
+  return displayInitial(value, fallback);
+}
+
 export default function ChatPage() {
   const conversationId = useRouteUuidParam('conversationId') || '';
   const conversationIdRef = useRef(conversationId);
@@ -225,7 +230,7 @@ export default function ChatPage() {
   );
 
   const getConversationDisplayName = useCallback((c: ConversationSummary | null): string => {
-    if (!c) return '咨询会话';
+    if (!c) return '沟通详情';
     const contentType = String(c.contentType || '').toUpperCase();
     if (contentType === 'SUPPORT') return '平台客服助手';
     if (contentType === 'DISPUTE') return resolveConversationContentTitle(c) || '订单争议';
@@ -269,7 +274,7 @@ export default function ChatPage() {
     if (cachedSummary) {
       void Taro.setNavigationBarTitle({ title: getConversationDisplayName(cachedSummary) });
     } else {
-      void Taro.setNavigationBarTitle({ title: '咨询会话' });
+      void Taro.setNavigationBarTitle({ title: '沟通详情' });
     }
   }, [conversationId, getConversationDisplayName]);
 
@@ -405,9 +410,7 @@ export default function ChatPage() {
       try {
         if (summary.contentType === 'LISTING') {
           const listing = await apiGet<ListingPublic>(`/public/listings/${summary.contentId}`);
-          title = listing.title || title;
-          const listingTitle = normalizeDisplayText(listing.title);
-          if (listingTitle) title = listingTitle;
+          title = displayTitleOrFallback(listing.title, title);
           tag = [patentTypeLabel(listing.patentType, { empty: '' }), tradeModeLabel(listing.tradeMode, { empty: '' })]
             .filter(Boolean)
             .join(' · ');
@@ -416,7 +419,7 @@ export default function ChatPage() {
         } else if (summary.contentType === 'ACHIEVEMENT') {
           const achievement = await apiGet<AchievementPublic>(`/public/achievements/${summary.contentId}`);
           title = displayTitleOrFallback(achievement.title, title);
-          tag = normalizeDisplayText(achievement.publisher?.displayName) || '成果咨询';
+          tag = displayUserName(achievement.publisher, '平台认证发布方');
           thumbUrl = achievement.coverUrl || '';
         } else if (String(summary.contentType || '').toUpperCase() === 'DISPUTE') {
           const order = await apiGet<OrderDetail>(`/orders/${summary.contentId}`);
@@ -426,19 +429,18 @@ export default function ChatPage() {
           tag = '订单争议';
         } else if (String(summary.contentType || '').toUpperCase() === 'MAINTENANCE') {
           const order = await apiGet<MaintenanceOrder>(`/me/patent-maintenance/orders/${summary.contentId}`);
-          const orderShortId = String(order.id || '').slice(0, 8);
-          const yearLabel = Number(order.scheduleYearNo || 0) > 0 ? `第${order.scheduleYearNo}年` : '';
+          const yearLabel = typeof order.scheduleYearNo === 'number' && order.scheduleYearNo > 0 ? `第${order.scheduleYearNo}年` : '';
           title =
             summaryTitle ||
-            ['年费托管', orderShortId ? `#${orderShortId}` : '', displayTitleOrFallback(order.patentTitle, ''), yearLabel]
+            ['年费托管', displayTitleOrFallback(order.patentTitle, ''), yearLabel]
               .filter(Boolean)
               .join(' · ');
           tag = '年费托管';
           price = order.totalAmountFen != null ? `￥${fenToYuan(order.totalAmountFen)}` : '';
         } else if (summary.contentType === 'TECH_MANAGER') {
           const manager = await apiGet<TechManagerPublic>(`/public/tech-managers/${summary.contentId}`);
-          title = displayTitleOrFallback(manager.displayName, title);
-          tag = '技术经理';
+          title = resolveTechManagerDisplayName(manager, title);
+          tag = normalizeDisplayText(manager.organization) || '技术经理人';
           thumbUrl = manager.avatarUrl || '';
         } else if (String(summary.contentType || '').toUpperCase() === 'SUPPORT') {
           title = summaryTitle || '平台客服';
@@ -726,7 +728,7 @@ export default function ChatPage() {
       {!token ? (
         <PermissionCard
           title="需要登录"
-          message="登录并审核通过后才能查看咨询会话。"
+          message="登录并审核通过后才能查看当前沟通记录。"
           actionText="去登录"
           onAction={() => Taro.navigateTo({ url: '/subpackages/login/index' })}
         />
@@ -807,7 +809,7 @@ export default function ChatPage() {
                     <View id={`msg-${item.id}`} className={`chat-row ${isMe ? 'chat-row-me' : ''}`}>
                       {!isMe ? (
                         <Avatar size="40" src={counterpartAvatar} background="var(--c-divider)" color="var(--c-muted)">
-                          {(displayName || 'T').slice(0, 1)}
+                          {resolveAvatarFallbackText(displayName, '沟')}
                         </Avatar>
                       ) : null}
 
@@ -817,7 +819,7 @@ export default function ChatPage() {
                             <Text className="chat-ref-label">
                               {item.referenceType === 'CONTRACT' ? '合同引用' : '材料引用'}
                             </Text>
-                            <Text className="chat-ref-title">{item.referenceTitle || '已引用内容'}</Text>
+                            <Text className="chat-ref-title">{item.referenceTitle || '已引用资料'}</Text>
                             {item.referenceNote ? <Text className="chat-ref-note clamp-1">{item.referenceNote}</Text> : null}
                             <Text className="chat-ref-action">查看</Text>
                           </View>
@@ -842,9 +844,9 @@ export default function ChatPage() {
                             <Text className="chat-file-url clamp-1">{item.fileUrl}</Text>
                           </View>
                         ) : item.type === 'TEXT' || item.type === 'EMOJI' ? (
-                          <Text>{item.text || '（空）'}</Text>
+                          <Text>{item.text || '暂不支持预览这条消息'}</Text>
                         ) : (
-                          <Text>{item.text || item.fileUrl || '（空）'}</Text>
+                          <Text>{item.text || item.fileUrl || '暂不支持预览这条消息'}</Text>
                         )}
 
                         {item.localStatus ? (
@@ -877,7 +879,7 @@ export default function ChatPage() {
           </ScrollView>
         </PullToRefresh>
       ) : (
-        <EmptyCard title="暂无会话消息" message="发送第一条消息开始沟通。" image={emptyChat} />
+        <EmptyCard title="暂无会话消息" message="发一条消息，开始本次沟通。" image={emptyChat} />
       )}
 
       {canChat ? (

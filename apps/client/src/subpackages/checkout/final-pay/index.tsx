@@ -1,6 +1,6 @@
 ﻿import { View, Text } from '@tarojs/components';
 import Taro from '@tarojs/taro';
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import './index.scss';
 
 import { apiGet, apiPost } from '../../../lib/api';
@@ -42,6 +42,9 @@ const ORDER_DETAIL_CACHE_SCOPE = 'order-detail';
 
 export default function FinalPayPage() {
   const orderId = useRouteStringParam('orderId') || '';
+  const orderIdRef = useRef(orderId);
+  const loadSeqRef = useRef(0);
+  const paySeqRef = useRef(0);
   const env = useMemo(() => Taro.getEnv(), []);
   const isH5 = env === Taro.ENV_TYPE.WEB;
   const initialCachedOrder = orderId ? getDetailCache<Order>(ORDER_DETAIL_CACHE_SCOPE, orderId) : null;
@@ -54,6 +57,9 @@ export default function FinalPayPage() {
   const canPayFinal = order?.status === 'WAIT_FINAL_PAYMENT';
 
   useEffect(() => {
+    orderIdRef.current = orderId;
+    loadSeqRef.current += 1;
+    paySeqRef.current += 1;
     if (!orderId) {
       setOrder(null);
       setLoading(false);
@@ -67,8 +73,10 @@ export default function FinalPayPage() {
   }, [orderId]);
 
   const load = useCallback(async () => {
-    if (!orderId) return;
-    const cached = getDetailCache<Order>(ORDER_DETAIL_CACHE_SCOPE, orderId);
+    const targetOrderId = orderId;
+    if (!targetOrderId) return;
+    const seq = ++loadSeqRef.current;
+    const cached = getDetailCache<Order>(ORDER_DETAIL_CACHE_SCOPE, targetOrderId);
     const hasCached = Boolean(cached);
     if (cached) {
       setOrder(cached);
@@ -79,16 +87,18 @@ export default function FinalPayPage() {
       setError(null);
     }
     try {
-      const d = await apiGet<Order>(`/orders/${orderId}`);
+      const d = await apiGet<Order>(`/orders/${targetOrderId}`);
+      if (seq !== loadSeqRef.current || orderIdRef.current !== targetOrderId) return;
       setOrder(d);
-      setDetailCache(ORDER_DETAIL_CACHE_SCOPE, orderId, d);
+      setDetailCache(ORDER_DETAIL_CACHE_SCOPE, targetOrderId, d);
     } catch (e: any) {
+      if (seq !== loadSeqRef.current || orderIdRef.current !== targetOrderId) return;
       if (!hasCached) {
         setError(e?.message || '加载失败');
         setOrder(null);
       }
     } finally {
-      setLoading(false);
+      if (seq === loadSeqRef.current && orderIdRef.current === targetOrderId) setLoading(false);
     }
   }, [orderId]);
 
@@ -120,7 +130,8 @@ export default function FinalPayPage() {
 
   const onPay = useCallback(async () => {
     if (!ensureApproved()) return;
-    if (!orderId) return;
+    const targetOrderId = orderId;
+    if (!targetOrderId) return;
     if (!canPayFinal) {
       toast('当前订单状态不可支付尾款');
       return;
@@ -129,12 +140,13 @@ export default function FinalPayPage() {
       toast('H5 端不发起支付，请到小程序完成支付');
       return;
     }
+    const seq = ++paySeqRef.current;
     setPaying(true);
     try {
       const intent = await apiPost<PaymentIntentResponse>(
-        `/orders/${orderId}/payment-intents`,
+        `/orders/${targetOrderId}/payment-intents`,
         { payType: 'FINAL' },
-        { idempotencyKey: `pay-final-${orderId}` },
+        { idempotencyKey: `pay-final-${targetOrderId}` },
       );
 
       const payParams = intent?.wechatPayParams;
@@ -160,12 +172,15 @@ export default function FinalPayPage() {
       }
 
       Taro.navigateTo({
-        url: `/subpackages/checkout/final-success/index?orderId=${orderId}&paymentId=${intent.paymentId}`,
+        url: `/subpackages/checkout/final-success/index?orderId=${targetOrderId}&paymentId=${intent.paymentId}`,
       });
     } catch (e: any) {
+      if (seq !== paySeqRef.current || orderIdRef.current !== targetOrderId) return;
       toast(e?.message || '支付失败');
     } finally {
-      setPaying(false);
+      if (seq === paySeqRef.current && orderIdRef.current === targetOrderId) {
+        setPaying(false);
+      }
     }
   }, [canPayFinal, isH5, orderId]);
 
@@ -181,7 +196,7 @@ export default function FinalPayPage() {
 
   return (
     <View className="container has-sticky pay-page">
-      <PageHeader title="支付尾款" subtitle={order ? `订单号：${order.id}` : `订单号：${orderId.slice(0, 8)}…`} />
+      <PageHeader title="支付尾款" subtitle="确认尾款金额并完成支付" />
       <Spacer />
 
       {loading ? (
@@ -194,16 +209,16 @@ export default function FinalPayPage() {
             <Text className="pay-section-title">金额信息</Text>
             <View className="pay-row">
               <Text className="pay-row-label">成交总价</Text>
-              <Text className="pay-row-value">{order.dealAmountFen ? `¥${fenToYuan(order.dealAmountFen)}` : '待确认'}</Text>
+              <Text className="pay-row-value">{order.dealAmountFen != null ? `¥${fenToYuan(order.dealAmountFen)}` : '待确认'}</Text>
             </View>
             <View className="pay-row">
               <Text className="pay-row-label">已付订金</Text>
-              <Text className="pay-row-value">- ¥{fenToYuan(order.depositAmountFen)}</Text>
+              <Text className="pay-row-value">已付 ¥{fenToYuan(order.depositAmountFen, { empty: '待确认' })}</Text>
             </View>
             <View className="pay-row pay-row-strong">
               <Text className="pay-row-label">应付尾款</Text>
               <Text className="pay-row-value">
-                {order.finalAmountFen ? `¥${fenToYuan(order.finalAmountFen)}` : '待确认'}
+                {order.finalAmountFen != null ? `¥${fenToYuan(order.finalAmountFen)}` : '待确认'}
               </Text>
             </View>
           </Surface>
@@ -222,7 +237,7 @@ export default function FinalPayPage() {
               <Spacer size={12} />
               {PayGuide ? (
                 <PayGuide
-                  miniProgramPath={`pages/checkout/final-pay/index?orderId=${orderId}`}
+                  miniProgramPath={`subpackages/checkout/final-pay/index?orderId=${orderId}`}
                   description="H5 端不发起支付。微信内可一键跳转小程序；微信外/桌面可复制链接或扫码在微信打开。"
                 />
               ) : (
@@ -246,7 +261,7 @@ export default function FinalPayPage() {
           </View>
           <View style={{ flex: 2, minWidth: 0 }}>
             <Button variant="primary" loading={paying} disabled={paying || !canPayFinal} onClick={onPay}>
-              {paying ? '处理中…' : !canPayFinal ? '当前不可支付' : `支付尾款${order.finalAmountFen ? ` ¥${fenToYuan(order.finalAmountFen)}` : ''}`}
+              {paying ? '处理中…' : !canPayFinal ? '当前不可支付' : `支付尾款${order.finalAmountFen != null ? ` ¥${fenToYuan(order.finalAmountFen)}` : ''}`}
             </Button>
           </View>
         </StickyBar>

@@ -20,9 +20,9 @@ describe('NotificationsController delegation suite', () => {
     const req: any = { auth: { userId: 'user-1' } };
     notifications.list.mockResolvedValueOnce({ items: [] });
 
-    await expect(controller.list(req, { page: '2' })).resolves.toEqual({ items: [] });
+    await expect(controller.list(req, { page: '2', kind: 'cs' })).resolves.toEqual({ items: [] });
 
-    expect(notifications.list).toHaveBeenCalledWith(req, { page: '2' });
+    expect(notifications.list).toHaveBeenCalledWith(req, { page: '2', kind: 'cs' });
   });
 
   it('delegates getById with request and notificationId', async () => {

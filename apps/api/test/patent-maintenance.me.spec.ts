@@ -235,4 +235,39 @@ describe('PatentMaintenanceService me-scope suite', () => {
       }),
     );
   });
+  it('getMySummary returns real aggregate counts across schedules tasks and orders', async () => {
+    prisma.patentMaintenanceSchedule.count.mockResolvedValueOnce(2).mockResolvedValueOnce(5);
+    prisma.patentMaintenanceTask.count.mockResolvedValueOnce(3);
+    prisma.patentMaintenanceOrder.count.mockResolvedValueOnce(4);
+
+    const result = await service.getMySummary(authReq);
+
+    expect(prisma.patentMaintenanceSchedule.count).toHaveBeenNthCalledWith(1, {
+      where: {
+        patent: { ownerUserId: USER_ID },
+        status: { in: ['DUE', 'OVERDUE'] },
+        dueDate: { lt: expect.any(Date) },
+      },
+    });
+    expect(prisma.patentMaintenanceSchedule.count).toHaveBeenNthCalledWith(2, {
+      where: {
+        patent: { ownerUserId: USER_ID },
+        status: { in: ['DUE', 'OVERDUE'] },
+        dueDate: { gte: expect.any(Date), lte: expect.any(Date) },
+      },
+    });
+    expect(prisma.patentMaintenanceTask.count).toHaveBeenCalledWith({
+      where: {
+        schedule: { patent: { ownerUserId: USER_ID } },
+        status: { in: ['OPEN', 'IN_PROGRESS'] },
+      },
+    });
+    expect(prisma.patentMaintenanceOrder.count).toHaveBeenCalledWith({
+      where: {
+        applicantUserId: USER_ID,
+        status: { in: ['REQUESTED', 'QUOTED', 'AWAITING_PAYMENT', 'PAID', 'EXECUTING', 'RECEIPT_UPLOADED', 'RECONCILED'] },
+      },
+    });
+    expect(result).toEqual({ overdue: 2, dueSoon: 5, openTasks: 3, openOrders: 4 });
+  });
 });

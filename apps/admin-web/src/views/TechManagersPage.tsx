@@ -5,7 +5,7 @@ import type { components } from '@ipmoney/api-types';
 
 import { apiGet, apiPatch } from '../lib/api';
 import { formatTimeSmart } from '../lib/format';
-import { normalizeUserFacingText } from '../lib/userFacingText';
+import { formatRegionCodeDisplay, normalizeUserFacingText } from '../lib/userFacingText';
 import { verificationStatusLabel, verificationTypeLabel } from '../lib/labels';
 import { ImageUrlUploadField } from '../ui/ImageUrlUploadField';
 import { RequestErrorAlert } from '../ui/RequestState';
@@ -18,7 +18,8 @@ type TechManagerEditorSummary = TechManagerSummary & {
   featuredRank?: number | null;
   featuredUntil?: string | null;
 };
-type TechManagerEditorUpdateRequest = Omit<TechManagerUpdateRequest, 'featuredUntil'> & {
+type TechManagerEditorUpdateRequest = Omit<TechManagerUpdateRequest, 'intro' | 'featuredUntil'> & {
+  intro?: string | null;
   featuredUntil?: string | null;
 };
 
@@ -35,7 +36,7 @@ function renderMissingTag() {
   return <Tag color="orange">缺失</Tag>;
 }
 
-function displayFieldText(value: unknown, fallback = '待补充'): string {
+function displayFieldText(value: unknown, fallback = '未设置'): string {
   return normalizeUserFacingText(value) || fallback;
 }
 
@@ -299,7 +300,7 @@ export function TechManagersPage() {
           <Input
             value={regionCode}
             style={{ width: 160 }}
-            placeholder="地区编码"
+            placeholder="地区名称或代码"
             allowClear
             inputMode="numeric"
             onChange={(e) => setRegionCode(e.target.value)}
@@ -474,7 +475,7 @@ export function TechManagersPage() {
                 const count = record.stats?.ratingCount ?? 0;
                 if (count <= 0) return <Tag color="orange">暂无评分</Tag>;
                 const score =
-                  typeof record.stats?.ratingScore === 'number' ? record.stats.ratingScore.toFixed(1) : '待补充';
+                  typeof record.stats?.ratingScore === 'number' ? record.stats.ratingScore.toFixed(1) : '待确认';
                 return `${score} (${count})`;
               },
             },
@@ -507,10 +508,10 @@ export function TechManagersPage() {
         {editTarget ? (
           <Space direction="vertical" size={14} style={{ width: '100%' }}>
             <Descriptions size="small" column={1} bordered>
-              <Descriptions.Item label="用户 ID">{editTarget.userId}</Descriptions.Item>
+              <Descriptions.Item label="技术经理人">{displayFieldText(editTarget.displayName)}</Descriptions.Item>
               <Descriptions.Item label="认证类型">{verificationTypeLabel(editTarget.verificationType)}</Descriptions.Item>
               <Descriptions.Item label="认证状态">{verificationStatusLabel(editTarget.verificationStatus)}</Descriptions.Item>
-              <Descriptions.Item label="地区">{displayFieldText(editTarget.regionCode)}</Descriptions.Item>
+              <Descriptions.Item label="地区">{formatRegionCodeDisplay(editTarget.regionCode)}</Descriptions.Item>
             </Descriptions>
 
             <div>
@@ -624,7 +625,7 @@ export function TechManagersPage() {
                 <Input
                   value={featuredUntil}
                   onChange={(e) => setFeaturedUntil(e.target.value)}
-                  placeholder="ISO8601，例如 2026-12-31T00:00:00Z"
+                  placeholder="例如 2026-12-31T00:00:00Z"
                   style={{ marginTop: 8 }}
                 />
               </div>

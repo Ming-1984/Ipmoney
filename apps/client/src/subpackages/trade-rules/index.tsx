@@ -30,14 +30,14 @@ function yuan(v?: number): string {
 function payoutConditionLabel(v?: PayoutCondition): string {
   if (!v) return '—';
   if (v === 'TRANSFER_COMPLETED_CONFIRMED') return '权属变更完成确认后放款';
-  return String(v);
+  return '放款条件待确认';
 }
 
 function payoutMethodLabel(v?: PayoutMethod): string {
   if (!v) return '—';
   if (v === 'WECHAT') return '微信打款';
   if (v === 'MANUAL') return '线下人工';
-  return String(v);
+  return '放款方式待确认';
 }
 
 export default function TradeRulesPage() {

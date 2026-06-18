@@ -275,6 +275,50 @@ describe('PatentMapService suite', () => {
     expect(audit.log).toHaveBeenCalledTimes(1);
   });
 
+  it('batch updates listings supports clearing nullable region and featured fields explicitly', async () => {
+    prisma.listing.findMany.mockResolvedValueOnce([{ id: LISTING_ID_1 }]);
+    prisma.listing.updateMany.mockResolvedValueOnce({ count: 1 });
+
+    const result = await service.batchUpdateListings(
+      {
+        auth: {
+          userId: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+        },
+      },
+      {
+        listingIds: [LISTING_ID_1],
+        patch: {
+          regionCode: null,
+          featuredRegionCode: null,
+          featuredUntil: null,
+          featuredRank: 8,
+          clearRanking: true,
+        },
+        reason: 'clear optional map fields',
+      },
+    );
+
+    expect(prisma.region.findMany).not.toHaveBeenCalled();
+    expect(prisma.listing.updateMany).toHaveBeenCalledWith({
+      where: { id: { in: [LISTING_ID_1] } },
+      data: {
+        regionCode: null,
+        featuredLevel: 'NONE',
+        featuredRegionCode: null,
+        featuredRank: null,
+        featuredUntil: null,
+      },
+    });
+    expect(result.patchApplied).toMatchObject({
+      regionCode: null,
+      featuredLevel: 'NONE',
+      featuredRegionCode: null,
+      featuredRank: null,
+      featuredUntil: null,
+      clearRanking: true,
+    });
+  });
+
   it('rejects batch update when patch is empty', async () => {
     await expect(
       service.batchUpdateListings(

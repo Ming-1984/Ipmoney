@@ -7,6 +7,13 @@ import { parseExcelSerialDate, readWorkbookRowsFromBuffer } from '../../common/w
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { resolveUploadDir } from '../../common/upload-dir';
 import { FilesService } from '../files/files.service';
+import {
+  resolvePublicFileUrl,
+  resolvePublicSellerNickname,
+  resolvePublicSellerOrgCategory,
+  resolvePublicSellerVerificationStatus,
+  resolvePublicSellerVerificationType,
+} from '../content-utils';
 
 type PatentNumberInputType = 'APPLICATION_NO' | 'PATENT_NO' | 'PUBLICATION_NO';
 
@@ -33,8 +40,15 @@ type PatentDto = {
   patentNoDisplay?: string;
   grantPublicationNoDisplay?: string;
   patentType: 'INVENTION' | 'UTILITY_MODEL' | 'DESIGN';
+  patentTermYears?: number;
   title: string;
   abstract?: string;
+  caseStatus?: string;
+  mainIpcCode?: string;
+  claimCount?: number;
+  specPageCount?: number;
+  specWordCount?: number;
+  specFigureCount?: number;
   inventorNames?: string[];
   assigneeNames?: string[];
   applicantNames?: string[];
@@ -48,9 +62,34 @@ type PatentDto = {
   ownerClaimedAt?: string;
   ownerClaimSource?: PatentOwnerClaimSource;
   transferCount?: number;
+  media?: Array<{
+    fileId: string;
+    url?: string;
+    type: 'COVER' | 'SPEC_FIGURE';
+    sort: number;
+  }>;
+  tradeSnapshot?: {
+    listingId?: string;
+    priceType?: PriceType;
+    priceAmountFen?: number;
+    depositAmountFen?: number;
+    supplyType?: 'UNIVERSITY' | 'UNIVERSITY_985' | 'UNIVERSITY_211' | 'RESEARCH_INSTITUTE' | 'OTHER';
+    seller?: {
+      id: string;
+      displayName?: string;
+      nickname?: string;
+      avatarUrl?: string;
+      verificationStatus?: 'PENDING' | 'APPROVED' | 'REJECTED';
+      verificationType?: 'PERSON' | 'COMPANY' | 'ACADEMY' | 'GOVERNMENT' | 'ASSOCIATION' | 'TECH_MANAGER';
+      orgCategory?: 'UNIVERSITY' | 'UNIVERSITY_985' | 'UNIVERSITY_211' | 'RESEARCH_INSTITUTE' | 'OTHER';
+    } | null;
+  };
   createdAt: string;
   updatedAt: string;
 };
+
+type PatentTradeSnapshotDto = NonNullable<PatentDto['tradeSnapshot']>;
+type PatentTradeSellerDto = NonNullable<PatentTradeSnapshotDto['seller']>;
 
 type LegalStatusDto = NonNullable<PatentDto['legalStatus']>;
 type PatentTypeDto = PatentDto['patentType'];
@@ -138,10 +177,12 @@ type PatentClaimRequestDto = {
   id: string;
   patentId: string;
   applicantUserId: string;
+  applicantDisplayName?: string | null;
   status: PatentClaimStatus;
   claimReason?: string | null;
   evidenceFileIds?: string[];
   reviewerUserId?: string | null;
+  reviewerDisplayName?: string | null;
   reviewComment?: string | null;
   submittedAt: string;
   reviewedAt?: string | null;
@@ -245,6 +286,27 @@ function toApplicationDisplay(normDigits: string): string {
   const digitsOnly = String(normDigits || '').replace(/\D/g, '');
   if (digitsOnly.length < 2) return digitsOnly;
   return `${digitsOnly.slice(0, -1)}.${digitsOnly.slice(-1)}`;
+}
+
+function derivePatentBackfillTitle(input: {
+  title?: unknown;
+  applicationNoDisplay?: unknown;
+  publicationNoDisplay?: unknown;
+  patentNoDisplay?: unknown;
+  grantPublicationNoDisplay?: unknown;
+}): string | null {
+  const candidates = [
+    input?.title,
+    input?.applicationNoDisplay,
+    input?.publicationNoDisplay,
+    input?.patentNoDisplay,
+    input?.grantPublicationNoDisplay,
+  ];
+  for (const candidate of candidates) {
+    const normalized = String(candidate ?? '').trim();
+    if (normalized) return normalized;
+  }
+  return null;
 }
 
 @Injectable()
@@ -425,6 +487,26 @@ export class PatentsService {
     return Array.from(new Set(values));
   }
 
+  private assertListingTopicSemantics(input: {
+    tradeMode?: ListingTradeMode;
+    licenseMode?: LicenseMode | null | undefined;
+    listingTopics?: ListingTopic[];
+  }) {
+    const listingTopics = Array.isArray(input.listingTopics) ? input.listingTopics : [];
+    if (input.tradeMode !== 'LICENSE' && listingTopics.includes('OPEN_LICENSE')) {
+      throw new BadRequestException({
+        code: 'BAD_REQUEST',
+        message: 'defaults.listing.listingTopics contains OPEN_LICENSE but tradeMode is not LICENSE',
+      });
+    }
+    if (input.tradeMode === 'LICENSE' && !input.licenseMode) {
+      throw new BadRequestException({
+        code: 'BAD_REQUEST',
+        message: 'defaults.listing.licenseMode is required when tradeMode is LICENSE',
+      });
+    }
+  }
+
   private normalizeAuditStatus(value: unknown): AuditStatus | undefined {
     const raw = String(value || '').trim().toUpperCase();
     if (raw === 'PENDING' || raw === 'APPROVED' || raw === 'REJECTED') return raw as AuditStatus;
@@ -560,6 +642,46 @@ export class PatentsService {
     return patentType;
   }
 
+  private resolveSellerVerificationType(listing: any): PatentTradeSellerDto['verificationType'] | null {
+    const verificationType = resolvePublicSellerVerificationType(listing);
+    if (!verificationType) return null;
+    return verificationType as PatentTradeSellerDto['verificationType'];
+  }
+
+  private resolveSellerVerificationStatus(listing: any): PatentTradeSellerDto['verificationStatus'] | null {
+    const verificationStatus = resolvePublicSellerVerificationStatus(listing);
+    if (!verificationStatus) return null;
+    return verificationStatus as PatentTradeSellerDto['verificationStatus'];
+  }
+
+  private resolveSellerOrgCategory(listing: any): PatentTradeSnapshotDto['supplyType'] | null {
+    return (resolvePublicSellerOrgCategory(listing) as PatentTradeSnapshotDto['supplyType'] | undefined) ?? null;
+  }
+
+  private toPatentTradeSnapshot(record: any): PatentDto['tradeSnapshot'] | undefined {
+    const listing = Array.isArray(record?.listings) ? record.listings[0] : null;
+    if (!listing) return undefined;
+    const orgCategory = this.resolveSellerOrgCategory(listing);
+    return {
+      listingId: listing.id,
+      priceType: listing.priceType ?? undefined,
+      priceAmountFen: typeof listing.priceAmount === 'number' ? listing.priceAmount : undefined,
+      depositAmountFen: typeof listing.depositAmount === 'number' ? listing.depositAmount : undefined,
+      supplyType: orgCategory ?? undefined,
+      seller: listing.seller
+        ? {
+            id: listing.seller.id,
+            displayName: resolvePublicSellerNickname(listing) ?? undefined,
+            nickname: resolvePublicSellerNickname(listing) ?? undefined,
+            avatarUrl: resolvePublicFileUrl({ url: listing.seller.avatarUrl }) ?? undefined,
+            verificationStatus: this.resolveSellerVerificationStatus(listing) ?? undefined,
+            verificationType: this.resolveSellerVerificationType(listing) ?? undefined,
+            orgCategory: orgCategory ?? undefined,
+          }
+        : null,
+    };
+  }
+
   private parseLegalStatusStrict(value: unknown, fieldName: string): LegalStatusDto {
     const legalStatus = this.normalizeLegalStatus(value);
     if (!legalStatus) {
@@ -570,9 +692,7 @@ export class PatentsService {
 
   private parseNullableLegalStatusStrict(value: unknown, fieldName: string): LegalStatusDto | null {
     if (value === null) return null;
-    if (typeof value === 'string' && value.trim() === '') {
-      throw new BadRequestException({ code: 'BAD_REQUEST', message: `${fieldName} is invalid` });
-    }
+    if (typeof value === 'string' && value.trim() === '') return null;
     const legalStatus = this.normalizeLegalStatus(value);
     if (!legalStatus) {
       throw new BadRequestException({ code: 'BAD_REQUEST', message: `${fieldName} is invalid` });
@@ -580,12 +700,10 @@ export class PatentsService {
     return legalStatus;
   }
 
-  private parseNullableNonEmptyStringStrict(value: unknown, fieldName: string): string | null {
+  private parseNullableNonEmptyStringStrict(value: unknown, _fieldName: string): string | null {
     if (value === null) return null;
     const raw = String(value ?? '').trim();
-    if (!raw) {
-      throw new BadRequestException({ code: 'BAD_REQUEST', message: `${fieldName} is invalid` });
-    }
+    if (!raw) return null;
     return raw;
   }
 
@@ -601,6 +719,12 @@ export class PatentsService {
     return new Date(date.toISOString().slice(0, 10));
   }
 
+  private parseNullableDate(value: unknown, fieldName: string): Date | null | undefined {
+    if (value === undefined) return undefined;
+    if (value === null || String(value).trim() === '') return null;
+    return this.parseDate(value, fieldName) ?? null;
+  }
+
   private parseDateTime(value: unknown, fieldName: string): Date | undefined {
     if (value === undefined || value === null) return undefined;
     if (String(value).trim() === '') {
@@ -611,6 +735,12 @@ export class PatentsService {
       throw new BadRequestException({ code: 'BAD_REQUEST', message: `${fieldName} is invalid` });
     }
     return date;
+  }
+
+  private parseNullableDateTime(value: unknown, fieldName: string): Date | null | undefined {
+    if (value === undefined) return undefined;
+    if (value === null || String(value).trim() === '') return null;
+    return this.parseDateTime(value, fieldName) ?? null;
   }
 
   private parseUuidParam(value: string, fieldName: string): string {
@@ -643,8 +773,16 @@ export class PatentsService {
     return dateValue ? dateValue.toISOString() : undefined;
   }
 
+  private getPatentTermYears(patentType?: PatentTypeDto | null): number | undefined {
+    if (patentType === 'INVENTION') return 20;
+    if (patentType === 'UTILITY_MODEL') return 10;
+    if (patentType === 'DESIGN') return 15;
+    return undefined;
+  }
+
   private mapPatentRecord(record: any): PatentDto {
     const parties = (record?.parties ?? []) as PatentParty[];
+    const classifications = Array.isArray(record?.classifications) ? record.classifications : [];
     const inventorNames = parties
       .filter((party: PatentParty) => party.role === PATENT_PARTY_ROLE.INVENTOR)
       .map((party: PatentParty) => party.name);
@@ -670,6 +808,12 @@ export class PatentsService {
       typeof rawTransferCount === 'number' && Number.isSafeInteger(rawTransferCount) && rawTransferCount >= 0
         ? rawTransferCount
         : undefined;
+    const mainIpcCode =
+      classifications
+        .find((classification: any) => String(classification?.system || '').toUpperCase() === 'IPC' && classification?.isMain)
+        ?.code ??
+      classifications.find((classification: any) => String(classification?.system || '').toUpperCase() === 'IPC')?.code ??
+      undefined;
 
     return {
       id: record.id,
@@ -680,8 +824,10 @@ export class PatentsService {
       patentNoDisplay: record.patentNoDisplay ?? undefined,
       grantPublicationNoDisplay: record.grantPublicationNoDisplay ?? undefined,
       patentType: record.patentType,
+      patentTermYears: this.getPatentTermYears(record.patentType),
       title: record.title,
       abstract: record.abstract ?? undefined,
+      mainIpcCode,
       inventorNames: inventorNames.length ? inventorNames : undefined,
       assigneeNames: assigneeNames.length ? assigneeNames : undefined,
       applicantNames: applicantNames.length ? applicantNames : undefined,
@@ -695,6 +841,7 @@ export class PatentsService {
       ownerClaimedAt: this.toDateTime(record.ownerClaimedAt),
       ownerClaimSource: record.ownerClaimSource ?? undefined,
       transferCount: transferCountValue,
+      tradeSnapshot: this.toPatentTradeSnapshot(record),
       createdAt: record.createdAt.toISOString(),
       updatedAt: record.updatedAt.toISOString(),
     };
@@ -802,7 +949,7 @@ export class PatentsService {
     const [items, total] = await Promise.all([
       this.prisma.patent.findMany({
         where,
-        include: { parties: true },
+        include: { parties: true, classifications: true },
         orderBy: { updatedAt: 'desc' },
         skip: (page - 1) * pageSize,
         take: pageSize,
@@ -944,26 +1091,31 @@ export class PatentsService {
       patch.abstract = abstract || null;
     }
     if (this.hasOwn(body, 'filingDate')) {
-      patch.filingDate = this.parseDate(body?.filingDate, 'filingDate') ?? null;
+      patch.filingDate = this.parseNullableDate(body?.filingDate, 'filingDate');
     }
     if (this.hasOwn(body, 'publicationDate')) {
-      patch.publicationDate = this.parseDate(body?.publicationDate, 'publicationDate') ?? null;
+      patch.publicationDate = this.parseNullableDate(body?.publicationDate, 'publicationDate');
     }
     if (this.hasOwn(body, 'grantDate')) {
-      patch.grantDate = this.parseDate(body?.grantDate, 'grantDate') ?? null;
+      patch.grantDate = this.parseNullableDate(body?.grantDate, 'grantDate');
     }
     if (this.hasOwn(body, 'legalStatus')) {
       patch.legalStatus = this.parseNullableLegalStatusStrict(body?.legalStatus, 'legalStatus');
     }
     if (this.hasOwn(body, 'sourcePrimary')) {
-      const sourcePrimary = this.normalizeSourcePrimary(body?.sourcePrimary);
-      if (!sourcePrimary) {
-        throw new BadRequestException({ code: 'BAD_REQUEST', message: 'sourcePrimary is invalid' });
+      const rawSourcePrimary = String(body?.sourcePrimary ?? '').trim();
+      if (!rawSourcePrimary) {
+        patch.sourcePrimary = null;
+      } else {
+        const sourcePrimary = this.normalizeSourcePrimary(rawSourcePrimary);
+        if (!sourcePrimary) {
+          throw new BadRequestException({ code: 'BAD_REQUEST', message: 'sourcePrimary is invalid' });
+        }
+        patch.sourcePrimary = sourcePrimary;
       }
-      patch.sourcePrimary = sourcePrimary;
     }
     if (this.hasOwn(body, 'sourceUpdatedAt')) {
-      patch.sourceUpdatedAt = this.parseDateTime(body?.sourceUpdatedAt, 'sourceUpdatedAt') ?? null;
+      patch.sourceUpdatedAt = this.parseNullableDateTime(body?.sourceUpdatedAt, 'sourceUpdatedAt');
     }
 
     if (Object.keys(patch).length > 0) {
@@ -986,7 +1138,28 @@ export class PatentsService {
     const normalizedPatentId = this.parseUuidParam(patentId, 'patentId');
     const patentRecord = await this.prisma.patent.findUnique({
       where: { id: normalizedPatentId },
-      include: { parties: true },
+      include: {
+        classifications: true,
+        parties: true,
+        listings: {
+          where: {
+            auditStatus: 'APPROVED',
+            status: { in: ['ACTIVE', 'SOLD'] },
+          },
+          orderBy: [{ featuredLevel: 'desc' }, { featuredRank: 'asc' }, { createdAt: 'desc' }],
+          take: 1,
+          include: {
+            seller: {
+              include: {
+                verifications: {
+                  orderBy: [{ submittedAt: 'desc' as const }],
+                  take: 1,
+                },
+              },
+            },
+          },
+        },
+      },
     });
     if (!patentRecord) throw new NotFoundException({ code: 'NOT_FOUND', message: 'patent not found' });
     return this.mapPatentRecord(patentRecord);
@@ -1231,6 +1404,11 @@ export class PatentsService {
     if (listing.tradeMode !== 'LICENSE') {
       listing.licenseMode = undefined;
     }
+    this.assertListingTopicSemantics({
+      tradeMode: listing.tradeMode,
+      licenseMode: listing.licenseMode,
+      listingTopics: listing.listingTopics,
+    });
     if (listing.priceType === 'FIXED' && (listing.priceAmountFen === undefined || listing.priceAmountFen === null)) {
       throw new BadRequestException({ code: 'BAD_REQUEST', message: 'defaults.listing.priceAmountFen is required' });
     }
@@ -1289,14 +1467,20 @@ export class PatentsService {
 
   private toClaimDto(it: any): PatentClaimRequestDto {
     const toIso = (d?: Date | null) => (d ? d.toISOString() : null);
+    const applicantDisplayName =
+      String(it?.applicant?.verifications?.[0]?.displayName || '').trim() || String(it?.applicant?.nickname || '').trim() || null;
+    const reviewerDisplayName =
+      String(it?.reviewer?.verifications?.[0]?.displayName || '').trim() || String(it?.reviewer?.nickname || '').trim() || null;
     return {
       id: it.id,
       patentId: it.patentId,
       applicantUserId: it.applicantUserId,
+      applicantDisplayName,
       status: it.status,
       claimReason: it.claimReason ?? null,
       evidenceFileIds: this.normalizeStringArray(it.evidenceFileIdsJson),
       reviewerUserId: it.reviewerUserId ?? null,
+      reviewerDisplayName,
       reviewComment: it.reviewComment ?? null,
       submittedAt: toIso(it.submittedAt) || new Date().toISOString(),
       reviewedAt: toIso(it.reviewedAt),
@@ -1549,7 +1733,14 @@ export class PatentsService {
       sellerUserId,
       source: 'ADMIN' as const,
       patentId: params.patent.id,
-      title: String(params.patent?.title || '').trim() || String(params.patent?.applicationNoDisplay || '').trim() || 'Patent',
+      title:
+        derivePatentBackfillTitle({
+          title: params.patent?.title,
+          applicationNoDisplay: params.patent?.applicationNoDisplay,
+          publicationNoDisplay: params.patent?.publicationNoDisplay,
+          patentNoDisplay: params.patent?.patentNoDisplay,
+          grantPublicationNoDisplay: params.patent?.grantPublicationNoDisplay,
+        }) || String(params.patent?.applicationNoNorm || '').trim(),
       summary: String(params.patent?.abstract || '').trim() || null,
       tradeMode,
       licenseMode,
@@ -1982,6 +2173,28 @@ export class PatentsService {
         claimReason: claimReason || null,
         evidenceFileIdsJson: evidenceFileIds as any,
       },
+      include: {
+        applicant: {
+          select: {
+            nickname: true,
+            verifications: {
+              orderBy: { submittedAt: 'desc' },
+              take: 1,
+              select: { displayName: true },
+            },
+          },
+        },
+        reviewer: {
+          select: {
+            nickname: true,
+            verifications: {
+              orderBy: { submittedAt: 'desc' },
+              take: 1,
+              select: { displayName: true },
+            },
+          },
+        },
+      },
     });
     return this.toClaimDto(created);
   }
@@ -1993,17 +2206,41 @@ export class PatentsService {
     const pageSizeInput = this.hasOwn(query, 'pageSize') ? this.parsePositiveIntStrict(query?.pageSize, 'pageSize') : 20;
     const pageSize = Math.min(100, pageSizeInput);
     const status = this.hasOwn(query, 'status') ? this.normalizePatentClaimStatus(query?.status) : undefined;
+    const patentId = this.hasOwn(query, 'patentId') ? this.parseUuidStrict(query?.patentId, 'patentId') : undefined;
     if (this.hasOwn(query, 'status') && !status) {
       throw new BadRequestException({ code: 'BAD_REQUEST', message: 'status is invalid' });
     }
     const where: any = { applicantUserId };
     if (status) where.status = status;
+    if (patentId) where.patentId = patentId;
     const [items, total] = await Promise.all([
       this.prisma.patentClaimRequest.findMany({
         where,
         orderBy: { submittedAt: 'desc' },
         skip: (page - 1) * pageSize,
         take: pageSize,
+        include: {
+          applicant: {
+            select: {
+              nickname: true,
+              verifications: {
+                orderBy: { submittedAt: 'desc' },
+                take: 1,
+                select: { displayName: true },
+              },
+            },
+          },
+          reviewer: {
+            select: {
+              nickname: true,
+              verifications: {
+                orderBy: { submittedAt: 'desc' },
+                take: 1,
+                select: { displayName: true },
+              },
+            },
+          },
+        },
       }),
       this.prisma.patentClaimRequest.count({ where }),
     ]);
@@ -2038,6 +2275,28 @@ export class PatentsService {
         orderBy: { submittedAt: 'desc' },
         skip: (page - 1) * pageSize,
         take: pageSize,
+        include: {
+          applicant: {
+            select: {
+              nickname: true,
+              verifications: {
+                orderBy: { submittedAt: 'desc' },
+                take: 1,
+                select: { displayName: true },
+              },
+            },
+          },
+          reviewer: {
+            select: {
+              nickname: true,
+              verifications: {
+                orderBy: { submittedAt: 'desc' },
+                take: 1,
+                select: { displayName: true },
+              },
+            },
+          },
+        },
       }),
       this.prisma.patentClaimRequest.count({ where }),
     ]);
@@ -2067,29 +2326,32 @@ export class PatentsService {
     }
     const reviewComment = this.hasOwn(body, 'reviewComment') ? String(body?.reviewComment || '').trim() : '';
     const now = new Date();
-    await this.prisma.$transaction([
-      this.prisma.patentClaimRequest.update({
-        where: { id: claim.id },
+    await this.prisma.$transaction(async (tx: any) => {
+      const approved = await tx.patentClaimRequest.updateMany({
+        where: { id: claim.id, status: 'PENDING' },
         data: {
           status: 'APPROVED',
           reviewerUserId,
           reviewComment: reviewComment || null,
           reviewedAt: now,
         },
-      }),
-      this.prisma.patent.update({
+      });
+      if (!approved?.count) {
+        throw new ConflictException({ code: 'CONFLICT', message: 'claim already processed' });
+      }
+      await tx.patent.update({
         where: { id: claim.patentId },
         data: {
           ownerUserId: claim.applicantUserId,
           ownerClaimedAt: now,
           ownerClaimSource: 'USER_CLAIM',
         },
-      }),
-      this.prisma.listing.updateMany({
+      });
+      await tx.listing.updateMany({
         where: { patentId: claim.patentId, consultationRouting: 'OWNER' },
         data: { sellerUserId: claim.applicantUserId },
-      }),
-      this.prisma.patentClaimRequest.updateMany({
+      });
+      await tx.patentClaimRequest.updateMany({
         where: { patentId: claim.patentId, status: 'PENDING', id: { not: claim.id } },
         data: {
           status: 'REJECTED',
@@ -2097,9 +2359,33 @@ export class PatentsService {
           reviewComment: 'rejected because another claim has been approved',
           reviewedAt: now,
         },
-      }),
-    ]);
-    const updated = await this.prisma.patentClaimRequest.findUnique({ where: { id: claim.id } });
+      });
+    });
+    const updated = await this.prisma.patentClaimRequest.findUnique({
+      where: { id: claim.id },
+      include: {
+        applicant: {
+          select: {
+            nickname: true,
+            verifications: {
+              orderBy: { submittedAt: 'desc' },
+              take: 1,
+              select: { displayName: true },
+            },
+          },
+        },
+        reviewer: {
+          select: {
+            nickname: true,
+            verifications: {
+              orderBy: { submittedAt: 'desc' },
+              take: 1,
+              select: { displayName: true },
+            },
+          },
+        },
+      },
+    });
     if (!updated) throw new NotFoundException({ code: 'NOT_FOUND', message: 'claim not found' });
     return this.toClaimDto(updated);
   }
@@ -2114,15 +2400,45 @@ export class PatentsService {
       throw new ConflictException({ code: 'CONFLICT', message: 'claim already processed' });
     }
     const reviewComment = this.parseNonEmptyStringStrict(body?.reviewComment, 'reviewComment');
-    const updated = await this.prisma.patentClaimRequest.update({
-      where: { id: claim.id },
+    const reviewedAt = new Date();
+    const rejected = await this.prisma.patentClaimRequest.updateMany({
+      where: { id: claim.id, status: 'PENDING' },
       data: {
         status: 'REJECTED',
         reviewerUserId,
         reviewComment,
-        reviewedAt: new Date(),
+        reviewedAt,
       },
     });
+    if (!rejected?.count) {
+      throw new ConflictException({ code: 'CONFLICT', message: 'claim already processed' });
+    }
+    const updated = await this.prisma.patentClaimRequest.findUnique({
+      where: { id: claim.id },
+      include: {
+        applicant: {
+          select: {
+            nickname: true,
+            verifications: {
+              orderBy: { submittedAt: 'desc' },
+              take: 1,
+              select: { displayName: true },
+            },
+          },
+        },
+        reviewer: {
+          select: {
+            nickname: true,
+            verifications: {
+              orderBy: { submittedAt: 'desc' },
+              take: 1,
+              select: { displayName: true },
+            },
+          },
+        },
+      },
+    });
+    if (!updated) throw new NotFoundException({ code: 'NOT_FOUND', message: 'claim not found' });
     return this.toClaimDto(updated);
   }
 }

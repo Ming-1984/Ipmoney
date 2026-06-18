@@ -77,6 +77,10 @@ const ratingPolicyOptions: Array<{ value: RatingPolicy; label: string }> = [
   { value: 'FORCE_SET', label: '全量覆盖评分' },
 ];
 
+function importHistoryActionLabel(value: string): string {
+  return value.includes('EXECUTE') ? '执行导入' : '预检';
+}
+
 function SectionStatCard(props: { title: string; section: PreviewSection | ExecuteSection }) {
   const { title, section } = props;
   const extra = section as ExecuteSection;
@@ -239,7 +243,7 @@ export function BulkImportPage() {
           type="info"
           showIcon
           message="导入规范"
-          description="请上传标准 Excel 文件。技术经理人表头建议：姓名/职位/任职单位/服务方向/工作亮点/照片；成果表头建议：成果ID/成果名称/分类/状态/地区/研究机构/成果描述/图片路径。"
+          description="请上传标准 Excel 文件。技术经理人表头建议：姓名/职位/任职单位/服务方向/工作亮点/照片；成果表头建议：成果编号/成果名称/分类/状态/地区/研究机构/成果描述/图片路径。"
         />
 
         <Card size="small" title="1. 上传导入文件">
@@ -252,7 +256,7 @@ export function BulkImportPage() {
               <Button>上传技术经理人 Excel</Button>
             </Upload>
             <Typography.Text type={peopleFile ? 'success' : 'secondary'}>
-              {peopleFile ? `已上传：${peopleFile.id}` : '未上传'}
+              {peopleFile ? '已上传人员文件' : '未上传'}
             </Typography.Text>
           </Space>
           <div style={{ height: 8 }} />
@@ -265,7 +269,7 @@ export function BulkImportPage() {
               <Button>上传成果 Excel</Button>
             </Upload>
             <Typography.Text type={achievementsFile ? 'success' : 'secondary'}>
-              {achievementsFile ? `已上传：${achievementsFile.id}` : '未上传'}
+              {achievementsFile ? '已上传成果文件' : '未上传'}
             </Typography.Text>
           </Space>
         </Card>
@@ -275,13 +279,13 @@ export function BulkImportPage() {
             <Input
               value={sourceBatch}
               onChange={(e) => setSourceBatch(e.target.value)}
-              placeholder="sourceBatch"
+              placeholder="导入批次标识"
               style={{ width: 220 }}
             />
             <Input
               value={defaultRegionCode}
               onChange={(e) => setDefaultRegionCode(e.target.value)}
-              placeholder="默认地区编码（6位）"
+              placeholder="默认地区名称或代码"
               style={{ width: 180 }}
             />
             <Select<RatingPolicy>
@@ -405,13 +409,13 @@ export function BulkImportPage() {
                 title: '类型',
                 dataIndex: 'action',
                 width: 110,
-                render: (v: string) => <Tag color={v.includes('EXECUTE') ? 'blue' : 'default'}>{v.includes('EXECUTE') ? '执行' : '预检'}</Tag>,
+                render: (v: string) => <Tag color={v.includes('EXECUTE') ? 'blue' : 'default'}>{importHistoryActionLabel(v)}</Tag>,
               },
               {
                 title: '操作者',
                 dataIndex: 'actorName',
                 width: 160,
-                render: (_: string, r) => r.actorName || r.actorPhone || r.actorUserId,
+                render: (_: string, r) => displayAdminInfo(r.actorName || r.actorPhone, '平台成员'),
               },
               {
                 title: '批次',

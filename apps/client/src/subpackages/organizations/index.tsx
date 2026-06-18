@@ -199,7 +199,7 @@ export default function OrganizationsPage() {
               const logo = item.logoUrl && !item.logoUrl.includes('example.com') ? item.logoUrl : '';
               const location = item.regionCode ? regionDisplayName(item.regionCode) : '';
               const orgType = asOrganizationVerificationType(item.verificationType);
-              const titleText = displayTitleOrFallback(item.displayName, '机构名称待补充');
+              const titleText = displayTitleOrFallback(item.displayName, '平台认证机构');
               const introText = normalizeDisplayText(item.intro);
               return (
                 <View

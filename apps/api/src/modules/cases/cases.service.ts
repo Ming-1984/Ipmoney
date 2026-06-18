@@ -5,13 +5,14 @@ import { requirePermission } from '../../common/permissions';
 import { PrismaService } from '../../common/prisma/prisma.service';
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const STAFF_ROLE_NAMES = new Set(['admin', 'operator', 'finance', 'cs']);
 
 type CaseSlaStatus = 'ON_TIME' | 'OVERDUE';
 
 type CaseNote = {
   id: string;
   authorId: string;
-  authorName: string;
+  authorName: string | null;
   content: string;
   createdAt: string;
 };
@@ -178,7 +179,11 @@ export class CasesService {
       orderId: item.orderId ?? null,
       requesterName: item.requesterName ?? undefined,
       assigneeId: item.csUserId ?? undefined,
-      assigneeName: item.csUser?.nickname || item.csUser?.phone || undefined,
+      assigneeName:
+        String(item.csUser?.verifications?.[0]?.displayName || '').trim() ||
+        item.csUser?.nickname ||
+        item.csUser?.phone ||
+        undefined,
       priority: item.priority ?? undefined,
       description: item.description ?? undefined,
       createdAt: item.createdAt.toISOString(),
@@ -195,7 +200,7 @@ export class CasesService {
     return await this.prisma.csCase.findUnique({
       where: { id: normalizedCaseId },
       include: {
-        csUser: true,
+        csUser: { include: { verifications: { orderBy: [{ submittedAt: 'desc' as const }], take: 1 } } },
         notes: { orderBy: { createdAt: 'desc' } },
         evidences: { orderBy: { createdAt: 'desc' }, include: { file: true } },
       },
@@ -206,6 +211,24 @@ export class CasesService {
     const normalizedCaseId = this.parseUuidStrict(caseId, 'caseId');
     const found = await this.prisma.csCase.findUnique({ where: { id: normalizedCaseId }, select: { id: true } });
     if (!found) throw new NotFoundException({ code: 'NOT_FOUND', message: '工单不存在' });
+  }
+
+  private async assertStaffAssignee(assigneeId: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: assigneeId },
+      select: {
+        id: true,
+        role: true,
+        rbacRoles: {
+          select: { roleId: true },
+        },
+      },
+    });
+    if (!user) throw new BadRequestException({ code: 'BAD_REQUEST', message: 'assigneeId 不存在' });
+    const isStaff =
+      STAFF_ROLE_NAMES.has(String(user.role || '').trim().toLowerCase()) ||
+      (Array.isArray(user.rbacRoles) && user.rbacRoles.length > 0);
+    if (!isStaff) throw new BadRequestException({ code: 'BAD_REQUEST', message: 'assigneeId 不合法' });
   }
 
   async list(req: any, query: any) {
@@ -238,7 +261,7 @@ export class CasesService {
       this.prisma.csCase.findMany({
         where,
         include: {
-          csUser: true,
+          csUser: { include: { verifications: { orderBy: [{ submittedAt: 'desc' as const }], take: 1 } } },
           notes: { orderBy: { createdAt: 'desc' } },
           evidences: { orderBy: { createdAt: 'desc' }, include: { file: true } },
         },
@@ -280,7 +303,7 @@ export class CasesService {
     const parsedRequesterName = hasRequesterName
       ? this.parseNullableNonEmptyStringStrict(body?.requesterName, 'requesterName')
       : undefined;
-    const requesterName = hasRequesterName ? (parsedRequesterName ?? '系统') : '系统';
+    const requesterName = hasRequesterName ? parsedRequesterName : undefined;
     const description = body?.description ? String(body.description).trim() : undefined;
     const hasOrderId = this.hasOwn(body, 'orderId');
     const orderId = hasOrderId ? this.parseNullableUuidStrict(body?.orderId, 'orderId') : undefined;
@@ -298,8 +321,7 @@ export class CasesService {
 
     let csUserId: string | undefined = undefined;
     if (assigneeId) {
-      const user = await this.prisma.user.findUnique({ where: { id: assigneeId }, select: { id: true } });
-      if (!user) throw new BadRequestException({ code: 'BAD_REQUEST', message: 'assigneeId 不存在' });
+      await this.assertStaffAssignee(assigneeId);
       csUserId = assigneeId;
     }
 
@@ -310,16 +332,16 @@ export class CasesService {
         title,
         type,
         status,
-        requesterName,
+        requesterName: requesterName ?? null,
         priority,
         description,
         dueAt: normalizedDueAt,
       },
-      include: {
-        csUser: true,
-        notes: { orderBy: { createdAt: 'desc' } },
-        evidences: { orderBy: { createdAt: 'desc' }, include: { file: true } },
-      },
+        include: {
+          csUser: { include: { verifications: { orderBy: [{ submittedAt: 'desc' as const }], take: 1 } } },
+          notes: { orderBy: { createdAt: 'desc' } },
+          evidences: { orderBy: { createdAt: 'desc' }, include: { file: true } },
+        },
     });
 
     return this.toCaseRecord(created);
@@ -332,17 +354,16 @@ export class CasesService {
 
     await this.ensureCaseExists(caseId);
 
-    const user = await this.prisma.user.findUnique({ where: { id: assigneeId }, select: { id: true } });
-    if (!user) throw new BadRequestException({ code: 'BAD_REQUEST', message: 'assigneeId 不存在' });
+    await this.assertStaffAssignee(assigneeId);
 
     const updated = await this.prisma.csCase.update({
       where: { id: caseId },
       data: { csUserId: assigneeId },
-      include: {
-        csUser: true,
-        notes: { orderBy: { createdAt: 'desc' } },
-        evidences: { orderBy: { createdAt: 'desc' }, include: { file: true } },
-      },
+        include: {
+          csUser: { include: { verifications: { orderBy: [{ submittedAt: 'desc' as const }], take: 1 } } },
+          notes: { orderBy: { createdAt: 'desc' } },
+          evidences: { orderBy: { createdAt: 'desc' }, include: { file: true } },
+        },
     });
     return this.toCaseRecord(updated);
   }
@@ -358,11 +379,11 @@ export class CasesService {
     const updated = await this.prisma.csCase.update({
       where: { id: caseId },
       data: { status },
-      include: {
-        csUser: true,
-        notes: { orderBy: { createdAt: 'desc' } },
-        evidences: { orderBy: { createdAt: 'desc' }, include: { file: true } },
-      },
+        include: {
+          csUser: { include: { verifications: { orderBy: [{ submittedAt: 'desc' as const }], take: 1 } } },
+          notes: { orderBy: { createdAt: 'desc' } },
+          evidences: { orderBy: { createdAt: 'desc' }, include: { file: true } },
+        },
     });
     return this.toCaseRecord(updated);
   }
@@ -381,7 +402,10 @@ export class CasesService {
       data: {
         caseId,
         authorId: req?.auth?.userId || 'admin',
-        authorName: req?.auth?.nickname || '管理员',
+        authorName:
+          String(req?.auth?.displayName || '').trim() ||
+          String(req?.auth?.nickname || '').trim() ||
+          null,
         content,
       },
     });
@@ -433,11 +457,11 @@ export class CasesService {
     const updated = await this.prisma.csCase.update({
       where: { id: caseId },
       data: { dueAt },
-      include: {
-        csUser: true,
-        notes: { orderBy: { createdAt: 'desc' } },
-        evidences: { orderBy: { createdAt: 'desc' }, include: { file: true } },
-      },
+        include: {
+          csUser: { include: { verifications: { orderBy: [{ submittedAt: 'desc' as const }], take: 1 } } },
+          notes: { orderBy: { createdAt: 'desc' } },
+          evidences: { orderBy: { createdAt: 'desc' }, include: { file: true } },
+        },
     });
 
     return this.toCaseRecord(updated);

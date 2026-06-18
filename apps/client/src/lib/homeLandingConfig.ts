@@ -91,7 +91,7 @@ export function defaultHomeLandingConfig(): HomeLandingConfig {
         {
           id: 'sleeping',
           title: '\u6c89\u7761\u4e13\u5229',
-          subtitle: '\u8f6c\u8ba9\u6b21\u6570\u4e3a\u0030\u7684\u4e13\u5229',
+          subtitle: '\u5e73\u53f0\u6807\u8bb0\u7684\u6c89\u7761\u4e13\u5229',
           imageUrl: 'builtin://zone-sleeping',
           enabled: true,
           order: 20,
@@ -121,7 +121,7 @@ export function defaultHomeLandingConfig(): HomeLandingConfig {
         {
           id: 'open-license',
           title: '\u5f00\u653e\u8bb8\u53ef',
-          subtitle: '\u4ea4\u6613\u65b9\u5f0f\u4e3a\u8bb8\u53ef',
+          subtitle: '\u5e73\u53f0\u6807\u8bb0\u7684\u5f00\u653e\u8bb8\u53ef',
           imageUrl: 'builtin://zone-open-license',
           enabled: true,
           order: 50,

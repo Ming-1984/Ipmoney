@@ -29,6 +29,7 @@ describe('OrdersService list filter strictness suite', () => {
 
   it('requires auth for listOrders/listInvoices', async () => {
     await expect(service.listOrders({}, {})).rejects.toBeInstanceOf(ForbiddenException);
+    await expect(service.listAdminOrders({}, {})).rejects.toBeInstanceOf(ForbiddenException);
     await expect(service.listInvoices({}, {})).rejects.toBeInstanceOf(ForbiddenException);
   });
 
@@ -100,6 +101,35 @@ describe('OrdersService list filter strictness suite', () => {
         where: { buyerUserId: 'buyer-default' },
       }),
     );
+  });
+
+  it('rejects invalid admin list filters strictly', async () => {
+    const req = { auth: { userId: 'admin-1', isAdmin: true } };
+    await expect(service.listAdminOrders(req, { page: '0' })).rejects.toBeInstanceOf(BadRequestException);
+    await expect(service.listAdminOrders(req, { pageSize: '1.5' })).rejects.toBeInstanceOf(BadRequestException);
+    await expect(service.listAdminOrders(req, { status: 'bad' })).rejects.toBeInstanceOf(BadRequestException);
+    await expect(service.listAdminOrders(req, { statusGroup: 'bad' })).rejects.toBeInstanceOf(BadRequestException);
+  });
+
+  it('caps admin list pageSize and applies statusGroup without buyer or seller narrowing', async () => {
+    const req = { auth: { userId: 'admin-1', isAdmin: true } };
+    prisma.order.findMany.mockResolvedValueOnce([]);
+    prisma.order.count.mockResolvedValueOnce(0);
+
+    const result = await service.listAdminOrders(req, {
+      page: '2',
+      pageSize: '120',
+      statusGroup: 'in_progress',
+    });
+
+    expect(prisma.order.findMany).toHaveBeenCalledWith({
+      where: { status: { in: ['DEPOSIT_PAID', 'FINAL_PAID_ESCROW', 'READY_TO_SETTLE'] } },
+      include: { listing: true },
+      orderBy: { createdAt: 'desc' },
+      skip: 50,
+      take: 50,
+    });
+    expect(result.page).toEqual({ page: 2, pageSize: 50, total: 0 });
   });
 
   it('rejects invalid listInvoices filters strictly', async () => {
@@ -230,7 +260,7 @@ describe('OrdersService list filter strictness suite', () => {
       expect.objectContaining({
         where: {
           buyerUserId: 'u-1',
-          invoiceNo: null,
+          invoiceIssuedAt: null,
         },
       }),
     );
@@ -240,6 +270,74 @@ describe('OrdersService list filter strictness suite', () => {
       invoiceNo: null,
       requestedAt: null,
       amountFen: 300,
+    });
+  });
+
+  it('WAIT_APPLY filter also keeps applying invoices in the same tab group', async () => {
+    const req = { auth: { userId: 'u-1' } };
+    prisma.order.findMany.mockResolvedValueOnce([
+      {
+        id: '38888888-8888-4888-8888-888888888888',
+        listingId: '37777777-7777-4777-8777-777777777777',
+        buyerUserId: 'u-1',
+        status: 'COMPLETED',
+        depositAmount: 2000,
+        dealAmount: 10000,
+        finalAmount: 8000,
+        commissionAmount: 300,
+        createdAt: new Date('2026-03-13T00:00:00.000Z'),
+        updatedAt: new Date('2026-03-13T01:00:00.000Z'),
+        invoiceNo: 'REQ-2',
+        invoiceIssuedAt: null,
+        invoiceFileId: null,
+        listing: { title: 'Patent D', sellerUserId: 'seller-2', patent: { applicationNoDisplay: 'CN999' } },
+        invoiceFile: null,
+      },
+    ]);
+    prisma.order.count.mockResolvedValueOnce(1);
+
+    const result = await service.listInvoices(req, { status: 'wait_apply' });
+
+    expect(prisma.order.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: {
+          buyerUserId: 'u-1',
+          invoiceIssuedAt: null,
+        },
+      }),
+    );
+    expect(result.items[0]).toMatchObject({
+      id: '38888888-8888-4888-8888-888888888888',
+      invoiceStatus: 'APPLYING',
+      invoiceNo: 'REQ-2',
+    });
+  });
+
+  it('supports filtering invoices by orderId for order detail deep links', async () => {
+    const req = { auth: { userId: 'u-1' } };
+    prisma.order.findMany.mockResolvedValueOnce([]);
+    prisma.order.count.mockResolvedValueOnce(0);
+
+    await service.listInvoices(req, {
+      status: 'issued',
+      orderId: '48888888-8888-4888-8888-888888888888',
+    });
+
+    expect(prisma.order.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: {
+          buyerUserId: 'u-1',
+          id: '48888888-8888-4888-8888-888888888888',
+          invoiceIssuedAt: { not: null },
+        },
+      }),
+    );
+    expect(prisma.order.count).toHaveBeenCalledWith({
+      where: {
+        buyerUserId: 'u-1',
+        id: '48888888-8888-4888-8888-888888888888',
+        invoiceIssuedAt: { not: null },
+      },
     });
   });
 });

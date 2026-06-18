@@ -1,11 +1,12 @@
 ﻿import { View, Text } from '@tarojs/components';
 import Taro from '@tarojs/taro';
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import './index.scss';
 
 import { apiGet, apiPost } from '../../../lib/api';
 import { getDetailCache, setDetailCache } from '../../../lib/detailCache';
+import { normalizeDisplayText } from '../../../lib/displayText';
 import { ensureApproved } from '../../../lib/guard';
 import { fenToYuan } from '../../../lib/money';
 import { safeNavigateBack } from '../../../lib/navigation';
@@ -61,7 +62,7 @@ function toPayTarget(raw: unknown): PayTarget | null {
       : undefined;
   return {
     id,
-    title: String(value.title || '').trim() || '未命名内容',
+    title: normalizeDisplayText(value.title) || '交易标的待确认',
     depositAmountFen,
     priceType,
     priceAmountFen,
@@ -82,24 +83,28 @@ export default function DepositPayPage() {
   const listingId = useRouteUuidParam('listingId') || '';
   const env = useMemo(() => Taro.getEnv(), []);
   const isH5 = env === Taro.ENV_TYPE.WEB;
-  const targetCacheKey = checkoutTargetCacheKey(listingId);
   const initialCachedTarget = readCachedPayTarget(listingId);
-
-  if (!listingId) {
-    return (
-      <View className="container">
-        <MissingParamCard onAction={() => void safeNavigateBack()} />
-      </View>
-    );
-  }
 
   const [loading, setLoading] = useState(!initialCachedTarget);
   const [error, setError] = useState<string | null>(null);
   const [target, setTarget] = useState<PayTarget | null>(initialCachedTarget);
   const [paying, setPaying] = useState(false);
   const [PayGuide, setPayGuide] = useState<MiniProgramPayGuideComponent | null>(null);
+  const listingIdRef = useRef(listingId);
+  const loadSeqRef = useRef(0);
+  const paySeqRef = useRef(0);
 
   useEffect(() => {
+    listingIdRef.current = listingId;
+    loadSeqRef.current += 1;
+    paySeqRef.current += 1;
+    if (!listingId) {
+      setTarget(null);
+      setLoading(false);
+      setError(null);
+      setPaying(false);
+      return;
+    }
     const cached = readCachedPayTarget(listingId);
     setTarget(cached);
     setLoading(!cached);
@@ -107,7 +112,12 @@ export default function DepositPayPage() {
   }, [listingId]);
 
   const load = useCallback(async () => {
-    const cached = readCachedPayTarget(listingId);
+    const currentListingId = listingId;
+    listingIdRef.current = currentListingId;
+    if (!currentListingId) return;
+    const seq = ++loadSeqRef.current;
+    const currentTargetCacheKey = checkoutTargetCacheKey(currentListingId);
+    const cached = readCachedPayTarget(currentListingId);
     if (cached) {
       setTarget(cached);
       setLoading(false);
@@ -117,16 +127,20 @@ export default function DepositPayPage() {
       setError(null);
     }
     try {
-      const d = await apiGet<PayTarget>(`/public/listings/${listingId}`);
+      const d = await apiGet<PayTarget>(`/public/listings/${currentListingId}`);
+      if (seq !== loadSeqRef.current || listingIdRef.current !== currentListingId) return;
       setTarget(d);
-      if (targetCacheKey) setDetailCache(CHECKOUT_TARGET_CACHE_SCOPE, targetCacheKey, d);
+      if (currentTargetCacheKey) setDetailCache(CHECKOUT_TARGET_CACHE_SCOPE, currentTargetCacheKey, d);
     } catch (e: any) {
+      if (seq !== loadSeqRef.current || listingIdRef.current !== currentListingId) return;
       setError(e?.message || '加载失败');
       if (!cached) setTarget(null);
     } finally {
-      setLoading(false);
+      if (seq === loadSeqRef.current && listingIdRef.current === currentListingId) {
+        setLoading(false);
+      }
     }
-  }, [listingId, targetCacheKey]);
+  }, [listingId]);
 
   useEffect(() => {
     void load();
@@ -156,14 +170,16 @@ export default function DepositPayPage() {
 
   const onPay = useCallback(async () => {
     if (!ensureApproved()) return;
-    if (!listingId) return;
+    const targetListingId = listingId;
+    if (!targetListingId) return;
     if (isH5) {
       toast('H5 端不发起支付，请到小程序完成支付');
       return;
     }
+    const seq = ++paySeqRef.current;
     setPaying(true);
     try {
-      const order = await apiPost<Order>('/orders', { listingId });
+      const order = await apiPost<Order>('/orders', { listingId: targetListingId });
       const intent = await apiPost<PaymentIntentResponse>(
         `/orders/${order.id}/payment-intents`,
         { payType: 'DEPOSIT' },
@@ -196,11 +212,22 @@ export default function DepositPayPage() {
         url: `/subpackages/checkout/deposit-success/index?orderId=${order.id}&paymentId=${intent.paymentId}`,
       });
     } catch (e: any) {
+      if (seq !== paySeqRef.current || listingIdRef.current !== targetListingId) return;
       toast(e?.message || '支付失败');
     } finally {
-      setPaying(false);
+      if (seq === paySeqRef.current && listingIdRef.current === targetListingId) {
+        setPaying(false);
+      }
     }
   }, [isH5, listingId]);
+
+  if (!listingId) {
+    return (
+      <View className="container">
+        <MissingParamCard onAction={() => void safeNavigateBack()} />
+      </View>
+    );
+  }
 
   return (
     <View className="container has-sticky pay-page">
@@ -215,7 +242,7 @@ export default function DepositPayPage() {
         <View>
           <Surface className="pay-card pay-summary-card" padding="md">
             <Text className="pay-section-title">交易摘要</Text>
-            <Text className="pay-summary-title clamp-2">{target.title || '未命名内容'}</Text>
+            <Text className="pay-summary-title clamp-2">{normalizeDisplayText(target.title) || '交易标的待确认'}</Text>
             <View className="pay-summary-tags">
               <Text className="pay-chip">{target.priceType === 'NEGOTIABLE' ? '面议' : '明码标价'}</Text>
               <Text className="pay-chip">订金支付</Text>
@@ -247,7 +274,7 @@ export default function DepositPayPage() {
               <Spacer size={12} />
               {PayGuide ? (
                 <PayGuide
-                  miniProgramPath={`pages/checkout/deposit-pay/index?listingId=${listingId}`}
+                  miniProgramPath={`subpackages/checkout/deposit-pay/index?listingId=${listingId}`}
                   description="H5 端不发起支付。微信内可一键跳转小程序；微信外/桌面可复制链接或扫码在微信打开。"
                 />
               ) : (

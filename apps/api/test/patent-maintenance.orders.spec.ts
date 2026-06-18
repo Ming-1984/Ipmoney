@@ -17,13 +17,14 @@ const OWNER_REQ = {
 const SCHEDULE_ID = '11111111-1111-4111-8111-111111111111';
 const ORDER_ID = '22222222-2222-4222-8222-222222222222';
 const RECEIPT_FILE_ID = '33333333-3333-4333-8333-333333333333';
+const CS_USER_ID = 'cccccccc-cccc-4ccc-8ccc-cccccccccccc';
 
 function buildOrder(overrides: Record<string, unknown> = {}) {
   return {
     id: ORDER_ID,
     scheduleId: SCHEDULE_ID,
     applicantUserId: OWNER_REQ.auth.userId,
-    assignedCsUserId: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc',
+    assignedCsUserId: CS_USER_ID,
     status: 'REQUESTED',
     paymentChannel: null,
     officialFeeFen: 0,
@@ -55,6 +56,14 @@ function buildOrder(overrides: Record<string, unknown> = {}) {
       },
     },
     ...overrides,
+  };
+}
+
+function buildStaffUser() {
+  return {
+    id: CS_USER_ID,
+    role: 'cs',
+    rbacRoles: [],
   };
 }
 
@@ -101,9 +110,15 @@ describe('PatentMaintenanceService order lifecycle suite', () => {
   });
 
   it('validates listOrders filters strictly', async () => {
-    await expect(service.listOrders(ADMIN_REQ, { scheduleId: 'bad-id' })).rejects.toBeInstanceOf(BadRequestException);
-    await expect(service.listOrders(ADMIN_REQ, { status: 'bad' })).rejects.toBeInstanceOf(BadRequestException);
-    await expect(service.listOrders(ADMIN_REQ, { reconcileStatus: 'bad' })).rejects.toBeInstanceOf(BadRequestException);
+    await expect(service.listOrders(ADMIN_REQ, { scheduleId: 'bad-id' })).rejects.toBeInstanceOf(
+      BadRequestException,
+    );
+    await expect(service.listOrders(ADMIN_REQ, { status: 'bad' })).rejects.toBeInstanceOf(
+      BadRequestException,
+    );
+    await expect(service.listOrders(ADMIN_REQ, { reconcileStatus: 'bad' })).rejects.toBeInstanceOf(
+      BadRequestException,
+    );
   });
 
   it('createMyOrder checks ownership and conflict', async () => {
@@ -111,14 +126,18 @@ describe('PatentMaintenanceService order lifecycle suite', () => {
       id: SCHEDULE_ID,
       patent: { ownerUserId: 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee', title: 'X' },
     });
-    await expect(service.createMyOrder(OWNER_REQ, { scheduleId: SCHEDULE_ID })).rejects.toBeInstanceOf(ForbiddenException);
+    await expect(service.createMyOrder(OWNER_REQ, { scheduleId: SCHEDULE_ID })).rejects.toBeInstanceOf(
+      ForbiddenException,
+    );
 
     prisma.patentMaintenanceSchedule.findUnique.mockResolvedValueOnce({
       id: SCHEDULE_ID,
       patent: { ownerUserId: OWNER_REQ.auth.userId, title: 'Patent A' },
     });
     prisma.patentMaintenanceOrder.findFirst.mockResolvedValueOnce({ id: ORDER_ID });
-    await expect(service.createMyOrder(OWNER_REQ, { scheduleId: SCHEDULE_ID })).rejects.toBeInstanceOf(ConflictException);
+    await expect(service.createMyOrder(OWNER_REQ, { scheduleId: SCHEDULE_ID })).rejects.toBeInstanceOf(
+      ConflictException,
+    );
   });
 
   it('createOrder creates order and event', async () => {
@@ -132,7 +151,7 @@ describe('PatentMaintenanceService order lifecycle suite', () => {
       },
     });
     prisma.user.findUnique.mockResolvedValueOnce({ id: OWNER_REQ.auth.userId });
-    prisma.user.findUnique.mockResolvedValueOnce({ id: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc' });
+    prisma.user.findUnique.mockResolvedValueOnce(buildStaffUser());
     prisma.patentMaintenanceOrder.findFirst.mockResolvedValueOnce(null);
     prisma.patentMaintenanceOrder.create.mockResolvedValueOnce(buildOrder());
     prisma.patentMaintenanceOrderEvent.create.mockResolvedValueOnce({
@@ -150,7 +169,7 @@ describe('PatentMaintenanceService order lifecycle suite', () => {
 
     const result = await service.createOrder(ADMIN_REQ, {
       scheduleId: SCHEDULE_ID,
-      assignedCsUserId: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc',
+      assignedCsUserId: CS_USER_ID,
     });
 
     expect(prisma.patentMaintenanceOrder.create).toHaveBeenCalled();
@@ -158,10 +177,10 @@ describe('PatentMaintenanceService order lifecycle suite', () => {
   });
 
   it('runs quote -> payment -> execution -> receipt -> reconcile -> close lifecycle', async () => {
-    prisma.user.findUnique.mockResolvedValue({ id: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc' });
+    prisma.user.findUnique.mockResolvedValue(buildStaffUser());
     prisma.file.findUnique.mockResolvedValue({ id: RECEIPT_FILE_ID });
     prisma.patentMaintenanceOrder.findUnique
-      .mockResolvedValueOnce(buildOrder({ status: 'REQUESTED', assignedCsUserId: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc' }))
+      .mockResolvedValueOnce(buildOrder({ status: 'REQUESTED', assignedCsUserId: CS_USER_ID }))
       .mockResolvedValueOnce(buildOrder({ status: 'AWAITING_PAYMENT' }))
       .mockResolvedValueOnce(buildOrder({ status: 'PAID' }))
       .mockResolvedValueOnce(buildOrder({ status: 'EXECUTING' }))
@@ -177,8 +196,21 @@ describe('PatentMaintenanceService order lifecycle suite', () => {
           paymentDeadline: new Date('2026-03-30T00:00:00.000Z'),
         }),
       )
-      .mockResolvedValueOnce(buildOrder({ status: 'PAID', paymentChannel: 'WECHAT', paymentTxnNo: 'TXN-1', paidAt: new Date('2026-03-21T00:00:00.000Z') }))
-      .mockResolvedValueOnce(buildOrder({ status: 'EXECUTING', officialSubmissionNo: 'SUB-1', executedAt: new Date('2026-03-22T00:00:00.000Z') }))
+      .mockResolvedValueOnce(
+        buildOrder({
+          status: 'PAID',
+          paymentChannel: 'WECHAT',
+          paymentTxnNo: 'TXN-1',
+          paidAt: new Date('2026-03-21T00:00:00.000Z'),
+        }),
+      )
+      .mockResolvedValueOnce(
+        buildOrder({
+          status: 'EXECUTING',
+          officialSubmissionNo: 'SUB-1',
+          executedAt: new Date('2026-03-22T00:00:00.000Z'),
+        }),
+      )
       .mockResolvedValueOnce(
         buildOrder({
           status: 'RECEIPT_UPLOADED',
@@ -187,8 +219,12 @@ describe('PatentMaintenanceService order lifecycle suite', () => {
           receiptIssuedAt: new Date('2026-03-23T00:00:00.000Z'),
         }),
       )
-      .mockResolvedValueOnce(buildOrder({ status: 'RECONCILED', reconcileStatus: 'MATCHED', reconcileNote: 'ok' }))
-      .mockResolvedValueOnce(buildOrder({ status: 'CLOSED', reconcileStatus: 'MATCHED', closeNote: 'done' }));
+      .mockResolvedValueOnce(
+        buildOrder({ status: 'RECONCILED', reconcileStatus: 'MATCHED', reconcileNote: 'ok' }),
+      )
+      .mockResolvedValueOnce(
+        buildOrder({ status: 'CLOSED', reconcileStatus: 'MATCHED', closeNote: 'done' }),
+      );
     prisma.patentMaintenanceOrderEvent.create.mockResolvedValue({
       id: 'evt-1',
       orderId: ORDER_ID,
@@ -236,17 +272,25 @@ describe('PatentMaintenanceService order lifecycle suite', () => {
 
   it('cancelOrder rejects unsupported status', async () => {
     prisma.patentMaintenanceOrder.findUnique.mockResolvedValueOnce(buildOrder({ status: 'EXECUTING' }));
-    await expect(service.cancelOrder(ADMIN_REQ, ORDER_ID, { closeNote: 'x' })).rejects.toBeInstanceOf(BadRequestException);
+    await expect(service.cancelOrder(ADMIN_REQ, ORDER_ID, { closeNote: 'x' })).rejects.toBeInstanceOf(
+      BadRequestException,
+    );
   });
 
   it('listMyOrderEvents enforces access boundary', async () => {
-    prisma.patentMaintenanceOrder.findUnique.mockResolvedValueOnce(buildOrder({ applicantUserId: 'dddddddd-dddd-4ddd-8ddd-dddddddddddd' }));
-    await expect(service.listMyOrderEvents(OWNER_REQ, ORDER_ID)).rejects.toBeInstanceOf(ForbiddenException);
+    prisma.patentMaintenanceOrder.findUnique.mockResolvedValueOnce(
+      buildOrder({ applicantUserId: 'dddddddd-dddd-4ddd-8ddd-dddddddddddd' }),
+    );
+    await expect(service.listMyOrderEvents(OWNER_REQ, ORDER_ID)).rejects.toBeInstanceOf(
+      ForbiddenException,
+    );
   });
 
   it('getOrder/listOrderEvents returns not-found for unknown order', async () => {
     prisma.patentMaintenanceOrder.findUnique.mockResolvedValueOnce(null).mockResolvedValueOnce(null);
     await expect(service.getOrder(ADMIN_REQ, ORDER_ID)).rejects.toBeInstanceOf(NotFoundException);
-    await expect(service.listOrderEvents(ADMIN_REQ, ORDER_ID)).rejects.toBeInstanceOf(NotFoundException);
+    await expect(service.listOrderEvents(ADMIN_REQ, ORDER_ID)).rejects.toBeInstanceOf(
+      NotFoundException,
+    );
   });
 });

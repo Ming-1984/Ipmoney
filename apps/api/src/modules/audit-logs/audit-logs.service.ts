@@ -1,5 +1,6 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { PrismaService } from '../../common/prisma/prisma.service';
+import { normalizeDisplayText } from '../content-utils';
 
 @Injectable()
 export class AuditLogsService {
@@ -64,6 +65,18 @@ export class AuditLogsService {
     const [items, total] = await Promise.all([
       this.prisma.auditLog.findMany({
         where,
+        include: {
+          actor: {
+            select: {
+              nickname: true,
+              verifications: {
+                orderBy: { submittedAt: 'desc' },
+                take: 1,
+                select: { displayName: true },
+              },
+            },
+          },
+        },
         orderBy: { createdAt: 'desc' },
         skip,
         take: pageSize,
@@ -75,6 +88,10 @@ export class AuditLogsService {
       items: items.map((log: {
         id: string;
         actorUserId: string;
+        actor?: {
+          nickname?: string | null;
+          verifications?: Array<{ displayName?: string | null }>;
+        } | null;
         action: string;
         targetType: string;
         targetId: string;
@@ -87,6 +104,10 @@ export class AuditLogsService {
       }) => ({
         id: log.id,
         actorUserId: log.actorUserId,
+        actorDisplayName:
+          normalizeDisplayText(log.actor?.verifications?.[0]?.displayName) ??
+          normalizeDisplayText(log.actor?.nickname) ??
+          undefined,
         action: log.action,
         targetType: log.targetType,
         targetId: log.targetId,

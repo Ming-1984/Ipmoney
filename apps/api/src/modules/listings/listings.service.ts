@@ -18,7 +18,13 @@ import { PrismaService } from '../../common/prisma/prisma.service';
 import { WechatContentSecurityService } from '../../common/wechat-content-security.service';
 import { resolveUploadDir } from '../../common/upload-dir';
 import { NotificationsService } from '../notifications/notifications.service';
-import { mapStats, resolvePublicFileUrl, sanitizeIndustryTagNames } from '../content-utils';
+import {
+  mapStats,
+  resolvePublicFileUrl,
+  sanitizeIndustryTagNames,
+  toPublicSellerSummary,
+  resolvePublicSellerVerificationType,
+} from '../content-utils';
 import { ConfigService, type RecommendationConfig } from '../config/config.service';
 import { FilesService } from '../files/files.service';
 import { readWorkbookRowsFromBuffer } from '../../common/workbook-reader';
@@ -187,8 +193,6 @@ const LISTING_BATCH_ACTION_SET = new Set<ListingBatchAction>(['APPROVE', 'REJECT
 const LISTING_BATCH_ITEM_STATUS_SET = new Set<ListingBatchItemStatus>(['PENDING', 'SUCCEEDED', 'FAILED', 'SKIPPED']);
 const LISTING_IMPORT_DUPLICATE_POLICY_SET = new Set<ListingImportDuplicatePolicy>(['SKIP', 'OVERWRITE']);
 const LISTING_IMPORT_ROW_STATUS_SET = new Set<ListingImportRowStatus>(['PENDING', 'VALID', 'INVALID', 'SUCCEEDED', 'FAILED', 'SKIPPED']);
-const PLATFORM_BRAND_NAME = 'ipmoney';
-
 @Injectable()
 export class ListingsService {
   constructor(
@@ -440,6 +444,27 @@ export class ListingsService {
     return undefined;
   }
 
+  private derivePatentBackfillTitle(input: {
+    title?: unknown;
+    applicationNoDisplay?: unknown;
+    publicationNoDisplay?: unknown;
+    patentNoDisplay?: unknown;
+    grantPublicationNoDisplay?: unknown;
+  }): string | null {
+    const candidates = [
+      input?.title,
+      input?.applicationNoDisplay,
+      input?.publicationNoDisplay,
+      input?.patentNoDisplay,
+      input?.grantPublicationNoDisplay,
+    ];
+    for (const candidate of candidates) {
+      const normalized = String(candidate ?? '').trim();
+      if (normalized) return normalized;
+    }
+    return null;
+  }
+
   private normalizeListingStatus(value: any): ListingStatus | undefined {
     const s = String(value || '').trim().toUpperCase();
     if (s === 'DRAFT' || s === 'ACTIVE' || s === 'OFF_SHELF' || s === 'SOLD') return s as ListingStatus;
@@ -534,6 +559,19 @@ export class ListingsService {
     ) as ListingTopic[];
   }
 
+  private assertListingTopicSemantics(input: {
+    tradeMode: 'ASSIGNMENT' | 'LICENSE';
+    licenseMode?: 'EXCLUSIVE' | 'SOLE' | 'NON_EXCLUSIVE' | null;
+    listingTopics: ListingTopic[];
+  }) {
+    if (input.tradeMode !== 'LICENSE' && input.listingTopics.includes('OPEN_LICENSE')) {
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: 'OPEN_LICENSE requires LICENSE tradeMode' });
+    }
+    if (input.tradeMode === 'LICENSE' && !input.licenseMode) {
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: 'licenseMode is required when tradeMode is LICENSE' });
+    }
+  }
+
   private normalizePledgeStatus(value: unknown): PledgeStatus | undefined {
     const v = String(value || '').trim().toUpperCase();
     if (!v) return undefined;
@@ -622,6 +660,13 @@ export class ListingsService {
     return raw;
   }
 
+  private parseNullableTrimmedString(value: unknown): string | null | undefined {
+    if (value === undefined) return undefined;
+    if (value === null) return null;
+    const raw = String(value ?? '').trim();
+    return raw ? raw : null;
+  }
+
   private parseOptionalInt(value: unknown, fieldName: string, min?: number): number | undefined {
     if (value === undefined || value === null) return undefined;
     if (String(value).trim() === '') {
@@ -695,16 +740,20 @@ export class ListingsService {
     };
   }
 
-  private isPlatformBrandedListing(listing: any): boolean {
-    const source = String(listing?.source || '').trim().toUpperCase();
-    const consultationRouting = String(listing?.consultationRouting || '').trim().toUpperCase();
-    return (source === 'ADMIN' || source === 'PLATFORM') && consultationRouting === 'PLATFORM';
+  private resolveSellerOrgCategory(listing: any): 'UNIVERSITY' | 'UNIVERSITY_985' | 'UNIVERSITY_211' | 'RESEARCH_INSTITUTE' | 'OTHER' | null {
+    const verificationType = resolvePublicSellerVerificationType(listing);
+    if (verificationType === 'ACADEMY') return 'RESEARCH_INSTITUTE';
+    if (verificationType === 'COMPANY' || verificationType === 'GOVERNMENT' || verificationType === 'ASSOCIATION') return 'OTHER';
+    return null;
   }
 
-  private resolvePublicSellerNickname(listing: any): string | null {
-    if (this.isPlatformBrandedListing(listing)) return PLATFORM_BRAND_NAME;
-    const nickname = String(listing?.seller?.nickname || '').trim();
-    return nickname || null;
+  private toPublicSellerSummary(listing: any) {
+    const summary = toPublicSellerSummary(listing);
+    if (!summary) return null;
+    return {
+      ...summary,
+      orgCategory: this.resolveSellerOrgCategory(listing) ?? undefined,
+    };
   }
 
   private toBatchJobDto(it: any): ListingBatchJobDto {
@@ -1454,6 +1503,14 @@ export class ListingsService {
 
     const applicationNoDisplay = parsed.primaryIdType === 'APPLICATION' ? parsed.applicationNoDisplay : undefined;
 
+    const derivedPatentTitle = this.derivePatentBackfillTitle({
+      title: body?.title,
+      applicationNoDisplay: applicationNoDisplay ?? null,
+      publicationNoDisplay: parsed.publicationNoDisplay ?? null,
+      patentNoDisplay: parsed.patentNoDisplay ?? null,
+      grantPublicationNoDisplay: parsed.grantPublicationNoDisplay ?? null,
+    });
+
     if (!patent) {
       patent = await this.prisma.patent.create({
         data: {
@@ -1464,7 +1521,7 @@ export class ListingsService {
           patentNoDisplay: parsed.patentNoDisplay ?? null,
           grantPublicationNoDisplay: parsed.grantPublicationNoDisplay ?? null,
           patentType,
-          title: body?.title || 'Patent',
+          title: derivedPatentTitle || applicationNoNorm,
           abstract: body?.summary || null,
           legalStatus: legalStatus ?? null,
           legalStatusRaw: legalStatusRaw ?? null,
@@ -1572,6 +1629,19 @@ export class ListingsService {
     const toDate = (d?: Date | null) => (d ? d.toISOString().slice(0, 10) : null);
     const legalStatus = patent?.legalStatus ? String(patent.legalStatus).toUpperCase() : null;
     const patentTypeMeta = this.getPatentTypeMeta(patent?.patentType);
+    const transferCountRaw = patent?.transferCount;
+    const hasTransferCountValue =
+      transferCountRaw !== null &&
+      transferCountRaw !== undefined &&
+      String(transferCountRaw).trim() !== '';
+    const transferCount =
+      !hasTransferCountValue
+        ? undefined
+        : typeof transferCountRaw === 'number'
+        ? transferCountRaw
+        : Number.isFinite(Number(transferCountRaw))
+          ? Number(transferCountRaw)
+          : undefined;
     return {
       applicationNoDisplay: patent?.applicationNoDisplay ?? null,
       publicationNoDisplay: patent?.publicationNoDisplay ?? null,
@@ -1581,7 +1651,7 @@ export class ListingsService {
       patentTypeDefinition: patentTypeMeta?.definition ?? null,
       patentTypeDefinitionSource: patentTypeMeta?.source ?? null,
       patentTermYears: patentTypeMeta?.termYears ?? null,
-      transferCount: patent?.transferCount ?? 0,
+      transferCount,
       inventorNames,
       assigneeNames,
       applicantNames,
@@ -1649,6 +1719,7 @@ export class ListingsService {
       createdAt: it.createdAt.toISOString(),
       updatedAt: it.updatedAt.toISOString(),
       stats: mapStats(it.stats),
+      seller: this.toPublicSellerSummary(it),
     };
   }
 
@@ -1724,6 +1795,187 @@ export class ListingsService {
       userWeight * tagSimilarity +
       featuredBoost
     );
+  }
+
+  private normalizeSearchRankText(value: unknown) {
+    return String(value ?? '')
+      .trim()
+      .toLowerCase()
+      .replace(/\s+/g, ' ');
+  }
+
+  private compactSearchRankText(value: unknown) {
+    return this.normalizeSearchRankText(value).replace(/[\s\-_/\\.,;:()[\]{}'"`~!@#$%^&*+=|<>?，。；：、（）【】《》]/g, '');
+  }
+
+  private isLikelyOrganizationName(value: unknown) {
+    const compact = this.compactSearchRankText(value);
+    if (!compact) return false;
+    const orgKeywords = [
+      '公司',
+      '有限',
+      '集团',
+      '科技',
+      '大学',
+      '学院',
+      '研究院',
+      '研究所',
+      '中心',
+      '实验室',
+      '学校',
+      '医院',
+      '事务所',
+      '协会',
+      '厂',
+      '企业',
+      '银行',
+      '局',
+      '厅',
+      '部',
+    ];
+    return orgKeywords.some((keyword) => compact.includes(keyword));
+  }
+
+  private isLikelyPersonNameQuery(value: unknown) {
+    const compact = this.compactSearchRankText(value);
+    if (!compact) return false;
+    if (/[0-9]/.test(compact)) return false;
+    if (this.isLikelyOrganizationName(compact)) return false;
+    return /^[\u3400-\u9fff·•]{2,6}$/u.test(compact);
+  }
+
+  private hasExactPartyRoleMatch(parties: any[], role: string, value: unknown) {
+    const normalizedQuery = this.normalizeSearchRankText(value);
+    const compactQuery = this.compactSearchRankText(value);
+    if (!normalizedQuery && !compactQuery) return false;
+    return parties.some((party: any) => {
+      if (String(party?.role || '').toUpperCase() !== role) return false;
+      const normalizedName = this.normalizeSearchRankText(party?.name);
+      const compactName = this.compactSearchRankText(party?.name);
+      return (Boolean(compactQuery) && compactName === compactQuery) || (Boolean(normalizedQuery) && normalizedName === normalizedQuery);
+    });
+  }
+
+  private shouldRestrictToExactInventorMatches(q: string, qType: string, sortBy: string) {
+    if (!q || sortBy !== 'RECOMMENDED') return false;
+    if (qType === 'INVENTOR') return true;
+    return qType === 'AUTO' && this.isLikelyPersonNameQuery(q);
+  }
+
+  private scoreSearchRankTextMatch(target: unknown, normalizedQuery: string, compactQuery: string) {
+    const normalizedTarget = this.normalizeSearchRankText(target);
+    if (!normalizedTarget) return 0;
+    const compactTarget = this.compactSearchRankText(target);
+    if (compactQuery && compactTarget === compactQuery) return 120;
+    if (normalizedQuery && normalizedTarget === normalizedQuery) return 112;
+    if (compactQuery && compactTarget.startsWith(compactQuery)) return 96;
+    if (normalizedQuery && normalizedTarget.startsWith(normalizedQuery)) return 90;
+    if (compactQuery && compactTarget.includes(compactQuery)) return 76;
+    if (normalizedQuery && normalizedTarget.includes(normalizedQuery)) return 70;
+    return 0;
+  }
+
+  private computeSearchRankScore(item: any, q: string, qType: string, ftsIdSet: Set<string>) {
+    const normalizedQuery = this.normalizeSearchRankText(q);
+    const compactQuery = this.compactSearchRankText(q);
+    if (!normalizedQuery && !compactQuery) return 0;
+    const likelyPersonQuery = qType === 'AUTO' && this.isLikelyPersonNameQuery(q);
+
+    const patent = item?.patent ?? {};
+    const parties = Array.isArray(patent?.parties) ? patent.parties : [];
+    const classifications = Array.isArray(patent?.classifications) ? patent.classifications : [];
+    const inventors = parties.filter((party: any) => String(party?.role || '').toUpperCase() === 'INVENTOR').map((party: any) => party?.name);
+    const applicants = parties.filter((party: any) => String(party?.role || '').toUpperCase() === 'APPLICANT').map((party: any) => party?.name);
+    const assignees = parties.filter((party: any) => String(party?.role || '').toUpperCase() === 'ASSIGNEE').map((party: any) => party?.name);
+    const allPartyNames = parties.map((party: any) => party?.name);
+    const personLikePartyNames = allPartyNames.filter((name: any) => !this.isLikelyOrganizationName(name));
+    const orgLikeApplicants = applicants.filter((name: any) => this.isLikelyOrganizationName(name));
+    const orgLikeAssignees = assignees.filter((name: any) => this.isLikelyOrganizationName(name));
+    const classificationCodes = classifications.map((classification: any) => classification?.code);
+
+    const bestMatch = (values: any[]) =>
+      values.reduce((max: number, value: any) => {
+        const score = this.scoreSearchRankTextMatch(value, normalizedQuery, compactQuery);
+        return score > max ? score : max;
+      }, 0);
+
+    let bestScore = 0;
+    let bonus = 0;
+    const applyScore = (base: number, matchScore: number) => {
+      if (matchScore <= 0) return;
+      bestScore = Math.max(bestScore, base + matchScore);
+      bonus += Math.min(24, Math.floor(matchScore / 8));
+    };
+
+    const listingTitleScore = this.scoreSearchRankTextMatch(item?.title, normalizedQuery, compactQuery);
+    const summaryScore = this.scoreSearchRankTextMatch(item?.summary, normalizedQuery, compactQuery);
+    const patentTitleScore = this.scoreSearchRankTextMatch(patent?.title, normalizedQuery, compactQuery);
+    const abstractScore = this.scoreSearchRankTextMatch(patent?.abstract, normalizedQuery, compactQuery);
+    const inventorScore = bestMatch(inventors);
+    const applicantScore = bestMatch(applicants);
+    const assigneeScore = bestMatch(assignees);
+    const partyScore = bestMatch(allPartyNames);
+    const personPartyScore = bestMatch(personLikePartyNames);
+    const orgApplicantScore = bestMatch(orgLikeApplicants);
+    const orgAssigneeScore = bestMatch(orgLikeAssignees);
+    const classificationScore = bestMatch(classificationCodes);
+    const applicationDisplayScore = this.scoreSearchRankTextMatch(patent?.applicationNoDisplay, normalizedQuery, compactQuery);
+    const publicationDisplayScore = this.scoreSearchRankTextMatch(patent?.publicationNoDisplay, normalizedQuery, compactQuery);
+    const patentDisplayScore = this.scoreSearchRankTextMatch(patent?.patentNoDisplay, normalizedQuery, compactQuery);
+    const applicationNormScore = this.scoreSearchRankTextMatch(patent?.applicationNoNorm, normalizedQuery, compactQuery);
+
+    applyScore(2400, applicationNormScore);
+    applyScore(2360, publicationDisplayScore);
+    applyScore(2320, patentDisplayScore);
+    applyScore(2280, applicationDisplayScore);
+
+    if (qType === 'INVENTOR') {
+      applyScore(2200, inventorScore);
+    } else if (qType === 'APPLICANT') {
+      applyScore(2160, applicantScore);
+    } else if (likelyPersonQuery) {
+      applyScore(2200, inventorScore);
+      applyScore(2160, applicantScore > orgApplicantScore ? applicantScore : 0);
+      applyScore(2120, assigneeScore > orgAssigneeScore ? assigneeScore : 0);
+      applyScore(2080, personPartyScore);
+      applyScore(1840, orgApplicantScore);
+      applyScore(1800, orgAssigneeScore);
+    } else {
+      applyScore(2200, inventorScore);
+      applyScore(2140, applicantScore);
+      applyScore(2100, assigneeScore);
+      applyScore(2060, partyScore);
+    }
+
+    applyScore(1980, listingTitleScore);
+    applyScore(1940, patentTitleScore);
+    applyScore(1700, summaryScore);
+    applyScore(1660, abstractScore);
+    applyScore(1620, classificationScore);
+
+    if (ftsIdSet.has(String(item?.id || ''))) {
+      bestScore = Math.max(bestScore, 1500);
+      bonus += 8;
+    }
+
+    if (likelyPersonQuery && inventorScore <= 0 && personPartyScore <= 0) {
+      if (orgApplicantScore > 0 || orgAssigneeScore > 0) {
+        bestScore = Math.min(bestScore, 1750);
+        bonus = Math.min(bonus, 10);
+      } else {
+        bestScore = Math.min(bestScore, 1590);
+        bonus = Math.min(bonus, 8);
+      }
+    }
+
+    return bestScore + bonus;
+  }
+
+  private getFeaturedLevelRank(level: unknown) {
+    const normalized = String(level || '').toUpperCase();
+    if (normalized === 'PROVINCE') return 2;
+    if (normalized === 'CITY') return 1;
+    return 0;
   }
   async listAdmin(query: any): Promise<PagedListingAdmin> {
     const hasPage = this.hasOwn(query, 'page');
@@ -1824,6 +2076,7 @@ export class ListingsService {
       throw new BadRequestException({ code: 'BAD_REQUEST', message: 'sellerUserId is required' });
     }
     const listingTopics = this.normalizeListingTopics(body?.listingTopics);
+    this.assertListingTopicSemantics({ tradeMode, licenseMode, listingTopics });
     const proofFileIds = this.normalizeFileIds(body?.proofFileIds);
     const deliverables = this.normalizeStringArray(body?.deliverables);
     const expectedCompletionDays = this.parseOptionalInt(body?.expectedCompletionDays, 'expectedCompletionDays', 1);
@@ -1833,15 +2086,11 @@ export class ListingsService {
       throw new BadRequestException({ code: 'BAD_REQUEST', message: 'negotiableRange is invalid' });
     }
     const hasNegotiableNote = this.hasOwn(body, 'negotiableNote');
-    const negotiableNote = hasNegotiableNote
-      ? this.parseNullableNonEmptyStringStrict(body?.negotiableNote, 'negotiableNote')
-      : null;
+    const negotiableNote = hasNegotiableNote ? this.parseNullableTrimmedString(body?.negotiableNote) ?? null : null;
     const hasEncumbranceNote = this.hasOwn(body, 'encumbranceNote');
-    const encumbranceNote = hasEncumbranceNote
-      ? this.parseNullableNonEmptyStringStrict(body?.encumbranceNote, 'encumbranceNote')
-      : null;
+    const encumbranceNote = hasEncumbranceNote ? this.parseNullableTrimmedString(body?.encumbranceNote) ?? null : null;
     const parsedTitle = hasTitle ? this.parseNullableNonEmptyStringStrict(body?.title, 'title') : undefined;
-    const parsedSummary = hasSummary ? this.parseNullableNonEmptyStringStrict(body?.summary, 'summary') : undefined;
+    const parsedSummary = hasSummary ? this.parseNullableTrimmedString(body?.summary) ?? null : undefined;
     this.assertRegionCodeRequiredForActiveStatus(hasRegionCode ? regionCode : null, status);
     const patent = await this.ensurePatent(body);
     let resolvedSellerUserId = sellerUserId;
@@ -1861,7 +2110,14 @@ export class ListingsService {
         this.syncPatentClassifications(patent.id, 'LOC', body?.locCodes),
       ]);
     }
-    const fallbackTitle = patent?.title || 'Listing';
+    const fallbackTitle =
+      this.derivePatentBackfillTitle({
+        title: patent?.title,
+        applicationNoDisplay: patent?.applicationNoDisplay,
+        publicationNoDisplay: patent?.publicationNoDisplay,
+        patentNoDisplay: patent?.patentNoDisplay,
+        grantPublicationNoDisplay: patent?.grantPublicationNoDisplay,
+      }) || '未命名挂牌';
     const title = hasTitle ? (parsedTitle ?? fallbackTitle) : fallbackTitle;
     const summary = hasSummary ? parsedSummary : null;
     if (proofFileIds.length > 0) {
@@ -1945,9 +2201,7 @@ export class ListingsService {
       throw new BadRequestException({ code: 'BAD_REQUEST', message: 'negotiableRange is invalid' });
     }
     const hasNegotiableNote = Object.prototype.hasOwnProperty.call(body || {}, 'negotiableNote');
-    const negotiableNote = hasNegotiableNote
-      ? this.parseNullableNonEmptyStringStrict(body?.negotiableNote, 'negotiableNote')
-      : undefined;
+    const negotiableNote = hasNegotiableNote ? this.parseNullableTrimmedString(body?.negotiableNote) : undefined;
     const hasPledgeStatus = Object.prototype.hasOwnProperty.call(body || {}, 'pledgeStatus');
     const pledgeStatus = hasPledgeStatus ? this.parseNullablePledgeStatusStrict(body?.pledgeStatus, 'pledgeStatus') : undefined;
     const hasExistingLicenseStatus = Object.prototype.hasOwnProperty.call(body || {}, 'existingLicenseStatus');
@@ -1955,9 +2209,7 @@ export class ListingsService {
       ? this.parseNullableExistingLicenseStatusStrict(body?.existingLicenseStatus, 'existingLicenseStatus')
       : undefined;
     const hasEncumbranceNote = Object.prototype.hasOwnProperty.call(body || {}, 'encumbranceNote');
-    const encumbranceNote = hasEncumbranceNote
-      ? this.parseNullableNonEmptyStringStrict(body?.encumbranceNote, 'encumbranceNote')
-      : undefined;
+    const encumbranceNote = hasEncumbranceNote ? this.parseNullableTrimmedString(body?.encumbranceNote) : undefined;
     const hasRegionCode = this.hasOwn(body, 'regionCode');
     const regionCode = hasRegionCode ? this.parseNullableRegionCodeStrict(body?.regionCode, 'regionCode') : undefined;
     const hasSource = this.hasOwn(body, 'source');
@@ -1987,7 +2239,17 @@ export class ListingsService {
     const hasSummary = this.hasOwn(body, 'summary');
     let sellerUserId = hasSellerUserId ? this.parseNonEmptyFilterStrict(body?.sellerUserId, 'sellerUserId') : listing.sellerUserId;
     const parsedTitle = hasTitle ? this.parseNullableNonEmptyStringStrict(body?.title, 'title') : undefined;
-    const parsedSummary = hasSummary ? this.parseNullableNonEmptyStringStrict(body?.summary, 'summary') : undefined;
+    const parsedSummary = hasSummary ? this.parseNullableTrimmedString(body?.summary) : undefined;
+    const effectiveTradeMode = hasTradeMode ? tradeMode : listing.tradeMode;
+    const effectiveLicenseMode = hasLicenseMode ? licenseMode : listing.licenseMode;
+    const effectiveListingTopics = hasListingTopics
+      ? listingTopics ?? []
+      : this.normalizeListingTopics((listing as any).listingTopicsJson);
+    this.assertListingTopicSemantics({
+      tradeMode: effectiveTradeMode as 'ASSIGNMENT' | 'LICENSE',
+      licenseMode: effectiveLicenseMode,
+      listingTopics: effectiveListingTopics,
+    });
     if (body?.patentNumberRaw) {
       const patent = await this.ensurePatent(patentBody);
       if (patent) patentId = patent.id;
@@ -2022,12 +2284,12 @@ export class ListingsService {
         source: hasSource ? source : listing.source,
         patentId: patentId ?? null,
         title: hasTitle ? (parsedTitle ?? listing.title) : listing.title,
-        summary: hasSummary ? (parsedSummary ?? listing.summary) : listing.summary,
+        summary: hasSummary ? parsedSummary ?? null : listing.summary,
         tradeMode: hasTradeMode ? tradeMode : listing.tradeMode,
         licenseMode: hasLicenseMode ? licenseMode : listing.licenseMode,
         priceType: hasPriceType ? priceType : listing.priceType,
-        priceAmount: hasPriceAmountFen ? (priceAmountFen ?? listing.priceAmount) : listing.priceAmount,
-        depositAmount: hasDepositAmountFen ? (depositAmountFen ?? listing.depositAmount) : listing.depositAmount,
+        priceAmount: hasPriceAmountFen ? (priceAmountFen ?? null) : listing.priceAmount,
+        depositAmount: hasDepositAmountFen ? (depositAmountFen ?? 0) : listing.depositAmount,
         deliverablesJson: hasDeliverables ? (deliverables && deliverables.length > 0 ? deliverables : Prisma.DbNull) : undefined,
         expectedCompletionDays: hasExpectedCompletionDays ? (expectedCompletionDays ?? null) : listing.expectedCompletionDays,
         negotiableRangeFen: hasNegotiableRangeFen ? (negotiableRangeFen ?? null) : listing.negotiableRangeFen,
@@ -2373,6 +2635,9 @@ export class ListingsService {
   async validateImportJob(_req: any, jobId: string): Promise<ListingImportJobDto> {
     const job = await this.prisma.listingImportJob.findUnique({ where: { id: jobId } });
     if (!job) throw new NotFoundException({ code: 'NOT_FOUND', message: 'import job not found' });
+    if (job.status === 'RUNNING') {
+      throw new ConflictException({ code: 'CONFLICT', message: 'import job is running' });
+    }
 
     const { file, buffer } = await this.readFileBufferById(job.fileId);
     let rows: Array<Record<string, any>>;
@@ -2433,6 +2698,9 @@ export class ListingsService {
   async executeImportJob(_req: any, jobId: string): Promise<ListingImportJobDto> {
     const job = await this.prisma.listingImportJob.findUnique({ where: { id: jobId } });
     if (!job) throw new NotFoundException({ code: 'NOT_FOUND', message: 'import job not found' });
+    if (job.status === 'RUNNING') {
+      throw new ConflictException({ code: 'CONFLICT', message: 'import job is running' });
+    }
     if (!job.validatedAt) {
       throw new BadRequestException({ code: 'BAD_REQUEST', message: 'import job has not been validated' });
     }
@@ -2964,6 +3232,7 @@ export class ListingsService {
       : null;
     const regionCode = hasRegionCode ? this.parseNullableRegionCodeStrict(body?.regionCode, 'regionCode') : undefined;
     const listingTopics = this.normalizeListingTopics(body?.listingTopics);
+    this.assertListingTopicSemantics({ tradeMode, licenseMode, listingTopics });
     const proofFileIds = this.normalizeFileIds(body?.proofFileIds);
     const deliverables = this.normalizeStringArray(body?.deliverables);
     const expectedCompletionDays = this.parseOptionalInt(body?.expectedCompletionDays, 'expectedCompletionDays', 1);
@@ -2973,15 +3242,11 @@ export class ListingsService {
       throw new BadRequestException({ code: 'BAD_REQUEST', message: 'negotiableRange is invalid' });
     }
     const hasNegotiableNote = this.hasOwn(body, 'negotiableNote');
-    const negotiableNote = hasNegotiableNote
-      ? this.parseNullableNonEmptyStringStrict(body?.negotiableNote, 'negotiableNote')
-      : null;
+    const negotiableNote = hasNegotiableNote ? this.parseNullableTrimmedString(body?.negotiableNote) ?? null : null;
     const hasEncumbranceNote = this.hasOwn(body, 'encumbranceNote');
-    const encumbranceNote = hasEncumbranceNote
-      ? this.parseNullableNonEmptyStringStrict(body?.encumbranceNote, 'encumbranceNote')
-      : null;
+    const encumbranceNote = hasEncumbranceNote ? this.parseNullableTrimmedString(body?.encumbranceNote) ?? null : null;
     const parsedTitle = hasTitle ? this.parseNullableNonEmptyStringStrict(body?.title, 'title') : undefined;
-    const parsedSummary = hasSummary ? this.parseNullableNonEmptyStringStrict(body?.summary, 'summary') : undefined;
+    const parsedSummary = hasSummary ? this.parseNullableTrimmedString(body?.summary) ?? null : undefined;
     const patent = await this.ensurePatent(body);
     if (patent) {
       await Promise.all([
@@ -2992,7 +3257,14 @@ export class ListingsService {
         this.syncPatentClassifications(patent.id, 'LOC', body?.locCodes),
       ]);
     }
-    const fallbackTitle = patent?.title || 'Listing';
+    const fallbackTitle =
+      this.derivePatentBackfillTitle({
+        title: patent?.title,
+        applicationNoDisplay: patent?.applicationNoDisplay,
+        publicationNoDisplay: patent?.publicationNoDisplay,
+        patentNoDisplay: patent?.patentNoDisplay,
+        grantPublicationNoDisplay: patent?.grantPublicationNoDisplay,
+      }) || '未命名挂牌';
     const title = hasTitle ? (parsedTitle ?? fallbackTitle) : fallbackTitle;
     const summary = hasSummary ? parsedSummary : null;
     if (proofFileIds.length > 0) {
@@ -3075,9 +3347,7 @@ export class ListingsService {
       throw new BadRequestException({ code: 'BAD_REQUEST', message: 'negotiableRange is invalid' });
     }
     const hasNegotiableNote = Object.prototype.hasOwnProperty.call(body || {}, 'negotiableNote');
-    const negotiableNote = hasNegotiableNote
-      ? this.parseNullableNonEmptyStringStrict(body?.negotiableNote, 'negotiableNote')
-      : undefined;
+    const negotiableNote = hasNegotiableNote ? this.parseNullableTrimmedString(body?.negotiableNote) : undefined;
     const hasPledgeStatus = this.hasOwn(body, 'pledgeStatus');
     const pledgeStatus = hasPledgeStatus ? this.parseNullablePledgeStatusStrict(body?.pledgeStatus, 'pledgeStatus') : undefined;
     const hasExistingLicenseStatus = this.hasOwn(body, 'existingLicenseStatus');
@@ -3085,9 +3355,7 @@ export class ListingsService {
       ? this.parseNullableExistingLicenseStatusStrict(body?.existingLicenseStatus, 'existingLicenseStatus')
       : undefined;
     const hasEncumbranceNote = Object.prototype.hasOwnProperty.call(body || {}, 'encumbranceNote');
-    const encumbranceNote = hasEncumbranceNote
-      ? this.parseNullableNonEmptyStringStrict(body?.encumbranceNote, 'encumbranceNote')
-      : undefined;
+    const encumbranceNote = hasEncumbranceNote ? this.parseNullableTrimmedString(body?.encumbranceNote) : undefined;
     const hasRegionCode = this.hasOwn(body, 'regionCode');
     const regionCode = hasRegionCode ? this.parseNullableRegionCodeStrict(body?.regionCode, 'regionCode') : undefined;
     const hasTradeMode = this.hasOwn(body, 'tradeMode');
@@ -3105,7 +3373,17 @@ export class ListingsService {
     const hasTitle = this.hasOwn(body, 'title');
     const hasSummary = this.hasOwn(body, 'summary');
     const parsedTitle = hasTitle ? this.parseNullableNonEmptyStringStrict(body?.title, 'title') : undefined;
-    const parsedSummary = hasSummary ? this.parseNullableNonEmptyStringStrict(body?.summary, 'summary') : undefined;
+    const parsedSummary = hasSummary ? this.parseNullableTrimmedString(body?.summary) : undefined;
+    const effectiveTradeMode = hasTradeMode ? tradeMode : listing.tradeMode;
+    const effectiveLicenseMode = hasLicenseMode ? licenseMode : listing.licenseMode;
+    const effectiveListingTopics = hasListingTopics
+      ? listingTopics ?? []
+      : this.normalizeListingTopics((listing as any).listingTopicsJson);
+    this.assertListingTopicSemantics({
+      tradeMode: effectiveTradeMode as 'ASSIGNMENT' | 'LICENSE',
+      licenseMode: effectiveLicenseMode,
+      listingTopics: effectiveListingTopics,
+    });
     if (body?.patentNumberRaw) {
       const patent = await this.ensurePatent(body);
       if (patent) patentId = patent.id;
@@ -3116,7 +3394,7 @@ export class ListingsService {
     await this.contentSecurity.assertSafeTexts(
       [
         hasTitle ? (parsedTitle ?? listing.title) : listing.title,
-        hasSummary ? (parsedSummary ?? listing.summary) : listing.summary,
+        hasSummary ? parsedSummary ?? null : listing.summary,
         hasNegotiableNote ? negotiableNote : listing.negotiableNote,
         hasEncumbranceNote ? encumbranceNote : listing.encumbranceNote,
       ],
@@ -3147,12 +3425,12 @@ export class ListingsService {
       data: {
         patentId: patentId ?? null,
         title: hasTitle ? (parsedTitle ?? listing.title) : listing.title,
-        summary: hasSummary ? (parsedSummary ?? listing.summary) : listing.summary,
+        summary: hasSummary ? parsedSummary ?? null : listing.summary,
         tradeMode: hasTradeMode ? tradeMode : listing.tradeMode,
         licenseMode: hasLicenseMode ? licenseMode : listing.licenseMode,
         priceType: hasPriceType ? priceType : listing.priceType,
-        priceAmount: hasPriceAmountFen ? (priceAmountFen ?? listing.priceAmount) : listing.priceAmount,
-        depositAmount: hasDepositAmountFen ? (depositAmountFen ?? listing.depositAmount) : listing.depositAmount,
+        priceAmount: hasPriceAmountFen ? (priceAmountFen ?? null) : listing.priceAmount,
+        depositAmount: hasDepositAmountFen ? (depositAmountFen ?? 0) : listing.depositAmount,
         deliverablesJson: hasDeliverables ? (deliverables && deliverables.length > 0 ? deliverables : Prisma.DbNull) : undefined,
         expectedCompletionDays: hasExpectedCompletionDays ? (expectedCompletionDays ?? null) : listing.expectedCompletionDays,
         negotiableRangeFen: hasNegotiableRangeFen ? (negotiableRangeFen ?? null) : listing.negotiableRangeFen,
@@ -3313,43 +3591,7 @@ export class ListingsService {
     if (priceType) where.priceType = priceType;
     if (sellerUserId) where.sellerUserId = sellerUserId;
     if (listingTopics.length > 0) {
-      const listingTopicFilters = listingTopics.map((topic) => {
-        if (topic === 'OPEN_LICENSE') {
-          return {
-            OR: [{ tradeMode: 'LICENSE' }, { listingTopicsJson: { array_contains: ['OPEN_LICENSE'] } }],
-          };
-        }
-        if (topic === 'SLEEPING') {
-          return {
-            OR: [{ patent: { transferCount: 0 } }, { listingTopicsJson: { array_contains: ['SLEEPING'] } }],
-          };
-        }
-        if (topic === 'HIGH_TECH_RETIRED') {
-          return {
-            OR: [
-              { listingTopicsJson: { array_contains: ['HIGH_TECH_RETIRED'] } },
-              { patent: { legalStatus: { in: ['EXPIRED', 'INVALIDATED'] } } },
-            ],
-          };
-        }
-        if (topic === 'AWARD_WINNING') {
-          return {
-            OR: [
-              { listingTopicsJson: { array_contains: ['AWARD_WINNING'] } },
-              { featuredLevel: { not: 'NONE' } },
-            ],
-          };
-        }
-        if (topic === 'FIVE_STAR') {
-          return {
-            OR: [
-              { listingTopicsJson: { array_contains: ['FIVE_STAR'] } },
-              { featuredLevel: { not: 'NONE' } },
-            ],
-          };
-        }
-        return { listingTopicsJson: { array_contains: [topic] } };
-      });
+      const listingTopicFilters = listingTopics.map((topic) => ({ listingTopicsJson: { array_contains: [topic] } }));
       where.AND = [...(Array.isArray(where.AND) ? where.AND : []), ...listingTopicFilters];
     }
     if (industryTags.length > 0) {
@@ -3434,14 +3676,33 @@ export class ListingsService {
       where.patent = { AND: patentAnd };
     }
 
+    let ftsIds: string[] = [];
     if (q) {
       const useFts = qType === 'KEYWORD' || qType === 'AUTO';
-      const ftsIds = useFts ? await this.searchListingIdsByFts(q) : [];
+      ftsIds = useFts ? await this.searchListingIdsByFts(q) : [];
       const orFilters: any[] = [];
       if (qType == 'NUMBER') {
         try {
           const parsed = this.parsePatentNumber(q);
           orFilters.push({ patent: { applicationNoNorm: parsed.applicationNoNorm } });
+          if (parsed.applicationNoDisplay) {
+            orFilters.push({ patent: { applicationNoDisplay: parsed.applicationNoDisplay } });
+            orFilters.push({ patent: { applicationNoDisplay: { contains: parsed.applicationNoDisplay, mode: 'insensitive' } } });
+          }
+          if (parsed.publicationNoDisplay) {
+            orFilters.push({ patent: { publicationNoDisplay: parsed.publicationNoDisplay } });
+            orFilters.push({ patent: { publicationNoDisplay: { contains: parsed.publicationNoDisplay, mode: 'insensitive' } } });
+          }
+          if (parsed.patentNoDisplay) {
+            orFilters.push({ patent: { patentNoDisplay: parsed.patentNoDisplay } });
+            orFilters.push({ patent: { patentNoDisplay: { contains: parsed.patentNoDisplay, mode: 'insensitive' } } });
+          }
+          if (parsed.grantPublicationNoDisplay) {
+            orFilters.push({ patent: { grantPublicationNoDisplay: parsed.grantPublicationNoDisplay } });
+            orFilters.push({
+              patent: { grantPublicationNoDisplay: { contains: parsed.grantPublicationNoDisplay, mode: 'insensitive' } },
+            });
+          }
           for (const c of parsed.identifierCandidates) {
             orFilters.push({ patent: { identifiers: { some: { idType: c.idType, idValueNorm: c.idValueNorm } } } });
           }
@@ -3498,7 +3759,19 @@ export class ListingsService {
       where.OR = orFilters;
     }
 
-    const include = { patent: { include: { parties: true, classifications: true } }, stats: true, media: { include: { file: true } } };
+    const include = {
+      patent: { include: { parties: true, classifications: true } },
+      seller: { include: { verifications: { orderBy: [{ submittedAt: 'desc' as const }], take: 1 } } },
+      stats: true,
+      media: { include: { file: true } },
+    };
+
+    const shouldUseSearchRank =
+      Boolean(q) &&
+      sortBy === 'RECOMMENDED' &&
+      (qType === 'AUTO' || qType === 'INVENTOR' || qType === 'APPLICANT' || qType === 'KEYWORD');
+    const ftsIdSet = new Set(ftsIds);
+    const shouldRestrictExactInventorMatches = this.shouldRestrictToExactInventorMatches(q, qType, sortBy);
 
     if (sortBy == 'RECOMMENDED') {
       const recommendation = await this.config.getRecommendation();
@@ -3514,30 +3787,55 @@ export class ListingsService {
             featuredRank: true,
             featuredUntil: true,
             stats: { select: { viewCount: true, favoriteCount: true, consultCount: true } },
+            title: true,
+            summary: true,
+            patent: {
+              select: {
+                title: true,
+                abstract: true,
+                applicationNoNorm: true,
+                applicationNoDisplay: true,
+                publicationNoDisplay: true,
+                patentNoDisplay: true,
+                parties: { select: { role: true, name: true } },
+                classifications: { select: { code: true } },
+              },
+            },
           },
         });
 
         const nowMs = Date.now();
         const scored = rows.map((row: any) => {
           const score = this.computeRecommendationScore(row, recommendation, { regionCode }, nowMs);
+          const searchRankScore = shouldUseSearchRank ? this.computeSearchRankScore(row, q, qType, ftsIdSet) : 0;
+          const parties = Array.isArray(row?.patent?.parties) ? row.patent.parties : [];
           return {
             id: row.id,
             score,
+            searchRankScore,
+            hasExactInventorMatch: this.hasExactPartyRoleMatch(parties, 'INVENTOR', q),
+            featuredLevelRank: this.getFeaturedLevelRank(row.featuredLevel),
             featuredRank: Number.isFinite(Number(row.featuredRank)) ? Number(row.featuredRank) : Number.MAX_SAFE_INTEGER,
             createdAt: row.createdAt instanceof Date ? row.createdAt : new Date(0),
           };
         });
-        const scoreMap = new Map(scored.map((item: any) => [item.id, item.score]));
+        const scoredPool =
+          shouldRestrictExactInventorMatches && scored.some((item: any) => item.hasExactInventorMatch)
+            ? scored.filter((item: any) => item.hasExactInventorMatch)
+            : scored;
+        const scoreMap = new Map(scoredPool.map((item: any) => [item.id, item.score]));
 
-        scored.sort((a: any, b: any) => {
+        scoredPool.sort((a: any, b: any) => {
+          if (b.searchRankScore !== a.searchRankScore) return b.searchRankScore - a.searchRankScore;
           if (b.score !== a.score) return b.score - a.score;
+          if (b.featuredLevelRank !== a.featuredLevelRank) return b.featuredLevelRank - a.featuredLevelRank;
           if (a.featuredRank !== b.featuredRank) return a.featuredRank - b.featuredRank;
           return b.createdAt.getTime() - a.createdAt.getTime();
         });
 
-        const total = scored.length;
+        const total = scoredPool.length;
         const start = (page - 1) * pageSize;
-        const pageIds = scored.slice(start, start + pageSize).map((item: any) => item.id);
+        const pageIds = scoredPool.slice(start, start + pageSize).map((item: any) => item.id);
         const items = pageIds.length
           ? await this.prisma.listing.findMany({
               where: { id: { in: pageIds } },
@@ -3557,6 +3855,43 @@ export class ListingsService {
           page: { page, pageSize, total },
         };
       }
+    }
+
+    if (shouldUseSearchRank) {
+      const rows = await this.prisma.listing.findMany({
+        where,
+        include,
+      });
+      const scored = rows.map((row: any) => {
+        const parties = Array.isArray(row?.patent?.parties) ? row.patent.parties : [];
+        return {
+          item: row,
+          searchRankScore: this.computeSearchRankScore(row, q, qType, ftsIdSet),
+          hasExactInventorMatch: this.hasExactPartyRoleMatch(parties, 'INVENTOR', q),
+          featuredLevelRank: this.getFeaturedLevelRank(row.featuredLevel),
+          featuredRank: Number.isFinite(Number(row.featuredRank)) ? Number(row.featuredRank) : Number.MAX_SAFE_INTEGER,
+          createdAt: row.createdAt instanceof Date ? row.createdAt : new Date(0),
+        };
+      });
+      const scoredPool =
+        shouldRestrictExactInventorMatches && scored.some((item: any) => item.hasExactInventorMatch)
+          ? scored.filter((item: any) => item.hasExactInventorMatch)
+          : scored;
+
+      scoredPool.sort((a: any, b: any) => {
+        if (b.searchRankScore !== a.searchRankScore) return b.searchRankScore - a.searchRankScore;
+        if (b.featuredLevelRank !== a.featuredLevelRank) return b.featuredLevelRank - a.featuredLevelRank;
+        if (a.featuredRank !== b.featuredRank) return a.featuredRank - b.featuredRank;
+        return b.createdAt.getTime() - a.createdAt.getTime();
+      });
+
+      const total = scoredPool.length;
+      const start = (page - 1) * pageSize;
+      const items = scoredPool.slice(start, start + pageSize).map((entry: any) => this.toListingSummary(entry.item));
+      return {
+        items,
+        page: { page, pageSize, total },
+      };
     }
 
     const orderBy: any[] = [];
@@ -3607,9 +3942,18 @@ export class ListingsService {
     });
   }
   async getPublicById(req: any, listingId: string) {
-    const it = await this.prisma.listing.findUnique({
-      where: { id: listingId },
-      include: { patent: { include: { parties: true, classifications: true } }, seller: true, stats: true, media: { include: { file: true } } },
+    const it = await this.prisma.listing.findFirst({
+      where: {
+        id: listingId,
+        auditStatus: 'APPROVED',
+        status: 'ACTIVE',
+      },
+      include: {
+        patent: { include: { parties: true, classifications: true } },
+        seller: { include: { verifications: { orderBy: [{ submittedAt: 'desc' as const }], take: 1 } } },
+        stats: true,
+        media: { include: { file: true } },
+      },
     });
     if (!it) throw new NotFoundException({ code: 'NOT_FOUND', message: 'listing not found' });
     void this.events.recordView(req, 'LISTING', listingId).catch(() => {});
@@ -3667,21 +4011,20 @@ export class ListingsService {
       createdAt: it.createdAt.toISOString(),
       updatedAt: it.updatedAt.toISOString(),
       stats: mapStats(it.stats),
-      seller: it.seller
-        ? {
-            id: it.seller.id,
-            nickname: this.resolvePublicSellerNickname(it),
-            avatarUrl: resolvePublicFileUrl({ url: it.seller.avatarUrl }),
-            verificationType: null,
-          }
-        : null,
+      seller: this.toPublicSellerSummary(it),
     };
   }
   async createConsultation(req: any, listingId: string, payload: any) {
     if (!req?.auth?.userId) {
       throw new ForbiddenException({ code: 'FORBIDDEN', message: 'forbidden' });
     }
-    const listing = await this.prisma.listing.findUnique({ where: { id: listingId } });
+    const listing = await this.prisma.listing.findFirst({
+      where: {
+        id: listingId,
+        auditStatus: 'APPROVED',
+        status: 'ACTIVE',
+      },
+    });
     if (!listing) throw new NotFoundException({ code: 'NOT_FOUND', message: 'listing not found' });
     const hasChannel = this.hasOwn(payload, 'channel');
     const channel = hasChannel ? this.parseConsultChannelStrict(payload?.channel, 'channel') : 'FORM';

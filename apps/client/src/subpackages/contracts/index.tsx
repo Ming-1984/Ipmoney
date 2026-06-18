@@ -1,13 +1,14 @@
 import { View, Text } from '@tarojs/components';
-import Taro from '@tarojs/taro';
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import Taro, { useDidHide, useDidShow } from '@tarojs/taro';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import './index.scss';
 
+import { API_BASE_URL } from '../../constants';
 import { apiGet, apiPost } from '../../lib/api';
 import { getToken } from '../../lib/auth';
-import { API_BASE_URL } from '../../constants';
-import { ensureApproved, usePageAccess } from '../../lib/guard';
+import { displayTitleOrFallback, normalizeDisplayText } from '../../lib/displayText';
 import { formatTimeSmart } from '../../lib/format';
+import { ensureApproved, usePageAccess } from '../../lib/guard';
 import { uploadWithRetry } from '../../lib/upload';
 import { usePagedList } from '../../lib/usePagedList';
 import { PageState } from '../../ui/PageState';
@@ -36,16 +37,52 @@ type ContractListResponse = {
   page: { page: number; pageSize: number; total: number };
 };
 
-const TABS: { id: ContractStatus; label: string }[] = [
-  { id: 'WAIT_UPLOAD', label: '待上传' },
-  { id: 'WAIT_CONFIRM', label: '待确认' },
-  { id: 'AVAILABLE', label: '可查阅' },
+const TEXT = {
+  title: '\u5408\u540c\u4e2d\u5fc3',
+  subtitle: '\u7edf\u4e00\u67e5\u770b\u5408\u540c\u4e0a\u4f20\u3001\u786e\u8ba4\u4e0e\u67e5\u9605\u72b6\u6001',
+  waitUploadTab: '\u5f85\u4e0a\u4f20',
+  waitConfirmTab: '\u5f85\u786e\u8ba4',
+  availableTab: '\u53ef\u67e5\u770b',
+  waitUploadStatus: '\u5f85\u4e0a\u4f20',
+  waitConfirmStatus: '\u5f85\u786e\u8ba4',
+  availableStatus: '\u53ef\u67e5\u770b',
+  emptyTitle: '\u6682\u65e0\u5408\u540c',
+  emptyMessage: '\u5f53\u524d\u5206\u7c7b\u4e0b\u6682\u65e0\u5408\u540c\u8bb0\u5f55\u3002',
+  sellerOnly: '\u4ec5\u5356\u5bb6\u53ef\u4e0a\u4f20\u5408\u540c',
+  weappOnly: '\u8bf7\u5728\u5c0f\u7a0b\u5e8f\u4e2d\u4e0a\u4f20 PDF \u5408\u540c',
+  noFile: '\u672a\u9009\u62e9\u6587\u4ef6',
+  uploadFailed: '\u4e0a\u4f20\u5931\u8d25\uff0c\u8bf7\u91cd\u8bd5',
+  uploadPdfFirst: '\u8bf7\u5148\u4e0a\u4f20\u5408\u540c PDF',
+  uploadSuccess: '\u5df2\u63d0\u4ea4\u5408\u540c',
+  noLink: '\u6682\u65e0\u53ef\u7528\u5408\u540c\u94fe\u63a5',
+  copied: '\u5df2\u590d\u5236\u5408\u540c\u94fe\u63a5',
+  copiedAndNotify: '\u5df2\u590d\u5236\u5408\u540c\u94fe\u63a5\uff0c\u8bf7\u53d1\u9001\u7ed9\u5bf9\u65b9\u786e\u8ba4',
+  contractPrefix: '\u5408\u540c\u5f85\u786e\u8ba4',
+  listingPrefix: '\u4ea4\u6613\u6807\u7684\uff1a',
+  counterpartPrefix: '\u5bf9\u65b9\uff1a',
+  orderPrefix: '\u5173\u8054\u8ba2\u5355\uff1a',
+  createdPrefix: '\u521b\u5efa\u65f6\u95f4\uff1a',
+  uploadedPrefix: '\u4e0a\u4f20\u65f6\u95f4\uff1a',
+  signedPrefix: '\u786e\u8ba4\u65f6\u95f4\uff1a',
+  watermarkPrefix: '\u6c34\u5370\u5f52\u5c5e\uff1a',
+  watermarkFallback: '\u5e73\u53f0\u5904\u7406',
+  orderDetail: '\u8ba2\u5355\u8be6\u60c5',
+  waitingSeller: '\u7b49\u5f85\u5356\u5bb6\u4e0a\u4f20',
+  uploadPdf: '\u4e0a\u4f20\u5408\u540c PDF',
+  viewContract: '\u67e5\u770b\u5408\u540c',
+  remindConfirm: '\u63d0\u9192\u5bf9\u65b9\u786e\u8ba4',
+} as const;
+
+const TABS: Array<{ id: ContractStatus; label: string }> = [
+  { id: 'WAIT_UPLOAD', label: TEXT.waitUploadTab },
+  { id: 'WAIT_CONFIRM', label: TEXT.waitConfirmTab },
+  { id: 'AVAILABLE', label: TEXT.availableTab },
 ];
 
 function contractStatusLabel(status: ContractStatus): string {
-  if (status === 'WAIT_UPLOAD') return '待上传';
-  if (status === 'WAIT_CONFIRM') return '待确认';
-  return '可查阅';
+  if (status === 'WAIT_UPLOAD') return TEXT.waitUploadStatus;
+  if (status === 'WAIT_CONFIRM') return TEXT.waitConfirmStatus;
+  return TEXT.availableStatus;
 }
 
 function contractStatusClass(status: ContractStatus): string {
@@ -54,9 +91,32 @@ function contractStatusClass(status: ContractStatus): string {
   return 'is-available';
 }
 
+function contractCardTitle(item: Pick<ContractItem, 'listingTitle' | 'counterpartName'>): string {
+  const listingTitle = normalizeDisplayText(item.listingTitle);
+  if (listingTitle) return listingTitle;
+  const counterpartName = normalizeDisplayText(item.counterpartName);
+  if (counterpartName) return `与${counterpartName}的合同`;
+  return '待确认合同';
+}
+
 export default function ContractCenterPage() {
   const loadedOnceRef = useRef(false);
+  const tabKeyRef = useRef<ContractStatus>('WAIT_UPLOAD');
+  const pageVisibleRef = useRef(true);
+  const uploadSeqRef = useRef(0);
+  const activeTabRef = useRef<ContractStatus>('WAIT_UPLOAD');
   const [activeTab, setActiveTab] = useState<ContractStatus>('WAIT_UPLOAD');
+  const [uploadingContractId, setUploadingContractId] = useState('');
+
+  useDidShow(() => {
+    pageVisibleRef.current = true;
+  });
+
+  useDidHide(() => {
+    pageVisibleRef.current = false;
+    uploadSeqRef.current += 1;
+    setUploadingContractId('');
+  });
 
   const fetcher = useCallback(
     async ({ page, pageSize }: { page: number; pageSize: number }) =>
@@ -64,7 +124,7 @@ export default function ContractCenterPage() {
     [activeTab],
   );
 
-  const { items: rawItems, loading, error, refreshing, loadingMore, hasMore, reload, refresh, loadMore, reset } =
+  const { items, loading, error, refreshing, loadingMore, hasMore, reload, refresh, loadMore, reset } =
     usePagedList<ContractItem>(fetcher, {
       pageSize: 20,
       onError: (message, ctx) => {
@@ -72,8 +132,8 @@ export default function ContractCenterPage() {
       },
     });
 
-  const access = usePageAccess('approved-required', (a) => {
-    if (a.state === 'ok') {
+  const access = usePageAccess('approved-required', (next) => {
+    if (next.state === 'ok') {
       if (loadedOnceRef.current) {
         void refresh();
       }
@@ -84,103 +144,128 @@ export default function ContractCenterPage() {
   });
 
   useEffect(() => {
+    if (tabKeyRef.current === activeTab) return;
+    tabKeyRef.current = activeTab;
+    activeTabRef.current = activeTab;
+    uploadSeqRef.current += 1;
+    setUploadingContractId('');
+    reset();
+  }, [activeTab, reset]);
+
+  useEffect(() => {
+    activeTabRef.current = activeTab;
+  }, [activeTab]);
+
+  useEffect(() => {
     if (access.state !== 'ok') return;
     loadedOnceRef.current = true;
     void reload();
-  }, [access.state, reload, activeTab]);
+  }, [access.state, activeTab, reload]);
 
-  const items = useMemo(() => rawItems.filter((it) => it.status === activeTab), [rawItems, activeTab]);
+  useEffect(() => {
+    if (access.state === 'ok') return;
+    uploadSeqRef.current += 1;
+    setUploadingContractId('');
+  }, [access.state]);
+
   const showInitialLoading = loading && items.length === 0;
 
-  const uploadContract = useCallback(async (item: ContractItem) => {
-    if (!ensureApproved()) return;
-    if (item.canUpload === false) {
-      toast('仅卖家可上传合同');
-      return;
-    }
-
-    if (process.env.TARO_ENV !== 'weapp') {
-      toast('请在小程序中上传 PDF 合同');
-      return;
-    }
-
-    let contractFileId: string | null = null;
-    try {
-      const res = await Taro.chooseMessageFile({
-        count: 1,
-        type: 'file',
-        extension: ['pdf'],
-      });
-      const tempPath = String((res as any)?.tempFiles?.[0]?.path || '').trim();
-      if (!tempPath) {
-        toast('未选择文件');
+  const uploadContract = useCallback(
+    async (item: ContractItem) => {
+      if (!ensureApproved()) return;
+      if (uploadingContractId) return;
+      if (item.canUpload === false) {
+        toast(TEXT.sellerOnly);
+        return;
+      }
+      if (process.env.TARO_ENV !== 'weapp') {
+        toast(TEXT.weappOnly);
         return;
       }
 
-      const token = getToken();
-      const uploadRes = await uploadWithRetry({
-        url: `${API_BASE_URL}/files`,
-        filePath: tempPath,
-        name: 'file',
-        formData: { purpose: 'CONTRACT_EVIDENCE' },
-        header: {
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
-        retry: 1,
-      });
+      let contractFileId = '';
+      const targetTab = activeTabRef.current;
+      const seq = ++uploadSeqRef.current;
+      setUploadingContractId(item.id);
+      try {
+        const res = await Taro.chooseMessageFile({
+          count: 1,
+          type: 'file',
+          extension: ['pdf'],
+        });
+        const tempPath = String((res as any)?.tempFiles?.[0]?.path || '').trim();
+        if (!tempPath) {
+          if (seq === uploadSeqRef.current && pageVisibleRef.current && activeTabRef.current === targetTab) {
+            setUploadingContractId('');
+          }
+          toast(TEXT.noFile);
+          return;
+        }
 
-      if (uploadRes.statusCode >= 200 && uploadRes.statusCode < 300) {
-        const parsed = JSON.parse(String(uploadRes.data || '{}')) as any;
-        if (parsed?.id && typeof parsed.id === 'string') contractFileId = parsed.id;
+        const token = getToken();
+        const uploadRes = await uploadWithRetry({
+          url: `${API_BASE_URL}/files`,
+          filePath: tempPath,
+          name: 'file',
+          formData: { purpose: 'CONTRACT_EVIDENCE' },
+          header: token ? { Authorization: `Bearer ${token}` } : {},
+          retry: 1,
+        });
+
+        if (uploadRes.statusCode >= 200 && uploadRes.statusCode < 300) {
+          const parsed = JSON.parse(String(uploadRes.data || '{}')) as { id?: string };
+          contractFileId = String(parsed?.id || '').trim();
+        }
+      } catch (e: any) {
+        if (seq !== uploadSeqRef.current || !pageVisibleRef.current || activeTabRef.current !== targetTab) return;
+        setUploadingContractId('');
+        const errMsg = String(e?.errMsg || '').toLowerCase();
+        if (errMsg.includes('cancel')) return;
+        toast(TEXT.uploadFailed);
+        return;
       }
-    } catch (e: any) {
-      const errMsg = String(e?.errMsg || '').toLowerCase();
-      if (errMsg.includes('cancel')) return;
-      toast('上传失败，请重试');
-      return;
-    }
 
-    if (!contractFileId) {
-      toast('请先上传合同 PDF');
-      return;
-    }
+      if (!contractFileId) {
+        if (seq !== uploadSeqRef.current || !pageVisibleRef.current || activeTabRef.current !== targetTab) return;
+        setUploadingContractId('');
+        toast(TEXT.uploadPdfFirst);
+        return;
+      }
 
-    try {
-      await apiPost<ContractItem>(
-        `/contracts/${item.id}/upload`,
-        { contractFileId },
-        { idempotencyKey: `contract-${item.id}` },
-      );
-      toast('已提交合同', { icon: 'success' });
-      void reload();
-    } catch (e: any) {
-      toast(e?.message || '上传失败');
-    }
-  }, [reload]);
+      try {
+        await apiPost<ContractItem>(
+          `/contracts/${item.id}/upload`,
+          { contractFileId },
+          { idempotencyKey: `contract-${item.id}` },
+        );
+        if (seq !== uploadSeqRef.current || !pageVisibleRef.current || activeTabRef.current !== targetTab) return;
+        toast(TEXT.uploadSuccess, { icon: 'success' });
+        void reload();
+      } catch (e: any) {
+        if (seq !== uploadSeqRef.current || !pageVisibleRef.current || activeTabRef.current !== targetTab) return;
+        toast(e?.message || TEXT.uploadFailed);
+      } finally {
+        if (seq === uploadSeqRef.current && pageVisibleRef.current && activeTabRef.current === targetTab) {
+          setUploadingContractId('');
+        }
+      }
+    },
+    [reload, uploadingContractId],
+  );
 
-  const remindConfirm = useCallback((item: ContractItem) => {
-    const url = item.fileUrl || '';
+  const copyContractLink = useCallback((item: ContractItem, successMessage: string) => {
+    const url = String(item.fileUrl || '').trim();
     if (!url) {
-      toast('暂无合同链接，无法提醒');
+      toast(TEXT.noLink);
       return;
     }
     Taro.setClipboardData({ data: url });
-    toast('已复制合同链接，请发送给对方确认');
-  }, []);
-
-  const copyContractLink = useCallback((item: ContractItem) => {
-    const url = item.fileUrl || '';
-    if (!url) {
-      toast('暂无可用合同链接');
-      return;
-    }
-    Taro.setClipboardData({ data: url });
-    toast('已复制合同链接', { icon: 'success' });
+    toast(successMessage, { icon: 'success' });
   }, []);
 
   return (
     <View className="container contracts-page">
-      <PageHeader weapp title="合同中心" subtitle="合同上传、确认与查阅统一管理" />
+      <PageHeader weapp title={TEXT.title} subtitle={TEXT.subtitle} />
       <Spacer />
 
       <View className="contract-tabs">
@@ -201,8 +286,8 @@ export default function ContractCenterPage() {
         loading={showInitialLoading}
         error={error}
         empty={!showInitialLoading && !error && items.length === 0}
-        emptyTitle="暂无合同"
-        emptyMessage="当前分类下暂无合同记录。"
+        emptyTitle={TEXT.emptyTitle}
+        emptyMessage={TEXT.emptyMessage}
         onRetry={reload}
       >
         <PullToRefresh type="primary" disabled={showInitialLoading || refreshing} onRefresh={refresh}>
@@ -210,50 +295,63 @@ export default function ContractCenterPage() {
             {items.map((item) => (
               <Surface key={item.id} className="contract-card" padding="none">
                 <View className="row-between" style={{ gap: '12rpx' }}>
-                  <Text className="text-card-title">合同 {item.id.slice(0, 8)}...</Text>
-                  <Text className={`contract-status ${contractStatusClass(item.status)}`}>
-                    {contractStatusLabel(item.status)}
-                  </Text>
+                  <Text className="text-card-title">{displayTitleOrFallback(contractCardTitle(item), TEXT.contractPrefix)}</Text>
+                  <Text className={`contract-status ${contractStatusClass(item.status)}`}>{contractStatusLabel(item.status)}</Text>
                 </View>
+
                 <View className="contract-meta">
-                  {item.listingTitle ? <Text className="muted clamp-1">交易标的：{item.listingTitle}</Text> : null}
-                  {item.counterpartName ? <Text className="muted">对方：{item.counterpartName}</Text> : null}
-                  <Text className="muted">关联订单：{item.orderId.slice(0, 8)}...</Text>
-                  <Text className="muted">创建时间：{formatTimeSmart(item.createdAt)}</Text>
-                  {item.uploadedAt ? <Text className="muted">上传时间：{formatTimeSmart(item.uploadedAt)}</Text> : null}
-                  {item.signedAt ? <Text className="muted">确认时间：{formatTimeSmart(item.signedAt)}</Text> : null}
-                  <Text className="muted">水印归属：{item.watermarkOwner || '发布方'}</Text>
+                  {normalizeDisplayText(item.listingTitle) ? <Text className="muted clamp-1">{TEXT.listingPrefix}{normalizeDisplayText(item.listingTitle)}</Text> : null}
+                  {normalizeDisplayText(item.counterpartName) ? <Text className="muted">{TEXT.counterpartPrefix}{normalizeDisplayText(item.counterpartName)}</Text> : null}
+                  <Text className="muted">{TEXT.orderPrefix}\u53ef\u5728\u8ba2\u5355\u8be6\u60c5\u4e2d\u67e5\u770b</Text>
+                  <Text className="muted">{TEXT.createdPrefix}{formatTimeSmart(item.createdAt)}</Text>
+                  {item.uploadedAt ? <Text className="muted">{TEXT.uploadedPrefix}{formatTimeSmart(item.uploadedAt)}</Text> : null}
+                  {item.signedAt ? <Text className="muted">{TEXT.signedPrefix}{formatTimeSmart(item.signedAt)}</Text> : null}
+                  <Text className="muted">{TEXT.watermarkPrefix}{item.watermarkOwner || TEXT.watermarkFallback}</Text>
                 </View>
+
                 <View className="contract-actions">
                   <Button
                     size="small"
                     variant="ghost"
                     onClick={() => Taro.navigateTo({ url: `/subpackages/orders/detail/index?orderId=${item.orderId}` })}
                   >
-                    订单详情
+                    {TEXT.orderDetail}
                   </Button>
+
                   {item.status === 'WAIT_UPLOAD' ? (
                     item.canUpload === false ? (
                       <Button size="small" variant="ghost" disabled>
-                        等待卖家上传
+                        {TEXT.waitingSeller}
                       </Button>
                     ) : (
                       <Button size="small" variant="primary" onClick={() => void uploadContract(item)}>
-                        上传合同（PDF）
+                        {uploadingContractId === item.id ? '上传中…' : TEXT.uploadPdf}
                       </Button>
                     )
                   ) : item.status === 'WAIT_CONFIRM' ? (
                     <>
-                      <Button size="small" variant="ghost" onClick={() => copyContractLink(item)}>
-                        查看合同
+                      <Button
+                        size="small"
+                        variant="ghost"
+                        onClick={() => copyContractLink(item, TEXT.copied)}
+                      >
+                        {TEXT.viewContract}
                       </Button>
-                      <Button size="small" variant="primary" onClick={() => remindConfirm(item)}>
-                        提醒对方确认
+                      <Button
+                        size="small"
+                        variant="primary"
+                        onClick={() => copyContractLink(item, TEXT.copiedAndNotify)}
+                      >
+                        {TEXT.remindConfirm}
                       </Button>
                     </>
                   ) : (
-                    <Button size="small" variant="primary" onClick={() => copyContractLink(item)}>
-                      查看合同
+                    <Button
+                      size="small"
+                      variant="primary"
+                      onClick={() => copyContractLink(item, TEXT.copied)}
+                    >
+                      {TEXT.viewContract}
                     </Button>
                   )}
                 </View>

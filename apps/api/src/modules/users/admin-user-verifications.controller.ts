@@ -57,6 +57,17 @@ export class AdminUserVerificationsController {
     return await this.users.adminUpdateVerificationLogo(normalizedVerificationId, body?.logoFileId, req?.auth?.userId || '');
   }
 
+  @Patch('/:verificationId/profile')
+  async updateProfile(
+    @Req() req: any,
+    @Param('verificationId') verificationId: string,
+    @Body() body: { displayName?: string | null; contactName?: string | null; regionCode?: string | null; intro?: string | null },
+  ) {
+    requirePermission(req, 'verification.review');
+    const normalizedVerificationId = this.parseUuidParam(verificationId, 'verificationId');
+    return await this.users.adminUpdateVerificationProfile(normalizedVerificationId, body || {}, req?.auth?.userId || '');
+  }
+
   @Get('/:verificationId/materials')
   async materials(@Req() req: any, @Param('verificationId') verificationId: string) {
     requirePermission(req, 'verification.read');

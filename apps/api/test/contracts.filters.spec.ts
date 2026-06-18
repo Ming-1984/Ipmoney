@@ -64,9 +64,9 @@ describe('ContractsService list filter strictness suite', () => {
         listing: {
           title: 'Listing A',
           sellerUserId: 'seller-1',
-          seller: { nickname: 'Seller' },
+          seller: { nickname: 'Seller', verifications: [] },
         },
-        buyer: { nickname: 'Buyer' },
+        buyer: { nickname: 'Buyer', verifications: [{ displayName: '杭州创新科技有限公司' }] },
         contract: null,
       },
     ]);
@@ -78,7 +78,7 @@ describe('ContractsService list filter strictness suite', () => {
       id: 'contract-11111111-1111-1111-1111-111111111111',
       orderId: '11111111-1111-1111-1111-111111111111',
       listingTitle: 'Listing A',
-      counterpartName: 'Buyer',
+      counterpartName: '杭州创新科技有限公司',
       status: 'WAIT_UPLOAD',
       canUpload: true,
     });
@@ -117,9 +117,9 @@ describe('ContractsService list filter strictness suite', () => {
         listing: {
           title: 'Listing B',
           sellerUserId: 'seller-2',
-          seller: { nickname: 'SellerB' },
+          seller: { nickname: 'SellerB', verifications: [{ displayName: '深圳成果运营中心' }] },
         },
-        buyer: { nickname: 'BuyerB' },
+        buyer: { nickname: 'BuyerB', verifications: [] },
         contract: {
           status: 'WAIT_CONFIRM',
           createdAt: new Date('2026-03-12T00:10:00.000Z'),
@@ -144,7 +144,7 @@ describe('ContractsService list filter strictness suite', () => {
     expect(result.page).toEqual({ page: 1, pageSize: 20, total: 1 });
     expect(result.items[0]).toMatchObject({
       id: 'contract-33333333-3333-4333-8333-333333333333',
-      counterpartName: 'SellerB',
+      counterpartName: '深圳成果运营中心',
       status: 'WAIT_CONFIRM',
       fileUrl: 'https://example.com/contract-b.pdf',
       canUpload: false,

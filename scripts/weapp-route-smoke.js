@@ -9,7 +9,8 @@
 
 const fs = require('node:fs');
 const path = require('node:path');
-const { execFileSync } = require('node:child_process');
+const { execFileSync, spawn } = require('node:child_process');
+const net = require('node:net');
 
 let automator;
 try {
@@ -114,8 +115,122 @@ function isLaunchPortError(message) {
   return msg.includes('failed to launch wechat web devtools') || msg.includes('please make sure http port is open');
 }
 
+function isConnectModeError(message) {
+  const msg = String(message || '').toLowerCase();
+  return msg.includes('failed connecting to ws://') || msg.includes('automation enabled') || msg.includes('connection closed');
+}
+
+async function findAvailablePort(preferredPort) {
+  const tryListen = (port) =>
+    new Promise((resolve) => {
+      const server = net.createServer();
+      server.unref();
+      server.on('error', () => resolve(null));
+      server.listen(port, '127.0.0.1', () => {
+        const address = server.address();
+        const actualPort = address && typeof address === 'object' ? address.port : null;
+        server.close(() => resolve(actualPort));
+      });
+    });
+
+  if (preferredPort) {
+    const exact = await tryListen(preferredPort);
+    if (exact) return exact;
+  }
+
+  const random = await tryListen(0);
+  if (!random) {
+    throw new Error('Unable to allocate local port for WeChat DevTools automation.');
+  }
+  return random;
+}
+
+function spawnCliAuto({ cliPath, projectPath, port, trustProject }) {
+  const isWindows = process.platform === 'win32';
+  const cliArgs = ['auto', '--project', projectPath, '--port', String(port)];
+  if (trustProject) cliArgs.push('--trust-project');
+
+  const command = isWindows && cliPath.toLowerCase().endsWith('.bat') ? 'cmd' : cliPath;
+  const args = isWindows && cliPath.toLowerCase().endsWith('.bat') ? ['/c', cliPath, ...cliArgs] : cliArgs;
+  const child = spawn(command, args, {
+    detached: true,
+    stdio: 'ignore',
+    windowsHide: true,
+  });
+  child.unref();
+  return {
+    command,
+    args,
+    pid: child.pid || null,
+  };
+}
+
+async function connectMiniProgramWithRetry({
+  wsEndpoint,
+  timeoutMs,
+  attempts,
+  connectRetryDelayMs,
+}) {
+  const startedAt = Date.now();
+  let lastError = null;
+
+  for (let attempt = 1; attempt <= attempts; attempt += 1) {
+    try {
+      const miniProgram = await automator.connect({ wsEndpoint });
+      return { miniProgram, elapsedMs: Date.now() - startedAt, attempts: attempt };
+    } catch (error) {
+      lastError = error;
+      if (attempt < attempts) {
+        await sleep(connectRetryDelayMs);
+      }
+    }
+  }
+
+  const finalMessage = safeErrorMessage(lastError);
+  const connectError = new Error(`Failed connecting to ${wsEndpoint}: ${finalMessage}`);
+  connectError.cause = lastError;
+  connectError.elapsedMs = Date.now() - startedAt;
+  throw connectError;
+}
+
+async function launchMiniProgramViaCliAuto({
+  cliPath,
+  projectPath,
+  preferredPort,
+  timeoutMs,
+  trustProject,
+}) {
+  const port = await findAvailablePort(preferredPort);
+  const wsEndpoint = `ws://127.0.0.1:${port}`;
+  const autoLaunch = spawnCliAuto({
+    cliPath,
+    projectPath,
+    port,
+    trustProject,
+  });
+  const connectAttempts = Math.max(3, Math.ceil(timeoutMs / 4000));
+  const connectRetryDelayMs = Math.max(800, Math.min(4000, Math.floor(timeoutMs / Math.max(connectAttempts, 1))));
+  const connected = await connectMiniProgramWithRetry({
+    wsEndpoint,
+    timeoutMs,
+    attempts: connectAttempts,
+    connectRetryDelayMs,
+  });
+  return {
+    miniProgram: connected.miniProgram,
+    wsEndpoint,
+    port,
+    autoLaunch,
+    connectAttempts: connected.attempts,
+    connectElapsedMs: connected.elapsedMs,
+  };
+}
+
 async function launchMiniProgramWithRetry({
-  launchOptions,
+  cliPath,
+  projectPath,
+  timeoutMs,
+  preferredPort,
   launchRetries,
   launchRetryDelayMs,
   killStaleDevtools,
@@ -141,17 +256,29 @@ async function launchMiniProgramWithRetry({
 
     const launchStartedAt = Date.now();
     try {
-      const miniProgram = await automator.launch(launchOptions);
+      const launched = await launchMiniProgramViaCliAuto({
+        cliPath,
+        projectPath,
+        preferredPort,
+        timeoutMs,
+        trustProject: true,
+      });
       const processAfter = getWechatDevtoolsProcessCount();
       attempts.push({
         attempt,
         ok: true,
         elapsedMs: Date.now() - launchStartedAt,
+        mode: 'cli-auto-connect',
+        port: launched.port,
+        wsEndpoint: launched.wsEndpoint,
+        connectAttempts: launched.connectAttempts,
+        connectElapsedMs: launched.connectElapsedMs,
+        autoLaunch: launched.autoLaunch,
         devtoolsBefore: processBefore.count,
         devtoolsAfter: processAfter.count,
         killResult,
       });
-      return { miniProgram, attempts };
+      return { miniProgram: launched.miniProgram, attempts };
     } catch (error) {
       const message = safeErrorMessage(error);
       const processAfter = getWechatDevtoolsProcessCount();
@@ -161,13 +288,14 @@ async function launchMiniProgramWithRetry({
         ok: false,
         elapsedMs: Date.now() - launchStartedAt,
         error: message,
+        mode: 'cli-auto-connect',
         devtoolsBefore: processBefore.count,
         devtoolsAfter: processAfter.count,
         killResult,
       });
 
       console.error(`[weapp-route-smoke] launch attempt ${attempt}/${launchRetries} failed: ${message}`);
-      if (isLaunchPortError(message)) {
+      if (isLaunchPortError(message) || isConnectModeError(message)) {
         console.error(
           '[weapp-route-smoke] hint: close stale WeChat DevTools windows or rerun with --kill-stale-devtools to auto-clean lingering processes.',
         );
@@ -324,6 +452,7 @@ function printHelp() {
       '  --out-file     Output JSON file (default: .tmp/weapp-route-smoke-<date>.json).',
       '  --wait-ms      Extra wait after each route change (default: 2000).',
       '  --timeout-ms   DevTools launch timeout (default: 120000).',
+      '  --port         Preferred IDE automation port for cli auto/connect fallback.',
       '  --launch-retries     DevTools launch retry count (default: 3).',
       '  --launch-retry-delay-ms  Delay between launch retries in ms (default: 4000).',
       '  --kill-stale-devtools    Auto kill lingering wechatdevtools.exe before each launch attempt (Windows only).',
@@ -347,6 +476,7 @@ async function main() {
   const projectPath = path.resolve(repoRoot, String(args['project-path'] || 'apps/client'));
   const waitMs = parsePositiveInt(args['wait-ms'], 2000, 200);
   const timeoutMs = parsePositiveInt(args['timeout-ms'], 120_000, 5000);
+  const preferredPort = parsePositiveInt(args.port, 9420, 1);
   const launchRetries = parsePositiveInt(args['launch-retries'], 3, 1);
   const launchRetryDelayMs = parsePositiveInt(args['launch-retry-delay-ms'], 4000, 0);
   const killStaleDevtools = Boolean(args['kill-stale-devtools']);
@@ -374,13 +504,8 @@ async function main() {
   ensureDir(path.dirname(outFile));
   const startedAt = Date.now();
 
-  // miniprogram-automator spawns cliPath directly; on newer Node versions, spawning .bat may fail.
-  // Workaround: wrap via cmd.exe when cliPath is a .bat on Windows.
-  const isWindows = process.platform === 'win32';
-  const launchCliPath = isWindows && cliPathResolved.toLowerCase().endsWith('.bat') ? 'cmd' : cliPathResolved;
-  const launchArgs = isWindows && cliPathResolved.toLowerCase().endsWith('.bat') ? ['/c', cliPathResolved] : [];
   console.log(
-    `[weapp-route-smoke] preflight project=${projectPath} cli=${cliPathResolved} timeoutMs=${timeoutMs} launchRetries=${launchRetries} killStale=${killStaleDevtools}`,
+    `[weapp-route-smoke] preflight project=${projectPath} cli=${cliPathResolved} timeoutMs=${timeoutMs} port=${preferredPort} launchRetries=${launchRetries} killStale=${killStaleDevtools}`,
   );
 
   const exceptions = [];
@@ -389,13 +514,10 @@ async function main() {
   let miniProgram = null;
   try {
     const launched = await launchMiniProgramWithRetry({
-      launchOptions: {
-        cliPath: launchCliPath,
-        args: launchArgs,
-        projectPath,
-        timeout: timeoutMs,
-        trustProject: true,
-      },
+      cliPath: cliPathResolved,
+      projectPath,
+      timeoutMs,
+      preferredPort,
       launchRetries,
       launchRetryDelayMs,
       killStaleDevtools,
@@ -413,6 +535,7 @@ async function main() {
         scenario,
         noAuth,
         projectPath,
+        port: preferredPort,
         launchRetries,
         launchRetryDelayMs,
         killStaleDevtools,
@@ -530,6 +653,7 @@ async function main() {
       scenario,
       noAuth,
       projectPath,
+      port: preferredPort,
       launchRetries,
       launchRetryDelayMs,
       killStaleDevtools,

@@ -31,6 +31,13 @@ export class ConversationsController {
   }
 
   @UseGuards(BearerAuthGuard)
+  @Get('/me/conversations/:conversationId')
+  async getMineConversation(@Req() req: any, @Param('conversationId') conversationId: string) {
+    const normalizedConversationId = this.parseUuidParam(conversationId, 'conversationId');
+    return await this.conversations.getMineConversation(req, normalizedConversationId);
+  }
+
+  @UseGuards(BearerAuthGuard)
   @Post('/listings/:listingId/conversations')
   async createListingConversation(@Req() req: any, @Param('listingId') listingId: string) {
     const normalizedListingId = this.parseUuidParam(listingId, 'listingId');

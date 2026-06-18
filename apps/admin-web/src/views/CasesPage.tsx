@@ -186,7 +186,7 @@ export function CasesPage() {
       const next: RbacUser[] = (Array.isArray(usersRes?.items) ? usersRes.items : []).flatMap((raw) => {
         const id = typeof raw?.id === 'string' ? raw.id : '';
         if (!id) return [];
-        const displayName = typeof raw?.name === 'string' && raw.name.trim().length ? raw.name.trim() : id;
+        const displayName = typeof raw?.name === 'string' && raw.name.trim().length ? raw.name.trim() : '未命名员工';
         return [
           {
             id,
@@ -215,7 +215,9 @@ export function CasesPage() {
   const rows = useMemo(() => data?.items || [], [data?.items]);
   const formatAssigneeLabel = useCallback(
     (user: RbacUser, separator = ' / ') => {
-      const roles = normalizeStringArray(user.roleIds).map((roleId) => roleNameMap[roleId] || roleId);
+      const roles = normalizeStringArray(user.roleIds)
+        .map((roleId) => roleNameMap[roleId] || '')
+        .filter((roleName) => roleName.length > 0);
       return roles.length ? `${user.name}（${roles.join(separator)}）` : user.name;
     },
     [roleNameMap],
@@ -336,11 +338,26 @@ export function CasesPage() {
             },
           }}
           columns={[
-            { title: '工单号', dataIndex: 'id' },
-            { title: '类型', dataIndex: 'type', render: (value) => caseTypeLabel(value) },
-            { title: '标题', dataIndex: 'title', render: (value) => normalizeUserFacingText(value) || '未命名工单' },
+            {
+              title: '工单摘要',
+              key: 'summary',
+              width: 360,
+              render: (_, row) => (
+                <Space direction="vertical" size={2}>
+                  <Typography.Text>{normalizeUserFacingText(row.title) || '工单主题待确认'}</Typography.Text>
+                  <Typography.Text type="secondary">
+                    类型：{caseTypeLabel(row.type)} · 发起人：{displayCaseText(row.requesterName, '待确认')}
+                  </Typography.Text>
+                  <Typography.Text type="secondary">
+                    {normalizeUserFacingText(row.orderId) ? `关联订单：${displayCaseText(row.orderId)}` : '未关联订单'}
+                  </Typography.Text>
+                  <Typography.Text type="secondary" copyable={{ text: row.id }}>
+                    工单号：{row.id}
+                  </Typography.Text>
+                </Space>
+              ),
+            },
             { title: '状态', dataIndex: 'status', render: (_, r) => statusTag(r.status) },
-            { title: '订单号', dataIndex: 'orderId', render: (v) => displayCaseText(v) },
             { title: '跟单客服', dataIndex: 'assigneeName', render: (v) => displayCaseText(v) },
             {
               title: 'SLA',
@@ -426,8 +443,8 @@ export function CasesPage() {
             <Form.Item label="发起人" name="requesterName">
               <Input placeholder="留空则不设置发起人名称" />
             </Form.Item>
-            <Form.Item label="关联订单ID" name="orderId">
-              <Input placeholder="订单ID（可选）" />
+            <Form.Item label="关联订单编号" name="orderId">
+              <Input placeholder="订单编号（可选）" />
             </Form.Item>
             <Form.Item label="跟单客服" name="assigneeId">
               <Select
@@ -438,8 +455,8 @@ export function CasesPage() {
                 placeholder="可选"
               />
             </Form.Item>
-            <Form.Item label="SLA 截止（ISO）" name="dueAt">
-              <Input placeholder="YYYY-MM-DD 或 YYYY-MM-DDTHH:mm:ss" />
+            <Form.Item label="SLA 截止时间" name="dueAt">
+              <Input placeholder="例如 2026-02-20 或 2026-02-20T00:00:00Z" />
             </Form.Item>
             <Form.Item label="描述" name="description">
               <Input.TextArea rows={3} placeholder="问题描述/处理要点" />
@@ -475,9 +492,9 @@ export function CasesPage() {
               <Descriptions.Item label="工单号">{detail.id}</Descriptions.Item>
               <Descriptions.Item label="类型">{caseTypeLabel(detail.type)}</Descriptions.Item>
               <Descriptions.Item label="状态">{statusTag(detail.status)}</Descriptions.Item>
-              <Descriptions.Item label="订单号">{displayCaseText(detail.orderId)}</Descriptions.Item>
-              <Descriptions.Item label="发起人">{displayCaseText(detail.requesterName)}</Descriptions.Item>
-              <Descriptions.Item label="跟单客服">{displayCaseText(detail.assigneeName)}</Descriptions.Item>
+              <Descriptions.Item label="关联订单">{displayCaseText(detail.orderId, '未关联订单')}</Descriptions.Item>
+              <Descriptions.Item label="发起人">{displayCaseText(detail.requesterName, '待确认')}</Descriptions.Item>
+              <Descriptions.Item label="跟单客服">{displayCaseText(detail.assigneeName, '待分配')}</Descriptions.Item>
               <Descriptions.Item label="优先级">{priorityLabel(detail.priority)}</Descriptions.Item>
               <Descriptions.Item label="创建时间">{formatTimeSmart(detail.createdAt)}</Descriptions.Item>
               <Descriptions.Item label="SLA 截止">
@@ -497,7 +514,7 @@ export function CasesPage() {
             <div>
               <Typography.Text strong>描述</Typography.Text>
               <Typography.Paragraph type="secondary" style={{ marginTop: 8 }}>
-                {normalizeUserFacingText(detail.description) || '暂无描述'}
+                {normalizeUserFacingText(detail.description) || '暂无处理说明'}
               </Typography.Paragraph>
             </div>
 
@@ -561,7 +578,7 @@ export function CasesPage() {
                   value={slaDueAt}
                   onChange={(e) => setSlaDueAt(e.target.value)}
                   style={{ width: 280 }}
-                  placeholder="ISO8601（例：2026-02-20T00:00:00Z）"
+                  placeholder="例如 2026-02-20T00:00:00Z"
                 />
                 <Button
                   onClick={async () => {
@@ -671,13 +688,13 @@ export function CasesPage() {
                 {(detail.evidenceFiles || []).map((file) => (
                   <Card key={file.id} size="small">
                     <Space direction="vertical" size={4}>
-                      <Typography.Text>{displayCaseText(file.name, '附件待补充')}</Typography.Text>
+                      <Typography.Text>{displayCaseText(file.name, '附件信息待确认')}</Typography.Text>
                       {file.url ? (
                         <a href={file.url} target="_blank" rel="noreferrer">
                           查看附件
                         </a>
                       ) : (
-                        <Typography.Text type="secondary">{file.id}</Typography.Text>
+                        <Typography.Text type="secondary">附件已上传，暂未生成访问链接</Typography.Text>
                       )}
                     </Space>
                   </Card>
@@ -787,9 +804,9 @@ export function CasesPage() {
               <Space direction="vertical" size={8} style={{ width: '100%', marginTop: 12 }}>
                 {(detail.notes || []).map((note) => (
                   <Card key={note.id} size="small">
-                    <Typography.Text strong>{displayCaseText(note.authorName)}</Typography.Text>
+                    <Typography.Text strong>{displayCaseText(note.authorName, '平台同事')}</Typography.Text>
                     <Typography.Paragraph style={{ marginBottom: 4 }}>
-                      {displayCaseText(note.content, '未填写')}
+                      {displayCaseText(note.content, '暂无备注')}
                     </Typography.Paragraph>
                     <Typography.Text type="secondary">{formatTimeSmart(note.createdAt)}</Typography.Text>
                   </Card>
@@ -798,7 +815,7 @@ export function CasesPage() {
             </div>
           </Space>
         ) : (
-          <Typography.Text type="secondary">暂无可展示的工单详情。</Typography.Text>
+          <Typography.Text type="secondary">暂未获取到工单详情。</Typography.Text>
         )}
       </Drawer>
     </Card>

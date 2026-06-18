@@ -131,7 +131,7 @@ export default function NotificationDetailPage() {
   const showInitialLoading = loading && !item;
   const display = item ? normalizeNotificationDisplay(item) : null;
   const titleText = normalizeDisplayText(display?.title) || normalizeDisplayText(item?.title) || TEXT.title;
-  const sourceText = displayInfoOrPlaceholder(display?.source || item?.source, '来源待补充');
+  const sourceText = displayInfoOrPlaceholder(display?.source || item?.source, '平台通知');
   const summaryText = displayInfoOrPlaceholder(display?.summary || item?.summary, TEXT.noSummary);
 
   return (

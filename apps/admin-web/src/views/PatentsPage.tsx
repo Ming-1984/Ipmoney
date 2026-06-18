@@ -1,9 +1,10 @@
 ﻿import { Button, Card, Form, Input, Modal, Select, Space, Table, Tag, Typography, message } from 'antd';
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 import { apiGet, apiPatch, apiPost } from '../lib/api';
 import { formatTimeSmart } from '../lib/format';
+import { displayAdminInfo, displayAdminTitle, normalizeUserFacingText } from '../lib/userFacingText';
 import { RequestErrorAlert } from '../ui/RequestState';
 import { confirmActionWithReason } from '../ui/confirm';
 
@@ -82,7 +83,7 @@ const legalStatusOptions: Array<{ value: LegalStatus | ''; label: string }> = [
   { value: 'GRANTED', label: '已授权' },
   { value: 'EXPIRED', label: '已失效' },
   { value: 'INVALIDATED', label: '已无效' },
-  { value: 'UNKNOWN', label: '未知' },
+  { value: 'UNKNOWN', label: '状态待确认' },
 ];
 
 const sourcePrimaryOptions: Array<{ value: SourcePrimary; label: string }> = [
@@ -90,6 +91,20 @@ const sourcePrimaryOptions: Array<{ value: SourcePrimary; label: string }> = [
   { value: 'USER', label: '用户上传' },
   { value: 'PROVIDER', label: '外部数据源' },
 ];
+
+function sourcePrimaryLabel(value?: SourcePrimary | null): string {
+  if (value === 'ADMIN') return '后台录入';
+  if (value === 'USER') return '用户上传';
+  if (value === 'PROVIDER') return '外部数据源';
+  return '来源待确认';
+}
+
+function patentNormalizeInputTypeLabel(value?: PatentNormalizeResponse['inputType'] | null): string {
+  if (value === 'APPLICATION_NO') return '申请号';
+  if (value === 'PATENT_NO') return '专利号';
+  if (value === 'PUBLICATION_NO') return '公开号';
+  return '号码类型待确认';
+}
 
 function parseNames(text?: string): string[] {
   const values = String(text || '')
@@ -114,7 +129,7 @@ function legalStatusTag(value?: LegalStatus) {
   if (value === 'PENDING') return <Tag color="gold">审查中</Tag>;
   if (value === 'EXPIRED') return <Tag color="default">已失效</Tag>;
   if (value === 'INVALIDATED') return <Tag color="red">已无效</Tag>;
-  if (value === 'UNKNOWN') return <Tag>未知</Tag>;
+  if (value === 'UNKNOWN') return <Tag>状态待确认</Tag>;
   return <Typography.Text type="secondary">-</Typography.Text>;
 }
 
@@ -140,8 +155,12 @@ export function PatentsPage() {
   const [submitting, setSubmitting] = useState(false);
   const [normalizeResult, setNormalizeResult] = useState<PatentNormalizeResponse | null>(null);
   const [form] = Form.useForm<PatentFormValues>();
+  const loadSeqRef = useRef(0);
+  const detailSeqRef = useRef(0);
+  const editingPatentIdRef = useRef<string | null>(null);
 
   const load = useCallback(async () => {
+    const seq = ++loadSeqRef.current;
     setLoading(true);
     setError(null);
     try {
@@ -153,12 +172,15 @@ export function PatentsPage() {
         page,
         pageSize: 20,
       });
+      if (seq !== loadSeqRef.current) return;
       setData(d);
     } catch (e: any) {
+      if (seq !== loadSeqRef.current) return;
       setError(e);
       setData(null);
       message.error(e?.message || '加载失败');
     } finally {
+      if (seq !== loadSeqRef.current) return;
       setLoading(false);
     }
   }, [appliedLegalStatus, appliedPatentType, appliedQ, appliedSourcePrimary, page]);
@@ -190,6 +212,8 @@ export function PatentsPage() {
   const rows = useMemo(() => data?.items || [], [data?.items]);
 
   const openCreate = useCallback(() => {
+    detailSeqRef.current += 1;
+    editingPatentIdRef.current = null;
     setModalMode('create');
     setEditingPatentId(null);
     setNormalizeResult(null);
@@ -200,13 +224,17 @@ export function PatentsPage() {
 
   const openEdit = useCallback(
     async (patentId: string) => {
+      const seq = ++detailSeqRef.current;
+      editingPatentIdRef.current = patentId;
       setModalMode('edit');
       setEditingPatentId(patentId);
       setNormalizeResult(null);
-      setModalOpen(true);
+      form.resetFields();
       setDetailLoading(true);
+      setModalOpen(true);
       try {
         const detail = await apiGet<Patent>(`/admin/patents/${patentId}`);
+        if (seq !== detailSeqRef.current || editingPatentIdRef.current !== patentId) return;
         form.setFieldsValue({
           applicationNoDisplay: detail.applicationNoDisplay || '',
           patentType: detail.patentType,
@@ -223,9 +251,11 @@ export function PatentsPage() {
           applicantNamesText: namesToText(detail.applicantNames),
         });
       } catch (e: any) {
+        if (seq !== detailSeqRef.current || editingPatentIdRef.current !== patentId) return;
         message.error(e?.message || '加载专利详情失败');
         setModalOpen(false);
       } finally {
+        if (seq !== detailSeqRef.current || editingPatentIdRef.current !== patentId) return;
         setDetailLoading(false);
       }
     },
@@ -318,22 +348,29 @@ export function PatentsPage() {
           return;
         }
 
+        const applicationNoDisplay = String(values.applicationNoDisplay || '').trim();
+        const abstractText = String(values.abstract || '').trim();
+        const filingDate = String(values.filingDate || '').trim();
+        const publicationDate = String(values.publicationDate || '').trim();
+        const grantDate = String(values.grantDate || '').trim();
+        const sourceUpdatedAt = String(values.sourceUpdatedAt || '').trim();
+
         const payload: Record<string, unknown> = {
-          applicationNoDisplay: String(values.applicationNoDisplay || '').trim(),
+          applicationNoDisplay: applicationNoDisplay || null,
           patentType: values.patentType,
           title: String(values.title || '').trim(),
-          abstract: String(values.abstract || '').trim(),
-          filingDate: String(values.filingDate || '').trim(),
-          publicationDate: String(values.publicationDate || '').trim(),
-          grantDate: String(values.grantDate || '').trim(),
-          legalStatus: values.legalStatus || '',
-          sourceUpdatedAt: String(values.sourceUpdatedAt || '').trim(),
+          abstract: abstractText || null,
+          filingDate: filingDate || null,
+          publicationDate: publicationDate || null,
+          grantDate: grantDate || null,
+          legalStatus: values.legalStatus || null,
+          sourceUpdatedAt: sourceUpdatedAt || null,
           inventorNames: parseNames(values.inventorNamesText),
           assigneeNames: parseNames(values.assigneeNamesText),
           applicantNames: parseNames(values.applicantNamesText),
         };
 
-        if (values.sourcePrimary) payload.sourcePrimary = values.sourcePrimary;
+        payload.sourcePrimary = values.sourcePrimary || null;
 
         const { ok, reason } = await confirmActionWithReason({
           title: '确认更新专利主数据？',
@@ -436,8 +473,8 @@ export function PatentsPage() {
               ellipsis: true,
               render: (v: string, row: Patent) => (
                 <Space direction="vertical" size={2}>
-                  <Typography.Text>{v}</Typography.Text>
-                  <Typography.Text type="secondary">{row.applicationNoDisplay || row.applicationNoNorm}</Typography.Text>
+                  <Typography.Text>{displayAdminTitle(v, '未命名专利')}</Typography.Text>
+                  <Typography.Text type="secondary">{displayAdminInfo(row.applicationNoDisplay || row.applicationNoNorm)}</Typography.Text>
                 </Space>
               ),
             },
@@ -471,6 +508,12 @@ export function PatentsPage() {
               render: (v: string) => formatTimeSmart(v),
             },
             {
+              title: '来源',
+              dataIndex: 'sourcePrimary',
+              width: 120,
+              render: (v?: SourcePrimary) => sourcePrimaryLabel(v),
+            },
+            {
               title: '操作',
               key: 'actions',
               width: 120,
@@ -487,7 +530,11 @@ export function PatentsPage() {
       <Modal
         title={modalMode === 'create' ? '新建专利主数据' : '编辑专利主数据'}
         open={modalOpen}
-        onCancel={() => setModalOpen(false)}
+        onCancel={() => {
+          detailSeqRef.current += 1;
+          editingPatentIdRef.current = null;
+          setModalOpen(false);
+        }}
         onOk={() => void handleSubmit()}
         okText={modalMode === 'create' ? '创建' : '保存'}
         confirmLoading={submitting}
@@ -498,9 +545,9 @@ export function PatentsPage() {
           {modalMode === 'create' ? (
             <>
               <Form.Item
-                label="申请号（规范号）"
+                label="申请号（标准格式）"
                 name="applicationNoNorm"
-                rules={[{ required: true, message: '请输入申请号（规范号）' }]}
+                rules={[{ required: true, message: '请输入申请号（标准格式）' }]}
               >
                 <Input placeholder="如：2023113409720" />
               </Form.Item>
@@ -508,8 +555,8 @@ export function PatentsPage() {
                 <Button onClick={() => void handleNormalize()}>号码规范化</Button>
                 {normalizeResult?.inputType ? (
                   <Typography.Text type="secondary">
-                    识别类型：{normalizeResult.inputType}
-                    {normalizeResult.kindCode ? `（kindCode=${normalizeResult.kindCode}）` : ''}
+                    识别类型：{patentNormalizeInputTypeLabel(normalizeResult.inputType)}
+                    {normalizeResult.kindCode ? `（分类代码 ${normalizeResult.kindCode}）` : ''}
                   </Typography.Text>
                 ) : null}
               </Space>
@@ -557,7 +604,7 @@ export function PatentsPage() {
             </Form.Item>
           </Space>
 
-          <Form.Item label="来源更新时间（ISO8601）" name="sourceUpdatedAt">
+          <Form.Item label="来源更新时间" name="sourceUpdatedAt">
             <Input placeholder="如：2026-02-16T10:00:00Z（可选）" />
           </Form.Item>
 

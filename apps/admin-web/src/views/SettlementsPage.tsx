@@ -23,6 +23,24 @@ type Settlement = {
   updatedAt?: string;
 };
 
+function payoutMethodLabel(value?: Settlement['payoutMethod']): string {
+  if (value === 'MANUAL') return '线下打款';
+  if (value === 'WECHAT') return '微信打款';
+  return '待确认';
+}
+
+function payoutStatusLabel(value?: Settlement['payoutStatus']): string {
+  if (value === 'PENDING') return '待放款';
+  if (value === 'SUCCEEDED') return '已放款';
+  if (value === 'FAILED') return '放款失败';
+  return '待确认';
+}
+
+function settlementSummaryText(settlement?: Settlement | null): string {
+  if (!settlement) return '结算信息待确认';
+  return `订单号：${displayAdminInfo(settlement.orderId)} · 应放款：¥${fenToYuan(settlement.payoutAmountFen)}`;
+}
+
 const TEXT = {
   title: '\u653e\u6b3e/\u7ed3\u7b97',
   subtitle: '\u8d22\u52a1\u7ebf\u4e0b\u6253\u6b3e\uff0c\u5e73\u53f0\u5185\u786e\u8ba4\u5e76\u4e0a\u4f20\u51ed\u8bc1\u7559\u75d5\u3002',
@@ -39,14 +57,14 @@ const TEXT = {
   payoutAmount: '\u5e94\u653e\u6b3e',
   payoutMethod: '\u653e\u6b3e\u65b9\u5f0f',
   payoutStatus: '\u653e\u6b3e\u72b6\u6001',
-  payoutEvidenceFileId: '\u653e\u6b3e\u51ed\u8bc1\u6587\u4ef6 ID',
+  payoutEvidenceFileId: '\u653e\u6b3e\u51ed\u8bc1\u72b6\u6001',
   payoutRef: '\u653e\u6b3e\u6d41\u6c34\u53f7/\u5907\u6ce8',
   payoutAt: '\u653e\u6b3e\u65f6\u95f4',
   emptyPrompt: '\u6682\u65e0\u53f0\u8d26\u6570\u636e\uff0c\u8bf7\u8f93\u5165\u8ba2\u5355\u53f7\u540e\u52a0\u8f7d\u3002',
   payoutCardTitle: '\u8d22\u52a1\u653e\u6b3e\u786e\u8ba4',
   uploadEvidence: '\u4e0a\u4f20\u653e\u6b3e\u51ed\u8bc1',
   uploadFailed: '\u4e0a\u4f20\u5931\u8d25',
-  uploadedPrefix: '\u5df2\u4e0a\u4f20\uff1a',
+  uploadedPrefix: '\u5df2\u4e0a\u4f20\u653e\u6b3e\u51ed\u8bc1',
   noUploadedFile: '\u672a\u4e0a\u4f20',
   payoutRefPlaceholder: '\u653e\u6b3e\u6d41\u6c34\u53f7\uff08\u53ef\u9009\uff09',
   remarkPlaceholder: '\u5907\u6ce8\uff08\u53ef\u9009\uff09',
@@ -173,14 +191,25 @@ export function SettlementsPage() {
 
         {settlement ? (
           <Descriptions bordered size="small" column={2}>
-            <Descriptions.Item label={TEXT.settlementId}>{settlement.id}</Descriptions.Item>
-            <Descriptions.Item label={TEXT.orderId}>{settlement.orderId}</Descriptions.Item>
+            <Descriptions.Item label="结算摘要" span={2}>
+              <Space direction="vertical" size={2}>
+                <Typography.Text strong>{settlementSummaryText(settlement)}</Typography.Text>
+                <Typography.Text type="secondary">
+                  放款方式：{payoutMethodLabel(settlement.payoutMethod)} · 放款状态：{payoutStatusLabel(settlement.payoutStatus)}
+                </Typography.Text>
+                <Typography.Text type="secondary" copyable={{ text: settlement.id }}>
+                  结算单号：{settlement.id}
+                </Typography.Text>
+              </Space>
+            </Descriptions.Item>
             <Descriptions.Item label={TEXT.grossAmount}>\u00a5{fenToYuan(settlement.grossAmountFen)}</Descriptions.Item>
             <Descriptions.Item label={TEXT.commissionAmount}>\u00a5{fenToYuan(settlement.commissionAmountFen)}</Descriptions.Item>
             <Descriptions.Item label={TEXT.payoutAmount}>\u00a5{fenToYuan(settlement.payoutAmountFen)}</Descriptions.Item>
-            <Descriptions.Item label={TEXT.payoutMethod}>{displayAdminInfo(settlement.payoutMethod)}</Descriptions.Item>
-            <Descriptions.Item label={TEXT.payoutStatus}>{settlement.payoutStatus}</Descriptions.Item>
-            <Descriptions.Item label={TEXT.payoutEvidenceFileId}>{displayAdminInfo(settlement.payoutEvidenceFileId)}</Descriptions.Item>
+            <Descriptions.Item label={TEXT.payoutMethod}>{payoutMethodLabel(settlement.payoutMethod)}</Descriptions.Item>
+            <Descriptions.Item label={TEXT.payoutStatus}>{payoutStatusLabel(settlement.payoutStatus)}</Descriptions.Item>
+            <Descriptions.Item label={TEXT.payoutEvidenceFileId}>
+              {settlement.payoutEvidenceFileId ? TEXT.uploadedPrefix : TEXT.noUploadedFile}
+            </Descriptions.Item>
             <Descriptions.Item label={TEXT.payoutRef}>{displayAdminInfo(settlement.payoutRef)}</Descriptions.Item>
             <Descriptions.Item label={TEXT.payoutAt}>{settlement.payoutAt ? formatTimeSmart(settlement.payoutAt) : '-'}</Descriptions.Item>
           </Descriptions>
@@ -214,9 +243,7 @@ export function SettlementsPage() {
                 <Button>{TEXT.uploadEvidence}</Button>
               </Upload>
 
-              <Typography.Text type="secondary">
-                {payoutEvidenceFile ? `${TEXT.uploadedPrefix}${payoutEvidenceFile.id}` : TEXT.noUploadedFile}
-              </Typography.Text>
+              <Typography.Text type="secondary">{payoutEvidenceFile ? TEXT.uploadedPrefix : TEXT.noUploadedFile}</Typography.Text>
             </Space>
 
             <Space wrap>

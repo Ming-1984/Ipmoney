@@ -541,7 +541,7 @@ export default function SearchPage() {
 
   const achievementFilterLabels = useMemo(() => {
     const out: string[] = [];
-    const maturityLabel = achievementMaturityLabel(achievementFilters.maturity);
+    const maturityLabel = achievementMaturityLabel(achievementFilters.maturity || undefined);
     if (maturityLabel) out.push(maturityLabel);
     const regionLabel = regionDisplayName(achievementFilters.regionCode, achievementFilters.regionName, '');
     if (regionLabel) out.push(regionLabel);

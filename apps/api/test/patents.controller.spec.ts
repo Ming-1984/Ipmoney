@@ -101,7 +101,7 @@ describe('PatentsController delegation suite', () => {
       id: VALID_UUID,
       status: 'PENDING',
     });
-    await expect(controller.listMyClaims(userReq, {})).resolves.toEqual({ items: [] });
+    await expect(controller.listMyClaims(userReq, { patentId: VALID_UUID })).resolves.toEqual({ items: [] });
     await expect(controller.adminListClaims(adminReq, {})).resolves.toEqual({ items: [] });
     await expect(controller.approveClaim(adminReq, ` ${VALID_UUID} `, {})).resolves.toMatchObject({
       id: VALID_UUID,
@@ -111,6 +111,8 @@ describe('PatentsController delegation suite', () => {
       id: VALID_UUID,
       status: 'REJECTED',
     });
+
+    expect(patents.listMyClaims).toHaveBeenCalledWith(userReq, { patentId: VALID_UUID });
 
     const noPermReq: any = { auth: { isAdmin: true, permissions: new Set(['listing.read']) } };
     await expect(controller.adminListClaims(noPermReq, {})).rejects.toBeInstanceOf(ForbiddenException);

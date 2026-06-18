@@ -8,7 +8,7 @@ import type { components } from '@ipmoney/api-types';
 import { API_BASE_URL } from '../../constants';
 import { getToken } from '../../lib/auth';
 import { apiGet, apiPost } from '../../lib/api';
-import { displayInfoOrPlaceholder, normalizeDisplayText } from '../../lib/displayText';
+import { displayInfoOrPlaceholder, displayTitleWithSecondary, normalizeDisplayText } from '../../lib/displayText';
 import { ensureApproved, usePageAccess } from '../../lib/guard';
 import { useRouteStringParam, useRouteUuidParam } from '../../lib/routeParams';
 import { usePagedList } from '../../lib/usePagedList';
@@ -35,6 +35,10 @@ type UploadedEvidence = Pick<FileObject, 'id'> &
 
 type ClaimStatusFilter = '' | PatentClaimStatus;
 
+function evidenceFileDisplayText(file: UploadedEvidence): string {
+  return normalizeDisplayText(file.fileName) || normalizeDisplayText(file.mimeType) || '已上传材料';
+}
+
 const MAX_EVIDENCE_COUNT = 6;
 const CLAIM_STATUS_OPTIONS: Array<{ value: ClaimStatusFilter; label: string }> = [
   { value: '', label: '全部' },
@@ -60,7 +64,7 @@ function sourcePrimaryLabel(value?: Patent['sourcePrimary']): string {
   if (value === 'ADMIN') return '平台统一发布';
   if (value === 'PROVIDER') return '平台数据导入';
   if (value === 'USER') return '用户自主发布';
-  return '来源待补充';
+  return '来源待确认';
 }
 
 function isPlatformUnifiedPatent(patent?: Patent | null): boolean {
@@ -310,7 +314,9 @@ export default function PatentClaimsPage() {
   const subtitle = claimMode
     ? '上传权属证明并提交审核，审核通过后会同步归属与咨询路由。'
     : '查看你的专利认领申请状态与审核意见。';
-  const modeTitle = patent?.title || patentTitleFromRoute || patentId;
+  const modeTitle = displayTitleWithSecondary(patent?.title, '待认领专利', {
+    secondary: patent?.applicationNoDisplay || patent?.applicationNoNorm || patentTitleFromRoute,
+  });
   const showInitialLoading = loading && items.length === 0;
 
   return (
@@ -336,7 +342,7 @@ export default function PatentClaimsPage() {
                       {patent.ownerUserId ? <Text className="claim-target-pill is-owner">已归属个人</Text> : null}
                     </View>
                     <Text className="claim-target-number">
-                      申请号：{displayInfoOrPlaceholder(patent.applicationNoDisplay || patent.applicationNoNorm, '待补充')}
+                      申请号：{displayInfoOrPlaceholder(patent.applicationNoDisplay || patent.applicationNoNorm, '待确认')}
                     </Text>
                     {disabledReason ? (
                       <TipBanner tone="warning" title={disabledReason}>
@@ -381,7 +387,7 @@ export default function PatentClaimsPage() {
                           <View key={file.id} className="claim-evidence-item">
                             <View className="claim-evidence-main">
                               <Text className="claim-evidence-name">材料 {idx + 1}</Text>
-                              <Text className="claim-evidence-desc">{file.fileName || file.mimeType || file.id}</Text>
+                              <Text className="claim-evidence-desc">{evidenceFileDisplayText(file)}</Text>
                             </View>
                             <Text className="claim-evidence-remove" onClick={() => void removeEvidence(file.id)}>
                               删除
@@ -421,17 +427,17 @@ export default function PatentClaimsPage() {
                 {items.map((item) => (
                   <Surface key={item.id} className="claim-record-card">
                     <View className="claim-record-head">
-                      <Text className="claim-record-id">认领单 #{item.id.slice(0, 8)}</Text>
+                      <Text className="claim-record-id">认领申请记录</Text>
                       <Text className={`claim-status ${claimStatusClass(item.status)}`}>{claimStatusLabel(item.status)}</Text>
                     </View>
                     <View className="claim-record-row">
-                      <Text className="claim-record-label">专利 ID</Text>
-                      <Text className="claim-record-value">{item.patentId}</Text>
+                      <Text className="claim-record-label">关联专利</Text>
+                      <Text className="claim-record-value">可在下方查看专利详情</Text>
                     </View>
                     <View className="claim-record-row">
                       <Text className="claim-record-label">提交时间</Text>
                       <Text className="claim-record-value">
-                        {displayInfoOrPlaceholder(item.submittedAt?.slice(0, 19).replace('T', ' '), '待补充')}
+                        {displayInfoOrPlaceholder(item.submittedAt?.slice(0, 19).replace('T', ' '), '待确认')}
                       </Text>
                     </View>
                     {normalizeDisplayText(item.claimReason) ? (

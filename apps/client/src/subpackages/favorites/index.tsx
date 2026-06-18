@@ -1,5 +1,5 @@
 ﻿import { View } from '@tarojs/components';
-import Taro from '@tarojs/taro';
+import Taro, { useDidHide, useDidShow } from '@tarojs/taro';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import './index.scss';
 
@@ -26,7 +26,18 @@ type Conversation = { id: string };
 export default function FavoritesPage() {
   const loadedOnceRef = useRef(false);
   const initialLoadRef = useRef({ LISTING: false, ACHIEVEMENT: false });
+  const pageVisibleRef = useRef(true);
+  const consultSeqRef = useRef(0);
   const [tab, setTab] = useState<'LISTING' | 'ACHIEVEMENT'>('LISTING');
+
+  useDidShow(() => {
+    pageVisibleRef.current = true;
+  });
+
+  useDidHide(() => {
+    pageVisibleRef.current = false;
+    consultSeqRef.current += 1;
+  });
   const listingList = usePagedList<ListingSummary>(
     useCallback(async ({ page, pageSize }: { page: number; pageSize: number }) => listFavorites(page, pageSize), []),
     {
@@ -77,6 +88,7 @@ export default function FavoritesPage() {
 
   const startConsult = useCallback(async (listingId: string) => {
     if (!ensureApproved()) return;
+    const seq = ++consultSeqRef.current;
     try {
       await apiPost<void>(`/listings/${listingId}/consultations`, { channel: 'FORM' }, { idempotencyKey: `c-${listingId}` });
     } catch (_) {
@@ -88,8 +100,10 @@ export default function FavoritesPage() {
         {},
         { idempotencyKey: `conv-${listingId}` },
       );
+      if (seq !== consultSeqRef.current || !pageVisibleRef.current) return;
       Taro.navigateTo({ url: `/subpackages/messages/chat/index?conversationId=${conv.id}` });
     } catch (e: any) {
+      if (seq !== consultSeqRef.current || !pageVisibleRef.current) return;
       toast(e?.message || '进入咨询失败');
     }
   }, []);

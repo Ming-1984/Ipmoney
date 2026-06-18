@@ -42,7 +42,7 @@ type ExecuteSection = PreviewSection & {
 };
 
 type RegionRecord = { code: string; name: string };
-type WorkbookRow = { rowNo: number; cols: string[] };
+type WorkbookRow = { rowNo: number; cols: string[]; byHeader: Record<string, string> };
 type WorkbookRows = { headers: string[]; rows: WorkbookRow[] };
 type RegionMatchers = { exactNameToCode: Map<string, string>; fuzzyList: Array<{ name: string; code: string }> };
 
@@ -53,6 +53,20 @@ const SAMPLE_ERROR_LIMIT = 30;
 const DEFAULT_SOURCE_BATCH = 'people-achievements-manual';
 const ACTION_PREVIEW = 'BULK_IMPORT_PREVIEW';
 const ACTION_EXECUTE = 'BULK_IMPORT_EXECUTE';
+const PEOPLE_HEADER_ALIASES = {
+  name: ['name', 'displayName', 'fullName', '姓名', '名称', '技术经理人'],
+  position: ['position', 'jobTitle', 'title', '职位', '岗位', '职务'],
+  organization: ['organization', 'company', 'institution', '任职单位', '所在机构', '机构', '单位', '公司'],
+  serviceDirections: ['serviceDirections', 'directions', 'expertise', '服务方向', '擅长方向', '服务领域', '方向'],
+  serviceTags: ['serviceTags', 'tags', '服务标签', '标签'],
+  intro: ['intro', 'profile', 'bio', '简介', '个人简介', '介绍'],
+  workHighlights: ['workHighlights', 'highlights', 'experience', '工作亮点', '工作成果', '经历亮点', '亮点'],
+  experienceLabel: ['experienceLabel', 'experienceSummary', 'careerSummary', '从业信息', '从业年限', '从业时间', '从业经验'],
+  levelLabel: ['levelLabel', 'level', 'grade', 'titleLabel', '等级标签', '等级', '级别', '头衔'],
+  contactName: ['contactName', 'contactPerson', '联系人', '联系人姓名'],
+  contactPhone: ['contactPhone', 'phone', 'mobile', 'telephone', '联系电话', '联系人电话', '手机', '手机号', '电话'],
+  photo: ['photo', 'avatar', 'image', '照片', '头像', '图片', '照片路径', '头像路径', '图片路径'],
+} as const;
 const PERSON_NAME_ALIASES = new Map<string, string>([['邓凤桂', '邓韵霖']]);
 
 @Injectable()
@@ -197,6 +211,16 @@ export class BulkImportService {
       .replace(/[\s_\-（）()【】\[\]:：]/g, '');
   }
 
+  private pickWorkbookValue(row: WorkbookRow, aliases: readonly string[]): string | undefined {
+    for (const alias of aliases) {
+      const key = this.normalizeHeaderText(alias);
+      if (Object.prototype.hasOwnProperty.call(row.byHeader, key)) {
+        return row.byHeader[key];
+      }
+    }
+    return undefined;
+  }
+
   private splitTags(raw: unknown): string[] {
     return String(raw || '')
       .split(/[、，,;；|/]+/)
@@ -304,14 +328,17 @@ export class BulkImportService {
   }
 
   private validateTemplateHeaders(kind: WorkbookKind, headers: string[]) {
-    const h1 = headers[0] || '';
-    const h2 = headers[1] || '';
+    const headerSet = new Set(headers.filter(Boolean));
     if (kind === 'PEOPLE') {
-      const nameOk = h1.includes('姓名') || h1.includes('名称');
+      const nameOk = PEOPLE_HEADER_ALIASES.name.some((alias) => headerSet.has(this.normalizeHeaderText(alias)));
       if (!nameOk) throw new BadRequestException({ code: 'BAD_REQUEST', message: 'people template header is invalid' });
       return;
     }
-    const titleOk = h2.includes('成果名称') || h2.includes('名称');
+    const titleOk =
+      headerSet.has(this.normalizeHeaderText('成果名称')) ||
+      headerSet.has(this.normalizeHeaderText('标题')) ||
+      headerSet.has(this.normalizeHeaderText('name')) ||
+      headerSet.has(this.normalizeHeaderText('title'));
     if (!titleOk) throw new BadRequestException({ code: 'BAD_REQUEST', message: 'achievements template header is invalid' });
   }
 
@@ -344,13 +371,16 @@ export class BulkImportService {
     for (let rowNo = 2; rowNo <= sheet.rowCount; rowNo += 1) {
       const row = sheet.getRow(rowNo);
       const cols: string[] = [];
+      const byHeader: Record<string, string> = {};
       let hasValue = false;
       for (let col = 1; col <= 16; col += 1) {
         const value = this.normalizeCell(row.getCell(col).value);
         cols.push(value);
+        const headerKey = headers[col - 1];
+        if (headerKey) byHeader[headerKey] = value;
         if (value) hasValue = true;
       }
-      if (hasValue) rows.push({ rowNo, cols });
+      if (hasValue) rows.push({ rowNo, cols, byHeader });
       if (rows.length > MAX_ROWS) {
         throw new BadRequestException({ code: 'BAD_REQUEST', message: `import rows exceed limit (${MAX_ROWS})` });
       }
@@ -475,11 +505,10 @@ export class BulkImportService {
             this.pushPreviewError(peopleSection.sampleErrors, row.rowNo, '姓名不能为空');
             continue;
           }
-          const workHighlights = this.normalizeText(row.cols[4], 4000);
-          const organization = this.normalizeText(row.cols[2], 200);
-          if (!workHighlights && !organization) {
+          const intro = this.normalizeText(this.pickWorkbookValue(row, PEOPLE_HEADER_ALIASES.intro), 2000);
+          if (!intro) {
             peopleSection.invalidRows += 1;
-            this.pushPreviewError(peopleSection.sampleErrors, row.rowNo, '简介与任职单位至少填写一个');
+            this.pushPreviewError(peopleSection.sampleErrors, row.rowNo, '缺少正式简介字段');
             continue;
           }
           peopleSection.validRows += 1;
@@ -535,24 +564,31 @@ export class BulkImportService {
     result.totalRows = rows.length;
 
     for (const row of rows) {
-      const name = this.normalizePersonName(row.cols[0]);
-      const position = this.normalizePosition(row.cols[1]);
-      const organization = this.normalizeText(row.cols[2], 200);
-      const serviceDirections = this.splitTags(row.cols[3]);
-      const workHighlights = this.normalizeText(row.cols[4], 4000);
-      const photoRaw = row.cols[5];
-      const intro = workHighlights || organization;
+      const name = this.normalizePersonName(this.pickWorkbookValue(row, PEOPLE_HEADER_ALIASES.name) ?? row.cols[0]);
+      const position = this.normalizePosition(this.pickWorkbookValue(row, PEOPLE_HEADER_ALIASES.position) ?? row.cols[1]);
+      const organization = this.normalizeText(
+        this.pickWorkbookValue(row, PEOPLE_HEADER_ALIASES.organization) ?? row.cols[2],
+        200,
+      );
+      const serviceDirections = this.splitTags(
+        this.pickWorkbookValue(row, PEOPLE_HEADER_ALIASES.serviceDirections) ?? row.cols[3],
+      );
+      const serviceTags = this.splitTags(this.pickWorkbookValue(row, PEOPLE_HEADER_ALIASES.serviceTags));
+      const workHighlights = this.normalizeText(
+        this.pickWorkbookValue(row, PEOPLE_HEADER_ALIASES.workHighlights) ?? row.cols[4],
+        4000,
+      );
+      const intro = this.normalizeText(this.pickWorkbookValue(row, PEOPLE_HEADER_ALIASES.intro), 2000);
+      const experienceLabel = this.normalizeText(this.pickWorkbookValue(row, PEOPLE_HEADER_ALIASES.experienceLabel), 100);
+      const levelLabel = this.normalizeText(this.pickWorkbookValue(row, PEOPLE_HEADER_ALIASES.levelLabel), 50);
+      const contactName = this.normalizeText(this.pickWorkbookValue(row, PEOPLE_HEADER_ALIASES.contactName), 50);
+      const contactPhone = this.normalizeText(this.pickWorkbookValue(row, PEOPLE_HEADER_ALIASES.contactPhone), 30);
+      const photoRaw = this.pickWorkbookValue(row, PEOPLE_HEADER_ALIASES.photo) ?? row.cols[5];
 
       if (!name) {
         result.invalidRows += 1;
         result.skipped += 1;
         this.pushPreviewError(result.sampleErrors, row.rowNo, '姓名不能为空');
-        continue;
-      }
-      if (!intro) {
-        result.invalidRows += 1;
-        result.skipped += 1;
-        this.pushPreviewError(result.sampleErrors, row.rowNo, '简介与任职单位至少填写一个');
         continue;
       }
       result.validRows += 1;
@@ -637,8 +673,12 @@ export class BulkImportService {
             position,
             organization,
             serviceDirectionsJson: serviceDirections.length ? serviceDirections : Prisma.DbNull,
-            serviceTagsJson: serviceDirections.length ? serviceDirections : Prisma.DbNull,
+            serviceTagsJson: serviceTags.length ? serviceTags : Prisma.DbNull,
             workHighlights,
+            experienceLabel,
+            levelLabel,
+            contactName,
+            contactPhone,
             ...ratingData,
           },
           update: {
@@ -646,8 +686,12 @@ export class BulkImportService {
             position,
             organization,
             serviceDirectionsJson: serviceDirections.length ? serviceDirections : Prisma.DbNull,
-            serviceTagsJson: serviceDirections.length ? serviceDirections : Prisma.DbNull,
+            serviceTagsJson: serviceTags.length ? serviceTags : Prisma.DbNull,
             workHighlights,
+            experienceLabel,
+            levelLabel,
+            contactName,
+            contactPhone,
             ...ratingData,
           },
         });

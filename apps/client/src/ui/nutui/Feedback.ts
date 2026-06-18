@@ -9,6 +9,14 @@ function normalizeToastContent(content: unknown): string {
   if (content == null) return '';
   if (Array.isArray(content)) return content.map((item) => normalizeToastContent(item)).filter(Boolean).join(' ');
   if (content instanceof Error) return content.message || '操作失败';
+  if (typeof content === 'object') {
+    const payload = content as Record<string, unknown>;
+    const messageLike = [payload.message, payload.msg, payload.title, payload.detail]
+      .map((item) => (typeof item === 'string' ? item.trim() : ''))
+      .find(Boolean);
+    if (messageLike) return messageLike;
+    return '操作失败，请稍后重试';
+  }
   try {
     return JSON.stringify(content);
   } catch {

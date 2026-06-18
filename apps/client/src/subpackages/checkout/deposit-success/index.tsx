@@ -8,7 +8,7 @@ import type { components } from '@ipmoney/api-types';
 import { getToken } from '../../../lib/auth';
 import { apiGet } from '../../../lib/api';
 import { getDetailCache, setDetailCache } from '../../../lib/detailCache';
-import { displayInfoOrPlaceholder } from '../../../lib/displayText';
+import { displayInfoOrPlaceholder, displayTitleWithSecondary, normalizeDisplayText } from '../../../lib/displayText';
 import { orderStatusLabel } from '../../../lib/labels';
 import { fenToYuan } from '../../../lib/money';
 import { safeNavigateBack } from '../../../lib/navigation';
@@ -17,7 +17,10 @@ import { Button } from '../../../ui/nutui';
 import { PageHeader, Spacer, Surface } from '../../../ui/layout';
 import { LoadingCard, MissingParamCard, PermissionCard } from '../../../ui/StateCards';
 
-type Order = components['schemas']['Order'];
+type Order = components['schemas']['Order'] & {
+  listingTitle?: string | null;
+  applicationNoDisplay?: string | null;
+};
 const ORDER_DETAIL_CACHE_SCOPE = 'order-detail';
 const DEPOSIT_PAYMENT_SUCCESS_STATUS_VALUES = [
   'DEPOSIT_PAID',
@@ -84,6 +87,13 @@ export default function DepositSuccessPage() {
   }, [load, token]);
 
   const paymentConfirmed = Boolean(order?.status && DEPOSIT_PAYMENT_SUCCESS_STATUSES.has(order.status));
+  const orderTitle = order
+    ? displayTitleWithSecondary(order.listingTitle, '交易标的待确认', {
+        secondary: order.applicationNoDisplay,
+        secondaryPrefix: '专利申请号 ',
+      })
+    : '交易标的待确认';
+  const showApplicationNo = Boolean(normalizeDisplayText(order?.listingTitle) && normalizeDisplayText(order?.applicationNoDisplay));
 
   if (!orderId) {
     return (
@@ -114,13 +124,23 @@ export default function DepositSuccessPage() {
             {paymentConfirmed ? '订金支付成功' : '订金支付待确认'}
           </Text>
           <Text className="pay-result-subtitle">
-            {paymentConfirmed ? '支付单号' : '支付申请单号'}：{displayInfoOrPlaceholder(paymentId, '待补充')}
+            {paymentConfirmed ? '支付单号' : '支付申请单号'}：{displayInfoOrPlaceholder(paymentId, '待确认')}
           </Text>
 
           {order ? (
             <Surface className="pay-result-card" padding="md">
               <Text className="pay-section-title">订单摘要</Text>
               <View className="pay-summary-list">
+                <View className="pay-summary-item">
+                  <Text className="pay-summary-label">交易对象</Text>
+                  <Text className="pay-summary-value">{orderTitle}</Text>
+                </View>
+                {showApplicationNo ? (
+                  <View className="pay-summary-item">
+                    <Text className="pay-summary-label">申请号</Text>
+                    <Text className="pay-summary-value">{displayInfoOrPlaceholder(order.applicationNoDisplay, '待确认')}</Text>
+                  </View>
+                ) : null}
                 <View className="pay-summary-item">
                   <Text className="pay-summary-label">订单号</Text>
                   <Text className="pay-summary-value">{order.id}</Text>

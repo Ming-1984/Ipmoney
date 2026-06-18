@@ -258,7 +258,7 @@ export function RegionsPage() {
             区域与产业标签（运营配置）
           </Typography.Title>
           <Typography.Paragraph type="secondary" style={{ marginBottom: 0 }}>
-            用于地域特色推荐与搜索加权：区域（adcode）与产业标签均可后台维护。
+            用于地域特色推荐与搜索加权：区域编码与产业标签均可后台维护。
           </Typography.Paragraph>
         </div>
 
@@ -288,7 +288,7 @@ export function RegionsPage() {
                     />
                     <Input
                       value={parentCode}
-                      placeholder="parentCode（可选）"
+                      placeholder="上级区域编码（选填）"
                       style={{ width: 180 }}
                       onChange={(e) => setParentCode(e.target.value)}
                     />
@@ -325,10 +325,24 @@ export function RegionsPage() {
                       },
                     }}
                     columns={[
-                      { title: 'code', dataIndex: 'code', width: 120 },
-                      { title: '名称', dataIndex: 'name' },
+                      {
+                        title: '区域摘要',
+                        key: 'summary',
+                        width: 320,
+                        render: (_, row) => (
+                          <Space direction="vertical" size={2}>
+                            <Typography.Text>{row.name}</Typography.Text>
+                            <Typography.Text type="secondary">
+                              层级：{levelLabel(row.level)}
+                              {row.parentCode ? ` · 上级区域编码：${row.parentCode}` : ''}
+                            </Typography.Text>
+                            <Typography.Text type="secondary" copyable={{ text: row.code }}>
+                              区域编码：{row.code}
+                            </Typography.Text>
+                          </Space>
+                        ),
+                      },
                       { title: '层级', dataIndex: 'level', render: (v) => levelLabel(v as RegionLevel), width: 120 },
-                      { title: 'parentCode', dataIndex: 'parentCode', width: 120 },
                       {
                         title: '产业标签',
                         dataIndex: 'industryTags',
@@ -361,7 +375,7 @@ export function RegionsPage() {
                       <Input
                         value={regionForm.code}
                         disabled={regionModalMode === 'edit'}
-                        placeholder="code（6 位 adcode，如 110000）"
+                        placeholder="区域编码（6 位，如 110000）"
                         onChange={(e) => setRegionForm((p) => ({ ...p, code: e.target.value }))}
                       />
                       <Input
@@ -381,19 +395,19 @@ export function RegionsPage() {
                       />
                       <Input
                         value={regionForm.parentCode}
-                        placeholder="parentCode（可选）"
+                        placeholder="上级区域编码（选填）"
                         onChange={(e) => setRegionForm((p) => ({ ...p, parentCode: e.target.value }))}
                       />
                       <Space>
-                        <span>中心点</span>
+                        <span>地图中心点</span>
                         <InputNumber
                           value={regionForm.centerLng ?? undefined}
-                          placeholder="lng"
+                          placeholder="经度"
                           onChange={(v) => setRegionForm((p) => ({ ...p, centerLng: v === null ? null : Number(v) }))}
                         />
                         <InputNumber
                           value={regionForm.centerLat ?? undefined}
-                          placeholder="lat"
+                          placeholder="纬度"
                           onChange={(v) => setRegionForm((p) => ({ ...p, centerLat: v === null ? null : Number(v) }))}
                         />
                       </Space>
@@ -459,9 +473,20 @@ export function RegionsPage() {
                       },
                     }}
                     columns={[
-                      { title: 'name', dataIndex: 'name' },
-                      { title: 'id', dataIndex: 'id', width: 260 },
-                      { title: 'createdAt', dataIndex: 'createdAt', width: 200, render: (v) => formatTimeSmart(v) },
+                      {
+                        title: '标签摘要',
+                        key: 'summary',
+                        width: 320,
+                        render: (_, row) => (
+                          <Space direction="vertical" size={2}>
+                            <Typography.Text>{row.name}</Typography.Text>
+                            <Typography.Text type="secondary" copyable={{ text: row.id }}>
+                              标签编号：{row.id}
+                            </Typography.Text>
+                          </Space>
+                        ),
+                      },
+                      { title: '创建时间', dataIndex: 'createdAt', width: 200, render: (v) => formatTimeSmart(v) },
                     ]}
                   />
                 </Space>

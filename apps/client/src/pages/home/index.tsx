@@ -24,7 +24,7 @@ import { STORAGE_KEYS } from '../../constants';
 import { getToken, onAuthChanged } from '../../lib/auth';
 import { apiGet, apiPost } from '../../lib/api';
 import { getDetailCache, setDetailCache } from '../../lib/detailCache';
-import { normalizeDisplayText } from '../../lib/displayText';
+import { displayTitleOrFallback, normalizeDisplayText } from '../../lib/displayText';
 import { ensureApproved } from '../../lib/guard';
 import { favorite, getFavoriteListingIds, syncFavorites, unfavorite } from '../../lib/favorites';
 import {
@@ -598,7 +598,7 @@ export default function HomePage() {
         .slice(0, homeLandingConfig.featuredZones.displayCount)
         .map((item, idx) => ({
           id: item.id,
-          title: normalizeDisplayText(item.title) || '未命名专区',
+          title: normalizeDisplayText(item.title) || '专区标题待确认',
           subtitle: normalizeDisplayText(item.subtitle) || '查看专区内容',
           bgImage: resolveHomeLandingZoneImage(item.imageUrl),
           tone: HOME_ZONE_TONES[idx % HOME_ZONE_TONES.length],
@@ -686,7 +686,10 @@ export default function HomePage() {
           </View>
           <View className="home-announcement-bar-text">
             <Text className="home-announcement-bar-title">
-              {announcements[activeAnnouncementIndex]?.title || announcements[0]?.title || ''}
+              {displayTitleOrFallback(
+                announcements[activeAnnouncementIndex]?.title || announcements[0]?.title,
+                '平台公告',
+              )}
             </Text>
           </View>
         </View>

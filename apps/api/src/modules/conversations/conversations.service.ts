@@ -3,7 +3,7 @@
 import { ContentEventService } from '../../common/content-event.service';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { WechatContentSecurityService } from '../../common/wechat-content-security.service';
-import { resolvePublicAvatarUrl, resolvePublicFileUrl } from '../content-utils';
+import { normalizeDisplayText, resolvePublicAvatarUrl, resolvePublicFileUrl } from '../content-utils';
 
 type ConversationContentType = 'LISTING' | 'ACHIEVEMENT' | 'TECH_MANAGER' | 'SUPPORT' | 'DISPUTE' | 'MAINTENANCE';
 type UpsertableConversationContentType = 'LISTING' | 'ACHIEVEMENT' | 'TECH_MANAGER';
@@ -40,6 +40,7 @@ type ConversationSummary = {
   unreadCount: number;
   counterpart: {
     id: string;
+    displayName?: string | null;
     nickname?: string | null;
     avatarUrl?: string | null;
     role?: string | null;
@@ -66,6 +67,10 @@ const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
 const DEFAULT_CS_USER_ID = '00000000-0000-0000-0000-000000000002';
 const PLATFORM_BRAND_NAME = 'ipmoney';
 const PLATFORM_SUPPORT_TITLE = '\u5e73\u53f0\u5ba2\u670d';
+const DEFAULT_CS_NICKNAME = '平台客服';
+const DEFAULT_CONSULTATION_TITLE = '咨询内容';
+const DEFAULT_TECH_MANAGER_TITLE = '技术经理人';
+const STAFF_ROLE_NAMES = new Set(['admin', 'operator', 'finance', 'cs']);
 const LISTING_TOPIC_SET = new Set<ListingTopic>([
   'HIGH_TECH_RETIRED',
   'SLEEPING',
@@ -180,12 +185,13 @@ export class ConversationsService {
     conversation: any;
     viewerUserId: string;
     counterpart: any;
-  }): string {
+  }): string | null {
     const conversation = params.conversation;
     const viewerUserId = String(params.viewerUserId || '').trim();
     const counterpart = params.counterpart;
     const contentType = String(conversation?.contentType || '').trim().toUpperCase();
     const isListing = contentType === 'LISTING';
+    const prefersEntityDisplayName = isListing || contentType === 'ACHIEVEMENT' || contentType === 'TECH_MANAGER';
     const listingRouting = String(conversation?.listing?.consultationRouting || '').trim().toUpperCase();
     const listingSource = String(conversation?.listing?.source || '').trim().toUpperCase();
     const isPlatformListing = isListing && listingRouting === 'PLATFORM' && (listingSource === 'ADMIN' || listingSource === 'PLATFORM');
@@ -194,8 +200,13 @@ export class ConversationsService {
     if (isPlatformListing && sellerUserId && counterpartId === sellerUserId && sellerUserId !== viewerUserId) {
       return PLATFORM_BRAND_NAME;
     }
-    const nickname = String(counterpart?.nickname || '').trim();
-    return nickname || 'User';
+    if (prefersEntityDisplayName) {
+      const verificationDisplayName = normalizeDisplayText(counterpart?.verifications?.[0]?.displayName);
+      if (verificationDisplayName) return verificationDisplayName;
+      return null;
+    }
+    const nickname = normalizeDisplayText(counterpart?.nickname);
+    return nickname ?? null;
   }
 
   private summarizeLastMessage(message: any): string | null {
@@ -227,6 +238,121 @@ export class ConversationsService {
     if (patentTitle && yearText) return `年费代缴 · ${patentTitle} · ${yearText}`;
     if (patentTitle) return `年费代缴 · ${patentTitle}`;
     return '年费代缴';
+  }
+
+  private toPlatformConversationSummary(
+    it: any,
+    unreadCount: number,
+    achievementTitleMap: Map<string, string>,
+    maintenanceTitleMap: Map<string, string>,
+  ): ConversationSummary {
+    const lastMessageAt = (it.lastMessageAt || it.updatedAt || it.createdAt) as Date;
+    const latestMessage = Array.isArray(it.messages) && it.messages.length > 0 ? it.messages[0] : null;
+    const contentType = (it.contentType || 'LISTING') as ConversationContentType;
+    const contentId = String(it.contentId || it.listingId || '');
+    const contentTitle =
+      contentType === 'LISTING'
+        ? it.listing?.title ?? DEFAULT_CONSULTATION_TITLE
+        : contentType === 'ACHIEVEMENT'
+          ? achievementTitleMap.get(contentId) ?? '成果咨询'
+          : contentType === 'SUPPORT'
+            ? '平台客服'
+            : contentType === 'MAINTENANCE'
+              ? maintenanceTitleMap.get(contentId) ?? '年费代缴'
+              : this.resolveDisputeTitle(it.order);
+    return {
+      id: it.id,
+      contentType,
+      contentId,
+      contentTitle,
+      listingId: it.listingId ?? null,
+      listingTitle: it.listing?.title ?? null,
+      listingTopics: this.normalizeListingTopics(it.listing?.listingTopicsJson),
+      lastMessagePreview: this.summarizeLastMessage(latestMessage),
+      lastMessageAt: lastMessageAt.toISOString(),
+      unreadCount: unreadCount ?? 0,
+      counterpart: {
+        id: it.buyer?.id || it.buyerUserId,
+        displayName: normalizeDisplayText(it.buyer?.verifications?.[0]?.displayName) ?? normalizeDisplayText(it.buyer?.nickname) ?? null,
+        nickname: normalizeDisplayText(it.buyer?.nickname) ?? null,
+        avatarUrl: resolvePublicAvatarUrl(it.buyer?.avatarUrl),
+        role: it.buyer?.role ?? null,
+      },
+      assignedAgentUserIds: Array.isArray(it.agents)
+        ? it.agents.map((agent: any) => String(agent.operatorUserId || '')).filter((id: string) => Boolean(id))
+        : [],
+    } satisfies ConversationSummary;
+  }
+
+  private matchesPlatformConversationSummary(summary: ConversationSummary, keyword: string): boolean {
+    const normalizedKeyword = String(keyword || '')
+      .trim()
+      .toLowerCase();
+    if (!normalizedKeyword) return true;
+    const candidates = [
+      normalizeDisplayText(summary.counterpart?.displayName),
+      normalizeDisplayText(summary.counterpart?.nickname),
+      normalizeDisplayText(summary.contentTitle),
+      normalizeDisplayText(summary.listingTitle),
+      normalizeDisplayText(summary.lastMessagePreview),
+    ]
+      .filter(Boolean)
+      .map((item) => String(item).toLowerCase());
+    return candidates.some((candidate) => candidate.includes(normalizedKeyword));
+  }
+
+  private scorePlatformConversationSummary(summary: ConversationSummary, keyword: string): number {
+    const normalizedKeyword = String(keyword || '')
+      .trim()
+      .toLowerCase();
+    if (!normalizedKeyword) return 0;
+
+    const counterpartDisplayName = normalizeDisplayText(summary.counterpart?.displayName)?.toLowerCase() ?? '';
+    const counterpartNickname = normalizeDisplayText(summary.counterpart?.nickname)?.toLowerCase() ?? '';
+    const contentTitle = normalizeDisplayText(summary.contentTitle)?.toLowerCase() ?? '';
+    const listingTitle = normalizeDisplayText(summary.listingTitle)?.toLowerCase() ?? '';
+    const lastMessagePreview = normalizeDisplayText(summary.lastMessagePreview)?.toLowerCase() ?? '';
+
+    let score = 0;
+    if (counterpartDisplayName === normalizedKeyword) score += 1000;
+    else if (counterpartDisplayName.startsWith(normalizedKeyword)) score += 850;
+    else if (counterpartDisplayName.includes(normalizedKeyword)) score += 650;
+
+    if (counterpartNickname === normalizedKeyword) score += 420;
+    else if (counterpartNickname.startsWith(normalizedKeyword)) score += 300;
+    else if (counterpartNickname.includes(normalizedKeyword)) score += 180;
+
+    if (contentTitle === normalizedKeyword) score += 320;
+    else if (contentTitle.startsWith(normalizedKeyword)) score += 240;
+    else if (contentTitle.includes(normalizedKeyword)) score += 160;
+
+    if (listingTitle === normalizedKeyword) score += 260;
+    else if (listingTitle.startsWith(normalizedKeyword)) score += 200;
+    else if (listingTitle.includes(normalizedKeyword)) score += 140;
+
+    if (lastMessagePreview.includes(normalizedKeyword)) score += 60;
+
+    return score;
+  }
+
+  private hasStrongPlatformConversationMatch(summary: ConversationSummary, keyword: string): boolean {
+    const normalizedKeyword = String(keyword || '')
+      .trim()
+      .toLowerCase();
+    if (!normalizedKeyword) return false;
+    const counterpartDisplayName = normalizeDisplayText(summary.counterpart?.displayName)?.toLowerCase() ?? '';
+    const contentTitle = normalizeDisplayText(summary.contentTitle)?.toLowerCase() ?? '';
+    return (
+      Boolean(counterpartDisplayName) &&
+      (counterpartDisplayName === normalizedKeyword || counterpartDisplayName.startsWith(normalizedKeyword))
+    ) ||
+      (Boolean(contentTitle) && (contentTitle === normalizedKeyword || contentTitle.startsWith(normalizedKeyword)));
+  }
+
+  private paginateItems<T>(items: T[], page: number, pageSize: number): { items: T[]; total: number } {
+    const total = items.length;
+    const start = (page - 1) * pageSize;
+    return { items: items.slice(start, start + pageSize), total };
   }
 
   private buildMineWhere(userId: string) {
@@ -262,12 +388,12 @@ export class ConversationsService {
       where: { id: DEFAULT_CS_USER_ID },
       update: {
         role: 'cs',
-        nickname: 'Default CS',
+        nickname: DEFAULT_CS_NICKNAME,
       },
       create: {
         id: DEFAULT_CS_USER_ID,
         role: 'cs',
-        nickname: 'Default CS',
+        nickname: DEFAULT_CS_NICKNAME,
       },
       select: { id: true },
     });
@@ -326,21 +452,25 @@ export class ConversationsService {
   private async resolveContentMeta(contentType: UpsertableConversationContentType, contentId: string) {
     const normalizedContentId = this.parseUuidStrict(contentId, 'contentId');
     if (contentType === 'LISTING') {
-      const listing = await this.prisma.listing.findUnique({ where: { id: normalizedContentId } });
+      const listing = await this.prisma.listing.findFirst({
+        where: { id: normalizedContentId, auditStatus: 'APPROVED', status: 'ACTIVE' },
+      });
       if (!listing) throw new NotFoundException({ code: 'NOT_FOUND', message: 'listing not found' });
       return {
         sellerUserId: listing.sellerUserId,
-        contentTitle: listing.title ?? 'Consultation',
+        contentTitle: listing.title ?? DEFAULT_CONSULTATION_TITLE,
         listingId: listing.id,
         listingTitle: listing.title ?? null,
       };
     }
     if (contentType === 'ACHIEVEMENT') {
-      const achievement = await this.prisma.achievement.findUnique({ where: { id: normalizedContentId } });
+      const achievement = await this.prisma.achievement.findFirst({
+        where: { id: normalizedContentId, auditStatus: 'APPROVED', status: 'ACTIVE' },
+      });
       if (!achievement) throw new NotFoundException({ code: 'NOT_FOUND', message: 'achievement not found' });
       return {
         sellerUserId: achievement.publisherUserId,
-        contentTitle: achievement.title ?? 'Consultation',
+        contentTitle: achievement.title ?? DEFAULT_CONSULTATION_TITLE,
       };
     }
 
@@ -355,7 +485,7 @@ export class ConversationsService {
     if (!verification) throw new NotFoundException({ code: 'NOT_FOUND', message: 'tech manager not found' });
     return {
       sellerUserId: verification.userId,
-      contentTitle: verification.displayName ?? verification.user?.nickname ?? 'Tech Manager',
+      contentTitle: normalizeDisplayText(verification.displayName) ?? DEFAULT_TECH_MANAGER_TITLE,
     };
   }
 
@@ -413,12 +543,37 @@ export class ConversationsService {
     return conversation;
   }
 
+  private async ensureAssignablePlatformAgentUser(userId: string) {
+    const normalizedUserId = this.parseUuidStrict(userId, 'userId');
+    const operator = await this.prisma.user.findUnique({
+      where: { id: normalizedUserId },
+      select: {
+        id: true,
+        role: true,
+        rbacRoles: {
+          select: { roleId: true },
+        },
+      },
+    });
+    if (!operator) throw new NotFoundException({ code: 'NOT_FOUND', message: 'user not found' });
+    const isStaff =
+      STAFF_ROLE_NAMES.has(String(operator.role || '').trim().toLowerCase()) ||
+      (Array.isArray(operator.rbacRoles) && operator.rbacRoles.length > 0);
+    if (!isStaff) {
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: 'user is not assignable as platform agent' });
+    }
+    return operator;
+  }
+
   async listMine(req: any, query: any): Promise<PagedConversationSummary> {
     this.ensureAuth(req);
     const page = this.hasOwn(query, 'page') ? this.parsePositiveIntStrict(query?.page, 'page') : 1;
     const pageSizeInput = this.hasOwn(query, 'pageSize') ? this.parsePositiveIntStrict(query?.pageSize, 'pageSize') : 20;
     const pageSize = Math.min(50, pageSizeInput);
-    const mineWhere = this.buildMineWhere(req.auth.userId);
+    const mineWhere: any = this.buildMineWhere(req.auth.userId);
+    if (this.hasOwn(query, 'conversationId')) {
+      mineWhere.id = this.parseUuidStrict(query?.conversationId, 'conversationId');
+    }
 
     const [items, total] = await Promise.all([
       this.prisma.conversation.findMany({
@@ -426,8 +581,8 @@ export class ConversationsService {
         include: {
           listing: true,
           order: { include: { listing: { select: { id: true, title: true } } } },
-          buyer: true,
-          seller: true,
+          buyer: { include: { verifications: { orderBy: { submittedAt: 'desc' }, take: 1 } } },
+          seller: { include: { verifications: { orderBy: { submittedAt: 'desc' }, take: 1 } } },
           agents: { where: { active: true } },
           participants: { where: { userId: req.auth.userId }, select: { lastReadAt: true } },
           messages: {
@@ -467,7 +622,7 @@ export class ConversationsService {
       : [];
 
     const techManagerMap = new Map(
-      techManagers.map((item: any) => [item.userId, item.displayName ?? item.user?.nickname ?? 'Tech Manager']),
+      techManagers.map((item: any) => [item.userId, normalizeDisplayText(item.displayName) ?? DEFAULT_TECH_MANAGER_TITLE]),
     );
 
     const achievements = achievementIds.size
@@ -476,7 +631,7 @@ export class ConversationsService {
           select: { id: true, title: true },
         })
       : [];
-    const achievementMap = new Map(achievements.map((item: any) => [item.id, item.title ?? 'Consultation']));
+    const achievementMap = new Map(achievements.map((item: any) => [item.id, item.title ?? DEFAULT_CONSULTATION_TITLE]));
 
     const maintenanceOrders = maintenanceIds.size
       ? await this.prisma.patentMaintenanceOrder.findMany({
@@ -512,11 +667,11 @@ export class ConversationsService {
       const contentId = String(it.contentId || it.listingId || '');
       const contentTitle =
         contentType === 'LISTING'
-          ? it.listing?.title ?? 'Consultation'
+          ? it.listing?.title ?? DEFAULT_CONSULTATION_TITLE
           : contentType === 'ACHIEVEMENT'
-            ? achievementMap.get(contentId) ?? 'Consultation'
+            ? achievementMap.get(contentId) ?? DEFAULT_CONSULTATION_TITLE
             : contentType === 'TECH_MANAGER'
-              ? techManagerMap.get(contentId) ?? 'Consultation'
+              ? techManagerMap.get(contentId) ?? DEFAULT_TECH_MANAGER_TITLE
               : contentType === 'SUPPORT'
                 ? '平台客服'
                 : contentType === 'MAINTENANCE'
@@ -540,6 +695,11 @@ export class ConversationsService {
         unreadCount: unreadCounts[index] ?? 0,
         counterpart: {
           id: counterpartId,
+          displayName: this.resolveCounterpartNickname({
+            conversation: it,
+            viewerUserId: req.auth.userId,
+            counterpart,
+          }),
           nickname: this.resolveCounterpartNickname({
             conversation: it,
             viewerUserId: req.auth.userId,
@@ -558,6 +718,17 @@ export class ConversationsService {
       items: mapped,
       page: { page, pageSize, total },
     };
+  }
+
+  async getMineConversation(req: any, conversationId: string): Promise<ConversationSummary> {
+    this.ensureAuth(req);
+    const normalizedConversationId = this.parseUuidStrict(conversationId, 'conversationId');
+    const result = await this.listMine(req, { page: 1, pageSize: 1, conversationId: normalizedConversationId } as any);
+    const item = (result.items || [])[0] || null;
+    if (!item || item.id !== normalizedConversationId) {
+      throw new NotFoundException({ code: 'NOT_FOUND', message: 'conversation not found' });
+    }
+    return item;
   }
 
   async createListingConversation(req: any, listingId: string) {
@@ -934,16 +1105,18 @@ export class ConversationsService {
     } else if (effectiveAssignedFilter === 'UNASSIGNED') {
       andFilters.push({ agents: { none: { active: true } } });
     }
-    if (q) {
+    const qFilter = q;
+    if (qFilter) {
       const qOrFilters: any[] = [
-        { listing: { title: { contains: q, mode: 'insensitive' } } },
-        { buyer: { nickname: { contains: q, mode: 'insensitive' } } },
+        { listing: { title: { contains: qFilter, mode: 'insensitive' } } },
+        { buyer: { verifications: { some: { displayName: { contains: qFilter, mode: 'insensitive' } } } } },
+        { buyer: { nickname: { contains: qFilter, mode: 'insensitive' } } },
       ];
-      if (this.isUuidLike(q)) {
-        qOrFilters.push({ id: q });
-        qOrFilters.push({ contentId: q });
-        qOrFilters.push({ buyerUserId: q });
-        qOrFilters.push({ orderId: q });
+      if (this.isUuidLike(qFilter)) {
+        qOrFilters.push({ id: qFilter });
+        qOrFilters.push({ contentId: qFilter });
+        qOrFilters.push({ buyerUserId: qFilter });
+        qOrFilters.push({ orderId: qFilter });
       }
       andFilters.push({
         OR: qOrFilters,
@@ -959,27 +1132,35 @@ export class ConversationsService {
       where.AND.push(...andFilters);
     }
 
-    const [items, total] = await Promise.all([
-      this.prisma.conversation.findMany({
-        where,
-        include: {
-          listing: true,
-          order: { include: { listing: { select: { id: true, title: true } } } },
-          buyer: true,
-          seller: true,
-          agents: { where: { active: true } },
-          participants: { where: { userId: req.auth.userId }, select: { lastReadAt: true } },
-          messages: {
-            orderBy: { createdAt: 'desc' },
-            take: 1,
-          },
+    const queryOptions: any = {
+      where,
+      include: {
+        listing: true,
+        order: { include: { listing: { select: { id: true, title: true } } } },
+        buyer: { include: { verifications: { orderBy: { submittedAt: 'desc' }, take: 1 } } },
+        seller: { include: { verifications: { orderBy: { submittedAt: 'desc' }, take: 1 } } },
+        agents: { where: { active: true } },
+        participants: { where: { userId: req.auth.userId }, select: { lastReadAt: true } },
+        messages: {
+          orderBy: { createdAt: 'desc' },
+          take: 1,
         },
-        orderBy: { updatedAt: 'desc' },
-        skip: (page - 1) * pageSize,
-        take: pageSize,
-      }),
-      this.prisma.conversation.count({ where }),
-    ]);
+      },
+      orderBy: { updatedAt: 'desc' as const },
+    };
+    const [items, total] = qFilter
+      ? await Promise.all([
+          this.prisma.conversation.findMany(queryOptions),
+          Promise.resolve(0),
+        ])
+      : await Promise.all([
+          this.prisma.conversation.findMany({
+            ...queryOptions,
+            skip: (page - 1) * pageSize,
+            take: pageSize,
+          }),
+          this.prisma.conversation.count({ where }),
+        ]);
 
     const maintenanceIds = new Set<string>();
     const achievementIds = new Set<string>();
@@ -1029,47 +1210,26 @@ export class ConversationsService {
       }),
     );
 
+    const mapped = items.map((it: any, index: number) =>
+      this.toPlatformConversationSummary(it, unreadCounts[index] ?? 0, achievementTitleMap, maintenanceTitleMap),
+    );
+
+    if (qFilter) {
+      const matched = mapped.filter((item) => this.matchesPlatformConversationSummary(item, qFilter));
+      const strongMatches = matched.filter((item) => this.hasStrongPlatformConversationMatch(item, qFilter));
+      const searchPool = strongMatches.length ? strongMatches : matched;
+      const filtered = searchPool.sort(
+        (a, b) => this.scorePlatformConversationSummary(b, qFilter) - this.scorePlatformConversationSummary(a, qFilter),
+      );
+      const paged = this.paginateItems(filtered, page, pageSize);
+      return {
+        items: paged.items,
+        page: { page, pageSize, total: paged.total },
+      };
+    }
+
     return {
-      items: items.map((it: any, index: number) => {
-        const lastMessageAt = (it.lastMessageAt || it.updatedAt || it.createdAt) as Date;
-        const latestMessage = Array.isArray(it.messages) && it.messages.length > 0 ? it.messages[0] : null;
-        const contentType = (it.contentType || 'LISTING') as ConversationContentType;
-        const contentTitle =
-          contentType === 'LISTING'
-            ? it.listing?.title ?? 'Consultation'
-            : contentType === 'ACHIEVEMENT'
-              ? achievementTitleMap.get(String(it.contentId || '')) ?? '成果咨询'
-            : contentType === 'SUPPORT'
-              ? '平台客服'
-              : contentType === 'MAINTENANCE'
-                ? maintenanceTitleMap.get(String(it.contentId || '')) ?? '年费代缴'
-              : this.resolveDisputeTitle(it.order);
-        return {
-          id: it.id,
-          contentType,
-          contentId: String(it.contentId || it.listingId || ''),
-          contentTitle,
-          listingId: it.listingId ?? null,
-          listingTitle: it.listing?.title ?? null,
-          listingTopics: this.normalizeListingTopics(it.listing?.listingTopicsJson),
-          lastMessagePreview: this.summarizeLastMessage(latestMessage),
-          lastMessageAt: lastMessageAt.toISOString(),
-          unreadCount: unreadCounts[index] ?? 0,
-          counterpart: {
-            id: it.buyer?.id || it.buyerUserId,
-            nickname: this.resolveCounterpartNickname({
-              conversation: it,
-              viewerUserId: req.auth.userId,
-              counterpart: it.buyer,
-            }),
-            avatarUrl: resolvePublicAvatarUrl(it.buyer?.avatarUrl),
-            role: it.buyer?.role ?? null,
-          },
-          assignedAgentUserIds: Array.isArray(it.agents)
-            ? it.agents.map((agent: any) => String(agent.operatorUserId || '')).filter((id: string) => Boolean(id))
-            : [],
-        } satisfies ConversationSummary;
-      }),
+      items: mapped,
       page: { page, pageSize, total },
     };
   }
@@ -1081,8 +1241,7 @@ export class ConversationsService {
       ? this.parseUuidStrict(body?.userId, 'userId')
       : this.parseUuidStrict(req?.auth?.userId, 'userId');
     await this.ensurePlatformManageableConversation(normalizedConversationId);
-    const operator = await this.prisma.user.findUnique({ where: { id: operatorUserId }, select: { id: true } });
-    if (!operator) throw new NotFoundException({ code: 'NOT_FOUND', message: 'user not found' });
+    await this.ensureAssignablePlatformAgentUser(operatorUserId);
     const assigned = await this.prisma.conversationAgent.upsert({
       where: {
         conversationId_operatorUserId: {
@@ -1137,5 +1296,6 @@ export class ConversationsService {
     };
   }
 }
+
 
 

@@ -66,8 +66,8 @@ describe('ConversationsService pagination and id strictness suite', () => {
       include: {
         listing: true,
         order: { include: { listing: { select: { id: true, title: true } } } },
-        buyer: true,
-        seller: true,
+        buyer: { include: { verifications: { orderBy: { submittedAt: 'desc' }, take: 1 } } },
+        seller: { include: { verifications: { orderBy: { submittedAt: 'desc' }, take: 1 } } },
         agents: { where: { active: true } },
         participants: { where: { userId: 'u-1' }, select: { lastReadAt: true } },
         messages: {
@@ -80,6 +80,44 @@ describe('ConversationsService pagination and id strictness suite', () => {
       take: 50,
     });
     expect(result.page).toEqual({ page: 2, pageSize: 50, total: 0 });
+  });
+
+  it('getMineConversation returns exact conversation summary and rejects missing record', async () => {
+    const req = { auth: { userId: 'u-1' } };
+    prisma.conversation.findMany.mockResolvedValueOnce([
+      {
+        id: '11111111-1111-1111-1111-111111111111',
+        contentType: 'SUPPORT',
+        contentId: '11111111-1111-1111-1111-111111111111',
+        listingId: null,
+        buyerUserId: 'u-1',
+        sellerUserId: 'u-2',
+        listing: null,
+        buyer: { id: 'u-1', nickname: 'Buyer', avatarUrl: null, role: 'buyer' },
+        seller: { id: 'u-2', nickname: 'CS', avatarUrl: null, role: 'cs' },
+        order: null,
+        agents: [],
+        participants: [{ lastReadAt: null }],
+        messages: [{ id: 'm-1', text: 'hello', type: 'TEXT', createdAt: new Date('2026-03-14T01:10:00.000Z') }],
+        lastMessageAt: new Date('2026-03-14T01:10:00.000Z'),
+        updatedAt: new Date('2026-03-14T01:10:00.000Z'),
+        createdAt: new Date('2026-03-14T01:00:00.000Z'),
+      },
+    ]);
+    prisma.conversation.count.mockResolvedValueOnce(1);
+    prisma.conversationMessage.count.mockResolvedValueOnce(0);
+
+    const result = await service.getMineConversation(req, '11111111-1111-1111-1111-111111111111');
+    expect(result).toMatchObject({
+      id: '11111111-1111-1111-1111-111111111111',
+      contentType: 'SUPPORT',
+    });
+
+    prisma.conversation.findMany.mockResolvedValueOnce([]);
+    prisma.conversation.count.mockResolvedValueOnce(0);
+    await expect(service.getMineConversation(req, '11111111-1111-1111-1111-111111111111')).rejects.toBeInstanceOf(
+      NotFoundException,
+    );
   });
 
   it('normalizes platform listing counterpart nickname to ipmoney in listMine', async () => {
@@ -99,8 +137,8 @@ describe('ConversationsService pagination and id strictness suite', () => {
           source: 'ADMIN',
           listingTopicsJson: [],
         },
-        buyer: { id: 'buyer-1', nickname: 'Buyer', avatarUrl: null, role: 'buyer' },
-        seller: { id: 'seller-platform', nickname: 'Ming', avatarUrl: null, role: 'seller' },
+        buyer: { id: 'buyer-1', nickname: 'Buyer', avatarUrl: null, role: 'buyer', verifications: [] },
+        seller: { id: 'seller-platform', nickname: 'Ming', avatarUrl: null, role: 'seller', verifications: [] },
         order: null,
         agents: [],
         participants: [{ lastReadAt: null }],
@@ -123,8 +161,14 @@ describe('ConversationsService pagination and id strictness suite', () => {
           source: 'USER',
           listingTopicsJson: [],
         },
-        buyer: { id: 'buyer-1', nickname: 'Buyer', avatarUrl: null, role: 'buyer' },
-        seller: { id: 'seller-user', nickname: 'Seller Nick', avatarUrl: null, role: 'seller' },
+        buyer: { id: 'buyer-1', nickname: 'Buyer', avatarUrl: null, role: 'buyer', verifications: [] },
+        seller: {
+          id: 'seller-user',
+          nickname: 'Seller Nick',
+          avatarUrl: null,
+          role: 'seller',
+          verifications: [{ displayName: '广州技术转移中心' }],
+        },
         order: null,
         agents: [],
         participants: [{ lastReadAt: null }],
@@ -140,7 +184,77 @@ describe('ConversationsService pagination and id strictness suite', () => {
     const result = await service.listMine(req, { page: '1', pageSize: '20' });
 
     expect(result.items[0]?.counterpart?.nickname).toBe('ipmoney');
-    expect(result.items[1]?.counterpart?.nickname).toBe('Seller Nick');
+    expect(result.items[1]?.counterpart?.nickname).toBe('广州技术转移中心');
+  });
+
+  it('does not fall back to raw nickname for entity conversations when formal display name is missing', async () => {
+    const req = { auth: { userId: 'buyer-1' } };
+    prisma.conversation.findMany.mockResolvedValueOnce([
+      {
+        id: '11111111-1111-1111-1111-111111111111',
+        contentType: 'LISTING',
+        contentId: '22222222-2222-2222-2222-222222222222',
+        listingId: '22222222-2222-2222-2222-222222222222',
+        buyerUserId: 'buyer-1',
+        sellerUserId: 'seller-user',
+        listing: {
+          id: '22222222-2222-2222-2222-222222222222',
+          title: '挂牌标题 A',
+          consultationRouting: 'OWNER',
+          source: 'USER',
+          listingTopicsJson: [],
+        },
+        buyer: { id: 'buyer-1', nickname: 'Buyer', avatarUrl: null, role: 'buyer', verifications: [] },
+        seller: {
+          id: 'seller-user',
+          nickname: 'Raw Seller Nick',
+          avatarUrl: null,
+          role: 'seller',
+          verifications: [],
+        },
+        order: null,
+        agents: [],
+        participants: [{ lastReadAt: null }],
+        messages: [{ id: 'm-1', text: 'hello', type: 'TEXT', createdAt: new Date('2026-03-14T01:10:00.000Z') }],
+        lastMessageAt: new Date('2026-03-14T01:10:00.000Z'),
+        updatedAt: new Date('2026-03-14T01:10:00.000Z'),
+        createdAt: new Date('2026-03-14T01:00:00.000Z'),
+      },
+      {
+        id: '33333333-3333-3333-3333-333333333333',
+        contentType: 'ACHIEVEMENT',
+        contentId: '44444444-4444-4444-4444-444444444444',
+        listingId: null,
+        buyerUserId: 'buyer-1',
+        sellerUserId: 'seller-achievement',
+        listing: null,
+        buyer: { id: 'buyer-1', nickname: 'Buyer', avatarUrl: null, role: 'buyer', verifications: [] },
+        seller: {
+          id: 'seller-achievement',
+          nickname: 'Raw Publisher Nick',
+          avatarUrl: null,
+          role: 'seller',
+          verifications: [],
+        },
+        order: null,
+        agents: [],
+        participants: [{ lastReadAt: null }],
+        messages: [{ id: 'm-2', text: 'hi', type: 'TEXT', createdAt: new Date('2026-03-14T01:11:00.000Z') }],
+        lastMessageAt: new Date('2026-03-14T01:11:00.000Z'),
+        updatedAt: new Date('2026-03-14T01:11:00.000Z'),
+        createdAt: new Date('2026-03-14T01:01:00.000Z'),
+      },
+    ]);
+    prisma.conversation.count.mockResolvedValueOnce(2);
+    prisma.achievement.findMany.mockResolvedValueOnce([{ id: '44444444-4444-4444-4444-444444444444', title: '成果标题 A' }]);
+    prisma.conversationMessage.count.mockResolvedValueOnce(0).mockResolvedValueOnce(0);
+
+    const result = await service.listMine(req, { page: '1', pageSize: '20' });
+
+    expect(result.items[0]?.counterpart?.nickname).toBeNull();
+    expect(result.items[0]?.contentTitle).toBe('挂牌标题 A');
+    expect(result.items[1]?.counterpart?.nickname).toBeNull();
+    expect(result.items[1]?.contentTitle).toBe('成果标题 A');
   });
 
   it('validates conversationId format and participant boundary in listMessages', async () => {
@@ -351,40 +465,29 @@ describe('ConversationsService pagination and id strictness suite', () => {
       updatedTo: '2026-03-20T00:00:00.000Z',
     });
 
-    expect(prisma.conversation.findMany).toHaveBeenCalledWith({
-      where: {
-        AND: [
-          {
-            contentType: 'LISTING',
-            listing: { consultationRouting: 'PLATFORM', listingTopicsJson: { array_contains: ['OPEN_LICENSE'] } },
-          },
-          { agents: { none: { active: true } } },
-          {
-            OR: [
-              { listing: { title: { contains: 'buyer-keyword', mode: 'insensitive' } } },
-              { buyer: { nickname: { contains: 'buyer-keyword', mode: 'insensitive' } } },
-            ],
-          },
-          { updatedAt: { gte: new Date('2026-03-01T00:00:00.000Z') } },
-          { updatedAt: { lte: new Date('2026-03-20T00:00:00.000Z') } },
-        ],
-      },
-      include: {
-        listing: true,
-        order: { include: { listing: { select: { id: true, title: true } } } },
-        buyer: true,
-        seller: true,
-        agents: { where: { active: true } },
-        participants: {
-          where: { userId: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa' },
-          select: { lastReadAt: true },
+    expect(prisma.conversation.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: {
+          AND: [
+            {
+              contentType: 'LISTING',
+              listing: { consultationRouting: 'PLATFORM', listingTopicsJson: { array_contains: ['OPEN_LICENSE'] } },
+            },
+            { agents: { none: { active: true } } },
+            {
+              OR: [
+                { listing: { title: { contains: 'buyer-keyword', mode: 'insensitive' } } },
+                { buyer: { verifications: { some: { displayName: { contains: 'buyer-keyword', mode: 'insensitive' } } } } },
+                { buyer: { nickname: { contains: 'buyer-keyword', mode: 'insensitive' } } },
+              ],
+            },
+            { updatedAt: { gte: new Date('2026-03-01T00:00:00.000Z') } },
+            { updatedAt: { lte: new Date('2026-03-20T00:00:00.000Z') } },
+          ],
         },
-        messages: { orderBy: { createdAt: 'desc' }, take: 1 },
-      },
-      orderBy: { updatedAt: 'desc' },
-      skip: 20,
-      take: 20,
-    });
+        orderBy: { updatedAt: 'desc' },
+      }),
+    );
   });
 
   it('supports FIVE_STAR listingTopic filter for consultation channel', async () => {
@@ -435,6 +538,7 @@ describe('ConversationsService pagination and id strictness suite', () => {
             {
               OR: [
                 { listing: { title: { contains: q, mode: 'insensitive' } } },
+                { buyer: { verifications: { some: { displayName: { contains: q, mode: 'insensitive' } } } } },
                 { buyer: { nickname: { contains: q, mode: 'insensitive' } } },
                 { id: q },
                 { contentId: q },
@@ -481,8 +585,8 @@ describe('ConversationsService pagination and id strictness suite', () => {
           source: 'ADMIN',
           listingTopicsJson: [],
         },
-        buyer: { id: 'buyer-1', nickname: 'Buyer Nick', avatarUrl: null, role: 'buyer' },
-        seller: { id: 'seller-platform', nickname: 'Ming', avatarUrl: null, role: 'seller' },
+        buyer: { id: 'buyer-1', nickname: 'Buyer Nick', avatarUrl: null, role: 'buyer', verifications: [] },
+        seller: { id: 'seller-platform', nickname: 'Ming', avatarUrl: null, role: 'seller', verifications: [] },
         order: null,
         agents: [],
         participants: [{ lastReadAt: null }],
@@ -497,6 +601,105 @@ describe('ConversationsService pagination and id strictness suite', () => {
 
     const result = await service.listPlatformConversations(req, { channel: 'CONSULTATION' });
     expect(result.items[0]?.counterpart?.nickname).toBe('Buyer Nick');
+  });
+
+  it('reorders platform conversation search results to prioritize strong counterpart and title matches', async () => {
+    const req = { auth: { userId: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa' } };
+    prisma.conversation.findMany.mockResolvedValueOnce([
+      {
+        id: '11111111-1111-1111-1111-111111111111',
+        contentType: 'LISTING',
+        contentId: '21111111-1111-1111-1111-111111111111',
+        listingId: '21111111-1111-1111-1111-111111111111',
+        buyerUserId: 'buyer-1',
+        sellerUserId: 'seller-platform',
+        listing: {
+          id: '21111111-1111-1111-1111-111111111111',
+          title: '华南高校专利许可',
+          consultationRouting: 'PLATFORM',
+          source: 'ADMIN',
+          listingTopicsJson: [],
+        },
+        buyer: {
+          id: 'buyer-1',
+          nickname: '华南创新中心',
+          avatarUrl: null,
+          role: 'buyer',
+          verifications: [],
+        },
+        seller: { id: 'seller-platform', nickname: 'Platform', avatarUrl: null, role: 'seller', verifications: [] },
+        order: null,
+        agents: [],
+        participants: [{ lastReadAt: null }],
+        messages: [{ id: 'm-1', text: '请问报价', type: 'TEXT', createdAt: new Date('2026-03-14T01:10:00.000Z') }],
+        lastMessageAt: new Date('2026-03-14T01:10:00.000Z'),
+        updatedAt: new Date('2026-03-14T01:10:00.000Z'),
+        createdAt: new Date('2026-03-14T01:00:00.000Z'),
+      },
+      {
+        id: '22222222-2222-2222-2222-222222222222',
+        contentType: 'LISTING',
+        contentId: '32222222-2222-2222-2222-222222222222',
+        listingId: '32222222-2222-2222-2222-222222222222',
+        buyerUserId: 'buyer-2',
+        sellerUserId: 'seller-platform',
+        listing: {
+          id: '32222222-2222-2222-2222-222222222222',
+          title: '成果转化撮合',
+          consultationRouting: 'PLATFORM',
+          source: 'ADMIN',
+          listingTopicsJson: [],
+        },
+        buyer: {
+          id: 'buyer-2',
+          nickname: '成果转化团队',
+          avatarUrl: null,
+          role: 'buyer',
+          verifications: [{ displayName: '华南技术转移中心' }],
+        },
+        seller: { id: 'seller-platform', nickname: 'Platform', avatarUrl: null, role: 'seller', verifications: [] },
+        order: null,
+        agents: [],
+        participants: [{ lastReadAt: null }],
+        messages: [{ id: 'm-2', text: '华南项目咨询', type: 'TEXT', createdAt: new Date('2026-03-14T01:11:00.000Z') }],
+        lastMessageAt: new Date('2026-03-14T01:11:00.000Z'),
+        updatedAt: new Date('2026-03-14T01:11:00.000Z'),
+        createdAt: new Date('2026-03-14T01:01:00.000Z'),
+      },
+      {
+        id: '33333333-3333-3333-3333-333333333333',
+        contentType: 'SUPPORT',
+        contentId: '43333333-3333-3333-3333-333333333333',
+        listingId: null,
+        buyerUserId: 'buyer-3',
+        sellerUserId: 'seller-platform',
+        listing: null,
+        buyer: {
+          id: 'buyer-3',
+          nickname: '普通用户',
+          avatarUrl: null,
+          role: 'buyer',
+          verifications: [],
+        },
+        seller: { id: 'seller-platform', nickname: 'Platform', avatarUrl: null, role: 'seller', verifications: [] },
+        order: null,
+        agents: [],
+        participants: [{ lastReadAt: null }],
+        messages: [{ id: 'm-3', text: '咨询华南业务', type: 'TEXT', createdAt: new Date('2026-03-14T01:12:00.000Z') }],
+        lastMessageAt: new Date('2026-03-14T01:12:00.000Z'),
+        updatedAt: new Date('2026-03-14T01:12:00.000Z'),
+        createdAt: new Date('2026-03-14T01:02:00.000Z'),
+      },
+    ]);
+    prisma.conversationMessage.count.mockResolvedValue(0);
+
+    const result = await service.listPlatformConversations(req, { q: '华南', page: '1', pageSize: '20' });
+
+    expect(result.items.map((item) => item.counterpart.displayName || item.contentTitle)).toEqual([
+      '华南创新中心',
+      '华南技术转移中心',
+    ]);
+    expect(result.page).toEqual({ page: 1, pageSize: 20, total: 2 });
   });
 
   it('rejects invalid platform conversation filters strictly', async () => {

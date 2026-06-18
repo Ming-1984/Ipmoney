@@ -47,18 +47,18 @@ const TEXT = {
   defaultItemName: '\u5e73\u53f0\u670d\u52a1\u8d39/\u4f63\u91d1',
   invoiceNo: '\u53d1\u7968\u53f7',
   issuedAt: '\u5f00\u7968\u65f6\u95f4',
-  fileId: '\u9644\u4ef6\u6587\u4ef6 ID',
+  fileId: '\u9644\u4ef6\u72b6\u6001',
   fileUrl: '\u9644\u4ef6\u94fe\u63a5',
   noInvoiceYet: '\u8be5\u8ba2\u5355\u5f53\u524d\u8fd8\u6ca1\u6709\u53d1\u7968\uff0c\u53ef\u5728\u4e0b\u65b9\u4e0a\u4f20\u5e76\u4fdd\u5b58\u3002',
   loadPrompt: '\u8bf7\u8f93\u5165\u8ba2\u5355\u53f7\u540e\u52a0\u8f7d\u53d1\u7968\u4fe1\u606f\u3002',
   uploadCardTitle: '\u4e0a\u4f20/\u66ff\u6362\u53d1\u7968',
   uploadFile: '\u4e0a\u4f20\u53d1\u7968\u6587\u4ef6',
   uploadFailed: '\u4e0a\u4f20\u5931\u8d25',
-  uploadedPrefix: '\u5df2\u4e0a\u4f20\uff1a',
-  currentFilePrefix: '\u5f53\u524d\u9644\u4ef6\uff1a',
+  uploadedPrefix: '\u5df2\u4e0a\u4f20\u53d1\u7968\u6587\u4ef6',
+  currentFilePrefix: '\u5df2\u6709\u53d1\u7968\u9644\u4ef6',
   noFile: '\u672a\u4e0a\u4f20\u6587\u4ef6',
   invoiceNoPlaceholder: '\u53d1\u7968\u53f7\uff08\u53ef\u9009\uff09',
-  issuedAtPlaceholder: '\u5f00\u7968\u65f6\u95f4 ISO\uff08\u53ef\u9009\uff09',
+  issuedAtPlaceholder: '\u5f00\u7968\u65f6\u95f4\uff08\u53ef\u9009\uff09',
   saveInvoice: '\u4fdd\u5b58\u53d1\u7968',
   saveTitle: '\u786e\u8ba4\u4fdd\u5b58\u53d1\u7968\uff1f',
   saveContent: '\u4fdd\u5b58\u540e\u4e70\u5bb6\u53ef\u5728\u53d1\u7968\u4e2d\u5fc3\u67e5\u770b\u6216\u4e0b\u8f7d\u8be5\u53d1\u7968\u3002',
@@ -243,7 +243,9 @@ export function InvoicesPage() {
             <Descriptions.Item label={TEXT.itemName}>{normalizeUserFacingText(invoice.itemName) || TEXT.defaultItemName}</Descriptions.Item>
             <Descriptions.Item label={TEXT.invoiceNo}>{displayAdminInfo(invoice.invoiceNo)}</Descriptions.Item>
             <Descriptions.Item label={TEXT.issuedAt}>{invoice.issuedAt ? formatTimeSmart(invoice.issuedAt) : '-'}</Descriptions.Item>
-            <Descriptions.Item label={TEXT.fileId}>{displayAdminInfo(invoice.invoiceFile?.id)}</Descriptions.Item>
+            <Descriptions.Item label={TEXT.fileId}>
+              {normalizeUserFacingText(invoice.invoiceFile?.url) ? TEXT.currentFilePrefix : TEXT.noFile}
+            </Descriptions.Item>
             <Descriptions.Item label={TEXT.fileUrl} span={2}>
               {normalizeUserFacingText(invoice.invoiceFile?.url) ? (
                 <a href={invoice.invoiceFile?.url} target="_blank" rel="noreferrer">
@@ -287,9 +289,9 @@ export function InvoicesPage() {
               </Upload>
               <Typography.Text type="secondary">
                 {invoiceFile
-                  ? `${TEXT.uploadedPrefix}${invoiceFile.id}`
+                  ? TEXT.uploadedPrefix
                   : invoice?.invoiceFile?.id
-                    ? `${TEXT.currentFilePrefix}${invoice.invoiceFile.id}`
+                    ? TEXT.currentFilePrefix
                     : TEXT.noFile}
               </Typography.Text>
             </Space>

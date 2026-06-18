@@ -26,7 +26,7 @@ import {
   fetchAdminListingTopicOptions,
   topicLabelFromOptions,
 } from '../lib/homeLandingConfig';
-import { normalizeUserFacingText } from '../lib/userFacingText';
+import { displayAdminTitleWithSecondary, displayUserInitial, displayUserName, normalizeUserFacingText } from '../lib/userFacingText';
 import { RequestErrorAlert } from '../ui/RequestState';
 import { confirmAction } from '../ui/confirm';
 
@@ -49,6 +49,7 @@ type ConversationSummary = {
   assignedAgentUserIds?: string[];
   counterpart: {
     id: string;
+    displayName?: string | null;
     nickname?: string | null;
     avatarUrl?: string | null;
     role?: string | null;
@@ -93,12 +94,6 @@ const CHANNEL_FILTER_OPTIONS: Array<{ value: ConversationChannelFilter; label: s
   { value: 'MAINTENANCE', label: '年费托管' },
 ];
 
-function shortId(value: string): string {
-  const raw = String(value || '');
-  if (raw.length <= 12) return raw;
-  return `${raw.slice(0, 6)}...${raw.slice(-4)}`;
-}
-
 function toDateKey(value: string): string {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return String(value || '').slice(0, 10);
@@ -134,7 +129,9 @@ function channelTagColor(contentType: ConversationSummary['contentType']): strin
 }
 
 function conversationTitle(item: ConversationSummary): string {
-  return normalizeUserFacingText(item.contentTitle) || '未命名会话';
+  return displayAdminTitleWithSecondary(item.contentTitle, fallbackConversationTitle(item), {
+    secondary: item.listingTitle,
+  });
 }
 
 function safeChannelLabel(contentType: ConversationSummary['contentType']): string {
@@ -148,15 +145,46 @@ function safeChannelTagColor(contentType: ConversationSummary['contentType']): s
 }
 
 function conversationCounterpartName(item: Pick<ConversationSummary, 'counterpart'>): string {
-  return normalizeUserFacingText(item.counterpart?.nickname) || '未设置昵称';
+  return displayUserName(item.counterpart, '平台用户');
+}
+
+function staffDisplayName(user: Pick<StaffUser, 'name' | 'email'> | null | undefined, fallback = '平台坐席'): string {
+  return normalizeUserFacingText(user?.name) || normalizeUserFacingText(user?.email) || fallback;
+}
+
+function assignedStaffName(userId: string, staffNameMap: Map<string, string>): string {
+  return normalizeUserFacingText(staffNameMap.get(userId)) || '平台坐席';
 }
 
 function conversationPreviewText(item: Pick<ConversationSummary, 'lastMessagePreview'>): string {
-  return normalizeUserFacingText(item.lastMessagePreview) || '暂无消息';
+  return normalizeUserFacingText(item.lastMessagePreview) || '暂无新消息';
 }
 
 function resolvedConversationTitle(item: ConversationSummary): string {
-  return normalizeUserFacingText(item.contentTitle) || conversationTitle(item);
+  return conversationTitle(item);
+}
+
+function fallbackConversationTitle(item: Pick<ConversationSummary, 'contentType'>): string {
+  if (item.contentType === 'SUPPORT') return '平台客服会话';
+  if (item.contentType === 'DISPUTE') return '订单争议会话';
+  if (item.contentType === 'MAINTENANCE') return '年费托管会话';
+  if (item.contentType === 'ACHIEVEMENT') return '成果咨询会话';
+  if (item.contentType === 'LISTING') return '挂牌咨询会话';
+  return '业务会话待确认';
+}
+
+function conversationMessageTypeLabel(type: ConversationMessage['type']): string {
+  if (type === 'IMAGE') return '图片消息';
+  if (type === 'FILE') return '文件消息';
+  if (type === 'EMOJI') return '表情消息';
+  if (type === 'SYSTEM') return '系统消息';
+  return '消息内容待确认';
+}
+
+function conversationMessageBody(messageItem: ConversationMessage): string {
+  const text = normalizeUserFacingText(messageItem.text);
+  if (text) return text;
+  return conversationMessageTypeLabel(messageItem.type);
 }
 
 export function PlatformConversationsPage() {
@@ -207,7 +235,7 @@ export function PlatformConversationsPage() {
   const staffNameMap = useMemo(() => {
     const out = new Map<string, string>();
     for (const user of staffUsers) {
-      out.set(user.id, user.name || user.email || shortId(user.id));
+      out.set(user.id, staffDisplayName(user));
     }
     return out;
   }, [staffUsers]);
@@ -436,7 +464,7 @@ export function PlatformConversationsPage() {
       if (!activeConversationId) return;
       const ok = await confirmAction({
         title: '确认移除坐席',
-        content: `将移除 ${staffNameMap.get(userId) || shortId(userId)} 的处理权限，是否继续？`,
+        content: `将移除 ${assignedStaffName(userId, staffNameMap)} 的处理权限，是否继续？`,
         danger: true,
       });
       if (!ok) return;
@@ -538,7 +566,7 @@ export function PlatformConversationsPage() {
             <Input.Search
               value={draftQ}
               allowClear
-              placeholder="关键词（标题/用户昵称/会话 ID）"
+              placeholder="关键词（标题/用户昵称/会话编号）"
               onChange={(event) => setDraftQ(event.target.value)}
               onSearch={applyFilters}
             />
@@ -612,11 +640,11 @@ export function PlatformConversationsPage() {
                     onClick={() => setActiveConversationId(item.id)}
                   >
                     <Space align="start" style={{ width: '100%' }}>
-                      <Badge count={unread > 99 ? '99+' : unread} size="small" offset={[-2, 2]}>
-                        <Avatar src={item.counterpart.avatarUrl || undefined}>
-                          {conversationCounterpartName(item).slice(0, 1)}
-                        </Avatar>
-                      </Badge>
+                        <Badge count={unread > 99 ? '99+' : unread} size="small" offset={[-2, 2]}>
+                          <Avatar src={item.counterpart.avatarUrl || undefined}>
+                          {displayUserInitial(conversationCounterpartName(item), '用')}
+                          </Avatar>
+                        </Badge>
                       <Space direction="vertical" size={4} style={{ width: '100%' }}>
                         <Space style={{ width: '100%', justifyContent: 'space-between' }}>
                           <Typography.Text strong ellipsis style={{ maxWidth: 220 }}>
@@ -627,7 +655,7 @@ export function PlatformConversationsPage() {
                           </Typography.Text>
                         </Space>
                         <Typography.Text type="secondary" style={{ fontSize: 12 }}>
-                          咨询人：{conversationCounterpartName(item)}（{shortId(item.counterpart.id)}）
+                          咨询人：{conversationCounterpartName(item)}
                         </Typography.Text>
                         <Typography.Paragraph type="secondary" style={{ margin: 0, fontSize: 12 }} ellipsis={{ rows: 1 }}>
                           {conversationPreviewText(item)}
@@ -684,7 +712,6 @@ export function PlatformConversationsPage() {
                   <Space size={[6, 6]} wrap>
                     <Tag color={safeChannelTagColor(activeConversation.contentType)}>{safeChannelLabel(activeConversation.contentType)}</Tag>
                     <Tag color="processing">咨询人：{conversationCounterpartName(activeConversation)}</Tag>
-                    <Tag>{shortId(activeConversation.counterpart.id)}</Tag>
                     {(activeConversation.listingTopics || []).map((topic) => (
                       <Tag key={`active-topic-${topic}`} color={topicColor(topic)}>
                         {topicLabel(topic)}
@@ -704,7 +731,7 @@ export function PlatformConversationsPage() {
                       optionFilterProp="label"
                       options={staffUsers.map((user) => ({
                         value: user.id,
-                        label: `${user.name || user.email || shortId(user.id)}（${shortId(user.id)}）`,
+                        label: staffDisplayName(user, '未命名坐席'),
                       }))}
                       onChange={(value) => setTargetUserId(String(value || ''))}
                       allowClear
@@ -722,7 +749,7 @@ export function PlatformConversationsPage() {
                       (activeConversation.assignedAgentUserIds || []).map((id) => (
                         <Tag key={id} color="blue">
                           <Space size={4}>
-                            <span>{staffNameMap.get(id) || shortId(id)}</span>
+                            <span>{assignedStaffName(id, staffNameMap)}</span>
                             <Button type="link" size="small" danger onClick={() => void removeAgent(id)}>
                               移除
                             </Button>
@@ -769,7 +796,7 @@ export function PlatformConversationsPage() {
                         ? conversationCounterpartName(activeConversation)
                         : isMine
                           ? '我'
-                          : staffNameMap.get(msg.senderUserId) || shortId(msg.senderUserId);
+                          : assignedStaffName(msg.senderUserId, staffNameMap);
 
                       return (
                         <div key={line.key} style={{ display: 'flex', justifyContent: isCounterpart ? 'flex-start' : 'flex-end' }}>
@@ -791,7 +818,7 @@ export function PlatformConversationsPage() {
                                   {formatTimeSmart(msg.createdAt)}
                                 </Typography.Text>
                               </Space>
-                              <Typography.Text>{msg.text || `[${msg.type}]`}</Typography.Text>
+                              <Typography.Text>{conversationMessageBody(msg)}</Typography.Text>
                             </Space>
                           </div>
                         </div>

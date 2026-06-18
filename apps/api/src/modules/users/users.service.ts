@@ -5,12 +5,13 @@ import {
   NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 
 import { AuditLogService } from '../../common/audit-log.service';
 import { getDemoAuthConfig } from '../../common/demo';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { WechatContentSecurityService } from '../../common/wechat-content-security.service';
-import { resolvePublicFileUrl } from '../content-utils';
+import { normalizeDisplayText, resolvePublicFileUrl } from '../content-utils';
 import { NotificationsService } from '../notifications/notifications.service';
 
 type UserVerificationWhereInput = any;
@@ -29,13 +30,26 @@ function maskPhone(value: string) {
   return maskKeepStartEnd(rawPhone, 3, 4);
 }
 
+function formatVerificationReviewSummary(displayName: unknown, approved: boolean, reason?: string | null) {
+  const normalizedDisplayName = normalizeDisplayText(displayName);
+  if (approved) {
+    return normalizedDisplayName
+      ? `${normalizedDisplayName}认证已通过审核，可正常发布与交易。`
+      : '你的认证已通过审核，可正常发布与交易。';
+  }
+  const normalizedReason = normalizeDisplayText(reason);
+  const prefix = normalizedDisplayName ? `${normalizedDisplayName}认证审核未通过` : '你的认证审核未通过';
+  return normalizedReason ? `${prefix}，原因：${normalizedReason}。` : `${prefix}，请修改后重新提交。`;
+}
+
 export type UserProfileDto = {
   id: string;
   phone?: string;
   nickname?: string;
+  displayName?: string;
   avatarUrl?: string;
   role: string;
-  verificationStatus?: 'PENDING' | 'APPROVED' | 'REJECTED';
+  verificationStatus?: 'PENDING' | 'APPROVED' | 'REJECTED' | null;
   verificationType?: 'PERSON' | 'COMPANY' | 'ACADEMY' | 'GOVERNMENT' | 'ASSOCIATION' | 'TECH_MANAGER' | null;
   regionCode?: string;
   createdAt: string;
@@ -62,6 +76,13 @@ export type UserVerificationDto = {
   reviewComment?: string;
 };
 
+export type AdminVerificationProfileUpdateRequestDto = {
+  displayName?: string | null;
+  contactName?: string | null;
+  regionCode?: string | null;
+  intro?: string | null;
+};
+
 export type UserVerificationSubmitRequestDto = {
   type: UserVerificationDto['type'];
   displayName: string;
@@ -73,6 +94,13 @@ export type UserVerificationSubmitRequestDto = {
   intro?: string;
   logoFileId?: string;
   evidenceFileIds?: string[];
+  serviceTags?: string[];
+  position?: string;
+  organization?: string;
+  serviceDirections?: string[];
+  workHighlights?: string;
+  experienceLabel?: string;
+  levelLabel?: string;
 };
 
 const USER_VERIFICATION_TYPES = ['PERSON', 'COMPANY', 'ACADEMY', 'GOVERNMENT', 'ASSOCIATION', 'TECH_MANAGER'] as const;
@@ -120,6 +148,35 @@ export class UsersService {
       }
       return raw;
     });
+  }
+
+  private parseOptionalStringArray(value: unknown, fieldName: string, opts?: { maxItems?: number; maxLength?: number }): string[] {
+    if (value === undefined || value === null) return [];
+    if (!Array.isArray(value)) {
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: `${fieldName} is invalid` });
+    }
+    const maxItems = Math.max(1, opts?.maxItems ?? 20);
+    const maxLength = Math.max(1, opts?.maxLength ?? 100);
+    if (value.length > maxItems) {
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: `${fieldName} is invalid` });
+    }
+    return value.map((item) => {
+      const raw = String(item ?? '').trim();
+      if (!raw || raw.length > maxLength) {
+        throw new BadRequestException({ code: 'BAD_REQUEST', message: `${fieldName} is invalid` });
+      }
+      return raw;
+    });
+  }
+
+  private parseOptionalStringWithMaxLength(value: unknown, fieldName: string, maxLength: number): string | null {
+    if (value === undefined || value === null) return null;
+    const raw = String(value ?? '').trim();
+    if (!raw) return null;
+    if (raw.length > maxLength) {
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: `${fieldName} is invalid` });
+    }
+    return raw;
   }
 
   private parsePositiveIntStrict(value: unknown, fieldName: string): number {
@@ -182,9 +239,10 @@ export class UsersService {
       id: userRecord.id,
       phone: userRecord.phone ?? undefined,
       nickname: userRecord.nickname ?? undefined,
+      displayName: latestVerification?.displayName ?? undefined,
       avatarUrl: resolvePublicFileUrl({ url: userRecord.avatarUrl }) ?? undefined,
       role: userRecord.role,
-      verificationStatus: latestVerification?.verificationStatus ?? 'PENDING',
+      verificationStatus: latestVerification?.verificationStatus ?? null,
       verificationType: latestVerification?.verificationType ?? null,
       regionCode: userRecord.regionCode ?? undefined,
       createdAt: userRecord.createdAt.toISOString(),
@@ -327,6 +385,34 @@ export class UsersService {
     const hasUnifiedSocialCreditCode = this.hasOwn(input, 'unifiedSocialCreditCode');
     const hasRegionCode = this.hasOwn(input, 'regionCode');
     const hasLogoFileId = this.hasOwn(input, 'logoFileId');
+    const techManagerServiceTags =
+      verificationType === 'TECH_MANAGER'
+        ? this.parseOptionalStringArray(input.serviceTags, 'serviceTags', { maxItems: 20, maxLength: 50 })
+        : [];
+    const techManagerPosition =
+      verificationType === 'TECH_MANAGER'
+        ? this.parseOptionalStringWithMaxLength(input.position, 'position', 100)
+        : null;
+    const techManagerOrganization =
+      verificationType === 'TECH_MANAGER'
+        ? this.parseOptionalStringWithMaxLength(input.organization, 'organization', 200)
+        : null;
+    const techManagerServiceDirections =
+      verificationType === 'TECH_MANAGER'
+        ? this.parseOptionalStringArray(input.serviceDirections, 'serviceDirections', { maxItems: 20, maxLength: 100 })
+        : [];
+    const techManagerWorkHighlights =
+      verificationType === 'TECH_MANAGER'
+        ? this.parseOptionalStringWithMaxLength(input.workHighlights, 'workHighlights', 4000)
+        : null;
+    const techManagerExperienceLabel =
+      verificationType === 'TECH_MANAGER'
+        ? this.parseOptionalStringWithMaxLength(input.experienceLabel, 'experienceLabel', 100)
+        : null;
+    const techManagerLevelLabel =
+      verificationType === 'TECH_MANAGER'
+        ? this.parseOptionalStringWithMaxLength(input.levelLabel, 'levelLabel', 50)
+        : null;
     const created = await this.prisma.userVerification.create({
       data: {
         userId,
@@ -348,6 +434,35 @@ export class UsersService {
       },
       include: { logoFile: true },
     });
+
+    if (verificationType === 'TECH_MANAGER') {
+      await this.prisma.techManagerProfile.upsert({
+        where: { userId },
+        create: {
+          userId,
+          intro: created.intro ?? null,
+          contactPhone: created.contactPhone ?? null,
+          serviceTagsJson: techManagerServiceTags.length ? techManagerServiceTags : Prisma.DbNull,
+          position: techManagerPosition,
+          organization: techManagerOrganization,
+          serviceDirectionsJson: techManagerServiceDirections.length ? techManagerServiceDirections : Prisma.DbNull,
+          workHighlights: techManagerWorkHighlights,
+          experienceLabel: techManagerExperienceLabel,
+          levelLabel: techManagerLevelLabel,
+        },
+        update: {
+          intro: created.intro ?? null,
+          contactPhone: created.contactPhone ?? null,
+          serviceTagsJson: techManagerServiceTags.length ? techManagerServiceTags : Prisma.DbNull,
+          position: techManagerPosition,
+          organization: techManagerOrganization,
+          serviceDirectionsJson: techManagerServiceDirections.length ? techManagerServiceDirections : Prisma.DbNull,
+          workHighlights: techManagerWorkHighlights,
+          experienceLabel: techManagerExperienceLabel,
+          levelLabel: techManagerLevelLabel,
+        },
+      });
+    }
 
     void this.audit.log({
       actorUserId: userId,
@@ -427,7 +542,7 @@ export class UsersService {
     await this.notifications.create({
       userId: updated.userId,
       title: '认证审核通过',
-      summary: `${updated.displayName || '主体'}认证已通过审核，可正常发布与交易。`,
+      summary: formatVerificationReviewSummary(updated.displayName, true),
       source: '平台审核',
     });
     await this.audit.log({
@@ -468,7 +583,7 @@ export class UsersService {
     await this.notifications.create({
       userId: updated.userId,
       title: '认证审核驳回',
-      summary: `${updated.displayName || '主体'}认证审核未通过${trimmedReason ? `，原因：${trimmedReason}` : '，请修改后重新提交'}。`,
+      summary: formatVerificationReviewSummary(updated.displayName, false, trimmedReason),
       source: '平台审核',
     });
     await this.audit.log({
@@ -506,6 +621,62 @@ export class UsersService {
       targetType: 'USER_VERIFICATION',
       targetId: id,
       afterJson: { logoFileId: normalizedLogoFileId },
+    });
+    return this.toUserVerificationDto(updated);
+  }
+
+  async adminUpdateVerificationProfile(
+    id: string,
+    patch: AdminVerificationProfileUpdateRequestDto,
+    reviewerId: string,
+  ) {
+    const hasDisplayName = this.hasOwn(patch, 'displayName');
+    const hasContactName = this.hasOwn(patch, 'contactName');
+    const hasRegionCode = this.hasOwn(patch, 'regionCode');
+    const hasIntro = this.hasOwn(patch, 'intro');
+
+    if (!hasDisplayName && !hasContactName && !hasRegionCode && !hasIntro) {
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: 'at least one field is required' });
+    }
+
+    const displayName = hasDisplayName ? this.parseOptionalStringWithMaxLength((patch as any)?.displayName, 'displayName', 100) : undefined;
+    const contactName = hasContactName ? this.parseOptionalStringWithMaxLength((patch as any)?.contactName, 'contactName', 100) : undefined;
+    const regionCode = hasRegionCode ? this.parseNullableRegionCodeStrict((patch as any)?.regionCode, 'regionCode') : undefined;
+    const intro = hasIntro ? this.parseOptionalStringWithMaxLength((patch as any)?.intro, 'intro', 2000) : undefined;
+
+    const data: any = {
+      displayName,
+      contactName,
+      regionCode,
+      intro,
+    };
+
+    let updated: any;
+    try {
+      updated = await this.prisma.userVerification.update({
+        where: { id },
+        data,
+        include: { logoFile: true },
+      });
+    } catch (error: any) {
+      if (error?.code === 'P2025') {
+        throw new NotFoundException({ code: 'NOT_FOUND', message: 'verification not found' });
+      }
+      throw error;
+    }
+
+    const afterJson: Record<string, unknown> = {};
+    if (hasDisplayName) afterJson.displayName = displayName;
+    if (hasContactName) afterJson.contactName = contactName;
+    if (hasRegionCode) afterJson.regionCode = regionCode;
+    if (hasIntro) afterJson.intro = intro;
+
+    await this.audit.log({
+      actorUserId: reviewerId || updated.userId,
+      action: 'VERIFICATION_PROFILE_UPDATE',
+      targetType: 'USER_VERIFICATION',
+      targetId: id,
+      afterJson,
     });
     return this.toUserVerificationDto(updated);
   }

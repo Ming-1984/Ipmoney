@@ -22,6 +22,13 @@ export class OrdersController {
   }
 
   @UseGuards(BearerAuthGuard)
+  @Get('/admin/orders')
+  async listAdminOrders(@Req() req: any, @Query() query: any) {
+    requirePermission(req, 'order.read');
+    return await this.orders.listAdminOrders(req, query);
+  }
+
+  @UseGuards(BearerAuthGuard)
   @Get('/orders/:orderId')
   async getOrder(@Req() req: any, @Param('orderId') orderId: string) {
     return await this.orders.getOrderDetail(req, orderId);
@@ -58,6 +65,13 @@ export class OrdersController {
   @UseGuards(BearerAuthGuard)
   @Get('/orders/:orderId/invoice')
   async getInvoice(@Req() req: any, @Param('orderId') orderId: string) {
+    return await this.orders.getOrderInvoice(req, orderId);
+  }
+
+  @UseGuards(BearerAuthGuard)
+  @Get('/admin/orders/:orderId/invoice')
+  async getAdminInvoice(@Req() req: any, @Param('orderId') orderId: string) {
+    requirePermission(req, 'invoice.manage');
     return await this.orders.getOrderInvoice(req, orderId);
   }
 
