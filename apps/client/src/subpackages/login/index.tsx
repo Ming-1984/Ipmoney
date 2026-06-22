@@ -1,18 +1,16 @@
 ﻿import { View, Text, Image } from '@tarojs/components';
-import Taro, { useDidHide, useDidShow } from '@tarojs/taro';
+import Taro, { useDidHide, useDidShow, useUnload } from '@tarojs/taro';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import './index.scss';
 
 import type { components } from '@ipmoney/api-types';
 
 import {
+  applyAuthSnapshot,
   clearVerificationStatus,
   clearVerificationType,
   isOnboardingDone,
   setOnboardingDone,
-  setToken,
-  setVerificationStatus,
-  setVerificationType,
 } from '../../lib/auth';
 import { DEMO_LOGIN_ENABLED } from '../../constants';
 import { apiPost } from '../../lib/api';
@@ -40,6 +38,7 @@ export default function LoginPage() {
   const [phoneBindBusy, setPhoneBindBusy] = useState(false);
   const postLoginNextRef = useRef<null | (() => void)>(null);
   const pageVisibleRef = useRef(true);
+  const phoneAuthPromptActiveRef = useRef(false);
   const actionSeqRef = useRef(0);
   const phoneBindSeqRef = useRef(0);
   const redirectParam = useRouteStringParam('redirect');
@@ -59,15 +58,25 @@ export default function LoginPage() {
 
   useDidShow(() => {
     pageVisibleRef.current = true;
+    phoneAuthPromptActiveRef.current = false;
   });
 
   useDidHide(() => {
+    if (phoneAuthPromptActiveRef.current) return;
     pageVisibleRef.current = false;
     actionSeqRef.current += 1;
     phoneBindSeqRef.current += 1;
     postLoginNextRef.current = null;
     setBusy(false);
     setPhoneBindBusy(false);
+  });
+
+  useUnload(() => {
+    pageVisibleRef.current = false;
+    phoneAuthPromptActiveRef.current = false;
+    actionSeqRef.current += 1;
+    phoneBindSeqRef.current += 1;
+    postLoginNextRef.current = null;
   });
 
   useEffect(() => {
@@ -97,19 +106,16 @@ export default function LoginPage() {
         toast('登录失败，请稍后重试');
         return;
       }
-      setToken(token);
-
       const vt = (auth.user?.verificationType || null) as VerificationType | null;
       const vs = (auth.user?.verificationStatus || null) as VerificationStatus | null;
       const phoneFromAuth = String(auth.user?.phone || '').trim();
-
-      if (vt) setVerificationType(vt);
-      else clearVerificationType();
-
-      if (vs) setVerificationStatus(vs);
-      else clearVerificationStatus();
-
-      setOnboardingDone(Boolean(vt) || isOnboardingDone());
+      const onboardingDone = Boolean(vt) || isOnboardingDone();
+      applyAuthSnapshot({
+        token,
+        onboardingDone,
+        verificationType: vt,
+        verificationStatus: vs,
+      });
 
       toast('登录成功', { icon: 'success' });
 
@@ -380,7 +386,14 @@ export default function LoginPage() {
       <WechatPhoneBindPopup
         visible={phoneBindOpen}
         loading={phoneBindBusy}
+        onAuthPromptStart={() => {
+          phoneAuthPromptActiveRef.current = true;
+        }}
+        onAuthPromptEnd={() => {
+          phoneAuthPromptActiveRef.current = false;
+        }}
         onSkip={() => {
+          phoneAuthPromptActiveRef.current = false;
           setPhoneBindOpen(false);
           const next = postLoginNextRef.current;
           postLoginNextRef.current = null;
@@ -388,6 +401,7 @@ export default function LoginPage() {
         }}
         onRequestBind={async (phoneCode) => {
           if (phoneBindBusy) return;
+          phoneAuthPromptActiveRef.current = false;
           const seq = ++phoneBindSeqRef.current;
           setPhoneBindBusy(true);
           try {
@@ -399,6 +413,7 @@ export default function LoginPage() {
             postLoginNextRef.current = null;
             next?.();
           } catch (e: any) {
+            phoneAuthPromptActiveRef.current = false;
             if (seq !== phoneBindSeqRef.current || !pageVisibleRef.current) return;
             toast(e?.message || '绑定失败');
           } finally {

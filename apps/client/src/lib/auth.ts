@@ -11,6 +11,13 @@ export type AuthRequiredPayload = {
   path?: string;
 };
 
+export type AuthSnapshot = {
+  token: string | null;
+  onboardingDone: boolean;
+  verificationType: VerificationType | null;
+  verificationStatus: VerificationStatus | null;
+};
+
 export function notifyAuthChanged() {
   try {
     Taro.eventCenter.trigger(AUTH_EVENT);
@@ -83,6 +90,31 @@ function safeRemoveStorage(key: string) {
 
 export function getToken(): string | null {
   return safeGetStorage(STORAGE_KEYS.token) || null;
+}
+
+export function getAuthSnapshot(): AuthSnapshot {
+  return {
+    token: getToken(),
+    onboardingDone: isOnboardingDone(),
+    verificationType: getVerificationType(),
+    verificationStatus: getVerificationStatus(),
+  };
+}
+
+export function applyAuthSnapshot(snapshot: AuthSnapshot) {
+  if (snapshot.token) safeSetStorage(STORAGE_KEYS.token, snapshot.token);
+  else safeRemoveStorage(STORAGE_KEYS.token);
+
+  if (snapshot.onboardingDone) safeSetStorage(STORAGE_KEYS.onboardingDone, true);
+  else safeRemoveStorage(STORAGE_KEYS.onboardingDone);
+
+  if (snapshot.verificationType) safeSetStorage(STORAGE_KEYS.verificationType, snapshot.verificationType);
+  else safeRemoveStorage(STORAGE_KEYS.verificationType);
+
+  if (snapshot.verificationStatus) safeSetStorage(STORAGE_KEYS.verificationStatus, snapshot.verificationStatus);
+  else safeRemoveStorage(STORAGE_KEYS.verificationStatus);
+
+  notifyAuthChanged();
 }
 
 export function setToken(token: string) {

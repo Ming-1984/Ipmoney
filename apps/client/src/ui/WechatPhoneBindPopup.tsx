@@ -8,6 +8,8 @@ import { Popup } from './nutui';
 export type WechatPhoneBindPopupProps = {
   visible: boolean;
   loading?: boolean;
+  onAuthPromptStart?: () => void;
+  onAuthPromptEnd?: () => void;
   onRequestBind: (phoneCode: string) => void | Promise<void>;
   onSkip: () => void;
 };
@@ -17,6 +19,7 @@ export function WechatPhoneBindPopup(props: WechatPhoneBindPopupProps) {
     (e: any) => {
       const code = String(e?.detail?.code || '').trim();
       const errMsg = String(e?.detail?.errMsg || '').toLowerCase();
+      props.onAuthPromptEnd?.();
 
       // User denied or cancelled the phone capability; continue the flow without blocking.
       if (!code) {
@@ -51,6 +54,7 @@ export function WechatPhoneBindPopup(props: WechatPhoneBindPopupProps) {
           <TaroButton
             className="wechat-phone-btn wechat-phone-btn-primary"
             openType="getPhoneNumber"
+            onClick={() => props.onAuthPromptStart?.()}
             onGetPhoneNumber={onGetPhoneNumber}
             disabled={Boolean(props.loading)}
           >

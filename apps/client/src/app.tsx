@@ -11,7 +11,7 @@ import { installH5DomGuard } from './lib/h5DomGuard';
 import { isTabPageUrl, normalizePageUrl } from './lib/navigation';
 import { ensureRegionNamesReady } from './lib/regions';
 import type { components } from '@ipmoney/api-types';
-import { clearVerificationStatus, clearVerificationType, getToken, isOnboardingDone, onAuthRequired, setOnboardingDone, setToken, setVerificationStatus, setVerificationType } from './lib/auth';
+import { applyAuthSnapshot, getToken, isOnboardingDone, onAuthRequired } from './lib/auth';
 import { goLogin, getCurrentPageUrl } from './lib/guard';
 import { STATE_COPY } from './ui/copy';
 import { apiPost } from './lib/api';
@@ -92,14 +92,14 @@ export default function App(props: { children: ReactNode }) {
           const token = String(auth?.accessToken || '').trim();
           if (!token) return;
 
-          setToken(token);
           const vt = (auth?.user?.verificationType || null) as VerificationType | null;
           const vs = (auth?.user?.verificationStatus || null) as VerificationStatus | null;
-          if (vt) setVerificationType(vt);
-          else clearVerificationType();
-          if (vs) setVerificationStatus(vs);
-          else clearVerificationStatus();
-          setOnboardingDone(Boolean(vt) || isOnboardingDone());
+          applyAuthSnapshot({
+            token,
+            onboardingDone: Boolean(vt) || isOnboardingDone(),
+            verificationType: vt,
+            verificationStatus: vs,
+          });
 
           url.searchParams.delete('__demo_auth');
           window.history.replaceState({}, '', url.toString());
