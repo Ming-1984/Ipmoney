@@ -5,6 +5,7 @@ import { ContentMediaType, Prisma } from '@prisma/client';
 import { AuditLogService } from '../../common/audit-log.service';
 import { ContentEventService } from '../../common/content-event.service';
 import { PrismaService } from '../../common/prisma/prisma.service';
+import { resolveRegionCodeForStorage } from '../../common/region-code';
 import { WechatContentSecurityService } from '../../common/wechat-content-security.service';
 import {
   buildPublisherMap,
@@ -451,7 +452,7 @@ export class AchievementsService {
     const description = this.parseNullableTrimmedString(body?.description);
     const maturity = this.hasOwn(body, 'maturity') ? this.parseNullableMaturityStrict(body?.maturity, 'maturity') : null;
     const regionCode = this.hasOwn(body, 'regionCode')
-      ? this.parseNullableRegionCodeStrict(body?.regionCode, 'regionCode')
+      ? await resolveRegionCodeForStorage(this.prisma, body?.regionCode, 'regionCode', { allowEmpty: true })
       : null;
 
     const industryTags = sanitizeIndustryTagNames(body?.industryTags);
@@ -570,7 +571,7 @@ export class AchievementsService {
     const description = this.parseNullableTrimmedString(body?.description);
     const maturity = this.hasOwn(body, 'maturity') ? this.parseNullableMaturityStrict(body?.maturity, 'maturity') : null;
     const regionCode = this.hasOwn(body, 'regionCode')
-      ? this.parseNullableRegionCodeStrict(body?.regionCode, 'regionCode')
+      ? await resolveRegionCodeForStorage(this.prisma, body?.regionCode, 'regionCode', { allowEmpty: true })
       : null;
     const industryTags = sanitizeIndustryTagNames(body?.industryTags);
     const keywords = this.normalizeKeywords(body?.keywords);
@@ -598,6 +599,7 @@ export class AchievementsService {
       userId: req.auth.userId,
       fileIds: ownedFileIds,
       label: 'achievement media',
+      allowPending: true,
       requestMeta: {
         actorUserId: req.auth.userId,
         targetType: 'ACHIEVEMENT',
@@ -654,7 +656,7 @@ export class AchievementsService {
       ? this.parseNullableMaturityStrict(body?.maturity, 'maturity')
       : it.maturity ?? null;
     const regionCode = this.hasOwn(body, 'regionCode')
-      ? this.parseNullableRegionCodeStrict(body?.regionCode, 'regionCode')
+      ? await resolveRegionCodeForStorage(this.prisma, body?.regionCode, 'regionCode', { allowEmpty: true })
       : it.regionCode ?? null;
     const industryTags = this.hasOwn(body, 'industryTags')
       ? sanitizeIndustryTagNames(body?.industryTags)
@@ -689,6 +691,7 @@ export class AchievementsService {
       userId: req.auth.userId,
       fileIds: ownedFileIds,
       label: 'achievement media',
+      allowPending: true,
       requestMeta: {
         actorUserId: req.auth.userId,
         targetType: 'ACHIEVEMENT',
@@ -767,6 +770,7 @@ export class AchievementsService {
         ...((media?.media || []).map((item: any) => String(item.fileId || ''))),
       ],
       label: 'achievement media',
+      allowPending: true,
       requestMeta: {
         actorUserId: req.auth.userId,
         targetType: 'ACHIEVEMENT',
@@ -917,7 +921,7 @@ export class AchievementsService {
       ? this.parseNullableMaturityStrict(body?.maturity, 'maturity')
       : it.maturity ?? null;
     const regionCode = this.hasOwn(body, 'regionCode')
-      ? this.parseNullableRegionCodeStrict(body?.regionCode, 'regionCode')
+      ? await resolveRegionCodeForStorage(this.prisma, body?.regionCode, 'regionCode', { allowEmpty: true })
       : it.regionCode ?? null;
     const industryTags = this.hasOwn(body, 'industryTags')
       ? sanitizeIndustryTagNames(body?.industryTags)

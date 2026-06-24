@@ -124,7 +124,32 @@ describe('OrdersService list filter strictness suite', () => {
 
     expect(prisma.order.findMany).toHaveBeenCalledWith({
       where: { status: { in: ['DEPOSIT_PAID', 'FINAL_PAID_ESCROW', 'READY_TO_SETTLE'] } },
-      include: { listing: true },
+      include: {
+        buyer: {
+          select: {
+            nickname: true,
+            verifications: {
+              orderBy: { submittedAt: 'desc' },
+              take: 1,
+              select: { displayName: true },
+            },
+          },
+        },
+        listing: {
+          include: {
+            seller: {
+              select: {
+                nickname: true,
+                verifications: {
+                  orderBy: { submittedAt: 'desc' },
+                  take: 1,
+                  select: { displayName: true },
+                },
+              },
+            },
+          },
+        },
+      },
       orderBy: { createdAt: 'desc' },
       skip: 50,
       take: 50,

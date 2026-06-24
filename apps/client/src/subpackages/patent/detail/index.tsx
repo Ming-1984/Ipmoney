@@ -16,6 +16,7 @@ import { patentTypeLabel, priceTypeLabel, verificationTypeLabel } from '../../..
 import { fenToYuan } from '../../../lib/money';
 import { safeNavigateBack } from '../../../lib/navigation';
 import { getPatentCache, setPatentCache } from '../../../lib/patentCache';
+import { parseUuidParam } from '../../../lib/params';
 import { useRouteUuidParam } from '../../../lib/routeParams';
 import { CommentsSection } from '../../../ui/CommentsSection';
 import { PageHeader, SectionHeader, Spacer, StickyBar, Surface, TipBanner } from '../../../ui/layout';
@@ -27,6 +28,13 @@ type Patent = components['schemas']['Patent'];
 type PatentTradeSnapshot = components['schemas']['PatentTradeSnapshot'];
 type PatentMediaItem = components['schemas']['PatentMedia'];
 type Conversation = { id: string };
+
+const WEAPP_DEBUG = process.env.NODE_ENV !== 'production' && process.env.TARO_ENV === 'weapp';
+
+function reportWeappDebug(title: string, detail?: unknown) {
+  if (!WEAPP_DEBUG) return;
+  console.error(`[weapp-debug] ${title}`, detail);
+}
 
 function legalStatusLabel(status?: Patent['legalStatus']): string {
   if (!status) return '待确认';
@@ -94,6 +102,7 @@ export default function PatentDetailOverviewPage() {
   const [error, setError] = useState<string | null>(null);
   const [data, setData] = useState<Patent | null>(initialCachedData);
   const [favoritedState, setFavoritedState] = useState(false);
+  const [currentUserId, setCurrentUserId] = useState('');
   const patentIdRef = useRef(patentId);
 
   useDidShow(() => {
@@ -104,6 +113,22 @@ export default function PatentDetailOverviewPage() {
     pageVisibleRef.current = false;
     consultSeqRef.current += 1;
   });
+
+  useEffect(() => {
+    let alive = true;
+    apiGet<{ id: string }>('/me')
+      .then((me) => {
+        if (!alive) return;
+        setCurrentUserId(String(me?.id || '').trim());
+      })
+      .catch(() => {
+        if (!alive) return;
+        setCurrentUserId('');
+      });
+    return () => {
+      alive = false;
+    };
+  }, []);
 
   useEffect(() => {
     patentIdRef.current = patentId;
@@ -162,14 +187,20 @@ export default function PatentDetailOverviewPage() {
     void load();
   }, [load]);
 
-  const tradeSnapshot = data?.tradeSnapshot ?? null;
+const tradeSnapshot = data?.tradeSnapshot ?? null;
   const sellerDisplayName = displayUserName(tradeSnapshot?.seller, '');
   const sellerDisplayInitial = displayInitial(sellerDisplayName, '供');
   const sellerTitle = sellerDisplayName || '平台认证供给方';
   const listingId = tradeSnapshot?.listingId || '';
   const depositAmountFen = tradeSnapshot?.depositAmountFen ?? null;
   const canTrade = Boolean(listingId);
-  const depositLabel = depositAmountFen != null ? `订金 ￥${fenToYuan(depositAmountFen)}` : '订金待确认';
+  const isOwnListing = Boolean(tradeSnapshot?.seller?.id && currentUserId && tradeSnapshot.seller.id === currentUserId);
+  const hasValidDepositAmount = depositAmountFen != null && Number.isFinite(depositAmountFen) && depositAmountFen > 0;
+  const depositLabel = isOwnListing
+    ? '我的专利'
+    : hasValidDepositAmount
+      ? `订金 ￥${fenToYuan(depositAmountFen)}`
+      : '暂未配置订金';
   const hasTrade = Boolean(tradeSnapshot);
   const claimEnabled = Boolean(data && isPlatformUnifiedPatent(data.sourcePrimary) && !data.ownerUserId);
   const claimBlockedReason = data?.ownerUserId ? '该专利已归属个人，不支持认领' : '';
@@ -218,6 +249,7 @@ export default function PatentDetailOverviewPage() {
     }
     if (!ensureApproved()) return;
     const seq = ++consultSeqRef.current;
+    reportWeappDebug('专利咨询入口已触发', { listingId });
     try {
       await apiPost<void>(
         `/listings/${listingId}/consultations`,
@@ -233,9 +265,20 @@ export default function PatentDetailOverviewPage() {
         {},
         { idempotencyKey: `patent-conv-${listingId}` },
       );
+      reportWeappDebug('专利咨询会话创建返回', conv);
       if (seq !== consultSeqRef.current || !pageVisibleRef.current) return;
-      Taro.navigateTo({ url: `/subpackages/messages/chat/index?conversationId=${conv.id}` });
+      const conversationId = parseUuidParam(conv?.id);
+      if (!conversationId) {
+        console.error('[client] invalid consultation conversation id', conv);
+        toast('咨询会话创建失败，请稍后重试');
+        return;
+      }
+      void Taro.navigateTo({ url: `/subpackages/messages/chat/index?conversationId=${conversationId}` }).catch((err) => {
+        console.error('[client] navigate to consultation chat failed', err);
+        toast('进入咨询失败，请稍后重试');
+      });
     } catch (e: any) {
+      reportWeappDebug('专利咨询失败', e?.message || e?.errMsg || e);
       if (seq !== consultSeqRef.current || !pageVisibleRef.current) return;
       toast(e?.message || '进入咨询失败');
     }
@@ -621,6 +664,14 @@ export default function PatentDetailOverviewPage() {
               variant="primary"
               onClick={() => {
                 if (!ensureApproved()) return;
+                if (isOwnListing) {
+                  toast('这是你自己发布的专利');
+                  return;
+                }
+                if (!hasValidDepositAmount) {
+                  toast('该专利尚未配置有效订金');
+                  return;
+                }
                 Taro.navigateTo({ url: `/subpackages/checkout/deposit-pay/index?listingId=${listingId}` });
               }}
             >

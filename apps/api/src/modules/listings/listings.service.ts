@@ -15,6 +15,7 @@ type ListingTopic = 'HIGH_TECH_RETIRED' | 'SLEEPING' | 'AWARD_WINNING' | 'FIVE_S
 import { AuditLogService } from '../../common/audit-log.service';
 import { ContentEventService } from '../../common/content-event.service';
 import { PrismaService } from '../../common/prisma/prisma.service';
+import { resolveRegionCodeForStorage } from '../../common/region-code';
 import { WechatContentSecurityService } from '../../common/wechat-content-security.service';
 import { resolveUploadDir } from '../../common/upload-dir';
 import { NotificationsService } from '../notifications/notifications.service';
@@ -1227,6 +1228,7 @@ export class ListingsService {
     if (typeDigit === '1') return 'INVENTION';
     if (typeDigit === '2') return 'UTILITY_MODEL';
     if (typeDigit === '3') return 'DESIGN';
+    if (typeDigit === '8') return 'INVENTION';
     return null;
   }
 
@@ -1264,7 +1266,7 @@ export class ListingsService {
     const withoutPrefix = cleaned.replace(/^CN/, '').replace(/^ZL/, '');
     const digits = withoutPrefix.replace(/\./g, '');
 
-    if (/^(19\d{2}|20\d{2})[123]\d{7}\d$/.test(digits) || /^\d{2}[123]\d{5}\d$/.test(digits)) {
+    if (/^(19\d{2}|20\d{2})([123]\d{7}|8\d{7})[\dX]$/.test(digits) || /^\d{2}[123]\d{5}[\dX]$/.test(digits)) {
       const typeDigit = digits.startsWith('19') || digits.startsWith('20') ? digits.slice(4, 5) : digits.slice(2, 3);
       const patentType = this.digitToPatentType(typeDigit) ?? undefined;
       const applicationNoNorm = digits;
@@ -2062,7 +2064,9 @@ export class ListingsService {
     const existingLicenseStatus = hasExistingLicenseStatus
       ? this.parseNullableExistingLicenseStatusStrict(body?.existingLicenseStatus, 'existingLicenseStatus')
       : null;
-    const regionCode = hasRegionCode ? this.parseNullableRegionCodeStrict(body?.regionCode, 'regionCode') : undefined;
+    const regionCode = hasRegionCode
+      ? await resolveRegionCodeForStorage(this.prisma, body?.regionCode, 'regionCode')
+      : undefined;
     const auditStatus = hasAuditStatus ? this.parseAuditStatusStrict(body?.auditStatus, 'auditStatus') : 'PENDING';
     const status = hasStatus ? this.parseListingStatusStrict(body?.status, 'status') : 'DRAFT';
     const consultationRouting = hasConsultationRouting
@@ -2138,6 +2142,7 @@ export class ListingsService {
         userId: req.auth.userId,
         fileIds: proofFileIds,
         label: 'proofFileIds',
+        allowPending: true,
         requestMeta: {
           actorUserId: req.auth.userId,
           targetType: 'LISTING',
@@ -2211,7 +2216,9 @@ export class ListingsService {
     const hasEncumbranceNote = Object.prototype.hasOwnProperty.call(body || {}, 'encumbranceNote');
     const encumbranceNote = hasEncumbranceNote ? this.parseNullableTrimmedString(body?.encumbranceNote) : undefined;
     const hasRegionCode = this.hasOwn(body, 'regionCode');
-    const regionCode = hasRegionCode ? this.parseNullableRegionCodeStrict(body?.regionCode, 'regionCode') : undefined;
+    const regionCode = hasRegionCode
+      ? await resolveRegionCodeForStorage(this.prisma, body?.regionCode, 'regionCode')
+      : undefined;
     const hasSource = this.hasOwn(body, 'source');
     const source = hasSource ? this.parseContentSourceStrict(body?.source, 'source') : undefined;
     const hasTradeMode = this.hasOwn(body, 'tradeMode');
@@ -3230,7 +3237,9 @@ export class ListingsService {
     const existingLicenseStatus = hasExistingLicenseStatus
       ? this.parseNullableExistingLicenseStatusStrict(body?.existingLicenseStatus, 'existingLicenseStatus')
       : null;
-    const regionCode = hasRegionCode ? this.parseNullableRegionCodeStrict(body?.regionCode, 'regionCode') : undefined;
+    const regionCode = hasRegionCode
+      ? await resolveRegionCodeForStorage(this.prisma, body?.regionCode, 'regionCode')
+      : undefined;
     const listingTopics = this.normalizeListingTopics(body?.listingTopics);
     this.assertListingTopicSemantics({ tradeMode, licenseMode, listingTopics });
     const proofFileIds = this.normalizeFileIds(body?.proofFileIds);
@@ -3285,6 +3294,7 @@ export class ListingsService {
         userId: req.auth.userId,
         fileIds: proofFileIds,
         label: 'proofFileIds',
+        allowPending: true,
         requestMeta: {
           actorUserId: req.auth.userId,
           targetType: 'LISTING',
@@ -3357,7 +3367,9 @@ export class ListingsService {
     const hasEncumbranceNote = Object.prototype.hasOwnProperty.call(body || {}, 'encumbranceNote');
     const encumbranceNote = hasEncumbranceNote ? this.parseNullableTrimmedString(body?.encumbranceNote) : undefined;
     const hasRegionCode = this.hasOwn(body, 'regionCode');
-    const regionCode = hasRegionCode ? this.parseNullableRegionCodeStrict(body?.regionCode, 'regionCode') : undefined;
+    const regionCode = hasRegionCode
+      ? await resolveRegionCodeForStorage(this.prisma, body?.regionCode, 'regionCode')
+      : undefined;
     const hasTradeMode = this.hasOwn(body, 'tradeMode');
     const tradeMode = hasTradeMode ? this.parseTradeModeStrict(body?.tradeMode, 'tradeMode') : undefined;
     const hasLicenseMode = this.hasOwn(body, 'licenseMode');
@@ -3413,6 +3425,7 @@ export class ListingsService {
         userId: req.auth.userId,
         fileIds: effectiveProofFileIds,
         label: 'proofFileIds',
+        allowPending: true,
         requestMeta: {
           actorUserId: req.auth.userId,
           targetType: 'LISTING',
@@ -3482,6 +3495,7 @@ export class ListingsService {
       userId: req.auth.userId,
       fileIds: proofFileIds,
       label: 'proofFileIds',
+      allowPending: true,
       requestMeta: {
         actorUserId: req.auth.userId,
         targetType: 'LISTING',

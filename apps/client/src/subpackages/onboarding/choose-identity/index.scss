@@ -38,6 +38,17 @@
   gap: 8rpx;
   text-align: center;
   box-shadow: 0 10rpx 20rpx rgba(15, 23, 42, 0.04);
+  width: 100%;
+  min-height: 220rpx;
+  box-sizing: border-box;
+}
+
+.identity-card::after {
+  border: 0;
+}
+
+.identity-card:active {
+  transform: scale(0.985);
 }
 
 .identity-icon {
@@ -114,4 +125,3 @@
 .identity-tip {
   margin: 0 20rpx 20rpx;
 }
-

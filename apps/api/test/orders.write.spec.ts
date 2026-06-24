@@ -60,7 +60,7 @@ describe('OrdersService write-first suite', () => {
 
     prisma = {
       listing: { findUnique: vi.fn() },
-      order: { findUnique: vi.fn(), create: vi.fn(), update: vi.fn() },
+      order: { findUnique: vi.fn(), findFirst: vi.fn(), create: vi.fn(), update: vi.fn() },
       payment: { findFirst: vi.fn(), create: vi.fn(), update: vi.fn() },
       refundRequest: { findFirst: vi.fn(), create: vi.fn(), update: vi.fn(), findUnique: vi.fn(), findMany: vi.fn() },
       settlement: { upsert: vi.fn() },
@@ -73,6 +73,10 @@ describe('OrdersService write-first suite', () => {
     audit = { log: vi.fn().mockResolvedValue(undefined) };
     config = {
       getTradeRules: vi.fn().mockResolvedValue({
+        depositRate: 0.05,
+        depositMinFen: 1000,
+        depositMaxFen: 2000000,
+        depositFixedForNegotiableFen: 20000,
         commissionRate: 0.05,
         commissionMinFen: 100,
         commissionMaxFen: 2000000,
@@ -109,8 +113,31 @@ describe('OrdersService write-first suite', () => {
     await expect(service.createOrder(buyerReq, { listingId: LISTING_ID })).rejects.toBeInstanceOf(BadRequestException);
   });
 
+  it('rejects createOrder for own listing', async () => {
+    prisma.listing.findUnique.mockResolvedValueOnce(makeListing({ sellerUserId: USER_ID }));
+    await expect(service.createOrder(buyerReq, { listingId: LISTING_ID })).rejects.toBeInstanceOf(ConflictException);
+  });
+
+  it('rejects createOrder when listing deposit amount is invalid', async () => {
+    prisma.listing.findUnique.mockResolvedValueOnce(makeListing({ depositAmount: 0, priceType: 'FIXED', priceAmount: null }));
+    await expect(service.createOrder(buyerReq, { listingId: LISTING_ID })).rejects.toBeInstanceOf(ConflictException);
+  });
+
+  it('computes fallback deposit amount for negotiable listing createOrder', async () => {
+    prisma.listing.findUnique.mockResolvedValueOnce(makeListing({ depositAmount: 0, priceType: 'NEGOTIABLE', priceAmount: null }));
+    prisma.order.findFirst.mockResolvedValueOnce(null);
+    prisma.order.create.mockResolvedValueOnce(makeOrder({ status: 'DEPOSIT_PENDING', depositAmount: 20000 }));
+
+    await service.createOrder(buyerReq, { listingId: LISTING_ID });
+
+    expect(prisma.order.create).toHaveBeenCalledWith({
+      data: { listingId: LISTING_ID, buyerUserId: USER_ID, status: 'DEPOSIT_PENDING', depositAmount: 20000 },
+    });
+  });
+
   it('creates order and emits audit/notifications', async () => {
     prisma.listing.findUnique.mockResolvedValueOnce(makeListing());
+    prisma.order.findFirst.mockResolvedValueOnce(null);
     prisma.order.create.mockResolvedValueOnce(makeOrder({ status: 'DEPOSIT_PENDING' }));
 
     const result = await service.createOrder(buyerReq, { listingId: LISTING_ID });
@@ -123,6 +150,18 @@ describe('OrdersService write-first suite', () => {
     );
     expect(notifications.create).toHaveBeenCalledTimes(2);
     expect(result).toMatchObject({ id: ORDER_ID, listingId: LISTING_ID, buyerUserId: USER_ID, status: 'DEPOSIT_PENDING' });
+  });
+
+  it('reuses existing pending order for the same buyer and listing', async () => {
+    prisma.listing.findUnique.mockResolvedValueOnce(makeListing());
+    prisma.order.findFirst.mockResolvedValueOnce(makeOrder({ id: 'pending-order-1' }));
+
+    const result = await service.createOrder(buyerReq, { listingId: LISTING_ID });
+
+    expect(prisma.order.create).not.toHaveBeenCalled();
+    expect(audit.log).not.toHaveBeenCalled();
+    expect(notifications.create).not.toHaveBeenCalled();
+    expect(result).toMatchObject({ id: 'pending-order-1', listingId: LISTING_ID, buyerUserId: USER_ID, status: 'DEPOSIT_PENDING' });
   });
 
   it('rejects createPaymentIntent when demo payment disabled', async () => {

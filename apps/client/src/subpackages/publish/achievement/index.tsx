@@ -1,27 +1,34 @@
-import { View, Text, Image } from '@tarojs/components';
+import { Button as NativeButton, Image, Text, View } from '@tarojs/components';
 import Taro, { useDidHide, useDidShow } from '@tarojs/taro';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import './index.scss';
 
 import type { components } from '@ipmoney/api-types';
 
+import publishLockedArt from '../../../assets/illustrations/publish-locked.png';
+import iconUpload from '../../../assets/icons/icon-image-gray.svg';
 import { API_BASE_URL } from '../../../constants';
 import { apiGet, apiPatch, apiPost } from '../../../lib/api';
 import { getToken } from '../../../lib/auth';
+import { createFileTemporaryAccess } from '../../../lib/files';
 import { ensureApproved, usePageAccess } from '../../../lib/guard';
 import { sanitizeIndustryTagNames } from '../../../lib/industryTags';
 import { auditStatusLabel, contentStatusLabel } from '../../../lib/labels';
 import { openRegionPickerPage } from '../../../lib/regionPicker';
 import { ensureRegionNamesReady, regionDisplayName, regionNameByCode } from '../../../lib/regions';
 import { useRouteUuidParam } from '../../../lib/routeParams';
-import { uploadWithRetry } from '../../../lib/upload';
-import type { ChipOption } from '../../../ui/filters';
-import { ChipGroup, IndustryTagsPicker } from '../../../ui/filters';
-import { PageHeader, Spacer, Surface } from '../../../ui/layout';
-import { Button, Input, TextArea, confirm, toast } from '../../../ui/nutui';
+import { chooseImageFiles, chooseMessageFiles, uploadFileToApi } from '../../../lib/upload';
 import { AccessGate } from '../../../ui/PageState';
-import publishLockedArt from '../../../assets/illustrations/publish-locked.png';
-import iconUpload from '../../../assets/icons/icon-image-gray.svg';
+import { ChipGroup, IndustryTagsPicker, type ChipOption } from '../../../ui/filters';
+import { PageHeader, Spacer, Surface } from '../../../ui/layout';
+import { Input, TextArea, confirm, toast } from '../../../ui/nutui';
+
+const WEAPP_DEBUG = process.env.NODE_ENV !== 'production' && process.env.TARO_ENV === 'weapp';
+
+function reportWeappDebug(title: string, detail?: unknown) {
+  if (!WEAPP_DEBUG) return;
+  console.error(`[weapp-debug] ${title}`, detail);
+}
 
 type AchievementDraft = components['schemas']['AchievementEdit'];
 type ContentMedia = components['schemas']['ContentMedia'];
@@ -33,12 +40,44 @@ type ContentStatus = components['schemas']['ContentStatus'];
 type UploadedFile = {
   id: string;
   url?: string | null;
+  localPath?: string | null;
   fileName?: string | null;
   mimeType?: string | null;
   sizeBytes?: number | null;
   type?: string | null;
   sort?: number | null;
 };
+
+type AchievementMediaSource = 'image' | 'file';
+
+async function enrichUploadedFile(file: UploadedFile): Promise<UploadedFile> {
+  const fileId = String(file?.id || '').trim();
+  if (!fileId) return file;
+  try {
+    const preview = await createFileTemporaryAccess(fileId, { scope: 'preview', expiresInSeconds: 600 });
+    return {
+      ...file,
+      url: String(preview?.url || file.url || '').trim() || file.url || null,
+    };
+  } catch {
+    return file;
+  }
+}
+
+function buildActionErrorDetail(error: any) {
+  if (!error) return 'unknown error';
+  const detail = {
+    message: error?.message || String(error),
+    code: error?.code || '',
+    statusCode: error?.statusCode || '',
+    debug: error?.debug || null,
+  };
+  try {
+    return JSON.stringify(detail);
+  } catch {
+    return detail.message;
+  }
+}
 
 const MATURITY_OPTIONS: ChipOption<AchievementMaturity | ''>[] = [
   { value: '', label: '不限' },
@@ -58,9 +97,9 @@ const COOPERATION_OPTIONS: ChipOption<CooperationMode>[] = [
 ];
 
 function splitList(input: string): string[] {
-  return input
-    .split(/[\n,，、]/)
-    .map((t) => t.trim())
+  return String(input || '')
+    .split(/[\n,，;；]/)
+    .map((text) => text.trim())
     .filter(Boolean);
 }
 
@@ -70,6 +109,29 @@ function toMediaInput(files: UploadedFile[]): ContentMedia[] {
     type: (file.type || 'IMAGE') as ContentMedia['type'],
     sort: typeof file.sort === 'number' ? file.sort : index,
   }));
+}
+
+function pickUploadedFileName(file: UploadedFile, index: number, fallback = '附件'): string {
+  const name = String(file.fileName || '').trim();
+  if (name) return name;
+  const mime = String(file.mimeType || '').trim().toLowerCase();
+  if (mime.startsWith('image/')) {
+    const ext = mime.split('/')[1] || 'image';
+    return `${fallback}-${index + 1}.${ext}`;
+  }
+  return `${fallback}-${index + 1}`;
+}
+
+function isUploadedImage(file: UploadedFile): boolean {
+  const mime = String(file.mimeType || '').trim().toLowerCase();
+  return file.type === 'IMAGE' || mime.startsWith('image/');
+}
+
+function resolveRenderableFileUrl(file: UploadedFile | null | undefined): string {
+  if (!file) return '';
+  const remoteUrl = String(file.url || '').trim();
+  if (remoteUrl) return remoteUrl;
+  return String(file.localPath || '').trim();
 }
 
 export default function PublishAchievementPage() {
@@ -147,31 +209,33 @@ export default function PublishAchievementPage() {
       return;
     }
     resetForm();
+
     (async () => {
       if (!ensureApproved()) return;
       const targetAchievementId = initialAchievementId;
       try {
-        const d = await apiGet<AchievementDraft>(`/achievements/${targetAchievementId}`);
+        const draft = await apiGet<AchievementDraft>(`/achievements/${targetAchievementId}`);
         if (achievementRouteIdRef.current !== targetAchievementId) return;
-        setAchievementId(d.id);
-        setAuditStatus(d.auditStatus || null);
-        setContentStatus(d.status || null);
-        setSubmitted(d.auditStatus === 'PENDING' || d.auditStatus === 'APPROVED' || d.auditStatus === 'REJECTED');
 
-        setTitle(d.title || '');
-        setSummary(d.summary || '');
-        setDescription(d.description || '');
-        setKeywordsInput((d.keywords || []).join(', '));
-        setMaturity((d.maturity || '') as AchievementMaturity | '');
-        setCooperationModes((d.cooperationModes || []) as CooperationMode[]);
-        setIndustryTags(sanitizeIndustryTagNames(d.industryTags || []));
+        setAchievementId(draft.id);
+        setAuditStatus(draft.auditStatus || null);
+        setContentStatus(draft.status || null);
+        setSubmitted(draft.auditStatus === 'PENDING' || draft.auditStatus === 'APPROVED' || draft.auditStatus === 'REJECTED');
 
-        if (d.regionCode) {
-          setRegionCode(d.regionCode);
+        setTitle(draft.title || '');
+        setSummary(draft.summary || '');
+        setDescription(draft.description || '');
+        setKeywordsInput((draft.keywords || []).join(', '));
+        setMaturity((draft.maturity || '') as AchievementMaturity | '');
+        setCooperationModes((draft.cooperationModes || []) as CooperationMode[]);
+        setIndustryTags(sanitizeIndustryTagNames(draft.industryTags || []));
+
+        if (draft.regionCode) {
+          setRegionCode(draft.regionCode);
           try {
             await ensureRegionNamesReady();
             if (achievementRouteIdRef.current !== targetAchievementId) return;
-            setRegionName(regionNameByCode(d.regionCode) || undefined);
+            setRegionName(regionNameByCode(draft.regionCode) || undefined);
           } catch {
             if (achievementRouteIdRef.current !== targetAchievementId) return;
             setRegionName(undefined);
@@ -181,23 +245,27 @@ export default function PublishAchievementPage() {
           setRegionName(undefined);
         }
 
-        if (d.coverFileId || d.coverUrl) {
-          setCoverFile({ id: d.coverFileId || '', url: d.coverUrl || null });
+        if (draft.coverFileId || draft.coverUrl) {
+          setCoverFile({
+            id: draft.coverFileId || '',
+            url: draft.coverUrl || null,
+          });
         }
-        const media = (d.media || []).map((m: ContentMedia, index: number) => ({
-          id: m.fileId,
-          url: m.url || null,
-          fileName: m.fileName || null,
-          mimeType: m.mimeType || null,
-          sizeBytes: m.sizeBytes || null,
-          type: m.type,
-          sort: typeof m.sort === 'number' ? m.sort : index,
+
+        const media = (draft.media || []).map((item: ContentMedia, index: number) => ({
+          id: item.fileId,
+          url: item.url || null,
+          fileName: item.fileName || null,
+          mimeType: item.mimeType || null,
+          sizeBytes: item.sizeBytes || null,
+          type: item.type,
+          sort: typeof item.sort === 'number' ? item.sort : index,
         }));
         if (achievementRouteIdRef.current !== targetAchievementId) return;
         setMediaFiles(media);
-      } catch (e: any) {
+      } catch (error: any) {
         if (achievementRouteIdRef.current !== targetAchievementId) return;
-        toast(e?.message || '加载失败');
+        toast(error?.message || '加载失败');
       }
     })();
   }, [initialAchievementId, resetForm]);
@@ -217,13 +285,20 @@ export default function PublishAchievementPage() {
     if (!ensureApproved()) return null;
     const targetAchievementId = achievementRouteIdRef.current || '';
     const seq = ++uploadSeqRef.current;
-    setUploading(true);
     try {
-      const chosen = await Taro.chooseImage({ count: 1, sizeType: ['compressed'], sourceType: ['album', 'camera'] });
-      const filePath = chosen?.tempFilePaths?.[0];
-      if (!filePath) return;
+      reportWeappDebug('成果封面上传入口已触发', { achievementId: targetAchievementId || null });
+      const chosen = await chooseImageFiles({ count: 1 });
+      reportWeappDebug('成果封面选择返回', {
+        tempFileCount: chosen.length || 0,
+        tempFilePath: chosen[0]?.path || '',
+      });
+      const filePath = String(chosen[0]?.path || '').trim();
+      if (!filePath) return null;
+
+      if (seq !== uploadSeqRef.current || !pageVisibleRef.current || achievementRouteIdRef.current !== targetAchievementId) return null;
+      setUploading(true);
       const token = getToken();
-      const uploadRes = await uploadWithRetry({
+      const { data: json, response } = await uploadFileToApi<UploadedFile>({
         url: `${API_BASE_URL}/files`,
         filePath,
         name: 'file',
@@ -233,15 +308,23 @@ export default function PublishAchievementPage() {
         },
         retry: 1,
       });
-      const json = JSON.parse(String(uploadRes.data || '{}')) as UploadedFile;
+      reportWeappDebug('成果封面上传接口返回', {
+        statusCode: response.statusCode,
+        body: json,
+      });
       if (!json.id) throw new Error('上传失败');
-      if (seq !== uploadSeqRef.current || !pageVisibleRef.current || achievementRouteIdRef.current !== targetAchievementId) return;
-      setCoverFile({ ...json });
+      if (seq !== uploadSeqRef.current || !pageVisibleRef.current || achievementRouteIdRef.current !== targetAchievementId) return null;
+      const nextFile = await enrichUploadedFile({ ...json, localPath: filePath });
+      if (seq !== uploadSeqRef.current || !pageVisibleRef.current || achievementRouteIdRef.current !== targetAchievementId) return null;
+      setCoverFile(nextFile);
       toast('已上传', { icon: 'success' });
-    } catch (e: any) {
-      if (seq !== uploadSeqRef.current || !pageVisibleRef.current || achievementRouteIdRef.current !== targetAchievementId) return;
-      if (e?.errMsg?.includes('cancel')) return;
-      toast(e?.message || '上传失败');
+      return nextFile;
+    } catch (error: any) {
+      reportWeappDebug('成果封面上传失败', error?.message || error?.errMsg || error);
+      if (seq !== uploadSeqRef.current || !pageVisibleRef.current || achievementRouteIdRef.current !== targetAchievementId) return null;
+      if (error?.errMsg?.includes('cancel')) return null;
+      toast(error?.message || '上传失败');
+      return null;
     } finally {
       if (seq === uploadSeqRef.current && pageVisibleRef.current && achievementRouteIdRef.current === targetAchievementId) {
         setUploading(false);
@@ -256,23 +339,74 @@ export default function PublishAchievementPage() {
     setCoverFile(null);
   }, [coverFile]);
 
-  const uploadMedia = useCallback(async () => {
+  const uploadMedia = useCallback(async (source: AchievementMediaSource) => {
     if (uploading) return;
     if (!ensureApproved()) return;
-    const remain = Math.max(1, 6 - mediaFiles.length);
+    const remain = 6 - mediaFiles.length;
+    if (remain <= 0) {
+      toast('最多上传 6 个附件');
+      return;
+    }
     const targetAchievementId = achievementRouteIdRef.current || '';
     const seq = ++uploadSeqRef.current;
-    setUploading(true);
     try {
-      const chosen = await Taro.chooseImage({ count: remain, sizeType: ['compressed'], sourceType: ['album', 'camera'] });
-      const filePaths = chosen?.tempFilePaths || [];
-      if (!filePaths.length) return;
+      reportWeappDebug('成果附件上传入口已触发', {
+        achievementId: targetAchievementId || null,
+        remain,
+        source,
+      });
+      reportWeappDebug('chooseMessageFile available', {
+        hasChooseMessageFile: typeof Taro.chooseMessageFile === 'function',
+        env: Taro.getEnv(),
+      });
+
+      let selectedFiles: Array<{ path: string; name: string; type: 'IMAGE' | 'FILE' }> = [];
+      if (source === 'image') {
+        const chosen = await chooseImageFiles({ count: remain });
+        reportWeappDebug('成果附件图片选择返回', {
+          tempFileCount: chosen.length || 0,
+          firstTempFilePath: chosen[0]?.path || '',
+        });
+        selectedFiles = chosen
+          .map((file) => ({
+            path: String(file.path || '').trim(),
+            name: String(file.name || '').trim(),
+            type: 'IMAGE' as const,
+          }))
+          .filter((file) => Boolean(file.path));
+      } else {
+        if (typeof Taro.chooseMessageFile !== 'function') {
+          throw new Error('当前环境不支持从微信聊天记录选择文件，请在真机微信中重试');
+        }
+        const chosen = await chooseMessageFiles({
+          count: remain,
+          type: 'file',
+          extension: ['pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'txt', 'zip', 'rar'],
+        });
+        reportWeappDebug('成果附件文件选择返回', {
+          tempFileCount: chosen.length || 0,
+          firstTempFilePath: chosen[0]?.path || '',
+          firstTempFileName: chosen[0]?.name || '',
+        });
+        selectedFiles = chosen
+          .map((file) => ({
+            path: String(file.path || '').trim(),
+            name: String(file.name || '').trim(),
+            type: 'FILE' as const,
+          }))
+          .filter((file) => Boolean(file.path));
+      }
+
+      if (!selectedFiles.length) return;
+
+      if (seq !== uploadSeqRef.current || !pageVisibleRef.current || achievementRouteIdRef.current !== targetAchievementId) return;
+      setUploading(true);
       const token = getToken();
       const uploaded: UploadedFile[] = [];
-      for (const filePath of filePaths) {
-        const uploadRes = await uploadWithRetry({
+      for (const file of selectedFiles) {
+        const { data: json, response } = await uploadFileToApi<UploadedFile>({
           url: `${API_BASE_URL}/files`,
-          filePath,
+          filePath: file.path,
           name: 'file',
           formData: { purpose: 'ACHIEVEMENT_MEDIA' },
           header: {
@@ -280,18 +414,29 @@ export default function PublishAchievementPage() {
           },
           retry: 1,
         });
-        const json = JSON.parse(String(uploadRes.data || '{}')) as UploadedFile;
-        if (json.id) uploaded.push({ ...json, type: 'IMAGE' });
+        reportWeappDebug('成果附件上传接口返回', {
+          statusCode: response.statusCode,
+          body: json,
+        });
+        if (!json.id) throw new Error(`${file.name || '附件'} 上传失败`);
+        const nextFile = await enrichUploadedFile({
+          ...json,
+          localPath: file.path,
+          fileName: file.name || json.fileName,
+          type: file.type,
+        });
+        uploaded.push(nextFile);
       }
-      if (uploaded.length) {
-        if (seq !== uploadSeqRef.current || !pageVisibleRef.current || achievementRouteIdRef.current !== targetAchievementId) return;
-        setMediaFiles((prev) => [...prev, ...uploaded]);
-        toast('已上传', { icon: 'success' });
-      }
-    } catch (e: any) {
+
+      if (!uploaded.length) throw new Error('未上传成功任何附件');
       if (seq !== uploadSeqRef.current || !pageVisibleRef.current || achievementRouteIdRef.current !== targetAchievementId) return;
-      if (e?.errMsg?.includes('cancel')) return;
-      toast(e?.message || '上传失败');
+      setMediaFiles((prev) => [...prev, ...uploaded]);
+      toast('已上传', { icon: 'success' });
+    } catch (error: any) {
+      reportWeappDebug('成果附件上传失败', error?.message || error?.errMsg || error);
+      if (seq !== uploadSeqRef.current || !pageVisibleRef.current || achievementRouteIdRef.current !== targetAchievementId) return;
+      if (error?.errMsg?.includes('cancel')) return;
+      toast(error?.message || '上传失败');
     } finally {
       if (seq === uploadSeqRef.current && pageVisibleRef.current && achievementRouteIdRef.current === targetAchievementId) {
         setUploading(false);
@@ -299,10 +444,21 @@ export default function PublishAchievementPage() {
     }
   }, [mediaFiles.length, uploading]);
 
+  const openMediaFile = useCallback((file: UploadedFile) => {
+    const renderUrl = resolveRenderableFileUrl(file);
+    if (!renderUrl) return;
+    if (isUploadedImage(file)) {
+      void Taro.previewImage({ urls: [renderUrl] });
+      return;
+    }
+    void Taro.setClipboardData({ data: renderUrl });
+    toast('链接已复制', { icon: 'success' });
+  }, []);
+
   const removeMedia = useCallback(async (file: UploadedFile) => {
     const ok = await confirm({ title: '移除附件', content: '确定移除该附件？', confirmText: '移除', cancelText: '取消' });
     if (!ok) return;
-    setMediaFiles((prev) => prev.filter((x) => x.id !== file.id));
+    setMediaFiles((prev) => prev.filter((item) => item.id !== file.id));
   }, []);
 
   const buildPayload = useCallback(() => {
@@ -318,7 +474,7 @@ export default function PublishAchievementPage() {
       coverFileId: coverFile?.id || undefined,
       media: toMediaInput(mediaFiles),
     };
-  }, [title, summary, description, keywords, maturity, cooperationModes, regionCode, sanitizedIndustryTags, coverFile, mediaFiles]);
+  }, [cooperationModes, coverFile, description, keywords, maturity, mediaFiles, regionCode, sanitizedIndustryTags, summary, title]);
 
   const saveDraft = useCallback(async (): Promise<AchievementDraft | null> => {
     if (!ensureApproved()) return null;
@@ -343,19 +499,20 @@ export default function PublishAchievementPage() {
         setContentStatus(created.status || null);
         toast('已保存', { icon: 'success' });
         return created;
-      } else {
-        const updated = await apiPatch<AchievementDraft>(`/achievements/${achievementId}`, payload, {
-          idempotencyKey: `ach-update-${achievementId}`,
-        });
-        if (seq !== saveSeqRef.current || !pageVisibleRef.current || achievementRouteIdRef.current !== targetAchievementId) return null;
-        setAuditStatus(updated.auditStatus || null);
-        setContentStatus(updated.status || null);
-        toast('已保存', { icon: 'success' });
-        return updated;
       }
-    } catch (e: any) {
+
+      const updated = await apiPatch<AchievementDraft>(`/achievements/${achievementId}`, payload, {
+        idempotencyKey: `ach-update-${achievementId}`,
+      });
       if (seq !== saveSeqRef.current || !pageVisibleRef.current || achievementRouteIdRef.current !== targetAchievementId) return null;
-      toast(e?.message || '保存失败');
+      setAuditStatus(updated.auditStatus || null);
+      setContentStatus(updated.status || null);
+      toast('已保存', { icon: 'success' });
+      return updated;
+    } catch (error: any) {
+      reportWeappDebug('成果保存失败详情', buildActionErrorDetail(error));
+      if (seq !== saveSeqRef.current || !pageVisibleRef.current || achievementRouteIdRef.current !== targetAchievementId) return null;
+      toast(error?.message || '保存失败');
       return null;
     } finally {
       if (seq === saveSeqRef.current && pageVisibleRef.current && achievementRouteIdRef.current === targetAchievementId) {
@@ -379,9 +536,10 @@ export default function PublishAchievementPage() {
       if (seq !== submitSeqRef.current || !pageVisibleRef.current || achievementRouteIdRef.current !== targetAchievementId) return;
       setSubmitted(true);
       toast('已提交审核', { icon: 'success' });
-    } catch (e: any) {
+    } catch (error: any) {
+      reportWeappDebug('成果提交失败详情', buildActionErrorDetail(error));
       if (seq !== submitSeqRef.current || !pageVisibleRef.current || achievementRouteIdRef.current !== targetAchievementId) return;
-      toast(e?.message || '提交失败');
+      toast(error?.message || '提交失败');
     } finally {
       if (seq === submitSeqRef.current && pageVisibleRef.current && achievementRouteIdRef.current === targetAchievementId) {
         setSubmitting(false);
@@ -396,7 +554,7 @@ export default function PublishAchievementPage() {
           {access.state === 'need-login' ? (
             <View className="publish-locked">
               <Image className="publish-locked-ill" src={publishLockedArt} mode="aspectFit" />
-              <Text className="publish-locked-text">登录IPMONEY，发布成果展示！</Text>
+              <Text className="publish-locked-text">登录 IPMONEY 后即可发布成果展示</Text>
             </View>
           ) : (
             <AccessGate access={access} />
@@ -417,16 +575,12 @@ export default function PublishAchievementPage() {
                   onChange={setTitle}
                   placeholder="填写成果名称"
                   className="publish-input"
+                  data-testid="achievement-title"
                 />
               </View>
               <View className="form-field">
                 <Text className="form-label">成果简介</Text>
-                <Input
-                  value={summary}
-                  onChange={setSummary}
-                  placeholder="一句话介绍成果亮点"
-                  className="publish-input"
-                />
+                <Input value={summary} onChange={setSummary} placeholder="一句话介绍成果亮点" className="publish-input" />
               </View>
               <View className="form-field">
                 <Text className="form-label">成果详情</Text>
@@ -445,7 +599,7 @@ export default function PublishAchievementPage() {
               <Text className="publish-section-title">成熟度与合作</Text>
               <View className="form-field">
                 <Text className="form-label">成熟度</Text>
-                <ChipGroup value={maturity} options={MATURITY_OPTIONS} onChange={(v) => setMaturity(v as AchievementMaturity | '')} />
+                <ChipGroup value={maturity} options={MATURITY_OPTIONS} onChange={(value) => setMaturity(value as AchievementMaturity | '')} />
               </View>
               <View className="form-field">
                 <Text className="form-label">合作方式</Text>
@@ -495,45 +649,85 @@ export default function PublishAchievementPage() {
               <Text className="publish-section-title">封面与材料</Text>
               <View className="form-field">
                 <Text className="form-label">成果封面</Text>
-                {coverFile?.url ? (
+                {resolveRenderableFileUrl(coverFile) ? (
                   <View className="upload-preview">
-                    <Image className="upload-preview-img" src={coverFile.url} mode="aspectFill" />
-                    <Button size="small" variant="ghost" onClick={removeCover}>
-                      移除
-                    </Button>
+                    <Image className="upload-preview-img" src={resolveRenderableFileUrl(coverFile)} mode="aspectFill" />
+                    <View className="upload-preview-actions">
+                      <NativeButton className="upload-preview-action-btn upload-preview-action-btn-ghost" onClick={() => void uploadCover()}>
+                        重新上传
+                      </NativeButton>
+                      <NativeButton className="upload-preview-action-btn upload-preview-action-btn-ghost" onClick={removeCover}>
+                        移除
+                      </NativeButton>
+                    </View>
                   </View>
                 ) : (
-                  <View className="upload-box" onClick={uploadCover}>
-                    <Image className="upload-icon" src={iconUpload} svg mode="aspectFit" />
-                    <Text className="upload-title">{uploading ? '上传中' : '上传封面'}</Text>
-                    <Text className="upload-subtitle">图片格式</Text>
+                  <View className="upload-actions">
+                    <NativeButton
+                      className="upload-trigger upload-trigger-single"
+                      disabled={uploading}
+                      data-testid="achievement-upload-cover"
+                      onClick={() => void uploadCover()}
+                    >
+                      <Image className="upload-icon" src={iconUpload} svg mode="aspectFit" />
+                      <Text className="upload-title">{uploading ? '上传中...' : '选择封面图片'}</Text>
+                      <Text className="upload-subtitle">从微信聊天记录选择封面图片</Text>
+                    </NativeButton>
                   </View>
                 )}
               </View>
 
               <View className="form-field">
                 <Text className="form-label">附件资料</Text>
-                <View className="upload-box" onClick={uploadMedia}>
-                  <Image className="upload-icon" src={iconUpload} svg mode="aspectFit" />
-                  <Text className="upload-title">{uploading ? '上传中' : '上传附件'}</Text>
-                  <Text className="upload-subtitle">最多 6 张图片</Text>
+                <Text className="form-hint">最多上传 6 个附件，支持图片和常见文档文件</Text>
+                <View className="upload-actions">
+                  <NativeButton
+                    className="upload-trigger"
+                    disabled={uploading}
+                    data-testid="achievement-upload-image"
+                    onClick={() => void uploadMedia('image')}
+                  >
+                    <Image className="upload-icon" src={iconUpload} svg mode="aspectFit" />
+                    <Text className="upload-title">{uploading ? '上传中...' : '选择图片上传'}</Text>
+                    <Text className="upload-subtitle">从微信聊天记录选择图片</Text>
+                  </NativeButton>
+                  <NativeButton
+                    className="upload-trigger"
+                    disabled={uploading}
+                    data-testid="achievement-upload-file"
+                    onClick={() => void uploadMedia('file')}
+                  >
+                    <Image className="upload-icon" src={iconUpload} svg mode="aspectFit" />
+                    <Text className="upload-title">{uploading ? '上传中...' : '选择文件上传'}</Text>
+                    <Text className="upload-subtitle">从微信聊天记录选择 PDF、Word、Excel、PPT</Text>
+                  </NativeButton>
                 </View>
                 {mediaFiles.length ? (
                   <View className="upload-list">
-                    {mediaFiles.map((file) => (
-                      <View key={file.id} className="upload-item">
-                        {file.url ? (
-                          <Image className="upload-item-cover" src={file.url} mode="aspectFill" />
+                    {mediaFiles.map((file, index) => (
+                      <View key={file.id} className="upload-item" onClick={() => openMediaFile(file)}>
+                        {isUploadedImage(file) && resolveRenderableFileUrl(file) ? (
+                          <Image className="upload-item-cover" src={resolveRenderableFileUrl(file)} mode="aspectFill" />
                         ) : (
                           <Image className="upload-item-icon" src={iconUpload} svg mode="aspectFit" />
                         )}
                         <View className="upload-item-info">
-                          <Text className="upload-item-title">{file.fileName || '附件'}</Text>
-                          <Text className="upload-item-desc">{file.mimeType || 'image'}</Text>
+                          <Text className="upload-item-title">{pickUploadedFileName(file, index)}</Text>
+                          <Text className="upload-item-desc">
+                            {isUploadedImage(file) ? '图片附件' : '文件附件'}
+                            {file.mimeType ? ` · ${String(file.mimeType)}` : ''}
+                            {typeof file.sizeBytes === 'number' ? ` · ${(file.sizeBytes / 1024).toFixed(0)}KB` : ''}
+                          </Text>
                         </View>
-                        <Text className="upload-item-remove" onClick={() => removeMedia(file)}>
-                          移除
-                        </Text>
+                        <NativeButton
+                          className="upload-item-remove-btn upload-item-remove-btn-danger"
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            void removeMedia(file);
+                          }}
+                        >
+                          删除
+                        </NativeButton>
                       </View>
                     ))}
                   </View>
@@ -543,19 +737,29 @@ export default function PublishAchievementPage() {
 
             <Surface className="publish-card">
               <View className="form-row form-row-split">
-                <Button variant="ghost" onClick={saveDraft} disabled={saving}>
-                  保存草稿
-                </Button>
-                <Button variant="primary" onClick={submit} disabled={submitting}>
-                  {submitted ? '重新提交' : '提交审核'}
-                </Button>
+                <View className="form-row-split-item">
+                  <NativeButton
+                    className="publish-action-btn publish-action-btn-native publish-action-ghost"
+                    data-testid="achievement-save-draft"
+                    onClick={() => void saveDraft()}
+                    disabled={saving}
+                  >
+                    {saving ? '保存中...' : '保存草稿'}
+                  </NativeButton>
+                </View>
+                <View className="form-row-split-item">
+                  <NativeButton
+                    className="publish-action-btn publish-action-btn-native publish-action-primary"
+                    data-testid="achievement-submit"
+                    onClick={() => void submit()}
+                    disabled={submitting}
+                  >
+                    {submitting ? '提交中...' : submitted ? '重新提交' : '提交审核'}
+                  </NativeButton>
+                </View>
               </View>
-              {auditStatus ? (
-                <Text className="form-hint">当前审核状态：{auditStatusLabel(auditStatus)}</Text>
-              ) : null}
-              {contentStatus ? (
-                <Text className="form-hint">当前上架状态：{contentStatusLabel(contentStatus)}</Text>
-              ) : null}
+              {auditStatus ? <Text className="form-hint">当前审核状态：{auditStatusLabel(auditStatus)}</Text> : null}
+              {contentStatus ? <Text className="form-hint">当前上架状态：{contentStatusLabel(contentStatus)}</Text> : null}
             </Surface>
           </View>
         </View>

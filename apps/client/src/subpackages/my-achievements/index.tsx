@@ -10,6 +10,7 @@ import { displayTitleOrFallback, normalizeDisplayText } from '../../lib/displayT
 import { usePagedList } from '../../lib/usePagedList';
 import { ensureApproved, goLogin, goOnboarding, usePageAccess } from '../../lib/guard';
 import { auditStatusLabel, auditStatusTagClass, contentStatusLabel } from '../../lib/labels';
+import { safeOpenPage } from '../../lib/navigation';
 import { CategoryControl } from '../../ui/filters';
 import { ListFooter } from '../../ui/ListFooter';
 import { Button, PullToRefresh, toast } from '../../ui/nutui';
@@ -24,6 +25,10 @@ type AuditStatus = components['schemas']['AuditStatus'];
 
 const PAGE_TITLE = '我的专利成果';
 const PAGE_SUBTITLE = '发布方查看、编辑、下架自己的成果展示信息';
+
+async function openPage(url: string) {
+  await safeOpenPage(url);
+}
 
 export default function MyAchievementsPage() {
   const loadedOnceRef = useRef(false);
@@ -78,7 +83,7 @@ export default function MyAchievementsPage() {
 
   const goCreate = useCallback(() => {
     if (!ensureApproved()) return;
-    Taro.navigateTo({ url: '/subpackages/publish/achievement/index' });
+    void openPage('/subpackages/publish/achievement/index');
   }, []);
 
   if (access.state === 'need-login') {
@@ -193,7 +198,7 @@ export default function MyAchievementsPage() {
                     <Button
                       variant="ghost"
                       onClick={() => {
-                        Taro.navigateTo({ url: `/subpackages/publish/achievement/index?achievementId=${it.id}` });
+                        void openPage(`/subpackages/publish/achievement/index?achievementId=${it.id}`);
                       }}
                     >
                       编辑/查看

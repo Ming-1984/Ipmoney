@@ -10,6 +10,7 @@ import { displayTitleWithSecondary, normalizeDisplayText } from '../../lib/displ
 import { usePagedList } from '../../lib/usePagedList';
 import { ensureApproved, goLogin, goOnboarding, usePageAccess } from '../../lib/guard';
 import { auditStatusLabel, auditStatusTagClass, listingStatusLabel } from '../../lib/labels';
+import { safeOpenPage } from '../../lib/navigation';
 import { CategoryControl } from '../../ui/filters';
 import { ListFooter } from '../../ui/ListFooter';
 import { Button, PullToRefresh, toast } from '../../ui/nutui';
@@ -21,6 +22,10 @@ type PagedListing = components['schemas']['PagedListing'];
 type Listing = components['schemas']['Listing'];
 type ListingStatus = components['schemas']['ListingStatus'];
 type AuditStatus = components['schemas']['AuditStatus'];
+
+async function openPage(url: string) {
+  await safeOpenPage(url);
+}
 
 export default function MyListingsPage() {
   const loadedOnceRef = useRef(false);
@@ -74,7 +79,7 @@ export default function MyListingsPage() {
 
   const goCreate = useCallback(() => {
     if (!ensureApproved()) return;
-    Taro.navigateTo({ url: '/subpackages/publish/patent/index' });
+    void openPage('/subpackages/publish/patent/index');
   }, []);
 
   if (access.state === 'need-login') {
@@ -198,7 +203,7 @@ export default function MyListingsPage() {
                     <Button
                       variant="ghost"
                       onClick={() => {
-                        Taro.navigateTo({ url: `/subpackages/publish/patent/index?listingId=${it.id}` });
+                        void openPage(`/subpackages/publish/patent/index?listingId=${it.id}`);
                       }}
                     >
                       编辑/查看

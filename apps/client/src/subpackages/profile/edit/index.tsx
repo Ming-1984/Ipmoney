@@ -1,4 +1,4 @@
-﻿import { Button as TaroButton, Text, View } from '@tarojs/components';
+import { Button as TaroButton, Text, View } from '@tarojs/components';
 import Taro, { useDidHide, useDidShow } from '@tarojs/taro';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import './index.scss';
@@ -11,21 +11,29 @@ import { apiGet, apiPatch, apiPost } from '../../../lib/api';
 import { getDetailCache, setDetailCache } from '../../../lib/detailCache';
 import { displayInitial, displayUserName, normalizeDisplayText } from '../../../lib/displayText';
 import { requireLogin } from '../../../lib/guard';
-import { normalizePageUrl } from '../../../lib/navigation';
+import { normalizePageUrl, safeNavigateBack } from '../../../lib/navigation';
 import { openRegionPickerPage } from '../../../lib/regionPicker';
-import { regionDisplayName } from '../../../lib/regions';
+import { cacheRegionNames, parseRegionPickerSelection, regionDisplayName } from '../../../lib/regions';
 import { useRouteStringParam } from '../../../lib/routeParams';
-import { uploadWithRetry } from '../../../lib/upload';
+import { chooseImageFiles, uploadFileToApi } from '../../../lib/upload';
 import { ErrorCard, LoadingCard } from '../../../ui/StateCards';
 import { Photograph } from '../../../ui/icons';
 import { PageHeader, Spacer, Surface } from '../../../ui/layout';
-import { Avatar, Button, Input, toast } from '../../../ui/nutui';
+import { Avatar, Input, toast } from '../../../ui/nutui';
 
 type UserProfile = components['schemas']['UserProfile'];
 type FileObject = components['schemas']['FileObject'];
 
 const PROFILE_CACHE_SCOPE = 'me-profile';
 const PROFILE_CACHE_KEY = 'self';
+const PLACEHOLDER_NICKNAMES = new Set(['New User']);
+
+function normalizeNicknameInput(value: string | null | undefined): string {
+  const normalized = normalizeDisplayText(value);
+  if (!normalized) return '';
+  if (PLACEHOLDER_NICKNAMES.has(normalized)) return '';
+  return normalized;
+}
 
 export default function ProfileEditPage() {
   const env = useMemo(() => Taro.getEnv(), []);
@@ -49,7 +57,8 @@ export default function ProfileEditPage() {
   const [me, setMe] = useState<UserProfile | null>(initialCachedProfile);
 
   const [avatarUrl, setAvatarUrl] = useState(initialCachedProfile?.avatarUrl || '');
-  const [nickname, setNickname] = useState(initialCachedProfile?.nickname || '');
+  const [avatarRemoteReady, setAvatarRemoteReady] = useState(Boolean(initialCachedProfile?.avatarUrl));
+  const [nickname, setNickname] = useState(normalizeNicknameInput(initialCachedProfile?.nickname || ''));
   const [regionCode, setRegionCode] = useState(initialCachedProfile?.regionCode || '');
   const [regionName, setRegionName] = useState('');
   const pageVisibleRef = useRef(true);
@@ -57,6 +66,7 @@ export default function ProfileEditPage() {
   const uploadSeqRef = useRef(0);
   const saveSeqRef = useRef(0);
   const skipSeqRef = useRef(0);
+  const actionBusyRef = useRef(false);
 
   useDidShow(() => {
     pageVisibleRef.current = true;
@@ -79,16 +89,12 @@ export default function ProfileEditPage() {
       Taro.switchTab({ url: nextUrl });
       return;
     }
-    if (nextType === 'navigateBack') {
-      Taro.navigateBack();
-      return;
-    }
-    Taro.navigateBack();
+    void safeNavigateBack({ fallbackUrl: '/pages/me/index' });
   }, [nextType, nextUrl]);
 
   const resolvedDisplayName = useMemo(() => displayUserName(me, ''), [me]);
   const displayInitialText = useMemo(
-    () => displayInitial(normalizeDisplayText(nickname) || resolvedDisplayName, '平'),
+    () => displayInitial(normalizeNicknameInput(nickname) || normalizeNicknameInput(resolvedDisplayName), '平'),
     [nickname, resolvedDisplayName],
   );
 
@@ -96,7 +102,7 @@ export default function ProfileEditPage() {
     const seq = ++skipSeqRef.current;
     if (verifyType === 'PERSON') {
       try {
-        const displayName = normalizeDisplayText(nickname) || resolvedDisplayName;
+        const displayName = normalizeNicknameInput(nickname) || normalizeNicknameInput(resolvedDisplayName);
         if (displayName) {
           const res = await apiPost<any>('/me/verification', { type: 'PERSON', displayName });
           if (seq !== skipSeqRef.current || !pageVisibleRef.current) return;
@@ -119,7 +125,8 @@ export default function ProfileEditPage() {
     if (cached) {
       setMe(cached);
       setAvatarUrl(cached.avatarUrl || '');
-      setNickname(cached.nickname || '');
+      setAvatarRemoteReady(Boolean(cached.avatarUrl));
+      setNickname(normalizeNicknameInput(cached.nickname || ''));
       setRegionCode(cached.regionCode || '');
       setRegionName('');
       setLoading(false);
@@ -133,7 +140,8 @@ export default function ProfileEditPage() {
       if (seq !== loadSeqRef.current) return;
       setMe(d);
       setAvatarUrl(d.avatarUrl || '');
-      setNickname(d.nickname || '');
+      setAvatarRemoteReady(Boolean(d.avatarUrl));
+      setNickname(normalizeNicknameInput(d.nickname || ''));
       setRegionCode(d.regionCode || '');
       setRegionName('');
       setDetailCache(PROFILE_CACHE_SCOPE, PROFILE_CACHE_KEY, d);
@@ -156,10 +164,9 @@ export default function ProfileEditPage() {
 
   const uploadAvatarFromPath = useCallback(async (tempPath: string) => {
     const seq = ++uploadSeqRef.current;
-    let trimmed = String(tempPath || '').trim();
-    if (!trimmed) return false;
+    let localPath = String(tempPath || '').trim();
+    if (!localPath) return false;
 
-    let localPath = trimmed;
     if (/^https?:\/\//i.test(localPath)) {
       try {
         const info = await Taro.getImageInfo({ src: localPath });
@@ -178,7 +185,7 @@ export default function ProfileEditPage() {
 
     try {
       const token = getToken();
-      const uploadRes = await uploadWithRetry({
+      const { data: parsed } = await uploadFileToApi<Partial<FileObject>>({
         url: `${API_BASE_URL}/files`,
         filePath: localPath,
         name: 'file',
@@ -189,27 +196,27 @@ export default function ProfileEditPage() {
         retry: 1,
       });
 
-      if (uploadRes.statusCode >= 200 && uploadRes.statusCode < 300) {
-        const parsed = JSON.parse(String(uploadRes.data || '{}')) as Partial<FileObject>;
-        if (typeof parsed.url === 'string' && parsed.url && String(parsed.mimeType || '').startsWith('image/')) {
-          if (seq !== uploadSeqRef.current || !pageVisibleRef.current) return false;
-          setAvatarUrl(parsed.url);
-          return true;
-        }
+      if (typeof parsed.url === 'string' && parsed.url && String(parsed.mimeType || '').startsWith('image/')) {
+        if (seq !== uploadSeqRef.current || !pageVisibleRef.current) return false;
+        setAvatarUrl(parsed.url);
+        setAvatarRemoteReady(true);
+        return true;
       }
+      throw new Error('头像上传失败');
     } catch {
-      // ignore upload failure and use local path fallback
+      // ignore and show explicit failure below
     }
 
     if (seq !== uploadSeqRef.current || !pageVisibleRef.current) return false;
-    setAvatarUrl(localPath);
+    setAvatarRemoteReady(false);
+    toast('头像上传失败，请重试');
     return true;
   }, []);
 
-  const chooseAvatarFromAlbum = useCallback(async () => {
+  const chooseAvatarFromWechat = useCallback(async () => {
     try {
-      const res = await Taro.chooseImage({ count: 1, sizeType: ['compressed'], sourceType: ['album'] });
-      const tempPath = String(res?.tempFilePaths?.[0] || res?.tempFiles?.[0]?.path || '').trim();
+      const res = await chooseImageFiles({ count: 1 });
+      const tempPath = String(res[0]?.path || '').trim();
       if (!tempPath) {
         toast('未选择图片');
         return;
@@ -244,34 +251,63 @@ export default function ProfileEditPage() {
     [uploadAvatarFromPath],
   );
 
+  const handleRegionChange = useCallback((event: any) => {
+    if (!event) {
+      openRegionPickerPage(({ code, name }) => {
+        setRegionCode(code);
+        setRegionName(name);
+      });
+      return;
+    }
+    const parsed = parseRegionPickerSelection(event);
+    if (!parsed) {
+      toast('地区读取失败，请重试');
+      return;
+    }
+    cacheRegionNames(
+      parsed.pathCodes.map((code, index) => ({
+        code,
+        name: parsed.pathNames[index] || '',
+      })),
+    );
+    setRegionCode(parsed.code);
+    setRegionName(parsed.name);
+  }, []);
+
   const save = useCallback(async () => {
+    if (actionBusyRef.current) return;
     if (!requireLogin()) return;
+    actionBusyRef.current = true;
     const seq = ++saveSeqRef.current;
-    const nick = normalizeDisplayText(nickname);
-    const avatar = normalizeDisplayText(avatarUrl);
+    const nick = normalizeNicknameInput(nickname);
+    const avatar = avatarRemoteReady ? normalizeDisplayText(avatarUrl) : '';
     const region = normalizeDisplayText(regionCode);
 
-    if (!avatar) {
+    if (!avatar && verifyType !== 'PERSON') {
       toast('请先选择头像');
+      actionBusyRef.current = false;
       return;
     }
     if (!nick) {
-      toast('请先设置昵称');
+      toast('请先设置昵称，不能使用默认昵称');
+      actionBusyRef.current = false;
       return;
     }
     if (!region) {
       toast('请选择地区');
+      actionBusyRef.current = false;
       return;
     }
     if (nick.length > 50) {
       toast('昵称最多 50 个字符');
+      actionBusyRef.current = false;
       return;
     }
 
     try {
       const d = await apiPatch<UserProfile>('/me', {
         nickname: nick,
-        avatarUrl: avatar,
+        ...(avatar ? { avatarUrl: avatar } : {}),
         regionCode: region,
       });
       if (seq !== saveSeqRef.current || !pageVisibleRef.current) return;
@@ -279,7 +315,7 @@ export default function ProfileEditPage() {
       setDetailCache(PROFILE_CACHE_SCOPE, PROFILE_CACHE_KEY, d);
 
       if (verifyType === 'PERSON') {
-        const verificationDisplayName = nick || resolvedDisplayName;
+        const verificationDisplayName = nick || normalizeNicknameInput(resolvedDisplayName);
         const res = await apiPost<any>('/me/verification', { type: 'PERSON', displayName: verificationDisplayName });
         if (seq !== saveSeqRef.current || !pageVisibleRef.current) return;
         setVerificationType('PERSON');
@@ -297,6 +333,10 @@ export default function ProfileEditPage() {
     } catch (e: any) {
       if (seq !== saveSeqRef.current || !pageVisibleRef.current) return;
       toast(e?.message || '保存失败');
+    } finally {
+      if (seq === saveSeqRef.current) {
+        actionBusyRef.current = false;
+      }
     }
   }, [avatarUrl, goNext, nickname, regionCode, resolvedDisplayName, verifyType]);
 
@@ -329,19 +369,15 @@ export default function ProfileEditPage() {
                     className="profile-avatar-picker"
                     onClick={() => {
                       if (!isWeapp) {
-                        void chooseAvatarFromAlbum();
+                        void chooseAvatarFromWechat();
                         return;
                       }
                       if (!canChooseAvatar) {
-                        toast('微信版本过低，请升级后重试');
+                        void chooseAvatarFromWechat();
                       }
                     }}
                   >
-                    <Avatar
-                      size="96"
-                      src={avatarUrl}
-                      icon={<Text className="text-strong">{displayInitialText}</Text>}
-                    />
+                    <Avatar size="96" src={avatarUrl} icon={<Text className="text-strong">{displayInitialText}</Text>} />
                     {isWeapp && canChooseAvatar ? (
                       <TaroButton className="profile-avatar-choose" openType="chooseAvatar" onChooseAvatar={handleChooseAvatar} />
                     ) : null}
@@ -369,32 +405,26 @@ export default function ProfileEditPage() {
 
               <View className="form-field">
                 <Text className="form-label">地区</Text>
-                <View
-                  className="form-select"
-                  onClick={() =>
-                    openRegionPickerPage(({ code, name }) => {
-                      setRegionCode(code);
-                      setRegionName(name);
-                    })
-                  }
-                >
-                  <Text className={regionCode.trim() ? 'form-select-value' : 'form-select-placeholder'}>
-                    {regionCode.trim() ? regionText : '请选择'}
-                  </Text>
-                  <Text className="form-select-arrow">›</Text>
+                <View onClick={handleRegionChange}>
+                  <View className="form-select">
+                    <Text className={regionCode.trim() ? 'form-select-value' : 'form-select-placeholder'}>
+                      {regionCode.trim() ? regionText : '请选择'}
+                    </Text>
+                    <Text className="form-select-arrow">›</Text>
+                  </View>
                 </View>
               </View>
             </View>
           </Surface>
 
           <View className="profile-actions">
-            <Button className="profile-primary-btn" onClick={() => void save()}>
+            <TaroButton className="profile-primary-btn profile-primary-native-btn" onClick={() => void save()}>
               保存
-            </Button>
+            </TaroButton>
             {isOnboarding ? (
-              <Text className="profile-skip" onClick={() => void skip()}>
+              <TaroButton className="profile-skip-btn" plain onClick={() => void skip()}>
                 稍后完善
-              </Text>
+              </TaroButton>
             ) : null}
           </View>
 

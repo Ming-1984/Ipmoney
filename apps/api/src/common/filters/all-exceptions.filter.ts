@@ -66,18 +66,18 @@ export class AllExceptionsFilter implements ExceptionFilter {
       };
     }
 
-    // Minimal error logging for server-side visibility (no query/body to avoid PII leaks).
-    // Request access logs are handled by requestLoggerMiddleware; this is for 5xx exceptions.
-    if (status >= 500) {
-      const requestId =
-        String(request?.requestId || '').trim() ||
-        readHeader(request, 'x-request-id') ||
-        readHeader(request, 'x-requestid') ||
-        undefined;
-      const path = stripQuery(String(request?.path || request?.url || ''));
-      const method = String(request?.method || '').toUpperCase() || undefined;
-      const nodeEnv = String(process.env.NODE_ENV || '').trim().toLowerCase();
+    const requestId =
+      String(request?.requestId || '').trim() ||
+      readHeader(request, 'x-request-id') ||
+      readHeader(request, 'x-requestid') ||
+      undefined;
+    const path = stripQuery(String(request?.path || request?.url || ''));
+    const method = String(request?.method || '').toUpperCase() || undefined;
+    const nodeEnv = String(process.env.NODE_ENV || '').trim().toLowerCase();
 
+    // Minimal error logging for server-side visibility (no query/body to avoid PII leaks).
+    // Request access logs are handled by requestLoggerMiddleware; this is for 4xx/5xx exceptions.
+    if (status >= 400) {
       const errName =
         exception && typeof exception === 'object' && 'name' in exception ? String((exception as any).name || '') : '';
       const errMessage =
@@ -90,16 +90,19 @@ export class AllExceptionsFilter implements ExceptionFilter {
       console.error(
         JSON.stringify({
           ts: nowIso(),
-          level: 'error',
+          level: status >= 500 ? 'error' : 'warn',
           msg: 'exception',
           requestId,
           method,
           path,
           status,
           code: payload.code,
+          message: payload.message,
           // Avoid logging exception details in production by default.
           err:
-            nodeEnv === 'production'
+            nodeEnv === 'production' && status < 500
+              ? undefined
+              : nodeEnv === 'production'
               ? { name: errName || undefined }
               : { name: errName || undefined, message: errMessage || undefined, stack: errStack || undefined },
         }),

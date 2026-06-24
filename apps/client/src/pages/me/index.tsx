@@ -1,4 +1,4 @@
-﻿import { View, Text, Image } from '@tarojs/components';
+import { View, Text, Image, Button as TaroButton } from '@tarojs/components';
 import Taro, { useDidHide, useDidShow, useUnload } from '@tarojs/taro';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import './index.scss';
@@ -8,23 +8,20 @@ import type { components } from '@ipmoney/api-types';
 import {
   applyAuthSnapshot,
   clearToken,
-  clearVerificationStatus,
-  clearVerificationType,
   getToken,
   getVerificationStatus,
   getVerificationType,
   isOnboardingDone,
   onAuthChanged,
-  setOnboardingDone,
 } from '../../lib/auth';
 import { DEMO_LOGIN_ENABLED } from '../../constants';
 import { apiGet, apiPost } from '../../lib/api';
 import { getDetailCache, setDetailCache } from '../../lib/detailCache';
 import { displayInitial, displayUserName } from '../../lib/displayText';
+import { ensurePrivacyAuthorizationOrThrow, isWeappPrivacyEnvironment } from '../../lib/privacyAuthorization';
 import { verificationStatusLabel, verificationTypeLabel } from '../../lib/labels';
 import { regionDisplayName } from '../../lib/regions';
 import { ErrorCard, LoadingCard } from '../../ui/StateCards';
-import { WechatPhoneBindPopup } from '../../ui/WechatPhoneBindPopup';
 import { Surface } from '../../ui/layout';
 import { Avatar, Button, Input, PullToRefresh, toast } from '../../ui/nutui';
 
@@ -65,7 +62,6 @@ type VerificationStatus = components['schemas']['VerificationStatus'];
 type VerificationType = components['schemas']['VerificationType'];
 
 type IconItem = { key: string; label: string; icon: string; onClick: () => void };
-
 type ToolItem = { key: string; label: string; icon: string; value?: string; onClick: () => void };
 type AuthState = {
   token: string | null;
@@ -87,17 +83,16 @@ function readAuthState(): AuthState {
 }
 
 export default function MePage() {
-  const postLoginNextRef = useRef<null | (() => void)>(null);
   const authTokenRef = useRef<string | null>(null);
   const pageVisibleRef = useRef(true);
   const phoneAuthPromptActiveRef = useRef(false);
   const loadMeSeqRef = useRef(0);
   const verificationSeqRef = useRef(0);
   const loginActionSeqRef = useRef(0);
-  const phoneBindSeqRef = useRef(0);
   const logoutSeqRef = useRef(0);
   const env = useMemo(() => Taro.getEnv(), []);
   const canWechatLogin = env === Taro.ENV_TYPE.WEAPP;
+  const privacyReady = useMemo(() => isWeappPrivacyEnvironment(), []);
   const [auth, setAuth] = useState<AuthState>(() => readAuthState());
   const syncAuthState = useCallback(() => {
     const next = readAuthState();
@@ -126,11 +121,8 @@ export default function MePage() {
     loadMeSeqRef.current += 1;
     verificationSeqRef.current += 1;
     loginActionSeqRef.current += 1;
-    phoneBindSeqRef.current += 1;
     logoutSeqRef.current += 1;
-    postLoginNextRef.current = null;
     setBusy(false);
-    setPhoneBindBusy(false);
     setRefreshing(false);
   });
 
@@ -140,9 +132,7 @@ export default function MePage() {
     loadMeSeqRef.current += 1;
     verificationSeqRef.current += 1;
     loginActionSeqRef.current += 1;
-    phoneBindSeqRef.current += 1;
     logoutSeqRef.current += 1;
-    postLoginNextRef.current = null;
   });
 
   useEffect(() => {
@@ -164,8 +154,6 @@ export default function MePage() {
   const [phone, setPhone] = useState('');
   const [smsCode, setSmsCode] = useState('');
   const [cooldown, setCooldown] = useState(0);
-  const [phoneBindOpen, setPhoneBindOpen] = useState(false);
-  const [phoneBindBusy, setPhoneBindBusy] = useState(false);
 
   useEffect(() => {
     authTokenRef.current = auth.token;
@@ -284,100 +272,99 @@ export default function MePage() {
     void syncVerification();
   }, [auth.onboardingDone, auth.token, syncVerification]);
 
-  const afterLogin = useCallback(
-    (authToken: AuthTokenResponse, opts?: { fromWechat?: boolean }) => {
-      const token = authToken.accessToken || '';
-      if (!token) {
-        toast('登录失败，请稍后重试');
+  const afterLogin = useCallback((authToken: AuthTokenResponse) => {
+    const token = authToken.accessToken || '';
+    if (!token) {
+      toast('登录失败，请稍后重试');
+      return;
+    }
+    if (!pageVisibleRef.current) return;
+    const vt = (authToken.user?.verificationType || null) as VerificationType | null;
+    const vs = (authToken.user?.verificationStatus || null) as VerificationStatus | null;
+
+    const onboardingDone = Boolean(vt) || isOnboardingDone();
+    applyAuthSnapshot({
+      token,
+      onboardingDone,
+      verificationType: vt,
+      verificationStatus: vs,
+    });
+    setAuth({
+      token,
+      onboardingDone,
+      verificationType: vt,
+      verificationStatus: vs,
+    });
+
+    toast('登录成功', { icon: 'success' });
+
+    const goNext = () => {
+      const pages = Taro.getCurrentPages();
+      const canGoBack = pages.length > 1;
+      const nextUrl = !vt ? '/subpackages/onboarding/choose-identity/index' : '/pages/home/index';
+
+      if (!vt) {
+        Taro.redirectTo({ url: nextUrl });
         return;
       }
-      if (!pageVisibleRef.current) return;
-      const vt = (authToken.user?.verificationType || null) as VerificationType | null;
-      const vs = (authToken.user?.verificationStatus || null) as VerificationStatus | null;
-      const phoneFromAuth = String(authToken.user?.phone || '').trim();
-
-      const onboardingDone = Boolean(vt) || isOnboardingDone();
-      applyAuthSnapshot({
-        token,
-        onboardingDone,
-        verificationType: vt,
-        verificationStatus: vs,
-      });
-      setAuth({
-        token,
-        onboardingDone,
-        verificationType: vt,
-        verificationStatus: vs,
-      });
-
-      toast('登录成功', { icon: 'success' });
-
-      const goNext = () => {
-        const pages = Taro.getCurrentPages();
-        const canGoBack = pages.length > 1;
-
-        const nextUrl = !vt ? '/subpackages/onboarding/choose-identity/index' : '/pages/home/index';
-
-        if (!vt) {
-          Taro.redirectTo({ url: nextUrl });
-          return;
-        }
-        if (canGoBack) {
-          Taro.navigateBack();
-          return;
-        }
-        Taro.switchTab({ url: nextUrl });
-      };
-
-      const shouldPromptPhone = Boolean(opts?.fromWechat) && canWechatLogin && !phoneFromAuth;
-      if (shouldPromptPhone) {
-        const bindSeq = ++phoneBindSeqRef.current;
-        postLoginNextRef.current = () => {
-          setTimeout(() => {
-            if (bindSeq !== phoneBindSeqRef.current || !pageVisibleRef.current) return;
-            goNext();
-          }, 200);
-        };
-        setPhoneBindOpen(true);
+      if (canGoBack) {
+        Taro.navigateBack();
         return;
       }
+      Taro.switchTab({ url: nextUrl });
+    };
 
-      const nextSeq = loginActionSeqRef.current;
-      setTimeout(() => {
-        if (nextSeq !== loginActionSeqRef.current || !pageVisibleRef.current) return;
-        goNext();
-      }, 200);
+    const nextSeq = loginActionSeqRef.current;
+    setTimeout(() => {
+      if (nextSeq !== loginActionSeqRef.current || !pageVisibleRef.current) return;
+      goNext();
+    }, 200);
+  }, []);
+
+  const loginWithWechatPhone = useCallback(
+    async (phoneCode: string) => {
+      if (busy) return;
+      const seq = ++loginActionSeqRef.current;
+      setBusy(true);
+      try {
+        await ensurePrivacyAuthorizationOrThrow();
+        const loginRes = await Taro.login();
+        const code = String(loginRes?.code || '').trim();
+        if (!code) throw new Error('无法获取微信登录凭证');
+
+        const authToken = await apiPost<AuthTokenResponse>('/auth/wechat/phone-login', { code, phoneCode });
+        if (seq !== loginActionSeqRef.current || !pageVisibleRef.current) return;
+        afterLogin(authToken);
+      } catch (e: any) {
+        if (seq !== loginActionSeqRef.current || !pageVisibleRef.current) return;
+        toast(e?.message || '登录失败');
+      } finally {
+        if (seq === loginActionSeqRef.current && pageVisibleRef.current) {
+          setBusy(false);
+        }
+      }
     },
-    [canWechatLogin],
+    [afterLogin, busy],
   );
 
-  const quickLogin = useCallback(async () => {
-    if (busy) return;
-    if (!ensureAgreement()) return;
-    const seq = ++loginActionSeqRef.current;
-    setBusy(true);
-    try {
-      let code = '';
-      try {
-        const res = await Taro.login();
-        if (res?.code) code = res.code;
-      } catch (_) {
-        // non-weapp env: fallback to demo code
+  const onQuickWechatPhoneLogin = useCallback(
+    (e: any) => {
+      phoneAuthPromptActiveRef.current = false;
+      const phoneCode = String(e?.detail?.code || '').trim();
+      const errMsg = String(e?.detail?.errMsg || '').toLowerCase();
+      if (!phoneCode) {
+        if (errMsg.includes('deny') || errMsg.includes('cancel')) {
+          toast('你已取消微信手机号授权，可改用短信验证码登录');
+          return;
+        }
+        toast('未获取到手机号，请重试');
+        return;
       }
-      if (!code) throw new Error('无法获取登录凭证');
 
-      const authToken = await apiPost<AuthTokenResponse>('/auth/wechat/mp-login', { code });
-      if (seq !== loginActionSeqRef.current || !pageVisibleRef.current) return;
-      afterLogin(authToken, { fromWechat: true });
-    } catch (e: any) {
-      if (seq !== loginActionSeqRef.current || !pageVisibleRef.current) return;
-      toast(e?.message || '登录失败');
-    } finally {
-      if (seq === loginActionSeqRef.current && pageVisibleRef.current) {
-        setBusy(false);
-      }
-    }
-  }, [afterLogin, busy, ensureAgreement]);
+      void loginWithWechatPhone(phoneCode);
+    },
+    [loginWithWechatPhone],
+  );
 
   const demoLogin = useCallback(async () => {
     if (!DEMO_LOGIN_ENABLED || busy) return;
@@ -385,6 +372,7 @@ export default function MePage() {
     const seq = ++loginActionSeqRef.current;
     setBusy(true);
     try {
+      await ensurePrivacyAuthorizationOrThrow();
       const authToken = await apiPost<AuthTokenResponse>('/auth/wechat/mp-login', { code: 'demo' });
       if (seq !== loginActionSeqRef.current || !pageVisibleRef.current) return;
       afterLogin(authToken);
@@ -594,15 +582,18 @@ export default function MePage() {
               短信验证码登录
             </Button>
             {canWechatLogin ? (
-              <Button
-                className="me-login-btn me-login-btn-quick"
-                variant="default"
+              <TaroButton
+                className="me-login-btn me-login-btn-quick me-login-btn-wechat"
+                disabled={busy || !agree || !privacyReady}
                 loading={busy}
-                disabled={busy}
-                onClick={() => void quickLogin()}
+                openType="getPhoneNumber"
+                onClick={() => {
+                  phoneAuthPromptActiveRef.current = true;
+                }}
+                onGetPhoneNumber={onQuickWechatPhoneLogin}
               >
-                手机号快捷登录
-              </Button>
+                微信手机号快捷登录
+              </TaroButton>
             ) : null}
           </View>
           {showSms ? (
@@ -660,62 +651,55 @@ export default function MePage() {
   return (
     <PullToRefresh type="primary" disabled={refreshing} onRefresh={refresh}>
       <View className="container me-page">
-      <View className="me-header">
-        <View className="me-header-row">
-          <View className="me-avatar-wrap">
-            {auth.token && me ? (
-              <Avatar
-                size="72"
-                src={me.avatarUrl || ''}
-                icon={<Text className="me-avatar-text">{displayInitialText}</Text>}
-              />
-            ) : (
-              <View className="me-avatar-placeholder">
-                <Image className="me-avatar-icon" src={iconUser} svg mode="aspectFit" />
-              </View>
-            )}
-          </View>
-          <View className="me-header-meta">
-            <View className="me-name-row">
-              <Text className="me-name">{auth.token ? displayName : '未登录'}</Text>
-              {verification.type ? <View className="me-tag me-tag-outline">{verificationTypeLabel(verification.type)}</View> : null}
-              {verification.status ? (
-                <View className="me-tag me-tag-status">{verificationStatusLabel(verification.status)}</View>
-              ) : null}
+        <View className="me-header">
+          <View className="me-header-row">
+            <View className="me-avatar-wrap">
+              {auth.token && me ? (
+                <Avatar
+                  size="72"
+                  src={me.avatarUrl || ''}
+                  icon={<Text className="me-avatar-text">{displayInitialText}</Text>}
+                />
+              ) : (
+                <View className="me-avatar-placeholder">
+                  <Image className="me-avatar-icon" src={iconUser} svg mode="aspectFit" />
+                </View>
+              )}
             </View>
-            {auth.token ? (
-              <View className="me-info-row">
-                <Text className="me-subtitle me-info-item">{displayPhone}</Text>
-                <Text className="me-info-dot">·</Text>
-                <Text className="me-subtitle me-info-item">地区：{displayRegionText}</Text>
+            <View className="me-header-meta">
+              <View className="me-name-row">
+                <Text className="me-name">{auth.token ? displayName : '未登录'}</Text>
+                {verification.type ? <View className="me-tag me-tag-outline">{verificationTypeLabel(verification.type)}</View> : null}
+                {verification.status ? (
+                  <View className="me-tag me-tag-status">{verificationStatusLabel(verification.status)}</View>
+                ) : null}
               </View>
-            ) : (
-              <View className="me-status-row">
-                <Text className="me-subtitle">登录后可进行咨询、下单和支付</Text>
-              </View>
-            )}
+              {auth.token ? (
+                <View className="me-info-row">
+                  <Text className="me-subtitle me-info-item">{displayPhone}</Text>
+                  <Text className="me-info-dot">·</Text>
+                  <Text className="me-subtitle me-info-item">地区：{displayRegionText}</Text>
+                </View>
+              ) : (
+                <View className="me-status-row">
+                  <Text className="me-subtitle">登录后可进行咨询、下单和支付</Text>
+                </View>
+              )}
+            </View>
           </View>
         </View>
 
-      </View>
-
-      <>
-        {meLoading ? <LoadingCard text="加载我的资料…" /> : null}
-        {meError ? <ErrorCard message={meError} onRetry={loadMe} /> : null}
+        <>
+          {meLoading ? <LoadingCard text="加载我的资料…" /> : null}
+          {meError ? <ErrorCard message={meError} onRetry={loadMe} /> : null}
 
           <View className="me-order-card">
             <View className="me-order-tabs">
-              <View
-                className={`me-order-tab ${orderTab === 'orders' ? 'active' : ''}`}
-                onClick={() => setOrderTab('orders')}
-              >
+              <View className={`me-order-tab ${orderTab === 'orders' ? 'active' : ''}`} onClick={() => setOrderTab('orders')}>
                 <Text>订单管理</Text>
                 {orderTab === 'orders' ? <View className="me-order-indicator" /> : null}
               </View>
-              <View
-                className={`me-order-tab ${orderTab === 'publish' ? 'active' : ''}`}
-                onClick={() => setOrderTab('publish')}
-              >
+              <View className={`me-order-tab ${orderTab === 'publish' ? 'active' : ''}`} onClick={() => setOrderTab('publish')}>
                 <Text>发布管理</Text>
                 {orderTab === 'publish' ? <View className="me-order-indicator" /> : null}
               </View>
@@ -814,49 +798,7 @@ export default function MePage() {
               退出登录
             </Button>
           </Surface>
-      </>
-
-      <WechatPhoneBindPopup
-        visible={phoneBindOpen}
-        loading={phoneBindBusy}
-        onAuthPromptStart={() => {
-          phoneAuthPromptActiveRef.current = true;
-        }}
-        onAuthPromptEnd={() => {
-          phoneAuthPromptActiveRef.current = false;
-        }}
-        onSkip={() => {
-          phoneAuthPromptActiveRef.current = false;
-          setPhoneBindOpen(false);
-          const next = postLoginNextRef.current;
-          postLoginNextRef.current = null;
-          next?.();
-        }}
-        onRequestBind={async (phoneCode) => {
-          if (phoneBindBusy) return;
-          phoneAuthPromptActiveRef.current = false;
-          const seq = ++phoneBindSeqRef.current;
-          setPhoneBindBusy(true);
-          try {
-            await apiPost('/auth/wechat/phone-bind', { phoneCode });
-            if (seq !== phoneBindSeqRef.current || !pageVisibleRef.current) return;
-            toast('手机号绑定成功', { icon: 'success' });
-            void loadMe({ silent: true });
-            setPhoneBindOpen(false);
-            const next = postLoginNextRef.current;
-            postLoginNextRef.current = null;
-            next?.();
-          } catch (e: any) {
-            phoneAuthPromptActiveRef.current = false;
-            if (seq !== phoneBindSeqRef.current || !pageVisibleRef.current) return;
-            toast(e?.message || '绑定失败');
-          } finally {
-            if (seq === phoneBindSeqRef.current && pageVisibleRef.current) {
-              setPhoneBindBusy(false);
-            }
-          }
-        }}
-      />
+        </>
       </View>
     </PullToRefresh>
   );

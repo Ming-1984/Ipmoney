@@ -3,6 +3,7 @@ import React, { useCallback } from 'react';
 
 import './WechatPhoneBindPopup.scss';
 
+import { ensurePrivacyAuthorizationOrThrow } from '../lib/privacyAuthorization';
 import { Popup } from './nutui';
 
 export type WechatPhoneBindPopupProps = {
@@ -36,6 +37,14 @@ export function WechatPhoneBindPopup(props: WechatPhoneBindPopupProps) {
     [props],
   );
 
+  const onStartAuth = useCallback(() => {
+    void ensurePrivacyAuthorizationOrThrow().catch(() => {
+      props.onAuthPromptEnd?.();
+      props.onSkip();
+    });
+    props.onAuthPromptStart?.();
+  }, [props]);
+
   return (
     <Popup
       visible={props.visible}
@@ -54,7 +63,7 @@ export function WechatPhoneBindPopup(props: WechatPhoneBindPopupProps) {
           <TaroButton
             className="wechat-phone-btn wechat-phone-btn-primary"
             openType="getPhoneNumber"
-            onClick={() => props.onAuthPromptStart?.()}
+            onClick={onStartAuth}
             onGetPhoneNumber={onGetPhoneNumber}
             disabled={Boolean(props.loading)}
           >

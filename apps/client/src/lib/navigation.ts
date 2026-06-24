@@ -29,6 +29,51 @@ export function isTabPageUrl(url: string): boolean {
   return (TAB_PAGE_PATHS as readonly string[]).includes(path);
 }
 
+function getPageStackSize(): number {
+  try {
+    const pages = Taro.getCurrentPages?.() ?? [];
+    return Array.isArray(pages) ? pages.length : 0;
+  } catch {
+    return 0;
+  }
+}
+
+function isPageStackOverflowError(error: unknown): boolean {
+  const message = String((error as any)?.errMsg || (error as any)?.message || error || '').toLowerCase();
+  return message.includes('webview count limit') || message.includes('page stack') || message.includes('navigateto');
+}
+
+export async function safeOpenPage(url: string, options?: { fallbackToRedirect?: boolean }) {
+  const target = normalizePageUrl(url);
+  if (!target) {
+    throw new Error('无效页面路径');
+  }
+
+  if (isTabPageUrl(target)) {
+    await Taro.switchTab({ url: target });
+    return;
+  }
+
+  const preferRedirect = options?.fallbackToRedirect !== false;
+  const stackSize = getPageStackSize();
+  if (preferRedirect && stackSize >= 9) {
+    await Taro.redirectTo({ url: target });
+    return;
+  }
+
+  try {
+    await Taro.navigateTo({ url: target });
+  } catch (error) {
+    if (!preferRedirect) throw error;
+    if (!isPageStackOverflowError(error)) throw error;
+    try {
+      await Taro.redirectTo({ url: target });
+    } catch {
+      await Taro.reLaunch({ url: target });
+    }
+  }
+}
+
 export async function safeNavigateBack(options?: { fallbackUrl?: string }) {
   const fallbackUrl = options?.fallbackUrl ?? '/pages/home/index';
 

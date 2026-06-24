@@ -12,7 +12,7 @@ import { displayInfoOrPlaceholder, displayTitleWithSecondary, normalizeDisplayTe
 import { ensureApproved, usePageAccess } from '../../lib/guard';
 import { useRouteStringParam, useRouteUuidParam } from '../../lib/routeParams';
 import { usePagedList } from '../../lib/usePagedList';
-import { uploadWithRetry } from '../../lib/upload';
+import { chooseImageFiles, uploadFileToApi } from '../../lib/upload';
 import { CategoryControl } from '../../ui/filters';
 import { ListFooter } from '../../ui/ListFooter';
 import { AccessGate } from '../../ui/PageState';
@@ -216,17 +216,15 @@ export default function PatentClaimsPage() {
     setUploading(true);
     try {
       const remain = MAX_EVIDENCE_COUNT - evidenceFiles.length;
-      const chosen = await Taro.chooseImage({
-        count: Math.min(3, remain),
-        sizeType: ['compressed'],
-        sourceType: ['album', 'camera'],
-      });
-      const paths = chosen?.tempFilePaths || [];
+      const chosen = await chooseImageFiles({ count: Math.min(3, remain) });
+      const paths = chosen
+        .map((file) => String(file.path || '').trim())
+        .filter(Boolean);
       if (!paths.length) return;
       const token = getToken();
       const uploaded: UploadedEvidence[] = [];
       for (const path of paths) {
-        const uploadRes = await uploadWithRetry({
+        const { data: parsed } = await uploadFileToApi<Partial<FileObject>>({
           url: `${API_BASE_URL}/files`,
           filePath: path,
           name: 'file',
@@ -235,13 +233,8 @@ export default function PatentClaimsPage() {
           },
           retry: 1,
         });
-        const parsed = JSON.parse(String(uploadRes.data || '{}')) as Partial<FileObject>;
-        if (!parsed.id) continue;
+        if (!parsed.id) throw new Error('上传失败');
         uploaded.push({ ...(parsed as UploadedEvidence), localPath: path });
-      }
-      if (!uploaded.length) {
-        toast('上传失败');
-        return;
       }
       setEvidenceFiles((prev) => {
         const next = [...prev];

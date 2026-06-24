@@ -91,6 +91,7 @@ describe('AuthService auth suite', () => {
 
   function createService() {
     const prisma = {
+      $transaction: vi.fn(async (handler: any) => await handler(prisma)),
       userVerification: { findFirst: vi.fn().mockResolvedValue(null) },
       user: {
         findUnique: vi.fn(),
@@ -233,6 +234,128 @@ describe('AuthService auth suite', () => {
     expect(result.expiresInSeconds).toBe(3600);
   });
 
+  it('creates access token from combined wechat phone login', async () => {
+    const { service, prisma } = createService();
+    mockFetchJson({
+      openid: 'wx-openid-phone-1',
+      session_key: 'session-key-phone-1',
+    });
+    mockFetchJson({ access_token: 'wechat-access-token', expires_in: 7200 });
+    mockFetchJson({
+      phone_info: {
+        phoneNumber: '+86 13800138008',
+        purePhoneNumber: '13800138008',
+        countryCode: '86',
+      },
+    });
+    prisma.user.findUnique.mockResolvedValueOnce(null);
+    prisma.user.findUnique.mockResolvedValueOnce(null);
+    prisma.user.create.mockResolvedValueOnce({
+      id: '52222222-2222-4222-8222-222222222222',
+      phone: '13800138008',
+      nickname: 'New User',
+      avatarUrl: null,
+      wechatOpenid: 'wx-openid-phone-1',
+      role: 'buyer',
+      regionCode: null,
+      createdAt: new Date('2026-03-13T00:00:00.000Z'),
+      updatedAt: new Date('2026-03-13T00:00:00.000Z'),
+    });
+
+    const result = await service.wechatPhoneLogin('code-from-client', 'phone-code-from-client');
+
+    expect(fetchMock).toHaveBeenCalledTimes(3);
+    expect(String(fetchMock.mock.calls[0][0] || '')).toContain('/sns/jscode2session');
+    expect(String(fetchMock.mock.calls[1][0] || '')).toContain('/cgi-bin/token');
+    expect(String(fetchMock.mock.calls[2][0] || '')).toContain('/wxa/business/getuserphonenumber');
+    expect(prisma.user.create).toHaveBeenCalledWith({
+      data: {
+        role: 'buyer',
+        nickname: 'New User',
+        phone: '13800138008',
+        wechatOpenid: 'wx-openid-phone-1',
+      },
+    });
+    expect(result.accessToken.startsWith('atk1.')).toBe(true);
+    expect(result.user.phone).toBe('13800138008');
+  });
+
+  it('rebinds legacy wechat shell account onto the existing phone account', async () => {
+    const { service, prisma } = createService();
+    mockFetchJson({
+      openid: 'wx-openid-phone-2',
+      session_key: 'session-key-phone-2',
+    });
+    mockFetchJson({ access_token: 'wechat-access-token', expires_in: 7200 });
+    mockFetchJson({
+      phone_info: {
+        purePhoneNumber: '13800138010',
+      },
+    });
+    prisma.user.findUnique
+      .mockResolvedValueOnce({
+        id: '63333333-3333-4333-8333-333333333331',
+        phone: null,
+        nickname: 'New User',
+        avatarUrl: null,
+        wechatOpenid: 'wx-openid-phone-2',
+        role: 'buyer',
+        regionCode: null,
+        createdAt: new Date('2026-03-13T00:00:00.000Z'),
+        updatedAt: new Date('2026-03-13T00:00:00.000Z'),
+      })
+      .mockResolvedValueOnce({
+        id: '63333333-3333-4333-8333-333333333332',
+        phone: '13800138010',
+        nickname: 'Buyer',
+        avatarUrl: null,
+        wechatOpenid: null,
+        role: 'buyer',
+        regionCode: null,
+        createdAt: new Date('2026-03-13T00:00:00.000Z'),
+        updatedAt: new Date('2026-03-13T00:00:00.000Z'),
+      });
+    prisma.user.update
+      .mockResolvedValueOnce({
+        id: '63333333-3333-4333-8333-333333333331',
+        phone: null,
+        nickname: 'New User',
+        avatarUrl: null,
+        wechatOpenid: null,
+        role: 'buyer',
+        regionCode: null,
+        createdAt: new Date('2026-03-13T00:00:00.000Z'),
+        updatedAt: new Date('2026-03-13T00:00:00.000Z'),
+      })
+      .mockResolvedValueOnce({
+        id: '63333333-3333-4333-8333-333333333332',
+        phone: '13800138010',
+        nickname: 'Buyer',
+        avatarUrl: null,
+        wechatOpenid: 'wx-openid-phone-2',
+        role: 'buyer',
+        regionCode: null,
+        createdAt: new Date('2026-03-13T00:00:00.000Z'),
+        updatedAt: new Date('2026-03-13T00:00:00.000Z'),
+      });
+
+    const result = await service.wechatPhoneLogin('code-from-client', 'phone-code-from-client');
+
+    expect(prisma.$transaction).toHaveBeenCalledOnce();
+    expect(prisma.user.update).toHaveBeenNthCalledWith(1, {
+      where: { id: '63333333-3333-4333-8333-333333333331' },
+      data: { wechatOpenid: null },
+    });
+    expect(prisma.user.update).toHaveBeenNthCalledWith(2, {
+      where: { id: '63333333-3333-4333-8333-333333333332' },
+      data: {
+        phone: '13800138010',
+        wechatOpenid: 'wx-openid-phone-2',
+      },
+    });
+    expect(result.user.id).toBe('63333333-3333-4333-8333-333333333332');
+  });
+
   it('returns NOT_IMPLEMENTED when wechat env is missing', async () => {
     process.env.WX_MP_APPID = '';
     process.env.WX_MP_ID = '';
@@ -319,6 +442,64 @@ describe('AuthService auth suite', () => {
     expect(result).toEqual({ phone: '13800138001' });
   });
 
+  it('binds phone and wechat openid together when login code is provided', async () => {
+    const { service, prisma } = createService();
+    mockFetchJson({ access_token: 'wechat-access-token', expires_in: 7200 });
+    mockFetchJson({
+      phone_info: {
+        purePhoneNumber: '13800138012',
+      },
+    });
+    mockFetchJson({
+      openid: 'wx-openid-bind-1',
+      session_key: 'session-key-bind-1',
+    });
+    prisma.user.findUnique
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce(null);
+    prisma.user.update.mockResolvedValueOnce({
+      id: 'u-1',
+      phone: '13800138012',
+      wechatOpenid: 'wx-openid-bind-1',
+    });
+
+    const result = await service.wechatPhoneBind('u-1', 'phone-code', 'login-code');
+
+    expect(fetchMock).toHaveBeenCalledTimes(3);
+    expect(String(fetchMock.mock.calls[0][0] || '')).toContain('/cgi-bin/token');
+    expect(String(fetchMock.mock.calls[1][0] || '')).toContain('/wxa/business/getuserphonenumber');
+    expect(String(fetchMock.mock.calls[2][0] || '')).toContain('/sns/jscode2session');
+    expect(prisma.user.update).toHaveBeenCalledWith({
+      where: { id: 'u-1' },
+      data: {
+        phone: '13800138012',
+        wechatOpenid: 'wx-openid-bind-1',
+      },
+    });
+    expect(result).toEqual({ phone: '13800138012', wechatOpenid: 'wx-openid-bind-1' });
+  });
+
+  it('rejects bind when provided wechat openid already belongs to another user', async () => {
+    const { service, prisma } = createService();
+    mockFetchJson({ access_token: 'wechat-access-token', expires_in: 7200 });
+    mockFetchJson({
+      phone_info: {
+        purePhoneNumber: '13800138013',
+      },
+    });
+    mockFetchJson({
+      openid: 'wx-openid-bind-2',
+      session_key: 'session-key-bind-2',
+    });
+    prisma.user.findUnique
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce({ id: 'u-2' });
+
+    await expect(service.wechatPhoneBind('u-1', 'phone-code', 'login-code')).rejects.toMatchObject({
+      response: { code: 'CONFLICT' },
+    });
+  });
+
   it('rejects phone bind when phone already belongs to another user', async () => {
     const { service, prisma } = createService();
     mockFetchJson({ access_token: 'wechat-access-token', expires_in: 7200 });
@@ -330,6 +511,36 @@ describe('AuthService auth suite', () => {
     prisma.user.findUnique.mockResolvedValueOnce({ id: 'u-2' });
 
     await expect(service.wechatPhoneBind('u-1', 'phone-code')).rejects.toMatchObject({
+      response: { code: 'CONFLICT' },
+    });
+  });
+
+  it('rejects combined wechat phone login when phone is already bound by another wechat account', async () => {
+    const { service, prisma } = createService();
+    mockFetchJson({
+      openid: 'wx-openid-phone-3',
+      session_key: 'session-key-phone-3',
+    });
+    mockFetchJson({ access_token: 'wechat-access-token', expires_in: 7200 });
+    mockFetchJson({
+      phone_info: {
+        purePhoneNumber: '13800138011',
+      },
+    });
+    prisma.user.findUnique.mockResolvedValueOnce(null);
+    prisma.user.findUnique.mockResolvedValueOnce({
+      id: 'phone-user-2',
+      phone: '13800138011',
+      nickname: 'Buyer',
+      avatarUrl: null,
+      wechatOpenid: 'another-openid',
+      role: 'buyer',
+      regionCode: null,
+      createdAt: new Date('2026-03-13T00:00:00.000Z'),
+      updatedAt: new Date('2026-03-13T00:00:00.000Z'),
+    });
+
+    await expect(service.wechatPhoneLogin('code-from-client', 'phone-code-from-client')).rejects.toMatchObject({
       response: { code: 'CONFLICT' },
     });
   });

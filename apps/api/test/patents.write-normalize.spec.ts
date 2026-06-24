@@ -491,6 +491,24 @@ describe('PatentsService write and normalize suite', () => {
     ).rejects.toBeInstanceOf(BadRequestException);
   });
 
+  it('createImportJob rejects PLATFORM defaults when sellerUserId is missing', async () => {
+    prisma.file.findUnique.mockResolvedValueOnce({ id: VALID_ID });
+
+    await expect(
+      service.createImportJob(
+        { auth: { isAdmin: true, userId: VALID_ID }, headers: { 'idempotency-key': 'patent-import-3' } },
+        {
+          fileId: VALID_ID,
+          defaults: {
+            listing: {
+              consultationRouting: 'PLATFORM',
+            },
+          },
+        },
+      ),
+    ).rejects.toBeInstanceOf(BadRequestException);
+  });
+
   it('uses patent metadata instead of synthetic english title when generating listing', async () => {
     prisma.user = {
       findUnique: vi.fn().mockResolvedValueOnce({ id: VALID_ID }),
@@ -513,7 +531,10 @@ describe('PatentsService write and normalize suite', () => {
         abstract: null,
       },
       operatorUserId: VALID_ID,
-      listingDefaults: {},
+      listingDefaults: {
+        consultationRouting: 'PLATFORM',
+        sellerUserId: VALID_ID,
+      },
       duplicatePolicy: 'OVERWRITE',
     });
 
@@ -523,6 +544,31 @@ describe('PatentsService write and normalize suite', () => {
       }),
     });
     expect(result).toMatchObject({ status: 'SUCCEEDED', listingId: 'listing-1' });
+  });
+
+  it('fails listing generation when PLATFORM routing has no explicit sellerUserId', async () => {
+    const result = await (service as any).upsertListingForPatent({
+      patent: {
+        id: 'patent-2',
+        title: 'Platform Patent',
+        applicationNoNorm: '2024100000002',
+        applicationNoDisplay: '202410000000.2',
+        publicationNoDisplay: null,
+        patentNoDisplay: null,
+        grantPublicationNoDisplay: null,
+        abstract: null,
+      },
+      operatorUserId: VALID_ID,
+      listingDefaults: {
+        consultationRouting: 'PLATFORM',
+      },
+      duplicatePolicy: 'OVERWRITE',
+    });
+
+    expect(result).toMatchObject({
+      status: 'FAILED',
+      errorCode: 'SELLER_REQUIRED',
+    });
   });
 
   it('approveClaim uses conditional update inside transaction and rejects already processed races', async () => {

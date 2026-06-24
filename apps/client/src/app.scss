@@ -878,6 +878,34 @@ scroll-view {
   -webkit-box-orient: vertical;
 }
 
+.page-navbar-native {
+  padding: 0 var(--page-padding) var(--space-2);
+  border-bottom: 1rpx solid var(--c-divider);
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+}
+
+.page-navbar-native-side {
+  display: flex;
+  align-items: center;
+  min-width: 80rpx;
+  flex-shrink: 0;
+}
+
+.page-navbar-native-side-right {
+  justify-content: flex-end;
+}
+
+.page-navbar-native-center {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+}
+
 .page-header-back {
   width: var(--tap-target);
   height: var(--tap-target);

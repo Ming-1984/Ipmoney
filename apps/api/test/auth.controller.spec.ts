@@ -9,6 +9,7 @@ describe('AuthController delegation suite', () => {
   beforeEach(() => {
     auth = {
       wechatMpLogin: vi.fn(),
+      wechatPhoneLogin: vi.fn(),
       wechatPhoneBind: vi.fn(),
       sendSmsCode: vi.fn(),
       smsVerifyLogin: vi.fn(),
@@ -28,13 +29,33 @@ describe('AuthController delegation suite', () => {
     });
   });
 
+  it('delegates wechat phone login args', async () => {
+    auth.wechatPhoneLogin.mockResolvedValueOnce({ accessToken: 'phone-login-token' });
+
+    await expect(
+      controller.wechatPhoneLogin({ ip: '1.1.1.2', headers: { 'user-agent': 'ua-phone' } } as any, {
+        code: 'code-1',
+        phoneCode: 'phone-code-1',
+      }),
+    ).resolves.toEqual({
+      accessToken: 'phone-login-token',
+    });
+    expect(auth.wechatPhoneLogin).toHaveBeenCalledWith('code-1', 'phone-code-1', {
+      ip: '1.1.1.2',
+      userAgent: 'ua-phone',
+    });
+  });
+
   it('delegates wechat phone bind with auth user id', async () => {
     auth.wechatPhoneBind.mockResolvedValueOnce({ phone: '13800138000' });
 
     await expect(
-      controller.wechatPhoneBind({ auth: { userId: 'u-1' } } as any, { phoneCode: 'pc-1' }),
+      controller.wechatPhoneBind({ auth: { userId: 'u-1' }, ip: '4.4.4.4', headers: { 'user-agent': 'ua-bind' } } as any, { code: 'c-1', phoneCode: 'pc-1' }),
     ).resolves.toEqual({ phone: '13800138000' });
-    expect(auth.wechatPhoneBind).toHaveBeenCalledWith('u-1', 'pc-1');
+    expect(auth.wechatPhoneBind).toHaveBeenCalledWith('u-1', 'pc-1', 'c-1', {
+      ip: '4.4.4.4',
+      userAgent: 'ua-bind',
+    });
   });
 
   it('delegates sms send args', async () => {

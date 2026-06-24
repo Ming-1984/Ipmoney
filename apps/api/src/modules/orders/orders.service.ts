@@ -416,6 +416,32 @@ export class OrdersService {
     return Math.max(0, dealAmount - depositAmount);
   }
 
+  private computeDepositAmountForListing(
+    listing: { priceType?: string | null; priceAmount?: number | null; depositAmount?: number | null },
+    rules: TradeRulesConfig,
+  ): number {
+    const explicitDepositAmount = Number(listing?.depositAmount ?? 0);
+    if (Number.isSafeInteger(explicitDepositAmount) && explicitDepositAmount > 0) {
+      return explicitDepositAmount;
+    }
+
+    const priceType = String(listing?.priceType || '').trim().toUpperCase();
+    if (priceType === 'NEGOTIABLE') {
+      return Math.max(0, Math.trunc(Number(rules.depositFixedForNegotiableFen || 0)));
+    }
+
+    const priceAmount = Number(listing?.priceAmount ?? 0);
+    if (!Number.isFinite(priceAmount) || priceAmount <= 0) {
+      return 0;
+    }
+
+    const rawComputed = Math.round(priceAmount * Number(rules.depositRate || 0));
+    const minFen = Math.max(0, Math.trunc(Number(rules.depositMinFen || 0)));
+    const maxFenRaw = Math.max(0, Math.trunc(Number(rules.depositMaxFen || 0)));
+    const maxFen = maxFenRaw > 0 ? maxFenRaw : Number.MAX_SAFE_INTEGER;
+    return Math.min(Math.max(rawComputed, minFen), maxFen);
+  }
+
   private parseOptionalDateTime(value: unknown, fieldName: string): Date | undefined {
     if (value === undefined || value === null) return undefined;
     if (String(value).trim() === '') {
@@ -547,13 +573,34 @@ export class OrdersService {
       if (listing.auditStatus !== AuditStatus.APPROVED || listing.status !== ListingStatus.ACTIVE) {
         throw new BadRequestException({ code: 'BAD_REQUEST', message: 'listing not available for trade' });
       }
+      if (String(listing.sellerUserId || '') === String(req.auth.userId || '')) {
+        throw new ConflictException({ code: 'CONFLICT', message: 'cannot create order for your own listing' });
+      }
+
+      const tradeRules = await this.config.getTradeRules();
+      const depositAmount = this.computeDepositAmountForListing(listing, tradeRules);
+      if (!Number.isSafeInteger(depositAmount) || depositAmount <= 0) {
+        throw new ConflictException({ code: 'CONFLICT', message: 'listing deposit amount is invalid' });
+      }
+
+      const existingPendingOrder = await this.prisma.order.findFirst({
+        where: {
+          listingId,
+          buyerUserId: req.auth.userId,
+          status: 'DEPOSIT_PENDING',
+        },
+        orderBy: { createdAt: 'desc' },
+      });
+      if (existingPendingOrder) {
+        return this.toOrderDto(existingPendingOrder, listing, listing.patent);
+      }
 
       const order = await this.prisma.order.create({
         data: {
           listingId,
           buyerUserId: req.auth.userId,
           status: 'DEPOSIT_PENDING',
-          depositAmount: listing.depositAmount,
+          depositAmount,
         },
       });
       await this.audit.log({

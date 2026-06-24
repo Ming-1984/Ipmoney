@@ -158,7 +158,7 @@ export default function FinalPayPage() {
             timeStamp: String(payParams?.timeStamp || ''),
             nonceStr: String(payParams?.nonceStr || ''),
             package: String(payParams?.package || ''),
-            signType: 'RSA',
+            signType: (String(payParams?.signType || 'RSA').toUpperCase() as 'RSA'),
             paySign: String(payParams?.paySign || ''),
           });
         } catch (paymentError: any) {

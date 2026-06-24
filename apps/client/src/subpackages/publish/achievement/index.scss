@@ -55,6 +55,11 @@
   margin-top: 12rpx;
 }
 
+.form-row-split-item {
+  flex: 1;
+  min-width: 0;
+}
+
 .publish-input,
 .publish-textarea {
   width: 100%;
@@ -101,15 +106,37 @@
   color: #c0c4cc;
 }
 
-.upload-box {
+.upload-actions {
+  display: flex;
+  gap: 12rpx;
+  margin-top: 12rpx;
+}
+
+.upload-trigger {
+  flex: 1;
+  min-height: 132rpx;
   border: 1rpx dashed #e5e7eb;
   border-radius: 14rpx;
-  padding: 20rpx;
+  padding: 20rpx 16rpx;
   display: flex;
   flex-direction: column;
   align-items: center;
+  justify-content: center;
   gap: 8rpx;
   background: #f9fafb;
+  line-height: 1.4;
+}
+
+.upload-trigger-single {
+  width: 100%;
+}
+
+.upload-trigger::after {
+  border: none;
+}
+
+.upload-trigger[disabled] {
+  opacity: 0.65;
 }
 
 .upload-icon {
@@ -129,7 +156,7 @@
 
 .upload-preview {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 12rpx;
 }
 
@@ -138,6 +165,13 @@
   height: 140rpx;
   border-radius: 12rpx;
   object-fit: cover;
+  flex-shrink: 0;
+}
+
+.upload-preview-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10rpx;
 }
 
 .upload-list {
@@ -154,6 +188,7 @@
   padding: 12rpx;
   border: 1rpx solid #eef0f2;
   border-radius: 12rpx;
+  background: #ffffff;
 }
 
 .upload-item-cover,
@@ -178,7 +213,49 @@
   color: #9ca3af;
 }
 
-.upload-item-remove {
-  font-size: 20rpx;
-  color: #ef4444;
+.upload-item-remove-btn {
+  flex-shrink: 0;
+}
+
+.upload-preview-action-btn,
+.upload-item-remove-btn-danger,
+.publish-action-btn-native {
+  border: none;
+  background: transparent;
+  padding: 0;
+  line-height: 1.4;
+}
+
+.upload-preview-action-btn::after,
+.upload-item-remove-btn-danger::after,
+.publish-action-btn-native::after {
+  border: none;
+}
+
+.upload-preview-action-btn-ghost {
+  color: #ff7a18;
+  font-size: 24rpx;
+}
+
+.upload-item-remove-btn-danger {
+  color: #dc2626;
+  font-size: 22rpx;
+}
+
+.publish-action-btn {
+  height: 72rpx;
+  border-radius: 16rpx;
+  font-weight: 600;
+}
+
+.publish-action-primary {
+  background: #ff7a18;
+  color: #ffffff;
+  border: none;
+}
+
+.publish-action-ghost {
+  background: #ffffff;
+  color: #ff7a18;
+  border: 1rpx solid #ff7a18;
 }

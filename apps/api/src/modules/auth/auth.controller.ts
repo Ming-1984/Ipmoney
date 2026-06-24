@@ -15,10 +15,21 @@ export class AuthController {
     });
   }
 
+  @Post('/wechat/phone-login')
+  async wechatPhoneLogin(@Req() req: any, @Body() body: { code: string; phoneCode: string }) {
+    return await this.auth.wechatPhoneLogin(body?.code, body?.phoneCode, {
+      ip: req?.ip,
+      userAgent: req?.headers?.['user-agent'],
+    });
+  }
+
   @Post('/wechat/phone-bind')
   @UseGuards(BearerAuthGuard)
-  async wechatPhoneBind(@Req() req: any, @Body() body: { phoneCode: string }) {
-    return await this.auth.wechatPhoneBind(req?.auth?.userId, body?.phoneCode);
+  async wechatPhoneBind(@Req() req: any, @Body() body: { code?: string; phoneCode: string }) {
+    return await this.auth.wechatPhoneBind(req?.auth?.userId, body?.phoneCode, body?.code, {
+      ip: req?.ip,
+      userAgent: req?.headers?.['user-agent'],
+    });
   }
 
   @Post('/sms/send')

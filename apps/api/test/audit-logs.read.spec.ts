@@ -22,6 +22,10 @@ describe('AuditLogsService audit-flow suite', () => {
       {
         id: 'log-1',
         actorUserId: 'user-1',
+        actor: {
+          nickname: '操作员甲',
+          verifications: [{ displayName: '正式操作员甲' }],
+        },
         action: 'ORDER_CREATE',
         targetType: 'ORDER',
         targetId: 'order-1',
@@ -39,6 +43,18 @@ describe('AuditLogsService audit-flow suite', () => {
 
     expect(prisma.auditLog.findMany).toHaveBeenCalledWith({
       where: {},
+      include: {
+        actor: {
+          select: {
+            nickname: true,
+            verifications: {
+              orderBy: { submittedAt: 'desc' },
+              take: 1,
+              select: { displayName: true },
+            },
+          },
+        },
+      },
       orderBy: { createdAt: 'desc' },
       skip: 0,
       take: 20,
@@ -46,6 +62,7 @@ describe('AuditLogsService audit-flow suite', () => {
     expect(result.page).toEqual({ page: 1, pageSize: 20, total: 1 });
     expect(result.items[0]).toMatchObject({
       id: 'log-1',
+      actorDisplayName: '正式操作员甲',
       action: 'ORDER_CREATE',
       afterJson: { status: 'DEPOSIT_PENDING' },
       createdAt: '2026-03-12T00:00:00.000Z',

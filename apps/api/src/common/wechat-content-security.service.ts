@@ -46,6 +46,10 @@ export class WechatContentSecurityService {
     private readonly audit: AuditLogService,
   ) {}
 
+  private isBypassed() {
+    return process.env.NODE_ENV !== 'production' && process.env.WECHAT_CONTENT_SECURITY_ENFORCE !== '1';
+  }
+
   private trim(value: unknown): string {
     return String(value ?? '').trim();
   }
@@ -87,11 +91,11 @@ export class WechatContentSecurityService {
   }
 
   isConfigured() {
-    return this.wechatMp.isConfigured();
+    return this.isBypassed() ? false : this.wechatMp.isConfigured();
   }
 
   getMissingFields() {
-    return this.wechatMp.getMissingFields();
+    return this.isBypassed() ? [] : this.wechatMp.getMissingFields();
   }
 
   private async recordFailureLog(action: string, details: Record<string, unknown>, requestMeta?: TextCheckOptions['requestMeta']) {
@@ -111,6 +115,7 @@ export class WechatContentSecurityService {
   }
 
   async assertSafeText(content: string, options?: TextCheckOptions): Promise<void> {
+    if (this.isBypassed()) return;
     const normalized = this.trim(content);
     if (!normalized || !this.wechatMp.isConfigured()) return;
     try {
@@ -155,6 +160,7 @@ export class WechatContentSecurityService {
   }
 
   async scheduleFileModeration(fileId: string, baseUrl: string, openid?: string): Promise<void> {
+    if (this.isBypassed()) return;
     const normalizedFileId = this.trim(fileId);
     if (!normalizedFileId || !this.wechatMp.isConfigured()) return;
     const file = await this.prisma.file.findUnique({ where: { id: normalizedFileId } });
@@ -214,6 +220,7 @@ export class WechatContentSecurityService {
   }
 
   async ensureReferencedFilesReady(options: ReferencedFileOptions): Promise<void> {
+    if (this.isBypassed()) return;
     const fileIds = this.uniqueFileIds(options.fileIds);
     if (!fileIds.length) return;
     const files = await this.prisma.file.findMany({ where: { id: { in: fileIds } } });

@@ -987,13 +987,17 @@ export class ConversationsService {
     const conv = await this.prisma.conversation.findUnique({ where: { id: normalizedConversationId } });
     if (!conv) throw new NotFoundException({ code: 'NOT_FOUND', message: 'conversation not found' });
     await this.assertConversationAccessible(conv, req.auth.userId);
-    await this.contentSecurity.assertSafeText(text, {
-      requestMeta: {
-        actorUserId: req.auth.userId,
-        targetType: 'CONVERSATION',
-        targetId: normalizedConversationId,
-      },
-    });
+    if (process.env.NODE_ENV !== 'production' && process.env.WECHAT_CONTENT_SECURITY_ENFORCE !== '1') {
+      // Keep local chat flow usable during WeChat MP dev / webview debugging.
+    } else {
+      await this.contentSecurity.assertSafeText(text, {
+        requestMeta: {
+          actorUserId: req.auth.userId,
+          targetType: 'CONVERSATION',
+          targetId: normalizedConversationId,
+        },
+      });
+    }
 
     const msg = await this.prisma.conversationMessage.create({
       data: {

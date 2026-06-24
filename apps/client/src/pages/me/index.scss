@@ -71,6 +71,20 @@
   color: #ffffff;
 }
 
+.me-login-btn-wechat {
+  border: none;
+  padding: 0;
+  line-height: 88rpx;
+}
+
+.me-login-btn-wechat::after {
+  border: none;
+}
+
+.me-login-btn-wechat[disabled] {
+  opacity: 0.55;
+}
+
 .me-login-btn-demo {
   background: #111827;
   color: #ffffff;

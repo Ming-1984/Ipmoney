@@ -11,8 +11,11 @@
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "clean:weapp": "node -e \"require('node:fs').rmSync('dist/weapp', { recursive: true, force: true })\"",
     "check:weapp-dist-pages": "node ../../scripts/check-weapp-dist-pages.mjs --app-json dist/weapp/app.json",
-    "dev:weapp": "pnpm run clean:weapp && taro build --type weapp --watch",
-    "build:weapp": "pnpm run clean:weapp && taro build --type weapp && pnpm run check:weapp-dist-pages"
+    "dev:weapp": "taro build --type weapp --watch",
+    "dev:weapp:local-api": "set TARO_APP_API_BASE_URL_OVERRIDE=http://127.0.0.1:3200&& taro build --type weapp --watch",
+    "rebuild:weapp": "pnpm run clean:weapp && taro build --type weapp && pnpm run check:weapp-dist-pages",
+    "rebuild:weapp:local-api": "set TARO_APP_API_BASE_URL_OVERRIDE=http://127.0.0.1:3200&& pnpm run clean:weapp && taro build --type weapp && pnpm run check:weapp-dist-pages",
+    "build:weapp": "pnpm run rebuild:weapp"
   },
   "dependencies": {
     "@nutui/icons-react-taro": "3.0.2-cpp.3.beta.3",

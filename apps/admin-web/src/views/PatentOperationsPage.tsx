@@ -339,7 +339,8 @@ function buildListingDefaults(values: DefaultsFormValues): { payload?: Record<st
   };
   if (values.consultationRouting === 'PLATFORM') {
     const sellerUserId = String(values.sellerUserId || '').trim();
-    if (sellerUserId) listingDefaults.sellerUserId = sellerUserId;
+    if (!sellerUserId) return { error: '平台客服路由必须选择平台承接人员' };
+    listingDefaults.sellerUserId = sellerUserId;
   }
   if (values.tradeMode === 'LICENSE') {
     if (!values.licenseMode) return { error: '许可模式不能为空' };

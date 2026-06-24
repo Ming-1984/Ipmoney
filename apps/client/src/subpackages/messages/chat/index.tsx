@@ -16,9 +16,9 @@ import { formatTimeSmart } from '../../../lib/format';
 import { patentTypeLabel, tradeModeLabel } from '../../../lib/labels';
 import { fenToYuan } from '../../../lib/money';
 import { safeNavigateBack } from '../../../lib/navigation';
-import { useRouteUuidParam } from '../../../lib/routeParams';
+import { useRouteStringParam, useRouteUuidParam } from '../../../lib/routeParams';
 import { resolveTechManagerDisplayName } from '../../../lib/techManagerDisplay';
-import { Avatar, Button, PullToRefresh, toast } from '../../../ui/nutui';
+import { Avatar, toast } from '../../../ui/nutui';
 import {
   AuditPendingCard,
   EmptyCard,
@@ -99,6 +99,10 @@ function mergeMessages(incoming: UiConversationMessage[], existing: UiConversati
   return out;
 }
 
+function normalizeMessageItems(items: unknown): UiConversationMessage[] {
+  return Array.isArray(items) ? (items as UiConversationMessage[]).filter(Boolean) : [];
+}
+
 function isSameMessageSnapshot(a: UiConversationMessage[], b: UiConversationMessage[]): boolean {
   if (a.length !== b.length) return false;
   for (let i = 0; i < a.length; i += 1) {
@@ -135,8 +139,10 @@ function resolveAvatarFallbackText(value: unknown, fallback: string): string {
 }
 
 export default function ChatPage() {
+  const rawConversationId = useRouteStringParam('conversationId') || '';
   const conversationId = useRouteUuidParam('conversationId') || '';
   const conversationIdRef = useRef(conversationId);
+  const invalidConversationId = Boolean(rawConversationId && !conversationId);
 
   const [auth, setAuth] = useState(() => ({
     token: getToken(),
@@ -157,15 +163,11 @@ export default function ChatPage() {
   const [conversation, setConversation] = useState<ConversationSummary | null>(null);
   const [contextCard, setContextCard] = useState<ContextCard | null>(null);
   const [showSafety, setShowSafety] = useState(true);
-  const [scrollTop, setScrollTop] = useState(0);
   const [scrollIntoView, setScrollIntoView] = useState('');
   const [text, setText] = useState('');
   const [sending, setSending] = useState(false);
   const authTokenRef = useRef<string | null>(token);
   const meLoadSeqRef = useRef(0);
-
-  const scrollTopRef = useRef(0);
-  const scrollSyncAtRef = useRef(0);
 
   useDidShow(() => {
     setPageVisible(true);
@@ -200,20 +202,9 @@ export default function ChatPage() {
     authTokenRef.current = token;
   }, [token]);
 
-  const items = useMemo(() => data?.items || [], [data?.items]);
+  const items = useMemo(() => normalizeMessageItems(data?.items), [data?.items]);
   const nextCursor = useMemo(() => data?.nextCursor ?? null, [data?.nextCursor]);
   const canLoadMore = useMemo(() => Boolean(nextCursor), [nextCursor]);
-
-  const syncScrollTop = useCallback((nextTop: number) => {
-    const normalized = Math.max(0, Math.floor(nextTop || 0));
-    const now = Date.now();
-    const elapsed = now - scrollSyncAtRef.current;
-    const delta = Math.abs(normalized - scrollTopRef.current);
-    if (elapsed < 80 && delta < 24) return;
-    scrollSyncAtRef.current = now;
-    scrollTopRef.current = normalized;
-    setScrollTop(normalized);
-  }, []);
 
   const scrollToTarget = useCallback((target: string) => {
     setScrollIntoView('');
@@ -251,9 +242,6 @@ export default function ChatPage() {
     setText('');
     setSending(false);
     setScrollIntoView('');
-    scrollTopRef.current = 0;
-    scrollSyncAtRef.current = 0;
-    setScrollTop(0);
     if (!conversationId) {
       setLoading(false);
       setData(null);
@@ -313,9 +301,13 @@ export default function ChatPage() {
 
     try {
       const response = await apiGet<PagedConversationMessage>(`/conversations/${targetConversationId}/messages`, { limit: 50 });
+      const snapshot = {
+        items: normalizeMessageItems(response?.items),
+        nextCursor: response?.nextCursor ?? null,
+      };
       if (conversationIdRef.current !== targetConversationId) return;
-      setData(response);
-      setDetailCache(CHAT_MESSAGES_CACHE_SCOPE, targetConversationId, response);
+      setData(snapshot);
+      setDetailCache(CHAT_MESSAGES_CACHE_SCOPE, targetConversationId, snapshot);
       scrollToBottom();
       try {
         await apiPost(`/conversations/${targetConversationId}/read`, {}, { idempotencyKey: `read-${targetConversationId}` });
@@ -341,16 +333,17 @@ export default function ChatPage() {
     if (loading || loadingMore || sending) return;
     try {
       const response = await apiGet<PagedConversationMessage>(`/conversations/${targetConversationId}/messages`, { limit: 50 });
+      const serverItems = normalizeMessageItems(response?.items);
       if (conversationIdRef.current !== targetConversationId) return;
       let snapshot: PagedConversationMessage | null = null;
       setData((prev) => {
-        const pending = (prev?.items || []).filter(
-          (item) => Boolean(item.localStatus) && !(response.items || []).some((serverItem) => serverItem.id === item.id),
+        const pending = normalizeMessageItems(prev?.items).filter(
+          (item) => Boolean(item.localStatus) && !serverItems.some((serverItem) => serverItem.id === item.id),
         );
-        const merged = mergeMessages(response.items || [], pending);
-        const cursor = response.nextCursor ?? null;
+        const merged = mergeMessages(serverItems, pending);
+        const cursor = response?.nextCursor ?? null;
         snapshot = { items: merged, nextCursor: cursor };
-        if (prev && prev.nextCursor === cursor && isSameMessageSnapshot(prev.items || [], merged)) {
+        if (prev && prev.nextCursor === cursor && isSameMessageSnapshot(normalizeMessageItems(prev.items), merged)) {
           return prev;
         }
         return snapshot;
@@ -374,12 +367,13 @@ export default function ChatPage() {
         limit: 50,
         cursor: nextCursor,
       });
+      const serverItems = normalizeMessageItems(response?.items);
       if (conversationIdRef.current !== targetConversationId) return;
       let snapshot: PagedConversationMessage | null = null;
       setData((prev) => {
         snapshot = {
-          items: mergeMessages(response.items || [], prev?.items || []),
-          nextCursor: response.nextCursor ?? null,
+          items: mergeMessages(serverItems, normalizeMessageItems(prev?.items)),
+          nextCursor: response?.nextCursor ?? null,
         };
         return snapshot;
       });
@@ -673,6 +667,19 @@ export default function ChatPage() {
     }
   }, [contextCard]);
 
+  if (invalidConversationId) {
+    return (
+      <View className="container chat-page">
+        <MissingParamCard
+          title="咨询会话无效"
+          message="当前咨询链接已失效，请返回专利详情重新发起咨询。"
+          actionText="返回上一页"
+          onAction={() => void safeNavigateBack()}
+        />
+      </View>
+    );
+  }
+
   if (!conversationId) {
     return (
       <View className="container chat-page">
@@ -753,34 +760,22 @@ export default function ChatPage() {
       ) : error ? (
         <ErrorCard message={error} onRetry={loadMessages} />
       ) : data?.items?.length ? (
-        <PullToRefresh
-          className="chat-content"
-          type="default"
-          scrollTop={scrollTop}
-          disabled={!canLoadMore || loadingMore}
-          onRefresh={loadMore}
-        >
+        <View className="chat-content">
           <ScrollView
             className="chat-scroll"
             scrollY
             scrollIntoView={scrollIntoView}
             scrollWithAnimation
             style={{ height: '100%' }}
-            onScroll={(event) => syncScrollTop(event.detail.scrollTop)}
           >
             <View className="chat-scroll-inner">
               {canLoadMore ? (
                 <View className="chat-load-more">
-                  <Button
-                    block={false}
-                    size="small"
-                    variant="ghost"
-                    loading={loadingMore}
-                    disabled={loadingMore}
-                    onClick={loadMore}
-                  >
-                    加载更早消息
-                  </Button>
+                  <View className="chat-load-more-btn-wrap">
+                    <View className={`chat-load-more-btn${loadingMore ? ' is-loading' : ''}`} onClick={loadMore}>
+                      <Text className="chat-load-more-btn-text">{loadingMore ? '加载中...' : '加载更早消息'}</Text>
+                    </View>
+                  </View>
                 </View>
               ) : null}
 
@@ -874,10 +869,11 @@ export default function ChatPage() {
                   </React.Fragment>
                 );
               })}
+              <View className="chat-scroll-spacer" />
               <View id="chat-bottom" />
             </View>
           </ScrollView>
-        </PullToRefresh>
+        </View>
       ) : (
         <EmptyCard title="暂无会话消息" message="发一条消息，开始本次沟通。" image={emptyChat} />
       )}
@@ -896,13 +892,13 @@ export default function ChatPage() {
               />
             </View>
             <View className="chat-input-actions">
-              <View className="chat-input-icon" onClick={openEmojiSheet}>
+              <View className="chat-input-icon" data-testid="chat-emoji" onClick={openEmojiSheet}>
                 <Text className="chat-input-icon-text">表情</Text>
               </View>
-              <View className="chat-input-icon" onClick={openReferenceSheet}>
+              <View className="chat-input-icon" data-testid="chat-reference" onClick={openReferenceSheet}>
                 <Image className="chat-input-icon-img" src={plusIcon} mode="aspectFit" svg />
               </View>
-              <View className={`chat-send-btn ${sending ? 'is-loading' : ''}`} onClick={() => void send()}>
+              <View className={`chat-send-btn ${sending ? 'is-loading' : ''}`} data-testid="chat-send" onClick={() => void send()}>
                 <Text className="chat-send-text">{sending ? '...' : '发送'}</Text>
               </View>
             </View>

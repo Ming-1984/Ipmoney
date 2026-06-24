@@ -25,6 +25,7 @@ const H5_HIDE_TABBAR_CLASS = 'h5-hide-tabbar';
 let regionWarmupScheduled = false;
 
 function scheduleRegionWarmup() {
+  if (process.env.TARO_ENV === 'weapp') return;
   if (regionWarmupScheduled) return;
   regionWarmupScheduled = true;
   // Defer non-critical region dictionary warmup to reduce launch-time request burst.
@@ -58,7 +59,6 @@ if (process.env.TARO_ENV === 'weapp') {
 
 export default function App(props: { children: ReactNode }) {
   useLaunch(() => {
-    console.log('[client] app launch');
     scheduleRegionWarmup();
     if (process.env.TARO_ENV !== 'h5') return;
     if (typeof window === 'undefined') return;

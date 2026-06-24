@@ -9,7 +9,7 @@ import { getToken } from '../../lib/auth';
 import { displayTitleOrFallback, normalizeDisplayText } from '../../lib/displayText';
 import { formatTimeSmart } from '../../lib/format';
 import { ensureApproved, usePageAccess } from '../../lib/guard';
-import { uploadWithRetry } from '../../lib/upload';
+import { chooseMessageFiles, uploadFileToApi } from '../../lib/upload';
 import { usePagedList } from '../../lib/usePagedList';
 import { PageState } from '../../ui/PageState';
 import { ListFooter } from '../../ui/ListFooter';
@@ -188,12 +188,12 @@ export default function ContractCenterPage() {
       const seq = ++uploadSeqRef.current;
       setUploadingContractId(item.id);
       try {
-        const res = await Taro.chooseMessageFile({
+        const res = await chooseMessageFiles({
           count: 1,
           type: 'file',
           extension: ['pdf'],
         });
-        const tempPath = String((res as any)?.tempFiles?.[0]?.path || '').trim();
+        const tempPath = String(res[0]?.path || '').trim();
         if (!tempPath) {
           if (seq === uploadSeqRef.current && pageVisibleRef.current && activeTabRef.current === targetTab) {
             setUploadingContractId('');
@@ -203,7 +203,7 @@ export default function ContractCenterPage() {
         }
 
         const token = getToken();
-        const uploadRes = await uploadWithRetry({
+        const { data: parsed } = await uploadFileToApi<{ id?: string }>({
           url: `${API_BASE_URL}/files`,
           filePath: tempPath,
           name: 'file',
@@ -211,11 +211,7 @@ export default function ContractCenterPage() {
           header: token ? { Authorization: `Bearer ${token}` } : {},
           retry: 1,
         });
-
-        if (uploadRes.statusCode >= 200 && uploadRes.statusCode < 300) {
-          const parsed = JSON.parse(String(uploadRes.data || '{}')) as { id?: string };
-          contractFileId = String(parsed?.id || '').trim();
-        }
+        contractFileId = String(parsed?.id || '').trim();
       } catch (e: any) {
         if (seq !== uploadSeqRef.current || !pageVisibleRef.current || activeTabRef.current !== targetTab) return;
         setUploadingContractId('');

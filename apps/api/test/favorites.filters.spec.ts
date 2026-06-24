@@ -105,6 +105,7 @@ describe('FavoritesService list filter strictness suite', () => {
     expect(result.items[0].transferCount).toBe(3);
     expect(result.items[0].seller).toEqual({
       id: 'seller-1',
+      displayName: '正式机构 A',
       nickname: '正式机构 A',
       avatarUrl: 'https://example.com/a.png',
       verificationStatus: 'APPROVED',

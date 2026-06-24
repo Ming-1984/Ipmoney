@@ -75,17 +75,58 @@ export function PageHeader(props: {
     return { paddingTop: `${statusBarHeight}px`, background: 'rgba(255, 255, 255, 0.96)' };
   }, [isWeapp, renderInWeapp, statusBarHeight]);
 
+  const renderTitle = useCallback(
+    (className: string) => {
+      if (typeof props.title === 'string' || typeof props.title === 'number') {
+        return <Text className={className}>{props.title}</Text>;
+      }
+      return props.title;
+    },
+    [props.title],
+  );
+
+  const renderSubtitle = useCallback(() => {
+    if (!props.subtitle) return null;
+    if (typeof props.subtitle === 'string' || typeof props.subtitle === 'number') {
+      return <Text className="page-navbar-subtitle">{props.subtitle}</Text>;
+    }
+    return props.subtitle;
+  }, [props.subtitle]);
+
   if (isWeapp && !renderInWeapp) return null;
+
+  if (isWeapp && renderInWeapp) {
+    return (
+      <View className={variant === 'hero' ? 'page-navbar page-navbar-hero' : 'page-navbar'} style={weappStyle}>
+        <View className="page-navbar-native">
+          <View className="page-navbar-native-side page-navbar-native-side-left">
+            {showBack ? (
+              <View className="page-header-back" onClick={onBackClick}>
+                <ArrowLeft size={18} color="var(--c-text)" />
+              </View>
+            ) : showBrand ? (
+              <View className="page-navbar-logo">
+                <Image className="page-navbar-logo-img" src={brandLogoPng} mode="aspectFit" />
+              </View>
+            ) : null}
+          </View>
+          <View className="page-navbar-native-center">
+            {renderTitle('page-navbar-title')}
+          </View>
+          <View className="page-navbar-native-side page-navbar-native-side-right">{props.right}</View>
+        </View>
+        {variant === 'hero' && props.subtitle ? (
+          <View className="page-navbar-hero-subtitle">{renderSubtitle()}</View>
+        ) : null}
+      </View>
+    );
+  }
 
   return (
     <View className={variant === 'hero' ? 'page-navbar page-navbar-hero' : 'page-navbar'} style={weappStyle}>
       <NavBar
         title={
-          typeof props.title === 'string' || typeof props.title === 'number' ? (
-            <Text className="page-navbar-title">{props.title}</Text>
-          ) : (
-            props.title
-          )
+          renderTitle('page-navbar-title')
         }
         back={showBack ? <ArrowLeft size={18} color="var(--c-text)" /> : undefined}
         onBackClick={onBackClick}
@@ -99,13 +140,7 @@ export function PageHeader(props: {
         right={props.right}
       />
       {variant === 'hero' && props.subtitle ? (
-        <View className="page-navbar-hero-subtitle">
-          {typeof props.subtitle === 'string' || typeof props.subtitle === 'number' ? (
-            <Text className="page-navbar-subtitle">{props.subtitle}</Text>
-          ) : (
-            props.subtitle
-          )}
-        </View>
+        <View className="page-navbar-hero-subtitle">{renderSubtitle()}</View>
       ) : null}
     </View>
   );

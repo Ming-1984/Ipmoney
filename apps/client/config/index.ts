@@ -27,7 +27,10 @@ export default ((merge, env) => {
     .filter(Boolean);
   const isProdDeploy = deployEnvValues.some((v) => isReleaseLike(v));
   const isProdBuild = env.mode === 'production' && isProdDeploy;
-  const rawApiBaseUrl = process.env.TARO_APP_API_BASE_URL ?? 'http://127.0.0.1:3200';
+  const rawApiBaseUrl =
+    process.env.TARO_APP_API_BASE_URL_OVERRIDE ??
+    process.env.TARO_APP_API_BASE_URL ??
+    'http://127.0.0.1:3200';
   const apiBaseUrl = rawApiBaseUrl.replace('http://localhost', 'http://127.0.0.1');
   const rawMockTools = String(process.env.TARO_APP_ENABLE_MOCK_TOOLS || '').trim().toLowerCase();
   const rawDemoAuth = String(process.env.DEMO_AUTH_ENABLED || '').trim().toLowerCase();

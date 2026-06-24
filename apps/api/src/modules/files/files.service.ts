@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable, Logger } from '@nestjs/common';
 import { FileModerationStatus, FileOwnerScope } from '@prisma/client';
 import { createReadStream, mkdirSync, readFileSync } from 'node:fs';
 import path from 'node:path';
@@ -47,6 +47,7 @@ export type FileAccessScope = 'download' | 'preview';
 
 @Injectable()
 export class FilesService {
+  private readonly logger = new Logger(FilesService.name);
   private readonly s3?: S3Client;
   private readonly s3Bucket?: string;
   private readonly s3Enabled: boolean;
@@ -87,16 +88,24 @@ export class FilesService {
   }
 
   async uploadToObjectStorage(params: { key: string; filePath: string; contentType?: string }) {
-    if (!this.s3Enabled || !this.s3 || !this.s3Bucket) return;
+    if (!this.s3Enabled || !this.s3 || !this.s3Bucket) return false;
     const body = createReadStream(params.filePath);
-    await this.s3.send(
-      new PutObjectCommand({
-        Bucket: this.s3Bucket,
-        Key: params.key,
-        Body: body,
-        ContentType: params.contentType || 'application/octet-stream',
-      }),
-    );
+    try {
+      await this.s3.send(
+        new PutObjectCommand({
+          Bucket: this.s3Bucket,
+          Key: params.key,
+          Body: body,
+          ContentType: params.contentType || 'application/octet-stream',
+        }),
+      );
+      return true;
+    } catch (error: any) {
+      this.logger.warn(
+        `object storage upload failed for ${params.key}: ${error?.name || 'Error'}${error?.message ? ` ${error.message}` : ''}`,
+      );
+      return false;
+    }
   }
 
   async getObjectStream(key: string): Promise<NodeJS.ReadableStream | null> {

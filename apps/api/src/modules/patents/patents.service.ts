@@ -271,6 +271,7 @@ function digitToPatentType(typeDigit: string): 'INVENTION' | 'UTILITY_MODEL' | '
   if (typeDigit === '1') return 'INVENTION';
   if (typeDigit === '2') return 'UTILITY_MODEL';
   if (typeDigit === '3') return 'DESIGN';
+  if (typeDigit === '8') return 'INVENTION';
   return null;
 }
 
@@ -755,7 +756,7 @@ export class PatentsService {
     const raw = String(input || '').trim();
     const cleaned = cleanRaw(raw).replace(/^CN/, '').replace(/^ZL/, '').replace(/\./g, '');
     const isValid =
-      /^(19\d{2}|20\d{2})[123]\d{7}\d$/.test(cleaned) || /^\d{2}[123]\d{5}\d$/.test(cleaned);
+      /^(19\d{2}|20\d{2})([123]\d{7}|8\d{7})[\dX]$/.test(cleaned) || /^\d{2}[123]\d{5}[\dX]$/.test(cleaned);
     if (!isValid) {
       throw new BadRequestException({ code: 'BAD_REQUEST', message: 'applicationNoNorm is invalid' });
     }
@@ -867,8 +868,8 @@ export class PatentsService {
     const cleanedDigits = withoutPrefix.replace(/\./g, '');
 
     if (
-      /^(19\d{2}|20\d{2})[123]\d{7}\d$/.test(cleanedDigits) ||
-      /^\d{2}[123]\d{5}\d$/.test(cleanedDigits)
+      /^(19\d{2}|20\d{2})([123]\d{7}|8\d{7})[\dX]$/.test(cleanedDigits) ||
+      /^\d{2}[123]\d{5}[\dX]$/.test(cleanedDigits)
     ) {
       const patentTypeDigit =
         cleanedDigits.startsWith('19') || cleanedDigits.startsWith('20')
@@ -1412,6 +1413,9 @@ export class PatentsService {
     if (listing.priceType === 'FIXED' && (listing.priceAmountFen === undefined || listing.priceAmountFen === null)) {
       throw new BadRequestException({ code: 'BAD_REQUEST', message: 'defaults.listing.priceAmountFen is required' });
     }
+    if (listing.enabled !== false && listing.consultationRouting === 'PLATFORM' && !String(listing.sellerUserId || '').trim()) {
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: 'defaults.listing.sellerUserId is required' });
+    }
     if (listing.status === 'ACTIVE' && listing.auditStatus !== 'APPROVED') {
       throw new BadRequestException({
         code: 'BAD_REQUEST',
@@ -1706,7 +1710,12 @@ export class PatentsService {
       }
       sellerUserId = ownerUserId;
     } else if (!sellerUserId) {
-      sellerUserId = params.operatorUserId;
+      return {
+        status: 'FAILED',
+        listingId: null,
+        errorCode: 'SELLER_REQUIRED',
+        errorMessage: 'consultationRouting PLATFORM requires sellerUserId',
+      };
     }
     const seller = await this.prisma.user.findUnique({ where: { id: sellerUserId }, select: { id: true } });
     if (!seller) {

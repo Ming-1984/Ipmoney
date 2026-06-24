@@ -180,9 +180,37 @@
   font-weight: 700;
 }
 
-.profile-skip {
+.profile-primary-native-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: 16rpx;
+  background: #f97316;
+  color: #ffffff;
+  line-height: 88rpx;
+  padding: 0;
+}
+
+.profile-primary-native-btn::after {
+  border: none;
+}
+
+.profile-skip-btn {
+  border: none;
+  background: transparent;
   font-size: 24rpx;
   color: #6b7280;
+  line-height: 1.4;
+  padding: 0;
+}
+
+.profile-skip-btn::after {
+  border: none;
+}
+
+.profile-edit-page .nut-button {
+  min-width: 0;
 }
 
 .profile-phone {
@@ -191,4 +219,3 @@
   color: #9aa0a6;
   text-align: center;
 }
-

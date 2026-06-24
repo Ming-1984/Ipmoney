@@ -18,6 +18,7 @@ import { sanitizeIndustryTagNames } from '../../../lib/industryTags';
 import { featuredLevelLabel, patentTypeLabel, priceTypeLabel, tradeModeLabel, verificationTypeLabel } from '../../../lib/labels';
 import { fenToYuan } from '../../../lib/money';
 import { safeNavigateBack } from '../../../lib/navigation';
+import { parseUuidParam } from '../../../lib/params';
 import { getPatentCache, setPatentCache } from '../../../lib/patentCache';
 import { regionDisplayName } from '../../../lib/regions';
 import { useRouteUuidParam } from '../../../lib/routeParams';
@@ -32,6 +33,13 @@ type Patent = components['schemas']['Patent'];
 type PatentMediaItem = components['schemas']['PatentMedia'];
 
 type Conversation = { id: string };
+
+const WEAPP_DEBUG = process.env.NODE_ENV !== 'production' && process.env.TARO_ENV === 'weapp';
+
+function reportWeappDebug(title: string, detail?: unknown) {
+  if (!WEAPP_DEBUG) return;
+  console.error(`[weapp-debug] ${title}`, detail);
+}
 
 function legalStatusLabel(status?: Patent['legalStatus']): string {
   if (!status) return '待确认';
@@ -67,6 +75,7 @@ export default function ListingDetailPage() {
   const [tabsStuck, setTabsStuck] = useState(false);
   const tabsOffsetTopRef = useRef<number | null>(null);
   const stickyTopRef = useRef<number>(0);
+  const [currentUserId, setCurrentUserId] = useState('');
 
   const tabs = useMemo(
     () => [
@@ -86,6 +95,22 @@ export default function ListingDetailPage() {
     pageVisibleRef.current = false;
     consultSeqRef.current += 1;
   });
+
+  useEffect(() => {
+    let alive = true;
+    apiGet<{ id: string }>('/me')
+      .then((me) => {
+        if (!alive) return;
+        setCurrentUserId(String(me?.id || '').trim());
+      })
+      .catch(() => {
+        if (!alive) return;
+        setCurrentUserId('');
+      });
+    return () => {
+      alive = false;
+    };
+  }, []);
 
   const scrollToTab = useCallback((id: string) => {
     setActiveTab(id);
@@ -275,6 +300,7 @@ export default function ListingDetailPage() {
     if (!listingId) return;
     if (!ensureApproved()) return;
     const seq = ++consultSeqRef.current;
+    reportWeappDebug('挂牌咨询入口已触发', { listingId });
     try {
       await apiPost<void>(
         `/listings/${listingId}/consultations`,
@@ -290,9 +316,20 @@ export default function ListingDetailPage() {
         {},
         { idempotencyKey: `conv-${listingId}` },
       );
+      reportWeappDebug('挂牌咨询会话创建返回', conv);
       if (seq !== consultSeqRef.current || !pageVisibleRef.current) return;
-      Taro.navigateTo({ url: `/subpackages/messages/chat/index?conversationId=${conv.id}` });
+      const conversationId = parseUuidParam(conv?.id);
+      if (!conversationId) {
+        console.error('[client] invalid consultation conversation id', conv);
+        toast('咨询会话创建失败，请稍后重试');
+        return;
+      }
+      void Taro.navigateTo({ url: `/subpackages/messages/chat/index?conversationId=${conversationId}` }).catch((err) => {
+        console.error('[client] navigate to consultation chat failed', err);
+        toast('进入咨询失败，请稍后重试');
+      });
     } catch (e: any) {
+      reportWeappDebug('挂牌咨询失败', e?.message || e?.errMsg || e);
       if (seq !== consultSeqRef.current || !pageVisibleRef.current) return;
       toast(e?.message || '进入咨询失败');
     }
@@ -315,6 +352,14 @@ export default function ListingDetailPage() {
       toast(e?.message || '操作失败');
     }
   }, [favoritedState, listingId]);
+
+  const isOwnListing = Boolean(data?.seller?.id && currentUserId && data.seller.id === currentUserId);
+  const hasValidDepositAmount = Boolean(data && Number.isFinite(data.depositAmountFen) && data.depositAmountFen > 0);
+  const tradeButtonText = isOwnListing
+    ? '我的专利'
+    : !hasValidDepositAmount
+      ? '暂未配置订金'
+      : `订金 ￥${fenToYuan(data?.depositAmountFen)}`;
 
 
   if (!listingId) {
@@ -636,10 +681,18 @@ export default function ListingDetailPage() {
               variant="primary"
               onClick={() => {
                 if (!ensureApproved()) return;
+                if (isOwnListing) {
+                  toast('这是你自己发布的专利');
+                  return;
+                }
+                if (!hasValidDepositAmount) {
+                  toast('该专利尚未配置有效订金');
+                  return;
+                }
                 Taro.navigateTo({ url: `/subpackages/checkout/deposit-pay/index?listingId=${listingId}` });
               }}
             >
-              {`订金 ￥${fenToYuan(data.depositAmountFen)}`}
+              {tradeButtonText}
             </Button>
           </View>
         </StickyBar>

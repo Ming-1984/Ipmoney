@@ -2,6 +2,7 @@ import Taro, { useDidHide, useDidShow } from '@tarojs/taro';
 import { useEffect, useRef, useState } from 'react';
 
 import { getToken, getVerificationStatus, isOnboardingDone, onAuthChanged } from './auth';
+import { safeOpenPage } from './navigation';
 import { toast } from '../ui/nutui';
 
 export type PageAccessPolicy = 'public' | 'login-required' | 'approved-required';
@@ -112,11 +113,17 @@ export function goLogin(options?: { redirectUrl?: string }) {
   const target = currentUrl
     ? `${LOGIN_URL}?redirect=${encodeURIComponent(currentUrl)}`
     : LOGIN_URL;
-  Taro.navigateTo({ url: target });
+  void safeOpenPage(target).catch((error) => {
+    console.error('[auth] open login failed', error);
+    toast('打开登录页失败，请稍后重试');
+  });
 }
 
 export function goOnboarding() {
-  Taro.navigateTo({ url: ONBOARDING_URL });
+  void safeOpenPage(ONBOARDING_URL).catch((error) => {
+    console.error('[auth] open onboarding failed', error);
+    toast('打开认证页失败，请稍后重试');
+  });
 }
 
 export function requireLogin(): boolean {

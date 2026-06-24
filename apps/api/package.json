@@ -3,7 +3,7 @@
   "private": true,
   "version": "0.0.0",
   "scripts": {
-    "dev": "nest start --watch",
+    "dev": "node ../../scripts/run-with-env.mjs -- nest start --watch",
     "build": "nest build",
     "start": "node dist/main.js",
     "prisma:generate": "node ../../scripts/run-with-env.mjs -- prisma generate",

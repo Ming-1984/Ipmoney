@@ -6,6 +6,7 @@ type User = {
   phone?: string | null;
   nickname?: string | null;
   avatarUrl?: string | null;
+  wechatOpenid?: string | null;
   role: string;
   regionCode?: string | null;
   createdAt: Date;
@@ -246,6 +247,12 @@ export class AuthService {
     return digits;
   }
 
+  private isWechatPlaceholderUser(user: Pick<User, 'phone' | 'nickname' | 'role'>): boolean {
+    const phone = String(user.phone || '').trim();
+    const nickname = String(user.nickname || '').trim();
+    return !phone && user.role === 'buyer' && (!nickname || nickname === 'New User');
+  }
+
   private async demoWechatMpLogin(demoConfig: ReturnType<typeof getDemoAuthConfig>): Promise<AuthTokenResponseDto> {
     const demoUpdate: Prisma.UserUncheckedUpdateInput = {};
     if (demoConfig.userNickname) demoUpdate.nickname = demoConfig.userNickname;
@@ -418,7 +425,122 @@ export class AuthService {
     };
   }
 
-  async wechatPhoneBind(userId: string, phoneCode: string): Promise<{ phone: string }> {
+  async wechatPhoneLogin(
+    code: string,
+    phoneCode: string,
+    requestMeta?: { ip?: string | null; userAgent?: string | null },
+  ): Promise<AuthTokenResponseDto> {
+    const c = String(code || '').trim();
+    if (!c) throw new BadRequestException({ code: 'BAD_REQUEST', message: 'code is required' });
+
+    const pc = String(phoneCode || '').trim();
+    if (!pc) {
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: 'phoneCode is required' });
+    }
+
+    const ip = this.readIpMeta(requestMeta);
+    this.rateLimit(this.rateKey('wechat_login_ip', ip), AUTH_VERIFY_MAX_PER_IP);
+    this.cleanupRateCounters();
+
+    if (c.toLowerCase() === 'demo' || pc.toLowerCase() === 'demo') {
+      const demoConfig = this.ensureDemoAuthEnabled();
+      return await this.demoWechatMpLogin(demoConfig);
+    }
+
+    let session: { openid: string };
+    try {
+      session = await this.wechatMp.code2Session(c);
+    } catch (error) {
+      this.toWechatAuthException(error);
+    }
+
+    let phoneInfo: { purePhoneNumber: string; phoneNumber: string };
+    try {
+      phoneInfo = await this.wechatMp.getPhoneNumber(pc);
+    } catch (error) {
+      this.toWechatAuthException(error);
+    }
+
+    const normalizedPhone = this.normalizeWechatPhone(phoneInfo.purePhoneNumber || phoneInfo.phoneNumber);
+    if (!PHONE_RE.test(normalizedPhone)) {
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: 'phone number is invalid' });
+    }
+
+    const existingWechatUser = await this.prisma.user.findUnique({
+      where: { wechatOpenid: session.openid },
+    });
+    const existingPhoneUser = await this.prisma.user.findUnique({
+      where: { phone: normalizedPhone },
+    });
+
+    let user: User;
+
+    if (existingWechatUser && existingPhoneUser && existingWechatUser.id !== existingPhoneUser.id) {
+      if (!this.isWechatPlaceholderUser(existingWechatUser)) {
+        throw new ConflictException({
+          code: 'CONFLICT',
+          message: 'wechat account already linked to another user',
+        });
+      }
+
+      user = await this.prisma.$transaction(async (tx) => {
+        await tx.user.update({
+          where: { id: existingWechatUser.id },
+          data: { wechatOpenid: null },
+        });
+        return await tx.user.update({
+          where: { id: existingPhoneUser.id },
+          data: {
+            phone: normalizedPhone,
+            wechatOpenid: session.openid,
+          },
+        });
+      });
+    } else if (existingPhoneUser) {
+      if (existingPhoneUser.wechatOpenid && existingPhoneUser.wechatOpenid !== session.openid) {
+        throw new ConflictException({
+          code: 'CONFLICT',
+          message: 'phone already bound by another wechat account',
+        });
+      }
+
+      user = await this.prisma.user.update({
+        where: { id: existingPhoneUser.id },
+        data: {
+          phone: normalizedPhone,
+          wechatOpenid: session.openid,
+        },
+      });
+    } else if (existingWechatUser) {
+      user = await this.prisma.user.update({
+        where: { id: existingWechatUser.id },
+        data: { phone: normalizedPhone },
+      });
+    } else {
+      user = await this.prisma.user.create({
+        data: {
+          role: 'buyer',
+          nickname: 'New User',
+          phone: normalizedPhone,
+          wechatOpenid: session.openid,
+        },
+      });
+    }
+
+    const token = this.issueAccessToken(user.id);
+    return {
+      accessToken: token.accessToken,
+      expiresInSeconds: token.expiresInSeconds,
+      user: await this.toUserProfile(user),
+    };
+  }
+
+  async wechatPhoneBind(
+    userId: string,
+    phoneCode: string,
+    code?: string,
+    requestMeta?: { ip?: string | null; userAgent?: string | null },
+  ): Promise<{ phone: string; wechatOpenid?: string }> {
     const uid = String(userId || '').trim();
     if (!uid) {
       throw new BadRequestException({ code: 'UNAUTHORIZED', message: 'Unauthorized' });
@@ -427,6 +549,14 @@ export class AuthService {
     const pc = String(phoneCode || '').trim();
     if (!pc) {
       throw new BadRequestException({ code: 'BAD_REQUEST', message: 'phoneCode is required' });
+    }
+
+    const c = String(code || '').trim();
+
+    if (c) {
+      const ip = this.readIpMeta(requestMeta);
+      this.rateLimit(this.rateKey('wechat_login_ip', ip), AUTH_VERIFY_MAX_PER_IP);
+      this.cleanupRateCounters();
     }
 
     // Keep demo phone bind for non-prod smoke scripts.
@@ -462,7 +592,38 @@ export class AuthService {
       throw new ConflictException({ code: 'CONFLICT', message: 'phone already bound by another account' });
     }
 
-    const updated = await this.prisma.user.update({ where: { id: uid }, data: { phone: normalizedPhone } });
-    return { phone: updated.phone || normalizedPhone };
+    if (!c) {
+      const updated = await this.prisma.user.update({ where: { id: uid }, data: { phone: normalizedPhone } });
+      return { phone: updated.phone || normalizedPhone };
+    }
+
+    let session: { openid: string };
+    try {
+      session = await this.wechatMp.code2Session(c);
+    } catch (error) {
+      this.toWechatAuthException(error);
+    }
+
+    const existingWechatUser = await this.prisma.user.findUnique({
+      where: { wechatOpenid: session.openid },
+    });
+    if (existingWechatUser && existingWechatUser.id !== uid) {
+      throw new ConflictException({
+        code: 'CONFLICT',
+        message: 'wechat account already linked to another user',
+      });
+    }
+
+    const updated = await this.prisma.user.update({
+      where: { id: uid },
+      data: {
+        phone: normalizedPhone,
+        wechatOpenid: session.openid,
+      },
+    });
+    return {
+      phone: updated.phone || normalizedPhone,
+      wechatOpenid: updated.wechatOpenid || session.openid,
+    };
   }
 }

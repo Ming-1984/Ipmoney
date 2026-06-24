@@ -1,4 +1,5 @@
 import { BadRequestException, ConflictException, ForbiddenException, NotFoundException } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { ListingsService } from '../src/modules/listings/listings.service';
@@ -342,7 +343,7 @@ describe('ListingsService write flow suite', () => {
       }),
     });
     expect(contentSecurity.ensureReferencedFilesReady).toHaveBeenCalledWith(
-      expect.objectContaining({ userId: USER_ID, fileIds: ['file-2'], label: 'proofFileIds' }),
+      expect.objectContaining({ userId: USER_ID, fileIds: ['file-2'], label: 'proofFileIds', allowPending: true }),
     );
     expect(result).toMatchObject({
       id: LISTING_ID,
@@ -350,6 +351,56 @@ describe('ListingsService write flow suite', () => {
       tradeMode: 'ASSIGNMENT',
       priceType: 'NEGOTIABLE',
     });
+  });
+
+  it('update can clear proofFileIds explicitly', async () => {
+    prisma.listing.findUnique.mockResolvedValueOnce(buildListing({ proofFileIdsJson: ['file-1'] }));
+    prisma.listing.update.mockResolvedValueOnce(buildListing({ proofFileIdsJson: [] }));
+
+    const result = await service.updateListing(USER_REQ, LISTING_ID, {
+      proofFileIds: [],
+    });
+
+    expect(contentSecurity.ensureReferencedFilesReady).not.toHaveBeenCalled();
+    expect(prisma.listing.update).toHaveBeenCalledWith({
+      where: { id: LISTING_ID },
+      data: expect.objectContaining({
+        proofFileIdsJson: Prisma.DbNull,
+      }),
+    });
+    expect(result).toMatchObject({
+      id: LISTING_ID,
+      proofFileIds: [],
+    });
+  });
+
+  it('create allows pending proof files', async () => {
+    prisma.file.findMany.mockResolvedValueOnce([{ id: 'file-1', ownerId: USER_ID }]);
+    prisma.listing.create.mockResolvedValueOnce(buildListing({ proofFileIdsJson: ['file-1'] }));
+
+    await service.createListing(USER_REQ, {
+      title: 'Listing Pending Proof',
+      tradeMode: 'assignment',
+      priceType: 'negotiable',
+      proofFileIds: ['file-1'],
+    });
+
+    expect(contentSecurity.ensureReferencedFilesReady).toHaveBeenCalledWith(
+      expect.objectContaining({ userId: USER_ID, fileIds: ['file-1'], label: 'proofFileIds', allowPending: true }),
+    );
+  });
+
+  it('submit allows pending proof files', async () => {
+    prisma.listing.findUnique.mockResolvedValueOnce(buildListing());
+    prisma.file.findMany.mockResolvedValueOnce([{ id: 'file-1', ownerId: USER_ID }]);
+    prisma.listing.update.mockResolvedValueOnce(buildListing({ status: 'ACTIVE', auditStatus: 'PENDING' }));
+
+    const submitted = await service.submitListing(USER_REQ, LISTING_ID);
+
+    expect(contentSecurity.ensureReferencedFilesReady).toHaveBeenCalledWith(
+      expect.objectContaining({ userId: USER_ID, fileIds: ['file-1'], label: 'proofFileIds', allowPending: true }),
+    );
+    expect(submitted.status).toBe('ACTIVE');
   });
 
   it('update rejects OPEN_LICENSE when effective tradeMode is not LICENSE', async () => {

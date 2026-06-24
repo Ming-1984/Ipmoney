@@ -1,5 +1,7 @@
 ﻿const isDev = process.env.NODE_ENV !== 'production';
 
+const enablePreload = String(process.env.TARO_APP_ENABLE_PRELOAD || '').trim().toLowerCase() === 'true';
+
 const preloadRule: Record<string, { network: 'all' | 'wifi'; packages: string[] }> = {
   'pages/home/index': {
     network: 'all',
@@ -37,6 +39,7 @@ const preloadRule: Record<string, { network: 'all' | 'wifi'; packages: string[] 
 };
 
 export default defineAppConfig({
+  __usePrivacyCheck__: true,
   pages: [
     'pages/home/index',
     'pages/tech-managers/index',
@@ -183,7 +186,7 @@ export default defineAppConfig({
       pages: ['video-preview/index'],
     },
   ],
-  preloadRule: isDev ? undefined : preloadRule,
+  preloadRule: isDev || !enablePreload ? undefined : preloadRule,
   window: {
     backgroundColor: '#f5f6f8',
     backgroundTextStyle: 'light',

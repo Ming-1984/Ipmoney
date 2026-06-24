@@ -1,5 +1,6 @@
 ﻿import { View, Text } from '@tarojs/components';
 import Taro, { useDidHide, useDidShow } from '@tarojs/taro';
+import { Button as NativeButton } from '@tarojs/components';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import './index.scss';
 
@@ -8,6 +9,7 @@ import type { components } from '@ipmoney/api-types';
 import { API_BASE_URL } from '../../../constants';
 import { getToken } from '../../../lib/auth';
 import { apiGet, apiPatch, apiPost } from '../../../lib/api';
+import { createFileTemporaryAccess } from '../../../lib/files';
 import { ensureApproved, requireLogin } from '../../../lib/guard';
 import {
   buildEnabledListingTopicOptions,
@@ -21,10 +23,10 @@ import { fenToYuan } from '../../../lib/money';
 import { openRegionPickerPage } from '../../../lib/regionPicker';
 import { regionDisplayName } from '../../../lib/regions';
 import { useRouteStringParam } from '../../../lib/routeParams';
-import { uploadWithRetry } from '../../../lib/upload';
+import { chooseImageFiles, chooseMessageFiles, uploadFileToApi } from '../../../lib/upload';
 import { ChipGroup, type ChipOption, IndustryTagsPicker } from '../../../ui/filters';
 import { PageHeader, PopupSheet, StickyBar, Surface } from '../../../ui/layout';
-import { Button, Cell, Input, Popup, TextArea, confirm, toast } from '../../../ui/nutui';
+import { Cell, Input, Popup, TextArea, confirm, toast } from '../../../ui/nutui';
 
 type PatentType = components['schemas']['PatentType'];
 type TradeMode = components['schemas']['TradeMode'];
@@ -44,6 +46,28 @@ type UploadedFile = Pick<FileObject, 'id'> & Partial<Omit<FileObject, 'id'>>;
 type PickerKey = 'patentType' | 'tradeMode' | 'licenseMode' | 'priceType';
 type PickerOption = { value: string; label: string };
 type PickerConfig = { title: string; value: string; options: PickerOption[] };
+type ProofUploadSource = 'image' | 'file';
+
+async function enrichProofFile(file: UploadedFile): Promise<UploadedFile> {
+  const fileId = String(file?.id || '').trim();
+  if (!fileId) return file;
+  try {
+    const preview = await createFileTemporaryAccess(fileId, { scope: 'preview', expiresInSeconds: 600 });
+    return {
+      ...file,
+      url: String(preview?.url || file.url || '').trim() || file.url || undefined,
+    };
+  } catch {
+    return file;
+  }
+}
+
+const WEAPP_DEBUG = process.env.NODE_ENV !== 'production' && process.env.TARO_ENV === 'weapp';
+
+function reportWeappDebug(title: string, detail?: unknown) {
+  if (!WEAPP_DEBUG) return;
+  console.error(`[weapp-debug] ${title}`, detail);
+}
 
 const PATENT_TYPE_OPTIONS: Array<{ value: PatentType; label: string }> = [
   { value: 'INVENTION', label: '发明' },
@@ -159,6 +183,17 @@ function mergePlaceholderStyle(extra?: string): string {
   const base = 'font-size:20rpx;color:#c0c4cc;';
   if (!extra) return base;
   return `${base}${extra}`;
+}
+
+function pickProofFileName(file: UploadedFile, index: number): string {
+  const raw = String(file.fileName || '').trim();
+  if (raw) return raw;
+  const mime = String(file.mimeType || '').trim().toLowerCase();
+  if (mime.startsWith('image/')) {
+    const ext = mime.split('/')[1] || 'image';
+    return `权属材料-${index + 1}.${ext}`;
+  }
+  return `权属材料-${index + 1}`;
 }
 
 function PublishInput(props: React.ComponentProps<typeof Input>) {
@@ -299,20 +334,43 @@ export default function PublishPatentPage() {
     setProofFiles([]);
   }, []);
 
-  const uploadProof = useCallback(async () => {
+  const uploadProof = useCallback(async (source: ProofUploadSource) => {
     if (uploading) return;
     if (!requireLogin()) return;
     const targetListingId = listingRouteIdRef.current || '';
     const seq = ++uploadSeqRef.current;
-
-    setUploading(true);
     try {
-      const chosen = await Taro.chooseImage({ count: 1, sizeType: ['compressed'], sourceType: ['album', 'camera'] });
-      const filePath = chosen?.tempFilePaths?.[0];
+      reportWeappDebug('专利上传入口已触发', { listingId: targetListingId || null, source });
+      let filePath = '';
+      let fileName = '';
+      if (source === 'image') {
+        const chosen = await chooseImageFiles({ count: 1 });
+        reportWeappDebug('图片选择返回', {
+          tempFileCount: chosen.length || 0,
+          tempFilePath: chosen[0]?.path || '',
+        });
+        filePath = String(chosen[0]?.path || '').trim();
+        fileName = String(chosen[0]?.name || '').trim();
+      } else {
+        const chosen = await chooseMessageFiles({
+          count: 1,
+          type: 'file',
+          extension: ['pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'jpg', 'jpeg', 'png'],
+        });
+        reportWeappDebug('文件选择返回', {
+          tempFileCount: chosen.length || 0,
+          tempFilePath: chosen[0]?.path || '',
+          tempFileName: chosen[0]?.name || '',
+        });
+        filePath = String(chosen[0]?.path || '').trim();
+        fileName = String(chosen[0]?.name || '').trim();
+      }
       if (!filePath) return;
 
+      if (seq !== uploadSeqRef.current || !pageVisibleRef.current || listingRouteIdRef.current !== targetListingId) return;
+      setUploading(true);
       const token = getToken();
-      const uploadRes = await uploadWithRetry({
+      const { data: json, response } = await uploadFileToApi<Partial<FileObject>>({
         url: `${API_BASE_URL}/files`,
         filePath,
         name: 'file',
@@ -323,12 +381,18 @@ export default function PublishPatentPage() {
         retry: 1,
       });
 
-      const json = JSON.parse(String(uploadRes.data || '{}')) as Partial<FileObject>;
+      reportWeappDebug('上传接口返回', {
+        statusCode: response.statusCode,
+        body: json,
+      });
       if (!json.id) throw new Error('上传失败');
       if (seq !== uploadSeqRef.current || !pageVisibleRef.current || listingRouteIdRef.current !== targetListingId) return;
-      setProofFiles((prev) => [...prev, json as UploadedFile]);
+      const nextFile = await enrichProofFile({ ...(json as UploadedFile), fileName: fileName || json.fileName });
+      if (seq !== uploadSeqRef.current || !pageVisibleRef.current || listingRouteIdRef.current !== targetListingId) return;
+      setProofFiles((prev) => [...prev, nextFile]);
       toast('已上传', { icon: 'success' });
     } catch (e: any) {
+      reportWeappDebug('专利上传失败', e?.message || e?.errMsg || e);
       if (seq !== uploadSeqRef.current || !pageVisibleRef.current || listingRouteIdRef.current !== targetListingId) return;
       if (e?.errMsg?.includes('cancel')) return;
       toast(e?.message || '上传失败');
@@ -578,7 +642,7 @@ export default function PublishPatentPage() {
         listingTopics: effectiveListingTopics,
         ...(ipcCodes.length ? { ipcCodes } : {}),
         ...(locCodes.length ? { locCodes } : {}),
-        ...(proofFiles.length ? { proofFileIds: proofFiles.map((f) => f.id) } : {}),
+        proofFileIds: proofFiles.map((f) => f.id),
       };
       return req;
     },
@@ -771,6 +835,7 @@ export default function PublishPatentPage() {
               onChange={setPatentNumberRaw}
               placeholder="例如 202311340972.0 / CN2023xxxxxx.x"
               clearable
+              data-testid="patent-number"
               disabled={Boolean(listingId)}
             />
             {listingId ? <Text className="form-hint">专利号已锁定，如需修改请新建发布。</Text> : null}
@@ -988,9 +1053,31 @@ export default function PublishPatentPage() {
           <Text className="publish-section-subtitle">权属证明材料 *</Text>
           <Text className="form-hint">上传专利证书/权属证明/授权链路等材料，至少 1 份</Text>
 
-          <View className="upload-box" onClick={uploadProof}>
-            <Text className="upload-title">{uploading ? '上传中' : '上传权属材料'}</Text>
-            <Text className="upload-subtitle">图片/附件</Text>
+          <View className="upload-actions">
+            <View
+              className={`upload-trigger ${uploading ? 'is-disabled' : ''}`}
+              hoverClass={uploading ? 'none' : 'upload-trigger-hover'}
+              data-testid="patent-upload-image"
+              onClick={() => {
+                if (uploading) return;
+                void uploadProof('image');
+              }}
+            >
+              <Text className="upload-title">{uploading ? '上传中...' : '选择图片上传'}</Text>
+              <Text className="upload-subtitle">从微信聊天记录选择图片</Text>
+            </View>
+            <View
+              className={`upload-trigger ${uploading ? 'is-disabled' : ''}`}
+              hoverClass={uploading ? 'none' : 'upload-trigger-hover'}
+              data-testid="patent-upload-file"
+              onClick={() => {
+                if (uploading) return;
+                void uploadProof('file');
+              }}
+            >
+              <Text className="upload-title">{uploading ? '上传中...' : '选择文件上传'}</Text>
+              <Text className="upload-subtitle">从微信聊天记录选择 PDF、Word、Excel、PPT</Text>
+            </View>
           </View>
 
           {proofFiles.length ? (
@@ -1010,25 +1097,22 @@ export default function PublishPatentPage() {
                   }}
                 >
                   <View className="upload-item-info">
-                    <Text className="upload-item-title">材料 {idx + 1}</Text>
+                    <Text className="upload-item-title">{pickProofFileName(f, idx)}</Text>
                     <Text className="upload-item-desc">
                       {f.url ? '可预览/复制' : '已上传'}
                       {f.mimeType ? ` · ${String(f.mimeType)}` : ''}
                       {typeof f.sizeBytes === 'number' ? ` · ${(f.sizeBytes / 1024).toFixed(0)}KB` : ''}
                     </Text>
                   </View>
-                  <Button
+                  <NativeButton
                     className="upload-item-remove"
-                    variant="danger"
-                    fill="outline"
-                    size="small"
                     onClick={(e) => {
                       e.stopPropagation();
                       void removeProof(f);
                     }}
                   >
                     删除
-                  </Button>
+                  </NativeButton>
                 </View>
               ))}
             </View>
@@ -1054,14 +1138,15 @@ export default function PublishPatentPage() {
           {priceType === 'FIXED' ? (
             <View className="form-field">
               <Text className="form-label">标价（元）*</Text>
-              <PublishInput
-                className="publish-input"
-                value={priceYuan}
-                onChange={setPriceYuan}
-                placeholder="例如 288000"
-                type="digit"
-                clearable
-              />
+            <PublishInput
+              className="publish-input"
+              value={priceYuan}
+              onChange={setPriceYuan}
+              placeholder="例如 288000"
+              type="digit"
+              clearable
+              data-testid="patent-price"
+            />
             </View>
           ) : null}
 
@@ -1095,42 +1180,40 @@ export default function PublishPatentPage() {
         {submitted ? (
           <>
             <View style={{ flex: 1 }}>
-              <Button
+              <NativeButton
                 className="publish-action-btn publish-action-ghost"
-                variant="ghost"
                 onClick={() => Taro.switchTab({ url: '/pages/home/index' })}
               >
                 返回首页
-              </Button>
+              </NativeButton>
             </View>
             <View style={{ flex: 1 }}>
-              <Button className="publish-action-btn publish-action-primary" onClick={() => Taro.switchTab({ url: '/pages/me/index' })}>
+              <NativeButton className="publish-action-btn publish-action-primary" onClick={() => Taro.switchTab({ url: '/pages/me/index' })}>
                 个人中心
-              </Button>
+              </NativeButton>
             </View>
           </>
         ) : (
           <>
             <View style={{ flex: 1 }}>
-              <Button
+              <NativeButton
                 className="publish-action-btn publish-action-ghost"
-                variant="ghost"
-                loading={saving}
+                data-testid="patent-save-draft"
                 disabled={saving || submitting}
                 onClick={() => void saveDraft()}
               >
-                保存草稿
-              </Button>
+                {saving ? '保存中...' : '保存草稿'}
+              </NativeButton>
             </View>
             <View style={{ flex: 1 }}>
-              <Button
+              <NativeButton
                 className="publish-action-btn publish-action-primary"
-                loading={submitting}
+                data-testid="patent-submit"
                 disabled={saving || submitting}
                 onClick={() => void submitForAudit()}
               >
-                提交审核
-              </Button>
+                {submitting ? '提交中...' : '提交审核'}
+              </NativeButton>
             </View>
           </>
         )}

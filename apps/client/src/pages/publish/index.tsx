@@ -1,5 +1,4 @@
 ﻿import { View, Text, Image } from '@tarojs/components';
-import Taro from '@tarojs/taro';
 import React, { useMemo } from 'react';
 import './index.scss';
 
@@ -9,6 +8,7 @@ import iconShield from '../../assets/icons/icon-shield-orange.svg';
 import iconCategory from '../../assets/icons/icon-category-gray.svg';
 
 import { usePageAccess } from '../../lib/guard';
+import { safeOpenPage } from '../../lib/navigation';
 import { AccessGate } from '../../ui/PageState';
 import { Surface } from '../../ui/layout';
 import publishLockedArt from '../../assets/illustrations/publish-locked.png';
@@ -30,6 +30,21 @@ type ManageCard = {
   onClick: () => void;
 };
 
+const WEAPP_DEBUG = process.env.NODE_ENV !== 'production' && process.env.TARO_ENV === 'weapp';
+
+function reportWeappDebug(title: string, detail?: unknown) {
+  if (!WEAPP_DEBUG) return;
+  console.error(`[weapp-debug] ${title}`, detail);
+}
+
+async function openPublishPage(url: string, title: string) {
+  try {
+    await safeOpenPage(url);
+  } catch (error) {
+    reportWeappDebug(`${title}跳转失败`, error);
+  }
+}
+
 export default function PublishPage() {
   const access = usePageAccess('approved-required');
 
@@ -42,7 +57,7 @@ export default function PublishPage() {
         icon: iconPublishPatent,
         tone: 'tone-orange',
         onClick: () => {
-          Taro.navigateTo({ url: '/subpackages/publish/patent/index' });
+          void openPublishPage('/subpackages/publish/patent/index', '发布专利');
         },
       },
       {
@@ -52,7 +67,7 @@ export default function PublishPage() {
         icon: iconPublishAchievement,
         tone: 'tone-blue',
         onClick: () => {
-          Taro.navigateTo({ url: '/subpackages/publish/achievement/index' });
+          void openPublishPage('/subpackages/publish/achievement/index', '发布成果');
         },
       },
     ],
@@ -67,7 +82,7 @@ export default function PublishPage() {
         icon: iconPublishPatent,
         tone: 'tone-blue',
         onClick: () => {
-          Taro.navigateTo({ url: '/subpackages/my-listings/index' });
+          void openPublishPage('/subpackages/my-listings/index', '我的专利');
         },
       },
       {
@@ -76,7 +91,7 @@ export default function PublishPage() {
         icon: iconPublishAchievement,
         tone: 'tone-orange',
         onClick: () => {
-          Taro.navigateTo({ url: '/subpackages/my-achievements/index' });
+          void openPublishPage('/subpackages/my-achievements/index', '我的成果');
         },
       },
     ],

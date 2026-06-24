@@ -5,20 +5,23 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import './index.scss';
 
 import { apiGet, apiPost } from '../../../lib/api';
+import { ApiError } from '../../../lib/api';
 import { getDetailCache, setDetailCache } from '../../../lib/detailCache';
 import { normalizeDisplayText } from '../../../lib/displayText';
-import { ensureApproved } from '../../../lib/guard';
+import { ensureApproved, goOnboarding } from '../../../lib/guard';
 import { fenToYuan } from '../../../lib/money';
 import { safeNavigateBack } from '../../../lib/navigation';
 import { useRouteUuidParam } from '../../../lib/routeParams';
 import { PageHeader, Spacer, StickyBar, Surface } from '../../../ui/layout';
 import { Button, toast } from '../../../ui/nutui';
 import { EmptyCard, ErrorCard, LoadingCard, MissingParamCard } from '../../../ui/StateCards';
+import { WechatPhoneBindPopup } from '../../../ui/WechatPhoneBindPopup';
 import type { MiniProgramPayGuideProps } from '../components/MiniProgramPayGuide';
 
 type PayTarget = {
   id: string;
   title: string;
+  sellerUserId?: string;
   depositAmountFen: number;
   priceType: 'FIXED' | 'NEGOTIABLE';
   priceAmountFen?: number;
@@ -63,6 +66,7 @@ function toPayTarget(raw: unknown): PayTarget | null {
   return {
     id,
     title: normalizeDisplayText(value.title) || '交易标的待确认',
+    sellerUserId: String(value.sellerUserId || (value.seller as any)?.id || '').trim() || undefined,
     depositAmountFen,
     priceType,
     priceAmountFen,
@@ -89,10 +93,14 @@ export default function DepositPayPage() {
   const [error, setError] = useState<string | null>(null);
   const [target, setTarget] = useState<PayTarget | null>(initialCachedTarget);
   const [paying, setPaying] = useState(false);
+  const [bindPhoneVisible, setBindPhoneVisible] = useState(false);
+  const [bindPhoneLoading, setBindPhoneLoading] = useState(false);
   const [PayGuide, setPayGuide] = useState<MiniProgramPayGuideComponent | null>(null);
+  const [currentUserId, setCurrentUserId] = useState('');
   const listingIdRef = useRef(listingId);
   const loadSeqRef = useRef(0);
   const paySeqRef = useRef(0);
+  const retryAfterBindRef = useRef(false);
 
   useEffect(() => {
     listingIdRef.current = listingId;
@@ -103,6 +111,9 @@ export default function DepositPayPage() {
       setLoading(false);
       setError(null);
       setPaying(false);
+      setBindPhoneVisible(false);
+      setBindPhoneLoading(false);
+      retryAfterBindRef.current = false;
       return;
     }
     const cached = readCachedPayTarget(listingId);
@@ -147,6 +158,22 @@ export default function DepositPayPage() {
   }, [load]);
 
   useEffect(() => {
+    let alive = true;
+    apiGet<{ id: string }>('/me')
+      .then((me) => {
+        if (!alive) return;
+        setCurrentUserId(String(me?.id || '').trim());
+      })
+      .catch(() => {
+        if (!alive) return;
+        setCurrentUserId('');
+      });
+    return () => {
+      alive = false;
+    };
+  }, []);
+
+  useEffect(() => {
     if (!isH5) {
       setPayGuide(null);
       return;
@@ -172,6 +199,14 @@ export default function DepositPayPage() {
     if (!ensureApproved()) return;
     const targetListingId = listingId;
     if (!targetListingId) return;
+    if (target?.sellerUserId && currentUserId && target.sellerUserId === currentUserId) {
+      toast('不能购买自己发布的专利');
+      return;
+    }
+    if (!target || !Number.isFinite(target.depositAmountFen) || target.depositAmountFen <= 0) {
+      toast('该专利尚未配置有效订金，暂时无法支付');
+      return;
+    }
     if (isH5) {
       toast('H5 端不发起支付，请到小程序完成支付');
       return;
@@ -179,7 +214,7 @@ export default function DepositPayPage() {
     const seq = ++paySeqRef.current;
     setPaying(true);
     try {
-      const order = await apiPost<Order>('/orders', { listingId: targetListingId });
+      const order = await apiPost<Order>('/orders', { listingId: targetListingId }, { idempotencyKey: `order-deposit-${targetListingId}` });
       const intent = await apiPost<PaymentIntentResponse>(
         `/orders/${order.id}/payment-intents`,
         { payType: 'DEPOSIT' },
@@ -195,7 +230,7 @@ export default function DepositPayPage() {
             timeStamp: String(payParams?.timeStamp || ''),
             nonceStr: String(payParams?.nonceStr || ''),
             package: String(payParams?.package || ''),
-            signType: 'RSA',
+            signType: (String(payParams?.signType || 'RSA').toUpperCase() as 'RSA'),
             paySign: String(payParams?.paySign || ''),
           });
         } catch (paymentError: any) {
@@ -213,13 +248,69 @@ export default function DepositPayPage() {
       });
     } catch (e: any) {
       if (seq !== paySeqRef.current || listingIdRef.current !== targetListingId) return;
+      if (e instanceof ApiError) {
+        if (e.kind === 'auth' && e.statusCode === 403) {
+          toast('请先完成实名认证后再支付');
+          goOnboarding();
+          return;
+        }
+        if (e.code === 'BAD_REQUEST') {
+          const rawMessage = String(e.message || '').toLowerCase();
+          if (rawMessage.includes('buyer wechat openid is required')) {
+            retryAfterBindRef.current = true;
+            setBindPhoneVisible(true);
+            toast('当前账号尚未挂上微信支付身份，请先用官方能力补全手机号并绑定微信');
+            return;
+          }
+        }
+      }
       toast(e?.message || '支付失败');
     } finally {
       if (seq === paySeqRef.current && listingIdRef.current === targetListingId) {
         setPaying(false);
       }
     }
-  }, [isH5, listingId]);
+  }, [currentUserId, isH5, listingId, target]);
+
+  const bindWechatPhone = useCallback(
+    async (phoneCode: string) => {
+      if (bindPhoneLoading) return;
+      setBindPhoneLoading(true);
+      try {
+        const loginRes = await Taro.login();
+        const code = String(loginRes?.code || '').trim();
+        if (!code) throw new Error('无法获取微信登录凭证');
+        await apiPost('/auth/wechat/phone-bind', { code, phoneCode });
+        setBindPhoneVisible(false);
+        toast('微信手机号与支付身份已补全', { icon: 'success' });
+        if (retryAfterBindRef.current) {
+          retryAfterBindRef.current = false;
+          void onPay();
+        }
+      } catch (e: any) {
+        toast(e?.message || '绑定失败，请重试');
+      } finally {
+        setBindPhoneLoading(false);
+      }
+    },
+    [bindPhoneLoading, onPay],
+  );
+
+  const skipBindWechatPhone = useCallback(() => {
+    retryAfterBindRef.current = false;
+    setBindPhoneVisible(false);
+  }, []);
+
+  const isOwnListing = Boolean(target?.sellerUserId && currentUserId && target.sellerUserId === currentUserId);
+  const hasValidDepositAmount = Boolean(target && Number.isFinite(target.depositAmountFen) && target.depositAmountFen > 0);
+  const payDisabled = paying || isOwnListing || !hasValidDepositAmount;
+  const payButtonText = isOwnListing
+    ? '不能购买自己的专利'
+    : !hasValidDepositAmount
+      ? '该专利暂未配置订金'
+      : paying
+        ? '处理中…'
+        : `支付订金 ¥${fenToYuan(target?.depositAmountFen)}`;
 
   if (!listingId) {
     return (
@@ -267,6 +358,8 @@ export default function DepositPayPage() {
             <Text className="pay-note">
               订金支付后平台将启动合同/材料核验与权属变更流程。退款与争议处理以平台规则与人工审核为准。
             </Text>
+            {isOwnListing ? <Text className="pay-note">当前账号是该专利的发布方，不能对自己的挂牌发起订金支付。</Text> : null}
+            {!hasValidDepositAmount ? <Text className="pay-note">当前挂牌尚未配置有效订金，请先补全挂牌定金后再支付。</Text> : null}
           </Surface>
 
           {isH5 ? (
@@ -297,11 +390,20 @@ export default function DepositPayPage() {
             </Button>
           </View>
           <View style={{ flex: 2, minWidth: 0 }}>
-            <Button variant="primary" loading={paying} disabled={paying} onClick={onPay}>
-              {paying ? '处理中…' : `支付订金 ¥${fenToYuan(target.depositAmountFen)}`}
+            <Button variant="primary" loading={paying} disabled={payDisabled} onClick={onPay}>
+              {payButtonText}
             </Button>
           </View>
         </StickyBar>
+      ) : null}
+
+      {!isH5 ? (
+        <WechatPhoneBindPopup
+          visible={bindPhoneVisible}
+          loading={bindPhoneLoading}
+          onRequestBind={(phoneCode) => void bindWechatPhone(phoneCode)}
+          onSkip={skipBindWechatPhone}
+        />
       ) : null}
     </View>
   );

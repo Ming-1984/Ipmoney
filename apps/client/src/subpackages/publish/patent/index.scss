@@ -173,13 +173,39 @@
   color: #6b7280;
 }
 
-.upload-box {
+.upload-actions {
   margin-top: 12rpx;
+  display: flex;
+  gap: 12rpx;
+}
+
+.upload-trigger {
+  flex: 1;
+  min-height: 120rpx;
+  padding: 20rpx 16rpx;
   border: 2rpx dashed #d9dde3;
   border-radius: 12rpx;
-  padding: 20rpx;
   text-align: center;
   background: #f8fafc;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6rpx;
+  line-height: 1.4;
+}
+
+.upload-trigger-hover {
+  opacity: 0.92;
+}
+
+.upload-trigger::after {
+  border: none;
+}
+
+.upload-trigger[disabled],
+.upload-trigger.is-disabled {
+  opacity: 0.65;
 }
 
 .upload-title {
@@ -208,6 +234,12 @@
   height: 72rpx;
   border-radius: 16rpx;
   font-weight: 600;
+  line-height: 72rpx;
+  padding: 0 16rpx;
+}
+
+.publish-action-btn::after {
+  border: none;
 }
 
 .publish-action-primary {
@@ -264,6 +296,16 @@
 
 .upload-item-remove {
   min-width: 96rpx;
+  border: none;
+  background: transparent;
+  color: #dc2626;
+  font-size: 22rpx;
+  line-height: 1.4;
+  padding: 0;
+}
+
+.upload-item-remove::after {
+  border: none;
 }
 
 .publish-picker-sheet {
@@ -278,4 +320,3 @@
   color: var(--c-primary-hover);
   font-weight: 600;
 }
-

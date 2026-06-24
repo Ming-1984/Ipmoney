@@ -11,7 +11,7 @@ import { apiPost } from '../../../lib/api';
 import { requireLogin } from '../../../lib/guard';
 import { openRegionPickerPage } from '../../../lib/regionPicker';
 import { regionDisplayName } from '../../../lib/regions';
-import { uploadWithRetry } from '../../../lib/upload';
+import { chooseImageFiles, uploadFileToApi } from '../../../lib/upload';
 import { PageHeader, SectionHeader, Spacer, Surface, TipBanner } from '../../../ui/layout';
 import { Button, Input, TextArea, confirm, toast } from '../../../ui/nutui';
 import { ErrorCard } from '../../../ui/StateCards';
@@ -161,12 +161,12 @@ export default function VerificationFormPage() {
     const seq = ++logoUploadSeqRef.current;
     setLogoUploading(true);
     try {
-      const chosen = await Taro.chooseImage({ count: 1, sizeType: ['compressed'], sourceType: ['album', 'camera'] });
-      const filePath = chosen?.tempFilePaths?.[0];
+      const chosen = await chooseImageFiles({ count: 1 });
+      const filePath = chosen[0]?.path;
       if (!filePath) return;
 
       const token = getToken();
-      const uploadRes = await uploadWithRetry({
+      const { data: json } = await uploadFileToApi<Partial<FileObject>>({
         url: `${API_BASE_URL}/files`,
         filePath,
         name: 'file',
@@ -175,8 +175,6 @@ export default function VerificationFormPage() {
         },
         retry: 1,
       });
-
-      const json = JSON.parse(String(uploadRes.data || '{}')) as Partial<FileObject>;
       if (!json.id) throw new Error('上传失败');
       if (seq !== logoUploadSeqRef.current || !pageVisibleRef.current) return;
       setLogoFile(json as UploadedFile);
@@ -210,12 +208,12 @@ export default function VerificationFormPage() {
     const seq = ++evidenceUploadSeqRef.current;
     setEvidenceUploading(true);
     try {
-      const chosen = await Taro.chooseImage({ count: 1, sizeType: ['compressed'], sourceType: ['album', 'camera'] });
-      const filePath = chosen?.tempFilePaths?.[0];
+      const chosen = await chooseImageFiles({ count: 1 });
+      const filePath = chosen[0]?.path;
       if (!filePath) return;
 
       const token = getToken();
-      const uploadRes = await uploadWithRetry({
+      const { data: json } = await uploadFileToApi<Partial<FileObject>>({
         url: `${API_BASE_URL}/files`,
         filePath,
         name: 'file',
@@ -224,8 +222,6 @@ export default function VerificationFormPage() {
         },
         retry: 1,
       });
-
-      const json = JSON.parse(String(uploadRes.data || '{}')) as Partial<FileObject>;
       if (!json.id) throw new Error('上传失败');
       if (seq !== evidenceUploadSeqRef.current || !pageVisibleRef.current) return;
       setEvidenceFiles((prev) => [...prev, json as UploadedFile]);

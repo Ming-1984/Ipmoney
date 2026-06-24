@@ -10,6 +10,7 @@ import { Prisma } from '@prisma/client';
 import { AuditLogService } from '../../common/audit-log.service';
 import { getDemoAuthConfig } from '../../common/demo';
 import { PrismaService } from '../../common/prisma/prisma.service';
+import { resolveRegionCodeForStorage } from '../../common/region-code';
 import { WechatContentSecurityService } from '../../common/wechat-content-security.service';
 import { normalizeDisplayText, resolvePublicFileUrl } from '../content-utils';
 import { NotificationsService } from '../notifications/notifications.service';
@@ -255,7 +256,9 @@ export class UsersService {
     patch: { nickname?: string; avatarUrl?: string; regionCode?: string },
   ): Promise<UserProfileDto> {
     const hasRegionCode = this.hasOwn(patch, 'regionCode');
-    const regionCode = hasRegionCode ? this.parseNullableRegionCodeStrict((patch as any)?.regionCode, 'regionCode') : undefined;
+    const regionCode = hasRegionCode
+      ? await resolveRegionCodeForStorage(this.prisma, (patch as any)?.regionCode, 'regionCode')
+      : undefined;
     const avatarUrl =
       patch.avatarUrl === undefined
         ? undefined
@@ -424,7 +427,7 @@ export class UsersService {
           : null,
         contactName: input.contactName ? String(input.contactName) : null,
         contactPhone: input.contactPhone ? String(input.contactPhone) : null,
-        regionCode: hasRegionCode ? this.parseNullableRegionCodeStrict(input.regionCode, 'regionCode') : null,
+        regionCode: hasRegionCode ? await resolveRegionCodeForStorage(this.prisma, input.regionCode, 'regionCode') : null,
         intro: input.intro ? String(input.intro) : null,
         logoFileId: hasLogoFileId ? this.parseNullableNonEmptyStringStrict(input.logoFileId, 'logoFileId') : null,
         evidenceFileIdsJson: evidenceFileIds,
@@ -641,7 +644,9 @@ export class UsersService {
 
     const displayName = hasDisplayName ? this.parseOptionalStringWithMaxLength((patch as any)?.displayName, 'displayName', 100) : undefined;
     const contactName = hasContactName ? this.parseOptionalStringWithMaxLength((patch as any)?.contactName, 'contactName', 100) : undefined;
-    const regionCode = hasRegionCode ? this.parseNullableRegionCodeStrict((patch as any)?.regionCode, 'regionCode') : undefined;
+    const regionCode = hasRegionCode
+      ? await resolveRegionCodeForStorage(this.prisma, (patch as any)?.regionCode, 'regionCode')
+      : undefined;
     const intro = hasIntro ? this.parseOptionalStringWithMaxLength((patch as any)?.intro, 'intro', 2000) : undefined;
 
     const data: any = {

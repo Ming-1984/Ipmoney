@@ -1,6 +1,7 @@
 ﻿import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 
 import { PrismaService } from '../../common/prisma/prisma.service';
+import { resolveRegionCodeForStorage } from '../../common/region-code';
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -74,7 +75,7 @@ export class AddressesService {
     const phone = this.parseRequiredStringStrict(body?.phone, 'phone');
     const addressLine = this.parseRequiredStringStrict(body?.addressLine, 'addressLine');
     const hasRegionCode = this.hasOwn(body, 'regionCode');
-    const regionCode = hasRegionCode ? this.parseNullableRegionCodeStrict(body?.regionCode, 'regionCode') : null;
+    const regionCode = hasRegionCode ? await resolveRegionCodeForStorage(this.prisma, body?.regionCode, 'regionCode') : null;
 
     return await this.prisma.$transaction(async (tx) => {
       if (isDefault) {
@@ -104,7 +105,9 @@ export class AddressesService {
     const hasIsDefault = body?.isDefault !== undefined;
     const nextIsDefault = hasIsDefault ? Boolean(body?.isDefault) : existing.isDefault;
     const hasRegionCode = this.hasOwn(body, 'regionCode');
-    const regionCode = hasRegionCode ? this.parseNullableRegionCodeStrict(body?.regionCode, 'regionCode') : existing.regionCode;
+    const regionCode = hasRegionCode
+      ? await resolveRegionCodeForStorage(this.prisma, body?.regionCode, 'regionCode')
+      : existing.regionCode;
 
     return await this.prisma.$transaction(async (tx) => {
       if (hasIsDefault && nextIsDefault) {
