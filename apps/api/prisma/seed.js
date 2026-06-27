@@ -57,7 +57,7 @@ function readJson(filePath) {
 }
 
 async function seedRegions() {
-  const regionsPath = path.resolve(__dirname, 'seed-data', 'regions-cn-provinces.json');
+  const regionsPath = path.resolve(__dirname, 'seed-data', 'regions-cn.json');
   const regions = readJson(regionsPath);
 
   for (const r of regions) {

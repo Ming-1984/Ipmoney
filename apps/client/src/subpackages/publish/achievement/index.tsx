@@ -1,5 +1,5 @@
 import { Button as NativeButton, Image, Picker, Text, View } from '@tarojs/components';
-import Taro, { useDidHide, useDidShow } from '@tarojs/taro';
+import Taro, { useDidHide, useDidShow, useUnload } from '@tarojs/taro';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import './index.scss';
 
@@ -102,6 +102,42 @@ function splitList(input: string): string[] {
     .filter(Boolean);
 }
 
+function mergePlaceholderClass(extra?: string): string {
+  return extra ? `publish-placeholder ${extra}` : 'publish-placeholder';
+}
+
+function mergePlaceholderStyle(extra?: string): string {
+  const base = 'font-size:20rpx;color:#c0c4cc;';
+  if (!extra) return base;
+  return `${base}${extra}`;
+}
+
+function mergePublishClassName(className?: string): string {
+  return className ? `publish-control ${className}` : 'publish-control';
+}
+
+function PublishInput(props: React.ComponentProps<typeof Input>) {
+  return (
+    <Input
+      {...props}
+      className={mergePublishClassName(props.className)}
+      placeholderClass={mergePlaceholderClass(props.placeholderClass)}
+      placeholderStyle={mergePlaceholderStyle(props.placeholderStyle)}
+    />
+  );
+}
+
+function PublishTextArea(props: React.ComponentProps<typeof TextArea>) {
+  return (
+    <TextArea
+      {...props}
+      className={mergePublishClassName(props.className)}
+      placeholderClass={mergePlaceholderClass(props.placeholderClass)}
+      placeholderStyle={mergePlaceholderStyle(props.placeholderStyle)}
+    />
+  );
+}
+
 function toMediaInput(files: UploadedFile[]): ContentMedia[] {
   return files.map((file, index) => ({
     fileId: file.id,
@@ -133,11 +169,16 @@ function resolveRenderableFileUrl(file: UploadedFile | null | undefined): string
   return String(file.localPath || '').trim();
 }
 
+function formatUploadedFileSize(file: UploadedFile): string {
+  return typeof file.sizeBytes === 'number' ? `${(file.sizeBytes / 1024).toFixed(0)}KB` : '';
+}
+
 export default function PublishAchievementPage() {
   const access = usePageAccess('approved-required');
-  const initialAchievementId = useRouteUuidParam('achievementId');
+  const initialAchievementId = useRouteUuidParam('achievementId') || '';
   const achievementRouteIdRef = useRef(initialAchievementId);
   const pageVisibleRef = useRef(true);
+  const uploadPickerActiveRef = useRef(false);
   const uploadSeqRef = useRef(0);
   const saveSeqRef = useRef(0);
   const submitSeqRef = useRef(0);
@@ -172,6 +213,7 @@ export default function PublishAchievementPage() {
   });
 
   useDidHide(() => {
+    if (uploadPickerActiveRef.current) return;
     pageVisibleRef.current = false;
     uploadSeqRef.current += 1;
     saveSeqRef.current += 1;
@@ -179,6 +221,14 @@ export default function PublishAchievementPage() {
     setUploading(false);
     setSaving(false);
     setSubmitting(false);
+  });
+
+  useUnload(() => {
+    pageVisibleRef.current = false;
+    uploadPickerActiveRef.current = false;
+    uploadSeqRef.current += 1;
+    saveSeqRef.current += 1;
+    submitSeqRef.current += 1;
   });
 
   const resetForm = useCallback(() => {
@@ -286,7 +336,10 @@ export default function PublishAchievementPage() {
     const seq = ++uploadSeqRef.current;
     try {
       reportWeappDebug('成果封面上传入口已触发', { achievementId: targetAchievementId || null });
-      const chosen = await chooseImageFiles({ count: 1 });
+      uploadPickerActiveRef.current = true;
+      const chosen = await chooseImageFiles({ count: 1 }).finally(() => {
+        uploadPickerActiveRef.current = false;
+      });
       reportWeappDebug('成果封面选择返回', {
         tempFileCount: chosen.length || 0,
         tempFilePath: chosen[0]?.path || '',
@@ -294,6 +347,7 @@ export default function PublishAchievementPage() {
       const filePath = String(chosen[0]?.path || '').trim();
       if (!filePath) return null;
 
+      pageVisibleRef.current = true;
       if (seq !== uploadSeqRef.current || !pageVisibleRef.current || achievementRouteIdRef.current !== targetAchievementId) return null;
       setUploading(true);
       const token = getToken();
@@ -360,8 +414,11 @@ export default function PublishAchievementPage() {
       });
 
       let selectedFiles: Array<{ path: string; name: string; type: 'IMAGE' | 'FILE' }> = [];
+      uploadPickerActiveRef.current = true;
       if (source === 'image') {
-        const chosen = await chooseImageFiles({ count: remain });
+        const chosen = await chooseImageFiles({ count: remain }).finally(() => {
+          uploadPickerActiveRef.current = false;
+        });
         reportWeappDebug('成果附件图片选择返回', {
           tempFileCount: chosen.length || 0,
           firstTempFilePath: chosen[0]?.path || '',
@@ -375,12 +432,15 @@ export default function PublishAchievementPage() {
           .filter((file) => Boolean(file.path));
       } else {
         if (typeof Taro.chooseMessageFile !== 'function') {
+          uploadPickerActiveRef.current = false;
           throw new Error('当前环境不支持从微信聊天记录选择文件，请在真机微信中重试');
         }
         const chosen = await chooseMessageFiles({
           count: remain,
           type: 'file',
           extension: ['pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'txt', 'zip', 'rar'],
+        }).finally(() => {
+          uploadPickerActiveRef.current = false;
         });
         reportWeappDebug('成果附件文件选择返回', {
           tempFileCount: chosen.length || 0,
@@ -398,6 +458,7 @@ export default function PublishAchievementPage() {
 
       if (!selectedFiles.length) return;
 
+      pageVisibleRef.current = true;
       if (seq !== uploadSeqRef.current || !pageVisibleRef.current || achievementRouteIdRef.current !== targetAchievementId) return;
       setUploading(true);
       const token = getToken();
@@ -569,7 +630,7 @@ export default function PublishAchievementPage() {
               <Text className="publish-section-title">成果信息</Text>
               <View className="form-field">
                 <Text className="form-label">成果名称</Text>
-                <Input
+                <PublishInput
                   value={title}
                   onChange={setTitle}
                   placeholder="填写成果名称"
@@ -579,11 +640,11 @@ export default function PublishAchievementPage() {
               </View>
               <View className="form-field">
                 <Text className="form-label">成果简介</Text>
-                <Input value={summary} onChange={setSummary} placeholder="一句话介绍成果亮点" className="publish-input" />
+                <PublishInput value={summary} onChange={setSummary} placeholder="一句话介绍成果亮点" className="publish-input" />
               </View>
               <View className="form-field">
                 <Text className="form-label">成果详情</Text>
-                <TextArea
+                <PublishTextArea
                   value={description}
                   onChange={setDescription}
                   placeholder="描述应用场景、技术优势与合作方式"
@@ -637,12 +698,11 @@ export default function PublishAchievementPage() {
                 </Picker>
               </View>
               <View className="form-field">
-                <Text className="form-label">行业标签</Text>
+                <Text className="form-label">行业标签（关键词）</Text>
                 <IndustryTagsPicker value={industryTags} onChange={setIndustryTags} max={6} />
               </View>
               <View className="form-field">
-                <Text className="form-label">关键词</Text>
-                <Input
+                <PublishInput
                   value={keywordsInput}
                   onChange={setKeywordsInput}
                   placeholder="用逗号分隔，如 AI, 新能源"
@@ -719,11 +779,7 @@ export default function PublishAchievementPage() {
                         )}
                         <View className="upload-item-info">
                           <Text className="upload-item-title">{pickUploadedFileName(file, index)}</Text>
-                          <Text className="upload-item-desc">
-                            {isUploadedImage(file) ? '图片附件' : '文件附件'}
-                            {file.mimeType ? ` · ${String(file.mimeType)}` : ''}
-                            {typeof file.sizeBytes === 'number' ? ` · ${(file.sizeBytes / 1024).toFixed(0)}KB` : ''}
-                          </Text>
+                          {formatUploadedFileSize(file) ? <Text className="upload-item-desc">{formatUploadedFileSize(file)}</Text> : null}
                         </View>
                         <NativeButton
                           className="upload-item-remove-btn upload-item-remove-btn-danger"

@@ -8,70 +8,60 @@ import type { VerificationType } from '../../../constants';
 import { setVerificationType } from '../../../lib/auth';
 import { requireLogin } from '../../../lib/guard';
 import { safeOpenPage } from '../../../lib/navigation';
-import { Spacer, TipBanner } from '../../../ui/layout';
-import { Button, toast } from '../../../ui/nutui';
+import { toast } from '../../../ui/nutui';
 
-type BadgeVariant = 'brand' | 'blue' | 'green' | 'purple' | 'slate';
+type BadgeVariant = 'gold' | 'blue' | 'green' | 'purple' | 'orange' | 'sky';
 
 type IdentityOption = {
   type: VerificationType;
   title: string;
-  desc: string;
   icon: string;
-  tag: string;
   badge: BadgeVariant;
-  tagTone?: 'gold';
+  steps: string[];
 };
 
 const TYPES: IdentityOption[] = [
   {
     type: 'PERSON',
     title: '个人',
-    desc: '授权信息后直接完成注册',
     icon: '人',
-    tag: '秒通过',
-    badge: 'brand',
-    tagTone: 'gold',
+    badge: 'gold',
+    steps: ['授权信息', '直接完成注册'],
   },
   {
     type: 'COMPANY',
     title: '企业',
-    desc: '提交资料，审核通过后入驻展示',
     icon: '企',
-    tag: '需审核',
     badge: 'blue',
+    steps: ['提交资料', '审核通过', '入驻展示'],
   },
   {
     type: 'ACADEMY',
     title: '科研院校',
-    desc: '提交资料，审核通过后入驻展示',
     icon: '校',
-    tag: '需审核',
     badge: 'green',
+    steps: ['提交资料', '审核通过', '入驻展示'],
   },
   {
     type: 'GOVERNMENT',
     title: '政府',
-    desc: '提交资料，后台审核',
     icon: '政',
-    tag: '需审核',
     badge: 'purple',
+    steps: ['提交资料', '平台审核'],
   },
   {
     type: 'ASSOCIATION',
     title: '行业协会/学会',
-    desc: '提交资料，后台审核',
     icon: '协',
-    tag: '需审核',
-    badge: 'purple',
+    badge: 'orange',
+    steps: ['提交资料', '平台审核'],
   },
   {
     type: 'TECH_MANAGER',
     title: '技术经理人',
-    desc: '提交资质，后台审核',
     icon: '技',
-    tag: '需审核',
-    badge: 'slate',
+    badge: 'sky',
+    steps: ['提交资料', '平台审核'],
   },
 ];
 
@@ -131,33 +121,40 @@ export default function ChooseIdentityPage() {
 
       <View className="identity-grid">
         {TYPES.map((item) => (
-          <Button
+          <View
             key={item.type}
-            className="identity-card"
-            variant="default"
-            fill="none"
-            block={false}
+            className={`identity-card identity-card-${item.badge}`}
             onClick={() => {
               void openIdentity(item);
             }}
           >
-            <View className={`identity-icon identity-icon-${item.badge}`}>
-              <Text className="identity-icon-text">{item.icon}</Text>
-            </View>
-            <View className="identity-card-title-row">
+            <View className="identity-card-head">
+              <View className={`identity-icon identity-icon-${item.badge}`}>
+                <Text className="identity-icon-text">{item.icon}</Text>
+              </View>
               <Text className="identity-card-title">{item.title}</Text>
-              <Text className={`identity-card-badge ${item.tagTone === 'gold' ? 'is-gold' : ''}`}>{item.tag}</Text>
             </View>
-            <Text className="identity-card-desc">{item.desc}</Text>
-          </Button>
+
+            <View className="identity-divider" />
+
+            <View className="identity-steps">
+              {item.steps.map((step, index) => (
+                <View key={step} className="identity-step">
+                  <View className={`identity-step-dot ${index > 0 ? 'is-muted' : ''}`} />
+                  <Text className="identity-step-text">{step}</Text>
+                </View>
+              ))}
+            </View>
+          </View>
         ))}
       </View>
 
-      <Spacer size={12} />
-
-      <TipBanner tone="info" title="提示" className="identity-tip">
-        企业/科研院校审核通过后，会在「机构展示」中对外展示。可在「我的 → 身份/认证」查看审核进度。
-      </TipBanner>
+      <View className="identity-tip">
+        <Text className="identity-tip-title">提示</Text>
+        <Text className="identity-tip-text">
+          企业/科研院校审核通过后，会在「机构展示」中对外展示，可在「我的 &gt; 身份/认证」查看审核进度。
+        </Text>
+      </View>
     </View>
   );
 }

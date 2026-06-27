@@ -3,7 +3,7 @@ import Taro from '@tarojs/taro';
 import type { components } from '@ipmoney/api-types';
 
 import { apiGet } from './api';
-import regionProvinceSeed from '../data/regions-cn-provinces.json';
+import regionSeed from '../data/regions-cn.json';
 
 import { STORAGE_KEYS } from '../constants';
 
@@ -18,6 +18,7 @@ type RegionPickerEventLike = {
 };
 
 type RegionNameMap = Record<string, string>;
+type RegionParentMap = Record<string, string>;
 type RegionPathNameMap = Record<string, string>;
 type ProfileRegionPathNameMap = Record<string, string>;
 const HIDDEN_TEST_REGION_NAME_PATTERNS = [
@@ -26,7 +27,7 @@ const HIDDEN_TEST_REGION_NAME_PATTERNS = [
   /^qa[-_\s/]*region(?:[-_\s/]|$)/i,
 ];
 
-const FALLBACK_REGION_NAMES: RegionNameMap = (regionProvinceSeed as Array<Pick<RegionNode, 'code' | 'name'>>).reduce(
+const FALLBACK_REGION_NAMES: RegionNameMap = (regionSeed as Array<Pick<RegionNode, 'code' | 'name'>>).reduce(
   (acc, item) => {
     const code = (item?.code || '').trim();
     const name = (item?.name || '').trim();
@@ -35,8 +36,17 @@ const FALLBACK_REGION_NAMES: RegionNameMap = (regionProvinceSeed as Array<Pick<R
   },
   {} as RegionNameMap,
 );
+const FALLBACK_REGION_PARENTS: RegionParentMap = (
+  regionSeed as Array<Pick<RegionNode, 'code' | 'parentCode'>>
+).reduce((acc, item) => {
+  const code = (item?.code || '').trim();
+  const parentCode = (item?.parentCode || '').trim();
+  if (code && parentCode) acc[code] = parentCode;
+  return acc;
+}, {} as RegionParentMap);
 
 let regionNameMapCache: RegionNameMap | null = null;
+let regionParentMapCache: RegionParentMap | null = null;
 let regionPathNameMapCache: RegionPathNameMap | null = null;
 let profileRegionPathNameMapCache: ProfileRegionPathNameMap | null = null;
 let regionNamesReady = false;
@@ -60,6 +70,18 @@ function sanitizeRegionNameMap(raw: unknown): RegionNameMap {
   return normalizedMap;
 }
 
+function sanitizeRegionParentMap(raw: unknown): RegionParentMap {
+  if (!raw || typeof raw !== 'object') return {};
+  const normalizedMap: RegionParentMap = {};
+  for (const [rawCode, rawParentCode] of Object.entries(raw as Record<string, unknown>)) {
+    const code = String(rawCode || '').trim();
+    const parentCode = String(rawParentCode || '').trim();
+    if (!/^\d{6}$/.test(code) || !/^\d{6}$/.test(parentCode)) continue;
+    normalizedMap[code] = parentCode;
+  }
+  return normalizedMap;
+}
+
 function readRegionNameMap(): RegionNameMap {
   if (regionNameMapCache) return regionNameMapCache;
   try {
@@ -73,6 +95,30 @@ function readRegionNameMap(): RegionNameMap {
   }
   regionNameMapCache = { ...FALLBACK_REGION_NAMES };
   return regionNameMapCache;
+}
+
+function readRegionParentMap(): RegionParentMap {
+  if (regionParentMapCache) return regionParentMapCache;
+  try {
+    const raw = Taro.getStorageSync(STORAGE_KEYS.regionParentMap);
+    if (raw && typeof raw === 'object') {
+      regionParentMapCache = { ...FALLBACK_REGION_PARENTS, ...sanitizeRegionParentMap(raw) };
+      return regionParentMapCache;
+    }
+  } catch {
+    // ignore
+  }
+  regionParentMapCache = { ...FALLBACK_REGION_PARENTS };
+  return regionParentMapCache;
+}
+
+function writeRegionParentMap(map: RegionParentMap) {
+  regionParentMapCache = map;
+  try {
+    Taro.setStorageSync(STORAGE_KEYS.regionParentMap, map);
+  } catch {
+    // ignore
+  }
 }
 
 function writeRegionNameMap(map: RegionNameMap) {
@@ -146,6 +192,22 @@ export function cacheRegionNames(nodes: Array<Pick<RegionNode, 'code' | 'name'> 
   }
 
   if (changed) writeRegionNameMap(map);
+}
+
+function cacheRegionParents(nodes: Array<Pick<RegionNode, 'code' | 'parentCode'> | null | undefined>) {
+  const map = readRegionParentMap();
+  let changed = false;
+
+  for (const n of nodes) {
+    const code = (n?.code || '').trim();
+    const parentCode = (n?.parentCode || '').trim();
+    if (!/^\d{6}$/.test(code) || !/^\d{6}$/.test(parentCode)) continue;
+    if (map[code] === parentCode) continue;
+    map[code] = parentCode;
+    changed = true;
+  }
+
+  if (changed) writeRegionParentMap(map);
 }
 
 function cacheRegionPathName(code: string, pathNames: string[]) {
@@ -300,6 +362,24 @@ export function regionNameByCode(code?: string | null): string | null {
   return map[code] || null;
 }
 
+function regionPathNamesByCode(code?: string | null): string[] {
+  const c = String(code || '').trim();
+  if (!c) return [];
+  const nameMap = readRegionNameMap();
+  const parentMap = readRegionParentMap();
+  const pathCodes: string[] = [];
+  const seen = new Set<string>();
+  let current = c;
+
+  while (current && !seen.has(current)) {
+    seen.add(current);
+    pathCodes.unshift(current);
+    current = parentMap[current] || '';
+  }
+
+  return pathCodes.map((itemCode) => nameMap[itemCode] || '').filter(Boolean);
+}
+
 export function regionDisplayName(code?: string | null, name?: string | null, empty = '-'): string {
   const n = (name || '').trim();
   if (n) return n;
@@ -307,6 +387,8 @@ export function regionDisplayName(code?: string | null, name?: string | null, em
   if (!c) return empty;
   const pathName = readRegionPathNameMap()[c];
   if (pathName) return pathName;
+  const pathNames = regionPathNamesByCode(c);
+  if (pathNames.length > 1) return formatRegionPathNames(pathNames);
   return regionNameByCode(c) || c;
 }
 
@@ -343,7 +425,10 @@ export async function ensureRegionNamesReady(levels: RegionLevel[] = ['PROVINCE'
   regionNamesLoading = (async () => {
     const requests = levels.map((level) =>
       apiGet<RegionNode[]>('/regions', { level })
-        .then((nodes) => cacheRegionNames(nodes))
+        .then((nodes) => {
+          cacheRegionNames(nodes);
+          cacheRegionParents(nodes);
+        })
         .catch(() => {}),
     );
     await Promise.all(requests);

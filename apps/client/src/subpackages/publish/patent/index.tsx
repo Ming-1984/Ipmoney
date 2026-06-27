@@ -1,5 +1,5 @@
 ﻿import { Picker, View, Text } from '@tarojs/components';
-import Taro, { useDidHide, useDidShow } from '@tarojs/taro';
+import Taro, { useDidHide, useDidShow, useUnload } from '@tarojs/taro';
 import { Button as NativeButton } from '@tarojs/components';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import './index.scss';
@@ -16,14 +16,13 @@ import {
   fetchHomeLandingConfig,
   normalizeHomeLandingConfig,
 } from '../../../lib/homeLandingConfig';
-import { sanitizeIndustryTagNames } from '../../../lib/industryTags';
 import { sanitizeListingTopics } from '../../../lib/listingTopics';
 import { auditStatusLabel, listingStatusLabel, patentTypeLabel, priceTypeLabel, tradeModeLabel, licenseModeLabel } from '../../../lib/labels';
 import { fenToYuan } from '../../../lib/money';
 import { formatRegionPathNames, parseRegionPickerSelection, regionDisplayName } from '../../../lib/regions';
 import { useRouteStringParam } from '../../../lib/routeParams';
 import { chooseImageFiles, chooseMessageFiles, uploadFileToApi } from '../../../lib/upload';
-import { ChipGroup, type ChipOption, IndustryTagsPicker } from '../../../ui/filters';
+import { ChipGroup, type ChipOption } from '../../../ui/filters';
 import { PageHeader, PopupSheet, StickyBar, Surface } from '../../../ui/layout';
 import { Cell, Input, Popup, TextArea, confirm, toast } from '../../../ui/nutui';
 
@@ -89,6 +88,21 @@ const PRICE_TYPE_OPTIONS: Array<{ value: PriceType; label: string }> = [
   { value: 'FIXED', label: '一口价' },
   { value: 'NEGOTIABLE', label: '面议' },
 ];
+
+function isPatentNumberCompleteEnough(input: string): boolean {
+  const cleaned = String(input || '')
+    .trim()
+    .toUpperCase()
+    .replace(/[\s\-_/]/g, '')
+    .replace(/[：:]/g, '')
+    .replace(/^(专利号|申请号|公开号|公告号)/, '');
+  if (!cleaned) return false;
+  const withoutPrefix = cleaned.replace(/^CN/, '').replace(/^ZL/, '');
+  const digits = withoutPrefix.replace(/\./g, '');
+  if (/^(19\d{2}|20\d{2})([123]\d{7}|8\d{7})[\dX]$/.test(digits)) return true;
+  if (/^\d{2}[123]\d{5}[\dX]$/.test(digits)) return true;
+  return /^(?:CN)?\d{7,9}[A-Z]\d?$/.test(cleaned);
+}
 
 function splitList(input: string): string[] {
   return (input || '')
@@ -184,6 +198,10 @@ function mergePlaceholderStyle(extra?: string): string {
   return `${base}${extra}`;
 }
 
+function mergePublishClassName(className?: string): string {
+  return className ? `publish-control ${className}` : 'publish-control';
+}
+
 function pickProofFileName(file: UploadedFile, index: number): string {
   const raw = String(file.fileName || '').trim();
   if (raw) return raw;
@@ -199,6 +217,7 @@ function PublishInput(props: React.ComponentProps<typeof Input>) {
   return (
     <Input
       {...props}
+      className={mergePublishClassName(props.className)}
       placeholderClass={mergePlaceholderClass(props.placeholderClass)}
       placeholderStyle={mergePlaceholderStyle(props.placeholderStyle)}
     />
@@ -209,6 +228,7 @@ function PublishTextArea(props: React.ComponentProps<typeof TextArea>) {
   return (
     <TextArea
       {...props}
+      className={mergePublishClassName(props.className)}
       placeholderClass={mergePlaceholderClass(props.placeholderClass)}
       placeholderStyle={mergePlaceholderStyle(props.placeholderStyle)}
     />
@@ -219,6 +239,7 @@ export default function PublishPatentPage() {
   const initialListingId = useRouteStringParam('listingId') || '';
   const listingRouteIdRef = useRef(initialListingId);
   const pageVisibleRef = useRef(true);
+  const uploadPickerActiveRef = useRef(false);
   const configLoadSeqRef = useRef(0);
   const listingLoadSeqRef = useRef(0);
   const uploadSeqRef = useRef(0);
@@ -251,7 +272,6 @@ export default function PublishPatentPage() {
 
   const [regionCode, setRegionCode] = useState('');
   const [regionName, setRegionName] = useState('');
-  const [industryTags, setIndustryTags] = useState<string[]>([]);
   const [listingTopics, setListingTopics] = useState<ListingTopic[]>([]);
   const [listingTopicOptions, setListingTopicOptions] = useState<Array<{ value: ListingTopic; label: string }>>(() =>
     buildEnabledListingTopicOptions(normalizeHomeLandingConfig(null)),
@@ -271,6 +291,7 @@ export default function PublishPatentPage() {
   });
 
   useDidHide(() => {
+    if (uploadPickerActiveRef.current) return;
     pageVisibleRef.current = false;
     configLoadSeqRef.current += 1;
     listingLoadSeqRef.current += 1;
@@ -282,12 +303,21 @@ export default function PublishPatentPage() {
     setSubmitting(false);
   });
 
+  useUnload(() => {
+    pageVisibleRef.current = false;
+    uploadPickerActiveRef.current = false;
+    configLoadSeqRef.current += 1;
+    listingLoadSeqRef.current += 1;
+    uploadSeqRef.current += 1;
+    saveSeqRef.current += 1;
+    submitSeqRef.current += 1;
+  });
+
   const inventorNames = useMemo(() => splitList(inventorNamesInput), [inventorNamesInput]);
   const assigneeNames = useMemo(() => splitList(assigneeNamesInput), [assigneeNamesInput]);
   const applicantNames = useMemo(() => splitList(applicantNamesInput), [applicantNamesInput]);
   const ipcCodes = useMemo(() => splitList(ipcCodesInput), [ipcCodesInput]);
   const locCodes = useMemo(() => splitList(locCodesInput), [locCodesInput]);
-  const sanitizedIndustryTags = useMemo(() => sanitizeIndustryTagNames(industryTags), [industryTags]);
   const enabledListingTopicSet = useMemo(
     () => new Set<ListingTopic>(listingTopicOptions.map((item) => item.value)),
     [listingTopicOptions],
@@ -328,7 +358,6 @@ export default function PublishPatentPage() {
     setDepositYuan('');
     setRegionCode('');
     setRegionName('');
-    setIndustryTags([]);
     setListingTopics([]);
     setIpcCodesInput('');
     setLocCodesInput('');
@@ -344,8 +373,11 @@ export default function PublishPatentPage() {
       reportWeappDebug('专利上传入口已触发', { listingId: targetListingId || null, source });
       let filePath = '';
       let fileName = '';
+      uploadPickerActiveRef.current = true;
       if (source === 'image') {
-        const chosen = await chooseImageFiles({ count: 1 });
+        const chosen = await chooseImageFiles({ count: 1 }).finally(() => {
+          uploadPickerActiveRef.current = false;
+        });
         reportWeappDebug('图片选择返回', {
           tempFileCount: chosen.length || 0,
           tempFilePath: chosen[0]?.path || '',
@@ -357,6 +389,8 @@ export default function PublishPatentPage() {
           count: 1,
           type: 'file',
           extension: ['pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'jpg', 'jpeg', 'png'],
+        }).finally(() => {
+          uploadPickerActiveRef.current = false;
         });
         reportWeappDebug('文件选择返回', {
           tempFileCount: chosen.length || 0,
@@ -368,6 +402,7 @@ export default function PublishPatentPage() {
       }
       if (!filePath) return;
 
+      pageVisibleRef.current = true;
       if (seq !== uploadSeqRef.current || !pageVisibleRef.current || listingRouteIdRef.current !== targetListingId) return;
       setUploading(true);
       const token = getToken();
@@ -469,7 +504,6 @@ export default function PublishPatentPage() {
 
         setRegionCode(d.regionCode || '');
         setRegionName('');
-        setIndustryTags(sanitizeIndustryTagNames(Array.isArray(d.industryTags) ? d.industryTags : []));
         setListingTopics(sanitizeListingTopics(Array.isArray(d.listingTopics) ? d.listingTopics : []));
         setIpcCodesInput((d.ipcCodes || []).join(', '));
         setLocCodesInput((d.locCodes || []).join(', '));
@@ -495,29 +529,39 @@ export default function PublishPatentPage() {
   const validateAndBuildCreate = useCallback(
     (mode: 'save' | 'submit'): ListingCreateRequest | null => {
       const raw = patentNumberRaw.trim();
-      if (!raw) {
+      if (mode === 'submit' && !raw) {
         toast('请输入专利号/申请号');
         return null;
       }
-      if (!patentType) {
+      if (mode === 'submit' && !patentType) {
         toast('请选择专利类型');
         return null;
       }
-      if (!tradeMode) {
+      if (mode === 'submit' && !tradeMode) {
         toast('请选择交易方式');
         return null;
       }
-      if (tradeMode === 'LICENSE' && !licenseMode) {
+      if (mode === 'submit' && tradeMode === 'LICENSE' && !licenseMode) {
         toast('请选择许可方式');
         return null;
       }
-      if (!priceType) {
+      if (mode === 'submit' && !priceType) {
         toast('请选择价格类型');
         return null;
       }
 
-      const priceAmountFen = priceType === 'FIXED' ? parseMoneyFen(priceYuan) : null;
-      if (priceType === 'FIXED' && priceAmountFen === null) {
+      const effectiveTradeMode = (tradeMode || 'ASSIGNMENT') as TradeMode;
+      const effectivePriceType = (priceType || 'NEGOTIABLE') as PriceType;
+      const shouldAttachPatentNumber = Boolean(raw && patentType && (mode === 'submit' || isPatentNumberCompleteEnough(raw)));
+      if (mode === 'save' && raw && !patentType) {
+        toast('专利类型未填，本次暂不关联专利号');
+      }
+      if (mode === 'save' && raw && patentType && !shouldAttachPatentNumber) {
+        toast('号码格式可能不完整，本次暂不关联专利号');
+      }
+
+      const priceAmountFen = effectivePriceType === 'FIXED' ? parseMoneyFen(priceYuan) : null;
+      if (effectivePriceType === 'FIXED' && priceAmountFen === null) {
         toast('请填写一口价（元）');
         return null;
       }
@@ -541,12 +585,11 @@ export default function PublishPatentPage() {
       });
 
       const req: ListingCreateRequest = {
-        patentNumberRaw: raw,
-        patentType,
-        tradeMode,
-        priceType,
-        ...(tradeMode === 'LICENSE' ? { licenseMode: licenseMode as LicenseMode } : {}),
-        ...(priceType === 'FIXED' ? { priceAmountFen: priceAmountFen as number } : {}),
+        tradeMode: effectiveTradeMode,
+        priceType: effectivePriceType,
+        ...(shouldAttachPatentNumber ? { patentNumberRaw: raw, patentType: patentType as PatentType } : {}),
+        ...(effectiveTradeMode === 'LICENSE' ? { licenseMode: licenseMode as LicenseMode } : {}),
+        ...(effectivePriceType === 'FIXED' ? { priceAmountFen: priceAmountFen as number } : {}),
         ...(depositAmountFen !== null ? { depositAmountFen } : {}),
         ...(title.trim() ? { title: title.trim() } : {}),
         ...(summaryValue ? { summary: summaryValue } : {}),
@@ -554,7 +597,6 @@ export default function PublishPatentPage() {
         ...(assigneeNames.length ? { assigneeNames } : {}),
         ...(applicantNames.length ? { applicantNames } : {}),
         ...(regionCode.trim() ? { regionCode: regionCode.trim() } : {}),
-        ...(sanitizedIndustryTags.length ? { industryTags: sanitizedIndustryTags } : {}),
         ...(effectiveListingTopics.length ? { listingTopics: effectiveListingTopics } : {}),
         ...(ipcCodes.length ? { ipcCodes } : {}),
         ...(locCodes.length ? { locCodes } : {}),
@@ -569,7 +611,6 @@ export default function PublishPatentPage() {
       depositYuan,
       expectedCycle,
       inventorNames,
-      sanitizedIndustryTags,
       effectiveListingTopics,
       ipcCodes,
       licenseMode,
@@ -591,21 +632,23 @@ export default function PublishPatentPage() {
   const buildUpdate = useCallback(
     (mode: 'save' | 'submit'): ListingUpdateRequest | null => {
       if (!listingId) return null;
-      if (!tradeMode) {
+      if (mode === 'submit' && !tradeMode) {
         toast('请选择交易方式');
         return null;
       }
-      if (tradeMode === 'LICENSE' && !licenseMode) {
+      if (mode === 'submit' && tradeMode === 'LICENSE' && !licenseMode) {
         toast('请选择许可方式');
         return null;
       }
-      if (!priceType) {
+      if (mode === 'submit' && !priceType) {
         toast('请选择价格类型');
         return null;
       }
 
-      const priceAmountFen = priceType === 'FIXED' ? parseMoneyFen(priceYuan) : null;
-      if (priceType === 'FIXED' && priceAmountFen === null) {
+      const effectiveTradeMode = (tradeMode || 'ASSIGNMENT') as TradeMode;
+      const effectivePriceType = (priceType || 'NEGOTIABLE') as PriceType;
+      const priceAmountFen = effectivePriceType === 'FIXED' ? parseMoneyFen(priceYuan) : null;
+      if (effectivePriceType === 'FIXED' && priceAmountFen === null) {
         toast('请填写一口价（元）');
         return null;
       }
@@ -629,10 +672,10 @@ export default function PublishPatentPage() {
       });
 
       const req: ListingUpdateRequest = {
-        tradeMode,
-        priceType,
-        ...(tradeMode === 'LICENSE' ? { licenseMode: licenseMode as LicenseMode } : {}),
-        ...(priceType === 'FIXED' ? { priceAmountFen: priceAmountFen as number } : {}),
+        tradeMode: effectiveTradeMode,
+        priceType: effectivePriceType,
+        ...(effectiveTradeMode === 'LICENSE' ? { licenseMode: licenseMode as LicenseMode } : {}),
+        ...(effectivePriceType === 'FIXED' ? { priceAmountFen: priceAmountFen as number } : {}),
         ...(depositAmountFen !== null ? { depositAmountFen } : {}),
         ...(title.trim() ? { title: title.trim() } : {}),
         ...(summaryValue ? { summary: summaryValue } : {}),
@@ -640,7 +683,6 @@ export default function PublishPatentPage() {
         ...(assigneeNames.length ? { assigneeNames } : {}),
         ...(applicantNames.length ? { applicantNames } : {}),
         ...(regionCode.trim() ? { regionCode: regionCode.trim() } : {}),
-        ...(sanitizedIndustryTags.length ? { industryTags: sanitizedIndustryTags } : {}),
         listingTopics: effectiveListingTopics,
         ...(ipcCodes.length ? { ipcCodes } : {}),
         ...(locCodes.length ? { locCodes } : {}),
@@ -655,7 +697,6 @@ export default function PublishPatentPage() {
       depositYuan,
       expectedCycle,
       inventorNames,
-      sanitizedIndustryTags,
       effectiveListingTopics,
       ipcCodes,
       licenseMode,
@@ -1029,15 +1070,6 @@ export default function PublishPatentPage() {
                 <Text className="form-select-arrow">▾</Text>
               </View>
             </Picker>
-          </View>
-
-          <View className="form-field">
-            <Text className="form-label">行业标签</Text>
-            <IndustryTagsPicker
-              value={industryTags}
-              max={8}
-              onChange={(next) => setIndustryTags(sanitizeIndustryTagNames(next))}
-            />
           </View>
 
           <View className="form-field">

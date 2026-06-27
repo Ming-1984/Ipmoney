@@ -73,16 +73,30 @@
   min-height: 80rpx;
 }
 
+.publish-achievement-page .nut-input,
+.publish-achievement-page .nut-input-native,
+.publish-achievement-page .nut-input-native .weui-input,
+.publish-achievement-page .nut-input input,
+.publish-achievement-page .nut-input-inner input,
+.publish-achievement-page .taro-input-core,
+.publish-achievement-page input.publish-control,
+.publish-achievement-page textarea.publish-control {
+  font-size: 24rpx !important;
+  line-height: 1.4;
+}
+
 .publish-achievement-page .nut-input-inner {
   padding: 16rpx 18rpx;
-  font-size: 20rpx;
+  font-size: 24rpx;
   line-height: 1.4;
 }
 
 .publish-achievement-page .nut-input-inner::placeholder,
+.publish-achievement-page .nut-input-native .weui-input::placeholder,
+.publish-achievement-page .nut-input-placeholder,
 .publish-achievement-page .nut-input input::placeholder,
 .publish-achievement-page .nut-textarea textarea::placeholder {
-  font-size: 20rpx;
+  font-size: 20rpx !important;
   color: #c0c4cc;
 }
 
@@ -93,7 +107,14 @@
 }
 
 .publish-achievement-page .nut-textarea textarea {
-  font-size: 22rpx;
+  font-size: 24rpx !important;
+  line-height: 1.4;
+}
+
+.publish-achievement-page .nut-textarea-textarea,
+.publish-achievement-page .nut-textarea-textarea .taro-textarea,
+.publish-achievement-page .taro-textarea {
+  font-size: 24rpx !important;
   line-height: 1.4;
 }
 
@@ -118,7 +139,7 @@
 }
 
 .form-select-value {
-  font-size: 22rpx;
+  font-size: 24rpx;
   color: #111827;
 }
 
@@ -241,6 +262,7 @@
 
 .upload-item-remove-btn {
   flex-shrink: 0;
+  margin-right: -8rpx;
 }
 
 .upload-preview-action-btn,
@@ -269,9 +291,14 @@
 }
 
 .publish-action-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
   height: 72rpx;
   border-radius: 16rpx;
   font-weight: 600;
+  line-height: 72rpx;
+  padding: 0 16rpx;
 }
 
 .publish-action-primary {

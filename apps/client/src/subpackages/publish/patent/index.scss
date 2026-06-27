@@ -86,11 +86,25 @@
 
 .publish-patent-page .nut-input-inner {
   padding: 16rpx 18rpx;
-  font-size: 22rpx;
+  font-size: 24rpx;
+  line-height: 1.4;
+}
+
+.publish-patent-page .nut-input,
+.publish-patent-page .nut-input-native,
+.publish-patent-page .nut-input-native .weui-input,
+.publish-patent-page .nut-input input,
+.publish-patent-page .nut-input-inner input,
+.publish-patent-page .taro-input-core,
+.publish-patent-page input.publish-control,
+.publish-patent-page textarea.publish-control {
+  font-size: 24rpx !important;
   line-height: 1.4;
 }
 
 .publish-patent-page .nut-input input::placeholder,
+.publish-patent-page .nut-input-native .weui-input::placeholder,
+.publish-patent-page .nut-input-placeholder,
 .publish-patent-page .nut-textarea textarea::placeholder {
   font-size: 20rpx;
   color: #c0c4cc;
@@ -113,7 +127,14 @@
 }
 
 .publish-patent-page .nut-textarea textarea {
-  font-size: 22rpx;
+  font-size: 24rpx !important;
+  line-height: 1.4;
+}
+
+.publish-patent-page .nut-textarea-textarea,
+.publish-patent-page .nut-textarea-textarea .taro-textarea,
+.publish-patent-page .taro-textarea {
+  font-size: 24rpx !important;
   line-height: 1.4;
 }
 
@@ -129,7 +150,7 @@
 }
 
 .form-select-value {
-  font-size: 22rpx;
+  font-size: 24rpx;
   color: #111827;
 }
 
@@ -296,6 +317,7 @@
 
 .upload-item-remove {
   min-width: 96rpx;
+  margin-right: -8rpx;
   border: none;
   background: transparent;
   color: #dc2626;

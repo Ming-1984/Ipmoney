@@ -20,8 +20,8 @@ import { getDetailCache, setDetailCache } from '../../lib/detailCache';
 import { displayInitial, displayUserName } from '../../lib/displayText';
 import { ensurePrivacyAuthorizationOrThrow } from '../../lib/privacyAuthorization';
 import { verificationStatusLabel, verificationTypeLabel } from '../../lib/labels';
-import { regionDisplayName } from '../../lib/regions';
-import { ErrorCard, LoadingCard } from '../../ui/StateCards';
+import { ensureRegionNamesReady, profileRegionDisplayName } from '../../lib/regions';
+import { ErrorCard } from '../../ui/StateCards';
 import { Surface } from '../../ui/layout';
 import { Avatar, Button, Input, PullToRefresh, toast } from '../../ui/nutui';
 
@@ -90,6 +90,7 @@ export default function MePage() {
   const verificationSeqRef = useRef(0);
   const loginActionSeqRef = useRef(0);
   const logoutSeqRef = useRef(0);
+  const loadMeRef = useRef<((options?: { silent?: boolean }) => Promise<void>) | null>(null);
   const env = useMemo(() => Taro.getEnv(), []);
   const canWechatLogin = env === Taro.ENV_TYPE.WEAPP;
   const [auth, setAuth] = useState<AuthState>(() => readAuthState());
@@ -112,6 +113,9 @@ export default function MePage() {
     pageVisibleRef.current = true;
     phoneAuthPromptActiveRef.current = false;
     syncAuthState();
+    if (authTokenRef.current) {
+      void loadMeRef.current?.({ silent: true });
+    }
   });
 
   useDidHide(() => {
@@ -205,6 +209,7 @@ export default function MePage() {
     }
     setMeError(null);
     try {
+      await ensureRegionNamesReady();
       const d = await apiGet<Me>('/me');
       if (seq !== loadMeSeqRef.current || !pageVisibleRef.current || authTokenRef.current !== currentToken) return;
       setMe(d);
@@ -220,6 +225,7 @@ export default function MePage() {
       if (!silent) setMeLoading(false);
     }
   }, [auth.token]);
+  loadMeRef.current = loadMe;
 
   const syncVerification = useCallback(async () => {
     if (!auth.token) return;
@@ -467,6 +473,9 @@ export default function MePage() {
     if (opts?.tab) return `${base}&tab=${encodeURIComponent(opts.tab)}`;
     return base;
   }, []);
+  const openProfileSettings = useCallback(() => {
+    Taro.navigateTo({ url: '/subpackages/profile/edit/index' });
+  }, []);
 
   const orderManageItems = useMemo<IconItem[]>(
     () => [
@@ -547,7 +556,7 @@ export default function MePage() {
         key: 'profile',
         label: '资料设置',
         icon: iconMeProfile,
-        onClick: () => Taro.navigateTo({ url: '/subpackages/profile/edit/index' }),
+        onClick: openProfileSettings,
       },
       {
         key: 'about',
@@ -562,13 +571,13 @@ export default function MePage() {
         onClick: () => Taro.navigateTo({ url: '/subpackages/trade-rules/index' }),
       },
     ],
-    [verification.status],
+    [openProfileSettings, verification.status],
   );
 
   const displayName = displayUserName(me, '平台用户');
   const displayInitialText = displayInitial(displayName, '平');
   const displayPhone = me?.phone || '未绑定手机号';
-  const rawRegion = regionDisplayName(me?.regionCode);
+  const rawRegion = profileRegionDisplayName(me?.id, me?.regionCode);
   const displayRegion = rawRegion && rawRegion !== me?.regionCode && !/^\d+$/.test(rawRegion) ? rawRegion : '';
   const displayRegionText = displayRegion || '未设置';
   const orderItems = orderTab === 'orders' ? orderManageItems : publishItems;
@@ -704,7 +713,7 @@ export default function MePage() {
   return (
     <PullToRefresh type="primary" disabled={refreshing} onRefresh={refresh}>
       <View className="container me-page">
-        <View className="me-header">
+        <View className="me-header" onClick={openProfileSettings}>
           <View className="me-header-row">
             <View className="me-avatar-wrap">
               {auth.token && me ? (
@@ -743,7 +752,6 @@ export default function MePage() {
         </View>
 
         <>
-          {meLoading ? <LoadingCard text="加载我的资料…" /> : null}
           {meError ? <ErrorCard message={meError} onRetry={loadMe} /> : null}
 
           <View className="me-order-card">
