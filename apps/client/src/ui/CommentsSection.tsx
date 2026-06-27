@@ -1,4 +1,4 @@
-﻿import { View, Text, Image } from '@tarojs/components';
+﻿import { View, Text, Image, Textarea } from '@tarojs/components';
 import Taro from '@tarojs/taro';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
@@ -28,6 +28,9 @@ type CommentsSectionProps = {
   accent?: SectionHeaderAccent;
   showHeader?: boolean;
   className?: string;
+  composerVariant?: 'inline' | 'bottom-sheet';
+  composerOpen?: boolean;
+  onComposerOpenChange?: (open: boolean) => void;
 };
 
 type ComposerState =
@@ -57,13 +60,16 @@ export function CommentsSection(props: CommentsSectionProps) {
     accent = 'primary',
     showHeader = true,
     className,
+    composerVariant = 'inline',
+    composerOpen,
+    onComposerOpenChange,
   } = props;
   const [threads, setThreads] = useState<CommentThread[]>([]);
   const [pageMeta, setPageMeta] = useState<PageMeta | null>(null);
   const [loading, setLoading] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [composerFocus, setComposerFocus] = useState(false);
+  const [composerOpenInternal, setComposerOpenInternal] = useState(false);
   const [composer, setComposer] = useState<ComposerState>({ mode: 'new' });
   const [composerText, setComposerText] = useState('');
   const [submitting, setSubmitting] = useState(false);
@@ -71,6 +77,15 @@ export function CommentsSection(props: CommentsSectionProps) {
   const [currentUser, setCurrentUser] = useState<Me | null>(null);
   const longPressRef = useRef(false);
   const composerId = 'comment-composer';
+  const isBottomSheetComposer = composerVariant === 'bottom-sheet';
+  const composerVisible = composerOpen ?? composerOpenInternal;
+  const setComposerVisible = useCallback(
+    (open: boolean) => {
+      if (composerOpen === undefined) setComposerOpenInternal(open);
+      onComposerOpenChange?.(open);
+    },
+    [composerOpen, onComposerOpenChange],
+  );
 
   const commentById = useMemo(() => {
     const map = new Map<string, Comment>();
@@ -116,7 +131,8 @@ export function CommentsSection(props: CommentsSectionProps) {
     setPageMeta(null);
     setComposer({ mode: 'new' });
     setComposerText('');
-    setComposerFocus(false);
+    if (composerOpen === undefined) setComposerOpenInternal(false);
+    else onComposerOpenChange?.(false);
     void loadPage(1);
   }, [loadPage]);
 
@@ -144,10 +160,14 @@ export function CommentsSection(props: CommentsSectionProps) {
   const resetComposer = useCallback(() => {
     setComposer({ mode: 'new' });
     setComposerText('');
-    setComposerFocus(false);
-  }, []);
+    setComposerVisible(false);
+  }, [setComposerVisible]);
 
   const focusComposer = useCallback(() => {
+    if (isBottomSheetComposer) {
+      setComposerVisible(true);
+      return;
+    }
     try {
       Taro.pageScrollTo({ selector: `#${composerId}`, duration: 250 });
     } catch (_) {
@@ -155,9 +175,9 @@ export function CommentsSection(props: CommentsSectionProps) {
         Taro.pageScrollTo({ scrollTop: 999999, duration: 250 });
       } catch (_) {}
     }
-    setComposerFocus(false);
-    setTimeout(() => setComposerFocus(true), 200);
-  }, []);
+    setComposerVisible(false);
+    setTimeout(() => setComposerVisible(true), 200);
+  }, [isBottomSheetComposer, setComposerVisible]);
 
   const startReply = useCallback(
     (comment: Comment, focus = true) => {
@@ -314,8 +334,55 @@ export function CommentsSection(props: CommentsSectionProps) {
         : '写下你的留言，共同讨论';
   const submitEnabled = composerText.trim().length > 0 && !submitting;
   const handleComposerBlur = useCallback(() => {
-    setTimeout(() => setComposerFocus(false), 120);
-  }, []);
+    if (isBottomSheetComposer) return;
+    setTimeout(() => setComposerVisible(false), 120);
+  }, [isBottomSheetComposer, setComposerVisible]);
+
+  const closeComposer = useCallback(() => {
+    setComposerVisible(false);
+  }, [setComposerVisible]);
+
+  const composerField = isBottomSheetComposer ? (
+    <Textarea
+      className="comment-composer-floating-input comment-composer-sheet-input"
+      value={composerText}
+      onInput={(e) => setComposerText(e.detail.value)}
+      onConfirm={() => void submit()}
+      confirmType="send"
+      showConfirmBar={false}
+      disableDefaultPadding
+      autoHeight
+      fixed
+      placeholder={composer.mode === 'new' ? '感兴趣就留言，问问更多专利信息~' : composerPlaceholder}
+      placeholderClass="comment-composer-sheet-input-placeholder"
+      placeholderStyle="font-size:28rpx;line-height:40rpx;color:#8f96a3;"
+      maxlength={1000}
+      focus={composerVisible}
+      onBlur={handleComposerBlur}
+    />
+  ) : (
+    <TextArea
+      className="comment-composer-floating-input"
+      value={composerText}
+      onChange={setComposerText}
+      placeholder={composerPlaceholder}
+      maxLength={1000}
+      focus={composerVisible}
+      onBlur={handleComposerBlur}
+    />
+  );
+  const composerSubmitButton = (
+    <Button
+      className="comment-composer-submit"
+      variant={submitEnabled ? 'primary' : 'default'}
+      size="small"
+      block={false}
+      loading={submitting}
+      onClick={() => void submit()}
+    >
+      {composer.mode === 'edit' ? '保存' : isBottomSheetComposer ? '发送' : '发布'}
+    </Button>
+  );
 
   const renderComment = (comment: Comment, options?: { isReply?: boolean }) => {
     const status = normalizeStatus(comment.status);
@@ -384,8 +451,17 @@ export function CommentsSection(props: CommentsSectionProps) {
   return (
     <Surface className={className || ''}>
       {showHeader ? <SectionHeader title={`${title}${total ? `（${total}）` : ''}`} density="compact" accent={accent} /> : null}
-      <View className="comment-composer" id={composerId}>
-        {!composerFocus ? (
+      <View className={`comment-composer ${isBottomSheetComposer ? 'comment-composer-external' : ''}`} id={composerId}>
+        {isBottomSheetComposer ? (
+          <View className="comment-composer-inline comment-composer-entry">
+            <View className="comment-composer-placeholder" onClick={focusComposer}>
+              <View className="comment-composer-entry-icon" />
+              <Text className="comment-composer-placeholder-text">说点什么...</Text>
+            </View>
+          </View>
+        ) : null}
+
+        {!isBottomSheetComposer && !composerVisible ? (
           <View className="comment-composer-inline">
             <Avatar size="32" src={currentUser?.avatarUrl || ''} background="rgba(15, 23, 42, 0.06)" color="var(--c-muted)">
               {displayUserInitial(currentUser || undefined)}
@@ -396,27 +472,23 @@ export function CommentsSection(props: CommentsSectionProps) {
           </View>
         ) : null}
 
-        {composerFocus ? (
+        {!isBottomSheetComposer && composerVisible ? (
           <View className="comment-composer-floating">
-            <TextArea
-              className="comment-composer-floating-input"
-              value={composerText}
-              onChange={setComposerText}
-              placeholder={composerPlaceholder}
-              maxLength={1000}
-              focus={composerFocus}
-              onBlur={handleComposerBlur}
-            />
-            <Button
-              variant={submitEnabled ? 'primary' : 'default'}
-              size="small"
-              block={false}
-              disabled={!submitEnabled}
-              loading={submitting}
-              onClick={() => void submit()}
-            >
-              {composer.mode === 'edit' ? '保存' : '发布'}
-            </Button>
+            {composerField}
+            {composerSubmitButton}
+          </View>
+        ) : null}
+
+        {isBottomSheetComposer && composerVisible ? (
+          <View className="comment-composer-sheet-mask" onClick={closeComposer}>
+            <View className="comment-composer-sheet" onClick={(e) => e.stopPropagation?.()}>
+              <View className="comment-composer-sheet-row">
+                <View className="comment-composer-sheet-input-wrap">
+                  {composerField}
+                </View>
+                {composerSubmitButton}
+              </View>
+            </View>
           </View>
         ) : null}
 

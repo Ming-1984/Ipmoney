@@ -18,6 +18,8 @@ type RegionPickerEventLike = {
 };
 
 type RegionNameMap = Record<string, string>;
+type RegionPathNameMap = Record<string, string>;
+type ProfileRegionPathNameMap = Record<string, string>;
 const HIDDEN_TEST_REGION_NAME_PATTERNS = [
   /^smoke[-_\s/]*region(?:[-_\s/]|$)/i,
   /^e2e[-_\s/]*region(?:[-_\s/]|$)/i,
@@ -35,6 +37,8 @@ const FALLBACK_REGION_NAMES: RegionNameMap = (regionProvinceSeed as Array<Pick<R
 );
 
 let regionNameMapCache: RegionNameMap | null = null;
+let regionPathNameMapCache: RegionPathNameMap | null = null;
+let profileRegionPathNameMapCache: ProfileRegionPathNameMap | null = null;
 let regionNamesReady = false;
 let regionNamesLoading: Promise<void> | null = null;
 
@@ -80,6 +84,54 @@ function writeRegionNameMap(map: RegionNameMap) {
   }
 }
 
+function readRegionPathNameMap(): RegionPathNameMap {
+  if (regionPathNameMapCache) return regionPathNameMapCache;
+  try {
+    const raw = Taro.getStorageSync(STORAGE_KEYS.regionPathNameMap);
+    if (raw && typeof raw === 'object') {
+      regionPathNameMapCache = sanitizeRegionNameMap(raw);
+      return regionPathNameMapCache;
+    }
+  } catch {
+    // ignore
+  }
+  regionPathNameMapCache = {};
+  return regionPathNameMapCache;
+}
+
+function writeRegionPathNameMap(map: RegionPathNameMap) {
+  regionPathNameMapCache = map;
+  try {
+    Taro.setStorageSync(STORAGE_KEYS.regionPathNameMap, map);
+  } catch {
+    // ignore
+  }
+}
+
+function readProfileRegionPathNameMap(): ProfileRegionPathNameMap {
+  if (profileRegionPathNameMapCache) return profileRegionPathNameMapCache;
+  try {
+    const raw = Taro.getStorageSync(STORAGE_KEYS.profileRegionPathNameMap);
+    if (raw && typeof raw === 'object') {
+      profileRegionPathNameMapCache = sanitizeRegionNameMap(raw);
+      return profileRegionPathNameMapCache;
+    }
+  } catch {
+    // ignore
+  }
+  profileRegionPathNameMapCache = {};
+  return profileRegionPathNameMapCache;
+}
+
+function writeProfileRegionPathNameMap(map: ProfileRegionPathNameMap) {
+  profileRegionPathNameMapCache = map;
+  try {
+    Taro.setStorageSync(STORAGE_KEYS.profileRegionPathNameMap, map);
+  } catch {
+    // ignore
+  }
+}
+
 export function cacheRegionNames(nodes: Array<Pick<RegionNode, 'code' | 'name'> | null | undefined>) {
   const map = readRegionNameMap();
   let changed = false;
@@ -94,6 +146,34 @@ export function cacheRegionNames(nodes: Array<Pick<RegionNode, 'code' | 'name'> 
   }
 
   if (changed) writeRegionNameMap(map);
+}
+
+function cacheRegionPathName(code: string, pathNames: string[]) {
+  const c = String(code || '').trim();
+  const pathName = formatRegionPathNames(pathNames);
+  if (!c || !isVisibleRegionName(pathName)) return;
+
+  const map = readRegionPathNameMap();
+  if (map[c] === pathName) return;
+  map[c] = pathName;
+  writeRegionPathNameMap(map);
+}
+
+function buildProfileRegionPathNameKey(profileId?: string | null, code?: string | null): string {
+  const id = String(profileId || '').trim();
+  const c = String(code || '').trim();
+  return id && c ? `${id}:${c}` : '';
+}
+
+export function cacheProfileRegionPathName(profileId?: string | null, code?: string | null, pathName?: string | null) {
+  const key = buildProfileRegionPathNameKey(profileId, code);
+  const name = String(pathName || '').trim();
+  if (!key || !isVisibleRegionName(name)) return;
+
+  const map = readProfileRegionPathNameMap();
+  if (map[key] === name) return;
+  map[key] = name;
+  writeProfileRegionPathNameMap(map);
 }
 
 function normalizeRegionPath(raw: unknown): string[] {
@@ -117,6 +197,32 @@ function looksLikeRegionCode(value: string): boolean {
   return /^\d{2,}$/.test(value);
 }
 
+function normalizeRegionName(name: string): string {
+  return String(name || '').trim();
+}
+
+function findRegionCodeByName(name: string): string {
+  const normalized = normalizeRegionName(name);
+  if (!normalized) return '';
+  const map = readRegionNameMap();
+  for (const [code, itemName] of Object.entries(map)) {
+    if (normalizeRegionName(itemName) === normalized) return code;
+  }
+  return '';
+}
+
+function completePathCodes(pathCodes: string[], pathNames: string[]): string[] {
+  if (pathCodes.length >= pathNames.length || pathNames.length <= 1) return pathCodes;
+
+  const completed = pathNames.map((name) => findRegionCodeByName(name));
+  const selectedCode = pathCodes[pathCodes.length - 1] || '';
+  if (selectedCode && !completed[completed.length - 1]) {
+    completed[completed.length - 1] = selectedCode;
+  }
+
+  return completed.every(Boolean) ? completed : pathCodes;
+}
+
 export type RegionPickerSelection = {
   code: string;
   name: string;
@@ -138,6 +244,8 @@ export function parseRegionPickerSelection(input: unknown): RegionPickerSelectio
   let pathCodes = rawPathCodesFromCode.length ? rawPathCodesFromCode : rawPathCodesFromPostcode;
   let pathNames = rawPathNames;
 
+  pathCodes = completePathCodes(pathCodes, pathNames);
+
   if (!pathCodes.length && rawPathNames.length && rawPathNames.every(looksLikeRegionCode)) {
     pathCodes = rawPathNames;
     pathNames = [];
@@ -145,19 +253,34 @@ export function parseRegionPickerSelection(input: unknown): RegionPickerSelectio
 
   if (!pathCodes.length) return null;
 
-  cacheRegionNames(
-    pathCodes.map((code, index) => ({
-      code,
-      name: pathNames[index] || '',
-    })),
-  );
-
   if (!pathNames.length) {
     pathNames = pathCodes.map((code) => regionNameByCode(code) || '');
   }
 
   const code = pathCodes[pathCodes.length - 1] || '';
   if (!code) return null;
+
+  const nameNodes =
+    pathCodes.length === pathNames.length
+      ? pathCodes.map((itemCode, index) => ({
+          code: itemCode,
+          name: pathNames[index] || '',
+        }))
+      : pathCodes.length === 1 && pathNames.length > 1
+        ? []
+        : pathCodes.length === 1
+          ? [
+              {
+                code,
+                name: pathNames[pathNames.length - 1] || '',
+              },
+            ]
+        : pathCodes.map((itemCode, index) => ({
+            code: itemCode,
+            name: pathNames[index] || '',
+          }));
+  cacheRegionNames(nameNodes);
+  cacheRegionPathName(code, pathNames);
 
   const name = (pathNames[pathNames.length - 1] || regionNameByCode(code) || code).trim();
   const level: RegionLevel = pathCodes.length >= 3 ? 'DISTRICT' : pathCodes.length === 2 ? 'CITY' : 'PROVINCE';
@@ -182,7 +305,30 @@ export function regionDisplayName(code?: string | null, name?: string | null, em
   if (n) return n;
   const c = (code || '').trim();
   if (!c) return empty;
+  const pathName = readRegionPathNameMap()[c];
+  if (pathName) return pathName;
   return regionNameByCode(c) || c;
+}
+
+export function profileRegionDisplayName(
+  profileId?: string | null,
+  code?: string | null,
+  name?: string | null,
+  empty = '-',
+): string {
+  const n = String(name || '').trim();
+  if (n) return n;
+  const key = buildProfileRegionPathNameKey(profileId, code);
+  if (key) {
+    const pathName = readProfileRegionPathNameMap()[key];
+    if (pathName) return pathName;
+  }
+  return regionDisplayName(code, undefined, empty);
+}
+
+export function formatRegionPathNames(pathNames?: string[] | null, fallback = ''): string {
+  const names = (pathNames || []).map((name) => String(name || '').trim()).filter(Boolean);
+  return names.length ? names.join(' ') : fallback.trim();
 }
 
 export function hasRegionNameCache(): boolean {

@@ -39,10 +39,12 @@ export type HomeBannerItem = {
   source: 'remote' | 'fallback';
 };
 
+export const HOME_BANNER_FALLBACK_COVER = bannerFallbackCover;
+
 const DEFAULT_FALLBACK_BANNER: HomeBannerItem = {
   id: 'banner-fallback-default',
   title: '首页推荐',
-  cover: bannerFallbackCover,
+  cover: HOME_BANNER_FALLBACK_COVER,
   mediaType: 'IMAGE',
   linkUrl: '/subpackages/search/index',
   order: 1,

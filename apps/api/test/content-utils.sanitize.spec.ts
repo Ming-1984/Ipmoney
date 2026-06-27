@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import {
   isVisibleIndustryTagName,
   isVisibleServiceTagName,
+  normalizeDisplayText,
   normalizeStringArray,
   sanitizeIndustryTagNames,
   sanitizeServiceTagNames,
@@ -13,6 +14,12 @@ describe('content-utils sanitization suite', () => {
     expect(normalizeStringArray([' AI ', '', 'Robotics'])).toEqual(['AI', 'Robotics']);
     expect(normalizeStringArray('AI, Robotics, ,Energy')).toEqual(['AI', 'Robotics', 'Energy']);
     expect(normalizeStringArray(undefined)).toEqual([]);
+  });
+
+  it('treats corrupted placeholder display text as empty', () => {
+    expect(normalizeDisplayText('???????????')).toBeUndefined();
+    expect(normalizeDisplayText('？？？？')).toBeUndefined();
+    expect(normalizeDisplayText('??? Research')).toBe('??? Research');
   });
 
   it('hides smoke/e2e/qa industry tag artifacts', () => {

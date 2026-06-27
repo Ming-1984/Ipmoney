@@ -54,6 +54,182 @@
   line-height: 1.6;
 }
 
+.comment-composer-external {
+  gap: 10rpx;
+}
+
+.comment-composer-entry {
+  gap: 0;
+}
+
+.comment-composer-entry .comment-composer-placeholder {
+  min-height: 82rpx;
+  padding: 0 24rpx;
+  border-radius: 999rpx;
+  border: 0;
+  background: #f3f4f6;
+  align-items: center;
+  gap: 12rpx;
+}
+
+.comment-composer-entry .comment-composer-placeholder-text {
+  font-size: 28rpx;
+  color: #8f96a3;
+}
+
+.comment-composer-entry-icon {
+  position: relative;
+  width: 34rpx;
+  height: 34rpx;
+  color: #8f96a3;
+  flex-shrink: 0;
+}
+
+.comment-composer-entry-icon::before {
+  content: '';
+  position: absolute;
+  left: 8rpx;
+  top: 16rpx;
+  width: 26rpx;
+  height: 7rpx;
+  border-radius: 999rpx;
+  background: currentColor;
+  transform: rotate(-55deg);
+  transform-origin: left center;
+}
+
+.comment-composer-entry-icon::after {
+  content: '';
+  position: absolute;
+  left: 4rpx;
+  bottom: 5rpx;
+  width: 12rpx;
+  height: 6rpx;
+  border-radius: 2rpx;
+  background: currentColor;
+}
+
+.comment-composer-sheet-mask {
+  position: fixed;
+  inset: 0;
+  z-index: 90;
+  background: rgba(0, 0, 0, 0.32);
+  display: flex;
+  align-items: flex-end;
+}
+
+.comment-composer-sheet {
+  width: 100%;
+  min-height: 392rpx;
+  padding: 28rpx 24rpx calc(28rpx + env(safe-area-inset-bottom));
+  border-radius: 28rpx 28rpx 0 0;
+  background: #ffffff;
+}
+
+.comment-composer-sheet-row {
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+}
+
+.comment-composer-sheet-input-wrap {
+  flex: 1;
+  min-width: 0;
+  min-height: 80rpx;
+  max-height: 200rpx;
+  padding: 20rpx 24rpx;
+  border-radius: 999rpx;
+  background: #f3f4f6;
+  display: flex;
+  align-items: center;
+  gap: 10rpx;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+.comment-composer-sheet-row .comment-composer-floating-input {
+  flex: 1;
+  min-height: 40rpx;
+}
+
+.comment-composer-sheet-input {
+  width: 100%;
+  min-height: 40rpx;
+  max-height: 160rpx;
+  line-height: 40rpx;
+  padding: 0;
+  margin: 0;
+  font-size: 28rpx;
+  color: var(--c-text);
+  background: transparent;
+  border: 0;
+  outline: 0;
+}
+
+.comment-composer-sheet-input-placeholder {
+  line-height: 40rpx;
+  font-size: 28rpx;
+  color: #8f96a3;
+}
+
+.comment-composer-sheet-row .nut-textarea {
+  min-height: 80rpx;
+  height: 80rpx;
+  padding: 0;
+  border-radius: 0;
+  background: transparent;
+  display: flex;
+  align-items: center;
+}
+
+.comment-composer-sheet-row .nut-textarea textarea {
+  min-height: 80rpx;
+  height: 80rpx;
+  line-height: 80rpx;
+  font-size: 28rpx;
+  padding: 0;
+}
+
+.comment-composer-sheet-row .comment-composer-submit {
+  flex-shrink: 0;
+  min-width: 108rpx;
+  height: 80rpx;
+  border-radius: 999rpx;
+  border: 0;
+  background: var(--c-primary);
+  color: #ffffff;
+  font-size: 30rpx;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.comment-composer-sheet-row .comment-composer-submit,
+.comment-composer-sheet-row .comment-composer-submit[disabled],
+.comment-composer-sheet-row .comment-composer-submit.nut-button {
+  background: var(--c-primary);
+  color: #ffffff;
+}
+
+.comment-composer-sheet-row .comment-composer-submit::after {
+  border: 0;
+}
+
+.comment-composer-sheet-row .comment-composer-submit .nut-button__text {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+  background: transparent;
+  color: #ffffff;
+}
+
+.comment-composer-sheet-row .comment-composer-submit[disabled] {
+  background: var(--c-primary);
+  color: #ffffff;
+}
+
 .comment-composer-hint {
   font-size: 22rpx;
   color: var(--c-muted);
@@ -160,5 +336,3 @@
   padding: 14rpx 16rpx;
   border: 1rpx solid #e2e8f0;
 }
-
-

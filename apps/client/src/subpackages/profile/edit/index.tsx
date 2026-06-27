@@ -1,4 +1,4 @@
-import { Button as TaroButton, Text, View } from '@tarojs/components';
+import { Button as TaroButton, Picker, Text, View } from '@tarojs/components';
 import Taro, { useDidHide, useDidShow } from '@tarojs/taro';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import './index.scss';
@@ -12,8 +12,13 @@ import { getDetailCache, setDetailCache } from '../../../lib/detailCache';
 import { displayInitial, displayUserName, normalizeDisplayText } from '../../../lib/displayText';
 import { requireLogin } from '../../../lib/guard';
 import { normalizePageUrl, safeNavigateBack } from '../../../lib/navigation';
-import { openRegionPickerPage } from '../../../lib/regionPicker';
-import { cacheRegionNames, parseRegionPickerSelection, regionDisplayName } from '../../../lib/regions';
+import {
+  cacheProfileRegionPathName,
+  ensureRegionNamesReady,
+  formatRegionPathNames,
+  parseRegionPickerSelection,
+  profileRegionDisplayName,
+} from '../../../lib/regions';
 import { useRouteStringParam } from '../../../lib/routeParams';
 import { chooseImageFiles, uploadFileToApi } from '../../../lib/upload';
 import { ErrorCard, LoadingCard } from '../../../ui/StateCards';
@@ -27,6 +32,29 @@ type FileObject = components['schemas']['FileObject'];
 const PROFILE_CACHE_SCOPE = 'me-profile';
 const PROFILE_CACHE_KEY = 'self';
 const PLACEHOLDER_NICKNAMES = new Set(['New User']);
+
+function buildPublicUploadUrl(fileName?: string | null): string {
+  const safeName = String(fileName || '').trim().split(/[\\/]/).filter(Boolean).pop() || '';
+  if (!safeName) return '';
+  return `${API_BASE_URL.replace(/\/$/, '')}/uploads/${encodeURIComponent(safeName)}`;
+}
+
+async function saveTempFilePath(tempFilePath: string): Promise<string> {
+  const fs =
+    typeof (Taro as any).getFileSystemManager === 'function' ? (Taro as any).getFileSystemManager() : null;
+  if (fs && typeof fs.saveFile === 'function') {
+    return await new Promise<string>((resolve, reject) => {
+      fs.saveFile({
+        tempFilePath,
+        success: (res: any) => resolve(String(res?.savedFilePath || '').trim()),
+        fail: reject,
+      });
+    });
+  }
+
+  const res = await Taro.saveFile({ tempFilePath });
+  return String((res as any)?.savedFilePath || '').trim();
+}
 
 function normalizeNicknameInput(value: string | null | undefined): string {
   const normalized = normalizeDisplayText(value);
@@ -67,6 +95,11 @@ export default function ProfileEditPage() {
   const saveSeqRef = useRef(0);
   const skipSeqRef = useRef(0);
   const actionBusyRef = useRef(false);
+  const selectedRegionNameRef = useRef('');
+
+  useEffect(() => {
+    void ensureRegionNamesReady();
+  }, []);
 
   useDidShow(() => {
     pageVisibleRef.current = true;
@@ -176,8 +209,7 @@ export default function ProfileEditPage() {
       }
     }
     try {
-      const res = await Taro.saveFile({ tempFilePath: localPath });
-      const savedPath = String((res as any)?.savedFilePath || '').trim();
+      const savedPath = await saveTempFilePath(localPath);
       if (savedPath) localPath = savedPath;
     } catch {
       // ignore and fallback
@@ -198,7 +230,7 @@ export default function ProfileEditPage() {
 
       if (typeof parsed.url === 'string' && parsed.url && String(parsed.mimeType || '').startsWith('image/')) {
         if (seq !== uploadSeqRef.current || !pageVisibleRef.current) return false;
-        setAvatarUrl(parsed.url);
+        setAvatarUrl(buildPublicUploadUrl(parsed.fileName) || parsed.url);
         setAvatarRemoteReady(true);
         return true;
       }
@@ -252,26 +284,15 @@ export default function ProfileEditPage() {
   );
 
   const handleRegionChange = useCallback((event: any) => {
-    if (!event) {
-      openRegionPickerPage(({ code, name }) => {
-        setRegionCode(code);
-        setRegionName(name);
-      });
-      return;
-    }
     const parsed = parseRegionPickerSelection(event);
     if (!parsed) {
       toast('地区读取失败，请重试');
       return;
     }
-    cacheRegionNames(
-      parsed.pathCodes.map((code, index) => ({
-        code,
-        name: parsed.pathNames[index] || '',
-      })),
-    );
     setRegionCode(parsed.code);
-    setRegionName(parsed.name);
+    const nextRegionName = formatRegionPathNames(parsed.pathNames, parsed.name);
+    selectedRegionNameRef.current = nextRegionName;
+    setRegionName(nextRegionName);
   }, []);
 
   const save = useCallback(async () => {
@@ -293,11 +314,6 @@ export default function ProfileEditPage() {
       actionBusyRef.current = false;
       return;
     }
-    if (!region) {
-      toast('请选择地区');
-      actionBusyRef.current = false;
-      return;
-    }
     if (nick.length > 50) {
       toast('昵称最多 50 个字符');
       actionBusyRef.current = false;
@@ -305,12 +321,20 @@ export default function ProfileEditPage() {
     }
 
     try {
-      const d = await apiPatch<UserProfile>('/me', {
-        nickname: nick,
-        ...(avatar ? { avatarUrl: avatar } : {}),
-        regionCode: region,
-      });
+      const currentNick = normalizeNicknameInput(me?.nickname || '');
+      const currentAvatar = normalizeDisplayText(me?.avatarUrl || '');
+      const currentRegion = normalizeDisplayText(me?.regionCode || '');
+      const profilePatch = {
+        ...(nick !== currentNick ? { nickname: nick } : {}),
+        ...(avatar && avatar !== currentAvatar ? { avatarUrl: avatar } : {}),
+        ...(region && region !== currentRegion ? { regionCode: region } : {}),
+      };
+      const d =
+        Object.keys(profilePatch).length > 0
+          ? await apiPatch<UserProfile>('/me', profilePatch)
+          : me || (await apiGet<UserProfile>('/me'));
       if (seq !== saveSeqRef.current || !pageVisibleRef.current) return;
+      cacheProfileRegionPathName(d.id, d.regionCode, selectedRegionNameRef.current || regionName);
       setMe(d);
       setDetailCache(PROFILE_CACHE_SCOPE, PROFILE_CACHE_KEY, d);
 
@@ -332,15 +356,21 @@ export default function ProfileEditPage() {
       }, 200);
     } catch (e: any) {
       if (seq !== saveSeqRef.current || !pageVisibleRef.current) return;
+      if (process.env.NODE_ENV !== 'production') {
+        console.error('[profile-edit] save failed', e);
+      }
       toast(e?.message || '保存失败');
     } finally {
       if (seq === saveSeqRef.current) {
         actionBusyRef.current = false;
       }
     }
-  }, [avatarUrl, goNext, nickname, regionCode, resolvedDisplayName, verifyType]);
+  }, [avatarUrl, goNext, me, nickname, regionCode, regionName, resolvedDisplayName, verifyType]);
 
-  const regionText = useMemo(() => regionDisplayName(regionCode, regionName, ''), [regionCode, regionName]);
+  const regionText = useMemo(
+    () => profileRegionDisplayName(me?.id, regionCode, regionName, ''),
+    [me?.id, regionCode, regionName],
+  );
 
   return (
     <View className="container profile-edit-page">
@@ -405,14 +435,14 @@ export default function ProfileEditPage() {
 
               <View className="form-field">
                 <Text className="form-label">地区</Text>
-                <View onClick={handleRegionChange}>
+                <Picker mode="region" level="region" onChange={handleRegionChange}>
                   <View className="form-select">
                     <Text className={regionCode.trim() ? 'form-select-value' : 'form-select-placeholder'}>
                       {regionCode.trim() ? regionText : '请选择'}
                     </Text>
-                    <Text className="form-select-arrow">›</Text>
+                    <Text className="form-select-arrow">{'>'}</Text>
                   </View>
-                </View>
+                </Picker>
               </View>
             </View>
           </Surface>

@@ -225,6 +225,58 @@ describe('AchievementsService admin update suite', () => {
     expect(result.publisher?.verificationStatus).toBeNull();
   });
 
+  it('uses sourceOrgName fallback when verification displayName is a corrupted placeholder', async () => {
+    prisma.achievement.findFirst.mockResolvedValueOnce({
+      id: ACHIEVEMENT_ID,
+      publisherUserId: PUBLISHER_ID,
+      title: 'Achievement A',
+      summary: null,
+      description: null,
+      maturity: null,
+      regionCode: null,
+      coverFileId: null,
+      industryTagsJson: null,
+      keywordsJson: null,
+      cooperationModesJson: null,
+      source: 'PLATFORM',
+      auditStatus: 'APPROVED',
+      status: 'ACTIVE',
+      externalId: 'ext-1',
+      sourceRawCategory: null,
+      sourceRawStatus: null,
+      sourceBatch: null,
+      sourceRawRegion: null,
+      sourceOrgName: 'Source Org Good',
+      stats: null,
+      coverFile: null,
+      media: [],
+      createdAt: new Date('2026-06-15T00:00:00.000Z'),
+    });
+    prisma.user.findMany.mockResolvedValueOnce([
+      {
+        id: PUBLISHER_ID,
+        nickname: 'Publisher A',
+        regionCode: '440600',
+        verifications: [
+          {
+            displayName: '???????????',
+            verificationType: 'COMPANY',
+            verificationStatus: 'APPROVED',
+            regionCode: null,
+            logoFile: null,
+            intro: null,
+            reviewedAt: null,
+          },
+        ],
+      },
+    ]);
+
+    const result = await service.getPublicById({}, ACHIEVEMENT_ID);
+    expect(result.publisher?.displayName).toBe('Source Org Good');
+    expect(result.publisher?.verificationType).toBe('COMPANY');
+    expect(result.publisher?.verificationStatus).toBe('APPROVED');
+  });
+
   it('does not expose placeholder sourceOrgName as publisher fallback', async () => {
     prisma.achievement.findFirst.mockResolvedValueOnce({
       id: ACHIEVEMENT_ID,

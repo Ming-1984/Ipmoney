@@ -709,7 +709,6 @@ export default function SearchPage() {
                     max={8}
                     onChange={(tags) => setDraft((prev) => ({ ...prev, industryTags: sanitizeIndustryTagNames(tags) }))}
                   />
-                  <Text className="text-caption muted">标签数据源：公共产业标签库。</Text>
                   <View className="search-filter-card">
                     <CellGroup divider>
                       <CellRow

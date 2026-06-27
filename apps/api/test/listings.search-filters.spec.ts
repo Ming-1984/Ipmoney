@@ -463,6 +463,25 @@ describe('ListingsService search filter strictness suite', () => {
     });
   });
 
+  it('supports multiple IPC filters as OR classification prefixes', async () => {
+    prisma.listing.findMany.mockResolvedValueOnce([]);
+    prisma.listing.count.mockResolvedValueOnce(0);
+
+    await service.searchPublic({ ipc: 'A21,B65' });
+
+    const args = prisma.listing.findMany.mock.calls[0][0];
+    expect(args.where.patent).toEqual({
+      AND: expect.arrayContaining([
+        {
+          OR: [
+            { classifications: { some: { system: 'IPC', code: { startsWith: 'A21' } } } },
+            { classifications: { some: { system: 'IPC', code: { startsWith: 'B65' } } } },
+          ],
+        },
+      ]),
+    });
+  });
+
   it('supports inventor-only keyword mode via qType=INVENTOR', async () => {
     prisma.listing.findMany.mockResolvedValueOnce([]);
     prisma.listing.count.mockResolvedValueOnce(0);
@@ -534,6 +553,156 @@ describe('ListingsService search filter strictness suite', () => {
         { patent: { parties: { some: { name: { contains: '机器人', mode: 'insensitive' } } } } },
       ]),
     );
+  });
+
+  it('keeps title keyword matches ahead of summary-only matches in AUTO recommended search', async () => {
+    const makeListing = (input: { id: string; title: string; summary: string; createdAt: Date }) => ({
+      id: input.id,
+      patentId: `${input.id}-patent`,
+      source: 'USER',
+      title: input.title,
+      summary: input.summary,
+      deliverablesJson: [],
+      expectedCompletionDays: null,
+      negotiableRangeFen: null,
+      negotiableRangePercent: null,
+      negotiableNote: null,
+      pledgeStatus: null,
+      existingLicenseStatus: null,
+      encumbranceNote: null,
+      tradeMode: 'ASSIGNMENT',
+      licenseMode: null,
+      priceType: 'NEGOTIABLE',
+      priceAmount: null,
+      depositAmount: 0,
+      regionCode: null,
+      industryTagsJson: [],
+      listingTopicsJson: [],
+      featuredLevel: 'NONE',
+      featuredRegionCode: null,
+      featuredRank: null,
+      featuredUntil: null,
+      consultationRouting: 'PLATFORM',
+      auditStatus: 'APPROVED',
+      status: 'ACTIVE',
+      createdAt: input.createdAt,
+      updatedAt: input.createdAt,
+      stats: null,
+      media: [],
+      seller: null,
+      patent: {
+        title: input.title,
+        abstract: input.summary,
+        applicationNoNorm: null,
+        applicationNoDisplay: null,
+        publicationNoDisplay: null,
+        patentNoDisplay: null,
+        grantPublicationNoDisplay: null,
+        parties: [],
+        classifications: [],
+        transferCount: null,
+        patentType: 'INVENTION',
+        filingDate: null,
+        publicationDate: null,
+        grantDate: null,
+        legalStatus: null,
+      },
+    });
+
+    prisma.$queryRaw.mockResolvedValueOnce([]);
+    prisma.listing.findMany.mockResolvedValueOnce([
+      makeListing({
+        id: 'summary-only-newer',
+        title: 'laser machine tool',
+        summary: 'used for composite manufacturing',
+        createdAt: new Date('2026-06-16T09:00:00.000Z'),
+      }),
+      makeListing({
+        id: 'title-match-older',
+        title: 'composite coating process',
+        summary: 'general technology transfer',
+        createdAt: new Date('2026-06-14T09:00:00.000Z'),
+      }),
+    ]);
+
+    const result = await service.searchPublic({ q: 'composite', qType: 'AUTO', sortBy: 'RECOMMENDED' });
+
+    expect(result.items.map((item: any) => item.id)).toEqual(['title-match-older', 'summary-only-newer']);
+  });
+
+  it('keeps Chinese two-character title keyword matches ahead of summary-only matches', async () => {
+    const makeListing = (input: { id: string; title: string; summary: string; createdAt: Date }) => ({
+      id: input.id,
+      patentId: `${input.id}-patent`,
+      source: 'USER',
+      title: input.title,
+      summary: input.summary,
+      deliverablesJson: [],
+      expectedCompletionDays: null,
+      negotiableRangeFen: null,
+      negotiableRangePercent: null,
+      negotiableNote: null,
+      pledgeStatus: null,
+      existingLicenseStatus: null,
+      encumbranceNote: null,
+      tradeMode: 'ASSIGNMENT',
+      licenseMode: null,
+      priceType: 'NEGOTIABLE',
+      priceAmount: null,
+      depositAmount: 0,
+      regionCode: null,
+      industryTagsJson: [],
+      listingTopicsJson: [],
+      featuredLevel: 'NONE',
+      featuredRegionCode: null,
+      featuredRank: null,
+      featuredUntil: null,
+      consultationRouting: 'PLATFORM',
+      auditStatus: 'APPROVED',
+      status: 'ACTIVE',
+      createdAt: input.createdAt,
+      updatedAt: input.createdAt,
+      stats: null,
+      media: [],
+      seller: null,
+      patent: {
+        title: input.title,
+        abstract: input.summary,
+        applicationNoNorm: null,
+        applicationNoDisplay: null,
+        publicationNoDisplay: null,
+        patentNoDisplay: null,
+        grantPublicationNoDisplay: null,
+        parties: [],
+        classifications: [],
+        transferCount: null,
+        patentType: 'INVENTION',
+        filingDate: null,
+        publicationDate: null,
+        grantDate: null,
+        legalStatus: null,
+      },
+    });
+
+    prisma.$queryRaw.mockResolvedValueOnce([]);
+    prisma.listing.findMany.mockResolvedValueOnce([
+      makeListing({
+        id: 'summary-only-newer',
+        title: '组合式多功能激光加工机床',
+        summary: '用于激光与机械复合加工',
+        createdAt: new Date('2026-06-16T09:00:00.000Z'),
+      }),
+      makeListing({
+        id: 'title-match-older',
+        title: '复合涂层制备方法',
+        summary: '通用技术转让',
+        createdAt: new Date('2026-06-14T09:00:00.000Z'),
+      }),
+    ]);
+
+    const result = await service.searchPublic({ q: '复合', qType: 'AUTO', sortBy: 'RECOMMENDED' });
+
+    expect(result.items.map((item: any) => item.id)).toEqual(['title-match-older', 'summary-only-newer']);
   });
 
   it('includes display number and classification matching in qType=KEYWORD mode', async () => {

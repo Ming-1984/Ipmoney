@@ -12,4 +12,3 @@ export { default as Message } from '@nutui/icons-react-taro/dist/es/icons/Messag
 export { default as Photograph } from '@nutui/icons-react-taro/dist/es/icons/Photograph';
 export { default as Search } from '@nutui/icons-react-taro/dist/es/icons/Search';
 export { default as Share2 } from '@nutui/icons-react-taro/dist/es/icons/Share2';
-

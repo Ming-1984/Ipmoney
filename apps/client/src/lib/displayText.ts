@@ -16,10 +16,16 @@ const EMPTY_DISPLAY_TEXT_SET = new Set([
   'none',
 ]);
 
+function isCorruptedPlaceholderText(value: string): boolean {
+  const compact = value.replace(/\s/g, '');
+  return compact.length >= 2 && /^[?\uFF1F\uFFFD]+$/.test(compact);
+}
+
 export function normalizeDisplayText(value: unknown): string {
   const normalized = String(value ?? '').trim();
   if (!normalized) return '';
   if (EMPTY_DISPLAY_TEXT_SET.has(normalized)) return '';
+  if (isCorruptedPlaceholderText(normalized)) return '';
   return normalized;
 }
 

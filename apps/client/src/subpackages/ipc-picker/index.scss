@@ -1,8 +1,10 @@
 .ipc-picker-page {
+  height: 100vh;
   min-height: 100vh;
   background: #ffffff;
   display: flex;
   flex-direction: column;
+  overflow: hidden;
 }
 
 .ipc-picker-search {
@@ -17,11 +19,30 @@
   border: 1rpx solid #e5e7eb;
   border-radius: 999rpx;
   background: #f6f7f9;
+  min-height: 64rpx;
+  display: flex;
+  align-items: center;
 }
 
 .ipc-picker-input .nut-input-inner {
-  padding: 12rpx 18rpx;
-  font-size: 24rpx;
+  padding: 16rpx 20rpx;
+  font-size: 20rpx;
+  line-height: 30rpx;
+}
+
+.ipc-picker-input .nut-input-native,
+.ipc-picker-input .nut-input-inner input,
+.ipc-picker-input .nut-input-native .weui-input {
+  font-size: 20rpx;
+  line-height: 30rpx;
+}
+
+.ipc-picker-input .nut-input-native .weui-input::placeholder,
+.ipc-picker-input .nut-input-placeholder,
+.ipc-picker-input .nut-input input::placeholder {
+  font-size: 20rpx;
+  line-height: 30rpx;
+  color: #9ca3af;
 }
 
 .ipc-picker-version {
@@ -41,22 +62,32 @@
 .ipc-picker-body {
   flex: 1;
   display: flex;
+  height: 0;
   min-height: 0;
 }
 
 .ipc-picker-sections {
   width: 200rpx;
   background: #f7f8fa;
+  height: 100%;
 }
 
 .ipc-picker-sections-inner {
-  padding: 8rpx 0;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
 }
 
 .ipc-section-item {
-  padding: 14rpx 16rpx;
+  flex: 1;
+  min-height: 96rpx;
+  padding: 10rpx 16rpx;
   color: #6b7280;
   border-left: 4rpx solid transparent;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  box-sizing: border-box;
 }
 
 .ipc-section-item.is-active {
@@ -66,13 +97,17 @@
 }
 
 .ipc-section-code {
-  font-size: 22rpx;
+  display: block;
+  font-size: 28rpx;
   font-weight: 600;
+  line-height: 36rpx;
 }
 
 .ipc-section-name {
-  margin-top: 4rpx;
+  display: block;
+  margin-top: 6rpx;
   font-size: 20rpx;
+  line-height: 28rpx;
 }
 
 .ipc-picker-list {
@@ -137,4 +172,3 @@
   font-size: 20rpx;
   color: #9ca3af;
 }
-

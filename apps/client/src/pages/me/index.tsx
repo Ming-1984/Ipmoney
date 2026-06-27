@@ -18,7 +18,7 @@ import { DEMO_LOGIN_ENABLED } from '../../constants';
 import { apiGet, apiPost } from '../../lib/api';
 import { getDetailCache, setDetailCache } from '../../lib/detailCache';
 import { displayInitial, displayUserName } from '../../lib/displayText';
-import { ensurePrivacyAuthorizationOrThrow, isWeappPrivacyEnvironment } from '../../lib/privacyAuthorization';
+import { ensurePrivacyAuthorizationOrThrow } from '../../lib/privacyAuthorization';
 import { verificationStatusLabel, verificationTypeLabel } from '../../lib/labels';
 import { regionDisplayName } from '../../lib/regions';
 import { ErrorCard, LoadingCard } from '../../ui/StateCards';
@@ -92,7 +92,6 @@ export default function MePage() {
   const logoutSeqRef = useRef(0);
   const env = useMemo(() => Taro.getEnv(), []);
   const canWechatLogin = env === Taro.ENV_TYPE.WEAPP;
-  const privacyReady = useMemo(() => isWeappPrivacyEnvironment(), []);
   const [auth, setAuth] = useState<AuthState>(() => readAuthState());
   const syncAuthState = useCallback(() => {
     const next = readAuthState();
@@ -150,7 +149,7 @@ export default function MePage() {
   const [refreshing, setRefreshing] = useState(false);
   const [busy, setBusy] = useState(false);
   const [agree, setAgree] = useState(false);
-  const [showSms, setShowSms] = useState(false);
+  const agreementConfirmingRef = useRef(false);
   const [phone, setPhone] = useState('');
   const [smsCode, setSmsCode] = useState('');
   const [cooldown, setCooldown] = useState(0);
@@ -165,10 +164,28 @@ export default function MePage() {
     return () => clearTimeout(t);
   }, [cooldown]);
 
-  const ensureAgreement = useCallback(() => {
+  const ensureAgreement = useCallback(async () => {
     if (agree) return true;
-    toast('请先阅读并同意《用户服务协议》和《隐私政策》');
-    return false;
+    if (agreementConfirmingRef.current) return false;
+    agreementConfirmingRef.current = true;
+    try {
+      const res = await Taro.showModal({
+        title: '请先确认协议',
+        content: '请确认已阅读并同意《用户服务协议》及《隐私政策》。',
+        confirmText: '同意',
+        cancelText: '取消',
+        showCancel: true,
+      });
+      const ok = Boolean(res.confirm);
+      if (ok) setAgree(true);
+      return ok;
+    } catch (error) {
+      console.warn('[me] agreement modal failed', error);
+      toast('协议确认弹窗打开失败，请稍后重试');
+      return false;
+    } finally {
+      agreementConfirmingRef.current = false;
+    }
   }, [agree]);
 
   const loadMe = useCallback(async (options?: { silent?: boolean }) => {
@@ -354,7 +371,7 @@ export default function MePage() {
       const errMsg = String(e?.detail?.errMsg || '').toLowerCase();
       if (!phoneCode) {
         if (errMsg.includes('deny') || errMsg.includes('cancel')) {
-          toast('你已取消微信手机号授权，可改用短信验证码登录');
+          toast('你已取消微信手机号授权，可改用验证码登录');
           return;
         }
         toast('未获取到手机号，请重试');
@@ -368,7 +385,7 @@ export default function MePage() {
 
   const demoLogin = useCallback(async () => {
     if (!DEMO_LOGIN_ENABLED || busy) return;
-    if (!ensureAgreement()) return;
+    if (!(await ensureAgreement())) return;
     const seq = ++loginActionSeqRef.current;
     setBusy(true);
     try {
@@ -388,7 +405,7 @@ export default function MePage() {
 
   const sendSms = useCallback(async () => {
     if (busy) return;
-    if (!ensureAgreement()) return;
+    if (!(await ensureAgreement())) return;
     const p = phone.trim();
     if (!p) {
       toast('请输入手机号');
@@ -413,7 +430,7 @@ export default function MePage() {
 
   const verifySms = useCallback(async () => {
     if (busy) return;
-    if (!ensureAgreement()) return;
+    if (!(await ensureAgreement())) return;
     const p = phone.trim();
     const c = smsCode.trim();
     if (!p) {
@@ -560,88 +577,124 @@ export default function MePage() {
     return (
       <View className="container me-page me-page-locked page-locked">
         <View className="me-login-wrap">
-          <Image className="me-login-ill" src={brandLogoPng} mode="aspectFit" />
-          <Text className="me-login-title">登录解锁专利点金台</Text>
-          <View className={`me-login-actions ${showSms ? 'is-expanded' : ''}`}>
-            {DEMO_LOGIN_ENABLED ? (
-              <Button
-                className="me-login-btn me-login-btn-demo"
-                variant="default"
-                loading={busy}
-                disabled={busy}
-                onClick={() => void demoLogin()}
-              >
-                开发一键登录
-              </Button>
-            ) : null}
-            <Button
-              className="me-login-btn me-login-btn-phone"
-              variant="default"
-              onClick={() => setShowSms((v) => !v)}
-            >
-              短信验证码登录
-            </Button>
-            {canWechatLogin ? (
-              <TaroButton
-                className="me-login-btn me-login-btn-quick me-login-btn-wechat"
-                disabled={busy || !agree || !privacyReady}
-                loading={busy}
-                openType="getPhoneNumber"
-                onClick={() => {
-                  phoneAuthPromptActiveRef.current = true;
-                }}
-                onGetPhoneNumber={onQuickWechatPhoneLogin}
-              >
-                微信手机号快捷登录
-              </TaroButton>
-            ) : null}
-          </View>
-          {showSms ? (
-            <View className="me-login-panel">
-              <View className="me-login-field">
-                <Text className="me-login-label">手机号</Text>
-                <View className="me-login-input">
-                  <Input value={phone} onChange={setPhone} placeholder="请输入手机号" type="digit" clearable />
-                </View>
-              </View>
-
-              <View style={{ height: '10rpx' }} />
-              <Button
-                className="me-login-send"
-                variant="default"
-                loading={busy}
-                disabled={busy || cooldown > 0}
-                onClick={() => void sendSms()}
-              >
-                {cooldown > 0 ? `重新发送(${cooldown}s)` : '发送验证码'}
-              </Button>
-
-              <View style={{ height: '12rpx' }} />
-              <View className="me-login-field">
-                <Text className="me-login-label">验证码</Text>
-                <View className="me-login-input">
-                  <Input value={smsCode} onChange={setSmsCode} placeholder="请输入短信验证码" type="digit" clearable />
-                </View>
-              </View>
-
-              <View style={{ height: '12rpx' }} />
-              <Button className="me-login-submit" loading={busy} disabled={busy} onClick={() => void verifySms()}>
-                登录
-              </Button>
+          <View className="me-login-brand">
+            <View className="me-login-brand-bg" />
+            <Image className="me-login-ill" src={brandLogoPng} mode="aspectFit" />
+            <Text className="me-login-title">登录解锁专利点金台</Text>
+            <View className="me-login-desc">
+              <Text className="me-login-desc-line">登录后可收藏、咨询、下单</Text>
+              <Text className="me-login-desc-line">主体需审核通过后可交易</Text>
             </View>
-          ) : null}
-          <View className="me-login-agreement">
-            <Text className="me-login-agreement-check" onClick={() => setAgree((v) => !v)}>
-              {agree ? '[x]' : '[ ]'}
-            </Text>
-            <Text className="me-login-agreement-text">我已阅读并同意</Text>
-            <Text className="me-login-agreement-link" onClick={() => Taro.navigateTo({ url: '/subpackages/legal/terms/index' })}>
-              《用户服务协议》
-            </Text>
-            <Text className="me-login-agreement-text">和</Text>
-            <Text className="me-login-agreement-link" onClick={() => Taro.navigateTo({ url: '/subpackages/legal/privacy/index' })}>
-              《隐私政策》
-            </Text>
+          </View>
+
+          <View className="me-login-card">
+            {DEMO_LOGIN_ENABLED ? (
+              <View className="me-login-dev-panel">
+                <Button
+                  className="me-login-btn me-login-btn-demo"
+                  variant="default"
+                  loading={busy}
+                  disabled={busy}
+                  onClick={() => void demoLogin()}
+                >
+                  开发一键登录
+                </Button>
+              </View>
+            ) : null}
+
+            <View className="me-login-field-row me-login-phone-row">
+              <Text className="me-login-label">+86</Text>
+              <View className="me-login-input">
+                <Input
+                  value={phone}
+                  onChange={setPhone}
+                  placeholder="请输入手机号"
+                  placeholderClass="me-login-placeholder"
+                  placeholderStyle="font-size:24rpx;color:#b9ada2;"
+                  type="digit"
+                  clearable
+                  cursorColor="#1a1108"
+                />
+              </View>
+            </View>
+
+            <View className="me-login-field-row me-login-code-row">
+              <View className="me-login-input">
+                <Input
+                  value={smsCode}
+                  onChange={setSmsCode}
+                  placeholder="请输入短信验证码"
+                  placeholderClass="me-login-placeholder"
+                  placeholderStyle="font-size:24rpx;color:#b9ada2;"
+                  type="digit"
+                  clearable
+                  cursorColor="#1a1108"
+                />
+              </View>
+              <View
+                className={`me-login-send ${busy || cooldown > 0 ? 'is-disabled' : ''}`}
+                hoverClass={busy || cooldown > 0 ? 'none' : 'me-login-send-active'}
+                onClick={() => {
+                  if (busy || cooldown > 0) return;
+                  void sendSms();
+                }}
+              >
+                {cooldown > 0 ? `${cooldown}s重发` : '获取验证码'}
+              </View>
+            </View>
+
+            <View className="me-login-agreement">
+              <View className={`me-login-agreement-check ${agree ? 'is-checked' : ''}`} onClick={() => setAgree((v) => !v)}>
+                <Text className="me-login-agreement-check-mark">{agree ? '✓' : ''}</Text>
+              </View>
+              <Text className="me-login-agreement-text">我已阅读并同意</Text>
+              <Text className="me-login-agreement-link" onClick={() => Taro.navigateTo({ url: '/subpackages/legal/terms/index' })}>
+                《用户服务协议》
+              </Text>
+              <Text className="me-login-agreement-text">及</Text>
+              <Text className="me-login-agreement-link" onClick={() => Taro.navigateTo({ url: '/subpackages/legal/privacy/index' })}>
+                《隐私政策》
+              </Text>
+            </View>
+
+            <Button className="me-login-submit" loading={busy} disabled={busy} onClick={() => void verifySms()}>
+              登录
+            </Button>
+
+            {canWechatLogin ? (
+              <>
+                <View className="me-login-divider">
+                  <View className="me-login-divider-line" />
+                  <Text className="me-login-divider-text">或</Text>
+                  <View className="me-login-divider-line" />
+                </View>
+                {agree ? (
+                  <TaroButton
+                    className="me-login-btn me-login-btn-quick me-login-btn-wechat"
+                    hoverClass="me-login-btn-wechat-active"
+                    disabled={busy}
+                    loading={busy}
+                    openType="getPhoneNumber"
+                    onClick={() => {
+                      phoneAuthPromptActiveRef.current = true;
+                    }}
+                    onGetPhoneNumber={onQuickWechatPhoneLogin}
+                  >
+                    微信快捷登录
+                  </TaroButton>
+                ) : (
+                  <View
+                    className="me-login-btn me-login-btn-quick me-login-btn-wechat"
+                    hoverClass="me-login-btn-wechat-active"
+                    onClick={() => {
+                      void ensureAgreement();
+                    }}
+                  >
+                    微信快捷登录
+                  </View>
+                )}
+              </>
+            ) : null}
           </View>
         </View>
       </View>

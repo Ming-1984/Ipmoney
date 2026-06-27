@@ -134,6 +134,7 @@ describe('BearerAuthGuard strictness suite', () => {
       id: userId,
       role: 'operator',
       nickname: 'Signed Op',
+      wechatOpenid: 'openid-operator-1',
     });
     prisma.rbacUserRole.findMany.mockResolvedValueOnce([]);
     prisma.rbacRole.findMany.mockResolvedValueOnce([]);
@@ -147,6 +148,7 @@ describe('BearerAuthGuard strictness suite', () => {
     expect(req.auth.userId).toBe(userId);
     expect(req.auth.isAdmin).toBe(true);
     expect(req.auth.roleNames).toEqual(['operator']);
+    expect(req.auth.wechatOpenid).toBe('openid-operator-1');
   });
 
   it('accepts uuid token when enabled and derives fallback operator permissions', async () => {

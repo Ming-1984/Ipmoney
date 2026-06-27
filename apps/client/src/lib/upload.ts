@@ -88,7 +88,7 @@ export async function chooseImageFiles(options: {
 
 export async function chooseMessageFiles(options: {
   count: number;
-  type: 'image' | 'file';
+  type: 'all' | 'image' | 'file';
   extension?: string[];
 }): Promise<PickedLocalFile[]> {
   if (typeof Taro.chooseMessageFile !== 'function') {
@@ -98,7 +98,7 @@ export async function chooseMessageFiles(options: {
     await requireWeChatPrivacyAuthorizedOrThrow();
     const chosen = await Taro.chooseMessageFile({
       count: Math.max(1, options.count),
-      type: options.type,
+      type: options.type as any,
       extension: options.extension,
     });
     return (((chosen as any)?.tempFiles || []) as Array<{ path?: string; name?: string }>)
@@ -111,7 +111,7 @@ export async function chooseMessageFiles(options: {
       })
       .filter((file) => Boolean(file.path));
   } catch (error: any) {
-    throw normalizePickerError(error, options.type === 'file' ? 'message-file' : 'message-image');
+    throw normalizePickerError(error, options.type === 'image' ? 'message-image' : 'message-file');
   }
 }
 

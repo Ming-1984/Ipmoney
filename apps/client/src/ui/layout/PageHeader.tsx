@@ -102,7 +102,7 @@ export function PageHeader(props: {
           <View className="page-navbar-native-side page-navbar-native-side-left">
             {showBack ? (
               <View className="page-header-back" onClick={onBackClick}>
-                <ArrowLeft size={18} color="var(--c-text)" />
+                <ArrowLeft size={18} color="#111827" />
               </View>
             ) : showBrand ? (
               <View className="page-navbar-logo">
@@ -128,7 +128,7 @@ export function PageHeader(props: {
         title={
           renderTitle('page-navbar-title')
         }
-        back={showBack ? <ArrowLeft size={18} color="var(--c-text)" /> : undefined}
+        back={showBack ? <ArrowLeft size={18} color="#111827" /> : undefined}
         onBackClick={onBackClick}
         left={
           showBrand ? (

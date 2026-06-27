@@ -71,6 +71,7 @@ export default function ListingDetailPage() {
   const [patentError, setPatentError] = useState<string | null>(null);
   const [patentData, setPatentData] = useState<Patent | null>(null);
   const [favoritedState, setFavoritedState] = useState(false);
+  const [favoriteCountOffset, setFavoriteCountOffset] = useState(0);
   const [activeTab, setActiveTab] = useState('overview');
   const [tabsStuck, setTabsStuck] = useState(false);
   const tabsOffsetTopRef = useRef<number | null>(null);
@@ -132,6 +133,7 @@ export default function ListingDetailPage() {
     listingIdRef.current = listingId;
     if (!listingId) return;
     setFavoritedState(isFavorited(listingId));
+    setFavoriteCountOffset(0);
   }, [listingId]);
 
   useEffect(() => {
@@ -144,6 +146,7 @@ export default function ListingDetailPage() {
       setPatentLoading(false);
       setPatentError(null);
       setFavoritedState(false);
+      setFavoriteCountOffset(0);
       setActiveTab('overview');
       setTabsStuck(false);
       tabsOffsetTopRef.current = null;
@@ -342,19 +345,22 @@ export default function ListingDetailPage() {
       if (favoritedState) {
         await unfavorite(listingId);
         setFavoritedState(false);
+        setFavoriteCountOffset((count) => Math.max(count - 1, -(data?.stats?.favoriteCount ?? 0)));
         toast('已取消收藏', { icon: 'success' });
         return;
       }
       await favorite(listingId);
       setFavoritedState(true);
+      setFavoriteCountOffset((count) => count + 1);
       toast('已收藏', { icon: 'success' });
     } catch (e: any) {
       toast(e?.message || '操作失败');
     }
-  }, [favoritedState, listingId]);
+  }, [data?.stats?.favoriteCount, favoritedState, listingId]);
 
   const isOwnListing = Boolean(data?.seller?.id && currentUserId && data.seller.id === currentUserId);
   const hasValidDepositAmount = Boolean(data && Number.isFinite(data.depositAmountFen) && data.depositAmountFen > 0);
+  const favoriteCountText = String(Math.max(0, (data?.stats?.favoriteCount ?? 0) + favoriteCountOffset));
   const tradeButtonText = isOwnListing
     ? '我的专利'
     : !hasValidDepositAmount
@@ -464,7 +470,7 @@ export default function ListingDetailPage() {
             </>
           ) : null}
 
-          <View className="detail-tabs">
+          <View className="detail-tabs listing-detail-tabs">
             <View className="detail-tabs-scroll">
               {tabs.map((tab) => (
                 <Text
@@ -643,7 +649,7 @@ export default function ListingDetailPage() {
             ) : null}
 
             <View className="detail-section listing-detail-block" id="listing-comments">
-              <CommentsSection contentId={listingId} />
+              <CommentsSection contentId={listingId} composerVariant="bottom-sheet" />
             </View>
 
           </View>
@@ -653,22 +659,22 @@ export default function ListingDetailPage() {
 
       {data ? (
         <StickyBar>
-          <View className="detail-sticky-icons">
+          <View className="listing-detail-sticky-icons detail-sticky-icons">
             <TaroButton className="detail-tool" openType="share" hoverClass="none">
               <View className="detail-tool-icon">
-                <Share2 size={16} />
+                <Share2 size={22} />
               </View>
               <Text>分享</Text>
             </TaroButton>
             <View className={`detail-tool ${favoritedState ? 'is-active' : ''}`} onClick={() => void toggleFavorite()}>
               <View className="detail-tool-icon">
-                {favoritedState ? <HeartFill size={16} color="#ff4d4f" /> : <Heart size={16} />}
+                {favoritedState ? <HeartFill size={22} color="#ff4d4f" /> : <Heart size={22} />}
               </View>
-              <Text>{favoritedState ? '已收藏' : '收藏'}</Text>
+              <Text>{favoriteCountText}</Text>
             </View>
           </View>
 
-          <View className="detail-sticky-buttons">
+          <View className="listing-detail-sticky-buttons detail-sticky-buttons">
             <Button
               variant="default"
               onClick={() => {

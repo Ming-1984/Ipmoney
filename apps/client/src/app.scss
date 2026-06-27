@@ -146,13 +146,13 @@ body {
   overflow: hidden;
 }
 
+/* #ifdef H5 */
 /* A11y baseline for H5: visible focus + reduced motion */
 :focus-visible {
   outline: 2px solid var(--c-primary);
   outline-offset: 2px;
 }
 
-/* #ifdef H5 */
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
@@ -806,9 +806,9 @@ scroll-view {
 }
 
 .page-navbar {
-  margin-left: calc(-1 * var(--page-padding));
-  margin-right: calc(-1 * var(--page-padding));
-  margin-top: calc(-1 * var(--page-padding));
+  margin-left: calc(0rpx - var(--page-padding));
+  margin-right: calc(0rpx - var(--page-padding));
+  margin-top: calc(0rpx - var(--page-padding));
   margin-bottom: var(--space-2);
 
   --nutui-navbar-height: var(--tap-target);
@@ -914,11 +914,11 @@ scroll-view {
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  background: rgba(15, 23, 42, 0.04);
+  background: transparent;
 }
 
 .page-header-back:active {
-  background: rgba(15, 23, 42, 0.07);
+  background: rgba(15, 23, 42, 0.05);
 }
 
 .page-header-left {
@@ -1250,6 +1250,23 @@ scroll-view {
   display: flex;
   justify-content: center;
   padding: 16rpx 0 24rpx;
+}
+
+.list-footer-more,
+.list-footer-more.nut-button {
+  border: 0;
+  box-shadow: none;
+  background: transparent;
+  color: var(--c-primary);
+  padding: 0 12rpx;
+}
+
+.list-footer-more::after {
+  border: 0;
+}
+
+.list-footer-more:active {
+  background: rgba(235, 92, 32, 0.06);
 }
 
 .list-footer-text {

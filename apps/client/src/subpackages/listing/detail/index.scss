@@ -75,3 +75,101 @@
   flex: 1;
 }
 
+.listing-detail-sticky-icons {
+  flex: 0 0 136rpx;
+  gap: 16rpx;
+  min-width: 136rpx;
+  justify-content: space-between;
+}
+
+.listing-detail-sticky-icons .detail-tool {
+  width: 60rpx;
+  min-width: 60rpx;
+  gap: 4rpx;
+  color: #6b7280;
+  font-size: 20rpx;
+  line-height: 1;
+}
+
+.listing-detail-sticky-icons .detail-tool-icon,
+.listing-detail-sticky-icons .detail-tool.is-active .detail-tool-icon {
+  width: 46rpx;
+  height: 46rpx;
+  border-radius: 0;
+  background: transparent;
+}
+
+.listing-detail-sticky-icons .detail-tool-icon {
+  color: #111827;
+}
+
+.listing-detail-sticky-icons .detail-tool.is-active {
+  color: #6b7280;
+  font-weight: 400;
+}
+
+.listing-detail-sticky-buttons {
+  flex: 1 1 auto;
+  width: 0;
+  min-width: 0;
+  gap: 10rpx;
+}
+
+.listing-detail-sticky-buttons .nut-button {
+  height: 72rpx;
+  border-radius: 18rpx;
+  border: 0;
+  font-size: 24rpx;
+  font-weight: 700;
+  padding-left: 8rpx;
+  padding-right: 8rpx;
+}
+
+.listing-detail-sticky-buttons .nut-button:first-child {
+  flex: 0 0 39%;
+  background: #f3f4f6;
+  color: #111827;
+}
+
+.listing-detail-sticky-buttons .nut-button:first-child::after {
+  border: 0;
+}
+
+.listing-detail-sticky-buttons .nut-button:last-child {
+  flex: 1;
+}
+
+.listing-detail-tabs .detail-tabs-scroll {
+  align-items: center;
+  min-height: 64rpx;
+  margin: 0;
+}
+
+.listing-detail-tabs .detail-tab {
+  position: relative;
+  display: flex;
+  align-items: center;
+  height: 64rpx;
+  padding-bottom: 0;
+  border-bottom: 0;
+  line-height: 1;
+}
+
+.listing-detail-tabs .detail-tab::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 8rpx;
+  height: 4rpx;
+  border-radius: 999rpx;
+  background: transparent;
+}
+
+.listing-detail-tabs .detail-tab.is-active {
+  border-color: transparent;
+}
+
+.listing-detail-tabs .detail-tab.is-active::after {
+  background: var(--c-primary);
+}

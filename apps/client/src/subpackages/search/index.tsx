@@ -1,4 +1,4 @@
-import { View, Text, Input } from '@tarojs/components';
+import { View, Text, Input, Picker } from '@tarojs/components';
 import Taro, { useDidHide, useDidShow } from '@tarojs/taro';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import './index.scss';
@@ -17,7 +17,7 @@ import {
 import { achievementMaturityLabel, patentTypeLabel, priceTypeLabel, tradeModeLabel } from '../../lib/labels';
 import { sanitizeIndustryTagNames } from '../../lib/industryTags';
 import { fenToYuanInt } from '../../lib/money';
-import { ensureRegionNamesReady, regionDisplayName } from '../../lib/regions';
+import { ensureRegionNamesReady, formatRegionPathNames, parseRegionPickerSelection, regionDisplayName } from '../../lib/regions';
 import type { ChipOption } from '../../ui/filters';
 import { AchievementCard } from '../../ui/AchievementCard';
 import { ListingCard } from '../../ui/ListingCard';
@@ -31,7 +31,7 @@ import { usePagedList } from '../../lib/usePagedList';
 import { ListFooter } from '../../ui/ListFooter';
 import emptySearchNone from '../../assets/illustrations/empty-search-none.svg';
 import { STORAGE_KEYS } from '../../constants';
-import { openRegionPickerPage } from '../../lib/regionPicker';
+import { Close } from '../../ui/icons';
 
 type ListingSummary = components['schemas']['ListingSummary'];
 type PagedListingSummary = components['schemas']['PagedListingSummary'];
@@ -50,6 +50,11 @@ type TransferCountRange = '' | 'ZERO' | 'ONE' | 'TWO_PLUS';
 
 type Conversation = { id: string };
 
+type IpcFilterItem = {
+  code: string;
+  name: string;
+};
+
 type ListingFilters = {
   patentType: PatentType | '';
   tradeMode: TradeMode | '';
@@ -64,6 +69,7 @@ type ListingFilters = {
   regionName?: string;
   ipc: string;
   ipcName?: string;
+  ipcItems?: IpcFilterItem[];
   loc: string;
   legalStatus: LegalStatus | '';
   industryTags: string[];
@@ -93,6 +99,7 @@ const LISTING_FILTER_DEFAULT: ListingFilters = {
   priceType: '',
   ipc: '',
   ipcName: '',
+  ipcItems: [],
   loc: '',
   legalStatus: '',
   industryTags: [],
@@ -109,6 +116,48 @@ const ACHIEVEMENT_FILTER_DEFAULT: AchievementFilters = {
   regionCode: undefined,
   regionName: undefined,
 };
+
+const IPC_FILTER_MAX = 8;
+
+function splitFilterList(value?: string): string[] {
+  return String(value || '')
+    .split(/[,\uFF0C]/)
+    .map((item) => item.trim())
+    .filter(Boolean);
+}
+
+function normalizeIpcFilterItems(items?: IpcFilterItem[], ipc?: string, ipcName?: string): IpcFilterItem[] {
+  const out: IpcFilterItem[] = [];
+  const seen = new Set<string>();
+  const push = (item: Partial<IpcFilterItem>) => {
+    const code = String(item.code || '').trim().toUpperCase();
+    if (!code || seen.has(code)) return;
+    seen.add(code);
+    out.push({ code, name: String(item.name || code).trim() || code });
+  };
+
+  if (Array.isArray(items)) items.forEach(push);
+
+  const names = String(ipcName || '')
+    .split('||')
+    .map((item) => item.trim());
+  splitFilterList(ipc).forEach((code, index) => push({ code, name: names[index] || code }));
+  return out.slice(0, IPC_FILTER_MAX);
+}
+
+function applyIpcFilterItems(base: ListingFilters, items: IpcFilterItem[]): ListingFilters {
+  const normalized = normalizeIpcFilterItems(items);
+  return {
+    ...base,
+    ipcItems: normalized,
+    ipc: normalized.map((item) => item.code).join(','),
+    ipcName: normalized.map((item) => item.name).join('||'),
+  };
+}
+
+function formatIpcLabel(item: IpcFilterItem): string {
+  return item.name && item.name !== item.code ? `${item.code} ${item.name}` : item.code;
+}
 
 const PATENT_TYPE_OPTIONS: ChipOption<PatentType | ''>[] = [
   { value: '', label: '全部类型' },
@@ -331,7 +380,7 @@ export default function SearchPage() {
       const nextIndustryTags = Array.isArray(prefill.industryTags)
         ? sanitizeIndustryTagNames(prefill.industryTags)
         : sanitizeIndustryTagNames(base.industryTags);
-      return {
+      const next = {
         ...base,
         patentType: prefill.patentType ?? base.patentType,
         tradeMode: prefill.tradeMode ?? base.tradeMode,
@@ -344,8 +393,6 @@ export default function SearchPage() {
         transferCountMax: prefill.transferCountMax ?? base.transferCountMax,
         regionCode: prefill.regionCode ?? base.regionCode,
         regionName: prefill.regionName ?? base.regionName,
-        ipc: prefill.ipc ?? base.ipc,
-        ipcName: prefill.ipcName ?? base.ipcName,
         loc: prefill.loc ?? base.loc,
         legalStatus: prefill.legalStatus ?? base.legalStatus,
         industryTags: nextIndustryTags,
@@ -353,6 +400,7 @@ export default function SearchPage() {
         clusterId: prefill.clusterId ?? base.clusterId,
         clusterName: prefill.clusterName ?? base.clusterName,
       };
+      return applyIpcFilterItems(next, normalizeIpcFilterItems(prefill.ipcItems, prefill.ipc ?? base.ipc, prefill.ipcName ?? base.ipcName));
     });
     setSearchSeq((prev) => prev + 1);
   }, []);
@@ -383,7 +431,8 @@ export default function SearchPage() {
       if (listingFilters.depositMax !== undefined) params.depositMax = listingFilters.depositMax;
       if (listingFilters.transferCountMin !== undefined) params.transferCountMin = listingFilters.transferCountMin;
       if (listingFilters.transferCountMax !== undefined) params.transferCountMax = listingFilters.transferCountMax;
-      if (listingFilters.ipc.trim()) params.ipc = listingFilters.ipc.trim();
+      const ipcItems = normalizeIpcFilterItems(listingFilters.ipcItems, listingFilters.ipc, listingFilters.ipcName);
+      if (ipcItems.length) params.ipc = ipcItems.map((item) => item.code).join(',');
       if (listingFilters.loc.trim()) params.loc = listingFilters.loc.trim();
       if (listingFilters.legalStatus) params.legalStatus = listingFilters.legalStatus;
       const listingIndustryTags = sanitizeIndustryTagNames(listingFilters.industryTags);
@@ -534,7 +583,9 @@ export default function SearchPage() {
     const legalLabel = legalStatusLabelShort(listingFilters.legalStatus);
     if (legalLabel) out.push(legalLabel);
     if (listingFilters.industryTags.length) out.push(...listingFilters.industryTags.slice(0, 3));
-    if (listingFilters.ipcName || listingFilters.ipc) out.push(`IPC ${listingFilters.ipcName || listingFilters.ipc}`);
+    normalizeIpcFilterItems(listingFilters.ipcItems, listingFilters.ipc, listingFilters.ipcName)
+      .slice(0, 3)
+      .forEach((item) => out.push(`IPC ${formatIpcLabel(item)}`));
     if (listingFilters.loc) out.push(`LOC ${listingFilters.loc}`);
     return out.filter(Boolean);
   }, [listingFilters, listingTopicLabelMap]);
@@ -712,34 +763,57 @@ export default function SearchPage() {
                     max={8}
                     onChange={(tags) => setDraft((prev) => ({ ...prev, industryTags: sanitizeIndustryTagNames(tags) }))}
                   />
-                  <Text className="text-caption muted">标签数据源：公共产业标签库。</Text>
-                  <View className="search-filter-card">
-                    <CellGroup divider>
-                      <CellRow
-                        clickable
-                        title="IPC 分类"
-                        description="支持按 IPC 类别 筛选"
-                        extra={<Text className="muted">{draft.ipcName || draft.ipc || '不限'}</Text>}
-                        isLast
-                        onClick={() =>
-                          openIpcPicker(({ code, name }) => {
-                            setDraft((prev) => ({ ...prev, ipc: code, ipcName: name }));
-                          })
-                        }
-                      />
-                    </CellGroup>
-                  </View>
-                  {draft.ipc ? (
-                    <Button
-                      className="search-filter-clear"
-                      variant="ghost"
-                      size="small"
-                      block={false}
-                      onClick={() => setDraft((prev) => ({ ...prev, ipc: '', ipcName: '' }))}
+                  <View className="search-ipc-control">
+                    <View className="search-ipc-tags">
+                      {normalizeIpcFilterItems(draft.ipcItems, draft.ipc, draft.ipcName).length ? (
+                        normalizeIpcFilterItems(draft.ipcItems, draft.ipc, draft.ipcName).map((item) => (
+                          <View key={item.code} className="search-ipc-pill">
+                            <Text className="search-ipc-pill-text">{formatIpcLabel(item)}</Text>
+                            <View
+                              className="search-ipc-pill-remove"
+                              onClick={(event) => {
+                                event.stopPropagation();
+                                setDraft((prev) =>
+                                  applyIpcFilterItems(
+                                    prev,
+                                    normalizeIpcFilterItems(prev.ipcItems, prev.ipc, prev.ipcName).filter((current) => current.code !== item.code),
+                                  ),
+                                );
+                              }}
+                            >
+                              <Close size={9} color="#ff7a18" />
+                            </View>
+                          </View>
+                        ))
+                      ) : (
+                        <Text className="search-ipc-placeholder">支持按 IPC 类别筛选</Text>
+                      )}
+                    </View>
+                    <View className="search-ipc-divider" />
+                    <View
+                      className="search-ipc-select"
+                      onClick={() =>
+                        openIpcPicker(({ code, name }) => {
+                          setDraft((prev) => {
+                            const current = normalizeIpcFilterItems(prev.ipcItems, prev.ipc, prev.ipcName);
+                            if (current.some((item) => item.code === code)) return prev;
+                            if (current.length >= IPC_FILTER_MAX) {
+                              toast(`最多选择 ${IPC_FILTER_MAX} 个 IPC 类别`);
+                              return prev;
+                            }
+                            return applyIpcFilterItems(prev, [...current, { code, name }]);
+                          });
+                        })
+                      }
                     >
-                      清空 IPC
-                    </Button>
-                  ) : null}
+                      <Text>选择</Text>
+                    </View>
+                    {normalizeIpcFilterItems(draft.ipcItems, draft.ipc, draft.ipcName).length ? (
+                      <View className="search-ipc-clear" onClick={() => setDraft((prev) => applyIpcFilterItems(prev, []))}>
+                        <Text>清空</Text>
+                      </View>
+                    ) : null}
+                  </View>
                 </FilterSection>
 
                 <FilterSection title="转让次数">
@@ -820,38 +894,46 @@ export default function SearchPage() {
                 </FilterSection>
 
               <FilterSection title="地区">
-                <View className="search-filter-card">
-                  <CellGroup divider>
-                    <CellRow
-                      clickable
-                      title="地区"
-                      description="按行政区划选择"
-                      extra={
-                        <Text className="muted">
-                          {regionDisplayName(draft.regionCode, draft.regionName, '不限')}
-                        </Text>
-                      }
-                      isLast
-                      onClick={() =>
-                        openRegionPickerPage(({ code, name }) => {
-                          setDraft((prev) => ({ ...prev, regionCode: code, regionName: name }));
-                        })
-                      }
-                    />
-                  </CellGroup>
-                </View>
-                  {draft.regionCode ? (
-                    <Button
-                      className="search-filter-clear"
-                      variant="ghost"
-                      size="small"
-                      block={false}
-                      onClick={() => setDraft((prev) => ({ ...prev, regionCode: undefined, regionName: undefined }))}
-                    >
-                      清空地区
-                    </Button>
-                  ) : null}
-                </FilterSection>
+                <Picker
+                  mode="region"
+                  level="region"
+                  onChange={(event) => {
+                    const parsed = parseRegionPickerSelection(event);
+                    if (!parsed) {
+                      toast('地区读取失败，请重试');
+                      return;
+                    }
+                    setDraft((prev) => ({
+                      ...prev,
+                      regionCode: parsed.code,
+                      regionName: formatRegionPathNames(parsed.pathNames, parsed.name),
+                    }));
+                  }}
+                >
+                  <View className="search-filter-card">
+                    <CellGroup divider>
+                      <CellRow
+                        clickable
+                        title="地区"
+                        description={draft.regionCode ? regionDisplayName(draft.regionCode, draft.regionName, '') : '按行政区划选择'}
+                        extra={<Text className="muted">{draft.regionCode ? '已选' : '不限'}</Text>}
+                        isLast
+                      />
+                    </CellGroup>
+                  </View>
+                </Picker>
+                {draft.regionCode ? (
+                  <Button
+                    className="search-filter-clear"
+                    variant="ghost"
+                    size="small"
+                    block={false}
+                    onClick={() => setDraft((prev) => ({ ...prev, regionCode: undefined, regionName: undefined }))}
+                  >
+                    清空地区
+                  </Button>
+                ) : null}
+              </FilterSection>
 
                 <FilterSection title="LOC">
                   <Input
@@ -895,24 +977,34 @@ export default function SearchPage() {
               </FilterSection>
 
               <FilterSection title="地区">
-                <View className="search-filter-card">
-                  <CellGroup divider>
-                    <CellRow
-                      clickable
-                      title="地区"
-                      description="按行政区划选择"
-                      extra={
-                        <Text className="muted">{regionDisplayName(draft.regionCode, draft.regionName, '不限')}</Text>
-                      }
-                      isLast
-                      onClick={() =>
-                        openRegionPickerPage(({ code, name }) => {
-                          setDraft((prev) => ({ ...prev, regionCode: code, regionName: name }));
-                        })
-                      }
-                    />
-                  </CellGroup>
-                </View>
+                <Picker
+                  mode="region"
+                  level="region"
+                  onChange={(event) => {
+                    const parsed = parseRegionPickerSelection(event);
+                    if (!parsed) {
+                      toast('地区读取失败，请重试');
+                      return;
+                    }
+                    setDraft((prev) => ({
+                      ...prev,
+                      regionCode: parsed.code,
+                      regionName: formatRegionPathNames(parsed.pathNames, parsed.name),
+                    }));
+                  }}
+                >
+                  <View className="search-filter-card">
+                    <CellGroup divider>
+                      <CellRow
+                        clickable
+                        title="地区"
+                        description={draft.regionCode ? regionDisplayName(draft.regionCode, draft.regionName, '') : '按行政区划选择'}
+                        extra={<Text className="muted">{draft.regionCode ? '已选' : '不限'}</Text>}
+                        isLast
+                      />
+                    </CellGroup>
+                  </View>
+                </Picker>
                 {draft.regionCode ? (
                   <Button
                     className="search-filter-clear"

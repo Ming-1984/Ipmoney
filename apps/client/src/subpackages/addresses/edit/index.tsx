@@ -1,12 +1,11 @@
-import { Switch, Text, View } from '@tarojs/components';
+import { Picker, Switch, Text, View } from '@tarojs/components';
 import Taro, { useDidHide, useDidShow } from '@tarojs/taro';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import './index.scss';
 
 import { apiDelete, apiGet, apiPatch, apiPost } from '../../../lib/api';
 import { usePageAccess } from '../../../lib/guard';
-import { openRegionPickerPage } from '../../../lib/regionPicker';
-import { regionDisplayName } from '../../../lib/regions';
+import { formatRegionPathNames, parseRegionPickerSelection, regionDisplayName } from '../../../lib/regions';
 import { useRouteStringParam } from '../../../lib/routeParams';
 import { AccessGate } from '../../../ui/PageState';
 import { PageHeader, Spacer, Surface } from '../../../ui/layout';
@@ -270,20 +269,26 @@ export default function AddressEditPage() {
         </View>
         <View className="form-field">
           <Text className="form-label">{TEXT.regionLabel}</Text>
-          <View
-            className="address-region-select"
-            onClick={() =>
-              openRegionPickerPage(({ code, name: nextName }) => {
-                setRegionCode(code);
-                setRegionName(nextName);
-              })
-            }
+          <Picker
+            mode="region"
+            level="region"
+            onChange={(event) => {
+              const parsed = parseRegionPickerSelection(event);
+              if (!parsed) {
+                toast('地区读取失败，请重试');
+                return;
+              }
+              setRegionCode(parsed.code);
+              setRegionName(formatRegionPathNames(parsed.pathNames, parsed.name));
+            }}
           >
-            <Text className={regionLabel ? 'address-region-value' : 'address-region-placeholder'}>
-              {regionLabel || TEXT.regionPlaceholder}
-            </Text>
-            <Text className="address-region-arrow">›</Text>
-          </View>
+            <View className="address-region-select">
+              <Text className={regionLabel ? 'address-region-value' : 'address-region-placeholder'}>
+                {regionLabel || TEXT.regionPlaceholder}
+              </Text>
+              <Text className="address-region-arrow">{'>'}</Text>
+            </View>
+          </Picker>
           {regionCode ? (
             <Text
               className="address-region-clear"

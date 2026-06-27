@@ -59,6 +59,11 @@ type ConversationMessageDto = {
   senderUserId: string;
   type: ConversationMessageType;
   text?: string | null;
+  fileId?: string | null;
+  fileUrl?: string | null;
+  fileName?: string | null;
+  mimeType?: string | null;
+  sizeBytes?: number | null;
   createdAt: string;
 };
 
@@ -967,6 +972,13 @@ export class ConversationsService {
         text: m.text ?? undefined,
         fileId: m.fileId ?? undefined,
         fileUrl: resolvePublicFileUrl(m.file, { baseUrl: process.env.BASE_URL }) ?? undefined,
+        ...(m.file
+          ? {
+              fileName: m.file.fileName ?? undefined,
+              mimeType: m.file.mimeType ?? undefined,
+              sizeBytes: m.file.sizeBytes ?? undefined,
+            }
+          : {}),
         createdAt: m.createdAt.toISOString(),
       })),
       nextCursor,
@@ -978,19 +990,36 @@ export class ConversationsService {
     const normalizedConversationId = this.parseUuidStrict(conversationId, 'conversationId');
     const hasType = Object.prototype.hasOwnProperty.call(body || {}, 'type');
     const type = hasType ? String(body?.type ?? '').trim().toUpperCase() : 'TEXT';
-    if (type !== 'TEXT' && type !== 'EMOJI') {
+    if (type !== 'TEXT' && type !== 'EMOJI' && type !== 'IMAGE' && type !== 'FILE') {
       throw new BadRequestException({ code: 'BAD_REQUEST', message: 'invalid message type' });
     }
     const text = String(body?.text || '').trim();
-    if (!text) throw new BadRequestException({ code: 'BAD_REQUEST', message: 'text is required' });
+    if ((type === 'TEXT' || type === 'EMOJI') && !text) {
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: 'text is required' });
+    }
 
     const conv = await this.prisma.conversation.findUnique({ where: { id: normalizedConversationId } });
     if (!conv) throw new NotFoundException({ code: 'NOT_FOUND', message: 'conversation not found' });
     await this.assertConversationAccessible(conv, req.auth.userId);
-    if (process.env.NODE_ENV !== 'production' && process.env.WECHAT_CONTENT_SECURITY_ENFORCE !== '1') {
+    let file: any = null;
+    let fileId: string | undefined;
+    if (type === 'IMAGE' || type === 'FILE') {
+      fileId = this.parseUuidStrict(body?.fileId, 'fileId');
+      file = await this.prisma.file.findUnique({ where: { id: fileId } });
+      if (!file || String(file.ownerId || '') !== String(req.auth.userId || '')) {
+        throw new BadRequestException({ code: 'BAD_REQUEST', message: 'fileId is invalid' });
+      }
+      const isImage = String(file.mimeType || '').toLowerCase().startsWith('image/');
+      if (type === 'IMAGE' && !isImage) {
+        throw new BadRequestException({ code: 'BAD_REQUEST', message: 'fileId is invalid' });
+      }
+    }
+
+    if ((type === 'TEXT' || type === 'EMOJI') && process.env.NODE_ENV !== 'production' && process.env.WECHAT_CONTENT_SECURITY_ENFORCE !== '1') {
       // Keep local chat flow usable during WeChat MP dev / webview debugging.
-    } else {
+    } else if (type === 'TEXT' || type === 'EMOJI') {
       await this.contentSecurity.assertSafeText(text, {
+        openid: req.auth.wechatOpenid,
         requestMeta: {
           actorUserId: req.auth.userId,
           targetType: 'CONVERSATION',
@@ -1004,7 +1033,8 @@ export class ConversationsService {
         conversationId: normalizedConversationId,
         senderUserId: req.auth.userId,
         type: type as ConversationMessageType,
-        text,
+        text: text || null,
+        fileId,
       },
     });
 
@@ -1018,7 +1048,16 @@ export class ConversationsService {
       conversationId: msg.conversationId,
       senderUserId: msg.senderUserId,
       type: msg.type as ConversationMessageType,
-      text: msg.text,
+      text: msg.text ?? undefined,
+      fileId: msg.fileId ?? undefined,
+      fileUrl: resolvePublicFileUrl(file, { baseUrl: process.env.BASE_URL }) ?? undefined,
+      ...(file
+        ? {
+            fileName: file.fileName ?? undefined,
+            mimeType: file.mimeType ?? undefined,
+            sizeBytes: file.sizeBytes ?? undefined,
+          }
+        : {}),
       createdAt: msg.createdAt.toISOString(),
     };
   }
@@ -1300,6 +1339,3 @@ export class ConversationsService {
     };
   }
 }
-
-
-

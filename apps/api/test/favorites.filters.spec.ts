@@ -187,6 +187,55 @@ describe('FavoritesService list filter strictness suite', () => {
     expect(result.items[0].publisher?.verificationStatus).toBeNull();
   });
 
+  it('uses sourceOrgName fallback for achievement favorites when publisher formal displayName is corrupted', async () => {
+    prisma.achievementFavorite.findMany.mockResolvedValueOnce([
+      {
+        achievement: {
+          id: 'a-1',
+          publisherUserId: 'publisher-1',
+          source: 'PLATFORM',
+          title: 'Achievement A',
+          summary: null,
+          maturity: null,
+          cooperationModesJson: [],
+          regionCode: null,
+          industryTagsJson: [],
+          keywordsJson: [],
+          sourceOrgName: 'Source Org Good',
+          stats: null,
+          auditStatus: 'APPROVED',
+          status: 'ACTIVE',
+          coverFile: null,
+          createdAt: new Date('2026-06-17T00:00:00.000Z'),
+        },
+      },
+    ]);
+    prisma.achievementFavorite.count.mockResolvedValueOnce(1);
+    prisma.user.findMany.mockResolvedValueOnce([
+      {
+        id: 'publisher-1',
+        regionCode: null,
+        verifications: [
+          {
+            displayName: '???????????',
+            verificationType: 'COMPANY',
+            verificationStatus: 'APPROVED',
+            regionCode: null,
+            logoFile: null,
+            intro: null,
+            reviewedAt: null,
+          },
+        ],
+      },
+    ]);
+
+    const result = await service.listAchievementFavorites(req, {});
+
+    expect(result.items[0].publisher?.displayName).toBe('Source Org Good');
+    expect(result.items[0].publisher?.verificationType).toBe('COMPANY');
+    expect(result.items[0].publisher?.verificationStatus).toBe('APPROVED');
+  });
+
   it('filters achievement favorites by public visibility at query layer', async () => {
     prisma.achievementFavorite.findMany.mockResolvedValueOnce([]);
     prisma.achievementFavorite.count.mockResolvedValueOnce(0);

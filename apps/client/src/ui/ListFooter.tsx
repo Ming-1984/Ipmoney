@@ -15,7 +15,7 @@ export function ListFooter(props: {
   return (
     <View className="list-footer">
       {props.hasMore ? (
-        <Button variant="ghost" size="small" block={false} loading={props.loadingMore} onClick={props.onLoadMore}>
+        <Button className="list-footer-more" variant="ghost" size="small" block={false} loading={props.loadingMore} onClick={props.onLoadMore}>
           加载更多
         </Button>
       ) : showNoMore ? (

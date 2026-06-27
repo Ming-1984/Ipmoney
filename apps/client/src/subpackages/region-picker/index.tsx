@@ -6,6 +6,7 @@ import './index.scss';
 import { STORAGE_KEYS } from '../../constants';
 import {
   cacheRegionNames,
+  formatRegionPathNames,
   parseRegionPickerSelection,
   regionDisplayName,
   type RegionPickerSelection,
@@ -28,7 +29,7 @@ export default function RegionPickerPage() {
 
   const selectedPathLabel = useMemo(() => {
     if (selectedRegion?.pathNames?.length) {
-      return selectedRegion.pathNames.join(' / ');
+      return formatRegionPathNames(selectedRegion.pathNames);
     }
     return regionDisplayName(selectedRegion?.code, selectedRegion?.name, '\u672a\u9009\u62e9');
   }, [selectedRegion]);

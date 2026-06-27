@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 240" fill="none">
+  <path d="M43 139C43 102.549 76.879 73 118.67 73C160.461 73 194.34 102.549 194.34 139C194.34 175.451 160.461 205 118.67 205C76.879 205 43 175.451 43 139Z" fill="#F1F2F4"/>
+  <path d="M37 156C37 146.059 73.489 138 118.5 138C163.511 138 200 146.059 200 156C200 165.941 163.511 174 118.5 174C73.489 174 37 165.941 37 156Z" fill="#D7D8DA"/>
+  <path d="M72.5 88.5H157.5L174 132.5V151.5C174 158.127 168.627 163.5 162 163.5H68C61.373 163.5 56 158.127 56 151.5V132.5L72.5 88.5Z" fill="#FFFFFF" stroke="#A8AAAD" stroke-width="4" stroke-linejoin="round"/>
+  <path d="M75 94L62 132H94L101 146H130L137 132H168L155 94H75Z" fill="#F8F8F9" stroke="#A8AAAD" stroke-width="4" stroke-linejoin="round"/>
+  <path d="M91 128H96.5L103.5 142H127.5L134.5 128H140" stroke="#C1C3C6" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M127 43H191C197.627 43 203 48.373 203 55V91C203 97.627 197.627 103 191 103H162L137 119V103H127C120.373 103 115 97.627 115 91V55C115 48.373 120.373 43 127 43Z" fill="#FFFFFF" stroke="#A8AAAD" stroke-width="4" stroke-linejoin="round"/>
+  <path d="M144 73C144 76.314 141.314 79 138 79C134.686 79 132 76.314 132 73C132 69.686 134.686 67 138 67C141.314 67 144 69.686 144 73Z" fill="#A8AAAD"/>
+  <path d="M165 73C165 76.314 162.314 79 159 79C155.686 79 153 76.314 153 73C153 69.686 155.686 67 159 67C162.314 67 165 69.686 165 73Z" fill="#A8AAAD"/>
+  <path d="M186 73C186 76.314 183.314 79 180 79C176.686 79 174 76.314 174 73C174 69.686 176.686 67 180 67C183.314 67 186 69.686 186 73Z" fill="#A8AAAD"/>
+  <path d="M55 72H91" stroke="#E5E7EB" stroke-width="8" stroke-linecap="round"/>
+  <path d="M39 91H69" stroke="#E5E7EB" stroke-width="8" stroke-linecap="round"/>
+  <path d="M174 125H205" stroke="#E5E7EB" stroke-width="8" stroke-linecap="round"/>
+</svg>

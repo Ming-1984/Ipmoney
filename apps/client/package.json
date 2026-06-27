@@ -11,10 +11,12 @@
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "clean:weapp": "node -e \"require('node:fs').rmSync('dist/weapp', { recursive: true, force: true })\"",
     "check:weapp-dist-pages": "node ../../scripts/check-weapp-dist-pages.mjs --app-json dist/weapp/app.json",
+    "compat:weapp-devtools": "node ../../scripts/ensure-weapp-devtools-compat.mjs --root dist/weapp",
+    "fix:weapp-chat-subcommon": "node ../../scripts/inline-weapp-chat-subcommon.mjs --root dist/weapp",
     "dev:weapp": "taro build --type weapp --watch",
     "dev:weapp:local-api": "set TARO_APP_API_BASE_URL_OVERRIDE=http://127.0.0.1:3200&& taro build --type weapp --watch",
-    "rebuild:weapp": "pnpm run clean:weapp && taro build --type weapp && pnpm run check:weapp-dist-pages",
-    "rebuild:weapp:local-api": "set TARO_APP_API_BASE_URL_OVERRIDE=http://127.0.0.1:3200&& pnpm run clean:weapp && taro build --type weapp && pnpm run check:weapp-dist-pages",
+    "rebuild:weapp": "pnpm run clean:weapp && taro build --type weapp && pnpm run fix:weapp-chat-subcommon && pnpm run compat:weapp-devtools && pnpm run check:weapp-dist-pages",
+    "rebuild:weapp:local-api": "set TARO_APP_API_BASE_URL_OVERRIDE=http://127.0.0.1:3200&& pnpm run clean:weapp && taro build --type weapp && pnpm run fix:weapp-chat-subcommon && pnpm run compat:weapp-devtools && pnpm run check:weapp-dist-pages",
     "build:weapp": "pnpm run rebuild:weapp"
   },
   "dependencies": {

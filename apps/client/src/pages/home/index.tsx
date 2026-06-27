@@ -38,7 +38,12 @@ import {
   resolveHomeLandingZoneImage,
 } from '../../lib/homeLandingFeatured';
 import { fetchHomeAnnouncements, type PublicHomeAnnouncementItem } from '../../lib/homeAnnouncements';
-import { buildHomeBannerItems, type BannerConfig, type HomeBannerItem } from '../../lib/homeBannerConfig';
+import {
+  buildHomeBannerItems,
+  HOME_BANNER_FALLBACK_COVER,
+  type BannerConfig,
+  type HomeBannerItem,
+} from '../../lib/homeBannerConfig';
 import { isTabPageUrl, normalizePageUrl } from '../../lib/navigation';
 import { EmptyCard, ErrorCard } from '../../ui/StateCards';
 import { PullToRefresh, toast } from '../../ui/nutui';
@@ -88,6 +93,12 @@ async function openBannerLink(linkUrl?: string) {
 }
 
 const HomeBanner = React.memo(function HomeBanner({ items }: { items: HomeBannerItem[] }) {
+  const [failedCoverIds, setFailedCoverIds] = useState<Set<string>>(() => new Set());
+
+  useEffect(() => {
+    setFailedCoverIds(new Set());
+  }, [items]);
+
   if (!items.length) return null;
   const shouldAutoplay = items.length > 1;
 
@@ -118,7 +129,21 @@ const HomeBanner = React.memo(function HomeBanner({ items }: { items: HomeBanner
                 }
               }}
             >
-              <Image src={item.cover} mode="aspectFill" className="home-banner-img" lazyLoad />
+              <Image
+                src={failedCoverIds.has(item.id) ? HOME_BANNER_FALLBACK_COVER : item.cover}
+                mode="aspectFill"
+                className="home-banner-img"
+                lazyLoad
+                onError={() => {
+                  if (item.cover === HOME_BANNER_FALLBACK_COVER) return;
+                  setFailedCoverIds((prev) => {
+                    if (prev.has(item.id)) return prev;
+                    const next = new Set(prev);
+                    next.add(item.id);
+                    return next;
+                  });
+                }}
+              />
               <View className="home-banner-overlay">
                 <Text className="home-banner-caption">
                   {item.mediaType === 'VIDEO' && item.videoUrl ? '点击观看' : item.linkUrl ? '点击查看' : normalizeDisplayText(item.title) || '查看内容'}

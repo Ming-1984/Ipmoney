@@ -55,6 +55,9 @@ describe('ConversationsService write flow suite', () => {
         create: vi.fn(),
         count: vi.fn(),
       },
+      file: {
+        findUnique: vi.fn(),
+      },
       conversationAgent: {
         findFirst: vi.fn(),
         findUnique: vi.fn(),
@@ -498,7 +501,7 @@ describe('ConversationsService write flow suite', () => {
   it('sendMessage validates payload and participant boundary', async () => {
     const req = { auth: { userId: 'buyer-1' } };
 
-    await expect(service.sendMessage(req, CONVERSATION_ID, { type: 'FILE', text: 'x' })).rejects.toBeInstanceOf(
+    await expect(service.sendMessage(req, CONVERSATION_ID, { type: 'REFERENCE', text: 'x' })).rejects.toBeInstanceOf(
       BadRequestException,
     );
     await expect(service.sendMessage(req, CONVERSATION_ID, { text: '   ' })).rejects.toBeInstanceOf(
@@ -517,7 +520,8 @@ describe('ConversationsService write flow suite', () => {
   });
 
   it('sendMessage persists normalized message and bumps conversation lastMessageAt', async () => {
-    const req = { auth: { userId: 'buyer-1' } };
+    process.env.WECHAT_CONTENT_SECURITY_ENFORCE = '1';
+    const req = { auth: { userId: 'buyer-1', wechatOpenid: 'openid-buyer-1' } };
     prisma.conversation.findUnique.mockResolvedValueOnce({
       id: CONVERSATION_ID,
       buyerUserId: 'buyer-1',
@@ -538,6 +542,7 @@ describe('ConversationsService write flow suite', () => {
     expect(contentSecurity.assertSafeText).toHaveBeenCalledWith(
       'hello',
       expect.objectContaining({
+        openid: 'openid-buyer-1',
         requestMeta: expect.objectContaining({ actorUserId: 'buyer-1', targetId: CONVERSATION_ID }),
       }),
     );
@@ -561,6 +566,77 @@ describe('ConversationsService write flow suite', () => {
       text: 'hello',
       createdAt: '2026-03-13T01:00:00.000Z',
     });
+    delete process.env.WECHAT_CONTENT_SECURITY_ENFORCE;
+  });
+
+  it('sendMessage persists owned file messages without text security check', async () => {
+    const req = { auth: { userId: 'buyer-1', wechatOpenid: 'openid-buyer-1' } };
+    const fileId = '55555555-5555-4555-8555-555555555555';
+    prisma.conversation.findUnique.mockResolvedValueOnce({
+      id: CONVERSATION_ID,
+      buyerUserId: 'buyer-1',
+      sellerUserId: 'seller-1',
+    });
+    prisma.file.findUnique.mockResolvedValueOnce({
+      id: fileId,
+      ownerId: 'buyer-1',
+      fileName: 'contract.docx',
+      mimeType: 'application/pdf',
+      sizeBytes: 13517,
+      url: `https://api.example.test/files/${fileId}`,
+    });
+    prisma.conversationMessage.create.mockResolvedValueOnce({
+      id: MESSAGE_ID,
+      conversationId: CONVERSATION_ID,
+      senderUserId: 'buyer-1',
+      type: 'FILE',
+      text: null,
+      fileId,
+      createdAt: new Date('2026-03-13T01:05:00.000Z'),
+    });
+    prisma.conversation.update.mockResolvedValueOnce({});
+
+    const result = await service.sendMessage(req, CONVERSATION_ID, { type: 'FILE', fileId });
+
+    expect(contentSecurity.assertSafeText).not.toHaveBeenCalled();
+    expect(prisma.conversationMessage.create).toHaveBeenCalledWith({
+      data: {
+        conversationId: CONVERSATION_ID,
+        senderUserId: 'buyer-1',
+        type: 'FILE',
+        text: null,
+        fileId,
+      },
+    });
+    expect(result).toMatchObject({
+      id: MESSAGE_ID,
+      type: 'FILE',
+      fileId,
+      fileUrl: 'https://api.example.test/uploads/contract.docx',
+      fileName: 'contract.docx',
+      mimeType: 'application/pdf',
+      sizeBytes: 13517,
+    });
+  });
+
+  it('sendMessage rejects file messages not owned by sender', async () => {
+    const req = { auth: { userId: 'buyer-1' } };
+    const fileId = '55555555-5555-4555-8555-555555555555';
+    prisma.conversation.findUnique.mockResolvedValueOnce({
+      id: CONVERSATION_ID,
+      buyerUserId: 'buyer-1',
+      sellerUserId: 'seller-1',
+    });
+    prisma.file.findUnique.mockResolvedValueOnce({
+      id: fileId,
+      ownerId: 'buyer-2',
+      mimeType: 'application/pdf',
+    });
+
+    await expect(service.sendMessage(req, CONVERSATION_ID, { type: 'FILE', fileId })).rejects.toBeInstanceOf(
+      BadRequestException,
+    );
+    expect(prisma.conversationMessage.create).not.toHaveBeenCalled();
   });
 
   it('markRead updates existing participant and creates new participant when absent', async () => {

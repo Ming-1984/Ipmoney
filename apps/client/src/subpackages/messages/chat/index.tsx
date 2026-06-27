@@ -1,12 +1,13 @@
-import { Image, Input, ScrollView, Text, View } from '@tarojs/components';
+import { Image, ScrollView, Text, Textarea, View } from '@tarojs/components';
 import Taro, { useDidHide, useDidShow } from '@tarojs/taro';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import './index.scss';
 
 import type { components } from '@ipmoney/api-types';
 
-import plusIcon from '../../../assets/icons/icon-plus-gray.svg';
-import emptyChat from '../../../assets/illustrations/empty-chat.svg';
+import { API_BASE_URL } from '../../../constants';
+import folderIcon from '../../../assets/icons/icon-folder-gray.svg';
+import emptyChat from '../../../assets/illustrations/empty-chat-symbol.svg';
 import { getToken, getVerificationStatus, isOnboardingDone, onAuthChanged } from '../../../lib/auth';
 import { apiGet, apiPost } from '../../../lib/api';
 import { resolveConversationEntityDisplayName } from '../../../lib/conversationDisplay';
@@ -18,17 +19,17 @@ import { fenToYuan } from '../../../lib/money';
 import { safeNavigateBack } from '../../../lib/navigation';
 import { useRouteStringParam, useRouteUuidParam } from '../../../lib/routeParams';
 import { resolveTechManagerDisplayName } from '../../../lib/techManagerDisplay';
+import { chooseImageFiles, chooseMessageFiles, uploadFileToApi } from '../../../lib/upload';
 import { Avatar, toast } from '../../../ui/nutui';
 import {
   AuditPendingCard,
-  EmptyCard,
   ErrorCard,
   LoadingCard,
   MissingParamCard,
   PermissionCard,
 } from '../../../ui/StateCards';
 
-type Me = { id: string };
+type Me = { id: string; nickname?: string | null; displayName?: string | null; avatarUrl?: string | null };
 type LocalMessageStatus = 'sending' | 'failed';
 type ReferenceType = 'MATERIAL' | 'CONTRACT';
 
@@ -40,6 +41,8 @@ type ConversationMessage = {
   text?: string;
   fileId?: string | null;
   fileUrl?: string | null;
+  fileName?: string | null;
+  sizeBytes?: number | null;
   referenceType?: ReferenceType;
   referenceTitle?: string;
   referenceNote?: string;
@@ -66,7 +69,7 @@ type ContextCard = {
 
 const TIME_SECTION_GAP_MS = 5 * 60 * 1000;
 const CHAT_POLL_INTERVAL_MS = 5000;
-const EMOJI_PRESETS = ['😀', '👍', '🎉', '👏', '🙏'];
+const EMOJI_PRESETS = ['😀', '🥺', '😍', '😳', '😎', '😭', '😴', '😤', '😡', '😜', '😁', '🙄', '😊', '🤔', '😐', '😰'];
 const CHAT_MESSAGES_CACHE_SCOPE = 'chat-messages';
 const CHAT_SUMMARY_CACHE_SCOPE = 'chat-summary';
 const CHAT_CONTEXT_CACHE_SCOPE = 'chat-context';
@@ -84,6 +87,44 @@ function fileNameFromUrl(url?: string | null): string {
     const idx = url.lastIndexOf('/');
     const fileName = idx >= 0 ? url.slice(idx + 1) : url;
     return fileName || 'File';
+  }
+}
+
+function formatFileSize(sizeBytes?: number | null): string {
+  if (typeof sizeBytes !== 'number' || !Number.isFinite(sizeBytes) || sizeBytes <= 0) return '';
+  if (sizeBytes < 1024) return `${sizeBytes}B`;
+  const kb = sizeBytes / 1024;
+  if (kb < 1024) return `${kb >= 100 ? Math.round(kb) : kb.toFixed(1)}K`;
+  const mb = kb / 1024;
+  if (mb < 1024) return `${mb >= 100 ? Math.round(mb) : mb.toFixed(1)}M`;
+  return `${(mb / 1024).toFixed(1)}G`;
+}
+
+function fileLabelFromMessage(message: Pick<ConversationMessage, 'text' | 'fileName' | 'fileUrl'>): string {
+  return normalizeDisplayText(message.fileName) || normalizeDisplayText(message.text) || fileNameFromUrl(message.fileUrl);
+}
+
+function fileTypeLabel(fileName: string): string {
+  const extension = fileName.split('.').pop()?.trim().toUpperCase() || '';
+  if (extension === 'DOC' || extension === 'DOCX') return 'W';
+  if (extension === 'XLS' || extension === 'XLSX') return 'X';
+  if (extension === 'PPT' || extension === 'PPTX') return 'P';
+  if (extension === 'PDF') return 'PDF';
+  return extension.slice(0, 3) || 'FILE';
+}
+
+async function openChatFile(url: string): Promise<void> {
+  const fileUrl = url.trim();
+  if (!fileUrl) return;
+
+  try {
+    const downloaded = await Taro.downloadFile({ url: fileUrl });
+    const filePath = downloaded.tempFilePath;
+    if (!filePath) throw new Error('文件下载失败');
+    await Taro.openDocument({ filePath, showMenu: true });
+  } catch (error) {
+    console.warn('[chat] open file failed', error);
+    toast('当前环境无法预览该文件，请稍后重试');
   }
 }
 
@@ -122,6 +163,7 @@ function formatPriceLabel(priceType?: components['schemas']['PriceType'] | null,
   return `￥${fenToYuan(amount)}`;
 }
 
+
 function shouldShowTimeDivider(current: UiConversationMessage, prev?: UiConversationMessage): boolean {
   if (!prev) return true;
   const currentAt = Date.parse(current.createdAt || '');
@@ -156,6 +198,8 @@ export default function ChatPage() {
 
   const [pageVisible, setPageVisible] = useState(true);
   const [meId, setMeId] = useState<string | null>(null);
+  const [meAvatarUrl, setMeAvatarUrl] = useState('');
+  const [meAvatarFallback, setMeAvatarFallback] = useState('我');
   const [loading, setLoading] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -166,8 +210,11 @@ export default function ChatPage() {
   const [scrollIntoView, setScrollIntoView] = useState('');
   const [text, setText] = useState('');
   const [sending, setSending] = useState(false);
+  const [emojiPanelOpen, setEmojiPanelOpen] = useState(false);
+  const hasDraft = text.trim().length > 0;
   const authTokenRef = useRef<string | null>(token);
   const meLoadSeqRef = useRef(0);
+  const allowNextLineBreakRef = useRef(false);
 
   useDidShow(() => {
     setPageVisible(true);
@@ -235,6 +282,12 @@ export default function ChatPage() {
   const displayName = useMemo(() => getConversationDisplayName(conversation), [conversation, getConversationDisplayName]);
   const counterpartAvatar = useMemo(() => conversation?.counterpart?.avatarUrl || '', [conversation?.counterpart?.avatarUrl]);
 
+  const applyMeProfile = useCallback((profile: Me | null | undefined) => {
+    setMeId(profile?.id || null);
+    setMeAvatarUrl(normalizeDisplayText(profile?.avatarUrl || ''));
+    setMeAvatarFallback(resolveAvatarFallbackText(profile?.displayName || profile?.nickname || '我', '我'));
+  }, []);
+
   useEffect(() => {
     conversationIdRef.current = conversationId;
     setError(null);
@@ -271,18 +324,20 @@ export default function ChatPage() {
     const seq = ++meLoadSeqRef.current;
     const cached = getDetailCache<Me>(CHAT_ME_CACHE_SCOPE, 'me');
     if (cached?.id) {
-      setMeId(cached.id);
+      applyMeProfile(cached);
     }
     try {
       const current = await apiGet<Me>('/me');
       if (seq !== meLoadSeqRef.current || authTokenRef.current !== currentToken) return;
-      setMeId(current.id);
+      applyMeProfile(current);
       setDetailCache(CHAT_ME_CACHE_SCOPE, 'me', current);
     } catch {
       if (seq !== meLoadSeqRef.current || authTokenRef.current !== currentToken) return;
-      if (!cached) setMeId(null);
+      if (!cached) {
+        applyMeProfile(null);
+      }
     }
-  }, [token]);
+  }, [applyMeProfile, token]);
 
   const loadMessages = useCallback(async () => {
     const targetConversationId = conversationId;
@@ -512,12 +567,11 @@ export default function ChatPage() {
     return () => clearInterval(timer);
   }, [canChat, conversationId, pageVisible, pollMessages]);
 
-  const send = useCallback(async () => {
-    if (!canChat || !conversationId) return;
+  const send = useCallback(async (textOverride?: string) => {
+    if (!canChat || !conversationId || sending) return;
     const targetConversationId = conversationId;
-    const value = text.trim();
+    const value = (textOverride ?? text).trim();
     if (!value) {
-      toast('请输入内容');
       return;
     }
 
@@ -538,6 +592,7 @@ export default function ChatPage() {
     }));
     scrollToBottom();
     setText('');
+    setEmojiPanelOpen(false);
     setSending(true);
 
     try {
@@ -567,7 +622,41 @@ export default function ChatPage() {
         setSending(false);
       }
     }
-  }, [canChat, conversationId, meId, scrollToBottom, text]);
+  }, [canChat, conversationId, meId, scrollToBottom, sending, text]);
+
+  const handleTextareaKeyDown = useCallback(
+    (event: any) => {
+      if (event?.key !== 'Enter') return;
+      if (event?.shiftKey) {
+        allowNextLineBreakRef.current = true;
+        return;
+      }
+      event.preventDefault?.();
+      void send();
+    },
+    [send],
+  );
+
+  const handleTextareaInput = useCallback(
+    (event: any) => {
+      const nextValue = String(event?.detail?.value ?? '');
+      const prevLineBreaks = (text.match(/\n/g) || []).length;
+      const nextLineBreaks = (nextValue.match(/\n/g) || []).length;
+      if (nextLineBreaks > prevLineBreaks && !allowNextLineBreakRef.current) {
+        const cursor = Number(event?.detail?.cursor);
+        const valueBeforeEnter =
+          Number.isFinite(cursor) && cursor > 0 && nextValue[cursor - 1] === '\n'
+            ? `${nextValue.slice(0, cursor - 1)}${nextValue.slice(cursor)}`
+            : nextValue.replace(/\n+$/g, '');
+        setText(valueBeforeEnter);
+        void send(valueBeforeEnter);
+        return;
+      }
+      allowNextLineBreakRef.current = false;
+      setText(nextValue);
+    },
+    [send, text],
+  );
 
   const retry = useCallback(
     async (messageItem: UiConversationMessage) => {
@@ -609,35 +698,112 @@ export default function ChatPage() {
     [canChat, conversationId, scrollToBottom],
   );
 
-  const openEmojiSheet = useCallback(() => {
+  const closeEmojiPanel = useCallback(() => {
+    setEmojiPanelOpen(false);
+  }, []);
+
+  const stopPanelEvent = useCallback((event: any) => {
+    event?.stopPropagation?.();
+  }, []);
+
+  const openEmojiSheet = useCallback((event?: any) => {
+    event?.stopPropagation?.();
     if (!canChat) return;
-    void Taro.showActionSheet({ itemList: EMOJI_PRESETS })
-      .then((result) => {
-        const emoji = EMOJI_PRESETS[result.tapIndex];
-        if (!emoji) return;
-        setText((prev) => `${prev}${emoji}`);
-      })
-      .catch(() => {});
+    setEmojiPanelOpen((prev) => !prev);
   }, [canChat]);
 
+  const appendEmoji = useCallback((emoji: string) => {
+    setText((prev) => `${prev}${emoji}`);
+  }, []);
+
   const sendReference = useCallback(
-    (referenceType: ReferenceType) => {
-      if (!canChat || !conversationId) return;
-      void referenceType;
-      toast('请先在材料库或合同中心上传内容后再引用');
+    async (referenceType: ReferenceType) => {
+      if (!canChat || !conversationId || sending) return;
+      const targetConversationId = conversationId;
+      try {
+        console.info('[chat] reference picker open', {
+          referenceType,
+          hasChooseMessageFile: typeof Taro.chooseMessageFile === 'function',
+        });
+        let chosen;
+        try {
+          chosen = await chooseMessageFiles({
+            count: 1,
+            type: referenceType === 'CONTRACT' ? 'file' : 'all',
+            extension:
+              referenceType === 'CONTRACT'
+                ? ['pdf', 'doc', 'docx']
+                : ['pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'jpg', 'jpeg', 'png'],
+          });
+        } catch (pickerError: any) {
+          const pickerMessage = String(pickerError?.errMsg || pickerError?.message || pickerError || '').toLowerCase();
+          const unsupported = pickerMessage.includes('not a function') || pickerMessage.includes('not support') || pickerMessage.includes('不支持');
+          if (referenceType !== 'MATERIAL' || pickerMessage.includes('cancel') || !unsupported) {
+            throw pickerError;
+          }
+          console.warn('[chat] chooseMessageFile unsupported, fallback to chooseImage', pickerError);
+          chosen = await chooseImageFiles({ count: 1 });
+        }
+        console.info('[chat] reference picker selected', { referenceType, count: chosen.length });
+        const filePath = String(chosen[0]?.path || '').trim();
+        const fileName = String(chosen[0]?.name || '').trim();
+        if (!filePath) return;
+
+        setSending(true);
+        const token = getToken();
+        const { data: uploaded } = await uploadFileToApi<{ id?: string; fileName?: string; mimeType?: string; sizeBytes?: number; url?: string }>({
+          url: `${API_BASE_URL}/files`,
+          filePath,
+          name: 'file',
+          formData: { purpose: referenceType === 'CONTRACT' ? 'MESSAGE_CONTRACT' : 'MESSAGE_MATERIAL' },
+          header: token ? { Authorization: `Bearer ${token}` } : {},
+          retry: 1,
+        });
+        console.info('[chat] reference upload finished', { referenceType, fileId: uploaded?.id, mimeType: uploaded?.mimeType });
+        const fileId = String(uploaded?.id || '').trim();
+        if (!fileId) throw new Error('上传失败');
+        const mimeType = String(uploaded?.mimeType || '').toLowerCase();
+        const messageType = mimeType.startsWith('image/') ? 'IMAGE' : 'FILE';
+        const created = await apiPost<ConversationMessage>(
+          `/conversations/${targetConversationId}/messages`,
+          { type: messageType, fileId, text: fileName || uploaded?.fileName || '' },
+          { idempotencyKey: `msg-file-${targetConversationId}-${Date.now()}` },
+        );
+        if (conversationIdRef.current !== targetConversationId) return;
+        const createdWithFileMeta: UiConversationMessage = {
+          ...(created as UiConversationMessage),
+          fileName: fileName || uploaded?.fileName || created.fileName || null,
+          sizeBytes: typeof uploaded?.sizeBytes === 'number' ? uploaded.sizeBytes : created.sizeBytes ?? null,
+        };
+        setData((prev) => ({
+          items: [...(prev?.items || []), createdWithFileMeta],
+          nextCursor: prev?.nextCursor ?? null,
+        }));
+        scrollToBottom();
+      } catch (err: any) {
+        const errMsg = String(err?.errMsg || err?.message || err || '').toLowerCase();
+        if (errMsg.includes('cancel')) return;
+        toast(err?.message || '文件发送失败');
+      } finally {
+        if (conversationIdRef.current === targetConversationId) {
+          setSending(false);
+        }
+      }
     },
-    [canChat, conversationId],
+    [canChat, conversationId, scrollToBottom, sending],
   );
 
-  const openReferenceSheet = useCallback(() => {
+  const openReferenceSheet = useCallback((event?: any) => {
+    event?.stopPropagation?.();
     if (!canChat) return;
+    setEmojiPanelOpen(false);
     void Taro.showActionSheet({ itemList: ['引用材料', '引用合同'] })
       .then((result) => {
         if (result.tapIndex === 1) {
-          sendReference('CONTRACT');
+          void sendReference('CONTRACT');
           return;
         }
-        sendReference('MATERIAL');
+        void sendReference('MATERIAL');
       })
       .catch(() => {});
   }, [canChat, sendReference]);
@@ -689,7 +855,7 @@ export default function ChatPage() {
   }
 
   return (
-    <View className="container chat-page">
+    <View className="container chat-page" onClick={closeEmojiPanel}>
       <View className="chat-header">
         <View className="chat-header-left" onClick={() => void safeNavigateBack()}>
           <Text className="chat-header-back">←</Text>
@@ -785,7 +951,11 @@ export default function ChatPage() {
                 const isMe = Boolean(meId) && item.senderUserId === meId;
                 const isSystem = item.type === 'SYSTEM';
                 const isReference = item.type === 'REFERENCE';
-                const bubbleClass = `chat-bubble${isMe ? ' chat-bubble-me' : ''}${isReference ? ' chat-bubble-ref' : ''}`;
+                const isFile = item.type === 'FILE' && Boolean(item.fileUrl);
+                const fileName = isFile ? fileLabelFromMessage(item) : '';
+                const fileSize = isFile ? formatFileSize(item.sizeBytes) : '';
+                const fileType = isFile ? fileTypeLabel(fileName) : '';
+                const bubbleClass = `chat-bubble${isMe ? ' chat-bubble-me' : ''}${isReference ? ' chat-bubble-ref' : ''}${isFile ? ' chat-bubble-file' : ''}`;
 
                 if (isSystem) {
                   return (
@@ -831,12 +1001,17 @@ export default function ChatPage() {
                           <View
                             className="chat-file"
                             onClick={() => {
-                              void Taro.setClipboardData({ data: item.fileUrl as string });
-                              toast('链接已复制', { icon: 'success' });
+                              void openChatFile(item.fileUrl as string);
                             }}
                           >
-                            <Text className="chat-file-name">{fileNameFromUrl(item.fileUrl)}</Text>
-                            <Text className="chat-file-url clamp-1">{item.fileUrl}</Text>
+                            <View className="chat-file-body">
+                              <Text className="chat-file-name clamp-1">{fileName}</Text>
+                              {fileSize ? <Text className="chat-file-size">{fileSize}</Text> : null}
+                            </View>
+                            <View className="chat-file-badge">
+                              <View className="chat-file-badge-fold" />
+                              <Text className={`chat-file-badge-text${fileType.length > 1 ? ' is-small' : ''}`}>{fileType}</Text>
+                            </View>
                           </View>
                         ) : item.type === 'TEXT' || item.type === 'EMOJI' ? (
                           <Text>{item.text || '暂不支持预览这条消息'}</Text>
@@ -861,8 +1036,8 @@ export default function ChatPage() {
                       </View>
 
                       {isMe ? (
-                        <Avatar size="40" background="var(--c-soft)" color="var(--c-primary)">
-                          我
+                        <Avatar size="40" src={meAvatarUrl} background="var(--c-soft)" color="var(--c-primary)">
+                          {meAvatarFallback}
                         </Avatar>
                       ) : null}
                     </View>
@@ -875,34 +1050,103 @@ export default function ChatPage() {
           </ScrollView>
         </View>
       ) : (
-        <EmptyCard title="暂无会话消息" message="发一条消息，开始本次沟通。" image={emptyChat} />
+        <View className="chat-empty-state">
+          <View className="chat-empty-ill-wrap">
+            <Image className="chat-empty-ill" src={emptyChat} svg mode="aspectFit" />
+          </View>
+          <Text className="chat-empty-title">暂无会话消息</Text>
+          <Text className="chat-empty-message">发一条消息，开始本次沟通。</Text>
+        </View>
       )}
 
       {canChat ? (
         <View className="chat-input-bar">
           <View className="chat-input-inner">
             <View className="chat-input-field">
-              <Input
-                className="input"
+              <Textarea
+                className="chat-textarea"
                 value={text}
-                onInput={(event) => setText(event.detail.value)}
-                placeholder="发送消息..."
-                onConfirm={() => void send()}
+                autoHeight
+                fixed
+                maxlength={-1}
                 confirmType="send"
+                showConfirmBar={false}
+                disableDefaultPadding
+                onInput={handleTextareaInput}
+                nativeProps={{ onKeyDown: handleTextareaKeyDown }}
+                placeholder="发送消息..."
+                placeholderClass="chat-textarea-placeholder"
+                onConfirm={() => void send()}
               />
-            </View>
-            <View className="chat-input-actions">
-              <View className="chat-input-icon" data-testid="chat-emoji" onClick={openEmojiSheet}>
-                <Text className="chat-input-icon-text">表情</Text>
-              </View>
-              <View className="chat-input-icon" data-testid="chat-reference" onClick={openReferenceSheet}>
-                <Image className="chat-input-icon-img" src={plusIcon} mode="aspectFit" svg />
-              </View>
-              <View className={`chat-send-btn ${sending ? 'is-loading' : ''}`} data-testid="chat-send" onClick={() => void send()}>
-                <Text className="chat-send-text">{sending ? '...' : '发送'}</Text>
+              <View className="chat-input-toolbar">
+                <View className="chat-input-tools-left">
+                  <View
+                    className="chat-input-tool"
+                    hoverClass="chat-input-tool-hover"
+                    data-testid="chat-reference"
+                    onClick={openReferenceSheet}
+                  >
+                    <Image className="chat-tool-folder-icon" src={folderIcon} mode="aspectFit" svg />
+                  </View>
+                  <View
+                    className={`chat-input-tool ${emojiPanelOpen ? 'is-active' : ''}`}
+                    hoverClass="chat-input-tool-hover"
+                    data-testid="chat-emoji"
+                    onClick={openEmojiSheet}
+                  >
+                    <View className="chat-tool-smile">
+                      <View className="chat-tool-smile-eye chat-tool-smile-eye-left" />
+                      <View className="chat-tool-smile-eye chat-tool-smile-eye-right" />
+                      <View className="chat-tool-smile-mouth" />
+                    </View>
+                  </View>
+                </View>
+                <View className="chat-input-tools-right">
+                  <View
+                    className={`chat-send-btn ${hasDraft ? 'is-ready' : 'is-disabled'} ${sending ? 'is-loading' : ''}`}
+                    data-testid="chat-send"
+                    onClick={() => {
+                      if (!hasDraft) return;
+                      void send();
+                    }}
+                  >
+                    <Text className="chat-send-text">{sending ? '...' : '发送'}</Text>
+                  </View>
+                </View>
               </View>
             </View>
           </View>
+          {emojiPanelOpen ? (
+            <View className="chat-emoji-panel" onClick={stopPanelEvent}>
+              <View className="chat-emoji-arrow" />
+              <Text className="chat-emoji-section-title">最近使用</Text>
+              <View className="chat-emoji-recent-row">
+                {EMOJI_PRESETS.slice(3, 13).map((emoji) => (
+                  <View
+                    key={`recent-${emoji}`}
+                    className="chat-emoji-item"
+                    hoverClass="chat-emoji-item-hover"
+                    onClick={() => appendEmoji(emoji)}
+                  >
+                    <Text className="chat-emoji-text">{emoji}</Text>
+                  </View>
+                ))}
+              </View>
+              <Text className="chat-emoji-section-title">所有表情</Text>
+              <View className="chat-emoji-grid">
+                {EMOJI_PRESETS.map((emoji) => (
+                  <View
+                    key={emoji}
+                    className="chat-emoji-item"
+                    hoverClass="chat-emoji-item-hover"
+                    onClick={() => appendEmoji(emoji)}
+                  >
+                    <Text className="chat-emoji-text">{emoji}</Text>
+                  </View>
+                ))}
+              </View>
+            </View>
+          ) : null}
         </View>
       ) : null}
     </View>

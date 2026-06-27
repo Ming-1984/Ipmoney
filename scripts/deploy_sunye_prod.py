@@ -438,7 +438,8 @@ def main() -> int:
 
     repo_root = Path(__file__).resolve().parents[1]
     print(f"[info] repo_root={repo_root}")
-    ensure_ssl_cert_tree(repo_root)
+    if not args.skip_cert_update:
+        ensure_ssl_cert_tree(repo_root)
 
     api_tar: Path | None = None
     api_prisma_tar: Path | None = None

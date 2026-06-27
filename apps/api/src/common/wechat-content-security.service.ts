@@ -90,6 +90,16 @@ export class WechatContentSecurityService {
     return UUID_RE.test(value);
   }
 
+  private getWechatErrCode(error: WechatMpError): number | null {
+    const parsed = Number((error.details as any)?.errcode);
+    if (!Number.isFinite(parsed)) return null;
+    return Math.trunc(parsed);
+  }
+
+  private isTextSecurityRejected(error: WechatMpError): boolean {
+    return error.code === 'WECHAT_MP_MSG_SEC_CHECK_FAILED' && this.getWechatErrCode(error) === 87014;
+  }
+
   isConfigured() {
     return this.isBypassed() ? false : this.wechatMp.isConfigured();
   }
@@ -118,18 +128,22 @@ export class WechatContentSecurityService {
     if (this.isBypassed()) return;
     const normalized = this.trim(content);
     if (!normalized || !this.wechatMp.isConfigured()) return;
+    const openid = this.trim(options?.openid);
+    const request = openid
+      ? {
+          content: normalized,
+          openid,
+          scene: this.parseScene(options?.scene),
+          version: this.parseVersion(options?.version),
+          title: this.trim(options?.title) || undefined,
+          nickname: this.trim(options?.nickname) || undefined,
+          signature: this.trim(options?.signature) || undefined,
+        }
+      : { content: normalized };
     try {
-      await this.wechatMp.msgSecCheck({
-        content: normalized,
-        openid: this.trim(options?.openid) || undefined,
-        scene: this.parseScene(options?.scene),
-        version: this.parseVersion(options?.version),
-        title: this.trim(options?.title) || undefined,
-        nickname: this.trim(options?.nickname) || undefined,
-        signature: this.trim(options?.signature) || undefined,
-      });
+      await this.wechatMp.msgSecCheck(request);
     } catch (error) {
-      if (error instanceof WechatMpError && error.code === 'WECHAT_MP_MSG_SEC_CHECK_FAILED') {
+      if (error instanceof WechatMpError && this.isTextSecurityRejected(error)) {
         await this.recordFailureLog(
           'WECHAT_TEXT_SECURITY_REJECT',
           { code: error.code, details: error.details },
@@ -141,6 +155,35 @@ export class WechatContentSecurityService {
         });
       }
       if (error instanceof WechatMpError) {
+        if (openid) {
+          this.logger.warn(
+            `wechat text security v2 check failed: ${error.code}, falling back to content-only check`,
+          );
+          try {
+            await this.wechatMp.msgSecCheck({ content: normalized });
+            return;
+          } catch (fallbackError) {
+            if (fallbackError instanceof WechatMpError && this.isTextSecurityRejected(fallbackError)) {
+              await this.recordFailureLog(
+                'WECHAT_TEXT_SECURITY_REJECT',
+                { code: fallbackError.code, details: fallbackError.details },
+                options?.requestMeta,
+              );
+              throw new BadRequestException({
+                code: 'CONTENT_SECURITY_REJECTED',
+                message: 'content contains prohibited information',
+              });
+            }
+            if (fallbackError instanceof WechatMpError) {
+              this.logger.warn(`wechat text security fallback check failed: ${fallbackError.code}`);
+              throw new BadRequestException({
+                code: 'CONTENT_SECURITY_UNAVAILABLE',
+                message: 'content security check is temporarily unavailable',
+              });
+            }
+            throw fallbackError;
+          }
+        }
         this.logger.warn(`wechat text security check failed: ${error.code}`);
         throw new BadRequestException({
           code: 'CONTENT_SECURITY_UNAVAILABLE',

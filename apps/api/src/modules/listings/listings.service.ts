@@ -1925,6 +1925,7 @@ export class ListingsService {
     const publicationDisplayScore = this.scoreSearchRankTextMatch(patent?.publicationNoDisplay, normalizedQuery, compactQuery);
     const patentDisplayScore = this.scoreSearchRankTextMatch(patent?.patentNoDisplay, normalizedQuery, compactQuery);
     const applicationNormScore = this.scoreSearchRankTextMatch(patent?.applicationNoNorm, normalizedQuery, compactQuery);
+    const hasTitleKeywordMatch = listingTitleScore > 0 || patentTitleScore > 0;
 
     applyScore(2400, applicationNormScore);
     applyScore(2360, publicationDisplayScore);
@@ -1943,14 +1944,14 @@ export class ListingsService {
       applyScore(1840, orgApplicantScore);
       applyScore(1800, orgAssigneeScore);
     } else {
-      applyScore(2200, inventorScore);
-      applyScore(2140, applicantScore);
-      applyScore(2100, assigneeScore);
-      applyScore(2060, partyScore);
+      applyScore(1980, inventorScore);
+      applyScore(1940, applicantScore);
+      applyScore(1900, assigneeScore);
+      applyScore(1860, partyScore);
     }
 
-    applyScore(1980, listingTitleScore);
-    applyScore(1940, patentTitleScore);
+    applyScore(2200, listingTitleScore);
+    applyScore(2160, patentTitleScore);
     applyScore(1700, summaryScore);
     applyScore(1660, abstractScore);
     applyScore(1620, classificationScore);
@@ -1960,7 +1961,11 @@ export class ListingsService {
       bonus += 8;
     }
 
-    if (likelyPersonQuery && inventorScore <= 0 && personPartyScore <= 0) {
+    if (qType !== 'INVENTOR' && qType !== 'APPLICANT' && hasTitleKeywordMatch) {
+      bonus += 10000;
+    }
+
+    if (likelyPersonQuery && !hasTitleKeywordMatch && inventorScore <= 0 && personPartyScore <= 0) {
       if (orgApplicantScore > 0 || orgAssigneeScore > 0) {
         bestScore = Math.min(bestScore, 1750);
         bonus = Math.min(bonus, 10);

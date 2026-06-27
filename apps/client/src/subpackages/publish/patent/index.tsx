@@ -1,4 +1,4 @@
-﻿import { View, Text } from '@tarojs/components';
+﻿import { Picker, View, Text } from '@tarojs/components';
 import Taro, { useDidHide, useDidShow } from '@tarojs/taro';
 import { Button as NativeButton } from '@tarojs/components';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -20,8 +20,7 @@ import { sanitizeIndustryTagNames } from '../../../lib/industryTags';
 import { sanitizeListingTopics } from '../../../lib/listingTopics';
 import { auditStatusLabel, listingStatusLabel, patentTypeLabel, priceTypeLabel, tradeModeLabel, licenseModeLabel } from '../../../lib/labels';
 import { fenToYuan } from '../../../lib/money';
-import { openRegionPickerPage } from '../../../lib/regionPicker';
-import { regionDisplayName } from '../../../lib/regions';
+import { formatRegionPathNames, parseRegionPickerSelection, regionDisplayName } from '../../../lib/regions';
 import { useRouteStringParam } from '../../../lib/routeParams';
 import { chooseImageFiles, chooseMessageFiles, uploadFileToApi } from '../../../lib/upload';
 import { ChipGroup, type ChipOption, IndustryTagsPicker } from '../../../ui/filters';
@@ -251,6 +250,7 @@ export default function PublishPatentPage() {
   const [depositYuan, setDepositYuan] = useState('');
 
   const [regionCode, setRegionCode] = useState('');
+  const [regionName, setRegionName] = useState('');
   const [industryTags, setIndustryTags] = useState<string[]>([]);
   const [listingTopics, setListingTopics] = useState<ListingTopic[]>([]);
   const [listingTopicOptions, setListingTopicOptions] = useState<Array<{ value: ListingTopic; label: string }>>(() =>
@@ -327,6 +327,7 @@ export default function PublishPatentPage() {
     setPriceYuan('');
     setDepositYuan('');
     setRegionCode('');
+    setRegionName('');
     setIndustryTags([]);
     setListingTopics([]);
     setIpcCodesInput('');
@@ -467,6 +468,7 @@ export default function PublishPatentPage() {
         setDepositYuan(d.depositAmountFen !== undefined && d.depositAmountFen !== null ? fenToYuan(d.depositAmountFen, { empty: '' }) : '');
 
         setRegionCode(d.regionCode || '');
+        setRegionName('');
         setIndustryTags(sanitizeIndustryTagNames(Array.isArray(d.industryTags) ? d.industryTags : []));
         setListingTopics(sanitizeListingTopics(Array.isArray(d.listingTopics) ? d.listingTopics : []));
         setIpcCodesInput((d.ipcCodes || []).join(', '));
@@ -1007,19 +1009,26 @@ export default function PublishPatentPage() {
 
           <View className="form-field">
             <Text className="form-label">所在地区</Text>
-            <View
-              className="form-select"
-              onClick={() =>
-                openRegionPickerPage(({ code }) => {
-                  setRegionCode(code);
-                })
-              }
+            <Picker
+              mode="region"
+              level="region"
+              onChange={(event) => {
+                const parsed = parseRegionPickerSelection(event);
+                if (!parsed) {
+                  toast('地区读取失败，请重试');
+                  return;
+                }
+                setRegionCode(parsed.code);
+                setRegionName(formatRegionPathNames(parsed.pathNames, parsed.name));
+              }}
             >
-              <Text className={regionCode.trim() ? 'form-select-value' : 'form-select-placeholder'}>
-                {regionDisplayName(regionCode, undefined, '省/市/区')}
-              </Text>
-              <Text className="form-select-arrow">▾</Text>
-            </View>
+              <View className="form-select">
+                <Text className={regionCode.trim() ? 'form-select-value' : 'form-select-placeholder'}>
+                  {regionDisplayName(regionCode, regionName, '省/市/区')}
+                </Text>
+                <Text className="form-select-arrow">▾</Text>
+              </View>
+            </Picker>
           </View>
 
           <View className="form-field">

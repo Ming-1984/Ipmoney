@@ -1,4 +1,4 @@
-import { View, Text, Image } from '@tarojs/components';
+import { Picker, View, Text, Image } from '@tarojs/components';
 import Taro from '@tarojs/taro';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import './index.scss';
@@ -7,8 +7,7 @@ import type { components } from '@ipmoney/api-types';
 
 import { apiGet } from '../../lib/api';
 import { displayInfoOrPlaceholder, displayTitleOrFallback, normalizeDisplayText } from '../../lib/displayText';
-import { regionDisplayName } from '../../lib/regions';
-import { openRegionPickerPage } from '../../lib/regionPicker';
+import { formatRegionPathNames, parseRegionPickerSelection, regionDisplayName } from '../../lib/regions';
 import { usePagedList } from '../../lib/usePagedList';
 import { ListFooter } from '../../ui/ListFooter';
 import type { ChipOption } from '../../ui/filters';
@@ -266,22 +265,34 @@ export default function OrganizationsPage() {
           <Surface>
             <Text className="text-strong">{TEXT.regionTitle}</Text>
             <View style={{ height: '10rpx' }} />
-            <Surface padding="none">
-              <CellGroup divider>
-                <CellRow
-                  clickable
-                  title={TEXT.regionTitle}
-                  description={TEXT.regionDescription}
-                  extra={<Text className="muted">{draft.regionName || draft.regionCode || TEXT.unlimited}</Text>}
-                  isLast
-                  onClick={() =>
-                    openRegionPickerPage(({ code, name }) => {
-                      setDraft((prev) => ({ ...prev, regionCode: code, regionName: name }));
-                    })
-                  }
-                />
-              </CellGroup>
-            </Surface>
+            <Picker
+              mode="region"
+              level="region"
+              onChange={(event) => {
+                const parsed = parseRegionPickerSelection(event);
+                if (!parsed) {
+                  toast('地区读取失败，请重试');
+                  return;
+                }
+                setDraft((prev) => ({
+                  ...prev,
+                  regionCode: parsed.code,
+                  regionName: formatRegionPathNames(parsed.pathNames, parsed.name),
+                }));
+              }}
+            >
+              <Surface padding="none">
+                <CellGroup divider>
+                  <CellRow
+                    clickable
+                    title={TEXT.regionTitle}
+                    description={TEXT.regionDescription}
+                    extra={<Text className="muted">{draft.regionName || draft.regionCode || TEXT.unlimited}</Text>}
+                    isLast
+                  />
+                </CellGroup>
+              </Surface>
+            </Picker>
 
             {draft.regionCode ? (
               <>

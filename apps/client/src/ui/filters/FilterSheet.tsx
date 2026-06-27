@@ -46,14 +46,14 @@ export function FilterSheet<T>(props: FilterSheetProps<T>) {
   const footerNode = isSearch ? (
     <View className="search-filter-footer">
       <View style={{ flex: 1 }}>
-        <Button className="search-filter-reset" variant="ghost" onClick={reset}>
+        <View className="search-filter-reset" onClick={reset}>
           重置
-        </Button>
+        </View>
       </View>
       <View style={{ flex: 1 }}>
-        <Button className="search-filter-apply" variant="primary" onClick={apply}>
+        <View className="search-filter-apply" onClick={apply}>
           确认
-        </Button>
+        </View>
       </View>
     </View>
   ) : (

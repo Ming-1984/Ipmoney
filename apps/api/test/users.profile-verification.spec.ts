@@ -24,6 +24,9 @@ describe('UsersService profile and verification strictness suite', () => {
       techManagerProfile: {
         upsert: vi.fn(),
       },
+      file: {
+        findUnique: vi.fn(),
+      },
     };
     audit = { log: vi.fn().mockResolvedValue(undefined) };
     notifications = { create: vi.fn().mockResolvedValue(undefined) };
@@ -79,6 +82,75 @@ describe('UsersService profile and verification strictness suite', () => {
       verificationStatus: null,
       verificationType: null,
     });
+  });
+
+  it('normalizes uploaded avatar file urls to public upload urls', async () => {
+    prisma.file.findUnique.mockResolvedValueOnce({
+      id: '11111111-1111-4111-8111-111111111111',
+      url: 'https://api.ipmoney.cn/files/11111111-1111-4111-8111-111111111111',
+      fileName: '11111111-1111-4111-8111-111111111111.jpeg',
+      mimeType: 'image/jpeg',
+      ownerId: 'u-1',
+    });
+    prisma.user.update.mockResolvedValueOnce({});
+    prisma.user.findUnique.mockResolvedValueOnce({
+      id: 'u-1',
+      phone: '13800138000',
+      nickname: 'Alice',
+      avatarUrl: 'https://api.ipmoney.cn/uploads/11111111-1111-4111-8111-111111111111.jpeg',
+      role: 'buyer',
+      regionCode: null,
+      createdAt: new Date('2026-03-13T00:00:00.000Z'),
+      updatedAt: new Date('2026-03-13T01:00:00.000Z'),
+    });
+    prisma.userVerification.findFirst.mockResolvedValueOnce(null);
+
+    const result = await service.updateUserProfile('u-1', {
+      avatarUrl: 'https://api.ipmoney.cn/files/11111111-1111-4111-8111-111111111111',
+    } as any);
+
+    expect(prisma.file.findUnique).toHaveBeenCalledWith({
+      where: { id: '11111111-1111-4111-8111-111111111111' },
+    });
+    expect(prisma.user.update).toHaveBeenCalledWith({
+      where: { id: 'u-1' },
+      data: {
+        nickname: undefined,
+        avatarUrl: 'https://api.ipmoney.cn/uploads/11111111-1111-4111-8111-111111111111.jpeg',
+        regionCode: undefined,
+      },
+    });
+    expect(result.avatarUrl).toBe('https://api.ipmoney.cn/uploads/11111111-1111-4111-8111-111111111111.jpeg');
+  });
+
+  it('rejects uploaded avatar file urls that are not user-owned images', async () => {
+    prisma.file.findUnique.mockResolvedValueOnce({
+      id: '11111111-1111-4111-8111-111111111111',
+      url: 'https://api.ipmoney.cn/files/11111111-1111-4111-8111-111111111111',
+      fileName: '11111111-1111-4111-8111-111111111111.pdf',
+      mimeType: 'application/pdf',
+      ownerId: 'u-1',
+    });
+
+    await expect(
+      service.updateUserProfile('u-1', {
+        avatarUrl: 'https://api.ipmoney.cn/files/11111111-1111-4111-8111-111111111111',
+      } as any),
+    ).rejects.toBeInstanceOf(BadRequestException);
+
+    prisma.file.findUnique.mockResolvedValueOnce({
+      id: '22222222-2222-4222-8222-222222222222',
+      url: 'https://api.ipmoney.cn/files/22222222-2222-4222-8222-222222222222',
+      fileName: '22222222-2222-4222-8222-222222222222.png',
+      mimeType: 'image/png',
+      ownerId: 'u-2',
+    });
+
+    await expect(
+      service.updateUserProfile('u-1', {
+        avatarUrl: 'https://api.ipmoney.cn/files/22222222-2222-4222-8222-222222222222',
+      } as any),
+    ).rejects.toBeInstanceOf(BadRequestException);
   });
 
   it('validates submitMyVerification payload strictly', async () => {

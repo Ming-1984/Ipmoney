@@ -12,7 +12,7 @@ import { getDemoAuthConfig } from '../../common/demo';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { resolveRegionCodeForStorage } from '../../common/region-code';
 import { WechatContentSecurityService } from '../../common/wechat-content-security.service';
-import { normalizeDisplayText, resolvePublicFileUrl } from '../content-utils';
+import { extractFileIdFromFileUrl, normalizeDisplayText, resolvePublicFileUrl } from '../content-utils';
 import { NotificationsService } from '../notifications/notifications.service';
 
 type UserVerificationWhereInput = any;
@@ -204,6 +204,28 @@ export class UsersService {
     return undefined;
   }
 
+  private async normalizeAvatarUrlForStorage(userId: string, value: unknown): Promise<string | null | undefined> {
+    if (value === undefined) return undefined;
+    const rawAvatarUrl = String(value || '').trim();
+    if (!rawAvatarUrl) return null;
+
+    const fileId = extractFileIdFromFileUrl(rawAvatarUrl);
+    if (!fileId) return rawAvatarUrl;
+
+    const file = await this.prisma.file.findUnique({ where: { id: fileId } });
+    if (!file) {
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: 'avatarUrl is invalid' });
+    }
+    if (String(file.ownerId || '') !== String(userId)) {
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: 'avatarUrl is invalid' });
+    }
+    if (!String(file.mimeType || '').toLowerCase().startsWith('image/')) {
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: 'avatarUrl must be an image' });
+    }
+
+    return resolvePublicFileUrl(file) ?? rawAvatarUrl;
+  }
+
   async getUserProfileById(userId: string): Promise<UserProfileDto> {
     const demoConfig = getDemoAuthConfig();
     const isDemoUser = demoConfig.enabled && demoConfig.userId && userId === demoConfig.userId;
@@ -255,21 +277,25 @@ export class UsersService {
     userId: string,
     patch: { nickname?: string; avatarUrl?: string; regionCode?: string },
   ): Promise<UserProfileDto> {
+    const hasNickname = this.hasOwn(patch, 'nickname');
     const hasRegionCode = this.hasOwn(patch, 'regionCode');
     const regionCode = hasRegionCode
       ? await resolveRegionCodeForStorage(this.prisma, (patch as any)?.regionCode, 'regionCode')
       : undefined;
-    const avatarUrl =
-      patch.avatarUrl === undefined
-        ? undefined
-        : String(patch.avatarUrl || '').trim()
-        ? String(patch.avatarUrl).trim()
-        : null;
-    if (patch.nickname !== undefined && String(patch.nickname).length > 50) {
+    const avatarUrl = await this.normalizeAvatarUrlForStorage(userId, patch.avatarUrl);
+    const nickname = hasNickname ? String(patch.nickname ?? '') : undefined;
+    if (hasNickname && String(nickname).length > 50) {
       throw new BadRequestException({ code: 'BAD_REQUEST', message: 'nickname is too long' });
     }
-    if (patch.nickname !== undefined) {
-      await this.contentSecurity.assertSafeText(String(patch.nickname || '').trim(), {
+    let currentUser: { nickname?: string | null } | null = null;
+    if (hasNickname) {
+      currentUser = await this.prisma.user.findUnique({ where: { id: userId }, select: { nickname: true } });
+      if (!currentUser) {
+        throw new UnauthorizedException({ code: 'UNAUTHORIZED', message: 'login required' });
+      }
+    }
+    if (hasNickname && String(currentUser?.nickname ?? '') !== String(nickname ?? '')) {
+      await this.contentSecurity.assertSafeText(String(nickname || '').trim(), {
         requestMeta: {
           actorUserId: userId,
           targetType: 'USER',
@@ -282,7 +308,7 @@ export class UsersService {
       await this.prisma.user.update({
         where: { id: userId },
         data: {
-          nickname: patch.nickname !== undefined ? String(patch.nickname) : undefined,
+          nickname: hasNickname ? nickname : undefined,
           avatarUrl,
           regionCode: hasRegionCode ? regionCode : undefined,
         },

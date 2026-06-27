@@ -40,7 +40,14 @@ export default function IpcPickerPage() {
       <PageHeader back title="IPC 分类选择" brand={false} />
 
       <View className="ipc-picker-search">
-        <Input className="ipc-picker-input" value={keyword} placeholder="搜索 IPC 分类号 / 关键词" onChange={setKeyword} clearable />
+        <Input
+          className="ipc-picker-input"
+          value={keyword}
+          placeholder="搜索 IPC 分类号 / 关键词"
+          placeholderStyle="font-size:20rpx;line-height:30rpx;color:#9ca3af;"
+          onChange={setKeyword}
+          clearable
+        />
         <Text className="ipc-picker-version">{data.version}</Text>
       </View>
 
@@ -55,7 +62,7 @@ export default function IpcPickerPage() {
       ) : null}
 
       <View className="ipc-picker-body">
-        <ScrollView className="ipc-picker-sections" scrollY>
+        <View className="ipc-picker-sections">
           <View className="ipc-picker-sections-inner">
             {data.sections.map((section) => {
               const active = section.code === activeSectionCode;
@@ -74,7 +81,7 @@ export default function IpcPickerPage() {
               );
             })}
           </View>
-        </ScrollView>
+        </View>
 
         <ScrollView className="ipc-picker-list" scrollY>
           <View className="ipc-picker-list-inner">
