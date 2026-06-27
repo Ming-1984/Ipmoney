@@ -252,6 +252,7 @@ export default function PublishPatentPage() {
   const [submitted, setSubmitted] = useState(false);
 
   const [patentNumberRaw, setPatentNumberRaw] = useState('');
+  const [patentNumberLocked, setPatentNumberLocked] = useState(false);
 
   const [patentType, setPatentType] = useState<PatentType | ''>('');
   const [title, setTitle] = useState('');
@@ -341,6 +342,7 @@ export default function PublishPatentPage() {
     setListingStatus(null);
     setSubmitted(false);
     setPatentNumberRaw('');
+    setPatentNumberLocked(false);
     setPatentType('');
     setTitle('');
     setInventorNamesInput('');
@@ -484,6 +486,7 @@ export default function PublishPatentPage() {
         setSubmitted(d.auditStatus === 'PENDING' || d.auditStatus === 'APPROVED' || d.auditStatus === 'REJECTED');
 
         setPatentNumberRaw(d.applicationNoDisplay || '');
+        setPatentNumberLocked(Boolean(d.applicationNoDisplay || d.publicationNoDisplay || d.patentNoDisplay || d.grantPublicationNoDisplay));
         setPatentType((d.patentType || '') as PatentType | '');
         setTitle(d.title || '');
         setInventorNamesInput((d.inventorNames || []).join(', '));
@@ -632,6 +635,15 @@ export default function PublishPatentPage() {
   const buildUpdate = useCallback(
     (mode: 'save' | 'submit'): ListingUpdateRequest | null => {
       if (!listingId) return null;
+      const raw = patentNumberRaw.trim();
+      if (mode === 'submit' && !raw) {
+        toast('请输入专利号/申请号');
+        return null;
+      }
+      if (mode === 'submit' && !patentType) {
+        toast('请选择专利类型');
+        return null;
+      }
       if (mode === 'submit' && !tradeMode) {
         toast('请选择交易方式');
         return null;
@@ -647,6 +659,13 @@ export default function PublishPatentPage() {
 
       const effectiveTradeMode = (tradeMode || 'ASSIGNMENT') as TradeMode;
       const effectivePriceType = (priceType || 'NEGOTIABLE') as PriceType;
+      const shouldAttachPatentNumber = Boolean(!patentNumberLocked && raw && patentType && (mode === 'submit' || isPatentNumberCompleteEnough(raw)));
+      if (mode === 'save' && raw && !patentType) {
+        toast('专利类型未填，本次暂不关联专利号');
+      }
+      if (mode === 'save' && raw && patentType && !shouldAttachPatentNumber && !patentNumberLocked) {
+        toast('号码格式可能不完整，本次暂不关联专利号');
+      }
       const priceAmountFen = effectivePriceType === 'FIXED' ? parseMoneyFen(priceYuan) : null;
       if (effectivePriceType === 'FIXED' && priceAmountFen === null) {
         toast('请填写一口价（元）');
@@ -674,6 +693,7 @@ export default function PublishPatentPage() {
       const req: ListingUpdateRequest = {
         tradeMode: effectiveTradeMode,
         priceType: effectivePriceType,
+        ...(shouldAttachPatentNumber ? { patentNumberRaw: raw, patentType: patentType as PatentType } : {}),
         ...(effectiveTradeMode === 'LICENSE' ? { licenseMode: licenseMode as LicenseMode } : {}),
         ...(effectivePriceType === 'FIXED' ? { priceAmountFen: priceAmountFen as number } : {}),
         ...(depositAmountFen !== null ? { depositAmountFen } : {}),
@@ -703,6 +723,9 @@ export default function PublishPatentPage() {
       listingId,
       locCodes,
       negotiableSpace,
+      patentNumberLocked,
+      patentNumberRaw,
+      patentType,
       pledgeStatus,
       priceType,
       priceYuan,
@@ -725,7 +748,10 @@ export default function PublishPatentPage() {
       if (!listingId) {
         const req = validateAndBuildCreate('save');
         if (!req) return;
-        res = await apiPost<Listing>('/listings', req, { idempotencyKey: `listing-create-${req.patentNumberRaw}` });
+        const idempotencyKey = req.patentNumberRaw
+          ? `listing-create-${req.patentNumberRaw}`
+          : `listing-create-draft-${Date.now()}`;
+        res = await apiPost<Listing>('/listings', req, { idempotencyKey });
         if (seq !== saveSeqRef.current || !pageVisibleRef.current || listingRouteIdRef.current !== targetListingId) return;
         setListingId(res.id);
       } else {
@@ -737,6 +763,7 @@ export default function PublishPatentPage() {
       if (seq !== saveSeqRef.current || !pageVisibleRef.current || listingRouteIdRef.current !== targetListingId) return;
       setAuditStatus(res.auditStatus);
       setListingStatus(res.status);
+      setPatentNumberLocked(Boolean(res.applicationNoDisplay || res.publicationNoDisplay || res.patentNoDisplay || res.grantPublicationNoDisplay));
       setSubmitted(false);
       toast('草稿已保存', { icon: 'success' });
     } catch (e: any) {
@@ -772,9 +799,12 @@ export default function PublishPatentPage() {
         const created = await apiPost<Listing>('/listings', req, { idempotencyKey: `listing-create-${req.patentNumberRaw}` });
         if (seq !== submitSeqRef.current || !pageVisibleRef.current || listingRouteIdRef.current !== targetListingId) return;
         id = created.id;
-        setListingId(created.id);
-        setAuditStatus(created.auditStatus);
-        setListingStatus(created.status);
+          setListingId(created.id);
+          setAuditStatus(created.auditStatus);
+          setListingStatus(created.status);
+          setPatentNumberLocked(
+            Boolean(created.applicationNoDisplay || created.publicationNoDisplay || created.patentNoDisplay || created.grantPublicationNoDisplay),
+          );
       } else {
         const req = buildUpdate('submit');
         if (!req) return;
@@ -782,6 +812,9 @@ export default function PublishPatentPage() {
         if (seq !== submitSeqRef.current || !pageVisibleRef.current || listingRouteIdRef.current !== targetListingId) return;
         setAuditStatus(updated.auditStatus);
         setListingStatus(updated.status);
+        setPatentNumberLocked(
+          Boolean(updated.applicationNoDisplay || updated.publicationNoDisplay || updated.patentNoDisplay || updated.grantPublicationNoDisplay),
+        );
       }
 
       const res = await apiPost<Listing>(`/listings/${id}/submit`, {}, { idempotencyKey: `listing-submit-${id}` });
@@ -879,9 +912,9 @@ export default function PublishPatentPage() {
               placeholder="例如 202311340972.0 / CN2023xxxxxx.x"
               clearable
               data-testid="patent-number"
-              disabled={Boolean(listingId)}
+              disabled={patentNumberLocked}
             />
-            {listingId ? <Text className="form-hint">专利号已锁定，如需修改请新建发布。</Text> : null}
+            {patentNumberLocked ? <Text className="form-hint">专利号已锁定，如需修改请新建发布。</Text> : null}
           </View>
 
           <View className="form-field">

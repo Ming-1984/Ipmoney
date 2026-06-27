@@ -95,6 +95,8 @@ const COOPERATION_OPTIONS: ChipOption<CooperationMode>[] = [
   { value: 'PLATFORM_CO_BUILD', label: '平台共建' },
 ];
 
+const UNTITLED_ACHIEVEMENT_DRAFT_TITLE = '未命名成果草稿';
+
 function splitList(input: string): string[] {
   return String(input || '')
     .split(/[\n,，;；]/)
@@ -521,9 +523,9 @@ export default function PublishAchievementPage() {
     setMediaFiles((prev) => prev.filter((item) => item.id !== file.id));
   }, []);
 
-  const buildPayload = useCallback(() => {
+  const buildPayload = useCallback((options?: { titleFallback?: string }) => {
     return {
-      title: title.trim(),
+      title: title.trim() || options?.titleFallback || '',
       summary: summary.trim() || undefined,
       description: description.trim() || undefined,
       keywords,
@@ -536,9 +538,9 @@ export default function PublishAchievementPage() {
     };
   }, [cooperationModes, coverFile, description, keywords, maturity, mediaFiles, regionCode, sanitizedIndustryTags, summary, title]);
 
-  const saveDraft = useCallback(async (): Promise<AchievementDraft | null> => {
+  const saveDraft = useCallback(async (mode: 'save' | 'submit' = 'save'): Promise<AchievementDraft | null> => {
     if (!ensureApproved()) return null;
-    if (!title.trim()) {
+    if (mode === 'submit' && !title.trim()) {
       toast('请填写成果名称');
       return null;
     }
@@ -547,7 +549,7 @@ export default function PublishAchievementPage() {
     const seq = ++saveSeqRef.current;
     setSaving(true);
     try {
-      const payload = buildPayload();
+      const payload = buildPayload({ titleFallback: mode === 'save' ? UNTITLED_ACHIEVEMENT_DRAFT_TITLE : undefined });
       if (!achievementId) {
         const created = await apiPost<AchievementDraft>('/achievements', payload, {
           idempotencyKey: `ach-create-${Date.now()}`,
@@ -588,7 +590,7 @@ export default function PublishAchievementPage() {
     const seq = ++submitSeqRef.current;
     setSubmitting(true);
     try {
-      const saved = await saveDraft();
+      const saved = await saveDraft('submit');
       if (seq !== submitSeqRef.current || !pageVisibleRef.current || achievementRouteIdRef.current !== targetAchievementId) return;
       const id = saved?.id || achievementId || achievementRouteIdRef.current || null;
       if (!id) return;
