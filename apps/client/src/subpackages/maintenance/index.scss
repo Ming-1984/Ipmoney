@@ -8,6 +8,10 @@
   text-decoration: underline;
 }
 
+.maintenance-flow-tip .text-strong {
+  color: #000000;
+}
+
 .maintenance-summary-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));

@@ -6,7 +6,11 @@ import './index.scss';
 import type { components } from '@ipmoney/api-types';
 
 import { apiGet } from '../../lib/api';
-import { displayInfoOrPlaceholder, displayTitleWithSecondary, normalizeDisplayText } from '../../lib/displayText';
+import {
+  displayInfoOrPlaceholder,
+  displayTitleWithSecondary,
+  normalizeDisplayText,
+} from '../../lib/displayText';
 import { usePageAccess } from '../../lib/guard';
 import { formatTimeSmart } from '../../lib/format';
 import { fenToYuan } from '../../lib/money';
@@ -15,7 +19,7 @@ import { normalizeInvoiceItemName } from '../../lib/userFacingText';
 import { usePagedList } from '../../lib/usePagedList';
 import { PageState } from '../../ui/PageState';
 import { ListFooter } from '../../ui/ListFooter';
-import { PageHeader, Spacer, Surface } from '../../ui/layout';
+import { PageHeader, Surface } from '../../ui/layout';
 import { Button, PullToRefresh, toast } from '../../ui/nutui';
 import emptyInvoices from '../../assets/illustrations/empty-invoices.svg';
 
@@ -57,11 +61,39 @@ function invoiceStatusClass(status: InvoiceStatus): string {
   return 'is-issued';
 }
 
-function resolveInvoiceCardTitle(item: Pick<InvoiceItem, 'listingTitle' | 'applicationNoDisplay'>): string {
+function resolveInvoiceCardTitle(
+  item: Pick<InvoiceItem, 'listingTitle' | 'applicationNoDisplay'>,
+): string {
   return displayTitleWithSecondary(item.listingTitle, '发票信息待确认', {
     secondary: item.applicationNoDisplay,
     secondaryPrefix: '专利申请号 ',
   });
+}
+
+function InvoiceInfoField(props: {
+  label: string;
+  value: string;
+  mono?: boolean;
+  accent?: boolean;
+  dimmed?: boolean;
+  span2?: boolean;
+}) {
+  const classes = [
+    'invoice-info-field',
+    props.span2 ? 'is-span-2' : '',
+    props.mono ? 'is-mono' : '',
+    props.accent ? 'is-accent' : '',
+    props.dimmed ? 'is-dimmed' : '',
+  ]
+    .filter(Boolean)
+    .join(' ');
+
+  return (
+    <View className={classes}>
+      <Text className="invoice-info-label">{props.label}</Text>
+      <Text className="invoice-info-value clamp-1">{props.value}</Text>
+    </View>
+  );
 }
 
 export default function InvoiceCenterPage() {
@@ -72,7 +104,9 @@ export default function InvoiceCenterPage() {
   const [activeTab, setActiveTab] = useState<InvoiceStatus>('WAIT_APPLY');
 
   useEffect(() => {
-    const nextTab = TABS.some((tab) => tab.id === tabParam) ? (tabParam as InvoiceStatus) : 'WAIT_APPLY';
+    const nextTab = TABS.some((tab) => tab.id === tabParam)
+      ? (tabParam as InvoiceStatus)
+      : 'WAIT_APPLY';
     setActiveTab(nextTab);
   }, [tabParam]);
 
@@ -87,13 +121,23 @@ export default function InvoiceCenterPage() {
     [activeTab, orderIdParam],
   );
 
-  const { items: rawItems, loading, error, refreshing, loadingMore, hasMore, reload, refresh, loadMore, reset } =
-    usePagedList<InvoiceItem>(fetcher, {
-      pageSize: 20,
-      onError: (message, ctx) => {
-        if (ctx === 'loadMore') toast(message);
-      },
-    });
+  const {
+    items: rawItems,
+    loading,
+    error,
+    refreshing,
+    loadingMore,
+    hasMore,
+    reload,
+    refresh,
+    loadMore,
+    reset,
+  } = usePagedList<InvoiceItem>(fetcher, {
+    pageSize: 20,
+    onError: (message, ctx) => {
+      if (ctx === 'loadMore') toast(message);
+    },
+  });
 
   const access = usePageAccess('approved-required', (a) => {
     if (a.state === 'ok') {
@@ -122,14 +166,20 @@ export default function InvoiceCenterPage() {
   const items = useMemo(() => {
     const list = rawItems || [];
     if (activeTab === 'WAIT_APPLY') {
-      return list.filter((it) => it.invoiceStatus === 'WAIT_APPLY' || it.invoiceStatus === 'APPLYING');
+      return list.filter(
+        (it) => it.invoiceStatus === 'WAIT_APPLY' || it.invoiceStatus === 'APPLYING',
+      );
     }
     return list.filter((it) => it.invoiceStatus === activeTab);
   }, [rawItems, activeTab]);
   const showInitialLoading = loading && items.length === 0;
   const pageTitle = orderIdParam ? '当前订单发票' : '发票管理中心';
-  const pageSubtitle = orderIdParam ? '查看当前订单的开票进度与下载信息' : '发票由平台财务线下开具，开具后可下载';
-  const emptyMessage = orderIdParam ? '当前订单在该分类下暂无发票记录。' : '当前分类下暂无发票记录。';
+  const pageSubtitle = orderIdParam
+    ? '查看当前订单的开票进度与下载信息'
+    : '发票由平台财务线下开具，开具后可下载';
+  const emptyMessage = orderIdParam
+    ? '当前订单在该分类下暂无发票记录。'
+    : '当前分类下暂无发票记录。';
 
   const copyInvoiceLink = useCallback((item: InvoiceItem) => {
     const url = item.invoiceFileUrl || '';
@@ -144,7 +194,6 @@ export default function InvoiceCenterPage() {
   return (
     <View className="container invoices-page">
       <PageHeader weapp title={pageTitle} subtitle={pageSubtitle} />
-      <Spacer />
 
       <View className="invoice-tabs">
         {TABS.map((tab) => (
@@ -169,46 +218,98 @@ export default function InvoiceCenterPage() {
         emptyImage={emptyInvoices}
         onRetry={reload}
       >
-        <PullToRefresh type="primary" disabled={showInitialLoading || refreshing} onRefresh={refresh}>
+        <PullToRefresh
+          type="primary"
+          disabled={showInitialLoading || refreshing}
+          onRefresh={refresh}
+        >
           <View className="invoice-list">
             {items.map((item) => (
               <Surface key={item.id} className="invoice-card" padding="none">
-                <View className="row-between" style={{ gap: '12rpx' }}>
-                  <Text className="text-card-title">{resolveInvoiceCardTitle(item)}</Text>
-                  <Text className={`invoice-status ${invoiceStatusClass(item.invoiceStatus)}`}>
-                    {invoiceStatusLabel(item.invoiceStatus)}
-                  </Text>
+                <View className="invoice-accent-strip" />
+
+                <View className="invoice-card-head">
+                  <View className="invoice-card-title-wrap">
+                    <Text className="invoice-card-kicker">交易标的</Text>
+                    <Text className="invoice-card-title clamp-2">
+                      {resolveInvoiceCardTitle(item)}
+                    </Text>
+                  </View>
+                  <View className={`invoice-status ${invoiceStatusClass(item.invoiceStatus)}`}>
+                    <View className="invoice-status-dot" />
+                    <Text>{invoiceStatusLabel(item.invoiceStatus)}</Text>
+                  </View>
                 </View>
-                <View className="invoice-meta">
-                  {normalizeDisplayText(item.listingTitle) ? (
-                    <Text className="muted clamp-1">交易标的：{normalizeDisplayText(item.listingTitle)}</Text>
+
+                <View className="invoice-divider" />
+
+                <View className="invoice-info-grid">
+                  <InvoiceInfoField
+                    label="申请号"
+                    value={displayInfoOrPlaceholder(item.applicationNoDisplay, '待确认')}
+                    mono
+                  />
+                  <InvoiceInfoField
+                    label="项目名称"
+                    value={normalizeInvoiceItemName(item.itemName)}
+                  />
+                  <InvoiceInfoField
+                    label="开票金额"
+                    value={item.amountFen != null ? `¥ ${fenToYuan(item.amountFen)}` : '待确认'}
+                    accent
+                  />
+                  <InvoiceInfoField label="订单时间" value={formatTimeSmart(item.createdAt)} />
+                  <InvoiceInfoField
+                    label="开票方式"
+                    value={item.invoiceStatus === 'ISSUED' ? '平台财务已开具' : '平台财务线下处理'}
+                    span2
+                  />
+                  <InvoiceInfoField
+                    label="发票号"
+                    value={displayInfoOrPlaceholder(item.invoiceNo, '待确认')}
+                    span2
+                    dimmed={!normalizeDisplayText(item.invoiceNo)}
+                  />
+                  {item.issuedAt ? (
+                    <InvoiceInfoField
+                      label="开票时间"
+                      value={formatTimeSmart(item.issuedAt)}
+                      span2
+                    />
                   ) : null}
-                  {normalizeDisplayText(item.applicationNoDisplay) ? (
-                    <Text className="muted">申请号：{displayInfoOrPlaceholder(item.applicationNoDisplay, '待确认')}</Text>
-                  ) : null}
-                  <Text className="muted">项目名称：{normalizeInvoiceItemName(item.itemName)}</Text>
-                  <Text className="muted">
-                    开票金额：{item.amountFen != null ? `￥${fenToYuan(item.amountFen)}` : '待确认'}
-                  </Text>
-                  <Text className="muted">订单时间：{formatTimeSmart(item.createdAt)}</Text>
-                  {item.invoiceStatus !== 'ISSUED' ? <Text className="muted">开票方式：平台财务线下处理</Text> : null}
-                  <Text className="muted">发票号：{displayInfoOrPlaceholder(item.invoiceNo, '待确认')}</Text>
-                  {item.issuedAt ? <Text className="muted">开票时间：{formatTimeSmart(item.issuedAt)}</Text> : null}
                 </View>
+
+                <View className="invoice-divider" />
+
                 <View className="invoice-actions">
                   <Button
+                    className="invoice-action-btn invoice-action-btn-outline"
                     size="small"
                     variant="ghost"
-                    onClick={() => Taro.navigateTo({ url: `/subpackages/orders/detail/index?orderId=${item.id}` })}
+                    onClick={() =>
+                      Taro.navigateTo({
+                        url: `/subpackages/orders/detail/index?orderId=${item.id}`,
+                      })
+                    }
                   >
                     订单详情
                   </Button>
                   {item.invoiceStatus === 'ISSUED' ? (
-                    <Button size="small" variant="primary" onClick={() => copyInvoiceLink(item)}>
+                    <Button
+                      className="invoice-action-btn invoice-action-btn-primary"
+                      size="small"
+                      variant="primary"
+                      onClick={() => copyInvoiceLink(item)}
+                    >
                       复制下载链接
                     </Button>
                   ) : (
-                    <Button size="small" variant="ghost" disabled>
+                    <Button
+                      className="invoice-action-btn invoice-action-btn-primary"
+                      size="small"
+                      variant="primary"
+                      disabled
+                    >
                       线下开票
                     </Button>
                   )}
@@ -218,7 +319,12 @@ export default function InvoiceCenterPage() {
           </View>
 
           {!showInitialLoading && items.length ? (
-            <ListFooter loadingMore={loadingMore} hasMore={hasMore} onLoadMore={loadMore} showNoMore />
+            <ListFooter
+              loadingMore={loadingMore}
+              hasMore={hasMore}
+              onLoadMore={loadMore}
+              showNoMore
+            />
           ) : null}
         </PullToRefresh>
       </PageState>

@@ -6,10 +6,10 @@ import './index.scss';
 import type { components } from '@ipmoney/api-types';
 
 import { apiGet, apiPost } from '../../lib/api';
-import { displayTitleWithSecondary, normalizeDisplayText } from '../../lib/displayText';
+import { displayTitleOrFallback, displayTitleWithSecondary, normalizeDisplayText } from '../../lib/displayText';
 import { usePagedList } from '../../lib/usePagedList';
 import { ensureApproved, goLogin, goOnboarding, usePageAccess } from '../../lib/guard';
-import { auditStatusLabel, auditStatusTagClass, listingStatusLabel } from '../../lib/labels';
+import { auditStatusLabel, auditStatusTagClass, contentStatusLabel, listingStatusLabel } from '../../lib/labels';
 import { safeOpenPage } from '../../lib/navigation';
 import { useRouteStringParam } from '../../lib/routeParams';
 import { CategoryControl } from '../../ui/filters';
@@ -17,10 +17,16 @@ import { ListFooter } from '../../ui/ListFooter';
 import { Button, PullToRefresh, toast } from '../../ui/nutui';
 import { AuditPendingCard, EmptyCard, ErrorCard, LoadingCard, PermissionCard } from '../../ui/StateCards';
 import { PageHeader, Spacer, Surface } from '../../ui/layout';
+import iconAchievement from '../../assets/icons/app/patent-achievement.png';
 import iconShield from '../../assets/icons/icon-shield-orange.svg';
 
 type PagedListing = components['schemas']['PagedListing'];
 type Listing = components['schemas']['Listing'];
+type PagedAchievement = components['schemas']['PagedAchievementSummary'];
+type Achievement = components['schemas']['AchievementSummary'];
+type ListingDraftItem = Listing & { draftType?: 'listing' };
+type AchievementDraftItem = Achievement & { draftType: 'achievement' };
+type DraftListItem = ListingDraftItem | AchievementDraftItem;
 type ListingStatus = components['schemas']['ListingStatus'];
 type AuditStatus = components['schemas']['AuditStatus'];
 
@@ -30,7 +36,9 @@ async function openPage(url: string) {
 
 export default function MyListingsPage() {
   const routeStatus = useRouteStringParam('status');
+  const routeMixed = useRouteStringParam('mixed');
   const isDraftCenter = routeStatus?.toUpperCase() === 'DRAFT';
+  const isMixedDraftCenter = isDraftCenter && routeMixed === '1';
   const loadedOnceRef = useRef(false);
   const filterKeyRef = useRef('');
   const [status, setStatus] = useState<ListingStatus | ''>(() => (isDraftCenter ? 'DRAFT' : ''));
@@ -39,18 +47,41 @@ export default function MyListingsPage() {
   const effectiveAuditStatusFilter = isDraftCenter ? '' : auditStatusFilter;
 
   const fetcher = useCallback(
-    async ({ page, pageSize }: { page: number; pageSize: number }) =>
-      apiGet<PagedListing>('/listings', {
+    async ({ page, pageSize }: { page: number; pageSize: number }) => {
+      if (isMixedDraftCenter) {
+        const [listings, achievements] = await Promise.all([
+          apiGet<PagedListing>('/listings', { status: 'DRAFT', page, pageSize }),
+          apiGet<PagedAchievement>('/achievements', { status: 'DRAFT', page, pageSize }),
+        ]);
+        const listingItems: DraftListItem[] = (listings.items || []).map((item) => ({ ...item, draftType: 'listing' }));
+        const achievementItems: DraftListItem[] = (achievements.items || []).map((item) => ({ ...item, draftType: 'achievement' }));
+        const items = [...listingItems, ...achievementItems].sort((a, b) => {
+          const bTime = Date.parse(('updatedAt' in b ? b.updatedAt : '') || b.createdAt || '') || 0;
+          const aTime = Date.parse(('updatedAt' in a ? a.updatedAt : '') || a.createdAt || '') || 0;
+          return bTime - aTime;
+        });
+        return {
+          items,
+          page: {
+            page,
+            pageSize,
+            total: Number(listings.page?.total || 0) + Number(achievements.page?.total || 0),
+          },
+        };
+      }
+
+      return apiGet<PagedListing>('/listings', {
         page,
         pageSize,
         ...(effectiveStatus ? { status: effectiveStatus } : {}),
         ...(effectiveAuditStatusFilter ? { auditStatus: effectiveAuditStatusFilter } : {}),
-      }),
-    [effectiveAuditStatusFilter, effectiveStatus],
+      });
+    },
+    [effectiveAuditStatusFilter, effectiveStatus, isMixedDraftCenter],
   );
 
   const { items, loading, error, refreshing, loadingMore, hasMore, reload, refresh, loadMore, reset } =
-    usePagedList<Listing>(fetcher, {
+    usePagedList<DraftListItem>(fetcher, {
       pageSize: 20,
       onError: (message, ctx) => {
         if (ctx === 'loadMore') toast(message);
@@ -87,7 +118,11 @@ export default function MyListingsPage() {
     void openPage('/subpackages/publish/patent/index');
   }, []);
   const pageTitle = isDraftCenter ? '草稿中心' : '我的专利上架';
-  const pageSubtitle = isDraftCenter ? '仅展示未提交的专利交易草稿' : '卖家查看/编辑/下架自己的专利上架信息';
+  const pageSubtitle = isMixedDraftCenter
+    ? '集中查看未提交的专利交易和专利成果草稿'
+    : isDraftCenter
+      ? '仅展示未提交的专利交易草稿'
+      : '卖家查看/编辑/下架自己的专利上架信息';
 
   if (access.state === 'need-login') {
     return (
@@ -186,25 +221,59 @@ export default function MyListingsPage() {
         ) : error ? (
           <ErrorCard message={error} onRetry={reload} />
         ) : items.length ? (
-          <View className="card-list">
-            {items.map((it: Listing) => (
+          <View className={isMixedDraftCenter ? 'draft-card-grid' : 'card-list'}>
+            {items.map((it: DraftListItem) => {
+              const isAchievementDraft = it.draftType === 'achievement';
+              const title = isAchievementDraft
+                ? displayTitleOrFallback(it.title, '成果标题待确认')
+                : displayTitleWithSecondary(it.title, '专利信息待确认', {
+                    secondary: it.applicationNoDisplay,
+                    secondaryPrefix: '专利申请号 ',
+                  });
+              const editUrl = isAchievementDraft
+                ? `/subpackages/publish/achievement/index?achievementId=${it.id}`
+                : `/subpackages/publish/patent/index?listingId=${it.id}`;
+              if (isMixedDraftCenter) {
+                return (
+                  <View key={`${isAchievementDraft ? 'achievement' : 'listing'}-${it.id}`} className="draft-card">
+                    <View className="draft-card-main">
+                      <View className="draft-card-icon">
+                        <Image className="draft-card-icon-img" src={isAchievementDraft ? iconAchievement : iconShield} svg={!isAchievementDraft} mode="aspectFit" />
+                      </View>
+                      <View className="draft-card-content">
+                        <Text className="draft-card-title clamp-2">{title}</Text>
+                        <View className="draft-card-tags">
+                          <Text className="draft-card-tag">草稿</Text>
+                          <Text className="draft-card-tag">{isAchievementDraft ? '专利成果' : '专利交易'}</Text>
+                        </View>
+                      </View>
+                    </View>
+                    <View
+                      className="draft-card-action"
+                      hoverClass="draft-card-action-hover"
+                      onClick={() => {
+                        void openPage(editUrl);
+                      }}
+                    >
+                      继续编辑
+                    </View>
+                  </View>
+                );
+              }
+              return (
               <View key={it.id} className="list-card">
                 <View className="list-card-thumb thumb-tone-teal">
-                  <Image className="list-card-thumb-img" src={iconShield} svg mode="aspectFit" />
+                  <Image className="list-card-thumb-img" src={isAchievementDraft ? iconAchievement : iconShield} svg={!isAchievementDraft} mode="aspectFit" />
                 </View>
                 <View className="list-card-body">
                   <View className="list-card-head">
                     <View className="list-card-head-main">
-                      <Text className="list-card-title clamp-2">
-                        {displayTitleWithSecondary(it.title, '专利信息待确认', {
-                          secondary: it.applicationNoDisplay,
-                          secondaryPrefix: '专利申请号 ',
-                        })}
-                      </Text>
+                      <Text className="list-card-title clamp-2">{title}</Text>
                       <View className="list-card-tags">
-                        <Text className="tag">{listingStatusLabel(it.status)}</Text>
-                        {!isDraftCenter ? <Text className={auditStatusTagClass(it.auditStatus)}>{auditStatusLabel(it.auditStatus)}</Text> : null}
-                        {normalizeDisplayText(it.applicationNoDisplay) ? (
+                        <Text className="tag">{isAchievementDraft ? contentStatusLabel(it.status) : listingStatusLabel(it.status)}</Text>
+                        {isMixedDraftCenter ? <Text className="tag">{isAchievementDraft ? '专利成果' : '专利交易'}</Text> : null}
+                        {!isDraftCenter && !isAchievementDraft ? <Text className={auditStatusTagClass(it.auditStatus)}>{auditStatusLabel(it.auditStatus)}</Text> : null}
+                        {!isAchievementDraft && normalizeDisplayText(it.applicationNoDisplay) ? (
                           <Text className="tag">{normalizeDisplayText(it.applicationNoDisplay)}</Text>
                         ) : null}
                       </View>
@@ -214,7 +283,7 @@ export default function MyListingsPage() {
                     <Button
                       variant="ghost"
                       onClick={() => {
-                        void openPage(`/subpackages/publish/patent/index?listingId=${it.id}`);
+                        void openPage(editUrl);
                       }}
                     >
                       {isDraftCenter ? '继续编辑' : '编辑/查看'}
@@ -244,7 +313,8 @@ export default function MyListingsPage() {
                   </View>
                 </View>
               </View>
-            ))}
+              );
+            })}
           </View>
         ) : (
           <EmptyCard message={isDraftCenter ? '暂无草稿' : '暂无上架记录'} actionText="刷新" onAction={reload} />

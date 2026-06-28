@@ -1,10 +1,9 @@
 .login-page {
   position: relative;
   overflow: hidden;
-  min-height: 100vh;
-  min-height: 100dvh;
+  height: 100vh;
+  min-height: 0;
   padding: 0;
-  padding-bottom: calc(48rpx + env(safe-area-inset-bottom));
   background: #f7f3ef;
   display: flex;
   flex-direction: column;
@@ -15,7 +14,7 @@
 .login-page::before {
   content: '';
   position: absolute;
-  top: -200rpx;
+  top: -320rpx;
   left: -120rpx;
   right: -120rpx;
   height: 840rpx;
@@ -28,7 +27,7 @@
 .login-page::after {
   content: '';
   position: absolute;
-  top: 160rpx;
+  top: 40rpx;
   right: -80rpx;
   width: 360rpx;
   height: 360rpx;
@@ -50,7 +49,7 @@
   z-index: 1;
   width: 100%;
   box-sizing: border-box;
-  padding: 204rpx 32rpx 72rpx;
+  padding: 84rpx 32rpx 72rpx;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -60,7 +59,7 @@
 
 .login-brand-bg {
   position: absolute;
-  top: 70rpx;
+  top: -50rpx;
   left: 50%;
   width: 220rpx;
   height: 220rpx;
@@ -424,7 +423,7 @@
 
 @media (max-height: 700px) {
   .login-brand {
-    padding-top: 176rpx;
+    padding-top: 56rpx;
     padding-bottom: 48rpx;
   }
 
@@ -435,7 +434,7 @@
 
 @media (min-width: 768px) {
   .login-brand {
-    padding-top: 204rpx;
+    padding-top: 84rpx;
     padding-bottom: 28rpx;
   }
 }

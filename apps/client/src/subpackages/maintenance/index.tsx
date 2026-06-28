@@ -524,7 +524,7 @@ export default function MaintenancePage() {
           <AccessGate access={access} />
         ) : (
           <>
-            <TipBanner tone="info" title="流程说明">
+            <TipBanner tone="info" title="流程说明" className="maintenance-flow-tip">
               建议从托管订单发起咨询，确保支付、执行、回执与对账记录在同一会话中连续留痕。
             </TipBanner>
 

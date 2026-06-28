@@ -51,9 +51,9 @@ const PUBLISH_PATENT_ICON = svgDataUri(`
 
 const PUBLISH_ACHIEVEMENT_ICON = svgDataUri(`
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none">
-  <path d="M12 16.8v-1.4c0-.8.4-1.4 1.1-1.8a5.2 5.2 0 1 0-6.3-5.1" stroke="#FF5F00" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
-  <path d="M9.2 19h5.6" stroke="#FF5F00" stroke-width="1.8" stroke-linecap="round"/>
-  <path d="M10.3 21.2h3.4" stroke="#FF5F00" stroke-width="1.8" stroke-linecap="round"/>
+  <path d="M8 10.2a4 4 0 1 1 8 0c0 1.4-.7 2.4-1.7 3.3-.8.7-1.2 1.4-1.2 2.3h-2.2c0-.9-.4-1.6-1.2-2.3A4.4 4.4 0 0 1 8 10.2Z" stroke="#FF5F00" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M9.8 18.4h4.4" stroke="#FF5F00" stroke-width="1.8" stroke-linecap="round"/>
+  <path d="M10.7 20.7h2.6" stroke="#FF5F00" stroke-width="1.8" stroke-linecap="round"/>
 </svg>
 `);
 
@@ -152,12 +152,8 @@ export default function PublishPage() {
   const draftCount = listingDraftCount + achievementDraftCount;
   const draftLabel = draftCount ? `未完成 ${draftCount} 条` : '暂无未完成';
   const openDraftBox = useCallback(() => {
-    const target =
-      listingDraftCount || !achievementDraftCount
-        ? '/subpackages/my-listings/index?status=DRAFT'
-        : '/subpackages/my-achievements/index?status=DRAFT';
-    void openPublishPage(target, '草稿箱');
-  }, [achievementDraftCount, listingDraftCount]);
+    void openPublishPage('/subpackages/my-listings/index?status=DRAFT&mixed=1', '草稿箱');
+  }, []);
 
   return (
     <View className={`container publish-page ${access.state !== 'ok' ? 'publish-page-locked' : ''}`}>

@@ -8,16 +8,16 @@
 .me-page-locked {
   position: relative;
   overflow: hidden;
-  min-height: 100vh;
+  height: 100vh;
+  min-height: 0;
   padding: 0;
-  padding-bottom: calc(48rpx + env(safe-area-inset-bottom));
   background: #f7f3ef;
 }
 
 .me-page-locked::before {
   content: '';
   position: absolute;
-  top: -200rpx;
+  top: -320rpx;
   left: -120rpx;
   right: -120rpx;
   height: 840rpx;
@@ -30,7 +30,7 @@
 .me-page-locked::after {
   content: '';
   position: absolute;
-  top: 160rpx;
+  top: 40rpx;
   right: -80rpx;
   width: 360rpx;
   height: 360rpx;
@@ -47,12 +47,13 @@
 .me-login-wrap {
   position: relative;
   z-index: 1;
-  min-height: calc(100vh - env(safe-area-inset-bottom));
+  height: 100%;
+  min-height: 0;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: flex-start;
-  padding: 204rpx 28rpx 48rpx;
+  padding: 84rpx 28rpx 48rpx;
   text-align: center;
   box-sizing: border-box;
 }
@@ -69,7 +70,7 @@
 
 .me-login-brand-bg {
   position: absolute;
-  top: 70rpx;
+  top: -50rpx;
   left: 50%;
   width: 220rpx;
   height: 220rpx;

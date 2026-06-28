@@ -83,9 +83,9 @@ const ME_PUBLISH_PATENT_ICON = svgDataUri(`
 
 const ME_PUBLISH_ACHIEVEMENT_ICON = svgDataUri(`
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" fill="none">
-  <path d="M16 22v-2.2c0-1 .5-1.9 1.4-2.5a6.8 6.8 0 1 0-8.2-6.6" stroke="#FF5F00" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
-  <path d="M12.3 25h7.4" stroke="#FF5F00" stroke-width="2.2" stroke-linecap="round"/>
-  <path d="M13.7 28h4.6" stroke="#FF5F00" stroke-width="2.2" stroke-linecap="round"/>
+  <path d="M10.2 14.1a6.3 6.3 0 1 1 11.6 0c-.8 1.6-2.1 2.6-2.9 3.9-.4.7-.6 1.4-.6 2.4h-4.6c0-1-.2-1.7-.6-2.4-.8-1.3-2.1-2.3-2.9-3.9Z" stroke="#FF5F00" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M13.2 24h5.6" stroke="#FF5F00" stroke-width="2.2" stroke-linecap="round"/>
+  <path d="M14.4 27h3.2" stroke="#FF5F00" stroke-width="2.2" stroke-linecap="round"/>
 </svg>
 `);
 

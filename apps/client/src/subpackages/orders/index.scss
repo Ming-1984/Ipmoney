@@ -59,6 +59,14 @@
   height: 8rpx;
 }
 
+.orders-page .card-state-empty .text-title {
+  color: var(--order-foreground);
+}
+
+.orders-page .card-state-empty .text-subtitle {
+  color: var(--order-muted-foreground);
+}
+
 .order-list-card {
   --order-accent: var(--order-primary);
   --order-badge-bg: var(--order-secondary);
