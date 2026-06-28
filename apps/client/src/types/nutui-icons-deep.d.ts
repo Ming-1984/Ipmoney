@@ -70,6 +70,10 @@ declare module '@nutui/icons-react-taro/dist/es/icons/Message' {
   export { Message as default } from '@nutui/icons-react-taro';
 }
 
+declare module '@nutui/icons-react-taro/dist/es/icons/Phone2' {
+  export { Phone2 as default } from '@nutui/icons-react-taro';
+}
+
 declare module '@nutui/icons-react-taro/dist/es/icons/More' {
   export { More as default } from '@nutui/icons-react-taro';
 }

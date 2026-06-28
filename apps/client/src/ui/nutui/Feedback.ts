@@ -26,6 +26,24 @@ function normalizeToastContent(content: unknown): string {
 
 export function toast(content: unknown, options?: { duration?: number; icon?: 'success' | 'fail' | 'loading' | 'warn' }) {
   const safeContent = normalizeToastContent(content);
+  const env = typeof Taro.getEnv === 'function' ? Taro.getEnv() : process.env.TARO_ENV;
+  const envText = typeof env === 'string' ? env.toLowerCase() : '';
+  const isWeapp = env === Taro.ENV_TYPE.WEAPP || envText === 'weapp';
+  if (isWeapp) {
+    void Taro.showToast({
+      title: safeContent,
+      icon: options?.icon === 'loading' ? 'loading' : safeContent.length <= 7 && options?.icon === 'success' ? 'success' : 'none',
+      duration: Math.max(1, options?.duration ?? 2) * 1000,
+    }).catch(() => {
+      // Keep NutUI as a fallback for runtimes where native toast is unavailable.
+      Toast.show(OVERLAY_IDS.toast, {
+        content: safeContent,
+        duration: options?.duration ?? 2,
+        icon: options?.icon,
+      });
+    });
+    return;
+  }
   Toast.show(OVERLAY_IDS.toast, {
     content: safeContent,
     duration: options?.duration ?? 2,

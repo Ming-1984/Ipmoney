@@ -1,5 +1,5 @@
 import Taro, { useDidHide, useDidShow } from '@tarojs/taro';
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { getToken, getVerificationStatus, isOnboardingDone, onAuthChanged } from './auth';
 import { safeOpenPage } from './navigation';
@@ -46,16 +46,19 @@ export function usePageAccess(
     onShowRef.current = onShow;
   }, [onShow]);
 
-  useDidShow(() => {
+  const handleDidShow = useCallback(() => {
     visibleRef.current = true;
     const next = getPageAccess(policy);
     setAccess((prev) => (prev.state === next.state ? prev : next));
     onShowRef.current?.(next);
-  });
+  }, [policy]);
 
-  useDidHide(() => {
+  const handleDidHide = useCallback(() => {
     visibleRef.current = false;
-  });
+  }, []);
+
+  useDidShow(handleDidShow);
+  useDidHide(handleDidHide);
 
   useEffect(() => {
     const off = onAuthChanged(() => {
@@ -165,4 +168,3 @@ export function ensureActionAccess(policy: ActionAccessPolicy): boolean {
   if (policy === 'login-required') return ensureOnboarding();
   return ensureApproved();
 }
-

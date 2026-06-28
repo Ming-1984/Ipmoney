@@ -548,7 +548,10 @@ export default function PublishAchievementPage() {
       toast('请填写成果名称');
       return null;
     }
-    if (saving) return null;
+    if (saving) {
+      toast('正在保存，请稍候');
+      return null;
+    }
     const targetAchievementId = achievementRouteIdRef.current || '';
     const seq = ++saveSeqRef.current;
     setSaving(true);

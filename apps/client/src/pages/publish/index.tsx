@@ -5,8 +5,6 @@ import './index.scss';
 
 import type { components } from '@ipmoney/api-types';
 
-import iconPublishPatent from '../../assets/icons/icon-publish-patent-orange.svg';
-import iconPublishAchievement from '../../assets/icons/icon-publish-achievement-orange.svg';
 import iconShield from '../../assets/icons/icon-shield-orange.svg';
 import iconDraftPen from '../../assets/icons/icon-draft-pen-gray.svg';
 
@@ -38,6 +36,26 @@ type ManageCard = {
 };
 
 const WEAPP_DEBUG = process.env.NODE_ENV !== 'production' && process.env.TARO_ENV === 'weapp';
+
+function svgDataUri(svg: string) {
+  return `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`;
+}
+
+const PUBLISH_PATENT_ICON = svgDataUri(`
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none">
+  <path d="M7 3.5h7.6L18 6.9v13.6H6V4.5a1 1 0 0 1 1-1Z" stroke="#FF5F00" stroke-width="1.8" stroke-linejoin="round"/>
+  <path d="M14.6 3.5v3.4H18" stroke="#FF5F00" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M9 14.5h5.8" stroke="#FF5F00" stroke-width="1.8" stroke-linecap="round"/>
+</svg>
+`);
+
+const PUBLISH_ACHIEVEMENT_ICON = svgDataUri(`
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none">
+  <path d="M12 16.8v-1.4c0-.8.4-1.4 1.1-1.8a5.2 5.2 0 1 0-6.3-5.1" stroke="#FF5F00" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M9.2 19h5.6" stroke="#FF5F00" stroke-width="1.8" stroke-linecap="round"/>
+  <path d="M10.3 21.2h3.4" stroke="#FF5F00" stroke-width="1.8" stroke-linecap="round"/>
+</svg>
+`);
 
 function reportWeappDebug(title: string, detail?: unknown) {
   if (!WEAPP_DEBUG) return;
@@ -87,7 +105,7 @@ export default function PublishPage() {
         key: 'patent',
         title: '发布专利交易',
         desc: '发明 / 实用 / 外观',
-        icon: iconPublishPatent,
+        icon: PUBLISH_PATENT_ICON,
         tone: 'tone-orange',
         onClick: () => {
           void openPublishPage('/subpackages/publish/patent/index', '发布专利');
@@ -97,7 +115,7 @@ export default function PublishPage() {
         key: 'achievement',
         title: '发布专利成果',
         desc: '成果展示 / 案例',
-        icon: iconPublishAchievement,
+        icon: PUBLISH_ACHIEVEMENT_ICON,
         tone: 'tone-orange',
         onClick: () => {
           void openPublishPage('/subpackages/publish/achievement/index', '发布成果');
@@ -112,7 +130,7 @@ export default function PublishPage() {
       {
         key: 'listings',
         title: '我的专利',
-        icon: iconPublishPatent,
+        icon: PUBLISH_PATENT_ICON,
         tone: 'tone-orange',
         onClick: () => {
           void openPublishPage('/subpackages/my-listings/index', '我的专利');
@@ -121,7 +139,7 @@ export default function PublishPage() {
       {
         key: 'achievements',
         title: '我的专利成果',
-        icon: iconPublishAchievement,
+        icon: PUBLISH_ACHIEVEMENT_ICON,
         tone: 'tone-orange',
         onClick: () => {
           void openPublishPage('/subpackages/my-achievements/index', '我的成果');

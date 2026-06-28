@@ -27,7 +27,6 @@ import { Avatar, Button, Input, PullToRefresh, toast } from '../../ui/nutui';
 
 import iconUser from '../../assets/icons/icon-user-purple.svg';
 import iconPublishPatent from '../../assets/icons/icon-publish-patent.svg';
-import iconPublishAchievement from '../../assets/icons/app/patent-achievement.png';
 import iconOrderBuyer from '../../assets/icons/icon-order-buyer.svg';
 import iconOrderSeller from '../../assets/icons/icon-order-seller.svg';
 import iconContractCenter from '../../assets/icons/icon-contract-center.svg';
@@ -69,6 +68,26 @@ type AuthState = {
   verificationType: VerificationType | null;
   verificationStatus: VerificationStatus | null;
 };
+
+function svgDataUri(svg: string) {
+  return `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`;
+}
+
+const ME_PUBLISH_PATENT_ICON = svgDataUri(`
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" fill="none">
+  <path d="M9.5 4.5h9.8L24.5 9.7v17.8h-17V6.5a2 2 0 0 1 2-2Z" stroke="#FF5F00" stroke-width="2.2" stroke-linejoin="round"/>
+  <path d="M19.3 4.5v5.2h5.2" stroke="#FF5F00" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M12.2 19.5h7.6" stroke="#FF5F00" stroke-width="2.2" stroke-linecap="round"/>
+</svg>
+`);
+
+const ME_PUBLISH_ACHIEVEMENT_ICON = svgDataUri(`
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" fill="none">
+  <path d="M16 22v-2.2c0-1 .5-1.9 1.4-2.5a6.8 6.8 0 1 0-8.2-6.6" stroke="#FF5F00" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M12.3 25h7.4" stroke="#FF5F00" stroke-width="2.2" stroke-linecap="round"/>
+  <path d="M13.7 28h4.6" stroke="#FF5F00" stroke-width="2.2" stroke-linecap="round"/>
+</svg>
+`);
 
 const ME_PROFILE_CACHE_SCOPE = 'me-profile';
 const ME_PROFILE_CACHE_KEY = 'self';
@@ -489,8 +508,8 @@ export default function MePage() {
 
   const publishItems = useMemo<IconItem[]>(
     () => [
-      { key: 'listings', label: '我的专利', icon: iconPublishPatent, onClick: () => Taro.navigateTo({ url: '/subpackages/my-listings/index' }) },
-      { key: 'achievements', label: '我的专利成果', icon: iconPublishAchievement, onClick: () => Taro.navigateTo({ url: '/subpackages/my-achievements/index' }) },
+      { key: 'listings', label: '我的专利', icon: ME_PUBLISH_PATENT_ICON, onClick: () => Taro.navigateTo({ url: '/subpackages/my-listings/index' }) },
+      { key: 'achievements', label: '我的专利成果', icon: ME_PUBLISH_ACHIEVEMENT_ICON, onClick: () => Taro.navigateTo({ url: '/subpackages/my-achievements/index' }) },
     ],
     [],
   );

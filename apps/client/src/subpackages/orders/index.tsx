@@ -6,18 +6,18 @@ import './index.scss';
 import type { components } from '@ipmoney/api-types';
 
 import { apiGet } from '../../lib/api';
-import { displayInfoOrPlaceholder, displayTitleWithSecondary, normalizeDisplayText } from '../../lib/displayText';
+import { normalizeDisplayText } from '../../lib/displayText';
 import { usePagedList } from '../../lib/usePagedList';
 import { goLogin, goOnboarding, usePageAccess } from '../../lib/guard';
 import { formatTimeSmart } from '../../lib/format';
-import { orderStatusLabel, orderStatusTagClass } from '../../lib/labels';
+import { orderStatusLabel } from '../../lib/labels';
 import { fenToYuan } from '../../lib/money';
 import { useRouteStringParam } from '../../lib/routeParams';
 
 import { AuditPendingCard, EmptyCard, ErrorCard, LoadingCard, PermissionCard } from '../../ui/StateCards';
 import { ListFooter } from '../../ui/ListFooter';
 import { PageHeader, Spacer, Surface } from '../../ui/layout';
-import { Button, PullToRefresh, toast } from '../../ui/nutui';
+import { PullToRefresh, toast } from '../../ui/nutui';
 import emptyOrders from '../../assets/illustrations/empty-orders.svg';
 
 type PagedOrder = components['schemas']['PagedOrder'];
@@ -56,12 +56,6 @@ const TABS: Array<{ id: OrderListTab; label: string }> = [
   { id: 'done', label: '已结束' },
 ];
 
-type OrderCardAction = {
-  label: string;
-  variant: 'primary' | 'ghost';
-  target: 'detail' | 'deposit' | 'final';
-};
-
 function shortOrderId(id?: string | null): string {
   const compact = String(id || '').replace(/-/g, '').trim().toUpperCase();
   if (!compact) return '待确认';
@@ -71,6 +65,29 @@ function shortOrderId(id?: string | null): string {
 function counterpartyName(order: Order, asRole: OrderListRole): string {
   const raw = asRole === 'SELLER' ? order.buyerDisplayName : order.sellerDisplayName;
   return normalizeDisplayText(raw) || '待确认';
+}
+
+function counterpartyInitial(name: string): string {
+  const normalized = normalizeDisplayText(name);
+  if (!normalized || normalized === '待确认') return '?';
+  return normalized.slice(0, 1).toUpperCase();
+}
+
+function orderStatusToneClass(status: OrderStatus): string {
+  if (status === 'DEPOSIT_PENDING') return 'is-deposit-pending';
+  if (status === 'DEPOSIT_PAID') return 'is-deposit-paid';
+  if (status === 'WAIT_FINAL_PAYMENT') return 'is-wait-final';
+  if (status === 'FINAL_PAID_ESCROW') return 'is-final-escrow';
+  if (status === 'READY_TO_SETTLE') return 'is-ready-settle';
+  if (status === 'COMPLETED') return 'is-completed';
+  if (status === 'CANCELLED') return 'is-cancelled';
+  if (status === 'REFUNDING') return 'is-refunding';
+  if (status === 'REFUNDED') return 'is-refunded';
+  return 'is-unknown';
+}
+
+function orderCardMuted(status: OrderStatus): boolean {
+  return status === 'CANCELLED' || status === 'REFUNDED';
 }
 
 function orderProgressHint(order: Order): string {
@@ -89,20 +106,12 @@ function orderProgressHint(order: Order): string {
   return '订单状态待确认';
 }
 
-function primaryOrderAction(order: Order): OrderCardAction {
-  if (order.status === 'DEPOSIT_PENDING' && order.listingId) {
-    return { label: '支付订金', variant: 'primary', target: 'deposit' };
-  }
-  if (order.status === 'WAIT_FINAL_PAYMENT') {
-    return { label: '支付尾款', variant: 'primary', target: 'final' };
-  }
-  if (order.status === 'DEPOSIT_PAID' || order.status === 'FINAL_PAID_ESCROW' || order.status === 'READY_TO_SETTLE') {
-    return { label: '查看跟单', variant: 'ghost', target: 'detail' };
-  }
-  if (order.status === 'REFUNDING' || order.status === 'REFUNDED') {
-    return { label: '查看退款', variant: 'ghost', target: 'detail' };
-  }
-  return { label: '查看详情', variant: 'ghost', target: 'detail' };
+function moneyDisplay(fen?: number | null): string {
+  if (fen === undefined || fen === null) return '—';
+  const yuan = fenToYuan(fen);
+  const [integer, decimal] = yuan.split('.');
+  const formatted = integer.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+  return `¥${decimal ? `${formatted}.${decimal}` : formatted}`;
 }
 
 export default function OrdersPage() {
@@ -216,21 +225,6 @@ export default function OrdersPage() {
     Taro.navigateTo({ url: `/subpackages/orders/detail/index?orderId=${orderId}` });
   }, []);
 
-  const handleOrderAction = useCallback(
-    (order: Order, action: OrderCardAction) => {
-      if (action.target === 'deposit' && order.listingId) {
-        Taro.navigateTo({ url: `/subpackages/checkout/deposit-pay/index?listingId=${order.listingId}` });
-        return;
-      }
-      if (action.target === 'final') {
-        Taro.navigateTo({ url: `/subpackages/checkout/final-pay/index?orderId=${order.id}` });
-        return;
-      }
-      navigateToOrderDetail(order.id);
-    },
-    [navigateToOrderDetail],
-  );
-
   if (access.state === 'need-login') {
     return (
       <View className="container orders-page">
@@ -280,16 +274,14 @@ export default function OrdersPage() {
   return (
     <View className="container orders-page">
       <PageHeader title="我的订单" subtitle="订金/尾款都在平台托管；可查看状态与发起退款申请" />
-      <Spacer />
 
-      <View className="detail-tabs">
-        <View className="detail-tabs-scroll">
-          {TABS.map((t) => (
-            <Text key={t.id} className={`detail-tab ${tab === t.id ? 'is-active' : ''}`} onClick={() => goToTab(t.id)}>
-              {t.label}
-            </Text>
-          ))}
-        </View>
+      <View className="order-tabs">
+        {TABS.map((t) => (
+          <View key={t.id} className={`order-tab ${tab === t.id ? 'is-active' : ''}`} onClick={() => goToTab(t.id)}>
+            <Text>{t.label}</Text>
+            {tab === t.id ? <View className="order-tab-underline" /> : null}
+          </View>
+        ))}
       </View>
 
       {statusFilterLabels.length ? (
@@ -312,7 +304,7 @@ export default function OrdersPage() {
         </View>
       ) : null}
 
-      <View style={{ height: '12rpx' }} />
+      <View className="order-tabs-card-gap" />
 
       <PullToRefresh type="primary" disabled={showInitialLoading || refreshing} onRefresh={refresh}>
         {showInitialLoading ? (
@@ -329,68 +321,64 @@ export default function OrdersPage() {
             ) : null}
             {items.map((it: Order) => (
               (() => {
-                const title = displayTitleWithSecondary(it.listingTitle, '订单信息待确认', {
-                  secondary: it.applicationNoDisplay,
-                  secondaryPrefix: '专利申请号 ',
-                });
-                const applicationNo = normalizeDisplayText(it.applicationNoDisplay);
-                const action = primaryOrderAction(it);
+                const counterparty = counterpartyName(it, asRole);
+                const toneClass = orderStatusToneClass(it.status);
                 return (
                   <Surface
                     key={it.id}
-                    className="order-list-card"
+                    className={`order-list-card ${toneClass} ${orderCardMuted(it.status) ? 'is-muted' : ''}`}
+                    padding="none"
                     style={{ marginBottom: '16rpx' }}
                     onClick={() => navigateToOrderDetail(it.id)}
                   >
-                    <View className="row-between order-card-head">
-                      <Text className="text-card-title clamp-1">{title}</Text>
-                      <Text className={orderStatusTagClass(it.status)}>{orderStatusLabel(it.status)}</Text>
+                    <View className="order-card-accent" />
+
+                    <View className="order-card-identity">
+                      <View className="order-card-avatar">
+                        <Text>{counterpartyInitial(counterparty)}</Text>
+                      </View>
+                      <View className="order-card-party">
+                        <Text className="order-card-party-name clamp-1">{counterparty}</Text>
+                        <Text className="order-card-no">{shortOrderId(it.id)}</Text>
+                      </View>
+                      <Text className="order-card-status">{orderStatusLabel(it.status)}</Text>
                     </View>
 
-                    <View className="order-card-meta">
-                      {applicationNo ? <Text>申请号：{displayInfoOrPlaceholder(applicationNo, '待确认')}</Text> : null}
-                      {applicationNo ? <Text className="order-card-dot">·</Text> : null}
-                      <Text>订单：{shortOrderId(it.id)}</Text>
+                    <View className="order-card-divider" />
+
+                    <View className="order-card-money-grid">
+                      <View className="order-card-price-cell order-card-total">
+                        <Text className="order-card-price-label">成交总价</Text>
+                        <Text className={`order-card-price-value ${it.dealAmountFen == null ? 'is-empty' : ''}`}>
+                          {moneyDisplay(it.dealAmountFen)}
+                        </Text>
+                      </View>
+                      <View className="order-card-money-sep" />
+                      <View className="order-card-price-cell">
+                        <Text className="order-card-price-label">订金</Text>
+                        <Text className={`order-card-price-value ${it.depositAmountFen == null ? 'is-empty' : ''}`}>
+                          {moneyDisplay(it.depositAmountFen)}
+                        </Text>
+                      </View>
+                      <View className="order-card-money-sep" />
+                      <View className="order-card-price-cell">
+                        <Text className="order-card-price-label">尾款</Text>
+                        <Text className={`order-card-price-value ${it.finalAmountFen == null ? 'is-empty' : ''}`}>
+                          {moneyDisplay(it.finalAmountFen)}
+                        </Text>
+                      </View>
                     </View>
 
-                    <View className="order-card-amount">
-                      <Text>成交总价：{it.dealAmountFen == null ? '待确认' : `¥${fenToYuan(it.dealAmountFen)}`}</Text>
+                    <View className="order-card-note">
+                      <Text>{orderProgressHint(it)}</Text>
                     </View>
 
-                    <View className="order-card-money-row">
-                      <Text>订金：¥{fenToYuan(it.depositAmountFen, { empty: '待确认' })}</Text>
-                      <Text>尾款：{it.finalAmountFen == null ? '待确认' : `¥${fenToYuan(it.finalAmountFen)}`}</Text>
-                    </View>
-
-                    <Text className="muted">对方：{counterpartyName(it, asRole)}</Text>
-                    <View style={{ height: '6rpx' }} />
-                    <Text className="order-card-hint">{orderProgressHint(it)}</Text>
-                    <View style={{ height: '6rpx' }} />
-                    <Text className="muted">更新时间：{formatTimeSmart(it.updatedAt || it.createdAt)}</Text>
-
-                    <View className="order-card-actions">
-                      <Button
-                        variant={action.variant}
-                        size="small"
-                        onClick={(event) => {
-                          event?.stopPropagation?.();
-                          handleOrderAction(it, action);
-                        }}
-                      >
-                        {action.label}
-                      </Button>
-                      {action.label !== '查看详情' ? (
-                        <Button
-                          variant="ghost"
-                          size="small"
-                          onClick={(event) => {
-                            event?.stopPropagation?.();
-                            navigateToOrderDetail(it.id);
-                          }}
-                        >
-                          查看详情
-                        </Button>
-                      ) : null}
+                    <View className="order-card-footer">
+                      <View className="order-card-time-wrap">
+                        <View className="order-card-clock" />
+                        <Text className="order-card-time">{formatTimeSmart(it.updatedAt || it.createdAt)}</Text>
+                      </View>
+                      <Text className="order-card-detail-link">查看详情 ›</Text>
                     </View>
                   </Surface>
                 );

@@ -754,7 +754,10 @@ export default function PublishPatentPage() {
       let res: Listing;
       if (!listingId) {
         const req = validateAndBuildCreate('save');
-        if (!req) return;
+        if (!req) {
+          toast('请检查草稿内容');
+          return;
+        }
         const idempotencyKey = req.patentNumberRaw
           ? `listing-create-${req.patentNumberRaw}`
           : `listing-create-draft-${Date.now()}`;
@@ -763,7 +766,10 @@ export default function PublishPatentPage() {
         setListingId(res.id);
       } else {
         const req = buildUpdate('save');
-        if (!req) return;
+        if (!req) {
+          toast('请检查草稿内容');
+          return;
+        }
         res = await apiPatch<Listing>(`/listings/${listingId}`, req, { idempotencyKey: `listing-patch-${listingId}` });
         if (seq !== saveSeqRef.current || !pageVisibleRef.current || listingRouteIdRef.current !== targetListingId) return;
       }
