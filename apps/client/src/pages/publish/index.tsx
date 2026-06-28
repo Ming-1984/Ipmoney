@@ -1,17 +1,24 @@
 ﻿import { View, Text, Image } from '@tarojs/components';
-import React, { useMemo } from 'react';
+import { useDidShow } from '@tarojs/taro';
+import React, { useCallback, useMemo, useState } from 'react';
 import './index.scss';
 
-import iconPublishPatent from '../../assets/icons/icon-publish-patent.svg';
-import iconPublishAchievement from '../../assets/icons/app/patent-achievement.png';
-import iconShield from '../../assets/icons/icon-shield-orange.svg';
-import iconCategory from '../../assets/icons/icon-category-gray.svg';
+import type { components } from '@ipmoney/api-types';
 
+import iconPublishPatent from '../../assets/icons/icon-publish-patent-orange.svg';
+import iconPublishAchievement from '../../assets/icons/icon-publish-achievement-orange.svg';
+import iconShield from '../../assets/icons/icon-shield-orange.svg';
+import iconDraftPen from '../../assets/icons/icon-draft-pen-gray.svg';
+
+import { apiGet } from '../../lib/api';
 import { usePageAccess } from '../../lib/guard';
 import { safeOpenPage } from '../../lib/navigation';
 import { AccessGate } from '../../ui/PageState';
 import { Surface } from '../../ui/layout';
 import publishLockedArt from '../../assets/illustrations/publish-locked.png';
+
+type PagedListing = components['schemas']['PagedListing'];
+type PagedAchievement = components['schemas']['PagedAchievementSummary'];
 
 type PublishCard = {
   key: string;
@@ -47,13 +54,39 @@ async function openPublishPage(url: string, title: string) {
 
 export default function PublishPage() {
   const access = usePageAccess('approved-required');
+  const [listingDraftCount, setListingDraftCount] = useState(0);
+  const [achievementDraftCount, setAchievementDraftCount] = useState(0);
+
+  const refreshDraftCount = useCallback(async () => {
+    if (access.state !== 'ok') {
+      setListingDraftCount(0);
+      setAchievementDraftCount(0);
+      return;
+    }
+    try {
+      const [listings, achievements] = await Promise.all([
+        apiGet<PagedListing>('/listings', { status: 'DRAFT', page: 1, pageSize: 1 }),
+        apiGet<PagedAchievement>('/achievements', { status: 'DRAFT', page: 1, pageSize: 1 }),
+      ]);
+      setListingDraftCount(Number(listings?.page?.total || 0));
+      setAchievementDraftCount(Number(achievements?.page?.total || 0));
+    } catch (error) {
+      reportWeappDebug('草稿数量加载失败', error);
+      setListingDraftCount(0);
+      setAchievementDraftCount(0);
+    }
+  }, [access.state]);
+
+  useDidShow(() => {
+    void refreshDraftCount();
+  });
 
   const publishItems = useMemo<PublishCard[]>(
     () => [
       {
         key: 'patent',
         title: '发布专利交易',
-        desc: '发明/实用/外观',
+        desc: '发明 / 实用 / 外观',
         icon: iconPublishPatent,
         tone: 'tone-orange',
         onClick: () => {
@@ -63,9 +96,9 @@ export default function PublishPage() {
       {
         key: 'achievement',
         title: '发布专利成果',
-        desc: '成果展示/案例',
+        desc: '成果展示 / 案例',
         icon: iconPublishAchievement,
-        tone: 'tone-blue',
+        tone: 'tone-orange',
         onClick: () => {
           void openPublishPage('/subpackages/publish/achievement/index', '发布成果');
         },
@@ -80,7 +113,7 @@ export default function PublishPage() {
         key: 'listings',
         title: '我的专利',
         icon: iconPublishPatent,
-        tone: 'tone-blue',
+        tone: 'tone-orange',
         onClick: () => {
           void openPublishPage('/subpackages/my-listings/index', '我的专利');
         },
@@ -98,8 +131,15 @@ export default function PublishPage() {
     [],
   );
 
-  const draftCount = 0;
+  const draftCount = listingDraftCount + achievementDraftCount;
   const draftLabel = draftCount ? `未完成 ${draftCount} 条` : '暂无未完成';
+  const openDraftBox = useCallback(() => {
+    const target =
+      listingDraftCount || !achievementDraftCount
+        ? '/subpackages/my-listings/index?status=DRAFT'
+        : '/subpackages/my-achievements/index?status=DRAFT';
+    void openPublishPage(target, '草稿箱');
+  }, [achievementDraftCount, listingDraftCount]);
 
   return (
     <View className={`container publish-page ${access.state !== 'ok' ? 'publish-page-locked' : ''}`}>
@@ -115,11 +155,8 @@ export default function PublishPage() {
           )}
         </View>
       ) : (
-        <View>
-          <View className="publish-header">
-            <Text className="publish-title">发布中心</Text>
-            <Text className="publish-subtitle">选择您要发布的类型</Text>
-          </View>
+        <View className="publish-content">
+          <Text className="publish-subtitle">选择您要发布的类型</Text>
 
           <View className="publish-auth-banner">
             <View className="publish-auth-left">
@@ -131,20 +168,22 @@ export default function PublishPage() {
 
           <View className="publish-grid">
             {publishItems.map((item) => (
-              <View key={item.key} className={`publish-card publish-card--wide ${item.tone}`} onClick={item.onClick}>
-                <View className="publish-card-left">
+              <View key={item.key} className={`publish-card ${item.tone}`} onClick={item.onClick}>
+                <View className="publish-card-icon">
+                  <Image className="publish-card-icon-img" src={item.icon} svg mode="aspectFit" />
+                </View>
+                <View className="publish-card-text">
                   <Text className="publish-card-title">{item.title}</Text>
                   <Text className="publish-card-desc">{item.desc}</Text>
                 </View>
-                <Image className="publish-card-deco" src={item.icon} svg mode="aspectFit" />
               </View>
             ))}
           </View>
 
-          <Surface className="publish-draft-card" padding="md">
+          <Surface className="publish-draft-card" padding="md" onClick={openDraftBox} hoverClass="publish-draft-card-hover">
             <View className="publish-draft-left">
               <View className="publish-draft-icon">
-                <Image className="publish-draft-icon-img" src={iconCategory} svg mode="aspectFit" />
+                <Image className="publish-draft-icon-img" src={iconDraftPen} svg mode="aspectFit" />
               </View>
               <View>
                 <Text className="publish-draft-title">草稿箱</Text>
@@ -174,7 +213,9 @@ export default function PublishPage() {
           </Surface>
 
           <Text className="publish-footnote">
-            发布即代表您同意《平台知识产权保护公约》。严禁发布虚假、侵权或违法违规内容。
+            发布即代表您同意
+            <Text className="publish-footnote-link">《平台知识产权保护公约》</Text>
+            。严禁发布虚假、侵权或违法违规内容。
           </Text>
         </View>
       )}

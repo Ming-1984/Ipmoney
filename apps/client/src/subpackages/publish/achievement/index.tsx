@@ -97,6 +97,10 @@ const COOPERATION_OPTIONS: ChipOption<CooperationMode>[] = [
 
 const UNTITLED_ACHIEVEMENT_DRAFT_TITLE = '未命名成果草稿';
 
+function isSubmittedAchievement(status?: ContentStatus | null, auditStatus?: AuditStatus | null): boolean {
+  return status !== 'DRAFT' && (auditStatus === 'PENDING' || auditStatus === 'APPROVED' || auditStatus === 'REJECTED');
+}
+
 function splitList(input: string): string[] {
   return String(input || '')
     .split(/[\n,，;；]/)
@@ -271,7 +275,7 @@ export default function PublishAchievementPage() {
         setAchievementId(draft.id);
         setAuditStatus(draft.auditStatus || null);
         setContentStatus(draft.status || null);
-        setSubmitted(draft.auditStatus === 'PENDING' || draft.auditStatus === 'APPROVED' || draft.auditStatus === 'REJECTED');
+        setSubmitted(isSubmittedAchievement(draft.status || null, draft.auditStatus || null));
 
         setTitle(draft.title || '');
         setSummary(draft.summary || '');
@@ -559,7 +563,7 @@ export default function PublishAchievementPage() {
         achievementRouteIdRef.current = created.id;
         setAuditStatus(created.auditStatus || null);
         setContentStatus(created.status || null);
-        toast('已保存', { icon: 'success' });
+        toast('草稿已保存，可在草稿箱查看', { icon: 'success' });
         return created;
       }
 
@@ -569,7 +573,7 @@ export default function PublishAchievementPage() {
       if (seq !== saveSeqRef.current || !pageVisibleRef.current || achievementRouteIdRef.current !== targetAchievementId) return null;
       setAuditStatus(updated.auditStatus || null);
       setContentStatus(updated.status || null);
-      toast('已保存', { icon: 'success' });
+      toast('草稿已保存，可在草稿箱查看', { icon: 'success' });
       return updated;
     } catch (error: any) {
       reportWeappDebug('成果保存失败详情', buildActionErrorDetail(error));
@@ -802,24 +806,30 @@ export default function PublishAchievementPage() {
             <Surface className="publish-card">
               <View className="form-row form-row-split">
                 <View className="form-row-split-item">
-                  <NativeButton
-                    className="publish-action-btn publish-action-btn-native publish-action-ghost"
+                  <View
+                    className={`publish-action-btn publish-action-ghost ${saving ? 'is-disabled' : ''}`}
                     data-testid="achievement-save-draft"
-                    onClick={() => void saveDraft()}
-                    disabled={saving}
+                    hoverClass={saving ? 'none' : 'publish-action-btn-hover'}
+                    onClick={() => {
+                      if (saving) return;
+                      void saveDraft();
+                    }}
                   >
                     {saving ? '保存中...' : '保存草稿'}
-                  </NativeButton>
+                  </View>
                 </View>
                 <View className="form-row-split-item">
-                  <NativeButton
-                    className="publish-action-btn publish-action-btn-native publish-action-primary"
+                  <View
+                    className={`publish-action-btn publish-action-primary ${submitting ? 'is-disabled' : ''}`}
                     data-testid="achievement-submit"
-                    onClick={() => void submit()}
-                    disabled={submitting}
+                    hoverClass={submitting ? 'none' : 'publish-action-btn-hover'}
+                    onClick={() => {
+                      if (submitting) return;
+                      void submit();
+                    }}
                   >
                     {submitting ? '提交中...' : submitted ? '重新提交' : '提交审核'}
-                  </NativeButton>
+                  </View>
                 </View>
               </View>
               {auditStatus ? <Text className="form-hint">当前审核状态：{auditStatusLabel(auditStatus)}</Text> : null}

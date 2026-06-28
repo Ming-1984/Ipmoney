@@ -1,5 +1,60 @@
 @use '../../styles/detail-compact' as *;
 
-/* Empty on purpose: ensures the page emits a wxss file in miniapp builds. */
+.order-list-card {
+  display: flex;
+  flex-direction: column;
+  gap: 8rpx;
+}
 
+.order-card-head {
+  gap: 12rpx;
+}
 
+.order-card-head .tag {
+  flex-shrink: 0;
+}
+
+.order-card-meta {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6rpx;
+  color: var(--c-muted);
+  font-size: 22rpx;
+  line-height: 1.45;
+}
+
+.order-card-dot {
+  color: var(--c-divider);
+}
+
+.order-card-amount {
+  color: var(--c-text);
+  font-size: 24rpx;
+  font-weight: 600;
+}
+
+.order-card-money-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 12rpx;
+  color: var(--c-muted);
+  font-size: 24rpx;
+}
+
+.order-card-hint {
+  color: var(--c-text);
+  font-size: 23rpx;
+  line-height: 1.45;
+}
+
+.order-card-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12rpx;
+  margin-top: 8rpx;
+}
+
+.order-card-actions .nut-button {
+  min-width: 156rpx;
+}

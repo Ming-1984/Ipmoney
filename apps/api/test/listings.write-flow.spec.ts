@@ -57,8 +57,10 @@ describe('ListingsService write flow suite', () => {
   beforeEach(() => {
     prisma = {
       listing: {
+        count: vi.fn(),
         create: vi.fn(),
         findFirst: vi.fn(),
+        findMany: vi.fn(),
         findUnique: vi.fn(),
         update: vi.fn(),
       },
@@ -178,6 +180,36 @@ describe('ListingsService write flow suite', () => {
       priceType: 'FIXED',
       sellerUserId: USER_ID,
     });
+  });
+
+  it('create allows an empty user draft without patent linkage', async () => {
+    prisma.listing.create.mockResolvedValueOnce(
+      buildListing({
+        title: '未命名挂牌',
+        patentId: null,
+        tradeMode: 'ASSIGNMENT',
+        priceType: 'NEGOTIABLE',
+        status: 'DRAFT',
+        auditStatus: 'PENDING',
+      }),
+    );
+
+    const result = await service.createListing(USER_REQ, {
+      tradeMode: 'assignment',
+      priceType: 'negotiable',
+    });
+
+    expect(prisma.listing.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          sellerUserId: USER_ID,
+          patentId: null,
+          tradeMode: 'ASSIGNMENT',
+          priceType: 'NEGOTIABLE',
+        }),
+      }),
+    );
+    expect(result).toMatchObject({ status: 'DRAFT', auditStatus: 'PENDING' });
   });
 
   it('create keeps supported listingTopics values only when semantics are valid', async () => {
@@ -637,6 +669,41 @@ describe('ListingsService write flow suite', () => {
         }),
       }),
     );
+  });
+
+  it('listMine applies status and auditStatus filters for draft views', async () => {
+    const draft = {
+      ...buildListing({ status: 'DRAFT', auditStatus: 'PENDING' }),
+      patent: null,
+    };
+    prisma.listing.findMany.mockResolvedValueOnce([draft]);
+    prisma.listing.count.mockResolvedValueOnce(1);
+
+    const result = await service.listMine(USER_REQ, {
+      page: '1',
+      pageSize: '1',
+      status: 'draft',
+      auditStatus: 'pending',
+    });
+
+    expect(prisma.listing.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: {
+          sellerUserId: USER_ID,
+          status: 'DRAFT',
+          auditStatus: 'PENDING',
+        },
+        take: 1,
+      }),
+    );
+    expect(prisma.listing.count).toHaveBeenCalledWith({
+      where: {
+        sellerUserId: USER_ID,
+        status: 'DRAFT',
+        auditStatus: 'PENDING',
+      },
+    });
+    expect(result.page.total).toBe(1);
   });
 
   it('adminUpdate allows clearing nullable text and amount fields', async () => {

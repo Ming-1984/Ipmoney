@@ -17,13 +17,15 @@ import { useRouteStringParam } from '../../lib/routeParams';
 import { AuditPendingCard, EmptyCard, ErrorCard, LoadingCard, PermissionCard } from '../../ui/StateCards';
 import { ListFooter } from '../../ui/ListFooter';
 import { PageHeader, Spacer, Surface } from '../../ui/layout';
-import { PullToRefresh, toast } from '../../ui/nutui';
+import { Button, PullToRefresh, toast } from '../../ui/nutui';
 import emptyOrders from '../../assets/illustrations/empty-orders.svg';
 
 type PagedOrder = components['schemas']['PagedOrder'];
 type Order = components['schemas']['Order'] & {
   listingTitle?: string | null;
   applicationNoDisplay?: string | null;
+  buyerDisplayName?: string | null;
+  sellerDisplayName?: string | null;
 };
 type OrderListRole = components['schemas']['OrderListRole'];
 type OrderStatus = components['schemas']['OrderStatus'];
@@ -53,6 +55,55 @@ const TABS: Array<{ id: OrderListTab; label: string }> = [
   { id: 'refund', label: '退款/售后' },
   { id: 'done', label: '已结束' },
 ];
+
+type OrderCardAction = {
+  label: string;
+  variant: 'primary' | 'ghost';
+  target: 'detail' | 'deposit' | 'final';
+};
+
+function shortOrderId(id?: string | null): string {
+  const compact = String(id || '').replace(/-/g, '').trim().toUpperCase();
+  if (!compact) return '待确认';
+  return compact.slice(0, 8);
+}
+
+function counterpartyName(order: Order, asRole: OrderListRole): string {
+  const raw = asRole === 'SELLER' ? order.buyerDisplayName : order.sellerDisplayName;
+  return normalizeDisplayText(raw) || '待确认';
+}
+
+function orderProgressHint(order: Order): string {
+  if (order.status === 'DEPOSIT_PENDING') return '等待支付订金';
+  if (order.status === 'DEPOSIT_PAID') return '订金已支付，平台客服将介入跟单';
+  if (order.status === 'WAIT_FINAL_PAYMENT') return '合同已确认，可支付尾款';
+  if (order.status === 'FINAL_PAID_ESCROW') return '尾款已托管，等待权属变更';
+  if (order.status === 'READY_TO_SETTLE') return '权属变更完成，等待结算放款';
+  if (order.status === 'COMPLETED') return '订单已完成';
+  if (order.status === 'CANCELLED') {
+    if (order.dealAmountFen == null && order.finalAmountFen == null) return '订单已取消，交易金额尚未确认';
+    return '订单已取消';
+  }
+  if (order.status === 'REFUNDING') return '退款处理中';
+  if (order.status === 'REFUNDED') return '退款已完成';
+  return '订单状态待确认';
+}
+
+function primaryOrderAction(order: Order): OrderCardAction {
+  if (order.status === 'DEPOSIT_PENDING' && order.listingId) {
+    return { label: '支付订金', variant: 'primary', target: 'deposit' };
+  }
+  if (order.status === 'WAIT_FINAL_PAYMENT') {
+    return { label: '支付尾款', variant: 'primary', target: 'final' };
+  }
+  if (order.status === 'DEPOSIT_PAID' || order.status === 'FINAL_PAID_ESCROW' || order.status === 'READY_TO_SETTLE') {
+    return { label: '查看跟单', variant: 'ghost', target: 'detail' };
+  }
+  if (order.status === 'REFUNDING' || order.status === 'REFUNDED') {
+    return { label: '查看退款', variant: 'ghost', target: 'detail' };
+  }
+  return { label: '查看详情', variant: 'ghost', target: 'detail' };
+}
 
 export default function OrdersPage() {
   const loadedOnceRef = useRef(false);
@@ -161,6 +212,24 @@ export default function OrdersPage() {
 
   const showInitialLoading = loading && items.length === 0;
   const showBlockingError = Boolean(error && items.length === 0);
+  const navigateToOrderDetail = useCallback((orderId: string) => {
+    Taro.navigateTo({ url: `/subpackages/orders/detail/index?orderId=${orderId}` });
+  }, []);
+
+  const handleOrderAction = useCallback(
+    (order: Order, action: OrderCardAction) => {
+      if (action.target === 'deposit' && order.listingId) {
+        Taro.navigateTo({ url: `/subpackages/checkout/deposit-pay/index?listingId=${order.listingId}` });
+        return;
+      }
+      if (action.target === 'final') {
+        Taro.navigateTo({ url: `/subpackages/checkout/final-pay/index?orderId=${order.id}` });
+        return;
+      }
+      navigateToOrderDetail(order.id);
+    },
+    [navigateToOrderDetail],
+  );
 
   if (access.state === 'need-login') {
     return (
@@ -259,36 +328,73 @@ export default function OrdersPage() {
               </>
             ) : null}
             {items.map((it: Order) => (
-              <Surface
-                key={it.id}
-                style={{ marginBottom: '16rpx' }}
-                onClick={() => {
-                  Taro.navigateTo({ url: `/subpackages/orders/detail/index?orderId=${it.id}` });
-                }}
-              >
-                <View className="row-between" style={{ gap: '12rpx' }}>
-                  <Text className="text-card-title clamp-1">
-                    {displayTitleWithSecondary(it.listingTitle, '订单信息待确认', {
-                      secondary: it.applicationNoDisplay,
-                      secondaryPrefix: '专利申请号 ',
-                    })}
-                  </Text>
-                  <Text className={orderStatusTagClass(it.status)}>{orderStatusLabel(it.status)}</Text>
-                </View>
-                <View style={{ height: '8rpx' }} />
-                <Text className="muted">
-                  订金：¥{fenToYuan(it.depositAmountFen, { empty: '待确认' })} · 尾款：¥{fenToYuan(it.finalAmountFen, { empty: '待确认' })}
-                </Text>
-                <View style={{ height: '6rpx' }} />
-                {normalizeDisplayText(it.listingTitle) && normalizeDisplayText(it.applicationNoDisplay) ? (
-                  <>
-                    <Text className="muted">申请号：{displayInfoOrPlaceholder(it.applicationNoDisplay, '待确认')}</Text>
+              (() => {
+                const title = displayTitleWithSecondary(it.listingTitle, '订单信息待确认', {
+                  secondary: it.applicationNoDisplay,
+                  secondaryPrefix: '专利申请号 ',
+                });
+                const applicationNo = normalizeDisplayText(it.applicationNoDisplay);
+                const action = primaryOrderAction(it);
+                return (
+                  <Surface
+                    key={it.id}
+                    className="order-list-card"
+                    style={{ marginBottom: '16rpx' }}
+                    onClick={() => navigateToOrderDetail(it.id)}
+                  >
+                    <View className="row-between order-card-head">
+                      <Text className="text-card-title clamp-1">{title}</Text>
+                      <Text className={orderStatusTagClass(it.status)}>{orderStatusLabel(it.status)}</Text>
+                    </View>
+
+                    <View className="order-card-meta">
+                      {applicationNo ? <Text>申请号：{displayInfoOrPlaceholder(applicationNo, '待确认')}</Text> : null}
+                      {applicationNo ? <Text className="order-card-dot">·</Text> : null}
+                      <Text>订单：{shortOrderId(it.id)}</Text>
+                    </View>
+
+                    <View className="order-card-amount">
+                      <Text>成交总价：{it.dealAmountFen == null ? '待确认' : `¥${fenToYuan(it.dealAmountFen)}`}</Text>
+                    </View>
+
+                    <View className="order-card-money-row">
+                      <Text>订金：¥{fenToYuan(it.depositAmountFen, { empty: '待确认' })}</Text>
+                      <Text>尾款：{it.finalAmountFen == null ? '待确认' : `¥${fenToYuan(it.finalAmountFen)}`}</Text>
+                    </View>
+
+                    <Text className="muted">对方：{counterpartyName(it, asRole)}</Text>
                     <View style={{ height: '6rpx' }} />
-                  </>
-                ) : null}
-                <View style={{ height: '6rpx' }} />
-                <Text className="muted">创建时间：{formatTimeSmart(it.createdAt)}</Text>
-              </Surface>
+                    <Text className="order-card-hint">{orderProgressHint(it)}</Text>
+                    <View style={{ height: '6rpx' }} />
+                    <Text className="muted">更新时间：{formatTimeSmart(it.updatedAt || it.createdAt)}</Text>
+
+                    <View className="order-card-actions">
+                      <Button
+                        variant={action.variant}
+                        size="small"
+                        onClick={(event) => {
+                          event?.stopPropagation?.();
+                          handleOrderAction(it, action);
+                        }}
+                      >
+                        {action.label}
+                      </Button>
+                      {action.label !== '查看详情' ? (
+                        <Button
+                          variant="ghost"
+                          size="small"
+                          onClick={(event) => {
+                            event?.stopPropagation?.();
+                            navigateToOrderDetail(it.id);
+                          }}
+                        >
+                          查看详情
+                        </Button>
+                      ) : null}
+                    </View>
+                  </Surface>
+                );
+              })()
             ))}
           </View>
         ) : (

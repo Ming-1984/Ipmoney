@@ -5009,7 +5009,9 @@ export interface components {
             listingId?: components["schemas"]["Uuid"];
             patentId?: components["schemas"]["Uuid"];
             buyerUserId: components["schemas"]["Uuid"];
+            buyerDisplayName?: string | null;
             sellerUserId?: components["schemas"]["Uuid"];
+            sellerDisplayName?: string | null;
             assignedCsUserId?: components["schemas"]["Uuid"];
             status: components["schemas"]["OrderStatus"];
             /** @description 閸氬牆鎮撶粵鍓ц绾喛顓婚崥搴″晸閸忋儻绱欓幋鎰唉閹鐜敍? */
@@ -5021,6 +5023,12 @@ export interface components {
             commissionAmountFen?: components["schemas"]["MoneyFen"];
             /** @description 鐠併垹宕熼悽闈涚摍閸欐垹銈ㄩ敍鍫滅矌鐠併垹宕熺€瑰本鍨氶崥搴″讲閼宠棄鐡ㄩ崷顭掔礆 */
             invoice?: components["schemas"]["OrderInvoice"];
+            listingTitle?: string | null;
+            applicationNoDisplay?: string | null;
+            invoiceNo?: string | null;
+            invoiceFileId?: components["schemas"]["Uuid"];
+            /** Format: date-time */
+            invoiceIssuedAt?: string | null;
             /** Format: date-time */
             createdAt: string;
             /** Format: date-time */

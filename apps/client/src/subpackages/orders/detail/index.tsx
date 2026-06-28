@@ -332,11 +332,8 @@ export default function OrderDetailPage() {
   const access = usePageAccess('approved-required', (a) => {
     if (a.state === 'ok') {
       if (orderId) {
-        if (loadedOnceRef.current) {
+        if (loadedOnceRef.current && !loading) {
           void refreshAll({ silent: true });
-        } else {
-          loadedOnceRef.current = true;
-          void refreshAll();
         }
       }
       return;
@@ -364,6 +361,12 @@ export default function OrderDetailPage() {
     setInvoice(null);
     setRefundOpen(false);
   });
+
+  useEffect(() => {
+    if (access.state !== 'ok' || !orderId || loadedOnceRef.current) return;
+    loadedOnceRef.current = true;
+    void refreshAll();
+  }, [access.state, orderId, refreshAll]);
 
   const requestInvoice = useCallback(async () => {
     if (!ensureApproved()) return;

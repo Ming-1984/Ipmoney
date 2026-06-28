@@ -89,6 +89,47 @@ describe('OrdersService list filter strictness suite', () => {
     );
   });
 
+  it('maps listOrders patent and counterparty display fields', async () => {
+    const req = { auth: { userId: 'buyer-1' } };
+    prisma.order.findMany.mockResolvedValueOnce([
+      {
+        id: '88888888-8888-4888-8888-888888888888',
+        listingId: '77777777-7777-4777-8777-777777777777',
+        buyerUserId: 'buyer-1',
+        status: 'DEPOSIT_PAID',
+        depositAmount: 2000,
+        dealAmount: 10000,
+        finalAmount: 8000,
+        createdAt: new Date('2026-03-13T00:00:00.000Z'),
+        updatedAt: new Date('2026-03-13T01:00:00.000Z'),
+        buyer: {
+          nickname: 'buyer nick',
+          verifications: [{ displayName: '买方公司' }],
+        },
+        listing: {
+          title: 'Patent A',
+          sellerUserId: 'seller-1',
+          patent: { applicationNoDisplay: 'CN123' },
+          seller: {
+            nickname: 'seller nick',
+            verifications: [{ displayName: '卖方公司' }],
+          },
+        },
+      },
+    ]);
+    prisma.order.count.mockResolvedValueOnce(1);
+
+    const result = await service.listOrders(req, {});
+
+    expect(result.items[0]).toMatchObject({
+      id: '88888888-8888-4888-8888-888888888888',
+      listingTitle: 'Patent A',
+      applicationNoDisplay: 'CN123',
+      buyerDisplayName: '买方公司',
+      sellerDisplayName: '卖方公司',
+    });
+  });
+
   it('defaults listOrders to buyer role when asRole is omitted', async () => {
     const req = { auth: { userId: 'buyer-default' } };
     prisma.order.findMany.mockResolvedValueOnce([]);
@@ -137,6 +178,7 @@ describe('OrdersService list filter strictness suite', () => {
         },
         listing: {
           include: {
+            patent: true,
             seller: {
               select: {
                 nickname: true,

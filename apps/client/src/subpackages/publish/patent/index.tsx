@@ -213,6 +213,10 @@ function pickProofFileName(file: UploadedFile, index: number): string {
   return `权属材料-${index + 1}`;
 }
 
+function isSubmittedListing(status?: ListingStatus | null, auditStatus?: AuditStatus | null): boolean {
+  return status !== 'DRAFT' && (auditStatus === 'PENDING' || auditStatus === 'APPROVED' || auditStatus === 'REJECTED');
+}
+
 function PublishInput(props: React.ComponentProps<typeof Input>) {
   return (
     <Input
@@ -483,10 +487,13 @@ export default function PublishPatentPage() {
         setListingId(d.id);
         setAuditStatus(d.auditStatus);
         setListingStatus(d.status);
-        setSubmitted(d.auditStatus === 'PENDING' || d.auditStatus === 'APPROVED' || d.auditStatus === 'REJECTED');
+        setSubmitted(isSubmittedListing(d.status, d.auditStatus));
 
         setPatentNumberRaw(d.applicationNoDisplay || '');
-        setPatentNumberLocked(Boolean(d.applicationNoDisplay || d.publicationNoDisplay || d.patentNoDisplay || d.grantPublicationNoDisplay));
+        setPatentNumberLocked(
+          isSubmittedListing(d.status, d.auditStatus) &&
+            Boolean(d.applicationNoDisplay || d.publicationNoDisplay || d.patentNoDisplay || d.grantPublicationNoDisplay),
+        );
         setPatentType((d.patentType || '') as PatentType | '');
         setTitle(d.title || '');
         setInventorNamesInput((d.inventorNames || []).join(', '));
@@ -763,9 +770,12 @@ export default function PublishPatentPage() {
       if (seq !== saveSeqRef.current || !pageVisibleRef.current || listingRouteIdRef.current !== targetListingId) return;
       setAuditStatus(res.auditStatus);
       setListingStatus(res.status);
-      setPatentNumberLocked(Boolean(res.applicationNoDisplay || res.publicationNoDisplay || res.patentNoDisplay || res.grantPublicationNoDisplay));
+      setPatentNumberLocked(
+        isSubmittedListing(res.status, res.auditStatus) &&
+          Boolean(res.applicationNoDisplay || res.publicationNoDisplay || res.patentNoDisplay || res.grantPublicationNoDisplay),
+      );
       setSubmitted(false);
-      toast('草稿已保存', { icon: 'success' });
+      toast('草稿已保存，可在草稿箱查看', { icon: 'success' });
     } catch (e: any) {
       if (seq !== saveSeqRef.current || !pageVisibleRef.current || listingRouteIdRef.current !== targetListingId) return;
       toast(e?.message || '保存失败');
@@ -799,12 +809,13 @@ export default function PublishPatentPage() {
         const created = await apiPost<Listing>('/listings', req, { idempotencyKey: `listing-create-${req.patentNumberRaw}` });
         if (seq !== submitSeqRef.current || !pageVisibleRef.current || listingRouteIdRef.current !== targetListingId) return;
         id = created.id;
-          setListingId(created.id);
-          setAuditStatus(created.auditStatus);
-          setListingStatus(created.status);
-          setPatentNumberLocked(
+        setListingId(created.id);
+        setAuditStatus(created.auditStatus);
+        setListingStatus(created.status);
+        setPatentNumberLocked(
+          isSubmittedListing(created.status, created.auditStatus) &&
             Boolean(created.applicationNoDisplay || created.publicationNoDisplay || created.patentNoDisplay || created.grantPublicationNoDisplay),
-          );
+        );
       } else {
         const req = buildUpdate('submit');
         if (!req) return;
@@ -813,7 +824,8 @@ export default function PublishPatentPage() {
         setAuditStatus(updated.auditStatus);
         setListingStatus(updated.status);
         setPatentNumberLocked(
-          Boolean(updated.applicationNoDisplay || updated.publicationNoDisplay || updated.patentNoDisplay || updated.grantPublicationNoDisplay),
+          isSubmittedListing(updated.status, updated.auditStatus) &&
+            Boolean(updated.applicationNoDisplay || updated.publicationNoDisplay || updated.patentNoDisplay || updated.grantPublicationNoDisplay),
         );
       }
 
@@ -1254,40 +1266,51 @@ export default function PublishPatentPage() {
         {submitted ? (
           <>
             <View style={{ flex: 1 }}>
-              <NativeButton
+              <View
                 className="publish-action-btn publish-action-ghost"
+                hoverClass="publish-action-btn-hover"
                 onClick={() => Taro.switchTab({ url: '/pages/home/index' })}
               >
                 返回首页
-              </NativeButton>
+              </View>
             </View>
             <View style={{ flex: 1 }}>
-              <NativeButton className="publish-action-btn publish-action-primary" onClick={() => Taro.switchTab({ url: '/pages/me/index' })}>
+              <View
+                className="publish-action-btn publish-action-primary"
+                hoverClass="publish-action-btn-hover"
+                onClick={() => Taro.switchTab({ url: '/pages/me/index' })}
+              >
                 个人中心
-              </NativeButton>
+              </View>
             </View>
           </>
         ) : (
           <>
             <View style={{ flex: 1 }}>
-              <NativeButton
-                className="publish-action-btn publish-action-ghost"
+              <View
+                className={`publish-action-btn publish-action-ghost ${saving || submitting ? 'is-disabled' : ''}`}
                 data-testid="patent-save-draft"
-                disabled={saving || submitting}
-                onClick={() => void saveDraft()}
+                hoverClass={saving || submitting ? 'none' : 'publish-action-btn-hover'}
+                onClick={() => {
+                  if (saving || submitting) return;
+                  void saveDraft();
+                }}
               >
                 {saving ? '保存中...' : '保存草稿'}
-              </NativeButton>
+              </View>
             </View>
             <View style={{ flex: 1 }}>
-              <NativeButton
-                className="publish-action-btn publish-action-primary"
+              <View
+                className={`publish-action-btn publish-action-primary ${saving || submitting ? 'is-disabled' : ''}`}
                 data-testid="patent-submit"
-                disabled={saving || submitting}
-                onClick={() => void submitForAudit()}
+                hoverClass={saving || submitting ? 'none' : 'publish-action-btn-hover'}
+                onClick={() => {
+                  if (saving || submitting) return;
+                  void submitForAudit();
+                }}
               >
                 {submitting ? '提交中...' : '提交审核'}
-              </NativeButton>
+              </View>
             </View>
           </>
         )}

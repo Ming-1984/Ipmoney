@@ -19,6 +19,9 @@ describe('content-utils sanitization suite', () => {
   it('treats corrupted placeholder display text as empty', () => {
     expect(normalizeDisplayText('???????????')).toBeUndefined();
     expect(normalizeDisplayText('？？？？')).toBeUndefined();
+    expect(normalizeDisplayText('Ipmoney??????')).toBeUndefined();
+    expect(normalizeDisplayText('Ipmoney:??????')).toBeUndefined();
+    expect(normalizeDisplayText('Ipmoney Labs')).toBe('Ipmoney Labs');
     expect(normalizeDisplayText('??? Research')).toBe('??? Research');
   });
 

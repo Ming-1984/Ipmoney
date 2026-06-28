@@ -13,7 +13,7 @@ import { chooseMessageFiles, uploadFileToApi } from '../../lib/upload';
 import { usePagedList } from '../../lib/usePagedList';
 import { PageState } from '../../ui/PageState';
 import { ListFooter } from '../../ui/ListFooter';
-import { PageHeader, Spacer, Surface } from '../../ui/layout';
+import { PageHeader, Surface } from '../../ui/layout';
 import { Button, PullToRefresh, toast } from '../../ui/nutui';
 
 type ContractStatus = 'WAIT_UPLOAD' | 'WAIT_CONFIRM' | 'AVAILABLE';
@@ -97,6 +97,20 @@ function contractCardTitle(item: Pick<ContractItem, 'listingTitle' | 'counterpar
   const counterpartName = normalizeDisplayText(item.counterpartName);
   if (counterpartName) return `与${counterpartName}的合同`;
   return '待确认合同';
+}
+
+function formatOrderNo(orderId?: string | null): string {
+  const compact = String(orderId || '').replace(/-/g, '').trim().toUpperCase();
+  return compact ? compact.slice(0, 8) : '待确认';
+}
+
+function ContractInfoRow(props: { label: string; value: React.ReactNode; valueClassName?: string; onClick?: () => void }) {
+  return (
+    <View className="contract-info-row" onClick={props.onClick}>
+      <Text className="contract-info-label">{props.label}</Text>
+      <Text className={`contract-info-value ${props.valueClassName || ''}`}>{props.value}</Text>
+    </View>
+  );
 }
 
 export default function ContractCenterPage() {
@@ -259,10 +273,13 @@ export default function ContractCenterPage() {
     toast(successMessage, { icon: 'success' });
   }, []);
 
+  const navigateToOrderDetail = useCallback((orderId: string) => {
+    Taro.navigateTo({ url: `/subpackages/orders/detail/index?orderId=${orderId}` });
+  }, []);
+
   return (
     <View className="container contracts-page">
       <PageHeader weapp title={TEXT.title} subtitle={TEXT.subtitle} />
-      <Spacer />
 
       <View className="contract-tabs">
         {TABS.map((tab) => (
@@ -290,43 +307,52 @@ export default function ContractCenterPage() {
           <View className="contract-list">
             {items.map((item) => (
               <Surface key={item.id} className="contract-card" padding="none">
-                <View className="row-between" style={{ gap: '12rpx' }}>
-                  <Text className="text-card-title">{displayTitleOrFallback(contractCardTitle(item), TEXT.contractPrefix)}</Text>
+                <View className="contract-card-head">
+                  <View className="contract-title-wrap">
+                    <View className="contract-title-mark" />
+                    <Text className="contract-title clamp-1">{displayTitleOrFallback(contractCardTitle(item), TEXT.contractPrefix)}</Text>
+                  </View>
                   <Text className={`contract-status ${contractStatusClass(item.status)}`}>{contractStatusLabel(item.status)}</Text>
                 </View>
 
-                <View className="contract-meta">
-                  {normalizeDisplayText(item.listingTitle) ? <Text className="muted clamp-1">{TEXT.listingPrefix}{normalizeDisplayText(item.listingTitle)}</Text> : null}
-                  {normalizeDisplayText(item.counterpartName) ? <Text className="muted">{TEXT.counterpartPrefix}{normalizeDisplayText(item.counterpartName)}</Text> : null}
-                  <Text className="muted">{TEXT.orderPrefix}\u53ef\u5728\u8ba2\u5355\u8be6\u60c5\u4e2d\u67e5\u770b</Text>
-                  <Text className="muted">{TEXT.createdPrefix}{formatTimeSmart(item.createdAt)}</Text>
-                  {item.uploadedAt ? <Text className="muted">{TEXT.uploadedPrefix}{formatTimeSmart(item.uploadedAt)}</Text> : null}
-                  {item.signedAt ? <Text className="muted">{TEXT.signedPrefix}{formatTimeSmart(item.signedAt)}</Text> : null}
-                  <Text className="muted">{TEXT.watermarkPrefix}{item.watermarkOwner || TEXT.watermarkFallback}</Text>
+                <View className="contract-card-body">
+                  <ContractInfoRow label="对方" value={normalizeDisplayText(item.counterpartName) || '待确认'} />
+                  <ContractInfoRow
+                    label="关联订单"
+                    value={formatOrderNo(item.orderId)}
+                    valueClassName="contract-order-link"
+                    onClick={() => navigateToOrderDetail(item.orderId)}
+                  />
+                  <ContractInfoRow label="创建时间" value={formatTimeSmart(item.createdAt)} />
+                  <ContractInfoRow label="水印归属" value={item.watermarkOwner || TEXT.watermarkFallback} />
+                  {item.uploadedAt ? <ContractInfoRow label="上传时间" value={formatTimeSmart(item.uploadedAt)} /> : null}
+                  {item.signedAt ? <ContractInfoRow label="确认时间" value={formatTimeSmart(item.signedAt)} /> : null}
                 </View>
 
                 <View className="contract-actions">
                   <Button
+                    className="contract-action-btn contract-action-btn-outline"
                     size="small"
                     variant="ghost"
-                    onClick={() => Taro.navigateTo({ url: `/subpackages/orders/detail/index?orderId=${item.orderId}` })}
+                    onClick={() => navigateToOrderDetail(item.orderId)}
                   >
                     {TEXT.orderDetail}
                   </Button>
 
                   {item.status === 'WAIT_UPLOAD' ? (
                     item.canUpload === false ? (
-                      <Button size="small" variant="ghost" disabled>
+                      <Button className="contract-action-btn contract-action-btn-primary" size="small" variant="primary" disabled>
                         {TEXT.waitingSeller}
                       </Button>
                     ) : (
-                      <Button size="small" variant="primary" onClick={() => void uploadContract(item)}>
+                      <Button className="contract-action-btn contract-action-btn-primary" size="small" variant="primary" onClick={() => void uploadContract(item)}>
                         {uploadingContractId === item.id ? '上传中…' : TEXT.uploadPdf}
                       </Button>
                     )
                   ) : item.status === 'WAIT_CONFIRM' ? (
                     <>
                       <Button
+                        className="contract-action-btn contract-action-btn-outline"
                         size="small"
                         variant="ghost"
                         onClick={() => copyContractLink(item, TEXT.copied)}
@@ -334,6 +360,7 @@ export default function ContractCenterPage() {
                         {TEXT.viewContract}
                       </Button>
                       <Button
+                        className="contract-action-btn contract-action-btn-primary"
                         size="small"
                         variant="primary"
                         onClick={() => copyContractLink(item, TEXT.copiedAndNotify)}
@@ -343,6 +370,7 @@ export default function ContractCenterPage() {
                     </>
                   ) : (
                     <Button
+                      className="contract-action-btn contract-action-btn-primary"
                       size="small"
                       variant="primary"
                       onClick={() => copyContractLink(item, TEXT.copied)}

@@ -691,6 +691,7 @@ export class OrdersService {
           },
           listing: {
             include: {
+              patent: true,
               seller: {
                 select: {
                   nickname: true,
@@ -712,7 +713,7 @@ export class OrdersService {
     ]);
 
     return {
-      items: items.map((it: any) => this.toOrderDto(it, it.listing)),
+      items: items.map((it: any) => this.toOrderDto(it, it.listing, it.listing?.patent)),
       page: { page, pageSize, total },
     };
   }
@@ -769,6 +770,7 @@ export class OrdersService {
           },
           listing: {
             include: {
+              patent: true,
               seller: {
                 select: {
                   nickname: true,
@@ -790,7 +792,7 @@ export class OrdersService {
     ]);
 
     return {
-      items: items.map((it: any) => this.toOrderDto(it, it.listing)),
+      items: items.map((it: any) => this.toOrderDto(it, it.listing, it.listing?.patent)),
       page: { page, pageSize, total },
     };
   }

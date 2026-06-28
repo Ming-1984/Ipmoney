@@ -11892,8 +11892,14 @@ components:
           $ref: '#/components/schemas/Uuid'
         buyerUserId:
           $ref: '#/components/schemas/Uuid'
+        buyerDisplayName:
+          type: string
+          nullable: true
         sellerUserId:
           $ref: '#/components/schemas/Uuid'
+        sellerDisplayName:
+          type: string
+          nullable: true
         assignedCsUserId:
           $ref: '#/components/schemas/Uuid'
         status:
@@ -11916,6 +11922,22 @@ components:
           $ref: '#/components/schemas/OrderInvoice'
           description: 鐠併垹宕熼悽闈涚摍閸欐垹銈ㄩ敍鍫滅矌鐠併垹宕熺€瑰本鍨氶崥搴″讲閼宠棄鐡ㄩ崷顭掔礆
 
+        listingTitle:
+          type: string
+          nullable: true
+        applicationNoDisplay:
+          type: string
+          nullable: true
+        invoiceNo:
+          type: string
+          nullable: true
+        invoiceFileId:
+          $ref: '#/components/schemas/Uuid'
+          nullable: true
+        invoiceIssuedAt:
+          type: string
+          format: date-time
+          nullable: true
         createdAt:
           type: string
           format: date-time

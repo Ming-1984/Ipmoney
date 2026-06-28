@@ -3105,14 +3105,21 @@ export class ListingsService {
     const page = hasPage ? this.parsePositiveIntStrict(query?.page, 'page') : 1;
     const pageSizeInput = hasPageSize ? this.parsePositiveIntStrict(query?.pageSize, 'pageSize') : 20;
     const pageSize = Math.min(50, pageSizeInput);
+    const hasAuditStatus = this.hasOwn(query, 'auditStatus');
+    const hasStatus = this.hasOwn(query, 'status');
+    const auditStatus = hasAuditStatus ? this.parseAuditStatusStrict(query?.auditStatus, 'auditStatus') : undefined;
+    const status = hasStatus ? this.parseListingStatusStrict(query?.status, 'status') : undefined;
+    const where: any = { sellerUserId: req.auth.userId };
+    if (auditStatus) where.auditStatus = auditStatus;
+    if (status) where.status = status;
     const items = await this.prisma.listing.findMany({
-      where: { sellerUserId: req.auth.userId },
+      where,
       include: { patent: { include: { parties: true, classifications: true } } },
       orderBy: { createdAt: 'desc' },
       skip: (page - 1) * pageSize,
       take: pageSize,
     });
-    const total = await this.prisma.listing.count({ where: { sellerUserId: req.auth.userId } });
+    const total = await this.prisma.listing.count({ where });
     return {
       items: items.map((it: any) => {
         const meta = this.extractPatentMeta(it.patent);

@@ -11,6 +11,7 @@ import { usePagedList } from '../../lib/usePagedList';
 import { ensureApproved, goLogin, goOnboarding, usePageAccess } from '../../lib/guard';
 import { auditStatusLabel, auditStatusTagClass, listingStatusLabel } from '../../lib/labels';
 import { safeOpenPage } from '../../lib/navigation';
+import { useRouteStringParam } from '../../lib/routeParams';
 import { CategoryControl } from '../../ui/filters';
 import { ListFooter } from '../../ui/ListFooter';
 import { Button, PullToRefresh, toast } from '../../ui/nutui';
@@ -28,20 +29,24 @@ async function openPage(url: string) {
 }
 
 export default function MyListingsPage() {
+  const routeStatus = useRouteStringParam('status');
+  const isDraftCenter = routeStatus?.toUpperCase() === 'DRAFT';
   const loadedOnceRef = useRef(false);
   const filterKeyRef = useRef('');
-  const [status, setStatus] = useState<ListingStatus | ''>('');
+  const [status, setStatus] = useState<ListingStatus | ''>(() => (isDraftCenter ? 'DRAFT' : ''));
   const [auditStatusFilter, setAuditStatusFilter] = useState<AuditStatus | ''>('');
+  const effectiveStatus = isDraftCenter ? 'DRAFT' : status;
+  const effectiveAuditStatusFilter = isDraftCenter ? '' : auditStatusFilter;
 
   const fetcher = useCallback(
     async ({ page, pageSize }: { page: number; pageSize: number }) =>
       apiGet<PagedListing>('/listings', {
         page,
         pageSize,
-        ...(status ? { status } : {}),
-        ...(auditStatusFilter ? { auditStatus: auditStatusFilter } : {}),
+        ...(effectiveStatus ? { status: effectiveStatus } : {}),
+        ...(effectiveAuditStatusFilter ? { auditStatus: effectiveAuditStatusFilter } : {}),
       }),
-    [auditStatusFilter, status],
+    [effectiveAuditStatusFilter, effectiveStatus],
   );
 
   const { items, loading, error, refreshing, loadingMore, hasMore, reload, refresh, loadMore, reset } =
@@ -64,28 +69,30 @@ export default function MyListingsPage() {
   });
 
   useEffect(() => {
-    const nextKey = `${status}:${auditStatusFilter}`;
+    const nextKey = `${effectiveStatus}:${effectiveAuditStatusFilter}`;
     if (filterKeyRef.current === nextKey) return;
     filterKeyRef.current = nextKey;
     reset();
-  }, [auditStatusFilter, reset, status]);
+  }, [effectiveAuditStatusFilter, effectiveStatus, reset]);
 
   useEffect(() => {
     if (access.state !== 'ok') return;
     loadedOnceRef.current = true;
     void reload();
-  }, [access.state, auditStatusFilter, reload, status]);
+  }, [access.state, effectiveAuditStatusFilter, effectiveStatus, reload]);
   const showInitialLoading = loading && items.length === 0;
 
   const goCreate = useCallback(() => {
     if (!ensureApproved()) return;
     void openPage('/subpackages/publish/patent/index');
   }, []);
+  const pageTitle = isDraftCenter ? '草稿中心' : '我的专利上架';
+  const pageSubtitle = isDraftCenter ? '仅展示未提交的专利交易草稿' : '卖家查看/编辑/下架自己的专利上架信息';
 
   if (access.state === 'need-login') {
     return (
       <View className="container my-listings-page">
-        <PageHeader title="我的专利上架" subtitle="卖家查看/编辑/下架自己的专利上架信息" />
+        <PageHeader title={pageTitle} subtitle={pageSubtitle} />
         <Spacer />
         <PermissionCard title="需要登录" message="登录后才能查看上架信息。" actionText="去登录" onAction={goLogin} />
       </View>
@@ -94,7 +101,7 @@ export default function MyListingsPage() {
   if (access.state === 'need-onboarding') {
     return (
       <View className="container my-listings-page">
-        <PageHeader title="我的专利上架" subtitle="卖家查看/编辑/下架自己的专利上架信息" />
+        <PageHeader title={pageTitle} subtitle={pageSubtitle} />
         <Spacer />
         <PermissionCard title="需要选择身份" message="完成身份选择后才能继续。" actionText="去选择" onAction={goOnboarding} />
       </View>
@@ -103,7 +110,7 @@ export default function MyListingsPage() {
   if (access.state === 'audit-pending') {
     return (
       <View className="container my-listings-page">
-        <PageHeader title="我的专利上架" subtitle="卖家查看/编辑/下架自己的专利上架信息" />
+        <PageHeader title={pageTitle} subtitle={pageSubtitle} />
         <Spacer />
         <AuditPendingCard title="资料审核中" message="审核通过后才能发布与管理上架信息。" actionText="查看进度" onAction={goOnboarding} />
       </View>
@@ -112,7 +119,7 @@ export default function MyListingsPage() {
   if (access.state === 'audit-rejected') {
     return (
       <View className="container my-listings-page">
-        <PageHeader title="我的专利上架" subtitle="卖家查看/编辑/下架自己的专利上架信息" />
+        <PageHeader title={pageTitle} subtitle={pageSubtitle} />
         <Spacer />
         <AuditPendingCard title="资料已驳回" message="请重新提交资料，审核通过后才能继续。" actionText="重新提交" onAction={goOnboarding} />
       </View>
@@ -121,7 +128,7 @@ export default function MyListingsPage() {
   if (access.state === 'audit-required') {
     return (
       <View className="container my-listings-page">
-        <PageHeader title="我的专利上架" subtitle="卖家查看/编辑/下架自己的专利上架信息" />
+        <PageHeader title={pageTitle} subtitle={pageSubtitle} />
         <Spacer />
         <AuditPendingCard title="需要认证" message="完成认证并审核通过后才能继续。" actionText="去认证" onAction={goOnboarding} />
       </View>
@@ -130,44 +137,48 @@ export default function MyListingsPage() {
 
   return (
     <View className="container my-listings-page">
-      <PageHeader title="我的专利上架" subtitle="卖家查看/编辑/下架自己的专利上架信息" />
+      <PageHeader title={pageTitle} subtitle={pageSubtitle} />
       <Spacer />
 
-      <Surface>
-        <Text className="text-strong">状态筛选</Text>
-        <View style={{ height: '10rpx' }} />
-        <CategoryControl
-          value={status}
-          options={[
-            { label: '全部', value: '' },
-            { label: '草稿', value: 'DRAFT' },
-            { label: '上架', value: 'ACTIVE' },
-            { label: '下架', value: 'OFF_SHELF' },
-            { label: '成交', value: 'SOLD' },
-          ]}
-          onChange={(v) => setStatus(v as ListingStatus | '')}
-        />
+      {!isDraftCenter ? (
+        <>
+          <Surface>
+            <Text className="text-strong">状态筛选</Text>
+            <View style={{ height: '10rpx' }} />
+            <CategoryControl
+              value={status}
+              options={[
+                { label: '全部', value: '' },
+                { label: '草稿', value: 'DRAFT' },
+                { label: '上架', value: 'ACTIVE' },
+                { label: '下架', value: 'OFF_SHELF' },
+                { label: '成交', value: 'SOLD' },
+              ]}
+              onChange={(v) => setStatus(v as ListingStatus | '')}
+            />
 
-        <View style={{ height: '14rpx' }} />
-        <Text className="text-strong">审核筛选</Text>
-        <View style={{ height: '10rpx' }} />
-        <CategoryControl
-          value={auditStatusFilter}
-          options={[
-            { label: '全部', value: '' },
-            { label: '审核中', value: 'PENDING' },
-            { label: '已通过', value: 'APPROVED' },
-            { label: '已驳回', value: 'REJECTED' },
-          ]}
-          onChange={(v) => setAuditStatusFilter(v as AuditStatus | '')}
-        />
-        <View style={{ height: '12rpx' }} />
-        <Button variant="primary" onClick={goCreate}>
-          发布新的专利上架
-        </Button>
-      </Surface>
+            <View style={{ height: '14rpx' }} />
+            <Text className="text-strong">审核筛选</Text>
+            <View style={{ height: '10rpx' }} />
+            <CategoryControl
+              value={auditStatusFilter}
+              options={[
+                { label: '全部', value: '' },
+                { label: '审核中', value: 'PENDING' },
+                { label: '已通过', value: 'APPROVED' },
+                { label: '已驳回', value: 'REJECTED' },
+              ]}
+              onChange={(v) => setAuditStatusFilter(v as AuditStatus | '')}
+            />
+            <View style={{ height: '12rpx' }} />
+            <Button variant="primary" onClick={goCreate}>
+              发布新的专利上架
+            </Button>
+          </Surface>
 
-      <View style={{ height: '16rpx' }} />
+          <View style={{ height: '16rpx' }} />
+        </>
+      ) : null}
 
       <PullToRefresh type="primary" disabled={showInitialLoading || refreshing} onRefresh={refresh}>
         {showInitialLoading ? (
@@ -192,7 +203,7 @@ export default function MyListingsPage() {
                       </Text>
                       <View className="list-card-tags">
                         <Text className="tag">{listingStatusLabel(it.status)}</Text>
-                        <Text className={auditStatusTagClass(it.auditStatus)}>{auditStatusLabel(it.auditStatus)}</Text>
+                        {!isDraftCenter ? <Text className={auditStatusTagClass(it.auditStatus)}>{auditStatusLabel(it.auditStatus)}</Text> : null}
                         {normalizeDisplayText(it.applicationNoDisplay) ? (
                           <Text className="tag">{normalizeDisplayText(it.applicationNoDisplay)}</Text>
                         ) : null}
@@ -206,35 +217,37 @@ export default function MyListingsPage() {
                         void openPage(`/subpackages/publish/patent/index?listingId=${it.id}`);
                       }}
                     >
-                      编辑/查看
+                      {isDraftCenter ? '继续编辑' : '编辑/查看'}
                     </Button>
-                    <Button
-                      variant="danger"
-                      fill="outline"
-                      disabled={it.status !== 'ACTIVE'}
-                      onClick={async () => {
-                        try {
-                          await apiPost<Listing>(
-                            `/listings/${it.id}/off-shelf`,
-                            { reason: '卖家下架' },
-                            { idempotencyKey: `off-${it.id}` },
-                          );
-                          toast('已下架', { icon: 'success' });
-                          void reload();
-                        } catch (e: any) {
-                          toast(e?.message || '操作失败');
-                        }
-                      }}
-                    >
-                      下架
-                    </Button>
+                    {!isDraftCenter ? (
+                      <Button
+                        variant="danger"
+                        fill="outline"
+                        disabled={it.status !== 'ACTIVE'}
+                        onClick={async () => {
+                          try {
+                            await apiPost<Listing>(
+                              `/listings/${it.id}/off-shelf`,
+                              { reason: '卖家下架' },
+                              { idempotencyKey: `off-${it.id}` },
+                            );
+                            toast('已下架', { icon: 'success' });
+                            void reload();
+                          } catch (e: any) {
+                            toast(e?.message || '操作失败');
+                          }
+                        }}
+                      >
+                        下架
+                      </Button>
+                    ) : null}
                   </View>
                 </View>
               </View>
             ))}
           </View>
         ) : (
-          <EmptyCard message="暂无上架记录" actionText="刷新" onAction={reload} />
+          <EmptyCard message={isDraftCenter ? '暂无草稿' : '暂无上架记录'} actionText="刷新" onAction={reload} />
         )}
 
         {!showInitialLoading && items.length ? (

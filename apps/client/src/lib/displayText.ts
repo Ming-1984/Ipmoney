@@ -21,11 +21,17 @@ function isCorruptedPlaceholderText(value: string): boolean {
   return compact.length >= 2 && /^[?\uFF1F\uFFFD]+$/.test(compact);
 }
 
+function isPlatformCorruptedPlaceholderText(value: string): boolean {
+  const compact = value.replace(/\s/g, '');
+  return /^ipmoney[:：]?[?\uFF1F\uFFFD]{2,}$/i.test(compact);
+}
+
 export function normalizeDisplayText(value: unknown): string {
   const normalized = String(value ?? '').trim();
   if (!normalized) return '';
   if (EMPTY_DISPLAY_TEXT_SET.has(normalized)) return '';
   if (isCorruptedPlaceholderText(normalized)) return '';
+  if (isPlatformCorruptedPlaceholderText(normalized)) return '';
   return normalized;
 }
 

@@ -1354,6 +1354,7 @@ scroll-view {
 
 .sticky-bar {
   position: fixed;
+  z-index: 80;
   left: 0;
   right: 0;
   bottom: 0;

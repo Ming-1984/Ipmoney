@@ -252,15 +252,27 @@
 }
 
 .publish-action-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
   height: 72rpx;
   border-radius: 16rpx;
   font-weight: 600;
   line-height: 72rpx;
   padding: 0 16rpx;
+  box-sizing: border-box;
 }
 
 .publish-action-btn::after {
   border: none;
+}
+
+.publish-action-btn-hover {
+  opacity: 0.86;
+}
+
+.publish-action-btn.is-disabled {
+  opacity: 0.6;
 }
 
 .publish-action-primary {
