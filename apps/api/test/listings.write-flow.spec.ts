@@ -64,6 +64,9 @@ describe('ListingsService write flow suite', () => {
         findUnique: vi.fn(),
         update: vi.fn(),
       },
+      patent: {
+        findUnique: vi.fn(),
+      },
       conversation: {
         findFirst: vi.fn(),
         create: vi.fn(),
@@ -253,6 +256,7 @@ describe('ListingsService write flow suite', () => {
 
   it('create falls back to patent display number instead of synthetic english title', async () => {
     prisma.patent = {
+      findUnique: vi.fn().mockResolvedValueOnce({ id: 'patent-1', ownerUserId: USER_ID }),
       findFirst: vi.fn().mockResolvedValueOnce(null),
       create: vi.fn().mockResolvedValueOnce({
         id: 'patent-1',
@@ -523,7 +527,7 @@ describe('ListingsService write flow suite', () => {
       .mockResolvedValueOnce(buildListing({ status: 'OFF_SHELF' }));
 
     const submitted = await service.submitListing(USER_REQ, LISTING_ID);
-    const offShelved = await service.offShelf(USER_REQ, LISTING_ID);
+    const offShelved = await service.offShelf(USER_REQ, LISTING_ID, { confirmOffShelf: true });
 
     expect(prisma.listing.update).toHaveBeenNthCalledWith(1, {
       where: { id: LISTING_ID },
@@ -536,6 +540,12 @@ describe('ListingsService write flow suite', () => {
     expect(audit.log).toHaveBeenCalledWith(expect.objectContaining({ action: 'LISTING_SUBMIT', targetId: LISTING_ID }));
     expect(submitted.status).toBe('ACTIVE');
     expect(offShelved.status).toBe('OFF_SHELF');
+  });
+
+  it('requires explicit confirmation before seller off-shelves listing', async () => {
+    await expect(service.offShelf(USER_REQ, LISTING_ID, {})).rejects.toBeInstanceOf(BadRequestException);
+    expect(prisma.listing.findUnique).not.toHaveBeenCalled();
+    expect(prisma.listing.update).not.toHaveBeenCalled();
   });
 
   it('adminCreate and adminUpdate validate strict fields and normalize writes', async () => {
@@ -704,6 +714,35 @@ describe('ListingsService write flow suite', () => {
       },
     });
     expect(result.page.total).toBe(1);
+  });
+
+  it('listMine can exclude draft listings from default management views', async () => {
+    const active = {
+      ...buildListing({ status: 'ACTIVE', auditStatus: 'APPROVED' }),
+      patent: null,
+    };
+    prisma.listing.findMany.mockResolvedValueOnce([active]);
+    prisma.listing.count.mockResolvedValueOnce(1);
+
+    const result = await service.listMine(USER_REQ, {
+      excludeStatus: 'draft',
+    });
+
+    expect(prisma.listing.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: {
+          sellerUserId: USER_ID,
+          status: { not: 'DRAFT' },
+        },
+      }),
+    );
+    expect(prisma.listing.count).toHaveBeenCalledWith({
+      where: {
+        sellerUserId: USER_ID,
+        status: { not: 'DRAFT' },
+      },
+    });
+    expect(result.items[0]).toMatchObject({ id: LISTING_ID, status: 'ACTIVE' });
   });
 
   it('adminUpdate allows clearing nullable text and amount fields', async () => {

@@ -172,9 +172,9 @@ export class ListingsController {
 
   @UseGuards(BearerAuthGuard, VerifiedUserGuard)
   @Post('/listings/:listingId/off-shelf')
-  async offShelf(@Req() req: any, @Param('listingId') listingId: string) {
+  async offShelf(@Req() req: any, @Param('listingId') listingId: string, @Body() body: any) {
     const normalizedListingId = this.parseUuidParam(listingId, 'listingId');
-    return await this.listings.offShelf(req, normalizedListingId);
+    return await this.listings.offShelf(req, normalizedListingId, body || {});
   }
 
   @UseGuards(BearerAuthGuard, VerifiedUserGuard)

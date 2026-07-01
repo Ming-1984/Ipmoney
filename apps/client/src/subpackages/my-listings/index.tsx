@@ -12,9 +12,8 @@ import { ensureApproved, goLogin, goOnboarding, usePageAccess } from '../../lib/
 import { auditStatusLabel, auditStatusTagClass, contentStatusLabel, listingStatusLabel } from '../../lib/labels';
 import { safeOpenPage } from '../../lib/navigation';
 import { useRouteStringParam } from '../../lib/routeParams';
-import { CategoryControl } from '../../ui/filters';
 import { ListFooter } from '../../ui/ListFooter';
-import { Button, PullToRefresh, toast } from '../../ui/nutui';
+import { Button, PullToRefresh, confirm, toast } from '../../ui/nutui';
 import { AuditPendingCard, EmptyCard, ErrorCard, LoadingCard, PermissionCard } from '../../ui/StateCards';
 import { PageHeader, Spacer, Surface } from '../../ui/layout';
 import iconAchievement from '../../assets/icons/app/patent-achievement.png';
@@ -24,14 +23,39 @@ type PagedListing = components['schemas']['PagedListing'];
 type Listing = components['schemas']['Listing'];
 type PagedAchievement = components['schemas']['PagedAchievementSummary'];
 type Achievement = components['schemas']['AchievementSummary'];
+type PagedMaintenanceSchedule = components['schemas']['PagedMyPatentMaintenanceSchedule'];
+type MaintenanceSchedule = components['schemas']['MyPatentMaintenanceSchedule'];
 type ListingDraftItem = Listing & { draftType?: 'listing' };
 type AchievementDraftItem = Achievement & { draftType: 'achievement' };
 type DraftListItem = ListingDraftItem | AchievementDraftItem;
 type ListingStatus = components['schemas']['ListingStatus'];
 type AuditStatus = components['schemas']['AuditStatus'];
+type FilterOption<T extends string> = {
+  label: string;
+  value: T;
+};
 
 async function openPage(url: string) {
   await safeOpenPage(url);
+}
+
+function FilterTabs<T extends string>(props: { value: T; options: FilterOption<T>[]; onChange: (value: T) => void }) {
+  return (
+    <View className="my-listings-filter-tabs">
+      {props.options.map((option) => {
+        const active = option.value === props.value;
+        return (
+          <View
+            key={option.value || '__all'}
+            className={`my-listings-filter-tab ${active ? 'is-active' : ''}`}
+            onClick={() => props.onChange(option.value)}
+          >
+            <Text className="my-listings-filter-tab-text">{option.label}</Text>
+          </View>
+        );
+      })}
+    </View>
+  );
 }
 
 export default function MyListingsPage() {
@@ -41,8 +65,11 @@ export default function MyListingsPage() {
   const isMixedDraftCenter = isDraftCenter && routeMixed === '1';
   const loadedOnceRef = useRef(false);
   const filterKeyRef = useRef('');
+  const maintenanceLoadSeqRef = useRef(0);
   const [status, setStatus] = useState<ListingStatus | ''>(() => (isDraftCenter ? 'DRAFT' : ''));
   const [auditStatusFilter, setAuditStatusFilter] = useState<AuditStatus | ''>('');
+  const [maintenancePatentIds, setMaintenancePatentIds] = useState<Set<string>>(() => new Set());
+  const [maintenanceApplicationNos, setMaintenanceApplicationNos] = useState<Set<string>>(() => new Set());
   const effectiveStatus = isDraftCenter ? 'DRAFT' : status;
   const effectiveAuditStatusFilter = isDraftCenter ? '' : auditStatusFilter;
 
@@ -70,14 +97,25 @@ export default function MyListingsPage() {
         };
       }
 
-      return apiGet<PagedListing>('/listings', {
+      const result = await apiGet<PagedListing>('/listings', {
         page,
         pageSize,
         ...(effectiveStatus ? { status: effectiveStatus } : {}),
+        ...(!isDraftCenter && !effectiveStatus ? { excludeStatus: 'DRAFT' } : {}),
         ...(effectiveAuditStatusFilter ? { auditStatus: effectiveAuditStatusFilter } : {}),
       });
+      if (isDraftCenter) return result;
+      return {
+        ...result,
+        items: (result.items || []).filter((item) => {
+          if (item.status === 'DRAFT') return false;
+          if (effectiveStatus && item.status !== effectiveStatus) return false;
+          if (effectiveAuditStatusFilter && item.auditStatus !== effectiveAuditStatusFilter) return false;
+          return true;
+        }),
+      };
     },
-    [effectiveAuditStatusFilter, effectiveStatus, isMixedDraftCenter],
+    [effectiveAuditStatusFilter, effectiveStatus, isDraftCenter, isMixedDraftCenter],
   );
 
   const { items, loading, error, refreshing, loadingMore, hasMore, reload, refresh, loadMore, reset } =
@@ -111,18 +149,131 @@ export default function MyListingsPage() {
     loadedOnceRef.current = true;
     void reload();
   }, [access.state, effectiveAuditStatusFilter, effectiveStatus, reload]);
+
+  const loadMaintenanceIndex = useCallback(async () => {
+    const requestSeq = ++maintenanceLoadSeqRef.current;
+    if (access.state !== 'ok' || isDraftCenter) {
+      setMaintenancePatentIds(new Set());
+      setMaintenanceApplicationNos(new Set());
+      return;
+    }
+    try {
+      const patentIds = new Set<string>();
+      const applicationNos = new Set<string>();
+      const pageSize = 50;
+      let page = 1;
+      let hasMore = true;
+      while (hasMore) {
+        const result = await apiGet<PagedMaintenanceSchedule>('/me/patent-maintenance/schedules', { page, pageSize });
+        if (requestSeq !== maintenanceLoadSeqRef.current) return;
+        const schedules = Array.isArray(result.items) ? result.items : [];
+        schedules.forEach((schedule: MaintenanceSchedule) => {
+          if (schedule.patentId) patentIds.add(schedule.patentId);
+          const applicationNo = normalizeDisplayText(schedule.applicationNoDisplay);
+          if (applicationNo) applicationNos.add(applicationNo);
+        });
+        const total = Number(result.page?.total || schedules.length);
+        hasMore = page * pageSize < total && schedules.length > 0;
+        page += 1;
+      }
+      if (requestSeq !== maintenanceLoadSeqRef.current) return;
+      setMaintenancePatentIds(patentIds);
+      setMaintenanceApplicationNos(applicationNos);
+    } catch (error) {
+      if (requestSeq !== maintenanceLoadSeqRef.current) return;
+      console.warn('[my-listings] load maintenance index failed', error);
+      setMaintenancePatentIds(new Set());
+      setMaintenanceApplicationNos(new Set());
+    }
+  }, [access.state, isDraftCenter]);
+
+  useEffect(() => {
+    void loadMaintenanceIndex();
+  }, [loadMaintenanceIndex]);
+
   const showInitialLoading = loading && items.length === 0;
 
   const goCreate = useCallback(() => {
     if (!ensureApproved()) return;
     void openPage('/subpackages/publish/patent/index');
   }, []);
-  const pageTitle = isDraftCenter ? '草稿中心' : '我的专利上架';
+
+  const goDraftBox = useCallback(() => {
+    if (!ensureApproved()) return;
+    void openPage('/subpackages/my-listings/index?status=DRAFT&mixed=1');
+  }, []);
+
+  const handleAuditStatusChange = useCallback((value: string) => {
+    const next = value as AuditStatus | '';
+    setAuditStatusFilter(next);
+    if (next && next !== 'APPROVED') {
+      setStatus('');
+    }
+  }, []);
+
+  const handleListingStatusChange = useCallback((value: string) => {
+    const next = value as ListingStatus | '';
+    setStatus(next);
+    if (next) {
+      setAuditStatusFilter('APPROVED');
+    }
+  }, []);
+
+  const goMaintenance = useCallback((listing: Listing) => {
+    if (!ensureApproved()) return;
+    if (listing.patentId && maintenancePatentIds.has(listing.patentId)) {
+      void openPage(`/subpackages/maintenance/index?tab=schedules&patentId=${encodeURIComponent(listing.patentId)}`);
+      return;
+    }
+    const applicationNo = normalizeDisplayText(listing.applicationNoDisplay);
+    if (applicationNo && maintenanceApplicationNos.has(applicationNo)) {
+      void openPage('/subpackages/maintenance/index?tab=schedules');
+      return;
+    }
+    const params = [
+      `listingId=${encodeURIComponent(listing.id)}`,
+      `title=${encodeURIComponent(displayTitleOrFallback(listing.title, '专利信息待确认'))}`,
+      applicationNo ? `applicationNo=${encodeURIComponent(applicationNo)}` : '',
+    ].filter(Boolean);
+    void openPage(`/subpackages/maintenance-apply/index?${params.join('&')}`);
+  }, [maintenanceApplicationNos, maintenancePatentIds]);
+
+  const handleOffShelf = useCallback(
+    async (listing: Listing) => {
+      const ok = await confirm({
+        title: '确认下架专利',
+        content: '下架后该专利将不再对外展示，确认要下架吗？',
+        confirmText: '确认下架',
+        cancelText: '取消',
+      });
+      if (!ok) return;
+      try {
+        await apiPost<Listing>(
+          `/listings/${listing.id}/off-shelf`,
+          { reason: '卖家下架', confirmOffShelf: true },
+          { idempotencyKey: `off-${listing.id}` },
+        );
+        toast('已下架', { icon: 'success' });
+        void reload();
+      } catch (e: any) {
+        toast(e?.message || '操作失败');
+      }
+    },
+    [reload],
+  );
+  const pageTitle = isDraftCenter ? '草稿箱' : '我的专利';
   const pageSubtitle = isMixedDraftCenter
     ? '集中查看未提交的专利交易和专利成果草稿'
     : isDraftCenter
       ? '仅展示未提交的专利交易草稿'
-      : '卖家查看/编辑/下架自己的专利上架信息';
+      : '查看、编辑、下架自己发布的专利交易信息';
+  const showListingStatusFilter = !auditStatusFilter || auditStatusFilter === 'APPROVED';
+  const isFilteredEmpty = !isDraftCenter && Boolean(status || auditStatusFilter);
+  const emptyMessage = isDraftCenter
+    ? '暂无草稿'
+    : isFilteredEmpty
+      ? '暂无符合条件的专利'
+      : '暂无上架记录';
 
   if (access.state === 'need-login') {
     return (
@@ -177,25 +328,10 @@ export default function MyListingsPage() {
 
       {!isDraftCenter ? (
         <>
-          <Surface>
-            <Text className="text-strong">状态筛选</Text>
-            <View style={{ height: '10rpx' }} />
-            <CategoryControl
-              value={status}
-              options={[
-                { label: '全部', value: '' },
-                { label: '草稿', value: 'DRAFT' },
-                { label: '上架', value: 'ACTIVE' },
-                { label: '下架', value: 'OFF_SHELF' },
-                { label: '成交', value: 'SOLD' },
-              ]}
-              onChange={(v) => setStatus(v as ListingStatus | '')}
-            />
-
-            <View style={{ height: '14rpx' }} />
+          <Surface className="my-listings-filter-card">
             <Text className="text-strong">审核筛选</Text>
             <View style={{ height: '10rpx' }} />
-            <CategoryControl
+            <FilterTabs
               value={auditStatusFilter}
               options={[
                 { label: '全部', value: '' },
@@ -203,12 +339,34 @@ export default function MyListingsPage() {
                 { label: '已通过', value: 'APPROVED' },
                 { label: '已驳回', value: 'REJECTED' },
               ]}
-              onChange={(v) => setAuditStatusFilter(v as AuditStatus | '')}
+              onChange={handleAuditStatusChange}
             />
+            {showListingStatusFilter ? (
+              <>
+                <View style={{ height: '14rpx' }} />
+                <Text className="text-strong">上架状态</Text>
+                <View style={{ height: '10rpx' }} />
+                <FilterTabs
+                  value={status}
+                  options={[
+                    { label: '全部', value: '' },
+                    { label: '上架', value: 'ACTIVE' },
+                    { label: '下架', value: 'OFF_SHELF' },
+                    { label: '成交', value: 'SOLD' },
+                  ]}
+                  onChange={handleListingStatusChange}
+                />
+              </>
+            ) : null}
             <View style={{ height: '12rpx' }} />
-            <Button variant="primary" onClick={goCreate}>
-              发布新的专利上架
-            </Button>
+            <View className="my-listings-actions">
+              <Button variant="primary" onClick={goCreate}>
+                发布新的专利上架
+              </Button>
+              <Button variant="ghost" onClick={goDraftBox}>
+                草稿箱
+              </Button>
+            </View>
           </Surface>
 
           <View style={{ height: '16rpx' }} />
@@ -230,6 +388,11 @@ export default function MyListingsPage() {
                     secondary: it.applicationNoDisplay,
                     secondaryPrefix: '专利申请号 ',
                   });
+              const listingApplicationNo = !isAchievementDraft ? normalizeDisplayText(it.applicationNoDisplay) : '';
+              const hasMaintenanceRecord =
+                !isAchievementDraft &&
+                ((it.patentId && maintenancePatentIds.has(it.patentId)) ||
+                  (listingApplicationNo && maintenanceApplicationNos.has(listingApplicationNo)));
               const editUrl = isAchievementDraft
                 ? `/subpackages/publish/achievement/index?achievementId=${it.id}`
                 : `/subpackages/publish/patent/index?listingId=${it.id}`;
@@ -288,27 +451,25 @@ export default function MyListingsPage() {
                     >
                       {isDraftCenter ? '继续编辑' : '编辑/查看'}
                     </Button>
-                    {!isDraftCenter ? (
-                      <Button
-                        variant="danger"
-                        fill="outline"
-                        disabled={it.status !== 'ACTIVE'}
-                        onClick={async () => {
-                          try {
-                            await apiPost<Listing>(
-                              `/listings/${it.id}/off-shelf`,
-                              { reason: '卖家下架' },
-                              { idempotencyKey: `off-${it.id}` },
-                            );
-                            toast('已下架', { icon: 'success' });
-                            void reload();
-                          } catch (e: any) {
-                            toast(e?.message || '操作失败');
-                          }
-                        }}
-                      >
-                        下架
-                      </Button>
+                    {!isDraftCenter && !isAchievementDraft ? (
+                      <>
+                        <Button
+                          className="my-listings-maintenance-button"
+                          variant={hasMaintenanceRecord ? 'ghost' : it.auditStatus === 'APPROVED' ? 'primary' : 'ghost'}
+                          disabled={it.auditStatus !== 'APPROVED'}
+                          onClick={() => goMaintenance(it)}
+                        >
+                          {hasMaintenanceRecord ? '查看年费' : '代缴年费'}
+                        </Button>
+                        <Button
+                          className="my-listings-off-shelf-button"
+                          variant="ghost"
+                          disabled={it.status !== 'ACTIVE'}
+                          onClick={() => void handleOffShelf(it)}
+                        >
+                          下架
+                        </Button>
+                      </>
                     ) : null}
                   </View>
                 </View>
@@ -317,7 +478,7 @@ export default function MyListingsPage() {
             })}
           </View>
         ) : (
-          <EmptyCard message={isDraftCenter ? '暂无草稿' : '暂无上架记录'} actionText="刷新" onAction={reload} />
+          <EmptyCard message={emptyMessage} actionText={isFilteredEmpty ? undefined : '刷新'} onAction={isFilteredEmpty ? undefined : reload} />
         )}
 
         {!showInitialLoading && items.length ? (

@@ -56,6 +56,8 @@ export function EmptyCard(props: {
   variant?: 'card' | 'inline';
 }) {
   const actionText = props.actionText && props.actionText !== STATE_COPY.empty.actionText ? props.actionText : undefined;
+  const plainTitle = !props.title && props.message ? props.message : props.title || STATE_COPY.empty.title;
+  const plainMessage = !props.title && props.message ? undefined : props.message || STATE_COPY.empty.message;
   if (props.image && props.variant === 'inline') {
     return (
       <View className="state-empty-inline">
@@ -73,24 +75,19 @@ export function EmptyCard(props: {
     );
   }
   return (
-    <View className={`card card-state ${props.image ? 'card-state-empty' : ''}`}>
-      {props.image ? (
-        <View className="state-empty-hero">
-          <Image className="state-empty-ill" src={props.image} svg mode="aspectFit" />
-          <Text className="text-title">{props.title || STATE_COPY.empty.title}</Text>
-          <View style={{ height: '8rpx' }} />
-          <Text className="text-subtitle">{props.message || STATE_COPY.empty.message}</Text>
+    <View className="card card-state card-state-empty card-state-empty-plain">
+      <View className="row" style={{ gap: '16rpx', alignItems: 'flex-start' }}>
+        <StateIllustration kind="empty" size="md" />
+        <View className="min-w-0" style={{ flex: 1 }}>
+          <Text className="text-title">{plainTitle}</Text>
+          {plainMessage ? (
+            <>
+              <View style={{ height: '8rpx' }} />
+              <Text className="text-subtitle">{plainMessage}</Text>
+            </>
+          ) : null}
         </View>
-      ) : (
-        <View className="row" style={{ gap: '16rpx', alignItems: 'flex-start' }}>
-          <StateIllustration kind="empty" size="md" />
-          <View className="min-w-0" style={{ flex: 1 }}>
-            <Text className="text-title">{props.title || STATE_COPY.empty.title}</Text>
-            <View style={{ height: '8rpx' }} />
-            <Text className="text-subtitle">{props.message || STATE_COPY.empty.message}</Text>
-          </View>
-        </View>
-      )}
+      </View>
       {actionText && props.onAction ? (
         <>
           <View style={{ height: '12rpx' }} />

@@ -7,7 +7,7 @@ import type { components } from '@ipmoney/api-types';
 import { apiGet } from '../../lib/api';
 import { getDetailCache, setDetailCache } from '../../lib/detailCache';
 import { fenToYuan } from '../../lib/money';
-import { PageHeader, SectionHeader, Spacer, Surface, TipBanner } from '../../ui/layout';
+import { PageHeader, Spacer, Surface } from '../../ui/layout';
 import { Tag } from '../../ui/nutui';
 import { ErrorCard, LoadingCard } from '../../ui/StateCards';
 
@@ -25,6 +25,39 @@ function percent(v?: number): string {
 function yuan(v?: number): string {
   if (v === undefined || v === null) return '—';
   return `¥${fenToYuan(v)}`;
+}
+
+function RuleHeader(props: { index: string; title: string; note?: string; tag?: string }) {
+  return (
+    <View className="trade-rules-section-header">
+      <Text className="trade-rules-section-index">{props.index}</Text>
+      <View className="trade-rules-section-title-wrap">
+        <Text className="trade-rules-section-title">{props.title}</Text>
+        {props.note ? <Text className="trade-rules-section-note">{props.note}</Text> : null}
+      </View>
+      {props.tag ? (
+        <Tag type="primary" plain round>
+          {props.tag}
+        </Tag>
+      ) : null}
+      <Text className="trade-rules-section-chevron" />
+    </View>
+  );
+}
+
+function RuleRow(props: { label: string; value: string; note?: string; highlight?: boolean; milestone?: boolean }) {
+  return (
+    <View className={`trade-rules-row ${props.milestone ? 'trade-rules-row-milestone' : ''}`}>
+      <View className="trade-rules-row-label-wrap">
+        {props.milestone ? <Text className="trade-rules-row-dot" /> : null}
+        <View className="trade-rules-row-texts">
+          <Text className="trade-rules-row-label">{props.label}</Text>
+          {props.note ? <Text className="trade-rules-row-note">{props.note}</Text> : null}
+        </View>
+      </View>
+      <Text className={`trade-rules-row-value ${props.highlight ? 'trade-rules-row-value-highlight' : ''}`}>{props.value}</Text>
+    </View>
+  );
 }
 
 function payoutConditionLabel(v?: PayoutCondition): string {
@@ -89,99 +122,72 @@ export default function TradeRulesPage() {
       ) : error ? (
         <ErrorCard message={error} onRetry={load} />
       ) : data ? (
-        <View>
-          <TipBanner tone="info" title="规则摘要">
-            订金按成交价比例计算（含上/下限）；佣金由卖家承担；尾款由平台托管，默认在“权属变更完成确认”后放款。
-          </TipBanner>
-
-          <Spacer size={12} />
-
-          <Surface>
-            <View className="row-between">
-              <SectionHeader title="订金" subtitle="订金用于锁定意向与启动跟单服务" density="compact" />
-              <Tag type="primary" plain round>
-                托管
-              </Tag>
-            </View>
-            <Spacer size={8} />
-            <View className="list-item">
-              <Text className="muted">订金比例</Text>
-              <Text className="text-strong">{percent(data.depositRate)}</Text>
-            </View>
-            <View className="list-item">
-              <Text className="muted">订金区间</Text>
-              <Text className="text-strong">{`${yuan(data.depositMinFen)} - ${yuan(data.depositMaxFen)}`}</Text>
-            </View>
-            <View className="list-item">
-              <Text className="muted">面议订金</Text>
-              <Text className="text-strong">{yuan(data.depositFixedForNegotiableFen)}</Text>
-            </View>
-            <Spacer size={8} />
-            <Text className="text-caption break-word">
-              订金金额 = 成交价 × 比例，并遵守上/下限；面议按固定订金收取。
+        <View className="trade-rules-content">
+          <View className="summary-banner">
+            <Text className="summary-banner__label">规则摘要</Text>
+            <Text className="summary-banner__text">
+              订金按成交价比例计算（含上/下限）；佣金由卖家承担；尾款由平台托管，默认在「权属变更完成确认」后放款。
             </Text>
-          </Surface>
+            <View className="summary-stats">
+              <View className="summary-stat-item">
+                <Text className="summary-stat-item__value">{percent(data.depositRate)}</Text>
+                <Text className="summary-stat-item__label">订金比例</Text>
+              </View>
+              <View className="summary-stat-item">
+                <Text className="summary-stat-item__value">{percent(data.commissionRate)}</Text>
+                <Text className="summary-stat-item__label">佣金比例</Text>
+              </View>
+              <View className="summary-stat-item">
+                <Text className="summary-stat-item__value">{data.autoRefundWindowMinutes}min</Text>
+                <Text className="summary-stat-item__label">退款窗口</Text>
+              </View>
+            </View>
+          </View>
 
           <Spacer size={12} />
 
           <Surface>
-            <SectionHeader title="退款窗口" subtitle="用于“系统秒退”的时间范围" density="compact" />
-            <Spacer size={8} />
-            <View className="list-item">
-              <Text className="muted">时间窗口</Text>
-              <Text className="text-strong">{data.autoRefundWindowMinutes} 分钟</Text>
-            </View>
-          </Surface>
-
-          <Spacer size={12} />
-
-          <Surface>
-            <View className="row-between">
-              <SectionHeader title="佣金" subtitle="卖家承担，随结算扣除" density="compact" />
-              <Tag type="success" plain round>
-                卖家承担
-              </Tag>
-            </View>
-            <Spacer size={8} />
-            <View className="list-item">
-              <Text className="muted">佣金比例</Text>
-              <Text className="text-strong">{percent(data.commissionRate)}</Text>
-            </View>
-            <View className="list-item">
-              <Text className="muted">佣金区间</Text>
-              <Text className="text-strong">{`${yuan(data.commissionMinFen)} - ${yuan(data.commissionMaxFen)}`}</Text>
+            <RuleHeader index="01" title="订金" note="订金用于锁定意向与启动跟单服务" tag="托管" />
+            <View className="trade-rules-section-body">
+              <RuleRow label="订金比例" value={percent(data.depositRate)} highlight />
+              <RuleRow label="面议订金" value={yuan(data.depositFixedForNegotiableFen)} />
+              <RuleRow label="订金区间" note="成交价 × 比例，遵守上/下限" value={`${yuan(data.depositMinFen)} - ${yuan(data.depositMaxFen)}`} />
             </View>
           </Surface>
 
           <Spacer size={12} />
 
           <Surface>
-            <SectionHeader title="里程碑与放款" subtitle="关键节点作为凭证归档" density="compact" />
-            <Spacer size={8} />
-            <View className="list-item">
-              <Text className="muted">补材料期限</Text>
-              <Text className="text-strong">{data.sellerMaterialDeadlineBusinessDays} 个工作日</Text>
+            <RuleHeader index="02" title="退款窗口" />
+            <View className="trade-rules-section-body">
+              <RuleRow label="系统秒退时间窗口" note="支付完成后开始计时" value={`${data.autoRefundWindowMinutes} 分钟`} highlight />
             </View>
-            <View className="list-item">
-              <Text className="muted">签合同期限</Text>
-              <Text className="text-strong">{data.contractSignedDeadlineBusinessDays} 个工作日</Text>
+          </Surface>
+
+          <Spacer size={12} />
+
+          <Surface>
+            <RuleHeader index="03" title="佣金" tag="卖家承担" />
+            <View className="trade-rules-section-body">
+              <RuleRow label="佣金比例" value={percent(data.commissionRate)} highlight />
+              <RuleRow label="佣金区间" value={`${yuan(data.commissionMinFen)} - ${yuan(data.commissionMaxFen)}`} />
+              <RuleRow label="扣除方式" value="随结算自动扣除" />
             </View>
-            <View className="list-item">
-              <Text className="muted">权属变更 SLA</Text>
-              <Text className="text-strong">{data.transferCompletedSlaDays} 天</Text>
-            </View>
-            <Spacer size={8} />
-            <View className="list-item">
-              <Text className="muted">放款条件</Text>
-              <Text className="text-strong">{payoutConditionLabel(data.payoutCondition)}</Text>
-            </View>
-            <View className="list-item">
-              <Text className="muted">默认放款方式</Text>
-              <Text className="text-strong">{payoutMethodLabel(data.payoutMethodDefault)}</Text>
-            </View>
-            <View className="list-item">
-              <Text className="muted">超时自动放款</Text>
-              <Text className="text-strong">{data.autoPayoutOnTimeout ? '开启' : '关闭'}</Text>
+          </Surface>
+
+          <Spacer size={12} />
+
+          <Surface>
+            <RuleHeader index="04" title="里程碑与放款" />
+            <View className="trade-rules-section-body">
+              <Text className="trade-rules-sub-label">关键节点</Text>
+              <RuleRow label="补材料期限" value={`${data.sellerMaterialDeadlineBusinessDays} 个工作日`} milestone />
+              <RuleRow label="签合同期限" value={`${data.contractSignedDeadlineBusinessDays} 个工作日`} milestone />
+              <RuleRow label="权属变更 SLA" value={`${data.transferCompletedSlaDays} 天`} milestone />
+              <Text className="trade-rules-sub-label">放款设置</Text>
+              <RuleRow label="放款条件" value={payoutConditionLabel(data.payoutCondition)} highlight />
+              <RuleRow label="默认放款方式" value={payoutMethodLabel(data.payoutMethodDefault)} />
+              <RuleRow label="超时自动放款" value={data.autoPayoutOnTimeout ? '开启' : '已关闭'} />
             </View>
           </Surface>
 

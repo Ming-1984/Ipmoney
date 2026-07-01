@@ -34,6 +34,7 @@ const preloadRule: Record<string, { network: 'all' | 'wifi'; packages: string[] 
       'subpackages/my-achievements',
       'subpackages/patent-claims',
       'subpackages/maintenance',
+      'subpackages/maintenance-apply',
     ],
   },
 };
@@ -146,6 +147,10 @@ export default defineAppConfig({
       pages: ['index'],
     },
     {
+      root: 'subpackages/my-patents',
+      pages: ['index'],
+    },
+    {
       root: 'subpackages/my-achievements',
       pages: ['index'],
     },
@@ -155,6 +160,10 @@ export default defineAppConfig({
     },
     {
       root: 'subpackages/maintenance',
+      pages: ['index', 'apply/index'],
+    },
+    {
+      root: 'subpackages/maintenance-apply',
       pages: ['index'],
     },
     {

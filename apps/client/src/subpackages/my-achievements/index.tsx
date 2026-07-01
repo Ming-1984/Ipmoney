@@ -6,13 +6,12 @@ import './index.scss';
 import type { components } from '@ipmoney/api-types';
 
 import { apiGet, apiPost } from '../../lib/api';
-import { displayTitleOrFallback, normalizeDisplayText } from '../../lib/displayText';
+import { displayTitleOrFallback } from '../../lib/displayText';
 import { usePagedList } from '../../lib/usePagedList';
 import { ensureApproved, goLogin, goOnboarding, usePageAccess } from '../../lib/guard';
 import { auditStatusLabel, auditStatusTagClass, contentStatusLabel } from '../../lib/labels';
 import { safeOpenPage } from '../../lib/navigation';
 import { useRouteStringParam } from '../../lib/routeParams';
-import { CategoryControl } from '../../ui/filters';
 import { ListFooter } from '../../ui/ListFooter';
 import { Button, PullToRefresh, toast } from '../../ui/nutui';
 import { AuditPendingCard, EmptyCard, ErrorCard, LoadingCard, PermissionCard } from '../../ui/StateCards';
@@ -23,12 +22,35 @@ type PagedAchievement = components['schemas']['PagedAchievementSummary'];
 type Achievement = components['schemas']['AchievementSummary'];
 type ContentStatus = components['schemas']['ContentStatus'];
 type AuditStatus = components['schemas']['AuditStatus'];
+type FilterOption<T extends string> = {
+  label: string;
+  value: T;
+};
 
 const PAGE_TITLE = '我的专利成果';
-const PAGE_SUBTITLE = '发布方查看、编辑、下架自己的成果展示信息';
+const PAGE_SUBTITLE = '发布后查看、编辑、下架自己发布的成果展示信息';
 
 async function openPage(url: string) {
   await safeOpenPage(url);
+}
+
+function FilterTabs<T extends string>(props: { value: T; options: FilterOption<T>[]; onChange: (value: T) => void }) {
+  return (
+    <View className="my-achievements-filter-tabs">
+      {props.options.map((option) => {
+        const active = option.value === props.value;
+        return (
+          <View
+            key={option.value || '__all'}
+            className={`my-achievements-filter-tab ${active ? 'is-active' : ''}`}
+            onClick={() => props.onChange(option.value)}
+          >
+            <Text className="my-achievements-filter-tab-text">{option.label}</Text>
+          </View>
+        );
+      })}
+    </View>
+  );
 }
 
 export default function MyAchievementsPage() {
@@ -42,14 +64,23 @@ export default function MyAchievementsPage() {
   const effectiveAuditStatusFilter = isDraftCenter ? '' : auditStatusFilter;
 
   const fetcher = useCallback(
-    async ({ page, pageSize }: { page: number; pageSize: number }) =>
-      apiGet<PagedAchievement>('/achievements', {
+    async ({ page, pageSize }: { page: number; pageSize: number }) => {
+      const result = await apiGet<PagedAchievement>('/achievements', {
         page,
         pageSize,
         ...(effectiveStatus ? { status: effectiveStatus } : {}),
+        ...(!isDraftCenter && !effectiveStatus ? { excludeStatus: 'DRAFT' } : {}),
         ...(effectiveAuditStatusFilter ? { auditStatus: effectiveAuditStatusFilter } : {}),
-      }),
-    [effectiveAuditStatusFilter, effectiveStatus],
+      });
+      if (!isDraftCenter && !effectiveStatus) {
+        return {
+          ...result,
+          items: (result.items || []).filter((item) => item.status !== 'DRAFT'),
+        };
+      }
+      return result;
+    },
+    [effectiveAuditStatusFilter, effectiveStatus, isDraftCenter],
   );
 
   const { items, loading, error, refreshing, loadingMore, hasMore, reload, refresh, loadMore, reset } =
@@ -90,8 +121,37 @@ export default function MyAchievementsPage() {
     if (!ensureApproved()) return;
     void openPage('/subpackages/publish/achievement/index');
   }, []);
-  const pageTitle = isDraftCenter ? '草稿中心' : PAGE_TITLE;
+
+  const goDraftBox = useCallback(() => {
+    if (!ensureApproved()) return;
+    void openPage('/subpackages/my-achievements/index?status=DRAFT');
+  }, []);
+
+  const handleAuditStatusChange = useCallback((value: string) => {
+    const next = value as AuditStatus | '';
+    setAuditStatusFilter(next);
+    if (next && next !== 'APPROVED') {
+      setStatus('');
+    }
+  }, []);
+
+  const handleContentStatusChange = useCallback((value: string) => {
+    const next = value as ContentStatus | '';
+    setStatus(next);
+    if (next) {
+      setAuditStatusFilter('APPROVED');
+    }
+  }, []);
+
+  const pageTitle = isDraftCenter ? '草稿箱' : PAGE_TITLE;
   const pageSubtitle = isDraftCenter ? '仅展示未提交的专利成果草稿' : PAGE_SUBTITLE;
+  const showContentStatusFilter = !auditStatusFilter || auditStatusFilter === 'APPROVED';
+  const isFilteredEmpty = !isDraftCenter && Boolean(status || auditStatusFilter);
+  const emptyMessage = isDraftCenter
+    ? '暂无草稿'
+    : isFilteredEmpty
+      ? '暂无符合条件的成果'
+      : '暂无成果记录';
 
   if (access.state === 'need-login') {
     return (
@@ -146,24 +206,10 @@ export default function MyAchievementsPage() {
 
       {!isDraftCenter ? (
         <>
-          <Surface>
-            <Text className="text-strong">状态筛选</Text>
-            <View style={{ height: '10rpx' }} />
-            <CategoryControl
-              value={status}
-              options={[
-                { label: '全部', value: '' },
-                { label: '草稿', value: 'DRAFT' },
-                { label: '上架', value: 'ACTIVE' },
-                { label: '下架', value: 'OFF_SHELF' },
-              ]}
-              onChange={(v) => setStatus(v as ContentStatus | '')}
-            />
-
-            <View style={{ height: '14rpx' }} />
+          <Surface className="my-achievements-filter-card">
             <Text className="text-strong">审核筛选</Text>
             <View style={{ height: '10rpx' }} />
-            <CategoryControl
+            <FilterTabs
               value={auditStatusFilter}
               options={[
                 { label: '全部', value: '' },
@@ -171,12 +217,33 @@ export default function MyAchievementsPage() {
                 { label: '已通过', value: 'APPROVED' },
                 { label: '已驳回', value: 'REJECTED' },
               ]}
-              onChange={(v) => setAuditStatusFilter(v as AuditStatus | '')}
+              onChange={handleAuditStatusChange}
             />
+            {showContentStatusFilter ? (
+              <>
+                <View style={{ height: '14rpx' }} />
+                <Text className="text-strong">上架状态</Text>
+                <View style={{ height: '10rpx' }} />
+                <FilterTabs
+                  value={status}
+                  options={[
+                    { label: '全部', value: '' },
+                    { label: '上架', value: 'ACTIVE' },
+                    { label: '下架', value: 'OFF_SHELF' },
+                  ]}
+                  onChange={handleContentStatusChange}
+                />
+              </>
+            ) : null}
             <View style={{ height: '12rpx' }} />
-            <Button variant="primary" onClick={goCreate}>
-              发布新的专利成果
-            </Button>
+            <View className="my-achievements-actions">
+              <Button variant="primary" onClick={goCreate}>
+                发布新的专利成果
+              </Button>
+              <Button variant="ghost" onClick={goDraftBox}>
+                草稿箱
+              </Button>
+            </View>
           </Surface>
 
           <View style={{ height: '16rpx' }} />
@@ -242,7 +309,7 @@ export default function MyAchievementsPage() {
             ))}
           </View>
         ) : (
-          <EmptyCard message={isDraftCenter ? '暂无草稿' : '暂无成果记录'} actionText="刷新" onAction={reload} />
+          <EmptyCard message={emptyMessage} actionText={isFilteredEmpty ? undefined : '刷新'} onAction={isFilteredEmpty ? undefined : reload} />
         )}
 
         {!showInitialLoading && items.length ? (

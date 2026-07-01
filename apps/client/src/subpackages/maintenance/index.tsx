@@ -1,6 +1,6 @@
 ﻿import { Text, View } from '@tarojs/components';
 import Taro, { useDidHide, useDidShow } from '@tarojs/taro';
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import './index.scss';
 
 import { apiGet, apiPost } from '../../lib/api';
@@ -9,15 +9,13 @@ import { formatTimeSmart } from '../../lib/format';
 import { usePageAccess } from '../../lib/guard';
 import { useRouteStringParam, useRouteUuidParam } from '../../lib/routeParams';
 import { usePagedList } from '../../lib/usePagedList';
-import { CategoryControl } from '../../ui/filters/TabsControl';
 import { ListFooter } from '../../ui/ListFooter';
 import { AccessGate } from '../../ui/PageState';
 import { PageHeader, Spacer, Surface, TipBanner } from '../../ui/layout';
-import { Button, PullToRefresh, toast } from '../../ui/nutui';
+import { PullToRefresh, toast } from '../../ui/nutui';
 import { EmptyCard, ErrorCard, LoadingCard } from '../../ui/StateCards';
 
 type PatentMaintenanceStatus = 'DUE' | 'PAID' | 'OVERDUE' | 'WAIVED';
-type PatentMaintenanceTaskStatus = 'OPEN' | 'IN_PROGRESS' | 'DONE' | 'CANCELLED';
 type PatentMaintenanceOrderStatus =
   | 'REQUESTED'
   | 'QUOTED'
@@ -47,24 +45,11 @@ type PatentMaintenanceSchedule = {
   canContactSupport?: boolean;
 };
 
-type PatentMaintenanceTask = {
-  id: string;
-  scheduleId: string;
-  assignedCsUserId?: string | null;
-  assignedCsDisplayName?: string | null;
-  status: PatentMaintenanceTaskStatus;
-  note?: string | null;
-  evidenceFileId?: string | null;
-  createdAt: string;
-  updatedAt?: string;
-  patentId?: string;
+type PatentMaintenanceScheduleGroup = {
+  key: string;
   patentTitle?: string;
   applicationNoDisplay?: string;
-  scheduleYearNo?: number;
-  scheduleDueDate?: string;
-  scheduleStatus?: PatentMaintenanceStatus;
-  urgency?: MaintenanceUrgency;
-  canContactSupport?: boolean;
+  items: PatentMaintenanceSchedule[];
 };
 
 type PatentMaintenanceOrder = {
@@ -119,42 +104,113 @@ type Paged<T> = {
 type MaintenanceSummary = {
   overdue: number;
   dueSoon: number;
-  openTasks: number;
-  openOrders: number;
+  activeOrders: number;
+  historyOrders: number;
 };
 
 type ScheduleFilter = '' | PatentMaintenanceStatus;
-type TaskFilter = '' | PatentMaintenanceTaskStatus;
 type OrderFilter = '' | PatentMaintenanceOrderStatus;
+type MaintenanceTab = 'schedules' | 'progress' | 'history';
+
+const MAINTENANCE_REQUEST_CREATED_EVENT = 'maintenance-request-created';
 
 const SCHEDULE_FILTER_OPTIONS: Array<{ value: ScheduleFilter; label: string }> = [
-  { value: '', label: '全部计划' },
-  { value: 'DUE', label: '待缴费' },
-  { value: 'OVERDUE', label: '已逾期' },
-  { value: 'PAID', label: '已缴费' },
-  { value: 'WAIVED', label: '已豁免' },
+  { value: '', label: '全部年度' },
+  { value: 'DUE', label: '待缴年度' },
+  { value: 'OVERDUE', label: '逾期年度' },
+  { value: 'PAID', label: '已缴年度' },
+  { value: 'WAIVED', label: '豁免年度' },
 ];
 
-const TASK_FILTER_OPTIONS: Array<{ value: TaskFilter; label: string }> = [
-  { value: '', label: '全部任务' },
-  { value: 'OPEN', label: '待处理' },
-  { value: 'IN_PROGRESS', label: '处理中' },
-  { value: 'DONE', label: '已完成' },
+const ACTIVE_ORDER_STATUSES = new Set<PatentMaintenanceOrderStatus>([
+  'REQUESTED',
+  'QUOTED',
+  'AWAITING_PAYMENT',
+  'PAID',
+  'EXECUTING',
+  'RECEIPT_UPLOADED',
+  'RECONCILED',
+]);
+
+const HISTORY_ORDER_STATUSES = new Set<PatentMaintenanceOrderStatus>(['CLOSED', 'CANCELLED']);
+
+const PROGRESS_FILTER_OPTIONS: Array<{ value: OrderFilter; label: string }> = [
+  { value: '', label: '全部进度' },
+  { value: 'REQUESTED', label: '已申请' },
+  { value: 'QUOTED', label: '已报价' },
+  { value: 'AWAITING_PAYMENT', label: '待联系付款' },
+  { value: 'PAID', label: '已确认到账' },
+  { value: 'EXECUTING', label: '办理中' },
+  { value: 'RECEIPT_UPLOADED', label: '回执已上传' },
+  { value: 'RECONCILED', label: '已核对' },
+];
+
+const HISTORY_FILTER_OPTIONS: Array<{ value: OrderFilter; label: string }> = [
+  { value: '', label: '全部记录' },
+  { value: 'CLOSED', label: '已完成' },
   { value: 'CANCELLED', label: '已取消' },
 ];
 
 const ORDER_FILTER_OPTIONS: Array<{ value: OrderFilter; label: string }> = [
-  { value: '', label: '全部订单' },
-  { value: 'REQUESTED', label: '已创建' },
-  { value: 'AWAITING_PAYMENT', label: '待支付' },
-  { value: 'PAID', label: '已支付' },
-  { value: 'EXECUTING', label: '执行中' },
-  { value: 'RECEIPT_UPLOADED', label: '回执已上传' },
-  { value: 'RECONCILED', label: '已对账' },
-  { value: 'CLOSED', label: '已关闭' },
-  { value: 'CANCELLED', label: '已取消' },
+  ...PROGRESS_FILTER_OPTIONS,
+  ...HISTORY_FILTER_OPTIONS.filter((item): item is { value: PatentMaintenanceOrderStatus; label: string } => Boolean(item.value)),
 ];
 
+const ORDER_PROGRESS_STEPS: Array<{
+  status: PatentMaintenanceOrderStatus;
+  title: string;
+  desc: string;
+  eventTypes: string[];
+}> = [
+  {
+    status: 'REQUESTED',
+    title: '已申请',
+    desc: '已收到你的年费代缴申请',
+    eventTypes: ['CREATED'],
+  },
+  {
+    status: 'QUOTED',
+    title: '已报价',
+    desc: '客服核验年度和费用后给出报价',
+    eventTypes: ['QUOTE_UPDATED'],
+  },
+  {
+    status: 'AWAITING_PAYMENT',
+    title: '待联系付款',
+    desc: '等待确认付款方式和付款安排',
+    eventTypes: [],
+  },
+  {
+    status: 'PAID',
+    title: '已确认到账',
+    desc: '平台确认款项后开始办理',
+    eventTypes: ['PAYMENT_CONFIRMED'],
+  },
+  {
+    status: 'EXECUTING',
+    title: '办理中',
+    desc: '正在提交或处理官方年费缴纳',
+    eventTypes: ['EXECUTION_SUBMITTED'],
+  },
+  {
+    status: 'RECEIPT_UPLOADED',
+    title: '回执已上传',
+    desc: '官方回执或相关材料已留存',
+    eventTypes: ['RECEIPT_UPLOADED'],
+  },
+  {
+    status: 'RECONCILED',
+    title: '已核对',
+    desc: '回执和费用信息已完成核对',
+    eventTypes: ['RECONCILED'],
+  },
+  {
+    status: 'CLOSED',
+    title: '已完成',
+    desc: '本次代缴服务已完成归档',
+    eventTypes: ['CLOSED'],
+  },
+];
 function scheduleStatusLabel(status?: PatentMaintenanceStatus): string {
   if (status === 'DUE') return '待缴费';
   if (status === 'PAID') return '已缴费';
@@ -163,12 +219,47 @@ function scheduleStatusLabel(status?: PatentMaintenanceStatus): string {
   return '待确认';
 }
 
-function taskStatusLabel(status?: PatentMaintenanceTaskStatus): string {
-  if (status === 'OPEN') return '待处理';
-  if (status === 'IN_PROGRESS') return '处理中';
-  if (status === 'DONE') return '已完成';
-  if (status === 'CANCELLED') return '已取消';
-  return '待确认';
+function isPastDate(value?: string | null): boolean {
+  const date = String(value || '').trim();
+  if (!date) return false;
+  return date < localDateKey(new Date());
+}
+
+function scheduleActionText(schedule: PatentMaintenanceSchedule): string {
+  if (schedule.status === 'OVERDUE') {
+    return isPastDate(schedule.gracePeriodEnd) ? '申请核验' : '申请补缴';
+  }
+  return '申请代缴';
+}
+
+function scheduleStatusText(schedule: PatentMaintenanceSchedule): string {
+  if (schedule.status !== 'OVERDUE') return scheduleStatusLabel(schedule.status);
+  return isPastDate(schedule.gracePeriodEnd) ? '逾期需核验' : '逾期可补缴';
+}
+
+function scheduleActionHint(schedule: PatentMaintenanceSchedule): string {
+  if (schedule.status === 'OVERDUE') {
+    return isPastDate(schedule.gracePeriodEnd)
+      ? '已超过宽限截止，提交后由客服核验是否可恢复或补办。'
+      : '已过缴费日，提交后会核验滞纳金并协助补缴。';
+  }
+  return '';
+}
+
+function scheduleStatusClass(status?: PatentMaintenanceStatus): string {
+  if (status === 'DUE') return 'is-due';
+  if (status === 'PAID') return 'is-paid';
+  if (status === 'OVERDUE') return 'is-overdue';
+  if (status === 'WAIVED') return 'is-waived';
+  return 'is-unknown';
+}
+
+function scheduleStatusSummary(items: PatentMaintenanceSchedule[]): Array<{ status: PatentMaintenanceStatus; count: number }> {
+  const counts = new Map<PatentMaintenanceStatus, number>();
+  for (const item of items) counts.set(item.status, (counts.get(item.status) || 0) + 1);
+  return (['OVERDUE', 'DUE', 'PAID', 'WAIVED'] as PatentMaintenanceStatus[])
+    .map((status) => ({ status, count: counts.get(status) || 0 }))
+    .filter((item) => item.count > 0);
 }
 
 function orderStatusLabel(status?: PatentMaintenanceOrderStatus): string {
@@ -185,21 +276,74 @@ function orderStatusText(status?: string): string {
 function orderEventTypeLabel(value?: string): string {
   const type = String(value || '').trim().toUpperCase();
   if (!type) return '状态更新';
-  if (type === 'CREATED') return '已创建';
+  if (type === 'CREATED') return '已申请';
   if (type === 'QUOTE_UPDATED') return '报价已更新';
-  if (type === 'PAYMENT_CONFIRMED') return '已确认支付';
-  if (type === 'EXECUTION_SUBMITTED') return '已提交办理';
+  if (type === 'PAYMENT_CONFIRMED') return '已确认到账';
+  if (type === 'EXECUTION_SUBMITTED') return '办理已提交';
   if (type === 'RECEIPT_UPLOADED') return '已上传回执';
-  if (type === 'RECONCILED') return '已完成对账';
-  if (type === 'CLOSED') return '已关闭';
+  if (type === 'RECONCILED') return '已完成核对';
+  if (type === 'CLOSED') return '已完成';
   if (type === 'CANCELLED') return '已取消';
   return '状态更新';
+}
+
+function orderProgressIndex(status?: PatentMaintenanceOrderStatus): number {
+  const index = ORDER_PROGRESS_STEPS.findIndex((step) => step.status === status);
+  if (index >= 0) return index;
+  return 0;
+}
+
+function orderStepEvent(
+  step: (typeof ORDER_PROGRESS_STEPS)[number],
+  events: PatentMaintenanceOrderEvent[],
+): PatentMaintenanceOrderEvent | undefined {
+  const statusEvent = [...events].reverse().find((event) => event.toStatus === step.status);
+  if (statusEvent) return statusEvent;
+  return [...events].reverse().find((event) => step.eventTypes.includes(String(event.eventType || '').toUpperCase()));
+}
+
+function timelineNoteText(value: unknown): string {
+  const note = normalizeDisplayText(value);
+  if (!note) return '';
+  if (!/[\u4e00-\u9fff]/.test(note)) return '';
+  return note;
+}
+
+function orderProgressSteps(order: PatentMaintenanceOrder, events: PatentMaintenanceOrderEvent[]) {
+  if (order.status === 'CANCELLED') {
+    const cancelEvent = [...events].reverse().find((event) => event.toStatus === 'CANCELLED' || event.eventType === 'CANCELLED');
+    const lastKnownStatus = cancelEvent?.fromStatus || [...events].reverse().find((event) => event.toStatus !== 'CANCELLED')?.toStatus;
+    const lastKnownIndex = Math.max(0, orderProgressIndex(lastKnownStatus as PatentMaintenanceOrderStatus | undefined));
+    return [
+      ...ORDER_PROGRESS_STEPS.slice(0, lastKnownIndex + 1).map((step) => ({
+        ...step,
+        event: orderStepEvent(step, events),
+        state: 'done',
+      })),
+      {
+        status: 'CANCELLED' as PatentMaintenanceOrderStatus,
+        title: '已取消',
+        desc: '本次代缴服务已取消',
+        eventTypes: ['CANCELLED'],
+        event: cancelEvent,
+        state: 'cancelled',
+      },
+    ];
+  }
+
+  const currentIndex = orderProgressIndex(order.status);
+  const endIndex = order.status === 'CLOSED' ? ORDER_PROGRESS_STEPS.length - 1 : ORDER_PROGRESS_STEPS.length - 2;
+  return ORDER_PROGRESS_STEPS.slice(0, endIndex + 1).map((step, index) => ({
+    ...step,
+    event: orderStepEvent(step, events),
+    state: index < currentIndex ? 'done' : index === currentIndex ? 'current' : 'pending',
+  }));
 }
 
 function reconcileStatusLabel(value?: string): string {
   const status = String(value || '').trim().toUpperCase();
   if (!status) return '待确认';
-  if (status === 'PENDING') return '待对账';
+  if (status === 'PENDING') return '待核对';
   if (status === 'MATCHED') return '已匹配';
   if (status === 'MISMATCHED') return '不一致';
   return '待确认';
@@ -227,6 +371,59 @@ function formatFen(value?: number): string {
   return `¥${((Number(value) || 0) / 100).toFixed(2)}`;
 }
 
+function formatOrderAmount(order: PatentMaintenanceOrder): string {
+  if (Number(order.totalAmountFen) > 0) return formatFen(order.totalAmountFen);
+  if (order.status === 'REQUESTED' || order.status === 'QUOTED') return '待客服报价';
+  return formatFen(order.totalAmountFen);
+}
+
+function orderAmountLabel(status?: PatentMaintenanceOrderStatus): string {
+  if (status === 'AWAITING_PAYMENT') return '待付款合计';
+  if (status === 'PAID' || status === 'EXECUTING' || status === 'RECEIPT_UPLOADED' || status === 'RECONCILED' || status === 'CLOSED') {
+    return '已确认金额';
+  }
+  return '费用合计';
+}
+
+function orderFeeBreakdownItems(order: PatentMaintenanceOrder): Array<{ label: string; value: string }> {
+  if (Number(order.totalAmountFen) <= 0) return [];
+  const items = [
+    { label: '官方年费', value: Number(order.officialFeeFen) || 0 },
+    { label: '滞纳/宽限费用', value: Number(order.lateFeeFen) || 0 },
+    { label: '平台服务费', value: Number(order.serviceFeeFen) || 0 },
+  ];
+  return items.filter((item) => item.value > 0).map((item) => ({ label: item.label, value: formatFen(item.value) }));
+}
+
+function localDateKey(date: Date): string {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+function deriveSummaryFromLoadedItems(
+  scheduleItems: PatentMaintenanceSchedule[],
+  orderItems: PatentMaintenanceOrder[],
+): MaintenanceSummary {
+  const today = new Date();
+  const dueSoonEnd = new Date(today);
+  dueSoonEnd.setDate(dueSoonEnd.getDate() + 7);
+  const todayKey = localDateKey(today);
+  const dueSoonEndKey = localDateKey(dueSoonEnd);
+  const activeScheduleStatuses = new Set<PatentMaintenanceStatus>(['DUE', 'OVERDUE']);
+
+  return {
+    overdue: scheduleItems.filter((item) => activeScheduleStatuses.has(item.status) && String(item.dueDate || '') < todayKey).length,
+    dueSoon: scheduleItems.filter((item) => {
+      const dueDate = String(item.dueDate || '');
+      return activeScheduleStatuses.has(item.status) && dueDate >= todayKey && dueDate <= dueSoonEndKey;
+    }).length,
+    activeOrders: orderItems.filter((item) => ACTIVE_ORDER_STATUSES.has(item.status)).length,
+    historyOrders: orderItems.filter((item) => HISTORY_ORDER_STATUSES.has(item.status)).length,
+  };
+}
+
 function displayText(value: unknown, fallback = '待确认'): string {
   return normalizeDisplayText(value) || fallback;
 }
@@ -243,28 +440,34 @@ function shouldCreateOrderButtonShow(schedule: PatentMaintenanceSchedule): boole
   return schedule.status === 'DUE' || schedule.status === 'OVERDUE';
 }
 
+function scheduleGroupKey(item: PatentMaintenanceSchedule): string {
+  return item.patentId || normalizeDisplayText(item.applicationNoDisplay) || item.id;
+}
+
+function normalizeRouteTab(value?: string | null): MaintenanceTab | undefined {
+  const tab = String(value || '').trim();
+  if (tab === 'schedules' || tab === 'due') return 'schedules';
+  if (tab === 'progress' || tab === 'tasks' || tab === 'processing') return 'progress';
+  if (tab === 'history' || tab === 'orders' || tab === 'records') return 'history';
+  return undefined;
+}
+
 export default function MaintenancePage() {
   const routeOrderId = useRouteUuidParam('orderId') || '';
+  const routePatentId = useRouteUuidParam('patentId') || '';
   const routeTab = useRouteStringParam('tab');
   const loadedOnceRef = useRef(false);
-  const scheduleFilterMountedRef = useRef(false);
-  const taskFilterMountedRef = useRef(false);
-  const orderFilterMountedRef = useRef(false);
-  const scheduleFilterKeyRef = useRef('');
-  const taskFilterKeyRef = useRef('');
-  const orderRouteKeyRef = useRef('');
+  const focusedOrderIdRef = useRef(routeOrderId);
   const timelineRequestOrderIdRef = useRef('');
   const conversationRequestOrderIdRef = useRef('');
   const createOrderSeqRef = useRef(0);
   const pageVisibleRef = useRef(true);
 
-  const [tab, setTab] = useState<'schedules' | 'tasks' | 'orders'>(() => {
-    if (routeTab === 'schedules' || routeTab === 'tasks' || routeTab === 'orders') return routeTab;
-    return 'orders';
-  });
+  const [tab, setTab] = useState<MaintenanceTab>(() => normalizeRouteTab(routeTab) || 'schedules');
   const [scheduleFilter, setScheduleFilter] = useState<ScheduleFilter>('');
-  const [taskFilter, setTaskFilter] = useState<TaskFilter>('');
-  const [orderFilter, setOrderFilter] = useState<OrderFilter>('');
+  const [progressFilter, setProgressFilter] = useState<OrderFilter>('');
+  const [historyFilter, setHistoryFilter] = useState<OrderFilter>('');
+  const [flowGuideOpen, setFlowGuideOpen] = useState(false);
 
   const [openingConversationOrderId, setOpeningConversationOrderId] = useState('');
   const [creatingOrderScheduleId, setCreatingOrderScheduleId] = useState('');
@@ -274,8 +477,8 @@ export default function MaintenancePage() {
   const [summary, setSummary] = useState<MaintenanceSummary>({
     overdue: 0,
     dueSoon: 0,
-    openTasks: 0,
-    openOrders: 0,
+    activeOrders: 0,
+    historyOrders: 0,
   });
 
   useDidShow(() => {
@@ -310,19 +513,9 @@ export default function MaintenancePage() {
       await apiGet<Paged<PatentMaintenanceSchedule>>('/me/patent-maintenance/schedules', {
         page,
         pageSize,
-        ...(scheduleFilter ? { status: scheduleFilter } : {}),
+        ...(routePatentId ? { patentId: routePatentId } : {}),
       }),
-    [scheduleFilter],
-  );
-
-  const taskFetcher = useCallback(
-    async ({ page, pageSize }: { page: number; pageSize: number }) =>
-      await apiGet<Paged<PatentMaintenanceTask>>('/me/patent-maintenance/tasks', {
-        page,
-        pageSize,
-        ...(taskFilter ? { status: taskFilter } : {}),
-      }),
-    [taskFilter],
+    [routePatentId],
   );
 
   const orderFetcher = useCallback(
@@ -330,20 +523,11 @@ export default function MaintenancePage() {
       await apiGet<Paged<PatentMaintenanceOrder>>('/me/patent-maintenance/orders', {
         page,
         pageSize,
-        ...(routeOrderId ? { orderId: routeOrderId } : {}),
-        ...(orderFilter ? { status: orderFilter } : {}),
       }),
-    [orderFilter, routeOrderId],
+    [],
   );
 
   const schedules = usePagedList<PatentMaintenanceSchedule>(scheduleFetcher, {
-    pageSize: 20,
-    onError: (msg, ctx) => {
-      if (ctx === 'loadMore') toast(msg);
-    },
-  });
-
-  const tasks = usePagedList<PatentMaintenanceTask>(taskFetcher, {
     pageSize: 20,
     onError: (msg, ctx) => {
       if (ctx === 'loadMore') toast(msg);
@@ -357,23 +541,13 @@ export default function MaintenancePage() {
     },
   });
 
-  const loadSummary = useCallback(async () => {
-    const next = await apiGet<MaintenanceSummary>('/me/patent-maintenance/summary');
-    setSummary({
-      overdue: Number(next?.overdue) || 0,
-      dueSoon: Number(next?.dueSoon) || 0,
-      openTasks: Number(next?.openTasks) || 0,
-      openOrders: Number(next?.openOrders) || 0,
-    });
-  }, []);
-
   const reloadAll = useCallback(async () => {
-    await Promise.all([schedules.reload(), tasks.reload(), orders.reload(), loadSummary()]);
-  }, [loadSummary, orders.reload, schedules.reload, tasks.reload]);
+    await Promise.all([schedules.reload(), orders.reload()]);
+  }, [orders.reload, schedules.reload]);
 
   const refreshAll = useCallback(async () => {
-    await Promise.all([schedules.refresh(), tasks.refresh(), orders.refresh(), loadSummary()]);
-  }, [loadSummary, orders.refresh, schedules.refresh, tasks.refresh]);
+    await Promise.all([schedules.refresh(), orders.refresh()]);
+  }, [orders.refresh, schedules.refresh]);
 
   useEffect(() => {
     if (access.state !== 'ok') return;
@@ -383,59 +557,15 @@ export default function MaintenancePage() {
 
   useEffect(() => {
     if (access.state !== 'ok') return;
-    if (!scheduleFilterMountedRef.current) {
-      scheduleFilterMountedRef.current = true;
-      return;
-    }
-    void schedules.reload();
-  }, [access.state, scheduleFilter, schedules.reload]);
+    if (routePatentId) return;
+    setSummary(deriveSummaryFromLoadedItems(schedules.items, orders.items));
+  }, [access.state, orders.items, routePatentId, schedules.items]);
 
   useEffect(() => {
-    if (access.state !== 'ok') return;
-    if (!taskFilterMountedRef.current) {
-      taskFilterMountedRef.current = true;
-      return;
-    }
-    void tasks.reload();
-  }, [access.state, taskFilter, tasks.reload]);
-
-  useEffect(() => {
-    if (access.state !== 'ok') return;
-    if (!orderFilterMountedRef.current) {
-      orderFilterMountedRef.current = true;
-      return;
-    }
-    void orders.reload();
-  }, [access.state, orderFilter, orders.reload]);
-
-  useEffect(() => {
-    const nextKey = scheduleFilter;
-    if (scheduleFilterKeyRef.current === nextKey) return;
-    scheduleFilterKeyRef.current = nextKey;
-    schedules.reset();
-  }, [scheduleFilter, schedules.reset]);
-
-  useEffect(() => {
-    const nextKey = taskFilter;
-    if (taskFilterKeyRef.current === nextKey) return;
-    taskFilterKeyRef.current = nextKey;
-    tasks.reset();
-  }, [taskFilter, tasks.reset]);
-
-  useEffect(() => {
-    const nextKey = `${routeOrderId}:${orderFilter}`;
-    if (orderRouteKeyRef.current === nextKey) return;
-    orderRouteKeyRef.current = nextKey;
-    setExpandedTimelineOrderId('');
-    setLoadingTimelineOrderId('');
-    setOrderEventsById({});
-    orders.reset();
-  }, [orderFilter, orders.reset, routeOrderId]);
-
-  useEffect(() => {
-    if (!routeOrderId) return;
-    if (tab !== 'orders') setTab('orders');
-  }, [routeOrderId, tab]);
+    if (!routeOrderId || access.state !== 'ok') return;
+    focusedOrderIdRef.current = routeOrderId;
+    setTab('progress');
+  }, [access.state, routeOrderId]);
 
   const openOrderConversation = useCallback(async (orderId: string) => {
     if (!orderId || openingConversationOrderId) return;
@@ -469,14 +599,14 @@ export default function MaintenancePage() {
         { idempotencyKey: `maintenance-order-${scheduleId}-${Date.now()}` },
       );
       if (createOrderSeqRef.current !== requestSeq || !pageVisibleRef.current) return;
-      toast('年费托管订单已创建');
-      setTab('orders');
+      toast('代缴申请已提交');
+      setTab('progress');
       await orders.reload();
       if (createOrderSeqRef.current !== requestSeq || !pageVisibleRef.current) return;
       await openOrderConversation(order.id);
     } catch (e: any) {
       if (createOrderSeqRef.current !== requestSeq || !pageVisibleRef.current) return;
-      toast(e?.message || '创建订单失败');
+      toast(e?.message || '申请代缴失败');
     } finally {
       if (createOrderSeqRef.current !== requestSeq || !pageVisibleRef.current) return;
       setCreatingOrderScheduleId('');
@@ -502,21 +632,243 @@ export default function MaintenancePage() {
       setOrderEventsById((prev) => ({ ...prev, [orderId]: res?.items || [] }));
     } catch (e: any) {
       if (timelineRequestOrderIdRef.current !== orderId) return;
-      toast(e?.message || '加载时间线失败');
+      toast(e?.message || '加载办理进度失败');
     } finally {
       if (timelineRequestOrderIdRef.current !== orderId) return;
       setLoadingTimelineOrderId('');
     }
   }, [expandedTimelineOrderId, orderEventsById]);
 
-  const refreshing = schedules.refreshing || tasks.refreshing || orders.refreshing;
+  useEffect(() => {
+    const handleCreated = (payload?: { orderId?: string }) => {
+      focusedOrderIdRef.current = payload?.orderId || '';
+      setTab('progress');
+      setProgressFilter('');
+      setHistoryFilter('');
+      void refreshAll();
+    };
+
+    Taro.eventCenter.on(MAINTENANCE_REQUEST_CREATED_EVENT, handleCreated);
+    return () => {
+      Taro.eventCenter.off(MAINTENANCE_REQUEST_CREATED_EVENT, handleCreated);
+    };
+  }, [refreshAll]);
+
+  useEffect(() => {
+    const focusedOrderId = focusedOrderIdRef.current;
+    if (!focusedOrderId) return;
+    const targetOrder = orders.items.find((item) => item.id === focusedOrderId);
+    if (!targetOrder) return;
+    const nextTab: MaintenanceTab = HISTORY_ORDER_STATUSES.has(targetOrder.status) ? 'history' : 'progress';
+    if (tab !== nextTab) setTab(nextTab);
+    if (expandedTimelineOrderId !== focusedOrderId) {
+      void toggleOrderTimeline(focusedOrderId);
+    }
+    focusedOrderIdRef.current = '';
+  }, [expandedTimelineOrderId, orders.items, tab, toggleOrderTimeline]);
+
+  const refreshing = schedules.refreshing || orders.refreshing;
+
+  const activeOrderItems = useMemo(
+    () => orders.items.filter((item) => ACTIVE_ORDER_STATUSES.has(item.status) && (!progressFilter || item.status === progressFilter)),
+    [orders.items, progressFilter],
+  );
+
+  const historyOrderItems = useMemo(
+    () => orders.items.filter((item) => HISTORY_ORDER_STATUSES.has(item.status) && (!historyFilter || item.status === historyFilter)),
+    [historyFilter, orders.items],
+  );
+
+  const openOrderByScheduleId = useMemo(() => {
+    const result = new Map<string, PatentMaintenanceOrder>();
+    for (const item of orders.items) {
+      if (!ACTIVE_ORDER_STATUSES.has(item.status)) continue;
+      if (!item.scheduleId || result.has(item.scheduleId)) continue;
+      result.set(item.scheduleId, item);
+    }
+    return result;
+  }, [orders.items]);
+
+  const filteredScheduleItems = useMemo(() => {
+    if (!scheduleFilter) return schedules.items;
+    return schedules.items.filter((item) => item.status === scheduleFilter);
+  }, [scheduleFilter, schedules.items]);
+
+  const scheduleGroups = useMemo<PatentMaintenanceScheduleGroup[]>(() => {
+    const groups: PatentMaintenanceScheduleGroup[] = [];
+    const groupByKey = new Map<string, PatentMaintenanceScheduleGroup>();
+    for (const item of filteredScheduleItems) {
+      const key = scheduleGroupKey(item);
+      let group = groupByKey.get(key);
+      if (!group) {
+        group = {
+          key,
+          patentTitle: item.patentTitle,
+          applicationNoDisplay: item.applicationNoDisplay,
+          items: [],
+        };
+        groupByKey.set(key, group);
+        groups.push(group);
+      }
+      group.items.push(item);
+      if (!group.patentTitle && item.patentTitle) group.patentTitle = item.patentTitle;
+      if (!group.applicationNoDisplay && item.applicationNoDisplay) group.applicationNoDisplay = item.applicationNoDisplay;
+    }
+    return groups.map((group) => ({
+      ...group,
+      items: [...group.items].sort((a, b) => {
+        const dueCompare = String(a.dueDate || '').localeCompare(String(b.dueDate || ''));
+        if (dueCompare !== 0) return dueCompare;
+        return a.yearNo - b.yearNo;
+      }),
+    }));
+  }, [filteredScheduleItems]);
+
+  const renderOrderCard = (item: PatentMaintenanceOrder) => {
+    const isTimelineOpen = expandedTimelineOrderId === item.id;
+    const timelineLoading = loadingTimelineOrderId === item.id;
+    const timelineItems = orderEventsById[item.id] || [];
+    const timelineSteps = orderProgressSteps(item, timelineItems);
+    const isAwaitingOfflinePayment = item.status === 'AWAITING_PAYMENT';
+    const feeBreakdownItems = orderFeeBreakdownItems(item);
+    return (
+      <Surface key={item.id} className="maintenance-card">
+        <View className="maintenance-card-head">
+          <Text className="maintenance-card-title clamp-2">
+            {resolveMaintenanceTitle(item.patentTitle, item.applicationNoDisplay)}
+          </Text>
+          <Text className={`maintenance-status maintenance-order-status is-${String(item.status).toLowerCase()}`}>
+            {orderStatusLabel(item.status)}
+          </Text>
+        </View>
+
+        <View className="maintenance-row">
+          <Text className="maintenance-label">申请号</Text>
+          <Text className="maintenance-value">{displayText(item.applicationNoDisplay)}</Text>
+        </View>
+        <View className="maintenance-row">
+          <Text className="maintenance-label">办理进度</Text>
+          <Text className="maintenance-value">
+            {HISTORY_ORDER_STATUSES.has(item.status) ? '该代缴服务已归档，可查看完整办理过程' : '已生成服务记录，可继续跟进沟通与处理结果'}
+          </Text>
+        </View>
+        <View className="maintenance-row">
+          <Text className="maintenance-label">缴费年度</Text>
+          <Text className="maintenance-value">
+            {typeof item.scheduleYearNo === 'number' ? `第${item.scheduleYearNo}年` : '待确认'}
+          </Text>
+        </View>
+        <View className="maintenance-row">
+          <Text className="maintenance-label">到期日</Text>
+          <Text className="maintenance-value">{displayText(item.scheduleDueDate)}</Text>
+        </View>
+        <View className="maintenance-row">
+          <Text className="maintenance-label">{orderAmountLabel(item.status)}</Text>
+          <Text className="maintenance-value">{formatOrderAmount(item)}</Text>
+        </View>
+        {feeBreakdownItems.length ? (
+          <View className="maintenance-fee-breakdown">
+            {feeBreakdownItems.map((fee) => (
+              <View key={fee.label} className="maintenance-fee-row">
+                <Text className="maintenance-fee-label">{fee.label}</Text>
+                <Text className="maintenance-fee-value">{fee.value}</Text>
+              </View>
+            ))}
+          </View>
+        ) : null}
+        <View className="maintenance-row">
+          <Text className="maintenance-label">付款截止</Text>
+          <Text className="maintenance-value">
+            {item.paymentDeadline ? formatTimeSmart(item.paymentDeadline) : '待确认'}
+          </Text>
+        </View>
+        <View className="maintenance-row">
+          <Text className="maintenance-label">核对状态</Text>
+          <Text className="maintenance-value">{reconcileStatusLabel(item.reconcileStatus)}</Text>
+        </View>
+
+        {isAwaitingOfflinePayment ? (
+          <View className="maintenance-payment-note">
+            <Text>
+              客服会联系你确认付款方式；也可主动联系客服。平台确认到账后，状态会更新为“已确认到账”并开始办理。
+            </Text>
+          </View>
+        ) : null}
+
+        <View className="maintenance-foot">
+          <View className="maintenance-outline-btn" onClick={() => void toggleOrderTimeline(item.id)}>
+            <Text>{isTimelineOpen ? '收起进度' : '查看进度'}</Text>
+          </View>
+          {item.canContactSupport ? (
+            <View
+              className={`maintenance-contact-btn ${openingConversationOrderId === item.id ? 'is-loading' : ''}`}
+              onClick={() => {
+                if (openingConversationOrderId === item.id) return;
+                void openOrderConversation(item.id);
+              }}
+            >
+              <Text>
+                {openingConversationOrderId === item.id
+                  ? '打开中'
+                  : isAwaitingOfflinePayment
+                    ? '联系客服付款'
+                    : '联系客服'}
+              </Text>
+            </View>
+          ) : null}
+        </View>
+
+        {isTimelineOpen ? (
+          <View className="maintenance-timeline">
+            {timelineLoading ? (
+              <Text className="maintenance-timeline-empty">加载办理进度中...</Text>
+            ) : timelineSteps.length ? (
+              timelineSteps.map((step, index) => {
+                const event = step.event;
+                const eventNote = timelineNoteText(event?.note);
+                return (
+                  <View
+                    key={`${item.id}-${step.status}-${index}`}
+                    className={`maintenance-timeline-step is-${step.state} ${index === timelineSteps.length - 1 ? 'is-last' : ''}`}
+                  >
+                    <View className="maintenance-timeline-rail">
+                      <View className="maintenance-timeline-dot" />
+                      {index === timelineSteps.length - 1 ? null : <View className="maintenance-timeline-line" />}
+                    </View>
+                    <View className="maintenance-timeline-content">
+                      <View className="maintenance-timeline-head">
+                        <Text className="maintenance-timeline-title">{step.title}</Text>
+                        <Text className="maintenance-timeline-status">
+                          {step.state === 'pending' ? '未开始' : step.state === 'current' ? '当前' : '已完成'}
+                        </Text>
+                      </View>
+                      <Text className="maintenance-timeline-desc">{eventNote || step.desc}</Text>
+                      {event ? (
+                        <Text className="maintenance-timeline-meta">
+                          {orderEventTypeLabel(event.eventType)} ·{' '}
+                          {timelineActorText(event.actorDisplayName, event.actorNickname, event.actorUserId)} ·{' '}
+                          {formatTimeSmart(event.createdAt)}
+                        </Text>
+                      ) : null}
+                    </View>
+                  </View>
+                );
+              })
+            ) : (
+              <Text className="maintenance-timeline-empty">暂无办理进度</Text>
+            )}
+          </View>
+        ) : null}
+      </Surface>
+    );
+  };
 
   return (
     <PullToRefresh type="primary" disabled={refreshing} onRefresh={refreshAll}>
       <View className="container maintenance-page">
         <PageHeader
-          title="年费托管"
-          subtitle="统一管理年费计划、执行任务与服务订单"
+          title="专利年费代缴"
+          subtitle="这里处理的是缴给专利局、用于维持专利有效的官方年费"
         />
         <Spacer />
 
@@ -524,15 +876,48 @@ export default function MaintenancePage() {
           <AccessGate access={access} />
         ) : (
           <>
-            <TipBanner tone="info" title="流程说明" className="maintenance-flow-tip">
-              建议从托管订单发起咨询，确保支付、执行、回执与对账记录在同一会话中连续留痕。
-            </TipBanner>
+            <Surface className="maintenance-direct-card">
+              <View className="maintenance-direct-head">
+                <View className="maintenance-direct-main">
+                  <Text className="maintenance-apply-kicker">未上架专利也可申请</Text>
+                  <Text className="maintenance-direct-title">添加专利申请年费代缴</Text>
+                  <Text className="maintenance-direct-desc">
+                    仅用于后台核验和年费代缴服务，不会发布到市场，也不会公开展示或售卖。
+                  </Text>
+                </View>
+                <View
+                  className="maintenance-direct-btn"
+                  onClick={() => {
+                    Taro.navigateTo({ url: '/subpackages/maintenance-apply/index' });
+                  }}
+                >
+                  <Text>添加专利</Text>
+                </View>
+              </View>
+            </Surface>
+
+            <View className={`maintenance-flow-guide ${flowGuideOpen ? 'is-open' : ''}`}>
+              <View className="maintenance-flow-guide-toggle" onClick={() => setFlowGuideOpen((next) => !next)}>
+                <View className="maintenance-flow-guide-title-wrap">
+                  <Text className="maintenance-flow-guide-icon">i</Text>
+                  <Text className="maintenance-flow-guide-title">流程说明</Text>
+                </View>
+                <Text className="maintenance-flow-guide-arrow">{flowGuideOpen ? '⌄' : '›'}</Text>
+              </View>
+              {flowGuideOpen ? (
+                <View className="maintenance-flow-guide-body">
+                  <Text>
+                    这里按“待缴年费 → 提交申请 → 代缴进度 → 历史记录”展示。年费不是平台售卖服务费，是专利为保持有效需要缴给官方机构的费用。同一专利可能有多个年度要处理；选择具体年度申请代缴后，会生成服务记录并可在代缴进度中继续跟进。
+                  </Text>
+                </View>
+              ) : null}
+            </View>
 
             <Spacer size={12} />
 
             <View className="maintenance-summary-grid">
               <Surface className="maintenance-summary-card">
-                <Text className="maintenance-summary-label">逾期计划</Text>
+                <Text className="maintenance-summary-label">逾期年费</Text>
                 <Text className="maintenance-summary-value is-danger">{summary.overdue}</Text>
               </Surface>
               <Surface className="maintenance-summary-card">
@@ -540,84 +925,152 @@ export default function MaintenancePage() {
                 <Text className="maintenance-summary-value is-warn">{summary.dueSoon}</Text>
               </Surface>
               <Surface className="maintenance-summary-card">
-                <Text className="maintenance-summary-label">待办任务</Text>
-                <Text className="maintenance-summary-value">{summary.openTasks}</Text>
+                <Text className="maintenance-summary-label">进行中申请</Text>
+                <Text className="maintenance-summary-value">{summary.activeOrders}</Text>
               </Surface>
               <Surface className="maintenance-summary-card">
-                <Text className="maintenance-summary-label">未关闭订单</Text>
-                <Text className="maintenance-summary-value">{summary.openOrders}</Text>
+                <Text className="maintenance-summary-label">历史记录</Text>
+                <Text className="maintenance-summary-value">{summary.historyOrders}</Text>
               </Surface>
             </View>
 
             <Spacer size={12} />
 
-            <View className="maintenance-tabs">
-              <View className={`maintenance-tab ${tab === 'schedules' ? 'is-active' : ''}`} onClick={() => setTab('schedules')}>
-                <Text>缴费计划</Text>
+            <View className="maintenance-content-panel">
+              <View className="maintenance-tabs">
+                <View className={`maintenance-tab ${tab === 'schedules' ? 'is-active' : ''}`} onClick={() => setTab('schedules')}>
+                  <Text>待缴年费</Text>
+                </View>
+                <View className={`maintenance-tab ${tab === 'progress' ? 'is-active' : ''}`} onClick={() => setTab('progress')}>
+                  <Text>代缴进度</Text>
+                </View>
+                <View className={`maintenance-tab ${tab === 'history' ? 'is-active' : ''}`} onClick={() => setTab('history')}>
+                  <Text>历史记录</Text>
+                </View>
               </View>
-              <View className={`maintenance-tab ${tab === 'tasks' ? 'is-active' : ''}`} onClick={() => setTab('tasks')}>
-                <Text>执行任务</Text>
-              </View>
-              <View className={`maintenance-tab ${tab === 'orders' ? 'is-active' : ''}`} onClick={() => setTab('orders')}>
-                <Text>托管订单</Text>
-              </View>
-            </View>
 
-            <Spacer size={10} />
-
-            {tab === 'schedules' ? (
-              <>
-                <Surface className="maintenance-filter-card" padding="sm">
-                  <CategoryControl value={scheduleFilter} options={SCHEDULE_FILTER_OPTIONS} onChange={setScheduleFilter} />
-                </Surface>
+              {tab === 'schedules' ? (
+                <>
+                <View className="maintenance-filter-card maintenance-schedule-filter-card">
+                  <View className="maintenance-filter-head">
+                    <Text className="maintenance-filter-title">年度筛选</Text>
+                    <Text
+                      className="maintenance-filter-info"
+                      onClick={() => {
+                        Taro.showModal({
+                          title: '年度筛选说明',
+                          content: '这里按具体年费年度筛选。同一专利可能同时包含待缴、逾期、已缴等不同年度状态。',
+                          showCancel: false,
+                          confirmText: '知道了',
+                        });
+                      }}
+                    >
+                      i
+                    </Text>
+                    <Text className="maintenance-filter-desc">按具体年费年度筛选，同一专利可能同时包含多个状态</Text>
+                  </View>
+                  <View className="maintenance-filter-pills">
+                    {SCHEDULE_FILTER_OPTIONS.map((option) => (
+                      <View
+                        key={option.value || 'all'}
+                        className={`maintenance-filter-pill ${scheduleFilter === option.value ? 'is-active' : ''}`}
+                        onClick={() => setScheduleFilter(option.value)}
+                      >
+                        <Text>{option.label}</Text>
+                      </View>
+                    ))}
+                  </View>
+                </View>
 
                 <Spacer size={12} />
 
                 {schedules.loading && schedules.items.length === 0 ? (
-                  <LoadingCard text="加载缴费计划中..." />
+                  <LoadingCard text="加载待缴年费中..." />
                 ) : schedules.error ? (
                   <ErrorCard message={schedules.error} onRetry={() => void schedules.reload()} />
                 ) : schedules.items.length === 0 ? (
-                  <EmptyCard title="暂无缴费计划" message="当前暂无可处理的年费缴费计划。" />
+                  <EmptyCard title="暂无待缴年费" message="当前暂无需要处理的专利年费。" />
+                ) : filteredScheduleItems.length === 0 ? (
+                  <EmptyCard title="暂无匹配年度" message="当前没有符合该状态的年费年度。" />
                 ) : (
                   <View className="maintenance-list">
-                    {schedules.items.map((item) => (
-                      <Surface key={item.id} className="maintenance-card">
+                    {scheduleGroups.map((group) => (
+                      <Surface key={group.key} className="maintenance-card">
                         <View className="maintenance-card-head">
                           <Text className="maintenance-card-title clamp-2">
-                            {resolveMaintenanceTitle(item.patentTitle, item.applicationNoDisplay)}
+                            {resolveMaintenanceTitle(group.patentTitle, group.applicationNoDisplay)}
                           </Text>
-                          <Text className="maintenance-status">{scheduleStatusLabel(item.status)}</Text>
+                          <Text className="maintenance-year-count">{group.items.length}个年度</Text>
                         </View>
                         <View className="maintenance-row">
                           <Text className="maintenance-label">申请号</Text>
-                          <Text className="maintenance-value">{displayText(item.applicationNoDisplay)}</Text>
+                          <Text className="maintenance-value">{displayText(group.applicationNoDisplay)}</Text>
                         </View>
-                        <View className="maintenance-row">
-                          <Text className="maintenance-label">缴费年度</Text>
-                          <Text className="maintenance-value">第{item.yearNo}年</Text>
-                        </View>
-                        <View className="maintenance-row">
-                          <Text className="maintenance-label">到期日</Text>
-                          <Text className="maintenance-value">{item.dueDate}</Text>
-                        </View>
-                        <View className="maintenance-row">
-                          <Text className="maintenance-label">宽限截止</Text>
-                          <Text className="maintenance-value">{displayText(item.gracePeriodEnd)}</Text>
-                        </View>
-                        <View className="maintenance-foot">
-                          <Text className={`maintenance-urgency ${urgencyClass(item.urgency)}`}>{urgencyLabel(item.urgency)}</Text>
-                          {shouldCreateOrderButtonShow(item) ? (
-                            <Button
-                              variant="primary"
-                              size="small"
-                              block={false}
-                              loading={creatingOrderScheduleId === item.id}
-                              onClick={() => void createOrderFromSchedule(item.id)}
+                        <View className="maintenance-year-summary">
+                          {scheduleStatusSummary(group.items).map((summary) => (
+                            <Text
+                              key={summary.status}
+                              className={`maintenance-status maintenance-status-summary ${scheduleStatusClass(summary.status)}`}
                             >
-                              创建订单
-                            </Button>
-                          ) : null}
+                              {scheduleStatusLabel(summary.status)} {summary.count}
+                            </Text>
+                          ))}
+                        </View>
+
+                        <View className="maintenance-year-list">
+                          {group.items.map((item) => {
+                            const openOrder = openOrderByScheduleId.get(item.id);
+                            return (
+                            <View key={item.id} className="maintenance-year-item">
+                              <View className="maintenance-year-head">
+                                <Text className="maintenance-year-title">第{item.yearNo}年年费</Text>
+                                <Text className={`maintenance-status ${scheduleStatusClass(item.status)}`}>
+                                  {scheduleStatusText(item)}
+                                </Text>
+                              </View>
+                              <View className="maintenance-row maintenance-year-meta maintenance-year-due">
+                                <Text className="maintenance-label">到期日</Text>
+                                <Text className="maintenance-value">{item.dueDate}</Text>
+                              </View>
+                              <View className="maintenance-row maintenance-year-meta maintenance-year-grace">
+                                <Text className="maintenance-label">宽限截止</Text>
+                                <Text className="maintenance-value">{displayText(item.gracePeriodEnd)}</Text>
+                              </View>
+                              {scheduleActionHint(item) ? (
+                                <Text className="maintenance-year-hint">{scheduleActionHint(item)}</Text>
+                              ) : null}
+                              <View className="maintenance-foot">
+                                <Text className={`maintenance-urgency ${urgencyClass(item.urgency)}`}>
+                                  {urgencyLabel(item.urgency)}
+                                </Text>
+                                {openOrder ? (
+                                  <View
+                                    className="maintenance-apply-btn"
+                                    onClick={() => {
+                                      setProgressFilter('');
+                                      setTab('progress');
+                                      if (expandedTimelineOrderId !== openOrder.id) {
+                                        void toggleOrderTimeline(openOrder.id);
+                                      }
+                                    }}
+                                  >
+                                    <Text>查看进度</Text>
+                                  </View>
+                                ) : shouldCreateOrderButtonShow(item) ? (
+                                  <View
+                                    className={`maintenance-apply-btn ${creatingOrderScheduleId === item.id ? 'is-loading' : ''}`}
+                                    onClick={() => {
+                                      if (creatingOrderScheduleId === item.id) return;
+                                      void createOrderFromSchedule(item.id);
+                                    }}
+                                  >
+                                    <Text>{creatingOrderScheduleId === item.id ? '提交中' : scheduleActionText(item)}</Text>
+                                  </View>
+                                ) : null}
+                              </View>
+                            </View>
+                          );
+                          })}
                         </View>
                       </Surface>
                     ))}
@@ -628,199 +1081,131 @@ export default function MaintenancePage() {
                     />
                   </View>
                 )}
-              </>
-            ) : null}
+                </>
+              ) : null}
 
-            {tab === 'tasks' ? (
-              <>
-                <Surface className="maintenance-filter-card" padding="sm">
-                  <CategoryControl value={taskFilter} options={TASK_FILTER_OPTIONS} onChange={setTaskFilter} />
-                </Surface>
-
-                <Spacer size={12} />
-
-                {tasks.loading && tasks.items.length === 0 ? (
-                  <LoadingCard text="加载任务中..." />
-                ) : tasks.error ? (
-                  <ErrorCard message={tasks.error} onRetry={() => void tasks.reload()} />
-                ) : tasks.items.length === 0 ? (
-                  <EmptyCard title="暂无任务" message="当前暂无待处理的年费托管任务。" />
-                ) : (
-                  <View className="maintenance-list">
-                    {tasks.items.map((item) => (
-                      <Surface key={item.id} className="maintenance-card">
-                        <View className="maintenance-card-head">
-                          <Text className="maintenance-card-title clamp-2">
-                            {resolveMaintenanceTitle(item.patentTitle, item.applicationNoDisplay)}
-                          </Text>
-                          <Text className="maintenance-status">{taskStatusLabel(item.status)}</Text>
-                        </View>
-                        <View className="maintenance-row">
-                          <Text className="maintenance-label">申请号</Text>
-                          <Text className="maintenance-value">{displayText(item.applicationNoDisplay)}</Text>
-                        </View>
-                        <View className="maintenance-row">
-                          <Text className="maintenance-label">关联年度</Text>
-                          <Text className="maintenance-value">
-                            {typeof item.scheduleYearNo === 'number' ? `第${item.scheduleYearNo}年` : '待确认'}
-                          </Text>
-                        </View>
-                        <View className="maintenance-row">
-                          <Text className="maintenance-label">计划到期</Text>
-                          <Text className="maintenance-value">{displayText(item.scheduleDueDate)}</Text>
-                        </View>
-                        <View className="maintenance-row">
-                          <Text className="maintenance-label">任务备注</Text>
-                          <Text className="maintenance-value">{displayText(item.note)}</Text>
-                        </View>
-                        <View className="maintenance-foot">
-                          <Text className={`maintenance-urgency ${urgencyClass(item.urgency)}`}>{urgencyLabel(item.urgency)}</Text>
-                          <Button variant="ghost" size="small" block={false} onClick={() => setTab('orders')}>
-                            查看订单
-                          </Button>
-                        </View>
-                      </Surface>
-                    ))}
-                    <ListFooter loadingMore={tasks.loadingMore} hasMore={tasks.hasMore} onLoadMore={() => void tasks.loadMore()} />
-                  </View>
-                )}
-              </>
-            ) : null}
-
-            {tab === 'orders' ? (
-              <>
+              {tab === 'progress' ? (
+                <>
                 {routeOrderId ? (
                   <>
                     <TipBanner tone="info" title="会话上下文">
-                      当前展示的是本次会话关联的托管订单
+                      当前展示的是本次会话关联的代缴进度
                       <Text
                         className="maintenance-link"
                         onClick={() => {
-                          Taro.redirectTo({ url: '/subpackages/maintenance/index?tab=orders' });
+                          Taro.redirectTo({ url: '/subpackages/maintenance/index?tab=progress' });
                         }}
                       >
-                        查看全部订单
+                        查看全部进度
                       </Text>
                     </TipBanner>
                     <Spacer size={10} />
                   </>
                 ) : null}
-                <Surface className="maintenance-filter-card" padding="sm">
-                  <CategoryControl value={orderFilter} options={ORDER_FILTER_OPTIONS} onChange={setOrderFilter} />
-                </Surface>
+                <View className="maintenance-filter-card maintenance-schedule-filter-card">
+                  <View className="maintenance-filter-head">
+                    <Text className="maintenance-filter-title">进度筛选</Text>
+                    <Text
+                      className="maintenance-filter-info"
+                      onClick={() => {
+                        Taro.showModal({
+                          title: '进度筛选说明',
+                          content: '这里展示已经提交但尚未归档的代缴申请。客服报价、付款确认、官方办理、回执上传和核对都会在这里更新。',
+                          showCancel: false,
+                          confirmText: '知道了',
+                        });
+                      }}
+                    >
+                      i
+                    </Text>
+                  </View>
+                  <View className="maintenance-filter-pills maintenance-filter-pills-dense">
+                    {PROGRESS_FILTER_OPTIONS.map((option) => (
+                      <View
+                        key={option.value || 'all'}
+                        className={`maintenance-filter-pill ${progressFilter === option.value ? 'is-active' : ''}`}
+                        onClick={() => setProgressFilter(option.value)}
+                      >
+                        <Text>{option.label}</Text>
+                      </View>
+                    ))}
+                  </View>
+                </View>
 
                 <Spacer size={12} />
 
                 {orders.loading && orders.items.length === 0 ? (
-                  <LoadingCard text="加载订单中..." />
+                  <LoadingCard text="加载代缴进度中..." />
                 ) : orders.error ? (
                   <ErrorCard message={orders.error} onRetry={() => void orders.reload()} />
-                ) : orders.items.length === 0 ? (
+                ) : activeOrderItems.length === 0 ? (
                   <EmptyCard
-                    title="暂无托管订单"
-                    message="请先从缴费计划创建订单，再在订单会话中保持沟通记录连续。"
+                    title="暂无代缴进度"
+                    message="请先从待缴年费中申请代缴；已完成或已取消的服务会进入历史记录。"
                   />
                 ) : (
                   <View className="maintenance-list">
-                    {orders.items.map((item) => {
-                      const isTimelineOpen = expandedTimelineOrderId === item.id;
-                      const timelineLoading = loadingTimelineOrderId === item.id;
-                      const timelineItems = orderEventsById[item.id] || [];
-                      return (
-                        <Surface key={item.id} className="maintenance-card">
-                          <View className="maintenance-card-head">
-                            <Text className="maintenance-card-title clamp-2">
-                              {resolveMaintenanceTitle(item.patentTitle, item.applicationNoDisplay)}
-                            </Text>
-                            <Text className="maintenance-status">{orderStatusLabel(item.status)}</Text>
-                          </View>
-
-                          <View className="maintenance-row">
-                            <Text className="maintenance-label">申请号</Text>
-                            <Text className="maintenance-value">{displayText(item.applicationNoDisplay)}</Text>
-                          </View>
-                          <View className="maintenance-row">
-                            <Text className="maintenance-label">订单进度</Text>
-                            <Text className="maintenance-value">已生成，可在订单沟通与处理记录中继续跟进</Text>
-                          </View>
-                          <View className="maintenance-row">
-                            <Text className="maintenance-label">缴费年度</Text>
-                            <Text className="maintenance-value">
-                              {typeof item.scheduleYearNo === 'number' ? `第${item.scheduleYearNo}年` : '待确认'}
-                            </Text>
-                          </View>
-                          <View className="maintenance-row">
-                            <Text className="maintenance-label">到期日</Text>
-                            <Text className="maintenance-value">{displayText(item.scheduleDueDate)}</Text>
-                          </View>
-                          <View className="maintenance-row">
-                            <Text className="maintenance-label">订单金额</Text>
-                            <Text className="maintenance-value">{formatFen(item.totalAmountFen)}</Text>
-                          </View>
-                          <View className="maintenance-row">
-                            <Text className="maintenance-label">支付截止</Text>
-                            <Text className="maintenance-value">
-                              {item.paymentDeadline ? formatTimeSmart(item.paymentDeadline) : '待确认'}
-                            </Text>
-                          </View>
-                          <View className="maintenance-row">
-                            <Text className="maintenance-label">对账状态</Text>
-                            <Text className="maintenance-value">{reconcileStatusLabel(item.reconcileStatus)}</Text>
-                          </View>
-
-                          <View className="maintenance-foot">
-                            <Button variant="ghost" size="small" block={false} onClick={() => void toggleOrderTimeline(item.id)}>
-                              {isTimelineOpen ? '收起时间线' : '查看时间线'}
-                            </Button>
-                            {item.canContactSupport ? (
-                              <Button
-                                variant="primary"
-                                size="small"
-                                block={false}
-                                loading={openingConversationOrderId === item.id}
-                                onClick={() => void openOrderConversation(item.id)}
-                              >
-                                联系客服
-                              </Button>
-                            ) : null}
-                          </View>
-
-                          {isTimelineOpen ? (
-                            <View className="maintenance-timeline">
-                              {timelineLoading ? (
-                                <Text className="maintenance-timeline-empty">加载时间线中...</Text>
-                              ) : timelineItems.length ? (
-                                timelineItems.map((event) => (
-                                  <View key={event.id} className="maintenance-timeline-item">
-                                    <Text className="maintenance-timeline-title">
-                                      {event.fromStatus
-                                        ? `${orderStatusText(event.fromStatus)} → ${orderStatusText(event.toStatus)}`
-                                        : orderStatusText(event.toStatus)}
-                                    </Text>
-                                    <Text className="maintenance-timeline-meta">
-                                      {orderEventTypeLabel(event.eventType)} ·{' '}
-                                      {timelineActorText(event.actorDisplayName, event.actorNickname, event.actorUserId)} ·{' '}
-                                      {formatTimeSmart(event.createdAt)}
-                                    </Text>
-                                    {normalizeDisplayText(event.note) ? (
-                                      <Text className="maintenance-timeline-note">{normalizeDisplayText(event.note)}</Text>
-                                    ) : null}
-                                  </View>
-                                ))
-                              ) : (
-                                <Text className="maintenance-timeline-empty">暂无时间线记录</Text>
-                              )}
-                            </View>
-                          ) : null}
-                        </Surface>
-                      );
-                    })}
+                    {activeOrderItems.map((item) => renderOrderCard(item))}
 
                     <ListFooter loadingMore={orders.loadingMore} hasMore={orders.hasMore} onLoadMore={() => void orders.loadMore()} />
                   </View>
                 )}
-              </>
-            ) : null}
+                </>
+              ) : null}
+
+              {tab === 'history' ? (
+                <>
+                <View className="maintenance-filter-card maintenance-schedule-filter-card">
+                  <View className="maintenance-filter-head">
+                    <Text className="maintenance-filter-title">记录筛选</Text>
+                    <Text
+                      className="maintenance-filter-info"
+                      onClick={() => {
+                        Taro.showModal({
+                          title: '历史记录说明',
+                          content: '这里展示已经完成或取消的代缴服务。仍可展开查看完整办理进度和状态更新时间。',
+                          showCancel: false,
+                          confirmText: '知道了',
+                        });
+                      }}
+                    >
+                      i
+                    </Text>
+                  </View>
+                  <View className="maintenance-filter-pills">
+                    {HISTORY_FILTER_OPTIONS.map((option) => (
+                      <View
+                        key={option.value || 'all'}
+                        className={`maintenance-filter-pill ${historyFilter === option.value ? 'is-active' : ''}`}
+                        onClick={() => setHistoryFilter(option.value)}
+                      >
+                        <Text>{option.label}</Text>
+                      </View>
+                    ))}
+                  </View>
+                </View>
+
+                <Spacer size={12} />
+
+                {orders.loading && orders.items.length === 0 ? (
+                  <LoadingCard text="加载历史记录中..." />
+                ) : orders.error ? (
+                  <ErrorCard message={orders.error} onRetry={() => void orders.reload()} />
+                ) : historyOrderItems.length === 0 ? (
+                  <EmptyCard
+                    title="暂无历史记录"
+                    message="已完成或已取消的代缴服务会保存在这里。"
+                  />
+                ) : (
+                  <View className="maintenance-list">
+                    {historyOrderItems.map((item) => renderOrderCard(item))}
+
+                    <ListFooter loadingMore={orders.loadingMore} hasMore={orders.hasMore} onLoadMore={() => void orders.loadMore()} />
+                  </View>
+                )}
+                </>
+              ) : null}
+            </View>
           </>
         )}
       </View>

@@ -272,7 +272,7 @@ export default function ChatPage() {
     const contentType = String(c.contentType || '').toUpperCase();
     if (contentType === 'SUPPORT') return '平台客服助手';
     if (contentType === 'DISPUTE') return resolveConversationContentTitle(c) || '订单争议';
-    if (contentType === 'MAINTENANCE') return resolveConversationContentTitle(c) || '年费托管';
+    if (contentType === 'MAINTENANCE') return resolveConversationContentTitle(c) || '专利年费代缴';
     const role = c.counterpart?.role;
     if (role === 'cs') return '平台客服助手';
     if (role === 'admin') return '交易通知';
@@ -481,10 +481,10 @@ export default function ChatPage() {
           const yearLabel = typeof order.scheduleYearNo === 'number' && order.scheduleYearNo > 0 ? `第${order.scheduleYearNo}年` : '';
           title =
             summaryTitle ||
-            ['年费托管', displayTitleOrFallback(order.patentTitle, ''), yearLabel]
+            ['专利年费代缴', displayTitleOrFallback(order.patentTitle, ''), yearLabel]
               .filter(Boolean)
               .join(' · ');
-          tag = '年费托管';
+          tag = '专利年费代缴';
           price = order.totalAmountFen != null ? `￥${fenToYuan(order.totalAmountFen)}` : '';
         } else if (summary.contentType === 'TECH_MANAGER') {
           const manager = await apiGet<TechManagerPublic>(`/public/tech-managers/${summary.contentId}`);
@@ -821,7 +821,7 @@ export default function ChatPage() {
       return;
     }
     if (contentType === 'MAINTENANCE') {
-      Taro.navigateTo({ url: `/subpackages/maintenance/index?tab=orders&orderId=${id}` });
+      Taro.navigateTo({ url: `/subpackages/maintenance/index?tab=progress&orderId=${id}` });
       return;
     }
     if (contentType === 'TECH_MANAGER') {

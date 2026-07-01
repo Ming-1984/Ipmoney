@@ -1,4 +1,5 @@
 ﻿import { BadRequestException, ConflictException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import crypto from 'node:crypto';
 
 import {
   PatentMaintenanceOrderEventType,
@@ -7,6 +8,7 @@ import {
   PatentMaintenanceReconcileStatus,
   PatentMaintenanceStatus,
   PatentMaintenanceTaskStatus,
+  PatentType,
   Prisma,
 } from '@prisma/client';
 import { AuditLogService } from '../../common/audit-log.service';
@@ -29,6 +31,7 @@ const ORDER_STATUS_SET = new Set<PatentMaintenanceOrderStatus>([
 ]);
 const PAYMENT_CHANNEL_SET = new Set<PatentMaintenancePaymentChannel>(['WECHAT', 'OFFLINE_BANK', 'OFFLINE_OTHER']);
 const RECONCILE_STATUS_SET = new Set<PatentMaintenanceReconcileStatus>(['PENDING', 'MATCHED', 'MISMATCHED']);
+const PATENT_TYPE_SET = new Set<PatentType>(['INVENTION', 'UTILITY_MODEL', 'DESIGN']);
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const STAFF_ROLE_NAMES = new Set(['admin', 'operator', 'finance', 'cs']);
 const OPEN_ORDER_STATUSES: PatentMaintenanceOrderStatus[] = [
@@ -94,6 +97,24 @@ export class PatentMaintenanceService {
     const raw = String(value ?? '').trim();
     if (!raw) throw new BadRequestException({ code: 'BAD_REQUEST', message: `${fieldName} is invalid` });
     return raw;
+  }
+
+  private parsePatentTypeStrict(value: unknown, fieldName: string): PatentType {
+    const normalized = String(value || '').trim().toUpperCase() as PatentType;
+    if (!PATENT_TYPE_SET.has(normalized)) {
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: `${fieldName} is invalid` });
+    }
+    return normalized;
+  }
+
+  private normalizeApplicationNo(value: unknown, fieldName: string) {
+    const display = String(value ?? '').trim();
+    if (!display) throw new BadRequestException({ code: 'BAD_REQUEST', message: `${fieldName} is invalid` });
+    const normalized = display.toUpperCase().replace(/[\s.·\-_/]/g, '');
+    if (!normalized || normalized.length < 6 || normalized.length > 40 || !/^[A-Z0-9]+$/.test(normalized)) {
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: `${fieldName} is invalid` });
+    }
+    return { applicationNoDisplay: display, applicationNoNorm: normalized };
   }
 
   private normalizeScheduleStatus(value: unknown): PatentMaintenanceStatus | undefined {
@@ -182,6 +203,60 @@ export class PatentMaintenanceService {
     return raw;
   }
 
+  private getIdempotencyKey(req: any) {
+    const raw = req?.headers?.['idempotency-key'];
+    if (!raw) return '';
+    return String(raw).trim();
+  }
+
+  private hashPayload(input: unknown): string {
+    return crypto.createHash('sha256').update(JSON.stringify(input)).digest('hex');
+  }
+
+  private async withIdempotency<T>(req: any, scope: string, requestHash: string, handler: () => Promise<T>): Promise<T> {
+    const key = this.getIdempotencyKey(req);
+    if (!key) return await handler();
+    const userId = req?.auth?.userId ? String(req.auth.userId) : '';
+    if (!userId) return await handler();
+
+    const existing = await this.prisma.idempotencyKey.findUnique({
+      where: { key_scope_userId: { key, scope, userId } },
+    });
+    if (existing) {
+      if (existing.requestHash && existing.requestHash !== requestHash) {
+        throw new ConflictException({ code: 'CONFLICT', message: 'idempotency key reused with different payload' });
+      }
+      if (existing.status === 'COMPLETED' && existing.responseJson != null) {
+        return existing.responseJson as T;
+      }
+      throw new ConflictException({ code: 'CONFLICT', message: 'idempotency key already used' });
+    }
+
+    let record;
+    try {
+      record = await this.prisma.idempotencyKey.create({
+        data: { key, scope, userId, requestHash, status: 'IN_PROGRESS' },
+      });
+    } catch (error) {
+      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
+        throw new ConflictException({ code: 'CONFLICT', message: 'idempotency key already used' });
+      }
+      throw error;
+    }
+
+    try {
+      const result = await handler();
+      await this.prisma.idempotencyKey.update({
+        where: { id: record.id },
+        data: { status: 'COMPLETED', responseJson: result as any },
+      });
+      return result;
+    } catch (error) {
+      await this.prisma.idempotencyKey.delete({ where: { id: record.id } });
+      throw error;
+    }
+  }
+
   private parseNullableUuid(value: unknown, fieldName: string): string | null {
     if (value === null) return null;
     return this.parseUuidParam(value, fieldName);
@@ -191,6 +266,17 @@ export class PatentMaintenanceService {
     const next = new Date(date);
     next.setHours(0, 0, 0, 0);
     return next;
+  }
+
+  private addYears(date: Date, years: number): Date {
+    const next = new Date(date);
+    next.setFullYear(next.getFullYear() + years);
+    return next;
+  }
+
+  private advisoryLockParts(input: string): [number, number] {
+    const digest = crypto.createHash('sha256').update(input).digest();
+    return [digest.readInt32BE(0), digest.readInt32BE(4)];
   }
 
   private calcUrgency(status: PatentMaintenanceStatus, dueDate: Date): MaintenanceUrgency {
@@ -367,8 +453,8 @@ export class PatentMaintenanceService {
     toStatus: PatentMaintenanceOrderStatus;
     note?: string | null;
     payloadJson?: unknown;
-  }) {
-    return await this.prisma.patentMaintenanceOrderEvent.create({
+  }, client: any = this.prisma) {
+    return await client.patentMaintenanceOrderEvent.create({
       data: {
         orderId: params.orderId,
         actorUserId: params.actorUserId ?? null,
@@ -1222,7 +1308,7 @@ export class PatentMaintenanceService {
       actorUserId: req.auth.userId,
       eventType: 'CREATED',
       toStatus: 'REQUESTED',
-      note: '年费托管订单已创建',
+      note: '官方年费代缴记录已创建',
     });
 
     void this.audit.log({
@@ -1294,10 +1380,340 @@ export class PatentMaintenanceService {
       actorUserId: req.auth.userId,
       eventType: 'CREATED',
       toStatus: 'REQUESTED',
-      note: '专利权人已发起年费托管订单',
+      note: '专利权人已发起官方年费代缴申请',
     });
 
     return this.toOrderDto(created);
+  }
+
+  async createMyOrderFromListing(req: any, body: any) {
+    this.ensureAuth(req);
+    const ownerUserId = this.parseUuidParam(req?.auth?.userId, 'userId');
+    const listingId = this.parseUuidParam(body?.listingId, 'listingId');
+    const requestHash = this.hashPayload({ listingId });
+    const orderInclude = {
+      applicantUser: {
+        select: {
+          nickname: true,
+          verifications: {
+            orderBy: { submittedAt: 'desc' as const },
+            take: 1,
+            select: { displayName: true },
+          },
+        },
+      },
+      assignedCsUser: {
+        select: {
+          nickname: true,
+          verifications: {
+            orderBy: { submittedAt: 'desc' as const },
+            take: 1,
+            select: { displayName: true },
+          },
+        },
+      },
+      schedule: {
+        include: {
+          patent: {
+            select: {
+              title: true,
+              applicationNoDisplay: true,
+              applicationNoNorm: true,
+            },
+          },
+        },
+      },
+    };
+
+    return await this.withIdempotency(req, 'patent-maintenance:listing-request', requestHash, async () => {
+      const order = await this.prisma.$transaction(async (tx: any) => {
+        const listing = await tx.listing.findUnique({
+          where: { id: listingId },
+          select: {
+            id: true,
+            sellerUserId: true,
+            patentId: true,
+            status: true,
+            auditStatus: true,
+            patent: {
+              select: {
+                id: true,
+                ownerUserId: true,
+                filingDate: true,
+                grantDate: true,
+              },
+            },
+          },
+        });
+        if (!listing || listing.sellerUserId !== ownerUserId) {
+          throw new NotFoundException({ code: 'NOT_FOUND', message: 'listing not found' });
+        }
+        if (!listing.patentId || !listing.patent) {
+          throw new BadRequestException({ code: 'BAD_REQUEST', message: '该专利缺少专利基础信息，暂不能申请年费代缴' });
+        }
+        if (listing.status !== 'ACTIVE' || listing.auditStatus !== 'APPROVED') {
+          throw new BadRequestException({ code: 'BAD_REQUEST', message: '请先完成发布审核后再申请年费代缴' });
+        }
+
+        const [lockKey1, lockKey2] = this.advisoryLockParts(`maintenance-listing-request:${ownerUserId}:${listing.patentId}`);
+        await tx.$executeRaw`SELECT pg_advisory_xact_lock(${lockKey1}::int, ${lockKey2}::int)`;
+
+        if (!listing.patent.ownerUserId) {
+          await tx.patent.update({
+            where: { id: listing.patentId },
+            data: {
+              ownerUserId,
+              ownerClaimedAt: new Date(),
+              ownerClaimSource: 'USER_CLAIM',
+            },
+          });
+        } else if (listing.patent.ownerUserId !== ownerUserId) {
+          throw new ForbiddenException({ code: 'FORBIDDEN', message: '专利归属与当前发布人不一致，请联系平台处理' });
+        }
+
+        const existingOpen = await tx.patentMaintenanceOrder.findFirst({
+          where: {
+            applicantUserId: ownerUserId,
+            status: { in: OPEN_ORDER_STATUSES },
+            schedule: { patentId: listing.patentId },
+          },
+          orderBy: { createdAt: 'desc' },
+          include: orderInclude,
+        });
+        if (existingOpen) return existingOpen;
+
+        let schedule = await tx.patentMaintenanceSchedule.findFirst({
+          where: {
+            patentId: listing.patentId,
+            status: { in: ['DUE', 'OVERDUE'] },
+          },
+          orderBy: [{ dueDate: 'asc' }, { yearNo: 'asc' }],
+          select: { id: true },
+        });
+        if (!schedule) {
+          const baseDate = listing.patent.grantDate || listing.patent.filingDate || new Date();
+          const dueDate = this.dateOnly(this.addYears(baseDate, 1));
+          const gracePeriodEnd = this.dateOnly(new Date(dueDate));
+          gracePeriodEnd.setMonth(gracePeriodEnd.getMonth() + 6);
+          schedule = await tx.patentMaintenanceSchedule.upsert({
+            where: {
+              patentId_yearNo: {
+                patentId: listing.patentId,
+                yearNo: 1,
+              },
+            },
+            create: {
+              patentId: listing.patentId,
+              yearNo: 1,
+              dueDate,
+              gracePeriodEnd,
+              status: 'DUE',
+            },
+            update: {},
+            select: { id: true },
+          });
+        }
+
+        const created = await tx.patentMaintenanceOrder.create({
+          data: {
+            scheduleId: schedule.id,
+            applicantUserId: ownerUserId,
+            status: 'REQUESTED',
+          },
+          include: orderInclude,
+        });
+        await this.appendOrderEvent(
+          {
+            orderId: created.id,
+            actorUserId: ownerUserId,
+            eventType: 'CREATED',
+            toStatus: 'REQUESTED',
+            note: '专利权人从我的专利发起官方年费代缴申请',
+            payloadJson: { listingId: listing.id },
+          },
+          tx,
+        );
+
+        return created;
+      });
+
+      return this.toOrderDto(order);
+    });
+  }
+
+  async createMyDirectOrder(req: any, body: any) {
+    this.ensureAuth(req);
+    const ownerUserId = this.parseUuidParam(req?.auth?.userId, 'userId');
+    const application = this.normalizeApplicationNo(body?.applicationNo || body?.applicationNoDisplay, 'applicationNo');
+    const title = this.parseRequiredNonEmptyString(body?.title, 'title');
+    const patentType = this.parsePatentTypeStrict(body?.patentType, 'patentType');
+    const yearNo = this.hasOwn(body, 'yearNo') ? this.parsePositiveIntStrict(body?.yearNo, 'yearNo') : 1;
+    const dueDateInput = this.parseDate(body?.dueDate, 'dueDate', true);
+    const requestHash = this.hashPayload({
+      applicationNoNorm: application.applicationNoNorm,
+      patentType,
+      yearNo,
+      dueDate: dueDateInput ? dueDateInput.toISOString().slice(0, 10) : null,
+      title,
+    });
+    const orderInclude = {
+      applicantUser: {
+        select: {
+          nickname: true,
+          verifications: {
+            orderBy: { submittedAt: 'desc' as const },
+            take: 1,
+            select: { displayName: true },
+          },
+        },
+      },
+      assignedCsUser: {
+        select: {
+          nickname: true,
+          verifications: {
+            orderBy: { submittedAt: 'desc' as const },
+            take: 1,
+            select: { displayName: true },
+          },
+        },
+      },
+      schedule: {
+        include: {
+          patent: {
+            select: {
+              title: true,
+              applicationNoDisplay: true,
+              applicationNoNorm: true,
+            },
+          },
+        },
+      },
+    };
+
+    return await this.withIdempotency(req, 'patent-maintenance:direct-request', requestHash, async () => {
+      const order = await this.prisma.$transaction(async (tx: any) => {
+        const [lockKey1, lockKey2] = this.advisoryLockParts(`maintenance-direct-request:${ownerUserId}:${application.applicationNoNorm}`);
+        await tx.$executeRaw`SELECT pg_advisory_xact_lock(${lockKey1}::int, ${lockKey2}::int)`;
+
+        let patent = await tx.patent.findUnique({
+          where: {
+            jurisdiction_applicationNoNorm: {
+              jurisdiction: 'CN',
+              applicationNoNorm: application.applicationNoNorm,
+            },
+          },
+          select: {
+            id: true,
+            ownerUserId: true,
+            filingDate: true,
+            grantDate: true,
+          },
+        });
+
+        if (!patent) {
+          patent = await tx.patent.create({
+            data: {
+              jurisdiction: 'CN',
+              applicationNoNorm: application.applicationNoNorm,
+              applicationNoDisplay: application.applicationNoDisplay,
+              patentType,
+              title,
+              sourcePrimary: 'USER',
+              ownerUserId,
+              ownerClaimedAt: new Date(),
+              ownerClaimSource: 'USER_CLAIM',
+            },
+            select: {
+              id: true,
+              ownerUserId: true,
+              filingDate: true,
+              grantDate: true,
+            },
+          });
+        } else if (!patent.ownerUserId) {
+          patent = await tx.patent.update({
+            where: { id: patent.id },
+            data: {
+              ownerUserId,
+              ownerClaimedAt: new Date(),
+              ownerClaimSource: 'USER_CLAIM',
+              applicationNoDisplay: application.applicationNoDisplay,
+              title,
+            },
+            select: {
+              id: true,
+              ownerUserId: true,
+              filingDate: true,
+              grantDate: true,
+            },
+          });
+        } else if (patent.ownerUserId !== ownerUserId) {
+          throw new ForbiddenException({ code: 'FORBIDDEN', message: '该专利已关联其他用户，请联系平台核验归属后再申请代缴' });
+        }
+
+        const existingOpen = await tx.patentMaintenanceOrder.findFirst({
+          where: {
+            applicantUserId: ownerUserId,
+            status: { in: OPEN_ORDER_STATUSES },
+            schedule: { patentId: patent.id },
+          },
+          orderBy: { createdAt: 'desc' },
+          include: orderInclude,
+        });
+        if (existingOpen) return existingOpen;
+
+        const dueDate = this.dateOnly(dueDateInput || this.addYears(patent.grantDate || patent.filingDate || new Date(), 1));
+        const gracePeriodEnd = this.dateOnly(new Date(dueDate));
+        gracePeriodEnd.setMonth(gracePeriodEnd.getMonth() + 6);
+
+        const schedule = await tx.patentMaintenanceSchedule.upsert({
+          where: {
+            patentId_yearNo: {
+              patentId: patent.id,
+              yearNo,
+            },
+          },
+          create: {
+            patentId: patent.id,
+            yearNo,
+            dueDate,
+            gracePeriodEnd,
+            status: dueDate.getTime() < this.dateOnly(new Date()).getTime() ? 'OVERDUE' : 'DUE',
+          },
+          update: {},
+          select: { id: true },
+        });
+
+        const created = await tx.patentMaintenanceOrder.create({
+          data: {
+            scheduleId: schedule.id,
+            applicantUserId: ownerUserId,
+            status: 'REQUESTED',
+          },
+          include: orderInclude,
+        });
+        await this.appendOrderEvent(
+          {
+            orderId: created.id,
+            actorUserId: ownerUserId,
+            eventType: 'CREATED',
+            toStatus: 'REQUESTED',
+            note: '用户添加未上架专利并发起官方年费代缴申请',
+            payloadJson: {
+              source: 'DIRECT',
+              applicationNoDisplay: application.applicationNoDisplay,
+              yearNo,
+              dueDate: dueDate.toISOString().slice(0, 10),
+            },
+          },
+          tx,
+        );
+
+        return created;
+      });
+
+      return this.toOrderDto(order);
+    });
   }
 
   async quoteOrder(req: any, orderId: string, body: any) {

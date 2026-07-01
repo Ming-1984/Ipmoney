@@ -1,3 +1,3 @@
 export default definePageConfig({
-  navigationBarTitleText: '年费托管',
+  navigationBarTitleText: '专利年费代缴',
 });

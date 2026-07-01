@@ -1,4 +1,225 @@
 @use '../../styles/list-cards' as *;
 
-/* Empty on purpose: ensures the page emits a wxss file in miniapp builds. */
+.my-achievements-actions {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 16rpx;
+  align-items: center;
+}
 
+.my-achievements-page {
+  background: #f6f7f9;
+}
+
+.my-achievements-page .page-header {
+  margin-bottom: 4rpx;
+}
+
+.my-achievements-page .surface,
+.my-achievements-filter-card {
+  padding: 24rpx;
+  border: 1rpx solid rgba(15, 23, 42, 0.06);
+  border-radius: 28rpx;
+  background: #ffffff;
+  box-shadow: 0 10rpx 28rpx rgba(15, 23, 42, 0.04);
+}
+
+.my-achievements-page .surface .text-strong {
+  display: block;
+  color: #9ca3af;
+  font-size: 22rpx;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.my-achievements-page .tabs-control,
+.my-achievements-filter-tabs {
+  height: 64rpx;
+  padding: 6rpx;
+  display: flex;
+  align-items: center;
+  gap: 4rpx;
+  border: 0;
+  border-radius: 22rpx;
+  background: #f3f4f6;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+.my-achievements-filter-tab {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 18rpx;
+  color: #9ca3af;
+  font-size: 24rpx;
+  font-weight: 600;
+  line-height: 1;
+}
+
+.my-achievements-filter-tab-text {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  line-height: 1;
+}
+
+.my-achievements-filter-tab.is-active {
+  background: #ffffff;
+  color: var(--c-primary);
+  box-shadow: 0 4rpx 12rpx rgba(15, 23, 42, 0.08);
+}
+
+.my-achievements-filter-tab.is-active .my-achievements-filter-tab-text {
+  color: var(--c-primary);
+  font-weight: 700;
+}
+
+.my-achievements-page .my-achievements-actions {
+  gap: 14rpx;
+}
+
+.my-achievements-page .my-achievements-actions .nut-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 84rpx;
+  border-radius: 22rpx;
+  font-size: 26rpx;
+  font-weight: 700;
+}
+
+.my-achievements-page .my-achievements-actions .nut-button-wrap,
+.my-achievements-page .my-achievements-actions .nut-button-children,
+.my-achievements-page .my-achievements-actions .nut-button-text {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+}
+
+.my-achievements-page .my-achievements-actions .nut-button-primary-solid {
+  border-color: var(--c-primary);
+  background: var(--c-primary);
+  box-shadow: 0 10rpx 22rpx rgba(235, 92, 32, 0.22);
+}
+
+.my-achievements-page .my-achievements-actions .nut-button-primary-outline {
+  min-width: 148rpx;
+  background: #ffffff;
+  border-color: rgba(15, 23, 42, 0.1);
+  color: #5b606b;
+}
+
+.my-achievements-page .card-list {
+  gap: 18rpx;
+}
+
+.my-achievements-page .list-card {
+  gap: 20rpx;
+  padding: 24rpx;
+  border: 1rpx solid rgba(15, 23, 42, 0.06);
+  border-radius: 28rpx;
+  background: #ffffff;
+  box-shadow: 0 10rpx 28rpx rgba(15, 23, 42, 0.045);
+}
+
+.my-achievements-page .list-card:active {
+  background: #fff7f2;
+}
+
+.my-achievements-page .list-card-thumb {
+  width: 80rpx;
+  height: 80rpx;
+  margin-top: 4rpx;
+  border-radius: 22rpx;
+  background: rgba(235, 92, 32, 0.1);
+}
+
+.my-achievements-page .list-card-thumb-img {
+  width: 42rpx;
+  height: 42rpx;
+}
+
+.my-achievements-page .list-card-body {
+  gap: 14rpx;
+}
+
+.my-achievements-page .list-card-title {
+  font-size: 28rpx;
+  font-weight: 650;
+  line-height: 1.38;
+  color: #1f2937;
+}
+
+.my-achievements-page .list-card-tags {
+  gap: 8rpx;
+}
+
+.my-achievements-page .tag,
+.my-achievements-page .tag-success,
+.my-achievements-page .tag-warning,
+.my-achievements-page .tag-danger,
+.my-achievements-page .tag-gold {
+  min-height: 36rpx;
+  padding: 4rpx 14rpx;
+  border-radius: 999rpx;
+  font-size: 22rpx;
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+.my-achievements-page .tag {
+  background: rgba(15, 23, 42, 0.05);
+  border-color: rgba(15, 23, 42, 0.08);
+  color: #6b7280;
+}
+
+.my-achievements-page .tag-success {
+  background: rgba(16, 185, 129, 0.09);
+  border-color: rgba(16, 185, 129, 0.2);
+  color: #059669;
+}
+
+.my-achievements-page .tag-warning,
+.my-achievements-page .tag-gold {
+  background: rgba(245, 158, 11, 0.1);
+  border-color: rgba(245, 158, 11, 0.22);
+  color: #d97706;
+}
+
+.my-achievements-page .tag-danger {
+  background: rgba(239, 68, 68, 0.09);
+  border-color: rgba(239, 68, 68, 0.2);
+  color: #ef4444;
+}
+
+.my-achievements-page .list-card-actions {
+  gap: 10rpx;
+  margin-top: 4rpx;
+}
+
+.my-achievements-page .list-card-actions .nut-button {
+  height: 64rpx;
+  min-width: 0;
+  padding: 0 18rpx;
+  border-radius: 18rpx;
+  font-size: 22rpx;
+  font-weight: 650;
+}
+
+.my-achievements-page .list-card-actions .nut-button-primary-outline {
+  border-color: rgba(15, 23, 42, 0.1);
+  background: #ffffff;
+  color: #6b7280;
+}
+
+.my-achievements-page .list-card-actions .nut-button-danger-outline {
+  border-color: rgba(15, 23, 42, 0.1);
+  background: #ffffff;
+  color: #9ca3af;
+}

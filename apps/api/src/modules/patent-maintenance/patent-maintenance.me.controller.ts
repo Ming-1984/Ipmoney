@@ -33,6 +33,16 @@ export class PatentMaintenanceMeController {
     return await this.maintenance.createMyOrder(req, body || {});
   }
 
+  @Post('/listing-requests')
+  async createListingRequest(@Req() req: any, @Body() body: any) {
+    return await this.maintenance.createMyOrderFromListing(req, body || {});
+  }
+
+  @Post('/direct-requests')
+  async createDirectRequest(@Req() req: any, @Body() body: any) {
+    return await this.maintenance.createMyDirectOrder(req, body || {});
+  }
+
   @Get('/orders/:orderId')
   async getOrder(@Req() req: any, @Param('orderId') orderId: string) {
     return await this.maintenance.getMyOrder(req, orderId);

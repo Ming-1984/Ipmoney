@@ -117,7 +117,9 @@ export default function AddressManagePage() {
             <ErrorCard message={error} onRetry={load} />
           ) : list.length ? (
             <>
-              <Button onClick={addAddress}>新增地址</Button>
+              <Button className="address-add-button" onClick={addAddress}>
+                新增地址
+              </Button>
               <Spacer size={12} />
               <View className="address-list">
                 {list.map((addr) => (
@@ -127,18 +129,30 @@ export default function AddressManagePage() {
                       {addr.isDefault ? <Text className="address-tag">默认</Text> : null}
                     </View>
                     <Text className="muted">{addr.phone}</Text>
-                    <Text className="muted">{regionDisplayName(addr.regionCode, undefined, '-')}</Text>
+                    <Text className="muted">
+                      {regionDisplayName(addr.regionCode, undefined, '-')}
+                    </Text>
                     <Text className="muted">{addr.addressLine}</Text>
                     <View className="address-actions">
                       <Button
+                        className="address-action-button"
                         size="small"
                         variant="ghost"
-                        onClick={() => Taro.navigateTo({ url: `/subpackages/addresses/edit/index?id=${addr.id}` })}
+                        onClick={() =>
+                          Taro.navigateTo({
+                            url: `/subpackages/addresses/edit/index?id=${addr.id}`,
+                          })
+                        }
                       >
                         编辑
                       </Button>
                       {!addr.isDefault ? (
-                        <Button size="small" variant="ghost" onClick={() => void setDefault(addr.id)}>
+                        <Button
+                          className="address-action-button"
+                          size="small"
+                          variant="ghost"
+                          onClick={() => void setDefault(addr.id)}
+                        >
                           设为默认
                         </Button>
                       ) : null}

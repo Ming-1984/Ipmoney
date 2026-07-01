@@ -1578,6 +1578,28 @@ export class ListingsService {
     return patent;
   }
 
+  private async ensureUserOwnsPatentForListing(patentId: string | null | undefined, userId: string) {
+    if (!patentId) return;
+    const patent = await this.prisma.patent.findUnique({
+      where: { id: patentId },
+      select: { id: true, ownerUserId: true },
+    });
+    if (!patent) throw new NotFoundException({ code: 'NOT_FOUND', message: 'patent not found' });
+    if (patent.ownerUserId && patent.ownerUserId !== userId) {
+      throw new ForbiddenException({ code: 'FORBIDDEN', message: '该专利已归属其他用户，请先完成专利认领或联系平台处理' });
+    }
+    if (!patent.ownerUserId) {
+      await this.prisma.patent.update({
+        where: { id: patentId },
+        data: {
+          ownerUserId: userId,
+          ownerClaimedAt: new Date(),
+          ownerClaimSource: 'USER_CLAIM',
+        },
+      });
+    }
+  }
+
   private async updatePatentCore(patentId: string, body: any) {
     if (!patentId || !body) return;
     const hasLegalStatus = this.hasOwn(body, 'legalStatus');
@@ -3107,11 +3129,17 @@ export class ListingsService {
     const pageSize = Math.min(50, pageSizeInput);
     const hasAuditStatus = this.hasOwn(query, 'auditStatus');
     const hasStatus = this.hasOwn(query, 'status');
+    const hasExcludeStatus = this.hasOwn(query, 'excludeStatus');
     const auditStatus = hasAuditStatus ? this.parseAuditStatusStrict(query?.auditStatus, 'auditStatus') : undefined;
     const status = hasStatus ? this.parseListingStatusStrict(query?.status, 'status') : undefined;
+    const excludeStatus = hasExcludeStatus ? this.parseListingStatusStrict(query?.excludeStatus, 'excludeStatus') : undefined;
     const where: any = { sellerUserId: req.auth.userId };
     if (auditStatus) where.auditStatus = auditStatus;
-    if (status) where.status = status;
+    if (status) {
+      where.status = status;
+    } else if (excludeStatus) {
+      where.status = { not: excludeStatus };
+    }
     const items = await this.prisma.listing.findMany({
       where,
       include: { patent: { include: { parties: true, classifications: true } } },
@@ -3270,6 +3298,7 @@ export class ListingsService {
     const parsedSummary = hasSummary ? this.parseNullableTrimmedString(body?.summary) ?? null : undefined;
     const patent = await this.ensurePatent(body);
     if (patent) {
+      await this.ensureUserOwnsPatentForListing(patent.id, req.auth.userId);
       await Promise.all([
         this.syncPatentParties(patent.id, 'INVENTOR', body?.inventorNames),
         this.syncPatentParties(patent.id, 'ASSIGNEE', body?.assigneeNames),
@@ -3412,6 +3441,7 @@ export class ListingsService {
       const patent = await this.ensurePatent(body);
       if (patent) patentId = patent.id;
     }
+    await this.ensureUserOwnsPatentForListing(patentId, req.auth.userId);
     if (hasRegionCode) {
       this.assertRegionCodeRequiredForActiveStatus(regionCode, listing.status as ListingStatus);
     }
@@ -3491,6 +3521,7 @@ export class ListingsService {
     if (!listing || listing.sellerUserId !== req.auth.userId) {
       throw new NotFoundException({ code: 'NOT_FOUND', message: 'listing not found' });
     }
+    await this.ensureUserOwnsPatentForListing(listing.patentId, req.auth.userId);
     const proofFileIds = this.normalizeFileIds((listing as any).proofFileIdsJson);
     await this.assertOwnedFiles(req.auth.userId, proofFileIds, 'proofFileIds');
     await this.contentSecurity.assertSafeTexts(
@@ -3529,9 +3560,12 @@ export class ListingsService {
     return this.toAdminDto(updated);
   }
 
-  async offShelf(req: any, listingId: string) {
+  async offShelf(req: any, listingId: string, body: any = {}) {
     if (!req?.auth?.userId) {
       throw new ForbiddenException({ code: 'FORBIDDEN', message: 'forbidden' });
+    }
+    if (body?.confirmOffShelf !== true) {
+      throw new BadRequestException({ code: 'BAD_REQUEST', message: '请确认后再下架' });
     }
     const listing = await this.prisma.listing.findUnique({ where: { id: listingId } });
     if (!listing || listing.sellerUserId !== req.auth.userId) {

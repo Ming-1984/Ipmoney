@@ -520,12 +520,18 @@ export class AchievementsService {
     const pageSize = Math.min(50, pageSizeInput);
     const hasAuditStatus = this.hasOwn(query, 'auditStatus');
     const hasStatus = this.hasOwn(query, 'status');
+    const hasExcludeStatus = this.hasOwn(query, 'excludeStatus');
     const auditStatus = hasAuditStatus ? this.parseAuditStatusStrict(query?.auditStatus, 'auditStatus') : undefined;
     const status = hasStatus ? this.parseStatusStrict(query?.status, 'status') : undefined;
+    const excludeStatus = hasExcludeStatus ? this.parseStatusStrict(query?.excludeStatus, 'excludeStatus') : undefined;
 
     const where: any = { publisherUserId: req.auth.userId };
     if (auditStatus) where.auditStatus = auditStatus;
-    if (status) where.status = status;
+    if (status) {
+      where.status = status;
+    } else if (excludeStatus) {
+      where.status = { not: excludeStatus };
+    }
 
     const [items, total] = await Promise.all([
       this.prisma.achievement.findMany({

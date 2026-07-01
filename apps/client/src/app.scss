@@ -428,6 +428,104 @@ scroll-view {
   text-align: center;
 }
 
+.card-state-empty-plain {
+  min-height: 340rpx;
+  margin: 8rpx calc(0rpx - var(--page-padding)) 0;
+  padding: 82rpx var(--page-padding) 92rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+.card-state-empty-plain > .row {
+  width: 100%;
+  flex-direction: column;
+  align-items: center !important;
+  justify-content: center;
+  gap: 22rpx !important;
+}
+
+.card-state-empty-plain .min-w-0 {
+  width: 100%;
+  flex: none !important;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.card-state-empty-plain .icon-badge {
+  width: 68rpx;
+  height: 88rpx;
+  border: 0;
+  border-radius: 10rpx;
+  background: transparent;
+  position: relative;
+  overflow: visible;
+}
+
+.card-state-empty-plain .icon-badge::before {
+  content: '';
+  position: absolute;
+  left: 5rpx;
+  top: 0;
+  width: 48rpx;
+  height: 64rpx;
+  border: 8rpx solid #d9dde4;
+  border-radius: 8rpx;
+  background: transparent;
+  box-sizing: border-box;
+}
+
+.card-state-empty-plain .icon-badge::after {
+  content: '';
+  position: absolute;
+  right: 4rpx;
+  top: 0;
+  width: 22rpx;
+  height: 22rpx;
+  border-left: 8rpx solid #d9dde4;
+  border-bottom: 8rpx solid #d9dde4;
+  border-radius: 0 6rpx 0 6rpx;
+  background: var(--c-bg);
+  box-sizing: border-box;
+}
+
+.card-state-empty-plain .state-illust-core {
+  width: 28rpx;
+  height: 6rpx;
+  margin-top: 16rpx;
+  border-radius: 999rpx;
+  background: #d9dde4;
+  box-shadow: 0 16rpx 0 #d9dde4, 0 32rpx 0 #d9dde4;
+}
+
+.card-state-empty-plain .state-illust-core::before,
+.card-state-empty-plain .state-illust-core::after {
+  display: none;
+}
+
+.card-state-empty-plain .text-title {
+  font-size: 30rpx;
+  font-weight: 500;
+  line-height: 1.35;
+  color: #9aa3b2;
+}
+
+.card-state-empty-plain .text-subtitle {
+  max-width: 560rpx;
+  font-size: 26rpx;
+  line-height: 1.55;
+  color: #a8b0bd;
+}
+
+.card-state-empty-plain .nut-button {
+  margin-top: 10rpx;
+}
+
 .state-empty-hero {
   display: flex;
   flex-direction: column;

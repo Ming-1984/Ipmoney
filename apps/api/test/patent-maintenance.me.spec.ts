@@ -19,6 +19,11 @@ describe('PatentMaintenanceService me-scope suite', () => {
         findMany: vi.fn(),
         count: vi.fn(),
       },
+      patent: {
+        findUnique: vi.fn(),
+        create: vi.fn(),
+        update: vi.fn(),
+      },
       patentMaintenanceTask: {
         findMany: vi.fn(),
         count: vi.fn(),
@@ -26,7 +31,20 @@ describe('PatentMaintenanceService me-scope suite', () => {
       patentMaintenanceOrder: {
         findMany: vi.fn(),
         count: vi.fn(),
+        findFirst: vi.fn(),
+        create: vi.fn(),
       },
+      patentMaintenanceOrderEvent: {
+        create: vi.fn(),
+      },
+      idempotencyKey: {
+        findUnique: vi.fn(),
+        create: vi.fn(),
+        update: vi.fn(),
+        delete: vi.fn(),
+      },
+      $executeRaw: vi.fn(),
+      $transaction: vi.fn(async (handler: any) => await handler(prisma)),
     };
     service = new PatentMaintenanceService(prisma as any, { log: vi.fn().mockResolvedValue(undefined) } as any);
   });
@@ -269,5 +287,99 @@ describe('PatentMaintenanceService me-scope suite', () => {
       },
     });
     expect(result).toEqual({ overdue: 2, dueSoon: 5, openTasks: 3, openOrders: 4 });
+  });
+
+  it('createMyDirectOrder creates a private patent schedule and maintenance order without listing', async () => {
+    prisma.patent.findUnique.mockResolvedValueOnce(null);
+    prisma.patent.create.mockResolvedValueOnce({
+      id: PATENT_ID,
+      ownerUserId: USER_ID,
+      filingDate: null,
+      grantDate: null,
+    });
+    prisma.patentMaintenanceOrder.findFirst.mockResolvedValueOnce(null);
+    prisma.patentMaintenanceSchedule.upsert = vi.fn().mockResolvedValueOnce({ id: SCHEDULE_ID });
+    prisma.patentMaintenanceOrder.create.mockResolvedValueOnce({
+      id: ORDER_ID,
+      scheduleId: SCHEDULE_ID,
+      applicantUserId: USER_ID,
+      assignedCsUserId: null,
+      status: 'REQUESTED',
+      paymentChannel: null,
+      officialFeeFen: 0,
+      lateFeeFen: 0,
+      serviceFeeFen: 0,
+      totalAmountFen: 0,
+      paymentDeadline: null,
+      paidAt: null,
+      executedAt: null,
+      receiptIssuedAt: null,
+      officialSubmissionNo: null,
+      officialReceiptNo: null,
+      paymentTxnNo: null,
+      officialReceiptFileId: null,
+      reconcileStatus: 'PENDING',
+      reconcileNote: null,
+      closeNote: null,
+      createdAt: new Date('2026-03-01T00:00:00.000Z'),
+      updatedAt: new Date('2026-03-01T00:00:00.000Z'),
+      schedule: {
+        patentId: PATENT_ID,
+        yearNo: 2,
+        dueDate: new Date('2026-06-01T00:00:00.000Z'),
+        patent: {
+          title: 'Private patent',
+          applicationNoDisplay: '202311340972.0',
+          applicationNoNorm: '2023113409720',
+        },
+      },
+    });
+    prisma.patentMaintenanceOrderEvent.create.mockResolvedValueOnce({});
+
+    const result = await service.createMyDirectOrder(authReq, {
+      applicationNo: '202311340972.0',
+      title: 'Private patent',
+      patentType: 'INVENTION',
+      yearNo: 2,
+      dueDate: '2026-06-01',
+    });
+
+    expect(prisma.patent.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          ownerUserId: USER_ID,
+          applicationNoNorm: '2023113409720',
+          patentType: 'INVENTION',
+        }),
+      }),
+    );
+    expect((prisma as any).listing).toBeUndefined();
+    expect(prisma.patentMaintenanceOrder.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: {
+          scheduleId: SCHEDULE_ID,
+          applicantUserId: USER_ID,
+          status: 'REQUESTED',
+        },
+      }),
+    );
+    expect(result).toEqual(expect.objectContaining({ id: ORDER_ID, patentTitle: 'Private patent' }));
+  });
+
+  it('createMyDirectOrder rejects patents already owned by another user', async () => {
+    prisma.patent.findUnique.mockResolvedValueOnce({
+      id: PATENT_ID,
+      ownerUserId: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+      filingDate: null,
+      grantDate: null,
+    });
+
+    await expect(
+      service.createMyDirectOrder(authReq, {
+        applicationNo: '202311340972.0',
+        title: 'Private patent',
+        patentType: 'INVENTION',
+      }),
+    ).rejects.toBeInstanceOf(ForbiddenException);
   });
 });

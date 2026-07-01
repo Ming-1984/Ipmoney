@@ -554,7 +554,7 @@ export default function MePage() {
       },
       {
         key: 'maintenance',
-        label: '年费托管',
+        label: '年费代缴',
         icon: iconContractCenter,
         onClick: () => Taro.navigateTo({ url: '/subpackages/maintenance/index' }),
       },
