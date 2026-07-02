@@ -18,7 +18,6 @@ import homeIconInventionPatent from '../../assets/icons/home/home-invention-pate
 import homeIconOrganization from '../../assets/icons/home/home-organization.svg';
 import homeIconUtilityPatent from '../../assets/icons/home/home-utility-patent.svg';
 import homeIconAchievement from '../../assets/icons/home/home-achievement.svg';
-import logoGif from '../../assets/brand/logo.optim2.gif';
 import logoPng from '../../assets/brand/logo.png';
 import { STORAGE_KEYS } from '../../constants';
 import { getToken, onAuthChanged } from '../../lib/auth';
@@ -50,7 +49,6 @@ import { PullToRefresh, toast } from '../../ui/nutui';
 import { ListingCard } from '../../ui/ListingCard';
 import { ListingListSkeleton } from '../../ui/ListingSkeleton';
 import { ListFooter } from '../../ui/ListFooter';
-import GifImage from '../../ui/GifImage';
 
 type PagedListingSummary = components['schemas']['PagedListingSummary'];
 type ListingSummary = components['schemas']['ListingSummary'];
@@ -638,14 +636,7 @@ export default function HomePage() {
         <View className="home-hero-top">
           <View className="home-hero-brand">
             <View className="home-hero-logo">
-              <GifImage
-                src={logoGif}
-                fallbackSrc={logoPng}
-                deferOnWeapp
-                deferMs={1200}
-                mode="aspectFill"
-                className="home-hero-logo-img"
-              />
+              <Image src={logoPng} mode="aspectFill" className="home-hero-logo-img" />
             </View>
             <View className="home-hero-text">
               <Text className="home-hero-title">IPMONEY</Text>
